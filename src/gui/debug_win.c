@@ -19,7 +19,10 @@ struct reg_map_struct {
     char *name;
     int type;
     void *value;
-} reg_map[] = { {"R0", REG_INT, &sh4r.r[0]}, {"R1", REG_INT, &sh4r.r[1]},
+};
+
+struct reg_map_struct sh4_reg_map[] = 
+	          { {"R0", REG_INT, &sh4r.r[0]}, {"R1", REG_INT, &sh4r.r[1]},
                 {"R2", REG_INT, &sh4r.r[2]}, {"R3", REG_INT, &sh4r.r[3]},
                 {"R4", REG_INT, &sh4r.r[4]}, {"R5", REG_INT, &sh4r.r[5]},
                 {"R6", REG_INT, &sh4r.r[6]}, {"R7", REG_INT, &sh4r.r[7]},
@@ -55,12 +58,12 @@ void init_debug_win(GtkWidget *win)
 
     regs = gtk_object_get_data(GTK_OBJECT(win), "reg_list");
     arr[1] = buf;
-    for( i=0; reg_map[i].name != NULL; i++ ) {
-        arr[0] = reg_map[i].name;
-        if( reg_map[i].type == REG_INT )
-            sprintf( buf, "%08X", *((uint32_t *)reg_map[i].value) );
+    for( i=0; sh4_reg_map[i].name != NULL; i++ ) {
+        arr[0] = sh4_reg_map[i].name;
+        if( sh4_reg_map[i].type == REG_INT )
+            sprintf( buf, "%08X", *((uint32_t *)sh4_reg_map[i].value) );
         else
-            sprintf( buf, "%f", *((float *)reg_map[i].value) );
+            sprintf( buf, "%f", *((float *)sh4_reg_map[i].value) );
         gtk_clist_append( regs, arr );
     }
     gtk_widget_modify_font( GTK_WIDGET(regs), fixed_list_font );
@@ -81,23 +84,23 @@ void init_debug_win(GtkWidget *win)
 void update_registers( void )
 {
     int i;
-    for( i=0; reg_map[i].name != NULL; i++ ) {
-        if( reg_map[i].type == REG_INT ) {
+    for( i=0; sh4_reg_map[i].name != NULL; i++ ) {
+        if( sh4_reg_map[i].type == REG_INT ) {
             /* Yes this _is_ probably fairly evil */
-            if( *((uint32_t *)reg_map[i].value) !=
-                *((uint32_t *)((char *)&sh4r_s + ((char *)reg_map[i].value - (char *)&sh4r))) ) {
+            if( *((uint32_t *)sh4_reg_map[i].value) !=
+                *((uint32_t *)((char *)&sh4r_s + ((char *)sh4_reg_map[i].value - (char *)&sh4r))) ) {
                 char buf[20];
-                sprintf( buf, "%08X", *((uint32_t *)reg_map[i].value) );
+                sprintf( buf, "%08X", *((uint32_t *)sh4_reg_map[i].value) );
                 gtk_clist_set_text( regs, i, 1, buf );
                 gtk_clist_set_foreground( regs, i, &clrChanged );
             } else {
                 gtk_clist_set_foreground( regs, i, &clrNormal );
             }
         } else {
-            if( *((float *)reg_map[i].value) !=
-                *((float *)((char *)&sh4r_s + ((char *)reg_map[i].value - (char *)&sh4r))) ) {
+            if( *((float *)sh4_reg_map[i].value) !=
+                *((float *)((char *)&sh4r_s + ((char *)sh4_reg_map[i].value - (char *)&sh4r))) ) {
                 char buf[20];
-                sprintf( buf, "%f", *((float *)reg_map[i].value) );
+                sprintf( buf, "%f", *((float *)sh4_reg_map[i].value) );
                 gtk_clist_set_text( regs, i, 1, buf );
                 gtk_clist_set_foreground( regs, i, &clrChanged );
             } else {
