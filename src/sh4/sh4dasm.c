@@ -305,18 +305,22 @@ int sh4_disasm_instruction( int pc, char *buf, int len )
                         case 4: snprintf( buf, len, "FNEG    FR%d", RN(ir) ); break;
                         case 5: snprintf( buf, len, "FABS    FR%d", RN(ir) ); break;
                         case 6: snprintf( buf, len, "FSQRT   FR%d", RN(ir) ); break;
+                        case 7: snprintf( buf, len, "FSRRA   FR%d", RN(ir) ); break;
                         case 8: snprintf( buf, len, "FLDI0   FR%d", RN(ir) ); break;
                         case 9: snprintf( buf, len, "FLDI1   FR%d", RN(ir) ); break;
                         case 10:snprintf( buf, len, "FCNVSD  FPUL, DR%d", RN(ir)>>1 ); break;
                         case 11:snprintf( buf, len, "FCNVDS  DR%d, FPUL", RN(ir)>>1 ); break;
                         case 14:snprintf( buf, len, "FIPR    FV%d, FV%d", FVM(ir), FVN(ir) ); break;
                         case 15:
-                            if( FVM(ir) == 1 )
+                            if( (ir & 0x0300) == 0x0100 )
                                 snprintf( buf, len, "FTRV    XMTRX,FV%d", FVN(ir) );
+                            else if( (ir & 0x0100) == 0 )
+                                snprintf( buf, len, "FSCA    FPUL, DR%d", RN(ir) );
                             else if( ir == 0xFBFD )
                                 snprintf( buf, len, "FRCHG   " );
                             else if( ir == 0xF3FD )
                                 snprintf( buf, len, "FSCHG   " );
+                            else UNIMP(ir);
                             break;
                         default: UNIMP(ir);
                     }

@@ -59,7 +59,7 @@ void open_file( char *filename )
             sh4_set_pc( BOOTSTRAP_LOAD_ADDR + 0x300 );
             set_disassembly_region( BOOTSTRAP_LOAD_ADDR );
             set_disassembly_pc( sh4r.pc, TRUE );
-            update_registers();
+            update_gui();
         } else {
             /* look for a valid ISO9660 header */
             lseek( fd, 32768, SEEK_SET );

@@ -141,3 +141,37 @@ on_output_list_select_row              (GtkCList        *clist,
 void
 on_jump_pc_btn_clicked                 (GtkButton       *button,
                                         gpointer         user_data);
+
+void
+on_memory1_activate                    (GtkMenuItem     *menuitem,
+                                        gpointer         user_data);
+
+gboolean
+on_memory_win_delete_event             (GtkWidget       *widget,
+                                        GdkEvent        *event,
+                                        gpointer         user_data);
+
+void
+button_view_clicked                    (GtkButton       *button,
+                                        gpointer         user_data);
+
+void
+on_button_add_watch_clicked            (GtkButton       *button,
+                                        gpointer         user_data);
+
+void
+on_button_clear_all_clicked            (GtkButton       *button,
+                                        gpointer         user_data);
+
+void
+on_button_close_clicked                (GtkButton       *button,
+                                        gpointer         user_data);
+
+gboolean
+on_dump_win_delete_event               (GtkWidget       *widget,
+                                        GdkEvent        *event,
+                                        gpointer         user_data);
+
+void
+on_view_memory_activate                (GtkMenuItem     *menuitem,
+                                        gpointer         user_data);

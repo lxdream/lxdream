@@ -22,9 +22,13 @@ struct sh4_registers {
     uint32_t m, q, s, t; /* really boolean - 0 or 1 */
     float fr[2][16];
 
+    int32_t store_queue[16]; /* technically 2 banks of 32 bytes */
+    
     uint32_t new_pc; /* Not a real register, but used to handle delay slots */
     uint32_t icount; /* Also not a real register, instruction counter */
     uint32_t int_pending; /* flag set by the INTC = pending priority level */
+    int in_delay_slot; /* flag to indicate the current instruction is in
+                             * a delay slot (certain rules apply) */
 };
 
 extern struct sh4_registers sh4r;
@@ -66,7 +70,7 @@ void run_timers( int );
 
 #define IS_SH4_PRIVMODE() (sh4r.sr&SR_MD)
 #define SH4_INTMASK() ((sh4r.sr&SR_IMASK)>>4)
-#define SH4_INT_PENDING() (sh4r.int_pending)
+#define SH4_INT_PENDING() (sh4r.int_pending && !sh4r.in_delay_slot)
 
 #define FPSCR_FR     0x00200000 /* FPU register bank */
 #define FPSCR_SZ     0x00100000 /* FPU transfer size (0=32 bits, 1=64 bits) */
@@ -82,6 +86,7 @@ void run_timers( int );
 #define IS_FPU_ENABLED() ((sh4r.sr&SR_FD)==0)
 
 #define FR sh4r.fr[(sh4r.fpscr&FPSCR_FR)>>21]
+#define XF sh4r.fr[((~sh4r.fpscr)&FPSCR_FR)>>21]
 
 /* Exceptions (for use with sh4_raise_exception) */
 
@@ -100,7 +105,7 @@ void run_timers( int );
 #define EX_FPU_DISABLED        0x800, 0x100
 #define EX_SLOT_FPU_DISABLED   0x820, 0x100
 
-
+#define SH4_WRITE_STORE_QUEUE(addr,val) sh4r.store_queue[(addr>>2)&0xF] = val;
 
 #ifdef __cplusplus
 }

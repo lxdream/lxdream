@@ -3,7 +3,9 @@
 #include "mem.h"
 #include "sh4/intc.h"
 #include "asic.h"
+#include "dreamcast.h"
 #include "maple.h"
+#include "ide.h"
 #define MMIO_IMPL
 #include "asic.h"
 /*
@@ -39,10 +41,10 @@ void mmio_region_ASIC_write( uint32_t reg, uint32_t val )
             MMIO_WRITE( ASIC, reg, val );
             if( val & 1 ) {
                 uint32_t maple_addr = MMIO_READ( ASIC, MAPLE_DMA) &0x1FFFFFE0;
-//                maple_handle_buffer( maple_addr );
-		WARN( "Maple request initiated, halting" );
+		WARN( "Maple request initiated at %08X, halting", maple_addr );
+                maple_handle_buffer( maple_addr );
                 MMIO_WRITE( ASIC, reg, 0 );
-                sh4_stop();
+//                dreamcast_stop();
             }
             break;
         default:
@@ -56,6 +58,11 @@ int32_t mmio_region_ASIC_read( uint32_t reg )
 {
     int32_t val;
     switch( reg ) {
+        /*
+        case 0x89C:
+            sh4_stop();
+            return 0x000000B;
+        */     
         case PIRQ0:
         case PIRQ1:
         case PIRQ2:
@@ -91,13 +98,63 @@ void asic_event( int event )
 
 MMIO_REGION_WRITE_FN( EXTDMA, reg, val )
 {
-    MMIO_WRITE( EXTDMA, reg, val );
+    switch( reg ) {
+        case IDEALTSTATUS: /* Device control */
+            ide_write_control( val );
+            break;
+        case IDEDATA:
+            ide_write_data_pio( val );
+            break;
+        case IDEFEAT:
+            if( ide_can_write_regs() )
+                idereg.feature = (uint8_t)val;
+            break;
+        case IDECOUNT:
+            if( ide_can_write_regs() )
+                idereg.count = (uint8_t)val;
+            break;
+        case IDELBA0:
+            if( ide_can_write_regs() )
+                idereg.lba0 = (uint8_t)val;
+            break;
+        case IDELBA1:
+            if( ide_can_write_regs() )
+                idereg.lba1 = (uint8_t)val;
+            break;
+        case IDELBA2:
+            if( ide_can_write_regs() )
+                idereg.lba2 = (uint8_t)val;
+            break;
+        case IDEDEV:
+            if( ide_can_write_regs() )
+                idereg.device = (uint8_t)val;
+            break;
+        case IDECMD:
+            if( ide_can_write_regs() ) {
+                ide_clear_interrupt();
+                ide_write_command( (uint8_t)val );
+            }
+            break;
+            
+        default:
+            MMIO_WRITE( EXTDMA, reg, val );
+    }
 }
 
 MMIO_REGION_READ_FN( EXTDMA, reg )
 {
     switch( reg ) {
-        case GDBUSY: return 0;
+        case IDEALTSTATUS: return idereg.status;
+        case IDEDATA: return ide_read_data_pio( );
+        case IDEFEAT: return idereg.error;
+        case IDECOUNT:return idereg.count;
+        case IDELBA0: return idereg.disc;
+        case IDELBA1: return idereg.lba1;
+        case IDELBA2: return idereg.lba2;
+        case IDEDEV: return idereg.device;
+        case IDECMD:
+            ide_clear_interrupt();
+            return idereg.status;
         default:
             return MMIO_READ( EXTDMA, reg );
     }

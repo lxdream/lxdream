@@ -28,49 +28,26 @@
 
 static GnomeUIInfo file1_menu_uiinfo[] =
 {
-  {
-    GNOME_APP_UI_ITEM, N_("gtk-new"),
-    NULL,
-    (gpointer) on_new_file1_activate, NULL, NULL,
-    GNOME_APP_PIXMAP_NONE, NULL,
-    0, (GdkModifierType) 0, NULL
-  },
-  {
-    GNOME_APP_UI_ITEM, N_("gtk-open"),
-    NULL,
-    (gpointer) on_open1_activate, NULL, NULL,
-    GNOME_APP_PIXMAP_NONE, NULL,
-    0, (GdkModifierType) 0, NULL
-  },
-  {
-    GNOME_APP_UI_ITEM, N_("gtk-save"),
-    NULL,
-    (gpointer) on_save1_activate, NULL, NULL,
-    GNOME_APP_PIXMAP_NONE, NULL,
-    0, (GdkModifierType) 0, NULL
-  },
-  {
-    GNOME_APP_UI_ITEM, N_("gtk-save-as"),
-    NULL,
-    (gpointer) on_save_as1_activate, NULL, NULL,
-    GNOME_APP_PIXMAP_NONE, NULL,
-    0, (GdkModifierType) 0, NULL
-  },
+  GNOMEUIINFO_MENU_NEW_ITEM (N_("_New"), NULL, on_new_file1_activate, NULL),
+  GNOMEUIINFO_MENU_OPEN_ITEM (on_open1_activate, NULL),
+  GNOMEUIINFO_MENU_SAVE_ITEM (on_save1_activate, NULL),
+  GNOMEUIINFO_MENU_SAVE_AS_ITEM (on_save_as1_activate, NULL),
   GNOMEUIINFO_SEPARATOR,
-  {
-    GNOME_APP_UI_ITEM, N_("gtk-quit"),
-    NULL,
-    (gpointer) on_exit1_activate, NULL, NULL,
-    GNOME_APP_PIXMAP_NONE, NULL,
-    0, (GdkModifierType) 0, NULL
-  },
+  GNOMEUIINFO_MENU_EXIT_ITEM (on_exit1_activate, NULL),
   GNOMEUIINFO_END
 };
 
 static GnomeUIInfo view1_menu_uiinfo[] =
 {
   {
-    GNOME_APP_UI_ITEM, N_("Mem mapped Regs"),
+    GNOME_APP_UI_ITEM, N_("Memory..."),
+    NULL,
+    (gpointer) on_view_memory_activate, NULL, NULL,
+    GNOME_APP_PIXMAP_NONE, NULL,
+    0, (GdkModifierType) 0, NULL
+  },
+  {
+    GNOME_APP_UI_ITEM, N_("Mem mapped Regs..."),
     NULL,
     (gpointer) on_mem_mapped_regs1_activate, NULL, NULL,
     GNOME_APP_PIXMAP_NONE, NULL,
@@ -81,25 +58,13 @@ static GnomeUIInfo view1_menu_uiinfo[] =
 
 static GnomeUIInfo settings1_menu_uiinfo[] =
 {
-  {
-    GNOME_APP_UI_ITEM, N_("gtk-preferences"),
-    NULL,
-    (gpointer) on_preferences1_activate, NULL, NULL,
-    GNOME_APP_PIXMAP_NONE, NULL,
-    0, (GdkModifierType) 0, NULL
-  },
+  GNOMEUIINFO_MENU_PREFERENCES_ITEM (on_preferences1_activate, NULL),
   GNOMEUIINFO_END
 };
 
 static GnomeUIInfo help1_menu_uiinfo[] =
 {
-  {
-    GNOME_APP_UI_ITEM, N_("gnome-stock-about"),
-    NULL,
-    (gpointer) on_about1_activate, NULL, NULL,
-    GNOME_APP_PIXMAP_NONE, NULL,
-    0, (GdkModifierType) 0, NULL
-  },
+  GNOMEUIINFO_MENU_ABOUT_ITEM (on_about1_activate, NULL),
   GNOMEUIINFO_END
 };
 
@@ -466,7 +431,8 @@ create_debug_win (void)
   GLADE_HOOKUP_OBJECT (debug_win, file1_menu_uiinfo[4].widget, "separator1");
   GLADE_HOOKUP_OBJECT (debug_win, file1_menu_uiinfo[5].widget, "exit1");
   GLADE_HOOKUP_OBJECT (debug_win, menubar1_uiinfo[1].widget, "view1");
-  GLADE_HOOKUP_OBJECT (debug_win, view1_menu_uiinfo[0].widget, "mem_mapped_regs1");
+  GLADE_HOOKUP_OBJECT (debug_win, view1_menu_uiinfo[0].widget, "view_memory");
+  GLADE_HOOKUP_OBJECT (debug_win, view1_menu_uiinfo[1].widget, "mem_mapped_regs1");
   GLADE_HOOKUP_OBJECT (debug_win, menubar1_uiinfo[2].widget, "settings1");
   GLADE_HOOKUP_OBJECT (debug_win, settings1_menu_uiinfo[0].widget, "preferences1");
   GLADE_HOOKUP_OBJECT (debug_win, menubar1_uiinfo[3].widget, "help1");
@@ -601,5 +567,202 @@ create_about_win (void)
   GLADE_HOOKUP_OBJECT_NO_REF (about_win, about_win, "about_win");
 
   return about_win;
+}
+
+GtkWidget*
+create_dump_win (void)
+{
+  GtkWidget *dump_win;
+  GtkWidget *vbox3;
+  GtkWidget *hbox2;
+  GtkWidget *label34;
+  GtkWidget *dump_from;
+  GtkWidget *label35;
+  GtkWidget *dump_to;
+  GtkWidget *dump_view_button;
+  GtkWidget *label36;
+  GtkWidget *scrolledwindow9;
+  GtkWidget *dump_text;
+
+  dump_win = gtk_window_new (GTK_WINDOW_TOPLEVEL);
+  gtk_window_set_title (GTK_WINDOW (dump_win), _("Memory dump"));
+
+  vbox3 = gtk_vbox_new (FALSE, 0);
+  gtk_widget_show (vbox3);
+  gtk_container_add (GTK_CONTAINER (dump_win), vbox3);
+
+  hbox2 = gtk_hbox_new (FALSE, 0);
+  gtk_widget_show (hbox2);
+  gtk_box_pack_start (GTK_BOX (vbox3), hbox2, FALSE, TRUE, 3);
+
+  label34 = gtk_label_new (_(" From "));
+  gtk_widget_show (label34);
+  gtk_box_pack_start (GTK_BOX (hbox2), label34, FALSE, FALSE, 0);
+
+  dump_from = gtk_entry_new ();
+  gtk_widget_show (dump_from);
+  gtk_box_pack_start (GTK_BOX (hbox2), dump_from, FALSE, TRUE, 0);
+
+  label35 = gtk_label_new (_(" To "));
+  gtk_widget_show (label35);
+  gtk_box_pack_start (GTK_BOX (hbox2), label35, FALSE, FALSE, 0);
+
+  dump_to = gtk_entry_new ();
+  gtk_widget_show (dump_to);
+  gtk_box_pack_start (GTK_BOX (hbox2), dump_to, FALSE, TRUE, 0);
+
+  dump_view_button = gtk_button_new_with_mnemonic (_("View"));
+  gtk_widget_show (dump_view_button);
+  gtk_box_pack_start (GTK_BOX (hbox2), dump_view_button, FALSE, FALSE, 0);
+
+  label36 = gtk_label_new (_("   "));
+  gtk_widget_show (label36);
+  gtk_box_pack_start (GTK_BOX (hbox2), label36, TRUE, TRUE, 0);
+
+  scrolledwindow9 = gtk_scrolled_window_new (NULL, NULL);
+  gtk_widget_show (scrolledwindow9);
+  gtk_box_pack_start (GTK_BOX (vbox3), scrolledwindow9, TRUE, TRUE, 0);
+  gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolledwindow9), GTK_SHADOW_IN);
+
+  dump_text = gtk_text_view_new ();
+  gtk_widget_show (dump_text);
+  gtk_container_add (GTK_CONTAINER (scrolledwindow9), dump_text);
+
+  /* Store pointers to all widgets, for use by lookup_widget(). */
+  GLADE_HOOKUP_OBJECT_NO_REF (dump_win, dump_win, "dump_win");
+  GLADE_HOOKUP_OBJECT (dump_win, vbox3, "vbox3");
+  GLADE_HOOKUP_OBJECT (dump_win, hbox2, "hbox2");
+  GLADE_HOOKUP_OBJECT (dump_win, label34, "label34");
+  GLADE_HOOKUP_OBJECT (dump_win, dump_from, "dump_from");
+  GLADE_HOOKUP_OBJECT (dump_win, label35, "label35");
+  GLADE_HOOKUP_OBJECT (dump_win, dump_to, "dump_to");
+  GLADE_HOOKUP_OBJECT (dump_win, dump_view_button, "dump_view_button");
+  GLADE_HOOKUP_OBJECT (dump_win, label36, "label36");
+  GLADE_HOOKUP_OBJECT (dump_win, scrolledwindow9, "scrolledwindow9");
+  GLADE_HOOKUP_OBJECT (dump_win, dump_text, "dump_text");
+
+  return dump_win;
+}
+
+GtkWidget*
+create_watch_win (void)
+{
+  GtkWidget *watch_win;
+  GtkWidget *vbox4;
+  GtkWidget *hbox4;
+  GtkWidget *label37;
+  GtkWidget *watch_start_addr;
+  GtkWidget *label38;
+  GtkWidget *watch_end_addr;
+  GtkWidget *label39;
+  GtkWidget *combo1;
+  GtkWidget *watch_type;
+  GtkWidget *button_add_watch;
+  GtkWidget *scrolledwindow10;
+  GtkWidget *treeview1;
+  GtkWidget *hbox5;
+  GtkWidget *label40;
+  GtkWidget *button_clear_all;
+  GtkWidget *button_close;
+
+  watch_win = gtk_window_new (GTK_WINDOW_TOPLEVEL);
+  gtk_window_set_title (GTK_WINDOW (watch_win), _("Watchpoints"));
+
+  vbox4 = gtk_vbox_new (FALSE, 0);
+  gtk_widget_show (vbox4);
+  gtk_container_add (GTK_CONTAINER (watch_win), vbox4);
+
+  hbox4 = gtk_hbox_new (FALSE, 0);
+  gtk_widget_show (hbox4);
+  gtk_box_pack_start (GTK_BOX (vbox4), hbox4, FALSE, TRUE, 3);
+
+  label37 = gtk_label_new (_("Start addr "));
+  gtk_widget_show (label37);
+  gtk_box_pack_start (GTK_BOX (hbox4), label37, FALSE, FALSE, 3);
+
+  watch_start_addr = gtk_entry_new ();
+  gtk_widget_show (watch_start_addr);
+  gtk_box_pack_start (GTK_BOX (hbox4), watch_start_addr, FALSE, TRUE, 0);
+
+  label38 = gtk_label_new (_("End addr"));
+  gtk_widget_show (label38);
+  gtk_box_pack_start (GTK_BOX (hbox4), label38, FALSE, FALSE, 3);
+
+  watch_end_addr = gtk_entry_new ();
+  gtk_widget_show (watch_end_addr);
+  gtk_box_pack_start (GTK_BOX (hbox4), watch_end_addr, FALSE, TRUE, 0);
+
+  label39 = gtk_label_new (_("Type"));
+  gtk_widget_show (label39);
+  gtk_box_pack_start (GTK_BOX (hbox4), label39, FALSE, FALSE, 3);
+
+  combo1 = gtk_combo_new ();
+  g_object_set_data (G_OBJECT (GTK_COMBO (combo1)->popwin),
+                     "GladeParentKey", combo1);
+  gtk_widget_show (combo1);
+  gtk_box_pack_start (GTK_BOX (hbox4), combo1, TRUE, TRUE, 0);
+
+  watch_type = GTK_COMBO (combo1)->entry;
+  gtk_widget_show (watch_type);
+
+  button_add_watch = gtk_button_new_with_mnemonic (_("Add Watch"));
+  gtk_widget_show (button_add_watch);
+  gtk_box_pack_start (GTK_BOX (hbox4), button_add_watch, FALSE, FALSE, 3);
+
+  scrolledwindow10 = gtk_scrolled_window_new (NULL, NULL);
+  gtk_widget_show (scrolledwindow10);
+  gtk_box_pack_start (GTK_BOX (vbox4), scrolledwindow10, TRUE, TRUE, 0);
+
+  treeview1 = gtk_tree_view_new ();
+  gtk_widget_show (treeview1);
+  gtk_container_add (GTK_CONTAINER (scrolledwindow10), treeview1);
+  gtk_tree_view_set_enable_search (GTK_TREE_VIEW (treeview1), FALSE);
+
+  hbox5 = gtk_hbox_new (FALSE, 0);
+  gtk_widget_show (hbox5);
+  gtk_box_pack_start (GTK_BOX (vbox4), hbox5, FALSE, TRUE, 3);
+
+  label40 = gtk_label_new ("");
+  gtk_widget_show (label40);
+  gtk_box_pack_start (GTK_BOX (hbox5), label40, TRUE, TRUE, 0);
+
+  button_clear_all = gtk_button_new_with_mnemonic (_("Clear all"));
+  gtk_widget_show (button_clear_all);
+  gtk_box_pack_start (GTK_BOX (hbox5), button_clear_all, FALSE, FALSE, 3);
+
+  button_close = gtk_button_new_with_mnemonic (_("Close"));
+  gtk_widget_show (button_close);
+  gtk_box_pack_start (GTK_BOX (hbox5), button_close, FALSE, FALSE, 5);
+
+  g_signal_connect ((gpointer) button_add_watch, "clicked",
+                    G_CALLBACK (on_button_add_watch_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) button_clear_all, "clicked",
+                    G_CALLBACK (on_button_clear_all_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) button_close, "clicked",
+                    G_CALLBACK (on_button_close_clicked),
+                    NULL);
+
+  /* Store pointers to all widgets, for use by lookup_widget(). */
+  GLADE_HOOKUP_OBJECT_NO_REF (watch_win, watch_win, "watch_win");
+  GLADE_HOOKUP_OBJECT (watch_win, vbox4, "vbox4");
+  GLADE_HOOKUP_OBJECT (watch_win, hbox4, "hbox4");
+  GLADE_HOOKUP_OBJECT (watch_win, label37, "label37");
+  GLADE_HOOKUP_OBJECT (watch_win, watch_start_addr, "watch_start_addr");
+  GLADE_HOOKUP_OBJECT (watch_win, label38, "label38");
+  GLADE_HOOKUP_OBJECT (watch_win, watch_end_addr, "watch_end_addr");
+  GLADE_HOOKUP_OBJECT (watch_win, label39, "label39");
+  GLADE_HOOKUP_OBJECT (watch_win, combo1, "combo1");
+  GLADE_HOOKUP_OBJECT (watch_win, watch_type, "watch_type");
+  GLADE_HOOKUP_OBJECT (watch_win, button_add_watch, "button_add_watch");
+  GLADE_HOOKUP_OBJECT (watch_win, scrolledwindow10, "scrolledwindow10");
+  GLADE_HOOKUP_OBJECT (watch_win, treeview1, "treeview1");
+  GLADE_HOOKUP_OBJECT (watch_win, hbox5, "hbox5");
+  GLADE_HOOKUP_OBJECT (watch_win, label40, "label40");
+  GLADE_HOOKUP_OBJECT (watch_win, button_clear_all, "button_clear_all");
+  GLADE_HOOKUP_OBJECT (watch_win, button_close, "button_close");
+
+  return watch_win;
 }
 

@@ -4,24 +4,213 @@
 #include "asic.h"
 #include "maple.h"
 
+/**
+ * Input data looks like this:
+ *    0: transfer control word
+ *      0: length of data in words (not including 3 word header)
+ *      1: low bit = lightgun mode
+ *      2: low 2 bits = port # (0..3)
+ *      3: 0x80 = last packet, 0x00 = normal packet
+ *    4: output buffer address
+ *    8: Command word
+ *      8: command code
+ *      9: destination address
+ *     10: source address
+ *     11: length of data in words (not including 3 word header)
+ *   12: command-specific data
+ */
+
+/**
+ * array is [port][subperipheral], so [0][0] is main peripheral on port A,
+ * [1][2] is the second subperipheral on port B and so on.
+ */
+maple_device_t maple_devices[4][6];
+int maple_periph_mask[4];
+#define GETBYTE(n) ((uint32_t)(buf[n]))
+#define GETWORD(n) (*((uint32_t *)(buf+(n))))
+#define PUTBYTE(n,x) (buf[n] = (char)x)
+#define PUTWORD(n,x) (*((uint32_t *)(return_buf+(n))) = (x))
+
 void maple_handle_buffer( uint32_t address ) {
-    uint32_t *buf = (uint32_t *)mem_get_region(address);
+    unsigned char *buf = (unsigned char *)mem_get_region(address);
     if( buf == NULL ) {
         ERROR( "Invalid or unmapped buffer passed to maple (0x%08X)", address );
     } else {
-        int last, port, length, cmd, recv_addr, send_addr, add_length;
-        int i = 0;
-        do {
-            last = buf[i]>>31; /* indicates last packet */
-            port = (buf[i]>>16)&0x03;
-            length = buf[i]&0x0F; 
-            uint32_t return_address = buf[i+1];
-            cmd = buf[i+2]&0xFF;
-            recv_addr = (buf[i+2]>>8)&0xFF;
-            send_addr = (buf[i+2]>>16)&0xFF;
-            add_length = (buf[i+2]>>24)&0xFF;
-            char *return_buf = mem_get_region(return_address);
+        unsigned int last = 0;
+        int i = 0, count;
+        for( count=0; !last; count++ ) {
+            unsigned int port, length, gun, periph, periph_id, out_length;
+            unsigned int cmd, recv_addr, send_addr;
+            uint32_t return_addr;
+            unsigned char *return_buf;
             
-        } while( !last );
+            last = GETBYTE(3) & 0x80; /* indicates last packet */
+            port = GETBYTE(2) & 0x03;
+            gun = GETBYTE(1) & 0x01;
+            length = GETBYTE(0) & 0xFF;
+            return_addr = GETWORD(4);
+            if( return_addr == 0 ) {
+                /* ERROR */
+            }
+            return_buf = mem_get_region(return_addr);
+            cmd = GETBYTE(8);
+            recv_addr = GETBYTE(9);
+            send_addr = GETBYTE(10);
+            /* Sanity checks */
+            if( GETBYTE(11) != length ||
+                send_addr != (port<<6) ||
+                recv_addr >> 6 != port ||
+                return_buf == NULL ) {
+                /* ERROR */
+            }
+            periph = 0;
+            periph_id = recv_addr & 0x3F;
+            if( periph_id != 0x20 ) {
+                for( i=0;i<5;i++ ) {
+                    if( periph_id == (1<<i) ) {
+                        periph = i+1;
+                        break;
+                    }
+                }
+                if( periph == 0 ) { /* Bad setting */
+                    /* ERROR */
+                }
+            }
+
+            INFO( "Maple packet %d: Cmd %d on port %d device %d", count, cmd, port, periph );
+            maple_device_t dev = maple_devices[port][periph];
+            if( dev == NULL ) {
+                /* no device attached */
+                *((uint32_t *)return_buf) = -1;
+            } else {
+                int status, func, block;
+                out_length = 0;
+                switch( cmd ) {
+                    case MAPLE_CMD_INFO:
+                        status = MAPLE_RESP_INFO;
+                        memcpy( return_buf+4, dev->ident, 112 );
+                        out_length = 0x1C;
+                        break;
+                    case MAPLE_CMD_EXT_INFO:
+                        status = MAPLE_RESP_EXT_INFO;
+                        memcpy( return_buf+4, dev->ident, 192 );
+                        out_length = 0x30;
+                        break;
+                    case MAPLE_CMD_RESET:
+                        if( dev->reset == NULL )
+                            status = MAPLE_RESP_ACK;
+                        else status = dev->reset(dev);
+                        break;
+                    case MAPLE_CMD_SHUTDOWN:
+                        if( dev->shutdown == NULL )
+                            status = MAPLE_RESP_ACK;
+                        else status = dev->shutdown(dev);
+                        break;
+                    case MAPLE_CMD_GET_COND:
+                        func = GETWORD(12);
+                        if( dev->get_condition == NULL )
+                            status = MAPLE_ERR_CMD_UNKNOWN;
+                        else status = dev->get_condition(dev, func,
+                                                         return_buf+8,
+                                                         &out_length );
+                        if( status == 0 ) {
+                            status = MAPLE_RESP_DATA;
+                            PUTWORD(4,func);
+                        }
+                        break;
+                    case MAPLE_CMD_SET_COND:
+                        func = GETWORD(12);
+                        if( dev->set_condition == NULL )
+                            status = MAPLE_ERR_CMD_UNKNOWN;
+                        else status = dev->set_condition(dev, func,
+                                                         buf+16,
+                                                         length);
+                        if( status == 0 )
+                            status = MAPLE_RESP_ACK;
+                        break;
+                    case MAPLE_CMD_READ_BLOCK:
+                        func = GETWORD(12);
+                        block = GETWORD(16);
+                        if( dev->read_block == NULL )
+                            status = MAPLE_ERR_CMD_UNKNOWN;
+                        else status = dev->read_block(dev, func, block,
+                                                      return_buf+12,
+                                                      &out_length );
+                        if( status == 0 ) {
+                            status = MAPLE_RESP_DATA;
+                            PUTWORD(4,func);
+                            PUTWORD(8,block);
+                        }
+                        break;
+                    case MAPLE_CMD_WRITE_BLOCK:
+                        func = GETWORD(12);
+                        block = GETWORD(16);
+                        if( dev->write_block == NULL )
+                            status = MAPLE_ERR_CMD_UNKNOWN;
+                        else {
+                            status = dev->write_block(dev, func, block, 
+                                                      buf+20, length);
+                            if( status == 0 )
+                                status = MAPLE_RESP_ACK;
+                        }
+                        break;
+                    default:
+                        status = MAPLE_ERR_CMD_UNKNOWN;
+                }
+                return_buf[0] = status;
+                return_buf[1] = send_addr;
+                return_buf[2] = recv_addr;
+                if( periph == 0 )
+                    return_buf[2] |= maple_periph_mask[port];
+                return_buf[3] = out_length;
+            }
+            buf += 12 + (length<<2);
+        }
+        asic_event( EVENT_MAPLE_DMA );
     }
+}
+
+void maple_attach_device( maple_device_t dev, unsigned int port,
+                          unsigned int periph ) {
+    assert( port < 4 );
+    assert( periph < 6 );
+
+    if( maple_devices[port][periph] != NULL ) {
+        /* Detach existing peripheral first */
+        maple_detach_device( port, periph );
+    }
+    
+    maple_devices[port][periph] = dev;
+    if( periph != 0 )
+        maple_periph_mask[port] |= (1<<(periph-1));
+    else maple_periph_mask[port] |= 0x20;
+    if( dev->attach != NULL ) {
+        dev->attach( dev );
+    }
+}
+
+void maple_detach_device( unsigned int port, unsigned int periph ) {
+    assert( port < 4 );
+    assert( periph < 6 );
+
+    maple_device_t dev = maple_devices[port][periph];
+    if( dev == NULL ) /* already detached */
+        return;
+    maple_devices[port][periph] = NULL;
+    if( dev->detach != NULL ) {
+        dev->detach(dev);
+    }
+    if( periph == 0 ) {
+        /* If we detach the main peripheral, we also have to detach all the
+         * subperipherals, or the system could get quite confused
+         */
+        int i;
+        maple_periph_mask[port] = 0;
+        for( i=1; i<6; i++ ) {
+            maple_detach_device(port,i);
+        }
+    } else {
+        maple_periph_mask[port] &= (~(1<<(periph-1)));
+    }
+                                    
 }

@@ -12,6 +12,7 @@
 #include "interface.h"
 #include "gui.h"
 #include "sh4core.h"
+#include "mem.h"
 
 
 int
@@ -24,16 +25,18 @@ main (int argc, char *argv[])
   textdomain (PACKAGE);
 #endif
   gnome_init ("dreamon", VERSION, argc, argv);
-
+  init_gui();
   debug_win = create_debug_win ();
   init_debug_win(debug_win);
   video_open();
-  machine_init();
+  dreamcast_init();
   init_mmr_win(); /* Note: must be done after sh4_init */
   sh4_reset();
-  update_registers();
+  update_gui();
   gtk_widget_show (debug_win);
   set_disassembly_region( 0xA0000000 );
+  // mem_new_watch( 0x0C204818, 0x0C204830, WATCH_WRITE );
+  
   emit( EMIT_INFO, -1, "DreamOn! ready..." );
 
   gtk_main ();

@@ -89,7 +89,7 @@ MMIO_REGION_READ_FN( PVR2, reg )
 {
     switch( reg ) {
         case BEAMPOS:
-            return sh4r.icount&0x20 ? 0x2000 : 0;
+            return sh4r.icount&0x20 ? 0x2000 : 1;
         default:
             return MMIO_READ( PVR2, reg );
     }
