@@ -5,7 +5,7 @@
 #include "dream.h"
 #include <stdint.h>
 
-
+#define ROTATE_RIGHT_LONG(operand,shift) ((((uint32_t)operand) >> shift) | ((operand<<(32-shift))) )
 
 struct arm_registers {
   uint32_t r[16]; /* Current register bank */
