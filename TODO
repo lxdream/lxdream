@@ -1,0 +1,15 @@
+Immediate stuff to look at:
+
+  * Maple bus 
+     - various controllers
+
+  * IDE/GDRom drive
+     - cd-file interface (cdi, bin/cue, , nrg, mds, etc)
+
+And then
+  * EXTDMA unit
+  * PowerVR chip
+  * Sound chip
+      - ARM7trm cpu core (yeah, this one will be fun)
+      - DSP side
+  * network adapter
