@@ -45,7 +45,7 @@ void mem_delete_watch( watch_point_t watch )
         return;
     int num = watch - watch_arr;
     if( num < 0 || num >= watch_capacity )
-        return NULL;
+        return;
     watch->start = watch->end = 0;
     watch->flags = 0;
     watch_count--;
