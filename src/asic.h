@@ -1,0 +1,127 @@
+#include "mmio.h"
+
+/**
+ * ASIC interrupts are mappable to any (or all of) 3 actual CPU IRQ lines.
+ * events selected for IRQA trigger IRQ 13, IRQB => 11 and IRQC => 9.
+ */
+
+MMIO_REGION_BEGIN( 0x005F6000, ASIC, "System ASIC" )
+    LONG_PORT( 0x884, ASICUNK1, PORT_MRW, 0, "ASIC <unknown1>" )
+    LONG_PORT( 0x888, ASICUNK2, PORT_MRW, 0, "ASIC <unknown2>" )
+    LONG_PORT( 0x88C, G2STATUS, PORT_MR, 0, "G2 Bus status" )
+    LONG_PORT( 0x900, PIRQ0, PORT_MRW, 0, "Pending interrupts 0" )
+    LONG_PORT( 0x904, PIRQ1, PORT_MRW, 0, "Pending interrupts 1" )
+    LONG_PORT( 0x908, PIRQ2, PORT_MRW, 0, "Pending interrupts 2" )
+    LONG_PORT( 0x910, IRQA0, PORT_MRW, 0, "IRQ A event map 0" )
+    LONG_PORT( 0x914, IRQA1, PORT_MRW, 0, "IRQ A event map 1" )
+    LONG_PORT( 0x918, IRQA2, PORT_MRW, 0, "IRQ A event map 2" )
+    LONG_PORT( 0x920, IRQB0, PORT_MRW, 0, "IRQ B event map 0" )
+    LONG_PORT( 0x924, IRQB1, PORT_MRW, 0, "IRQ B event map 1" )
+    LONG_PORT( 0x928, IRQB2, PORT_MRW, 0, "IRQ B event map 2" )
+    LONG_PORT( 0x930, IRQC0, PORT_MRW, 0, "IRQ C event map 0" )
+    LONG_PORT( 0x934, IRQC1, PORT_MRW, 0, "IRQ C event map 1" )
+    LONG_PORT( 0x938, IRQC2, PORT_MRW, 0, "IRQ C event map 2" )
+
+    LONG_PORT( 0xC04, MAPLE_DMA, PORT_MRW, UNDEFINED, "Maple DMA Address" )
+    LONG_PORT( 0xC10, MAPLE_RESET2, PORT_MRW, UNDEFINED, "Maple Reset 2" )
+    LONG_PORT( 0xC14, MAPLE_ENABLE, PORT_MRW, UNDEFINED, "Maple Enable" )
+    LONG_PORT( 0xC18, MAPLE_STATE, PORT_MRW, 0, "Maple State" )
+    LONG_PORT( 0xC80, MAPLE_SPEED, PORT_MRW, UNDEFINED, "Maple Speed" )
+    LONG_PORT( 0xC8C, MAPLE_RESET1, PORT_MRW, UNDEFINED, "Maple Reset 1" )
+MMIO_REGION_END
+
+MMIO_REGION_BEGIN( 0x005F7000, EXTDMA, "ASIC External DMA" )
+    BYTE_PORT( 0x018, GDBUSY, PORT_MRW, 0, "GD-Rom Busy" )
+    WORD_PORT( 0x080, GDDATA, PORT_MRW, 0, "GD-Rom Data" )
+    BYTE_PORT( 0x084, GDFEAT, PORT_MRW, 0, "GD-Rom Feature" )
+    BYTE_PORT( 0x088, GDSECTOR, PORT_MRW, 0, "GD-Rom Sector Count" )
+    BYTE_PORT( 0x08C, GDNSECTOR, PORT_MRW, 0, "GD-Rom Sector" )
+    BYTE_PORT( 0x090, GDCMDLENLO, PORT_MRW, 0, "GD-Rom Command length low" )
+    BYTE_PORT( 0x094, GDCMDLENHI, PORT_MRW, 0, "GD-Rom Command length hi" )
+    BYTE_PORT( 0x09C, GDSTATUS, PORT_MRW, 0, "GD-Rom Status" )
+    LONG_PORT( 0x404, EXTDMASH4, PORT_MRW, 0, "Ext DMA SH4 address" )
+    LONG_PORT( 0x408, EXTDMASIZ, PORT_MRW, 0, "Ext DMA Size" )
+    LONG_PORT( 0x40C, EXTDMADIR, PORT_MRW, 0, "Ext DMA Direction" )
+    LONG_PORT( 0x414, EXTDMACTL1, PORT_MRW, 0, "Ext DMA Control 1" )
+    LONG_PORT( 0x418, EXTDMACTL2, PORT_MRW, 0, "Ext DMA Control 2" )
+    WORD_PORT( 0x480, EXTDMAUNK0, PORT_MRW, 0, "Ext DMA <unknown0>" )
+    LONG_PORT( 0x484, EXTDMAUNK1, PORT_MRW, 0, "Ext DMA <unknown1>" )
+    LONG_PORT( 0x488, EXTDMAUNK2, PORT_MRW, 0, "Ext DMA <unknown2>" )
+    LONG_PORT( 0x48C, EXTDMAUNK3, PORT_MRW, 0, "Ext DMA <unknown3>" )
+    LONG_PORT( 0x490, EXTDMAUNK4, PORT_MRW, 0, "Ext DMA <unknown4>" )
+    LONG_PORT( 0x494, EXTDMAUNK5, PORT_MRW, 0, "Ext DMA <unknown5>" )
+    LONG_PORT( 0x4A0, EXTDMAUNK6, PORT_MRW, 0, "Ext DMA <unknown6>" )
+    LONG_PORT( 0x4A4, EXTDMAUNK7, PORT_MRW, 0, "Ext DMA <unknown7>" )
+    LONG_PORT( 0x4B4, EXTDMAUNK8, PORT_MRW, 0, "Ext DMA <unknown8>" )
+    LONG_PORT( 0x4B8, EXTDMAUNK9, PORT_MRW, 0, "Ext DMA <unknown9>" )
+    LONG_PORT( 0x4E4, GDACTIVATE, PORT_MRW, 0, "GD-Rom activate" )
+    LONG_PORT( 0x800, SPUDMA0EXT, PORT_MRW, 0, "SPU DMA0 External address" )
+    LONG_PORT( 0x804, SPUDMA0SH4, PORT_MRW, 0, "SPU DMA0 SH4-based address" )
+    LONG_PORT( 0x808, SPUDMA0SIZ, PORT_MRW, 0, "SPU DMA0 Size" )
+    LONG_PORT( 0x80C, SPUDMA0DIR, PORT_MRW, 0, "SPU DMA0 Direction" )
+    LONG_PORT( 0x810, SPUDMA0MOD, PORT_MRW, 0, "SPU DMA0 Mode" )
+    LONG_PORT( 0x814, SPUDMA0CTL1, PORT_MRW, 0, "SPU DMA0 Control 1" )
+    LONG_PORT( 0x818, SPUDMA0CTL2, PORT_MRW, 0, "SPU DMA0 Control 2" )
+    LONG_PORT( 0x81C, SPUDMA0UN1, PORT_MRW, 0, "SPU DMA0 <unknown1>" )
+    LONG_PORT( 0x820, SPUDMA1EXT, PORT_MRW, 0, "SPU DMA1 External address" )
+    LONG_PORT( 0x824, SPUDMA1SH4, PORT_MRW, 0, "SPU DMA1 SH4-based address" )
+    LONG_PORT( 0x828, SPUDMA1SIZ, PORT_MRW, 0, "SPU DMA1 Size" )
+    LONG_PORT( 0x82C, SPUDMA1DIR, PORT_MRW, 0, "SPU DMA1 Direction" )
+    LONG_PORT( 0x830, SPUDMA1MOD, PORT_MRW, 0, "SPU DMA1 Mode" )
+    LONG_PORT( 0x834, SPUDMA1CTL1, PORT_MRW, 0, "SPU DMA1 Control 1" )
+    LONG_PORT( 0x838, SPUDMA1CTL2, PORT_MRW, 0, "SPU DMA1 Control 2" )
+    LONG_PORT( 0x83C, SPUDMA1UN1, PORT_MRW, 0, "SPU DMA1 <unknown1>" )
+    LONG_PORT( 0x840, SPUDMA2EXT, PORT_MRW, 0, "SPU DMA2 External address" )
+    LONG_PORT( 0x844, SPUDMA2SH4, PORT_MRW, 0, "SPU DMA2 SH4-based address" )
+    LONG_PORT( 0x848, SPUDMA2SIZ, PORT_MRW, 0, "SPU DMA2 Size" )
+    LONG_PORT( 0x84C, SPUDMA2DIR, PORT_MRW, 0, "SPU DMA2 Direction" )
+    LONG_PORT( 0x850, SPUDMA2MOD, PORT_MRW, 0, "SPU DMA2 Mode" )
+    LONG_PORT( 0x854, SPUDMA2CTL1, PORT_MRW, 0, "SPU DMA2 Control 1" )
+    LONG_PORT( 0x858, SPUDMA2CTL2, PORT_MRW, 0, "SPU DMA2 Control 2" )
+    LONG_PORT( 0x85C, SPUDMA2UN1, PORT_MRW, 0, "SPU DMA2 <unknown1>" )
+    LONG_PORT( 0x860, SPUDMA3EXT, PORT_MRW, 0, "SPU DMA3 External address" )
+    LONG_PORT( 0x864, SPUDMA3SH4, PORT_MRW, 0, "SPU DMA3 SH4-based address" )
+    LONG_PORT( 0x868, SPUDMA3SIZ, PORT_MRW, 0, "SPU DMA3 Size" )
+    LONG_PORT( 0x86C, SPUDMA3DIR, PORT_MRW, 0, "SPU DMA3 Direction" )
+    LONG_PORT( 0x870, SPUDMA3MOD, PORT_MRW, 0, "SPU DMA3 Mode" )
+    LONG_PORT( 0x874, SPUDMA3CTL1, PORT_MRW, 0, "SPU DMA3 Control 1" )
+    LONG_PORT( 0x878, SPUDMA3CTL2, PORT_MRW, 0, "SPU DMA3 Control 2" )
+    LONG_PORT( 0x87C, SPUDMA3UN1, PORT_MRW, 0, "SPU DMA3 <unknown1>" )
+    LONG_PORT( 0x890, SPUDMAWAIT, PORT_MRW, 0, "SPU DMA wait states (?)" )
+    LONG_PORT( 0x894, SPUDMAUN1, PORT_MRW, 0, "SPU DMA <unknown1>" )
+    LONG_PORT( 0x898, SPUDMAUN2, PORT_MRW, 0, "SPU DMA <unknown2>" )
+    LONG_PORT( 0x89C, SPUDMAUN3, PORT_MRW, 0, "SPU DMA <unknown3>" )
+    LONG_PORT( 0x8A0, SPUDMAUN4, PORT_MRW, 0, "SPU DMA <unknown4>" )
+    LONG_PORT( 0x8A4, SPUDMAUN5, PORT_MRW, 0, "SPU DMA <unknown5>" )
+    LONG_PORT( 0x8A8, SPUDMAUN6, PORT_MRW, 0, "SPU DMA <unknown6>" )
+    LONG_PORT( 0x8AC, SPUDMAUN7, PORT_MRW, 0, "SPU DMA <unknown7>" )
+    LONG_PORT( 0x8B0, SPUDMAUN8, PORT_MRW, 0, "SPU DMA <unknown8>" )
+    LONG_PORT( 0x8B4, SPUDMAUN9, PORT_MRW, 0, "SPU DMA <unknown9>" )
+    LONG_PORT( 0x8B8, SPUDMAUN10, PORT_MRW, 0, "SPU DMA <unknown10>" )
+    LONG_PORT( 0x8BC, SPUDMAUN11, PORT_MRW, 0, "SPU DMA <unknown11>" )
+    LONG_PORT( 0xC00, PVRDMAEXT, PORT_MRW, 0, "PVR DMA External address" )
+    LONG_PORT( 0xC04, PVRDMASH4, PORT_MRW, 0, "PVR DMA SH4 address" )
+    LONG_PORT( 0xC08, PVRDMASIZ, PORT_MRW, 0, "PVR DMA Size" )
+    LONG_PORT( 0xC0C, PVRDMADIR, PORT_MRW, 0, "PVR DMA Direction" )
+    LONG_PORT( 0xC10, PVRDMAMOD, PORT_MRW, 0, "PVR DMA Mode" )
+    LONG_PORT( 0xC14, PVRDMACTL1, PORT_MRW, 0, "PVR DMA Control 1" )
+    LONG_PORT( 0xC18, PVRDMACTL2, PORT_MRW, 0, "PVR DMA Control 2" )
+    LONG_PORT( 0xC80, PVRDMAUN1, PORT_MRW, 0, "PVR DMA <unknown1>" )
+
+MMIO_REGION_END
+
+#define EVENT_SCANLINE1 3
+#define EVENT_SCANLINE2 4
+#define EVENT_RETRACE   5
+#define EVENT_MAPLE_DMA 12
+#define EVENT_MAPLE_ERR 13 /* ??? */
+#define EVENT_GDROM_DMA 14
+#define EVENT_SPU_DMA0  15 /* ??? */
+#define EVENT_SPU_DMA1  16
+#define EVENT_SPU_DMA2  17
+#define EVENT_SPU_DMA3  18
+#define EVENT_GDROM_CMD 32
+#define EVENT_AICA      33
+
+void asic_event( int event );
+void asic_init( void );
