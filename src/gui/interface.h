@@ -5,3 +5,5 @@
 GtkWidget* create_debug_win (void);
 GtkWidget* create_mmr_win (void);
 GtkWidget* create_about_win (void);
+GtkWidget* create_dump_win (void);
+GtkWidget* create_watch_win (void);

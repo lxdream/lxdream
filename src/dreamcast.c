@@ -2,15 +2,18 @@
 #include "mem.h"
 #include "aica.h"
 #include "asic.h"
+#include "ide.h"
+#include "dreamcast.h"
 /* Central switchboard for the system */
 
-void machine_init( void )
+void dreamcast_init( void )
 {
     mem_init();
     sh4_init();
     asic_init();
     pvr2_init();
     aica_init();
+    ide_reset();
 
     mem_create_ram_region( 0x0C000000, 16 MB, MEM_REGION_MAIN );
     mem_create_ram_region( 0x05000000, 8 MB, MEM_REGION_VIDEO );
@@ -20,10 +23,15 @@ void machine_init( void )
     mem_load_rom( "dcflash.rom",0x00200000, 0x00020000, 0x357c3568 );
 }
 
-void machine_reset( void )
+void dreamcast_reset( void )
 {
     sh4_reset();
     mem_reset();
 //    pvr2_reset();
     aica_reset();
+}
+
+void dreamcast_stop( void )
+{
+    sh4_stop();
 }

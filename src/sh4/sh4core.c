@@ -49,7 +49,14 @@ void sh4_runfor(uint32_t count)
 {
     running = 1;
     while( running && count--) {
+        int pc = sh4r.pc;
         sh4_execute_instruction();
+        /*
+        if( sh4r.pc == 0x8C0C1636 ||
+            sh4r.pc == 0x8C0C1634 ) {
+            WARN( "Branching to %08X from %08X", sh4r.pc, pc );
+            sh4_stop();
+            }*/
     }
 }
 
@@ -61,11 +68,13 @@ int sh4_isrunning(void)
 void sh4_runto( uint32_t target_pc, uint32_t count )
 {
     running = 1;
-    do {
+    while( running && count--) {
         sh4_execute_instruction();
-    } while( running && sh4r.pc != target_pc && count-- );
-    if( count == 0 )
-        running = 0;
+        if( sh4r.pc == target_pc ) {
+            running = 0;
+            break;
+        }
+    }
 }
 
 #define UNDEF(ir) do{ ERROR( "Raising exception on undefined instruction at %08x, opcode = %04x", sh4r.pc, ir ); sh4_stop(); RAISE( EXC_ILLEGAL, EXV_ILLEGAL ); }while(0)
@@ -107,6 +116,7 @@ void sh4_runto( uint32_t target_pc, uint32_t count )
 
 #define EXC_POWER_RESET  0x000 /* vector special */
 #define EXC_MANUAL_RESET 0x020
+#define EXC_SLOT_ILLEGAL 0x1A0
 #define EXC_ILLEGAL      0x180
 #define EXV_ILLEGAL      0x100
 #define EXC_TRAP         0x160
@@ -118,6 +128,7 @@ void sh4_runto( uint32_t target_pc, uint32_t count )
 #define CHECKPRIV() CHECK( IS_SH4_PRIVMODE(), EXC_ILLEGAL, EXV_ILLEGAL )
 #define CHECKFPUEN() CHECK( IS_FPU_ENABLED(), EXC_FPDISABLE, EXV_FPDISABLE )
 #define CHECKDEST(p) if( (p) == 0 ) { ERROR( "%08X: Branch/jump to NULL, CPU halted", sh4r.pc ); sh4_stop(); return; }
+#define CHECKSLOTILLEGAL() if(sh4r.in_delay_slot) { RAISE(EXC_SLOT_ILLEGAL,EXV_ILLEGAL); }
 
 static void sh4_switch_banks( )
 {
@@ -159,7 +170,6 @@ void sh4_raise_exception( int code, int vector )
 static void sh4_accept_interrupt( void )
 {
     uint32_t code = intc_accept_interrupt();
-
     sh4r.ssr = sh4_read_sr();
     sh4r.spc = sh4r.pc;
     sh4r.sgr = sh4r.r[15];
@@ -167,12 +177,13 @@ static void sh4_accept_interrupt( void )
     MMIO_WRITE( MMU, INTEVT, code );
     sh4r.pc = sh4r.vbr + 0x600;
     sh4r.new_pc = sh4r.pc + 2;
+    WARN( "Accepting interrupt %03X, from %08X => %08X", code, sh4r.spc, sh4r.pc );
 }
 
 void sh4_execute_instruction( void )
 {
-    int pc = sh4r.pc;
-    unsigned short ir = MEM_READ_WORD(pc);
+    int pc;
+    unsigned short ir;
     uint32_t tmp;
     uint64_t tmpl;
     
@@ -187,8 +198,8 @@ void sh4_execute_instruction( void )
 #define IMM8(ir) SIGNEXT8(ir&0x00FF)
 #define UIMM8(ir) (ir&0x00FF) /* Unsigned immmediate */
 #define DISP12(ir) SIGNEXT12(ir&0x0FFF)
-#define FVN(ir) ((ir&0x0C00)
-#define FVM(ir) ((ir&0x0300)>>8)
+#define FVN(ir) ((ir&0x0C00)>>8)
+#define FVM(ir) ((ir&0x0300)>>6)
 #define FRN(ir) (FR[(ir&0x0F00)>>8])
 #define FRM(ir) (FR[(ir&0x00F0)>>4])
 #define FRNi(ir) (((uint32_t *)FR)[(ir&0x0F00)>>8])
@@ -202,8 +213,11 @@ void sh4_execute_instruction( void )
 #define FPULf   *((float *)&sh4r.fpul)
 #define FPULi    (sh4r.fpul)
 
-    if( SH4_INT_PENDING() ) sh4_accept_interrupt();
+    if( SH4_INT_PENDING() ) 
+        sh4_accept_interrupt();
                  
+    pc = sh4r.pc;
+    ir = MEM_READ_WORD(pc);
     sh4r.icount++;
     
     switch( (ir&0xF000)>>12 ) {
@@ -242,16 +256,32 @@ void sh4_execute_instruction( void )
                     switch( (ir&0x00F0)>>4 ) {
                         case 0: /* BSRF    Rn */
                             CHECKDEST( pc + 4 + RN(ir) );
+                            CHECKSLOTILLEGAL();
+                            sh4r.in_delay_slot = 1;
                             sh4r.pr = sh4r.pc + 4;
                             sh4r.pc = sh4r.new_pc;
                             sh4r.new_pc = pc + 4 + RN(ir);
                             return;
                         case 2: /* BRAF    Rn */
                             CHECKDEST( pc + 4 + RN(ir) );
+                            CHECKSLOTILLEGAL();
+                            sh4r.in_delay_slot = 1;
                             sh4r.pc = sh4r.new_pc;
                             sh4r.new_pc = pc + 4 + RN(ir);
                             return;
                         case 8: /* PREF    [Rn] */
+                            tmp = RN(ir);
+                            if( (tmp & 0xFC000000) == 0xE0000000 ) {
+                                /* Store queue operation */
+                                int queue = (tmp&0x20)>>2;
+                                int32_t *src = &sh4r.store_queue[queue];
+                                uint32_t hi = (MMIO_READ( MMU, (queue == 0 ? QACR0 : QACR1) ) & 0x1C) << 24;
+                                uint32_t target = tmp&0x03FFFFE0 | hi;
+                                mem_copy_to_sh4( target, src, 32 );
+                                WARN( "Executed SQ%c => %08X",
+                                      (queue == 0 ? '0' : '1'), target );
+                            }
+                            break;
                         case 9: /* OCBI    [Rn] */
                         case 10:/* OCBP    [Rn] */
                         case 11:/* OCBWB   [Rn] */
@@ -272,7 +302,7 @@ void sh4_execute_instruction( void )
                     MEM_WRITE_LONG( R0 + RN(ir), RM(ir) );
                     break;
                 case 7: /* MUL.L   Rm, Rn */
-                    sh4r.mac = (sh4r.mac&0xFFFFFFFF00000000) |
+                    sh4r.mac = (sh4r.mac&0xFFFFFFFF00000000LL) |
                         (RM(ir) * RN(ir));
                     break;
                 case 8: 
@@ -338,6 +368,8 @@ void sh4_execute_instruction( void )
                     switch( (ir&0x0FF0)>>4 ) {
                         case 0: /* RTS     */
                             CHECKDEST( sh4r.pr );
+                            CHECKSLOTILLEGAL();
+                            sh4r.in_delay_slot = 1;
                             sh4r.pc = sh4r.new_pc;
                             sh4r.new_pc = sh4r.pr;
                             return;
@@ -347,9 +379,12 @@ void sh4_execute_instruction( void )
                         case 2: /* RTE     */
                             CHECKPRIV();
                             CHECKDEST( sh4r.spc );
+                            CHECKSLOTILLEGAL();
+                            sh4r.in_delay_slot = 1;
                             sh4r.pc = sh4r.new_pc;
                             sh4r.new_pc = sh4r.spc;
                             sh4_load_sr( sh4r.ssr );
+                            WARN( "RTE => %08X", sh4r.new_pc );
                             return;
                         default:UNDEF(ir);
                     }
@@ -369,12 +404,12 @@ void sh4_execute_instruction( void )
                     if( sh4r.s ) {
                         /* 48-bit Saturation. Yuch */
                         tmpl += SIGNEXT48(sh4r.mac);
-                        if( tmpl < 0xFFFF800000000000 )
-                            tmpl = 0xFFFF800000000000;
-                        else if( tmpl > 0x00007FFFFFFFFFFF )
-                            tmpl = 0x00007FFFFFFFFFFF;
-                        sh4r.mac = (sh4r.mac&0xFFFF000000000000) |
-                            (tmpl&0x0000FFFFFFFFFFFF);
+                        if( tmpl < 0xFFFF800000000000LL )
+                            tmpl = 0xFFFF800000000000LL;
+                        else if( tmpl > 0x00007FFFFFFFFFFFLL )
+                            tmpl = 0x00007FFFFFFFFFFFLL;
+                        sh4r.mac = (sh4r.mac&0xFFFF000000000000LL) |
+                            (tmpl&0x0000FFFFFFFFFFFFLL);
                     } else sh4r.mac = tmpl;
                     
                     RM(ir) += 4;
@@ -440,11 +475,11 @@ void sh4_execute_instruction( void )
                     RN(ir) = (RN(ir)>>16) | (RM(ir)<<16);
                     break;
                 case 14:/* MULU.W  Rm, Rn */
-                    sh4r.mac = (sh4r.mac&0xFFFFFFFF00000000) |
+                    sh4r.mac = (sh4r.mac&0xFFFFFFFF00000000LL) |
                         (uint32_t)((RM(ir)&0xFFFF) * (RN(ir)&0xFFFF));
                     break;
                 case 15:/* MULS.W  Rm, Rn */
-                    sh4r.mac = (sh4r.mac&0xFFFFFFFF00000000) |
+                    sh4r.mac = (sh4r.mac&0xFFFFFFFF00000000LL) |
                         (uint32_t)(SIGNEXT32(RM(ir)&0xFFFF) * SIGNEXT32(RN(ir)&0xFFFF));
                     break;
             }
@@ -571,6 +606,8 @@ void sh4_execute_instruction( void )
                     break;
                 case 0x0B: /* JSR     [Rn] */
                     CHECKDEST( RN(ir) );
+                    CHECKSLOTILLEGAL();
+                    sh4r.in_delay_slot = 1;
                     sh4r.pc = sh4r.new_pc;
                     sh4r.new_pc = RN(ir);
                     sh4r.pr = pc + 4;
@@ -598,7 +635,7 @@ void sh4_execute_instruction( void )
                     sh4r.t = ( ((int32_t)RN(ir)) > 0 ? 1 : 0 );
                     break;
                 case 0x16: /* LDS.L   [Rn++], MACL */
-                    sh4r.mac = (sh4r.mac & 0xFFFFFFFF00000000) |
+                    sh4r.mac = (sh4r.mac & 0xFFFFFFFF00000000LL) |
                         (uint64_t)((uint32_t)MEM_READ_LONG(RN(ir)));
                     RN(ir) += 4;
                     break;
@@ -613,7 +650,7 @@ void sh4_execute_instruction( void )
                     RN(ir) >>= 8;
                     break;
                 case 0x1A: /* LDS     Rn, MACL */
-                    sh4r.mac = (sh4r.mac & 0xFFFFFFFF00000000) |
+                    sh4r.mac = (sh4r.mac & 0xFFFFFFFF00000000LL) |
                         (uint64_t)((uint32_t)(RN(ir)));
                     break;
                 case 0x1B: /* TAS.B   [Rn] */
@@ -639,7 +676,7 @@ void sh4_execute_instruction( void )
                 case 0x23: /* STC.L   VBR, [--Rn] */
                     CHECKPRIV();
                     RN(ir) -= 4;
-                    MEM_WRITE_LONG( RN(ir), sh4r.pr );
+                    MEM_WRITE_LONG( RN(ir), sh4r.vbr );
                     break;
                 case 0x24: /* ROTCL   Rn */
                     tmp = RN(ir) >> 31;
@@ -673,6 +710,8 @@ void sh4_execute_instruction( void )
                     break;
                 case 0x2B: /* JMP     [Rn] */
                     CHECKDEST( RN(ir) );
+                    CHECKSLOTILLEGAL();
+                    sh4r.in_delay_slot = 1;
                     sh4r.pc = sh4r.new_pc;
                     sh4r.new_pc = RN(ir);
                     return;
@@ -876,6 +915,7 @@ void sh4_execute_instruction( void )
                     sh4r.t = ( R0 == IMM8(ir) ? 1 : 0 );
                     break;
                 case 9: /* BT      disp8 */
+                    CHECKSLOTILLEGAL()
                     if( sh4r.t ) {
                         CHECKDEST( sh4r.pc + (PCDISP8(ir)<<1) + 4 )
                         sh4r.pc += (PCDISP8(ir)<<1) + 4;
@@ -884,6 +924,7 @@ void sh4_execute_instruction( void )
                     }
                     break;
                 case 11:/* BF      disp8 */
+                    CHECKSLOTILLEGAL()
                     if( !sh4r.t ) {
                         CHECKDEST( sh4r.pc + (PCDISP8(ir)<<1) + 4 )
                         sh4r.pc += (PCDISP8(ir)<<1) + 4;
@@ -892,16 +933,21 @@ void sh4_execute_instruction( void )
                     }
                     break;
                 case 13:/* BT/S    disp8 */
+                    CHECKSLOTILLEGAL()
                     if( sh4r.t ) {
                         CHECKDEST( sh4r.pc + (PCDISP8(ir)<<1) + 4 )
+                        sh4r.in_delay_slot = 1;
                         sh4r.pc = sh4r.new_pc;
                         sh4r.new_pc = pc + (PCDISP8(ir)<<1) + 4;
+                        sh4r.in_delay_slot = 1;
                         return;
                     }
                     break;
                 case 15:/* BF/S    disp8 */
+                    CHECKSLOTILLEGAL()
                     if( !sh4r.t ) {
                         CHECKDEST( sh4r.pc + (PCDISP8(ir)<<1) + 4 )
+                        sh4r.in_delay_slot = 1;
                         sh4r.pc = sh4r.new_pc;
                         sh4r.new_pc = pc + (PCDISP8(ir)<<1) + 4;
                         return;
@@ -916,13 +962,17 @@ void sh4_execute_instruction( void )
             break;
         case 10:/* 1010dddddddddddd */
             /* BRA     disp12 */
-            CHECKDEST( sh4r.pc + (DISP12(ir)<<1) + 4 );
+            CHECKDEST( sh4r.pc + (DISP12(ir)<<1) + 4 )
+            CHECKSLOTILLEGAL()
+            sh4r.in_delay_slot = 1;
             sh4r.pc = sh4r.new_pc;
             sh4r.new_pc = pc + 4 + (DISP12(ir)<<1);
             return;
         case 11:/* 1011dddddddddddd */
             /* BSR     disp12 */
             CHECKDEST( sh4r.pc + (DISP12(ir)<<1) + 4 )
+            CHECKSLOTILLEGAL()
+            sh4r.in_delay_slot = 1;
             sh4r.pr = pc + 4;
             sh4r.pc = sh4r.new_pc;
             sh4r.new_pc = pc + 4 + (DISP12(ir)<<1);
@@ -939,6 +989,8 @@ void sh4_execute_instruction( void )
                     MEM_WRITE_LONG( sh4r.gbr + (DISP8(ir)<<2), R0 );
                     break;
                 case 3: /* TRAPA   imm8 */
+                    CHECKSLOTILLEGAL()
+                    sh4r.in_delay_slot = 1;
                     MMIO_WRITE( MMU, TRA, UIMM8(ir) );
                     sh4r.pc = sh4r.new_pc;  /* RAISE ends the instruction */
                     sh4r.new_pc += 2;
@@ -1065,6 +1117,9 @@ void sh4_execute_instruction( void )
                         case 6: /* FSQRT   FRn */
                             FRN(ir) = sqrtf(FRN(ir));
                             break;
+                        case 7: /* FSRRA FRn */
+                            FRN(ir) = 1.0/sqrtf(FRN(ir));
+                            break;
                         case 8: /* FLDI0   FRn */
                             FRN(ir) = 0.0;
                             break;
@@ -1081,20 +1136,55 @@ void sh4_execute_instruction( void )
                                 FPULf = (float)DRN(ir);
                             else UNDEF(ir);
                             break;
-                        case 14:/* FIPR    FVn, FVn */
-                            UNIMP(ir);
+                        case 14:/* FIPR    FVm, FVn */
+                            /* FIXME: This is not going to be entirely accurate
+                             * as the SH4 instruction is less precise. Also
+                             * need to check for 0s and infinities.
+                             */
+                        {
+                            float *fr_bank = FR;
+                            int tmp2 = FVN(ir);
+                            tmp = FVM(ir);
+                            fr_bank[tmp2+3] = fr_bank[tmp]*fr_bank[tmp2] +
+                                fr_bank[tmp+1]*fr_bank[tmp2+1] +
+                                fr_bank[tmp+2]*fr_bank[tmp2+2] +
+                                fr_bank[tmp+3]*fr_bank[tmp2+3];
                             break;
+                        }
                         case 15:
-                            if( FVM(ir) == 1 )
-                            /* FTRV    XMTRX,FVn */
-                                UNIMP(ir);
-                            else if( ir == 0xFBFD )
-                            /* FRCHG   */
+                            if( (ir&0x0300) == 0x0100 ) { /* FTRV    XMTRX,FVn */
+                                float *fvout = FR+FVN(ir);
+                                float *xm = XF;
+                                float fv[4] = { fvout[0], fvout[1], fvout[2], fvout[3] };
+                                fvout[0] = xm[0] * fv[0] + xm[4]*fv[1] +
+                                    xm[8]*fv[2] + xm[12]*fv[3];
+                                fvout[1] = xm[1] * fv[0] + xm[5]*fv[1] +
+                                    xm[9]*fv[2] + xm[13]*fv[3];
+                                fvout[2] = xm[2] * fv[0] + xm[6]*fv[1] +
+                                    xm[10]*fv[2] + xm[14]*fv[3];
+                                fvout[3] = xm[3] * fv[0] + xm[7]*fv[1] +
+                                    xm[11]*fv[2] + xm[15]*fv[3];
+                                break;
+                            }
+                            else if( (ir&0x0100) == 0 ) { /* FSCA    FPUL, DRn */
+                                float angle = (((float)(short)(FPULi>>16)) +
+                                               ((float)(FPULi&16)/65536.0)) *
+                                    2 * M_PI;
+                                int reg = FRNn(ir);
+                                FR[reg] = sinf(angle);
+                                FR[reg+1] = cosf(angle);
+                                break;
+                            }
+                            else if( ir == 0xFBFD ) {
+                                /* FRCHG   */
                                 sh4r.fpscr ^= FPSCR_FR;
-                            else if( ir == 0xF3FD )
+                                break;
+                            }
+                            else if( ir == 0xF3FD ) {
+                                /* FSCHG   */
                                 sh4r.fpscr ^= FPSCR_SZ;
-                            /* FSCHG   */
-                            break;
+                                break;
+                            }
                         default: UNDEF(ir);
                     }
                     break;
@@ -1107,4 +1197,5 @@ void sh4_execute_instruction( void )
     }
     sh4r.pc = sh4r.new_pc;
     sh4r.new_pc += 2;
+    sh4r.in_delay_slot = 0;
 }

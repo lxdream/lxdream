@@ -84,7 +84,7 @@ on_reset_btn_clicked                   (GtkButton       *button,
 {
     sh4_reset();
     mem_reset();
-    update_registers();
+    update_gui();
 }
 
 
@@ -103,7 +103,7 @@ on_step_btn_clicked                    (GtkButton       *button,
                                         gpointer         user_data)
 {
     sh4_execute_instruction();
-    update_registers();
+    update_gui();
 }
 
 
@@ -120,7 +120,7 @@ void run( uint32_t target ) {
                 gtk_main_iteration();
             pvr2_next_frame();
         } while( sh4_isrunning() );
-        update_registers();
+        update_gui();
     }    
 }
 void
@@ -271,5 +271,37 @@ on_jump_pc_btn_clicked                 (GtkButton       *button,
                                         gpointer         user_data)
 {
     jump_to_disassembly( sh4r.pc, TRUE );
+}
+
+
+void
+on_button_add_watch_clicked            (GtkButton       *button,
+                                        gpointer         user_data)
+{
+
+}
+
+
+void
+on_button_clear_all_clicked            (GtkButton       *button,
+                                        gpointer         user_data)
+{
+
+}
+
+
+void
+on_button_close_clicked                (GtkButton       *button,
+                                        gpointer         user_data)
+{
+
+}
+
+
+void
+on_view_memory_activate                (GtkMenuItem     *menuitem,
+                                        gpointer         user_data)
+{
+    dump_window_new();
 }
 

@@ -1,0 +1,47 @@
+
+#ifndef dream_armcore_H
+#define dream_armcore_H 1
+
+#include "dream.h"
+#include <stdint.h>
+
+
+
+struct arm_registers {
+  uint32_t r[16]; /* Current register bank */
+
+  uint32_t cpsr;
+  uint32_t spsr;
+
+  /* Various banked versions of the registers. */
+  uint32_t fiq_r[7]; /* FIQ bank 8..14 */
+  uint32_t irq_r[2]; /* IRQ bank 13..14 */
+  uint32_t und_r[2]; /* UND bank 13..14 */
+  uint32_t abt_r[2]; /* ABT bank 13..14 */
+  uint32_t svc_r[2]; /* SVC bank 13..14 */
+  uint32_t user_r[7]; /* User/System bank 8..14 */
+
+};
+
+#define CPSR_N 0x80000000 /* Negative flag */
+#define CPSR_Z 0x40000000 /* Zero flag */
+#define CPSR_C 0x20000000 /* Carry flag */
+#define CPSR_V 0x10000000 /* Overflow flag */
+#define CPSR_I 0x00000080 /* Interrupt disable bit */ 
+#define CPSR_F 0x00000040 /* Fast interrupt disable bit */
+#define CPSR_T 0x00000020 /* Thumb mode */
+#define CPSR_MODE 0x0000001F /* Current execution mode */
+
+#define MODE_USER 0x00 /* User mode */
+#define MODE_FIQ   0x01 /* Fast IRQ mode */
+#define MODE_IRQ  0x02 /* IRQ mode */
+#define MODE_SV   0x03 /* Supervisor mode */
+#define MODE_ABT 0x07 /* Abort mode */
+#define MODE_UND 0x0B /* Undefined mode */
+#define MODE_SYS 0x0F /* System mode */
+
+extern struct arm_registers armr;
+
+
+
+#endif /* !dream_armcore_H */

@@ -11,9 +11,28 @@
 #include "dream.h"
 #include "sh4core.h"
 #include "mem.h"
+#include "dreamcast.h"
 
 #define OC_BASE 0x1C000000
 #define OC_TOP  0x20000000
+
+#ifdef ENABLE_WATCH
+#define CHECK_READ_WATCH( addr, size ) \
+    if( mem_is_watched(addr,size,WATCH_READ) != NULL ) { \
+        WARN( "Watch triggered at %08X by %d byte read", addr, size ); \
+        dreamcast_stop(); \
+    }
+#define CHECK_WRITE_WATCH( addr, size, val )                  \
+    if( mem_is_watched(addr,size,WATCH_WRITE) != NULL ) { \
+        WARN( "Watch triggered at %08X by %d byte write <= %0*X", addr, size, size*2, val ); \
+        dreamcast_stop(); \
+    }
+#else
+#define CHECK_READ_WATCH( addr, size )
+#define CHECK_WRITE_WATCH( addr, size )
+#endif
+
+#define TRANSLATE_VIDEO_64BIT_ADDRESS(a)  ( (((a)&0x00FFFFF8)>>1)|(((a)&0x00000004)<<20)|((a)&0x03)|0x05000000 );
 
 static char **page_map = NULL;
 static char *cache = NULL;
@@ -209,7 +228,12 @@ void mem_write_p4( uint32_t addr, int32_t val )
 {
     struct mmio_region *io = P4_io[(addr&0x1FFFFFFF)>>19];
     if( !io ) {
-        ERROR( "Attempted write to unknown P4 region: %08X", addr );
+        if( (addr & 0xFC000000) == 0xE0000000 ) {
+            /* Store queue */
+            SH4_WRITE_STORE_QUEUE( addr, val );
+        } else {
+            ERROR( "Attempted write to unknown P4 region: %08X", addr );
+        }
     } else {
         io->io_write( addr&0xFFF, val );
     }
@@ -227,6 +251,10 @@ int32_t mem_read_phys_word( uint32_t addr )
     if( addr > 0xE0000000 ) /* P4 Area, handled specially */
         return SIGNEXT16(mem_read_p4( addr ));
     
+    if( (addr&0x1F800000) == 0x04000000 ) {
+        addr = TRANSLATE_VIDEO_64BIT_ADDRESS(addr);
+    }
+
     page = page_map[ (addr & 0x1FFFFFFF) >> 12 ];
     if( ((uint32_t)page) < MAX_IO_REGIONS ) { /* IO Region */
         if( page == NULL ) {
@@ -243,9 +271,16 @@ int32_t mem_read_phys_word( uint32_t addr )
 int32_t mem_read_long( uint32_t addr )
 {
     char *page;
+    
+    CHECK_READ_WATCH(addr,4);
+
     if( addr > 0xE0000000 ) /* P4 Area, handled specially */
         return mem_read_p4( addr );
     
+    if( (addr&0x1F800000) == 0x04000000 ) {
+        addr = TRANSLATE_VIDEO_64BIT_ADDRESS(addr);
+    }
+
     if( IS_MMU_ENABLED() ) {
         ERROR( "user-mode & mmu translation not implemented, aborting", NULL );
         sh4_stop();
@@ -270,9 +305,16 @@ int32_t mem_read_long( uint32_t addr )
 int32_t mem_read_word( uint32_t addr )
 {
     char *page;
+
+    CHECK_READ_WATCH(addr,2);
+
     if( addr > 0xE0000000 ) /* P4 Area, handled specially */
         return SIGNEXT16(mem_read_p4( addr ));
     
+    if( (addr&0x1F800000) == 0x04000000 ) {
+        addr = TRANSLATE_VIDEO_64BIT_ADDRESS(addr);
+    }
+
     if( IS_MMU_ENABLED() ) {
         ERROR( "user-mode & mmu translation not implemented, aborting", NULL );
         sh4_stop();
@@ -297,8 +339,14 @@ int32_t mem_read_word( uint32_t addr )
 int32_t mem_read_byte( uint32_t addr )
 {
     char *page;
+
+    CHECK_READ_WATCH(addr,1);
+
     if( addr > 0xE0000000 ) /* P4 Area, handled specially */
         return SIGNEXT8(mem_read_p4( addr ));
+    if( (addr&0x1F800000) == 0x04000000 ) {
+        addr = TRANSLATE_VIDEO_64BIT_ADDRESS(addr);
+    }
     
     if( IS_MMU_ENABLED() ) {
         ERROR( "user-mode & mmu translation not implemented, aborting", NULL );
@@ -325,18 +373,23 @@ void mem_write_long( uint32_t addr, uint32_t val )
 {
     char *page;
     
+    CHECK_WRITE_WATCH(addr,4,val);
+
     if( addr > 0xE0000000 ) {
         mem_write_p4( addr, val );
         return;
     }
-
-    if( addr & 0xFFFFF000 == 0x0CFF0000 ||
-        addr & 0x0FFFF000 == 0x0C374000 ) {
-        TRACE( "Long write to watched page: %08X => %08X", val, addr );
+    if( (addr&0x1F800000) == 0x04000000 ) {
+        addr = TRANSLATE_VIDEO_64BIT_ADDRESS(addr);
     }
 
     if( IS_MMU_ENABLED() ) {
         ERROR( "user-mode & mmu translation not implemented, aborting", NULL );
+        sh4_stop();
+        return;
+    }
+    if( (addr&0x1FFFFFFF) < 0x200000 ) {
+        ERROR( "Attempted write to read-only memory: %08X => %08X", val, addr);
         sh4_stop();
         return;
     }
@@ -357,9 +410,14 @@ void mem_write_word( uint32_t addr, uint32_t val )
 {
     char *page;
 
+    CHECK_WRITE_WATCH(addr,2,val);
+
     if( addr > 0xE0000000 ) {
         mem_write_p4( addr, (int16_t)val );
         return;
+    }
+    if( (addr&0x1F800000) == 0x04000000 ) {
+        addr = TRANSLATE_VIDEO_64BIT_ADDRESS(addr);
     }
     if( IS_MMU_ENABLED() ) {
         ERROR( "user-mode & mmu translation not implemented, aborting", NULL );
@@ -383,10 +441,16 @@ void mem_write_byte( uint32_t addr, uint32_t val )
 {
     char *page;
     
+    CHECK_WRITE_WATCH(addr,1,val);
+
     if( addr > 0xE0000000 ) {
         mem_write_p4( addr, (int8_t)val );
         return;
     }
+    if( (addr&0x1F800000) == 0x04000000 ) {
+        addr = TRANSLATE_VIDEO_64BIT_ADDRESS(addr);
+    }
+    
     if( IS_MMU_ENABLED() ) {
         ERROR( "user-mode & mmu translation not implemented, aborting", NULL );
         sh4_stop();
@@ -413,4 +477,18 @@ char *mem_get_region( uint32_t addr )
     } else {
         return page+(addr&0xFFF);
     }
+}
+
+/* FIXME: Handle all the many special cases when the range doesn't fall cleanly
+ * into the same memory black
+ */
+
+void mem_copy_from_sh4( char *dest, uint32_t srcaddr, size_t count ) {
+    char *src = mem_get_region(srcaddr);
+    memcpy( dest, src, count );
+}
+
+void mem_copy_to_sh4( uint32_t destaddr, char *src, size_t count ) {
+    char *dest = mem_get_region(destaddr);
+    memcpy( dest, src, count );
 }

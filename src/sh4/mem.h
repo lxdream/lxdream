@@ -11,13 +11,13 @@ extern "C" {
 #endif
 #endif
 
-struct mem_region {
+typedef struct mem_region {
     uint32_t base;
     uint32_t size;
     char *name;
     char *mem;
     int flags;
-};
+} *mem_region_t;
 
 #define MAX_IO_REGIONS 24
 #define MAX_MEM_REGIONS 8
@@ -48,6 +48,17 @@ int mem_has_page( uint32_t addr );
 void mem_init( void );
 void mem_reset( void );
 
+#define ENABLE_WATCH 1
+
+#define WATCH_WRITE 1
+#define WATCH_READ  2
+#define WATCH_EXEC  3  /* AKA Breakpoint :) */
+
+typedef struct watch_point *watch_point_t;
+
+watch_point_t mem_new_watch( uint32_t start, uint32_t end, int flags );
+void mem_delete_watch( watch_point_t watch );
+watch_point_t mem_is_watched( uint32_t addr, int size, int op );
 
 /* mmucr register bits */
 #define MMUCR_AT   0x00000001 /* Address Translation enabled */

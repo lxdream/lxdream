@@ -9,6 +9,7 @@ MMIO_REGION_BEGIN( 0x005F6000, ASIC, "System ASIC" )
     LONG_PORT( 0x884, ASICUNK1, PORT_MRW, 0, "ASIC <unknown1>" )
     LONG_PORT( 0x888, ASICUNK2, PORT_MRW, 0, "ASIC <unknown2>" )
     LONG_PORT( 0x88C, G2STATUS, PORT_MR, 0, "G2 Bus status" )
+    LONG_PORT( 0x89C, ASICUNK3, PORT_MRW, 0xB, "Unknown, always 0xB?" )
     LONG_PORT( 0x900, PIRQ0, PORT_MRW, 0, "Pending interrupts 0" )
     LONG_PORT( 0x904, PIRQ1, PORT_MRW, 0, "Pending interrupts 1" )
     LONG_PORT( 0x908, PIRQ2, PORT_MRW, 0, "Pending interrupts 2" )
@@ -21,24 +22,48 @@ MMIO_REGION_BEGIN( 0x005F6000, ASIC, "System ASIC" )
     LONG_PORT( 0x930, IRQC0, PORT_MRW, 0, "IRQ C event map 0" )
     LONG_PORT( 0x934, IRQC1, PORT_MRW, 0, "IRQ C event map 1" )
     LONG_PORT( 0x938, IRQC2, PORT_MRW, 0, "IRQ C event map 2" )
+    LONG_PORT( 0x940, ASIC9UNK1, PORT_MRW, 0, "Unknown 1" )
+    LONG_PORT( 0x944, ASIC9UNK2, PORT_MRW, 0, "Unknown 2" )
+    LONG_PORT( 0x950, ASIC9UNK3, PORT_MRW, 0, "Unknown 3" )
+    LONG_PORT( 0x954, ASIC9UNK4, PORT_MRW, 0, "Unknown 4" )
+/* ASIC events repeats at 0x980..0x9FF, then the whole region 800..9ff
+ * repeats at 000..1ff, 200..3ff, 400..5ff, 600..7ff, a00..bff.
+ * The whole region 800..8ff is long-readable, but since I so far have no idea
+ * what any of it means (nor have I seen any of it accessed), they're not
+ * listed above.
+ */
+    
 
     LONG_PORT( 0xC04, MAPLE_DMA, PORT_MRW, UNDEFINED, "Maple DMA Address" )
     LONG_PORT( 0xC10, MAPLE_RESET2, PORT_MRW, UNDEFINED, "Maple Reset 2" )
     LONG_PORT( 0xC14, MAPLE_ENABLE, PORT_MRW, UNDEFINED, "Maple Enable" )
     LONG_PORT( 0xC18, MAPLE_STATE, PORT_MRW, 0, "Maple State" )
+    LONG_PORT( 0xC70, MAPLE_UNK1, PORT_MRW, 0, "Maple unknown 1" )
+    LONG_PORT( 0xC74, MAPLE_UNK2, PORT_MRW, 0, "Maple unknown 2" )
+    LONG_PORT( 0xC78, MAPLE_UNK3, PORT_MRW, 0, "Maple unknown 3" )
+    LONG_PORT( 0xC7C, MAPLE_UNK4, PORT_MRW, 0, "Maple unknown 4" )
     LONG_PORT( 0xC80, MAPLE_SPEED, PORT_MRW, UNDEFINED, "Maple Speed" )
+    LONG_PORT( 0xC84, MAPLE_UNK5, PORT_MRW, 0, "Maple unknown 5" )
     LONG_PORT( 0xC8C, MAPLE_RESET1, PORT_MRW, UNDEFINED, "Maple Reset 1" )
+    LONG_PORT( 0xCE8, MAPLE_UNK6, PORT_MRW, 0, "Maple unknown 6" )
+    LONG_PORT( 0xCF4, MAPLE_SRC, PORT_MRW, 0, "Maple current source" )
+    LONG_PORT( 0xCF8, MAPLE_DEST1, PORT_MRW, 0, "Maple current destination" )
+    LONG_PORT( 0xCFC, MAPLE_DEST2, PORT_MRW, 0, "Maple current destination 2?" )
+/* Note: Maple registers repeat at 0xD00..0xDFF,
+ * 0xE00..0xEFF and 0xF00..0xFFF */
 MMIO_REGION_END
 
 MMIO_REGION_BEGIN( 0x005F7000, EXTDMA, "ASIC External DMA" )
-    BYTE_PORT( 0x018, GDBUSY, PORT_MRW, 0, "GD-Rom Busy" )
-    WORD_PORT( 0x080, GDDATA, PORT_MRW, 0, "GD-Rom Data" )
-    BYTE_PORT( 0x084, GDFEAT, PORT_MRW, 0, "GD-Rom Feature" )
-    BYTE_PORT( 0x088, GDSECTOR, PORT_MRW, 0, "GD-Rom Sector Count" )
-    BYTE_PORT( 0x08C, GDNSECTOR, PORT_MRW, 0, "GD-Rom Sector" )
-    BYTE_PORT( 0x090, GDCMDLENLO, PORT_MRW, 0, "GD-Rom Command length low" )
-    BYTE_PORT( 0x094, GDCMDLENHI, PORT_MRW, 0, "GD-Rom Command length hi" )
-    BYTE_PORT( 0x09C, GDSTATUS, PORT_MRW, 0, "GD-Rom Status" )
+    BYTE_PORT( 0x018, IDEALTSTATUS, PORT_RW, 0, "IDE Device Control / Alt-status" ) /* 10110 */
+    BYTE_PORT( 0x01C, IDEUNK1, PORT_MRW, 0, "IDE Unknown" )
+    WORD_PORT( 0x080, IDEDATA, PORT_RW, 0, "IDE Data" )
+    BYTE_PORT( 0x084, IDEFEAT, PORT_RW, 0, "IDE Feature / Error" )
+    BYTE_PORT( 0x088, IDECOUNT, PORT_RW, 0, "IDE Sector Count" )
+    BYTE_PORT( 0x08C, IDELBA0, PORT_RW, 0, "IDE LBA lo" ) /* AKA sector */
+    BYTE_PORT( 0x090, IDELBA1, PORT_RW, 0, "IDE LBA mid" ) /* AKA Cyl lo */
+    BYTE_PORT( 0x094, IDELBA2, PORT_RW, 0, "IDE LBA hi" ) /* AKA Cyl hi */
+    BYTE_PORT( 0x098, IDEDEV, PORT_RW, 0, "IDE Device" )
+    BYTE_PORT( 0x09C, IDECMD, PORT_RW, 0, "IDE Command/Status" )
     LONG_PORT( 0x404, EXTDMASH4, PORT_MRW, 0, "Ext DMA SH4 address" )
     LONG_PORT( 0x408, EXTDMASIZ, PORT_MRW, 0, "Ext DMA Size" )
     LONG_PORT( 0x40C, EXTDMADIR, PORT_MRW, 0, "Ext DMA Direction" )
@@ -54,7 +79,7 @@ MMIO_REGION_BEGIN( 0x005F7000, EXTDMA, "ASIC External DMA" )
     LONG_PORT( 0x4A4, EXTDMAUNK7, PORT_MRW, 0, "Ext DMA <unknown7>" )
     LONG_PORT( 0x4B4, EXTDMAUNK8, PORT_MRW, 0, "Ext DMA <unknown8>" )
     LONG_PORT( 0x4B8, EXTDMAUNK9, PORT_MRW, 0, "Ext DMA <unknown9>" )
-    LONG_PORT( 0x4E4, GDACTIVATE, PORT_MRW, 0, "GD-Rom activate" )
+    LONG_PORT( 0x4E4, IDEACTIVATE, PORT_MRW, 0, "IDE activate" )
     LONG_PORT( 0x800, SPUDMA0EXT, PORT_MRW, 0, "SPU DMA0 External address" )
     LONG_PORT( 0x804, SPUDMA0SH4, PORT_MRW, 0, "SPU DMA0 SH4-based address" )
     LONG_PORT( 0x808, SPUDMA0SIZ, PORT_MRW, 0, "SPU DMA0 Size" )

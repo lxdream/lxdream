@@ -4,6 +4,8 @@
 #ifndef dream_H
 #define dream_H 1
 
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #if 0
