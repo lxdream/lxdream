@@ -21,6 +21,10 @@ struct arm_registers {
   uint32_t svc_r[2]; /* SVC bank 13..14 */
   uint32_t user_r[7]; /* User/System bank 8..14 */
 
+  uint32_t c,n,z,v,t;
+  
+  /* "fake" registers */
+  uint32_t shift_c;  /* used for temporary storage of shifter results */
 };
 
 #define CPSR_N 0x80000000 /* Negative flag */
@@ -42,6 +46,6 @@ struct arm_registers {
 
 extern struct arm_registers armr;
 
-
+#define CARRY_FLAG (armr.cpsr&CPSR_C)
 
 #endif /* !dream_armcore_H */
