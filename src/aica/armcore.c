@@ -1,5 +1,5 @@
 
-#include "armcore.h"
+#include "aica/armcore.h"
 
 struct arm_registers armr;
 
@@ -19,7 +19,7 @@ struct arm_registers armr;
 #define IS_SUBOVERFLOW( result, op1, op2 ) (((op1^op2) & (result^op1)) >> 31)
 #define IS_ADDOVERFLOW( result, op1, op2 ) (((op1&op2) & (result^op1)) >> 31)
 
-#define PC armr.r[15];
+#define PC armr.r[15]
 
 /* Instruction fields */
 #define COND(ir) (ir>>28)
@@ -44,10 +44,13 @@ struct arm_registers armr;
 
 #define IMM8(ir) (ir&0xFF)
 #define IMM12(ir) (ir&0xFFF)
-#define SHIFTIMM(ir) ((ir>>7)0x1F)
-#define IMMROT(ir) ((ir>>7)&1E)
+#define SHIFTIMM(ir) ((ir>>7)&0x1F)
+#define IMMROT(ir) ((ir>>7)&0x1E)
 #define SHIFT(ir) ((ir>>4)&0x07)
 #define DISP24(ir) ((ir&0x00FFFFFF))
+#define UNDEF(ir) do{ ERROR( "Raising exception on undefined instruction at %08x, opcode = %04x", PC, ir ); return; } while(0)
+#define UNIMP(ir) do{ ERROR( "Halted on unimplemented instruction at %08x, opcode = %04x", PC, ir ); return; }while(0)
+
 
 static uint32_t arm_get_shift_operand( uint32_t ir )
 {
@@ -84,7 +87,7 @@ static uint32_t arm_get_shift_operand( uint32_t ir )
 		case 6:
 			tmp = SHIFTIMM(ir);
 			if( tmp == 0 ) /* RRX aka rotate with carry */
-				operand = (operand >> 1) | (arm4.c<<31);
+				operand = (operand >> 1) | (armr.c<<31);
 			else
 				operand = ROTATE_RIGHT_LONG(operand,tmp);
 			break;
@@ -185,7 +188,7 @@ static uint32_t arm_get_shift_operand_s( uint32_t ir )
 			tmp = SHIFTIMM(ir);
 			if( tmp == 0 ) { /* RRX aka rotate with carry */
 				armr.shift_c = operand&0x01;
-				operand = (operand >> 1) | (arm4.c<<31);
+				operand = (operand >> 1) | (armr.c<<31);
 			} else {
 				armr.shift_c = operand>>(tmp-1);
 				operand = ROTATE_RIGHT_LONG(operand,tmp);
@@ -229,6 +232,8 @@ static uint32_t arm_get_shift_operand_s( uint32_t ir )
 static uint32_t arm_get_address_index( uint32_t ir )
 {
 	uint32_t operand = RM(ir);
+	uint32_t tmp;
+	
 	switch(SHIFT(ir)) {
 	case 0: /* (Rm << imm) */
 		operand = operand << SHIFTIMM(ir);
@@ -244,7 +249,7 @@ static uint32_t arm_get_address_index( uint32_t ir )
 	case 6:
 		tmp = SHIFTIMM(ir);
 		if( tmp == 0 ) /* RRX aka rotate with carry */
-			operand = (operand >> 1) | (arm4.c<<31);
+			operand = (operand >> 1) | (armr.c<<31);
 		else
 			operand = ROTATE_RIGHT_LONG(operand,tmp);
 		break;
@@ -262,50 +267,50 @@ static uint32_t arm_get_address_operand( uint32_t ir )
 	case 0: /* Rn -= imm offset (post-indexed) [5.2.8 A5-28] */
 	case 1:
 		addr = RN(ir);
-		RN(ir) = addr - IMM12(ir);
+		LRN(ir) = addr - IMM12(ir);
 		break;
 	case 4: /* Rn += imm offsett (post-indexed) [5.2.8 A5-28] */
 	case 5:
 		addr = RN(ir);
-		RN(ir) = addr + IMM12(ir);
+		LRN(ir) = addr + IMM12(ir);
 		break;
 	case 8: /* Rn - imm offset  [5.2.2 A5-20] */
 		addr = RN(ir) - IMM12(ir);
 		break;
 	case 9: /* Rn -= imm offset (pre-indexed)  [5.2.5 A5-24] */
 		addr = RN(ir) - IMM12(ir);
-		RN(ir) = addr;
+		LRN(ir) = addr;
 		break;
 	case 12: /* Rn + imm offset  [5.2.2 A5-20] */
 		addr = RN(ir) + IMM12(ir);
 		break;
 	case 13: /* Rn += imm offset  [5.2.5 A5-24 ] */
 		addr = RN(ir) + IMM12(ir);
-		RN(ir) = addr;
+		LRN(ir) = addr;
 		break;
 	case 16: /* Rn -= Rm (post-indexed)  [5.2.10 A5-32 ] */
 	case 17:
 		addr = RN(ir);
-		RN(ir) = addr - arm_get_address_index(ir);
+		LRN(ir) = addr - arm_get_address_index(ir);
 		break;
 	case 20: /* Rn += Rm (post-indexed)  [5.2.10 A5-32 ] */
 	case 21:
 		addr = RN(ir);
-		RN(ir) = addr - arm_get_address_index(ir);
+		LRN(ir) = addr - arm_get_address_index(ir);
 		break;
 	case 24: /* Rn - Rm  [5.2.4 A5-23] */
 		addr = RN(ir) - arm_get_address_index(ir);
 		break;
 	case 25: /* RN -= Rm (pre-indexed)  [5.2.7 A5-26] */
 		addr = RN(ir) - arm_get_address_index(ir);
-		RN(ir) = addr;
+		LRN(ir) = addr;
 		break;
 	case 28: /* Rn + Rm  [5.2.4 A5-23] */
 		addr = RN(ir) + arm_get_address_index(ir);
 		break;
 	case 29: /* RN += Rm (pre-indexed) [5.2.7 A5-26] */
 		addr = RN(ir) + arm_get_address_index(ir);
-		RN(ir) = addr;
+		LRN(ir) = addr;
 		break;
 	default:
 		UNIMP(ir); /* Unreachable */
@@ -316,8 +321,8 @@ static uint32_t arm_get_address_operand( uint32_t ir )
 void arm_execute_instruction( void ) 
 {
 	uint32_t pc = PC;
-	uint32_t ir = MEM_READ_LONG(PC);
-	uint32_t operand, operand2, tmp, armr.shift_c;
+	uint32_t ir = MEM_READ_LONG(pc);
+	uint32_t operand, operand2, tmp, cond;
 
 	pc += 4;
 	PC = pc;
@@ -393,7 +398,7 @@ void arm_execute_instruction( void )
 			case 0x03600000: /* MSR SPSR, imm */
 				break;
 			default:
-				UNIMP();
+				UNIMP(ir);
 			}
 		} else if( (ir & 0x0E000090) == 0x00000090 ) {
 			/* Neither are these */
@@ -460,11 +465,11 @@ void arm_execute_instruction( void )
 
 			switch(OPCODE(ir)) {
 			case 0: /* AND Rd, Rn, operand */
-				RD(ir) = RN(ir) & arm_get_shift_operand(ir);
+				LRD(ir) = RN(ir) & arm_get_shift_operand(ir);
 				break;
 			case 1: /* ANDS Rd, Rn, operand */
 				operand = arm_get_shift_operand_s(ir) & RN(ir);
-				RD(ir) = operand;
+				LRD(ir) = operand;
 				if( RDn(ir) == 15 ) {
 					arm_restore_cpsr();
 				} else {
@@ -474,11 +479,11 @@ void arm_execute_instruction( void )
 				}
 				break;
 			case 2: /* EOR Rd, Rn, operand */
-				RD(ir) = RN(ir) ^ arm_get_shift_operand(ir);
+				LRD(ir) = RN(ir) ^ arm_get_shift_operand(ir);
 				break;
 			case 3: /* EORS Rd, Rn, operand */
 				operand = arm_get_shift_operand_s(ir) ^ RN(ir);
-				RD(ir) = operand;
+				LRD(ir) = operand;
 				if( RDn(ir) == 15 ) {
 					arm_restore_cpsr();
 				} else {
@@ -488,13 +493,13 @@ void arm_execute_instruction( void )
 				}
 				break;
 			case 4: /* SUB Rd, Rn, operand */
-				RD(ir) = RN(ir) - arm_get_shift_operand(ir);
+				LRD(ir) = RN(ir) - arm_get_shift_operand(ir);
 				break;
 			case 5: /* SUBS Rd, Rn, operand */
 			    operand = RN(ir);
-				operand2 = arm_get_shift_operand(ir)
+				operand2 = arm_get_shift_operand(ir);
 				tmp = operand - operand2;
-				RD(ir) = tmp;
+				LRD(ir) = tmp;
 				if( RDn(ir) == 15 ) {
 					arm_restore_cpsr();
 				} else {
@@ -505,13 +510,13 @@ void arm_execute_instruction( void )
 				}
 				break;
 			case 6: /* RSB Rd, operand, Rn */
-				RD(ir) = arm_get_shift_operand(ir) - RN(ir);
+				LRD(ir) = arm_get_shift_operand(ir) - RN(ir);
 				break;
 			case 7: /* RSBS Rd, operand, Rn */
 				operand = arm_get_shift_operand(ir);
 			    operand2 = RN(ir);
 				tmp = operand - operand2;
-				RD(ir) = tmp;
+				LRD(ir) = tmp;
 				if( RDn(ir) == 15 ) {
 					arm_restore_cpsr();
 				} else {
@@ -522,13 +527,13 @@ void arm_execute_instruction( void )
 				}
 				break;
 			case 8: /* ADD Rd, Rn, operand */
-				RD(ir) = RN(ir) + arm_get_shift_operand(ir);
+				LRD(ir) = RN(ir) + arm_get_shift_operand(ir);
 				break;
 			case 9: /* ADDS Rd, Rn, operand */
 				operand = arm_get_shift_operand(ir);
 			    operand2 = RN(ir);
-				tmp = operand + operand2
-				RD(ir) = tmp;
+				tmp = operand + operand2;
+				LRD(ir) = tmp;
 				if( RDn(ir) == 15 ) {
 					arm_restore_cpsr();
 				} else {
@@ -559,7 +564,7 @@ void arm_execute_instruction( void )
 				break;				
 			case 21: /* CMP Rn, operand */
 			    operand = RN(ir);
-				operand2 = arm_get_shift_operand(ir)
+				operand2 = arm_get_shift_operand(ir);
 				tmp = operand - operand2;
 				armr.n = tmp>>31;
 				armr.z = (tmp == 0);
@@ -568,7 +573,7 @@ void arm_execute_instruction( void )
 				break;
 			case 23: /* CMN Rn, operand */
 			    operand = RN(ir);
-				operand2 = arm_get_shift_operand(ir)
+				operand2 = arm_get_shift_operand(ir);
 				tmp = operand + operand2;
 				armr.n = tmp>>31;
 				armr.z = (tmp == 0);
@@ -576,11 +581,11 @@ void arm_execute_instruction( void )
 				armr.v = IS_ADDOVERFLOW(tmp,operand,operand2);
 				break;
 			case 24: /* ORR Rd, Rn, operand */
-				RD(ir) = RN(ir) | arm_get_shift_operand(ir);
+				LRD(ir) = RN(ir) | arm_get_shift_operand(ir);
 				break;
 			case 25: /* ORRS Rd, Rn, operand */
 				operand = arm_get_shift_operand_s(ir) | RN(ir);
-				RD(ir) = operand;
+				LRD(ir) = operand;
 				if( RDn(ir) == 15 ) {
 					arm_restore_cpsr();
 				} else {
@@ -590,11 +595,11 @@ void arm_execute_instruction( void )
 				}
 				break;
 			case 26: /* MOV Rd, operand */
-				RD(ir) = arm_get_shift_operand(ir);
+				LRD(ir) = arm_get_shift_operand(ir);
 				break;
 			case 27: /* MOVS Rd, operand */
 				operand = arm_get_shift_operand_s(ir);
-				RD(ir) = operand;
+				LRD(ir) = operand;
 				if( RDn(ir) == 15 ) {
 					arm_restore_cpsr();
 				} else {
@@ -604,11 +609,11 @@ void arm_execute_instruction( void )
 				}
 				break;
 			case 28: /* BIC Rd, Rn, operand */
-				RD(ir) = RN(ir) & (~arm_get_shift_operand(ir));
+				LRD(ir) = RN(ir) & (~arm_get_shift_operand(ir));
 				break;
 			case 29: /* BICS Rd, Rn, operand */
 				operand = RN(ir) & (~arm_get_shift_operand_s(ir));
-				RD(ir) = operand;
+				LRD(ir) = operand;
 				if( RDn(ir) == 15 ) {
 					arm_restore_cpsr();
 				} else {
@@ -618,11 +623,11 @@ void arm_execute_instruction( void )
 				}
 				break;
 			case 30: /* MVN Rd, operand */
-				RD(ir) = ~arm_get_shift_operand(ir);
+				LRD(ir) = ~arm_get_shift_operand(ir);
 				break;
 			case 31: /* MVNS Rd, operand */
 				operand = ~arm_get_shift_operand_s(ir);
-				RD(ir) = operand;
+				LRD(ir) = operand;
 				if( RDn(ir) == 15 ) {
 					arm_restore_cpsr();
 				} else {
@@ -644,4 +649,3 @@ void arm_execute_instruction( void )
 		break;
 	}
 }
-

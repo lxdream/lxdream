@@ -5,7 +5,8 @@
  * under the terms of the GNU General Public License version 2 or later.
  */
 
-#include "armcore.h"
+#include "aica/armcore.h"
+#include <stdlib.h>
 
 #define COND(ir) (ir>>28)
 #define OPCODE(ir) ((ir>>20)&0x1F)
@@ -15,7 +16,7 @@
 #define PFLAG(ir) (ir&0x01000000)
 #define UFLAG(ir) (ir&0x00800000)
 #define BFLAG(ir) (ir&0x00400000)
-#define WFLAG(ir) (IR&0x00200000)
+#define WFLAG(ir) (ir&0x00200000)
 #define LFLAG(ir) SFLAG(ir)
 #define RN(ir) ((ir>>16)&0x0F)
 #define RD(ir) ((ir>>12)&0x0F)
@@ -24,8 +25,8 @@
 
 #define IMM8(ir) (ir&0xFF)
 #define IMM12(ir) (ir&0xFFF)
-#define SHIFTIMM(ir) ((ir>>7)0x1F)
-#define IMMROT(ir) ((ir>>7)&1E)
+#define SHIFTIMM(ir) ((ir>>7)&0x1F)
+#define IMMROT(ir) ((ir>>7)&0x1E)
 #define SHIFT(ir) ((ir>>4)&0x07)
 #define DISP24(ir) ((ir&0x00FFFFFF))
 #define FSXC(ir) msrFieldMask[RN(ir)]
@@ -37,13 +38,101 @@ char *conditionNames[] = { "EQ", "NE", "CS", "CC", "MI", "PL", "VS", "VC",
                          /* fsxc */
 char *msrFieldMask[] = { "", "c", "x", "xc", "s", "sc", "sx", "sxc",
 	                     "f", "fc", "fx", "fxc", "fs", "fsc", "fsx", "fsxc" };
+char *ldmModes[] = { "DA", "IA", "DB", "IB" };
 
 #define UNIMP(ir) snprintf( buf, len, "???     " )
 
-int arm_disasm_instruction( int pc, char *buf, int len )
+int arm_disasm_shift_operand( uint32_t ir, char *buf, int len )
 {
+	uint32_t operand, tmp;
+	if( IFLAG(ir) == 0 ) {
+		switch(SHIFT(ir)) {
+		case 0: /* (Rm << imm) */
+			return snprintf(buf, len, "R%d << %d", RM(ir), SHIFTIMM(ir) );
+		case 1: /* (Rm << Rs) */
+			return snprintf(buf, len, "R%d << R%d", RM(ir), RS(ir) );
+		case 2: /* (Rm >> imm) */
+			return snprintf(buf, len, "R%d >> %d", RM(ir), SHIFTIMM(ir) );
+		case 3: /* (Rm >> Rs) */
+			return snprintf(buf, len, "R%d >> R%d", RM(ir), RS(ir) );
+		case 4: /* (Rm >>> imm) */
+			return snprintf(buf, len, "R%d >>> %d", RM(ir), SHIFTIMM(ir) );
+		case 5: /* (Rm >>> Rs) */
+			return snprintf(buf, len, "R%d >>> R%d", RM(ir), RS(ir) );
+		case 6:
+			tmp = SHIFTIMM(ir);
+			if( tmp == 0 ) /* RRX aka rotate with carry */
+				return snprintf(buf, len, "R%d roc 1", RM(ir) );
+			else
+				return snprintf(buf, len, "R%d rot %d", RM(ir), SHIFTIMM(ir) );
+		case 7:
+			return snprintf(buf, len, "R%d rot R%d", RM(ir), RS(ir) );
+		}
+	} else {
+		operand = IMM8(ir);
+		tmp = IMMROT(ir);
+		operand = ROTATE_RIGHT_LONG(operand, tmp);
+		return snprintf(buf, len, "%08X", operand );
+	}
+}
+
+static int arm_disasm_address_index( uint32_t ir, char *buf, int len )
+{
+	uint32_t tmp;
+	
+	switch(SHIFT(ir)) {
+	case 0: /* (Rm << imm) */
+		return snprintf( buf, len, "R%d << %d", RM(ir), SHIFTIMM(ir) );
+	case 2: /* (Rm >> imm) */
+		return snprintf( buf, len, "R%d >> %d", RM(ir), SHIFTIMM(ir) );
+	case 4: /* (Rm >>> imm) */
+		return snprintf( buf, len, "R%d >>> %d", RM(ir), SHIFTIMM(ir) );
+	case 6:
+		tmp = SHIFTIMM(ir);
+		if( tmp == 0 ) /* RRX aka rotate with carry */
+			return snprintf( buf, len, "R%d roc 1", RM(ir) );
+		else
+			return snprintf( buf, len, "R%d rot %d", RM(ir), tmp );
+	default: 
+		return UNIMP(ir);
+	}
+}
+
+static int arm_disasm_address_operand( uint32_t ir, char *buf, int len )
+{
+    char  shift[32];
+
+	char sign = UFLAG(ir) ? '-' : '+';
+	/* I P U . W */
+	switch( (ir>>21)&0x19 ) {
+	case 0: /* Rn -= imm offset (post-indexed) [5.2.8 A5-28] */
+	case 1:
+		return snprintf( buf, len, "[R%d], R%d %c= %04X", RN(ir), RN(ir), sign, IMM12(ir) );
+	case 8: /* Rn - imm offset  [5.2.2 A5-20] */
+		return snprintf( buf, len, "[R%d %c %04X]", RN(ir), sign, IMM12(ir) );
+	case 9: /* Rn -= imm offset (pre-indexed)  [5.2.5 A5-24] */
+		return snprintf( buf, len, "[R%d %c= %04X]", RN(ir), sign, IMM12(ir) );
+	case 16: /* Rn -= Rm (post-indexed)  [5.2.10 A5-32 ] */
+	case 17:
+		arm_disasm_address_index( ir, shift, sizeof(shift) );
+		return snprintf( buf, len, "[R%d], R%d %c= %s", RN(ir), RN(ir), sign, shift );
+	case 24: /* Rn - Rm  [5.2.4 A5-23] */
+		arm_disasm_address_index( ir, shift, sizeof(shift) );
+		return snprintf( buf, len, "[R%d %c %s]", RN(ir), sign, shift );
+	case 25: /* RN -= Rm (pre-indexed)  [5.2.7 A5-26] */
+		arm_disasm_address_index( ir, shift, sizeof(shift) );
+		return snprintf( buf, len, "[R%d %c= %s]", RN(ir), sign, shift );
+	default:
+		return UNIMP(ir); /* Unreachable */
+	}
+}
+
+int arm_disasm_instruction( uint32_t pc, char *buf, int len )
+{
+	char operand[32];
     uint32_t ir = arm_mem_read_long(pc);
-    
+	int i,j;
+	
     if( COND(ir) == 0x0F ) {
     	UNIMP(ir);
     	return pc+4;
@@ -153,176 +242,116 @@ int arm_disasm_instruction( int pc, char *buf, int len )
 
 			switch(OPCODE(ir)) {
 			case 0: /* AND Rd, Rn, operand */
-				RD(ir) = RN(ir) & arm_get_shift_operand(ir);
+				arm_disasm_shift_operand(ir, operand, sizeof(operand));
+				snprintf(buf, len, "AND%s    R%d, R%d, %s", cond, RD(ir), RN(ir), operand);
 				break;
 			case 1: /* ANDS Rd, Rn, operand */
-				operand = arm_get_shift_operand_s(ir) & RN(ir);
-				RD(ir) = operand;
-				if( RDn(ir) == 15 ) {
-					arm_restore_cpsr();
-				} else {
-					armr.n = operand>>31;
-					armr.z = (operand == 0);
-					armr.c = armr.shift_c;
-				}
+				arm_disasm_shift_operand(ir, operand, sizeof(operand));
+				snprintf(buf, len, "ANDS%s   R%d, R%d, %s", cond, RD(ir), RN(ir), operand);
 				break;
 			case 2: /* EOR Rd, Rn, operand */
-				RD(ir) = RN(ir) ^ arm_get_shift_operand(ir);
+				arm_disasm_shift_operand(ir, operand, sizeof(operand));
+				snprintf(buf, len, "EOR%s    R%d, R%d, %s", cond, RD(ir), RN(ir), operand);
 				break;
 			case 3: /* EORS Rd, Rn, operand */
-				operand = arm_get_shift_operand_s(ir) ^ RN(ir);
-				RD(ir) = operand;
-				if( RDn(ir) == 15 ) {
-					arm_restore_cpsr();
-				} else {
-					armr.n = operand>>31;
-					armr.z = (operand == 0);
-					armr.c = armr.shift_c;
-				}
+				arm_disasm_shift_operand(ir, operand, sizeof(operand));
+				snprintf(buf, len, "EORS%s   R%d, R%d, %s", cond, RD(ir), RN(ir), operand);
 				break;
 			case 4: /* SUB Rd, Rn, operand */
-				RD(ir) = RN(ir) - arm_get_shift_operand(ir);
+				arm_disasm_shift_operand(ir, operand, sizeof(operand));
+				snprintf(buf, len, "SUB%s    R%d, R%d, %s", cond, RD(ir), RN(ir), operand);
 				break;
 			case 5: /* SUBS Rd, Rn, operand */
-			    operand = RN(ir);
-				operand2 = arm_get_shift_operand(ir)
-				tmp = operand - operand2;
-				RD(ir) = tmp;
-				if( RDn(ir) == 15 ) {
-					arm_restore_cpsr();
-				} else {
-					armr.n = tmp>>31;
-					armr.z = (tmp == 0);
-					armr.c = IS_NOTBORROW(tmp,operand,operand2);
-					armr.v = IS_SUBOVERFLOW(tmp,operand,operand2);
-				}
+				arm_disasm_shift_operand(ir, operand, sizeof(operand));
+				snprintf(buf, len, "SUBS%s   R%d, R%d, %s", cond, RD(ir), RN(ir), operand);
 				break;
-			case 6: /* RSB Rd, operand, Rn */
-				RD(ir) = arm_get_shift_operand(ir) - RN(ir);
+			case 6: /* RSB Rd, Rn, operand */
+				arm_disasm_shift_operand(ir, operand, sizeof(operand));
+				snprintf(buf, len, "RSB%s    R%d, R%d, %s", cond, RD(ir), RN(ir), operand);
 				break;
-			case 7: /* RSBS Rd, operand, Rn */
-				operand = arm_get_shift_operand(ir);
-			    operand2 = RN(ir);
-				tmp = operand - operand2;
-				RD(ir) = tmp;
-				if( RDn(ir) == 15 ) {
-					arm_restore_cpsr();
-				} else {
-					armr.n = tmp>>31;
-					armr.z = (tmp == 0);
-					armr.c = IS_NOTBORROW(tmp,operand,operand2);
-					armr.v = IS_SUBOVERFLOW(tmp,operand,operand2);
-				}
+			case 7: /* RSBS Rd, Rn, operand */
+				arm_disasm_shift_operand(ir, operand, sizeof(operand));
+				snprintf(buf, len, "RSBS%s   R%d, R%d, %s", cond, RD(ir), RN(ir), operand);
 				break;
 			case 8: /* ADD Rd, Rn, operand */
-				RD(ir) = RN(ir) + arm_get_shift_operand(ir);
+				arm_disasm_shift_operand(ir, operand, sizeof(operand));
+				snprintf(buf, len, "ADD%s    R%d, R%d, %s", cond, RD(ir), RN(ir), operand);
 				break;
 			case 9: /* ADDS Rd, Rn, operand */
-				operand = arm_get_shift_operand(ir);
-			    operand2 = RN(ir);
-				tmp = operand + operand2
-				RD(ir) = tmp;
-				if( RDn(ir) == 15 ) {
-					arm_restore_cpsr();
-				} else {
-					armr.n = tmp>>31;
-					armr.z = (tmp == 0);
-					armr.c = IS_CARRY(tmp,operand,operand2);
-					armr.v = IS_ADDOVERFLOW(tmp,operand,operand2);
-				}
-				break;			
-			case 10: /* ADC */
-			case 11: /* ADCS */
-			case 12: /* SBC */
-			case 13: /* SBCS */
-			case 14: /* RSC */
-			case 15: /* RSCS */
+				arm_disasm_shift_operand(ir, operand, sizeof(operand));
+				snprintf(buf, len, "ADDS%s   R%d, R%d, %s", cond, RD(ir), RN(ir), operand);
 				break;
-			case 17: /* TST Rn, operand */
-				operand = arm_get_shift_operand_s(ir) & RN(ir);
-				armr.n = operand>>31;
-				armr.z = (operand == 0);
-				armr.c = armr.shift_c;
+			case 10: /* ADC Rd, Rn, operand */
+				arm_disasm_shift_operand(ir, operand, sizeof(operand));
+				snprintf(buf, len, "ADC%s    R%d, R%d, %s", cond, RD(ir), RN(ir), operand);
 				break;
-			case 19: /* TEQ Rn, operand */
-				operand = arm_get_shift_operand_s(ir) ^ RN(ir);
-				armr.n = operand>>31;
-				armr.z = (operand == 0);
-				armr.c = armr.shift_c;
-				break;				
-			case 21: /* CMP Rn, operand */
-			    operand = RN(ir);
-				operand2 = arm_get_shift_operand(ir)
-				tmp = operand - operand2;
-				armr.n = tmp>>31;
-				armr.z = (tmp == 0);
-				armr.c = IS_NOTBORROW(tmp,operand,operand2);
-				armr.v = IS_SUBOVERFLOW(tmp,operand,operand2);
+			case 11: /* ADCS Rd, Rn, operand */
+				arm_disasm_shift_operand(ir, operand, sizeof(operand));
+				snprintf(buf, len, "ADCS%s   R%d, R%d, %s", cond, RD(ir), RN(ir), operand);
 				break;
-			case 23: /* CMN Rn, operand */
-			    operand = RN(ir);
-				operand2 = arm_get_shift_operand(ir)
-				tmp = operand + operand2;
-				armr.n = tmp>>31;
-				armr.z = (tmp == 0);
-				armr.c = IS_CARRY(tmp,operand,operand2);
-				armr.v = IS_ADDOVERFLOW(tmp,operand,operand2);
+			case 12: /* SBC Rd, Rn, operand */
+				arm_disasm_shift_operand(ir, operand, sizeof(operand));
+				snprintf(buf, len, "SBC%s    R%d, R%d, %s", cond, RD(ir), RN(ir), operand);
+				break;
+			case 13: /* SBCS Rd, Rn, operand */
+				arm_disasm_shift_operand(ir, operand, sizeof(operand));
+				snprintf(buf, len, "SBCS%s   R%d, R%d, %s", cond, RD(ir), RN(ir), operand);
+				break;
+			case 14: /* RSC Rd, Rn, operand */
+				arm_disasm_shift_operand(ir, operand, sizeof(operand));
+				snprintf(buf, len, "RSC%s    R%d, R%d, %s", cond, RD(ir), RN(ir), operand);
+				break;
+			case 15: /* RSCS Rd, Rn, operand */
+				arm_disasm_shift_operand(ir, operand, sizeof(operand));
+				snprintf(buf, len, "RSCS%s   R%d, R%d, %s", cond, RD(ir), RN(ir), operand);
+				break;
+			case 16: /* TST Rd, Rn, operand */
+				arm_disasm_shift_operand(ir, operand, sizeof(operand));
+				snprintf(buf, len, "TST%s    R%d, R%d, %s", cond, RD(ir), RN(ir), operand);
+				break;
+			case 18: /* TEQ Rd, Rn, operand */
+				arm_disasm_shift_operand(ir, operand, sizeof(operand));
+				snprintf(buf, len, "TEQ%s    R%d, R%d, %s", cond, RD(ir), RN(ir), operand);
+				break;
+			case 20: /* CMP Rd, Rn, operand */
+				arm_disasm_shift_operand(ir, operand, sizeof(operand));
+				snprintf(buf, len, "CMP%s    R%d, R%d, %s", cond, RD(ir), RN(ir), operand);
+				break;
+			case 22: /* CMN Rd, Rn, operand */
+				arm_disasm_shift_operand(ir, operand, sizeof(operand));
+				snprintf(buf, len, "CMN%s    R%d, R%d, %s", cond, RD(ir), RN(ir), operand);
 				break;
 			case 24: /* ORR Rd, Rn, operand */
-				RD(ir) = RN(ir) | arm_get_shift_operand(ir);
+				arm_disasm_shift_operand(ir, operand, sizeof(operand));
+				snprintf(buf, len, "ORR%s    R%d, R%d, %s", cond, RD(ir), RN(ir), operand);
 				break;
 			case 25: /* ORRS Rd, Rn, operand */
-				operand = arm_get_shift_operand_s(ir) | RN(ir);
-				RD(ir) = operand;
-				if( RDn(ir) == 15 ) {
-					arm_restore_cpsr();
-				} else {
-					armr.n = operand>>31;
-					armr.z = (operand == 0);
-					armr.c = armr.shift_c;
-				}
+				arm_disasm_shift_operand(ir, operand, sizeof(operand));
+				snprintf(buf, len, "ORRS%s   R%d, R%d, %s", cond, RD(ir), RN(ir), operand);
 				break;
-			case 26: /* MOV Rd, operand */
-				RD(ir) = arm_get_shift_operand(ir);
+			case 26: /* MOV Rd, Rn, operand */
+				arm_disasm_shift_operand(ir, operand, sizeof(operand));
+				snprintf(buf, len, "MOV%s    R%d, %s", cond, RD(ir), operand);
 				break;
-			case 27: /* MOVS Rd, operand */
-				operand = arm_get_shift_operand_s(ir);
-				RD(ir) = operand;
-				if( RDn(ir) == 15 ) {
-					arm_restore_cpsr();
-				} else {
-					armr.n = operand>>31;
-					armr.z = (operand == 0);
-					armr.c = armr.shift_c;
-				}
+			case 27: /* MOVS Rd, Rn, operand */
+				arm_disasm_shift_operand(ir, operand, sizeof(operand));
+				snprintf(buf, len, "MOVS%s   R%d, %s", cond, RD(ir), operand);
 				break;
 			case 28: /* BIC Rd, Rn, operand */
-				RD(ir) = RN(ir) & (~arm_get_shift_operand(ir));
+				arm_disasm_shift_operand(ir, operand, sizeof(operand));
+				snprintf(buf, len, "BIC%s    R%d, R%d, %s", cond, RD(ir), RN(ir), operand);
 				break;
 			case 29: /* BICS Rd, Rn, operand */
-				operand = RN(ir) & (~arm_get_shift_operand_s(ir));
-				RD(ir) = operand;
-				if( RDn(ir) == 15 ) {
-					arm_restore_cpsr();
-				} else {
-					armr.n = operand>>31;
-					armr.z = (operand == 0);
-					armr.c = armr.shift_c;
-				}
+				arm_disasm_shift_operand(ir, operand, sizeof(operand));
+				snprintf(buf, len, "BICS%s   R%d, R%d, %s", cond, RD(ir), RN(ir), operand);
 				break;
-			case 30: /* MVN Rd, operand */
-				RD(ir) = ~arm_get_shift_operand(ir);
+			case 30: /* MVN Rd, Rn, operand */
+				arm_disasm_shift_operand(ir, operand, sizeof(operand));
+				snprintf(buf, len, "MVN%s    R%d, %s", cond, RD(ir), operand);
 				break;
-			case 31: /* MVNS Rd, operand */
-				operand = ~arm_get_shift_operand_s(ir);
-				RD(ir) = operand;
-				if( RDn(ir) == 15 ) {
-					arm_restore_cpsr();
-				} else {
-					armr.n = operand>>31;
-					armr.z = (operand == 0);
-					armr.c = armr.shift_c;
-				}
+			case 31: /* MVNS Rd, Rn, operand */
+				arm_disasm_shift_operand(ir, operand, sizeof(operand));
+				snprintf(buf, len, "MVNS%s   R%d, %s", cond, RD(ir), operand);
 				break;
 			default:
 				UNIMP(ir);
@@ -330,10 +359,61 @@ int arm_disasm_instruction( int pc, char *buf, int len )
 		}
 		break;
 	case 1: /* Load/store */
+		arm_disasm_address_operand( ir, operand, sizeof(operand) );
+		switch( (ir>>20)&0x17 ) {
+			case 0:
+			case 16:
+			case 18:
+				snprintf(buf, len, "STR%s    R%d, %s", cond, RD(ir), operand );
+				break;
+			case 1:
+			case 17:
+			case 19:
+				snprintf(buf, len, "LDR%s    R%d, %s", cond, RD(ir), operand );
+				break;
+			case 2:
+				snprintf(buf, len, "STRT%s   R%d, %s", cond, RD(ir), operand );
+				break;
+			case 3:
+				snprintf(buf, len, "LDRT%s   R%d, %s", cond, RD(ir), operand );
+				break;
+			case 4:
+			case 20:
+			case 22:
+				snprintf(buf, len, "STRB%s   R%d, %s", cond, RD(ir), operand );
+				break;
+			case 5:
+			case 21:
+			case 23:
+				snprintf(buf, len, "LDRB%s   R%d, %s", cond, RD(ir), operand );
+				break;
+			case 6:
+				snprintf(buf, len, "STRBT%s  R%d, %s", cond, RD(ir), operand );
+				break;
+			case 7: 
+				snprintf(buf, len, "LDRBT%s  R%d, %s", cond, RD(ir), operand );
+				break;
+		}
 		break;
 	case 2: /* Load/store multiple, branch*/
+		j = snprintf( buf, len, LFLAG(ir) ? "LDM%s%s  R%d%c,":"STM%s%s  R%d%c,", 
+	              ldmModes[(ir>>23)&0x03], cond, RN(ir), WFLAG(ir)?'!':' ' );
+		buf += j;
+		len -= j;
+		for( i = 0; i<16 && len > 2; i++ ) {
+			if( (ir >> i)&1 ) {
+				j = snprintf( buf, len, "R%d", i );
+				buf+=j;
+				len-=j;
+			}
+		}
+		if( SFLAG(ir) && len > 0 ) {
+			buf[0] = '^';
+			buf[1] = '\0';
+		}
 		break;
 	case 3: /* Copro */
+		UNIMP(ir);
 		break;
 	}
 	
