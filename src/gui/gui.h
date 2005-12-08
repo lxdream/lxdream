@@ -6,6 +6,7 @@
 
 #include <gnome.h>
 #include "dream.h"
+#include "disasm.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -17,16 +18,23 @@ extern "C" {
 void init_gui(void);
 void update_gui(void);
 
-void init_debug_win(GtkWidget *);
+typedef struct debug_info_struct *debug_info_t;
+extern debug_info_t main_debug;
+
+debug_info_t init_debug_win(GtkWidget *, cpu_desc_t cpu );
+debug_info_t get_debug_info(GtkWidget *widget);
 void open_file_dialog( void );
 void update_mmr_win( void );
 void init_mmr_win( void );
-void update_registers( void );
-void update_icount( void );
-void dump_win_update_all( void );
-void set_disassembly_region( unsigned int page );
-void set_disassembly_pc( unsigned int pc, gboolean select );
-void jump_to_disassembly( unsigned int addr, gboolean select );
+void update_registers( debug_info_t debug );
+void update_icount( debug_info_t debug );
+void dump_win_update_all();
+void set_disassembly_region( debug_info_t debug, unsigned int page );
+void set_disassembly_pc( debug_info_t debug, unsigned int pc, gboolean select );
+void jump_to_disassembly( debug_info_t debug, unsigned int addr, gboolean select );
+void jump_to_pc( debug_info_t debug, gboolean select );
+uint32_t row_to_address( debug_info_t debug, int row );
+int address_to_row( debug_info_t debug, uint32_t address );
 
 extern PangoFontDescription *fixed_list_font;
 extern GdkColor clrNormal, clrChanged, clrError, clrWarn,

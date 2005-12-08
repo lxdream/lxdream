@@ -820,8 +820,10 @@ void sh4_execute_instruction( void )
                         /* SHAD    Rm, Rn */
                         tmp = RM(ir);
                         if( (tmp & 0x80000000) == 0 ) RN(ir) <<= (tmp&0x1f);
-                        else if( (tmp & 0x1F) == 0 )  ((int32_t)RN(ir)) >>=31;
-                        else ((int32_t)RN(ir)) >>= (((~RM(ir)) & 0x1F)+1);
+                        else if( (tmp & 0x1F) == 0 )  
+			  RN(ir) = ((int32_t)RN(ir)) >> 31;
+                        else 
+			  RN(ir) = ((int32_t)RN(ir)) >> (((~RM(ir)) & 0x1F)+1);
                     } else if( (ir&0x000F) == 0x0D ) {
                         /* SHLD    Rm, Rn */
                         tmp = RM(ir);

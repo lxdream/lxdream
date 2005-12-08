@@ -10,7 +10,6 @@
 #include "sh4core.h"
 #include "asic.h"
 
-extern int disasm_from;
 int selected_pc = -1;
 
 void
@@ -107,14 +106,14 @@ on_step_btn_clicked                    (GtkButton       *button,
 }
 
 
-void run( uint32_t target ) {
+void run( debug_info_t data, uint32_t target ) {
     if( ! sh4_isrunning() ) {
         do {
             if( target == -1 )
                 sh4_runfor(1000000);
             else
                 sh4_runto(target, 1000000);
-            update_icount();
+            update_icount(data);
             run_timers(1000000);
             while( gtk_events_pending() )
                 gtk_main_iteration();
@@ -127,7 +126,8 @@ void
 on_run_btn_clicked                     (GtkButton       *button,
                                         gpointer         user_data)
 {
-    run(-1);
+    debug_info_t data = get_debug_info(GTK_WIDGET(button));
+    run(data,-1);
 }
 
 
@@ -135,11 +135,12 @@ void
 on_runto_btn_clicked                   (GtkButton       *button,
                                         gpointer         user_data)
 {
+    debug_info_t data = get_debug_info(GTK_WIDGET(button));
     if( selected_pc == -1 )
         WARN( "No address selected, so can't run to it", NULL );
     else {
         INFO( "Running until %08X...", selected_pc );
-        run( selected_pc );
+        run( data, selected_pc );
     }
 }
 
@@ -169,7 +170,8 @@ on_disasm_list_select_row              (GtkCList        *clist,
                                         GdkEvent        *event,
                                         gpointer         user_data)
 {
-    selected_pc = disasm_from + (row<<1);
+    debug_info_t data = get_debug_info(GTK_WIDGET(clist));
+    selected_pc = row_to_address(data, row);
 }
 
 
@@ -180,7 +182,8 @@ on_disasm_list_unselect_row            (GtkCList        *clist,
                                         GdkEvent        *event,
                                         gpointer         user_data)
 {
-    int pc = disasm_from + (row<<1);
+    debug_info_t data = get_debug_info(GTK_WIDGET(clist));
+    int pc = row_to_address(data,row);
     if( selected_pc == pc ) selected_pc = -1;
 }
 
@@ -233,15 +236,16 @@ on_page_field_key_press_event          (GtkWidget       *widget,
                                         gpointer         user_data)
 {
     if( event->keyval == GDK_Return || event->keyval == GDK_Linefeed ) {
+	debug_info_t data = get_debug_info(widget);
         gchar *text = gtk_entry_get_text( GTK_ENTRY(widget) );
         gchar *endptr;
         unsigned int val = strtoul( text, &endptr, 16 );
         if( text == endptr ) { /* invalid input */
             char buf[10];
-            sprintf( buf, "%08X", disasm_from );
+            sprintf( buf, "%08X", row_to_address(data,0) );
             gtk_entry_set_text( GTK_ENTRY(widget), buf );
         } else {
-            set_disassembly_region(val);
+            set_disassembly_region(data, val);
         }
     }
     return FALSE;
@@ -260,7 +264,8 @@ on_output_list_select_row              (GtkCList        *clist,
         gtk_clist_get_text( clist, row, 1, &val );
         if( val[0] != '\0' ) {
             int addr = strtoul( val, NULL, 16 );
-            jump_to_disassembly( addr, TRUE );
+	    debug_info_t data = get_debug_info( GTK_WIDGET(clist) );
+            jump_to_disassembly( data, addr, TRUE );
         }
     }
 }
@@ -270,7 +275,8 @@ void
 on_jump_pc_btn_clicked                 (GtkButton       *button,
                                         gpointer         user_data)
 {
-    jump_to_disassembly( sh4r.pc, TRUE );
+    debug_info_t data = get_debug_info( GTK_WIDGET(button) );
+    jump_to_pc( data, TRUE );
 }
 
 
