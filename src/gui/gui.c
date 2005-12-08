@@ -45,8 +45,8 @@ void init_gui() {
 }
 
 void update_gui(void) {
-    update_registers();
-    update_icount();
+    update_registers(main_debug);
+    update_icount(main_debug);
     update_mmr_win();
     dump_win_update_all();
 }

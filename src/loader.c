@@ -57,8 +57,8 @@ void open_file( char *filename )
             parse_ipbin( load );
             sh4_reset();
             sh4_set_pc( BOOTSTRAP_LOAD_ADDR + 0x300 );
-            set_disassembly_region( BOOTSTRAP_LOAD_ADDR );
-            set_disassembly_pc( sh4r.pc, TRUE );
+            set_disassembly_region( main_debug, BOOTSTRAP_LOAD_ADDR );
+            set_disassembly_pc( main_debug, sh4r.pc, TRUE );
             update_gui();
         } else {
             /* look for a valid ISO9660 header */

@@ -4,7 +4,9 @@
 #ifndef dream_H
 #define dream_H 1
 
+#include <stdlib.h>
 #include <stdint.h>
+#include <string.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -24,14 +26,14 @@ extern "C" {
 #define MODULE_ID 0
 #endif
 
-void emit( int level, int source, char *msg, ... );
+void emit( void *, int level, int source, char *msg, ... );
 
-#define FATAL( ... ) emit( EMIT_FATAL, MODULE_ID, __VA_ARGS__ )
-#define ERROR( ... ) emit( EMIT_ERR, MODULE_ID, __VA_ARGS__ )
-#define WARN( ... ) emit( EMIT_WARN, MODULE_ID, __VA_ARGS__ )
-#define INFO( ... ) emit( EMIT_INFO, MODULE_ID, __VA_ARGS__ )
-#define DEBUG( ... ) emit( EMIT_DEBUG, MODULE_ID, __VA_ARGS__ )
-#define TRACE( ... ) emit( EMIT_TRACE, MODULE_ID, __VA_ARGS__ )
+#define FATAL( ... ) emit( NULL, EMIT_FATAL, MODULE_ID, __VA_ARGS__ )
+#define ERROR( ... ) emit( NULL, EMIT_ERR, MODULE_ID, __VA_ARGS__ )
+#define WARN( ... ) emit( NULL, EMIT_WARN, MODULE_ID, __VA_ARGS__ )
+#define INFO( ... ) emit( NULL, EMIT_INFO, MODULE_ID, __VA_ARGS__ )
+#define DEBUG( ... ) emit( NULL, EMIT_DEBUG, MODULE_ID, __VA_ARGS__ )
+#define TRACE( ... ) emit( NULL, EMIT_TRACE, MODULE_ID, __VA_ARGS__ )
 
 #define BIOS_PATH "../bios"
 
