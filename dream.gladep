@@ -2,6 +2,6 @@
 <!DOCTYPE glade-project SYSTEM "http://glade.gnome.org/glade-project-2.0.dtd">
 
 <glade-project>
-  <name>Dream2</name>
+  <name>Dream</name>
   <program_name>dream</program_name>
 </glade-project>

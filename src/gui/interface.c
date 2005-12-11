@@ -107,7 +107,8 @@ create_debug_win (void)
   GtkWidget *debug_win;
   GtkWidget *dock1;
   GtkWidget *toolbar1;
-  GtkWidget *tmp_toolbar_icon;
+  GtkIconSize tmp_toolbar_icon_size;
+  GtkWidget *tmp_image;
   GtkWidget *load_btn;
   GtkWidget *reset_btn;
   GtkWidget *stop_btn;
@@ -144,8 +145,11 @@ create_debug_win (void)
   GtkWidget *label31;
   GtkWidget *label32;
   GtkWidget *debug_appbar;
+  GtkTooltips *tooltips;
 
-  debug_win = gnome_app_new ("Dream2", _("DreamOn! Debugger"));
+  tooltips = gtk_tooltips_new ();
+
+  debug_win = gnome_app_new ("Dream", _("DreamOn! Debugger"));
   gtk_window_set_default_size (GTK_WINDOW (debug_win), 1000, 700);
 
   dock1 = GNOME_APP (debug_win)->dock;
@@ -160,76 +164,52 @@ create_debug_win (void)
                                 BONOBO_DOCK_TOP, 1, 0, 0);
   gtk_container_set_border_width (GTK_CONTAINER (toolbar1), 1);
   gtk_toolbar_set_style (GTK_TOOLBAR (toolbar1), GTK_TOOLBAR_BOTH);
+  tmp_toolbar_icon_size = gtk_toolbar_get_icon_size (GTK_TOOLBAR (toolbar1));
 
-  tmp_toolbar_icon = gtk_image_new_from_stock ("gtk-open", gtk_toolbar_get_icon_size (GTK_TOOLBAR (toolbar1)));
-  load_btn = gtk_toolbar_append_element (GTK_TOOLBAR (toolbar1),
-                                GTK_TOOLBAR_CHILD_BUTTON,
-                                NULL,
-                                _("Load"),
-                                _("New File"), NULL,
-                                tmp_toolbar_icon, NULL, NULL);
-  gtk_label_set_use_underline (GTK_LABEL (((GtkToolbarChild*) (g_list_last (GTK_TOOLBAR (toolbar1)->children)->data))->label), TRUE);
+  tmp_image = gtk_image_new_from_stock ("gtk-open", tmp_toolbar_icon_size);
+  gtk_widget_show (tmp_image);
+  load_btn = (GtkWidget*) gtk_tool_button_new (tmp_image, _("Load"));
   gtk_widget_show (load_btn);
+  gtk_container_add (GTK_CONTAINER (toolbar1), load_btn);
+  gtk_tool_item_set_tooltip (GTK_TOOL_ITEM (load_btn), tooltips, _("New File"), NULL);
 
-  tmp_toolbar_icon = gtk_image_new_from_stock ("gtk-refresh", gtk_toolbar_get_icon_size (GTK_TOOLBAR (toolbar1)));
-  reset_btn = gtk_toolbar_append_element (GTK_TOOLBAR (toolbar1),
-                                GTK_TOOLBAR_CHILD_BUTTON,
-                                NULL,
-                                _("Reset"),
-                                _("Open File"), NULL,
-                                tmp_toolbar_icon, NULL, NULL);
-  gtk_label_set_use_underline (GTK_LABEL (((GtkToolbarChild*) (g_list_last (GTK_TOOLBAR (toolbar1)->children)->data))->label), TRUE);
+  tmp_image = gtk_image_new_from_stock ("gtk-refresh", tmp_toolbar_icon_size);
+  gtk_widget_show (tmp_image);
+  reset_btn = (GtkWidget*) gtk_tool_button_new (tmp_image, _("Reset"));
   gtk_widget_show (reset_btn);
+  gtk_container_add (GTK_CONTAINER (toolbar1), reset_btn);
+  gtk_tool_item_set_tooltip (GTK_TOOL_ITEM (reset_btn), tooltips, _("Open File"), NULL);
 
-  tmp_toolbar_icon = gtk_image_new_from_stock ("gtk-stop", gtk_toolbar_get_icon_size (GTK_TOOLBAR (toolbar1)));
-  stop_btn = gtk_toolbar_append_element (GTK_TOOLBAR (toolbar1),
-                                GTK_TOOLBAR_CHILD_BUTTON,
-                                NULL,
-                                _("Stop"),
-                                _("Save File"), NULL,
-                                tmp_toolbar_icon, NULL, NULL);
-  gtk_label_set_use_underline (GTK_LABEL (((GtkToolbarChild*) (g_list_last (GTK_TOOLBAR (toolbar1)->children)->data))->label), TRUE);
+  tmp_image = gtk_image_new_from_stock ("gtk-stop", tmp_toolbar_icon_size);
+  gtk_widget_show (tmp_image);
+  stop_btn = (GtkWidget*) gtk_tool_button_new (tmp_image, _("Stop"));
   gtk_widget_show (stop_btn);
+  gtk_container_add (GTK_CONTAINER (toolbar1), stop_btn);
+  gtk_tool_item_set_tooltip (GTK_TOOL_ITEM (stop_btn), tooltips, _("Save File"), NULL);
 
-  tmp_toolbar_icon = gtk_image_new_from_stock ("gtk-redo", gtk_toolbar_get_icon_size (GTK_TOOLBAR (toolbar1)));
-  step_btn = gtk_toolbar_append_element (GTK_TOOLBAR (toolbar1),
-                                GTK_TOOLBAR_CHILD_BUTTON,
-                                NULL,
-                                _("Step"),
-                                NULL, NULL,
-                                tmp_toolbar_icon, NULL, NULL);
-  gtk_label_set_use_underline (GTK_LABEL (((GtkToolbarChild*) (g_list_last (GTK_TOOLBAR (toolbar1)->children)->data))->label), TRUE);
+  tmp_image = gtk_image_new_from_stock ("gtk-redo", tmp_toolbar_icon_size);
+  gtk_widget_show (tmp_image);
+  step_btn = (GtkWidget*) gtk_tool_button_new (tmp_image, _("Step"));
   gtk_widget_show (step_btn);
+  gtk_container_add (GTK_CONTAINER (toolbar1), step_btn);
 
-  tmp_toolbar_icon = gtk_image_new_from_stock ("gtk-go-forward", gtk_toolbar_get_icon_size (GTK_TOOLBAR (toolbar1)));
-  run_btn = gtk_toolbar_append_element (GTK_TOOLBAR (toolbar1),
-                                GTK_TOOLBAR_CHILD_BUTTON,
-                                NULL,
-                                _("Run"),
-                                NULL, NULL,
-                                tmp_toolbar_icon, NULL, NULL);
-  gtk_label_set_use_underline (GTK_LABEL (((GtkToolbarChild*) (g_list_last (GTK_TOOLBAR (toolbar1)->children)->data))->label), TRUE);
+  tmp_image = gtk_image_new_from_stock ("gtk-go-forward", tmp_toolbar_icon_size);
+  gtk_widget_show (tmp_image);
+  run_btn = (GtkWidget*) gtk_tool_button_new (tmp_image, _("Run"));
   gtk_widget_show (run_btn);
+  gtk_container_add (GTK_CONTAINER (toolbar1), run_btn);
 
-  tmp_toolbar_icon = gtk_image_new_from_stock ("gtk-goto-last", gtk_toolbar_get_icon_size (GTK_TOOLBAR (toolbar1)));
-  runto_btn = gtk_toolbar_append_element (GTK_TOOLBAR (toolbar1),
-                                GTK_TOOLBAR_CHILD_BUTTON,
-                                NULL,
-                                _("Run to"),
-                                NULL, NULL,
-                                tmp_toolbar_icon, NULL, NULL);
-  gtk_label_set_use_underline (GTK_LABEL (((GtkToolbarChild*) (g_list_last (GTK_TOOLBAR (toolbar1)->children)->data))->label), TRUE);
+  tmp_image = gtk_image_new_from_stock ("gtk-goto-last", tmp_toolbar_icon_size);
+  gtk_widget_show (tmp_image);
+  runto_btn = (GtkWidget*) gtk_tool_button_new (tmp_image, _("Run to"));
   gtk_widget_show (runto_btn);
+  gtk_container_add (GTK_CONTAINER (toolbar1), runto_btn);
 
-  tmp_toolbar_icon = gtk_image_new_from_stock ("gtk-close", gtk_toolbar_get_icon_size (GTK_TOOLBAR (toolbar1)));
-  break_btn = gtk_toolbar_append_element (GTK_TOOLBAR (toolbar1),
-                                GTK_TOOLBAR_CHILD_BUTTON,
-                                NULL,
-                                _("Break"),
-                                NULL, NULL,
-                                tmp_toolbar_icon, NULL, NULL);
-  gtk_label_set_use_underline (GTK_LABEL (((GtkToolbarChild*) (g_list_last (GTK_TOOLBAR (toolbar1)->children)->data))->label), TRUE);
+  tmp_image = gtk_image_new_from_stock ("gtk-close", tmp_toolbar_icon_size);
+  gtk_widget_show (tmp_image);
+  break_btn = (GtkWidget*) gtk_tool_button_new (tmp_image, _("Break"));
   gtk_widget_show (break_btn);
+  gtk_container_add (GTK_CONTAINER (toolbar1), break_btn);
 
   vpaned1 = gtk_vpaned_new ();
   gtk_widget_show (vpaned1);
@@ -277,12 +257,16 @@ create_debug_win (void)
                      "GladeParentKey", mode_box);
   gtk_widget_show (mode_box);
   gtk_box_pack_start (GTK_BOX (hbox1), mode_box, FALSE, FALSE, 0);
-  mode_box_items = g_list_append (mode_box_items, (gpointer) "");
+  mode_box_items = g_list_append (mode_box_items, (gpointer) _("SH4"));
+  mode_box_items = g_list_append (mode_box_items, (gpointer) _("ARM7"));
+  mode_box_items = g_list_append (mode_box_items, (gpointer) _("ARM7T"));
   gtk_combo_set_popdown_strings (GTK_COMBO (mode_box), mode_box_items);
   g_list_free (mode_box_items);
 
   mode_field = GTK_COMBO (mode_box)->entry;
   gtk_widget_show (mode_field);
+  gtk_editable_set_editable (GTK_EDITABLE (mode_field), FALSE);
+  gtk_entry_set_text (GTK_ENTRY (mode_field), _("SH4"));
 
   label23 = gtk_label_new ("");
   gtk_widget_show (label23);
@@ -473,6 +457,7 @@ create_debug_win (void)
   GLADE_HOOKUP_OBJECT (debug_win, label31, "label31");
   GLADE_HOOKUP_OBJECT (debug_win, label32, "label32");
   GLADE_HOOKUP_OBJECT (debug_win, debug_appbar, "debug_appbar");
+  GLADE_HOOKUP_OBJECT_NO_REF (debug_win, tooltips, "tooltips");
 
   return debug_win;
 }
@@ -554,7 +539,7 @@ create_about_win (void)
   if (!strcmp (translators, "translator_credits"))
     translators = NULL;
   about_win_logo_pixbuf = create_pixbuf ("dream/dcemu.gif");
-  about_win = gnome_about_new ("Dream2", VERSION,
+  about_win = gnome_about_new ("Dream", VERSION,
                         _("Copyright(c) 2002 Nathan Keynes"),
                         "",
                         authors,
@@ -562,6 +547,7 @@ create_about_win (void)
                         translators,
                         about_win_logo_pixbuf);
   gtk_container_set_border_width (GTK_CONTAINER (about_win), 1);
+  gtk_window_set_type_hint (GTK_WINDOW (about_win), GDK_WINDOW_TYPE_HINT_DIALOG);
 
   /* Store pointers to all widgets, for use by lookup_widget(). */
   GLADE_HOOKUP_OBJECT_NO_REF (about_win, about_win, "about_win");

@@ -1,4 +1,19 @@
-
+/**
+ * $Id: debug_win.c,v 1.4 2005-12-11 05:15:36 nkeynes Exp $
+ * This file is responsible for the main debugger gui frame.
+ *
+ * Copyright (c) 2005 Nathan Keynes.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
 #include <stdlib.h>
 #include <stdarg.h>
 #include <gnome.h>
@@ -57,7 +72,7 @@ debug_info_t init_debug_win(GtkWidget *win, struct cpu_desc_struct *cpu )
     appbar = gtk_object_get_data(GTK_OBJECT(win), "debug_appbar");
     data->icounter = gnome_appbar_get_progress( appbar );
     gtk_progress_bar_set_text(data->icounter, "1");
-
+    
     gtk_object_set_data( GTK_OBJECT(win), "debug_data", data );
     return data;
 }
@@ -127,7 +142,7 @@ void set_disassembly_region( debug_info_t data, unsigned int page )
         for( i=from; i<to; ) {
 	    i = data->cpu->disasm_func( i, buf, sizeof(buf) );
             sprintf( addr, "%08X", i );
-            op = mem_read_phys_word(i);
+            op = sh4_read_phys_word(i);
             sprintf( opcode, "%02X %02X", op&0xFF, op>>8 );
             posn = gtk_clist_append( data->disasm_list, arr );
             if( buf[0] == '?' )
@@ -181,6 +196,12 @@ void set_disassembly_pc( debug_info_t data, unsigned int pc, gboolean select )
     data->disasm_pc = pc;
 }
 
+void set_disassembly_cpu( debug_info_t data, char *cpu )
+{
+
+
+}
+
 uint32_t row_to_address( debug_info_t data, int row ) {
     return data->cpu->instr_size * row + data->disasm_from;
 }
@@ -190,6 +211,7 @@ int address_to_row( debug_info_t data, uint32_t address ) {
 	return -1;
     return (address - data->disasm_from) / data->cpu->instr_size;
 }
+
 
 void emit( void *ptr, int level, int source, char *msg, ... )
 {

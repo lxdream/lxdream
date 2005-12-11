@@ -218,7 +218,9 @@ void
 on_mode_field_changed                  (GtkEditable     *editable,
                                         gpointer         user_data)
 {
-
+    gchar *text = gtk_entry_get_text( GTK_ENTRY(editable) );
+    debug_info_t data = get_debug_info( GTK_WIDGET(editable) );
+    set_disassembly_cpu( data, text );
 }
 
 

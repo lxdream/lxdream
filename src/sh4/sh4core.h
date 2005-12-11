@@ -1,5 +1,20 @@
-/*
- * Header for the basic sh4 emulator core
+/**
+ * $Id: sh4core.h,v 1.3 2005-12-11 05:15:36 nkeynes Exp $
+ * 
+ * This file defines the public functions exported by the SH4 core, except
+ * for disassembly functions defined in sh4dasm.h
+ *
+ * Copyright (c) 2005 Nathan Keynes.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  */
 #ifndef sh4core_H
 #define sh4core_H 1
@@ -45,6 +60,15 @@ void sh4_stop( void );
 void sh4_set_pc( int );
 void sh4_execute_instruction( void );
 void sh4_raise_exception( int, int );
+
+/* SH4 Memory */
+int32_t sh4_read_long( uint32_t addr );
+int32_t sh4_read_word( uint32_t addr );
+int32_t sh4_read_byte( uint32_t addr );
+void sh4_write_long( uint32_t addr, uint32_t val );
+void sh4_write_word( uint32_t addr, uint32_t val );
+void sh4_write_byte( uint32_t addr, uint32_t val );
+int32_t sh4_read_phys_word( uint32_t addr );
 
 void run_timers( int );
 

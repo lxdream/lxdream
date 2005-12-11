@@ -16,7 +16,7 @@ extern "C" {
  * @param buflen Maximum length of buffer
  * @return next address to disassemble
  */
-typedef int (*disasm_func_t)(uint32_t pc, char *buffer, int buflen );
+typedef uint32_t (*disasm_func_t)(uint32_t pc, char *buffer, int buflen );
 
 #define REG_INT 0
 #define REG_FLT 1

@@ -141,10 +141,11 @@ dream_SOURCES = \
         interface.c interface.h \
         callbacks.c callbacks.h \
         gui.c gui.h mmr_win.c debug_win.c dump_win.c \
+        mem.c mem.h mmio.h \
         asic.c asic.h pvr2.c pvr2.h ide.c ide.h \
         video.c dreamcast.c dreamcast.h aica.c aica.h\
         maple.c maple.h maple/controller.c maple/controller.h \
-        sh4/intc.c sh4/intc.h sh4/mem.c sh4/mem.h sh4/mmio.h \
+        sh4/intc.c sh4/intc.h sh4/sh4mem.c \
         sh4/sh4core.c sh4/sh4core.h sh4/sh4dasm.c sh4/sh4dasm.h \
         sh4/sh4mmio.c sh4/sh4mmio.h sh4/watch.c \
         fileio.c ipbin.c
@@ -163,10 +164,10 @@ PROGRAMS = $(bin_PROGRAMS)
 
 am_dream_OBJECTS = main.$(OBJEXT) support.$(OBJEXT) interface.$(OBJEXT) \
 	callbacks.$(OBJEXT) gui.$(OBJEXT) mmr_win.$(OBJEXT) \
-	debug_win.$(OBJEXT) dump_win.$(OBJEXT) asic.$(OBJEXT) \
-	pvr2.$(OBJEXT) ide.$(OBJEXT) video.$(OBJEXT) \
+	debug_win.$(OBJEXT) dump_win.$(OBJEXT) mem.$(OBJEXT) \
+	asic.$(OBJEXT) pvr2.$(OBJEXT) ide.$(OBJEXT) video.$(OBJEXT) \
 	dreamcast.$(OBJEXT) aica.$(OBJEXT) maple.$(OBJEXT) \
-	controller.$(OBJEXT) intc.$(OBJEXT) mem.$(OBJEXT) \
+	controller.$(OBJEXT) intc.$(OBJEXT) sh4mem.$(OBJEXT) \
 	sh4core.$(OBJEXT) sh4dasm.$(OBJEXT) sh4mmio.$(OBJEXT) \
 	watch.$(OBJEXT) fileio.$(OBJEXT) ipbin.$(OBJEXT)
 dream_OBJECTS = $(am_dream_OBJECTS)
@@ -186,8 +187,9 @@ am__depfiles_maybe = depfiles
 @AMDEP_TRUE@	./$(DEPDIR)/maple.Po ./$(DEPDIR)/mem.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/mmr_win.Po ./$(DEPDIR)/pvr2.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/sh4core.Po ./$(DEPDIR)/sh4dasm.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/sh4mmio.Po ./$(DEPDIR)/support.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/video.Po ./$(DEPDIR)/watch.Po
+@AMDEP_TRUE@	./$(DEPDIR)/sh4mem.Po ./$(DEPDIR)/sh4mmio.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/support.Po ./$(DEPDIR)/video.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/watch.Po
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
@@ -259,6 +261,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pvr2.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sh4core.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sh4dasm.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sh4mem.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sh4mmio.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/support.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/video.Po@am__quote@
@@ -330,27 +333,27 @@ intc.obj: sh4/intc.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o intc.obj `if test -f 'sh4/intc.c'; then $(CYGPATH_W) 'sh4/intc.c'; else $(CYGPATH_W) '$(srcdir)/sh4/intc.c'; fi`
 
-mem.o: sh4/mem.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT mem.o -MD -MP -MF "$(DEPDIR)/mem.Tpo" \
-@am__fastdepCC_TRUE@	  -c -o mem.o `test -f 'sh4/mem.c' || echo '$(srcdir)/'`sh4/mem.c; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/mem.Tpo" "$(DEPDIR)/mem.Po"; \
-@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/mem.Tpo"; exit 1; \
+sh4mem.o: sh4/sh4mem.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sh4mem.o -MD -MP -MF "$(DEPDIR)/sh4mem.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o sh4mem.o `test -f 'sh4/sh4mem.c' || echo '$(srcdir)/'`sh4/sh4mem.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/sh4mem.Tpo" "$(DEPDIR)/sh4mem.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/sh4mem.Tpo"; exit 1; \
 @am__fastdepCC_TRUE@	fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='sh4/mem.c' object='mem.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/mem.Po' tmpdepfile='$(DEPDIR)/mem.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='sh4/sh4mem.c' object='sh4mem.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/sh4mem.Po' tmpdepfile='$(DEPDIR)/sh4mem.TPo' @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o mem.o `test -f 'sh4/mem.c' || echo '$(srcdir)/'`sh4/mem.c
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sh4mem.o `test -f 'sh4/sh4mem.c' || echo '$(srcdir)/'`sh4/sh4mem.c
 
-mem.obj: sh4/mem.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT mem.obj -MD -MP -MF "$(DEPDIR)/mem.Tpo" \
-@am__fastdepCC_TRUE@	  -c -o mem.obj `if test -f 'sh4/mem.c'; then $(CYGPATH_W) 'sh4/mem.c'; else $(CYGPATH_W) '$(srcdir)/sh4/mem.c'; fi`; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/mem.Tpo" "$(DEPDIR)/mem.Po"; \
-@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/mem.Tpo"; exit 1; \
+sh4mem.obj: sh4/sh4mem.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sh4mem.obj -MD -MP -MF "$(DEPDIR)/sh4mem.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o sh4mem.obj `if test -f 'sh4/sh4mem.c'; then $(CYGPATH_W) 'sh4/sh4mem.c'; else $(CYGPATH_W) '$(srcdir)/sh4/sh4mem.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/sh4mem.Tpo" "$(DEPDIR)/sh4mem.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/sh4mem.Tpo"; exit 1; \
 @am__fastdepCC_TRUE@	fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='sh4/mem.c' object='mem.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/mem.Po' tmpdepfile='$(DEPDIR)/mem.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='sh4/sh4mem.c' object='sh4mem.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/sh4mem.Po' tmpdepfile='$(DEPDIR)/sh4mem.TPo' @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o mem.obj `if test -f 'sh4/mem.c'; then $(CYGPATH_W) 'sh4/mem.c'; else $(CYGPATH_W) '$(srcdir)/sh4/mem.c'; fi`
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sh4mem.obj `if test -f 'sh4/sh4mem.c'; then $(CYGPATH_W) 'sh4/sh4mem.c'; else $(CYGPATH_W) '$(srcdir)/sh4/sh4mem.c'; fi`
 
 sh4core.o: sh4/sh4core.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sh4core.o -MD -MP -MF "$(DEPDIR)/sh4core.Tpo" \
