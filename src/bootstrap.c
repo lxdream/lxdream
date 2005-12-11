@@ -63,7 +63,7 @@ void parse_ipbin( char *data )
     sprintf( buf, "%4.4s", head->crc );
     crc = compute_crc16(head);
     hcrc = strtol( buf, NULL, 16 );
-    emit( crc == hcrc ? EMIT_INFO : EMIT_WARN, MODULE_ID, 
+    emit( NULL, crc == hcrc ? EMIT_INFO : EMIT_WARN, MODULE_ID, 
           "  Header CRC:   %04X (Computed %04X)", hcrc, crc );
     INFO( "  Boot File:    %-16.16s", head->boot_file );
     INFO( "  Product ID:   %-10.10s   Product Ver: %-6.6s   Date: %-8.8s",

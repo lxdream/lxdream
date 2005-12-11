@@ -23,13 +23,14 @@ struct reg_desc_struct sh4_reg_map[] =
     {"FPUL", REG_INT, &sh4r.fpul}, {"FPSCR", REG_INT, &sh4r.fpscr},
     {NULL, 0, NULL} };
 
+
 struct cpu_desc_struct sh4_cpu_desc = { "SH4", sh4_disasm_instruction, 2,
-					&sh4r, sizeof(sh4r), sh4_reg_map,
+					(char *)&sh4r, sizeof(sh4r), sh4_reg_map,
 					&sh4r.pc, &sh4r.icount };
 
-int sh4_disasm_instruction( int pc, char *buf, int len )
+uint32_t sh4_disasm_instruction( uint32_t pc, char *buf, int len )
 {
-    uint16_t ir = mem_read_word(pc);
+    uint16_t ir = sh4_read_word(pc);
     
 #define RN(ir) ((ir&0x0F00)>>8)
 #define RN_BANK(ir) ((ir&0x0070)>>4)
@@ -274,7 +275,7 @@ int sh4_disasm_instruction( int pc, char *buf, int len )
             break;
         case 9: /* 1001xxxxxxxxxxxx */
             snprintf( buf, len, "MOV.W   [$%xh], R%-2d ; <- #%08x", (DISP8(ir)<<1)+pc+4, RN(ir),
-                      mem_read_word( (DISP8(ir)<<1)+pc+4 ) ); break;
+                      sh4_read_word( (DISP8(ir)<<1)+pc+4 ) ); break;
         case 10:/* 1010xxxxxxxxxxxx */
             snprintf( buf, len, "BRA     $%xh", (DISP12(ir)<<1)+pc+4 ); break;
         case 11:/* 1011xxxxxxxxxxxx */
@@ -301,7 +302,7 @@ int sh4_disasm_instruction( int pc, char *buf, int len )
             break;
         case 13:/* 1101xxxxxxxxxxxx */
             snprintf( buf, len, "MOV.L   [$%xh], R%-2d ; <- #%08x", (DISP8(ir)<<2)+(pc&~3)+4, RN(ir),
-                      mem_read_long( (DISP8(ir)<<2)+(pc&~3)+4 ) ); break;
+                      sh4_read_long( (DISP8(ir)<<2)+(pc&~3)+4 ) ); break;
         case 14:/* 1110xxxxxxxxxxxx */
             snprintf( buf, len, "MOV     #%d, R%d", DISP8(ir), RN(ir)); break;
         case 15:/* 1111xxxxxxxxxxxx */
@@ -363,7 +364,7 @@ void sh4_disasm_region( FILE *f, int from, int to, int load_addr )
     char buf[80];
     
     for( pc = from; pc < to; pc+=2 ) {
-        uint16_t op = mem_read_word( pc );
+        uint16_t op = sh4_read_word( pc );
         buf[0] = '\0';
         sh4_disasm_instruction( pc,
                                 buf, sizeof(buf) );

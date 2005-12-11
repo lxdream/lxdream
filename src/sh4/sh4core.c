@@ -12,6 +12,7 @@ static int running = 0;
 void sh4_init(void)
 {
     register_io_regions( mmio_list_sh4mmio );
+    mmu_init();
 }
 
 void sh4_reset(void)
@@ -95,22 +96,22 @@ void sh4_runto( uint32_t target_pc, uint32_t count )
     } \
     return; } while(0)
 
-#define MEM_READ_BYTE( addr ) mem_read_byte(addr)
-#define MEM_READ_WORD( addr ) mem_read_word(addr)
-#define MEM_READ_LONG( addr ) mem_read_long(addr)
-#define MEM_WRITE_BYTE( addr, val ) mem_write_byte(addr, val)
-#define MEM_WRITE_WORD( addr, val ) mem_write_word(addr, val)
-#define MEM_WRITE_LONG( addr, val ) mem_write_long(addr, val)
+#define MEM_READ_BYTE( addr ) sh4_read_byte(addr)
+#define MEM_READ_WORD( addr ) sh4_read_word(addr)
+#define MEM_READ_LONG( addr ) sh4_read_long(addr)
+#define MEM_WRITE_BYTE( addr, val ) sh4_write_byte(addr, val)
+#define MEM_WRITE_WORD( addr, val ) sh4_write_word(addr, val)
+#define MEM_WRITE_LONG( addr, val ) sh4_write_long(addr, val)
 
 #define MEM_FP_READ( addr, reg ) if( IS_FPU_DOUBLESIZE() ) { \
-    ((uint32_t *)FR)[(reg)&0xE0] = mem_read_long(addr); \
-    ((uint32_t *)FR)[(reg)|1] = mem_read_long(addr+4); \
-} else ((uint32_t *)FR)[reg] = mem_read_long(addr)
+    ((uint32_t *)FR)[(reg)&0xE0] = sh4_read_long(addr); \
+    ((uint32_t *)FR)[(reg)|1] = sh4_read_long(addr+4); \
+} else ((uint32_t *)FR)[reg] = sh4_read_long(addr)
 
 #define MEM_FP_WRITE( addr, reg ) if( IS_FPU_DOUBLESIZE() ) { \
-    mem_write_long( addr, ((uint32_t *)FR)[(reg)&0xE0] ); \
-    mem_write_long( addr+4, ((uint32_t *)FR)[(reg)|1] ); \
-} else mem_write_long( addr, ((uint32_t *)FR)[reg] )
+    sh4_write_long( addr, ((uint32_t *)FR)[(reg)&0xE0] ); \
+    sh4_write_long( addr+4, ((uint32_t *)FR)[(reg)|1] ); \
+} else sh4_write_long( addr, ((uint32_t *)FR)[reg] )
 
 #define FP_WIDTH (IS_FPU_DOUBLESIZE() ? 8 : 4)
 

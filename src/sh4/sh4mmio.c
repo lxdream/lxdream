@@ -9,17 +9,47 @@
 
 MMIO_REGION_READ_STUBFN( MMU )
 
+#define OCRAM_START (0x1C000000>>PAGE_BITS)
+#define OCRAM_END   (0x20000000>>PAGE_BITS)
+
+static char *cache = NULL;
+
 void mmio_region_MMU_write( uint32_t reg, uint32_t val )
 {
     switch(reg) {
         case CCR:
-            mem_set_cache_mode( val & (CCR_OIX|CCR_ORA) );
+            mmu_set_cache_mode( val & (CCR_OIX|CCR_ORA) );
             INFO( "Cache mode set to %08X", val );
             break;
         default:
             break;
     }
     MMIO_WRITE( MMU, reg, val );
+}
+
+
+void mmu_init() 
+{
+  cache = mem_alloc_pages(2);
+}
+
+void mmu_set_cache_mode( int mode )
+{
+    uint32_t i;
+    switch( mode ) {
+        case MEM_OC_INDEX0: /* OIX=0 */
+            for( i=OCRAM_START; i<OCRAM_END; i++ )
+                page_map[i] = cache + ((i&0x02)<<(PAGE_BITS-1));
+            break;
+        case MEM_OC_INDEX1: /* OIX=1 */
+            for( i=OCRAM_START; i<OCRAM_END; i++ )
+                page_map[i] = cache + ((i&0x02000000)>>(25-PAGE_BITS));
+            break;
+        default: /* disabled */
+            for( i=OCRAM_START; i<OCRAM_END; i++ )
+                page_map[i] = NULL;
+            break;
+    }
 }
 
 
