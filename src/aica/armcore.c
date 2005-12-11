@@ -6,12 +6,12 @@ struct arm_registers armr;
 /* NB: The arm has a different memory map, but for the meantime... */
 /* Page references are as per ARM DDI 0100E (June 2000) */
 
-#define MEM_READ_BYTE( addr ) mem_read_byte(addr)
-#define MEM_READ_WORD( addr ) mem_read_word(addr)
-#define MEM_READ_LONG( addr ) mem_read_long(addr)
-#define MEM_WRITE_BYTE( addr, val ) mem_write_byte(addr, val)
-#define MEM_WRITE_WORD( addr, val ) mem_write_word(addr, val)
-#define MEM_WRITE_LONG( addr, val ) mem_write_long(addr, val)
+#define MEM_READ_BYTE( addr ) arm_read_byte(addr)
+#define MEM_READ_WORD( addr ) arm_read_word(addr)
+#define MEM_READ_LONG( addr ) arm_read_long(addr)
+#define MEM_WRITE_BYTE( addr, val ) arm_write_byte(addr, val)
+#define MEM_WRITE_WORD( addr, val ) arm_write_word(addr, val)
+#define MEM_WRITE_LONG( addr, val ) arm_write_long(addr, val)
 
 
 #define IS_NOTBORROW( result, op1, op2 ) (op2 > op1 ? 0 : 1)
@@ -51,6 +51,10 @@ struct arm_registers armr;
 #define UNDEF(ir) do{ ERROR( "Raising exception on undefined instruction at %08x, opcode = %04x", PC, ir ); return; } while(0)
 #define UNIMP(ir) do{ ERROR( "Halted on unimplemented instruction at %08x, opcode = %04x", PC, ir ); return; }while(0)
 
+void arm_restore_cpsr()
+{
+
+}
 
 static uint32_t arm_get_shift_operand( uint32_t ir )
 {

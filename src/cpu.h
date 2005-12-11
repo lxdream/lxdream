@@ -16,7 +16,9 @@ extern "C" {
  * @param buflen Maximum length of buffer
  * @return next address to disassemble
  */
-typedef uint32_t (*disasm_func_t)(uint32_t pc, char *buffer, int buflen );
+typedef uint32_t (*disasm_func_t)(uint32_t pc, char *buffer, int buflen, char *opcode );
+
+typedef int (*is_valid_page_t)(uint32_t pc);
 
 #define REG_INT 0
 #define REG_FLT 1
@@ -41,6 +43,7 @@ typedef struct cpu_desc_struct {
   uint32_t *pc; /* Pointer to PC register */
   uint32_t *icount; /* Pointer to instruction counter */
   /* Memory map? */
+    is_valid_page_t valid_page_func; /* Test for valid memory page */
 } *cpu_desc_t;
 
 #ifdef __cplusplus

@@ -1,3 +1,23 @@
+/**
+ * $Id: aica.h,v 1.1 2005-12-11 12:00:09 nkeynes Exp $
+ * 
+ * MMIO definitions for the AICA sound chip. Note that the regions defined
+ * here are relative to the SH4 memory map (0x00700000 based), rather than
+ * the ARM addresses (0x00800000 based).
+ *
+ * Copyright (c) 2005 Nathan Keynes.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
 #include "mmio.h"
 
 MMIO_REGION_BEGIN( 0x00700000, AICA0, "AICA Sound System 0-31" )

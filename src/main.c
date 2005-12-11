@@ -13,9 +13,12 @@
 #include "gui.h"
 #include "sh4core.h"
 #include "sh4dasm.h"
+#include "aica/armdasm.h"
 #include "mem.h"
 
 debug_info_t main_debug;
+
+const cpu_desc_t cpu_descs[4] = { &sh4_cpu_desc, &arm_cpu_desc, &armt_cpu_desc, NULL };
 
 int
 main (int argc, char *argv[])
@@ -29,7 +32,7 @@ main (int argc, char *argv[])
   gnome_init ("dreamon", VERSION, argc, argv);
   init_gui();
   debug_win = create_debug_win ();
-  main_debug = init_debug_win(debug_win, &sh4_cpu_desc);
+  main_debug = init_debug_win(debug_win, cpu_descs);
   video_open();
   dreamcast_init();
   init_mmr_win(); /* Note: must be done after sh4_init */

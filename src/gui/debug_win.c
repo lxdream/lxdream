@@ -1,5 +1,5 @@
 /**
- * $Id: debug_win.c,v 1.4 2005-12-11 05:15:36 nkeynes Exp $
+ * $Id: debug_win.c,v 1.5 2005-12-11 12:00:03 nkeynes Exp $
  * This file is responsible for the main debugger gui frame.
  *
  * Copyright (c) 2005 Nathan Keynes.
@@ -30,6 +30,7 @@ struct debug_info_struct {
     int disasm_to;
     int disasm_pc;
     struct cpu_desc_struct *cpu;
+    struct cpu_desc_struct **cpu_list;
     GtkCList *msgs_list;
     GtkCList *regs_list;
     GtkCList *disasm_list;
@@ -39,31 +40,20 @@ struct debug_info_struct {
     char saved_regs[0];
 };
 
-debug_info_t init_debug_win(GtkWidget *win, struct cpu_desc_struct *cpu )
+debug_info_t init_debug_win(GtkWidget *win, struct cpu_desc_struct **cpu_list )
 {
-    int i;
-    char buf[20];
-    char *arr[2];
     GnomeAppBar *appbar;
     
-    debug_info_t data = g_malloc0( sizeof(struct debug_info_struct) + cpu->regs_size );
+    debug_info_t data = g_malloc0( sizeof(struct debug_info_struct) + cpu_list[0]->regs_size );
     data->disasm_from = -1;
     data->disasm_to = -1;
     data->disasm_pc = -1;
-    data->cpu = cpu;
+    data->cpu = cpu_list[0];
+    data->cpu_list = cpu_list;
     
     data->regs_list= gtk_object_get_data(GTK_OBJECT(win), "reg_list");
-    arr[1] = buf;
-    for( i=0; data->cpu->regs_info[i].name != NULL; i++ ) {
-        arr[0] = data->cpu->regs_info[i].name;
-        if( data->cpu->regs_info->type == REG_INT )
-            sprintf( buf, "%08X", *((uint32_t *)data->cpu->regs_info->value) );
-        else
-            sprintf( buf, "%f", *((float *)data->cpu->regs_info->value) );
-        gtk_clist_append( data->regs_list, arr );
-    }
     gtk_widget_modify_font( GTK_WIDGET(data->regs_list), fixed_list_font );
-
+    init_register_list( data );
     data->msgs_list = gtk_object_get_data(GTK_OBJECT(win), "output_list");
     data->disasm_list = gtk_object_get_data(GTK_OBJECT(win), "disasm_list");
     gtk_clist_set_column_width( data->disasm_list, 1, 16 );
@@ -75,6 +65,24 @@ debug_info_t init_debug_win(GtkWidget *win, struct cpu_desc_struct *cpu )
     
     gtk_object_set_data( GTK_OBJECT(win), "debug_data", data );
     return data;
+}
+
+void init_register_list( debug_info_t data ) 
+{
+    int i;
+    char buf[20];
+    char *arr[2];
+
+    gtk_clist_clear( data->regs_list );
+    arr[1] = buf;
+    for( i=0; data->cpu->regs_info[i].name != NULL; i++ ) {
+        arr[0] = data->cpu->regs_info[i].name;
+        if( data->cpu->regs_info->type == REG_INT )
+            sprintf( buf, "%08X", *((uint32_t *)data->cpu->regs_info[i].value) );
+        else
+            sprintf( buf, "%f", *((float *)data->cpu->regs_info[i].value) );
+        gtk_clist_append( data->regs_list, arr );
+    }
 }
 
 /*
@@ -120,11 +128,11 @@ void update_icount( debug_info_t data )
 
 void set_disassembly_region( debug_info_t data, unsigned int page )
 {
-    uint32_t i, posn;
+    uint32_t i, posn, next;
     uint16_t op;
     char buf[80];
     char addr[10];
-    char opcode[6] = "";
+    char opcode[16] = "";
     char *arr[4] = { addr, " ", opcode, buf };
     unsigned int from = page & 0xFFFFF000;
     unsigned int to = from + 4096;
@@ -139,11 +147,10 @@ void set_disassembly_region( debug_info_t data, unsigned int page )
         gtk_clist_append( data->disasm_list, arr );
         gtk_clist_set_foreground( data->disasm_list, 0, &clrError );
     } else {
-        for( i=from; i<to; ) {
-	    i = data->cpu->disasm_func( i, buf, sizeof(buf) );
+        for( i=from; i<to; i = next ) {
+	    next = data->cpu->disasm_func( i, buf, sizeof(buf), opcode );
             sprintf( addr, "%08X", i );
             op = sh4_read_phys_word(i);
-            sprintf( opcode, "%02X %02X", op&0xFF, op>>8 );
             posn = gtk_clist_append( data->disasm_list, arr );
             if( buf[0] == '?' )
                 gtk_clist_set_foreground( data->disasm_list, posn, &clrWarn );
@@ -198,8 +205,17 @@ void set_disassembly_pc( debug_info_t data, unsigned int pc, gboolean select )
 
 void set_disassembly_cpu( debug_info_t data, char *cpu )
 {
-
-
+    int i;
+    for( i=0; data->cpu_list[i] != NULL; i++ ) {
+	if( strcmp( data->cpu_list[i]->name, cpu ) == 0 ) {
+	    if( data->cpu != data->cpu_list[i] ) {
+		data->cpu = data->cpu_list[i];
+		set_disassembly_region( data, data->disasm_from );
+		init_register_list( data );
+	    }
+	    return;
+	}
+    }
 }
 
 uint32_t row_to_address( debug_info_t data, int row ) {

@@ -26,14 +26,6 @@ typedef struct mem_region {
 #define MB * (1024 * 1024)
 #define KB * 1024
 
-int32_t sh4_read_long( uint32_t addr );
-int32_t sh4_read_word( uint32_t addr );
-int32_t sh4_read_byte( uint32_t addr );
-void sh4_write_long( uint32_t addr, uint32_t val );
-void sh4_write_word( uint32_t addr, uint32_t val );
-void sh4_write_byte( uint32_t addr, uint32_t val );
-int32_t sh4_read_phys_word( uint32_t addr );
-
 void *mem_create_ram_region( uint32_t base, uint32_t size, char *name );
 void *mem_load_rom( char *name, uint32_t base, uint32_t size, uint32_t crc );
 char *mem_get_region( uint32_t addr );

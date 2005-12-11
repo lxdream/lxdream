@@ -1,5 +1,5 @@
 /**
- * $Id: mem.c,v 1.1 2005-12-11 05:15:36 nkeynes Exp $
+ * $Id: mem.c,v 1.2 2005-12-11 12:00:03 nkeynes Exp $
  * mem.c is responsible for creating and maintaining the overall system memory
  * map, as visible from the SH4 processor. 
  *
@@ -201,3 +201,4 @@ char *mem_get_region( uint32_t addr )
         return page+(addr&0xFFF);
     }
 }
+
