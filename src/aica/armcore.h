@@ -8,23 +8,24 @@
 #define ROTATE_RIGHT_LONG(operand,shift) ((((uint32_t)operand) >> shift) | ((operand<<(32-shift))) )
 
 struct arm_registers {
-  uint32_t r[16]; /* Current register bank */
-
-  uint32_t cpsr;
-  uint32_t spsr;
-
-  /* Various banked versions of the registers. */
-  uint32_t fiq_r[7]; /* FIQ bank 8..14 */
-  uint32_t irq_r[2]; /* IRQ bank 13..14 */
-  uint32_t und_r[2]; /* UND bank 13..14 */
-  uint32_t abt_r[2]; /* ABT bank 13..14 */
-  uint32_t svc_r[2]; /* SVC bank 13..14 */
-  uint32_t user_r[7]; /* User/System bank 8..14 */
-
-  uint32_t c,n,z,v,t;
-  
-  /* "fake" registers */
-  uint32_t shift_c;  /* used for temporary storage of shifter results */
+    uint32_t r[16]; /* Current register bank */
+    
+    uint32_t cpsr;
+    uint32_t spsr;
+    
+    /* Various banked versions of the registers. */
+    uint32_t fiq_r[7]; /* FIQ bank 8..14 */
+    uint32_t irq_r[2]; /* IRQ bank 13..14 */
+    uint32_t und_r[2]; /* UND bank 13..14 */
+    uint32_t abt_r[2]; /* ABT bank 13..14 */
+    uint32_t svc_r[2]; /* SVC bank 13..14 */
+    uint32_t user_r[7]; /* User/System bank 8..14 */
+    
+    uint32_t c,n,z,v,t;
+    
+    /* "fake" registers */
+    uint32_t shift_c;  /* used for temporary storage of shifter results */
+    uint32_t icount; /* Instruction counter */
 };
 
 #define CPSR_N 0x80000000 /* Negative flag */
@@ -47,5 +48,14 @@ struct arm_registers {
 extern struct arm_registers armr;
 
 #define CARRY_FLAG (armr.cpsr&CPSR_C)
+
+/* ARM Memory */
+int32_t arm_read_long( uint32_t addr );
+int32_t arm_read_word( uint32_t addr );
+int32_t arm_read_byte( uint32_t addr );
+void arm_write_long( uint32_t addr, uint32_t val );
+void arm_write_word( uint32_t addr, uint32_t val );
+void arm_write_byte( uint32_t addr, uint32_t val );
+int32_t arm_read_phys_word( uint32_t addr );
 
 #endif /* !dream_armcore_H */

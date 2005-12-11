@@ -5,7 +5,7 @@
 #define UNIMP(ir) snprintf( buf, len, "???     " )
 
 
-struct reg_desc_struct sh4_reg_map[] = 
+const struct reg_desc_struct sh4_reg_map[] = 
   { {"R0", REG_INT, &sh4r.r[0]}, {"R1", REG_INT, &sh4r.r[1]},
     {"R2", REG_INT, &sh4r.r[2]}, {"R3", REG_INT, &sh4r.r[3]},
     {"R4", REG_INT, &sh4r.r[4]}, {"R5", REG_INT, &sh4r.r[5]},
@@ -24,11 +24,11 @@ struct reg_desc_struct sh4_reg_map[] =
     {NULL, 0, NULL} };
 
 
-struct cpu_desc_struct sh4_cpu_desc = { "SH4", sh4_disasm_instruction, 2,
+const struct cpu_desc_struct sh4_cpu_desc = { "SH4", sh4_disasm_instruction, 2,
 					(char *)&sh4r, sizeof(sh4r), sh4_reg_map,
 					&sh4r.pc, &sh4r.icount };
 
-uint32_t sh4_disasm_instruction( uint32_t pc, char *buf, int len )
+uint32_t sh4_disasm_instruction( uint32_t pc, char *buf, int len, char *opcode )
 {
     uint16_t ir = sh4_read_word(pc);
     
@@ -43,6 +43,8 @@ uint32_t sh4_disasm_instruction( uint32_t pc, char *buf, int len )
 #define DISP12(ir) SIGNEXT12(ir&0x0FFF)
 #define FVN(ir) ((ir&0x0C00)>>10)
 #define FVM(ir) ((ir&0x0300)>>8)
+
+    sprintf( opcode, "%02X %02X", ir&0xFF, ir>>8 );
 
     switch( (ir&0xF000)>>12 ) {
         case 0: /* 0000nnnnmmmmxxxx */
@@ -362,12 +364,12 @@ void sh4_disasm_region( FILE *f, int from, int to, int load_addr )
 {
     int pc;
     char buf[80];
+    char opcode[16];
     
     for( pc = from; pc < to; pc+=2 ) {
-        uint16_t op = sh4_read_word( pc );
         buf[0] = '\0';
         sh4_disasm_instruction( pc,
-                                buf, sizeof(buf) );
-        fprintf( f, "  %08x:  %04x  %s\n", pc + load_addr, op, buf );
+                                buf, sizeof(buf), opcode );
+        fprintf( f, "  %08x:  %s  %s\n", pc + load_addr, opcode, buf );
     }
 }

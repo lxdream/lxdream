@@ -21,7 +21,7 @@ void update_gui(void);
 typedef struct debug_info_struct *debug_info_t;
 extern debug_info_t main_debug;
 
-debug_info_t init_debug_win(GtkWidget *, cpu_desc_t cpu );
+debug_info_t init_debug_win(GtkWidget *, cpu_desc_t *cpu );
 debug_info_t get_debug_info(GtkWidget *widget);
 void open_file_dialog( void );
 void update_mmr_win( void );

@@ -143,11 +143,13 @@ dream_SOURCES = \
         gui.c gui.h mmr_win.c debug_win.c dump_win.c \
         mem.c mem.h mmio.h \
         asic.c asic.h pvr2.c pvr2.h ide.c ide.h \
-        video.c dreamcast.c dreamcast.h aica.c aica.h\
+        video.c dreamcast.c dreamcast.h \
         maple.c maple.h maple/controller.c maple/controller.h \
         sh4/intc.c sh4/intc.h sh4/sh4mem.c \
         sh4/sh4core.c sh4/sh4core.h sh4/sh4dasm.c sh4/sh4dasm.h \
         sh4/sh4mmio.c sh4/sh4mmio.h sh4/watch.c \
+        aica/armcore.c aica/armcore.h aica/armdasm.c aica/armmem.c \
+        aica/aica.c aica/aica.h \
         fileio.c ipbin.c
 
 
@@ -166,10 +168,11 @@ am_dream_OBJECTS = main.$(OBJEXT) support.$(OBJEXT) interface.$(OBJEXT) \
 	callbacks.$(OBJEXT) gui.$(OBJEXT) mmr_win.$(OBJEXT) \
 	debug_win.$(OBJEXT) dump_win.$(OBJEXT) mem.$(OBJEXT) \
 	asic.$(OBJEXT) pvr2.$(OBJEXT) ide.$(OBJEXT) video.$(OBJEXT) \
-	dreamcast.$(OBJEXT) aica.$(OBJEXT) maple.$(OBJEXT) \
-	controller.$(OBJEXT) intc.$(OBJEXT) sh4mem.$(OBJEXT) \
-	sh4core.$(OBJEXT) sh4dasm.$(OBJEXT) sh4mmio.$(OBJEXT) \
-	watch.$(OBJEXT) fileio.$(OBJEXT) ipbin.$(OBJEXT)
+	dreamcast.$(OBJEXT) maple.$(OBJEXT) controller.$(OBJEXT) \
+	intc.$(OBJEXT) sh4mem.$(OBJEXT) sh4core.$(OBJEXT) \
+	sh4dasm.$(OBJEXT) sh4mmio.$(OBJEXT) watch.$(OBJEXT) \
+	armcore.$(OBJEXT) armdasm.$(OBJEXT) armmem.$(OBJEXT) \
+	aica.$(OBJEXT) fileio.$(OBJEXT) ipbin.$(OBJEXT)
 dream_OBJECTS = $(am_dream_OBJECTS)
 dream_DEPENDENCIES =
 dream_LDFLAGS =
@@ -177,19 +180,20 @@ dream_LDFLAGS =
 DEFAULT_INCLUDES =  -I. -I$(srcdir) -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
-@AMDEP_TRUE@DEP_FILES = ./$(DEPDIR)/aica.Po ./$(DEPDIR)/asic.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/callbacks.Po ./$(DEPDIR)/controller.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/debug_win.Po ./$(DEPDIR)/dreamcast.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/dump_win.Po ./$(DEPDIR)/fileio.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/gui.Po ./$(DEPDIR)/ide.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/intc.Po ./$(DEPDIR)/interface.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/ipbin.Po ./$(DEPDIR)/main.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/maple.Po ./$(DEPDIR)/mem.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/mmr_win.Po ./$(DEPDIR)/pvr2.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/sh4core.Po ./$(DEPDIR)/sh4dasm.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/sh4mem.Po ./$(DEPDIR)/sh4mmio.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/support.Po ./$(DEPDIR)/video.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/watch.Po
+@AMDEP_TRUE@DEP_FILES = ./$(DEPDIR)/aica.Po ./$(DEPDIR)/armcore.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/armdasm.Po ./$(DEPDIR)/armmem.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/asic.Po ./$(DEPDIR)/callbacks.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/controller.Po ./$(DEPDIR)/debug_win.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/dreamcast.Po ./$(DEPDIR)/dump_win.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/fileio.Po ./$(DEPDIR)/gui.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/ide.Po ./$(DEPDIR)/intc.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/interface.Po ./$(DEPDIR)/ipbin.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/main.Po ./$(DEPDIR)/maple.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/mem.Po ./$(DEPDIR)/mmr_win.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/pvr2.Po ./$(DEPDIR)/sh4core.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/sh4dasm.Po ./$(DEPDIR)/sh4mem.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/sh4mmio.Po ./$(DEPDIR)/support.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/video.Po ./$(DEPDIR)/watch.Po
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
@@ -242,6 +246,9 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/aica.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/armcore.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/armdasm.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/armmem.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/asic.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/callbacks.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/controller.Po@am__quote@
@@ -442,6 +449,94 @@ watch.obj: sh4/watch.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/watch.Po' tmpdepfile='$(DEPDIR)/watch.TPo' @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o watch.obj `if test -f 'sh4/watch.c'; then $(CYGPATH_W) 'sh4/watch.c'; else $(CYGPATH_W) '$(srcdir)/sh4/watch.c'; fi`
+
+armcore.o: aica/armcore.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT armcore.o -MD -MP -MF "$(DEPDIR)/armcore.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o armcore.o `test -f 'aica/armcore.c' || echo '$(srcdir)/'`aica/armcore.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/armcore.Tpo" "$(DEPDIR)/armcore.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/armcore.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='aica/armcore.c' object='armcore.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/armcore.Po' tmpdepfile='$(DEPDIR)/armcore.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o armcore.o `test -f 'aica/armcore.c' || echo '$(srcdir)/'`aica/armcore.c
+
+armcore.obj: aica/armcore.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT armcore.obj -MD -MP -MF "$(DEPDIR)/armcore.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o armcore.obj `if test -f 'aica/armcore.c'; then $(CYGPATH_W) 'aica/armcore.c'; else $(CYGPATH_W) '$(srcdir)/aica/armcore.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/armcore.Tpo" "$(DEPDIR)/armcore.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/armcore.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='aica/armcore.c' object='armcore.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/armcore.Po' tmpdepfile='$(DEPDIR)/armcore.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o armcore.obj `if test -f 'aica/armcore.c'; then $(CYGPATH_W) 'aica/armcore.c'; else $(CYGPATH_W) '$(srcdir)/aica/armcore.c'; fi`
+
+armdasm.o: aica/armdasm.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT armdasm.o -MD -MP -MF "$(DEPDIR)/armdasm.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o armdasm.o `test -f 'aica/armdasm.c' || echo '$(srcdir)/'`aica/armdasm.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/armdasm.Tpo" "$(DEPDIR)/armdasm.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/armdasm.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='aica/armdasm.c' object='armdasm.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/armdasm.Po' tmpdepfile='$(DEPDIR)/armdasm.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o armdasm.o `test -f 'aica/armdasm.c' || echo '$(srcdir)/'`aica/armdasm.c
+
+armdasm.obj: aica/armdasm.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT armdasm.obj -MD -MP -MF "$(DEPDIR)/armdasm.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o armdasm.obj `if test -f 'aica/armdasm.c'; then $(CYGPATH_W) 'aica/armdasm.c'; else $(CYGPATH_W) '$(srcdir)/aica/armdasm.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/armdasm.Tpo" "$(DEPDIR)/armdasm.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/armdasm.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='aica/armdasm.c' object='armdasm.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/armdasm.Po' tmpdepfile='$(DEPDIR)/armdasm.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o armdasm.obj `if test -f 'aica/armdasm.c'; then $(CYGPATH_W) 'aica/armdasm.c'; else $(CYGPATH_W) '$(srcdir)/aica/armdasm.c'; fi`
+
+armmem.o: aica/armmem.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT armmem.o -MD -MP -MF "$(DEPDIR)/armmem.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o armmem.o `test -f 'aica/armmem.c' || echo '$(srcdir)/'`aica/armmem.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/armmem.Tpo" "$(DEPDIR)/armmem.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/armmem.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='aica/armmem.c' object='armmem.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/armmem.Po' tmpdepfile='$(DEPDIR)/armmem.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o armmem.o `test -f 'aica/armmem.c' || echo '$(srcdir)/'`aica/armmem.c
+
+armmem.obj: aica/armmem.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT armmem.obj -MD -MP -MF "$(DEPDIR)/armmem.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o armmem.obj `if test -f 'aica/armmem.c'; then $(CYGPATH_W) 'aica/armmem.c'; else $(CYGPATH_W) '$(srcdir)/aica/armmem.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/armmem.Tpo" "$(DEPDIR)/armmem.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/armmem.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='aica/armmem.c' object='armmem.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/armmem.Po' tmpdepfile='$(DEPDIR)/armmem.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o armmem.obj `if test -f 'aica/armmem.c'; then $(CYGPATH_W) 'aica/armmem.c'; else $(CYGPATH_W) '$(srcdir)/aica/armmem.c'; fi`
+
+aica.o: aica/aica.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT aica.o -MD -MP -MF "$(DEPDIR)/aica.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o aica.o `test -f 'aica/aica.c' || echo '$(srcdir)/'`aica/aica.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/aica.Tpo" "$(DEPDIR)/aica.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/aica.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='aica/aica.c' object='aica.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/aica.Po' tmpdepfile='$(DEPDIR)/aica.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o aica.o `test -f 'aica/aica.c' || echo '$(srcdir)/'`aica/aica.c
+
+aica.obj: aica/aica.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT aica.obj -MD -MP -MF "$(DEPDIR)/aica.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o aica.obj `if test -f 'aica/aica.c'; then $(CYGPATH_W) 'aica/aica.c'; else $(CYGPATH_W) '$(srcdir)/aica/aica.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/aica.Tpo" "$(DEPDIR)/aica.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/aica.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='aica/aica.c' object='aica.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/aica.Po' tmpdepfile='$(DEPDIR)/aica.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o aica.obj `if test -f 'aica/aica.c'; then $(CYGPATH_W) 'aica/aica.c'; else $(CYGPATH_W) '$(srcdir)/aica/aica.c'; fi`
 uninstall-info-am:
 
 ETAGS = etags

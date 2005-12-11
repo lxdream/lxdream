@@ -6,6 +6,7 @@
  */
 
 #include "aica/armcore.h"
+#include "aica/armdasm.h"
 #include <stdlib.h>
 
 #define COND(ir) (ir>>28)
@@ -31,6 +32,30 @@
 #define DISP24(ir) ((ir&0x00FFFFFF))
 #define FSXC(ir) msrFieldMask[RN(ir)]
 #define ROTIMM12(ir) ROTATE_RIGHT_LONG(IMM8(ir),IMMROT(ir))
+
+
+const struct reg_desc_struct arm_reg_map[] = 
+  { {"R0", REG_INT, &armr.r[0]}, {"R1", REG_INT, &armr.r[1]},
+    {"R2", REG_INT, &armr.r[2]}, {"R3", REG_INT, &armr.r[3]},
+    {"R4", REG_INT, &armr.r[4]}, {"R5", REG_INT, &armr.r[5]},
+    {"R6", REG_INT, &armr.r[6]}, {"R7", REG_INT, &armr.r[7]},
+    {"R8", REG_INT, &armr.r[8]}, {"R9", REG_INT, &armr.r[9]},
+    {"R10",REG_INT, &armr.r[10]}, {"R11",REG_INT, &armr.r[11]},
+    {"R12",REG_INT, &armr.r[12]}, {"R13",REG_INT, &armr.r[13]},
+    {"R14",REG_INT, &armr.r[14]}, {"R15",REG_INT, &armr.r[15]},
+    {"CPSR", REG_INT, &armr.cpsr}, {"SPSR", REG_INT, &armr.spsr},
+    {NULL, 0, NULL} };
+
+
+const struct cpu_desc_struct arm_cpu_desc = { "ARM7", arm_disasm_instruction, 4,
+					(char *)&armr, sizeof(armr), arm_reg_map,
+					&armr.r[15], &armr.icount };
+const struct cpu_desc_struct armt_cpu_desc = { "ARM7T", armt_disasm_instruction, 2,
+					 (char*)&armr, sizeof(armr), arm_reg_map,
+					 &armr.r[15], &armr.icount };
+
+
+
 
 char *conditionNames[] = { "EQ", "NE", "CS", "CC", "MI", "PL", "VS", "VC", 
                            "HI", "LS", "GE", "LT", "GT", "LE", "  " /*AL*/, "NV" };
@@ -127,12 +152,15 @@ static int arm_disasm_address_operand( uint32_t ir, char *buf, int len )
 	}
 }
 
-int arm_disasm_instruction( uint32_t pc, char *buf, int len )
+uint32_t arm_disasm_instruction( uint32_t pc, char *buf, int len, char *opcode )
 {
-	char operand[32];
-    uint32_t ir = arm_mem_read_long(pc);
-	int i,j;
+    char operand[32];
+    uint32_t ir = arm_read_long(pc);
+    int i,j;
 	
+    sprintf( opcode, "%02X %02X %02X %02X", ir&0xFF, (ir>>8) & 0xFF,
+	     (ir>>16)&0xFF, (ir>>24) );
+
     if( COND(ir) == 0x0F ) {
     	UNIMP(ir);
     	return pc+4;
@@ -420,4 +448,13 @@ int arm_disasm_instruction( uint32_t pc, char *buf, int len )
 	
 	
 	return pc+4;
+}
+
+
+uint32_t armt_disasm_instruction( uint32_t pc, char *buf, int len, char *opcode )
+{
+    uint32_t ir = arm_read_word(pc);
+    sprintf( opcode, "%02X %02X", ir&0xFF, (ir>>8) );
+    UNIMP(ir);
+    return pc+2;
 }
