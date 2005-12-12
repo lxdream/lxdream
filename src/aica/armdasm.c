@@ -49,12 +49,16 @@ const struct reg_desc_struct arm_reg_map[] =
     {NULL, 0, NULL} };
 
 
-const struct cpu_desc_struct arm_cpu_desc = { "ARM7", arm_disasm_instruction, 4,
-					(char *)&armr, sizeof(armr), arm_reg_map,
-					&armr.r[15], &armr.icount };
-const struct cpu_desc_struct armt_cpu_desc = { "ARM7T", armt_disasm_instruction, 2,
-					 (char*)&armr, sizeof(armr), arm_reg_map,
-					 &armr.r[15], &armr.icount };
+const struct cpu_desc_struct arm_cpu_desc = 
+    { "ARM7", arm_disasm_instruction, 4,
+      (char *)&armr, sizeof(armr), arm_reg_map,
+      &armr.r[15], &armr.icount,
+      arm_has_page };
+const struct cpu_desc_struct armt_cpu_desc = 
+    { "ARM7T", armt_disasm_instruction, 2,
+      (char*)&armr, sizeof(armr), arm_reg_map,
+      &armr.r[15], &armr.icount,
+      arm_has_page };
 
 
 

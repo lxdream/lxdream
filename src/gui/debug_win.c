@@ -1,5 +1,5 @@
 /**
- * $Id: debug_win.c,v 1.5 2005-12-11 12:00:03 nkeynes Exp $
+ * $Id: debug_win.c,v 1.6 2005-12-12 10:37:36 nkeynes Exp $
  * This file is responsible for the main debugger gui frame.
  *
  * Copyright (c) 2005 Nathan Keynes.
@@ -142,7 +142,7 @@ void set_disassembly_region( debug_info_t data, unsigned int page )
     sprintf( addr, "%08X", from );
     gtk_entry_set_text( data->page_field, addr );
 
-    if( !mem_has_page( from ) ) {
+    if( !data->cpu->is_valid_page_func( from ) ) {
         arr[3] = "This page is currently unmapped";
         gtk_clist_append( data->disasm_list, arr );
         gtk_clist_set_foreground( data->disasm_list, 0, &clrError );
