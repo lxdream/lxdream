@@ -2,14 +2,21 @@
 #include "video.h"
 #include "mem.h"
 #include "asic.h"
+#include "modules.h"
 #include "pvr2.h"
 #define MMIO_IMPL
 #include "pvr2.h"
 
 char *video_base;
 
+void pvr2_init( void );
+
+struct dreamcast_module pvr2_module = { "PVR2", pvr2_init, NULL, NULL, NULL,
+					NULL, NULL };
+
 void pvr2_init( void )
 {
+    mem_create_ram_region( 0x05000000, 8 MB, MEM_REGION_VIDEO );
     register_io_region( &mmio_region_PVR2 );
     video_base = mem_get_region_by_name( MEM_REGION_VIDEO );
 }

@@ -1,16 +1,21 @@
 #include <math.h>
 #include "dream.h"
+#include "modules.h"
 #include "sh4core.h"
 #include "sh4mmio.h"
 #include "mem.h"
 #include "intc.h"
 
-struct sh4_registers sh4r;
+struct dreamcast_module sh4_module = { "SH4", sh4_init, sh4_reset, 
+				       NULL, sh4_stop,
+				       NULL, NULL };
 
+struct sh4_registers sh4r;
 static int running = 0;
 
 void sh4_init(void)
 {
+    mem_create_ram_region( 0x0C000000, 16 MB, MEM_REGION_MAIN );
     register_io_regions( mmio_list_sh4mmio );
     mmu_init();
 }
