@@ -1,8 +1,19 @@
 #include <assert.h>
 #include "dream.h"
+#include "modules.h"
 #include "mem.h"
 #include "asic.h"
 #include "maple.h"
+
+void maple_init( void );
+
+struct dreamcast_module maple_module = { "Maple", maple_init, NULL, NULL, NULL,
+					 NULL, NULL };
+
+void maple_init( void )
+{
+
+}
 
 /**
  * Input data looks like this:

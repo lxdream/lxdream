@@ -2,10 +2,11 @@
 #include "dream.h"
 #include "mem.h"
 #include "sh4/intc.h"
-#include "asic.h"
 #include "dreamcast.h"
+#include "modules.h"
 #include "maple.h"
 #include "ide.h"
+#include "asic.h"
 #define MMIO_IMPL
 #include "asic.h"
 /*
@@ -19,6 +20,9 @@
  * ... don't even get me started on the "EXTDMA" page, about which, apparently,
  * practically nothing is publicly known...
  */
+
+struct dreamcast_module asic_module = { "ASIC", asic_init, NULL, NULL, NULL,
+					NULL, NULL };
 
 void asic_init( void )
 {

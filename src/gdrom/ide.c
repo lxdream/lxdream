@@ -5,9 +5,16 @@
  * under the terms of the GNU General Public License version 2 or later. 
  */
 #include <stdlib.h>
+#include "modules.h"
 #include "ide.h"
 
 #define MAX_WRITE_BUF 4096;
+
+void ide_init( void );
+void ide_init( void );
+
+struct dreamcast_module ide_module = { "IDE", ide_init, ide_reset, NULL, NULL,
+				       NULL, NULL };
 
 struct ide_registers idereg;
 
@@ -43,6 +50,11 @@ void set_read_buffer( char *buf, int len )
 void ide_clear_interrupt( void )
 {
     /* TODO */
+}
+
+void ide_init( void )
+{
+
 }
 
 void ide_reset( void )

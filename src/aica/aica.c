@@ -1,5 +1,5 @@
 /**
- * $Id: aica.c,v 1.1 2005-12-11 12:00:09 nkeynes Exp $
+ * $Id: aica.c,v 1.2 2005-12-12 13:11:11 nkeynes Exp $
  * 
  * This is the core sound system (ie the bit which does the actual work)
  *
@@ -17,6 +17,8 @@
  */
 
 #include "dream.h"
+#include "modules.h"
+#include "mem.h"
 #include "aica.h"
 #define MMIO_IMPL
 #include "aica.h"
@@ -25,11 +27,16 @@ MMIO_REGION_READ_DEFFN( AICA0 )
 MMIO_REGION_READ_DEFFN( AICA1 )
 MMIO_REGION_READ_DEFFN( AICA2 )
 
+struct dreamcast_module aica_module = { "AICA", aica_init, aica_reset, NULL, NULL,
+					NULL, NULL };
+
 /**
  * Initialize the AICA subsystem. Note requires that 
  */
 void aica_init( void )
 {
+    mem_create_ram_region( 0x00800000, 2 MB, MEM_REGION_AUDIO );
+    mem_create_ram_region( 0x00703000, 8 KB, MEM_REGION_AUDIO_SCRATCH ); /*???*/
     register_io_regions( mmio_list_spu );
     MMIO_NOTRACE(AICA0);
     MMIO_NOTRACE(AICA1);

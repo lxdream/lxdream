@@ -44,13 +44,13 @@ typedef struct maple_device {
     int (*reset)(struct maple_device *dev);
     int (*shutdown)(struct maple_device *dev);
     int (*get_condition)(struct maple_device *dev,
-                         int function, char *outbuf, int *buflen);
+                         int function, unsigned char *outbuf, int *buflen);
     int (*set_condition)(struct maple_device *dev,
-                         int function, char *inbuf, int buflen);
+                         int function, unsigned char *inbuf, int buflen);
     int (*read_block)(struct maple_device *dev,
-                      int function, uint32_t block, char *outbuf, int *buflen);
+                      int function, uint32_t block, unsigned char *outbuf, int *buflen);
     int (*write_block)(struct maple_device *dev,
-                       int function, uint32_t block, char *inbuf, int buflen);
+                       int function, uint32_t block, unsigned char *inbuf, int buflen);
     void (*attach)(struct maple_device *dev);
     void (*detach)(struct maple_device *dev);
 } *maple_device_t;

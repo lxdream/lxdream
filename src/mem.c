@@ -1,5 +1,5 @@
 /**
- * $Id: mem.c,v 1.2 2005-12-11 12:00:03 nkeynes Exp $
+ * $Id: mem.c,v 1.3 2005-12-12 13:11:07 nkeynes Exp $
  * mem.c is responsible for creating and maintaining the overall system memory
  * map, as visible from the SH4 processor. 
  *
@@ -29,9 +29,13 @@
 #include "dream.h"
 #include "mem.h"
 #include "mmio.h"
+#include "modules.h"
 #include "dreamcast.h"
 
 char **page_map = NULL;
+
+struct dreamcast_module mem_module =
+    { "MEM", mem_init, mem_reset, NULL, NULL, NULL, NULL };
 
 struct mem_region mem_rgn[MAX_MEM_REGIONS];
 struct mmio_region *io_rgn[MAX_IO_REGIONS];
