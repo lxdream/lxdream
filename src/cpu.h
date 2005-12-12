@@ -43,7 +43,7 @@ typedef struct cpu_desc_struct {
   uint32_t *pc; /* Pointer to PC register */
   uint32_t *icount; /* Pointer to instruction counter */
   /* Memory map? */
-    is_valid_page_t valid_page_func; /* Test for valid memory page */
+    is_valid_page_t is_valid_page_func; /* Test for valid memory page */
 } *cpu_desc_t;
 
 #ifdef __cplusplus

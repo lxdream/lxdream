@@ -9,6 +9,11 @@ void arm_mem_init() {
     
 }
 
+int arm_has_page( uint32_t addr ) {
+    return ( addr < 0x00200000 ||
+	     (addr >= 0x00800000 && addr <= 0x00805000 ) );
+}
+
 int32_t arm_read_long( uint32_t addr ) {
     if( addr < 0x00200000 ) {
 	return *(int32_t *)(arm_mem + addr);

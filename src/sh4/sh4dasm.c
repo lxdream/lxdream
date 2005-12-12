@@ -24,9 +24,10 @@ const struct reg_desc_struct sh4_reg_map[] =
     {NULL, 0, NULL} };
 
 
-const struct cpu_desc_struct sh4_cpu_desc = { "SH4", sh4_disasm_instruction, 2,
-					(char *)&sh4r, sizeof(sh4r), sh4_reg_map,
-					&sh4r.pc, &sh4r.icount };
+const struct cpu_desc_struct sh4_cpu_desc = 
+    { "SH4", sh4_disasm_instruction, 2,
+      (char *)&sh4r, sizeof(sh4r), sh4_reg_map,
+      &sh4r.pc, &sh4r.icount, mem_has_page };
 
 uint32_t sh4_disasm_instruction( uint32_t pc, char *buf, int len, char *opcode )
 {

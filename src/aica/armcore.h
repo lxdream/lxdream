@@ -57,5 +57,6 @@ void arm_write_long( uint32_t addr, uint32_t val );
 void arm_write_word( uint32_t addr, uint32_t val );
 void arm_write_byte( uint32_t addr, uint32_t val );
 int32_t arm_read_phys_word( uint32_t addr );
+int arm_has_page( uint32_t addr );
 
 #endif /* !dream_armcore_H */
