@@ -39,7 +39,7 @@ typedef struct cpu_desc_struct {
   size_t instr_size; /* Size of instruction */
   char *regs; /* Pointer to start of registers */
   size_t regs_size; /* Size of register structure in bytes */
-  struct reg_desc_struct *regs_info; /* Description of all registers */
+  const struct reg_desc_struct *regs_info; /* Description of all registers */
   uint32_t *pc; /* Pointer to PC register */
   uint32_t *icount; /* Pointer to instruction counter */
   /* Memory map? */

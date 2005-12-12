@@ -32,10 +32,12 @@
 #define DISP24(ir) ((ir&0x00FFFFFF))
 #define FSXC(ir) msrFieldMask[RN(ir)]
 #define ROTIMM12(ir) ROTATE_RIGHT_LONG(IMM8(ir),IMMROT(ir))
+#define SIGNEXT24(n) ((n&0x00800000) ? (n|0xFF000000) : (n&0x00FFFFFF))
+
 
 
 const struct reg_desc_struct arm_reg_map[] = 
-  { {"R0", REG_INT, &armr.r[0]}, {"R1", REG_INT, &armr.r[1]},
+    { {"R0", REG_INT, &armr.r[0]}, {"R1", REG_INT, &armr.r[1]},
     {"R2", REG_INT, &armr.r[2]}, {"R3", REG_INT, &armr.r[3]},
     {"R4", REG_INT, &armr.r[4]}, {"R5", REG_INT, &armr.r[5]},
     {"R6", REG_INT, &armr.r[6]}, {"R7", REG_INT, &armr.r[7]},
@@ -73,7 +75,12 @@ int arm_disasm_shift_operand( uint32_t ir, char *buf, int len )
 	if( IFLAG(ir) == 0 ) {
 		switch(SHIFT(ir)) {
 		case 0: /* (Rm << imm) */
-			return snprintf(buf, len, "R%d << %d", RM(ir), SHIFTIMM(ir) );
+		    tmp = SHIFTIMM(ir);
+		    if( tmp != 0 ) {
+			return snprintf(buf, len, "R%d << %d", RM(ir), tmp );
+		    } else {
+			return snprintf(buf, len, "R%d", RM(ir));
+		    }
 		case 1: /* (Rm << Rs) */
 			return snprintf(buf, len, "R%d << R%d", RM(ir), RS(ir) );
 		case 2: /* (Rm >> imm) */
@@ -107,7 +114,12 @@ static int arm_disasm_address_index( uint32_t ir, char *buf, int len )
 	
 	switch(SHIFT(ir)) {
 	case 0: /* (Rm << imm) */
-		return snprintf( buf, len, "R%d << %d", RM(ir), SHIFTIMM(ir) );
+	    tmp = SHIFTIMM(ir);
+	    if( tmp != 0 ) {
+		return snprintf( buf, len, "R%d << %d", RM(ir), tmp );
+	    } else {
+		return snprintf( buf, len, "R%d", RM(ir) );
+	    }
 	case 2: /* (Rm >> imm) */
 		return snprintf( buf, len, "R%d >> %d", RM(ir), SHIFTIMM(ir) );
 	case 4: /* (Rm >>> imm) */
@@ -123,18 +135,23 @@ static int arm_disasm_address_index( uint32_t ir, char *buf, int len )
 	}
 }
 
-static int arm_disasm_address_operand( uint32_t ir, char *buf, int len )
+static int arm_disasm_address_operand( uint32_t ir, char *buf, int len,  int pc )
 {
     char  shift[32];
 
-	char sign = UFLAG(ir) ? '-' : '+';
+	char sign = UFLAG(ir) ? '+' : '-';
 	/* I P U . W */
 	switch( (ir>>21)&0x19 ) {
 	case 0: /* Rn -= imm offset (post-indexed) [5.2.8 A5-28] */
 	case 1:
 		return snprintf( buf, len, "[R%d], R%d %c= %04X", RN(ir), RN(ir), sign, IMM12(ir) );
 	case 8: /* Rn - imm offset  [5.2.2 A5-20] */
+	    if( RN(ir) == 15 ) { /* PC relative - decode here */
+		return snprintf( buf, len, "[$%08Xh]", pc + 8 + 
+				 (UFLAG(ir) ? IMM12(ir) : -IMM12(ir)) );
+	    } else {
 		return snprintf( buf, len, "[R%d %c %04X]", RN(ir), sign, IMM12(ir) );
+	    }
 	case 9: /* Rn -= imm offset (pre-indexed)  [5.2.5 A5-24] */
 		return snprintf( buf, len, "[R%d %c= %04X]", RN(ir), sign, IMM12(ir) );
 	case 16: /* Rn -= Rm (post-indexed)  [5.2.10 A5-32 ] */
@@ -387,7 +404,7 @@ uint32_t arm_disasm_instruction( uint32_t pc, char *buf, int len, char *opcode )
 		}
 		break;
 	case 1: /* Load/store */
-		arm_disasm_address_operand( ir, operand, sizeof(operand) );
+	    arm_disasm_address_operand( ir, operand, sizeof(operand), pc );
 		switch( (ir>>20)&0x17 ) {
 			case 0:
 			case 16:
@@ -423,9 +440,18 @@ uint32_t arm_disasm_instruction( uint32_t pc, char *buf, int len, char *opcode )
 				break;
 		}
 		break;
-	case 2: /* Load/store multiple, branch*/
+	case 2: 
+	    if( (ir & 0x02000000) == 0x02000000 ) {
+		int32_t offset = SIGNEXT24(ir&0x00FFFFFF) << 2;
+		if( (ir & 0x01000000) == 0x01000000 ) { 
+		    snprintf( buf, len, "BL%s    $%08Xh", cond, pc + offset + 8 );
+		} else {
+		    snprintf( buf, len, "B%s     $%08Xh", cond, pc + offset + 8 );
+		}
+	    } else {
+		/* Load/store multiple */
 		j = snprintf( buf, len, LFLAG(ir) ? "LDM%s%s  R%d%c,":"STM%s%s  R%d%c,", 
-	              ldmModes[(ir>>23)&0x03], cond, RN(ir), WFLAG(ir)?'!':' ' );
+			      ldmModes[(ir>>23)&0x03], cond, RN(ir), WFLAG(ir)?'!':' ' );
 		buf += j;
 		len -= j;
 		for( i = 0; i<16 && len > 2; i++ ) {
@@ -439,10 +465,11 @@ uint32_t arm_disasm_instruction( uint32_t pc, char *buf, int len, char *opcode )
 			buf[0] = '^';
 			buf[1] = '\0';
 		}
-		break;
+	    }
+	    break;
 	case 3: /* Copro */
-		UNIMP(ir);
-		break;
+	    UNIMP(ir);
+	    break;
 	}
 	
 	
