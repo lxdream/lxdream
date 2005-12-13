@@ -1,5 +1,5 @@
 /**
- * $Id: mem.c,v 1.3 2005-12-12 13:11:07 nkeynes Exp $
+ * $Id: mem.c,v 1.4 2005-12-13 14:47:59 nkeynes Exp $
  * mem.c is responsible for creating and maintaining the overall system memory
  * map, as visible from the SH4 processor. 
  *
@@ -34,8 +34,10 @@
 
 char **page_map = NULL;
 
+int mem_load(FILE *f);
+void mem_save(FILE *f);
 struct dreamcast_module mem_module =
-    { "MEM", mem_init, mem_reset, NULL, NULL, NULL, NULL };
+    { "MEM", mem_init, mem_reset, NULL, NULL, mem_save, mem_load };
 
 struct mem_region mem_rgn[MAX_MEM_REGIONS];
 struct mmio_region *io_rgn[MAX_IO_REGIONS];
@@ -81,6 +83,40 @@ void mem_reset( void )
             }
         }
     }
+}
+
+void mem_save( FILE *f ) 
+{
+    int i;
+    uint32_t len;
+    
+    /* All memory regions */
+    fwrite( &num_mem_rgns, sizeof(num_mem_rgns), 1, f );
+    for( i=0; i<num_mem_rgns; i++ ) {
+	fwrite_string( mem_rgn[i].name, f );
+	fwrite( &mem_rgn[i].base, sizeof(uint32_t), 1, f );
+	fwrite( &mem_rgn[i].flags, sizeof(int), 1, f );
+	fwrite( &mem_rgn[i].size, sizeof(uint32_t), 1, f );
+	fwrite( mem_rgn[i].mem, mem_rgn[i].size, 1, f );
+    }
+
+    /* All MMIO regions */
+    fwrite( &num_io_rgns, sizeof(num_io_rgns), 1, f );
+    for( i=0; i<num_io_rgns; i++ ) {
+	fwrite_string( io_rgn[i]->id, f );
+	fwrite( &io_rgn[i]->base, sizeof( uint32_t ), 1, f );
+	fwrite( io_rgn[i]->mem, 4096, 1, f );
+    }
+}
+
+int mem_load( FILE *f )
+{
+    char tmp[64];
+    uint32_t len;
+    int i;
+
+    /* All memory regions */
+    
 }
 
 struct mem_region *mem_map_region( void *mem, uint32_t base, uint32_t size,
