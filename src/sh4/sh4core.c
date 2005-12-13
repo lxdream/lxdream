@@ -6,16 +6,18 @@
 #include "mem.h"
 #include "intc.h"
 
+void sh4_save( FILE *f );
+void sh4_load( FILE *f );
+
 struct dreamcast_module sh4_module = { "SH4", sh4_init, sh4_reset, 
 				       NULL, sh4_stop,
-				       NULL, NULL };
+				       sh4_save, sh4_load };
 
 struct sh4_registers sh4r;
 static int running = 0;
 
 void sh4_init(void)
 {
-    mem_create_ram_region( 0x0C000000, 16 MB, MEM_REGION_MAIN );
     register_io_regions( mmio_list_sh4mmio );
     mmu_init();
 }
@@ -41,6 +43,17 @@ void sh4_set_pc( int pc )
 void sh4_stop(void)
 {
     running = 0;
+}
+
+void sh4_save( FILE *f )
+{
+    fwrite( &sh4r, sizeof(sh4r), 1, f );
+    /* Save all additional on-board MMIO state */
+}
+
+void sh4_load( FILE * f )
+{
+    
 }
 
 void sh4_run(void)
