@@ -41,8 +41,9 @@ typedef struct dreamcast_module {
     /**
      * Load the saved module state from the FILE stream. May be NULL, in which
      * case reset() will be called instead.
+     * @return 0 on success, nonzero on failure.
      */
-    void (*load)(FILE *);
+    int (*load)(FILE *);
 } *dreamcast_module_t;
 
 void dreamcast_register_module( dreamcast_module_t );
@@ -56,6 +57,9 @@ extern struct dreamcast_module ide_module;
 extern struct dreamcast_module maple_module;
 extern struct dreamcast_module pvr2_module;
 extern struct dreamcast_module gui_module;
+
+void fwrite_string( char *s, FILE *f );
+int fread_string( char *s, int maxlen, FILE *f );
 
 #ifdef __cplusplus
 }

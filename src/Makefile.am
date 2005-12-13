@@ -23,7 +23,7 @@ dream_SOURCES = \
         sh4/sh4mmio.c sh4/sh4mmio.h sh4/watch.c \
         aica/armcore.c aica/armcore.h aica/armdasm.c aica/armmem.c \
         aica/aica.c aica/aica.h \
-        fileio.c ipbin.c
+        fileio.c ipbin.c util.c
 
 dream_LDADD = @PACKAGE_LIBS@ $(INTLLIBS)
 

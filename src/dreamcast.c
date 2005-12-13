@@ -12,6 +12,7 @@
 #define MAX_MODULES 32
 static int num_modules = 0;
 static int dreamcast_state = 0;
+static char *dreamcast_config = "DEFAULT";
 dreamcast_module_t modules[MAX_MODULES];
 
 /**
@@ -93,28 +94,76 @@ void dreamcast_stop( void )
 struct save_state_header {
     char magic[16];
     uint32_t version;
+    uint32_t module_count;
 };
 
-void dreamcast_load_state( FILE *f )
+
+int dreamcast_load_state( FILE *f )
 {
-    int i;
+    int i,j;
+    uint32_t count, len;
+    int have_read[MAX_MODULES];
+    char tmp[64];
     struct save_state_header header;
 
     fread( &header, sizeof(header), 1, f );
     if( strncmp( header.magic, DREAMCAST_SAVE_MAGIC, 16 ) != 0 ) {
 	ERROR( "Not a DreamOn save state file" );
-	return;
+	return 1;
     }
     if( header.version != DREAMCAST_SAVE_VERSION ) {
 	ERROR( "DreamOn save state version not supported" );
-	return;
+	return 1;
+    }
+    fread( &count, sizeof(count), 1, f );
+    if( count > MAX_MODULES ) {
+	ERROR( "DreamOn save state is corrupted" );
+	return 1;
+    }
+    for( i=0; i<MAX_MODULES; i++ ) {
+	have_read[i] = 0;
     }
 
-    for( i=0; i<num_modules; i++ ) {
-	if( modules[i]->load != NULL )
-	    modules[i]->load(f);
-	else if( modules[i]->reset != NULL )
-	    modules[i]->reset();
+    for( i=0; i<count; i++ ) {
+	fread(tmp, 4, 1, f );
+	if( strcmp(tmp, "BLCK") != 0 ) {
+	    ERROR( "DreamOn save state is corrupted" );
+	    return 2;
+	}
+	len = fread_string(tmp, sizeof(tmp), f );
+	if( len > 64 || len < 1 ) {
+	    ERROR( "DreamOn save state is corrupted" );
+	    return 2;
+	}
+	
+	/* Find the matching module by name */
+	for( j=0; j<num_modules; j++ ) {
+	    if( strcmp(modules[j]->name,tmp) == 0 ) {
+		have_read[j] = 1;
+		if( modules[j]->load == NULL ) {
+		    ERROR( "DreamOn save state is corrupted" );
+		    return 2;
+		} else if( modules[j]->load(f) != 0 ) {
+		    ERROR( "DreamOn save state is corrupted" );
+		    return 2;
+		}
+		break;
+	    }
+	}
+	if( j == num_modules ) {
+	    ERROR( "DreamOn save state contains unrecognized section" );
+	    return 2;
+	}
+    }
+    
+    /* Any modules that we didn't load - reset to the default state.
+     * (ie it's not an error to skip a module if you don't actually
+     * care about its state).
+     */
+    for( j=0; j<num_modules; j++ ) {
+	if( have_read[j] == 0 && modules[j]->reset != NULL ) {
+	    modules[j]->reset();
+	}
     }
 }
 
@@ -125,9 +174,13 @@ void dreamcast_save_state( FILE *f )
     
     strcpy( header.magic, DREAMCAST_SAVE_MAGIC );
     header.version = DREAMCAST_SAVE_VERSION;
+    header.module_count = num_modules;
     fwrite( &header, sizeof(header), 1, f );
+    fwrite_string( dreamcast_config, f );
     for( i=0; i<num_modules; i++ ) {
 	if( modules[i]->save != NULL ) {
+	    fwrite( "BLCK", 4, 1, f );
+	    fwrite_string( modules[i]->name, f );
 	    modules[i]->save(f);
 	}
     }

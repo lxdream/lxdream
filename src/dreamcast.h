@@ -17,7 +17,7 @@ void dreamcast_stop(void);
 #define DREAMCAST_SAVE_VERSION 0x00010000
 
 void dreamcast_save_state( FILE *f );
-void dreamcast_load_state( FILE *f );
+int dreamcast_load_state( FILE *f );
 
 #ifdef __cplusplus
 }
