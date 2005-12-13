@@ -16,7 +16,6 @@ struct dreamcast_module pvr2_module = { "PVR2", pvr2_init, NULL, NULL, NULL,
 
 void pvr2_init( void )
 {
-    mem_create_ram_region( 0x05000000, 8 MB, MEM_REGION_VIDEO );
     register_io_region( &mmio_region_PVR2 );
     video_base = mem_get_region_by_name( MEM_REGION_VIDEO );
 }
