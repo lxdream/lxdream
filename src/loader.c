@@ -19,7 +19,7 @@ char iso_magic[6] = "\001CD001";
 #define CDI_V2 0x80000004
 #define CDI_V3 0x80000005
 
-void open_file( char *filename )
+int open_file( const gchar *filename )
 {
     char buf[32];
     uint32_t tmpa[2];
@@ -82,4 +82,5 @@ void open_file( char *filename )
         }
     }
     close(fd);
+    return 0;
 }

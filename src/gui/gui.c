@@ -2,6 +2,7 @@
 #include <stdarg.h>
 #include <gnome.h>
 #include <math.h>
+#include "dreamcast.h"
 #include "gui.h"
 #include "mem.h"
 #include "sh4dasm.h"
@@ -12,9 +13,7 @@
 GdkColor clrNormal, clrChanged, clrError, clrWarn, clrPC, clrDebug, clrTrace;
 PangoFontDescription *fixed_list_font;
 
-void open_file_callback(GtkWidget *btn, gpointer user_data);
-void open_file_canceled(GtkWidget *btn, gpointer user_data);
-void open_file( char *filename );
+void open_file_callback(GtkWidget *btn, gint result, gpointer user_data);
 
 void init_gui() {
     GdkColormap *map;
@@ -51,29 +50,63 @@ void update_gui(void) {
     dump_win_update_all();
 }
 
-
-void open_file_callback(GtkWidget *btn, gpointer user_data) {
-    GtkFileSelection *file = GTK_FILE_SELECTION(user_data);
-    gchar *filename = strdup( gtk_file_selection_get_filename(
-        GTK_FILE_SELECTION(file) ) );
-    gtk_widget_destroy(GTK_WIDGET(file));
-    open_file( filename );
-    free(filename);
+void open_file_callback(GtkWidget *btn, gint result, gpointer user_data) {
+    GtkFileChooser *file = GTK_FILE_CHOOSER(user_data);
+    if( result == GTK_RESPONSE_ACCEPT ) {
+	gchar *filename =gtk_file_chooser_get_filename(
+						       GTK_FILE_CHOOSER(file) );
+	file_callback_t action = (file_callback_t)gtk_object_get_data( GTK_OBJECT(file), "file_action" );
+	gtk_widget_destroy(GTK_WIDGET(file));
+	action( filename );
+	g_free(filename);
+    } else {
+	gtk_widget_destroy(GTK_WIDGET(file));
+    }
 }
 
-void open_file_canceled(GtkWidget *btn, gpointer user_data) {
-    gtk_widget_destroy(GTK_WIDGET(user_data));
+static void add_file_pattern( GtkFileChooser *chooser, char *pattern, char *patname )
+{
+    if( pattern != NULL ) {
+	GtkFileFilter *filter = gtk_file_filter_new();
+	gtk_file_filter_add_pattern( filter, pattern );
+	gtk_file_filter_set_name( filter, patname );
+	gtk_file_chooser_add_filter( chooser, filter );
+	filter = gtk_file_filter_new();
+	gtk_file_filter_set_name( filter, "All files" );
+	gtk_file_filter_add_pattern( filter, "*" );
+	gtk_file_chooser_add_filter( chooser, filter );
+    }
 }
 
-void open_file_dialog( void )
+void open_file_dialog( char *title, file_callback_t action, char *pattern, char *patname )
 {
     GtkWidget *file;
 
-    file = gtk_file_selection_new( "Open..." );
-    gtk_signal_connect( GTK_OBJECT(GTK_FILE_SELECTION(file)->ok_button),
-                        "clicked", GTK_SIGNAL_FUNC(open_file_callback), file );
-    gtk_signal_connect( GTK_OBJECT(GTK_FILE_SELECTION(file)->cancel_button),
-                        "clicked", GTK_SIGNAL_FUNC(open_file_canceled), file );
+    file = gtk_file_chooser_dialog_new( title, NULL,
+					GTK_FILE_CHOOSER_ACTION_OPEN,
+					GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+					GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT,
+					NULL );
+    add_file_pattern( GTK_FILE_CHOOSER(file), pattern, patname );
+    g_signal_connect( GTK_OBJECT(file), "response", 
+		      GTK_SIGNAL_FUNC(open_file_callback), file );
+    gtk_object_set_data( GTK_OBJECT(file), "file_action", action );
+    gtk_widget_show( file );
+}
+
+void save_file_dialog( char *title, file_callback_t action, char *pattern, char *patname )
+{
+    GtkWidget *file;
+
+    file = gtk_file_chooser_dialog_new( title, NULL,
+					GTK_FILE_CHOOSER_ACTION_SAVE,
+					GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+					GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT,
+					NULL );
+    add_file_pattern( GTK_FILE_CHOOSER(file), pattern, patname );
+    g_signal_connect( GTK_OBJECT(file), "response", 
+		      GTK_SIGNAL_FUNC(open_file_callback), file );
+    gtk_object_set_data( GTK_OBJECT(file), "file_action", action );
     gtk_widget_show( file );
 }
 

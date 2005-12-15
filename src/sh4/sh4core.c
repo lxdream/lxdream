@@ -7,7 +7,7 @@
 #include "intc.h"
 
 void sh4_save( FILE *f );
-void sh4_load( FILE *f );
+int sh4_load( FILE *f );
 
 struct dreamcast_module sh4_module = { "SH4", sh4_init, sh4_reset, 
 				       NULL, sh4_stop,
@@ -51,9 +51,10 @@ void sh4_save( FILE *f )
     /* Save all additional on-board MMIO state */
 }
 
-void sh4_load( FILE * f )
+int sh4_load( FILE * f )
 {
-    
+    fread( &sh4r, sizeof(sh4r), 1, f );
+    return 0;
 }
 
 void sh4_run(void)

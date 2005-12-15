@@ -21,9 +21,12 @@ void update_gui(void);
 typedef struct debug_info_struct *debug_info_t;
 extern debug_info_t main_debug;
 
+typedef int (*file_callback_t)( const gchar *filename );
+void open_file_dialog( char *title, file_callback_t file_handler, char *pattern, char *patname );
+void save_file_dialog( char *title, file_callback_t file_handler, char *pattern, char *patname );
+
 debug_info_t init_debug_win(GtkWidget *, cpu_desc_t *cpu );
 debug_info_t get_debug_info(GtkWidget *widget);
-void open_file_dialog( void );
 void update_mmr_win( void );
 void init_mmr_win( void );
 void update_registers( debug_info_t debug );

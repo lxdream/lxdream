@@ -1,3 +1,4 @@
+#include <errno.h>
 #include "dream.h"
 #include "mem.h"
 #include "aica/aica.h"
@@ -98,13 +99,17 @@ struct save_state_header {
 };
 
 
-int dreamcast_load_state( FILE *f )
+int dreamcast_load_state( const gchar *filename )
 {
     int i,j;
     uint32_t count, len;
     int have_read[MAX_MODULES];
     char tmp[64];
     struct save_state_header header;
+    FILE *f;
+
+    f = fopen( filename, "r" );
+    if( f == NULL ) return errno;
 
     fread( &header, sizeof(header), 1, f );
     if( strncmp( header.magic, DREAMCAST_SAVE_MAGIC, 16 ) != 0 ) {
@@ -115,24 +120,23 @@ int dreamcast_load_state( FILE *f )
 	ERROR( "DreamOn save state version not supported" );
 	return 1;
     }
-    fread( &count, sizeof(count), 1, f );
-    if( count > MAX_MODULES ) {
-	ERROR( "DreamOn save state is corrupted" );
+    if( header.module_count > MAX_MODULES ) {
+	ERROR( "DreamOn save state is corrupted (bad module count)" );
 	return 1;
     }
     for( i=0; i<MAX_MODULES; i++ ) {
 	have_read[i] = 0;
     }
 
-    for( i=0; i<count; i++ ) {
+    for( i=0; i<header.module_count; i++ ) {
 	fread(tmp, 4, 1, f );
-	if( strcmp(tmp, "BLCK") != 0 ) {
-	    ERROR( "DreamOn save state is corrupted" );
+	if( strncmp(tmp, "BLCK", 4) != 0 ) {
+	    ERROR( "DreamOn save state is corrupted (missing block header %d)", i );
 	    return 2;
 	}
 	len = fread_string(tmp, sizeof(tmp), f );
 	if( len > 64 || len < 1 ) {
-	    ERROR( "DreamOn save state is corrupted" );
+	    ERROR( "DreamOn save state is corrupted (bad string)" );
 	    return 2;
 	}
 	
@@ -141,10 +145,10 @@ int dreamcast_load_state( FILE *f )
 	    if( strcmp(modules[j]->name,tmp) == 0 ) {
 		have_read[j] = 1;
 		if( modules[j]->load == NULL ) {
-		    ERROR( "DreamOn save state is corrupted" );
+		    ERROR( "DreamOn save state is corrupted (no loader for %s)", modules[j]->name );
 		    return 2;
 		} else if( modules[j]->load(f) != 0 ) {
-		    ERROR( "DreamOn save state is corrupted" );
+		    ERROR( "DreamOn save state is corrupted (%s failed)", modules[j]->name );
 		    return 2;
 		}
 		break;
@@ -165,18 +169,28 @@ int dreamcast_load_state( FILE *f )
 	    modules[j]->reset();
 	}
     }
+    fclose(f);
+    INFO( "Save state read from %s", filename );
 }
 
-void dreamcast_save_state( FILE *f )
+int dreamcast_save_state( const gchar *filename )
 {
     int i;
+    FILE *f;
     struct save_state_header header;
     
+    f = fopen( filename, "w" );
+    if( f == NULL )
+	return errno;
     strcpy( header.magic, DREAMCAST_SAVE_MAGIC );
     header.version = DREAMCAST_SAVE_VERSION;
-    header.module_count = num_modules;
+    header.module_count = 0;
+
+    for( i=0; i<num_modules; i++ ) {
+	if( modules[i]->save != NULL )
+	    header.module_count++;
+    }
     fwrite( &header, sizeof(header), 1, f );
-    fwrite_string( dreamcast_config, f );
     for( i=0; i<num_modules; i++ ) {
 	if( modules[i]->save != NULL ) {
 	    fwrite( "BLCK", 4, 1, f );
@@ -184,5 +198,7 @@ void dreamcast_save_state( FILE *f )
 	    modules[i]->save(f);
 	}
     }
+    fclose( f );
+    INFO( "Save state written to %s", filename );
 }
 
