@@ -175,3 +175,11 @@ on_dump_win_delete_event               (GtkWidget       *widget,
 void
 on_view_memory_activate                (GtkMenuItem     *menuitem,
                                         gpointer         user_data);
+
+void
+on_loadstate_button_clicked            (GtkToolButton   *toolbutton,
+                                        gpointer         user_data);
+
+void
+on_savestate_button_clicked            (GtkToolButton   *toolbutton,
+                                        gpointer         user_data);

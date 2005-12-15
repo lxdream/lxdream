@@ -42,6 +42,9 @@ void mem_reset( void );
 #define WATCH_READ  2
 #define WATCH_EXEC  3  /* AKA Breakpoint :) */
 
+#define MEM_FLAG_ROM 4 /* Mem region is ROM-based */
+#define MEM_FLAG_RAM 6 
+
 typedef struct watch_point *watch_point_t;
 
 watch_point_t mem_new_watch( uint32_t start, uint32_t end, int flags );

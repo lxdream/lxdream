@@ -116,6 +116,8 @@ create_debug_win (void)
   GtkWidget *run_btn;
   GtkWidget *runto_btn;
   GtkWidget *break_btn;
+  GtkWidget *loadstate_button;
+  GtkWidget *savestate_button;
   GtkWidget *vpaned1;
   GtkWidget *hpaned1;
   GtkWidget *vbox2;
@@ -166,50 +168,68 @@ create_debug_win (void)
   gtk_toolbar_set_style (GTK_TOOLBAR (toolbar1), GTK_TOOLBAR_BOTH);
   tmp_toolbar_icon_size = gtk_toolbar_get_icon_size (GTK_TOOLBAR (toolbar1));
 
-  tmp_image = gtk_image_new_from_stock ("gtk-open", tmp_toolbar_icon_size);
+  tmp_image = gtk_image_new_from_stock ("gtk-cdrom", tmp_toolbar_icon_size);
   gtk_widget_show (tmp_image);
-  load_btn = (GtkWidget*) gtk_tool_button_new (tmp_image, _("Load"));
+  load_btn = (GtkWidget*) gtk_tool_button_new (tmp_image, _("Mount"));
   gtk_widget_show (load_btn);
   gtk_container_add (GTK_CONTAINER (toolbar1), load_btn);
-  gtk_tool_item_set_tooltip (GTK_TOOL_ITEM (load_btn), tooltips, _("New File"), NULL);
+  gtk_tool_item_set_tooltip (GTK_TOOL_ITEM (load_btn), tooltips, _("Mount CD-Rom"), NULL);
 
   tmp_image = gtk_image_new_from_stock ("gtk-refresh", tmp_toolbar_icon_size);
   gtk_widget_show (tmp_image);
   reset_btn = (GtkWidget*) gtk_tool_button_new (tmp_image, _("Reset"));
   gtk_widget_show (reset_btn);
   gtk_container_add (GTK_CONTAINER (toolbar1), reset_btn);
-  gtk_tool_item_set_tooltip (GTK_TOOL_ITEM (reset_btn), tooltips, _("Open File"), NULL);
+  gtk_tool_item_set_tooltip (GTK_TOOL_ITEM (reset_btn), tooltips, _("Reset emulator"), NULL);
 
   tmp_image = gtk_image_new_from_stock ("gtk-stop", tmp_toolbar_icon_size);
   gtk_widget_show (tmp_image);
   stop_btn = (GtkWidget*) gtk_tool_button_new (tmp_image, _("Stop"));
   gtk_widget_show (stop_btn);
   gtk_container_add (GTK_CONTAINER (toolbar1), stop_btn);
-  gtk_tool_item_set_tooltip (GTK_TOOL_ITEM (stop_btn), tooltips, _("Save File"), NULL);
+  gtk_tool_item_set_tooltip (GTK_TOOL_ITEM (stop_btn), tooltips, _("Stop"), NULL);
 
   tmp_image = gtk_image_new_from_stock ("gtk-redo", tmp_toolbar_icon_size);
   gtk_widget_show (tmp_image);
   step_btn = (GtkWidget*) gtk_tool_button_new (tmp_image, _("Step"));
   gtk_widget_show (step_btn);
   gtk_container_add (GTK_CONTAINER (toolbar1), step_btn);
+  gtk_tool_item_set_tooltip (GTK_TOOL_ITEM (step_btn), tooltips, _("Single step"), NULL);
 
   tmp_image = gtk_image_new_from_stock ("gtk-go-forward", tmp_toolbar_icon_size);
   gtk_widget_show (tmp_image);
   run_btn = (GtkWidget*) gtk_tool_button_new (tmp_image, _("Run"));
   gtk_widget_show (run_btn);
   gtk_container_add (GTK_CONTAINER (toolbar1), run_btn);
+  gtk_tool_item_set_tooltip (GTK_TOOL_ITEM (run_btn), tooltips, _("Run"), NULL);
 
   tmp_image = gtk_image_new_from_stock ("gtk-goto-last", tmp_toolbar_icon_size);
   gtk_widget_show (tmp_image);
   runto_btn = (GtkWidget*) gtk_tool_button_new (tmp_image, _("Run to"));
   gtk_widget_show (runto_btn);
   gtk_container_add (GTK_CONTAINER (toolbar1), runto_btn);
+  gtk_tool_item_set_tooltip (GTK_TOOL_ITEM (runto_btn), tooltips, _("Run to current selection"), NULL);
 
   tmp_image = gtk_image_new_from_stock ("gtk-close", tmp_toolbar_icon_size);
   gtk_widget_show (tmp_image);
   break_btn = (GtkWidget*) gtk_tool_button_new (tmp_image, _("Break"));
   gtk_widget_show (break_btn);
   gtk_container_add (GTK_CONTAINER (toolbar1), break_btn);
+  gtk_tool_item_set_tooltip (GTK_TOOL_ITEM (break_btn), tooltips, _("Set breakpoint"), NULL);
+
+  tmp_image = gtk_image_new_from_stock ("gtk-open", tmp_toolbar_icon_size);
+  gtk_widget_show (tmp_image);
+  loadstate_button = (GtkWidget*) gtk_tool_button_new (tmp_image, _("Load"));
+  gtk_widget_show (loadstate_button);
+  gtk_container_add (GTK_CONTAINER (toolbar1), loadstate_button);
+  gtk_tool_item_set_tooltip (GTK_TOOL_ITEM (loadstate_button), tooltips, _("Load save-state file"), NULL);
+
+  tmp_image = gtk_image_new_from_stock ("gtk-save", tmp_toolbar_icon_size);
+  gtk_widget_show (tmp_image);
+  savestate_button = (GtkWidget*) gtk_tool_button_new (tmp_image, _("Save"));
+  gtk_widget_show (savestate_button);
+  gtk_container_add (GTK_CONTAINER (toolbar1), savestate_button);
+  gtk_tool_item_set_tooltip (GTK_TOOL_ITEM (savestate_button), tooltips, _("Save save-state file"), NULL);
 
   vpaned1 = gtk_vpaned_new ();
   gtk_widget_show (vpaned1);
@@ -266,7 +286,6 @@ create_debug_win (void)
   mode_field = GTK_COMBO (mode_box)->entry;
   gtk_widget_show (mode_field);
   gtk_editable_set_editable (GTK_EDITABLE (mode_field), FALSE);
-  gtk_entry_set_text (GTK_ENTRY (mode_field), _("SH4"));
 
   label23 = gtk_label_new ("");
   gtk_widget_show (label23);
@@ -382,6 +401,12 @@ create_debug_win (void)
   g_signal_connect ((gpointer) break_btn, "clicked",
                     G_CALLBACK (on_break_btn_clicked),
                     NULL);
+  g_signal_connect ((gpointer) loadstate_button, "clicked",
+                    G_CALLBACK (on_loadstate_button_clicked),
+                    NULL);
+  g_signal_connect ((gpointer) savestate_button, "clicked",
+                    G_CALLBACK (on_savestate_button_clicked),
+                    NULL);
   g_signal_connect ((gpointer) page_field, "key_press_event",
                     G_CALLBACK (on_page_field_key_press_event),
                     NULL);
@@ -429,6 +454,8 @@ create_debug_win (void)
   GLADE_HOOKUP_OBJECT (debug_win, run_btn, "run_btn");
   GLADE_HOOKUP_OBJECT (debug_win, runto_btn, "runto_btn");
   GLADE_HOOKUP_OBJECT (debug_win, break_btn, "break_btn");
+  GLADE_HOOKUP_OBJECT (debug_win, loadstate_button, "loadstate_button");
+  GLADE_HOOKUP_OBJECT (debug_win, savestate_button, "savestate_button");
   GLADE_HOOKUP_OBJECT (debug_win, vpaned1, "vpaned1");
   GLADE_HOOKUP_OBJECT (debug_win, hpaned1, "hpaned1");
   GLADE_HOOKUP_OBJECT (debug_win, vbox2, "vbox2");

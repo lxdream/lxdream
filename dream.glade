@@ -202,10 +202,10 @@
 	      <child>
 		<widget class="GtkToolButton" id="load_btn">
 		  <property name="visible">True</property>
-		  <property name="tooltip" translatable="yes">New File</property>
-		  <property name="label" translatable="yes">Load</property>
+		  <property name="tooltip" translatable="yes">Mount CD-Rom</property>
+		  <property name="label" translatable="yes">Mount</property>
 		  <property name="use_underline">True</property>
-		  <property name="stock_id">gtk-open</property>
+		  <property name="stock_id">gtk-cdrom</property>
 		  <property name="visible_horizontal">True</property>
 		  <property name="visible_vertical">True</property>
 		  <property name="is_important">False</property>
@@ -220,7 +220,7 @@
 	      <child>
 		<widget class="GtkToolButton" id="reset_btn">
 		  <property name="visible">True</property>
-		  <property name="tooltip" translatable="yes">Open File</property>
+		  <property name="tooltip" translatable="yes">Reset emulator</property>
 		  <property name="label" translatable="yes">Reset</property>
 		  <property name="use_underline">True</property>
 		  <property name="stock_id">gtk-refresh</property>
@@ -238,7 +238,7 @@
 	      <child>
 		<widget class="GtkToolButton" id="stop_btn">
 		  <property name="visible">True</property>
-		  <property name="tooltip" translatable="yes">Save File</property>
+		  <property name="tooltip" translatable="yes">Stop</property>
 		  <property name="label" translatable="yes">Stop</property>
 		  <property name="use_underline">True</property>
 		  <property name="stock_id">gtk-stop</property>
@@ -256,6 +256,7 @@
 	      <child>
 		<widget class="GtkToolButton" id="step_btn">
 		  <property name="visible">True</property>
+		  <property name="tooltip" translatable="yes">Single step</property>
 		  <property name="label" translatable="yes">Step</property>
 		  <property name="use_underline">True</property>
 		  <property name="stock_id">gtk-redo</property>
@@ -273,6 +274,7 @@
 	      <child>
 		<widget class="GtkToolButton" id="run_btn">
 		  <property name="visible">True</property>
+		  <property name="tooltip" translatable="yes">Run</property>
 		  <property name="label" translatable="yes">Run</property>
 		  <property name="use_underline">True</property>
 		  <property name="stock_id">gtk-go-forward</property>
@@ -290,6 +292,7 @@
 	      <child>
 		<widget class="GtkToolButton" id="runto_btn">
 		  <property name="visible">True</property>
+		  <property name="tooltip" translatable="yes">Run to current selection</property>
 		  <property name="label" translatable="yes">Run to</property>
 		  <property name="use_underline">True</property>
 		  <property name="stock_id">gtk-goto-last</property>
@@ -307,6 +310,7 @@
 	      <child>
 		<widget class="GtkToolButton" id="break_btn">
 		  <property name="visible">True</property>
+		  <property name="tooltip" translatable="yes">Set breakpoint</property>
 		  <property name="label" translatable="yes">Break</property>
 		  <property name="use_underline">True</property>
 		  <property name="stock_id">gtk-close</property>
@@ -314,6 +318,42 @@
 		  <property name="visible_vertical">True</property>
 		  <property name="is_important">False</property>
 		  <signal name="clicked" handler="on_break_btn_clicked"/>
+		</widget>
+		<packing>
+		  <property name="expand">False</property>
+		  <property name="homogeneous">True</property>
+		</packing>
+	      </child>
+
+	      <child>
+		<widget class="GtkToolButton" id="loadstate_button">
+		  <property name="visible">True</property>
+		  <property name="tooltip" translatable="yes">Load save-state file</property>
+		  <property name="label" translatable="yes">Load</property>
+		  <property name="use_underline">True</property>
+		  <property name="stock_id">gtk-open</property>
+		  <property name="visible_horizontal">True</property>
+		  <property name="visible_vertical">True</property>
+		  <property name="is_important">False</property>
+		  <signal name="clicked" handler="on_loadstate_button_clicked" last_modification_time="Thu, 15 Dec 2005 09:36:10 GMT"/>
+		</widget>
+		<packing>
+		  <property name="expand">False</property>
+		  <property name="homogeneous">True</property>
+		</packing>
+	      </child>
+
+	      <child>
+		<widget class="GtkToolButton" id="savestate_button">
+		  <property name="visible">True</property>
+		  <property name="tooltip" translatable="yes">Save save-state file</property>
+		  <property name="label" translatable="yes">Save</property>
+		  <property name="use_underline">True</property>
+		  <property name="stock_id">gtk-save</property>
+		  <property name="visible_horizontal">True</property>
+		  <property name="visible_vertical">True</property>
+		  <property name="is_important">False</property>
+		  <signal name="clicked" handler="on_savestate_button_clicked" last_modification_time="Thu, 15 Dec 2005 09:36:23 GMT"/>
 		</widget>
 		<packing>
 		  <property name="expand">False</property>
@@ -479,7 +519,7 @@
 			      <property name="editable">False</property>
 			      <property name="visibility">True</property>
 			      <property name="max_length">0</property>
-			      <property name="text" translatable="yes">SH4</property>
+			      <property name="text" translatable="yes"></property>
 			      <property name="has_frame">True</property>
 			      <property name="invisible_char">*</property>
 			      <property name="activates_default">False</property>

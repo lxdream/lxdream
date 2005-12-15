@@ -1,5 +1,5 @@
 /**
- * $Id: mem.c,v 1.4 2005-12-13 14:47:59 nkeynes Exp $
+ * $Id: mem.c,v 1.5 2005-12-15 13:33:14 nkeynes Exp $
  * mem.c is responsible for creating and maintaining the overall system memory
  * map, as visible from the SH4 processor. 
  *
@@ -43,7 +43,7 @@ struct mem_region mem_rgn[MAX_MEM_REGIONS];
 struct mmio_region *io_rgn[MAX_IO_REGIONS];
 struct mmio_region *P4_io[4096];
 
-int num_io_rgns = 1, num_mem_rgns = 0;
+int num_io_rgns = 0, num_mem_rgns = 0;
 
 void *mem_alloc_pages( int n )
 {
@@ -97,7 +97,8 @@ void mem_save( FILE *f )
 	fwrite( &mem_rgn[i].base, sizeof(uint32_t), 1, f );
 	fwrite( &mem_rgn[i].flags, sizeof(int), 1, f );
 	fwrite( &mem_rgn[i].size, sizeof(uint32_t), 1, f );
-	fwrite( mem_rgn[i].mem, mem_rgn[i].size, 1, f );
+	if( mem_rgn[i].flags != MEM_FLAG_ROM )
+	    fwrite( mem_rgn[i].mem, mem_rgn[i].size, 1, f );
     }
 
     /* All MMIO regions */
@@ -105,7 +106,9 @@ void mem_save( FILE *f )
     for( i=0; i<num_io_rgns; i++ ) {
 	fwrite_string( io_rgn[i]->id, f );
 	fwrite( &io_rgn[i]->base, sizeof( uint32_t ), 1, f );
-	fwrite( io_rgn[i]->mem, 4096, 1, f );
+	len = 4096;
+	fwrite( &len, sizeof(len), 1, f );
+	fwrite( io_rgn[i]->mem, len, 1, f );
     }
 }
 
@@ -113,10 +116,47 @@ int mem_load( FILE *f )
 {
     char tmp[64];
     uint32_t len;
+    uint32_t base, size;
+    int flags;
     int i;
 
     /* All memory regions */
-    
+    fread( &len, sizeof(len), 1, f );
+    if( len != num_mem_rgns )
+	return -1;
+    for( i=0; i<len; i++ ) {
+	fread_string( tmp, sizeof(tmp), f );
+	fread( &base, sizeof(base), 1, f );
+	fread( &flags, sizeof(flags), 1, f );
+	fread( &size, sizeof(size), 1, f );
+	if( strcmp( mem_rgn[i].name, tmp ) != 0 ||
+	    base != mem_rgn[i].base ||
+	    flags != mem_rgn[i].flags ||
+	    size != mem_rgn[i].size ) {
+	    ERROR( "Bad memory region %d %s", i, tmp );
+	    return -1;
+	}
+	if( flags != MEM_FLAG_ROM )
+	    fread( mem_rgn[i].mem, size, 1, f );
+    }
+
+    /* All MMIO regions */
+    fread( &len, sizeof(len), 1, f );
+    if( len != num_io_rgns ) 
+	return -1;
+    for( i=0; i<len; i++ ) {
+	fread_string( tmp, sizeof(tmp), f );
+	fread( &base, sizeof(base), 1, f );
+	fread( &size, sizeof(size), 1, f );
+	if( strcmp( io_rgn[i]->id, tmp ) != 0 ||
+	    base != io_rgn[i]->base ||
+	    size != 4096 ) {
+	    ERROR( "Bad MMIO region %d %s", i, tmp );
+	    return -1;
+	}
+	fread( io_rgn[i]->mem, size, 1, f );
+    }
+    return 0;
 }
 
 struct mem_region *mem_map_region( void *mem, uint32_t base, uint32_t size,
@@ -147,7 +187,7 @@ void *mem_create_ram_region( uint32_t base, uint32_t size, char *name )
 
     mem = mem_alloc_pages( size>>PAGE_BITS );
 
-    mem_map_region( mem, base, size, name, 6 );
+    mem_map_region( mem, base, size, name, MEM_FLAG_RAM );
     return mem;
 }
 
@@ -168,7 +208,7 @@ void *mem_load_rom( char *file, uint32_t base, uint32_t size, uint32_t crc )
         close(fd);
         return NULL;
     }
-    mem_map_region( mem, base, size, file, 4 );
+    mem_map_region( mem, base, size, file, MEM_FLAG_ROM );
 
     /* CRC check */
     calc_crc = crc32(0L, mem, size);
@@ -176,6 +216,7 @@ void *mem_load_rom( char *file, uint32_t base, uint32_t size, uint32_t crc )
         WARN( "Bios CRC Mismatch in %s: %08X (expected %08X)",
               file, calc_crc, crc);
     }
+    
     return mem;
 }
 

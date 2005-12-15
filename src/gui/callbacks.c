@@ -9,6 +9,7 @@
 #include "gui.h"
 #include "sh4core.h"
 #include "asic.h"
+#include "dreamcast.h"
 
 int selected_pc = -1;
 
@@ -24,7 +25,7 @@ void
 on_open1_activate                      (GtkMenuItem     *menuitem,
                                         gpointer         user_data)
 {
-    open_file_dialog();
+    open_file_dialog( "Open...", open_file, NULL, NULL );
 }
 
 
@@ -73,7 +74,7 @@ void
 on_load_btn_clicked                    (GtkButton       *button,
                                         gpointer         user_data)
 {
-    open_file_dialog();
+    open_file_dialog( "Open...", open_file, NULL, NULL );
 }
 
 
@@ -218,7 +219,7 @@ void
 on_mode_field_changed                  (GtkEditable     *editable,
                                         gpointer         user_data)
 {
-    gchar *text = gtk_entry_get_text( GTK_ENTRY(editable) );
+    const gchar *text = gtk_entry_get_text( GTK_ENTRY(editable) );
     debug_info_t data = get_debug_info( GTK_WIDGET(editable) );
     set_disassembly_cpu( data, text );
 }
@@ -239,7 +240,7 @@ on_page_field_key_press_event          (GtkWidget       *widget,
 {
     if( event->keyval == GDK_Return || event->keyval == GDK_Linefeed ) {
 	debug_info_t data = get_debug_info(widget);
-        gchar *text = gtk_entry_get_text( GTK_ENTRY(widget) );
+        const gchar *text = gtk_entry_get_text( GTK_ENTRY(widget) );
         gchar *endptr;
         unsigned int val = strtoul( text, &endptr, 16 );
         if( text == endptr ) { /* invalid input */
@@ -311,5 +312,21 @@ on_view_memory_activate                (GtkMenuItem     *menuitem,
                                         gpointer         user_data)
 {
     dump_window_new();
+}
+
+
+void
+on_loadstate_button_clicked            (GtkToolButton   *toolbutton,
+                                        gpointer         user_data)
+{
+    open_file_dialog( "Load state...", dreamcast_load_state, "*.dst", "DreamOn Save State (*.dst)" );
+}
+
+
+void
+on_savestate_button_clicked            (GtkToolButton   *toolbutton,
+                                        gpointer         user_data)
+{
+    save_file_dialog( "Save state...", dreamcast_save_state, "*.dst", "DreamOn Save State (*.dst)" );
 }
 
