@@ -1,5 +1,5 @@
 /**
- * $Id: scif.c,v 1.1 2005-12-22 13:28:16 nkeynes Exp $
+ * $Id: scif.c,v 1.2 2005-12-22 13:52:02 nkeynes Exp $
  * SCIF (Serial Communication Interface with FIFO) implementation - part of the 
  * SH4 standard on-chip peripheral set. The SCIF is hooked up to the DCs
  * external serial port
@@ -208,7 +208,7 @@ int SCIF_recvq_dequeue( gboolean clearFlags )
 	tmp = MMIO_READ( SCIF, SCFSR2 ) & (~tmp);
 	MMIO_WRITE( SCIF, SCFSR2, tmp );
 	/* If both flags are cleared, clear the interrupt as well */
-	if( tmp & (SCFSR2_DR|SCFSR2_RDF) == 0 )
+	if( (tmp & (SCFSR2_DR|SCFSR2_RDF)) == 0 && IS_RECEIVE_IRQ_ENABLED() )
 	    intc_clear_interrupt( INT_SCIF_RXI );
     }
 	    
@@ -257,7 +257,8 @@ void SCIF_recvq_clear( void )
     SCIF_recvq.head = SCIF_recvq.tail = 0;
     MMIO_WRITE( SCIF, SCFDR2, MMIO_READ( SCIF, SCFDR2 ) & 0xF0 );
     MMIO_WRITE( SCIF, SCFSR2, MMIO_READ( SCIF, SCFSR2 ) & ~(SCFSR2_DR|SCFSR2_RDF) );
-    intc_clear_interrupt( INT_SCIF_RXI );
+    if( IS_RECEIVE_IRQ_ENABLED() )
+	intc_clear_interrupt( INT_SCIF_RXI );
 }
 
 static inline uint8_t SCIF_sendq_size( ) 
@@ -337,7 +338,8 @@ gboolean SCIF_sendq_enqueue( uint8_t value, gboolean clearFlags )
 	tmp = SCFSR2_TEND;
 	if( length > SCIF_sendq.trigger ) {
 	    tmp |= SCFSR2_TDFE;
-	    intc_clear_interrupt( INT_SCIF_TXI );
+	    if( IS_TRANSMIT_IRQ_ENABLED() )
+		intc_clear_interrupt( INT_SCIF_TXI );
 	}
 	tmp = MMIO_READ( SCIF, SCFSR2 ) & (~tmp);
 	MMIO_WRITE( SCIF, SCFSR2, tmp );
@@ -355,6 +357,43 @@ void SCIF_sendq_clear( void )
     }
 }
 
+/**
+ * Update the SCFSR2 status register with the given mask (ie clear any values
+ * that are set to 0 in the mask. According to a strict reading of the doco
+ * though, the bits will only actually clear if the flag state is no longer
+ * true, so we need to recheck everything...
+ */
+void SCIF_update_status( uint32_t mask )
+{
+    uint32_t value = MMIO_READ( SCIF, SCFSR2 );
+    uint32_t result = value & mask;
+    uint32_t sendq_size = SCIF_sendq_size();
+    uint32_t recvq_size = SCIF_recvq_size();
+
+    if( sendq_size != 0 )
+	result |= SCFSR2_TEND;
+
+    if( sendq_size <= SCIF_sendq.trigger )
+	result |= SCFSR2_TDFE;
+    else if( result & SCFSR2_TDFE == 0 && IS_TRANSMIT_IRQ_ENABLED() )
+	intc_clear_interrupt( INT_SCIF_TXI );
+
+    if( recvq_size >= SCIF_recvq.trigger )
+	result |= SCFSR2_RDF;
+    if( (value & SCFSR2_DR) != 0 && (result & SCFSR2_DR) == 0 &&
+	recvq_size != 0 )
+	result |= SCFSR2_DR;
+    if( (result & (SCFSR2_DR|SCFSR2_RDF)) == 0 && IS_RECEIVE_IRQ_ENABLED() )
+	intc_clear_interrupt( INT_SCIF_RXI );
+
+    if( IS_RECEIVE_ERROR_IRQ_ENABLED() ) {
+	if( (result & SCFSR2_BRK) == 0 )
+	    intc_clear_interrupt( INT_SCIF_BRI );
+	if( (result & SCFSR2_ER) == 0 && 
+	    (MMIO_READ( SCIF, SCLSR2 ) & SCLSR2_ORER) == 0 )
+	    intc_clear_interrupt( INT_SCIF_ERI );
+    }
+}
 
 /**
  * Set the break detected flag
@@ -469,10 +508,8 @@ void mmio_region_SCIF_write( uint32_t reg, uint32_t val )
 	 * Bit 1 - Receive FIFO data full
 	 * Bit 0 - Receive data ready
 	 */
-	tmp = MMIO_READ( SCIF, SCFSR2 );
-	tmp &= val;
 	/* Clear off any flags/interrupts that are being set to 0 */
-	MMIO_WRITE( SCIF, reg, tmp );
+	SCIF_update_status( val );
 	break;
     case SCFCR2: /* FIFO control register */
 	val &= 0x0F;
@@ -490,12 +527,14 @@ void mmio_region_SCIF_write( uint32_t reg, uint32_t val )
     case SCSPTR2: /* Serial Port Register */
 	MMIO_WRITE( SCIF, reg, val );
 	/* NOT IMPLEMENTED */
+	WARN( "SCSPTR2 not implemented: Write %08X", val );
 	break;
     case SCLSR2:
 	val = val & SCLSR2_ORER;
 	if( val == 0 ) {
 	    MMIO_WRITE( SCIF, SCLSR2, val );
-	    if( MMIO_READ( SCIF, SCFSR2 ) & SCFSR2_ER == 0) 
+	    if( (MMIO_READ( SCIF, SCFSR2 ) & SCFSR2_ER) == 0 &&
+		IS_RECEIVE_ERROR_IRQ_ENABLED() ) 
 		intc_clear_interrupt( INT_SCIF_ERI );
 	}
 	    
