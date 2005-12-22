@@ -1,5 +1,5 @@
 /**
- * $Id: scif.c,v 1.2 2005-12-22 13:52:02 nkeynes Exp $
+ * $Id: scif.c,v 1.3 2005-12-22 13:57:26 nkeynes Exp $
  * SCIF (Serial Communication Interface with FIFO) implementation - part of the 
  * SH4 standard on-chip peripheral set. The SCIF is hooked up to the DCs
  * external serial port
@@ -159,22 +159,34 @@ struct SCIF_fifo {
     uint8_t data[FIFO_ARR_LENGTH];
 };
 
-void SCIF_save_state( FILE *f ) 
-{
-    
-
-}
-
-int SCIF_load_state( FILE *f ) 
-{
-    return 0;
-}
-
 int SCIF_recvq_triggers[4] = {1, 4, 8, 14};
 struct SCIF_fifo SCIF_recvq = {0,0,1};
 
 int SCIF_sendq_triggers[4] = {8, 4, 2, 1};
 struct SCIF_fifo SCIF_sendq = {0,0,8};
+
+/**
+ * Flag to indicate if data was received (ie added to the receive queue)
+ * during the last SCIF clock tick. Used to determine when to set the DR
+ * flag.
+ */
+gboolean SCIF_rcvd_last_tick = FALSE;
+
+void SCIF_save_state( FILE *f ) 
+{
+    fwrite( &SCIF_recvq, sizeof(SCIF_recvq), 1, f );
+    fwrite( &SCIF_sendq, sizeof(SCIF_sendq), 1, f );
+    fwrite( &SCIF_rcvd_last_tick, sizeof(gboolean), 1, f );
+
+}
+
+int SCIF_load_state( FILE *f ) 
+{
+    fread( &SCIF_recvq, sizeof(SCIF_recvq), 1, f );
+    fread( &SCIF_sendq, sizeof(SCIF_sendq), 1, f );
+    fread( &SCIF_rcvd_last_tick, sizeof(gboolean), 1, f );
+    return 0;
+}
 
 static inline uint8_t SCIF_recvq_size( ) 
 {
@@ -541,13 +553,6 @@ void mmio_region_SCIF_write( uint32_t reg, uint32_t val )
 	break;
     }
 }
-
-/**
- * Flag to indicate if data was received (ie added to the receive queue)
- * during the last SCIF clock tick. Used to determine when to set the DR
- * flag.
- */
-gboolean SCIF_rcvd_last_tick = FALSE;
 
 /**
  * Actions for a single tick of the serial clock, defined as the transmission
