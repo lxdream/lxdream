@@ -11,6 +11,7 @@
 #include "gui.h"
 #include "ipbin.h"
 #include "sh4core.h"
+#include "pvr2.h"
 #include "mem.h"
 
 char ip_bin_magic[32] = "SEGA SEGAKATANA SEGA ENTERPRISES";
@@ -83,4 +84,13 @@ int open_file( const gchar *filename )
     }
     close(fd);
     return 0;
+}
+
+int load_bin_file( const gchar *filename ) {
+    mem_load_block( filename, 0x8c010000, -1 );
+    sh4_set_pc( 0x8c010000 );
+    set_disassembly_region( main_debug, 0x8c010000 );
+    set_disassembly_pc( main_debug, sh4r.pc, TRUE );
+    pvr2_set_base_address( 0x00025940 );
+    update_gui();
 }

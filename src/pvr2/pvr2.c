@@ -100,3 +100,8 @@ MMIO_REGION_READ_FN( PVR2, reg )
             return MMIO_READ( PVR2, reg );
     }
 }
+
+void pvr2_set_base_address( uint32_t base ) 
+{
+    mmio_region_PVR2_write( DISPADDR1, base );
+}

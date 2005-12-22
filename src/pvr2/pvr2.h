@@ -79,3 +79,4 @@ MMIO_REGION_END
 #define BS_PALN 0x000000C0 /* ? */
 
 void pvr2_next_frame( void );
+void pvr2_set_base_address( uint32_t );

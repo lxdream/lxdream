@@ -74,7 +74,7 @@ void
 on_load_btn_clicked                    (GtkButton       *button,
                                         gpointer         user_data)
 {
-    open_file_dialog( "Open...", open_file, NULL, NULL );
+    open_file_dialog( "Open...", load_bin_file, NULL, NULL );
 }
 
 
@@ -116,6 +116,7 @@ void run( debug_info_t data, uint32_t target ) {
                 sh4_runto(target, 1000000);
             update_icount(data);
             run_timers(1000000);
+	    SCIF_clock_tick();
             while( gtk_events_pending() )
                 gtk_main_iteration();
             pvr2_next_frame();
