@@ -24,13 +24,13 @@ void sh4_init(void)
 
 void sh4_reset(void)
 {
+    /* zero everything out, for the sake of having a consistent state. */
+    memset( &sh4r, 0, sizeof(sh4r) );
     sh4r.pc    = 0xA0000000;
     sh4r.new_pc= 0xA0000002;
     sh4r.vbr   = 0x00000000;
     sh4r.fpscr = 0x00040001;
     sh4r.sr    = 0x700000F0;
-    sh4r.icount= 0;
-    /* Everything else is undefined anyway, so don't bother setting it */
     intc_reset();
 }
 

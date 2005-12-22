@@ -28,6 +28,7 @@ typedef struct mem_region {
 
 void *mem_create_ram_region( uint32_t base, uint32_t size, char *name );
 void *mem_load_rom( char *name, uint32_t base, uint32_t size, uint32_t crc );
+void *mem_alloc_pages( int n );
 char *mem_get_region( uint32_t addr );
 char *mem_get_region_by_name( char *name );
 int mem_has_page( uint32_t addr );

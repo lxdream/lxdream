@@ -21,7 +21,7 @@ int dreamcast_save_state( const gchar *filename );
 int dreamcast_load_state( const gchar *filename );
 
 int open_file( gchar *filename );
-
+int load_bin_file( gchar *filename );
 
 #ifdef __cplusplus
 }

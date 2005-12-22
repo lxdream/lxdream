@@ -113,6 +113,11 @@ void intc_raise_interrupt( int which )
     intc_num_pending++;
 }
 
+void intc_clear_interrupt( int which )
+{
+
+}
+
 uint32_t intc_accept_interrupt( void )
 {
     assert(intc_num_pending > 0);

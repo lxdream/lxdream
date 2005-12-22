@@ -20,7 +20,7 @@ dream_SOURCES = \
         maple.c maple.h maple/controller.c maple/controller.h \
         sh4/intc.c sh4/intc.h sh4/sh4mem.c \
         sh4/sh4core.c sh4/sh4core.h sh4/sh4dasm.c sh4/sh4dasm.h \
-        sh4/sh4mmio.c sh4/sh4mmio.h sh4/watch.c \
+        sh4/sh4mmio.c sh4/sh4mmio.h sh4/scif.c sh4/watch.c \
         aica/armcore.c aica/armcore.h aica/armdasm.c aica/armmem.c \
         aica/aica.c aica/aica.h \
         fileio.c ipbin.c util.c

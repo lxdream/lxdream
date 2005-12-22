@@ -1,5 +1,6 @@
 #include "dream.h"
 #include "mem.h"
+#include "clock.h"
 #include "sh4core.h"
 #include "sh4mmio.h"
 #define MMIO_IMPL
@@ -30,7 +31,7 @@ void mmio_region_MMU_write( uint32_t reg, uint32_t val )
 
 void mmu_init() 
 {
-  cache = mem_alloc_pages(2);
+    cache = mem_alloc_pages(2);
 }
 
 void mmu_set_cache_mode( int mode )
@@ -135,6 +136,11 @@ MMIO_REGION_STUBFNS( UBC )
 
 /********************************* CPG *************************************/
 
+uint32_t sh4_freq = SH4_BASE_RATE;
+uint32_t sh4_bus_freq = SH4_BASE_RATE;
+uint32_t sh4_peripheral_freq = SH4_BASE_RATE / 2;
+
+
 MMIO_REGION_STUBFNS( CPG )
 
 /********************************* DMAC *************************************/
@@ -182,7 +188,7 @@ void run_timers( int cycles )
 {
     int tcr = MMIO_READ( TMU, TSTR );
     cycles *= 16;
-    if( tcr & 1 ) {
+    if( tcr & 0x01 ) {
         int count = cycles / timer_divider[0];
         int *val = MMIO_REG( TMU, TCNT0 );
         if( *val < count ) {
@@ -194,13 +200,33 @@ void run_timers( int cycles )
             *val -= count;
         }
     }
+    if( tcr & 0x02 ) {
+        int count = cycles / timer_divider[1];
+        int *val = MMIO_REG( TMU, TCNT1 );
+        if( *val < count ) {
+            MMIO_READ( TMU, TCR1 ) |= 0x100;
+            /* interrupt goes here */
+            count -= *val;
+            *val = MMIO_READ( TMU, TCOR1 ) - count;
+        } else {
+            *val -= count;
+        }
+    }
+    if( tcr & 0x04 ) {
+        int count = cycles / timer_divider[2];
+        int *val = MMIO_REG( TMU, TCNT2 );
+        if( *val < count ) {
+            MMIO_READ( TMU, TCR2 ) |= 0x100;
+            /* interrupt goes here */
+            count -= *val;
+            *val = MMIO_READ( TMU, TCOR2 ) - count;
+        } else {
+            *val -= count;
+        }
+    }
 }
 
 /********************************** SCI *************************************/
 
 MMIO_REGION_STUBFNS( SCI )
-
-/********************************* SCIF *************************************/
-
-MMIO_REGION_STUBFNS( SCIF )
 

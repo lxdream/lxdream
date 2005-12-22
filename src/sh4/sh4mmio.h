@@ -135,6 +135,15 @@ MMIO_REGION_END
 
 MMIO_REGION_BEGIN( 0xFFE80000, SCIF, "Serial Controller (FIFO) Registers" )
     WORD_PORT( 0x000, SCSMR2, PORT_MRW, 0x0000, "Serial mode register (FIFO)" )
+    BYTE_PORT( 0x004, SCBRR2, PORT_MRW, 0xFF, "Bit rate register (FIFO)" )
+    WORD_PORT( 0x008, SCSCR2, PORT_MRW, 0x0000, "Serial control register" )
+    BYTE_PORT( 0x00C, SCFTDR2, PORT_W, UNDEFINED, "Transmit FIFO data register" )
+    WORD_PORT( 0x010, SCFSR2, PORT_MRW, 0x0060, "Serial status register (FIFO)") 
+    BYTE_PORT( 0x014, SCFRDR2, PORT_R, UNDEFINED, "Receive FIFO data register" )
+    WORD_PORT( 0x018, SCFCR2, PORT_MRW, 0x0000, "FIFO control register" )
+    WORD_PORT( 0x01C, SCFDR2, PORT_MR, 0x0000, "FIFO data count register" )
+    WORD_PORT( 0x020, SCSPTR2, PORT_MRW, 0x0000, "Serial port register (FIFO)" )
+    WORD_PORT( 0x024, SCLSR2, PORT_MRW, 0x0000, "Line status register (FIFO)" )
 MMIO_REGION_END
 
 MMIO_REGION_LIST_BEGIN( sh4mmio )
