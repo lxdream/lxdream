@@ -115,18 +115,36 @@ void intc_raise_interrupt( int which )
 
 void intc_clear_interrupt( int which )
 {
-
+    int i;
+    for( i=intc_num_pending-1; i>=0; i-- ) {
+	if( intc_pending[i] == which ) {
+	    /* Shift array contents down */
+	    while( i < intc_num_pending-1 ) {
+		intc_pending[i] = intc_pending[++i];
+	    }
+	    intc_num_pending--;
+	    if( intc_num_pending == 0 )
+		sh4r.int_pending = 0;
+	    else
+		sh4r.int_pending = PRIORITY(intc_pending[intc_num_pending-1]);
+	    break;
+	}
+    }
+    
 }
 
 uint32_t intc_accept_interrupt( void )
 {
     assert(intc_num_pending > 0);
+    return INTCODE(intc_pending[intc_num_pending-1]);
+    /*
     intc_num_pending--;
     if( intc_num_pending > 0 )
         sh4r.int_pending = PRIORITY(intc_pending[intc_num_pending-1]);
     else
         sh4r.int_pending = 0;
     return INTCODE(intc_pending[intc_num_pending]);
+    */
 }
 
 void intc_mask_changed( void )
