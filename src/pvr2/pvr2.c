@@ -10,14 +10,29 @@
 char *video_base;
 
 void pvr2_init( void );
+void pvr2_run_slice( int );
+void pvr2_next_frame( void );
 
-struct dreamcast_module pvr2_module = { "PVR2", pvr2_init, NULL, NULL, NULL,
+struct dreamcast_module pvr2_module = { "PVR2", pvr2_init, NULL, NULL, 
+					pvr2_run_slice, NULL,
 					NULL, NULL };
 
 void pvr2_init( void )
 {
     register_io_region( &mmio_region_PVR2 );
     video_base = mem_get_region_by_name( MEM_REGION_VIDEO );
+}
+
+uint32_t pvr2_time_counter = 0;
+uint32_t pvr2_time_per_frame = 20000;
+
+void pvr2_run_slice( int microsecs ) 
+{
+    pvr2_time_counter += microsecs;
+    if( pvr2_time_counter >= pvr2_time_per_frame ) {
+	pvr2_next_frame();
+	pvr2_time_counter -= pvr2_time_per_frame;
+    }
 }
 
 uint32_t vid_stride, vid_lpf, vid_ppl, vid_hres, vid_vres, vid_col;

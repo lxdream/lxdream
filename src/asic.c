@@ -20,7 +20,7 @@
  */
 
 struct dreamcast_module asic_module = { "ASIC", asic_init, NULL, NULL, NULL,
-					NULL, NULL };
+					NULL, NULL, NULL };
 
 void asic_check_cleared_events( void );
 

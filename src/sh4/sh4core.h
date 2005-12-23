@@ -1,5 +1,5 @@
 /**
- * $Id: sh4core.h,v 1.3 2005-12-11 05:15:36 nkeynes Exp $
+ * $Id: sh4core.h,v 1.4 2005-12-23 11:44:55 nkeynes Exp $
  * 
  * This file defines the public functions exported by the SH4 core, except
  * for disassembly functions defined in sh4dasm.h
@@ -20,6 +20,7 @@
 #define sh4core_H 1
 
 #include <stdint.h>
+#include <stdio.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -60,6 +61,10 @@ void sh4_stop( void );
 void sh4_set_pc( int );
 void sh4_execute_instruction( void );
 void sh4_raise_exception( int, int );
+void sh4_set_breakpoint( uint32_t pc, int type );
+
+#define BREAK_ONESHOT 1
+#define BREAK_PERM 2
 
 /* SH4 Memory */
 int32_t sh4_read_long( uint32_t addr );
@@ -70,7 +75,12 @@ void sh4_write_word( uint32_t addr, uint32_t val );
 void sh4_write_byte( uint32_t addr, uint32_t val );
 int32_t sh4_read_phys_word( uint32_t addr );
 
-void run_timers( int );
+/* Peripheral functions */
+void DMAC_run_slice( int );
+void TMU_run_slice( int );
+void SCIF_run_slice( int );
+void SCIF_save_state( FILE *f );
+int SCIF_load_state( FILE *f );
 
 #define SIGNEXT4(n) ((((int32_t)(n))<<28)>>28)
 #define SIGNEXT8(n) ((int32_t)((int8_t)(n)))

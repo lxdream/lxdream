@@ -1,5 +1,5 @@
 /**
- * $Id: aica.c,v 1.3 2005-12-13 12:17:26 nkeynes Exp $
+ * $Id: aica.c,v 1.4 2005-12-23 11:44:55 nkeynes Exp $
  * 
  * This is the core sound system (ie the bit which does the actual work)
  *
@@ -27,8 +27,16 @@ MMIO_REGION_READ_DEFFN( AICA0 )
 MMIO_REGION_READ_DEFFN( AICA1 )
 MMIO_REGION_READ_DEFFN( AICA2 )
 
-struct dreamcast_module aica_module = { "AICA", aica_init, aica_reset, NULL, NULL,
-					NULL, NULL };
+void aica_init( void );
+void aica_reset( void );
+void aica_start( void );
+void aica_stop( void );
+void aica_run_slice( int );
+
+
+struct dreamcast_module aica_module = { "AICA", aica_init, aica_reset, 
+					aica_start, aica_run_slice, aica_stop,
+					NULL, NULL, NULL };
 
 /**
  * Initialize the AICA subsystem. Note requires that 
@@ -42,6 +50,22 @@ void aica_init( void )
 }
 
 void aica_reset( void )
+{
+
+}
+
+void aica_start( void )
+{
+
+}
+
+void aica_run_slice( int microsecs )
+{
+    /* Run arm instructions */
+    /* Generate audio buffer */
+}
+
+void aica_stop( void )
 {
 
 }

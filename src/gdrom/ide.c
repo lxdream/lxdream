@@ -14,7 +14,7 @@ void ide_init( void );
 void ide_init( void );
 
 struct dreamcast_module ide_module = { "IDE", ide_init, ide_reset, NULL, NULL,
-				       NULL, NULL };
+				       NULL, NULL, NULL };
 
 struct ide_registers idereg;
 

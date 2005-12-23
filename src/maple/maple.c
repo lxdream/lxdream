@@ -8,7 +8,7 @@
 void maple_init( void );
 
 struct dreamcast_module maple_module = { "Maple", maple_init, NULL, NULL, NULL,
-					 NULL, NULL };
+					 NULL, NULL, NULL };
 
 void maple_init( void )
 {

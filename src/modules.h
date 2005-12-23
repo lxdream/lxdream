@@ -30,6 +30,11 @@ typedef struct dreamcast_module {
      */
     void (*start)();
     /**
+     * Execute one time-slice worth of operations, for the given number of
+     * micro-seconds.
+     */
+    void (*run_time_slice)( int microsecs );
+    /**
      * Set the module into a stopped state (may be NULL)
      */
     void (*stop)();

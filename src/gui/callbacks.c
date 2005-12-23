@@ -107,29 +107,12 @@ on_step_btn_clicked                    (GtkButton       *button,
 }
 
 
-void run( debug_info_t data, uint32_t target ) {
-    if( ! sh4_isrunning() ) {
-        do {
-            if( target == -1 )
-                sh4_runfor(1000000);
-            else
-                sh4_runto(target, 1000000);
-            update_icount(data);
-            run_timers(1000000);
-	    SCIF_clock_tick();
-            while( gtk_events_pending() )
-                gtk_main_iteration();
-            pvr2_next_frame();
-        } while( sh4_isrunning() );
-        update_gui();
-    }    
-}
 void
 on_run_btn_clicked                     (GtkButton       *button,
                                         gpointer         user_data)
 {
     debug_info_t data = get_debug_info(GTK_WIDGET(button));
-    run(data,-1);
+    dreamcast_run();
 }
 
 
@@ -142,7 +125,8 @@ on_runto_btn_clicked                   (GtkButton       *button,
         WARN( "No address selected, so can't run to it", NULL );
     else {
         INFO( "Running until %08X...", selected_pc );
-        run( data, selected_pc );
+	sh4_set_breakpoint( selected_pc, BREAK_ONESHOT );
+	dreamcast_run();
     }
 }
 

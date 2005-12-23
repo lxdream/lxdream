@@ -134,97 +134,12 @@ int32_t mmio_region_BSC_read( uint32_t reg )
 
 MMIO_REGION_STUBFNS( UBC )
 
-/********************************* CPG *************************************/
-
-uint32_t sh4_freq = SH4_BASE_RATE;
-uint32_t sh4_bus_freq = SH4_BASE_RATE;
-uint32_t sh4_peripheral_freq = SH4_BASE_RATE / 2;
-
-
-MMIO_REGION_STUBFNS( CPG )
 
 /********************************* DMAC *************************************/
 
 MMIO_REGION_STUBFNS( DMAC )
 
-/********************************** RTC *************************************/
 
-MMIO_REGION_STUBFNS( RTC )
-
-/********************************** TMU *************************************/
-
-int timer_divider[3] = {16,16,16};
-MMIO_REGION_READ_DEFFN( TMU )
-
-int get_timer_div( int val )
-{
-    switch( val & 0x07 ) {
-        case 0: return 16; /* assume peripheral clock is IC/4 */
-        case 1: return 64;
-        case 2: return 256;
-        case 3: return 1024;
-        case 4: return 4096;
-    }
-    return 1;
-}
-
-void mmio_region_TMU_write( uint32_t reg, uint32_t val )
-{
-    switch( reg ) {
-        case TCR0:
-            timer_divider[0] = get_timer_div(val);
-            break;
-        case TCR1:
-            timer_divider[1] = get_timer_div(val);
-            break;
-        case TCR2:
-            timer_divider[2] = get_timer_div(val);
-            break;
-    }
-    MMIO_WRITE( TMU, reg, val );
-}
-
-void run_timers( int cycles )
-{
-    int tcr = MMIO_READ( TMU, TSTR );
-    cycles *= 16;
-    if( tcr & 0x01 ) {
-        int count = cycles / timer_divider[0];
-        int *val = MMIO_REG( TMU, TCNT0 );
-        if( *val < count ) {
-            MMIO_READ( TMU, TCR0 ) |= 0x100;
-            /* interrupt goes here */
-            count -= *val;
-            *val = MMIO_READ( TMU, TCOR0 ) - count;
-        } else {
-            *val -= count;
-        }
-    }
-    if( tcr & 0x02 ) {
-        int count = cycles / timer_divider[1];
-        int *val = MMIO_REG( TMU, TCNT1 );
-        if( *val < count ) {
-            MMIO_READ( TMU, TCR1 ) |= 0x100;
-            /* interrupt goes here */
-            count -= *val;
-            *val = MMIO_READ( TMU, TCOR1 ) - count;
-        } else {
-            *val -= count;
-        }
-    }
-    if( tcr & 0x04 ) {
-        int count = cycles / timer_divider[2];
-        int *val = MMIO_REG( TMU, TCNT2 );
-        if( *val < count ) {
-            MMIO_READ( TMU, TCR2 ) |= 0x100;
-            /* interrupt goes here */
-            count -= *val;
-            *val = MMIO_READ( TMU, TCOR2 ) - count;
-        } else {
-            *val -= count;
-        }
-    }
-}
 
 /********************************** SCI *************************************/
 

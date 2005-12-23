@@ -10,12 +10,19 @@
 extern "C" {
 #endif
 
-void dreamcast_init(void);
-void dreamcast_reset(void);
-void dreamcast_stop(void);
-
 #define DREAMCAST_SAVE_MAGIC "%!-DreamOn!Save\0"
 #define DREAMCAST_SAVE_VERSION 0x00010000
+
+#define TIMESLICE_LENGTH 1000 /* microseconds */
+
+#define STATE_RUNNING 1
+#define STATE_STOPPING 2
+#define STATE_STOPPED 3 
+
+void dreamcast_init(void);
+void dreamcast_reset(void);
+void dreamcast_run(void);
+void dreamcast_stop(void);
 
 int dreamcast_save_state( const gchar *filename );
 int dreamcast_load_state( const gchar *filename );
