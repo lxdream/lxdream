@@ -1,17 +1,48 @@
+/**
+ * $Id: sh4core.c,v 1.9 2005-12-23 11:44:55 nkeynes Exp $
+ * 
+ * SH4 emulation core, and parent module for all the SH4 peripheral
+ * modules.
+ *
+ * Copyright (c) 2005 Nathan Keynes.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
 #include <math.h>
 #include "dream.h"
 #include "modules.h"
 #include "sh4core.h"
 #include "sh4mmio.h"
 #include "mem.h"
+#include "clock.h"
 #include "intc.h"
 
-void sh4_save( FILE *f );
-int sh4_load( FILE *f );
+uint32_t sh4_freq = SH4_BASE_RATE;
+uint32_t sh4_bus_freq = SH4_BASE_RATE;
+uint32_t sh4_peripheral_freq = SH4_BASE_RATE / 2;
+
+/********************** SH4 Module Definition ****************************/
+
+void sh4_init( void );
+void sh4_reset( void );
+void sh4_run_slice( int );
+void sh4_start( void );
+void sh4_stop( void );
+void sh4_save_state( FILE *f );
+int sh4_load_state( FILE *f );
 
 struct dreamcast_module sh4_module = { "SH4", sh4_init, sh4_reset, 
-				       NULL, sh4_stop,
-				       sh4_save, sh4_load };
+				       NULL, sh4_run_slice, sh4_stop,
+				       sh4_save_state, sh4_load_state };
 
 struct sh4_registers sh4r;
 static int running = 0;
@@ -34,10 +65,16 @@ void sh4_reset(void)
     intc_reset();
 }
 
-void sh4_set_pc( int pc )
+void sh4_run_slice( int microsecs ) 
 {
-    sh4r.pc = pc;
-    sh4r.new_pc = pc+2;
+    int count = sh4_freq * microsecs;
+    int i;
+
+    for( i=0; i<count; i++ ) {
+	sh4_execute_instruction();
+    }
+    TMU_run_slice( microsecs );
+    SCIF_run_slice( microsecs );
 }
 
 void sh4_stop(void)
@@ -45,16 +82,16 @@ void sh4_stop(void)
     running = 0;
 }
 
-void sh4_save( FILE *f )
+void sh4_save_state( FILE *f )
 {
     fwrite( &sh4r, sizeof(sh4r), 1, f );
-    /* Save all additional on-board MMIO state */
+    SCIF_save_state( f );
 }
 
-int sh4_load( FILE * f )
+int sh4_load_state( FILE * f )
 {
     fread( &sh4r, sizeof(sh4r), 1, f );
-    return 0;
+    return SCIF_load_state( f );
 }
 
 void sh4_run(void)
@@ -63,6 +100,19 @@ void sh4_run(void)
     while( running ) {
         sh4_execute_instruction();
     }
+}
+
+/********************** SH4 emulation core  ****************************/
+
+void sh4_set_pc( int pc )
+{
+    sh4r.pc = pc;
+    sh4r.new_pc = pc+2;
+}
+
+void sh4_set_breakpoint( uint32_t pc, int type )
+{
+
 }
 
 void sh4_runfor(uint32_t count)

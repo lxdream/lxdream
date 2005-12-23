@@ -43,6 +43,13 @@ void init_gui() {
     fixed_list_font = pango_font_description_from_string("Courier 10");
 }
 
+void gui_run_slice( int millisecs ) 
+{
+    while( gtk_events_pending() )
+	gtk_main_iteration();
+    update_icount(main_debug);
+}
+
 void update_gui(void) {
     update_registers(main_debug);
     update_icount(main_debug);

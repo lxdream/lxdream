@@ -16,6 +16,13 @@ static int dreamcast_state = 0;
 static char *dreamcast_config = "DEFAULT";
 dreamcast_module_t modules[MAX_MODULES];
 
+struct save_state_header {
+    char magic[16];
+    uint32_t version;
+    uint32_t module_count;
+};
+
+
 /**
  * This function is responsible for defining how all the pieces of the
  * dreamcast actually fit together. Among other things, this lets us
@@ -64,6 +71,7 @@ void dreamcast_register_module( dreamcast_module_t module )
 void dreamcast_init( void )
 {
     dreamcast_configure();
+    dreamcast_state = STATE_STOPPED;
 }
 
 void dreamcast_reset( void )
@@ -75,29 +83,37 @@ void dreamcast_reset( void )
     }
 }
 
-void dreamcast_start( void )
+void dreamcast_run( void )
 {
     int i;
-    for( i=0; i<num_modules; i++ ) {
-	if( modules[i]->start != NULL )
-	    modules[i]->start();
+    if( dreamcast_state != STATE_RUNNING ) {
+	for( i=0; i<num_modules; i++ ) {
+	    if( modules[i]->start != NULL )
+		modules[i]->start();
+	}
     }
-}
-void dreamcast_stop( void )
-{
-    int i;
+    dreamcast_state = STATE_RUNNING;
+    while( dreamcast_state == STATE_RUNNING ) {
+	for( i=0; i<num_modules; i++ ) {
+	    if( modules[i]->run_time_slice != NULL )
+		modules[i]->run_time_slice( TIMESLICE_LENGTH );
+	}
+
+    }
+
     for( i=0; i<num_modules; i++ ) {
 	if( modules[i]->stop != NULL )
 	    modules[i]->stop();
     }
+    dreamcast_state = STATE_STOPPED;
+    update_gui();
 }
 
-struct save_state_header {
-    char magic[16];
-    uint32_t version;
-    uint32_t module_count;
-};
-
+void dreamcast_stop( void )
+{
+    if( dreamcast_state == STATE_RUNNING )
+	dreamcast_state = STATE_STOPPING;
+}
 
 int dreamcast_load_state( const gchar *filename )
 {
