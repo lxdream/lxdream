@@ -8,7 +8,7 @@
 #include <sys/mman.h>
 #include <errno.h>
 #include <stdint.h>
-#include "gui.h"
+#include "gui/gui.h"
 #include "ipbin.h"
 #include "sh4core.h"
 #include "pvr2.h"

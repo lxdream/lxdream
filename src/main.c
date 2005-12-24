@@ -9,8 +9,7 @@
 
 #include <gnome.h>
 
-#include "interface.h"
-#include "gui.h"
+#include "gui/gui.h"
 #include "sh4core.h"
 #include "sh4dasm.h"
 #include "aica/armdasm.h"

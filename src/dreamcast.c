@@ -3,9 +3,9 @@
 #include "mem.h"
 #include "aica/aica.h"
 #include "asic.h"
-#include "ide.h"
 #include "dreamcast.h"
-#include "maple.h"
+#include "gdrom/ide.h"
+#include "maple/maple.h"
 #include "modules.h"
 
 /* Central switchboard for the system */

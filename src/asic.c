@@ -4,8 +4,8 @@
 #include "sh4/intc.h"
 #include "dreamcast.h"
 #include "modules.h"
-#include "maple.h"
-#include "ide.h"
+#include "maple/maple.h"
+#include "gdrom/ide.h"
 #include "asic.h"
 #define MMIO_IMPL
 #include "asic.h"
