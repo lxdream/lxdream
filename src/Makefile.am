@@ -27,7 +27,7 @@ dream_SOURCES = \
         gui/callbacks.c gui/callbacks.h \
         gui/gui.c gui/gui.h gui/mmr_win.c \
         gui/debug_win.c gui/dump_win.c \
-        fileio.c ipbin.c util.c
+        loader.c bootstrap.c util.c
 
 dream_LDADD = @PACKAGE_LIBS@ $(INTLLIBS)
 

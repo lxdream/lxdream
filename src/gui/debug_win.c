@@ -1,5 +1,5 @@
 /**
- * $Id: debug_win.c,v 1.6 2005-12-12 10:37:36 nkeynes Exp $
+ * $Id: debug_win.c,v 1.7 2005-12-24 08:02:18 nkeynes Exp $
  * This file is responsible for the main debugger gui frame.
  *
  * Copyright (c) 2005 Nathan Keynes.
@@ -203,7 +203,7 @@ void set_disassembly_pc( debug_info_t data, unsigned int pc, gboolean select )
     data->disasm_pc = pc;
 }
 
-void set_disassembly_cpu( debug_info_t data, char *cpu )
+void set_disassembly_cpu( debug_info_t data, const gchar *cpu )
 {
     int i;
     for( i=0; data->cpu_list[i] != NULL; i++ ) {
@@ -229,7 +229,7 @@ int address_to_row( debug_info_t data, uint32_t address ) {
 }
 
 
-void emit( void *ptr, int level, int source, char *msg, ... )
+void emit( void *ptr, int level, int source, const char *msg, ... )
 {
     char buf[20], addr[10] = "", *p;
     char *arr[3] = {buf, addr};
