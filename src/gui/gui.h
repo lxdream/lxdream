@@ -7,6 +7,7 @@
 #include <gnome.h>
 #include "dream.h"
 #include "disasm.h"
+#include "gui/interface.h"
 
 #ifdef __cplusplus
 extern "C" {

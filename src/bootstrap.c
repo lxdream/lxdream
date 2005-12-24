@@ -9,7 +9,7 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include "ipbin.h"
-#include "gui.h"
+#include "gui/gui.h"
 
 static char *dc_peripherals[] = { "Uses WinCE", "Unknown (0x0000002)",
                                   "Unknown (0x0000004)", "Unknown (0x0000008)",

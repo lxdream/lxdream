@@ -20,12 +20,12 @@ dream_SOURCES = \
         sh4/sh4mmio.c sh4/sh4mmio.h sh4/scif.c sh4/watch.c \
         aica/armcore.c aica/armcore.h aica/armdasm.c aica/armmem.c \
         aica/aica.c aica/aica.h \
-        maple/maple.c maple/maple.h 
+        maple/maple.c maple/maple.h \
         maple/controller.c maple/controller.h \
         gui/support.c gui/support.h \
         gui/interface.c gui/interface.h \
         gui/callbacks.c gui/callbacks.h \
-        gui/gui.c gui/gui.h gui/mmr_win.c 
+        gui/gui.c gui/gui.h gui/mmr_win.c \
         gui/debug_win.c gui/dump_win.c \
         fileio.c ipbin.c util.c
 

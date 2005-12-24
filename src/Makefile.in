@@ -137,19 +137,23 @@ bin_PROGRAMS = dream
 
 dream_SOURCES = \
         main.c \
-        support.c support.h \
-        interface.c interface.h \
-        callbacks.c callbacks.h \
-        gui.c gui.h mmr_win.c debug_win.c dump_win.c \
         mem.c mem.h mmio.h \
-        asic.c asic.h pvr2.c pvr2.h ide.c ide.h \
+        asic.c asic.h \
+        pvr2.c pvr2.h \
+        gdrom/ide.c gdrom/ide.h \
         video.c dreamcast.c dreamcast.h \
-        maple.c maple.h maple/controller.c maple/controller.h \
         sh4/intc.c sh4/intc.h sh4/sh4mem.c sh4/timer.c \
         sh4/sh4core.c sh4/sh4core.h sh4/sh4dasm.c sh4/sh4dasm.h \
         sh4/sh4mmio.c sh4/sh4mmio.h sh4/scif.c sh4/watch.c \
         aica/armcore.c aica/armcore.h aica/armdasm.c aica/armmem.c \
         aica/aica.c aica/aica.h \
+        maple/maple.c maple/maple.h \
+        maple/controller.c maple/controller.h \
+        gui/support.c gui/support.h \
+        gui/interface.c gui/interface.h \
+        gui/callbacks.c gui/callbacks.h \
+        gui/gui.c gui/gui.h gui/mmr_win.c \
+        gui/debug_win.c gui/dump_win.c \
         fileio.c ipbin.c util.c
 
 
@@ -164,16 +168,17 @@ CONFIG_CLEAN_FILES =
 bin_PROGRAMS = dream$(EXEEXT)
 PROGRAMS = $(bin_PROGRAMS)
 
-am_dream_OBJECTS = main.$(OBJEXT) support.$(OBJEXT) interface.$(OBJEXT) \
-	callbacks.$(OBJEXT) gui.$(OBJEXT) mmr_win.$(OBJEXT) \
-	debug_win.$(OBJEXT) dump_win.$(OBJEXT) mem.$(OBJEXT) \
-	asic.$(OBJEXT) pvr2.$(OBJEXT) ide.$(OBJEXT) video.$(OBJEXT) \
-	dreamcast.$(OBJEXT) maple.$(OBJEXT) controller.$(OBJEXT) \
-	intc.$(OBJEXT) sh4mem.$(OBJEXT) timer.$(OBJEXT) \
-	sh4core.$(OBJEXT) sh4dasm.$(OBJEXT) sh4mmio.$(OBJEXT) \
-	scif.$(OBJEXT) watch.$(OBJEXT) armcore.$(OBJEXT) \
-	armdasm.$(OBJEXT) armmem.$(OBJEXT) aica.$(OBJEXT) \
-	fileio.$(OBJEXT) ipbin.$(OBJEXT) util.$(OBJEXT)
+am_dream_OBJECTS = main.$(OBJEXT) mem.$(OBJEXT) asic.$(OBJEXT) \
+	pvr2.$(OBJEXT) ide.$(OBJEXT) video.$(OBJEXT) \
+	dreamcast.$(OBJEXT) intc.$(OBJEXT) sh4mem.$(OBJEXT) \
+	timer.$(OBJEXT) sh4core.$(OBJEXT) sh4dasm.$(OBJEXT) \
+	sh4mmio.$(OBJEXT) scif.$(OBJEXT) watch.$(OBJEXT) \
+	armcore.$(OBJEXT) armdasm.$(OBJEXT) armmem.$(OBJEXT) \
+	aica.$(OBJEXT) maple.$(OBJEXT) controller.$(OBJEXT) \
+	support.$(OBJEXT) interface.$(OBJEXT) callbacks.$(OBJEXT) \
+	gui.$(OBJEXT) mmr_win.$(OBJEXT) debug_win.$(OBJEXT) \
+	dump_win.$(OBJEXT) fileio.$(OBJEXT) ipbin.$(OBJEXT) \
+	util.$(OBJEXT)
 dream_OBJECTS = $(am_dream_OBJECTS)
 dream_DEPENDENCIES =
 dream_LDFLAGS =
@@ -302,27 +307,27 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(COMPILE) -c `if test -f '$<'; then $(CYGPATH_W) '$<'; else $(CYGPATH_W) '$(srcdir)/$<'; fi`
 
-controller.o: maple/controller.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT controller.o -MD -MP -MF "$(DEPDIR)/controller.Tpo" \
-@am__fastdepCC_TRUE@	  -c -o controller.o `test -f 'maple/controller.c' || echo '$(srcdir)/'`maple/controller.c; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/controller.Tpo" "$(DEPDIR)/controller.Po"; \
-@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/controller.Tpo"; exit 1; \
+ide.o: gdrom/ide.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT ide.o -MD -MP -MF "$(DEPDIR)/ide.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o ide.o `test -f 'gdrom/ide.c' || echo '$(srcdir)/'`gdrom/ide.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/ide.Tpo" "$(DEPDIR)/ide.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/ide.Tpo"; exit 1; \
 @am__fastdepCC_TRUE@	fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='maple/controller.c' object='controller.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/controller.Po' tmpdepfile='$(DEPDIR)/controller.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gdrom/ide.c' object='ide.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/ide.Po' tmpdepfile='$(DEPDIR)/ide.TPo' @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o controller.o `test -f 'maple/controller.c' || echo '$(srcdir)/'`maple/controller.c
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o ide.o `test -f 'gdrom/ide.c' || echo '$(srcdir)/'`gdrom/ide.c
 
-controller.obj: maple/controller.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT controller.obj -MD -MP -MF "$(DEPDIR)/controller.Tpo" \
-@am__fastdepCC_TRUE@	  -c -o controller.obj `if test -f 'maple/controller.c'; then $(CYGPATH_W) 'maple/controller.c'; else $(CYGPATH_W) '$(srcdir)/maple/controller.c'; fi`; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/controller.Tpo" "$(DEPDIR)/controller.Po"; \
-@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/controller.Tpo"; exit 1; \
+ide.obj: gdrom/ide.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT ide.obj -MD -MP -MF "$(DEPDIR)/ide.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o ide.obj `if test -f 'gdrom/ide.c'; then $(CYGPATH_W) 'gdrom/ide.c'; else $(CYGPATH_W) '$(srcdir)/gdrom/ide.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/ide.Tpo" "$(DEPDIR)/ide.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/ide.Tpo"; exit 1; \
 @am__fastdepCC_TRUE@	fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='maple/controller.c' object='controller.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/controller.Po' tmpdepfile='$(DEPDIR)/controller.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gdrom/ide.c' object='ide.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/ide.Po' tmpdepfile='$(DEPDIR)/ide.TPo' @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o controller.obj `if test -f 'maple/controller.c'; then $(CYGPATH_W) 'maple/controller.c'; else $(CYGPATH_W) '$(srcdir)/maple/controller.c'; fi`
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o ide.obj `if test -f 'gdrom/ide.c'; then $(CYGPATH_W) 'gdrom/ide.c'; else $(CYGPATH_W) '$(srcdir)/gdrom/ide.c'; fi`
 
 intc.o: sh4/intc.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT intc.o -MD -MP -MF "$(DEPDIR)/intc.Tpo" \
@@ -587,6 +592,204 @@ aica.obj: aica/aica.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/aica.Po' tmpdepfile='$(DEPDIR)/aica.TPo' @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o aica.obj `if test -f 'aica/aica.c'; then $(CYGPATH_W) 'aica/aica.c'; else $(CYGPATH_W) '$(srcdir)/aica/aica.c'; fi`
+
+maple.o: maple/maple.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT maple.o -MD -MP -MF "$(DEPDIR)/maple.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o maple.o `test -f 'maple/maple.c' || echo '$(srcdir)/'`maple/maple.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/maple.Tpo" "$(DEPDIR)/maple.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/maple.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='maple/maple.c' object='maple.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/maple.Po' tmpdepfile='$(DEPDIR)/maple.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o maple.o `test -f 'maple/maple.c' || echo '$(srcdir)/'`maple/maple.c
+
+maple.obj: maple/maple.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT maple.obj -MD -MP -MF "$(DEPDIR)/maple.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o maple.obj `if test -f 'maple/maple.c'; then $(CYGPATH_W) 'maple/maple.c'; else $(CYGPATH_W) '$(srcdir)/maple/maple.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/maple.Tpo" "$(DEPDIR)/maple.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/maple.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='maple/maple.c' object='maple.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/maple.Po' tmpdepfile='$(DEPDIR)/maple.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o maple.obj `if test -f 'maple/maple.c'; then $(CYGPATH_W) 'maple/maple.c'; else $(CYGPATH_W) '$(srcdir)/maple/maple.c'; fi`
+
+controller.o: maple/controller.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT controller.o -MD -MP -MF "$(DEPDIR)/controller.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o controller.o `test -f 'maple/controller.c' || echo '$(srcdir)/'`maple/controller.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/controller.Tpo" "$(DEPDIR)/controller.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/controller.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='maple/controller.c' object='controller.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/controller.Po' tmpdepfile='$(DEPDIR)/controller.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o controller.o `test -f 'maple/controller.c' || echo '$(srcdir)/'`maple/controller.c
+
+controller.obj: maple/controller.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT controller.obj -MD -MP -MF "$(DEPDIR)/controller.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o controller.obj `if test -f 'maple/controller.c'; then $(CYGPATH_W) 'maple/controller.c'; else $(CYGPATH_W) '$(srcdir)/maple/controller.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/controller.Tpo" "$(DEPDIR)/controller.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/controller.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='maple/controller.c' object='controller.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/controller.Po' tmpdepfile='$(DEPDIR)/controller.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o controller.obj `if test -f 'maple/controller.c'; then $(CYGPATH_W) 'maple/controller.c'; else $(CYGPATH_W) '$(srcdir)/maple/controller.c'; fi`
+
+support.o: gui/support.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT support.o -MD -MP -MF "$(DEPDIR)/support.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o support.o `test -f 'gui/support.c' || echo '$(srcdir)/'`gui/support.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/support.Tpo" "$(DEPDIR)/support.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/support.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gui/support.c' object='support.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/support.Po' tmpdepfile='$(DEPDIR)/support.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o support.o `test -f 'gui/support.c' || echo '$(srcdir)/'`gui/support.c
+
+support.obj: gui/support.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT support.obj -MD -MP -MF "$(DEPDIR)/support.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o support.obj `if test -f 'gui/support.c'; then $(CYGPATH_W) 'gui/support.c'; else $(CYGPATH_W) '$(srcdir)/gui/support.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/support.Tpo" "$(DEPDIR)/support.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/support.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gui/support.c' object='support.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/support.Po' tmpdepfile='$(DEPDIR)/support.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o support.obj `if test -f 'gui/support.c'; then $(CYGPATH_W) 'gui/support.c'; else $(CYGPATH_W) '$(srcdir)/gui/support.c'; fi`
+
+interface.o: gui/interface.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT interface.o -MD -MP -MF "$(DEPDIR)/interface.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o interface.o `test -f 'gui/interface.c' || echo '$(srcdir)/'`gui/interface.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/interface.Tpo" "$(DEPDIR)/interface.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/interface.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gui/interface.c' object='interface.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/interface.Po' tmpdepfile='$(DEPDIR)/interface.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o interface.o `test -f 'gui/interface.c' || echo '$(srcdir)/'`gui/interface.c
+
+interface.obj: gui/interface.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT interface.obj -MD -MP -MF "$(DEPDIR)/interface.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o interface.obj `if test -f 'gui/interface.c'; then $(CYGPATH_W) 'gui/interface.c'; else $(CYGPATH_W) '$(srcdir)/gui/interface.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/interface.Tpo" "$(DEPDIR)/interface.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/interface.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gui/interface.c' object='interface.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/interface.Po' tmpdepfile='$(DEPDIR)/interface.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o interface.obj `if test -f 'gui/interface.c'; then $(CYGPATH_W) 'gui/interface.c'; else $(CYGPATH_W) '$(srcdir)/gui/interface.c'; fi`
+
+callbacks.o: gui/callbacks.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT callbacks.o -MD -MP -MF "$(DEPDIR)/callbacks.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o callbacks.o `test -f 'gui/callbacks.c' || echo '$(srcdir)/'`gui/callbacks.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/callbacks.Tpo" "$(DEPDIR)/callbacks.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/callbacks.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gui/callbacks.c' object='callbacks.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/callbacks.Po' tmpdepfile='$(DEPDIR)/callbacks.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o callbacks.o `test -f 'gui/callbacks.c' || echo '$(srcdir)/'`gui/callbacks.c
+
+callbacks.obj: gui/callbacks.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT callbacks.obj -MD -MP -MF "$(DEPDIR)/callbacks.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o callbacks.obj `if test -f 'gui/callbacks.c'; then $(CYGPATH_W) 'gui/callbacks.c'; else $(CYGPATH_W) '$(srcdir)/gui/callbacks.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/callbacks.Tpo" "$(DEPDIR)/callbacks.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/callbacks.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gui/callbacks.c' object='callbacks.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/callbacks.Po' tmpdepfile='$(DEPDIR)/callbacks.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o callbacks.obj `if test -f 'gui/callbacks.c'; then $(CYGPATH_W) 'gui/callbacks.c'; else $(CYGPATH_W) '$(srcdir)/gui/callbacks.c'; fi`
+
+gui.o: gui/gui.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT gui.o -MD -MP -MF "$(DEPDIR)/gui.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o gui.o `test -f 'gui/gui.c' || echo '$(srcdir)/'`gui/gui.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/gui.Tpo" "$(DEPDIR)/gui.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/gui.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gui/gui.c' object='gui.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/gui.Po' tmpdepfile='$(DEPDIR)/gui.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o gui.o `test -f 'gui/gui.c' || echo '$(srcdir)/'`gui/gui.c
+
+gui.obj: gui/gui.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT gui.obj -MD -MP -MF "$(DEPDIR)/gui.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o gui.obj `if test -f 'gui/gui.c'; then $(CYGPATH_W) 'gui/gui.c'; else $(CYGPATH_W) '$(srcdir)/gui/gui.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/gui.Tpo" "$(DEPDIR)/gui.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/gui.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gui/gui.c' object='gui.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/gui.Po' tmpdepfile='$(DEPDIR)/gui.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o gui.obj `if test -f 'gui/gui.c'; then $(CYGPATH_W) 'gui/gui.c'; else $(CYGPATH_W) '$(srcdir)/gui/gui.c'; fi`
+
+mmr_win.o: gui/mmr_win.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT mmr_win.o -MD -MP -MF "$(DEPDIR)/mmr_win.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o mmr_win.o `test -f 'gui/mmr_win.c' || echo '$(srcdir)/'`gui/mmr_win.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/mmr_win.Tpo" "$(DEPDIR)/mmr_win.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/mmr_win.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gui/mmr_win.c' object='mmr_win.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/mmr_win.Po' tmpdepfile='$(DEPDIR)/mmr_win.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o mmr_win.o `test -f 'gui/mmr_win.c' || echo '$(srcdir)/'`gui/mmr_win.c
+
+mmr_win.obj: gui/mmr_win.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT mmr_win.obj -MD -MP -MF "$(DEPDIR)/mmr_win.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o mmr_win.obj `if test -f 'gui/mmr_win.c'; then $(CYGPATH_W) 'gui/mmr_win.c'; else $(CYGPATH_W) '$(srcdir)/gui/mmr_win.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/mmr_win.Tpo" "$(DEPDIR)/mmr_win.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/mmr_win.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gui/mmr_win.c' object='mmr_win.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/mmr_win.Po' tmpdepfile='$(DEPDIR)/mmr_win.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o mmr_win.obj `if test -f 'gui/mmr_win.c'; then $(CYGPATH_W) 'gui/mmr_win.c'; else $(CYGPATH_W) '$(srcdir)/gui/mmr_win.c'; fi`
+
+debug_win.o: gui/debug_win.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT debug_win.o -MD -MP -MF "$(DEPDIR)/debug_win.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o debug_win.o `test -f 'gui/debug_win.c' || echo '$(srcdir)/'`gui/debug_win.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/debug_win.Tpo" "$(DEPDIR)/debug_win.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/debug_win.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gui/debug_win.c' object='debug_win.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/debug_win.Po' tmpdepfile='$(DEPDIR)/debug_win.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o debug_win.o `test -f 'gui/debug_win.c' || echo '$(srcdir)/'`gui/debug_win.c
+
+debug_win.obj: gui/debug_win.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT debug_win.obj -MD -MP -MF "$(DEPDIR)/debug_win.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o debug_win.obj `if test -f 'gui/debug_win.c'; then $(CYGPATH_W) 'gui/debug_win.c'; else $(CYGPATH_W) '$(srcdir)/gui/debug_win.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/debug_win.Tpo" "$(DEPDIR)/debug_win.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/debug_win.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gui/debug_win.c' object='debug_win.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/debug_win.Po' tmpdepfile='$(DEPDIR)/debug_win.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o debug_win.obj `if test -f 'gui/debug_win.c'; then $(CYGPATH_W) 'gui/debug_win.c'; else $(CYGPATH_W) '$(srcdir)/gui/debug_win.c'; fi`
+
+dump_win.o: gui/dump_win.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT dump_win.o -MD -MP -MF "$(DEPDIR)/dump_win.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o dump_win.o `test -f 'gui/dump_win.c' || echo '$(srcdir)/'`gui/dump_win.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/dump_win.Tpo" "$(DEPDIR)/dump_win.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/dump_win.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gui/dump_win.c' object='dump_win.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/dump_win.Po' tmpdepfile='$(DEPDIR)/dump_win.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o dump_win.o `test -f 'gui/dump_win.c' || echo '$(srcdir)/'`gui/dump_win.c
+
+dump_win.obj: gui/dump_win.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT dump_win.obj -MD -MP -MF "$(DEPDIR)/dump_win.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o dump_win.obj `if test -f 'gui/dump_win.c'; then $(CYGPATH_W) 'gui/dump_win.c'; else $(CYGPATH_W) '$(srcdir)/gui/dump_win.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/dump_win.Tpo" "$(DEPDIR)/dump_win.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/dump_win.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gui/dump_win.c' object='dump_win.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/dump_win.Po' tmpdepfile='$(DEPDIR)/dump_win.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o dump_win.obj `if test -f 'gui/dump_win.c'; then $(CYGPATH_W) 'gui/dump_win.c'; else $(CYGPATH_W) '$(srcdir)/gui/dump_win.c'; fi`
 uninstall-info-am:
 
 ETAGS = etags
