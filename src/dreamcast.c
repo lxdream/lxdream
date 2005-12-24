@@ -1,3 +1,22 @@
+/**
+ * $Id: dreamcast.c,v 1.9 2005-12-24 08:02:14 nkeynes Exp $
+ * Central switchboard for the system. This pulls all the individual modules
+ * together into some kind of coherent structure. This is also where you'd
+ * add Naomi support, if I ever get a board to play with...
+ *
+ * Copyright (c) 2005 Nathan Keynes.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
 #include <errno.h>
 #include "dream.h"
 #include "mem.h"
@@ -8,26 +27,24 @@
 #include "maple/maple.h"
 #include "modules.h"
 
-/* Central switchboard for the system */
+/**
+ * Current state of the DC virtual machine
+ */
+#define STATE_UNINIT 0
+#define STATE_RUNNING 1
+#define STATE_STOPPING 2
+#define STATE_STOPPED 3 
+static volatile int dreamcast_state = STATE_UNINIT;
+static uint32_t timeslice_length = DEFAULT_TIMESLICE_LENGTH;
+static char *dreamcast_config = "DEFAULT";
 
 #define MAX_MODULES 32
 static int num_modules = 0;
-static int dreamcast_state = 0;
-static char *dreamcast_config = "DEFAULT";
 dreamcast_module_t modules[MAX_MODULES];
-
-struct save_state_header {
-    char magic[16];
-    uint32_t version;
-    uint32_t module_count;
-};
-
 
 /**
  * This function is responsible for defining how all the pieces of the
- * dreamcast actually fit together. Among other things, this lets us
- * (reasonably) easily redefine the structure for eg various versions of the
- * Naomi.
+ * dreamcast actually fit together. 
  *
  * Note currently the locations of the various MMIO pages are hard coded in
  * the MMIO definitions - they should probably be moved here.
@@ -96,7 +113,7 @@ void dreamcast_run( void )
     while( dreamcast_state == STATE_RUNNING ) {
 	for( i=0; i<num_modules; i++ ) {
 	    if( modules[i]->run_time_slice != NULL )
-		modules[i]->run_time_slice( TIMESLICE_LENGTH );
+		modules[i]->run_time_slice( timeslice_length );
 	}
 
     }
@@ -114,6 +131,23 @@ void dreamcast_stop( void )
     if( dreamcast_state == STATE_RUNNING )
 	dreamcast_state = STATE_STOPPING;
 }
+
+gboolean dreamcast_is_running( void )
+{
+    return dreamcast_state == STATE_RUNNING;
+}
+
+
+/********************************* Save States *****************************/
+
+#define DREAMCAST_SAVE_MAGIC "%!-DreamOn!Save\0"
+#define DREAMCAST_SAVE_VERSION 0x00010000
+
+struct save_state_header {
+    char magic[16];
+    uint32_t version;
+    uint32_t module_count;
+};
 
 int dreamcast_load_state( const gchar *filename )
 {

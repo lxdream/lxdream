@@ -26,7 +26,7 @@ extern "C" {
 #define MODULE_ID 0
 #endif
 
-void emit( void *, int level, int source, char *msg, ... );
+void emit( void *, int level, int source, const char *msg, ... );
 
 #define FATAL( ... ) emit( NULL, EMIT_FATAL, MODULE_ID, __VA_ARGS__ )
 #define ERROR( ... ) emit( NULL, EMIT_ERR, MODULE_ID, __VA_ARGS__ )

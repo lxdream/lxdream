@@ -154,7 +154,7 @@ dream_SOURCES = \
         gui/callbacks.c gui/callbacks.h \
         gui/gui.c gui/gui.h gui/mmr_win.c \
         gui/debug_win.c gui/dump_win.c \
-        fileio.c ipbin.c util.c
+        loader.c bootstrap.c util.c
 
 
 dream_LDADD = @PACKAGE_LIBS@ $(INTLLIBS)
@@ -177,7 +177,7 @@ am_dream_OBJECTS = main.$(OBJEXT) mem.$(OBJEXT) asic.$(OBJEXT) \
 	aica.$(OBJEXT) maple.$(OBJEXT) controller.$(OBJEXT) \
 	support.$(OBJEXT) interface.$(OBJEXT) callbacks.$(OBJEXT) \
 	gui.$(OBJEXT) mmr_win.$(OBJEXT) debug_win.$(OBJEXT) \
-	dump_win.$(OBJEXT) fileio.$(OBJEXT) ipbin.$(OBJEXT) \
+	dump_win.$(OBJEXT) loader.$(OBJEXT) bootstrap.$(OBJEXT) \
 	util.$(OBJEXT)
 dream_OBJECTS = $(am_dream_OBJECTS)
 dream_DEPENDENCIES =
@@ -188,12 +188,12 @@ depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
 @AMDEP_TRUE@DEP_FILES = ./$(DEPDIR)/aica.Po ./$(DEPDIR)/armcore.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/armdasm.Po ./$(DEPDIR)/armmem.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/asic.Po ./$(DEPDIR)/callbacks.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/controller.Po ./$(DEPDIR)/debug_win.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/dreamcast.Po ./$(DEPDIR)/dump_win.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/fileio.Po ./$(DEPDIR)/gui.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/asic.Po ./$(DEPDIR)/bootstrap.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/callbacks.Po ./$(DEPDIR)/controller.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/debug_win.Po ./$(DEPDIR)/dreamcast.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/dump_win.Po ./$(DEPDIR)/gui.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/ide.Po ./$(DEPDIR)/intc.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/interface.Po ./$(DEPDIR)/ipbin.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/interface.Po ./$(DEPDIR)/loader.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/main.Po ./$(DEPDIR)/maple.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/mem.Po ./$(DEPDIR)/mmr_win.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/pvr2.Po ./$(DEPDIR)/scif.Po \
@@ -258,17 +258,17 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/armdasm.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/armmem.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/asic.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bootstrap.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/callbacks.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/controller.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/debug_win.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dreamcast.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dump_win.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/fileio.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gui.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ide.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/intc.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/interface.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ipbin.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/loader.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/maple.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mem.Po@am__quote@
