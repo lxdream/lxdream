@@ -1,5 +1,5 @@
 /**
- * $Id: debug_win.c,v 1.7 2005-12-24 08:02:18 nkeynes Exp $
+ * $Id: debug_win.c,v 1.8 2005-12-25 03:35:08 nkeynes Exp $
  * This file is responsible for the main debugger gui frame.
  *
  * Copyright (c) 2005 Nathan Keynes.
@@ -35,6 +35,7 @@ struct debug_info_struct {
     GtkCList *regs_list;
     GtkCList *disasm_list;
     GtkEntry *page_field;
+    GtkWidget *win;
     GtkProgressBar *icounter;
     char icounter_text[16];
     char saved_regs[0];
@@ -52,6 +53,7 @@ debug_info_t init_debug_win(GtkWidget *win, struct cpu_desc_struct **cpu_list )
     data->cpu_list = cpu_list;
     
     data->regs_list= gtk_object_get_data(GTK_OBJECT(win), "reg_list");
+    data->win = win;
     gtk_widget_modify_font( GTK_WIDGET(data->regs_list), fixed_list_font );
     init_register_list( data );
     data->msgs_list = gtk_object_get_data(GTK_OBJECT(win), "output_list");
@@ -64,6 +66,7 @@ debug_info_t init_debug_win(GtkWidget *win, struct cpu_desc_struct **cpu_list )
     gtk_progress_bar_set_text(data->icounter, "1");
     
     gtk_object_set_data( GTK_OBJECT(win), "debug_data", data );
+    debug_win_set_running( data, FALSE );
     return data;
 }
 
@@ -268,3 +271,17 @@ debug_info_t get_debug_info( GtkWidget *widget ) {
     return data;
 }
 
+void debug_win_enable_widget( debug_info_t data, const char *name, 
+			      gboolean enabled )
+{
+    GtkWidget *widget = GTK_WIDGET(gtk_object_get_data(GTK_OBJECT(data->win), name));
+    gtk_widget_set_sensitive( widget, enabled );
+}    
+
+void debug_win_set_running( debug_info_t data, gboolean isRunning ) 
+{
+    debug_win_enable_widget( data, "stop_btn", isRunning );
+    debug_win_enable_widget( data, "step_btn", !isRunning );
+    debug_win_enable_widget( data, "run_btn", !isRunning );
+    debug_win_enable_widget( data, "runto_btn", !isRunning );
+}
