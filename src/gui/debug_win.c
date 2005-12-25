@@ -1,5 +1,5 @@
 /**
- * $Id: debug_win.c,v 1.8 2005-12-25 03:35:08 nkeynes Exp $
+ * $Id: debug_win.c,v 1.9 2005-12-25 04:54:40 nkeynes Exp $
  * This file is responsible for the main debugger gui frame.
  *
  * Copyright (c) 2005 Nathan Keynes.
@@ -66,6 +66,7 @@ debug_info_t init_debug_win(GtkWidget *win, struct cpu_desc_struct **cpu_list )
     gtk_progress_bar_set_text(data->icounter, "1");
     
     gtk_object_set_data( GTK_OBJECT(win), "debug_data", data );
+    set_disassembly_pc( data, *data->cpu->pc, FALSE );
     debug_win_set_running( data, FALSE );
     return data;
 }
