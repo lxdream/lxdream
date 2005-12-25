@@ -2,22 +2,40 @@
 #include <stdarg.h>
 #include <gnome.h>
 #include <math.h>
+#include "dream.h"
 #include "dreamcast.h"
-#include "gui.h"
 #include "mem.h"
 #include "sh4dasm.h"
 #include "sh4core.h"
+#include "gui/gui.h"
 
 #define REGISTER_FONT "-*-fixed-medium-r-normal--12-*-*-*-*-*-iso8859-1"
 
 GdkColor clrNormal, clrChanged, clrError, clrWarn, clrPC, clrDebug, clrTrace;
 PangoFontDescription *fixed_list_font;
 
+debug_info_t main_debug;
+
+
 void open_file_callback(GtkWidget *btn, gint result, gpointer user_data);
 
-void init_gui() {
+void gtk_gui_init( void );
+void gtk_gui_update( void );
+int gtk_gui_run_slice( int microsecs );
+
+struct dreamcast_module gtk_gui_module = { "Debugger", gtk_gui_init,
+					   gtk_gui_update, NULL, 
+					   gtk_gui_run_slice, 
+					   gtk_gui_update, 
+					   NULL, NULL };
+					   
+const cpu_desc_t cpu_descs[4] = { &sh4_cpu_desc, &arm_cpu_desc, &armt_cpu_desc, NULL };
+
+
+void gtk_gui_init() {
     GdkColormap *map;
-    
+    GtkWidget *debug_win;
+
     clrNormal.red = clrNormal.green = clrNormal.blue = 0;
     clrChanged.red = clrChanged.green = 64*256;
     clrChanged.blue = 154*256;
@@ -41,16 +59,23 @@ void init_gui() {
     gdk_colormap_alloc_color(map, &clrDebug, TRUE, TRUE);
     gdk_colormap_alloc_color(map, &clrTrace, TRUE, TRUE);
     fixed_list_font = pango_font_description_from_string("Courier 10");
+    debug_win = create_debug_win ();
+    main_debug = init_debug_win(debug_win, cpu_descs);
+    init_mmr_win();
+    
+    gtk_widget_show (debug_win);
+
 }
 
-void gui_run_slice( int millisecs ) 
+int gtk_gui_run_slice( int microsecs ) 
 {
     while( gtk_events_pending() )
 	gtk_main_iteration();
     update_icount(main_debug);
+    return microsecs;
 }
 
-void update_gui(void) {
+void gtk_gui_update(void) {
     update_registers(main_debug);
     update_icount(main_debug);
     update_mmr_win();
