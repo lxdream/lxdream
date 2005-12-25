@@ -42,6 +42,7 @@ void set_disassembly_pc( debug_info_t debug, unsigned int pc, gboolean select );
 void set_disassembly_cpu( debug_info_t debug, const gchar *cpu_name );
 void jump_to_disassembly( debug_info_t debug, unsigned int addr, gboolean select );
 void jump_to_pc( debug_info_t debug, gboolean select );
+void debug_win_set_running( debug_info_t debug, gboolean isRunning );
 uint32_t row_to_address( debug_info_t debug, int row );
 int address_to_row( debug_info_t debug, uint32_t address );
 

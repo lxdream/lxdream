@@ -21,12 +21,14 @@ void open_file_callback(GtkWidget *btn, gint result, gpointer user_data);
 
 void gtk_gui_init( void );
 void gtk_gui_update( void );
+void gtk_gui_start( void );
+void gtk_gui_stop( void );
 int gtk_gui_run_slice( int microsecs );
 
 struct dreamcast_module gtk_gui_module = { "Debugger", gtk_gui_init,
-					   gtk_gui_update, NULL, 
+					   gtk_gui_update, gtk_gui_start, 
 					   gtk_gui_run_slice, 
-					   gtk_gui_update, 
+					   gtk_gui_stop, 
 					   NULL, NULL };
 					   
 const cpu_desc_t cpu_descs[4] = { &sh4_cpu_desc, &arm_cpu_desc, &armt_cpu_desc, NULL };
@@ -65,6 +67,25 @@ void gtk_gui_init() {
     
     gtk_widget_show (debug_win);
 
+}
+
+/**
+ * Hook called when DC starts running. Just disables the run/step buttons
+ * and enables the stop button.
+ */
+void gtk_gui_start( void )
+{
+    debug_win_set_running( main_debug, TRUE );
+}
+
+/**
+ * Hook called when DC stops running. Enables the run/step buttons
+ * and disables the stop button.
+ */
+void gtk_gui_stop( void )
+{
+    debug_win_set_running( main_debug, FALSE );
+    gtk_gui_update();
 }
 
 int gtk_gui_run_slice( int microsecs ) 
