@@ -1,5 +1,5 @@
 /**
- * $Id: loader.c,v 1.7 2005-12-24 08:02:14 nkeynes Exp $
+ * $Id: loader.c,v 1.8 2005-12-25 01:28:36 nkeynes Exp $
  *
  * File loading routines, mostly for loading demos without going through the
  * whole procedure of making a CD image for them.
@@ -76,9 +76,7 @@ gboolean file_load_magic( const gchar *filename )
             read( fd, load, BOOTSTRAP_SIZE );
             bootstrap_dump( load );
             sh4_set_pc( BOOTSTRAP_LOAD_ADDR + 0x300 );
-            set_disassembly_region( main_debug, BOOTSTRAP_LOAD_ADDR );
-            set_disassembly_pc( main_debug, sh4r.pc, TRUE );
-            update_gui();
+            gtk_gui_update();
         } else {
             /* look for a valid ISO9660 header */
             lseek( fd, 32768, SEEK_SET );
@@ -103,7 +101,5 @@ gboolean file_load_magic( const gchar *filename )
 int file_load_binary( const gchar *filename ) {
     mem_load_block( filename, BINARY_LOAD_ADDR, -1 );
     sh4_set_pc( BINARY_LOAD_ADDR );
-    set_disassembly_region( main_debug, BINARY_LOAD_ADDR );
-    set_disassembly_pc( main_debug, sh4r.pc, TRUE );
-    update_gui();
+    gtk_gui_update();
 }

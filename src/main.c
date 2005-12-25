@@ -10,35 +10,20 @@
 #include <gnome.h>
 
 #include "gui/gui.h"
-#include "sh4core.h"
-#include "sh4dasm.h"
-#include "aica/armdasm.h"
-#include "mem.h"
-
-debug_info_t main_debug;
-
-const cpu_desc_t cpu_descs[4] = { &sh4_cpu_desc, &arm_cpu_desc, &armt_cpu_desc, NULL };
+#include "dream.h"
+#include "dreamcast.h"
 
 int
 main (int argc, char *argv[])
 {
-  GtkWidget *debug_win;
-
 #ifdef ENABLE_NLS
   bindtextdomain (PACKAGE, PACKAGE_LOCALE_DIR);
   textdomain (PACKAGE);
 #endif
-  gnome_init ("dreamon", VERSION, argc, argv);
-  init_gui();
-  debug_win = create_debug_win ();
-  main_debug = init_debug_win(debug_win, cpu_descs);
-  video_open();
   dreamcast_init();
-  init_mmr_win(); /* Note: must be done after sh4_init */
-  sh4_reset();
-  update_gui();
-  gtk_widget_show (debug_win);
-  set_disassembly_region( main_debug, 0xA0000000 );
+  gnome_init ("dreamon", VERSION, argc, argv);
+  dreamcast_register_module( &gtk_gui_module );
+  video_open();
   // mem_new_watch( 0x0C204818, 0x0C204830, WATCH_WRITE );
   
   emit( main_debug, EMIT_INFO, -1, "DreamOn! ready..." );

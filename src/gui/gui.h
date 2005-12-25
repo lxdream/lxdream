@@ -7,7 +7,10 @@
 #include <gnome.h>
 #include "dream.h"
 #include "disasm.h"
+#include "modules.h"
 #include "gui/interface.h"
+#include "sh4/sh4dasm.h"
+#include "aica/armdasm.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -16,8 +19,9 @@ extern "C" {
 #endif
 #endif
 
-void init_gui(void);
-void update_gui(void);
+void gtk_gui_init(void);
+void gtk_gui_update(void);
+extern struct dreamcast_module gtk_gui_module;
 
 typedef struct debug_info_struct *debug_info_t;
 extern debug_info_t main_debug;

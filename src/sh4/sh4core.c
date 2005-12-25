@@ -1,5 +1,5 @@
 /**
- * $Id: sh4core.c,v 1.9 2005-12-23 11:44:55 nkeynes Exp $
+ * $Id: sh4core.c,v 1.10 2005-12-25 01:28:39 nkeynes Exp $
  * 
  * SH4 emulation core, and parent module for all the SH4 peripheral
  * modules.
@@ -26,6 +26,17 @@
 #include "clock.h"
 #include "intc.h"
 
+/* CPU-generated exception code/vector pairs */
+#define EXC_POWER_RESET  0x000 /* vector special */
+#define EXC_MANUAL_RESET 0x020
+#define EXC_SLOT_ILLEGAL 0x1A0
+#define EXC_ILLEGAL      0x180
+#define EXV_ILLEGAL      0x100
+#define EXC_TRAP         0x160
+#define EXV_TRAP         0x100
+#define EXC_FPDISABLE    0x800
+#define EXV_FPDISABLE    0x100
+
 uint32_t sh4_freq = SH4_BASE_RATE;
 uint32_t sh4_bus_freq = SH4_BASE_RATE;
 uint32_t sh4_peripheral_freq = SH4_BASE_RATE / 2;
@@ -34,7 +45,7 @@ uint32_t sh4_peripheral_freq = SH4_BASE_RATE / 2;
 
 void sh4_init( void );
 void sh4_reset( void );
-void sh4_run_slice( int );
+int sh4_run_slice( int );
 void sh4_start( void );
 void sh4_stop( void );
 void sh4_save_state( FILE *f );
@@ -45,41 +56,65 @@ struct dreamcast_module sh4_module = { "SH4", sh4_init, sh4_reset,
 				       sh4_save_state, sh4_load_state };
 
 struct sh4_registers sh4r;
-static int running = 0;
 
 void sh4_init(void)
 {
     register_io_regions( mmio_list_sh4mmio );
     mmu_init();
+    sh4_reset();
 }
 
 void sh4_reset(void)
 {
     /* zero everything out, for the sake of having a consistent state. */
     memset( &sh4r, 0, sizeof(sh4r) );
+
+    /* Resume running if we were halted */
+    sh4r.sh4_state = SH4_STATE_RUNNING;
+
     sh4r.pc    = 0xA0000000;
     sh4r.new_pc= 0xA0000002;
     sh4r.vbr   = 0x00000000;
     sh4r.fpscr = 0x00040001;
     sh4r.sr    = 0x700000F0;
+
+    /* Mem reset will do this, but if we want to reset _just_ the SH4... */
+    MMIO_WRITE( MMU, EXPEVT, EXC_POWER_RESET );
+
+    /* Peripheral modules */
     intc_reset();
 }
 
-void sh4_run_slice( int microsecs ) 
+int sh4_run_slice( int microsecs ) 
 {
-    int count = sh4_freq * microsecs;
+    int target = sh4r.icount + sh4_freq * microsecs;
+    int start = sh4r.icount;
     int i;
 
-    for( i=0; i<count; i++ ) {
-	sh4_execute_instruction();
+    if( sh4r.sh4_state != SH4_STATE_RUNNING ) {
+	if( sh4r.int_pending != 0 )
+	    sh4r.sh4_state = SH4_STATE_RUNNING;;
     }
-    TMU_run_slice( microsecs );
-    SCIF_run_slice( microsecs );
+
+    while( sh4r.icount < target && sh4r.sh4_state == SH4_STATE_RUNNING ) {
+	sh4r.icount++;
+	if( !sh4_execute_instruction() )
+	    break;
+    }
+    if( target != sh4r.icount ) {
+	/* Halted - compute time actually executed */
+	microsecs = (sh4r.icount - start) / sh4_freq;
+    }
+    if( sh4r.sh4_state != SH4_STATE_STANDBY ) {
+	TMU_run_slice( microsecs );
+	SCIF_run_slice( microsecs );
+    }
+    return microsecs;
 }
 
 void sh4_stop(void)
 {
-    running = 0;
+
 }
 
 void sh4_save_state( FILE *f )
@@ -92,14 +127,6 @@ int sh4_load_state( FILE * f )
 {
     fread( &sh4r, sizeof(sh4r), 1, f );
     return SCIF_load_state( f );
-}
-
-void sh4_run(void)
-{
-    running = 1;
-    while( running ) {
-        sh4_execute_instruction();
-    }
 }
 
 /********************** SH4 emulation core  ****************************/
@@ -115,40 +142,8 @@ void sh4_set_breakpoint( uint32_t pc, int type )
 
 }
 
-void sh4_runfor(uint32_t count)
-{
-    running = 1;
-    while( running && count--) {
-        int pc = sh4r.pc;
-        sh4_execute_instruction();
-        /*
-        if( sh4r.pc == 0x8C0C1636 ||
-            sh4r.pc == 0x8C0C1634 ) {
-            WARN( "Branching to %08X from %08X", sh4r.pc, pc );
-            sh4_stop();
-            }*/
-    }
-}
-
-int sh4_isrunning(void)
-{
-    return running;
-}
-
-void sh4_runto( uint32_t target_pc, uint32_t count )
-{
-    running = 1;
-    while( running && count--) {
-        sh4_execute_instruction();
-        if( sh4r.pc == target_pc ) {
-            running = 0;
-            break;
-        }
-    }
-}
-
-#define UNDEF(ir) do{ ERROR( "Raising exception on undefined instruction at %08x, opcode = %04x", sh4r.pc, ir ); sh4_stop(); RAISE( EXC_ILLEGAL, EXV_ILLEGAL ); }while(0)
-#define UNIMP(ir) do{ ERROR( "Halted on unimplemented instruction at %08x, opcode = %04x", sh4r.pc, ir ); sh4_stop(); return; }while(0)
+#define UNDEF(ir) do{ ERROR( "Raising exception on undefined instruction at %08x, opcode = %04x", sh4r.pc, ir ); RAISE( EXC_ILLEGAL, EXV_ILLEGAL ); }while(0)
+#define UNIMP(ir) do{ ERROR( "Halted on unimplemented instruction at %08x, opcode = %04x", sh4r.pc, ir ); dreamcast_stop(); return FALSE; }while(0)
 
 #define RAISE( x, v ) do{ \
     if( sh4r.vbr == 0 ) { \
@@ -163,7 +158,7 @@ void sh4_runto( uint32_t target_pc, uint32_t count )
         sh4r.new_pc = sh4r.pc + 2; \
         sh4_load_sr( sh4r.ssr |SR_MD|SR_BL|SR_RB ); \
     } \
-    return; } while(0)
+    return TRUE; } while(0)
 
 #define MEM_READ_BYTE( addr ) sh4_read_byte(addr)
 #define MEM_READ_WORD( addr ) sh4_read_word(addr)
@@ -183,16 +178,6 @@ void sh4_runto( uint32_t target_pc, uint32_t count )
 } else sh4_write_long( addr, ((uint32_t *)FR)[reg] )
 
 #define FP_WIDTH (IS_FPU_DOUBLESIZE() ? 8 : 4)
-
-#define EXC_POWER_RESET  0x000 /* vector special */
-#define EXC_MANUAL_RESET 0x020
-#define EXC_SLOT_ILLEGAL 0x1A0
-#define EXC_ILLEGAL      0x180
-#define EXV_ILLEGAL      0x100
-#define EXC_TRAP         0x160
-#define EXV_TRAP         0x100
-#define EXC_FPDISABLE    0x800
-#define EXV_FPDISABLE    0x100
 
 #define CHECK( x, c, v ) if( !x ) RAISE( c, v )
 #define CHECKPRIV() CHECK( IS_SH4_PRIVMODE(), EXC_ILLEGAL, EXV_ILLEGAL )
@@ -250,7 +235,7 @@ static void sh4_accept_interrupt( void )
     WARN( "Accepting interrupt %03X, from %08X => %08X", code, sh4r.spc, sh4r.pc );
 }
 
-void sh4_execute_instruction( void )
+gboolean sh4_execute_instruction( void )
 {
     int pc;
     unsigned short ir;
@@ -331,14 +316,14 @@ void sh4_execute_instruction( void )
                             sh4r.pr = sh4r.pc + 4;
                             sh4r.pc = sh4r.new_pc;
                             sh4r.new_pc = pc + 4 + RN(ir);
-                            return;
+                            return TRUE;
                         case 2: /* BRAF    Rn */
                             CHECKDEST( pc + 4 + RN(ir) );
                             CHECKSLOTILLEGAL();
                             sh4r.in_delay_slot = 1;
                             sh4r.pc = sh4r.new_pc;
                             sh4r.new_pc = pc + 4 + RN(ir);
-                            return;
+                            return TRUE;
                         case 8: /* PREF    [Rn] */
                             tmp = RN(ir);
                             if( (tmp & 0xFC000000) == 0xE0000000 ) {
@@ -442,10 +427,14 @@ void sh4_execute_instruction( void )
                             sh4r.in_delay_slot = 1;
                             sh4r.pc = sh4r.new_pc;
                             sh4r.new_pc = sh4r.pr;
-                            return;
+                            return TRUE;
                         case 1: /* SLEEP   */
-                            running = 0;
-                            break;
+			    if( MMIO_READ( CPG, STBCR ) & 0x80 ) {
+				sh4r.sh4_state = SH4_STATE_STANDBY;
+			    } else {
+				sh4r.sh4_state = SH4_STATE_SLEEP;
+			    }
+			    return FALSE; /* Halt CPU */
                         case 2: /* RTE     */
                             CHECKPRIV();
                             CHECKDEST( sh4r.spc );
@@ -455,7 +444,7 @@ void sh4_execute_instruction( void )
                             sh4r.new_pc = sh4r.spc;
                             sh4_load_sr( sh4r.ssr );
                             WARN( "RTE => %08X", sh4r.new_pc );
-                            return;
+                            return TRUE;
                         default:UNDEF(ir);
                     }
                     break;
@@ -681,7 +670,7 @@ void sh4_execute_instruction( void )
                     sh4r.pc = sh4r.new_pc;
                     sh4r.new_pc = RN(ir);
                     sh4r.pr = pc + 4;
-                    return;
+                    return TRUE;
                 case 0x0E: /* LDC     Rn, SR */
                     CHECKPRIV();
                     sh4_load_sr( RN(ir) );
@@ -784,7 +773,7 @@ void sh4_execute_instruction( void )
                     sh4r.in_delay_slot = 1;
                     sh4r.pc = sh4r.new_pc;
                     sh4r.new_pc = RN(ir);
-                    return;
+                    return TRUE;
                 case 0x2E: /* LDC     Rn, VBR */
                     CHECKPRIV();
                     sh4r.vbr = RN(ir);
@@ -992,7 +981,7 @@ void sh4_execute_instruction( void )
                         CHECKDEST( sh4r.pc + (PCDISP8(ir)<<1) + 4 )
                         sh4r.pc += (PCDISP8(ir)<<1) + 4;
                         sh4r.new_pc = sh4r.pc + 2;
-                        return;
+                        return TRUE;
                     }
                     break;
                 case 11:/* BF      disp8 */
@@ -1001,7 +990,7 @@ void sh4_execute_instruction( void )
                         CHECKDEST( sh4r.pc + (PCDISP8(ir)<<1) + 4 )
                         sh4r.pc += (PCDISP8(ir)<<1) + 4;
                         sh4r.new_pc = sh4r.pc + 2;
-                        return;
+                        return TRUE;
                     }
                     break;
                 case 13:/* BT/S    disp8 */
@@ -1012,7 +1001,7 @@ void sh4_execute_instruction( void )
                         sh4r.pc = sh4r.new_pc;
                         sh4r.new_pc = pc + (PCDISP8(ir)<<1) + 4;
                         sh4r.in_delay_slot = 1;
-                        return;
+                        return TRUE;
                     }
                     break;
                 case 15:/* BF/S    disp8 */
@@ -1022,7 +1011,7 @@ void sh4_execute_instruction( void )
                         sh4r.in_delay_slot = 1;
                         sh4r.pc = sh4r.new_pc;
                         sh4r.new_pc = pc + (PCDISP8(ir)<<1) + 4;
-                        return;
+                        return TRUE;
                     }
                     break;
                 default: UNDEF(ir);
@@ -1039,7 +1028,7 @@ void sh4_execute_instruction( void )
             sh4r.in_delay_slot = 1;
             sh4r.pc = sh4r.new_pc;
             sh4r.new_pc = pc + 4 + (DISP12(ir)<<1);
-            return;
+            return TRUE;
         case 11:/* 1011dddddddddddd */
             /* BSR     disp12 */
             CHECKDEST( sh4r.pc + (DISP12(ir)<<1) + 4 )
@@ -1048,7 +1037,7 @@ void sh4_execute_instruction( void )
             sh4r.pr = pc + 4;
             sh4r.pc = sh4r.new_pc;
             sh4r.new_pc = pc + 4 + (DISP12(ir)<<1);
-            return;
+            return TRUE;
         case 12:/* 1100xxxxdddddddd */
         switch( (ir&0x0F00)>>8 ) {
                 case 0: /* MOV.B  R0, [GBR + disp8] */

@@ -1,5 +1,5 @@
 /**
- * $Id: dreamcast.c,v 1.9 2005-12-24 08:02:14 nkeynes Exp $
+ * $Id: dreamcast.c,v 1.10 2005-12-25 01:28:36 nkeynes Exp $
  * Central switchboard for the system. This pulls all the individual modules
  * together into some kind of coherent structure. This is also where you'd
  * add Naomi support, if I ever get a board to play with...
@@ -111,9 +111,10 @@ void dreamcast_run( void )
     }
     dreamcast_state = STATE_RUNNING;
     while( dreamcast_state == STATE_RUNNING ) {
+	int time_to_run = timeslice_length;
 	for( i=0; i<num_modules; i++ ) {
 	    if( modules[i]->run_time_slice != NULL )
-		modules[i]->run_time_slice( timeslice_length );
+		time_to_run = modules[i]->run_time_slice( time_to_run );
 	}
 
     }
@@ -123,7 +124,6 @@ void dreamcast_run( void )
 	    modules[i]->stop();
     }
     dreamcast_state = STATE_STOPPED;
-    update_gui();
 }
 
 void dreamcast_stop( void )

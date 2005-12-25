@@ -1,5 +1,5 @@
 /**
- * $Id: sh4core.h,v 1.4 2005-12-23 11:44:55 nkeynes Exp $
+ * $Id: sh4core.h,v 1.5 2005-12-25 01:28:39 nkeynes Exp $
  * 
  * This file defines the public functions exported by the SH4 core, except
  * for disassembly functions defined in sh4dasm.h
@@ -19,6 +19,7 @@
 #ifndef sh4core_H
 #define sh4core_H 1
 
+#include <glib/gtypes.h>
 #include <stdint.h>
 #include <stdio.h>
 
@@ -28,6 +29,29 @@ extern "C" {
 }
 #endif
 #endif
+
+
+/**
+ * SH4 is running normally 
+ */
+#define SH4_STATE_RUNNING 1
+/**
+ * SH4 is not executing instructions but all peripheral modules are still
+ * running
+ */
+#define SH4_STATE_SLEEP 2
+/**
+ * SH4 is not executing instructions, DMAC is halted, but all other peripheral
+ * modules are still running
+ */
+#define SH4_STATE_DEEP_SLEEP 3
+/**
+ * SH4 is not executing instructions and all peripheral modules are also
+ * stopped. As close as you can get to powered-off without actually being
+ * off.
+ */
+#define SH4_STATE_STANDBY 4
+
 
 struct sh4_registers {
     uint32_t r[16];
@@ -45,6 +69,7 @@ struct sh4_registers {
     uint32_t int_pending; /* flag set by the INTC = pending priority level */
     int in_delay_slot; /* flag to indicate the current instruction is in
                              * a delay slot (certain rules apply) */
+    int sh4_state; /* Current power-on state (one of the SH4_STATE_* values ) */
 };
 
 extern struct sh4_registers sh4r;
@@ -59,7 +84,7 @@ void sh4_runfor( uint32_t count );
 int sh4_isrunning( void );
 void sh4_stop( void );
 void sh4_set_pc( int );
-void sh4_execute_instruction( void );
+gboolean sh4_execute_instruction( void );
 void sh4_raise_exception( int, int );
 void sh4_set_breakpoint( uint32_t pc, int type );
 
