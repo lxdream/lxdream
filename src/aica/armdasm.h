@@ -1,7 +1,25 @@
+/**
+ * $Id: armdasm.h,v 1.2 2005-12-25 05:57:00 nkeynes Exp $
+ * 
+ * ARM CPU definition and disassembly function declarations
+ *
+ * Copyright (c) 2005 Nathan Keynes.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
 #ifndef armdasm_H
 #define armdasm_H 1
 
-#include "disasm.h"
+#include "cpu.h"
 
 #ifdef __cplusplus
 extern "C" {

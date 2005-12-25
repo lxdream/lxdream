@@ -1,3 +1,21 @@
+/**
+ * $Id: sh4dasm.c,v 1.7 2005-12-25 05:57:00 nkeynes Exp $
+ * 
+ * SH4 CPU definition and disassembly functions
+ *
+ * Copyright (c) 2005 Nathan Keynes.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
 #include "sh4core.h"
 #include "sh4dasm.h"
 #include "mem.h"
@@ -25,9 +43,9 @@ const struct reg_desc_struct sh4_reg_map[] =
 
 
 const struct cpu_desc_struct sh4_cpu_desc = 
-    { "SH4", sh4_disasm_instruction, 2,
+    { "SH4", sh4_disasm_instruction, sh4_execute_instruction, mem_has_page, 2,
       (char *)&sh4r, sizeof(sh4r), sh4_reg_map,
-      &sh4r.pc, &sh4r.icount, mem_has_page };
+      &sh4r.pc, &sh4r.icount };
 
 uint32_t sh4_disasm_instruction( uint32_t pc, char *buf, int len, char *opcode )
 {

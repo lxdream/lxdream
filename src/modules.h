@@ -1,7 +1,26 @@
+/**
+ * $Id: modules.h,v 1.5 2005-12-25 05:56:55 nkeynes Exp $
+ * 
+ * Internal dreamcast module structure definition and associated variables.
+ * Included by all module implementations
+ *
+ * Copyright (c) 2005 Nathan Keynes.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
 
 #ifndef dreamcast_modules_H
 #define dreamcast_modules_H 1
 
+#include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -31,9 +50,10 @@ typedef struct dreamcast_module {
     void (*start)();
     /**
      * Execute one time-slice worth of operations, for the given number of
-     * micro-seconds.
+     * nanoseconds.
+     * @return Number of nanoseconds actually executed
      */
-    int (*run_time_slice)( int microsecs );
+    uint32_t (*run_time_slice)( uint32_t nanosecs );
     /**
      * Set the module into a stopped state (may be NULL)
      */

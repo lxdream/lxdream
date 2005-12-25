@@ -1,5 +1,5 @@
 /**
- * $Id: aica.c,v 1.4 2005-12-23 11:44:55 nkeynes Exp $
+ * $Id: aica.c,v 1.5 2005-12-25 05:57:00 nkeynes Exp $
  * 
  * This is the core sound system (ie the bit which does the actual work)
  *
@@ -31,7 +31,7 @@ void aica_init( void );
 void aica_reset( void );
 void aica_start( void );
 void aica_stop( void );
-void aica_run_slice( int );
+uint32_t aica_run_slice( uint32_t );
 
 
 struct dreamcast_module aica_module = { "AICA", aica_init, aica_reset, 
@@ -59,7 +59,7 @@ void aica_start( void )
 
 }
 
-void aica_run_slice( int microsecs )
+uint32_t aica_run_slice( uint32_t nanosecs )
 {
     /* Run arm instructions */
     /* Generate audio buffer */

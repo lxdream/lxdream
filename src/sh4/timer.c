@@ -1,5 +1,5 @@
 /**
- * $Id: timer.c,v 1.1 2005-12-23 11:44:55 nkeynes Exp $
+ * $Id: timer.c,v 1.2 2005-12-25 05:57:00 nkeynes Exp $
  * 
  * SH4 Timer/Clock peripheral modules (CPG, TMU, RTC), combined together to
  * keep things simple (they intertwine a bit).
@@ -85,10 +85,10 @@ void mmio_region_TMU_write( uint32_t reg, uint32_t val )
     MMIO_WRITE( TMU, reg, val );
 }
 
-void TMU_run_slice( int microsecs )
+void TMU_run_slice( uint32_t nanosecs )
 {
     int tcr = MMIO_READ( TMU, TSTR );
-    int cycles = microsecs * 16 * 200;
+    int cycles = nanosecs / sh4_peripheral_period;
     if( tcr & 0x01 ) {
         int count = cycles / timer_divider[0];
         int *val = MMIO_REG( TMU, TCNT0 );
