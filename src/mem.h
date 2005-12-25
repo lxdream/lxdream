@@ -1,5 +1,24 @@
-#ifndef dream_sh4_mem_H
-#define dream_sh4_mem_H
+/**
+ * $Id: mem.h,v 1.5 2005-12-25 08:24:07 nkeynes Exp $
+ *
+ * mem is responsible for creating and maintaining the overall system memory
+ * map, as visible from the SH4 processor. (Note the ARM has a different map)
+ *
+ * Copyright (c) 2005 Nathan Keynes.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
+#ifndef dream_mem_H
+#define dream_mem_H
 
 #include <stdint.h>
 

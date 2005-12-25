@@ -1,15 +1,25 @@
-/*
- * ide.h    31 Mar 2004  - IDE Interface definitions
+/**
+ * $Id: ide.h,v 1.2 2005-12-25 08:24:11 nkeynes Exp $
  *
- * Copyright (c) 2004 Nathan Keynes. Distribution and modification permitted
- * under the terms of the GNU General Public License version 2 or later. 
+ * This file defines the interface and structures of the dreamcast's IDE 
+ * port. Note that the register definitions are in asic.h, as the registers
+ * fall into the general ASIC ranges (and I don't want to use smaller pages
+ * at this stage). The registers here are exactly as per the ATA 
+ * specifications, which makes things a little easier.
  *
- * This file defines the interface and structures of the dreamcast's IDE port. 
- * Note that the register definitions are in asic.h, as the registers fall into
- * the general ASIC ranges (and I don't want to use smaller pages at this
- * stage). The registers here are exactly as per the ATA specifications, which
- * makes things a little easier.
+ * Copyright (c) 2005 Nathan Keynes.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  */
+
 #ifndef dream_ide_H
 #define dream_ide_H 1
 

@@ -1,6 +1,21 @@
 /**
- * Maple bus routines
+ * $Id: maple.h,v 1.4 2005-12-25 08:24:11 nkeynes Exp $
+ *
+ * Maple bus definitions
+ *
+ * Copyright (c) 2005 Nathan Keynes.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  */
+
 #ifndef dream_maple_H
 #define dream_maple_H 1
 
@@ -37,6 +52,9 @@
 #define MAPLE_DEVICE_TAG 0x4D41504C
 #define MAPLE_DEVICE(x) ((maple_device_t)x)
 
+/**
+ * Table of functions to be implemented by any maple device.
+ */
 typedef struct maple_device {
     uint32_t _tag;
     unsigned char ident[112];

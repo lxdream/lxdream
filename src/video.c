@@ -1,3 +1,22 @@
+/**
+ * $Id: video.c,v 1.2 2005-12-25 08:24:07 nkeynes Exp $
+ *
+ * The PC side of the video support (responsible for actually displaying / 
+ * rendering frames)
+ *
+ * Copyright (c) 2005 Nathan Keynes.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
 #include <gnome.h>
 
 GdkImage *img;

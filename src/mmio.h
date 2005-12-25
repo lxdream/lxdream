@@ -1,3 +1,21 @@
+/**
+ * $Id: mmio.h,v 1.2 2005-12-25 08:24:07 nkeynes Exp $
+ *
+ * mmio.h defines a complicated batch of macros used to build up the 
+ * memory-mapped I/O regions in a reasonably readable fashion.
+ *
+ * Copyright (c) 2005 Nathan Keynes.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
 #ifndef dream_mmio_H
 #define dream_mmio_H 1
 
