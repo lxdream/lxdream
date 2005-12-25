@@ -1,5 +1,5 @@
 /**
- * $Id: debug_win.c,v 1.9 2005-12-25 04:54:40 nkeynes Exp $
+ * $Id: debug_win.c,v 1.10 2005-12-25 05:57:00 nkeynes Exp $
  * This file is responsible for the main debugger gui frame.
  *
  * Copyright (c) 2005 Nathan Keynes.
@@ -20,7 +20,7 @@
 #include <math.h>
 #include "gui.h"
 #include "mem.h"
-#include "disasm.h"
+#include "cpu.h"
 
 GdkColor *msg_colors[] = { &clrError, &clrError, &clrWarn, &clrNormal,
                            &clrDebug, &clrTrace };
@@ -41,7 +41,7 @@ struct debug_info_struct {
     char saved_regs[0];
 };
 
-debug_info_t init_debug_win(GtkWidget *win, struct cpu_desc_struct **cpu_list )
+debug_info_t init_debug_win(GtkWidget *win, const cpu_desc_t *cpu_list )
 {
     GnomeAppBar *appbar;
     
@@ -214,12 +214,21 @@ void set_disassembly_cpu( debug_info_t data, const gchar *cpu )
 	if( strcmp( data->cpu_list[i]->name, cpu ) == 0 ) {
 	    if( data->cpu != data->cpu_list[i] ) {
 		data->cpu = data->cpu_list[i];
-		set_disassembly_region( data, data->disasm_from );
+		set_disassembly_pc( data, *data->cpu->pc, FALSE );
 		init_register_list( data );
 	    }
 	    return;
 	}
     }
+}
+
+/**
+ * Execute a single instruction using the current CPU mode.
+ */
+void debug_win_single_step( debug_info_t data )
+{
+    data->cpu->step_func();
+    gtk_gui_update();
 }
 
 uint32_t row_to_address( debug_info_t data, int row ) {

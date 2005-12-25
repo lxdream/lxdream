@@ -1,5 +1,5 @@
 /**
- * $Id: sh4core.c,v 1.10 2005-12-25 01:28:39 nkeynes Exp $
+ * $Id: sh4core.c,v 1.11 2005-12-25 05:57:00 nkeynes Exp $
  * 
  * SH4 emulation core, and parent module for all the SH4 peripheral
  * modules.
@@ -41,11 +41,15 @@ uint32_t sh4_freq = SH4_BASE_RATE;
 uint32_t sh4_bus_freq = SH4_BASE_RATE;
 uint32_t sh4_peripheral_freq = SH4_BASE_RATE / 2;
 
+uint32_t sh4_cpu_period = 1000 / SH4_BASE_RATE; /* in nanoseconds */
+uint32_t sh4_bus_period = 1000 / SH4_BASE_RATE;
+uint32_t sh4_peripheral_period = 2000 / SH4_BASE_RATE;
+
 /********************** SH4 Module Definition ****************************/
 
 void sh4_init( void );
 void sh4_reset( void );
-int sh4_run_slice( int );
+uint32_t sh4_run_slice( uint32_t );
 void sh4_start( void );
 void sh4_stop( void );
 void sh4_save_state( FILE *f );
@@ -85,9 +89,9 @@ void sh4_reset(void)
     intc_reset();
 }
 
-int sh4_run_slice( int microsecs ) 
+uint32_t sh4_run_slice( uint32_t nanosecs ) 
 {
-    int target = sh4r.icount + sh4_freq * microsecs;
+    int target = sh4r.icount + nanosecs / sh4_cpu_period;
     int start = sh4r.icount;
     int i;
 
@@ -101,15 +105,20 @@ int sh4_run_slice( int microsecs )
 	if( !sh4_execute_instruction() )
 	    break;
     }
-    if( target != sh4r.icount ) {
+
+    /* If we aborted early, but the cpu is still technically running,
+     * we're doing a hard abort - cut the timeslice back to what we
+     * actually executed
+     */
+    if( target != sh4r.icount && sh4r.sh4_state == SH4_STATE_RUNNING ) {
 	/* Halted - compute time actually executed */
-	microsecs = (sh4r.icount - start) / sh4_freq;
+	nanosecs = (sh4r.icount - start) * sh4_cpu_period;
     }
     if( sh4r.sh4_state != SH4_STATE_STANDBY ) {
-	TMU_run_slice( microsecs );
-	SCIF_run_slice( microsecs );
+	TMU_run_slice( nanosecs );
+	SCIF_run_slice( nanosecs );
     }
-    return microsecs;
+    return nanosecs;
 }
 
 void sh4_stop(void)

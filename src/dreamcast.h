@@ -1,5 +1,5 @@
 /**
- * $Id: dreamcast.h,v 1.7 2005-12-24 08:02:14 nkeynes Exp $
+ * $Id: dreamcast.h,v 1.8 2005-12-25 05:56:55 nkeynes Exp $
  *
  * Public interface for dreamcast.c -
  * Central switchboard for the system. This pulls all the individual modules
@@ -29,12 +29,15 @@
 extern "C" {
 #endif
 
-#define DEFAULT_TIMESLICE_LENGTH 1000 /* microseconds */
+#define DEFAULT_TIMESLICE_LENGTH 1000000 /* nanoseconds */
 
 void dreamcast_init(void);
 void dreamcast_reset(void);
 void dreamcast_run(void);
 void dreamcast_stop(void);
+
+void dreamcast_load_config( const gchar *filename );
+void dreamcast_save_config( const gchar *filename );
 
 int dreamcast_save_state( const gchar *filename );
 int dreamcast_load_state( const gchar *filename );

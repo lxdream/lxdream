@@ -1,3 +1,21 @@
+/**
+ * $Id: gui.c,v 1.8 2005-12-25 05:57:00 nkeynes Exp $
+ * 
+ * Top-level GUI (GTK2) module.
+ *
+ * Copyright (c) 2005 Nathan Keynes.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
 #include <stdlib.h>
 #include <stdarg.h>
 #include <gnome.h>
@@ -5,8 +23,8 @@
 #include "dream.h"
 #include "dreamcast.h"
 #include "mem.h"
-#include "sh4dasm.h"
-#include "sh4core.h"
+#include "sh4/sh4dasm.h"
+#include "aica/armdasm.h"
 #include "gui/gui.h"
 
 #define REGISTER_FONT "-*-fixed-medium-r-normal--12-*-*-*-*-*-iso8859-1"
@@ -23,7 +41,7 @@ void gtk_gui_init( void );
 void gtk_gui_update( void );
 void gtk_gui_start( void );
 void gtk_gui_stop( void );
-int gtk_gui_run_slice( int microsecs );
+uint32_t gtk_gui_run_slice( uint32_t nanosecs );
 
 struct dreamcast_module gtk_gui_module = { "Debugger", gtk_gui_init,
 					   gtk_gui_update, gtk_gui_start, 
@@ -88,12 +106,12 @@ void gtk_gui_stop( void )
     gtk_gui_update();
 }
 
-int gtk_gui_run_slice( int microsecs ) 
+uint32_t gtk_gui_run_slice( uint32_t nanosecs ) 
 {
     while( gtk_events_pending() )
 	gtk_main_iteration();
     update_icount(main_debug);
-    return microsecs;
+    return nanosecs;
 }
 
 void gtk_gui_update(void) {

@@ -1,5 +1,5 @@
 /**
- * $Id: dreamcast.c,v 1.10 2005-12-25 01:28:36 nkeynes Exp $
+ * $Id: dreamcast.c,v 1.11 2005-12-25 05:56:55 nkeynes Exp $
  * Central switchboard for the system. This pulls all the individual modules
  * together into some kind of coherent structure. This is also where you'd
  * add Naomi support, if I ever get a board to play with...
@@ -137,6 +137,19 @@ gboolean dreamcast_is_running( void )
     return dreamcast_state == STATE_RUNNING;
 }
 
+/***************************** User Configuration **************************/
+
+void dreamcast_load_config( const gchar *filename )
+{
+
+
+}
+
+void dreamcast_save_config( const gchar *filename )
+{
+
+
+}
 
 /********************************* Save States *****************************/
 

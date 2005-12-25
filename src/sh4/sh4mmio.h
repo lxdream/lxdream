@@ -1,3 +1,22 @@
+/**
+ * $Id: sh4mmio.h,v 1.4 2005-12-25 05:57:00 nkeynes Exp $
+ * 
+ * MMIO region and supporting function declarations. Private to the sh4
+ * module.
+ *
+ * Copyright (c) 2005 Nathan Keynes.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
 #include "mmio.h"
 
 #if (defined(MMIO_IMPL) && !defined(SH4MMIO_IMPL)) || \

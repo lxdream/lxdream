@@ -1,8 +1,19 @@
-/*
+/**
+ * $Id: armdasm.c,v 1.6 2005-12-25 05:57:00 nkeynes Exp $
+ * 
  * armdasm.c    21 Aug 2004  - ARM7tdmi (ARMv4) disassembler
  *
- * Copyright (c) 2004 Nathan Keynes. Distribution and modification permitted
- * under the terms of the GNU General Public License version 2 or later.
+ * Copyright (c) 2005 Nathan Keynes.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  */
 
 #include "aica/armcore.h"
@@ -50,15 +61,13 @@ const struct reg_desc_struct arm_reg_map[] =
 
 
 const struct cpu_desc_struct arm_cpu_desc = 
-    { "ARM7", arm_disasm_instruction, 4,
+    { "ARM7", arm_disasm_instruction, arm_execute_instruction, arm_has_page, 4,
       (char *)&armr, sizeof(armr), arm_reg_map,
-      &armr.r[15], &armr.icount,
-      arm_has_page };
+      &armr.r[15], &armr.icount };
 const struct cpu_desc_struct armt_cpu_desc = 
-    { "ARM7T", armt_disasm_instruction, 2,
+    { "ARM7T", armt_disasm_instruction, arm_execute_instruction, arm_has_page, 2,
       (char*)&armr, sizeof(armr), arm_reg_map,
-      &armr.r[15], &armr.icount,
-      arm_has_page };
+      &armr.r[15], &armr.icount };
 
 
 

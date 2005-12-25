@@ -10,7 +10,7 @@
 char *video_base;
 
 void pvr2_init( void );
-int pvr2_run_slice( int );
+uint32_t pvr2_run_slice( uint32_t );
 void pvr2_next_frame( void );
 
 struct dreamcast_module pvr2_module = { "PVR2", pvr2_init, NULL, NULL, 
@@ -24,16 +24,16 @@ void pvr2_init( void )
 }
 
 uint32_t pvr2_time_counter = 0;
-uint32_t pvr2_time_per_frame = 20000;
+uint32_t pvr2_time_per_frame = 20000000;
 
-int pvr2_run_slice( int microsecs ) 
+uint32_t pvr2_run_slice( uint32_t nanosecs ) 
 {
-    pvr2_time_counter += microsecs;
-    if( pvr2_time_counter >= pvr2_time_per_frame ) {
+    pvr2_time_counter += nanosecs;
+    while( pvr2_time_counter >= pvr2_time_per_frame ) {
 	pvr2_next_frame();
 	pvr2_time_counter -= pvr2_time_per_frame;
     }
-    return microsecs;
+    return nanosecs;
 }
 
 uint32_t vid_stride, vid_lpf, vid_ppl, vid_hres, vid_vres, vid_col;

@@ -1,3 +1,20 @@
+/**
+ * $Id: armcore.c,v 1.5 2005-12-25 05:57:00 nkeynes Exp $
+ * 
+ * ARM7TDMI CPU emulation core.
+ *
+ * Copyright (c) 2005 Nathan Keynes.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
 
 #include "aica/armcore.h"
 
@@ -48,8 +65,8 @@ struct arm_registers armr;
 #define IMMROT(ir) ((ir>>7)&0x1E)
 #define SHIFT(ir) ((ir>>4)&0x07)
 #define DISP24(ir) ((ir&0x00FFFFFF))
-#define UNDEF(ir) do{ ERROR( "Raising exception on undefined instruction at %08x, opcode = %04x", PC, ir ); return; } while(0)
-#define UNIMP(ir) do{ ERROR( "Halted on unimplemented instruction at %08x, opcode = %04x", PC, ir ); return; }while(0)
+#define UNDEF(ir) do{ ERROR( "Raising exception on undefined instruction at %08x, opcode = %04x", PC, ir ); return TRUE; } while(0)
+#define UNIMP(ir) do{ ERROR( "Halted on unimplemented instruction at %08x, opcode = %04x", PC, ir ); return FALSE; }while(0)
 
 void arm_restore_cpsr()
 {
@@ -322,7 +339,7 @@ static uint32_t arm_get_address_operand( uint32_t ir )
 	return addr;
 }
 
-void arm_execute_instruction( void ) 
+gboolean arm_execute_instruction( void ) 
 {
 	uint32_t pc = PC;
 	uint32_t ir = MEM_READ_LONG(pc);
@@ -652,4 +669,5 @@ void arm_execute_instruction( void )
 	case 3: /* Copro */
 		break;
 	}
+	return TRUE;
 }
