@@ -1,5 +1,5 @@
 /**
- * $Id: mem.c,v 1.8 2005-12-26 03:54:52 nkeynes Exp $
+ * $Id: mem.c,v 1.9 2005-12-26 10:48:45 nkeynes Exp $
  * mem.c is responsible for creating and maintaining the overall system memory
  * map, as visible from the SH4 processor. 
  *
@@ -276,7 +276,7 @@ void register_io_region( struct mmio_region *io )
     io->mem = mem_alloc_pages(2);
     io->save_mem = io->mem + PAGE_SIZE;
     io->index = (struct mmio_port **)malloc(1024*sizeof(struct mmio_port *));
-    io->trace_flag = 1;
+    io->trace_flag = 0;
     memset( io->index, 0, 1024*sizeof(struct mmio_port *) );
     for( i=0; io->ports[i].id != NULL; i++ ) {
         io->ports[i].val = (uint32_t *)(io->mem + io->ports[i].offset);
