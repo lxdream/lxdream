@@ -1,5 +1,5 @@
 /**
- * $Id: sh4core.c,v 1.11 2005-12-25 05:57:00 nkeynes Exp $
+ * $Id: sh4core.c,v 1.12 2005-12-26 03:10:23 nkeynes Exp $
  * 
  * SH4 emulation core, and parent module for all the SH4 peripheral
  * modules.
@@ -87,6 +87,7 @@ void sh4_reset(void)
 
     /* Peripheral modules */
     intc_reset();
+    SCIF_reset();
 }
 
 uint32_t sh4_run_slice( uint32_t nanosecs ) 

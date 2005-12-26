@@ -1,5 +1,5 @@
 /**
- * $Id: sh4core.h,v 1.6 2005-12-25 05:57:00 nkeynes Exp $
+ * $Id: sh4core.h,v 1.7 2005-12-26 03:10:23 nkeynes Exp $
  * 
  * This file defines the public functions exported by the SH4 core, except
  * for disassembly functions defined in sh4dasm.h
@@ -104,6 +104,7 @@ int32_t sh4_read_phys_word( uint32_t addr );
 /* Peripheral functions */
 void DMAC_run_slice( uint32_t );
 void TMU_run_slice( uint32_t );
+void SCIF_reset( void );
 void SCIF_run_slice( uint32_t );
 void SCIF_save_state( FILE *f );
 int SCIF_load_state( FILE *f );
