@@ -1,5 +1,5 @@
 /**
- * $Id: main.c,v 1.7 2005-12-25 05:56:55 nkeynes Exp $
+ * $Id: main.c,v 1.8 2005-12-26 03:11:14 nkeynes Exp $
  *
  * Main program, initializes dreamcast and gui, then passes control off to
  * the gtk main loop (currently). 
@@ -37,8 +37,8 @@ int main (int argc, char *argv[])
   dreamcast_init();
 
   gnome_init ("dreamon", VERSION, argc, argv);
-  dreamcast_register_module( &gtk_gui_module );
   video_open();
+  dreamcast_register_module( &gtk_gui_module );
   
   emit( main_debug, EMIT_INFO, -1, "DreamOn! ready..." );
 
