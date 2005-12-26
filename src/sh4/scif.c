@@ -1,5 +1,5 @@
 /**
- * $Id: scif.c,v 1.6 2005-12-26 03:10:23 nkeynes Exp $
+ * $Id: scif.c,v 1.7 2005-12-26 03:54:55 nkeynes Exp $
  * SCIF (Serial Communication Interface with FIFO) implementation - part of the 
  * SH4 standard on-chip peripheral set. The SCIF is hooked up to the DCs
  * external serial port
@@ -25,7 +25,6 @@
 #include "intc.h"
 #include "clock.h"
 #include "serial.h"
-#include "modules.h"
 
 void SCIF_set_break(void);
 

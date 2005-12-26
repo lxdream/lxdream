@@ -1,5 +1,5 @@
 /**
- * $Id: gui.h,v 1.11 2005-12-25 05:57:00 nkeynes Exp $
+ * $Id: gui.h,v 1.12 2005-12-26 03:54:55 nkeynes Exp $
  * 
  * General GUI definitions
  *
@@ -22,7 +22,6 @@
 #include <gnome.h>
 #include "dream.h"
 #include "cpu.h"
-#include "modules.h"
 #include "gui/interface.h"
 
 #ifdef __cplusplus

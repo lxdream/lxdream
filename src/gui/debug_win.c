@@ -1,5 +1,5 @@
 /**
- * $Id: debug_win.c,v 1.11 2005-12-26 03:10:41 nkeynes Exp $
+ * $Id: debug_win.c,v 1.12 2005-12-26 03:54:55 nkeynes Exp $
  * This file is responsible for the main debugger gui frame.
  *
  * Copyright (c) 2005 Nathan Keynes.
@@ -243,10 +243,10 @@ int address_to_row( debug_info_t data, uint32_t address ) {
 }
 
 
-void emit( void *ptr, int level, int source, const char *msg, ... )
+void emit( void *ptr, int level, const gchar *source, const char *msg, ... )
 {
     char buf[20], addr[10] = "", *p;
-    char *arr[3] = {buf, addr};
+    const char *arr[4] = {buf, source, addr};
     int posn;
     time_t tm = time(NULL);
     va_list ap;
@@ -258,9 +258,9 @@ void emit( void *ptr, int level, int source, const char *msg, ... )
     va_start(ap, msg);
     p = g_strdup_vprintf( msg, ap );
     strftime( buf, sizeof(buf), "%H:%M:%S", localtime(&tm) );
-    if( source != -1 )
-        sprintf( addr, "%08X", *data->cpu->pc );
-    arr[2] = p;
+    //    if( source == NULL )
+    sprintf( addr, "%08X", *data->cpu->pc );
+    arr[3] = p;
     posn = gtk_clist_append(data->msgs_list, arr);
     free(p);
     va_end(ap);

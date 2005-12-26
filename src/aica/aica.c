@@ -1,5 +1,5 @@
 /**
- * $Id: aica.c,v 1.5 2005-12-25 05:57:00 nkeynes Exp $
+ * $Id: aica.c,v 1.6 2005-12-26 03:54:55 nkeynes Exp $
  * 
  * This is the core sound system (ie the bit which does the actual work)
  *
@@ -16,8 +16,9 @@
  * GNU General Public License for more details.
  */
 
+#define MODULE aica_module
+
 #include "dream.h"
-#include "modules.h"
 #include "mem.h"
 #include "aica.h"
 #define MMIO_IMPL
@@ -31,12 +32,14 @@ void aica_init( void );
 void aica_reset( void );
 void aica_start( void );
 void aica_stop( void );
+void aica_save_state( FILE *f );
+int aica_load_state( FILE *f );
 uint32_t aica_run_slice( uint32_t );
 
 
 struct dreamcast_module aica_module = { "AICA", aica_init, aica_reset, 
 					aica_start, aica_run_slice, aica_stop,
-					NULL, NULL, NULL };
+					aica_save_state, aica_load_state };
 
 /**
  * Initialize the AICA subsystem. Note requires that 
@@ -51,7 +54,7 @@ void aica_init( void )
 
 void aica_reset( void )
 {
-
+    arm_reset();
 }
 
 void aica_start( void )
@@ -62,12 +65,27 @@ void aica_start( void )
 uint32_t aica_run_slice( uint32_t nanosecs )
 {
     /* Run arm instructions */
+    int reset = MMIO_READ( AICA2, AICA_RESET );
+    if( reset & 1 == 0 ) { 
+	/* Running */
+	/* nanosecs = arm_run_slice( nanosecs ); */
+    }
     /* Generate audio buffer */
 }
 
 void aica_stop( void )
 {
 
+}
+
+void aica_save_state( FILE *f )
+{
+    arm_save_state( f );
+}
+
+int aica_load_state( FILE *f )
+{
+    return arm_load_state( f );
 }
 
 /** Channel register structure:
@@ -94,6 +112,7 @@ void aica_stop( void )
 void mmio_region_AICA0_write( uint32_t reg, uint32_t val )
 {
     //    aica_write_channel( reg >> 7, reg % 128, val );
+    MMIO_WRITE( AICA0, reg, val );
 
 }
 
@@ -101,11 +120,25 @@ void mmio_region_AICA0_write( uint32_t reg, uint32_t val )
 void mmio_region_AICA1_write( uint32_t reg, uint32_t val )
 {
     //    aica_write_channel( (reg >> 7) + 32, reg % 128, val );
-
+    MMIO_WRITE( AICA1, reg, val );
 }
 
 /* General registers */
 void mmio_region_AICA2_write( uint32_t reg, uint32_t val )
 {
-
+    uint32_t tmp;
+    switch( reg ) {
+    case AICA_RESET:
+	tmp = MMIO_READ( AICA2, AICA_RESET );
+	if( tmp & 1 == 1 && val & 1 == 0 ) {
+	    /* ARM enabled - execute a core reset */
+	    INFO( "ARM enabled" );
+	    arm_reset();
+	}
+	MMIO_WRITE( AICA2, AICA_RESET, val );
+	break;
+    default:
+	MMIO_WRITE( AICA2, reg, val );
+	break;
+    }
 }

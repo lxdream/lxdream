@@ -1,5 +1,5 @@
 /**
- * $Id: sh4mmio.c,v 1.5 2005-12-25 05:57:00 nkeynes Exp $
+ * $Id: sh4mmio.c,v 1.6 2005-12-26 03:54:55 nkeynes Exp $
  * 
  * Miscellaneous and not-really-implemented SH4 peripheral modules. Also
  * responsible for including the IMPL side of the SH4 MMIO pages.
@@ -17,6 +17,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
+#define MODULE sh4_module
 
 #include "dream.h"
 #include "mem.h"

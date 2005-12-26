@@ -1,5 +1,5 @@
 /**
- * $Id: armcore.h,v 1.6 2005-12-25 05:57:00 nkeynes Exp $
+ * $Id: armcore.h,v 1.7 2005-12-26 03:54:55 nkeynes Exp $
  * 
  * Interface definitions for the ARM CPU emulation core proper.
  *
@@ -21,6 +21,11 @@
 
 #include "dream.h"
 #include <stdint.h>
+#include <stdio.h>
+
+#define ARM_BASE_RATE 33 /* MHZ */
+extern uint32_t arm_cpu_freq;
+extern uint32_t arm_cpu_period;
 
 #define ROTATE_RIGHT_LONG(operand,shift) ((((uint32_t)operand) >> shift) | ((operand<<(32-shift))) )
 
@@ -30,13 +35,16 @@ struct arm_registers {
     uint32_t cpsr;
     uint32_t spsr;
     
-    /* Various banked versions of the registers. */
-    uint32_t fiq_r[7]; /* FIQ bank 8..14 */
-    uint32_t irq_r[2]; /* IRQ bank 13..14 */
-    uint32_t und_r[2]; /* UND bank 13..14 */
-    uint32_t abt_r[2]; /* ABT bank 13..14 */
-    uint32_t svc_r[2]; /* SVC bank 13..14 */
+    /* Various banked versions of the registers. Note that these are used
+     * to save the registers for the named bank when leaving the mode, they're
+     * not actually used actively.
+     **/
     uint32_t user_r[7]; /* User/System bank 8..14 */
+    uint32_t svc_r[3]; /* SVC bank 13..14, SPSR */
+    uint32_t abt_r[3]; /* ABT bank 13..14, SPSR */
+    uint32_t und_r[3]; /* UND bank 13..14, SPSR */
+    uint32_t irq_r[3]; /* IRQ bank 13..14, SPSR */
+    uint32_t fiq_r[8]; /* FIQ bank 8..14, SPSR */
     
     uint32_t c,n,z,v,t;
     
@@ -54,17 +62,24 @@ struct arm_registers {
 #define CPSR_T 0x00000020 /* Thumb mode */
 #define CPSR_MODE 0x0000001F /* Current execution mode */
 
-#define MODE_USER 0x00 /* User mode */
-#define MODE_FIQ   0x01 /* Fast IRQ mode */
-#define MODE_IRQ  0x02 /* IRQ mode */
-#define MODE_SV   0x03 /* Supervisor mode */
-#define MODE_ABT 0x07 /* Abort mode */
-#define MODE_UND 0x0B /* Undefined mode */
-#define MODE_SYS 0x0F /* System mode */
+#define MODE_USER 0x10 /* User mode */
+#define MODE_FIQ   0x11 /* Fast IRQ mode */
+#define MODE_IRQ  0x12 /* IRQ mode */
+#define MODE_SVC  0x13 /* Supervisor mode */
+#define MODE_ABT 0x17 /* Abort mode */
+#define MODE_UND 0x1B /* Undefined mode */
+#define MODE_SYS 0x1F /* System mode */
 
 extern struct arm_registers armr;
 
 #define CARRY_FLAG (armr.cpsr&CPSR_C)
+
+/* ARM core functions */
+void arm_reset( void );
+uint32_t arm_run_slice( uint32_t nanosecs );
+void arm_save_state( FILE *f );
+int arm_load_state( FILE *f );
+gboolean arm_execute_instruction( void );
 
 /* ARM Memory */
 int32_t arm_read_long( uint32_t addr );
@@ -75,6 +90,5 @@ void arm_write_word( uint32_t addr, uint32_t val );
 void arm_write_byte( uint32_t addr, uint32_t val );
 int32_t arm_read_phys_word( uint32_t addr );
 int arm_has_page( uint32_t addr );
-gboolean arm_execute_instruction( void );
 
 #endif /* !dream_armcore_H */
