@@ -1,5 +1,5 @@
 /**
- * $Id: ide.c,v 1.4 2005-12-25 08:24:11 nkeynes Exp $
+ * $Id: ide.c,v 1.5 2005-12-26 03:54:55 nkeynes Exp $
  *
  * IDE interface implementation
  *
@@ -15,8 +15,11 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
+
+#define MODULE ide_module
+
 #include <stdlib.h>
-#include "modules.h"
+#include "dream.h"
 #include "ide.h"
 
 #define MAX_WRITE_BUF 4096;

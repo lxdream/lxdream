@@ -1,5 +1,5 @@
 /**
- * $Id: mem.c,v 1.7 2005-12-23 11:44:51 nkeynes Exp $
+ * $Id: mem.c,v 1.8 2005-12-26 03:54:52 nkeynes Exp $
  * mem.c is responsible for creating and maintaining the overall system memory
  * map, as visible from the SH4 processor. 
  *
@@ -15,6 +15,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
+#define MODULE mem_module
 
 #include <sys/mman.h>
 #include <sys/stat.h>
@@ -30,7 +31,6 @@
 #include "dream.h"
 #include "mem.h"
 #include "mmio.h"
-#include "modules.h"
 #include "dreamcast.h"
 
 char **page_map = NULL;

@@ -1,5 +1,5 @@
 /**
- * $Id: dreamcast.c,v 1.11 2005-12-25 05:56:55 nkeynes Exp $
+ * $Id: dreamcast.c,v 1.12 2005-12-26 03:54:52 nkeynes Exp $
  * Central switchboard for the system. This pulls all the individual modules
  * together into some kind of coherent structure. This is also where you'd
  * add Naomi support, if I ever get a board to play with...
@@ -25,7 +25,6 @@
 #include "dreamcast.h"
 #include "gdrom/ide.h"
 #include "maple/maple.h"
-#include "modules.h"
 
 /**
  * Current state of the DC virtual machine
@@ -41,6 +40,13 @@ static char *dreamcast_config = "DEFAULT";
 #define MAX_MODULES 32
 static int num_modules = 0;
 dreamcast_module_t modules[MAX_MODULES];
+
+/**
+ * The unknown module is used for logging files without an actual module
+ * declaration
+ */
+struct dreamcast_module unknown_module = { "****", NULL, NULL, NULL, NULL, 
+					   NULL, NULL, NULL };
 
 /**
  * This function is responsible for defining how all the pieces of the

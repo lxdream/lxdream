@@ -1,5 +1,5 @@
 /**
- * $Id: sh4core.c,v 1.12 2005-12-26 03:10:23 nkeynes Exp $
+ * $Id: sh4core.c,v 1.13 2005-12-26 03:54:55 nkeynes Exp $
  * 
  * SH4 emulation core, and parent module for all the SH4 peripheral
  * modules.
@@ -17,9 +17,9 @@
  * GNU General Public License for more details.
  */
 
+#define MODULE sh4_module
 #include <math.h>
 #include "dream.h"
-#include "modules.h"
 #include "sh4core.h"
 #include "sh4mmio.h"
 #include "mem.h"

@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.c,v 1.9 2005-12-25 08:24:07 nkeynes Exp $
+ * $Id: pvr2.c,v 1.10 2005-12-26 03:54:52 nkeynes Exp $
  *
  * PVR2 (Video) MMIO and supporting functions.
  *
@@ -15,12 +15,12 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
+#define MODULE pvr2_module
 
 #include "dream.h"
 #include "video.h"
 #include "mem.h"
 #include "asic.h"
-#include "modules.h"
 #include "pvr2.h"
 #define MMIO_IMPL
 #include "pvr2.h"

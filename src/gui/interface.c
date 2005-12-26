@@ -352,12 +352,13 @@ create_debug_win (void)
   gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow8), GTK_POLICY_AUTOMATIC, GTK_POLICY_ALWAYS);
   gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolledwindow8), GTK_SHADOW_IN);
 
-  output_list = gtk_clist_new (3);
+  output_list = gtk_clist_new (4);
   gtk_widget_show (output_list);
   gtk_container_add (GTK_CONTAINER (scrolledwindow8), output_list);
   gtk_clist_set_column_width (GTK_CLIST (output_list), 0, 80);
   gtk_clist_set_column_width (GTK_CLIST (output_list), 1, 80);
   gtk_clist_set_column_width (GTK_CLIST (output_list), 2, 80);
+  gtk_clist_set_column_width (GTK_CLIST (output_list), 3, 80);
   gtk_clist_column_titles_hide (GTK_CLIST (output_list));
 
   label26 = gtk_label_new ("");

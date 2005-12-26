@@ -1,5 +1,5 @@
 /**
- * $Id: armcore.c,v 1.5 2005-12-25 05:57:00 nkeynes Exp $
+ * $Id: armcore.c,v 1.6 2005-12-26 03:54:55 nkeynes Exp $
  * 
  * ARM7TDMI CPU emulation core.
  *
@@ -20,7 +20,194 @@
 
 struct arm_registers armr;
 
-/* NB: The arm has a different memory map, but for the meantime... */
+void arm_set_mode( int mode );
+
+uint32_t arm_exceptions[][2] = {{ MODE_SVC, 0x00000000 },
+				{ MODE_UND, 0x00000004 },
+				{ MODE_SVC, 0x00000008 },
+				{ MODE_ABT, 0x0000000C },
+				{ MODE_ABT, 0x00000010 },
+				{ MODE_IRQ, 0x00000018 },
+				{ MODE_FIQ, 0x0000001C } };
+
+#define EXC_RESET 0
+#define EXC_UNDEFINED 1
+#define EXC_SOFTWARE 2
+#define EXC_PREFETCH_ABORT 3
+#define EXC_DATA_ABORT 4
+#define EXC_IRQ 5
+#define EXC_FAST_IRQ 6
+
+uint32_t arm_cpu_freq = ARM_BASE_RATE;
+uint32_t arm_cpu_period = 1000 / ARM_BASE_RATE;
+
+uint32_t arm_run_slice( uint32_t nanosecs )
+{
+    uint32_t target = armr.icount + nanosecs / arm_cpu_period;
+    uint32_t start = armr.icount;
+    while( armr.icount < target ) {
+	armr.icount++;
+	if( !arm_execute_instruction() )
+	    break;
+    }
+
+    if( target != armr.icount ) {
+	/* Halted - compute time actually executed */
+	nanosecs = (armr.icount - start) * arm_cpu_period;
+    }
+    return nanosecs;
+}
+
+void arm_save_state( FILE *f )
+{
+    fwrite( &armr, sizeof(armr), 1, f );
+}
+
+int arm_load_state( FILE *f )
+{
+    fread( &armr, sizeof(armr), 1, f );
+    return 0;
+}
+
+/* Exceptions */
+void arm_reset( void )
+{
+    /* Wipe all processor state */
+    memset( &armr, 0, sizeof(armr) );
+
+    armr.cpsr = MODE_SVC | CPSR_I | CPSR_F;
+    armr.r[15] = 0x00000000;
+}
+
+/**
+ * Raise an ARM exception (other than reset, which uses arm_reset().
+ * @param exception one of the EXC_* exception codes defined above.
+ */
+void arm_raise_exception( int exception )
+{
+    int mode = arm_exceptions[exception][0];
+    arm_set_mode( mode );
+    armr.spsr = armr.cpsr;
+    armr.r[14] = armr.r[15];
+    armr.cpsr = (armr.cpsr & (~CPSR_T)) | CPSR_I; 
+    if( mode == MODE_FIQ )
+	armr.cpsr |= CPSR_F;
+    armr.r[15] = arm_exceptions[exception][1];
+}
+
+/**
+ * Restore CPSR from SPSR, effectively (under most circumstances) executing
+ * a return-from-exception.
+ */
+void arm_restore_cpsr()
+{
+    int spsr = armr.spsr;
+    int mode = spsr & CPSR_MODE;
+    
+    arm_set_mode( mode );
+    armr.cpsr = spsr;
+}
+
+
+
+/**
+ * Change the current executing ARM mode to the requested mode.
+ * Saves any required registers to banks and restores those for the
+ * correct mode. (Note does not actually update CPSR at the moment).
+ */
+void arm_set_mode( int targetMode )
+{
+    int currentMode = armr.cpsr & CPSR_MODE;
+    if( currentMode == targetMode )
+	return;
+
+    switch( currentMode ) {
+    case MODE_USER:
+    case MODE_SYS:
+	armr.user_r[5] = armr.r[13];
+	armr.user_r[6] = armr.r[14];
+	break;
+    case MODE_SVC:
+	armr.svc_r[0] = armr.r[13];
+	armr.svc_r[1] = armr.r[14];
+	armr.svc_r[2] = armr.spsr;
+	break;
+    case MODE_ABT:
+	armr.abt_r[0] = armr.r[13];
+	armr.abt_r[1] = armr.r[14];
+	armr.abt_r[2] = armr.spsr;
+	break;
+    case MODE_UND:
+	armr.und_r[0] = armr.r[13];
+	armr.und_r[1] = armr.r[14];
+	armr.und_r[2] = armr.spsr;
+	break;
+    case MODE_IRQ:
+	armr.irq_r[0] = armr.r[13];
+	armr.irq_r[1] = armr.r[14];
+	armr.irq_r[2] = armr.spsr;
+	break;
+    case MODE_FIQ:
+	armr.fiq_r[0] = armr.r[8];
+	armr.fiq_r[1] = armr.r[9];
+	armr.fiq_r[2] = armr.r[10];
+	armr.fiq_r[3] = armr.r[11];
+	armr.fiq_r[4] = armr.r[12];
+	armr.fiq_r[5] = armr.r[13];
+	armr.fiq_r[6] = armr.r[14];
+	armr.fiq_r[7] = armr.spsr;
+	armr.r[8] = armr.user_r[0];
+	armr.r[9] = armr.user_r[1];
+	armr.r[10] = armr.user_r[2];
+	armr.r[11] = armr.user_r[3];
+	armr.r[12] = armr.user_r[4];
+	break;
+    }
+    
+    switch( targetMode ) {
+    case MODE_USER:
+    case MODE_SYS:
+	armr.r[13] = armr.user_r[5];
+	armr.r[14] = armr.user_r[6];
+	break;
+    case MODE_SVC:
+	armr.r[13] = armr.svc_r[0];
+	armr.r[14] = armr.svc_r[1];
+	armr.spsr = armr.svc_r[2];
+	break;
+    case MODE_ABT:
+	armr.r[13] = armr.abt_r[0];
+	armr.r[14] = armr.abt_r[1];
+	armr.spsr = armr.abt_r[2];
+	break;
+    case MODE_UND:
+	armr.r[13] = armr.und_r[0];
+	armr.r[14] = armr.und_r[1];
+	armr.spsr = armr.und_r[2];
+	break;
+    case MODE_IRQ:
+	armr.r[13] = armr.irq_r[0];
+	armr.r[14] = armr.irq_r[1];
+	armr.spsr = armr.irq_r[2];
+	break;
+    case MODE_FIQ:
+	armr.user_r[0] = armr.r[8];
+	armr.user_r[1] = armr.r[9];
+	armr.user_r[2] = armr.r[10];
+	armr.user_r[3] = armr.r[11];
+	armr.user_r[4] = armr.r[12];
+	armr.r[8] = armr.fiq_r[0];
+	armr.r[9] = armr.fiq_r[1];
+	armr.r[10] = armr.fiq_r[2];
+	armr.r[11] = armr.fiq_r[3];
+	armr.r[12] = armr.fiq_r[4];
+	armr.r[13] = armr.fiq_r[5];
+	armr.r[14] = armr.fiq_r[6];
+	armr.spsr = armr.fiq_r[7];
+	break;
+    }
+}
+
 /* Page references are as per ARM DDI 0100E (June 2000) */
 
 #define MEM_READ_BYTE( addr ) arm_read_byte(addr)
@@ -67,11 +254,6 @@ struct arm_registers armr;
 #define DISP24(ir) ((ir&0x00FFFFFF))
 #define UNDEF(ir) do{ ERROR( "Raising exception on undefined instruction at %08x, opcode = %04x", PC, ir ); return TRUE; } while(0)
 #define UNIMP(ir) do{ ERROR( "Halted on unimplemented instruction at %08x, opcode = %04x", PC, ir ); return FALSE; }while(0)
-
-void arm_restore_cpsr()
-{
-
-}
 
 static uint32_t arm_get_shift_operand( uint32_t ir )
 {

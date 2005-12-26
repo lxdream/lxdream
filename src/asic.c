@@ -1,5 +1,5 @@
 /**
- * $Id: asic.c,v 1.7 2005-12-25 08:24:07 nkeynes Exp $
+ * $Id: asic.c,v 1.8 2005-12-26 03:54:52 nkeynes Exp $
  *
  * Support for the miscellaneous ASIC functions (Primarily event multiplexing,
  * and DMA). 
@@ -16,12 +16,14 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
+
+#define MODULE asic_module
+
 #include <assert.h>
 #include "dream.h"
 #include "mem.h"
 #include "sh4/intc.h"
 #include "dreamcast.h"
-#include "modules.h"
 #include "maple/maple.h"
 #include "gdrom/ide.h"
 #include "asic.h"

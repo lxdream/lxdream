@@ -1,5 +1,5 @@
 /**
- * $Id: maple.c,v 1.5 2005-12-25 08:24:11 nkeynes Exp $
+ * $Id: maple.c,v 1.6 2005-12-26 03:54:55 nkeynes Exp $
  *
  * Implements the core Maple bus, including DMA transfers to and from the bus.
  *
@@ -15,10 +15,10 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
+#define MODULE maple_module
 
 #include <assert.h>
 #include "dream.h"
-#include "modules.h"
 #include "mem.h"
 #include "asic.h"
 #include "maple.h"

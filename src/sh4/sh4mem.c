@@ -1,5 +1,5 @@
 /**
- * $Id: sh4mem.c,v 1.1 2005-12-11 05:15:36 nkeynes Exp $
+ * $Id: sh4mem.c,v 1.2 2005-12-26 03:54:55 nkeynes Exp $
  * sh4mem.c is responsible for the SH4's access to memory (including memory
  * mapped I/O), using the page maps created in mem.c
  *
@@ -15,6 +15,8 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
+
+#define MODULE sh4_module
 
 #include <string.h>
 #include <zlib.h>
