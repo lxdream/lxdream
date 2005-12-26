@@ -1,5 +1,5 @@
 /**
- * $Id: armcore.c,v 1.8 2005-12-26 11:47:15 nkeynes Exp $
+ * $Id: armcore.c,v 1.9 2005-12-26 11:52:56 nkeynes Exp $
  * 
  * ARM7TDMI CPU emulation core.
  *
@@ -375,7 +375,7 @@ void arm_set_mode( int targetMode )
 #define SHIFT(ir) ((ir>>4)&0x07)
 #define DISP24(ir) ((ir&0x00FFFFFF))
 #define UNDEF(ir) do{ arm_raise_exception( EXC_UNDEFINED ); return TRUE; } while(0)
-#define UNIMP(ir) do{ ERROR( "Halted on unimplemented instruction at %08x, opcode = %04x", PC, ir ); return FALSE; }while(0)
+#define UNIMP(ir) do{ ERROR( "Halted on unimplemented instruction at %08x, opcode = %04x", PC-4, ir ); dreamcast_stop(); return FALSE; }while(0)
 
 /**
  * Determine the value of the shift-operand for a data processing instruction,

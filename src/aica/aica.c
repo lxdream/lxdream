@@ -1,5 +1,5 @@
 /**
- * $Id: aica.c,v 1.8 2005-12-26 11:47:15 nkeynes Exp $
+ * $Id: aica.c,v 1.9 2005-12-26 11:52:56 nkeynes Exp $
  * 
  * This is the core sound system (ie the bit which does the actual work)
  *
@@ -67,7 +67,7 @@ uint32_t aica_run_slice( uint32_t nanosecs )
 {
     /* Run arm instructions */
     int reset = MMIO_READ( AICA2, AICA_RESET );
-    if( reset & 1 == 0 ) { 
+    if( (reset & 1) == 0 ) { 
 	/* Running */
         nanosecs = arm_run_slice( nanosecs );
     }
