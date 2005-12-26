@@ -1,5 +1,5 @@
 /**
- * $Id: asic.c,v 1.8 2005-12-26 03:54:52 nkeynes Exp $
+ * $Id: asic.c,v 1.9 2005-12-26 10:48:55 nkeynes Exp $
  *
  * Support for the miscellaneous ASIC functions (Primarily event multiplexing,
  * and DMA). 
@@ -60,7 +60,6 @@ void mmio_region_ASIC_write( uint32_t reg, uint32_t val )
         case PIRQ2:
             /* Clear any interrupts */
             MMIO_WRITE( ASIC, reg, MMIO_READ(ASIC, reg)&~val );
-	    DEBUG( "ASIC Write %08X => %08X", val, reg );
 	    asic_check_cleared_events();
             break;
         case MAPLE_STATE:
