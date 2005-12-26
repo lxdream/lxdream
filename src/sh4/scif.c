@@ -1,5 +1,5 @@
 /**
- * $Id: scif.c,v 1.5 2005-12-25 05:57:00 nkeynes Exp $
+ * $Id: scif.c,v 1.6 2005-12-26 03:10:23 nkeynes Exp $
  * SCIF (Serial Communication Interface with FIFO) implementation - part of the 
  * SH4 standard on-chip peripheral set. The SCIF is hooked up to the DCs
  * external serial port
@@ -443,7 +443,6 @@ void SCIF_update_line_speed( void )
 	
 	if( serial_device != NULL && serial_device->set_line_speed != NULL )
 	    serial_device->set_line_speed( baudrate );
-	INFO( "SCIF baud rate set to %d", baudrate );
 
 	SCIF_tick_period = sh4_peripheral_period * (32 * mult * (bbr+1));
 
@@ -618,7 +617,9 @@ void SCIF_clock_tick( void )
 
 void SCIF_reset( void )
 {
-    SCIF_tick_remainder = 0;
+    SCIF_recvq_clear();
+    SCIF_sendq_clear();
+    SCIF_update_line_speed();
 }
 
 void SCIF_run_slice( uint32_t nanosecs ) 
