@@ -1,5 +1,5 @@
 /**
- * $Id: sh4mem.c,v 1.2 2005-12-26 03:54:55 nkeynes Exp $
+ * $Id: sh4mem.c,v 1.3 2005-12-26 10:47:10 nkeynes Exp $
  * sh4mem.c is responsible for the SH4's access to memory (including memory
  * mapped I/O), using the page maps created in mem.c
  *
@@ -73,7 +73,9 @@ void sh4_write_p4( uint32_t addr, int32_t val )
         if( (addr & 0xFC000000) == 0xE0000000 ) {
             /* Store queue */
             SH4_WRITE_STORE_QUEUE( addr, val );
-        } else {
+        } else if( (addr & 0xFF000000) != 0xF4000000 ) {
+	    /* OC address cache isn't implemented, but don't complain about it.
+	     * Complain about anything else though */
             ERROR( "Attempted write to unknown P4 region: %08X", addr );
         }
     } else {
