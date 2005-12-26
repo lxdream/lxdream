@@ -1,5 +1,5 @@
 /**
- * $Id: sh4core.c,v 1.13 2005-12-26 03:54:55 nkeynes Exp $
+ * $Id: sh4core.c,v 1.14 2005-12-26 06:38:13 nkeynes Exp $
  * 
  * SH4 emulation core, and parent module for all the SH4 peripheral
  * modules.
@@ -453,7 +453,6 @@ gboolean sh4_execute_instruction( void )
                             sh4r.pc = sh4r.new_pc;
                             sh4r.new_pc = sh4r.spc;
                             sh4_load_sr( sh4r.ssr );
-                            WARN( "RTE => %08X", sh4r.new_pc );
                             return TRUE;
                         default:UNDEF(ir);
                     }
