@@ -1,5 +1,5 @@
 /**
- * $Id: armcore.h,v 1.7 2005-12-26 03:54:55 nkeynes Exp $
+ * $Id: armcore.h,v 1.8 2005-12-26 06:38:51 nkeynes Exp $
  * 
  * Interface definitions for the ARM CPU emulation core proper.
  *
@@ -61,6 +61,7 @@ struct arm_registers {
 #define CPSR_F 0x00000040 /* Fast interrupt disable bit */
 #define CPSR_T 0x00000020 /* Thumb mode */
 #define CPSR_MODE 0x0000001F /* Current execution mode */
+#define CPSR_COMPACT_MASK 0x0FFFFFDF /* Mask excluding all separated flags */
 
 #define MODE_USER 0x10 /* User mode */
 #define MODE_FIQ   0x11 /* Fast IRQ mode */
@@ -69,6 +70,9 @@ struct arm_registers {
 #define MODE_ABT 0x17 /* Abort mode */
 #define MODE_UND 0x1B /* Undefined mode */
 #define MODE_SYS 0x1F /* System mode */
+
+#define IS_PRIVILEGED_MODE() ((armr.cpsr & CPSR_MODE) != MODE_USER)
+#define IS_EXCEPTION_MODE() (IS_PRIVILEGED_MODE() && (armr.cpsr & CPSR_MODE) != MODE_SYS)
 
 extern struct arm_registers armr;
 
@@ -82,12 +86,16 @@ int arm_load_state( FILE *f );
 gboolean arm_execute_instruction( void );
 
 /* ARM Memory */
-int32_t arm_read_long( uint32_t addr );
-int32_t arm_read_word( uint32_t addr );
-int32_t arm_read_byte( uint32_t addr );
+uint32_t arm_read_long( uint32_t addr );
+uint32_t arm_read_word( uint32_t addr );
+uint32_t arm_read_byte( uint32_t addr );
+uint32_t arm_read_long_user( uint32_t addr );
+uint32_t arm_read_byte_user( uint32_t addr );
 void arm_write_long( uint32_t addr, uint32_t val );
 void arm_write_word( uint32_t addr, uint32_t val );
 void arm_write_byte( uint32_t addr, uint32_t val );
+void arm_write_long_user( uint32_t addr, uint32_t val );
+void arm_write_byte_user( uint32_t addr, uint32_t val );
 int32_t arm_read_phys_word( uint32_t addr );
 int arm_has_page( uint32_t addr );
 
