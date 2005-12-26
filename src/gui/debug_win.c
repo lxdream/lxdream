@@ -1,5 +1,5 @@
 /**
- * $Id: debug_win.c,v 1.10 2005-12-25 05:57:00 nkeynes Exp $
+ * $Id: debug_win.c,v 1.11 2005-12-26 03:10:41 nkeynes Exp $
  * This file is responsible for the main debugger gui frame.
  *
  * Copyright (c) 2005 Nathan Keynes.
@@ -216,6 +216,7 @@ void set_disassembly_cpu( debug_info_t data, const gchar *cpu )
 		data->cpu = data->cpu_list[i];
 		set_disassembly_pc( data, *data->cpu->pc, FALSE );
 		init_register_list( data );
+		update_icount( data );
 	    }
 	    return;
 	}
