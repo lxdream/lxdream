@@ -1,5 +1,5 @@
 /**
- * $Id: aica.c,v 1.6 2005-12-26 03:54:55 nkeynes Exp $
+ * $Id: aica.c,v 1.7 2005-12-26 06:38:51 nkeynes Exp $
  * 
  * This is the core sound system (ie the bit which does the actual work)
  *
@@ -50,6 +50,7 @@ void aica_init( void )
     MMIO_NOTRACE(AICA0);
     MMIO_NOTRACE(AICA1);
     arm_mem_init();
+    arm_reset();
 }
 
 void aica_reset( void )
@@ -113,7 +114,7 @@ void mmio_region_AICA0_write( uint32_t reg, uint32_t val )
 {
     //    aica_write_channel( reg >> 7, reg % 128, val );
     MMIO_WRITE( AICA0, reg, val );
-
+    //    DEBUG( "AICA0 Write %08X => %08X", val, reg );
 }
 
 /* Write to channels 32-64 */
@@ -121,6 +122,7 @@ void mmio_region_AICA1_write( uint32_t reg, uint32_t val )
 {
     //    aica_write_channel( (reg >> 7) + 32, reg % 128, val );
     MMIO_WRITE( AICA1, reg, val );
+    // DEBUG( "AICA1 Write %08X => %08X", val, reg );
 }
 
 /* General registers */
@@ -130,10 +132,12 @@ void mmio_region_AICA2_write( uint32_t reg, uint32_t val )
     switch( reg ) {
     case AICA_RESET:
 	tmp = MMIO_READ( AICA2, AICA_RESET );
-	if( tmp & 1 == 1 && val & 1 == 0 ) {
+	if( (tmp & 1) == 1 && (val & 1) == 0 ) {
 	    /* ARM enabled - execute a core reset */
-	    INFO( "ARM enabled" );
+	    DEBUG( "ARM enabled" );
 	    arm_reset();
+	} else if( (tmp&1) == 0 && (val&1) == 1 ) {
+	    DEBUG( "ARM disabled" );
 	}
 	MMIO_WRITE( AICA2, AICA_RESET, val );
 	break;

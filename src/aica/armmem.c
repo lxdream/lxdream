@@ -1,5 +1,5 @@
 /**
- * $Id: armmem.c,v 1.4 2005-12-25 08:24:11 nkeynes Exp $
+ * $Id: armmem.c,v 1.5 2005-12-26 06:38:51 nkeynes Exp $
  *
  * Implements the ARM's memory map.
  *
@@ -32,21 +32,34 @@ int arm_has_page( uint32_t addr ) {
 	     (addr >= 0x00800000 && addr <= 0x00805000 ) );
 }
 
-int32_t arm_read_long( uint32_t addr ) {
+uint32_t arm_read_long( uint32_t addr ) {
     if( addr < 0x00200000 ) {
 	return *(int32_t *)(arm_mem + addr);
 	/* Main sound ram */
-    } else if( addr >= 0x00800000 && addr <= 0x00803000 ) {
-	/* Sound registers / scratch ram */
     } else {
-	/* Undefined memory */
-	ERROR( "Attempted long read to undefined page: %08X",
-	       addr );
-	return 0;
+	switch( addr & 0xFFFFF000 ) {
+	case 0x00800000:
+	    return mmio_region_AICA0_read(addr);
+	    break;
+	case 0x00801000:
+	    return mmio_region_AICA1_read(addr);
+	    break;
+	case 0x00802000:
+	    return mmio_region_AICA2_read(addr);
+	    break;
+	case 0x00803000:
+	    break;
+	case 0x00804000:
+	    break;
+	}
     }
+    ERROR( "Attempted long read to undefined page: %08X",
+	   addr );
+    /* Undefined memory */
+    return 0;
 }
 
-int16_t arm_read_word( uint32_t addr ) {
+uint32_t arm_read_word( uint32_t addr ) {
     if( addr < 0x00200000 ) {
 	return *(int16_t *)(arm_mem + addr);
 	/* Main sound ram */
@@ -59,9 +72,9 @@ int16_t arm_read_word( uint32_t addr ) {
 
 }
 
-int8_t arm_read_byte( uint32_t addr ) {
+uint32_t arm_read_byte( uint32_t addr ) {
     if( addr < 0x00200000 ) {
-	return *(int8_t *)(arm_mem + addr);
+	return (uint32_t)(*(uint8_t *)(arm_mem + addr));
 	/* Main sound ram */
     } else {
 	/* Undefined memory */
@@ -71,10 +84,37 @@ int8_t arm_read_byte( uint32_t addr ) {
     }
 }
 
-uint32_t arm_read_long_user( uint32_t addr ) {
+void arm_write_long( uint32_t addr, uint32_t value )
+{
+    if( addr < 0x00200000 ) {
+	*(uint32_t *)(arm_mem + addr) = value;
+    } else {
+    }
+}
 
+void arm_write_byte( uint32_t addr, uint32_t value )
+{
+    if( addr < 0x00200000 ) {
+	*(uint8_t *)(arm_mem+addr) = (uint8_t)value;
+    } else {
+    }
+}
+
+/* User translations - TODO */
+
+uint32_t arm_read_long_user( uint32_t addr ) {
+    return arm_read_long( addr );
 }
 
 uint32_t arm_read_byte_user( uint32_t addr ) {
+    return arm_read_byte( addr );
+}
 
+void arm_write_long_user( uint32_t addr, uint32_t val ) {
+    arm_write_long( addr, val );
+}
+
+void arm_write_byte_user( uint32_t addr, uint32_t val )
+{
+    arm_write_byte( addr, val );
 }
