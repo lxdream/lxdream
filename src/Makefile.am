@@ -10,14 +10,14 @@ bin_PROGRAMS = dream
 
 dream_SOURCES = \
         main.c \
-        mem.c mem.h mmio.h \
+        mem.c mem.h mmio.h watch.c \
         asic.c asic.h \
         pvr2.c pvr2.h \
         gdrom/ide.c gdrom/ide.h \
         video.c dreamcast.c dreamcast.h \
         sh4/intc.c sh4/intc.h sh4/sh4mem.c sh4/timer.c \
         sh4/sh4core.c sh4/sh4core.h sh4/sh4dasm.c sh4/sh4dasm.h \
-        sh4/sh4mmio.c sh4/sh4mmio.h sh4/scif.c sh4/watch.c \
+        sh4/sh4mmio.c sh4/sh4mmio.h sh4/scif.c \
         aica/armcore.c aica/armcore.h aica/armdasm.c aica/armmem.c \
         aica/aica.c aica/aica.h \
         maple/maple.c maple/maple.h \

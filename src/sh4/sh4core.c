@@ -1,5 +1,5 @@
 /**
- * $Id: sh4core.c,v 1.15 2005-12-26 10:47:10 nkeynes Exp $
+ * $Id: sh4core.c,v 1.16 2005-12-26 11:47:15 nkeynes Exp $
  * 
  * SH4 emulation core, and parent module for all the SH4 peripheral
  * modules.
@@ -90,6 +90,44 @@ void sh4_reset(void)
     SCIF_reset();
 }
 
+static struct breakpoint_struct sh4_breakpoints[MAX_BREAKPOINTS];
+static int sh4_breakpoint_count = 0;
+
+void sh4_set_breakpoint( uint32_t pc, int type )
+{
+    sh4_breakpoints[sh4_breakpoint_count].address = pc;
+    sh4_breakpoints[sh4_breakpoint_count].type = type;
+    sh4_breakpoint_count++;
+}
+
+gboolean sh4_clear_breakpoint( uint32_t pc, int type )
+{
+    int i;
+
+    for( i=0; i<sh4_breakpoint_count; i++ ) {
+	if( sh4_breakpoints[i].address == pc && 
+	    sh4_breakpoints[i].type == type ) {
+	    while( ++i < sh4_breakpoint_count ) {
+		sh4_breakpoints[i-1].address = sh4_breakpoints[i].address;
+		sh4_breakpoints[i-1].type = sh4_breakpoints[i].type;
+	    }
+	    sh4_breakpoint_count--;
+	    return TRUE;
+	}
+    }
+    return FALSE;
+}
+
+int sh4_get_breakpoint( uint32_t pc )
+{
+    int i;
+    for( i=0; i<sh4_breakpoint_count; i++ ) {
+	if( sh4_breakpoints[i].address == pc )
+	    return sh4_breakpoints[i].type;
+    }
+    return 0;
+}
+
 uint32_t sh4_run_slice( uint32_t nanosecs ) 
 {
     int target = sh4r.icount + nanosecs / sh4_cpu_period;
@@ -105,6 +143,19 @@ uint32_t sh4_run_slice( uint32_t nanosecs )
 	sh4r.icount++;
 	if( !sh4_execute_instruction() )
 	    break;
+#ifdef ENABLE_DEBUG_MODE
+	for( i=0; i<sh4_breakpoint_count; i++ ) {
+	    if( sh4_breakpoints[i].address == sh4r.pc ) {
+		break;
+	    }
+	}
+	if( i != sh4_breakpoint_count ) {
+	    dreamcast_stop();
+	    if( sh4_breakpoints[i].type == BREAK_ONESHOT )
+		sh4_clear_breakpoint( sh4r.pc, BREAK_ONESHOT );
+	    break;
+	}
+#endif	
     }
 
     /* If we aborted early, but the cpu is still technically running,
@@ -145,11 +196,6 @@ void sh4_set_pc( int pc )
 {
     sh4r.pc = pc;
     sh4r.new_pc = pc+2;
-}
-
-void sh4_set_breakpoint( uint32_t pc, int type )
-{
-
 }
 
 #define UNDEF(ir) do{ ERROR( "Raising exception on undefined instruction at %08x, opcode = %04x", sh4r.pc, ir ); RAISE( EXC_ILLEGAL, EXV_ILLEGAL ); }while(0)
