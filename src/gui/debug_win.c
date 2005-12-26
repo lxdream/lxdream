@@ -1,5 +1,5 @@
 /**
- * $Id: debug_win.c,v 1.12 2005-12-26 03:54:55 nkeynes Exp $
+ * $Id: debug_win.c,v 1.13 2005-12-26 11:47:15 nkeynes Exp $
  * This file is responsible for the main debugger gui frame.
  *
  * Copyright (c) 2005 Nathan Keynes.
@@ -18,7 +18,7 @@
 #include <stdarg.h>
 #include <gnome.h>
 #include <math.h>
-#include "gui.h"
+#include "gui/gui.h"
 #include "mem.h"
 #include "cpu.h"
 
@@ -158,6 +158,17 @@ void set_disassembly_region( debug_info_t data, unsigned int page )
             posn = gtk_clist_append( data->disasm_list, arr );
             if( buf[0] == '?' )
                 gtk_clist_set_foreground( data->disasm_list, posn, &clrWarn );
+	    if( data->cpu->get_breakpoint != NULL ) {
+		int type = data->cpu->get_breakpoint( i );
+		switch(type) {
+		case BREAK_ONESHOT:
+		    gtk_clist_set_background( data->disasm_list, posn, &clrTempBreak );
+		    break;
+		case BREAK_KEEP:
+		    gtk_clist_set_background( data->disasm_list, posn, &clrBreak );
+		    break;
+		}
+	    }
         }
         if( data->disasm_pc != -1 && data->disasm_pc >= from && data->disasm_pc < to )
             gtk_clist_set_foreground( data->disasm_list, address_to_row(data, data->disasm_pc),
@@ -223,6 +234,30 @@ void set_disassembly_cpu( debug_info_t data, const gchar *cpu )
     }
 }
 
+void debug_win_toggle_breakpoint( debug_info_t data, int row, int type )
+{
+    uint32_t pc = row_to_address( data, row );
+    int oldType = data->cpu->get_breakpoint( pc );
+    if( oldType != BREAK_NONE ) {
+	data->cpu->clear_breakpoint( pc, oldType );
+	type = BREAK_NONE;
+    } else {
+	if( data->cpu->set_breakpoint != NULL )
+	    data->cpu->set_breakpoint( pc, type );
+    }
+    switch(type) {
+    case BREAK_ONESHOT:
+	gtk_clist_set_background( data->disasm_list, row, &clrTempBreak );
+	break;
+    case BREAK_KEEP:
+	gtk_clist_set_background( data->disasm_list, row, &clrBreak );
+	break;
+    default:
+	gtk_clist_set_background( data->disasm_list, row, &clrWhite );
+	break;
+    }
+}
+
 /**
  * Execute a single instruction using the current CPU mode.
  */
@@ -258,7 +293,6 @@ void emit( void *ptr, int level, const gchar *source, const char *msg, ... )
     va_start(ap, msg);
     p = g_strdup_vprintf( msg, ap );
     strftime( buf, sizeof(buf), "%H:%M:%S", localtime(&tm) );
-    //    if( source == NULL )
     sprintf( addr, "%08X", *data->cpu->pc );
     arr[3] = p;
     posn = gtk_clist_append(data->msgs_list, arr);

@@ -1,5 +1,5 @@
 /**
- * $Id: aica.c,v 1.7 2005-12-26 06:38:51 nkeynes Exp $
+ * $Id: aica.c,v 1.8 2005-12-26 11:47:15 nkeynes Exp $
  * 
  * This is the core sound system (ie the bit which does the actual work)
  *
@@ -69,9 +69,10 @@ uint32_t aica_run_slice( uint32_t nanosecs )
     int reset = MMIO_READ( AICA2, AICA_RESET );
     if( reset & 1 == 0 ) { 
 	/* Running */
-	/* nanosecs = arm_run_slice( nanosecs ); */
+        nanosecs = arm_run_slice( nanosecs );
     }
     /* Generate audio buffer */
+    return nanosecs;
 }
 
 void aica_stop( void )
@@ -90,15 +91,15 @@ int aica_load_state( FILE *f )
 }
 
 /** Channel register structure:
- * 00
- * 04
+ * 00  4  Channel config
+ * 04  4  Waveform address lo (16 bits)
  * 08  4  Loop start address
  * 0C  4  Loop end address
  * 10  4  Volume envelope
- * 14
- * 18  4  Frequency (floating point 
- * 1C
- * 20
+ * 14  4  Init to 0x1F
+ * 18  4  Frequency (floating point)
+ * 1C  4  ?? 
+ * 20  4  ??
  * 24  1  Pan
  * 25  1  ??
  * 26  

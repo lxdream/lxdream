@@ -1,5 +1,5 @@
 /**
- * $Id: cpu.h,v 1.6 2005-12-25 05:56:55 nkeynes Exp $
+ * $Id: cpu.h,v 1.7 2005-12-26 11:47:12 nkeynes Exp $
  * 
  * Generic CPU definitions, primarily for providing information to the GUI.
  *
@@ -37,9 +37,6 @@ extern "C" {
  */
 typedef uint32_t (*disasm_func_t)(uint32_t pc, char *buffer, int buflen, char *opcode );
 
-typedef int (*is_valid_page_t)(uint32_t pc);
-typedef gboolean (*step_func_t)();
-
 #define REG_INT 0
 #define REG_FLT 1
 #define REG_SPECIAL 2
@@ -57,16 +54,19 @@ typedef struct reg_desc_struct {
  * CPU definition structure - basic information and support functions.
  */
 typedef struct cpu_desc_struct {
-  char *name; /* CPU Name */
-  disasm_func_t disasm_func; /* Disassembly function */
-  step_func_t step_func; /* Single step function */
-  is_valid_page_t is_valid_page_func; /* Test for valid memory page */
-  size_t instr_size; /* Size of instruction */
-  char *regs; /* Pointer to start of registers */
-  size_t regs_size; /* Size of register structure in bytes */
-  const struct reg_desc_struct *regs_info; /* Description of all registers */
-  uint32_t *pc; /* Pointer to PC register */
-  uint32_t *icount; /* Pointer to instruction counter */
+    char *name; /* CPU Name */
+    disasm_func_t disasm_func; /* Disassembly function */
+    gboolean (*step_func)(); /* Single step function */
+    int (*is_valid_page_func)(uint32_t); /* Test for valid memory page */
+    void (*set_breakpoint)(uint32_t, int);
+    gboolean (*clear_breakpoint)(uint32_t, int);
+    int (*get_breakpoint)(uint32_t);
+    size_t instr_size; /* Size of instruction */
+    char *regs; /* Pointer to start of registers */
+    size_t regs_size; /* Size of register structure in bytes */
+    const struct reg_desc_struct *regs_info; /* Description of all registers */
+    uint32_t *pc; /* Pointer to PC register */
+    uint32_t *icount; /* Pointer to instruction counter */
 } *cpu_desc_t;
 
 #ifdef __cplusplus

@@ -1,5 +1,5 @@
 /**
- * $Id: gui.c,v 1.8 2005-12-25 05:57:00 nkeynes Exp $
+ * $Id: gui.c,v 1.9 2005-12-26 11:47:15 nkeynes Exp $
  * 
  * Top-level GUI (GTK2) module.
  *
@@ -30,6 +30,7 @@
 #define REGISTER_FONT "-*-fixed-medium-r-normal--12-*-*-*-*-*-iso8859-1"
 
 GdkColor clrNormal, clrChanged, clrError, clrWarn, clrPC, clrDebug, clrTrace;
+GdkColor clrBreak, clrTempBreak, clrWhite;
 PangoFontDescription *fixed_list_font;
 
 debug_info_t main_debug;
@@ -69,6 +70,11 @@ void gtk_gui_init() {
     clrTrace.green = 78*256;
     clrTrace.blue = 201*256;
     clrDebug = clrPC;
+    clrBreak.red = 65535;
+    clrBreak.green = clrBreak.blue = 192*256;
+    clrTempBreak.red = clrTempBreak.green = 128*256;
+    clrTempBreak.blue = 32*256;
+    clrWhite.red = clrWhite.green = clrWhite.blue = 65535;
 
     map = gdk_colormap_new(gdk_visual_get_best(), TRUE);
     gdk_colormap_alloc_color(map, &clrNormal, TRUE, TRUE);
@@ -78,6 +84,9 @@ void gtk_gui_init() {
     gdk_colormap_alloc_color(map, &clrPC, TRUE, TRUE);
     gdk_colormap_alloc_color(map, &clrDebug, TRUE, TRUE);
     gdk_colormap_alloc_color(map, &clrTrace, TRUE, TRUE);
+    gdk_colormap_alloc_color(map, &clrBreak, TRUE, TRUE);
+    gdk_colormap_alloc_color(map, &clrTempBreak, TRUE, TRUE);
+    gdk_colormap_alloc_color(map, &clrWhite, TRUE, TRUE);
     fixed_list_font = pango_font_description_from_string("Courier 10");
     debug_win = create_debug_win ();
     main_debug = init_debug_win(debug_win, cpu_descs);

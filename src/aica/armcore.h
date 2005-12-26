@@ -1,5 +1,5 @@
 /**
- * $Id: armcore.h,v 1.8 2005-12-26 06:38:51 nkeynes Exp $
+ * $Id: armcore.h,v 1.9 2005-12-26 11:47:15 nkeynes Exp $
  * 
  * Interface definitions for the ARM CPU emulation core proper.
  *
@@ -84,6 +84,9 @@ uint32_t arm_run_slice( uint32_t nanosecs );
 void arm_save_state( FILE *f );
 int arm_load_state( FILE *f );
 gboolean arm_execute_instruction( void );
+void arm_set_breakpoint( uint32_t pc, int type );
+gboolean arm_clear_breakpoint( uint32_t pc, int type );
+int arm_get_breakpoint( uint32_t pc );
 
 /* ARM Memory */
 uint32_t arm_read_long( uint32_t addr );

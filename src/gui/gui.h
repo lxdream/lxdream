@@ -1,5 +1,5 @@
 /**
- * $Id: gui.h,v 1.12 2005-12-26 03:54:55 nkeynes Exp $
+ * $Id: gui.h,v 1.13 2005-12-26 11:47:15 nkeynes Exp $
  * 
  * General GUI definitions
  *
@@ -57,12 +57,13 @@ void jump_to_disassembly( debug_info_t debug, unsigned int addr, gboolean select
 void jump_to_pc( debug_info_t debug, gboolean select );
 void debug_win_set_running( debug_info_t debug, gboolean isRunning );
 void debug_win_single_step( debug_info_t debug );
+void debug_win_toggle_breakpoint( debug_info_t debug, int row, int type );
 uint32_t row_to_address( debug_info_t debug, int row );
 int address_to_row( debug_info_t debug, uint32_t address );
 
 extern PangoFontDescription *fixed_list_font;
 extern GdkColor clrNormal, clrChanged, clrError, clrWarn,
-    clrPC, clrDebug, clrTrace;
+    clrPC, clrDebug, clrTrace, clrBreak, clrTempBreak, clrWhite;
 
 void mmr_open_win( void );
 void mmr_close_win( void );

@@ -1,5 +1,5 @@
 /**
- * $Id: armcore.c,v 1.7 2005-12-26 06:38:51 nkeynes Exp $
+ * $Id: armcore.c,v 1.8 2005-12-26 11:47:15 nkeynes Exp $
  * 
  * ARM7TDMI CPU emulation core.
  *
@@ -19,6 +19,7 @@
 #define MODULE aica_module
 #include "dream.h"
 #include "aica/armcore.h"
+#include "mem.h"
 
 struct arm_registers armr;
 
@@ -43,14 +44,67 @@ uint32_t arm_exceptions[][2] = {{ MODE_SVC, 0x00000000 },
 uint32_t arm_cpu_freq = ARM_BASE_RATE;
 uint32_t arm_cpu_period = 1000 / ARM_BASE_RATE;
 
+
+static struct breakpoint_struct arm_breakpoints[MAX_BREAKPOINTS];
+static int arm_breakpoint_count = 0;
+
+void arm_set_breakpoint( uint32_t pc, int type )
+{
+    arm_breakpoints[arm_breakpoint_count].address = pc;
+    arm_breakpoints[arm_breakpoint_count].type = type;
+    arm_breakpoint_count++;
+}
+
+gboolean arm_clear_breakpoint( uint32_t pc, int type )
+{
+    int i;
+
+    for( i=0; i<arm_breakpoint_count; i++ ) {
+	if( arm_breakpoints[i].address == pc && 
+	    arm_breakpoints[i].type == type ) {
+	    while( ++i < arm_breakpoint_count ) {
+		arm_breakpoints[i-1].address = arm_breakpoints[i].address;
+		arm_breakpoints[i-1].type = arm_breakpoints[i].type;
+	    }
+	    arm_breakpoint_count--;
+	    return TRUE;
+	}
+    }
+    return FALSE;
+}
+
+int arm_get_breakpoint( uint32_t pc )
+{
+    int i;
+    for( i=0; i<arm_breakpoint_count; i++ ) {
+	if( arm_breakpoints[i].address == pc )
+	    return arm_breakpoints[i].type;
+    }
+    return 0;
+}
+
 uint32_t arm_run_slice( uint32_t nanosecs )
 {
+    int i;
     uint32_t target = armr.icount + nanosecs / arm_cpu_period;
     uint32_t start = armr.icount;
     while( armr.icount < target ) {
 	armr.icount++;
 	if( !arm_execute_instruction() )
 	    break;
+#ifdef ENABLE_DEBUG_MODE
+	for( i=0; i<arm_breakpoint_count; i++ ) {
+	    if( arm_breakpoints[i].address == armr.r[15] ) {
+		break;
+	    }
+	}
+	if( i != arm_breakpoint_count ) {
+	    dreamcast_stop();
+	    if( arm_breakpoints[i].type == BREAK_ONESHOT )
+		arm_clear_breakpoint( armr.r[15], BREAK_ONESHOT );
+	    break;
+	}
+#endif	
     }
 
     if( target != armr.icount ) {

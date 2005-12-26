@@ -1,5 +1,5 @@
 /**
- * $Id: sh4core.h,v 1.7 2005-12-26 03:10:23 nkeynes Exp $
+ * $Id: sh4core.h,v 1.8 2005-12-26 11:47:15 nkeynes Exp $
  * 
  * This file defines the public functions exported by the SH4 core, except
  * for disassembly functions defined in sh4dasm.h
@@ -88,6 +88,8 @@ void sh4_set_pc( int );
 gboolean sh4_execute_instruction( void );
 void sh4_raise_exception( int, int );
 void sh4_set_breakpoint( uint32_t pc, int type );
+gboolean sh4_clear_breakpoint( uint32_t pc, int type );
+int sh4_get_breakpoint( uint32_t pc );
 
 #define BREAK_ONESHOT 1
 #define BREAK_PERM 2
