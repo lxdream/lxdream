@@ -1,5 +1,5 @@
 /**
- * $Id: sh4core.c,v 1.14 2005-12-26 06:38:13 nkeynes Exp $
+ * $Id: sh4core.c,v 1.15 2005-12-26 10:47:10 nkeynes Exp $
  * 
  * SH4 emulation core, and parent module for all the SH4 peripheral
  * modules.
@@ -343,8 +343,8 @@ gboolean sh4_execute_instruction( void )
                                 uint32_t hi = (MMIO_READ( MMU, (queue == 0 ? QACR0 : QACR1) ) & 0x1C) << 24;
                                 uint32_t target = tmp&0x03FFFFE0 | hi;
                                 mem_copy_to_sh4( target, src, 32 );
-                                WARN( "Executed SQ%c => %08X",
-                                      (queue == 0 ? '0' : '1'), target );
+				//                                WARN( "Executed SQ%c => %08X",
+				//                                      (queue == 0 ? '0' : '1'), target );
                             }
                             break;
                         case 9: /* OCBI    [Rn] */
