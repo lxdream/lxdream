@@ -1,5 +1,5 @@
 /**
- * $Id: ide.c,v 1.5 2005-12-26 03:54:55 nkeynes Exp $
+ * $Id: ide.c,v 1.6 2005-12-26 10:47:34 nkeynes Exp $
  *
  * IDE interface implementation
  *
@@ -20,7 +20,7 @@
 
 #include <stdlib.h>
 #include "dream.h"
-#include "ide.h"
+#include "gdrom/ide.h"
 
 #define MAX_WRITE_BUF 4096;
 
@@ -118,14 +118,20 @@ void ide_write_control( uint8_t val ) {
 void ide_write_command( uint8_t val ) {
     idereg.command = val;
     switch( val ) {
-        case IDE_CMD_RESET_DEVICE:
-            ide_reset();
-            break;
-        case IDE_CMD_PACKET:
-            set_write_buffer(command_buffer,12);
-            break;
-        default:
-            WARN( "IDE: Unimplemented command: %02X", val );
+    case IDE_CMD_RESET_DEVICE:
+	ide_reset();
+	break;
+    case IDE_CMD_PACKET:
+	set_write_buffer(command_buffer,12);
+	break;
+    case IDE_CMD_SET_FEATURE:
+	switch( idereg.feature ) {
+	default:
+	    WARN( "IDE: unimplemented feature: %02X", idereg.feature );
+	}
+	break;
+    default:
+	WARN( "IDE: Unimplemented command: %02X", val );
     }
     idereg.status |= IDE_ST_READY | IDE_ST_SERV;
 }
