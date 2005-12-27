@@ -1,5 +1,5 @@
 /**
- * $Id: armdasm.c,v 1.7 2005-12-26 11:47:15 nkeynes Exp $
+ * $Id: armdasm.c,v 1.8 2005-12-27 12:42:00 nkeynes Exp $
  * 
  * armdasm.c    21 Aug 2004  - ARM7tdmi (ARMv4) disassembler
  *
@@ -66,7 +66,8 @@ const struct cpu_desc_struct arm_cpu_desc =
       (char *)&armr, sizeof(armr), arm_reg_map,
       &armr.r[15], &armr.icount };
 const struct cpu_desc_struct armt_cpu_desc = 
-    { "ARM7T", armt_disasm_instruction, arm_execute_instruction, arm_has_page, 2,
+    { "ARM7T", armt_disasm_instruction, arm_execute_instruction, arm_has_page,
+      arm_set_breakpoint, arm_clear_breakpoint, arm_get_breakpoint, 2,
       (char*)&armr, sizeof(armr), arm_reg_map,
       &armr.r[15], &armr.icount };
 
@@ -161,8 +162,9 @@ static int arm_disasm_address_operand( uint32_t ir, char *buf, int len,  int pc 
 		return snprintf( buf, len, "[R%d], R%d %c= %04X", RN(ir), RN(ir), sign, IMM12(ir) );
 	case 8: /* Rn - imm offset  [5.2.2 A5-20] */
 	    if( RN(ir) == 15 ) { /* PC relative - decode here */
-		return snprintf( buf, len, "[$%08Xh]", pc + 8 + 
-				 (UFLAG(ir) ? IMM12(ir) : -IMM12(ir)) );
+		uint32_t addr = pc + 8 + (UFLAG(ir) ? IMM12(ir) : -IMM12(ir));
+		return snprintf( buf, len, "[$%08Xh] <- #%08Xh", addr,
+				 arm_read_long( addr ) );
 	    } else {
 		return snprintf( buf, len, "[R%d %c %04X]", RN(ir), sign, IMM12(ir) );
 	    }
@@ -185,7 +187,7 @@ static int arm_disasm_address_operand( uint32_t ir, char *buf, int len,  int pc 
 
 uint32_t arm_disasm_instruction( uint32_t pc, char *buf, int len, char *opcode )
 {
-    char operand[32];
+    char operand[64];
     uint32_t ir = arm_read_long(pc);
     int i,j;
 	
@@ -280,20 +282,21 @@ uint32_t arm_disasm_instruction( uint32_t pc, char *buf, int len, char *opcode )
 				} else {
 					/* STRH */
 				}
+				UNIMP(ir);
 				break;
 			case 2:
 				if( LFLAG(ir) ) {
 					/* LDRSB */
 				} else {
-					UNIMP(ir);
 				}
+				UNIMP(ir);
 				break;
 			case 3:
 				if( LFLAG(ir) ) {
 					/* LDRSH */
 				} else {
-					UNIMP(ir);
 				}
+				UNIMP(ir);
 				break;
 			}
 		} else {
@@ -364,19 +367,19 @@ uint32_t arm_disasm_instruction( uint32_t pc, char *buf, int len, char *opcode )
 				arm_disasm_shift_operand(ir, operand, sizeof(operand));
 				snprintf(buf, len, "RSCS%s   R%d, R%d, %s", cond, RD(ir), RN(ir), operand);
 				break;
-			case 16: /* TST Rd, Rn, operand */
+			case 17: /* TST Rd, Rn, operand */
 				arm_disasm_shift_operand(ir, operand, sizeof(operand));
 				snprintf(buf, len, "TST%s    R%d, R%d, %s", cond, RD(ir), RN(ir), operand);
 				break;
-			case 18: /* TEQ Rd, Rn, operand */
+			case 19: /* TEQ Rd, Rn, operand */
 				arm_disasm_shift_operand(ir, operand, sizeof(operand));
 				snprintf(buf, len, "TEQ%s    R%d, R%d, %s", cond, RD(ir), RN(ir), operand);
 				break;
-			case 20: /* CMP Rd, Rn, operand */
+			case 21: /* CMP Rd, Rn, operand */
 				arm_disasm_shift_operand(ir, operand, sizeof(operand));
 				snprintf(buf, len, "CMP%s    R%d, R%d, %s", cond, RD(ir), RN(ir), operand);
 				break;
-			case 22: /* CMN Rd, Rn, operand */
+			case 23: /* CMN Rd, Rn, operand */
 				arm_disasm_shift_operand(ir, operand, sizeof(operand));
 				snprintf(buf, len, "CMN%s    R%d, R%d, %s", cond, RD(ir), RN(ir), operand);
 				break;
