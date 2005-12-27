@@ -1,5 +1,5 @@
 /**
- * $Id: armcore.h,v 1.9 2005-12-26 11:47:15 nkeynes Exp $
+ * $Id: armcore.h,v 1.10 2005-12-27 08:42:57 nkeynes Exp $
  * 
  * Interface definitions for the ARM CPU emulation core proper.
  *
@@ -73,6 +73,7 @@ struct arm_registers {
 
 #define IS_PRIVILEGED_MODE() ((armr.cpsr & CPSR_MODE) != MODE_USER)
 #define IS_EXCEPTION_MODE() (IS_PRIVILEGED_MODE() && (armr.cpsr & CPSR_MODE) != MODE_SYS)
+#define IS_FIQ_MODE() ((armr.cpsr & CPSR_MODE) == MODE_FIQ)
 
 extern struct arm_registers armr;
 
