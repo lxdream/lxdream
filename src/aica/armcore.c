@@ -1,5 +1,5 @@
 /**
- * $Id: armcore.c,v 1.9 2005-12-26 11:52:56 nkeynes Exp $
+ * $Id: armcore.c,v 1.10 2005-12-27 08:42:57 nkeynes Exp $
  * 
  * ARM7TDMI CPU emulation core.
  *
@@ -354,7 +354,7 @@ void arm_set_mode( int targetMode )
 #define PFLAG(ir) (ir&0x01000000)
 #define UFLAG(ir) (ir&0x00800000)
 #define BFLAG(ir) (ir&0x00400000)
-#define WFLAG(ir) (IR&0x00200000)
+#define WFLAG(ir) (ir&0x00200000)
 #define LFLAG(ir) SFLAG(ir)
 #define RN(ir) (armr.r[((ir>>16)&0x0F)] + (((ir>>16)&0x0F) == 0x0F ? 4 : 0))
 #define RD(ir) (armr.r[((ir>>12)&0x0F)] + (((ir>>12)&0x0F) == 0x0F ? 4 : 0))
@@ -375,7 +375,7 @@ void arm_set_mode( int targetMode )
 #define SHIFT(ir) ((ir>>4)&0x07)
 #define DISP24(ir) ((ir&0x00FFFFFF))
 #define UNDEF(ir) do{ arm_raise_exception( EXC_UNDEFINED ); return TRUE; } while(0)
-#define UNIMP(ir) do{ ERROR( "Halted on unimplemented instruction at %08x, opcode = %04x", PC-4, ir ); dreamcast_stop(); return FALSE; }while(0)
+#define UNIMP(ir) do{ PC-=4; ERROR( "Halted on unimplemented instruction at %08x, opcode = %04x", PC, ir ); dreamcast_stop(); return FALSE; }while(0)
 
 /**
  * Determine the value of the shift-operand for a data processing instruction,
@@ -1033,7 +1033,89 @@ gboolean arm_execute_instruction( void )
 	    }
 	    armr.r[15] = pc + 4 + operand;
 	} else { /* Load/store multiple */
-	    UNIMP(ir);
+	    int prestep, poststep;
+	    if( PFLAG(ir) ) {
+		prestep = 0;
+		poststep = UFLAG(ir) ? 4 : -4;
+	    } else {
+		prestep = UFLAG(ir) ? 4 : -4;
+		poststep = 0 ;
+	    }
+	    operand = RN(ir);
+	    if( BFLAG(ir) ) { 
+		/* Actually S - bit 22. Means "make massively complicated" */
+		if( LFLAG(ir) && (ir&0x00008000) ) {
+		    /* LDM (3). Much like normal LDM but also copies SPSR
+		     * back to CPSR */
+		    for( tmp=0; tmp < 16; tmp++ ) {
+			if( (ir & (1<<tmp)) ) {
+			    operand += prestep;
+			    armr.r[tmp] = arm_read_long(operand);
+			    operand += poststep;
+			}
+		    }
+		    arm_restore_cpsr();
+		    if( armr.t ) PC &= 0xFFFFFFFE;
+		    else PC &= 0xFFFFFFFC;
+		} else {
+		    /* LDM/STM (2). As normal LDM but accesses the User banks
+		     * instead of the active ones. Aka the truly evil case
+		     */
+		    int bank_start;
+		    if( IS_FIQ_MODE() )
+			bank_start = 8;
+		    else if( IS_EXCEPTION_MODE() )
+			bank_start = 13;
+		    else bank_start = 15;
+		    for( tmp=0; tmp<bank_start; tmp++ ) {
+			if( (ir & (1<<tmp)) ) {
+			    operand += prestep;
+			    if( LFLAG(ir) ) {
+				armr.r[tmp] = arm_read_long(operand);
+			    } else {
+				arm_write_long( operand, armr.r[tmp] );
+			    }
+			    operand += poststep;
+			}
+		    }
+		    for( ; tmp < 15; tmp ++ ) {
+			if( (ir & (1<<tmp)) ) {
+			    operand += prestep;
+			    if( LFLAG(ir) ) {
+				armr.user_r[tmp-8] = arm_read_long(operand);
+			    } else {
+				arm_write_long( operand, armr.user_r[tmp-8] );
+			    }
+			    operand += poststep;
+			}
+		    }
+		    if( ir & 0x8000 ) {
+			operand += prestep;
+			if( LFLAG(ir) ) {
+			    /* Actually can't happen, but anyway... */
+			    armr.r[15] = arm_read_long(operand);
+			} else {
+			    arm_write_long( operand, armr.r[15]+4 );
+			}
+			operand += poststep;
+		    }
+		}
+	    } else {
+		/* Normal LDM/STM */
+		for( tmp=0; tmp < 16; tmp++ ) {
+		    if( (ir & (1<<tmp)) ) {
+			operand += prestep;
+			if( LFLAG(ir) ) {
+			    armr.r[tmp] = arm_read_long(operand);
+			} else {
+			    arm_write_long( operand, armr.r[tmp] );
+			}
+			operand += poststep;
+		    }
+		}
+	    }
+	    if( WFLAG(ir) ) 
+		LRN(ir) = operand;
 	}
 	break;
     case 3: /* Copro */
