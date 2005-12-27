@@ -1,5 +1,5 @@
 /**
- * $Id: armcore.c,v 1.10 2005-12-27 08:42:57 nkeynes Exp $
+ * $Id: armcore.c,v 1.11 2005-12-27 12:42:29 nkeynes Exp $
  * 
  * ARM7TDMI CPU emulation core.
  *
@@ -658,7 +658,7 @@ gboolean arm_execute_instruction( void )
 {
     uint32_t pc = PC;
     uint32_t ir = MEM_READ_LONG(pc);
-    uint32_t operand, operand2, tmp, cond;
+    uint32_t operand, operand2, tmp, tmp2, cond;
 
     pc += 4;
     PC = pc;
@@ -757,6 +757,7 @@ gboolean arm_execute_instruction( void )
 	    }
 	} else if( (ir & 0x0E000090) == 0x00000090 ) {
 	    /* Neither are these */
+	    UNIMP(ir);
 	    switch( (ir>>5)&0x03 ) {
 	    case 0:
 		/* Arithmetic extension area */
@@ -799,20 +800,21 @@ gboolean arm_execute_instruction( void )
 		} else {
 		    /* STRH */
 		}
+		UNIMP(ir);
 		break;
 	    case 2:
 		if( LFLAG(ir) ) {
 		    /* LDRSB */
 		} else {
-		    UNIMP(ir);
 		}
+		UNIMP(ir);
 		break;
 	    case 3:
 		if( LFLAG(ir) ) {
 		    /* LDRSH */
 		} else {
-		    UNIMP(ir);
 		}
+		UNIMP(ir);
 		break;
 	    }
 	} else {
@@ -899,11 +901,65 @@ gboolean arm_execute_instruction( void )
 		}
 		break;			
 	    case 10: /* ADC */
+		LRD(ir) = RN(ir) + arm_get_shift_operand(ir) + 
+		    (armr.c ? 1 : 0);
+		break;
 	    case 11: /* ADCS */
+		operand = arm_get_shift_operand(ir);
+		operand2 = RN(ir);
+		tmp = operand + operand2;
+		tmp2 = tmp + armr.c ? 1 : 0;
+		LRD(ir) = tmp2;
+		if( RDn(ir) == 15 ) {
+		    arm_restore_cpsr();
+		} else {
+		    armr.n = tmp >> 31;
+		    armr.z = (tmp == 0 );
+		    armr.c = IS_CARRY(tmp,operand,operand2) ||
+			(tmp2 < tmp);
+		    armr.v = IS_ADDOVERFLOW(tmp,operand, operand2) ||
+			((tmp&0x80000000) != (tmp2&0x80000000));
+		}
+		break;
 	    case 12: /* SBC */
+		LRD(ir) = RN(ir) - arm_get_shift_operand(ir) - 
+		    (armr.c ? 0 : 1);
+		break;
 	    case 13: /* SBCS */
+		operand = RN(ir);
+		operand2 = arm_get_shift_operand(ir);
+		tmp = operand - operand2;
+		tmp2 = tmp - (armr.c ? 0 : 1);
+		if( RDn(ir) == 15 ) {
+		    arm_restore_cpsr();
+		} else {
+		    armr.n = tmp >> 31;
+		    armr.z = (tmp == 0 );
+		    armr.c = IS_NOTBORROW(tmp,operand,operand2) &&
+			(tmp2<tmp);
+		    armr.v = IS_SUBOVERFLOW(tmp,operand,operand2) ||
+			((tmp&0x80000000) != (tmp2&0x80000000));
+		}
+		break;
 	    case 14: /* RSC */
+		LRD(ir) = arm_get_shift_operand(ir) - RN(ir) -
+		    (armr.c ? 0 : 1);
+		break;
 	    case 15: /* RSCS */
+		operand = arm_get_shift_operand(ir);
+		operand2 = RN(ir);
+		tmp = operand - operand2;
+		tmp2 = tmp - (armr.c ? 0 : 1);
+		if( RDn(ir) == 15 ) {
+		    arm_restore_cpsr();
+		} else {
+		    armr.n = tmp >> 31;
+		    armr.z = (tmp == 0 );
+		    armr.c = IS_NOTBORROW(tmp,operand,operand2) &&
+			(tmp2<tmp);
+		    armr.v = IS_SUBOVERFLOW(tmp,operand,operand2) ||
+			((tmp&0x80000000) != (tmp2&0x80000000));
+		}
 		break;
 	    case 17: /* TST Rn, operand */
 		operand = arm_get_shift_operand_s(ir) & RN(ir);
