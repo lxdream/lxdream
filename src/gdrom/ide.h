@@ -1,5 +1,5 @@
 /**
- * $Id: ide.h,v 1.2 2005-12-25 08:24:11 nkeynes Exp $
+ * $Id: ide.h,v 1.3 2005-12-27 12:41:33 nkeynes Exp $
  *
  * This file defines the interface and structures of the dreamcast's IDE 
  * port. Note that the register definitions are in asic.h, as the registers
@@ -62,6 +62,13 @@ struct ide_registers {
 #define IDE_CMD_IDENTIFY_PACKET_DEVICE 0xA1
 #define IDE_CMD_SERVICE 0xA2
 #define IDE_CMD_SET_FEATURE 0xEF
+
+#define IDE_FEAT_SET_TRANSFER_MODE 0x03
+
+#define IDE_XFER_PIO        0x00
+#define IDE_XFER_PIO_FLOW   0x08
+#define IDE_XFER_MULTI_DMA  0x20
+#define IDE_XFER_ULTRA_DMA  0x40
 
 /* The disc register indicates the current contents of the drive. When open
  * contains 0x06.
