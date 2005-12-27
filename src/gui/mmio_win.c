@@ -1,5 +1,5 @@
 /**
- * $Id: mmio_win.c,v 1.2 2005-12-25 08:24:11 nkeynes Exp $
+ * $Id: mmio_win.c,v 1.3 2005-12-27 08:41:22 nkeynes Exp $
  *
  * Implements the MMIO register viewing window
  *
@@ -67,10 +67,10 @@ static GtkCList *create_mmr_page( char *name )
     gtk_scrolled_window_set_policy( GTK_SCROLLED_WINDOW(scroll),
                                     GTK_POLICY_AUTOMATIC, GTK_POLICY_ALWAYS );
     list = GTK_CLIST(gtk_clist_new(5));
-    gtk_clist_set_column_width(list, 0, 60);
-    gtk_clist_set_column_width(list, 1, 50);
-    gtk_clist_set_column_width(list, 2, 60);
-    gtk_clist_set_column_width(list, 3, 220);
+    gtk_clist_set_column_width(list, 0, 70);
+    gtk_clist_set_column_width(list, 1, 75);
+    gtk_clist_set_column_width(list, 2, 70);
+    gtk_clist_set_column_width(list, 3, 280);
     gtk_clist_set_column_width(list, 4, 160);
     gtk_clist_set_column_justification(list, 0, GTK_JUSTIFY_CENTER );
     gtk_clist_set_column_justification(list, 2, GTK_JUSTIFY_CENTER );
