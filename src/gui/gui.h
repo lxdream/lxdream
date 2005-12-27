@@ -1,5 +1,5 @@
 /**
- * $Id: gui.h,v 1.13 2005-12-26 11:47:15 nkeynes Exp $
+ * $Id: gui.h,v 1.14 2005-12-27 08:41:22 nkeynes Exp $
  * 
  * General GUI definitions
  *
@@ -57,7 +57,8 @@ void jump_to_disassembly( debug_info_t debug, unsigned int addr, gboolean select
 void jump_to_pc( debug_info_t debug, gboolean select );
 void debug_win_set_running( debug_info_t debug, gboolean isRunning );
 void debug_win_single_step( debug_info_t debug );
-void debug_win_toggle_breakpoint( debug_info_t debug, int row, int type );
+void debug_win_toggle_breakpoint( debug_info_t debug, int row );
+void debug_win_set_oneshot_breakpoint( debug_info_t debug, int row );
 uint32_t row_to_address( debug_info_t debug, int row );
 int address_to_row( debug_info_t debug, uint32_t address );
 

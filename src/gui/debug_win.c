@@ -1,5 +1,5 @@
 /**
- * $Id: debug_win.c,v 1.13 2005-12-26 11:47:15 nkeynes Exp $
+ * $Id: debug_win.c,v 1.14 2005-12-27 08:41:22 nkeynes Exp $
  * This file is responsible for the main debugger gui frame.
  *
  * Copyright (c) 2005 Nathan Keynes.
@@ -24,6 +24,8 @@
 
 GdkColor *msg_colors[] = { &clrError, &clrError, &clrWarn, &clrNormal,
                            &clrDebug, &clrTrace };
+
+void init_register_list( debug_info_t data );
 
 struct debug_info_struct {
     int disasm_from;
@@ -234,28 +236,25 @@ void set_disassembly_cpu( debug_info_t data, const gchar *cpu )
     }
 }
 
-void debug_win_toggle_breakpoint( debug_info_t data, int row, int type )
+void debug_win_toggle_breakpoint( debug_info_t data, int row )
 {
     uint32_t pc = row_to_address( data, row );
     int oldType = data->cpu->get_breakpoint( pc );
     if( oldType != BREAK_NONE ) {
 	data->cpu->clear_breakpoint( pc, oldType );
-	type = BREAK_NONE;
-    } else {
-	if( data->cpu->set_breakpoint != NULL )
-	    data->cpu->set_breakpoint( pc, type );
-    }
-    switch(type) {
-    case BREAK_ONESHOT:
-	gtk_clist_set_background( data->disasm_list, row, &clrTempBreak );
-	break;
-    case BREAK_KEEP:
-	gtk_clist_set_background( data->disasm_list, row, &clrBreak );
-	break;
-    default:
 	gtk_clist_set_background( data->disasm_list, row, &clrWhite );
-	break;
+    } else {
+	data->cpu->set_breakpoint( pc, BREAK_KEEP );
+	gtk_clist_set_background( data->disasm_list, row, &clrBreak );
     }
+}
+
+void debug_win_set_oneshot_breakpoint( debug_info_t data, int row )
+{
+    uint32_t pc = row_to_address( data, row );
+    data->cpu->clear_breakpoint( pc, BREAK_ONESHOT );
+    data->cpu->set_breakpoint( pc, BREAK_ONESHOT );
+    gtk_clist_set_background( data->disasm_list, row, &clrTempBreak );
 }
 
 /**
