@@ -1,5 +1,5 @@
 /**
- * $Id: ide.c,v 1.6 2005-12-26 10:47:34 nkeynes Exp $
+ * $Id: ide.c,v 1.7 2005-12-27 12:41:33 nkeynes Exp $
  *
  * IDE interface implementation
  *
@@ -126,6 +126,25 @@ void ide_write_command( uint8_t val ) {
 	break;
     case IDE_CMD_SET_FEATURE:
 	switch( idereg.feature ) {
+	case IDE_FEAT_SET_TRANSFER_MODE:
+	    switch( idereg.count & 0xF8 ) {
+	    case IDE_XFER_PIO:
+		INFO( "Set PIO default mode: %d", idereg.count&0x07 );
+		break;
+	    case IDE_XFER_PIO_FLOW:
+		INFO( "Set PIO Flow-control mode: %d", idereg.count&0x07 );
+		break;
+	    case IDE_XFER_MULTI_DMA:
+		INFO( "Set Multiword DMA mode: %d", idereg.count&0x07 );
+		break;
+	    case IDE_XFER_ULTRA_DMA:
+		INFO( "Set Ultra DMA mode: %d", idereg.count&0x07 );
+		break;
+	    default:
+		INFO( "Setting unknown transfer mode: %02X", idereg.count );
+		break;
+	    }
+	    break;
 	default:
 	    WARN( "IDE: unimplemented feature: %02X", idereg.feature );
 	}
