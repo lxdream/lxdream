@@ -1,5 +1,5 @@
 /**
- * $Id: mem.c,v 1.9 2005-12-26 10:48:45 nkeynes Exp $
+ * $Id: mem.c,v 1.10 2005-12-28 22:47:44 nkeynes Exp $
  * mem.c is responsible for creating and maintaining the overall system memory
  * map, as visible from the SH4 processor. 
  *
@@ -160,9 +160,33 @@ int mem_load( FILE *f )
     return 0;
 }
 
-void mem_save_block( const gchar *file, uint32_t start, uint32_t length )
+int mem_save_block( const gchar *file, uint32_t start, uint32_t length )
 {
+    char *region;
+    int len = 4096, total = 0;
+    uint32_t addr = start;
+    struct stat st;
+    FILE *f = fopen(file,"w");
 
+    if( f == NULL )
+	return errno;
+    
+    while( total < length ) {
+	region = mem_get_region(addr);
+	len = 4096 - (addr & 0x0FFF);
+	if( len > (length-total) ) 
+	    len = (length-total);
+	if( fwrite( region, len, 1, f ) != 1 ) {
+	    ERROR( "Unexpected error: %d %d", len, errno );
+	    break;
+	}
+	    
+	addr += len;
+	total += len;
+    }
+    fclose( f );
+    INFO( "Loaded %d of %d bytes to %08X", total, length, start );
+    return 0;
 }
 
 int mem_load_block( const gchar *file, uint32_t start, uint32_t length )
