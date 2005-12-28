@@ -1,5 +1,5 @@
 /**
- * $Id: armcore.c,v 1.11 2005-12-27 12:42:29 nkeynes Exp $
+ * $Id: armcore.c,v 1.12 2005-12-28 22:49:26 nkeynes Exp $
  * 
  * ARM7TDMI CPU emulation core.
  *
@@ -20,6 +20,8 @@
 #include "dream.h"
 #include "aica/armcore.h"
 #include "mem.h"
+
+#define STM_R15_OFFSET 12
 
 struct arm_registers armr;
 
@@ -660,6 +662,15 @@ gboolean arm_execute_instruction( void )
     uint32_t ir = MEM_READ_LONG(pc);
     uint32_t operand, operand2, tmp, tmp2, cond;
 
+    tmp = armr.int_pending & armr.cpsr;
+    if( tmp ) {
+	if( tmp & CPSR_F ) {
+	    arm_raise_exception( EXC_FAST_IRQ );
+	} else {
+	    arm_raise_exception( EXC_IRQ );
+	}
+    }
+
     pc += 4;
     PC = pc;
 
@@ -763,12 +774,22 @@ gboolean arm_execute_instruction( void )
 		/* Arithmetic extension area */
 		switch(OPCODE(ir)) {
 		case 0: /* MUL */
+		    LRN(ir) = RM(ir) * RS(ir);
 		    break;
 		case 1: /* MULS */
+		    tmp = RM(ir) * RS(ir);
+		    LRN(ir) = tmp;
+		    armr.n = tmp>>31;
+		    armr.z = (tmp == 0);
 		    break;
 		case 2: /* MLA */
+		    LRN(ir) = RM(ir) * RS(ir) + RD(ir);
 		    break;
 		case 3: /* MLAS */
+		    tmp = RM(ir) * RS(ir) + RD(ir);
+		    LRN(ir) = tmp;
+		    armr.n = tmp>>31;
+		    armr.z = (tmp == 0);
 		    break;
 		case 8: /* UMULL */
 		    break;
@@ -787,8 +808,25 @@ gboolean arm_execute_instruction( void )
 		case 15: /* SMLALS */
 		    break;
 		case 16: /* SWP */
+		    tmp = arm_read_long( RN(ir) );
+		    switch( RN(ir) & 0x03 ) {
+		    case 1:
+			tmp = ROTATE_RIGHT_LONG(tmp, 8);
+			break;
+		    case 2:
+			tmp = ROTATE_RIGHT_LONG(tmp, 16);
+			break;
+		    case 3:
+			tmp = ROTATE_RIGHT_LONG(tmp, 24);
+			break;
+		    }
+		    arm_write_long( RN(ir), RM(ir) );
+		    LRD(ir) = tmp;
 		    break;
 		case 20: /* SWPB */
+		    tmp = arm_read_byte( RN(ir) );
+		    arm_write_byte( RN(ir), RM(ir) );
+		    LRD(ir) = tmp;
 		    break;
 		default:
 		    UNIMP(ir);
@@ -1151,7 +1189,7 @@ gboolean arm_execute_instruction( void )
 			    /* Actually can't happen, but anyway... */
 			    armr.r[15] = arm_read_long(operand);
 			} else {
-			    arm_write_long( operand, armr.r[15]+4 );
+			    arm_write_long( operand, armr.r[15]+ STM_R15_OFFSET - 4 );
 			}
 			operand += poststep;
 		    }
@@ -1164,7 +1202,11 @@ gboolean arm_execute_instruction( void )
 			if( LFLAG(ir) ) {
 			    armr.r[tmp] = arm_read_long(operand);
 			} else {
-			    arm_write_long( operand, armr.r[tmp] );
+			    if( tmp == 15 )
+				arm_write_long( operand, 
+						armr.r[15] + STM_R15_OFFSET - 4 );
+			    else
+				arm_write_long( operand, armr.r[tmp] );
 			}
 			operand += poststep;
 		    }
@@ -1175,7 +1217,11 @@ gboolean arm_execute_instruction( void )
 	}
 	break;
     case 3: /* Copro */
-	UNIMP(ir);
+	if( (ir & 0x0F000000) == 0x0F000000 ) { /* SWI */
+	    arm_raise_exception( EXC_SOFTWARE );
+	} else {
+	    UNIMP(ir);
+	}
 	break;
     }
     return TRUE;

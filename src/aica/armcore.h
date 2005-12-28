@@ -1,5 +1,5 @@
 /**
- * $Id: armcore.h,v 1.10 2005-12-27 08:42:57 nkeynes Exp $
+ * $Id: armcore.h,v 1.11 2005-12-28 22:49:26 nkeynes Exp $
  * 
  * Interface definitions for the ARM CPU emulation core proper.
  *
@@ -49,6 +49,7 @@ struct arm_registers {
     uint32_t c,n,z,v,t;
     
     /* "fake" registers */
+    uint32_t int_pending; /* Mask of CPSR_I and CPSR_F */
     uint32_t shift_c;  /* used for temporary storage of shifter results */
     uint32_t icount; /* Instruction counter */
 };

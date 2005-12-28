@@ -1,5 +1,5 @@
 /**
- * $Id: armdasm.c,v 1.8 2005-12-27 12:42:00 nkeynes Exp $
+ * $Id: armdasm.c,v 1.9 2005-12-28 22:49:26 nkeynes Exp $
  * 
  * armdasm.c    21 Aug 2004  - ARM7tdmi (ARMv4) disassembler
  *
@@ -119,7 +119,7 @@ int arm_disasm_shift_operand( uint32_t ir, char *buf, int len )
 		operand = IMM8(ir);
 		tmp = IMMROT(ir);
 		operand = ROTATE_RIGHT_LONG(operand, tmp);
-		return snprintf(buf, len, "%08X", operand );
+		return snprintf(buf, len, "#%08Xh", operand );
 	}
 }
 
@@ -159,17 +159,17 @@ static int arm_disasm_address_operand( uint32_t ir, char *buf, int len,  int pc 
 	switch( (ir>>21)&0x19 ) {
 	case 0: /* Rn -= imm offset (post-indexed) [5.2.8 A5-28] */
 	case 1:
-		return snprintf( buf, len, "[R%d], R%d %c= %04X", RN(ir), RN(ir), sign, IMM12(ir) );
+		return snprintf( buf, len, "[R%d], R%d %c= #%04Xh", RN(ir), RN(ir), sign, IMM12(ir) );
 	case 8: /* Rn - imm offset  [5.2.2 A5-20] */
 	    if( RN(ir) == 15 ) { /* PC relative - decode here */
 		uint32_t addr = pc + 8 + (UFLAG(ir) ? IMM12(ir) : -IMM12(ir));
 		return snprintf( buf, len, "[$%08Xh] <- #%08Xh", addr,
 				 arm_read_long( addr ) );
 	    } else {
-		return snprintf( buf, len, "[R%d %c %04X]", RN(ir), sign, IMM12(ir) );
+		return snprintf( buf, len, "[R%d %c #%04Xh]", RN(ir), sign, IMM12(ir) );
 	    }
 	case 9: /* Rn -= imm offset (pre-indexed)  [5.2.5 A5-24] */
-		return snprintf( buf, len, "[R%d %c= %04X]", RN(ir), sign, IMM12(ir) );
+		return snprintf( buf, len, "[R%d %c= #%04Xh]", RN(ir), sign, IMM12(ir) );
 	case 16: /* Rn -= Rm (post-indexed)  [5.2.10 A5-32 ] */
 	case 17:
 		arm_disasm_address_index( ir, shift, sizeof(shift) );
@@ -391,11 +391,19 @@ uint32_t arm_disasm_instruction( uint32_t pc, char *buf, int len, char *opcode )
 				arm_disasm_shift_operand(ir, operand, sizeof(operand));
 				snprintf(buf, len, "ORRS%s   R%d, R%d, %s", cond, RD(ir), RN(ir), operand);
 				break;
-			case 26: /* MOV Rd, Rn, operand */
+			case 26: /* MOV Rd, operand */
+			    if( ir == 0xE1A00000 ) {
+				/* Not technically a different instruction,
+				 * but this one is commonly used as a NOP,
+				 * so... 
+				 */
+				snprintf(buf, len, "NOP");
+			    } else {
 				arm_disasm_shift_operand(ir, operand, sizeof(operand));
 				snprintf(buf, len, "MOV%s    R%d, %s", cond, RD(ir), operand);
-				break;
-			case 27: /* MOVS Rd, Rn, operand */
+			    }
+			    break;
+			case 27: /* MOVS Rd, operand */
 				arm_disasm_shift_operand(ir, operand, sizeof(operand));
 				snprintf(buf, len, "MOVS%s   R%d, %s", cond, RD(ir), operand);
 				break;
@@ -461,9 +469,9 @@ uint32_t arm_disasm_instruction( uint32_t pc, char *buf, int len, char *opcode )
 	    if( (ir & 0x02000000) == 0x02000000 ) {
 		int32_t offset = SIGNEXT24(ir&0x00FFFFFF) << 2;
 		if( (ir & 0x01000000) == 0x01000000 ) { 
-		    snprintf( buf, len, "BL%s    $%08Xh", cond, pc + offset + 8 );
+		    snprintf( buf, len, "BL%s     $%08Xh", cond, pc + offset + 8 );
 		} else {
-		    snprintf( buf, len, "B%s     $%08Xh", cond, pc + offset + 8 );
+		    snprintf( buf, len, "B%s      $%08Xh", cond, pc + offset + 8 );
 		}
 	    } else {
 		/* Load/store multiple */
@@ -472,20 +480,24 @@ uint32_t arm_disasm_instruction( uint32_t pc, char *buf, int len, char *opcode )
 		buf += j;
 		len -= j;
 		for( i = 0; i<16 && len > 2; i++ ) {
-			if( (ir >> i)&1 ) {
-				j = snprintf( buf, len, "R%d", i );
-				buf+=j;
-				len-=j;
-			}
+		    if( ir & (1<<i) ) {
+			j = snprintf( buf, len, "R%d", i );
+			buf+=j;
+			len-=j;
+		    }
 		}
-		if( SFLAG(ir) && len > 0 ) {
+		if( BFLAG(ir) && len > 0 ) {
 			buf[0] = '^';
 			buf[1] = '\0';
 		}
 	    }
 	    break;
 	case 3: /* Copro */
-	    UNIMP(ir);
+	    if( (ir & 0x0F000000) == 0x0F000000 ) {
+		snprintf( buf, len, "SWI%s    #%08Xh", SIGNEXT24(ir) );
+	    } else {
+		UNIMP(ir);
+	    }
 	    break;
 	}
 	
