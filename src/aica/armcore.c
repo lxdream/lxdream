@@ -1,5 +1,5 @@
 /**
- * $Id: armcore.c,v 1.12 2005-12-28 22:49:26 nkeynes Exp $
+ * $Id: armcore.c,v 1.13 2005-12-28 22:50:08 nkeynes Exp $
  * 
  * ARM7TDMI CPU emulation core.
  *
@@ -662,7 +662,7 @@ gboolean arm_execute_instruction( void )
     uint32_t ir = MEM_READ_LONG(pc);
     uint32_t operand, operand2, tmp, tmp2, cond;
 
-    tmp = armr.int_pending & armr.cpsr;
+    tmp = armr.int_pending & (~armr.cpsr);
     if( tmp ) {
 	if( tmp & CPSR_F ) {
 	    arm_raise_exception( EXC_FAST_IRQ );
