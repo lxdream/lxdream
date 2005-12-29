@@ -1,5 +1,5 @@
 /**
- * $Id: sh4core.c,v 1.16 2005-12-26 11:47:15 nkeynes Exp $
+ * $Id: sh4core.c,v 1.17 2005-12-29 12:52:29 nkeynes Exp $
  * 
  * SH4 emulation core, and parent module for all the SH4 peripheral
  * modules.
@@ -36,14 +36,6 @@
 #define EXV_TRAP         0x100
 #define EXC_FPDISABLE    0x800
 #define EXV_FPDISABLE    0x100
-
-uint32_t sh4_freq = SH4_BASE_RATE;
-uint32_t sh4_bus_freq = SH4_BASE_RATE;
-uint32_t sh4_peripheral_freq = SH4_BASE_RATE / 2;
-
-uint32_t sh4_cpu_period = 1000 / SH4_BASE_RATE; /* in nanoseconds */
-uint32_t sh4_bus_period = 1000 / SH4_BASE_RATE;
-uint32_t sh4_peripheral_period = 2000 / SH4_BASE_RATE;
 
 /********************** SH4 Module Definition ****************************/
 
@@ -139,8 +131,7 @@ uint32_t sh4_run_slice( uint32_t nanosecs )
 	    sh4r.sh4_state = SH4_STATE_RUNNING;;
     }
 
-    while( sh4r.icount < target && sh4r.sh4_state == SH4_STATE_RUNNING ) {
-	sh4r.icount++;
+    for( sh4r.slice_cycle = 0; sh4r.slice_cycle < nanosecs; sh4r.slice_cycle += sh4_cpu_period ) {
 	if( !sh4_execute_instruction() )
 	    break;
 #ifdef ENABLE_DEBUG_MODE
@@ -162,14 +153,14 @@ uint32_t sh4_run_slice( uint32_t nanosecs )
      * we're doing a hard abort - cut the timeslice back to what we
      * actually executed
      */
-    if( target != sh4r.icount && sh4r.sh4_state == SH4_STATE_RUNNING ) {
-	/* Halted - compute time actually executed */
-	nanosecs = (sh4r.icount - start) * sh4_cpu_period;
+    if( sh4r.slice_cycle != nanosecs && sh4r.sh4_state == SH4_STATE_RUNNING ) {
+	nanosecs = sh4r.slice_cycle;
     }
     if( sh4r.sh4_state != SH4_STATE_STANDBY ) {
 	TMU_run_slice( nanosecs );
 	SCIF_run_slice( nanosecs );
     }
+    sh4r.icount += sh4r.slice_cycle / sh4_cpu_period;
     return nanosecs;
 }
 
@@ -181,12 +172,14 @@ void sh4_stop(void)
 void sh4_save_state( FILE *f )
 {
     fwrite( &sh4r, sizeof(sh4r), 1, f );
+    TMU_save_state( f );
     SCIF_save_state( f );
 }
 
 int sh4_load_state( FILE * f )
 {
     fread( &sh4r, sizeof(sh4r), 1, f );
+    TMU_load_state( f );
     return SCIF_load_state( f );
 }
 

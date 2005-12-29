@@ -1,5 +1,5 @@
 /**
- * $Id: sh4core.h,v 1.8 2005-12-26 11:47:15 nkeynes Exp $
+ * $Id: sh4core.h,v 1.9 2005-12-29 12:52:29 nkeynes Exp $
  * 
  * This file defines the public functions exported by the SH4 core, except
  * for disassembly functions defined in sh4dasm.h
@@ -70,6 +70,7 @@ struct sh4_registers {
     uint32_t int_pending; /* flag set by the INTC = pending priority level */
     int in_delay_slot; /* flag to indicate the current instruction is in
                              * a delay slot (certain rules apply) */
+    uint32_t slice_cycle; /* Current cycle within the timeslice */
     int sh4_state; /* Current power-on state (one of the SH4_STATE_* values ) */
 };
 
@@ -106,6 +107,10 @@ int32_t sh4_read_phys_word( uint32_t addr );
 /* Peripheral functions */
 void DMAC_run_slice( uint32_t );
 void TMU_run_slice( uint32_t );
+void TMU_update_clocks( void );
+void TMU_reset( void );
+void TMU_save_state( FILE * );
+int TMU_load_state( FILE * );
 void SCIF_reset( void );
 void SCIF_run_slice( uint32_t );
 void SCIF_save_state( FILE *f );
