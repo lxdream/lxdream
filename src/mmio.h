@@ -1,5 +1,5 @@
 /**
- * $Id: mmio.h,v 1.2 2005-12-25 08:24:07 nkeynes Exp $
+ * $Id: mmio.h,v 1.3 2006-01-01 08:09:17 nkeynes Exp $
  *
  * mmio.h defines a complicated batch of macros used to build up the 
  * memory-mapped I/O regions in a reasonably readable fashion.
@@ -28,7 +28,6 @@ extern "C" {
 
 #include <stdint.h>
 #include <stdlib.h>
-#include "sh4core.h"
 
 #define PAGE_TABLE_ENTRIES 128*1024
 #define PAGE_SIZE 4096
