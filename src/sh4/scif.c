@@ -1,5 +1,5 @@
 /**
- * $Id: scif.c,v 1.7 2005-12-26 03:54:55 nkeynes Exp $
+ * $Id: scif.c,v 1.8 2006-01-01 08:08:40 nkeynes Exp $
  * SCIF (Serial Communication Interface with FIFO) implementation - part of the 
  * SH4 standard on-chip peripheral set. The SCIF is hooked up to the DCs
  * external serial port
@@ -20,9 +20,10 @@
 #include <glib.h>
 #include "dream.h"
 #include "mem.h"
-#include "sh4core.h"
-#include "sh4mmio.h"
-#include "intc.h"
+#include "sh4/sh4core.h"
+#include "sh4/sh4mmio.h"
+#include "sh4/intc.h"
+#include "sh4/dmac.h"
 #include "clock.h"
 #include "serial.h"
 
@@ -255,6 +256,7 @@ gboolean SCIF_recvq_enqueue( uint8_t value )
 	tmp |= SCFSR2_RDF;
 	if( IS_RECEIVE_IRQ_ENABLED() ) 
 	    intc_raise_interrupt( INT_SCIF_RXI );
+        DMAC_trigger( DMAC_SCIF_RDF );
     }
     MMIO_WRITE( SCIF, SCFSR2, tmp );
     return TRUE;
@@ -313,6 +315,7 @@ int SCIF_sendq_dequeue( )
 	    tmp |= SCFSR2_TEND; /* Transmission ended - no data waiting */
 	if( IS_TRANSMIT_IRQ_ENABLED() ) 
 	    intc_raise_interrupt( INT_SCIF_TXI );
+        DMAC_trigger( DMAC_SCIF_TDE );
 	MMIO_WRITE( SCIF, SCFSR2, tmp );
     }
     return (int)(unsigned int)result;
@@ -368,6 +371,7 @@ void SCIF_sendq_clear( void )
     MMIO_WRITE( SCIF, SCFSR2, MMIO_READ( SCIF, SCFSR2 ) | SCFSR2_TEND | SCFSR2_TDFE );
     if( IS_TRANSMIT_IRQ_ENABLED() ) {
 	intc_raise_interrupt( INT_SCIF_TXI );
+        DMAC_trigger( DMAC_SCIF_TDE );
     }
 }
 
@@ -609,6 +613,7 @@ void SCIF_clock_tick( void )
 	    MMIO_WRITE( SCIF, SCFSR2, tmp | SCFSR2_DR );
 	    if( IS_RECEIVE_IRQ_ENABLED() )
 		intc_raise_interrupt( INT_SCIF_RXI );
+	    DMAC_trigger( DMAC_SCIF_RDF );
 	}
     }
     SCIF_rcvd_last_tick = rcvd;

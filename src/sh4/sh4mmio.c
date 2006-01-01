@@ -1,5 +1,5 @@
 /**
- * $Id: sh4mmio.c,v 1.6 2005-12-26 03:54:55 nkeynes Exp $
+ * $Id: sh4mmio.c,v 1.7 2006-01-01 08:08:40 nkeynes Exp $
  * 
  * Miscellaneous and not-really-implemented SH4 peripheral modules. Also
  * responsible for including the IMPL side of the SH4 MMIO pages.
@@ -154,12 +154,6 @@ int32_t mmio_region_BSC_read( uint32_t reg )
 /********************************* UBC *************************************/
 
 MMIO_REGION_STUBFNS( UBC )
-
-
-/********************************* DMAC *************************************/
-
-MMIO_REGION_STUBFNS( DMAC )
-
 
 
 /********************************** SCI *************************************/
