@@ -1,8 +1,8 @@
 /**
- * $Id: sh4core.h,v 1.9 2005-12-29 12:52:29 nkeynes Exp $
+ * $Id: sh4core.h,v 1.10 2006-01-01 08:08:40 nkeynes Exp $
  * 
- * This file defines the public functions exported by the SH4 core, except
- * for disassembly functions defined in sh4dasm.h
+ * This file defines the internal functions exported/used by the SH4 core, 
+ * except for disassembly functions defined in sh4dasm.h
  *
  * Copyright (c) 2005 Nathan Keynes.
  *
@@ -52,7 +52,6 @@ extern "C" {
  * off.
  */
 #define SH4_STATE_STANDBY 4
-
 
 struct sh4_registers {
     uint32_t r[16];
@@ -105,12 +104,15 @@ void sh4_write_byte( uint32_t addr, uint32_t val );
 int32_t sh4_read_phys_word( uint32_t addr );
 
 /* Peripheral functions */
-void DMAC_run_slice( uint32_t );
 void TMU_run_slice( uint32_t );
 void TMU_update_clocks( void );
 void TMU_reset( void );
 void TMU_save_state( FILE * );
 int TMU_load_state( FILE * );
+void DMAC_reset( void );
+void DMAC_run_slice( uint32_t );
+void DMAC_save_state( FILE * );
+int DMAC_load_state( FILE * );
 void SCIF_reset( void );
 void SCIF_run_slice( uint32_t );
 void SCIF_save_state( FILE *f );
