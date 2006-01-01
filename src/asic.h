@@ -1,5 +1,5 @@
 /**
- * $Id: asic.h,v 1.3 2005-12-25 08:24:07 nkeynes Exp $
+ * $Id: asic.h,v 1.4 2006-01-01 08:09:42 nkeynes Exp $
  *
  * Support for the miscellaneous ASIC functions (Primarily event multiplexing,
  * and DMA). Includes MMIO definitions for the 5f6000 and 5f7000 regions, 
@@ -26,10 +26,20 @@
  */
 
 MMIO_REGION_BEGIN( 0x005F6000, ASIC, "System ASIC" )
-    LONG_PORT( 0x884, ASICUNK1, PORT_MRW, 0, "ASIC <unknown1>" )
-    LONG_PORT( 0x888, ASICUNK2, PORT_MRW, 0, "ASIC <unknown2>" )
+    LONG_PORT( 0x800, PVRDMADEST, PORT_MRW, 0, "PVR DMA Dest Address" )
+    LONG_PORT( 0x804, PVRDMACNT, PORT_MRW, 0, "PVR DMA Byte Count" )
+    LONG_PORT( 0x808, PVRDMACTL, PORT_MRW, 0, "PVR DMA Control" )
+    LONG_PORT( 0x810, ASICUNK1, PORT_MRW, 0, "ASIC <unknown1>" )
+    LONG_PORT( 0x814, ASICUNK2, PORT_MRW, 0, "ASIC <unknown2>" )
+    LONG_PORT( 0x818, ASICUNK3, PORT_MRW, 0, "ASIC <unknown3>" )
+    LONG_PORT( 0x81C, ASICUNK4, PORT_MRW, 0, "ASIC <unknown4>" )
+    LONG_PORT( 0x884, ASICUNK5, PORT_MRW, 0, "ASIC <unknown5>" )
+    LONG_PORT( 0x888, ASICUNK6, PORT_MRW, 0, "ASIC <unknown6>" )
     LONG_PORT( 0x88C, G2STATUS, PORT_MR, 0, "G2 Bus status" )
-    LONG_PORT( 0x89C, ASICUNK3, PORT_MRW, 0xB, "Unknown, always 0xB?" )
+    LONG_PORT( 0x89C, ASICUNK7, PORT_MRW, 0xB, "Unknown, always 0xB?" )
+    LONG_PORT( 0x8A0, ASICUNK8, PORT_MRW, 0, "ASIC <unknown8>" )
+    LONG_PORT( 0x8A4, ASICUNK9, PORT_MRW, 0, "ASIC <unknown9>" )
+    LONG_PORT( 0x8AC, ASICUNKA, PORT_MRW, 0, "ASIC <unknownA>" )
     LONG_PORT( 0x900, PIRQ0, PORT_MRW, 0, "Pending interrupts 0" )
     LONG_PORT( 0x904, PIRQ1, PORT_MRW, 0, "Pending interrupts 1" )
     LONG_PORT( 0x908, PIRQ2, PORT_MRW, 0, "Pending interrupts 2" )
@@ -52,7 +62,7 @@ MMIO_REGION_BEGIN( 0x005F6000, ASIC, "System ASIC" )
  * what any of it means (nor have I seen any of it accessed), they're not
  * listed above.
  */
-    
+  
 
     LONG_PORT( 0xC04, MAPLE_DMA, PORT_MRW, UNDEFINED, "Maple DMA Address" )
     LONG_PORT( 0xC10, MAPLE_RESET2, PORT_MRW, UNDEFINED, "Maple Reset 2" )
@@ -144,27 +154,35 @@ MMIO_REGION_BEGIN( 0x005F7000, EXTDMA, "ASIC External DMA" )
     LONG_PORT( 0x8B4, SPUDMAUN9, PORT_MRW, 0, "SPU DMA <unknown9>" )
     LONG_PORT( 0x8B8, SPUDMAUN10, PORT_MRW, 0, "SPU DMA <unknown10>" )
     LONG_PORT( 0x8BC, SPUDMAUN11, PORT_MRW, 0, "SPU DMA <unknown11>" )
-    LONG_PORT( 0xC00, PVRDMAEXT, PORT_MRW, 0, "PVR DMA External address" )
-    LONG_PORT( 0xC04, PVRDMASH4, PORT_MRW, 0, "PVR DMA SH4 address" )
-    LONG_PORT( 0xC08, PVRDMASIZ, PORT_MRW, 0, "PVR DMA Size" )
-    LONG_PORT( 0xC0C, PVRDMADIR, PORT_MRW, 0, "PVR DMA Direction" )
-    LONG_PORT( 0xC10, PVRDMAMOD, PORT_MRW, 0, "PVR DMA Mode" )
-    LONG_PORT( 0xC14, PVRDMACTL1, PORT_MRW, 0, "PVR DMA Control 1" )
-    LONG_PORT( 0xC18, PVRDMACTL2, PORT_MRW, 0, "PVR DMA Control 2" )
-    LONG_PORT( 0xC80, PVRDMAUN1, PORT_MRW, 0, "PVR DMA <unknown1>" )
+    LONG_PORT( 0xC00, PVRDMA2EXT, PORT_MRW, 0, "PVR DMA External address" )
+    LONG_PORT( 0xC04, PVRDMA2SH4, PORT_MRW, 0, "PVR DMA SH4 address" )
+    LONG_PORT( 0xC08, PVRDMA2SIZ, PORT_MRW, 0, "PVR DMA Size" )
+    LONG_PORT( 0xC0C, PVRDMA2DIR, PORT_MRW, 0, "PVR DMA Direction" )
+    LONG_PORT( 0xC10, PVRDMA2MOD, PORT_MRW, 0, "PVR DMA Mode" )
+    LONG_PORT( 0xC14, PVRDMA2CTL1, PORT_MRW, 0, "PVR DMA Control 1" )
+    LONG_PORT( 0xC18, PVRDMA2CTL2, PORT_MRW, 0, "PVR DMA Control 2" )
+    LONG_PORT( 0xC80, PVRDMA2UN1, PORT_MRW, 0, "PVR DMA <unknown1>" )
 
 MMIO_REGION_END
 
+#define EVENT_PVR_RENDER_DONE 2
 #define EVENT_SCANLINE1 3
 #define EVENT_SCANLINE2 4
 #define EVENT_RETRACE   5
+#define EVENT_PVR_OPAQUE_DONE 7
+#define EVENT_PVR_OPAQUEMOD_DONE 8
+#define EVENT_PVR_TRANS_DONE 9
+#define EVENT_PVR_TRANSMODE_DONE 10
 #define EVENT_MAPLE_DMA 12
 #define EVENT_MAPLE_ERR 13 /* ??? */
 #define EVENT_GDROM_DMA 14
-#define EVENT_SPU_DMA0  15 /* ??? */
+#define EVENT_SPU_DMA0  15
 #define EVENT_SPU_DMA1  16
 #define EVENT_SPU_DMA2  17
 #define EVENT_SPU_DMA3  18
+#define EVENT_PVR_DMA   19
+#define EVENT_PVR_PUNCHOUT_DONE 21
+
 #define EVENT_GDROM_CMD 32
 #define EVENT_AICA      33
 

@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.c,v 1.10 2005-12-26 03:54:52 nkeynes Exp $
+ * $Id: pvr2.c,v 1.11 2006-01-01 08:09:42 nkeynes Exp $
  *
  * PVR2 (Video) MMIO and supporting functions.
  *
@@ -22,6 +22,7 @@
 #include "mem.h"
 #include "asic.h"
 #include "pvr2.h"
+#include "sh4/sh4core.h"
 #define MMIO_IMPL
 #include "pvr2.h"
 
@@ -38,6 +39,7 @@ struct dreamcast_module pvr2_module = { "PVR2", pvr2_init, NULL, NULL,
 void pvr2_init( void )
 {
     register_io_region( &mmio_region_PVR2 );
+    register_io_region( &mmio_region_PVR2TA );
     video_base = mem_get_region_by_name( MEM_REGION_VIDEO );
 }
 
@@ -138,4 +140,22 @@ MMIO_REGION_READ_FN( PVR2, reg )
 void pvr2_set_base_address( uint32_t base ) 
 {
     mmio_region_PVR2_write( DISPADDR1, base );
+}
+
+
+int32_t mmio_region_PVR2TA_read( uint32_t reg )
+{
+    return 0xFFFFFFFF;
+}
+
+char pvr2ta_remainder[8];
+
+void mmio_region_PVR2TA_write( uint32_t reg, uint32_t val )
+{
+    
+}
+
+void pvr2ta_write( char *buf, uint32_t length )
+{
+    
 }

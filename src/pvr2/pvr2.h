@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.h,v 1.3 2005-12-25 08:24:07 nkeynes Exp $
+ * $Id: pvr2.h,v 1.4 2006-01-01 08:09:42 nkeynes Exp $
  *
  * PVR2 (video chip) MMIO registers and functions.
  *
@@ -36,7 +36,7 @@ MMIO_REGION_BEGIN( 0x005F8000, PVR2, "Power VR/2" )
     LONG_PORT( 0x064, RENDADDR2, PORT_MRW, 0, "Rendering memory base 2" )
     LONG_PORT( 0x068, HCLIP, PORT_MRW, 0, "Horizontal clipping area" )
     LONG_PORT( 0x06C, VCLIP, PORT_MRW, 0, "Vertical clipping area" )
-LONG_PORT( 0x074, SHADOW, PORT_MRW, 0, "Shadowing" )
+    LONG_PORT( 0x074, SHADOW, PORT_MRW, 0, "Shadowing" )
     LONG_PORT( 0x078, OBJCLIP, PORT_MRW, 0, "Object clip distance (float32)" )
     LONG_PORT( 0x084, TSPCLIP, PORT_MRW, 0, "Texture clip distance (float32)" )
     LONG_PORT( 0x088, BGPLANEZ, PORT_MRW, 0, "Background plane depth (float32)" )
@@ -70,6 +70,9 @@ LONG_PORT( 0x074, SHADOW, PORT_MRW, 0, "Shadowing" )
     LONG_PORT( 0x164, TAOPLST, PORT_MRW, 0, "TA Object Pointer List start" )
 MMIO_REGION_END
 
+MMIO_REGION_BEGIN( 0x10000000, PVR2TA, "Power VR/2 TA Command port" )
+    LONG_PORT( 0x000, TACMD, PORT_MRW, 0, "TA Command port" )
+MMIO_REGION_END
 
 #define DISPMODE_DE  0x00000001 /* Display enable */
 #define DISPMODE_SD  0x00000002 /* Scan double */
@@ -98,3 +101,9 @@ MMIO_REGION_END
 
 void pvr2_next_frame( void );
 void pvr2_set_base_address( uint32_t );
+
+/**
+ * Process the data in the supplied buffer as an array of TA command lists.
+ * Any excess bytes are held pending until a complete list is sent
+ */
+void pvr2ta_write( char *buf, uint32_t length );
