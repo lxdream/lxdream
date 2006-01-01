@@ -1,5 +1,5 @@
 /**
- * $Id: asic.c,v 1.9 2005-12-26 10:48:55 nkeynes Exp $
+ * $Id: asic.c,v 1.10 2006-01-01 08:09:42 nkeynes Exp $
  *
  * Support for the miscellaneous ASIC functions (Primarily event multiplexing,
  * and DMA). 
@@ -23,6 +23,7 @@
 #include "dream.h"
 #include "mem.h"
 #include "sh4/intc.h"
+#include "sh4/dmac.h"
 #include "dreamcast.h"
 #include "maple/maple.h"
 #include "gdrom/ide.h"
@@ -55,27 +56,40 @@ void asic_init( void )
 void mmio_region_ASIC_write( uint32_t reg, uint32_t val )
 {
     switch( reg ) {
-        case PIRQ0:
-        case PIRQ1:
-        case PIRQ2:
-            /* Clear any interrupts */
-            MMIO_WRITE( ASIC, reg, MMIO_READ(ASIC, reg)&~val );
-	    asic_check_cleared_events();
-            break;
-        case MAPLE_STATE:
-            MMIO_WRITE( ASIC, reg, val );
-            if( val & 1 ) {
-                uint32_t maple_addr = MMIO_READ( ASIC, MAPLE_DMA) &0x1FFFFFE0;
-		WARN( "Maple request initiated at %08X, halting", maple_addr );
-                maple_handle_buffer( maple_addr );
-                MMIO_WRITE( ASIC, reg, 0 );
-//                dreamcast_stop();
-            }
-            break;
-        default:
-            MMIO_WRITE( ASIC, reg, val );
-            WARN( "Write to ASIC (%03X <= %08X) [%s: %s]",
-                  reg, val, MMIO_REGID(ASIC,reg), MMIO_REGDESC(ASIC,reg) );
+    case PIRQ0:
+    case PIRQ1:
+    case PIRQ2:
+	/* Clear any interrupts */
+	MMIO_WRITE( ASIC, reg, MMIO_READ(ASIC, reg)&~val );
+	asic_check_cleared_events();
+	break;
+    case MAPLE_STATE:
+	MMIO_WRITE( ASIC, reg, val );
+	if( val & 1 ) {
+	    uint32_t maple_addr = MMIO_READ( ASIC, MAPLE_DMA) &0x1FFFFFE0;
+	    WARN( "Maple request initiated at %08X, halting", maple_addr );
+	    maple_handle_buffer( maple_addr );
+	    MMIO_WRITE( ASIC, reg, 0 );
+	}
+	break;
+    case PVRDMACTL: /* Initiate PVR DMA transfer */
+	if( val & 1 ) {
+	    uint32_t dest_addr = MMIO_READ( ASIC, PVRDMADEST) &0x1FFFFFE0;
+	    uint32_t count = MMIO_READ( ASIC, PVRDMACNT );
+	    char *data = alloca( count );
+	    uint32_t rcount = DMAC_get_buffer( 2, data, count );
+	    if( rcount != count )
+		WARN( "PVR received %08X bytes from DMA, expected %08X", rcount, count );
+	    if( (dest_addr &0xF0000000) == 0x10000000 ) { /* TA */
+		pvr2ta_write( data, rcount );
+	    }
+	    asic_event( EVENT_PVR_DMA );
+	}
+	break;
+    default:
+	MMIO_WRITE( ASIC, reg, val );
+	WARN( "Write to ASIC (%03X <= %08X) [%s: %s]",
+	      reg, val, MMIO_REGID(ASIC,reg), MMIO_REGDESC(ASIC,reg) );
     }
 }
 
@@ -177,14 +191,16 @@ MMIO_REGION_WRITE_FN( EXTDMA, reg, val )
                 ide_write_command( (uint8_t)val );
             }
             break;
-            
         default:
+	    WARN( "EXTDMA write %08X <= %08X", reg, val );
+
             MMIO_WRITE( EXTDMA, reg, val );
     }
 }
 
 MMIO_REGION_READ_FN( EXTDMA, reg )
 {
+    uint32_t val;
     switch( reg ) {
         case IDEALTSTATUS: return idereg.status;
         case IDEDATA: return ide_read_data_pio( );
@@ -198,7 +214,9 @@ MMIO_REGION_READ_FN( EXTDMA, reg )
             ide_clear_interrupt();
             return idereg.status;
         default:
-            return MMIO_READ( EXTDMA, reg );
+	    val = MMIO_READ( EXTDMA, reg );
+	    DEBUG( "EXTDMA read %08X => %08X", reg, val );
+	    return val;
     }
 }
 
