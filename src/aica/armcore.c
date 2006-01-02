@@ -1,5 +1,5 @@
 /**
- * $Id: armcore.c,v 1.13 2005-12-28 22:50:08 nkeynes Exp $
+ * $Id: armcore.c,v 1.14 2006-01-02 14:49:29 nkeynes Exp $
  * 
  * ARM7TDMI CPU emulation core.
  *
@@ -211,7 +211,7 @@ void arm_raise_exception( int exception )
     arm_set_mode( mode );
     armr.spsr = spsr;
     armr.r[14] = armr.r[15];
-    armr.cpsr = (spsr & (~CPSR_T)) | CPSR_I; 
+    armr.cpsr = (spsr & 0xFFFFFF00) | mode | CPSR_I; 
     if( mode == MODE_FIQ )
 	armr.cpsr |= CPSR_F;
     armr.r[15] = arm_exceptions[exception][1];
@@ -658,8 +658,8 @@ static uint32_t arm_get_address_operand( uint32_t ir )
 
 gboolean arm_execute_instruction( void ) 
 {
-    uint32_t pc = PC;
-    uint32_t ir = MEM_READ_LONG(pc);
+    uint32_t pc;
+    uint32_t ir;
     uint32_t operand, operand2, tmp, tmp2, cond;
 
     tmp = armr.int_pending & (~armr.cpsr);
@@ -671,7 +671,8 @@ gboolean arm_execute_instruction( void )
 	}
     }
 
-    pc += 4;
+    ir = MEM_READ_LONG(PC);
+    pc = PC + 4;
     PC = pc;
 
     /** 
@@ -1129,11 +1130,11 @@ gboolean arm_execute_instruction( void )
 	} else { /* Load/store multiple */
 	    int prestep, poststep;
 	    if( PFLAG(ir) ) {
-		prestep = 0;
-		poststep = UFLAG(ir) ? 4 : -4;
-	    } else {
 		prestep = UFLAG(ir) ? 4 : -4;
 		poststep = 0 ;
+	    } else {
+		prestep = 0;
+		poststep = UFLAG(ir) ? 4 : -4;
 	    }
 	    operand = RN(ir);
 	    if( BFLAG(ir) ) { 
@@ -1148,6 +1149,8 @@ gboolean arm_execute_instruction( void )
 			    operand += poststep;
 			}
 		    }
+		    if( WFLAG(ir) ) 
+			LRN(ir) = operand;
 		    arm_restore_cpsr();
 		    if( armr.t ) PC &= 0xFFFFFFFE;
 		    else PC &= 0xFFFFFFFC;
@@ -1211,9 +1214,9 @@ gboolean arm_execute_instruction( void )
 			operand += poststep;
 		    }
 		}
+		if( WFLAG(ir) ) 
+		    LRN(ir) = operand;
 	    }
-	    if( WFLAG(ir) ) 
-		LRN(ir) = operand;
 	}
 	break;
     case 3: /* Copro */
