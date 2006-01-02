@@ -1,5 +1,5 @@
 /**
- * $Id: mmio_win.c,v 1.3 2005-12-27 08:41:22 nkeynes Exp $
+ * $Id: mmio_win.c,v 1.4 2006-01-02 14:47:55 nkeynes Exp $
  *
  * Implements the MMIO register viewing window
  *
@@ -99,7 +99,7 @@ void update_mmr_win( void )
 
     all_page = GTK_CLIST(gtk_object_get_data( GTK_OBJECT(mmr_win), "All" ));
     
-    for( i=1; i < num_io_rgns; i++ ) {
+    for( i=0; i < num_io_rgns; i++ ) {
         page = GTK_CLIST(gtk_object_get_data( GTK_OBJECT(mmr_win),
                                               io_rgn[i]->id ));
         for( j=0; io_rgn[i]->ports[j].id != NULL; j++ ) {
@@ -139,7 +139,7 @@ void init_mmr_win( void )
     gtk_notebook_remove_page( mmr_book, 0 );
     
     all_list = create_mmr_page( "All" );
-    for( i=1; i < num_io_rgns; i++ ) {
+    for( i=0; i < num_io_rgns; i++ ) {
         GtkCList *list = create_mmr_page( io_rgn[i]->id );
         
         for( j=0; io_rgn[i]->ports[j].id != NULL; j++ ) {
