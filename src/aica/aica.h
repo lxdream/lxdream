@@ -1,5 +1,5 @@
 /**
- * $Id: aica.h,v 1.4 2005-12-27 08:42:57 nkeynes Exp $
+ * $Id: aica.h,v 1.5 2006-01-02 14:50:12 nkeynes Exp $
  * 
  * MMIO definitions for the AICA sound chip. Note that the regions defined
  * here are relative to the SH4 memory map (0x00700000 based), rather than
@@ -32,14 +32,17 @@ MMIO_REGION_BEGIN( 0x00702000, AICA2, "AICA Sound System Control" )
 LONG_PORT( 0x040, CDDA_VOL_L, PORT_MRW, 0, "CDDA Volume left" )
 LONG_PORT( 0x044, CDDA_VOL_R, PORT_MRW, 0, "CDDA Volume right" )
 LONG_PORT( 0x800, VOL_MASTER, PORT_MRW, UNDEFINED, "Master volume" )
-LONG_PORT( 0x890, AICA_TIMER, PORT_MRW, 0, "IRQ Timer (?)" )
+LONG_PORT( 0x808, AICA_UNK7, PORT_MRW, 0, "AICA ??? 7" )
+LONG_PORT( 0x880, AICA_TIMER1, PORT_MRW, 0, "AICA Timer 1" )
+LONG_PORT( 0x890, AICA_TIMER2, PORT_MRW, 0, "AICA Timer 2" )
 LONG_PORT( 0x89C, AICA_UNK1, PORT_MRW, 0, "AICA ??? 1" )
 LONG_PORT( 0x8A4, AICA_UNK2, PORT_MRW, 0, "AICA ??? 2" )
 BYTE_PORT( 0x8A8, AICA_UNK3, PORT_MRW, 0, "AICA ??? 3" )
 BYTE_PORT( 0x8AC, AICA_UNK4, PORT_MRW, 0, "AICA ??? 4" )
 BYTE_PORT( 0x8B0, AICA_UNK5, PORT_MRW, 0, "AICA ??? 5" )
 LONG_PORT( 0xC00, AICA_RESET,PORT_MRW, 1, "AICA reset" )
-LONG_PORT( 0xD04, AICA_UNK6, PORT_MRW, 0, "AICA ??? 6" )
+LONG_PORT( 0xD00, AICA_IRQ, PORT_MR, 1, "AICA IRQ Pending" )
+LONG_PORT( 0xD04, AICA_IRQCLEAR, PORT_MRW, 0, "AICA IRQ Clear" )
 MMIO_REGION_END
 
 MMIO_REGION_LIST_BEGIN( spu )
@@ -50,3 +53,8 @@ MMIO_REGION_LIST_END
 
 void aica_init( void );
 void aica_reset( void );
+
+#define AICA_EVENT_TIMER 2
+#define AICA_EVENT_OTHER 5
+
+void aica_event( int event );

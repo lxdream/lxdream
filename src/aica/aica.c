@@ -1,5 +1,5 @@
 /**
- * $Id: aica.c,v 1.9 2005-12-26 11:52:56 nkeynes Exp $
+ * $Id: aica.c,v 1.10 2006-01-02 14:50:12 nkeynes Exp $
  * 
  * This is the core sound system (ie the bit which does the actual work)
  *
@@ -21,6 +21,7 @@
 #include "dream.h"
 #include "mem.h"
 #include "aica.h"
+#include "armcore.h"
 #define MMIO_IMPL
 #include "aica.h"
 
@@ -90,6 +91,47 @@ int aica_load_state( FILE *f )
     return arm_load_state( f );
 }
 
+int aica_event_pending = 0;
+int aica_clear_count = 0;
+
+/* Note: This is probably not necessarily technically correct but it should
+ * work in the meantime.
+ */
+
+void aica_event( int event )
+{
+    if( aica_event_pending == 0 )
+	armr.int_pending |= CPSR_F;
+    aica_event_pending |= (1<<event);
+    
+    int pending = MMIO_READ( AICA2, AICA_IRQ );
+    if( pending == 0 || event < pending )
+	MMIO_WRITE( AICA2, AICA_IRQ, event );
+}
+
+void aica_clear_event( )
+{
+    aica_clear_count++;
+    if( aica_clear_count == 4 ) {
+	int i;
+	aica_clear_count = 0;
+
+	for( i=0; i<8; i++ ) {
+	    if( aica_event_pending & (1<<i) ) {
+		aica_event_pending &= ~(1<<i);
+		break;
+	    }
+	}
+	for( ;i<8; i++ ) {
+	    if( aica_event_pending & (1<<i) ) {
+		MMIO_WRITE( AICA2, AICA_IRQ, i );
+		break;
+	    }
+	}
+	if( aica_event_pending == 0 )
+	    armr.int_pending &= ~CPSR_F;
+    }
+}
 /** Channel register structure:
  * 00  4  Channel config
  * 04  4  Waveform address lo (16 bits)
@@ -141,6 +183,9 @@ void mmio_region_AICA2_write( uint32_t reg, uint32_t val )
 	    DEBUG( "ARM disabled" );
 	}
 	MMIO_WRITE( AICA2, AICA_RESET, val );
+	break;
+    case AICA_IRQCLEAR:
+	aica_clear_event();
 	break;
     default:
 	MMIO_WRITE( AICA2, reg, val );
