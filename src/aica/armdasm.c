@@ -1,5 +1,5 @@
 /**
- * $Id: armdasm.c,v 1.9 2005-12-28 22:49:26 nkeynes Exp $
+ * $Id: armdasm.c,v 1.10 2006-01-02 14:49:51 nkeynes Exp $
  * 
  * armdasm.c    21 Aug 2004  - ARM7tdmi (ARMv4) disassembler
  *
@@ -494,7 +494,7 @@ uint32_t arm_disasm_instruction( uint32_t pc, char *buf, int len, char *opcode )
 	    break;
 	case 3: /* Copro */
 	    if( (ir & 0x0F000000) == 0x0F000000 ) {
-		snprintf( buf, len, "SWI%s    #%08Xh", SIGNEXT24(ir) );
+		snprintf( buf, len, "SWI%s    #%08Xh", cond, SIGNEXT24(ir) );
 	    } else {
 		UNIMP(ir);
 	    }
