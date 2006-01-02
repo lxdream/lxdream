@@ -1,5 +1,5 @@
 /**
- * $Id: armcore.c,v 1.14 2006-01-02 14:49:29 nkeynes Exp $
+ * $Id: armcore.c,v 1.15 2006-01-02 23:07:17 nkeynes Exp $
  * 
  * ARM7TDMI CPU emulation core.
  *
@@ -210,7 +210,7 @@ void arm_raise_exception( int exception )
     uint32_t spsr = arm_get_cpsr();
     arm_set_mode( mode );
     armr.spsr = spsr;
-    armr.r[14] = armr.r[15];
+    armr.r[14] = armr.r[15] + 4;
     armr.cpsr = (spsr & 0xFFFFFF00) | mode | CPSR_I; 
     if( mode == MODE_FIQ )
 	armr.cpsr |= CPSR_F;
@@ -769,7 +769,6 @@ gboolean arm_execute_instruction( void )
 	    }
 	} else if( (ir & 0x0E000090) == 0x00000090 ) {
 	    /* Neither are these */
-	    UNIMP(ir);
 	    switch( (ir>>5)&0x03 ) {
 	    case 0:
 		/* Arithmetic extension area */
@@ -793,20 +792,14 @@ gboolean arm_execute_instruction( void )
 		    armr.z = (tmp == 0);
 		    break;
 		case 8: /* UMULL */
-		    break;
 		case 9: /* UMULLS */
-		    break;
 		case 10: /* UMLAL */
-		    break;
 		case 11: /* UMLALS */
-		    break;
 		case 12: /* SMULL */
-		    break;
 		case 13: /* SMULLS */
-		    break;
 		case 14: /* SMLAL */
-		    break;
 		case 15: /* SMLALS */
+		    UNIMP(ir);
 		    break;
 		case 16: /* SWP */
 		    tmp = arm_read_long( RN(ir) );
