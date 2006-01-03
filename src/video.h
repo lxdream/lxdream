@@ -1,5 +1,5 @@
 /**
- * $Id: video.h,v 1.2 2005-12-25 08:24:07 nkeynes Exp $
+ * $Id: video.h,v 1.3 2006-01-03 12:21:45 nkeynes Exp $
  *
  * The PC side of the video support (responsible for actually displaying / 
  * rendering frames)
@@ -31,6 +31,7 @@ void video_update_frame( void );
 void video_update_size( int, int, int );
 
 extern char *video_data;
+extern uint32_t video_frame_count;
 
 #ifdef __cplusplus
 }

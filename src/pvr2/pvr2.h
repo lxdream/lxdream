@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.h,v 1.4 2006-01-01 08:09:42 nkeynes Exp $
+ * $Id: pvr2.h,v 1.5 2006-01-03 12:21:45 nkeynes Exp $
  *
  * PVR2 (video chip) MMIO registers and functions.
  *
@@ -22,10 +22,10 @@ MMIO_REGION_BEGIN( 0x005F8000, PVR2, "Power VR/2" )
     LONG_PORT( 0x000, PVRID, PORT_MR, 0x17FD11DB, "PVR2 Core ID" )
     LONG_PORT( 0x004, PVRVER, PORT_MR, 0x00000011, "PVR2 Core Version" )
     LONG_PORT( 0x008, PVRRST, PORT_MR, 0, "PVR2 Reset" )
-    LONG_PORT( 0x014, RENDST, PORT_W, 0, "Start render" )
+    LONG_PORT( 0x014, RENDSTART, PORT_W, 0, "Start render" )
     LONG_PORT( 0x020, OBJBASE, PORT_MRW, 0, "Object buffer base offset" )
     LONG_PORT( 0x02C, TILEBASE, PORT_MRW, 0, "Tile buffer base offset" )
-    LONG_PORT( 0x040, PVRBCOL, PORT_MRW, 0, "Border Colour (RGB)" )
+    LONG_PORT( 0x040, BORDERCOL, PORT_MRW, 0, "Border Colour (RGB)" )
     LONG_PORT( 0x044, DISPMODE, PORT_MRW, 0, "Display Mode" )
     LONG_PORT( 0x048, RENDMODE, PORT_MRW, 0, "Rendering Mode" )
     LONG_PORT( 0x04C, RENDSIZE, PORT_MRW, 0, "Rendering width (bytes/2)" )

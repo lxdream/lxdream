@@ -1,5 +1,5 @@
 /**
- * $Id: video.c,v 1.2 2005-12-25 08:24:07 nkeynes Exp $
+ * $Id: video.c,v 1.3 2006-01-03 12:21:45 nkeynes Exp $
  *
  * The PC side of the video support (responsible for actually displaying / 
  * rendering frames)
@@ -18,11 +18,15 @@
  */
 
 #include <gnome.h>
+#include <stdint.h>
 
 GdkImage *img;
 GtkWindow *video_win;
 GtkWidget *video_area;
 char *video_data;
+uint32_t video_width = 640;
+uint32_t video_height = 480;
+uint32_t video_frame_count = 0;
 
 void video_open( void )
 {
@@ -41,8 +45,23 @@ void video_open( void )
     gtk_widget_show( GTK_WIDGET(video_win) );
 }
 
+/**
+ * Fill the entire frame with the specified colour (00RRGGBB)
+ */
+void video_fill( uint32_t colour ) 
+{
+    char *p = video_data;
+    int i;
+    for( i=0; i<video_width*video_height; i++ ) {
+	*p++ = (colour>>16) & 0xFF;
+	*p++ = (colour>>8) & 0xFF;
+	*p++ = (colour) & 0xFF;
+    }
+}
+
 void video_update_frame( void )
 {
+    video_frame_count++;
     gtk_widget_queue_draw( video_area );
 }
 
