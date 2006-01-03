@@ -1,5 +1,5 @@
 /**
- * $Id: armdasm.c,v 1.10 2006-01-02 14:49:51 nkeynes Exp $
+ * $Id: armdasm.c,v 1.11 2006-01-03 12:20:36 nkeynes Exp $
  * 
  * armdasm.c    21 Aug 2004  - ARM7tdmi (ARMv4) disassembler
  *
@@ -369,19 +369,19 @@ uint32_t arm_disasm_instruction( uint32_t pc, char *buf, int len, char *opcode )
 				break;
 			case 17: /* TST Rd, Rn, operand */
 				arm_disasm_shift_operand(ir, operand, sizeof(operand));
-				snprintf(buf, len, "TST%s    R%d, R%d, %s", cond, RD(ir), RN(ir), operand);
+				snprintf(buf, len, "TST%s    R%d, %s", cond, RN(ir), operand);
 				break;
 			case 19: /* TEQ Rd, Rn, operand */
 				arm_disasm_shift_operand(ir, operand, sizeof(operand));
-				snprintf(buf, len, "TEQ%s    R%d, R%d, %s", cond, RD(ir), RN(ir), operand);
+				snprintf(buf, len, "TEQ%s    R%d, %s", cond, RN(ir), operand);
 				break;
 			case 21: /* CMP Rd, Rn, operand */
 				arm_disasm_shift_operand(ir, operand, sizeof(operand));
-				snprintf(buf, len, "CMP%s    R%d, R%d, %s", cond, RD(ir), RN(ir), operand);
+				snprintf(buf, len, "CMP%s    R%d, %s", cond, RN(ir), operand);
 				break;
 			case 23: /* CMN Rd, Rn, operand */
 				arm_disasm_shift_operand(ir, operand, sizeof(operand));
-				snprintf(buf, len, "CMN%s    R%d, R%d, %s", cond, RD(ir), RN(ir), operand);
+				snprintf(buf, len, "CMN%s    R%d, %s", cond, RN(ir), operand);
 				break;
 			case 24: /* ORR Rd, Rn, operand */
 				arm_disasm_shift_operand(ir, operand, sizeof(operand));
