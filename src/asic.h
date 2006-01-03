@@ -1,5 +1,5 @@
 /**
- * $Id: asic.h,v 1.4 2006-01-01 08:09:42 nkeynes Exp $
+ * $Id: asic.h,v 1.5 2006-01-03 12:21:45 nkeynes Exp $
  *
  * Support for the miscellaneous ASIC functions (Primarily event multiplexing,
  * and DMA). Includes MMIO definitions for the 5f6000 and 5f7000 regions, 
@@ -169,10 +169,11 @@ MMIO_REGION_END
 #define EVENT_SCANLINE1 3
 #define EVENT_SCANLINE2 4
 #define EVENT_RETRACE   5
+#define EVENT_PVR_UNK 6
 #define EVENT_PVR_OPAQUE_DONE 7
 #define EVENT_PVR_OPAQUEMOD_DONE 8
 #define EVENT_PVR_TRANS_DONE 9
-#define EVENT_PVR_TRANSMODE_DONE 10
+#define EVENT_PVR_TRANSMOD_DONE 10
 #define EVENT_MAPLE_DMA 12
 #define EVENT_MAPLE_ERR 13 /* ??? */
 #define EVENT_GDROM_DMA 14

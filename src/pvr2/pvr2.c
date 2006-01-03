@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.c,v 1.11 2006-01-01 08:09:42 nkeynes Exp $
+ * $Id: pvr2.c,v 1.12 2006-01-03 12:21:45 nkeynes Exp $
  *
  * PVR2 (Video) MMIO and supporting functions.
  *
@@ -93,8 +93,14 @@ void pvr2_next_frame( void )
         bChanged = 0;
     }
     if( bEnabled ) {
-        /* Assume bit depths match for now... */
-        memcpy( video_data, frame_start, vid_size );
+	if( MMIO_READ( PVR2, VIDCFG2 ) & 0x08 ) {
+	    /* Blanked */
+	    uint32_t colour = MMIO_READ( PVR2, BORDERCOL );
+	    video_fill( colour );
+	} else {
+	    /* Assume bit depths match for now... */
+	    memcpy( video_data, frame_start, vid_size );
+	}
     } else {
         memset( video_data, 0, vid_size );
     }
@@ -116,13 +122,16 @@ void mmio_region_PVR2_write( uint32_t reg, uint32_t val )
           MMIO_REGID(PVR2,reg), MMIO_REGDESC(PVR2,reg) );
    
     switch(reg) {
-        case DISPSIZE: bChanged = 1;
-        case DISPMODE: bChanged = 1;
-        case DISPADDR1: bChanged = 1;
-        case DISPADDR2: bChanged = 1;
-        case VIDCFG: bChanged = 1;
-            break;
-            
+    case DISPSIZE: bChanged = 1;
+    case DISPMODE: bChanged = 1;
+    case DISPADDR1: bChanged = 1;
+    case DISPADDR2: bChanged = 1;
+    case VIDCFG: bChanged = 1;
+	break;
+    case RENDSTART:
+	if( val == 0xFFFFFFFF )
+	    pvr2_render_scene();
+	break;
     }
     MMIO_WRITE( PVR2, reg, val );
 }
@@ -143,6 +152,26 @@ void pvr2_set_base_address( uint32_t base )
 }
 
 
+void pvr2_render_scene( void )
+{
+    /* Actual rendering goes here :) */
+    asic_event( EVENT_PVR_RENDER_DONE );
+    DEBUG( "Rendered frame %d", video_frame_count );
+}
+
+/** Tile Accelerator */
+
+struct tacmd {
+    uint32_t command;
+    uint32_t param1;
+    uint32_t param2;
+    uint32_t texture;
+    float alpha;
+    float red;
+    float green;
+    float blue;
+};
+
 int32_t mmio_region_PVR2TA_read( uint32_t reg )
 {
     return 0xFFFFFFFF;
@@ -152,10 +181,40 @@ char pvr2ta_remainder[8];
 
 void mmio_region_PVR2TA_write( uint32_t reg, uint32_t val )
 {
-    
+    DEBUG( "Direct write to TA %08X", val );
 }
 
 void pvr2ta_write( char *buf, uint32_t length )
 {
-    
+    int i;
+    struct tacmd *cmd_list = (struct tacmd *)buf;
+    int count = length >> 5;
+    unsigned int lasttype = 0;
+    for( i=0; i<count; i++ ){
+	unsigned int type = (cmd_list[i].command >> 24) & 0xFF;
+	DEBUG( "PVR2 cmd: %08X %08X %08X", cmd_list[i].command, cmd_list[i].param1, cmd_list[i].param2 );
+	if( type == 0 ) {
+	    /* End of list */
+	    switch( lasttype ) {
+	    case 0x80: /* Opaque polys */
+		asic_event( EVENT_PVR_OPAQUE_DONE );
+		break;
+	    case 0x81: /* Opaque poly modifier */
+		asic_event( EVENT_PVR_OPAQUEMOD_DONE );
+		break;
+	    case 0x82: /* Transparent polys */
+		asic_event( EVENT_PVR_TRANS_DONE );
+		break;
+	    case 0x83: /* Transparent poly modifier */
+		asic_event( EVENT_PVR_TRANSMOD_DONE );
+		break;
+	    case 0x84: /* Punchthrough */
+		asic_event( EVENT_PVR_PUNCHOUT_DONE );
+		break;
+	    }
+	} else {
+	    lasttype = type;
+	}
+    }
 }
+
