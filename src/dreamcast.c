@@ -1,5 +1,5 @@
 /**
- * $Id: dreamcast.c,v 1.12 2005-12-26 03:54:52 nkeynes Exp $
+ * $Id: dreamcast.c,v 1.13 2006-01-10 13:59:35 nkeynes Exp $
  * Central switchboard for the system. This pulls all the individual modules
  * together into some kind of coherent structure. This is also where you'd
  * add Naomi support, if I ever get a board to play with...
@@ -81,6 +81,19 @@ void dreamcast_configure( )
     maple_device_t controller2 = controller_new();
     maple_attach_device( controller1, 0, 0 );
     maple_attach_device( controller2, 1, 0 );
+}
+
+/**
+ * Constructs a system configuration for the AICA in standalone mode,
+ * ie sound chip only.
+ */
+void dreamcast_configure_aica_only( )
+{
+    dreamcast_register_module( &mem_module );
+    mem_create_ram_region( 0x00800000, 2 MB, MEM_REGION_AUDIO );
+    mem_create_ram_region( 0x00703000, 8 KB, MEM_REGION_AUDIO_SCRATCH );
+    dreamcast_register_module( &aica_module );
+    dreamcast_state = STATE_STOPPED;
 }
 
 void dreamcast_register_module( dreamcast_module_t module ) 
