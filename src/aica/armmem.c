@@ -1,5 +1,5 @@
 /**
- * $Id: armmem.c,v 1.6 2005-12-26 10:48:20 nkeynes Exp $
+ * $Id: armmem.c,v 1.7 2006-01-10 13:56:54 nkeynes Exp $
  *
  * Implements the ARM's memory map.
  *
@@ -19,6 +19,7 @@
 #include <stdlib.h>
 #include "dream.h"
 #include "mem.h"
+#include "aica.h"
 
 char *arm_mem = NULL;
 char *arm_mem_scratch = NULL;
@@ -38,13 +39,20 @@ uint32_t arm_read_long( uint32_t addr ) {
 	return *(int32_t *)(arm_mem + addr);
 	/* Main sound ram */
     } else {
+	uint32_t val;
 	switch( addr & 0xFFFFF000 ) {
 	case 0x00800000:
-	    return mmio_region_AICA0_read(addr);
+	    val = mmio_region_AICA0_read(addr&0x0FFF);
+	    //	    DEBUG( "ARM long read from %08X => %08X", addr, val );
+	    return val;
 	case 0x00801000:
-	    return mmio_region_AICA1_read(addr);
+	    val = mmio_region_AICA1_read(addr&0x0FFF);
+	    //	    DEBUG( "ARM long read from %08X => %08X", addr, val );
+	    return val;
 	case 0x00802000:
-	    return mmio_region_AICA2_read(addr);
+	    val = mmio_region_AICA2_read(addr&0x0FFF);
+	    // DEBUG( "ARM long read from %08X => %08X", addr, val );
+	    return val;
 	case 0x00803000:
 	case 0x00804000:
 	    return *(int32_t *)(arm_mem_scratch + addr - 0x00803000);
@@ -72,13 +80,16 @@ void arm_write_long( uint32_t addr, uint32_t value )
     } else {
 	switch( addr & 0xFFFFF000 ) {
 	case 0x00800000:
-	    mmio_region_AICA0_write(addr, value);
+	    // DEBUG( "ARM long write to %08X <= %08X", addr, value );
+	    mmio_region_AICA0_write(addr&0x0FFF, value);
 	    break;
 	case 0x00801000:
-	    mmio_region_AICA1_write(addr, value);
+	    // DEBUG( "ARM long write to %08X <= %08X", addr, value );
+	    mmio_region_AICA1_write(addr&0x0FFF, value);
 	    break;
 	case 0x00802000:
-	    mmio_region_AICA2_write(addr, value);
+	    // DEBUG( "ARM long write to %08X <= %08X", addr, value );
+	    mmio_region_AICA2_write(addr&0x0FFF, value);
 	    break;
 	case 0x00803000:
 	case 0x00804000:
@@ -93,21 +104,42 @@ void arm_write_long( uint32_t addr, uint32_t value )
     return 0;
 }
 
+uint32_t arm_combine_byte( uint32_t addr, uint32_t val, uint8_t byte )
+{
+    switch( addr & 0x03 ) {
+    case 0:
+	return (val & 0xFFFFFF00) | byte;
+    case 1:
+	return (val & 0xFFFF00FF) | (byte<<8);
+    case 2:
+	return (val & 0xFF00FFFF) | (byte<<16);
+    case 3:
+	return (val & 0x00FFFFFF) | (byte<<24);
+    }
+}
+
 void arm_write_byte( uint32_t addr, uint32_t value )
 {
     if( addr < 0x00200000 ) {
 	/* Main sound ram */
 	*(uint8_t *)(arm_mem + addr) = (uint8_t)value;
     } else {
+	uint32_t tmp;
 	switch( addr & 0xFFFFF000 ) {
 	case 0x00800000:
-	    mmio_region_AICA0_write(addr, value);
+	    tmp = MMIO_READ( AICA0, addr & 0x0FFC );
+	    value = arm_combine_byte( addr, tmp, value );
+	    mmio_region_AICA0_write(addr&0x0FFC, value);
 	    break;
 	case 0x00801000:
-	    mmio_region_AICA1_write(addr, value);
+	    tmp = MMIO_READ( AICA1, addr & 0x0FFC );
+	    value = arm_combine_byte( addr, tmp, value );
+	    mmio_region_AICA1_write(addr&0x0FFC, value);
 	    break;
 	case 0x00802000:
-	    mmio_region_AICA2_write(addr, value);
+	    tmp = MMIO_READ( AICA2, addr & 0x0FFC );
+	    value = arm_combine_byte( addr, tmp, value );
+	    mmio_region_AICA2_write(addr&0x0FFC, value);
 	    break;
 	case 0x00803000:
 	case 0x00804000:

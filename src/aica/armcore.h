@@ -1,5 +1,5 @@
 /**
- * $Id: armcore.h,v 1.11 2005-12-28 22:49:26 nkeynes Exp $
+ * $Id: armcore.h,v 1.12 2006-01-10 13:56:54 nkeynes Exp $
  * 
  * Interface definitions for the ARM CPU emulation core proper.
  *
@@ -23,7 +23,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#define ARM_BASE_RATE 33 /* MHZ */
+#define ARM_BASE_RATE 25 /* MHZ */
 extern uint32_t arm_cpu_freq;
 extern uint32_t arm_cpu_period;
 
