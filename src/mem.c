@@ -1,5 +1,5 @@
 /**
- * $Id: mem.c,v 1.10 2005-12-28 22:47:44 nkeynes Exp $
+ * $Id: mem.c,v 1.11 2006-01-10 14:00:00 nkeynes Exp $
  * mem.c is responsible for creating and maintaining the overall system memory
  * map, as visible from the SH4 processor. 
  *
@@ -200,7 +200,7 @@ int mem_load_block( const gchar *file, uint32_t start, uint32_t length )
     if( f == NULL )
 	return errno;
     fstat( fileno(f), &st );
-    if( length == 0 || length == -1 )
+    if( length == 0 || length == -1 || length > st.st_size )
 	length = st.st_size;
     
     while( total < length ) {
