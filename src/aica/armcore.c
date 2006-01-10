@@ -1,5 +1,5 @@
 /**
- * $Id: armcore.c,v 1.15 2006-01-02 23:07:17 nkeynes Exp $
+ * $Id: armcore.c,v 1.16 2006-01-10 13:56:54 nkeynes Exp $
  * 
  * ARM7TDMI CPU emulation core.
  *
@@ -153,6 +153,25 @@ uint32_t arm_get_cpsr( void )
     if( armr.t ) armr.cpsr |= CPSR_T;  
     return armr.cpsr;
 }
+
+/**
+ * Return a pointer to the specified register in the user bank,
+ * regardless of the active bank
+ */
+static uint32_t *arm_user_reg( int reg )
+{
+    if( IS_EXCEPTION_MODE() ) {
+	if( reg == 13 || reg == 14 )
+	    return &armr.user_r[reg-8];
+	if( IS_FIQ_MODE() ) {
+	    if( reg >= 8 || reg <= 12 )
+		return &armr.user_r[reg-8];
+	}
+    }
+    return &armr.r[reg];
+}
+
+#define USER_R(n) *arm_user_reg(n)
 
 /**
  * Set the CPSR to the specified value.
@@ -661,6 +680,7 @@ gboolean arm_execute_instruction( void )
     uint32_t pc;
     uint32_t ir;
     uint32_t operand, operand2, tmp, tmp2, cond;
+    int i;
 
     tmp = armr.int_pending & (~armr.cpsr);
     if( tmp ) {
@@ -1121,95 +1141,181 @@ gboolean arm_execute_instruction( void )
 	    }
 	    armr.r[15] = pc + 4 + operand;
 	} else { /* Load/store multiple */
-	    int prestep, poststep;
-	    if( PFLAG(ir) ) {
-		prestep = UFLAG(ir) ? 4 : -4;
-		poststep = 0 ;
-	    } else {
-		prestep = 0;
-		poststep = UFLAG(ir) ? 4 : -4;
-	    }
 	    operand = RN(ir);
-	    if( BFLAG(ir) ) { 
-		/* Actually S - bit 22. Means "make massively complicated" */
-		if( LFLAG(ir) && (ir&0x00008000) ) {
-		    /* LDM (3). Much like normal LDM but also copies SPSR
-		     * back to CPSR */
-		    for( tmp=0; tmp < 16; tmp++ ) {
-			if( (ir & (1<<tmp)) ) {
-			    operand += prestep;
-			    armr.r[tmp] = arm_read_long(operand);
-			    operand += poststep;
+	    
+	    switch( (ir & 0x01D00000) >> 20 ) {
+	    case 0: /* STMDA */
+		for( i=15; i>= 0; i-- ) {
+		    if( (ir & (1<<i)) ) {
+			arm_write_long( operand, armr.r[i] );
+			operand -= 4;
+		    }
+		}
+		break;
+	    case 1: /* LDMDA */
+		for( i=15; i>= 0; i-- ) {
+		    if( (ir & (1<<i)) ) {
+			armr.r[i] = arm_read_long( operand );
+			operand -= 4;
+		    }
+		}
+		break;
+	    case 4: /* STMDA (S) */
+		for( i=15; i>= 0; i-- ) {
+		    if( (ir & (1<<i)) ) {
+			arm_write_long( operand, USER_R(i) );
+			operand -= 4;
+		    }
+		}
+		break;
+	    case 5: /* LDMDA (S) */
+		if( (ir&0x00008000) ) { /* Load PC */
+		    for( i=15; i>= 0; i-- ) {
+			if( (ir & (1<<i)) ) {
+			    armr.r[i] = arm_read_long( operand );
+			    operand -= 4;
 			}
 		    }
-		    if( WFLAG(ir) ) 
-			LRN(ir) = operand;
 		    arm_restore_cpsr();
-		    if( armr.t ) PC &= 0xFFFFFFFE;
-		    else PC &= 0xFFFFFFFC;
 		} else {
-		    /* LDM/STM (2). As normal LDM but accesses the User banks
-		     * instead of the active ones. Aka the truly evil case
-		     */
-		    int bank_start;
-		    if( IS_FIQ_MODE() )
-			bank_start = 8;
-		    else if( IS_EXCEPTION_MODE() )
-			bank_start = 13;
-		    else bank_start = 15;
-		    for( tmp=0; tmp<bank_start; tmp++ ) {
-			if( (ir & (1<<tmp)) ) {
-			    operand += prestep;
-			    if( LFLAG(ir) ) {
-				armr.r[tmp] = arm_read_long(operand);
-			    } else {
-				arm_write_long( operand, armr.r[tmp] );
-			    }
-			    operand += poststep;
+		    for( i=15; i>= 0; i-- ) {
+			if( (ir & (1<<i)) ) {
+			    USER_R(i) = arm_read_long( operand );
+			    operand -= 4;
 			}
-		    }
-		    for( ; tmp < 15; tmp ++ ) {
-			if( (ir & (1<<tmp)) ) {
-			    operand += prestep;
-			    if( LFLAG(ir) ) {
-				armr.user_r[tmp-8] = arm_read_long(operand);
-			    } else {
-				arm_write_long( operand, armr.user_r[tmp-8] );
-			    }
-			    operand += poststep;
-			}
-		    }
-		    if( ir & 0x8000 ) {
-			operand += prestep;
-			if( LFLAG(ir) ) {
-			    /* Actually can't happen, but anyway... */
-			    armr.r[15] = arm_read_long(operand);
-			} else {
-			    arm_write_long( operand, armr.r[15]+ STM_R15_OFFSET - 4 );
-			}
-			operand += poststep;
 		    }
 		}
-	    } else {
-		/* Normal LDM/STM */
-		for( tmp=0; tmp < 16; tmp++ ) {
-		    if( (ir & (1<<tmp)) ) {
-			operand += prestep;
-			if( LFLAG(ir) ) {
-			    armr.r[tmp] = arm_read_long(operand);
-			} else {
-			    if( tmp == 15 )
-				arm_write_long( operand, 
-						armr.r[15] + STM_R15_OFFSET - 4 );
-			    else
-				arm_write_long( operand, armr.r[tmp] );
-			}
-			operand += poststep;
+		break;
+	    case 8: /* STMIA */
+		for( i=0; i< 16; i++ ) {
+		    if( (ir & (1<<i)) ) {
+			arm_write_long( operand, armr.r[i] );
+			operand += 4;
 		    }
 		}
-		if( WFLAG(ir) ) 
-		    LRN(ir) = operand;
+		break;
+	    case 9: /* LDMIA */
+		for( i=0; i< 16; i++ ) {
+		    if( (ir & (1<<i)) ) {
+			armr.r[i] = arm_read_long( operand );
+			operand += 4;
+		    }
+		}
+		break;
+	    case 12: /* STMIA (S) */
+		for( i=0; i< 16; i++ ) {
+		    if( (ir & (1<<i)) ) {
+			arm_write_long( operand, USER_R(i) );
+			operand += 4;
+		    }
+		}
+		break;
+	    case 13: /* LDMIA (S) */
+		if( (ir&0x00008000) ) { /* Load PC */
+		    for( i=0; i < 16; i++ ) {
+			if( (ir & (1<<i)) ) {
+			    armr.r[i] = arm_read_long( operand );
+			    operand += 4;
+			}
+		    }
+		    arm_restore_cpsr();
+		} else {
+		    for( i=0; i < 16; i++ ) {
+			if( (ir & (1<<i)) ) {
+			    USER_R(i) = arm_read_long( operand );
+			    operand += 4;
+			}
+		    }
+		}
+		break;
+	    case 16: /* STMDB */
+		for( i=15; i>= 0; i-- ) {
+		    if( (ir & (1<<i)) ) {
+			operand -= 4;
+			arm_write_long( operand, armr.r[i] );
+		    }
+		}
+		break;
+	    case 17: /* LDMDB */
+		for( i=15; i>= 0; i-- ) {
+		    if( (ir & (1<<i)) ) {
+			operand -= 4;
+			armr.r[i] = arm_read_long( operand );
+		    }
+		}
+		break;
+	    case 20: /* STMDB (S) */
+		for( i=15; i>= 0; i-- ) {
+		    if( (ir & (1<<i)) ) {
+			operand -= 4;
+			arm_write_long( operand, USER_R(i) );
+		    }
+		}
+		break;
+	    case 21: /* LDMDB (S) */
+		if( (ir&0x00008000) ) { /* Load PC */
+		    for( i=15; i>= 0; i-- ) {
+			if( (ir & (1<<i)) ) {
+			    operand -= 4;
+			    armr.r[i] = arm_read_long( operand );
+			}
+		    }
+		    arm_restore_cpsr();
+		} else {
+		    for( i=15; i>= 0; i-- ) {
+			if( (ir & (1<<i)) ) {
+			    operand -= 4;
+			    USER_R(i) = arm_read_long( operand );
+			}
+		    }
+		}
+		break;
+	    case 24: /* STMIB */
+		for( i=0; i< 16; i++ ) {
+		    if( (ir & (1<<i)) ) {
+			operand += 4;
+			arm_write_long( operand, armr.r[i] );
+		    }
+		}
+		break;
+	    case 25: /* LDMIB */
+		for( i=0; i< 16; i++ ) {
+		    if( (ir & (1<<i)) ) {
+			operand += 4;
+			armr.r[i] = arm_read_long( operand );
+		    }
+		}
+		break;
+	    case 28: /* STMIB (S) */
+		for( i=0; i< 16; i++ ) {
+		    if( (ir & (1<<i)) ) {
+			operand += 4;
+			arm_write_long( operand, USER_R(i) );
+		    }
+		}
+		break;
+	    case 29: /* LDMIB (S) */
+		if( (ir&0x00008000) ) { /* Load PC */
+		    for( i=0; i < 16; i++ ) {
+			if( (ir & (1<<i)) ) {
+			    operand += 4;
+			    armr.r[i] = arm_read_long( operand );
+			}
+		    }
+		    arm_restore_cpsr();
+		} else {
+		    for( i=0; i < 16; i++ ) {
+			if( (ir & (1<<i)) ) {
+			    operand += 4;
+			    USER_R(i) = arm_read_long( operand );
+			}
+		    }
+		}
+		break;
 	    }
+	    
+	    if( WFLAG(ir) ) 
+		LRN(ir) = operand;
 	}
 	break;
     case 3: /* Copro */

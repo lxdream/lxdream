@@ -1,5 +1,5 @@
 /**
- * $Id: aica.c,v 1.10 2006-01-02 14:50:12 nkeynes Exp $
+ * $Id: aica.c,v 1.11 2006-01-10 13:56:54 nkeynes Exp $
  * 
  * This is the core sound system (ie the bit which does the actual work)
  *
@@ -19,9 +19,11 @@
 #define MODULE aica_module
 
 #include "dream.h"
+#include "dreamcast.h"
 #include "mem.h"
 #include "aica.h"
 #include "armcore.h"
+#include "audio.h"
 #define MMIO_IMPL
 #include "aica.h"
 
@@ -37,6 +39,7 @@ void aica_save_state( FILE *f );
 int aica_load_state( FILE *f );
 uint32_t aica_run_slice( uint32_t );
 
+#define IS_TIMER_ENABLED() (MMIO_READ( AICA2, AICA_TCR ) & 0x40)
 
 struct dreamcast_module aica_module = { "AICA", aica_init, aica_reset, 
 					aica_start, aica_run_slice, aica_stop,
@@ -51,12 +54,14 @@ void aica_init( void )
     MMIO_NOTRACE(AICA0);
     MMIO_NOTRACE(AICA1);
     arm_mem_init();
-    arm_reset();
+    aica_reset();
+    audio_set_output( &esd_audio_driver, 44100, AUDIO_FMT_16BIT|AUDIO_FMT_STEREO );
 }
 
 void aica_reset( void )
 {
     arm_reset();
+    aica_event(2); /* Pre-deliver a timer interrupt */
 }
 
 void aica_start( void )
@@ -64,15 +69,36 @@ void aica_start( void )
 
 }
 
+/**
+ * Keep track of what we've done so far this second, to try to keep the
+ * precision of samples/second.
+ */
+int samples_done = 0;
+uint32_t nanosecs_done = 0;
+
 uint32_t aica_run_slice( uint32_t nanosecs )
 {
     /* Run arm instructions */
     int reset = MMIO_READ( AICA2, AICA_RESET );
-    if( (reset & 1) == 0 ) { 
-	/* Running */
-        nanosecs = arm_run_slice( nanosecs );
+    if( (reset & 1) == 0 ) { /* Running */
+	int num_samples = (nanosecs_done + nanosecs) / AICA_SAMPLE_RATE - samples_done;
+	int i;
+	for( i=0; i<num_samples; i++ ) {
+	    nanosecs = arm_run_slice( AICA_SAMPLE_PERIOD );
+	    audio_mix_sample();
+	    if( IS_TIMER_ENABLED() ) {
+		uint8_t val = MMIO_READ( AICA2, AICA_TIMER );
+		val++;
+		if( val == 0 )
+		    aica_event( AICA_EVENT_TIMER );
+		MMIO_WRITE( AICA2, AICA_TIMER, val );
+	    }
+	    if( !dreamcast_is_running() )
+		break;
+	}
+	samples_done += num_samples;
+	nanosecs_done += nanosecs;
     }
-    /* Generate audio buffer */
     return nanosecs;
 }
 
@@ -132,6 +158,7 @@ void aica_clear_event( )
 	    armr.int_pending &= ~CPSR_F;
     }
 }
+
 /** Channel register structure:
  * 00  4  Channel config
  * 04  4  Waveform address lo (16 bits)
@@ -155,20 +182,22 @@ void aica_clear_event( )
 /* Write to channels 0-31 */
 void mmio_region_AICA0_write( uint32_t reg, uint32_t val )
 {
-    //    aica_write_channel( reg >> 7, reg % 128, val );
     MMIO_WRITE( AICA0, reg, val );
+    aica_write_channel( reg >> 7, reg % 128, val );
     //    DEBUG( "AICA0 Write %08X => %08X", val, reg );
 }
 
 /* Write to channels 32-64 */
 void mmio_region_AICA1_write( uint32_t reg, uint32_t val )
 {
-    //    aica_write_channel( (reg >> 7) + 32, reg % 128, val );
     MMIO_WRITE( AICA1, reg, val );
+    aica_write_channel( (reg >> 7) + 32, reg % 128, val );
     // DEBUG( "AICA1 Write %08X => %08X", val, reg );
 }
 
-/* General registers */
+/**
+ * AICA control registers 
+ */
 void mmio_region_AICA2_write( uint32_t reg, uint32_t val )
 {
     uint32_t tmp;
@@ -179,6 +208,8 @@ void mmio_region_AICA2_write( uint32_t reg, uint32_t val )
 	    /* ARM enabled - execute a core reset */
 	    DEBUG( "ARM enabled" );
 	    arm_reset();
+	    samples_done = 0;
+	    nanosecs_done = 0;
 	} else if( (tmp&1) == 0 && (val&1) == 1 ) {
 	    DEBUG( "ARM disabled" );
 	}
@@ -191,4 +222,92 @@ void mmio_region_AICA2_write( uint32_t reg, uint32_t val )
 	MMIO_WRITE( AICA2, reg, val );
 	break;
     }
+}
+
+/**
+ * Translate the channel frequency to a sample rate. The frequency is a
+ * 14-bit floating point number, where bits 0..9 is the mantissa,
+ * 11..14 is the signed exponent (-8 to +7). Bit 10 appears to
+ * be unused.
+ *
+ * @return sample rate in samples per second.
+ */
+uint32_t aica_frequency_to_sample_rate( uint32_t freq )
+{
+    uint32_t exponent = (freq & 0x3800) >> 11;
+    uint32_t mantissa = freq & 0x03FF;
+    if( freq & 0x4000 ) {
+	/* neg exponent - rate < 44100 */
+	exponent = 8 - exponent;
+	return (44100 >> exponent) +
+	    ((44100 * mantissa) >> (10+exponent));
+    } else {
+	/* pos exponent - rate > 44100 */
+	return (44100 << exponent) +
+	    ((44100 * mantissa) >> (10-exponent));
+    }
+}
+
+void aica_write_channel( int channelNo, uint32_t reg, uint32_t val ) 
+{
+    val &= 0x0000FFFF;
+    audio_channel_t channel = audio_get_channel(channelNo);
+    switch( reg ) {
+    case 0x00: /* Config + high address bits*/
+	channel->start = (channel->start & 0xFFFF) | ((val&0x1F) << 16);
+	if( val & 0x200 ) 
+	    channel->loop_count = -1;
+	else 
+	    channel->loop_count = 0;
+	switch( (val >> 7) & 0x03 ) {
+	case 0:
+	    channel->sample_format = AUDIO_FMT_16BIT;
+	    break;
+	case 1:
+	    channel->sample_format = AUDIO_FMT_8BIT;
+	    break;
+	case 2:
+	case 3:
+	    channel->sample_format = AUDIO_FMT_ADPCM;
+	    break;
+	}
+	switch( (val >> 14) & 0x03 ) {
+	case 2: 
+	    audio_stop_channel( channelNo ); 
+	    break;
+	case 3: 
+	    audio_start_channel( channelNo ); 
+	    break;
+	default:
+	    break;
+	    /* Hrmm... */
+	}
+	break;
+    case 0x04: /* Low 16 address bits */
+	channel->start = (channel->start & 0x001F0000) | val;
+	break;
+    case 0x08: /* Loop start */
+	channel->loop_start = val;
+	break;
+    case 0x0C: /* Loop end */
+	channel->loop_end = channel->end = val;
+	break;
+    case 0x10: /* Envelope register 1 */
+	break;
+    case 0x14: /* Envelope register 2 */
+	break;
+    case 0x18: /* Frequency */
+	channel->sample_rate = aica_frequency_to_sample_rate ( val );
+	break;
+    case 0x1C: /* ??? */
+    case 0x20: /* ??? */
+    case 0x24: /* Volume? /pan */
+	break;
+    case 0x28: /* Volume */
+	channel->vol_left = channel->vol_right = val & 0xFF;
+	break;
+    default: /* ??? */
+	break;
+    }
+
 }
