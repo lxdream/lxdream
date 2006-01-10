@@ -19,7 +19,8 @@ dream_SOURCES = \
         sh4/sh4core.c sh4/sh4core.h sh4/sh4dasm.c sh4/sh4dasm.h \
         sh4/sh4mmio.c sh4/sh4mmio.h sh4/scif.c \
         aica/armcore.c aica/armcore.h aica/armdasm.c aica/armmem.c \
-        aica/aica.c aica/aica.h \
+        aica/aica.c aica/aica.h aica/audio.c aica/audio.h \
+	aica/audio_null.c aica/audio_esd.c \
         maple/maple.c maple/maple.h \
         maple/controller.c maple/controller.h \
         gui/support.c gui/support.h \
@@ -29,6 +30,6 @@ dream_SOURCES = \
         gui/debug_win.c gui/dump_win.c \
         loader.c bootstrap.c util.c
 
-dream_LDADD = @PACKAGE_LIBS@ $(INTLLIBS)
+dream_LDADD = @PACKAGE_LIBS@ $(INTLLIBS) -lesd
 
 AM_CFLAGS = -D_ISOC99_SOURCE -D_BSD_SOURCE 
