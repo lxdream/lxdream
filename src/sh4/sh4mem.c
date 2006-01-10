@@ -1,5 +1,5 @@
 /**
- * $Id: sh4mem.c,v 1.3 2005-12-26 10:47:10 nkeynes Exp $
+ * $Id: sh4mem.c,v 1.4 2006-01-10 13:59:19 nkeynes Exp $
  * sh4mem.c is responsible for the SH4's access to memory (including memory
  * mapped I/O), using the page maps created in mem.c
  *
@@ -23,6 +23,7 @@
 #include "dream.h"
 #include "mem.h"
 #include "mmio.h"
+#include "sh4core.h"
 #include "sh4mmio.h"
 #include "dreamcast.h"
 
