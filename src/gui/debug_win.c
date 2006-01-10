@@ -1,5 +1,5 @@
 /**
- * $Id: debug_win.c,v 1.14 2005-12-27 08:41:22 nkeynes Exp $
+ * $Id: debug_win.c,v 1.15 2006-01-10 13:58:35 nkeynes Exp $
  * This file is responsible for the main debugger gui frame.
  *
  * Copyright (c) 2005 Nathan Keynes.
@@ -16,11 +16,13 @@
  */
 #include <stdlib.h>
 #include <stdarg.h>
+#include <stdio.h>
 #include <gnome.h>
 #include <math.h>
 #include "gui/gui.h"
 #include "mem.h"
 #include "cpu.h"
+#include "video.h"
 
 GdkColor *msg_colors[] = { &clrError, &clrError, &clrWarn, &clrNormal,
                            &clrDebug, &clrTrace };
@@ -128,14 +130,14 @@ void update_registers( debug_info_t data )
 
 void update_icount( debug_info_t data )
 {
-    sprintf( data->icounter_text, "%d", *data->cpu->icount );
+    //    sprintf( data->icounter_text, "%d", *data->cpu->icount );
+    sprintf( data->icounter_text, "%d", video_frame_count );
     gtk_progress_bar_set_text( data->icounter, data->icounter_text );
 }
 
 void set_disassembly_region( debug_info_t data, unsigned int page )
 {
     uint32_t i, posn, next;
-    uint16_t op;
     char buf[80];
     char addr[10];
     char opcode[16] = "";
@@ -156,7 +158,6 @@ void set_disassembly_region( debug_info_t data, unsigned int page )
         for( i=from; i<to; i = next ) {
 	    next = data->cpu->disasm_func( i, buf, sizeof(buf), opcode );
             sprintf( addr, "%08X", i );
-            op = sh4_read_phys_word(i);
             posn = gtk_clist_append( data->disasm_list, arr );
             if( buf[0] == '?' )
                 gtk_clist_set_foreground( data->disasm_list, posn, &clrWarn );
@@ -227,6 +228,7 @@ void set_disassembly_cpu( debug_info_t data, const gchar *cpu )
 	if( strcmp( data->cpu_list[i]->name, cpu ) == 0 ) {
 	    if( data->cpu != data->cpu_list[i] ) {
 		data->cpu = data->cpu_list[i];
+		data->disasm_from = data->disasm_to = -1; /* Force reload */
 		set_disassembly_pc( data, *data->cpu->pc, FALSE );
 		init_register_list( data );
 		update_icount( data );
@@ -288,8 +290,14 @@ void emit( void *ptr, int level, const gchar *source, const char *msg, ... )
     if( ptr == NULL )
 	data = main_debug;
     else data = (debug_info_t)ptr;
-
     va_start(ap, msg);
+
+    if( data == NULL ) {
+	vfprintf( stderr, msg, ap );
+	va_end(ap);
+	return;
+    }
+
     p = g_strdup_vprintf( msg, ap );
     strftime( buf, sizeof(buf), "%H:%M:%S", localtime(&tm) );
     sprintf( addr, "%08X", *data->cpu->pc );
