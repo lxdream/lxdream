@@ -1,5 +1,5 @@
 /**
- * $Id: audio.h,v 1.1 2006-01-10 13:56:54 nkeynes Exp $
+ * $Id: audio.h,v 1.2 2006-01-12 11:30:19 nkeynes Exp $
  * 
  * Audio engine, ie the part that does the actual work.
  *
@@ -40,9 +40,8 @@ typedef struct audio_channel {
     uint32_t posn_left;
     uint32_t start;
     uint32_t end;
+    gboolean loop;
     uint32_t loop_start;
-    uint32_t loop_end;
-    int loop_count; /* 0 = no loop, -1 = loop forever */
     int vol_left; /* 0..255 */
     int vol_right; /* 0..255 */
     uint32_t sample_rate;
@@ -56,8 +55,8 @@ typedef struct audio_channel {
 
 
 typedef struct audio_buffer {
-    uint32_t length; /* Samples */
-    uint32_t posn; /* Samples */
+    uint32_t length; /* Bytes */
+    uint32_t posn; /* Bytes */
     int status;
     char data[0];
 } *audio_buffer_t;
@@ -96,7 +95,7 @@ audio_buffer_t audio_next_read_buffer();
 /**
  * Mix a single output sample and append it to the output buffers
  */
-void audio_mix_sample( void );
+void audio_mix_samples( int num_samples );
 
 /**
  * Retrieve the channel information for the channel, numbered 0..63. 

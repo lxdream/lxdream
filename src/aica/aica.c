@@ -1,5 +1,5 @@
 /**
- * $Id: aica.c,v 1.11 2006-01-10 13:56:54 nkeynes Exp $
+ * $Id: aica.c,v 1.12 2006-01-12 11:30:19 nkeynes Exp $
  * 
  * This is the core sound system (ie the bit which does the actual work)
  *
@@ -38,8 +38,6 @@ void aica_stop( void );
 void aica_save_state( FILE *f );
 int aica_load_state( FILE *f );
 uint32_t aica_run_slice( uint32_t );
-
-#define IS_TIMER_ENABLED() (MMIO_READ( AICA2, AICA_TCR ) & 0x40)
 
 struct dreamcast_module aica_module = { "AICA", aica_init, aica_reset, 
 					aica_start, aica_run_slice, aica_stop,
@@ -82,22 +80,15 @@ uint32_t aica_run_slice( uint32_t nanosecs )
     int reset = MMIO_READ( AICA2, AICA_RESET );
     if( (reset & 1) == 0 ) { /* Running */
 	int num_samples = (nanosecs_done + nanosecs) / AICA_SAMPLE_RATE - samples_done;
-	int i;
-	for( i=0; i<num_samples; i++ ) {
-	    nanosecs = arm_run_slice( AICA_SAMPLE_PERIOD );
-	    audio_mix_sample();
-	    if( IS_TIMER_ENABLED() ) {
-		uint8_t val = MMIO_READ( AICA2, AICA_TIMER );
-		val++;
-		if( val == 0 )
-		    aica_event( AICA_EVENT_TIMER );
-		MMIO_WRITE( AICA2, AICA_TIMER, val );
-	    }
-	    if( !dreamcast_is_running() )
-		break;
-	}
+	num_samples = arm_run_slice( num_samples );
+	audio_mix_samples( num_samples );
+
 	samples_done += num_samples;
 	nanosecs_done += nanosecs;
+    }
+    if( nanosecs_done > 1000000000 ) {
+	samples_done -= AICA_SAMPLE_RATE;
+	nanosecs_done -= 1000000000;
     }
     return nanosecs;
 }
@@ -256,9 +247,9 @@ void aica_write_channel( int channelNo, uint32_t reg, uint32_t val )
     case 0x00: /* Config + high address bits*/
 	channel->start = (channel->start & 0xFFFF) | ((val&0x1F) << 16);
 	if( val & 0x200 ) 
-	    channel->loop_count = -1;
+	    channel->loop = TRUE;
 	else 
-	    channel->loop_count = 0;
+	    channel->loop = FALSE;
 	switch( (val >> 7) & 0x03 ) {
 	case 0:
 	    channel->sample_format = AUDIO_FMT_16BIT;
@@ -289,8 +280,8 @@ void aica_write_channel( int channelNo, uint32_t reg, uint32_t val )
     case 0x08: /* Loop start */
 	channel->loop_start = val;
 	break;
-    case 0x0C: /* Loop end */
-	channel->loop_end = channel->end = val;
+    case 0x0C: /* End */
+	channel->end = val;
 	break;
     case 0x10: /* Envelope register 1 */
 	break;
