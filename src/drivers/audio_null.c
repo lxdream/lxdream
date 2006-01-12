@@ -1,5 +1,5 @@
 /**
- * $Id: audio_null.c,v 1.1 2006-01-10 13:56:54 nkeynes Exp $
+ * $Id: audio_null.c,v 1.2 2006-01-12 12:38:59 nkeynes Exp $
  * 
  * The "null" audio driver, which just discards all input without even
  * looking at it.
@@ -28,4 +28,4 @@ gboolean null_audio_process_buffer( audio_buffer_t buffer )
     return TRUE;
 }
 
-struct audio_driver null_audio_driver = { null_audio_set_format, null_audio_process_buffer };
+struct audio_driver null_audio_driver = { "null", null_audio_set_format, null_audio_process_buffer };
