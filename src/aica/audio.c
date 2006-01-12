@@ -1,5 +1,5 @@
 /**
- * $Id: audio.c,v 1.1 2006-01-10 13:56:54 nkeynes Exp $
+ * $Id: audio.c,v 1.2 2006-01-12 11:30:19 nkeynes Exp $
  * 
  * Audio mixer core. Combines all the active streams into a single sound
  * buffer for output. 
@@ -25,7 +25,7 @@
 #include <string.h>
 
 #define NUM_BUFFERS 3
-#define MS_PER_BUFFER 4000
+#define MS_PER_BUFFER 500
 
 #define BUFFER_EMPTY   0
 #define BUFFER_WRITING 1
@@ -71,7 +71,7 @@ void audio_set_output( audio_driver_t driver,
 	if( audio.output_buffers[i] != NULL )
 	    free(audio.output_buffers[i]);
 	audio.output_buffers[i] = g_malloc0( sizeof(struct audio_buffer) + samples_per_buffer * bytes_per_sample );
-	audio.output_buffers[i]->length = samples_per_buffer;
+	audio.output_buffers[i]->length = samples_per_buffer * bytes_per_sample;
 	audio.output_buffers[i]->posn = 0;
 	audio.output_buffers[i]->status = BUFFER_EMPTY;
     }
@@ -175,10 +175,12 @@ static inline short adpcm_yamaha_decode_nibble( audio_channel_t c,
 /**
  * Mix a single output sample.
  */
-void audio_mix_sample( )
+void audio_mix_samples( int num_samples )
 {
     int i, j;
-    int32_t result_left = 0, result_right = 0;
+    int32_t result_buf[num_samples][2];
+
+    memset( &result_buf, 0, sizeof(result_buf) );
 
     for( i=0; i < 64; i++ ) {
 	audio_channel_t channel = &audio.channels[i];
@@ -186,74 +188,113 @@ void audio_mix_sample( )
 	    int32_t sample;
 	    switch( channel->sample_format ) {
 	    case AUDIO_FMT_16BIT:
-		sample = *(int16_t *)(arm_mem + channel->posn + channel->start);
+		for( j=0; j<num_samples; j++ ) {
+		    sample = *(int16_t *)(arm_mem + channel->posn + channel->start);
+		    result_buf[j][0] += sample * channel->vol_left;
+		    result_buf[j][1] += sample * channel->vol_right;
+		    
+		    channel->posn_left += channel->sample_rate;
+		    while( channel->posn_left > audio.output_rate ) {
+			channel->posn_left -= audio.output_rate;
+			channel->posn++;
+			
+			if( channel->posn == channel->end ) {
+			    if( channel->loop )
+				channel->posn = channel->loop_start;
+			    else {
+				audio_stop_channel(i);
+				j = num_samples;
+				break;
+			    }
+			}
+		    }
+		}
 		break;
 	    case AUDIO_FMT_8BIT:
-		sample = (*(int8_t *)(arm_mem + channel->posn + channel->start)) << 8;
-		break;
-	    case AUDIO_FMT_16BIT|AUDIO_FMT_UNSIGNED:
-		sample = (int8_t)((*(uint16_t *)(arm_mem + channel->posn + channel->start)) - 0x8000);
-		break;
-	    case AUDIO_FMT_8BIT|AUDIO_FMT_UNSIGNED:
-		sample = (int8_t)((*(uint8_t *)(arm_mem + channel->posn + channel->start)) - 0x80);
+		for( j=0; j<num_samples; j++ ) {
+		    sample = (*(int8_t *)(arm_mem + channel->posn + channel->start)) << 8;
+		    result_buf[j][0] += sample * channel->vol_left;
+		    result_buf[j][1] += sample * channel->vol_right;
+		    
+		    channel->posn_left += channel->sample_rate;
+		    while( channel->posn_left > audio.output_rate ) {
+			channel->posn_left -= audio.output_rate;
+			channel->posn++;
+			
+			if( channel->posn == channel->end ) {
+			    if( channel->loop )
+				channel->posn = channel->loop_start;
+			    else {
+				audio_stop_channel(i);
+				j = num_samples;
+				break;
+			    }
+			}
+		    }
+		}
 		break;
 	    case AUDIO_FMT_ADPCM:
-		sample = (int16_t)channel->adpcm_predict;
+		for( j=0; j<num_samples; j++ ) {
+		    sample = (int16_t)channel->adpcm_predict;
+		    result_buf[j][0] += sample * channel->vol_left;
+		    result_buf[j][1] += sample * channel->vol_right;
+		    channel->posn_left += channel->sample_rate;
+		    while( channel->posn_left > audio.output_rate ) {
+			channel->posn_left -= audio.output_rate;
+			if( channel->adpcm_nibble == 0 ) {
+			    uint8_t data = *(uint8_t *)(arm_mem + channel->posn + channel->start);
+			    adpcm_yamaha_decode_nibble( channel, (data >> 4) & 0x0F );
+			    channel->adpcm_nibble = 1;
+			} else {
+			    channel->posn++;
+			    if( channel->posn == channel->end ) {
+				if( channel->loop )
+				    channel->posn = channel->loop_start;
+				else
+				    audio_stop_channel(i);
+				break;
+			    }
+			    uint8_t data = *(uint8_t *)(arm_mem + channel->posn + channel->start);
+			    adpcm_yamaha_decode_nibble( channel, data & 0x0F );
+			    channel->adpcm_nibble = 0;
+			}
+		    }
+		}
+		break;
 	    default:
-		sample = 0; /* Unsupported */
-	    }
-	    result_left += sample * channel->vol_left;
-	    result_right += sample * channel->vol_right;
-	    
-	    channel->posn_left += channel->sample_rate;
-	    while( channel->posn_left > audio.output_rate ) {
-		channel->posn_left -= audio.output_rate;
-		if( channel->sample_format == AUDIO_FMT_ADPCM &&
-		    channel->adpcm_nibble == 0 ) {
-		    uint8_t data = *(uint8_t *)(arm_mem + channel->posn + channel->start);
-		    adpcm_yamaha_decode_nibble( channel, (data >> 4) & 0x0F );
-		    channel->adpcm_nibble = 1;
-		    continue;
-		}
-
-		channel->posn++;
-
-		if( channel->loop_count != 0 && 
-		    channel->posn >= channel->loop_end ) {
-		    channel->posn = channel->loop_start;
-		    if( channel->loop_count != -1 )
-			channel->loop_count --;
-		} else if( channel->posn >= channel->end ) {
-		    audio_stop_channel( i );
-		    break;
-		}
-
-		if( channel->sample_format == AUDIO_FMT_ADPCM ) {
-		    uint8_t data = *(uint8_t *)(arm_mem + channel->posn + channel->start);
-		    adpcm_yamaha_decode_nibble( channel, data & 0x0F );
-		    channel->adpcm_nibble = 0;
-		}
+		break;
 	    }
 	}
     }
-
+	    
     /* Down-render to the final output format */
-    audio_buffer_t buf = 
-	audio.output_buffers[audio.write_buffer];
+    
     if( audio.output_format & AUDIO_FMT_16BIT ) {
-	uint16_t *data = (uint16_t *)&buf->data[buf->posn*audio.output_sample_size];
-	*data++ = (int16_t)(result_left >> 8);
-	*data++ = (int16_t)(result_right >> 8);
+	audio_buffer_t buf = audio.output_buffers[audio.write_buffer];
+	uint16_t *data = (uint16_t *)&buf->data[buf->posn];
+	for( j=0; j < num_samples; j++ ) {
+	    *data++ = (int16_t)(result_buf[j][0] >> 8);
+	    *data++ = (int16_t)(result_buf[j][1] >> 8);	
+	    buf->posn += 4;
+	    if( buf->posn == buf->length ) {
+		audio_next_write_buffer();
+		buf = audio.output_buffers[audio.write_buffer];
+		data = (uint16_t *)&buf->data[0];
+	    }
+	}
     } else {
-	audio_buffer_t buf = 
-	    audio.output_buffers[audio.write_buffer];
-	uint8_t *data = (uint8_t *)&buf->data[buf->posn*audio.output_sample_size];
-	*data++ = (int8_t)(result_left >> 22);
-	*data++ = (int8_t)(result_right >>22);
-    }
-    buf->posn++;
-    if( buf->posn == buf->length ) {
-	audio_next_write_buffer();
+	audio_buffer_t buf = audio.output_buffers[audio.write_buffer];
+	uint8_t *data = (uint8_t *)&buf->data[buf->posn];
+	for( j=0; j < num_samples; j++ ) {
+	    *data++ = (uint8_t)(result_buf[j][0] >> 16);
+	    *data++ = (uint8_t)(result_buf[j][1] >> 16);	
+	    buf->posn += 2;
+	    if( buf->posn == buf->length ) {
+		audio_next_write_buffer();
+		buf = audio.output_buffers[audio.write_buffer];
+		data = (uint8_t *)&buf->data[0];
+	    }
+	}
     }
 }
 

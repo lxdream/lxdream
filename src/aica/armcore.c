@@ -1,5 +1,5 @@
 /**
- * $Id: armcore.c,v 1.16 2006-01-10 13:56:54 nkeynes Exp $
+ * $Id: armcore.c,v 1.17 2006-01-12 11:30:19 nkeynes Exp $
  * 
  * ARM7TDMI CPU emulation core.
  *
@@ -18,8 +18,9 @@
 
 #define MODULE aica_module
 #include "dream.h"
-#include "aica/armcore.h"
 #include "mem.h"
+#include "aica/armcore.h"
+#include "aica/aica.h"
 
 #define STM_R15_OFFSET 12
 
@@ -46,6 +47,7 @@ uint32_t arm_exceptions[][2] = {{ MODE_SVC, 0x00000000 },
 uint32_t arm_cpu_freq = ARM_BASE_RATE;
 uint32_t arm_cpu_period = 1000 / ARM_BASE_RATE;
 
+#define CYCLES_PER_SAMPLE ((ARM_BASE_RATE * 1000000) / AICA_SAMPLE_RATE)
 
 static struct breakpoint_struct arm_breakpoints[MAX_BREAKPOINTS];
 static int arm_breakpoint_count = 0;
@@ -85,35 +87,40 @@ int arm_get_breakpoint( uint32_t pc )
     return 0;
 }
 
-uint32_t arm_run_slice( uint32_t nanosecs )
+#define IS_TIMER_ENABLED() (MMIO_READ( AICA2, AICA_TCR ) & 0x40)
+
+uint32_t arm_run_slice( uint32_t num_samples )
 {
-    int i;
-    uint32_t target = armr.icount + nanosecs / arm_cpu_period;
-    uint32_t start = armr.icount;
-    while( armr.icount < target ) {
-	armr.icount++;
-	if( !arm_execute_instruction() )
-	    break;
+    int i,j,k;
+    for( i=0; i<num_samples; i++ ) {
+	for( j=0; j < CYCLES_PER_SAMPLE; j++ ) {
+	    armr.icount++;
+	    if( !arm_execute_instruction() )
+		return i;
 #ifdef ENABLE_DEBUG_MODE
-	for( i=0; i<arm_breakpoint_count; i++ ) {
-	    if( arm_breakpoints[i].address == armr.r[15] ) {
-		break;
+	    for( k=0; k<arm_breakpoint_count; k++ ) {
+		if( arm_breakpoints[k].address == armr.r[15] ) {
+		    dreamcast_stop();
+		    if( arm_breakpoints[k].type == BREAK_ONESHOT )
+			arm_clear_breakpoint( armr.r[15], BREAK_ONESHOT );
+		    return i;
+		}
 	    }
-	}
-	if( i != arm_breakpoint_count ) {
-	    dreamcast_stop();
-	    if( arm_breakpoints[i].type == BREAK_ONESHOT )
-		arm_clear_breakpoint( armr.r[15], BREAK_ONESHOT );
-	    break;
-	}
 #endif	
+	}
+
+	if( IS_TIMER_ENABLED() ) {
+	    uint8_t val = MMIO_READ( AICA2, AICA_TIMER );
+	    val++;
+	    if( val == 0 )
+		aica_event( AICA_EVENT_TIMER );
+	    MMIO_WRITE( AICA2, AICA_TIMER, val );
+	}
+	if( !dreamcast_is_running() )
+	    break;
     }
 
-    if( target != armr.icount ) {
-	/* Halted - compute time actually executed */
-	nanosecs = (armr.icount - start) * arm_cpu_period;
-    }
-    return nanosecs;
+    return i;
 }
 
 void arm_save_state( FILE *f )

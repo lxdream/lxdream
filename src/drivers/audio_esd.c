@@ -1,5 +1,5 @@
 /**
- * $Id: audio_esd.c,v 1.1 2006-01-10 13:56:54 nkeynes Exp $
+ * $Id: audio_esd.c,v 1.2 2006-01-12 11:30:19 nkeynes Exp $
  * 
  * The esd (esound) audio driver
  *
@@ -31,11 +31,9 @@ gboolean esd_audio_set_format( uint32_t rate, uint32_t format )
     esd_sample_size = 1;
     if( format & AUDIO_FMT_16BIT ) {
 	esd_format |= ESD_BITS16;
-	esd_sample_size = 1;
     } else esd_format |= ESD_BITS8;
     if( format & AUDIO_FMT_STEREO ) {
 	esd_format |= ESD_STEREO;
-	esd_sample_size = esd_sample_size << 1 ;
     }
     else esd_format |= ESD_MONO;
     
@@ -46,7 +44,7 @@ gboolean esd_audio_set_format( uint32_t rate, uint32_t format )
 gboolean esd_audio_process_buffer( audio_buffer_t buffer )
 {
     if( esd_handle != -1 ) {
-	write( esd_handle, buffer->data, buffer->length * esd_sample_size );
+	write( esd_handle, buffer->data, buffer->length );
 	DEBUG("Wrote buffer" );
     } else {
 	ERROR( "ESD not initialized" );
