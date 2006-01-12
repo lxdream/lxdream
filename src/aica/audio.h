@@ -1,5 +1,5 @@
 /**
- * $Id: audio.h,v 1.2 2006-01-12 11:30:19 nkeynes Exp $
+ * $Id: audio.h,v 1.3 2006-01-12 12:38:59 nkeynes Exp $
  * 
  * Audio engine, ie the part that does the actual work.
  *
@@ -62,6 +62,7 @@ typedef struct audio_buffer {
 } *audio_buffer_t;
 
 struct audio_driver {
+    char *name;
     gboolean (*set_output_format)( uint32_t sample_rate, uint32_t format );
     gboolean (*process_buffer)( audio_buffer_t buffer );
 };
