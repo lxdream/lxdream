@@ -1,5 +1,5 @@
 /**
- * $Id: aica.c,v 1.13 2006-01-12 22:59:48 nkeynes Exp $
+ * $Id: aica.c,v 1.14 2006-01-14 12:31:36 nkeynes Exp $
  * 
  * This is the core sound system (ie the bit which does the actual work)
  *
@@ -79,7 +79,7 @@ uint32_t aica_run_slice( uint32_t nanosecs )
     /* Run arm instructions */
     int reset = MMIO_READ( AICA2, AICA_RESET );
     if( (reset & 1) == 0 ) { /* Running */
-	int num_samples = (int)((uint64_t)AICA_SAMPLE_RATE * (nanosecs_done + nanosecs) / 1000000000);
+	int num_samples = (int)((uint64_t)AICA_SAMPLE_RATE * (nanosecs_done + nanosecs) / 1000000000) - samples_done;
 	num_samples = arm_run_slice( num_samples );
 	audio_mix_samples( num_samples );
 
