@@ -1,5 +1,5 @@
 /**
- * $Id: audio.c,v 1.2 2006-01-12 11:30:19 nkeynes Exp $
+ * $Id: audio.c,v 1.3 2006-01-16 11:23:05 nkeynes Exp $
  * 
  * Audio mixer core. Combines all the active streams into a single sound
  * buffer for output. 
@@ -25,7 +25,7 @@
 #include <string.h>
 
 #define NUM_BUFFERS 3
-#define MS_PER_BUFFER 500
+#define MS_PER_BUFFER 100
 
 #define BUFFER_EMPTY   0
 #define BUFFER_WRITING 1
@@ -319,5 +319,4 @@ void audio_start_channel( int channel )
     audio.channels[channel].adpcm_step = 0;
     audio.channels[channel].adpcm_predict = 0;
     audio.channels[channel].active = TRUE;
-    DEBUG("Channel %d on", channel );
 }
