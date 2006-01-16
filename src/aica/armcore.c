@@ -1,5 +1,5 @@
 /**
- * $Id: armcore.c,v 1.17 2006-01-12 11:30:19 nkeynes Exp $
+ * $Id: armcore.c,v 1.18 2006-01-16 11:23:28 nkeynes Exp $
  * 
  * ARM7TDMI CPU emulation core.
  *
@@ -87,8 +87,6 @@ int arm_get_breakpoint( uint32_t pc )
     return 0;
 }
 
-#define IS_TIMER_ENABLED() (MMIO_READ( AICA2, AICA_TCR ) & 0x40)
-
 uint32_t arm_run_slice( uint32_t num_samples )
 {
     int i,j,k;
@@ -108,12 +106,15 @@ uint32_t arm_run_slice( uint32_t num_samples )
 	    }
 #endif	
 	}
-
-	if( IS_TIMER_ENABLED() ) {
+	
+	k = MMIO_READ( AICA2, AICA_TCR );
+	if( k & 0x40 ) {
 	    uint8_t val = MMIO_READ( AICA2, AICA_TIMER );
 	    val++;
-	    if( val == 0 )
+	    if( val == 0 ) {
 		aica_event( AICA_EVENT_TIMER );
+		MMIO_WRITE( AICA2, AICA_TCR, k & ~0x40 );
+	    }
 	    MMIO_WRITE( AICA2, AICA_TIMER, val );
 	}
 	if( !dreamcast_is_running() )
