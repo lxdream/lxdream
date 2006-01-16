@@ -1,5 +1,5 @@
 /**
- * $Id: main.c,v 1.10 2006-01-10 13:57:54 nkeynes Exp $
+ * $Id: main.c,v 1.11 2006-01-16 11:18:29 nkeynes Exp $
  *
  * Main program, initializes dreamcast and gui, then passes control off to
  * the gtk main loop (currently). 
@@ -29,9 +29,13 @@
 #include "dream.h"
 #include "dreamcast.h"
 
-char *option_list = "a:A:V:p";
+#define S3M_PLAYER "s3mplay.bin"
+
+char *option_list = "a:s:A:V:ph";
 char *aica_program = NULL;
+char *s3m_file = NULL;
 gboolean start_immediately = FALSE;
+gboolean headless = FALSE;
 
 int main (int argc, char *argv[])
 {
@@ -46,32 +50,49 @@ int main (int argc, char *argv[])
 	case 'a': /* AICA only mode - argument is an AICA program */
 	    aica_program = optarg;
 	    break;
+	case 's': /* AICA-only w/ S3M player */
+	    aica_program = S3M_PLAYER;
+	    s3m_file = optarg;
+	    break;
 	case 'A': /* Audio driver */
 	    break;
 	case 'V': /* Video driver */
 	    break;
 	case 'p': /* Start immediately */
 	    start_immediately = TRUE;
+    	    break;
+        case 'h': /* Headless */
+            headless = TRUE;
+            break;
 	}
     }
 
     if( aica_program == NULL ) {
 	dreamcast_init();
-	gnome_init ("dreamon", VERSION, argc, argv);
-	video_open();
-	dreamcast_register_module( &gtk_gui_module );
+	if( !headless ) {
+	    gnome_init ("dreamon", VERSION, argc, argv);
+	    video_open();
+	    dreamcast_register_module( &gtk_gui_module );
+	}
     } else {
 	dreamcast_configure_aica_only();
 	mem_load_block( aica_program, 0x00800000, 2048*1024 );
-	gnome_init ("dreamon", VERSION, argc, argv);
-	dreamcast_register_module( &gtk_gui_module );
-	set_disassembly_cpu( main_debug, "ARM7" );
+	if( s3m_file != NULL ) {
+	    mem_load_block( s3m_file, 0x00810000, 2048*1024 - 0x10000 );
+	}
+	if( !headless ) {
+	    gnome_init ("dreamon", VERSION, argc, argv);
+	    dreamcast_register_module( &gtk_gui_module );
+	    set_disassembly_cpu( main_debug, "ARM7" );
+	}
     }
 
     INFO( "DreamOn! ready..." );
     if( start_immediately )
 	dreamcast_run();
-    gtk_main ();
+    if( !headless ) {
+        gtk_main ();
+    }
     return 0;
 }
 
