@@ -1,5 +1,5 @@
 /**
- * $Id: audio_esd.c,v 1.3 2006-01-12 12:38:59 nkeynes Exp $
+ * $Id: audio_esd.c,v 1.4 2006-01-16 11:22:41 nkeynes Exp $
  * 
  * The esd (esound) audio driver
  *
@@ -45,11 +45,11 @@ gboolean esd_audio_process_buffer( audio_buffer_t buffer )
 {
     if( esd_handle != -1 ) {
 	write( esd_handle, buffer->data, buffer->length );
-	DEBUG("Wrote buffer" );
+	return TRUE;
     } else {
 	ERROR( "ESD not initialized" );
+	return FALSE;
     }
-    return TRUE;
 }
 
 struct audio_driver esd_audio_driver = { "esd", esd_audio_set_format, esd_audio_process_buffer };
