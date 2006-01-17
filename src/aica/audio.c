@@ -1,5 +1,5 @@
 /**
- * $Id: audio.c,v 1.3 2006-01-16 11:23:05 nkeynes Exp $
+ * $Id: audio.c,v 1.4 2006-01-17 12:54:02 nkeynes Exp $
  * 
  * Audio mixer core. Combines all the active streams into a single sound
  * buffer for output. 
@@ -25,7 +25,7 @@
 #include <string.h>
 
 #define NUM_BUFFERS 3
-#define MS_PER_BUFFER 100
+#define MS_PER_BUFFER 1000
 
 #define BUFFER_EMPTY   0
 #define BUFFER_WRITING 1
@@ -186,12 +186,14 @@ void audio_mix_samples( int num_samples )
 	audio_channel_t channel = &audio.channels[i];
 	if( channel->active ) {
 	    int32_t sample;
+	    int vol_left = (channel->vol * (32 - channel->pan)) >> 5;
+	    int vol_right = (channel->vol * (channel->pan + 1)) >> 5;
 	    switch( channel->sample_format ) {
 	    case AUDIO_FMT_16BIT:
 		for( j=0; j<num_samples; j++ ) {
 		    sample = *(int16_t *)(arm_mem + channel->posn + channel->start);
-		    result_buf[j][0] += sample * channel->vol_left;
-		    result_buf[j][1] += sample * channel->vol_right;
+		    result_buf[j][0] += sample * vol_left;
+		    result_buf[j][1] += sample * vol_right;
 		    
 		    channel->posn_left += channel->sample_rate;
 		    while( channel->posn_left > audio.output_rate ) {
@@ -213,8 +215,8 @@ void audio_mix_samples( int num_samples )
 	    case AUDIO_FMT_8BIT:
 		for( j=0; j<num_samples; j++ ) {
 		    sample = (*(int8_t *)(arm_mem + channel->posn + channel->start)) << 8;
-		    result_buf[j][0] += sample * channel->vol_left;
-		    result_buf[j][1] += sample * channel->vol_right;
+		    result_buf[j][0] += sample * vol_left;
+		    result_buf[j][1] += sample * vol_right;
 		    
 		    channel->posn_left += channel->sample_rate;
 		    while( channel->posn_left > audio.output_rate ) {
@@ -236,8 +238,8 @@ void audio_mix_samples( int num_samples )
 	    case AUDIO_FMT_ADPCM:
 		for( j=0; j<num_samples; j++ ) {
 		    sample = (int16_t)channel->adpcm_predict;
-		    result_buf[j][0] += sample * channel->vol_left;
-		    result_buf[j][1] += sample * channel->vol_right;
+		    result_buf[j][0] += sample * vol_left;
+		    result_buf[j][1] += sample * vol_right;
 		    channel->posn_left += channel->sample_rate;
 		    while( channel->posn_left > audio.output_rate ) {
 			channel->posn_left -= audio.output_rate;
@@ -273,8 +275,8 @@ void audio_mix_samples( int num_samples )
 	audio_buffer_t buf = audio.output_buffers[audio.write_buffer];
 	uint16_t *data = (uint16_t *)&buf->data[buf->posn];
 	for( j=0; j < num_samples; j++ ) {
-	    *data++ = (int16_t)(result_buf[j][0] >> 8);
-	    *data++ = (int16_t)(result_buf[j][1] >> 8);	
+	    *data++ = (int16_t)(result_buf[j][0] >> 6);
+	    *data++ = (int16_t)(result_buf[j][1] >> 6);	
 	    buf->posn += 4;
 	    if( buf->posn == buf->length ) {
 		audio_next_write_buffer();

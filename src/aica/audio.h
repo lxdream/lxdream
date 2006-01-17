@@ -1,5 +1,5 @@
 /**
- * $Id: audio.h,v 1.3 2006-01-12 12:38:59 nkeynes Exp $
+ * $Id: audio.h,v 1.4 2006-01-17 12:54:02 nkeynes Exp $
  * 
  * Audio engine, ie the part that does the actual work.
  *
@@ -42,8 +42,8 @@ typedef struct audio_channel {
     uint32_t end;
     gboolean loop;
     uint32_t loop_start;
-    int vol_left; /* 0..255 */
-    int vol_right; /* 0..255 */
+    int vol; /* 0..255 */
+    int pan; /* 0 (left) .. 31 (right) */
     uint32_t sample_rate;
     int sample_format; 
     /* Envelope etc stuff */
