@@ -1,5 +1,5 @@
 /**
- * $Id: armcore.c,v 1.18 2006-01-16 11:23:28 nkeynes Exp $
+ * $Id: armcore.c,v 1.19 2006-01-17 12:53:39 nkeynes Exp $
  * 
  * ARM7TDMI CPU emulation core.
  *
@@ -1149,11 +1149,16 @@ gboolean arm_execute_instruction( void )
 	    }
 	    armr.r[15] = pc + 4 + operand;
 	} else { /* Load/store multiple */
+	    gboolean needRestore = FALSE;
 	    operand = RN(ir);
 	    
 	    switch( (ir & 0x01D00000) >> 20 ) {
 	    case 0: /* STMDA */
-		for( i=15; i>= 0; i-- ) {
+		if( ir & 0x8000 ) {
+		    arm_write_long( operand, armr.r[15]+4 );
+		    operand -= 4;
+		}
+		for( i=14; i>= 0; i-- ) {
 		    if( (ir & (1<<i)) ) {
 			arm_write_long( operand, armr.r[i] );
 			operand -= 4;
@@ -1169,7 +1174,11 @@ gboolean arm_execute_instruction( void )
 		}
 		break;
 	    case 4: /* STMDA (S) */
-		for( i=15; i>= 0; i-- ) {
+		if( ir & 0x8000 ) {
+		    arm_write_long( operand, armr.r[15]+4 );
+		    operand -= 4;
+		}
+		for( i=14; i>= 0; i-- ) {
 		    if( (ir & (1<<i)) ) {
 			arm_write_long( operand, USER_R(i) );
 			operand -= 4;
@@ -1184,7 +1193,7 @@ gboolean arm_execute_instruction( void )
 			    operand -= 4;
 			}
 		    }
-		    arm_restore_cpsr();
+		    needRestore = TRUE;
 		} else {
 		    for( i=15; i>= 0; i-- ) {
 			if( (ir & (1<<i)) ) {
@@ -1195,11 +1204,15 @@ gboolean arm_execute_instruction( void )
 		}
 		break;
 	    case 8: /* STMIA */
-		for( i=0; i< 16; i++ ) {
+		for( i=0; i< 15; i++ ) {
 		    if( (ir & (1<<i)) ) {
 			arm_write_long( operand, armr.r[i] );
 			operand += 4;
 		    }
+		}
+		if( ir & 0x8000 ) {
+		    arm_write_long( operand, armr.r[15]+4 );
+		    operand += 4;
 		}
 		break;
 	    case 9: /* LDMIA */
@@ -1211,11 +1224,15 @@ gboolean arm_execute_instruction( void )
 		}
 		break;
 	    case 12: /* STMIA (S) */
-		for( i=0; i< 16; i++ ) {
+		for( i=0; i< 15; i++ ) {
 		    if( (ir & (1<<i)) ) {
 			arm_write_long( operand, USER_R(i) );
 			operand += 4;
 		    }
+		}
+		if( ir & 0x8000 ) {
+		    arm_write_long( operand, armr.r[15]+4 );
+		    operand += 4;
 		}
 		break;
 	    case 13: /* LDMIA (S) */
@@ -1226,7 +1243,7 @@ gboolean arm_execute_instruction( void )
 			    operand += 4;
 			}
 		    }
-		    arm_restore_cpsr();
+		    needRestore = TRUE;
 		} else {
 		    for( i=0; i < 16; i++ ) {
 			if( (ir & (1<<i)) ) {
@@ -1237,7 +1254,11 @@ gboolean arm_execute_instruction( void )
 		}
 		break;
 	    case 16: /* STMDB */
-		for( i=15; i>= 0; i-- ) {
+		if( ir & 0x8000 ) {
+		    operand -= 4;
+		    arm_write_long( operand, armr.r[15]+4 );
+		}
+		for( i=14; i>= 0; i-- ) {
 		    if( (ir & (1<<i)) ) {
 			operand -= 4;
 			arm_write_long( operand, armr.r[i] );
@@ -1253,7 +1274,11 @@ gboolean arm_execute_instruction( void )
 		}
 		break;
 	    case 20: /* STMDB (S) */
-		for( i=15; i>= 0; i-- ) {
+		if( ir & 0x8000 ) {
+		    operand -= 4;
+		    arm_write_long( operand, armr.r[15]+4 );
+		}
+		for( i=14; i>= 0; i-- ) {
 		    if( (ir & (1<<i)) ) {
 			operand -= 4;
 			arm_write_long( operand, USER_R(i) );
@@ -1268,7 +1293,7 @@ gboolean arm_execute_instruction( void )
 			    armr.r[i] = arm_read_long( operand );
 			}
 		    }
-		    arm_restore_cpsr();
+		    needRestore = TRUE;
 		} else {
 		    for( i=15; i>= 0; i-- ) {
 			if( (ir & (1<<i)) ) {
@@ -1279,11 +1304,15 @@ gboolean arm_execute_instruction( void )
 		}
 		break;
 	    case 24: /* STMIB */
-		for( i=0; i< 16; i++ ) {
+		for( i=0; i< 15; i++ ) {
 		    if( (ir & (1<<i)) ) {
 			operand += 4;
 			arm_write_long( operand, armr.r[i] );
 		    }
+		}
+		if( ir & 0x8000 ) {
+		    operand += 4;
+		    arm_write_long( operand, armr.r[15]+4 );
 		}
 		break;
 	    case 25: /* LDMIB */
@@ -1295,11 +1324,15 @@ gboolean arm_execute_instruction( void )
 		}
 		break;
 	    case 28: /* STMIB (S) */
-		for( i=0; i< 16; i++ ) {
+		for( i=0; i< 15; i++ ) {
 		    if( (ir & (1<<i)) ) {
 			operand += 4;
 			arm_write_long( operand, USER_R(i) );
 		    }
+		}
+		if( ir & 0x8000 ) {
+		    operand += 4;
+		    arm_write_long( operand, armr.r[15]+4 );
 		}
 		break;
 	    case 29: /* LDMIB (S) */
@@ -1310,7 +1343,7 @@ gboolean arm_execute_instruction( void )
 			    armr.r[i] = arm_read_long( operand );
 			}
 		    }
-		    arm_restore_cpsr();
+		    needRestore = TRUE;
 		} else {
 		    for( i=0; i < 16; i++ ) {
 			if( (ir & (1<<i)) ) {
@@ -1324,6 +1357,8 @@ gboolean arm_execute_instruction( void )
 	    
 	    if( WFLAG(ir) ) 
 		LRN(ir) = operand;
+	    if( needRestore ) 
+		arm_restore_cpsr();
 	}
 	break;
     case 3: /* Copro */
@@ -1333,6 +1368,11 @@ gboolean arm_execute_instruction( void )
 	    UNIMP(ir);
 	}
 	break;
+    }
+    if( armr.r[15] > 0x00200000 ) {
+	dreamcast_stop();
+	ERROR( "BRANCH to fishkill at %08X", pc );
+	return FALSE;
     }
     return TRUE;
 }
