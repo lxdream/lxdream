@@ -1,5 +1,5 @@
 /**
- * $Id: aica.c,v 1.14 2006-01-14 12:31:36 nkeynes Exp $
+ * $Id: aica.c,v 1.15 2006-01-17 12:54:02 nkeynes Exp $
  * 
  * This is the core sound system (ie the bit which does the actual work)
  *
@@ -227,17 +227,41 @@ uint32_t aica_frequency_to_sample_rate( uint32_t freq )
 {
     uint32_t exponent = (freq & 0x3800) >> 11;
     uint32_t mantissa = freq & 0x03FF;
+    uint32_t rate;
     if( freq & 0x4000 ) {
 	/* neg exponent - rate < 44100 */
 	exponent = 8 - exponent;
-	return (44100 >> exponent) +
+	rate = (44100 >> exponent) +
 	    ((44100 * mantissa) >> (10+exponent));
     } else {
 	/* pos exponent - rate > 44100 */
-	return (44100 << exponent) +
+	rate = (44100 << exponent) +
 	    ((44100 * mantissa) >> (10-exponent));
     }
+    return rate;
 }
+
+/**
+ * Derived directly from Dan Potter's log table
+ */
+uint8_t aica_volume_table[256] = {
+      0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   1,
+      1,   1,   1,   1,   1,   1,   2,   2,   2,   2,   2,   3,   3,   3,   3,   4,
+      4,   4,   4,   5,   5,   5,   5,   6,   6,   6,   7,   7,   7,   8,   8,   9,
+      9,   9,  10,  10,  11,  11,  11,  12,  12,  13,  13,  14,  14,  15,  15,  16,
+     16,  17,  17,  18,  18,  19,  19,  20,  20,  21,  22,  22,  23,  23,  24,  25,
+     25,  26,  27,  27,  28,  29,  29,  30,  31,  31,  32,  33,  34,  34,  35,  36,
+     37,  37,  38,  39,  40,  40,  41,  42,  43,  44,  45,  45,  46,  47,  48,  49,
+     50,  51,  52,  52,  53,  54,  55,  56,  57,  58,  59,  60,  61,  62,  63,  64,
+     65,  66,  67,  68,  69,  70,  71,  72,  73,  74,  76,  77,  78,  79,  80,  81,
+     82,  83,  85,  86,  87,  88,  89,  90,  92,  93,  94,  95,  97,  98,  99, 100,
+    102, 103, 104, 105, 107, 108, 109, 111, 112, 113, 115, 116, 117, 119, 120, 121,
+    123, 124, 126, 127, 128, 130, 131, 133, 134, 136, 137, 139, 140, 142, 143, 145,
+    146, 148, 149, 151, 152, 154, 155, 157, 159, 160, 162, 163, 165, 167, 168, 170,
+    171, 173, 175, 176, 178, 180, 181, 183, 185, 187, 188, 190, 192, 194, 195, 197,
+    199, 201, 202, 204, 206, 208, 210, 211, 213, 215, 217, 219, 221, 223, 224, 226,
+    228, 230, 232, 234, 236, 238, 240, 242, 244, 246, 248, 250, 252, 253, 254, 255 };
+
 
 void aica_write_channel( int channelNo, uint32_t reg, uint32_t val ) 
 {
@@ -293,9 +317,13 @@ void aica_write_channel( int channelNo, uint32_t reg, uint32_t val )
     case 0x1C: /* ??? */
     case 0x20: /* ??? */
     case 0x24: /* Volume? /pan */
+	val = val & 0x1F;
+	if( val <= 0x0F ) 
+	    val = 0x0F - val; /* Convert to smooth pan over 0..31 */
+	channel->pan = val;
 	break;
     case 0x28: /* Volume */
-	channel->vol_left = channel->vol_right = val & 0xFF;
+	channel->vol = aica_volume_table[val & 0xFF];
 	break;
     default: /* ??? */
 	break;
