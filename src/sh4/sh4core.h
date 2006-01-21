@@ -1,5 +1,5 @@
 /**
- * $Id: sh4core.h,v 1.10 2006-01-01 08:08:40 nkeynes Exp $
+ * $Id: sh4core.h,v 1.11 2006-01-21 11:38:36 nkeynes Exp $
  * 
  * This file defines the internal functions exported/used by the SH4 core, 
  * except for disassembly functions defined in sh4dasm.h
@@ -57,7 +57,8 @@ struct sh4_registers {
     uint32_t r[16];
     uint32_t r_bank[8]; /* hidden banked registers */
     uint32_t sr, gbr, ssr, spc, sgr, dbr, vbr;
-    uint32_t pr, pc, fpul, fpscr;
+    uint32_t pr, pc, fpscr;
+    int32_t fpul;
     uint64_t mac;
     uint32_t m, q, s, t; /* really boolean - 0 or 1 */
     float fr[2][16];
@@ -155,8 +156,9 @@ int SCIF_load_state( FILE *f );
 #define IS_FPU_DOUBLESIZE() (sh4r.fpscr&FPSCR_SZ)
 #define IS_FPU_ENABLED() ((sh4r.sr&SR_FD)==0)
 
-#define FR sh4r.fr[(sh4r.fpscr&FPSCR_FR)>>21]
-#define XF sh4r.fr[((~sh4r.fpscr)&FPSCR_FR)>>21]
+#define FR(x) sh4r.fr[(sh4r.fpscr&FPSCR_FR)>>21][(x)^1]
+#define DR(x) ((double *)(sh4r.fr[(sh4r.fpscr&FPSCR_FR)>>21]))[x]
+#define XF(x) sh4r.fr[((~sh4r.fpscr)&FPSCR_FR)>>21][(x)^1]
 
 /* Exceptions (for use with sh4_raise_exception) */
 
