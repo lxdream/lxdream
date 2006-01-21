@@ -1,5 +1,5 @@
 /**
- * $Id: sh4core.c,v 1.17 2005-12-29 12:52:29 nkeynes Exp $
+ * $Id: sh4core.c,v 1.18 2006-01-21 11:38:36 nkeynes Exp $
  * 
  * SH4 emulation core, and parent module for all the SH4 peripheral
  * modules.
@@ -20,11 +20,12 @@
 #define MODULE sh4_module
 #include <math.h>
 #include "dream.h"
-#include "sh4core.h"
-#include "sh4mmio.h"
+#include "sh4/sh4core.h"
+#include "sh4/sh4mmio.h"
+#include "sh4/intc.h"
 #include "mem.h"
 #include "clock.h"
-#include "intc.h"
+#include "bios.h"
 
 /* CPU-generated exception code/vector pairs */
 #define EXC_POWER_RESET  0x000 /* vector special */
@@ -216,22 +217,28 @@ void sh4_set_pc( int pc )
 #define MEM_WRITE_WORD( addr, val ) sh4_write_word(addr, val)
 #define MEM_WRITE_LONG( addr, val ) sh4_write_long(addr, val)
 
-#define MEM_FP_READ( addr, reg ) if( IS_FPU_DOUBLESIZE() ) { \
-    ((uint32_t *)FR)[(reg)&0xE0] = sh4_read_long(addr); \
-    ((uint32_t *)FR)[(reg)|1] = sh4_read_long(addr+4); \
-} else ((uint32_t *)FR)[reg] = sh4_read_long(addr)
+#define MEM_FR_READ( addr, reg ) *((uint32_t *)&FR(reg)) = sh4_read_long(addr)
 
-#define MEM_FP_WRITE( addr, reg ) if( IS_FPU_DOUBLESIZE() ) { \
-    sh4_write_long( addr, ((uint32_t *)FR)[(reg)&0xE0] ); \
-    sh4_write_long( addr+4, ((uint32_t *)FR)[(reg)|1] ); \
-} else sh4_write_long( addr, ((uint32_t *)FR)[reg] )
+#define MEM_DR_READ( addr, reg ) do { \
+	*((uint32_t *)&FR((reg) & 0x0E)) = sh4_read_long(addr);		\
+	*((uint32_t *)&FR((reg) | 0x01)) = sh4_read_long(addr+4); } while(0)
+
+#define MEM_FR_WRITE( addr, reg ) sh4_write_long( addr, *((uint32_t *)&FR((reg))) )
+
+#define MEM_DR_WRITE( addr, reg ) do { \
+	sh4_write_long( addr, *((uint32_t *)&FR((reg)&0x0E)) );	\
+	sh4_write_long( addr+4, *((uint32_t *)&FR((reg)|0x01)) ); } while(0)
 
 #define FP_WIDTH (IS_FPU_DOUBLESIZE() ? 8 : 4)
+
+#define MEM_FP_READ( addr, reg ) if( IS_FPU_DOUBLESIZE() ) MEM_DR_READ(addr, reg ); else MEM_FR_READ( addr, reg )
+
+#define MEM_FP_WRITE( addr, reg ) if( IS_FPU_DOUBLESIZE() ) MEM_DR_WRITE(addr, reg ); else MEM_FR_WRITE( addr, reg )
 
 #define CHECK( x, c, v ) if( !x ) RAISE( c, v )
 #define CHECKPRIV() CHECK( IS_SH4_PRIVMODE(), EXC_ILLEGAL, EXV_ILLEGAL )
 #define CHECKFPUEN() CHECK( IS_FPU_ENABLED(), EXC_FPDISABLE, EXV_FPDISABLE )
-#define CHECKDEST(p) if( (p) == 0 ) { ERROR( "%08X: Branch/jump to NULL, CPU halted", sh4r.pc ); sh4_stop(); return; }
+#define CHECKDEST(p) if( (p) == 0 ) { ERROR( "%08X: Branch/jump to NULL, CPU halted", sh4r.pc ); dreamcast_stop(); return FALSE; }
 #define CHECKSLOTILLEGAL() if(sh4r.in_delay_slot) { RAISE(EXC_SLOT_ILLEGAL,EXV_ILLEGAL); }
 
 static void sh4_switch_banks( )
@@ -286,13 +293,14 @@ static void sh4_accept_interrupt( void )
 
 gboolean sh4_execute_instruction( void )
 {
-    int pc;
+    uint32_t pc;
     unsigned short ir;
     uint32_t tmp;
     uint64_t tmpl;
     
 #define R0 sh4r.r[0]
-#define FR0 (FR[0])
+#define FR0 FR(0)
+#define DR0 DR(0)
 #define RN(ir) sh4r.r[(ir&0x0F00)>>8]
 #define RN_BANK(ir) sh4r.r_bank[(ir&0x0070)>>4]
 #define RM(ir) sh4r.r[(ir&0x00F0)>>4]
@@ -302,18 +310,20 @@ gboolean sh4_execute_instruction( void )
 #define IMM8(ir) SIGNEXT8(ir&0x00FF)
 #define UIMM8(ir) (ir&0x00FF) /* Unsigned immmediate */
 #define DISP12(ir) SIGNEXT12(ir&0x0FFF)
-#define FVN(ir) ((ir&0x0C00)>>8)
-#define FVM(ir) ((ir&0x0300)>>6)
-#define FRN(ir) (FR[(ir&0x0F00)>>8])
-#define FRM(ir) (FR[(ir&0x00F0)>>4])
-#define FRNi(ir) (((uint32_t *)FR)[(ir&0x0F00)>>8])
-#define FRMi(ir) (((uint32_t *)FR)[(ir&0x00F0)>>4])
-#define DRN(ir) (((double *)FR)[(ir&0x0E00)>>9])
-#define DRM(ir) (((double *)FR)[(ir&0x00E0)>>5])
-#define DRNi(ir) (((uint64_t *)FR)[(ir&0x0E00)>>9])
-#define DRMi(ir) (((uint64_t *)FR)[(ir&0x00E0)>>5])
 #define FRNn(ir) ((ir&0x0F00)>>8)
 #define FRMn(ir) ((ir&0x00F0)>>4)
+#define DRNn(ir) ((ir&0x0E00)>>9)
+#define DRMn(ir) ((ir&0x00E0)>>5)
+#define FVN(ir) ((ir&0x0C00)>>8)
+#define FVM(ir) ((ir&0x0300)>>6)
+#define FRN(ir) FR(FRNn(ir))
+#define FRM(ir) FR(FRMn(ir))
+#define FRNi(ir) (*((uint32_t *)&FR(FRNn(ir))))
+#define FRMi(ir) (*((uint32_t *)&FR(FRMn(ir))))
+#define DRN(ir) DR(DRNn(ir))
+#define DRM(ir) DR(DRMn(ir))
+#define DRNi(ir) (*((uint64_t *)&DR(FRNn(ir))))
+#define DRMi(ir) (*((uint64_t *)&DR(FRMn(ir))))
 #define FPULf   *((float *)&sh4r.fpul)
 #define FPULi    (sh4r.fpul)
 
@@ -321,6 +331,13 @@ gboolean sh4_execute_instruction( void )
         sh4_accept_interrupt();
                  
     pc = sh4r.pc;
+    if( pc > 0xFFFFFF00 ) {
+	/* SYSCALL Magic */
+	bios_syscall( pc & 0xFF );
+	sh4r.in_delay_slot = 1;
+	pc = sh4r.pc = sh4r.pr;
+	sh4r.new_pc = sh4r.pc + 2;
+    }
     ir = MEM_READ_WORD(pc);
     sh4r.icount++;
     
@@ -382,8 +399,8 @@ gboolean sh4_execute_instruction( void )
                                 uint32_t hi = (MMIO_READ( MMU, (queue == 0 ? QACR0 : QACR1) ) & 0x1C) << 24;
                                 uint32_t target = tmp&0x03FFFFE0 | hi;
                                 mem_copy_to_sh4( target, src, 32 );
-				//                                WARN( "Executed SQ%c => %08X",
-				//                                      (queue == 0 ? '0' : '1'), target );
+				//				WARN( "Executed SQ%c => %08X",
+				//				      (queue == 0 ? '0' : '1'), target );
                             }
                             break;
                         case 9: /* OCBI    [Rn] */
@@ -1156,7 +1173,127 @@ gboolean sh4_execute_instruction( void )
             break;
         case 15:/* 1111xxxxxxxxxxxx */
             CHECKFPUEN();
-            switch( ir&0x000F ) {
+	    if( IS_FPU_DOUBLEPREC() ) {
+		switch( ir&0x000F ) {
+                case 0: /* FADD    FRm, FRn */
+                    DRN(ir) += DRM(ir);
+                    break;
+                case 1: /* FSUB    FRm, FRn */
+                    DRN(ir) -= DRM(ir);
+                    break;
+                case 2: /* FMUL    FRm, FRn */
+                    DRN(ir) = DRN(ir) * DRM(ir);
+                    break;
+                case 3: /* FDIV    FRm, FRn */
+                    DRN(ir) = DRN(ir) / DRM(ir);
+                    break;
+                case 4: /* FCMP/EQ FRm, FRn */
+                    sh4r.t = ( DRN(ir) == DRM(ir) ? 1 : 0 );
+                    break;
+                case 5: /* FCMP/GT FRm, FRn */
+                    sh4r.t = ( DRN(ir) > DRM(ir) ? 1 : 0 );
+                    break;
+                case 6: /* FMOV.S  [Rm+R0], FRn */
+                    MEM_FP_READ( RM(ir) + R0, FRNn(ir) );
+                    break;
+                case 7: /* FMOV.S  FRm, [Rn+R0] */
+                    MEM_FP_WRITE( RN(ir) + R0, FRMn(ir) );
+                    break;
+                case 8: /* FMOV.S  [Rm], FRn */
+                    MEM_FP_READ( RM(ir), FRNn(ir) );
+                    break;
+                case 9: /* FMOV.S  [Rm++], FRn */
+                    MEM_FP_READ( RM(ir), FRNn(ir) );
+                    RM(ir) += FP_WIDTH;
+                    break;
+                case 10:/* FMOV.S  FRm, [Rn] */
+                    MEM_FP_WRITE( RN(ir), FRMn(ir) );
+                    break;
+                case 11:/* FMOV.S  FRm, [--Rn] */
+                    RN(ir) -= FP_WIDTH;
+                    MEM_FP_WRITE( RN(ir), FRMn(ir) );
+                    break;
+                case 12:/* FMOV    FRm, FRn */
+		    if( IS_FPU_DOUBLESIZE() )
+			DRN(ir) = DRM(ir);
+		    else
+			FRN(ir) = FRM(ir);
+                    break;
+                case 13:
+                    switch( (ir&0x00F0) >> 4 ) {
+		    case 0: /* FSTS    FPUL, FRn */
+			FRN(ir) = FPULf;
+			break;
+		    case 1: /* FLDS    FRn,FPUL */
+			FPULf = FRN(ir);
+			break;
+		    case 2: /* FLOAT   FPUL, FRn */
+			DRN(ir) = (float)FPULi;
+			break;
+		    case 3: /* FTRC    FRn, FPUL */
+			FPULi = (uint32_t)DRN(ir);
+			/* FIXME: is this sufficient? */
+			break;
+		    case 4: /* FNEG    FRn */
+			DRN(ir) = -DRN(ir);
+			break;
+		    case 5: /* FABS    FRn */
+			DRN(ir) = fabs(DRN(ir));
+			break;
+		    case 6: /* FSQRT   FRn */
+			DRN(ir) = sqrt(DRN(ir));
+			break;
+		    case 7: /* FSRRA FRn */
+			DRN(ir) = 1.0/sqrt(DRN(ir));
+			break;
+		    case 8: /* FLDI0   FRn */
+			DRN(ir) = 0.0;
+			break;
+		    case 9: /* FLDI1   FRn */
+			DRN(ir) = 1.0;
+			break;
+		    case 10: /* FCNVSD FPUL, DRn */
+			DRN(ir) = (double)FPULf;
+			break;
+		    case 11: /* FCNVDS DRn, FPUL */
+			FPULf = (float)DRN(ir);
+			break;
+		    case 14:/* FIPR    FVm, FVn */
+			UNDEF(ir);
+			break;
+		    case 15:
+			if( (ir&0x0300) == 0x0100 ) { /* FTRV    XMTRX,FVn */
+			    break;
+			}
+			else if( (ir&0x0100) == 0 ) { /* FSCA    FPUL, DRn */
+			    float angle = (((float)(short)(FPULi>>16)) +
+					   ((float)(FPULi&16)/65536.0)) *
+				2 * M_PI;
+			    int reg = DRNn(ir);
+			    DR(reg) = sinf(angle);
+			    DR(reg+1) = cosf(angle);
+			    break;
+			}
+			else if( ir == 0xFBFD ) {
+			    /* FRCHG   */
+			    sh4r.fpscr ^= FPSCR_FR;
+			    break;
+			}
+			else if( ir == 0xF3FD ) {
+			    /* FSCHG   */
+			    sh4r.fpscr ^= FPSCR_SZ;
+			    break;
+			}
+		    default: UNDEF(ir);
+                    }
+                    break;
+                case 14:/* FMAC    FR0, FRm, FRn */
+                    DRN(ir) += DRM(ir)*DR0;
+                    break;
+                default: UNDEF(ir);
+		}
+	    } else {
+		switch( ir&0x000F ) {
                 case 0: /* FADD    FRm, FRn */
                     FRN(ir) += FRM(ir);
                     break;
@@ -1196,113 +1333,107 @@ gboolean sh4_execute_instruction( void )
                     MEM_FP_WRITE( RN(ir), FRMn(ir) );
                     break;
                 case 12:/* FMOV    FRm, FRn */
-                    if( IS_FPU_DOUBLESIZE() ) {
-                        DRN(ir) = DRM(ir);
-                    } else {
-                        FRN(ir) = FRM(ir);
-                    }
+		    if( IS_FPU_DOUBLESIZE() )
+			DRN(ir) = DRM(ir);
+		    else
+			FRN(ir) = FRM(ir);
                     break;
                 case 13:
                     switch( (ir&0x00F0) >> 4 ) {
-                        case 0: /* FSTS    FPUL, FRn */
-                            FRN(ir) = FPULf;
-                            break;
-                        case 1: /* FLDS    FRn, FPUL */
-                            FPULf = FRN(ir);
-                            break;
-                        case 2: /* FLOAT   FPUL, FRn */
-                            FRN(ir) = (float)FPULi;
-                            break;
-                        case 3: /* FTRC    FRn, FPUL */
-                            FPULi = (uint32_t)FRN(ir);
-                            /* FIXME: is this sufficient? */
-                            break;
-                        case 4: /* FNEG    FRn */
-                            FRN(ir) = -FRN(ir);
-                            break;
-                        case 5: /* FABS    FRn */
-                            FRN(ir) = fabsf(FRN(ir));
-                            break;
-                        case 6: /* FSQRT   FRn */
-                            FRN(ir) = sqrtf(FRN(ir));
-                            break;
-                        case 7: /* FSRRA FRn */
-                            FRN(ir) = 1.0/sqrtf(FRN(ir));
-                            break;
-                        case 8: /* FLDI0   FRn */
-                            FRN(ir) = 0.0;
-                            break;
-                        case 9: /* FLDI1   FRn */
-                            FRN(ir) = 1.0;
-                            break;
-                        case 10: /* FCNVSD FPUL, DRn */
-                            if( IS_FPU_DOUBLEPREC() )
-                                DRN(ir) = (double)FPULf;
-                            else UNDEF(ir);
-                            break;
-                        case 11: /* FCNVDS DRn, FPUL */
-                            if( IS_FPU_DOUBLEPREC() ) 
-                                FPULf = (float)DRN(ir);
-                            else UNDEF(ir);
-                            break;
-                        case 14:/* FIPR    FVm, FVn */
+		    case 0: /* FSTS    FPUL, FRn */
+			FRN(ir) = FPULf;
+			break;
+		    case 1: /* FLDS    FRn,FPUL */
+			FPULf = FRN(ir);
+			break;
+		    case 2: /* FLOAT   FPUL, FRn */
+			FRN(ir) = (float)FPULi;
+			break;
+		    case 3: /* FTRC    FRn, FPUL */
+			FPULi = (uint32_t)FRN(ir);
+			/* FIXME: is this sufficient? */
+			break;
+		    case 4: /* FNEG    FRn */
+			FRN(ir) = -FRN(ir);
+			break;
+		    case 5: /* FABS    FRn */
+			FRN(ir) = fabsf(FRN(ir));
+			break;
+		    case 6: /* FSQRT   FRn */
+			FRN(ir) = sqrtf(FRN(ir));
+			break;
+		    case 7: /* FSRRA FRn */
+			FRN(ir) = 1.0/sqrtf(FRN(ir));
+			break;
+		    case 8: /* FLDI0   FRn */
+			FRN(ir) = 0.0;
+			break;
+		    case 9: /* FLDI1   FRn */
+			FRN(ir) = 1.0;
+			break;
+		    case 10: /* FCNVSD FPUL, DRn */
+			UNDEF(ir);
+			break;
+		    case 11: /* FCNVDS DRn, FPUL */
+			UNDEF(ir);
+			break;
+		    case 14:/* FIPR    FVm, FVn */
                             /* FIXME: This is not going to be entirely accurate
                              * as the SH4 instruction is less precise. Also
                              * need to check for 0s and infinities.
                              */
                         {
-                            float *fr_bank = FR;
                             int tmp2 = FVN(ir);
                             tmp = FVM(ir);
-                            fr_bank[tmp2+3] = fr_bank[tmp]*fr_bank[tmp2] +
-                                fr_bank[tmp+1]*fr_bank[tmp2+1] +
-                                fr_bank[tmp+2]*fr_bank[tmp2+2] +
-                                fr_bank[tmp+3]*fr_bank[tmp2+3];
+                            FR(tmp2+3) = FR(tmp)*FR(tmp2) +
+                                FR(tmp+1)*FR(tmp2+1) +
+                                FR(tmp+2)*FR(tmp2+2) +
+                                FR(tmp+3)*FR(tmp2+3);
                             break;
                         }
-                        case 15:
-                            if( (ir&0x0300) == 0x0100 ) { /* FTRV    XMTRX,FVn */
-                                float *fvout = FR+FVN(ir);
-                                float *xm = XF;
-                                float fv[4] = { fvout[0], fvout[1], fvout[2], fvout[3] };
-                                fvout[0] = xm[0] * fv[0] + xm[4]*fv[1] +
-                                    xm[8]*fv[2] + xm[12]*fv[3];
-                                fvout[1] = xm[1] * fv[0] + xm[5]*fv[1] +
-                                    xm[9]*fv[2] + xm[13]*fv[3];
-                                fvout[2] = xm[2] * fv[0] + xm[6]*fv[1] +
-                                    xm[10]*fv[2] + xm[14]*fv[3];
-                                fvout[3] = xm[3] * fv[0] + xm[7]*fv[1] +
-                                    xm[11]*fv[2] + xm[15]*fv[3];
-                                break;
-                            }
-                            else if( (ir&0x0100) == 0 ) { /* FSCA    FPUL, DRn */
-                                float angle = (((float)(short)(FPULi>>16)) +
-                                               ((float)(FPULi&16)/65536.0)) *
-                                    2 * M_PI;
-                                int reg = FRNn(ir);
-                                FR[reg] = sinf(angle);
-                                FR[reg+1] = cosf(angle);
-                                break;
-                            }
-                            else if( ir == 0xFBFD ) {
-                                /* FRCHG   */
-                                sh4r.fpscr ^= FPSCR_FR;
-                                break;
-                            }
-                            else if( ir == 0xF3FD ) {
-                                /* FSCHG   */
-                                sh4r.fpscr ^= FPSCR_SZ;
-                                break;
-                            }
-                        default: UNDEF(ir);
+		    case 15:
+			if( (ir&0x0300) == 0x0100 ) { /* FTRV    XMTRX,FVn */
+			    tmp = FVN(ir);
+			    float fv[4] = { FR(tmp), FR(tmp+1), FR(tmp+2), FR(tmp+3) };
+			    FR(tmp) = XF(0) * fv[0] + XF(4)*fv[1] +
+				XF(8)*fv[2] + XF(12)*fv[3];
+			    FR(tmp+1) = XF(1) * fv[0] + XF(5)*fv[1] +
+				XF(9)*fv[2] + XF(13)*fv[3];
+			    FR(tmp+2) = XF(2) * fv[0] + XF(6)*fv[1] +
+				XF(10)*fv[2] + XF(14)*fv[3];
+			    FR(tmp+3) = XF(3) * fv[0] + XF(7)*fv[1] +
+				XF(11)*fv[2] + XF(15)*fv[3];
+			    break;
+			}
+			else if( (ir&0x0100) == 0 ) { /* FSCA    FPUL, DRn */
+			    float angle = (((float)(short)(FPULi>>16)) +
+					   ((float)(FPULi&16)/65536.0)) *
+				2 * M_PI;
+			    int reg = FRNn(ir);
+			    FR(reg) = sinf(angle);
+			    FR(reg+1) = cosf(angle);
+			    break;
+			}
+			else if( ir == 0xFBFD ) {
+			    /* FRCHG   */
+			    sh4r.fpscr ^= FPSCR_FR;
+			    break;
+			}
+			else if( ir == 0xF3FD ) {
+			    /* FSCHG   */
+			    sh4r.fpscr ^= FPSCR_SZ;
+			    break;
+			}
+		    default: UNDEF(ir);
                     }
                     break;
                 case 14:/* FMAC    FR0, FRm, FRn */
                     FRN(ir) += FRM(ir)*FR0;
                     break;
                 default: UNDEF(ir);
-            }
-            break;
+		}
+	    }
+	    break;
     }
     sh4r.pc = sh4r.new_pc;
     sh4r.new_pc += 2;
