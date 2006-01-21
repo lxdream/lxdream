@@ -1,5 +1,5 @@
 /**
- * $Id: sh4mem.c,v 1.4 2006-01-10 13:59:19 nkeynes Exp $
+ * $Id: sh4mem.c,v 1.5 2006-01-21 11:38:10 nkeynes Exp $
  * sh4mem.c is responsible for the SH4's access to memory (including memory
  * mapped I/O), using the page maps created in mem.c
  *
@@ -87,7 +87,7 @@ void sh4_write_p4( uint32_t addr, int32_t val )
 int32_t sh4_read_phys_word( uint32_t addr )
 {
     char *page;
-    if( addr > 0xE0000000 ) /* P4 Area, handled specially */
+    if( addr >= 0xE0000000 ) /* P4 Area, handled specially */
         return SIGNEXT16(sh4_read_p4( addr ));
     
     if( (addr&0x1F800000) == 0x04000000 ) {
@@ -113,7 +113,7 @@ int32_t sh4_read_long( uint32_t addr )
     
     CHECK_READ_WATCH(addr,4);
 
-    if( addr > 0xE0000000 ) /* P4 Area, handled specially */
+    if( addr >= 0xE0000000 ) /* P4 Area, handled specially */
         return sh4_read_p4( addr );
     
     if( (addr&0x1F800000) == 0x04000000 ) {
@@ -147,7 +147,7 @@ int32_t sh4_read_word( uint32_t addr )
 
     CHECK_READ_WATCH(addr,2);
 
-    if( addr > 0xE0000000 ) /* P4 Area, handled specially */
+    if( addr >= 0xE0000000 ) /* P4 Area, handled specially */
         return SIGNEXT16(sh4_read_p4( addr ));
     
     if( (addr&0x1F800000) == 0x04000000 ) {
@@ -181,7 +181,7 @@ int32_t sh4_read_byte( uint32_t addr )
 
     CHECK_READ_WATCH(addr,1);
 
-    if( addr > 0xE0000000 ) /* P4 Area, handled specially */
+    if( addr >= 0xE0000000 ) /* P4 Area, handled specially */
         return SIGNEXT8(sh4_read_p4( addr ));
     if( (addr&0x1F800000) == 0x04000000 ) {
         addr = TRANSLATE_VIDEO_64BIT_ADDRESS(addr);
@@ -214,7 +214,7 @@ void sh4_write_long( uint32_t addr, uint32_t val )
     
     CHECK_WRITE_WATCH(addr,4,val);
 
-    if( addr > 0xE0000000 ) {
+    if( addr >= 0xE0000000 ) {
         sh4_write_p4( addr, val );
         return;
     }
@@ -251,7 +251,7 @@ void sh4_write_word( uint32_t addr, uint32_t val )
 
     CHECK_WRITE_WATCH(addr,2,val);
 
-    if( addr > 0xE0000000 ) {
+    if( addr >= 0xE0000000 ) {
         sh4_write_p4( addr, (int16_t)val );
         return;
     }
@@ -282,7 +282,7 @@ void sh4_write_byte( uint32_t addr, uint32_t val )
     
     CHECK_WRITE_WATCH(addr,1,val);
 
-    if( addr > 0xE0000000 ) {
+    if( addr >= 0xE0000000 ) {
         sh4_write_p4( addr, (int8_t)val );
         return;
     }
