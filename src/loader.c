@@ -1,5 +1,5 @@
 /**
- * $Id: loader.c,v 1.8 2005-12-25 01:28:36 nkeynes Exp $
+ * $Id: loader.c,v 1.9 2006-01-22 22:41:40 nkeynes Exp $
  *
  * File loading routines, mostly for loading demos without going through the
  * whole procedure of making a CD image for them.
@@ -27,6 +27,7 @@
 #include "sh4core.h"
 #include "bootstrap.h"
 
+char *bootstrap_file = DEFAULT_BOOTSTRAP_FILE;
 char bootstrap_magic[32] = "SEGA SEGAKATANA SEGA ENTERPRISES";
 char iso_magic[6] = "\001CD001";
 char *file_loader_extensions[][2] = { 
@@ -54,13 +55,15 @@ gboolean file_load_magic( const gchar *filename )
                strerror(errno) );
         return FALSE;
     }
-
+    
     fstat( fd, &st );
+    /*
     if( st.st_size < 32768 ) {
         ERROR( "File '%s' too small to be a dreamcast image", filename );
         close(fd);
         return FALSE;
     }
+    */
     
     /* begin magic */
     if( read( fd, buf, 32 ) != 32 ) {
@@ -90,6 +93,9 @@ gboolean file_load_magic( const gchar *filename )
     } else if( memcmp( buf, "PK\x03\x04", 4 ) == 0 ) {
 	/* ZIP file, aka SBI file */
 	WARN( "SBI files not supported yet" );
+    } else if( memcpy( buf, "\x7fELF", 4 ) == 0 ) {
+	/* ELF binary */
+	WARN( "ELF files not supported yet" );
     } else {
 	/* Assume raw binary */
 	file_load_binary( filename );
@@ -99,7 +105,16 @@ gboolean file_load_magic( const gchar *filename )
 }
 
 int file_load_binary( const gchar *filename ) {
+    /* Load the binary itself */
     mem_load_block( filename, BINARY_LOAD_ADDR, -1 );
-    sh4_set_pc( BINARY_LOAD_ADDR );
+    if( bootstrap_file != NULL ) {
+	/* Load in a bootstrap before the binary, to initialize everything
+	 * correctly
+	 */
+	mem_load_block( bootstrap_file, BOOTSTRAP_LOAD_ADDR, BOOTSTRAP_SIZE );
+	sh4_set_pc( BOOTSTRAP_LOAD_ADDR + 0x300 );
+    } else {
+	sh4_set_pc( BINARY_LOAD_ADDR );
+    }
     gtk_gui_update();
 }

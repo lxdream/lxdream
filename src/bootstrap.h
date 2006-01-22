@@ -1,5 +1,5 @@
 /**
- * $Id: bootstrap.h,v 1.2 2005-12-24 08:02:14 nkeynes Exp $
+ * $Id: bootstrap.h,v 1.3 2006-01-22 22:41:40 nkeynes Exp $
  *
  * CD Bootstrap header parsing. Mostly for informational purposes.
  *
@@ -25,6 +25,8 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#define DEFAULT_BOOTSTRAP_FILE "IP.BIN"
 
 /**
  * Dump the bootstrap info to the output log for infomational/debugging
