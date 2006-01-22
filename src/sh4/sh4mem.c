@@ -1,5 +1,5 @@
 /**
- * $Id: sh4mem.c,v 1.5 2006-01-21 11:38:10 nkeynes Exp $
+ * $Id: sh4mem.c,v 1.6 2006-01-22 22:42:53 nkeynes Exp $
  * sh4mem.c is responsible for the SH4's access to memory (including memory
  * mapped I/O), using the page maps created in mem.c
  *
@@ -30,7 +30,7 @@
 #define OC_BASE 0x1C000000
 #define OC_TOP  0x20000000
 
-#define TRANSLATE_VIDEO_64BIT_ADDRESS(a)  ( (((a)&0x00FFFFF8)>>1)|(((a)&0x00000004)<<20)|((a)&0x03)|0x05000000 );
+#define TRANSLATE_VIDEO_64BIT_ADDRESS(a)  ( (((a)&0x00FFFFF8)>>1)|(((a)&0x00000004)<<20)|((a)&0x03)|0x05000000 )
 
 #ifdef ENABLE_WATCH
 #define CHECK_READ_WATCH( addr, size ) \
@@ -319,6 +319,35 @@ void mem_copy_from_sh4( char *dest, uint32_t srcaddr, size_t count ) {
 }
 
 void mem_copy_to_sh4( uint32_t destaddr, char *src, size_t count ) {
-    char *dest = mem_get_region(destaddr);
-    memcpy( dest, src, count );
+    if( destaddr >= 0x10000000 && destaddr < 0x20000000 ) {
+	pvr2ta_write( src, count );
+    } else if( destaddr >= 04000000 && destaddr < 0x5000000 ) {
+	/* 64-bit video write. Oh. Yuck */
+	uint32_t *dest32[2];
+	uint32_t *src32 = (uint32_t *)src;
+	int flag = 0;
+	if( destaddr & 0x03 != 0 ) {
+	}
+	dest32[0] = (uint32_t *)mem_get_region(TRANSLATE_VIDEO_64BIT_ADDRESS(destaddr));
+	dest32[1] = (uint32_t *)mem_get_region(TRANSLATE_VIDEO_64BIT_ADDRESS(destaddr+4));
+	while( count >= 4 ) {
+	    *dest32[flag]++ = *src32++;
+	    flag = !flag;
+	    count -=4;
+	}
+	if( count != 0 ) {
+	    src = (char *)src32;
+	    char *dest = dest32[flag];
+	    do {
+		*dest++ = *src++;
+		count--;
+	    } while( count > 0 );
+	}
+    } else {
+	char *dest = mem_get_region(destaddr);
+	if( dest == NULL )
+	    ERROR( "Attempted block write to undefined region %08X", destaddr );
+	else 
+	    memcpy( dest, src, count );
+    }
 }
