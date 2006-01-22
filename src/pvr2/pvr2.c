@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.c,v 1.12 2006-01-03 12:21:45 nkeynes Exp $
+ * $Id: pvr2.c,v 1.13 2006-01-22 22:38:51 nkeynes Exp $
  *
  * PVR2 (Video) MMIO and supporting functions.
  *
@@ -39,6 +39,7 @@ struct dreamcast_module pvr2_module = { "PVR2", pvr2_init, NULL, NULL,
 void pvr2_init( void )
 {
     register_io_region( &mmio_region_PVR2 );
+    register_io_region( &mmio_region_PVR2PAL );
     register_io_region( &mmio_region_PVR2TA );
     video_base = mem_get_region_by_name( MEM_REGION_VIDEO );
 }
@@ -146,6 +147,8 @@ MMIO_REGION_READ_FN( PVR2, reg )
     }
 }
 
+MMIO_REGION_DEFFNS( PVR2PAL )
+
 void pvr2_set_base_address( uint32_t base ) 
 {
     mmio_region_PVR2_write( DISPADDR1, base );
@@ -184,18 +187,19 @@ void mmio_region_PVR2TA_write( uint32_t reg, uint32_t val )
     DEBUG( "Direct write to TA %08X", val );
 }
 
+unsigned int pvr2_last_poly_type = 0;
+
 void pvr2ta_write( char *buf, uint32_t length )
 {
     int i;
     struct tacmd *cmd_list = (struct tacmd *)buf;
     int count = length >> 5;
-    unsigned int lasttype = 0;
     for( i=0; i<count; i++ ){
 	unsigned int type = (cmd_list[i].command >> 24) & 0xFF;
 	DEBUG( "PVR2 cmd: %08X %08X %08X", cmd_list[i].command, cmd_list[i].param1, cmd_list[i].param2 );
 	if( type == 0 ) {
 	    /* End of list */
-	    switch( lasttype ) {
+	    switch( pvr2_last_poly_type ) {
 	    case 0x80: /* Opaque polys */
 		asic_event( EVENT_PVR_OPAQUE_DONE );
 		break;
@@ -212,8 +216,9 @@ void pvr2ta_write( char *buf, uint32_t length )
 		asic_event( EVENT_PVR_PUNCHOUT_DONE );
 		break;
 	    }
-	} else {
-	    lasttype = type;
+	    pvr2_last_poly_type = 0;
+	} else if( type >= 0x80 && type <= 0x84 ) {
+	    pvr2_last_poly_type = type;
 	}
     }
 }
