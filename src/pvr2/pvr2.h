@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.h,v 1.5 2006-01-03 12:21:45 nkeynes Exp $
+ * $Id: pvr2.h,v 1.6 2006-01-22 22:38:51 nkeynes Exp $
  *
  * PVR2 (video chip) MMIO registers and functions.
  *
@@ -70,6 +70,10 @@ MMIO_REGION_BEGIN( 0x005F8000, PVR2, "Power VR/2" )
     LONG_PORT( 0x164, TAOPLST, PORT_MRW, 0, "TA Object Pointer List start" )
 MMIO_REGION_END
 
+MMIO_REGION_BEGIN( 0x005F9000, PVR2PAL, "Power VR/2 CLUT Palettes" )
+    LONG_PORT( 0x000, PAL0_0, PORT_MRW, 0, "Pal0 colour 0" )
+MMIO_REGION_END
+
 MMIO_REGION_BEGIN( 0x10000000, PVR2TA, "Power VR/2 TA Command port" )
     LONG_PORT( 0x000, TACMD, PORT_MRW, 0, "TA Command port" )
 MMIO_REGION_END
@@ -80,9 +84,9 @@ MMIO_REGION_END
 #define DISPMODE_CD  0x08000000 /* Clock double */
 
 #define MODE_RGB15 0x00000000
-#define MODE_RGB16 0x00000040
-#define MODE_RGB24 0x00000080
-#define MODE_RGB32 0x000000C0
+#define MODE_RGB16 0x00000004
+#define MODE_RGB24 0x00000008
+#define MODE_RGB32 0x0000000C
 
 #define DISPSIZE_MODULO 0x3FF00000 /* line skip +1 (32-bit words)*/
 #define DISPSIZE_LPF    0x000FFC00 /* lines per field */
