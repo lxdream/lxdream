@@ -140,13 +140,15 @@ dream_SOURCES = \
         mem.c mem.h mmio.h watch.c \
         asic.c asic.h \
         pvr2.c pvr2.h \
+        bios.c bios.h \
         gdrom/ide.c gdrom/ide.h \
         video.c dreamcast.c dreamcast.h \
         sh4/intc.c sh4/intc.h sh4/sh4mem.c sh4/timer.c sh4/dmac.c \
         sh4/sh4core.c sh4/sh4core.h sh4/sh4dasm.c sh4/sh4dasm.h \
         sh4/sh4mmio.c sh4/sh4mmio.h sh4/scif.c \
         aica/armcore.c aica/armcore.h aica/armdasm.c aica/armmem.c \
-        aica/aica.c aica/aica.h \
+        aica/aica.c aica/aica.h aica/audio.c aica/audio.h \
+	aica/audio_null.c aica/audio_esd.c \
         maple/maple.c maple/maple.h \
         maple/controller.c maple/controller.h \
         gui/support.c gui/support.h \
@@ -157,7 +159,7 @@ dream_SOURCES = \
         loader.c bootstrap.c util.c
 
 
-dream_LDADD = @PACKAGE_LIBS@ $(INTLLIBS)
+dream_LDADD = @PACKAGE_LIBS@ $(INTLLIBS) -lesd
 
 AM_CFLAGS = -D_ISOC99_SOURCE -D_BSD_SOURCE 
 subdir = src
@@ -169,16 +171,17 @@ bin_PROGRAMS = dream$(EXEEXT)
 PROGRAMS = $(bin_PROGRAMS)
 
 am_dream_OBJECTS = main.$(OBJEXT) mem.$(OBJEXT) watch.$(OBJEXT) \
-	asic.$(OBJEXT) pvr2.$(OBJEXT) ide.$(OBJEXT) video.$(OBJEXT) \
-	dreamcast.$(OBJEXT) intc.$(OBJEXT) sh4mem.$(OBJEXT) \
-	timer.$(OBJEXT) dmac.$(OBJEXT) sh4core.$(OBJEXT) \
-	sh4dasm.$(OBJEXT) sh4mmio.$(OBJEXT) scif.$(OBJEXT) \
-	armcore.$(OBJEXT) armdasm.$(OBJEXT) armmem.$(OBJEXT) \
-	aica.$(OBJEXT) maple.$(OBJEXT) controller.$(OBJEXT) \
-	support.$(OBJEXT) interface.$(OBJEXT) callbacks.$(OBJEXT) \
-	gui.$(OBJEXT) mmr_win.$(OBJEXT) debug_win.$(OBJEXT) \
-	dump_win.$(OBJEXT) loader.$(OBJEXT) bootstrap.$(OBJEXT) \
-	util.$(OBJEXT)
+	asic.$(OBJEXT) pvr2.$(OBJEXT) bios.$(OBJEXT) ide.$(OBJEXT) \
+	video.$(OBJEXT) dreamcast.$(OBJEXT) intc.$(OBJEXT) \
+	sh4mem.$(OBJEXT) timer.$(OBJEXT) dmac.$(OBJEXT) \
+	sh4core.$(OBJEXT) sh4dasm.$(OBJEXT) sh4mmio.$(OBJEXT) \
+	scif.$(OBJEXT) armcore.$(OBJEXT) armdasm.$(OBJEXT) \
+	armmem.$(OBJEXT) aica.$(OBJEXT) audio.$(OBJEXT) \
+	audio_null.$(OBJEXT) audio_esd.$(OBJEXT) maple.$(OBJEXT) \
+	controller.$(OBJEXT) support.$(OBJEXT) interface.$(OBJEXT) \
+	callbacks.$(OBJEXT) gui.$(OBJEXT) mmr_win.$(OBJEXT) \
+	debug_win.$(OBJEXT) dump_win.$(OBJEXT) loader.$(OBJEXT) \
+	bootstrap.$(OBJEXT) util.$(OBJEXT)
 dream_OBJECTS = $(am_dream_OBJECTS)
 dream_DEPENDENCIES =
 dream_LDFLAGS =
@@ -188,7 +191,9 @@ depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
 @AMDEP_TRUE@DEP_FILES = ./$(DEPDIR)/aica.Po ./$(DEPDIR)/armcore.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/armdasm.Po ./$(DEPDIR)/armmem.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/asic.Po ./$(DEPDIR)/bootstrap.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/asic.Po ./$(DEPDIR)/audio.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/audio_esd.Po ./$(DEPDIR)/audio_null.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/bios.Po ./$(DEPDIR)/bootstrap.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/callbacks.Po ./$(DEPDIR)/controller.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/debug_win.Po ./$(DEPDIR)/dmac.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/dreamcast.Po ./$(DEPDIR)/dump_win.Po \
@@ -258,6 +263,10 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/armdasm.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/armmem.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/asic.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/audio.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/audio_esd.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/audio_null.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bios.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bootstrap.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/callbacks.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/controller.Po@am__quote@
@@ -593,6 +602,72 @@ aica.obj: aica/aica.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/aica.Po' tmpdepfile='$(DEPDIR)/aica.TPo' @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o aica.obj `if test -f 'aica/aica.c'; then $(CYGPATH_W) 'aica/aica.c'; else $(CYGPATH_W) '$(srcdir)/aica/aica.c'; fi`
+
+audio.o: aica/audio.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT audio.o -MD -MP -MF "$(DEPDIR)/audio.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o audio.o `test -f 'aica/audio.c' || echo '$(srcdir)/'`aica/audio.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/audio.Tpo" "$(DEPDIR)/audio.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/audio.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='aica/audio.c' object='audio.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/audio.Po' tmpdepfile='$(DEPDIR)/audio.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o audio.o `test -f 'aica/audio.c' || echo '$(srcdir)/'`aica/audio.c
+
+audio.obj: aica/audio.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT audio.obj -MD -MP -MF "$(DEPDIR)/audio.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o audio.obj `if test -f 'aica/audio.c'; then $(CYGPATH_W) 'aica/audio.c'; else $(CYGPATH_W) '$(srcdir)/aica/audio.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/audio.Tpo" "$(DEPDIR)/audio.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/audio.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='aica/audio.c' object='audio.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/audio.Po' tmpdepfile='$(DEPDIR)/audio.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o audio.obj `if test -f 'aica/audio.c'; then $(CYGPATH_W) 'aica/audio.c'; else $(CYGPATH_W) '$(srcdir)/aica/audio.c'; fi`
+
+audio_null.o: aica/audio_null.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT audio_null.o -MD -MP -MF "$(DEPDIR)/audio_null.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o audio_null.o `test -f 'aica/audio_null.c' || echo '$(srcdir)/'`aica/audio_null.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/audio_null.Tpo" "$(DEPDIR)/audio_null.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/audio_null.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='aica/audio_null.c' object='audio_null.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/audio_null.Po' tmpdepfile='$(DEPDIR)/audio_null.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o audio_null.o `test -f 'aica/audio_null.c' || echo '$(srcdir)/'`aica/audio_null.c
+
+audio_null.obj: aica/audio_null.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT audio_null.obj -MD -MP -MF "$(DEPDIR)/audio_null.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o audio_null.obj `if test -f 'aica/audio_null.c'; then $(CYGPATH_W) 'aica/audio_null.c'; else $(CYGPATH_W) '$(srcdir)/aica/audio_null.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/audio_null.Tpo" "$(DEPDIR)/audio_null.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/audio_null.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='aica/audio_null.c' object='audio_null.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/audio_null.Po' tmpdepfile='$(DEPDIR)/audio_null.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o audio_null.obj `if test -f 'aica/audio_null.c'; then $(CYGPATH_W) 'aica/audio_null.c'; else $(CYGPATH_W) '$(srcdir)/aica/audio_null.c'; fi`
+
+audio_esd.o: aica/audio_esd.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT audio_esd.o -MD -MP -MF "$(DEPDIR)/audio_esd.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o audio_esd.o `test -f 'aica/audio_esd.c' || echo '$(srcdir)/'`aica/audio_esd.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/audio_esd.Tpo" "$(DEPDIR)/audio_esd.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/audio_esd.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='aica/audio_esd.c' object='audio_esd.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/audio_esd.Po' tmpdepfile='$(DEPDIR)/audio_esd.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o audio_esd.o `test -f 'aica/audio_esd.c' || echo '$(srcdir)/'`aica/audio_esd.c
+
+audio_esd.obj: aica/audio_esd.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT audio_esd.obj -MD -MP -MF "$(DEPDIR)/audio_esd.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o audio_esd.obj `if test -f 'aica/audio_esd.c'; then $(CYGPATH_W) 'aica/audio_esd.c'; else $(CYGPATH_W) '$(srcdir)/aica/audio_esd.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/audio_esd.Tpo" "$(DEPDIR)/audio_esd.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/audio_esd.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='aica/audio_esd.c' object='audio_esd.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/audio_esd.Po' tmpdepfile='$(DEPDIR)/audio_esd.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o audio_esd.obj `if test -f 'aica/audio_esd.c'; then $(CYGPATH_W) 'aica/audio_esd.c'; else $(CYGPATH_W) '$(srcdir)/aica/audio_esd.c'; fi`
 
 maple.o: maple/maple.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT maple.o -MD -MP -MF "$(DEPDIR)/maple.Tpo" \
