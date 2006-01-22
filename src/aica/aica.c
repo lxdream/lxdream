@@ -1,5 +1,5 @@
 /**
- * $Id: aica.c,v 1.15 2006-01-17 12:54:02 nkeynes Exp $
+ * $Id: aica.c,v 1.16 2006-01-22 22:40:05 nkeynes Exp $
  * 
  * This is the core sound system (ie the bit which does the actual work)
  *
@@ -148,6 +148,11 @@ void aica_clear_event( )
 	if( aica_event_pending == 0 )
 	    armr.int_pending &= ~CPSR_F;
     }
+}
+
+void aica_enable( void )
+{
+    mmio_region_AICA2_write( AICA_RESET, MMIO_READ(AICA2,AICA_RESET) & ~1 );
 }
 
 /** Channel register structure:

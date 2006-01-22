@@ -1,5 +1,5 @@
 /**
- * $Id: audio_esd.c,v 1.4 2006-01-16 11:22:41 nkeynes Exp $
+ * $Id: audio_esd.c,v 1.5 2006-01-22 22:40:05 nkeynes Exp $
  * 
  * The esd (esound) audio driver
  *
@@ -38,6 +38,9 @@ gboolean esd_audio_set_format( uint32_t rate, uint32_t format )
     else esd_format |= ESD_MONO;
     
     esd_handle = esd_play_stream( esd_format, rate, "localhost", "dreamon" );
+    if( esd_handle == -1 ) {
+	ERROR( "Unable to open audio output (ESD)" );
+    }
     return TRUE;
 }
 
