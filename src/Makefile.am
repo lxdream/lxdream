@@ -13,6 +13,7 @@ dream_SOURCES = \
         mem.c mem.h mmio.h watch.c \
         asic.c asic.h \
         pvr2.c pvr2.h \
+        bios.c bios.h \
         gdrom/ide.c gdrom/ide.h \
         video.c dreamcast.c dreamcast.h \
         sh4/intc.c sh4/intc.h sh4/sh4mem.c sh4/timer.c sh4/dmac.c \
