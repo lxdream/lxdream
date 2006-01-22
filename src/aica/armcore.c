@@ -1,5 +1,5 @@
 /**
- * $Id: armcore.c,v 1.19 2006-01-17 12:53:39 nkeynes Exp $
+ * $Id: armcore.c,v 1.20 2006-01-22 22:40:05 nkeynes Exp $
  * 
  * ARM7TDMI CPU emulation core.
  *
@@ -90,6 +90,10 @@ int arm_get_breakpoint( uint32_t pc )
 uint32_t arm_run_slice( uint32_t num_samples )
 {
     int i,j,k;
+
+    if( !armr.running )
+	return num_samples;
+
     for( i=0; i<num_samples; i++ ) {
 	for( j=0; j < CYCLES_PER_SAMPLE; j++ ) {
 	    armr.icount++;
@@ -143,6 +147,7 @@ void arm_reset( void )
 
     armr.cpsr = MODE_SVC | CPSR_I | CPSR_F;
     armr.r[15] = 0x00000000;
+    armr.running = TRUE;
 }
 
 #define SET_CPSR_CONTROL   0x00010000
@@ -757,8 +762,7 @@ gboolean arm_execute_instruction( void )
 	cond = 0;
 	UNDEF(ir);
     }
-    if( !cond )
-	return TRUE;
+    if( cond ) {
 
     /**
      * Condition passed, now for the actual instructions...
@@ -1369,9 +1373,12 @@ gboolean arm_execute_instruction( void )
 	}
 	break;
     }
-    if( armr.r[15] > 0x00200000 ) {
-	dreamcast_stop();
-	ERROR( "BRANCH to fishkill at %08X", pc );
+
+    }
+
+    if( armr.r[15] >= 0x00200000 ) {
+	armr.running = FALSE;
+	ERROR( "ARM Halted: BRANCH to invalid address %08X at %08X", armr.r[15], pc );
 	return FALSE;
     }
     return TRUE;

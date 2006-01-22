@@ -1,5 +1,5 @@
 /**
- * $Id: armcore.h,v 1.13 2006-01-12 11:30:19 nkeynes Exp $
+ * $Id: armcore.h,v 1.14 2006-01-22 22:40:05 nkeynes Exp $
  * 
  * Interface definitions for the ARM CPU emulation core proper.
  *
@@ -52,6 +52,8 @@ struct arm_registers {
     uint32_t int_pending; /* Mask of CPSR_I and CPSR_F */
     uint32_t shift_c;  /* used for temporary storage of shifter results */
     uint32_t icount; /* Instruction counter */
+    gboolean running; /* Indicates that the ARM is operational, as opposed to
+		       * halted */
 };
 
 #define CPSR_N 0x80000000 /* Negative flag */
