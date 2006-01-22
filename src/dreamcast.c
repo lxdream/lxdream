@@ -1,5 +1,5 @@
 /**
- * $Id: dreamcast.c,v 1.13 2006-01-10 13:59:35 nkeynes Exp $
+ * $Id: dreamcast.c,v 1.14 2006-01-22 22:42:05 nkeynes Exp $
  * Central switchboard for the system. This pulls all the individual modules
  * together into some kind of coherent structure. This is also where you'd
  * add Naomi support, if I ever get a board to play with...
@@ -93,6 +93,7 @@ void dreamcast_configure_aica_only( )
     mem_create_ram_region( 0x00800000, 2 MB, MEM_REGION_AUDIO );
     mem_create_ram_region( 0x00703000, 8 KB, MEM_REGION_AUDIO_SCRATCH );
     dreamcast_register_module( &aica_module );
+    aica_enable();
     dreamcast_state = STATE_STOPPED;
 }
 
