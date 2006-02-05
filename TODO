@@ -1,12 +1,14 @@
 Immediate stuff to look at:
 
-  * Maple bus 
-     - various controllers
+  * Disassemble ARM boot program, print out, analyze
+  * Disassemble SH4 region in question as well actually.
+  * Write ARM loader + test program, test on actual DC.
 
   * IDE/GDRom drive
      - cd-file interface (cdi, bin/cue, , nrg, mds, etc)
 
 And then
+  * Add load/save button to memory viewer
   * EXTDMA unit
   * PowerVR chip
   * Sound chip

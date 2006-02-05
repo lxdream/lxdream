@@ -4238,7 +4238,6 @@ _ACEOF
 fi
 
 
-pkg_modules="libgnomeui-2.0"
 
   succeeded=no
 
@@ -4293,23 +4292,23 @@ fi
   else
      PKG_CONFIG_MIN_VERSION=0.9.0
      if $PKG_CONFIG --atleast-pkgconfig-version $PKG_CONFIG_MIN_VERSION; then
-        echo "$as_me:$LINENO: checking for $pkg_modules" >&5
-echo $ECHO_N "checking for $pkg_modules... $ECHO_C" >&6
+        echo "$as_me:$LINENO: checking for  libgnomeui-2.0      esound " >&5
+echo $ECHO_N "checking for  libgnomeui-2.0      esound ... $ECHO_C" >&6
 
-        if $PKG_CONFIG --exists "$pkg_modules" ; then
+        if $PKG_CONFIG --exists " libgnomeui-2.0      esound " ; then
             echo "$as_me:$LINENO: result: yes" >&5
 echo "${ECHO_T}yes" >&6
             succeeded=yes
 
             echo "$as_me:$LINENO: checking PACKAGE_CFLAGS" >&5
 echo $ECHO_N "checking PACKAGE_CFLAGS... $ECHO_C" >&6
-            PACKAGE_CFLAGS=`$PKG_CONFIG --cflags "$pkg_modules"`
+            PACKAGE_CFLAGS=`$PKG_CONFIG --cflags " libgnomeui-2.0      esound "`
             echo "$as_me:$LINENO: result: $PACKAGE_CFLAGS" >&5
 echo "${ECHO_T}$PACKAGE_CFLAGS" >&6
 
             echo "$as_me:$LINENO: checking PACKAGE_LIBS" >&5
 echo $ECHO_N "checking PACKAGE_LIBS... $ECHO_C" >&6
-            PACKAGE_LIBS=`$PKG_CONFIG --libs "$pkg_modules"`
+            PACKAGE_LIBS=`$PKG_CONFIG --libs " libgnomeui-2.0      esound "`
             echo "$as_me:$LINENO: result: $PACKAGE_LIBS" >&5
 echo "${ECHO_T}$PACKAGE_LIBS" >&6
         else
@@ -4317,7 +4316,7 @@ echo "${ECHO_T}$PACKAGE_LIBS" >&6
             PACKAGE_LIBS=""
             ## If we have a custom action on failure, don't print errors, but
             ## do set a variable so people can do so.
-            PACKAGE_PKG_ERRORS=`$PKG_CONFIG --errors-to-stdout --print-errors "$pkg_modules"`
+            PACKAGE_PKG_ERRORS=`$PKG_CONFIG --errors-to-stdout --print-errors " libgnomeui-2.0      esound "`
             echo $PACKAGE_PKG_ERRORS
         fi
 
@@ -4332,12 +4331,86 @@ echo "${ECHO_T}$PACKAGE_LIBS" >&6
   if test $succeeded = yes; then
      :
   else
-     { { echo "$as_me:$LINENO: error: Library requirements ($pkg_modules) not met; consider adjusting the PKG_CONFIG_PATH environment variable if your libraries are in a nonstandard prefix so pkg-config can find them." >&5
-echo "$as_me: error: Library requirements ($pkg_modules) not met; consider adjusting the PKG_CONFIG_PATH environment variable if your libraries are in a nonstandard prefix so pkg-config can find them." >&2;}
+     { { echo "$as_me:$LINENO: error: Library requirements ( libgnomeui-2.0      esound ) not met; consider adjusting the PKG_CONFIG_PATH environment variable if your libraries are in a nonstandard prefix so pkg-config can find them." >&5
+echo "$as_me: error: Library requirements ( libgnomeui-2.0      esound ) not met; consider adjusting the PKG_CONFIG_PATH environment variable if your libraries are in a nonstandard prefix so pkg-config can find them." >&2;}
    { (exit 1); exit 1; }; }
   fi
 
 
+
+
+
+echo "$as_me:$LINENO: checking for glXQueryVersion in -lGL" >&5
+echo $ECHO_N "checking for glXQueryVersion in -lGL... $ECHO_C" >&6
+if test "${ac_cv_lib_GL_glXQueryVersion+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lGL  $LIBS"
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any gcc2 internal prototype to avoid an error.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+/* We use char because int might match the return type of a gcc2
+   builtin and then its argument prototype would still apply.  */
+char glXQueryVersion ();
+int
+main ()
+{
+glXQueryVersion ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+	 { ac_try='test -z "$ac_c_werror_flag"			 || test ! -s conftest.err'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; } &&
+	 { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_lib_GL_glXQueryVersion=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+ac_cv_lib_GL_glXQueryVersion=no
+fi
+rm -f conftest.err conftest.$ac_objext \
+      conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+echo "$as_me:$LINENO: result: $ac_cv_lib_GL_glXQueryVersion" >&5
+echo "${ECHO_T}$ac_cv_lib_GL_glXQueryVersion" >&6
+if test $ac_cv_lib_GL_glXQueryVersion = yes; then
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBGL 1
+_ACEOF
+
+  LIBS="-lGL $LIBS"
+
+fi
 
 
 GETTEXT_PACKAGE=dream

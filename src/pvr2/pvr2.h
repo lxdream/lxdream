@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.h,v 1.6 2006-01-22 22:38:51 nkeynes Exp $
+ * $Id: pvr2.h,v 1.7 2006-02-05 04:05:27 nkeynes Exp $
  *
  * PVR2 (video chip) MMIO registers and functions.
  *
@@ -83,10 +83,10 @@ MMIO_REGION_END
 #define DISPMODE_COL 0x0000000C /* Colour mode */
 #define DISPMODE_CD  0x08000000 /* Clock double */
 
-#define MODE_RGB15 0x00000000
-#define MODE_RGB16 0x00000004
-#define MODE_RGB24 0x00000008
-#define MODE_RGB32 0x0000000C
+#define COLFMT_RGB15 0x00000000
+#define COLFMT_RGB16 0x00000004
+#define COLFMT_RGB24 0x00000008
+#define COLFMT_RGB32 0x0000000C
 
 #define DISPSIZE_MODULO 0x3FF00000 /* line skip +1 (32-bit words)*/
 #define DISPSIZE_LPF    0x000FFC00 /* lines per field */

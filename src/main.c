@@ -1,5 +1,5 @@
 /**
- * $Id: main.c,v 1.12 2006-01-22 22:40:53 nkeynes Exp $
+ * $Id: main.c,v 1.13 2006-02-05 04:05:27 nkeynes Exp $
  *
  * Main program, initializes dreamcast and gui, then passes control off to
  * the gtk main loop (currently). 
@@ -22,8 +22,8 @@
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
 #endif
-
 #include <unistd.h>
+#include <getopt.h>
 #include <gnome.h>
 #include "gui/gui.h"
 #include "dream.h"
@@ -33,6 +33,7 @@
 #define S3M_PLAYER "s3mplay.bin"
 
 char *option_list = "a:s:A:V:phb";
+struct option longopts[1] = { { NULL, 0, 0, 0 } };
 char *aica_program = NULL;
 char *s3m_file = NULL;
 gboolean start_immediately = FALSE;
@@ -47,7 +48,7 @@ int main (int argc, char *argv[])
     textdomain (PACKAGE);
 #endif
   
-    while( (opt = getopt( argc, argv, option_list )) != -1 ) {
+    while( (opt = getopt_long( argc, argv, option_list, longopts, NULL )) != -1 ) {
 	switch( opt ) {
 	case 'a': /* AICA only mode - argument is an AICA program */
 	    aica_program = optarg;
@@ -73,11 +74,12 @@ int main (int argc, char *argv[])
     }
 
     if( aica_program == NULL ) {
-	dreamcast_init();
 	if( !headless ) {
 	    gnome_init ("dreamon", VERSION, argc, argv);
-	    video_open();
+	    dreamcast_init();
 	    dreamcast_register_module( &gtk_gui_module );
+	} else {
+	    dreamcast_init();
 	}
     } else {
 	dreamcast_configure_aica_only();
@@ -96,6 +98,10 @@ int main (int argc, char *argv[])
     	bios_install();
     }
     INFO( "DreamOn! ready..." );
+    if( optind < argc ) {
+	file_load_magic( argv[optind] );
+    }
+
     if( start_immediately )
 	dreamcast_run();
     if( !headless ) {
