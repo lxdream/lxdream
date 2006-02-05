@@ -1,5 +1,5 @@
 /**
- * $Id: sh4core.c,v 1.18 2006-01-21 11:38:36 nkeynes Exp $
+ * $Id: sh4core.c,v 1.19 2006-02-05 04:02:57 nkeynes Exp $
  * 
  * SH4 emulation core, and parent module for all the SH4 peripheral
  * modules.
@@ -288,7 +288,7 @@ static void sh4_accept_interrupt( void )
     MMIO_WRITE( MMU, INTEVT, code );
     sh4r.pc = sh4r.vbr + 0x600;
     sh4r.new_pc = sh4r.pc + 2;
-    WARN( "Accepting interrupt %03X, from %08X => %08X", code, sh4r.spc, sh4r.pc );
+    //    WARN( "Accepting interrupt %03X, from %08X => %08X", code, sh4r.spc, sh4r.pc );
 }
 
 gboolean sh4_execute_instruction( void )
@@ -399,8 +399,9 @@ gboolean sh4_execute_instruction( void )
                                 uint32_t hi = (MMIO_READ( MMU, (queue == 0 ? QACR0 : QACR1) ) & 0x1C) << 24;
                                 uint32_t target = tmp&0x03FFFFE0 | hi;
                                 mem_copy_to_sh4( target, src, 32 );
-				//				WARN( "Executed SQ%c => %08X",
-				//				      (queue == 0 ? '0' : '1'), target );
+				//if( (target &0xFF000000) != 0x04000000 ) 
+				//    WARN( "Executed SQ%c => %08X",
+				//	  (queue == 0 ? '0' : '1'), target );
                             }
                             break;
                         case 9: /* OCBI    [Rn] */

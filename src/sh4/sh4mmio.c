@@ -1,5 +1,5 @@
 /**
- * $Id: sh4mmio.c,v 1.7 2006-01-01 08:08:40 nkeynes Exp $
+ * $Id: sh4mmio.c,v 1.8 2006-02-05 04:02:57 nkeynes Exp $
  * 
  * Miscellaneous and not-really-implemented SH4 peripheral modules. Also
  * responsible for including the IMPL side of the SH4 MMIO pages.
@@ -29,7 +29,7 @@
 
 /********************************* MMU *************************************/
 
-MMIO_REGION_READ_STUBFN( MMU )
+MMIO_REGION_READ_DEFFN( MMU )
 
 #define OCRAM_START (0x1C000000>>PAGE_BITS)
 #define OCRAM_END   (0x20000000>>PAGE_BITS)
