@@ -1,5 +1,5 @@
 /**
- * $Id: loader.c,v 1.9 2006-01-22 22:41:40 nkeynes Exp $
+ * $Id: loader.c,v 1.10 2006-02-05 04:04:25 nkeynes Exp $
  *
  * File loading routines, mostly for loading demos without going through the
  * whole procedure of making a CD image for them.
@@ -116,5 +116,6 @@ int file_load_binary( const gchar *filename ) {
     } else {
 	sh4_set_pc( BINARY_LOAD_ADDR );
     }
+    bios_install();
     gtk_gui_update();
 }
