@@ -126,7 +126,7 @@ sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
 
-SUBDIRS = src po
+SUBDIRS = src po test
 
 EXTRA_DIST = \
 	autogen.sh \

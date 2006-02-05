@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.c,v 1.13 2006-01-22 22:38:51 nkeynes Exp $
+ * $Id: pvr2.c,v 1.14 2006-02-05 04:05:27 nkeynes Exp $
  *
  * PVR2 (Video) MMIO and supporting functions.
  *
@@ -30,7 +30,11 @@ char *video_base;
 
 void pvr2_init( void );
 uint32_t pvr2_run_slice( uint32_t );
-void pvr2_next_frame( void );
+void pvr2_display_frame( void );
+
+video_driver_t video_driver = NULL;
+struct video_buffer video_buffer[2];
+int video_buffer_idx = 0;
 
 struct dreamcast_module pvr2_module = { "PVR2", pvr2_init, NULL, NULL, 
 					pvr2_run_slice, NULL,
@@ -42,16 +46,18 @@ void pvr2_init( void )
     register_io_region( &mmio_region_PVR2PAL );
     register_io_region( &mmio_region_PVR2TA );
     video_base = mem_get_region_by_name( MEM_REGION_VIDEO );
+    video_driver = &video_gtk_driver;
 }
 
 uint32_t pvr2_time_counter = 0;
+uint32_t pvr2_frame_counter = 0;
 uint32_t pvr2_time_per_frame = 20000000;
 
 uint32_t pvr2_run_slice( uint32_t nanosecs ) 
 {
     pvr2_time_counter += nanosecs;
     while( pvr2_time_counter >= pvr2_time_per_frame ) {
-	pvr2_next_frame();
+	pvr2_display_frame();
 	pvr2_time_counter -= pvr2_time_per_frame;
     }
     return nanosecs;
@@ -66,46 +72,51 @@ char *frame_start; /* current video start address (in real memory) */
  * the window. If the video configuration has changed, first recompute the
  * new frame size/depth.
  */
-void pvr2_next_frame( void )
+void pvr2_display_frame( void )
 {
-    if( bChanged ) {
-        int dispsize = MMIO_READ( PVR2, DISPSIZE );
-        int dispmode = MMIO_READ( PVR2, DISPMODE );
-        int vidcfg = MMIO_READ( PVR2, VIDCFG );
-        vid_stride = ((dispsize & DISPSIZE_MODULO) >> 20) - 1;
-        vid_lpf = ((dispsize & DISPSIZE_LPF) >> 10) + 1;
-        vid_ppl = ((dispsize & DISPSIZE_PPL)) + 1;
-        vid_col = (dispmode & DISPMODE_COL);
-        frame_start = video_base + MMIO_READ( PVR2, DISPADDR1 );
-        interlaced = (vidcfg & VIDCFG_I ? 1 : 0);
-        bEnabled = (dispmode & DISPMODE_DE) && (vidcfg & VIDCFG_VO ) ? 1 : 0;
-        vid_size = (vid_ppl * vid_lpf) << (interlaced ? 3 : 2);
-        vid_hres = vid_ppl;
-        vid_vres = vid_lpf;
-        if( interlaced ) vid_vres <<= 1;
-        switch( vid_col ) {
-            case MODE_RGB15:
-            case MODE_RGB16: vid_hres <<= 1; break;
-            case MODE_RGB24: vid_hres *= 3; break;
-            case MODE_RGB32: vid_hres <<= 2; break;
-        }
-        vid_hres >>= 2;
-        video_update_size( vid_hres, vid_vres, vid_col );
-        bChanged = 0;
-    }
+    int dispsize = MMIO_READ( PVR2, DISPSIZE );
+    int dispmode = MMIO_READ( PVR2, DISPMODE );
+    int vidcfg = MMIO_READ( PVR2, VIDCFG );
+    int vid_stride = ((dispsize & DISPSIZE_MODULO) >> 20) - 1;
+    int vid_lpf = ((dispsize & DISPSIZE_LPF) >> 10) + 1;
+    int vid_ppl = ((dispsize & DISPSIZE_PPL)) + 1;
+    gboolean bEnabled = (dispmode & DISPMODE_DE) && (vidcfg & VIDCFG_VO ) ? TRUE : FALSE;
+    gboolean interlaced = (vidcfg & VIDCFG_I ? TRUE : FALSE);
     if( bEnabled ) {
-	if( MMIO_READ( PVR2, VIDCFG2 ) & 0x08 ) {
-	    /* Blanked */
-	    uint32_t colour = MMIO_READ( PVR2, BORDERCOL );
-	    video_fill( colour );
-	} else {
-	    /* Assume bit depths match for now... */
-	    memcpy( video_data, frame_start, vid_size );
+	video_buffer_t buffer = &video_buffer[video_buffer_idx];
+	video_buffer_idx = !video_buffer_idx;
+	video_buffer_t last = &video_buffer[video_buffer_idx];
+	buffer->colour_format = (dispmode & DISPMODE_COL);
+	buffer->rowstride = (vid_ppl + vid_stride) << 2;
+	buffer->data = frame_start = video_base + MMIO_READ( PVR2, DISPADDR1 );
+	buffer->vres = vid_lpf;
+	if( interlaced ) buffer->vres <<= 1;
+	switch( buffer->colour_format ) {
+	case COLFMT_RGB15:
+	case COLFMT_RGB16: buffer->hres = vid_ppl << 1; break;
+	case COLFMT_RGB24: buffer->hres = (vid_ppl << 2) / 3; break;
+	case COLFMT_RGB32: buffer->hres = vid_ppl; break;
+	}
+	
+	if( video_driver != NULL ) {
+	    if( buffer->hres != last->hres ||
+		buffer->vres != last->vres ||
+		buffer->colour_format != last->colour_format) {
+		video_driver->set_output_format( buffer->hres, buffer->vres,
+						 buffer->colour_format );
+	    }
+	    if( MMIO_READ( PVR2, VIDCFG2 ) & 0x08 ) { /* Blanked */
+		uint32_t colour = MMIO_READ( PVR2, BORDERCOL );
+		video_driver->display_blank_frame( colour );
+	    } else {
+		video_driver->display_frame( buffer );
+	    }
 	}
     } else {
-        memset( video_data, 0, vid_size );
+	video_buffer_idx = 0;
+	video_buffer[0].hres = video_buffer[0].vres = 0;
     }
-    video_update_frame();
+    pvr2_frame_counter++;
     asic_event( EVENT_SCANLINE1 );
     asic_event( EVENT_SCANLINE2 );
     asic_event( EVENT_RETRACE );
@@ -123,12 +134,6 @@ void mmio_region_PVR2_write( uint32_t reg, uint32_t val )
           MMIO_REGID(PVR2,reg), MMIO_REGDESC(PVR2,reg) );
    
     switch(reg) {
-    case DISPSIZE: bChanged = 1;
-    case DISPMODE: bChanged = 1;
-    case DISPADDR1: bChanged = 1;
-    case DISPADDR2: bChanged = 1;
-    case VIDCFG: bChanged = 1;
-	break;
     case RENDSTART:
 	if( val == 0xFFFFFFFF )
 	    pvr2_render_scene();
@@ -159,7 +164,7 @@ void pvr2_render_scene( void )
 {
     /* Actual rendering goes here :) */
     asic_event( EVENT_PVR_RENDER_DONE );
-    DEBUG( "Rendered frame %d", video_frame_count );
+    DEBUG( "Rendered frame %d", pvr2_frame_counter );
 }
 
 /** Tile Accelerator */
@@ -196,7 +201,7 @@ void pvr2ta_write( char *buf, uint32_t length )
     int count = length >> 5;
     for( i=0; i<count; i++ ){
 	unsigned int type = (cmd_list[i].command >> 24) & 0xFF;
-	DEBUG( "PVR2 cmd: %08X %08X %08X", cmd_list[i].command, cmd_list[i].param1, cmd_list[i].param2 );
+	DEBUG( "PVR2 cmd: %08X %08X %08X %08X %08X %08X %08X %08X", cmd_list[i].command, cmd_list[i].param1, cmd_list[i].param2, cmd_list[i].texture, cmd_list[i].alpha, cmd_list[i].red, cmd_list[i].green, cmd_list[i].blue );
 	if( type == 0 ) {
 	    /* End of list */
 	    switch( pvr2_last_poly_type ) {

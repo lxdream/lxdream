@@ -15,7 +15,7 @@ dream_SOURCES = \
         pvr2.c pvr2.h \
         bios.c bios.h \
         gdrom/ide.c gdrom/ide.h \
-        video.c dreamcast.c dreamcast.h \
+        dreamcast.c dreamcast.h \
         sh4/intc.c sh4/intc.h sh4/sh4mem.c sh4/timer.c sh4/dmac.c \
         sh4/sh4core.c sh4/sh4core.h sh4/sh4dasm.c sh4/sh4dasm.h \
         sh4/sh4mmio.c sh4/sh4mmio.h sh4/scif.c \
@@ -29,7 +29,10 @@ dream_SOURCES = \
         gui/callbacks.c gui/callbacks.h \
         gui/gui.c gui/gui.h gui/mmr_win.c \
         gui/debug_win.c gui/dump_win.c \
-        loader.c bootstrap.c util.c
+        loader.c bootstrap.c util.c \
+	drivers/video_gtk.c drivers/video_gtk.h \
+	drivers/video_x11.c drivers/video_x11.h \
+	drivers/gl_glx.c
 
 dream_LDADD = @PACKAGE_LIBS@ $(INTLLIBS) -lesd
 

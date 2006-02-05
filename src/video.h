@@ -1,5 +1,5 @@
 /**
- * $Id: video.h,v 1.3 2006-01-03 12:21:45 nkeynes Exp $
+ * $Id: video.h,v 1.4 2006-02-05 04:05:27 nkeynes Exp $
  *
  * The PC side of the video support (responsible for actually displaying / 
  * rendering frames)
@@ -21,17 +21,41 @@
 #define dream_video_H
 
 #include <stdint.h>
+#include <glib.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+#define COLFMT_RGB15 0x00000000
+#define COLFMT_RGB16 0x00000004
+#define COLFMT_RGB24 0x00000008
+#define COLFMT_RGB32 0x0000000C
+
+typedef struct video_buffer {
+    uint32_t hres;
+    uint32_t vres;
+    uint32_t rowstride;
+    int colour_format;
+    char *data;
+} *video_buffer_t;
+
+typedef struct video_driver {
+    char *name;
+    gboolean (*set_output_format)( uint32_t hres, uint32_t vres, 
+				   int colour_fmt );
+    gboolean (*display_frame)( video_buffer_t buffer );
+    gboolean (*display_blank_frame)( uint32_t rgb );
+} *video_driver_t;
+
+
 void video_open( void );
 void video_update_frame( void );
 void video_update_size( int, int, int );
 
-extern char *video_data;
-extern uint32_t video_frame_count;
+extern uint32_t pvr2_frame_counter;
+
+extern struct video_driver video_gtk_driver;
 
 #ifdef __cplusplus
 }

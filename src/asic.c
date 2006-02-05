@@ -1,5 +1,5 @@
 /**
- * $Id: asic.c,v 1.10 2006-01-01 08:09:42 nkeynes Exp $
+ * $Id: asic.c,v 1.11 2006-02-05 04:05:27 nkeynes Exp $
  *
  * Support for the miscellaneous ASIC functions (Primarily event multiplexing,
  * and DMA). 
@@ -73,6 +73,9 @@ void mmio_region_ASIC_write( uint32_t reg, uint32_t val )
 	}
 	break;
     case PVRDMACTL: /* Initiate PVR DMA transfer */
+	MMIO_WRITE( ASIC, reg, val );
+	WARN( "Write to ASIC (%03X <= %08X) [%s: %s]",
+	      reg, val, MMIO_REGID(ASIC,reg), MMIO_REGDESC(ASIC,reg) );
 	if( val & 1 ) {
 	    uint32_t dest_addr = MMIO_READ( ASIC, PVRDMADEST) &0x1FFFFFE0;
 	    uint32_t count = MMIO_READ( ASIC, PVRDMACNT );
@@ -102,22 +105,31 @@ int32_t mmio_region_ASIC_read( uint32_t reg )
             sh4_stop();
             return 0x000000B;
         */     
-        case PIRQ0:
-        case PIRQ1:
-        case PIRQ2:
-            val = MMIO_READ(ASIC, reg);
-//            WARN( "Read from ASIC (%03X => %08X) [%s: %s]",
-//                  reg, val, MMIO_REGID(ASIC,reg), MMIO_REGDESC(ASIC,reg) );
-            return val;            
-        case G2STATUS:
-            return 0; /* find out later if there's any cases we actually need to care about */
-        default:
-            val = MMIO_READ(ASIC, reg);
-            WARN( "Read from ASIC (%03X => %08X) [%s: %s]",
-                  reg, val, MMIO_REGID(ASIC,reg), MMIO_REGDESC(ASIC,reg) );
-            return val;
+    case PIRQ0:
+    case PIRQ1:
+    case PIRQ2:
+    case IRQA0:
+    case IRQA1:
+    case IRQA2:
+    case IRQB0:
+    case IRQB1:
+    case IRQB2:
+    case IRQC0:
+    case IRQC1:
+    case IRQC2:
+	val = MMIO_READ(ASIC, reg);
+	//            WARN( "Read from ASIC (%03X => %08X) [%s: %s]",
+	//                  reg, val, MMIO_REGID(ASIC,reg), MMIO_REGDESC(ASIC,reg) );
+	return val;            
+    case G2STATUS:
+	return 0; /* find out later if there's any cases we actually need to care about */
+    default:
+	val = MMIO_READ(ASIC, reg);
+	WARN( "Read from ASIC (%03X => %08X) [%s: %s]",
+	      reg, val, MMIO_REGID(ASIC,reg), MMIO_REGDESC(ASIC,reg) );
+	return val;
     }
-           
+    
 }
 
 void asic_event( int event )
@@ -215,7 +227,7 @@ MMIO_REGION_READ_FN( EXTDMA, reg )
             return idereg.status;
         default:
 	    val = MMIO_READ( EXTDMA, reg );
-	    DEBUG( "EXTDMA read %08X => %08X", reg, val );
+	    //DEBUG( "EXTDMA read %08X => %08X", reg, val );
 	    return val;
     }
 }

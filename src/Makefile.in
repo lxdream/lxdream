@@ -142,7 +142,7 @@ dream_SOURCES = \
         pvr2.c pvr2.h \
         bios.c bios.h \
         gdrom/ide.c gdrom/ide.h \
-        video.c dreamcast.c dreamcast.h \
+        dreamcast.c dreamcast.h \
         sh4/intc.c sh4/intc.h sh4/sh4mem.c sh4/timer.c sh4/dmac.c \
         sh4/sh4core.c sh4/sh4core.h sh4/sh4dasm.c sh4/sh4dasm.h \
         sh4/sh4mmio.c sh4/sh4mmio.h sh4/scif.c \
@@ -156,7 +156,10 @@ dream_SOURCES = \
         gui/callbacks.c gui/callbacks.h \
         gui/gui.c gui/gui.h gui/mmr_win.c \
         gui/debug_win.c gui/dump_win.c \
-        loader.c bootstrap.c util.c
+        loader.c bootstrap.c util.c \
+	drivers/video_gtk.c drivers/video_gtk.h \
+	drivers/video_x11.c drivers/video_x11.h \
+	drivers/gl_glx.c
 
 
 dream_LDADD = @PACKAGE_LIBS@ $(INTLLIBS) -lesd
@@ -172,16 +175,17 @@ PROGRAMS = $(bin_PROGRAMS)
 
 am_dream_OBJECTS = main.$(OBJEXT) mem.$(OBJEXT) watch.$(OBJEXT) \
 	asic.$(OBJEXT) pvr2.$(OBJEXT) bios.$(OBJEXT) ide.$(OBJEXT) \
-	video.$(OBJEXT) dreamcast.$(OBJEXT) intc.$(OBJEXT) \
-	sh4mem.$(OBJEXT) timer.$(OBJEXT) dmac.$(OBJEXT) \
-	sh4core.$(OBJEXT) sh4dasm.$(OBJEXT) sh4mmio.$(OBJEXT) \
-	scif.$(OBJEXT) armcore.$(OBJEXT) armdasm.$(OBJEXT) \
-	armmem.$(OBJEXT) aica.$(OBJEXT) audio.$(OBJEXT) \
-	audio_null.$(OBJEXT) audio_esd.$(OBJEXT) maple.$(OBJEXT) \
-	controller.$(OBJEXT) support.$(OBJEXT) interface.$(OBJEXT) \
-	callbacks.$(OBJEXT) gui.$(OBJEXT) mmr_win.$(OBJEXT) \
-	debug_win.$(OBJEXT) dump_win.$(OBJEXT) loader.$(OBJEXT) \
-	bootstrap.$(OBJEXT) util.$(OBJEXT)
+	dreamcast.$(OBJEXT) intc.$(OBJEXT) sh4mem.$(OBJEXT) \
+	timer.$(OBJEXT) dmac.$(OBJEXT) sh4core.$(OBJEXT) \
+	sh4dasm.$(OBJEXT) sh4mmio.$(OBJEXT) scif.$(OBJEXT) \
+	armcore.$(OBJEXT) armdasm.$(OBJEXT) armmem.$(OBJEXT) \
+	aica.$(OBJEXT) audio.$(OBJEXT) audio_null.$(OBJEXT) \
+	audio_esd.$(OBJEXT) maple.$(OBJEXT) controller.$(OBJEXT) \
+	support.$(OBJEXT) interface.$(OBJEXT) callbacks.$(OBJEXT) \
+	gui.$(OBJEXT) mmr_win.$(OBJEXT) debug_win.$(OBJEXT) \
+	dump_win.$(OBJEXT) loader.$(OBJEXT) bootstrap.$(OBJEXT) \
+	util.$(OBJEXT) video_gtk.$(OBJEXT) video_x11.$(OBJEXT) \
+	gl_glx.$(OBJEXT)
 dream_OBJECTS = $(am_dream_OBJECTS)
 dream_DEPENDENCIES =
 dream_LDFLAGS =
@@ -197,16 +201,17 @@ am__depfiles_maybe = depfiles
 @AMDEP_TRUE@	./$(DEPDIR)/callbacks.Po ./$(DEPDIR)/controller.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/debug_win.Po ./$(DEPDIR)/dmac.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/dreamcast.Po ./$(DEPDIR)/dump_win.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/gui.Po ./$(DEPDIR)/ide.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/intc.Po ./$(DEPDIR)/interface.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/loader.Po ./$(DEPDIR)/main.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/maple.Po ./$(DEPDIR)/mem.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/mmr_win.Po ./$(DEPDIR)/pvr2.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/scif.Po ./$(DEPDIR)/sh4core.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/sh4dasm.Po ./$(DEPDIR)/sh4mem.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/sh4mmio.Po ./$(DEPDIR)/support.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/timer.Po ./$(DEPDIR)/util.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/video.Po ./$(DEPDIR)/watch.Po
+@AMDEP_TRUE@	./$(DEPDIR)/gl_glx.Po ./$(DEPDIR)/gui.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/ide.Po ./$(DEPDIR)/intc.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/interface.Po ./$(DEPDIR)/loader.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/main.Po ./$(DEPDIR)/maple.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/mem.Po ./$(DEPDIR)/mmr_win.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/pvr2.Po ./$(DEPDIR)/scif.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/sh4core.Po ./$(DEPDIR)/sh4dasm.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/sh4mem.Po ./$(DEPDIR)/sh4mmio.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/support.Po ./$(DEPDIR)/timer.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/util.Po ./$(DEPDIR)/video_gtk.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/video_x11.Po ./$(DEPDIR)/watch.Po
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
@@ -274,6 +279,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dmac.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dreamcast.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dump_win.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gl_glx.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gui.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ide.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/intc.Po@am__quote@
@@ -292,7 +298,8 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/support.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/timer.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/util.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/video.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/video_gtk.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/video_x11.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/watch.Po@am__quote@
 
 .c.o:
@@ -866,6 +873,72 @@ dump_win.obj: gui/dump_win.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/dump_win.Po' tmpdepfile='$(DEPDIR)/dump_win.TPo' @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o dump_win.obj `if test -f 'gui/dump_win.c'; then $(CYGPATH_W) 'gui/dump_win.c'; else $(CYGPATH_W) '$(srcdir)/gui/dump_win.c'; fi`
+
+video_gtk.o: drivers/video_gtk.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT video_gtk.o -MD -MP -MF "$(DEPDIR)/video_gtk.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o video_gtk.o `test -f 'drivers/video_gtk.c' || echo '$(srcdir)/'`drivers/video_gtk.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/video_gtk.Tpo" "$(DEPDIR)/video_gtk.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/video_gtk.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/video_gtk.c' object='video_gtk.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/video_gtk.Po' tmpdepfile='$(DEPDIR)/video_gtk.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o video_gtk.o `test -f 'drivers/video_gtk.c' || echo '$(srcdir)/'`drivers/video_gtk.c
+
+video_gtk.obj: drivers/video_gtk.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT video_gtk.obj -MD -MP -MF "$(DEPDIR)/video_gtk.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o video_gtk.obj `if test -f 'drivers/video_gtk.c'; then $(CYGPATH_W) 'drivers/video_gtk.c'; else $(CYGPATH_W) '$(srcdir)/drivers/video_gtk.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/video_gtk.Tpo" "$(DEPDIR)/video_gtk.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/video_gtk.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/video_gtk.c' object='video_gtk.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/video_gtk.Po' tmpdepfile='$(DEPDIR)/video_gtk.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o video_gtk.obj `if test -f 'drivers/video_gtk.c'; then $(CYGPATH_W) 'drivers/video_gtk.c'; else $(CYGPATH_W) '$(srcdir)/drivers/video_gtk.c'; fi`
+
+video_x11.o: drivers/video_x11.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT video_x11.o -MD -MP -MF "$(DEPDIR)/video_x11.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o video_x11.o `test -f 'drivers/video_x11.c' || echo '$(srcdir)/'`drivers/video_x11.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/video_x11.Tpo" "$(DEPDIR)/video_x11.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/video_x11.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/video_x11.c' object='video_x11.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/video_x11.Po' tmpdepfile='$(DEPDIR)/video_x11.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o video_x11.o `test -f 'drivers/video_x11.c' || echo '$(srcdir)/'`drivers/video_x11.c
+
+video_x11.obj: drivers/video_x11.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT video_x11.obj -MD -MP -MF "$(DEPDIR)/video_x11.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o video_x11.obj `if test -f 'drivers/video_x11.c'; then $(CYGPATH_W) 'drivers/video_x11.c'; else $(CYGPATH_W) '$(srcdir)/drivers/video_x11.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/video_x11.Tpo" "$(DEPDIR)/video_x11.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/video_x11.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/video_x11.c' object='video_x11.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/video_x11.Po' tmpdepfile='$(DEPDIR)/video_x11.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o video_x11.obj `if test -f 'drivers/video_x11.c'; then $(CYGPATH_W) 'drivers/video_x11.c'; else $(CYGPATH_W) '$(srcdir)/drivers/video_x11.c'; fi`
+
+gl_glx.o: drivers/gl_glx.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT gl_glx.o -MD -MP -MF "$(DEPDIR)/gl_glx.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o gl_glx.o `test -f 'drivers/gl_glx.c' || echo '$(srcdir)/'`drivers/gl_glx.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/gl_glx.Tpo" "$(DEPDIR)/gl_glx.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/gl_glx.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/gl_glx.c' object='gl_glx.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/gl_glx.Po' tmpdepfile='$(DEPDIR)/gl_glx.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o gl_glx.o `test -f 'drivers/gl_glx.c' || echo '$(srcdir)/'`drivers/gl_glx.c
+
+gl_glx.obj: drivers/gl_glx.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT gl_glx.obj -MD -MP -MF "$(DEPDIR)/gl_glx.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o gl_glx.obj `if test -f 'drivers/gl_glx.c'; then $(CYGPATH_W) 'drivers/gl_glx.c'; else $(CYGPATH_W) '$(srcdir)/drivers/gl_glx.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/gl_glx.Tpo" "$(DEPDIR)/gl_glx.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/gl_glx.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/gl_glx.c' object='gl_glx.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/gl_glx.Po' tmpdepfile='$(DEPDIR)/gl_glx.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o gl_glx.obj `if test -f 'drivers/gl_glx.c'; then $(CYGPATH_W) 'drivers/gl_glx.c'; else $(CYGPATH_W) '$(srcdir)/drivers/gl_glx.c'; fi`
 uninstall-info-am:
 
 ETAGS = etags
