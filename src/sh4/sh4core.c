@@ -1,5 +1,5 @@
 /**
- * $Id: sh4core.c,v 1.19 2006-02-05 04:02:57 nkeynes Exp $
+ * $Id: sh4core.c,v 1.20 2006-02-15 12:38:50 nkeynes Exp $
  * 
  * SH4 emulation core, and parent module for all the SH4 peripheral
  * modules.
@@ -320,8 +320,8 @@ gboolean sh4_execute_instruction( void )
 #define FRM(ir) FR(FRMn(ir))
 #define FRNi(ir) (*((uint32_t *)&FR(FRNn(ir))))
 #define FRMi(ir) (*((uint32_t *)&FR(FRMn(ir))))
-#define DRN(ir) DR(DRNn(ir))
-#define DRM(ir) DR(DRMn(ir))
+#define DRN(ir) DRb(DRNn(ir), ir&0x0100)
+#define DRM(ir) DRb(DRMn(ir),ir&0x0010)
 #define DRNi(ir) (*((uint64_t *)&DR(FRNn(ir))))
 #define DRMi(ir) (*((uint64_t *)&DR(FRMn(ir))))
 #define FPULf   *((float *)&sh4r.fpul)

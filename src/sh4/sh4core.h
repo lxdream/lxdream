@@ -1,5 +1,5 @@
 /**
- * $Id: sh4core.h,v 1.11 2006-01-21 11:38:36 nkeynes Exp $
+ * $Id: sh4core.h,v 1.12 2006-02-15 12:38:50 nkeynes Exp $
  * 
  * This file defines the internal functions exported/used by the SH4 core, 
  * except for disassembly functions defined in sh4dasm.h
@@ -159,7 +159,8 @@ int SCIF_load_state( FILE *f );
 #define FR(x) sh4r.fr[(sh4r.fpscr&FPSCR_FR)>>21][(x)^1]
 #define DR(x) ((double *)(sh4r.fr[(sh4r.fpscr&FPSCR_FR)>>21]))[x]
 #define XF(x) sh4r.fr[((~sh4r.fpscr)&FPSCR_FR)>>21][(x)^1]
-
+#define XDR(x) ((double *)(sh4r.fr[((~sh4r.fpscr)&FPSCR_FR)>>21]))[x]
+#define DRb(x,b) ((double *)(sh4r.fr[((b ? (~sh4r.fpscr) : sh4r.fpscr)&FPSCR_FR)>>21]))[x]
 /* Exceptions (for use with sh4_raise_exception) */
 
 #define EX_ILLEGAL_INSTRUCTION 0x180, 0x100
