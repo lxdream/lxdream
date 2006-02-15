@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.c,v 1.14 2006-02-05 04:05:27 nkeynes Exp $
+ * $Id: pvr2.c,v 1.15 2006-02-15 12:40:20 nkeynes Exp $
  *
  * PVR2 (Video) MMIO and supporting functions.
  *
@@ -47,6 +47,7 @@ void pvr2_init( void )
     register_io_region( &mmio_region_PVR2TA );
     video_base = mem_get_region_by_name( MEM_REGION_VIDEO );
     video_driver = &video_gtk_driver;
+    video_driver->set_output_format( 640, 480, COLFMT_RGB32 );
 }
 
 uint32_t pvr2_time_counter = 0;
@@ -180,6 +181,14 @@ struct tacmd {
     float blue;
 };
 
+struct vertex_type1 {
+    uint32_t command;
+    float x, y, z;
+    uint32_t blank, blank2;
+    uint32_t col;
+    float f;
+};
+
 int32_t mmio_region_PVR2TA_read( uint32_t reg )
 {
     return 0xFFFFFFFF;
@@ -201,7 +210,12 @@ void pvr2ta_write( char *buf, uint32_t length )
     int count = length >> 5;
     for( i=0; i<count; i++ ){
 	unsigned int type = (cmd_list[i].command >> 24) & 0xFF;
-	DEBUG( "PVR2 cmd: %08X %08X %08X %08X %08X %08X %08X %08X", cmd_list[i].command, cmd_list[i].param1, cmd_list[i].param2, cmd_list[i].texture, cmd_list[i].alpha, cmd_list[i].red, cmd_list[i].green, cmd_list[i].blue );
+	if( type == 0xE0 || type == 0xF0 ) {
+	    struct vertex_type1 *vert = (struct vertex_type1 *)&cmd_list[i];
+	    DEBUG( "PVR2 vrt: %f %f %f %08X %08X %08X %f", vert->x, vert->y, vert->z, vert->blank, vert->blank2, vert->col, vert->f );
+	} else {
+	    DEBUG( "PVR2 cmd: %08X %08X %08X %08X %08X %08X %08X %08X", cmd_list[i].command, cmd_list[i].param1, cmd_list[i].param2, cmd_list[i].texture, cmd_list[i].alpha, cmd_list[i].red, cmd_list[i].green, cmd_list[i].blue );
+	}
 	if( type == 0 ) {
 	    /* End of list */
 	    switch( pvr2_last_poly_type ) {
