@@ -1,7 +1,7 @@
 /**
- * $Id: pvr2.c,v 1.15 2006-02-15 12:40:20 nkeynes Exp $
+ * $Id: pvr2.c,v 1.16 2006-02-15 13:11:46 nkeynes Exp $
  *
- * PVR2 (Video) MMIO and supporting functions.
+ * PVR2 (Video) Core MMIO registers.
  *
  * Copyright (c) 2005 Nathan Keynes.
  *
@@ -107,7 +107,7 @@ void pvr2_display_frame( void )
 						 buffer->colour_format );
 	    }
 	    if( MMIO_READ( PVR2, VIDCFG2 ) & 0x08 ) { /* Blanked */
-		uint32_t colour = MMIO_READ( PVR2, BORDERCOL );
+		uint32_t colour = MMIO_READ( PVR2, DISPBORDER );
 		video_driver->display_blank_frame( colour );
 	    } else {
 		video_driver->display_frame( buffer );
@@ -135,6 +135,10 @@ void mmio_region_PVR2_write( uint32_t reg, uint32_t val )
           MMIO_REGID(PVR2,reg), MMIO_REGDESC(PVR2,reg) );
    
     switch(reg) {
+    case TAINIT:
+	if( val & 0x80000000 )
+	    pvr2_ta_init();
+	break;
     case RENDSTART:
 	if( val == 0xFFFFFFFF )
 	    pvr2_render_scene();
@@ -161,84 +165,17 @@ void pvr2_set_base_address( uint32_t base )
 }
 
 
-void pvr2_render_scene( void )
-{
-    /* Actual rendering goes here :) */
-    asic_event( EVENT_PVR_RENDER_DONE );
-    DEBUG( "Rendered frame %d", pvr2_frame_counter );
-}
 
-/** Tile Accelerator */
-
-struct tacmd {
-    uint32_t command;
-    uint32_t param1;
-    uint32_t param2;
-    uint32_t texture;
-    float alpha;
-    float red;
-    float green;
-    float blue;
-};
-
-struct vertex_type1 {
-    uint32_t command;
-    float x, y, z;
-    uint32_t blank, blank2;
-    uint32_t col;
-    float f;
-};
 
 int32_t mmio_region_PVR2TA_read( uint32_t reg )
 {
     return 0xFFFFFFFF;
 }
 
-char pvr2ta_remainder[8];
-
 void mmio_region_PVR2TA_write( uint32_t reg, uint32_t val )
 {
-    DEBUG( "Direct write to TA %08X", val );
+    pvr2_ta_write( &val, sizeof(uint32_t) );
 }
 
-unsigned int pvr2_last_poly_type = 0;
 
-void pvr2ta_write( char *buf, uint32_t length )
-{
-    int i;
-    struct tacmd *cmd_list = (struct tacmd *)buf;
-    int count = length >> 5;
-    for( i=0; i<count; i++ ){
-	unsigned int type = (cmd_list[i].command >> 24) & 0xFF;
-	if( type == 0xE0 || type == 0xF0 ) {
-	    struct vertex_type1 *vert = (struct vertex_type1 *)&cmd_list[i];
-	    DEBUG( "PVR2 vrt: %f %f %f %08X %08X %08X %f", vert->x, vert->y, vert->z, vert->blank, vert->blank2, vert->col, vert->f );
-	} else {
-	    DEBUG( "PVR2 cmd: %08X %08X %08X %08X %08X %08X %08X %08X", cmd_list[i].command, cmd_list[i].param1, cmd_list[i].param2, cmd_list[i].texture, cmd_list[i].alpha, cmd_list[i].red, cmd_list[i].green, cmd_list[i].blue );
-	}
-	if( type == 0 ) {
-	    /* End of list */
-	    switch( pvr2_last_poly_type ) {
-	    case 0x80: /* Opaque polys */
-		asic_event( EVENT_PVR_OPAQUE_DONE );
-		break;
-	    case 0x81: /* Opaque poly modifier */
-		asic_event( EVENT_PVR_OPAQUEMOD_DONE );
-		break;
-	    case 0x82: /* Transparent polys */
-		asic_event( EVENT_PVR_TRANS_DONE );
-		break;
-	    case 0x83: /* Transparent poly modifier */
-		asic_event( EVENT_PVR_TRANSMOD_DONE );
-		break;
-	    case 0x84: /* Punchthrough */
-		asic_event( EVENT_PVR_PUNCHOUT_DONE );
-		break;
-	    }
-	    pvr2_last_poly_type = 0;
-	} else if( type >= 0x80 && type <= 0x84 ) {
-	    pvr2_last_poly_type = type;
-	}
-    }
-}
 

@@ -1,5 +1,5 @@
 /**
- * $Id: asic.c,v 1.11 2006-02-05 04:05:27 nkeynes Exp $
+ * $Id: asic.c,v 1.12 2006-02-15 13:11:42 nkeynes Exp $
  *
  * Support for the miscellaneous ASIC functions (Primarily event multiplexing,
  * and DMA). 
@@ -83,9 +83,7 @@ void mmio_region_ASIC_write( uint32_t reg, uint32_t val )
 	    uint32_t rcount = DMAC_get_buffer( 2, data, count );
 	    if( rcount != count )
 		WARN( "PVR received %08X bytes from DMA, expected %08X", rcount, count );
-	    if( (dest_addr &0xF0000000) == 0x10000000 ) { /* TA */
-		pvr2ta_write( data, rcount );
-	    }
+	    mem_copy_to_sh4( dest_addr, data, rcount );
 	    asic_event( EVENT_PVR_DMA );
 	}
 	break;

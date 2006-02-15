@@ -21,6 +21,7 @@ dream_SOURCES = \
         aica/armcore.c aica/armcore.h aica/armdasm.c aica/armmem.c \
         aica/aica.c aica/aica.h aica/audio.c aica/audio.h \
 	pvr2/pvr2.c pvr2/pvr2.h \
+	pvr2/ta.c pvr2/render.c \
         maple/maple.c maple/maple.h \
         maple/controller.c maple/controller.h \
         gui/support.c gui/support.h \
