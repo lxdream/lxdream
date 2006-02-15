@@ -1,5 +1,5 @@
 /**
- * $Id: sh4mem.c,v 1.6 2006-01-22 22:42:53 nkeynes Exp $
+ * $Id: sh4mem.c,v 1.7 2006-02-15 13:11:50 nkeynes Exp $
  * sh4mem.c is responsible for the SH4's access to memory (including memory
  * mapped I/O), using the page maps created in mem.c
  *
@@ -26,6 +26,7 @@
 #include "sh4core.h"
 #include "sh4mmio.h"
 #include "dreamcast.h"
+#include "pvr2/pvr2.h"
 
 #define OC_BASE 0x1C000000
 #define OC_TOP  0x20000000
@@ -320,7 +321,7 @@ void mem_copy_from_sh4( char *dest, uint32_t srcaddr, size_t count ) {
 
 void mem_copy_to_sh4( uint32_t destaddr, char *src, size_t count ) {
     if( destaddr >= 0x10000000 && destaddr < 0x20000000 ) {
-	pvr2ta_write( src, count );
+	pvr2_ta_write( src, count );
     } else if( destaddr >= 04000000 && destaddr < 0x5000000 ) {
 	/* 64-bit video write. Oh. Yuck */
 	uint32_t *dest32[2];

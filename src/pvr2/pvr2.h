@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.h,v 1.7 2006-02-05 04:05:27 nkeynes Exp $
+ * $Id: pvr2.h,v 1.8 2006-02-15 13:11:46 nkeynes Exp $
  *
  * PVR2 (video chip) MMIO registers and functions.
  *
@@ -25,7 +25,7 @@ MMIO_REGION_BEGIN( 0x005F8000, PVR2, "Power VR/2" )
     LONG_PORT( 0x014, RENDSTART, PORT_W, 0, "Start render" )
     LONG_PORT( 0x020, OBJBASE, PORT_MRW, 0, "Object buffer base offset" )
     LONG_PORT( 0x02C, TILEBASE, PORT_MRW, 0, "Tile buffer base offset" )
-    LONG_PORT( 0x040, BORDERCOL, PORT_MRW, 0, "Border Colour (RGB)" )
+    LONG_PORT( 0x040, DISPBORDER, PORT_MRW, 0, "Border Colour (RGB)" )
     LONG_PORT( 0x044, DISPMODE, PORT_MRW, 0, "Display Mode" )
     LONG_PORT( 0x048, RENDMODE, PORT_MRW, 0, "Rendering Mode" )
     LONG_PORT( 0x04C, RENDSIZE, PORT_MRW, 0, "Rendering width (bytes/2)" )
@@ -110,4 +110,8 @@ void pvr2_set_base_address( uint32_t );
  * Process the data in the supplied buffer as an array of TA command lists.
  * Any excess bytes are held pending until a complete list is sent
  */
-void pvr2ta_write( char *buf, uint32_t length );
+void pvr2_ta_write( char *buf, uint32_t length );
+
+void pvr2_init( void );
+
+void pvr2_render_scene( void );
