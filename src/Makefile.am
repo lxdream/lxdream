@@ -12,7 +12,6 @@ dream_SOURCES = \
         main.c \
         mem.c mem.h mmio.h watch.c \
         asic.c asic.h \
-        pvr2.c pvr2.h \
         bios.c bios.h \
         gdrom/ide.c gdrom/ide.h \
         dreamcast.c dreamcast.h \
@@ -21,7 +20,7 @@ dream_SOURCES = \
         sh4/sh4mmio.c sh4/sh4mmio.h sh4/scif.c \
         aica/armcore.c aica/armcore.h aica/armdasm.c aica/armmem.c \
         aica/aica.c aica/aica.h aica/audio.c aica/audio.h \
-	aica/audio_null.c aica/audio_esd.c \
+	pvr2/pvr2.c pvr2/pvr2.h \
         maple/maple.c maple/maple.h \
         maple/controller.c maple/controller.h \
         gui/support.c gui/support.h \
@@ -30,6 +29,7 @@ dream_SOURCES = \
         gui/gui.c gui/gui.h gui/mmr_win.c \
         gui/debug_win.c gui/dump_win.c \
         loader.c bootstrap.c util.c \
+	drivers/audio_null.c drivers/audio_esd.c \
 	drivers/video_gtk.c drivers/video_gtk.h \
 	drivers/video_x11.c drivers/video_x11.h \
 	drivers/gl_glx.c
