@@ -1,5 +1,5 @@
 /**
- * $Id: debug_win.c,v 1.16 2006-02-05 04:05:27 nkeynes Exp $
+ * $Id: debug_win.c,v 1.17 2006-02-15 12:39:34 nkeynes Exp $
  * This file is responsible for the main debugger gui frame.
  *
  * Copyright (c) 2005 Nathan Keynes.
@@ -294,6 +294,7 @@ void emit( void *ptr, int level, const gchar *source, const char *msg, ... )
 
     if( data == NULL ) {
 	vfprintf( stderr, msg, ap );
+	fprintf( stderr, "\n" );
 	va_end(ap);
 	return;
     }
