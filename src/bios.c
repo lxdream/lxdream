@@ -1,5 +1,5 @@
 /**
- * $Id: bios.c,v 1.1 2006-01-22 22:40:53 nkeynes Exp $
+ * $Id: bios.c,v 1.2 2006-03-13 12:38:34 nkeynes Exp $
  * 
  * "Fake" BIOS functions, for operation without the actual BIOS.
  *
@@ -18,7 +18,7 @@
 
 #include "dream.h"
 #include "mem.h"
-#include "bios.h"
+#include "syscall.h"
 #include "sh4/sh4core.h"
 
 #define COMMAND_QUEUE_LENGTH 16
@@ -117,16 +117,6 @@ gdrom_command_t bios_gdrom_get_command( uint32_t id )
     return &gdrom_cmd_queue[id];
 }
 
-void bios_install( void ) 
-{
-    bios_gdrom_init();
-    sh4_write_long( 0x8C0000B0, 0xFFFFFFB0 );
-    sh4_write_long( 0x8C0000B4, 0xFFFFFFB4 );
-    sh4_write_long( 0x8C0000B8, 0xFFFFFFB8 );
-    sh4_write_long( 0x8C0000BC, 0xFFFFFFBC );
-    sh4_write_long( 0x8C0000E0, 0xFFFFFFE0 );
-}
-
 /**
  * Syscall list courtesy of Marcus Comstedt
  */
@@ -210,4 +200,14 @@ void bios_syscall( uint32_t syscallid )
 	    break;
 	}
     }
+}
+
+void bios_install( void ) 
+{
+    bios_gdrom_init();
+    syscall_add_hook_vector( 0xB0, 0x8C0000B0, bios_syscall );
+    syscall_add_hook_vector( 0xB4, 0x8C0000B4, bios_syscall );
+    syscall_add_hook_vector( 0xB8, 0x8C0000B8, bios_syscall );
+    syscall_add_hook_vector( 0xBC, 0x8C0000BC, bios_syscall );
+    syscall_add_hook_vector( 0xE0, 0x8C0000E0, bios_syscall );
 }
