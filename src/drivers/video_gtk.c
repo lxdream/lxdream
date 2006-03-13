@@ -1,5 +1,5 @@
 /**
- * $Id: video_gtk.c,v 1.1 2006-02-05 04:05:27 nkeynes Exp $
+ * $Id: video_gtk.c,v 1.2 2006-03-13 12:39:07 nkeynes Exp $
  *
  * The PC side of the video support (responsible for actually displaying / 
  * rendering frames)
@@ -35,9 +35,14 @@ gboolean video_gtk_set_output_format( uint32_t width, uint32_t height,
 gboolean video_gtk_display_frame( video_buffer_t frame );
 gboolean video_gtk_blank( uint32_t rgb );
 
-struct video_driver video_gtk_driver = { "Gtk", video_gtk_set_output_format,
+struct video_driver video_gtk_driver = { "Gtk", 
+					 NULL,
+					 NULL,
+					 video_gtk_set_output_format,
+					 NULL,
 					 video_gtk_display_frame,
-					 video_gtk_blank };
+					 video_gtk_blank,
+					 NULL };
 
 gboolean video_gtk_set_output_format( uint32_t width, uint32_t height,  
 				      int colour_format )
@@ -90,10 +95,10 @@ gboolean video_gtk_display_frame( video_buffer_t frame )
     char *dest = video_img->mem;
 
     switch( frame->colour_format ) {
-    case COLFMT_RGB15:
+    case COLFMT_ARGB1555:
 	for( y=0; y < frame->vres; y++ ) {
 	    uint16_t *p = (uint16_t *)src;
-	    for( x=0; x < frame->vres; x++ ) {
+	    for( x=0; x < frame->hres; x++ ) {
 		uint16_t pixel = *p++;
 		*dest++ = (pixel & 0x1F) << 3;
 		*dest++ = (pixel & 0x3E0) >> 2;
@@ -103,10 +108,10 @@ gboolean video_gtk_display_frame( video_buffer_t frame )
 	    src += frame->rowstride;
 	}
 	break;
-    case COLFMT_RGB16:
+    case COLFMT_RGB565:
 	for( y=0; y < frame->vres; y++ ) {
 	    uint16_t *p = (uint16_t *)src;
-	    for( x=0; x < frame->vres; x++ ) {
+	    for( x=0; x < frame->hres; x++ ) {
 		uint16_t pixel = *p++;
 		*dest++ = (pixel & 0x1F) << 3;
 		*dest++ = (pixel & 0x7E0) >> 3;
@@ -116,7 +121,19 @@ gboolean video_gtk_display_frame( video_buffer_t frame )
 	    src += frame->rowstride;
 	}
 	break;
-    case COLFMT_RGB32:
+    case COLFMT_RGB888:
+	for( y=0; y< frame->vres; y++ ) {
+	    char *p = src;
+	    for( x=0; x < frame->hres; x++ ) {
+		*dest++ = *p++;
+		*dest++ = *p++;
+		*dest++ = *p++;
+		*dest++ = 0;
+	    }
+	    src += frame->rowstride;
+	}
+	break;
+    case COLFMT_ARGB8888:
 	bytes_per_line = frame->hres << 2;
 	if( bytes_per_line == frame->rowstride ) {
 	    /* A little bit faster */

@@ -1,5 +1,5 @@
 /**
- * $Id: ta.c,v 1.1 2006-02-15 13:11:46 nkeynes Exp $
+ * $Id: ta.c,v 1.2 2006-03-13 12:39:07 nkeynes Exp $
  *
  * PVR2 Tile Accelerator support. In principle this does a lot more work
  * than is currently implemented - we cheat. A lot.
@@ -42,27 +42,48 @@ struct vertex_type1 {
     float f;
 };
 
+struct pvr2_ta_status {
+    uint32_t *length;
+    unsigned int last_poly_type;
+} pvr2_ta_status = {NULL,0};
+
 /**
  * (Re)initialize the tile accelerator in preparation for the next scene.
  * Normally called immediately before commencing polygon transmission.
  */
 void pvr2_ta_init( void )
 {
-
+    /* Set the buffer indexes */
+    MMIO_WRITE( PVR2, TAOBJPOS, MMIO_READ( PVR2, TAOBJBASE ) );
+    MMIO_WRITE( PVR2, TAOBJPPOS, MMIO_READ( PVR2, TAOBJPBASE ) );
+    pvr2_ta_status.last_poly_type = 0;
+    pvr2_ta_status.length = NULL;
 }
-
-char pvr2ta_remainder[8];
-unsigned int pvr2_last_poly_type = 0;
 
 /**
  * Write a block of data to the tile accelerator, adding the data to the 
  * current scene. We don't make any particular attempt to interpret the data
  * at this stage, deferring that until render time.
+ *
+ * Currently copies the data verbatim to the vertex buffer, processing only
+ * far enough to generate the correct end-of-list events. Tile buffer is
+ * entirely ignored.
  */
 void pvr2_ta_write( char *buf, uint32_t length )
 {
     int i;
     struct tacmd *cmd_list = (struct tacmd *)buf;
+    uint32_t obj_addr = MMIO_READ( PVR2, TAOBJPOS );
+    if( pvr2_ta_status.length == NULL ) { /* Start */
+	pvr2_ta_status.length = (uint32_t *)mem_get_region( PVR2_RAM_BASE + obj_addr );
+	obj_addr += 4;
+	*pvr2_ta_status.length = length;
+    } else {
+	*pvr2_ta_status.length = *pvr2_ta_status.length + length;
+    }
+    mem_copy_to_sh4( PVR2_RAM_BASE + obj_addr, buf, length );
+    MMIO_WRITE( PVR2, TAOBJPOS, obj_addr + length );
+
     int count = length >> 5;
     for( i=0; i<count; i++ ){
 	unsigned int type = (cmd_list[i].command >> 24) & 0xFF;
@@ -74,7 +95,7 @@ void pvr2_ta_write( char *buf, uint32_t length )
 	}
 	if( type == 0 ) {
 	    /* End of list */
-	    switch( pvr2_last_poly_type ) {
+	    switch( pvr2_ta_status.last_poly_type ) {
 	    case 0x80: /* Opaque polys */
 		asic_event( EVENT_PVR_OPAQUE_DONE );
 		break;
@@ -91,9 +112,9 @@ void pvr2_ta_write( char *buf, uint32_t length )
 		asic_event( EVENT_PVR_PUNCHOUT_DONE );
 		break;
 	    }
-	    pvr2_last_poly_type = 0;
+	    pvr2_ta_status.last_poly_type = 0;
 	} else if( type >= 0x80 && type <= 0x84 ) {
-	    pvr2_last_poly_type = type;
+	    pvr2_ta_status.last_poly_type = type;
 	}
     }
 }

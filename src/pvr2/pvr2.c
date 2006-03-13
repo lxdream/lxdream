@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.c,v 1.16 2006-02-15 13:11:46 nkeynes Exp $
+ * $Id: pvr2.c,v 1.17 2006-03-13 12:39:07 nkeynes Exp $
  *
  * PVR2 (Video) Core MMIO registers.
  *
@@ -21,10 +21,10 @@
 #include "video.h"
 #include "mem.h"
 #include "asic.h"
-#include "pvr2.h"
+#include "pvr2/pvr2.h"
 #include "sh4/sh4core.h"
 #define MMIO_IMPL
-#include "pvr2.h"
+#include "pvr2/pvr2mmio.h"
 
 char *video_base;
 
@@ -32,9 +32,24 @@ void pvr2_init( void );
 uint32_t pvr2_run_slice( uint32_t );
 void pvr2_display_frame( void );
 
+/**
+ * Current PVR2 ram address of the data (if any) currently held in the 
+ * OpenGL buffers.
+ */
+
 video_driver_t video_driver = NULL;
 struct video_buffer video_buffer[2];
 int video_buffer_idx = 0;
+
+struct video_timing {
+    int fields_per_second;
+    int total_lines;
+    int display_lines;
+    int line_time_ns;
+};
+
+struct video_timing pal_timing = { 50, 625, 575, 32000 };
+struct video_timing ntsc_timing= { 60, 525, 480, 31746 };
 
 struct dreamcast_module pvr2_module = { "PVR2", pvr2_init, NULL, NULL, 
 					pvr2_run_slice, NULL,
@@ -47,19 +62,36 @@ void pvr2_init( void )
     register_io_region( &mmio_region_PVR2TA );
     video_base = mem_get_region_by_name( MEM_REGION_VIDEO );
     video_driver = &video_gtk_driver;
-    video_driver->set_output_format( 640, 480, COLFMT_RGB32 );
+    video_driver->set_display_format( 640, 480, COLFMT_RGB32 );
 }
 
+uint32_t pvr2_line_count = 0;
+uint32_t pvr2_line_remainder = 0;
+uint32_t pvr2_irq_vpos1 = 0;
+uint32_t pvr2_irq_vpos2 = 0;
+struct video_timing *pvr2_timing = &ntsc_timing;
 uint32_t pvr2_time_counter = 0;
 uint32_t pvr2_frame_counter = 0;
 uint32_t pvr2_time_per_frame = 20000000;
 
 uint32_t pvr2_run_slice( uint32_t nanosecs ) 
 {
-    pvr2_time_counter += nanosecs;
-    while( pvr2_time_counter >= pvr2_time_per_frame ) {
-	pvr2_display_frame();
-	pvr2_time_counter -= pvr2_time_per_frame;
+    pvr2_line_remainder += nanosecs;
+    while( pvr2_line_remainder >= pvr2_timing->line_time_ns ) {
+	pvr2_line_remainder -= pvr2_timing->line_time_ns;
+	pvr2_line_count++;
+	if( pvr2_line_count == pvr2_irq_vpos1 ) {
+	    asic_event( EVENT_SCANLINE1 );
+	} 
+	if( pvr2_line_count == pvr2_irq_vpos2 ) {
+	    asic_event( EVENT_SCANLINE2 );
+	}
+	if( pvr2_line_count == pvr2_timing->display_lines ) {
+	    asic_event( EVENT_RETRACE );
+	} else if( pvr2_line_count == pvr2_timing->total_lines ) {
+	    pvr2_display_frame();
+	    pvr2_line_count = 0;
+	}
     }
     return nanosecs;
 }
@@ -68,48 +100,61 @@ uint32_t vid_stride, vid_lpf, vid_ppl, vid_hres, vid_vres, vid_col;
 int interlaced, bChanged = 1, bEnabled = 0, vid_size = 0;
 char *frame_start; /* current video start address (in real memory) */
 
-/*
+/**
  * Display the next frame, copying the current contents of video ram to
  * the window. If the video configuration has changed, first recompute the
  * new frame size/depth.
  */
 void pvr2_display_frame( void )
 {
+    uint32_t display_addr = MMIO_READ( PVR2, DISPADDR1 );
+    
     int dispsize = MMIO_READ( PVR2, DISPSIZE );
     int dispmode = MMIO_READ( PVR2, DISPMODE );
-    int vidcfg = MMIO_READ( PVR2, VIDCFG );
+    int vidcfg = MMIO_READ( PVR2, DISPCFG );
     int vid_stride = ((dispsize & DISPSIZE_MODULO) >> 20) - 1;
     int vid_lpf = ((dispsize & DISPSIZE_LPF) >> 10) + 1;
     int vid_ppl = ((dispsize & DISPSIZE_PPL)) + 1;
-    gboolean bEnabled = (dispmode & DISPMODE_DE) && (vidcfg & VIDCFG_VO ) ? TRUE : FALSE;
-    gboolean interlaced = (vidcfg & VIDCFG_I ? TRUE : FALSE);
+    gboolean bEnabled = (dispmode & DISPMODE_DE) && (vidcfg & DISPCFG_VO ) ? TRUE : FALSE;
+    gboolean interlaced = (vidcfg & DISPCFG_I ? TRUE : FALSE);
     if( bEnabled ) {
 	video_buffer_t buffer = &video_buffer[video_buffer_idx];
 	video_buffer_idx = !video_buffer_idx;
 	video_buffer_t last = &video_buffer[video_buffer_idx];
-	buffer->colour_format = (dispmode & DISPMODE_COL);
 	buffer->rowstride = (vid_ppl + vid_stride) << 2;
 	buffer->data = frame_start = video_base + MMIO_READ( PVR2, DISPADDR1 );
 	buffer->vres = vid_lpf;
 	if( interlaced ) buffer->vres <<= 1;
-	switch( buffer->colour_format ) {
-	case COLFMT_RGB15:
-	case COLFMT_RGB16: buffer->hres = vid_ppl << 1; break;
-	case COLFMT_RGB24: buffer->hres = (vid_ppl << 2) / 3; break;
-	case COLFMT_RGB32: buffer->hres = vid_ppl; break;
+	switch( (dispmode & DISPMODE_COL) >> 2 ) {
+	case 0: 
+	    buffer->colour_format = COLFMT_ARGB1555;
+	    buffer->hres = vid_ppl << 1; 
+	    break;
+	case 1: 
+	    buffer->colour_format = COLFMT_RGB565;
+	    buffer->hres = vid_ppl << 1; 
+	    break;
+	case 2:
+	    buffer->colour_format = COLFMT_RGB888;
+	    buffer->hres = (vid_ppl << 2) / 3; 
+	    break;
+	case 3: 
+	    buffer->colour_format = COLFMT_ARGB8888;
+	    buffer->hres = vid_ppl; 
+	    break;
 	}
 	
 	if( video_driver != NULL ) {
 	    if( buffer->hres != last->hres ||
 		buffer->vres != last->vres ||
 		buffer->colour_format != last->colour_format) {
-		video_driver->set_output_format( buffer->hres, buffer->vres,
-						 buffer->colour_format );
+		video_driver->set_display_format( buffer->hres, buffer->vres,
+						  buffer->colour_format );
 	    }
-	    if( MMIO_READ( PVR2, VIDCFG2 ) & 0x08 ) { /* Blanked */
+	    if( MMIO_READ( PVR2, DISPCFG2 ) & 0x08 ) { /* Blanked */
 		uint32_t colour = MMIO_READ( PVR2, DISPBORDER );
 		video_driver->display_blank_frame( colour );
-	    } else {
+	    } else if( !pvr2_render_display_frame( PVR2_RAM_BASE + display_addr ) ) {
 		video_driver->display_frame( buffer );
 	    }
 	}
@@ -135,6 +180,10 @@ void mmio_region_PVR2_write( uint32_t reg, uint32_t val )
           MMIO_REGID(PVR2,reg), MMIO_REGDESC(PVR2,reg) );
    
     switch(reg) {
+    case VPOS_IRQ:
+	pvr2_irq_vpos1 = (val >> 16) & 0x03FF;
+	pvr2_irq_vpos2 = val & 0x03FF;
+	break;
     case TAINIT:
 	if( val & 0x80000000 )
 	    pvr2_ta_init();
@@ -178,4 +227,88 @@ void mmio_region_PVR2TA_write( uint32_t reg, uint32_t val )
 }
 
 
+void pvr2_vram64_write( sh4addr_t destaddr, char *src, uint32_t length )
+{
+    int bank_flag = (destaddr & 0x04) >> 2;
+    uint32_t *banks[2];
+    uint32_t *dwsrc;
+    int i;
 
+    destaddr = destaddr & 0x7FFFFF;
+    if( destaddr + length > 0x800000 ) {
+	length = 0x800000 - destaddr;
+    }
+
+    for( i=destaddr & 0xFFFFF000; i < destaddr + length; i+= PAGE_SIZE ) {
+	texcache_invalidate_page( i );
+    }
+
+    banks[0] = ((uint32_t *)(video_base + (destaddr>>3)));
+    banks[1] = banks[0] + 0x100000;
+    
+    /* Handle non-aligned start of source */
+    if( destaddr & 0x03 ) {
+	char *dest = ((char *)banks[bank_flag]) + (destaddr & 0x03);
+	for( i= destaddr & 0x03; i < 4 && length > 0; i++, length-- ) {
+	    *dest++ = *src++;
+	}
+	bank_flag = !bank_flag;
+    }
+
+    dwsrc = (uint32_t *)src;
+    while( length >= 4 ) {
+	*banks[bank_flag]++ = *dwsrc++;
+	bank_flag = !bank_flag;
+	length -= 4;
+    }
+    
+    /* Handle non-aligned end of source */
+    if( length ) {
+	src = (char *)dwsrc;
+	char *dest = (char *)banks[bank_flag];
+	while( length-- > 0 ) {
+	    *dest++ = *src++;
+	}
+    }  
+
+}
+
+void pvr2_vram64_read( char *dest, sh4addr_t srcaddr, uint32_t length )
+{
+    int bank_flag = (srcaddr & 0x04) >> 2;
+    uint32_t *banks[2];
+    uint32_t *dwdest;
+    int i;
+
+    srcaddr = srcaddr & 0x7FFFFF;
+    if( srcaddr + length > 0x800000 )
+	length = 0x800000 - srcaddr;
+
+    banks[0] = ((uint32_t *)(video_base + (srcaddr>>3)));
+    banks[1] = banks[0] + 0x100000;
+    
+    /* Handle non-aligned start of source */
+    if( srcaddr & 0x03 ) {
+	char *src = ((char *)banks[bank_flag]) + (srcaddr & 0x03);
+	for( i= srcaddr & 0x03; i < 4 && length > 0; i++, length-- ) {
+	    *dest++ = *src++;
+	}
+	bank_flag = !bank_flag;
+    }
+
+    dwdest = (uint32_t *)dest;
+    while( length >= 4 ) {
+	*dwdest++ = *banks[bank_flag]++;
+	bank_flag = !bank_flag;
+	length -= 4;
+    }
+    
+    /* Handle non-aligned end of source */
+    if( length ) {
+	dest = (char *)dwdest;
+	char *src = (char *)banks[bank_flag];
+	while( length-- > 0 ) {
+	    *dest++ = *src++;
+	}
+    }
+}
