@@ -1,7 +1,7 @@
 /**
- * $Id: pvr2.h,v 1.8 2006-02-15 13:11:46 nkeynes Exp $
+ * $Id: pvr2.h,v 1.9 2006-03-13 12:39:07 nkeynes Exp $
  *
- * PVR2 (video chip) MMIO registers and functions.
+ * PVR2 (video chip) functions and macros.
  *
  * Copyright (c) 2005 Nathan Keynes.
  *
@@ -16,67 +16,12 @@
  * GNU General Public License for more details.
  */
 
-#include "mmio.h"
+#include "dream.h"
+#include "mem.h"
+#include "video.h"
+#include "pvr2/pvr2mmio.h"
+#include <GL/gl.h>
 
-MMIO_REGION_BEGIN( 0x005F8000, PVR2, "Power VR/2" )
-    LONG_PORT( 0x000, PVRID, PORT_MR, 0x17FD11DB, "PVR2 Core ID" )
-    LONG_PORT( 0x004, PVRVER, PORT_MR, 0x00000011, "PVR2 Core Version" )
-    LONG_PORT( 0x008, PVRRST, PORT_MR, 0, "PVR2 Reset" )
-    LONG_PORT( 0x014, RENDSTART, PORT_W, 0, "Start render" )
-    LONG_PORT( 0x020, OBJBASE, PORT_MRW, 0, "Object buffer base offset" )
-    LONG_PORT( 0x02C, TILEBASE, PORT_MRW, 0, "Tile buffer base offset" )
-    LONG_PORT( 0x040, DISPBORDER, PORT_MRW, 0, "Border Colour (RGB)" )
-    LONG_PORT( 0x044, DISPMODE, PORT_MRW, 0, "Display Mode" )
-    LONG_PORT( 0x048, RENDMODE, PORT_MRW, 0, "Rendering Mode" )
-    LONG_PORT( 0x04C, RENDSIZE, PORT_MRW, 0, "Rendering width (bytes/2)" )
-    LONG_PORT( 0x050, DISPADDR1, PORT_MRW, 0, "Video memory base 1" )
-    LONG_PORT( 0x054, DISPADDR2, PORT_MRW, 0, "Video memory base 2" )
-    LONG_PORT( 0x05C, DISPSIZE, PORT_MRW, 0, "Display size" )
-    LONG_PORT( 0x060, RENDADDR1, PORT_MRW, 0, "Rendering memory base 1" )
-    LONG_PORT( 0x064, RENDADDR2, PORT_MRW, 0, "Rendering memory base 2" )
-    LONG_PORT( 0x068, HCLIP, PORT_MRW, 0, "Horizontal clipping area" )
-    LONG_PORT( 0x06C, VCLIP, PORT_MRW, 0, "Vertical clipping area" )
-    LONG_PORT( 0x074, SHADOW, PORT_MRW, 0, "Shadowing" )
-    LONG_PORT( 0x078, OBJCLIP, PORT_MRW, 0, "Object clip distance (float32)" )
-    LONG_PORT( 0x084, TSPCLIP, PORT_MRW, 0, "Texture clip distance (float32)" )
-    LONG_PORT( 0x088, BGPLANEZ, PORT_MRW, 0, "Background plane depth (float32)" )
-    LONG_PORT( 0x08C, BGPLANECFG, PORT_MRW, 0, "Background plane config" )
-    LONG_PORT( 0x0B0, FGTBLCOL, PORT_MRW, 0, "Fog table colour" )
-    LONG_PORT( 0x0B4, FGVRTCOL, PORT_MRW, 0, "Fog vertex colour" )
-    LONG_PORT( 0x0B8, FGCOEFF, PORT_MRW, 0, "Fog density coefficient (float16)" )
-    LONG_PORT( 0x0BC, CLAMPHI, PORT_MRW, 0, "Clamp high colour" )
-    LONG_PORT( 0x0C0, CLAMPLO, PORT_MRW, 0, "Clamp low colour" )
-    LONG_PORT( 0x0C4, GUNPOS, PORT_MRW, 0, "Lightgun position" )
-    LONG_PORT( 0x0CC, EVTPOS, PORT_MRW, 0, "Raster event position" )
-    LONG_PORT( 0x0D0, VIDCFG, PORT_MRW, 0, "Sync configuration & enable" )
-    LONG_PORT( 0x0D4, HBORDER, PORT_MRW, 0, "Horizontal border area" )
-    LONG_PORT( 0x0D8, REFRESH, PORT_MRW, 0, "Refresh rates?" )
-    LONG_PORT( 0x0DC, VBORDER, PORT_MRW, 0, "Vertical border area" )
-    LONG_PORT( 0x0E0, SYNCPOS, PORT_MRW, 0, "Sync pulse timing" )
-    LONG_PORT( 0x0E4, TSPCFG, PORT_MRW, 0, "Texture modulo width" )
-    LONG_PORT( 0x0E8, VIDCFG2, PORT_MRW, 0, "Video configuration 2" )
-    LONG_PORT( 0x0F0, VPOS, PORT_MRW, 0, "Vertical display position" )
-    LONG_PORT( 0x0F4, SCALERCFG, PORT_MRW, 0, "Scaler configuration (?)" )
-    LONG_PORT( 0x10C, BEAMPOS, PORT_R, 0, "Raster beam position" )
-    LONG_PORT( 0x124, TAOPBST, PORT_MRW, 0, "TA Object Pointer Buffer start" )
-    LONG_PORT( 0x128, TAOBST, PORT_MRW, 0, "TA Object Buffer start" )
-    LONG_PORT( 0x12C, TAOPBEN, PORT_MRW, 0, "TA Object Pointer Buffer end" )
-    LONG_PORT( 0x130, TAOBEN, PORT_MRW, 0, "TA Object Buffer end" )
-    LONG_PORT( 0x134, TAOPBPOS, PORT_MRW, 0, "TA Object Pointer Buffer position" )
-    LONG_PORT( 0x138, TAOBPOS, PORT_MRW, 0, "TA Object Buffer position" )
-    LONG_PORT( 0x13C, TATBSZ, PORT_MRW, 0, "TA Tile Buffer size" )
-    LONG_PORT( 0x140, TAOPBCFG, PORT_MRW, 0, "TA Object Pointer Buffer config" )
-    LONG_PORT( 0x144, TAINIT, PORT_MRW, 0, "TA Initialize" )
-    LONG_PORT( 0x164, TAOPLST, PORT_MRW, 0, "TA Object Pointer List start" )
-MMIO_REGION_END
-
-MMIO_REGION_BEGIN( 0x005F9000, PVR2PAL, "Power VR/2 CLUT Palettes" )
-    LONG_PORT( 0x000, PAL0_0, PORT_MRW, 0, "Pal0 colour 0" )
-MMIO_REGION_END
-
-MMIO_REGION_BEGIN( 0x10000000, PVR2TA, "Power VR/2 TA Command port" )
-    LONG_PORT( 0x000, TACMD, PORT_MRW, 0, "TA Command port" )
-MMIO_REGION_END
 
 #define DISPMODE_DE  0x00000001 /* Display enable */
 #define DISPMODE_SD  0x00000002 /* Scan double */
@@ -92,26 +37,136 @@ MMIO_REGION_END
 #define DISPSIZE_LPF    0x000FFC00 /* lines per field */
 #define DISPSIZE_PPL    0x000003FF /* pixel words (32 bit) per line */
 
-#define VIDCFG_VP 0x00000001 /* V-sync polarity */
-#define VIDCFG_HP 0x00000002 /* H-sync polarity */
-#define VIDCFG_I  0x00000010 /* Interlace enable */
-#define VIDCFG_BS 0x000000C0 /* Broadcast standard */
-#define VIDCFG_VO 0x00000100 /* Video output enable */
+#define DISPCFG_VP 0x00000001 /* V-sync polarity */
+#define DISPCFG_HP 0x00000002 /* H-sync polarity */
+#define DISPCFG_I  0x00000010 /* Interlace enable */
+#define DISPCFG_BS 0x000000C0 /* Broadcast standard */
+#define DISPCFG_VO 0x00000100 /* Video output enable */
 
 #define BS_NTSC 0x00000000
 #define BS_PAL  0x00000040
 #define BS_PALM 0x00000080 /* ? */
 #define BS_PALN 0x000000C0 /* ? */
 
+#define PVR2_RAM_BASE 0x05000000
+#define PVR2_RAM_BASE_INT 0x04000000
+#define PVR2_RAM_SIZE (8 * 1024 * 1024)
+#define PVR2_RAM_PAGES (PVR2_RAM_SIZE>>12)
+
 void pvr2_next_frame( void );
 void pvr2_set_base_address( uint32_t );
 
+#define PVR2_CMD_END_OF_LIST 0x00
+#define PVR2_CMD_USER_CLIP   0x20
+#define PVR2_CMD_POLY_OPAQUE 0x80
+#define PVR2_CMD_MOD_OPAQUE  0x81
+#define PVR2_CMD_POLY_TRANS  0x82
+#define PVR2_CMD_MOD_TRANS   0x83
+#define PVR2_CMD_POLY_PUNCHOUT 0x84
+#define PVR2_CMD_VERTEX      0xE0
+#define PVR2_CMD_VERTEX_LAST 0xF0
+
+#define PVR2_POLY_TEXTURED 0x00000008
+#define PVR2_POLY_SPECULAR 0x00000004
+#define PVR2_POLY_SHADED   0x00000002
+#define PVR2_POLY_UV_16BIT 0x00000001
+
+#define PVR2_TEX_FORMAT_ARGB1555 0x00000000
+#define PVR2_TEX_FORMAT_RGB565   0x08000000
+#define PVR2_TEX_FORMAT_ARGB4444 0x10000000
+#define PVR2_TEX_FORMAT_YUV422   0x18000000
+#define PVR2_TEX_FORMAT_BUMPMAP  0x20000000
+#define PVR2_TEX_FORMAT_IDX4     0x28000000
+#define PVR2_TEX_FORMAT_IDX8     0x30000000
+
+#define PVR2_TEX_MIPMAP      0x80000000
+#define PVR2_TEX_COMPRESSED  0x40000000
+#define PVR2_TEX_FORMAT_MASK 0x38000000
+#define PVR2_TEX_UNTWIDDLED  0x04000000
+
+#define PVR2_TEX_ADDR(x) ( ((x)&0x1FFFFF)<<3 );
+#define PVR2_TEX_IS_MIPMAPPED(x) ( (x) & PVR2_TEX_MIPMAP )
+#define PVR2_TEX_IS_COMPRESSED(x) ( (x) & PVR2_TEX_COMPRESSED )
+#define PVR2_TEX_IS_TWIDDLED(x) (((x) & PVR2_TEX_UNTWIDDLED) == 0)
+
+extern video_driver_t video_driver;
+
+/****************************** Frame Buffer *****************************/
+
+/**
+ * Write to the interleaved memory address space (aka 64-bit address space).
+ */
+void pvr2_vram64_write( sh4addr_t dest, char *src, uint32_t length );
+
+/**
+ * Read from the interleaved memory address space (aka 64-bit address space)
+ */
+void pvr2_vram64_read( char *dest, sh4addr_t src, uint32_t length );
+
+/**************************** Tile Accelerator ***************************/
 /**
  * Process the data in the supplied buffer as an array of TA command lists.
  * Any excess bytes are held pending until a complete list is sent
  */
 void pvr2_ta_write( char *buf, uint32_t length );
 
-void pvr2_init( void );
 
+/**
+ * (Re)initialize the tile accelerator in preparation for the next scene.
+ * Normally called immediately before commencing polygon transmission.
+ */
+void pvr2_ta_init( void );
+
+/********************************* Renderer ******************************/
+
+/**
+ * Initialize the rendering pipeline.
+ * @return TRUE on success, FALSE on failure.
+ */
+gboolean pvr2_render_init( void );
+
+/**
+ * Render the current scene stored in PVR ram to the GL back buffer.
+ */
 void pvr2_render_scene( void );
+
+/**
+ * Display the scene rendered to the supplied address.
+ * @return TRUE if there was an available render that was displayed,
+ * otherwise FALSE (and no action was taken)
+ */
+gboolean pvr2_render_display_frame( uint32_t address );
+
+/****************************** Texture Cache ****************************/
+
+/**
+ * Initialize the texture cache. Note that the GL context must have been
+ * initialized before calling this function.
+ */
+void texcache_init( void );
+
+
+/**
+ * Flush all textures and delete. The cache will be non-functional until
+ * the next call to texcache_init(). This would typically be done if
+ * switching GL targets.
+ */    
+void texcache_shutdown( void );
+
+/**
+ * Evict all textures contained in the page identified by a texture address.
+ */
+void texcache_invalidate_page( uint32_t texture_addr );
+
+/**
+ * Return a texture ID for the texture specified at the supplied address
+ * and given parameters (the same sequence of bytes could in theory have
+ * multiple interpretations). We use the texture address as the primary
+ * index, but allow for multiple instances at each address. The texture
+ * will be bound to the GL_TEXTURE_2D target before being returned.
+ * 
+ * If the texture has already been bound, return the ID to which it was
+ * bound. Otherwise obtain an unused texture ID and set it up appropriately.
+ */
+GLuint texcache_get_texture( uint32_t texture_addr, int width, int height,
+			     int mode );

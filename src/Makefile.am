@@ -12,7 +12,7 @@ dream_SOURCES = \
         main.c \
         mem.c mem.h mmio.h watch.c \
         asic.c asic.h \
-        bios.c bios.h \
+        syscall.c syscall.h bios.c dcload.c \
         gdrom/ide.c gdrom/ide.h \
         dreamcast.c dreamcast.h \
         sh4/intc.c sh4/intc.h sh4/sh4mem.c sh4/timer.c sh4/dmac.c \
@@ -22,6 +22,7 @@ dream_SOURCES = \
         aica/aica.c aica/aica.h aica/audio.c aica/audio.h \
 	pvr2/pvr2.c pvr2/pvr2.h \
 	pvr2/ta.c pvr2/render.c \
+	pvr2/texcache.c \
         maple/maple.c maple/maple.h \
         maple/controller.c maple/controller.h \
         gui/support.c gui/support.h \
@@ -32,8 +33,7 @@ dream_SOURCES = \
         loader.c bootstrap.c util.c \
 	drivers/audio_null.c drivers/audio_esd.c \
 	drivers/video_gtk.c drivers/video_gtk.h \
-	drivers/video_x11.c drivers/video_x11.h \
-	drivers/gl_glx.c
+	drivers/video_x11.c drivers/video_x11.h
 
 dream_LDADD = @PACKAGE_LIBS@ $(INTLLIBS) -lesd
 
