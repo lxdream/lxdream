@@ -1,5 +1,5 @@
 /**
- * $Id: sh4core.c,v 1.20 2006-02-15 12:38:50 nkeynes Exp $
+ * $Id: sh4core.c,v 1.21 2006-03-13 12:38:39 nkeynes Exp $
  * 
  * SH4 emulation core, and parent module for all the SH4 peripheral
  * modules.
@@ -25,7 +25,7 @@
 #include "sh4/intc.h"
 #include "mem.h"
 #include "clock.h"
-#include "bios.h"
+#include "syscall.h"
 
 /* CPU-generated exception code/vector pairs */
 #define EXC_POWER_RESET  0x000 /* vector special */
@@ -333,7 +333,7 @@ gboolean sh4_execute_instruction( void )
     pc = sh4r.pc;
     if( pc > 0xFFFFFF00 ) {
 	/* SYSCALL Magic */
-	bios_syscall( pc & 0xFF );
+	syscall_invoke( pc );
 	sh4r.in_delay_slot = 1;
 	pc = sh4r.pc = sh4r.pr;
 	sh4r.new_pc = sh4r.pc + 2;
