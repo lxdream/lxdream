@@ -1,5 +1,5 @@
 /**
- * $Id: mem.h,v 1.6 2005-12-26 11:47:12 nkeynes Exp $
+ * $Id: mem.h,v 1.7 2006-03-13 12:37:06 nkeynes Exp $
  *
  * mem is responsible for creating and maintaining the overall system memory
  * map, as visible from the SH4 processor. (Note the ARM has a different map)
@@ -82,6 +82,8 @@ typedef struct watch_point *watch_point_t;
 watch_point_t mem_new_watch( uint32_t start, uint32_t end, int flags );
 void mem_delete_watch( watch_point_t watch );
 watch_point_t mem_is_watched( uint32_t addr, int size, int op );
+
+typedef uint32_t sh4addr_t;
 
 extern char **page_map;
 #ifdef __cplusplus
