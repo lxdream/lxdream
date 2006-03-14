@@ -1,5 +1,5 @@
 /**
- * $Id: texcache.c,v 1.1 2006-03-13 12:39:07 nkeynes Exp $
+ * $Id: texcache.c,v 1.2 2006-03-14 13:02:06 nkeynes Exp $
  *
  * Texture cache. Responsible for maintaining a working set of OpenGL 
  * textures. 
@@ -38,9 +38,9 @@
  */
 
 typedef signed short texcache_entry_index;
-#define EMPTY_ENTRY -1
+#define EMPTY_ENTRY 0xFF
 
-static texcache_entry_index texcache_free_ptr;
+static texcache_entry_index texcache_free_ptr = 0;
 static GLuint texcache_free_list[MAX_TEXTURES];
 
 typedef struct texcache_entry {
@@ -118,7 +118,7 @@ void texcache_invalidate_page( uint32_t texture_addr ) {
     texcache_entry_index idx = texcache_page_lookup[texture_page];
     if( idx == EMPTY_ENTRY )
 	return;
-    assert( texcache_free_ptr > 0 );
+    assert( texcache_free_ptr >= 0 );
     do {
 	texcache_entry_t entry = &texcache_active_list[idx];	
 	/* release entry */
