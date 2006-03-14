@@ -1,5 +1,5 @@
 /**
- * $Id: loader.c,v 1.10 2006-02-05 04:04:25 nkeynes Exp $
+ * $Id: loader.c,v 1.11 2006-03-14 11:44:29 nkeynes Exp $
  *
  * File loading routines, mostly for loading demos without going through the
  * whole procedure of making a CD image for them.
@@ -22,6 +22,7 @@
 #include <sys/stat.h>
 #include <errno.h>
 #include <stdint.h>
+#include <elf.h>
 #include "gui/gui.h"
 #include "mem.h"
 #include "sh4core.h"
@@ -93,9 +94,11 @@ gboolean file_load_magic( const gchar *filename )
     } else if( memcmp( buf, "PK\x03\x04", 4 ) == 0 ) {
 	/* ZIP file, aka SBI file */
 	WARN( "SBI files not supported yet" );
-    } else if( memcpy( buf, "\x7fELF", 4 ) == 0 ) {
+    } else if( buf[0] == 0x7F && buf[1] == 'E' && 
+	       buf[2] == 'L' && buf[3] == 'F' ) {
 	/* ELF binary */
-	WARN( "ELF files not supported yet" );
+	lseek( fd, 0, SEEK_SET );
+	file_load_elf_fd( fd );
     } else {
 	/* Assume raw binary */
 	file_load_binary( filename );
@@ -117,5 +120,44 @@ int file_load_binary( const gchar *filename ) {
 	sh4_set_pc( BINARY_LOAD_ADDR );
     }
     bios_install();
+    gtk_gui_update();
+}
+
+int file_load_elf_fd( int fd ) 
+{
+    Elf32_Ehdr head;
+    Elf32_Phdr phdr;
+    int i;
+
+    if( read( fd, &head, sizeof(head) ) != sizeof(head) )
+	return -1;
+    if( head.e_ident[EI_CLASS] != ELFCLASS32 ||
+	head.e_ident[EI_DATA] != ELFDATA2LSB ||
+	head.e_ident[EI_VERSION] != 1 ||
+	head.e_type != ET_EXEC ||
+	head.e_machine != EM_SH ||
+	head.e_version != 1 ) {
+	ERROR( "File is not an SH4 ELF executable file" );
+	return -1;
+    }
+
+    /* Program headers */
+    for( i=0; i<head.e_phnum; i++ ) {
+	lseek( fd, head.e_phoff + i*head.e_phentsize, SEEK_SET );
+	read( fd, &phdr, sizeof(phdr) );
+	if( phdr.p_type == PT_LOAD ) {
+	    lseek( fd, phdr.p_offset, SEEK_SET );
+	    char *target = mem_get_region( phdr.p_vaddr );
+	    read( fd, target, phdr.p_filesz );
+	    if( phdr.p_memsz > phdr.p_filesz ) {
+		memset( target + phdr.p_filesz, 0, phdr.p_memsz - phdr.p_filesz );
+	    }
+	    INFO( "Loaded %d bytes to %08X", phdr.p_filesz, phdr.p_vaddr );
+	}
+    }
+
+    sh4_set_pc( head.e_entry );
+    bios_install();
+    dcload_install();
     gtk_gui_update();
 }
