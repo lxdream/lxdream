@@ -1,5 +1,5 @@
 /**
- * $Id: sh4core.c,v 1.21 2006-03-13 12:38:39 nkeynes Exp $
+ * $Id: sh4core.c,v 1.22 2006-03-14 11:44:04 nkeynes Exp $
  * 
  * SH4 emulation core, and parent module for all the SH4 peripheral
  * modules.
@@ -192,13 +192,13 @@ void sh4_set_pc( int pc )
     sh4r.new_pc = pc+2;
 }
 
-#define UNDEF(ir) do{ ERROR( "Raising exception on undefined instruction at %08x, opcode = %04x", sh4r.pc, ir ); RAISE( EXC_ILLEGAL, EXV_ILLEGAL ); }while(0)
+#define UNDEF(ir) do{ ERROR( "Raising exception on undefined instruction at %08x, opcode = %04x", sh4r.pc, ir ); dreamcast_stop();  return FALSE; }while(0)
 #define UNIMP(ir) do{ ERROR( "Halted on unimplemented instruction at %08x, opcode = %04x", sh4r.pc, ir ); dreamcast_stop(); return FALSE; }while(0)
 
 #define RAISE( x, v ) do{ \
     if( sh4r.vbr == 0 ) { \
         ERROR( "%08X: VBR not initialized while raising exception %03X, halting", sh4r.pc, x ); \
-        sh4_stop(); \
+        dreamcast_stop(); return FALSE;	\
     } else { \
         sh4r.spc = sh4r.pc + 2; \
         sh4r.ssr = sh4_read_sr(); \
@@ -334,7 +334,7 @@ gboolean sh4_execute_instruction( void )
     if( pc > 0xFFFFFF00 ) {
 	/* SYSCALL Magic */
 	syscall_invoke( pc );
-	sh4r.in_delay_slot = 1;
+	sh4r.in_delay_slot = 0;
 	pc = sh4r.pc = sh4r.pr;
 	sh4r.new_pc = sh4r.pc + 2;
     }
