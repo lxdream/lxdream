@@ -1,5 +1,5 @@
 /**
- * $Id: video_gtk.c,v 1.2 2006-03-13 12:39:07 nkeynes Exp $
+ * $Id: video_gtk.c,v 1.3 2006-03-14 12:45:53 nkeynes Exp $
  *
  * The PC side of the video support (responsible for actually displaying / 
  * rendering frames)
@@ -35,7 +35,7 @@ gboolean video_gtk_set_output_format( uint32_t width, uint32_t height,
 gboolean video_gtk_display_frame( video_buffer_t frame );
 gboolean video_gtk_blank( uint32_t rgb );
 
-struct video_driver video_gtk_driver = { "Gtk", 
+struct video_driver video_gtk_driver = { "gtk", 
 					 NULL,
 					 NULL,
 					 video_gtk_set_output_format,

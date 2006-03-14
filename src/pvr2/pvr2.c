@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.c,v 1.17 2006-03-13 12:39:07 nkeynes Exp $
+ * $Id: pvr2.c,v 1.18 2006-03-14 12:45:53 nkeynes Exp $
  *
  * PVR2 (Video) Core MMIO registers.
  *
@@ -61,8 +61,17 @@ void pvr2_init( void )
     register_io_region( &mmio_region_PVR2PAL );
     register_io_region( &mmio_region_PVR2TA );
     video_base = mem_get_region_by_name( MEM_REGION_VIDEO );
-    video_driver = &video_gtk_driver;
-    video_driver->set_display_format( 640, 480, COLFMT_RGB32 );
+}
+
+void video_set_driver( video_driver_t driver )
+{
+    if( video_driver != NULL && video_driver->shutdown_driver != NULL )
+	video_driver->shutdown_driver();
+
+    video_driver = driver;
+    if( driver->init_driver != NULL )
+	driver->init_driver();
+    driver->set_display_format( 640, 480, COLFMT_RGB32 );
 }
 
 uint32_t pvr2_line_count = 0;

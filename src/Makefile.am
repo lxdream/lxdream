@@ -32,7 +32,7 @@ dream_SOURCES = \
         gui/debug_win.c gui/dump_win.c \
         loader.c bootstrap.c util.c \
 	drivers/audio_null.c drivers/audio_esd.c \
-	drivers/video_gtk.c drivers/video_gtk.h \
+	drivers/video_null.c drivers/video_gtk.c drivers/video_gtk.h \
 	drivers/video_x11.c drivers/video_x11.h
 
 dream_LDADD = @PACKAGE_LIBS@ $(INTLLIBS) -lesd

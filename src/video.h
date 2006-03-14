@@ -1,5 +1,5 @@
 /**
- * $Id: video.h,v 1.5 2006-03-13 12:39:03 nkeynes Exp $
+ * $Id: video.h,v 1.6 2006-03-14 12:45:50 nkeynes Exp $
  *
  * The PC side of the video support (responsible for actually displaying / 
  * rendering frames)
@@ -118,6 +118,7 @@ void video_update_size( int, int, int );
 extern uint32_t pvr2_frame_counter;
 
 extern struct video_driver video_gtk_driver;
+extern struct video_driver video_null_driver;
 
 #ifdef __cplusplus
 }

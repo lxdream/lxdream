@@ -1,5 +1,5 @@
 /**
- * $Id: audio.h,v 1.5 2006-02-05 04:01:55 nkeynes Exp $
+ * $Id: audio.h,v 1.6 2006-03-14 12:45:53 nkeynes Exp $
  * 
  * Audio engine, ie the part that does the actual work.
  *
@@ -33,6 +33,7 @@ extern "C" {
 #define AUDIO_FMT_SIGNED 0
 #define AUDIO_FMT_UNSIGNED 8
 
+#define AUDIO_FMT_16ST (AUDIO_FMT_16BIT|AUDIO_FMT_STEREO)
 
 typedef struct audio_channel {
     gboolean active;
@@ -67,15 +68,15 @@ typedef struct audio_driver {
     gboolean (*process_buffer)( audio_buffer_t buffer );
 } *audio_driver_t;
 
-extern struct audio_driver null_audio_driver;
-extern struct audio_driver esd_audio_driver;
+extern struct audio_driver audio_null_driver;
+extern struct audio_driver audio_esd_driver;
 
 /**
  * Set the output driver, sample rate and format. Also initializes the 
  * output buffers, flushing any current data and reallocating as 
  * necessary. Must be called before attempting to generate any audio.
  */
-void audio_set_output( audio_driver_t driver, uint32_t samplerate,
+void audio_set_driver( audio_driver_t driver, uint32_t samplerate,
 		       int format );
 
 /**

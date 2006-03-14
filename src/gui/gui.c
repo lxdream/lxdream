@@ -1,5 +1,5 @@
 /**
- * $Id: gui.c,v 1.9 2005-12-26 11:47:15 nkeynes Exp $
+ * $Id: gui.c,v 1.10 2006-03-14 12:45:53 nkeynes Exp $
  * 
  * Top-level GUI (GTK2) module.
  *
@@ -124,6 +124,8 @@ uint32_t gtk_gui_run_slice( uint32_t nanosecs )
 }
 
 void gtk_gui_update(void) {
+    if( main_debug == NULL )
+	return;
     update_registers(main_debug);
     update_icount(main_debug);
     update_mmr_win();

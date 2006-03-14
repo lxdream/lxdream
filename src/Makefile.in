@@ -159,7 +159,7 @@ dream_SOURCES = \
         gui/debug_win.c gui/dump_win.c \
         loader.c bootstrap.c util.c \
 	drivers/audio_null.c drivers/audio_esd.c \
-	drivers/video_gtk.c drivers/video_gtk.h \
+	drivers/video_null.c drivers/video_gtk.c drivers/video_gtk.h \
 	drivers/video_x11.c drivers/video_x11.h
 
 
@@ -186,8 +186,8 @@ am_dream_OBJECTS = main.$(OBJEXT) mem.$(OBJEXT) watch.$(OBJEXT) \
 	interface.$(OBJEXT) callbacks.$(OBJEXT) gui.$(OBJEXT) \
 	mmr_win.$(OBJEXT) debug_win.$(OBJEXT) dump_win.$(OBJEXT) \
 	loader.$(OBJEXT) bootstrap.$(OBJEXT) util.$(OBJEXT) \
-	audio_null.$(OBJEXT) audio_esd.$(OBJEXT) video_gtk.$(OBJEXT) \
-	video_x11.$(OBJEXT)
+	audio_null.$(OBJEXT) audio_esd.$(OBJEXT) video_null.$(OBJEXT) \
+	video_gtk.$(OBJEXT) video_x11.$(OBJEXT)
 dream_OBJECTS = $(am_dream_OBJECTS)
 dream_DEPENDENCIES =
 dream_LDFLAGS =
@@ -215,7 +215,8 @@ am__depfiles_maybe = depfiles
 @AMDEP_TRUE@	./$(DEPDIR)/syscall.Po ./$(DEPDIR)/ta.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/texcache.Po ./$(DEPDIR)/timer.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/util.Po ./$(DEPDIR)/video_gtk.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/video_x11.Po ./$(DEPDIR)/watch.Po
+@AMDEP_TRUE@	./$(DEPDIR)/video_null.Po ./$(DEPDIR)/video_x11.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/watch.Po
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
@@ -307,6 +308,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/timer.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/util.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/video_gtk.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/video_null.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/video_x11.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/watch.Po@am__quote@
 
@@ -969,6 +971,28 @@ audio_esd.obj: drivers/audio_esd.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/audio_esd.Po' tmpdepfile='$(DEPDIR)/audio_esd.TPo' @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o audio_esd.obj `if test -f 'drivers/audio_esd.c'; then $(CYGPATH_W) 'drivers/audio_esd.c'; else $(CYGPATH_W) '$(srcdir)/drivers/audio_esd.c'; fi`
+
+video_null.o: drivers/video_null.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT video_null.o -MD -MP -MF "$(DEPDIR)/video_null.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o video_null.o `test -f 'drivers/video_null.c' || echo '$(srcdir)/'`drivers/video_null.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/video_null.Tpo" "$(DEPDIR)/video_null.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/video_null.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/video_null.c' object='video_null.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/video_null.Po' tmpdepfile='$(DEPDIR)/video_null.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o video_null.o `test -f 'drivers/video_null.c' || echo '$(srcdir)/'`drivers/video_null.c
+
+video_null.obj: drivers/video_null.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT video_null.obj -MD -MP -MF "$(DEPDIR)/video_null.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o video_null.obj `if test -f 'drivers/video_null.c'; then $(CYGPATH_W) 'drivers/video_null.c'; else $(CYGPATH_W) '$(srcdir)/drivers/video_null.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/video_null.Tpo" "$(DEPDIR)/video_null.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/video_null.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/video_null.c' object='video_null.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/video_null.Po' tmpdepfile='$(DEPDIR)/video_null.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o video_null.obj `if test -f 'drivers/video_null.c'; then $(CYGPATH_W) 'drivers/video_null.c'; else $(CYGPATH_W) '$(srcdir)/drivers/video_null.c'; fi`
 
 video_gtk.o: drivers/video_gtk.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT video_gtk.o -MD -MP -MF "$(DEPDIR)/video_gtk.Tpo" \

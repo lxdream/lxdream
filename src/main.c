@@ -1,5 +1,5 @@
 /**
- * $Id: main.c,v 1.14 2006-03-14 11:44:29 nkeynes Exp $
+ * $Id: main.c,v 1.15 2006-03-14 12:45:50 nkeynes Exp $
  *
  * Main program, initializes dreamcast and gui, then passes control off to
  * the gtk main loop (currently). 
@@ -29,6 +29,8 @@
 #include "dream.h"
 #include "syscall.h"
 #include "dreamcast.h"
+#include "aica/audio.h"
+#include "video.h"
 
 #define S3M_PLAYER "s3mplay.bin"
 
@@ -36,13 +38,23 @@ char *option_list = "a:s:A:V:phb";
 struct option longopts[1] = { { NULL, 0, 0, 0 } };
 char *aica_program = NULL;
 char *s3m_file = NULL;
+char *video_driver_name = "gtk";
+char *audio_driver_name = "esd";
 gboolean start_immediately = FALSE;
 gboolean headless = FALSE;
 gboolean without_bios = FALSE;
 
+audio_driver_t audio_driver_list[] = { &audio_null_driver,
+				       &audio_esd_driver,
+				       NULL };
+
+video_driver_t video_driver_list[] = { &video_null_driver,
+				       &video_gtk_driver,
+				       NULL };
+
 int main (int argc, char *argv[])
 {
-    int opt;
+    int opt, i;
 #ifdef ENABLE_NLS
     bindtextdomain (PACKAGE, PACKAGE_LOCALE_DIR);
     textdomain (PACKAGE);
@@ -58,8 +70,10 @@ int main (int argc, char *argv[])
 	    s3m_file = optarg;
 	    break;
 	case 'A': /* Audio driver */
+	    audio_driver_name = optarg;
 	    break;
 	case 'V': /* Video driver */
+	    video_driver_name = optarg;
 	    break;
 	case 'p': /* Start immediately */
 	    start_immediately = TRUE;
@@ -99,6 +113,34 @@ int main (int argc, char *argv[])
     	bios_install();
 	dcload_install();
     }
+
+    for( i=0; audio_driver_list[i] != NULL; i++ ) {
+	if( strcasecmp( audio_driver_list[i]->name, audio_driver_name ) == 0 ) {
+	    audio_set_driver( audio_driver_list[i], 44100, AUDIO_FMT_16ST );
+	    break;
+	}
+
+    }
+    if( audio_driver_list[i] == NULL ) {
+	ERROR( "Audio driver '%s' not found, using null driver", audio_driver_name );
+	audio_set_driver( &audio_null_driver, 44100, AUDIO_FMT_16ST );
+    }
+
+    if( headless ) {
+	video_set_driver( &video_null_driver );
+    } else {
+	for( i=0; video_driver_list[i] != NULL; i++ ) {
+	    if( strcasecmp( video_driver_list[i]->name, video_driver_name ) == 0 ) {
+		video_set_driver( video_driver_list[i] );
+		break;
+	    }
+	}
+	if( video_driver_list[i] == NULL ) {
+	    ERROR( "Video driver '%s' not found, using null driver", video_driver_name );
+	    video_set_driver( &video_null_driver );
+	}
+    }
+
     INFO( "DreamOn! ready..." );
     if( optind < argc ) {
 	file_load_magic( argv[optind] );
