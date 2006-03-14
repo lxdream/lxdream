@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.c,v 1.18 2006-03-14 12:45:53 nkeynes Exp $
+ * $Id: pvr2.c,v 1.19 2006-03-14 13:02:06 nkeynes Exp $
  *
  * PVR2 (Video) Core MMIO registers.
  *
@@ -61,6 +61,8 @@ void pvr2_init( void )
     register_io_region( &mmio_region_PVR2PAL );
     register_io_region( &mmio_region_PVR2TA );
     video_base = mem_get_region_by_name( MEM_REGION_VIDEO );
+    pvr2_render_init();
+    texcache_init();
 }
 
 void video_set_driver( video_driver_t driver )
