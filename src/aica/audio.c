@@ -1,5 +1,5 @@
 /**
- * $Id: audio.c,v 1.4 2006-01-17 12:54:02 nkeynes Exp $
+ * $Id: audio.c,v 1.5 2006-03-14 12:45:53 nkeynes Exp $
  * 
  * Audio mixer core. Combines all the active streams into a single sound
  * buffer for output. 
@@ -52,7 +52,7 @@ extern char *arm_mem;
  * output buffers, flushing any current data and reallocating as 
  * necessary.
  */
-void audio_set_output( audio_driver_t driver, 
+void audio_set_driver( audio_driver_t driver, 
 		       uint32_t samplerate, int format )
 {
     uint32_t bytes_per_sample = 1;
@@ -82,7 +82,7 @@ void audio_set_output( audio_driver_t driver,
     audio.read_buffer = 0;
 
     if( driver == NULL )
-	driver = &null_audio_driver;
+	driver = &audio_null_driver;
     audio_driver = driver;
     audio_driver->set_output_format( samplerate, format );
 }

@@ -1,5 +1,5 @@
 /**
- * $Id: audio_null.c,v 1.2 2006-01-12 12:38:59 nkeynes Exp $
+ * $Id: audio_null.c,v 1.3 2006-03-14 12:45:53 nkeynes Exp $
  * 
  * The "null" audio driver, which just discards all input without even
  * looking at it.
@@ -18,14 +18,14 @@
  */
 #include "aica/audio.h"
 
-gboolean null_audio_set_format( uint32_t rate, uint32_t format )
+gboolean audio_null_set_format( uint32_t rate, uint32_t format )
 {
     return TRUE;
 }
 
-gboolean null_audio_process_buffer( audio_buffer_t buffer )
+gboolean audio_null_process_buffer( audio_buffer_t buffer )
 {
     return TRUE;
 }
 
-struct audio_driver null_audio_driver = { "null", null_audio_set_format, null_audio_process_buffer };
+struct audio_driver audio_null_driver = { "null", audio_null_set_format, audio_null_process_buffer };

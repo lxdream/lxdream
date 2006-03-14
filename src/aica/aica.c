@@ -1,5 +1,5 @@
 /**
- * $Id: aica.c,v 1.16 2006-01-22 22:40:05 nkeynes Exp $
+ * $Id: aica.c,v 1.17 2006-03-14 12:45:53 nkeynes Exp $
  * 
  * This is the core sound system (ie the bit which does the actual work)
  *
@@ -21,9 +21,9 @@
 #include "dream.h"
 #include "dreamcast.h"
 #include "mem.h"
-#include "aica.h"
+#include "aica/aica.h"
 #include "armcore.h"
-#include "audio.h"
+#include "aica/audio.h"
 #define MMIO_IMPL
 #include "aica.h"
 
@@ -53,7 +53,6 @@ void aica_init( void )
     MMIO_NOTRACE(AICA1);
     arm_mem_init();
     aica_reset();
-    audio_set_output( &esd_audio_driver, 44100, AUDIO_FMT_16BIT|AUDIO_FMT_STEREO );
 }
 
 void aica_reset( void )

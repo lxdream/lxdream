@@ -1,5 +1,5 @@
 /**
- * $Id: audio_esd.c,v 1.5 2006-01-22 22:40:05 nkeynes Exp $
+ * $Id: audio_esd.c,v 1.6 2006-03-14 12:45:53 nkeynes Exp $
  * 
  * The esd (esound) audio driver
  *
@@ -22,7 +22,7 @@
 int esd_handle = -1;
 int esd_sample_size = 1;
 
-gboolean esd_audio_set_format( uint32_t rate, uint32_t format )
+gboolean audio_esd_set_format( uint32_t rate, uint32_t format )
 {
     if( esd_handle != -1 ) {
 	esd_close(esd_handle);
@@ -44,7 +44,7 @@ gboolean esd_audio_set_format( uint32_t rate, uint32_t format )
     return TRUE;
 }
 
-gboolean esd_audio_process_buffer( audio_buffer_t buffer )
+gboolean audio_esd_process_buffer( audio_buffer_t buffer )
 {
     if( esd_handle != -1 ) {
 	write( esd_handle, buffer->data, buffer->length );
@@ -55,5 +55,5 @@ gboolean esd_audio_process_buffer( audio_buffer_t buffer )
     }
 }
 
-struct audio_driver esd_audio_driver = { "esd", esd_audio_set_format, esd_audio_process_buffer };
+struct audio_driver audio_esd_driver = { "esd", audio_esd_set_format, audio_esd_process_buffer };
 
