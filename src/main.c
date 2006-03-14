@@ -1,5 +1,5 @@
 /**
- * $Id: main.c,v 1.13 2006-02-05 04:05:27 nkeynes Exp $
+ * $Id: main.c,v 1.14 2006-03-14 11:44:29 nkeynes Exp $
  *
  * Main program, initializes dreamcast and gui, then passes control off to
  * the gtk main loop (currently). 
@@ -27,7 +27,7 @@
 #include <gnome.h>
 #include "gui/gui.h"
 #include "dream.h"
-#include "bios.h"
+#include "syscall.h"
 #include "dreamcast.h"
 
 #define S3M_PLAYER "s3mplay.bin"
@@ -81,6 +81,7 @@ int main (int argc, char *argv[])
 	} else {
 	    dreamcast_init();
 	}
+
     } else {
 	dreamcast_configure_aica_only();
 	mem_load_block( aica_program, 0x00800000, 2048*1024 );
@@ -96,6 +97,7 @@ int main (int argc, char *argv[])
 
     if( without_bios ) {
     	bios_install();
+	dcload_install();
     }
     INFO( "DreamOn! ready..." );
     if( optind < argc ) {
