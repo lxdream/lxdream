@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2mmio.h,v 1.1 2006-03-13 12:39:07 nkeynes Exp $
+ * $Id: pvr2mmio.h,v 1.2 2006-03-15 13:16:50 nkeynes Exp $
  *
  * PVR2 (video chip) MMIO register definitions.
  *
@@ -58,6 +58,7 @@ MMIO_REGION_BEGIN( 0x005F8000, PVR2, "Power VR/2" )
     LONG_PORT( 0x0E8, DISPCFG2, PORT_MRW, 0, "Video configuration 2" )
     LONG_PORT( 0x0F0, VPOS, PORT_MRW, 0, "Vertical display position" )
     LONG_PORT( 0x0F4, SCALERCFG, PORT_MRW, 0, "Scaler configuration (?)" )
+    LONG_PORT( 0x108, PALETTECFG, PORT_MRW, 0, "Palette configuration" )
     LONG_PORT( 0x10C, BEAMPOS, PORT_R, 0, "Raster beam position" )
     LONG_PORT( 0x124, TAOBJPBASE, PORT_MRW, 0, "TA Object Pointer Buffer start" )
     LONG_PORT( 0x128, TAOBJBASE, PORT_MRW, 0, "TA Object Buffer start" )

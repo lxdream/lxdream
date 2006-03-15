@@ -1,5 +1,5 @@
 /**
- * $Id: ta.c,v 1.2 2006-03-13 12:39:07 nkeynes Exp $
+ * $Id: ta.c,v 1.3 2006-03-15 13:16:50 nkeynes Exp $
  *
  * PVR2 Tile Accelerator support. In principle this does a lot more work
  * than is currently implemented - we cheat. A lot.
@@ -89,9 +89,9 @@ void pvr2_ta_write( char *buf, uint32_t length )
 	unsigned int type = (cmd_list[i].command >> 24) & 0xFF;
 	if( type == 0xE0 || type == 0xF0 ) {
 	    struct vertex_type1 *vert = (struct vertex_type1 *)&cmd_list[i];
-	    DEBUG( "PVR2 vrt: %f %f %f %08X %08X %08X %f", vert->x, vert->y, vert->z, vert->blank, vert->blank2, vert->col, vert->f );
+	    //	    DEBUG( "PVR2 vrt: %f %f %f %08X %08X %08X %f", vert->x, vert->y, vert->z, vert->blank, vert->blank2, vert->col, vert->f );
 	} else {
-	    DEBUG( "PVR2 cmd: %08X %08X %08X %08X %08X %08X %08X %08X", cmd_list[i].command, cmd_list[i].param1, cmd_list[i].param2, cmd_list[i].texture, cmd_list[i].alpha, cmd_list[i].red, cmd_list[i].green, cmd_list[i].blue );
+	    //	    DEBUG( "PVR2 cmd: %08X %08X %08X %08X %08X %08X %08X %08X", cmd_list[i].command, cmd_list[i].param1, cmd_list[i].param2, cmd_list[i].texture, cmd_list[i].alpha, cmd_list[i].red, cmd_list[i].green, cmd_list[i].blue );
 	}
 	if( type == 0 ) {
 	    /* End of list */

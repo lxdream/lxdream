@@ -1,5 +1,5 @@
 /**
- * $Id: render.c,v 1.2 2006-03-13 12:39:07 nkeynes Exp $
+ * $Id: render.c,v 1.3 2006-03-15 13:16:50 nkeynes Exp $
  *
  * PVR2 Renderer support. This is where the real work happens.
  *
@@ -36,6 +36,8 @@ static int pvr2_poly_dstblend[8] = {
     GL_ZERO, GL_ONE, GL_SRC_COLOR, GL_ONE_MINUS_SRC_COLOR,
     GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_DST_ALPHA,
     GL_ONE_MINUS_DST_ALPHA };
+static int pvr2_poly_texblend[4] = {
+    GL_REPLACE, GL_BLEND, GL_DECAL, GL_MODULATE };
 static int pvr2_render_colour_format[8] = {
     COLFMT_ARGB1555, COLFMT_RGB565, COLFMT_ARGB4444, COLFMT_ARGB1555,
     COLFMT_RGB888, COLFMT_ARGB8888, COLFMT_ARGB8888, COLFMT_ARGB4444 };
@@ -48,6 +50,7 @@ static int pvr2_render_colour_format[8] = {
 #define POLY_TEX_HEIGHT(poly) ( 1<< (((poly->poly_mode) & 0x07 ) + 3) )
 #define POLY_BLEND_SRC(poly) ( pvr2_poly_srcblend[(poly->poly_mode) >> 29] )
 #define POLY_BLEND_DEST(poly) ( pvr2_poly_dstblend[((poly->poly_mode)>>26)&0x07] )
+#define POLY_TEX_BLEND(poly) ( pvr2_poly_texblend[((poly->poly_mode) >> 6)&0x03] )
 
 extern uint32_t pvr2_frame_counter;
 
@@ -112,6 +115,31 @@ struct pvr2_vertex_basic {
 void pvr2_render_copy_to_sh4( pvr2_render_buffer_t buffer, 
 			      gboolean backBuffer );
 
+int pvr2_render_font_list = -1;
+
+int glPrintf( const char *fmt, ... )
+{
+    va_list ap;     /* our argument pointer */
+    char buf[256];
+    int len;
+    if (fmt == NULL)    /* if there is no string to draw do nothing */
+        return;
+    va_start(ap, fmt); 
+    len = vsnprintf(buf, sizeof(buf), fmt, ap);
+    va_end(ap);
+
+    if( pvr2_render_font_list == -1 ) {
+	pvr2_render_font_list = video_glx_load_font( "-*-helvetica-*-r-normal--16-*-*-*-p-*-iso8859-1");
+    }
+
+    glPushAttrib(GL_LIST_BIT);
+    glListBase(pvr2_render_font_list - 32);
+    glCallLists(len, GL_UNSIGNED_BYTE, buf);
+    glPopAttrib();
+
+    return len;
+}
+
 
 gboolean pvr2_render_init( void )
 {
@@ -142,7 +170,7 @@ gboolean pvr2_render_display_frame( uint32_t address )
 	return TRUE;
     }
     return FALSE;
-}
+}	
 
 /**
  * Prepare the OpenGL context to receive instructions for a new frame.
@@ -182,9 +210,10 @@ static void pvr2_render_prepare_context( sh4addr_t render_addr,
     glViewport( 0, 0, width, height );
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    glOrtho( 0, width, height, 0, 0, 65535 );
+    glOrtho( 0, width, height, 0, 0, -65535 );
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
+    glCullFace( GL_BACK );
 
     /* Clear out the buffers */
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
@@ -202,14 +231,14 @@ static void pvr2_render_display_list( uint32_t *display_list, uint32_t length )
 	switch( *cmd_ptr >> 24 ) {
 	case PVR2_CMD_POLY_OPAQUE:
 	    poly = (struct pvr2_poly *)cmd_ptr;
-	    
 	    if( poly->command & PVR2_POLY_TEXTURED ) {
 		uint32_t addr = PVR2_TEX_ADDR(poly->texture);
 		int width = POLY_TEX_WIDTH(poly);
 		int height = POLY_TEX_HEIGHT(poly);
+		glEnable( GL_TEXTURE_2D );
 		texcache_get_texture( addr, width, height, poly->texture );
 		textured = TRUE;
-		glEnable( GL_TEXTURE_2D );
+		glTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, POLY_TEX_BLEND(poly) );
 	    } else {
 		textured = FALSE;
 		glDisable( GL_TEXTURE_2D );
@@ -225,13 +254,25 @@ static void pvr2_render_display_list( uint32_t *display_list, uint32_t length )
 		glDisable( GL_DEPTH_TEST );
 	    }
 
+	    switch( (poly->poly_cfg >> 27) & 0x03 ) {
+	    case 0:
+	    case 1:
+		glDisable( GL_CULL_FACE );
+		break;
+	    case 2:
+		glEnable( GL_CULL_FACE );
+		glFrontFace( GL_CW );
+		break;
+	    case 3:
+		glEnable( GL_CULL_FACE );
+		glFrontFace( GL_CCW );
+	    }
 	    expect_vertexes = POLY_STRIP_VERTEXES( poly );
 	    if( expect_vertexes == 3 )
 		glBegin( GL_TRIANGLES );
-	    else if( expect_vertexes == 4 )
-		glBegin( GL_QUADS );
 	    else 
 		glBegin( GL_TRIANGLE_STRIP );
+	    fprintf( stderr, "Begin %d\n", expect_vertexes );
 	    break;
 	case PVR2_CMD_VERTEX_LAST:
 	case PVR2_CMD_VERTEX:
@@ -241,13 +282,18 @@ static void pvr2_render_display_list( uint32_t *display_list, uint32_t length )
 	    }
 	    expect_vertexes--;
 	    struct pvr2_vertex_basic *vertex = (struct pvr2_vertex_basic *)cmd_ptr;
+	    fprintf( stderr, "(%f,%f,%f)", vertex->x, vertex->y, vertex->z );
 	    if( textured ) {
+		fprintf( stderr, "{%f,%f}", vertex->s, vertex->t );
 		glTexCoord2f( vertex->s, vertex->t );
 	    }
+	    fprintf( stderr, "\n" );
 	    glVertex3f( vertex->x, vertex->y, vertex->z );
 	    
-	    if( expect_vertexes == 0 )
+	    if( expect_vertexes == 0 ) {
 		glEnd();
+		fprintf( stderr, "End" );
+	    }
 	    break;
 	}
 	cmd_ptr += 8; /* Next record */
@@ -307,6 +353,10 @@ void pvr2_render_scene( )
 
     /* Post-render cleanup and update */
 
+    /* Add frame, fps, etc data */
+    glRasterPos2i( 4, 16 );
+    //    glColor3f( 0.0f, 0.0f, 1.0f );
+    glPrintf( "Frame %d", pvr2_frame_counter );
     
     /* Generate end of render event */
     asic_event( EVENT_PVR_RENDER_DONE );

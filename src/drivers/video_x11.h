@@ -1,5 +1,5 @@
 /**
- * $Id: video_x11.h,v 1.1 2006-02-05 04:05:27 nkeynes Exp $
+ * $Id: video_x11.h,v 1.2 2006-03-15 13:16:46 nkeynes Exp $
  *
  * Parent for all X11 display drivers.
  *
@@ -27,5 +27,9 @@ void video_x11_set_display( Display *display, Screen *screen, Window window );
 extern Display *video_x11_display;
 extern Screen *video_x11_screen;
 extern Window video_x11_window;
+
+
+gboolean video_glx_set_render_format( int x, int y, int width, int height );
+void video_glx_swap_buffers();
 
 #endif

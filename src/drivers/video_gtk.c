@@ -1,5 +1,5 @@
 /**
- * $Id: video_gtk.c,v 1.3 2006-03-14 12:45:53 nkeynes Exp $
+ * $Id: video_gtk.c,v 1.4 2006-03-15 13:16:46 nkeynes Exp $
  *
  * The PC side of the video support (responsible for actually displaying / 
  * rendering frames)
@@ -32,6 +32,8 @@ uint32_t video_frame_count = 0;
 
 gboolean video_gtk_set_output_format( uint32_t width, uint32_t height,  
 				      int colour_format );
+gboolean video_gtk_set_render_format( uint32_t width, uint32_t height,  
+				      int colour_format );
 gboolean video_gtk_display_frame( video_buffer_t frame );
 gboolean video_gtk_blank( uint32_t rgb );
 
@@ -39,10 +41,10 @@ struct video_driver video_gtk_driver = { "gtk",
 					 NULL,
 					 NULL,
 					 video_gtk_set_output_format,
-					 NULL,
+					 video_gtk_set_render_format,
 					 video_gtk_display_frame,
 					 video_gtk_blank,
-					 NULL };
+					 video_glx_swap_buffers };
 
 gboolean video_gtk_set_output_format( uint32_t width, uint32_t height,  
 				      int colour_format )
@@ -151,3 +153,8 @@ gboolean video_gtk_display_frame( video_buffer_t frame )
     return TRUE;
 }
 
+gboolean video_gtk_set_render_format( uint32_t width, uint32_t height,  
+				      int colour_format )
+{
+    return video_glx_set_render_format( 0, 0, width, height );
+}

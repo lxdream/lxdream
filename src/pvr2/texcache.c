@@ -1,5 +1,5 @@
 /**
- * $Id: texcache.c,v 1.2 2006-03-14 13:02:06 nkeynes Exp $
+ * $Id: texcache.c,v 1.3 2006-03-15 13:16:50 nkeynes Exp $
  *
  * Texture cache. Responsible for maintaining a working set of OpenGL 
  * textures. 
@@ -52,28 +52,38 @@ typedef struct texcache_entry {
 } *texcache_entry_t;
 
 static uint8_t texcache_page_lookup[PVR2_RAM_PAGES];
-static uint32_t texcache_active_ptr;
 static uint32_t texcache_ref_counter;
 static struct texcache_entry texcache_active_list[MAX_TEXTURES];
 
 /**
- * Initialize the texture cache. Note that the GL context must have been
- * initialized before calling this function.
+ * Initialize the texture cache.
  */
 void texcache_init( )
 {
     int i;
-    GLuint texids[MAX_TEXTURES];
-    glGenTextures( MAX_TEXTURES, texids );
     for( i=0; i<PVR2_RAM_PAGES; i++ ) {
 	texcache_page_lookup[i] = EMPTY_ENTRY;
     }
     for( i=0; i<MAX_TEXTURES; i++ ) {
-	texcache_active_list[i].texture_id = texids[i];
 	texcache_free_list[i] = i;
     }
     texcache_free_ptr = 0;
     texcache_ref_counter = 0;
+}
+
+/**
+ * Setup the initial texture ids (must be called after the GL context is
+ * prepared)
+ */
+void texcache_gl_init( )
+{
+    int i;
+    GLuint texids[MAX_TEXTURES];
+
+    glGenTextures( MAX_TEXTURES, texids );
+    for( i=0; i<MAX_TEXTURES; i++ ) {
+	texcache_active_list[i].texture_id = texids[i];
+    }
 }
 
 /**
@@ -176,62 +186,113 @@ static texcache_entry_index texcache_evict( void )
 static texcache_load_texture( uint32_t texture_addr, int width, int height,
 			      int mode ) {
     uint32_t bytes = width * height;
-    int bpp = 2;
+    int shift = 1;
     GLint intFormat, format, type;
-    switch( mode & PVR2_TEX_FORMAT_MASK ) {
-    case PVR2_TEX_FORMAT_ARGB1555:
-	bytes <<= 1;
-	intFormat = GL_RGB5_A1;
-	format = GL_RGBA;
-	type = GL_UNSIGNED_SHORT_5_5_5_1;
-	break;
-    case PVR2_TEX_FORMAT_RGB565:
-	bytes <<= 1;
-	intFormat = GL_RGBA;
-	format = GL_RGBA;
-	type = GL_UNSIGNED_SHORT_5_6_5;
-	break;
-    case PVR2_TEX_FORMAT_ARGB4444:
-	bytes <<= 1;
-	intFormat = GL_RGBA4;
-	format = GL_RGBA;
-	type = GL_UNSIGNED_SHORT_4_4_4_4;
-	break;
-    case PVR2_TEX_FORMAT_YUV422:
-	ERROR( "YUV textures not supported" );
-	break;
-    case PVR2_TEX_FORMAT_BUMPMAP:
-	ERROR( "Bumpmap not supported" );
-	break;
-    case PVR2_TEX_FORMAT_IDX4:
-	/* Supported? */
-	bytes >>= 1;
-	intFormat = GL_INTENSITY4;
-	format = GL_COLOR_INDEX;
-	type = GL_UNSIGNED_BYTE;
-	bpp = 0;
-	break;
-    case PVR2_TEX_FORMAT_IDX8:
-	intFormat = GL_INTENSITY8;
-	format = GL_COLOR_INDEX;
-	type = GL_UNSIGNED_BYTE;
-	bpp = 1;
-	break;
-    }
+    int tex_format = mode & PVR2_TEX_FORMAT_MASK;
 
-    unsigned char data[bytes];
-    /* load data from image, detwiddling/uncompressing as required */
-    if( PVR2_TEX_IS_COMPRESSED(mode) ) {
-	ERROR( "VQ Compression not supported" );
-    } else {
-	pvr2_vram64_read( &data, texture_addr, bytes );
-	if( PVR2_TEX_IS_TWIDDLED(mode) ) {
-	    /* Untwiddle */
+    if( tex_format == PVR2_TEX_FORMAT_IDX8 ||
+	tex_format == PVR2_TEX_FORMAT_IDX4 ) {
+	switch( MMIO_READ( PVR2, PALETTECFG ) & 0x03 ) {
+	case 0: /* ARGB1555 */
+	    intFormat = GL_RGB5_A1;
+	    format = GL_RGBA;
+	    type = GL_UNSIGNED_SHORT_5_5_5_1;
+	    break;
+	case 1: 
+	    intFormat = GL_RGB;
+	    format = GL_RGB;
+	    type = GL_UNSIGNED_SHORT_5_6_5;
+	    break;
+	case 2:
+	    intFormat = GL_RGBA4;
+	    format = GL_RGBA;
+	    type = GL_UNSIGNED_SHORT_4_4_4_4;
+	    break;
+	case 3:
+	    intFormat = GL_RGBA8;
+	    format = GL_RGBA;
+	    type = GL_UNSIGNED_INT_8_8_8_8;
+	    shift = 2;
+	    break;
 	}
+
+	if( tex_format == PVR2_TEX_FORMAT_IDX8 ) {
+	    int bank = (mode >> 25) &0x03;
+	    unsigned char data[bytes<<shift];
+	    char *palette = mmio_region_PVR2PAL.mem + (bank * (256 << shift));
+	    int i;
+	    pvr2_vram64_read( &data, texture_addr, bytes );
+	    for( i=bytes-1; i>=0; i-- ) {
+		char ch = data[i];
+		if( shift == 2 )
+		    ((uint32_t *)data)[i] = ((uint32_t *)palette)[ch];
+		else
+		    ((uint16_t *)data)[i] = ((uint16_t *)palette)[ch];
+	    }
+	    /* TODO: Detwiddle */
+	    glTexImage2D( GL_TEXTURE_2D, 0, intFormat, width, height, 0, format, type,
+			  data );
+
+	}
+    } else {
+	switch( tex_format ) {
+	case PVR2_TEX_FORMAT_ARGB1555:
+	    bytes <<= 1;
+	    intFormat = GL_RGB5_A1;
+	    format = GL_RGBA;
+	    type = GL_UNSIGNED_SHORT_5_5_5_1;
+	    break;
+	case PVR2_TEX_FORMAT_RGB565:
+	    bytes <<= 1;
+	    intFormat = GL_RGBA;
+	    format = GL_RGBA;
+	    type = GL_UNSIGNED_SHORT_5_6_5;
+	    break;
+	case PVR2_TEX_FORMAT_ARGB4444:
+	    bytes <<= 1;
+	    intFormat = GL_RGBA4;
+	    format = GL_RGBA;
+	    type = GL_UNSIGNED_SHORT_4_4_4_4;
+	    break;
+	case PVR2_TEX_FORMAT_YUV422:
+	    ERROR( "YUV textures not supported" );
+	    break;
+	case PVR2_TEX_FORMAT_BUMPMAP:
+	    ERROR( "Bumpmap not supported" );
+	    break;
+	case PVR2_TEX_FORMAT_IDX4:
+	    /* Supported? */
+	    bytes >>= 1;
+	    intFormat = GL_INTENSITY4;
+	    format = GL_COLOR_INDEX;
+	    type = GL_UNSIGNED_BYTE;
+	    shift = 0;
+	    break;
+	case PVR2_TEX_FORMAT_IDX8:
+	    intFormat = GL_INTENSITY8;
+	    format = GL_COLOR_INDEX;
+	    type = GL_UNSIGNED_BYTE;
+	    shift = 0;
+	    break;
+	}
+	
+	unsigned char data[bytes];
+	/* load data from image, detwiddling/uncompressing as required */
+	if( PVR2_TEX_IS_COMPRESSED(mode) ) {
+	    ERROR( "VQ Compression not supported" );
+	} else {
+	    pvr2_vram64_read( &data, texture_addr, bytes );
+	    if( PVR2_TEX_IS_TWIDDLED(mode) ) {
+		/* Untwiddle */
+	    }
+	}
+
+	/* Pass to GL */
+	glTexImage2D( GL_TEXTURE_2D, 0, intFormat, width, height, 0, format, type,
+		      data );
     }
-    /* Pass to GL */
-    glTexImage2D( GL_TEXTURE_2D, 0, intFormat, width, height, 0, format, type,
-		  data );
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 }
 
 /**
@@ -283,8 +344,7 @@ GLuint texcache_get_texture( uint32_t texture_addr, int width, int height,
     texcache_page_lookup[texture_page] = slot;
 
     /* Construct the GL texture */
-    GLuint texid = texcache_free_list[texcache_free_ptr++];
-    glBindTexture( GL_TEXTURE_2D, texid );
+    glBindTexture( GL_TEXTURE_2D, texcache_active_list[slot].texture_id );
     texcache_load_texture( texture_addr, width, height, mode );
     
     return texcache_active_list[slot].texture_id;
