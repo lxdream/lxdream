@@ -1,5 +1,5 @@
 /**
- * $Id: video_x11.c,v 1.2 2006-03-13 12:39:07 nkeynes Exp $
+ * $Id: video_x11.c,v 1.3 2006-03-15 13:16:46 nkeynes Exp $
  *
  * Shared functions for all X11-based display drivers.
  *
@@ -127,6 +127,27 @@ gboolean video_glx_create_window( int x, int y, int width, int height )
     
     glx_open = TRUE;
     return TRUE;
+}
+
+int video_glx_load_font( const gchar *font_name )
+{
+    int lists;
+    XFontStruct *font = XLoadQueryFont(video_x11_display, font_name );
+    if (font == NULL)
+	return -1;
+    
+    lists = glGenLists(96);
+    glXUseXFont(font->fid, 32, 96, lists);
+    XFreeFont(video_x11_display, font);
+}
+
+
+
+gboolean video_glx_set_render_format( int x, int y, int width, int height )
+{
+    if( glx_open )
+	return TRUE;
+    return video_glx_create_window( x, y, width, height );
 }
 
 void video_glx_swap_buffers( void )

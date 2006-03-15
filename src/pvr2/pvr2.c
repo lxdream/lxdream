@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.c,v 1.19 2006-03-14 13:02:06 nkeynes Exp $
+ * $Id: pvr2.c,v 1.20 2006-03-15 13:16:50 nkeynes Exp $
  *
  * PVR2 (Video) Core MMIO registers.
  *
@@ -44,12 +44,12 @@ int video_buffer_idx = 0;
 struct video_timing {
     int fields_per_second;
     int total_lines;
-    int display_lines;
+    int retrace_lines;
     int line_time_ns;
 };
 
-struct video_timing pal_timing = { 50, 625, 575, 32000 };
-struct video_timing ntsc_timing= { 60, 525, 480, 31746 };
+struct video_timing pal_timing = { 50, 625, 50, 32000 };
+struct video_timing ntsc_timing= { 60, 525, 65, 31746 };
 
 struct dreamcast_module pvr2_module = { "PVR2", pvr2_init, NULL, NULL, 
 					pvr2_run_slice, NULL,
@@ -74,12 +74,15 @@ void video_set_driver( video_driver_t driver )
     if( driver->init_driver != NULL )
 	driver->init_driver();
     driver->set_display_format( 640, 480, COLFMT_RGB32 );
+    driver->set_render_format( 640, 480, COLFMT_RGB32, FALSE );
+    texcache_gl_init();
 }
 
 uint32_t pvr2_line_count = 0;
 uint32_t pvr2_line_remainder = 0;
 uint32_t pvr2_irq_vpos1 = 0;
 uint32_t pvr2_irq_vpos2 = 0;
+gboolean pvr2_retrace = FALSE;
 struct video_timing *pvr2_timing = &ntsc_timing;
 uint32_t pvr2_time_counter = 0;
 uint32_t pvr2_frame_counter = 0;
@@ -97,11 +100,15 @@ uint32_t pvr2_run_slice( uint32_t nanosecs )
 	if( pvr2_line_count == pvr2_irq_vpos2 ) {
 	    asic_event( EVENT_SCANLINE2 );
 	}
-	if( pvr2_line_count == pvr2_timing->display_lines ) {
+	if( pvr2_line_count == pvr2_timing->total_lines ) {
 	    asic_event( EVENT_RETRACE );
-	} else if( pvr2_line_count == pvr2_timing->total_lines ) {
-	    pvr2_display_frame();
 	    pvr2_line_count = 0;
+	    pvr2_retrace = TRUE;
+	} else if( pvr2_line_count == pvr2_timing->retrace_lines ) {
+	    if( pvr2_retrace ) {
+		pvr2_display_frame();
+		pvr2_retrace = FALSE;
+	    }
 	}
     }
     return nanosecs;
@@ -189,8 +196,16 @@ void mmio_region_PVR2_write( uint32_t reg, uint32_t val )
     
     INFO( "PVR2 write to %08X <= %08X [%s: %s]", reg, val, 
           MMIO_REGID(PVR2,reg), MMIO_REGDESC(PVR2,reg) );
+
+    MMIO_WRITE( PVR2, reg, val );
    
     switch(reg) {
+    case DISPADDR1:
+	if( pvr2_retrace ) {
+	    pvr2_display_frame();
+	    pvr2_retrace = FALSE;
+	}
+	break;
     case VPOS_IRQ:
 	pvr2_irq_vpos1 = (val >> 16) & 0x03FF;
 	pvr2_irq_vpos2 = val & 0x03FF;
@@ -204,7 +219,6 @@ void mmio_region_PVR2_write( uint32_t reg, uint32_t val )
 	    pvr2_render_scene();
 	break;
     }
-    MMIO_WRITE( PVR2, reg, val );
 }
 
 MMIO_REGION_READ_FN( PVR2, reg )
@@ -254,8 +268,10 @@ void pvr2_vram64_write( sh4addr_t destaddr, char *src, uint32_t length )
 	texcache_invalidate_page( i );
     }
 
-    banks[0] = ((uint32_t *)(video_base + (destaddr>>3)));
+    banks[0] = ((uint32_t *)(video_base + ((destaddr & 0x007FFFF8) >>1)));
     banks[1] = banks[0] + 0x100000;
+    if( bank_flag ) 
+	banks[0]++;
     
     /* Handle non-aligned start of source */
     if( destaddr & 0x03 ) {
@@ -295,8 +311,10 @@ void pvr2_vram64_read( char *dest, sh4addr_t srcaddr, uint32_t length )
     if( srcaddr + length > 0x800000 )
 	length = 0x800000 - srcaddr;
 
-    banks[0] = ((uint32_t *)(video_base + (srcaddr>>3)));
+    banks[0] = ((uint32_t *)(video_base + ((srcaddr&0x007FFFF8)>>1)));
     banks[1] = banks[0] + 0x100000;
+    if( bank_flag )
+	banks[0]++;
     
     /* Handle non-aligned start of source */
     if( srcaddr & 0x03 ) {

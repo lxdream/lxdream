@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.h,v 1.9 2006-03-13 12:39:07 nkeynes Exp $
+ * $Id: pvr2.h,v 1.10 2006-03-15 13:16:50 nkeynes Exp $
  *
  * PVR2 (video chip) functions and macros.
  *
@@ -84,7 +84,7 @@ void pvr2_set_base_address( uint32_t );
 #define PVR2_TEX_FORMAT_MASK 0x38000000
 #define PVR2_TEX_UNTWIDDLED  0x04000000
 
-#define PVR2_TEX_ADDR(x) ( ((x)&0x1FFFFF)<<3 );
+#define PVR2_TEX_ADDR(x) ( ((x)&0x01FFFFF)<<3 );
 #define PVR2_TEX_IS_MIPMAPPED(x) ( (x) & PVR2_TEX_MIPMAP )
 #define PVR2_TEX_IS_COMPRESSED(x) ( (x) & PVR2_TEX_COMPRESSED )
 #define PVR2_TEX_IS_TWIDDLED(x) (((x) & PVR2_TEX_UNTWIDDLED) == 0)
@@ -140,11 +140,14 @@ gboolean pvr2_render_display_frame( uint32_t address );
 /****************************** Texture Cache ****************************/
 
 /**
- * Initialize the texture cache. Note that the GL context must have been
- * initialized before calling this function.
+ * Initialize the texture cache.
  */
 void texcache_init( void );
 
+/**
+ * Initialize the GL side of the texture cache (texture ids and such).
+ */
+void texcache_gl_init( void );
 
 /**
  * Flush all textures and delete. The cache will be non-functional until
