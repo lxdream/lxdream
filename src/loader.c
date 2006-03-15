@@ -1,5 +1,5 @@
 /**
- * $Id: loader.c,v 1.11 2006-03-14 11:44:29 nkeynes Exp $
+ * $Id: loader.c,v 1.12 2006-03-15 13:17:40 nkeynes Exp $
  *
  * File loading routines, mostly for loading demos without going through the
  * whole procedure of making a CD image for them.
@@ -107,9 +107,8 @@ gboolean file_load_magic( const gchar *filename )
     return TRUE;
 }
 
-int file_load_binary( const gchar *filename ) {
-    /* Load the binary itself */
-    mem_load_block( filename, BINARY_LOAD_ADDR, -1 );
+int file_load_postload( int pc )
+{
     if( bootstrap_file != NULL ) {
 	/* Load in a bootstrap before the binary, to initialize everything
 	 * correctly
@@ -117,10 +116,19 @@ int file_load_binary( const gchar *filename ) {
 	mem_load_block( bootstrap_file, BOOTSTRAP_LOAD_ADDR, BOOTSTRAP_SIZE );
 	sh4_set_pc( BOOTSTRAP_LOAD_ADDR + 0x300 );
     } else {
-	sh4_set_pc( BINARY_LOAD_ADDR );
+	sh4_set_pc( pc );
     }
     bios_install();
+    dcload_install();
     gtk_gui_update();
+}    
+
+
+int file_load_binary( const gchar *filename )
+{
+    /* Load the binary itself */
+    mem_load_block( filename, BINARY_LOAD_ADDR, -1 );
+    file_load_postload( BINARY_LOAD_ADDR );
 }
 
 int file_load_elf_fd( int fd ) 
@@ -155,9 +163,6 @@ int file_load_elf_fd( int fd )
 	    INFO( "Loaded %d bytes to %08X", phdr.p_filesz, phdr.p_vaddr );
 	}
     }
-
-    sh4_set_pc( head.e_entry );
-    bios_install();
-    dcload_install();
-    gtk_gui_update();
+    
+    file_load_postload( head.e_entry );
 }
