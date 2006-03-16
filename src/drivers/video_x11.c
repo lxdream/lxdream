@@ -1,5 +1,5 @@
 /**
- * $Id: video_x11.c,v 1.3 2006-03-15 13:16:46 nkeynes Exp $
+ * $Id: video_x11.c,v 1.4 2006-03-16 12:42:28 nkeynes Exp $
  *
  * Shared functions for all X11-based display drivers.
  *
@@ -148,6 +148,39 @@ gboolean video_glx_set_render_format( int x, int y, int width, int height )
     if( glx_open )
 	return TRUE;
     return video_glx_create_window( x, y, width, height );
+}
+
+gboolean video_glx_display_frame( video_buffer_t frame )
+{
+    GLenum type, format = GL_RGB;
+    switch( frame->colour_format ) {
+    case COLFMT_RGB565:
+	type = GL_UNSIGNED_SHORT_5_6_5;
+	break;
+    case COLFMT_RGB888:
+	type = GL_UNSIGNED_BYTE;
+	break;
+    case COLFMT_ARGB1555:
+	type = GL_UNSIGNED_SHORT_5_5_5_1;
+	break;
+    case COLFMT_ARGB8888:
+	format = GL_BGRA;
+	type = GL_UNSIGNED_INT_8_8_8_8_REV;
+	break;
+    }
+    glDrawBuffer( GL_FRONT );
+    glViewport( 0, 0, frame->hres, frame->vres );
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    glOrtho( 0, frame->hres, frame->vres, 0, 0, -65535 );
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+    glRasterPos2i( 0, 0 );
+    glPixelZoom( 1.0f, -1.0f );
+    glDrawPixels( frame->hres, frame->vres, format, type,
+		  frame->data );
+    glFlush();
+    return TRUE;
 }
 
 void video_glx_swap_buffers( void )
