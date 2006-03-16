@@ -1,5 +1,5 @@
 /**
- * $Id: main.c,v 1.15 2006-03-14 12:45:50 nkeynes Exp $
+ * $Id: main.c,v 1.16 2006-03-16 12:41:59 nkeynes Exp $
  *
  * Main program, initializes dreamcast and gui, then passes control off to
  * the gtk main loop (currently). 
@@ -116,7 +116,9 @@ int main (int argc, char *argv[])
 
     for( i=0; audio_driver_list[i] != NULL; i++ ) {
 	if( strcasecmp( audio_driver_list[i]->name, audio_driver_name ) == 0 ) {
-	    audio_set_driver( audio_driver_list[i], 44100, AUDIO_FMT_16ST );
+	    if( audio_set_driver( audio_driver_list[i], 44100, AUDIO_FMT_16ST ) == FALSE ) {
+		audio_set_driver( &audio_null_driver, 44100, AUDIO_FMT_16ST );
+	    }
 	    break;
 	}
 

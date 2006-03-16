@@ -1,5 +1,5 @@
 /**
- * $Id: audio.h,v 1.6 2006-03-14 12:45:53 nkeynes Exp $
+ * $Id: audio.h,v 1.7 2006-03-16 12:41:59 nkeynes Exp $
  * 
  * Audio engine, ie the part that does the actual work.
  *
@@ -76,7 +76,7 @@ extern struct audio_driver audio_esd_driver;
  * output buffers, flushing any current data and reallocating as 
  * necessary. Must be called before attempting to generate any audio.
  */
-void audio_set_driver( audio_driver_t driver, uint32_t samplerate,
+gboolean audio_set_driver( audio_driver_t driver, uint32_t samplerate,
 		       int format );
 
 /**
