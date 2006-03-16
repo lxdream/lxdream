@@ -1,5 +1,5 @@
 /**
- * $Id: render.c,v 1.3 2006-03-15 13:16:50 nkeynes Exp $
+ * $Id: render.c,v 1.4 2006-03-16 12:42:39 nkeynes Exp $
  *
  * PVR2 Renderer support. This is where the real work happens.
  *
@@ -272,7 +272,6 @@ static void pvr2_render_display_list( uint32_t *display_list, uint32_t length )
 		glBegin( GL_TRIANGLES );
 	    else 
 		glBegin( GL_TRIANGLE_STRIP );
-	    fprintf( stderr, "Begin %d\n", expect_vertexes );
 	    break;
 	case PVR2_CMD_VERTEX_LAST:
 	case PVR2_CMD_VERTEX:
@@ -282,17 +281,13 @@ static void pvr2_render_display_list( uint32_t *display_list, uint32_t length )
 	    }
 	    expect_vertexes--;
 	    struct pvr2_vertex_basic *vertex = (struct pvr2_vertex_basic *)cmd_ptr;
-	    fprintf( stderr, "(%f,%f,%f)", vertex->x, vertex->y, vertex->z );
 	    if( textured ) {
-		fprintf( stderr, "{%f,%f}", vertex->s, vertex->t );
 		glTexCoord2f( vertex->s, vertex->t );
 	    }
-	    fprintf( stderr, "\n" );
 	    glVertex3f( vertex->x, vertex->y, vertex->z );
 	    
 	    if( expect_vertexes == 0 ) {
 		glEnd();
-		fprintf( stderr, "End" );
 	    }
 	    break;
 	}

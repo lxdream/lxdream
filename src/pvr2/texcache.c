@@ -1,5 +1,5 @@
 /**
- * $Id: texcache.c,v 1.3 2006-03-15 13:16:50 nkeynes Exp $
+ * $Id: texcache.c,v 1.4 2006-03-16 12:42:39 nkeynes Exp $
  *
  * Texture cache. Responsible for maintaining a working set of OpenGL 
  * textures. 
@@ -179,6 +179,21 @@ static texcache_entry_index texcache_evict( void )
     return slot;
 }
 
+static void detwiddle_pal8_to_24(int x1, int y1, int size, int totsize,
+				 char **in, uint32_t *out, uint32_t *pal) {
+    if (size == 1) {
+	out[y1 * totsize + x1] = pal[**in];
+	(*in)++;
+    } else {
+	int ns = size>>1;
+	detwiddle_pal8_to_24(x1, y1, ns, totsize, in, out, pal);
+	detwiddle_pal8_to_24(x1, y1+ns, ns, totsize, in, out, pal);
+	detwiddle_pal8_to_24(x1+ns, y1, ns, totsize, in, out, pal);
+	detwiddle_pal8_to_24(x1+ns, y1+ns, ns, totsize, in, out, pal);
+    }
+}
+
+
 /**
  * Load texture data from the given address and parameters into the currently
  * bound OpenGL texture.
@@ -210,24 +225,29 @@ static texcache_load_texture( uint32_t texture_addr, int width, int height,
 	    break;
 	case 3:
 	    intFormat = GL_RGBA8;
-	    format = GL_RGBA;
-	    type = GL_UNSIGNED_INT_8_8_8_8;
+	    format = GL_BGRA;
+	    type = GL_UNSIGNED_INT_8_8_8_8_REV;
 	    shift = 2;
 	    break;
 	}
 
 	if( tex_format == PVR2_TEX_FORMAT_IDX8 ) {
-	    int bank = (mode >> 25) &0x03;
 	    unsigned char data[bytes<<shift];
+	    int bank = (mode >> 25) &0x03;
 	    char *palette = mmio_region_PVR2PAL.mem + (bank * (256 << shift));
 	    int i;
-	    pvr2_vram64_read( &data, texture_addr, bytes );
-	    for( i=bytes-1; i>=0; i-- ) {
-		char ch = data[i];
-		if( shift == 2 )
-		    ((uint32_t *)data)[i] = ((uint32_t *)palette)[ch];
-		else
+	    if( shift == 2 ) {
+		char tmp[bytes];
+	        char *p = tmp;
+		pvr2_vram64_read( tmp, texture_addr, bytes );
+		detwiddle_pal8_to_24( 0, 0, width, width, &p, 
+				      (uint32_t *)data, (uint32_t *)palette );
+	    } else {
+		pvr2_vram64_read( &data, texture_addr, bytes );
+		for( i=bytes-1; i>=0; i-- ) {
+		    char ch = data[i];
 		    ((uint16_t *)data)[i] = ((uint16_t *)palette)[ch];
+		}
 	    }
 	    /* TODO: Detwiddle */
 	    glTexImage2D( GL_TEXTURE_2D, 0, intFormat, width, height, 0, format, type,
