@@ -1,5 +1,5 @@
 /**
- * $Id: video_gtk.c,v 1.4 2006-03-15 13:16:46 nkeynes Exp $
+ * $Id: video_gtk.c,v 1.5 2006-03-16 12:42:28 nkeynes Exp $
  *
  * The PC side of the video support (responsible for actually displaying / 
  * rendering frames)
@@ -95,6 +95,8 @@ gboolean video_gtk_display_frame( video_buffer_t frame )
     uint32_t bytes_per_line, x, y;
     char *src = frame->data;
     char *dest = video_img->mem;
+
+    return video_glx_display_frame( frame );
 
     switch( frame->colour_format ) {
     case COLFMT_ARGB1555:
