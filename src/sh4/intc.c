@@ -1,5 +1,5 @@
 /**
- * $Id: intc.c,v 1.4 2005-12-25 08:24:11 nkeynes Exp $
+ * $Id: intc.c,v 1.5 2006-03-17 12:12:49 nkeynes Exp $
  *
  * SH4 onboard interrupt controller (INTC) implementation
  *
@@ -141,10 +141,7 @@ void intc_clear_interrupt( int which )
 		intc_pending[i] = intc_pending[++i];
 	    }
 	    intc_num_pending--;
-	    if( intc_num_pending == 0 )
-		sh4r.int_pending = 0;
-	    else
-		sh4r.int_pending = PRIORITY(intc_pending[intc_num_pending-1]);
+	    intc_mask_changed();
 	    break;
 	}
     }
@@ -155,14 +152,6 @@ uint32_t intc_accept_interrupt( void )
 {
     assert(intc_num_pending > 0);
     return INTCODE(intc_pending[intc_num_pending-1]);
-    /*
-    intc_num_pending--;
-    if( intc_num_pending > 0 )
-        sh4r.int_pending = PRIORITY(intc_pending[intc_num_pending-1]);
-    else
-        sh4r.int_pending = 0;
-    return INTCODE(intc_pending[intc_num_pending]);
-    */
 }
 
 void intc_mask_changed( void )
