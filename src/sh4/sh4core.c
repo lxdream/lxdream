@@ -1,5 +1,5 @@
 /**
- * $Id: sh4core.c,v 1.22 2006-03-14 11:44:04 nkeynes Exp $
+ * $Id: sh4core.c,v 1.23 2006-03-17 12:45:11 nkeynes Exp $
  * 
  * SH4 emulation core, and parent module for all the SH4 peripheral
  * modules.
@@ -1118,9 +1118,7 @@ gboolean sh4_execute_instruction( void )
                 case 3: /* TRAPA   imm8 */
                     CHECKSLOTILLEGAL()
                     sh4r.in_delay_slot = 1;
-                    MMIO_WRITE( MMU, TRA, UIMM8(ir) );
-                    sh4r.pc = sh4r.new_pc;  /* RAISE ends the instruction */
-                    sh4r.new_pc += 2;
+                    MMIO_WRITE( MMU, TRA, UIMM8(ir)<<2 );
                     RAISE( EXC_TRAP, EXV_TRAP );
                     break;
                 case 4: /* MOV.B   [GBR + disp8], R0 */
