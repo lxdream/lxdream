@@ -1,5 +1,5 @@
 /**
- * $Id: timer.c,v 1.3 2005-12-29 12:52:29 nkeynes Exp $
+ * $Id: timer.c,v 1.4 2006-03-17 12:13:12 nkeynes Exp $
  * 
  * SH4 Timer/Clock peripheral modules (CPG, TMU, RTC), combined together to
  * keep things simple (they intertwine a bit).
@@ -91,6 +91,8 @@ void mmio_region_RTC_write( uint32_t reg, uint32_t val )
 #define TCR_UNF  0x0100
 #define TCR_UNIE 0x0020
 
+#define TCR_IRQ_ACTIVE (TCR_UNF|TCR_UNIE)
+
 struct TMU_timer {
     uint32_t timer_period;
     uint32_t timer_remainder; /* left-over cycles from last count */
@@ -104,9 +106,23 @@ int32_t mmio_region_TMU_read( uint32_t reg )
     return MMIO_READ( TMU, reg );
 }
 
-void TMU_set_timer_period( int timer,  int tcr )
+void TMU_set_timer_control( int timer,  int tcr )
 {
     uint32_t period = 1;
+    uint32_t oldtcr = MMIO_READ( TMU, TCR0 + (12*timer) );
+
+    if( (oldtcr & TCR_UNF) == 0 ) {
+	tcr = tcr & (~TCR_UNF);
+    } else {
+	if( (oldtcr & TCR_UNIE == 0) && 
+	    (tcr & TCR_IRQ_ACTIVE) == TCR_IRQ_ACTIVE ) {
+	    intc_raise_interrupt( INT_TMU_TUNI0 + timer );
+	} else if( (oldtcr & TCR_UNIE) != 0 && 
+		   (tcr & TCR_IRQ_ACTIVE) != TCR_IRQ_ACTIVE ) {
+	    intc_clear_interrupt( INT_TMU_TUNI0 + timer );
+	}
+    }
+
     switch( tcr & 0x07 ) {
     case 0:
 	period = sh4_peripheral_period << 2 ;
@@ -137,6 +153,8 @@ void TMU_set_timer_period( int timer,  int tcr )
 	break;
     }
     TMU_timers[timer].timer_period = period;
+
+    MMIO_WRITE( TMU, TCR0 + (12*timer), tcr );
 }
 
 void TMU_start( int timer )
@@ -193,14 +211,14 @@ void mmio_region_TMU_write( uint32_t reg, uint32_t val )
 	}
 	break;
     case TCR0:
-	TMU_set_timer_period( 0, val );
-	break;
+	TMU_set_timer_control( 0, val );
+	return;
     case TCR1:
-	TMU_set_timer_period( 1, val );
-	break;
+	TMU_set_timer_control( 1, val );
+	return;
     case TCR2:
-	TMU_set_timer_period( 2, val );
-	break;
+	TMU_set_timer_control( 2, val );
+	return;
     }
     MMIO_WRITE( TMU, reg, val );
 }
@@ -224,9 +242,9 @@ void TMU_run_slice( uint32_t nanosecs )
 
 void TMU_update_clocks()
 {
-    TMU_set_timer_period( 0, MMIO_READ( TMU, TCR0 ) );
-    TMU_set_timer_period( 1, MMIO_READ( TMU, TCR1 ) );
-    TMU_set_timer_period( 2, MMIO_READ( TMU, TCR2 ) );
+    TMU_set_timer_control( 0, MMIO_READ( TMU, TCR0 ) );
+    TMU_set_timer_control( 1, MMIO_READ( TMU, TCR1 ) );
+    TMU_set_timer_control( 2, MMIO_READ( TMU, TCR2 ) );
 }
 
 void TMU_reset( )
