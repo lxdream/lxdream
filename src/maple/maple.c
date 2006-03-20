@@ -1,5 +1,5 @@
 /**
- * $Id: maple.c,v 1.6 2005-12-26 03:54:55 nkeynes Exp $
+ * $Id: maple.c,v 1.7 2006-03-20 12:00:15 nkeynes Exp $
  *
  * Implements the core Maple bus, including DMA transfers to and from the bus.
  *
@@ -142,6 +142,7 @@ void maple_handle_buffer( uint32_t address ) {
                         else status = dev->get_condition(dev, func,
                                                          return_buf+8,
                                                          &out_length );
+			out_length++;
                         if( status == 0 ) {
                             status = MAPLE_RESP_DATA;
                             PUTWORD(4,func);
