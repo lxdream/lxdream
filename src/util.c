@@ -1,5 +1,5 @@
 /**
- * $Id: util.c,v 1.3 2005-12-26 03:54:52 nkeynes Exp $
+ * $Id: util.c,v 1.4 2006-03-20 11:58:37 nkeynes Exp $
  *
  * Miscellaneous utility functions.
  *
@@ -38,4 +38,25 @@ int fread_string( char *s, int maxlen, FILE *f )
 	fread( s, len > maxlen ? maxlen : len, 1, f );
     }
     return len;
+}
+
+void fwrite_dump( unsigned char *data, unsigned int length, FILE *f ) 
+{
+    unsigned int i, j;
+    for( i =0; i<length; i+=16 ) {
+	fprintf( f, "%08X:", i);
+	for( j=i; j<i+16; j++ ) {
+	    if( (j % 4) == 0 )
+		fprintf( f, " " );
+	    if( j < length )
+		fprintf( f, " %02X", (unsigned int)(data[j]) );
+	    else
+		fprintf( f, "   " );
+	}
+	fprintf( f, "  " );
+	for( j=i; j<i+16 && j<length; j++ ) {
+	    fprintf( f, "%c", isprint(data[j]) ? data[j] : '.' );
+	}
+	fprintf( f, "\n" );
+    }
 }
