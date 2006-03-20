@@ -1,5 +1,5 @@
 /**
- * $Id: dcload.c,v 1.2 2006-03-14 12:45:50 nkeynes Exp $
+ * $Id: dcload.c,v 1.3 2006-03-20 11:59:57 nkeynes Exp $
  * 
  * DC-load syscall implementation.
  *
@@ -70,7 +70,8 @@ void dcload_syscall( uint32_t syscall_id )
 	}
 	break;
     case SYS_EXIT:
-	exit( sh4r.r[4] );
+	/* exit( sh4r.r[4] ); */
+	dreamcast_stop();
     default:
 	sh4r.r[0] = -1;
     }
