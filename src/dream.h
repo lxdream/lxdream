@@ -1,5 +1,5 @@
 /**
- * $Id: dream.h,v 1.7 2005-12-26 03:54:52 nkeynes Exp $
+ * $Id: dream.h,v 1.8 2006-03-20 11:59:33 nkeynes Exp $
  *
  * Miscellaneous application-wide declarations (mainly logging atm)
  *
@@ -112,6 +112,7 @@ void emit( void *, int level, const char *source, const char *msg, ... );
 
 void fwrite_string( char *s, FILE *f );
 int fread_string( char *s, int maxlen, FILE *f );
+    void fwrite_dump( unsigned char *buf, unsigned int length, FILE *f );
 
 #ifdef __cplusplus
 }
