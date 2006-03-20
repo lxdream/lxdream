@@ -1,5 +1,5 @@
 /**
- * $Id: render.c,v 1.4 2006-03-16 12:42:39 nkeynes Exp $
+ * $Id: render.c,v 1.5 2006-03-20 11:59:15 nkeynes Exp $
  *
  * PVR2 Renderer support. This is where the real work happens.
  *
@@ -20,8 +20,10 @@
 #include "asic.h"
 
 
-#define POLY_COLOUR_ARGB8888 0x00000000
-#define POLY_COLOUR_ARGBFLOAT 0x00000010
+#define POLY_COLOUR_PACKED 0x00000000
+#define POLY_COLOUR_FLOAT 0x00000010
+#define POLY_COLOUR_INTENSITY 0x00000020
+#define POLY_COLOUR_INTENSITY_PREV 0x00000030
 
 static int pvr2_poly_vertexes[4] = { 3, 4, 6, 8 };
 static int pvr2_poly_type[4] = { GL_TRIANGLES, GL_QUADS, GL_TRIANGLE_STRIP, GL_TRIANGLE_STRIP };
@@ -51,6 +53,7 @@ static int pvr2_render_colour_format[8] = {
 #define POLY_BLEND_SRC(poly) ( pvr2_poly_srcblend[(poly->poly_mode) >> 29] )
 #define POLY_BLEND_DEST(poly) ( pvr2_poly_dstblend[((poly->poly_mode)>>26)&0x07] )
 #define POLY_TEX_BLEND(poly) ( pvr2_poly_texblend[((poly->poly_mode) >> 6)&0x03] )
+#define POLY_COLOUR_TYPE(poly) ( poly->command & 0x00000030 )
 
 extern uint32_t pvr2_frame_counter;
 
@@ -103,11 +106,11 @@ struct pvr2_specular_highlight {
 };
 				     
 
-struct pvr2_vertex_basic {
+struct pvr2_vertex_packed {
     uint32_t command;
     float x, y, z;
     float s,t;
-    uint32_t col;
+    uint32_t colour;
     float f;
 };
 
@@ -221,14 +224,29 @@ static void pvr2_render_prepare_context( sh4addr_t render_addr,
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 }
 
+static void pvr2_dump_display_list( uint32_t * display_list, uint32_t length )
+{
+    uint32_t i;
+    for( i =0; i<length; i+=4 ) {
+	if( (i % 32) == 0 ) {
+	    if( i != 0 )
+		fprintf( stderr, "\n" );
+	    fprintf( stderr, "%08X:", i );
+	}
+	fprintf( stderr, " %08X", display_list[i] );
+    }
+}
+
 static void pvr2_render_display_list( uint32_t *display_list, uint32_t length )
 {
     uint32_t *cmd_ptr = display_list;
-    int expect_vertexes = 0;
+    int strip_length = 0, vertex_count = 0;
+    int colour_type;
     gboolean textured = FALSE;
     struct pvr2_poly *poly;
     while( cmd_ptr < display_list+length ) {
-	switch( *cmd_ptr >> 24 ) {
+	unsigned int cmd = *cmd_ptr >> 24;
+	switch( cmd ) {
 	case PVR2_CMD_POLY_OPAQUE:
 	    poly = (struct pvr2_poly *)cmd_ptr;
 	    if( poly->command & PVR2_POLY_TEXTURED ) {
@@ -267,27 +285,42 @@ static void pvr2_render_display_list( uint32_t *display_list, uint32_t length )
 		glEnable( GL_CULL_FACE );
 		glFrontFace( GL_CCW );
 	    }
-	    expect_vertexes = POLY_STRIP_VERTEXES( poly );
-	    if( expect_vertexes == 3 )
-		glBegin( GL_TRIANGLES );
-	    else 
-		glBegin( GL_TRIANGLE_STRIP );
+	    strip_length = POLY_STRIP_VERTEXES( poly );
+	    colour_type = POLY_COLOUR_TYPE( poly );
+	    vertex_count = 0;
 	    break;
 	case PVR2_CMD_VERTEX_LAST:
 	case PVR2_CMD_VERTEX:
-	    if( expect_vertexes == 0 ) {
-		ERROR( "Unexpected vertex!" );
-		return;
+	    if( vertex_count == 0 ) {
+		if( strip_length == 3 )
+		    glBegin( GL_TRIANGLES );
+		else 
+		    glBegin( GL_TRIANGLE_STRIP );
 	    }
-	    expect_vertexes--;
-	    struct pvr2_vertex_basic *vertex = (struct pvr2_vertex_basic *)cmd_ptr;
+	    vertex_count++;
+
+	    struct pvr2_vertex_packed *vertex = (struct pvr2_vertex_packed *)cmd_ptr;
 	    if( textured ) {
 		glTexCoord2f( vertex->s, vertex->t );
 	    }
+
+	    switch( colour_type ) {
+	    case POLY_COLOUR_PACKED:
+		glColor4ub( vertex->colour >> 16, vertex->colour >> 8,
+			    vertex->colour, vertex->colour >> 24 );
+		break;
+	    }
 	    glVertex3f( vertex->x, vertex->y, vertex->z );
 	    
-	    if( expect_vertexes == 0 ) {
+	    if( cmd == PVR2_CMD_VERTEX_LAST ) {
 		glEnd();
+		vertex_count = 0;
+	    }
+
+	    if( vertex_count >= strip_length ) {
+		ERROR( "Rendering long strip (expected end after %d)", strip_length );
+		pvr2_dump_display_list( display_list, length );
+		return;
 	    }
 	    break;
 	}
@@ -314,6 +347,7 @@ void pvr2_render_scene( )
 	 * We can optimise for this case a little
 	 */
 	render_to_tex = TRUE;
+	WARN( "Render to texture not supported properly yet" );
     } else {
 	render_addr = (render_addr & 0x00FFFFFF) + PVR2_RAM_BASE;
 	render_to_tex = FALSE;
