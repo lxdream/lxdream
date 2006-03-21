@@ -1,5 +1,5 @@
 /**
- * $Id: sh4core.c,v 1.23 2006-03-17 12:45:11 nkeynes Exp $
+ * $Id: sh4core.c,v 1.24 2006-03-21 11:14:04 nkeynes Exp $
  * 
  * SH4 emulation core, and parent module for all the SH4 peripheral
  * modules.
@@ -1291,7 +1291,7 @@ gboolean sh4_execute_instruction( void )
                     break;
                 default: UNDEF(ir);
 		}
-	    } else {
+	    } else { /* Single precision */
 		switch( ir&0x000F ) {
                 case 0: /* FADD    FRm, FRn */
                     FRN(ir) += FRM(ir);
@@ -1406,7 +1406,7 @@ gboolean sh4_execute_instruction( void )
 			}
 			else if( (ir&0x0100) == 0 ) { /* FSCA    FPUL, DRn */
 			    float angle = (((float)(short)(FPULi>>16)) +
-					   ((float)(FPULi&16)/65536.0)) *
+					   (((float)(FPULi&0xFFFF))/65536.0)) *
 				2 * M_PI;
 			    int reg = FRNn(ir);
 			    FR(reg) = sinf(angle);
