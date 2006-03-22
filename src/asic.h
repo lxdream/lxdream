@@ -1,5 +1,5 @@
 /**
- * $Id: asic.h,v 1.5 2006-01-03 12:21:45 nkeynes Exp $
+ * $Id: asic.h,v 1.6 2006-03-22 14:29:00 nkeynes Exp $
  *
  * Support for the miscellaneous ASIC functions (Primarily event multiplexing,
  * and DMA). Includes MMIO definitions for the 5f6000 and 5f7000 regions, 
@@ -94,11 +94,11 @@ MMIO_REGION_BEGIN( 0x005F7000, EXTDMA, "ASIC External DMA" )
     BYTE_PORT( 0x094, IDELBA2, PORT_RW, 0, "IDE LBA hi" ) /* AKA Cyl hi */
     BYTE_PORT( 0x098, IDEDEV, PORT_RW, 0, "IDE Device" )
     BYTE_PORT( 0x09C, IDECMD, PORT_RW, 0, "IDE Command/Status" )
-    LONG_PORT( 0x404, EXTDMASH4, PORT_MRW, 0, "Ext DMA SH4 address" )
-    LONG_PORT( 0x408, EXTDMASIZ, PORT_MRW, 0, "Ext DMA Size" )
-    LONG_PORT( 0x40C, EXTDMADIR, PORT_MRW, 0, "Ext DMA Direction" )
-    LONG_PORT( 0x414, EXTDMACTL1, PORT_MRW, 0, "Ext DMA Control 1" )
-    LONG_PORT( 0x418, EXTDMACTL2, PORT_MRW, 0, "Ext DMA Control 2" )
+    LONG_PORT( 0x404, IDEDMASH4, PORT_MRW, 0, "IDE DMA SH4 address" )
+    LONG_PORT( 0x408, IDEDMASIZ, PORT_MRW, 0, "IDE DMA Size" )
+    LONG_PORT( 0x40C, IDEDMADIR, PORT_MRW, 0, "IDE DMA Direction" )
+    LONG_PORT( 0x414, IDEDMACTL1, PORT_MRW, 0, "IDE DMA Control 1" )
+    LONG_PORT( 0x418, IDEDMACTL2, PORT_MRW, 0, "IDE DMA Control 2" )
     WORD_PORT( 0x480, EXTDMAUNK0, PORT_MRW, 0, "Ext DMA <unknown0>" )
     LONG_PORT( 0x484, EXTDMAUNK1, PORT_MRW, 0, "Ext DMA <unknown1>" )
     LONG_PORT( 0x488, EXTDMAUNK2, PORT_MRW, 0, "Ext DMA <unknown2>" )
@@ -176,7 +176,7 @@ MMIO_REGION_END
 #define EVENT_PVR_TRANSMOD_DONE 10
 #define EVENT_MAPLE_DMA 12
 #define EVENT_MAPLE_ERR 13 /* ??? */
-#define EVENT_GDROM_DMA 14
+#define EVENT_IDE_DMA 14
 #define EVENT_SPU_DMA0  15
 #define EVENT_SPU_DMA1  16
 #define EVENT_SPU_DMA2  17
@@ -184,8 +184,18 @@ MMIO_REGION_END
 #define EVENT_PVR_DMA   19
 #define EVENT_PVR_PUNCHOUT_DONE 21
 
-#define EVENT_GDROM_CMD 32
+#define EVENT_IDE       32
 #define EVENT_AICA      33
 
+/**
+ * Raise an ASIC event 
+ */
 void asic_event( int event );
+
+/**
+ * Clear an ASIC event. Currently only the IDE controller is known to use
+ * this functionality.
+ */
+void asic_clear_event( int event );
+
 void asic_init( void );

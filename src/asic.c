@@ -1,5 +1,5 @@
 /**
- * $Id: asic.c,v 1.12 2006-02-15 13:11:42 nkeynes Exp $
+ * $Id: asic.c,v 1.13 2006-03-22 14:29:00 nkeynes Exp $
  *
  * Support for the miscellaneous ASIC functions (Primarily event multiplexing,
  * and DMA). 
@@ -50,14 +50,15 @@ void asic_init( void )
     register_io_region( &mmio_region_ASIC );
     register_io_region( &mmio_region_EXTDMA );
     mmio_region_ASIC.trace_flag = 0; /* Because this is called so often */
-    asic_event( EVENT_GDROM_CMD );
 }
 
 void mmio_region_ASIC_write( uint32_t reg, uint32_t val )
 {
     switch( reg ) {
-    case PIRQ0:
     case PIRQ1:
+	val = val & 0xFFFFFFFE; /* Prevent the IDE event from clearing */
+	/* fallthrough */
+    case PIRQ0:
     case PIRQ2:
 	/* Clear any interrupts */
 	MMIO_WRITE( ASIC, reg, MMIO_READ(ASIC, reg)&~val );
@@ -143,6 +144,14 @@ void asic_event( int event )
         intc_raise_interrupt( INT_IRQ9 );
 }
 
+void asic_clear_event( int event ) {
+    int offset = ((event&0x60)>>3);
+    uint32_t result = MMIO_READ(ASIC, PIRQ0 + offset)  & (~(1<<(event&0x1F)));
+    MMIO_WRITE( ASIC, PIRQ0 + offset, result );
+
+    asic_check_cleared_events();
+}
+
 void asic_check_cleared_events( )
 {
     int i, setA = 0, setB = 0, setC = 0;
@@ -164,46 +173,55 @@ void asic_check_cleared_events( )
 
 MMIO_REGION_WRITE_FN( EXTDMA, reg, val )
 {
-    switch( reg ) {
-        case IDEALTSTATUS: /* Device control */
-            ide_write_control( val );
-            break;
-        case IDEDATA:
-            ide_write_data_pio( val );
-            break;
-        case IDEFEAT:
-            if( ide_can_write_regs() )
-                idereg.feature = (uint8_t)val;
-            break;
-        case IDECOUNT:
-            if( ide_can_write_regs() )
-                idereg.count = (uint8_t)val;
-            break;
-        case IDELBA0:
-            if( ide_can_write_regs() )
-                idereg.lba0 = (uint8_t)val;
-            break;
-        case IDELBA1:
-            if( ide_can_write_regs() )
-                idereg.lba1 = (uint8_t)val;
-            break;
-        case IDELBA2:
-            if( ide_can_write_regs() )
-                idereg.lba2 = (uint8_t)val;
-            break;
-        case IDEDEV:
-            if( ide_can_write_regs() )
-                idereg.device = (uint8_t)val;
-            break;
-        case IDECMD:
-            if( ide_can_write_regs() ) {
-                ide_clear_interrupt();
-                ide_write_command( (uint8_t)val );
-            }
-            break;
-        default:
-	    WARN( "EXTDMA write %08X <= %08X", reg, val );
+    WARN( "EXTDMA write %08X <= %08X", reg, val );
 
+    switch( reg ) {
+    case IDEALTSTATUS: /* Device control */
+	ide_write_control( val );
+	break;
+    case IDEDATA:
+	ide_write_data_pio( val );
+	break;
+    case IDEFEAT:
+	if( ide_can_write_regs() )
+	    idereg.feature = (uint8_t)val;
+	break;
+    case IDECOUNT:
+	if( ide_can_write_regs() )
+	    idereg.count = (uint8_t)val;
+	break;
+    case IDELBA0:
+	if( ide_can_write_regs() )
+	    idereg.lba0 = (uint8_t)val;
+	break;
+    case IDELBA1:
+	if( ide_can_write_regs() )
+	    idereg.lba1 = (uint8_t)val;
+	break;
+    case IDELBA2:
+	if( ide_can_write_regs() )
+	    idereg.lba2 = (uint8_t)val;
+	break;
+    case IDEDEV:
+	if( ide_can_write_regs() )
+	    idereg.device = (uint8_t)val;
+	break;
+    case IDECMD:
+	if( ide_can_write_regs() ) {
+	    ide_write_command( (uint8_t)val );
+	}
+	break;
+    case IDEDMACTL1:
+    case IDEDMACTL2:
+	MMIO_WRITE( EXTDMA, reg, val );
+	if( MMIO_READ( EXTDMA, IDEDMACTL1 ) == 1 &&
+	    MMIO_READ( EXTDMA, IDEDMACTL2 ) == 1 ) {
+	    uint32_t target_addr = MMIO_READ( EXTDMA, IDEDMASH4 );
+	    uint32_t length = MMIO_READ( EXTDMA, IDEDMASIZ );
+	    int dir = MMIO_READ( EXTDMA, IDEDMADIR );
+	}
+	break;
+    default:
             MMIO_WRITE( EXTDMA, reg, val );
     }
 }
@@ -221,8 +239,7 @@ MMIO_REGION_READ_FN( EXTDMA, reg )
         case IDELBA2: return idereg.lba2;
         case IDEDEV: return idereg.device;
         case IDECMD:
-            ide_clear_interrupt();
-            return idereg.status;
+	    return ide_read_status();
         default:
 	    val = MMIO_READ( EXTDMA, reg );
 	    //DEBUG( "EXTDMA read %08X => %08X", reg, val );
