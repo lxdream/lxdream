@@ -1,5 +1,5 @@
 /**
- * $Id: sh4core.c,v 1.25 2006-03-22 11:58:01 nkeynes Exp $
+ * $Id: sh4core.c,v 1.26 2006-03-22 14:27:40 nkeynes Exp $
  * 
  * SH4 emulation core, and parent module for all the SH4 peripheral
  * modules.
@@ -222,23 +222,11 @@ void sh4_set_pc( int pc )
 #define MEM_WRITE_WORD( addr, val ) sh4_write_word(addr, val)
 #define MEM_WRITE_LONG( addr, val ) sh4_write_long(addr, val)
 
-#define MEM_FR_READ( addr, reg ) *((uint32_t *)&FR(reg)) = sh4_read_long(addr)
-
-#define MEM_DR_READ( addr, reg ) do { \
-	*((uint32_t *)&FR((reg) & 0x0E)) = sh4_read_long(addr);		\
-	*((uint32_t *)&FR((reg) | 0x01)) = sh4_read_long(addr+4); } while(0)
-
-#define MEM_FR_WRITE( addr, reg ) sh4_write_long( addr, *((uint32_t *)&FR((reg))) )
-
-#define MEM_DR_WRITE( addr, reg ) do { \
-	sh4_write_long( addr, *((uint32_t *)&FR((reg)&0x0E)) );	\
-	sh4_write_long( addr+4, *((uint32_t *)&FR((reg)|0x01)) ); } while(0)
-
 #define FP_WIDTH (IS_FPU_DOUBLESIZE() ? 8 : 4)
 
-#define MEM_FP_READ( addr, reg ) if( IS_FPU_DOUBLESIZE() ) MEM_DR_READ(addr, reg ); else MEM_FR_READ( addr, reg )
+#define MEM_FP_READ( addr, reg ) sh4_read_float( addr, reg );
 
-#define MEM_FP_WRITE( addr, reg ) if( IS_FPU_DOUBLESIZE() ) MEM_DR_WRITE(addr, reg ); else MEM_FR_WRITE( addr, reg )
+#define MEM_FP_WRITE( addr, reg ) sh4_write_float( addr, reg );
 
 #define CHECK( x, c, v ) if( !x ) RAISE( c, v )
 #define CHECKPRIV() CHECK( IS_SH4_PRIVMODE(), EXC_ILLEGAL, EXV_ILLEGAL )
@@ -265,6 +253,36 @@ static void sh4_load_sr( uint32_t newval )
     sh4r.m = (newval&SR_M) ? 1 : 0;
     sh4r.q = (newval&SR_Q) ? 1 : 0;
     intc_mask_changed();
+}
+
+static void sh4_write_float( uint32_t addr, int reg )
+{
+    if( IS_FPU_DOUBLESIZE() ) {
+	if( reg & 1 ) {
+	    sh4_write_long( addr, *((uint32_t *)&XF((reg)&0x0E)) );
+	    sh4_write_long( addr+4, *((uint32_t *)&XF(reg)) );
+	} else {
+	    sh4_write_long( addr, *((uint32_t *)&FR(reg)) ); 
+	    sh4_write_long( addr+4, *((uint32_t *)&FR((reg)|0x01)) );
+	}
+    } else {
+	sh4_write_long( addr, *((uint32_t *)&FR((reg))) );
+    }
+}
+
+static void sh4_read_float( uint32_t addr, int reg )
+{
+    if( IS_FPU_DOUBLESIZE() ) {
+	if( reg & 1 ) {
+	    *((uint32_t *)&XF((reg) & 0x0E)) = sh4_read_long(addr);
+	    *((uint32_t *)&XF(reg)) = sh4_read_long(addr+4);
+	} else {
+	    *((uint32_t *)&FR(reg)) = sh4_read_long(addr);
+	    *((uint32_t *)&FR((reg) | 0x01)) = sh4_read_long(addr+4);
+	}
+    } else {
+	*((uint32_t *)&FR(reg)) = sh4_read_long(addr);
+    }
 }
 
 static uint32_t sh4_read_sr( void )
