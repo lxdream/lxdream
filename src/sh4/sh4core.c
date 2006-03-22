@@ -1,5 +1,5 @@
 /**
- * $Id: sh4core.c,v 1.24 2006-03-21 11:14:04 nkeynes Exp $
+ * $Id: sh4core.c,v 1.25 2006-03-22 11:58:01 nkeynes Exp $
  * 
  * SH4 emulation core, and parent module for all the SH4 peripheral
  * modules.
@@ -26,6 +26,11 @@
 #include "mem.h"
 #include "clock.h"
 #include "syscall.h"
+
+#define MAX_INT 0x7FFFFFFF
+#define MIN_INT 0x80000000
+#define MAX_INTF 2147483647.0
+#define MIN_INTF -2147483648.0
 
 /* CPU-generated exception code/vector pairs */
 #define EXC_POWER_RESET  0x000 /* vector special */
@@ -297,6 +302,8 @@ gboolean sh4_execute_instruction( void )
     unsigned short ir;
     uint32_t tmp;
     uint64_t tmpl;
+    float ftmp;
+    double dtmp;
     
 #define R0 sh4r.r[0]
 #define FR0 FR(0)
@@ -1230,8 +1237,13 @@ gboolean sh4_execute_instruction( void )
 			DRN(ir) = (float)FPULi;
 			break;
 		    case 3: /* FTRC    FRn, FPUL */
-			FPULi = (uint32_t)DRN(ir);
-			/* FIXME: is this sufficient? */
+			dtmp = DRN(ir);
+			if( dtmp >= MAX_INTF )
+			    FPULi = MAX_INT;
+			else if( dtmp <= MIN_INTF )
+			    FPULi = MIN_INT;
+			else 
+			    FPULi = (int32_t)dtmp;
 			break;
 		    case 4: /* FNEG    FRn */
 			DRN(ir) = -DRN(ir);
@@ -1349,8 +1361,13 @@ gboolean sh4_execute_instruction( void )
 			FRN(ir) = (float)FPULi;
 			break;
 		    case 3: /* FTRC    FRn, FPUL */
-			FPULi = (uint32_t)FRN(ir);
-			/* FIXME: is this sufficient? */
+			ftmp = FRN(ir);
+			if( ftmp >= MAX_INTF )
+			    FPULi = MAX_INT;
+			else if( ftmp <= MIN_INTF )
+			    FPULi = MIN_INT;
+			else
+			    FPULi = (int32_t)ftmp;
 			break;
 		    case 4: /* FNEG    FRn */
 			FRN(ir) = -FRN(ir);
