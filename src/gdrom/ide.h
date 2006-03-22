@@ -1,5 +1,5 @@
 /**
- * $Id: ide.h,v 1.3 2005-12-27 12:41:33 nkeynes Exp $
+ * $Id: ide.h,v 1.4 2006-03-22 14:29:02 nkeynes Exp $
  *
  * This file defines the interface and structures of the dreamcast's IDE 
  * port. Note that the register definitions are in asic.h, as the registers
@@ -37,15 +37,18 @@ struct ide_registers {
     uint8_t lba2;    /* A05F7094 Read/Write 10101 */
     uint8_t device;  /* A05F7098 Read/Write 10110 */
     uint8_t command; /* A05F709C Write-only 10111 */
-
+    
     /* We don't keep the data register per se, rather the currently pending
      * data is kept here and read out a byte at a time (in PIO mode) or all at
      * once (in DMA mode). The IDE routines are responsible for managing this
      * memory. If dataptr == NULL, there is no data available.
      */
-    char *data;
+    unsigned char *data;
     uint16_t *readptr, *writeptr;
     int datalen;
+    int blocksize; /* Used to determine the transfer unit size */
+    int blockleft; /* Bytes remaining in the current block */
+    uint8_t intrq_pending; /* Flag to indicate if the INTRQ line is active */
 };
 
 #define IDE_ST_BUSY  0x80
@@ -82,6 +85,9 @@ struct ide_registers {
 
 #define PKT_CMD_RESET    0x00 /* Wild-ass guess */
 #define PKT_CMD_IDENTIFY 0x11
+#define PKT_CMD_SENSE    0x13
+#define PKT_CMD_READ_TOC 0x14
+#define PKT_CMD_READ_SECTOR 0x30
 
 extern struct ide_registers idereg;
 
@@ -89,19 +95,14 @@ extern struct ide_registers idereg;
  * only when ide_can_write_regs() is true
  */
 #define ide_can_write_regs() ((idereg.status&0x88)==0)
-
-/* Called upon:
- *   a) Writing the command register
- *   b) Reading the status (but not altstatus) register
- *  (whether this actually has any effect an the ASIC event is TBD)
- */
-void ide_clear_interrupt(void);
+#define IS_IDE_IRQ_ENABLED() ((idereg.control&0x02)==0)
 
 void ide_reset(void);
 
 uint16_t ide_read_data_pio(void);
+uint8_t ide_read_status(void);
 void ide_write_data_pio( uint16_t value );
-void ide_write_buffer( char * ); 
+void ide_write_buffer( unsigned char *data, int length ); 
 
 void ide_write_command( uint8_t command );
 void ide_write_control( uint8_t value );
