@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.h,v 1.10 2006-03-15 13:16:50 nkeynes Exp $
+ * $Id: pvr2.h,v 1.11 2006-03-23 13:19:15 nkeynes Exp $
  *
  * PVR2 (video chip) functions and macros.
  *
@@ -102,6 +102,12 @@ void pvr2_vram64_write( sh4addr_t dest, char *src, uint32_t length );
  * Read from the interleaved memory address space (aka 64-bit address space)
  */
 void pvr2_vram64_read( char *dest, sh4addr_t src, uint32_t length );
+
+/**
+ * Dump a portion of vram to a stream from the interleaved memory address 
+ * space.
+ */
+void pvr2_vram64_dump( sh4addr_t addr, uint32_t length, FILE *f );
 
 /**************************** Tile Accelerator ***************************/
 /**
