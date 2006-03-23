@@ -1,5 +1,5 @@
 /**
- * $Id: texcache.c,v 1.4 2006-03-16 12:42:39 nkeynes Exp $
+ * $Id: texcache.c,v 1.5 2006-03-23 13:18:51 nkeynes Exp $
  *
  * Texture cache. Responsible for maintaining a working set of OpenGL 
  * textures. 
@@ -193,6 +193,20 @@ static void detwiddle_pal8_to_24(int x1, int y1, int size, int totsize,
     }
 }
 
+static void detwiddle_16_to_16(int x1, int y1, int size, int totsize,
+			       uint16_t **in, uint16_t *out ) {
+    if (size == 1) {
+	out[y1 * totsize + x1] = **in;
+	(*in)++;
+    } else {
+	int ns = size>>1;
+	detwiddle_16_to_16(x1, y1, ns, totsize, in, out);
+	detwiddle_16_to_16(x1, y1+ns, ns, totsize, in, out);
+	detwiddle_16_to_16(x1+ns, y1, ns, totsize, in, out);
+	detwiddle_16_to_16(x1+ns, y1+ns, ns, totsize, in, out);
+    }
+}
+    
 
 /**
  * Load texture data from the given address and parameters into the currently
@@ -248,8 +262,8 @@ static texcache_load_texture( uint32_t texture_addr, int width, int height,
 		    char ch = data[i];
 		    ((uint16_t *)data)[i] = ((uint16_t *)palette)[ch];
 		}
+		/* FIXME */
 	    }
-	    /* TODO: Detwiddle */
 	    glTexImage2D( GL_TEXTURE_2D, 0, intFormat, width, height, 0, format, type,
 			  data );
 
@@ -271,8 +285,8 @@ static texcache_load_texture( uint32_t texture_addr, int width, int height,
 	case PVR2_TEX_FORMAT_ARGB4444:
 	    bytes <<= 1;
 	    intFormat = GL_RGBA4;
-	    format = GL_RGBA;
-	    type = GL_UNSIGNED_SHORT_4_4_4_4;
+	    format = GL_BGRA;
+	    type = GL_UNSIGNED_SHORT_4_4_4_4_REV;
 	    break;
 	case PVR2_TEX_FORMAT_YUV422:
 	    ERROR( "YUV textures not supported" );
@@ -301,9 +315,14 @@ static texcache_load_texture( uint32_t texture_addr, int width, int height,
 	if( PVR2_TEX_IS_COMPRESSED(mode) ) {
 	    ERROR( "VQ Compression not supported" );
 	} else {
-	    pvr2_vram64_read( &data, texture_addr, bytes );
 	    if( PVR2_TEX_IS_TWIDDLED(mode) ) {
+		char tmp[bytes];
+		uint16_t *p = (uint16_t *)tmp;
+		pvr2_vram64_read( tmp, texture_addr, bytes );
 		/* Untwiddle */
+		detwiddle_16_to_16( 0, 0, width, width, &p, (uint16_t *)&data );
+	    } else {
+		pvr2_vram64_read( data, texture_addr, bytes );
 	    }
 	}
 
