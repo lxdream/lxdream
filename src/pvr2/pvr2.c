@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.c,v 1.20 2006-03-15 13:16:50 nkeynes Exp $
+ * $Id: pvr2.c,v 1.21 2006-03-23 13:19:15 nkeynes Exp $
  *
  * PVR2 (Video) Core MMIO registers.
  *
@@ -340,4 +340,11 @@ void pvr2_vram64_read( char *dest, sh4addr_t srcaddr, uint32_t length )
 	    *dest++ = *src++;
 	}
     }
+}
+
+void pvr2_vram64_dump( sh4addr_t addr, uint32_t length, FILE *f ) 
+{
+    char tmp[length];
+    pvr2_vram64_read( tmp, addr, length );
+    fwrite_dump( tmp, length, f );
 }
