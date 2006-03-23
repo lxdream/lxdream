@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2mmio.h,v 1.2 2006-03-15 13:16:50 nkeynes Exp $
+ * $Id: pvr2mmio.h,v 1.3 2006-03-23 13:19:55 nkeynes Exp $
  *
  * PVR2 (video chip) MMIO register definitions.
  *
@@ -41,7 +41,7 @@ MMIO_REGION_BEGIN( 0x005F8000, PVR2, "Power VR/2" )
     LONG_PORT( 0x07C, OBJCFG, PORT_MRW, 0, "Object config" )
     LONG_PORT( 0x084, TSPCLIP, PORT_MRW, 0, "Texture clip distance (float32)" )
     LONG_PORT( 0x088, BGPLANEZ, PORT_MRW, 0, "Background plane depth (float32)" )
-    LONG_PORT( 0x08C, BGPLANECFG, PORT_MRW, 0, "Background plane config" )
+    LONG_PORT( 0x08C, BGPLANE, PORT_MRW, 0, "Background plane config" )
     LONG_PORT( 0x0B0, FOGTBLCOL, PORT_MRW, 0, "Fog table colour" )
     LONG_PORT( 0x0B4, FOGVRTCOL, PORT_MRW, 0, "Fog vertex colour" )
     LONG_PORT( 0x0B8, FOGCOEFF, PORT_MRW, 0, "Fog density coefficient (float16)" )

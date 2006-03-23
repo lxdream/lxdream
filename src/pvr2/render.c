@@ -1,5 +1,5 @@
 /**
- * $Id: render.c,v 1.5 2006-03-20 11:59:15 nkeynes Exp $
+ * $Id: render.c,v 1.6 2006-03-23 13:19:55 nkeynes Exp $
  *
  * PVR2 Renderer support. This is where the real work happens.
  *
@@ -47,7 +47,7 @@ static int pvr2_render_colour_format[8] = {
 #define POLY_STRIP_TYPE(poly) ( pvr2_poly_type[((poly->command)>>18)&0x03] )
 #define POLY_STRIP_VERTEXES(poly) ( pvr2_poly_vertexes[((poly->command)>>18)&0x03] )
 #define POLY_DEPTH_MODE(poly) ( pvr2_poly_depthmode[poly->poly_cfg>>29] )
-#define POLY_DEPTH_WRITE(poly) (poly->poly_cfg&0x04000000)
+#define POLY_DEPTH_WRITE(poly) ((poly->poly_cfg&0x04000000) == 0 )
 #define POLY_TEX_WIDTH(poly) ( 1<< (((poly->poly_mode >> 3) & 0x07 ) + 3) )
 #define POLY_TEX_HEIGHT(poly) ( 1<< (((poly->poly_mode) & 0x07 ) + 3) )
 #define POLY_BLEND_SRC(poly) ( pvr2_poly_srcblend[(poly->poly_mode) >> 29] )
@@ -114,6 +114,29 @@ struct pvr2_vertex_packed {
     float f;
 };
 
+struct pvr2_vertex_float {
+    uint32_t command;
+    float x,y,z;
+    float a, r, g, b;
+};
+
+union pvr2_vertex {
+    struct pvr2_vertex_packed pack;
+    struct pvr2_vertex_float flt;
+};
+
+typedef struct pvr2_bgplane_packed {
+        uint32_t        poly_cfg, poly_mode;
+        uint32_t        texture_mode;
+        float           x1, y1, z1;
+        uint32_t          colour1;
+        float           x2, y2, z2;
+        uint32_t          colour2;
+        float           x3, y3, z3;
+        uint32_t          colour3;
+} *pvr2_bgplane_packed_t;
+
+
 
 void pvr2_render_copy_to_sh4( pvr2_render_buffer_t buffer, 
 			      gboolean backBuffer );
@@ -132,6 +155,7 @@ int glPrintf( const char *fmt, ... )
     va_end(ap);
 
     if( pvr2_render_font_list == -1 ) {
+	glColor3f( 1.0, 1.0, 1.0 );
 	pvr2_render_font_list = video_glx_load_font( "-*-helvetica-*-r-normal--16-*-*-*-p-*-iso8859-1");
     }
 
@@ -181,6 +205,7 @@ gboolean pvr2_render_display_frame( uint32_t address )
 static void pvr2_render_prepare_context( sh4addr_t render_addr, 
 					 uint32_t width, uint32_t height,
 					 uint32_t colour_format, 
+					 float bgplanez,
 					 gboolean texture_target )
 {
     /* Select and initialize the render context */
@@ -213,28 +238,37 @@ static void pvr2_render_prepare_context( sh4addr_t render_addr,
     glViewport( 0, 0, width, height );
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    glOrtho( 0, width, height, 0, 0, -65535 );
+    glOrtho( 0, width, height, 0, bgplanez, -1 );
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
     glCullFace( GL_BACK );
 
     /* Clear out the buffers */
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-    glClearDepth(1.0f);
+    glClearDepth(bgplanez);
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 }
 
 static void pvr2_dump_display_list( uint32_t * display_list, uint32_t length )
 {
     uint32_t i;
-    for( i =0; i<length; i+=4 ) {
-	if( (i % 32) == 0 ) {
+    gboolean vertex = FALSE;
+    for( i =0; i<length>>2; i++ ) {
+	if( (i % 8) == 0 ) {
 	    if( i != 0 )
 		fprintf( stderr, "\n" );
-	    fprintf( stderr, "%08X:", i );
+	    fprintf( stderr, "%08X:", i*32 );
+	    if( display_list[i] == 0xE0000000 ||
+		display_list[i] == 0xF0000000 ) 
+		vertex = TRUE;
+	    else vertex = FALSE;
 	}
-	fprintf( stderr, " %08X", display_list[i] );
+	if( vertex && (i%8) > 0 && (i%8) < 4 )
+	    fprintf( stderr, " %f", ((float *)display_list)[i] );
+	else
+	    fprintf( stderr, " %08X", display_list[i] );
     }
+    fprintf( stderr, "\n" );
 }
 
 static void pvr2_render_display_list( uint32_t *display_list, uint32_t length )
@@ -244,10 +278,19 @@ static void pvr2_render_display_list( uint32_t *display_list, uint32_t length )
     int colour_type;
     gboolean textured = FALSE;
     struct pvr2_poly *poly;
+    fprintf( stderr, "-------- %d\n", pvr2_frame_counter );
+    pvr2_dump_display_list( display_list, length );
     while( cmd_ptr < display_list+length ) {
 	unsigned int cmd = *cmd_ptr >> 24;
 	switch( cmd ) {
 	case PVR2_CMD_POLY_OPAQUE:
+	case PVR2_CMD_POLY_TRANS:
+	    if( cmd == PVR2_CMD_POLY_TRANS ) {
+		glEnable( GL_BLEND );
+	    } else {
+		glDisable( GL_BLEND );
+	    }
+
 	    poly = (struct pvr2_poly *)cmd_ptr;
 	    if( poly->command & PVR2_POLY_TEXTURED ) {
 		uint32_t addr = PVR2_TEX_ADDR(poly->texture);
@@ -302,14 +345,28 @@ static void pvr2_render_display_list( uint32_t *display_list, uint32_t length )
 	    struct pvr2_vertex_packed *vertex = (struct pvr2_vertex_packed *)cmd_ptr;
 	    if( textured ) {
 		glTexCoord2f( vertex->s, vertex->t );
+
+		switch( colour_type ) {
+		case POLY_COLOUR_PACKED:
+		    glColor4ub( vertex->colour >> 16, vertex->colour >> 8,
+				vertex->colour, vertex->colour >> 24 );
+		    break;
+		}
+	    } else {
+ 		switch( colour_type ) {
+		case POLY_COLOUR_PACKED:
+		    glColor4ub( vertex->colour >> 16, vertex->colour >> 8,
+				vertex->colour, vertex->colour >> 24 );
+		    break;
+		case POLY_COLOUR_FLOAT: 
+		    {
+			struct pvr2_vertex_float *v = (struct pvr2_vertex_float *)cmd_ptr;
+			glColor4f( v->r, v->g, v->b, v->a );
+		    }
+		    break;
+		}
 	    }
 
-	    switch( colour_type ) {
-	    case POLY_COLOUR_PACKED:
-		glColor4ub( vertex->colour >> 16, vertex->colour >> 8,
-			    vertex->colour, vertex->colour >> 24 );
-		break;
-	    }
 	    glVertex3f( vertex->x, vertex->y, vertex->z );
 	    
 	    if( cmd == PVR2_CMD_VERTEX_LAST ) {
@@ -325,6 +382,42 @@ static void pvr2_render_display_list( uint32_t *display_list, uint32_t length )
 	    break;
 	}
 	cmd_ptr += 8; /* Next record */
+    }
+}
+
+#define MIN3( a,b,c ) ((a) < (b) ? ( (a) < (c) ? (a) : (c) ) : ((b) < (c) ? (b) : (c)) )
+#define MAX3( a,b,c ) ((a) > (b) ? ( (a) > (c) ? (a) : (c) ) : ((b) > (c) ? (b) : (c)) )
+
+/**
+ * Render the background plane as best we can. Unfortunately information
+ * is a little scant, to say the least.
+ */
+void pvr2_render_draw_backplane( uint32_t mode, uint32_t *poly )
+{
+    if( (mode >> 24) == 0x01 ) {
+	/* Packed colour. I think */
+	pvr2_bgplane_packed_t bg = (pvr2_bgplane_packed_t)poly;
+	if( bg->colour1 != bg->colour2 || bg->colour2 != bg->colour3 ) {
+	    WARN( "Multiple background colours specified. Confused" );
+	}
+	float x1 = MIN3( bg->x1, bg->x2, bg->x3 );
+	float y1 = MIN3( bg->y1, bg->y2, bg->y3 );
+	float x2 = MAX3( bg->x1, bg->x2, bg->x3 );
+	float y2 = MAX3( bg->y1, bg->y2, bg->y3 );
+	float z = MIN3( bg->z1, bg->z2, bg->z3 );
+	glDisable( GL_TEXTURE_2D );
+	glDisable( GL_DEPTH_TEST );
+	glColor3ub( (uint8_t)(bg->colour1 >> 16), (uint8_t)(bg->colour1 >> 8), 
+		    (uint8_t)bg->colour1 );
+	glBegin( GL_QUADS );
+	glVertex3f( x1, y1, z );
+	glVertex3f( x2, y1, z );
+	glVertex3f( x2, y2, z );
+	glVertex3f( x1, y2, z );
+	glEnd();
+    } else {
+	WARN( "Unknown bgplane mode: %08X", mode );
+	fwrite_dump( poly, 48, stderr );
     }
 }
 
@@ -352,15 +445,18 @@ void pvr2_render_scene( )
 	render_addr = (render_addr & 0x00FFFFFF) + PVR2_RAM_BASE;
 	render_to_tex = FALSE;
     }
+    
+    float bgplanez = MMIO_READF( PVR2, BGPLANEZ );
     uint32_t render_mode = MMIO_READ( PVR2, RENDMODE );
     int width = 640; /* FIXME - get this from the tile buffer */
     int height = 480;
     int colour_format = pvr2_render_colour_format[render_mode&0x07];
     pvr2_render_prepare_context( render_addr, width, height, colour_format, 
-				 render_to_tex );
+				 bgplanez, render_to_tex );
 
     uint32_t *display_list = 
 	(uint32_t *)mem_get_region(PVR2_RAM_BASE + MMIO_READ( PVR2, OBJBASE ));
+
     uint32_t display_length = *display_list++;
 
     int clip_x = MMIO_READ( PVR2, HCLIP ) & 0x03FF;
@@ -377,6 +473,11 @@ void pvr2_render_scene( )
 
     /* Fog setup goes here */
 
+    /* Render the background plane */
+    uint32_t bgplane_mode = MMIO_READ(PVR2, BGPLANE);
+    uint32_t *bgplane = display_list + (((bgplane_mode & 0x00FFFFFF)) >> 3) - 1;
+    pvr2_render_draw_backplane( bgplane_mode, bgplane );
+
     /* Render the display list */
     pvr2_render_display_list( display_list, display_length );
 
@@ -384,7 +485,6 @@ void pvr2_render_scene( )
 
     /* Add frame, fps, etc data */
     glRasterPos2i( 4, 16 );
-    //    glColor3f( 0.0f, 0.0f, 1.0f );
     glPrintf( "Frame %d", pvr2_frame_counter );
     
     /* Generate end of render event */
