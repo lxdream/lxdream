@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.h,v 1.11 2006-03-23 13:19:15 nkeynes Exp $
+ * $Id: pvr2.h,v 1.12 2006-03-30 11:30:59 nkeynes Exp $
  *
  * PVR2 (video chip) functions and macros.
  *
@@ -55,6 +55,7 @@
 
 void pvr2_next_frame( void );
 void pvr2_set_base_address( uint32_t );
+int pvr2_get_frame_count( void );
 
 #define PVR2_CMD_END_OF_LIST 0x00
 #define PVR2_CMD_USER_CLIP   0x20
@@ -70,6 +71,14 @@ void pvr2_set_base_address( uint32_t );
 #define PVR2_POLY_SPECULAR 0x00000004
 #define PVR2_POLY_SHADED   0x00000002
 #define PVR2_POLY_UV_16BIT 0x00000001
+
+#define PVR2_POLY_MODE_CLAMP_RGB 0x00200000
+#define PVR2_POLY_MODE_ALPHA    0x00100000
+#define PVR2_POLY_MODE_TEXALPHA 0x00080000
+#define PVR2_POLY_MODE_FLIP_S   0x00040000
+#define PVR2_POLY_MODE_FLIP_T   0x00020000
+#define PVR2_POLY_MODE_CLAMP_S  0x00010000
+#define PVR2_POLY_MODE_CLAMP_T  0x00008000
 
 #define PVR2_TEX_FORMAT_ARGB1555 0x00000000
 #define PVR2_TEX_FORMAT_RGB565   0x08000000
