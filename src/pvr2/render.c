@@ -1,5 +1,5 @@
 /**
- * $Id: render.c,v 1.6 2006-03-23 13:19:55 nkeynes Exp $
+ * $Id: render.c,v 1.7 2006-03-30 11:29:54 nkeynes Exp $
  *
  * PVR2 Renderer support. This is where the real work happens.
  *
@@ -54,8 +54,6 @@ static int pvr2_render_colour_format[8] = {
 #define POLY_BLEND_DEST(poly) ( pvr2_poly_dstblend[((poly->poly_mode)>>26)&0x07] )
 #define POLY_TEX_BLEND(poly) ( pvr2_poly_texblend[((poly->poly_mode) >> 6)&0x03] )
 #define POLY_COLOUR_TYPE(poly) ( poly->command & 0x00000030 )
-
-extern uint32_t pvr2_frame_counter;
 
 /**
  * Describes a rendering buffer that's actually held in GL, for when we need
@@ -142,8 +140,9 @@ void pvr2_render_copy_to_sh4( pvr2_render_buffer_t buffer,
 			      gboolean backBuffer );
 
 int pvr2_render_font_list = -1;
+int pvr2_render_trace = 0;
 
-int glPrintf( const char *fmt, ... )
+int glPrintf( int x, int y, const char *fmt, ... )
 {
     va_list ap;     /* our argument pointer */
     char buf[256];
@@ -154,13 +153,15 @@ int glPrintf( const char *fmt, ... )
     len = vsnprintf(buf, sizeof(buf), fmt, ap);
     va_end(ap);
 
-    if( pvr2_render_font_list == -1 ) {
-	glColor3f( 1.0, 1.0, 1.0 );
-	pvr2_render_font_list = video_glx_load_font( "-*-helvetica-*-r-normal--16-*-*-*-p-*-iso8859-1");
-    }
 
     glPushAttrib(GL_LIST_BIT);
+    glDisable( GL_DEPTH_TEST );
+    glDisable( GL_BLEND );
+    glDisable( GL_TEXTURE_2D );
+    glDisable( GL_ALPHA_TEST );
     glListBase(pvr2_render_font_list - 32);
+    glColor3f( 1.0, 1.0, 1.0 );
+    glRasterPos2i( x, y );
     glCallLists(len, GL_UNSIGNED_BYTE, buf);
     glPopAttrib();
 
@@ -211,6 +212,10 @@ static void pvr2_render_prepare_context( sh4addr_t render_addr,
     /* Select and initialize the render context */
     video_driver->set_render_format( width, height, colour_format, texture_target );
 
+    if( pvr2_render_font_list == -1 ) {
+	pvr2_render_font_list = video_glx_load_font( "-*-helvetica-*-r-normal--16-*-*-*-p-*-iso8859-1");
+    }
+
     if( back_buffer.render_addr != -1 && 
 	back_buffer.render_addr != render_addr ) {
 	/* There's a current back buffer, and we're rendering somewhere else -
@@ -257,7 +262,7 @@ static void pvr2_dump_display_list( uint32_t * display_list, uint32_t length )
 	if( (i % 8) == 0 ) {
 	    if( i != 0 )
 		fprintf( stderr, "\n" );
-	    fprintf( stderr, "%08X:", i*32 );
+	    fprintf( stderr, "%08X:", i*4 );
 	    if( display_list[i] == 0xE0000000 ||
 		display_list[i] == 0xF0000000 ) 
 		vertex = TRUE;
@@ -277,20 +282,18 @@ static void pvr2_render_display_list( uint32_t *display_list, uint32_t length )
     int strip_length = 0, vertex_count = 0;
     int colour_type;
     gboolean textured = FALSE;
+    gboolean shaded = FALSE;
     struct pvr2_poly *poly;
-    fprintf( stderr, "-------- %d\n", pvr2_frame_counter );
-    pvr2_dump_display_list( display_list, length );
-    while( cmd_ptr < display_list+length ) {
+    if( pvr2_render_trace ) {
+	fprintf( stderr, "-------- %d\n", pvr2_get_frame_count() );
+	pvr2_dump_display_list( display_list, length );
+    }
+    while( cmd_ptr < display_list+(length>>2) ) {
 	unsigned int cmd = *cmd_ptr >> 24;
 	switch( cmd ) {
 	case PVR2_CMD_POLY_OPAQUE:
 	case PVR2_CMD_POLY_TRANS:
-	    if( cmd == PVR2_CMD_POLY_TRANS ) {
-		glEnable( GL_BLEND );
-	    } else {
-		glDisable( GL_BLEND );
-	    }
-
+	case PVR2_CMD_POLY_PUNCHOUT:
 	    poly = (struct pvr2_poly *)cmd_ptr;
 	    if( poly->command & PVR2_POLY_TEXTURED ) {
 		uint32_t addr = PVR2_TEX_ADDR(poly->texture);
@@ -331,14 +334,28 @@ static void pvr2_render_display_list( uint32_t *display_list, uint32_t length )
 	    strip_length = POLY_STRIP_VERTEXES( poly );
 	    colour_type = POLY_COLOUR_TYPE( poly );
 	    vertex_count = 0;
+	    if( poly->command & PVR2_POLY_SHADED ) {
+		shaded = TRUE;
+	    } else {
+		shaded = FALSE;
+	    }
+	    if( poly->poly_mode & PVR2_POLY_MODE_TEXALPHA ) {
+		glDisable( GL_BLEND );
+	    } else {
+		glEnable( GL_BLEND );
+	    }
+
+	    break;
+	case PVR2_CMD_MOD_OPAQUE:
+	case PVR2_CMD_MOD_TRANS:
+	    /* TODO */
+	    break;
+	case PVR2_CMD_END_OF_LIST:
 	    break;
 	case PVR2_CMD_VERTEX_LAST:
 	case PVR2_CMD_VERTEX:
 	    if( vertex_count == 0 ) {
-		if( strip_length == 3 )
-		    glBegin( GL_TRIANGLES );
-		else 
-		    glBegin( GL_TRIANGLE_STRIP );
+		glBegin( GL_TRIANGLE_STRIP );
 	    }
 	    vertex_count++;
 
@@ -346,24 +363,28 @@ static void pvr2_render_display_list( uint32_t *display_list, uint32_t length )
 	    if( textured ) {
 		glTexCoord2f( vertex->s, vertex->t );
 
-		switch( colour_type ) {
-		case POLY_COLOUR_PACKED:
-		    glColor4ub( vertex->colour >> 16, vertex->colour >> 8,
-				vertex->colour, vertex->colour >> 24 );
-		    break;
+		if( shaded || vertex_count == 1) {
+		    switch( colour_type ) {
+		    case POLY_COLOUR_PACKED:
+			glColor4ub( vertex->colour >> 16, vertex->colour >> 8,
+				    vertex->colour, vertex->colour >> 24 );
+			break;
+		    }
 		}
 	    } else {
- 		switch( colour_type ) {
-		case POLY_COLOUR_PACKED:
-		    glColor4ub( vertex->colour >> 16, vertex->colour >> 8,
-				vertex->colour, vertex->colour >> 24 );
-		    break;
-		case POLY_COLOUR_FLOAT: 
-		    {
-			struct pvr2_vertex_float *v = (struct pvr2_vertex_float *)cmd_ptr;
-			glColor4f( v->r, v->g, v->b, v->a );
+		if( shaded || vertex_count == 1 ) {
+		    switch( colour_type ) {
+		    case POLY_COLOUR_PACKED:
+			glColor4ub( vertex->colour >> 16, vertex->colour >> 8,
+				    vertex->colour, vertex->colour >> 24 );
+			break;
+		    case POLY_COLOUR_FLOAT: 
+			{
+			    struct pvr2_vertex_float *v = (struct pvr2_vertex_float *)cmd_ptr;
+			    glColor4f( v->r, v->g, v->b, v->a );
+			}
+			break;
 		    }
-		    break;
 		}
 	    }
 
@@ -373,13 +394,11 @@ static void pvr2_render_display_list( uint32_t *display_list, uint32_t length )
 		glEnd();
 		vertex_count = 0;
 	    }
-
-	    if( vertex_count >= strip_length ) {
-		ERROR( "Rendering long strip (expected end after %d)", strip_length );
-		pvr2_dump_display_list( display_list, length );
-		return;
-	    }
 	    break;
+	default:
+	    ERROR( "Unhandled command %08X in display list", *cmd_ptr );
+	    pvr2_dump_display_list( display_list, length );
+	    return;
 	}
 	cmd_ptr += 8; /* Next record */
     }
@@ -484,12 +503,11 @@ void pvr2_render_scene( )
     /* Post-render cleanup and update */
 
     /* Add frame, fps, etc data */
-    glRasterPos2i( 4, 16 );
-    glPrintf( "Frame %d", pvr2_frame_counter );
+    glPrintf( 4, 16, "Frame %d", pvr2_get_frame_count() );
     
     /* Generate end of render event */
     asic_event( EVENT_PVR_RENDER_DONE );
-    DEBUG( "Rendered frame %d", pvr2_frame_counter );
+    DEBUG( "Rendered frame %d", pvr2_get_frame_count() );
 }
 
 
