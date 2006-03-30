@@ -1,7 +1,7 @@
 /**
- * $Id: pvr2.c,v 1.21 2006-03-23 13:19:15 nkeynes Exp $
+ * $Id: pvr2.c,v 1.22 2006-03-30 11:30:59 nkeynes Exp $
  *
- * PVR2 (Video) Core MMIO registers.
+ * PVR2 (Video) Core module implementation and MMIO registers.
  *
  * Copyright (c) 2005 Nathan Keynes.
  *
@@ -28,18 +28,20 @@
 
 char *video_base;
 
-void pvr2_init( void );
-uint32_t pvr2_run_slice( uint32_t );
+static void pvr2_init( void );
+static void pvr2_reset( void );
+static uint32_t pvr2_run_slice( uint32_t );
+static void pvr2_save_state( FILE *f );
+static int pvr2_load_state( FILE *f );
+
 void pvr2_display_frame( void );
 
-/**
- * Current PVR2 ram address of the data (if any) currently held in the 
- * OpenGL buffers.
- */
+struct dreamcast_module pvr2_module = { "PVR2", pvr2_init, pvr2_reset, NULL, 
+					pvr2_run_slice, NULL,
+					pvr2_save_state, pvr2_load_state };
+
 
 video_driver_t video_driver = NULL;
-struct video_buffer video_buffer[2];
-int video_buffer_idx = 0;
 
 struct video_timing {
     int fields_per_second;
@@ -48,21 +50,90 @@ struct video_timing {
     int line_time_ns;
 };
 
-struct video_timing pal_timing = { 50, 625, 50, 32000 };
+struct video_timing pal_timing = { 50, 625, 65, 32000 };
 struct video_timing ntsc_timing= { 60, 525, 65, 31746 };
 
-struct dreamcast_module pvr2_module = { "PVR2", pvr2_init, NULL, NULL, 
-					pvr2_run_slice, NULL,
-					NULL, NULL };
+struct pvr2_state {
+    uint32_t frame_count;
+    uint32_t line_count;
+    uint32_t line_remainder;
+    uint32_t irq_vpos1;
+    uint32_t irq_vpos2;
+    gboolean retrace;
+    struct video_timing timing;
+} pvr2_state;
 
-void pvr2_init( void )
+struct video_buffer video_buffer[2];
+int video_buffer_idx = 0;
+
+static void pvr2_init( void )
 {
     register_io_region( &mmio_region_PVR2 );
     register_io_region( &mmio_region_PVR2PAL );
     register_io_region( &mmio_region_PVR2TA );
     video_base = mem_get_region_by_name( MEM_REGION_VIDEO );
-    pvr2_render_init();
     texcache_init();
+    pvr2_reset();
+}
+
+static void pvr2_reset( void )
+{
+    pvr2_state.line_count = 0;
+    pvr2_state.line_remainder = 0;
+    pvr2_state.irq_vpos1 = 0;
+    pvr2_state.irq_vpos2 = 0;
+    pvr2_state.retrace = FALSE;
+    pvr2_state.timing = ntsc_timing;
+    video_buffer_idx = 0;
+    
+    pvr2_ta_init();
+    pvr2_render_init();
+    texcache_flush();
+}
+
+static void pvr2_save_state( FILE *f )
+{
+    fwrite( &pvr2_state, sizeof(pvr2_state), 1, f );
+}
+
+static int pvr2_load_state( FILE *f )
+{
+    fread( &pvr2_state, sizeof(pvr2_state), 1, f );
+}
+
+static uint32_t pvr2_run_slice( uint32_t nanosecs ) 
+{
+    pvr2_state.line_remainder += nanosecs;
+    while( pvr2_state.line_remainder >= pvr2_state.timing.line_time_ns ) {
+	pvr2_state.line_remainder -= pvr2_state.timing.line_time_ns;
+
+	pvr2_state.line_count++;
+	if( pvr2_state.line_count == pvr2_state.timing.total_lines ) {
+	    asic_event( EVENT_RETRACE );
+	    pvr2_state.line_count = 0;
+	    pvr2_state.retrace = TRUE;
+	}
+
+	if( pvr2_state.line_count == pvr2_state.irq_vpos1 ) {
+	    asic_event( EVENT_SCANLINE1 );
+	} 
+	if( pvr2_state.line_count == pvr2_state.irq_vpos2 ) {
+	    asic_event( EVENT_SCANLINE2 );
+	}
+
+	if( pvr2_state.line_count == pvr2_state.timing.retrace_lines ) {
+	    if( pvr2_state.retrace ) {
+		pvr2_display_frame();
+		pvr2_state.retrace = FALSE;
+	    }
+	}
+    }
+    return nanosecs;
+}
+
+int pvr2_get_frame_count() 
+{
+    return pvr2_state.frame_count;
 }
 
 void video_set_driver( video_driver_t driver )
@@ -77,46 +148,6 @@ void video_set_driver( video_driver_t driver )
     driver->set_render_format( 640, 480, COLFMT_RGB32, FALSE );
     texcache_gl_init();
 }
-
-uint32_t pvr2_line_count = 0;
-uint32_t pvr2_line_remainder = 0;
-uint32_t pvr2_irq_vpos1 = 0;
-uint32_t pvr2_irq_vpos2 = 0;
-gboolean pvr2_retrace = FALSE;
-struct video_timing *pvr2_timing = &ntsc_timing;
-uint32_t pvr2_time_counter = 0;
-uint32_t pvr2_frame_counter = 0;
-uint32_t pvr2_time_per_frame = 20000000;
-
-uint32_t pvr2_run_slice( uint32_t nanosecs ) 
-{
-    pvr2_line_remainder += nanosecs;
-    while( pvr2_line_remainder >= pvr2_timing->line_time_ns ) {
-	pvr2_line_remainder -= pvr2_timing->line_time_ns;
-	pvr2_line_count++;
-	if( pvr2_line_count == pvr2_irq_vpos1 ) {
-	    asic_event( EVENT_SCANLINE1 );
-	} 
-	if( pvr2_line_count == pvr2_irq_vpos2 ) {
-	    asic_event( EVENT_SCANLINE2 );
-	}
-	if( pvr2_line_count == pvr2_timing->total_lines ) {
-	    asic_event( EVENT_RETRACE );
-	    pvr2_line_count = 0;
-	    pvr2_retrace = TRUE;
-	} else if( pvr2_line_count == pvr2_timing->retrace_lines ) {
-	    if( pvr2_retrace ) {
-		pvr2_display_frame();
-		pvr2_retrace = FALSE;
-	    }
-	}
-    }
-    return nanosecs;
-}
-
-uint32_t vid_stride, vid_lpf, vid_ppl, vid_hres, vid_vres, vid_col;
-int interlaced, bChanged = 1, bEnabled = 0, vid_size = 0;
-char *frame_start; /* current video start address (in real memory) */
 
 /**
  * Display the next frame, copying the current contents of video ram to
@@ -140,7 +171,7 @@ void pvr2_display_frame( void )
 	video_buffer_idx = !video_buffer_idx;
 	video_buffer_t last = &video_buffer[video_buffer_idx];
 	buffer->rowstride = (vid_ppl + vid_stride) << 2;
-	buffer->data = frame_start = video_base + MMIO_READ( PVR2, DISPADDR1 );
+	buffer->data = video_base + MMIO_READ( PVR2, DISPADDR1 );
 	buffer->vres = vid_lpf;
 	if( interlaced ) buffer->vres <<= 1;
 	switch( (dispmode & DISPMODE_COL) >> 2 ) {
@@ -180,10 +211,7 @@ void pvr2_display_frame( void )
 	video_buffer_idx = 0;
 	video_buffer[0].hres = video_buffer[0].vres = 0;
     }
-    pvr2_frame_counter++;
-    asic_event( EVENT_SCANLINE1 );
-    asic_event( EVENT_SCANLINE2 );
-    asic_event( EVENT_RETRACE );
+    pvr2_state.frame_count++;
 }
 
 void mmio_region_PVR2_write( uint32_t reg, uint32_t val )
@@ -201,14 +229,14 @@ void mmio_region_PVR2_write( uint32_t reg, uint32_t val )
    
     switch(reg) {
     case DISPADDR1:
-	if( pvr2_retrace ) {
+	if( pvr2_state.retrace ) {
 	    pvr2_display_frame();
-	    pvr2_retrace = FALSE;
+	    pvr2_state.retrace = FALSE;
 	}
 	break;
     case VPOS_IRQ:
-	pvr2_irq_vpos1 = (val >> 16) & 0x03FF;
-	pvr2_irq_vpos2 = val & 0x03FF;
+	pvr2_state.irq_vpos1 = (val >> 16) & 0x03FF;
+	pvr2_state.irq_vpos2 = val & 0x03FF;
 	break;
     case TAINIT:
 	if( val & 0x80000000 )
