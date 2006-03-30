@@ -1,5 +1,5 @@
 /**
- * $Id: debug_win.c,v 1.17 2006-02-15 12:39:34 nkeynes Exp $
+ * $Id: debug_win.c,v 1.18 2006-03-30 11:31:05 nkeynes Exp $
  * This file is responsible for the main debugger gui frame.
  *
  * Copyright (c) 2005 Nathan Keynes.
@@ -131,7 +131,7 @@ void update_registers( debug_info_t data )
 void update_icount( debug_info_t data )
 {
     //    sprintf( data->icounter_text, "%d", *data->cpu->icount );
-    sprintf( data->icounter_text, "%d", pvr2_frame_counter );
+    sprintf( data->icounter_text, "%d", pvr2_get_frame_count() );
     gtk_progress_bar_set_text( data->icounter, data->icounter_text );
 }
 
