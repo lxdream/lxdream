@@ -1,5 +1,5 @@
 /**
- * $Id: sh4mem.c,v 1.8 2006-03-13 12:39:07 nkeynes Exp $
+ * $Id: sh4mem.c,v 1.9 2006-03-30 11:26:45 nkeynes Exp $
  * sh4mem.c is responsible for the SH4's access to memory (including memory
  * mapped I/O), using the page maps created in mem.c
  *
@@ -219,7 +219,8 @@ void sh4_write_long( uint32_t addr, uint32_t val )
         sh4_write_p4( addr, val );
         return;
     }
-    if( (addr&0x1F800000) == 0x04000000 ) {
+    if( (addr&0x1F800000) == 0x04000000 || 
+	(addr&0x1F800000) == 0x11000000 ) {
         addr = TRANSLATE_VIDEO_64BIT_ADDRESS(addr);
     }
 
@@ -256,7 +257,8 @@ void sh4_write_word( uint32_t addr, uint32_t val )
         sh4_write_p4( addr, (int16_t)val );
         return;
     }
-    if( (addr&0x1F800000) == 0x04000000 ) {
+    if( (addr&0x1F800000) == 0x04000000 ||
+	(addr&0x1F800000) == 0x11000000 ) {
         addr = TRANSLATE_VIDEO_64BIT_ADDRESS(addr);
     }
     if( IS_MMU_ENABLED() ) {
@@ -287,7 +289,8 @@ void sh4_write_byte( uint32_t addr, uint32_t val )
         sh4_write_p4( addr, (int8_t)val );
         return;
     }
-    if( (addr&0x1F800000) == 0x04000000 ) {
+    if( (addr&0x1F800000) == 0x04000000 ||
+	(addr&0x1F800000) == 0x11000000 ) {
         addr = TRANSLATE_VIDEO_64BIT_ADDRESS(addr);
     }
     
@@ -328,9 +331,10 @@ void mem_copy_from_sh4( char *dest, uint32_t srcaddr, size_t count ) {
 }
 
 void mem_copy_to_sh4( uint32_t destaddr, char *src, size_t count ) {
-    if( destaddr >= 0x10000000 && destaddr < 0x20000000 ) {
+    if( destaddr >= 0x10000000 && destaddr < 0x11000000 ) {
 	pvr2_ta_write( src, count );
-    } else if( destaddr >= 0x04000000 && destaddr < 0x05000000 ) {
+    } else if( destaddr >= 0x04000000 && destaddr < 0x05000000 ||
+	       destaddr >= 0x11000000 && destaddr < 0x12000000 ) {
 	pvr2_vram64_write( destaddr, src, count );
     } else {
 	char *dest = mem_get_region(destaddr);
