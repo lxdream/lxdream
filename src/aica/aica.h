@@ -1,5 +1,5 @@
 /**
- * $Id: aica.h,v 1.8 2006-01-22 22:40:05 nkeynes Exp $
+ * $Id: aica.h,v 1.9 2006-03-30 11:27:11 nkeynes Exp $
  * 
  * MMIO definitions for the AICA sound chip. Note that the regions defined
  * here are relative to the SH4 memory map (0x00700000 based), rather than
@@ -45,10 +45,16 @@ LONG_PORT( 0xD00, AICA_IRQ, PORT_MR, 0, "AICA IRQ Pending" )
 LONG_PORT( 0xD04, AICA_IRQCLEAR, PORT_MRW, 0, "AICA IRQ Clear" )
 MMIO_REGION_END
 
+MMIO_REGION_BEGIN( 0x00710000, AICARTC, "AICA Sound System RTC" )
+     LONG_PORT( 0x000, AICA_RTCHI, PORT_R, 0, "RTC High 16-bits" )
+     LONG_PORT( 0x004, AICA_RTCLO, PORT_R, 0, "RTC Low 16-bits" )
+MMIO_REGION_END
+
 MMIO_REGION_LIST_BEGIN( spu )
     MMIO_REGION( AICA0 )
     MMIO_REGION( AICA1 )
     MMIO_REGION( AICA2 )
+    MMIO_REGION( AICARTC )
 MMIO_REGION_LIST_END
 
 void aica_init( void );

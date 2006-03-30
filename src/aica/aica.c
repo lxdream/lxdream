@@ -1,5 +1,5 @@
 /**
- * $Id: aica.c,v 1.17 2006-03-14 12:45:53 nkeynes Exp $
+ * $Id: aica.c,v 1.18 2006-03-30 11:27:11 nkeynes Exp $
  * 
  * This is the core sound system (ie the bit which does the actual work)
  *
@@ -18,6 +18,7 @@
 
 #define MODULE aica_module
 
+#include <time.h>
 #include "dream.h"
 #include "dreamcast.h"
 #include "mem.h"
@@ -218,6 +219,30 @@ void mmio_region_AICA2_write( uint32_t reg, uint32_t val )
 	break;
     }
 }
+
+/* 20 years in seconds */
+#define RTC_OFFSET 631152000
+
+int32_t mmio_region_AICARTC_read( uint32_t reg )
+{
+    struct timeval tv;
+
+    switch( reg ) {
+    case AICA_RTCHI:
+	if( gettimeofday( &tv, NULL ) == 0 ) {
+	    return ((uint32_t)(tv.tv_sec + RTC_OFFSET)) >> 16;
+	}
+	break;
+    case AICA_RTCLO:
+	if( gettimeofday( &tv, NULL ) == 0 ) {
+	    return ((uint32_t)(tv.tv_sec + RTC_OFFSET)) & 0xFFFF;
+	}
+	break;
+    }
+    return 0;
+}
+
+MMIO_REGION_WRITE_STUBFN( AICARTC )
 
 /**
  * Translate the channel frequency to a sample rate. The frequency is a
