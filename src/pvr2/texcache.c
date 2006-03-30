@@ -1,5 +1,5 @@
 /**
- * $Id: texcache.c,v 1.5 2006-03-23 13:18:51 nkeynes Exp $
+ * $Id: texcache.c,v 1.6 2006-03-30 11:25:42 nkeynes Exp $
  *
  * Texture cache. Responsible for maintaining a working set of OpenGL 
  * textures. 
@@ -179,17 +179,31 @@ static texcache_entry_index texcache_evict( void )
     return slot;
 }
 
-static void detwiddle_pal8_to_24(int x1, int y1, int size, int totsize,
+static void detwiddle_pal8_to_32(int x1, int y1, int size, int totsize,
 				 char **in, uint32_t *out, uint32_t *pal) {
     if (size == 1) {
 	out[y1 * totsize + x1] = pal[**in];
 	(*in)++;
     } else {
 	int ns = size>>1;
-	detwiddle_pal8_to_24(x1, y1, ns, totsize, in, out, pal);
-	detwiddle_pal8_to_24(x1, y1+ns, ns, totsize, in, out, pal);
-	detwiddle_pal8_to_24(x1+ns, y1, ns, totsize, in, out, pal);
-	detwiddle_pal8_to_24(x1+ns, y1+ns, ns, totsize, in, out, pal);
+	detwiddle_pal8_to_32(x1, y1, ns, totsize, in, out, pal);
+	detwiddle_pal8_to_32(x1, y1+ns, ns, totsize, in, out, pal);
+	detwiddle_pal8_to_32(x1+ns, y1, ns, totsize, in, out, pal);
+	detwiddle_pal8_to_32(x1+ns, y1+ns, ns, totsize, in, out, pal);
+    }
+}
+
+static void detwiddle_pal8_to_16(int x1, int y1, int size, int totsize,
+				 char **in, uint16_t *out, uint16_t *pal) {
+    if (size == 1) {
+	out[y1 * totsize + x1] = pal[**in];
+	(*in)++;
+    } else {
+	int ns = size>>1;
+	detwiddle_pal8_to_16(x1, y1, ns, totsize, in, out, pal);
+	detwiddle_pal8_to_16(x1, y1+ns, ns, totsize, in, out, pal);
+	detwiddle_pal8_to_16(x1+ns, y1, ns, totsize, in, out, pal);
+	detwiddle_pal8_to_16(x1+ns, y1+ns, ns, totsize, in, out, pal);
     }
 }
 
@@ -225,17 +239,17 @@ static texcache_load_texture( uint32_t texture_addr, int width, int height,
 	case 0: /* ARGB1555 */
 	    intFormat = GL_RGB5_A1;
 	    format = GL_RGBA;
-	    type = GL_UNSIGNED_SHORT_5_5_5_1;
+	    type = GL_UNSIGNED_SHORT_1_5_5_5_REV;
 	    break;
 	case 1: 
 	    intFormat = GL_RGB;
 	    format = GL_RGB;
-	    type = GL_UNSIGNED_SHORT_5_6_5;
+	    type = GL_UNSIGNED_SHORT_5_6_5_REV;
 	    break;
 	case 2:
 	    intFormat = GL_RGBA4;
-	    format = GL_RGBA;
-	    type = GL_UNSIGNED_SHORT_4_4_4_4;
+	    format = GL_BGRA;
+	    type = GL_UNSIGNED_SHORT_4_4_4_4_REV;
 	    break;
 	case 3:
 	    intFormat = GL_RGBA8;
@@ -254,15 +268,14 @@ static texcache_load_texture( uint32_t texture_addr, int width, int height,
 		char tmp[bytes];
 	        char *p = tmp;
 		pvr2_vram64_read( tmp, texture_addr, bytes );
-		detwiddle_pal8_to_24( 0, 0, width, width, &p, 
+		detwiddle_pal8_to_32( 0, 0, width, width, &p, 
 				      (uint32_t *)data, (uint32_t *)palette );
 	    } else {
-		pvr2_vram64_read( &data, texture_addr, bytes );
-		for( i=bytes-1; i>=0; i-- ) {
-		    char ch = data[i];
-		    ((uint16_t *)data)[i] = ((uint16_t *)palette)[ch];
-		}
-		/* FIXME */
+		char tmp[bytes];
+		char *p = tmp;
+		pvr2_vram64_read( tmp, texture_addr, bytes );
+		detwiddle_pal8_to_16( 0, 0, width, width, &p,
+				      (uint16_t *)data, (uint16_t *)palette );
 	    }
 	    glTexImage2D( GL_TEXTURE_2D, 0, intFormat, width, height, 0, format, type,
 			  data );
@@ -274,13 +287,13 @@ static texcache_load_texture( uint32_t texture_addr, int width, int height,
 	    bytes <<= 1;
 	    intFormat = GL_RGB5_A1;
 	    format = GL_RGBA;
-	    type = GL_UNSIGNED_SHORT_5_5_5_1;
+	    type = GL_UNSIGNED_SHORT_1_5_5_5_REV;
 	    break;
 	case PVR2_TEX_FORMAT_RGB565:
 	    bytes <<= 1;
-	    intFormat = GL_RGBA;
-	    format = GL_RGBA;
-	    type = GL_UNSIGNED_SHORT_5_6_5;
+	    intFormat = GL_RGB;
+	    format = GL_RGB;
+	    type = GL_UNSIGNED_SHORT_5_6_5_REV;
 	    break;
 	case PVR2_TEX_FORMAT_ARGB4444:
 	    bytes <<= 1;
@@ -310,7 +323,7 @@ static texcache_load_texture( uint32_t texture_addr, int width, int height,
 	    break;
 	}
 	
-	unsigned char data[bytes];
+	char data[bytes];
 	/* load data from image, detwiddling/uncompressing as required */
 	if( PVR2_TEX_IS_COMPRESSED(mode) ) {
 	    ERROR( "VQ Compression not supported" );
