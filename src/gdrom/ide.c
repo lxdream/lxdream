@@ -1,5 +1,5 @@
 /**
- * $Id: ide.c,v 1.9 2006-04-30 01:51:08 nkeynes Exp $
+ * $Id: ide.c,v 1.10 2006-04-30 12:22:31 nkeynes Exp $
  *
  * IDE interface implementation
  *
@@ -234,10 +234,15 @@ void ide_packet_command( unsigned char *cmd )
 	/* NB: Bios sets cmd[4] = 0x08, no idea what this is for;
 	 * different values here appear to have no effect.
 	 */
-	length = *((uint16_t*)(cmd+2));
-	if( length > sizeof(gdrom_ident) )
-	    length = sizeof(gdrom_ident);
-	ide_set_read_buffer(gdrom_ident, length, blocksize);
+	lba = cmd[2];
+	if( lba >= sizeof(gdrom_ident) ) {
+	    ide_set_error(0x50);
+	    return;
+	}
+	length = cmd[4];
+	if( lba+length > sizeof(gdrom_ident) )
+	    length = sizeof(gdrom_ident) - lba;
+	ide_set_read_buffer(gdrom_ident + lba, length, blocksize);
 	break;
     case PKT_CMD_READ_TOC:
 	if( !gdrom_get_toc( data_buffer ) ) {
