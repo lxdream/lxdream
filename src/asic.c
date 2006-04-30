@@ -1,5 +1,5 @@
 /**
- * $Id: asic.c,v 1.13 2006-03-22 14:29:00 nkeynes Exp $
+ * $Id: asic.c,v 1.14 2006-04-30 01:50:13 nkeynes Exp $
  *
  * Support for the miscellaneous ASIC functions (Primarily event multiplexing,
  * and DMA). 
@@ -20,6 +20,7 @@
 #define MODULE asic_module
 
 #include <assert.h>
+#include <stdlib.h>
 #include "dream.h"
 #include "mem.h"
 #include "sh4/intc.h"
@@ -42,6 +43,51 @@
 
 struct dreamcast_module asic_module = { "ASIC", asic_init, NULL, NULL, NULL,
 					NULL, NULL, NULL };
+
+#define G2_BIT5_TICKS 8
+#define G2_BIT4_TICKS 16
+#define G2_BIT0_ON_TICKS 24
+#define G2_BIT0_OFF_TICKS 24
+
+struct asic_g2_state {
+    unsigned int bit5_off_timer;
+    unsigned int bit4_on_timer;
+    unsigned int bit4_off_timer;
+    unsigned int bit0_on_timer;
+    unsigned int bit0_off_timer;
+} g2_state;
+
+/* FIXME: Handle rollover */
+void asic_g2_write_word()
+{
+    g2_state.bit5_off_timer = sh4r.icount + G2_BIT5_TICKS;
+    if( g2_state.bit4_off_timer < sh4r.icount )
+	g2_state.bit4_on_timer = sh4r.icount + G2_BIT5_TICKS;
+    g2_state.bit4_off_timer = max(sh4r.icount,g2_state.bit4_off_timer) + G2_BIT4_TICKS;
+    if( g2_state.bit0_off_timer < sh4r.icount ) {
+	g2_state.bit0_on_timer = sh4r.icount + G2_BIT0_ON_TICKS;
+	g2_state.bit0_off_timer = g2_state.bit0_on_timer + G2_BIT0_OFF_TICKS;
+    } else {
+	g2_state.bit0_off_timer += G2_BIT0_OFF_TICKS;
+    }
+    MMIO_WRITE( ASIC, G2STATUS, MMIO_READ(ASIC, G2STATUS) | 0x20 );
+}
+
+static uint32_t g2_read_status()
+{
+    uint32_t val = MMIO_READ( ASIC, G2STATUS );
+    if( g2_state.bit5_off_timer <= sh4r.icount )
+	val = val & (~0x20);
+    if( g2_state.bit4_off_timer <= sh4r.icount )
+	val = val & (~0x10);
+    else if( g2_state.bit4_on_timer <= sh4r.icount )
+	val = val | 0x10;
+    if( g2_state.bit0_off_timer <= sh4r.icount )
+	val = val & (~0x01);
+    else if( g2_state.bit0_on_timer <= sh4r.icount )
+	val = val | 0x01;
+    return val | 0x0E;
+}   
 
 void asic_check_cleared_events( void );
 
@@ -121,7 +167,7 @@ int32_t mmio_region_ASIC_read( uint32_t reg )
 	//                  reg, val, MMIO_REGID(ASIC,reg), MMIO_REGDESC(ASIC,reg) );
 	return val;            
     case G2STATUS:
-	return 0; /* find out later if there's any cases we actually need to care about */
+	return g2_read_status();
     default:
 	val = MMIO_READ(ASIC, reg);
 	WARN( "Read from ASIC (%03X => %08X) [%s: %s]",

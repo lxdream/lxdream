@@ -1,5 +1,5 @@
 /**
- * $Id: sh4mem.c,v 1.9 2006-03-30 11:26:45 nkeynes Exp $
+ * $Id: sh4mem.c,v 1.10 2006-04-30 01:50:15 nkeynes Exp $
  * sh4mem.c is responsible for the SH4's access to memory (including memory
  * mapped I/O), using the page maps created in mem.c
  *
@@ -234,9 +234,15 @@ void sh4_write_long( uint32_t addr, uint32_t val )
         sh4_stop();
         return;
     }
+    if( (addr&0x1F800000) == 0x00800000 )
+	asic_g2_write_word();
+
     page = page_map[ (addr & 0x1FFFFFFF) >> 12 ];
     if( ((uint32_t)page) < MAX_IO_REGIONS ) { /* IO Region */
         if( page == NULL ) {
+	    if( (addr & 0x1F000000) >= 0x04000000 &&
+		(addr & 0x1F000000) < 0x07000000 )
+		return;
             ERROR( "Long write to missing page: %08X => %08X", val, addr );
             return;
         }
