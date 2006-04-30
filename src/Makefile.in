@@ -140,7 +140,7 @@ dream_SOURCES = \
         mem.c mem.h mmio.h watch.c \
         asic.c asic.h \
         syscall.c syscall.h bios.c dcload.c \
-        gdrom/ide.c gdrom/ide.h \
+        gdrom/ide.c gdrom/ide.h gdrom/gdrom.c gdrom/gdrom.h gdrom/nrg.c\
         dreamcast.c dreamcast.h \
         sh4/intc.c sh4/intc.h sh4/sh4mem.c sh4/timer.c sh4/dmac.c \
         sh4/sh4core.c sh4/sh4core.h sh4/sh4dasm.c sh4/sh4dasm.h \
@@ -176,18 +176,19 @@ PROGRAMS = $(bin_PROGRAMS)
 
 am_dream_OBJECTS = main.$(OBJEXT) mem.$(OBJEXT) watch.$(OBJEXT) \
 	asic.$(OBJEXT) syscall.$(OBJEXT) bios.$(OBJEXT) \
-	dcload.$(OBJEXT) ide.$(OBJEXT) dreamcast.$(OBJEXT) \
-	intc.$(OBJEXT) sh4mem.$(OBJEXT) timer.$(OBJEXT) dmac.$(OBJEXT) \
-	sh4core.$(OBJEXT) sh4dasm.$(OBJEXT) sh4mmio.$(OBJEXT) \
-	scif.$(OBJEXT) armcore.$(OBJEXT) armdasm.$(OBJEXT) \
-	armmem.$(OBJEXT) aica.$(OBJEXT) audio.$(OBJEXT) pvr2.$(OBJEXT) \
-	ta.$(OBJEXT) render.$(OBJEXT) texcache.$(OBJEXT) \
-	maple.$(OBJEXT) controller.$(OBJEXT) support.$(OBJEXT) \
-	interface.$(OBJEXT) callbacks.$(OBJEXT) gui.$(OBJEXT) \
-	mmr_win.$(OBJEXT) debug_win.$(OBJEXT) dump_win.$(OBJEXT) \
-	loader.$(OBJEXT) bootstrap.$(OBJEXT) util.$(OBJEXT) \
-	audio_null.$(OBJEXT) audio_esd.$(OBJEXT) video_null.$(OBJEXT) \
-	video_gtk.$(OBJEXT) video_x11.$(OBJEXT)
+	dcload.$(OBJEXT) ide.$(OBJEXT) gdrom.$(OBJEXT) nrg.$(OBJEXT) \
+	dreamcast.$(OBJEXT) intc.$(OBJEXT) sh4mem.$(OBJEXT) \
+	timer.$(OBJEXT) dmac.$(OBJEXT) sh4core.$(OBJEXT) \
+	sh4dasm.$(OBJEXT) sh4mmio.$(OBJEXT) scif.$(OBJEXT) \
+	armcore.$(OBJEXT) armdasm.$(OBJEXT) armmem.$(OBJEXT) \
+	aica.$(OBJEXT) audio.$(OBJEXT) pvr2.$(OBJEXT) ta.$(OBJEXT) \
+	render.$(OBJEXT) texcache.$(OBJEXT) maple.$(OBJEXT) \
+	controller.$(OBJEXT) support.$(OBJEXT) interface.$(OBJEXT) \
+	callbacks.$(OBJEXT) gui.$(OBJEXT) mmr_win.$(OBJEXT) \
+	debug_win.$(OBJEXT) dump_win.$(OBJEXT) loader.$(OBJEXT) \
+	bootstrap.$(OBJEXT) util.$(OBJEXT) audio_null.$(OBJEXT) \
+	audio_esd.$(OBJEXT) video_null.$(OBJEXT) video_gtk.$(OBJEXT) \
+	video_x11.$(OBJEXT)
 dream_OBJECTS = $(am_dream_OBJECTS)
 dream_DEPENDENCIES =
 dream_LDFLAGS =
@@ -203,11 +204,12 @@ am__depfiles_maybe = depfiles
 @AMDEP_TRUE@	./$(DEPDIR)/callbacks.Po ./$(DEPDIR)/controller.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/dcload.Po ./$(DEPDIR)/debug_win.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/dmac.Po ./$(DEPDIR)/dreamcast.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/dump_win.Po ./$(DEPDIR)/gui.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/ide.Po ./$(DEPDIR)/intc.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/interface.Po ./$(DEPDIR)/loader.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/main.Po ./$(DEPDIR)/maple.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/mem.Po ./$(DEPDIR)/mmr_win.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/dump_win.Po ./$(DEPDIR)/gdrom.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/gui.Po ./$(DEPDIR)/ide.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/intc.Po ./$(DEPDIR)/interface.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/loader.Po ./$(DEPDIR)/main.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/maple.Po ./$(DEPDIR)/mem.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/mmr_win.Po ./$(DEPDIR)/nrg.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/pvr2.Po ./$(DEPDIR)/render.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/scif.Po ./$(DEPDIR)/sh4core.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/sh4dasm.Po ./$(DEPDIR)/sh4mem.Po \
@@ -285,6 +287,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dmac.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dreamcast.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dump_win.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gdrom.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gui.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ide.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/intc.Po@am__quote@
@@ -294,6 +297,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/maple.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mem.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mmr_win.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nrg.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pvr2.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/render.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/scif.Po@am__quote@
@@ -355,6 +359,50 @@ ide.obj: gdrom/ide.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/ide.Po' tmpdepfile='$(DEPDIR)/ide.TPo' @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o ide.obj `if test -f 'gdrom/ide.c'; then $(CYGPATH_W) 'gdrom/ide.c'; else $(CYGPATH_W) '$(srcdir)/gdrom/ide.c'; fi`
+
+gdrom.o: gdrom/gdrom.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT gdrom.o -MD -MP -MF "$(DEPDIR)/gdrom.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o gdrom.o `test -f 'gdrom/gdrom.c' || echo '$(srcdir)/'`gdrom/gdrom.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/gdrom.Tpo" "$(DEPDIR)/gdrom.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/gdrom.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gdrom/gdrom.c' object='gdrom.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/gdrom.Po' tmpdepfile='$(DEPDIR)/gdrom.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o gdrom.o `test -f 'gdrom/gdrom.c' || echo '$(srcdir)/'`gdrom/gdrom.c
+
+gdrom.obj: gdrom/gdrom.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT gdrom.obj -MD -MP -MF "$(DEPDIR)/gdrom.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o gdrom.obj `if test -f 'gdrom/gdrom.c'; then $(CYGPATH_W) 'gdrom/gdrom.c'; else $(CYGPATH_W) '$(srcdir)/gdrom/gdrom.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/gdrom.Tpo" "$(DEPDIR)/gdrom.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/gdrom.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gdrom/gdrom.c' object='gdrom.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/gdrom.Po' tmpdepfile='$(DEPDIR)/gdrom.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o gdrom.obj `if test -f 'gdrom/gdrom.c'; then $(CYGPATH_W) 'gdrom/gdrom.c'; else $(CYGPATH_W) '$(srcdir)/gdrom/gdrom.c'; fi`
+
+nrg.o: gdrom/nrg.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT nrg.o -MD -MP -MF "$(DEPDIR)/nrg.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o nrg.o `test -f 'gdrom/nrg.c' || echo '$(srcdir)/'`gdrom/nrg.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/nrg.Tpo" "$(DEPDIR)/nrg.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/nrg.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gdrom/nrg.c' object='nrg.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/nrg.Po' tmpdepfile='$(DEPDIR)/nrg.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o nrg.o `test -f 'gdrom/nrg.c' || echo '$(srcdir)/'`gdrom/nrg.c
+
+nrg.obj: gdrom/nrg.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT nrg.obj -MD -MP -MF "$(DEPDIR)/nrg.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o nrg.obj `if test -f 'gdrom/nrg.c'; then $(CYGPATH_W) 'gdrom/nrg.c'; else $(CYGPATH_W) '$(srcdir)/gdrom/nrg.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/nrg.Tpo" "$(DEPDIR)/nrg.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/nrg.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gdrom/nrg.c' object='nrg.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/nrg.Po' tmpdepfile='$(DEPDIR)/nrg.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o nrg.obj `if test -f 'gdrom/nrg.c'; then $(CYGPATH_W) 'gdrom/nrg.c'; else $(CYGPATH_W) '$(srcdir)/gdrom/nrg.c'; fi`
 
 intc.o: sh4/intc.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT intc.o -MD -MP -MF "$(DEPDIR)/intc.Tpo" \

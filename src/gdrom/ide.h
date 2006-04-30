@@ -1,5 +1,5 @@
 /**
- * $Id: ide.h,v 1.4 2006-03-22 14:29:02 nkeynes Exp $
+ * $Id: ide.h,v 1.5 2006-04-30 01:51:08 nkeynes Exp $
  *
  * This file defines the interface and structures of the dreamcast's IDE 
  * port. Note that the register definitions are in asic.h, as the registers
@@ -37,7 +37,8 @@ struct ide_registers {
     uint8_t lba2;    /* A05F7094 Read/Write 10101 */
     uint8_t device;  /* A05F7098 Read/Write 10110 */
     uint8_t command; /* A05F709C Write-only 10111 */
-    
+    uint8_t intrq_pending; /* Flag to indicate if the INTRQ line is active */
+
     /* We don't keep the data register per se, rather the currently pending
      * data is kept here and read out a byte at a time (in PIO mode) or all at
      * once (in DMA mode). The IDE routines are responsible for managing this
@@ -48,7 +49,6 @@ struct ide_registers {
     int datalen;
     int blocksize; /* Used to determine the transfer unit size */
     int blockleft; /* Bytes remaining in the current block */
-    uint8_t intrq_pending; /* Flag to indicate if the INTRQ line is active */
 };
 
 #define IDE_ST_BUSY  0x80
@@ -67,21 +67,12 @@ struct ide_registers {
 #define IDE_CMD_SET_FEATURE 0xEF
 
 #define IDE_FEAT_SET_TRANSFER_MODE 0x03
-
 #define IDE_XFER_PIO        0x00
 #define IDE_XFER_PIO_FLOW   0x08
 #define IDE_XFER_MULTI_DMA  0x20
 #define IDE_XFER_ULTRA_DMA  0x40
 
-/* The disc register indicates the current contents of the drive. When open
- * contains 0x06.
- */
-#define IDE_DISC_AUDIO 0x00
-#define IDE_DISC_NONE  0x06
-#define IDE_DISC_CDROM 0x20
-#define IDE_DISC_GDROM 0x80
-#define IDE_DISC_READY 0x01 /* ored with above */
-#define IDE_DISC_IDLE  0x02 /* ie spun-down */
+
 
 #define PKT_CMD_RESET    0x00 /* Wild-ass guess */
 #define PKT_CMD_IDENTIFY 0x11
@@ -97,7 +88,6 @@ extern struct ide_registers idereg;
 #define ide_can_write_regs() ((idereg.status&0x88)==0)
 #define IS_IDE_IRQ_ENABLED() ((idereg.control&0x02)==0)
 
-void ide_reset(void);
 
 uint16_t ide_read_data_pio(void);
 uint8_t ide_read_status(void);
