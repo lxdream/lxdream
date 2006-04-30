@@ -1,5 +1,5 @@
 /**
- * $Id: ide.c,v 1.8 2006-03-22 14:29:02 nkeynes Exp $
+ * $Id: ide.c,v 1.9 2006-04-30 01:51:08 nkeynes Exp $
  *
  * IDE interface implementation
  *
@@ -18,23 +18,32 @@
 
 #define MODULE ide_module
 
+#include <assert.h>
 #include <stdlib.h>
 #include "dream.h"
 #include "asic.h"
 #include "gdrom/ide.h"
 #include "gdrom/gdrom.h"
 
-#define MAX_WRITE_BUF 4096;
+#define MAX_WRITE_BUF 4096
+#define MAX_SECTOR_SIZE 2352 /* Audio sector */
+#define DEFAULT_DATA_SECTORS 8
 
-void ide_init( void );
-void ide_init( void );
+static void ide_init( void );
+static void ide_reset( void );
+static void ide_save_state( FILE *f );
+static int ide_load_state( FILE *f );
+static void ide_raise_interrupt( void );
+static void ide_clear_interrupt( void );
 
 struct dreamcast_module ide_module = { "IDE", ide_init, ide_reset, NULL, NULL,
-				       NULL, NULL, NULL };
+				       NULL, ide_save_state, ide_load_state };
 
 struct ide_registers idereg;
 
 static unsigned char command_buffer[12];
+unsigned char *data_buffer = NULL;
+uint32_t data_buffer_len = 0;
 
 /* "\0\0\0\0\xb4\x19\0\0\x08SE      REV 6.42990316" */
 unsigned char gdrom_ident[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0xb4, 0x19, 0x00,
@@ -43,7 +52,38 @@ unsigned char gdrom_ident[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0xb4, 0x19, 0x00,
                        0x34, 0x32, 0x39, 0x39, 0x30, 0x33, 0x31, 0x36 };
 
 
-gdrom_disc_t gdrom_disc = NULL;
+static void ide_init( void )
+{
+    ide_reset();
+    data_buffer_len = DEFAULT_DATA_SECTORS; 
+    data_buffer = malloc( MAX_SECTOR_SIZE * data_buffer_len ); 
+    assert( data_buffer != NULL );
+}
+
+static void ide_reset( void )
+{
+    ide_clear_interrupt();
+    idereg.error = 0x01;
+    idereg.count = 0x01;
+    idereg.lba0 = /* 0x21; */ 0x81;
+    idereg.lba1 = 0x14;
+    idereg.lba2 = 0xeb;
+    idereg.feature = 0; /* Indeterminate really */
+    idereg.status = 0x00;
+    idereg.device = 0x00;
+    idereg.disc = gdrom_is_mounted() ? IDE_DISC_NONE : (IDE_DISC_CDROM|IDE_DISC_READY);
+}
+
+static void ide_save_state( FILE *f )
+{
+    
+
+}
+
+static int ide_load_state( FILE *f )
+{
+    return 0;
+}
 
 static void ide_set_write_buffer( unsigned char *buf, int len )
 {
@@ -88,25 +128,6 @@ static void ide_set_error( int error_code )
 {
     idereg.status = 0x51;
     idereg.error = error_code;
-}
-
-void ide_init( void )
-{
-
-}
-
-void ide_reset( void )
-{
-    ide_clear_interrupt();
-    idereg.error = 0x01;
-    idereg.count = 0x01;
-    idereg.lba0 = /* 0x21; */ 0x81;
-    idereg.lba1 = 0x14;
-    idereg.lba2 = 0xeb;
-    idereg.feature = 0; /* Indeterminate really */
-    idereg.status = 0x00;
-    idereg.device = 0x00;
-    idereg.disc = (gdrom_disc == NULL ? IDE_DISC_NONE : (IDE_DISC_CDROM|IDE_DISC_READY));
 }
 
 uint8_t ide_read_status( void ) 
@@ -200,7 +221,7 @@ void ide_write_command( uint8_t val ) {
 
 void ide_packet_command( unsigned char *cmd )
 {
-    uint32_t length;
+    uint32_t length, datalen;
     uint32_t lba;
     int blocksize = idereg.lba1 + (idereg.lba2<<8);
 
@@ -219,22 +240,28 @@ void ide_packet_command( unsigned char *cmd )
 	ide_set_read_buffer(gdrom_ident, length, blocksize);
 	break;
     case PKT_CMD_READ_TOC:
-	
+	if( !gdrom_get_toc( data_buffer ) ) {
+	    ide_set_error( 0x50 );
+	    return;
+	} 
+	ide_set_read_buffer( data_buffer, sizeof( struct gdrom_toc ), blocksize );
 	break;
     case PKT_CMD_READ_SECTOR:
 	lba = cmd[2] << 16 | cmd[3] << 8 | cmd[4];
 	length = cmd[8] << 16 | cmd[9] << 8 | cmd[10]; /* blocks */
-	if( gdrom_disc == NULL ) {
-	    ide_set_error( 0x50 );
-	    return;
-	}
-	/*
-	if( gdrom_disc->read_data_sectors( lba, length ) == FALSE ) {
-	    ide_set_error( 0x50 );
-	    return;
+	if( length > data_buffer_len ) {
+	    do {
+		data_buffer_len = data_buffer_len << 1;
+	    } while( data_buffer_len < length );
+	    data_buffer = realloc( data_buffer, data_buffer_len );
 	}
 	
-	*/	
+	datalen = gdrom_read_sectors( lba, length, data_buffer );
+	if( datalen == 0 ) {
+	    ide_set_error( 0x50 );
+	    return;
+	}
+	ide_set_read_buffer( data_buffer, datalen, blocksize );
 	break;
     }
 }

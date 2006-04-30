@@ -1,5 +1,5 @@
 /**
- * $Id: gdrom.h,v 1.1 2006-03-22 14:29:02 nkeynes Exp $
+ * $Id: gdrom.h,v 1.2 2006-04-30 01:51:08 nkeynes Exp $
  *
  * This file defines the structures and functions used by the GD-Rom
  * disc driver. (ie, the modules that supply a CD image to be used by the
@@ -23,22 +23,87 @@
 
 #include "dream.h"
 
-typedef struct gdrom_toc {
+struct gdrom_toc {
     uint32_t tracks[99];
     uint32_t first, last, leadout;
-} *gdrom_toc_t;
+};
+
+#define GDROM_PREGAP 150  /* Sectors */
+
+extern uint32_t gdrom_sector_size[];
+#define GDROM_SECTOR_SIZE(x) gdrom_sector_size[x]
+typedef enum {
+    GDROM_MODE1,
+    GDROM_MODE2,
+    GDROM_MODE2_XA1,
+    GDROM_MODE2_XA2,
+    GDROM_CDDA,
+    GDROM_GD
+} gdrom_track_mode_t;
+
+/* The disc register indicates the current contents of the drive. When open
+ * contains 0x06.
+ */
+#define IDE_DISC_AUDIO 0x00
+#define IDE_DISC_NONE  0x06
+#define IDE_DISC_CDROM 0x20
+#define IDE_DISC_GDROM 0x80
+#define IDE_DISC_READY 0x01 /* ored with above */
+#define IDE_DISC_IDLE  0x02 /* ie spun-down */
+
+struct gdrom_track {
+    gdrom_track_mode_t mode;
+    int      session;     /* session # containing this track */
+    uint32_t lba;         /* start sector address */
+    uint32_t sector_size; /* For convenience, determined by mode */
+    uint32_t sector_count;
+    uint32_t offset; /* File offset of start of track - image files only */
+};
 
 
 typedef struct gdrom_disc {
-    
-    gboolean (*read_toc)( gdrom_toc_t toc );
-
-    gboolean (*read_data_sectors)( uint32_t lba, uint32_t sector_count,
-				   char *buf );
+    int disc_type;
+    int track_count;
+    struct gdrom_track track[99];
+    gchar mcn[14]; /* Media catalogue number */
+    const gchar *filename; /* Image filename */
+    FILE *file; /* Stream, for image files */
+    uint32_t (*read_sectors)( struct gdrom_disc *disc,
+			      uint32_t lba, uint32_t sector_count,
+			      char *buf );
+    void (*close)( struct gdrom_disc *disc );
 } *gdrom_disc_t;
 
-void gdrom_mount( gdrom_disc_t disc );
+/**
+ * Construct a new image file using the default methods.
+ */
+gdrom_disc_t gdrom_image_new( FILE *file );
 
-void gdrom_unmount( void );
+/**
+ * Open an image file
+ */
+gdrom_disc_t gdrom_image_open( const gchar *filename );
+gdrom_disc_t nrg_image_open( const gchar *filename );
+
+/**
+ * Retrieve the disc table of contents, and write it into the buffer in the 
+ * format expected by the DC.
+ * @return TRUE on success, FALSE on failure (eg no disc mounted)
+ */
+gboolean gdrom_get_toc( char *buf );
+
+/**
+ * Shortcut to open and mount an image file
+ */
+gdrom_disc_t gdrom_mount_image( const gchar *filename );
+
+void gdrom_mount_disc( gdrom_disc_t disc );
+
+void gdrom_unmount_disc( void );
+
+gboolean gdrom_is_mounted( void );
+
+uint32_t gdrom_read_sectors( uint32_t sector, uint32_t sector_count,
+			     char *buf );
 
 #endif
