@@ -1,5 +1,5 @@
 /**
- * $Id: ide.c,v 1.10 2006-04-30 12:22:31 nkeynes Exp $
+ * $Id: ide.c,v 1.11 2006-05-02 14:09:11 nkeynes Exp $
  *
  * IDE interface implementation
  *
@@ -24,6 +24,7 @@
 #include "asic.h"
 #include "gdrom/ide.h"
 #include "gdrom/gdrom.h"
+#include "gdrom/packet.h"
 
 #define MAX_WRITE_BUF 4096
 #define MAX_SECTOR_SIZE 2352 /* Audio sector */
@@ -216,9 +217,23 @@ void ide_write_command( uint8_t val ) {
     default:
 	WARN( "IDE: Unimplemented command: %02X", val );
     }
-    idereg.status |= IDE_ST_READY | IDE_ST_SERV;
+    idereg.status = (idereg.status | IDE_ST_READY | IDE_ST_SERV) & (~IDE_ST_ERROR);
 }
 
+void ide_set_packet_error( uint16_t error )
+{
+    idereg.gdrom_error = error;
+    if( error != 0 ) {
+	idereg.error = (error & 0x0F) << 4;
+	idereg.status = 0x51;
+    }
+}
+
+/**
+ * Execute a packet command. This particular method is responsible for parsing
+ * the command buffers (12 bytes), and generating the appropriate responses, 
+ * although the actual implementation is mostly delegated to gdrom.c
+ */
 void ide_packet_command( unsigned char *cmd )
 {
     uint32_t length, datalen;
@@ -230,13 +245,19 @@ void ide_packet_command( unsigned char *cmd )
     WARN( "ATAPI: Received Packet command: %02X", cmd[0] );
     fwrite_dump( (unsigned char *)cmd, 12, stderr );
     switch( cmd[0] ) {
+    case PKT_CMD_TEST_READY:
+	if( !gdrom_is_mounted() ) {
+	    ide_set_packet_error( PKT_ERR_NODISC );
+	    return;
+	}
+	ide_set_packet_error( 0 );
+	idereg.status = 0x50;
+	return;
+	break;
     case PKT_CMD_IDENTIFY:
-	/* NB: Bios sets cmd[4] = 0x08, no idea what this is for;
-	 * different values here appear to have no effect.
-	 */
 	lba = cmd[2];
 	if( lba >= sizeof(gdrom_ident) ) {
-	    ide_set_error(0x50);
+	    ide_set_error(PKT_ERR_BADFIELD);
 	    return;
 	}
 	length = cmd[4];
@@ -244,12 +265,25 @@ void ide_packet_command( unsigned char *cmd )
 	    length = sizeof(gdrom_ident) - lba;
 	ide_set_read_buffer(gdrom_ident + lba, length, blocksize);
 	break;
+    case PKT_CMD_SENSE:
+	memset( data_buffer, 0, 10 );
+	length = cmd[4];
+	if( length > 10 )
+	    length = 10;
+	data_buffer[0] = 0xf0;
+	data_buffer[2] = idereg.gdrom_error & 0xFF;
+	data_buffer[8] = (idereg.gdrom_error >> 8) & 0xFF;
+	ide_set_read_buffer( data_buffer, length , blocksize );
+	break;
     case PKT_CMD_READ_TOC:
 	if( !gdrom_get_toc( data_buffer ) ) {
-	    ide_set_error( 0x50 );
+	    ide_set_packet_error( PKT_ERR_NODISC ); /* No disc in drive */
 	    return;
 	} 
-	ide_set_read_buffer( data_buffer, sizeof( struct gdrom_toc ), blocksize );
+	length = (cmd[3]<<8) | cmd[4];
+	if( length > sizeof(struct gdrom_toc) )
+	    length = sizeof(struct gdrom_toc);
+	ide_set_read_buffer( data_buffer, length, blocksize );
 	break;
     case PKT_CMD_READ_SECTOR:
 	lba = cmd[2] << 16 | cmd[3] << 8 | cmd[4];
@@ -260,15 +294,24 @@ void ide_packet_command( unsigned char *cmd )
 	    } while( data_buffer_len < length );
 	    data_buffer = realloc( data_buffer, data_buffer_len );
 	}
-	
+
+	if( !gdrom_is_mounted() ) {
+	    ide_set_packet_error( PKT_ERR_NODISC );
+	    return;
+	}
+
 	datalen = gdrom_read_sectors( lba, length, data_buffer );
 	if( datalen == 0 ) {
-	    ide_set_error( 0x50 );
+	    ide_set_packet_error( 0x05 );
 	    return;
 	}
 	ide_set_read_buffer( data_buffer, datalen, blocksize );
 	break;
+    default:
+	ide_set_packet_error( PKT_ERR_BADCMD ); /* Invalid command */
+	return;
     }
+    ide_set_packet_error( PKT_ERR_OK );
 }
 
 void ide_write_buffer( unsigned char *data, int datalen ) {

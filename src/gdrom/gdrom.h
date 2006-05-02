@@ -1,5 +1,5 @@
 /**
- * $Id: gdrom.h,v 1.2 2006-04-30 01:51:08 nkeynes Exp $
+ * $Id: gdrom.h,v 1.3 2006-05-02 14:09:11 nkeynes Exp $
  *
  * This file defines the structures and functions used by the GD-Rom
  * disc driver. (ie, the modules that supply a CD image to be used by the
@@ -24,7 +24,7 @@
 #include "dream.h"
 
 struct gdrom_toc {
-    uint32_t tracks[99];
+    uint32_t track[99];
     uint32_t first, last, leadout;
 };
 
@@ -51,8 +51,14 @@ typedef enum {
 #define IDE_DISC_READY 0x01 /* ored with above */
 #define IDE_DISC_IDLE  0x02 /* ie spun-down */
 
+#define TRACK_PRE_EMPHASIS   0x10
+#define TRACK_COPY_PERMITTED 0x20
+#define TRACK_DATA           0x40
+#define TRACK_FOUR_CHANNEL   0x80
+
 struct gdrom_track {
     gdrom_track_mode_t mode;
+    uint8_t flags;        /* Track flags */
     int      session;     /* session # containing this track */
     uint32_t lba;         /* start sector address */
     uint32_t sector_size; /* For convenience, determined by mode */

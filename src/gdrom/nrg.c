@@ -1,5 +1,5 @@
 /**
- * $Id: nrg.c,v 1.1 2006-04-30 01:51:08 nkeynes Exp $
+ * $Id: nrg.c,v 1.2 2006-05-02 14:09:11 nkeynes Exp $
  *
  * Nero (NRG) CD file format. File information stolen shamelessly from
  * libcdio.
@@ -198,7 +198,7 @@ gdrom_disc_t nrg_image_open( const gchar *filename )
 			}
 		    } else { /* Track-start address */
 			disc->track[track].lba = msf_to_lba( cue->addr );
-			
+			disc->track[track].flags = cue->type;
 		    }
 		}
 	    }
@@ -236,6 +236,10 @@ gdrom_disc_t nrg_image_open( const gchar *filename )
 		    disc->close(disc);
 		    return NULL;
 		}
+		if( disc->track[track_id].mode == GDROM_CDDA )
+		    disc->track[track_id].flags = 0x01;
+		else
+		    disc->track[track_id].flags = 0x01 | TRACK_DATA;
 		disc->track[track_id].sector_size = GDROM_SECTOR_SIZE(disc->track[track_id].mode);
 		disc->track[track_id].sector_count = ntohl(etnf->length) / 
 		    disc->track[track_id].sector_size;
