@@ -1,5 +1,5 @@
 /**
- * $Id: gdrom.c,v 1.1 2006-04-30 01:51:08 nkeynes Exp $
+ * $Id: gdrom.c,v 1.2 2006-05-02 14:09:11 nkeynes Exp $
  *
  * GD-Rom  access functions.
  *
@@ -65,7 +65,7 @@ static uint32_t gdrom_image_read_sectors( gdrom_disc_t disc, uint32_t sector,
 
     for( i=0; i<disc->track_count; i++ ) {
 	if( disc->track[i].lba <= sector && 
-	    disc->track[i].lba + disc->track[i].sector_count <= sector + sector_count ) {
+	    (sector + sector_count) <= (disc->track[i].lba + disc->track[i].sector_count) ) {
 	    track = i;
 	    break;
 	}
@@ -102,8 +102,21 @@ void gdrom_dump_disc( gdrom_disc_t disc ) {
 
 gboolean gdrom_get_toc( char *buf ) 
 {
+    struct gdrom_toc *toc = (struct gdrom_toc *)buf;
+    int i;
+
     if( gdrom_disc == NULL )
 	return FALSE;
+
+    for( i=0; i<gdrom_disc->track_count; i++ ) {
+	toc->track[i] = htonl( gdrom_disc->track[i].lba ) | gdrom_disc->track[i].flags;
+    }
+    toc->first = 0x0100 | gdrom_disc->track[0].flags;
+    toc->last = (gdrom_disc->track_count<<8) | gdrom_disc->track[i-1].flags;
+    toc->leadout = htonl(gdrom_disc->track[i-1].lba + gdrom_disc->track[i-1].sector_count) |
+	gdrom_disc->track[i-1].flags;
+    for( ;i<99; i++ )
+	toc->track[i] = 0xFFFFFFFF;
     return TRUE;
 }
 
