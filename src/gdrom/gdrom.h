@@ -1,5 +1,5 @@
 /**
- * $Id: gdrom.h,v 1.3 2006-05-02 14:09:11 nkeynes Exp $
+ * $Id: gdrom.h,v 1.4 2006-05-03 12:52:38 nkeynes Exp $
  *
  * This file defines the structures and functions used by the GD-Rom
  * disc driver. (ie, the modules that supply a CD image to be used by the
@@ -38,7 +38,8 @@ typedef enum {
     GDROM_MODE2_XA1,
     GDROM_MODE2_XA2,
     GDROM_CDDA,
-    GDROM_GD
+    GDROM_GD,
+    GDROM_RAW
 } gdrom_track_mode_t;
 
 /* The disc register indicates the current contents of the drive. When open
@@ -76,7 +77,7 @@ typedef struct gdrom_disc {
     FILE *file; /* Stream, for image files */
     uint32_t (*read_sectors)( struct gdrom_disc *disc,
 			      uint32_t lba, uint32_t sector_count,
-			      char *buf );
+			      int mode, char *buf, uint32_t *length );
     void (*close)( struct gdrom_disc *disc );
 } *gdrom_disc_t;
 
@@ -110,6 +111,6 @@ void gdrom_unmount_disc( void );
 gboolean gdrom_is_mounted( void );
 
 uint32_t gdrom_read_sectors( uint32_t sector, uint32_t sector_count,
-			     char *buf );
+			     int mode, char *buf, uint32_t *length );
 
 #endif

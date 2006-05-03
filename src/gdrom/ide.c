@@ -1,5 +1,5 @@
 /**
- * $Id: ide.c,v 1.11 2006-05-02 14:09:11 nkeynes Exp $
+ * $Id: ide.c,v 1.12 2006-05-03 12:52:38 nkeynes Exp $
  *
  * IDE interface implementation
  *
@@ -72,7 +72,7 @@ static void ide_reset( void )
     idereg.feature = 0; /* Indeterminate really */
     idereg.status = 0x00;
     idereg.device = 0x00;
-    idereg.disc = gdrom_is_mounted() ? IDE_DISC_NONE : (IDE_DISC_CDROM|IDE_DISC_READY);
+    idereg.disc = gdrom_is_mounted() ? (IDE_DISC_CDROM|IDE_DISC_READY) : IDE_DISC_NONE;
 }
 
 static void ide_save_state( FILE *f )
@@ -147,6 +147,7 @@ uint16_t ide_read_data_pio( void ) {
     if( idereg.datalen <=0 ) {
         idereg.readptr = NULL;
         idereg.status &= ~IDE_ST_DATA;
+	ide_raise_interrupt();
     } else if( idereg.blockleft <= 0 ) {
 	ide_raise_interrupt();
 	idereg.blockleft = idereg.blocksize;
@@ -223,8 +224,8 @@ void ide_write_command( uint8_t val ) {
 void ide_set_packet_error( uint16_t error )
 {
     idereg.gdrom_error = error;
+    idereg.error = (error & 0x0F) << 4;
     if( error != 0 ) {
-	idereg.error = (error & 0x0F) << 4;
 	idereg.status = 0x51;
     }
 }
@@ -237,7 +238,8 @@ void ide_set_packet_error( uint16_t error )
 void ide_packet_command( unsigned char *cmd )
 {
     uint32_t length, datalen;
-    uint32_t lba;
+    uint32_t lba, status;
+    int mode;
     int blocksize = idereg.lba1 + (idereg.lba2<<8);
 
     ide_raise_interrupt( );
@@ -295,14 +297,22 @@ void ide_packet_command( unsigned char *cmd )
 	    data_buffer = realloc( data_buffer, data_buffer_len );
 	}
 
-	if( !gdrom_is_mounted() ) {
-	    ide_set_packet_error( PKT_ERR_NODISC );
+	switch( cmd[1] ) {
+	case 0x20: mode = GDROM_MODE1; break;
+	case 0x24: mode = GDROM_GD; break;
+	case 0x28: mode = GDROM_MODE1; break; /* ??? */
+	case 0x30: mode = GDROM_RAW; break;
+	default:
+	    ERROR( "Unrecognized read mode '%02X' in GD-Rom read request", cmd[1] );
+	    ide_set_packet_error( PKT_ERR_BADFIELD );
 	    return;
 	}
 
-	datalen = gdrom_read_sectors( lba, length, data_buffer );
-	if( datalen == 0 ) {
-	    ide_set_packet_error( 0x05 );
+	status = gdrom_read_sectors( lba, length, mode, data_buffer, &data_buffer_len );
+	if( status != 0 ) {
+	    ide_set_packet_error( status );
+	    data_buffer[6] = (lba >> 8) & 0xFF;
+	    data_buffer[7] = lba & 0xFF;
 	    return;
 	}
 	ide_set_read_buffer( data_buffer, datalen, blocksize );

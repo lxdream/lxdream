@@ -1,5 +1,5 @@
 /**
- * $Id: gdrom.c,v 1.2 2006-05-02 14:09:11 nkeynes Exp $
+ * $Id: gdrom.c,v 1.3 2006-05-03 12:52:38 nkeynes Exp $
  *
  * GD-Rom  access functions.
  *
@@ -20,10 +20,11 @@
 
 #include "gdrom/ide.h"
 #include "gdrom/gdrom.h"
+#include "gdrom/packet.h"
 #include "dream.h"
 
 static void gdrom_image_destroy( gdrom_disc_t );
-static uint32_t gdrom_image_read_sectors( gdrom_disc_t, uint32_t, uint32_t, char * );
+static uint32_t gdrom_image_read_sectors( gdrom_disc_t, uint32_t, uint32_t, int, char *, uint32_t * );
 
 
 gdrom_disc_t gdrom_disc = NULL;
@@ -59,7 +60,8 @@ static void gdrom_image_destroy( gdrom_disc_t disc )
 }
 
 static uint32_t gdrom_image_read_sectors( gdrom_disc_t disc, uint32_t sector,
-				   uint32_t sector_count, char *buf )
+					  uint32_t sector_count, int mode, char *buf,
+					  uint32_t *length )
 {
     int i, track = -1, track_offset, read_len;
 
@@ -71,21 +73,24 @@ static uint32_t gdrom_image_read_sectors( gdrom_disc_t disc, uint32_t sector,
 	}
     }
     if( track == -1 )
-	return 0;
+	return PKT_ERR_BADREAD;
+    if( mode == GDROM_GD && disc->track[i].mode != GDROM_GD )
+	return PKT_ERR_BADREADMODE;
     
     track_offset = disc->track[track].sector_size * (sector - disc->track[track].lba);
     read_len = disc->track[track].sector_size * sector_count;
     fseek( disc->file, disc->track[track].offset + track_offset, SEEK_SET );
     fread( buf, disc->track[track].sector_size, sector_count, disc->file );
-    return read_len;
+    *length = read_len;
+    return PKT_ERR_OK;
 }
 
 uint32_t gdrom_read_sectors( uint32_t sector, uint32_t sector_count,
-			     char *buf )
+			     int mode, char *buf, uint32_t *length )
 {
     if( gdrom_disc == NULL )
-	return 0; /* No media */
-    return gdrom_disc->read_sectors( gdrom_disc, sector, sector_count, buf );
+	return PKT_ERR_NODISC; /* No media */
+    return gdrom_disc->read_sectors( gdrom_disc, sector, sector_count, mode, buf, length );
 }
 
 
