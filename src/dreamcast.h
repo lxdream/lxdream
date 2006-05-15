@@ -1,5 +1,5 @@
 /**
- * $Id: dreamcast.h,v 1.8 2005-12-25 05:56:55 nkeynes Exp $
+ * $Id: dreamcast.h,v 1.9 2006-05-15 08:28:48 nkeynes Exp $
  *
  * Public interface for dreamcast.c -
  * Central switchboard for the system. This pulls all the individual modules
@@ -30,17 +30,38 @@ extern "C" {
 #endif
 
 #define DEFAULT_TIMESLICE_LENGTH 1000000 /* nanoseconds */
+#define CONFIG_TYPE_NONE 0
+#define CONFIG_TYPE_FILE 1
+#define CONFIG_TYPE_PATH 2
+#define CONFIG_TYPE_KEY 3
+
+#define DEFAULT_CONFIG_FILENAME "dream.conf"
+
+typedef struct dreamcast_config_entry {
+    const gchar *key;
+    const int type;
+    const gchar *default_value;
+    gchar *value;
+} *dreamcast_config_entry_t;
+
+typedef struct dreamcast_config_group {
+    const gchar *key;
+    struct dreamcast_config_entry *params;
+} *dreamcast_config_group_t;
+
 
 void dreamcast_init(void);
 void dreamcast_reset(void);
 void dreamcast_run(void);
 void dreamcast_stop(void);
 
-void dreamcast_load_config( const gchar *filename );
-void dreamcast_save_config( const gchar *filename );
+gboolean dreamcast_load_config( const gchar *filename );
+gboolean dreamcast_save_config( const gchar *filename );
 
 int dreamcast_save_state( const gchar *filename );
 int dreamcast_load_state( const gchar *filename );
+
+extern struct dreamcast_config_group dreamcast_config_root[];
 
 #ifdef __cplusplus
 }

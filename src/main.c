@@ -1,5 +1,5 @@
 /**
- * $Id: main.c,v 1.16 2006-03-16 12:41:59 nkeynes Exp $
+ * $Id: main.c,v 1.17 2006-05-15 08:28:48 nkeynes Exp $
  *
  * Main program, initializes dreamcast and gui, then passes control off to
  * the gtk main loop (currently). 
@@ -30,16 +30,19 @@
 #include "syscall.h"
 #include "dreamcast.h"
 #include "aica/audio.h"
-#include "video.h"
+#include "display.h"
+#include "maple/maple.h"
 
 #define S3M_PLAYER "s3mplay.bin"
 
-char *option_list = "a:s:A:V:phb";
+char *option_list = "a:s:A:V:phbd:c:";
 struct option longopts[1] = { { NULL, 0, 0, 0 } };
 char *aica_program = NULL;
 char *s3m_file = NULL;
-char *video_driver_name = "gtk";
+char *disc_file = NULL;
+char *display_driver_name = "gtk";
 char *audio_driver_name = "esd";
+char *config_file = DEFAULT_CONFIG_FILENAME;
 gboolean start_immediately = FALSE;
 gboolean headless = FALSE;
 gboolean without_bios = FALSE;
@@ -48,9 +51,9 @@ audio_driver_t audio_driver_list[] = { &audio_null_driver,
 				       &audio_esd_driver,
 				       NULL };
 
-video_driver_t video_driver_list[] = { &video_null_driver,
-				       &video_gtk_driver,
-				       NULL };
+display_driver_t display_driver_list[] = { &display_null_driver,
+					   &display_gtk_driver,
+					   NULL };
 
 int main (int argc, char *argv[])
 {
@@ -65,6 +68,12 @@ int main (int argc, char *argv[])
 	case 'a': /* AICA only mode - argument is an AICA program */
 	    aica_program = optarg;
 	    break;
+	case 'c': /* Config file */
+	    config_file = optarg;
+	    break;
+	case 'd': /* Mount disc */
+	    disc_file = optarg;
+	    break;
 	case 's': /* AICA-only w/ S3M player */
 	    aica_program = S3M_PLAYER;
 	    s3m_file = optarg;
@@ -73,7 +82,7 @@ int main (int argc, char *argv[])
 	    audio_driver_name = optarg;
 	    break;
 	case 'V': /* Video driver */
-	    video_driver_name = optarg;
+	    display_driver_name = optarg;
 	    break;
 	case 'p': /* Start immediately */
 	    start_immediately = TRUE;
@@ -86,6 +95,8 @@ int main (int argc, char *argv[])
             break;
 	}
     }
+
+    dreamcast_load_config( config_file );
 
     if( aica_program == NULL ) {
 	if( !headless ) {
@@ -129,23 +140,28 @@ int main (int argc, char *argv[])
     }
 
     if( headless ) {
-	video_set_driver( &video_null_driver );
+	display_set_driver( &display_null_driver );
     } else {
-	for( i=0; video_driver_list[i] != NULL; i++ ) {
-	    if( strcasecmp( video_driver_list[i]->name, video_driver_name ) == 0 ) {
-		video_set_driver( video_driver_list[i] );
+	for( i=0; display_driver_list[i] != NULL; i++ ) {
+	    if( strcasecmp( display_driver_list[i]->name, display_driver_name ) == 0 ) {
+		display_set_driver( display_driver_list[i] );
 		break;
 	    }
 	}
-	if( video_driver_list[i] == NULL ) {
-	    ERROR( "Video driver '%s' not found, using null driver", video_driver_name );
-	    video_set_driver( &video_null_driver );
+	if( display_driver_list[i] == NULL ) {
+	    ERROR( "Video driver '%s' not found, using null driver", display_driver_name );
+	    display_set_driver( &display_null_driver );
 	}
     }
 
+    maple_reattach_all();
     INFO( "DreamOn! ready..." );
     if( optind < argc ) {
 	file_load_magic( argv[optind] );
+    }
+
+    if( disc_file != NULL ) {
+	gdrom_mount_image( disc_file );
     }
 
     if( start_immediately )

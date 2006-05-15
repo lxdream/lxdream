@@ -1,5 +1,5 @@
 /**
- * $Id: dreamcast.c,v 1.14 2006-01-22 22:42:05 nkeynes Exp $
+ * $Id: dreamcast.c,v 1.15 2006-05-15 08:28:48 nkeynes Exp $
  * Central switchboard for the system. This pulls all the individual modules
  * together into some kind of coherent structure. This is also where you'd
  * add Naomi support, if I ever get a board to play with...
@@ -18,6 +18,7 @@
  */
 
 #include <errno.h>
+#include <glib/gstrfuncs.h>
 #include "dream.h"
 #include "mem.h"
 #include "aica/aica.h"
@@ -77,10 +78,12 @@ void dreamcast_configure( )
     dreamcast_register_module( &ide_module );
 
     /* Attach any default maple devices, ie a pair of controllers */
-    maple_device_t controller1 = controller_new();
-    maple_device_t controller2 = controller_new();
+    /*
+    maple_device_t controller1 = maple_new_device("Sega Controller");
+    maple_device_t controller2 = maple_new_device("Sega Controller");
     maple_attach_device( controller1, 0, 0 );
     maple_attach_device( controller2, 1, 0 );
+    */
 }
 
 /**
@@ -159,16 +162,193 @@ gboolean dreamcast_is_running( void )
 
 /***************************** User Configuration **************************/
 
-void dreamcast_load_config( const gchar *filename )
+static struct dreamcast_config_entry global_config[] =
+    {{ "bios", CONFIG_TYPE_FILE, "dcboot.rom" },
+     { "flash", CONFIG_TYPE_FILE, "dcflash.rom" },
+     { "default path", CONFIG_TYPE_PATH, "." },
+     { "save path", CONFIG_TYPE_PATH, "save" },
+     { "bootstrap", CONFIG_TYPE_FILE, "IP.BIN" },
+     { NULL, CONFIG_TYPE_NONE }};
+
+static struct dreamcast_config_entry serial_config[] =
+    {{ "device", CONFIG_TYPE_FILE, "/dev/ttyS1" },
+     { NULL, CONFIG_TYPE_NONE }};
+
+struct dreamcast_config_group dreamcast_config_root[] = 
+    {{ "global", global_config },
+     { "controllers", NULL },
+     { "serial", serial_config },
+     { NULL, CONFIG_TYPE_NONE }};
+
+void dreamcast_set_default_config( )
 {
-
-
+    struct dreamcast_config_group *group = dreamcast_config_root;
+    while( group->key != NULL ) {
+	struct dreamcast_config_entry *param = group->params;
+	if( param != NULL ) {
+	    while( param->key != NULL ) {
+		if( param->value != param->default_value ) {
+		    if( param->value != NULL )
+			free( param->value );
+		    param->value = (gchar *)param->default_value;
+		}
+		param++;
+	    }
+	}
+	group++;
+    }
+    maple_detach_all();
 }
 
-void dreamcast_save_config( const gchar *filename )
+gboolean dreamcast_load_config( const gchar *filename )
+{
+    FILE *f = fopen(filename, "ro");
+    gboolean result;
+
+    if( f == NULL ) {
+	ERROR( "Unable to open '%s': %s", filename, strerror(errno) );
+	return FALSE;
+    }
+
+    result = dreamcast_load_config_stream( f );
+    fclose(f);
+    return result;
+}
+
+gboolean dreamcast_load_config_stream( FILE *f )
 {
 
+    char buf[512], *p;
+    int maple_device = -1, maple_subdevice = -1;
+    struct dreamcast_config_group devgroup;
+    struct dreamcast_config_group *group = NULL;
+    maple_device_t device = NULL;
+    dreamcast_set_default_config();
 
+    while( fgets( buf, sizeof(buf), f ) != NULL ) {
+	g_strstrip(buf);
+	if( buf[0] == '#' )
+	    continue;
+	if( *buf == '[' ) {
+	    char *p = strchr(buf, ']');
+	    if( p != NULL ) {
+		struct dreamcast_config_group *tmp_group;
+		maple_device = maple_subdevice = -1;
+		*p = '\0';
+		g_strstrip(buf+1);
+		tmp_group = &dreamcast_config_root[0];
+		while( tmp_group->key != NULL ) {
+		    if( strcasecmp(tmp_group->key, buf+1) == 0 ) {
+			group = tmp_group;
+			break;
+		    }
+		    tmp_group++;
+		}
+	    }
+	} else if( group != NULL ) {
+	    char *value = strchr( buf, '=' );
+	    if( value != NULL ) {
+		struct dreamcast_config_entry *param = group->params;
+		*value = '\0';
+		value++;
+		g_strstrip(buf);
+		g_strstrip(value);
+		if( strcmp(group->key,"controllers") == 0  ) {
+		    if( g_strncasecmp( buf, "device ", 7 ) == 0 ) {
+			maple_device = strtoul( buf+7, NULL, 0 );
+			if( maple_device < 0 || maple_device > 3 ) {
+			    ERROR( "Device number must be between 0..3 (not '%s')", buf+7);
+			    continue;
+			}
+			maple_subdevice = 0;
+			device = maple_new_device( value );
+			if( device == NULL ) {
+			    ERROR( "Unrecognized device '%s'", value );
+			} else {
+			    devgroup.key = "controllers";
+			    devgroup.params = maple_get_device_config(device);
+			    maple_attach_device( device, maple_device, maple_subdevice );
+			    group = &devgroup;
+			}
+			continue;
+		    } else if( g_strncasecmp( buf, "subdevice ", 10 ) == 0 ) {
+			maple_subdevice = strtoul( buf+10, NULL, 0 );
+			if( maple_device == -1 ) {
+			    ERROR( "Subdevice not allowed without primary device" );
+			} else if( maple_subdevice < 1 || maple_subdevice > 5 ) {
+			    ERROR( "Subdevice must be between 1..5 (not '%s')", buf+10 );
+			} else if( (device = maple_new_device(value)) == NULL ) {
+			    ERROR( "Unrecognized subdevice '%s'", value );
+			} else {
+			    devgroup.key = "controllers";
+			    devgroup.params = maple_get_device_config(device);
+			    maple_attach_device( device, maple_device, maple_subdevice );
+			    group = &devgroup;
+			}
+			continue;
+		    }
+		}
+		while( param->key != NULL ) {
+		    if( strcasecmp( param->key, buf ) == 0 ) {
+			param->value = g_strdup(value);
+			break;
+		    }
+		    param++;
+		}
+	    }
+	}
+    }
+    return TRUE;
+}
+
+gboolean dreamcast_save_config( const gchar *filename )
+{
+    FILE *f = fopen(filename, "wo");
+    gboolean result;
+    if( f == NULL ) {
+	ERROR( "Unable to open '%s': %s", filename, strerror(errno) );
+	return FALSE;
+    }
+    result = dreamcast_save_config_stream(f);
+    fclose(f);
+}    
+
+gboolean dreamcast_save_config_stream( FILE *f )
+{
+    struct dreamcast_config_group *group = &dreamcast_config_root[0];
+    
+    while( group->key != NULL ) {
+	struct dreamcast_config_entry *entry = group->params;
+	fprintf( f, "[%s]\n", group->key );
+	
+	if( entry != NULL ) {
+	    while( entry->key != NULL ) {
+		fprintf( f, "%s = %s\n", entry->key, entry->value );
+		entry++;
+	    }
+	} else if( strcmp(group->key, "controllers") == 0 ) {
+	    int i,j;
+	    for( i=0; i<4; i++ ) {
+		for( j=0; j<6; j++ ) {
+		    maple_device_t dev = maple_get_device( i, j );
+		    if( dev != NULL ) {
+			if( j == 0 )
+			    fprintf( f, "Device %d = %s\n", i, dev->device_class->name );
+			else 
+			    fprintf( f, "Subdevice %d = %s\n", j, dev->device_class->name );
+			entry = dev->get_config(dev);
+			while( entry->key != NULL ) {
+			    fprintf( f, "%*c%s = %s\n", j==0?4:8, ' ',entry->key, entry->value );
+			    entry++;
+			}
+		    }
+		}
+	    }
+	}
+	fprintf( f, "\n" );
+	group++;
+    }
+    return TRUE;
 }
 
 /********************************* Save States *****************************/

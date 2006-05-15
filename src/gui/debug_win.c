@@ -1,5 +1,5 @@
 /**
- * $Id: debug_win.c,v 1.18 2006-03-30 11:31:05 nkeynes Exp $
+ * $Id: debug_win.c,v 1.19 2006-05-15 08:28:52 nkeynes Exp $
  * This file is responsible for the main debugger gui frame.
  *
  * Copyright (c) 2005 Nathan Keynes.
@@ -22,7 +22,7 @@
 #include "gui/gui.h"
 #include "mem.h"
 #include "cpu.h"
-#include "video.h"
+#include "display.h"
 
 GdkColor *msg_colors[] = { &clrError, &clrError, &clrWarn, &clrNormal,
                            &clrDebug, &clrTrace };

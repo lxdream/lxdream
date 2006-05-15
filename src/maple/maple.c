@@ -1,5 +1,5 @@
 /**
- * $Id: maple.c,v 1.7 2006-03-20 12:00:15 nkeynes Exp $
+ * $Id: maple.c,v 1.8 2006-05-15 08:28:52 nkeynes Exp $
  *
  * Implements the core Maple bus, including DMA transfers to and from the bus.
  *
@@ -28,9 +28,28 @@ void maple_init( void );
 struct dreamcast_module maple_module = { "Maple", maple_init, NULL, NULL, NULL,
 					 NULL, NULL, NULL };
 
+struct maple_device_class *maple_device_classes[] = { &controller_class, NULL };
+
 void maple_init( void )
 {
 
+}
+
+maple_device_t maple_new_device( const gchar *name )
+{
+    int i;
+    for( i=0; maple_device_classes[i] != NULL; i++ ) {
+	if( g_strcasecmp(maple_device_classes[i]->name, name ) == 0 )
+	    return maple_device_classes[i]->new_device();
+    }
+    return NULL;
+}
+
+dreamcast_config_entry_t maple_get_device_config( maple_device_t dev )
+{
+    if( dev->get_config == NULL )
+	return NULL;
+    return dev->get_config(dev);
 }
 
 /**
@@ -59,6 +78,14 @@ int maple_periph_mask[4];
 #define GETWORD(n) (*((uint32_t *)(buf+(n))))
 #define PUTBYTE(n,x) (buf[n] = (char)x)
 #define PUTWORD(n,x) (*((uint32_t *)(return_buf+(n))) = (x))
+
+maple_device_t maple_get_device( unsigned int port, unsigned int periph ) {
+    if( port >= 4 )
+	return NULL;
+    if( periph >= 6 )
+	return NULL;
+    return maple_devices[port][periph];
+}
 
 void maple_handle_buffer( uint32_t address ) {
     unsigned char *buf = (unsigned char *)mem_get_region(address);
@@ -242,5 +269,34 @@ void maple_detach_device( unsigned int port, unsigned int periph ) {
     } else {
         maple_periph_mask[port] &= (~(1<<(periph-1)));
     }
-                                    
+    
+}
+
+void maple_detach_all() {
+    int i, j;
+    for( i=0; i<4; i++ ) {
+	for( j=0; j<6; j++ ) {
+	    if( maple_devices[i][j] != NULL ) {
+		maple_device_t dev = maple_devices[i][j];
+		if( dev->detach != NULL )
+		    dev->detach(dev);
+		if( dev->destroy != NULL )
+		    dev->destroy(dev);
+	    }
+	}
+	maple_periph_mask[i] = 0;
+    }
+}
+
+void maple_reattach_all() {
+    int i, j;
+    for( i=0; i<4; i++ ) {
+	for( j=0; j<6; j++ ) {
+	    if( maple_devices[i][j] != NULL ) {
+		maple_device_t dev = maple_devices[i][j];
+		if( dev->attach != NULL )
+		    dev->attach(dev);
+	    }
+	}
+    }
 }

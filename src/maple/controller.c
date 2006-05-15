@@ -1,5 +1,5 @@
 /**
- * $Id: controller.c,v 1.2 2005-12-25 08:24:11 nkeynes Exp $
+ * $Id: controller.c,v 1.3 2006-05-15 08:28:52 nkeynes Exp $
  *
  * Implements the standard dreamcast controller
  *
@@ -18,25 +18,51 @@
 
 #include <stdlib.h>
 #include "dream.h"
+#include "dreamcast.h"
 #include "maple.h"
 #include "maple/controller.h"
 
+#define CONTROLLER_CONFIG_ENTRIES 16
+
 void controller_attach( maple_device_t dev );
 void controller_detach( maple_device_t dev );
+void controller_destroy( maple_device_t dev );
+maple_device_t controller_new();
+dreamcast_config_entry_t controller_get_config( maple_device_t dev );
 int controller_get_cond( maple_device_t dev, int function, char *outbuf,
                          int *outlen );
-
-static struct maple_device base_controller = {
-    MAPLE_DEVICE_TAG, CONTROLLER_IDENT, CONTROLLER_VERSION, NULL, NULL,
-    controller_get_cond, NULL, NULL, NULL,
-    controller_attach, controller_detach };
 
 typedef struct controller_device {
     struct maple_device dev;
     uint32_t condition[2];
+    struct dreamcast_config_entry config[CONTROLLER_CONFIG_ENTRIES];
 } *controller_device_t;
 
+struct maple_device_class controller_class = { "Sega Controller", controller_new };
 
+static struct controller_device base_controller = {
+    { MAPLE_DEVICE_TAG, &controller_class, CONTROLLER_IDENT, CONTROLLER_VERSION, 
+      controller_get_config, controller_attach, controller_detach, controller_destroy,
+      NULL, NULL, controller_get_cond, NULL, NULL, NULL },
+    {0x0000FFFF, 0}, 
+    {{ "dpad left", CONFIG_TYPE_KEY },
+     { "dpad right", CONFIG_TYPE_KEY },
+     { "dpad up", CONFIG_TYPE_KEY },
+     { "dpad down", CONFIG_TYPE_KEY },
+     { "analog left", CONFIG_TYPE_KEY },
+     { "analog right", CONFIG_TYPE_KEY },
+     { "analog up", CONFIG_TYPE_KEY },
+     { "analog down", CONFIG_TYPE_KEY },
+     { "button X", CONFIG_TYPE_KEY },
+     { "button Y", CONFIG_TYPE_KEY },
+     { "button A", CONFIG_TYPE_KEY },
+     { "button B", CONFIG_TYPE_KEY },
+     { "trigger left", CONFIG_TYPE_KEY },
+     { "trigger right", CONFIG_TYPE_KEY },
+     { "start", CONFIG_TYPE_KEY },
+     { NULL, CONFIG_TYPE_NONE }} };
+
+#define CONTROLLER(x) ((controller_device_t)(x))
 
 maple_device_t controller_new( )
 {
@@ -47,10 +73,54 @@ maple_device_t controller_new( )
     return MAPLE_DEVICE(dev);
 }
 
-
-void controller_attach( maple_device_t dev )
+/**
+ * Input callback 
+ */
+void controller_key_callback( void *mdev, uint32_t value, gboolean isKeyDown )
 {
+    controller_device_t dev = (controller_device_t)mdev;
+    if( isKeyDown ) {
+	dev->condition[0] |= value;
+	fprintf( stderr, "Key %08X DOWN\n", value );
+    } else {
+	dev->condition[0] &= ~value;
+	fprintf( stderr, "Key %08X UP\n", value );
+    }
+}
 
+dreamcast_config_entry_t controller_get_config( maple_device_t mdev )
+{
+    controller_device_t dev = (controller_device_t)mdev;
+    return dev->config;
+}
+
+void controller_destroy( maple_device_t mdev )
+{
+    free( mdev );
+}
+
+/**
+ * Device is being attached to the bus. Go through the config and reserve the
+ * keys we need.
+ */
+void controller_attach( maple_device_t mdev )
+{
+    controller_device_t dev = (controller_device_t)mdev;
+    input_register_key( dev->config[0].value, controller_key_callback, dev, BUTTON_DPAD_LEFT );
+    input_register_key( dev->config[1].value, controller_key_callback, dev, BUTTON_DPAD_RIGHT );
+    input_register_key( dev->config[2].value, controller_key_callback, dev, BUTTON_DPAD_UP );
+    input_register_key( dev->config[3].value, controller_key_callback, dev, BUTTON_DPAD_DOWN );
+    input_register_key( dev->config[4].value, controller_key_callback, dev, 0 );
+    input_register_key( dev->config[5].value, controller_key_callback, dev, 0 );
+    input_register_key( dev->config[6].value, controller_key_callback, dev, 0 );
+    input_register_key( dev->config[7].value, controller_key_callback, dev, 0 );
+    input_register_key( dev->config[8].value, controller_key_callback, dev, BUTTON_X );
+    input_register_key( dev->config[9].value, controller_key_callback, dev, BUTTON_Y );
+    input_register_key( dev->config[10].value, controller_key_callback, dev, BUTTON_A );
+    input_register_key( dev->config[11].value, controller_key_callback, dev, BUTTON_B );
+    input_register_key( dev->config[12].value, controller_key_callback, dev, BUTTON_LEFT_TRIGGER );
+    input_register_key( dev->config[13].value, controller_key_callback, dev, BUTTON_RIGHT_TRIGGER );
+    input_register_key( dev->config[14].value, controller_key_callback, dev, BUTTON_START );
 }
 
 void controller_detach( maple_device_t dev )

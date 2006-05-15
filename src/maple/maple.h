@@ -1,5 +1,5 @@
 /**
- * $Id: maple.h,v 1.4 2005-12-25 08:24:11 nkeynes Exp $
+ * $Id: maple.h,v 1.5 2006-05-15 08:28:52 nkeynes Exp $
  *
  * Maple bus definitions
  *
@@ -18,6 +18,8 @@
 
 #ifndef dream_maple_H
 #define dream_maple_H 1
+
+#include "dreamcast.h"
 
 #define MAPLE_CMD_INFO        1  /* Request device information */
 #define MAPLE_CMD_EXT_INFO    2  /* Request extended information */
@@ -52,13 +54,27 @@
 #define MAPLE_DEVICE_TAG 0x4D41504C
 #define MAPLE_DEVICE(x) ((maple_device_t)x)
 
+typedef struct maple_device_class *maple_device_class_t;
+typedef struct maple_device *maple_device_t;
+
+struct maple_device_class {
+    const char *name;
+    maple_device_t (*new_device)();
+};
+
 /**
  * Table of functions to be implemented by any maple device.
  */
-typedef struct maple_device {
+struct maple_device {
     uint32_t _tag;
+    maple_device_class_t device_class;
     unsigned char ident[112];
     unsigned char version[80];
+    dreamcast_config_entry_t (*get_config)(struct maple_device *dev);
+    void (*attach)(struct maple_device *dev);
+    void (*detach)(struct maple_device *dev);
+    void (*destroy)(struct maple_device *dev);
+
     int (*reset)(struct maple_device *dev);
     int (*shutdown)(struct maple_device *dev);
     int (*get_condition)(struct maple_device *dev,
@@ -69,14 +85,18 @@ typedef struct maple_device {
                       int function, uint32_t block, unsigned char *outbuf, int *buflen);
     int (*write_block)(struct maple_device *dev,
                        int function, uint32_t block, unsigned char *inbuf, int buflen);
-    void (*attach)(struct maple_device *dev);
-    void (*detach)(struct maple_device *dev);
-} *maple_device_t;
+};
 
-maple_device_t controller_new(void);
+extern struct maple_device_class controller_class;
+
+maple_device_t maple_new_device( const char *name );
+maple_device_t maple_get_device( unsigned int port, unsigned int periph );
+dreamcast_config_entry_t maple_get_device_config( maple_device_t dev );
 
 void maple_handle_buffer( uint32_t buffer );
 void maple_attach_device( maple_device_t dev, unsigned int port, unsigned int periph );
 void maple_detach_device( unsigned int port, unsigned int periph );
+void maple_detach_all( );
+void maple_reattach_all( );
 
 #endif /* !dream_maple_H */

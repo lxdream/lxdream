@@ -1,5 +1,5 @@
 /**
- * $Id: render.c,v 1.7 2006-03-30 11:29:54 nkeynes Exp $
+ * $Id: render.c,v 1.8 2006-05-15 08:28:52 nkeynes Exp $
  *
  * PVR2 Renderer support. This is where the real work happens.
  *
@@ -192,7 +192,7 @@ gboolean pvr2_render_display_frame( uint32_t address )
 	/* The more useful case - back buffer is to be displayed. Swap
 	 * the buffers 
 	 */
-	video_driver->display_back_buffer();
+	display_driver->display_back_buffer();
 	front_buffer = back_buffer;
 	back_buffer.render_addr = -1;
 	return TRUE;
@@ -210,7 +210,7 @@ static void pvr2_render_prepare_context( sh4addr_t render_addr,
 					 gboolean texture_target )
 {
     /* Select and initialize the render context */
-    video_driver->set_render_format( width, height, colour_format, texture_target );
+    display_driver->set_render_format( width, height, colour_format, texture_target );
 
     if( pvr2_render_font_list == -1 ) {
 	pvr2_render_font_list = video_glx_load_font( "-*-helvetica-*-r-normal--16-*-*-*-p-*-iso8859-1");
