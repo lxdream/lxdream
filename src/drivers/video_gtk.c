@@ -1,5 +1,5 @@
 /**
- * $Id: video_gtk.c,v 1.5 2006-03-16 12:42:28 nkeynes Exp $
+ * $Id: video_gtk.c,v 1.6 2006-05-15 08:28:52 nkeynes Exp $
  *
  * The PC side of the video support (responsible for actually displaying / 
  * rendering frames)
@@ -20,7 +20,7 @@
 #include <gnome.h>
 #include <gdk/gdkx.h>
 #include <stdint.h>
-#include "video.h"
+#include "display.h"
 #include "drivers/video_x11.h"
 
 GdkImage *video_img = NULL;
@@ -30,21 +30,45 @@ uint32_t video_width = 640;
 uint32_t video_height = 480;
 uint32_t video_frame_count = 0;
 
+uint16_t video_gtk_resolve_keysym( const gchar *keysym );
 gboolean video_gtk_set_output_format( uint32_t width, uint32_t height,  
 				      int colour_format );
 gboolean video_gtk_set_render_format( uint32_t width, uint32_t height,  
-				      int colour_format );
+				      int colour_format, gboolean texture );
 gboolean video_gtk_display_frame( video_buffer_t frame );
 gboolean video_gtk_blank( uint32_t rgb );
 
-struct video_driver video_gtk_driver = { "gtk", 
-					 NULL,
-					 NULL,
-					 video_gtk_set_output_format,
-					 video_gtk_set_render_format,
-					 video_gtk_display_frame,
-					 video_gtk_blank,
-					 video_glx_swap_buffers };
+struct display_driver display_gtk_driver = { "gtk", 
+					   NULL,
+					   NULL,
+					   video_gtk_resolve_keysym,
+					   video_gtk_set_output_format,
+					   video_gtk_set_render_format,
+					   video_gtk_display_frame,
+					   video_gtk_blank,
+					   video_glx_swap_buffers };
+
+gboolean video_gtk_keydown_callback(GtkWidget       *widget,
+				     GdkEventKey     *event,
+				     gpointer         user_data)
+{
+    input_event_keydown( event->keyval );
+}
+
+uint16_t video_gtk_resolve_keysym( const gchar *keysym )
+{
+    int val = gdk_keyval_from_name( keysym );
+    if( val == GDK_VoidSymbol )
+	return 0;
+    return (uint16_t)val;
+}
+
+gboolean video_gtk_keyup_callback(GtkWidget       *widget,
+				  GdkEventKey     *event,
+				  gpointer         user_data)
+{
+    input_event_keyup( event->keyval );
+}
 
 gboolean video_gtk_set_output_format( uint32_t width, uint32_t height,  
 				      int colour_format )
@@ -57,6 +81,13 @@ gboolean video_gtk_set_output_format( uint32_t width, uint32_t height,
 	gtk_window_set_policy( video_win, FALSE, FALSE, FALSE );
 	gtk_window_set_default_size( video_win, width, height );
     
+	g_signal_connect( video_win, "key_press_event", 
+			  G_CALLBACK(video_gtk_keydown_callback), NULL );
+	g_signal_connect( video_win, "key_release_event", 
+			  G_CALLBACK(video_gtk_keyup_callback), NULL );
+	gtk_widget_add_events( GTK_WIDGET(video_win), 
+			       GDK_KEY_PRESS_MASK | GDK_KEY_RELEASE_MASK |
+			       GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK );
 	video_area = gtk_image_new();
 	gtk_widget_show( GTK_WIDGET(video_area) );
 	gtk_container_add( GTK_CONTAINER(video_win), GTK_WIDGET(video_area) );
@@ -156,7 +187,7 @@ gboolean video_gtk_display_frame( video_buffer_t frame )
 }
 
 gboolean video_gtk_set_render_format( uint32_t width, uint32_t height,  
-				      int colour_format )
+				      int colour_format, gboolean texture )
 {
     return video_glx_set_render_format( 0, 0, width, height );
 }

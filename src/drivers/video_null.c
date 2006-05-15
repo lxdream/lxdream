@@ -1,5 +1,5 @@
 /**
- * $Id: video_null.c,v 1.1 2006-03-14 12:45:53 nkeynes Exp $
+ * $Id: video_null.c,v 1.2 2006-05-15 08:28:52 nkeynes Exp $
  *
  * Null video output driver (ie no video output whatsoever)
  *
@@ -16,7 +16,7 @@
  * GNU General Public License for more details.
  */
 
-#include "video.h"
+#include "display.h"
 
 gboolean video_null_set_output_format( uint32_t hres, uint32_t vres,
 				       int colour_format )
@@ -45,7 +45,7 @@ void video_null_display_back_buffer( void )
 }
 
 
-struct video_driver video_null_driver = { "null", 
+struct display_driver display_null_driver = { "null", 
 					 NULL,
 					 NULL,
 					 video_null_set_output_format,

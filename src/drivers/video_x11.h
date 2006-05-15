@@ -1,5 +1,5 @@
 /**
- * $Id: video_x11.h,v 1.2 2006-03-15 13:16:46 nkeynes Exp $
+ * $Id: video_x11.h,v 1.3 2006-05-15 08:28:52 nkeynes Exp $
  *
  * Parent for all X11 display drivers.
  *
@@ -20,7 +20,7 @@
 #define video_x11_driver_H
 
 #include "X11/Xlib.h"
-#include "video.h"
+#include "display.h"
 
 void video_x11_set_display( Display *display, Screen *screen, Window window );
 

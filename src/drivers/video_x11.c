@@ -1,5 +1,5 @@
 /**
- * $Id: video_x11.c,v 1.4 2006-03-16 12:42:28 nkeynes Exp $
+ * $Id: video_x11.c,v 1.5 2006-05-15 08:28:52 nkeynes Exp $
  *
  * Shared functions for all X11-based display drivers.
  *
@@ -19,7 +19,6 @@
 #include <X11/Xlib.h>
 #include <GL/glx.h>
 #include "dream.h"
-#include "video.h"
 #include "drivers/video_x11.h"
 
 /**

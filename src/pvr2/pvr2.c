@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.c,v 1.22 2006-03-30 11:30:59 nkeynes Exp $
+ * $Id: pvr2.c,v 1.23 2006-05-15 08:28:52 nkeynes Exp $
  *
  * PVR2 (Video) Core module implementation and MMIO registers.
  *
@@ -18,7 +18,7 @@
 #define MODULE pvr2_module
 
 #include "dream.h"
-#include "video.h"
+#include "display.h"
 #include "mem.h"
 #include "asic.h"
 #include "pvr2/pvr2.h"
@@ -41,7 +41,7 @@ struct dreamcast_module pvr2_module = { "PVR2", pvr2_init, pvr2_reset, NULL,
 					pvr2_save_state, pvr2_load_state };
 
 
-video_driver_t video_driver = NULL;
+display_driver_t display_driver = NULL;
 
 struct video_timing {
     int fields_per_second;
@@ -136,19 +136,6 @@ int pvr2_get_frame_count()
     return pvr2_state.frame_count;
 }
 
-void video_set_driver( video_driver_t driver )
-{
-    if( video_driver != NULL && video_driver->shutdown_driver != NULL )
-	video_driver->shutdown_driver();
-
-    video_driver = driver;
-    if( driver->init_driver != NULL )
-	driver->init_driver();
-    driver->set_display_format( 640, 480, COLFMT_RGB32 );
-    driver->set_render_format( 640, 480, COLFMT_RGB32, FALSE );
-    texcache_gl_init();
-}
-
 /**
  * Display the next frame, copying the current contents of video ram to
  * the window. If the video configuration has changed, first recompute the
@@ -193,18 +180,18 @@ void pvr2_display_frame( void )
 	    break;
 	}
 	
-	if( video_driver != NULL ) {
+	if( display_driver != NULL ) {
 	    if( buffer->hres != last->hres ||
 		buffer->vres != last->vres ||
 		buffer->colour_format != last->colour_format) {
-		video_driver->set_display_format( buffer->hres, buffer->vres,
+		display_driver->set_display_format( buffer->hres, buffer->vres,
 						  buffer->colour_format );
 	    }
 	    if( MMIO_READ( PVR2, DISPCFG2 ) & 0x08 ) { /* Blanked */
 		uint32_t colour = MMIO_READ( PVR2, DISPBORDER );
-		video_driver->display_blank_frame( colour );
+		display_driver->display_blank_frame( colour );
 	    } else if( !pvr2_render_display_frame( PVR2_RAM_BASE + display_addr ) ) {
-		video_driver->display_frame( buffer );
+		display_driver->display_frame( buffer );
 	    }
 	}
     } else {

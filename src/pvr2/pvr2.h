@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.h,v 1.12 2006-03-30 11:30:59 nkeynes Exp $
+ * $Id: pvr2.h,v 1.13 2006-05-15 08:28:52 nkeynes Exp $
  *
  * PVR2 (video chip) functions and macros.
  *
@@ -18,7 +18,7 @@
 
 #include "dream.h"
 #include "mem.h"
-#include "video.h"
+#include "display.h"
 #include "pvr2/pvr2mmio.h"
 #include <GL/gl.h>
 
@@ -97,8 +97,6 @@ int pvr2_get_frame_count( void );
 #define PVR2_TEX_IS_MIPMAPPED(x) ( (x) & PVR2_TEX_MIPMAP )
 #define PVR2_TEX_IS_COMPRESSED(x) ( (x) & PVR2_TEX_COMPRESSED )
 #define PVR2_TEX_IS_TWIDDLED(x) (((x) & PVR2_TEX_UNTWIDDLED) == 0)
-
-extern video_driver_t video_driver;
 
 /****************************** Frame Buffer *****************************/
 
