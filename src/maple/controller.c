@@ -1,5 +1,5 @@
 /**
- * $Id: controller.c,v 1.3 2006-05-15 08:28:52 nkeynes Exp $
+ * $Id: controller.c,v 1.4 2006-05-20 02:40:51 nkeynes Exp $
  *
  * Implements the standard dreamcast controller
  *
@@ -44,7 +44,7 @@ static struct controller_device base_controller = {
     { MAPLE_DEVICE_TAG, &controller_class, CONTROLLER_IDENT, CONTROLLER_VERSION, 
       controller_get_config, controller_attach, controller_detach, controller_destroy,
       NULL, NULL, controller_get_cond, NULL, NULL, NULL },
-    {0x0000FFFF, 0}, 
+    {0x0000FFFF, 0x80808080}, 
     {{ "dpad left", CONFIG_TYPE_KEY },
      { "dpad right", CONFIG_TYPE_KEY },
      { "dpad up", CONFIG_TYPE_KEY },
@@ -68,8 +68,6 @@ maple_device_t controller_new( )
 {
     controller_device_t dev = malloc( sizeof(struct controller_device) );
     memcpy( dev, &base_controller, sizeof(base_controller) );
-    memset( dev->condition, 0, 8 );
-    dev->condition[0] = 0x0000FFFF;
     return MAPLE_DEVICE(dev);
 }
 
@@ -80,11 +78,35 @@ void controller_key_callback( void *mdev, uint32_t value, gboolean isKeyDown )
 {
     controller_device_t dev = (controller_device_t)mdev;
     if( isKeyDown ) {
-	dev->condition[0] |= value;
-	fprintf( stderr, "Key %08X DOWN\n", value );
+	switch( value ) {
+	case JOY_LEFT:
+	    dev->condition[1] &= ~JOY_X_AXIS;
+	    break;
+	case JOY_RIGHT:
+	    dev->condition[1] |= JOY_X_AXIS;
+	    break;
+	case JOY_UP:
+	    dev->condition[1] &= ~JOY_Y_AXIS;
+	    break;
+	case JOY_DOWN:
+	    dev->condition[1] |= JOY_Y_AXIS;
+	    break;
+	default:
+	    dev->condition[0] &= ~value;
+	}
     } else {
-	dev->condition[0] &= ~value;
-	fprintf( stderr, "Key %08X UP\n", value );
+	switch(value ) {
+	case JOY_LEFT:
+	case JOY_RIGHT:
+	    dev->condition[1] = (dev->condition[1] & ~JOY_X_AXIS)| JOY_X_AXIS_CENTER;
+	    break;
+	case JOY_UP:
+	case JOY_DOWN:
+	    dev->condition[1] = (dev->condition[1] & ~JOY_Y_AXIS)| JOY_Y_AXIS_CENTER;
+	    break;
+	default:
+	    dev->condition[0] |= value;
+	}
     }
 }
 
@@ -110,10 +132,10 @@ void controller_attach( maple_device_t mdev )
     input_register_key( dev->config[1].value, controller_key_callback, dev, BUTTON_DPAD_RIGHT );
     input_register_key( dev->config[2].value, controller_key_callback, dev, BUTTON_DPAD_UP );
     input_register_key( dev->config[3].value, controller_key_callback, dev, BUTTON_DPAD_DOWN );
-    input_register_key( dev->config[4].value, controller_key_callback, dev, 0 );
-    input_register_key( dev->config[5].value, controller_key_callback, dev, 0 );
-    input_register_key( dev->config[6].value, controller_key_callback, dev, 0 );
-    input_register_key( dev->config[7].value, controller_key_callback, dev, 0 );
+    input_register_key( dev->config[4].value, controller_key_callback, dev, JOY_LEFT );
+    input_register_key( dev->config[5].value, controller_key_callback, dev, JOY_RIGHT );
+    input_register_key( dev->config[6].value, controller_key_callback, dev, JOY_UP );
+    input_register_key( dev->config[7].value, controller_key_callback, dev, JOY_DOWN );
     input_register_key( dev->config[8].value, controller_key_callback, dev, BUTTON_X );
     input_register_key( dev->config[9].value, controller_key_callback, dev, BUTTON_Y );
     input_register_key( dev->config[10].value, controller_key_callback, dev, BUTTON_A );
