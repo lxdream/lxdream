@@ -1,5 +1,5 @@
 /**
- * $Id: mem.h,v 1.7 2006-03-13 12:37:06 nkeynes Exp $
+ * $Id: mem.h,v 1.8 2006-05-20 02:38:58 nkeynes Exp $
  *
  * mem is responsible for creating and maintaining the overall system memory
  * map, as visible from the SH4 processor. (Note the ARM has a different map)
@@ -21,6 +21,7 @@
 #define dream_mem_H
 
 #include <stdint.h>
+#include "dream.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -41,17 +42,22 @@ typedef struct mem_region {
 #define MEM_REGION_VIDEO "Video RAM"
 #define MEM_REGION_AUDIO "Audio RAM"
 #define MEM_REGION_AUDIO_SCRATCH "Audio Scratch RAM"
+#define MEM_REGION_FLASH "System Flash"
 
 #define MB * (1024 * 1024)
 #define KB * 1024
 
 void *mem_create_ram_region( uint32_t base, uint32_t size, char *name );
+void *mem_create_repeating_ram_region( uint32_t base, uint32_t size, char *name, 
+				       uint32_t repeat_offset, uint32_t last_repeat );
 void *mem_load_rom( char *name, uint32_t base, uint32_t size, uint32_t crc );
 void *mem_alloc_pages( int n );
 char *mem_get_region( uint32_t addr );
 char *mem_get_region_by_name( char *name );
 int mem_has_page( uint32_t addr );
 char *mem_get_page( uint32_t addr );
+int mem_load_block( const gchar *filename, uint32_t base, uint32_t size );
+int mem_save_block( const gchar *filename, uint32_t base, uint32_t size );
 
 void mem_init( void );
 void mem_reset( void );

@@ -1,5 +1,5 @@
 /**
- * $Id: dreamcast.c,v 1.15 2006-05-15 08:28:48 nkeynes Exp $
+ * $Id: dreamcast.c,v 1.16 2006-05-20 02:38:58 nkeynes Exp $
  * Central switchboard for the system. This pulls all the individual modules
  * together into some kind of coherent structure. This is also where you'd
  * add Naomi support, if I ever get a board to play with...
@@ -62,12 +62,14 @@ void dreamcast_configure( )
     dreamcast_register_module( &mem_module );
 
     /* Setup standard memory map */
-    mem_create_ram_region( 0x0C000000, 16 MB, MEM_REGION_MAIN );
+    mem_create_repeating_ram_region( 0x0C000000, 16 MB, MEM_REGION_MAIN, 0x01000000, 0x0F000000 );
     mem_create_ram_region( 0x00800000, 2 MB, MEM_REGION_AUDIO );
     mem_create_ram_region( 0x00703000, 8 KB, MEM_REGION_AUDIO_SCRATCH );
     mem_create_ram_region( 0x05000000, 8 MB, MEM_REGION_VIDEO );
     mem_load_rom( "dcboot.rom", 0x00000000, 0x00200000, 0x89f2b1a1 );
-    mem_load_rom( "dcflash.rom",0x00200000, 0x00020000, 0x357c3568 );
+    mem_create_ram_region( 0x00200000, 0x00020000, MEM_REGION_FLASH );
+    mem_load_block( "../bios/dcflash.rom", 0x00200000, 0x00020000 );
+    //    mem_load_rom( "dcflash.rom",0x00200000, 0x00020000, 0x357c3568 );
 
     /* Load in the rest of the core modules */
     dreamcast_register_module( &sh4_module );
