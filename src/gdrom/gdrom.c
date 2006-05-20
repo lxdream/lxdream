@@ -1,5 +1,5 @@
 /**
- * $Id: gdrom.c,v 1.3 2006-05-03 12:52:38 nkeynes Exp $
+ * $Id: gdrom.c,v 1.4 2006-05-20 06:24:49 nkeynes Exp $
  *
  * GD-Rom  access functions.
  *
@@ -105,13 +105,13 @@ void gdrom_dump_disc( gdrom_disc_t disc ) {
     }
 }
 
-gboolean gdrom_get_toc( char *buf ) 
+gdrom_error_t gdrom_get_toc( char *buf ) 
 {
     struct gdrom_toc *toc = (struct gdrom_toc *)buf;
     int i;
 
     if( gdrom_disc == NULL )
-	return FALSE;
+	return PKT_ERR_NODISC;
 
     for( i=0; i<gdrom_disc->track_count; i++ ) {
 	toc->track[i] = htonl( gdrom_disc->track[i].lba ) | gdrom_disc->track[i].flags;
@@ -122,7 +122,23 @@ gboolean gdrom_get_toc( char *buf )
 	gdrom_disc->track[i-1].flags;
     for( ;i<99; i++ )
 	toc->track[i] = 0xFFFFFFFF;
-    return TRUE;
+    return PKT_ERR_OK;
+}
+
+gdrom_error_t gdrom_get_info( char *buf )
+{
+    if( gdrom_disc == NULL )
+	return PKT_ERR_NODISC;
+    struct gdrom_track *last_track = &gdrom_disc->track[gdrom_disc->track_count-1];
+    unsigned int end_of_disc = last_track->lba + last_track->sector_count;
+    
+    buf[0] = 0x01; /* Unknown. First session? */
+    buf[1] = 0;
+    buf[2] = last_track->session+1; /* last session */
+    buf[3] = (end_of_disc >> 16) & 0xFF;
+    buf[4] = (end_of_disc >> 8) & 0xFF;
+    buf[5] = end_of_disc & 0xFF;
+    return PKT_ERR_OK;
 }
 
 void gdrom_mount_disc( gdrom_disc_t disc ) 

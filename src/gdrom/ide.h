@@ -1,5 +1,5 @@
 /**
- * $Id: ide.h,v 1.6 2006-05-02 14:09:11 nkeynes Exp $
+ * $Id: ide.h,v 1.7 2006-05-20 06:24:49 nkeynes Exp $
  *
  * This file defines the interface and structures of the dreamcast's IDE 
  * port. Note that the register definitions are in asic.h, as the registers
@@ -57,6 +57,14 @@ struct ide_registers {
 #define IDE_ST_SERV  0x10
 #define IDE_ST_DATA  0x08
 #define IDE_ST_ERROR 0x01
+
+#define IDE_FEAT_DMA 0x01
+#define IDE_FEAT_OVL 0x02
+
+#define IDE_COUNT_CD 0x01
+#define IDE_COUNT_IO 0x02
+#define IDE_COUNT_REL 0x04
+
 
 #define IDE_CTL_RESET 0x04
 #define IDE_CTL_IRQEN 0x02 /* IRQ enabled when == 0 */
