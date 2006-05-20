@@ -1,5 +1,5 @@
 /**
- * $Id: gdrom.h,v 1.4 2006-05-03 12:52:38 nkeynes Exp $
+ * $Id: gdrom.h,v 1.5 2006-05-20 06:24:49 nkeynes Exp $
  *
  * This file defines the structures and functions used by the GD-Rom
  * disc driver. (ie, the modules that supply a CD image to be used by the
@@ -22,6 +22,8 @@
 #define dream_gdrom_H 1
 
 #include "dream.h"
+
+typedef uint16_t gdrom_error_t;
 
 struct gdrom_toc {
     uint32_t track[99];
@@ -95,9 +97,15 @@ gdrom_disc_t nrg_image_open( const gchar *filename );
 /**
  * Retrieve the disc table of contents, and write it into the buffer in the 
  * format expected by the DC.
- * @return TRUE on success, FALSE on failure (eg no disc mounted)
+ * @return 0 on success, error code on failure (eg no disc mounted)
  */
-gboolean gdrom_get_toc( char *buf );
+gdrom_error_t gdrom_get_toc( char *buf );
+
+/**
+ * Retrieve the short (6-byte) disc info, and write it into the buffer.
+ * @return 0 on success, error code on failure.
+ */
+gdrom_error_t gdrom_get_info( char *buf );
 
 /**
  * Shortcut to open and mount an image file

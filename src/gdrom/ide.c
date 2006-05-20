@@ -1,5 +1,5 @@
 /**
- * $Id: ide.c,v 1.12 2006-05-03 12:52:38 nkeynes Exp $
+ * $Id: ide.c,v 1.13 2006-05-20 06:24:49 nkeynes Exp $
  *
  * IDE interface implementation
  *
@@ -187,6 +187,7 @@ void ide_write_command( uint8_t val ) {
 	ide_reset();
 	break;
     case IDE_CMD_PACKET:
+	idereg.count = 0x01;
 	ide_set_write_buffer(command_buffer,12);
 	break;
     case IDE_CMD_SET_FEATURE:
@@ -278,13 +279,25 @@ void ide_packet_command( unsigned char *cmd )
 	ide_set_read_buffer( data_buffer, length , blocksize );
 	break;
     case PKT_CMD_READ_TOC:
-	if( !gdrom_get_toc( data_buffer ) ) {
-	    ide_set_packet_error( PKT_ERR_NODISC ); /* No disc in drive */
+	status = gdrom_get_toc( data_buffer );
+	if( status != PKT_ERR_OK ) {
+	    ide_set_packet_error( status );
 	    return;
-	} 
+	}
 	length = (cmd[3]<<8) | cmd[4];
 	if( length > sizeof(struct gdrom_toc) )
 	    length = sizeof(struct gdrom_toc);
+	ide_set_read_buffer( data_buffer, length, blocksize );
+	break;
+    case PKT_CMD_DISC_INFO:
+	status = gdrom_get_info( data_buffer );
+	if( status != PKT_ERR_OK ) {
+	    ide_set_packet_error( status );
+	    return;
+	}
+	length = cmd[4];
+	if( length > 6 )
+	    length = 6;
 	ide_set_read_buffer( data_buffer, length, blocksize );
 	break;
     case PKT_CMD_READ_SECTOR:
@@ -316,6 +329,9 @@ void ide_packet_command( unsigned char *cmd )
 	    return;
 	}
 	ide_set_read_buffer( data_buffer, datalen, blocksize );
+	break;
+    case PKT_CMD_SPIN_UP:
+	/* do nothing? */
 	break;
     default:
 	ide_set_packet_error( PKT_ERR_BADCMD ); /* Invalid command */
