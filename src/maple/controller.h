@@ -1,5 +1,5 @@
 /**
- * $Id: controller.h,v 1.2 2005-12-25 08:24:11 nkeynes Exp $
+ * $Id: controller.h,v 1.3 2006-05-20 02:40:51 nkeynes Exp $
  *
  * Definitions for the standard controller device
  *
@@ -35,8 +35,18 @@
 /* Second word of controller condition (bitmasks) */
 #define JOY_X_AXIS          0x000000FF
 #define JOY_Y_AXIS          0x0000FF00
+#define JOY_X_AXIS_CENTER   0x00000080
+#define JOY_Y_AXIS_CENTER   0x00008000
 #define JOY2_X_AXIS         0x00FF0000 /* not on standard controller */
 #define JOY2_Y_AXIS         0xFF000000 /* not on standard controller */
+
+/* The following bits are used by the emulator for flags but don't actually
+ * appear in the hardware
+ */
+#define JOY_LEFT            0x80000001
+#define JOY_RIGHT           0x80000002
+#define JOY_UP              0x80000004
+#define JOY_DOWN            0x80000008
 
 /* Standard controller ID */
 #define CONTROLLER_IDENT {0x00, 0x00, 0x00, 0x01,  0x00, 0x0f, 0x06, 0xfe,  0x00, 0x00, 0x00, 0x00, \
