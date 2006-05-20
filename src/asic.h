@@ -1,5 +1,5 @@
 /**
- * $Id: asic.h,v 1.7 2006-04-30 01:50:13 nkeynes Exp $
+ * $Id: asic.h,v 1.8 2006-05-20 02:40:16 nkeynes Exp $
  *
  * Support for the miscellaneous ASIC functions (Primarily event multiplexing,
  * and DMA). Includes MMIO definitions for the 5f6000 and 5f7000 regions, 
@@ -29,17 +29,22 @@ MMIO_REGION_BEGIN( 0x005F6000, ASIC, "System ASIC" )
     LONG_PORT( 0x800, PVRDMADEST, PORT_MRW, 0, "PVR DMA Dest Address" )
     LONG_PORT( 0x804, PVRDMACNT, PORT_MRW, 0, "PVR DMA Byte Count" )
     LONG_PORT( 0x808, PVRDMACTL, PORT_MRW, 0, "PVR DMA Control" )
-    LONG_PORT( 0x810, ASICUNK1, PORT_MRW, 0, "ASIC <unknown1>" )
-    LONG_PORT( 0x814, ASICUNK2, PORT_MRW, 0, "ASIC <unknown2>" )
+    LONG_PORT( 0x810, ASICUNK1, PORT_MRW, 0, "ASIC <unknown1 - host address?>" )
+    LONG_PORT( 0x814, ASICUNK2, PORT_MRW, 0, "ASIC <unknown2 - host address?>" )
     LONG_PORT( 0x818, ASICUNK3, PORT_MRW, 0, "ASIC <unknown3>" )
     LONG_PORT( 0x81C, ASICUNK4, PORT_MRW, 0, "ASIC <unknown4>" )
-    LONG_PORT( 0x884, ASICUNK5, PORT_MRW, 0, "ASIC <unknown5>" )
-    LONG_PORT( 0x888, ASICUNK6, PORT_MRW, 0, "ASIC <unknown6>" )
+    LONG_PORT( 0x820, ASICUNKF, PORT_MRW, 0, "ASIC <unknownF>" )
+    LONG_PORT( 0x840, ASICUNK5, PORT_MRW, 0, "ASIC <unknown5>" )
+    LONG_PORT( 0x844, ASICUNK6, PORT_MRW, 0, "ASIC <unknown6>" )
+    LONG_PORT( 0x848, ASICUNK7, PORT_MRW, 0, "ASIC <unknown7>" )
+    LONG_PORT( 0x84C, ASICUNK8, PORT_MRW, 0, "ASIC <unknown8>" )
+    LONG_PORT( 0x884, ASICUNK9, PORT_MRW, 0, "ASIC <unknown9>" )
+    LONG_PORT( 0x888, ASICUNKA, PORT_MRW, 0, "ASIC <unknownA>" )
     LONG_PORT( 0x88C, G2STATUS, PORT_MR, 0, "G2 Bus status" )
-    LONG_PORT( 0x89C, ASICUNK7, PORT_MRW, 0xB, "Unknown, always 0xB?" )
-    LONG_PORT( 0x8A0, ASICUNK8, PORT_MRW, 0, "ASIC <unknown8>" )
-    LONG_PORT( 0x8A4, ASICUNK9, PORT_MRW, 0, "ASIC <unknown9>" )
-    LONG_PORT( 0x8AC, ASICUNKA, PORT_MRW, 0, "ASIC <unknownA>" )
+    LONG_PORT( 0x89C, ASICUNKB, PORT_MRW, 0xB, "Unknown, always 0xB?" )
+    LONG_PORT( 0x8A0, ASICUNKC, PORT_MRW, 0, "ASIC <unknownC>" )
+    LONG_PORT( 0x8A4, ASICUNKD, PORT_MRW, 0, "ASIC <unknownD>" )
+    LONG_PORT( 0x8AC, ASICUNKE, PORT_MRW, 0, "ASIC <unknownE>" )
     LONG_PORT( 0x900, PIRQ0, PORT_MRW, 0, "Pending interrupts 0" )
     LONG_PORT( 0x904, PIRQ1, PORT_MRW, 0, "Pending interrupts 1" )
     LONG_PORT( 0x908, PIRQ2, PORT_MRW, 0, "Pending interrupts 2" )
