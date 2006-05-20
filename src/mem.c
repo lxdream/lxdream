@@ -1,5 +1,5 @@
 /**
- * $Id: mem.c,v 1.11 2006-01-10 14:00:00 nkeynes Exp $
+ * $Id: mem.c,v 1.12 2006-05-20 02:38:58 nkeynes Exp $
  * mem.c is responsible for creating and maintaining the overall system memory
  * map, as visible from the SH4 processor. 
  *
@@ -222,7 +222,8 @@ int mem_load_block( const gchar *file, uint32_t start, uint32_t length )
 }
 
 struct mem_region *mem_map_region( void *mem, uint32_t base, uint32_t size,
-                                   char *name, int flags )
+                                   char *name, int flags, uint32_t repeat_offset,
+				   uint32_t repeat_until )
 {
     int i;
     mem_rgn[num_mem_rgns].base = base;
@@ -232,13 +233,22 @@ struct mem_region *mem_map_region( void *mem, uint32_t base, uint32_t size,
     mem_rgn[num_mem_rgns].mem = mem;
     num_mem_rgns++;
 
-    for( i=0; i<size>>PAGE_BITS; i++ )
-        page_map[(base>>PAGE_BITS)+i] = mem + (i<<PAGE_BITS);
+    do {
+	for( i=0; i<size>>PAGE_BITS; i++ )
+	    page_map[(base>>PAGE_BITS)+i] = mem + (i<<PAGE_BITS);
+	base += repeat_offset;	
+    } while( base <= repeat_until );
 
     return &mem_rgn[num_mem_rgns-1];
 }
 
 void *mem_create_ram_region( uint32_t base, uint32_t size, char *name )
+{
+    return mem_create_repeating_ram_region( base, size, name, size, base );
+}
+
+void *mem_create_repeating_ram_region( uint32_t base, uint32_t size, char *name,
+				       uint32_t repeat_offset, uint32_t repeat_until )
 {
     char *mem;
     
@@ -249,7 +259,8 @@ void *mem_create_ram_region( uint32_t base, uint32_t size, char *name )
 
     mem = mem_alloc_pages( size>>PAGE_BITS );
 
-    mem_map_region( mem, base, size, name, MEM_FLAG_RAM );
+    mem_map_region( mem, base, size, name, MEM_FLAG_RAM, repeat_offset, repeat_until );
+    
     return mem;
 }
 
@@ -270,7 +281,7 @@ void *mem_load_rom( char *file, uint32_t base, uint32_t size, uint32_t crc )
         close(fd);
         return NULL;
     }
-    mem_map_region( mem, base, size, file, MEM_FLAG_ROM );
+    mem_map_region( mem, base, size, file, MEM_FLAG_ROM, size, base );
 
     /* CRC check */
     calc_crc = crc32(0L, mem, size);
