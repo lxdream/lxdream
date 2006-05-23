@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.c,v 1.23 2006-05-15 08:28:52 nkeynes Exp $
+ * $Id: pvr2.c,v 1.24 2006-05-23 13:11:09 nkeynes Exp $
  *
  * PVR2 (Video) Core module implementation and MMIO registers.
  *
@@ -209,6 +209,10 @@ void mmio_region_PVR2_write( uint32_t reg, uint32_t val )
         return;
     }
     
+    if( reg == PVRID ) {
+	ERROR( "Write attempted to readonly register PVRID: ", val );
+	return;
+    }
     INFO( "PVR2 write to %08X <= %08X [%s: %s]", reg, val, 
           MMIO_REGID(PVR2,reg), MMIO_REGDESC(PVR2,reg) );
 
