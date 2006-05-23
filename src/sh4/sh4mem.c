@@ -1,5 +1,5 @@
 /**
- * $Id: sh4mem.c,v 1.10 2006-04-30 01:50:15 nkeynes Exp $
+ * $Id: sh4mem.c,v 1.11 2006-05-23 13:10:28 nkeynes Exp $
  * sh4mem.c is responsible for the SH4's access to memory (including memory
  * mapped I/O), using the page maps created in mem.c
  *
@@ -221,6 +221,7 @@ void sh4_write_long( uint32_t addr, uint32_t val )
     }
     if( (addr&0x1F800000) == 0x04000000 || 
 	(addr&0x1F800000) == 0x11000000 ) {
+	texcache_invalidate_page(addr& 0x7FFFFF);
         addr = TRANSLATE_VIDEO_64BIT_ADDRESS(addr);
     }
 
@@ -265,6 +266,7 @@ void sh4_write_word( uint32_t addr, uint32_t val )
     }
     if( (addr&0x1F800000) == 0x04000000 ||
 	(addr&0x1F800000) == 0x11000000 ) {
+	texcache_invalidate_page(addr& 0x7FFFFF);
         addr = TRANSLATE_VIDEO_64BIT_ADDRESS(addr);
     }
     if( IS_MMU_ENABLED() ) {
@@ -297,6 +299,7 @@ void sh4_write_byte( uint32_t addr, uint32_t val )
     }
     if( (addr&0x1F800000) == 0x04000000 ||
 	(addr&0x1F800000) == 0x11000000 ) {
+	texcache_invalidate_page(addr& 0x7FFFFF);
         addr = TRANSLATE_VIDEO_64BIT_ADDRESS(addr);
     }
     
