@@ -1,5 +1,5 @@
 /**
- * $Id: ide.h,v 1.7 2006-05-20 06:24:49 nkeynes Exp $
+ * $Id: ide.h,v 1.8 2006-05-23 13:11:45 nkeynes Exp $
  *
  * This file defines the interface and structures of the dreamcast's IDE 
  * port. Note that the register definitions are in asic.h, as the registers
@@ -26,6 +26,7 @@
 #include "dream.h"
 
 struct ide_registers {
+    /* IDE interface registers */
     uint8_t status;  /* A05F709C + A05F7018 Read-only */
     uint8_t control; /* A05F7018 Write-only 01110 */
     uint8_t error;   /* A05F7084 Read-only  10001 */
@@ -37,33 +38,47 @@ struct ide_registers {
     uint8_t lba2;    /* A05F7094 Read/Write 10101 */
     uint8_t device;  /* A05F7098 Read/Write 10110 */
     uint8_t command; /* A05F709C Write-only 10111 */
-    uint8_t intrq_pending; /* Flag to indicate if the INTRQ line is active */
 
-    /* We don't keep the data register per se, rather the currently pending
-     * data is kept here and read out a byte at a time (in PIO mode) or all at
-     * once (in DMA mode). The IDE routines are responsible for managing this
-     * memory. If dataptr == NULL, there is no data available.
-     */
-    unsigned char *data;
-    uint16_t *readptr, *writeptr;
-    uint16_t gdrom_error; /* Lo-byte = error code, Hi-byte = subcode */
-    int datalen;
-    int blocksize; /* Used to determine the transfer unit size */
-    int blockleft; /* Bytes remaining in the current block */
+    /* Internal IDE state */
+    uint8_t intrq_pending; /* Flag to indicate if the INTRQ line is active */
+    int state;
+
+    /* Sense response for the last executed packet command */
+    unsigned char gdrom_sense[10];
+
+
+    /* offset in the buffer of the next word to read/write, or -1
+     * if inactive.
+     */ 
+    int data_offset;
+    int data_length;
+   
+    int block_length; /* Used to determine the transfer unit size */
+    int block_left; /* Bytes remaining in the current block */
 };
 
-#define IDE_ST_BUSY  0x80
-#define IDE_ST_READY 0x40
-#define IDE_ST_SERV  0x10
-#define IDE_ST_DATA  0x08
-#define IDE_ST_ERROR 0x01
+#define IDE_STATE_IDLE      0 
+#define IDE_STATE_CMD_WRITE 1
+#define IDE_STATE_PIO_READ  2
+#define IDE_STATE_PIO_WRITE 3
+#define IDE_STATE_DMA_READ  4
+#define IDE_STATE_DMA_WRITE 5
+#define IDE_STATE_BUSY      6
+
+/* Flag bits */
+#define IDE_STATUS_BSY  0x80    /* Busy */
+#define IDE_STATUS_DRDY 0x40    /* Device ready */
+#define IDE_STATUS_DMRD 0x20    /* DMA Request */
+#define IDE_STATUS_SERV 0x10   
+#define IDE_STATUS_DRQ  0x08
+#define IDE_STATUS_CHK  0x01    /* Check condition (ie error) */
 
 #define IDE_FEAT_DMA 0x01
 #define IDE_FEAT_OVL 0x02
 
-#define IDE_COUNT_CD 0x01
-#define IDE_COUNT_IO 0x02
-#define IDE_COUNT_REL 0x04
+#define IDE_COUNT_CD 0x01       /* Command (1)/Data (0) */
+#define IDE_COUNT_IO 0x02       /* Input (0)/Output (1) */
+#define IDE_COUNT_REL 0x04      /* Release device */
 
 
 #define IDE_CTL_RESET 0x04
@@ -91,10 +106,13 @@ extern struct ide_registers idereg;
 
 
 uint16_t ide_read_data_pio(void);
-uint8_t ide_read_status(void);
 void ide_write_data_pio( uint16_t value );
+uint32_t ide_read_data_dma( uint32_t addr, uint32_t length );
+uint8_t ide_read_status(void);
 void ide_write_buffer( unsigned char *data, int length ); 
 
 void ide_write_command( uint8_t command );
 void ide_write_control( uint8_t value );
+
+void ide_dma_read_req( uint32_t addr, uint32_t length );
 #endif

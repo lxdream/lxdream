@@ -1,5 +1,5 @@
 /**
- * $Id: gdrom.c,v 1.4 2006-05-20 06:24:49 nkeynes Exp $
+ * $Id: gdrom.c,v 1.5 2006-05-23 13:11:45 nkeynes Exp $
  *
  * GD-Rom  access functions.
  *
@@ -24,7 +24,7 @@
 #include "dream.h"
 
 static void gdrom_image_destroy( gdrom_disc_t );
-static uint32_t gdrom_image_read_sectors( gdrom_disc_t, uint32_t, uint32_t, int, char *, uint32_t * );
+static gdrom_error_t gdrom_image_read_sectors( gdrom_disc_t, uint32_t, uint32_t, int, char *, uint32_t * );
 
 
 gdrom_disc_t gdrom_disc = NULL;
@@ -59,28 +59,56 @@ static void gdrom_image_destroy( gdrom_disc_t disc )
     free( disc );
 }
 
-static uint32_t gdrom_image_read_sectors( gdrom_disc_t disc, uint32_t sector,
-					  uint32_t sector_count, int mode, char *buf,
-					  uint32_t *length )
+static gdrom_error_t gdrom_image_read_sectors( gdrom_disc_t disc, uint32_t sector,
+					       uint32_t sector_count, int mode, char *buf,
+					       uint32_t *length )
 {
-    int i, track = -1, track_offset, read_len;
+    int i, file_offset, read_len;
+    struct gdrom_track *track = NULL;
 
     for( i=0; i<disc->track_count; i++ ) {
 	if( disc->track[i].lba <= sector && 
 	    (sector + sector_count) <= (disc->track[i].lba + disc->track[i].sector_count) ) {
-	    track = i;
+	    track = &disc->track[i];
 	    break;
 	}
     }
-    if( track == -1 )
+    if( track == NULL )
 	return PKT_ERR_BADREAD;
-    if( mode == GDROM_GD && disc->track[i].mode != GDROM_GD )
+
+    file_offset = track->offset + track->sector_size * (sector - track->lba);
+    read_len = track->sector_size * sector_count;
+    fseek( disc->file, file_offset, SEEK_SET );
+
+    switch( mode ) {
+    case GDROM_GD:
+	if( track->mode != GDROM_GD ) 
+	    return PKT_ERR_BADREADMODE;
+	break;
+    case GDROM_MODE1:
+	switch( track->mode ) {
+	case GDROM_MODE1:
+	case GDROM_MODE2_XA1:
+	    fread( buf, track->sector_size, sector_count, disc->file );
+	    break;
+	case GDROM_MODE2:
+	    read_len = sector_count * 2048;
+	    while( sector_count > 0 ) {
+		fread( buf, 2048, 1, disc->file );
+		file_offset += track->sector_size;
+		buf += 2048;
+		fseek( disc->file, file_offset, SEEK_SET );
+		sector_count--;
+	    }
+	    break;
+	default:
+	    return PKT_ERR_BADREADMODE;
+	}
+	break;
+    default:
 	return PKT_ERR_BADREADMODE;
-    
-    track_offset = disc->track[track].sector_size * (sector - disc->track[track].lba);
-    read_len = disc->track[track].sector_size * sector_count;
-    fseek( disc->file, disc->track[track].offset + track_offset, SEEK_SET );
-    fread( buf, disc->track[track].sector_size, sector_count, disc->file );
+    }
+	    
     *length = read_len;
     return PKT_ERR_OK;
 }
@@ -125,20 +153,36 @@ gdrom_error_t gdrom_get_toc( char *buf )
     return PKT_ERR_OK;
 }
 
-gdrom_error_t gdrom_get_info( char *buf )
+gdrom_error_t gdrom_get_info( char *buf, int session )
 {
     if( gdrom_disc == NULL )
 	return PKT_ERR_NODISC;
     struct gdrom_track *last_track = &gdrom_disc->track[gdrom_disc->track_count-1];
     unsigned int end_of_disc = last_track->lba + last_track->sector_count;
-    
-    buf[0] = 0x01; /* Unknown. First session? */
+    int i;
+    buf[0] = 0x01; /* Disc status? */
     buf[1] = 0;
-    buf[2] = last_track->session+1; /* last session */
-    buf[3] = (end_of_disc >> 16) & 0xFF;
-    buf[4] = (end_of_disc >> 8) & 0xFF;
-    buf[5] = end_of_disc & 0xFF;
-    return PKT_ERR_OK;
+
+    if( session == 0 ) {
+	buf[2] = last_track->session+1; /* last session */
+	buf[3] = (end_of_disc >> 16) & 0xFF;
+	buf[4] = (end_of_disc >> 8) & 0xFF;
+	buf[5] = end_of_disc & 0xFF;
+	return PKT_ERR_OK;
+    } else {
+	session--;
+	for( i=0; i<gdrom_disc->track_count; i++ ) {
+	    if( gdrom_disc->track[i].session == session ) {
+		buf[2] = i+1; /* first track of session */
+		buf[3] = (gdrom_disc->track[i].lba >> 16) & 0xFF;
+		buf[4] = (gdrom_disc->track[i].lba >> 8) & 0xFF;
+		buf[5] = gdrom_disc->track[i].lba & 0xFF;
+		return PKT_ERR_OK;
+	    }
+	}
+	return PKT_ERR_BADFIELD; /* No such session */
+    }
+	
 }
 
 void gdrom_mount_disc( gdrom_disc_t disc ) 
