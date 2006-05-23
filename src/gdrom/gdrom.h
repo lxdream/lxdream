@@ -1,5 +1,5 @@
 /**
- * $Id: gdrom.h,v 1.5 2006-05-20 06:24:49 nkeynes Exp $
+ * $Id: gdrom.h,v 1.6 2006-05-23 13:11:45 nkeynes Exp $
  *
  * This file defines the structures and functions used by the GD-Rom
  * disc driver. (ie, the modules that supply a CD image to be used by the
@@ -77,7 +77,7 @@ typedef struct gdrom_disc {
     gchar mcn[14]; /* Media catalogue number */
     const gchar *filename; /* Image filename */
     FILE *file; /* Stream, for image files */
-    uint32_t (*read_sectors)( struct gdrom_disc *disc,
+    gdrom_error_t (*read_sectors)( struct gdrom_disc *disc,
 			      uint32_t lba, uint32_t sector_count,
 			      int mode, char *buf, uint32_t *length );
     void (*close)( struct gdrom_disc *disc );
@@ -102,10 +102,10 @@ gdrom_disc_t nrg_image_open( const gchar *filename );
 gdrom_error_t gdrom_get_toc( char *buf );
 
 /**
- * Retrieve the short (6-byte) disc info, and write it into the buffer.
+ * Retrieve the short (6-byte) session info, and write it into the buffer.
  * @return 0 on success, error code on failure.
  */
-gdrom_error_t gdrom_get_info( char *buf );
+gdrom_error_t gdrom_get_info( char *buf, int session );
 
 /**
  * Shortcut to open and mount an image file
