@@ -1,5 +1,5 @@
 /**
- * $Id: asic.h,v 1.8 2006-05-20 02:40:16 nkeynes Exp $
+ * $Id: asic.h,v 1.9 2006-05-24 11:50:19 nkeynes Exp $
  *
  * Support for the miscellaneous ASIC functions (Primarily event multiplexing,
  * and DMA). Includes MMIO definitions for the 5f6000 and 5f7000 regions, 
@@ -203,5 +203,4 @@ void asic_event( int event );
  */
 void asic_clear_event( int event );
 
-void asic_init( void );
 void asic_g2_write_word( );
