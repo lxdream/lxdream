@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.c,v 1.24 2006-05-23 13:11:09 nkeynes Exp $
+ * $Id: pvr2.c,v 1.25 2006-05-24 11:48:58 nkeynes Exp $
  *
  * PVR2 (Video) Core module implementation and MMIO registers.
  *
@@ -98,7 +98,9 @@ static void pvr2_save_state( FILE *f )
 
 static int pvr2_load_state( FILE *f )
 {
-    fread( &pvr2_state, sizeof(pvr2_state), 1, f );
+    if( fread( &pvr2_state, sizeof(pvr2_state), 1, f ) != 1 )
+	return 1;
+    return 0;
 }
 
 static uint32_t pvr2_run_slice( uint32_t nanosecs ) 
