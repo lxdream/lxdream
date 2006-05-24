@@ -1,5 +1,5 @@
 /**
- * $Id: asic.c,v 1.14 2006-04-30 01:50:13 nkeynes Exp $
+ * $Id: asic.c,v 1.15 2006-05-24 11:50:19 nkeynes Exp $
  *
  * Support for the miscellaneous ASIC functions (Primarily event multiplexing,
  * and DMA). 
@@ -41,8 +41,14 @@
  * practically nothing is publicly known...
  */
 
-struct dreamcast_module asic_module = { "ASIC", asic_init, NULL, NULL, NULL,
-					NULL, NULL, NULL };
+static void asic_check_cleared_events( void );
+static void asic_init( void );
+static void asic_reset( void );
+static void asic_save_state( FILE *f );
+static int asic_load_state( FILE *f );
+
+struct dreamcast_module asic_module = { "ASIC", asic_init, asic_reset, NULL, NULL,
+					NULL, asic_save_state, asic_load_state };
 
 #define G2_BIT5_TICKS 8
 #define G2_BIT4_TICKS 16
@@ -55,7 +61,36 @@ struct asic_g2_state {
     unsigned int bit4_off_timer;
     unsigned int bit0_on_timer;
     unsigned int bit0_off_timer;
-} g2_state;
+};
+
+static struct asic_g2_state g2_state;
+
+static void asic_init( void )
+{
+    register_io_region( &mmio_region_ASIC );
+    register_io_region( &mmio_region_EXTDMA );
+    mmio_region_ASIC.trace_flag = 0; /* Because this is called so often */
+    asic_reset();
+}
+
+static void asic_reset( void )
+{
+    memset( &g2_state, 0, sizeof(g2_state) );
+}    
+
+static void asic_save_state( FILE *f )
+{
+    fwrite( &g2_state, sizeof(g2_state), 1, f );
+}
+
+static int asic_load_state( FILE *f )
+{
+    if( fread( &g2_state, sizeof(g2_state), 1, f ) != 1 )
+	return 1;
+    else
+	return 0;
+}
+
 
 /* FIXME: Handle rollover */
 void asic_g2_write_word()
@@ -89,14 +124,68 @@ static uint32_t g2_read_status()
     return val | 0x0E;
 }   
 
-void asic_check_cleared_events( void );
 
-void asic_init( void )
+void asic_event( int event )
 {
-    register_io_region( &mmio_region_ASIC );
-    register_io_region( &mmio_region_EXTDMA );
-    mmio_region_ASIC.trace_flag = 0; /* Because this is called so often */
+    int offset = ((event&0x60)>>3);
+    int result = (MMIO_READ(ASIC, PIRQ0 + offset))  |=  (1<<(event&0x1F));
+
+    if( result & MMIO_READ(ASIC, IRQA0 + offset) )
+        intc_raise_interrupt( INT_IRQ13 );
+    if( result & MMIO_READ(ASIC, IRQB0 + offset) )
+        intc_raise_interrupt( INT_IRQ11 );
+    if( result & MMIO_READ(ASIC, IRQC0 + offset) )
+        intc_raise_interrupt( INT_IRQ9 );
 }
+
+void asic_clear_event( int event ) {
+    int offset = ((event&0x60)>>3);
+    uint32_t result = MMIO_READ(ASIC, PIRQ0 + offset)  & (~(1<<(event&0x1F)));
+    MMIO_WRITE( ASIC, PIRQ0 + offset, result );
+
+    asic_check_cleared_events();
+}
+
+void asic_check_cleared_events( )
+{
+    int i, setA = 0, setB = 0, setC = 0;
+    uint32_t bits;
+    for( i=0; i<3; i++ ) {
+	bits = MMIO_READ( ASIC, PIRQ0 + i );
+	setA |= (bits & MMIO_READ(ASIC, IRQA0 + i ));
+	setB |= (bits & MMIO_READ(ASIC, IRQB0 + i ));
+	setC |= (bits & MMIO_READ(ASIC, IRQC0 + i ));
+    }
+    if( setA == 0 )
+	intc_clear_interrupt( INT_IRQ13 );
+    if( setB == 0 )
+	intc_clear_interrupt( INT_IRQ11 );
+    if( setC == 0 )
+	intc_clear_interrupt( INT_IRQ9 );
+}
+
+
+void asic_ide_dma_transfer( )
+{	
+    if( MMIO_READ( EXTDMA, IDEDMACTL2 ) == 1 &&
+	MMIO_READ( EXTDMA, IDEDMACTL1 ) == 0 ) {
+	uint32_t addr = MMIO_READ( EXTDMA, IDEDMASH4 );
+	uint32_t length = MMIO_READ( EXTDMA, IDEDMASIZ );
+	int dir = MMIO_READ( EXTDMA, IDEDMADIR );
+	
+	uint32_t xfer = ide_read_data_dma( addr, length );
+	if( xfer != 0 ) {
+	    MMIO_WRITE( EXTDMA, IDEDMASH4, addr + xfer );
+	    MMIO_WRITE( EXTDMA, IDEDMASIZ, length - xfer );
+	    if( xfer == length ) {
+		MMIO_WRITE( EXTDMA, IDEDMACTL2, 0 );
+		asic_event( EVENT_IDE_DMA );
+	    }
+	}
+    }
+
+}
+
 
 void mmio_region_ASIC_write( uint32_t reg, uint32_t val )
 {
@@ -114,15 +203,13 @@ void mmio_region_ASIC_write( uint32_t reg, uint32_t val )
 	MMIO_WRITE( ASIC, reg, val );
 	if( val & 1 ) {
 	    uint32_t maple_addr = MMIO_READ( ASIC, MAPLE_DMA) &0x1FFFFFE0;
-	    WARN( "Maple request initiated at %08X, halting", maple_addr );
+	    // WARN( "Maple request initiated at %08X, halting", maple_addr );
 	    maple_handle_buffer( maple_addr );
 	    MMIO_WRITE( ASIC, reg, 0 );
 	}
 	break;
     case PVRDMACTL: /* Initiate PVR DMA transfer */
 	MMIO_WRITE( ASIC, reg, val );
-	WARN( "Write to ASIC (%03X <= %08X) [%s: %s]",
-	      reg, val, MMIO_REGID(ASIC,reg), MMIO_REGDESC(ASIC,reg) );
 	if( val & 1 ) {
 	    uint32_t dest_addr = MMIO_READ( ASIC, PVRDMADEST) &0x1FFFFFE0;
 	    uint32_t count = MMIO_READ( ASIC, PVRDMACNT );
@@ -177,46 +264,6 @@ int32_t mmio_region_ASIC_read( uint32_t reg )
     
 }
 
-void asic_event( int event )
-{
-    int offset = ((event&0x60)>>3);
-    int result = (MMIO_READ(ASIC, PIRQ0 + offset))  |=  (1<<(event&0x1F));
-
-    if( result & MMIO_READ(ASIC, IRQA0 + offset) )
-        intc_raise_interrupt( INT_IRQ13 );
-    if( result & MMIO_READ(ASIC, IRQB0 + offset) )
-        intc_raise_interrupt( INT_IRQ11 );
-    if( result & MMIO_READ(ASIC, IRQC0 + offset) )
-        intc_raise_interrupt( INT_IRQ9 );
-}
-
-void asic_clear_event( int event ) {
-    int offset = ((event&0x60)>>3);
-    uint32_t result = MMIO_READ(ASIC, PIRQ0 + offset)  & (~(1<<(event&0x1F)));
-    MMIO_WRITE( ASIC, PIRQ0 + offset, result );
-
-    asic_check_cleared_events();
-}
-
-void asic_check_cleared_events( )
-{
-    int i, setA = 0, setB = 0, setC = 0;
-    uint32_t bits;
-    for( i=0; i<3; i++ ) {
-	bits = MMIO_READ( ASIC, PIRQ0 + i );
-	setA |= (bits & MMIO_READ(ASIC, IRQA0 + i ));
-	setB |= (bits & MMIO_READ(ASIC, IRQB0 + i ));
-	setC |= (bits & MMIO_READ(ASIC, IRQC0 + i ));
-    }
-    if( setA == 0 )
-	intc_clear_interrupt( INT_IRQ13 );
-    if( setB == 0 )
-	intc_clear_interrupt( INT_IRQ11 );
-    if( setC == 0 )
-	intc_clear_interrupt( INT_IRQ9 );
-}
-
-
 MMIO_REGION_WRITE_FN( EXTDMA, reg, val )
 {
     WARN( "EXTDMA write %08X <= %08X", reg, val );
@@ -258,14 +305,10 @@ MMIO_REGION_WRITE_FN( EXTDMA, reg, val )
 	}
 	break;
     case IDEDMACTL1:
+	MMIO_WRITE( EXTDMA, reg, val );
     case IDEDMACTL2:
 	MMIO_WRITE( EXTDMA, reg, val );
-	if( MMIO_READ( EXTDMA, IDEDMACTL1 ) == 1 &&
-	    MMIO_READ( EXTDMA, IDEDMACTL2 ) == 1 ) {
-	    uint32_t target_addr = MMIO_READ( EXTDMA, IDEDMASH4 );
-	    uint32_t length = MMIO_READ( EXTDMA, IDEDMASIZ );
-	    int dir = MMIO_READ( EXTDMA, IDEDMADIR );
-	}
+	asic_ide_dma_transfer( );
 	break;
     default:
             MMIO_WRITE( EXTDMA, reg, val );
