@@ -1,5 +1,5 @@
 /**
- * $Id: gdrom.c,v 1.5 2006-05-23 13:11:45 nkeynes Exp $
+ * $Id: gdrom.c,v 1.6 2006-05-24 11:49:38 nkeynes Exp $
  *
  * GD-Rom  access functions.
  *
@@ -78,7 +78,6 @@ static gdrom_error_t gdrom_image_read_sectors( gdrom_disc_t disc, uint32_t secto
 
     file_offset = track->offset + track->sector_size * (sector - track->lba);
     read_len = track->sector_size * sector_count;
-    fseek( disc->file, file_offset, SEEK_SET );
 
     switch( mode ) {
     case GDROM_GD:
@@ -89,15 +88,17 @@ static gdrom_error_t gdrom_image_read_sectors( gdrom_disc_t disc, uint32_t secto
 	switch( track->mode ) {
 	case GDROM_MODE1:
 	case GDROM_MODE2_XA1:
+	    fseek( disc->file, file_offset, SEEK_SET );
 	    fread( buf, track->sector_size, sector_count, disc->file );
 	    break;
 	case GDROM_MODE2:
 	    read_len = sector_count * 2048;
+	    file_offset += 8; /* skip the subheader */
 	    while( sector_count > 0 ) {
+		fseek( disc->file, file_offset, SEEK_SET );
 		fread( buf, 2048, 1, disc->file );
 		file_offset += track->sector_size;
 		buf += 2048;
-		fseek( disc->file, file_offset, SEEK_SET );
 		sector_count--;
 	    }
 	    break;
