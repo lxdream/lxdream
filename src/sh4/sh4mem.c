@@ -1,5 +1,5 @@
 /**
- * $Id: sh4mem.c,v 1.11 2006-05-23 13:10:28 nkeynes Exp $
+ * $Id: sh4mem.c,v 1.12 2006-06-15 10:25:45 nkeynes Exp $
  * sh4mem.c is responsible for the SH4's access to memory (including memory
  * mapped I/O), using the page maps created in mem.c
  *
@@ -53,6 +53,10 @@
 TRACE( str " [%s.%s: %s]", __VA_ARGS__, \
     MMIO_NAME_BYNUM((uint32_t)p), MMIO_REGID_BYNUM((uint32_t)p, r), \
     MMIO_REGDESC_BYNUM((uint32_t)p, r) )
+#define TRACE_P4IO( str, io, r, ... ) if(io->trace_flag) \
+TRACE( str " [%s.%s: %s]", __VA_ARGS__, \
+    io->id, MMIO_REGID_IOBYNUM(io, r), \
+    MMIO_REGDESC_IOBYNUM(io, r) )
 
 extern struct mem_region mem_rgn[];
 extern struct mmio_region *P4_io[];
@@ -64,7 +68,9 @@ int32_t sh4_read_p4( uint32_t addr )
         ERROR( "Attempted read from unknown P4 region: %08X", addr );
         return 0;
     } else {
-        return io->io_read( addr&0xFFF );
+	int32_t val = io->io_read( addr&0xFFF );
+	TRACE_P4IO( "Long read %08X <= %08X", io, (addr&0xFFF), val, addr );
+        return val;
     }    
 }
 
@@ -81,6 +87,7 @@ void sh4_write_p4( uint32_t addr, int32_t val )
             ERROR( "Attempted write to unknown P4 region: %08X", addr );
         }
     } else {
+	TRACE_P4IO( "Long write %08X => %08X", io, (addr&0xFFF), val, addr );
         io->io_write( addr&0xFFF, val );
     }
 }

@@ -1,5 +1,5 @@
 /**
- * $Id: mmio.h,v 1.4 2006-04-30 01:49:45 nkeynes Exp $
+ * $Id: mmio.h,v 1.5 2006-06-15 10:25:42 nkeynes Exp $
  *
  * mmio.h defines a complicated batch of macros used to build up the 
  * memory-mapped I/O regions in a reasonably readable fashion.
@@ -82,6 +82,11 @@ extern int num_io_rgns;
 #define MMIO_REGDESC_BYNUM( mid, r ) (io_rgn[mid]->index[(r)>>2] != NULL ? \
             io_rgn[mid]->index[(r)>>2]->desc : "Undefined register" )
 #define MMIO_NAME_BYNUM( mid ) (io_rgn[mid]->id)
+
+#define MMIO_REGID_IOBYNUM( io, r ) (io->index[(r)>>2] != NULL ? \
+            io->index[(r)>>2]->id : "<UNDEF>" )
+#define MMIO_REGDESC_IOBYNUM( io, r ) (io->index[(r)>>2] != NULL ? \
+            io->index[(r)>>2]->desc : "Undefined register" )
 
 #ifdef __cplusplus
 }

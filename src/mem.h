@@ -1,5 +1,5 @@
 /**
- * $Id: mem.h,v 1.8 2006-05-20 02:38:58 nkeynes Exp $
+ * $Id: mem.h,v 1.9 2006-06-15 10:25:42 nkeynes Exp $
  *
  * mem is responsible for creating and maintaining the overall system memory
  * map, as visible from the SH4 processor. (Note the ARM has a different map)
@@ -58,7 +58,7 @@ int mem_has_page( uint32_t addr );
 char *mem_get_page( uint32_t addr );
 int mem_load_block( const gchar *filename, uint32_t base, uint32_t size );
 int mem_save_block( const gchar *filename, uint32_t base, uint32_t size );
-
+void mem_set_trace( uint32_t addr, int flag );
 void mem_init( void );
 void mem_reset( void );
 
