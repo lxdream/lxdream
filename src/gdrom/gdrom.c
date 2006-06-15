@@ -1,5 +1,5 @@
 /**
- * $Id: gdrom.c,v 1.6 2006-05-24 11:49:38 nkeynes Exp $
+ * $Id: gdrom.c,v 1.7 2006-06-15 10:32:42 nkeynes Exp $
  *
  * GD-Rom  access functions.
  *
@@ -81,9 +81,10 @@ static gdrom_error_t gdrom_image_read_sectors( gdrom_disc_t disc, uint32_t secto
 
     switch( mode ) {
     case GDROM_GD:
-	if( track->mode != GDROM_GD ) 
-	    return PKT_ERR_BADREADMODE;
-	break;
+	// Temporarily comment this out - it's wrong, but...
+	//	if( track->mode != GDROM_GD ) 
+	//    return PKT_ERR_BADREADMODE;
+	// break;
     case GDROM_MODE1:
 	switch( track->mode ) {
 	case GDROM_MODE1:

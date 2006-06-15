@@ -1,5 +1,5 @@
 /**
- * $Id: asic.c,v 1.15 2006-05-24 11:50:19 nkeynes Exp $
+ * $Id: asic.c,v 1.16 2006-06-15 10:32:38 nkeynes Exp $
  *
  * Support for the miscellaneous ASIC functions (Primarily event multiplexing,
  * and DMA). 
@@ -167,20 +167,19 @@ void asic_check_cleared_events( )
 
 void asic_ide_dma_transfer( )
 {	
-    if( MMIO_READ( EXTDMA, IDEDMACTL2 ) == 1 &&
-	MMIO_READ( EXTDMA, IDEDMACTL1 ) == 0 ) {
-	uint32_t addr = MMIO_READ( EXTDMA, IDEDMASH4 );
-	uint32_t length = MMIO_READ( EXTDMA, IDEDMASIZ );
-	int dir = MMIO_READ( EXTDMA, IDEDMADIR );
-	
-	uint32_t xfer = ide_read_data_dma( addr, length );
-	if( xfer != 0 ) {
-	    MMIO_WRITE( EXTDMA, IDEDMASH4, addr + xfer );
-	    MMIO_WRITE( EXTDMA, IDEDMASIZ, length - xfer );
-	    if( xfer == length ) {
-		MMIO_WRITE( EXTDMA, IDEDMACTL2, 0 );
-		asic_event( EVENT_IDE_DMA );
-	    }
+    if( MMIO_READ( EXTDMA, IDEDMACTL2 ) == 1 ) {
+	if( MMIO_READ( EXTDMA, IDEDMACTL1 ) == 1 ) {
+	    MMIO_WRITE( EXTDMA, IDEDMATXSIZ, 0 );
+	    
+	    uint32_t addr = MMIO_READ( EXTDMA, IDEDMASH4 );
+	    uint32_t length = MMIO_READ( EXTDMA, IDEDMASIZ );
+	    int dir = MMIO_READ( EXTDMA, IDEDMADIR );
+	    
+	    uint32_t xfer = ide_read_data_dma( addr, length );
+	    MMIO_WRITE( EXTDMA, IDEDMATXSIZ, xfer );
+	    MMIO_WRITE( EXTDMA, IDEDMACTL2, 0 );
+	} else { /* 0 */
+	    MMIO_WRITE( EXTDMA, IDEDMACTL2, 0 );
 	}
     }
 
@@ -221,6 +220,9 @@ void mmio_region_ASIC_write( uint32_t reg, uint32_t val )
 	    asic_event( EVENT_PVR_DMA );
 	}
 	break;
+    case PVRDMADEST: case PVRDMACNT: case MAPLE_DMA:
+	MMIO_WRITE( ASIC, reg, val );
+	break;
     default:
 	MMIO_WRITE( ASIC, reg, val );
 	WARN( "Write to ASIC (%03X <= %08X) [%s: %s]",
@@ -249,6 +251,7 @@ int32_t mmio_region_ASIC_read( uint32_t reg )
     case IRQC0:
     case IRQC1:
     case IRQC2:
+    case MAPLE_STATE:
 	val = MMIO_READ(ASIC, reg);
 	//            WARN( "Read from ASIC (%03X => %08X) [%s: %s]",
 	//                  reg, val, MMIO_REGID(ASIC,reg), MMIO_REGDESC(ASIC,reg) );
@@ -266,7 +269,7 @@ int32_t mmio_region_ASIC_read( uint32_t reg )
 
 MMIO_REGION_WRITE_FN( EXTDMA, reg, val )
 {
-    WARN( "EXTDMA write %08X <= %08X", reg, val );
+    // WARN( "EXTDMA write %08X <= %08X", reg, val );
 
     switch( reg ) {
     case IDEALTSTATUS: /* Device control */
@@ -319,20 +322,22 @@ MMIO_REGION_READ_FN( EXTDMA, reg )
 {
     uint32_t val;
     switch( reg ) {
-        case IDEALTSTATUS: return idereg.status;
-        case IDEDATA: return ide_read_data_pio( );
-        case IDEFEAT: return idereg.error;
-        case IDECOUNT:return idereg.count;
-        case IDELBA0: return idereg.disc;
-        case IDELBA1: return idereg.lba1;
-        case IDELBA2: return idereg.lba2;
-        case IDEDEV: return idereg.device;
-        case IDECMD:
-	    return ide_read_status();
-        default:
-	    val = MMIO_READ( EXTDMA, reg );
-	    //DEBUG( "EXTDMA read %08X => %08X", reg, val );
-	    return val;
+    case IDEALTSTATUS: 
+	val = idereg.status;
+	return val;
+    case IDEDATA: return ide_read_data_pio( );
+    case IDEFEAT: return idereg.error;
+    case IDECOUNT:return idereg.count;
+    case IDELBA0: return idereg.disc;
+    case IDELBA1: return idereg.lba1;
+    case IDELBA2: return idereg.lba2;
+    case IDEDEV: return idereg.device;
+    case IDECMD:
+	val = ide_read_status();
+	return val;
+    default:
+	val = MMIO_READ( EXTDMA, reg );
+	return val;
     }
 }
 

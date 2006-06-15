@@ -1,5 +1,5 @@
 /**
- * $Id: asic.h,v 1.9 2006-05-24 11:50:19 nkeynes Exp $
+ * $Id: asic.h,v 1.10 2006-06-15 10:32:38 nkeynes Exp $
  *
  * Support for the miscellaneous ASIC functions (Primarily event multiplexing,
  * and DMA). Includes MMIO definitions for the 5f6000 and 5f7000 regions, 
@@ -113,8 +113,9 @@ MMIO_REGION_BEGIN( 0x005F7000, EXTDMA, "ASIC External DMA" )
     LONG_PORT( 0x4A0, EXTDMAUNK6, PORT_MRW, 0, "Ext DMA <unknown6>" )
     LONG_PORT( 0x4A4, EXTDMAUNK7, PORT_MRW, 0, "Ext DMA <unknown7>" )
     LONG_PORT( 0x4B4, EXTDMAUNK8, PORT_MRW, 0, "Ext DMA <unknown8>" )
-    LONG_PORT( 0x4B8, EXTDMAUNK9, PORT_MRW, 0, "Ext DMA <unknown9>" )
+    LONG_PORT( 0x4B8, IDEDMACFG, PORT_MRW, 0, "IDE DMA Config" )
     LONG_PORT( 0x4E4, IDEACTIVATE, PORT_MRW, 0, "IDE activate" )
+    LONG_PORT( 0x4F8, IDEDMATXSIZ, PORT_MRW, 0, "IDE DMA transfered size" )
     LONG_PORT( 0x800, SPUDMA0EXT, PORT_MRW, 0, "SPU DMA0 External address" )
     LONG_PORT( 0x804, SPUDMA0SH4, PORT_MRW, 0, "SPU DMA0 SH4-based address" )
     LONG_PORT( 0x808, SPUDMA0SIZ, PORT_MRW, 0, "SPU DMA0 Size" )
@@ -166,7 +167,7 @@ MMIO_REGION_BEGIN( 0x005F7000, EXTDMA, "ASIC External DMA" )
     LONG_PORT( 0xC10, PVRDMA2MOD, PORT_MRW, 0, "PVR DMA Mode" )
     LONG_PORT( 0xC14, PVRDMA2CTL1, PORT_MRW, 0, "PVR DMA Control 1" )
     LONG_PORT( 0xC18, PVRDMA2CTL2, PORT_MRW, 0, "PVR DMA Control 2" )
-    LONG_PORT( 0xC80, PVRDMA2UN1, PORT_MRW, 0, "PVR DMA <unknown1>" )
+    LONG_PORT( 0xC80, PVRDMA2CFG, PORT_MRW, 0, "PVR DMA Config" )
 
 MMIO_REGION_END
 
