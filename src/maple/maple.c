@@ -1,5 +1,5 @@
 /**
- * $Id: maple.c,v 1.8 2006-05-15 08:28:52 nkeynes Exp $
+ * $Id: maple.c,v 1.9 2006-06-15 10:33:05 nkeynes Exp $
  *
  * Implements the core Maple bus, including DMA transfers to and from the bus.
  *
@@ -133,7 +133,6 @@ void maple_handle_buffer( uint32_t address ) {
                 }
             }
 
-            INFO( "Maple packet %d: Cmd %d on port %d device %d", count, cmd, port, periph );
             maple_device_t dev = maple_devices[port][periph];
             if( dev == NULL ) {
                 /* no device attached */
