@@ -1,5 +1,5 @@
 /**
- * $Id: mem.c,v 1.12 2006-05-20 02:38:58 nkeynes Exp $
+ * $Id: mem.c,v 1.13 2006-06-15 10:25:42 nkeynes Exp $
  * mem.c is responsible for creating and maintaining the overall system memory
  * map, as visible from the SH4 processor. 
  *
@@ -354,5 +354,25 @@ char *mem_get_region( uint32_t addr )
     } else {
         return page+(addr&0xFFF);
     }
+}
+
+struct mmio_region *mem_get_io_region( uint32_t addr )
+{
+    if( addr > 0xFF000000 ) {
+	return P4_io[(addr&0x00FFFFFF)>>12];
+    }
+    char *page = page_map[(addr&0x1FFFFFFF)>>12];
+    if( ((uint32_t)page) < MAX_IO_REGIONS ) {
+	return io_rgn[(uint32_t)page];
+    } else {
+	return NULL;
+    }
+}
+
+void mem_set_trace( uint32_t addr, int flag )
+{
+    struct mmio_region *region = mem_get_io_region(addr);
+    if( region != NULL )
+	region->trace_flag = flag;
 }
 
