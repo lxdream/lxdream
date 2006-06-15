@@ -1,5 +1,5 @@
 /**
- * $Id: sh4core.c,v 1.26 2006-03-22 14:27:40 nkeynes Exp $
+ * $Id: sh4core.c,v 1.27 2006-06-15 10:27:10 nkeynes Exp $
  * 
  * SH4 emulation core, and parent module for all the SH4 peripheral
  * modules.
@@ -26,6 +26,8 @@
 #include "mem.h"
 #include "clock.h"
 #include "syscall.h"
+
+#define SH4_CALLTRACE 1
 
 #define MAX_INT 0x7FFFFFFF
 #define MIN_INT 0x80000000
@@ -84,7 +86,8 @@ void sh4_reset(void)
     MMIO_WRITE( MMU, EXPEVT, EXC_POWER_RESET );
 
     /* Peripheral modules */
-    intc_reset();
+    INTC_reset();
+    TMU_reset();
     SCIF_reset();
 }
 
@@ -178,6 +181,7 @@ void sh4_stop(void)
 void sh4_save_state( FILE *f )
 {
     fwrite( &sh4r, sizeof(sh4r), 1, f );
+    INTC_save_state( f );
     TMU_save_state( f );
     SCIF_save_state( f );
 }
@@ -185,6 +189,7 @@ void sh4_save_state( FILE *f )
 int sh4_load_state( FILE * f )
 {
     fread( &sh4r, sizeof(sh4r), 1, f );
+    INTC_load_state( f );
     TMU_load_state( f );
     return SCIF_load_state( f );
 }
@@ -199,6 +204,53 @@ void sh4_set_pc( int pc )
 
 #define UNDEF(ir) do{ ERROR( "Raising exception on undefined instruction at %08x, opcode = %04x", sh4r.pc, ir ); dreamcast_stop();  return FALSE; }while(0)
 #define UNIMP(ir) do{ ERROR( "Halted on unimplemented instruction at %08x, opcode = %04x", sh4r.pc, ir ); dreamcast_stop(); return FALSE; }while(0)
+
+#if(SH4_CALLTRACE == 1)
+#define MAX_CALLSTACK 32
+static struct call_stack {
+    sh4addr_t call_addr;
+    sh4addr_t target_addr;
+    sh4addr_t stack_pointer;
+} call_stack[MAX_CALLSTACK];
+
+static int call_stack_depth = 0;
+int sh4_call_trace_on = 0;
+
+static inline trace_call( sh4addr_t source, sh4addr_t dest ) 
+{
+    if( call_stack_depth < MAX_CALLSTACK ) {
+	call_stack[call_stack_depth].call_addr = source;
+	call_stack[call_stack_depth].target_addr = dest;
+	call_stack[call_stack_depth].stack_pointer = sh4r.r[15];
+    }
+    call_stack_depth++;
+}
+
+static inline trace_return( sh4addr_t source, sh4addr_t dest )
+{
+    if( call_stack_depth > 0 ) {
+	call_stack_depth--;
+    }
+}
+
+void fprint_stack_trace( FILE *f )
+{
+    int i = call_stack_depth -1;
+    if( i >= MAX_CALLSTACK )
+	i = MAX_CALLSTACK - 1;
+    for( ; i >= 0; i-- ) {
+	fprintf( f, "%d. Call from %08X => %08X, SP=%08X\n", 
+		 (call_stack_depth - i), call_stack[i].call_addr,
+		 call_stack[i].target_addr, call_stack[i].stack_pointer );
+    }
+}
+
+#define TRACE_CALL( source, dest ) trace_call(source, dest)
+#define TRACE_RETURN( source, dest ) trace_return(source, dest)
+#else
+#define TRACE_CALL( dest, rts ) 
+#define TRACE_RETURN( source, dest )
+#endif
 
 #define RAISE( x, v ) do{ \
     if( sh4r.vbr == 0 ) { \
@@ -407,6 +459,7 @@ gboolean sh4_execute_instruction( void )
                             sh4r.pr = sh4r.pc + 4;
                             sh4r.pc = sh4r.new_pc;
                             sh4r.new_pc = pc + 4 + RN(ir);
+			    TRACE_CALL( pc, sh4r.new_pc );
                             return TRUE;
                         case 2: /* BRAF    Rn */
                             CHECKDEST( pc + 4 + RN(ir) );
@@ -519,6 +572,7 @@ gboolean sh4_execute_instruction( void )
                             sh4r.in_delay_slot = 1;
                             sh4r.pc = sh4r.new_pc;
                             sh4r.new_pc = sh4r.pr;
+                            TRACE_RETURN( pc, sh4r.new_pc );
                             return TRUE;
                         case 1: /* SLEEP   */
 			    if( MMIO_READ( CPG, STBCR ) & 0x80 ) {
@@ -761,6 +815,7 @@ gboolean sh4_execute_instruction( void )
                     sh4r.pc = sh4r.new_pc;
                     sh4r.new_pc = RN(ir);
                     sh4r.pr = pc + 4;
+		    TRACE_CALL( pc, sh4r.new_pc );
                     return TRUE;
                 case 0x0E: /* LDC     Rn, SR */
                     CHECKPRIV();
@@ -1128,6 +1183,7 @@ gboolean sh4_execute_instruction( void )
             sh4r.pr = pc + 4;
             sh4r.pc = sh4r.new_pc;
             sh4r.new_pc = pc + 4 + (DISP12(ir)<<1);
+	    TRACE_CALL( pc, sh4r.new_pc );
             return TRUE;
         case 12:/* 1100xxxxdddddddd */
         switch( (ir&0x0F00)>>8 ) {
