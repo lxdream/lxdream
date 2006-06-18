@@ -1,5 +1,5 @@
 /**
- * $Id: video_x11.c,v 1.5 2006-05-15 08:28:52 nkeynes Exp $
+ * $Id: video_x11.c,v 1.6 2006-06-18 11:55:25 nkeynes Exp $
  *
  * Shared functions for all X11-based display drivers.
  *
@@ -178,6 +178,21 @@ gboolean video_glx_display_frame( video_buffer_t frame )
     glPixelZoom( 1.0f, -1.0f );
     glDrawPixels( frame->hres, frame->vres, format, type,
 		  frame->data );
+    glFlush();
+    return TRUE;
+}
+
+gboolean video_glx_blank( int width, int height, uint32_t colour )
+{
+    glDrawBuffer( GL_FRONT );
+    glViewport( 0, 0, width, height );
+    glMatrixMode( GL_PROJECTION );
+    glLoadIdentity();
+    glOrtho( 0, width, height, 0, 0, -65535 );
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+    glColor3b( (colour >> 16) & 0xFF, (colour >> 8) & 0xFF, colour & 0xFF );
+    glRecti(0,0, width, height );
     glFlush();
     return TRUE;
 }
