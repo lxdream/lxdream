@@ -1,5 +1,5 @@
 /**
- * $Id: asic.c,v 1.16 2006-06-15 10:32:38 nkeynes Exp $
+ * $Id: asic.c,v 1.17 2006-06-18 11:58:47 nkeynes Exp $
  *
  * Support for the miscellaneous ASIC functions (Primarily event multiplexing,
  * and DMA). 
@@ -56,6 +56,7 @@ struct dreamcast_module asic_module = { "ASIC", asic_init, asic_reset, NULL, NUL
 #define G2_BIT0_OFF_TICKS 24
 
 struct asic_g2_state {
+    unsigned int last_update_time;
     unsigned int bit5_off_timer;
     unsigned int bit4_on_timer;
     unsigned int bit4_off_timer;
@@ -69,7 +70,6 @@ static void asic_init( void )
 {
     register_io_region( &mmio_region_ASIC );
     register_io_region( &mmio_region_EXTDMA );
-    mmio_region_ASIC.trace_flag = 0; /* Because this is called so often */
     asic_reset();
 }
 
@@ -95,6 +95,7 @@ static int asic_load_state( FILE *f )
 /* FIXME: Handle rollover */
 void asic_g2_write_word()
 {
+    g2_state.last_update_time = sh4r.icount;
     g2_state.bit5_off_timer = sh4r.icount + G2_BIT5_TICKS;
     if( g2_state.bit4_off_timer < sh4r.icount )
 	g2_state.bit4_on_timer = sh4r.icount + G2_BIT5_TICKS;
@@ -110,10 +111,24 @@ void asic_g2_write_word()
 
 static uint32_t g2_read_status()
 {
+    if( sh4r.icount < g2_state.last_update_time ) {
+	/* Rollover */
+	if( g2_state.last_update_time < g2_state.bit5_off_timer )
+	    g2_state.bit5_off_timer = 0;
+	if( g2_state.last_update_time < g2_state.bit4_off_timer )
+	    g2_state.bit4_off_timer = 0;
+	if( g2_state.last_update_time < g2_state.bit4_on_timer )
+	    g2_state.bit4_on_timer = 0;
+	if( g2_state.last_update_time < g2_state.bit0_off_timer )
+	    g2_state.bit0_off_timer = 0;
+	if( g2_state.last_update_time < g2_state.bit0_on_timer )
+	    g2_state.bit0_on_timer = 0;
+    }
     uint32_t val = MMIO_READ( ASIC, G2STATUS );
     if( g2_state.bit5_off_timer <= sh4r.icount )
 	val = val & (~0x20);
-    if( g2_state.bit4_off_timer <= sh4r.icount )
+    if( g2_state.bit4_off_timer <= sh4r.icount ||
+	(sh4r.icount + G2_BIT5_TICKS) < g2_state.bit4_off_timer )
 	val = val & (~0x10);
     else if( g2_state.bit4_on_timer <= sh4r.icount )
 	val = val | 0x10;
@@ -225,8 +240,6 @@ void mmio_region_ASIC_write( uint32_t reg, uint32_t val )
 	break;
     default:
 	MMIO_WRITE( ASIC, reg, val );
-	WARN( "Write to ASIC (%03X <= %08X) [%s: %s]",
-	      reg, val, MMIO_REGID(ASIC,reg), MMIO_REGDESC(ASIC,reg) );
     }
 }
 
