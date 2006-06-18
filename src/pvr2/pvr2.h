@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.h,v 1.13 2006-05-15 08:28:52 nkeynes Exp $
+ * $Id: pvr2.h,v 1.14 2006-06-18 11:57:05 nkeynes Exp $
  *
  * PVR2 (video chip) functions and macros.
  *
@@ -137,6 +137,11 @@ void pvr2_ta_init( void );
  * @return TRUE on success, FALSE on failure.
  */
 gboolean pvr2_render_init( void );
+
+/**
+ * Invalidate any caching on the supplied SH4 address
+ */
+gboolean pvr2_render_invalidate( sh4addr_t addr );
 
 /**
  * Render the current scene stored in PVR ram to the GL back buffer.
