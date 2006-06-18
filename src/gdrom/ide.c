@@ -1,5 +1,5 @@
 /**
- * $Id: ide.c,v 1.15 2006-06-15 10:32:42 nkeynes Exp $
+ * $Id: ide.c,v 1.16 2006-06-18 12:01:53 nkeynes Exp $
  *
  * IDE interface implementation
  *
@@ -388,9 +388,9 @@ void ide_packet_command( unsigned char *cmd )
     int blocksize = idereg.lba1 + (idereg.lba2<<8);
 
     /* Okay we have the packet in the command buffer */
-    WARN( "ATAPI: Received Packet command: %02X", cmd[0] );
-    fwrite_dump( (unsigned char *)cmd, 12, stderr );
-    //    fprint_stack_trace( stderr );
+    INFO( "ATAPI packet: %02X %02X %02X %02X  %02X %02X %02X %02X  %02X %02X %02X %02X", 
+	  cmd[0], cmd[1], cmd[2], cmd[3], cmd[4], cmd[5], cmd[6], cmd[7],
+	  cmd[8], cmd[9], cmd[10], cmd[11] );
     switch( cmd[0] ) {
     case PKT_CMD_TEST_READY:
 	if( !gdrom_is_mounted() ) {

@@ -1,5 +1,5 @@
 /**
- * $Id: sh4mmio.c,v 1.8 2006-02-05 04:02:57 nkeynes Exp $
+ * $Id: sh4mmio.c,v 1.9 2006-06-18 12:01:53 nkeynes Exp $
  * 
  * Miscellaneous and not-really-implemented SH4 peripheral modules. Also
  * responsible for including the IMPL side of the SH4 MMIO pages.
@@ -41,7 +41,6 @@ void mmio_region_MMU_write( uint32_t reg, uint32_t val )
     switch(reg) {
         case CCR:
             mmu_set_cache_mode( val & (CCR_OIX|CCR_ORA) );
-            INFO( "Cache mode set to %08X", val );
             break;
         default:
             break;
