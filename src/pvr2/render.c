@@ -1,5 +1,5 @@
 /**
- * $Id: render.c,v 1.8 2006-05-15 08:28:52 nkeynes Exp $
+ * $Id: render.c,v 1.9 2006-06-18 11:57:05 nkeynes Exp $
  *
  * PVR2 Renderer support. This is where the real work happens.
  *
@@ -60,7 +60,8 @@ static int pvr2_render_colour_format[8] = {
  * to fetch the bits back to vram.
  */
 typedef struct pvr2_render_buffer {
-    uint32_t render_addr; /* The actual address rendered to in pvr ram */
+    sh4addr_t render_addr; /* The actual address rendered to in pvr ram */
+    uint32_t size; /* Length of rendering region in bytes */
     int width, height;
     int colour_format;
 } *pvr2_render_buffer_t;
@@ -176,6 +177,31 @@ gboolean pvr2_render_init( void )
 }
 
 /**
+ * Invalidate any caching on the supplied address. Specifically, if it falls
+ * within either the front buffer or back buffer, flush the buffer back to
+ * PVR2 ram (note that front buffer flush may be corrupt under some
+ * circumstances).
+ */
+gboolean pvr2_render_invalidate( sh4addr_t address )
+{
+    address = address & 0x1FFFFFFF;
+    if( front_buffer.render_addr != -1 &&
+	front_buffer.render_addr <= address &&
+	(front_buffer.render_addr + front_buffer.size) > address ) {
+	pvr2_render_copy_to_sh4( &front_buffer, FALSE );
+	front_buffer.render_addr = -1;
+	return TRUE;
+    } else if( back_buffer.render_addr != -1 &&
+	       back_buffer.render_addr <= address &&
+	       (back_buffer.render_addr + back_buffer.size) > address ) {
+	pvr2_render_copy_to_sh4( &back_buffer, TRUE );
+	back_buffer.render_addr = -1;
+	return TRUE;
+    }
+    return FALSE;
+}
+
+/**
  * Display a rendered frame if one is available.
  * @param address An address in PVR ram (0500000 range).
  * @return TRUE if a frame was available to be displayed, otherwise false.
@@ -235,6 +261,7 @@ static void pvr2_render_prepare_context( sh4addr_t render_addr,
     back_buffer.width = width;
     back_buffer.height = height;
     back_buffer.colour_format = colour_format;
+    back_buffer.size = width * height * colour_format_bytes[colour_format];
 
     /* Setup the display model */
     glDrawBuffer(GL_BACK);
@@ -243,7 +270,7 @@ static void pvr2_render_prepare_context( sh4addr_t render_addr,
     glViewport( 0, 0, width, height );
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    glOrtho( 0, width, height, 0, bgplanez, -1 );
+    glOrtho( 0, width, height, 0, bgplanez, -10 );
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
     glCullFace( GL_BACK );

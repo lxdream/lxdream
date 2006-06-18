@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.c,v 1.26 2006-06-15 10:33:08 nkeynes Exp $
+ * $Id: pvr2.c,v 1.27 2006-06-18 11:57:05 nkeynes Exp $
  *
  * PVR2 (Video) Core module implementation and MMIO registers.
  *
@@ -35,6 +35,8 @@ static void pvr2_save_state( FILE *f );
 static int pvr2_load_state( FILE *f );
 
 void pvr2_display_frame( void );
+
+int colour_format_bytes[] = { 2, 2, 2, 1, 3, 4, 1, 1 };
 
 struct dreamcast_module pvr2_module = { "PVR2", pvr2_init, pvr2_reset, NULL, 
 					pvr2_run_slice, NULL,
@@ -155,50 +157,51 @@ void pvr2_display_frame( void )
     int vid_ppl = ((dispsize & DISPSIZE_PPL)) + 1;
     gboolean bEnabled = (dispmode & DISPMODE_DE) && (vidcfg & DISPCFG_VO ) ? TRUE : FALSE;
     gboolean interlaced = (vidcfg & DISPCFG_I ? TRUE : FALSE);
-    if( bEnabled ) {
-	video_buffer_t buffer = &video_buffer[video_buffer_idx];
-	video_buffer_idx = !video_buffer_idx;
-	video_buffer_t last = &video_buffer[video_buffer_idx];
-	buffer->rowstride = (vid_ppl + vid_stride) << 2;
-	buffer->data = video_base + MMIO_READ( PVR2, DISPADDR1 );
-	buffer->vres = vid_lpf;
-	if( interlaced ) buffer->vres <<= 1;
-	switch( (dispmode & DISPMODE_COL) >> 2 ) {
-	case 0: 
-	    buffer->colour_format = COLFMT_ARGB1555;
-	    buffer->hres = vid_ppl << 1; 
-	    break;
-	case 1: 
-	    buffer->colour_format = COLFMT_RGB565;
-	    buffer->hres = vid_ppl << 1; 
-	    break;
-	case 2:
-	    buffer->colour_format = COLFMT_RGB888;
-	    buffer->hres = (vid_ppl << 2) / 3; 
-	    break;
-	case 3: 
-	    buffer->colour_format = COLFMT_ARGB8888;
-	    buffer->hres = vid_ppl; 
-	    break;
-	}
+    video_buffer_t buffer = &video_buffer[video_buffer_idx];
+    video_buffer_idx = !video_buffer_idx;
+    video_buffer_t last = &video_buffer[video_buffer_idx];
+    buffer->rowstride = (vid_ppl + vid_stride) << 2;
+    buffer->data = video_base + MMIO_READ( PVR2, DISPADDR1 );
+    buffer->vres = vid_lpf;
+    if( interlaced ) buffer->vres <<= 1;
+    switch( (dispmode & DISPMODE_COL) >> 2 ) {
+    case 0: 
+	buffer->colour_format = COLFMT_ARGB1555;
+	buffer->hres = vid_ppl << 1; 
+	break;
+    case 1: 
+	buffer->colour_format = COLFMT_RGB565;
+	buffer->hres = vid_ppl << 1; 
+	break;
+    case 2:
+	buffer->colour_format = COLFMT_RGB888;
+	buffer->hres = (vid_ppl << 2) / 3; 
+	break;
+    case 3: 
+	buffer->colour_format = COLFMT_ARGB8888;
+	buffer->hres = vid_ppl; 
+	break;
+    }
 	
-	if( display_driver != NULL ) {
-	    if( buffer->hres != last->hres ||
-		buffer->vres != last->vres ||
-		buffer->colour_format != last->colour_format) {
-		display_driver->set_display_format( buffer->hres, buffer->vres,
-						  buffer->colour_format );
-	    }
-	    if( MMIO_READ( PVR2, DISPCFG2 ) & 0x08 ) { /* Blanked */
-		uint32_t colour = MMIO_READ( PVR2, DISPBORDER );
-		display_driver->display_blank_frame( colour );
-	    } else if( !pvr2_render_display_frame( PVR2_RAM_BASE + display_addr ) ) {
-		display_driver->display_frame( buffer );
-	    }
+    if( buffer->hres <=8 )
+	buffer->hres = 640;
+    if( buffer->vres <=8 )
+	buffer->vres = 480;
+    if( display_driver != NULL ) {
+	if( buffer->hres != last->hres ||
+	    buffer->vres != last->vres ||
+	    buffer->colour_format != last->colour_format) {
+	    display_driver->set_display_format( buffer->hres, buffer->vres,
+						buffer->colour_format );
 	}
-    } else {
-	video_buffer_idx = 0;
-	video_buffer[0].hres = video_buffer[0].vres = 0;
+	if( !bEnabled ) {
+	    display_driver->display_blank_frame( 0 );
+	} else if( MMIO_READ( PVR2, DISPCFG2 ) & 0x08 ) { /* Blanked */
+	    uint32_t colour = MMIO_READ( PVR2, DISPBORDER );
+	    display_driver->display_blank_frame( colour );
+	} else if( !pvr2_render_display_frame( PVR2_RAM_BASE + display_addr ) ) {
+	    display_driver->display_frame( buffer );
+	}
     }
     pvr2_state.frame_count++;
 }
