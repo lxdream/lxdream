@@ -1,5 +1,5 @@
 /**
- * $Id: display.c,v 1.1 2006-05-15 08:28:48 nkeynes Exp $
+ * $Id: display.c,v 1.2 2006-06-18 12:01:50 nkeynes Exp $
  *
  * Generic support for keyboard and other input sources. The active display
  * driver is expected to deliver events here, where they're translated and
@@ -75,7 +75,6 @@ gboolean input_register_key( const gchar *keysym, input_key_callback_t callback,
     key->callback = callback;
     key->data = data;
     key->value = value;
-    INFO( "Registered key '%s' (%4x)", keysym, keycode );
     return TRUE;
 }
 
