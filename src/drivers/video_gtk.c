@@ -1,5 +1,5 @@
 /**
- * $Id: video_gtk.c,v 1.6 2006-05-15 08:28:52 nkeynes Exp $
+ * $Id: video_gtk.c,v 1.7 2006-06-18 11:55:25 nkeynes Exp $
  *
  * The PC side of the video support (responsible for actually displaying / 
  * rendering frames)
@@ -111,14 +111,7 @@ gboolean video_gtk_set_output_format( uint32_t width, uint32_t height,
  */
 gboolean video_gtk_blank( uint32_t colour ) 
 {
-    char *p = video_img->mem;
-    int i;
-    for( i=0; i<video_width*video_height; i++ ) {
-	*p++ = (colour>>16) & 0xFF;
-	*p++ = (colour>>8) & 0xFF;
-	*p++ = (colour) & 0xFF;
-	*p++ = 0;
-    }
+    video_glx_blank( video_width, video_height, colour );
 }
 
 gboolean video_gtk_display_frame( video_buffer_t frame ) 
