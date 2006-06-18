@@ -1,5 +1,5 @@
 /**
- * $Id: display.h,v 1.1 2006-05-15 08:28:48 nkeynes Exp $
+ * $Id: display.h,v 1.2 2006-06-18 11:57:55 nkeynes Exp $
  *
  * The PC side of the video support (responsible for actually displaying / 
  * rendering frames)
@@ -39,6 +39,8 @@ extern "C" {
 #define COLFMT_YUV422    3 /* 8-bit YUV (texture source only) */
 #define COLFMT_INDEX4    6 /* 4 bit indexed colour (texture source only) */
 #define COLFMT_INDEX8    7 /* 8-bit indexed colour (texture source only) */
+
+extern int colour_format_bytes[];
 
 typedef struct video_buffer {
     uint32_t hres;
