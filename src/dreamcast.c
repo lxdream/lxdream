@@ -1,5 +1,5 @@
 /**
- * $Id: dreamcast.c,v 1.16 2006-05-20 02:38:58 nkeynes Exp $
+ * $Id: dreamcast.c,v 1.17 2006-06-19 11:00:40 nkeynes Exp $
  * Central switchboard for the system. This pulls all the individual modules
  * together into some kind of coherent structure. This is also where you'd
  * add Naomi support, if I ever get a board to play with...
@@ -66,10 +66,11 @@ void dreamcast_configure( )
     mem_create_ram_region( 0x00800000, 2 MB, MEM_REGION_AUDIO );
     mem_create_ram_region( 0x00703000, 8 KB, MEM_REGION_AUDIO_SCRATCH );
     mem_create_ram_region( 0x05000000, 8 MB, MEM_REGION_VIDEO );
-    mem_load_rom( "dcboot.rom", 0x00000000, 0x00200000, 0x89f2b1a1 );
+    mem_load_rom( dreamcast_get_config_value(CONFIG_BIOS_PATH),
+		  0x00000000, 0x00200000, 0x89f2b1a1 );
     mem_create_ram_region( 0x00200000, 0x00020000, MEM_REGION_FLASH );
-    mem_load_block( "../bios/dcflash.rom", 0x00200000, 0x00020000 );
-    //    mem_load_rom( "dcflash.rom",0x00200000, 0x00020000, 0x357c3568 );
+    mem_load_block( dreamcast_get_config_value(CONFIG_FLASH_PATH),
+		    0x00200000, 0x00020000 );
 
     /* Load in the rest of the core modules */
     dreamcast_register_module( &sh4_module );
@@ -78,14 +79,6 @@ void dreamcast_configure( )
     dreamcast_register_module( &aica_module );
     dreamcast_register_module( &maple_module );
     dreamcast_register_module( &ide_module );
-
-    /* Attach any default maple devices, ie a pair of controllers */
-    /*
-    maple_device_t controller1 = maple_new_device("Sega Controller");
-    maple_device_t controller2 = maple_new_device("Sega Controller");
-    maple_attach_device( controller1, 0, 0 );
-    maple_attach_device( controller2, 1, 0 );
-    */
 }
 
 /**
@@ -164,6 +157,7 @@ gboolean dreamcast_is_running( void )
 
 /***************************** User Configuration **************************/
 
+
 static struct dreamcast_config_entry global_config[] =
     {{ "bios", CONFIG_TYPE_FILE, "dcboot.rom" },
      { "flash", CONFIG_TYPE_FILE, "dcflash.rom" },
@@ -200,6 +194,11 @@ void dreamcast_set_default_config( )
 	group++;
     }
     maple_detach_all();
+}
+
+const gchar *dreamcast_get_config_value( int key )
+{
+    return global_config[key].value;
 }
 
 gboolean dreamcast_load_config( const gchar *filename )

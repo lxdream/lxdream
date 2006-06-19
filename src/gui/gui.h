@@ -1,5 +1,5 @@
 /**
- * $Id: gui.h,v 1.14 2005-12-27 08:41:22 nkeynes Exp $
+ * $Id: gui.h,v 1.15 2006-06-19 11:00:42 nkeynes Exp $
  * 
  * General GUI definitions
  *
@@ -39,8 +39,8 @@ typedef struct debug_info_struct *debug_info_t;
 extern debug_info_t main_debug;
 
 typedef int (*file_callback_t)( const gchar *filename );
-void open_file_dialog( char *title, file_callback_t file_handler, char *pattern, char *patname );
-void save_file_dialog( char *title, file_callback_t file_handler, char *pattern, char *patname );
+void open_file_dialog( char *title, file_callback_t file_handler, char *pattern, char *patname, const gchar *initial_dir );
+void save_file_dialog( char *title, file_callback_t file_handler, char *pattern, char *patname, const gchar *initial_dir );
 
 void update_mmr_win( void );
 void init_mmr_win( void );

@@ -1,5 +1,5 @@
 /**
- * $Id: gui.c,v 1.11 2006-03-15 13:17:23 nkeynes Exp $
+ * $Id: gui.c,v 1.12 2006-06-19 11:00:42 nkeynes Exp $
  * 
  * Top-level GUI (GTK2) module.
  *
@@ -166,10 +166,10 @@ static void add_file_pattern( GtkFileChooser *chooser, char *pattern, char *patn
     }
 }
 
-void open_file_dialog( char *title, file_callback_t action, char *pattern, char *patname )
+void open_file_dialog( char *title, file_callback_t action, char *pattern, char *patname,
+		       gchar const *initial_dir )
 {
     GtkWidget *file;
-
     file = gtk_file_chooser_dialog_new( title, NULL,
 					GTK_FILE_CHOOSER_ACTION_OPEN,
 					GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
@@ -179,13 +179,14 @@ void open_file_dialog( char *title, file_callback_t action, char *pattern, char 
     g_signal_connect( GTK_OBJECT(file), "response", 
 		      GTK_SIGNAL_FUNC(open_file_callback), file );
     gtk_object_set_data( GTK_OBJECT(file), "file_action", action );
+    gtk_file_chooser_set_current_folder( GTK_FILE_CHOOSER(file), initial_dir );
     gtk_widget_show( file );
 }
 
-void save_file_dialog( char *title, file_callback_t action, char *pattern, char *patname )
+void save_file_dialog( char *title, file_callback_t action, char *pattern, char *patname,
+		       gchar const *initial_dir )
 {
     GtkWidget *file;
-
     file = gtk_file_chooser_dialog_new( title, NULL,
 					GTK_FILE_CHOOSER_ACTION_SAVE,
 					GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
@@ -195,6 +196,7 @@ void save_file_dialog( char *title, file_callback_t action, char *pattern, char 
     g_signal_connect( GTK_OBJECT(file), "response", 
 		      GTK_SIGNAL_FUNC(open_file_callback), file );
     gtk_object_set_data( GTK_OBJECT(file), "file_action", action );
+    gtk_file_chooser_set_current_folder( GTK_FILE_CHOOSER(file), initial_dir );
     gtk_widget_show( file );
 }
 
