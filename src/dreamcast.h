@@ -1,5 +1,5 @@
 /**
- * $Id: dreamcast.h,v 1.9 2006-05-15 08:28:48 nkeynes Exp $
+ * $Id: dreamcast.h,v 1.10 2006-06-19 11:00:40 nkeynes Exp $
  *
  * Public interface for dreamcast.c -
  * Central switchboard for the system. This pulls all the individual modules
@@ -62,6 +62,14 @@ int dreamcast_save_state( const gchar *filename );
 int dreamcast_load_state( const gchar *filename );
 
 extern struct dreamcast_config_group dreamcast_config_root[];
+
+/* Global config values */
+const gchar *dreamcast_get_config_value( int key );
+#define CONFIG_BIOS_PATH 0
+#define CONFIG_FLASH_PATH 1
+#define CONFIG_DEFAULT_PATH 2
+#define CONFIG_SAVE_PATH 3
+#define CONFIG_BOOTSTRAP 4
 
 #ifdef __cplusplus
 }

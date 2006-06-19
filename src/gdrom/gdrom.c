@@ -1,5 +1,5 @@
 /**
- * $Id: gdrom.c,v 1.7 2006-06-15 10:32:42 nkeynes Exp $
+ * $Id: gdrom.c,v 1.8 2006-06-19 11:00:42 nkeynes Exp $
  *
  * GD-Rom  access functions.
  *
@@ -124,15 +124,35 @@ uint32_t gdrom_read_sectors( uint32_t sector, uint32_t sector_count,
 }
 
 
-void gdrom_dump_disc( gdrom_disc_t disc ) {
+void gdrom_dump_disc_info( gdrom_disc_t disc ) {
     int i;
+    int last_session = disc->track[disc->track_count-1].session;
+    gboolean is_bootable = FALSE;
+
     INFO( "Disc ID: %s, %d tracks in %d sessions", disc->mcn, disc->track_count, 
 	  disc->track[disc->track_count-1].session + 1 );
-    for( i=0; i<disc->track_count; i++ ) {
-	INFO( "Sess %d Trk %d: Start %06X Length %06X, %s",
-	      disc->track[i].session+1, i+1, disc->track[i].lba,
-	      disc->track[i].sector_count, gdrom_mode_names[disc->track[i].mode] );
+    if( last_session > 0 ) {
+	/* Boot track is the first data track of the last session, provided that it 
+	 * cannot be a single-session disc.
+	 */
+	int boot_track = -1;
+	for( i=disc->track_count-1; i>=0 && disc->track[i].session == last_session; i-- ) {
+	    if( disc->track[i].flags & TRACK_DATA ) {
+		boot_track = i;
+	    }
+	}
+	if( boot_track != -1 ) {
+	    char boot_sector[2048];
+	    uint32_t length = sizeof(boot_sector);
+	    if( disc->read_sectors( disc, disc->track[boot_track].lba, 1, GDROM_MODE1,
+				    boot_sector, &length ) == PKT_ERR_OK ) {
+		bootstrap_dump(boot_sector, FALSE);
+		is_bootable = TRUE;
+	    }
+	}
     }
+    if( !is_bootable )
+	WARN( "Disc does not appear to be bootable" );
 }
 
 gdrom_error_t gdrom_get_toc( char *buf ) 
@@ -192,7 +212,7 @@ void gdrom_mount_disc( gdrom_disc_t disc )
     gdrom_unmount_disc();
     gdrom_disc = disc;
     idereg.disc = disc->disc_type | IDE_DISC_READY;
-    gdrom_dump_disc( disc );
+    gdrom_dump_disc_info( disc );
 }
 
 gdrom_disc_t gdrom_mount_image( const gchar *filename )

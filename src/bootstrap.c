@@ -1,5 +1,5 @@
 /**
- * $Id: bootstrap.c,v 1.5 2005-12-26 03:54:52 nkeynes Exp $
+ * $Id: bootstrap.c,v 1.6 2006-06-19 11:00:40 nkeynes Exp $
  *
  * CD Bootstrap header parsing. Mostly for informational purposes.
  *
@@ -103,8 +103,10 @@ static char *dc_peripherals[] = { "Uses WinCE", "Unknown (0x0000002)",
 /**
  * Dump the bootstrap info to the output log for infomational/debugging
  * purposes.
+ * @param detail true to include a ful information dump, false for just
+ *  the facts, maam.
  */
-void bootstrap_dump( char *data )
+void bootstrap_dump( char *data, gboolean detail )
 {
     struct dc_bootstrap_head *head;
     int i, got, periph, crc, hcrc;
@@ -118,42 +120,39 @@ void bootstrap_dump( char *data )
     for( i=127; i>0 && buf[i] == ' '; i-- );
     buf[i] = '\0';
     periph = strtol( head->peripherals, NULL, 16 );
-    INFO( "Bootstrap Name: %s   Author: %-16.16s",
+    INFO( "Name: %s   Author: %-16.16s",
           buf, head->vendor_id );
     sprintf( buf, "%4.4s", head->crc );
     crc = compute_crc16(head);
     hcrc = strtol( buf, NULL, 16 );
-    emit( NULL, crc == hcrc ? EMIT_INFO : EMIT_WARN, "File", 
-          "  Header CRC:   %04X (Computed %04X)", hcrc, crc );
-    INFO( "  Boot File:    %-16.16s", head->boot_file );
     INFO( "  Product ID:   %-10.10s   Product Ver: %-6.6s   Date: %-8.8s",
           head->product_id, head->product_ver, head->product_date );
-    INFO( "  Disc ID:      %-11.11s  Regions:      %-8.8s   Peripherals: %07X",
-          head->gdrom_id, head->regions, periph );
-    strcpy( buf, "     Supports: " );
-    got = 0;
-    for( i=0; i<28; i++ ) {
-        if( periph & (1<<i) ){
-            if( got ) strcat( buf, ", " );
-            strcat( buf, dc_peripherals[i] );
-            got = 1;
-        }
-        if( i == 11 ) i = 23; /* Skip 8-23 */
+    if( detail ) {
+	emit( NULL, crc == hcrc ? EMIT_INFO : EMIT_WARN, "File", 
+              "  Header CRC:   %04X (Computed %04X)", hcrc, crc );
+	INFO( "  Boot File:    %-16.16s", head->boot_file );
+	INFO( "  Disc ID:      %-11.11s  Regions:      %-8.8s   Peripherals: %07X",
+	      head->gdrom_id, head->regions, periph );
+	strcpy( buf, "     Supports: " );
+	got = 0;
+	for( i=0; i<28; i++ ) {
+	    if( periph & (1<<i) ){
+		if( got ) strcat( buf, ", " );
+		strcat( buf, dc_peripherals[i] );
+		got = 1;
+	    }
+	    if( i == 11 ) i = 23; /* Skip 8-23 */
+	}
+	INFO( buf, NULL );
+	strcpy( buf, "     Requires: " );
+	got = 0;
+	for( i=12; i<24; i++ ) {
+	    if( periph & (1<<i) ) {
+		if( got ) strcat( buf, ", " );
+		strcat( buf, dc_peripherals[i] );
+		got = 1;
+	    }
+	}
+	INFO( buf, NULL );
     }
-    INFO( buf, NULL );
-    strcpy( buf, "     Requires: " );
-    got = 0;
-    for( i=12; i<24; i++ ) {
-        if( periph & (1<<i) ) {
-            if( got ) strcat( buf, ", " );
-            strcat( buf, dc_peripherals[i] );
-            got = 1;
-        }
-    }
-    INFO( buf, NULL );
-#if 0
-    INFO( "  Area protection symbols:", NULL );
-    for( i=0; i<8; i++ )
-        INFO( "    %d: %28.28s", i, &prot_symbols[(i*32)+4] );
-#endif
 }
