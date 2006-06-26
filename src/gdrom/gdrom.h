@@ -1,5 +1,5 @@
 /**
- * $Id: gdrom.h,v 1.6 2006-05-23 13:11:45 nkeynes Exp $
+ * $Id: gdrom.h,v 1.7 2006-06-26 10:30:42 nkeynes Exp $
  *
  * This file defines the structures and functions used by the GD-Rom
  * disc driver. (ie, the modules that supply a CD image to be used by the
@@ -84,6 +84,19 @@ typedef struct gdrom_disc {
 } *gdrom_disc_t;
 
 /**
+ *
+ */
+typedef struct gdrom_image_class {
+    const gchar *name;
+    const gchar *extension;
+    gboolean (*is_valid_file)(FILE *f);
+    gdrom_disc_t (*open_image_file)(const gchar *filename, FILE *f);
+} *gdrom_image_class_t;
+
+extern struct gdrom_image_class nrg_image_class;
+extern struct gdrom_image_class cdi_image_class;
+
+/**
  * Construct a new image file using the default methods.
  */
 gdrom_disc_t gdrom_image_new( FILE *file );
@@ -92,7 +105,6 @@ gdrom_disc_t gdrom_image_new( FILE *file );
  * Open an image file
  */
 gdrom_disc_t gdrom_image_open( const gchar *filename );
-gdrom_disc_t nrg_image_open( const gchar *filename );
 
 /**
  * Retrieve the disc table of contents, and write it into the buffer in the 
