@@ -1,5 +1,5 @@
 /**
- * $Id: gdrom.c,v 1.8 2006-06-19 11:00:42 nkeynes Exp $
+ * $Id: gdrom.c,v 1.9 2006-06-26 10:30:42 nkeynes Exp $
  *
  * GD-Rom  access functions.
  *
@@ -17,7 +17,7 @@
  */
 
 #include <stdio.h>
-
+#include <errno.h>
 #include "gdrom/ide.h"
 #include "gdrom/gdrom.h"
 #include "gdrom/packet.h"
@@ -26,6 +26,7 @@
 static void gdrom_image_destroy( gdrom_disc_t );
 static gdrom_error_t gdrom_image_read_sectors( gdrom_disc_t, uint32_t, uint32_t, int, char *, uint32_t * );
 
+gdrom_image_class_t gdrom_image_classes[] = { &nrg_image_class, &cdi_image_class, NULL };
 
 gdrom_disc_t gdrom_disc = NULL;
 
@@ -34,7 +35,45 @@ uint32_t gdrom_sector_size[] = { 2048, 2336, 2048, 2324, 2352, 2336 };
 
 gdrom_disc_t gdrom_image_open( const gchar *filename )
 {
-    return nrg_image_open( filename );
+    const gchar *ext = strrchr(filename, '.');
+    gdrom_disc_t disc = NULL;
+    FILE *f = fopen(filename, "ro");
+    int i,j;
+    gdrom_image_class_t extclz = NULL;
+
+    if( f == NULL ) {
+	ERROR("Unable to open file '%s': %s", filename, strerror(errno));
+	return NULL;
+    }
+
+    /* try extensions */
+    if( ext != NULL ) {
+	ext++; /* Skip the '.' */
+	for( i=0; gdrom_image_classes[i] != NULL; i++ ) {
+	    if( strcasecmp( gdrom_image_classes[i]->extension, ext ) == 0 ) {
+		extclz = gdrom_image_classes[i];
+		if( extclz->is_valid_file(f) ) {
+		    disc = extclz->open_image_file(filename, f);
+		    if( disc != NULL )
+			return disc;
+		}
+		break;
+	    }
+	}
+    }
+
+    /* Okay, fall back to magic */
+    for( i=0; gdrom_image_classes[i] != NULL; i++ ) {
+	if( gdrom_image_classes[i] != extclz &&
+	    gdrom_image_classes[i]->is_valid_file(f) ) {
+	    disc = gdrom_image_classes[i]->open_image_file(filename, f);
+	    if( disc != NULL )
+		return disc;
+	}
+    }
+
+    fclose(f);
+    return NULL;
 }
 
 

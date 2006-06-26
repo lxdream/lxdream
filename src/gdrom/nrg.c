@@ -1,5 +1,5 @@
 /**
- * $Id: nrg.c,v 1.2 2006-05-02 14:09:11 nkeynes Exp $
+ * $Id: nrg.c,v 1.3 2006-06-26 10:30:42 nkeynes Exp $
  *
  * Nero (NRG) CD file format. File information stolen shamelessly from
  * libcdio.
@@ -22,6 +22,12 @@
 #include <errno.h>
 #include "gdrom/gdrom.h"
 #include "dream.h"
+
+static gboolean nrg_image_is_valid( FILE *f );
+static gdrom_disc_t nrg_image_open( const gchar *filename, FILE *f );
+
+struct gdrom_image_class nrg_image_class = { "Nero", "nrg", 
+					     nrg_image_is_valid, nrg_image_open };
 
 #define NERO_V55_ID  0x4e455235 
 #define NERO_V50_ID  0x4e45524f 
@@ -131,9 +137,21 @@ uint32_t static nrg_track_mode( uint8_t mode )
     }
 }
 
-gdrom_disc_t nrg_image_open( const gchar *filename )
+static gboolean nrg_image_is_valid( FILE *f )
 {
-    FILE *f = fopen( filename, "ro" );
+    union nrg_footer footer;
+
+    fseek( f, -12, SEEK_END );
+    fread( &footer, sizeof(footer), 1, f );
+    if( ntohl(footer.v50.id) == NERO_V50_ID ) {
+	return TRUE;
+    } else {
+	return FALSE;
+    }
+}
+
+static gdrom_disc_t nrg_image_open( const gchar *filename, FILE *f )
+{
     union nrg_footer footer;
     struct nrg_chunk chunk;
     struct nrg_daoi *dao;
@@ -145,11 +163,6 @@ gdrom_disc_t nrg_image_open( const gchar *filename )
     int cue_track_id = 0, cue_track_count = 0;
     int i;
 
-    if( f == NULL ) {
-	ERROR( "Unable to open file '%s': %s", filename, strerror(errno) );
-	return NULL;
-    }
-    
     fseek( f, -12, SEEK_END );
     fread( &footer, sizeof(footer), 1, f );
     if( ntohl(footer.v50.id) == NERO_V50_ID ) {
@@ -159,14 +172,13 @@ gdrom_disc_t nrg_image_open( const gchar *filename )
 	INFO( "Loading Nero 5.5+ image" );
 	fseek( f, ntohl(footer.v55.offset), SEEK_SET );
     } else {
-	ERROR("Unable to understand file '%s' as a Nero image", filename );
+	/* Not a (recognized) Nero image */
 	return NULL;
     }
     
     disc = gdrom_image_new(f);
     if( disc == NULL ) {
 	ERROR("Unable to allocate memory!");
-	fclose(f);
 	return NULL;
     }
 

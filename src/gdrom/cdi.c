@@ -1,5 +1,5 @@
 /**
- * $Id: cdi.c,v 1.2 2005-12-25 08:24:11 nkeynes Exp $
+ * $Id: cdi.c,v 1.3 2006-06-26 10:30:42 nkeynes Exp $
  *
  * CDI CD-image file support
  *
@@ -22,10 +22,18 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <sys/stat.h>
-#include "cdi.h"
+#include "gdrom/gdrom.h"
 
-#define CDI_V2 0x80000004
-#define CDI_V3 0x80000005
+#define CDI_V2_ID 0x80000004
+#define CDI_V3_ID 0x80000005
+#define CDI_V35_ID 0x80000006
+
+
+static gboolean cdi_image_is_valid( FILE *f );
+static gdrom_disc_t cdi_image_open( const gchar *filename, FILE *f );
+
+struct gdrom_image_class cdi_image_class = { "DiscJuggler", "cdi", 
+					     cdi_image_is_valid, cdi_image_open };
 
 static char track_start_marker[20] = { 0,0,1,0,0,0,255,255,255,255,
                                        0,0,1,0,0,0,255,255,255,255 };
@@ -34,24 +42,6 @@ struct cdi_trailer {
     uint32_t cdi_version;
     uint32_t header_offset;
 };
-
-struct cdi_track {
-    int file_posn;
-    int length; /* bytes */
-    int pregap; /* sectors */
-    int mode;
-    int sector_size;
-    int session;
-    struct cdi_track *next;
-};
-
-struct cdi_handle {
-    int fd;
-    uint16_t num_sessions;
-    struct cdi_track *tracks;
-};
-
-
 
 struct cdi_track_data {
     char unknown[0x19];
@@ -67,105 +57,131 @@ struct cdi_track_data {
     char unknown5[0x1D];
 } __attribute__((packed));
 
-cdi_t cdi_open( char *filename )
+gboolean cdi_image_is_valid( FILE *f )
 {
-#define BAIL( x, ... ) { fprintf( stderr, x, __VA_ARGS__ ); if( fd != -1 ) close(fd); return NULL; }
+    int len;
+    struct cdi_trailer trail;
 
-    struct stat st;
+    fseek( f, -8, SEEK_END );
+    len = ftell(f)+8;
+    fread( &trail, sizeof(trail), 1, f );
+    if( trail.header_offset >= len ||
+        trail.header_offset == 0 )
+	return FALSE;
+    return trail.cdi_version == CDI_V2_ID || trail.cdi_version == CDI_V3_ID;
+}
+
+gdrom_disc_t cdi_image_open( const gchar *filename, FILE *f )
+{
+    gdrom_disc_t disc = NULL;
     int fd = -1, i,j, tmp;
+    uint16_t session_count;
+    uint16_t track_count;
+    int total_tracks = 0;
     int posn = 0, hdr;
     long len;
     struct cdi_trailer trail;
-    struct cdi_handle cdi;
-    uint16_t tracks;
     uint32_t new_fmt;
     char tmpc;
     char marker[20];
 
-    fd = open( filename, O_RDONLY );
-    if( fd == -1 )
-        BAIL( "Unable to open file: %s (%s)\n", filename, strerror(errno) );
-    fstat( fd, &st );
-    if( st.st_size < 8 )
-        BAIL( "File is too small to be a valid CDI image: %s\n", filename );
-    len = lseek( fd, -8, SEEK_END );
-    read( fd, &trail, sizeof(trail) );
-    if( trail.header_offset > st.st_size ||
+    fseek( f, -8, SEEK_END );
+    len = ftell(f)+8;
+    fread( &trail, sizeof(trail), 1, f );
+    if( trail.header_offset >= len ||
         trail.header_offset == 0 )
-        BAIL( "Not a valid CDI image: %s\n", filename );
+	return NULL;
 
-    if( trail.cdi_version == CDI_V2 ) trail.cdi_version = 2;
-    else if( trail.cdi_version == CDI_V3 ) trail.cdi_version = 3;
-    else BAIL( "Unknown CDI version code %08x in %s\n", trail.cdi_version,
-               filename );
+    if( trail.cdi_version == CDI_V2_ID ) trail.cdi_version = 2;
+    else if( trail.cdi_version == CDI_V3_ID ) trail.cdi_version = 3;
+    else return NULL; 
 
-    lseek( fd, trail.header_offset, SEEK_SET );
-    read( fd, &cdi.num_sessions, 2 );
+    fseek( f, trail.header_offset, SEEK_SET );
+    fread( &session_count, sizeof(session_count), 1, f );
     
+    disc = gdrom_image_new(f);
 
-    printf( "CDI version: %d\n", trail.cdi_version );
-    printf( "Sessions: %d\n\n", cdi.num_sessions );
-    for( i=0; i< cdi.num_sessions; i++ ) {        
-        read( fd, &tracks, 2 );
-        printf( "Session %d - %d tracks:\n", i+1, tracks );
-        for( j=0; j<tracks; j++ ) {
+    for( i=0; i< session_count; i++ ) {        
+	fread( &track_count, sizeof(track_count), 1, f );
+        for( j=0; j<track_count; j++ ) {
             struct cdi_track_data trk;
-            
-            read( fd, &new_fmt, 4 );
+            uint32_t new_fmt = 0;
+	    uint8_t fnamelen = 0;
+            fread( &new_fmt, sizeof(new_fmt), 1, f );
             if( new_fmt != 0 ) { /* Additional data 3.00.780+ ?? */
-                printf( "Note: CDI image has 3.00.780+ flag set\n" );
-                lseek( fd, 8, SEEK_CUR );
+		fseek( f, 8, SEEK_CUR ); /* Skip */
             }
-            read( fd, marker, 20 );
-            if( memcmp( marker, track_start_marker, 20) != 0 )
-                BAIL( "Track start marker not found, error reading cdi\n",NULL );
-            read( fd, &tmp, 4 );
-            printf( "Unknown 4 bytes: %08x\n", tmp );
-            read( fd, &tmpc, 1 );
-            lseek( fd, (int)tmpc, SEEK_CUR ); /* skip over the filename */
-            read( fd, &trk, sizeof(trk) );
-            switch( trk.sector_size ) {
-                case 0: trk.sector_size = 2048; hdr=0; break;
-                case 1: trk.sector_size = 2336; hdr=8; break;
-                case 2:
-                    trk.sector_size = 2352;
-                    if( trk.mode == 2 ) hdr=24;
-                    else hdr=16;
-                    break;
-                default: BAIL( "Unknown sector size: %d\n", trk.sector_size );
-            }
-            posn += hdr;
-            len = trk.length*trk.sector_size;
-            printf( "  Track %d\n", j+1 );
-            printf( "    Pregap: %08x\n", trk.pregap_length );
-            printf( "    Length: %08x\n", trk.length );
-            printf( "    Mode: %d\n", trk.mode );
-            printf( "    Sector size: %d\n", trk.sector_size );
-            printf( "    Start LBA: %08x\n", trk.start_lba );
-            printf( "    Total length: %08x\n", trk.total_length );
-            printf( "   ---\n" );
-            printf( "    File position: %08x\n", posn+trk.pregap_length*trk.sector_size );
-            printf( "    File length: %d\n", len );
-            posn += trk.total_length*trk.sector_size;
+            fread( marker, 20, 1, f );
+            if( memcmp( marker, track_start_marker, 20) != 0 ) {
+		ERROR( "Track start marker not found, error reading cdi image\n" );
+		free(disc);
+		return NULL;
+	    }
+	    fseek( f, 4, SEEK_CUR );
+            fread( &fnamelen, 1, 1, f );
+            fseek( f, (int)fnamelen, SEEK_CUR ); /* skip over the filename */
+            fread( &trk, sizeof(trk), 1, f );
+	    disc->track[total_tracks].session = i;
+	    disc->track[total_tracks].lba = trk.start_lba;
+	    disc->track[total_tracks].sector_count = trk.length;
+	    switch( trk.mode ) {
+	    case 0:
+		disc->track[total_tracks].mode = GDROM_CDDA;
+		disc->track[total_tracks].sector_size = 2352;
+		disc->track[total_tracks].flags = 0x01;
+		if( trk.sector_size != 2 ) {
+		    ERROR( "Invalid combination of mode %d with size %d", trk.mode, trk.sector_size );
+		    free(disc);
+		    return NULL;
+		}
+		break;
+	    case 1:
+		disc->track[total_tracks].mode = GDROM_MODE1;
+		disc->track[total_tracks].sector_size = 2048;
+		disc->track[total_tracks].flags = 0x41;
+		if( trk.sector_size != 0 ) {
+		    ERROR( "Invalid combination of mode %d with size %d", trk.mode, trk.sector_size );
+		    free(disc);
+		    return NULL;
+		}
+		break;
+	    case 2:
+		disc->track[total_tracks].flags = 0x41;
+		switch( trk.sector_size ) {
+		case 0:
+		    disc->track[total_tracks].mode = GDROM_MODE2_XA1;
+		    disc->track[total_tracks].sector_size = 2048;
+		    break;
+		case 1:
+		    disc->track[total_tracks].mode = GDROM_MODE2;
+		    disc->track[total_tracks].sector_size = 2336;
+		    break;
+		case 2:
+		default:
+		    ERROR( "Invalid combination of mode %d with size %d", trk.mode, trk.sector_size );
+		    free(disc);
+		    return NULL;
+		}
+		break;
+	    default:
+		ERROR( "Unsupported track mode %d", trk.mode );
+		free(disc);
+		return NULL;
+	    }
+	    disc->track[total_tracks].offset = posn + 
+		trk.pregap_length * disc->track[total_tracks].sector_size ;
+	    posn += trk.total_length * disc->track[total_tracks].sector_size;
+	    total_tracks++;
             lseek( fd, 12, SEEK_CUR );
-            if( new_fmt )
-                lseek( fd, 78, SEEK_CUR );
-            tmp = lseek( fd, 0, SEEK_CUR );
-            printf( "(Header offset: %x)\n", tmp - trail.header_offset );
-        }
+            if( new_fmt ) {
+                fseek( f, 90, SEEK_CUR );
+	    } else {
+		fseek( f, 12, SEEK_CUR );
+	    }
+	}
     }
-    
-    return NULL;
-#undef BAIL(x, ...)
+    disc->track_count = total_tracks;
+    disc->file = f;
+    disc->filename = filename;
+    return disc;
 }
-
-int main(int argc, char *argv[] )
-{
-    int i;
-
-    for( i=1; i<argc; i++ ) {
-        cdi_open(argv[i]);
-    }
-    return 0;
-}
-    
