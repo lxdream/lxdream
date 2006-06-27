@@ -1,5 +1,5 @@
 /**
- * $Id: loader.c,v 1.12 2006-03-15 13:17:40 nkeynes Exp $
+ * $Id: loader.c,v 1.13 2006-06-27 09:34:27 nkeynes Exp $
  *
  * File loading routines, mostly for loading demos without going through the
  * whole procedure of making a CD image for them.
@@ -27,8 +27,8 @@
 #include "mem.h"
 #include "sh4core.h"
 #include "bootstrap.h"
+#include "dreamcast.h"
 
-char *bootstrap_file = DEFAULT_BOOTSTRAP_FILE;
 char bootstrap_magic[32] = "SEGA SEGAKATANA SEGA ENTERPRISES";
 char iso_magic[6] = "\001CD001";
 char *file_loader_extensions[][2] = { 
@@ -78,7 +78,7 @@ gboolean file_load_magic( const gchar *filename )
             char *load = mem_get_region( BOOTSTRAP_LOAD_ADDR );
             lseek( fd, 0, SEEK_SET );
             read( fd, load, BOOTSTRAP_SIZE );
-            bootstrap_dump( load );
+            bootstrap_dump( load, TRUE );
             sh4_set_pc( BOOTSTRAP_LOAD_ADDR + 0x300 );
             gtk_gui_update();
         } else {
@@ -109,6 +109,7 @@ gboolean file_load_magic( const gchar *filename )
 
 int file_load_postload( int pc )
 {
+    const gchar *bootstrap_file = dreamcast_get_config_value(CONFIG_BOOTSTRAP);
     if( bootstrap_file != NULL ) {
 	/* Load in a bootstrap before the binary, to initialize everything
 	 * correctly
