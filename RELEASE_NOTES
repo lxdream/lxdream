@@ -1,0 +1,32 @@
+Release notes for Milestone 1 ("Smoke and Mirrors")
+===================================================
+
+This is an early development release. Most things don't work. Many things
+that do work only do so by sheer luck. Framerates are typically 1-4 frames
+per second on a 3Ghz P4. In short, don't expect to run any actual games on
+it at this stage (I have not even tried, myself).
+
+Having said that, the following are known to run with at least some degree of 
+success:
+
+  * Most KOS based demos, and a number of other demos (An exact inventory of 
+working demos is not being maintained at this stage).
+  * The BIOS bootstrap (you can boot NRG and CDI cd-rom images)
+
+System requirements
+-------------------
+GTK 2.0+
+Gnome 2.0+
+ESounD 2.36+  (if you want interrupted stuttery sound[0])
+GCC, Make, etc.
+
+[0] Actually the ARM chip can be run independently, in which case the
+performance is reasonably decent.
+
+Building
+--------
+From the base directory
+~$ ./configure
+~$ make
+~$ make install            (optional)
+
