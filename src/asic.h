@@ -1,5 +1,5 @@
 /**
- * $Id: asic.h,v 1.10 2006-06-15 10:32:38 nkeynes Exp $
+ * $Id: asic.h,v 1.11 2006-06-27 11:02:46 nkeynes Exp $
  *
  * Support for the miscellaneous ASIC functions (Primarily event multiplexing,
  * and DMA). Includes MMIO definitions for the 5f6000 and 5f7000 regions, 
@@ -40,12 +40,12 @@ MMIO_REGION_BEGIN( 0x005F6000, ASIC, "System ASIC" )
     LONG_PORT( 0x84C, ASICUNK8, PORT_MRW, 0, "ASIC <unknown8>" )
     LONG_PORT( 0x884, ASICUNK9, PORT_MRW, 0, "ASIC <unknown9>" )
     LONG_PORT( 0x888, ASICUNKA, PORT_MRW, 0, "ASIC <unknownA>" )
-    LONG_PORT( 0x88C, G2STATUS, PORT_MR, 0, "G2 Bus status" )
+    LONG_PORT( 0x88C, G2STATUS, PORT_MR|PORT_NOTRACE, 0, "G2 Bus status" )
     LONG_PORT( 0x89C, ASICUNKB, PORT_MRW, 0xB, "Unknown, always 0xB?" )
     LONG_PORT( 0x8A0, ASICUNKC, PORT_MRW, 0, "ASIC <unknownC>" )
     LONG_PORT( 0x8A4, ASICUNKD, PORT_MRW, 0, "ASIC <unknownD>" )
     LONG_PORT( 0x8AC, ASICUNKE, PORT_MRW, 0, "ASIC <unknownE>" )
-    LONG_PORT( 0x900, PIRQ0, PORT_MRW, 0, "Pending interrupts 0" )
+    LONG_PORT( 0x900, PIRQ0, PORT_MRW|PORT_NOTRACE, 0, "Pending interrupts 0" )
     LONG_PORT( 0x904, PIRQ1, PORT_MRW, 0, "Pending interrupts 1" )
     LONG_PORT( 0x908, PIRQ2, PORT_MRW, 0, "Pending interrupts 2" )
     LONG_PORT( 0x910, IRQA0, PORT_MRW, 0, "IRQ A event map 0" )
@@ -113,7 +113,7 @@ MMIO_REGION_BEGIN( 0x005F7000, EXTDMA, "ASIC External DMA" )
     LONG_PORT( 0x4A0, EXTDMAUNK6, PORT_MRW, 0, "Ext DMA <unknown6>" )
     LONG_PORT( 0x4A4, EXTDMAUNK7, PORT_MRW, 0, "Ext DMA <unknown7>" )
     LONG_PORT( 0x4B4, EXTDMAUNK8, PORT_MRW, 0, "Ext DMA <unknown8>" )
-    LONG_PORT( 0x4B8, IDEDMACFG, PORT_MRW, 0, "IDE DMA Config" )
+    LONG_PORT( 0x4B8, IDEDMACFG, PORT_MRW, 0, "IDE DMA Config" ) /* 88437F00 */
     LONG_PORT( 0x4E4, IDEACTIVATE, PORT_MRW, 0, "IDE activate" )
     LONG_PORT( 0x4F8, IDEDMATXSIZ, PORT_MRW, 0, "IDE DMA transfered size" )
     LONG_PORT( 0x800, SPUDMA0EXT, PORT_MRW, 0, "SPU DMA0 External address" )
@@ -159,7 +159,7 @@ MMIO_REGION_BEGIN( 0x005F7000, EXTDMA, "ASIC External DMA" )
     LONG_PORT( 0x8B0, SPUDMAUN8, PORT_MRW, 0, "SPU DMA <unknown8>" )
     LONG_PORT( 0x8B4, SPUDMAUN9, PORT_MRW, 0, "SPU DMA <unknown9>" )
     LONG_PORT( 0x8B8, SPUDMAUN10, PORT_MRW, 0, "SPU DMA <unknown10>" )
-    LONG_PORT( 0x8BC, SPUDMAUN11, PORT_MRW, 0, "SPU DMA <unknown11>" )
+    LONG_PORT( 0x8BC, SPUDMACFG, PORT_MRW, 0, "SPU DMA Config" ) /* 46597F00 */
     LONG_PORT( 0xC00, PVRDMA2EXT, PORT_MRW, 0, "PVR DMA External address" )
     LONG_PORT( 0xC04, PVRDMA2SH4, PORT_MRW, 0, "PVR DMA SH4 address" )
     LONG_PORT( 0xC08, PVRDMA2SIZ, PORT_MRW, 0, "PVR DMA Size" )
@@ -167,7 +167,7 @@ MMIO_REGION_BEGIN( 0x005F7000, EXTDMA, "ASIC External DMA" )
     LONG_PORT( 0xC10, PVRDMA2MOD, PORT_MRW, 0, "PVR DMA Mode" )
     LONG_PORT( 0xC14, PVRDMA2CTL1, PORT_MRW, 0, "PVR DMA Control 1" )
     LONG_PORT( 0xC18, PVRDMA2CTL2, PORT_MRW, 0, "PVR DMA Control 2" )
-    LONG_PORT( 0xC80, PVRDMA2CFG, PORT_MRW, 0, "PVR DMA Config" )
+    LONG_PORT( 0xC80, PVRDMA2CFG, PORT_MRW, 0, "PVR DMA Config" ) /* 67027F00 */
 
 MMIO_REGION_END
 
