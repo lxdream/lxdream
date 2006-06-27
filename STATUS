@@ -1,0 +1,80 @@
+Current status
+==============
+
+General issues
+  - No dynamic recompilation yet
+  - Slow (not performance optimized yet at all. See above).
+  - No I/O timing whatsoever except at a timeslice level for audio/video.
+    (ie DMA, rendering, GD-Rom operations need to take > 0 ms to complete)
+
+SH4 Core
+  + Base instruction set  (Complete?)
+  - No MMU support (address translation, TLB, etc)
+  - No user-mode support
+  - Not remotely cycle-correct timing
+
+SH4 On-chip peripherals 
+  BSC
+    * Not implemented except for PCTRA/PDTRA, and that part is quite dodgy.
+  CPG
+    * Complete?
+  DMAC
+    * Implemented to extent needed by ASIC DMA, not fully complete
+  INTC
+    * Complete?
+  RTC
+    * Not implemented
+  SCI
+    * Not implemented (not even hooked up in the hardware?)
+  SCIF
+    * Complete? (not heavily tested)
+  TMU
+    * Complete?
+  UBC
+    * Not implemented
+
+AICA SPU
+  ARM core
+    + Base instruction set (Complete?)
+    - No thumb support
+    - No system coprocessor support
+    - No cycle-correct timing
+  DSP
+    + Basic sound generation
+    - No waveform support
+    - No LFO support
+
+PVR2 GPU
+  TA
+    + Quick-n-dirty hack job to store the TA command lists in the poly
+      buffer and nothing else. Not remotely correct. 
+    - Doesn't support 16-dword vertexes
+  Render
+    + Basic opaque and translucent polygon support
+    + Depth buffer, alpha blend, most poly modes
+    - No translucent poly sorting
+    - No modifier volumes
+    - No sprites
+    - No specular highlight
+    - No 16-dword vertexes
+  Texture
+    + Most texture formats supported
+    - No support for VQ decompression
+
+GD-Rom
+  IDE interface
+    + Supports Ident, Set feature, and Packet (and no other IDE commands)
+    + Supports PIO and DMA modes
+  GD-Rom interface
+    + Supports Test ready, Ident, Read TOC, Read Session info, Sense request, and Read CD
+      commands
+    - other 20-odd commands not supported
+
+Maple
+  + Maple bus complete?
+  + Standard DC controllers
+  - No support for VMU
+  - No support for other controller types (keyboard, mouse, gun, etc)
+
+Network
+  - Not implemented
