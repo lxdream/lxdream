@@ -1,5 +1,5 @@
 /**
- * $Id: aica.c,v 1.18 2006-03-30 11:27:11 nkeynes Exp $
+ * $Id: aica.c,v 1.19 2006-06-27 11:04:03 nkeynes Exp $
  * 
  * This is the core sound system (ie the bit which does the actual work)
  *
@@ -44,6 +44,10 @@ struct dreamcast_module aica_module = { "AICA", aica_init, aica_reset,
 					aica_start, aica_run_slice, aica_stop,
 					aica_save_state, aica_load_state };
 
+/* 20 years in seconds */
+#define RTC_OFFSET 631152000
+unsigned int aica_time_of_day = 0;
+
 /**
  * Initialize the AICA subsystem. Note requires that 
  */
@@ -58,8 +62,13 @@ void aica_init( void )
 
 void aica_reset( void )
 {
+    struct timeval tv;
     arm_reset();
     aica_event(2); /* Pre-deliver a timer interrupt */
+
+    // gettimeofday( &tv, NULL );
+    // aica_time_of_day = tv.tv_sec + RTC_OFFSET;
+    aica_time_of_day = 0x5bfc8900;
 }
 
 void aica_start( void )
@@ -89,6 +98,7 @@ uint32_t aica_run_slice( uint32_t nanosecs )
     if( nanosecs_done > 1000000000 ) {
 	samples_done -= AICA_SAMPLE_RATE;
 	nanosecs_done -= 1000000000;
+	aica_time_of_day++;
     }
     return nanosecs;
 }
@@ -220,26 +230,21 @@ void mmio_region_AICA2_write( uint32_t reg, uint32_t val )
     }
 }
 
-/* 20 years in seconds */
-#define RTC_OFFSET 631152000
 
 int32_t mmio_region_AICARTC_read( uint32_t reg )
 {
     struct timeval tv;
-
+    int32_t rv = 0;
     switch( reg ) {
     case AICA_RTCHI:
-	if( gettimeofday( &tv, NULL ) == 0 ) {
-	    return ((uint32_t)(tv.tv_sec + RTC_OFFSET)) >> 16;
-	}
+        rv = (aica_time_of_day >> 16) & 0xFFFF;
 	break;
     case AICA_RTCLO:
-	if( gettimeofday( &tv, NULL ) == 0 ) {
-	    return ((uint32_t)(tv.tv_sec + RTC_OFFSET)) & 0xFFFF;
-	}
+	rv = aica_time_of_day & 0xFFFF;
 	break;
     }
-    return 0;
+    DEBUG( "Read AICA RTC %d => %08X", reg, rv );
+    return rv;
 }
 
 MMIO_REGION_WRITE_STUBFN( AICARTC )
