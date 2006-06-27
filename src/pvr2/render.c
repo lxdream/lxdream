@@ -1,5 +1,5 @@
 /**
- * $Id: render.c,v 1.9 2006-06-18 11:57:05 nkeynes Exp $
+ * $Id: render.c,v 1.10 2006-06-27 09:32:09 nkeynes Exp $
  *
  * PVR2 Renderer support. This is where the real work happens.
  *
@@ -270,7 +270,7 @@ static void pvr2_render_prepare_context( sh4addr_t render_addr,
     glViewport( 0, 0, width, height );
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    glOrtho( 0, width, height, 0, bgplanez, -10 );
+    glOrtho( 0, width, height, 0, bgplanez, -4 );
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
     glCullFace( GL_BACK );
