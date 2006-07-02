@@ -1,5 +1,5 @@
 /**
- * $Id: dream.h,v 1.9 2006-04-30 01:48:38 nkeynes Exp $
+ * $Id: dream.h,v 1.10 2006-07-02 04:59:00 nkeynes Exp $
  *
  * Miscellaneous application-wide declarations (mainly logging atm)
  *
@@ -29,6 +29,8 @@
 extern "C" {
 #endif
 
+#define APP_NAME "lxDream"
+
 /************************ Modules ********************************/
 /**
  * Basic module structure defining the common operations across all
@@ -38,7 +40,7 @@ typedef struct dreamcast_module {
     char *name;
     /**
      * Perform all initial module setup (ie register / allocate any
-     * memory required, etc). Only called once during DreamOn startup
+     * memory required, etc). Only called once during system startup
      */
     void (*init)();
     /**
@@ -107,8 +109,6 @@ void emit( void *, int level, const char *source, const char *msg, ... );
 #define INFO( ... ) emit( NULL, EMIT_INFO, MODULE.name, __VA_ARGS__ )
 #define DEBUG( ... ) emit( NULL, EMIT_DEBUG, MODULE.name, __VA_ARGS__ )
 #define TRACE( ... ) emit( NULL, EMIT_TRACE, MODULE.name, __VA_ARGS__ )
-
-#define BIOS_PATH "../bios"
 
 void fwrite_string( char *s, FILE *f );
 int fread_string( char *s, int maxlen, FILE *f );

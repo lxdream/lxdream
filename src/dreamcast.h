@@ -1,5 +1,5 @@
 /**
- * $Id: dreamcast.h,v 1.10 2006-06-19 11:00:40 nkeynes Exp $
+ * $Id: dreamcast.h,v 1.11 2006-07-02 04:59:00 nkeynes Exp $
  *
  * Public interface for dreamcast.c -
  * Central switchboard for the system. This pulls all the individual modules
@@ -35,7 +35,7 @@ extern "C" {
 #define CONFIG_TYPE_PATH 2
 #define CONFIG_TYPE_KEY 3
 
-#define DEFAULT_CONFIG_FILENAME "dream.conf"
+#define DEFAULT_CONFIG_FILENAME "lxdream.rc"
 
 typedef struct dreamcast_config_entry {
     const gchar *key;

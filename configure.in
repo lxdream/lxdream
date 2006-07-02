@@ -26,6 +26,8 @@ dnl Add the languages which your application supports here.
 ALL_LINGUAS=""
 AM_GLIB_GNU_GETTEXT
 
+AC_SUBST( CFLAGS, '-g3' )
+
 AC_OUTPUT([
 Makefile
 src/Makefile

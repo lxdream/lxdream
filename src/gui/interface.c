@@ -151,7 +151,7 @@ create_debug_win (void)
 
   tooltips = gtk_tooltips_new ();
 
-  debug_win = gnome_app_new ("Dream", _("DreamOn! Debugger"));
+  debug_win = gnome_app_new ("Dream", _("lxDream! Debugger"));
   gtk_window_set_default_size (GTK_WINDOW (debug_win), 1000, 700);
 
   dock1 = GNOME_APP (debug_win)->dock;
@@ -502,7 +502,7 @@ create_mmr_win (void)
   GtkWidget *mmr_close;
 
   mmr_win = gtk_window_new (GTK_WINDOW_TOPLEVEL);
-  gtk_window_set_title (GTK_WINDOW (mmr_win), _("DreamOn! - Memory-Mapped Registers"));
+  gtk_window_set_title (GTK_WINDOW (mmr_win), _("lxDream! - Memory-Mapped Registers"));
   gtk_window_set_default_size (GTK_WINDOW (mmr_win), 600, 600);
 
   vbox1 = gtk_vbox_new (FALSE, 0);

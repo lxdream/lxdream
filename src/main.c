@@ -1,5 +1,5 @@
 /**
- * $Id: main.c,v 1.17 2006-05-15 08:28:48 nkeynes Exp $
+ * $Id: main.c,v 1.18 2006-07-02 04:59:00 nkeynes Exp $
  *
  * Main program, initializes dreamcast and gui, then passes control off to
  * the gtk main loop (currently). 
@@ -100,7 +100,7 @@ int main (int argc, char *argv[])
 
     if( aica_program == NULL ) {
 	if( !headless ) {
-	    gnome_init ("dreamon", VERSION, argc, argv);
+	    gnome_init ("lxdream", VERSION, argc, argv);
 	    dreamcast_init();
 	    dreamcast_register_module( &gtk_gui_module );
 	} else {
@@ -114,7 +114,7 @@ int main (int argc, char *argv[])
 	    mem_load_block( s3m_file, 0x00810000, 2048*1024 - 0x10000 );
 	}
 	if( !headless ) {
-	    gnome_init ("dreamon", VERSION, argc, argv);
+	    gnome_init ("lxdream", VERSION, argc, argv);
 	    dreamcast_register_module( &gtk_gui_module );
 	    set_disassembly_cpu( main_debug, "ARM7" );
 	}
@@ -155,7 +155,7 @@ int main (int argc, char *argv[])
     }
 
     maple_reattach_all();
-    INFO( "DreamOn! ready..." );
+    INFO( "%s! ready...", APP_NAME );
     if( optind < argc ) {
 	file_load_magic( argv[optind] );
     }

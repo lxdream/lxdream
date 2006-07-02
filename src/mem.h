@@ -1,5 +1,5 @@
 /**
- * $Id: mem.h,v 1.9 2006-06-15 10:25:42 nkeynes Exp $
+ * $Id: mem.h,v 1.10 2006-07-02 04:59:00 nkeynes Exp $
  *
  * mem is responsible for creating and maintaining the overall system memory
  * map, as visible from the SH4 processor. (Note the ARM has a different map)
@@ -38,6 +38,7 @@ typedef struct mem_region {
 #define MAX_IO_REGIONS 24
 #define MAX_MEM_REGIONS 8
 
+#define MEM_REGION_BIOS "Bios ROM"
 #define MEM_REGION_MAIN "System RAM"
 #define MEM_REGION_VIDEO "Video RAM"
 #define MEM_REGION_AUDIO "Audio RAM"

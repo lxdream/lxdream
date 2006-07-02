@@ -1,5 +1,5 @@
 /**
- * $Id: mem.c,v 1.13 2006-06-15 10:25:42 nkeynes Exp $
+ * $Id: mem.c,v 1.14 2006-07-02 04:59:00 nkeynes Exp $
  * mem.c is responsible for creating and maintaining the overall system memory
  * map, as visible from the SH4 processor. 
  *
@@ -197,8 +197,10 @@ int mem_load_block( const gchar *file, uint32_t start, uint32_t length )
     struct stat st;
     FILE *f = fopen(file,"r");
 
-    if( f == NULL )
-	return errno;
+    if( f == NULL ) {
+	ERROR( "Unable to load file '%s': %s", file, strerror(errno) );
+	return -1;
+    }
     fstat( fileno(f), &st );
     if( length == 0 || length == -1 || length > st.st_size )
 	length = st.st_size;
@@ -266,13 +268,12 @@ void *mem_create_repeating_ram_region( uint32_t base, uint32_t size, char *name,
 
 void *mem_load_rom( char *file, uint32_t base, uint32_t size, uint32_t crc )
 {
-    char buf[512], *mem;
+    char *mem;
     int fd;
     uint32_t calc_crc;
-    snprintf( buf, 512, "%s/%s",BIOS_PATH, file );
-    fd = open( buf, O_RDONLY );
+    fd = open( file, O_RDONLY );
     if( fd == -1 ) {
-        ERROR( "Bios file not found: %s", buf );
+        ERROR( "Bios file not found: %s", file );
         return NULL;
     }
     mem = mmap( NULL, size, PROT_READ, MAP_PRIVATE, fd, 0 );

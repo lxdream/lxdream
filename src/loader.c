@@ -1,5 +1,5 @@
 /**
- * $Id: loader.c,v 1.13 2006-06-27 09:34:27 nkeynes Exp $
+ * $Id: loader.c,v 1.14 2006-07-02 04:59:00 nkeynes Exp $
  *
  * File loading routines, mostly for loading demos without going through the
  * whole procedure of making a CD image for them.
@@ -114,8 +114,12 @@ int file_load_postload( int pc )
 	/* Load in a bootstrap before the binary, to initialize everything
 	 * correctly
 	 */
-	mem_load_block( bootstrap_file, BOOTSTRAP_LOAD_ADDR, BOOTSTRAP_SIZE );
-	sh4_set_pc( BOOTSTRAP_LOAD_ADDR + 0x300 );
+	if( mem_load_block( bootstrap_file, BOOTSTRAP_LOAD_ADDR, BOOTSTRAP_SIZE ) != 0 ) {
+	    /* Try it without the bootstrap */
+	    sh4_set_pc( pc );
+	} else {
+	    sh4_set_pc( BOOTSTRAP_LOAD_ADDR + 0x300 );
+	}
     } else {
 	sh4_set_pc( pc );
     }
@@ -165,5 +169,5 @@ int file_load_elf_fd( int fd )
 	}
     }
     
-    file_load_postload( head.e_entry );
+    return file_load_postload( head.e_entry );
 }

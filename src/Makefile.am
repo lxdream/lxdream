@@ -6,9 +6,9 @@ INCLUDES = \
         -Ish4 \
 	@PACKAGE_CFLAGS@
 
-bin_PROGRAMS = dream
+bin_PROGRAMS = lxdream
 
-dream_SOURCES = \
+lxdream_SOURCES = \
         main.c \
         mem.c mem.h mmio.h watch.c \
         asic.c asic.h \
@@ -37,6 +37,6 @@ dream_SOURCES = \
 	drivers/video_null.c drivers/video_gtk.c drivers/video_gtk.h \
 	drivers/video_x11.c drivers/video_x11.h
 
-dream_LDADD = @PACKAGE_LIBS@ $(INTLLIBS) -lesd
+lxdream_LDADD = @PACKAGE_LIBS@ $(INTLLIBS) -lesd
 
 AM_CFLAGS = -D_ISOC99_SOURCE -D_BSD_SOURCE 
