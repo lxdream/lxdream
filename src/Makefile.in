@@ -101,6 +101,7 @@ VERSION = @VERSION@
 XGETTEXT = @XGETTEXT@
 ac_ct_CC = @ac_ct_CC@
 ac_ct_STRIP = @ac_ct_STRIP@
+ac_pt_PKG_CONFIG = @ac_pt_PKG_CONFIG@
 am__fastdepCC_FALSE = @am__fastdepCC_FALSE@
 am__fastdepCC_TRUE = @am__fastdepCC_TRUE@
 am__include = @am__include@
@@ -133,9 +134,9 @@ INCLUDES = \
 	@PACKAGE_CFLAGS@
 
 
-bin_PROGRAMS = dream
+bin_PROGRAMS = lxdream
 
-dream_SOURCES = \
+lxdream_SOURCES = \
         main.c \
         mem.c mem.h mmio.h watch.c \
         asic.c asic.h \
@@ -165,7 +166,7 @@ dream_SOURCES = \
 	drivers/video_x11.c drivers/video_x11.h
 
 
-dream_LDADD = @PACKAGE_LIBS@ $(INTLLIBS) -lesd
+lxdream_LDADD = @PACKAGE_LIBS@ $(INTLLIBS) -lesd
 
 AM_CFLAGS = -D_ISOC99_SOURCE -D_BSD_SOURCE 
 subdir = src
@@ -173,10 +174,10 @@ ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
-bin_PROGRAMS = dream$(EXEEXT)
+bin_PROGRAMS = lxdream$(EXEEXT)
 PROGRAMS = $(bin_PROGRAMS)
 
-am_dream_OBJECTS = main.$(OBJEXT) mem.$(OBJEXT) watch.$(OBJEXT) \
+am_lxdream_OBJECTS = main.$(OBJEXT) mem.$(OBJEXT) watch.$(OBJEXT) \
 	asic.$(OBJEXT) syscall.$(OBJEXT) bios.$(OBJEXT) \
 	dcload.$(OBJEXT) ide.$(OBJEXT) gdrom.$(OBJEXT) nrg.$(OBJEXT) \
 	cdi.$(OBJEXT) dreamcast.$(OBJEXT) intc.$(OBJEXT) \
@@ -191,9 +192,9 @@ am_dream_OBJECTS = main.$(OBJEXT) mem.$(OBJEXT) watch.$(OBJEXT) \
 	loader.$(OBJEXT) bootstrap.$(OBJEXT) util.$(OBJEXT) \
 	display.$(OBJEXT) audio_null.$(OBJEXT) audio_esd.$(OBJEXT) \
 	video_null.$(OBJEXT) video_gtk.$(OBJEXT) video_x11.$(OBJEXT)
-dream_OBJECTS = $(am_dream_OBJECTS)
-dream_DEPENDENCIES =
-dream_LDFLAGS =
+lxdream_OBJECTS = $(am_lxdream_OBJECTS)
+lxdream_DEPENDENCIES =
+lxdream_LDFLAGS =
 
 DEFAULT_INCLUDES =  -I. -I$(srcdir) -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/depcomp
@@ -226,9 +227,9 @@ COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
 LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
-DIST_SOURCES = $(dream_SOURCES)
+DIST_SOURCES = $(lxdream_SOURCES)
 DIST_COMMON = $(srcdir)/Makefile.in Makefile.am
-SOURCES = $(dream_SOURCES)
+SOURCES = $(lxdream_SOURCES)
 
 all: all-am
 
@@ -263,9 +264,9 @@ uninstall-binPROGRAMS:
 
 clean-binPROGRAMS:
 	-test -z "$(bin_PROGRAMS)" || rm -f $(bin_PROGRAMS)
-dream$(EXEEXT): $(dream_OBJECTS) $(dream_DEPENDENCIES) 
-	@rm -f dream$(EXEEXT)
-	$(LINK) $(dream_LDFLAGS) $(dream_OBJECTS) $(dream_LDADD) $(LIBS)
+lxdream$(EXEEXT): $(lxdream_OBJECTS) $(lxdream_DEPENDENCIES) 
+	@rm -f lxdream$(EXEEXT)
+	$(LINK) $(lxdream_LDFLAGS) $(lxdream_OBJECTS) $(lxdream_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT) core *.core

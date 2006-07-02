@@ -1,5 +1,5 @@
 /**
- * $Id: video_gtk.c,v 1.7 2006-06-18 11:55:25 nkeynes Exp $
+ * $Id: video_gtk.c,v 1.8 2006-07-02 04:59:00 nkeynes Exp $
  *
  * The PC side of the video support (responsible for actually displaying / 
  * rendering frames)
@@ -20,6 +20,7 @@
 #include <gnome.h>
 #include <gdk/gdkx.h>
 #include <stdint.h>
+#include "dream.h"
 #include "display.h"
 #include "drivers/video_x11.h"
 
@@ -77,7 +78,7 @@ gboolean video_gtk_set_output_format( uint32_t width, uint32_t height,
     video_height = height;
     if( video_win == NULL ) {
 	video_win = GTK_WINDOW(gtk_window_new( GTK_WINDOW_TOPLEVEL ));
-	gtk_window_set_title( video_win, "DreamOn! - Emulation Window" );
+	gtk_window_set_title( video_win, APP_NAME " - Emulation Window" );
 	gtk_window_set_policy( video_win, FALSE, FALSE, FALSE );
 	gtk_window_set_default_size( video_win, width, height );
     

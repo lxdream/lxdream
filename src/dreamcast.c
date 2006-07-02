@@ -1,5 +1,5 @@
 /**
- * $Id: dreamcast.c,v 1.17 2006-06-19 11:00:40 nkeynes Exp $
+ * $Id: dreamcast.c,v 1.18 2006-07-02 04:59:00 nkeynes Exp $
  * Central switchboard for the system. This pulls all the individual modules
  * together into some kind of coherent structure. This is also where you'd
  * add Naomi support, if I ever get a board to play with...
@@ -66,8 +66,11 @@ void dreamcast_configure( )
     mem_create_ram_region( 0x00800000, 2 MB, MEM_REGION_AUDIO );
     mem_create_ram_region( 0x00703000, 8 KB, MEM_REGION_AUDIO_SCRATCH );
     mem_create_ram_region( 0x05000000, 8 MB, MEM_REGION_VIDEO );
-    mem_load_rom( dreamcast_get_config_value(CONFIG_BIOS_PATH),
-		  0x00000000, 0x00200000, 0x89f2b1a1 );
+    if( mem_load_rom( dreamcast_get_config_value(CONFIG_BIOS_PATH),
+		      0x00000000, 0x00200000, 0x89f2b1a1 ) == NULL ) {
+	/* Bios wasn't found. Dump an empty ram region in there for something to do */
+	mem_create_ram_region( 0x00000000, 0x00200000, MEM_REGION_BIOS );
+    }
     mem_create_ram_region( 0x00200000, 0x00020000, MEM_REGION_FLASH );
     mem_load_block( dreamcast_get_config_value(CONFIG_FLASH_PATH),
 		    0x00200000, 0x00020000 );
@@ -354,7 +357,7 @@ gboolean dreamcast_save_config_stream( FILE *f )
 
 /********************************* Save States *****************************/
 
-#define DREAMCAST_SAVE_MAGIC "%!-DreamOn!Save\0"
+#define DREAMCAST_SAVE_MAGIC "%!-lxDream!Save\0"
 #define DREAMCAST_SAVE_VERSION 0x00010000
 
 struct save_state_header {
@@ -377,15 +380,15 @@ int dreamcast_load_state( const gchar *filename )
 
     fread( &header, sizeof(header), 1, f );
     if( strncmp( header.magic, DREAMCAST_SAVE_MAGIC, 16 ) != 0 ) {
-	ERROR( "Not a DreamOn save state file" );
+	ERROR( "Not a %s save state file", APP_NAME );
 	return 1;
     }
     if( header.version != DREAMCAST_SAVE_VERSION ) {
-	ERROR( "DreamOn save state version not supported" );
+	ERROR( "%s save state version not supported", APP_NAME );
 	return 1;
     }
     if( header.module_count > MAX_MODULES ) {
-	ERROR( "DreamOn save state is corrupted (bad module count)" );
+	ERROR( "%s save state is corrupted (bad module count)", APP_NAME );
 	return 1;
     }
     for( i=0; i<MAX_MODULES; i++ ) {
@@ -395,12 +398,12 @@ int dreamcast_load_state( const gchar *filename )
     for( i=0; i<header.module_count; i++ ) {
 	fread(tmp, 4, 1, f );
 	if( strncmp(tmp, "BLCK", 4) != 0 ) {
-	    ERROR( "DreamOn save state is corrupted (missing block header %d)", i );
+	    ERROR( "%s save state is corrupted (missing block header %d)", APP_NAME, i );
 	    return 2;
 	}
 	len = fread_string(tmp, sizeof(tmp), f );
 	if( len > 64 || len < 1 ) {
-	    ERROR( "DreamOn save state is corrupted (bad string)" );
+	    ERROR( "%s save state is corrupted (bad string)", APP_NAME );
 	    return 2;
 	}
 	
@@ -409,17 +412,17 @@ int dreamcast_load_state( const gchar *filename )
 	    if( strcmp(modules[j]->name,tmp) == 0 ) {
 		have_read[j] = 1;
 		if( modules[j]->load == NULL ) {
-		    ERROR( "DreamOn save state is corrupted (no loader for %s)", modules[j]->name );
+		    ERROR( "%s save state is corrupted (no loader for %s)", APP_NAME, modules[j]->name );
 		    return 2;
 		} else if( modules[j]->load(f) != 0 ) {
-		    ERROR( "DreamOn save state is corrupted (%s failed)", modules[j]->name );
+		    ERROR( "%s save state is corrupted (%s failed)", APP_NAME, modules[j]->name );
 		    return 2;
 		}
 		break;
 	    }
 	}
 	if( j == num_modules ) {
-	    ERROR( "DreamOn save state contains unrecognized section" );
+	    ERROR( "%s save state contains unrecognized section", APP_NAME );
 	    return 2;
 	}
     }

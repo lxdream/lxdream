@@ -7,7 +7,7 @@
 
 <widget class="GnomeApp" id="debug_win">
   <property name="visible">True</property>
-  <property name="title" translatable="yes">DreamOn! Debugger</property>
+  <property name="title" translatable="yes">lxDream! Debugger</property>
   <property name="type">GTK_WINDOW_TOPLEVEL</property>
   <property name="window_position">GTK_WIN_POS_NONE</property>
   <property name="modal">False</property>
@@ -896,7 +896,7 @@
 
 <widget class="GtkWindow" id="mmr_win">
   <property name="visible">True</property>
-  <property name="title" translatable="yes">DreamOn! - Memory-Mapped Registers</property>
+  <property name="title" translatable="yes">lxDream! - Memory-Mapped Registers</property>
   <property name="type">GTK_WINDOW_TOPLEVEL</property>
   <property name="window_position">GTK_WIN_POS_NONE</property>
   <property name="modal">False</property>
