@@ -1,5 +1,5 @@
 /**
- * $Id: dcload.c,v 1.3 2006-03-20 11:59:57 nkeynes Exp $
+ * $Id: dcload.c,v 1.4 2006-07-06 08:47:33 nkeynes Exp $
  * 
  * DC-load syscall implementation.
  *
@@ -18,6 +18,7 @@
 
 #include <stdio.h>
 #include "dream.h"
+#include "dreamcast.h"
 #include "mem.h"
 #include "syscall.h"
 #include "sh4/sh4core.h"
@@ -47,6 +48,13 @@
 #define SYS_MAGIC_ADDR 0x8c004004
 #define SYSCALL_ADDR 0x8c004008
 
+static gboolean dcload_allow_exit = FALSE;
+
+void dcload_set_allow_exit( gboolean allow )
+{
+    dcload_allow_exit = allow;
+}
+
 void dcload_syscall( uint32_t syscall_id ) 
 {
     uint32_t syscall = sh4r.r[4];
@@ -70,8 +78,10 @@ void dcload_syscall( uint32_t syscall_id )
 	}
 	break;
     case SYS_EXIT:
-	/* exit( sh4r.r[4] ); */
-	dreamcast_stop();
+	if( dcload_allow_exit ) 
+	    exit( sh4r.r[4] );
+	else
+	    dreamcast_stop();
     default:
 	sh4r.r[0] = -1;
     }
