@@ -1,5 +1,5 @@
 /**
- * $Id: sh4core.c,v 1.28 2006-06-18 12:00:27 nkeynes Exp $
+ * $Id: sh4core.c,v 1.29 2006-07-06 08:46:41 nkeynes Exp $
  * 
  * SH4 emulation core, and parent module for all the SH4 peripheral
  * modules.
@@ -1328,7 +1328,7 @@ gboolean sh4_execute_instruction( void )
 			DRN(ir) = sqrt(DRN(ir));
 			break;
 		    case 7: /* FSRRA FRn */
-			DRN(ir) = 1.0/sqrt(DRN(ir));
+			/* NO-OP when PR=1 */
 			break;
 		    case 8: /* FLDI0   FRn */
 			DRN(ir) = 0.0;
@@ -1337,25 +1337,23 @@ gboolean sh4_execute_instruction( void )
 			DRN(ir) = 1.0;
 			break;
 		    case 10: /* FCNVSD FPUL, DRn */
-			DRN(ir) = (double)FPULf;
+			if( ! IS_FPU_DOUBLESIZE() )
+			    DRN(ir) = (double)FPULf;
 			break;
 		    case 11: /* FCNVDS DRn, FPUL */
-			FPULf = (float)DRN(ir);
+			if( ! IS_FPU_DOUBLESIZE() )
+			    FPULf = (float)DRN(ir);
 			break;
 		    case 14:/* FIPR    FVm, FVn */
-			UNDEF(ir);
+			/* NO-OP when PR=1 */
 			break;
 		    case 15:
 			if( (ir&0x0300) == 0x0100 ) { /* FTRV    XMTRX,FVn */
+			    /* NO-OP when PR=1 */
 			    break;
 			}
-			else if( (ir&0x0100) == 0 ) { /* FSCA    FPUL, DRn */
-			    float angle = (((float)(short)(FPULi>>16)) +
-					   ((float)(FPULi&16)/65536.0)) *
-				2 * M_PI;
-			    int reg = DRNn(ir);
-			    DR(reg) = sinf(angle);
-			    DR(reg+1) = cosf(angle);
+			else if( (ir&0x0100) == 0 ) { /* FSCA    FPUL, DRn */	
+			    /* NO-OP when PR=1 */
 			    break;
 			}
 			else if( ir == 0xFBFD ) {
@@ -1461,10 +1459,8 @@ gboolean sh4_execute_instruction( void )
 			FRN(ir) = 1.0;
 			break;
 		    case 10: /* FCNVSD FPUL, DRn */
-			UNDEF(ir);
 			break;
 		    case 11: /* FCNVDS DRn, FPUL */
-			UNDEF(ir);
 			break;
 		    case 14:/* FIPR    FVm, FVn */
                             /* FIXME: This is not going to be entirely accurate
