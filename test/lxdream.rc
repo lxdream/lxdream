@@ -1,0 +1,25 @@
+[Global]
+bios = ../bios/dcboot.rom
+flash = ../bios/dcflash.rom
+default path = ../disc
+save path = ../save
+bootstrap = 
+
+[Controllers]
+Device 0 = Sega Controller
+  dpad left = Left
+  dpad right = Right
+  dpad up = Up
+  dpad down = Down
+  Start = KP_Enter
+  analog left = KP_Left
+  analog right = KP_Right
+  analog up = KP_Up
+  analog down = KP_Down
+  button X = A
+  button Y = S
+  button A = Z
+  button B = X
+  trigger left = D
+  trigger right = C
+
