@@ -1,5 +1,5 @@
 /**
- * $Id: asic.c,v 1.17 2006-06-18 11:58:47 nkeynes Exp $
+ * $Id: asic.c,v 1.18 2006-07-11 21:51:03 nkeynes Exp $
  *
  * Support for the miscellaneous ASIC functions (Primarily event multiplexing,
  * and DMA). 
@@ -233,6 +233,8 @@ void mmio_region_ASIC_write( uint32_t reg, uint32_t val )
 		WARN( "PVR received %08X bytes from DMA, expected %08X", rcount, count );
 	    mem_copy_to_sh4( dest_addr, data, rcount );
 	    asic_event( EVENT_PVR_DMA );
+	    MMIO_WRITE( ASIC, PVRDMACTL, 0 );
+	    MMIO_WRITE( ASIC, PVRDMACNT, 0 );
 	}
 	break;
     case PVRDMADEST: case PVRDMACNT: case MAPLE_DMA:
