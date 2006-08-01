@@ -1,5 +1,5 @@
 /**
- * $Id: asic.c,v 1.18 2006-07-11 21:51:03 nkeynes Exp $
+ * $Id: asic.c,v 1.19 2006-08-01 21:56:48 nkeynes Exp $
  *
  * Support for the miscellaneous ASIC functions (Primarily event multiplexing,
  * and DMA). 
@@ -217,7 +217,6 @@ void mmio_region_ASIC_write( uint32_t reg, uint32_t val )
 	MMIO_WRITE( ASIC, reg, val );
 	if( val & 1 ) {
 	    uint32_t maple_addr = MMIO_READ( ASIC, MAPLE_DMA) &0x1FFFFFE0;
-	    // WARN( "Maple request initiated at %08X, halting", maple_addr );
 	    maple_handle_buffer( maple_addr );
 	    MMIO_WRITE( ASIC, reg, 0 );
 	}
@@ -268,15 +267,11 @@ int32_t mmio_region_ASIC_read( uint32_t reg )
     case IRQC2:
     case MAPLE_STATE:
 	val = MMIO_READ(ASIC, reg);
-	//            WARN( "Read from ASIC (%03X => %08X) [%s: %s]",
-	//                  reg, val, MMIO_REGID(ASIC,reg), MMIO_REGDESC(ASIC,reg) );
 	return val;            
     case G2STATUS:
 	return g2_read_status();
     default:
 	val = MMIO_READ(ASIC, reg);
-	WARN( "Read from ASIC (%03X => %08X) [%s: %s]",
-	      reg, val, MMIO_REGID(ASIC,reg), MMIO_REGDESC(ASIC,reg) );
 	return val;
     }
     
@@ -284,8 +279,6 @@ int32_t mmio_region_ASIC_read( uint32_t reg )
 
 MMIO_REGION_WRITE_FN( EXTDMA, reg, val )
 {
-    // WARN( "EXTDMA write %08X <= %08X", reg, val );
-
     switch( reg ) {
     case IDEALTSTATUS: /* Device control */
 	ide_write_control( val );
