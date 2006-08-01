@@ -1,5 +1,5 @@
 /**
- * $Id: util.c,v 1.4 2006-03-20 11:58:37 nkeynes Exp $
+ * $Id: util.c,v 1.5 2006-08-01 21:55:38 nkeynes Exp $
  *
  * Miscellaneous utility functions.
  *
@@ -56,6 +56,22 @@ void fwrite_dump( unsigned char *data, unsigned int length, FILE *f )
 	fprintf( f, "  " );
 	for( j=i; j<i+16 && j<length; j++ ) {
 	    fprintf( f, "%c", isprint(data[j]) ? data[j] : '.' );
+	}
+	fprintf( f, "\n" );
+    }
+}
+
+
+void fwrite_dump32( unsigned int *data, unsigned int length, FILE *f ) 
+{
+    unsigned int i, j;
+    for( i =0; i<length>>2; i+=8 ) {
+	fprintf( f, "%08X:", i);
+	for( j=i; j<i+8; j++ ) {
+	    if( j < length )
+		fprintf( f, " %08X", (unsigned int)(data[j]) );
+	    else
+		fprintf( f, "         " );
 	}
 	fprintf( f, "\n" );
     }
