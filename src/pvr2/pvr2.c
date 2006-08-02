@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.c,v 1.28 2006-08-02 04:06:45 nkeynes Exp $
+ * $Id: pvr2.c,v 1.29 2006-08-02 06:24:08 nkeynes Exp $
  *
  * PVR2 (Video) Core module implementation and MMIO registers.
  *
@@ -222,10 +222,31 @@ void mmio_region_PVR2_write( uint32_t reg, uint32_t val )
     case TA_LISTPOS:
 	/* Readonly registers */
 	break;
-    case RENDSTART:
+    case RENDER_START:
 	if( val == 0xFFFFFFFF )
 	    pvr2_render_scene();
 	break;
+    case PVRUNK1:
+    	MMIO_WRITE( PVR2, reg, val&0x000007FF );
+    	break;
+    case RENDER_POLYBASE:
+    	MMIO_WRITE( PVR2, reg, val&0x00F00000 );
+    	break;
+    case RENDER_TSPCFG:
+    	MMIO_WRITE( PVR2, reg, val&0x00010101 );
+    	break;
+    case DISPBORDER:
+    	MMIO_WRITE( PVR2, reg, val&0x01FFFFFF );
+    	break;
+    case DISPMODE:
+    	MMIO_WRITE( PVR2, reg, val&0x00FFFF7F );
+    	break;
+    case RENDER_MODE:
+    	MMIO_WRITE( PVR2, reg, val&0x00FFFF0F );
+    	break;
+    case RENDER_SIZE:
+    	MMIO_WRITE( PVR2, reg, val&0x000001FF );
+    	break;
     case DISPADDR1:
 	val &= 0x00FFFFFC;
 	MMIO_WRITE( PVR2, reg, val );
@@ -234,14 +255,24 @@ void mmio_region_PVR2_write( uint32_t reg, uint32_t val )
 	    pvr2_state.retrace = FALSE;
 	}
 	break;
-    case HCLIP:
-	MMIO_WRITE( PVR2, reg, val & 0x07FF07FF );
+    case DISPADDR2:
+    	MMIO_WRITE( PVR2, reg, val&0x00FFFFFC );
+    	break;
+    case DISPSIZE:
+    	MMIO_WRITE( PVR2, reg, val&0x3FFFFFFF );
+    	break;
+    case RENDER_ADDR1:
+    case RENDER_ADDR2:
+    	MMIO_WRITE( PVR2, reg, val&0x01FFFFFC );
+    	break;
+    case RENDER_HCLIP:
+	MMIO_WRITE( PVR2, reg, val&0x07FF07FF );
 	break;
-    case VCLIP:
-	MMIO_WRITE( PVR2, reg, val & 0x03FF03FF );
+    case RENDER_VCLIP:
+	MMIO_WRITE( PVR2, reg, val&0x03FF03FF );
 	break;
     case HPOS_IRQ:
-	MMIO_WRITE( PVR2, reg, val & 0x03FF33FF );
+	MMIO_WRITE( PVR2, reg, val&0x03FF33FF );
 	break;
     case VPOS_IRQ:
 	val = val & 0x03FF03FF;
@@ -249,26 +280,48 @@ void mmio_region_PVR2_write( uint32_t reg, uint32_t val )
 	pvr2_state.irq_vpos2 = val & 0x03FF;
 	MMIO_WRITE( PVR2, reg, val );
 	break;
+    case RENDER_SHADOW:
+	MMIO_WRITE( PVR2, reg, val&0x000001FF );
+	break;
+    case RENDER_OBJCFG:
+    	MMIO_WRITE( PVR2, reg, val&0x003FFFFF );
+    	break;
+    case RENDER_TSPCLIP:
+    	MMIO_WRITE( PVR2, reg, val&0x7FFFFFFF );
+    	break;
+    case RENDER_BGPLANE:
+    	MMIO_WRITE( PVR2, reg, val&0x1FFFFFFF );
+    	break;
+    case RENDER_ISPCFG:
+    	MMIO_WRITE( PVR2, reg, val&0x00FFFFF9 );
+    	break;
     case TA_TILEBASE:
     case TA_TILEEND:
     case TA_LISTBASE:
-	MMIO_WRITE( PVR2, reg, val & 0x00FFFFE0 );
+	MMIO_WRITE( PVR2, reg, val&0x00FFFFE0 );
 	break;
+    case RENDER_TILEBASE:
     case TA_POLYBASE:
     case TA_POLYEND:
-	MMIO_WRITE( PVR2, reg, val & 0x00FFFFFC );
+	MMIO_WRITE( PVR2, reg, val&0x00FFFFFC );
 	break;
     case TA_TILESIZE:
-	MMIO_WRITE( PVR2, reg, val & 0x000F003F );
+	MMIO_WRITE( PVR2, reg, val&0x000F003F );
 	break;
     case TA_TILECFG:
-	MMIO_WRITE( PVR2, reg, val & 0x00133333 );
+	MMIO_WRITE( PVR2, reg, val&0x00133333 );
 	break;
     case TA_INIT:
 	if( val & 0x80000000 )
 	    pvr2_ta_init();
 	break;
 	
+    /* Nonexistent registers (as far as we know, anyway) */
+    case 0x01C:
+    case 0x024:
+    case 0x028:
+    case 0x058:
+    	break;
     default:
 	MMIO_WRITE( PVR2, reg, val );
     }
