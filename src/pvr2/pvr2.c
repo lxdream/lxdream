@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.c,v 1.27 2006-06-18 11:57:05 nkeynes Exp $
+ * $Id: pvr2.c,v 1.28 2006-08-02 04:06:45 nkeynes Exp $
  *
  * PVR2 (Video) Core module implementation and MMIO registers.
  *
@@ -214,32 +214,63 @@ void mmio_region_PVR2_write( uint32_t reg, uint32_t val )
         return;
     }
     
-    if( reg == PVRID ) {
-	ERROR( "Write attempted to readonly register PVRID: ", val );
-	return;
-    }
-
-    MMIO_WRITE( PVR2, reg, val );
-   
     switch(reg) {
-    case DISPADDR1:
-	if( pvr2_state.retrace ) {
-	    pvr2_display_frame();
-	    pvr2_state.retrace = FALSE;
-	}
-	break;
-    case VPOS_IRQ:
-	pvr2_state.irq_vpos1 = (val >> 16) & 0x03FF;
-	pvr2_state.irq_vpos2 = val & 0x03FF;
-	break;
-    case TAINIT:
-	if( val & 0x80000000 )
-	    pvr2_ta_init();
+    case PVRID:
+    case PVRVER:
+    case GUNPOS:
+    case TA_POLYPOS:
+    case TA_LISTPOS:
+	/* Readonly registers */
 	break;
     case RENDSTART:
 	if( val == 0xFFFFFFFF )
 	    pvr2_render_scene();
 	break;
+    case DISPADDR1:
+	val &= 0x00FFFFFC;
+	MMIO_WRITE( PVR2, reg, val );
+	if( pvr2_state.retrace ) {
+	    pvr2_display_frame();
+	    pvr2_state.retrace = FALSE;
+	}
+	break;
+    case HCLIP:
+	MMIO_WRITE( PVR2, reg, val & 0x07FF07FF );
+	break;
+    case VCLIP:
+	MMIO_WRITE( PVR2, reg, val & 0x03FF03FF );
+	break;
+    case HPOS_IRQ:
+	MMIO_WRITE( PVR2, reg, val & 0x03FF33FF );
+	break;
+    case VPOS_IRQ:
+	val = val & 0x03FF03FF;
+	pvr2_state.irq_vpos1 = (val >> 16);
+	pvr2_state.irq_vpos2 = val & 0x03FF;
+	MMIO_WRITE( PVR2, reg, val );
+	break;
+    case TA_TILEBASE:
+    case TA_TILEEND:
+    case TA_LISTBASE:
+	MMIO_WRITE( PVR2, reg, val & 0x00FFFFE0 );
+	break;
+    case TA_POLYBASE:
+    case TA_POLYEND:
+	MMIO_WRITE( PVR2, reg, val & 0x00FFFFFC );
+	break;
+    case TA_TILESIZE:
+	MMIO_WRITE( PVR2, reg, val & 0x000F003F );
+	break;
+    case TA_TILECFG:
+	MMIO_WRITE( PVR2, reg, val & 0x00133333 );
+	break;
+    case TA_INIT:
+	if( val & 0x80000000 )
+	    pvr2_ta_init();
+	break;
+	
+    default:
+	MMIO_WRITE( PVR2, reg, val );
     }
 }
 
@@ -270,7 +301,7 @@ int32_t mmio_region_PVR2TA_read( uint32_t reg )
 
 void mmio_region_PVR2TA_write( uint32_t reg, uint32_t val )
 {
-    pvr2_ta_write( &val, sizeof(uint32_t) );
+    pvr2_ta_write( (char *)&val, sizeof(uint32_t) );
 }
 
 

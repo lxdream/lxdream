@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.h,v 1.14 2006-06-18 11:57:05 nkeynes Exp $
+ * $Id: pvr2.h,v 1.15 2006-08-02 04:06:45 nkeynes Exp $
  *
  * PVR2 (video chip) functions and macros.
  *
@@ -22,6 +22,8 @@
 #include "pvr2/pvr2mmio.h"
 #include <GL/gl.h>
 
+typedef unsigned int pvraddr_t;
+typedef unsigned int pvr64addr_t;
 
 #define DISPMODE_DE  0x00000001 /* Display enable */
 #define DISPMODE_SD  0x00000002 /* Scan double */
@@ -52,6 +54,7 @@
 #define PVR2_RAM_BASE_INT 0x04000000
 #define PVR2_RAM_SIZE (8 * 1024 * 1024)
 #define PVR2_RAM_PAGES (PVR2_RAM_SIZE>>12)
+#define PVR2_RAM_MASK 0x7FFFFF
 
 void pvr2_next_frame( void );
 void pvr2_set_base_address( uint32_t );
