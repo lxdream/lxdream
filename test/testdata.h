@@ -1,5 +1,5 @@
 /*
- * $Id: testdata.h,v 1.1 2006-07-11 01:35:23 nkeynes Exp $
+ * $Id: testdata.h,v 1.2 2006-08-02 04:13:15 nkeynes Exp $
  * 
  * Test data loader
  *
@@ -18,7 +18,7 @@
 
 #include <stdio.h>
 
-#define MAX_DATA_BLOCKS 4
+#define MAX_DATA_BLOCKS 16
 
 typedef struct test_data_block {
     const char *name;

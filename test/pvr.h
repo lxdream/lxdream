@@ -1,5 +1,5 @@
 /**
- * $Id: pvr.h,v 1.1 2006-07-11 01:35:23 nkeynes Exp $
+ * $Id: pvr.h,v 1.2 2006-08-02 04:13:15 nkeynes Exp $
  * 
  * PVR support code
  *
@@ -133,11 +133,20 @@
 #define TA_CMD_VERTEX     0xe0000000
 #define TA_CMD_VERTEX_LAST 0xF0000000  /* end of strip */
 
+#define GRID_SIZE( hres, vres ) (((((vres+31) / 32)-1)<<16)|((((hres+31) / 32)-1)))
 
-void ta_init( unsigned int hres, unsigned int vres,
-	      unsigned int polybuf, unsigned int polybuflen,
-	      unsigned int tilebuf, unsigned int tilebuflen );
+struct ta_config {
+    unsigned int ta_cfg;
+    unsigned int grid_size;
+    unsigned int obj_start;
+    unsigned int obj_end;
+    unsigned int tile_start;
+    unsigned int tile_end;
+    unsigned int plist_start;
+};
 
+void ta_init( struct ta_config *config );
 void pvr_dump_objbuf( FILE *f );
 void pvr_dump_tilebuf( FILE *f );
 int pvr_get_objbuf_size();
+int pvr_get_plist_posn();

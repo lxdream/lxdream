@@ -66,15 +66,20 @@ all: build-tests
 test: build-tests
 	$(RUNTEST) testmath
 	$(RUNTEST) testide -d ../disc/test.nrg
-	$(RUNTEST) testta < testta.data
+	$(RUNTEST) testta < testta.data < testta2.data < testta3.data < testta4.data < testta5.data
+	$(RUNTEST) testregs
 
-build-tests: testmath testide testta
+build-tests: testmath testide testta testregs
 
 testide: crt0.so testide.so ide.so
 	$(SH4CC) $(SH4LDFLAGS) $^ -o $@ $(SH4LIBS)
 
 testmath: crt0.so $(SHARED_OBJECTS) testmath.so math.so
 	$(SH4CC) $(SH4LDFLAGS) $^  -o $@ $(SH4LIBS)
+
+testregs: crt0.so $(SHARED_OBJECTS) testregs.so
+	$(SH4CC) $(SH4LDFLAGS) $^  -o $@ $(SH4LIBS)
+	$(SH4OBJCOPY) testregs testregs.bin
 
 testta: crt0.so $(SHARED_OBJECTS) testta.so pvr.so dmac.so asic.so lib.so testdata.so
 	$(SH4CC) $(SH4LDFLAGS) $^  -o $@ $(SH4LIBS)
