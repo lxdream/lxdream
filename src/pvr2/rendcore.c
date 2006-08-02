@@ -1,5 +1,5 @@
 /**
- * $Id: rendcore.c,v 1.1 2006-08-02 04:06:45 nkeynes Exp $
+ * $Id: rendcore.c,v 1.2 2006-08-02 06:24:08 nkeynes Exp $
  *
  * PVR2 renderer core.
  *
@@ -269,13 +269,13 @@ void render_autosort_tile( pvraddr_t tile_entry, int render_mode, gboolean cheap
 void pvr2_render_tilebuffer( int width, int height, int clipx1, int clipy1, 
 			int clipx2, int clipy2 ) {
 
-    pvraddr_t segmentbase = MMIO_READ( PVR2, TILEBASE );
+    pvraddr_t segmentbase = MMIO_READ( PVR2, RENDER_TILEBASE );
     int tile_sort;
     gboolean cheap_shadow;
 
-    int obj_config = MMIO_READ( PVR2, OBJCFG );
-    int isp_config = MMIO_READ( PVR2, ISPCFG );
-    int shadow_cfg = MMIO_READ( PVR2, SHADOW );
+    int obj_config = MMIO_READ( PVR2, RENDER_OBJCFG );
+    int isp_config = MMIO_READ( PVR2, RENDER_ISPCFG );
+    int shadow_cfg = MMIO_READ( PVR2, RENDER_SHADOW );
 
     if( obj_config & 0x00200000 ) {
 	if( isp_config & 1 ) {

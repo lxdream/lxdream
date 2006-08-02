@@ -1,5 +1,5 @@
 /**
- * $Id: render.c,v 1.11 2006-08-02 04:06:45 nkeynes Exp $
+ * $Id: render.c,v 1.12 2006-08-02 06:24:08 nkeynes Exp $
  *
  * PVR2 Renderer support. This part is primarily
  *
@@ -235,7 +235,7 @@ void pvr2_render_draw_backplane( uint32_t mode, uint32_t *poly )
 	if( bg->colour1 != bg->colour2 || bg->colour2 != bg->colour3 ) {
 	    WARN( "Multiple background colours specified. Confused" );
 	    fprintf( stderr, "bgplane mode: %08X PBUF: %08X\n", mode,
-		     MMIO_READ( PVR2, OBJBASE ) );
+		     MMIO_READ( PVR2, RENDER_POLYBASE ) );
 	    fwrite_dump( poly, 80, stderr );
 	}
 	float x1 = MIN3( bg->x1, bg->x2, bg->x3 );
@@ -267,9 +267,9 @@ void pvr2_render_draw_backplane( uint32_t mode, uint32_t *poly )
 void pvr2_render_scene( )
 {
     struct tile_descriptor *tile_desc =
-	(struct tile_descriptor *)mem_get_region(PVR2_RAM_BASE + MMIO_READ( PVR2, TILEBASE ));
+	(struct tile_descriptor *)mem_get_region(PVR2_RAM_BASE + MMIO_READ( PVR2, RENDER_TILEBASE ));
 
-    uint32_t render_addr = MMIO_READ( PVR2, RENDADDR1 );
+    uint32_t render_addr = MMIO_READ( PVR2, RENDER_ADDR1 );
     gboolean render_to_tex;
     if( render_addr & 0x01000000 ) {
 	render_addr = (render_addr & 0x00FFFFFF) + PVR2_RAM_BASE_INT;
@@ -284,25 +284,25 @@ void pvr2_render_scene( )
 	render_to_tex = FALSE;
     }
     
-    float bgplanez = MMIO_READF( PVR2, BGPLANEZ );
-    uint32_t render_mode = MMIO_READ( PVR2, RENDMODE );
+    float bgplanez = MMIO_READF( PVR2, RENDER_FARCLIP );
+    uint32_t render_mode = MMIO_READ( PVR2, RENDER_MODE );
     int width = 640; /* FIXME - get this from the tile buffer */
     int height = 480;
     int colour_format = pvr2_render_colour_format[render_mode&0x07];
     pvr2_render_prepare_context( render_addr, width, height, colour_format, 
 				 bgplanez, render_to_tex );
 
-    int clip_x = MMIO_READ( PVR2, HCLIP ) & 0x03FF;
-    int clip_y = MMIO_READ( PVR2, VCLIP ) & 0x03FF;
-    int clip_width = ((MMIO_READ( PVR2, HCLIP ) >> 16) & 0x03FF) - clip_x + 1;
-    int clip_height= ((MMIO_READ( PVR2, VCLIP ) >> 16) & 0x03FF) - clip_y + 1;
+    int clip_x = MMIO_READ( PVR2, RENDER_HCLIP ) & 0x03FF;
+    int clip_y = MMIO_READ( PVR2, RENDER_VCLIP ) & 0x03FF;
+    int clip_width = ((MMIO_READ( PVR2, RENDER_HCLIP ) >> 16) & 0x03FF) - clip_x + 1;
+    int clip_height= ((MMIO_READ( PVR2, RENDER_VCLIP ) >> 16) & 0x03FF) - clip_y + 1;
 
     /* Fog setup goes here */
 
     /* Render the background plane */
-    uint32_t bgplane_mode = MMIO_READ(PVR2, BGPLANE);
+    uint32_t bgplane_mode = MMIO_READ(PVR2, RENDER_BGPLANE);
     uint32_t *display_list = 
-	(uint32_t *)mem_get_region(PVR2_RAM_BASE + MMIO_READ( PVR2, OBJBASE ));
+	(uint32_t *)mem_get_region(PVR2_RAM_BASE + MMIO_READ( PVR2, RENDER_POLYBASE ));
 
     uint32_t *bgplane = display_list + (((bgplane_mode & 0x00FFFFFF)) >> 3) ;
     pvr2_render_draw_backplane( bgplane_mode, bgplane );
