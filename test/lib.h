@@ -28,6 +28,8 @@ void asic_clear(void);
 void asic_dump(FILE *f);
 
 void fwrite_dump(FILE *f, char *buf, int length);
+void fwrite_diff(FILE *f, char *expect, int exp_length, char *buf, int length);
+void fwrite_diff32(FILE *f, char *expect, int exp_length, char *buf, int length);
 
 void *align32(char *buf );
 void write_asic_status(void);

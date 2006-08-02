@@ -1,5 +1,5 @@
 /**
- * $Id: pvr.c,v 1.1 2006-07-11 01:35:23 nkeynes Exp $
+ * $Id: pvr.c,v 1.2 2006-08-02 04:13:15 nkeynes Exp $
  * 
  * PVR support code
  *
@@ -33,30 +33,6 @@
 #define TA_PLISTSTART (PVR_BASE+0x164)
 
 
-
-void ta_init( unsigned int hres, unsigned int vres,
-	      unsigned int polybuf, unsigned int polybuflen,
-	      unsigned int tilebuf, unsigned int tilebuflen )
-{
-    unsigned int hsegs = ((hres+31) / 32)-1;
-    unsigned int vsegs = ((vres+31) / 32)-1;
-    unsigned int size = (vsegs<<16)|hsegs;
-
-    fprintf(stderr, "Setting tilemap: %08X\n", size);
-
-    long_write( PVR_RESET, 1 );
-    long_write( PVR_RESET, 0 );
-
-    long_write( TA_SIZE, size );
-    long_write( TA_OBJSTART, polybuf & 0x00FFFFFF );
-    long_write( TA_OBJEND, (polybuf + polybuflen) & 0x00FFFFFF );
-    long_write( TA_TILESTART, (tilebuf + tilebuflen) & 0x00FFFFFF );
-    long_write( TA_TILEEND, tilebuf & 0x00FFFFFF );
-    long_write( TA_PLISTSTART, (tilebuf + tilebuflen) & 0x00FFFFFF );
-    long_write( TA_TILECFG, 0x00100002 );
-    long_write( TA_INIT, 0x80000000 );
-}
-
 void ta_dump_regs( FILE *f )
 {
     fprintf( stderr, "TA Object start[128]: %08X posn[138]: %08X end[130]: %08X\n",
@@ -67,9 +43,31 @@ void ta_dump_regs( FILE *f )
     fprintf( stderr, "TA Tilesize: %08X  config: %08X\n",  long_read(TA_SIZE), long_read(TA_TILECFG) );
 }
 
+
+void ta_init( struct ta_config *config )
+{
+    long_write( PVR_RESET, 1 );
+    long_write( PVR_RESET, 0 );
+
+    long_write( TA_SIZE, config->grid_size );
+    long_write( TA_OBJSTART, config->obj_start & 0x00FFFFFF );
+    long_write( TA_OBJEND, config->obj_end & 0x00FFFFFF );
+    long_write( TA_TILESTART, config->tile_start & 0x00FFFFFF );
+    long_write( TA_TILEEND, config->tile_end & 0x00FFFFFF );
+    long_write( TA_PLISTSTART, config->plist_start & 0x00FFFFFF );
+    long_write( TA_TILECFG, config->ta_cfg );
+    long_write( TA_INIT, 0x80000000 );
+}
+
 int pvr_get_objbuf_size( )
 {
     return long_read( TA_OBJPOSN ) - long_read( TA_OBJSTART );
+}
+
+int pvr_get_plist_posn( )
+{
+    unsigned int addr = long_read( TA_TILEPOSN ) << 2;
+    return addr;
 }
 
 void pvr_dump_objbuf( FILE *f )

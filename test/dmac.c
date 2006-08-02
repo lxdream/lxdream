@@ -1,5 +1,5 @@
 /**
- * $Id: dmac.c,v 1.1 2006-07-11 01:35:23 nkeynes Exp $
+ * $Id: dmac.c,v 1.2 2006-08-02 04:13:15 nkeynes Exp $
  * 
  * DMA support code
  *
@@ -86,8 +86,6 @@ int pvr_dma_write( unsigned int target, char *buf, int len, int region )
     if( (addr & 0xFFFFFFE0) != addr ) {
 	fprintf( stderr, "Address error: Attempting DMA from %08X\n", addr );
 	return -1;
-    } else {
-	fprintf( stderr, "PVR DMA transfer from %08X\n", addr );
     }
     long_write( PVR_DMA_CTL, 0 ); /* Stop PVR dma if it's already running */
     asic_clear();

@@ -1,5 +1,5 @@
 /**
- * $Id: testdata.c,v 1.1 2006-07-11 01:35:23 nkeynes Exp $
+ * $Id: testdata.c,v 1.2 2006-08-02 04:13:15 nkeynes Exp $
  * 
  * Test data loader.
  *
@@ -99,7 +99,8 @@ test_data_t load_test_dataset( FILE *f )
 	    if( end != NULL )
 		*end = '\0';
 	    current_size = DEFAULT_SIZE;
-	    test_data_t test = calloc(current_size, 1);
+	    test_data_t test = malloc(current_size);
+	    memset( test, 0, current_size );
 	    
 	    dataptr = (char *)(test+1);
 	    test->next = NULL;
@@ -120,9 +121,10 @@ test_data_t load_test_dataset( FILE *f )
 	    if( equals != NULL ) {
 		char *block_name = line;
 		int len;
-		*equals-- = '\0';
-		while( isspace(*equals) )
-		    *equals-- = '\0';
+		char *p = equals;
+		*p-- = '\0';
+		while( isspace(*p) )
+		    *p-- = '\0';
 		len = strlen(line)+1;
 		if( dataptr + len > current_end ) {
 		    current_end += current_size;
@@ -137,50 +139,56 @@ test_data_t load_test_dataset( FILE *f )
 		dataptr = ALIGN_32(dataptr+len);
 		current->item[current_block].data = dataptr;
 		current->item[current_block].length = 0;
-	    } else {
-		/* Data */
-		if( current == NULL || current_block == -1 )
-		    continue;
-		char *p = strtok(line, "\t\r\n ");
-		while( p != NULL ) {
-		    if( dataptr + 8 > current_end ) {
-			current_end += current_size;
-			current_size *= 2;
-			current = realloc(current, current_size );
-			if( last != NULL )
-			    last->next = current;
-		    }
-		    int len = strlen(p);
-		    int datalen = 0;
-		    char *dot = strchr(p, '.');
-		    if( dot != NULL ) { /* FP */
-			if( p[len-1] == 'L' ) { /* Ending in L */
-			    p[len-1] = '\0';
-			    double d = strtod(p, NULL);
-			    *((double *)dataptr) = d;
-			    datalen = 8;
-			} else {
-			    float f = (float)strtod(p,NULL);
-			    *((float *)dataptr) = f;
-			    datalen = 4;
-			}
-		    } else {
-			unsigned long value = strtoul(p, NULL, 16);
-			if( len == 8 ) {
-			    *((unsigned int *)dataptr) = value;
-			    datalen = 4;
-			} else if( len == 4 ) {
-			    *((unsigned short *)dataptr) = value;
-			    datalen = 2;
-			} else if( len == 2 ) {
-			    *((unsigned char *)dataptr) = value;
-			    datalen = 1;
-			}
-		    }
-		    dataptr += datalen;
-		    current->item[current_block].length += datalen;
-		    p = strtok(NULL, "\t\r\n ");
+
+		line = equals+1;
+		while( isspace(*line) )
+		    line++;
+	    } 
+
+	    /* Data */
+	    if( current == NULL || current_block == -1 )
+		continue;
+	    char *p = strtok(line, "\t\r\n ");
+	    while( p != NULL ) {
+		if( dataptr + 8 > current_end ) {
+		    int old_size = current_size;
+		    current_end += current_size;
+		    current_size *= 2;
+		    current = realloc(current, current_size );
+		    memset( current + old_size, 0, old_size );
+		    if( last != NULL )
+			last->next = current;
 		}
+		int len = strlen(p);
+		int datalen = 0;
+		char *dot = strchr(p, '.');
+		if( dot != NULL ) { /* FP */
+		    if( p[len-1] == 'L' ) { /* Ending in L */
+			p[len-1] = '\0';
+			double d = strtod(p, NULL);
+			*((double *)dataptr) = d;
+			datalen = 8;
+		    } else {
+			float f = (float)strtod(p,NULL);
+			*((float *)dataptr) = f;
+			datalen = 4;
+		    }
+		} else {
+		    unsigned long value = strtoul(p, NULL, 16);
+		    if( len == 8 ) {
+			*((unsigned int *)dataptr) = value;
+			datalen = 4;
+		    } else if( len == 4 ) {
+			*((unsigned short *)dataptr) = value;
+			datalen = 2;
+		    } else if( len == 2 ) {
+			*((unsigned char *)dataptr) = value;
+			datalen = 1;
+		    }
+		}
+		dataptr += datalen;
+		current->item[current_block].length += datalen;
+		p = strtok(NULL, "\t\r\n ");
 	    }
 	}
     }
