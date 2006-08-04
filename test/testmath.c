@@ -17,16 +17,40 @@ void set_fpscr( unsigned int fpscr );
 
 #define MAX_FLOAT_DIFF 0.00001
 
+static inline float inttof( unsigned int i )
+{
+    return *((float *)&i);
+}
+
+static inline double longtod( unsigned long long l )
+{
+    return *((double *)&l);
+}
+
+static inline unsigned int ftoint( float f )
+{
+    return *((unsigned int *)&f);
+}
+
+static inline unsigned long long dtolong( double d )
+{
+    return *((unsigned long long *)&d);
+}
+
+#define QNANF inttof(0x7FBFFFFF)
+#define QNAND longtod(0x7FF7FFFFFFFFFFFFLL)
 
 int compare_float( float a, float b )
 {
-    if( a == b )
+    if( ftoint(a) == ftoint(b) ) /* Exact bit-pattern match */
 	return 1;
     float diff = (a>b?(a-b):(b-a));
     return diff < MAX_FLOAT_DIFF;
 }
 
-#define TEST_FEQUALS( a, b ) if( !compare_float(a,b) ) { printf( "Assertion failed at %s.%d: expected %.8f but was %.8f\n", __FILE__, __LINE__, a, b ); return 1; }
+#define FTOINT(a) (*((unsigned int *)&a))
+
+#define TEST_FEQUALS( a, b ) if( !compare_float(a,b) ) { printf( "Assertion failed at %s.%d: expected %.8f (%08X) but was %.8f (%08X)\n", __FILE__, __LINE__, a, FTOINT(a), b, FTOINT(b) ); return 1; }
 
 int test_fsca( int angle, float expect_a, float expect_b )
 {
@@ -138,22 +162,23 @@ void test_ftrv( )
 
 int main()
 {
-	write_int( get_fpscr() );
-	write_string( "\n" );
-	test_fsca( 0x00000000, 0, 1 );
-	test_fsca( 0x00011234, 0.43205646, 0.90184659 );
-	test_fsca( 0xFEDCBA98, -0.99121743, -0.13224234 );
-	test_fsrra( 25.0, 0.2 );
-	test_fsrra( 0.05, 4.4721361 );
-	test_fsrra( -12.345, nanf() );
-	test_coercion( -3.1415926 );
-	test_coercion( 123456789012346567.890 );
-	test_coercion( -2147483648.0 );
-	test_coercion( 5234.1234 );
-	test_doublearr( 5 );
-	test_floatarr( 5 );
-	test_fipr();
-	test_ftrv();
-	return 1;
+    fprintf( stderr, "LL: %d\n", sizeof(unsigned long long) );
+    write_int( get_fpscr() );
+    write_string( "\n" );
+    test_fsca( 0x00000000, 0, 1 );
+    test_fsca( 0x00011234, 0.43205646, 0.90184659 );
+    test_fsca( 0xFEDCBA98, -0.99121743, -0.13224234 );
+    test_fsrra( 25.0, 0.2 );
+    test_fsrra( 0.05, 4.4721361 );
+    test_fsrra( -12.345, QNANF );
+    test_coercion( -3.1415926 );
+    test_coercion( 123456789012346567.890 );
+    test_coercion( -2147483648.0 );
+    test_coercion( 5234.1234 );
+    test_doublearr( 5 );
+    test_floatarr( 5 );
+    test_fipr();
+    test_ftrv();
+    return 1;
 }
-	
+
