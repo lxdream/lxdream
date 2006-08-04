@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2mmio.h,v 1.5 2006-08-02 06:24:08 nkeynes Exp $
+ * $Id: pvr2mmio.h,v 1.6 2006-08-04 01:38:27 nkeynes Exp $
  *
  * PVR2 (video chip) MMIO register definitions.
  *
@@ -66,7 +66,7 @@ MMIO_REGION_BEGIN( 0x005F8000, PVR2, "Power VR/2" )
     LONG_PORT( 0x10C, BEAMPOS, PORT_R, 0, "Raster beam position" )
     LONG_PORT( 0x124, TA_TILEBASE, PORT_MRW, 0, "TA Tile matrix start" )
     LONG_PORT( 0x128, TA_POLYBASE, PORT_MRW, 0, "TA Polygon buffer start" )
-    LONG_PORT( 0x12C, TA_TILEEND, PORT_MRW, 0, "TA Tile matrix end" )
+    LONG_PORT( 0x12C, TA_LISTEND, PORT_MRW, 0, "TA Tile matrix end" )
     LONG_PORT( 0x130, TA_POLYEND, PORT_MRW, 0, "TA Polygon buffer end" )
     LONG_PORT( 0x134, TA_LISTPOS, PORT_R, 0, "TA Tile list position" )
     LONG_PORT( 0x138, TA_POLYPOS, PORT_R, 0, "TA Polygon buffer position" )

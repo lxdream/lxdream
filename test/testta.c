@@ -1,5 +1,5 @@
 /**
- * $Id: testta.c,v 1.2 2006-08-02 04:13:15 nkeynes Exp $
+ * $Id: testta.c,v 1.3 2006-08-04 01:38:30 nkeynes Exp $
  * 
  * Tile Accelerator test cases 
  *
@@ -175,17 +175,25 @@ int test_ta( test_data_t test_case )
     if( plist != NULL ) {
 	unsigned int plist_posn, plist_end;
 	if( config->ta_cfg & 0x00100000 ) { /* Descending */
-	    plist_posn = pvr_get_plist_posn() + tile_sizes[0];
+	    plist_posn = pvr_get_plist_posn(); //+ tile_sizes[0];
 	    plist_end = config->plist_start;
 	} else {
 	    plist_posn = config->plist_start;
-	    plist_end = pvr_get_plist_posn();
+	    plist_end = pvr_get_plist_posn() + tile_sizes[0];
 	}
 	char *plist_data = (char *)(PVR_VRAM_BASE + plist_posn);
 	if( test_block_compare( plist, plist_data, plist_end-plist_posn ) != 0 ) {
 	    fprintf( stderr, "Test %s: Failed (Plist buffer)", test_case->test_name );
 	    fwrite_diff32( stderr, plist->data, plist->length, (char *)plist_data, 
 			   plist_end - plist_posn );
+	    haveFailure = 1;
+	}
+	char block[tile_sizes[0]];
+	memset( block, MEM_FILL, tile_sizes[0] );
+	if( memcmp( block, plist_data - tile_sizes[0], tile_sizes[0] ) != 0 ) {
+	    fprintf( stderr, "Test %s: Failed (Plist buffer)", test_case->test_name );
+	    fwrite_diff32( stderr, block, tile_sizes[0], plist_data - tile_sizes[0],
+			   tile_sizes[0]);
 	    haveFailure = 1;
 	}
     }
@@ -211,6 +219,16 @@ int test_ta( test_data_t test_case )
 	    }
 	}
     }
+
+    if( error == NULL ) {
+	if( asic_check(EVENT_TA_ERROR) || asic_check(EVENT_PVR_PRIM_ALLOC_FAIL) ||
+	    asic_check(EVENT_PVR_MATRIX_ALLOC_FAIL) || asic_check(EVENT_PVR_BAD_INPUT) ) {
+	    fprintf( stderr, "Test %s: Failed (unexpected error events)\n", test_case->test_name );
+	    asic_dump( stderr );
+	    haveFailure = 1;
+	}
+    }
+
     if( haveFailure )
 	return -1;
 

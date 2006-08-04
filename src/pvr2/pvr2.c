@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.c,v 1.29 2006-08-02 06:24:08 nkeynes Exp $
+ * $Id: pvr2.c,v 1.30 2006-08-04 01:38:27 nkeynes Exp $
  *
  * PVR2 (Video) Core module implementation and MMIO registers.
  *
@@ -96,13 +96,14 @@ static void pvr2_reset( void )
 static void pvr2_save_state( FILE *f )
 {
     fwrite( &pvr2_state, sizeof(pvr2_state), 1, f );
+    pvr2_ta_save_state( f );
 }
 
 static int pvr2_load_state( FILE *f )
 {
     if( fread( &pvr2_state, sizeof(pvr2_state), 1, f ) != 1 )
 	return 1;
-    return 0;
+    return pvr2_ta_load_state(f);
 }
 
 static uint32_t pvr2_run_slice( uint32_t nanosecs ) 
@@ -296,7 +297,7 @@ void mmio_region_PVR2_write( uint32_t reg, uint32_t val )
     	MMIO_WRITE( PVR2, reg, val&0x00FFFFF9 );
     	break;
     case TA_TILEBASE:
-    case TA_TILEEND:
+    case TA_LISTEND:
     case TA_LISTBASE:
 	MMIO_WRITE( PVR2, reg, val&0x00FFFFE0 );
 	break;
