@@ -1,5 +1,5 @@
 /**
- * $Id: tacore.c,v 1.1 2006-08-02 04:06:45 nkeynes Exp $
+ * $Id: tacore.c,v 1.2 2006-08-04 01:38:27 nkeynes Exp $
  *
  * PVR2 Tile Accelerator implementation
  *
@@ -120,7 +120,9 @@ struct pvr2_ta_status {
     int width, height; /* Tile resolution, ie 20x15 */
     int tilelist_dir; /* Growth direction of the tilelist, 0 = up, 1 = down */
     uint32_t tilelist_size; /* Size of the tilelist segments */
+    uint32_t tilelist_start; /* Initial address of the tilelist */
     int current_vertex_type;
+    gboolean accept_vertexes;
     int vertex_count; /* index of last start-vertex seen, or -1 if no vertexes 
 			 * are present
 			 */
@@ -160,6 +162,18 @@ void pvr2_ta_reset() {
     ta_status.debug_output = 0;
 }
 
+void pvr2_ta_save_state( FILE *f )
+{
+    fwrite( &ta_status, sizeof(ta_status), 1, f );
+}
+
+int pvr2_ta_load_state( FILE *f )
+{
+    if( fread( &ta_status, sizeof(ta_status), 1, f ) != 1 )
+	return 1;
+    return 0;
+}
+
 void pvr2_ta_init() {
     ta_status.state = STATE_IDLE;
     ta_status.current_list_type = -1;
@@ -168,6 +182,7 @@ void pvr2_ta_init() {
     ta_status.vertex_count = 0;
     ta_status.max_vertex = 3;
     ta_status.last_triangle_bounds.x1 = -1;
+    ta_status.accept_vertexes = TRUE;
     
     uint32_t size = MMIO_READ( PVR2, TA_TILESIZE );
     ta_status.width = (size & 0xFFFF) + 1;
@@ -181,6 +196,7 @@ void pvr2_ta_init() {
 	plistpos -= ta_status.tilelist_size;
     }
     MMIO_WRITE( PVR2, TA_LISTPOS, plistpos );
+    ta_status.tilelist_start = plistpos;
 }
 
 static uint32_t parse_float_colour( float a, float r, float g, float b ) {
@@ -208,26 +224,42 @@ static uint32_t parse_intensity_colour( uint32_t base, float intensity )
 static void ta_init_list( unsigned int listtype ) {
     int config = MMIO_READ( PVR2, TA_TILECFG );
     int tile_matrix = MMIO_READ( PVR2, TA_TILEBASE );
-    if( listtype <= TA_LIST_PUNCH_OUT ) {
+    int list_end = MMIO_READ( PVR2, TA_LISTEND );
+
+    ta_status.current_tile_matrix = tile_matrix;
+
+    /* If the list grows down, the end must be < tile matrix start. 
+     * If it grows up, the end must be > tile matrix start.
+     * Don't ask me why, it just does...
+     */
+    if( ((ta_status.tilelist_dir == TA_GROW_DOWN && list_end <= tile_matrix) ||
+	 (ta_status.tilelist_dir == TA_GROW_UP && list_end >= tile_matrix )) &&
+	listtype <= TA_LIST_PUNCH_OUT ) {
 	int i;
 	uint32_t *p;
 	for( i=0; i < listtype; i++ ) {
 	    int size = tilematrix_sizes[(config & 0x03)] << 2;
-	    tile_matrix += ta_status.width * ta_status.height * size;
+	    ta_status.current_tile_matrix += ta_status.width * ta_status.height * size;
 	    config >>= 4;
 	}
-	ta_status.current_tile_matrix = tile_matrix;
 	ta_status.current_tile_size = tilematrix_sizes[(config & 0x03)];
 
 	/* Initialize each tile to 0xF0000000 */
 	if( ta_status.current_tile_size != 0 ) {
-	    p = (uint32_t *)(video_base + tile_matrix);
+	    p = (uint32_t *)(video_base + ta_status.current_tile_matrix);
 	    for( i=0; i< ta_status.width * ta_status.height; i++ ) {
 		*p = 0xF0000000;
 		p += ta_status.current_tile_size;
 	    }
 	}
+    } else {
+	ta_status.current_tile_size = 0;
     }
+
+    if( tile_matrix == list_end ) {
+	ta_status.current_tile_size = 0;
+    }
+
     ta_status.state = STATE_IN_LIST;
     ta_status.current_list_type = listtype;
     ta_status.last_triangle_bounds.x1 = -1;
@@ -274,19 +306,56 @@ static int ta_write_polygon_buffer( uint32_t *data, int length )
     return rv;
 }
 
+#define TA_NO_ALLOC 0xFFFFFFFF
+
 /**
- * Allocate a new tile list from the grow space
+ * Allocate a new tile list block from the grow space and update the
+ * word at reference to be a link to the new block.
  */
-static uint32_t ta_alloc_tilelist() {
+static uint32_t ta_alloc_tilelist( uint32_t reference ) {
     uint32_t posn = MMIO_READ( PVR2, TA_LISTPOS );
+    uint32_t limit = MMIO_READ( PVR2, TA_LISTEND ) >> 2;
     uint32_t newposn;
+    uint32_t result;
     if( ta_status.tilelist_dir == TA_GROW_DOWN ) {
 	newposn = posn - ta_status.tilelist_size;
+	if( posn == limit ) {
+	    PVRRAM(posn<<2) = 0xF0000000;
+	    PVRRAM(reference) = 0xE0000000 | (posn<<2);
+	    return TA_NO_ALLOC;
+	} else if( posn < limit ) {
+	    PVRRAM(reference) = 0xE0000000 | (posn<<2);
+	    return TA_NO_ALLOC;
+	} else if( newposn <= limit ) {
+	} else if( newposn <= (limit + ta_status.tilelist_size) ) {
+	    asic_event( EVENT_TA_ERROR );
+	    asic_event( EVENT_PVR_MATRIX_ALLOC_FAIL );
+	    MMIO_WRITE( PVR2, TA_LISTPOS, newposn );
+	} else {
+	    MMIO_WRITE( PVR2, TA_LISTPOS, newposn );
+	}
+	PVRRAM(reference) = 0xE0000000 | (posn<<2);
+	return posn << 2;
     } else {
 	newposn = posn + ta_status.tilelist_size;
+	if( posn == limit ) {
+	    PVRRAM(posn<<2) = 0xF0000000;
+	    PVRRAM(reference) = 0xE0000000 | (posn<<2);
+	    return TA_NO_ALLOC;
+	} else if ( posn > limit ) {
+	    PVRRAM(reference) = 0xE0000000 | (posn<<2);
+	    return TA_NO_ALLOC;
+	} else if( newposn >= limit ) {
+	} else if( newposn >= (limit - ta_status.tilelist_size) ) {
+	    asic_event( EVENT_TA_ERROR );
+	    asic_event( EVENT_PVR_MATRIX_ALLOC_FAIL );
+	    MMIO_WRITE( PVR2, TA_LISTPOS, newposn );
+	} else {
+	    MMIO_WRITE( PVR2, TA_LISTPOS, newposn );
+	}	    
+	PVRRAM(reference) = 0xE0000000 | (posn<<2);
+	return posn << 2;
     }
-    MMIO_WRITE( PVR2, TA_LISTPOS, newposn );
-    return posn << 2;
 }
 
 /**
@@ -294,6 +363,7 @@ static uint32_t ta_alloc_tilelist() {
  */
 static int ta_write_tile_entry( int x, int y, uint32_t tile_entry ) {
     uint32_t tile = TILESLOT(x,y);
+    uint32_t tilestart = tile;
     uint32_t value;
     uint32_t lasttri = 0;
     int i,l;
@@ -338,14 +408,17 @@ static int ta_write_tile_entry( int x, int y, uint32_t tile_entry ) {
 	}
 
 	if( value == 0xF0000000 ) {
-	    value = ta_alloc_tilelist();
-	    PVRRAM(tile) = value | 0xE0000000;
-	    tile = value;
-	    PVRRAM(tile) = tile_entry;
-	    PVRRAM(tile+4) = 0xF0000000;
+	    tile = ta_alloc_tilelist(tile);
+	    if( tile != TA_NO_ALLOC ) {
+		PVRRAM(tile) = tile_entry;
+		PVRRAM(tile+4) = 0xF0000000;
+	    }
 	    return;
 	} else if( (value & 0xFF000000) == 0xE0000000 ) {
-	    tile = (value & 0x00FFFFFF);
+	    value &= 0x00FFFFFF;
+	    if( value == tilestart )
+		return 0; /* Loop */
+	    tilestart = tile = value;
 	} else {
 	    /* This should never happen */
 	    return 0;
@@ -441,6 +514,11 @@ static void ta_commit_polygon( ) {
 	for( i=0; i<ta_status.vertex_count && status != 0; i++ ) {
 	    status = ta_write_polygon_buffer( (uint32_t *)(&ta_status.poly_vertex[i]), 3 + ta_status.poly_vertex_size );
 	}
+    }
+
+    if( ta_status.current_tile_size == 0 ) {
+	/* No memory for tile entry, so don't write anything */
+	return;
     }
 
     /* And now the tile entries. Triangles are different from everything else */
@@ -642,7 +720,6 @@ static void ta_fill_vertexes( ) {
 	memcpy( &ta_status.poly_vertex[i], &ta_status.poly_vertex[ta_status.vertex_count-1],
 		sizeof( struct pvr2_ta_vertex ) );
     }
-    ta_status.vertex_count = ta_status.max_vertex;
 }
 
 static void ta_parse_vertex( union ta_data *data ) {
@@ -908,14 +985,17 @@ void pvr2_ta_process_block( char *input ) {
 	    }
 	    
 	    if( ta_status.vertex_count != 0 ) {
+		/* Error, and not a very well handled one either */
+		asic_event( EVENT_PVR_BAD_INPUT );
+		asic_event( EVENT_TA_ERROR );
+		ta_status.accept_vertexes = FALSE;
 		ta_fill_vertexes();
-		ta_commit_polygon();
-	    }
-	    
-	    if( TA_IS_MODIFIER_LIST( ta_status.current_list_type ) ) {
-		ta_parse_modifier_context(data);
 	    } else {
-		ta_parse_polygon_context(data);
+		if( TA_IS_MODIFIER_LIST( ta_status.current_list_type ) ) {
+		    ta_parse_modifier_context(data);
+		} else {
+		    ta_parse_polygon_context(data);
+		}
 	    }
 	    break;
 	case TA_CMD_SPRITE_CONTEXT:

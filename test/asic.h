@@ -20,14 +20,25 @@
 #define EVENT_PVR_DMA   19
 #define EVENT_PVR_PUNCHOUT_DONE 21
 
+#define EVENT_TA_ERROR  31
 #define EVENT_IDE       32
 #define EVENT_AICA      33
+
+#define EVENT_PVR_PRIM_ALLOC_FAIL 66
+#define EVENT_PVR_MATRIX_ALLOC_FAIL 67
+#define EVENT_PVR_BAD_INPUT 68
 
 /**
  * Wait for an ASIC event. 
  * @return 0 if the event occurred, otherwise -1 if the wait timed out.
  */
 int asic_wait( int event );
+
+/**
+ * Check if an ASIC event is active (does not wait)
+ * @return 0 if inactive, nonzero if active.
+ */
+int asic_check( int event );
 
 /**
  * Clear all asic events

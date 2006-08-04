@@ -1,5 +1,5 @@
 /**
- * $Id: asic.c,v 1.1 2006-07-11 01:35:23 nkeynes Exp $
+ * $Id: asic.c,v 1.2 2006-08-04 01:38:30 nkeynes Exp $
  * 
  * General ASIC support code
  *
@@ -50,6 +50,13 @@ void asic_clear()
     long_write(ASIC_PIRQ(0), 0xFFFFFFFF);
     long_write(ASIC_PIRQ(1), 0xFFFFFFFF);
     long_write(ASIC_PIRQ(2), 0xFFFFFFFF);
+}
+
+int asic_check( int event ) 
+{
+    int n = event >> 5;
+    unsigned int mask = (1<< (event&0x1f));
+    return (long_read(ASIC_PIRQ(n)) & mask) != 0;
 }
 
 void asic_mask_all()
