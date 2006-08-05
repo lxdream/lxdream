@@ -1,5 +1,5 @@
 /**
- * $Id: tacore.c,v 1.2 2006-08-04 01:38:27 nkeynes Exp $
+ * $Id: tacore.c,v 1.3 2006-08-05 00:02:41 nkeynes Exp $
  *
  * PVR2 Tile Accelerator implementation
  *
@@ -20,9 +20,10 @@
 
 #define STATE_IDLE                 0
 #define STATE_IN_LIST              1
-#define STATE_EXPECT_POLY_BLOCK2   2
-#define STATE_EXPECT_VERTEX_BLOCK2 3
-#define STATE_ERROR                4
+#define STATE_IN_POLYGON           2
+#define STATE_EXPECT_POLY_BLOCK2   3
+#define STATE_EXPECT_VERTEX_BLOCK2 4
+#define STATE_ERROR                5
 #define STATE_EXPECT_END_VERTEX_BLOCK2 7
 
 #define TA_CMD(i) ( (i) >> 29 )
@@ -77,6 +78,7 @@
 
 static int strip_lengths[4] = {3,4,6,8}; /* in vertexes */
 #define TA_POLYCMD_LISTTYPE(i) ( ((i) >> 24) & 0x0F )
+#define TA_POLYCMD_USELENGTH(i) ( i & 0x00800000 )
 #define TA_POLYCMD_LENGTH(i)  strip_lengths[((i >> 18) & 0x03)]
 #define TA_POLYCMD_CLIP(i)  ((i>>16)&0x03)
 #define TA_POLYCMD_COLOURFMT(i)  (i & 0x00000030)
@@ -272,6 +274,10 @@ static int list_events[5] = {EVENT_PVR_OPAQUE_DONE, EVENT_PVR_OPAQUEMOD_DONE,
 static void ta_end_list() {
     if( ta_status.current_list_type != TA_LIST_NONE ) {
 	asic_event( list_events[ta_status.current_list_type] );
+	if( ta_status.state == STATE_IN_POLYGON ) {
+	    asic_event( EVENT_TA_ERROR );
+	    asic_event( EVENT_PVR_BAD_INPUT );
+	}
 	ta_status.current_list_type = TA_LIST_NONE;
 	ta_status.current_vertex_type = -1;
 	ta_status.state = STATE_IDLE;
@@ -604,7 +610,9 @@ static void ta_split_polygon() {
  */
 static void ta_parse_polygon_context( union ta_data *data ) {
     int colourfmt = TA_POLYCMD_COLOURFMT(data[0].i);
-    ta_status.max_vertex = TA_POLYCMD_LENGTH(data[0].i);
+    if( TA_POLYCMD_USELENGTH(data[0].i) ) {
+	ta_status.max_vertex = TA_POLYCMD_LENGTH(data[0].i);
+    }
     ta_status.vertex_count = 0;
     ta_status.poly_context[0] = 
 	(data[1].i & 0xFC1FFFFF) | ((data[0].i & 0x0B) << 22);
@@ -935,7 +943,7 @@ static void ta_parse_vertex_block2( union ta_data *data ) {
 	vertex->z = data[1].f;
 	break;
     }
-    ta_status.state = STATE_IN_LIST;
+    ta_status.state = STATE_IN_POLYGON;
 }
 
 /**
@@ -970,8 +978,10 @@ void pvr2_ta_process_block( char *input ) {
 	ta_commit_polygon();
 	ta_status.vertex_count = 0;
 	ta_status.poly_parity = 0;
-
+	ta_status.state = STATE_IN_LIST;
+	break;
     case STATE_IN_LIST:
+    case STATE_IN_POLYGON:
     case STATE_IDLE:
 	switch( TA_CMD( data->i ) ) {
 	case TA_CMD_END_LIST:
@@ -1011,6 +1021,7 @@ void pvr2_ta_process_block( char *input ) {
 	    ta_parse_sprite_context(data);
 	    break;
 	case TA_CMD_VERTEX:
+	    ta_status.state = STATE_IN_POLYGON;
 	    ta_parse_vertex(data);
 	    
 	    if( ta_status.state == STATE_EXPECT_VERTEX_BLOCK2 ) {
@@ -1021,6 +1032,7 @@ void pvr2_ta_process_block( char *input ) {
 		ta_commit_polygon();
 		ta_status.vertex_count = 0;
 		ta_status.poly_parity = 0;
+		ta_status.state = STATE_IN_LIST;
 	    } else if( ta_status.vertex_count == ta_status.max_vertex ) {
 		ta_split_polygon();
 	    }
