@@ -1,5 +1,5 @@
 /**
- * $Id: tacore.c,v 1.3 2006-08-05 00:02:41 nkeynes Exp $
+ * $Id: tacore.c,v 1.4 2006-08-06 03:36:51 nkeynes Exp $
  *
  * PVR2 Tile Accelerator implementation
  *
@@ -133,6 +133,7 @@ struct pvr2_ta_status {
     uint32_t current_tile_matrix; /* Memory location of the first tile for the current list. */
     uint32_t current_tile_size; /* Size of the tile matrix space  in 32-bit words (0/8/16/32)*/
     uint32_t intensity1, intensity2;
+    struct tile_bounds clip; 
     /**
      * Current working object
      */
@@ -185,10 +186,14 @@ void pvr2_ta_init() {
     ta_status.max_vertex = 3;
     ta_status.last_triangle_bounds.x1 = -1;
     ta_status.accept_vertexes = TRUE;
-    
+    ta_status.clip.x1 = 0;
+    ta_status.clip.y1 = 0;
+
     uint32_t size = MMIO_READ( PVR2, TA_TILESIZE );
     ta_status.width = (size & 0xFFFF) + 1;
     ta_status.height = (size >> 16) + 1;
+    ta_status.clip.x2 = ta_status.width-1;
+    ta_status.clip.y2 = ta_status.height-1;
     uint32_t control = MMIO_READ( PVR2, TA_TILECFG );
     ta_status.tilelist_dir = (control >> 20) & 0x01;
     ta_status.tilelist_size = tilematrix_sizes[ (control & 0x03) ];
@@ -987,7 +992,16 @@ void pvr2_ta_process_block( char *input ) {
 	case TA_CMD_END_LIST:
 	    ta_end_list();
 	    break;
-	case TA_CMD_CLIP: /* TODO */
+	case TA_CMD_CLIP:
+	    if( ta_status.state == STATE_IN_POLYGON ) {
+		asic_event( EVENT_PVR_BAD_INPUT );
+		asic_event( EVENT_TA_ERROR );
+		/* Enter stuffed up mode */
+	    }
+	    ta_status.clip.x1 = data[4].i & 0x3F;
+	    ta_status.clip.y1 = data[5].i & 0x0F;
+	    ta_status.clip.x2 = data[6].i & 0x3F;
+	    ta_status.clip.y2 = data[7].i & 0x0F;
 	    break;
 	case TA_CMD_POLYGON_CONTEXT:
 	    if( ta_status.state == STATE_IDLE ) {
