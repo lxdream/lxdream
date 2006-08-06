@@ -1,5 +1,5 @@
 /**
- * $Id: testregs.c,v 1.1 2006-08-02 04:13:15 nkeynes Exp $
+ * $Id: testregs.c,v 1.2 2006-08-06 02:46:09 nkeynes Exp $
  * 
  * Register mask tests. These are simple "write value to register and check
  * that we read back what we expect" tests.
@@ -36,6 +36,8 @@ struct test {
 struct test test_cases[] = {
     { 0xA05F8000, 0xFFFFFFFF, 0x17FD11DB }, /* PVRID read-only */
     { 0xA05F8004, 0xFFFFFFFF, 0x00000011 }, /* PVRVER read-only */
+    { 0xA05F8008, 0xFFFFFFFF, 0x00000007 }, /* Reset */
+    { 0xA05F8010, 0xFFFFFFFF, 0 },
     //    { 0xA05F8014, 0xFFFFFFFF, 0x00000000 }, /* Render start */
     { 0xA05F8018, 0xFFFFFFFF, 0x000007FF }, /* ??? */   
     { 0xA05F801C, 0xFFFFFFFF, 0x00000000 }, /* ??? */   
@@ -44,6 +46,9 @@ struct test test_cases[] = {
     { 0xA05F8028, 0xFFFFFFFF, 0x00000000 }, /* ??? */   
     { 0xA05F802C, 0xFFFFFFFF, 0x00FFFFFC }, /* Render Tile buffer address */
     { 0xA05F8030, 0xFFFFFFFF, 0x00010101 }, /* Render TSP cache? */   
+    { 0xA05F8034, 0xFFFFFFFF, 0 },
+    { 0xA05F8038, 0xFFFFFFFF, 0 },
+    { 0xA05F803C, 0xFFFFFFFF, 0 },
     { 0xA05F8040, 0xFFFFFFFF, 0x01FFFFFF }, /* Display border colour */   
     { 0xA05F8044, 0xFFFFFFFF, 0x00FFFF7F }, /* Display config */   
     { 0xA05F8048, 0xFFFFFFFF, 0x00FFFF0F }, /* Render config */
@@ -56,14 +61,51 @@ struct test test_cases[] = {
     { 0xA05F8064, 0xFFFFFFFF, 0x01FFFFFC }, /* Render address 2 */
     { 0xA05F8068, 0xFFFFFFFF, 0x07FF07FF }, /* Render horizontal clip */
     { 0xA05F806C, 0xFFFFFFFF, 0x03FF03FF }, /* Render vertical clip */
+    { 0xA05F8070, 0xFFFFFFFF, 0 },
     { 0xA05F8074, 0xFFFFFFFF, 0x000001FF }, /* Render shadow mode */
+    { 0xA05F8078, 0xFFFFFFFF, 0x7FFFFFFF }, /* Near z clip */
     { 0xA05F807C, 0xFFFFFFFF, 0x003FFFFF }, /* Render object config */
+    { 0xA05F8080, 0xFFFFFFFF, 0x00000007 }, /* ??? */
     { 0xA05F8084, 0xFFFFFFFF, 0x7FFFFFFF }, /* Render tsp clip */
+    { 0xA05F8088, 0xFFFFFFFF, 0xFFFFFFF0 }, /* Far z clip */
     { 0xA05F808C, 0xFFFFFFFF, 0x1FFFFFFF }, /* Render background plane config */
+    { 0xA05F8090, 0xFFFFFFFF, 0 },
+    { 0xA05F8094, 0xFFFFFFFF, 0 },
     { 0xA05F8098, 0xFFFFFFFF, 0x00FFFFF9 }, /* ISP config? */
+    { 0xA05F809C, 0xFFFFFFFF, 0 },
+    { 0xA05F80A0, 0xFFFFFFFF, 0x000000FF }, /* Vram cfg1? */
+    { 0xA05F80A4, 0xFFFFFFFF, 0x003FFFFF },
+    { 0xA05F80A8, 0xFFFFFFFF, 0x1FFFFFFF },
+    { 0xA05F80AC, 0xFFFFFFFF, 0 },
+    { 0xA05F80B0, 0xFFFFFFFF, 0x00FFFFFF },
+    { 0xA05F80B4, 0xFFFFFFFF, 0x00FFFFFF },
+    { 0xA05F80B8, 0xFFFFFFFF, 0x0000FFFF },
+    { 0xA05F80BC, 0xFFFFFFFF, 0xFFFFFFFF },
+    { 0xA05F80C0, 0xFFFFFFFF, 0xFFFFFFFF },
     { 0xA05F80C4, 0xFFFFFFFF, UNCHANGED },  /* Gun pos */
     { 0xA05F80C8, 0xFFFFFFFF, 0x03FF33FF }, /* Horizontal scanline irq */
     { 0xA05F80CC, 0xFFFFFFFF, 0x03FF03FF }, /* Vertical scanline irq */
+    { 0xA05F80D0, 0xFFFFFFFF, 0x000003FF },
+    { 0xA05F80D4, 0xFFFFFFFF, 0x03FF03FF },
+    { 0xA05F80D8, 0xFFFFFFFF, 0x03FF03FF },
+    { 0xA05F80DC, 0xFFFFFFFF, 0x03FF03FF },
+    { 0xA05F80E0, 0xFFFFFFFF, 0xFFFFFF7F },
+    { 0xA05F80E4, 0xFFFFFFFF, 0x00031F1F },
+    { 0xA05F80E8, 0xFFFFFFFF, 0x003F01FF },
+    { 0xA05F80EC, 0xFFFFFFFF, 0x000003FF },
+    { 0xA05F80F0, 0xFFFFFFFF, 0x03FF03FF },
+    { 0xA05F80F4, 0xFFFFFFFF, 0x0007FFFF },
+    { 0xA05F80F8, 0xFFFFFFFF, 0 },
+    { 0xA05F80FC, 0xFFFFFFFF, 0 },
+    { 0xA05F8100, 0xFFFFFFFF, 0 },
+    { 0xA05F8104, 0xFFFFFFFF, 0 },
+    { 0xA05F8108, 0xFFFFFFFF, 0x00000003 },
+    { 0xA05F810C, 0xFFFFFFFF, UNCHANGED },
+    { 0xA05F8110, 0xFFFFFFFF, 0x000FFF3F },
+    { 0xA05F8114, 0xFFFFFFFF, UNCHANGED },
+    { 0xA05F8118, 0xFFFFFFFF, 0x0000FFFF },
+    { 0xA05F811C, 0xFFFFFFFF, 0x000000FF },
+    { 0xA05F8120, 0xFFFFFFFF, 0 },
     { 0xA05F8124, 0xFFFFFFFF, 0x00FFFFE0 }, /* TA Tile matrix base */
     { 0xA05F8128, 0xFFFFFFFF, 0x00FFFFFC }, /* TA Polygon base */
     { 0xA05F812C, 0xFFFFFFFF, 0x00FFFFE0 }, /* TA Tile matrix end */
@@ -73,7 +115,53 @@ struct test test_cases[] = {
     { 0xA05F813C, 0xFFFFFFFF, 0x000F003F }, /* TA tile matrix size */
     { 0xA05F8140, 0xFFFFFFFF, 0x00133333 }, /* TA object config */
     { 0xA05F8144, 0xFFFFFFFF, 0x00000000 }, /* TA initialize */
+    { 0xA05F8148, 0xFFFFFFFF, 0x00FFFFF8 },
+    { 0xA05F814C, 0xFFFFFFFF, 0x01013F3F },
+    { 0xA05F8150, 0xFFFFFFFF, 0 },
+    { 0xA05F8154, 0xFFFFFFFF, 0 },
+    { 0xA05F8158, 0xFFFFFFFF, 0 },
+    { 0xA05F815C, 0xFFFFFFFF, 0 },
+    { 0xA05F8160, 0xFFFFFFFF, 0 },
     { 0xA05F8164, 0xFFFFFFFF, 0x00FFFFE0 }, /* TA Tile list start */
+    { 0xA05F8168, 0xFFFFFFFF, 0 },
+    { 0xA05F816C, 0xFFFFFFFF, 0 },
+    { 0xA05F8170, 0xFFFFFFFF, 0 },
+    { 0xA05F8174, 0xFFFFFFFF, 0 },
+    { 0xA05F8178, 0xFFFFFFFF, 0 },
+    { 0xA05F817C, 0xFFFFFFFF, 0 },
+    { 0xA05F8180, 0xFFFFFFFF, 0 },
+    { 0xA05F8184, 0xFFFFFFFF, 0 },
+    { 0xA05F8188, 0xFFFFFFFF, 0 },
+    { 0xA05F818C, 0xFFFFFFFF, 0 },
+    { 0xA05F8190, 0xFFFFFFFF, 0 },
+    { 0xA05F8194, 0xFFFFFFFF, 0 },
+    { 0xA05F8198, 0xFFFFFFFF, 0 },
+    { 0xA05F819C, 0xFFFFFFFF, 0 },
+    { 0xA05F81A0, 0xFFFFFFFF, 0 },
+    { 0xA05F81A4, 0xFFFFFFFF, 0 },
+    { 0xA05F81A8, 0xFFFFFFFF, 0x00000001 },
+    { 0xA05F81A8, 0x00000000, 0x00000000 },    	
+    { 0xA05F81AC, 0xFFFFFFFF, 0 },
+    { 0xA05F81B0, 0xFFFFFFFF, 0 },
+    { 0xA05F81B4, 0xFFFFFFFF, 0 },
+    { 0xA05F81B8, 0xFFFFFFFF, 0 },
+    { 0xA05F81BC, 0xFFFFFFFF, 0 },
+    { 0xA05F81C0, 0xFFFFFFFF, 0 },
+    { 0xA05F81C4, 0xFFFFFFFF, 0 },
+    { 0xA05F81C8, 0xFFFFFFFF, 0 },
+    { 0xA05F81CC, 0xFFFFFFFF, 0 },
+    { 0xA05F81D0, 0xFFFFFFFF, 0 },
+    { 0xA05F81D4, 0xFFFFFFFF, 0 },
+    { 0xA05F81D8, 0xFFFFFFFF, 0 },
+    { 0xA05F81DC, 0xFFFFFFFF, 0 },
+    { 0xA05F81E0, 0xFFFFFFFF, 0 },
+    { 0xA05F81E4, 0xFFFFFFFF, 0 },
+    { 0xA05F81E8, 0xFFFFFFFF, 0 },
+    { 0xA05F81EC, 0xFFFFFFFF, 0 },
+    { 0xA05F81F0, 0xFFFFFFFF, 0 },
+    { 0xA05F81F4, 0xFFFFFFFF, 0 },
+    { 0xA05F81F8, 0xFFFFFFFF, 0 },
+    { 0xA05F81FC, 0xFFFFFFFF, 0 },
     { 0, 0, 0 } };
     
 int main( int argc, char *argv[] )
