@@ -1,5 +1,5 @@
 /**
- * $Id: tacore.c,v 1.5 2006-08-06 03:50:36 nkeynes Exp $
+ * $Id: tacore.c,v 1.6 2006-08-06 04:01:37 nkeynes Exp $
  *
  * PVR2 Tile Accelerator implementation
  *
@@ -213,11 +213,33 @@ void pvr2_ta_init() {
 }
 
 static uint32_t parse_float_colour( float a, float r, float g, float b ) {
-    return
-    	(((unsigned int)((256 * CLAMP(a,0.0,1.0))-1))<<24) |
-    	(((unsigned int)((256 * CLAMP(r,0.0,1.0))-1))<<16) |
-    	(((unsigned int)((256 * CLAMP(g,0.0,1.0))-1))<<8) |
-    	(((unsigned int)((256 * CLAMP(b,0.0,1.0))-1)));
+    int ai,ri,gi,bi;
+
+    if( TA_IS_INF(a) ) {
+	ai = 255;
+    } else {
+	ai = 256 * CLAMP(a,0.0,1.0) - 1;
+	if( ai < 0 ) ai = 0;
+    }
+    if( TA_IS_INF(r) ) {
+	ri = 255;
+    } else {
+	ri = 256 * CLAMP(r,0.0,1.0) - 1;
+	if( ri < 0 ) ri = 0;
+    }
+    if( TA_IS_INF(g) ) {
+	gi = 255;
+    } else {
+	gi = 256 * CLAMP(g,0.0,1.0) - 1;
+	if( gi < 0 ) gi = 0;
+    }
+    if( TA_IS_INF(b) ) {
+	bi = 255;
+    } else {
+	bi = 256 * CLAMP(b,0.0,1.0) - 1;
+	if( bi < 0 ) bi = 0;
+    }
+    return (ai << 24) | (ri << 16) | (gi << 8) | bi;
 }
 
 static uint32_t parse_intensity_colour( uint32_t base, float intensity )
