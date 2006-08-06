@@ -1,5 +1,5 @@
 /**
- * $Id: tacore.c,v 1.4 2006-08-06 03:36:51 nkeynes Exp $
+ * $Id: tacore.c,v 1.5 2006-08-06 03:50:36 nkeynes Exp $
  *
  * PVR2 Tile Accelerator implementation
  *
@@ -99,6 +99,12 @@ static int strip_lengths[4] = {3,4,6,8}; /* in vertexes */
 
 
 #define TA_IS_END_VERTEX(i) (i & 0x10000000)
+
+/** Note these are not the IEEE 754 definitions - the TA treats NANs
+ * as if they were INFs of the appropriate sign.
+ */
+#define TA_IS_INF(f) (((*((uint32_t *)&f)) & 0xFF800000) == 0x7F800000)
+#define TA_IS_NINF(f) (((*((uint32_t *)&f)) & 0xFF800000) == 0xFF800000)
 
 #define MIN3( x1, x2, x3 ) ( (x1)<(x2)? ((x1)<(x3)?(x1):(x3)) : ((x2)<(x3)?(x2):(x3)) )
 #define MAX3( x1, x2, x3 ) ( (x1)>(x2)? ((x1)>(x3)?(x1):(x3)) : ((x2)>(x3)?(x2):(x3)) )
@@ -457,16 +463,16 @@ static void ta_commit_polygon( ) {
      * clamping here)
      */
     for( i=0; i<ta_status.vertex_count; i++ ) {
-	if( ta_status.poly_vertex[i].x < 0.0 ) {
+	if( ta_status.poly_vertex[i].x < 0.0 || TA_IS_NINF(ta_status.poly_vertex[i].x) ) {
 	    tx[i] = -1;
-	} else if( ta_status.poly_vertex[i].x > (float)INT_MAX ) {
+	} else if( ta_status.poly_vertex[i].x > (float)INT_MAX || TA_IS_INF(ta_status.poly_vertex[i].x) ) {
 	    tx[i] = INT_MAX/32;
 	} else {
 	    tx[i] = (int)(ta_status.poly_vertex[i].x / 32.0);
 	}
-	if( ta_status.poly_vertex[i].y < 0.0 ) {
+	if( ta_status.poly_vertex[i].y < 0.0 || TA_IS_NINF(ta_status.poly_vertex[i].y)) {
 	    ty[i] = -1;
-	} else if( ta_status.poly_vertex[i].y > (float)INT_MAX ) {
+	} else if( ta_status.poly_vertex[i].y > (float)INT_MAX || TA_IS_INF(ta_status.poly_vertex[i].y) ) {
 	    ty[i] = INT_MAX/32;
 	} else {
 	    ty[i] = (int)(ta_status.poly_vertex[i].y / 32.0);
