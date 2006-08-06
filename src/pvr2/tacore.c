@@ -1,5 +1,5 @@
 /**
- * $Id: tacore.c,v 1.7 2006-08-06 06:13:51 nkeynes Exp $
+ * $Id: tacore.c,v 1.8 2006-08-06 07:47:26 nkeynes Exp $
  *
  * PVR2 Tile Accelerator implementation
  *
@@ -73,6 +73,7 @@
 #define TA_VERTEX_SPRITE                      0x80
 #define TA_VERTEX_TEX_SPRITE                  0x88
 #define TA_VERTEX_MOD_VOLUME                  0x81
+#define TA_VERTEX_LISTLESS                    0xFF
 
 #define TA_IS_NORMAL_POLY() (ta_status.current_vertex_type < TA_VERTEX_SPRITE)
 
@@ -194,6 +195,9 @@ void pvr2_ta_init() {
     ta_status.poly_parity = 0;
     ta_status.vertex_count = 0;
     ta_status.max_vertex = 3;
+    ta_status.current_vertex_type = TA_VERTEX_LISTLESS;
+    ta_status.poly_vertex_size = 0;
+    memset(&ta_status.poly_context[1], 0, 4);
     ta_status.last_triangle_bounds.x1 = -1;
     ta_status.accept_vertexes = TRUE;
     ta_status.clip.x1 = 0;
@@ -312,14 +316,17 @@ static int list_events[5] = {EVENT_PVR_OPAQUE_DONE, EVENT_PVR_OPAQUEMOD_DONE,
 static void ta_end_list() {
     if( ta_status.current_list_type != TA_LIST_NONE ) {
 	asic_event( list_events[ta_status.current_list_type] );
-	if( ta_status.state == STATE_IN_POLYGON ) {
-	    asic_event( EVENT_TA_ERROR );
-	    asic_event( EVENT_PVR_BAD_INPUT );
-	}
-	ta_status.current_list_type = TA_LIST_NONE;
-	ta_status.current_vertex_type = -1;
-	ta_status.state = STATE_IDLE;
     }
+    ta_status.current_list_type = TA_LIST_NONE;
+    ta_status.current_vertex_type = TA_VERTEX_LISTLESS;
+    ta_status.poly_vertex_size = 0;
+    memset(&ta_status.poly_context[1], 0, 4);
+    ta_status.state = STATE_IDLE;
+}
+
+static void ta_bad_input_error() {
+    asic_event( EVENT_TA_ERROR );
+    asic_event( EVENT_PVR_BAD_INPUT );
 }
 
 /**
@@ -488,9 +495,6 @@ static void ta_commit_polygon( ) {
     struct tile_bounds polygon_bound;
     uint32_t poly_context[5];
 
-    if( ta_status.vertex_count < 2 ) {
-	return; /* No polygons - ignore */
-    }
     memcpy( poly_context, ta_status.poly_context, ta_status.poly_context_size * 4 );
 
     /* Compute the tile coordinates for each vertex (need to be careful with
@@ -748,6 +752,10 @@ static void ta_parse_polygon_context( union ta_data *data ) {
 static void ta_parse_modifier_context( union ta_data *data ) {
     ta_status.current_vertex_type = TA_VERTEX_MOD_VOLUME;
     ta_status.poly_vertex_size = 0;
+    ta_status.clip_mode = TA_POLYCMD_CLIP(data[0].i);
+    if( ta_status.clip_mode == 1 ) { /* Reserved - treat as CLIP_INSIDE */
+	ta_status.clip_mode = TA_POLYCMD_CLIP_INSIDE;
+    }
     ta_status.poly_context_size = 3;
     ta_status.poly_context[0] = (data[1].i & 0xFC1FFFFF) |
 	((data[0].i & 0x0B)<<22);
@@ -910,6 +918,7 @@ static void ta_parse_vertex( union ta_data *data ) {
     case TA_VERTEX_SPRITE:
     case TA_VERTEX_TEX_SPRITE:
     case TA_VERTEX_MOD_VOLUME:
+    case TA_VERTEX_LISTLESS:
 	vertex++;
 	vertex->x = data[4].f;
 	vertex->y = data[5].f;
@@ -1010,6 +1019,7 @@ static void ta_parse_vertex_block2( union ta_data *data ) {
 	ta_status.poly_vertex[2].detail[0] = data[7].i;
 	break;
     case TA_VERTEX_MOD_VOLUME:
+    case TA_VERTEX_LISTLESS:
 	vertex->y = data[0].f;
 	vertex->z = data[1].f;
 	break;
@@ -1025,7 +1035,7 @@ void pvr2_ta_process_block( char *input ) {
 
     switch( ta_status.state ) {
     case STATE_ERROR:
-	/* Error raised - stop processing until reset */
+	/* Fatal error raised - stop processing until reset */
 	return;
 
     case STATE_EXPECT_POLY_BLOCK2:
@@ -1046,7 +1056,11 @@ void pvr2_ta_process_block( char *input ) {
 
     case STATE_EXPECT_END_VERTEX_BLOCK2:
 	ta_parse_vertex_block2( data );
-	ta_commit_polygon();
+	if( ta_status.vertex_count < 3 ) {
+	    ta_bad_input_error();
+	} else {
+	    ta_commit_polygon();
+	}
 	ta_status.vertex_count = 0;
 	ta_status.poly_parity = 0;
 	ta_status.state = STATE_IN_LIST;
@@ -1056,12 +1070,18 @@ void pvr2_ta_process_block( char *input ) {
     case STATE_IDLE:
 	switch( TA_CMD( data->i ) ) {
 	case TA_CMD_END_LIST:
-	    ta_end_list();
+	    if( ta_status.state == STATE_IN_POLYGON ) {
+		ta_bad_input_error();
+		ta_end_list();
+		ta_status.state = STATE_ERROR; /* Abort further processing */
+	    } else {
+		ta_end_list();
+	    }
 	    break;
 	case TA_CMD_CLIP:
 	    if( ta_status.state == STATE_IN_POLYGON ) {
-		asic_event( EVENT_PVR_BAD_INPUT );
-		asic_event( EVENT_TA_ERROR );
+		ta_bad_input_error();
+		ta_status.accept_vertexes = FALSE;
 		/* Enter stuffed up mode */
 	    }
 	    ta_status.clip.x1 = data[4].i & 0x3F;
@@ -1080,10 +1100,8 @@ void pvr2_ta_process_block( char *input ) {
 	    
 	    if( ta_status.vertex_count != 0 ) {
 		/* Error, and not a very well handled one either */
-		asic_event( EVENT_PVR_BAD_INPUT );
-		asic_event( EVENT_TA_ERROR );
+		ta_bad_input_error();
 		ta_status.accept_vertexes = FALSE;
-		ta_fill_vertexes();
 	    } else {
 		if( TA_IS_MODIFIER_LIST( ta_status.current_list_type ) ) {
 		    ta_parse_modifier_context(data);
@@ -1113,7 +1131,11 @@ void pvr2_ta_process_block( char *input ) {
 		    ta_status.state = STATE_EXPECT_END_VERTEX_BLOCK2;
 		}
 	    } else if( TA_IS_END_VERTEX(data->i) ) {
-		ta_commit_polygon();
+		if( ta_status.vertex_count < 3 ) {
+		    ta_bad_input_error();
+		} else {
+		    ta_commit_polygon();
+		}
 		ta_status.vertex_count = 0;
 		ta_status.poly_parity = 0;
 		ta_status.state = STATE_IN_LIST;
@@ -1121,6 +1143,10 @@ void pvr2_ta_process_block( char *input ) {
 		ta_split_polygon();
 	    }
 	    break;
+	default:
+	    if( ta_status.state == STATE_IN_POLYGON ) {
+		ta_bad_input_error();
+	    }
 	}
 	break;
     }
