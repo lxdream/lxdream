@@ -1,5 +1,5 @@
 /**
- * $Id: sh4core.c,v 1.29 2006-07-06 08:46:41 nkeynes Exp $
+ * $Id: sh4core.c,v 1.30 2006-08-06 09:43:03 nkeynes Exp $
  * 
  * SH4 emulation core, and parent module for all the SH4 peripheral
  * modules.
@@ -37,6 +37,8 @@
 /* CPU-generated exception code/vector pairs */
 #define EXC_POWER_RESET  0x000 /* vector special */
 #define EXC_MANUAL_RESET 0x020
+#define EXC_READ_ADDR_ERR 0x0E0
+#define EXC_WRITE_ADDR_ERR 0x100
 #define EXC_SLOT_ILLEGAL 0x1A0
 #define EXC_ILLEGAL      0x180
 #define EXV_ILLEGAL      0x100
@@ -282,6 +284,11 @@ void fprint_stack_trace( FILE *f )
 
 #define CHECK( x, c, v ) if( !x ) RAISE( c, v )
 #define CHECKPRIV() CHECK( IS_SH4_PRIVMODE(), EXC_ILLEGAL, EXV_ILLEGAL )
+#define CHECKRALIGN16(addr) if( (addr)&0x01 ) RAISE( EXC_READ_ADDR_ERR, EXV_TRAP )
+#define CHECKRALIGN32(addr) if( (addr)&0x03 ) RAISE( EXC_READ_ADDR_ERR, EXV_TRAP )
+#define CHECKWALIGN16(addr) if( (addr)&0x01 ) RAISE( EXC_WRITE_ADDR_ERR, EXV_TRAP )
+#define CHECKWALIGN32(addr) if( (addr)&0x03 ) RAISE( EXC_WRITE_ADDR_ERR, EXV_TRAP )
+
 #define CHECKFPUEN() CHECK( IS_FPU_ENABLED(), EXC_FPDISABLE, EXV_FPDISABLE )
 #define CHECKDEST(p) if( (p) == 0 ) { ERROR( "%08X: Branch/jump to NULL, CPU halted", sh4r.pc ); dreamcast_stop(); return FALSE; }
 #define CHECKSLOTILLEGAL() if(sh4r.in_delay_slot) { RAISE(EXC_SLOT_ILLEGAL,EXV_ILLEGAL); }
@@ -415,6 +422,7 @@ gboolean sh4_execute_instruction( void )
 	pc = sh4r.pc = sh4r.pr;
 	sh4r.new_pc = sh4r.pc + 2;
     }
+    CHECKRALIGN16(pc);
     ir = MEM_READ_WORD(pc);
     sh4r.icount++;
     
@@ -486,6 +494,7 @@ gboolean sh4_execute_instruction( void )
                             break;
                         case 12:/* MOVCA.L R0, [Rn] */
 			    tmp = RN(ir);
+			    CHECKWALIGN32(tmp);
 			    MEM_WRITE_LONG( tmp, R0 );
 			    break;
                         default: UNDEF(ir);
@@ -495,9 +504,11 @@ gboolean sh4_execute_instruction( void )
                     MEM_WRITE_BYTE( R0 + RN(ir), RM(ir) );
                     break;
                 case 5: /* MOV.W   Rm, [R0 + Rn] */
+		    CHECKWALIGN16( R0 + RN(ir) );
                     MEM_WRITE_WORD( R0 + RN(ir), RM(ir) );
                     break;
                 case 6: /* MOV.L   Rm, [R0 + Rn] */
+		    CHECKWALIGN32( R0 + RN(ir) );
                     MEM_WRITE_LONG( R0 + RN(ir), RM(ir) );
                     break;
                 case 7: /* MUL.L   Rm, Rn */
@@ -596,12 +607,16 @@ gboolean sh4_execute_instruction( void )
                     RN(ir) = MEM_READ_BYTE( R0 + RM(ir) );
                     break;
                 case 13:/* MOV.W   [R0+R%d], R%d */
+		    CHECKRALIGN16( R0 + RM(ir) );
                     RN(ir) = MEM_READ_WORD( R0 + RM(ir) );
                     break;
                 case 14:/* MOV.L   [R0+R%d], R%d */
+		    CHECKRALIGN32( R0 + RM(ir) );
                     RN(ir) = MEM_READ_LONG( R0 + RM(ir) );
                     break;
                 case 15:/* MAC.L   [Rm++], [Rn++] */
+		    CHECKRALIGN32( RM(ir) );
+		    CHECKRALIGN32( RN(ir) );
                     tmpl = ( SIGNEXT32(MEM_READ_LONG(RM(ir))) *
                                   SIGNEXT32(MEM_READ_LONG(RN(ir))) );
                     if( sh4r.s ) {
@@ -624,7 +639,9 @@ gboolean sh4_execute_instruction( void )
             break;
         case 1: /* 0001nnnnmmmmdddd */
             /* MOV.L   Rm, [Rn + disp4*4] */
-            MEM_WRITE_LONG( RN(ir) + (DISP4(ir)<<2), RM(ir) );
+	    tmp = RN(ir) + (DISP4(ir)<<2);
+	    CHECKWALIGN32( tmp );
+            MEM_WRITE_LONG( tmp, RM(ir) );
             break;
         case 2: /* 0010nnnnmmmmxxxx */
             switch( ir&0x000F ) {
@@ -632,9 +649,11 @@ gboolean sh4_execute_instruction( void )
                     MEM_WRITE_BYTE( RN(ir), RM(ir) );
                     break;
                 case 1: /* MOV.W   Rm, [Rn] */
-                    MEM_WRITE_WORD( RN(ir), RM(ir) );
+               	    CHECKWALIGN16( RN(ir) );
+		    MEM_WRITE_WORD( RN(ir), RM(ir) );
                     break;
                 case 2: /* MOV.L   Rm, [Rn] */
+		    CHECKWALIGN32( RN(ir) );
                     MEM_WRITE_LONG( RN(ir), RM(ir) );
                     break;
                 case 3: UNDEF(ir);
@@ -645,10 +664,12 @@ gboolean sh4_execute_instruction( void )
                     break;
                 case 5: /* MOV.W   Rm, [--Rn] */
                     RN(ir) -= 2;
+		    CHECKWALIGN16( RN(ir) );
                     MEM_WRITE_WORD( RN(ir), RM(ir) );
                     break;
                 case 6: /* MOV.L   Rm, [--Rn] */
                     RN(ir) -= 4;
+		    CHECKWALIGN32( RN(ir) );
                     MEM_WRITE_LONG( RN(ir), RM(ir) );
                     break;
                 case 7: /* DIV0S   Rm, Rn */
@@ -770,11 +791,13 @@ gboolean sh4_execute_instruction( void )
                     break;
                 case 0x02: /* STS.L   MACH, [--Rn] */
                     RN(ir) -= 4;
+		    CHECKWALIGN32( RN(ir) );
                     MEM_WRITE_LONG( RN(ir), (sh4r.mac>>32) );
                     break;
                 case 0x03: /* STC.L   SR, [--Rn] */
                     CHECKPRIV();
                     RN(ir) -= 4;
+		    CHECKWALIGN32( RN(ir) );
                     MEM_WRITE_LONG( RN(ir), sh4_read_sr() );
                     break;
                 case 0x04: /* ROTL    Rn */
@@ -788,12 +811,14 @@ gboolean sh4_execute_instruction( void )
                     RN(ir) |= (sh4r.t << 31);
                     break;
                 case 0x06: /* LDS.L   [Rn++], MACH */
+		    CHECKRALIGN32( RN(ir) );
                     sh4r.mac = (sh4r.mac & 0x00000000FFFFFFFF) |
                         (((uint64_t)MEM_READ_LONG(RN(ir)))<<32);
                     RN(ir) += 4;
                     break;
                 case 0x07: /* LDC.L   [Rn++], SR */
                     CHECKPRIV();
+		    CHECKWALIGN32( RN(ir) );
                     sh4_load_sr( MEM_READ_LONG(RN(ir)) );
                     RN(ir) +=4;
                     break;
@@ -829,21 +854,25 @@ gboolean sh4_execute_instruction( void )
                     break;
                 case 0x12: /* STS.L   MACL, [--Rn] */
                     RN(ir) -= 4;
+		    CHECKWALIGN32( RN(ir) );
                     MEM_WRITE_LONG( RN(ir), (uint32_t)sh4r.mac );
                     break;
                 case 0x13: /* STC.L   GBR, [--Rn] */
                     RN(ir) -= 4;
+		    CHECKWALIGN32( RN(ir) );
                     MEM_WRITE_LONG( RN(ir), sh4r.gbr );
                     break;
                 case 0x15: /* CMP/PL  Rn */
                     sh4r.t = ( ((int32_t)RN(ir)) > 0 ? 1 : 0 );
                     break;
                 case 0x16: /* LDS.L   [Rn++], MACL */
+		    CHECKRALIGN32( RN(ir) );
                     sh4r.mac = (sh4r.mac & 0xFFFFFFFF00000000LL) |
                         (uint64_t)((uint32_t)MEM_READ_LONG(RN(ir)));
                     RN(ir) += 4;
                     break;
                 case 0x17: /* LDC.L   [Rn++], GBR */
+		    CHECKRALIGN32( RN(ir) );
                     sh4r.gbr = MEM_READ_LONG(RN(ir));
                     RN(ir) +=4;
                     break;
@@ -875,11 +904,13 @@ gboolean sh4_execute_instruction( void )
                     break;
                 case 0x22: /* STS.L   PR, [--Rn] */
                     RN(ir) -= 4;
+		    CHECKWALIGN32( RN(ir) );
                     MEM_WRITE_LONG( RN(ir), sh4r.pr );
                     break;
                 case 0x23: /* STC.L   VBR, [--Rn] */
                     CHECKPRIV();
                     RN(ir) -= 4;
+		    CHECKWALIGN32( RN(ir) );
                     MEM_WRITE_LONG( RN(ir), sh4r.vbr );
                     break;
                 case 0x24: /* ROTCL   Rn */
@@ -895,11 +926,13 @@ gboolean sh4_execute_instruction( void )
                     sh4r.t = tmp;
                     break;
                 case 0x26: /* LDS.L   [Rn++], PR */
+		    CHECKRALIGN32( RN(ir) );
                     sh4r.pr = MEM_READ_LONG( RN(ir) );
                     RN(ir) += 4;
                     break;
                 case 0x27: /* LDC.L   [Rn++], VBR */
                     CHECKPRIV();
+		    CHECKRALIGN32( RN(ir) );
                     sh4r.vbr = MEM_READ_LONG(RN(ir));
                     RN(ir) +=4;
                     break;
@@ -926,15 +959,18 @@ gboolean sh4_execute_instruction( void )
                 case 0x32: /* STC.L   SGR, [--Rn] */
                     CHECKPRIV();
                     RN(ir) -= 4;
+		    CHECKWALIGN32( RN(ir) );
                     MEM_WRITE_LONG( RN(ir), sh4r.sgr );
                     break;
                 case 0x33: /* STC.L   SSR, [--Rn] */
                     CHECKPRIV();
                     RN(ir) -= 4;
+		    CHECKWALIGN32( RN(ir) );
                     MEM_WRITE_LONG( RN(ir), sh4r.ssr );
                     break;
                 case 0x37: /* LDC.L   [Rn++], SSR */
                     CHECKPRIV();
+		    CHECKRALIGN32( RN(ir) );
                     sh4r.ssr = MEM_READ_LONG(RN(ir));
                     RN(ir) +=4;
                     break;
@@ -945,10 +981,12 @@ gboolean sh4_execute_instruction( void )
                 case 0x43: /* STC.L   SPC, [--Rn] */
                     CHECKPRIV();
                     RN(ir) -= 4;
+		    CHECKWALIGN32( RN(ir) );
                     MEM_WRITE_LONG( RN(ir), sh4r.spc );
                     break;
                 case 0x47: /* LDC.L   [Rn++], SPC */
                     CHECKPRIV();
+		    CHECKRALIGN32( RN(ir) );
                     sh4r.spc = MEM_READ_LONG(RN(ir));
                     RN(ir) +=4;
                     break;
@@ -958,9 +996,11 @@ gboolean sh4_execute_instruction( void )
                     break;
                 case 0x52: /* STS.L   FPUL, [--Rn] */
                     RN(ir) -= 4;
+		    CHECKWALIGN32( RN(ir) );
                     MEM_WRITE_LONG( RN(ir), sh4r.fpul );
                     break;
                 case 0x56: /* LDS.L   [Rn++], FPUL */
+		    CHECKRALIGN32( RN(ir) );
                     sh4r.fpul = MEM_READ_LONG(RN(ir));
                     RN(ir) +=4;
                     break;
@@ -969,9 +1009,11 @@ gboolean sh4_execute_instruction( void )
                     break;
                 case 0x62: /* STS.L   FPSCR, [--Rn] */
                     RN(ir) -= 4;
+		    CHECKWALIGN32( RN(ir) );
                     MEM_WRITE_LONG( RN(ir), sh4r.fpscr );
                     break;
                 case 0x66: /* LDS.L   [Rn++], FPSCR */
+		    CHECKRALIGN32( RN(ir) );
                     sh4r.fpscr = MEM_READ_LONG(RN(ir));
                     RN(ir) +=4;
                     break;
@@ -981,10 +1023,12 @@ gboolean sh4_execute_instruction( void )
                 case 0xF2: /* STC.L   DBR, [--Rn] */
                     CHECKPRIV();
                     RN(ir) -= 4;
+		    CHECKWALIGN32( RN(ir) );
                     MEM_WRITE_LONG( RN(ir), sh4r.dbr );
                     break;
                 case 0xF6: /* LDC.L   [Rn++], DBR */
                     CHECKPRIV();
+		    CHECKRALIGN32( RN(ir) );
                     sh4r.dbr = MEM_READ_LONG(RN(ir));
                     RN(ir) +=4;
                     break;
@@ -996,11 +1040,13 @@ gboolean sh4_execute_instruction( void )
                 case 0xD3: case 0xE3: case 0xF3: /* STC.L   Rn_BANK, [--Rn] */
                     CHECKPRIV();
                     RN(ir) -= 4;
+		    CHECKWALIGN32( RN(ir) );
                     MEM_WRITE_LONG( RN(ir), RN_BANK(ir) );
                     break;
                 case 0x87: case 0x97: case 0xA7: case 0xB7: case 0xC7:
                 case 0xD7: case 0xE7: case 0xF7: /* LDC.L   [Rn++], Rn_BANK */
                     CHECKPRIV();
+		    CHECKRALIGN32( RN(ir) );
                     RN_BANK(ir) = MEM_READ_LONG( RN(ir) );
                     RN(ir) += 4;
                     break;
@@ -1012,6 +1058,8 @@ gboolean sh4_execute_instruction( void )
                 default:
                     if( (ir&0x000F) == 0x0F ) {
                         /* MAC.W   [Rm++], [Rn++] */
+			CHECKRALIGN16( RN(ir) );
+			CHECKRALIGN16( RM(ir) );
                         tmp = SIGNEXT16(MEM_READ_WORD(RM(ir))) *
                             SIGNEXT16(MEM_READ_WORD(RN(ir)));
                         if( sh4r.s ) {
@@ -1039,7 +1087,9 @@ gboolean sh4_execute_instruction( void )
             break;
         case 5: /* 0101nnnnmmmmdddd */
             /* MOV.L   [Rm + disp4*4], Rn */
-            RN(ir) = MEM_READ_LONG( RM(ir) + (DISP4(ir)<<2) );
+	    tmp = RM(ir) + (DISP4(ir)<<2);
+	    CHECKRALIGN32( tmp );
+            RN(ir) = MEM_READ_LONG( tmp );
             break;
         case 6: /* 0110xxxxxxxxxxxx */
             switch( ir&0x000f ) {
@@ -1047,9 +1097,11 @@ gboolean sh4_execute_instruction( void )
                     RN(ir) = MEM_READ_BYTE( RM(ir) );
                     break;
                 case 1: /* MOV.W   [Rm], Rn */
+		    CHECKRALIGN16( RM(ir) );
                     RN(ir) = MEM_READ_WORD( RM(ir) );
                     break;
                 case 2: /* MOV.L   [Rm], Rn */
+		    CHECKRALIGN32( RM(ir) );
                     RN(ir) = MEM_READ_LONG( RM(ir) );
                     break;
                 case 3: /* MOV     Rm, Rn */
@@ -1060,10 +1112,12 @@ gboolean sh4_execute_instruction( void )
                     RM(ir) ++;
                     break;
                 case 5: /* MOV.W   [Rm++], Rn */
+		    CHECKRALIGN16( RM(ir) );
                     RN(ir) = MEM_READ_WORD( RM(ir) );
                     RM(ir) += 2;
                     break;
                 case 6: /* MOV.L   [Rm++], Rn */
+		    CHECKRALIGN32( RM(ir) );
                     RN(ir) = MEM_READ_LONG( RM(ir) );
                     RM(ir) += 4;
                     break;
@@ -1109,13 +1163,17 @@ gboolean sh4_execute_instruction( void )
                     MEM_WRITE_BYTE( RM(ir) + DISP4(ir), R0 );
                     break;
                 case 1: /* MOV.W   R0, [Rm + disp4*2] */
-                    MEM_WRITE_WORD( RM(ir) + (DISP4(ir)<<1), R0 );
+		    tmp = RM(ir) + (DISP4(ir)<<1);
+		    CHECKWALIGN16( tmp );
+                    MEM_WRITE_WORD( tmp, R0 );
                     break;
                 case 4: /* MOV.B   [Rm + disp4], R0 */
                     R0 = MEM_READ_BYTE( RM(ir) + DISP4(ir) );
                     break;
                 case 5: /* MOV.W   [Rm + disp4*2], R0 */
-                    R0 = MEM_READ_WORD( RM(ir) + (DISP4(ir)<<1) );
+		    tmp = RM(ir) + (DISP4(ir)<<1);
+		    CHECKRALIGN16( tmp );
+                    R0 = MEM_READ_WORD( tmp );
                     break;
                 case 8: /* CMP/EQ  imm, R0 */
                     sh4r.t = ( R0 == IMM8(ir) ? 1 : 0 );
@@ -1164,7 +1222,9 @@ gboolean sh4_execute_instruction( void )
             break;
         case 9: /* 1001xxxxxxxxxxxx */
             /* MOV.W   [disp8*2 + pc + 4], Rn */
-            RN(ir) = MEM_READ_WORD( pc + 4 + (DISP8(ir)<<1) );
+	    tmp = pc + 4 + (DISP8(ir)<<1);
+	    CHECKRALIGN16( tmp );
+            RN(ir) = MEM_READ_WORD( tmp );
             break;
         case 10:/* 1010dddddddddddd */
             /* BRA     disp12 */
@@ -1190,10 +1250,14 @@ gboolean sh4_execute_instruction( void )
                     MEM_WRITE_BYTE( sh4r.gbr + DISP8(ir), R0 );
                     break;
                 case 1: /* MOV.W  R0, [GBR + disp8*2] */
-                    MEM_WRITE_WORD( sh4r.gbr + (DISP8(ir)<<1), R0 );
+		    tmp = sh4r.gbr + (DISP8(ir)<<1);
+		    CHECKWALIGN16( tmp );
+                    MEM_WRITE_WORD( tmp, R0 );
                     break;
                 case  2: /*MOV.L   R0, [GBR + disp8*4] */
-                    MEM_WRITE_LONG( sh4r.gbr + (DISP8(ir)<<2), R0 );
+		    tmp = sh4r.gbr + (DISP8(ir)<<2);
+		    CHECKWALIGN32( tmp );
+                    MEM_WRITE_LONG( tmp, R0 );
                     break;
                 case 3: /* TRAPA   imm8 */
                     CHECKSLOTILLEGAL()
@@ -1205,10 +1269,14 @@ gboolean sh4_execute_instruction( void )
                     R0 = MEM_READ_BYTE( sh4r.gbr + DISP8(ir) );
                     break;
                 case 5: /* MOV.W   [GBR + disp8*2], R0 */
-                    R0 = MEM_READ_WORD( sh4r.gbr + (DISP8(ir)<<1) );
+		    tmp = sh4r.gbr + (DISP8(ir)<<1);
+		    CHECKRALIGN16( tmp );
+                    R0 = MEM_READ_WORD( tmp );
                     break;
                 case 6: /* MOV.L   [GBR + disp8*4], R0 */
-                    R0 = MEM_READ_LONG( sh4r.gbr + (DISP8(ir)<<2) );
+		    tmp = sh4r.gbr + (DISP8(ir)<<2);
+		    CHECKRALIGN32( tmp );
+                    R0 = MEM_READ_LONG( tmp );
                     break;
                 case 7: /* MOVA    disp8 + pc&~3 + 4, R0 */
                     R0 = (pc&0xFFFFFFFC) + (DISP8(ir)<<2) + 4;
@@ -1225,7 +1293,7 @@ gboolean sh4_execute_instruction( void )
                 case 11:/* OR      imm8, R0 */
                     R0 |= UIMM8(ir);
                     break;
-                case 12:/* TST.B   imm8, [R0+GBR] */
+                case 12:/* TST.B   imm8, [R0+GBR] */		    
                     sh4r.t = ( MEM_READ_BYTE(R0 + sh4r.gbr) & UIMM8(ir) ? 0 : 1 );
                     break;
                 case 13:/* AND.B   imm8, [R0+GBR] */
@@ -1244,7 +1312,9 @@ gboolean sh4_execute_instruction( void )
             break;
         case 13:/* 1101nnnndddddddd */
             /* MOV.L   [disp8*4 + pc&~3 + 4], Rn */
-            RN(ir) = MEM_READ_LONG( (pc&0xFFFFFFFC) + (DISP8(ir)<<2) + 4 );
+	    tmp = (pc&0xFFFFFFFC) + (DISP8(ir)<<2) + 4;
+	    CHECKRALIGN32( tmp );
+            RN(ir) = MEM_READ_LONG( tmp );
             break;
         case 14:/* 1110nnnniiiiiiii */
             /* MOV     imm8, Rn */
