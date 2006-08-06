@@ -1,5 +1,5 @@
 /**
- * $Id: tacore.c,v 1.6 2006-08-06 04:01:37 nkeynes Exp $
+ * $Id: tacore.c,v 1.7 2006-08-06 06:13:51 nkeynes Exp $
  *
  * PVR2 Tile Accelerator implementation
  *
@@ -81,6 +81,9 @@ static int strip_lengths[4] = {3,4,6,8}; /* in vertexes */
 #define TA_POLYCMD_USELENGTH(i) ( i & 0x00800000 )
 #define TA_POLYCMD_LENGTH(i)  strip_lengths[((i >> 18) & 0x03)]
 #define TA_POLYCMD_CLIP(i)  ((i>>16)&0x03)
+#define TA_POLYCMD_CLIP_NONE 0
+#define TA_POLYCMD_CLIP_INSIDE 2
+#define TA_POLYCMD_CLIP_OUTSIDE 3
 #define TA_POLYCMD_COLOURFMT(i)  (i & 0x00000030)
 #define TA_POLYCMD_COLOURFMT_ARGB32 0x00000000
 #define TA_POLYCMD_COLOURFMT_FLOAT 0x00000010
@@ -139,7 +142,8 @@ struct pvr2_ta_status {
     uint32_t current_tile_matrix; /* Memory location of the first tile for the current list. */
     uint32_t current_tile_size; /* Size of the tile matrix space  in 32-bit words (0/8/16/32)*/
     uint32_t intensity1, intensity2;
-    struct tile_bounds clip; 
+    struct tile_bounds clip;
+    int clip_mode;
     /**
      * Current working object
      */
@@ -194,6 +198,7 @@ void pvr2_ta_init() {
     ta_status.accept_vertexes = TRUE;
     ta_status.clip.x1 = 0;
     ta_status.clip.y1 = 0;
+    ta_status.clip_mode = TA_POLYCMD_CLIP_NONE;
 
     uint32_t size = MMIO_READ( PVR2, TA_TILESIZE );
     ta_status.width = (size & 0xFFFF) + 1;
@@ -407,6 +412,13 @@ static int ta_write_tile_entry( int x, int y, uint32_t tile_entry ) {
     uint32_t lasttri = 0;
     int i,l;
 
+    if( ta_status.clip_mode == TA_POLYCMD_CLIP_OUTSIDE &&
+	x >= ta_status.clip.x1 && x <= ta_status.clip.x2 &&
+	y >= ta_status.clip.y1 && y <= ta_status.clip.y2 ) {
+	/* Tile clipped out */
+	return 0;
+    }
+
     if( (tile_entry & 0x80000000) && 
 	ta_status.last_triangle_bounds.x1 != -1 &&
 	ta_status.last_triangle_bounds.x1 <= x &&
@@ -524,12 +536,6 @@ static void ta_commit_polygon( ) {
 	}
     }
 
-    /* If the polygon is actually entirely out of the frustum, clip it entirely */
-    if( polygon_bound.x2 < 0 || polygon_bound.x1 > ta_status.width ||
-	polygon_bound.y2 < 0 || polygon_bound.y1 > ta_status.height ) {
-	return;
-    }
-
     /* Clamp the polygon bounds to the frustum */
     if( polygon_bound.x1 < 0 ) polygon_bound.x1 = 0;
     if( polygon_bound.x2 >= ta_status.width ) polygon_bound.x2 = ta_status.width-1;
@@ -540,6 +546,34 @@ static void ta_commit_polygon( ) {
     if( polygon_bound.x1 == polygon_bound.x2 &&
 	polygon_bound.y1 == polygon_bound.y2 ) {
 	poly_context[0] |= 0x00200000;
+    }
+    
+    /* If the polygon is entirely clipped, don't even write the polygon data */
+    switch( ta_status.clip_mode ) {
+    case TA_POLYCMD_CLIP_NONE:
+	if( polygon_bound.x2 < 0 || polygon_bound.x1 >= ta_status.width ||
+	    polygon_bound.y2 < 0 || polygon_bound.y1 >= ta_status.height ) {
+	    return;
+	}
+	break;
+    case TA_POLYCMD_CLIP_INSIDE:
+	if( polygon_bound.x2 < ta_status.clip.x1 || polygon_bound.x1 > ta_status.clip.x2 ||
+	    polygon_bound.y2 < ta_status.clip.y1 || polygon_bound.y1 > ta_status.clip.y1 ) {
+	    return;
+	} else {
+	    /* Clamp to clip bounds */
+	    if( polygon_bound.x1 < ta_status.clip.x1 ) polygon_bound.x1 = ta_status.clip.x1;
+	    if( polygon_bound.x2 > ta_status.clip.x2 ) polygon_bound.x2 = ta_status.clip.x2;
+	    if( polygon_bound.y1 < ta_status.clip.y1 ) polygon_bound.y1 = ta_status.clip.y1;
+	    if( polygon_bound.y2 > ta_status.clip.y2 ) polygon_bound.y2 = ta_status.clip.y2;
+	}
+	break;
+    case TA_POLYCMD_CLIP_OUTSIDE:
+	if( polygon_bound.x1 >= ta_status.clip.x1 && polygon_bound.x2 <= ta_status.clip.x2 &&
+	    polygon_bound.y1 >= ta_status.clip.y1 && polygon_bound.y2 <= ta_status.clip.y2 ) {
+	    return;
+	}
+	break;
     }
 
     /* Ok, we're good to go - write out the polygon first */
@@ -645,6 +679,10 @@ static void ta_parse_polygon_context( union ta_data *data ) {
     int colourfmt = TA_POLYCMD_COLOURFMT(data[0].i);
     if( TA_POLYCMD_USELENGTH(data[0].i) ) {
 	ta_status.max_vertex = TA_POLYCMD_LENGTH(data[0].i);
+    }
+    ta_status.clip_mode = TA_POLYCMD_CLIP(data[0].i);
+    if( ta_status.clip_mode == 1 ) { /* Reserved - treat as CLIP_INSIDE */
+	ta_status.clip_mode = TA_POLYCMD_CLIP_INSIDE;
     }
     ta_status.vertex_count = 0;
     ta_status.poly_context[0] = 
@@ -1030,6 +1068,10 @@ void pvr2_ta_process_block( char *input ) {
 	    ta_status.clip.y1 = data[5].i & 0x0F;
 	    ta_status.clip.x2 = data[6].i & 0x3F;
 	    ta_status.clip.y2 = data[7].i & 0x0F;
+	    if( ta_status.clip.x2 >= ta_status.width )
+		ta_status.clip.x2 = ta_status.width - 1;
+	    if( ta_status.clip.y2 >= ta_status.height )
+		ta_status.clip.y2 = ta_status.height - 1;
 	    break;
 	case TA_CMD_POLYGON_CONTEXT:
 	    if( ta_status.state == STATE_IDLE ) {
