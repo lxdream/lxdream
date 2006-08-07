@@ -1,5 +1,5 @@
 /**
- * $Id: dcload.c,v 1.5 2006-07-06 22:44:39 nkeynes Exp $
+ * $Id: dcload.c,v 1.6 2006-08-07 13:18:16 nkeynes Exp $
  * 
  * DC-load syscall implementation.
  *
@@ -48,40 +48,104 @@
 #define SYS_MAGIC_ADDR 0x8c004004
 #define SYSCALL_ADDR 0x8c004008
 
-static gboolean dcload_allow_exit = FALSE;
+static gboolean dcload_allow_unsafe = FALSE;
 
-void dcload_set_allow_exit( gboolean allow )
+void dcload_set_allow_unsafe( gboolean allow )
 {
-    dcload_allow_exit = allow;
+    dcload_allow_unsafe = allow;
+}
+
+#define MAX_OPEN_FDS 16
+/**
+ * Mapping from emulator fd to real fd (so we can limit read/write
+ * to only fds we've explicitly granted access to).
+ */
+int open_fds[MAX_OPEN_FDS];
+
+int dcload_alloc_fd() 
+{
+    int i;
+    for( i=0; i<MAX_OPEN_FDS; i++ ) {
+	if( open_fds[i] == -1 ) {
+	    return i;
+	}
+    }
+    return -1;
 }
 
 void dcload_syscall( uint32_t syscall_id ) 
 {
     uint32_t syscall = sh4r.r[4];
+    int fd;
     switch( sh4r.r[4] ) {
     case SYS_READ:
-	if( sh4r.r[5] == 0 ) {
+	fd = sh4r.r[5];
+	if( fd < 0 || fd >= MAX_OPEN_FDS || open_fds[fd] == -1 ) {
+	    sh4r.r[0] = -1;
+	} else {
 	    char *buf = mem_get_region( sh4r.r[6] );
 	    int length = sh4r.r[7];
-	    sh4r.r[0] = read( 0, buf, length );
-	} else {
-	    sh4r.r[0] = -1;
+	    sh4r.r[0] = read( open_fds[fd], buf, length );
 	}
 	break;
     case SYS_WRITE:
-	if( sh4r.r[5] == 1 || sh4r.r[5] == 2 ) {
+	fd = sh4r.r[5];
+	if( fd < 0 || fd >= MAX_OPEN_FDS || open_fds[fd] == -1 ) {
+	    sh4r.r[0] = -1;
+	} else {
 	    char *buf = mem_get_region( sh4r.r[6] );
 	    int length = sh4r.r[7];
-	    sh4r.r[0] = write( sh4r.r[5], buf, length );
+	    sh4r.r[0] = write( open_fds[fd], buf, length );
+	}
+	break;
+    case SYS_LSEEK:
+	fd = sh4r.r[5];
+	if( fd < 0 || fd >= MAX_OPEN_FDS || open_fds[fd] == -1 ) {
+	    sh4r.r[0] = -1;
 	} else {
+	    sh4r.r[0] = lseek( open_fds[fd], sh4r.r[6], sh4r.r[7] );
+	}
+	break;
+
+/* Secure access only */
+    case SYS_OPEN:
+	if( dcload_allow_unsafe ) {
+	    fd = dcload_alloc_fd();
+	    if( fd == -1 ) {
+		sh4r.r[0] = -1;
+	    } else {
+		char *filename = mem_get_region( sh4r.r[5] );
+		int realfd = open( filename, sh4r.r[6] );
+		open_fds[fd] = realfd;
+		sh4r.r[0] = realfd;
+	    }
+	} else {
+	    ERROR( "Denying access to local filesystem" );
 	    sh4r.r[0] = -1;
 	}
 	break;
+    case SYS_CLOSE:
+	if( dcload_allow_unsafe ) {
+	    fd = sh4r.r[5];
+	    if( fd < 0 || fd >= MAX_OPEN_FDS || open_fds[fd] == -1 ) {
+		sh4r.r[0] = -1;
+	    } else {
+		if( open_fds[fd] > 2 ) {
+		    sh4r.r[0] = close( open_fds[fd] );
+		} else {
+		    /* Don't actually close real fds 0-2 */
+		    sh4r.r[0] = 0;
+		}
+		open_fds[fd] = -1;
+	    }
+	}
+	break;
     case SYS_EXIT:
-	if( dcload_allow_exit ) 
+	if( dcload_allow_unsafe ) {
 	    exit( sh4r.r[5] );
-	else
+	} else {
 	    dreamcast_stop();
+	}
     default:
 	sh4r.r[0] = -1;
     }
@@ -90,6 +154,10 @@ void dcload_syscall( uint32_t syscall_id )
 
 void dcload_install() 
 {
+    memset( &open_fds, -1, sizeof(open_fds) );
+    open_fds[0] = 0;
+    open_fds[1] = 1;
+    open_fds[2] = 2;
     syscall_add_hook_vector( 0xF0, SYSCALL_ADDR, dcload_syscall );
     sh4_write_long( SYS_MAGIC_ADDR, SYS_MAGIC );
 }

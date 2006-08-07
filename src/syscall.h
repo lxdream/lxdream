@@ -1,5 +1,5 @@
 /**
- * $Id: syscall.h,v 1.2 2006-07-06 08:47:33 nkeynes Exp $
+ * $Id: syscall.h,v 1.3 2006-08-07 13:18:16 nkeynes Exp $
  * 
  * Generic syscall support - ability to add hooks into SH4 code to call out
  * to the emu.
@@ -69,7 +69,7 @@ void dcload_install( void );
  * Set the flag that indicates whether the dcload exit() syscall will be
  * honoured by exiting the VM.
  */
-void dcload_set_allow_exit( gboolean allow );
+void dcload_set_allow_unsafe( gboolean allow );
 
 #ifdef __cplusplus
 }

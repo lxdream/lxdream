@@ -1,5 +1,5 @@
 /**
- * $Id: main.c,v 1.19 2006-07-06 08:47:33 nkeynes Exp $
+ * $Id: main.c,v 1.20 2006-08-07 13:18:16 nkeynes Exp $
  *
  * Main program, initializes dreamcast and gui, then passes control off to
  * the gtk main loop (currently). 
@@ -35,7 +35,7 @@
 
 #define S3M_PLAYER "s3mplay.bin"
 
-char *option_list = "a:s:A:V:pqhbd:c:";
+char *option_list = "a:s:A:V:puhbd:c:";
 struct option longopts[1] = { { NULL, 0, 0, 0 } };
 char *aica_program = NULL;
 char *s3m_file = NULL;
@@ -87,8 +87,8 @@ int main (int argc, char *argv[])
 	case 'p': /* Start immediately */
 	    start_immediately = TRUE;
     	    break;
-	case 'q': /* Quit on DC program exit */
-	    dcload_set_allow_exit(TRUE);
+	case 'u': /* Allow unsafe dcload syscalls */
+	    dcload_set_allow_unsafe(TRUE);
 	    break;
     	case 'b': /* No BIOS */
     	    without_bios = TRUE;
