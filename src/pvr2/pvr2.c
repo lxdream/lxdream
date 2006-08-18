@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.c,v 1.31 2006-08-06 02:47:08 nkeynes Exp $
+ * $Id: pvr2.c,v 1.32 2006-08-18 12:43:04 nkeynes Exp $
  *
  * PVR2 (Video) Core module implementation and MMIO registers.
  *
@@ -76,6 +76,7 @@ static void pvr2_init( void )
     video_base = mem_get_region_by_name( MEM_REGION_VIDEO );
     texcache_init();
     pvr2_reset();
+    pvr2_ta_reset();
 }
 
 static void pvr2_reset( void )
