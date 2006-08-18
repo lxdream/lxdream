@@ -1,5 +1,5 @@
 /**
- * $Id: pvr.h,v 1.2 2006-08-02 04:13:15 nkeynes Exp $
+ * $Id: pvr.h,v 1.3 2006-08-18 09:33:19 nkeynes Exp $
  * 
  * PVR support code
  *
@@ -145,8 +145,25 @@ struct ta_config {
     unsigned int plist_start;
 };
 
+struct render_config {
+    unsigned int polybuf;
+    unsigned int tilemap;
+    unsigned int render_addr;
+    unsigned int width, height;
+    unsigned int mode;
+    float farclip, nearclip;
+};
+
 void ta_init( struct ta_config *config );
+void ta_reinit();
 void pvr_dump_objbuf( FILE *f );
 void pvr_dump_tilebuf( FILE *f );
 int pvr_get_objbuf_size();
+int pvr_get_objbuf_posn();
 int pvr_get_plist_posn();
+void render_set_backplane( unsigned int mode );
+void render_start( struct render_config *config );
+void display_render( struct render_config *config );
+void pvr_build_tilemap1( unsigned int addr, struct ta_config *config, unsigned int control_word );
+
+void pvr_build_tilemap2( unsigned int addr, struct ta_config *config, unsigned int control_word );

@@ -85,6 +85,10 @@ testta: crt0.so $(SHARED_OBJECTS) testta.so pvr.so dmac.so asic.so lib.so testda
 	$(SH4CC) $(SH4LDFLAGS) $^  -o $@ $(SH4LIBS)
 	$(SH4OBJCOPY) testta testta.bin
 
+testrend: crt0.so $(SHARED_OBJECTS) testrend.so pvr.so dmac.so asic.so lib.so testdata.so
+	$(SH4CC) $(SH4LDFLAGS) $^  -o $@ $(SH4LIBS)
+	$(SH4OBJCOPY) testrend testrend.bin
+
 readdata: crt0.so readdata.so
 	$(SH4CC) $(SH4LDFLAGS) $^ -o $@ $(SH4LIBS)
 
