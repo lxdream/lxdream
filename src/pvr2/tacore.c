@@ -1,5 +1,5 @@
 /**
- * $Id: tacore.c,v 1.8 2006-08-06 07:47:26 nkeynes Exp $
+ * $Id: tacore.c,v 1.9 2006-08-18 12:43:24 nkeynes Exp $
  *
  * PVR2 Tile Accelerator implementation
  *
@@ -133,6 +133,7 @@ struct pvr2_ta_status {
     int tilelist_dir; /* Growth direction of the tilelist, 0 = up, 1 = down */
     uint32_t tilelist_size; /* Size of the tilelist segments */
     uint32_t tilelist_start; /* Initial address of the tilelist */
+    int polybuf_start; /* Initial bank address of the polygon buffer (ie &0x00F00000) */
     int current_vertex_type;
     gboolean accept_vertexes;
     int vertex_count; /* index of last start-vertex seen, or -1 if no vertexes 
@@ -219,6 +220,7 @@ void pvr2_ta_init() {
     }
     MMIO_WRITE( PVR2, TA_LISTPOS, plistpos );
     ta_status.tilelist_start = plistpos;
+    ta_status.polybuf_start = MMIO_READ( PVR2, TA_POLYBASE ) & 0x00F00000;
 }
 
 static uint32_t parse_float_colour( float a, float r, float g, float b ) {
@@ -349,7 +351,9 @@ static int ta_write_polygon_buffer( uint32_t *data, int length )
 	    //	    ta_status.state = STATE_ERROR;
 	    break;
 	}
-	*target++ = *data++;
+	if( posn < PVR2_RAM_SIZE ) {
+	    *target++ = *data++;
+	}
 	posn += 4;
     }
 
@@ -581,7 +585,8 @@ static void ta_commit_polygon( ) {
     }
 
     /* Ok, we're good to go - write out the polygon first */
-    uint32_t tile_entry = MMIO_READ( PVR2, TA_POLYPOS ) >> 2 | ta_status.poly_pointer;
+    uint32_t tile_entry = (MMIO_READ( PVR2, TA_POLYPOS ) - ta_status.polybuf_start) >> 2 | 
+	ta_status.poly_pointer;
     
     int status = ta_write_polygon_buffer( poly_context, ta_status.poly_context_size );
     if( status == 0 ) {
