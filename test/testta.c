@@ -1,5 +1,5 @@
 /**
- * $Id: testta.c,v 1.3 2006-08-04 01:38:30 nkeynes Exp $
+ * $Id: testta.c,v 1.4 2006-08-18 09:32:32 nkeynes Exp $
  * 
  * Tile Accelerator test cases 
  *
@@ -74,6 +74,18 @@ int tilematrix_block_compare( test_data_block_t expected_block, char *tile_ptrs[
     return memcmp( expect, tile_ptrs[tile_type]+(offset*tile_sizes[tile_type]), tile_size );
 }
 
+/**
+ * Copy from vram, wrapping appropriately 
+ */
+int memcpy_from_vram( char *dest, char *src, int len ) 
+{
+    while( len > 0 ) {
+	*dest++ = *src++;
+	src = (char *)( ((unsigned int)src) & 0xFF7FFFFF );
+	len--;
+    }
+}
+
 int test_ta( test_data_t test_case )
 {
     char buf[1024];
@@ -83,8 +95,6 @@ int test_ta( test_data_t test_case )
     int checkedTile[5] = {0,0,0,0,0};
     int i;
     int hsegs,vsegs;
-    char *result = (char *)(PVR_VRAM_BASE+OBJ_START);
-    char *tilematrix = (char *)(PVR_VRAM_BASE+TILE_START+TILE_LENGTH);
     char *tile_ptrs[5];
 
     asic_clear();
@@ -100,6 +110,9 @@ int test_ta( test_data_t test_case )
 	}
 	config = (struct ta_config *)config_data->data;
     }
+    char *result = (char *)(PVR_VRAM_BASE+config->obj_start);
+    char *tilematrix = (char *)(PVR_VRAM_BASE+config->tile_start);
+
     ta_init(config);
     for( i=0; i<5; i++ ) {
 	tile_sizes[i] = TILE_SIZE(config,i);
@@ -114,6 +127,7 @@ int test_ta( test_data_t test_case )
 
 
     test_data_block_t input = get_test_data(test_case, "input");
+    test_data_block_t input2 = get_test_data(test_case, "input2");
     test_data_block_t output = get_test_data(test_case, "output");
     test_data_block_t error = get_test_data(test_case, "error");
     if( input == NULL || output == NULL ) {
@@ -124,6 +138,12 @@ int test_ta( test_data_t test_case )
     if( pvr_dma_write( 0x10000000, input->data, input->length, 0 ) == -1 ) {
 	return -1;
     }
+
+    if( input2 != NULL ) {
+	ta_reinit();
+	pvr_dma_write( 0x10000000, input2->data, input2->length, 0 );
+    }
+    
 
     if( error != NULL ) {
 	for( i=0; i<error->length; i++ ) {
@@ -200,9 +220,11 @@ int test_ta( test_data_t test_case )
 
     /* Vertex buffer */
     int result_length = pvr_get_objbuf_size();
-    if( test_block_compare( output, result, result_length ) != 0 ) {
+    char tmp[result_length];
+    memcpy_from_vram( tmp, result, result_length );
+    if( test_block_compare( output, tmp, result_length ) != 0 ) {
 	fprintf( stderr, "Test %s: Failed (Vertex buffer). ", test_case->test_name );
-	fwrite_diff32( stderr, output->data, output->length, result, result_length );
+	fwrite_diff32( stderr, output->data, output->length, tmp, result_length );
 	haveFailure = 1;
     }
     
