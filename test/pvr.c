@@ -1,5 +1,5 @@
 /**
- * $Id: pvr.c,v 1.2 2006-08-02 04:13:15 nkeynes Exp $
+ * $Id: pvr.c,v 1.3 2006-08-18 09:33:19 nkeynes Exp $
  * 
  * PVR support code
  *
@@ -30,8 +30,26 @@
 #define TA_OBJPOSN   (PVR_BASE+0x138)
 #define TA_SIZE      (PVR_BASE+0x13C)
 #define TA_TILECFG   (PVR_BASE+0x140)
+#define TA_REINIT    (PVR_BASE+0x160)
 #define TA_PLISTSTART (PVR_BASE+0x164)
 
+#define RENDER_START    (PVR_BASE+0x014)
+#define RENDER_POLYBASE (PVR_BASE+0x020)
+#define RENDER_TILEBASE (PVR_BASE+0x02C)
+#define RENDER_MODE     (PVR_BASE+0x048)
+#define RENDER_SIZE     (PVR_BASE+0x04C)
+#define RENDER_ADDR1    (PVR_BASE+0x060)
+#define RENDER_ADDR2    (PVR_BASE+0x064)
+#define RENDER_HCLIP    (PVR_BASE+0x068)
+#define RENDER_VCLIP    (PVR_BASE+0x06C)
+#define RENDER_NEARCLIP (PVR_BASE+0x078)
+#define RENDER_FARCLIP  (PVR_BASE+0x088)
+#define RENDER_BGPLANE  (PVR_BASE+0x08C)
+
+#define DISPLAY_MODE    (PVR_BASE+0x044)
+#define DISPLAY_ADDR1   (PVR_BASE+0x050)
+#define DISPLAY_ADDR2   (PVR_BASE+0x054)
+#define DISPLAY_SIZE    (PVR_BASE+0x05C
 
 void ta_dump_regs( FILE *f )
 {
@@ -59,9 +77,19 @@ void ta_init( struct ta_config *config )
     long_write( TA_INIT, 0x80000000 );
 }
 
+void ta_reinit( )
+{
+    long_write( TA_REINIT, 0x80000000 );
+}
+
 int pvr_get_objbuf_size( )
 {
     return long_read( TA_OBJPOSN ) - long_read( TA_OBJSTART );
+}
+
+int pvr_get_objbuf_posn( )
+{
+    return long_read( TA_OBJPOSN );
 }
 
 int pvr_get_plist_posn( )
@@ -106,6 +134,138 @@ void pvr_dump_tilebuf( FILE *f )
 
     fprintf( f, "Tile buffer: %08X - %08X - %08X\n", start, posn, end );
     fwrite_dump( f, buf, length );
+}
+
+static int ta_tile_sizes[4] = { 0, 32, 64, 128 };
+#define TILE_SIZE(cfg, tile) ta_tile_sizes[((((cfg->ta_cfg) >> (4*tile))&0x03))]
+#define TILE_ENABLED(cfg, tile) ((((cfg->ta_cfg) >> (4*tile))&0x03) != 0)
+void pvr_compute_tilematrix_addr( int *tile_ptrs, struct ta_config *config ) {
+    int tile_sizes[5], i;
+    int hsegs = (config->grid_size & 0xFFFF)+1;
+    int vsegs = (config->grid_size >> 16) + 1;
+    for( i=0; i<5; i++ ) {
+	tile_sizes[i] = TILE_SIZE(config,i);
+    }
+    tile_ptrs[0] = config->tile_start;
+    tile_ptrs[1] = tile_ptrs[0] + (hsegs*vsegs*tile_sizes[0]);
+    tile_ptrs[2] = tile_ptrs[1] + (hsegs*vsegs*tile_sizes[1]);
+    tile_ptrs[3] = tile_ptrs[2] + (hsegs*vsegs*tile_sizes[2]);
+    tile_ptrs[4] = tile_ptrs[3] + (hsegs*vsegs*tile_sizes[3]);
+}
+
+static uint32_t *pvr_compute_tile_ptrs( uint32_t *target, struct ta_config *config, int x, int y )
+{
+    int i;
+    int cfg = config->ta_cfg;
+    int hsegs = (config->grid_size & 0xFFFF)+1;
+    int vsegs = (config->grid_size >> 16) + 1;
+    int tilematrix = config->tile_start;
+    for( i=0; i<5; i++ ) {
+	if( cfg & 0x03 ) {
+	    int tile_size = ta_tile_sizes[cfg&0x03];
+	    *target++ = tilematrix + (((y*hsegs)+x)*tile_size);
+	    tilematrix += hsegs*vsegs*tile_size;
+	} else {
+	    *target++ = 0x80000000;
+	}
+	cfg = cfg >> 4;
+    }
+    return target;
+}
+
+void pvr_build_tilemap1( uint32_t addr, struct ta_config *config, uint32_t control_word )
+{
+    uint32_t *dest = (uint32_t *)(PVR_VRAM_BASE+addr);
+    int w = (config->grid_size & 0x0000FFFF) + 1;
+    int h = (config->grid_size >> 16) + 1;
+
+    int x,y;
+    memset( (char *)(dest-18), 0, 18*4 );
+    *dest++ = 0x10000000;
+    *dest++ = 0x80000000;
+    *dest++ = 0x80000000;
+    *dest++ = 0x80000000;
+    *dest++ = 0x80000000;
+    *dest++ = 0x80000000;
+    for( x=0; x<w; x++ ) {
+	for( y=0; y<h; y++ ) {
+	    *dest++ = control_word | (y << 8) | (x << 2);
+	    dest = pvr_compute_tile_ptrs(dest, config, x, y);
+	}
+    }
+    dest[-6] |= 0x80000000; /* End-of-render */ 
+}
+
+void pvr_build_tilemap2( uint32_t addr, struct ta_config *config, uint32_t control_word )
+{
+    uint32_t *dest = (uint32_t *)(PVR_VRAM_BASE+addr);
+    int w = (config->grid_size & 0x0000FFFF) + 1;
+    int h = (config->grid_size >> 16) + 1;
+
+    int x,y;
+    *dest++ = 0x10000000;
+    *dest++ = 0x80000000;
+    *dest++ = 0x80000000;
+    *dest++ = 0x80000000;
+    *dest++ = 0x80000000;
+    *dest++ = 0x80000000;
+    for( x=0; x<w; x++ ) {
+	for( y=0; y<h; y++ ) {
+	    *dest++ = 0x40000000;
+	    *dest++ = 0x80000000;
+	    *dest++ = 0x80000000;
+	    *dest++ = 0x80000000;
+	    *dest++ = 0x80000000;
+	    *dest++ = 0x80000000;
+	    *dest++ = control_word | (y << 8) | (x << 2);
+	    dest = pvr_compute_tile_ptrs(dest, config, x, y);
+	}
+    }
+    dest[-6] |= 0x80000000; /* End-of-render */ 
+}
+
+void render_set_backplane( uint32_t mode )
+{
+    long_write( RENDER_BGPLANE, mode );
+}
+
+int get_line_size( struct render_config *config )
+{
+    int modulo = config->width;
+    switch( config->mode & 0x07 ) {
+    case 4:
+	modulo *= 3; /* ??? */
+	break;
+    case 5:
+    case 6:
+	modulo *= 4;
+	break;
+    default:
+	modulo *= 2;
+    } 
+    return modulo;
+}
+
+void render_start( struct render_config *config )
+{
+    int modulo = get_line_size( config );
+    long_write( RENDER_POLYBASE, config->polybuf );
+    long_write( RENDER_TILEBASE, config->tilemap );
+    long_write( RENDER_ADDR1, config->render_addr );
+    long_write( RENDER_SIZE, modulo >> 3 ); 
+    long_write( RENDER_ADDR2, config->render_addr + modulo ); /* Not used? */
+    long_write( RENDER_HCLIP, (config->width - 1) << 16 );
+    long_write( RENDER_VCLIP, (config->height - 1) << 16 );
+    long_write( RENDER_MODE, config->mode );
+    float_write( RENDER_FARCLIP, config->farclip );
+    float_write( RENDER_NEARCLIP, config->nearclip );
+    long_write( RENDER_START, 0xFFFFFFFF );
+}
+
+void display_render( struct render_config *config )
+{
+    long_write( DISPLAY_ADDR1, config->render_addr );
+    long_write( DISPLAY_ADDR2, config->render_addr + get_line_size(config) );
 }
 
 /************** Stolen from TATEST *************/
