@@ -1,5 +1,5 @@
 /**
- * $Id: rendcore.c,v 1.2 2006-08-02 06:24:08 nkeynes Exp $
+ * $Id: rendcore.c,v 1.3 2006-08-18 12:43:24 nkeynes Exp $
  *
  * PVR2 renderer core.
  *
@@ -15,6 +15,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
+#include <sys/time.h>
 #include "pvr2/pvr2.h"
 #include "asic.h"
 
@@ -200,7 +201,7 @@ void render_vertexes( uint32_t poly1, uint32_t *vertexes, int num_vertexes, int 
  * Render a simple (not auto-sorted) tile
  */
 void render_tile( pvraddr_t tile_entry, int render_mode, gboolean cheap_modifier_mode ) {
-    
+    uint32_t poly_bank = MMIO_READ(PVR2,RENDER_POLYBASE);
     uint32_t *tile_list = (uint32_t *)(video_base+tile_entry);
     do {
 	uint32_t entry = *tile_list++;
@@ -209,7 +210,7 @@ void render_tile( pvraddr_t tile_entry, int render_mode, gboolean cheap_modifier
 	} else if( entry >> 28 == 0x0E ) {
 	    tile_list = (uint32_t *)(video_base + (entry&0x007FFFFF));
 	} else {
-	    uint32_t *polygon = (uint32_t *)(video_base + ((entry & 0x001FFFFF) << 2));
+	    uint32_t *polygon = (uint32_t *)(video_base + poly_bank + ((entry & 0x000FFFFF) << 2));
 	    int is_modified = entry & 0x01000000;
 	    int vertex_length = (entry >> 21) & 0x07;
 	    int context_length = 3;
@@ -291,6 +292,9 @@ void pvr2_render_tilebuffer( int width, int height, int clipx1, int clipy1,
 
     struct tile_segment *segment = (struct tile_segment *)(video_base + segmentbase);
 
+    struct timeval tv_start, tv_end;
+    gettimeofday(&tv_start, NULL);
+    fprintf( stderr, "Start render at %d.%d\n", tv_start.tv_sec, tv_start.tv_usec );
     glEnable( GL_SCISSOR_TEST );
     while( (segment->control & SEGMENT_END) == 0 ) {
 	int tilex = SEGMENT_X(segment->control);
@@ -306,7 +310,7 @@ void pvr2_render_tilebuffer( int width, int height, int clipx1, int clipy1,
 	    segment++;
 	    continue;
 	}
-	    
+
 	/* Set a scissor on the visible part of the tile */
 	int w = MIN(x1+32, clipx2) - x1;
 	int h = MIN(y1+32, clipy2) - y1;
@@ -336,6 +340,12 @@ void pvr2_render_tilebuffer( int width, int height, int clipx1, int clipy1,
 	    render_tile( segment->punchout_ptr, RENDER_NORMAL, cheap_shadow );
 	}
 	segment++;
+
     }
     glDisable( GL_SCISSOR_TEST );
+
+    gettimeofday(&tv_end, NULL);
+    timersub(&tv_end,&tv_start, &tv_start);
+    fprintf( stderr, "Frame took %d.%06ds\n", tv_start.tv_sec, tv_start.tv_usec );
+    
 }
