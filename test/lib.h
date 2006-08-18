@@ -16,6 +16,8 @@ typedef volatile unsigned short vuint16_t;
 #define ASIC_IRQC2      0xA05f6938
 #define IRQB0_MASK      0x0007B000
 
+#define float_read(A)      (*((volatile float*)(A)))
+#define float_write(A, V) ( (*((volatile float*)(A))) = (V) )
 #define long_read(A)      (*((volatile unsigned long*)(A)))
 #define long_write(A, V) ( (*((volatile unsigned long*)(A))) = (V) )
 #define word_read(A)      (*((volatile unsigned short*)(A)))
