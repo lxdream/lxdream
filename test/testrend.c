@@ -1,5 +1,5 @@
 /**
- * $Id: testrend.c,v 1.1 2006-08-18 09:33:19 nkeynes Exp $
+ * $Id: testrend.c,v 1.2 2006-08-19 01:51:16 nkeynes Exp $
  * 
  * Renderer test cases
  *
@@ -32,7 +32,7 @@ struct ta_config default_ta_config = { 0x00111111, GRID_SIZE(640,480), OBJ_START
 				       OBJ_START+OBJ_LENGTH, TILE_START+TILE_LENGTH,
 				       TILE_START, TILE_START+TILE_LENGTH };
 
-struct render_config default_render_config = { TILEMAP_ADDR, RENDER_ADDR, 640, 480, 
+struct render_config default_render_config = { OBJ_START, TILEMAP_ADDR, RENDER_ADDR, 640, 480, 
 					       0x00000009, 0.2, 1.0 };
 
 int test_render( test_data_t test_case )
