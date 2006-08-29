@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.c,v 1.32 2006-08-18 12:43:04 nkeynes Exp $
+ * $Id: pvr2.c,v 1.33 2006-08-29 08:11:56 nkeynes Exp $
  *
  * PVR2 (Video) Core module implementation and MMIO registers.
  *
@@ -481,7 +481,17 @@ void pvr2_vram64_write( sh4addr_t destaddr, char *src, uint32_t length )
 	    *dest++ = *src++;
 	}
     }  
+}
 
+void pvr2_vram_write_invert( sh4addr_t destaddr, char *src, uint32_t length, uint32_t line_length )
+{
+    char *dest = video_base + (destaddr & 0x007FFFFF);
+    char *p = src + length - line_length;
+    while( p >= src ) {
+	memcpy( dest, p, line_length );
+	p -= line_length;
+	dest += line_length;
+    }
 }
 
 void pvr2_vram64_read( char *dest, sh4addr_t srcaddr, uint32_t length )
