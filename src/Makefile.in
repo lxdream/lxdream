@@ -150,7 +150,7 @@ lxdream_SOURCES = \
         aica/armcore.c aica/armcore.h aica/armdasm.c aica/armmem.c \
         aica/aica.c aica/aica.h aica/audio.c aica/audio.h \
 	pvr2/pvr2.c pvr2/pvr2.h \
-	pvr2/tacore.c pvr2/render.c pvr2/rendcore.c \
+	pvr2/tacore.c pvr2/render.c pvr2/rendcore.c pvr2/rendbkg.c \
 	pvr2/texcache.c \
         maple/maple.c maple/maple.h \
         maple/controller.c maple/controller.h \
@@ -186,13 +186,13 @@ am_lxdream_OBJECTS = main.$(OBJEXT) mem.$(OBJEXT) watch.$(OBJEXT) \
 	scif.$(OBJEXT) armcore.$(OBJEXT) armdasm.$(OBJEXT) \
 	armmem.$(OBJEXT) aica.$(OBJEXT) audio.$(OBJEXT) pvr2.$(OBJEXT) \
 	tacore.$(OBJEXT) render.$(OBJEXT) rendcore.$(OBJEXT) \
-	texcache.$(OBJEXT) maple.$(OBJEXT) controller.$(OBJEXT) \
-	support.$(OBJEXT) interface.$(OBJEXT) callbacks.$(OBJEXT) \
-	gui.$(OBJEXT) mmr_win.$(OBJEXT) debug_win.$(OBJEXT) \
-	dump_win.$(OBJEXT) loader.$(OBJEXT) bootstrap.$(OBJEXT) \
-	util.$(OBJEXT) display.$(OBJEXT) audio_null.$(OBJEXT) \
-	audio_esd.$(OBJEXT) video_null.$(OBJEXT) video_gtk.$(OBJEXT) \
-	video_x11.$(OBJEXT)
+	rendbkg.$(OBJEXT) texcache.$(OBJEXT) maple.$(OBJEXT) \
+	controller.$(OBJEXT) support.$(OBJEXT) interface.$(OBJEXT) \
+	callbacks.$(OBJEXT) gui.$(OBJEXT) mmr_win.$(OBJEXT) \
+	debug_win.$(OBJEXT) dump_win.$(OBJEXT) loader.$(OBJEXT) \
+	bootstrap.$(OBJEXT) util.$(OBJEXT) display.$(OBJEXT) \
+	audio_null.$(OBJEXT) audio_esd.$(OBJEXT) video_null.$(OBJEXT) \
+	video_gtk.$(OBJEXT) video_x11.$(OBJEXT)
 lxdream_OBJECTS = $(am_lxdream_OBJECTS)
 lxdream_DEPENDENCIES =
 lxdream_LDFLAGS =
@@ -215,15 +215,16 @@ am__depfiles_maybe = depfiles
 @AMDEP_TRUE@	./$(DEPDIR)/loader.Po ./$(DEPDIR)/main.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/maple.Po ./$(DEPDIR)/mem.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/mmr_win.Po ./$(DEPDIR)/nrg.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/pvr2.Po ./$(DEPDIR)/rendcore.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/render.Po ./$(DEPDIR)/scif.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/sh4core.Po ./$(DEPDIR)/sh4dasm.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/sh4mem.Po ./$(DEPDIR)/sh4mmio.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/support.Po ./$(DEPDIR)/syscall.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/tacore.Po ./$(DEPDIR)/texcache.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/timer.Po ./$(DEPDIR)/util.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/video_gtk.Po ./$(DEPDIR)/video_null.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/video_x11.Po ./$(DEPDIR)/watch.Po
+@AMDEP_TRUE@	./$(DEPDIR)/pvr2.Po ./$(DEPDIR)/rendbkg.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/rendcore.Po ./$(DEPDIR)/render.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/scif.Po ./$(DEPDIR)/sh4core.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/sh4dasm.Po ./$(DEPDIR)/sh4mem.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/sh4mmio.Po ./$(DEPDIR)/support.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/syscall.Po ./$(DEPDIR)/tacore.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/texcache.Po ./$(DEPDIR)/timer.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/util.Po ./$(DEPDIR)/video_gtk.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/video_null.Po ./$(DEPDIR)/video_x11.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/watch.Po
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
@@ -306,6 +307,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mmr_win.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nrg.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pvr2.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rendbkg.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rendcore.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/render.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/scif.Po@am__quote@
@@ -807,6 +809,28 @@ rendcore.obj: pvr2/rendcore.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/rendcore.Po' tmpdepfile='$(DEPDIR)/rendcore.TPo' @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o rendcore.obj `if test -f 'pvr2/rendcore.c'; then $(CYGPATH_W) 'pvr2/rendcore.c'; else $(CYGPATH_W) '$(srcdir)/pvr2/rendcore.c'; fi`
+
+rendbkg.o: pvr2/rendbkg.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT rendbkg.o -MD -MP -MF "$(DEPDIR)/rendbkg.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o rendbkg.o `test -f 'pvr2/rendbkg.c' || echo '$(srcdir)/'`pvr2/rendbkg.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/rendbkg.Tpo" "$(DEPDIR)/rendbkg.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/rendbkg.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='pvr2/rendbkg.c' object='rendbkg.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/rendbkg.Po' tmpdepfile='$(DEPDIR)/rendbkg.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o rendbkg.o `test -f 'pvr2/rendbkg.c' || echo '$(srcdir)/'`pvr2/rendbkg.c
+
+rendbkg.obj: pvr2/rendbkg.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT rendbkg.obj -MD -MP -MF "$(DEPDIR)/rendbkg.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o rendbkg.obj `if test -f 'pvr2/rendbkg.c'; then $(CYGPATH_W) 'pvr2/rendbkg.c'; else $(CYGPATH_W) '$(srcdir)/pvr2/rendbkg.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/rendbkg.Tpo" "$(DEPDIR)/rendbkg.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/rendbkg.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='pvr2/rendbkg.c' object='rendbkg.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/rendbkg.Po' tmpdepfile='$(DEPDIR)/rendbkg.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o rendbkg.obj `if test -f 'pvr2/rendbkg.c'; then $(CYGPATH_W) 'pvr2/rendbkg.c'; else $(CYGPATH_W) '$(srcdir)/pvr2/rendbkg.c'; fi`
 
 texcache.o: pvr2/texcache.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT texcache.o -MD -MP -MF "$(DEPDIR)/texcache.Tpo" \
