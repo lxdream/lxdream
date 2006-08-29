@@ -1,5 +1,5 @@
 /**
- * $Id: render.c,v 1.12 2006-08-02 06:24:08 nkeynes Exp $
+ * $Id: render.c,v 1.13 2006-08-29 08:12:13 nkeynes Exp $
  *
  * PVR2 Renderer support. This part is primarily
  *
@@ -223,43 +223,6 @@ static void pvr2_render_prepare_context( sh4addr_t render_addr,
 #define MAX3( a,b,c ) ((a) > (b) ? ( (a) > (c) ? (a) : (c) ) : ((b) > (c) ? (b) : (c)) )
 
 /**
- * Render the background plane as best we can. Unfortunately information
- * is a little scant, to say the least.
- */
-void pvr2_render_draw_backplane( uint32_t mode, uint32_t *poly )
-{
-    
-    if( (mode >> 24) == 0x01 ) {
-	/* Packed colour. I think */
-	pvr2_bgplane_packed_t bg = (pvr2_bgplane_packed_t)poly;
-	if( bg->colour1 != bg->colour2 || bg->colour2 != bg->colour3 ) {
-	    WARN( "Multiple background colours specified. Confused" );
-	    fprintf( stderr, "bgplane mode: %08X PBUF: %08X\n", mode,
-		     MMIO_READ( PVR2, RENDER_POLYBASE ) );
-	    fwrite_dump( poly, 80, stderr );
-	}
-	float x1 = MIN3( bg->x1, bg->x2, bg->x3 );
-	float y1 = MIN3( bg->y1, bg->y2, bg->y3 );
-	float x2 = MAX3( bg->x1, bg->x2, bg->x3 );
-	float y2 = MAX3( bg->y1, bg->y2, bg->y3 );
-	float z = MIN3( bg->z1, bg->z2, bg->z3 );
-	glDisable( GL_TEXTURE_2D );
-	glDisable( GL_DEPTH_TEST );
-	glColor3ub( (uint8_t)(bg->colour1 >> 16), (uint8_t)(bg->colour1 >> 8), 
-		    (uint8_t)bg->colour1 );
-	glBegin( GL_QUADS );
-	glVertex3f( x1, y1, z );
-	glVertex3f( x2, y1, z );
-	glVertex3f( x2, y2, z );
-	glVertex3f( x1, y2, z );
-	glEnd();
-    } else {
-	WARN( "Unknown bgplane mode: %08X", mode );
-	fwrite_dump( poly, 48, stderr );
-    }
-}
-
-/**
  * Render a complete scene into the OpenGL back buffer.
  * Note: this will probably need to be broken up eventually once timings are
  * determined.
@@ -305,7 +268,7 @@ void pvr2_render_scene( )
 	(uint32_t *)mem_get_region(PVR2_RAM_BASE + MMIO_READ( PVR2, RENDER_POLYBASE ));
 
     uint32_t *bgplane = display_list + (((bgplane_mode & 0x00FFFFFF)) >> 3) ;
-    pvr2_render_draw_backplane( bgplane_mode, bgplane );
+    render_backplane( bgplane, width, height, bgplane_mode );
 
     pvr2_render_tilebuffer( width, height, clip_x, clip_y, 
 			    clip_x + clip_width, clip_y + clip_height );
@@ -336,32 +299,33 @@ void pvr2_render_copy_to_sh4( pvr2_render_buffer_t buffer,
     if( buffer->render_addr == -1 )
 	return;
     GLenum type, format = GL_RGBA;
-    int size = buffer->width * buffer->height;
+    int line_size = buffer->width, size;
 
     switch( buffer->colour_format ) {
     case COLFMT_RGB565: 
 	type = GL_UNSIGNED_SHORT_5_6_5; 
 	format = GL_RGB; 
-	size <<= 1;
+	line_size <<= 1;
 	break;
     case COLFMT_RGB888: 
 	type = GL_UNSIGNED_INT; 
 	format = GL_RGB;
-	size = (size<<1)+size;
+	line_size = (line_size<<1)+line_size;
 	break;
     case COLFMT_ARGB1555: 
 	type = GL_UNSIGNED_SHORT_5_5_5_1; 
-	size <<= 1;
+	line_size <<= 1;
 	break;
     case COLFMT_ARGB4444: 
 	type = GL_UNSIGNED_SHORT_4_4_4_4; 
-	size <<= 1;
+	line_size <<= 1;
 	break;
     case COLFMT_ARGB8888: 
 	type = GL_UNSIGNED_INT_8_8_8_8; 
-	size <<= 2;
+	line_size <<= 2;
 	break;
     }
+    size = line_size * buffer->height;
     
     if( backBuffer ) {
 	glFinish();
@@ -376,9 +340,10 @@ void pvr2_render_copy_to_sh4( pvr2_render_buffer_t buffer,
 	glReadPixels( 0, 0, buffer->width, buffer->height, format, type, target );
 	pvr2_vram64_write( buffer->render_addr, target, size );
     } else {
-	/* Regular buffer - go direct */
-	char *target = mem_get_region( buffer->render_addr );
+	/* Regular buffer */
+	char target[size];
 	glReadPixels( 0, 0, buffer->width, buffer->height, format, type, target );
+	pvr2_vram_write_invert( buffer->render_addr, target, size, line_size );
     }
 }
 

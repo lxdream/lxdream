@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.h,v 1.15 2006-08-02 04:06:45 nkeynes Exp $
+ * $Id: pvr2.h,v 1.16 2006-08-29 08:12:13 nkeynes Exp $
  *
  * PVR2 (video chip) functions and macros.
  *
@@ -157,6 +157,14 @@ void pvr2_render_scene( void );
  * otherwise FALSE (and no action was taken)
  */
 gboolean pvr2_render_display_frame( uint32_t address );
+
+
+void render_backplane( uint32_t *polygon, uint32_t width, uint32_t height, uint32_t mode );
+
+void render_set_context( uint32_t *context, int render_mode );
+
+void pvr2_render_tilebuffer( int width, int height, int clipx1, int clipy1, 
+			     int clipx2, int clipy2 );
 
 /****************************** Texture Cache ****************************/
 
