@@ -1,5 +1,5 @@
 /**
- * $Id: sh4mem.c,v 1.14 2006-06-27 11:02:48 nkeynes Exp $
+ * $Id: sh4mem.c,v 1.15 2006-08-29 08:09:51 nkeynes Exp $
  * sh4mem.c is responsible for the SH4's access to memory (including memory
  * mapped I/O), using the page maps created in mem.c
  *
@@ -126,6 +126,9 @@ int32_t sh4_read_long( uint32_t addr )
     
     if( (addr&0x1F800000) == 0x04000000 ) {
         addr = TRANSLATE_VIDEO_64BIT_ADDRESS(addr);
+	pvr2_render_invalidate(addr);
+    } else if( (addr&0x1F800000) == 0x05000000 ) {
+	pvr2_render_invalidate(addr);
     }
 
     if( IS_MMU_ENABLED() ) {
@@ -160,7 +163,11 @@ int32_t sh4_read_word( uint32_t addr )
     
     if( (addr&0x1F800000) == 0x04000000 ) {
         addr = TRANSLATE_VIDEO_64BIT_ADDRESS(addr);
+	pvr2_render_invalidate(addr);
+    } else if( (addr&0x1F800000) == 0x05000000 ) {
+	pvr2_render_invalidate(addr);
     }
+    
 
     if( IS_MMU_ENABLED() ) {
         ERROR( "user-mode & mmu translation not implemented, aborting", NULL );
@@ -193,7 +200,11 @@ int32_t sh4_read_byte( uint32_t addr )
         return SIGNEXT8(sh4_read_p4( addr ));
     if( (addr&0x1F800000) == 0x04000000 ) {
         addr = TRANSLATE_VIDEO_64BIT_ADDRESS(addr);
+    	pvr2_render_invalidate(addr);
+    } else if( (addr&0x1F800000) == 0x05000000 ) {
+	pvr2_render_invalidate(addr);
     }
+
     
     if( IS_MMU_ENABLED() ) {
         ERROR( "user-mode & mmu translation not implemented, aborting", NULL );
