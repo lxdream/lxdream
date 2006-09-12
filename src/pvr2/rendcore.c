@@ -1,5 +1,5 @@
 /**
- * $Id: rendcore.c,v 1.3 2006-08-18 12:43:24 nkeynes Exp $
+ * $Id: rendcore.c,v 1.4 2006-09-12 08:38:38 nkeynes Exp $
  *
  * PVR2 renderer core.
  *
@@ -19,41 +19,23 @@
 #include "pvr2/pvr2.h"
 #include "asic.h"
 
-static int pvr2_poly_depthmode[8] = { GL_NEVER, GL_LESS, GL_EQUAL, GL_LEQUAL,
+int pvr2_poly_depthmode[8] = { GL_NEVER, GL_LESS, GL_EQUAL, GL_LEQUAL,
 				      GL_GREATER, GL_NOTEQUAL, GL_GEQUAL, 
 				      GL_ALWAYS };
-static int pvr2_poly_srcblend[8] = { 
+int pvr2_poly_srcblend[8] = { 
     GL_ZERO, GL_ONE, GL_DST_COLOR, GL_ONE_MINUS_DST_COLOR,
     GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_DST_ALPHA, 
     GL_ONE_MINUS_DST_ALPHA };
-static int pvr2_poly_dstblend[8] = {
+int pvr2_poly_dstblend[8] = {
     GL_ZERO, GL_ONE, GL_SRC_COLOR, GL_ONE_MINUS_SRC_COLOR,
     GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_DST_ALPHA,
     GL_ONE_MINUS_DST_ALPHA };
-static int pvr2_poly_texblend[4] = {
+int pvr2_poly_texblend[4] = {
     GL_REPLACE, GL_BLEND, GL_DECAL, GL_MODULATE };
-static int pvr2_render_colour_format[8] = {
+int pvr2_render_colour_format[8] = {
     COLFMT_ARGB1555, COLFMT_RGB565, COLFMT_ARGB4444, COLFMT_ARGB1555,
     COLFMT_RGB888, COLFMT_ARGB8888, COLFMT_ARGB8888, COLFMT_ARGB4444 };
-#define POLY1_DEPTH_MODE(poly1) ( pvr2_poly_depthmode[(poly1)>>29] )
-#define POLY1_DEPTH_ENABLE(poly1) (((poly1)&0x04000000) == 0 )
-#define POLY1_CULL_MODE(poly1) (((poly1)>>27)&0x03)
-#define POLY1_TEXTURED(poly1) (((poly1)&0x02000000))
-#define POLY1_SPECULAR(poly1) (((poly1)&0x01000000))
-#define POLY1_SHADE_MODEL(poly1) (((poly1)&0x00800000) ? GL_SMOOTH : GL_FLAT)
-#define POLY1_UV16(poly1)   (((poly1)&0x00400000))
-#define POLY1_SINGLE_TILE(poly1) (((poly1)&0x00200000))
 
-#define POLY2_SRC_BLEND(poly2) ( pvr2_poly_srcblend[(poly2) >> 29] )
-#define POLY2_DEST_BLEND(poly2) ( pvr2_poly_dstblend[((poly2)>>26)&0x07] )
-#define POLY2_SRC_BLEND_ENABLE(poly2) ((poly2)&0x02000000)
-#define POLY2_DEST_BLEND_ENABLE(poly2) ((poly2)&0x01000000)
-#define POLY2_COLOUR_CLAMP_ENABLE(poly2) ((poly2)&0x00200000)
-#define POLY2_ALPHA_ENABLE(poly2) ((poly2)&0x001000000)
-#define POLY2_TEX_ALPHA_ENABLE(poly2) (((poly2)&0x00080000) == 0 )
-#define POLY2_TEX_WIDTH(poly2) ( 1<< ((((poly2) >> 3) & 0x07 ) + 3) )
-#define POLY2_TEX_HEIGHT(poly2) ( 1<< (((poly2) & 0x07 ) + 3) )
-#define POLY2_TEX_BLEND(poly2) ( pvr2_poly_texblend[((poly2) >> 6)&0x03] )
 
 #define RENDER_ZONLY  0
 #define RENDER_NORMAL 1     /* Render non-modified polygons */
@@ -153,7 +135,9 @@ void render_set_context( uint32_t *context, int render_mode )
 
     glShadeModel( POLY1_SHADE_MODEL(poly1) );
 
-    glBlendFunc( POLY2_SRC_BLEND(poly2), POLY2_DEST_BLEND(poly2) );
+    int srcblend = POLY2_SRC_BLEND(poly2);
+    int destblend = POLY2_DEST_BLEND(poly2);
+    glBlendFunc( srcblend, destblend );
     if( POLY2_TEX_ALPHA_ENABLE(poly2) ) {
 	glEnable(GL_BLEND);
     } else {
@@ -297,6 +281,7 @@ void pvr2_render_tilebuffer( int width, int height, int clipx1, int clipy1,
     fprintf( stderr, "Start render at %d.%d\n", tv_start.tv_sec, tv_start.tv_usec );
     glEnable( GL_SCISSOR_TEST );
     while( (segment->control & SEGMENT_END) == 0 ) {
+	// fwrite_dump32v( (uint32_t *)segment, sizeof(struct tile_segment), 6, stderr );
 	int tilex = SEGMENT_X(segment->control);
 	int tiley = SEGMENT_Y(segment->control);
 	

@@ -1,5 +1,5 @@
 /**
- * $Id: render.c,v 1.13 2006-08-29 08:12:13 nkeynes Exp $
+ * $Id: render.c,v 1.14 2006-09-12 08:38:38 nkeynes Exp $
  *
  * PVR2 Renderer support. This part is primarily
  *
@@ -18,11 +18,6 @@
 
 #include "pvr2/pvr2.h"
 #include "asic.h"
-
-static int pvr2_render_colour_format[8] = {
-    COLFMT_ARGB1555, COLFMT_RGB565, COLFMT_ARGB4444, COLFMT_ARGB1555,
-    COLFMT_RGB888, COLFMT_ARGB8888, COLFMT_ARGB8888, COLFMT_ARGB4444 };
-
 
 /**
  * Describes a rendering buffer that's actually held in GL, for when we need
