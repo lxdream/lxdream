@@ -1,5 +1,5 @@
 /**
- * $Id: rendcore.c,v 1.5 2006-09-12 11:54:19 nkeynes Exp $
+ * $Id: rendcore.c,v 1.6 2006-09-12 12:16:36 nkeynes Exp $
  *
  * PVR2 renderer core.
  *
@@ -268,7 +268,6 @@ void pvr2_render_tilebuffer( int width, int height, int clipx1, int clipy1,
 
     struct timeval tv_start, tv_end;
     gettimeofday(&tv_start, NULL);
-    fprintf( stderr, "Start render at %d.%d\n", tv_start.tv_sec, tv_start.tv_usec );
     glEnable( GL_SCISSOR_TEST );
     while( (segment->control & SEGMENT_END) == 0 ) {
 	// fwrite_dump32v( (uint32_t *)segment, sizeof(struct tile_segment), 6, stderr );
@@ -322,6 +321,4 @@ void pvr2_render_tilebuffer( int width, int height, int clipx1, int clipy1,
 
     gettimeofday(&tv_end, NULL);
     timersub(&tv_end,&tv_start, &tv_start);
-    fprintf( stderr, "Frame took %d.%06ds\n", tv_start.tv_sec, tv_start.tv_usec );
-    
 }
