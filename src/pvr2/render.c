@@ -1,5 +1,5 @@
 /**
- * $Id: render.c,v 1.14 2006-09-12 08:38:38 nkeynes Exp $
+ * $Id: render.c,v 1.15 2006-09-12 11:54:19 nkeynes Exp $
  *
  * PVR2 Renderer support. This part is primarily
  *
@@ -212,10 +212,6 @@ static void pvr2_render_prepare_context( sh4addr_t render_addr,
     glClearDepth(bgplanez);
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 }
-
-
-#define MIN3( a,b,c ) ((a) < (b) ? ( (a) < (c) ? (a) : (c) ) : ((b) < (c) ? (b) : (c)) )
-#define MAX3( a,b,c ) ((a) > (b) ? ( (a) > (c) ? (a) : (c) ) : ((b) > (c) ? (b) : (c)) )
 
 /**
  * Render a complete scene into the OpenGL back buffer.

@@ -1,5 +1,5 @@
 /**
- * $Id: rendcore.c,v 1.4 2006-09-12 08:38:38 nkeynes Exp $
+ * $Id: rendcore.c,v 1.5 2006-09-12 11:54:19 nkeynes Exp $
  *
  * PVR2 renderer core.
  *
@@ -36,11 +36,6 @@ int pvr2_render_colour_format[8] = {
     COLFMT_ARGB1555, COLFMT_RGB565, COLFMT_ARGB4444, COLFMT_ARGB1555,
     COLFMT_RGB888, COLFMT_ARGB8888, COLFMT_ARGB8888, COLFMT_ARGB4444 };
 
-
-#define RENDER_ZONLY  0
-#define RENDER_NORMAL 1     /* Render non-modified polygons */
-#define RENDER_CHEAPMOD 2   /* Render cheap-modified polygons */
-#define RENDER_FULLMOD 3    /* Render the fully-modified version of the polygons */
 
 #define CULL_NONE 0
 #define CULL_SMALL 1
@@ -246,11 +241,6 @@ void render_tile( pvraddr_t tile_entry, int render_mode, gboolean cheap_modifier
     } while( 1 );
 }
 
-void render_autosort_tile( pvraddr_t tile_entry, int render_mode, gboolean cheap_modifier_mode ) {
-    //WARN( "Autosort not implemented yet" );
-    render_tile( tile_entry, render_mode, cheap_modifier_mode );
-}
-
 void pvr2_render_tilebuffer( int width, int height, int clipx1, int clipy1, 
 			int clipx2, int clipy2 ) {
 
@@ -262,7 +252,7 @@ void pvr2_render_tilebuffer( int width, int height, int clipx1, int clipy1,
     int isp_config = MMIO_READ( PVR2, RENDER_ISPCFG );
     int shadow_cfg = MMIO_READ( PVR2, RENDER_SHADOW );
 
-    if( obj_config & 0x00200000 ) {
+    if( (obj_config & 0x00200000) == 0 ) {
 	if( isp_config & 1 ) {
 	    tile_sort = 0;
 	} else {
@@ -314,7 +304,8 @@ void pvr2_render_tilebuffer( int width, int height, int clipx1, int clipy1,
 	    if( (segment->transmod_ptr & NO_POINTER) == 0 ) {
 		/* TODO */
 	    } 
-	    if( tile_sort == 2 || (tile_sort == 1 && (segment->control & SEGMENT_SORT_TRANS)) ) {
+	    if( tile_sort == 2 || 
+		(tile_sort == 1 && ((segment->control & SEGMENT_SORT_TRANS)==0)) ) {
 		render_autosort_tile( segment->trans_ptr, RENDER_NORMAL, cheap_shadow );
 	    } else {
 		render_tile( segment->trans_ptr, RENDER_NORMAL, cheap_shadow );

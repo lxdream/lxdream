@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.h,v 1.17 2006-09-12 08:38:38 nkeynes Exp $
+ * $Id: pvr2.h,v 1.18 2006-09-12 11:54:19 nkeynes Exp $
  *
  * PVR2 (video chip) functions and macros.
  *
@@ -55,6 +55,11 @@ typedef unsigned int pvr64addr_t;
 #define PVR2_RAM_SIZE (8 * 1024 * 1024)
 #define PVR2_RAM_PAGES (PVR2_RAM_SIZE>>12)
 #define PVR2_RAM_MASK 0x7FFFFF
+
+#define RENDER_ZONLY  0
+#define RENDER_NORMAL 1     /* Render non-modified polygons */
+#define RENDER_CHEAPMOD 2   /* Render cheap-modified polygons */
+#define RENDER_FULLMOD 3    /* Render the fully-modified version of the polygons */
 
 void pvr2_next_frame( void );
 void pvr2_set_base_address( uint32_t );
