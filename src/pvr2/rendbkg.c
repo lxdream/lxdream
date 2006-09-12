@@ -1,5 +1,5 @@
 /**
- * $Id: rendbkg.c,v 1.2 2006-09-12 08:38:38 nkeynes Exp $
+ * $Id: rendbkg.c,v 1.3 2006-09-12 12:16:36 nkeynes Exp $
  *
  * PVR2 background renderer. 
  *
@@ -625,7 +625,6 @@ void render_backplane( uint32_t *polygon, uint32_t width, uint32_t height, uint3
     glDisable(GL_CULL_FACE);
     glDisable(GL_DEPTH_TEST);
     glBlendFunc(GL_ONE, GL_ZERO); /* For now, just disable alpha blending on the bkg */
-    fwrite_dump32(  polygon, 48, stderr );
     bkg_compute_scene(vertex, width, height, &scene);
     bkg_render_region(&scene, 0, screen_vertexes, 4, *polygon);
 }
