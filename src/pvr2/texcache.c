@@ -1,5 +1,5 @@
 /**
- * $Id: texcache.c,v 1.7 2006-08-02 06:24:08 nkeynes Exp $
+ * $Id: texcache.c,v 1.8 2006-09-12 13:33:18 nkeynes Exp $
  *
  * Texture cache. Responsible for maintaining a working set of OpenGL 
  * textures. 
@@ -221,6 +221,59 @@ static void detwiddle_16_to_16(int x1, int y1, int size, int totsize,
     }
 }
     
+#define VQ_CODEBOOK_SIZE 2048 /* 256 entries * 4 pixels per quad * 2 byte pixels */
+
+struct vq_codebook {
+    uint16_t quad[256][4];
+};
+
+static void detwiddle_vq_to_16(int x1, int y1, int size, int totsize,
+		   uint8_t **in, uint16_t *out, struct vq_codebook *codebook ) {
+    if( size == 2 ) {
+	uint8_t code = **in;
+	(*in)++;
+	out[y1 * totsize + x1] = codebook->quad[code][0];
+	out[y1 * totsize + x1 + 1] = codebook->quad[code][1];
+	out[(y1+1) * totsize + x1] = codebook->quad[code][2];
+	out[(y1+1) * totsize + x1 + 1] = codebook->quad[code][3];
+    } else {
+	int ns = size>>1;
+	detwiddle_vq_to_16(x1, y1, ns, totsize, in, out, codebook);
+	detwiddle_vq_to_16(x1, y1+ns, ns, totsize, in, out, codebook);
+	detwiddle_vq_to_16(x1+ns, y1, ns, totsize, in, out, codebook);
+	detwiddle_vq_to_16(x1+ns, y1+ns, ns, totsize, in, out, codebook);
+    }	
+}
+
+static void vq_decode( int width, int height, char *input, uint16_t *output,
+		       int twiddled ) {
+    struct vq_codebook codebook;
+    int i,j;
+    
+    /* Detwiddle the codebook, for the sake of my own sanity if nothing else */
+    uint16_t *p = (uint16_t *)input;
+    for( i=0; i<256; i++ ) {
+	codebook.quad[i][0] = *p++;
+	codebook.quad[i][2] = *p++;
+	codebook.quad[i][1] = *p++;
+	codebook.quad[i][3] = *p++;
+    }
+    
+    uint8_t *c = (uint8_t *)p;
+    if( twiddled ) {
+	detwiddle_vq_to_16( 0, 0, width, width, &c, output, &codebook );
+    } else {
+	for( j=0; j<height; j+=2 ) {
+	    for( i=0; i<width; i+=2 ) {
+		uint8_t code = *c;
+		output[i + j*width] = codebook.quad[code][0];
+		output[i + 1 + j*width] = codebook.quad[code][1];
+		output[i + (j+1)*width] = codebook.quad[code][2];
+		output[i + 1 + (j+1)*width] = codebook.quad[code][3];
+	    }
+	}
+    }
+}
 
 /**
  * Load texture data from the given address and parameters into the currently
@@ -326,17 +379,19 @@ static texcache_load_texture( uint32_t texture_addr, int width, int height,
 	char data[bytes];
 	/* load data from image, detwiddling/uncompressing as required */
 	if( PVR2_TEX_IS_COMPRESSED(mode) ) {
-	    ERROR( "VQ Compression not supported" );
+	    int inputlength = VQ_CODEBOOK_SIZE + 
+		((width*height) >> 2); /* + mip maps */
+	    char tmp[bytes];
+	    pvr2_vram64_read( tmp, texture_addr, inputlength );
+	    vq_decode( width, height, tmp, (uint16_t *)&data, PVR2_TEX_IS_TWIDDLED(mode) );
+	} else if( PVR2_TEX_IS_TWIDDLED(mode) ) {
+	    char tmp[bytes];
+	    uint16_t *p = (uint16_t *)tmp;
+	    pvr2_vram64_read( tmp, texture_addr, bytes );
+	    /* Untwiddle */
+	    detwiddle_16_to_16( 0, 0, width, width, &p, (uint16_t *)&data );
 	} else {
-	    if( PVR2_TEX_IS_TWIDDLED(mode) ) {
-		char tmp[bytes];
-		uint16_t *p = (uint16_t *)tmp;
-		pvr2_vram64_read( tmp, texture_addr, bytes );
-		/* Untwiddle */
-		detwiddle_16_to_16( 0, 0, width, width, &p, (uint16_t *)&data );
-	    } else {
-		pvr2_vram64_read( data, texture_addr, bytes );
-	    }
+	    pvr2_vram64_read( data, texture_addr, bytes );
 	}
 
 	/* Pass to GL */
