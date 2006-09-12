@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.h,v 1.16 2006-08-29 08:12:13 nkeynes Exp $
+ * $Id: pvr2.h,v 1.17 2006-09-12 08:38:38 nkeynes Exp $
  *
  * PVR2 (video chip) functions and macros.
  *
@@ -202,3 +202,31 @@ void texcache_invalidate_page( uint32_t texture_addr );
  */
 GLuint texcache_get_texture( uint32_t texture_addr, int width, int height,
 			     int mode );
+
+/************************* Rendering support macros **************************/
+#define POLY1_DEPTH_MODE(poly1) ( pvr2_poly_depthmode[(poly1)>>29] )
+#define POLY1_DEPTH_ENABLE(poly1) (((poly1)&0x04000000) == 0 )
+#define POLY1_CULL_MODE(poly1) (((poly1)>>27)&0x03)
+#define POLY1_TEXTURED(poly1) (((poly1)&0x02000000))
+#define POLY1_SPECULAR(poly1) (((poly1)&0x01000000))
+#define POLY1_SHADE_MODEL(poly1) (((poly1)&0x00800000) ? GL_SMOOTH : GL_FLAT)
+#define POLY1_UV16(poly1)   (((poly1)&0x00400000))
+#define POLY1_SINGLE_TILE(poly1) (((poly1)&0x00200000))
+
+#define POLY2_SRC_BLEND(poly2) ( pvr2_poly_srcblend[(poly2) >> 29] )
+#define POLY2_DEST_BLEND(poly2) ( pvr2_poly_dstblend[((poly2)>>26)&0x07] )
+#define POLY2_SRC_BLEND_ENABLE(poly2) ((poly2)&0x02000000)
+#define POLY2_DEST_BLEND_ENABLE(poly2) ((poly2)&0x01000000)
+#define POLY2_COLOUR_CLAMP_ENABLE(poly2) ((poly2)&0x00200000)
+#define POLY2_ALPHA_ENABLE(poly2) ((poly2)&0x001000000)
+#define POLY2_TEX_ALPHA_ENABLE(poly2) (((poly2)&0x00080000) == 0 )
+#define POLY2_TEX_WIDTH(poly2) ( 1<< ((((poly2) >> 3) & 0x07 ) + 3) )
+#define POLY2_TEX_HEIGHT(poly2) ( 1<< (((poly2) & 0x07 ) + 3) )
+#define POLY2_TEX_BLEND(poly2) ( pvr2_poly_texblend[((poly2) >> 6)&0x03] )
+extern int pvr2_poly_depthmode[8];
+extern int pvr2_poly_srcblend[8];
+extern int pvr2_poly_dstblend[8];
+extern int pvr2_poly_texblend[4];
+extern int pvr2_render_colour_format[8];
+
+float halftofloat(uint16_t half);
