@@ -1,5 +1,5 @@
 /**
- * $Id: dream.h,v 1.10 2006-07-02 04:59:00 nkeynes Exp $
+ * $Id: dream.h,v 1.11 2006-09-12 08:36:09 nkeynes Exp $
  *
  * Miscellaneous application-wide declarations (mainly logging atm)
  *
@@ -112,7 +112,9 @@ void emit( void *, int level, const char *source, const char *msg, ... );
 
 void fwrite_string( char *s, FILE *f );
 int fread_string( char *s, int maxlen, FILE *f );
-    void fwrite_dump( unsigned char *buf, unsigned int length, FILE *f );
+void fwrite_dump( unsigned char *buf, unsigned int length, FILE *f );
+void fwrite_dump32( unsigned int *buf, unsigned int length, FILE *f );
+void fwrite_dump32v( unsigned int *buf, unsigned int length, int wordsPerLine, FILE *f );
 
 #ifndef max
 #define max(a,b) ( (a) > (b) ? (a) : (b) )
