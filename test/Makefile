@@ -71,6 +71,9 @@ test: build-tests
 
 build-tests: testmath testide testta testregs
 
+testsh4: crt0.so sh4/testsh4.so sh4/timer.so sh4/add.so
+	$(SH4CC) $(SH4LDFLAGS) $^ -o $@ $(SH4LIBS)
+
 testide: crt0.so testide.so ide.so
 	$(SH4CC) $(SH4LDFLAGS) $^ -o $@ $(SH4LIBS)
 

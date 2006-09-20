@@ -1,0 +1,11 @@
+SH4 instruction set tests.
+Each core instruction has its own set of tests that are assembled into the
+main test executable.
+
+Note: Since each instruction's tests obviously depends on other
+instructions, its possible for multiple bugs to cancel each other out.
+However the tests are structured as much as possible to prevent this.
+
+Each test loops repeatedly for a constant number of times (currently 1000)
+to a) ensure that dynamic recompilation kicks in and recompiles the block,
+and b) allow the code to be timed (to a first approximation anyway).
