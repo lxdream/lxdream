@@ -1,5 +1,5 @@
 /**
- * $Id: sh4core.c,v 1.30 2006-08-06 09:43:03 nkeynes Exp $
+ * $Id: sh4core.c,v 1.31 2006-09-23 11:38:41 nkeynes Exp $
  * 
  * SH4 emulation core, and parent module for all the SH4 peripheral
  * modules.
@@ -774,7 +774,9 @@ gboolean sh4_execute_instruction( void )
                     sh4r.t = ( RN(ir) < tmp || (RN(ir) == tmp && sh4r.t != 0) ? 1 : 0 );
                     break;
                 case 15:/* ADDV    Rm, Rn */
-                    UNIMP(ir);
+		    tmp = RN(ir) + RM(ir);
+		    sh4r.t = ( (RN(ir)>>31) == (RM(ir)>>31) && ((RN(ir)>>31) != (tmp>>31)) );
+		    RN(ir) = tmp;
                     break;
                 default: UNDEF(ir);
             }
