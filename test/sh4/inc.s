@@ -140,6 +140,67 @@ LC2:
 	addc r0, r0
 .endm
 
+.macro clearbl
+LOCAL L1
+LOCAL L2
+	mov.l L1, r0
+	stc sr, r1
+	and r0, r1
+	ldc r1, sr
+	bra L2
+	nop
+.align 4
+L1:	.long 0xEFFFFFFF
+L2:	
+.endm
+
+.macro setbl
+LOCAL L1
+LOCAL L2
+	xor r0, r0
+	add #1, r0
+	shll r0, 28
+	stc sr, r1
+	or r0, r1
+	ldc r1, sr
+	bra L2
+	nop
+.align 4
+L1:	.long 0x10000000
+L2:	
+.endm
+
+.macro expect_exc code
+LOCAL L1, L2, L3
+	mov.l L1, r3
+	mov.l L2, r4
+	jsr @r3
+	nop
+	bra L3
+	nop
+.align 4
+L1:	.long _expect_exception
+L2:	.long \code
+L3:
+	
+.endm
+
+.macro assert_exc_caught testname, expectpc
+LOCAL L1, L2
+	mov.l L1, r3
+	mov.l \testname, r4
+	mov r12, r5
+	mov.l L2, r6
+	jsr @r3
+	nop
+	add r0, r13
+	bra L3
+	nop
+.align 4
+L1:	.long _assert_exception_caught
+L2:	.long \expectpc
+L3:	
+.endm
 
 	.align 2
 assert_t_set_message:
