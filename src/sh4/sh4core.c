@@ -1,5 +1,5 @@
 /**
- * $Id: sh4core.c,v 1.31 2006-09-23 11:38:41 nkeynes Exp $
+ * $Id: sh4core.c,v 1.32 2006-09-25 11:19:42 nkeynes Exp $
  * 
  * SH4 emulation core, and parent module for all the SH4 peripheral
  * modules.
@@ -254,12 +254,12 @@ void fprint_stack_trace( FILE *f )
 #define TRACE_RETURN( source, dest )
 #endif
 
-#define RAISE( x, v ) do{ \
+#define RAISE( x, v, pcadj ) do{			\
     if( sh4r.vbr == 0 ) { \
         ERROR( "%08X: VBR not initialized while raising exception %03X, halting", sh4r.pc, x ); \
         dreamcast_stop(); return FALSE;	\
     } else { \
-        sh4r.spc = sh4r.pc + 2; \
+        sh4r.spc = sh4r.pc + pcadj; \
         sh4r.ssr = sh4_read_sr(); \
         sh4r.sgr = sh4r.r[15]; \
         MMIO_WRITE(MMU,EXPEVT,x); \
@@ -268,6 +268,7 @@ void fprint_stack_trace( FILE *f )
         sh4_load_sr( sh4r.ssr |SR_MD|SR_BL|SR_RB ); \
     } \
     return TRUE; } while(0)
+
 
 #define MEM_READ_BYTE( addr ) sh4_read_byte(addr)
 #define MEM_READ_WORD( addr ) sh4_read_word(addr)
@@ -282,16 +283,16 @@ void fprint_stack_trace( FILE *f )
 
 #define MEM_FP_WRITE( addr, reg ) sh4_write_float( addr, reg );
 
-#define CHECK( x, c, v ) if( !x ) RAISE( c, v )
+#define CHECK( x, c, v ) if( !x ) RAISE( c, v, 0 )
 #define CHECKPRIV() CHECK( IS_SH4_PRIVMODE(), EXC_ILLEGAL, EXV_ILLEGAL )
-#define CHECKRALIGN16(addr) if( (addr)&0x01 ) RAISE( EXC_READ_ADDR_ERR, EXV_TRAP )
-#define CHECKRALIGN32(addr) if( (addr)&0x03 ) RAISE( EXC_READ_ADDR_ERR, EXV_TRAP )
-#define CHECKWALIGN16(addr) if( (addr)&0x01 ) RAISE( EXC_WRITE_ADDR_ERR, EXV_TRAP )
-#define CHECKWALIGN32(addr) if( (addr)&0x03 ) RAISE( EXC_WRITE_ADDR_ERR, EXV_TRAP )
+#define CHECKRALIGN16(addr) if( (addr)&0x01 ) RAISE( EXC_READ_ADDR_ERR, EXV_TRAP, 0 )
+#define CHECKRALIGN32(addr) if( (addr)&0x03 ) RAISE( EXC_READ_ADDR_ERR, EXV_TRAP, 0 )
+#define CHECKWALIGN16(addr) if( (addr)&0x01 ) RAISE( EXC_WRITE_ADDR_ERR, EXV_TRAP, 0 )
+#define CHECKWALIGN32(addr) if( (addr)&0x03 ) RAISE( EXC_WRITE_ADDR_ERR, EXV_TRAP, 0 )
 
 #define CHECKFPUEN() CHECK( IS_FPU_ENABLED(), EXC_FPDISABLE, EXV_FPDISABLE )
 #define CHECKDEST(p) if( (p) == 0 ) { ERROR( "%08X: Branch/jump to NULL, CPU halted", sh4r.pc ); dreamcast_stop(); return FALSE; }
-#define CHECKSLOTILLEGAL() if(sh4r.in_delay_slot) { RAISE(EXC_SLOT_ILLEGAL,EXV_ILLEGAL); }
+#define CHECKSLOTILLEGAL() if(sh4r.in_delay_slot) { RAISE(EXC_SLOT_ILLEGAL,EXV_ILLEGAL, -2); }
 
 static void sh4_switch_banks( )
 {
@@ -357,7 +358,7 @@ static uint32_t sh4_read_sr( void )
 /* function for external use */
 void sh4_raise_exception( int code, int vector )
 {
-    RAISE(code, vector);
+    RAISE(code, vector, 0);
 }
 
 static void sh4_accept_interrupt( void )
@@ -1265,7 +1266,7 @@ gboolean sh4_execute_instruction( void )
                     CHECKSLOTILLEGAL()
                     sh4r.in_delay_slot = 1;
                     MMIO_WRITE( MMU, TRA, UIMM8(ir)<<2 );
-                    RAISE( EXC_TRAP, EXV_TRAP );
+                    RAISE( EXC_TRAP, EXV_TRAP, 2 );
                     break;
                 case 4: /* MOV.B   [GBR + disp8], R0 */
                     R0 = MEM_READ_BYTE( sh4r.gbr + DISP8(ir) );
