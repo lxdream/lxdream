@@ -69,15 +69,17 @@ test: build-tests
 	$(RUNTEST) testta < testta.data < testta2.data < testta3.data < testta4.data < testta5.data
 	$(RUNTEST) testregs
 
-build-tests: testsh4 testmath testide testta testregs
+build-tests: testsh4 testmath testide testta testregs testrend
 
-testsh4: crt0.so sh4/testsh4.so sh4/timer.so sh4/interrupt.so \
+testsh4: crt0.so sh4/testsh4.so timer.so interrupt.so \
 	 sh4/add.so sh4/addc.so sh4/addv.so sh4/and.so sh4/andi.so \
 	 sh4/bf.so
 	$(SH4CC) $(SH4LDFLAGS) $^ -o $@ $(SH4LIBS)
+	$(SH4OBJCOPY) testsh4 testsh4.bin
 
 testide: crt0.so testide.so ide.so
 	$(SH4CC) $(SH4LDFLAGS) $^ -o $@ $(SH4LIBS)
+	$(SH4OBJCOPY) testide testide.bin
 
 testmath: crt0.so $(SHARED_OBJECTS) testmath.so math.so
 	$(SH4CC) $(SH4LDFLAGS) $^  -o $@ $(SH4LIBS)
