@@ -55,6 +55,10 @@ test_andi_4:	! Test GBR version
 	ldc r0, gbr
 	mov.l test_andi_4_op1, r0
 	and.b #254, @(r0,gbr)
+	add #1, r0
+	and.b #67, @(r0,gbr)
+	add #2, r0
+	and.b #227, @(r0,gbr)
 	ldc r4, gbr
 	mov.l test_andi_4_output, r1
 	mov.l test_andi_4_result, r2
@@ -70,7 +74,7 @@ test_andi_4_op1:
 test_andi_4_output:
 	.long 0x123456AB
 test_andi_4_result:
-	.long 0x123456AA
+	.long 0x023442AA
 	
 test_andi_5:	
 test_andi_end:
