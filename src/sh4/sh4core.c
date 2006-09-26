@@ -1,5 +1,5 @@
 /**
- * $Id: sh4core.c,v 1.32 2006-09-25 11:19:42 nkeynes Exp $
+ * $Id: sh4core.c,v 1.33 2006-09-26 11:09:13 nkeynes Exp $
  * 
  * SH4 emulation core, and parent module for all the SH4 peripheral
  * modules.
@@ -204,7 +204,7 @@ void sh4_set_pc( int pc )
     sh4r.new_pc = pc+2;
 }
 
-#define UNDEF(ir) do{ ERROR( "Raising exception on undefined instruction at %08x, opcode = %04x", sh4r.pc, ir ); dreamcast_stop();  return FALSE; }while(0)
+#define UNDEF(ir) if( sh4r.in_delay_slot ) { RAISE( EXC_SLOT_ILLEGAL, EXV_ILLEGAL, -2 ); } else { RAISE( EXC_ILLEGAL, EXV_ILLEGAL, 0 ); }
 #define UNIMP(ir) do{ ERROR( "Halted on unimplemented instruction at %08x, opcode = %04x", sh4r.pc, ir ); dreamcast_stop(); return FALSE; }while(0)
 
 #if(SH4_CALLTRACE == 1)
@@ -266,9 +266,11 @@ void fprint_stack_trace( FILE *f )
         sh4r.pc = sh4r.vbr + v; \
         sh4r.new_pc = sh4r.pc + 2; \
         sh4_load_sr( sh4r.ssr |SR_MD|SR_BL|SR_RB ); \
+	sh4r.in_delay_slot = 0; \
     } \
     return TRUE; } while(0)
-
+#define RAISE_SLOTILLEGAL() RAISE( EXC_SLOT_ILLEGAL, EXV_ILLEGAL, -2 )
+#define RAISE_ILLEGAL() RAISE( EXC_ILLEGAL, EXV_ILLEGAL, 0 )
 
 #define MEM_READ_BYTE( addr ) sh4_read_byte(addr)
 #define MEM_READ_WORD( addr ) sh4_read_word(addr)
@@ -284,7 +286,7 @@ void fprint_stack_trace( FILE *f )
 #define MEM_FP_WRITE( addr, reg ) sh4_write_float( addr, reg );
 
 #define CHECK( x, c, v ) if( !x ) RAISE( c, v, 0 )
-#define CHECKPRIV() CHECK( IS_SH4_PRIVMODE(), EXC_ILLEGAL, EXV_ILLEGAL )
+#define CHECKPRIV() if( !IS_SH4_PRIVMODE() ) { if( sh4r.in_delay_slot ) { RAISE_SLOTILLEGAL(); } else { RAISE_ILLEGAL(); } }
 #define CHECKRALIGN16(addr) if( (addr)&0x01 ) RAISE( EXC_READ_ADDR_ERR, EXV_TRAP, 0 )
 #define CHECKRALIGN32(addr) if( (addr)&0x03 ) RAISE( EXC_READ_ADDR_ERR, EXV_TRAP, 0 )
 #define CHECKWALIGN16(addr) if( (addr)&0x01 ) RAISE( EXC_WRITE_ADDR_ERR, EXV_TRAP, 0 )
@@ -462,8 +464,8 @@ gboolean sh4_execute_instruction( void )
                 case 3:
                     switch( (ir&0x00F0)>>4 ) {
                         case 0: /* BSRF    Rn */
-                            CHECKDEST( pc + 4 + RN(ir) );
                             CHECKSLOTILLEGAL();
+                            CHECKDEST( pc + 4 + RN(ir) );
                             sh4r.in_delay_slot = 1;
                             sh4r.pr = sh4r.pc + 4;
                             sh4r.pc = sh4r.new_pc;
@@ -471,8 +473,8 @@ gboolean sh4_execute_instruction( void )
 			    TRACE_CALL( pc, sh4r.new_pc );
                             return TRUE;
                         case 2: /* BRAF    Rn */
-                            CHECKDEST( pc + 4 + RN(ir) );
                             CHECKSLOTILLEGAL();
+                            CHECKDEST( pc + 4 + RN(ir) );
                             sh4r.in_delay_slot = 1;
                             sh4r.pc = sh4r.new_pc;
                             sh4r.new_pc = pc + 4 + RN(ir);
@@ -578,8 +580,8 @@ gboolean sh4_execute_instruction( void )
                 case 11:
                     switch( (ir&0x0FF0)>>4 ) {
                         case 0: /* RTS     */
-                            CHECKDEST( sh4r.pr );
                             CHECKSLOTILLEGAL();
+                            CHECKDEST( sh4r.pr );
                             sh4r.in_delay_slot = 1;
                             sh4r.pc = sh4r.new_pc;
                             sh4r.new_pc = sh4r.pr;
@@ -820,6 +822,7 @@ gboolean sh4_execute_instruction( void )
                     RN(ir) += 4;
                     break;
                 case 0x07: /* LDC.L   [Rn++], SR */
+		    CHECKSLOTILLEGAL();
                     CHECKPRIV();
 		    CHECKWALIGN32( RN(ir) );
                     sh4_load_sr( MEM_READ_LONG(RN(ir)) );
@@ -845,6 +848,7 @@ gboolean sh4_execute_instruction( void )
 		    TRACE_CALL( pc, sh4r.new_pc );
                     return TRUE;
                 case 0x0E: /* LDC     Rn, SR */
+		    CHECKSLOTILLEGAL();
                     CHECKPRIV();
                     sh4_load_sr( RN(ir) );
                     break;
@@ -1225,14 +1229,14 @@ gboolean sh4_execute_instruction( void )
             break;
         case 9: /* 1001xxxxxxxxxxxx */
             /* MOV.W   [disp8*2 + pc + 4], Rn */
+	    CHECKSLOTILLEGAL();
 	    tmp = pc + 4 + (DISP8(ir)<<1);
-	    CHECKRALIGN16( tmp );
             RN(ir) = MEM_READ_WORD( tmp );
             break;
         case 10:/* 1010dddddddddddd */
             /* BRA     disp12 */
-            CHECKDEST( sh4r.pc + (DISP12(ir)<<1) + 4 )
             CHECKSLOTILLEGAL()
+            CHECKDEST( sh4r.pc + (DISP12(ir)<<1) + 4 )
             sh4r.in_delay_slot = 1;
             sh4r.pc = sh4r.new_pc;
             sh4r.new_pc = pc + 4 + (DISP12(ir)<<1);
@@ -1282,6 +1286,7 @@ gboolean sh4_execute_instruction( void )
                     R0 = MEM_READ_LONG( tmp );
                     break;
                 case 7: /* MOVA    disp8 + pc&~3 + 4, R0 */
+		    CHECKSLOTILLEGAL();
                     R0 = (pc&0xFFFFFFFC) + (DISP8(ir)<<2) + 4;
                     break;
                 case 8: /* TST     imm8, R0 */
@@ -1315,8 +1320,8 @@ gboolean sh4_execute_instruction( void )
             break;
         case 13:/* 1101nnnndddddddd */
             /* MOV.L   [disp8*4 + pc&~3 + 4], Rn */
+	    CHECKSLOTILLEGAL();
 	    tmp = (pc&0xFFFFFFFC) + (DISP8(ir)<<2) + 4;
-	    CHECKRALIGN32( tmp );
             RN(ir) = MEM_READ_LONG( tmp );
             break;
         case 14:/* 1110nnnniiiiiiii */
