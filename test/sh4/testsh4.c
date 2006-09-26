@@ -5,7 +5,7 @@ int total_fails = 0;
 
 int test_print_result( char *testname, int failed, int total )
 {
-    fprintf( stderr, "%s: %d/%d tests passed\n", testname, total-failed, total );
+    fprintf( stdout, "%s: %d/%d tests passed\n", testname, total-failed, total );
     total_tests += total;
     total_fails += failed;
     return failed;
@@ -44,6 +44,7 @@ int assert_exception_caught( char *testname, int number, unsigned int expectedpc
 
 int main()
 {
+    fprintf( stdout, "Instruction tests...\n" );
     install_interrupt_handler();
     test_add();
     test_addc();
@@ -51,8 +52,16 @@ int main()
     test_and();
     test_andi();
     test_bf(); 
+    test_bt();
+    test_cmp();
+    fprintf( stdout, "--> %d/%d instruction tests passed (%d%%)\n\n",
+	     total_tests-total_fails, total_tests, 
+	     ((total_tests-total_fails)*100)/total_tests );
+
+    fprintf( stdout, "Exception tests...\n" );
+    test_slot_illegal();
     remove_interrupt_handler();
 
-    fprintf( stderr, "Total: %d/%d tests passed (%d%%)\n", total_tests-total_fails,
+    fprintf( stdout, "Total: %d/%d tests passed (%d%%)\n", total_tests-total_fails,
 	     total_tests, ((total_tests-total_fails)*100)/total_tests );
 }

@@ -186,7 +186,7 @@ L3:
 .endm
 
 .macro assert_exc_caught testname, expectpc
-LOCAL L1, L2
+LOCAL L1, L2, L3
 	mov.l L1, r3
 	mov.l \testname, r4
 	mov r12, r5

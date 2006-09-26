@@ -42,6 +42,7 @@ test_bf_3_b:
 	fail test_bf_str_k
 	bra test_bf_4	
 	nop
+
 test_bf_4:	! Test branch not taken w/ delay
 	add #1, r12
 	setc
@@ -74,19 +75,63 @@ test_bf_5_b:
 	bt test_bf_6
 	fail test_bf_str_k
 
-test_bf_6:
+test_bf_6:	! Test back-branch taken w/ delay
+	add #1, r12
+	clc
+	xor r0, r0
+	bra test_bf_6_b
+	nop
+	fail test_bf_str_k
+	bra test_bf_7
+	nop
+	add #1, r13
+test_bf_6_c:
+	mov #1, r1
+	cmp/eq r0, r1
+	bt test_bf_7
+	fail test_bf_str_k
+	bra test_bf_7
+	nop
+	fail test_bf_str_k
+	bra test_bf_7
+	nop
+	add #1, r13
+test_bf_6_b:
+	nop
+	bf/s test_bf_6_c
+	add #1, r0
+	fail test_bf_str_k
+	bra test_bf_7	
+	nop
+	
+test_bf_7:
 	add #1, r12
 	expect_exc 0x000001A0 ! BF is slot illegal
-test_bf_6_exc:	
-	bra test_bf_6_b
-	bf test_bf_6_b
-	assert_exc_caught test_bf_str_k test_bf_6_exc
+test_bf_7_exc:	
+	bra test_bf_7_b
+	bf test_bf_7_b
+	assert_exc_caught test_bf_str_k test_bf_7_exc
+	bra test_bf_8
+	nop
+test_bf_7_b:
+test_bf_7_c:	
+	fail test_bf_str_k
+
+test_bf_8:
+	add #1, r12
+	expect_exc 0x000001A0 ! BF/S is slot illegal
+test_bf_8_exc:	
+	bra test_bf_8_b
+	bf/s test_bf_8_b
+	nop
+	assert_exc_caught test_bf_str_k test_bf_8_exc
 	bra test_bf_end
 	nop
-test_bf_6_b:
-test_bf_6_c:	
+test_bf_8_b:
+test_bf_8_c:	
 	fail test_bf_str_k
-	
+
+			
 test_bf_end:
 	end_test test_bf_str_k
 

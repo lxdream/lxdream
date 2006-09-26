@@ -39,6 +39,7 @@ test_and_b:
 	nop
 
 test_and_end:
+	mov.l @r15+, r11
 	end_test test_and_str_k
 
 	.align 4	

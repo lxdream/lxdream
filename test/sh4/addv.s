@@ -37,6 +37,7 @@ test_addv_b:
 	nop
 
 test_addv_end:
+	mov.l @r15+, r11
 	end_test test_addv_str_k
 
 	.align 4	

@@ -99,17 +99,17 @@ test_addc_4_result:
 
 test_addc_5:	! test carry used and cleared
 	add #1, r12
-	mov.l test_addc_5_op1, r8
-	mov.l test_addc_5_op2, r9
-	stc sr, r10
+	mov.l test_addc_5_op1, r4
+	mov.l test_addc_5_op2, r5
+	stc sr, r6
 	xor r0,r0
 	add #1, r0
-	or r0,r10
-	ldc r10, sr
-	addc r9,r8
+	or r0,r6
+	ldc r6, sr
+	addc r5,r4
 	stc sr, r1
-	mov.l test_addc_5_result, r11
-	cmp/eq r11, r8
+	mov.l test_addc_5_result, r7
+	cmp/eq r7, r4
 	bt test_addc_5_b
 	fail test_addc_str_k
 	bra test_addc_6
