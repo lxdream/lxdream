@@ -31,10 +31,6 @@ test_slot_2_pc:
 	bsr test_slot_fail
 	jsr @r3
 	assert_exc_caught test_slot_str_k1 test_slot_2_pc
-	bra test_slot_3
-	nop
-test_slot_str_k1:
-	.long test_slot_str
 	
 test_slot_3:	! BRA
 	add #1, r12
@@ -42,7 +38,7 @@ test_slot_3:	! BRA
 test_slot_3_pc:
 	bsr test_slot_fail
 	bra test_slot_fail
-	assert_exc_caught test_slot_str_k test_slot_3_pc
+	assert_exc_caught test_slot_str_k1 test_slot_3_pc
 
 test_slot_4:	! BRAF
 	add #1, r12
@@ -103,7 +99,12 @@ test_slot_10_pc:
 	bt/s test_slot_10_fail
 test_slot_10_fail:	
 	assert_exc_caught test_slot_str_k test_slot_10_pc
+	bra test_slot_11
+	nop
+test_slot_str_k1:
+	.long test_slot_str
 
+	
 test_slot_11:	! TRAPA
 	add #1, r12
 	expect_exc 0x000001A0
@@ -171,8 +172,19 @@ test_slot_17_pc:
 !
 ! Ok now the privilege tests. These should raise SLOT_ILLEGAL when executed
 ! in a delay slot (otherwise it's GENERAL_ILLEGAL)
-! TODO:	need mode-switch code
+
+test_slot_18:   ! LDC Rn, SPC in user mode
+	add #1, r12
+	expect_exc 0x000001A0
+	stc spc, r4
+	usermode
+test_slot_18_pc:
+	bsr test_slot_fail
+	ldc r4, spc
+	systemmode
+	assert_exc_caught test_slot_str_k test_slot_18_pc
 	
+		
 test_slot_end:
 	end_test test_slot_str_k
 

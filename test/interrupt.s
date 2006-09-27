@@ -177,6 +177,26 @@ ex_slot_spc:
 	nop
 	
 ex_dontcare: ! Not the event we were waiting for.
+! Check if its a trapa #42 ("Switch to system mode")
+	mov.l trapa_exc_k, r0
+	cmp/eq r0,r1
+	bf ex_chain
+	mov.l trapa_k, r0
+	mov.l @r0, r0
+	shlr2 r0
+	cmp/eq #42, r0
+	bf ex_chain
+! Yes, yes it is - update SSR and return without chaining
+	stc ssr, r0
+	mov #0x40, r1
+	mov #24, r2
+	shld r2, r1
+	or r0, r1
+	ldc r1, ssr
+	bra ex_nochain
+	nop
+	
+ex_chain:	
 	mov.l old_vbr_k, r2
 	mov.l @r2, r2
 	xor r0, r0
@@ -213,9 +233,9 @@ ex_nochain:	! No previous vbr to chain to
 	mov.l @r15+, r2
 	mov.l @r15+, r1
 	mov.l @r15+, r0
-	rte
 	stc sgr, r15
-	
+	rte
+	nop
 .align 4
 expected_intevt_k:
 	.long expected_intevt

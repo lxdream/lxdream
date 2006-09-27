@@ -140,6 +140,25 @@ LC2:
 	addc r0, r0
 .endm
 
+! Switch to user-mode
+.macro usermode
+	stc sr, r0
+	mov #64, r1
+	mov #24, r2
+	shld r2, r1
+	not r1, r1
+	and r0, r1
+	ldc r1, sr
+.endm
+
+! Switch to system-mode
+! NB: implemented as a trap to the interrupt handler, as obviously
+! we can't just update SR...
+.macro systemmode
+	trapa #42
+	nop
+.endm
+
 .macro clearbl
 LOCAL L1
 LOCAL L2
