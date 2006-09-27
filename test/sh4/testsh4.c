@@ -60,6 +60,7 @@ int main()
 
     fprintf( stdout, "Exception tests...\n" );
     test_slot_illegal();
+    test_undefined();
     remove_interrupt_handler();
 
     fprintf( stdout, "Total: %d/%d tests passed (%d%%)\n", total_tests-total_fails,

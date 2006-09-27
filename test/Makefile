@@ -74,7 +74,7 @@ build-tests: testsh4 testmath testide testta testregs testrend
 testsh4: crt0.so sh4/testsh4.so timer.so interrupt.so \
 	 sh4/add.so sh4/addc.so sh4/addv.so sh4/and.so sh4/andi.so \
 	 sh4/bf.so sh4/bt.so sh4/cmp.so \
-	 sh4/excslot.so
+	 sh4/excslot.so sh4/undef.so
 	$(SH4CC) $(SH4LDFLAGS) $^ -o $@ $(SH4LIBS)
 	$(SH4OBJCOPY) testsh4 testsh4.bin
 
