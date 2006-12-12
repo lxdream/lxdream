@@ -1,5 +1,5 @@
 /**
- * $Id: sh4mem.c,v 1.15 2006-08-29 08:09:51 nkeynes Exp $
+ * $Id: sh4mem.c,v 1.16 2006-12-12 09:18:47 nkeynes Exp $
  * sh4mem.c is responsible for the SH4's access to memory (including memory
  * mapped I/O), using the page maps created in mem.c
  *
@@ -46,7 +46,7 @@
     }
 #else
 #define CHECK_READ_WATCH( addr, size )
-#define CHECK_WRITE_WATCH( addr, size )
+#define CHECK_WRITE_WATCH( addr, size, val )
 #endif
 
 #define TRACE_IO( str, p, r, ... ) if(io_rgn[(uint32_t)p]->trace_flag && !MMIO_NOTRACE_BYNUM((uint32_t)p,r)) \

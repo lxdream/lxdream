@@ -1,5 +1,5 @@
 /**
- * $Id: mem.h,v 1.10 2006-07-02 04:59:00 nkeynes Exp $
+ * $Id: mem.h,v 1.11 2006-12-12 09:18:44 nkeynes Exp $
  *
  * mem is responsible for creating and maintaining the overall system memory
  * map, as visible from the SH4 processor. (Note the ARM has a different map)
@@ -75,7 +75,7 @@ struct breakpoint_struct {
 #define BREAK_ONESHOT 1
 #define BREAK_KEEP 2
 
-#define ENABLE_WATCH 1
+#undef ENABLE_WATCH
 
 #define WATCH_WRITE 1
 #define WATCH_READ  2
