@@ -1,5 +1,5 @@
 /**
- * $Id: sh4core.c,v 1.33 2006-09-26 11:09:13 nkeynes Exp $
+ * $Id: sh4core.c,v 1.34 2006-12-12 09:20:25 nkeynes Exp $
  * 
  * SH4 emulation core, and parent module for all the SH4 peripheral
  * modules.
@@ -95,6 +95,8 @@ void sh4_reset(void)
 
 static struct breakpoint_struct sh4_breakpoints[MAX_BREAKPOINTS];
 static int sh4_breakpoint_count = 0;
+static uint16_t *sh4_icache = NULL;
+static uint32_t sh4_icache_addr = 0;
 
 void sh4_set_breakpoint( uint32_t pc, int type )
 {
@@ -142,22 +144,31 @@ uint32_t sh4_run_slice( uint32_t nanosecs )
 	    sh4r.sh4_state = SH4_STATE_RUNNING;;
     }
 
-    for( sh4r.slice_cycle = 0; sh4r.slice_cycle < nanosecs; sh4r.slice_cycle += sh4_cpu_period ) {
-	if( !sh4_execute_instruction() )
-	    break;
-#ifdef ENABLE_DEBUG_MODE
-	for( i=0; i<sh4_breakpoint_count; i++ ) {
-	    if( sh4_breakpoints[i].address == sh4r.pc ) {
+    if( sh4_breakpoint_count == 0 ) {
+	for( sh4r.slice_cycle = 0; sh4r.slice_cycle < nanosecs; sh4r.slice_cycle += sh4_cpu_period ) {
+	    if( !sh4_execute_instruction() ) {
 		break;
 	    }
 	}
-	if( i != sh4_breakpoint_count ) {
-	    dreamcast_stop();
-	    if( sh4_breakpoints[i].type == BREAK_ONESHOT )
-		sh4_clear_breakpoint( sh4r.pc, BREAK_ONESHOT );
-	    break;
-	}
+    } else {
+
+	for( sh4r.slice_cycle = 0; sh4r.slice_cycle < nanosecs; sh4r.slice_cycle += sh4_cpu_period ) {
+	    if( !sh4_execute_instruction() )
+		break;
+#ifdef ENABLE_DEBUG_MODE
+	    for( i=0; i<sh4_breakpoint_count; i++ ) {
+		if( sh4_breakpoints[i].address == sh4r.pc ) {
+		    break;
+		}
+	    }
+	    if( i != sh4_breakpoint_count ) {
+		dreamcast_stop();
+		if( sh4_breakpoints[i].type == BREAK_ONESHOT )
+		    sh4_clear_breakpoint( sh4r.pc, BREAK_ONESHOT );
+		break;
+	    }
 #endif	
+	}
     }
 
     /* If we aborted early, but the cpu is still technically running,
@@ -426,7 +437,24 @@ gboolean sh4_execute_instruction( void )
 	sh4r.new_pc = sh4r.pc + 2;
     }
     CHECKRALIGN16(pc);
-    ir = MEM_READ_WORD(pc);
+
+    /* Read instruction */
+    uint32_t pageaddr = pc >> 12;
+    if( sh4_icache != NULL && pageaddr == sh4_icache_addr ) {
+	ir = sh4_icache[(pc&0xFFF)>>1];
+    } else {
+	sh4_icache = (uint16_t *)mem_get_page(pc);
+	if( ((uint32_t)sh4_icache) < MAX_IO_REGIONS ) {
+	    /* If someone's actually been so daft as to try to execute out of an IO
+	     * region, fallback on the full-blown memory read
+	     */
+	    sh4_icache = NULL;
+	    ir = MEM_READ_WORD(pc);
+	} else {
+	    sh4_icache_addr = pageaddr;
+	    ir = sh4_icache[(pc&0xFFF)>>1];
+	}
+    }
     sh4r.icount++;
     
     switch( (ir&0xF000)>>12 ) {
