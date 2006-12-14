@@ -1,5 +1,5 @@
 /**
- * $Id: cdi.c,v 1.3 2006-06-26 10:30:42 nkeynes Exp $
+ * $Id: cdi.c,v 1.4 2006-12-14 11:58:18 nkeynes Exp $
  *
  * CDI CD-image file support
  *
@@ -122,7 +122,7 @@ gdrom_disc_t cdi_image_open( const gchar *filename, FILE *f )
             fseek( f, (int)fnamelen, SEEK_CUR ); /* skip over the filename */
             fread( &trk, sizeof(trk), 1, f );
 	    disc->track[total_tracks].session = i;
-	    disc->track[total_tracks].lba = trk.start_lba;
+	    disc->track[total_tracks].lba = trk.start_lba + 150;
 	    disc->track[total_tracks].sector_count = trk.length;
 	    switch( trk.mode ) {
 	    case 0:
