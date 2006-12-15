@@ -1,5 +1,5 @@
 /**
- * $Id: audio.c,v 1.6 2006-03-16 12:41:59 nkeynes Exp $
+ * $Id: audio.c,v 1.7 2006-12-15 10:19:49 nkeynes Exp $
  * 
  * Audio mixer core. Combines all the active streams into a single sound
  * buffer for output. 
@@ -25,7 +25,7 @@
 #include <string.h>
 
 #define NUM_BUFFERS 3
-#define MS_PER_BUFFER 1000
+#define MS_PER_BUFFER 50
 
 #define BUFFER_EMPTY   0
 #define BUFFER_WRITING 1
