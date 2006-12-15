@@ -1,5 +1,5 @@
 /**
- * $Id: asic.c,v 1.19 2006-08-01 21:56:48 nkeynes Exp $
+ * $Id: asic.c,v 1.20 2006-12-15 10:18:39 nkeynes Exp $
  *
  * Support for the miscellaneous ASIC functions (Primarily event multiplexing,
  * and DMA). 
@@ -311,7 +311,7 @@ MMIO_REGION_WRITE_FN( EXTDMA, reg, val )
 	    idereg.device = (uint8_t)val;
 	break;
     case IDECMD:
-	if( ide_can_write_regs() ) {
+	if( ide_can_write_regs() || val == IDE_CMD_NOP ) {
 	    ide_write_command( (uint8_t)val );
 	}
 	break;

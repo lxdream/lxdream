@@ -1,5 +1,5 @@
 /**
- * $Id: ide.c,v 1.16 2006-06-18 12:01:53 nkeynes Exp $
+ * $Id: ide.c,v 1.17 2006-12-15 10:18:39 nkeynes Exp $
  *
  * IDE interface implementation
  *
@@ -337,6 +337,13 @@ void ide_write_command( uint8_t val ) {
     ide_clear_interrupt();
     idereg.command = val;
     switch( val ) {
+    case IDE_CMD_NOP: /* Effectively an "abort" */
+	idereg.state = IDE_STATE_IDLE;
+	idereg.status = 0x51;
+	idereg.error = 0x04;
+	idereg.data_offset = -1;
+	ide_raise_interrupt();
+	return;
     case IDE_CMD_RESET_DEVICE:
 	ide_reset();
 	break;
