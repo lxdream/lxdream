@@ -1,5 +1,5 @@
 /**
- * $Id: aica.c,v 1.19 2006-06-27 11:04:03 nkeynes Exp $
+ * $Id: aica.c,v 1.20 2006-12-15 10:19:06 nkeynes Exp $
  * 
  * This is the core sound system (ie the bit which does the actual work)
  *
@@ -243,7 +243,7 @@ int32_t mmio_region_AICARTC_read( uint32_t reg )
 	rv = aica_time_of_day & 0xFFFF;
 	break;
     }
-    DEBUG( "Read AICA RTC %d => %08X", reg, rv );
+    // DEBUG( "Read AICA RTC %d => %08X", reg, rv );
     return rv;
 }
 
