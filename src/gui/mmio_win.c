@@ -1,5 +1,5 @@
 /**
- * $Id: mmio_win.c,v 1.4 2006-01-02 14:47:55 nkeynes Exp $
+ * $Id: mmio_win.c,v 1.5 2006-12-15 10:17:08 nkeynes Exp $
  *
  * Implements the MMIO register viewing window
  *
@@ -19,6 +19,7 @@
 #include <stdint.h>
 #include <gnome.h>
 #include "interface.h"
+#include "callbacks.h"
 #include "gui.h"
 #include "mem.h"
 #include "mmio.h"
@@ -56,11 +57,13 @@ static void printhex( char *out, int nbits, uint32_t value )
 }
     
         
-static GtkCList *create_mmr_page( char *name )
+static GtkCList *create_mmr_page( char *name, struct mmio_region *io_rgn )
 {
     GtkCList *list;
     GtkWidget *scroll;
     GtkWidget *tab;
+    GtkCheckButton *trace_button;
+    GtkVBox *vbox;
 
     scroll = gtk_scrolled_window_new(NULL, NULL);
     gtk_widget_show( scroll );
@@ -86,8 +89,21 @@ static GtkCList *create_mmr_page( char *name )
     tab = gtk_label_new(_(name));
     gtk_widget_show( tab );
     gtk_container_add( GTK_CONTAINER(scroll), GTK_WIDGET(list) );
-    gtk_notebook_append_page( mmr_book, scroll, tab );
+    
+    vbox = gtk_vbox_new( FALSE, 0 );
+    gtk_widget_show( GTK_WIDGET(vbox) );
+    gtk_container_add( GTK_CONTAINER(vbox), GTK_WIDGET(scroll) );
+
+    trace_button = gtk_check_button_new_with_label("Trace access");
+    gtk_widget_show( GTK_WIDGET(trace_button) );
+    gtk_container_add( GTK_CONTAINER(vbox), GTK_WIDGET(trace_button) );
+    gtk_box_set_child_packing( GTK_BOX(vbox), GTK_WIDGET(trace_button), 
+			       FALSE, FALSE, 0, GTK_PACK_START );
+    gtk_notebook_append_page( mmr_book, vbox, tab );
     gtk_object_set_data( GTK_OBJECT(mmr_win), name, list );
+    g_signal_connect ((gpointer) trace_button, "toggled",
+                    G_CALLBACK (on_trace_button_toggled),
+                    io_rgn);
     return list;
 }
 
@@ -138,9 +154,9 @@ void init_mmr_win( void )
     /* kill the dummy page glade insists on adding */
     gtk_notebook_remove_page( mmr_book, 0 );
     
-    all_list = create_mmr_page( "All" );
+    all_list = create_mmr_page( "All", NULL );
     for( i=0; i < num_io_rgns; i++ ) {
-        GtkCList *list = create_mmr_page( io_rgn[i]->id );
+        GtkCList *list = create_mmr_page( io_rgn[i]->id, io_rgn[i] );
         
         for( j=0; io_rgn[i]->ports[j].id != NULL; j++ ) {
             int sz = io_rgn[i]->ports[j].width;
