@@ -1,10 +1,21 @@
 /**
- * $Id: rendbkg.c,v 1.3 2006-09-12 12:16:36 nkeynes Exp $
+ * $Id: rendbkg.c,v 1.4 2006-12-15 10:17:30 nkeynes Exp $
  *
  * PVR2 background renderer. 
  *
  * Yes, it uses the same basic data structure. Yes, it needs to be handled
  * completely differently.
+ *
+ * PVR2 backgrounds are defined as a set of three fully specified vertexes,
+ * stored in compiled-vertex format. The vertexes form a triangle which is
+ * rendered in the normal fashion. Points outside the triangle are rendered
+ * by extrapolating from the gradients established by the triangle, giving
+ * an overall smooth gradient across the background. Points are colour-clamped
+ * prior to output to the buffer.
+ *
+ * As a special case, if all three points lie on the same line (or are the same
+ * point, the third point is used by itself to define the entire buffer (ie
+ * effectively a solid colour).
  *
  * Note: this would be really simple if GL did unclamped colour interpolation
  * but it doesn't (portably), which makes this roughly 2 orders of magnitude
