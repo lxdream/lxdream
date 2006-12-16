@@ -210,6 +210,7 @@ int ide_read_pio( char *buf, int buflen ) {
 	} else {
 	    if( status&0x01 ) {
 		printf( "[IDE] ERROR! (%02X)\n", status );
+		return -1;
 	    } else if( (status&0x08) == 0 ) {
 		/* No more data */
 		return length;
@@ -286,8 +287,21 @@ int ide_do_packet_command_dma( char *cmd, char *buf, int length )
     return length;
 }
 
+void ide_activate() {
+  register unsigned long p, x;
+
+  /* Reactivate GD-ROM drive */
+
+  *((volatile unsigned long *)0xa05f74e4) = 0x1fffff;
+  for(p=0; p<0x200000/4; p++)
+    x = ((volatile unsigned long *)0xa0000000)[p];
+}
+
+
 int ide_init()
 {
+    ide_activate();
+
     if( ide_wait_ready() )
 	return -1;
 
@@ -415,4 +429,17 @@ int ide_read_something( )
     ide_do_packet_command_pio( cmd, result, 10 );
     debug_dump_buffer(result,10);
     return 0;
+}
+
+int ide_read_status( char *buf, int length )
+{
+    char cmd[12] = { 0x40,0,0,0, 0xFF,0,0,0, 0,0,0,0 };
+
+    return ide_do_packet_command_pio( cmd, buf, length );
+}
+		     
+int ide_play_cd( char *buf, int length )
+{
+    char cmd[12] = { 0x21, 0x04,0,0, 0,0,0,0, 0,0,0,0 };
+    return ide_do_packet_command_pio( cmd, buf, length );
 }
