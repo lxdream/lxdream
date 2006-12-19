@@ -1,5 +1,5 @@
 /**
- * $Id: ide.c,v 1.17 2006-12-15 10:18:39 nkeynes Exp $
+ * $Id: ide.c,v 1.18 2006-12-19 09:52:56 nkeynes Exp $
  *
  * IDE interface implementation
  *
@@ -134,6 +134,9 @@ static void ide_reset( void )
     memset( idereg.gdrom_sense, '\0', 10 );
     idereg.data_offset = -1;
     idereg.data_length = -1;
+    idereg.last_read_track = 1;
+    idereg.last_read_lba = 150;
+    idereg.last_read_count = 0;
 }
 
 static void ide_save_state( FILE *f )
@@ -454,9 +457,9 @@ void ide_packet_command( unsigned char *cmd )
 	lba = cmd[2] << 16 | cmd[3] << 8 | cmd[4];
 	length = cmd[8] << 16 | cmd[9] << 8 | cmd[10]; /* blocks */
 	switch( cmd[1] ) {
-	case 0x20: mode = GDROM_MODE1; break;
+	case 0x20: mode = GDROM_MODE1; break;     /* TODO - might be unchecked? */
 	case 0x24: mode = GDROM_GD; break;
-	case 0x28: mode = GDROM_MODE1; break; /* ??? */
+	case 0x28: mode = GDROM_MODE2_XA1; break; /* ??? */
 	case 0x30: mode = GDROM_RAW; break;
 	default:
 	    ERROR( "Unrecognized read mode '%02X' in GD-Rom read request", cmd[1] );
@@ -479,6 +482,9 @@ void ide_packet_command( unsigned char *cmd )
 	    idereg.gdrom_sense[6] = (lba >> 8) & 0xFF;
 	    idereg.gdrom_sense[7] = lba & 0xFF;
 	} else {
+	    idereg.last_read_count += length;
+	    idereg.last_read_lba = lba + length;
+	    idereg.last_read_track = gdrom_get_track_no_by_lba( idereg.last_read_lba );
 	    ide_start_packet_read( datalen, blocksize );
 	}
 	break;
@@ -486,6 +492,39 @@ void ide_packet_command( unsigned char *cmd )
 	/* do nothing? */
 	ide_set_packet_result( PKT_ERR_OK );
 	ide_raise_interrupt();
+	break;
+    case PKT_CMD_STATUS:
+	length = cmd[4];
+	if( !gdrom_is_mounted() ) {
+	    ide_set_packet_result( PKT_ERR_NODISC );
+	} else {
+	    switch( cmd[1] ) {
+	    case 0:
+		break;
+	    case 1:
+		if( length > 16 ) {
+		    length = 16;
+		}
+		data_buffer[0] = 0x00;
+		data_buffer[1] = 0x15; /* ??? */
+		data_buffer[2] = 0x00;
+		data_buffer[3] = 0x0E;
+		data_buffer[4] = gdrom_get_track(idereg.last_read_track)->flags;
+		data_buffer[5] = idereg.last_read_track;
+		data_buffer[6] = 0x01; /* ?? */
+		data_buffer[7] = (idereg.last_read_count >> 16) & 0xFF;
+		data_buffer[8] = (idereg.last_read_count >> 8) & 0xFF;
+		data_buffer[9] = idereg.last_read_count & 0xFF;
+		data_buffer[10] = (idereg.last_read_lba >> 24) & 0xFF;
+		data_buffer[11] = (idereg.last_read_lba >> 16) & 0xFF;
+		data_buffer[12] = (idereg.last_read_lba >> 8) & 0xFF;
+		data_buffer[13] = idereg.last_read_lba & 0xFF;
+		data_buffer[14] = 0x00;
+		data_buffer[15] = 0x00;
+		ide_start_packet_read( length, blocksize );
+		break;
+	    }
+	}
 	break;
     case PKT_CMD_71:
 	/* This is a weird one. As far as I can tell it returns random garbage

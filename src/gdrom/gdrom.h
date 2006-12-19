@@ -1,5 +1,5 @@
 /**
- * $Id: gdrom.h,v 1.8 2006-12-14 12:31:38 nkeynes Exp $
+ * $Id: gdrom.h,v 1.9 2006-12-19 09:52:56 nkeynes Exp $
  *
  * This file defines the structures and functions used by the GD-Rom
  * disc driver. (ie, the modules that supply a CD image to be used by the
@@ -59,7 +59,7 @@ typedef enum {
 #define TRACK_DATA           0x40
 #define TRACK_FOUR_CHANNEL   0x80
 
-struct gdrom_track {
+typedef struct gdrom_track {
     gdrom_track_mode_t mode;
     uint8_t flags;        /* Track flags */
     int      session;     /* session # containing this track */
@@ -67,7 +67,7 @@ struct gdrom_track {
     uint32_t sector_size; /* For convenience, determined by mode */
     uint32_t sector_count;
     uint32_t offset; /* File offset of start of track - image files only */
-};
+} *gdrom_track_t;
 
 
 typedef struct gdrom_disc {
@@ -119,6 +119,10 @@ gdrom_error_t gdrom_get_toc( char *buf );
  * @return 0 on success, error code on failure.
  */
 gdrom_error_t gdrom_get_info( char *buf, int session );
+
+gdrom_track_t gdrom_get_track( int track_no );
+
+uint8_t gdrom_get_track_no_by_lba( uint32_t lba );
 
 /**
  * Shortcut to open and mount an image file
