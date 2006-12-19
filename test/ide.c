@@ -112,8 +112,6 @@ int ide_wait_irq() {
 	if( (status&1) != 0 )
 	    return 0;
     }
-    printf( "Timeout waiting for IDE INTRQ\n" );
-    ide_dump_registers();
     return 1;
 }
 
@@ -427,7 +425,6 @@ int ide_read_something( )
     char cmd[12] = { 0x12,0,0,0, 0x0a,0,0,0, 0,0,0,0 };
     char result[10];
     ide_do_packet_command_pio( cmd, result, 10 );
-    debug_dump_buffer(result,10);
     return 0;
 }
 
