@@ -1,5 +1,5 @@
 /**
- * $Id: gdrom.c,v 1.10 2006-12-14 12:31:38 nkeynes Exp $
+ * $Id: gdrom.c,v 1.11 2006-12-19 09:52:56 nkeynes Exp $
  *
  * GD-Rom  access functions.
  *
@@ -137,6 +137,7 @@ static gdrom_error_t gdrom_image_read_sectors( gdrom_disc_t disc, uint32_t secto
 	//    return PKT_ERR_BADREADMODE;
 	// break;
     case GDROM_MODE1:
+    case GDROM_MODE2_XA1:
 	switch( track->mode ) {
 	case GDROM_MODE1:
 	case GDROM_MODE2_XA1:
@@ -256,6 +257,27 @@ gdrom_error_t gdrom_get_info( char *buf, int session )
 	return PKT_ERR_BADFIELD; /* No such session */
     }
 	
+}
+
+gdrom_track_t gdrom_get_track( int trackno ) {
+    if( gdrom_disc == NULL || trackno < 1 || trackno > 99 ) {
+	return NULL;
+    } else {
+	return &gdrom_disc->track[trackno-1];
+    }
+}
+
+uint8_t gdrom_get_track_no_by_lba( uint32_t lba ) {
+    int i;
+    if( gdrom_disc != NULL ) {
+	for( i=0; i<gdrom_disc->track_count; i++ ) {
+	    if( gdrom_disc->track[i].lba <= lba && 
+		lba <= (gdrom_disc->track[i].lba + gdrom_disc->track[i].sector_count) ) {
+		return i+1;
+	    }
+	}
+    }
+    return -1;
 }
 
 void gdrom_mount_disc( gdrom_disc_t disc ) 
