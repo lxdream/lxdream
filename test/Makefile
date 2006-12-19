@@ -78,7 +78,7 @@ testsh4: crt0.so sh4/testsh4.so timer.so interrupt.so \
 	$(SH4CC) $(SH4LDFLAGS) $^ -o $@ $(SH4LIBS)
 	$(SH4OBJCOPY) testsh4 testsh4.bin
 
-testide: crt0.so testide.so ide.so
+testide: crt0.so testide.so ide.so lib.so
 	$(SH4CC) $(SH4LDFLAGS) $^ -o $@ $(SH4LIBS)
 	$(SH4OBJCOPY) testide testide.bin
 
