@@ -1,5 +1,5 @@
 /**
- * $Id: asic.h,v 1.13 2006-08-02 04:06:42 nkeynes Exp $
+ * $Id: asic.h,v 1.14 2006-12-19 09:51:35 nkeynes Exp $
  *
  * Support for the miscellaneous ASIC functions (Primarily event multiplexing,
  * and DMA). Includes MMIO definitions for the 5f6000 and 5f7000 regions, 
@@ -41,6 +41,7 @@ MMIO_REGION_BEGIN( 0x005F6000, ASIC, "System ASIC" )
     LONG_PORT( 0x884, PVRDMARGN, PORT_MRW, 0, "PVR DMA Dest region" )
     LONG_PORT( 0x888, ASICUNKA, PORT_MRW, 0, "ASIC <unknownA>" )
     LONG_PORT( 0x88C, G2STATUS, PORT_MR|PORT_NOTRACE, 0, "G2 Bus status" )
+    LONG_PORT( 0x890, SYSRESET, PORT_W, 0, "System reset port" )
     LONG_PORT( 0x89C, ASICUNKB, PORT_MRW, 0xB, "Unknown, always 0xB?" )
     LONG_PORT( 0x8A0, ASICUNKC, PORT_MRW, 0, "ASIC <unknownC>" )
     LONG_PORT( 0x8A4, ASICUNKD, PORT_MRW, 0, "ASIC <unknownD>" )
@@ -197,6 +198,8 @@ MMIO_REGION_END
 #define EVENT_PVR_PRIM_ALLOC_FAIL 66
 #define EVENT_PVR_MATRIX_ALLOC_FAIL 67
 #define EVENT_PVR_BAD_INPUT 68
+
+#define IS_IDE_REGISTER(x) ( (x) <= IDEDMACTL2 )
 
 /**
  * Raise an ASIC event 

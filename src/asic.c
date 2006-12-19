@@ -1,5 +1,5 @@
 /**
- * $Id: asic.c,v 1.20 2006-12-15 10:18:39 nkeynes Exp $
+ * $Id: asic.c,v 1.21 2006-12-19 09:51:35 nkeynes Exp $
  *
  * Support for the miscellaneous ASIC functions (Primarily event multiplexing,
  * and DMA). 
@@ -213,6 +213,13 @@ void mmio_region_ASIC_write( uint32_t reg, uint32_t val )
 	MMIO_WRITE( ASIC, reg, MMIO_READ(ASIC, reg)&~val );
 	asic_check_cleared_events();
 	break;
+    case SYSRESET:
+	if( val == 0x7611 ) {
+	    dreamcast_reset();
+	} else {
+	    WARN( "Unknown value %08X written to SYSRESET port", val );
+	}
+	break;
     case MAPLE_STATE:
 	MMIO_WRITE( ASIC, reg, val );
 	if( val & 1 ) {
@@ -279,6 +286,10 @@ int32_t mmio_region_ASIC_read( uint32_t reg )
 
 MMIO_REGION_WRITE_FN( EXTDMA, reg, val )
 {
+    if( !idereg.interface_enabled && IS_IDE_REGISTER(reg) ) {
+	return; /* disabled */
+    }
+
     switch( reg ) {
     case IDEALTSTATUS: /* Device control */
 	ide_write_control( val );
@@ -321,6 +332,15 @@ MMIO_REGION_WRITE_FN( EXTDMA, reg, val )
 	MMIO_WRITE( EXTDMA, reg, val );
 	asic_ide_dma_transfer( );
 	break;
+    case IDEACTIVATE:
+	if( val == 0x001FFFFF ) {
+	    idereg.interface_enabled = TRUE;
+	    /* Conventional wisdom says that this is necessary but not
+	     * sufficient to enable the IDE interface.
+	     */
+	} else if( val == 0x000042FE ) {
+	    idereg.interface_enabled = FALSE;
+	}
     default:
             MMIO_WRITE( EXTDMA, reg, val );
     }
@@ -329,6 +349,10 @@ MMIO_REGION_WRITE_FN( EXTDMA, reg, val )
 MMIO_REGION_READ_FN( EXTDMA, reg )
 {
     uint32_t val;
+    if( !idereg.interface_enabled && IS_IDE_REGISTER(reg) ) {
+	return 0xFFFFFFFF; /* disabled */
+    }
+
     switch( reg ) {
     case IDEALTSTATUS: 
 	val = idereg.status;
