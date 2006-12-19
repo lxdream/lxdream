@@ -1,5 +1,5 @@
 /**
- * $Id: sh4core.c,v 1.34 2006-12-12 09:20:25 nkeynes Exp $
+ * $Id: sh4core.c,v 1.35 2006-12-19 09:54:03 nkeynes Exp $
  * 
  * SH4 emulation core, and parent module for all the SH4 peripheral
  * modules.
@@ -41,11 +41,13 @@
 #define EXC_WRITE_ADDR_ERR 0x100
 #define EXC_SLOT_ILLEGAL 0x1A0
 #define EXC_ILLEGAL      0x180
-#define EXV_ILLEGAL      0x100
 #define EXC_TRAP         0x160
-#define EXV_TRAP         0x100
 #define EXC_FPDISABLE    0x800
-#define EXV_FPDISABLE    0x100
+#define EXC_SLOT_FPDISABLE 0x820
+
+#define EXV_EXCEPTION    0x100  /* General exception vector */
+#define EXV_TLBMISS      0x400  /* TLB-miss exception vector */
+#define EXV_INTERRUPT    0x600  /* External interrupt vector */
 
 /********************** SH4 Module Definition ****************************/
 
@@ -215,7 +217,7 @@ void sh4_set_pc( int pc )
     sh4r.new_pc = pc+2;
 }
 
-#define UNDEF(ir) if( sh4r.in_delay_slot ) { RAISE( EXC_SLOT_ILLEGAL, EXV_ILLEGAL, -2 ); } else { RAISE( EXC_ILLEGAL, EXV_ILLEGAL, 0 ); }
+#define UNDEF(ir) return sh4_raise_slot_exception(EXC_ILLEGAL, EXC_SLOT_ILLEGAL)
 #define UNIMP(ir) do{ ERROR( "Halted on unimplemented instruction at %08x, opcode = %04x", sh4r.pc, ir ); dreamcast_stop(); return FALSE; }while(0)
 
 #if(SH4_CALLTRACE == 1)
@@ -265,23 +267,24 @@ void fprint_stack_trace( FILE *f )
 #define TRACE_RETURN( source, dest )
 #endif
 
-#define RAISE( x, v, pcadj ) do{			\
+#define RAISE( x, v ) do{			\
     if( sh4r.vbr == 0 ) { \
         ERROR( "%08X: VBR not initialized while raising exception %03X, halting", sh4r.pc, x ); \
         dreamcast_stop(); return FALSE;	\
     } else { \
-        sh4r.spc = sh4r.pc + pcadj; \
+        sh4r.spc = sh4r.pc;	\
         sh4r.ssr = sh4_read_sr(); \
         sh4r.sgr = sh4r.r[15]; \
         MMIO_WRITE(MMU,EXPEVT,x); \
         sh4r.pc = sh4r.vbr + v; \
         sh4r.new_pc = sh4r.pc + 2; \
         sh4_load_sr( sh4r.ssr |SR_MD|SR_BL|SR_RB ); \
-	sh4r.in_delay_slot = 0; \
+	if( sh4r.in_delay_slot ) { \
+	    sh4r.in_delay_slot = 0; \
+	    sh4r.spc -= 2; \
+	} \
     } \
     return TRUE; } while(0)
-#define RAISE_SLOTILLEGAL() RAISE( EXC_SLOT_ILLEGAL, EXV_ILLEGAL, -2 )
-#define RAISE_ILLEGAL() RAISE( EXC_ILLEGAL, EXV_ILLEGAL, 0 )
 
 #define MEM_READ_BYTE( addr ) sh4_read_byte(addr)
 #define MEM_READ_WORD( addr ) sh4_read_word(addr)
@@ -293,19 +296,17 @@ void fprint_stack_trace( FILE *f )
 #define FP_WIDTH (IS_FPU_DOUBLESIZE() ? 8 : 4)
 
 #define MEM_FP_READ( addr, reg ) sh4_read_float( addr, reg );
-
 #define MEM_FP_WRITE( addr, reg ) sh4_write_float( addr, reg );
 
-#define CHECK( x, c, v ) if( !x ) RAISE( c, v, 0 )
-#define CHECKPRIV() if( !IS_SH4_PRIVMODE() ) { if( sh4r.in_delay_slot ) { RAISE_SLOTILLEGAL(); } else { RAISE_ILLEGAL(); } }
-#define CHECKRALIGN16(addr) if( (addr)&0x01 ) RAISE( EXC_READ_ADDR_ERR, EXV_TRAP, 0 )
-#define CHECKRALIGN32(addr) if( (addr)&0x03 ) RAISE( EXC_READ_ADDR_ERR, EXV_TRAP, 0 )
-#define CHECKWALIGN16(addr) if( (addr)&0x01 ) RAISE( EXC_WRITE_ADDR_ERR, EXV_TRAP, 0 )
-#define CHECKWALIGN32(addr) if( (addr)&0x03 ) RAISE( EXC_WRITE_ADDR_ERR, EXV_TRAP, 0 )
+#define CHECKPRIV() if( !IS_SH4_PRIVMODE() ) return sh4_raise_slot_exception( EXC_ILLEGAL, EXC_SLOT_ILLEGAL )
+#define CHECKRALIGN16(addr) if( (addr)&0x01 ) return sh4_raise_exception( EXC_READ_ADDR_ERR )
+#define CHECKRALIGN32(addr) if( (addr)&0x03 ) return sh4_raise_exception( EXC_READ_ADDR_ERR )
+#define CHECKWALIGN16(addr) if( (addr)&0x01 ) return sh4_raise_exception( EXC_WRITE_ADDR_ERR )
+#define CHECKWALIGN32(addr) if( (addr)&0x03 ) return sh4_raise_exception( EXC_WRITE_ADDR_ERR )
 
-#define CHECKFPUEN() CHECK( IS_FPU_ENABLED(), EXC_FPDISABLE, EXV_FPDISABLE )
+#define CHECKFPUEN() if( !IS_FPU_ENABLED() ) return sh4_raise_slot_exception( EXC_FPDISABLE, EXC_SLOT_FPDISABLE )
 #define CHECKDEST(p) if( (p) == 0 ) { ERROR( "%08X: Branch/jump to NULL, CPU halted", sh4r.pc ); dreamcast_stop(); return FALSE; }
-#define CHECKSLOTILLEGAL() if(sh4r.in_delay_slot) { RAISE(EXC_SLOT_ILLEGAL,EXV_ILLEGAL, -2); }
+#define CHECKSLOTILLEGAL() if(sh4r.in_delay_slot) return sh4_raise_exception(EXC_SLOT_ILLEGAL)
 
 static void sh4_switch_banks( )
 {
@@ -368,10 +369,27 @@ static uint32_t sh4_read_sr( void )
     if( sh4r.q ) sh4r.sr |= SR_Q;
     return sh4r.sr;
 }
-/* function for external use */
-void sh4_raise_exception( int code, int vector )
+
+/**
+ * Raise a general CPU exception for the specified exception code.
+ * (NOT for TRAPA or TLB exceptions)
+ */
+gboolean sh4_raise_exception( int code )
 {
-    RAISE(code, vector, 0);
+    RAISE( code, EXV_EXCEPTION );
+}
+
+gboolean sh4_raise_slot_exception( int normal_code, int slot_code ) {
+    if( sh4r.in_delay_slot ) {
+	return sh4_raise_exception(slot_code);
+    } else {
+	return sh4_raise_exception(normal_code);
+    }
+}
+
+gboolean sh4_raise_tlb_exception( int code )
+{
+    RAISE( code, EXV_TLBMISS );
 }
 
 static void sh4_accept_interrupt( void )
@@ -1214,7 +1232,7 @@ gboolean sh4_execute_instruction( void )
                     sh4r.t = ( R0 == IMM8(ir) ? 1 : 0 );
                     break;
                 case 9: /* BT      disp8 */
-                    CHECKSLOTILLEGAL()
+                    CHECKSLOTILLEGAL();
                     if( sh4r.t ) {
                         CHECKDEST( sh4r.pc + (PCDISP8(ir)<<1) + 4 )
                         sh4r.pc += (PCDISP8(ir)<<1) + 4;
@@ -1223,7 +1241,7 @@ gboolean sh4_execute_instruction( void )
                     }
                     break;
                 case 11:/* BF      disp8 */
-                    CHECKSLOTILLEGAL()
+                    CHECKSLOTILLEGAL();
                     if( !sh4r.t ) {
                         CHECKDEST( sh4r.pc + (PCDISP8(ir)<<1) + 4 )
                         sh4r.pc += (PCDISP8(ir)<<1) + 4;
@@ -1232,7 +1250,7 @@ gboolean sh4_execute_instruction( void )
                     }
                     break;
                 case 13:/* BT/S    disp8 */
-                    CHECKSLOTILLEGAL()
+                    CHECKSLOTILLEGAL();
                     if( sh4r.t ) {
                         CHECKDEST( sh4r.pc + (PCDISP8(ir)<<1) + 4 )
                         sh4r.in_delay_slot = 1;
@@ -1243,7 +1261,7 @@ gboolean sh4_execute_instruction( void )
                     }
                     break;
                 case 15:/* BF/S    disp8 */
-                    CHECKSLOTILLEGAL()
+                    CHECKSLOTILLEGAL();
                     if( !sh4r.t ) {
                         CHECKDEST( sh4r.pc + (PCDISP8(ir)<<1) + 4 )
                         sh4r.in_delay_slot = 1;
@@ -1263,16 +1281,16 @@ gboolean sh4_execute_instruction( void )
             break;
         case 10:/* 1010dddddddddddd */
             /* BRA     disp12 */
-            CHECKSLOTILLEGAL()
-            CHECKDEST( sh4r.pc + (DISP12(ir)<<1) + 4 )
+            CHECKSLOTILLEGAL();
+            CHECKDEST( sh4r.pc + (DISP12(ir)<<1) + 4 );
             sh4r.in_delay_slot = 1;
             sh4r.pc = sh4r.new_pc;
             sh4r.new_pc = pc + 4 + (DISP12(ir)<<1);
             return TRUE;
         case 11:/* 1011dddddddddddd */
             /* BSR     disp12 */
-            CHECKDEST( sh4r.pc + (DISP12(ir)<<1) + 4 )
-            CHECKSLOTILLEGAL()
+            CHECKDEST( sh4r.pc + (DISP12(ir)<<1) + 4 );
+	    CHECKSLOTILLEGAL();
             sh4r.in_delay_slot = 1;
             sh4r.pr = pc + 4;
             sh4r.pc = sh4r.new_pc;
@@ -1295,10 +1313,10 @@ gboolean sh4_execute_instruction( void )
                     MEM_WRITE_LONG( tmp, R0 );
                     break;
                 case 3: /* TRAPA   imm8 */
-                    CHECKSLOTILLEGAL()
-                    sh4r.in_delay_slot = 1;
+                    CHECKSLOTILLEGAL();
                     MMIO_WRITE( MMU, TRA, UIMM8(ir)<<2 );
-                    RAISE( EXC_TRAP, EXV_TRAP, 2 );
+		    sh4r.pc += 2;
+                    sh4_raise_exception( EXC_TRAP );
                     break;
                 case 4: /* MOV.B   [GBR + disp8], R0 */
                     R0 = MEM_READ_BYTE( sh4r.gbr + DISP8(ir) );
