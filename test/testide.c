@@ -1,5 +1,5 @@
 /**
- * $Id: testide.c,v 1.2 2006-12-19 11:53:39 nkeynes Exp $
+ * $Id: testide.c,v 1.3 2006-12-20 11:24:16 nkeynes Exp $
  *
  * IDE interface test cases. Covers all (known) IDE registers in the 
  * 5F7000 - 5F74FF range including DMA, but does not cover any GD-Rom
@@ -99,6 +99,95 @@ int check_regs( uint32_t *regs,const char *file, int line, const char *fn )
 
 #define CHECK_REGS( r ) if( check_regs(r, __FILE__, __LINE__, __func__) != 0 ) { return -1; }
 
+
+uint32_t post_packet_ready_regs[] = 
+    { IDE_ALTSTATUS, 0x58,
+      IDE_COUNT, 0x01,
+      IDE_LBA1, 8,
+      IDE_LBA2, 0,
+      IDE_DEVICE, 0,
+      IDE_STATUS, 0x58, 0, 0 };
+
+uint32_t post_packet_cmd_regs[] = 
+    { IDE_ALTSTATUS, 0xD0,
+      IDE_ERROR, 0x00,
+      IDE_COUNT, 0x01,
+      IDE_LBA1, 8,
+      IDE_LBA2, 0,
+      IDE_DEVICE, 0,
+      IDE_STATUS, 0xD0, 0, 0 };
+
+uint32_t packet_cmd_error6_regs[] = 
+    { IDE_ALTSTATUS, 0x51,
+      IDE_ERROR, 0x60,
+      IDE_COUNT, 0x03,
+      IDE_LBA1, 8,
+      IDE_LBA2, 0,
+      IDE_DEVICE, 0,
+      IDE_STATUS, 0x51, 0, 0 };
+
+uint32_t packet_data_ready_regs[] = 
+    { IDE_ALTSTATUS, 0x58,
+      IDE_ERROR, 0x00,
+      IDE_COUNT, 0x02,
+      IDE_LBA0, 0x00,
+      IDE_LBA1, 0x0C,
+      IDE_LBA2, 0,
+      IDE_DEVICE, 0,
+      IDE_STATUS, 0x58, 0, 0 };
+
+
+uint32_t post_packet_data_regs[] = 
+    { IDE_ALTSTATUS, 0xD0,
+      IDE_ERROR, 0x00,
+      IDE_COUNT, 0x02,
+      IDE_LBA0, 0x00,
+      IDE_LBA1, 0x0C,
+      IDE_LBA2, 0,
+      IDE_DEVICE, 0,
+      IDE_STATUS, 0xD0, 0, 0 };
+
+uint32_t packet_complete_regs[] = 
+    { IDE_ALTSTATUS, 0x50,
+      IDE_ERROR, 0x00,
+      IDE_COUNT, 0x03,
+      IDE_LBA1, 0x0C,
+      IDE_LBA2, 0,
+      IDE_DEVICE, 0,
+      IDE_STATUS, 0x50, 0, 0 };
+
+int send_packet_command( char *cmd )
+{
+    unsigned short *spkt = (unsigned short *)cmd;
+    int i;
+
+    EXPECT_READY();
+    byte_write( IDE_FEATURE, 0 );
+    byte_write( IDE_COUNT, 0 );
+    byte_write( IDE_LBA0, 0 );
+    byte_write( IDE_LBA1, 8 );
+    byte_write( IDE_LBA2, 0 );
+    byte_write( IDE_DEVICE, 0 );
+    byte_write( IDE_COMMAND, 0xA0 );
+    byte_read(IDE_ALTSTATUS); /* delay 1 PIO cycle */
+    EXPECT_READY(); /* Wait until device is ready to accept command (usually immediate) */
+    CHECK_INTRQ_CLEAR();
+    CHECK_REGS( post_packet_ready_regs );
+    
+    /* Write the command */
+    for( i=0; i<6; i++ ) {
+        word_write( IDE_DATA, spkt[i] );
+    }
+
+    byte_read(IDE_ALTSTATUS); 
+
+    // CHECK_REGS( post_packet_cmd_regs );
+    EXPECT_INTRQ();
+    EXPECT_READY();
+    return 0;
+}
+
+
 uint32_t abort_regs[] = {
     IDE_ALTSTATUS, 0x51,
     IDE_ERROR, 0x04,
@@ -183,6 +272,18 @@ int test_enable()
     return 0;
 }
 
+
+uint32_t drive_ready_regs[] = {
+    IDE_ALTSTATUS, 0x50,
+    IDE_ERROR, 0x00,
+    IDE_COUNT, 0x03,
+    IDE_LBA1, 0x08,
+    IDE_LBA2, 0x00,
+    IDE_DEVICE, 0,
+    IDE_DATA, 0xFFFF,
+    IDE_STATUS, 0x50, 
+    0, 0 };    
+
 /**
  * Test the reset command
  */
@@ -211,69 +312,25 @@ int test_reset()
     CHECK_INTRQ_CLEAR();
     CHECK_REGS( post_set_feature2_regs );
 
+    char test_ready_cmd[12] = { 0,0,0,0, 0,0,0,0, 0,0,0,0 };
+    if( send_packet_command(test_ready_cmd) != 0 ) {
+	return -1;
+    }
+
+    CHECK_REGS( packet_cmd_error6_regs );
+    int sense = ide_get_sense_code();
+    CHECK_IEQUALS( 0x2906, sense );
+
+    if( send_packet_command(test_ready_cmd) != 0 ) {
+	return -1;
+    }
+    CHECK_REGS( drive_ready_regs );
     return 0;
 }
 
-uint32_t post_packet_ready_regs[] = 
-    { IDE_ALTSTATUS, 0x58,
-      IDE_ERROR, 0x00,
-      IDE_COUNT, 0x01,
-      IDE_LBA0, 0x00,
-      IDE_LBA1, 8,
-      IDE_LBA2, 0,
-      IDE_DEVICE, 0,
-      IDE_STATUS, 0x58, 0, 0 };
-
-uint32_t post_packet_cmd_regs[] = 
-    { IDE_ALTSTATUS, 0xD0,
-      IDE_ERROR, 0x00,
-      IDE_COUNT, 0x01,
-      IDE_LBA1, 8,
-      IDE_LBA2, 0,
-      IDE_DEVICE, 0,
-      IDE_STATUS, 0xD0, 0, 0 };
-
-uint32_t packet_cmd_error6_regs[] = 
-    { IDE_ALTSTATUS, 0x51,
-      IDE_ERROR, 0x60,
-      IDE_COUNT, 0x03,
-      IDE_LBA1, 8,
-      IDE_LBA2, 0,
-      IDE_DEVICE, 0,
-      IDE_STATUS, 0x51, 0, 0 };
-
-uint32_t packet_data_ready_regs[] = 
-    { IDE_ALTSTATUS, 0x58,
-      IDE_ERROR, 0x00,
-      IDE_COUNT, 0x02,
-      IDE_LBA0, 0x00,
-      IDE_LBA1, 0x0C,
-      IDE_LBA2, 0,
-      IDE_DEVICE, 0,
-      IDE_STATUS, 0x58, 0, 0 };
-
-
-uint32_t post_packet_data_regs[] = 
-    { IDE_ALTSTATUS, 0xD0,
-      IDE_ERROR, 0x00,
-      IDE_COUNT, 0x02,
-      IDE_LBA0, 0x00,
-      IDE_LBA1, 0x0C,
-      IDE_LBA2, 0,
-      IDE_DEVICE, 0,
-      IDE_STATUS, 0xD0, 0, 0 };
-
-uint32_t packet_complete_regs[] = 
-    { IDE_ALTSTATUS, 0x50,
-      IDE_ERROR, 0x00,
-      IDE_COUNT, 0x03,
-      IDE_LBA1, 0x0C,
-      IDE_LBA2, 0,
-      IDE_DEVICE, 0,
-      IDE_STATUS, 0x50, 0, 0 };
-
 char expect_ident[] = { 0x00, 0xb4, 0x19, 0x00,
 			0x00, 0x08, 0x53, 0x45, 0x20, 0x20, 0x20, 0x20 };
+
 /**
  * Test the PACKET command (using the Inquiry command)
  */
@@ -282,35 +339,11 @@ int test_packet()
     int i;
     char cmd[12] = { 0x11, 0, 4, 0,  12, 0, 0, 0,  0, 0, 0, 0 };
     // char cmd[12] = { 0x00,0,0,0, 0,0,0,0, 0,0,0,0 };
-    unsigned short *spkt = (unsigned short *)cmd;
+    unsigned short *spkt;
     char result[12];
 
-    ide_print_sense_error();
-    EXPECT_READY();
-    byte_write( IDE_FEATURE, 0 );
-    byte_write( IDE_COUNT, 0 );
-    byte_write( IDE_LBA0, 0 );
-    byte_write( IDE_LBA1, 8 );
-    byte_write( IDE_LBA2, 0 );
-    byte_write( IDE_DEVICE, 0 );
-    byte_write( IDE_COMMAND, 0xA0 );
-    byte_read(IDE_ALTSTATUS); /* delay 1 PIO cycle */
-    EXPECT_READY(); /* Wait until device is ready to accept command (usually immediate) */
-    CHECK_INTRQ_CLEAR();
-    CHECK_REGS( post_packet_ready_regs );
-    
-    /* Write the command */
-    for( i=0; i<6; i++ ) {
-        word_write( IDE_DATA, spkt[i] );
-    }
-
-    byte_read(IDE_ALTSTATUS); 
-
-    CHECK_REGS( post_packet_cmd_regs );
-    EXPECT_INTRQ();
-    EXPECT_READY();
+    send_packet_command( cmd );
     CHECK_REGS( packet_data_ready_regs );
-
     spkt = (unsigned short *)result;
     *spkt++ = word_read(IDE_DATA);
     *spkt++ = word_read(IDE_DATA);
@@ -321,8 +354,9 @@ int test_packet()
     *spkt++ = word_read(IDE_DATA);
     CHECK_REGS( post_packet_data_regs );
     EXPECT_READY();
-    CHECK_INTRQ_CLEAR();
+    EXPECT_INTRQ();
     CHECK_REGS( packet_complete_regs );
+
     if( memcmp( result, expect_ident, 12 ) != 0 ) {
 	fwrite_diff( stderr, expect_ident, 12, result, 12 );
     }
@@ -355,7 +389,7 @@ int test_dma_abort()
 
 typedef int (*test_func_t)();
 
-test_func_t test_fns[] = { test_packet, test_enable, test_reset, 
+test_func_t test_fns[] = { test_enable, test_reset, test_packet,
 			   test_dma, test_dma_abort, NULL };
 
 int main() 

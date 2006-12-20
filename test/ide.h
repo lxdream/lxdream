@@ -22,6 +22,8 @@ int ide_test_ready();
 
 int ide_sense_error( char *buf );
 
+int ide_get_sense_code();
+
 /**
  * Retrieve session information. If session == 0, returns the
  * end-of-disc information instead.
