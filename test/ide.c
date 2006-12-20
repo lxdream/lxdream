@@ -124,10 +124,10 @@ int ide_wait_ready() {
     int i;
     for( i=0; i<MAX_WAIT; i++ ) {
         status = byte_read(IDE_ALTSTATUS);
-	if( (status & 0x80) != 0x80 )
+	if( (status & 0x80) == 0 )
 	    return 0;
     }
-    printf( "Timeout waiting for IDE to become ready\n" );
+    printf( "Timeout waiting for IDE to become ready (status = 0x%02X)\n", status );
     ide_dump_registers();
     return 1;
 }
@@ -164,20 +164,14 @@ int ide_write_command_packet( char *cmd, int dma )
     byte_write( IDE_DEVICE, 0 );
     byte_write( IDE_COMMAND, IDE_CMD_PACKET );
     status = byte_read(IDE_ALTSTATUS); /* delay 1 PIO cycle as per spec */
-    printf( "After writing PACKET command byte:\n" );
-    ide_dump_registers();
     /* Wait until device is ready to accept command */
     if( ide_wait_ready() )
 	return 1;
-    printf( "Device ready to receive packet:\n" );
-    ide_dump_registers();
 
     /* Write the command */
     for( i=0; i<6; i++ ) {
         word_write( IDE_DATA, spkt[i] );
     }
-    printf( "After writing command packet:\n" );
-    ide_dump_registers();
 }
 
 int ide_read_pio( char *buf, int buflen ) {
@@ -334,6 +328,17 @@ int ide_sense_error( char *buf )
     return ide_do_packet_command_pio( cmd, buf, 10 );
 }
 
+int ide_get_sense_code()
+{
+    char buf[10];
+    int len = ide_sense_error( buf );
+    if( len != 10 ) {
+	printf( "ERROR: Sense request failed!\n" );
+	return -1;
+    }
+    return ((int)buf[8] << 8) | buf[2];
+}
+
 void ide_print_sense_error()
 {
     char buf[10];
@@ -428,10 +433,11 @@ int ide_read_something( )
     return 0;
 }
 
-int ide_read_status( char *buf, int length )
+int ide_read_status( char *buf, int length, int type )
 {
     char cmd[12] = { 0x40,0,0,0, 0xFF,0,0,0, 0,0,0,0 };
 
+    cmd[1] = type;
     return ide_do_packet_command_pio( cmd, buf, length );
 }
 		     
