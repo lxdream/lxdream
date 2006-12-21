@@ -1,5 +1,5 @@
 /**
- * $Id: packet.h,v 1.5 2006-12-19 09:52:56 nkeynes Exp $
+ * $Id: packet.h,v 1.6 2006-12-21 10:15:02 nkeynes Exp $
  *
  * This file defines the command codes and any other flags used by the 
  * GD-Rom ATAPI packet commands.
@@ -61,8 +61,9 @@
 #define PKT_ERR_NODISC    0x3A02
 #define PKT_ERR_BADCMD    0x2005
 #define PKT_ERR_BADFIELD  0x2405
-#define PKT_ERR_BADREAD   0x0030
+#define PKT_ERR_BADREAD   0x3002
 #define PKT_ERR_BADREADMODE 0x6405  /* Illegal mode for this track */
+#define PKT_ERR_RESET     0x2906
 
 #define IDE_READ_MODE1 0x20
 #define IDE_READ_RAW   0x30
