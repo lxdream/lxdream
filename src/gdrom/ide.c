@@ -1,5 +1,5 @@
 /**
- * $Id: ide.c,v 1.19 2006-12-19 11:58:12 nkeynes Exp $
+ * $Id: ide.c,v 1.20 2006-12-21 10:15:54 nkeynes Exp $
  *
  * IDE interface implementation
  *
@@ -143,7 +143,7 @@ static void ide_reset( void )
     idereg.lba1 = 0x14;
     idereg.lba2 = 0xeb;
     idereg.feature = 0; /* Indeterminate really */
-    idereg.status = 0x50;
+    idereg.status = 0x00;
     idereg.device = 0x00;
     idereg.disc = gdrom_is_mounted() ? (IDE_DISC_CDROM|IDE_DISC_READY) : IDE_DISC_NONE;
     idereg.state = IDE_STATE_IDLE;
@@ -152,7 +152,7 @@ static void ide_reset( void )
     idereg.data_length = -1;
     idereg.last_read_track = 1;
     idereg.last_read_lba = 150;
-    idereg.last_read_count = 0;
+    idereg.was_reset = TRUE;
 }
 
 static void ide_save_state( FILE *f )
@@ -186,6 +186,7 @@ void ide_set_packet_result( uint16_t result )
     idereg.gdrom_sense[2] = result & 0xFF;
     idereg.gdrom_sense[8] = (result >> 8) & 0xFF;
     idereg.error = (result & 0x0F) << 4;
+    idereg.count = 3;
     if( result != 0 ) {
 	idereg.status = 0x51;
 	ide_raise_interrupt();
@@ -200,7 +201,7 @@ void ide_set_packet_result( uint16_t result )
 static void ide_start_command_packet_write( )
 {
     idereg.state = IDE_STATE_CMD_WRITE;
-    idereg.status = IDE_STATUS_DRDY | IDE_STATUS_DRQ;
+    idereg.status = 0x58;
     idereg.error = idereg.feature & 0x03; /* Copy values of OVL/DMA */
     idereg.count = IDE_COUNT_CD;
     idereg.data_offset = 0;
@@ -221,7 +222,7 @@ static void ide_start_read( int length, int blocksize, gboolean dma )
 	idereg.status = 0xD0;
     } else {
 	idereg.state = IDE_STATE_PIO_READ;
-	idereg.status = IDE_STATUS_DRDY | IDE_STATUS_DRQ;
+	idereg.status = 0x58;
 	idereg.lba1 = length & 0xFF;
 	idereg.lba2 = (length >> 8) & 0xFF;
 	//	idereg.lba1 = blocksize & 0xFF;
@@ -278,6 +279,7 @@ uint16_t ide_read_data_pio( void ) {
 	    idereg.state = IDE_STATE_IDLE;
 	    idereg.status &= ~IDE_STATUS_DRQ;
 	    idereg.data_offset = -1;
+	    idereg.count = 3; /* complete */
 	    ide_raise_interrupt();
 	} else if( idereg.block_left <= 0 ) {
 	    idereg.block_left = idereg.block_length;
@@ -312,6 +314,7 @@ uint32_t ide_read_data_dma( uint32_t addr, uint32_t length )
 	    idereg.data_offset = -1;
 	    idereg.state = IDE_STATE_IDLE;
 	    idereg.status = 0x50;
+	    idereg.count = 0x03;
 	    ide_raise_interrupt();
 	    asic_event( EVENT_IDE_DMA );
 	}
@@ -393,12 +396,14 @@ void ide_write_command( uint8_t val ) {
 	default:
 	    WARN( "IDE: unimplemented feature: %02X", idereg.feature );
 	}
-	ide_raise_interrupt( );
+	idereg.status = 0x50;
+	idereg.error = 0x00;
+	idereg.lba1 = 0x00;
+	idereg.lba2 = 0x00;
 	break;
     default:
 	WARN( "IDE: Unimplemented command: %02X", val );
     }
-    idereg.status = (idereg.status | IDE_STATUS_DRDY | IDE_STATUS_SERV) & (~IDE_STATUS_CHK);
 }
 
 /**
@@ -417,6 +422,13 @@ void ide_packet_command( unsigned char *cmd )
     INFO( "ATAPI packet: %02X %02X %02X %02X  %02X %02X %02X %02X  %02X %02X %02X %02X", 
 	  cmd[0], cmd[1], cmd[2], cmd[3], cmd[4], cmd[5], cmd[6], cmd[7],
 	  cmd[8], cmd[9], cmd[10], cmd[11] );
+
+    if( cmd[0] != PKT_CMD_SENSE && idereg.was_reset ) {
+	ide_set_packet_result( PKT_ERR_RESET );
+	idereg.was_reset = FALSE;
+	return;
+    }
+
     switch( cmd[0] ) {
     case PKT_CMD_TEST_READY:
 	if( !gdrom_is_mounted() ) {
@@ -503,7 +515,6 @@ void ide_packet_command( unsigned char *cmd )
 	    idereg.gdrom_sense[6] = (lba >> 8) & 0xFF;
 	    idereg.gdrom_sense[7] = lba & 0xFF;
 	} else {
-	    idereg.last_read_count += length;
 	    idereg.last_read_lba = lba + length;
 	    idereg.last_read_track = gdrom_get_track_no_by_lba( idereg.last_read_lba );
 	    ide_start_packet_read( datalen, blocksize );
@@ -528,25 +539,25 @@ void ide_packet_command( unsigned char *cmd )
 		ide_start_packet_read( length, blocksize );
 		break;
 	    case 1:
-		if( length > 16 ) {
-		    length = 16;
+		if( length > 14 ) {
+		    length = 14;
 		}
+		gdrom_track_t track = gdrom_get_track(idereg.last_read_track);
+		int offset = idereg.last_read_lba - track->lba;
 		data_buffer[0] = 0x00;
 		data_buffer[1] = 0x15; /* ??? */
 		data_buffer[2] = 0x00;
 		data_buffer[3] = 0x0E;
-		data_buffer[4] = gdrom_get_track(idereg.last_read_track)->flags;
+		data_buffer[4] = track->flags;
 		data_buffer[5] = idereg.last_read_track;
 		data_buffer[6] = 0x01; /* ?? */
-		data_buffer[7] = (idereg.last_read_count >> 16) & 0xFF;
-		data_buffer[8] = (idereg.last_read_count >> 8) & 0xFF;
-		data_buffer[9] = idereg.last_read_count & 0xFF;
+		data_buffer[7] = (offset >> 16) & 0xFF;
+		data_buffer[8] = (offset >> 8) & 0xFF;
+		data_buffer[9] = offset & 0xFF;
 		data_buffer[10] = (idereg.last_read_lba >> 24) & 0xFF;
 		data_buffer[11] = (idereg.last_read_lba >> 16) & 0xFF;
 		data_buffer[12] = (idereg.last_read_lba >> 8) & 0xFF;
 		data_buffer[13] = idereg.last_read_lba & 0xFF;
-		data_buffer[14] = 0x00;
-		data_buffer[15] = 0x00;
 		ide_start_packet_read( length, blocksize );
 		break;
 	    }

@@ -1,5 +1,5 @@
 /**
- * $Id: ide.h,v 1.10 2006-12-19 09:52:56 nkeynes Exp $
+ * $Id: ide.h,v 1.11 2006-12-21 10:15:54 nkeynes Exp $
  *
  * This file defines the interface and structures of the dreamcast's IDE 
  * port. Note that the register definitions are in asic.h, as the registers
@@ -42,6 +42,7 @@ struct ide_registers {
     /* Internal IDE state */
     uint8_t intrq_pending; /* Flag to indicate if the INTRQ line is active */
     gboolean interface_enabled;
+    gboolean was_reset; /* Flag indicating that the device has just been reset */
     int state;
 
     /* Sense response for the last executed packet command */
@@ -60,7 +61,6 @@ struct ide_registers {
     /* Status reporting information */
     uint8_t last_read_track;
     uint32_t last_read_lba;
-    uint32_t last_read_count;
 };
 
 #define IDE_STATE_IDLE      0 
@@ -108,7 +108,7 @@ extern struct ide_registers idereg;
 /* Note: control can be written at any time - all other registers are writable
  * only when ide_can_write_regs() is true
  */
-#define ide_can_write_regs() ((idereg.status&0x88)==0)
+#define ide_can_write_regs() ((idereg.status&0x80)==0)
 #define IS_IDE_IRQ_ENABLED() ((idereg.control&0x02)==0)
 
 
