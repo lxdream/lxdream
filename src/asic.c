@@ -1,5 +1,5 @@
 /**
- * $Id: asic.c,v 1.21 2006-12-19 09:51:35 nkeynes Exp $
+ * $Id: asic.c,v 1.22 2006-12-21 11:12:19 nkeynes Exp $
  *
  * Support for the miscellaneous ASIC functions (Primarily event multiplexing,
  * and DMA). 
@@ -216,6 +216,7 @@ void mmio_region_ASIC_write( uint32_t reg, uint32_t val )
     case SYSRESET:
 	if( val == 0x7611 ) {
 	    dreamcast_reset();
+	    sh4r.new_pc = sh4r.pc;
 	} else {
 	    WARN( "Unknown value %08X written to SYSRESET port", val );
 	}
