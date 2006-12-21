@@ -1,5 +1,5 @@
 /**
- * $Id: ide.c,v 1.20 2006-12-21 10:15:54 nkeynes Exp $
+ * $Id: ide.c,v 1.21 2006-12-21 11:13:10 nkeynes Exp $
  *
  * IDE interface implementation
  *
@@ -400,6 +400,7 @@ void ide_write_command( uint8_t val ) {
 	idereg.error = 0x00;
 	idereg.lba1 = 0x00;
 	idereg.lba2 = 0x00;
+	ide_raise_interrupt();
 	break;
     default:
 	WARN( "IDE: Unimplemented command: %02X", val );
