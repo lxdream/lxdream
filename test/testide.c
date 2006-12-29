@@ -1,5 +1,5 @@
 /**
- * $Id: testide.c,v 1.4 2006-12-21 10:14:24 nkeynes Exp $
+ * $Id: testide.c,v 1.5 2006-12-29 00:23:16 nkeynes Exp $
  *
  * IDE interface test cases. Covers all (known) IDE registers in the 
  * 5F7000 - 5F74FF range including DMA, but does not cover any GD-Rom
@@ -377,7 +377,6 @@ int test_reset()
     byte_write( IDE_COUNT, 0x0B );
     byte_write( IDE_COMMAND, 0xEF );
     EXPECT_READY();
-    CHECK_INTRQ_CLEAR();
     CHECK_REGS( post_set_feature_regs );
     
     /** Set Multi-word DMA mode 2 */
@@ -450,6 +449,8 @@ int test_set_feature()
     return 0;
 }
 
+
+
 /**
  * Test DMA transfer (using the Inquiry packet comand)
  */
@@ -474,6 +475,41 @@ int test_read_toc()
     char expect[12] = { 0x41, 0,0, 0x96, 0x41, 0, 0x2E, 0x4C, 0xFF, 0xFF, 0xFF, 0xFF };
     
     IDE_TEST_PACKET_OK( cmd, expect, 12 );
+    return 0;
+}
+
+int test_read_pio()
+{
+    int i,j;
+    char cmd[12] = {0x30, 0x28, 0, 0x2E,  0x4C, 0, 0, 0,  0, 0, 7, 0 };
+    uint32_t read_pio_ready_regs[] = 
+	{ IDE_ALTSTATUS, 0x58,
+	  IDE_ERROR, 0x00,
+	  IDE_COUNT, 0x02,
+	  IDE_LBA1, 0x00,
+	  IDE_LBA2, 0x08,
+	  IDE_DEVICE, 0,
+	  IDE_STATUS, 0x58, 0, 0 };
+
+    if( send_packet_command(cmd) != 0 ) {
+	return -1;
+    }
+
+    for( j=0; j<7; j++ ) {
+	CHECK_REGS(read_pio_ready_regs);
+	CHECK_INTRQ_CLEAR();
+	for( i=0; i<0x0800; i+=2 ) {
+	    word_read(IDE_DATA); // throw away for now.
+	}
+	
+	EXPECT_INTRQ();
+	EXPECT_READY();
+    }
+
+    read_pio_ready_regs[1] = 0x50;
+    read_pio_ready_regs[5] = 0x03;
+    read_pio_ready_regs[13] = 0x50;
+    CHECK_REGS( read_pio_ready_regs );
     return 0;
 }
 
@@ -519,7 +555,7 @@ int test_status1()
 typedef int (*test_func_t)();
 
 test_func_t test_fns[] = { test_enable, test_reset, test_packet,
-			   test_dma, test_dma_abort, 
+			   test_dma, test_dma_abort, test_read_pio,
 			   test_read_toc,
 			   test_status1, NULL };
 

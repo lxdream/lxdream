@@ -1,5 +1,5 @@
 /**
- * $Id: ide.c,v 1.21 2006-12-21 11:13:10 nkeynes Exp $
+ * $Id: ide.c,v 1.22 2006-12-29 00:23:13 nkeynes Exp $
  *
  * IDE interface implementation
  *
@@ -223,10 +223,8 @@ static void ide_start_read( int length, int blocksize, gboolean dma )
     } else {
 	idereg.state = IDE_STATE_PIO_READ;
 	idereg.status = 0x58;
-	idereg.lba1 = length & 0xFF;
-	idereg.lba2 = (length >> 8) & 0xFF;
-	//	idereg.lba1 = blocksize & 0xFF;
-	//	idereg.lba2 = blocksize >> 8; 
+	idereg.lba1 = blocksize & 0xFF;
+	idereg.lba2 = blocksize >> 8; 
 	idereg.block_length = blocksize;
 	idereg.block_left = blocksize;
 	ide_raise_interrupt( );
@@ -449,7 +447,7 @@ void ide_packet_command( unsigned char *cmd )
 	    if( lba+length > sizeof(gdrom_ident) )
 		length = sizeof(gdrom_ident) - lba;
 	    memcpy( data_buffer, gdrom_ident + lba, length );
-	    ide_start_packet_read( length, blocksize );
+	    ide_start_packet_read( length, length );
 	}
 	break;
     case PKT_CMD_SENSE:
@@ -457,7 +455,7 @@ void ide_packet_command( unsigned char *cmd )
 	if( length > 10 )
 	    length = 10;
 	memcpy( data_buffer, idereg.gdrom_sense, length );
-	ide_start_packet_read( length, blocksize );
+	ide_start_packet_read( length, length );
 	break;
     case PKT_CMD_READ_TOC:
 	length = (cmd[3]<<8) | cmd[4];
@@ -468,7 +466,7 @@ void ide_packet_command( unsigned char *cmd )
 	if( status != PKT_ERR_OK ) {
 	    ide_set_packet_result( status );
 	} else {
-	    ide_start_packet_read( length, blocksize );
+	    ide_start_packet_read( length, length );
 	}
 	break;
     case PKT_CMD_SESSION_INFO:
@@ -479,7 +477,7 @@ void ide_packet_command( unsigned char *cmd )
 	if( status != PKT_ERR_OK ) {
 	    ide_set_packet_result( status );
 	} else {
-	    ide_start_packet_read( length, blocksize );
+	    ide_start_packet_read( length, length );
 	}
 	break;
     case PKT_CMD_PLAY_CD:	    
@@ -515,10 +513,11 @@ void ide_packet_command( unsigned char *cmd )
 	    idereg.gdrom_sense[5] = (lba >> 16) & 0xFF;
 	    idereg.gdrom_sense[6] = (lba >> 8) & 0xFF;
 	    idereg.gdrom_sense[7] = lba & 0xFF;
+	    WARN( " => Read CD returned sense key %02X, %02X", status & 0xFF, status >> 8 );
 	} else {
 	    idereg.last_read_lba = lba + length;
 	    idereg.last_read_track = gdrom_get_track_no_by_lba( idereg.last_read_lba );
-	    ide_start_packet_read( datalen, blocksize );
+	    ide_start_packet_read( datalen, 0x0800 );
 	}
 	break;
     case PKT_CMD_SPIN_UP:
@@ -537,7 +536,7 @@ void ide_packet_command( unsigned char *cmd )
 		    length = sizeof(gdrom_status);
 		}
 		memcpy( data_buffer, gdrom_status, length );
-		ide_start_packet_read( length, blocksize );
+		ide_start_packet_read( length, length );
 		break;
 	    case 1:
 		if( length > 14 ) {
@@ -559,7 +558,7 @@ void ide_packet_command( unsigned char *cmd )
 		data_buffer[11] = (idereg.last_read_lba >> 16) & 0xFF;
 		data_buffer[12] = (idereg.last_read_lba >> 8) & 0xFF;
 		data_buffer[13] = idereg.last_read_lba & 0xFF;
-		ide_start_packet_read( length, blocksize );
+		ide_start_packet_read( length, length );
 		break;
 	    }
 	}
@@ -570,7 +569,7 @@ void ide_packet_command( unsigned char *cmd )
 	 * For sake of something to do, it returns the results from a test dump
 	 */
 	memcpy( data_buffer, gdrom_71, sizeof(gdrom_71) );
-	ide_start_packet_read( sizeof(gdrom_71), blocksize );
+	ide_start_packet_read( sizeof(gdrom_71), sizeof(gdrom_71) );
 	break;
     default:
 	ide_set_packet_result( PKT_ERR_BADCMD ); /* Invalid command */
