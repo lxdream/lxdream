@@ -1,5 +1,5 @@
 /**
- * $Id: linux.c,v 1.1 2006-12-14 12:31:38 nkeynes Exp $
+ * $Id: linux.c,v 1.2 2006-12-29 00:24:43 nkeynes Exp $
  *
  * Linux cd-rom device driver
  *
@@ -29,6 +29,7 @@
 
 #define MAXTOCENTRIES 600  /* This is a fairly generous overestimate really */
 #define MAXTOCSIZE 4 + (MAXTOCENTRIES*11)
+#define MAX_SECTORS_PER_CALL 32
 
 #define MSFTOLBA( m,s,f ) (f + (s*CD_FRAMES) + (m*CD_FRAMES*CD_SECS))
 
@@ -207,22 +208,31 @@ static gdrom_error_t linux_read_sectors( gdrom_disc_t disc, uint32_t sector,
 {
     int fd = fileno(disc->file);
     uint32_t real_sector = sector - CD_MSF_OFFSET;
-    int buflen = sector_count * 2048;
+    uint32_t sector_size = 2048;
+    int buflen = sector_count * sector_size;
+    int i;
     char cmd[12] = { 0xBE, 0x10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-    cmd[2] = (real_sector >> 24) & 0xFF;
-    cmd[3] = (real_sector >> 16) & 0xFF;
-    cmd[4] = (real_sector >> 8) & 0xFF;
-    cmd[5] = real_sector & 0xFF;
-    cmd[6] = (sector_count >> 16) & 0xFF;
-    cmd[7] = (sector_count >> 8) & 0xFF;
-    cmd[8] = sector_count & 0xFF;
-    cmd[9] = 0x10;
+
+    for( i=0; i<sector_count; i += MAX_SECTORS_PER_CALL ) {
+	int count = MIN(MAX_SECTORS_PER_CALL, sector_count);
+	cmd[2] = (real_sector >> 24) & 0xFF;
+	cmd[3] = (real_sector >> 16) & 0xFF;
+	cmd[4] = (real_sector >> 8) & 0xFF;
+	cmd[5] = real_sector & 0xFF;
+	cmd[6] = (count >> 16) & 0xFF;
+	cmd[7] = (count >> 8) & 0xFF;
+	cmd[8] = count & 0xFF;
+	cmd[9] = 0x10;
     
-    gdrom_error_t status = linux_send_command( fd, cmd, buf, buflen, CGC_DATA_READ );
-    if( status == 0 ) {
-	*length = buflen;
+	gdrom_error_t status = linux_send_command( fd, cmd, buf, count * sector_size, CGC_DATA_READ );
+	if( status != 0 ) {
+	    return status;
+	}
+	real_sector += count;
+	buf += count * sector_size;
     }
-    return status;
+    *length = buflen;
+    return 0;
 }
 
 /**
