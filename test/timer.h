@@ -1,5 +1,6 @@
 
 void timer_start();
-long timer_gettime();
-long timer_stop();
-long timer_to_microsecs( long value );
+unsigned int timer_gettime();
+unsigned int timer_gettime_us();
+unsigned int timer_stop();
+unsigned int timer_to_microsecs( long value );
