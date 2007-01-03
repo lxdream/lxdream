@@ -1,5 +1,5 @@
 /**
- * $Id: sh4core.c,v 1.35 2006-12-19 09:54:03 nkeynes Exp $
+ * $Id: sh4core.c,v 1.36 2007-01-03 09:00:17 nkeynes Exp $
  * 
  * SH4 emulation core, and parent module for all the SH4 peripheral
  * modules.
@@ -90,6 +90,7 @@ void sh4_reset(void)
     MMIO_WRITE( MMU, EXPEVT, EXC_POWER_RESET );
 
     /* Peripheral modules */
+    CPG_reset();
     INTC_reset();
     TMU_reset();
     SCIF_reset();

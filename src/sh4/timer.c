@@ -1,5 +1,5 @@
 /**
- * $Id: timer.c,v 1.4 2006-03-17 12:13:12 nkeynes Exp $
+ * $Id: timer.c,v 1.5 2007-01-03 09:00:17 nkeynes Exp $
  * 
  * SH4 Timer/Clock peripheral modules (CPG, TMU, RTC), combined together to
  * keep things simple (they intertwine a bit).
@@ -53,7 +53,7 @@ void mmio_region_CPG_write( uint32_t reg, uint32_t val )
     case FRQCR: /* Frequency control */
 	div = ifc_divider[(val >> 6) & 0x07];
 	sh4_cpu_freq = sh4_input_freq / div;
-	sh4_cpu_period = 1000 * div / sh4_input_freq;
+	sh4_cpu_period = 4000 * div / sh4_input_freq;
 	div = ifc_divider[(val >> 3) & 0x07];
 	sh4_bus_freq = sh4_input_freq / div;
 	sh4_bus_period = 1000 * div / sh4_input_freq;
@@ -71,6 +71,17 @@ void mmio_region_CPG_write( uint32_t reg, uint32_t val )
     MMIO_WRITE( CPG, reg, val );
 }
 
+/**
+ * We don't really know what the default reset value is as it's determined
+ * by the mode select pins. This is the standard value that the BIOS sets,
+ * however, so it works for now.
+ */
+void CPG_reset( )
+{
+    mmio_region_CPG_write( FRQCR, 0x0E0A );
+}
+
+
 /********************************** RTC *************************************/
 
 uint32_t rtc_output_period;
@@ -86,6 +97,9 @@ void mmio_region_RTC_write( uint32_t reg, uint32_t val )
 }
 
 /********************************** TMU *************************************/
+
+uint32_t TMU_count( int timer, uint32_t nanosecs );
+
 
 #define TCR_ICPF 0x0200
 #define TCR_UNF  0x0100
@@ -103,6 +117,20 @@ struct TMU_timer TMU_timers[3];
 
 int32_t mmio_region_TMU_read( uint32_t reg )
 {
+    switch( reg ) {
+    case TCNT0:
+	TMU_count( 0, sh4r.slice_cycle );
+	TMU_timers[0].timer_run = sh4r.slice_cycle;
+	break;
+    case TCNT1:
+	TMU_count( 1, sh4r.slice_cycle );
+	TMU_timers[1].timer_run = sh4r.slice_cycle;
+	break;
+    case TCNT2:
+	TMU_count( 2, sh4r.slice_cycle );
+	TMU_timers[2].timer_run = sh4r.slice_cycle;
+	break;
+    }
     return MMIO_READ( TMU, reg );
 }
 
@@ -159,7 +187,7 @@ void TMU_set_timer_control( int timer,  int tcr )
 
 void TMU_start( int timer )
 {
-    TMU_timers[timer].timer_run = 0;
+    TMU_timers[timer].timer_run = sh4r.slice_cycle;
     TMU_timers[timer].timer_remainder = 0;
 }
 
