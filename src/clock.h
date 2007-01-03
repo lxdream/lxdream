@@ -1,5 +1,5 @@
 /**
- * $Id: clock.h,v 1.3 2005-12-25 05:56:55 nkeynes Exp $
+ * $Id: clock.h,v 1.4 2007-01-03 09:01:51 nkeynes Exp $
  * External interface to the dreamcast serial port, implemented by 
  * sh4/scif.c
  *
@@ -27,6 +27,7 @@ extern "C" {
 #define MHZ
 #define SH4_BASE_RATE 200 MHZ
 #define ARM_BASE_RATE 33 MHZ
+#define PVR2_DOT_CLOCK 27 MHZ
 
 extern uint32_t sh4_freq;
 extern uint32_t sh4_peripheral_freq;

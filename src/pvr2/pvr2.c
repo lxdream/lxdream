@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.c,v 1.33 2006-08-29 08:11:56 nkeynes Exp $
+ * $Id: pvr2.c,v 1.34 2007-01-03 09:01:51 nkeynes Exp $
  *
  * PVR2 (Video) Core module implementation and MMIO registers.
  *
@@ -21,6 +21,7 @@
 #include "display.h"
 #include "mem.h"
 #include "asic.h"
+#include "clock.h"
 #include "pvr2/pvr2.h"
 #include "sh4/sh4core.h"
 #define MMIO_IMPL
@@ -52,7 +53,7 @@ struct video_timing {
     int line_time_ns;
 };
 
-struct video_timing pal_timing = { 50, 625, 65, 32000 };
+struct video_timing pal_timing = { 50, 625, 65, 31945 };
 struct video_timing ntsc_timing= { 60, 525, 65, 31746 };
 
 struct pvr2_state {
@@ -61,7 +62,19 @@ struct pvr2_state {
     uint32_t line_remainder;
     uint32_t irq_vpos1;
     uint32_t irq_vpos2;
+    uint32_t odd_even_field; /* 1 = odd, 0 = even */
     gboolean retrace;
+
+    /* timing */
+    uint32_t dot_clock;
+    uint32_t total_lines;
+    uint32_t line_size;
+    uint32_t line_time_ns;
+    uint32_t vsync_lines;
+    uint32_t hsync_width_ns;
+    uint32_t front_porch_ns;
+    uint32_t back_porch_ns;
+    gboolean interlaced;
     struct video_timing timing;
 } pvr2_state;
 
@@ -75,6 +88,13 @@ static void pvr2_init( void )
     register_io_region( &mmio_region_PVR2TA );
     video_base = mem_get_region_by_name( MEM_REGION_VIDEO );
     texcache_init();
+    pvr2_state.dot_clock = 27069;
+    pvr2_state.total_lines = pal_timing.total_lines;
+    pvr2_state.line_time_ns = pal_timing.line_time_ns;
+    pvr2_state.front_porch_ns = 12000;
+    pvr2_state.back_porch_ns = 4000;
+    pvr2_state.hsync_width_ns = 4000;
+    pvr2_state.vsync_lines = 5;
     pvr2_reset();
     pvr2_ta_reset();
 }
@@ -110,11 +130,11 @@ static int pvr2_load_state( FILE *f )
 static uint32_t pvr2_run_slice( uint32_t nanosecs ) 
 {
     pvr2_state.line_remainder += nanosecs;
-    while( pvr2_state.line_remainder >= pvr2_state.timing.line_time_ns ) {
-	pvr2_state.line_remainder -= pvr2_state.timing.line_time_ns;
+    while( pvr2_state.line_remainder >= pvr2_state.line_time_ns ) {
+	pvr2_state.line_remainder -= pvr2_state.line_time_ns;
 
 	pvr2_state.line_count++;
-	if( pvr2_state.line_count == pvr2_state.timing.total_lines ) {
+	if( pvr2_state.line_count == pvr2_state.total_lines ) {
 	    asic_event( EVENT_RETRACE );
 	    pvr2_state.line_count = 0;
 	    pvr2_state.retrace = TRUE;
@@ -153,7 +173,7 @@ void pvr2_display_frame( void )
     
     int dispsize = MMIO_READ( PVR2, DISP_SIZE );
     int dispmode = MMIO_READ( PVR2, DISP_MODE );
-    int vidcfg = MMIO_READ( PVR2, DISP_CFG );
+    int vidcfg = MMIO_READ( PVR2, DISP_SYNCCFG );
     int vid_stride = ((dispsize & DISPSIZE_MODULO) >> 20) - 1;
     int vid_lpf = ((dispsize & DISPSIZE_LPF) >> 10) + 1;
     int vid_ppl = ((dispsize & DISPSIZE_PPL)) + 1;
@@ -222,22 +242,16 @@ void mmio_region_PVR2_write( uint32_t reg, uint32_t val )
     switch(reg) {
     case PVRID:
     case PVRVER:
-    case GUNPOS:
-    case TA_POLYPOS:
-    case TA_LISTPOS:
-	/* Readonly registers */
+    case GUNPOS: /* Read only registers */
 	break;
     case PVRRESET:
 	val &= 0x00000007; /* Do stuff? */
 	MMIO_WRITE( PVR2, reg, val );
 	break;
     case RENDER_START:
-	if( val == 0xFFFFFFFF )
+	if( val == 0xFFFFFFFF || val == 0x00000001 )
 	    pvr2_render_scene();
 	break;
-    case PVRUNK1:
-    	MMIO_WRITE( PVR2, reg, val&0x000007FF );
-    	break;
     case RENDER_POLYBASE:
     	MMIO_WRITE( PVR2, reg, val&0x00F00000 );
     	break;
@@ -298,9 +312,6 @@ void mmio_region_PVR2_write( uint32_t reg, uint32_t val )
     case RENDER_OBJCFG:
     	MMIO_WRITE( PVR2, reg, val&0x003FFFFF );
     	break;
-    case PVRUNK2:
-	MMIO_WRITE( PVR2, reg, val&0x00000007 );
-	break;
     case RENDER_TSPCLIP:
     	MMIO_WRITE( PVR2, reg, val&0x7FFFFFFF );
     	break;
@@ -333,43 +344,50 @@ void mmio_region_PVR2_write( uint32_t reg, uint32_t val )
     case RENDER_CLAMPLO:
 	MMIO_WRITE( PVR2, reg, val );
 	break;
-    case DISP_CFG:
-	MMIO_WRITE( PVR2, reg, val&0x000003FF );
+    case RENDER_TEXSIZE:
+	MMIO_WRITE( PVR2, reg, val&0x00031F1F );
 	break;
+    case RENDER_PALETTE:
+	MMIO_WRITE( PVR2, reg, val&0x00000003 );
+	break;
+
+	/********** CRTC registers *************/
     case DISP_HBORDER:
-    case DISP_SYNC:
     case DISP_VBORDER:
 	MMIO_WRITE( PVR2, reg, val&0x03FF03FF );
 	break;
-    case DISP_SYNC2:
-	MMIO_WRITE( PVR2, reg, val&0xFFFFFF7F );
+    case DISP_TOTAL:
+	val = val & 0x03FF03FF;
+	MMIO_WRITE( PVR2, reg, val );
+	pvr2_state.total_lines = (val >> 16) + 1;
+	pvr2_state.line_size = (val & 0x03FF) + 1;
+	pvr2_state.line_time_ns = 1000000 * pvr2_state.line_size / pvr2_state.dot_clock;
 	break;
-    case RENDER_TEXSIZE:
-	MMIO_WRITE( PVR2, reg, val&0x00031F1F );
+    case DISP_SYNCCFG:
+	MMIO_WRITE( PVR2, reg, val&0x000003FF );
+	pvr2_state.interlaced = (val & 0x0010) ? TRUE : FALSE;
+	break;
+    case DISP_SYNCTIME:
+	pvr2_state.vsync_lines = (val >> 8) & 0x0F;
+	pvr2_state.hsync_width_ns = ((val & 0x7F) + 1) * 1000000 / pvr2_state.dot_clock;
+	MMIO_WRITE( PVR2, reg, val&0xFFFFFF7F );
 	break;
     case DISP_CFG2:
 	MMIO_WRITE( PVR2, reg, val&0x003F01FF );
 	break;
     case DISP_HPOS:
-	MMIO_WRITE( PVR2, reg, val&0x000003FF );
+	val = val & 0x03FF;
+	pvr2_state.front_porch_ns = (val + 1) * 1000000 / pvr2_state.dot_clock;
+	MMIO_WRITE( PVR2, reg, val );
 	break;
     case DISP_VPOS:
 	MMIO_WRITE( PVR2, reg, val&0x03FF03FF );
 	break;
-    case SCALERCFG:
-	MMIO_WRITE( PVR2, reg, val&0x0007FFFF );
-	break;
-    case RENDER_PALETTE:
-	MMIO_WRITE( PVR2, reg, val&0x00000003 );
-	break;
-    case PVRUNK3:
-	MMIO_WRITE( PVR2, reg, val&0x000FFF3F );
-	break;
-    case PVRUNK5:
-	MMIO_WRITE( PVR2, reg, val&0x0000FFFF );
-	break;
-    case PVRUNK6:
-	MMIO_WRITE( PVR2, reg, val&0x000000FF );
+
+	/*********** Tile accelerator registers ***********/
+    case TA_POLYPOS:
+    case TA_LISTPOS:
+	/* Readonly registers */
 	break;
     case TA_TILEBASE:
     case TA_LISTEND:
@@ -387,17 +405,40 @@ void mmio_region_PVR2_write( uint32_t reg, uint32_t val )
     case TA_TILECFG:
 	MMIO_WRITE( PVR2, reg, val&0x00133333 );
 	break;
+    case TA_INIT:
+	if( val & 0x80000000 )
+	    pvr2_ta_init();
+	break;
+    case TA_REINIT:
+	break;
+	/**************** Scaler registers? ****************/
+    case SCALERCFG:
+	MMIO_WRITE( PVR2, reg, val&0x0007FFFF );
+	break;
+
     case YUV_ADDR:
 	MMIO_WRITE( PVR2, reg, val&0x00FFFFF8 );
 	break;
     case YUV_CFG:
 	MMIO_WRITE( PVR2, reg, val&0x01013F3F );
 	break;
-    case TA_INIT:
-	if( val & 0x80000000 )
-	    pvr2_ta_init();
+
+
+	/**************** Unknowns ***************/
+    case PVRUNK1:
+    	MMIO_WRITE( PVR2, reg, val&0x000007FF );
+    	break;
+    case PVRUNK2:
+	MMIO_WRITE( PVR2, reg, val&0x00000007 );
 	break;
-    case TA_REINIT:
+    case PVRUNK3:
+	MMIO_WRITE( PVR2, reg, val&0x000FFF3F );
+	break;
+    case PVRUNK5:
+	MMIO_WRITE( PVR2, reg, val&0x0000FFFF );
+	break;
+    case PVRUNK6:
+	MMIO_WRITE( PVR2, reg, val&0x000000FF );
 	break;
     case PVRUNK7:
 	MMIO_WRITE( PVR2, reg, val&0x00000001 );
@@ -405,11 +446,65 @@ void mmio_region_PVR2_write( uint32_t reg, uint32_t val )
     }
 }
 
+/**
+ * Calculate the current read value of the syncstat register, using
+ * the current SH4 clock time as an offset from the last timeslice.
+ * The register reads (LSB to MSB) as:
+ *     0..9  Current scan line
+ *     10    Odd/even field (1 = odd, 0 = even)
+ *     11    Display active (including border and overscan)
+ *     12    Horizontal sync off
+ *     13    Vertical sync off
+ * Note this method is probably incorrect for anything other than straight
+ * interlaced PAL, and needs further testing.
+ */
+uint32_t pvr2_get_sync_status()
+{
+    uint32_t tmp = pvr2_state.line_remainder + sh4r.slice_cycle;
+    uint32_t line = pvr2_state.line_count + (tmp / pvr2_state.line_time_ns);
+    uint32_t remainder = tmp % pvr2_state.line_time_ns;
+    uint32_t field = pvr2_state.odd_even_field;
+    uint32_t result;
+
+    if( line >= pvr2_state.total_lines ) {
+	line -= pvr2_state.total_lines;
+	if( pvr2_state.interlaced ) {
+	    field == 1 ? 0 : 1;
+	}
+    }
+
+    result = line;
+
+    if( field ) {
+	result |= 0x0400;
+    }
+    if( (line & 0x01) == field ) {
+	if( remainder > pvr2_state.hsync_width_ns ) {
+	    result |= 0x1000; /* !HSYNC */
+	}
+	if( line >= pvr2_state.vsync_lines ) {
+	    if( remainder > pvr2_state.front_porch_ns ) {
+		result |= 0x2800; /* Display active */
+	    } else {
+		result |= 0x2000; /* Front porch */
+	    }
+	}
+    } else {
+	if( remainder < (pvr2_state.line_time_ns - pvr2_state.back_porch_ns) &&
+	    line >= pvr2_state.vsync_lines ) {
+	    result |= 0x3800; /* Display active */
+	} else {
+	    result |= 0x1000; /* Back porch */
+	}
+    }
+    return result;
+}
+
 MMIO_REGION_READ_FN( PVR2, reg )
 {
     switch( reg ) {
-        case DISP_BEAMPOS:
-            return sh4r.icount&0x20 ? 0x2000 : 1;
+        case DISP_SYNCSTAT:
+            return pvr2_get_sync_status();
         default:
             return MMIO_READ( PVR2, reg );
     }
