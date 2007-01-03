@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2mmio.h,v 1.7 2006-08-06 02:47:08 nkeynes Exp $
+ * $Id: pvr2mmio.h,v 1.8 2007-01-03 09:01:51 nkeynes Exp $
  *
  * PVR2 (video chip) MMIO register definitions.
  *
@@ -57,18 +57,18 @@ MMIO_REGION_BEGIN( 0x005F8000, PVR2, "Power VR/2" )
     LONG_PORT( 0x0C4, GUNPOS, PORT_MRW, 0, "Lightgun position" )
     LONG_PORT( 0x0C8, DISP_HPOSIRQ, PORT_MRW, 0, "Raster horizontal event position" )    
     LONG_PORT( 0x0CC, DISP_VPOSIRQ, PORT_MRW, 0, "Raster event position" )
-    LONG_PORT( 0x0D0, DISP_CFG, PORT_MRW, 0, "Sync configuration & enable" )
+    LONG_PORT( 0x0D0, DISP_SYNCCFG, PORT_MRW, 0, "Sync configuration & enable" )
     LONG_PORT( 0x0D4, DISP_HBORDER, PORT_MRW, 0, "Horizontal border area" )
-    LONG_PORT( 0x0D8, DISP_SYNC, PORT_MRW, 0, "Sync pulse timing" )
+    LONG_PORT( 0x0D8, DISP_TOTAL, PORT_MRW, 0, "Total display area" )
     LONG_PORT( 0x0DC, DISP_VBORDER, PORT_MRW, 0, "Vertical border area" )
-    LONG_PORT( 0x0E0, DISP_SYNC2, PORT_MRW, 0, "Sync pulse widths" )
+    LONG_PORT( 0x0E0, DISP_SYNCTIME, PORT_MRW, 0, "Horizontal sync pulse timing" )
     LONG_PORT( 0x0E4, RENDER_TEXSIZE, PORT_MRW, 0, "Texture modulo width" )
     LONG_PORT( 0x0E8, DISP_CFG2, PORT_MRW, 0, "Video configuration 2" )
     LONG_PORT( 0x0EC, DISP_HPOS, PORT_MRW, 0, "Horizontal display position" )
     LONG_PORT( 0x0F0, DISP_VPOS, PORT_MRW, 0, "Vertical display position" )
     LONG_PORT( 0x0F4, SCALERCFG, PORT_MRW, 0, "Scaler configuration (?)" )
     LONG_PORT( 0x108, RENDER_PALETTE, PORT_MRW, 0, "Palette configuration" )
-    LONG_PORT( 0x10C, DISP_BEAMPOS, PORT_R, 0, "Raster beam position" )
+    LONG_PORT( 0x10C, DISP_SYNCSTAT, PORT_R, 0, "Raster beam position" )
     LONG_PORT( 0x110, PVRUNK3, PORT_MRW, 0, "PVR2 unknown register 3" )
     LONG_PORT( 0x114, PVRUNK4, PORT_MRW, 0, "PVR2 unknown register 4" )
     LONG_PORT( 0x118, PVRUNK5, PORT_MRW, 0, "PVR2 unkown register 5" )
