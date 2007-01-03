@@ -1,5 +1,5 @@
 /**
- * $Id: testide.c,v 1.5 2006-12-29 00:23:16 nkeynes Exp $
+ * $Id: testide.c,v 1.6 2007-01-03 09:05:13 nkeynes Exp $
  *
  * IDE interface test cases. Covers all (known) IDE registers in the 
  * 5F7000 - 5F74FF range including DMA, but does not cover any GD-Rom
@@ -22,6 +22,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include "testdata.h"
 #include "lib.h"
 #include "ide.h"
 #include "asic.h"
@@ -552,8 +553,6 @@ int test_status1()
 
 /********************************* Main **************************************/
 
-typedef int (*test_func_t)();
-
 test_func_t test_fns[] = { test_enable, test_reset, test_packet,
 			   test_dma, test_dma_abort, test_read_pio,
 			   test_read_toc,
@@ -563,17 +562,5 @@ int main()
 {
     int i;
     ide_init();
-
-    /* run tests */
-    for( i=0; test_fns[i] != NULL; i++ ) {
-	test_count++;
-	if( test_fns[i]() != 0 ) {
-	    fprintf( stderr, "Test %d failed\n", i+1 );
-	    test_failures++;
-	}
-    }
-
-    /* report */
-    fprintf( stderr, "%d/%d tests passed!\n", test_count - test_failures, test_count );
-    return test_failures;
+    return run_tests( test_fns );
 }

@@ -1,5 +1,5 @@
 /**
- * $Id: testdata.c,v 1.2 2006-08-02 04:13:15 nkeynes Exp $
+ * $Id: testdata.c,v 1.3 2007-01-03 09:05:13 nkeynes Exp $
  * 
  * Test data loader.
  *
@@ -194,4 +194,20 @@ test_data_t load_test_dataset( FILE *f )
     }
     fclose(f);
     return head;
+}
+
+int run_tests( test_func_t *test_fns ) {
+    int test_count, test_failures = 0;
+
+    for( test_count=0; test_fns[test_count] != NULL; test_count++ ) {
+	test_count++;
+	if( test_fns[test_count]() != 0 ) {
+	    fprintf( stderr, "Test %d failed\n", test_count+1 );
+	    test_failures++;
+	}
+    }
+
+    /* report */
+    fprintf( stderr, "%d/%d tests passed!\n", test_count - test_failures, test_count );
+    return test_failures;
 }

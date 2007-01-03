@@ -1,5 +1,5 @@
 /*
- * $Id: testdata.h,v 1.2 2006-08-02 04:13:15 nkeynes Exp $
+ * $Id: testdata.h,v 1.3 2007-01-03 09:05:13 nkeynes Exp $
  * 
  * Test data loader
  *
@@ -31,6 +31,9 @@ typedef struct test_data {
     struct test_data *next;
     struct test_data_block item[MAX_DATA_BLOCKS];
 } *test_data_t;
+
+typedef int (*test_func_t)();
+int run_tests( test_func_t *tests );
 
 test_data_t load_test_dataset( FILE *f );
 void free_test_dataset( test_data_t dataset );
