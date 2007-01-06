@@ -1,5 +1,5 @@
 /**
- * $Id: dreamcast.c,v 1.18 2006-07-02 04:59:00 nkeynes Exp $
+ * $Id: dreamcast.c,v 1.19 2007-01-06 04:06:36 nkeynes Exp $
  * Central switchboard for the system. This pulls all the individual modules
  * together into some kind of coherent structure. This is also where you'd
  * add Naomi support, if I ever get a board to play with...
@@ -58,6 +58,7 @@ struct dreamcast_module unknown_module = { "****", NULL, NULL, NULL, NULL,
  */
 void dreamcast_configure( )
 {
+    dreamcast_register_module( &eventq_module );
     /* Register the memory framework */
     dreamcast_register_module( &mem_module );
 

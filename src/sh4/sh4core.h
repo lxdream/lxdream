@@ -1,5 +1,5 @@
 /**
- * $Id: sh4core.h,v 1.15 2007-01-03 09:00:17 nkeynes Exp $
+ * $Id: sh4core.h,v 1.16 2007-01-06 04:06:36 nkeynes Exp $
  * 
  * This file defines the internal functions exported/used by the SH4 core, 
  * except for disassembly functions defined in sh4dasm.h
@@ -53,6 +53,9 @@ extern "C" {
  */
 #define SH4_STATE_STANDBY 4
 
+#define PENDING_IRQ 1
+#define PENDING_EVENT 2
+
 struct sh4_registers {
     uint32_t r[16];
     uint32_t r_bank[8]; /* hidden banked registers */
@@ -67,7 +70,9 @@ struct sh4_registers {
     
     uint32_t new_pc; /* Not a real register, but used to handle delay slots */
     uint32_t icount; /* Also not a real register, instruction counter */
-    uint32_t int_pending; /* flag set by the INTC = pending priority level */
+    uint32_t event_pending; /* slice cycle time of the next pending event, or FFFFFFFF
+                             when no events are pending */
+    uint32_t event_types; /* bit 0 = IRQ pending, bit 1 = general event pending */
     int in_delay_slot; /* flag to indicate the current instruction is in
                              * a delay slot (certain rules apply) */
     uint32_t slice_cycle; /* Current cycle within the timeslice */
@@ -147,7 +152,7 @@ int INTC_load_state( FILE *f );
 
 #define IS_SH4_PRIVMODE() (sh4r.sr&SR_MD)
 #define SH4_INTMASK() ((sh4r.sr&SR_IMASK)>>4)
-#define SH4_INT_PENDING() (sh4r.int_pending && !sh4r.in_delay_slot)
+#define SH4_EVENT_PENDING() (sh4r.event_pending <= sh4r.slice_cycle && !sh4r.in_delay_slot)
 
 #define FPSCR_FR     0x00200000 /* FPU register bank */
 #define FPSCR_SZ     0x00100000 /* FPU transfer size (0=32 bits, 1=64 bits) */
