@@ -1,5 +1,5 @@
 /**
- * $Id: testdata.c,v 1.3 2007-01-03 09:05:13 nkeynes Exp $
+ * $Id: testdata.c,v 1.4 2007-01-06 04:07:43 nkeynes Exp $
  * 
  * Test data loader.
  *
@@ -200,7 +200,6 @@ int run_tests( test_func_t *test_fns ) {
     int test_count, test_failures = 0;
 
     for( test_count=0; test_fns[test_count] != NULL; test_count++ ) {
-	test_count++;
 	if( test_fns[test_count]() != 0 ) {
 	    fprintf( stderr, "Test %d failed\n", test_count+1 );
 	    test_failures++;
