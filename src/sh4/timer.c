@@ -1,5 +1,5 @@
 /**
- * $Id: timer.c,v 1.5 2007-01-03 09:00:17 nkeynes Exp $
+ * $Id: timer.c,v 1.6 2007-01-06 04:05:32 nkeynes Exp $
  * 
  * SH4 Timer/Clock peripheral modules (CPG, TMU, RTC), combined together to
  * keep things simple (they intertwine a bit).
@@ -191,9 +191,13 @@ void TMU_start( int timer )
     TMU_timers[timer].timer_remainder = 0;
 }
 
+/**
+ * Stop the given timer. Run it up to the current time and leave it there.
+ */
 void TMU_stop( int timer )
 {
-
+    TMU_count( timer, sh4r.slice_cycle );
+    TMU_timers[timer].timer_run = sh4r.slice_cycle;
 }
 
 /**
@@ -232,9 +236,9 @@ void mmio_region_TMU_write( uint32_t reg, uint32_t val )
 	oldval = MMIO_READ( TMU, TSTR );
 	for( i=0; i<3; i++ ) {
 	    uint32_t tmp = 1<<i;
-	    if( (oldval & tmp) == 1 && (val&tmp) == 0  )
+	    if( (oldval & tmp) != 0 && (val&tmp) == 0  )
 		TMU_stop(i);
-	    else if( (oldval&tmp) == 0 && (val&tmp) == 1 )
+	    else if( (oldval&tmp) == 0 && (val&tmp) != 0 )
 		TMU_start(i);
 	}
 	break;
