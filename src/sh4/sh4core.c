@@ -1,5 +1,5 @@
 /**
- * $Id: sh4core.c,v 1.36 2007-01-03 09:00:17 nkeynes Exp $
+ * $Id: sh4core.c,v 1.37 2007-01-06 04:06:36 nkeynes Exp $
  * 
  * SH4 emulation core, and parent module for all the SH4 peripheral
  * modules.
@@ -58,6 +58,7 @@ void sh4_start( void );
 void sh4_stop( void );
 void sh4_save_state( FILE *f );
 int sh4_load_state( FILE *f );
+static void sh4_accept_interrupt( void );
 
 struct dreamcast_module sh4_module = { "SH4", sh4_init, sh4_reset, 
 				       NULL, sh4_run_slice, sh4_stop,
@@ -138,24 +139,43 @@ int sh4_get_breakpoint( uint32_t pc )
 
 uint32_t sh4_run_slice( uint32_t nanosecs ) 
 {
-    int target = sh4r.icount + nanosecs / sh4_cpu_period;
-    int start = sh4r.icount;
     int i;
+    sh4r.slice_cycle = 0;
 
     if( sh4r.sh4_state != SH4_STATE_RUNNING ) {
-	if( sh4r.int_pending != 0 )
-	    sh4r.sh4_state = SH4_STATE_RUNNING;;
+	if( sh4r.event_pending < nanosecs ) {
+	    sh4r.sh4_state = SH4_STATE_RUNNING;
+	    sh4r.slice_cycle = sh4r.event_pending;
+	}
     }
 
     if( sh4_breakpoint_count == 0 ) {
-	for( sh4r.slice_cycle = 0; sh4r.slice_cycle < nanosecs; sh4r.slice_cycle += sh4_cpu_period ) {
+	for( ; sh4r.slice_cycle < nanosecs; sh4r.slice_cycle += sh4_cpu_period ) {
+	    if( SH4_EVENT_PENDING() ) {
+		if( sh4r.event_types & PENDING_EVENT ) {
+		    event_execute();
+		}
+		/* Eventq execute may (quite likely) deliver an immediate IRQ */
+		if( sh4r.event_types & PENDING_IRQ ) {
+		    sh4_accept_interrupt();
+		}
+	    }
 	    if( !sh4_execute_instruction() ) {
 		break;
 	    }
 	}
     } else {
-
-	for( sh4r.slice_cycle = 0; sh4r.slice_cycle < nanosecs; sh4r.slice_cycle += sh4_cpu_period ) {
+	for( ;sh4r.slice_cycle < nanosecs; sh4r.slice_cycle += sh4_cpu_period ) {
+	    if( SH4_EVENT_PENDING() ) {
+		if( sh4r.event_types & PENDING_EVENT ) {
+		    event_execute();
+		}
+		/* Eventq execute may (quite likely) deliver an immediate IRQ */
+		if( sh4r.event_types & PENDING_IRQ ) {
+		    sh4_accept_interrupt();
+		}
+	    }
+                 
 	    if( !sh4_execute_instruction() )
 		break;
 #ifdef ENABLE_DEBUG_MODE
@@ -444,9 +464,6 @@ gboolean sh4_execute_instruction( void )
 #define FPULf   *((float *)&sh4r.fpul)
 #define FPULi    (sh4r.fpul)
 
-    if( SH4_INT_PENDING() ) 
-        sh4_accept_interrupt();
-                 
     pc = sh4r.pc;
     if( pc > 0xFFFFFF00 ) {
 	/* SYSCALL Magic */

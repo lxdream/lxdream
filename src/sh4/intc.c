@@ -1,5 +1,5 @@
 /**
- * $Id: intc.c,v 1.6 2006-06-15 10:27:10 nkeynes Exp $
+ * $Id: intc.c,v 1.7 2007-01-06 04:06:36 nkeynes Exp $
  *
  * SH4 onboard interrupt controller (INTC) implementation
  *
@@ -20,6 +20,7 @@
 #include "sh4mmio.h"
 #include "sh4core.h"
 #include "intc.h"
+#include "eventq.h"
 
 struct intc_sources_t {
     char *name;
@@ -106,7 +107,8 @@ void INTC_reset()
     intc_state.num_pending = 0;
     for( i=0; i<INT_NUM_SOURCES; i++ )
 	intc_state.priority[i] = intc_default_priority[i];
-    sh4r.int_pending = 0;
+    sh4r.event_pending = event_get_next_time();
+    sh4r.event_types &= (~PENDING_IRQ);
 }
 
 
@@ -123,7 +125,7 @@ int INTC_load_state( FILE *f )
 }
 
 /* We basically maintain a priority queue here, raise_interrupt adds an entry,
- * accept_interrupt takes it off. At the moment this is does as a simple
+ * accept_interrupt takes it off. At the moment this is done as a simple
  * ordered array, on the basis that in practice there's unlikely to be more
  * than one at a time. There are lots of ways to optimize this if it turns out
  * to be necessary, but I'd doubt it will be...
@@ -148,8 +150,10 @@ void intc_raise_interrupt( int which )
         intc_state.pending[j] = intc_state.pending[j-1];
     intc_state.pending[i] = which;
 
-    if( i == intc_state.num_pending && (sh4r.sr&SR_BL)==0 && SH4_INTMASK() < pri )
-        sh4r.int_pending = 1;
+    if( i == intc_state.num_pending && (sh4r.sr&SR_BL)==0 && SH4_INTMASK() < pri ) {
+        sh4r.event_pending = 0;
+	sh4r.event_types |= PENDING_IRQ;
+    }
 
     intc_state.num_pending++;
 }
@@ -180,9 +184,14 @@ uint32_t intc_accept_interrupt( void )
 void intc_mask_changed( void )
 {   
     if( intc_state.num_pending > 0 && (sh4r.sr&SR_BL)==0 &&
-        SH4_INTMASK() < PRIORITY(intc_state.pending[intc_state.num_pending-1]) )
-        sh4r.int_pending = 1;
-    else sh4r.int_pending = 0;
+        SH4_INTMASK() < PRIORITY(intc_state.pending[intc_state.num_pending-1]) ) {
+        sh4r.event_pending = 0;
+	sh4r.event_types |= PENDING_IRQ ;
+    }
+    else {
+	sh4r.event_pending = event_get_next_time();
+	sh4r.event_types &= (~PENDING_IRQ);
+    }
 }
     
 

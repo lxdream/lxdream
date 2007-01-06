@@ -1,5 +1,5 @@
 /**
- * $Id: dream.h,v 1.11 2006-09-12 08:36:09 nkeynes Exp $
+ * $Id: dream.h,v 1.12 2007-01-06 04:06:36 nkeynes Exp $
  *
  * Miscellaneous application-wide declarations (mainly logging atm)
  *
@@ -86,6 +86,7 @@ extern struct dreamcast_module ide_module;
 extern struct dreamcast_module maple_module;
 extern struct dreamcast_module pvr2_module;
 extern struct dreamcast_module gui_module;
+extern struct dreamcast_module eventq_module;
 extern struct dreamcast_module unknown_module;
 
 /*************************** Logging **************************/
