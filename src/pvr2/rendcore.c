@@ -1,5 +1,5 @@
 /**
- * $Id: rendcore.c,v 1.6 2006-09-12 12:16:36 nkeynes Exp $
+ * $Id: rendcore.c,v 1.7 2007-01-10 08:38:02 nkeynes Exp $
  *
  * PVR2 renderer core.
  *
@@ -269,7 +269,7 @@ void pvr2_render_tilebuffer( int width, int height, int clipx1, int clipy1,
     struct timeval tv_start, tv_end;
     gettimeofday(&tv_start, NULL);
     glEnable( GL_SCISSOR_TEST );
-    while( (segment->control & SEGMENT_END) == 0 ) {
+    do {
 	// fwrite_dump32v( (uint32_t *)segment, sizeof(struct tile_segment), 6, stderr );
 	int tilex = SEGMENT_X(segment->control);
 	int tiley = SEGMENT_Y(segment->control);
@@ -281,7 +281,6 @@ void pvr2_render_tilebuffer( int width, int height, int clipx1, int clipy1,
 	    x1 >= clipx2 ||
 	    y1 >= clipy2 ) {
 	    /* Tile completely clipped, skip */
-	    segment++;
 	    continue;
 	}
 
@@ -314,9 +313,7 @@ void pvr2_render_tilebuffer( int width, int height, int clipx1, int clipy1,
 	if( (segment->punchout_ptr & NO_POINTER) == 0 ) {
 	    render_tile( segment->punchout_ptr, RENDER_NORMAL, cheap_shadow );
 	}
-	segment++;
-
-    }
+    } while( ((segment++)->control & SEGMENT_END) == 0 );
     glDisable( GL_SCISSOR_TEST );
 
     gettimeofday(&tv_end, NULL);
