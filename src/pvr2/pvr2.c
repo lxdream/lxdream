@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.c,v 1.35 2007-01-06 04:06:36 nkeynes Exp $
+ * $Id: pvr2.c,v 1.36 2007-01-11 06:50:11 nkeynes Exp $
  *
  * PVR2 (Video) Core module implementation and MMIO registers.
  *
@@ -417,7 +417,7 @@ void mmio_region_PVR2_write( uint32_t reg, uint32_t val )
 	break;
     case DISP_SYNCTIME:
 	pvr2_state.vsync_lines = (val >> 8) & 0x0F;
-	pvr2_state.hsync_width_ns = ((val & 0x7F) + 1) * 1000000 / pvr2_state.dot_clock;
+	pvr2_state.hsync_width_ns = ((val & 0x7F) + 1) * 2000000 / pvr2_state.dot_clock;
 	MMIO_WRITE( PVR2, reg, val&0xFFFFFF7F );
 	break;
     case DISP_CFG2:
@@ -461,6 +461,12 @@ void mmio_region_PVR2_write( uint32_t reg, uint32_t val )
 	break;
 	/**************** Scaler registers? ****************/
     case SCALERCFG:
+	/* KOS suggests bits as follows:
+	 *   0: enable vertical scaling
+	 *  10: ???
+	 *  16: enable FSAA
+	 */
+	DEBUG( "Scaler config set to %08X", val );
 	MMIO_WRITE( PVR2, reg, val&0x0007FFFF );
 	break;
 
@@ -468,6 +474,7 @@ void mmio_region_PVR2_write( uint32_t reg, uint32_t val )
 	MMIO_WRITE( PVR2, reg, val&0x00FFFFF8 );
 	break;
     case YUV_CFG:
+	DEBUG( "YUV config set to %08X", val );
 	MMIO_WRITE( PVR2, reg, val&0x01013F3F );
 	break;
 
@@ -526,14 +533,16 @@ uint32_t pvr2_get_sync_status()
 	    }
 	}
     } else {
-	if( pvr2_state.line_remainder < (pvr2_state.line_time_ns - pvr2_state.back_porch_ns) &&
-	    pvr2_state.line_count >= pvr2_state.vsync_lines ) {
-	    result |= 0x3800; /* Display active */
+	if( pvr2_state.line_count >= pvr2_state.vsync_lines ) {
+	    if( pvr2_state.line_remainder < (pvr2_state.line_time_ns - pvr2_state.back_porch_ns)) {
+		result |= 0x3800; /* Display active */
+	    } else {
+		result |= 0x3000;
+	    }
 	} else {
 	    result |= 0x1000; /* Back porch */
 	}
     }
-    
     return result;
 }
 
