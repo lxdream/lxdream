@@ -1,5 +1,5 @@
 /**
- * $Id: display.c,v 1.2 2006-06-18 12:01:50 nkeynes Exp $
+ * $Id: display.c,v 1.3 2007-01-11 06:51:52 nkeynes Exp $
  *
  * Generic support for keyboard and other input sources. The active display
  * driver is expected to deliver events here, where they're translated and
@@ -65,16 +65,23 @@ static struct keymap_entry *input_get_key( uint16_t keycode )
 gboolean input_register_key( const gchar *keysym, input_key_callback_t callback,
 			     void *data, uint32_t value )
 {
+    int i;
     if( display_driver == NULL || keysym == NULL )
 	return FALSE; /* No display driver */
-    uint16_t keycode = display_driver->resolve_keysym(keysym);
-    if( keycode == 0 )
-	return FALSE; /* Invalid keysym */
-
-    struct keymap_entry *key = input_create_key( keycode );
-    key->callback = callback;
-    key->data = data;
-    key->value = value;
+    gchar **strv = g_strsplit(keysym, ",", 16);
+    gchar **s = strv;
+    while( *s != NULL ) {
+	uint16_t keycode = display_driver->resolve_keysym(g_strstrip(*s));
+	if( keycode == 0 )
+	    return FALSE; /* Invalid keysym */
+	
+	struct keymap_entry *key = input_create_key( keycode );
+	key->callback = callback;
+	key->data = data;
+	key->value = value;
+	s++;
+    }
+    g_strfreev(strv);
     return TRUE;
 }
 
