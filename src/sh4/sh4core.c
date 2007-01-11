@@ -1,5 +1,5 @@
 /**
- * $Id: sh4core.c,v 1.37 2007-01-06 04:06:36 nkeynes Exp $
+ * $Id: sh4core.c,v 1.38 2007-01-11 12:14:11 nkeynes Exp $
  * 
  * SH4 emulation core, and parent module for all the SH4 peripheral
  * modules.
@@ -1665,4 +1665,5 @@ gboolean sh4_execute_instruction( void )
     sh4r.pc = sh4r.new_pc;
     sh4r.new_pc += 2;
     sh4r.in_delay_slot = 0;
+    return TRUE;
 }
