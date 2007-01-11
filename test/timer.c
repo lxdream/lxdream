@@ -12,13 +12,21 @@
  * Initialize the on-chip timer controller. We snag TMU channel 2 in its
  * highest resolution mode, and start it counting down from max_int. 
  */
-void timer_start() {
+void timer_init() {
     unsigned int val = byte_read(TSTR);
     byte_write( TSTR, val & (~(1<<TMU_CHANNEL)) ); /* Stop counter */
     long_write( TCOR(TMU_CHANNEL), 0xFFFFFFFF );
     long_write( TCNT(TMU_CHANNEL), 0xFFFFFFFF );
     word_write( TCR(TMU_CHANNEL), 0x00000000 );
-    byte_write( TSTR, val | (1<<TMU_CHANNEL) );
+}
+
+void timer_run() {
+    byte_write( TSTR, byte_read(TSTR) | (1<<TMU_CHANNEL) );
+}
+
+void timer_start() {
+    timer_init();
+    timer_run();
 }
 
 /**

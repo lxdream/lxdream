@@ -1,5 +1,5 @@
 /**
- * $Id: testdisp.c,v 1.2 2007-01-06 04:08:11 nkeynes Exp $
+ * $Id: testdisp.c,v 1.3 2007-01-11 06:53:31 nkeynes Exp $
  *
  * Display (2D) tests. Mainly tests video timing / sync (obviously
  * it can't actually test display output since there's no way of
@@ -207,14 +207,13 @@ int check_timing( struct timing *t ) {
     uint32_t last_line = t->total_lines - 1;
     int i;
 
+    timer_init();
     WAIT_LINE( t->total_lines - 1 );
-    asic_clear();
     for( i=0; i< MAX_FRAME_WAIT; i++ ) {
 	stat = long_read(SYNCSTAT) & 0x07FF;
 	if( stat == 0 ) {
 	    break;
 	} else if( (stat & 0x03FF) != last_line ) {
-	    asic_clear();
 	    last_line = stat & 0x03FF;
 	}
     }
@@ -222,22 +221,52 @@ int check_timing( struct timing *t ) {
 	fprintf( stderr, "Timeout waiting for line 0 field 0\n" );
 	return -1;
     }
-    timer_start();
-    asic_clear();
-    if( asic_check( EVENT_RETRACE ) != 0 ) {
-	fprintf( stderr, "Failed to clear retrace event ?\n" );
-	return -1;
-    }
+    timer_run();
     CHECK_IEQUALS( stat, 0 ); /* VSYNC, HSYNC, no display */
-    WAIT_LINE(1);
-    line_time = timer_gettime_us();
-    WAIT_LASTLINE(t->total_lines-1);
+
+    uint32_t start_of_line = 0;
+    uint32_t laststat = stat;
+    uint32_t lastline = 0;
+    int hsync_count = 0;
+    while(1) { /* for each line */
+	stat = long_read(SYNCSTAT);
+	if( stat != laststat ) {
+	    uint32_t cur_time = timer_gettime_us();
+	    uint32_t time = cur_time - start_of_line;
+	    uint32_t line = stat & 0x03FF;
+	    if( line != lastline ) {
+		if( time != t->line_time_us && /* Allow variance of +1 us */
+		    time-1 != t->line_time_us ) {
+		    fprintf( stderr, "Assertion failed: Expected line time %dus on line %d but was %dus: %d, %d, %d\n",
+			     t->line_time_us, lastline, time, start_of_line, cur_time, line );
+		    return -1;
+		}
+		if( line == 0 ) {
+		    CHECK_IEQUALS( t->total_lines-1, lastline );
+		    break;
+		}
+		start_of_line = cur_time;
+		lastline = line;
+	    } else if( (stat ^ laststat) == 0x1000 && (stat&0x1000) ) {
+		hsync_count++;
+		if( time != t->hsync_width_us &&
+		    time-1 != t->hsync_width_us ) {
+		    fprintf( stderr, "Assertion failed: Expected hsync width %dus on line %d but was %dus, stat = %08X, count=%d\n", 
+			     t->hsync_width_us, lastline, time, stat, hsync_count );
+		    return -1;
+		}
+	    } else {
+		//		fprintf( stderr, "Change %08X to %08X\n", laststat, stat );
+	    }
+	    laststat = stat;
+	}
+    }
+	
     field_time = timer_gettime_us();
 
-    if( line_time != t->line_time_us ||
-	field_time != t->field_time_us ) {
-	fprintf( stderr, "Assertion failed: Expected Timing %d,%d but was %d,%d\n",
-		 t->line_time_us, t->field_time_us, line_time, field_time );
+    if( field_time != t->field_time_us ) {
+	fprintf( stderr, "Assertion failed: Expected field time %dus but was %dus\n",
+		 t->field_time_us, field_time );
 	return -1;
     }
     return 0;
