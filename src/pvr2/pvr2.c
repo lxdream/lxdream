@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.c,v 1.36 2007-01-11 06:50:11 nkeynes Exp $
+ * $Id: pvr2.c,v 1.37 2007-01-11 12:14:57 nkeynes Exp $
  *
  * PVR2 (Video) Core module implementation and MMIO registers.
  *
@@ -37,7 +37,7 @@ static void pvr2_save_state( FILE *f );
 static int pvr2_load_state( FILE *f );
 static void pvr2_update_raster_posn( uint32_t nanosecs );
 static void pvr2_schedule_line_event( int eventid, int line );
-static void pvr2_schedule_scanline_event( int eventid, int line );
+static void pvr2_schedule_scanline_event( int eventid, int line, int minimum_lines );
 uint32_t pvr2_get_sync_status();
 
 void pvr2_display_frame( void );
@@ -105,9 +105,9 @@ static void pvr2_scanline_callback( int eventid ) {
     asic_event( eventid );
     pvr2_update_raster_posn(sh4r.slice_cycle);
     if( eventid == EVENT_SCANLINE1 ) {
-	pvr2_schedule_scanline_event( eventid, pvr2_state.irq_vpos1 );
+	pvr2_schedule_scanline_event( eventid, pvr2_state.irq_vpos1, 1 );
     } else {
-	pvr2_schedule_scanline_event( eventid, pvr2_state.irq_vpos2 );
+	pvr2_schedule_scanline_event( eventid, pvr2_state.irq_vpos2, 1 );
     }
 }
 
@@ -341,8 +341,8 @@ void mmio_region_PVR2_write( uint32_t reg, uint32_t val )
 	pvr2_state.irq_vpos1 = (val >> 16);
 	pvr2_state.irq_vpos2 = val & 0x03FF;
 	pvr2_update_raster_posn(sh4r.slice_cycle);
-	pvr2_schedule_scanline_event( EVENT_SCANLINE1, pvr2_state.irq_vpos1 );
-	pvr2_schedule_scanline_event( EVENT_SCANLINE2, pvr2_state.irq_vpos2 );
+	pvr2_schedule_scanline_event( EVENT_SCANLINE1, pvr2_state.irq_vpos1, 0 );
+	pvr2_schedule_scanline_event( EVENT_SCANLINE2, pvr2_state.irq_vpos2, 0 );
 	MMIO_WRITE( PVR2, reg, val );
 	break;
     case RENDER_NEARCLIP:
@@ -408,8 +408,8 @@ void mmio_region_PVR2_write( uint32_t reg, uint32_t val )
 	pvr2_state.retrace_end_line = 0x2A;
 	pvr2_state.retrace_start_line = pvr2_state.total_lines - 6;
 	pvr2_schedule_line_event( EVENT_RETRACE, 0 );
-	pvr2_schedule_scanline_event( EVENT_SCANLINE1, pvr2_state.irq_vpos1 );
-	pvr2_schedule_scanline_event( EVENT_SCANLINE2, pvr2_state.irq_vpos2 );
+	pvr2_schedule_scanline_event( EVENT_SCANLINE1, pvr2_state.irq_vpos1, 0 );
+	pvr2_schedule_scanline_event( EVENT_SCANLINE2, pvr2_state.irq_vpos2, 0 );
 	break;
     case DISP_SYNCCFG:
 	MMIO_WRITE( PVR2, reg, val&0x000003FF );
@@ -575,7 +575,7 @@ static void pvr2_schedule_line_event( int eventid, int line )
  * The raster position should be updated before calling this
  * method.
  */
-static void pvr2_schedule_scanline_event( int eventid, int line )
+static void pvr2_schedule_scanline_event( int eventid, int line, int minimum_lines )
 {
     uint32_t field = pvr2_state.odd_even_field;
     if( line <= pvr2_state.line_count && pvr2_state.interlaced ) {
@@ -586,7 +586,23 @@ static void pvr2_schedule_scanline_event( int eventid, int line )
     if( field ) {
 	line += 1;
     }
-    pvr2_schedule_line_event( eventid, line );
+    
+    if( line < pvr2_state.total_lines ) {
+	uint32_t lines;
+	uint32_t time;
+	if( line <= pvr2_state.line_count ) {
+	    lines = (pvr2_state.total_lines - pvr2_state.line_count + line);
+	} else {
+	    lines = (line - pvr2_state.line_count);
+	}
+	if( lines <= minimum_lines ) {
+	    lines += pvr2_state.total_lines;
+	}
+	time = (lines * pvr2_state.line_time_ns) - pvr2_state.line_remainder;
+	event_schedule( eventid, time );
+    } else {
+	event_cancel( eventid );
+    }
 }
 
 MMIO_REGION_READ_FN( PVR2, reg )
