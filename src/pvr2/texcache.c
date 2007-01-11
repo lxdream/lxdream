@@ -1,5 +1,5 @@
 /**
- * $Id: texcache.c,v 1.8 2006-09-12 13:33:18 nkeynes Exp $
+ * $Id: texcache.c,v 1.9 2007-01-11 06:51:11 nkeynes Exp $
  *
  * Texture cache. Responsible for maintaining a working set of OpenGL 
  * textures. 
@@ -159,7 +159,7 @@ static texcache_entry_index texcache_evict( void )
     }
     
     /* Remove the selected slot from the lookup table */
-    uint32_t evict_page = texcache_active_list[slot].texture_addr;
+    uint32_t evict_page = texcache_active_list[slot].texture_addr >> 12;
     texcache_entry_index replace_next = texcache_active_list[slot].next;
     texcache_active_list[slot].next = EMPTY_ENTRY; /* Just for safety */
     if( texcache_page_lookup[evict_page] == slot ) {
@@ -245,31 +245,36 @@ static void detwiddle_vq_to_16(int x1, int y1, int size, int totsize,
     }	
 }
 
-static void vq_decode( int width, int height, char *input, uint16_t *output,
-		       int twiddled ) {
-    struct vq_codebook codebook;
-    int i,j;
-    
+static void vq_get_codebook( struct vq_codebook *codebook, 
+				uint16_t *input )
+{
     /* Detwiddle the codebook, for the sake of my own sanity if nothing else */
     uint16_t *p = (uint16_t *)input;
+    int i;
     for( i=0; i<256; i++ ) {
-	codebook.quad[i][0] = *p++;
-	codebook.quad[i][2] = *p++;
-	codebook.quad[i][1] = *p++;
-	codebook.quad[i][3] = *p++;
+	codebook->quad[i][0] = *p++;
+	codebook->quad[i][2] = *p++;
+	codebook->quad[i][1] = *p++;
+	codebook->quad[i][3] = *p++;
     }
+}    
+
+
+static void vq_decode( int width, int height, char *input, uint16_t *output,
+		       struct vq_codebook *codebook, int twiddled ) {
+    int i,j;
     
-    uint8_t *c = (uint8_t *)p;
+    uint8_t *c = (uint8_t *)input;
     if( twiddled ) {
-	detwiddle_vq_to_16( 0, 0, width, width, &c, output, &codebook );
+	detwiddle_vq_to_16( 0, 0, width, width, &c, output, codebook );
     } else {
 	for( j=0; j<height; j+=2 ) {
 	    for( i=0; i<width; i+=2 ) {
 		uint8_t code = *c;
-		output[i + j*width] = codebook.quad[code][0];
-		output[i + 1 + j*width] = codebook.quad[code][1];
-		output[i + (j+1)*width] = codebook.quad[code][2];
-		output[i + 1 + (j+1)*width] = codebook.quad[code][3];
+		output[i + j*width] = codebook->quad[code][0];
+		output[i + 1 + j*width] = codebook->quad[code][1];
+		output[i + (j+1)*width] = codebook->quad[code][2];
+		output[i + 1 + (j+1)*width] = codebook->quad[code][3];
 	    }
 	}
     }
@@ -285,9 +290,14 @@ static texcache_load_texture( uint32_t texture_addr, int width, int height,
     int shift = 1;
     GLint intFormat, format, type;
     int tex_format = mode & PVR2_TEX_FORMAT_MASK;
+    struct vq_codebook codebook;
+    GLint filter = GL_LINEAR;
 
-    if( tex_format == PVR2_TEX_FORMAT_IDX8 ||
-	tex_format == PVR2_TEX_FORMAT_IDX4 ) {
+    /* Decode the format parameters */
+    switch( tex_format ) {
+    case PVR2_TEX_FORMAT_IDX4:
+	ERROR( "4-bit indexed textures not supported" );
+    case PVR2_TEX_FORMAT_IDX8:
 	switch( MMIO_READ( PVR2, RENDER_PALETTE ) & 0x03 ) {
 	case 0: /* ARGB1555 */
 	    intFormat = GL_RGB5_A1;
@@ -311,94 +321,103 @@ static texcache_load_texture( uint32_t texture_addr, int width, int height,
 	    shift = 2;
 	    break;
 	}
+	bytes <<= shift;
+	break;
+	    
+    case PVR2_TEX_FORMAT_ARGB1555:
+	bytes <<= 1;
+	intFormat = GL_RGB5_A1;
+	format = GL_RGBA;
+	type = GL_UNSIGNED_SHORT_1_5_5_5_REV;
+	break;
+    case PVR2_TEX_FORMAT_RGB565:
+	bytes <<= 1;
+	intFormat = GL_RGB;
+	format = GL_RGB;
+	type = GL_UNSIGNED_SHORT_5_6_5_REV;
+	break;
+    case PVR2_TEX_FORMAT_ARGB4444:
+	bytes <<= 1;
+	intFormat = GL_RGBA4;
+	format = GL_BGRA;
+	type = GL_UNSIGNED_SHORT_4_4_4_4_REV;
+	break;
+    case PVR2_TEX_FORMAT_YUV422:
+	ERROR( "YUV textures not supported" );
+	break;
+    case PVR2_TEX_FORMAT_BUMPMAP:
+	ERROR( "Bumpmap not supported" );
+	break;
+    }
+	
+    int level=0, last_level = 0, mip_width = width, mip_height = height, mip_bytes = bytes;
+    if( PVR2_TEX_IS_MIPMAPPED(mode) ) {
+	int i;
+	for( i=0; 1<<(i+1) < width; i++ );
+	last_level = i;
+	mip_width = width >> i;
+	mip_height= height >> i;
+	mip_bytes = bytes >> (i*2);
+	filter = GL_LINEAR_MIPMAP_LINEAR;
+    }
 
+    if( PVR2_TEX_IS_COMPRESSED(mode) ) {
+	uint16_t tmp[VQ_CODEBOOK_SIZE];
+	pvr2_vram64_read( (char *)tmp, texture_addr, VQ_CODEBOOK_SIZE );
+	texture_addr += VQ_CODEBOOK_SIZE;
+	vq_get_codebook( &codebook, tmp );
+    }
+
+    for( level=last_level; level>= 0; level-- ) {
+	char data[mip_bytes];
+	/* load data from image, detwiddling/uncompressing as required */
 	if( tex_format == PVR2_TEX_FORMAT_IDX8 ) {
-	    unsigned char data[bytes<<shift];
+	    int inputlength = mip_bytes >> shift;
 	    int bank = (mode >> 25) &0x03;
 	    char *palette = mmio_region_PVR2PAL.mem + (bank * (256 << shift));
-	    int i;
+	    char tmp[inputlength];
+	    char *p = tmp;
+	    pvr2_vram64_read( tmp, texture_addr, inputlength );
 	    if( shift == 2 ) {
-		char tmp[bytes];
-	        char *p = tmp;
-		pvr2_vram64_read( tmp, texture_addr, bytes );
-		detwiddle_pal8_to_32( 0, 0, width, width, &p, 
+		detwiddle_pal8_to_32( 0, 0, mip_width, mip_width, &p, 
 				      (uint32_t *)data, (uint32_t *)palette );
 	    } else {
-		char tmp[bytes];
-		char *p = tmp;
-		pvr2_vram64_read( tmp, texture_addr, bytes );
-		detwiddle_pal8_to_16( 0, 0, width, width, &p,
+		detwiddle_pal8_to_16( 0, 0, mip_width, mip_width, &p,
 				      (uint16_t *)data, (uint16_t *)palette );
 	    }
-	    glTexImage2D( GL_TEXTURE_2D, 0, intFormat, width, height, 0, format, type,
-			  data );
-
-	}
-    } else {
-	switch( tex_format ) {
-	case PVR2_TEX_FORMAT_ARGB1555:
-	    bytes <<= 1;
-	    intFormat = GL_RGB5_A1;
-	    format = GL_RGBA;
-	    type = GL_UNSIGNED_SHORT_1_5_5_5_REV;
-	    break;
-	case PVR2_TEX_FORMAT_RGB565:
-	    bytes <<= 1;
-	    intFormat = GL_RGB;
-	    format = GL_RGB;
-	    type = GL_UNSIGNED_SHORT_5_6_5_REV;
-	    break;
-	case PVR2_TEX_FORMAT_ARGB4444:
-	    bytes <<= 1;
-	    intFormat = GL_RGBA4;
-	    format = GL_BGRA;
-	    type = GL_UNSIGNED_SHORT_4_4_4_4_REV;
-	    break;
-	case PVR2_TEX_FORMAT_YUV422:
-	    ERROR( "YUV textures not supported" );
-	    break;
-	case PVR2_TEX_FORMAT_BUMPMAP:
-	    ERROR( "Bumpmap not supported" );
-	    break;
-	case PVR2_TEX_FORMAT_IDX4:
-	    /* Supported? */
-	    bytes >>= 1;
-	    intFormat = GL_INTENSITY4;
-	    format = GL_COLOR_INDEX;
-	    type = GL_UNSIGNED_BYTE;
-	    shift = 0;
-	    break;
-	case PVR2_TEX_FORMAT_IDX8:
-	    intFormat = GL_INTENSITY8;
-	    format = GL_COLOR_INDEX;
-	    type = GL_UNSIGNED_BYTE;
-	    shift = 0;
-	    break;
-	}
-	
-	char data[bytes];
-	/* load data from image, detwiddling/uncompressing as required */
-	if( PVR2_TEX_IS_COMPRESSED(mode) ) {
-	    int inputlength = VQ_CODEBOOK_SIZE + 
-		((width*height) >> 2); /* + mip maps */
-	    char tmp[bytes];
+	} else if( PVR2_TEX_IS_COMPRESSED(mode) ) {
+	    int inputlength = ((mip_width*mip_height) >> 2);
+	    char tmp[inputlength];
 	    pvr2_vram64_read( tmp, texture_addr, inputlength );
-	    vq_decode( width, height, tmp, (uint16_t *)&data, PVR2_TEX_IS_TWIDDLED(mode) );
+	    vq_decode( mip_width, mip_height, tmp, (uint16_t *)&data, &codebook, 
+		       PVR2_TEX_IS_TWIDDLED(mode) );
 	} else if( PVR2_TEX_IS_TWIDDLED(mode) ) {
-	    char tmp[bytes];
+	    char tmp[mip_bytes];
 	    uint16_t *p = (uint16_t *)tmp;
-	    pvr2_vram64_read( tmp, texture_addr, bytes );
+	    pvr2_vram64_read( tmp, texture_addr, mip_bytes );
 	    /* Untwiddle */
-	    detwiddle_16_to_16( 0, 0, width, width, &p, (uint16_t *)&data );
+	    detwiddle_16_to_16( 0, 0, mip_width, mip_width, &p, (uint16_t *)&data );
 	} else {
-	    pvr2_vram64_read( data, texture_addr, bytes );
+	    pvr2_vram64_read( data, texture_addr, mip_bytes );
+	}
+	    
+	if( PVR2_TEX_IS_MIPMAPPED(mode) && mip_width == 2 ) {
+	    /* Opengl requires a 1x1 texture, but the PVR2 doesn't. This should
+	     * strictly speaking be the average of the 2x2 texture, but we're
+	     * lazy at the moment */
+	    glTexImage2D( GL_TEXTURE_2D, level+1, intFormat, 1, 1, 0, format, type, data );
 	}
 
 	/* Pass to GL */
-	glTexImage2D( GL_TEXTURE_2D, 0, intFormat, width, height, 0, format, type,
+	glTexImage2D( GL_TEXTURE_2D, level, intFormat, mip_width, mip_height, 0, format, type,
 		      data );
+	texture_addr += mip_bytes;
+	mip_width <<= 1;
+	mip_height <<= 1;
+	mip_bytes <<= 2;
     }
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 }
 
