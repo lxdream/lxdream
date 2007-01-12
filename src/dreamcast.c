@@ -1,5 +1,5 @@
 /**
- * $Id: dreamcast.c,v 1.19 2007-01-06 04:06:36 nkeynes Exp $
+ * $Id: dreamcast.c,v 1.20 2007-01-12 10:16:02 nkeynes Exp $
  * Central switchboard for the system. This pulls all the individual modules
  * together into some kind of coherent structure. This is also where you'd
  * add Naomi support, if I ever get a board to play with...
@@ -85,6 +85,12 @@ void dreamcast_configure( )
     dreamcast_register_module( &ide_module );
 }
 
+void dreamcast_save_flash()
+{
+    char *file = dreamcast_get_config_value(CONFIG_FLASH_PATH);
+    mem_save_block( file, 0x00200000, 0x00020000 );
+}
+
 /**
  * Constructs a system configuration for the AICA in standalone mode,
  * ie sound chip only.
@@ -152,6 +158,13 @@ void dreamcast_stop( void )
 {
     if( dreamcast_state == STATE_RUNNING )
 	dreamcast_state = STATE_STOPPING;
+}
+
+void dreamcast_shutdown()
+{
+    dreamcast_stop();
+    sh4_stop();
+    dreamcast_save_flash();
 }
 
 gboolean dreamcast_is_running( void )
