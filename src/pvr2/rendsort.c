@@ -1,5 +1,5 @@
 /**
- * $Id: rendsort.c,v 1.1 2006-09-12 11:54:19 nkeynes Exp $
+ * $Id: rendsort.c,v 1.2 2007-01-12 10:15:06 nkeynes Exp $
  *
  * PVR2 renderer routines for depth sorted polygons
  *
@@ -121,7 +121,7 @@ void render_extract_triangles( pvraddr_t tile_entry, gboolean cheap_modifier_mod
 		}
 	    } else if( (entry & 0xE0000000) == 0xA0000000 ) {
 		/* Sprite(s) */
-		int strip_count = (entry >> 25) & 0x0F;
+		int strip_count = ((entry >> 25) & 0x0F)+1;
 		int polygon_length = 4 * vertex_length + context_length;
 		int i;
 		for( i=0; i<strip_count; i++ ) {
