@@ -69,7 +69,7 @@ test: build-tests
 	$(RUNTEST) testta < testta.data < testta2.data < testta3.data < testta4.data < testta5.data
 	$(RUNTEST) testregs
 
-build-tests: testsh4 testmath testide testta testregs testrend testdisp
+build-tests: testsh4 testmath testide testta testregs testrend testdisp testspu
 
 testsh4: crt0.so sh4/testsh4.so timer.so interrupt.so \
 	 sh4/add.so sh4/addc.so sh4/addv.so sh4/and.so sh4/andi.so \
@@ -100,6 +100,14 @@ testrend: crt0.so $(SHARED_OBJECTS) testrend.so pvr.so dmac.so asic.so lib.so te
 testdisp: crt0.so $(SHARED_OBJECTS) testdisp.so pvr.so asic.so lib.so testdata.so timer.so
 	$(SH4CC) $(SH4LDFLAGS) $^  -o $@ $(SH4LIBS)
 	$(SH4OBJCOPY) testdisp testdisp.bin
+
+testyuv: crt0.so $(SHARED_OBJECTS) testyuv.so pvr.so asic.so lib.so testdata.so timer.so dmac.so
+	$(SH4CC) $(SH4LDFLAGS) $^  -o $@ $(SH4LIBS)
+	$(SH4OBJCOPY) testyuv testyuv.bin
+
+testspu: crt0.so $(SHARED_OBJECTS) testspu.so asic.so lib.so testdata.so timer.so dmac.so
+	$(SH4CC) $(SH4LDFLAGS) $^  -o $@ $(SH4LIBS)
+	$(SH4OBJCOPY) testspu testspu.bin
 
 readdata: crt0.so readdata.so
 	$(SH4CC) $(SH4LDFLAGS) $^ -o $@ $(SH4LIBS)
