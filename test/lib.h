@@ -59,5 +59,6 @@ extern struct spudma_struct *spudma;
 int is_start_pressed();
 
 #define CHECK_IEQUALS( a, b ) if( a != b ) { fprintf(stderr, "Assertion failed at %s:%d: expected %08X, but was %08X\n", __FILE__, __LINE__, a, b ); return -1; }
+#define DMA_ALIGN(x)   ((void *)((((unsigned int)(x))+0x1F)&0xFFFFFFE0))
 
 #endif
