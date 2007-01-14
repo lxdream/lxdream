@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.c,v 1.37 2007-01-11 12:14:57 nkeynes Exp $
+ * $Id: pvr2.c,v 1.38 2007-01-14 11:43:00 nkeynes Exp $
  *
  * PVR2 (Video) Core module implementation and MMIO registers.
  *
@@ -474,7 +474,6 @@ void mmio_region_PVR2_write( uint32_t reg, uint32_t val )
 	MMIO_WRITE( PVR2, reg, val&0x00FFFFF8 );
 	break;
     case YUV_CFG:
-	DEBUG( "YUV config set to %08X", val );
 	MMIO_WRITE( PVR2, reg, val&0x01013F3F );
 	break;
 
@@ -681,6 +680,51 @@ void pvr2_vram64_write( sh4addr_t destaddr, char *src, uint32_t length )
 	    *dest++ = *src++;
 	}
     }  
+}
+
+/**
+ * Write an image to 64-bit vram, with a line-stride different from the line-size.
+ * The destaddr must be 32-bit aligned, and both line_bytes and line_stride_bytes
+ * must be multiples of 4.
+ */
+void pvr2_vram64_write_stride( sh4addr_t destaddr, char *src, uint32_t line_bytes, 
+			       uint32_t line_stride_bytes, uint32_t line_count )
+{
+    int bank_flag = (destaddr & 0x04) >> 2;
+    uint32_t *banks[2];
+    uint32_t *dwsrc;
+    uint32_t line_gap;
+    int line_gap_flag;
+    int i,j;
+
+    destaddr = destaddr & 0x7FFFF8;
+    i = line_stride_bytes - line_bytes;
+    line_gap_flag = i & 0x04;
+    line_gap = i >> 3;
+	
+
+    for( i=destaddr & 0xFFFFF000; i < destaddr + line_stride_bytes*line_count; i+= PAGE_SIZE ) {
+	texcache_invalidate_page( i );
+    }
+
+    banks[0] = (uint32_t *)(video_base + (destaddr >>1));
+    banks[1] = banks[0] + 0x100000;
+    if( bank_flag ) 
+	banks[0]++;
+    
+    dwsrc = (uint32_t *)src;
+    for( i=0; i<line_count; i++ ) {
+	for( j=0; j<line_bytes; j++ ) {
+	    *banks[bank_flag]++ = *dwsrc++;
+	    bank_flag = !bank_flag;
+	}
+	*banks[0] += line_gap;
+	*banks[1] += line_gap;
+	if( line_gap_flag ) {
+	    *banks[bank_flag]++;
+	    bank_flag = !bank_flag;
+	}
+    }    
 }
 
 void pvr2_vram_write_invert( sh4addr_t destaddr, char *src, uint32_t length, uint32_t line_length )

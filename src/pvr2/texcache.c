@@ -1,5 +1,5 @@
 /**
- * $Id: texcache.c,v 1.9 2007-01-11 06:51:11 nkeynes Exp $
+ * $Id: texcache.c,v 1.10 2007-01-14 11:43:00 nkeynes Exp $
  *
  * Texture cache. Responsible for maintaining a working set of OpenGL 
  * textures. 
@@ -280,6 +280,42 @@ static void vq_decode( int width, int height, char *input, uint16_t *output,
     }
 }
 
+static inline uint32_t yuv_to_rgb32( float y, float u, float v )
+{
+    u -= 128;
+    v -= 128;
+    int r = (int)(y + v*1.375);
+    int g = (int)(y - u*0.34375 - v*0.6875);
+    int b = (int)(y + u*1.71875);
+    if( r > 255 ) { r = 255; } else if( r < 0 ) { r = 0; }
+    if( g > 255 ) { g = 255; } else if( g < 0 ) { g = 0; }
+    if( b > 255 ) { b = 255; } else if( b < 0 ) { b = 0; }
+    return 0xFF000000 | (r<<24) | (g<<16) | (b<<16);
+}
+
+
+/**
+ * Convert non-twiddled YUV texture data into RGB32 data - most GL implementations don't
+ * directly support this format unfortunately. The input data is formatted as
+ * 32 bits = 2 horizontal pixels, UYVY. This is currently done rather inefficiently
+ * in floating point.
+ */
+static void yuv_decode( int width, int height, uint32_t *input, uint32_t *output )
+{
+    int x, y;
+    uint32_t *p = input;
+    for( y=0; y<height; y++ ) {
+	for( x=0; x<width; x+=2 ) {
+	    float u = (float)(*p & 0xFF);
+	    float y0 = (float)( (*p>>8)&0xFF );
+	    float v = (float)( (*p>>16)&0xFF );
+	    float y1 = (float)( (*p>>24)&0xFF );
+	    *output++ = yuv_to_rgb32( y0, u, v ); 
+	    *output++ = yuv_to_rgb32( y1, u, v );
+	}
+    }
+}
+
 /**
  * Load texture data from the given address and parameters into the currently
  * bound OpenGL texture.
@@ -343,7 +379,10 @@ static texcache_load_texture( uint32_t texture_addr, int width, int height,
 	type = GL_UNSIGNED_SHORT_4_4_4_4_REV;
 	break;
     case PVR2_TEX_FORMAT_YUV422:
-	ERROR( "YUV textures not supported" );
+	bytes <<= 2;
+	intFormat = GL_RGBA8;
+	format = GL_BGRA;
+	type = GL_UNSIGNED_INT_8_8_8_8_REV;
 	break;
     case PVR2_TEX_FORMAT_BUMPMAP:
 	ERROR( "Bumpmap not supported" );
@@ -385,6 +424,11 @@ static texcache_load_texture( uint32_t texture_addr, int width, int height,
 		detwiddle_pal8_to_16( 0, 0, mip_width, mip_width, &p,
 				      (uint16_t *)data, (uint16_t *)palette );
 	    }
+	} else if( tex_format == PVR2_TEX_FORMAT_YUV422 ) {
+	    int inputlength = ((mip_width*mip_height)<<1);
+	    char tmp[inputlength];
+	    pvr2_vram64_read( tmp, texture_addr, inputlength );
+	    yuv_decode( mip_width, mip_height, tmp, (uint32_t *)&data );
 	} else if( PVR2_TEX_IS_COMPRESSED(mode) ) {
 	    int inputlength = ((mip_width*mip_height) >> 2);
 	    char tmp[inputlength];

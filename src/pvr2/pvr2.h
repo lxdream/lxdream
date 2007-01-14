@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.h,v 1.18 2006-09-12 11:54:19 nkeynes Exp $
+ * $Id: pvr2.h,v 1.19 2007-01-14 11:43:00 nkeynes Exp $
  *
  * PVR2 (video chip) functions and macros.
  *
@@ -114,6 +114,13 @@ int pvr2_get_frame_count( void );
 void pvr2_vram64_write( sh4addr_t dest, char *src, uint32_t length );
 
 /**
+ * Write to the interleaved memory address space (aka 64-bit address space),
+ * using a line length and stride.
+ */
+void pvr2_vram64_write_stride( sh4addr_t dest, char *src, uint32_t line_bytes,
+			       uint32_t line_stride_bytes, uint32_t line_count );
+
+/**
  * Read from the interleaved memory address space (aka 64-bit address space)
  */
 void pvr2_vram64_read( char *dest, sh4addr_t src, uint32_t length );
@@ -137,6 +144,19 @@ void pvr2_ta_write( char *buf, uint32_t length );
  * Normally called immediately before commencing polygon transmission.
  */
 void pvr2_ta_init( void );
+
+
+/****************************** YUV Converter ****************************/
+
+/**
+ * Process a block of YUV data.
+ */
+void pvr2_yuv_write( char *buf, uint32_t length );
+
+/**
+ * Initialize the YUV converter.
+ */
+void pvr2_yuv_init( uint32_t target_addr, uint32_t config );
 
 /********************************* Renderer ******************************/
 
@@ -220,8 +240,8 @@ GLuint texcache_get_texture( uint32_t texture_addr, int width, int height,
 
 #define POLY2_SRC_BLEND(poly2) ( pvr2_poly_srcblend[(poly2) >> 29] )
 #define POLY2_DEST_BLEND(poly2) ( pvr2_poly_dstblend[((poly2)>>26)&0x07] )
-#define POLY2_SRC_BLEND_ENABLE(poly2) ((poly2)&0x02000000)
-#define POLY2_DEST_BLEND_ENABLE(poly2) ((poly2)&0x01000000)
+#define POLY2_SRC_BLEND_TARGET(poly2) ((poly2)&0x02000000)
+#define POLY2_DEST_BLEND_TARGET(poly2) ((poly2)&0x01000000)
 #define POLY2_COLOUR_CLAMP_ENABLE(poly2) ((poly2)&0x00200000)
 #define POLY2_ALPHA_ENABLE(poly2) ((poly2)&0x001000000)
 #define POLY2_TEX_ALPHA_ENABLE(poly2) (((poly2)&0x00080000) == 0 )

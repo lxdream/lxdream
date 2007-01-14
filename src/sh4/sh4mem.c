@@ -1,5 +1,5 @@
 /**
- * $Id: sh4mem.c,v 1.16 2006-12-12 09:18:47 nkeynes Exp $
+ * $Id: sh4mem.c,v 1.17 2007-01-14 11:43:00 nkeynes Exp $
  * sh4mem.c is responsible for the SH4's access to memory (including memory
  * mapped I/O), using the page maps created in mem.c
  *
@@ -65,7 +65,11 @@ int32_t sh4_read_p4( uint32_t addr )
 {
     struct mmio_region *io = P4_io[(addr&0x1FFFFFFF)>>19];
     if( !io ) {
-        ERROR( "Attempted read from unknown P4 region: %08X", addr );
+        if( (addr & 0xFF000000) != 0xF4000000 ) {
+	    /* OC address cache isn't implemented, but don't complain about it.
+	     * Complain about anything else though */
+            ERROR( "Attempted read from unknown P4 region: %08X", addr );
+        }
         return 0;
     } else {
 	int32_t val = io->io_read( addr&0xFFF );
@@ -367,8 +371,11 @@ void mem_copy_from_sh4( char *dest, uint32_t srcaddr, size_t count ) {
 }
 
 void mem_copy_to_sh4( uint32_t destaddr, char *src, size_t count ) {
-    if( destaddr >= 0x10000000 && destaddr < 0x11000000 ) {
+    if( destaddr >= 0x10000000 && destaddr < 0x10800000 ) {
 	pvr2_ta_write( src, count );
+    } else if( destaddr >= 0x10800000 && destaddr < 0x11000000 ) {
+	/* YUV data */
+	pvr2_yuv_write( src, count );
     } else if( destaddr >= 0x04000000 && destaddr < 0x05000000 ||
 	       destaddr >= 0x11000000 && destaddr < 0x12000000 ) {
 	pvr2_vram64_write( destaddr, src, count );
