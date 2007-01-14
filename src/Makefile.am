@@ -35,7 +35,8 @@ lxdream_SOURCES = \
 	display.c display.h \
 	drivers/audio_null.c drivers/audio_esd.c \
 	drivers/video_null.c drivers/video_gtk.c drivers/video_gtk.h \
-	drivers/video_x11.c drivers/video_x11.h
+	drivers/video_x11.c drivers/video_x11.h \
+	drivers/video_gl.c drivers/video_gl.h
 
 lxdream_LDADD = @PACKAGE_LIBS@ $(INTLLIBS) -lesd
 
