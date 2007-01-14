@@ -1,5 +1,5 @@
 /**
- * $Id: asic.c,v 1.22 2006-12-21 11:12:19 nkeynes Exp $
+ * $Id: asic.c,v 1.23 2007-01-14 02:54:40 nkeynes Exp $
  *
  * Support for the miscellaneous ASIC functions (Primarily event multiplexing,
  * and DMA). 
@@ -179,6 +179,32 @@ void asic_check_cleared_events( )
 	intc_clear_interrupt( INT_IRQ9 );
 }
 
+void g2_dma_transfer( int channel )
+{
+    uint32_t offset = channel << 5;
+
+    if( MMIO_READ( EXTDMA, SPUDMA0CTL1 + offset ) == 1 ) {
+	if( MMIO_READ( EXTDMA, SPUDMA0CTL2 + offset ) == 1 ) {
+	    uint32_t extaddr = MMIO_READ( EXTDMA, SPUDMA0EXT + offset );
+	    uint32_t sh4addr = MMIO_READ( EXTDMA, SPUDMA0SH4 + offset );
+	    uint32_t length = MMIO_READ( EXTDMA, SPUDMA0SIZ + offset ) & 0x1FFFFFFF;
+	    uint32_t dir = MMIO_READ( EXTDMA, SPUDMA0DIR + offset );
+	    uint32_t mode = MMIO_READ( EXTDMA, SPUDMA0MOD + offset );
+	    char buf[length];
+	    if( dir == 0 ) { /* SH4 to device */
+		mem_copy_from_sh4( buf, sh4addr, length );
+		mem_copy_to_sh4( extaddr, buf, length );
+	    } else { /* Device to SH4 */
+		mem_copy_from_sh4( buf, extaddr, length );
+		mem_copy_to_sh4( sh4addr, buf, length );
+	    }
+	    MMIO_WRITE( EXTDMA, SPUDMA0CTL2 + offset, 0 );
+	    asic_event( EVENT_SPU_DMA0 + channel );
+	} else {
+	    MMIO_WRITE( EXTDMA, SPUDMA0CTL2 + offset, 0 );
+	}
+    }
+}
 
 void asic_ide_dma_transfer( )
 {	
@@ -328,7 +354,6 @@ MMIO_REGION_WRITE_FN( EXTDMA, reg, val )
 	}
 	break;
     case IDEDMACTL1:
-	MMIO_WRITE( EXTDMA, reg, val );
     case IDEDMACTL2:
 	MMIO_WRITE( EXTDMA, reg, val );
 	asic_ide_dma_transfer( );
@@ -342,6 +367,44 @@ MMIO_REGION_WRITE_FN( EXTDMA, reg, val )
 	} else if( val == 0x000042FE ) {
 	    idereg.interface_enabled = FALSE;
 	}
+	break;
+    case SPUDMA0CTL1:
+    case SPUDMA0CTL2:
+	MMIO_WRITE( EXTDMA, reg, val );
+	g2_dma_transfer( 0 );
+	break;
+    case SPUDMA0UN1:
+	break;
+    case SPUDMA1CTL1:
+    case SPUDMA1CTL2:
+	MMIO_WRITE( EXTDMA, reg, val );
+	g2_dma_transfer( 1 );
+	break;
+
+    case SPUDMA1UN1:
+	break;
+    case SPUDMA2CTL1:
+    case SPUDMA2CTL2:
+	MMIO_WRITE( EXTDMA, reg, val );
+	g2_dma_transfer( 2 );
+	break;
+    case SPUDMA2UN1:
+	break;
+    case SPUDMA3CTL1:
+    case SPUDMA3CTL2:
+	MMIO_WRITE( EXTDMA, reg, val );
+	g2_dma_transfer( 3 );
+	break;
+    case SPUDMA3UN1:
+	break;
+    case PVRDMA2CTL1:
+    case PVRDMA2CTL2:
+	if( val != 0 ) {
+	    ERROR( "Write to unimplemented DMA control register %08X", reg );
+	    //dreamcast_stop();
+	    //sh4_stop();
+	}
+	break;
     default:
             MMIO_WRITE( EXTDMA, reg, val );
     }
