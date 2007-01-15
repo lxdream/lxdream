@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.h,v 1.19 2007-01-14 11:43:00 nkeynes Exp $
+ * $Id: pvr2.h,v 1.20 2007-01-15 08:32:09 nkeynes Exp $
  *
  * PVR2 (video chip) functions and macros.
  *
@@ -100,11 +100,13 @@ int pvr2_get_frame_count( void );
 #define PVR2_TEX_COMPRESSED  0x40000000
 #define PVR2_TEX_FORMAT_MASK 0x38000000
 #define PVR2_TEX_UNTWIDDLED  0x04000000
+#define PVR2_TEX_STRIDE      0x02000000
 
 #define PVR2_TEX_ADDR(x) ( ((x)&0x01FFFFF)<<3 );
 #define PVR2_TEX_IS_MIPMAPPED(x) ( (x) & PVR2_TEX_MIPMAP )
 #define PVR2_TEX_IS_COMPRESSED(x) ( (x) & PVR2_TEX_COMPRESSED )
 #define PVR2_TEX_IS_TWIDDLED(x) (((x) & PVR2_TEX_UNTWIDDLED) == 0)
+#define PVR2_TEX_IS_STRIDE(x) (((x) & 0x06000000) == 0x06000000)
 
 /****************************** Frame Buffer *****************************/
 
@@ -124,6 +126,15 @@ void pvr2_vram64_write_stride( sh4addr_t dest, char *src, uint32_t line_bytes,
  * Read from the interleaved memory address space (aka 64-bit address space)
  */
 void pvr2_vram64_read( char *dest, sh4addr_t src, uint32_t length );
+
+/**
+ * Read an image from the interleaved memory address space (aka 64-bit address space) 
+ * where the source and destination line sizes may differ. Note that both byte
+ * counts must be a multiple of 4, and the src address must be 32-bit aligned.
+ */
+void pvr2_vram64_read_stride( char *dest, sh4addr_t src, uint32_t src_line_bytes,
+			       uint32_t dest_line_bytes, uint32_t line_count );
+
 
 /**
  * Dump a portion of vram to a stream from the interleaved memory address 
@@ -156,7 +167,9 @@ void pvr2_yuv_write( char *buf, uint32_t length );
 /**
  * Initialize the YUV converter.
  */
-void pvr2_yuv_init( uint32_t target_addr, uint32_t config );
+void pvr2_yuv_init( uint32_t target_addr );
+
+void pvr2_yuv_set_config( uint32_t config );
 
 /********************************* Renderer ******************************/
 

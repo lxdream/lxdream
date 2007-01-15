@@ -1,5 +1,5 @@
 /**
- * $Id: yuv.c,v 1.2 2007-01-14 11:43:00 nkeynes Exp $
+ * $Id: yuv.c,v 1.3 2007-01-15 08:32:09 nkeynes Exp $
  *
  * YUV420 and YUV422 decoding
  *
@@ -101,6 +101,7 @@ void pvr2_yuv_process_block( char *data )
 	pvr2_yuv_state.y++;
 	if( pvr2_yuv_state.y >= pvr2_yuv_state.height ) {
 	    asic_event( EVENT_PVR_YUV_DONE );
+	    pvr2_yuv_state.y = 0;
 	}
     }
     
@@ -140,18 +141,22 @@ void pvr2_yuv_write( char *data, uint32_t length )
     }
 }
 
-void pvr2_yuv_init( uint32_t target, uint32_t config )
+void pvr2_yuv_init( uint32_t target )
 {
     pvr2_yuv_state.target = target;
-    pvr2_yuv_state.width = (config & 0x3f) + 1;
-    pvr2_yuv_state.height = ((config>>8) & 0x3f) +1;
     pvr2_yuv_state.x = 0;
     pvr2_yuv_state.y = 0;
     pvr2_yuv_state.data_length = 0;
-    pvr2_yuv_state.input_format = (config & 0x01000000) ? FORMAT_YUV420 : FORMAT_YUV422;
+    MMIO_WRITE( PVR2, YUV_COUNT, 0 );
+}
+
+void pvr2_yuv_set_config( uint32_t config )
+{
+    pvr2_yuv_state.width = (config & 0x3f) + 1;
+    pvr2_yuv_state.height = ((config>>8) & 0x3f) +1;
+    pvr2_yuv_state.input_format = (config & 0x01000000) ? FORMAT_YUV422 : FORMAT_YUV420;
     if( config & 0x00010000 ) {
 	pvr2_yuv_state.height *= pvr2_yuv_state.width;
 	pvr2_yuv_state.width = 1;
     }
-    MMIO_WRITE( PVR2, YUV_COUNT, 0 );
 }
