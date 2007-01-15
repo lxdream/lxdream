@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.h,v 1.20 2007-01-15 08:32:09 nkeynes Exp $
+ * $Id: pvr2.h,v 1.21 2007-01-15 12:58:05 nkeynes Exp $
  *
  * PVR2 (video chip) functions and macros.
  *
@@ -132,8 +132,8 @@ void pvr2_vram64_read( char *dest, sh4addr_t src, uint32_t length );
  * where the source and destination line sizes may differ. Note that both byte
  * counts must be a multiple of 4, and the src address must be 32-bit aligned.
  */
-void pvr2_vram64_read_stride( char *dest, sh4addr_t src, uint32_t src_line_bytes,
-			       uint32_t dest_line_bytes, uint32_t line_count );
+void pvr2_vram64_read_stride( char *dest, uint32_t dest_line_bytes, sh4addr_t srcaddr,
+			       uint32_t src_line_bytes, uint32_t line_count );
 
 
 /**
