@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2mem.c,v 1.1 2007-01-15 08:32:09 nkeynes Exp $
+ * $Id: pvr2mem.c,v 1.2 2007-01-15 10:10:51 nkeynes Exp $
  *
  * PVR2 (Video) VRAM handling routines (mainly for the 64-bit region)
  *
@@ -102,10 +102,10 @@ void pvr2_vram64_write_stride( sh4addr_t destaddr, char *src, uint32_t line_byte
 	    *banks[bank_flag]++ = *dwsrc++;
 	    bank_flag = !bank_flag;
 	}
-	*banks[0] += line_gap;
-	*banks[1] += line_gap;
+	banks[0] += line_gap;
+	banks[1] += line_gap;
 	if( line_gap_flag ) {
-	    *banks[bank_flag]++;
+	    banks[bank_flag]++;
 	    bank_flag = !bank_flag;
 	}
     }    
