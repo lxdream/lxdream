@@ -1,5 +1,5 @@
 /**
- * $Id: video_x11.c,v 1.7 2007-01-14 02:55:06 nkeynes Exp $
+ * $Id: video_x11.c,v 1.8 2007-01-15 12:57:12 nkeynes Exp $
  *
  * Shared functions for all X11-based display drivers.
  *
@@ -125,7 +125,6 @@ gboolean video_glx_create_window( int x, int y, int width, int height )
     }
 
     hasRequiredGLExtensions();
-    fprintf(stderr, "GLX extensions: %s\n", glxExts );
     glx_open = TRUE;
     return TRUE;
 }
