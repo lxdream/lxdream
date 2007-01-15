@@ -1,5 +1,5 @@
 /**
- * $Id: texcache.c,v 1.12 2007-01-15 10:37:02 nkeynes Exp $
+ * $Id: texcache.c,v 1.13 2007-01-15 12:17:02 nkeynes Exp $
  *
  * Texture cache. Responsible for maintaining a working set of OpenGL 
  * textures. 
@@ -290,7 +290,7 @@ static inline uint32_t yuv_to_rgb32( float y, float u, float v )
     if( r > 255 ) { r = 255; } else if( r < 0 ) { r = 0; }
     if( g > 255 ) { g = 255; } else if( g < 0 ) { g = 0; }
     if( b > 255 ) { b = 255; } else if( b < 0 ) { b = 0; }
-    return 0xFF000000 | (r<<24) | (g<<16) | (b<<16);
+    return 0xFF000000 | (r<<16) | (g<<8) | (b);
 }
 
 
