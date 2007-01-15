@@ -1,5 +1,5 @@
 /**
- * $Id: video_gl.c,v 1.1 2007-01-14 02:55:06 nkeynes Exp $
+ * $Id: video_gl.c,v 1.2 2007-01-15 12:57:12 nkeynes Exp $
  *
  * Common GL code that doesn't depend on a specific implementation
  *
@@ -59,8 +59,6 @@ gboolean hasRequiredGLExtensions( )
 {
     int i;
     gboolean isOK = TRUE;
-    fprintf( stdout, "GL Extensions: %s\n", glGetString(GL_EXTENSIONS) );
-
 
     for( i=0; required_extensions[i] != NULL; i++ ) {
 	if( !isGLExtensionSupported(required_extensions[i]) ) {
