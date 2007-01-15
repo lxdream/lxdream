@@ -155,7 +155,7 @@ lxdream_SOURCES = \
         sh4/sh4mmio.c sh4/sh4mmio.h sh4/scif.c \
         aica/armcore.c aica/armcore.h aica/armdasm.c aica/armmem.c \
         aica/aica.c aica/aica.h aica/audio.c aica/audio.h \
-	pvr2/pvr2.c pvr2/pvr2.h \
+	pvr2/pvr2.c pvr2/pvr2.h pvr2/pvr2mem.c \
 	pvr2/tacore.c pvr2/render.c pvr2/rendcore.c pvr2/rendbkg.c pvr2/rendsort.c \
 	pvr2/texcache.c pvr2/yuv.c \
         maple/maple.c maple/maple.h \
@@ -192,16 +192,16 @@ am_lxdream_OBJECTS = main.$(OBJEXT) mem.$(OBJEXT) watch.$(OBJEXT) \
 	timer.$(OBJEXT) dmac.$(OBJEXT) sh4core.$(OBJEXT) \
 	sh4dasm.$(OBJEXT) sh4mmio.$(OBJEXT) scif.$(OBJEXT) \
 	armcore.$(OBJEXT) armdasm.$(OBJEXT) armmem.$(OBJEXT) \
-	aica.$(OBJEXT) audio.$(OBJEXT) pvr2.$(OBJEXT) tacore.$(OBJEXT) \
-	render.$(OBJEXT) rendcore.$(OBJEXT) rendbkg.$(OBJEXT) \
-	rendsort.$(OBJEXT) texcache.$(OBJEXT) yuv.$(OBJEXT) \
-	maple.$(OBJEXT) controller.$(OBJEXT) support.$(OBJEXT) \
-	interface.$(OBJEXT) callbacks.$(OBJEXT) gui.$(OBJEXT) \
-	mmr_win.$(OBJEXT) debug_win.$(OBJEXT) dump_win.$(OBJEXT) \
-	loader.$(OBJEXT) bootstrap.$(OBJEXT) util.$(OBJEXT) \
-	display.$(OBJEXT) audio_null.$(OBJEXT) audio_esd.$(OBJEXT) \
-	video_null.$(OBJEXT) video_gtk.$(OBJEXT) video_x11.$(OBJEXT) \
-	video_gl.$(OBJEXT)
+	aica.$(OBJEXT) audio.$(OBJEXT) pvr2.$(OBJEXT) pvr2mem.$(OBJEXT) \
+	tacore.$(OBJEXT) render.$(OBJEXT) rendcore.$(OBJEXT) \
+	rendbkg.$(OBJEXT) rendsort.$(OBJEXT) texcache.$(OBJEXT) \
+	yuv.$(OBJEXT) maple.$(OBJEXT) controller.$(OBJEXT) \
+	support.$(OBJEXT) interface.$(OBJEXT) callbacks.$(OBJEXT) \
+	gui.$(OBJEXT) mmr_win.$(OBJEXT) debug_win.$(OBJEXT) \
+	dump_win.$(OBJEXT) loader.$(OBJEXT) bootstrap.$(OBJEXT) \
+	util.$(OBJEXT) display.$(OBJEXT) audio_null.$(OBJEXT) \
+	audio_esd.$(OBJEXT) video_null.$(OBJEXT) video_gtk.$(OBJEXT) \
+	video_x11.$(OBJEXT) video_gl.$(OBJEXT)
 lxdream_OBJECTS = $(am_lxdream_OBJECTS)
 lxdream_DEPENDENCIES =
 lxdream_LDFLAGS =
@@ -225,17 +225,18 @@ am__depfiles_maybe = depfiles
 @AMDEP_TRUE@	./$(DEPDIR)/loader.Po ./$(DEPDIR)/main.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/maple.Po ./$(DEPDIR)/mem.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/mmr_win.Po ./$(DEPDIR)/nrg.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/pvr2.Po ./$(DEPDIR)/rendbkg.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/rendcore.Po ./$(DEPDIR)/render.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/rendsort.Po ./$(DEPDIR)/scif.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/sh4core.Po ./$(DEPDIR)/sh4dasm.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/sh4mem.Po ./$(DEPDIR)/sh4mmio.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/support.Po ./$(DEPDIR)/syscall.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/tacore.Po ./$(DEPDIR)/texcache.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/timer.Po ./$(DEPDIR)/util.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/video_gl.Po ./$(DEPDIR)/video_gtk.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/video_null.Po ./$(DEPDIR)/video_x11.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/watch.Po ./$(DEPDIR)/yuv.Po
+@AMDEP_TRUE@	./$(DEPDIR)/pvr2.Po ./$(DEPDIR)/pvr2mem.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/rendbkg.Po ./$(DEPDIR)/rendcore.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/render.Po ./$(DEPDIR)/rendsort.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/scif.Po ./$(DEPDIR)/sh4core.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/sh4dasm.Po ./$(DEPDIR)/sh4mem.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/sh4mmio.Po ./$(DEPDIR)/support.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/syscall.Po ./$(DEPDIR)/tacore.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/texcache.Po ./$(DEPDIR)/timer.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/util.Po ./$(DEPDIR)/video_gl.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/video_gtk.Po ./$(DEPDIR)/video_null.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/video_x11.Po ./$(DEPDIR)/watch.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/yuv.Po
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
@@ -320,6 +321,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mmr_win.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nrg.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pvr2.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pvr2mem.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rendbkg.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rendcore.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/render.Po@am__quote@
@@ -781,6 +783,28 @@ pvr2.obj: pvr2/pvr2.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/pvr2.Po' tmpdepfile='$(DEPDIR)/pvr2.TPo' @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o pvr2.obj `if test -f 'pvr2/pvr2.c'; then $(CYGPATH_W) 'pvr2/pvr2.c'; else $(CYGPATH_W) '$(srcdir)/pvr2/pvr2.c'; fi`
+
+pvr2mem.o: pvr2/pvr2mem.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT pvr2mem.o -MD -MP -MF "$(DEPDIR)/pvr2mem.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o pvr2mem.o `test -f 'pvr2/pvr2mem.c' || echo '$(srcdir)/'`pvr2/pvr2mem.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/pvr2mem.Tpo" "$(DEPDIR)/pvr2mem.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/pvr2mem.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='pvr2/pvr2mem.c' object='pvr2mem.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/pvr2mem.Po' tmpdepfile='$(DEPDIR)/pvr2mem.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o pvr2mem.o `test -f 'pvr2/pvr2mem.c' || echo '$(srcdir)/'`pvr2/pvr2mem.c
+
+pvr2mem.obj: pvr2/pvr2mem.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT pvr2mem.obj -MD -MP -MF "$(DEPDIR)/pvr2mem.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o pvr2mem.obj `if test -f 'pvr2/pvr2mem.c'; then $(CYGPATH_W) 'pvr2/pvr2mem.c'; else $(CYGPATH_W) '$(srcdir)/pvr2/pvr2mem.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/pvr2mem.Tpo" "$(DEPDIR)/pvr2mem.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/pvr2mem.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='pvr2/pvr2mem.c' object='pvr2mem.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/pvr2mem.Po' tmpdepfile='$(DEPDIR)/pvr2mem.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o pvr2mem.obj `if test -f 'pvr2/pvr2mem.c'; then $(CYGPATH_W) 'pvr2/pvr2mem.c'; else $(CYGPATH_W) '$(srcdir)/pvr2/pvr2mem.c'; fi`
 
 tacore.o: pvr2/tacore.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT tacore.o -MD -MP -MF "$(DEPDIR)/tacore.Tpo" \

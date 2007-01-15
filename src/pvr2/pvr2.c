@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.c,v 1.38 2007-01-14 11:43:00 nkeynes Exp $
+ * $Id: pvr2.c,v 1.39 2007-01-15 08:32:09 nkeynes Exp $
  *
  * PVR2 (Video) Core module implementation and MMIO registers.
  *
@@ -137,6 +137,8 @@ static void pvr2_reset( void )
     pvr2_state.back_porch_ns = 4000;
     mmio_region_PVR2_write( DISP_TOTAL, 0x0270035F );
     mmio_region_PVR2_write( DISP_SYNCTIME, 0x07D6A53F );
+    mmio_region_PVR2_write( YUV_ADDR, 0 );
+    mmio_region_PVR2_write( YUV_CFG, 0 );
     video_buffer_idx = 0;
     
     pvr2_ta_init();
@@ -466,17 +468,18 @@ void mmio_region_PVR2_write( uint32_t reg, uint32_t val )
 	 *  10: ???
 	 *  16: enable FSAA
 	 */
-	DEBUG( "Scaler config set to %08X", val );
 	MMIO_WRITE( PVR2, reg, val&0x0007FFFF );
 	break;
 
     case YUV_ADDR:
-	MMIO_WRITE( PVR2, reg, val&0x00FFFFF8 );
+	val = val & 0x00FFFFF8;
+	MMIO_WRITE( PVR2, reg, val );
+	pvr2_yuv_init( val );
 	break;
     case YUV_CFG:
 	MMIO_WRITE( PVR2, reg, val&0x01013F3F );
+	pvr2_yuv_set_config(val);
 	break;
-
 
 	/**************** Unknowns ***************/
     case PVRUNK1:
@@ -634,155 +637,3 @@ void mmio_region_PVR2TA_write( uint32_t reg, uint32_t val )
     pvr2_ta_write( (char *)&val, sizeof(uint32_t) );
 }
 
-
-void pvr2_vram64_write( sh4addr_t destaddr, char *src, uint32_t length )
-{
-    int bank_flag = (destaddr & 0x04) >> 2;
-    uint32_t *banks[2];
-    uint32_t *dwsrc;
-    int i;
-
-    destaddr = destaddr & 0x7FFFFF;
-    if( destaddr + length > 0x800000 ) {
-	length = 0x800000 - destaddr;
-    }
-
-    for( i=destaddr & 0xFFFFF000; i < destaddr + length; i+= PAGE_SIZE ) {
-	texcache_invalidate_page( i );
-    }
-
-    banks[0] = ((uint32_t *)(video_base + ((destaddr & 0x007FFFF8) >>1)));
-    banks[1] = banks[0] + 0x100000;
-    if( bank_flag ) 
-	banks[0]++;
-    
-    /* Handle non-aligned start of source */
-    if( destaddr & 0x03 ) {
-	char *dest = ((char *)banks[bank_flag]) + (destaddr & 0x03);
-	for( i= destaddr & 0x03; i < 4 && length > 0; i++, length-- ) {
-	    *dest++ = *src++;
-	}
-	bank_flag = !bank_flag;
-    }
-
-    dwsrc = (uint32_t *)src;
-    while( length >= 4 ) {
-	*banks[bank_flag]++ = *dwsrc++;
-	bank_flag = !bank_flag;
-	length -= 4;
-    }
-    
-    /* Handle non-aligned end of source */
-    if( length ) {
-	src = (char *)dwsrc;
-	char *dest = (char *)banks[bank_flag];
-	while( length-- > 0 ) {
-	    *dest++ = *src++;
-	}
-    }  
-}
-
-/**
- * Write an image to 64-bit vram, with a line-stride different from the line-size.
- * The destaddr must be 32-bit aligned, and both line_bytes and line_stride_bytes
- * must be multiples of 4.
- */
-void pvr2_vram64_write_stride( sh4addr_t destaddr, char *src, uint32_t line_bytes, 
-			       uint32_t line_stride_bytes, uint32_t line_count )
-{
-    int bank_flag = (destaddr & 0x04) >> 2;
-    uint32_t *banks[2];
-    uint32_t *dwsrc;
-    uint32_t line_gap;
-    int line_gap_flag;
-    int i,j;
-
-    destaddr = destaddr & 0x7FFFF8;
-    i = line_stride_bytes - line_bytes;
-    line_gap_flag = i & 0x04;
-    line_gap = i >> 3;
-	
-
-    for( i=destaddr & 0xFFFFF000; i < destaddr + line_stride_bytes*line_count; i+= PAGE_SIZE ) {
-	texcache_invalidate_page( i );
-    }
-
-    banks[0] = (uint32_t *)(video_base + (destaddr >>1));
-    banks[1] = banks[0] + 0x100000;
-    if( bank_flag ) 
-	banks[0]++;
-    
-    dwsrc = (uint32_t *)src;
-    for( i=0; i<line_count; i++ ) {
-	for( j=0; j<line_bytes; j++ ) {
-	    *banks[bank_flag]++ = *dwsrc++;
-	    bank_flag = !bank_flag;
-	}
-	*banks[0] += line_gap;
-	*banks[1] += line_gap;
-	if( line_gap_flag ) {
-	    *banks[bank_flag]++;
-	    bank_flag = !bank_flag;
-	}
-    }    
-}
-
-void pvr2_vram_write_invert( sh4addr_t destaddr, char *src, uint32_t length, uint32_t line_length )
-{
-    char *dest = video_base + (destaddr & 0x007FFFFF);
-    char *p = src + length - line_length;
-    while( p >= src ) {
-	memcpy( dest, p, line_length );
-	p -= line_length;
-	dest += line_length;
-    }
-}
-
-void pvr2_vram64_read( char *dest, sh4addr_t srcaddr, uint32_t length )
-{
-    int bank_flag = (srcaddr & 0x04) >> 2;
-    uint32_t *banks[2];
-    uint32_t *dwdest;
-    int i;
-
-    srcaddr = srcaddr & 0x7FFFFF;
-    if( srcaddr + length > 0x800000 )
-	length = 0x800000 - srcaddr;
-
-    banks[0] = ((uint32_t *)(video_base + ((srcaddr&0x007FFFF8)>>1)));
-    banks[1] = banks[0] + 0x100000;
-    if( bank_flag )
-	banks[0]++;
-    
-    /* Handle non-aligned start of source */
-    if( srcaddr & 0x03 ) {
-	char *src = ((char *)banks[bank_flag]) + (srcaddr & 0x03);
-	for( i= srcaddr & 0x03; i < 4 && length > 0; i++, length-- ) {
-	    *dest++ = *src++;
-	}
-	bank_flag = !bank_flag;
-    }
-
-    dwdest = (uint32_t *)dest;
-    while( length >= 4 ) {
-	*dwdest++ = *banks[bank_flag]++;
-	bank_flag = !bank_flag;
-	length -= 4;
-    }
-    
-    /* Handle non-aligned end of source */
-    if( length ) {
-	dest = (char *)dwdest;
-	char *src = (char *)banks[bank_flag];
-	while( length-- > 0 ) {
-	    *dest++ = *src++;
-	}
-    }
-}
-
-void pvr2_vram64_dump( sh4addr_t addr, uint32_t length, FILE *f ) 
-{
-    char tmp[length];
-    pvr2_vram64_read( tmp, addr, length );
-    fwrite_dump( tmp, length, f );
-}

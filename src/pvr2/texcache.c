@@ -1,5 +1,5 @@
 /**
- * $Id: texcache.c,v 1.10 2007-01-14 11:43:00 nkeynes Exp $
+ * $Id: texcache.c,v 1.11 2007-01-15 08:32:09 nkeynes Exp $
  *
  * Texture cache. Responsible for maintaining a working set of OpenGL 
  * textures. 
@@ -322,8 +322,7 @@ static void yuv_decode( int width, int height, uint32_t *input, uint32_t *output
  */
 static texcache_load_texture( uint32_t texture_addr, int width, int height,
 			      int mode ) {
-    uint32_t bytes = width * height;
-    int shift = 1;
+    int bpp_shift = 1; /* bytes per (output) pixel as a power of 2 */
     GLint intFormat, format, type;
     int tex_format = mode & PVR2_TEX_FORMAT_MASK;
     struct vq_codebook codebook;
@@ -334,52 +333,54 @@ static texcache_load_texture( uint32_t texture_addr, int width, int height,
     case PVR2_TEX_FORMAT_IDX4:
 	ERROR( "4-bit indexed textures not supported" );
     case PVR2_TEX_FORMAT_IDX8:
+	/* For indexed-colour modes, we need to lookup the palette control
+	 * word to determine the de-indexed texture format.
+	 */
 	switch( MMIO_READ( PVR2, RENDER_PALETTE ) & 0x03 ) {
 	case 0: /* ARGB1555 */
 	    intFormat = GL_RGB5_A1;
 	    format = GL_RGBA;
 	    type = GL_UNSIGNED_SHORT_1_5_5_5_REV;
 	    break;
-	case 1: 
+	case 1:  /* RGB565 */
 	    intFormat = GL_RGB;
 	    format = GL_RGB;
 	    type = GL_UNSIGNED_SHORT_5_6_5_REV;
 	    break;
-	case 2:
+	case 2: /* ARGB4444 */
 	    intFormat = GL_RGBA4;
 	    format = GL_BGRA;
 	    type = GL_UNSIGNED_SHORT_4_4_4_4_REV;
 	    break;
-	case 3:
+	case 3: /* ARGB8888 */
 	    intFormat = GL_RGBA8;
 	    format = GL_BGRA;
 	    type = GL_UNSIGNED_INT_8_8_8_8_REV;
-	    shift = 2;
+	    bpp_shift = 2;
 	    break;
 	}
-	bytes <<= shift;
 	break;
 	    
     case PVR2_TEX_FORMAT_ARGB1555:
-	bytes <<= 1;
 	intFormat = GL_RGB5_A1;
 	format = GL_RGBA;
 	type = GL_UNSIGNED_SHORT_1_5_5_5_REV;
 	break;
     case PVR2_TEX_FORMAT_RGB565:
-	bytes <<= 1;
 	intFormat = GL_RGB;
 	format = GL_RGB;
 	type = GL_UNSIGNED_SHORT_5_6_5_REV;
 	break;
     case PVR2_TEX_FORMAT_ARGB4444:
-	bytes <<= 1;
 	intFormat = GL_RGBA4;
 	format = GL_BGRA;
 	type = GL_UNSIGNED_SHORT_4_4_4_4_REV;
 	break;
     case PVR2_TEX_FORMAT_YUV422:
-	bytes <<= 2;
+	/* YUV422 isn't directly supported by most implementations, so decode
+	 * it to a (reasonably) standard ARGB32.
+	 */
+	bpp_shift = 2;
 	intFormat = GL_RGBA8;
 	format = GL_BGRA;
 	type = GL_UNSIGNED_INT_8_8_8_8_REV;
@@ -389,16 +390,33 @@ static texcache_load_texture( uint32_t texture_addr, int width, int height,
 	break;
     }
 	
-    int level=0, last_level = 0, mip_width = width, mip_height = height, mip_bytes = bytes;
+    if( PVR2_TEX_IS_STRIDE(mode) ) {
+	/* Stride textures cannot be mip-mapped, compressed, indexed or twiddled */
+	uint32_t stride = (MMIO_READ( PVR2, RENDER_TEXSIZE ) & 0x003F) << 5;
+	char data[(width*height) << bpp_shift];
+	if( tex_format == PVR2_TEX_FORMAT_YUV422 ) {
+	    char tmp[(width*height)<<1];
+	    pvr2_vram64_read_stride( &tmp, width<<1, texture_addr, stride<<1, height );
+	    yuv_decode(width, height, &tmp, &data );
+	} else {
+	    pvr2_vram64_read_stride( &data, width<<bpp_shift, texture_addr, stride<<bpp_shift, height );
+	}
+	glTexImage2D( GL_TEXTURE_2D, 0, intFormat, width, height, 0, format, type, data );
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	return;
+    } 
+
+    int level=0, last_level = 0, mip_width = width, mip_height = height, mip_bytes;
     if( PVR2_TEX_IS_MIPMAPPED(mode) ) {
 	int i;
 	for( i=0; 1<<(i+1) < width; i++ );
 	last_level = i;
 	mip_width = width >> i;
 	mip_height= height >> i;
-	mip_bytes = bytes >> (i*2);
 	filter = GL_LINEAR_MIPMAP_LINEAR;
     }
+    mip_bytes = (mip_width * mip_width) << bpp_shift;
 
     if( PVR2_TEX_IS_COMPRESSED(mode) ) {
 	uint16_t tmp[VQ_CODEBOOK_SIZE];
@@ -411,13 +429,13 @@ static texcache_load_texture( uint32_t texture_addr, int width, int height,
 	char data[mip_bytes];
 	/* load data from image, detwiddling/uncompressing as required */
 	if( tex_format == PVR2_TEX_FORMAT_IDX8 ) {
-	    int inputlength = mip_bytes >> shift;
+	    int inputlength = mip_bytes >> bpp_shift;
 	    int bank = (mode >> 25) &0x03;
-	    char *palette = mmio_region_PVR2PAL.mem + (bank * (256 << shift));
+	    char *palette = mmio_region_PVR2PAL.mem + (bank * (256 << bpp_shift));
 	    char tmp[inputlength];
 	    char *p = tmp;
 	    pvr2_vram64_read( tmp, texture_addr, inputlength );
-	    if( shift == 2 ) {
+	    if( bpp_shift == 2 ) {
 		detwiddle_pal8_to_32( 0, 0, mip_width, mip_width, &p, 
 				      (uint32_t *)data, (uint32_t *)palette );
 	    } else {

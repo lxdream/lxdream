@@ -21,7 +21,7 @@ lxdream_SOURCES = \
         sh4/sh4mmio.c sh4/sh4mmio.h sh4/scif.c \
         aica/armcore.c aica/armcore.h aica/armdasm.c aica/armmem.c \
         aica/aica.c aica/aica.h aica/audio.c aica/audio.h \
-	pvr2/pvr2.c pvr2/pvr2.h \
+	pvr2/pvr2.c pvr2/pvr2.h pvr2/pvr2mem.c \
 	pvr2/tacore.c pvr2/render.c pvr2/rendcore.c pvr2/rendbkg.c pvr2/rendsort.c \
 	pvr2/texcache.c pvr2/yuv.c \
         maple/maple.c maple/maple.h \
