@@ -1,5 +1,5 @@
 /**
- * $Id: rendcore.c,v 1.7 2007-01-10 08:38:02 nkeynes Exp $
+ * $Id: rendcore.c,v 1.8 2007-01-15 10:11:13 nkeynes Exp $
  *
  * PVR2 renderer core.
  *
@@ -122,7 +122,7 @@ void render_set_context( uint32_t *context, int render_mode )
 	int width = POLY2_TEX_WIDTH(poly2);
 	int height = POLY2_TEX_HEIGHT(poly2);
 	glEnable(GL_TEXTURE_2D);
-	texcache_get_texture( (texture&0x001FFFFF)<<3, width, height, texture );
+	texcache_get_texture( (texture&0x000FFFFF)<<3, width, height, texture );
 	glTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, POLY2_TEX_BLEND(poly2) );
     } else {
 	glDisable( GL_TEXTURE_2D );
