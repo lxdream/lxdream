@@ -1,5 +1,5 @@
 /**
- * $Id: texcache.c,v 1.11 2007-01-15 08:32:09 nkeynes Exp $
+ * $Id: texcache.c,v 1.12 2007-01-15 10:37:02 nkeynes Exp $
  *
  * Texture cache. Responsible for maintaining a working set of OpenGL 
  * textures. 
@@ -312,6 +312,7 @@ static void yuv_decode( int width, int height, uint32_t *input, uint32_t *output
 	    float y1 = (float)( (*p>>24)&0xFF );
 	    *output++ = yuv_to_rgb32( y0, u, v ); 
 	    *output++ = yuv_to_rgb32( y1, u, v );
+	    p++;
 	}
     }
 }
