@@ -1,5 +1,5 @@
 /**
- * $Id: texcache.c,v 1.13 2007-01-15 12:17:02 nkeynes Exp $
+ * $Id: texcache.c,v 1.14 2007-01-15 12:57:42 nkeynes Exp $
  *
  * Texture cache. Responsible for maintaining a working set of OpenGL 
  * textures. 
@@ -397,10 +397,10 @@ static texcache_load_texture( uint32_t texture_addr, int width, int height,
 	char data[(width*height) << bpp_shift];
 	if( tex_format == PVR2_TEX_FORMAT_YUV422 ) {
 	    char tmp[(width*height)<<1];
-	    pvr2_vram64_read_stride( &tmp, width<<1, texture_addr, stride<<1, height );
-	    yuv_decode(width, height, &tmp, &data );
+	    pvr2_vram64_read_stride( tmp, width<<1, texture_addr, stride<<1, height );
+	    yuv_decode(width, height, (uint32_t *)tmp, (uint32_t *)data );
 	} else {
-	    pvr2_vram64_read_stride( &data, width<<bpp_shift, texture_addr, stride<<bpp_shift, height );
+	    pvr2_vram64_read_stride( data, width<<bpp_shift, texture_addr, stride<<bpp_shift, height );
 	}
 	glTexImage2D( GL_TEXTURE_2D, 0, intFormat, width, height, 0, format, type, data );
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
@@ -447,19 +447,19 @@ static texcache_load_texture( uint32_t texture_addr, int width, int height,
 	    int inputlength = ((mip_width*mip_height)<<1);
 	    char tmp[inputlength];
 	    pvr2_vram64_read( tmp, texture_addr, inputlength );
-	    yuv_decode( mip_width, mip_height, tmp, (uint32_t *)&data );
+	    yuv_decode( mip_width, mip_height, (uint32_t *)tmp, (uint32_t *)data );
 	} else if( PVR2_TEX_IS_COMPRESSED(mode) ) {
 	    int inputlength = ((mip_width*mip_height) >> 2);
 	    char tmp[inputlength];
 	    pvr2_vram64_read( tmp, texture_addr, inputlength );
-	    vq_decode( mip_width, mip_height, tmp, (uint16_t *)&data, &codebook, 
+	    vq_decode( mip_width, mip_height, tmp, (uint16_t *)data, &codebook, 
 		       PVR2_TEX_IS_TWIDDLED(mode) );
 	} else if( PVR2_TEX_IS_TWIDDLED(mode) ) {
 	    char tmp[mip_bytes];
 	    uint16_t *p = (uint16_t *)tmp;
 	    pvr2_vram64_read( tmp, texture_addr, mip_bytes );
 	    /* Untwiddle */
-	    detwiddle_16_to_16( 0, 0, mip_width, mip_width, &p, (uint16_t *)&data );
+	    detwiddle_16_to_16( 0, 0, mip_width, mip_width, &p, (uint16_t *)data );
 	} else {
 	    pvr2_vram64_read( data, texture_addr, mip_bytes );
 	}
