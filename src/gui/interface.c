@@ -32,6 +32,13 @@ static GnomeUIInfo file1_menu_uiinfo[] =
   GNOMEUIINFO_MENU_OPEN_ITEM (on_open1_activate, NULL),
   GNOMEUIINFO_MENU_SAVE_ITEM (on_save1_activate, NULL),
   GNOMEUIINFO_MENU_SAVE_AS_ITEM (on_save_as1_activate, NULL),
+  {
+      GNOME_APP_UI_ITEM, N_("Save next scene..."),
+      NULL,
+      (gpointer) on_save_next_scene_activate, NULL, NULL,
+      GNOME_APP_PIXMAP_NONE, NULL,
+      0, (GdkModifierType) 0, NULL
+  },
   GNOMEUIINFO_SEPARATOR,
   GNOMEUIINFO_MENU_EXIT_ITEM (on_exit1_activate, NULL),
   GNOMEUIINFO_END
