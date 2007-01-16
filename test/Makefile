@@ -112,6 +112,10 @@ testspu: crt0.so $(SHARED_OBJECTS) testspu.so asic.so lib.so testdata.so timer.s
 readdata: crt0.so readdata.so
 	$(SH4CC) $(SH4LDFLAGS) $^ -o $@ $(SH4LIBS)
 
+rend: crt0.so rendload.so asic.so lib.so timer.so pvr.so
+	$(SH4CC) $(SH4LDFLAGS) $^ -o $@ $(SH4LIBS)
+	$(SH4OBJCOPY) rend rend.bin
+
 .PHONY : clean
 clean:
 	rm -f *.o *.so *.ao *.ac *.bin mapleid ide readmem dumpasic
