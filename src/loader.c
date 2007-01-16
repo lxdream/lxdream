@@ -1,5 +1,5 @@
 /**
- * $Id: loader.c,v 1.14 2006-07-02 04:59:00 nkeynes Exp $
+ * $Id: loader.c,v 1.15 2007-01-16 09:18:32 nkeynes Exp $
  *
  * File loading routines, mostly for loading demos without going through the
  * whole procedure of making a CD image for them.
@@ -58,13 +58,6 @@ gboolean file_load_magic( const gchar *filename )
     }
     
     fstat( fd, &st );
-    /*
-    if( st.st_size < 32768 ) {
-        ERROR( "File '%s' too small to be a dreamcast image", filename );
-        close(fd);
-        return FALSE;
-    }
-    */
     
     /* begin magic */
     if( read( fd, buf, 32 ) != 32 ) {
@@ -94,6 +87,9 @@ gboolean file_load_magic( const gchar *filename )
     } else if( memcmp( buf, "PK\x03\x04", 4 ) == 0 ) {
 	/* ZIP file, aka SBI file */
 	WARN( "SBI files not supported yet" );
+    } else if( memcmp( buf, DREAMCAST_SAVE_MAGIC, 16 ) == 0 ) {
+	/* Save state */
+	dreamcast_load_state( filename );
     } else if( buf[0] == 0x7F && buf[1] == 'E' && 
 	       buf[2] == 'L' && buf[3] == 'F' ) {
 	/* ELF binary */
