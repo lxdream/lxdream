@@ -1,5 +1,5 @@
 /**
- * $Id: dreamcast.h,v 1.11 2006-07-02 04:59:00 nkeynes Exp $
+ * $Id: dreamcast.h,v 1.12 2007-01-16 10:34:46 nkeynes Exp $
  *
  * Public interface for dreamcast.c -
  * Central switchboard for the system. This pulls all the individual modules
@@ -58,8 +58,14 @@ void dreamcast_stop(void);
 gboolean dreamcast_load_config( const gchar *filename );
 gboolean dreamcast_save_config( const gchar *filename );
 
+#define DREAMCAST_SAVE_MAGIC "%!-lxDream!Save\0"
+#define DREAMCAST_SAVE_VERSION 0x00010000
+
 int dreamcast_save_state( const gchar *filename );
 int dreamcast_load_state( const gchar *filename );
+
+#define SCENE_SAVE_MAGIC "%!-lxDream!Scene"
+#define SCENE_SAVE_VERSION 0x00010000
 
 extern struct dreamcast_config_group dreamcast_config_root[];
 
