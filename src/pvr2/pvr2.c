@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.c,v 1.39 2007-01-15 08:32:09 nkeynes Exp $
+ * $Id: pvr2.c,v 1.40 2007-01-16 10:34:46 nkeynes Exp $
  *
  * PVR2 (Video) Core module implementation and MMIO registers.
  *
@@ -69,7 +69,7 @@ struct pvr2_state {
     uint32_t irq_vpos1;
     uint32_t irq_vpos2;
     uint32_t odd_even_field; /* 1 = odd, 0 = even */
-
+    gchar *save_next_render_filename;
     /* timing */
     uint32_t dot_clock;
     uint32_t total_lines;
@@ -123,6 +123,7 @@ static void pvr2_init( void )
     texcache_init();
     pvr2_reset();
     pvr2_ta_reset();
+    pvr2_state.save_next_render_filename = NULL;
 }
 
 static void pvr2_reset( void )
@@ -150,13 +151,17 @@ static void pvr2_save_state( FILE *f )
 {
     fwrite( &pvr2_state, sizeof(pvr2_state), 1, f );
     pvr2_ta_save_state( f );
+    pvr2_yuv_save_state( f );
 }
 
 static int pvr2_load_state( FILE *f )
 {
     if( fread( &pvr2_state, sizeof(pvr2_state), 1, f ) != 1 )
 	return 1;
-    return pvr2_ta_load_state(f);
+    if( pvr2_ta_load_state(f) ) {
+	return 1;
+    }
+    return pvr2_yuv_load_state(f);
 }
 
 /**
@@ -201,6 +206,17 @@ int pvr2_get_frame_count()
 {
     return pvr2_state.frame_count;
 }
+
+gboolean pvr2_save_next_scene( const gchar *filename )
+{
+    if( pvr2_state.save_next_render_filename != NULL ) {
+	g_free( pvr2_state.save_next_render_filename );
+    } 
+    pvr2_state.save_next_render_filename = g_strdup(filename);
+    return TRUE;
+}
+
+
 
 /**
  * Display the next frame, copying the current contents of video ram to
@@ -288,9 +304,15 @@ void mmio_region_PVR2_write( uint32_t reg, uint32_t val )
 	val &= 0x00000007; /* Do stuff? */
 	MMIO_WRITE( PVR2, reg, val );
 	break;
-    case RENDER_START:
-	if( val == 0xFFFFFFFF || val == 0x00000001 )
-	    pvr2_render_scene();
+    case RENDER_START: /* Don't really care what value */
+	if( pvr2_state.save_next_render_filename != NULL ) {
+	    if( pvr2_render_save_scene(pvr2_state.save_next_render_filename) == 0 ) {
+		INFO( "Saved scene to %s", pvr2_state.save_next_render_filename);
+	    }
+	    g_free( pvr2_state.save_next_render_filename );
+	    pvr2_state.save_next_render_filename = NULL;
+	}
+	pvr2_render_scene();
 	break;
     case RENDER_POLYBASE:
     	MMIO_WRITE( PVR2, reg, val&0x00F00000 );

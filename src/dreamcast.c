@@ -1,5 +1,5 @@
 /**
- * $Id: dreamcast.c,v 1.20 2007-01-12 10:16:02 nkeynes Exp $
+ * $Id: dreamcast.c,v 1.21 2007-01-16 10:34:46 nkeynes Exp $
  * Central switchboard for the system. This pulls all the individual modules
  * together into some kind of coherent structure. This is also where you'd
  * add Naomi support, if I ever get a board to play with...
@@ -370,9 +370,6 @@ gboolean dreamcast_save_config_stream( FILE *f )
 }
 
 /********************************* Save States *****************************/
-
-#define DREAMCAST_SAVE_MAGIC "%!-lxDream!Save\0"
-#define DREAMCAST_SAVE_VERSION 0x00010000
 
 struct save_state_header {
     char magic[16];
