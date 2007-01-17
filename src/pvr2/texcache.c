@@ -1,5 +1,5 @@
 /**
- * $Id: texcache.c,v 1.14 2007-01-15 12:57:42 nkeynes Exp $
+ * $Id: texcache.c,v 1.15 2007-01-17 09:21:55 nkeynes Exp $
  *
  * Texture cache. Responsible for maintaining a working set of OpenGL 
  * textures. 
@@ -344,9 +344,9 @@ static texcache_load_texture( uint32_t texture_addr, int width, int height,
 	    type = GL_UNSIGNED_SHORT_1_5_5_5_REV;
 	    break;
 	case 1:  /* RGB565 */
-	    intFormat = GL_RGB;
+	    intFormat = GL_RGB5;
 	    format = GL_RGB;
-	    type = GL_UNSIGNED_SHORT_5_6_5_REV;
+	    type = GL_UNSIGNED_SHORT_5_6_5;
 	    break;
 	case 2: /* ARGB4444 */
 	    intFormat = GL_RGBA4;
@@ -368,9 +368,9 @@ static texcache_load_texture( uint32_t texture_addr, int width, int height,
 	type = GL_UNSIGNED_SHORT_1_5_5_5_REV;
 	break;
     case PVR2_TEX_FORMAT_RGB565:
-	intFormat = GL_RGB;
+	intFormat = GL_RGB5;
 	format = GL_RGB;
-	type = GL_UNSIGNED_SHORT_5_6_5_REV;
+	type = GL_UNSIGNED_SHORT_5_6_5;
 	break;
     case PVR2_TEX_FORMAT_ARGB4444:
 	intFormat = GL_RGBA4;
@@ -417,7 +417,7 @@ static texcache_load_texture( uint32_t texture_addr, int width, int height,
 	mip_height= height >> i;
 	filter = GL_LINEAR_MIPMAP_LINEAR;
     }
-    mip_bytes = (mip_width * mip_width) << bpp_shift;
+    mip_bytes = (mip_width * mip_height) << bpp_shift;
 
     if( PVR2_TEX_IS_COMPRESSED(mode) ) {
 	uint16_t tmp[VQ_CODEBOOK_SIZE];
