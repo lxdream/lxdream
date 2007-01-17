@@ -1,5 +1,5 @@
 /**
- * $Id: rendcore.c,v 1.8 2007-01-15 10:11:13 nkeynes Exp $
+ * $Id: rendcore.c,v 1.9 2007-01-17 09:21:09 nkeynes Exp $
  *
  * PVR2 renderer core.
  *
@@ -31,7 +31,7 @@ int pvr2_poly_dstblend[8] = {
     GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_DST_ALPHA,
     GL_ONE_MINUS_DST_ALPHA };
 int pvr2_poly_texblend[4] = {
-    GL_REPLACE, GL_BLEND, GL_DECAL, GL_MODULATE };
+    GL_REPLACE, GL_MODULATE, GL_DECAL, GL_MODULATE };
 int pvr2_render_colour_format[8] = {
     COLFMT_ARGB1555, COLFMT_RGB565, COLFMT_ARGB4444, COLFMT_ARGB1555,
     COLFMT_RGB888, COLFMT_ARGB8888, COLFMT_ARGB8888, COLFMT_ARGB4444 };
@@ -43,6 +43,7 @@ int pvr2_render_colour_format[8] = {
 #define CULL_CW 3
 
 #define SEGMENT_END         0x80000000
+#define SEGMENT_ZCLEAR      0x40000000
 #define SEGMENT_SORT_TRANS  0x20000000
 #define SEGMENT_START       0x10000000
 #define SEGMENT_X(c)        (((c) >> 2) & 0x3F)
