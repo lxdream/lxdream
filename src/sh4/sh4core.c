@@ -1,5 +1,5 @@
 /**
- * $Id: sh4core.c,v 1.38 2007-01-11 12:14:11 nkeynes Exp $
+ * $Id: sh4core.c,v 1.39 2007-01-17 21:27:20 nkeynes Exp $
  * 
  * SH4 emulation core, and parent module for all the SH4 peripheral
  * modules.
@@ -205,7 +205,6 @@ uint32_t sh4_run_slice( uint32_t nanosecs )
 	TMU_run_slice( nanosecs );
 	SCIF_run_slice( nanosecs );
     }
-    sh4r.icount += sh4r.slice_cycle / sh4_cpu_period;
     return nanosecs;
 }
 
@@ -491,7 +490,6 @@ gboolean sh4_execute_instruction( void )
 	    ir = sh4_icache[(pc&0xFFF)>>1];
 	}
     }
-    sh4r.icount++;
     
     switch( (ir&0xF000)>>12 ) {
         case 0: /* 0000nnnnmmmmxxxx */

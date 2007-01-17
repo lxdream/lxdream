@@ -1,5 +1,5 @@
 /**
- * $Id: sh4dasm.c,v 1.9 2006-01-01 08:08:40 nkeynes Exp $
+ * $Id: sh4dasm.c,v 1.10 2007-01-17 21:27:20 nkeynes Exp $
  * 
  * SH4 CPU definition and disassembly functions
  *
@@ -46,7 +46,7 @@ const struct cpu_desc_struct sh4_cpu_desc =
     { "SH4", sh4_disasm_instruction, sh4_execute_instruction, mem_has_page, 
       sh4_set_breakpoint, sh4_clear_breakpoint, sh4_get_breakpoint, 2,
       (char *)&sh4r, sizeof(sh4r), sh4_reg_map,
-      &sh4r.pc, &sh4r.icount };
+      &sh4r.pc };
 
 uint32_t sh4_disasm_instruction( uint32_t pc, char *buf, int len, char *opcode )
 {
