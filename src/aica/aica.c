@@ -1,5 +1,5 @@
 /**
- * $Id: aica.c,v 1.20 2006-12-15 10:19:06 nkeynes Exp $
+ * $Id: aica.c,v 1.21 2007-01-17 09:37:22 nkeynes Exp $
  * 
  * This is the core sound system (ie the bit which does the actual work)
  *
@@ -247,8 +247,27 @@ int32_t mmio_region_AICARTC_read( uint32_t reg )
     return rv;
 }
 
-MMIO_REGION_WRITE_STUBFN( AICARTC )
 
+void mmio_region_AICARTC_write( uint32_t reg, uint32_t val )
+{
+    switch( reg ) {
+    case AICA_RTCEN:
+	MMIO_WRITE( AICARTC, reg, val&0x01 );
+	break;
+    case AICA_RTCLO:
+	if( MMIO_READ( AICARTC, AICA_RTCEN ) & 0x01 ) {
+	    aica_time_of_day = (aica_time_of_day & 0xFFFF0000) | (val & 0xFFFF);
+	}
+	break;
+    case AICA_RTCHI:
+	if( MMIO_READ( AICARTC, AICA_RTCEN ) & 0x01 ) {
+	    aica_time_of_day = (aica_time_of_day & 0xFFFF) | (val<<16);
+	    MMIO_WRITE( AICARTC, AICA_RTCEN, 0 );
+	}
+	break;
+    }
+}
+	
 /**
  * Translate the channel frequency to a sample rate. The frequency is a
  * 14-bit floating point number, where bits 0..9 is the mantissa,
