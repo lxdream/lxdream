@@ -1,5 +1,5 @@
 /**
- * $Id: sh4core.h,v 1.16 2007-01-06 04:06:36 nkeynes Exp $
+ * $Id: sh4core.h,v 1.17 2007-01-17 21:27:20 nkeynes Exp $
  * 
  * This file defines the internal functions exported/used by the SH4 core, 
  * except for disassembly functions defined in sh4dasm.h
@@ -69,13 +69,12 @@ struct sh4_registers {
     int32_t store_queue[16]; /* technically 2 banks of 32 bytes */
     
     uint32_t new_pc; /* Not a real register, but used to handle delay slots */
-    uint32_t icount; /* Also not a real register, instruction counter */
     uint32_t event_pending; /* slice cycle time of the next pending event, or FFFFFFFF
                              when no events are pending */
     uint32_t event_types; /* bit 0 = IRQ pending, bit 1 = general event pending */
     int in_delay_slot; /* flag to indicate the current instruction is in
                              * a delay slot (certain rules apply) */
-    uint32_t slice_cycle; /* Current cycle within the timeslice */
+    uint32_t slice_cycle; /* Current nanosecond within the timeslice */
     int sh4_state; /* Current power-on state (one of the SH4_STATE_* values ) */
 };
 

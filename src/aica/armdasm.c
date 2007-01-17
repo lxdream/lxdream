@@ -1,5 +1,5 @@
 /**
- * $Id: armdasm.c,v 1.11 2006-01-03 12:20:36 nkeynes Exp $
+ * $Id: armdasm.c,v 1.12 2007-01-17 21:27:20 nkeynes Exp $
  * 
  * armdasm.c    21 Aug 2004  - ARM7tdmi (ARMv4) disassembler
  *
@@ -64,12 +64,12 @@ const struct cpu_desc_struct arm_cpu_desc =
     { "ARM7", arm_disasm_instruction, arm_execute_instruction, arm_has_page,
       arm_set_breakpoint, arm_clear_breakpoint, arm_get_breakpoint, 4,
       (char *)&armr, sizeof(armr), arm_reg_map,
-      &armr.r[15], &armr.icount };
+      &armr.r[15] };
 const struct cpu_desc_struct armt_cpu_desc = 
     { "ARM7T", armt_disasm_instruction, arm_execute_instruction, arm_has_page,
       arm_set_breakpoint, arm_clear_breakpoint, arm_get_breakpoint, 2,
       (char*)&armr, sizeof(armr), arm_reg_map,
-      &armr.r[15], &armr.icount };
+      &armr.r[15] };
 
 
 
