@@ -1,5 +1,5 @@
 /**
- * $Id: tacore.c,v 1.9 2006-08-18 12:43:24 nkeynes Exp $
+ * $Id: tacore.c,v 1.10 2007-01-18 11:14:01 nkeynes Exp $
  *
  * PVR2 Tile Accelerator implementation
  *
@@ -327,7 +327,6 @@ static void ta_end_list() {
 }
 
 static void ta_bad_input_error() {
-    asic_event( EVENT_TA_ERROR );
     asic_event( EVENT_PVR_BAD_INPUT );
 }
 
@@ -347,7 +346,6 @@ static int ta_write_polygon_buffer( uint32_t *data, int length )
     for( rv=0; rv < length; rv++ ) {
 	if( posn == end ) {
 	    asic_event( EVENT_PVR_PRIM_ALLOC_FAIL );
-	    asic_event( EVENT_TA_ERROR );
 	    //	    ta_status.state = STATE_ERROR;
 	    break;
 	}
@@ -383,7 +381,6 @@ static uint32_t ta_alloc_tilelist( uint32_t reference ) {
 	    return TA_NO_ALLOC;
 	} else if( newposn <= limit ) {
 	} else if( newposn <= (limit + ta_status.tilelist_size) ) {
-	    asic_event( EVENT_TA_ERROR );
 	    asic_event( EVENT_PVR_MATRIX_ALLOC_FAIL );
 	    MMIO_WRITE( PVR2, TA_LISTPOS, newposn );
 	} else {
@@ -402,7 +399,6 @@ static uint32_t ta_alloc_tilelist( uint32_t reference ) {
 	    return TA_NO_ALLOC;
 	} else if( newposn >= limit ) {
 	} else if( newposn >= (limit - ta_status.tilelist_size) ) {
-	    asic_event( EVENT_TA_ERROR );
 	    asic_event( EVENT_PVR_MATRIX_ALLOC_FAIL );
 	    MMIO_WRITE( PVR2, TA_LISTPOS, newposn );
 	} else {

@@ -1,5 +1,5 @@
 /**
- * $Id: asic.c,v 1.24 2007-01-17 21:27:20 nkeynes Exp $
+ * $Id: asic.c,v 1.25 2007-01-18 11:14:01 nkeynes Exp $
  *
  * Support for the miscellaneous ASIC functions (Primarily event multiplexing,
  * and DMA). 
@@ -217,13 +217,27 @@ void asic_event( int event )
         intc_raise_interrupt( INT_IRQ11 );
     if( result & MMIO_READ(ASIC, IRQC0 + offset) )
         intc_raise_interrupt( INT_IRQ9 );
+
+    if( event >= 64 ) { /* Third word */
+	asic_event( EVENT_CASCADE2 );
+    } else if( event >= 32 ) { /* Second word */
+	asic_event( EVENT_CASCADE1 );
+    }
 }
 
 void asic_clear_event( int event ) {
     int offset = ((event&0x60)>>3);
     uint32_t result = MMIO_READ(ASIC, PIRQ0 + offset)  & (~(1<<(event&0x1F)));
     MMIO_WRITE( ASIC, PIRQ0 + offset, result );
-
+    if( result == 0 ) {
+	/* clear cascades if necessary */
+	if( event >= 64 ) {
+	    MMIO_WRITE( ASIC, PIRQ0, MMIO_READ( ASIC, PIRQ0 ) & 0x7FFFFFFF );
+	} else if( event >= 32 ) {
+	    MMIO_WRITE( ASIC, PIRQ0, MMIO_READ( ASIC, PIRQ0 ) & 0xBFFFFFFF );
+	}
+    }
+	    
     asic_check_cleared_events();
 }
 
@@ -297,12 +311,19 @@ void mmio_region_ASIC_write( uint32_t reg, uint32_t val )
 {
     switch( reg ) {
     case PIRQ1:
-	val = val & 0xFFFFFFFE; /* Prevent the IDE event from clearing */
-	/* fallthrough */
+	break; /* Treat this as read-only for the moment */
     case PIRQ0:
-    case PIRQ2:
-	/* Clear any interrupts */
+	val = val & 0x3FFFFFFF; /* Top two bits aren't clearable */
 	MMIO_WRITE( ASIC, reg, MMIO_READ(ASIC, reg)&~val );
+	asic_check_cleared_events();
+	break;
+    case PIRQ2:
+	/* Clear any events */
+	val = MMIO_READ(ASIC, reg)&(~val);
+	MMIO_WRITE( ASIC, reg, val );
+	if( val == 0 ) { /* all clear - clear the cascade bit */
+	    MMIO_WRITE( ASIC, PIRQ0, MMIO_READ( ASIC, PIRQ0 ) & 0x7FFFFFFF );
+	}
 	asic_check_cleared_events();
 	break;
     case SYSRESET:
