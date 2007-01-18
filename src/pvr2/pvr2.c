@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.c,v 1.40 2007-01-16 10:34:46 nkeynes Exp $
+ * $Id: pvr2.c,v 1.41 2007-01-18 11:13:12 nkeynes Exp $
  *
  * PVR2 (Video) Core module implementation and MMIO registers.
  *
@@ -30,14 +30,16 @@
 
 char *video_base;
 
+#define HPOS_PER_FRAME 0
+#define HPOS_PER_LINECOUNT 1
+
 static void pvr2_init( void );
 static void pvr2_reset( void );
 static uint32_t pvr2_run_slice( uint32_t );
 static void pvr2_save_state( FILE *f );
 static int pvr2_load_state( FILE *f );
 static void pvr2_update_raster_posn( uint32_t nanosecs );
-static void pvr2_schedule_line_event( int eventid, int line );
-static void pvr2_schedule_scanline_event( int eventid, int line, int minimum_lines );
+static void pvr2_schedule_scanline_event( int eventid, int line, int minimum_lines, int line_time_ns );
 uint32_t pvr2_get_sync_status();
 
 void pvr2_display_frame( void );
@@ -66,6 +68,10 @@ struct pvr2_state {
     uint32_t line_count;
     uint32_t line_remainder;
     uint32_t cycles_run; /* Cycles already executed prior to main time slice */
+    uint32_t irq_hpos_line;
+    uint32_t irq_hpos_line_count;
+    uint32_t irq_hpos_mode;
+    uint32_t irq_hpos_time_ns; /* Time within the line */
     uint32_t irq_vpos1;
     uint32_t irq_vpos2;
     uint32_t odd_even_field; /* 1 = odd, 0 = even */
@@ -89,12 +95,19 @@ struct video_buffer video_buffer[2];
 int video_buffer_idx = 0;
 
 /**
- * Event handler for the retrace callback (fires on line 0 normally)
+ * Event handler for the hpos callback
  */
-static void pvr2_retrace_callback( int eventid ) {
+static void pvr2_hpos_callback( int eventid ) {
     asic_event( eventid );
     pvr2_update_raster_posn(sh4r.slice_cycle);
-    pvr2_schedule_line_event( EVENT_RETRACE, 0 );
+    if( pvr2_state.irq_hpos_mode == HPOS_PER_LINECOUNT ) {
+	pvr2_state.irq_hpos_line += pvr2_state.irq_hpos_line_count;
+	while( pvr2_state.irq_hpos_line > (pvr2_state.total_lines>>1) ) {
+	    pvr2_state.irq_hpos_line -= (pvr2_state.total_lines>>1);
+	}
+    }
+    pvr2_schedule_scanline_event( eventid, pvr2_state.irq_hpos_line, 1, 
+				  pvr2_state.irq_hpos_time_ns );
 }
 
 /**
@@ -105,9 +118,9 @@ static void pvr2_scanline_callback( int eventid ) {
     asic_event( eventid );
     pvr2_update_raster_posn(sh4r.slice_cycle);
     if( eventid == EVENT_SCANLINE1 ) {
-	pvr2_schedule_scanline_event( eventid, pvr2_state.irq_vpos1, 1 );
+	pvr2_schedule_scanline_event( eventid, pvr2_state.irq_vpos1, 1, 0 );
     } else {
-	pvr2_schedule_scanline_event( eventid, pvr2_state.irq_vpos2, 1 );
+	pvr2_schedule_scanline_event( eventid, pvr2_state.irq_vpos2, 1, 0 );
     }
 }
 
@@ -116,7 +129,7 @@ static void pvr2_init( void )
     register_io_region( &mmio_region_PVR2 );
     register_io_region( &mmio_region_PVR2PAL );
     register_io_region( &mmio_region_PVR2TA );
-    register_event_callback( EVENT_RETRACE, pvr2_retrace_callback );
+    register_event_callback( EVENT_HPOS, pvr2_hpos_callback );
     register_event_callback( EVENT_SCANLINE1, pvr2_scanline_callback );
     register_event_callback( EVENT_SCANLINE2, pvr2_scanline_callback );
     video_base = mem_get_region_by_name( MEM_REGION_VIDEO );
@@ -359,14 +372,36 @@ void mmio_region_PVR2_write( uint32_t reg, uint32_t val )
 	break;
     case DISP_HPOSIRQ:
 	MMIO_WRITE( PVR2, reg, val&0x03FF33FF );
+	pvr2_state.irq_hpos_line = val & 0x03FF;
+	pvr2_state.irq_hpos_time_ns = 2000000*((val>>16)&0x03FF)/pvr2_state.dot_clock;
+	pvr2_state.irq_hpos_mode = (val >> 12) & 0x03;
+	switch( pvr2_state.irq_hpos_mode ) {
+	case 3: /* Reserved - treat as 0 */
+	case 0: /* Once per frame at specified line */
+	    pvr2_state.irq_hpos_mode = HPOS_PER_FRAME;
+	    break;
+	case 2: /* Once per line - as per-line-count */
+	    pvr2_state.irq_hpos_line = 1;
+	    pvr2_state.irq_hpos_mode = 1;
+	case 1: /* Once per N lines */
+	    pvr2_state.irq_hpos_line_count = pvr2_state.irq_hpos_line;
+	    pvr2_state.irq_hpos_line = (pvr2_state.line_count >> 1) + 
+		pvr2_state.irq_hpos_line_count;
+	    while( pvr2_state.irq_hpos_line > (pvr2_state.total_lines>>1) ) {
+		pvr2_state.irq_hpos_line -= (pvr2_state.total_lines>>1);
+	    }
+	    pvr2_state.irq_hpos_mode = HPOS_PER_LINECOUNT;
+	}
+	pvr2_schedule_scanline_event( EVENT_HPOS, pvr2_state.irq_hpos_line, 0,
+					  pvr2_state.irq_hpos_time_ns );
 	break;
     case DISP_VPOSIRQ:
 	val = val & 0x03FF03FF;
 	pvr2_state.irq_vpos1 = (val >> 16);
 	pvr2_state.irq_vpos2 = val & 0x03FF;
 	pvr2_update_raster_posn(sh4r.slice_cycle);
-	pvr2_schedule_scanline_event( EVENT_SCANLINE1, pvr2_state.irq_vpos1, 0 );
-	pvr2_schedule_scanline_event( EVENT_SCANLINE2, pvr2_state.irq_vpos2, 0 );
+	pvr2_schedule_scanline_event( EVENT_SCANLINE1, pvr2_state.irq_vpos1, 0, 0 );
+	pvr2_schedule_scanline_event( EVENT_SCANLINE2, pvr2_state.irq_vpos2, 0, 0 );
 	MMIO_WRITE( PVR2, reg, val );
 	break;
     case RENDER_NEARCLIP:
@@ -431,9 +466,10 @@ void mmio_region_PVR2_write( uint32_t reg, uint32_t val )
 	pvr2_state.line_time_ns = 1000000 * pvr2_state.line_size / pvr2_state.dot_clock;
 	pvr2_state.retrace_end_line = 0x2A;
 	pvr2_state.retrace_start_line = pvr2_state.total_lines - 6;
-	pvr2_schedule_line_event( EVENT_RETRACE, 0 );
-	pvr2_schedule_scanline_event( EVENT_SCANLINE1, pvr2_state.irq_vpos1, 0 );
-	pvr2_schedule_scanline_event( EVENT_SCANLINE2, pvr2_state.irq_vpos2, 0 );
+	pvr2_schedule_scanline_event( EVENT_SCANLINE1, pvr2_state.irq_vpos1, 0, 0 );
+	pvr2_schedule_scanline_event( EVENT_SCANLINE2, pvr2_state.irq_vpos2, 0, 0 );
+	pvr2_schedule_scanline_event( EVENT_HPOS, pvr2_state.irq_hpos_line, 0, 
+					  pvr2_state.irq_hpos_time_ns );
 	break;
     case DISP_SYNCCFG:
 	MMIO_WRITE( PVR2, reg, val&0x000003FF );
@@ -571,39 +607,24 @@ uint32_t pvr2_get_sync_status()
 }
 
 /**
- * Schedule an event for the start of the given line. If the line is actually
- * the current line, schedules it for the next field. 
- * The raster position should be updated before calling this method.
- */
-static void pvr2_schedule_line_event( int eventid, int line )
-{
-    uint32_t time;
-    if( line <= pvr2_state.line_count ) {
-	time = (pvr2_state.total_lines - pvr2_state.line_count + line) * pvr2_state.line_time_ns
-	    - pvr2_state.line_remainder;
-    } else {
-	time = (line - pvr2_state.line_count) * pvr2_state.line_time_ns - pvr2_state.line_remainder;
-    }
-
-    if( line < pvr2_state.total_lines ) {
-	event_schedule( eventid, time );
-    } else {
-	event_cancel( eventid );
-    }
-}
-
-/**
  * Schedule a "scanline" event. This actually goes off at
  * 2 * line in even fields and 2 * line + 1 in odd fields.
  * Otherwise this behaves as per pvr2_schedule_line_event().
  * The raster position should be updated before calling this
  * method.
+ * @param eventid Event to fire at the specified time
+ * @param line Line on which to fire the event (this is 2n/2n+1 for interlaced
+ *  displays). 
+ * @param hpos_ns Nanoseconds into the line at which to fire.
  */
-static void pvr2_schedule_scanline_event( int eventid, int line, int minimum_lines )
+static void pvr2_schedule_scanline_event( int eventid, int line, int minimum_lines, int hpos_ns )
 {
     uint32_t field = pvr2_state.odd_even_field;
     if( line <= pvr2_state.line_count && pvr2_state.interlaced ) {
 	field = !field;
+    }
+    if( hpos_ns > pvr2_state.line_time_ns ) {
+	hpos_ns = pvr2_state.line_time_ns;
     }
 
     line <<= 1;
@@ -622,7 +643,7 @@ static void pvr2_schedule_scanline_event( int eventid, int line, int minimum_lin
 	if( lines <= minimum_lines ) {
 	    lines += pvr2_state.total_lines;
 	}
-	time = (lines * pvr2_state.line_time_ns) - pvr2_state.line_remainder;
+	time = (lines * pvr2_state.line_time_ns) - pvr2_state.line_remainder + hpos_ns;
 	event_schedule( eventid, time );
     } else {
 	event_cancel( eventid );
