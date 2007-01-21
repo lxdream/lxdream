@@ -1,5 +1,5 @@
 /**
- * $Id: render.c,v 1.16 2007-01-17 09:21:27 nkeynes Exp $
+ * $Id: render.c,v 1.17 2007-01-21 11:28:43 nkeynes Exp $
  *
  * PVR2 Renderer support. This part is primarily
  *
@@ -205,12 +205,14 @@ static void pvr2_render_prepare_context( sh4addr_t render_addr,
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
     glCullFace( GL_BACK );
+    glEnable( GL_BLEND );
 
     /* Clear out the buffers */
     glDisable( GL_SCISSOR_TEST );
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     glClearDepth(0);
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+
 }
 
 /**

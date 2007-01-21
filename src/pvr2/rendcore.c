@@ -1,5 +1,5 @@
 /**
- * $Id: rendcore.c,v 1.9 2007-01-17 09:21:09 nkeynes Exp $
+ * $Id: rendcore.c,v 1.10 2007-01-21 11:28:43 nkeynes Exp $
  *
  * PVR2 renderer core.
  *
@@ -72,10 +72,11 @@ float halftofloat( uint16_t half )
         float f;
         uint32_t i;
     } temp;
-    int e = ((half & 0x7C00) >> 10) - 15 + 127;
+    /* int e = ((half & 0x7C00) >> 10) - 15 + 127;
 
     temp.i = ((half & 0x8000) << 16) | (e << 23) |
-             ((half & 0x03FF) << 13);
+    ((half & 0x03FF) << 13); */
+    temp.i = ((uint32_t)half)<<16;
     return temp.f;
 }
 
@@ -125,6 +126,16 @@ void render_set_context( uint32_t *context, int render_mode )
 	glEnable(GL_TEXTURE_2D);
 	texcache_get_texture( (texture&0x000FFFFF)<<3, width, height, texture );
 	glTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, POLY2_TEX_BLEND(poly2) );
+	if( POLY2_TEX_CLAMP_U(poly2) ) {
+	    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP );
+	} else {
+	    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
+	}	    
+	if( POLY2_TEX_CLAMP_V(poly2) ) {
+	    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP );
+	} else {
+	    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
+	}
     } else {
 	glDisable( GL_TEXTURE_2D );
     }
@@ -134,11 +145,6 @@ void render_set_context( uint32_t *context, int render_mode )
     int srcblend = POLY2_SRC_BLEND(poly2);
     int destblend = POLY2_DEST_BLEND(poly2);
     glBlendFunc( srcblend, destblend );
-    if( POLY2_TEX_ALPHA_ENABLE(poly2) ) {
-	glEnable(GL_BLEND);
-    } else {
-	glDisable(GL_BLEND);
-    }
 }
 
 void render_vertexes( uint32_t poly1, uint32_t *vertexes, int num_vertexes, int vertex_size,
@@ -199,7 +205,7 @@ void render_tile( pvraddr_t tile_entry, int render_mode, gboolean cheap_modifier
 		vertex_length *= 2 ;
 	    }
 	    vertex_length += 3;
-
+	    
 	    if( (entry & 0xE0000000) == 0x80000000 ) {
 		/* Triangle(s) */
 		int strip_count = ((entry >> 25) & 0x0F)+1;
