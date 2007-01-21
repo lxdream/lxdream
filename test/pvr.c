@@ -1,5 +1,5 @@
 /**
- * $Id: pvr.c,v 1.3 2006-08-18 09:33:19 nkeynes Exp $
+ * $Id: pvr.c,v 1.4 2007-01-21 05:23:53 nkeynes Exp $
  * 
  * PVR support code
  *
@@ -475,3 +475,19 @@ void pvr_init()
   pvr_init_video(pvr_check_cable(), 1, 2);
 }
 
+void draw_grid( unsigned short *addr, unsigned short colour )
+{
+    int x,y;
+    unsigned int linesize = 640;
+    for( x=0; x<640; x+=32 ) {
+        for( y=0; y<480; y++ ) {
+            addr[(linesize*y) + x] = colour;
+        }
+    }
+    for( y=0; y<480; y+=32 ) {
+        for( x=0; x<640; x++ ) {
+            addr[(linesize*y) + x] = colour;
+        }
+    }
+
+}
