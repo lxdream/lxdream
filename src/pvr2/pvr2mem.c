@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2mem.c,v 1.2 2007-01-15 10:10:51 nkeynes Exp $
+ * $Id: pvr2mem.c,v 1.3 2007-01-21 11:29:17 nkeynes Exp $
  *
  * PVR2 (Video) VRAM handling routines (mainly for the 64-bit region)
  *
@@ -16,6 +16,8 @@
  * GNU General Public License for more details.
  */
 #include "pvr2.h"
+#include <stdio.h>
+#include <errno.h>
 
 extern char *video_base;
 
@@ -215,6 +217,30 @@ void pvr2_vram64_read( char *dest, sh4addr_t srcaddr, uint32_t length )
 	    *dest++ = *src++;
 	}
     }
+}
+
+void pvr2_vram64_dump_file( sh4addr_t addr, uint32_t length, gchar *filename )
+{
+    uint32_t tmp[length>>2];
+    FILE *f = fopen(filename, "wo");
+    unsigned int i, j;
+
+    if( f == NULL ) {
+	ERROR( "Unable to write to dump file '%s' (%s)", filename, strerror(errno) );
+	return;
+    }
+    pvr2_vram64_read( tmp, addr, length );
+    fprintf( f, "%08X\n", addr );
+    for( i =0; i<length>>2; i+=8 ) {
+	for( j=i; j<i+8; j++ ) {
+	    if( j < length )
+		fprintf( f, " %08X", tmp[j] );
+	    else
+		fprintf( f, "         " );
+	}
+	fprintf( f, "\n" );
+    }
+    fclose(f);
 }
 
 void pvr2_vram64_dump( sh4addr_t addr, uint32_t length, FILE *f ) 
