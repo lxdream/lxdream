@@ -1,5 +1,5 @@
 /**
- * $Id: testrend.c,v 1.2 2006-08-19 01:51:16 nkeynes Exp $
+ * $Id: testrend.c,v 1.3 2007-01-21 05:24:27 nkeynes Exp $
  * 
  * Renderer test cases
  *
@@ -49,6 +49,12 @@ int test_render( test_data_t test_case )
     }
     if( event == NULL ) {
 	fprintf( stderr, "Skipping test '%s' - no event list\n", test_case->test_name );
+    }
+
+    test_data_block_t tex = get_test_data(test_case, "textures");
+    if( tex != NULL ) {
+	uint32_t addr = *(uint32_t *)tex->data;
+	memcpy( (char *)(0xA5000000 + addr), tex->data+4, tex->length-4 );
     }
 
     test_data_block_t config_data = get_test_data( test_case, "config" );
