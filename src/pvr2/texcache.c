@@ -1,5 +1,5 @@
 /**
- * $Id: texcache.c,v 1.15 2007-01-17 09:21:55 nkeynes Exp $
+ * $Id: texcache.c,v 1.16 2007-01-22 21:26:39 nkeynes Exp $
  *
  * Texture cache. Responsible for maintaining a working set of OpenGL 
  * textures. 
@@ -179,71 +179,27 @@ static texcache_entry_index texcache_evict( void )
     return slot;
 }
 
-static void detwiddle_pal8_to_32(int x1, int y1, int size, int totsize,
-				 char **in, uint32_t *out, uint32_t *pal) {
-    if (size == 1) {
-	out[y1 * totsize + x1] = pal[**in];
-	(*in)++;
-    } else {
-	int ns = size>>1;
-	detwiddle_pal8_to_32(x1, y1, ns, totsize, in, out, pal);
-	detwiddle_pal8_to_32(x1, y1+ns, ns, totsize, in, out, pal);
-	detwiddle_pal8_to_32(x1+ns, y1, ns, totsize, in, out, pal);
-	detwiddle_pal8_to_32(x1+ns, y1+ns, ns, totsize, in, out, pal);
+static void decode_pal8_to_32( uint32_t *out, uint8_t *in, int inbytes, uint32_t *pal )
+{
+    int i;
+    for( i=0; i<inbytes; i++ ) {
+	*out++ = pal[*in++];
     }
 }
 
-static void detwiddle_pal8_to_16(int x1, int y1, int size, int totsize,
-				 char **in, uint16_t *out, uint16_t *pal) {
-    if (size == 1) {
-	out[y1 * totsize + x1] = pal[**in];
-	(*in)++;
-    } else {
-	int ns = size>>1;
-	detwiddle_pal8_to_16(x1, y1, ns, totsize, in, out, pal);
-	detwiddle_pal8_to_16(x1, y1+ns, ns, totsize, in, out, pal);
-	detwiddle_pal8_to_16(x1+ns, y1, ns, totsize, in, out, pal);
-	detwiddle_pal8_to_16(x1+ns, y1+ns, ns, totsize, in, out, pal);
+static void decode_pal8_to_16( uint16_t *out, uint8_t *in, int inbytes, uint16_t *pal )
+{
+    int i;
+    for( i=0; i<inbytes; i++ ) {
+	*out++ = pal[*in++];
     }
 }
 
-static void detwiddle_16_to_16(int x1, int y1, int size, int totsize,
-			       uint16_t **in, uint16_t *out ) {
-    if (size == 1) {
-	out[y1 * totsize + x1] = **in;
-	(*in)++;
-    } else {
-	int ns = size>>1;
-	detwiddle_16_to_16(x1, y1, ns, totsize, in, out);
-	detwiddle_16_to_16(x1, y1+ns, ns, totsize, in, out);
-	detwiddle_16_to_16(x1+ns, y1, ns, totsize, in, out);
-	detwiddle_16_to_16(x1+ns, y1+ns, ns, totsize, in, out);
-    }
-}
-    
 #define VQ_CODEBOOK_SIZE 2048 /* 256 entries * 4 pixels per quad * 2 byte pixels */
 
 struct vq_codebook {
     uint16_t quad[256][4];
 };
-
-static void detwiddle_vq_to_16(int x1, int y1, int size, int totsize,
-		   uint8_t **in, uint16_t *out, struct vq_codebook *codebook ) {
-    if( size == 2 ) {
-	uint8_t code = **in;
-	(*in)++;
-	out[y1 * totsize + x1] = codebook->quad[code][0];
-	out[y1 * totsize + x1 + 1] = codebook->quad[code][1];
-	out[(y1+1) * totsize + x1] = codebook->quad[code][2];
-	out[(y1+1) * totsize + x1 + 1] = codebook->quad[code][3];
-    } else {
-	int ns = size>>1;
-	detwiddle_vq_to_16(x1, y1, ns, totsize, in, out, codebook);
-	detwiddle_vq_to_16(x1, y1+ns, ns, totsize, in, out, codebook);
-	detwiddle_vq_to_16(x1+ns, y1, ns, totsize, in, out, codebook);
-	detwiddle_vq_to_16(x1+ns, y1+ns, ns, totsize, in, out, codebook);
-    }	
-}
 
 static void vq_get_codebook( struct vq_codebook *codebook, 
 				uint16_t *input )
@@ -259,23 +215,18 @@ static void vq_get_codebook( struct vq_codebook *codebook,
     }
 }    
 
-
-static void vq_decode( int width, int height, char *input, uint16_t *output,
-		       struct vq_codebook *codebook, int twiddled ) {
+static void vq_decode( uint16_t *output, char *input, int width, int height, 
+		       struct vq_codebook *codebook ) {
     int i,j;
     
     uint8_t *c = (uint8_t *)input;
-    if( twiddled ) {
-	detwiddle_vq_to_16( 0, 0, width, width, &c, output, codebook );
-    } else {
-	for( j=0; j<height; j+=2 ) {
-	    for( i=0; i<width; i+=2 ) {
-		uint8_t code = *c;
-		output[i + j*width] = codebook->quad[code][0];
-		output[i + 1 + j*width] = codebook->quad[code][1];
-		output[i + (j+1)*width] = codebook->quad[code][2];
-		output[i + 1 + (j+1)*width] = codebook->quad[code][3];
-	    }
+    for( j=0; j<height; j+=2 ) {
+	for( i=0; i<width; i+=2 ) {
+	    uint8_t code = *c;
+	    output[i + j*width] = codebook->quad[code][0];
+	    output[i + 1 + j*width] = codebook->quad[code][1];
+	    output[i + (j+1)*width] = codebook->quad[code][2];
+	    output[i + 1 + (j+1)*width] = codebook->quad[code][3];
 	}
     }
 }
@@ -295,12 +246,12 @@ static inline uint32_t yuv_to_rgb32( float y, float u, float v )
 
 
 /**
- * Convert non-twiddled YUV texture data into RGB32 data - most GL implementations don't
+ * Convert raster YUV texture data into RGB32 data - most GL implementations don't
  * directly support this format unfortunately. The input data is formatted as
  * 32 bits = 2 horizontal pixels, UYVY. This is currently done rather inefficiently
  * in floating point.
  */
-static void yuv_decode( int width, int height, uint32_t *input, uint32_t *output )
+static void yuv_decode( uint32_t *output, uint32_t *input, int width, int height )
 {
     int x, y;
     uint32_t *p = input;
@@ -398,7 +349,7 @@ static texcache_load_texture( uint32_t texture_addr, int width, int height,
 	if( tex_format == PVR2_TEX_FORMAT_YUV422 ) {
 	    char tmp[(width*height)<<1];
 	    pvr2_vram64_read_stride( tmp, width<<1, texture_addr, stride<<1, height );
-	    yuv_decode(width, height, (uint32_t *)tmp, (uint32_t *)data );
+	    yuv_decode( (uint32_t *)data, (uint32_t *)tmp, width, height );
 	} else {
 	    pvr2_vram64_read_stride( data, width<<bpp_shift, texture_addr, stride<<bpp_shift, height );
 	}
@@ -411,10 +362,10 @@ static texcache_load_texture( uint32_t texture_addr, int width, int height,
     int level=0, last_level = 0, mip_width = width, mip_height = height, mip_bytes;
     if( PVR2_TEX_IS_MIPMAPPED(mode) ) {
 	int i;
-	for( i=0; 1<<(i+1) < width; i++ );
+	for( i=0; 1<<i < width; i++ );
 	last_level = i;
-	mip_width = width >> i;
-	mip_height= height >> i;
+	mip_width = 1;
+	mip_height= 1;
 	filter = GL_LINEAR_MIPMAP_LINEAR;
     }
     mip_bytes = (mip_width * mip_height) << bpp_shift;
@@ -435,42 +386,32 @@ static texcache_load_texture( uint32_t texture_addr, int width, int height,
 	    char *palette = mmio_region_PVR2PAL.mem + (bank * (256 << bpp_shift));
 	    char tmp[inputlength];
 	    char *p = tmp;
-	    pvr2_vram64_read( tmp, texture_addr, inputlength );
+	    pvr2_vram64_read_twiddled_8( tmp, texture_addr, mip_width, mip_height );
 	    if( bpp_shift == 2 ) {
-		detwiddle_pal8_to_32( 0, 0, mip_width, mip_width, &p, 
-				      (uint32_t *)data, (uint32_t *)palette );
+		decode_pal8_to_32( (uint32_t *)data, tmp, inputlength, (uint32_t*)palette );
 	    } else {
-		detwiddle_pal8_to_16( 0, 0, mip_width, mip_width, &p,
-				      (uint16_t *)data, (uint16_t *)palette );
+		decode_pal8_to_16( (uint16_t *)data, tmp, inputlength, (uint16_t*)palette );
 	    }
 	} else if( tex_format == PVR2_TEX_FORMAT_YUV422 ) {
 	    int inputlength = ((mip_width*mip_height)<<1);
 	    char tmp[inputlength];
 	    pvr2_vram64_read( tmp, texture_addr, inputlength );
-	    yuv_decode( mip_width, mip_height, (uint32_t *)tmp, (uint32_t *)data );
+	    yuv_decode( (uint32_t *)data, (uint32_t *)tmp, mip_width, mip_height );
 	} else if( PVR2_TEX_IS_COMPRESSED(mode) ) {
 	    int inputlength = ((mip_width*mip_height) >> 2);
 	    char tmp[inputlength];
-	    pvr2_vram64_read( tmp, texture_addr, inputlength );
-	    vq_decode( mip_width, mip_height, tmp, (uint16_t *)data, &codebook, 
-		       PVR2_TEX_IS_TWIDDLED(mode) );
+	    if( PVR2_TEX_IS_TWIDDLED(mode) ) {
+		pvr2_vram64_read_twiddled_8( tmp, texture_addr, mip_width, mip_height );
+	    } else {
+		pvr2_vram64_read( tmp, texture_addr, inputlength );
+	    }
+	    vq_decode( (uint16_t *)data, tmp, mip_width, mip_height, &codebook );
 	} else if( PVR2_TEX_IS_TWIDDLED(mode) ) {
-	    char tmp[mip_bytes];
-	    uint16_t *p = (uint16_t *)tmp;
-	    pvr2_vram64_read( tmp, texture_addr, mip_bytes );
-	    /* Untwiddle */
-	    detwiddle_16_to_16( 0, 0, mip_width, mip_width, &p, (uint16_t *)data );
+	    pvr2_vram64_read_twiddled_16( data, texture_addr, mip_width, mip_height );
 	} else {
 	    pvr2_vram64_read( data, texture_addr, mip_bytes );
 	}
 	    
-	if( PVR2_TEX_IS_MIPMAPPED(mode) && mip_width == 2 ) {
-	    /* Opengl requires a 1x1 texture, but the PVR2 doesn't. This should
-	     * strictly speaking be the average of the 2x2 texture, but we're
-	     * lazy at the moment */
-	    glTexImage2D( GL_TEXTURE_2D, level+1, intFormat, 1, 1, 0, format, type, data );
-	}
-
 	/* Pass to GL */
 	glTexImage2D( GL_TEXTURE_2D, level, intFormat, mip_width, mip_height, 0, format, type,
 		      data );
