@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.h,v 1.23 2007-01-21 11:28:43 nkeynes Exp $
+ * $Id: pvr2.h,v 1.24 2007-01-22 11:45:37 nkeynes Exp $
  *
  * PVR2 (video chip) functions and macros.
  *
@@ -127,6 +127,22 @@ void pvr2_vram64_write_stride( sh4addr_t dest, char *src, uint32_t line_bytes,
  * Read from the interleaved memory address space (aka 64-bit address space)
  */
 void pvr2_vram64_read( char *dest, sh4addr_t src, uint32_t length );
+
+/**
+ * Read a twiddled image from interleaved memory address space (aka 64-bit address
+ * space), writing the image to the destination buffer in detwiddled format. 
+ * Width and height must be powers of 2
+ * This version reads 8-bit pixels.
+ */
+void pvr2_vram64_read_twiddled_8( char *dest, sh4addr_t src, uint32_t width, uint32_t height );
+
+/**
+ * Read a twiddled image from interleaved memory address space (aka 64-bit address
+ * space), writing the image to the destination buffer in detwiddled format. 
+ * Width and height must be powers of 2, and src must be 16-bit aligned.
+ * This version reads 16-bit pixels.
+ */
+void pvr2_vram64_read_twiddled_16( char *dest, sh4addr_t src, uint32_t width, uint32_t height );
 
 /**
  * Read an image from the interleaved memory address space (aka 64-bit address space) 

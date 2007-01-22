@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2mem.c,v 1.3 2007-01-21 11:29:17 nkeynes Exp $
+ * $Id: pvr2mem.c,v 1.4 2007-01-22 11:45:37 nkeynes Exp $
  *
  * PVR2 (Video) VRAM handling routines (mainly for the 64-bit region)
  *
@@ -162,8 +162,148 @@ void pvr2_vram64_read_stride( char *dest, uint32_t dest_line_bytes, sh4addr_t sr
 	    banks[bank_flag]++;
 	    bank_flag = !bank_flag;
 	}
+    }    
+}
+
+/**
+ * @param dest Destination image buffer
+ * @param banks Source data expressed as two bank pointers
+ * @param offset Offset into banks[0] specifying where the next byte
+ *  to read is (0..3)
+ * @param x1,y1 Destination coordinates
+ * @param width Width of current destination block
+ * @param image_width Total width of image (ie stride)
+ */
+
+static void pvr2_vram64_detwiddle_8( uint8_t *dest, uint8_t *banks[2], int offset,
+				     int x1, int y1, int width, int image_width )
+{
+    if( width == 2 ) {
+	dest[y1*image_width + x1] = *banks[0]++;
+	dest[(y1+1)*image_width + x1] = *banks[offset<3?0:1]++;
+	dest[y1*image_width + x1 + 1] = *banks[offset<2?0:1]++;
+	dest[(y1+1)*image_width + x1 + 1] = *banks[offset==0?0:1]++;
+	uint8_t *tmp = banks[0]; /* swap banks */
+	banks[0] = banks[1];
+	banks[1] = tmp;
+    } else {
+	int subdivide = width >> 1;
+	pvr2_vram64_detwiddle_8( dest, banks, offset, x1, y1, subdivide, image_width );
+	pvr2_vram64_detwiddle_8( dest, banks, offset, x1, y1+subdivide, subdivide, image_width );
+	pvr2_vram64_detwiddle_8( dest, banks, offset, x1+subdivide, y1, subdivide, image_width );
+	pvr2_vram64_detwiddle_8( dest, banks, offset, x1+subdivide, y1+subdivide, subdivide, image_width );
     }
-    
+}
+
+/**
+ * @param dest Destination image buffer
+ * @param banks Source data expressed as two bank pointers
+ * @param offset Offset into banks[0] specifying where the next word
+ *  to read is (0 or 1)
+ * @param x1,y1 Destination coordinates
+ * @param width Width of current destination block
+ * @param image_width Total width of image (ie stride)
+ */
+
+static void pvr2_vram64_detwiddle_16( uint16_t *dest, uint16_t *banks[2], int offset,
+				      int x1, int y1, int width, int image_width )
+{
+    if( width == 2 ) {
+	dest[y1*image_width + x1] = *banks[0]++;
+	dest[(y1+1)*image_width + x1] = *banks[offset]++;
+	dest[y1*image_width + x1 + 1] = *banks[1]++;
+	dest[(y1+1)*image_width + x1 + 1] = *banks[offset^1]++;
+    } else {
+	int subdivide = width >> 1;
+	pvr2_vram64_detwiddle_16( dest, banks, offset, x1, y1, subdivide, image_width );
+	pvr2_vram64_detwiddle_16( dest, banks, offset, x1, y1+subdivide, subdivide, image_width );
+	pvr2_vram64_detwiddle_16( dest, banks, offset, x1+subdivide, y1, subdivide, image_width );
+	pvr2_vram64_detwiddle_16( dest, banks, offset, x1+subdivide, y1+subdivide, subdivide, image_width );
+    }
+}
+
+/**
+ * Read an image from 64-bit vram stored as twiddled 8-bit pixels. The 
+ * image is written out to the destination in detwiddled form.
+ * @param dest destination buffer, which must be at least width*height in length
+ * @param srcaddr source address in vram
+ * @param width image width (must be a power of 2)
+ * @param height image height (must be a power of 2)
+ */
+void pvr2_vram64_read_twiddled_8( char *dest, sh4addr_t srcaddr, uint32_t width, uint32_t height )
+{
+    int offset_flag = (srcaddr & 0x07);
+    uint8_t *banks[2];
+    uint8_t *wdest = (uint8_t*)dest;
+    int i,j;
+
+    srcaddr = srcaddr & 0x7FFFF8;
+
+    banks[0] = (uint8_t *)(video_base + (srcaddr>>1));
+    banks[1] = banks[0] + 0x400000;
+    if( offset_flag & 0x04 ) { // If source is not 64-bit aligned, swap the banks
+	uint8_t *tmp = banks[0];
+	banks[0] = banks[1];
+	banks[1] = tmp + 4;
+	offset_flag &= 0x03;
+    }
+    banks[0] += offset_flag;
+
+    if( width > height ) {
+	for( i=0; i<width; i+=height ) {
+	    pvr2_vram64_detwiddle_8( wdest, banks, offset_flag, i, 0, height, width );
+	}
+    } else if( height > width ) {
+	for( i=0; i<height; i+=width ) {
+	    pvr2_vram64_detwiddle_8( wdest, banks, offset_flag, 0, i, width, width );
+	}
+    } else if( width == 1 ) {
+	*wdest = *banks[0];
+    } else {
+	pvr2_vram64_detwiddle_8( wdest, banks, offset_flag, 0, 0, width, width );
+    }   
+}
+
+/**
+ * Read an image from 64-bit vram stored as twiddled 16-bit pixels. The 
+ * image is written out to the destination in detwiddled form.
+ * @param dest destination buffer, which must be at least width*height*2 in length
+ * @param srcaddr source address in vram (must be 16-bit aligned)
+ * @param width image width (must be a power of 2)
+ * @param height image height (must be a power of 2)
+ */
+void pvr2_vram64_read_twiddled_16( char *dest, sh4addr_t srcaddr, uint32_t width, uint32_t height ) {
+    int offset_flag = (srcaddr & 0x06) >> 1;
+    uint16_t *banks[2];
+    uint16_t *wdest = (uint16_t*)dest;
+    int i,j;
+
+    srcaddr = srcaddr & 0x7FFFF8;
+
+    banks[0] = (uint16_t *)(video_base + (srcaddr>>1));
+    banks[1] = banks[0] + 0x200000;
+    if( offset_flag & 0x02 ) { // If source is not 64-bit aligned, swap the banks
+	uint16_t *tmp = banks[0];
+	banks[0] = banks[1];
+	banks[1] = tmp + 2;
+	offset_flag &= 0x01;
+    }
+    banks[0] += offset_flag;
+	
+
+    if( width > height ) {
+	for( i=0; i<width; i+=height ) {
+	    pvr2_vram64_detwiddle_16( wdest, banks, offset_flag, i, 0, height, width );
+	}
+    } else if( height > width ) {
+	for( i=0; i<height; i+=width ) {
+	    pvr2_vram64_detwiddle_16( wdest, banks, offset_flag, 0, i, width, width );
+	}
+    } else if( width == 1 ) {
+	*wdest = *banks[0];
+    } else {
+	pvr2_vram64_detwiddle_16( wdest, banks, offset_flag, 0, 0, width, width );
+    }    
 }
 
 void pvr2_vram_write_invert( sh4addr_t destaddr, char *src, uint32_t length, uint32_t line_length )
