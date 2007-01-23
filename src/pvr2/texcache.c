@@ -1,5 +1,5 @@
 /**
- * $Id: texcache.c,v 1.16 2007-01-22 21:26:39 nkeynes Exp $
+ * $Id: texcache.c,v 1.17 2007-01-23 08:18:05 nkeynes Exp $
  *
  * Texture cache. Responsible for maintaining a working set of OpenGL 
  * textures. 
@@ -222,7 +222,7 @@ static void vq_decode( uint16_t *output, char *input, int width, int height,
     uint8_t *c = (uint8_t *)input;
     for( j=0; j<height; j+=2 ) {
 	for( i=0; i<width; i+=2 ) {
-	    uint8_t code = *c;
+	    uint8_t code = *c++;
 	    output[i + j*width] = codebook->quad[code][0];
 	    output[i + 1 + j*width] = codebook->quad[code][1];
 	    output[i + (j+1)*width] = codebook->quad[code][2];
@@ -364,8 +364,8 @@ static texcache_load_texture( uint32_t texture_addr, int width, int height,
 	int i;
 	for( i=0; 1<<i < width; i++ );
 	last_level = i;
-	mip_width = 1;
-	mip_height= 1;
+	mip_width = 2;
+	mip_height= 2;
 	filter = GL_LINEAR_MIPMAP_LINEAR;
     }
     mip_bytes = (mip_width * mip_height) << bpp_shift;
@@ -396,12 +396,13 @@ static texcache_load_texture( uint32_t texture_addr, int width, int height,
 	    int inputlength = ((mip_width*mip_height)<<1);
 	    char tmp[inputlength];
 	    pvr2_vram64_read( tmp, texture_addr, inputlength );
+	    ERROR( "Twiddled YUV not supported" );
 	    yuv_decode( (uint32_t *)data, (uint32_t *)tmp, mip_width, mip_height );
 	} else if( PVR2_TEX_IS_COMPRESSED(mode) ) {
 	    int inputlength = ((mip_width*mip_height) >> 2);
 	    char tmp[inputlength];
 	    if( PVR2_TEX_IS_TWIDDLED(mode) ) {
-		pvr2_vram64_read_twiddled_8( tmp, texture_addr, mip_width, mip_height );
+		pvr2_vram64_read_twiddled_8( tmp, texture_addr, mip_width>>1, mip_height>>1 );
 	    } else {
 		pvr2_vram64_read( tmp, texture_addr, inputlength );
 	    }
@@ -411,14 +412,19 @@ static texcache_load_texture( uint32_t texture_addr, int width, int height,
 	} else {
 	    pvr2_vram64_read( data, texture_addr, mip_bytes );
 	}
-	    
+	
 	/* Pass to GL */
-	glTexImage2D( GL_TEXTURE_2D, level, intFormat, mip_width, mip_height, 0, format, type,
-		      data );
-	texture_addr += mip_bytes;
-	mip_width <<= 1;
-	mip_height <<= 1;
-	mip_bytes <<= 2;
+	if( level == last_level && level != 0 ) { /* 1x1 stored within a 2x2 */
+	    glTexImage2D( GL_TEXTURE_2D, level, intFormat, 1, 1, 0, format, type,
+			  data + (3 << bpp_shift) );
+	} else {
+	    glTexImage2D( GL_TEXTURE_2D, level, intFormat, mip_width, mip_height, 0, format, type,
+			  data );
+	    texture_addr += mip_bytes;
+	    mip_width <<= 1;
+	    mip_height <<= 1;
+	    mip_bytes <<= 2;
+	}
     }
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
