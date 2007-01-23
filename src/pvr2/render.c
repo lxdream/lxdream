@@ -1,5 +1,5 @@
 /**
- * $Id: render.c,v 1.17 2007-01-21 11:28:43 nkeynes Exp $
+ * $Id: render.c,v 1.18 2007-01-23 11:19:32 nkeynes Exp $
  *
  * PVR2 Renderer support. This part is primarily
  *
@@ -19,16 +19,6 @@
 #include "pvr2/pvr2.h"
 #include "asic.h"
 
-/**
- * Describes a rendering buffer that's actually held in GL, for when we need
- * to fetch the bits back to vram.
- */
-typedef struct pvr2_render_buffer {
-    sh4addr_t render_addr; /* The actual address rendered to in pvr ram */
-    uint32_t size; /* Length of rendering region in bytes */
-    int width, height;
-    int colour_format;
-} *pvr2_render_buffer_t;
 
 struct pvr2_render_buffer front_buffer;
 struct pvr2_render_buffer back_buffer;
@@ -43,11 +33,6 @@ typedef struct pvr2_bgplane_packed {
         float           x3, y3, z3;
         uint32_t          colour3;
 } *pvr2_bgplane_packed_t;
-
-
-
-void pvr2_render_copy_to_sh4( pvr2_render_buffer_t buffer, 
-			      gboolean backBuffer );
 
 int pvr2_render_font_list = -1;
 int pvr2_render_trace = 0;
@@ -113,19 +98,19 @@ gboolean pvr2_render_init( void )
  * PVR2 ram (note that front buffer flush may be corrupt under some
  * circumstances).
  */
-gboolean pvr2_render_invalidate( sh4addr_t address )
+gboolean pvr2_render_buffer_invalidate( sh4addr_t address )
 {
     address = address & 0x1FFFFFFF;
     if( front_buffer.render_addr != -1 &&
 	front_buffer.render_addr <= address &&
 	(front_buffer.render_addr + front_buffer.size) > address ) {
-	pvr2_render_copy_to_sh4( &front_buffer, FALSE );
+	pvr2_render_buffer_copy_to_sh4( &front_buffer, FALSE );
 	front_buffer.render_addr = -1;
 	return TRUE;
     } else if( back_buffer.render_addr != -1 &&
 	       back_buffer.render_addr <= address &&
 	       (back_buffer.render_addr + back_buffer.size) > address ) {
-	pvr2_render_copy_to_sh4( &back_buffer, TRUE );
+	pvr2_render_buffer_copy_to_sh4( &back_buffer, TRUE );
 	back_buffer.render_addr = -1;
 	return TRUE;
     }
@@ -178,7 +163,7 @@ static void pvr2_render_prepare_context( sh4addr_t render_addr,
 	/* There's a current back buffer, and we're rendering somewhere else -
 	 * flush the back buffer back to vram and start a new back buffer
 	 */
-	pvr2_render_copy_to_sh4( &back_buffer, TRUE );
+	pvr2_render_buffer_copy_to_sh4( &back_buffer, TRUE );
     }
 
     if( front_buffer.render_addr == render_addr ) {
@@ -274,131 +259,4 @@ void pvr2_render_scene( )
     /* Generate end of render event */
     asic_event( EVENT_PVR_RENDER_DONE );
     DEBUG( "Rendered frame %d", pvr2_get_frame_count() );
-}
-
-
-/**
- * Flush the indicated render buffer back to PVR. Caller is responsible for
- * tracking whether there is actually anything in the buffer.
- *
- * @param buffer A render buffer indicating the address to store to, and the
- * format the data needs to be in.
- * @param backBuffer TRUE to flush the back buffer, FALSE for 
- * the front buffer.
- */
-void pvr2_render_copy_to_sh4( pvr2_render_buffer_t buffer, 
-			      gboolean backBuffer )
-{
-    if( buffer->render_addr == -1 )
-	return;
-    GLenum type, format = GL_RGBA;
-    int line_size = buffer->width, size;
-
-    switch( buffer->colour_format ) {
-    case COLFMT_RGB565: 
-	type = GL_UNSIGNED_SHORT_5_6_5; 
-	format = GL_RGB; 
-	line_size <<= 1;
-	break;
-    case COLFMT_RGB888: 
-	type = GL_UNSIGNED_INT; 
-	format = GL_RGB;
-	line_size = (line_size<<1)+line_size;
-	break;
-    case COLFMT_ARGB1555: 
-	type = GL_UNSIGNED_SHORT_5_5_5_1; 
-	line_size <<= 1;
-	break;
-    case COLFMT_ARGB4444: 
-	type = GL_UNSIGNED_SHORT_4_4_4_4; 
-	line_size <<= 1;
-	break;
-    case COLFMT_ARGB8888: 
-	type = GL_UNSIGNED_INT_8_8_8_8; 
-	line_size <<= 2;
-	break;
-    }
-    size = line_size * buffer->height;
-    
-    if( backBuffer ) {
-	glFinish();
-	glReadBuffer( GL_BACK );
-    } else {
-	glReadBuffer( GL_FRONT );
-    }
-
-    if( buffer->render_addr & 0xFF000000 == 0x04000000 ) {
-	/* Interlaced buffer. Go the double copy... :( */
-	char target[size];
-	glReadPixels( 0, 0, buffer->width, buffer->height, format, type, target );
-	pvr2_vram64_write( buffer->render_addr, target, size );
-    } else {
-	/* Regular buffer */
-	char target[size];
-	glReadPixels( 0, 0, buffer->width, buffer->height, format, type, target );
-	pvr2_vram_write_invert( buffer->render_addr, target, size, line_size );
-    }
-}
-
-
-/**
- * Copy data from PVR ram into the GL render buffer. 
- *
- * @param buffer A render buffer indicating the address to read from, and the
- * format the data is in.
- * @param backBuffer TRUE to write the back buffer, FALSE for 
- * the front buffer.
- */
-void pvr2_render_copy_from_sh4( pvr2_render_buffer_t buffer, 
-				gboolean backBuffer )
-{
-    if( buffer->render_addr == -1 )
-	return;
-    GLenum type, format = GL_RGBA;
-    int size = buffer->width * buffer->height;
-
-    switch( buffer->colour_format ) {
-    case COLFMT_RGB565: 
-	type = GL_UNSIGNED_SHORT_5_6_5; 
-	format = GL_RGB; 
-	size <<= 1;
-	break;
-    case COLFMT_RGB888: 
-	type = GL_UNSIGNED_INT; 
-	format = GL_RGB;
-	size = (size<<1)+size;
-	break;
-    case COLFMT_ARGB1555: 
-	type = GL_UNSIGNED_SHORT_5_5_5_1; 
-	size <<= 1;
-	break;
-    case COLFMT_ARGB4444: 
-	type = GL_UNSIGNED_SHORT_4_4_4_4; 
-	size <<= 1;
-	break;
-    case COLFMT_ARGB8888: 
-	type = GL_UNSIGNED_INT_8_8_8_8; 
-	size <<= 2;
-	break;
-    }
-    
-    if( backBuffer ) {
-	glDrawBuffer( GL_BACK );
-    } else {
-	glDrawBuffer( GL_FRONT );
-    }
-
-    glRasterPos2i( 0, 0 );
-    if( buffer->render_addr & 0xFF000000 == 0x04000000 ) {
-	/* Interlaced buffer. Go the double copy... :( */
-	char target[size];
-	pvr2_vram64_read( target, buffer->render_addr, size );
-	glDrawPixels( buffer->width, buffer->height, 
-		      format, type, target );
-    } else {
-	/* Regular buffer - go direct */
-	char *target = mem_get_region( buffer->render_addr );
-	glDrawPixels( buffer->width, buffer->height, 
-		      format, type, target );
-    }
 }

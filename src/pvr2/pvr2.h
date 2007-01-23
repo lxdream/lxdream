@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.h,v 1.24 2007-01-22 11:45:37 nkeynes Exp $
+ * $Id: pvr2.h,v 1.25 2007-01-23 11:19:32 nkeynes Exp $
  *
  * PVR2 (video chip) functions and macros.
  *
@@ -132,6 +132,15 @@ void pvr2_vram64_read( char *dest, sh4addr_t src, uint32_t length );
  * Read a twiddled image from interleaved memory address space (aka 64-bit address
  * space), writing the image to the destination buffer in detwiddled format. 
  * Width and height must be powers of 2
+ * This version reads 4-bit pixels.
+ */
+void pvr2_vram64_read_twiddled_4( char *dest, sh4addr_t src, uint32_t width, uint32_t height );
+
+
+/**
+ * Read a twiddled image from interleaved memory address space (aka 64-bit address
+ * space), writing the image to the destination buffer in detwiddled format. 
+ * Width and height must be powers of 2
  * This version reads 8-bit pixels.
  */
 void pvr2_vram64_read_twiddled_8( char *dest, sh4addr_t src, uint32_t width, uint32_t height );
@@ -151,13 +160,54 @@ void pvr2_vram64_read_twiddled_16( char *dest, sh4addr_t src, uint32_t width, ui
  */
 void pvr2_vram64_read_stride( char *dest, uint32_t dest_line_bytes, sh4addr_t srcaddr,
 			       uint32_t src_line_bytes, uint32_t line_count );
-
-
 /**
  * Dump a portion of vram to a stream from the interleaved memory address 
  * space.
  */
 void pvr2_vram64_dump( sh4addr_t addr, uint32_t length, FILE *f );
+
+
+/**
+ * Describes a rendering buffer that's actually held in GL, for when we need
+ * to fetch the bits back to vram.
+ */
+typedef struct pvr2_render_buffer {
+    sh4addr_t render_addr; /* The actual address rendered to in pvr ram */
+    uint32_t size; /* Length of rendering region in bytes */
+    int width, height;
+    int colour_format;
+} *pvr2_render_buffer_t;
+
+/**
+ * Flush the indicated render buffer back to PVR. Caller is responsible for
+ * tracking whether there is actually anything in the buffer.
+ *
+ * @param buffer A render buffer indicating the address to store to, and the
+ * format the data needs to be in.
+ * @param backBuffer TRUE to flush the back buffer, FALSE for 
+ * the front buffer.
+ */
+void pvr2_render_buffer_copy_to_sh4( pvr2_render_buffer_t buffer, 
+				     gboolean backBuffer );
+
+/**
+ * Copy data from PVR ram into the GL render buffer. 
+ *
+ * @param buffer A render buffer indicating the address to read from, and the
+ * format the data is in.
+ * @param backBuffer TRUE to write the back buffer, FALSE for 
+ * the front buffer.
+ */
+void pvr2_render_buffer_copy_from_sh4( pvr2_render_buffer_t buffer, 
+				       gboolean backBuffer );
+
+
+/**
+ * Invalidate any caching on the supplied SH4 address
+ */
+gboolean pvr2_render_buffer_invalidate( sh4addr_t addr );
+
+
 
 /**************************** Tile Accelerator ***************************/
 /**
@@ -195,11 +245,6 @@ void pvr2_yuv_set_config( uint32_t config );
  * @return TRUE on success, FALSE on failure.
  */
 gboolean pvr2_render_init( void );
-
-/**
- * Invalidate any caching on the supplied SH4 address
- */
-gboolean pvr2_render_invalidate( sh4addr_t addr );
 
 /**
  * Render the current scene stored in PVR ram to the GL back buffer.

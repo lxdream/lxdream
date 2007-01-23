@@ -1,5 +1,5 @@
 /**
- * $Id: texcache.c,v 1.18 2007-01-23 09:30:59 nkeynes Exp $
+ * $Id: texcache.c,v 1.19 2007-01-23 11:19:32 nkeynes Exp $
  *
  * Texture cache. Responsible for maintaining a working set of OpenGL 
  * textures. 
@@ -195,6 +195,27 @@ static void decode_pal8_to_16( uint16_t *out, uint8_t *in, int inbytes, uint16_t
     }
 }
 
+static void decode_pal4_to_32( uint32_t *out, uint8_t *in, int inbytes, uint32_t *pal )
+{
+    int i;
+    for( i=0; i<inbytes; i++ ) {
+	*out++ = pal[*in & 0x0F];
+	*out++ = pal[(*in >> 4)];
+	in++;
+    }
+}
+
+
+static void decode_pal4_to_16( uint16_t *out, uint8_t *in, int inbytes, uint16_t *pal )
+{
+    int i;
+    for( i=0; i<inbytes; i++ ) {
+	*out++ = pal[*in & 0x0F];
+	*out++ = pal[(*in >> 4)];
+	in++;
+    }
+}
+
 #define VQ_CODEBOOK_SIZE 2048 /* 256 entries * 4 pixels per quad * 2 byte pixels */
 
 struct vq_codebook {
@@ -283,7 +304,6 @@ static texcache_load_texture( uint32_t texture_addr, int width, int height,
     /* Decode the format parameters */
     switch( tex_format ) {
     case PVR2_TEX_FORMAT_IDX4:
-	ERROR( "4-bit indexed textures not supported" );
     case PVR2_TEX_FORMAT_IDX8:
 	/* For indexed-colour modes, we need to lookup the palette control
 	 * word to determine the de-indexed texture format.
@@ -385,12 +405,22 @@ static texcache_load_texture( uint32_t texture_addr, int width, int height,
 	    int bank = (mode >> 25) &0x03;
 	    char *palette = mmio_region_PVR2PAL.mem + (bank * (256 << bpp_shift));
 	    char tmp[inputlength];
-	    char *p = tmp;
 	    pvr2_vram64_read_twiddled_8( tmp, texture_addr, mip_width, mip_height );
 	    if( bpp_shift == 2 ) {
 		decode_pal8_to_32( (uint32_t *)data, tmp, inputlength, (uint32_t*)palette );
 	    } else {
 		decode_pal8_to_16( (uint16_t *)data, tmp, inputlength, (uint16_t*)palette );
+	    }
+	} else if( tex_format == PVR2_TEX_FORMAT_IDX4 ) {
+	    int inputlength = (mip_width * mip_height) >> 1;
+	    int bank = (mode >>21 ) & 0x3F;
+	    char *palette = mmio_region_PVR2PAL.mem + (bank * (16 << bpp_shift));
+	    char tmp[inputlength];
+	    pvr2_vram64_read_twiddled_4( tmp, texture_addr, mip_width, mip_height );
+	    if( bpp_shift == 2 ) {
+		decode_pal4_to_32( (uint32_t *)data, tmp, inputlength, (uint32_t*)palette );
+	    } else {
+		decode_pal4_to_16( (uint16_t *)data, tmp, inputlength, (uint16_t*)palette );
 	    }
 	} else if( tex_format == PVR2_TEX_FORMAT_YUV422 ) {
 	    int inputlength = ((mip_width*mip_height)<<1);
