@@ -1,5 +1,5 @@
 /**
- * $Id: sh4mem.c,v 1.17 2007-01-14 11:43:00 nkeynes Exp $
+ * $Id: sh4mem.c,v 1.18 2007-01-23 11:20:26 nkeynes Exp $
  * sh4mem.c is responsible for the SH4's access to memory (including memory
  * mapped I/O), using the page maps created in mem.c
  *
@@ -130,9 +130,9 @@ int32_t sh4_read_long( uint32_t addr )
     
     if( (addr&0x1F800000) == 0x04000000 ) {
         addr = TRANSLATE_VIDEO_64BIT_ADDRESS(addr);
-	pvr2_render_invalidate(addr);
+	pvr2_render_buffer_invalidate(addr);
     } else if( (addr&0x1F800000) == 0x05000000 ) {
-	pvr2_render_invalidate(addr);
+	pvr2_render_buffer_invalidate(addr);
     }
 
     if( IS_MMU_ENABLED() ) {
@@ -167,9 +167,9 @@ int32_t sh4_read_word( uint32_t addr )
     
     if( (addr&0x1F800000) == 0x04000000 ) {
         addr = TRANSLATE_VIDEO_64BIT_ADDRESS(addr);
-	pvr2_render_invalidate(addr);
+	pvr2_render_buffer_invalidate(addr);
     } else if( (addr&0x1F800000) == 0x05000000 ) {
-	pvr2_render_invalidate(addr);
+	pvr2_render_buffer_invalidate(addr);
     }
     
 
@@ -204,9 +204,9 @@ int32_t sh4_read_byte( uint32_t addr )
         return SIGNEXT8(sh4_read_p4( addr ));
     if( (addr&0x1F800000) == 0x04000000 ) {
         addr = TRANSLATE_VIDEO_64BIT_ADDRESS(addr);
-    	pvr2_render_invalidate(addr);
+    	pvr2_render_buffer_invalidate(addr);
     } else if( (addr&0x1F800000) == 0x05000000 ) {
-	pvr2_render_invalidate(addr);
+	pvr2_render_buffer_invalidate(addr);
     }
 
     
@@ -245,9 +245,9 @@ void sh4_write_long( uint32_t addr, uint32_t val )
 	(addr&0x1F800000) == 0x11000000 ) {
 	texcache_invalidate_page(addr& 0x7FFFFF);
         addr = TRANSLATE_VIDEO_64BIT_ADDRESS(addr);
-	pvr2_render_invalidate(addr);
+	pvr2_render_buffer_invalidate(addr);
     } else if( (addr&0x1F800000) == 0x05000000 ) {
-	pvr2_render_invalidate(addr);
+	pvr2_render_buffer_invalidate(addr);
     }
 
     if( IS_MMU_ENABLED() ) {
@@ -293,9 +293,9 @@ void sh4_write_word( uint32_t addr, uint32_t val )
 	(addr&0x1F800000) == 0x11000000 ) {
 	texcache_invalidate_page(addr& 0x7FFFFF);
         addr = TRANSLATE_VIDEO_64BIT_ADDRESS(addr);
-	pvr2_render_invalidate(addr);
+	pvr2_render_buffer_invalidate(addr);
     } else if( (addr&0x1F800000) == 0x05000000 ) {
-	pvr2_render_invalidate(addr);
+	pvr2_render_buffer_invalidate(addr);
     }
     if( IS_MMU_ENABLED() ) {
         ERROR( "user-mode & mmu translation not implemented, aborting", NULL );
@@ -329,9 +329,9 @@ void sh4_write_byte( uint32_t addr, uint32_t val )
 	(addr&0x1F800000) == 0x11000000 ) {
 	texcache_invalidate_page(addr& 0x7FFFFF);
         addr = TRANSLATE_VIDEO_64BIT_ADDRESS(addr);
-	pvr2_render_invalidate(addr);
+	pvr2_render_buffer_invalidate(addr);
     } else if( (addr&0x1F800000) == 0x05000000 ) {
-	pvr2_render_invalidate(addr);
+	pvr2_render_buffer_invalidate(addr);
     }
     
     if( IS_MMU_ENABLED() ) {
@@ -381,7 +381,7 @@ void mem_copy_to_sh4( uint32_t destaddr, char *src, size_t count ) {
 	pvr2_vram64_write( destaddr, src, count );
     } else {
 	if( (destaddr & 0x1F800000) == 0x05000000 )
-	    pvr2_render_invalidate( destaddr );
+	    pvr2_render_buffer_invalidate( destaddr );
 	char *dest = mem_get_region(destaddr);
 	if( dest == NULL )
 	    ERROR( "Attempted block write to unknown address %08X", destaddr );
