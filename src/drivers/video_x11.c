@@ -1,5 +1,5 @@
 /**
- * $Id: video_x11.c,v 1.8 2007-01-15 12:57:12 nkeynes Exp $
+ * $Id: video_x11.c,v 1.9 2007-01-23 11:21:21 nkeynes Exp $
  *
  * Shared functions for all X11-based display drivers.
  *
@@ -152,7 +152,7 @@ gboolean video_glx_set_render_format( int x, int y, int width, int height )
 
 gboolean video_glx_display_frame( video_buffer_t frame )
 {
-    GLenum type, format = GL_RGB;
+    GLenum type, format = GL_BGR;
     switch( frame->colour_format ) {
     case COLFMT_RGB565:
 	type = GL_UNSIGNED_SHORT_5_6_5;
