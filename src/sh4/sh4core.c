@@ -1,5 +1,5 @@
 /**
- * $Id: sh4core.c,v 1.39 2007-01-17 21:27:20 nkeynes Exp $
+ * $Id: sh4core.c,v 1.40 2007-01-23 08:17:06 nkeynes Exp $
  * 
  * SH4 emulation core, and parent module for all the SH4 peripheral
  * modules.
@@ -69,7 +69,7 @@ struct sh4_registers sh4r;
 void sh4_init(void)
 {
     register_io_regions( mmio_list_sh4mmio );
-    mmu_init();
+    MMU_init();
     sh4_reset();
 }
 
@@ -93,6 +93,7 @@ void sh4_reset(void)
     /* Peripheral modules */
     CPG_reset();
     INTC_reset();
+    MMU_reset();
     TMU_reset();
     SCIF_reset();
 }
@@ -216,6 +217,7 @@ void sh4_stop(void)
 void sh4_save_state( FILE *f )
 {
     fwrite( &sh4r, sizeof(sh4r), 1, f );
+    MMU_save_state( f );
     INTC_save_state( f );
     TMU_save_state( f );
     SCIF_save_state( f );
@@ -224,6 +226,7 @@ void sh4_save_state( FILE *f )
 int sh4_load_state( FILE * f )
 {
     fread( &sh4r, sizeof(sh4r), 1, f );
+    MMU_load_state( f );
     INTC_load_state( f );
     TMU_load_state( f );
     return SCIF_load_state( f );

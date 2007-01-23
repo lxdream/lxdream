@@ -1,5 +1,5 @@
 /**
- * $Id: sh4mmio.c,v 1.9 2006-06-18 12:01:53 nkeynes Exp $
+ * $Id: sh4mmio.c,v 1.10 2007-01-23 08:17:06 nkeynes Exp $
  * 
  * Miscellaneous and not-really-implemented SH4 peripheral modules. Also
  * responsible for including the IMPL side of the SH4 MMIO pages.
@@ -49,9 +49,31 @@ void mmio_region_MMU_write( uint32_t reg, uint32_t val )
 }
 
 
-void mmu_init() 
+void MMU_init() 
 {
     cache = mem_alloc_pages(2);
+}
+
+void MMU_reset()
+{
+    mmio_region_MMU_write( CCR, 0 );
+}
+
+void MMU_save_state( FILE *f )
+{
+    fwrite( cache, 4096, 2, f );
+}
+
+int MMU_load_state( FILE *f )
+{
+    /* Setup the cache mode according to the saved register value
+     * (mem_load runs before this point to load all MMIO data)
+     */
+    mmio_region_MMU_write( CCR, MMIO_READ(MMU, CCR) );
+    if( fread( cache, 4096, 2, f ) != 2 ) {
+	return 1;
+    }
+    return 0;
 }
 
 void mmu_set_cache_mode( int mode )
