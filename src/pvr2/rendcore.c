@@ -1,5 +1,5 @@
 /**
- * $Id: rendcore.c,v 1.10 2007-01-21 11:28:43 nkeynes Exp $
+ * $Id: rendcore.c,v 1.11 2007-01-23 12:03:57 nkeynes Exp $
  *
  * PVR2 renderer core.
  *
@@ -51,6 +51,8 @@ int pvr2_render_colour_format[8] = {
 #define NO_POINTER          0x80000000
 
 extern char *video_base;
+
+gboolean pvr2_force_fragment_alpha;
 
 struct tile_segment {
     uint32_t control;
@@ -120,6 +122,12 @@ void render_set_context( uint32_t *context, int render_mode )
 	break;
     }
 
+    if( POLY1_SPECULAR(poly1) ) {
+	glEnable(GL_COLOR_SUM);
+    } else {
+	glDisable(GL_COLOR_SUM);
+    }
+
     if( POLY1_TEXTURED(poly1) ) {
 	int width = POLY2_TEX_WIDTH(poly2);
 	int height = POLY2_TEX_HEIGHT(poly2);
@@ -145,6 +153,9 @@ void render_set_context( uint32_t *context, int render_mode )
     int srcblend = POLY2_SRC_BLEND(poly2);
     int destblend = POLY2_DEST_BLEND(poly2);
     glBlendFunc( srcblend, destblend );
+
+    pvr2_force_fragment_alpha = POLY2_ALPHA_ENABLE(poly2) ? FALSE : TRUE;
+
 }
 
 void render_vertexes( uint32_t poly1, uint32_t *vertexes, int num_vertexes, int vertex_size,
@@ -161,21 +172,32 @@ void render_vertexes( uint32_t poly1, uint32_t *vertexes, int num_vertexes, int 
     for( i=0; i<num_vertexes; i++ ) {
 	float *vertexf = (float *)vertexes;
 	uint32_t argb;
+	int k = m + 3;
 	if( POLY1_TEXTURED(poly1) ) {
 	    if( POLY1_UV16(poly1) ) {
-		glTexCoord2f( halftofloat(vertexes[m+3]>>16),
-			      halftofloat(vertexes[m+3]) );
-		argb = vertexes[m+4];
+		glTexCoord2f( halftofloat(vertexes[k]>>16),
+			      halftofloat(vertexes[k]) );
+		k++;
 	    } else {
-		glTexCoord2f( vertexf[m+3], vertexf[m+4] );
-		argb = vertexes[m+5];
+		glTexCoord2f( vertexf[k], vertexf[k+1] );
+		k+=2;
 	    }
-	} else {
-	    argb = vertexes[m+3];
 	}
 
-	glColor4ub( (GLubyte)(argb >> 16), (GLubyte)(argb >> 8), 
-		    (GLubyte)argb, (GLubyte)(argb >> 24) );
+	argb = vertexes[k++];
+	if( pvr2_force_fragment_alpha ) {
+	    glColor4ub( (GLubyte)(argb >> 16), (GLubyte)(argb >> 8), 
+			(GLubyte)argb, 0xFF );
+	} else {
+	    glColor4ub( (GLubyte)(argb >> 16), (GLubyte)(argb >> 8), 
+			(GLubyte)argb, (GLubyte)(argb >> 24) );
+	}
+
+	if( POLY1_SPECULAR(poly1) ) {
+	    uint32_t spec = vertexes[k++];
+	    glSecondaryColor3ubEXT( (GLubyte)(spec >> 16), (GLubyte)(spec >> 8), 
+				 (GLubyte)spec );
+	}
 	glVertex3f( vertexf[0], vertexf[1], vertexf[2] );
 	vertexes += vertex_size;
     }

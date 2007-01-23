@@ -1,5 +1,5 @@
 /**
- * $Id: rendsort.c,v 1.2 2007-01-12 10:15:06 nkeynes Exp $
+ * $Id: rendsort.c,v 1.3 2007-01-23 12:03:57 nkeynes Exp $
  *
  * PVR2 renderer routines for depth sorted polygons
  *
@@ -20,6 +20,7 @@
 #include "asic.h"
 
 extern char *video_base;
+extern gboolean pvr2_force_fragment_alpha;
 
 #define MIN3( a,b,c ) ((a) < (b) ? ( (a) < (c) ? (a) : (c) ) : ((b) < (c) ? (b) : (c)) )
 #define MAX3( a,b,c ) ((a) > (b) ? ( (a) > (c) ? (a) : (c) ) : ((b) > (c) ? (b) : (c)) )
@@ -36,6 +37,8 @@ struct render_triangle {
     float maxx,maxy,maxz;
     float *vertexes[3];
 };
+
+#define SENTINEL 0xDEADBEEF
 
 /**
  * Count the number of triangles in the list starting at the given 
@@ -80,7 +83,7 @@ static void compute_triangle_boxes( struct render_triangle *triangle, int num_tr
 }
 
 void render_extract_triangles( pvraddr_t tile_entry, gboolean cheap_modifier_mode, 
-			       struct render_triangle *triangles )
+			       struct render_triangle *triangles, int num_triangles )
 {
     uint32_t poly_bank = MMIO_READ(PVR2,RENDER_POLYBASE);
     uint32_t *tile_list = (uint32_t *)(video_base+tile_entry);
@@ -167,12 +170,15 @@ void render_extract_triangles( pvraddr_t tile_entry, gboolean cheap_modifier_mod
 	    }
 	}
     }
+    if( count != num_triangles ) {
+	ERROR( "Extracted triangles do not match expected count!" );
+    }
 }
 
 void render_triangles( struct render_triangle *triangles, int num_triangles,
 		       int render_mode )
 {
-    int i,j, m = 0;
+    int i,j, k, m = 0;
     for( i=0; i<num_triangles; i++ ) {
 	render_set_context( triangles[i].polygon, render_mode );
 	if( render_mode == RENDER_FULLMOD ) {
@@ -185,21 +191,31 @@ void render_triangles( struct render_triangle *triangles, int num_triangles,
 	    uint32_t *vertexes = (uint32_t *)triangles[i].vertexes[j];
 	    float *vertexf = (float *)vertexes;
 	    uint32_t argb;
+	    k = m + 3;
 	    if( POLY1_TEXTURED(*triangles[i].polygon) ) {
 		if( POLY1_UV16(*triangles[i].polygon) ) {
-		    glTexCoord2f( halftofloat(vertexes[m+3]>>16),
-				  halftofloat(vertexes[m+3]) );
-		    argb = vertexes[m+4];
+		    glTexCoord2f( halftofloat(vertexes[k]>>16),
+				  halftofloat(vertexes[k]) );
+		    k++;
 		} else {
-		    glTexCoord2f( vertexf[m+3], vertexf[m+4] );
-		    argb = vertexes[m+5];
+		    glTexCoord2f( vertexf[k], vertexf[k+1] );
+		    k+=2;
 		}
-	    } else {
-		argb = vertexes[m+3];
 	    }
-	    
-	    glColor4ub( (GLubyte)(argb >> 16), (GLubyte)(argb >> 8), 
-			(GLubyte)argb, (GLubyte)(argb >> 24) );
+	    argb = vertexes[k++];
+	    if( pvr2_force_fragment_alpha ) {
+		glColor4ub( (GLubyte)(argb >> 16), (GLubyte)(argb >> 8), 
+			    (GLubyte)argb, 0xFF );
+	    } else {
+		glColor4ub( (GLubyte)(argb >> 16), (GLubyte)(argb >> 8), 
+			    (GLubyte)argb, (GLubyte)(argb >> 24) );
+	    }
+
+	    if( POLY1_SPECULAR(*triangles[i].polygon) ) {
+		uint32_t spec = vertexes[k];
+		glSecondaryColor3ubEXT( (GLubyte)(spec >> 16), (GLubyte)(spec >> 8), 
+				     (GLubyte)spec );
+	    }
 	    glVertex3f( vertexf[0], vertexf[1], vertexf[2] );
 	}
 	glEnd();
@@ -234,10 +250,14 @@ void render_autosort_tile( pvraddr_t tile_entry, int render_mode, gboolean cheap
     } else if( num_triangles == 1 ) { /* Triangle can hardly overlap with itself */
 	render_tile( tile_entry, render_mode, cheap_modifier_mode );
     } else { /* Ooh boy here we go... */
-	struct render_triangle triangles[num_triangles];
-	render_extract_triangles(tile_entry, cheap_modifier_mode, triangles);
+	struct render_triangle triangles[num_triangles+1];
+	triangles[num_triangles].polygon = (void *)SENTINEL;
+	render_extract_triangles(tile_entry, cheap_modifier_mode, triangles, num_triangles);
 	compute_triangle_boxes(triangles, num_triangles);
 	sort_triangles( triangles, num_triangles );
 	render_triangles(triangles, num_triangles, render_mode);
+	if( triangles[num_triangles].polygon != (void *)SENTINEL ) {
+	    fprintf( stderr, "Triangle overflow in render_autosort_tile!" );
+	}
     }
 }
