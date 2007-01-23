@@ -1,5 +1,5 @@
 /**
- * $Id: texcache.c,v 1.17 2007-01-23 08:18:05 nkeynes Exp $
+ * $Id: texcache.c,v 1.18 2007-01-23 09:30:59 nkeynes Exp $
  *
  * Texture cache. Responsible for maintaining a working set of OpenGL 
  * textures. 
@@ -395,8 +395,11 @@ static texcache_load_texture( uint32_t texture_addr, int width, int height,
 	} else if( tex_format == PVR2_TEX_FORMAT_YUV422 ) {
 	    int inputlength = ((mip_width*mip_height)<<1);
 	    char tmp[inputlength];
-	    pvr2_vram64_read( tmp, texture_addr, inputlength );
-	    ERROR( "Twiddled YUV not supported" );
+	    if( PVR2_TEX_IS_TWIDDLED(mode) ) {
+		pvr2_vram64_read_twiddled_16( tmp, texture_addr, mip_width, mip_height );
+	    } else {
+		pvr2_vram64_read( tmp, texture_addr, inputlength );
+	    }
 	    yuv_decode( (uint32_t *)data, (uint32_t *)tmp, mip_width, mip_height );
 	} else if( PVR2_TEX_IS_COMPRESSED(mode) ) {
 	    int inputlength = ((mip_width*mip_height) >> 2);
