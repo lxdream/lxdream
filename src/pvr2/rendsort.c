@@ -1,5 +1,5 @@
 /**
- * $Id: rendsort.c,v 1.3 2007-01-23 12:03:57 nkeynes Exp $
+ * $Id: rendsort.c,v 1.4 2007-01-24 08:11:14 nkeynes Exp $
  *
  * PVR2 renderer routines for depth sorted polygons
  *
@@ -25,14 +25,9 @@ extern gboolean pvr2_force_fragment_alpha;
 #define MIN3( a,b,c ) ((a) < (b) ? ( (a) < (c) ? (a) : (c) ) : ((b) < (c) ? (b) : (c)) )
 #define MAX3( a,b,c ) ((a) > (b) ? ( (a) > (c) ? (a) : (c) ) : ((b) > (c) ? (b) : (c)) )
 
-struct pvr_vertex {
-    float x,y,z;
-    uint32_t detail[1];
-};
-
 struct render_triangle {
     uint32_t *polygon;
-    int vertex_length;
+    int vertex_length; /* Number of 32-bit words in vertex, or 0 for an unpacked vertex */
     float minx,miny,minz;
     float maxx,maxy,maxz;
     float *vertexes[3];
@@ -83,7 +78,8 @@ static void compute_triangle_boxes( struct render_triangle *triangle, int num_tr
 }
 
 void render_extract_triangles( pvraddr_t tile_entry, gboolean cheap_modifier_mode, 
-			       struct render_triangle *triangles, int num_triangles )
+			       struct render_triangle *triangles, int num_triangles,
+			       struct vertex_unpacked *vertex_space, int render_mode )
 {
     uint32_t poly_bank = MMIO_READ(PVR2,RENDER_POLYBASE);
     uint32_t *tile_list = (uint32_t *)(video_base+tile_entry);
@@ -123,27 +119,28 @@ void render_extract_triangles( pvraddr_t tile_entry, gboolean cheap_modifier_mod
 		    count++;
 		}
 	    } else if( (entry & 0xE0000000) == 0xA0000000 ) {
-		/* Sprite(s) */
+		/* Quad(s) */
 		int strip_count = ((entry >> 25) & 0x0F)+1;
 		int polygon_length = 4 * vertex_length + context_length;
+		
 		int i;
 		for( i=0; i<strip_count; i++ ) {
-		    float *vertex = (float *)(polygon+context_length);
+		    render_unpack_quad( vertex_space, *polygon, (polygon+context_length),
+					vertex_length, render_mode );
 		    triangles[count].polygon = polygon;
-		    triangles[count].vertex_length = vertex_length;
-		    triangles[count].vertexes[0] = vertex;
-		    vertex+=vertex_length;
-		    triangles[count].vertexes[1] = vertex;
-		    vertex+=vertex_length;
-		    triangles[count].vertexes[2] = vertex;
+		    triangles[count].vertex_length = 0;
+		    triangles[count].vertexes[0] = (float *)vertex_space;
+		    triangles[count].vertexes[1] = (float *)(vertex_space + 1);
+		    triangles[count].vertexes[2] = (float *)(vertex_space + 3);
 		    count++;
 		    /* Preserve face direction */
 		    triangles[count].polygon = polygon;
-		    triangles[count].vertex_length = vertex_length;
-		    triangles[count].vertexes[0] = vertex;
-		    triangles[count].vertexes[1] = vertex - vertex_length;
-		    triangles[count].vertexes[2] = vertex + vertex_length;
+		    triangles[count].vertex_length = 0;
+		    triangles[count].vertexes[0] = (float *)(vertex_space + 1);
+		    triangles[count].vertexes[1] = (float *)(vertex_space + 2);
+		    triangles[count].vertexes[2] = (float *)(vertex_space + 3);
 		    count++;
+		    vertex_space += 4;
 		    polygon += polygon_length;
 		}
 	    } else {
@@ -181,44 +178,12 @@ void render_triangles( struct render_triangle *triangles, int num_triangles,
     int i,j, k, m = 0;
     for( i=0; i<num_triangles; i++ ) {
 	render_set_context( triangles[i].polygon, render_mode );
-	if( render_mode == RENDER_FULLMOD ) {
-	    m = (triangles[i].vertex_length - 3)/2;
+	if( triangles[i].vertex_length == 0 ) {
+	    render_unpacked_vertex_array( *triangles[i].polygon, (struct vertex_unpacked **)triangles[i].vertexes, 3 );
+	} else {
+	    render_vertex_array( *triangles[i].polygon, (uint32_t **)triangles[i].vertexes, 3,
+				 triangles[i].vertex_length, render_mode );
 	}
-
-	glBegin( GL_TRIANGLE_STRIP );
-    
-	for( j=0; j<3; j++ ) {
-	    uint32_t *vertexes = (uint32_t *)triangles[i].vertexes[j];
-	    float *vertexf = (float *)vertexes;
-	    uint32_t argb;
-	    k = m + 3;
-	    if( POLY1_TEXTURED(*triangles[i].polygon) ) {
-		if( POLY1_UV16(*triangles[i].polygon) ) {
-		    glTexCoord2f( halftofloat(vertexes[k]>>16),
-				  halftofloat(vertexes[k]) );
-		    k++;
-		} else {
-		    glTexCoord2f( vertexf[k], vertexf[k+1] );
-		    k+=2;
-		}
-	    }
-	    argb = vertexes[k++];
-	    if( pvr2_force_fragment_alpha ) {
-		glColor4ub( (GLubyte)(argb >> 16), (GLubyte)(argb >> 8), 
-			    (GLubyte)argb, 0xFF );
-	    } else {
-		glColor4ub( (GLubyte)(argb >> 16), (GLubyte)(argb >> 8), 
-			    (GLubyte)argb, (GLubyte)(argb >> 24) );
-	    }
-
-	    if( POLY1_SPECULAR(*triangles[i].polygon) ) {
-		uint32_t spec = vertexes[k];
-		glSecondaryColor3ubEXT( (GLubyte)(spec >> 16), (GLubyte)(spec >> 8), 
-				     (GLubyte)spec );
-	    }
-	    glVertex3f( vertexf[0], vertexf[1], vertexf[2] );
-	}
-	glEnd();
     }
 
 
@@ -251,8 +216,11 @@ void render_autosort_tile( pvraddr_t tile_entry, int render_mode, gboolean cheap
 	render_tile( tile_entry, render_mode, cheap_modifier_mode );
     } else { /* Ooh boy here we go... */
 	struct render_triangle triangles[num_triangles+1];
+	struct vertex_unpacked vertex_space[num_triangles << 1]; 
+	// Reserve space for num_triangles / 2 * 4 vertexes (maximum possible number of
+	// quad vertices)
 	triangles[num_triangles].polygon = (void *)SENTINEL;
-	render_extract_triangles(tile_entry, cheap_modifier_mode, triangles, num_triangles);
+	render_extract_triangles(tile_entry, cheap_modifier_mode, triangles, num_triangles, vertex_space, render_mode);
 	compute_triangle_boxes(triangles, num_triangles);
 	sort_triangles( triangles, num_triangles );
 	render_triangles(triangles, num_triangles, render_mode);

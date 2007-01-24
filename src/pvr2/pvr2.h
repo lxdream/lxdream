@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.h,v 1.25 2007-01-23 11:19:32 nkeynes Exp $
+ * $Id: pvr2.h,v 1.26 2007-01-24 08:11:14 nkeynes Exp $
  *
  * PVR2 (video chip) functions and macros.
  *
@@ -208,7 +208,6 @@ void pvr2_render_buffer_copy_from_sh4( pvr2_render_buffer_t buffer,
 gboolean pvr2_render_buffer_invalidate( sh4addr_t addr );
 
 
-
 /**************************** Tile Accelerator ***************************/
 /**
  * Process the data in the supplied buffer as an array of TA command lists.
@@ -266,6 +265,24 @@ void render_set_context( uint32_t *context, int render_mode );
 void pvr2_render_tilebuffer( int width, int height, int clipx1, int clipy1, 
 			     int clipx2, int clipy2 );
 
+
+/**
+ * Structure to hold a complete unpacked vertex (excluding modifier
+ * volume parameters - generate separate vertexes in that case).
+ */
+struct vertex_unpacked {
+    float x,y,z;
+    float u,v;            /* Texture coordinates */
+    float rgba[4];        /* Fragment colour (RGBA order) */
+    float offset_rgba[4]; /* Offset color (RGBA order) */
+};
+
+void render_unpacked_vertex_array( uint32_t poly1, struct vertex_unpacked *vertexes[], 
+				   int num_vertexes );
+
+void render_vertex_array( uint32_t poly1, uint32_t *vertexes[], int num_vertexes, 
+			  int vertex_size, int render_mode );
+
 /****************************** Texture Cache ****************************/
 
 /**
@@ -309,6 +326,7 @@ GLuint texcache_get_texture( uint32_t texture_addr, int width, int height,
 #define POLY1_CULL_MODE(poly1) (((poly1)>>27)&0x03)
 #define POLY1_TEXTURED(poly1) (((poly1)&0x02000000))
 #define POLY1_SPECULAR(poly1) (((poly1)&0x01000000))
+#define POLY1_GOURAUD_SHADED(poly1) ((poly1)&0x00800000)
 #define POLY1_SHADE_MODEL(poly1) (((poly1)&0x00800000) ? GL_SMOOTH : GL_FLAT)
 #define POLY1_UV16(poly1)   (((poly1)&0x00400000))
 #define POLY1_SINGLE_TILE(poly1) (((poly1)&0x00200000))
