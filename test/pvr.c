@@ -1,5 +1,5 @@
 /**
- * $Id: pvr.c,v 1.4 2007-01-21 05:23:53 nkeynes Exp $
+ * $Id: pvr.c,v 1.5 2007-01-24 08:13:18 nkeynes Exp $
  * 
  * PVR support code
  *
@@ -489,5 +489,29 @@ void draw_grid( unsigned short *addr, unsigned short colour )
             addr[(linesize*y) + x] = colour;
         }
     }
+}
 
+void draw_grid_24( unsigned char *addr, unsigned int colour )
+{
+    int x,y;
+    char r = (colour >> 16) & 0xFF;
+    char g = (colour >> 8) & 0xFF;
+    char b = (colour & 0xFF);
+    unsigned int linesize = 640*3;
+    for( x=0; x<640; x+=32 ) {
+        for( y=0; y<480; y++ ) {
+            int a = (linesize*y)+x * 3;
+            addr[a++] = r;
+            addr[a++] = g;
+            addr[a++] = b;
+        }
+    }
+    for( y=0; y<480; y+=32 ) {
+        for( x=0; x<640; x++ ) {
+            int a = (linesize*y)+x * 3;
+            addr[a++] = r;
+            addr[a++] = g;
+            addr[a++] = b;
+        }
+    }
 }
