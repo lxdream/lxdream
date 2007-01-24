@@ -1,5 +1,5 @@
 /**
- * $Id: rendcore.c,v 1.11 2007-01-23 12:03:57 nkeynes Exp $
+ * $Id: rendcore.c,v 1.12 2007-01-24 08:11:14 nkeynes Exp $
  *
  * PVR2 renderer core.
  *
@@ -158,8 +158,151 @@ void render_set_context( uint32_t *context, int render_mode )
 
 }
 
-void render_vertexes( uint32_t poly1, uint32_t *vertexes, int num_vertexes, int vertex_size,
-		      int render_mode ) 
+#define FARGB_A(x) (((float)(((x)>>24)+1))/256.0)
+#define FARGB_R(x) (((float)((((x)>>16)&0xFF)+1))/256.0)
+#define FARGB_G(x) (((float)((((x)>>8)&0xFF)+1))/256.0)
+#define FARGB_B(x) (((float)(((x)&0xFF)+1))/256.0)
+
+void render_unpack_vertexes( struct vertex_unpacked *out, uint32_t poly1, 
+			     uint32_t *vertexes, int num_vertexes,
+			     int vertex_size, int render_mode )
+{
+    int m = 0, i;
+    if( render_mode == RENDER_FULLMOD ) {
+	m = (vertex_size - 3)/2;
+    }
+
+    for( i=0; i<num_vertexes; i++ ) {
+	float *vertexf = (float *)vertexes;
+	int k = m + 3;
+	out[i].x = vertexf[0];
+	out[i].y = vertexf[1];
+	out[i].z = vertexf[2];
+    	if( POLY1_TEXTURED(poly1) ) {
+	    if( POLY1_UV16(poly1) ) {
+		out[i].u = halftofloat(vertexes[k]>>16);
+		out[i].v = halftofloat(vertexes[k]);
+		k++;
+	    } else {
+		out[i].u = vertexf[k];
+		out[i].v = vertexf[k+1];
+		k+=2;
+	    }
+	} else {
+	    out[i].u = 0;
+	    out[i].v = 0;
+	}
+	uint32_t argb = vertexes[k++];
+	out[i].rgba[0] = FARGB_R(argb);
+	out[i].rgba[1] = FARGB_G(argb);
+        out[i].rgba[2] = FARGB_B(argb);
+	out[i].rgba[3] = FARGB_A(argb);
+	if( POLY1_SPECULAR(poly1) ) {
+	    uint32_t offset = vertexes[k++];
+	    out[i].offset_rgba[0] = FARGB_R(argb);
+	    out[i].offset_rgba[1] = FARGB_G(argb);
+	    out[i].offset_rgba[2] = FARGB_B(argb);
+	    out[i].offset_rgba[3] = FARGB_A(argb);
+	}
+	vertexes += vertex_size;
+    }
+}
+
+/**
+ * Unpack the vertexes for a quad, calculating the values for the last
+ * vertex.
+ * FIXME: Integrate this with rendbkg somehow
+ */
+void render_unpack_quad( struct vertex_unpacked *unpacked, uint32_t poly1, 
+			 uint32_t *vertexes, int vertex_size,
+			 int render_mode )
+{
+    int i;
+    struct vertex_unpacked diff0, diff1;
+
+    render_unpack_vertexes( unpacked, poly1, vertexes, 3, vertex_size, render_mode );
+    
+    diff0.x = unpacked[0].x - unpacked[1].x;
+    diff0.y = unpacked[0].y - unpacked[1].y;
+    diff1.x = unpacked[2].x - unpacked[1].x;
+    diff1.y = unpacked[2].y - unpacked[1].y;
+
+    float detxy = ((diff1.y) * (diff0.x)) - ((diff0.y) * (diff1.x));
+    float *vertexf = (float *)(vertexes+(vertex_size*3));
+    if( detxy == 0 ) {
+	memcpy( &unpacked[3], &unpacked[2], sizeof(struct vertex_unpacked) );
+	unpacked[3].x = vertexf[0];
+	unpacked[3].y = vertexf[1];
+	return;
+    }	
+
+    unpacked[3].x = vertexf[0];
+    unpacked[3].y = vertexf[1];
+    float t = ((unpacked[3].x - unpacked[1].x) * diff1.y -
+	       (unpacked[3].y - unpacked[1].y) * diff1.x) / detxy;
+    float s = ((unpacked[3].y - unpacked[1].y) * diff0.x -
+	       (unpacked[3].x - unpacked[1].x) * diff0.y) / detxy;
+    diff0.z = unpacked[0].z - unpacked[1].z;
+    diff1.z = unpacked[2].z - unpacked[1].z;
+    unpacked[3].z = unpacked[1].z + (t*diff0.z) + (s*diff1.z);
+
+    diff0.u = unpacked[0].u - unpacked[1].u;
+    diff0.v = unpacked[0].v - unpacked[1].v;
+    diff1.u = unpacked[2].u - unpacked[1].u;
+    diff1.v = unpacked[2].v - unpacked[1].v;
+    unpacked[3].u = unpacked[1].u + (t*diff0.u) + (s*diff1.u);
+    unpacked[3].v = unpacked[1].v + (t*diff0.v) + (s*diff1.v);
+
+    if( !POLY1_GOURAUD_SHADED(poly1) ) {
+	memcpy( unpacked[3].rgba, unpacked[2].rgba, sizeof(unpacked[2].rgba) );
+	memcpy( unpacked[3].offset_rgba, unpacked[2].offset_rgba, sizeof(unpacked[2].offset_rgba) );
+    } else {
+	for( i=0; i<4; i++ ) {
+	    float d0 = unpacked[0].rgba[i] - unpacked[1].rgba[i];
+	    float d1 = unpacked[2].rgba[i] - unpacked[1].rgba[i];
+	    unpacked[3].rgba[i] = unpacked[1].rgba[i] + (t*d0) + (s*d1);
+	    d0 = unpacked[0].offset_rgba[i] - unpacked[1].offset_rgba[i];
+	    d1 = unpacked[2].offset_rgba[i] - unpacked[1].offset_rgba[i];
+	    unpacked[3].offset_rgba[i] = unpacked[1].offset_rgba[i] + (t*d0) + (s*d1);
+	}
+    }    
+}
+
+void render_unpacked_vertex_array( uint32_t poly1, struct vertex_unpacked *vertexes[], 
+				   int num_vertexes ) {
+    int i;
+
+    glBegin( GL_TRIANGLE_STRIP );
+
+    for( i=0; i<num_vertexes; i++ ) {
+	if( POLY1_TEXTURED(poly1) ) {
+	    glTexCoord2f( vertexes[i]->u, vertexes[i]->v );
+	}
+
+	glColor4f( vertexes[i]->rgba[0], vertexes[i]->rgba[1], vertexes[i]->rgba[2],
+		   (pvr2_force_fragment_alpha ? 1.0 : vertexes[i]->rgba[3]) );
+
+	if( POLY1_SPECULAR(poly1) ) {
+	    glSecondaryColor3fEXT( vertexes[i]->offset_rgba[0],
+				   vertexes[i]->offset_rgba[1],
+				   vertexes[i]->offset_rgba[2] );
+	}
+	glVertex3f( vertexes[i]->x, vertexes[i]->y, vertexes[i]->z );
+    }
+
+    glEnd();
+}
+
+void render_quad_vertexes( uint32_t poly1, uint32_t *vertexes, int vertex_size, int render_mode )
+{
+    struct vertex_unpacked unpacked[4];
+    struct vertex_unpacked *pt[4] = {&unpacked[0], &unpacked[1], &unpacked[3], &unpacked[2]};
+    render_unpack_quad( unpacked, poly1, vertexes, vertex_size, render_mode );
+    render_unpacked_vertex_array( poly1, pt, 4 );
+}
+
+void render_vertex_array( uint32_t poly1, uint32_t *vert_array[], int num_vertexes, int vertex_size,
+			  int render_mode ) 
 {
     int i, m=0;
 
@@ -170,7 +313,8 @@ void render_vertexes( uint32_t poly1, uint32_t *vertexes, int num_vertexes, int 
     glBegin( GL_TRIANGLE_STRIP );
     
     for( i=0; i<num_vertexes; i++ ) {
-	float *vertexf = (float *)vertexes;
+	uint32_t *vertexes = vert_array[i];
+	float *vertexf = (float *)vert_array[i];
 	uint32_t argb;
 	int k = m + 3;
 	if( POLY1_TEXTURED(poly1) ) {
@@ -203,6 +347,18 @@ void render_vertexes( uint32_t poly1, uint32_t *vertexes, int num_vertexes, int 
     }
 
     glEnd();
+}
+
+void render_vertexes( uint32_t poly1, uint32_t *vertexes, int num_vertexes, int vertex_size,
+		      int render_mode )
+{
+    uint32_t *vert_array[num_vertexes];
+    int i;
+    for( i=0; i<num_vertexes; i++ ) {
+	vert_array[i] = vertexes;
+	vertexes += vertex_size;
+    }
+    render_vertex_array( poly1, vert_array, num_vertexes, vertex_size, render_mode );
 }
 
 /**
@@ -241,13 +397,13 @@ void render_tile( pvraddr_t tile_entry, int render_mode, gboolean cheap_modifier
 		}
 	    } else if( (entry & 0xE0000000) == 0xA0000000 ) {
 		/* Sprite(s) */
-		int strip_count = (entry >> 25) & 0x0F;
+		int strip_count = ((entry >> 25) & 0x0F)+1;
 		int polygon_length = 4 * vertex_length + context_length;
 		int i;
 		for( i=0; i<strip_count; i++ ) {
 		    render_set_context( polygon, render_mode );
-		    render_vertexes( *polygon, polygon+context_length, 4, vertex_length,
-				     render_mode );
+		    render_quad_vertexes( *polygon, polygon+context_length, vertex_length,
+					  render_mode );
 		    polygon += polygon_length;
 		}
 	    } else {
