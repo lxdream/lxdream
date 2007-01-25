@@ -1,5 +1,5 @@
 /**
- * $Id: texcache.c,v 1.20 2007-01-25 08:16:02 nkeynes Exp $
+ * $Id: texcache.c,v 1.21 2007-01-25 10:12:54 nkeynes Exp $
  *
  * Texture cache. Responsible for maintaining a working set of OpenGL 
  * textures. 
@@ -404,7 +404,7 @@ static texcache_load_texture( uint32_t texture_addr, int width, int height,
 	if( tex_format == PVR2_TEX_FORMAT_IDX8 ) {
 	    int inputlength = mip_bytes >> bpp_shift;
 	    int bank = (mode >> 25) &0x03;
-	    uint32_t *palette = (uint32_t *)(mmio_region_PVR2PAL.mem + (bank * (256 << bpp_shift)));
+	    uint32_t *palette = ((uint32_t *)mmio_region_PVR2PAL.mem) + (bank<<8);
 	    char tmp[inputlength];
 	    pvr2_vram64_read_twiddled_8( tmp, texture_addr, mip_width, mip_height );
 	    if( bpp_shift == 2 ) {
@@ -415,7 +415,7 @@ static texcache_load_texture( uint32_t texture_addr, int width, int height,
 	} else if( tex_format == PVR2_TEX_FORMAT_IDX4 ) {
 	    int inputlength = (mip_width * mip_height) >> 1;
 	    int bank = (mode >>21 ) & 0x3F;
-	    uint32_t *palette = (uint32_t *)(mmio_region_PVR2PAL.mem + (bank * (16 << bpp_shift)));
+	    uint32_t *palette = ((uint32_t *)mmio_region_PVR2PAL.mem) + (bank<<4);
 	    char tmp[inputlength];
 	    pvr2_vram64_read_twiddled_4( tmp, texture_addr, mip_width, mip_height );
 	    if( bpp_shift == 2 ) {
