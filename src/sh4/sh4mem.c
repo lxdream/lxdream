@@ -1,5 +1,5 @@
 /**
- * $Id: sh4mem.c,v 1.18 2007-01-23 11:20:26 nkeynes Exp $
+ * $Id: sh4mem.c,v 1.19 2007-01-25 10:16:32 nkeynes Exp $
  * sh4mem.c is responsible for the SH4's access to memory (including memory
  * mapped I/O), using the page maps created in mem.c
  *
@@ -371,22 +371,21 @@ void mem_copy_from_sh4( char *dest, uint32_t srcaddr, size_t count ) {
 }
 
 void mem_copy_to_sh4( uint32_t destaddr, char *src, size_t count ) {
-    if( destaddr >= 0x10000000 && destaddr < 0x10800000 ) {
-	pvr2_ta_write( src, count );
-    } else if( destaddr >= 0x10800000 && destaddr < 0x11000000 ) {
-	/* YUV data */
-	pvr2_yuv_write( src, count );
-    } else if( destaddr >= 0x04000000 && destaddr < 0x05000000 ||
-	       destaddr >= 0x11000000 && destaddr < 0x12000000 ) {
+    int region;
+
+    if( destaddr >= 0x10000000 && destaddr < 0x14000000 ) {
+	pvr2_dma_write( destaddr, src, count );
+	return;
+    } else if( (destaddr & 0x1F800000) == 0x05000000 ) {
+	pvr2_render_buffer_invalidate( destaddr );
+    } else if( (destaddr & 0x1F800000) == 0x04000000 ) {
 	pvr2_vram64_write( destaddr, src, count );
-    } else {
-	if( (destaddr & 0x1F800000) == 0x05000000 )
-	    pvr2_render_buffer_invalidate( destaddr );
-	char *dest = mem_get_region(destaddr);
-	if( dest == NULL )
-	    ERROR( "Attempted block write to unknown address %08X", destaddr );
-	else {
-	    memcpy( dest, src, count );
-	}
+	return;
+    }
+    char *dest = mem_get_region(destaddr);
+    if( dest == NULL )
+	ERROR( "Attempted block write to unknown address %08X", destaddr );
+    else {
+	memcpy( dest, src, count );
     }
 }

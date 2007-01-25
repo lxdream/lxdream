@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2mem.c,v 1.5 2007-01-23 11:19:32 nkeynes Exp $
+ * $Id: pvr2mem.c,v 1.6 2007-01-25 10:16:32 nkeynes Exp $
  *
  * PVR2 (Video) VRAM handling routines (mainly for the 64-bit region)
  *
@@ -16,10 +16,46 @@
  * GNU General Public License for more details.
  */
 #include "pvr2.h"
+#include "asic.h"
 #include <stdio.h>
 #include <errno.h>
 
 extern char *video_base;
+
+void pvr2_dma_write( sh4addr_t destaddr, char *src, uint32_t count )
+{
+    int region;
+
+    switch( destaddr & 0x13800000 ) {
+    case 0x10000000:
+    case 0x12000000:
+	pvr2_ta_write( src, count );
+	break;
+    case 0x11000000:
+    case 0x11800000:
+	region = MMIO_READ( ASIC, PVRDMARGN1 );
+	if( region == 0 ) {
+	    pvr2_vram64_write( destaddr, src, count );
+	} else {
+	    char *dest = mem_get_region(destaddr);
+	    memcpy( dest, src, count );
+	}
+	break;
+    case 0x10800000:
+    case 0x12800000:
+	pvr2_yuv_write( src, count );
+	break;
+    case 0x13000000:
+    case 0x13800000:
+	region = MMIO_READ( ASIC, PVRDMARGN2 );
+	if( region == 0 ) {
+	    pvr2_vram64_write( destaddr, src, count );
+	} else {
+	    char *dest = mem_get_region(destaddr);
+	    memcpy( dest, src, count );
+	}
+    }	    
+}
 
 void pvr2_vram64_write( sh4addr_t destaddr, char *src, uint32_t length )
 {

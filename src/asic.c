@@ -1,5 +1,5 @@
 /**
- * $Id: asic.c,v 1.25 2007-01-18 11:14:01 nkeynes Exp $
+ * $Id: asic.c,v 1.26 2007-01-25 10:16:32 nkeynes Exp $
  *
  * Support for the miscellaneous ASIC functions (Primarily event multiplexing,
  * and DMA). 
@@ -303,9 +303,26 @@ void asic_ide_dma_transfer( )
 	    MMIO_WRITE( EXTDMA, IDEDMACTL2, 0 );
 	}
     }
-
 }
 
+void pvr_dma_transfer( )
+{
+    sh4addr_t destaddr = MMIO_READ( ASIC, PVRDMADEST) &0x1FFFFFE0;
+    uint32_t count = MMIO_READ( ASIC, PVRDMACNT );
+    char *data = alloca( count );
+    uint32_t rcount = DMAC_get_buffer( 2, data, count );
+    if( rcount != count )
+	WARN( "PVR received %08X bytes from DMA, expected %08X", rcount, count );
+    
+    pvr2_dma_write( destaddr, data, rcount );
+    
+    MMIO_WRITE( ASIC, PVRDMACTL, 0 );
+    MMIO_WRITE( ASIC, PVRDMACNT, 0 );
+    if( destaddr & 0x01000000 ) { /* Write to texture RAM */
+	MMIO_WRITE( ASIC, PVRDMADEST, destaddr + rcount );
+    }
+    asic_event( EVENT_PVR_DMA );
+}
 
 void mmio_region_ASIC_write( uint32_t reg, uint32_t val )
 {
@@ -342,22 +359,20 @@ void mmio_region_ASIC_write( uint32_t reg, uint32_t val )
 	    MMIO_WRITE( ASIC, reg, 0 );
 	}
 	break;
+    case PVRDMADEST:
+	MMIO_WRITE( ASIC, reg, (val & 0x03FFFFE0) | 0x10000000 );
+	break;
+    case PVRDMACNT: 
+	MMIO_WRITE( ASIC, reg, val & 0x00FFFFE0 );
+	break;
     case PVRDMACTL: /* Initiate PVR DMA transfer */
+	val = val & 0x01;
 	MMIO_WRITE( ASIC, reg, val );
-	if( val & 1 ) {
-	    uint32_t dest_addr = MMIO_READ( ASIC, PVRDMADEST) &0x1FFFFFE0;
-	    uint32_t count = MMIO_READ( ASIC, PVRDMACNT );
-	    char *data = alloca( count );
-	    uint32_t rcount = DMAC_get_buffer( 2, data, count );
-	    if( rcount != count )
-		WARN( "PVR received %08X bytes from DMA, expected %08X", rcount, count );
-	    mem_copy_to_sh4( dest_addr, data, rcount );
-	    asic_event( EVENT_PVR_DMA );
-	    MMIO_WRITE( ASIC, PVRDMACTL, 0 );
-	    MMIO_WRITE( ASIC, PVRDMACNT, 0 );
+	if( val == 1 ) {
+	    pvr_dma_transfer();
 	}
 	break;
-    case PVRDMADEST: case PVRDMACNT: case MAPLE_DMA:
+    case MAPLE_DMA:
 	MMIO_WRITE( ASIC, reg, val );
 	break;
     default:
