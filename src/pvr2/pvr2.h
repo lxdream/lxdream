@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.h,v 1.27 2007-01-25 08:18:03 nkeynes Exp $
+ * $Id: pvr2.h,v 1.28 2007-01-25 10:16:32 nkeynes Exp $
  *
  * PVR2 (video chip) functions and macros.
  *
@@ -110,6 +110,12 @@ gboolean pvr2_save_next_scene( const gchar *filename );
 #define PVR2_TEX_IS_STRIDE(x) (((x) & 0x06000000) == 0x06000000)
 
 /****************************** Frame Buffer *****************************/
+
+/**
+ * Write a block of data to an address in the DMA range (0x10000000 - 
+ * 0x13FFFFFF), ie TA, YUV, or texture ram.
+ */
+void pvr2_dma_write( sh4addr_t dest, char *src, uint32_t length );
 
 /**
  * Write to the interleaved memory address space (aka 64-bit address space).
