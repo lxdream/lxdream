@@ -1,5 +1,5 @@
 /**
- * $Id: sh4mmio.c,v 1.10 2007-01-23 08:17:06 nkeynes Exp $
+ * $Id: sh4mmio.c,v 1.11 2007-01-25 08:21:56 nkeynes Exp $
  * 
  * Miscellaneous and not-really-implemented SH4 peripheral modules. Also
  * responsible for including the IMPL side of the SH4 MMIO pages.
@@ -98,72 +98,59 @@ void mmu_set_cache_mode( int mode )
 
 /********************************* BSC *************************************/
 
-uint16_t bsc_output_mask_lo = 0, bsc_output_mask_hi = 0;
-uint16_t bsc_input_mask_lo = 0, bsc_input_mask_hi = 0;
-uint32_t bsc_output = 0, bsc_input = 0x0300;
+uint32_t bsc_input = 0x0300;
 
-void bsc_out( int output, int mask )
-{
-    /* Go figure... The BIOS won't start without this mess though */
-    if( ((output | (~mask)) & 0x03) == 3 ) {
-        bsc_output |= 0x03;
-    } else {
-        bsc_output &= ~0x03;
-    }
-}
-
-void mmio_region_BSC_write( uint32_t reg, uint32_t val )
+uint16_t bsc_read_pdtra()
 {
     int i;
-    switch( reg ) {
-        case PCTRA:
-            bsc_input_mask_lo = bsc_output_mask_lo = 0;
-            for( i=0; i<16; i++ ) {
-                int bits = (val >> (i<<1)) & 0x03;
-                if( bits == 2 ) bsc_input_mask_lo |= (1<<i);
-                else if( bits != 0 ) bsc_output_mask_lo |= (1<<i);
-            }
-            bsc_output = (bsc_output&0x000F0000) |
-                (MMIO_READ( BSC, PDTRA ) & bsc_output_mask_lo);
-            bsc_out( MMIO_READ( BSC, PDTRA ) | ((MMIO_READ(BSC,PDTRB)<<16)),
-                     bsc_output_mask_lo | (bsc_output_mask_hi<<16) );
-            break;
-        case PCTRB:
-            bsc_input_mask_hi = bsc_output_mask_hi = 0;
-            for( i=0; i<4; i++ ) {
-                int bits = (val >> (i>>1)) & 0x03;
-                if( bits == 2 ) bsc_input_mask_hi |= (1<<i);
-                else if( bits != 0 ) bsc_output_mask_hi |= (1<<i);
-            }
-            bsc_output = (bsc_output&0xFFFF) |
-                ((MMIO_READ( BSC, PDTRA ) & bsc_output_mask_hi)<<16);
-            break;
-        case PDTRA:
-            bsc_output = (bsc_output&0x000F0000) |
-                (val & bsc_output_mask_lo );
-            bsc_out( val | ((MMIO_READ(BSC,PDTRB)<<16)),
-                     bsc_output_mask_lo | (bsc_output_mask_hi<<16) );
-            break;
-        case PDTRB:
-            bsc_output = (bsc_output&0xFFFF) |
-                ( (val & bsc_output_mask_hi)<<16 );
-            break;
+    uint32_t pctra = MMIO_READ( BSC, PCTRA );
+    uint16_t output = MMIO_READ( BSC, PDTRA );
+    uint16_t input_mask = 0, output_mask = 0;
+    for( i=0; i<16; i++ ) {
+	int bits = (pctra >> (i<<1)) & 0x03;
+	if( bits == 2 ) input_mask |= (1<<i);
+	else if( bits != 0 ) output_mask |= (1<<i);
     }
-    WARN( "Write to (mostly) unimplemented BSC (%03X <= %08X) [%s: %s]",
-          reg, val, MMIO_REGID(BSC,reg), MMIO_REGDESC(BSC,reg) );
-    MMIO_WRITE( BSC, reg, val );
+
+    /* ??? */
+    if( ((output | (~output_mask)) & 0x03) == 3 ) {
+        output |= 0x03;
+    } else {
+        output &= ~0x03;
+    }
+
+    return (bsc_input & input_mask) | output;
 }
+
+uint32_t bsc_read_pdtrb()
+{
+    int i;
+    uint32_t pctrb = MMIO_READ( BSC, PCTRB );
+    uint16_t output = MMIO_READ( BSC, PDTRB );
+    uint16_t input_mask = 0, output_mask = 0;
+    for( i=0; i<4; i++ ) {
+	int bits = (pctrb >> (i<<1)) & 0x03;
+	if( bits == 2 ) input_mask |= (1<<i);
+	else if( bits != 0 ) output_mask |= (1<<i);
+    }
+
+    return ((bsc_input>>16) & input_mask) | output;
+
+}
+
+MMIO_REGION_WRITE_STUBFN(BSC)
 
 int32_t mmio_region_BSC_read( uint32_t reg )
 {
     int32_t val;
+    int i;
     switch( reg ) {
         case PDTRA:
-            val = (bsc_input & bsc_input_mask_lo) | (bsc_output&0xFFFF);
-            break;
+	    val = bsc_read_pdtra();
+	    break;
         case PDTRB:
-            val = ((bsc_input>>16) & bsc_input_mask_hi) | (bsc_output>>16);
-            break;
+	    val = bsc_read_pdtrb();
+	    break;
         default:
             val = MMIO_READ( BSC, reg );
     }
