@@ -1,5 +1,5 @@
 /**
- * $Id: render.c,v 1.18 2007-01-23 11:19:32 nkeynes Exp $
+ * $Id: render.c,v 1.19 2007-01-25 08:18:03 nkeynes Exp $
  *
  * PVR2 Renderer support. This part is primarily
  *
@@ -148,7 +148,7 @@ gboolean pvr2_render_display_frame( uint32_t address )
 static void pvr2_render_prepare_context( sh4addr_t render_addr, 
 					 uint32_t width, uint32_t height,
 					 uint32_t colour_format, 
-					 float bgplanez,
+					 float bgplanez, float nearz,
 					 gboolean texture_target )
 {
     /* Select and initialize the render context */
@@ -186,7 +186,7 @@ static void pvr2_render_prepare_context( sh4addr_t render_addr,
     glViewport( 0, 0, width, height );
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    glOrtho( 0, width, height, 0, bgplanez, -4 );
+    glOrtho( 0, width, height, 0, bgplanez, -(nearz+1) );
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
     glCullFace( GL_BACK );
@@ -230,8 +230,9 @@ void pvr2_render_scene( )
     int width = 640; /* FIXME - get this from the tile buffer */
     int height = 480;
     int colour_format = pvr2_render_colour_format[render_mode&0x07];
+    float maxz = pvr2_render_find_maximum_z();
     pvr2_render_prepare_context( render_addr, width, height, colour_format, 
-				 bgplanez, render_to_tex );
+				 bgplanez, maxz, render_to_tex );
 
     int clip_x = MMIO_READ( PVR2, RENDER_HCLIP ) & 0x03FF;
     int clip_y = MMIO_READ( PVR2, RENDER_VCLIP ) & 0x03FF;

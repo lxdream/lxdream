@@ -1,5 +1,5 @@
 /**
- * $Id: rendcore.c,v 1.12 2007-01-24 08:11:14 nkeynes Exp $
+ * $Id: rendcore.c,v 1.13 2007-01-25 08:18:03 nkeynes Exp $
  *
  * PVR2 renderer core.
  *
@@ -31,7 +31,11 @@ int pvr2_poly_dstblend[8] = {
     GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_DST_ALPHA,
     GL_ONE_MINUS_DST_ALPHA };
 int pvr2_poly_texblend[4] = {
-    GL_REPLACE, GL_MODULATE, GL_DECAL, GL_MODULATE };
+    GL_REPLACE, 
+    GL_MODULATE,  
+    GL_DECAL, 
+    GL_MODULATE 
+};
 int pvr2_render_colour_format[8] = {
     COLFMT_ARGB1555, COLFMT_RGB565, COLFMT_ARGB4444, COLFMT_ARGB1555,
     COLFMT_RGB888, COLFMT_ARGB8888, COLFMT_ARGB8888, COLFMT_ARGB4444 };
@@ -52,7 +56,7 @@ int pvr2_render_colour_format[8] = {
 
 extern char *video_base;
 
-gboolean pvr2_force_fragment_alpha;
+gboolean pvr2_force_fragment_alpha = FALSE;
 
 struct tile_segment {
     uint32_t control;
@@ -154,6 +158,10 @@ void render_set_context( uint32_t *context, int render_mode )
     int destblend = POLY2_DEST_BLEND(poly2);
     glBlendFunc( srcblend, destblend );
 
+    if( POLY2_SRC_BLEND_TARGET(poly2) || POLY2_DEST_BLEND_TARGET(poly2) ) {
+	ERROR( "Accumulation buffer not supported" );
+    }
+	    
     pvr2_force_fragment_alpha = POLY2_ALPHA_ENABLE(poly2) ? FALSE : TRUE;
 
 }
@@ -279,9 +287,12 @@ void render_unpacked_vertex_array( uint32_t poly1, struct vertex_unpacked *verte
 	    glTexCoord2f( vertexes[i]->u, vertexes[i]->v );
 	}
 
-	glColor4f( vertexes[i]->rgba[0], vertexes[i]->rgba[1], vertexes[i]->rgba[2],
-		   (pvr2_force_fragment_alpha ? 1.0 : vertexes[i]->rgba[3]) );
-
+	if( pvr2_force_fragment_alpha ) {
+	    glColor4f( vertexes[i]->rgba[0], vertexes[i]->rgba[1], vertexes[i]->rgba[2], 1.0 );
+	} else {
+	    glColor4f( vertexes[i]->rgba[0], vertexes[i]->rgba[1], vertexes[i]->rgba[2],
+		       vertexes[i]->rgba[3] );
+	}
 	if( POLY1_SPECULAR(poly1) ) {
 	    glSecondaryColor3fEXT( vertexes[i]->offset_rgba[0],
 				   vertexes[i]->offset_rgba[1],
@@ -503,4 +514,104 @@ void pvr2_render_tilebuffer( int width, int height, int clipx1, int clipy1,
 
     gettimeofday(&tv_end, NULL);
     timersub(&tv_end,&tv_start, &tv_start);
+}
+
+static float render_find_maximum_tile_z( pvraddr_t tile_entry, float inputz )
+{
+    uint32_t poly_bank = MMIO_READ(PVR2,RENDER_POLYBASE);
+    uint32_t *tile_list = (uint32_t *)(video_base+tile_entry);
+    int shadow_cfg = MMIO_READ( PVR2, RENDER_SHADOW ) & 0x100;
+    int i, j;
+    float z = inputz;
+    do {
+	uint32_t entry = *tile_list++;
+	if( entry >> 28 == 0x0F ) {
+	    break;
+	} else if( entry >> 28 == 0x0E ) {
+	    tile_list = (uint32_t *)(video_base + (entry&0x007FFFFF));
+	} else {
+	    uint32_t *polygon = (uint32_t *)(video_base + poly_bank + ((entry & 0x000FFFFF) << 2));
+	    int is_modified = entry & 0x01000000;
+	    int vertex_length = (entry >> 21) & 0x07;
+	    int context_length = 3;
+	    if( (entry & 0x01000000) && shadow_cfg ) {
+		context_length = 5;
+		vertex_length *= 2 ;
+	    }
+	    vertex_length += 3;
+	    if( (entry & 0xE0000000) == 0x80000000 ) {
+		/* Triangle(s) */
+		int strip_count = ((entry >> 25) & 0x0F)+1;
+		float *vertexz = (float *)(polygon+context_length+2);
+		for( i=0; i<strip_count; i++ ) {
+		    for( j=0; j<3; j++ ) {
+			if( *vertexz > z ) {
+			    z = *vertexz;
+			}
+			vertexz += vertex_length;
+		    }
+		    vertexz += context_length;
+		}
+	    } else if( (entry & 0xE0000000) == 0xA0000000 ) {
+		/* Sprite(s) */
+		int strip_count = ((entry >> 25) & 0x0F)+1;
+		int polygon_length = 4 * vertex_length + context_length;
+		int i;
+		float *vertexz = (float *)(polygon+context_length+2);
+		for( i=0; i<strip_count; i++ ) {
+		    for( j=0; j<4; j++ ) {
+			if( *vertexz > z ) {
+			    z = *vertexz;
+			}
+			vertexz += vertex_length;
+		    }
+		    vertexz+=context_length;
+		}
+	    } else {
+		/* Polygon */
+		int i, first=-1, last = -1;
+		float *vertexz = (float *)polygon+context_length+2;
+		for( i=0; i<6; i++ ) {
+		    if( (entry & (0x40000000>>i)) && *vertexz > z ) {
+			z = *vertexz;
+		    }
+		    vertexz += vertex_length;
+		}
+	    }
+	}
+    } while(1);
+    return z;
+}
+
+/**
+ * Scan through the scene to determine the largest z value (in order to set up
+ * an appropriate near clip plane).
+ */
+float pvr2_render_find_maximum_z( )
+{
+    pvraddr_t segmentbase = MMIO_READ( PVR2, RENDER_TILEBASE );
+    float maximumz = MMIO_READF( PVR2, RENDER_FARCLIP ); /* Initialize to the far clip plane */
+
+    struct tile_segment *segment = (struct tile_segment *)(video_base + segmentbase);
+    do {
+	
+	if( (segment->opaque_ptr & NO_POINTER) == 0 ) {
+	    maximumz = render_find_maximum_tile_z(segment->opaque_ptr, maximumz);
+	}
+	if( (segment->opaquemod_ptr & NO_POINTER) == 0 ) {
+	    maximumz = render_find_maximum_tile_z(segment->opaquemod_ptr, maximumz);
+	}
+	if( (segment->trans_ptr & NO_POINTER) == 0 ) {
+	    maximumz = render_find_maximum_tile_z(segment->trans_ptr, maximumz);
+	}
+	if( (segment->transmod_ptr & NO_POINTER) == 0 ) {
+	    maximumz = render_find_maximum_tile_z(segment->transmod_ptr, maximumz);
+	}
+	if( (segment->punchout_ptr & NO_POINTER) == 0 ) {
+	    maximumz = render_find_maximum_tile_z(segment->punchout_ptr, maximumz);
+	}
+
+    } while( ((segment++)->control & SEGMENT_END) == 0 );
+
+    return maximumz;
 }

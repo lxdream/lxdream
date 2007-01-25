@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.h,v 1.26 2007-01-24 08:11:14 nkeynes Exp $
+ * $Id: pvr2.h,v 1.27 2007-01-25 08:18:03 nkeynes Exp $
  *
  * PVR2 (video chip) functions and macros.
  *
@@ -265,7 +265,7 @@ void render_set_context( uint32_t *context, int render_mode );
 void pvr2_render_tilebuffer( int width, int height, int clipx1, int clipy1, 
 			     int clipx2, int clipy2 );
 
-
+float pvr2_render_find_maximum_z();
 /**
  * Structure to hold a complete unpacked vertex (excluding modifier
  * volume parameters - generate separate vertexes in that case).
@@ -333,13 +333,13 @@ GLuint texcache_get_texture( uint32_t texture_addr, int width, int height,
 
 #define POLY2_SRC_BLEND(poly2) ( pvr2_poly_srcblend[(poly2) >> 29] )
 #define POLY2_DEST_BLEND(poly2) ( pvr2_poly_dstblend[((poly2)>>26)&0x07] )
-#define POLY2_SRC_BLEND_TARGET(poly2) ((poly2)&0x02000000)
-#define POLY2_DEST_BLEND_TARGET(poly2) ((poly2)&0x01000000)
+#define POLY2_SRC_BLEND_TARGET(poly2)    ((poly2)&0x02000000)
+#define POLY2_DEST_BLEND_TARGET(poly2)   ((poly2)&0x01000000)
 #define POLY2_COLOUR_CLAMP_ENABLE(poly2) ((poly2)&0x00200000)
-#define POLY2_ALPHA_ENABLE(poly2) ((poly2)&0x001000000)
-#define POLY2_TEX_ALPHA_ENABLE(poly2) (((poly2)&0x00080000) == 0 )
-#define POLY2_TEX_CLAMP_U(poly2) ((poly2)&0x00010000)
-#define POLY2_TEX_CLAMP_V(poly2) ((poly2)&0x00008000)
+#define POLY2_ALPHA_ENABLE(poly2)        ((poly2)&0x00100000)
+#define POLY2_TEX_ALPHA_ENABLE(poly2)   (((poly2)&0x00080000) == 0 )
+#define POLY2_TEX_CLAMP_U(poly2)         ((poly2)&0x00010000)
+#define POLY2_TEX_CLAMP_V(poly2)         ((poly2)&0x00008000)
 #define POLY2_TEX_WIDTH(poly2) ( 1<< ((((poly2) >> 3) & 0x07 ) + 3) )
 #define POLY2_TEX_HEIGHT(poly2) ( 1<< (((poly2) & 0x07 ) + 3) )
 #define POLY2_TEX_BLEND(poly2) ( pvr2_poly_texblend[((poly2) >> 6)&0x03] )
