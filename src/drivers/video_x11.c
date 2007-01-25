@@ -1,5 +1,5 @@
 /**
- * $Id: video_x11.c,v 1.9 2007-01-23 11:21:21 nkeynes Exp $
+ * $Id: video_x11.c,v 1.10 2007-01-25 11:46:35 nkeynes Exp $
  *
  * Shared functions for all X11-based display drivers.
  *
@@ -152,22 +152,9 @@ gboolean video_glx_set_render_format( int x, int y, int width, int height )
 
 gboolean video_glx_display_frame( video_buffer_t frame )
 {
-    GLenum type, format = GL_BGR;
-    switch( frame->colour_format ) {
-    case COLFMT_RGB565:
-	type = GL_UNSIGNED_SHORT_5_6_5;
-	break;
-    case COLFMT_RGB888:
-	type = GL_UNSIGNED_BYTE;
-	break;
-    case COLFMT_ARGB1555:
-	type = GL_UNSIGNED_SHORT_5_5_5_1;
-	break;
-    case COLFMT_ARGB8888:
-	format = GL_BGRA;
-	type = GL_UNSIGNED_INT_8_8_8_8_REV;
-	break;
-    }
+    GLenum type = colour_formats[frame->colour_format].type;
+    GLenum format = colour_formats[frame->colour_format].format;
+
     glDrawBuffer( GL_FRONT );
     glViewport( 0, 0, frame->hres, frame->vres );
     glMatrixMode(GL_PROJECTION);

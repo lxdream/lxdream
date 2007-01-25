@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2mem.c,v 1.6 2007-01-25 10:16:32 nkeynes Exp $
+ * $Id: pvr2mem.c,v 1.7 2007-01-25 11:46:35 nkeynes Exp $
  *
  * PVR2 (Video) VRAM handling routines (mainly for the 64-bit region)
  *
@@ -520,34 +520,10 @@ void pvr2_render_buffer_copy_to_sh4( pvr2_render_buffer_t buffer,
 {
     if( buffer->render_addr == -1 )
 	return;
-    GLenum type, format = GL_BGRA;
-    int line_size = buffer->width, size;
-
-    switch( buffer->colour_format ) {
-    case COLFMT_RGB565: 
-	type = GL_UNSIGNED_SHORT_5_6_5; 
-	format = GL_BGR; 
-	line_size <<= 1;
-	break;
-    case COLFMT_RGB888: 
-	type = GL_UNSIGNED_BYTE; 
-	format = GL_BGR;
-	line_size = (line_size<<1)+line_size;
-	break;
-    case COLFMT_ARGB1555: 
-	type = GL_UNSIGNED_SHORT_5_5_5_1; 
-	line_size <<= 1;
-	break;
-    case COLFMT_ARGB4444: 
-	type = GL_UNSIGNED_SHORT_4_4_4_4; 
-	line_size <<= 1;
-	break;
-    case COLFMT_ARGB8888: 
-	type = GL_UNSIGNED_INT_8_8_8_8; 
-	line_size <<= 2;
-	break;
-    }
-    size = line_size * buffer->height;
+    GLenum type = colour_formats[buffer->colour_format].type;
+    GLenum format = colour_formats[buffer->colour_format].format;
+    int line_size = buffer->width * colour_formats[buffer->colour_format].bpp;
+    int size = line_size * buffer->height;
     
     if( backBuffer ) {
 	glFinish();
@@ -583,34 +559,12 @@ void pvr2_render_buffer_copy_from_sh4( pvr2_render_buffer_t buffer,
 {
     if( buffer->render_addr == -1 )
 	return;
-    GLenum type, format = GL_RGBA;
-    int size = buffer->width * buffer->height;
 
-    switch( buffer->colour_format ) {
-    case COLFMT_RGB565: 
-	type = GL_UNSIGNED_SHORT_5_6_5; 
-	format = GL_RGB; 
-	size <<= 1;
-	break;
-    case COLFMT_RGB888: 
-	type = GL_UNSIGNED_BYTE; 
-	format = GL_BGR;
-	size = (size<<1)+size;
-	break;
-    case COLFMT_ARGB1555: 
-	type = GL_UNSIGNED_SHORT_5_5_5_1; 
-	size <<= 1;
-	break;
-    case COLFMT_ARGB4444: 
-	type = GL_UNSIGNED_SHORT_4_4_4_4; 
-	size <<= 1;
-	break;
-    case COLFMT_ARGB8888: 
-	type = GL_UNSIGNED_INT_8_8_8_8; 
-	size <<= 2;
-	break;
-    }
-    
+    GLenum type = colour_formats[buffer->colour_format].type;
+    GLenum format = colour_formats[buffer->colour_format].format;
+    int line_size = buffer->width * colour_formats[buffer->colour_format].bpp;
+    int size = line_size * buffer->height;
+
     if( backBuffer ) {
 	glDrawBuffer( GL_BACK );
     } else {
