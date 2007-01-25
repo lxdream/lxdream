@@ -1,5 +1,5 @@
 /**
- * $Id: texcache.c,v 1.19 2007-01-23 11:19:32 nkeynes Exp $
+ * $Id: texcache.c,v 1.20 2007-01-25 08:16:02 nkeynes Exp $
  *
  * Texture cache. Responsible for maintaining a working set of OpenGL 
  * textures. 
@@ -25,7 +25,7 @@
  * textures we're willing to have open at a time. If more are
  * needed, textures will be evicted in LRU order.
  */
-#define MAX_TEXTURES 64
+#define MAX_TEXTURES 128
 
 /**
  * Data structure:
@@ -187,11 +187,11 @@ static void decode_pal8_to_32( uint32_t *out, uint8_t *in, int inbytes, uint32_t
     }
 }
 
-static void decode_pal8_to_16( uint16_t *out, uint8_t *in, int inbytes, uint16_t *pal )
+static void decode_pal8_to_16( uint16_t *out, uint8_t *in, int inbytes, uint32_t *pal )
 {
     int i;
     for( i=0; i<inbytes; i++ ) {
-	*out++ = pal[*in++];
+	*out++ = (uint16_t)pal[*in++];
     }
 }
 
@@ -206,12 +206,12 @@ static void decode_pal4_to_32( uint32_t *out, uint8_t *in, int inbytes, uint32_t
 }
 
 
-static void decode_pal4_to_16( uint16_t *out, uint8_t *in, int inbytes, uint16_t *pal )
+static void decode_pal4_to_16( uint16_t *out, uint8_t *in, int inbytes, uint32_t *pal )
 {
     int i;
     for( i=0; i<inbytes; i++ ) {
-	*out++ = pal[*in & 0x0F];
-	*out++ = pal[(*in >> 4)];
+	*out++ = (uint16_t)pal[*in & 0x0F];
+	*out++ = (uint16_t)pal[(*in >> 4)];
 	in++;
     }
 }
@@ -362,7 +362,8 @@ static texcache_load_texture( uint32_t texture_addr, int width, int height,
 	break;
     }
 	
-    if( PVR2_TEX_IS_STRIDE(mode) ) {
+    if( PVR2_TEX_IS_STRIDE(mode) && tex_format != PVR2_TEX_FORMAT_IDX4 &&
+	tex_format != PVR2_TEX_FORMAT_IDX8 ) {
 	/* Stride textures cannot be mip-mapped, compressed, indexed or twiddled */
 	uint32_t stride = (MMIO_READ( PVR2, RENDER_TEXSIZE ) & 0x003F) << 5;
 	char data[(width*height) << bpp_shift];
@@ -403,24 +404,24 @@ static texcache_load_texture( uint32_t texture_addr, int width, int height,
 	if( tex_format == PVR2_TEX_FORMAT_IDX8 ) {
 	    int inputlength = mip_bytes >> bpp_shift;
 	    int bank = (mode >> 25) &0x03;
-	    char *palette = mmio_region_PVR2PAL.mem + (bank * (256 << bpp_shift));
+	    uint32_t *palette = (uint32_t *)(mmio_region_PVR2PAL.mem + (bank * (256 << bpp_shift)));
 	    char tmp[inputlength];
 	    pvr2_vram64_read_twiddled_8( tmp, texture_addr, mip_width, mip_height );
 	    if( bpp_shift == 2 ) {
-		decode_pal8_to_32( (uint32_t *)data, tmp, inputlength, (uint32_t*)palette );
+		decode_pal8_to_32( (uint32_t *)data, tmp, inputlength, palette );
 	    } else {
-		decode_pal8_to_16( (uint16_t *)data, tmp, inputlength, (uint16_t*)palette );
+		decode_pal8_to_16( (uint16_t *)data, tmp, inputlength, palette );
 	    }
 	} else if( tex_format == PVR2_TEX_FORMAT_IDX4 ) {
 	    int inputlength = (mip_width * mip_height) >> 1;
 	    int bank = (mode >>21 ) & 0x3F;
-	    char *palette = mmio_region_PVR2PAL.mem + (bank * (16 << bpp_shift));
+	    uint32_t *palette = (uint32_t *)(mmio_region_PVR2PAL.mem + (bank * (16 << bpp_shift)));
 	    char tmp[inputlength];
 	    pvr2_vram64_read_twiddled_4( tmp, texture_addr, mip_width, mip_height );
 	    if( bpp_shift == 2 ) {
-		decode_pal4_to_32( (uint32_t *)data, tmp, inputlength, (uint32_t*)palette );
+		decode_pal4_to_32( (uint32_t *)data, tmp, inputlength, palette );
 	    } else {
-		decode_pal4_to_16( (uint16_t *)data, tmp, inputlength, (uint16_t*)palette );
+		decode_pal4_to_16( (uint16_t *)data, tmp, inputlength, palette );
 	    }
 	} else if( tex_format == PVR2_TEX_FORMAT_YUV422 ) {
 	    int inputlength = ((mip_width*mip_height)<<1);
