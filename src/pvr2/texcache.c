@@ -1,5 +1,5 @@
 /**
- * $Id: texcache.c,v 1.22 2007-01-25 12:55:31 nkeynes Exp $
+ * $Id: texcache.c,v 1.23 2007-01-25 13:03:23 nkeynes Exp $
  *
  * Texture cache. Responsible for maintaining a working set of OpenGL 
  * textures. 
@@ -311,7 +311,7 @@ static texcache_load_texture( uint32_t texture_addr, int width, int height,
 	switch( MMIO_READ( PVR2, RENDER_PALETTE ) & 0x03 ) {
 	case 0: /* ARGB1555 */
 	    intFormat = GL_RGB5_A1;
-	    format = GL_RGBA;
+	    format = GL_BGRA;
 	    type = GL_UNSIGNED_SHORT_1_5_5_5_REV;
 	    break;
 	case 1:  /* RGB565 */
@@ -335,7 +335,7 @@ static texcache_load_texture( uint32_t texture_addr, int width, int height,
 	    
     case PVR2_TEX_FORMAT_ARGB1555:
 	intFormat = GL_RGB5_A1;
-	format = GL_RGBA;
+	format = GL_BGRA;
 	type = GL_UNSIGNED_SHORT_1_5_5_5_REV;
 	break;
     case PVR2_TEX_FORMAT_RGB565:

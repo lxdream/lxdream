@@ -1,5 +1,5 @@
 /**
- * $Id: display.c,v 1.4 2007-01-25 11:46:35 nkeynes Exp $
+ * $Id: display.c,v 1.5 2007-01-25 13:03:23 nkeynes Exp $
  *
  * Generic support for keyboard and other input sources. The active display
  * driver is expected to deliver events here, where they're translated and
@@ -34,7 +34,7 @@ typedef struct keymap_entry {
  * Colour format information
  */
 struct colour_format colour_formats[] = {
-    { GL_UNSIGNED_SHORT_1_5_5_5_REV, GL_RGBA, GL_RGB5_A1, 2 },
+    { GL_UNSIGNED_SHORT_1_5_5_5_REV, GL_BGRA, GL_RGB5_A1, 2 },
     { GL_UNSIGNED_SHORT_5_6_5, GL_RGB, GL_RGB5, 2 },
     { GL_UNSIGNED_SHORT_4_4_4_4_REV, GL_BGRA, GL_RGBA4, 2 },
     { GL_UNSIGNED_INT_8_8_8_8_REV, GL_BGRA, GL_RGBA8, 4 }, /* YUV decoded to ARGB8888 */
