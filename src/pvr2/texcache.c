@@ -1,5 +1,5 @@
 /**
- * $Id: texcache.c,v 1.21 2007-01-25 10:12:54 nkeynes Exp $
+ * $Id: texcache.c,v 1.22 2007-01-25 12:55:31 nkeynes Exp $
  *
  * Texture cache. Responsible for maintaining a working set of OpenGL 
  * textures. 
@@ -451,6 +451,7 @@ static texcache_load_texture( uint32_t texture_addr, int width, int height,
 	if( level == last_level && level != 0 ) { /* 1x1 stored within a 2x2 */
 	    glTexImage2D( GL_TEXTURE_2D, level, intFormat, 1, 1, 0, format, type,
 			  data + (3 << bpp_shift) );
+	    texture_addr += mip_bytes;
 	} else {
 	    glTexImage2D( GL_TEXTURE_2D, level, intFormat, mip_width, mip_height, 0, format, type,
 			  data );
