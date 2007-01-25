@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.h,v 1.28 2007-01-25 10:16:32 nkeynes Exp $
+ * $Id: pvr2.h,v 1.29 2007-01-25 11:46:35 nkeynes Exp $
  *
  * PVR2 (video chip) functions and macros.
  *
@@ -29,11 +29,6 @@ typedef unsigned int pvr64addr_t;
 #define DISPMODE_SD  0x00000002 /* Scan double */
 #define DISPMODE_COL 0x0000000C /* Colour mode */
 #define DISPMODE_CD  0x08000000 /* Clock double */
-
-#define COLFMT_RGB15 0x00000000
-#define COLFMT_RGB16 0x00000004
-#define COLFMT_RGB24 0x00000008
-#define COLFMT_RGB32 0x0000000C
 
 #define DISPSIZE_MODULO 0x3FF00000 /* line skip +1 (32-bit words)*/
 #define DISPSIZE_LPF    0x000FFC00 /* lines per field */

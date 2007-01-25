@@ -1,5 +1,5 @@
 /**
- * $Id: display.h,v 1.2 2006-06-18 11:57:55 nkeynes Exp $
+ * $Id: display.h,v 1.3 2007-01-25 11:46:35 nkeynes Exp $
  *
  * The PC side of the video support (responsible for actually displaying / 
  * rendering frames)
@@ -22,6 +22,7 @@
 
 #include <stdint.h>
 #include <glib.h>
+#include <GL/gl.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -31,14 +32,21 @@ extern "C" {
  * Supported colour formats. Note that ARGB4444 is only ever used for texture
  * rendering (it's not valid for display purposes).
  */
-#define COLFMT_RGB565    1
-#define COLFMT_RGB888    4
 #define COLFMT_ARGB1555  0
-#define COLFMT_ARGB8888  5
+#define COLFMT_RGB565    1
 #define COLFMT_ARGB4444  2
 #define COLFMT_YUV422    3 /* 8-bit YUV (texture source only) */
+#define COLFMT_RGB888    4 /* 24-bit RGB */
+#define COLFMT_ARGB8888  5
 #define COLFMT_INDEX4    6 /* 4 bit indexed colour (texture source only) */
 #define COLFMT_INDEX8    7 /* 8-bit indexed colour (texture source only) */
+#define COLFMT_RGB0888   8 /* 32-bit RGB */
+
+struct colour_format {
+    GLint type, format, int_format;
+    int bpp;
+};
+extern struct colour_format colour_formats[];
 
 extern int colour_format_bytes[];
 
