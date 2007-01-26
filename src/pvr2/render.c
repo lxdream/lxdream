@@ -1,5 +1,5 @@
 /**
- * $Id: render.c,v 1.19 2007-01-25 08:18:03 nkeynes Exp $
+ * $Id: render.c,v 1.20 2007-01-26 01:37:39 nkeynes Exp $
  *
  * PVR2 Renderer support. This part is primarily
  *
@@ -186,7 +186,7 @@ static void pvr2_render_prepare_context( sh4addr_t render_addr,
     glViewport( 0, 0, width, height );
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    glOrtho( 0, width, height, 0, bgplanez, -(nearz+1) );
+    glOrtho( 0, width, height, 0, -bgplanez, -nearz );
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
     glCullFace( GL_BACK );
@@ -225,7 +225,7 @@ void pvr2_render_scene( )
 	render_to_tex = FALSE;
     }
     
-    float bgplanez = MMIO_READF( PVR2, RENDER_FARCLIP );
+    float bgplanez = 1/MMIO_READF( PVR2, RENDER_FARCLIP );
     uint32_t render_mode = MMIO_READ( PVR2, RENDER_MODE );
     int width = 640; /* FIXME - get this from the tile buffer */
     int height = 480;
