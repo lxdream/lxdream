@@ -1,5 +1,5 @@
 /**
- * $Id: rendcore.c,v 1.13 2007-01-25 08:18:03 nkeynes Exp $
+ * $Id: rendcore.c,v 1.14 2007-01-26 01:37:39 nkeynes Exp $
  *
  * PVR2 renderer core.
  *
@@ -250,9 +250,9 @@ void render_unpack_quad( struct vertex_unpacked *unpacked, uint32_t poly1,
 	       (unpacked[3].y - unpacked[1].y) * diff1.x) / detxy;
     float s = ((unpacked[3].y - unpacked[1].y) * diff0.x -
 	       (unpacked[3].x - unpacked[1].x) * diff0.y) / detxy;
-    diff0.z = unpacked[0].z - unpacked[1].z;
-    diff1.z = unpacked[2].z - unpacked[1].z;
-    unpacked[3].z = unpacked[1].z + (t*diff0.z) + (s*diff1.z);
+    diff0.z = (1/unpacked[0].z) - (1/unpacked[1].z);
+    diff1.z = (1/unpacked[2].z) - (1/unpacked[1].z);
+    unpacked[3].z = 1/((1/unpacked[1].z) + (t*diff0.z) + (s*diff1.z));
 
     diff0.u = unpacked[0].u - unpacked[1].u;
     diff0.v = unpacked[0].v - unpacked[1].v;
@@ -298,7 +298,7 @@ void render_unpacked_vertex_array( uint32_t poly1, struct vertex_unpacked *verte
 				   vertexes[i]->offset_rgba[1],
 				   vertexes[i]->offset_rgba[2] );
 	}
-	glVertex3f( vertexes[i]->x, vertexes[i]->y, vertexes[i]->z );
+	glVertex3f( vertexes[i]->x, vertexes[i]->y, 1/vertexes[i]->z );
     }
 
     glEnd();
@@ -353,7 +353,7 @@ void render_vertex_array( uint32_t poly1, uint32_t *vert_array[], int num_vertex
 	    glSecondaryColor3ubEXT( (GLubyte)(spec >> 16), (GLubyte)(spec >> 8), 
 				 (GLubyte)spec );
 	}
-	glVertex3f( vertexf[0], vertexf[1], vertexf[2] );
+	glVertex3f( vertexf[0], vertexf[1], 1/vertexf[2] );
 	vertexes += vertex_size;
     }
 
@@ -613,5 +613,5 @@ float pvr2_render_find_maximum_z( )
 
     } while( ((segment++)->control & SEGMENT_END) == 0 );
 
-    return maximumz;
+    return 1/maximumz;
 }

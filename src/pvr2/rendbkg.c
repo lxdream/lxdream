@@ -1,5 +1,5 @@
 /**
- * $Id: rendbkg.c,v 1.4 2006-12-15 10:17:30 nkeynes Exp $
+ * $Id: rendbkg.c,v 1.5 2007-01-26 01:37:39 nkeynes Exp $
  *
  * PVR2 background renderer. 
  *
@@ -163,7 +163,7 @@ void parse_vertexes( uint32_t *polygon, int num_vertexes, struct vertex_all *res
 	float *vertexf = (float *)vertexes;
 	result[i].x = vertexf[0];
 	result[i].y = vertexf[1];
-	result[i].z = vertexf[2];
+	result[i].z = 1/vertexf[2];
 	uint32_t argb;
 	if( POLY1_TEXTURED(*polygon) ) {
 	    if( POLY1_UV16(*polygon) ) {

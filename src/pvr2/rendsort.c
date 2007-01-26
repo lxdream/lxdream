@@ -1,5 +1,5 @@
 /**
- * $Id: rendsort.c,v 1.4 2007-01-24 08:11:14 nkeynes Exp $
+ * $Id: rendsort.c,v 1.5 2007-01-26 01:37:39 nkeynes Exp $
  *
  * PVR2 renderer routines for depth sorted polygons
  *
@@ -72,8 +72,11 @@ static void compute_triangle_boxes( struct render_triangle *triangle, int num_tr
 	triangle[i].maxx = MAX3(triangle[i].vertexes[0][0],triangle[i].vertexes[1][0],triangle[i].vertexes[2][0]);
 	triangle[i].miny = MIN3(triangle[i].vertexes[0][1],triangle[i].vertexes[1][1],triangle[i].vertexes[2][1]);
 	triangle[i].maxy = MAX3(triangle[i].vertexes[0][1],triangle[i].vertexes[1][1],triangle[i].vertexes[2][1]);
-	triangle[i].minz = MIN3(triangle[i].vertexes[0][2],triangle[i].vertexes[1][2],triangle[i].vertexes[2][2]);
-	triangle[i].maxz = MAX3(triangle[i].vertexes[0][2],triangle[i].vertexes[1][2],triangle[i].vertexes[2][2]);
+	float az = 1/triangle[i].vertexes[0][2];
+	float bz = 1/triangle[i].vertexes[1][2];
+	float cz = 1/triangle[i].vertexes[2][2];
+	triangle[i].minz = MIN3(az,bz,cz);
+	triangle[i].maxz = MAX3(az,bz,cz);
     }
 }
 
@@ -178,6 +181,8 @@ void render_triangles( struct render_triangle *triangles, int num_triangles,
     int i,j, k, m = 0;
     for( i=0; i<num_triangles; i++ ) {
 	render_set_context( triangles[i].polygon, render_mode );
+	glEnable(GL_DEPTH_TEST);
+	glDepthFunc(GL_GEQUAL);
 	if( triangles[i].vertex_length == 0 ) {
 	    render_unpacked_vertex_array( *triangles[i].polygon, (struct vertex_unpacked **)triangles[i].vertexes, 3 );
 	} else {
@@ -193,10 +198,10 @@ int compare_triangles( void *a, void *b )
 {
     struct render_triangle *tri1 = a;
     struct render_triangle *tri2 = b;
-    if( tri1->minz < tri2->minz ) {
-	return -1;
+    if( tri1->minz < tri2->minz ) {  
+	return 1; // No these _aren't_ back to front...
     } else if( tri1->minz > tri2->minz ) {
-	return 1;
+	return -1;
     } else {
 	return 0;
     }
