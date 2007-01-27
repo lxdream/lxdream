@@ -1,5 +1,5 @@
 /**
- * $Id: display.h,v 1.3 2007-01-25 11:46:35 nkeynes Exp $
+ * $Id: display.h,v 1.4 2007-01-27 12:03:53 nkeynes Exp $
  *
  * The PC side of the video support (responsible for actually displaying / 
  * rendering frames)
@@ -55,6 +55,7 @@ typedef struct video_buffer {
     uint32_t vres;
     uint32_t rowstride;
     int colour_format;
+    gboolean line_double;
     char *data;
 } *video_buffer_t;
 

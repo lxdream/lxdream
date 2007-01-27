@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.h,v 1.30 2007-01-27 06:21:35 nkeynes Exp $
+ * $Id: pvr2.h,v 1.31 2007-01-27 12:03:53 nkeynes Exp $
  *
  * PVR2 (video chip) functions and macros.
  *
@@ -25,10 +25,10 @@
 typedef unsigned int pvraddr_t;
 typedef unsigned int pvr64addr_t;
 
-#define DISPMODE_DE  0x00000001 /* Display enable */
-#define DISPMODE_SD  0x00000002 /* Scan double */
-#define DISPMODE_COL 0x0000000C /* Colour mode */
-#define DISPMODE_CD  0x08000000 /* Clock double */
+#define DISPMODE_ENABLE      0x00000001 /* Display enable */
+#define DISPMODE_LINEDOUBLE  0x00000002 /* scanline double */
+#define DISPMODE_COLFMT      0x0000000C /* Colour mode */
+#define DISPMODE_CLOCKDIV    0x08000000 /* Clock divide-by-2 */
 
 #define DISPSIZE_MODULO 0x3FF00000 /* line skip +1 (32-bit words)*/
 #define DISPSIZE_LPF    0x000FFC00 /* lines per field */
