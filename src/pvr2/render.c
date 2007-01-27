@@ -1,5 +1,5 @@
 /**
- * $Id: render.c,v 1.20 2007-01-26 01:37:39 nkeynes Exp $
+ * $Id: render.c,v 1.21 2007-01-27 06:21:35 nkeynes Exp $
  *
  * PVR2 Renderer support. This part is primarily
  *
@@ -177,6 +177,7 @@ static void pvr2_render_prepare_context( sh4addr_t render_addr,
     back_buffer.width = width;
     back_buffer.height = height;
     back_buffer.colour_format = colour_format;
+    back_buffer.scale = MMIO_READ( PVR2, RENDER_SCALER );
     back_buffer.size = width * height * colour_format_bytes[colour_format];
 
     /* Setup the display model */
