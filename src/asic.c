@@ -1,5 +1,5 @@
 /**
- * $Id: asic.c,v 1.26 2007-01-25 10:16:32 nkeynes Exp $
+ * $Id: asic.c,v 1.27 2007-01-27 12:02:54 nkeynes Exp $
  *
  * Support for the miscellaneous ASIC functions (Primarily event multiplexing,
  * and DMA). 
@@ -455,9 +455,15 @@ MMIO_REGION_WRITE_FN( EXTDMA, reg, val )
 	    ide_write_command( (uint8_t)val );
 	}
 	break;
+    case IDEDMASH4:
+	MMIO_WRITE( EXTDMA, reg, val & 0x1FFFFFE0 );
+	break;
+    case IDEDMASIZ:
+	MMIO_WRITE( EXTDMA, reg, val & 0x01FFFFFE );
+	break;
     case IDEDMACTL1:
     case IDEDMACTL2:
-	MMIO_WRITE( EXTDMA, reg, val );
+	MMIO_WRITE( EXTDMA, reg, val & 0x01 );
 	asic_ide_dma_transfer( );
 	break;
     case IDEACTIVATE:
