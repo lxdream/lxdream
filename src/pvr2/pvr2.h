@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.h,v 1.29 2007-01-25 11:46:35 nkeynes Exp $
+ * $Id: pvr2.h,v 1.30 2007-01-27 06:21:35 nkeynes Exp $
  *
  * PVR2 (video chip) functions and macros.
  *
@@ -177,6 +177,7 @@ typedef struct pvr2_render_buffer {
     uint32_t size; /* Length of rendering region in bytes */
     int width, height;
     int colour_format;
+    int scale;
 } *pvr2_render_buffer_t;
 
 /**

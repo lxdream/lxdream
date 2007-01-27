@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2mem.c,v 1.7 2007-01-25 11:46:35 nkeynes Exp $
+ * $Id: pvr2mem.c,v 1.8 2007-01-27 06:21:35 nkeynes Exp $
  *
  * PVR2 (Video) VRAM handling routines (mainly for the 64-bit region)
  *
@@ -420,13 +420,14 @@ void pvr2_vram64_read_twiddled_16( char *dest, sh4addr_t srcaddr, uint32_t width
     }    
 }
 
-void pvr2_vram_write_invert( sh4addr_t destaddr, char *src, uint32_t length, uint32_t line_length )
+void pvr2_vram_write_invert( sh4addr_t destaddr, char *src, uint32_t length, uint32_t line_length,
+			     uint32_t src_stride )
 {
     char *dest = video_base + (destaddr & 0x007FFFFF);
-    char *p = src + length - line_length;
+    char *p = src + length - src_stride;
     while( p >= src ) {
 	memcpy( dest, p, line_length );
-	p -= line_length;
+	p -= src_stride;
 	dest += line_length;
     }
 }
@@ -541,7 +542,11 @@ void pvr2_render_buffer_copy_to_sh4( pvr2_render_buffer_t buffer,
 	/* Regular buffer */
 	char target[size];
 	glReadPixels( 0, 0, buffer->width, buffer->height, format, type, target );
-	pvr2_vram_write_invert( buffer->render_addr, target, size, line_size );
+	if( (buffer->scale & 0xFFFF) == 0x0800 ) {
+	    pvr2_vram_write_invert( buffer->render_addr, target, size, line_size, line_size << 1 );
+	} else {
+	    pvr2_vram_write_invert( buffer->render_addr, target, size, line_size, line_size );
+	}
     }
 }
 
