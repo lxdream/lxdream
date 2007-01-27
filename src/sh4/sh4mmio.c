@@ -1,5 +1,5 @@
 /**
- * $Id: sh4mmio.c,v 1.11 2007-01-25 08:21:56 nkeynes Exp $
+ * $Id: sh4mmio.c,v 1.12 2007-01-27 12:04:22 nkeynes Exp $
  * 
  * Miscellaneous and not-really-implemented SH4 peripheral modules. Also
  * responsible for including the IMPL side of the SH4 MMIO pages.
@@ -138,7 +138,7 @@ uint32_t bsc_read_pdtrb()
 
 }
 
-MMIO_REGION_WRITE_STUBFN(BSC)
+MMIO_REGION_WRITE_DEFFN(BSC)
 
 int32_t mmio_region_BSC_read( uint32_t reg )
 {
@@ -154,8 +154,6 @@ int32_t mmio_region_BSC_read( uint32_t reg )
         default:
             val = MMIO_READ( BSC, reg );
     }
-    WARN( "Read from (mostly) unimplemented BSC (%03X => %08X) [%s: %s]",
-          reg, val, MMIO_REGID(BSC,reg), MMIO_REGDESC(BSC,reg) );
     return val;
 }
 
