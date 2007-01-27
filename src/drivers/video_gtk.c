@@ -1,5 +1,5 @@
 /**
- * $Id: video_gtk.c,v 1.8 2006-07-02 04:59:00 nkeynes Exp $
+ * $Id: video_gtk.c,v 1.9 2007-01-27 12:03:53 nkeynes Exp $
  *
  * The PC side of the video support (responsible for actually displaying / 
  * rendering frames)
@@ -74,13 +74,11 @@ gboolean video_gtk_keyup_callback(GtkWidget       *widget,
 gboolean video_gtk_set_output_format( uint32_t width, uint32_t height,  
 				      int colour_format )
 {
-    video_width = width;
-    video_height = height;
     if( video_win == NULL ) {
 	video_win = GTK_WINDOW(gtk_window_new( GTK_WINDOW_TOPLEVEL ));
 	gtk_window_set_title( video_win, APP_NAME " - Emulation Window" );
 	gtk_window_set_policy( video_win, FALSE, FALSE, FALSE );
-	gtk_window_set_default_size( video_win, width, height );
+	gtk_window_set_default_size( video_win, video_width, video_height );
     
 	g_signal_connect( video_win, "key_press_event", 
 			  G_CALLBACK(video_gtk_keydown_callback), NULL );
@@ -98,9 +96,9 @@ gboolean video_gtk_set_output_format( uint32_t width, uint32_t height,
 			       GDK_WINDOW_XWINDOW( GTK_WIDGET(video_win)->window ) );
 			       
     }
-    gtk_window_set_default_size( video_win, width, height );
+    gtk_window_set_default_size( video_win, video_width, video_height );
     video_img = gdk_image_new( GDK_IMAGE_FASTEST, gdk_visual_get_system(),
-			       width, height );
+			       video_width, video_height );
     gtk_image_set_from_image( GTK_IMAGE(video_area), video_img, NULL );
     /* Note old image is auto de-refed */
     return TRUE;

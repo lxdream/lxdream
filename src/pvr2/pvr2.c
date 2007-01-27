@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.c,v 1.41 2007-01-18 11:13:12 nkeynes Exp $
+ * $Id: pvr2.c,v 1.42 2007-01-27 12:03:53 nkeynes Exp $
  *
  * PVR2 (Video) Core module implementation and MMIO registers.
  *
@@ -238,24 +238,38 @@ gboolean pvr2_save_next_scene( const gchar *filename )
  */
 void pvr2_display_frame( void )
 {
-    uint32_t display_addr = MMIO_READ( PVR2, DISP_ADDR1 );
-    
+    uint32_t display_addr;
     int dispsize = MMIO_READ( PVR2, DISP_SIZE );
     int dispmode = MMIO_READ( PVR2, DISP_MODE );
     int vidcfg = MMIO_READ( PVR2, DISP_SYNCCFG );
-    int vid_stride = ((dispsize & DISPSIZE_MODULO) >> 20) - 1;
+    int vid_stride = (((dispsize & DISPSIZE_MODULO) >> 20) - 1);
     int vid_lpf = ((dispsize & DISPSIZE_LPF) >> 10) + 1;
     int vid_ppl = ((dispsize & DISPSIZE_PPL)) + 1;
-    gboolean bEnabled = (dispmode & DISPMODE_DE) && (vidcfg & DISPCFG_VO ) ? TRUE : FALSE;
+    gboolean bEnabled = (dispmode & DISPMODE_ENABLE) && (vidcfg & DISPCFG_VO ) ? TRUE : FALSE;
     gboolean interlaced = (vidcfg & DISPCFG_I ? TRUE : FALSE);
     video_buffer_t buffer = &video_buffer[video_buffer_idx];
     video_buffer_idx = !video_buffer_idx;
     video_buffer_t last = &video_buffer[video_buffer_idx];
     buffer->rowstride = (vid_ppl + vid_stride) << 2;
     buffer->data = video_base + MMIO_READ( PVR2, DISP_ADDR1 );
+    buffer->line_double = (dispmode & DISPMODE_LINEDOUBLE) ? TRUE : FALSE;
     buffer->vres = vid_lpf;
-    if( interlaced ) buffer->vres <<= 1;
-    switch( (dispmode & DISPMODE_COL) >> 2 ) {
+    if( interlaced ) {
+	if( vid_ppl == vid_stride ) { /* Magic deinterlace */
+	    buffer->vres <<= 1;
+	    buffer->rowstride = vid_ppl << 2;
+	    display_addr = MMIO_READ( PVR2, DISP_ADDR1 );
+	} else { /* Just display the field as is, folks */
+	    if( pvr2_state.odd_even_field ) {
+		display_addr = MMIO_READ( PVR2, DISP_ADDR1 );
+	    } else {
+		display_addr = MMIO_READ( PVR2, DISP_ADDR2 );
+	    }
+	}
+    } else {
+	display_addr = MMIO_READ( PVR2, DISP_ADDR1 );
+    }
+    switch( (dispmode & DISPMODE_COLFMT) >> 2 ) {
     case 0: 
 	buffer->colour_format = COLFMT_ARGB1555;
 	buffer->hres = vid_ppl << 1; 
@@ -520,12 +534,7 @@ void mmio_region_PVR2_write( uint32_t reg, uint32_t val )
     case TA_REINIT:
 	break;
 	/**************** Scaler registers? ****************/
-    case SCALERCFG:
-	/* KOS suggests bits as follows:
-	 *   0: enable vertical scaling
-	 *  10: ???
-	 *  16: enable FSAA
-	 */
+    case RENDER_SCALER:
 	MMIO_WRITE( PVR2, reg, val&0x0007FFFF );
 	break;
 

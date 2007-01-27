@@ -1,5 +1,5 @@
 /**
- * $Id: video_x11.c,v 1.10 2007-01-25 11:46:35 nkeynes Exp $
+ * $Id: video_x11.c,v 1.11 2007-01-27 12:03:53 nkeynes Exp $
  *
  * Shared functions for all X11-based display drivers.
  *
@@ -28,7 +28,7 @@
 Display *video_x11_display = NULL;
 Screen *video_x11_screen = NULL;
 Window video_x11_window = 0;
-
+extern uint32_t video_width, video_height;
 /**
  * GLX parameters.
  */
@@ -52,7 +52,7 @@ gboolean video_glx_create_window( int x, int y, int width, int height )
 			   GLX_GREEN_SIZE, 4, 
 			   GLX_BLUE_SIZE, 4,
 			   GLX_ALPHA_SIZE, 4,
-			   GLX_DEPTH_SIZE, 16,
+			   GLX_DEPTH_SIZE, 24,
 			   GLX_DOUBLEBUFFER, 
 			   None };
     int screen = XScreenNumberOfScreen(video_x11_screen);
@@ -154,18 +154,24 @@ gboolean video_glx_display_frame( video_buffer_t frame )
 {
     GLenum type = colour_formats[frame->colour_format].type;
     GLenum format = colour_formats[frame->colour_format].format;
-
+    int bpp = colour_formats[frame->colour_format].bpp;
+    
     glDrawBuffer( GL_FRONT );
-    glViewport( 0, 0, frame->hres, frame->vres );
+    glViewport( 0, 0, video_width, video_height );
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     glOrtho( 0, frame->hres, frame->vres, 0, 0, -65535 );
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
     glRasterPos2i( 0, 0 );
-    glPixelZoom( 1.0f, -1.0f );
+    glPushClientAttrib( GL_CLIENT_PIXEL_STORE_BIT );
+    float scale = 480.0 / frame->vres;
+    glPixelZoom( 1.0f, -scale );
+    int rowstride = (frame->rowstride / bpp) - frame->hres;
+    glPixelStorei( GL_PACK_ROW_LENGTH, rowstride );
     glDrawPixels( frame->hres, frame->vres, format, type,
 		  frame->data );
+    glPopClientAttrib();
     glFlush();
     return TRUE;
 }
