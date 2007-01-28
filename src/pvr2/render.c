@@ -1,5 +1,5 @@
 /**
- * $Id: render.c,v 1.21 2007-01-27 06:21:35 nkeynes Exp $
+ * $Id: render.c,v 1.22 2007-01-28 11:36:00 nkeynes Exp $
  *
  * PVR2 Renderer support. This part is primarily
  *
@@ -180,6 +180,8 @@ static void pvr2_render_prepare_context( sh4addr_t render_addr,
     back_buffer.scale = MMIO_READ( PVR2, RENDER_SCALER );
     back_buffer.size = width * height * colour_format_bytes[colour_format];
 
+    pvr2_check_palette_changed();
+
     /* Setup the display model */
     glDrawBuffer(GL_BACK);
     glShadeModel(GL_SMOOTH);
@@ -260,5 +262,5 @@ void pvr2_render_scene( )
     glPrintf( 4, 16, "Frame %d", pvr2_get_frame_count() );
     /* Generate end of render event */
     asic_event( EVENT_PVR_RENDER_DONE );
-    DEBUG( "Rendered frame %d", pvr2_get_frame_count() );
+    DEBUG( "Rendered frame %d to %08X", pvr2_get_frame_count(), render_addr );
 }

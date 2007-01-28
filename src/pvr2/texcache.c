@@ -1,5 +1,5 @@
 /**
- * $Id: texcache.c,v 1.23 2007-01-25 13:03:23 nkeynes Exp $
+ * $Id: texcache.c,v 1.24 2007-01-28 11:36:00 nkeynes Exp $
  *
  * Texture cache. Responsible for maintaining a working set of OpenGL 
  * textures. 
@@ -66,6 +66,7 @@ void texcache_init( )
     }
     for( i=0; i<MAX_TEXTURES; i++ ) {
 	texcache_free_list[i] = i;
+	texcache_active_list[i].texture_addr = -1;
     }
     texcache_free_ptr = 0;
     texcache_ref_counter = 0;
@@ -120,47 +121,12 @@ void texcache_shutdown( )
     glDeleteTextures( MAX_TEXTURES, texids );
 }
 
-/**
- * Evict all textures contained in the page identified by a texture address.
- */
-void texcache_invalidate_page( uint32_t texture_addr ) {
-    uint32_t texture_page = texture_addr >> 12;
-    texcache_entry_index idx = texcache_page_lookup[texture_page];
-    if( idx == EMPTY_ENTRY )
-	return;
-    assert( texcache_free_ptr >= 0 );
-    do {
-	texcache_entry_t entry = &texcache_active_list[idx];	
-	/* release entry */
-	texcache_free_ptr--;
-	texcache_free_list[texcache_free_ptr] = idx;
-	idx = entry->next;
-	entry->next = EMPTY_ENTRY;
-    } while( idx != EMPTY_ENTRY );
-    texcache_page_lookup[texture_page] = EMPTY_ENTRY;
-}
-
-/**
- * Evict a single texture from the cache.
- * @return the slot of the evicted texture.
- */
-static texcache_entry_index texcache_evict( void )
+static void texcache_evict( int slot )
 {
-    /* Full table scan - take over the entry with the lowest lru value */
-    texcache_entry_index slot = 0;
-    int lru_value = texcache_active_list[0].lru_count;
-    int i;
-    for( i=1; i<MAX_TEXTURES; i++ ) {
-	/* FIXME: account for rollover */
-	if( texcache_active_list[i].lru_count < lru_value ) {
-	    slot = i;
-	    lru_value = texcache_active_list[i].lru_count;
-	}
-    }
-    
     /* Remove the selected slot from the lookup table */
     uint32_t evict_page = texcache_active_list[slot].texture_addr >> 12;
     texcache_entry_index replace_next = texcache_active_list[slot].next;
+    texcache_active_list[slot].texture_addr = -1;
     texcache_active_list[slot].next = EMPTY_ENTRY; /* Just for safety */
     if( texcache_page_lookup[evict_page] == slot ) {
 	texcache_page_lookup[evict_page] = replace_next;
@@ -176,7 +142,66 @@ static texcache_entry_index texcache_evict( void )
 	    idx = next;
 	} while( next != EMPTY_ENTRY );
     }
+}
+
+/**
+ * Evict a single texture from the cache.
+ * @return the slot of the evicted texture.
+ */
+static texcache_entry_index texcache_evict_lru( void )
+{
+    /* Full table scan - take over the entry with the lowest lru value */
+    texcache_entry_index slot = 0;
+    int lru_value = texcache_active_list[0].lru_count;
+    int i;
+    for( i=1; i<MAX_TEXTURES; i++ ) {
+	/* FIXME: account for rollover */
+	if( texcache_active_list[i].lru_count < lru_value ) {
+	    slot = i;
+	    lru_value = texcache_active_list[i].lru_count;
+	}
+    }
+    texcache_evict(slot);
+    
     return slot;
+}
+
+/**
+ * Evict all textures contained in the page identified by a texture address.
+ */
+void texcache_invalidate_page( uint32_t texture_addr ) {
+    uint32_t texture_page = texture_addr >> 12;
+    texcache_entry_index idx = texcache_page_lookup[texture_page];
+    if( idx == EMPTY_ENTRY )
+	return;
+    assert( texcache_free_ptr >= 0 );
+    do {
+	texcache_entry_t entry = &texcache_active_list[idx];
+	entry->texture_addr = -1;
+	/* release entry */
+	texcache_free_ptr--;
+	texcache_free_list[texcache_free_ptr] = idx;
+	idx = entry->next;
+	entry->next = EMPTY_ENTRY;
+    } while( idx != EMPTY_ENTRY );
+    texcache_page_lookup[texture_page] = EMPTY_ENTRY;
+}
+
+/**
+ * Mark all textures that use the palette table as needing a re-read (ie 
+ * for when the palette is changed. We could track exactly which ones are 
+ * affected, but it's not clear that the extra maintanence overhead is 
+ * worthwhile.
+ */
+void texcache_invalidate_palette( )
+{
+    int i;
+    for( i=0; i<MAX_TEXTURES; i++ ) {
+	if( texcache_active_list[i].texture_addr != -1 &&
+	    PVR2_TEX_IS_PALETTE(texcache_active_list[i].mode) ) {
+	    texcache_evict( i );
+	}
+    }
 }
 
 static void decode_pal8_to_32( uint32_t *out, uint8_t *in, int inbytes, uint32_t *pal )
@@ -500,7 +525,7 @@ GLuint texcache_get_texture( uint32_t texture_addr, int width, int height,
     if( texcache_free_ptr < MAX_TEXTURES ) {
 	slot = texcache_free_list[texcache_free_ptr++];
     } else {
-	slot = texcache_evict();
+	slot = texcache_evict_lru();
     }
 
     /* Construct new entry */

@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.c,v 1.42 2007-01-27 12:03:53 nkeynes Exp $
+ * $Id: pvr2.c,v 1.43 2007-01-28 11:36:00 nkeynes Exp $
  *
  * PVR2 (Video) Core module implementation and MMIO registers.
  *
@@ -75,6 +75,7 @@ struct pvr2_state {
     uint32_t irq_vpos1;
     uint32_t irq_vpos2;
     uint32_t odd_even_field; /* 1 = odd, 0 = even */
+    gboolean palette_changed; /* TRUE if palette has changed since last render */
     gchar *save_next_render_filename;
     /* timing */
     uint32_t dot_clock;
@@ -149,6 +150,7 @@ static void pvr2_reset( void )
     pvr2_state.timing = ntsc_timing;
     pvr2_state.dot_clock = PVR2_DOT_CLOCK;
     pvr2_state.back_porch_ns = 4000;
+    pvr2_state.palette_changed = FALSE;
     mmio_region_PVR2_write( DISP_TOTAL, 0x0270035F );
     mmio_region_PVR2_write( DISP_SYNCTIME, 0x07D6A53F );
     mmio_region_PVR2_write( YUV_ADDR, 0 );
@@ -204,6 +206,7 @@ static void pvr2_update_raster_posn( uint32_t nanosecs )
     if( pvr2_state.line_count >= pvr2_state.retrace_end_line &&
 	(old_line_count < pvr2_state.retrace_end_line ||
 	 old_line_count > pvr2_state.line_count) ) {
+	pvr2_state.frame_count++;
 	pvr2_display_frame();
     }
 }
@@ -259,8 +262,16 @@ void pvr2_display_frame( void )
 	    buffer->vres <<= 1;
 	    buffer->rowstride = vid_ppl << 2;
 	    display_addr = MMIO_READ( PVR2, DISP_ADDR1 );
-	} else { /* Just display the field as is, folks */
-	    if( pvr2_state.odd_even_field ) {
+	} else { 
+	    /* Just display the field as is, folks. This is slightly tricky -
+	     * we pick the field based on which frame is about to come through,
+	     * which may not be the same as the odd_even_field.
+	     */
+	    gboolean oddfield = pvr2_state.odd_even_field;
+	    if( pvr2_state.line_count >= pvr2_state.retrace_start_line ) {
+		oddfield = !oddfield;
+	    }
+	    if( oddfield ) {
 		display_addr = MMIO_READ( PVR2, DISP_ADDR1 );
 	    } else {
 		display_addr = MMIO_READ( PVR2, DISP_ADDR2 );
@@ -308,7 +319,6 @@ void pvr2_display_frame( void )
 	    display_driver->display_frame( buffer );
 	}
     }
-    pvr2_state.frame_count++;
 }
 
 /**
@@ -362,14 +372,23 @@ void mmio_region_PVR2_write( uint32_t reg, uint32_t val )
     case DISP_ADDR1:
 	val &= 0x00FFFFFC;
 	MMIO_WRITE( PVR2, reg, val );
+	/*
 	pvr2_update_raster_posn(sh4r.slice_cycle);
-	if( pvr2_state.line_count >= pvr2_state.retrace_start_line ||
-	    pvr2_state.line_count < pvr2_state.retrace_end_line ) {
+	fprintf( stderr, "Set Field 1 addr: %08X\n", val );
+	if( (pvr2_state.line_count >= pvr2_state.retrace_start_line && !pvr2_state.odd_even_field) ||
+	    (pvr2_state.line_count < pvr2_state.retrace_end_line && pvr2_state.odd_even_field) ) {
 	    pvr2_display_frame();
 	}
+	*/
 	break;
     case DISP_ADDR2:
     	MMIO_WRITE( PVR2, reg, val&0x00FFFFFC );
+	pvr2_update_raster_posn(sh4r.slice_cycle);
+	/*
+	if( (pvr2_state.line_count >= pvr2_state.retrace_start_line && pvr2_state.odd_even_field) ||
+	    (pvr2_state.line_count < pvr2_state.retrace_end_line && !pvr2_state.odd_even_field) ) {
+	    pvr2_display_frame();
+	    }*/
     	break;
     case DISP_SIZE:
     	MMIO_WRITE( PVR2, reg, val&0x3FFFFFFF );
@@ -669,7 +688,21 @@ MMIO_REGION_READ_FN( PVR2, reg )
     }
 }
 
-MMIO_REGION_DEFFNS( PVR2PAL )
+MMIO_REGION_WRITE_FN( PVR2PAL, reg, val )
+{
+    MMIO_WRITE( PVR2PAL, reg, val );
+    pvr2_state.palette_changed = TRUE;
+}
+
+void pvr2_check_palette_changed()
+{
+    if( pvr2_state.palette_changed ) {
+	texcache_invalidate_palette();
+	pvr2_state.palette_changed = FALSE;
+    }
+}
+
+MMIO_REGION_READ_DEFFN( PVR2PAL );
 
 void pvr2_set_base_address( uint32_t base ) 
 {
