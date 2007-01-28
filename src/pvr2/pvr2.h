@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.h,v 1.31 2007-01-27 12:03:53 nkeynes Exp $
+ * $Id: pvr2.h,v 1.32 2007-01-28 11:36:00 nkeynes Exp $
  *
  * PVR2 (video chip) functions and macros.
  *
@@ -84,6 +84,12 @@ gboolean pvr2_save_next_scene( const gchar *filename );
 #define PVR2_POLY_MODE_CLAMP_S  0x00010000
 #define PVR2_POLY_MODE_CLAMP_T  0x00008000
 
+#define PVR2_POLY_FOG_LOOKUP    0x00000000
+#define PVR2_POLY_FOG_VERTEX    0x00400000
+#define PVR2_POLY_FOG_DISABLED  0x00800000
+#define PVR2_POLY_FOG_LOOKUP2   0x00C00000
+
+
 #define PVR2_TEX_FORMAT_ARGB1555 0x00000000
 #define PVR2_TEX_FORMAT_RGB565   0x08000000
 #define PVR2_TEX_FORMAT_ARGB4444 0x10000000
@@ -97,6 +103,8 @@ gboolean pvr2_save_next_scene( const gchar *filename );
 #define PVR2_TEX_FORMAT_MASK 0x38000000
 #define PVR2_TEX_UNTWIDDLED  0x04000000
 #define PVR2_TEX_STRIDE      0x02000000
+#define PVR2_TEX_IS_PALETTE(mode) ( (mode & PVR2_TEX_FORMAT_MASK) == PVR2_TEX_FORMAT_IDX4 || (mode&PVR2_TEX_FORMAT_MASK) == PVR2_TEX_FORMAT_IDX8 )
+
 
 #define PVR2_TEX_ADDR(x) ( ((x)&0x01FFFFF)<<3 );
 #define PVR2_TEX_IS_MIPMAPPED(x) ( (x) & PVR2_TEX_MIPMAP )
@@ -337,6 +345,7 @@ GLuint texcache_get_texture( uint32_t texture_addr, int width, int height,
 #define POLY2_DEST_BLEND(poly2) ( pvr2_poly_dstblend[((poly2)>>26)&0x07] )
 #define POLY2_SRC_BLEND_TARGET(poly2)    ((poly2)&0x02000000)
 #define POLY2_DEST_BLEND_TARGET(poly2)   ((poly2)&0x01000000)
+#define POLY2_FOG_MODE(poly2)            ((poly2)&0x00C00000)
 #define POLY2_COLOUR_CLAMP_ENABLE(poly2) ((poly2)&0x00200000)
 #define POLY2_ALPHA_ENABLE(poly2)        ((poly2)&0x00100000)
 #define POLY2_TEX_ALPHA_ENABLE(poly2)   (((poly2)&0x00080000) == 0 )
