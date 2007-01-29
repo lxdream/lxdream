@@ -1,5 +1,5 @@
 /**
- * $Id: rendbkg.c,v 1.5 2007-01-26 01:37:39 nkeynes Exp $
+ * $Id: rendbkg.c,v 1.6 2007-01-29 11:25:40 nkeynes Exp $
  *
  * PVR2 background renderer. 
  *
@@ -43,16 +43,6 @@
 #define MAX_VERTEXES 256
 #define MAX_REGIONS  256
 
-/**
- * Structure to hold an unpacked vertex
- */
-struct vertex_all {
-    float x,y,z;
-    float u,v;
-    float rgba[4];      /* Note - RGBA order, as preferred by GL */
-    float spec_rgba[4];
-};
-
 #define FARGB_A(x) (((float)(((x)>>24)+1))/256.0)
 #define FARGB_R(x) (((float)((((x)>>16)&0xFF)+1))/256.0)
 #define FARGB_G(x) (((float)((((x)>>8)&0xFF)+1))/256.0)
@@ -77,7 +67,7 @@ struct vertex_all {
 static int compute_colour_line( float center_x, float center_y, float center_k, 
 		  int width, int height, float target_k,
 		  float detxy, float detxk, float detyk,
-		  struct vertex_all *target ) {
+		  struct vertex_unpacked *target ) {
     int num_points = 0;
     float tmpk = (target_k - center_k) * detxy;
     float x0 = -1;
@@ -151,43 +141,9 @@ struct bkg_region {
 struct bkg_scene {
     int num_vertexes;
     int num_regions;
-    struct vertex_all vertexes[MAX_VERTEXES];
+    struct vertex_unpacked vertexes[MAX_VERTEXES];
     struct bkg_region regions[MAX_REGIONS];
 };
-
-void parse_vertexes( uint32_t *polygon, int num_vertexes, struct vertex_all *result )
-{
-    uint32_t *vertexes = polygon + 3; 
-    int i,m = 0;
-    for( i=0; i<num_vertexes; i++ ) {
-	float *vertexf = (float *)vertexes;
-	result[i].x = vertexf[0];
-	result[i].y = vertexf[1];
-	result[i].z = 1/vertexf[2];
-	uint32_t argb;
-	if( POLY1_TEXTURED(*polygon) ) {
-	    if( POLY1_UV16(*polygon) ) {
-		result[i].u = halftofloat(vertexes[m+3]>>16);
-		result[i].v = halftofloat(vertexes[m+3]);
-		argb = vertexes[m+4];
-		vertexes += 5;
-	    } else {
-		result[i].u = vertexf[m+3];
-		result[i].v = vertexf[m+4];
-		argb = vertexes[m+5];
-		vertexes += 6;
-	    }
-	} else {
-	    argb = vertexes[m+3];
-	    vertexes += 4;
-	}
-	result[i].rgba[0] = FARGB_R(argb);
-	result[i].rgba[1] = FARGB_G(argb);
-        result[i].rgba[2] = FARGB_B(argb);
-	result[i].rgba[3] = FARGB_A(argb);
-    }
-
-}
 
 /**
  * Constants returned by compute_line_intersection. Note that for these purposes,
@@ -309,7 +265,7 @@ static void compute_subregions( struct bkg_scene *scene,
     *num_right_vertex_out = 0;
     int last = 0;
     for( i=0; i<num_vertex_in; i++ ) {
-	struct vertex_all *vertex = &scene->vertexes[vertex_in[i]];
+	struct vertex_unpacked *vertex = &scene->vertexes[vertex_in[i]];
 	float r = a1 * vertex->x + b1 * vertex->y + c1;
 	if( r <= 0 ) {
 	    if( last == 1 ) {
@@ -461,22 +417,22 @@ static void bkg_region_subdivide( struct bkg_scene *scene, int region, int verte
  * @param compute An array of vertexes to compute. x and y must be
  *   preset, other values are computed.
  */
-static void bkg_compute_scene( struct vertex_all *base, int width, int height,
+static void bkg_compute_scene( struct vertex_unpacked *base, int width, int height,
 				struct bkg_scene *scene )
 {
-    struct vertex_all center;
-    struct vertex_all diff0, diff1;
+    struct vertex_unpacked center;
+    struct vertex_unpacked diff0, diff1;
     int i,k;
 
     center.x = base[1].x;
     center.y = base[1].y;
-    center.z = base[1].z;
-    diff0.x = base[0].x - base[1].x;
-    diff0.y = base[0].y - base[1].y;
-    diff0.z = base[0].z - base[1].z;
-    diff1.x = base[2].x - base[1].x;
-    diff1.y = base[2].y - base[1].y;
-    diff1.z = base[2].z - base[1].z;
+    center.z = (1/base[1].z);
+    diff0.x = base[0].x - center.x;
+    diff0.y = base[0].y - center.y;
+    diff0.z = (1/base[0].z) - center.z;
+    diff1.x = base[2].x - center.x;
+    diff1.y = base[2].y - center.y;
+    diff1.z = (1/base[2].z) - center.z;
 
     float detxy = ((diff1.y) * (diff0.x)) - ((diff0.y) * (diff1.x));
     
@@ -503,6 +459,7 @@ static void bkg_compute_scene( struct vertex_all *base, int width, int height,
 	    scene->vertexes[i].rgba[1] = base[2].rgba[1];
 	    scene->vertexes[i].rgba[2] = base[2].rgba[2];
 	    scene->vertexes[i].rgba[3] = base[2].rgba[3];
+	    scene->vertexes[i].z = 1/base[2].z;
 	    scene->vertexes[i].u = base[2].u;
 	    scene->vertexes[i].v = base[2].v;
 	}
@@ -626,16 +583,28 @@ void bkg_render_region( struct bkg_scene *scene, int region, int *vertexes, int 
 
 
 void render_backplane( uint32_t *polygon, uint32_t width, uint32_t height, uint32_t mode ) {
-    struct vertex_all vertex[3];
+    struct vertex_unpacked vertex[3];
     int screen_vertexes[4] = {0,1,2,3};
     struct bkg_scene scene;
     int i,j,k, num_vertexes;
+    int vertex_length = (mode >> 24) & 0x07;
+    int cheap_shadow = MMIO_READ( PVR2, RENDER_SHADOW ) & 0x100;
+    int is_modified = mode & 0x08000000;
+    int context_length = 3;
+    if( is_modified && !cheap_shadow ) {
+	context_length = 5;
+	vertex_length *= 2;
+    }
+    vertex_length += 3;
+    context_length += (mode & 0x07) * vertex_length;
+    
 
-    parse_vertexes(polygon, 3, vertex);
-    render_set_context(polygon, 0);
+    render_unpack_vertexes( vertex, *polygon, polygon+context_length, 3, vertex_length,
+			    RENDER_NORMAL );
+    bkg_compute_scene(vertex, width, height, &scene);
+    render_set_context(polygon, RENDER_NORMAL);
     glDisable(GL_CULL_FACE);
     glDisable(GL_DEPTH_TEST);
     glBlendFunc(GL_ONE, GL_ZERO); /* For now, just disable alpha blending on the bkg */
-    bkg_compute_scene(vertex, width, height, &scene);
     bkg_render_region(&scene, 0, screen_vertexes, 4, *polygon);
 }
