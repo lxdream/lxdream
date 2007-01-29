@@ -1,5 +1,5 @@
 /**
- * $Id: rendcore.c,v 1.14 2007-01-26 01:37:39 nkeynes Exp $
+ * $Id: rendcore.c,v 1.15 2007-01-29 11:24:44 nkeynes Exp $
  *
  * PVR2 renderer core.
  *
@@ -57,6 +57,7 @@ int pvr2_render_colour_format[8] = {
 extern char *video_base;
 
 gboolean pvr2_force_fragment_alpha = FALSE;
+gboolean pvr2_debug_render = FALSE;
 
 struct tile_segment {
     uint32_t control;
@@ -103,6 +104,10 @@ void render_set_context( uint32_t *context, int render_mode )
 	poly2 = context[1];
 	texture = context[2];
     }
+    
+    if( pvr2_debug_render ) {
+	fprintf( stderr, "Poly %08X %08X %08X\n", poly1, poly2, texture );
+    }
 
     if( POLY1_DEPTH_ENABLE(poly1) ) {
 	glEnable( GL_DEPTH_TEST );
@@ -132,11 +137,30 @@ void render_set_context( uint32_t *context, int render_mode )
 	glDisable(GL_COLOR_SUM);
     }
 
+    pvr2_force_fragment_alpha = POLY2_ALPHA_ENABLE(poly2) ? FALSE : TRUE;
+
     if( POLY1_TEXTURED(poly1) ) {
 	int width = POLY2_TEX_WIDTH(poly2);
 	int height = POLY2_TEX_HEIGHT(poly2);
 	glEnable(GL_TEXTURE_2D);
 	texcache_get_texture( (texture&0x000FFFFF)<<3, width, height, texture );
+	switch( POLY2_TEX_BLEND(poly2) ) {
+	case 0: /* Replace */
+	    glTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE );
+	    break;
+	case 2:/* Decal */
+	    glTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL );
+	    break;
+	case 1: /* Modulate RGB */
+	    /* This is not directly supported by opengl (other than by mucking
+	     * with the texture format), but we get the same effect by forcing
+	     * the fragment alpha to 1.0 and using GL_MODULATE.
+	     */
+	    pvr2_force_fragment_alpha = TRUE;
+	case 3: /* Modulate RGBA */
+	    glTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE );
+	    break;
+	}
 	glTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, POLY2_TEX_BLEND(poly2) );
 	if( POLY2_TEX_CLAMP_U(poly2) ) {
 	    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP );
@@ -161,8 +185,7 @@ void render_set_context( uint32_t *context, int render_mode )
     if( POLY2_SRC_BLEND_TARGET(poly2) || POLY2_DEST_BLEND_TARGET(poly2) ) {
 	ERROR( "Accumulation buffer not supported" );
     }
-	    
-    pvr2_force_fragment_alpha = POLY2_ALPHA_ENABLE(poly2) ? FALSE : TRUE;
+
 
 }
 
@@ -488,6 +511,9 @@ void pvr2_render_tilebuffer( int width, int height, int clipx1, int clipy1,
 	glScissor( x1, height-y1-h, w, h );
 
 	if( (segment->opaque_ptr & NO_POINTER) == 0 ) {
+	    if( pvr2_debug_render ) {
+		fprintf( stderr, "Tile %d,%d Opaque\n", tilex, tiley );
+	    }
 	    if( (segment->opaquemod_ptr & NO_POINTER) == 0 ) {
 		/* TODO */
 	    }
@@ -495,6 +521,9 @@ void pvr2_render_tilebuffer( int width, int height, int clipx1, int clipy1,
 	}
 
 	if( (segment->trans_ptr & NO_POINTER) == 0 ) {
+	    if( pvr2_debug_render ) {
+		fprintf( stderr, "Tile %d,%d Trans\n", tilex, tiley );
+	    }
 	    if( (segment->transmod_ptr & NO_POINTER) == 0 ) {
 		/* TODO */
 	    } 
@@ -507,6 +536,9 @@ void pvr2_render_tilebuffer( int width, int height, int clipx1, int clipy1,
 	}
 
 	if( (segment->punchout_ptr & NO_POINTER) == 0 ) {
+	    if( pvr2_debug_render ) {
+		fprintf( stderr, "Tile %d,%d Punchout\n", tilex, tiley );
+	    }
 	    render_tile( segment->punchout_ptr, RENDER_NORMAL, cheap_shadow );
 	}
     } while( ((segment++)->control & SEGMENT_END) == 0 );
@@ -614,4 +646,30 @@ float pvr2_render_find_maximum_z( )
     } while( ((segment++)->control & SEGMENT_END) == 0 );
 
     return 1/maximumz;
+}
+
+/**
+ * Scan the segment info to determine the width and height of the render (in 
+ * pixels).
+ * @param x,y output values to receive the width and height info.
+ */
+void pvr2_render_getsize( int *x, int *y ) 
+{
+    pvraddr_t segmentbase = MMIO_READ( PVR2, RENDER_TILEBASE );
+    int maxx = 0, maxy = 0;
+
+    struct tile_segment *segment = (struct tile_segment *)(video_base + segmentbase);
+    do {
+	int tilex = SEGMENT_X(segment->control);
+	int tiley = SEGMENT_Y(segment->control);
+	if( tilex > maxx ) {
+	    maxx = tilex;
+	} 
+	if( tiley > maxy ) {
+	    maxy = tiley;
+	}
+    } while( ((segment++)->control & SEGMENT_END) == 0 );
+
+    *x = (maxx+1)<<5;
+    *y = (maxy+1)<<5;
 }
