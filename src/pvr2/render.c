@@ -1,5 +1,5 @@
 /**
- * $Id: render.c,v 1.22 2007-01-28 11:36:00 nkeynes Exp $
+ * $Id: render.c,v 1.23 2007-01-29 11:24:44 nkeynes Exp $
  *
  * PVR2 Renderer support. This part is primarily
  *
@@ -230,12 +230,11 @@ void pvr2_render_scene( )
     
     float bgplanez = 1/MMIO_READF( PVR2, RENDER_FARCLIP );
     uint32_t render_mode = MMIO_READ( PVR2, RENDER_MODE );
-    int width = 640; /* FIXME - get this from the tile buffer */
-    int height = 480;
+    int width, height;
+    pvr2_render_getsize( &width, &height );
     int colour_format = pvr2_render_colour_format[render_mode&0x07];
-    float maxz = pvr2_render_find_maximum_z();
     pvr2_render_prepare_context( render_addr, width, height, colour_format, 
-				 bgplanez, maxz, render_to_tex );
+				 bgplanez, 0, render_to_tex );
 
     int clip_x = MMIO_READ( PVR2, RENDER_HCLIP ) & 0x03FF;
     int clip_y = MMIO_READ( PVR2, RENDER_VCLIP ) & 0x03FF;

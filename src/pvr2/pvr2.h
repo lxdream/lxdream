@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.h,v 1.32 2007-01-28 11:36:00 nkeynes Exp $
+ * $Id: pvr2.h,v 1.33 2007-01-29 11:24:44 nkeynes Exp $
  *
  * PVR2 (video chip) functions and macros.
  *
@@ -353,7 +353,7 @@ GLuint texcache_get_texture( uint32_t texture_addr, int width, int height,
 #define POLY2_TEX_CLAMP_V(poly2)         ((poly2)&0x00008000)
 #define POLY2_TEX_WIDTH(poly2) ( 1<< ((((poly2) >> 3) & 0x07 ) + 3) )
 #define POLY2_TEX_HEIGHT(poly2) ( 1<< (((poly2) & 0x07 ) + 3) )
-#define POLY2_TEX_BLEND(poly2) ( pvr2_poly_texblend[((poly2) >> 6)&0x03] )
+#define POLY2_TEX_BLEND(poly2) (((poly2) >> 6)&0x03)
 extern int pvr2_poly_depthmode[8];
 extern int pvr2_poly_srcblend[8];
 extern int pvr2_poly_dstblend[8];
