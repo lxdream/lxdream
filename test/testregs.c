@@ -1,5 +1,5 @@
 /**
- * $Id: testregs.c,v 1.3 2007-01-26 02:08:19 nkeynes Exp $
+ * $Id: testregs.c,v 1.4 2007-01-31 11:00:25 nkeynes Exp $
  * 
  * Register mask tests. These are simple "write value to register and check
  * that we read back what we expect" tests.
@@ -193,6 +193,8 @@ int main( int argc, char *argv[] )
     int i;
     int failures = 0;
     int tests = 0;
+
+    ide_init();
     
     for( i=0; test_cases[i].reg != 0; i++ ) {
     	unsigned int oldval = long_read( test_cases[i].reg );
