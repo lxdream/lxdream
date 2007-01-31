@@ -1,5 +1,5 @@
 /**
- * $Id: testdata.c,v 1.4 2007-01-06 04:07:43 nkeynes Exp $
+ * $Id: testdata.c,v 1.5 2007-01-31 11:01:58 nkeynes Exp $
  * 
  * Test data loader.
  *
@@ -100,6 +100,10 @@ test_data_t load_test_dataset( FILE *f )
 		*end = '\0';
 	    current_size = DEFAULT_SIZE;
 	    test_data_t test = malloc(current_size);
+	    if( test == NULL ) {
+		fprintf( stderr, "Memory alloc failed: %d\n", current_size );
+		return NULL;
+	    }
 	    memset( test, 0, current_size );
 	    
 	    dataptr = (char *)(test+1);
@@ -130,6 +134,10 @@ test_data_t load_test_dataset( FILE *f )
 		    current_end += current_size;
 		    current_size *= 2;
 		    current = realloc(current, current_size );
+		    if( current == NULL ) {
+			fprintf( stderr, "Memory alloc failed: %d\n", current_size );
+			return NULL;
+		    }
 		    if( last != NULL )
 			last->next = current;
 		}
@@ -155,6 +163,10 @@ test_data_t load_test_dataset( FILE *f )
 		    current_end += current_size;
 		    current_size *= 2;
 		    current = realloc(current, current_size );
+		    if( current == NULL ) {
+			fprintf( stderr, "Memory alloc failed: %d\n", current_size );
+			return NULL;
+		    }
 		    memset( current + old_size, 0, old_size );
 		    if( last != NULL )
 			last->next = current;
