@@ -1,5 +1,5 @@
 /**
- * $Id: ide.h,v 1.12 2006-12-29 00:21:46 nkeynes Exp $
+ * $Id: ide.h,v 1.13 2007-01-31 10:58:42 nkeynes Exp $
  *
  * This file defines the interface and structures of the dreamcast's IDE 
  * port. Note that the register definitions are in asic.h, as the registers
@@ -55,12 +55,11 @@ struct ide_registers {
     int data_offset;
     int data_length;
    
-    int block_length; /* Used to determine the transfer unit size */
-    int block_left; /* Bytes remaining in the current block */
-
     /* Status reporting information */
     uint8_t last_read_track;
-    uint32_t last_read_lba;
+    uint32_t read_lba;
+    uint32_t read_mode;
+    uint32_t sectors_left; /* sectors left after current read */
 };
 
 #define IDE_STATE_IDLE      0 
@@ -116,6 +115,7 @@ uint16_t ide_read_data_pio(void);
 void ide_write_data_pio( uint16_t value );
 uint32_t ide_read_data_dma( uint32_t addr, uint32_t length );
 uint8_t ide_read_status(void);
+uint8_t ide_get_drive_status(void);
 void ide_write_buffer( unsigned char *data, int length ); 
 
 void ide_write_command( uint8_t command );
