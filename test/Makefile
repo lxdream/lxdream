@@ -85,7 +85,7 @@ testide: crt0.so testide.so ide.so lib.so testdata.so
 testmath: crt0.so $(SHARED_OBJECTS) testmath.so math.so
 	$(SH4CC) $(SH4LDFLAGS) $^  -o $@ $(SH4LIBS)
 
-testregs: crt0.so $(SHARED_OBJECTS) testregs.so
+testregs: crt0.so $(SHARED_OBJECTS) testregs.so ide.so
 	$(SH4CC) $(SH4LDFLAGS) $^  -o $@ $(SH4LIBS)
 	$(SH4OBJCOPY) testregs testregs.bin
 
@@ -96,6 +96,10 @@ testta: crt0.so $(SHARED_OBJECTS) testta.so pvr.so dmac.so asic.so lib.so testda
 testrend: crt0.so $(SHARED_OBJECTS) testrend.so pvr.so dmac.so asic.so lib.so testdata.so
 	$(SH4CC) $(SH4LDFLAGS) $^  -o $@ $(SH4LIBS)
 	$(SH4OBJCOPY) testrend testrend.bin
+
+testblend: crt0.so $(SHARED_OBJECTS) testblend.so pvr.so dmac.so asic.so lib.so testdata.so
+	$(SH4CC) $(SH4LDFLAGS) $^  -o $@ $(SH4LIBS)
+	$(SH4OBJCOPY) testblend testblend.bin
 
 testdisp: crt0.so $(SHARED_OBJECTS) testdisp.so pvr.so asic.so lib.so testdata.so timer.so
 	$(SH4CC) $(SH4LDFLAGS) $^  -o $@ $(SH4LIBS)
@@ -109,12 +113,20 @@ testspu: crt0.so $(SHARED_OBJECTS) testspu.so asic.so lib.so testdata.so timer.s
 	$(SH4CC) $(SH4LDFLAGS) $^  -o $@ $(SH4LIBS)
 	$(SH4OBJCOPY) testspu testspu.bin
 
+testg2: crt0.so $(SHARED_OBJECTS) testg2.so asic.so lib.so testdata.so timer.so dmac.so
+	$(SH4CC) $(SH4LDFLAGS) $^  -o $@ $(SH4LIBS)
+	$(SH4OBJCOPY) testg2 testg2.bin
+
 readdata: crt0.so readdata.so
 	$(SH4CC) $(SH4LDFLAGS) $^ -o $@ $(SH4LIBS)
 
 rend: crt0.so rendload.so asic.so lib.so timer.so pvr.so
 	$(SH4CC) $(SH4LDFLAGS) $^ -o $@ $(SH4LIBS)
 	$(SH4OBJCOPY) rend rend.bin
+
+testFF10: crt0.so testFF10.so lib.so
+	$(SH4CC) $(SH4LDFLAGS) $^  -o $@ $(SH4LIBS)
+	$(SH4OBJCOPY) testFF10 testFF10.bin
 
 .PHONY : clean
 clean:
