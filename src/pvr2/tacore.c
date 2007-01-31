@@ -1,5 +1,5 @@
 /**
- * $Id: tacore.c,v 1.10 2007-01-18 11:14:01 nkeynes Exp $
+ * $Id: tacore.c,v 1.11 2007-01-31 10:31:53 nkeynes Exp $
  *
  * PVR2 Tile Accelerator implementation
  *
@@ -562,7 +562,7 @@ static void ta_commit_polygon( ) {
 	break;
     case TA_POLYCMD_CLIP_INSIDE:
 	if( polygon_bound.x2 < ta_status.clip.x1 || polygon_bound.x1 > ta_status.clip.x2 ||
-	    polygon_bound.y2 < ta_status.clip.y1 || polygon_bound.y1 > ta_status.clip.y1 ) {
+	    polygon_bound.y2 < ta_status.clip.y1 || polygon_bound.y1 > ta_status.clip.y2 ) {
 	    return;
 	} else {
 	    /* Clamp to clip bounds */
@@ -779,6 +779,10 @@ static void ta_parse_sprite_context( union ta_data *data ) {
     ta_status.poly_context_size = 3;
     ta_status.poly_context[0] = (data[1].i & 0xFC1FFFFF) |
 	((data[0].i & 0x0B)<<22) | 0x00400000;
+    ta_status.clip_mode = TA_POLYCMD_CLIP(data[0].i);
+    if( ta_status.clip_mode == 1 ) { /* Reserved - treat as CLIP_INSIDE */
+	ta_status.clip_mode = TA_POLYCMD_CLIP_INSIDE;
+    }
     if( TA_POLYCMD_IS_SPECULAR(data[0].i) ) {
 	ta_status.poly_context[0] |= 0x01000000;
     }
