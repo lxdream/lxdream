@@ -1,5 +1,5 @@
 /**
- * $Id: testrend.c,v 1.3 2007-01-21 05:24:27 nkeynes Exp $
+ * $Id: testrend.c,v 1.4 2007-01-31 11:02:50 nkeynes Exp $
  * 
  * Renderer test cases
  *
@@ -53,8 +53,10 @@ int test_render( test_data_t test_case )
 
     test_data_block_t tex = get_test_data(test_case, "textures");
     if( tex != NULL ) {
-	uint32_t addr = *(uint32_t *)tex->data;
-	memcpy( (char *)(0xA5000000 + addr), tex->data+4, tex->length-4 );
+	uint32_t addr = 0xA4000000 + *(uint32_t *)tex->data;
+	
+	memcpy( (char *)addr, tex->data+4, tex->length-4 );
+	fprintf( stderr, "Loaded %d bytes to %08X\n", tex->length-4, addr );
     }
 
     test_data_block_t config_data = get_test_data( test_case, "config" );
@@ -90,9 +92,9 @@ int test_render( test_data_t test_case )
     /* Write backplane (if any) */
     if( backplane != NULL ) {
 	uint32_t bgplane = pvr_get_objbuf_posn();
-	memcpy( (char *)(PVR_VRAM_BASE + bgplane), backplane->data, backplane->length );
+	memcpy( (char *)(PVR_VRAM_BASE + bgplane), backplane->data+4, backplane->length-4 );
 	bgplane -= default_render_config.polybuf;
-	render_set_backplane( (bgplane << 1) | 0x01000000 );
+	render_set_backplane( (bgplane << 1) | *(uint32_t *)backplane->data );
     } else {
 	render_set_backplane( 0 );
     }
@@ -129,6 +131,12 @@ int main( int argc, char *argv[] )
 	}
 	test_case = test_case->next;
     }
+
+    asic_clear();
+    asic_wait(EVENT_RETRACE);
+    asic_clear();
+    asic_wait(EVENT_RETRACE);
+
     free_test_dataset(test_data);
     if( test_failures != 0 ) {
 	fprintf( stderr, "%d/%d test failures!\n", test_failures, test_cases );
@@ -137,4 +145,5 @@ int main( int argc, char *argv[] )
 	fprintf( stderr, "%d tests OK\n", test_cases );
 	return 0;
     }
+
 }
