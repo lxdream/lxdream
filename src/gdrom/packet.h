@@ -1,5 +1,5 @@
 /**
- * $Id: packet.h,v 1.6 2006-12-21 10:15:02 nkeynes Exp $
+ * $Id: packet.h,v 1.7 2007-01-31 10:58:42 nkeynes Exp $
  *
  * This file defines the command codes and any other flags used by the 
  * GD-Rom ATAPI packet commands.
@@ -52,7 +52,7 @@
 #define PKT_CMD_READ_TOC 0x14
 #define PKT_CMD_SESSION_INFO 0x15
 #define PKT_CMD_READ_SECTOR 0x30
-#define PKT_CMD_PLAY_CD 0x20 /* ? */
+#define PKT_CMD_PLAY_AUDIO  0x20 /* ? */
 #define PKT_CMD_STATUS  0x40
 #define PKT_CMD_SPIN_UP 0x70 /* ??? */
 #define PKT_CMD_71      0x71 /* ??? seems to return garbage */

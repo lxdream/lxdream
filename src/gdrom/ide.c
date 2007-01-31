@@ -1,5 +1,5 @@
 /**
- * $Id: ide.c,v 1.22 2006-12-29 00:23:13 nkeynes Exp $
+ * $Id: ide.c,v 1.23 2007-01-31 10:58:42 nkeynes Exp $
  *
  * IDE interface implementation
  *
@@ -36,18 +36,21 @@
 
 static void ide_init( void );
 static void ide_reset( void );
+static uint32_t ide_run_slice( uint32_t nanosecs );
 static void ide_save_state( FILE *f );
 static int ide_load_state( FILE *f );
 static void ide_raise_interrupt( void );
 static void ide_clear_interrupt( void );
 static void ide_packet_command( unsigned char *data );
+static void ide_read_next_sector(void);
 
-struct dreamcast_module ide_module = { "IDE", ide_init, ide_reset, NULL, NULL,
+struct dreamcast_module ide_module = { "IDE", ide_init, ide_reset, NULL, ide_run_slice,
 				       NULL, ide_save_state, ide_load_state };
 
 struct ide_registers idereg;
-unsigned char *data_buffer = NULL;
-uint32_t data_buffer_len = 0;
+gdrom_disc_t gdrom_disc = NULL;
+
+unsigned char data_buffer[MAX_SECTOR_SIZE];
 
 #define WRITE_BUFFER(x16) *((uint16_t *)(data_buffer + idereg.data_offset)) = x16
 #define READ_BUFFER() *((uint16_t *)(data_buffer + idereg.data_offset))
@@ -129,9 +132,6 @@ char gdrom_status[] = {
 static void ide_init( void )
 {
     ide_reset();
-    data_buffer_len = DEFAULT_DATA_SECTORS; 
-    data_buffer = malloc( MAX_SECTOR_SIZE * data_buffer_len ); 
-    assert( data_buffer != NULL );
 }
 
 static void ide_reset( void )
@@ -145,36 +145,36 @@ static void ide_reset( void )
     idereg.feature = 0; /* Indeterminate really */
     idereg.status = 0x00;
     idereg.device = 0x00;
-    idereg.disc = gdrom_is_mounted() ? (IDE_DISC_CDROM|IDE_DISC_READY) : IDE_DISC_NONE;
     idereg.state = IDE_STATE_IDLE;
     memset( idereg.gdrom_sense, '\0', 10 );
     idereg.data_offset = -1;
     idereg.data_length = -1;
     idereg.last_read_track = 1;
-    idereg.last_read_lba = 150;
+    idereg.read_lba = 150;
+    idereg.read_mode = 0x28;
+    idereg.sectors_left = 0;
     idereg.was_reset = TRUE;
+}
+
+static uint32_t ide_run_slice( uint32_t nanosecs )
+{
+    if( gdrom_disc != NULL && gdrom_disc->run_time_slice != NULL ) {
+	gdrom_disc->run_time_slice(gdrom_disc, nanosecs);
+    }
+    return nanosecs;
 }
 
 static void ide_save_state( FILE *f )
 {
     fwrite( &idereg, sizeof(idereg), 1, f );
-    fwrite( &data_buffer_len, sizeof(data_buffer_len), 1, f );
-    fwrite( data_buffer, MAX_SECTOR_SIZE, data_buffer_len, f );
+    fwrite( data_buffer, MAX_SECTOR_SIZE, 1, f );
 }
 
 static int ide_load_state( FILE *f )
 {
     uint32_t length;
     fread( &idereg, sizeof(idereg), 1, f );
-    fread( &length, sizeof(uint32_t), 1, f );
-    if( length > data_buffer_len ) {
-	if( data_buffer != NULL )
-	    free( data_buffer );
-	data_buffer = malloc( MAX_SECTOR_SIZE * length  );
-	assert( data_buffer != NULL );
-	data_buffer_len = length;
-    }
-    fread( data_buffer, MAX_SECTOR_SIZE, length, f );
+    fread( data_buffer, MAX_SECTOR_SIZE, 1, f );
     return 0;
 }
 
@@ -212,7 +212,7 @@ static void ide_start_command_packet_write( )
  * Begin PIO read from the device. The data is assumed to already be
  * in the buffer at this point.
  */
-static void ide_start_read( int length, int blocksize, gboolean dma ) 
+static void ide_start_read( int length, gboolean dma ) 
 {
     idereg.count = IDE_COUNT_IO;
     idereg.data_length = length;
@@ -223,18 +223,17 @@ static void ide_start_read( int length, int blocksize, gboolean dma )
     } else {
 	idereg.state = IDE_STATE_PIO_READ;
 	idereg.status = 0x58;
-	idereg.lba1 = blocksize & 0xFF;
-	idereg.lba2 = blocksize >> 8; 
-	idereg.block_length = blocksize;
-	idereg.block_left = blocksize;
+	idereg.lba1 = length & 0xFF;
+	idereg.lba2 = length >> 8; 
 	ide_raise_interrupt( );
     }
 }
 
-static void ide_start_packet_read( int length, int blocksize )
+static void ide_start_packet_read( int length, int sector_count )
 {
+    idereg.sectors_left = sector_count;
     ide_set_packet_result( PKT_ERR_OK );
-    ide_start_read( length, blocksize, (idereg.feature & IDE_FEAT_DMA) ? TRUE : FALSE );
+    ide_start_read( length, (idereg.feature & IDE_FEAT_DMA) ? TRUE : FALSE );
 }
 
 static void ide_raise_interrupt( void )
@@ -272,16 +271,15 @@ uint16_t ide_read_data_pio( void ) {
     if( idereg.state == IDE_STATE_PIO_READ ) {
 	uint16_t rv = READ_BUFFER();
 	idereg.data_offset += 2;
-	idereg.block_left -= 2;
 	if( idereg.data_offset >= idereg.data_length ) {
 	    idereg.state = IDE_STATE_IDLE;
 	    idereg.status &= ~IDE_STATUS_DRQ;
 	    idereg.data_offset = -1;
 	    idereg.count = 3; /* complete */
 	    ide_raise_interrupt();
-	} else if( idereg.block_left <= 0 ) {
-	    idereg.block_left = idereg.block_length;
-	    ide_raise_interrupt();
+	    if( idereg.sectors_left > 0 ) {
+		ide_read_next_sector();
+	    }
 	}
 	return rv;
     } else {
@@ -301,24 +299,34 @@ uint16_t ide_read_data_pio( void ) {
  */
 uint32_t ide_read_data_dma( uint32_t addr, uint32_t length )
 {
+    uint32_t xfercount = 0;
     if( idereg.state == IDE_STATE_DMA_READ ) {
-	int xferlen = length;
-	int remaining = idereg.data_length - idereg.data_offset;
-	if( xferlen > remaining )
-	    xferlen = remaining;
-	mem_copy_to_sh4( addr, data_buffer + idereg.data_offset, xferlen );
-	idereg.data_offset += xferlen;
-	if( idereg.data_offset >= idereg.data_length ) {
-	    idereg.data_offset = -1;
-	    idereg.state = IDE_STATE_IDLE;
-	    idereg.status = 0x50;
-	    idereg.count = 0x03;
-	    ide_raise_interrupt();
-	    asic_event( EVENT_IDE_DMA );
+	while( xfercount < length ) {
+	    int xferlen = length - xfercount;
+	    int remaining = idereg.data_length - idereg.data_offset;
+	    if( xferlen > remaining ) {
+		xferlen = remaining;
+	    }
+	    mem_copy_to_sh4( addr, data_buffer + idereg.data_offset, xferlen );
+	    xfercount += xferlen;
+	    addr += xferlen;
+	    idereg.data_offset += xferlen;
+	    if( idereg.data_offset >= idereg.data_length ) {
+		if( idereg.sectors_left > 0 ) {
+		    ide_read_next_sector();
+		} else {
+		    idereg.data_offset = -1;
+		    idereg.state = IDE_STATE_IDLE;
+		    idereg.status = 0x50;
+		    idereg.count = 0x03;
+		    ide_raise_interrupt();
+		    asic_event( EVENT_IDE_DMA );
+		    break;
+		}
+	    }
 	}
-	return xferlen;
     }
-    return 0;
+    return xfercount;
 }
 
 void ide_write_data_pio( uint16_t val ) {
@@ -405,6 +413,40 @@ void ide_write_command( uint8_t val ) {
     }
 }
 
+uint8_t ide_get_drive_status( void )
+{
+    if( gdrom_disc == NULL ) {
+	return IDE_DISC_NONE;
+    } else {
+	return gdrom_disc->drive_status(gdrom_disc);
+    }
+}
+
+#define REQUIRE_DISC() if( gdrom_disc == NULL ) { ide_set_packet_result( PKT_ERR_NODISC ); return; }
+
+/**
+ * Read the next sector from the active read, if any
+ */
+static void ide_read_next_sector( void )
+{
+    int sector_size;
+    REQUIRE_DISC();
+    gdrom_error_t status = 
+	gdrom_disc->read_sector( gdrom_disc, idereg.read_lba, idereg.read_mode, 
+				 data_buffer, &sector_size );
+    if( status != PKT_ERR_OK ) {
+	ide_set_packet_result( status );
+	idereg.gdrom_sense[5] = (idereg.read_lba >> 16) & 0xFF;
+	idereg.gdrom_sense[6] = (idereg.read_lba >> 8) & 0xFF;
+	idereg.gdrom_sense[7] = idereg.read_lba & 0xFF;
+	WARN( " => Read CD returned sense key %02X, %02X", status & 0xFF, status >> 8 );
+    } else {
+	idereg.read_lba++;
+	idereg.sectors_left--;
+	ide_start_read( sector_size, (idereg.feature & IDE_FEAT_DMA) ? TRUE : FALSE );
+    }
+}
+
 /**
  * Execute a packet command. This particular method is responsible for parsing
  * the command buffers (12 bytes), and generating the appropriate responses, 
@@ -415,7 +457,6 @@ void ide_packet_command( unsigned char *cmd )
     uint32_t length, datalen;
     uint32_t lba, status;
     int mode;
-    int blocksize = idereg.lba1 + (idereg.lba2<<8);
 
     /* Okay we have the packet in the command buffer */
     INFO( "ATAPI packet: %02X %02X %02X %02X  %02X %02X %02X %02X  %02X %02X %02X %02X", 
@@ -430,13 +471,10 @@ void ide_packet_command( unsigned char *cmd )
 
     switch( cmd[0] ) {
     case PKT_CMD_TEST_READY:
-	if( !gdrom_is_mounted() ) {
-	    ide_set_packet_result( PKT_ERR_NODISC );
-	} else {
-	    ide_set_packet_result( 0 );
-	    ide_raise_interrupt();
-	    idereg.status = 0x50;
-	}
+	REQUIRE_DISC();
+	ide_set_packet_result( 0 );
+	ide_raise_interrupt();
+	idereg.status = 0x50;
 	break;
     case PKT_CMD_IDENTIFY:
 	lba = cmd[2];
@@ -447,7 +485,7 @@ void ide_packet_command( unsigned char *cmd )
 	    if( lba+length > sizeof(gdrom_ident) )
 		length = sizeof(gdrom_ident) - lba;
 	    memcpy( data_buffer, gdrom_ident + lba, length );
-	    ide_start_packet_read( length, length );
+	    ide_start_packet_read( length, 0 );
 	}
 	break;
     case PKT_CMD_SENSE:
@@ -455,112 +493,74 @@ void ide_packet_command( unsigned char *cmd )
 	if( length > 10 )
 	    length = 10;
 	memcpy( data_buffer, idereg.gdrom_sense, length );
-	ide_start_packet_read( length, length );
+	ide_start_packet_read( length, 0 );
 	break;
     case PKT_CMD_READ_TOC:
+	REQUIRE_DISC();
 	length = (cmd[3]<<8) | cmd[4];
 	if( length > sizeof(struct gdrom_toc) )
 	    length = sizeof(struct gdrom_toc);
 
-	status = gdrom_get_toc( data_buffer );
+	status = gdrom_disc->read_toc( gdrom_disc, data_buffer );
 	if( status != PKT_ERR_OK ) {
 	    ide_set_packet_result( status );
 	} else {
-	    ide_start_packet_read( length, length );
+	    ide_start_packet_read( length, 0 );
 	}
 	break;
     case PKT_CMD_SESSION_INFO:
+	REQUIRE_DISC();
 	length = cmd[4];
 	if( length > 6 )
 	    length = 6;
-	status = gdrom_get_info( data_buffer, cmd[2] );
+	status = gdrom_disc->read_session( gdrom_disc, cmd[2], data_buffer );
 	if( status != PKT_ERR_OK ) {
 	    ide_set_packet_result( status );
 	} else {
-	    ide_start_packet_read( length, length );
+	    ide_start_packet_read( length, 0 );
 	}
 	break;
-    case PKT_CMD_PLAY_CD:	    
+    case PKT_CMD_PLAY_AUDIO:
+	REQUIRE_DISC();
 	ide_set_packet_result( 0 );
 	ide_raise_interrupt();
 	idereg.status = 0x50;
 	break;
     case PKT_CMD_READ_SECTOR:
-	lba = cmd[2] << 16 | cmd[3] << 8 | cmd[4];
-	length = cmd[8] << 16 | cmd[9] << 8 | cmd[10]; /* blocks */
-	switch( cmd[1] ) {
-	case 0x20: mode = GDROM_MODE1; break;     /* TODO - might be unchecked? */
-	case 0x24: mode = GDROM_GD; break;
-	case 0x28: mode = GDROM_MODE2_XA1; break; /* ??? */
-	case 0x30: mode = GDROM_RAW; break;
-	default:
-	    ERROR( "Unrecognized read mode '%02X' in GD-Rom read request", cmd[1] );
-	    ide_set_packet_result( PKT_ERR_BADFIELD );
-	    return;
-	}
-
-	if( length > data_buffer_len ) {
-	    do {
-		data_buffer_len = data_buffer_len << 1;
-	    } while( data_buffer_len < length );
-	    data_buffer = realloc( data_buffer, MAX_SECTOR_SIZE * data_buffer_len );
-	}
-
-	datalen = data_buffer_len;
-	status = gdrom_read_sectors( lba, length, mode, data_buffer, &datalen );
-	if( status != 0 ) {
-	    ide_set_packet_result( status );
-	    idereg.gdrom_sense[5] = (lba >> 16) & 0xFF;
-	    idereg.gdrom_sense[6] = (lba >> 8) & 0xFF;
-	    idereg.gdrom_sense[7] = lba & 0xFF;
-	    WARN( " => Read CD returned sense key %02X, %02X", status & 0xFF, status >> 8 );
-	} else {
-	    idereg.last_read_lba = lba + length;
-	    idereg.last_read_track = gdrom_get_track_no_by_lba( idereg.last_read_lba );
-	    ide_start_packet_read( datalen, 0x0800 );
-	}
+	REQUIRE_DISC();
+	idereg.read_lba = cmd[2] << 16 | cmd[3] << 8 | cmd[4];
+	idereg.sectors_left = cmd[8] << 16 | cmd[9] << 8 | cmd[10]; /* blocks */
+	idereg.read_mode = cmd[1];
+	ide_read_next_sector();
 	break;
     case PKT_CMD_SPIN_UP:
+	REQUIRE_DISC();
 	/* do nothing? */
 	ide_set_packet_result( PKT_ERR_OK );
 	ide_raise_interrupt();
 	break;
     case PKT_CMD_STATUS:
+	REQUIRE_DISC();
 	length = cmd[4];
-	if( !gdrom_is_mounted() ) {
-	    ide_set_packet_result( PKT_ERR_NODISC );
-	} else {
-	    switch( cmd[1] ) {
-	    case 0:
-		if( length > sizeof(gdrom_status) ) {
-		    length = sizeof(gdrom_status);
-		}
-		memcpy( data_buffer, gdrom_status, length );
-		ide_start_packet_read( length, length );
-		break;
-	    case 1:
-		if( length > 14 ) {
-		    length = 14;
-		}
-		gdrom_track_t track = gdrom_get_track(idereg.last_read_track);
-		int offset = idereg.last_read_lba - track->lba;
-		data_buffer[0] = 0x00;
-		data_buffer[1] = 0x15; /* ??? */
-		data_buffer[2] = 0x00;
-		data_buffer[3] = 0x0E;
-		data_buffer[4] = track->flags;
-		data_buffer[5] = idereg.last_read_track;
-		data_buffer[6] = 0x01; /* ?? */
-		data_buffer[7] = (offset >> 16) & 0xFF;
-		data_buffer[8] = (offset >> 8) & 0xFF;
-		data_buffer[9] = offset & 0xFF;
-		data_buffer[10] = (idereg.last_read_lba >> 24) & 0xFF;
-		data_buffer[11] = (idereg.last_read_lba >> 16) & 0xFF;
-		data_buffer[12] = (idereg.last_read_lba >> 8) & 0xFF;
-		data_buffer[13] = idereg.last_read_lba & 0xFF;
-		ide_start_packet_read( length, length );
-		break;
+	switch( cmd[1] ) {
+	case 0:
+	    if( length > sizeof(gdrom_status) ) {
+		length = sizeof(gdrom_status);
 	    }
+	    memcpy( data_buffer, gdrom_status, length );
+	    ide_start_packet_read( length, 0 );
+	    break;
+	case 1:
+	    if( length > 14 ) {
+		length = 14;
+	    }
+	    gdrom_disc->read_position( gdrom_disc, idereg.read_lba, data_buffer );
+	    data_buffer[0] = 0x00;
+	    data_buffer[1] = 0x15; /* audio status ? */
+	    data_buffer[2] = 0x00;
+	    data_buffer[3] = 0x0E;
+	    ide_start_packet_read( length, 0 );
+	    break;
 	}
 	break;
     case PKT_CMD_71:
@@ -568,8 +568,9 @@ void ide_packet_command( unsigned char *cmd )
 	 * (and not even the same length each time, never mind the same data).
 	 * For sake of something to do, it returns the results from a test dump
 	 */
+	REQUIRE_DISC();
 	memcpy( data_buffer, gdrom_71, sizeof(gdrom_71) );
-	ide_start_packet_read( sizeof(gdrom_71), sizeof(gdrom_71) );
+	ide_start_packet_read( sizeof(gdrom_71), 0 );
 	break;
     default:
 	ide_set_packet_result( PKT_ERR_BADCMD ); /* Invalid command */

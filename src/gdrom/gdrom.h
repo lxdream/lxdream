@@ -1,5 +1,5 @@
 /**
- * $Id: gdrom.h,v 1.9 2006-12-19 09:52:56 nkeynes Exp $
+ * $Id: gdrom.h,v 1.10 2007-01-31 10:58:42 nkeynes Exp $
  *
  * This file defines the structures and functions used by the GD-Rom
  * disc driver. (ie, the modules that supply a CD image to be used by the
@@ -22,6 +22,8 @@
 #define dream_gdrom_H 1
 
 #include "dream.h"
+
+#define MAX_SECTOR_SIZE 2352
 
 typedef uint16_t gdrom_error_t;
 
@@ -69,19 +71,84 @@ typedef struct gdrom_track {
     uint32_t offset; /* File offset of start of track - image files only */
 } *gdrom_track_t;
 
-
 typedef struct gdrom_disc {
+    /**
+     * Read a single sector from the disc at the specified logical address.
+     * @param disc pointer to the disc structure
+     * @param lba logical address to read from
+     * @param mode mode field from the read command
+     * @param buf buffer to receive data (at least MAX_SECTOR_SIZE bytes)
+     * @param length unsigned int to receive the number of bytes actually read.
+     * @return PKT_ERR_OK on success, or another PKT_ERR_* code on failure.
+     */
+    gdrom_error_t (*read_sector)( struct gdrom_disc *disc,
+				  uint32_t lba, int mode, 
+				  char *buf, uint32_t *length );
+    
+    /**
+     * Read the TOC from the disc and write it into the specified buffer.
+     * The method is responsible for returning the data in gd-rom
+     * format.
+     * @param disc pointer to the disc structure
+     * @param buf buffer to receive data (0x198 bytes long)
+     */
+    gdrom_error_t (*read_toc)(struct gdrom_disc *disc, char *buf);
+
+    /**
+     * Read the information for the specified sector and return it in the
+     * supplied buffer. 
+     * @param disc pointer to the disc structure
+     * @param session of interest. If 0, return end of disc information.
+     * @param buf buffer to receive data (6 bytes)
+     */
+    gdrom_error_t (*read_session)(struct gdrom_disc *disc, int session, char *buf);
+
+    /**
+     * Read the position information (subchannel) for the specified sector
+     * and return it in the supplied buffer. This method does not need to
+     * write the first 4 bytes of the buffer.
+     * @param disc pointer to the disc structure
+     * @param lba sector to get position information for
+     * @param buf buffer to receive data (14 bytes)
+     */
+    gdrom_error_t (*read_position)(struct gdrom_disc *disc, uint32_t lba, char *buf);
+
+    /**
+     * Return the current disc status, expressed as a combination of the 
+     * IDE_DISC_* flags above.
+     * @param disc pointer to the disc structure
+     * @return an integer status value.
+     */
+    int (*drive_status)(struct gdrom_disc *disc);
+
+    /**
+     * Begin playing audio from the given lba address on the disc.
+     */
+    gdrom_error_t (*play_audio)(struct gdrom_disc *disc, uint32_t lba);
+
+    /**
+     * Executed once per time slice to perform house-keeping operations 
+     * (checking disc status, media changed, etc).
+     */
+    uint32_t (*run_time_slice)( struct gdrom_disc *disc, uint32_t nanosecs );
+
+    /**
+     * Close the disc and release any storage or resources allocated including
+     * the disc structure itself.
+     */
+    void (*close)( struct gdrom_disc *disc );
+} *gdrom_disc_t;
+
+
+typedef struct gdrom_image {
+    struct gdrom_disc disc;
     int disc_type;
     int track_count;
     struct gdrom_track track[99];
     gchar mcn[14]; /* Media catalogue number */
     const gchar *filename; /* Image filename */
-    FILE *file; /* Stream, for image files */
-    gdrom_error_t (*read_sectors)( struct gdrom_disc *disc,
-			      uint32_t lba, uint32_t sector_count,
-			      int mode, char *buf, uint32_t *length );
-    void (*close)( struct gdrom_disc *disc );
-} *gdrom_disc_t;
+    FILE *file; /* Open file stream */
+} *gdrom_image_t;
 
 /**
  *

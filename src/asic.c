@@ -1,5 +1,5 @@
 /**
- * $Id: asic.c,v 1.27 2007-01-27 12:02:54 nkeynes Exp $
+ * $Id: asic.c,v 1.28 2007-01-31 10:58:42 nkeynes Exp $
  *
  * Support for the miscellaneous ASIC functions (Primarily event multiplexing,
  * and DMA). 
@@ -532,7 +532,7 @@ MMIO_REGION_READ_FN( EXTDMA, reg )
     case IDEDATA: return ide_read_data_pio( );
     case IDEFEAT: return idereg.error;
     case IDECOUNT:return idereg.count;
-    case IDELBA0: return idereg.disc;
+    case IDELBA0: return ide_get_drive_status();
     case IDELBA1: return idereg.lba1;
     case IDELBA2: return idereg.lba2;
     case IDEDEV: return idereg.device;

@@ -147,7 +147,7 @@ lxdream_SOURCES = \
         mem.c mem.h mmio.h watch.c \
         asic.c asic.h \
         syscall.c syscall.h bios.c dcload.c \
-        gdrom/ide.c gdrom/ide.h gdrom/packet.h \
+        gdrom/ide.c gdrom/ide.h gdrom/packet.h gdrom/gdimage.c \
 	gdrom/gdrom.c gdrom/gdrom.h gdrom/nrg.c gdrom/cdi.c gdrom/linux.c \
         dreamcast.c dreamcast.h eventq.c eventq.h \
         sh4/intc.c sh4/intc.h sh4/sh4mem.c sh4/timer.c sh4/dmac.c \
@@ -186,22 +186,23 @@ PROGRAMS = $(bin_PROGRAMS)
 
 am_lxdream_OBJECTS = main.$(OBJEXT) mem.$(OBJEXT) watch.$(OBJEXT) \
 	asic.$(OBJEXT) syscall.$(OBJEXT) bios.$(OBJEXT) \
-	dcload.$(OBJEXT) ide.$(OBJEXT) gdrom.$(OBJEXT) nrg.$(OBJEXT) \
-	cdi.$(OBJEXT) linux.$(OBJEXT) dreamcast.$(OBJEXT) \
-	eventq.$(OBJEXT) intc.$(OBJEXT) sh4mem.$(OBJEXT) \
-	timer.$(OBJEXT) dmac.$(OBJEXT) sh4core.$(OBJEXT) \
-	sh4dasm.$(OBJEXT) sh4mmio.$(OBJEXT) scif.$(OBJEXT) \
-	armcore.$(OBJEXT) armdasm.$(OBJEXT) armmem.$(OBJEXT) \
-	aica.$(OBJEXT) audio.$(OBJEXT) pvr2.$(OBJEXT) pvr2mem.$(OBJEXT) \
-	tacore.$(OBJEXT) render.$(OBJEXT) rendcore.$(OBJEXT) \
-	rendbkg.$(OBJEXT) rendsort.$(OBJEXT) texcache.$(OBJEXT) \
-	yuv.$(OBJEXT) rendsave.$(OBJEXT) maple.$(OBJEXT) \
-	controller.$(OBJEXT) support.$(OBJEXT) interface.$(OBJEXT) \
-	callbacks.$(OBJEXT) gui.$(OBJEXT) mmr_win.$(OBJEXT) \
-	debug_win.$(OBJEXT) dump_win.$(OBJEXT) loader.$(OBJEXT) \
-	bootstrap.$(OBJEXT) util.$(OBJEXT) display.$(OBJEXT) \
-	audio_null.$(OBJEXT) audio_esd.$(OBJEXT) video_null.$(OBJEXT) \
-	video_gtk.$(OBJEXT) video_x11.$(OBJEXT) video_gl.$(OBJEXT)
+	dcload.$(OBJEXT) ide.$(OBJEXT) gdimage.$(OBJEXT) \
+	gdrom.$(OBJEXT) nrg.$(OBJEXT) cdi.$(OBJEXT) linux.$(OBJEXT) \
+	dreamcast.$(OBJEXT) eventq.$(OBJEXT) intc.$(OBJEXT) \
+	sh4mem.$(OBJEXT) timer.$(OBJEXT) dmac.$(OBJEXT) \
+	sh4core.$(OBJEXT) sh4dasm.$(OBJEXT) sh4mmio.$(OBJEXT) \
+	scif.$(OBJEXT) armcore.$(OBJEXT) armdasm.$(OBJEXT) \
+	armmem.$(OBJEXT) aica.$(OBJEXT) audio.$(OBJEXT) pvr2.$(OBJEXT) \
+	pvr2mem.$(OBJEXT) tacore.$(OBJEXT) render.$(OBJEXT) \
+	rendcore.$(OBJEXT) rendbkg.$(OBJEXT) rendsort.$(OBJEXT) \
+	texcache.$(OBJEXT) yuv.$(OBJEXT) rendsave.$(OBJEXT) \
+	maple.$(OBJEXT) controller.$(OBJEXT) support.$(OBJEXT) \
+	interface.$(OBJEXT) callbacks.$(OBJEXT) gui.$(OBJEXT) \
+	mmr_win.$(OBJEXT) debug_win.$(OBJEXT) dump_win.$(OBJEXT) \
+	loader.$(OBJEXT) bootstrap.$(OBJEXT) util.$(OBJEXT) \
+	display.$(OBJEXT) audio_null.$(OBJEXT) audio_esd.$(OBJEXT) \
+	video_null.$(OBJEXT) video_gtk.$(OBJEXT) video_x11.$(OBJEXT) \
+	video_gl.$(OBJEXT)
 lxdream_OBJECTS = $(am_lxdream_OBJECTS)
 lxdream_DEPENDENCIES =
 lxdream_LDFLAGS =
@@ -219,24 +220,25 @@ am__depfiles_maybe = depfiles
 @AMDEP_TRUE@	./$(DEPDIR)/debug_win.Po ./$(DEPDIR)/display.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/dmac.Po ./$(DEPDIR)/dreamcast.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/dump_win.Po ./$(DEPDIR)/eventq.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/gdrom.Po ./$(DEPDIR)/gui.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/ide.Po ./$(DEPDIR)/intc.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/interface.Po ./$(DEPDIR)/linux.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/loader.Po ./$(DEPDIR)/main.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/maple.Po ./$(DEPDIR)/mem.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/mmr_win.Po ./$(DEPDIR)/nrg.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/pvr2.Po ./$(DEPDIR)/pvr2mem.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/rendbkg.Po ./$(DEPDIR)/rendcore.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/render.Po ./$(DEPDIR)/rendsave.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/rendsort.Po ./$(DEPDIR)/scif.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/sh4core.Po ./$(DEPDIR)/sh4dasm.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/sh4mem.Po ./$(DEPDIR)/sh4mmio.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/support.Po ./$(DEPDIR)/syscall.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/tacore.Po ./$(DEPDIR)/texcache.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/timer.Po ./$(DEPDIR)/util.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/video_gl.Po ./$(DEPDIR)/video_gtk.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/video_null.Po ./$(DEPDIR)/video_x11.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/watch.Po ./$(DEPDIR)/yuv.Po
+@AMDEP_TRUE@	./$(DEPDIR)/gdimage.Po ./$(DEPDIR)/gdrom.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/gui.Po ./$(DEPDIR)/ide.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/intc.Po ./$(DEPDIR)/interface.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/linux.Po ./$(DEPDIR)/loader.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/main.Po ./$(DEPDIR)/maple.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/mem.Po ./$(DEPDIR)/mmr_win.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/nrg.Po ./$(DEPDIR)/pvr2.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/pvr2mem.Po ./$(DEPDIR)/rendbkg.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/rendcore.Po ./$(DEPDIR)/render.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/rendsave.Po ./$(DEPDIR)/rendsort.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/scif.Po ./$(DEPDIR)/sh4core.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/sh4dasm.Po ./$(DEPDIR)/sh4mem.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/sh4mmio.Po ./$(DEPDIR)/support.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/syscall.Po ./$(DEPDIR)/tacore.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/texcache.Po ./$(DEPDIR)/timer.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/util.Po ./$(DEPDIR)/video_gl.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/video_gtk.Po ./$(DEPDIR)/video_null.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/video_x11.Po ./$(DEPDIR)/watch.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/yuv.Po
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
@@ -308,6 +310,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dreamcast.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dump_win.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eventq.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gdimage.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gdrom.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gui.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ide.Po@am__quote@
@@ -388,6 +391,28 @@ ide.obj: gdrom/ide.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/ide.Po' tmpdepfile='$(DEPDIR)/ide.TPo' @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o ide.obj `if test -f 'gdrom/ide.c'; then $(CYGPATH_W) 'gdrom/ide.c'; else $(CYGPATH_W) '$(srcdir)/gdrom/ide.c'; fi`
+
+gdimage.o: gdrom/gdimage.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT gdimage.o -MD -MP -MF "$(DEPDIR)/gdimage.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o gdimage.o `test -f 'gdrom/gdimage.c' || echo '$(srcdir)/'`gdrom/gdimage.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/gdimage.Tpo" "$(DEPDIR)/gdimage.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/gdimage.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gdrom/gdimage.c' object='gdimage.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/gdimage.Po' tmpdepfile='$(DEPDIR)/gdimage.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o gdimage.o `test -f 'gdrom/gdimage.c' || echo '$(srcdir)/'`gdrom/gdimage.c
+
+gdimage.obj: gdrom/gdimage.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT gdimage.obj -MD -MP -MF "$(DEPDIR)/gdimage.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o gdimage.obj `if test -f 'gdrom/gdimage.c'; then $(CYGPATH_W) 'gdrom/gdimage.c'; else $(CYGPATH_W) '$(srcdir)/gdrom/gdimage.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/gdimage.Tpo" "$(DEPDIR)/gdimage.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/gdimage.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gdrom/gdimage.c' object='gdimage.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/gdimage.Po' tmpdepfile='$(DEPDIR)/gdimage.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o gdimage.obj `if test -f 'gdrom/gdimage.c'; then $(CYGPATH_W) 'gdrom/gdimage.c'; else $(CYGPATH_W) '$(srcdir)/gdrom/gdimage.c'; fi`
 
 gdrom.o: gdrom/gdrom.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT gdrom.o -MD -MP -MF "$(DEPDIR)/gdrom.Tpo" \

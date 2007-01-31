@@ -1,7 +1,7 @@
 /**
- * $Id: linux.c,v 1.2 2006-12-29 00:24:43 nkeynes Exp $
+ * $Id: linux.c,v 1.3 2007-01-31 10:58:42 nkeynes Exp $
  *
- * Linux cd-rom device driver
+ * Linux cd-rom device driver. 
  *
  * Copyright (c) 2005 Nathan Keynes.
  *
@@ -29,7 +29,7 @@
 
 #define MAXTOCENTRIES 600  /* This is a fairly generous overestimate really */
 #define MAXTOCSIZE 4 + (MAXTOCENTRIES*11)
-#define MAX_SECTORS_PER_CALL 32
+#define MAX_SECTORS_PER_CALL 1
 
 #define MSFTOLBA( m,s,f ) (f + (s*CD_FRAMES) + (m*CD_FRAMES*CD_SECS))
 
@@ -48,11 +48,10 @@ static uint32_t inline lbatomsf( uint32_t lba ) {
 
 static gboolean linux_image_is_valid( FILE *f );
 static gdrom_disc_t linux_open_device( const gchar *filename, FILE *f );
-static gdrom_error_t linux_read_disc_toc( gdrom_disc_t disc );
-static gdrom_error_t linux_read_sectors( gdrom_disc_t disc, uint32_t sector,
-					 uint32_t sector_count, int mode, char *buf,
-					 uint32_t *length );
-static gdrom_error_t linux_send_command( int fd, char *cmd, char *buffer, size_t buflen,
+static gdrom_error_t linux_read_disc_toc( gdrom_image_t disc );
+static gdrom_error_t linux_read_sector( gdrom_disc_t disc, uint32_t sector,
+					int mode, char *buf, uint32_t *length );
+static gdrom_error_t linux_send_command( int fd, char *cmd, char *buffer, size_t *buflen,
 					 int direction );
 
 
@@ -90,9 +89,9 @@ static gdrom_disc_t linux_open_device( const gchar *filename, FILE *f )
 	return NULL;
     }
 
-    gdrom_error_t status = linux_read_disc_toc( disc );
+    gdrom_error_t status = linux_read_disc_toc( (gdrom_image_t)disc );
     if( status != 0 ) {
-	free(disc);
+	disc->close(disc);
 	if( status == 0xFFFF ) {
 	    ERROR("Unable to load disc table of contents (%s)", strerror(errno));
 	} else {
@@ -101,24 +100,25 @@ static gdrom_disc_t linux_open_device( const gchar *filename, FILE *f )
 	}
 	return NULL;
     }
-    disc->read_sectors = linux_read_sectors;
-    disc->disc_type = IDE_DISC_CDROM;
+    disc->read_sector = linux_read_sector;
+    ((gdrom_image_t)disc)->disc_type = IDE_DISC_CDROM;
     return disc;
 }
 
 /**
  * Read the full table of contents into the disc from the device.
  */
-static gdrom_error_t linux_read_disc_toc( gdrom_disc_t disc )
+static gdrom_error_t linux_read_disc_toc( gdrom_image_t disc )
 {
     int fd = fileno(disc->file);
     unsigned char buf[MAXTOCSIZE];
+    int buflen = sizeof(buf);
     char cmd[12] = { 0x43, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
     
     cmd[7] = (sizeof(buf))>>8;
     cmd[8] = (sizeof(buf))&0xFF;
     memset( buf, 0, sizeof(buf) );
-    gdrom_error_t status = linux_send_command( fd, cmd, buf, sizeof(buf), CGC_DATA_READ );
+    gdrom_error_t status = linux_send_command( fd, cmd, buf, &buflen, CGC_DATA_READ );
     if( status != 0 ) {
 	return status;
     }
@@ -172,66 +172,31 @@ static gdrom_error_t linux_read_disc_toc( gdrom_disc_t disc )
     return 0;
 }
 
-static gdrom_error_t linux_read_sectors_ioctl( gdrom_disc_t disc, uint32_t sector,
-					 uint32_t sector_count, int mode, char *buf,
-					 uint32_t *length )
+static gdrom_error_t linux_read_sector( gdrom_disc_t disc, uint32_t sector,
+					int mode, char *buf, uint32_t *length )
 {
-    int fd = fileno(disc->file);
-    int call;
-    struct cdrom_read read;
-    read.cdread_lba = LBATOMSF(sector);
-    read.cdread_bufaddr = buf;
-    switch(mode) {
-    case GDROM_MODE1:
-	call = CDROMREADMODE1;
-	read.cdread_buflen = sector_count * 2048;
-	break;
-    case GDROM_MODE2:
-	call = CDROMREADMODE2;
-	read.cdread_buflen = sector_count * 2336;
-	break;
-    default:
-	return PKT_ERR_BADREADMODE;
-    }
-
-    if( ioctl( fd, call, &read ) == -1 ) {
-	ERROR( "Error reading disc (%s)", strerror(errno) );
-	return PKT_ERR_BADREAD;
-    }
-    *length = read.cdread_buflen;
-    return PKT_ERR_OK;
-}
-
-static gdrom_error_t linux_read_sectors( gdrom_disc_t disc, uint32_t sector,
-					 uint32_t sector_count, int mode, char *buf,
-					 uint32_t *length )
-{
-    int fd = fileno(disc->file);
+    gdrom_image_t image = (gdrom_image_t)disc;
+    int fd = fileno(image->file);
     uint32_t real_sector = sector - CD_MSF_OFFSET;
-    uint32_t sector_size = 2048;
-    int buflen = sector_count * sector_size;
+    uint32_t sector_size = MAX_SECTOR_SIZE;
     int i;
     char cmd[12] = { 0xBE, 0x10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
-    for( i=0; i<sector_count; i += MAX_SECTORS_PER_CALL ) {
-	int count = MIN(MAX_SECTORS_PER_CALL, sector_count);
-	cmd[2] = (real_sector >> 24) & 0xFF;
-	cmd[3] = (real_sector >> 16) & 0xFF;
-	cmd[4] = (real_sector >> 8) & 0xFF;
-	cmd[5] = real_sector & 0xFF;
-	cmd[6] = (count >> 16) & 0xFF;
-	cmd[7] = (count >> 8) & 0xFF;
-	cmd[8] = count & 0xFF;
-	cmd[9] = 0x10;
+    cmd[1] = (mode & 0x0E) << 1;
+    cmd[2] = (real_sector >> 24) & 0xFF;
+    cmd[3] = (real_sector >> 16) & 0xFF;
+    cmd[4] = (real_sector >> 8) & 0xFF;
+    cmd[5] = real_sector & 0xFF;
+    cmd[6] = 0;
+    cmd[7] = 0;
+    cmd[8] = 1;
+    cmd[9] = 0x10;
     
-	gdrom_error_t status = linux_send_command( fd, cmd, buf, count * sector_size, CGC_DATA_READ );
-	if( status != 0 ) {
-	    return status;
-	}
-	real_sector += count;
-	buf += count * sector_size;
+    gdrom_error_t status = linux_send_command( fd, cmd, buf, &sector_size, CGC_DATA_READ );
+    if( status != 0 ) {
+	return status;
     }
-    *length = buflen;
+    *length = 2048;
     return 0;
 }
 
@@ -240,7 +205,7 @@ static gdrom_error_t linux_read_sectors( gdrom_disc_t disc, uint32_t sector,
  * @return 0 on success, -1 on an operating system error, or a sense error
  * code on a device error.
  */
-static gdrom_error_t linux_send_command( int fd, char *cmd, char *buffer, size_t buflen,
+static gdrom_error_t linux_send_command( int fd, char *cmd, char *buffer, size_t *buflen,
 					 int direction )
 {
     struct request_sense sense;
@@ -250,7 +215,7 @@ static gdrom_error_t linux_send_command( int fd, char *cmd, char *buffer, size_t
     memset( &sense, 0, sizeof(sense) );
     memcpy( cgc.cmd, cmd, 12 );
     cgc.buffer = buffer;
-    cgc.buflen = buflen;
+    cgc.buflen = *buflen;
     cgc.sense = &sense;
     cgc.data_direction = direction;
     
@@ -258,9 +223,11 @@ static gdrom_error_t linux_send_command( int fd, char *cmd, char *buffer, size_t
 	if( sense.sense_key == 0 ) {
 	    return -1; 
 	} else {
+	    /* TODO: Map newer codes back to the ones used by the gd-rom. */
 	    return sense.sense_key | (sense.asc<<8);
 	}
     } else {
+	*buflen = cgc.buflen;
 	return 0;
     }
 }
