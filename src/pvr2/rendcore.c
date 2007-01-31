@@ -1,5 +1,5 @@
 /**
- * $Id: rendcore.c,v 1.15 2007-01-29 11:24:44 nkeynes Exp $
+ * $Id: rendcore.c,v 1.16 2007-01-31 10:32:25 nkeynes Exp $
  *
  * PVR2 renderer core.
  *
@@ -68,6 +68,8 @@ struct tile_segment {
     pvraddr_t punchout_ptr;
 };
 
+void render_print_tilelist( FILE *f, uint32_t tile_entry );
+
 /**
  * Convert a half-float (16-bit) FP number to a regular 32-bit float.
  * Source is 1-bit sign, 5-bit exponent, 10-bit mantissa.
@@ -105,10 +107,6 @@ void render_set_context( uint32_t *context, int render_mode )
 	texture = context[2];
     }
     
-    if( pvr2_debug_render ) {
-	fprintf( stderr, "Poly %08X %08X %08X\n", poly1, poly2, texture );
-    }
-
     if( POLY1_DEPTH_ENABLE(poly1) ) {
 	glEnable( GL_DEPTH_TEST );
 	glDepthFunc( POLY1_DEPTH_MODE(poly1) );
@@ -513,6 +511,7 @@ void pvr2_render_tilebuffer( int width, int height, int clipx1, int clipy1,
 	if( (segment->opaque_ptr & NO_POINTER) == 0 ) {
 	    if( pvr2_debug_render ) {
 		fprintf( stderr, "Tile %d,%d Opaque\n", tilex, tiley );
+		render_print_tilelist( stderr, segment->opaque_ptr );
 	    }
 	    if( (segment->opaquemod_ptr & NO_POINTER) == 0 ) {
 		/* TODO */
@@ -523,6 +522,7 @@ void pvr2_render_tilebuffer( int width, int height, int clipx1, int clipy1,
 	if( (segment->trans_ptr & NO_POINTER) == 0 ) {
 	    if( pvr2_debug_render ) {
 		fprintf( stderr, "Tile %d,%d Trans\n", tilex, tiley );
+		render_print_tilelist( stderr, segment->trans_ptr );
 	    }
 	    if( (segment->transmod_ptr & NO_POINTER) == 0 ) {
 		/* TODO */
@@ -538,6 +538,7 @@ void pvr2_render_tilebuffer( int width, int height, int clipx1, int clipy1,
 	if( (segment->punchout_ptr & NO_POINTER) == 0 ) {
 	    if( pvr2_debug_render ) {
 		fprintf( stderr, "Tile %d,%d Punchout\n", tilex, tiley );
+		render_print_tilelist( stderr, segment->punchout_ptr );
 	    }
 	    render_tile( segment->punchout_ptr, RENDER_NORMAL, cheap_shadow );
 	}
@@ -673,3 +674,115 @@ void pvr2_render_getsize( int *x, int *y )
     *x = (maxx+1)<<5;
     *y = (maxy+1)<<5;
 }
+
+void render_print_vertexes( FILE *f, uint32_t poly1, uint32_t *vert_array[], 
+			    int num_vertexes, int vertex_size )
+{
+    char buf[256], *p;
+    int i,j, k;
+    for( i=0; i<num_vertexes; i++ ) {
+	p = buf;
+	float *vertf = (float *)vert_array[i];
+	uint32_t *verti = (uint32_t *)vert_array[i];
+	p += sprintf( p, "  V %9.5f,%9.5f,%9.5f  ", vertf[0], vertf[1], vertf[2] );
+	k = 3;
+	if( POLY1_TEXTURED(poly1) ) {
+	    if( POLY1_UV16(poly1) ) {
+		p += sprintf( p, "uv=%9.5f,%9.5f  ",
+			       halftofloat(verti[k]>>16),
+			       halftofloat(verti[k]) );
+		k++;
+	    } else {
+		p += sprintf( p, "uv=%9.5f,%9.5f  ", vertf[k], vertf[k+1] );
+		k+=2;
+	    }
+	}
+
+	p += sprintf( p, "%08X ", verti[k++] );
+	if( POLY1_SPECULAR(poly1) ) {
+	    p += sprintf( p, "%08X", verti[k++] );
+	}
+	p += sprintf( p, "\n" );
+	fprintf( f, buf );
+    }
+}
+
+void render_print_polygon( FILE *f, uint32_t entry )
+{
+    uint32_t poly_bank = MMIO_READ(PVR2,RENDER_POLYBASE);
+    int shadow_cfg = MMIO_READ( PVR2, RENDER_SHADOW ) & 0x100;
+    int i, j;
+
+    if( entry >> 28 == 0x0F ) {
+	fprintf( f, "EOT\n" );
+    } else if( entry >> 28 == 0x0E ) {
+	fprintf( f, "LINK %08X\n", entry &0x7FFFFF );
+    } else {
+	uint32_t *polygon = (uint32_t *)(video_base + poly_bank + ((entry & 0x000FFFFF) << 2));
+	int is_modified = entry & 0x01000000;
+	int vertex_length = (entry >> 21) & 0x07;
+	int context_length = 3;
+	if( (entry & 0x01000000) && shadow_cfg ) {
+	    context_length = 5;
+	    vertex_length *= 2 ;
+	}
+	vertex_length += 3;
+	if( (entry & 0xE0000000) == 0x80000000 ) {
+	    /* Triangle(s) */
+	    int strip_count = ((entry >> 25) & 0x0F)+1;
+	    for( i=0; i<strip_count; i++ ) {
+		fprintf( f, "TRI  %08X %08X %08X\n", polygon[0], polygon[1], polygon[2] ); 
+		uint32_t *array[3];
+		array[0] = polygon + context_length;
+		array[1] = array[0] + vertex_length;
+		array[2] = array[1] + vertex_length;
+		render_print_vertexes( f, *polygon, array, 3, vertex_length );
+		polygon = array[2] + vertex_length;
+	    }
+	} else if( (entry & 0xE0000000) == 0xA0000000 ) {
+	    /* Sprite(s) */
+	    int strip_count = ((entry >> 25) & 0x0F)+1;
+	    for( i=0; i<strip_count; i++ ) {
+		fprintf( f, "QUAD %08X %08X %08X\n", polygon[0], polygon[1], polygon[2] ); 
+		uint32_t *array[4];
+		array[0] = polygon + context_length;
+		array[1] = array[0] + vertex_length;
+		array[2] = array[1] + vertex_length;
+		array[3] = array[2] + vertex_length;
+		render_print_vertexes( f, *polygon, array, 4, vertex_length );
+		polygon = array[3] + vertex_length;
+	    }
+	} else {
+	    /* Polygon */
+	    int last = -1;
+	    float *vertexz = (float *)polygon+context_length+2;
+	    uint32_t *array[8];
+	    for( i=0; i<6; i++ ) {
+		if( entry & (0x40000000>>i) ) {
+		    last = i;
+		}
+	    }
+	    fprintf( f, "POLY %08X %08X %08X\n", polygon[0], polygon[1], polygon[2] );
+	    for( i=0; i<last+2; i++ ) {
+		array[i] = polygon + context_length + vertex_length*i;
+	    }
+	    render_print_vertexes( f, *polygon, array, last+2, vertex_length );
+	}
+    }
+}
+
+void render_print_tilelist( FILE *f, uint32_t tile_entry )
+{
+    uint32_t *tile_list = (uint32_t *)(video_base+tile_entry);
+    do {
+	uint32_t entry = *tile_list++;
+	if( entry >> 28 == 0x0F ) {
+	    break;
+	} else if( entry >> 28 == 0x0E ) {
+	    tile_list = (uint32_t *)(video_base + (entry&0x007FFFFF));
+	} else {
+	    render_print_polygon(f, entry);
+	}
+    } while( 1 );
+}
+
