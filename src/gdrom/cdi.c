@@ -1,5 +1,5 @@
 /**
- * $Id: cdi.c,v 1.5 2007-01-31 10:58:42 nkeynes Exp $
+ * $Id: cdi.c,v 1.6 2007-02-04 11:30:41 nkeynes Exp $
  *
  * CDI CD-image file support
  *
@@ -35,8 +35,9 @@ static gdrom_disc_t cdi_image_open( const gchar *filename, FILE *f );
 struct gdrom_image_class cdi_image_class = { "DiscJuggler", "cdi", 
 					     cdi_image_is_valid, cdi_image_open };
 
-static char track_start_marker[20] = { 0,0,1,0,0,0,255,255,255,255,
+static const char TRACK_START_MARKER[20] = { 0,0,1,0,0,0,255,255,255,255,
                                        0,0,1,0,0,0,255,255,255,255 };
+static const char EXT_MARKER[9] = {0,255,255,255,255,255,255,255,255 };
 
 struct cdi_trailer {
     uint32_t cdi_version;
@@ -110,6 +111,11 @@ gdrom_disc_t cdi_image_open( const gchar *filename, FILE *f )
 
     for( i=0; i< session_count; i++ ) {        
 	fread( &track_count, sizeof(track_count), 1, f );
+	if( track_count + total_tracks > 99 ) {
+	    ERROR( "Invalid number of tracks, bad cdi image\n" );
+	    disc->close(disc);
+	    return NULL;
+	}
         for( j=0; j<track_count; j++ ) {
             struct cdi_track_data trk;
             uint32_t new_fmt = 0;
@@ -119,7 +125,7 @@ gdrom_disc_t cdi_image_open( const gchar *filename, FILE *f )
 		fseek( f, 8, SEEK_CUR ); /* Skip */
             }
             fread( marker, 20, 1, f );
-            if( memcmp( marker, track_start_marker, 20) != 0 ) {
+            if( memcmp( marker, TRACK_START_MARKER, 20) != 0 ) {
 		ERROR( "Track start marker not found, error reading cdi image\n" );
 		disc->close(disc);
 		return NULL;
@@ -179,11 +185,11 @@ gdrom_disc_t cdi_image_open( const gchar *filename, FILE *f )
 		trk.pregap_length * image->track[total_tracks].sector_size ;
 	    posn += trk.total_length * image->track[total_tracks].sector_size;
 	    total_tracks++;
-            lseek( fd, 12, SEEK_CUR );
-            if( new_fmt ) {
-                fseek( f, 90, SEEK_CUR );
+	    fread( marker, 1, 9, f );
+	    if( memcmp( marker, EXT_MARKER, 9 ) == 0 ) {
+		fseek( f, 91, SEEK_CUR );
 	    } else {
-		fseek( f, 12, SEEK_CUR );
+		fseek( f, 3, SEEK_CUR );
 	    }
 	}
     }
