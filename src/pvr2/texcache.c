@@ -1,5 +1,5 @@
 /**
- * $Id: texcache.c,v 1.24 2007-01-28 11:36:00 nkeynes Exp $
+ * $Id: texcache.c,v 1.25 2007-02-05 08:52:59 nkeynes Exp $
  *
  * Texture cache. Responsible for maintaining a working set of OpenGL 
  * textures. 
@@ -25,7 +25,7 @@
  * textures we're willing to have open at a time. If more are
  * needed, textures will be evicted in LRU order.
  */
-#define MAX_TEXTURES 128
+#define MAX_TEXTURES 256
 
 /**
  * Data structure:
@@ -321,7 +321,7 @@ static void yuv_decode( uint32_t *output, uint32_t *input, int width, int height
 static texcache_load_texture( uint32_t texture_addr, int width, int height,
 			      int mode ) {
     int bpp_shift = 1; /* bytes per (output) pixel as a power of 2 */
-    GLint intFormat, format, type;
+    GLint intFormat = GL_RGBA, format, type;
     int tex_format = mode & PVR2_TEX_FORMAT_MASK;
     struct vq_codebook codebook;
     GLint filter = GL_LINEAR;
@@ -335,22 +335,19 @@ static texcache_load_texture( uint32_t texture_addr, int width, int height,
 	 */
 	switch( MMIO_READ( PVR2, RENDER_PALETTE ) & 0x03 ) {
 	case 0: /* ARGB1555 */
-	    intFormat = GL_RGB5_A1;
 	    format = GL_BGRA;
 	    type = GL_UNSIGNED_SHORT_1_5_5_5_REV;
 	    break;
 	case 1:  /* RGB565 */
-	    intFormat = GL_RGB5;
+	    intFormat = GL_RGB;
 	    format = GL_RGB;
 	    type = GL_UNSIGNED_SHORT_5_6_5;
 	    break;
 	case 2: /* ARGB4444 */
-	    intFormat = GL_RGBA4;
 	    format = GL_BGRA;
 	    type = GL_UNSIGNED_SHORT_4_4_4_4_REV;
 	    break;
 	case 3: /* ARGB8888 */
-	    intFormat = GL_RGBA8;
 	    format = GL_BGRA;
 	    type = GL_UNSIGNED_INT_8_8_8_8_REV;
 	    bpp_shift = 2;
@@ -359,17 +356,15 @@ static texcache_load_texture( uint32_t texture_addr, int width, int height,
 	break;
 	    
     case PVR2_TEX_FORMAT_ARGB1555:
-	intFormat = GL_RGB5_A1;
 	format = GL_BGRA;
 	type = GL_UNSIGNED_SHORT_1_5_5_5_REV;
 	break;
     case PVR2_TEX_FORMAT_RGB565:
-	intFormat = GL_RGB5;
+	intFormat = GL_RGB;
 	format = GL_RGB;
 	type = GL_UNSIGNED_SHORT_5_6_5;
 	break;
     case PVR2_TEX_FORMAT_ARGB4444:
-	intFormat = GL_RGBA4;
 	format = GL_BGRA;
 	type = GL_UNSIGNED_SHORT_4_4_4_4_REV;
 	break;
@@ -378,7 +373,6 @@ static texcache_load_texture( uint32_t texture_addr, int width, int height,
 	 * it to a (reasonably) standard ARGB32.
 	 */
 	bpp_shift = 2;
-	intFormat = GL_RGBA8;
 	format = GL_BGRA;
 	type = GL_UNSIGNED_INT_8_8_8_8_REV;
 	break;
@@ -405,7 +399,7 @@ static texcache_load_texture( uint32_t texture_addr, int width, int height,
 	return;
     } 
 
-    int level=0, last_level = 0, mip_width = width, mip_height = height, mip_bytes;
+    int level=0, last_level = 0, mip_width = width, mip_height = height, src_bytes, dest_bytes;
     if( PVR2_TEX_IS_MIPMAPPED(mode) ) {
 	int i;
 	for( i=0; 1<<i < width; i++ );
@@ -414,7 +408,8 @@ static texcache_load_texture( uint32_t texture_addr, int width, int height,
 	mip_height= 2;
 	filter = GL_LINEAR_MIPMAP_LINEAR;
     }
-    mip_bytes = (mip_width * mip_height) << bpp_shift;
+    dest_bytes = (mip_width * mip_height) << bpp_shift;
+    src_bytes = dest_bytes; // Modes will change this (below)
 
     if( PVR2_TEX_IS_COMPRESSED(mode) ) {
 	uint16_t tmp[VQ_CODEBOOK_SIZE];
@@ -424,66 +419,67 @@ static texcache_load_texture( uint32_t texture_addr, int width, int height,
     }
 
     for( level=last_level; level>= 0; level-- ) {
-	char data[mip_bytes];
+	char data[dest_bytes];
 	/* load data from image, detwiddling/uncompressing as required */
 	if( tex_format == PVR2_TEX_FORMAT_IDX8 ) {
-	    int inputlength = mip_bytes >> bpp_shift;
+	    src_bytes = (mip_width * mip_height);
 	    int bank = (mode >> 25) &0x03;
 	    uint32_t *palette = ((uint32_t *)mmio_region_PVR2PAL.mem) + (bank<<8);
-	    char tmp[inputlength];
+	    char tmp[src_bytes];
 	    pvr2_vram64_read_twiddled_8( tmp, texture_addr, mip_width, mip_height );
 	    if( bpp_shift == 2 ) {
-		decode_pal8_to_32( (uint32_t *)data, tmp, inputlength, palette );
+		decode_pal8_to_32( (uint32_t *)data, tmp, src_bytes, palette );
 	    } else {
-		decode_pal8_to_16( (uint16_t *)data, tmp, inputlength, palette );
+		decode_pal8_to_16( (uint16_t *)data, tmp, src_bytes, palette );
 	    }
 	} else if( tex_format == PVR2_TEX_FORMAT_IDX4 ) {
-	    int inputlength = (mip_width * mip_height) >> 1;
+	    src_bytes = (mip_width * mip_height) >> 1;
 	    int bank = (mode >>21 ) & 0x3F;
 	    uint32_t *palette = ((uint32_t *)mmio_region_PVR2PAL.mem) + (bank<<4);
-	    char tmp[inputlength];
+	    char tmp[src_bytes];
 	    pvr2_vram64_read_twiddled_4( tmp, texture_addr, mip_width, mip_height );
 	    if( bpp_shift == 2 ) {
-		decode_pal4_to_32( (uint32_t *)data, tmp, inputlength, palette );
+		decode_pal4_to_32( (uint32_t *)data, tmp, src_bytes, palette );
 	    } else {
-		decode_pal4_to_16( (uint16_t *)data, tmp, inputlength, palette );
+		decode_pal4_to_16( (uint16_t *)data, tmp, src_bytes, palette );
 	    }
 	} else if( tex_format == PVR2_TEX_FORMAT_YUV422 ) {
-	    int inputlength = ((mip_width*mip_height)<<1);
-	    char tmp[inputlength];
+	    src_bytes = ((mip_width*mip_height)<<1);
+	    char tmp[src_bytes];
 	    if( PVR2_TEX_IS_TWIDDLED(mode) ) {
 		pvr2_vram64_read_twiddled_16( tmp, texture_addr, mip_width, mip_height );
 	    } else {
-		pvr2_vram64_read( tmp, texture_addr, inputlength );
+		pvr2_vram64_read( tmp, texture_addr, src_bytes );
 	    }
 	    yuv_decode( (uint32_t *)data, (uint32_t *)tmp, mip_width, mip_height );
 	} else if( PVR2_TEX_IS_COMPRESSED(mode) ) {
-	    int inputlength = ((mip_width*mip_height) >> 2);
-	    char tmp[inputlength];
+	    src_bytes = ((mip_width*mip_height) >> 2);
+	    char tmp[src_bytes];
 	    if( PVR2_TEX_IS_TWIDDLED(mode) ) {
 		pvr2_vram64_read_twiddled_8( tmp, texture_addr, mip_width>>1, mip_height>>1 );
 	    } else {
-		pvr2_vram64_read( tmp, texture_addr, inputlength );
+		pvr2_vram64_read( tmp, texture_addr, src_bytes );
 	    }
 	    vq_decode( (uint16_t *)data, tmp, mip_width, mip_height, &codebook );
 	} else if( PVR2_TEX_IS_TWIDDLED(mode) ) {
 	    pvr2_vram64_read_twiddled_16( data, texture_addr, mip_width, mip_height );
 	} else {
-	    pvr2_vram64_read( data, texture_addr, mip_bytes );
+	    pvr2_vram64_read( data, texture_addr, src_bytes );
 	}
 	
 	/* Pass to GL */
 	if( level == last_level && level != 0 ) { /* 1x1 stored within a 2x2 */
 	    glTexImage2D( GL_TEXTURE_2D, level, intFormat, 1, 1, 0, format, type,
 			  data + (3 << bpp_shift) );
-	    texture_addr += mip_bytes;
+	    texture_addr += src_bytes;
 	} else {
 	    glTexImage2D( GL_TEXTURE_2D, level, intFormat, mip_width, mip_height, 0, format, type,
 			  data );
-	    texture_addr += mip_bytes;
+	    texture_addr += src_bytes;
 	    mip_width <<= 1;
 	    mip_height <<= 1;
-	    mip_bytes <<= 2;
+	    dest_bytes <<= 2;
+	    src_bytes <<= 2;
 	}
     }
 
