@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.h,v 1.33 2007-01-29 11:24:44 nkeynes Exp $
+ * $Id: pvr2.h,v 1.34 2007-02-05 08:51:34 nkeynes Exp $
  *
  * PVR2 (video chip) functions and macros.
  *
@@ -107,7 +107,7 @@ gboolean pvr2_save_next_scene( const gchar *filename );
 
 
 #define PVR2_TEX_ADDR(x) ( ((x)&0x01FFFFF)<<3 );
-#define PVR2_TEX_IS_MIPMAPPED(x) ( (x) & PVR2_TEX_MIPMAP )
+#define PVR2_TEX_IS_MIPMAPPED(x) ( ((x) & 0x84000000) == 0x80000000 )
 #define PVR2_TEX_IS_COMPRESSED(x) ( (x) & PVR2_TEX_COMPRESSED )
 #define PVR2_TEX_IS_TWIDDLED(x) (((x) & PVR2_TEX_UNTWIDDLED) == 0)
 #define PVR2_TEX_IS_STRIDE(x) (((x) & 0x06000000) == 0x06000000)
