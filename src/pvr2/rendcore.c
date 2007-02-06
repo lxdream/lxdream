@@ -1,5 +1,5 @@
 /**
- * $Id: rendcore.c,v 1.16 2007-01-31 10:32:25 nkeynes Exp $
+ * $Id: rendcore.c,v 1.17 2007-02-06 07:57:57 nkeynes Exp $
  *
  * PVR2 renderer core.
  *
@@ -168,7 +168,7 @@ void render_set_context( uint32_t *context, int render_mode )
 	if( POLY2_TEX_CLAMP_V(poly2) ) {
 	    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP );
 	} else {
-	    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
+	    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
 	}
     } else {
 	glDisable( GL_TEXTURE_2D );
