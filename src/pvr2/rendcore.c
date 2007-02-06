@@ -1,5 +1,5 @@
 /**
- * $Id: rendcore.c,v 1.17 2007-02-06 07:57:57 nkeynes Exp $
+ * $Id: rendcore.c,v 1.18 2007-02-06 07:59:06 nkeynes Exp $
  *
  * PVR2 renderer core.
  *
@@ -567,7 +567,7 @@ static float render_find_maximum_tile_z( pvraddr_t tile_entry, float inputz )
 	    int is_modified = entry & 0x01000000;
 	    int vertex_length = (entry >> 21) & 0x07;
 	    int context_length = 3;
-	    if( (entry & 0x01000000) && shadow_cfg ) {
+	    if( (entry & 0x01000000) && (shadow_cfg==0) ) {
 		context_length = 5;
 		vertex_length *= 2 ;
 	    }
@@ -722,7 +722,7 @@ void render_print_polygon( FILE *f, uint32_t entry )
 	int is_modified = entry & 0x01000000;
 	int vertex_length = (entry >> 21) & 0x07;
 	int context_length = 3;
-	if( (entry & 0x01000000) && shadow_cfg ) {
+	if( (entry & 0x01000000) && (shadow_cfg==0) ) {
 	    context_length = 5;
 	    vertex_length *= 2 ;
 	}
