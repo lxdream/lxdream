@@ -1,5 +1,5 @@
 /**
- * $Id: video_gl.h,v 1.1 2007-01-14 02:55:06 nkeynes Exp $
+ * $Id: gl_common.h,v 1.1 2007-02-11 10:09:32 nkeynes Exp $
  *
  * Parent for all X11 display drivers.
  *
@@ -19,6 +19,7 @@
 #ifndef video_gl_common_H
 #define video_gl_common_H
 
+#include "display.h"
 
 /**
  * Test if a specific extension is supported. From opengl.org
@@ -28,5 +29,29 @@
 gboolean isGLExtensionSupported( const char *extension );
 
 gboolean hasRequiredGLExtensions();
+
+/**
+ * Generic GL routine to draw the given frame buffer in the display view.
+ */
+gboolean gl_display_frame_buffer( frame_buffer_t frame );
+
+/**
+ * Generic GL routine to blank the display view with the specified colour.
+ */
+gboolean gl_display_blank( uint32_t colour );
+
+
+/**
+ * Generic GL read_render_buffer. This function assumes that the caller
+ * has already set the appropriate glReadBuffer(); in other words, unless
+ * there's only one buffer this needs to be wrapped.
+ */
+gboolean gl_read_render_buffer( render_buffer_t buffer, char *target );
+
+
+/****** FBO handling (gl_fbo.c) ******/
+gboolean gl_fbo_is_supported();
+void gl_fbo_shutdown();
+void gl_fbo_init( display_driver_t driver );
 
 #endif /* !video_gl_common_H */

@@ -1,5 +1,5 @@
 /**
- * $Id: video_x11.h,v 1.3 2006-05-15 08:28:52 nkeynes Exp $
+ * $Id: video_x11.h,v 1.4 2007-02-11 10:09:32 nkeynes Exp $
  *
  * Parent for all X11 display drivers.
  *
@@ -22,14 +22,7 @@
 #include "X11/Xlib.h"
 #include "display.h"
 
-void video_x11_set_display( Display *display, Screen *screen, Window window );
-
-extern Display *video_x11_display;
-extern Screen *video_x11_screen;
-extern Window video_x11_window;
-
-
-gboolean video_glx_set_render_format( int x, int y, int width, int height );
-void video_glx_swap_buffers();
+gboolean video_glx_init( Display *display, Screen *screen, Window window,
+			 int width, int height, display_driver_t driver );
 
 #endif

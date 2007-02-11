@@ -1,5 +1,5 @@
 /**
- * $Id: video_null.c,v 1.2 2006-05-15 08:28:52 nkeynes Exp $
+ * $Id: video_null.c,v 1.3 2007-02-11 10:09:32 nkeynes Exp $
  *
  * Null video output driver (ie no video output whatsoever)
  *
@@ -18,24 +18,37 @@
 
 #include "display.h"
 
-gboolean video_null_set_output_format( uint32_t hres, uint32_t vres,
-				       int colour_format )
+render_buffer_t video_null_create_render_buffer( uint32_t hres, uint32_t vres )
+{
+    return NULL;
+}
+
+void video_null_destroy_render_buffer( render_buffer_t buffer )
 {
     return TRUE;
 }
 
-gboolean video_null_set_render_format( uint32_t hres, uint32_t vres,
-				       int colour_format, gboolean tex )
+gboolean video_null_set_render_target( render_buffer_t buffer )
 {
     return TRUE;
 }
 
-gboolean video_null_display_frame( video_buffer_t buffer )
+gboolean video_null_display_render_buffer( render_buffer_t buffer )
 {
     return TRUE;
 }
 
-gboolean video_null_blank( uint32_t colour )
+gboolean video_null_read_render_buffer( render_buffer_t buffer, char *target )
+{
+    return TRUE;
+}
+
+gboolean video_null_display_frame_buffer( frame_buffer_t buffer )
+{
+    return TRUE;
+}
+
+gboolean video_null_display_blank( uint32_t colour )
 {
     return TRUE;
 }
@@ -46,10 +59,13 @@ void video_null_display_back_buffer( void )
 
 
 struct display_driver display_null_driver = { "null", 
-					 NULL,
-					 NULL,
-					 video_null_set_output_format,
-					 video_null_set_render_format,
-					 video_null_display_frame,
-					 video_null_blank,
-					 video_null_display_back_buffer };
+					      NULL,
+					      NULL,
+					      NULL,
+					      video_null_create_render_buffer,
+					      video_null_destroy_render_buffer,
+					      video_null_set_render_target,
+					      video_null_display_render_buffer,
+					      video_null_display_frame_buffer,
+					      video_null_display_blank,
+					      video_null_read_render_buffer };
