@@ -1,27 +1,43 @@
-Release notes for Milestone 1 ("Smoke and Mirrors")
+Release notes for Milestone 2 
 ===================================================
 
-This is an early development release. Most things don't work. Many things
-that do work only do so by sheer luck. Framerates are typically 1-4 frames
-per second on a 3Ghz P4. In short, don't expect to run any actual games on
-it at this stage (I have not even tried, myself).
+Please note that this is a development release - many 
+things are not yet implemented, it's still quite slow, and not
+particularly user-friendly. Framerates are typically 4-5 frames 
+per second on a 3Ghz P4. If you're looking for something to just
+play DC games, you'll probably want to wait for the next version.
 
-Having said that, the following are known to run with at least some degree of 
-success:
+Having said all that, some games are known to run to at least 
+some degree (aka everything we've tried), and most homebrew works 
+perfectly, albeit slowly - feel free to experiment and let us 
+know how it goes.
 
-  * Most KOS based demos, and a number of other demos (An exact inventory of 
-working demos is not being maintained at this stage).
-  * The BIOS bootstrap (you can boot NRG and CDI cd-rom images)
+Changes since Milestone 1
+-------------------------
+* Complete rewrite of nearly all PowerVR2 code - The M1 code was largely a
+quick hack to get something running. It's done for real now.
+* Initial IO event system (not widely used yet)
+* Lots of bugfixes throughout the system
+
+Known issues
+------------
+The following are known bugs (as opposed to missing features) that will be
+fixed in the next release, but are too large to be fixed for this version:
+
+* Some games experience geometry corruption of varying levels. This is
+believed to be caused by an SH4 core bug.
+
+* Polygons that are partially clipped by the view frustum can be distorted
+quite badly
 
 System requirements
 -------------------
 GTK 2.0+
 Gnome 2.0+
 ESounD 2.36+  (if you want interrupted stuttery sound[0])
+OpenGL drivers with EXT_framebuffer_object support (any recent drivers should be
+fine)
 GCC, Make, etc.
-
-[0] Actually the ARM chip can be run independently, in which case the
-performance is reasonably decent.
 
 Building
 --------
@@ -29,4 +45,6 @@ From the base directory
 ~$ ./configure
 ~$ make
 ~$ make install            (optional)
+
+Enjoy!
 

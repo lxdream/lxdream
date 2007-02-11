@@ -4,13 +4,13 @@ Current status
 General issues
   - No dynamic recompilation yet
   - Slow (not performance optimized yet at all. See above).
-  - No I/O timing whatsoever except at a timeslice level for audio/video.
+  - No I/O timing whatsoever except for video events.
     (ie DMA, rendering, GD-Rom operations need to take > 0 ms to complete)
 
 SH4 Core
   + Base instruction set  (Complete?)
   - No MMU support (address translation, TLB, etc)
-  - No user-mode support
+  - no FPU exceptions
   - Not remotely cycle-correct timing
 
 SH4 On-chip peripherals 
@@ -46,20 +46,17 @@ AICA SPU
 
 PVR2 GPU
   TA
-    + Quick-n-dirty hack job to store the TA command lists in the poly
-      buffer and nothing else. Not remotely correct. 
-    - Doesn't support 16-dword vertexes
+    - Functionally complete
+    - Some bugs/error behaviour not implemented
+    - No timing support
   Render
     + Basic opaque and translucent polygon support
     + Depth buffer, alpha blend, most poly modes
-    - No translucent poly sorting
+    - Basic translucent poly sorting
     - No modifier volumes
-    - No sprites
-    - No specular highlight
-    - No 16-dword vertexes
+    - No fogging
   Texture
-    + Most texture formats supported
-    - No support for VQ decompression
+    + All texture formats supported except bump maps
 
 GD-Rom
   IDE interface
