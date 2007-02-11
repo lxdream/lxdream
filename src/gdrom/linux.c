@@ -1,5 +1,5 @@
 /**
- * $Id: linux.c,v 1.3 2007-01-31 10:58:42 nkeynes Exp $
+ * $Id: linux.c,v 1.4 2007-02-11 10:11:05 nkeynes Exp $
  *
  * Linux cd-rom device driver. 
  *
@@ -53,7 +53,7 @@ static gdrom_error_t linux_read_sector( gdrom_disc_t disc, uint32_t sector,
 					int mode, char *buf, uint32_t *length );
 static gdrom_error_t linux_send_command( int fd, char *cmd, char *buffer, size_t *buflen,
 					 int direction );
-
+static int linux_drive_status( gdrom_disc_t disc );
 
 struct gdrom_image_class linux_device_class = { "Linux", NULL,
 					     linux_image_is_valid, linux_open_device };
@@ -101,10 +101,25 @@ static gdrom_disc_t linux_open_device( const gchar *filename, FILE *f )
 	return NULL;
     }
     disc->read_sector = linux_read_sector;
+    disc->drive_status = linux_drive_status;
     ((gdrom_image_t)disc)->disc_type = IDE_DISC_CDROM;
     return disc;
 }
 
+static int linux_drive_status( gdrom_disc_t disc )
+{
+    int fd = fileno(((gdrom_image_t)disc)->file);
+    int status = ioctl(fd, CDROM_DRIVE_STATUS, CDSL_CURRENT);
+    if( status == CDS_DISC_OK ) {
+	status = ioctl(fd, CDROM_MEDIA_CHANGED, CDSL_CURRENT);
+	if( status != 0 ) {
+	    linux_read_disc_toc(disc);
+	}
+	return ((gdrom_image_t)disc)->disc_type | IDE_DISC_READY;
+    } else {
+	return IDE_DISC_NONE;
+    }
+}
 /**
  * Read the full table of contents into the disc from the device.
  */
