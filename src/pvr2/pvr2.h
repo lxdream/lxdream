@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.h,v 1.34 2007-02-05 08:51:34 nkeynes Exp $
+ * $Id: pvr2.h,v 1.35 2007-02-11 10:09:32 nkeynes Exp $
  *
  * PVR2 (video chip) functions and macros.
  *
@@ -175,19 +175,6 @@ void pvr2_vram64_read_stride( char *dest, uint32_t dest_line_bytes, sh4addr_t sr
  */
 void pvr2_vram64_dump( sh4addr_t addr, uint32_t length, FILE *f );
 
-
-/**
- * Describes a rendering buffer that's actually held in GL, for when we need
- * to fetch the bits back to vram.
- */
-typedef struct pvr2_render_buffer {
-    sh4addr_t render_addr; /* The actual address rendered to in pvr ram */
-    uint32_t size; /* Length of rendering region in bytes */
-    int width, height;
-    int colour_format;
-    int scale;
-} *pvr2_render_buffer_t;
-
 /**
  * Flush the indicated render buffer back to PVR. Caller is responsible for
  * tracking whether there is actually anything in the buffer.
@@ -197,25 +184,12 @@ typedef struct pvr2_render_buffer {
  * @param backBuffer TRUE to flush the back buffer, FALSE for 
  * the front buffer.
  */
-void pvr2_render_buffer_copy_to_sh4( pvr2_render_buffer_t buffer, 
-				     gboolean backBuffer );
-
-/**
- * Copy data from PVR ram into the GL render buffer. 
- *
- * @param buffer A render buffer indicating the address to read from, and the
- * format the data is in.
- * @param backBuffer TRUE to write the back buffer, FALSE for 
- * the front buffer.
- */
-void pvr2_render_buffer_copy_from_sh4( pvr2_render_buffer_t buffer, 
-				       gboolean backBuffer );
-
+void pvr2_render_buffer_copy_to_sh4( render_buffer_t buffer );
 
 /**
  * Invalidate any caching on the supplied SH4 address
  */
-gboolean pvr2_render_buffer_invalidate( sh4addr_t addr );
+gboolean pvr2_render_buffer_invalidate( sh4addr_t addr, gboolean isWrite );
 
 
 /**************************** Tile Accelerator ***************************/
@@ -250,15 +224,9 @@ void pvr2_yuv_set_config( uint32_t config );
 /********************************* Renderer ******************************/
 
 /**
- * Initialize the rendering pipeline.
- * @return TRUE on success, FALSE on failure.
- */
-gboolean pvr2_render_init( void );
-
-/**
  * Render the current scene stored in PVR ram to the GL back buffer.
  */
-void pvr2_render_scene( void );
+void pvr2_render_scene( render_buffer_t buffer );
 
 /**
  * Display the scene rendered to the supplied address.

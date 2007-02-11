@@ -1,5 +1,5 @@
 /**
- * $Id: texcache.c,v 1.25 2007-02-05 08:52:59 nkeynes Exp $
+ * $Id: texcache.c,v 1.26 2007-02-11 10:09:32 nkeynes Exp $
  *
  * Texture cache. Responsible for maintaining a working set of OpenGL 
  * textures. 
@@ -326,6 +326,7 @@ static texcache_load_texture( uint32_t texture_addr, int width, int height,
     struct vq_codebook codebook;
     GLint filter = GL_LINEAR;
 
+    glPixelStorei( GL_UNPACK_ROW_LENGTH, 0 );
     /* Decode the format parameters */
     switch( tex_format ) {
     case PVR2_TEX_FORMAT_IDX4:

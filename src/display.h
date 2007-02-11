@@ -1,5 +1,5 @@
 /**
- * $Id: display.h,v 1.4 2007-01-27 12:03:53 nkeynes Exp $
+ * $Id: display.h,v 1.5 2007-02-11 10:09:32 nkeynes Exp $
  *
  * The PC side of the video support (responsible for actually displaying / 
  * rendering frames)
@@ -20,6 +20,7 @@
 #ifndef dream_video_H
 #define dream_video_H
 
+#include "mem.h"
 #include <stdint.h>
 #include <glib.h>
 #include <GL/gl.h>
@@ -50,17 +51,38 @@ extern struct colour_format colour_formats[];
 
 extern int colour_format_bytes[];
 
-typedef struct video_buffer {
-    uint32_t hres;
-    uint32_t vres;
+/**
+ * Structure to hold pixel data held in GL buffers.
+ */
+typedef struct render_buffer {
+    uint32_t width;
+    uint32_t height;
     uint32_t rowstride;
     int colour_format;
-    gboolean line_double;
-    char *data;
-} *video_buffer_t;
+    sh4addr_t address; /* Address buffer was rendered to, or -1 for unrendered */
+    uint32_t size; /* Size of buffer in bytes, must be width*height*bpp */
+    int scale;
+    int buf_id; /* driver-specific buffer id, if applicable */
+    gboolean flushed; /* True if the buffer has been flushed to vram */
+} *render_buffer_t;
 
 /**
- * Core video driver - expected to directly support an OpenGL context
+ * Structure to hold pixel data stored in pvr2 vram, as opposed to data in
+ * GL buffers.
+ */
+typedef struct frame_buffer {
+    uint32_t width;
+    uint32_t height;
+    uint32_t rowstride;
+    int colour_format;
+    sh4addr_t address;
+    uint32_t size; /* Size of buffer in bytes, must be width*height*bpp */
+    char *data;
+} * frame_buffer_t;
+
+/**
+ * Core video driver - exports function to setup a GL context, as well as handle
+ * keyboard input and display resultant output.
  */
 typedef struct display_driver {
     char *name;
@@ -87,47 +109,44 @@ typedef struct display_driver {
     uint16_t (*resolve_keysym)( const gchar *keysym );
 
     /**
-     * Set the current display format to the specified values. This is
-     * called immediately prior to any display frame call where the
-     * parameters have changed from the previous frame
+     * Create a render target with the given width and height.
      */
-    gboolean (*set_display_format)( uint32_t hres, uint32_t vres, 
-				    int colour_fmt );
+    render_buffer_t (*create_render_buffer)( uint32_t width, uint32_t height );
 
     /**
-     * Set the current rendering format to the specified values. This is
-     * called immediately prior to starting rendering of a frame where the
-     * parameters have changed from the previous frame. Note that the driver
-     * is not required to precisely support the requested colour format.
-     *
-     * This method is also responsible for setting up an appropriate GL
-     * context for the main engine to render into.
-     *
-     * @param hres The horizontal resolution (ie 640)
-     * @param vres The vertical resolution (ie 480)
-     * @param colour_fmt The colour format of the buffer (ie COLFMT_ARGB4444)
-     * @param texture Flag indicating that the frame being rendered is a
-     * texture, rather than a display frame. 
+     * Destroy the specified render buffer and release any associated
+     * resources.
      */
-    gboolean (*set_render_format)( uint32_t hres, uint32_t vres,
-				   int colour_fmt, gboolean texture );
+    void (*destroy_render_buffer)( render_buffer_t buffer );
+
     /**
-     * Display a single frame using the supplied pixmap data. Is assumed to
-     * invalidate the current GL front buffer (but not the back buffer).
+     * Set the current rendering target to the specified buffer.
      */
-    gboolean (*display_frame)( video_buffer_t buffer );
+    gboolean (*set_render_target)( render_buffer_t buffer );
+
+    /**
+     * Display a single frame using the supplied pixmap data.
+     */
+    gboolean (*display_frame_buffer)( frame_buffer_t buffer );
+
+    /**
+     * Display a single frame using a previously rendered GL buffer.
+     */
+    gboolean (*display_render_buffer)( render_buffer_t buffer );
 
     /**
      * Display a single blanked frame using a fixed colour for the
-     * entire frame (specified in RGB888 format). Is assumed to invalidate
-     * the current GL front buffer (but not the back buffer).
+     * entire frame (specified in RGB888 format). 
      */
-    gboolean (*display_blank_frame)( uint32_t rgb );
+    gboolean (*display_blank)( uint32_t rgb );
 
     /**
-     * Promote the current render back buffer to the front buffer
+     * Copy the image data from the GL buffer to the target memory buffer,
+     * using the format etc from the buffer. This may force a glFinish()
+     * but does not invalidate the buffer.
      */
-    void (*display_back_buffer)( void );
+    gboolean (*read_render_buffer)( render_buffer_t buffer, char *target );
+
 } *display_driver_t;
 
 void video_open( void );

@@ -1,5 +1,5 @@
 /**
- * $Id: video_x11.c,v 1.11 2007-01-27 12:03:53 nkeynes Exp $
+ * $Id: video_x11.c,v 1.12 2007-02-11 10:09:32 nkeynes Exp $
  *
  * Shared functions for all X11-based display drivers.
  *
@@ -21,30 +21,46 @@
 #include "dream.h"
 #include "drivers/video_x11.h"
 
+extern uint32_t video_width, video_height;
+
 /**
  * General X11 parameters. The front-end driver is expected to set this up
- * by calling video_x11_set_display after initializing itself.
+ * by calling video_glx_init after initializing itself.
  */
-Display *video_x11_display = NULL;
-Screen *video_x11_screen = NULL;
-Window video_x11_window = 0;
-extern uint32_t video_width, video_height;
+static Display *video_x11_display = NULL;
+static Screen *video_x11_screen = NULL;
+static Window video_x11_window = 0;
+
 /**
  * GLX parameters.
  */
-GLXContext glx_context;
-Window glx_window;
-gboolean glx_open = FALSE;
+static GLXContext glx_context;
+static Window glx_window;
+static XSetWindowAttributes win_attrs;
 
-void video_x11_set_display( Display *display, Screen *screen, Window window )
+gboolean video_glx_init( Display *display, Screen *screen, Window window,
+			 int width, int height, display_driver_t driver )
 {
     video_x11_display = display;
     video_x11_screen = screen;
     video_x11_window = window;
+
+    if( !video_glx_create_window(width,height) ) {
+	return FALSE;
+    }
+
+    if( gl_fbo_is_supported() ) {
+	gl_fbo_init(driver);
+	return TRUE;
+    } else {
+	/* Pbuffers? */
+	ERROR( "Framebuffer objects not supported (required in this version)" );
+	video_glx_shutdown();
+	return FALSE;
+    }
 }
 
-
-gboolean video_glx_create_window( int x, int y, int width, int height )
+gboolean video_glx_create_window( int width, int height )
 {
     int major, minor;
     const char *glxExts, *glxServer;
@@ -56,7 +72,6 @@ gboolean video_glx_create_window( int x, int y, int width, int height )
 			   GLX_DOUBLEBUFFER, 
 			   None };
     int screen = XScreenNumberOfScreen(video_x11_screen);
-    XSetWindowAttributes win_attrs;
     XVisualInfo *visual;
 
     if( glXQueryVersion( video_x11_display, &major, &minor ) == False ) {
@@ -67,11 +82,6 @@ gboolean video_glx_create_window( int x, int y, int width, int height )
 	ERROR( "X display supports GLX %d.%d, but we need at least 1.2", major, minor );
 	return FALSE;
     }
-
-    glxExts = glXQueryExtensionsString( video_x11_display, screen );
-    glxServer = glXQueryServerString( video_x11_display, screen, GLX_VENDOR );
-    INFO( "GLX version %d.%d, %s. Supported exts: %s", major, minor,
-	  glxServer, glxExts );
 
     /* Find ourselves a nice visual */
     visual = glXChooseVisual( video_x11_display, 
@@ -100,7 +110,7 @@ gboolean video_glx_create_window( int x, int y, int width, int height )
 					  RootWindowOfScreen(video_x11_screen),
 					  visual->visual, AllocNone );
     glx_window = XCreateWindow( video_x11_display, video_x11_window, 
-				x, y, width, height, 0, visual->depth, 
+				0, 0, width, height, 0, visual->depth, 
 				InputOutput, visual->visual, 
 				CWColormap | CWEventMask, 
 				&win_attrs );
@@ -123,11 +133,15 @@ gboolean video_glx_create_window( int x, int y, int width, int height )
 	glXDestroyContext( video_x11_display, glx_context );
 	return FALSE;
     }
-
-    hasRequiredGLExtensions();
-    glx_open = TRUE;
     return TRUE;
 }
+void video_glx_shutdown()
+{
+    XDestroyWindow( video_x11_display, glx_window );
+    XFreeColormap( video_x11_display, win_attrs.colormap );
+    glXDestroyContext( video_x11_display, glx_context );
+}
+
 
 int video_glx_load_font( const gchar *font_name )
 {
@@ -142,61 +156,8 @@ int video_glx_load_font( const gchar *font_name )
 }
 
 
-
-gboolean video_glx_set_render_format( int x, int y, int width, int height )
-{
-    if( glx_open )
-	return TRUE;
-    return video_glx_create_window( x, y, width, height );
-}
-
-gboolean video_glx_display_frame( video_buffer_t frame )
-{
-    GLenum type = colour_formats[frame->colour_format].type;
-    GLenum format = colour_formats[frame->colour_format].format;
-    int bpp = colour_formats[frame->colour_format].bpp;
-    
-    glDrawBuffer( GL_FRONT );
-    glViewport( 0, 0, video_width, video_height );
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    glOrtho( 0, frame->hres, frame->vres, 0, 0, -65535 );
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
-    glRasterPos2i( 0, 0 );
-    glPushClientAttrib( GL_CLIENT_PIXEL_STORE_BIT );
-    float scale = 480.0 / frame->vres;
-    glPixelZoom( 1.0f, -scale );
-    int rowstride = (frame->rowstride / bpp) - frame->hres;
-    glPixelStorei( GL_PACK_ROW_LENGTH, rowstride );
-    glDrawPixels( frame->hres, frame->vres, format, type,
-		  frame->data );
-    glPopClientAttrib();
-    glFlush();
-    return TRUE;
-}
-
-gboolean video_glx_blank( int width, int height, uint32_t colour )
-{
-    glDrawBuffer( GL_FRONT );
-    glViewport( 0, 0, width, height );
-    glMatrixMode( GL_PROJECTION );
-    glLoadIdentity();
-    glOrtho( 0, width, height, 0, 0, -65535 );
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
-    glColor3b( (colour >> 16) & 0xFF, (colour >> 8) & 0xFF, colour & 0xFF );
-    glRecti(0,0, width, height );
-    glFlush();
-    return TRUE;
-}
-
 void video_glx_swap_buffers( void )
 {
     glXSwapBuffers( video_x11_display, glx_window );
 }
 
-void video_glx_create_pixmap( int width, int height )
-{
-
-}

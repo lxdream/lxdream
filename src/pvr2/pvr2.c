@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.c,v 1.43 2007-01-28 11:36:00 nkeynes Exp $
+ * $Id: pvr2.c,v 1.44 2007-02-11 10:09:32 nkeynes Exp $
  *
  * PVR2 (Video) Core module implementation and MMIO registers.
  *
@@ -30,6 +30,8 @@
 
 char *video_base;
 
+#define MAX_RENDER_BUFFERS 4
+
 #define HPOS_PER_FRAME 0
 #define HPOS_PER_LINECOUNT 1
 
@@ -40,11 +42,13 @@ static void pvr2_save_state( FILE *f );
 static int pvr2_load_state( FILE *f );
 static void pvr2_update_raster_posn( uint32_t nanosecs );
 static void pvr2_schedule_scanline_event( int eventid, int line, int minimum_lines, int line_time_ns );
+static render_buffer_t pvr2_get_render_buffer( frame_buffer_t frame );
+static render_buffer_t pvr2_next_render_buffer( );
 uint32_t pvr2_get_sync_status();
 
 void pvr2_display_frame( void );
 
-int colour_format_bytes[] = { 2, 2, 2, 1, 3, 4, 1, 1 };
+static int output_colour_formats[] = { COLFMT_ARGB1555, COLFMT_RGB565, COLFMT_RGB888, COLFMT_ARGB8888 };
 
 struct dreamcast_module pvr2_module = { "PVR2", pvr2_init, pvr2_reset, NULL, 
 					pvr2_run_slice, NULL,
@@ -52,16 +56,6 @@ struct dreamcast_module pvr2_module = { "PVR2", pvr2_init, pvr2_reset, NULL,
 
 
 display_driver_t display_driver = NULL;
-
-struct video_timing {
-    int fields_per_second;
-    int total_lines;
-    int retrace_lines;
-    int line_time_ns;
-};
-
-struct video_timing pal_timing = { 50, 625, 65, 31945 };
-struct video_timing ntsc_timing= { 60, 525, 65, 31746 };
 
 struct pvr2_state {
     uint32_t frame_count;
@@ -89,11 +83,10 @@ struct pvr2_state {
     uint32_t retrace_start_line;
     uint32_t retrace_end_line;
     gboolean interlaced;
-    struct video_timing timing;
 } pvr2_state;
 
-struct video_buffer video_buffer[2];
-int video_buffer_idx = 0;
+render_buffer_t render_buffers[MAX_RENDER_BUFFERS];
+int render_buffer_count = 0;
 
 /**
  * Event handler for the hpos callback
@@ -127,6 +120,7 @@ static void pvr2_scanline_callback( int eventid ) {
 
 static void pvr2_init( void )
 {
+    int i;
     register_io_region( &mmio_region_PVR2 );
     register_io_region( &mmio_region_PVR2PAL );
     register_io_region( &mmio_region_PVR2TA );
@@ -138,6 +132,10 @@ static void pvr2_init( void )
     pvr2_reset();
     pvr2_ta_reset();
     pvr2_state.save_next_render_filename = NULL;
+    for( i=0; i<MAX_RENDER_BUFFERS; i++ ) {
+	render_buffers[i] = NULL;
+    }
+    render_buffer_count = 0;
 }
 
 static void pvr2_reset( void )
@@ -147,7 +145,6 @@ static void pvr2_reset( void )
     pvr2_state.cycles_run = 0;
     pvr2_state.irq_vpos1 = 0;
     pvr2_state.irq_vpos2 = 0;
-    pvr2_state.timing = ntsc_timing;
     pvr2_state.dot_clock = PVR2_DOT_CLOCK;
     pvr2_state.back_porch_ns = 4000;
     pvr2_state.palette_changed = FALSE;
@@ -155,10 +152,8 @@ static void pvr2_reset( void )
     mmio_region_PVR2_write( DISP_SYNCTIME, 0x07D6A53F );
     mmio_region_PVR2_write( YUV_ADDR, 0 );
     mmio_region_PVR2_write( YUV_CFG, 0 );
-    video_buffer_idx = 0;
     
     pvr2_ta_init();
-    pvr2_render_init();
     texcache_flush();
 }
 
@@ -241,82 +236,64 @@ gboolean pvr2_save_next_scene( const gchar *filename )
  */
 void pvr2_display_frame( void )
 {
-    uint32_t display_addr;
-    int dispsize = MMIO_READ( PVR2, DISP_SIZE );
     int dispmode = MMIO_READ( PVR2, DISP_MODE );
     int vidcfg = MMIO_READ( PVR2, DISP_SYNCCFG );
-    int vid_stride = (((dispsize & DISPSIZE_MODULO) >> 20) - 1);
-    int vid_lpf = ((dispsize & DISPSIZE_LPF) >> 10) + 1;
-    int vid_ppl = ((dispsize & DISPSIZE_PPL)) + 1;
     gboolean bEnabled = (dispmode & DISPMODE_ENABLE) && (vidcfg & DISPCFG_VO ) ? TRUE : FALSE;
-    gboolean interlaced = (vidcfg & DISPCFG_I ? TRUE : FALSE);
-    video_buffer_t buffer = &video_buffer[video_buffer_idx];
-    video_buffer_idx = !video_buffer_idx;
-    video_buffer_t last = &video_buffer[video_buffer_idx];
-    buffer->rowstride = (vid_ppl + vid_stride) << 2;
-    buffer->data = video_base + MMIO_READ( PVR2, DISP_ADDR1 );
-    buffer->line_double = (dispmode & DISPMODE_LINEDOUBLE) ? TRUE : FALSE;
-    buffer->vres = vid_lpf;
-    if( interlaced ) {
-	if( vid_ppl == vid_stride ) { /* Magic deinterlace */
-	    buffer->vres <<= 1;
-	    buffer->rowstride = vid_ppl << 2;
-	    display_addr = MMIO_READ( PVR2, DISP_ADDR1 );
-	} else { 
-	    /* Just display the field as is, folks. This is slightly tricky -
-	     * we pick the field based on which frame is about to come through,
-	     * which may not be the same as the odd_even_field.
-	     */
-	    gboolean oddfield = pvr2_state.odd_even_field;
-	    if( pvr2_state.line_count >= pvr2_state.retrace_start_line ) {
-		oddfield = !oddfield;
-	    }
-	    if( oddfield ) {
-		display_addr = MMIO_READ( PVR2, DISP_ADDR1 );
-	    } else {
-		display_addr = MMIO_READ( PVR2, DISP_ADDR2 );
-	    }
-	}
+
+    if( display_driver == NULL ) {
+	return; /* can't really do anything much */
+    } else if( !bEnabled ) {
+	/* Output disabled == black */
+	display_driver->display_blank( 0 ); 
+    } else if( MMIO_READ( PVR2, DISP_CFG2 ) & 0x08 ) { 
+	/* Enabled but blanked - border colour */
+	uint32_t colour = MMIO_READ( PVR2, DISP_BORDER );
+	display_driver->display_blank( colour );
     } else {
-	display_addr = MMIO_READ( PVR2, DISP_ADDR1 );
-    }
-    switch( (dispmode & DISPMODE_COLFMT) >> 2 ) {
-    case 0: 
-	buffer->colour_format = COLFMT_ARGB1555;
-	buffer->hres = vid_ppl << 1; 
-	break;
-    case 1: 
-	buffer->colour_format = COLFMT_RGB565;
-	buffer->hres = vid_ppl << 1; 
-	break;
-    case 2:
-	buffer->colour_format = COLFMT_RGB888;
-	buffer->hres = (vid_ppl << 2) / 3; 
-	break;
-    case 3: 
-	buffer->colour_format = COLFMT_ARGB8888;
-	buffer->hres = vid_ppl; 
-	break;
-    }
-	
-    if( buffer->hres <=8 )
-	buffer->hres = 640;
-    if( buffer->vres <=8 )
-	buffer->vres = 480;
-    if( display_driver != NULL ) {
-	if( buffer->hres != last->hres ||
-	    buffer->vres != last->vres ||
-	    buffer->colour_format != last->colour_format) {
-	    display_driver->set_display_format( buffer->hres, buffer->vres,
-						buffer->colour_format );
+	/* Real output - determine dimensions etc */
+	struct frame_buffer fbuf;
+	uint32_t dispsize = MMIO_READ( PVR2, DISP_SIZE );
+	int vid_stride = (((dispsize & DISPSIZE_MODULO) >> 20) - 1);
+	int vid_ppl = ((dispsize & DISPSIZE_PPL)) + 1;
+
+	fbuf.colour_format = output_colour_formats[(dispmode & DISPMODE_COLFMT) >> 2];
+	fbuf.width = vid_ppl << 2 / colour_formats[fbuf.colour_format].bpp;
+	fbuf.height = ((dispsize & DISPSIZE_LPF) >> 10) + 1;
+	fbuf.size = vid_ppl << 2 * fbuf.height;
+	fbuf.rowstride = (vid_ppl + vid_stride) << 2;
+
+	/* Determine the field to display, and deinterlace if possible */
+	if( pvr2_state.interlaced ) {
+	    if( vid_ppl == vid_stride ) { /* Magic deinterlace */
+		fbuf.height = fbuf.height << 1;
+		fbuf.rowstride = vid_ppl << 2;
+		fbuf.address = MMIO_READ( PVR2, DISP_ADDR1 );
+	    } else { 
+		/* Just display the field as is, folks. This is slightly tricky -
+		 * we pick the field based on which frame is about to come through,
+		 * which may not be the same as the odd_even_field.
+		 */
+		gboolean oddfield = pvr2_state.odd_even_field;
+		if( pvr2_state.line_count >= pvr2_state.retrace_start_line ) {
+		    oddfield = !oddfield;
+		}
+		if( oddfield ) {
+		    fbuf.address = MMIO_READ( PVR2, DISP_ADDR1 );
+		} else {
+		    fbuf.address = MMIO_READ( PVR2, DISP_ADDR2 );
+		}
+	    }
+	} else {
+	    fbuf.address = MMIO_READ( PVR2, DISP_ADDR1 );
 	}
-	if( !bEnabled ) {
-	    display_driver->display_blank_frame( 0 );
-	} else if( MMIO_READ( PVR2, DISP_CFG2 ) & 0x08 ) { /* Blanked */
-	    uint32_t colour = MMIO_READ( PVR2, DISP_BORDER );
-	    display_driver->display_blank_frame( colour );
-	} else if( !pvr2_render_display_frame( PVR2_RAM_BASE + display_addr ) ) {
-	    display_driver->display_frame( buffer );
+	fbuf.address = (fbuf.address & 0x00FFFFFF) + PVR2_RAM_BASE;
+
+	render_buffer_t rbuf = pvr2_get_render_buffer( &fbuf );
+	if( rbuf != NULL ) {
+	    display_driver->display_render_buffer( rbuf );
+	} else {
+	    fbuf.data = video_base + (fbuf.address&0x00FFFFFF);
+	    display_driver->display_frame_buffer( &fbuf );
 	}
     }
 }
@@ -349,7 +326,9 @@ void mmio_region_PVR2_write( uint32_t reg, uint32_t val )
 	    g_free( pvr2_state.save_next_render_filename );
 	    pvr2_state.save_next_render_filename = NULL;
 	}
-	pvr2_render_scene();
+	render_buffer_t buffer = pvr2_next_render_buffer();
+	pvr2_render_scene( buffer );
+	asic_event( EVENT_PVR_RENDER_DONE );
 	break;
     case RENDER_POLYBASE:
     	MMIO_WRITE( PVR2, reg, val&0x00F00000 );
@@ -372,23 +351,11 @@ void mmio_region_PVR2_write( uint32_t reg, uint32_t val )
     case DISP_ADDR1:
 	val &= 0x00FFFFFC;
 	MMIO_WRITE( PVR2, reg, val );
-	/*
 	pvr2_update_raster_posn(sh4r.slice_cycle);
-	fprintf( stderr, "Set Field 1 addr: %08X\n", val );
-	if( (pvr2_state.line_count >= pvr2_state.retrace_start_line && !pvr2_state.odd_even_field) ||
-	    (pvr2_state.line_count < pvr2_state.retrace_end_line && pvr2_state.odd_even_field) ) {
-	    pvr2_display_frame();
-	}
-	*/
 	break;
     case DISP_ADDR2:
     	MMIO_WRITE( PVR2, reg, val&0x00FFFFFC );
 	pvr2_update_raster_posn(sh4r.slice_cycle);
-	/*
-	if( (pvr2_state.line_count >= pvr2_state.retrace_start_line && pvr2_state.odd_even_field) ||
-	    (pvr2_state.line_count < pvr2_state.retrace_end_line && !pvr2_state.odd_even_field) ) {
-	    pvr2_display_frame();
-	    }*/
     	break;
     case DISP_SIZE:
     	MMIO_WRITE( PVR2, reg, val&0x3FFFFFFF );
@@ -722,3 +689,139 @@ void mmio_region_PVR2TA_write( uint32_t reg, uint32_t val )
     pvr2_ta_write( (char *)&val, sizeof(uint32_t) );
 }
 
+/**
+ * Find the render buffer corresponding to the requested output frame
+ * (does not consider texture renders). 
+ * @return the render_buffer if found, or null if no such buffer.
+ *
+ * Note: Currently does not consider "partial matches", ie partial
+ * frame overlap - it probably needs to do this.
+ */
+render_buffer_t pvr2_get_render_buffer( frame_buffer_t frame )
+{
+    int i;
+    for( i=0; i<render_buffer_count; i++ ) {
+	if( render_buffers[i] != NULL && render_buffers[i]->address == frame->address ) {
+	    return render_buffers[i];
+	}
+    }
+    return NULL;
+}
+
+/**
+ * Determine the next render buffer to write into. The order of preference is:
+ *   1. An existing buffer with the same address. (not flushed unless the new
+ * size is smaller than the old one).
+ *   2. An existing buffer with the same size chosen by LRU order. Old buffer
+ *       is flushed to vram.
+ *   3. A new buffer if one can be created.
+ *   4. The current display buff
+ * Note: The current display field(s) will never be overwritten except as a last
+ * resort.
+ */
+render_buffer_t pvr2_next_render_buffer()
+{
+    render_buffer_t result = NULL;
+    uint32_t render_addr = MMIO_READ( PVR2, RENDER_ADDR1 );
+    uint32_t render_mode = MMIO_READ( PVR2, RENDER_MODE );
+    uint32_t render_scale = MMIO_READ( PVR2, RENDER_SCALER );
+    uint32_t render_stride = MMIO_READ( PVR2, RENDER_SIZE ) << 3;
+    gboolean render_to_tex;
+    if( render_addr & 0x01000000 ) { /* vram64 */
+	render_addr = (render_addr & 0x00FFFFFF) + PVR2_RAM_BASE_INT;
+    } else { /* vram32 */
+	render_addr = (render_addr & 0x00FFFFFF) + PVR2_RAM_BASE;
+    }
+
+    int width, height, i;
+    int colour_format = pvr2_render_colour_format[render_mode&0x07];
+    pvr2_render_getsize( &width, &height );
+
+    /* Check existing buffers for an available buffer */
+    for( i=0; i<render_buffer_count; i++ ) {
+	if( render_buffers[i]->width == width && render_buffers[i]->height == height ) {
+	    /* needs to be the right dimensions */
+	    if( render_buffers[i]->address == render_addr ) {
+		/* perfect */
+		result = render_buffers[i];
+		break;
+	    } else if( render_buffers[i]->address == -1 && result == NULL ) {
+		result = render_buffers[i];
+	    }
+	} else if( render_buffers[i]->address == render_addr ) {
+	    /* right address, wrong size - if it's larger, flush it, otherwise 
+	     * nuke it quietly */
+	    if( render_buffers[i]->width * render_buffers[i]->height >
+		width*height ) {
+		pvr2_render_buffer_copy_to_sh4( render_buffers[i] );
+	    }
+	    render_buffers[i]->address == -1;
+	}
+    }
+
+    /* Nothing available - make one */
+    if( result == NULL ) {
+	if( render_buffer_count == MAX_RENDER_BUFFERS ) {
+	    /* maximum buffers reached - need to throw one away */
+	    uint32_t field1_addr = MMIO_READ( PVR2, DISP_ADDR1 );
+	    uint32_t field2_addr = MMIO_READ( PVR2, DISP_ADDR2 );
+	    for( i=0; i<render_buffer_count; i++ ) {
+		if( render_buffers[i]->address != field1_addr &&
+		    render_buffers[i]->address != field2_addr ) {
+		    /* Never throw away the current "front buffer(s)" */
+		    result = render_buffers[i];
+		    pvr2_render_buffer_copy_to_sh4( result );
+		    if( result->width != width || result->height != height ) {
+			display_driver->destroy_render_buffer(render_buffers[i]);
+			result = display_driver->create_render_buffer(width,height);
+			render_buffers[i] = result;
+		    }
+		    break;
+		}
+	    }
+	} else {
+	    result = display_driver->create_render_buffer(width,height);
+	    if( result != NULL ) { 
+		render_buffers[render_buffer_count++] = result;
+	    } else {
+		ERROR( "Failed to obtain a render buffer!" );
+		return NULL;
+	    }
+	}
+    }
+
+    /* Setup the buffer */
+    result->rowstride = render_stride;
+    result->colour_format = colour_format;
+    result->scale = render_scale;
+    result->size = width * height * colour_formats[colour_format].bpp;
+    result->address = render_addr;
+    result->flushed = FALSE;
+    return result;
+}
+
+/**
+ * Invalidate any caching on the supplied address. Specifically, if it falls
+ * within any of the render buffers, flush the buffer back to PVR2 ram.
+ */
+gboolean pvr2_render_buffer_invalidate( sh4addr_t address, gboolean isWrite )
+{
+    int i;
+    address = address & 0x1FFFFFFF;
+    for( i=0; i<render_buffer_count; i++ ) {
+	uint32_t bufaddr = render_buffers[i]->address;
+	uint32_t size = render_buffers[i]->size;
+	if( bufaddr != -1 && bufaddr <= address && 
+	    (bufaddr + render_buffers[i]->size) > address ) {
+	    if( !render_buffers[i]->flushed ) {
+		pvr2_render_buffer_copy_to_sh4( render_buffers[i] );
+		render_buffers[i]->flushed = TRUE;
+	    }
+	    if( isWrite ) {
+		render_buffers[i]->address = -1; /* Invalid */
+	    }
+	    return TRUE; /* should never have overlapping buffers */
+	}
+    }
+    return FALSE;
+}

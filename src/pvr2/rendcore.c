@@ -1,5 +1,5 @@
 /**
- * $Id: rendcore.c,v 1.18 2007-02-06 07:59:06 nkeynes Exp $
+ * $Id: rendcore.c,v 1.19 2007-02-11 10:09:32 nkeynes Exp $
  *
  * PVR2 renderer core.
  *
@@ -159,7 +159,7 @@ void render_set_context( uint32_t *context, int render_mode )
 	    glTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE );
 	    break;
 	}
-	glTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, POLY2_TEX_BLEND(poly2) );
+
 	if( POLY2_TEX_CLAMP_U(poly2) ) {
 	    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP );
 	} else {

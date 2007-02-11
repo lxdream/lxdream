@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2mem.c,v 1.8 2007-01-27 06:21:35 nkeynes Exp $
+ * $Id: pvr2mem.c,v 1.9 2007-02-11 10:09:32 nkeynes Exp $
  *
  * PVR2 (Video) VRAM handling routines (mainly for the 64-bit region)
  *
@@ -484,7 +484,7 @@ void pvr2_vram64_dump_file( sh4addr_t addr, uint32_t length, gchar *filename )
 	ERROR( "Unable to write to dump file '%s' (%s)", filename, strerror(errno) );
 	return;
     }
-    pvr2_vram64_read( tmp, addr, length );
+    pvr2_vram64_read( (char *)tmp, addr, length );
     fprintf( f, "%08X\n", addr );
     for( i =0; i<length>>2; i+=8 ) {
 	for( j=i; j<i+8; j++ ) {
@@ -516,77 +516,23 @@ void pvr2_vram64_dump( sh4addr_t addr, uint32_t length, FILE *f )
  * @param backBuffer TRUE to flush the back buffer, FALSE for 
  * the front buffer.
  */
-void pvr2_render_buffer_copy_to_sh4( pvr2_render_buffer_t buffer, 
-				     gboolean backBuffer )
+void pvr2_render_buffer_copy_to_sh4( render_buffer_t buffer )
 {
-    if( buffer->render_addr == -1 )
-	return;
-    GLenum type = colour_formats[buffer->colour_format].type;
-    GLenum format = colour_formats[buffer->colour_format].format;
-    int line_size = buffer->width * colour_formats[buffer->colour_format].bpp;
-    int size = line_size * buffer->height;
-    
-    if( backBuffer ) {
-	glFinish();
-	glReadBuffer( GL_BACK );
-    } else {
-	glReadBuffer( GL_FRONT );
-    }
-
-    if( buffer->render_addr & 0xFF000000 == 0x04000000 ) {
+    if( buffer->address & 0xFF000000 == 0x04000000 ) {
 	/* Interlaced buffer. Go the double copy... :( */
-	char target[size];
-	glReadPixels( 0, 0, buffer->width, buffer->height, format, type, target );
-	pvr2_vram64_write( buffer->render_addr, target, size );
+	char target[buffer->size];
+	display_driver->read_render_buffer( buffer, target );
+	pvr2_vram64_write( buffer->address, target, buffer->size );
     } else {
 	/* Regular buffer */
-	char target[size];
-	glReadPixels( 0, 0, buffer->width, buffer->height, format, type, target );
-	if( (buffer->scale & 0xFFFF) == 0x0800 ) {
-	    pvr2_vram_write_invert( buffer->render_addr, target, size, line_size, line_size << 1 );
-	} else {
-	    pvr2_vram_write_invert( buffer->render_addr, target, size, line_size, line_size );
-	}
+        char target[buffer->size];
+	int line_size = buffer->width * colour_formats[buffer->colour_format].bpp;
+	display_driver->read_render_buffer( buffer, target );
+        if( (buffer->scale & 0xFFFF) == 0x0800 ) {
+            pvr2_vram_write_invert( buffer->address, target, buffer->size, line_size, line_size << 1 );
+        } else {
+            pvr2_vram_write_invert( buffer->address, target, buffer->size, line_size, line_size );
+        }
     }
 }
 
-
-/**
- * Copy data from PVR ram into the GL render buffer. 
- *
- * @param buffer A render buffer indicating the address to read from, and the
- * format the data is in.
- * @param backBuffer TRUE to write the back buffer, FALSE for 
- * the front buffer.
- */
-void pvr2_render_buffer_copy_from_sh4( pvr2_render_buffer_t buffer, 
-				       gboolean backBuffer )
-{
-    if( buffer->render_addr == -1 )
-	return;
-
-    GLenum type = colour_formats[buffer->colour_format].type;
-    GLenum format = colour_formats[buffer->colour_format].format;
-    int line_size = buffer->width * colour_formats[buffer->colour_format].bpp;
-    int size = line_size * buffer->height;
-
-    if( backBuffer ) {
-	glDrawBuffer( GL_BACK );
-    } else {
-	glDrawBuffer( GL_FRONT );
-    }
-
-    glRasterPos2i( 0, 0 );
-    if( buffer->render_addr & 0xFF000000 == 0x04000000 ) {
-	/* Interlaced buffer. Go the double copy... :( */
-	char target[size];
-	pvr2_vram64_read( target, buffer->render_addr, size );
-	glDrawPixels( buffer->width, buffer->height, 
-		      format, type, target );
-    } else {
-	/* Regular buffer - go direct */
-	char *target = mem_get_region( buffer->render_addr );
-	glDrawPixels( buffer->width, buffer->height, 
-		      format, type, target );
-    }
-}

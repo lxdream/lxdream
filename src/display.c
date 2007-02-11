@@ -1,5 +1,5 @@
 /**
- * $Id: display.c,v 1.5 2007-01-25 13:03:23 nkeynes Exp $
+ * $Id: display.c,v 1.6 2007-02-11 10:09:32 nkeynes Exp $
  *
  * Generic support for keyboard and other input sources. The active display
  * driver is expected to deliver events here, where they're translated and
@@ -39,7 +39,8 @@ struct colour_format colour_formats[] = {
     { GL_UNSIGNED_SHORT_4_4_4_4_REV, GL_BGRA, GL_RGBA4, 2 },
     { GL_UNSIGNED_INT_8_8_8_8_REV, GL_BGRA, GL_RGBA8, 4 }, /* YUV decoded to ARGB8888 */
     { GL_UNSIGNED_BYTE, GL_BGR, GL_RGB, 3 },
-    { GL_UNSIGNED_INT_8_8_8_8_REV, GL_BGRA, GL_RGBA8, 4 }
+    { GL_UNSIGNED_INT_8_8_8_8_REV, GL_BGRA, GL_RGBA8, 4 },
+    
 };
 
 /**
@@ -151,7 +152,5 @@ void display_set_driver( display_driver_t driver )
     display_driver = driver;
     if( driver->init_driver != NULL )
 	driver->init_driver();
-    driver->set_display_format( 640, 480, COLFMT_ARGB8888 );
-    driver->set_render_format( 640, 480, COLFMT_ARGB8888, FALSE );
     texcache_gl_init();
 }
