@@ -1,5 +1,5 @@
 /**
- * $Id: display.c,v 1.6 2007-02-11 10:09:32 nkeynes Exp $
+ * $Id: display.c,v 1.7 2007-02-13 08:28:50 nkeynes Exp $
  *
  * Generic support for keyboard and other input sources. The active display
  * driver is expected to deliver events here, where they're translated and
@@ -79,7 +79,7 @@ gboolean input_register_key( const gchar *keysym, input_key_callback_t callback,
 			     void *data, uint32_t value )
 {
     int i;
-    if( display_driver == NULL || keysym == NULL )
+    if( display_driver == NULL || keysym == NULL || display_driver->resolve_keysym == NULL )
 	return FALSE; /* No display driver */
     gchar **strv = g_strsplit(keysym, ",", 16);
     gchar **s = strv;
