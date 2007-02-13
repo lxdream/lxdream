@@ -174,15 +174,15 @@ test_slot_17_pc:
 ! in a delay slot (otherwise it's GENERAL_ILLEGAL)
 
 test_slot_18:   ! LDC Rn, SPC in user mode
-	add #1, r12
-	expect_exc 0x000001A0
-	stc spc, r4
-	usermode
-test_slot_18_pc:
-	bsr test_slot_fail
-	ldc r4, spc
-	systemmode
-	assert_exc_caught test_slot_str_k test_slot_18_pc
+!	add #1, r12
+!	expect_exc 0x000001A0
+!	stc spc, r4
+!	usermode
+!test_slot_18_pc:
+!	bsr test_slot_fail
+!	ldc r4, spc
+!	systemmode
+!	assert_exc_caught test_slot_str_k test_slot_18_pc
 	
 		
 test_slot_end:

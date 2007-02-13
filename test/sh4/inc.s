@@ -189,6 +189,25 @@ L1:	.long 0x10000000
 L2:	
 .endm
 
+.macro setpr
+	sts fpscr, r0
+	xor r1, r1
+	add #8, r1
+	shll16 r1
+	or r1, r0
+	lds r0, fpscr
+.endm
+
+.macro clrpr
+	sts fpscr, r0
+	xor r1, r1
+	add #8, r1
+	shll16 r1
+	not r1, r1
+	and r1, r0
+	lds r0, fpscr
+.endm
+	
 .macro expect_exc code
 LOCAL L1, L2, L3
 	mov.l L1, r3
