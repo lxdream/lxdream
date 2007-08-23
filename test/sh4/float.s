@@ -186,23 +186,82 @@ test_float_6: ! Test max -int
 	sts fpul, r2
 	mov.l test_float_6_result, r1
 	cmp/eq r1, r2
-	bt test_float_end
+	bt test_float_7
 
 test_float_6_fail:
 	fail test_float_str_k
-	bra test_float_end
+	bra test_float_7
 	nop
 	
 test_float_6_input:
 	.long 0x80000000
 test_float_6_result:
 	.long 0xCF000000
+
+test_float_7:
+	add #1, r12
+	fldi0 fr8
+	fldi0 fr9
+	fldi0 fr10
+	frchg
+	fldi0 fr8
+	fldi0 fr9
+	fldi0 fr10
+	setpr
+	mov.l test_float_7_input, r0
+	lds r0, fpul
+	float fpul, fr9
+	sts fpul,r1
+	cmp/eq r0,r1
+	bf test_float_7_fail
+	flds fr8, fpul
+	sts fpul, r0
+	tst r0, r0
+	bf test_float_7_fail
+	flds fr9, fpul
+	sts fpul, r0
+	mov.l test_float_7_output_a, r1
+	cmp/eq r0, r1
+	bf test_float_7_fail
+	flds fr10, fpul
+	sts fpul, r0
+	tst r0, r0
+	bf test_float_7_fail	
+	frchg
+	flds fr8, fpul
+	sts fpul, r0
+	flds fr9, fpul
+	sts fpul, r1
+	flds fr10, fpul
+	sts fpul, r2
+	tst r0, r0
+	bf test_float_7_fail
+	tst r1, r1
+	bf test_float_7_fail	
+	tst r2, r2
+	bt test_float_end
+test_float_7_fail:		
+	fail test_float_str_k
+	bra test_float_end
+	nop	
+
+test_float_7_input:	
+	.long 0x12345678
+test_float_7_output_a:	
+	.long 0x41B23456
+test_float_7_output_b:
+	.long 0x78000000
+printf_k:
+	.long _printf
 	
 test_float_end:
 	end_test test_float_str_k
 	
 test_float_str:
 	.string "FLOAT"
+	.align 4
+printf_fmt:
+	.string "%08X %08X\n"
 	
 .align 4
 test_float_str_k:
