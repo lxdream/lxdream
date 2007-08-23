@@ -1,5 +1,5 @@
 /**
- * $Id: sh4dasm.c,v 1.10 2007-01-17 21:27:20 nkeynes Exp $
+ * $Id: sh4dasm.c,v 1.11 2007-08-23 12:33:27 nkeynes Exp $
  * 
  * SH4 CPU definition and disassembly functions
  *
@@ -51,7 +51,8 @@ const struct cpu_desc_struct sh4_cpu_desc =
 uint32_t sh4_disasm_instruction( uint32_t pc, char *buf, int len, char *opcode )
 {
     uint16_t ir = sh4_read_word(pc);
-    
+
+#define UNDEF(ir) snprintf( buf, len, "????    " );
 #define RN(ir) ((ir&0x0F00)>>8)
 #define RN_BANK(ir) ((ir&0x0070)>>4)
 #define RM(ir) ((ir&0x00F0)>>4)
@@ -66,316 +67,1485 @@ uint32_t sh4_disasm_instruction( uint32_t pc, char *buf, int len, char *opcode )
 
     sprintf( opcode, "%02X %02X", ir&0xFF, ir>>8 );
 
-    switch( (ir&0xF000)>>12 ) {
-        case 0: /* 0000nnnnmmmmxxxx */
-            switch( ir&0x000F ) {
-                case 2:
-                    switch( (ir&0x00F0)>>4 ) {
-                        case 0: snprintf( buf, len, "STC     SR, R%d", RN(ir) ); break;
-                        case 1: snprintf( buf, len, "STC     GBR, R%d", RN(ir) ); break;
-                        case 2: snprintf( buf, len, "STC     VBR, R%d", RN(ir) ); break;
-                        case 3: snprintf( buf, len, "STC     SSR, R%d", RN(ir) ); break;
-                        case 4: snprintf( buf, len, "STC     SPC, R%d", RN(ir) ); break;
-                        case 8: case 9: case 10: case 11: case 12: case 13: case 14:
-                        case 15:snprintf( buf, len, "STC     R%d_bank, R%d", RN_BANK(ir), RN(ir) ); break;
-                        default: UNIMP(ir);
-                    }
-                    break;
-                case 3:
-                    switch( (ir&0x00F0)>>4 ) {
-                        case 0: snprintf( buf, len, "BSRF    R%d", RN(ir) ); break;
-                        case 2: snprintf( buf, len, "BRAF    R%d", RN(ir) ); break;
-                        case 8: snprintf( buf, len, "PREF    [R%d]", RN(ir) ); break;
-                        case 9: snprintf( buf, len, "OCBI    [R%d]", RN(ir) ); break;
-                        case 10:snprintf( buf, len, "OCBP    [R%d]", RN(ir) ); break;
-                        case 11:snprintf( buf, len, "OCBWB   [R%d]", RN(ir) ); break;
-                        case 12:snprintf( buf, len, "MOVCA.L R0, [R%d]", RN(ir) ); break;
-                        default: UNIMP(ir);
-                    }
-                    break;
-                case 4: snprintf( buf, len, "MOV.B   R%d, [R0+R%d]", RM(ir), RN(ir) ); break;
-                case 5: snprintf( buf, len, "MOV.W   R%d, [R0+R%d]", RM(ir), RN(ir) ); break;
-                case 6: snprintf( buf, len, "MOV.L   R%d, [R0+R%d]", RM(ir), RN(ir) ); break;
-                case 7: snprintf( buf, len, "MUL.L   R%d, R%d", RM(ir), RN(ir) ); break;
-                case 8:
-                    switch( (ir&0x0FF0)>>4 ) {
-                        case 0: snprintf( buf, len, "CLRT    " ); break;
-                        case 1: snprintf( buf, len, "SETT    " ); break;
-                        case 2: snprintf( buf, len, "CLRMAC  " ); break;
-                        case 3: snprintf( buf, len, "LDTLB   " ); break;
-                        case 4: snprintf( buf, len, "CLRS    " ); break;
-                        case 5: snprintf( buf, len, "SETS    " ); break;
-                        default: UNIMP(ir);
-                    }
-                    break;
-                case 9:
-                    if( (ir&0x00F0) == 0x20 )
-                        snprintf( buf, len, "MOVT    R%d", RN(ir) );
-                    else if( ir == 0x0019 )
-                        snprintf( buf, len, "DIV0U   " );
-                    else if( ir == 0x0009 )
-                        snprintf( buf, len, "NOP     " );
-                    else UNIMP(ir);
-                    break;
-                case 10:
-                    switch( (ir&0x00F0) >> 4 ) {
-                        case 0: snprintf( buf, len, "STS     MACH, R%d", RN(ir) ); break;
-                        case 1: snprintf( buf, len, "STS     MACL, R%d", RN(ir) ); break;
-                        case 2: snprintf( buf, len, "STS     PR, R%d", RN(ir) ); break;
-                        case 3: snprintf( buf, len, "STC     SGR, R%d", RN(ir) ); break;
-                        case 5: snprintf( buf, len, "STS     FPUL, R%d", RN(ir) ); break;
-                        case 6: snprintf( buf, len, "STS     FPSCR, R%d", RN(ir) ); break;
-                        case 15:snprintf( buf, len, "STC     DBR, R%d", RN(ir) ); break;
-                        default: UNIMP(ir);
-                    }
-                    break;
-                case 11:
-                    switch( (ir&0x0FF0)>>4 ) {
-                        case 0: snprintf( buf, len, "RTS     " ); break;
-                        case 1: snprintf( buf, len, "SLEEP   " ); break;
-                        case 2: snprintf( buf, len, "RTE     " ); break;
-                        default:UNIMP(ir);
-                    }
-                    break;
-                case 12:snprintf( buf, len, "MOV.B   [R0+R%d], R%d", RM(ir), RN(ir) ); break;
-                case 13:snprintf( buf, len, "MOV.W   [R0+R%d], R%d", RM(ir), RN(ir) ); break;
-                case 14:snprintf( buf, len, "MOV.L   [R0+R%d], R%d", RM(ir), RN(ir) ); break;
-                case 15:snprintf( buf, len, "MAC.L   [R%d++], [R%d++]", RM(ir), RN(ir) ); break;
-                default: UNIMP(ir);
-            }
-            break;
-        case 1: /* 0001nnnnmmmmdddd */
-            snprintf( buf, len, "MOV.L   R%d, [R%d%+d]", RM(ir), RN(ir), DISP4(ir)<<2 ); break;
-        case 2: /* 0010nnnnmmmmxxxx */
-            switch( ir&0x000F ) {
-                case 0: snprintf( buf, len, "MOV.B   R%d, [R%d]", RM(ir), RN(ir) ); break;
-                case 1: snprintf( buf, len, "MOV.W   R%d, [R%d]", RM(ir), RN(ir) ); break;
-                case 2: snprintf( buf, len, "MOV.L   R%d, [R%d]", RM(ir), RN(ir) ); break;
-                case 3: UNIMP(ir); break;
-                case 4: snprintf( buf, len, "MOV.B   R%d, [--R%d]", RM(ir), RN(ir) ); break;
-                case 5: snprintf( buf, len, "MOV.W   R%d, [--R%d]", RM(ir), RN(ir) ); break;
-                case 6: snprintf( buf, len, "MOV.L   R%d, [--R%d]", RM(ir), RN(ir) ); break;
-                case 7: snprintf( buf, len, "DIV0S   R%d, R%d", RM(ir), RN(ir) ); break;
-                case 8: snprintf( buf, len, "TST     R%d, R%d", RM(ir), RN(ir) ); break;
-                case 9: snprintf( buf, len, "AND     R%d, R%d", RM(ir), RN(ir) ); break;
-                case 10:snprintf( buf, len, "XOR     R%d, R%d", RM(ir), RN(ir) ); break;
-                case 11:snprintf( buf, len, "OR      R%d, R%d", RM(ir), RN(ir) ); break;
-                case 12:snprintf( buf, len, "CMP/STR R%d, R%d", RM(ir), RN(ir) ); break;
-                case 13:snprintf( buf, len, "XTRCT   R%d, R%d", RM(ir), RN(ir) ); break;
-                case 14:snprintf( buf, len, "MULU.W  R%d, R%d", RM(ir), RN(ir) ); break;
-                case 15:snprintf( buf, len, "MULS.W  R%d, R%d", RM(ir), RN(ir) ); break;
-            }
-            break;
-        case 3: /* 0011nnnnmmmmxxxx */
-            switch( ir&0x000F ) {
-                case 0: snprintf( buf, len, "CMP/EQ  R%d, R%d", RM(ir), RN(ir) ); break;
-                case 2: snprintf( buf, len, "CMP/HS  R%d, R%d", RM(ir), RN(ir) ); break;
-                case 3: snprintf( buf, len, "CMP/GE  R%d, R%d", RM(ir), RN(ir) ); break;
-                case 4: snprintf( buf, len, "DIV1    R%d, R%d", RM(ir), RN(ir) ); break;
-                case 5: snprintf( buf, len, "DMULU.L R%d, R%d", RM(ir), RN(ir) ); break;
-                case 6: snprintf( buf, len, "CMP/HI  R%d, R%d", RM(ir), RN(ir) ); break;
-                case 7: snprintf( buf, len, "CMP/GT  R%d, R%d", RM(ir), RN(ir) ); break;
-                case 8: snprintf( buf, len, "SUB     R%d, R%d", RM(ir), RN(ir) ); break;
-                case 10:snprintf( buf, len, "SUBC    R%d, R%d", RM(ir), RN(ir) ); break;
-                case 11:snprintf( buf, len, "SUBV    R%d, R%d", RM(ir), RN(ir) ); break;
-                case 12:snprintf( buf, len, "ADD     R%d, R%d", RM(ir), RN(ir) ); break;
-                case 13:snprintf( buf, len, "DMULS.L R%d, R%d", RM(ir), RN(ir) ); break;
-                case 14:snprintf( buf, len, "ADDC    R%d, R%d", RM(ir), RN(ir) ); break;
-                case 15:snprintf( buf, len, "ADDV    R%d, R%d", RM(ir), RN(ir) ); break;
-                default: UNIMP(ir);
-            }
-            break;
-        case 4: /* 0100nnnnxxxxxxxx */
-            switch( ir&0x00FF ) {
-                case 0x00: snprintf( buf, len, "SHLL    R%d", RN(ir) ); break;
-                case 0x01: snprintf( buf, len, "SHLR    R%d", RN(ir) ); break;
-                case 0x02: snprintf( buf, len, "STS.L   MACH, [--R%d]", RN(ir) ); break;
-                case 0x03: snprintf( buf, len, "STC.L   SR, [--R%d]", RN(ir) ); break;
-                case 0x04: snprintf( buf, len, "ROTL    R%d", RN(ir) ); break;
-                case 0x05: snprintf( buf, len, "ROTR    R%d", RN(ir) ); break;
-                case 0x06: snprintf( buf, len, "LDS.L   [R%d++], MACH", RN(ir) ); break;
-                case 0x07: snprintf( buf, len, "LDC.L   [R%d++], SR", RN(ir) ); break;
-                case 0x08: snprintf( buf, len, "SHLL2   R%d", RN(ir) ); break;
-                case 0x09: snprintf( buf, len, "SHLR2   R%d", RN(ir) ); break;
-                case 0x0A: snprintf( buf, len, "LDS     R%d, MACH", RN(ir) ); break;
-                case 0x0B: snprintf( buf, len, "JSR     [R%d]", RN(ir) ); break;
-                case 0x0E: snprintf( buf, len, "LDC     R%d, SR", RN(ir) ); break;
-                case 0x10: snprintf( buf, len, "DT      R%d", RN(ir) ); break;
-                case 0x11: snprintf( buf, len, "CMP/PZ  R%d", RN(ir) ); break;
-                case 0x12: snprintf( buf, len, "STS.L   MACL, [--R%d]", RN(ir) ); break;
-                case 0x13: snprintf( buf, len, "STC.L   GBR, [--R%d]", RN(ir) ); break;
-                case 0x15: snprintf( buf, len, "CMP/PL  R%d", RN(ir) ); break;
-                case 0x16: snprintf( buf, len, "LDS.L   [R%d++], MACL", RN(ir) ); break;
-                case 0x17: snprintf( buf, len, "LDC.L   [R%d++], GBR", RN(ir) ); break;
-                case 0x18: snprintf( buf, len, "SHLL8   R%d", RN(ir) ); break;
-                case 0x19: snprintf( buf, len, "SHLR8   R%d", RN(ir) ); break;
-                case 0x1A: snprintf( buf, len, "LDS     R%d, MACL", RN(ir) ); break;
-                case 0x1B: snprintf( buf, len, "TAS.B   [R%d]", RN(ir) ); break;
-                case 0x1E: snprintf( buf, len, "LDC     R%d, GBR", RN(ir) ); break;
-                case 0x20: snprintf( buf, len, "SHAL    R%d", RN(ir) ); break;
-                case 0x21: snprintf( buf, len, "SHAR    R%d", RN(ir) ); break;
-                case 0x22: snprintf( buf, len, "STS.L   PR, [--R%d]", RN(ir) ); break;
-                case 0x23: snprintf( buf, len, "STC.L   VBR, [--R%d]", RN(ir) ); break;
-                case 0x24: snprintf( buf, len, "ROTCL   R%d", RN(ir) ); break;
-                case 0x25: snprintf( buf, len, "ROTCR   R%d", RN(ir) ); break;
-                case 0x26: snprintf( buf, len, "LDS.L   [R%d++], PR", RN(ir) ); break;
-                case 0x27: snprintf( buf, len, "LDC.L   [R%d++], VBR", RN(ir) ); break;
-                case 0x28: snprintf( buf, len, "SHLL16  R%d", RN(ir) ); break;
-                case 0x29: snprintf( buf, len, "SHLR16  R%d", RN(ir) ); break;
-                case 0x2A: snprintf( buf, len, "LDS     R%d, PR", RN(ir) ); break;
-                case 0x2B: snprintf( buf, len, "JMP     [R%d]", RN(ir) ); break;
-                case 0x2E: snprintf( buf, len, "LDC     R%d, VBR", RN(ir) ); break;
-                case 0x32: snprintf( buf, len, "STC.L   SGR, [--R%d]", RN(ir) ); break;
-                case 0x33: snprintf( buf, len, "STC.L   SSR, [--R%d]", RN(ir) ); break;
-                case 0x37: snprintf( buf, len, "LDC.L   [R%d++], SSR", RN(ir) ); break;
-                case 0x3E: snprintf( buf, len, "LDC     R%d, SSR", RN(ir) ); break;
-                case 0x43: snprintf( buf, len, "STC.L   SPC, [--R%d]", RN(ir) ); break;
-                case 0x47: snprintf( buf, len, "LDC.L   [R%d++], SPC", RN(ir) ); break;
-                case 0x4E: snprintf( buf, len, "LDC     R%d, SPC", RN(ir) ); break;
-                case 0x52: snprintf( buf, len, "STS.L   FPUL, [--R%d]", RN(ir) ); break;
-                case 0x56: snprintf( buf, len, "LDS.L   [R%d++], FPUL", RN(ir) ); break;
-                case 0x5A: snprintf( buf, len, "LDS     R%d, FPUL", RN(ir) ); break;
-                case 0x62: snprintf( buf, len, "STS.L   FPSCR, [--R%d]", RN(ir) ); break;
-                case 0x66: snprintf( buf, len, "LDS.L   [R%d++], FPSCR", RN(ir) ); break;
-                case 0x6A: snprintf( buf, len, "LDS     R%d, FPSCR", RN(ir) ); break;
-                case 0xF2: snprintf( buf, len, "STC.L   DBR, [--R%d]", RN(ir) ); break;
-                case 0xF6: snprintf( buf, len, "LDC.L   [R%d++], DBR", RN(ir) ); break;
-                case 0xFA: snprintf( buf, len, "LDC     R%d, DBR", RN(ir) ); break;
-                case 0x83: case 0x93: case 0xA3: case 0xB3: case 0xC3: case 0xD3: case 0xE3:
-                case 0xF3: snprintf( buf, len, "STC.L   R%d_BANK, [--R%d]", RN_BANK(ir), RN(ir) ); break;
-                case 0x87: case 0x97: case 0xA7: case 0xB7: case 0xC7: case 0xD7: case 0xE7:
-                case 0xF7: snprintf( buf, len, "LDC.L   [R%d++], R%d_BANK", RN(ir), RN_BANK(ir) ); break; 
-                case 0x8E: case 0x9E: case 0xAE: case 0xBE: case 0xCE: case 0xDE: case 0xEE:
-                case 0xFE: snprintf( buf, len, "LDC     R%d, R%d_BANK", RN(ir), RN_BANK(ir) ); break;
-                default:
-                    if( (ir&0x000F) == 0x0F ) {
-                        snprintf( buf, len, "MAC.W   [R%d++], [R%d++]", RM(ir), RN(ir) );
-                    } else if( (ir&0x000F) == 0x0C ) {
-                        snprintf( buf, len, "SHAD    R%d, R%d", RM(ir), RN(ir) );
-                    } else if( (ir&0x000F) == 0x0D ) {
-                        snprintf( buf, len, "SHLD    R%d, R%d", RM(ir), RN(ir) );
-                    } else UNIMP(ir);
-            }
-            break;
-        case 5: /* 0101nnnnmmmmdddd */
-            snprintf( buf, len, "MOV.L   [R%d%+d], R%d", RM(ir), DISP4(ir)<<2, RN(ir) ); break;
-        case 6: /* 0110xxxxxxxxxxxx */
-            switch( ir&0x000f ) {
-                case 0: snprintf( buf, len, "MOV.B   [R%d], R%d", RM(ir), RN(ir) ); break;
-                case 1: snprintf( buf, len, "MOV.W   [R%d], R%d", RM(ir), RN(ir) ); break;
-                case 2: snprintf( buf, len, "MOV.L   [R%d], R%d", RM(ir), RN(ir) ); break;
-                case 3: snprintf( buf, len, "MOV     R%d, R%d", RM(ir), RN(ir) );   break;
-                case 4: snprintf( buf, len, "MOV.B   [R%d++], R%d", RM(ir), RN(ir) ); break;
-                case 5: snprintf( buf, len, "MOV.W   [R%d++], R%d", RM(ir), RN(ir) ); break;
-                case 6: snprintf( buf, len, "MOV.L   [R%d++], R%d", RM(ir), RN(ir) ); break;
-                case 7: snprintf( buf, len, "NOT     R%d, R%d", RM(ir), RN(ir) ); break;
-                case 8: snprintf( buf, len, "SWAP.B  R%d, R%d", RM(ir), RN(ir) ); break;
-                case 9: snprintf( buf, len, "SWAP.W  R%d, R%d", RM(ir), RN(ir) ); break;
-                case 10:snprintf( buf, len, "NEGC    R%d, R%d", RM(ir), RN(ir) ); break;
-                case 11:snprintf( buf, len, "NEG     R%d, R%d", RM(ir), RN(ir) ); break;
-                case 12:snprintf( buf, len, "EXTU.B  R%d, R%d", RM(ir), RN(ir) ); break;
-                case 13:snprintf( buf, len, "EXTU.W  R%d, R%d", RM(ir), RN(ir) ); break;
-                case 14:snprintf( buf, len, "EXTS.B  R%d, R%d", RM(ir), RN(ir) ); break;
-                case 15:snprintf( buf, len, "EXTS.W  R%d, R%d", RM(ir), RN(ir) ); break;
-            }
-            break;
-        case 7: /* 0111nnnniiiiiiii */
-            snprintf( buf, len, "ADD    #%d, R%d", SIGNEXT8(ir&0x00FF), RN(ir) ); break;
-        case 8: /* 1000xxxxxxxxxxxx */
-            switch( (ir&0x0F00) >> 8 ) {
-                case 0: snprintf( buf, len, "MOV.B   R0, [R%d%+d]", RM(ir), DISP4(ir) ); break;
-                case 1: snprintf( buf, len, "MOV.W   R0, [R%d%+d]", RM(ir), DISP4(ir)<<1 ); break;
-                case 4: snprintf( buf, len, "MOV.B   [R%d%+d], R0", RM(ir), DISP4(ir) ); break;
-                case 5: snprintf( buf, len, "MOV.W   [R%d%+d], R0", RM(ir), DISP4(ir)<<1 ); break;
-                case 8: snprintf( buf, len, "CMP/EQ  #%d, R0", IMM8(ir) ); break;
-                case 9: snprintf( buf, len, "BT      $%xh", (PCDISP8(ir)<<1)+pc+4 ); break;
-                case 11:snprintf( buf, len, "BF      $%xh", (PCDISP8(ir)<<1)+pc+4 ); break;
-                case 13:snprintf( buf, len, "BT/S    $%xh", (PCDISP8(ir)<<1)+pc+4 ); break;
-                case 15:snprintf( buf, len, "BF/S    $%xh", (PCDISP8(ir)<<1)+pc+4 ); break;
-                default: UNIMP(ir);
-            }
-            break;
-        case 9: /* 1001xxxxxxxxxxxx */
-            snprintf( buf, len, "MOV.W   [$%xh], R%-2d ; <- #%08x", (DISP8(ir)<<1)+pc+4, RN(ir),
-                      sh4_read_word( (DISP8(ir)<<1)+pc+4 ) ); break;
-        case 10:/* 1010xxxxxxxxxxxx */
-            snprintf( buf, len, "BRA     $%xh", (DISP12(ir)<<1)+pc+4 ); break;
-        case 11:/* 1011xxxxxxxxxxxx */
-            snprintf( buf, len, "BSR     $%xh", (DISP12(ir)<<1)+pc+4 ); break;            
-        case 12:/* 1100xxxxdddddddd */
-            switch( (ir&0x0F00)>>8 ) {
-                case 0: snprintf( buf, len, "MOV.B   R0, [GBR%+d]", DISP8(ir) ); break;
-                case 1: snprintf( buf, len, "MOV.W   R0, [GBR%+d]", DISP8(ir)<<1 ); break;
-                case 2: snprintf( buf, len, "MOV.L   R0, [GBR%+d]", DISP8(ir)<<2 ); break;
-                case 3: snprintf( buf, len, "TRAPA   #%d", UIMM8(ir) ); break;
-                case 4: snprintf( buf, len, "MOV.B   [GBR%+d], R0", DISP8(ir) ); break;
-                case 5: snprintf( buf, len, "MOV.W   [GBR%+d], R0", DISP8(ir)<<1 ); break;
-                case 6: snprintf( buf, len, "MOV.L   [GBR%+d], R0", DISP8(ir)<<2 ); break;
-                case 7: snprintf( buf, len, "MOVA    $%xh, R0", (DISP8(ir)<<2)+(pc&~3)+4 ); break;
-                case 8: snprintf( buf, len, "TST     #%02Xh, R0", UIMM8(ir) ); break;
-                case 9: snprintf( buf, len, "AND     #%02Xh, R0", UIMM8(ir) ); break;
-                case 10:snprintf( buf, len, "XOR     #%02Xh, R0", UIMM8(ir) ); break;
-                case 11:snprintf( buf, len, "OR      #%02Xh, R0", UIMM8(ir) ); break;
-                case 12:snprintf( buf, len, "TST.B   #%02Xh, [R0+GBR]", UIMM8(ir) ); break;
-                case 13:snprintf( buf, len, "AND.B   #%02Xh, [R0+GBR]", UIMM8(ir) ); break;
-                case 14:snprintf( buf, len, "XOR.B   #%02Xh, [R0+GBR]", UIMM8(ir) ); break;
-                case 15:snprintf( buf, len, "OR.B    #%02Xh, [R0+GBR]", UIMM8(ir) ); break;
-            }
-            break;
-        case 13:/* 1101xxxxxxxxxxxx */
-            snprintf( buf, len, "MOV.L   [$%xh], R%-2d ; <- #%08x", (DISP8(ir)<<2)+(pc&~3)+4, RN(ir),
-                      sh4_read_long( (DISP8(ir)<<2)+(pc&~3)+4 ) ); break;
-        case 14:/* 1110xxxxxxxxxxxx */
-            snprintf( buf, len, "MOV     #%d, R%d", DISP8(ir), RN(ir)); break;
-        case 15:/* 1111xxxxxxxxxxxx */
-            switch( ir&0x000F ) {
-                case 0: snprintf( buf, len, "FADD    FR%d, FR%d", RM(ir), RN(ir) ); break;
-                case 1: snprintf( buf, len, "FSUB    FR%d, FR%d", RM(ir), RN(ir) ); break;
-                case 2: snprintf( buf, len, "FMUL    FR%d, FR%d", RM(ir), RN(ir) ); break;
-                case 3: snprintf( buf, len, "FDIV    FR%d, FR%d", RM(ir), RN(ir) ); break;
-                case 4: snprintf( buf, len, "FCMP/EQ FR%d, FR%d", RM(ir), RN(ir) ); break;
-                case 5: snprintf( buf, len, "FCMP/GT FR%d, FR%d", RM(ir), RN(ir) ); break;
-                case 6: snprintf( buf, len, "FMOV.S  [R%d+R0], FR%d", RM(ir), RN(ir) ); break;
-                case 7: snprintf( buf, len, "FMOV.S  FR%d, [R%d+R0]", RM(ir), RN(ir) ); break;
-                case 8: snprintf( buf, len, "FMOV.S  [R%d], FR%d", RM(ir), RN(ir) ); break;
-                case 9: snprintf( buf, len, "FMOV.S  [R%d++], FR%d", RM(ir), RN(ir) ); break;
-                case 10:snprintf( buf, len, "FMOV.S  FR%d, [R%d]", RM(ir), RN(ir) ); break;
-                case 11:snprintf( buf, len, "FMOV.S  FR%d, [--R%d]", RM(ir), RN(ir) ); break;
-                case 12:snprintf( buf, len, "FMOV    FR%d, FR%d", RM(ir), RN(ir) ); break;
-                case 13:
-                    switch( (ir&0x00F0) >> 4 ) {
-                        case 0: snprintf( buf, len, "FSTS    FPUL, FR%d", RN(ir) ); break;
-                        case 1: snprintf( buf, len, "FLDS    FR%d, FPUL", RN(ir) ); break;
-                        case 2: snprintf( buf, len, "FLOAT   FPUL, FR%d", RN(ir) ); break;
-                        case 3: snprintf( buf, len, "FTRC    FR%d, FPUL", RN(ir) ); break;
-                        case 4: snprintf( buf, len, "FNEG    FR%d", RN(ir) ); break;
-                        case 5: snprintf( buf, len, "FABS    FR%d", RN(ir) ); break;
-                        case 6: snprintf( buf, len, "FSQRT   FR%d", RN(ir) ); break;
-                        case 7: snprintf( buf, len, "FSRRA   FR%d", RN(ir) ); break;
-                        case 8: snprintf( buf, len, "FLDI0   FR%d", RN(ir) ); break;
-                        case 9: snprintf( buf, len, "FLDI1   FR%d", RN(ir) ); break;
-                        case 10:snprintf( buf, len, "FCNVSD  FPUL, DR%d", RN(ir)>>1 ); break;
-                        case 11:snprintf( buf, len, "FCNVDS  DR%d, FPUL", RN(ir)>>1 ); break;
-                        case 14:snprintf( buf, len, "FIPR    FV%d, FV%d", FVM(ir), FVN(ir) ); break;
-                        case 15:
-                            if( (ir & 0x0300) == 0x0100 )
-                                snprintf( buf, len, "FTRV    XMTRX,FV%d", FVN(ir) );
-                            else if( (ir & 0x0100) == 0 )
-                                snprintf( buf, len, "FSCA    FPUL, DR%d", RN(ir) );
-                            else if( ir == 0xFBFD )
-                                snprintf( buf, len, "FRCHG   " );
-                            else if( ir == 0xF3FD )
-                                snprintf( buf, len, "FSCHG   " );
-                            else UNIMP(ir);
-                            break;
-                        default: UNIMP(ir);
-                    }
-                    break;
-                case 14:snprintf( buf, len, "FMAC    FR0, FR%d, FR%d", RM(ir), RN(ir) ); break;
-                default: UNIMP(ir);
-            }
-            break;
-    }
+        switch( (ir&0xF000) >> 12 ) {
+            case 0x0:
+                switch( ir&0xF ) {
+                    case 0x2:
+                        switch( (ir&0x80) >> 7 ) {
+                            case 0x0:
+                                switch( (ir&0x70) >> 4 ) {
+                                    case 0x0:
+                                        { /* STC SR, Rn */
+                                        uint32_t Rn = ((ir>>8)&0xF); 
+                                        snprintf( buf, len, "STC     SR, R%d", Rn );
+                                        }
+                                        break;
+                                    case 0x1:
+                                        { /* STC GBR, Rn */
+                                        uint32_t Rn = ((ir>>8)&0xF); 
+                                        snprintf( buf, len, "STC     GBR, R%d", Rn );
+                                        }
+                                        break;
+                                    case 0x2:
+                                        { /* STC VBR, Rn */
+                                        uint32_t Rn = ((ir>>8)&0xF); 
+                                        snprintf( buf, len, "STC     VBR, R%d", Rn );
+                                        }
+                                        break;
+                                    case 0x3:
+                                        { /* STC SSR, Rn */
+                                        uint32_t Rn = ((ir>>8)&0xF); 
+                                        snprintf( buf, len, "STC     SSR, R%d", Rn );
+                                        }
+                                        break;
+                                    case 0x4:
+                                        { /* STC SPC, Rn */
+                                        uint32_t Rn = ((ir>>8)&0xF); 
+                                        snprintf( buf, len, "STC     SPC, R%d", Rn );
+                                        }
+                                        break;
+                                    default:
+                                        UNDEF();
+                                        break;
+                                }
+                                break;
+                            case 0x1:
+                                { /* STC Rm_BANK, Rn */
+                                uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm_BANK = ((ir>>4)&0x7); 
+                                snprintf( buf, len, "STC     R%d_BANK, R%d", Rm_BANK, Rn );
+                                }
+                                break;
+                        }
+                        break;
+                    case 0x3:
+                        switch( (ir&0xF0) >> 4 ) {
+                            case 0x0:
+                                { /* BSRF Rn */
+                                uint32_t Rn = ((ir>>8)&0xF); 
+                                snprintf( buf, len, "BSRF    R%d", Rn );
+                                }
+                                break;
+                            case 0x2:
+                                { /* BRAF Rn */
+                                uint32_t Rn = ((ir>>8)&0xF); 
+                                snprintf( buf, len, "BRAF    R%d", Rn );
+                                }
+                                break;
+                            case 0x8:
+                                { /* PREF @Rn */
+                                uint32_t Rn = ((ir>>8)&0xF); 
+                                snprintf( buf, len, "PREF    R%d", Rn );
+                                }
+                                break;
+                            case 0x9:
+                                { /* OCBI @Rn */
+                                uint32_t Rn = ((ir>>8)&0xF); 
+                                snprintf( buf, len, "OCBI    @R%d", Rn );
+                                }
+                                break;
+                            case 0xA:
+                                { /* OCBP @Rn */
+                                uint32_t Rn = ((ir>>8)&0xF); 
+                                snprintf( buf, len, "OCBP    @R%d", Rn );
+                                }
+                                break;
+                            case 0xB:
+                                { /* OCBWB @Rn */
+                                uint32_t Rn = ((ir>>8)&0xF); 
+                                snprintf( buf, len, "OCBWB   @R%d", Rn );
+                                }
+                                break;
+                            case 0xC:
+                                { /* MOVCA.L R0, @Rn */
+                                uint32_t Rn = ((ir>>8)&0xF); 
+                                snprintf( buf, len, "MOVCA.L R0, @R%d", Rn );
+                                }
+                                break;
+                            default:
+                                UNDEF();
+                                break;
+                        }
+                        break;
+                    case 0x4:
+                        { /* MOV.B Rm, @(R0, Rn) */
+                        uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "MOV.B   R%d, @(R0, R%d)", Rm, Rn );
+                        }
+                        break;
+                    case 0x5:
+                        { /* MOV.W Rm, @(R0, Rn) */
+                        uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "MOV.W   R%d, @(R0, R%d)", Rm, Rn );
+                        }
+                        break;
+                    case 0x6:
+                        { /* MOV.L Rm, @(R0, Rn) */
+                        uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "MOV.L   R%d, @(R0, R%d)", Rm, Rn );
+                        }
+                        break;
+                    case 0x7:
+                        { /* MUL.L Rm, Rn */
+                        uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "MUL.L   R%d, R%d", Rm, Rn );
+                        }
+                        break;
+                    case 0x8:
+                        switch( (ir&0xFF0) >> 4 ) {
+                            case 0x0:
+                                { /* CLRT */
+                                snprintf( buf, len, "CLRT    " );
+                                }
+                                break;
+                            case 0x1:
+                                { /* SETT */
+                                snprintf( buf, len, "SETT    " );
+                                }
+                                break;
+                            case 0x2:
+                                { /* CLRMAC */
+                                snprintf( buf, len, "CLRMAC  " );
+                                }
+                                break;
+                            case 0x3:
+                                { /* LDTLB */
+                                snprintf( buf, len, "LDTLB   " );
+                                }
+                                break;
+                            case 0x4:
+                                { /* CLRS */
+                                snprintf( buf, len, "CLRS    " );
+                                }
+                                break;
+                            case 0x5:
+                                { /* SETS */
+                                snprintf( buf, len, "SETS    " );
+                                }
+                                break;
+                            default:
+                                UNDEF();
+                                break;
+                        }
+                        break;
+                    case 0x9:
+                        switch( (ir&0xF0) >> 4 ) {
+                            case 0x0:
+                                { /* NOP */
+                                snprintf( buf, len, "NOP     " );
+                                }
+                                break;
+                            case 0x1:
+                                { /* DIV0U */
+                                snprintf( buf, len, "DIV0U   " );
+                                }
+                                break;
+                            case 0x2:
+                                { /* MOVT Rn */
+                                uint32_t Rn = ((ir>>8)&0xF); 
+                                snprintf( buf, len, "MOVT    R%d", Rn );
+                                }
+                                break;
+                            default:
+                                UNDEF();
+                                break;
+                        }
+                        break;
+                    case 0xA:
+                        switch( (ir&0xF0) >> 4 ) {
+                            case 0x0:
+                                { /* STS MACH, Rn */
+                                uint32_t Rn = ((ir>>8)&0xF); 
+                                snprintf( buf, len, "STS     MACH, R%d", Rn );
+                                }
+                                break;
+                            case 0x1:
+                                { /* STS MACL, Rn */
+                                uint32_t Rn = ((ir>>8)&0xF); 
+                                snprintf( buf, len, "STS     MACL, R%d", Rn );
+                                }
+                                break;
+                            case 0x2:
+                                { /* STS PR, Rn */
+                                uint32_t Rn = ((ir>>8)&0xF); 
+                                snprintf( buf, len, "STS     PR, R%d", Rn );
+                                }
+                                break;
+                            case 0x3:
+                                { /* STC SGR, Rn */
+                                uint32_t Rn = ((ir>>8)&0xF); 
+                                snprintf( buf, len, "STC     SGR, R%d", Rn );
+                                }
+                                break;
+                            case 0x5:
+                                { /* STS FPUL, Rn */
+                                uint32_t Rn = ((ir>>8)&0xF); 
+                                snprintf( buf, len, "STS     FPUL, R%d", Rn );
+                                }
+                                break;
+                            case 0x6:
+                                { /* STS FPSCR, Rn */
+                                uint32_t Rn = ((ir>>8)&0xF); 
+                                snprintf( buf, len, "STS     FPSCR, R%d", Rn );
+                                }
+                                break;
+                            case 0xF:
+                                { /* STC DBR, Rn */
+                                uint32_t Rn = ((ir>>8)&0xF); 
+                                snprintf( buf, len, "STC     DBR, R%d", Rn );
+                                }
+                                break;
+                            default:
+                                UNDEF();
+                                break;
+                        }
+                        break;
+                    case 0xB:
+                        switch( (ir&0xFF0) >> 4 ) {
+                            case 0x0:
+                                { /* RTS */
+                                snprintf( buf, len, "RTS     " );
+                                }
+                                break;
+                            case 0x1:
+                                { /* SLEEP */
+                                snprintf( buf, len, "SLEEP   " );
+                                }
+                                break;
+                            case 0x2:
+                                { /* RTE */
+                                snprintf( buf, len, "RTE     " );
+                                }
+                                break;
+                            default:
+                                UNDEF();
+                                break;
+                        }
+                        break;
+                    case 0xC:
+                        { /* MOV.B @(R0, Rm), Rn */
+                        uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "MOV.B   @(R0, R%d), R%d", Rm, Rn );
+                        }
+                        break;
+                    case 0xD:
+                        { /* MOV.W @(R0, Rm), Rn */
+                        uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "MOV.W   @(R0, R%d), R%d", Rm, Rn );
+                        }
+                        break;
+                    case 0xE:
+                        { /* MOV.L @(R0, Rm), Rn */
+                        uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "MOV.L   @(R0, R%d), R%d", Rm, Rn );
+                        }
+                        break;
+                    case 0xF:
+                        { /* MAC.L @Rm+, @Rn+ */
+                        uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "MAC.L   @R%d+, @R%d+", Rm, Rn );
+                        }
+                        break;
+                    default:
+                        UNDEF();
+                        break;
+                }
+                break;
+            case 0x1:
+                { /* MOV.L Rm, @(disp, Rn) */
+                uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); uint32_t disp = (ir&0xF)<<2; 
+                snprintf( buf, len, "MOV.L   R%d, @(%d, R%d)", Rm, disp, Rn );
+                }
+                break;
+            case 0x2:
+                switch( ir&0xF ) {
+                    case 0x0:
+                        { /* MOV.B Rm, @Rn */
+                        uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "MOV.B   R%d, @R%d", Rm, Rn );
+                        }
+                        break;
+                    case 0x1:
+                        { /* MOV.W Rm, @Rn */
+                        uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "MOV.W   R%d, @R%d", Rm, Rn );
+                        }
+                        break;
+                    case 0x2:
+                        { /* MOV.L Rm, @Rn */
+                        uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "MOV.L   R%d, @R%d", Rm, Rn );
+                        }
+                        break;
+                    case 0x4:
+                        { /* MOV.B Rm, @-Rn */
+                        uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "MOV.B   R%d, @-R%d", Rm, Rn );
+                        }
+                        break;
+                    case 0x5:
+                        { /* MOV.W Rm, @-Rn */
+                        uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "MOV.W   R%d, @-R%d", Rm, Rn );
+                        }
+                        break;
+                    case 0x6:
+                        { /* MOV.L Rm, @-Rn */
+                        uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "MOV.L   R%d, @-R%d", Rm, Rn );
+                        }
+                        break;
+                    case 0x7:
+                        { /* DIV0S Rm, Rn */
+                        uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "DIV0S   R%d, R%d", Rm, Rn );
+                        }
+                        break;
+                    case 0x8:
+                        { /* TST Rm, Rn */
+                        uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "TST     R%d, R%d", Rm, Rn );
+                        }
+                        break;
+                    case 0x9:
+                        { /* AND Rm, Rn */
+                        uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "AND     R%d, R%d", Rm, Rn );
+                        }
+                        break;
+                    case 0xA:
+                        { /* XOR Rm, Rn */
+                        uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "XOR     R%d, R%d", Rm, Rn );
+                        }
+                        break;
+                    case 0xB:
+                        { /* OR Rm, Rn */
+                        uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "OR      R%d, R%d", Rm, Rn );
+                        }
+                        break;
+                    case 0xC:
+                        { /* CMP/STR Rm, Rn */
+                        uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "CMP/STR R%d, R%d", Rm, Rn );
+                        }
+                        break;
+                    case 0xD:
+                        { /* XTRCT Rm, Rn */
+                        uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "XTRCT   R%d, R%d", Rm, Rn );
+                        }
+                        break;
+                    case 0xE:
+                        { /* MULU.W Rm, Rn */
+                        uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "MULU.W  R%d, R%d", Rm, Rn );
+                        }
+                        break;
+                    case 0xF:
+                        { /* MULS.W Rm, Rn */
+                        uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "MULS.W  R%d, R%d", Rm, Rn );
+                        }
+                        break;
+                    default:
+                        UNDEF();
+                        break;
+                }
+                break;
+            case 0x3:
+                switch( ir&0xF ) {
+                    case 0x0:
+                        { /* CMP/EQ Rm, Rn */
+                        uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "CMP/EQ  R%d, R%d", Rm, Rn );
+                        }
+                        break;
+                    case 0x2:
+                        { /* CMP/HS Rm, Rn */
+                        uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "CMP/HS  R%d, R%d", Rm, Rn );
+                        }
+                        break;
+                    case 0x3:
+                        { /* CMP/GE Rm, Rn */
+                        uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "CMP/GE  R%d, R%d", Rm, Rn );
+                        }
+                        break;
+                    case 0x4:
+                        { /* DIV1 Rm, Rn */
+                        uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "DIV1    R%d, R%d", Rm, Rn );
+                        }
+                        break;
+                    case 0x5:
+                        { /* DMULU.L Rm, Rn */
+                        uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "DMULU.L R%d, R%d", Rm, Rn );
+                        }
+                        break;
+                    case 0x6:
+                        { /* CMP/HI Rm, Rn */
+                        uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "CMP/HI  R%d, R%d", Rm, Rn );
+                        }
+                        break;
+                    case 0x7:
+                        { /* CMP/GT Rm, Rn */
+                        uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "CMP/GT  R%d, R%d", Rm, Rn );
+                        }
+                        break;
+                    case 0x8:
+                        { /* SUB Rm, Rn */
+                        uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "SUB     R%d, R%d", Rm, Rn );
+                        }
+                        break;
+                    case 0xA:
+                        { /* SUBC Rm, Rn */
+                        uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "SUBC    R%d, R%d", Rm, Rn );
+                        }
+                        break;
+                    case 0xB:
+                        { /* SUBV Rm, Rn */
+                        uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "SUBV    R%d, R%d", Rm, Rn );
+                        }
+                        break;
+                    case 0xC:
+                        { /* ADD Rm, Rn */
+                        uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "ADD     R%d, R%d", Rm, Rn );
+                        }
+                        break;
+                    case 0xD:
+                        { /* DMULS.L Rm, Rn */
+                        uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "DMULS.L R%d, R%d", Rm, Rn );
+                        }
+                        break;
+                    case 0xE:
+                        { /* ADDC Rm, Rn */
+                        uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "ADDC    R%d, R%d", Rm, Rn );
+                        }
+                        break;
+                    case 0xF:
+                        { /* ADDV Rm, Rn */
+                        uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "ADDV    R%d, R%d", Rm, Rn );
+                        }
+                        break;
+                    default:
+                        UNDEF();
+                        break;
+                }
+                break;
+            case 0x4:
+                switch( ir&0xF ) {
+                    case 0x0:
+                        switch( (ir&0xF0) >> 4 ) {
+                            case 0x0:
+                                { /* SHLL Rn */
+                                uint32_t Rn = ((ir>>8)&0xF); 
+                                snprintf( buf, len, "SHLL    R%d", Rn );
+                                }
+                                break;
+                            case 0x1:
+                                { /* DT Rn */
+                                uint32_t Rn = ((ir>>8)&0xF); 
+                                snprintf( buf, len, "DT      R%d", Rn );
+                                }
+                                break;
+                            case 0x2:
+                                { /* SHAL Rn */
+                                uint32_t Rn = ((ir>>8)&0xF); 
+                                snprintf( buf, len, "SHAL    R%d", Rn );
+                                }
+                                break;
+                            default:
+                                UNDEF();
+                                break;
+                        }
+                        break;
+                    case 0x1:
+                        switch( (ir&0xF0) >> 4 ) {
+                            case 0x0:
+                                { /* SHLR Rn */
+                                uint32_t Rn = ((ir>>8)&0xF); 
+                                snprintf( buf, len, "SHLR    R%d", Rn );
+                                }
+                                break;
+                            case 0x1:
+                                { /* CMP/PZ Rn */
+                                uint32_t Rn = ((ir>>8)&0xF); 
+                                snprintf( buf, len, "CMP/PZ  R%d", Rn );
+                                }
+                                break;
+                            case 0x2:
+                                { /* SHAR Rn */
+                                uint32_t Rn = ((ir>>8)&0xF); 
+                                snprintf( buf, len, "SHAR    R%d", Rn );
+                                }
+                                break;
+                            default:
+                                UNDEF();
+                                break;
+                        }
+                        break;
+                    case 0x2:
+                        switch( (ir&0xF0) >> 4 ) {
+                            case 0x0:
+                                { /* STS.L MACH, @-Rn */
+                                uint32_t Rn = ((ir>>8)&0xF); 
+                                snprintf( buf, len, "STS.L   MACH, @-R%d", Rn );
+                                }
+                                break;
+                            case 0x1:
+                                { /* STS.L MACL, @-Rn */
+                                uint32_t Rn = ((ir>>8)&0xF); 
+                                snprintf( buf, len, "STS.L   MACL, @-R%d", Rn );
+                                }
+                                break;
+                            case 0x2:
+                                { /* STS.L PR, @-Rn */
+                                uint32_t Rn = ((ir>>8)&0xF); 
+                                snprintf( buf, len, "STS.L   PR, @-R%d", Rn );
+                                }
+                                break;
+                            case 0x3:
+                                { /* STC.L SGR, @-Rn */
+                                uint32_t Rn = ((ir>>8)&0xF); 
+                                snprintf( buf, len, "STC.L   SGR, @-R%d", Rn );
+                                }
+                                break;
+                            case 0x5:
+                                { /* STS.L FPUL, @-Rn */
+                                uint32_t Rn = ((ir>>8)&0xF); 
+                                snprintf( buf, len, "STS.L   FPUL, @-R%d", Rn );
+                                }
+                                break;
+                            case 0x6:
+                                { /* STS.L FPSCR, @-Rn */
+                                uint32_t Rn = ((ir>>8)&0xF); 
+                                snprintf( buf, len, "STS.L   FPSCR, @-R%d", Rn );
+                                }
+                                break;
+                            case 0xF:
+                                { /* STC.L DBR, @-Rn */
+                                uint32_t Rn = ((ir>>8)&0xF); 
+                                snprintf( buf, len, "STC.L    DBR, @-R%d", Rn );
+                                }
+                                break;
+                            default:
+                                UNDEF();
+                                break;
+                        }
+                        break;
+                    case 0x3:
+                        switch( (ir&0x80) >> 7 ) {
+                            case 0x0:
+                                switch( (ir&0x70) >> 4 ) {
+                                    case 0x0:
+                                        { /* STC.L SR, @-Rn */
+                                        uint32_t Rn = ((ir>>8)&0xF); 
+                                        snprintf( buf, len, "STC.L   SR, @-R%d", Rn );
+                                        }
+                                        break;
+                                    case 0x1:
+                                        { /* STC.L GBR, @-Rn */
+                                        uint32_t Rn = ((ir>>8)&0xF); 
+                                        snprintf( buf, len, "STC.L   GBR, @-R%d", Rn );
+                                        }
+                                        break;
+                                    case 0x2:
+                                        { /* STC.L VBR, @-Rn */
+                                        uint32_t Rn = ((ir>>8)&0xF); 
+                                        snprintf( buf, len, "STC.L   VBR, @-R%d", Rn );
+                                        }
+                                        break;
+                                    case 0x3:
+                                        { /* STC.L SSR, @-Rn */
+                                        uint32_t Rn = ((ir>>8)&0xF); 
+                                        snprintf( buf, len, "STC.L   SSR, @-R%d", Rn );
+                                        }
+                                        break;
+                                    case 0x4:
+                                        { /* STC.L SPC, @-Rn */
+                                        uint32_t Rn = ((ir>>8)&0xF); 
+                                        snprintf( buf, len, "STC.L   SPC, @-R%d", Rn );
+                                        }
+                                        break;
+                                    default:
+                                        UNDEF();
+                                        break;
+                                }
+                                break;
+                            case 0x1:
+                                { /* STC.L Rm_BANK, @-Rn */
+                                uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm_BANK = ((ir>>4)&0x7); 
+                                snprintf( buf, len, "STC.L   @-R%d_BANK, @-R%d", Rm_BANK, Rn );
+                                }
+                                break;
+                        }
+                        break;
+                    case 0x4:
+                        switch( (ir&0xF0) >> 4 ) {
+                            case 0x0:
+                                { /* ROTL Rn */
+                                uint32_t Rn = ((ir>>8)&0xF); 
+                                snprintf( buf, len, "ROTL    R%d", Rn );
+                                }
+                                break;
+                            case 0x2:
+                                { /* ROTCL Rn */
+                                uint32_t Rn = ((ir>>8)&0xF); 
+                                snprintf( buf, len, "ROTCL   R%d", Rn );
+                                }
+                                break;
+                            default:
+                                UNDEF();
+                                break;
+                        }
+                        break;
+                    case 0x5:
+                        switch( (ir&0xF0) >> 4 ) {
+                            case 0x0:
+                                { /* ROTR Rn */
+                                uint32_t Rn = ((ir>>8)&0xF); 
+                                snprintf( buf, len, "ROTR    R%d", Rn );
+                                }
+                                break;
+                            case 0x1:
+                                { /* CMP/PL Rn */
+                                uint32_t Rn = ((ir>>8)&0xF); 
+                                snprintf( buf, len, "CMP/PL  R%d", Rn );
+                                }
+                                break;
+                            case 0x2:
+                                { /* ROTCR Rn */
+                                uint32_t Rn = ((ir>>8)&0xF); 
+                                snprintf( buf, len, "ROTCR   R%d", Rn );
+                                }
+                                break;
+                            default:
+                                UNDEF();
+                                break;
+                        }
+                        break;
+                    case 0x6:
+                        switch( (ir&0xF0) >> 4 ) {
+                            case 0x0:
+                                { /* LDS.L @Rm+, MACH */
+                                uint32_t Rm = ((ir>>8)&0xF); 
+                                snprintf( buf, len, "LDS.L   @R%d+, MACH", Rm );
+                                }
+                                break;
+                            case 0x1:
+                                { /* LDS.L @Rm+, MACL */
+                                uint32_t Rm = ((ir>>8)&0xF); 
+                                snprintf( buf, len, "LDS.L   @R%d+, MACL", Rm );
+                                }
+                                break;
+                            case 0x2:
+                                { /* LDS.L @Rm+, PR */
+                                uint32_t Rm = ((ir>>8)&0xF); 
+                                snprintf( buf, len, "LDS.L   @R%d+, PR", Rm );
+                                }
+                                break;
+                            case 0x3:
+                                { /* LDC.L @Rm+, SGR */
+                                uint32_t Rm = ((ir>>8)&0xF); 
+                                snprintf( buf, len, "LDC.L   @R%d+, SGR", Rm );
+                                }
+                                break;
+                            case 0x5:
+                                { /* LDS.L @Rm+, FPUL */
+                                uint32_t Rm = ((ir>>8)&0xF); 
+                                snprintf( buf, len, "LDS.L   @R%d+, FPUL", Rm );
+                                }
+                                break;
+                            case 0x6:
+                                { /* LDS.L @Rm+, FPSCR */
+                                uint32_t Rm = ((ir>>8)&0xF); 
+                                snprintf( buf, len, "LDS.L   @R%d+, FPSCR", Rm );
+                                }
+                                break;
+                            case 0xF:
+                                { /* LDC.L @Rm+, DBR */
+                                uint32_t Rm = ((ir>>8)&0xF); 
+                                snprintf( buf, len, "LDC.L   @R%d+, DBR", Rm );
+                                }
+                                break;
+                            default:
+                                UNDEF();
+                                break;
+                        }
+                        break;
+                    case 0x7:
+                        switch( (ir&0x80) >> 7 ) {
+                            case 0x0:
+                                switch( (ir&0x70) >> 4 ) {
+                                    case 0x0:
+                                        { /* LDC.L @Rm+, SR */
+                                        uint32_t Rm = ((ir>>8)&0xF); 
+                                        snprintf( buf, len, "LDC.L   @R%d+, SR", Rm );
+                                        }
+                                        break;
+                                    case 0x1:
+                                        { /* LDC.L @Rm+, GBR */
+                                        uint32_t Rm = ((ir>>8)&0xF); 
+                                        snprintf( buf, len, "LDC.L   @R%d+, GBR", Rm );
+                                        }
+                                        break;
+                                    case 0x2:
+                                        { /* LDC.L @Rm+, VBR */
+                                        uint32_t Rm = ((ir>>8)&0xF); 
+                                        snprintf( buf, len, "LDC.L   @R%d+, VBR", Rm );
+                                        }
+                                        break;
+                                    case 0x3:
+                                        { /* LDC.L @Rm+, SSR */
+                                        uint32_t Rm = ((ir>>8)&0xF); 
+                                        snprintf( buf, len, "LDC.L   @R%d+, SSR", Rm );
+                                        }
+                                        break;
+                                    case 0x4:
+                                        { /* LDC.L @Rm+, SPC */
+                                        uint32_t Rm = ((ir>>8)&0xF); 
+                                        snprintf( buf, len, "LDC.L   @R%d+, SPC", Rm );
+                                        }
+                                        break;
+                                    default:
+                                        UNDEF();
+                                        break;
+                                }
+                                break;
+                            case 0x1:
+                                { /* LDC.L @Rm+, Rn_BANK */
+                                uint32_t Rm = ((ir>>8)&0xF); uint32_t Rn_BANK = ((ir>>4)&0x7); 
+                                snprintf( buf, len, "LDC.L   @R%d+, @R%d+_BANK", Rm, Rn_BANK );
+                                }
+                                break;
+                        }
+                        break;
+                    case 0x8:
+                        switch( (ir&0xF0) >> 4 ) {
+                            case 0x0:
+                                { /* SHLL2 Rn */
+                                uint32_t Rn = ((ir>>8)&0xF); 
+                                snprintf( buf, len, "SHLL2   R%d", Rn );
+                                }
+                                break;
+                            case 0x1:
+                                { /* SHLL8 Rn */
+                                uint32_t Rn = ((ir>>8)&0xF); 
+                                snprintf( buf, len, "SHLL8   R%d", Rn );
+                                }
+                                break;
+                            case 0x2:
+                                { /* SHLL16 Rn */
+                                uint32_t Rn = ((ir>>8)&0xF); 
+                                snprintf( buf, len, "SHLL16  R%d", Rn );
+                                }
+                                break;
+                            default:
+                                UNDEF();
+                                break;
+                        }
+                        break;
+                    case 0x9:
+                        switch( (ir&0xF0) >> 4 ) {
+                            case 0x0:
+                                { /* SHLR2 Rn */
+                                uint32_t Rn = ((ir>>8)&0xF); 
+                                snprintf( buf, len, "SHLR2   R%d", Rn );
+                                }
+                                break;
+                            case 0x1:
+                                { /* SHLR8 Rn */
+                                uint32_t Rn = ((ir>>8)&0xF); 
+                                snprintf( buf, len, "SHLR8   R%d", Rn );
+                                }
+                                break;
+                            case 0x2:
+                                { /* SHLR16 Rn */
+                                uint32_t Rn = ((ir>>8)&0xF); 
+                                snprintf( buf, len, "SHLR16  R%d", Rn );
+                                }
+                                break;
+                            default:
+                                UNDEF();
+                                break;
+                        }
+                        break;
+                    case 0xA:
+                        switch( (ir&0xF0) >> 4 ) {
+                            case 0x0:
+                                { /* LDS Rm, MACH */
+                                uint32_t Rm = ((ir>>8)&0xF); 
+                                snprintf( buf, len, "LDS     R%d, MACH", Rm );
+                                }
+                                break;
+                            case 0x1:
+                                { /* LDS Rm, MACL */
+                                uint32_t Rm = ((ir>>8)&0xF); 
+                                snprintf( buf, len, "LDS     R%d, MACL", Rm );
+                                }
+                                break;
+                            case 0x2:
+                                { /* LDS Rm, PR */
+                                uint32_t Rm = ((ir>>8)&0xF); 
+                                snprintf( buf, len, "LDS     R%d, PR", Rm );
+                                }
+                                break;
+                            case 0x3:
+                                { /* LDC Rm, SGR */
+                                uint32_t Rm = ((ir>>8)&0xF); 
+                                snprintf( buf, len, "LDC     R%d, SGR", Rm );
+                                }
+                                break;
+                            case 0x5:
+                                { /* LDS Rm, FPUL */
+                                uint32_t Rm = ((ir>>8)&0xF); 
+                                snprintf( buf, len, "LDS     R%d, FPUL", Rm );
+                                }
+                                break;
+                            case 0x6:
+                                { /* LDS Rm, FPSCR */
+                                uint32_t Rm = ((ir>>8)&0xF); 
+                                snprintf( buf, len, "LDS     R%d, FPSCR", Rm );
+                                }
+                                break;
+                            case 0xF:
+                                { /* LDC Rm, DBR */
+                                uint32_t Rm = ((ir>>8)&0xF); 
+                                snprintf( buf, len, "LDC     R%d, DBR", Rm );
+                                }
+                                break;
+                            default:
+                                UNDEF();
+                                break;
+                        }
+                        break;
+                    case 0xB:
+                        switch( (ir&0xF0) >> 4 ) {
+                            case 0x0:
+                                { /* JSR @Rn */
+                                uint32_t Rn = ((ir>>8)&0xF); 
+                                snprintf( buf, len, "JSR     @R%d", Rn );
+                                }
+                                break;
+                            case 0x1:
+                                { /* TAS.B @Rn */
+                                uint32_t Rn = ((ir>>8)&0xF); 
+                                snprintf( buf, len, "TAS.B   R%d", Rn );
+                                }
+                                break;
+                            case 0x2:
+                                { /* JMP @Rn */
+                                uint32_t Rn = ((ir>>8)&0xF); 
+                                snprintf( buf, len, "JMP     @R%d", Rn );
+                                }
+                                break;
+                            default:
+                                UNDEF();
+                                break;
+                        }
+                        break;
+                    case 0xC:
+                        { /* SHAD Rm, Rn */
+                        uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "SHAD    R%d, R%d", Rm, Rn );
+                        }
+                        break;
+                    case 0xD:
+                        { /* SHLD Rm, Rn */
+                        uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "SHLD    R%d, R%d", Rm, Rn );
+                        }
+                        break;
+                    case 0xE:
+                        switch( (ir&0x80) >> 7 ) {
+                            case 0x0:
+                                switch( (ir&0x70) >> 4 ) {
+                                    case 0x0:
+                                        { /* LDC Rm, SR */
+                                        uint32_t Rm = ((ir>>8)&0xF); 
+                                        snprintf( buf, len, "LDC     R%d, SR", Rm );
+                                        }
+                                        break;
+                                    case 0x1:
+                                        { /* LDC Rm, GBR */
+                                        uint32_t Rm = ((ir>>8)&0xF); 
+                                        snprintf( buf, len, "LDC     R%d, GBR", Rm );
+                                        }
+                                        break;
+                                    case 0x2:
+                                        { /* LDC Rm, VBR */
+                                        uint32_t Rm = ((ir>>8)&0xF); 
+                                        snprintf( buf, len, "LDC     R%d, VBR", Rm );
+                                        }
+                                        break;
+                                    case 0x3:
+                                        { /* LDC Rm, SSR */
+                                        uint32_t Rm = ((ir>>8)&0xF); 
+                                        snprintf( buf, len, "LDC     R%d, SSR", Rm );
+                                        }
+                                        break;
+                                    case 0x4:
+                                        { /* LDC Rm, SPC */
+                                        uint32_t Rm = ((ir>>8)&0xF); 
+                                        snprintf( buf, len, "LDC     R%d, SPC", Rm );
+                                        }
+                                        break;
+                                    default:
+                                        UNDEF();
+                                        break;
+                                }
+                                break;
+                            case 0x1:
+                                { /* LDC Rm, Rn_BANK */
+                                uint32_t Rm = ((ir>>8)&0xF); uint32_t Rn_BANK = ((ir>>4)&0x7); 
+                                snprintf( buf, len, "LDC     R%d, R%d_BANK", Rm, Rn_BANK );
+                                }
+                                break;
+                        }
+                        break;
+                    case 0xF:
+                        { /* MAC.W @Rm+, @Rn+ */
+                        uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "MAC.W   @R%d+, @R%d+", Rm, Rn );
+                        }
+                        break;
+                }
+                break;
+            case 0x5:
+                { /* MOV.L @(disp, Rm), Rn */
+                uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); uint32_t disp = (ir&0xF)<<2; 
+                snprintf( buf, len, "MOV.L   @(%d, R%d), @R%d", disp, Rm, Rn );
+                }
+                break;
+            case 0x6:
+                switch( ir&0xF ) {
+                    case 0x0:
+                        { /* MOV.B @Rm, Rn */
+                        uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "MOV.B   @R%d, R%d", Rm, Rn );
+                        }
+                        break;
+                    case 0x1:
+                        { /* MOV.W @Rm, Rn */
+                        uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "MOV.W   @R%d, R%d", Rm, Rn );
+                        }
+                        break;
+                    case 0x2:
+                        { /* MOV.L @Rm, Rn */
+                        uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "MOV.L   @R%d, R%d", Rm, Rn );
+                        }
+                        break;
+                    case 0x3:
+                        { /* MOV Rm, Rn */
+                        uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "MOV     R%d, R%d", Rm, Rn );
+                        }
+                        break;
+                    case 0x4:
+                        { /* MOV.B @Rm+, Rn */
+                        uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "MOV.B   @R%d+, R%d", Rm, Rn );
+                        }
+                        break;
+                    case 0x5:
+                        { /* MOV.W @Rm+, Rn */
+                        uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "MOV.W   @R%d+, R%d", Rm, Rn );
+                        }
+                        break;
+                    case 0x6:
+                        { /* MOV.L @Rm+, Rn */
+                        uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "MOV.L   @R%d+, R%d", Rm, Rn );
+                        }
+                        break;
+                    case 0x7:
+                        { /* NOT Rm, Rn */
+                        uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "NOT     R%d, R%d", Rm, Rn );
+                        }
+                        break;
+                    case 0x8:
+                        { /* SWAP.B Rm, Rn */
+                        uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "SWAP.B  R%d, R%d", Rm, Rn );
+                        }
+                        break;
+                    case 0x9:
+                        { /* SWAP.W Rm, Rn */
+                        uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "SWAP.W  R%d, R%d", Rm, Rn );
+                        }
+                        break;
+                    case 0xA:
+                        { /* NEGC Rm, Rn */
+                        uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "NEGC    R%d, R%d", Rm, Rn );
+                        }
+                        break;
+                    case 0xB:
+                        { /* NEG Rm, Rn */
+                        uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "NEG     R%d, R%d", Rm, Rn );
+                        }
+                        break;
+                    case 0xC:
+                        { /* EXTU.B Rm, Rn */
+                        uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "EXTU.B  R%d, R%d", Rm, Rn );
+                        }
+                        break;
+                    case 0xD:
+                        { /* EXTU.W Rm, Rn */
+                        uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "EXTU.W  R%d, R%d", Rm, Rn );
+                        }
+                        break;
+                    case 0xE:
+                        { /* EXTS.B Rm, Rn */
+                        uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "EXTS.B  R%d, R%d", Rm, Rn );
+                        }
+                        break;
+                    case 0xF:
+                        { /* EXTS.W Rm, Rn */
+                        uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "EXTS.W  R%d, R%d", Rm, Rn );
+                        }
+                        break;
+                }
+                break;
+            case 0x7:
+                { /* ADD #imm, Rn */
+                uint32_t Rn = ((ir>>8)&0xF); int32_t imm = SIGNEXT8(ir&0xFF); 
+                snprintf( buf, len, "ADD     #%d, R%d", imm, Rn );
+                }
+                break;
+            case 0x8:
+                switch( (ir&0xF00) >> 8 ) {
+                    case 0x0:
+                        { /* MOV.B R0, @(disp, Rn) */
+                        uint32_t Rn = ((ir>>4)&0xF); uint32_t disp = (ir&0xF); 
+                        snprintf( buf, len, "MOV.B   R0, @(%d, R%d)", disp, Rn );
+                        }
+                        break;
+                    case 0x1:
+                        { /* MOV.W R0, @(disp, Rn) */
+                        uint32_t Rn = ((ir>>4)&0xF); uint32_t disp = (ir&0xF)<<1; 
+                        snprintf( buf, len, "MOV.W   R0, @(%d, Rn)", disp, Rn );
+                        }
+                        break;
+                    case 0x4:
+                        { /* MOV.B @(disp, Rm), R0 */
+                        uint32_t Rm = ((ir>>4)&0xF); uint32_t disp = (ir&0xF); 
+                        snprintf( buf, len, "MOV.B   @(%d, R%d), R0", disp, Rm );
+                        }
+                        break;
+                    case 0x5:
+                        { /* MOV.W @(disp, Rm), R0 */
+                        uint32_t Rm = ((ir>>4)&0xF); uint32_t disp = (ir&0xF)<<1; 
+                        snprintf( buf, len, "MOV.W   @(%d, R%d), R0", disp, Rm );
+                        }
+                        break;
+                    case 0x8:
+                        { /* CMP/EQ #imm, R0 */
+                        int32_t imm = SIGNEXT8(ir&0xFF); 
+                        snprintf( buf, len, "CMP/EQ  #%d, R0", imm );
+                        }
+                        break;
+                    case 0x9:
+                        { /* BT disp */
+                        int32_t disp = SIGNEXT8(ir&0xFF)<<1; 
+                        snprintf( buf, len, "BT      $%xh", disp+pc+4 );
+                        }
+                        break;
+                    case 0xB:
+                        { /* BF disp */
+                        int32_t disp = SIGNEXT8(ir&0xFF)<<1; 
+                        snprintf( buf, len, "BF      $%xh", disp+pc+4 );
+                        }
+                        break;
+                    case 0xD:
+                        { /* BT/S disp */
+                        int32_t disp = SIGNEXT8(ir&0xFF)<<1; 
+                        snprintf( buf, len, "BT/S    $%xh", disp+pc+4 );
+                        }
+                        break;
+                    case 0xF:
+                        { /* BF/S disp */
+                        int32_t disp = SIGNEXT8(ir&0xFF)<<1; 
+                        snprintf( buf, len, "BF/S    $%xh", disp+pc+4 );
+                        }
+                        break;
+                    default:
+                        UNDEF();
+                        break;
+                }
+                break;
+            case 0x9:
+                { /* MOV.W @(disp, PC), Rn */
+                uint32_t Rn = ((ir>>8)&0xF); uint32_t disp = (ir&0xFF)<<1; 
+                snprintf( buf, len, "MOV.W   @($%xh), R%d ; <- #%08x", disp + pc + 4, Rn, sh4_read_word(disp+pc+4) );
+                }
+                break;
+            case 0xA:
+                { /* BRA disp */
+                int32_t disp = SIGNEXT12(ir&0xFFF)<<1; 
+                snprintf( buf, len, "BRA     $%xh", disp+pc+4 );
+                }
+                break;
+            case 0xB:
+                { /* BSR disp */
+                int32_t disp = SIGNEXT12(ir&0xFFF)<<1; 
+                snprintf( buf, len, "BSR     $%xh", disp+pc+4 );
+                }
+                break;
+            case 0xC:
+                switch( (ir&0xF00) >> 8 ) {
+                    case 0x0:
+                        { /* MOV.B R0, @(disp, GBR) */
+                        uint32_t disp = (ir&0xFF); 
+                        snprintf( buf, len, "MOV.B   R0, @(%d, GBR)", disp );
+                        }
+                        break;
+                    case 0x1:
+                        { /* MOV.W R0, @(disp, GBR) */
+                        uint32_t disp = (ir&0xFF)<<1; 
+                        snprintf( buf, len, "MOV.W   R0, @(%d, GBR)", disp);
+                        }
+                        break;
+                    case 0x2:
+                        { /* MOV.L R0, @(disp, GBR) */
+                        uint32_t disp = (ir&0xFF)<<2; 
+                        snprintf( buf, len, "MOV.L   R0, @(%d, GBR)", disp );
+                        }
+                        break;
+                    case 0x3:
+                        { /* TRAPA #imm */
+                        uint32_t imm = (ir&0xFF); 
+                        snprintf( buf, len, "TRAPA   #%d", imm );
+                        }
+                        break;
+                    case 0x4:
+                        { /* MOV.B @(disp, GBR), R0 */
+                        uint32_t disp = (ir&0xFF); 
+                        snprintf( buf, len, "MOV.B   @(%d, GBR), R0", disp );
+                        }
+                        break;
+                    case 0x5:
+                        { /* MOV.W @(disp, GBR), R0 */
+                        uint32_t disp = (ir&0xFF)<<1; 
+                        snprintf( buf, len, "MOV.W   @(%d, GBR), R0", disp );
+                        }
+                        break;
+                    case 0x6:
+                        { /* MOV.L @(disp, GBR), R0 */
+                        uint32_t disp = (ir&0xFF)<<2; 
+                        snprintf( buf, len, "MOV.L   @(%d, GBR), R0",disp );
+                        }
+                        break;
+                    case 0x7:
+                        { /* MOVA @(disp, PC), R0 */
+                        uint32_t disp = (ir&0xFF)<<2; 
+                        snprintf( buf, len, "MOVA    @($%xh), R0", disp + (pc&0xFFFFFFFC) + 4 );
+                        }
+                        break;
+                    case 0x8:
+                        { /* TST #imm, R0 */
+                        uint32_t imm = (ir&0xFF); 
+                        snprintf( buf, len, "TST     #%d, R0", imm );
+                        }
+                        break;
+                    case 0x9:
+                        { /* AND #imm, R0 */
+                        uint32_t imm = (ir&0xFF); 
+                        snprintf( buf, len, "ADD     #%d, R0", imm );
+                        }
+                        break;
+                    case 0xA:
+                        { /* XOR #imm, R0 */
+                        uint32_t imm = (ir&0xFF); 
+                        snprintf( buf, len, "XOR     #%d, R0", imm );
+                        }
+                        break;
+                    case 0xB:
+                        { /* OR #imm, R0 */
+                        uint32_t imm = (ir&0xFF); 
+                        snprintf( buf, len, "OR      #%d, R0", imm );
+                        }
+                        break;
+                    case 0xC:
+                        { /* TST.B #imm, @(R0, GBR) */
+                        uint32_t imm = (ir&0xFF); 
+                        snprintf( buf, len, "TST.B   #%d, @(R0, GBR)", imm );
+                        }
+                        break;
+                    case 0xD:
+                        { /* AND.B #imm, @(R0, GBR) */
+                        uint32_t imm = (ir&0xFF); 
+                        snprintf( buf, len, "AND.B   #%d, @(R0, GBR)", imm );
+                        }
+                        break;
+                    case 0xE:
+                        { /* XOR.B #imm, @(R0, GBR) */
+                        uint32_t imm = (ir&0xFF); 
+                        snprintf( buf, len, "XOR.B   #%d, @(R0, GBR)", imm );
+                        }
+                        break;
+                    case 0xF:
+                        { /* OR.B #imm, @(R0, GBR) */
+                        uint32_t imm = (ir&0xFF); 
+                        snprintf( buf, len, "OR.B    #%d, @(R0, GBR)", imm );
+                        }
+                        break;
+                }
+                break;
+            case 0xD:
+                { /* MOV.L @(disp, PC), Rn */
+                uint32_t Rn = ((ir>>8)&0xF); uint32_t disp = (ir&0xFF)<<2; 
+                snprintf( buf, len, "MOV.L   @($%xh), R%d ; <- #%08x", disp + (pc & 0xFFFFFFFC) + 4, Rn, sh4_read_long(disp+(pc&0xFFFFFFFC)+4) );
+                }
+                break;
+            case 0xE:
+                { /* MOV #imm, Rn */
+                uint32_t Rn = ((ir>>8)&0xF); int32_t imm = SIGNEXT8(ir&0xFF); 
+                snprintf( buf, len, "MOV     #%d, R%d", imm, Rn );
+                }
+                break;
+            case 0xF:
+                switch( ir&0xF ) {
+                    case 0x0:
+                        { /* FADD FRm, FRn */
+                        uint32_t FRn = ((ir>>8)&0xF); uint32_t FRm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "FADD    FR%d, FR%d", FRm, FRn );
+                        }
+                        break;
+                    case 0x1:
+                        { /* FSUB FRm, FRn */
+                        uint32_t FRn = ((ir>>8)&0xF); uint32_t FRm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "FSUB    FRm, FR%d", FRm, FRn );
+                        }
+                        break;
+                    case 0x2:
+                        { /* FMUL FRm, FRn */
+                        uint32_t FRn = ((ir>>8)&0xF); uint32_t FRm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "FMUL    FRm, FR%d", FRm, FRn );
+                        }
+                        break;
+                    case 0x3:
+                        { /* FDIV FRm, FRn */
+                        uint32_t FRn = ((ir>>8)&0xF); uint32_t FRm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "FDIV    FR%d, FR%d", FRm, FRn );
+                        }
+                        break;
+                    case 0x4:
+                        { /* FCMP/EQ FRm, FRn */
+                        uint32_t FRn = ((ir>>8)&0xF); uint32_t FRm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "FCMP/EQ FR%d, FR%d", FRm, FRn );
+                        }
+                        break;
+                    case 0x5:
+                        { /* FCMP/GT FRm, FRn */
+                        uint32_t FRn = ((ir>>8)&0xF); uint32_t FRm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "FCMP/QT FR%d, FR%d", FRm, FRn );
+                        }
+                        break;
+                    case 0x6:
+                        { /* FMOV @(R0, Rm), FRn */
+                        uint32_t FRn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "FMOV    @(R0, R%d), FR%d", Rm, FRn );
+                        }
+                        break;
+                    case 0x7:
+                        { /* FMOV FRm, @(R0, Rn) */
+                        uint32_t Rn = ((ir>>8)&0xF); uint32_t FRm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "FMOV    FR%d, @(R0, R%d)", FRm, Rn );
+                        }
+                        break;
+                    case 0x8:
+                        { /* FMOV @Rm, FRn */
+                        uint32_t FRn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "FMOV    @R%d, FR%d", Rm, FRn );
+                        }
+                        break;
+                    case 0x9:
+                        { /* FMOV @Rm+, FRn */
+                        uint32_t FRn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "FMOV    @R%d+, FR%d", Rm, FRn );
+                        }
+                        break;
+                    case 0xA:
+                        { /* FMOV FRm, @Rn */
+                        uint32_t Rn = ((ir>>8)&0xF); uint32_t FRm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "FMOV    FR%d, @R%d", FRm, Rn );
+                        }
+                        break;
+                    case 0xB:
+                        { /* FMOV FRm, @-Rn */
+                        uint32_t Rn = ((ir>>8)&0xF); uint32_t FRm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "FMOV    FR%d, @-R%d", FRm, Rn );
+                        }
+                        break;
+                    case 0xC:
+                        { /* FMOV FRm, FRn */
+                        uint32_t FRn = ((ir>>8)&0xF); uint32_t FRm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "FMOV    FR%d, FR%d", FRm, FRn );
+                        }
+                        break;
+                    case 0xD:
+                        switch( (ir&0xF0) >> 4 ) {
+                            case 0x0:
+                                { /* FSTS FPUL, FRn */
+                                uint32_t FRn = ((ir>>8)&0xF); 
+                                snprintf( buf, len, "FSTS    FPUL, FR%d", FRn );
+                                }
+                                break;
+                            case 0x1:
+                                { /* FLDS FRm, FPUL */
+                                uint32_t FRm = ((ir>>8)&0xF); 
+                                snprintf( buf, len, "FLDS    FR%d, FPUL", FRm );
+                                }
+                                break;
+                            case 0x2:
+                                { /* FLOAT FPUL, FRn */
+                                uint32_t FRn = ((ir>>8)&0xF); 
+                                snprintf( buf, len, "FLOAT   FPUL, FR%d", FRn );
+                                }
+                                break;
+                            case 0x3:
+                                { /* FTRC FRm, FPUL */
+                                uint32_t FRm = ((ir>>8)&0xF); 
+                                snprintf( buf, len, "FTRC    FR%d, FPUL", FRm );
+                                }
+                                break;
+                            case 0x4:
+                                { /* FNEG FRn */
+                                uint32_t FRn = ((ir>>8)&0xF); 
+                                snprintf( buf, len, "FNEG    FR%d", FRn );
+                                }
+                                break;
+                            case 0x5:
+                                { /* FABS FRn */
+                                uint32_t FRn = ((ir>>8)&0xF); 
+                                snprintf( buf, len, "FABS    FR%d", FRn );
+                                }
+                                break;
+                            case 0x6:
+                                { /* FSQRT FRn */
+                                uint32_t FRn = ((ir>>8)&0xF); 
+                                snprintf( buf, len, "FSQRT   FR%d", FRn );
+                                }
+                                break;
+                            case 0x7:
+                                { /* FSRRA FRn */
+                                uint32_t FRn = ((ir>>8)&0xF); 
+                                snprintf( buf, len, "FSRRA   FR%d", FRn );
+                                }
+                                break;
+                            case 0x8:
+                                { /* FLDI0 FRn */
+                                uint32_t FRn = ((ir>>8)&0xF); 
+                                snprintf( buf, len, "FLDI0   FR%d", FRn );
+                                }
+                                break;
+                            case 0x9:
+                                { /* FLDI1 FRn */
+                                uint32_t FRn = ((ir>>8)&0xF); 
+                                snprintf( buf, len, "FLDI1   FR%d", FRn );
+                                }
+                                break;
+                            case 0xA:
+                                { /* FCNVSD FPUL, FRn */
+                                uint32_t FRn = ((ir>>8)&0xF); 
+                                snprintf( buf, len, "FCNVSD  FPUL, FR%d", FRn );
+                                }
+                                break;
+                            case 0xB:
+                                { /* FCNVDS FRm, FPUL */
+                                uint32_t FRm = ((ir>>8)&0xF); 
+                                snprintf( buf, len, "FCNVDS  FR%d, FPUL", FRm );
+                                }
+                                break;
+                            case 0xE:
+                                { /* FIPR FVm, FVn */
+                                uint32_t FVn = ((ir>>10)&0x3); uint32_t FVm = ((ir>>8)&0x3); 
+                                snprintf( buf, len, "FIPR    FV%d, FV%d", FVm, FVn );
+                                }
+                                break;
+                            case 0xF:
+                                switch( (ir&0x100) >> 8 ) {
+                                    case 0x0:
+                                        { /* FSCA FPUL, FRn */
+                                        uint32_t FRn = ((ir>>9)&0x7)<<1; 
+                                        snprintf( buf, len, "FSCA    FPUL, FR%d", FRn );
+                                        }
+                                        break;
+                                    case 0x1:
+                                        switch( (ir&0x200) >> 9 ) {
+                                            case 0x0:
+                                                { /* FTRV XMTRX, FVn */
+                                                uint32_t FVn = ((ir>>10)&0x3); 
+                                                snprintf( buf, len, "FTRV    XMTRX, FV%d", FVn );
+                                                }
+                                                break;
+                                            case 0x1:
+                                                switch( (ir&0xC00) >> 10 ) {
+                                                    case 0x0:
+                                                        { /* FSCHG */
+                                                        snprintf( buf, len, "FSCHG   " );
+                                                        }
+                                                        break;
+                                                    case 0x2:
+                                                        { /* FRCHG */
+                                                        snprintf( buf, len, "FRCHG   " );
+                                                        }
+                                                        break;
+                                                    case 0x3:
+                                                        { /* UNDEF */
+                                                        snprintf( buf, len, "UNDEF   " );
+                                                        }
+                                                        break;
+                                                    default:
+                                                        UNDEF();
+                                                        break;
+                                                }
+                                                break;
+                                        }
+                                        break;
+                                }
+                                break;
+                            default:
+                                UNDEF();
+                                break;
+                        }
+                        break;
+                    case 0xE:
+                        { /* FMAC FR0, FRm, FRn */
+                        uint32_t FRn = ((ir>>8)&0xF); uint32_t FRm = ((ir>>4)&0xF); 
+                        snprintf( buf, len, "FMAC    FR0, FR%d, FR%d", FRm, FRn );
+                        }
+                        break;
+                    default:
+                        UNDEF();
+                        break;
+                }
+                break;
+        }
+
     return pc+2;
 }
 

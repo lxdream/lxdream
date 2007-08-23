@@ -1,5 +1,5 @@
 /**
- * $Id: dreamcast.h,v 1.12 2007-01-16 10:34:46 nkeynes Exp $
+ * $Id: dreamcast.h,v 1.13 2007-08-23 12:33:27 nkeynes Exp $
  *
  * Public interface for dreamcast.c -
  * Central switchboard for the system. This pulls all the individual modules
@@ -30,6 +30,15 @@ extern "C" {
 #endif
 
 #define DEFAULT_TIMESLICE_LENGTH 1000000 /* nanoseconds */
+
+#ifndef MB
+#define MB *1024*1024
+#endif
+
+#define XLAT_NEW_CACHE_SIZE 8 MB
+#define XLAT_TEMP_CACHE_SIZE 2 MB
+#define XLAT_OLD_CACHE_SIZE 8 MB
+
 #define CONFIG_TYPE_NONE 0
 #define CONFIG_TYPE_FILE 1
 #define CONFIG_TYPE_PATH 2
