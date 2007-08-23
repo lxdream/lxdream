@@ -101,11 +101,11 @@ test_ftrc_4_fail:
 	nop
 
 test_ftrc_4_input_a:
-	.long 0x41DFFFFF
+	.long 0x40FFFF11
 test_ftrc_4_input_b:
-	.long 0xFFC00000
+	.long 0x11111111
 test_ftrc_4_result:
-	.long 0x7FFFFFFF
+	.long 0x0001FFF1
 
 
 test_ftrc_5:	! test w/ max +int, sz=0, pr=0, fr=1
@@ -177,7 +177,7 @@ test_ftrc_7:	! Test >max +int
 	bt test_ftrc_8
 test_ftrc_7_fail:
 	fail test_ftrc_str_k
-	bra test_ftrc_7
+	bra test_ftrc_8
 	nop
 	
 test_ftrc_7_input:
@@ -194,10 +194,10 @@ test_ftrc_8: ! test < min -int
 	sts fpul, r2
 	mov.l test_ftrc_8_result, r1
 	cmp/eq r1, r2
-	bt test_ftrc_end
+	bt test_ftrc_9
 test_ftrc_8_fail:
 	fail test_ftrc_str_k
-	bra test_ftrc_8
+	bra test_ftrc_9
 	nop
 	
 test_ftrc_8_input:
@@ -205,7 +205,89 @@ test_ftrc_8_input:
 test_ftrc_8_result:
 	.long 0x80000000
 
+test_ftrc_9:	! Test >max +int pr=1
+	add #1, r12
+	setpr
+	mov.l test_ftrc_9_input_a, r0
+	lds r0, fpul
+	fsts fpul, fr6
+	mov.l test_ftrc_9_input_b, r0
+	lds r0, fpul
+	fsts fpul, fr7
+	ftrc fr6, fpul
+	sts fpul, r2
+	mov.l test_ftrc_9_result, r1
+	cmp/eq r1, r2
+	bt test_ftrc_10
+test_ftrc_9_fail:
+	fail test_ftrc_str_k
+	bra test_ftrc_10
+	nop
 	
+test_ftrc_9_input_a:
+	.long 0x41DFFFFF
+test_ftrc_9_input_b:
+	.long 0xFFC00000
+test_ftrc_9_result:
+	.long 0x7FFFFFFF
+
+test_ftrc_10: ! test < min -int
+	add #1, r12
+	mov.l test_ftrc_10_input_a, r0
+	lds r0, fpul
+	fsts fpul, fr8
+	mov.l test_ftrc_10_input_b, r0
+	lds r0, fpul
+	fsts fpul, fr9
+	ftrc fr8, fpul
+	sts fpul, r2
+	mov.l test_ftrc_10_result, r1
+	cmp/eq r1, r2
+	bt test_ftrc_11
+test_ftrc_10_fail:
+	fail test_ftrc_str_k
+	bra test_ftrc_11
+	nop
+	
+test_ftrc_10_input_a:
+	.long 0xFE111111
+test_ftrc_10_input_b:
+	.long 0x11111111
+test_ftrc_10_result:
+	.long 0x80000000
+
+test_ftrc_11: ! test undefined instruction, pr=1
+	add #1, r12
+	mov.l test_ftrc_11_input_a, r0
+	lds r0, fpul
+	fsts fpul, fr0
+	mov.l test_ftrc_11_input_b, r1
+	lds r1, fpul
+	fsts fpul, fr1
+	mov.l test_ftrc_11_input_c, r0
+	lds r0, fpul
+	fsts fpul, fr2
+	xor r0, r0
+	not r0, r0
+	lds r0, fpul
+	ftrc fr1, fpul 
+	sts fpul, r1
+	mov.l test_ftrc_11_result, r2
+	cmp/eq r1, r2
+	bt test_ftrc_end
+test_ftrc_11_fail:
+	fail test_ftrc_str_k
+	bra test_ftrc_end
+	nop
+test_ftrc_11_input_a:
+	.long 0x40FFFF11
+test_ftrc_11_input_b:
+	.long 0x11111111
+test_ftrc_11_input_c:
+	.long 0x42FFFF11
+test_ftrc_11_result:
+	.long 0x00000000
+
 test_ftrc_end:
 	end_test test_ftrc_str_k
 	

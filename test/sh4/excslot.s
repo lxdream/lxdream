@@ -169,16 +169,39 @@ test_slot_17_pc:
 	.word 0xFFFD
 	assert_exc_caught test_slot_str_k test_slot_17_pc
 
+test_slot_18:	 ! "Undefined (FPU disabled)" 0xFFFD
+	add #1, r12
+	stc sr, r0
+	xor r1, r1
+	add #32, r1
+	shll2 r1
+	shll8 r1
+	or r0, r1
+	ldc r1, sr
+	expect_exc 0x000001A0
+test_slot_18_pc:
+	bsr test_slot_fail
+	.word 0xFFFD
+	assert_exc_caught test_slot_str_k test_slot_18_pc
+	stc sr, r0
+	xor r1, r1
+	add #32, r1
+	shll2 r1
+	shll8 r1
+	not r1, r1
+	and r0, r1
+	ldc r1, sr
+	
 !
 ! Ok now the privilege tests. These should raise SLOT_ILLEGAL when executed
 ! in a delay slot (otherwise it's GENERAL_ILLEGAL)
 
-test_slot_18:   ! LDC Rn, SPC in user mode
+test_slot_19:   ! LDC Rn, SPC in user mode
 !	add #1, r12
 !	expect_exc 0x000001A0
 !	stc spc, r4
 !	usermode
-!test_slot_18_pc:
+!test_slot_19_pc:
 !	bsr test_slot_fail
 !	ldc r4, spc
 !	systemmode
