@@ -6,7 +6,11 @@ INCLUDES = \
         -Ish4 \
 	@PACKAGE_CFLAGS@
 
-bin_PROGRAMS = lxdream
+bin_PROGRAMS = gendec lxdream
+
+BUILT_SOURCES = sh4/sh4core.c sh4/sh4dasm.c sh4/sh4x86.c
+
+gendec_SOURCES = tools/gendec.c tools/gendec.h tools/insparse.c tools/actparse.c
 
 lxdream_SOURCES = \
         main.c \
@@ -18,7 +22,8 @@ lxdream_SOURCES = \
         dreamcast.c dreamcast.h eventq.c eventq.h \
         sh4/intc.c sh4/intc.h sh4/sh4mem.c sh4/timer.c sh4/dmac.c \
         sh4/sh4core.c sh4/sh4core.h sh4/sh4dasm.c sh4/sh4dasm.h \
-        sh4/sh4mmio.c sh4/sh4mmio.h sh4/scif.c \
+        sh4/sh4mmio.c sh4/sh4mmio.h sh4/scif.c sh4/xltcache.c sh4/xltcache.h \
+        sh4/sh4trans.c sh4/sh4trans.h sh4/sh4x86.c \
         aica/armcore.c aica/armcore.h aica/armdasm.c aica/armmem.c \
         aica/aica.c aica/aica.h aica/audio.c aica/audio.h \
 	pvr2/pvr2.c pvr2/pvr2.h pvr2/pvr2mem.c \
@@ -40,4 +45,19 @@ lxdream_SOURCES = \
 
 lxdream_LDADD = @PACKAGE_LIBS@ $(INTLLIBS) -lesd
 
+gendec_LDADD = @PACKAGE_LIBS@ $(INTLLIBS)
+
+TESTS = test/testxlt
+
+check_PROGRAMS = test/testxlt
+
+test_testxlt_SOURCES = test/testxlt.c sh4/xltcache.c sh4/xltcache.h 
+
 AM_CFLAGS = -D_ISOC99_SOURCE -D_BSD_SOURCE 
+
+sh4/sh4core.c: gendec sh4/sh4.def sh4/sh4core.in
+	./gendec sh4/sh4.def sh4/sh4core.in -o sh4/sh4core.c
+sh4/sh4dasm.c: gendec sh4/sh4.def sh4/sh4dasm.in
+	./gendec sh4/sh4.def sh4/sh4dasm.in -o sh4/sh4dasm.c
+sh4/sh4x86.c: gendec sh4/sh4.def sh4/sh4x86.in
+	./gendec sh4/sh4.def sh4/sh4x86.in -o sh4/sh4x86.c

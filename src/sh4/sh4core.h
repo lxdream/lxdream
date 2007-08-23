@@ -1,5 +1,5 @@
 /**
- * $Id: sh4core.h,v 1.18 2007-01-23 08:17:06 nkeynes Exp $
+ * $Id: sh4core.h,v 1.19 2007-08-23 12:33:27 nkeynes Exp $
  * 
  * This file defines the internal functions exported/used by the SH4 core, 
  * except for disassembly functions defined in sh4dasm.h
@@ -59,11 +59,11 @@ extern "C" {
 struct sh4_registers {
     uint32_t r[16];
     uint32_t r_bank[8]; /* hidden banked registers */
-    uint32_t sr, gbr, ssr, spc, sgr, dbr, vbr;
-    uint32_t pr, pc, fpscr;
+    uint32_t sr, pr, pc, fpscr, t;
     int32_t fpul;
+    uint32_t gbr, ssr, spc, sgr, dbr, vbr;
     uint64_t mac;
-    uint32_t m, q, s, t; /* really boolean - 0 or 1 */
+    uint32_t m, q, s; /* really boolean - 0 or 1 */
     float fr[2][16];
 
     int32_t store_queue[16]; /* technically 2 banks of 32 bytes */
@@ -171,10 +171,14 @@ int MMU_load_state( FILE *f );
 #define IS_FPU_ENABLED() ((sh4r.sr&SR_FD)==0)
 
 #define FR(x) sh4r.fr[(sh4r.fpscr&FPSCR_FR)>>21][(x)^1]
-#define DR(x) ((double *)(sh4r.fr[(sh4r.fpscr&FPSCR_FR)>>21]))[x]
+#define DRF(x) ((double *)(sh4r.fr[(sh4r.fpscr&FPSCR_FR)>>21]))[x]
 #define XF(x) sh4r.fr[((~sh4r.fpscr)&FPSCR_FR)>>21][(x)^1]
 #define XDR(x) ((double *)(sh4r.fr[((~sh4r.fpscr)&FPSCR_FR)>>21]))[x]
 #define DRb(x,b) ((double *)(sh4r.fr[((b ? (~sh4r.fpscr) : sh4r.fpscr)&FPSCR_FR)>>21]))[x]
+#define DR(x) DRb((x>>1), (x&1))
+#define FPULf   *((float *)&sh4r.fpul)
+#define FPULi    (sh4r.fpul)
+
 /* Exceptions (for use with sh4_raise_exception) */
 
 #define EX_ILLEGAL_INSTRUCTION 0x180, 0x100
@@ -198,3 +202,4 @@ int MMU_load_state( FILE *f );
 }
 #endif
 #endif
+
