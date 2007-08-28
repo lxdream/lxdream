@@ -1,5 +1,5 @@
 /**
- * $Id: sh4x86.in,v 1.1 2007-08-23 12:33:27 nkeynes Exp $
+ * $Id: sh4x86.in,v 1.2 2007-08-28 08:46:14 nkeynes Exp $
  * 
  * SH4 => x86 translation. This version does no real optimization, it just
  * outputs straight-line x86 code - it mainly exists to provide a baseline
@@ -28,26 +28,18 @@
 static inline void load_reg( int x86reg, int sh4reg ) 
 {
     /* mov [bp+n], reg */
-    OP(0x89);
-    OP(0x45 + x86reg<<3);
+    OP(0x8B);
+    OP(0x45 + (x86reg<<3));
     OP(REG_OFFSET(r[sh4reg]));
 }
 
 static inline void load_spreg( int x86reg, int regoffset )
 {
     /* mov [bp+n], reg */
-    OP(0x89);
-    OP(0x45 + x86reg<<3);
+    OP(0x8B);
+    OP(0x45 + (x86reg<<3));
     OP(regoffset);
 }
-
-#define UNDEF()
-#define MEM_READ_BYTE( addr_reg, value_reg )
-#define MEM_READ_WORD( addr_reg, value_reg )
-#define MEM_READ_LONG( addr_reg, value_reg )
-#define MEM_WRITE_BYTE( addr_reg, value_reg )
-#define MEM_WRITE_WORD( addr_reg, value_reg )
-#define MEM_WRITE_LONG( addr_reg, value_reg )
 
 /**
  * Emit an instruction to load an immediate value into a register
@@ -63,16 +55,51 @@ static inline void load_imm32( int x86reg, uint32_t value ) {
  */
 void static inline store_reg( int x86reg, int sh4reg ) {
     /* mov reg, [bp+n] */
-    OP(0x8B);
-    OP(0x45 + x86reg<<3);
+    OP(0x89);
+    OP(0x45 + (x86reg<<3));
     OP(REG_OFFSET(r[sh4reg]));
 }
 void static inline store_spreg( int x86reg, int regoffset ) {
     /* mov reg, [bp+n] */
-    OP(0x8B);
-    OP(0x45 + x86reg<<3);
+    OP(0x89);
+    OP(0x45 + (x86reg<<3));
     OP(regoffset);
 }
+
+/**
+ * Note: clobbers EAX to make the indirect call - this isn't usually
+ * a problem since the callee will usually clobber it anyway.
+ */
+static inline void call_func0( void *ptr )
+{
+    load_imm32(R_EAX, (uint32_t)ptr);
+    OP(0xFF);
+    MODRM_rm32_r32(R_EAX, 2);
+}
+
+static inline void call_func1( void *ptr, int arg1 )
+{
+    PUSH_r32(arg1);
+    call_func0(ptr);
+    ADD_imm8s_r32( -4, R_ESP );
+}
+
+static inline void call_func2( void *ptr, int arg1, int arg2 )
+{
+    PUSH_r32(arg2);
+    PUSH_r32(arg1);
+    call_func0(ptr);
+    ADD_imm8s_r32( -4, R_ESP );
+}
+
+#define UNDEF()
+#define MEM_RESULT(value_reg) if(value_reg != R_EAX) { MOV_r32_r32(R_EAX,value_reg); }
+#define MEM_READ_BYTE( addr_reg, value_reg ) call_func1(sh4_read_byte, addr_reg ); MEM_RESULT(value_reg)
+#define MEM_READ_WORD( addr_reg, value_reg ) call_func1(sh4_read_word, addr_reg ); MEM_RESULT(value_reg)
+#define MEM_READ_LONG( addr_reg, value_reg ) call_func1(sh4_read_long, addr_reg ); MEM_RESULT(value_reg)
+#define MEM_WRITE_BYTE( addr_reg, value_reg ) call_func2(sh4_write_byte, addr_reg, value_reg)
+#define MEM_WRITE_WORD( addr_reg, value_reg ) call_func2(sh4_write_word, addr_reg, value_reg)
+#define MEM_WRITE_LONG( addr_reg, value_reg ) call_func2(sh4_write_long, addr_reg, value_reg)
 
 
 /**
@@ -110,7 +137,7 @@ void sh4_translate_end_block( sh4addr_t pc ) {
  */
 uint32_t sh4_x86_translate_instruction( uint32_t pc )
 {
-    uint16_t ir = 0;
+    uint16_t ir = sh4_read_word( pc );
 
 %%
 /* ALU operations */
@@ -147,8 +174,6 @@ AND Rm, Rn {:
     store_reg( R_ECX, Rn );
 :}
 AND #imm, R0 {:  
-    // Note: x86 AND imm8 sign-extends, SH4 version zero-extends. So 
-    // need to use the imm32 version
     load_reg( R_EAX, 0 );
     AND_imm32_r32(imm, R_EAX); 
     store_reg( R_EAX, 0 );
@@ -206,12 +231,39 @@ CMP/PZ Rn {:
     CMP_imm8s_r32( 0, R_EAX );
     SETGE_t();
 :}
-CMP/STR Rm, Rn {:  :}
-DIV0S Rm, Rn {:  :}
-DIV0U {:  :}
+CMP/STR Rm, Rn {:  
+:}
+DIV0S Rm, Rn {:
+    load_reg( R_EAX, Rm );
+    load_reg( R_ECX, Rm );
+    SHR_imm8_r32( 31, R_EAX );
+    SHR_imm8_r32( 31, R_ECX );
+    store_spreg( R_EAX, R_M );
+    store_spreg( R_ECX, R_Q );
+    CMP_r32_r32( R_EAX, R_ECX );
+    SETE_t();
+:}
+DIV0U {:  
+    XOR_r32_r32( R_EAX, R_EAX );
+    store_spreg( R_EAX, R_Q );
+    store_spreg( R_EAX, R_M );
+    store_spreg( R_EAX, R_T );
+:}
 DIV1 Rm, Rn {:  :}
-DMULS.L Rm, Rn {:  :}
-DMULU.L Rm, Rn {:  :}
+DMULS.L Rm, Rn {:  
+    load_reg( R_EAX, Rm );
+    load_reg( R_ECX, Rn );
+    IMUL_r32(R_ECX);
+    store_spreg( R_EDX, R_MACH );
+    store_spreg( R_EAX, R_MACL );
+:}
+DMULU.L Rm, Rn {:  
+    load_reg( R_EAX, Rm );
+    load_reg( R_ECX, Rn );
+    MUL_r32(R_ECX);
+    store_spreg( R_EDX, R_MACH );
+    store_spreg( R_EAX, R_MACL );    
+:}
 DT Rn {:  
     load_reg( R_EAX, Rn );
     ADD_imm8s_r32( -1, Rn );
@@ -223,17 +275,35 @@ EXTS.B Rm, Rn {:
     MOVSX_r8_r32( R_EAX, R_EAX );
     store_reg( R_EAX, Rn );
 :}
-EXTS.W Rm, Rn {:  :}
-EXTU.B Rm, Rn {:  :}
-EXTU.W Rm, Rn {:  :}
+EXTS.W Rm, Rn {:  
+    load_reg( R_EAX, Rm );
+    MOVSX_r16_r32( R_EAX, R_EAX );
+    store_reg( R_EAX, Rn );
+:}
+EXTU.B Rm, Rn {:  
+    load_reg( R_EAX, Rm );
+    MOVZX_r8_r32( R_EAX, R_EAX );
+    store_reg( R_EAX, Rn );
+:}
+EXTU.W Rm, Rn {:  
+    load_reg( R_EAX, Rm );
+    MOVZX_r16_r32( R_EAX, R_EAX );
+    store_reg( R_EAX, Rn );
+:}
 MAC.L @Rm+, @Rn+ {:  :}
 MAC.W @Rm+, @Rn+ {:  :}
 MOVT Rn {:  
     load_spreg( R_EAX, R_T );
     store_reg( R_EAX, Rn );
 :}
-MUL.L Rm, Rn {:  :}
-MULS.W Rm, Rn {:  :}
+MUL.L Rm, Rn {:  
+    load_reg( R_EAX, Rm );
+    load_reg( R_ECX, Rn );
+    MUL_r32( R_ECX );
+    store_spreg( R_EAX, R_MACL );
+:}
+MULS.W Rm, Rn {:  
+:}
 MULU.W Rm, Rn {:  :}
 NEG Rm, Rn {:
     load_reg( R_EAX, Rm );
@@ -293,6 +363,20 @@ ROTR Rn {:
 :}
 SHAD Rm, Rn {:
     /* Annoyingly enough, not directly convertible */
+    load_reg( R_EAX, Rn );
+    load_reg( R_ECX, Rm );
+    CMP_imm32_r32( 0, R_ECX );
+    JAE_rel8(9);
+                    
+    NEG_r32( R_ECX );      // 2
+    AND_imm8_r8( 0x1F, R_CL ); // 3
+    SAR_r32_CL( R_EAX );       // 2
+    JMP_rel8(5);               // 2
+    
+    AND_imm8_r8( 0x1F, R_CL ); // 3
+    SHL_r32_CL( R_EAX );       // 2
+                    
+    store_reg( R_EAX, Rn );
 :}
 SHLD Rm, Rn {:  
 :}
@@ -379,8 +463,20 @@ SWAP.W Rm, Rn {:
     OR_r32_r32( R_EAX, R_ECX );
     store_reg( R_ECX, Rn );
 :}
-TAS.B @Rn {:  :}
-TST Rm, Rn {:  :}
+TAS.B @Rn {:  
+    load_reg( R_ECX, Rn );
+    MEM_READ_BYTE( R_ECX, R_EAX );
+    TEST_r8_r8( R_AL, R_AL );
+    SETE_t();
+    OR_imm8_r8( 0x80, R_AL );
+    MEM_WRITE_BYTE( R_ECX, R_EAX );
+:}
+TST Rm, Rn {:  
+    load_reg( R_EAX, Rm );
+    load_reg( R_ECX, Rn );
+    TEST_r32_r32( R_EAX, R_ECX );
+    SETE_t();
+:}
 TST #imm, R0 {:  :}
 TST.B #imm, @(R0, GBR) {:  :}
 XOR Rm, Rn {:  
@@ -402,7 +498,13 @@ XOR.B #imm, @(R0, GBR) {:
     XOR_imm32_r32( imm, R_EAX );
     MEM_WRITE_BYTE( R_ECX, R_EAX );
 :}
-XTRCT Rm, Rn {:  
+XTRCT Rm, Rn {:
+    load_reg( R_EAX, Rm );
+    MOV_r32_r32( R_EAX, R_ECX );
+    SHR_imm8_r32( 16, R_EAX );
+    SHL_imm8_r32( 16, R_ECX );
+    OR_r32_r32( R_EAX, R_ECX );
+    store_reg( R_ECX, Rn );
 :}
 
 /* Data move instructions */
@@ -477,30 +579,150 @@ MOV.B @(disp, Rm), R0 {:
     MEM_READ_BYTE( R_ECX, R_EAX );
     store_reg( R_EAX, 0 );
 :}
-MOV.L Rm, @Rn {:  :}
-MOV.L Rm, @-Rn {:  :}
-MOV.L Rm, @(R0, Rn) {:  :}
-MOV.L R0, @(disp, GBR) {:  :}
-MOV.L Rm, @(disp, Rn) {:  :}
-MOV.L @Rm, Rn {:  :}
-MOV.L @Rm+, Rn {:  :}
-MOV.L @(R0, Rm), Rn {:  :}
-MOV.L @(disp, GBR), R0 {:  :}
-MOV.L @(disp, PC), Rn {:  :}
-MOV.L @(disp, Rm), Rn {:  :}
-MOV.W Rm, @Rn {:  :}
-MOV.W Rm, @-Rn {:  :}
-MOV.W Rm, @(R0, Rn) {:  :}
-MOV.W R0, @(disp, GBR) {:  :}
-MOV.W R0, @(disp, Rn) {:  :}
-MOV.W @Rm, Rn {:  :}
-MOV.W @Rm+, Rn {:  :}
-MOV.W @(R0, Rm), Rn {:  :}
-MOV.W @(disp, GBR), R0 {:  :}
-MOV.W @(disp, PC), Rn {:  :}
-MOV.W @(disp, Rm), R0 {:  :}
-MOVA @(disp, PC), R0 {:  :}
-MOVCA.L R0, @Rn {:  :}
+MOV.L Rm, @Rn {:  
+    load_reg( R_EAX, Rm );
+    load_reg( R_ECX, Rn );
+    MEM_WRITE_LONG( R_ECX, R_EAX );
+:}
+MOV.L Rm, @-Rn {:  
+    load_reg( R_EAX, Rm );
+    load_reg( R_ECX, Rn );
+    ADD_imm8s_r32( -4, R_ECX );
+    store_reg( R_ECX, Rn );
+    MEM_WRITE_LONG( R_ECX, R_EAX );
+:}
+MOV.L Rm, @(R0, Rn) {:  
+    load_reg( R_EAX, 0 );
+    load_reg( R_ECX, Rn );
+    ADD_r32_r32( R_EAX, R_ECX );
+    load_reg( R_EAX, Rm );
+    MEM_WRITE_LONG( R_ECX, R_EAX );
+:}
+MOV.L R0, @(disp, GBR) {:  
+    load_spreg( R_ECX, R_GBR );
+    load_reg( R_EAX, 0 );
+    ADD_imm32_r32( disp, R_ECX );
+    MEM_WRITE_LONG( R_ECX, R_EAX );
+:}
+MOV.L Rm, @(disp, Rn) {:  
+    load_reg( R_ECX, Rn );
+    load_reg( R_EAX, Rm );
+    ADD_imm32_r32( disp, R_ECX );
+    MEM_WRITE_LONG( R_ECX, R_EAX );
+:}
+MOV.L @Rm, Rn {:  
+    load_reg( R_ECX, Rm );
+    MEM_READ_LONG( R_ECX, R_EAX );
+    store_reg( R_EAX, Rn );
+:}
+MOV.L @Rm+, Rn {:  
+    load_reg( R_EAX, Rm );
+    MOV_r32_r32( R_EAX, R_ECX );
+    ADD_imm8s_r32( 4, R_EAX );
+    store_reg( R_EAX, Rm );
+    MEM_READ_LONG( R_ECX, R_EAX );
+    store_reg( R_EAX, Rn );
+:}
+MOV.L @(R0, Rm), Rn {:  
+    load_reg( R_EAX, 0 );
+    load_reg( R_ECX, Rm );
+    ADD_r32_r32( R_EAX, R_ECX );
+    MEM_READ_LONG( R_ECX, R_EAX );
+    store_reg( R_EAX, Rn );
+:}
+MOV.L @(disp, GBR), R0 {:
+    load_spreg( R_ECX, R_GBR );
+    ADD_imm32_r32( disp, R_ECX );
+    MEM_READ_LONG( R_ECX, R_EAX );
+    store_reg( R_EAX, 0 );
+:}
+MOV.L @(disp, PC), Rn {:  
+    load_imm32( R_ECX, (pc & 0xFFFFFFFC) + disp + 4 );
+    MEM_READ_LONG( R_ECX, R_EAX );
+    store_reg( R_EAX, 0 );
+:}
+MOV.L @(disp, Rm), Rn {:  
+    load_reg( R_ECX, Rm );
+    ADD_imm8s_r32( disp, R_ECX );
+    MEM_READ_LONG( R_ECX, R_EAX );
+    store_reg( R_EAX, Rn );
+:}
+MOV.W Rm, @Rn {:  
+    load_reg( R_ECX, Rn );
+    MEM_READ_WORD( R_ECX, R_EAX );
+    store_reg( R_EAX, Rn );
+:}
+MOV.W Rm, @-Rn {:  
+    load_reg( R_ECX, Rn );
+    load_reg( R_EAX, Rm );
+    ADD_imm8s_r32( -2, R_ECX );
+    MEM_WRITE_WORD( R_ECX, R_EAX );
+:}
+MOV.W Rm, @(R0, Rn) {:  
+    load_reg( R_EAX, 0 );
+    load_reg( R_ECX, Rn );
+    ADD_r32_r32( R_EAX, R_ECX );
+    load_reg( R_EAX, Rm );
+    MEM_WRITE_WORD( R_ECX, R_EAX );
+:}
+MOV.W R0, @(disp, GBR) {:  
+    load_spreg( R_ECX, R_GBR );
+    load_reg( R_EAX, 0 );
+    ADD_imm32_r32( disp, R_ECX );
+    MEM_WRITE_WORD( R_ECX, R_EAX );
+:}
+MOV.W R0, @(disp, Rn) {:  
+    load_reg( R_ECX, Rn );
+    load_reg( R_EAX, 0 );
+    ADD_imm32_r32( disp, R_ECX );
+    MEM_WRITE_WORD( R_ECX, R_EAX );
+:}
+MOV.W @Rm, Rn {:  
+    load_reg( R_ECX, Rm );
+    MEM_READ_WORD( R_ECX, R_EAX );
+    store_reg( R_EAX, Rn );
+:}
+MOV.W @Rm+, Rn {:  
+    load_reg( R_EAX, Rm );
+    MOV_r32_r32( R_EAX, R_ECX );
+    ADD_imm8s_r32( 2, R_EAX );
+    store_reg( R_EAX, Rm );
+    MEM_READ_WORD( R_ECX, R_EAX );
+    store_reg( R_EAX, Rn );
+:}
+MOV.W @(R0, Rm), Rn {:  
+    load_reg( R_EAX, 0 );
+    load_reg( R_ECX, Rm );
+    ADD_r32_r32( R_EAX, R_ECX );
+    MEM_READ_WORD( R_ECX, R_EAX );
+    store_reg( R_EAX, Rn );
+:}
+MOV.W @(disp, GBR), R0 {:  
+    load_spreg( R_ECX, R_GBR );
+    ADD_imm32_r32( disp, R_ECX );
+    MEM_READ_WORD( R_ECX, R_EAX );
+    store_reg( R_EAX, 0 );
+:}
+MOV.W @(disp, PC), Rn {:  
+    load_imm32( R_ECX, pc + disp + 4 );
+    MEM_READ_WORD( R_ECX, R_EAX );
+    store_reg( R_EAX, Rn );
+:}
+MOV.W @(disp, Rm), R0 {:  
+    load_reg( R_ECX, Rm );
+    ADD_imm32_r32( disp, R_ECX );
+    MEM_READ_WORD( R_ECX, R_EAX );
+    store_reg( R_EAX, 0 );
+:}
+MOVA @(disp, PC), R0 {:  
+    load_imm32( R_ECX, (pc & 0xFFFFFFFC) + disp + 4 );
+    store_reg( R_ECX, 0 );
+:}
+MOVCA.L R0, @Rn {:  
+    load_reg( R_EAX, 0 );
+    load_reg( R_ECX, Rn );
+    MEM_WRITE_LONG( R_ECX, R_EAX );
+:}
 
 /* Control transfer instructions */
 BF disp {:  :}
