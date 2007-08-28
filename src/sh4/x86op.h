@@ -1,5 +1,5 @@
 /**
- * $Id: x86op.h,v 1.1 2007-08-23 12:33:27 nkeynes Exp $
+ * $Id: x86op.h,v 1.2 2007-08-28 08:46:14 nkeynes Exp $
  * 
  * Definitions of x86 opcodes for use by the translator.
  *
@@ -39,13 +39,16 @@
 #define R_BH 7
 
 
-#define OP(x) *xlat_output++ = x
-#define OP32(x) *((uint32_t *)xlat_output) = x; xlat_output+=2
+#define OP(x) *xlat_output++ = (x)
+#define OP32(x) *((uint32_t *)xlat_output) = (x); xlat_output+=4
 
 /* Offset of a reg relative to the sh4r structure */
 #define REG_OFFSET(reg)  (((char *)&sh4r.reg) - ((char *)&sh4r))
 
 #define R_T   REG_OFFSET(t)
+#define R_Q   REG_OFFSET(q)
+#define R_S   REG_OFFSET(s)
+#define R_M   REG_OFFSET(m)
 #define R_GBR REG_OFFSET(gbr)
 #define R_SSR REG_OFFSET(ssr)
 #define R_SPC REG_OFFSET(spc)
@@ -82,6 +85,7 @@
 #define CMC()                 OP(0xF5)
 #define CMP_r32_r32(r1,r2)    OP(0x3B); MODRM_rm32_r32(r1,r2)
 #define CMP_imm8s_r32(imm,r1) OP(0x83); MODRM_rm32_r32(r1,7); OP(imm)
+#define JMP_rel8(rel)  OP(0xEB); OP(rel)
 #define MOV_r32_ebp8(r1,disp) OP(0x89); MODRM_r32_ebp8(r1,disp)
 #define MOV_r32_ebp32(r1,disp) OP(0x89); MODRM_r32_ebp32(r1,disp)
 #define MOV_ebp8_r32(r1,disp) OP(0x8B); MODRM_r32_ebp8(r1,disp)
@@ -94,6 +98,7 @@
 #define NOT_r32(r1)           OP(0xF7); MODRM_rm32_r32(r1,2)
 #define OR_r32_r32(r1,r2)     OP(0x0B); MODRM_rm32_r32(r1,r2)
 #define OR_imm32_r32(imm,r1)  OP(0x81); MODRM_rm32_r32(r1,1); OP32(imm)
+#define PUSH_r32(r1)          OP(0x50 + r1)
 #define RCL1_r32(r1)          OP(0xD1); MODRM_rm32_r32(r1,2)
 #define RCR1_r32(r1)          OP(0xD1); MODRM_rm32_r32(r1,3)
 #define RET()                 OP(0xC3)
@@ -112,9 +117,18 @@
 #define XOR_r32_r32(r1,r2)    OP(0x33); MODRM_rm32_r32(r1,r2)
 #define XOR_imm32_r32(imm,r1) OP(0x81); MODRM_rm32_r32(r1,6); OP32(imm)
 
-#define ADD_imm32_r32(imm32,r1)
-#define MOV_r32_r32(r1,r2)
-#define XCHG_r8_r8(r1,r2)
+#define ADD_imm32_r32(imm32,r1) OP(0x81); MODRM_rm32_r32(r1,0); OP32(imm32)
+#define AND_imm8_r8(imm8, r1) OP(0x80); MODRM_rm32_r32(r1,4); OP(imm8)
+#define CMP_imm32_r32(imm32, r1) OP(0x81); MODRM_rm32_r32(r1,7); OP32(imm32)
+#define MOV_r32_r32(r1,r2)    OP(0x89); MODRM_r32_rm32(r1,r2)
+#define MUL_r32(r1)           OP(0xF7); MODRM_rm32_r32(r1,4)
+#define IMUL_r32(r1)          OP(0xF7); MODRM_rm32_r32(r1,5)
+#define OR_imm8_r8(imm,r1)    OP(0x80); MODRM_rm32_r32(r1,1)
+#define TEST_r8_r8(r1,r2)     OP(0x84); MODRM_r32_rm32(r1,r2)
+#define SAR_r32_CL(r1)        OP(0xD3); MODRM_rm32_r32(r1,7)
+#define SHR_r32_CL(r1)        OP(0xD3); MODRM_rm32_r32(r1,5)
+#define SHL_r32_CL(r1)        OP(0xD3); MODRM_rm32_r32(r1,4)
+#define XCHG_r8_r8(r1,r2)     OP(0x86); MODRM_rm32_r32(r1,r2)
 
 /* Conditional branches */
 #define JE_rel8(rel)   OP(0x74); OP(rel)
