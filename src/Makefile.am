@@ -49,9 +49,16 @@ gendec_LDADD = @PACKAGE_LIBS@ $(INTLLIBS)
 
 TESTS = test/testxlt
 
-check_PROGRAMS = test/testxlt
+check_PROGRAMS = test/testxlt test/testsh4x86
 
 test_testxlt_SOURCES = test/testxlt.c sh4/xltcache.c sh4/xltcache.h 
+
+test_testsh4x86_SOURCES = test/testsh4x86.c x86dasm/x86dasm.c \
+	x86dasm/x86dasm.h x86dasm/i386-dis.c x86dasm/dis-init.c \
+	x86dasm/dis-buf.c \
+	sh4/sh4dasm.c sh4/sh4trans.c sh4/sh4x86.c sh4/xltcache.c \
+	sh4/xltcache.h mem.c util.c
+test_testsh4x86_LDADD = @PACKAGE_LIBS@
 
 AM_CFLAGS = -D_ISOC99_SOURCE -D_BSD_SOURCE 
 

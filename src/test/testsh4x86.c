@@ -1,0 +1,143 @@
+/**
+ * $Id: testsh4x86.c,v 1.1 2007-08-28 08:47:13 nkeynes Exp $
+ *
+ * Test cases for the SH4 => x86 translator core. Takes as
+ * input a binary SH4 object (and VMA), generates the
+ * corresponding x86 code, and outputs the disassembly.
+ *
+ * Copyright (c) 2005 Nathan Keynes.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
+#include <stdio.h>
+#include <stdarg.h>
+#include <getopt.h>
+#include "sh4/sh4trans.h"
+#include <sys/stat.h>
+#include "sh4/sh4core.h"
+
+#define MAX_INS_SIZE 32
+
+char *option_list = "s:o:d:h";
+struct option longopts[1] = { { NULL, 0, 0, 0 } };
+
+char *input_file = NULL;
+char *diff_file = NULL;
+char *output_file = NULL;
+uint32_t start_addr = 0x8C010000;
+
+FILE *in;
+
+char *inbuf;
+char *outbuf;
+
+int32_t sh4_read_byte( uint32_t addr ) 
+{
+    return *(uint8_t *)(inbuf+(addr-start_addr));
+}
+int32_t sh4_read_word( uint32_t addr ) 
+{
+    return *(uint16_t *)(inbuf+(addr-start_addr));
+}
+int32_t sh4_read_long( uint32_t addr ) 
+{
+    return *(uint32_t *)(inbuf+(addr-start_addr));
+}
+// Stubs
+gboolean sh4_execute_instruction( ) { }
+void sh4_accept_interrupt() {}
+void sh4_set_breakpoint( uint32_t pc, int type ) { }
+gboolean sh4_clear_breakpoint( uint32_t pc, int type ) { }
+int sh4_get_breakpoint( uint32_t pc ) { }
+void event_execute() {}
+void TMU_run_slice( uint32_t nanos ) {}
+void SCIF_run_slice( uint32_t nanos ) {}
+void sh4_write_byte( uint32_t addr, uint32_t val ) {}
+void sh4_write_word( uint32_t addr, uint32_t val ) {}
+void sh4_write_long( uint32_t addr, uint32_t val ) {}
+
+void usage()
+{
+    fprintf( stderr, "Usage: testsh4x86 [options] <input bin file>\n");
+    fprintf( stderr, "Options:\n");
+    fprintf( stderr, "  -d <filename>  Diff results against contents of file\n" );
+    fprintf( stderr, "  -h             Display this help message\n" );
+    fprintf( stderr, "  -o <filename>  Output disassembly to file [stdout]\n" );
+    fprintf( stderr, "  -s <addr>      Specify start address of binary [8C010000]\n" );
+}
+
+void emit( void *ptr, int level, const gchar *source, const char *msg, ... )
+{
+    va_list ap;
+    va_start( ap, msg );
+    vfprintf( stderr, msg, ap );
+    fprintf( stderr, "\n" );
+    va_end(ap);
+}
+
+
+struct sh4_registers sh4r;
+
+
+int main( int argc, char *argv[] )
+{
+    struct stat st;
+    int opt;
+    while( (opt = getopt_long( argc, argv, option_list, longopts, NULL )) != -1 ) {
+	switch( opt ) {
+	case 'd':
+	    diff_file = optarg;
+	    break;
+	case 'o':
+	    output_file = optarg;
+	    break;
+	case 's':
+	    start_addr = strtoul(optarg, NULL, 0);
+	    break;
+	case 'h':
+	    usage();
+	    exit(0);
+	}
+    }
+    if( optind < argc ) {
+	input_file = argv[optind++];
+    } else {
+	usage();
+	exit(1);
+    }
+
+    in = fopen( input_file, "ro" );
+    if( in == NULL ) {
+	perror( "Unable to open input file" );
+	exit(2);
+    }
+    fstat( fileno(in), &st );
+    inbuf = malloc( st.st_size );
+    fread( inbuf, st.st_size, 1, in );
+    outbuf = malloc( st.st_size * MAX_INS_SIZE );
+    xlat_output = outbuf;
+
+    uint32_t pc;
+    for( pc = start_addr; pc < start_addr + st.st_size; pc+=2 ) {
+	sh4_x86_translate_instruction( pc );
+    }
+
+    uint32_t buflen = (xlat_output - (uint8_t *)outbuf);
+    x86_disasm_init( outbuf, 0x8c010000, buflen );
+    for( pc = 0x8c010000; pc < 0x8c010000 + buflen;  ) {
+	char buf[256];
+	char op[256];
+	uint32_t pc2 = x86_disasm_instruction( pc, buf, sizeof(buf), op );
+	fprintf( stdout, "%08X: %-20s %s\n", pc, op, buf );
+	pc = pc2;
+    }
+}

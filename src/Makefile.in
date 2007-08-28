@@ -184,9 +184,17 @@ gendec_LDADD = @PACKAGE_LIBS@ $(INTLLIBS)
 
 TESTS = test/testxlt
 
-check_PROGRAMS = test/testxlt
+check_PROGRAMS = test/testxlt test/testsh4x86
 
 test_testxlt_SOURCES = test/testxlt.c sh4/xltcache.c sh4/xltcache.h 
+
+test_testsh4x86_SOURCES = test/testsh4x86.c x86dasm/x86dasm.c \
+	x86dasm/x86dasm.h x86dasm/i386-dis.c x86dasm/dis-init.c \
+	x86dasm/dis-buf.c \
+	sh4/sh4dasm.c sh4/sh4trans.c sh4/sh4x86.c sh4/xltcache.c \
+	sh4/xltcache.h mem.c util.c
+
+test_testsh4x86_LDADD = @PACKAGE_LIBS@
 
 AM_CFLAGS = -D_ISOC99_SOURCE -D_BSD_SOURCE 
 subdir = src
@@ -195,7 +203,7 @@ mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
 bin_PROGRAMS = gendec$(EXEEXT) lxdream$(EXEEXT)
-check_PROGRAMS = test/testxlt$(EXEEXT)
+check_PROGRAMS = test/testxlt$(EXEEXT) test/testsh4x86$(EXEEXT)
 PROGRAMS = $(bin_PROGRAMS)
 
 am_gendec_OBJECTS = gendec.$(OBJEXT) insparse.$(OBJEXT) \
@@ -226,12 +234,19 @@ am_lxdream_OBJECTS = main.$(OBJEXT) mem.$(OBJEXT) watch.$(OBJEXT) \
 lxdream_OBJECTS = $(am_lxdream_OBJECTS)
 lxdream_DEPENDENCIES =
 lxdream_LDFLAGS =
+am_test_testsh4x86_OBJECTS = testsh4x86.$(OBJEXT) x86dasm.$(OBJEXT) \
+	i386-dis.$(OBJEXT) dis-init.$(OBJEXT) dis-buf.$(OBJEXT) \
+	sh4dasm.$(OBJEXT) sh4trans.$(OBJEXT) sh4x86.$(OBJEXT) \
+	xltcache.$(OBJEXT) mem.$(OBJEXT) util.$(OBJEXT)
+test_testsh4x86_OBJECTS = $(am_test_testsh4x86_OBJECTS)
+test_testsh4x86_DEPENDENCIES =
+test_testsh4x86_LDFLAGS =
+am__dirstamp = $(am__leading_dot)dirstamp
 am_test_testxlt_OBJECTS = testxlt.$(OBJEXT) xltcache.$(OBJEXT)
 test_testxlt_OBJECTS = $(am_test_testxlt_OBJECTS)
 test_testxlt_LDADD = $(LDADD)
 test_testxlt_DEPENDENCIES =
 test_testxlt_LDFLAGS =
-am__dirstamp = $(am__leading_dot)dirstamp
 
 DEFAULT_INCLUDES =  -I. -I$(srcdir) -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/depcomp
@@ -244,39 +259,41 @@ am__depfiles_maybe = depfiles
 @AMDEP_TRUE@	./$(DEPDIR)/bootstrap.Po ./$(DEPDIR)/callbacks.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/cdi.Po ./$(DEPDIR)/controller.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/dcload.Po ./$(DEPDIR)/debug_win.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/dis-buf.Po ./$(DEPDIR)/dis-init.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/display.Po ./$(DEPDIR)/dmac.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/dreamcast.Po ./$(DEPDIR)/dump_win.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/eventq.Po ./$(DEPDIR)/gdimage.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/gdrom.Po ./$(DEPDIR)/gendec.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/gl_common.Po ./$(DEPDIR)/gl_fbo.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/gui.Po ./$(DEPDIR)/ide.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/insparse.Po ./$(DEPDIR)/intc.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/interface.Po ./$(DEPDIR)/linux.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/loader.Po ./$(DEPDIR)/main.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/maple.Po ./$(DEPDIR)/mem.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/mmr_win.Po ./$(DEPDIR)/nrg.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/pvr2.Po ./$(DEPDIR)/pvr2mem.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/rendbkg.Po ./$(DEPDIR)/rendcore.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/render.Po ./$(DEPDIR)/rendsave.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/rendsort.Po ./$(DEPDIR)/scif.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/sh4core.Po ./$(DEPDIR)/sh4dasm.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/sh4mem.Po ./$(DEPDIR)/sh4mmio.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/sh4trans.Po ./$(DEPDIR)/sh4x86.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/support.Po ./$(DEPDIR)/syscall.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/tacore.Po ./$(DEPDIR)/testxlt.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/gui.Po ./$(DEPDIR)/i386-dis.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/ide.Po ./$(DEPDIR)/insparse.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/intc.Po ./$(DEPDIR)/interface.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/linux.Po ./$(DEPDIR)/loader.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/main.Po ./$(DEPDIR)/maple.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/mem.Po ./$(DEPDIR)/mmr_win.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/nrg.Po ./$(DEPDIR)/pvr2.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/pvr2mem.Po ./$(DEPDIR)/rendbkg.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/rendcore.Po ./$(DEPDIR)/render.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/rendsave.Po ./$(DEPDIR)/rendsort.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/scif.Po ./$(DEPDIR)/sh4core.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/sh4dasm.Po ./$(DEPDIR)/sh4mem.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/sh4mmio.Po ./$(DEPDIR)/sh4trans.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/sh4x86.Po ./$(DEPDIR)/support.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/syscall.Po ./$(DEPDIR)/tacore.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/testsh4x86.Po ./$(DEPDIR)/testxlt.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/texcache.Po ./$(DEPDIR)/timer.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/util.Po ./$(DEPDIR)/video_gtk.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/video_null.Po ./$(DEPDIR)/video_x11.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/watch.Po ./$(DEPDIR)/xltcache.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/yuv.Po
+@AMDEP_TRUE@	./$(DEPDIR)/watch.Po ./$(DEPDIR)/x86dasm.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/xltcache.Po ./$(DEPDIR)/yuv.Po
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
 LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 DIST_SOURCES = $(gendec_SOURCES) $(lxdream_SOURCES) \
-	$(test_testxlt_SOURCES)
+	$(test_testsh4x86_SOURCES) $(test_testxlt_SOURCES)
 DIST_COMMON = $(srcdir)/Makefile.in Makefile.am
-SOURCES = $(gendec_SOURCES) $(lxdream_SOURCES) $(test_testxlt_SOURCES)
+SOURCES = $(gendec_SOURCES) $(lxdream_SOURCES) $(test_testsh4x86_SOURCES) $(test_testxlt_SOURCES)
 
 all: $(BUILT_SOURCES)
 	$(MAKE) $(AM_MAKEFLAGS) all-am
@@ -324,6 +341,9 @@ lxdream$(EXEEXT): $(lxdream_OBJECTS) $(lxdream_DEPENDENCIES)
 test/$(am__dirstamp):
 	@$(mkinstalldirs) test
 	@: > test/$(am__dirstamp)
+test/testsh4x86$(EXEEXT): $(test_testsh4x86_OBJECTS) $(test_testsh4x86_DEPENDENCIES) test/$(am__dirstamp)
+	@rm -f test/testsh4x86$(EXEEXT)
+	$(LINK) $(test_testsh4x86_LDFLAGS) $(test_testsh4x86_OBJECTS) $(test_testsh4x86_LDADD) $(LIBS)
 test/testxlt$(EXEEXT): $(test_testxlt_OBJECTS) $(test_testxlt_DEPENDENCIES) test/$(am__dirstamp)
 	@rm -f test/testxlt$(EXEEXT)
 	$(LINK) $(test_testxlt_LDFLAGS) $(test_testxlt_OBJECTS) $(test_testxlt_LDADD) $(LIBS)
@@ -350,6 +370,8 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/controller.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dcload.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/debug_win.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dis-buf.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dis-init.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/display.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dmac.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dreamcast.Po@am__quote@
@@ -361,6 +383,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gl_common.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gl_fbo.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gui.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/i386-dis.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ide.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/insparse.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/intc.Po@am__quote@
@@ -389,6 +412,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/support.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/syscall.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tacore.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testsh4x86.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testxlt.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/texcache.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/timer.Po@am__quote@
@@ -397,6 +421,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/video_null.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/video_x11.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/watch.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/x86dasm.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xltcache.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/yuv.Po@am__quote@
 
@@ -1543,6 +1568,116 @@ gl_fbo.obj: drivers/gl_fbo.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/gl_fbo.Po' tmpdepfile='$(DEPDIR)/gl_fbo.TPo' @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o gl_fbo.obj `if test -f 'drivers/gl_fbo.c'; then $(CYGPATH_W) 'drivers/gl_fbo.c'; else $(CYGPATH_W) '$(srcdir)/drivers/gl_fbo.c'; fi`
+
+testsh4x86.o: test/testsh4x86.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT testsh4x86.o -MD -MP -MF "$(DEPDIR)/testsh4x86.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o testsh4x86.o `test -f 'test/testsh4x86.c' || echo '$(srcdir)/'`test/testsh4x86.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/testsh4x86.Tpo" "$(DEPDIR)/testsh4x86.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/testsh4x86.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='test/testsh4x86.c' object='testsh4x86.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/testsh4x86.Po' tmpdepfile='$(DEPDIR)/testsh4x86.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o testsh4x86.o `test -f 'test/testsh4x86.c' || echo '$(srcdir)/'`test/testsh4x86.c
+
+testsh4x86.obj: test/testsh4x86.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT testsh4x86.obj -MD -MP -MF "$(DEPDIR)/testsh4x86.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o testsh4x86.obj `if test -f 'test/testsh4x86.c'; then $(CYGPATH_W) 'test/testsh4x86.c'; else $(CYGPATH_W) '$(srcdir)/test/testsh4x86.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/testsh4x86.Tpo" "$(DEPDIR)/testsh4x86.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/testsh4x86.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='test/testsh4x86.c' object='testsh4x86.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/testsh4x86.Po' tmpdepfile='$(DEPDIR)/testsh4x86.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o testsh4x86.obj `if test -f 'test/testsh4x86.c'; then $(CYGPATH_W) 'test/testsh4x86.c'; else $(CYGPATH_W) '$(srcdir)/test/testsh4x86.c'; fi`
+
+x86dasm.o: x86dasm/x86dasm.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT x86dasm.o -MD -MP -MF "$(DEPDIR)/x86dasm.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o x86dasm.o `test -f 'x86dasm/x86dasm.c' || echo '$(srcdir)/'`x86dasm/x86dasm.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/x86dasm.Tpo" "$(DEPDIR)/x86dasm.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/x86dasm.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='x86dasm/x86dasm.c' object='x86dasm.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/x86dasm.Po' tmpdepfile='$(DEPDIR)/x86dasm.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o x86dasm.o `test -f 'x86dasm/x86dasm.c' || echo '$(srcdir)/'`x86dasm/x86dasm.c
+
+x86dasm.obj: x86dasm/x86dasm.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT x86dasm.obj -MD -MP -MF "$(DEPDIR)/x86dasm.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o x86dasm.obj `if test -f 'x86dasm/x86dasm.c'; then $(CYGPATH_W) 'x86dasm/x86dasm.c'; else $(CYGPATH_W) '$(srcdir)/x86dasm/x86dasm.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/x86dasm.Tpo" "$(DEPDIR)/x86dasm.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/x86dasm.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='x86dasm/x86dasm.c' object='x86dasm.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/x86dasm.Po' tmpdepfile='$(DEPDIR)/x86dasm.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o x86dasm.obj `if test -f 'x86dasm/x86dasm.c'; then $(CYGPATH_W) 'x86dasm/x86dasm.c'; else $(CYGPATH_W) '$(srcdir)/x86dasm/x86dasm.c'; fi`
+
+i386-dis.o: x86dasm/i386-dis.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT i386-dis.o -MD -MP -MF "$(DEPDIR)/i386-dis.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o i386-dis.o `test -f 'x86dasm/i386-dis.c' || echo '$(srcdir)/'`x86dasm/i386-dis.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/i386-dis.Tpo" "$(DEPDIR)/i386-dis.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/i386-dis.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='x86dasm/i386-dis.c' object='i386-dis.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/i386-dis.Po' tmpdepfile='$(DEPDIR)/i386-dis.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o i386-dis.o `test -f 'x86dasm/i386-dis.c' || echo '$(srcdir)/'`x86dasm/i386-dis.c
+
+i386-dis.obj: x86dasm/i386-dis.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT i386-dis.obj -MD -MP -MF "$(DEPDIR)/i386-dis.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o i386-dis.obj `if test -f 'x86dasm/i386-dis.c'; then $(CYGPATH_W) 'x86dasm/i386-dis.c'; else $(CYGPATH_W) '$(srcdir)/x86dasm/i386-dis.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/i386-dis.Tpo" "$(DEPDIR)/i386-dis.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/i386-dis.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='x86dasm/i386-dis.c' object='i386-dis.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/i386-dis.Po' tmpdepfile='$(DEPDIR)/i386-dis.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o i386-dis.obj `if test -f 'x86dasm/i386-dis.c'; then $(CYGPATH_W) 'x86dasm/i386-dis.c'; else $(CYGPATH_W) '$(srcdir)/x86dasm/i386-dis.c'; fi`
+
+dis-init.o: x86dasm/dis-init.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT dis-init.o -MD -MP -MF "$(DEPDIR)/dis-init.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o dis-init.o `test -f 'x86dasm/dis-init.c' || echo '$(srcdir)/'`x86dasm/dis-init.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/dis-init.Tpo" "$(DEPDIR)/dis-init.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/dis-init.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='x86dasm/dis-init.c' object='dis-init.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/dis-init.Po' tmpdepfile='$(DEPDIR)/dis-init.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o dis-init.o `test -f 'x86dasm/dis-init.c' || echo '$(srcdir)/'`x86dasm/dis-init.c
+
+dis-init.obj: x86dasm/dis-init.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT dis-init.obj -MD -MP -MF "$(DEPDIR)/dis-init.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o dis-init.obj `if test -f 'x86dasm/dis-init.c'; then $(CYGPATH_W) 'x86dasm/dis-init.c'; else $(CYGPATH_W) '$(srcdir)/x86dasm/dis-init.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/dis-init.Tpo" "$(DEPDIR)/dis-init.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/dis-init.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='x86dasm/dis-init.c' object='dis-init.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/dis-init.Po' tmpdepfile='$(DEPDIR)/dis-init.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o dis-init.obj `if test -f 'x86dasm/dis-init.c'; then $(CYGPATH_W) 'x86dasm/dis-init.c'; else $(CYGPATH_W) '$(srcdir)/x86dasm/dis-init.c'; fi`
+
+dis-buf.o: x86dasm/dis-buf.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT dis-buf.o -MD -MP -MF "$(DEPDIR)/dis-buf.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o dis-buf.o `test -f 'x86dasm/dis-buf.c' || echo '$(srcdir)/'`x86dasm/dis-buf.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/dis-buf.Tpo" "$(DEPDIR)/dis-buf.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/dis-buf.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='x86dasm/dis-buf.c' object='dis-buf.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/dis-buf.Po' tmpdepfile='$(DEPDIR)/dis-buf.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o dis-buf.o `test -f 'x86dasm/dis-buf.c' || echo '$(srcdir)/'`x86dasm/dis-buf.c
+
+dis-buf.obj: x86dasm/dis-buf.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT dis-buf.obj -MD -MP -MF "$(DEPDIR)/dis-buf.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o dis-buf.obj `if test -f 'x86dasm/dis-buf.c'; then $(CYGPATH_W) 'x86dasm/dis-buf.c'; else $(CYGPATH_W) '$(srcdir)/x86dasm/dis-buf.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/dis-buf.Tpo" "$(DEPDIR)/dis-buf.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/dis-buf.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='x86dasm/dis-buf.c' object='dis-buf.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/dis-buf.Po' tmpdepfile='$(DEPDIR)/dis-buf.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o dis-buf.obj `if test -f 'x86dasm/dis-buf.c'; then $(CYGPATH_W) 'x86dasm/dis-buf.c'; else $(CYGPATH_W) '$(srcdir)/x86dasm/dis-buf.c'; fi`
 
 testxlt.o: test/testxlt.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT testxlt.o -MD -MP -MF "$(DEPDIR)/testxlt.Tpo" \
