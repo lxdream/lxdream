@@ -1,5 +1,5 @@
 /**
- * $Id: x86op.h,v 1.2 2007-08-28 08:46:14 nkeynes Exp $
+ * $Id: x86op.h,v 1.3 2007-09-04 08:40:23 nkeynes Exp $
  * 
  * Definitions of x86 opcodes for use by the translator.
  *
@@ -49,6 +49,7 @@
 #define R_Q   REG_OFFSET(q)
 #define R_S   REG_OFFSET(s)
 #define R_M   REG_OFFSET(m)
+#define R_SR  REG_OFFSET(sr)
 #define R_GBR REG_OFFSET(gbr)
 #define R_SSR REG_OFFSET(ssr)
 #define R_SPC REG_OFFSET(spc)
@@ -76,29 +77,45 @@
 /* ebp+disp32 modrm form */
 #define MODRM_r32_ebp32(r1,disp) OP(0x85 | (r1<<3)); OP32(disp)
 
+#define MODRM_r32_ebp(r1,disp) if(disp>127){ MODRM_r32_ebp32(r1,disp);}else{ MODRM_r32_ebp8(r1,(unsigned char)disp); }
+
 /* Major opcodes */
 #define ADD_r32_r32(r1,r2) OP(0x03); MODRM_rm32_r32(r1,r2)
 #define ADD_imm8s_r32(imm,r1) OP(0x83); MODRM_rm32_r32(r1, 0); OP(imm)
+#define ADD_imm32_r32(imm32,r1) OP(0x81); MODRM_rm32_r32(r1,0); OP32(imm32)
 #define ADC_r32_r32(r1,r2)    OP(0x13); MODRM_rm32_r32(r1,r2)
 #define AND_r32_r32(r1,r2)    OP(0x23); MODRM_rm32_r32(r1,r2)
+#define AND_imm8_r8(imm8, r1) OP(0x80); MODRM_rm32_r32(r1,4); OP(imm8)
 #define AND_imm32_r32(imm,r1) OP(0x81); MODRM_rm32_r32(r1,4); OP32(imm)
+#define CALL_r32(r1)          OP(0xFF); MODRM_rm32_r32(r1,2)
 #define CMC()                 OP(0xF5)
 #define CMP_r32_r32(r1,r2)    OP(0x3B); MODRM_rm32_r32(r1,r2)
+#define CMP_imm32_r32(imm32, r1) OP(0x81); MODRM_rm32_r32(r1,7); OP32(imm32)
 #define CMP_imm8s_r32(imm,r1) OP(0x83); MODRM_rm32_r32(r1,7); OP(imm)
+#define CMP_imm8s_ebp(imm,disp) OP(0x83); MODRM_r32_ebp(7,disp) OP(imm)
+#define DEC_r32(r1)           OP(0x48+r1)
+#define IMUL_r32(r1)          OP(0xF7); MODRM_rm32_r32(r1,5)
+#define INC_r32(r1)           OP(0x40+r1)
 #define JMP_rel8(rel)  OP(0xEB); OP(rel)
-#define MOV_r32_ebp8(r1,disp) OP(0x89); MODRM_r32_ebp8(r1,disp)
+#define MOV_r32_r32(r1,r2)    OP(0x89); MODRM_r32_rm32(r1,r2)
+#define MOV_r32_ebp(r1,disp) OP(0x89); MODRM_r32_ebp(r1,disp)
 #define MOV_r32_ebp32(r1,disp) OP(0x89); MODRM_r32_ebp32(r1,disp)
-#define MOV_ebp8_r32(r1,disp) OP(0x8B); MODRM_r32_ebp8(r1,disp)
-#define MOV_ebp32_r32(r1,disp) OP(0x8B); MODRM_r32_ebp32(r1,disp)
+#define MOV_moff32_EAX(off)   OP(0xA1); OP32(off)
+#define MOV_ebp_r32(disp, r1)  OP(0x8B); MODRM_r32_ebp(r1,disp)
 #define MOVSX_r8_r32(r1,r2)   OP(0x0F); OP(0xBE); MODRM_rm32_r32(r1,r2)
 #define MOVSX_r16_r32(r1,r2)  OP(0x0F); OP(0xBF); MODRM_rm32_r32(r1,r2)
 #define MOVZX_r8_r32(r1,r2)   OP(0x0F); OP(0xB6); MODRM_rm32_r32(r1,r2)
 #define MOVZX_r16_r32(r1,r2)  OP(0x0F); OP(0xB7); MODRM_rm32_r32(r1,r2)
+#define MUL_r32(r1)           OP(0xF7); MODRM_rm32_r32(r1,4)
 #define NEG_r32(r1)           OP(0xF7); MODRM_rm32_r32(r1,3)
 #define NOT_r32(r1)           OP(0xF7); MODRM_rm32_r32(r1,2)
 #define OR_r32_r32(r1,r2)     OP(0x0B); MODRM_rm32_r32(r1,r2)
+#define OR_imm8_r8(imm,r1)    OP(0x80); MODRM_rm32_r32(r1,1)
 #define OR_imm32_r32(imm,r1)  OP(0x81); MODRM_rm32_r32(r1,1); OP32(imm)
+#define OR_ebp_r32(disp,r1)  OP(0x0B); MODRM_r32_ebp(r1,disp)
+#define POP_r32(r1)           OP(0x58 + r1)
 #define PUSH_r32(r1)          OP(0x50 + r1)
+#define PUSH_imm32(imm)       OP(0x68); OP32(imm)
 #define RCL1_r32(r1)          OP(0xD1); MODRM_rm32_r32(r1,2)
 #define RCR1_r32(r1)          OP(0xD1); MODRM_rm32_r32(r1,3)
 #define RET()                 OP(0xC3)
@@ -106,29 +123,23 @@
 #define ROR1_r32(r1)          OP(0xD1); MODRM_rm32_r32(r1,1)
 #define SAR1_r32(r1)          OP(0xD1); MODRM_rm32_r32(r1,7)
 #define SAR_imm8_r32(imm,r1)  OP(0xC1); MODRM_rm32_r32(r1,7); OP(imm)
+#define SAR_r32_CL(r1)        OP(0xD3); MODRM_rm32_r32(r1,7)
 #define SBB_r32_r32(r1,r2)    OP(0x1B); MODRM_rm32_r32(r1,r2)
 #define SHL1_r32(r1)          OP(0xD1); MODRM_rm32_r32(r1,4)
+#define SHL_r32_CL(r1)        OP(0xD3); MODRM_rm32_r32(r1,4)
 #define SHL_imm8_r32(imm,r1)  OP(0xC1); MODRM_rm32_r32(r1,4); OP(imm)
 #define SHR1_r32(r1)          OP(0xD1); MODRM_rm32_r32(r1,5)
+#define SHR_r32_CL(r1)        OP(0xD3); MODRM_rm32_r32(r1,5)
 #define SHR_imm8_r32(imm,r1)  OP(0xC1); MODRM_rm32_r32(r1,5); OP(imm)
 #define SUB_r32_r32(r1,r2)    OP(0x2B); MODRM_rm32_r32(r1,r2)
+#define TEST_r8_r8(r1,r2)     OP(0x84); MODRM_r32_rm32(r1,r2)
 #define TEST_r32_r32(r1,r2)   OP(0x85); MODRM_rm32_r32(r1,r2)
+#define TEST_imm8_r8(imm8,r1) OP(0xF6); MODRM_rm32_r32(r1,0); OP(imm8)
 #define TEST_imm32_r32(imm,r1) OP(0xF7); MODRM_rm32_r32(r1,0); OP32(imm)
+#define XCHG_r8_r8(r1,r2)     OP(0x86); MODRM_rm32_r32(r1,r2)
 #define XOR_r32_r32(r1,r2)    OP(0x33); MODRM_rm32_r32(r1,r2)
 #define XOR_imm32_r32(imm,r1) OP(0x81); MODRM_rm32_r32(r1,6); OP32(imm)
 
-#define ADD_imm32_r32(imm32,r1) OP(0x81); MODRM_rm32_r32(r1,0); OP32(imm32)
-#define AND_imm8_r8(imm8, r1) OP(0x80); MODRM_rm32_r32(r1,4); OP(imm8)
-#define CMP_imm32_r32(imm32, r1) OP(0x81); MODRM_rm32_r32(r1,7); OP32(imm32)
-#define MOV_r32_r32(r1,r2)    OP(0x89); MODRM_r32_rm32(r1,r2)
-#define MUL_r32(r1)           OP(0xF7); MODRM_rm32_r32(r1,4)
-#define IMUL_r32(r1)          OP(0xF7); MODRM_rm32_r32(r1,5)
-#define OR_imm8_r8(imm,r1)    OP(0x80); MODRM_rm32_r32(r1,1)
-#define TEST_r8_r8(r1,r2)     OP(0x84); MODRM_r32_rm32(r1,r2)
-#define SAR_r32_CL(r1)        OP(0xD3); MODRM_rm32_r32(r1,7)
-#define SHR_r32_CL(r1)        OP(0xD3); MODRM_rm32_r32(r1,5)
-#define SHL_r32_CL(r1)        OP(0xD3); MODRM_rm32_r32(r1,4)
-#define XCHG_r8_r8(r1,r2)     OP(0x86); MODRM_rm32_r32(r1,r2)
 
 /* Conditional branches */
 #define JE_rel8(rel)   OP(0x74); OP(rel)
@@ -138,8 +149,6 @@
 #define JGE_rel8(rel)  OP(0x7D); OP(rel)
 #define JC_rel8(rel)   OP(0x72); OP(rel)
 #define JO_rel8(rel)   OP(0x70); OP(rel)
-
-/* Negated forms */
 #define JNE_rel8(rel)  OP(0x75); OP(rel)
 #define JNA_rel8(rel)  OP(0x76); OP(rel)
 #define JNAE_rel8(rel) OP(0x72); OP(rel)
@@ -148,24 +157,59 @@
 #define JNC_rel8(rel)  OP(0x73); OP(rel)
 #define JNO_rel8(rel)  OP(0x71); OP(rel)
 
-/* Conditional setcc - writeback to sh4r.t */
-#define SETE_t()    OP(0x0F); OP(0x94); MODRM_r32_ebp8(0, R_T);
-#define SETA_t()    OP(0x0F); OP(0x97); MODRM_r32_ebp8(0, R_T);
-#define SETAE_t()   OP(0x0F); OP(0x93); MODRM_r32_ebp8(0, R_T);
-#define SETG_t()    OP(0x0F); OP(0x9F); MODRM_r32_ebp8(0, R_T);
-#define SETGE_t()   OP(0x0F); OP(0x9D); MODRM_r32_ebp8(0, R_T);
-#define SETC_t()    OP(0x0F); OP(0x92); MODRM_r32_ebp8(0, R_T);
-#define SETO_t()    OP(0x0F); OP(0x90); MODRM_r32_ebp8(0, R_T);
+/* 32-bit long forms w/ backpatching to an exit routine */
+#define JE_exit(rel)  OP(0x0F); OP(0x84); sh4_x86_add_backpatch(xlat_output); OP32(rel)
+#define JA_exit(rel)  OP(0x0F); OP(0x87); sh4_x86_add_backpatch(xlat_output); OP32(rel)
+#define JAE_exit(rel) OP(0x0F); OP(0x83); sh4_x86_add_backpatch(xlat_output); OP32(rel)
+#define JG_exit(rel)  OP(0x0F); OP(0x8F); sh4_x86_add_backpatch(xlat_output); OP32(rel)
+#define JGE_exit(rel) OP(0x0F); OP(0x8D); sh4_x86_add_backpatch(xlat_output); OP32(rel)
+#define JC_exit(rel)  OP(0x0F); OP(0x82); sh4_x86_add_backpatch(xlat_output); OP32(rel)
+#define JO_exit(rel)  OP(0x0F); OP(0x80); sh4_x86_add_backpatch(xlat_output); OP32(rel)
+#define JNE_exit(rel) OP(0x0F); OP(0x85); sh4_x86_add_backpatch(xlat_output); OP32(rel)
+#define JNA_exit(rel) OP(0x0F); OP(0x86); sh4_x86_add_backpatch(xlat_output); OP32(rel)
+#define JNAE_exit(rel) OP(0x0F);OP(0x82); sh4_x86_add_backpatch(xlat_output); OP32(rel)
+#define JNG_exit(rel) OP(0x0F); OP(0x8E); sh4_x86_add_backpatch(xlat_output); OP32(rel)
+#define JNGE_exit(rel) OP(0x0F);OP(0x8C); sh4_x86_add_backpatch(xlat_output); OP32(rel)
+#define JNC_exit(rel) OP(0x0F); OP(0x83); sh4_x86_add_backpatch(xlat_output); OP32(rel)
+#define JNO_exit(rel) OP(0x0F); OP(0x81); sh4_x86_add_backpatch(xlat_output); OP32(rel)
 
-#define SETNE_t()   OP(0x0F); OP(0x95); MODRM_r32_ebp8(0, R_T);
-#define SETNA_t()   OP(0x0F); OP(0x96); MODRM_r32_ebp8(0, R_T);
-#define SETNAE_t()  OP(0x0F); OP(0x92); MODRM_r32_ebp8(0, R_T);
-#define SETNG_t()   OP(0x0F); OP(0x9E); MODRM_r32_ebp8(0, R_T);
-#define SETNGE_t()  OP(0x0F); OP(0x9C); MODRM_r32_ebp8(0, R_T);
-#define SETNC_t()   OP(0x0F); OP(0x93); MODRM_r32_ebp8(0, R_T);
-#define SETNO_t()   OP(0x0F); OP(0x91); MODRM_r32_ebp8(0, R_T);
+
+/* Conditional moves ebp-rel */
+#define CMOVE_r32_r32(r1,r2)  OP(0x0F); OP(0x44); MODRM_rm32_r32(r1,r2)
+#define CMOVA_r32_r32(r1,r2)  OP(0x0F); OP(0x47); MODRM_rm32_r32(r1,r2)
+#define CMOVAE_r32_r32(r1,r2) OP(0x0F); OP(0x43); MODRM_rm32_r32(r1,r2)
+#define CMOVG_r32_r32(r1,r2)  OP(0x0F); OP(0x4F); MODRM_rm32_r32(r1,r2)
+#define CMOVGE_r32_r32(r1,r2)  OP(0x0F); OP(0x4D); MODRM_rm32_r32(r1,r2)
+#define CMOVC_r32_r32(r1,r2)  OP(0x0F); OP(0x42); MODRM_rm32_r32(r1,r2)
+#define CMOVO_r32_r32(r1,r2)  OP(0x0F); OP(0x40); MODRM_rm32_r32(r1,r2)
+
+
+/* Conditional setcc - writeback to sh4r.t */
+#define SETE_ebp(disp)    OP(0x0F); OP(0x94); MODRM_r32_ebp(0, disp);
+#define SETA_ebp(disp)    OP(0x0F); OP(0x97); MODRM_r32_ebp(0, disp);
+#define SETAE_ebp(disp)   OP(0x0F); OP(0x93); MODRM_r32_ebp(0, disp);
+#define SETG_ebp(disp)    OP(0x0F); OP(0x9F); MODRM_r32_ebp(0, disp);
+#define SETGE_ebp(disp)   OP(0x0F); OP(0x9D); MODRM_r32_ebp(0, disp);
+#define SETC_ebp(disp)    OP(0x0F); OP(0x92); MODRM_r32_ebp(0, disp);
+#define SETO_ebp(disp)    OP(0x0F); OP(0x90); MODRM_r32_ebp(0, disp);
+
+#define SETNE_ebp(disp)   OP(0x0F); OP(0x95); MODRM_r32_ebp(0, disp);
+#define SETNA_ebp(disp)   OP(0x0F); OP(0x96); MODRM_r32_ebp(0, disp);
+#define SETNAE_ebp(disp)  OP(0x0F); OP(0x92); MODRM_r32_ebp(0, disp);
+#define SETNG_ebp(disp)   OP(0x0F); OP(0x9E); MODRM_r32_ebp(0, disp);
+#define SETNGE_ebp(disp)  OP(0x0F); OP(0x9C); MODRM_r32_ebp(0, disp);
+#define SETNC_ebp(disp)   OP(0x0F); OP(0x93); MODRM_r32_ebp(0, disp);
+#define SETNO_ebp(disp)   OP(0x0F); OP(0x91); MODRM_r32_ebp(0, disp);
+
+#define SETE_t() SETE_ebp(R_T)
+#define SETA_t() SETA_ebp(R_T)
+#define SETAE_t() SETAE_ebp(R_T)
+#define SETG_t() SETG_ebp(R_T)
+#define SETGE_t() SETGE_ebp(R_T)
+#define SETC_t() SETC_ebp(R_T)
+#define SETO_t() SETO_ebp(R_T)
 
 /* Pseudo-op Load carry from T: CMP [EBP+t], #01 ; CMC */
-#define LDC_t()     OP(0x83); MODRM_r32_ebp8(7,R_T); OP(0x01); CMC()
+#define LDC_t()     OP(0x83); MODRM_r32_ebp(7,R_T); OP(0x01); CMC()
 
 #endif /* !__lxdream_x86op_H */
