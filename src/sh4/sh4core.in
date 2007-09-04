@@ -1,5 +1,5 @@
 /**
- * $Id: sh4core.in,v 1.1 2007-08-23 12:33:27 nkeynes Exp $
+ * $Id: sh4core.in,v 1.2 2007-09-04 08:38:33 nkeynes Exp $
  * 
  * SH4 emulation core, and parent module for all the SH4 peripheral
  * modules.
@@ -33,17 +33,6 @@
 #define MIN_INT 0x80000000
 #define MAX_INTF 2147483647.0
 #define MIN_INTF -2147483648.0
-
-/* CPU-generated exception code/vector pairs */
-#define EXC_POWER_RESET  0x000 /* vector special */
-#define EXC_MANUAL_RESET 0x020
-#define EXC_READ_ADDR_ERR 0x0E0
-#define EXC_WRITE_ADDR_ERR 0x100
-#define EXC_SLOT_ILLEGAL 0x1A0
-#define EXC_ILLEGAL      0x180
-#define EXC_TRAP         0x160
-#define EXC_FPDISABLE    0x800
-#define EXC_SLOT_FPDISABLE 0x820
 
 #define EXV_EXCEPTION    0x100  /* General exception vector */
 #define EXV_TLBMISS      0x400  /* TLB-miss exception vector */
@@ -322,12 +311,12 @@ void fprint_stack_trace( FILE *f )
 #define MEM_FP_WRITE( addr, reg ) sh4_write_float( addr, reg );
 
 #define CHECKPRIV() if( !IS_SH4_PRIVMODE() ) return sh4_raise_slot_exception( EXC_ILLEGAL, EXC_SLOT_ILLEGAL )
-#define CHECKRALIGN16(addr) if( (addr)&0x01 ) return sh4_raise_exception( EXC_READ_ADDR_ERR )
-#define CHECKRALIGN32(addr) if( (addr)&0x03 ) return sh4_raise_exception( EXC_READ_ADDR_ERR )
-#define CHECKWALIGN16(addr) if( (addr)&0x01 ) return sh4_raise_exception( EXC_WRITE_ADDR_ERR )
-#define CHECKWALIGN32(addr) if( (addr)&0x03 ) return sh4_raise_exception( EXC_WRITE_ADDR_ERR )
+#define CHECKRALIGN16(addr) if( (addr)&0x01 ) return sh4_raise_exception( EXC_DATA_ADDR_READ )
+#define CHECKRALIGN32(addr) if( (addr)&0x03 ) return sh4_raise_exception( EXC_DATA_ADDR_READ )
+#define CHECKWALIGN16(addr) if( (addr)&0x01 ) return sh4_raise_exception( EXC_DATA_ADDR_WRITE )
+#define CHECKWALIGN32(addr) if( (addr)&0x03 ) return sh4_raise_exception( EXC_DATA_ADDR_WRITE )
 
-#define CHECKFPUEN() if( !IS_FPU_ENABLED() ) { if( ir == 0xFFFD ) { UNDEF(ir); } else { return sh4_raise_slot_exception( EXC_FPDISABLE, EXC_SLOT_FPDISABLE ); } }
+#define CHECKFPUEN() if( !IS_FPU_ENABLED() ) { if( ir == 0xFFFD ) { UNDEF(ir); } else { return sh4_raise_slot_exception( EXC_FPU_DISABLED, EXC_SLOT_FPU_DISABLED ); } }
 #define CHECKDEST(p) if( (p) == 0 ) { ERROR( "%08X: Branch/jump to NULL, CPU halted", sh4r.pc ); dreamcast_stop(); return FALSE; }
 #define CHECKSLOTILLEGAL() if(sh4r.in_delay_slot) return sh4_raise_exception(EXC_SLOT_ILLEGAL)
 
