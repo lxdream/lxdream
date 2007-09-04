@@ -1,5 +1,5 @@
 /**
- * $Id: sh4core.h,v 1.19 2007-08-23 12:33:27 nkeynes Exp $
+ * $Id: sh4core.h,v 1.20 2007-09-04 08:38:33 nkeynes Exp $
  * 
  * This file defines the internal functions exported/used by the SH4 core, 
  * except for disassembly functions defined in sh4dasm.h
@@ -178,6 +178,17 @@ int MMU_load_state( FILE *f );
 #define DR(x) DRb((x>>1), (x&1))
 #define FPULf   *((float *)&sh4r.fpul)
 #define FPULi    (sh4r.fpul)
+
+/* CPU-generated exception code/vector pairs */
+#define EXC_POWER_RESET    0x000 /* vector special */
+#define EXC_MANUAL_RESET   0x020
+#define EXC_DATA_ADDR_READ 0x0E0
+#define EXC_DATA_ADDR_WRITE 0x100
+#define EXC_SLOT_ILLEGAL   0x1A0
+#define EXC_ILLEGAL        0x180
+#define EXC_TRAP           0x160
+#define EXC_FPU_DISABLED   0x800
+#define EXC_SLOT_FPU_DISABLED 0x820
 
 /* Exceptions (for use with sh4_raise_exception) */
 
