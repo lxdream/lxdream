@@ -1,5 +1,5 @@
 /**
- * $Id: x86dasm.h,v 1.1 2007-08-28 08:46:54 nkeynes Exp $
+ * $Id: x86dasm.h,v 1.2 2007-09-04 08:32:10 nkeynes Exp $
  *
  * Wrapper around i386-dis to supply the same behaviour as the other
  * disassembly functions.
@@ -21,4 +21,11 @@
 #include "mem.h"
 extern const struct cpu_desc_struct x86_cpu_desc;
 
+typedef struct x86_symbol {
+    const char *name;
+    void *ptr;
+} x86_symbol;
+
+void x86_set_symtab( x86_symbol *symtab, int num_symbols );
+void x86_disasm_init(char *buf, uint32_t vma, int buflen);
 uint32_t x86_disasm_instruction( uint32_t pc, char *buf, int len, char *opcode );
