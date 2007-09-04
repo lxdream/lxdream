@@ -54,10 +54,13 @@ int main()
     test_bf(); 
     test_bt();
     test_cmp();
+    test_cmpstr();
+    test_div0();
     test_float();
     test_fmov();
     test_ftrc();
     test_mac();
+    test_shld();
     fprintf( stdout, "--> %d/%d instruction tests passed (%d%%)\n\n",
 	     total_tests-total_fails, total_tests, 
 	     ((total_tests-total_fails)*100)/total_tests );
