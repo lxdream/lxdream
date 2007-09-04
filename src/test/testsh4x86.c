@@ -1,5 +1,5 @@
 /**
- * $Id: testsh4x86.c,v 1.1 2007-08-28 08:47:13 nkeynes Exp $
+ * $Id: testsh4x86.c,v 1.2 2007-09-04 08:32:10 nkeynes Exp $
  *
  * Test cases for the SH4 => x86 translator core. Takes as
  * input a binary SH4 object (and VMA), generates the
@@ -21,8 +21,9 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <getopt.h>
-#include "sh4/sh4trans.h"
 #include <sys/stat.h>
+#include "x86dasm/x86dasm.h"
+#include "sh4/sh4trans.h"
 #include "sh4/sh4core.h"
 
 #define MAX_INS_SIZE 32
@@ -34,11 +35,19 @@ char *input_file = NULL;
 char *diff_file = NULL;
 char *output_file = NULL;
 uint32_t start_addr = 0x8C010000;
-
+uint32_t sh4_cpu_period = 5;
 FILE *in;
 
 char *inbuf;
-char *outbuf;
+
+struct x86_symbol local_symbols[] = {
+    { "_sh4_read_byte", sh4_read_byte },
+    { "_sh4_read_word", sh4_read_word },
+    { "_sh4_read_long", sh4_read_long },
+    { "_sh4_write_byte", sh4_write_byte },
+    { "_sh4_write_word", sh4_write_word },
+    { "_sh4_write_long", sh4_write_long }
+};
 
 int32_t sh4_read_byte( uint32_t addr ) 
 {
@@ -64,6 +73,7 @@ void SCIF_run_slice( uint32_t nanos ) {}
 void sh4_write_byte( uint32_t addr, uint32_t val ) {}
 void sh4_write_word( uint32_t addr, uint32_t val ) {}
 void sh4_write_long( uint32_t addr, uint32_t val ) {}
+gboolean sh4_raise_exception( int exc ) {}
 
 void usage()
 {
@@ -123,16 +133,13 @@ int main( int argc, char *argv[] )
     fstat( fileno(in), &st );
     inbuf = malloc( st.st_size );
     fread( inbuf, st.st_size, 1, in );
-    outbuf = malloc( st.st_size * MAX_INS_SIZE );
-    xlat_output = outbuf;
 
+    xlat_cache_init();
     uint32_t pc;
-    for( pc = start_addr; pc < start_addr + st.st_size; pc+=2 ) {
-	sh4_x86_translate_instruction( pc );
-    }
-
-    uint32_t buflen = (xlat_output - (uint8_t *)outbuf);
-    x86_disasm_init( outbuf, 0x8c010000, buflen );
+    uint8_t *buf = sh4_translate_basic_block( start_addr );
+    uint32_t buflen = xlat_get_block_size(buf);
+    x86_disasm_init( buf, 0x8c010000, buflen );
+    x86_set_symtab( local_symbols, 6 );
     for( pc = 0x8c010000; pc < 0x8c010000 + buflen;  ) {
 	char buf[256];
 	char op[256];

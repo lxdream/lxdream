@@ -1,5 +1,5 @@
 /**
- * $Id: x86dasm.c,v 1.1 2007-08-28 08:46:54 nkeynes Exp $
+ * $Id: x86dasm.c,v 1.2 2007-09-04 08:32:10 nkeynes Exp $
  *
  * Wrapper around i386-dis to supply the same behaviour as the other
  * disassembly functions.
@@ -37,6 +37,9 @@ static int x86_print_address( bfd_vma memaddr, struct disassemble_info *info );
 
 static struct disassemble_info x86_disasm_info;
 
+static x86_symbol *x86_symtab;
+static int x86_num_symbols = 0;   
+
 void x86_disasm_init(char *buf, uint32_t vma, int buflen)
 {
     init_disassemble_info( &x86_disasm_info, NULL, x86_disasm_output );
@@ -46,8 +49,35 @@ void x86_disasm_init(char *buf, uint32_t vma, int buflen)
     x86_disasm_info.buffer = buf;
     x86_disasm_info.buffer_vma = vma;
     x86_disasm_info.buffer_length = buflen;
+    x86_disasm_info.print_address_func = x86_print_address;
 }
 
+void x86_set_symtab( x86_symbol *symtab, int num_symbols )
+{
+    x86_symtab = symtab;
+    x86_num_symbols = num_symbols;
+}
+
+static const char *x86_find_symbol( bfd_vma memaddr, struct disassemble_info *info )
+{
+    int i;
+    for( i=0; i<x86_num_symbols; i++ ) {
+	if( x86_symtab[i].ptr == (void *)memaddr ) {
+	    return x86_symtab[i].name;
+	}
+    }
+    return NULL;
+}
+
+static int x86_print_address( bfd_vma memaddr, struct disassemble_info *info )
+{
+    const char *sym = x86_find_symbol(memaddr, info);
+    info->fprintf_func( info->stream, "%08X", memaddr );
+    if( sym != NULL ) {
+	info->fprintf_func( info->stream, " <%s>", sym );
+    }
+    return 0;
+}
 
 uint32_t x86_disasm_instruction( uint32_t pc, char *buf, int len, char *opcode )
 {
