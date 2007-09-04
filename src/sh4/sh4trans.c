@@ -1,5 +1,5 @@
 /**
- * $Id: sh4trans.c,v 1.1 2007-08-23 12:33:27 nkeynes Exp $
+ * $Id: sh4trans.c,v 1.2 2007-09-04 08:40:23 nkeynes Exp $
  * 
  * SH4 translation core module. This part handles the non-target-specific
  * section of the translation.
@@ -27,7 +27,7 @@
  */
 uint32_t sh4_xlat_run_slice( uint32_t nanosecs ) 
 {
-    int i, result = 1;
+    int i;
     sh4r.slice_cycle = 0;
 
     if( sh4r.sh4_state != SH4_STATE_RUNNING ) {
@@ -37,7 +37,7 @@ uint32_t sh4_xlat_run_slice( uint32_t nanosecs )
 	}
     }
 
-    for( ; sh4r.slice_cycle < nanosecs && result != 0; sh4r.slice_cycle ) {
+    while( sh4r.slice_cycle < nanosecs ) {
 	if( SH4_EVENT_PENDING() ) {
 	    if( sh4r.event_types & PENDING_EVENT ) {
 		event_execute();
@@ -48,12 +48,12 @@ uint32_t sh4_xlat_run_slice( uint32_t nanosecs )
 	    }
 	}
 
-	int (*code)() = xlat_get_code(sh4r.pc);
+	gboolean (*code)() = xlat_get_code(sh4r.pc);
 	if( code == NULL ) {
 	    code = sh4_translate_basic_block( sh4r.pc );
 	}
-	result = code();
-	sh4r.slice_cycle += result;
+	if( !code() )
+	    break;
     }
 
     /* If we aborted early, but the cpu is still technically running,
@@ -97,8 +97,8 @@ void * sh4_translate_basic_block( sh4addr_t start )
 	}
 	pc += 2;
     }
-    sh4_translate_end_block(done);
-    xlat_commit_block( xlat_output - block->size, pc-start );
+    sh4_translate_end_block(pc);
+    xlat_commit_block( xlat_output - block->code, pc-start );
     return block->code;
 }
 
