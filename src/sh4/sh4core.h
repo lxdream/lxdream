@@ -1,5 +1,5 @@
 /**
- * $Id: sh4core.h,v 1.20 2007-09-04 08:38:33 nkeynes Exp $
+ * $Id: sh4core.h,v 1.21 2007-09-08 03:12:21 nkeynes Exp $
  * 
  * This file defines the internal functions exported/used by the SH4 core, 
  * except for disassembly functions defined in sh4dasm.h
@@ -109,6 +109,7 @@ void sh4_write_long( uint32_t addr, uint32_t val );
 void sh4_write_word( uint32_t addr, uint32_t val );
 void sh4_write_byte( uint32_t addr, uint32_t val );
 int32_t sh4_read_phys_word( uint32_t addr );
+void sh4_flush_store_queue( uint32_t addr );
 
 /* Peripheral functions */
 void CPG_reset( void );
