@@ -1,5 +1,5 @@
 /**
- * $Id: dreamcast.c,v 1.21 2007-01-16 10:34:46 nkeynes Exp $
+ * $Id: dreamcast.c,v 1.22 2007-09-08 04:38:38 nkeynes Exp $
  * Central switchboard for the system. This pulls all the individual modules
  * together into some kind of coherent structure. This is also where you'd
  * add Naomi support, if I ever get a board to play with...
@@ -145,6 +145,42 @@ void dreamcast_run( void )
 		time_to_run = modules[i]->run_time_slice( time_to_run );
 	}
 
+    }
+
+    for( i=0; i<num_modules; i++ ) {
+	if( modules[i]->stop != NULL )
+	    modules[i]->stop();
+    }
+    dreamcast_state = STATE_STOPPED;
+}
+
+void dreamcast_run_for( unsigned int seconds, unsigned int nanosecs )
+{
+    
+    int i;
+    if( dreamcast_state != STATE_RUNNING ) {
+	for( i=0; i<num_modules; i++ ) {
+	    if( modules[i]->start != NULL )
+		modules[i]->start();
+	}
+    }
+    dreamcast_state = STATE_RUNNING;
+    uint32_t nanos = 0;
+    if( nanosecs != 0 ) {
+        nanos = 1000000000 - nanosecs;
+	seconds++;
+    }
+    while( dreamcast_state == STATE_RUNNING && seconds != 0 ) {
+	int time_to_run = timeslice_length;
+	for( i=0; i<num_modules; i++ ) {
+	    if( modules[i]->run_time_slice != NULL )
+		time_to_run = modules[i]->run_time_slice( time_to_run );
+	}
+	nanos += time_to_run;
+	if( nanos >= 1000000000 ) {
+	    nanos -= 1000000000;
+	    seconds--;
+	}
     }
 
     for( i=0; i<num_modules; i++ ) {

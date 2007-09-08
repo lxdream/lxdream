@@ -1,5 +1,5 @@
 /**
- * $Id: dreamcast.h,v 1.13 2007-08-23 12:33:27 nkeynes Exp $
+ * $Id: dreamcast.h,v 1.14 2007-09-08 04:38:38 nkeynes Exp $
  *
  * Public interface for dreamcast.c -
  * Central switchboard for the system. This pulls all the individual modules
@@ -62,6 +62,7 @@ typedef struct dreamcast_config_group {
 void dreamcast_init(void);
 void dreamcast_reset(void);
 void dreamcast_run(void);
+void dreamcast_run_for( unsigned int seconds, unsigned int nanosecs );
 void dreamcast_stop(void);
 
 gboolean dreamcast_load_config( const gchar *filename );
