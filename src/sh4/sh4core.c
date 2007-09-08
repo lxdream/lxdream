@@ -1,5 +1,5 @@
 /**
- * $Id: sh4core.c,v 1.42 2007-09-04 08:38:33 nkeynes Exp $
+ * $Id: sh4core.c,v 1.43 2007-09-08 03:11:53 nkeynes Exp $
  * 
  * SH4 emulation core, and parent module for all the SH4 peripheral
  * modules.
@@ -540,12 +540,7 @@ gboolean sh4_execute_instruction( void )
                                 uint32_t Rn = ((ir>>8)&0xF); 
                                 tmp = sh4r.r[Rn];
                                 if( (tmp & 0xFC000000) == 0xE0000000 ) {
-                           	 /* Store queue operation */
-                           	 int queue = (tmp&0x20)>>2;
-                           	 int32_t *src = &sh4r.store_queue[queue];
-                           	 uint32_t hi = (MMIO_READ( MMU, (queue == 0 ? QACR0 : QACR1) ) & 0x1C) << 24;
-                           	 uint32_t target = tmp&0x03FFFFE0 | hi;
-                           	 mem_copy_to_sh4( target, src, 32 );
+                           	 sh4_flush_store_queue(tmp);
                                 }
                                 }
                                 break;
