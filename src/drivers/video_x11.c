@@ -1,5 +1,5 @@
 /**
- * $Id: video_x11.c,v 1.12 2007-02-11 10:09:32 nkeynes Exp $
+ * $Id: video_x11.c,v 1.13 2007-09-08 04:05:35 nkeynes Exp $
  *
  * Shared functions for all X11-based display drivers.
  *
@@ -135,11 +135,18 @@ gboolean video_glx_create_window( int width, int height )
     }
     return TRUE;
 }
+
 void video_glx_shutdown()
 {
-    XDestroyWindow( video_x11_display, glx_window );
-    XFreeColormap( video_x11_display, win_attrs.colormap );
-    glXDestroyContext( video_x11_display, glx_context );
+    if( glx_window != None ) {
+	XDestroyWindow( video_x11_display, glx_window );
+	XFreeColormap( video_x11_display, win_attrs.colormap );
+	glx_window = None;
+    }
+    if( glx_context != NULL ) {
+	glXDestroyContext( video_x11_display, glx_context );
+	glx_context = NULL;
+    }
 }
 
 

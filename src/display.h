@@ -1,5 +1,5 @@
 /**
- * $Id: display.h,v 1.5 2007-02-11 10:09:32 nkeynes Exp $
+ * $Id: display.h,v 1.6 2007-09-08 04:05:35 nkeynes Exp $
  *
  * The PC side of the video support (responsible for actually displaying / 
  * rendering frames)
@@ -149,9 +149,7 @@ typedef struct display_driver {
 
 } *display_driver_t;
 
-void video_open( void );
-void video_update_frame( void );
-void video_update_size( int, int, int );
+gboolean display_set_driver( display_driver_t driver );
 
 extern uint32_t pvr2_frame_counter;
 
