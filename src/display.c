@@ -1,5 +1,5 @@
 /**
- * $Id: display.c,v 1.7 2007-02-13 08:28:50 nkeynes Exp $
+ * $Id: display.c,v 1.8 2007-09-08 04:05:35 nkeynes Exp $
  *
  * Generic support for keyboard and other input sources. The active display
  * driver is expected to deliver events here, where they're translated and
@@ -144,13 +144,17 @@ void input_event_keyup( uint16_t keycode )
 
 
 
-void display_set_driver( display_driver_t driver )
+gboolean display_set_driver( display_driver_t driver )
 {
-    if( display_driver != NULL && display_driver->shutdown_driver != NULL )
+    gboolean rv = TRUE;
+    if( display_driver != NULL && display_driver->shutdown_driver != NULL ) 
 	display_driver->shutdown_driver();
 
     display_driver = driver;
     if( driver->init_driver != NULL )
-	driver->init_driver();
-    texcache_gl_init();
+	rv = driver->init_driver();
+    if( rv ) {
+	texcache_gl_init();
+    }
+    return rv;
 }

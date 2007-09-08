@@ -1,5 +1,5 @@
 /**
- * $Id: video_gtk.c,v 1.10 2007-02-11 10:09:32 nkeynes Exp $
+ * $Id: video_gtk.c,v 1.11 2007-09-08 04:05:35 nkeynes Exp $
  *
  * The PC side of the video support (responsible for actually displaying / 
  * rendering frames)
@@ -34,7 +34,7 @@ gboolean video_gtk_init();
 void video_gtk_shutdown();
 uint16_t video_gtk_resolve_keysym( const gchar *keysym );
 
-struct display_driver display_gtk_driver = { "gtk", video_gtk_init, NULL,
+struct display_driver display_gtk_driver = { "gtk", video_gtk_init, video_gtk_shutdown,
 					     video_gtk_resolve_keysym,
 					     NULL, NULL, NULL, NULL, NULL, NULL, NULL };
 					     
@@ -84,16 +84,16 @@ gboolean video_gtk_init()
 
     gtk_window_set_default_size( video_win, video_width, video_height );
 
-    video_glx_init( gdk_x11_display_get_xdisplay( gtk_widget_get_display(GTK_WIDGET(video_win))),
+    return video_glx_init( gdk_x11_display_get_xdisplay( gtk_widget_get_display(GTK_WIDGET(video_win))),
 		    gdk_x11_screen_get_xscreen( gtk_widget_get_screen(GTK_WIDGET(video_win))),
 		    GDK_WINDOW_XWINDOW( GTK_WIDGET(video_win)->window ),
 		    video_width, video_height, &display_gtk_driver );
-    return TRUE;
 }
 
 void video_gtk_shutdown()
 {
-
+    video_glx_shutdown();
+    gtk_widget_destroy( GTK_WIDGET(video_win) );
 
 }
 

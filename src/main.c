@@ -1,5 +1,5 @@
 /**
- * $Id: main.c,v 1.20 2006-08-07 13:18:16 nkeynes Exp $
+ * $Id: main.c,v 1.21 2007-09-08 04:05:35 nkeynes Exp $
  *
  * Main program, initializes dreamcast and gui, then passes control off to
  * the gtk main loop (currently). 
@@ -145,14 +145,19 @@ int main (int argc, char *argv[])
     if( headless ) {
 	display_set_driver( &display_null_driver );
     } else {
+	gboolean initialized = FALSE;
 	for( i=0; display_driver_list[i] != NULL; i++ ) {
 	    if( strcasecmp( display_driver_list[i]->name, display_driver_name ) == 0 ) {
-		display_set_driver( display_driver_list[i] );
+		initialized = display_set_driver( display_driver_list[i] );
 		break;
 	    }
 	}
-	if( display_driver_list[i] == NULL ) {
-	    ERROR( "Video driver '%s' not found, using null driver", display_driver_name );
+	if( !initialized ) {
+	    if( display_driver_list[i] == NULL ) {
+		ERROR( "Video driver '%s' not found, using null driver", display_driver_name );
+	    } else {
+		ERROR( "Video driver '%s' failed to initialize, falling back to null driver", display_driver_name );
+	    }
 	    display_set_driver( &display_null_driver );
 	}
     }

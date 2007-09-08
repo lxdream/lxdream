@@ -1,5 +1,5 @@
 /**
- * $Id: video_x11.h,v 1.4 2007-02-11 10:09:32 nkeynes Exp $
+ * $Id: video_x11.h,v 1.5 2007-09-08 04:05:35 nkeynes Exp $
  *
  * Parent for all X11 display drivers.
  *
@@ -24,5 +24,5 @@
 
 gboolean video_glx_init( Display *display, Screen *screen, Window window,
 			 int width, int height, display_driver_t driver );
-
+void video_glx_shutdown();
 #endif
