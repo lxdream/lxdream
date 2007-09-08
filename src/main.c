@@ -1,5 +1,5 @@
 /**
- * $Id: main.c,v 1.21 2007-09-08 04:05:35 nkeynes Exp $
+ * $Id: main.c,v 1.22 2007-09-08 04:38:38 nkeynes Exp $
  *
  * Main program, initializes dreamcast and gui, then passes control off to
  * the gtk main loop (currently). 
@@ -35,7 +35,7 @@
 
 #define S3M_PLAYER "s3mplay.bin"
 
-char *option_list = "a:s:A:V:puhbd:c:";
+char *option_list = "a:s:A:V:puhbd:c:t:";
 struct option longopts[1] = { { NULL, 0, 0, 0 } };
 char *aica_program = NULL;
 char *s3m_file = NULL;
@@ -46,6 +46,8 @@ char *config_file = DEFAULT_CONFIG_FILENAME;
 gboolean start_immediately = FALSE;
 gboolean headless = FALSE;
 gboolean without_bios = FALSE;
+uint32_t time_secs = 0;
+uint32_t time_nanos = 0;
 
 audio_driver_t audio_driver_list[] = { &audio_null_driver,
 				       &audio_esd_driver,
@@ -58,6 +60,7 @@ display_driver_t display_driver_list[] = { &display_null_driver,
 int main (int argc, char *argv[])
 {
     int opt, i;
+    double t;
 #ifdef ENABLE_NLS
     bindtextdomain (PACKAGE, PACKAGE_LOCALE_DIR);
     textdomain (PACKAGE);
@@ -96,6 +99,10 @@ int main (int argc, char *argv[])
         case 'h': /* Headless */
             headless = TRUE;
             break;
+	case 't': /* Time limit */
+	    t = strtod(optarg, NULL);
+	    time_secs = (uint32_t)t;
+	    time_nanos = (int)((t - time_secs) * 1000000000);
 	}
     }
 
@@ -172,8 +179,14 @@ int main (int argc, char *argv[])
 	gdrom_mount_image( disc_file );
     }
 
-    if( start_immediately )
-	dreamcast_run();
+    if( start_immediately ) {
+	if( time_nanos != 0 || time_secs != 0 ) {
+	    dreamcast_run_for(time_secs, time_nanos);
+	    return 0;
+	} else {
+	    dreamcast_run();
+	}
+    }
     if( !headless ) {
         gtk_main ();
     }
