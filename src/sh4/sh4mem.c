@@ -1,5 +1,5 @@
 /**
- * $Id: sh4mem.c,v 1.21 2007-09-08 03:11:53 nkeynes Exp $
+ * $Id: sh4mem.c,v 1.22 2007-09-08 04:38:11 nkeynes Exp $
  * sh4mem.c is responsible for the SH4's access to memory (including memory
  * mapped I/O), using the page maps created in mem.c
  *
@@ -394,7 +394,7 @@ void sh4_flush_store_queue( uint32_t addr )
 {
     /* Store queue operation */
     int queue = (addr&0x20)>>2;
-    int32_t *src = &sh4r.store_queue[queue];
+    char *src = (char *)&sh4r.store_queue[queue];
     uint32_t hi = (MMIO_READ( MMU, (queue == 0 ? QACR0 : QACR1) ) & 0x1C) << 24;
     uint32_t target = addr&0x03FFFFE0 | hi;
     mem_copy_to_sh4( target, src, 32 );
