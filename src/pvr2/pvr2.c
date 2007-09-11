@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.c,v 1.44 2007-02-11 10:09:32 nkeynes Exp $
+ * $Id: pvr2.c,v 1.45 2007-09-11 01:05:05 nkeynes Exp $
  *
  * PVR2 (Video) Core module implementation and MMIO registers.
  *
@@ -327,7 +327,9 @@ void mmio_region_PVR2_write( uint32_t reg, uint32_t val )
 	    pvr2_state.save_next_render_filename = NULL;
 	}
 	render_buffer_t buffer = pvr2_next_render_buffer();
-	pvr2_render_scene( buffer );
+	if( buffer != NULL ) {
+	    pvr2_render_scene( buffer );
+	}
 	asic_event( EVENT_PVR_RENDER_DONE );
 	break;
     case RENDER_POLYBASE:
@@ -784,7 +786,7 @@ render_buffer_t pvr2_next_render_buffer()
 	    if( result != NULL ) { 
 		render_buffers[render_buffer_count++] = result;
 	    } else {
-		ERROR( "Failed to obtain a render buffer!" );
+		//		ERROR( "Failed to obtain a render buffer!" );
 		return NULL;
 	    }
 	}
