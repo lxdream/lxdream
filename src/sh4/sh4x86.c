@@ -1,5 +1,5 @@
 /**
- * $Id: sh4x86.c,v 1.3 2007-09-04 08:40:23 nkeynes Exp $
+ * $Id: sh4x86.c,v 1.4 2007-09-11 02:14:46 nkeynes Exp $
  * 
  * SH4 => x86 translation. This version does no real optimization, it just
  * outputs straight-line x86 code - it mainly exists to provide a baseline
@@ -73,7 +73,7 @@ static void sh4_x86_do_backpatch( uint8_t *reloc_base )
 {
     unsigned int i;
     for( i=0; i<sh4_x86.backpatch_posn; i++ ) {
-	*sh4_x86.backpatch_list[i] += (reloc_base - ((uint8_t *)sh4_x86.backpatch_list[i]));
+	*sh4_x86.backpatch_list[i] += (reloc_base - ((uint8_t *)sh4_x86.backpatch_list[i]) - 4);
     }
 }
 
@@ -97,35 +97,20 @@ static inline void load_reg( int x86reg, int sh4reg )
     OP(REG_OFFSET(r[sh4reg]));
 }
 
-/**
- * Load the SR register into an x86 register
- */
-static inline void read_sr( int x86reg )
+static inline void load_reg16s( int x86reg, int sh4reg )
 {
-    MOV_ebp_r32( R_M, x86reg );
-    SHL1_r32( x86reg );
-    OR_ebp_r32( R_Q, x86reg );
-    SHL_imm8_r32( 7, x86reg );
-    OR_ebp_r32( R_S, x86reg );
-    SHL1_r32( x86reg );
-    OR_ebp_r32( R_T, x86reg );
-    OR_ebp_r32( R_SR, x86reg );
+    OP(0x0F);
+    OP(0xBF);
+    MODRM_r32_sh4r(x86reg, REG_OFFSET(r[sh4reg]));
 }
 
-static inline void write_sr( int x86reg )
+static inline void load_reg16u( int x86reg, int sh4reg )
 {
-    TEST_imm32_r32( SR_M, x86reg );
-    SETNE_ebp(R_M);
-    TEST_imm32_r32( SR_Q, x86reg );
-    SETNE_ebp(R_Q);
-    TEST_imm32_r32( SR_S, x86reg );
-    SETNE_ebp(R_S);
-    TEST_imm32_r32( SR_T, x86reg );
-    SETNE_ebp(R_T);
-    AND_imm32_r32( SR_MQSTMASK, x86reg );
-    MOV_r32_ebp( x86reg, R_SR );
+    OP(0x0F);
+    OP(0xB7);
+    MODRM_r32_sh4r(x86reg, REG_OFFSET(r[sh4reg]));
+
 }
-    
 
 static inline void load_spreg( int x86reg, int regoffset )
 {
@@ -158,6 +143,49 @@ void static inline store_spreg( int x86reg, int regoffset ) {
     OP(0x89);
     OP(0x45 + (x86reg<<3));
     OP(regoffset);
+}
+
+
+#define load_fr_bank(bankreg) load_spreg( bankreg, REG_OFFSET(fr_bank))
+
+static inline void load_xf_bank( int bankreg )
+{
+    load_spreg( bankreg, R_FPSCR );
+    SHR_imm8_r32( (21 - 6), bankreg ); // Extract bit 21 then *64 for bank size
+    AND_imm8s_r32( 0x40, bankreg );    // Complete extraction
+    OP(0x8D); OP(0x44+(bankreg<<3)); OP(0x28+bankreg); OP(REG_OFFSET(fr)); // LEA [ebp+bankreg+disp], bankreg
+}
+
+static inline void push_fr( int bankreg, int frm ) 
+{
+    OP(0xD9); OP(0x40 + bankreg); OP((frm^1)<<2);  // FLD.S [bankreg + frm^1*4]
+}
+
+static inline void pop_fr( int bankreg, int frm )
+{
+    OP(0xD9); OP(0x58 + bankreg); OP((frm^1)<<2); // FST.S [bankreg + frm^1*4]
+}
+
+static inline void push_dr( int bankreg, int frm )
+{
+    if( frm&1 ) { 
+	// this is technically undefined, but it seems to work consistently - high 32 bits
+	// loaded from FRm (32-bits), low 32bits are 0.
+	OP(0xFF); OP(0x70 + bankreg); OP((frm^1)<<2); // PUSH [bankreg + frm^1]
+	PUSH_imm32(0);
+	
+	
+    } else {
+	OP(0xDD); OP(0x40 + bankreg); OP(frm<<2); // FLD.D [bankreg + frm*4]
+    }
+}
+
+static inline void pop_dr( int bankreg, int frm )
+{
+    if( frm&1 ) {
+    } else {
+	OP(0xDD); OP(0x58 + bankreg); OP(frm<<2); // FST.D [bankreg + frm*4]
+    }
 }
 
 /**
@@ -248,7 +276,7 @@ static void check_walign32( int x86reg )
 #define MEM_WRITE_LONG( addr_reg, value_reg ) call_func2(sh4_write_long, addr_reg, value_reg)
 
 #define RAISE_EXCEPTION( exc ) call_func1(sh4_raise_exception, exc);
-#define CHECKSLOTILLEGAL() if(sh4_x86.in_delay_slot) RAISE_EXCEPTION(EXC_SLOT_ILLEGAL)
+#define SLOTILLEGAL() RAISE_EXCEPTION(EXC_SLOT_ILLEGAL); return 1
 
 
 
@@ -259,9 +287,9 @@ static void check_walign32( int x86reg )
 void sh4_translate_begin_block() 
 {
     PUSH_r32(R_EBP);
-    PUSH_r32(R_ESI);
     /* mov &sh4r, ebp */
     load_imm32( R_EBP, (uint32_t)&sh4r );
+    PUSH_r32(R_EDI);
     PUSH_r32(R_ESI);
     
     sh4_x86.in_delay_slot = FALSE;
@@ -273,16 +301,18 @@ void sh4_translate_begin_block()
 /**
  * Exit the block early (ie branch out), conditionally or otherwise
  */
-void exit_block( uint32_t pc )
+void exit_block( )
 {
-    load_imm32( R_ECX, pc );
-    store_spreg( R_ECX, REG_OFFSET(pc) );
+    store_spreg( R_EDI, REG_OFFSET(pc) );
     MOV_moff32_EAX( (uint32_t)&sh4_cpu_period );
     load_spreg( R_ECX, REG_OFFSET(slice_cycle) );
     MUL_r32( R_ESI );
     ADD_r32_r32( R_EAX, R_ECX );
     store_spreg( R_ECX, REG_OFFSET(slice_cycle) );
     XOR_r32_r32( R_EAX, R_EAX );
+    POP_r32(R_ESI);
+    POP_r32(R_EDI);
+    POP_r32(R_EBP);
     RET();
 }
 
@@ -292,7 +322,7 @@ void exit_block( uint32_t pc )
 void sh4_translate_end_block( sh4addr_t pc ) {
     assert( !sh4_x86.in_delay_slot ); // should never stop here
     // Normal termination - save PC, cycle count
-    exit_block( pc );
+    exit_block( );
 
     uint8_t *end_ptr = xlat_output;
     // Exception termination. Jump block for various exception codes:
@@ -348,7 +378,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                     case 0x0:
                                         { /* STC SR, Rn */
                                         uint32_t Rn = ((ir>>8)&0xF); 
-                                        read_sr( R_EAX );
+                                        call_func0(sh4_read_sr);
                                         store_reg( R_EAX, Rn );
                                         }
                                         break;
@@ -388,7 +418,8 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                             case 0x1:
                                 { /* STC Rm_BANK, Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm_BANK = ((ir>>4)&0x7); 
-                                /* TODO */
+                                load_spreg( R_EAX, REG_OFFSET(r_bank[Rm_BANK]) );
+                                store_reg( R_EAX, Rn );
                                 }
                                 break;
                         }
@@ -398,16 +429,42 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                             case 0x0:
                                 { /* BSRF Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
+                                if( sh4_x86.in_delay_slot ) {
+                            	SLOTILLEGAL();
+                                } else {
+                            	load_imm32( R_EAX, pc + 4 );
+                            	store_spreg( R_EAX, R_PR );
+                            	load_reg( R_EDI, Rn );
+                            	ADD_r32_r32( R_EAX, R_EDI );
+                            	sh4_x86.in_delay_slot = TRUE;
+                            	INC_r32(R_ESI);
+                            	return 0;
+                                }
                                 }
                                 break;
                             case 0x2:
                                 { /* BRAF Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
+                                if( sh4_x86.in_delay_slot ) {
+                            	SLOTILLEGAL();
+                                } else {
+                            	load_reg( R_EDI, Rn );
+                            	sh4_x86.in_delay_slot = TRUE;
+                            	INC_r32(R_ESI);
+                            	return 0;
+                                }
                                 }
                                 break;
                             case 0x8:
                                 { /* PREF @Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
+                                load_reg( R_EAX, Rn );
+                                PUSH_r32( R_EAX );
+                                AND_imm32_r32( 0xFC000000, R_EAX );
+                                CMP_imm32_r32( 0xE0000000, R_EAX );
+                                JNE_rel8(8);
+                                call_func0( sh4_flush_store_queue );
+                                ADD_imm8s_r32( -4, R_ESP );
                                 }
                                 break;
                             case 0x9:
@@ -430,6 +487,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                 uint32_t Rn = ((ir>>8)&0xF); 
                                 load_reg( R_EAX, 0 );
                                 load_reg( R_ECX, Rn );
+                                check_walign32( R_ECX );
                                 MEM_WRITE_LONG( R_ECX, R_EAX );
                                 }
                                 break;
@@ -454,6 +512,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                         load_reg( R_EAX, 0 );
                         load_reg( R_ECX, Rn );
                         ADD_r32_r32( R_EAX, R_ECX );
+                        check_walign16( R_ECX );
                         load_reg( R_EAX, Rm );
                         MEM_WRITE_WORD( R_ECX, R_EAX );
                         }
@@ -464,6 +523,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                         load_reg( R_EAX, 0 );
                         load_reg( R_ECX, Rn );
                         ADD_r32_r32( R_EAX, R_ECX );
+                        check_walign32( R_ECX );
                         load_reg( R_EAX, Rm );
                         MEM_WRITE_LONG( R_ECX, R_EAX );
                         }
@@ -481,14 +541,21 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                         switch( (ir&0xFF0) >> 4 ) {
                             case 0x0:
                                 { /* CLRT */
+                                CLC();
+                                SETC_t();
                                 }
                                 break;
                             case 0x1:
                                 { /* SETT */
+                                STC();
+                                SETC_t();
                                 }
                                 break;
                             case 0x2:
                                 { /* CLRMAC */
+                                XOR_r32_r32(R_EAX, R_EAX);
+                                store_spreg( R_EAX, R_MACL );
+                                store_spreg( R_EAX, R_MACH );
                                 }
                                 break;
                             case 0x3:
@@ -497,10 +564,14 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                 break;
                             case 0x4:
                                 { /* CLRS */
+                                CLC();
+                                SETC_sh4r(R_S);
                                 }
                                 break;
                             case 0x5:
                                 { /* SETS */
+                                STC();
+                                SETC_sh4r(R_S);
                                 }
                                 break;
                             default:
@@ -595,14 +666,34 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                         switch( (ir&0xFF0) >> 4 ) {
                             case 0x0:
                                 { /* RTS */
+                                if( sh4_x86.in_delay_slot ) {
+                            	SLOTILLEGAL();
+                                } else {
+                            	load_spreg( R_EDI, R_PR );
+                            	sh4_x86.in_delay_slot = TRUE;
+                            	INC_r32(R_ESI);
+                            	return 0;
+                                }
                                 }
                                 break;
                             case 0x1:
                                 { /* SLEEP */
+                                /* TODO */
                                 }
                                 break;
                             case 0x2:
                                 { /* RTE */
+                                check_priv();
+                                if( sh4_x86.in_delay_slot ) {
+                            	SLOTILLEGAL();
+                                } else {
+                            	load_spreg( R_EDI, R_PR );
+                            	load_spreg( R_EAX, R_SSR );
+                            	call_func1( sh4_write_sr, R_EAX );
+                            	sh4_x86.in_delay_slot = TRUE;
+                            	INC_r32(R_ESI);
+                            	return 0;
+                                }
                                 }
                                 break;
                             default:
@@ -626,6 +717,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                         load_reg( R_EAX, 0 );
                         load_reg( R_ECX, Rm );
                         ADD_r32_r32( R_EAX, R_ECX );
+                        check_ralign16( R_ECX );
                         MEM_READ_WORD( R_ECX, R_EAX );
                         store_reg( R_EAX, Rn );
                         }
@@ -636,6 +728,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                         load_reg( R_EAX, 0 );
                         load_reg( R_ECX, Rm );
                         ADD_r32_r32( R_EAX, R_ECX );
+                        check_ralign32( R_ECX );
                         MEM_READ_LONG( R_ECX, R_EAX );
                         store_reg( R_EAX, Rn );
                         }
@@ -656,6 +749,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                 load_reg( R_ECX, Rn );
                 load_reg( R_EAX, Rm );
                 ADD_imm32_r32( disp, R_ECX );
+                check_walign32( R_ECX );
                 MEM_WRITE_LONG( R_ECX, R_EAX );
                 }
                 break;
@@ -673,6 +767,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                         { /* MOV.W Rm, @Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
                         load_reg( R_ECX, Rn );
+                        check_walign16( R_ECX );
                         MEM_READ_WORD( R_ECX, R_EAX );
                         store_reg( R_EAX, Rn );
                         }
@@ -682,6 +777,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
                         load_reg( R_EAX, Rm );
                         load_reg( R_ECX, Rn );
+                        check_walign32(R_ECX);
                         MEM_WRITE_LONG( R_ECX, R_EAX );
                         }
                         break;
@@ -699,6 +795,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                         { /* MOV.W Rm, @-Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
                         load_reg( R_ECX, Rn );
+                        check_walign16( R_ECX );
                         load_reg( R_EAX, Rm );
                         ADD_imm8s_r32( -2, R_ECX );
                         MEM_WRITE_WORD( R_ECX, R_EAX );
@@ -709,6 +806,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
                         load_reg( R_EAX, Rm );
                         load_reg( R_ECX, Rn );
+                        check_walign32( R_ECX );
                         ADD_imm8s_r32( -4, R_ECX );
                         store_reg( R_ECX, Rn );
                         MEM_WRITE_LONG( R_ECX, R_EAX );
@@ -794,11 +892,19 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                     case 0xE:
                         { /* MULU.W Rm, Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        load_reg16u( R_EAX, Rm );
+                        load_reg16u( R_ECX, Rn );
+                        MUL_r32( R_ECX );
+                        store_spreg( R_EAX, R_MACL );
                         }
                         break;
                     case 0xF:
                         { /* MULS.W Rm, Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        load_reg16s( R_EAX, Rm );
+                        load_reg16s( R_ECX, Rn );
+                        MUL_r32( R_ECX );
+                        store_spreg( R_EAX, R_MACL );
                         }
                         break;
                     default:
@@ -838,6 +944,17 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                     case 0x4:
                         { /* DIV1 Rm, Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        load_reg( R_ECX, Rn );
+                        LDC_t();
+                        RCL1_r32( R_ECX ); // OP2
+                        SETC_r32( R_EDX ); // Q
+                        load_spreg( R_EAX, R_Q );
+                        CMP_sh4r_r32( R_M, R_EAX );
+                        JE_rel8(8);
+                        ADD_sh4r_r32( REG_OFFSET(r[Rm]), R_ECX );
+                        JMP_rel8(3);
+                        SUB_sh4r_r32( REG_OFFSET(r[Rm]), R_ECX );
+                        // TODO
                         }
                         break;
                     case 0x5:
@@ -1091,12 +1208,11 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                     case 0x0:
                                         { /* STC.L SR, @-Rn */
                                         uint32_t Rn = ((ir>>8)&0xF); 
-                                        /* TODO */
-                                          load_reg( R_ECX, Rn );
-                                          ADD_imm8s_r32( -4, Rn );
-                                          store_reg( R_ECX, Rn );
-                                          read_sr( R_EAX );
-                                          MEM_WRITE_LONG( R_ECX, R_EAX );
+                                        load_reg( R_ECX, Rn );
+                                        ADD_imm8s_r32( -4, Rn );
+                                        store_reg( R_ECX, Rn );
+                                        call_func0( sh4_read_sr );
+                                        MEM_WRITE_LONG( R_ECX, R_EAX );
                                         }
                                         break;
                                     case 0x1:
@@ -1147,6 +1263,11 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                             case 0x1:
                                 { /* STC.L Rm_BANK, @-Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm_BANK = ((ir>>4)&0x7); 
+                                load_reg( R_ECX, Rn );
+                                ADD_imm8s_r32( -4, Rn );
+                                store_reg( R_ECX, Rn );
+                                load_spreg( R_EAX, REG_OFFSET(r_bank[Rm_BANK]) );
+                                MEM_WRITE_LONG( R_ECX, R_EAX );
                                 }
                                 break;
                         }
@@ -1307,7 +1428,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                         ADD_imm8s_r32( 4, R_EAX );
                                         store_reg( R_EAX, Rm );
                                         MEM_READ_LONG( R_ECX, R_EAX );
-                                        write_sr( R_EAX );
+                                        call_func1( sh4_write_sr, R_EAX );
                                         }
                                         break;
                                     case 0x1:
@@ -1362,6 +1483,12 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                             case 0x1:
                                 { /* LDC.L @Rm+, Rn_BANK */
                                 uint32_t Rm = ((ir>>8)&0xF); uint32_t Rn_BANK = ((ir>>4)&0x7); 
+                                load_reg( R_EAX, Rm );
+                                MOV_r32_r32( R_EAX, R_ECX );
+                                ADD_imm8s_r32( 4, R_EAX );
+                                store_reg( R_EAX, Rm );
+                                MEM_READ_LONG( R_ECX, R_EAX );
+                                store_spreg( R_EAX, REG_OFFSET(r_bank[Rn_BANK]) );
                                 }
                                 break;
                         }
@@ -1489,6 +1616,16 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                             case 0x0:
                                 { /* JSR @Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
+                                if( sh4_x86.in_delay_slot ) {
+                            	SLOTILLEGAL();
+                                } else {
+                            	load_imm32( R_EAX, pc + 4 );
+                            	store_spreg( R_EAX, R_PR );
+                            	load_reg( R_EDI, Rn );
+                            	sh4_x86.in_delay_slot = TRUE;
+                            	INC_r32(R_ESI);
+                            	return 0;
+                                }
                                 }
                                 break;
                             case 0x1:
@@ -1505,6 +1642,14 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                             case 0x2:
                                 { /* JMP @Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
+                                if( sh4_x86.in_delay_slot ) {
+                            	SLOTILLEGAL();
+                                } else {
+                            	load_reg( R_EDI, Rn );
+                            	sh4_x86.in_delay_slot = TRUE;
+                            	INC_r32(R_ESI);
+                            	return 0;
+                                }
                                 }
                                 break;
                             default:
@@ -1555,7 +1700,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                         { /* LDC Rm, SR */
                                         uint32_t Rm = ((ir>>8)&0xF); 
                                         load_reg( R_EAX, Rm );
-                                        write_sr( R_EAX );
+                                        call_func1( sh4_write_sr, R_EAX );
                                         }
                                         break;
                                     case 0x1:
@@ -1594,6 +1739,8 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                             case 0x1:
                                 { /* LDC Rm, Rn_BANK */
                                 uint32_t Rm = ((ir>>8)&0xF); uint32_t Rn_BANK = ((ir>>4)&0x7); 
+                                load_reg( R_EAX, Rm );
+                                store_spreg( R_EAX, REG_OFFSET(r_bank[Rn_BANK]) );
                                 }
                                 break;
                         }
@@ -1610,6 +1757,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                 uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); uint32_t disp = (ir&0xF)<<2; 
                 load_reg( R_ECX, Rm );
                 ADD_imm8s_r32( disp, R_ECX );
+                check_ralign32( R_ECX );
                 MEM_READ_LONG( R_ECX, R_EAX );
                 store_reg( R_EAX, Rn );
                 }
@@ -1628,6 +1776,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                         { /* MOV.W @Rm, Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
                         load_reg( R_ECX, Rm );
+                        check_ralign16( R_ECX );
                         MEM_READ_WORD( R_ECX, R_EAX );
                         store_reg( R_EAX, Rn );
                         }
@@ -1636,6 +1785,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                         { /* MOV.L @Rm, Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
                         load_reg( R_ECX, Rm );
+                        check_ralign32( R_ECX );
                         MEM_READ_LONG( R_ECX, R_EAX );
                         store_reg( R_EAX, Rn );
                         }
@@ -1662,6 +1812,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                         { /* MOV.W @Rm+, Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
                         load_reg( R_EAX, Rm );
+                        check_ralign16( R_EAX );
                         MOV_r32_r32( R_EAX, R_ECX );
                         ADD_imm8s_r32( 2, R_EAX );
                         store_reg( R_EAX, Rm );
@@ -1673,6 +1824,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                         { /* MOV.L @Rm+, Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
                         load_reg( R_EAX, Rm );
+                        check_ralign32( R_ECX );
                         MOV_r32_r32( R_EAX, R_ECX );
                         ADD_imm8s_r32( 4, R_EAX );
                         store_reg( R_EAX, Rm );
@@ -1785,6 +1937,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                         load_reg( R_ECX, Rn );
                         load_reg( R_EAX, 0 );
                         ADD_imm32_r32( disp, R_ECX );
+                        check_walign16( R_ECX );
                         MEM_WRITE_WORD( R_ECX, R_EAX );
                         }
                         break;
@@ -1802,6 +1955,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                         uint32_t Rm = ((ir>>4)&0xF); uint32_t disp = (ir&0xF)<<1; 
                         load_reg( R_ECX, Rm );
                         ADD_imm32_r32( disp, R_ECX );
+                        check_ralign16( R_ECX );
                         MEM_READ_WORD( R_ECX, R_EAX );
                         store_reg( R_EAX, 0 );
                         }
@@ -1817,32 +1971,63 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                     case 0x9:
                         { /* BT disp */
                         int32_t disp = SIGNEXT8(ir&0xFF)<<1; 
-                        /* If true, result PC += 4 + disp. else result PC = pc+2 */
-                          return pc + 2;
+                        if( sh4_x86.in_delay_slot ) {
+                    	SLOTILLEGAL();
+                        } else {
+                    	load_imm32( R_EDI, pc + 2 );
+                    	CMP_imm8s_sh4r( 0, R_T );
+                    	JE_rel8( 5 );
+                    	load_imm32( R_EDI, disp + pc + 4 );
+                    	INC_r32(R_ESI);
+                    	return 1;
+                        }
                         }
                         break;
                     case 0xB:
                         { /* BF disp */
                         int32_t disp = SIGNEXT8(ir&0xFF)<<1; 
-                        CMP_imm8s_ebp( 0, R_T );
-                        JNE_rel8( 1 );
-                        exit_block( disp + pc + 4 );
-                        return 1;
+                        if( sh4_x86.in_delay_slot ) {
+                    	SLOTILLEGAL();
+                        } else {
+                    	load_imm32( R_EDI, pc + 2 );
+                    	CMP_imm8s_sh4r( 0, R_T );
+                    	JNE_rel8( 5 );
+                    	load_imm32( R_EDI, disp + pc + 4 );
+                    	INC_r32(R_ESI);
+                    	return 1;
+                        }
                         }
                         break;
                     case 0xD:
                         { /* BT/S disp */
                         int32_t disp = SIGNEXT8(ir&0xFF)<<1; 
-                        return pc + 4;
+                        if( sh4_x86.in_delay_slot ) {
+                    	SLOTILLEGAL();
+                        } else {
+                    	load_imm32( R_EDI, pc + 2 );
+                    	CMP_imm8s_sh4r( 0, R_T );
+                    	JE_rel8( 5 );
+                    	load_imm32( R_EDI, disp + pc + 4 );
+                    	sh4_x86.in_delay_slot = TRUE;
+                    	INC_r32(R_ESI);
+                    	return 0;
+                        }
                         }
                         break;
                     case 0xF:
                         { /* BF/S disp */
                         int32_t disp = SIGNEXT8(ir&0xFF)<<1; 
-                        CMP_imm8s_ebp( 0, R_T );
-                        JNE_rel8( 1 );
-                        exit_block( disp + pc + 4 );
-                        sh4_x86.in_delay_slot = TRUE;
+                        if( sh4_x86.in_delay_slot ) {
+                    	SLOTILLEGAL();
+                        } else {
+                    	load_imm32( R_EDI, pc + 2 );
+                    	CMP_imm8s_sh4r( 0, R_T );
+                    	JNE_rel8( 5 );
+                    	load_imm32( R_EDI, disp + pc + 4 );
+                    	sh4_x86.in_delay_slot = TRUE;
+                    	INC_r32(R_ESI);
+                    	return 0;
+                        }
                         }
                         break;
                     default:
@@ -1853,20 +2038,41 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
             case 0x9:
                 { /* MOV.W @(disp, PC), Rn */
                 uint32_t Rn = ((ir>>8)&0xF); uint32_t disp = (ir&0xFF)<<1; 
-                load_imm32( R_ECX, pc + disp + 4 );
-                MEM_READ_WORD( R_ECX, R_EAX );
-                store_reg( R_EAX, Rn );
+                if( sh4_x86.in_delay_slot ) {
+            	SLOTILLEGAL();
+                } else {
+            	load_imm32( R_ECX, pc + disp + 4 );
+            	MEM_READ_WORD( R_ECX, R_EAX );
+            	store_reg( R_EAX, Rn );
+                }
                 }
                 break;
             case 0xA:
                 { /* BRA disp */
                 int32_t disp = SIGNEXT12(ir&0xFFF)<<1; 
-                exit_block( disp + pc + 4 );
+                if( sh4_x86.in_delay_slot ) {
+            	SLOTILLEGAL();
+                } else {
+            	load_imm32( R_EDI, disp + pc + 4 );
+            	sh4_x86.in_delay_slot = TRUE;
+            	INC_r32(R_ESI);
+            	return 0;
+                }
                 }
                 break;
             case 0xB:
                 { /* BSR disp */
                 int32_t disp = SIGNEXT12(ir&0xFFF)<<1; 
+                if( sh4_x86.in_delay_slot ) {
+            	SLOTILLEGAL();
+                } else {
+            	load_imm32( R_EAX, pc + 4 );
+            	store_spreg( R_EAX, R_PR );
+            	load_imm32( R_EDI, disp + pc + 4 );
+            	sh4_x86.in_delay_slot = TRUE;
+            	INC_r32(R_ESI);
+            	return 0;
+                }
                 }
                 break;
             case 0xC:
@@ -1886,6 +2092,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                         load_spreg( R_ECX, R_GBR );
                         load_reg( R_EAX, 0 );
                         ADD_imm32_r32( disp, R_ECX );
+                        check_walign16( R_ECX );
                         MEM_WRITE_WORD( R_ECX, R_EAX );
                         }
                         break;
@@ -1895,12 +2102,19 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                         load_spreg( R_ECX, R_GBR );
                         load_reg( R_EAX, 0 );
                         ADD_imm32_r32( disp, R_ECX );
+                        check_walign32( R_ECX );
                         MEM_WRITE_LONG( R_ECX, R_EAX );
                         }
                         break;
                     case 0x3:
                         { /* TRAPA #imm */
                         uint32_t imm = (ir&0xFF); 
+                        if( sh4_x86.in_delay_slot ) {
+                    	SLOTILLEGAL();
+                        } else {
+                    	// TODO: Write TRA 
+                    	RAISE_EXCEPTION(EXC_TRAP);
+                        }
                         }
                         break;
                     case 0x4:
@@ -1917,6 +2131,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                         uint32_t disp = (ir&0xFF)<<1; 
                         load_spreg( R_ECX, R_GBR );
                         ADD_imm32_r32( disp, R_ECX );
+                        check_ralign16( R_ECX );
                         MEM_READ_WORD( R_ECX, R_EAX );
                         store_reg( R_EAX, 0 );
                         }
@@ -1926,6 +2141,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                         uint32_t disp = (ir&0xFF)<<2; 
                         load_spreg( R_ECX, R_GBR );
                         ADD_imm32_r32( disp, R_ECX );
+                        check_ralign32( R_ECX );
                         MEM_READ_LONG( R_ECX, R_EAX );
                         store_reg( R_EAX, 0 );
                         }
@@ -1933,8 +2149,12 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                     case 0x7:
                         { /* MOVA @(disp, PC), R0 */
                         uint32_t disp = (ir&0xFF)<<2; 
-                        load_imm32( R_ECX, (pc & 0xFFFFFFFC) + disp + 4 );
-                        store_reg( R_ECX, 0 );
+                        if( sh4_x86.in_delay_slot ) {
+                    	SLOTILLEGAL();
+                        } else {
+                    	load_imm32( R_ECX, (pc & 0xFFFFFFFC) + disp + 4 );
+                    	store_reg( R_ECX, 0 );
+                        }
                         }
                         break;
                     case 0x8:
@@ -1985,7 +2205,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                         uint32_t imm = (ir&0xFF); 
                         load_reg( R_EAX, 0 );
                         load_spreg( R_ECX, R_GBR );
-                        ADD_r32_r32( R_EAX, R_EBX );
+                        ADD_r32_r32( R_EAX, R_ECX );
                         MEM_READ_BYTE( R_ECX, R_EAX );
                         AND_imm32_r32(imm, R_ECX );
                         MEM_WRITE_BYTE( R_ECX, R_EAX );
@@ -2005,6 +2225,12 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                     case 0xF:
                         { /* OR.B #imm, @(R0, GBR) */
                         uint32_t imm = (ir&0xFF); 
+                        load_reg( R_EAX, 0 );
+                        load_spreg( R_ECX, R_GBR );
+                        ADD_r32_r32( R_EAX, R_ECX );
+                        MEM_READ_BYTE( R_ECX, R_EAX );
+                        OR_imm32_r32(imm, R_ECX );
+                        MEM_WRITE_BYTE( R_ECX, R_EAX );
                         }
                         break;
                 }
@@ -2012,9 +2238,13 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
             case 0xD:
                 { /* MOV.L @(disp, PC), Rn */
                 uint32_t Rn = ((ir>>8)&0xF); uint32_t disp = (ir&0xFF)<<2; 
-                load_imm32( R_ECX, (pc & 0xFFFFFFFC) + disp + 4 );
-                MEM_READ_LONG( R_ECX, R_EAX );
-                store_reg( R_EAX, 0 );
+                if( sh4_x86.in_delay_slot ) {
+            	SLOTILLEGAL();
+                } else {
+            	load_imm32( R_ECX, (pc & 0xFFFFFFFC) + disp + 4 );
+            	MEM_READ_LONG( R_ECX, R_EAX );
+            	store_reg( R_EAX, 0 );
+                }
                 }
                 break;
             case 0xE:
@@ -2121,6 +2351,17 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                             case 0x5:
                                 { /* FABS FRn */
                                 uint32_t FRn = ((ir>>8)&0xF); 
+                                load_spreg( R_ECX, R_FPSCR );
+                                load_spreg( R_EDX, REG_OFFSET(fr_bank) );
+                                TEST_imm32_r32( FPSCR_PR, R_ECX );
+                                JNE_rel8(10);
+                                push_fr(R_EDX, FRn); // 3
+                                FABS_st0(); // 2
+                                pop_fr( R_EDX, FRn); //3
+                                JMP_rel8(8); // 2
+                                push_dr(R_EDX, FRn);
+                                FABS_st0();
+                                pop_dr(R_EDX, FRn);
                                 }
                                 break;
                             case 0x6:
@@ -2184,6 +2425,12 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                                         break;
                                                     case 0x3:
                                                         { /* UNDEF */
+                                                        if( sh4_x86.in_delay_slot ) {
+                                                    	RAISE_EXCEPTION(EXC_SLOT_ILLEGAL);
+                                                        } else {
+                                                    	RAISE_EXCEPTION(EXC_ILLEGAL);
+                                                        }
+                                                        return 1;
                                                         }
                                                         break;
                                                     default:
@@ -2213,6 +2460,9 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
         }
 
     INC_r32(R_ESI);
-
+    if( sh4_x86.in_delay_slot ) {
+	sh4_x86.in_delay_slot = FALSE;
+	return 1;
+    }
     return 0;
 }

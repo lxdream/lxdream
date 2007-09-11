@@ -1,5 +1,5 @@
 /**
- * $Id: testsh4x86.c,v 1.3 2007-09-08 03:11:53 nkeynes Exp $
+ * $Id: testsh4x86.c,v 1.4 2007-09-11 02:14:46 nkeynes Exp $
  *
  * Test cases for the SH4 => x86 translator core. Takes as
  * input a binary SH4 object (and VMA), generates the
@@ -74,6 +74,8 @@ void sh4_write_byte( uint32_t addr, uint32_t val ) {}
 void sh4_write_word( uint32_t addr, uint32_t val ) {}
 void sh4_write_long( uint32_t addr, uint32_t val ) {}
 void sh4_flush_store_queue( uint32_t addr ) {}
+void sh4_write_sr( uint32_t val ) { }
+uint32_t sh4_read_sr( void ) { }
 gboolean sh4_raise_exception( int exc ) {}
 
 void usage()

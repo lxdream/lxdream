@@ -1,5 +1,5 @@
 /**
- * $Id: sh4core.h,v 1.21 2007-09-08 03:12:21 nkeynes Exp $
+ * $Id: sh4core.h,v 1.22 2007-09-11 02:14:46 nkeynes Exp $
  * 
  * This file defines the internal functions exported/used by the SH4 core, 
  * except for disassembly functions defined in sh4dasm.h
@@ -58,14 +58,15 @@ extern "C" {
 
 struct sh4_registers {
     uint32_t r[16];
-    uint32_t r_bank[8]; /* hidden banked registers */
-    uint32_t sr, pr, pc, fpscr, t;
+    uint32_t sr, pr, pc, fpscr;
+    uint32_t t, m, q, s; /* really boolean - 0 or 1 */
     int32_t fpul;
-    uint32_t gbr, ssr, spc, sgr, dbr, vbr;
-    uint64_t mac;
-    uint32_t m, q, s; /* really boolean - 0 or 1 */
+    float *fr_bank;
     float fr[2][16];
+    uint64_t mac;
+    uint32_t gbr, ssr, spc, sgr, dbr, vbr;
 
+    uint32_t r_bank[8]; /* hidden banked registers */
     int32_t store_queue[16]; /* technically 2 banks of 32 bytes */
     
     uint32_t new_pc; /* Not a real register, but used to handle delay slots */
@@ -110,6 +111,10 @@ void sh4_write_word( uint32_t addr, uint32_t val );
 void sh4_write_byte( uint32_t addr, uint32_t val );
 int32_t sh4_read_phys_word( uint32_t addr );
 void sh4_flush_store_queue( uint32_t addr );
+
+/* SH4 Support methods */
+uint32_t sh4_read_sr(void);
+void sh4_write_sr(uint32_t val);
 
 /* Peripheral functions */
 void CPG_reset( void );
@@ -171,8 +176,8 @@ int MMU_load_state( FILE *f );
 #define IS_FPU_DOUBLESIZE() (sh4r.fpscr&FPSCR_SZ)
 #define IS_FPU_ENABLED() ((sh4r.sr&SR_FD)==0)
 
-#define FR(x) sh4r.fr[(sh4r.fpscr&FPSCR_FR)>>21][(x)^1]
-#define DRF(x) ((double *)(sh4r.fr[(sh4r.fpscr&FPSCR_FR)>>21]))[x]
+#define FR(x) sh4r.fr_bank[(x)^1]
+#define DRF(x) ((double *)sh4r.fr_bank)[x]
 #define XF(x) sh4r.fr[((~sh4r.fpscr)&FPSCR_FR)>>21][(x)^1]
 #define XDR(x) ((double *)(sh4r.fr[((~sh4r.fpscr)&FPSCR_FR)>>21]))[x]
 #define DRb(x,b) ((double *)(sh4r.fr[((b ? (~sh4r.fpscr) : sh4r.fpscr)&FPSCR_FR)>>21]))[x]
