@@ -1,5 +1,5 @@
 /**
- * $Id: sh4x86.c,v 1.4 2007-09-11 02:14:46 nkeynes Exp $
+ * $Id: sh4x86.c,v 1.5 2007-09-11 21:23:48 nkeynes Exp $
  * 
  * SH4 => x86 translation. This version does no real optimization, it just
  * outputs straight-line x86 code - it mainly exists to provide a baseline
@@ -148,24 +148,59 @@ void static inline store_spreg( int x86reg, int regoffset ) {
 
 #define load_fr_bank(bankreg) load_spreg( bankreg, REG_OFFSET(fr_bank))
 
+/**
+ * Load an FR register (single-precision floating point) into an integer x86
+ * register (eg for register-to-register moves)
+ */
+void static inline load_fr( int bankreg, int x86reg, int frm )
+{
+    OP(0x8B); OP(0x40+bankreg+(x86reg<<3)); OP((frm^1)<<2);
+}
+
+/**
+ * Store an FR register (single-precision floating point) into an integer x86
+ * register (eg for register-to-register moves)
+ */
+void static inline store_fr( int bankreg, int x86reg, int frn )
+{
+    OP(0x89);  OP(0x40+bankreg+(x86reg<<3)); OP((frn^1)<<2);
+}
+
+
+/**
+ * Load a pointer to the back fp back into the specified x86 register. The
+ * bankreg must have been previously loaded with FPSCR.
+ * NB: 10 bytes
+ */
 static inline void load_xf_bank( int bankreg )
 {
-    load_spreg( bankreg, R_FPSCR );
     SHR_imm8_r32( (21 - 6), bankreg ); // Extract bit 21 then *64 for bank size
     AND_imm8s_r32( 0x40, bankreg );    // Complete extraction
     OP(0x8D); OP(0x44+(bankreg<<3)); OP(0x28+bankreg); OP(REG_OFFSET(fr)); // LEA [ebp+bankreg+disp], bankreg
 }
 
+/**
+ * Push a 32-bit float onto the FPU stack, with bankreg previously loaded
+ * with the location of the current fp bank.
+ */
 static inline void push_fr( int bankreg, int frm ) 
 {
     OP(0xD9); OP(0x40 + bankreg); OP((frm^1)<<2);  // FLD.S [bankreg + frm^1*4]
 }
 
+/**
+ * Pop a 32-bit float from the FPU stack and store it back into the fp bank, 
+ * with bankreg previously loaded with the location of the current fp bank.
+ */
 static inline void pop_fr( int bankreg, int frm )
 {
     OP(0xD9); OP(0x58 + bankreg); OP((frm^1)<<2); // FST.S [bankreg + frm^1*4]
 }
 
+/**
+ * Push a 64-bit double onto the FPU stack, with bankreg previously loaded
+ * with the location of the current fp bank.
+ */
 static inline void push_dr( int bankreg, int frm )
 {
     if( frm&1 ) { 
@@ -210,7 +245,45 @@ static inline void call_func2( void *ptr, int arg1, int arg2 )
     PUSH_r32(arg2);
     PUSH_r32(arg1);
     call_func0(ptr);
+    ADD_imm8s_r32( -8, R_ESP );
+}
+
+/**
+ * Write a double (64-bit) value into memory, with the first word in arg2a, and
+ * the second in arg2b
+ * NB: 30 bytes
+ */
+static inline void MEM_WRITE_DOUBLE( int addr, int arg2a, int arg2b )
+{
+    ADD_imm8s_r32( 4, addr );
+    PUSH_r32(addr);
+    PUSH_r32(arg2b);
+    ADD_imm8s_r32( -4, addr );
+    PUSH_r32(addr);
+    PUSH_r32(arg2a);
+    call_func0(sh4_write_long);
+    ADD_imm8s_r32( -8, R_ESP );
+    call_func0(sh4_write_long);
+    ADD_imm8s_r32( -8, R_ESP );
+}
+
+/**
+ * Read a double (64-bit) value from memory, writing the first word into arg2a
+ * and the second into arg2b. The addr must not be in EAX
+ * NB: 27 bytes
+ */
+static inline void MEM_READ_DOUBLE( int addr, int arg2a, int arg2b )
+{
+    PUSH_r32(addr);
+    call_func0(sh4_read_long);
+    POP_r32(addr);
+    PUSH_r32(R_EAX);
+    ADD_imm8s_r32( 4, addr );
+    PUSH_r32(addr);
+    call_func0(sh4_read_long);
     ADD_imm8s_r32( -4, R_ESP );
+    MOV_r32_r32( R_EAX, arg2b );
+    POP_r32(arg2a);
 }
 
 /* Exception checks - Note that all exception checks will clobber EAX */
@@ -2299,6 +2372,26 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                     case 0x8:
                         { /* FMOV @Rm, FRn */
                         uint32_t FRn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        load_reg( R_EDX, Rm );
+                        check_ralign32( R_EDX );
+                        load_spreg( R_ECX, R_FPSCR );
+                        TEST_imm32_r32( FPSCR_SZ, R_ECX );
+                        JNE_rel8(19);
+                        MEM_READ_LONG( R_EDX, R_EAX );
+                        load_spreg( R_ECX, REG_OFFSET(fr_bank) );
+                        store_fr( R_ECX, R_EAX, FRn );
+                        if( FRn&1 ) {
+                    	JMP_rel8(46);
+                    	MEM_READ_DOUBLE( R_EDX, R_EAX, R_EDX );
+                    	load_spreg( R_ECX, R_FPSCR ); // assume read_long clobbered it
+                    	load_xf_bank( R_ECX );
+                        } else {
+                    	JMP_rel8(36);
+                    	MEM_READ_DOUBLE( R_EDX, R_EAX, R_EDX );
+                    	load_spreg( R_ECX, REG_OFFSET(fr_bank) );
+                        }
+                        store_fr( R_ECX, R_EAX, FRn&0x0E );
+                        store_fr( R_ECX, R_EDX, FRn|0x01 );
                         }
                         break;
                     case 0x9:
@@ -2309,6 +2402,24 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                     case 0xA:
                         { /* FMOV FRm, @Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t FRm = ((ir>>4)&0xF); 
+                        load_reg( R_EDX, Rn );
+                        check_walign32( R_EDX );
+                        load_spreg( R_ECX, R_FPSCR );
+                        TEST_imm32_r32( FPSCR_SZ, R_ECX );
+                        JNE_rel8(20);
+                        load_spreg( R_ECX, REG_OFFSET(fr_bank) );
+                        load_fr( R_ECX, R_EAX, FRm );
+                        MEM_WRITE_LONG( R_EDX, R_EAX ); // 12
+                        if( FRm&1 ) {
+                    	JMP_rel8( 46 );
+                    	load_xf_bank( R_ECX );
+                        } else {
+                    	JMP_rel8( 39 );
+                    	load_spreg( R_ECX, REG_OFFSET(fr_bank) );
+                        }
+                        load_fr( R_ECX, R_EAX, FRm&0x0E );
+                        load_fr( R_ECX, R_ECX, FRm|0x01 );
+                        MEM_WRITE_DOUBLE( R_EDX, R_EAX, R_ECX );
                         }
                         break;
                     case 0xB:
@@ -2319,6 +2430,48 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                     case 0xC:
                         { /* FMOV FRm, FRn */
                         uint32_t FRn = ((ir>>8)&0xF); uint32_t FRm = ((ir>>4)&0xF); 
+                        /* As horrible as this looks, it's actually covering 5 separate cases:
+                         * 1. 32-bit fr-to-fr (PR=0)
+                         * 2. 64-bit dr-to-dr (PR=1, FRm&1 == 0, FRn&1 == 0 )
+                         * 3. 64-bit dr-to-xd (PR=1, FRm&1 == 0, FRn&1 == 1 )
+                         * 4. 64-bit xd-to-dr (PR=1, FRm&1 == 1, FRn&1 == 0 )
+                         * 5. 64-bit xd-to-xd (PR=1, FRm&1 == 1, FRn&1 == 1 )
+                         */
+                        load_spreg( R_ECX, R_FPSCR );
+                        load_spreg( R_EDX, REG_OFFSET(fr_bank) );
+                        TEST_imm32_r32( FPSCR_SZ, R_ECX );
+                        JNE_rel8(8);
+                        load_fr( R_EDX, R_EAX, FRm ); // PR=0 branch
+                        store_fr( R_EDX, R_EAX, FRn );
+                        if( FRm&1 ) {
+                    	JMP_rel8(22);
+                    	load_xf_bank( R_ECX ); 
+                    	load_fr( R_ECX, R_EAX, FRm-1 );
+                    	if( FRn&1 ) {
+                    	    load_fr( R_ECX, R_EDX, FRm );
+                    	    store_fr( R_ECX, R_EAX, FRn-1 );
+                    	    store_fr( R_ECX, R_EDX, FRn );
+                    	} else /* FRn&1 == 0 */ {
+                    	    load_fr( R_ECX, R_ECX, FRm );
+                    	    store_fr( R_EDX, R_EAX, FRn-1 );
+                    	    store_fr( R_EDX, R_ECX, FRn );
+                    	}
+                        } else /* FRm&1 == 0 */ {
+                    	if( FRn&1 ) {
+                    	    JMP_rel8(22);
+                    	    load_xf_bank( R_ECX );
+                    	    load_fr( R_EDX, R_EAX, FRm );
+                    	    load_fr( R_EDX, R_EDX, FRm+1 );
+                    	    store_fr( R_ECX, R_EAX, FRn-1 );
+                    	    store_fr( R_ECX, R_EDX, FRn );
+                    	} else /* FRn&1 == 0 */ {
+                    	    JMP_rel8(12);
+                    	    load_fr( R_EDX, R_EAX, FRm );
+                    	    load_fr( R_EDX, R_ECX, FRm+1 );
+                    	    store_fr( R_EDX, R_EAX, FRn );
+                    	    store_fr( R_EDX, R_ECX, FRn+1 );
+                    	}
+                        }
                         }
                         break;
                     case 0xD:
