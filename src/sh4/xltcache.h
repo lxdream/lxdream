@@ -1,5 +1,5 @@
 /**
- * $Id: xltcache.h,v 1.2 2007-09-04 08:32:44 nkeynes Exp $
+ * $Id: xltcache.h,v 1.3 2007-09-12 09:16:47 nkeynes Exp $
  * 
  * Translation cache support (architecture independent)
  *
@@ -46,6 +46,15 @@ xlat_cache_block_t xlat_extend_block();
  * @param srcsize size of the original data that was translated in bytes
  */
 void xlat_commit_block( uint32_t destsize, uint32_t srcsize );
+
+/**
+ * Dump the disassembly of the specified code block to a stream
+ * (primarily for debugging purposes)
+ * @param out The stream to write the output to
+ * @param code a translated block
+ */
+void xlat_disasm_block( FILE *out, void *code );
+
 
 /**
  * Delete (deactivate) the specified block from the cache. Caller is responsible
