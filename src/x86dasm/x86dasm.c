@@ -1,5 +1,5 @@
 /**
- * $Id: x86dasm.c,v 1.2 2007-09-04 08:32:10 nkeynes Exp $
+ * $Id: x86dasm.c,v 1.3 2007-09-12 09:16:47 nkeynes Exp $
  *
  * Wrapper around i386-dis to supply the same behaviour as the other
  * disassembly functions.
@@ -39,6 +39,20 @@ static struct disassemble_info x86_disasm_info;
 
 static x86_symbol *x86_symtab;
 static int x86_num_symbols = 0;   
+
+void x86_disasm_block(FILE *out, void *start, uint32_t len)
+{
+    uint32_t start_addr = (uint32_t)start;
+    uint32_t pc;
+    x86_disasm_init( start, start_addr, len );
+    for( pc = start_addr; pc < start_addr + len;  ) {
+	char buf[256];
+	char op[256];
+	uint32_t pc2 = x86_disasm_instruction( pc, buf, sizeof(buf), op );
+	fprintf( out, "%08X: %-20s %s\n", pc, op, buf );
+	pc = pc2;
+    }
+}
 
 void x86_disasm_init(char *buf, uint32_t vma, int buflen)
 {

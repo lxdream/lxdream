@@ -1,5 +1,5 @@
 /**
- * $Id: xltcache.c,v 1.2 2007-09-04 08:32:44 nkeynes Exp $
+ * $Id: xltcache.c,v 1.3 2007-09-12 09:16:47 nkeynes Exp $
  * 
  * Translation cache management. This part is architecture independent.
  *
@@ -54,24 +54,27 @@ xlat_cache_block_t xlat_old_cache;
 xlat_cache_block_t xlat_old_cache_ptr;
 static void ***xlat_lut;
 static void **xlat_lut2; /* second-tier page info */
+static gboolean xlat_initialized = FALSE;
 
 void xlat_cache_init() 
 {
-    xlat_new_cache = mmap( NULL, XLAT_NEW_CACHE_SIZE, PROT_EXEC|PROT_READ|PROT_WRITE,
-			   MAP_PRIVATE|MAP_ANONYMOUS, -1, 0 );
-    xlat_temp_cache = mmap( NULL, XLAT_TEMP_CACHE_SIZE, PROT_EXEC|PROT_READ|PROT_WRITE,
-			   MAP_PRIVATE|MAP_ANONYMOUS, -1, 0 );
-    xlat_old_cache = mmap( NULL, XLAT_OLD_CACHE_SIZE, PROT_EXEC|PROT_READ|PROT_WRITE,
-			   MAP_PRIVATE|MAP_ANONYMOUS, -1, 0 );
-    xlat_new_cache_ptr = xlat_new_cache;
-    xlat_temp_cache_ptr = xlat_temp_cache;
-    xlat_old_cache_ptr = xlat_old_cache;
-    xlat_new_create_ptr = xlat_new_cache;
-    
-    xlat_lut = mmap( NULL, XLAT_LUT_PAGES*sizeof(void *), PROT_READ|PROT_WRITE,
-		     MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
-    memset( xlat_lut, 0, XLAT_LUT_PAGES*sizeof(void *) );
-
+    if( !xlat_initialized ) {
+	xlat_initialized = TRUE;
+	xlat_new_cache = mmap( NULL, XLAT_NEW_CACHE_SIZE, PROT_EXEC|PROT_READ|PROT_WRITE,
+			       MAP_PRIVATE|MAP_ANONYMOUS, -1, 0 );
+	xlat_temp_cache = mmap( NULL, XLAT_TEMP_CACHE_SIZE, PROT_EXEC|PROT_READ|PROT_WRITE,
+				MAP_PRIVATE|MAP_ANONYMOUS, -1, 0 );
+	xlat_old_cache = mmap( NULL, XLAT_OLD_CACHE_SIZE, PROT_EXEC|PROT_READ|PROT_WRITE,
+			       MAP_PRIVATE|MAP_ANONYMOUS, -1, 0 );
+	xlat_new_cache_ptr = xlat_new_cache;
+	xlat_temp_cache_ptr = xlat_temp_cache;
+	xlat_old_cache_ptr = xlat_old_cache;
+	xlat_new_create_ptr = xlat_new_cache;
+	
+	xlat_lut = mmap( NULL, XLAT_LUT_PAGES*sizeof(void *), PROT_READ|PROT_WRITE,
+			 MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
+	memset( xlat_lut, 0, XLAT_LUT_PAGES*sizeof(void *) );
+    }
     xlat_flush_cache();
 }
 
@@ -350,4 +353,12 @@ void xlat_check_integrity( )
     xlat_check_cache_integrity( xlat_new_cache, xlat_new_cache_ptr, XLAT_NEW_CACHE_SIZE );
     xlat_check_cache_integrity( xlat_temp_cache, xlat_temp_cache_ptr, XLAT_TEMP_CACHE_SIZE );
     xlat_check_cache_integrity( xlat_old_cache, xlat_old_cache_ptr, XLAT_OLD_CACHE_SIZE );
+}
+
+
+void xlat_disasm_block( FILE *out, void *block )
+{
+    uint32_t buflen = xlat_get_block_size(block);
+    x86_set_symtab( NULL, 0 );
+    x86_disasm_block( out, block, buflen );
 }
