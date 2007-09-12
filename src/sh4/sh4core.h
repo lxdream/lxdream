@@ -1,5 +1,5 @@
 /**
- * $Id: sh4core.h,v 1.22 2007-09-11 02:14:46 nkeynes Exp $
+ * $Id: sh4core.h,v 1.23 2007-09-12 09:20:38 nkeynes Exp $
  * 
  * This file defines the internal functions exported/used by the SH4 core, 
  * except for disassembly functions defined in sh4dasm.h
@@ -23,6 +23,7 @@
 #include <glib/gtypes.h>
 #include <stdint.h>
 #include <stdio.h>
+#include "mem.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -80,9 +81,12 @@ struct sh4_registers {
 };
 
 extern struct sh4_registers sh4r;
+extern struct breakpoint_struct sh4_breakpoints[MAX_BREAKPOINTS];
+extern int sh4_breakpoint_count;
+
 
 /* Public functions */
-
+void sh4_set_use_xlat( gboolean use );
 void sh4_init( void );
 void sh4_reset( void );
 void sh4_run( void );
@@ -91,6 +95,7 @@ void sh4_runfor( uint32_t count );
 int sh4_isrunning( void );
 void sh4_stop( void );
 void sh4_set_pc( int );
+
 gboolean sh4_execute_instruction( void );
 gboolean sh4_raise_exception( int );
 gboolean sh4_raise_slot_exception( int, int );
@@ -98,6 +103,7 @@ gboolean sh4_raise_tlb_exception( int );
 void sh4_set_breakpoint( uint32_t pc, int type );
 gboolean sh4_clear_breakpoint( uint32_t pc, int type );
 int sh4_get_breakpoint( uint32_t pc );
+void sh4_accept_interrupt( void );
 
 #define BREAK_ONESHOT 1
 #define BREAK_PERM 2
