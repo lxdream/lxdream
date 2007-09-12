@@ -1,5 +1,5 @@
 /**
- * $Id: sh4x86.c,v 1.5 2007-09-11 21:23:48 nkeynes Exp $
+ * $Id: sh4x86.c,v 1.6 2007-09-12 09:17:52 nkeynes Exp $
  * 
  * SH4 => x86 translation. This version does no real optimization, it just
  * outputs straight-line x86 code - it mainly exists to provide a baseline
@@ -180,6 +180,22 @@ static inline void load_xf_bank( int bankreg )
 }
 
 /**
+ * Push FPUL (as a 32-bit float) onto the FPU stack
+ */
+static inline void push_fpul( )
+{
+    OP(0xD9); OP(0x45); OP(R_FPUL);
+}
+
+/**
+ * Pop FPUL (as a 32-bit float) from the FPU stack
+ */
+static inline void pop_fpul( )
+{
+    OP(0xD9); OP(0x5D); OP(R_FPUL);
+}
+
+/**
  * Push a 32-bit float onto the FPU stack, with bankreg previously loaded
  * with the location of the current fp bank.
  */
@@ -203,24 +219,12 @@ static inline void pop_fr( int bankreg, int frm )
  */
 static inline void push_dr( int bankreg, int frm )
 {
-    if( frm&1 ) { 
-	// this is technically undefined, but it seems to work consistently - high 32 bits
-	// loaded from FRm (32-bits), low 32bits are 0.
-	OP(0xFF); OP(0x70 + bankreg); OP((frm^1)<<2); // PUSH [bankreg + frm^1]
-	PUSH_imm32(0);
-	
-	
-    } else {
-	OP(0xDD); OP(0x40 + bankreg); OP(frm<<2); // FLD.D [bankreg + frm*4]
-    }
+    OP(0xDD); OP(0x40 + bankreg); OP(frm<<2); // FLD.D [bankreg + frm*4]
 }
 
 static inline void pop_dr( int bankreg, int frm )
 {
-    if( frm&1 ) {
-    } else {
-	OP(0xDD); OP(0x58 + bankreg); OP(frm<<2); // FST.D [bankreg + frm*4]
-    }
+    OP(0xDD); OP(0x58 + bankreg); OP(frm<<2); // FST.D [bankreg + frm*4]
 }
 
 /**
@@ -237,7 +241,7 @@ static inline void call_func1( void *ptr, int arg1 )
 {
     PUSH_r32(arg1);
     call_func0(ptr);
-    ADD_imm8s_r32( -4, R_ESP );
+    ADD_imm8s_r32( 4, R_ESP );
 }
 
 static inline void call_func2( void *ptr, int arg1, int arg2 )
@@ -245,7 +249,7 @@ static inline void call_func2( void *ptr, int arg1, int arg2 )
     PUSH_r32(arg2);
     PUSH_r32(arg1);
     call_func0(ptr);
-    ADD_imm8s_r32( -8, R_ESP );
+    ADD_imm8s_r32( 8, R_ESP );
 }
 
 /**
@@ -262,9 +266,9 @@ static inline void MEM_WRITE_DOUBLE( int addr, int arg2a, int arg2b )
     PUSH_r32(addr);
     PUSH_r32(arg2a);
     call_func0(sh4_write_long);
-    ADD_imm8s_r32( -8, R_ESP );
+    ADD_imm8s_r32( 8, R_ESP );
     call_func0(sh4_write_long);
-    ADD_imm8s_r32( -8, R_ESP );
+    ADD_imm8s_r32( 8, R_ESP );
 }
 
 /**
@@ -281,7 +285,7 @@ static inline void MEM_READ_DOUBLE( int addr, int arg2a, int arg2b )
     ADD_imm8s_r32( 4, addr );
     PUSH_r32(addr);
     call_func0(sh4_read_long);
-    ADD_imm8s_r32( -4, R_ESP );
+    ADD_imm8s_r32( 4, R_ESP );
     MOV_r32_r32( R_EAX, arg2b );
     POP_r32(arg2a);
 }
@@ -537,7 +541,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                 CMP_imm32_r32( 0xE0000000, R_EAX );
                                 JNE_rel8(8);
                                 call_func0( sh4_flush_store_queue );
-                                ADD_imm8s_r32( -4, R_ESP );
+                                ADD_imm8s_r32( 4, R_ESP );
                                 }
                                 break;
                             case 0x9:
@@ -764,6 +768,8 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                             	load_spreg( R_EAX, R_SSR );
                             	call_func1( sh4_write_sr, R_EAX );
                             	sh4_x86.in_delay_slot = TRUE;
+                            	sh4_x86.priv_checked = FALSE;
+                            	sh4_x86.fpuen_checked = FALSE;
                             	INC_r32(R_ESI);
                             	return 0;
                                 }
@@ -1502,6 +1508,8 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                         store_reg( R_EAX, Rm );
                                         MEM_READ_LONG( R_ECX, R_EAX );
                                         call_func1( sh4_write_sr, R_EAX );
+                                        sh4_x86.priv_checked = FALSE;
+                                        sh4_x86.fpuen_checked = FALSE;
                                         }
                                         break;
                                     case 0x1:
@@ -1774,6 +1782,8 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                         uint32_t Rm = ((ir>>8)&0xF); 
                                         load_reg( R_EAX, Rm );
                                         call_func1( sh4_write_sr, R_EAX );
+                                        sh4_x86.priv_checked = FALSE;
+                                        sh4_x86.fpuen_checked = FALSE;
                                         }
                                         break;
                                     case 0x1:
@@ -2332,53 +2342,127 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                     case 0x0:
                         { /* FADD FRm, FRn */
                         uint32_t FRn = ((ir>>8)&0xF); uint32_t FRm = ((ir>>4)&0xF); 
+                        check_fpuen();
+                        load_spreg( R_ECX, R_FPSCR );
+                        TEST_imm32_r32( FPSCR_PR, R_ECX );
+                        load_fr_bank( R_EDX );
+                        JNE_rel8(13);
+                        push_fr(R_EDX, FRm);
+                        push_fr(R_EDX, FRn);
+                        FADDP_st(1);
+                        pop_fr(R_EDX, FRn);
+                        JMP_rel8(11);
+                        push_dr(R_EDX, FRm);
+                        push_dr(R_EDX, FRn);
+                        FADDP_st(1);
+                        pop_dr(R_EDX, FRn);
                         }
                         break;
                     case 0x1:
                         { /* FSUB FRm, FRn */
                         uint32_t FRn = ((ir>>8)&0xF); uint32_t FRm = ((ir>>4)&0xF); 
+                        check_fpuen();
+                        load_spreg( R_ECX, R_FPSCR );
+                        TEST_imm32_r32( FPSCR_PR, R_ECX );
+                        load_fr_bank( R_EDX );
+                        JNE_rel8(13);
+                        push_fr(R_EDX, FRn);
+                        push_fr(R_EDX, FRm);
+                        FMULP_st(1);
+                        pop_fr(R_EDX, FRn);
+                        JMP_rel8(11);
+                        push_dr(R_EDX, FRn);
+                        push_dr(R_EDX, FRm);
+                        FMULP_st(1);
+                        pop_dr(R_EDX, FRn);
                         }
                         break;
                     case 0x2:
                         { /* FMUL FRm, FRn */
                         uint32_t FRn = ((ir>>8)&0xF); uint32_t FRm = ((ir>>4)&0xF); 
+                        check_fpuen();
+                        load_spreg( R_ECX, R_FPSCR );
+                        TEST_imm32_r32( FPSCR_PR, R_ECX );
+                        load_fr_bank( R_EDX );
+                        JNE_rel8(13);
+                        push_fr(R_EDX, FRm);
+                        push_fr(R_EDX, FRn);
+                        FMULP_st(1);
+                        pop_fr(R_EDX, FRn);
+                        JMP_rel8(11);
+                        push_dr(R_EDX, FRm);
+                        push_dr(R_EDX, FRn);
+                        FMULP_st(1);
+                        pop_dr(R_EDX, FRn);
                         }
                         break;
                     case 0x3:
                         { /* FDIV FRm, FRn */
                         uint32_t FRn = ((ir>>8)&0xF); uint32_t FRm = ((ir>>4)&0xF); 
+                        check_fpuen();
+                        load_spreg( R_ECX, R_FPSCR );
+                        TEST_imm32_r32( FPSCR_PR, R_ECX );
+                        load_fr_bank( R_EDX );
+                        JNE_rel8(13);
+                        push_fr(R_EDX, FRn);
+                        push_fr(R_EDX, FRm);
+                        FDIVP_st(1);
+                        pop_fr(R_EDX, FRn);
+                        JMP_rel8(11);
+                        push_dr(R_EDX, FRn);
+                        push_dr(R_EDX, FRm);
+                        FDIVP_st(1);
+                        pop_dr(R_EDX, FRn);
                         }
                         break;
                     case 0x4:
                         { /* FCMP/EQ FRm, FRn */
                         uint32_t FRn = ((ir>>8)&0xF); uint32_t FRm = ((ir>>4)&0xF); 
+                        check_fpuen();
+                        load_spreg( R_ECX, R_FPSCR );
+                        TEST_imm32_r32( FPSCR_PR, R_ECX );
+                        load_fr_bank( R_EDX );
+                        JNE_rel8(8);
+                        push_fr(R_EDX, FRm);
+                        push_fr(R_EDX, FRn);
+                        JMP_rel8(6);
+                        push_dr(R_EDX, FRm);
+                        push_dr(R_EDX, FRn);
+                        FCOMIP_st(1);
+                        SETE_t();
+                        FPOP_st();
                         }
                         break;
                     case 0x5:
                         { /* FCMP/GT FRm, FRn */
                         uint32_t FRn = ((ir>>8)&0xF); uint32_t FRm = ((ir>>4)&0xF); 
+                        check_fpuen();
+                        load_spreg( R_ECX, R_FPSCR );
+                        TEST_imm32_r32( FPSCR_PR, R_ECX );
+                        load_fr_bank( R_EDX );
+                        JNE_rel8(8);
+                        push_fr(R_EDX, FRm);
+                        push_fr(R_EDX, FRn);
+                        JMP_rel8(6);
+                        push_dr(R_EDX, FRm);
+                        push_dr(R_EDX, FRn);
+                        FCOMIP_st(1);
+                        SETA_t();
+                        FPOP_st();
                         }
                         break;
                     case 0x6:
                         { /* FMOV @(R0, Rm), FRn */
                         uint32_t FRn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
-                        }
-                        break;
-                    case 0x7:
-                        { /* FMOV FRm, @(R0, Rn) */
-                        uint32_t Rn = ((ir>>8)&0xF); uint32_t FRm = ((ir>>4)&0xF); 
-                        }
-                        break;
-                    case 0x8:
-                        { /* FMOV @Rm, FRn */
-                        uint32_t FRn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        check_fpuen();
                         load_reg( R_EDX, Rm );
+                        ADD_sh4r_r32( REG_OFFSET(r[0]), R_EDX );
                         check_ralign32( R_EDX );
                         load_spreg( R_ECX, R_FPSCR );
                         TEST_imm32_r32( FPSCR_SZ, R_ECX );
                         JNE_rel8(19);
                         MEM_READ_LONG( R_EDX, R_EAX );
-                        load_spreg( R_ECX, REG_OFFSET(fr_bank) );
+                        load_fr_bank( R_ECX );
                         store_fr( R_ECX, R_EAX, FRn );
                         if( FRn&1 ) {
                     	JMP_rel8(46);
@@ -2388,7 +2472,58 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                         } else {
                     	JMP_rel8(36);
                     	MEM_READ_DOUBLE( R_EDX, R_EAX, R_EDX );
-                    	load_spreg( R_ECX, REG_OFFSET(fr_bank) );
+                    	load_fr_bank( R_ECX );
+                        }
+                        store_fr( R_ECX, R_EAX, FRn&0x0E );
+                        store_fr( R_ECX, R_EDX, FRn|0x01 );
+                        }
+                        break;
+                    case 0x7:
+                        { /* FMOV FRm, @(R0, Rn) */
+                        uint32_t Rn = ((ir>>8)&0xF); uint32_t FRm = ((ir>>4)&0xF); 
+                        check_fpuen();
+                        load_reg( R_EDX, Rn );
+                        ADD_sh4r_r32( REG_OFFSET(r[0]), R_EDX );
+                        check_walign32( R_EDX );
+                        load_spreg( R_ECX, R_FPSCR );
+                        TEST_imm32_r32( FPSCR_SZ, R_ECX );
+                        JNE_rel8(20);
+                        load_fr_bank( R_ECX );
+                        load_fr( R_ECX, R_EAX, FRm );
+                        MEM_WRITE_LONG( R_EDX, R_EAX ); // 12
+                        if( FRm&1 ) {
+                    	JMP_rel8( 46 );
+                    	load_xf_bank( R_ECX );
+                        } else {
+                    	JMP_rel8( 39 );
+                    	load_fr_bank( R_ECX );
+                        }
+                        load_fr( R_ECX, R_EAX, FRm&0x0E );
+                        load_fr( R_ECX, R_ECX, FRm|0x01 );
+                        MEM_WRITE_DOUBLE( R_EDX, R_EAX, R_ECX );
+                        }
+                        break;
+                    case 0x8:
+                        { /* FMOV @Rm, FRn */
+                        uint32_t FRn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        check_fpuen();
+                        load_reg( R_EDX, Rm );
+                        check_ralign32( R_EDX );
+                        load_spreg( R_ECX, R_FPSCR );
+                        TEST_imm32_r32( FPSCR_SZ, R_ECX );
+                        JNE_rel8(19);
+                        MEM_READ_LONG( R_EDX, R_EAX );
+                        load_fr_bank( R_ECX );
+                        store_fr( R_ECX, R_EAX, FRn );
+                        if( FRn&1 ) {
+                    	JMP_rel8(46);
+                    	MEM_READ_DOUBLE( R_EDX, R_EAX, R_EDX );
+                    	load_spreg( R_ECX, R_FPSCR ); // assume read_long clobbered it
+                    	load_xf_bank( R_ECX );
+                        } else {
+                    	JMP_rel8(36);
+                    	MEM_READ_DOUBLE( R_EDX, R_EAX, R_EDX );
+                    	load_fr_bank( R_ECX );
                         }
                         store_fr( R_ECX, R_EAX, FRn&0x0E );
                         store_fr( R_ECX, R_EDX, FRn|0x01 );
@@ -2397,17 +2532,46 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                     case 0x9:
                         { /* FMOV @Rm+, FRn */
                         uint32_t FRn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        check_fpuen();
+                        load_reg( R_EDX, Rm );
+                        check_ralign32( R_EDX );
+                        MOV_r32_r32( R_EDX, R_EAX );
+                        load_spreg( R_ECX, R_FPSCR );
+                        TEST_imm32_r32( FPSCR_SZ, R_ECX );
+                        JNE_rel8(25);
+                        ADD_imm8s_r32( 4, R_EAX );
+                        store_reg( R_EAX, Rm );
+                        MEM_READ_LONG( R_EDX, R_EAX );
+                        load_fr_bank( R_ECX );
+                        store_fr( R_ECX, R_EAX, FRn );
+                        if( FRn&1 ) {
+                    	JMP_rel8(52);
+                    	ADD_imm8s_r32( 8, R_EAX );
+                    	store_reg(R_EAX, Rm);
+                    	MEM_READ_DOUBLE( R_EDX, R_EAX, R_EDX );
+                    	load_spreg( R_ECX, R_FPSCR ); // assume read_long clobbered it
+                    	load_xf_bank( R_ECX );
+                        } else {
+                    	JMP_rel8(42);
+                    	ADD_imm8s_r32( 8, R_EAX );
+                    	store_reg(R_EAX, Rm);
+                    	MEM_READ_DOUBLE( R_EDX, R_EAX, R_EDX );
+                    	load_fr_bank( R_ECX );
+                        }
+                        store_fr( R_ECX, R_EAX, FRn&0x0E );
+                        store_fr( R_ECX, R_EDX, FRn|0x01 );
                         }
                         break;
                     case 0xA:
                         { /* FMOV FRm, @Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t FRm = ((ir>>4)&0xF); 
+                        check_fpuen();
                         load_reg( R_EDX, Rn );
                         check_walign32( R_EDX );
                         load_spreg( R_ECX, R_FPSCR );
                         TEST_imm32_r32( FPSCR_SZ, R_ECX );
                         JNE_rel8(20);
-                        load_spreg( R_ECX, REG_OFFSET(fr_bank) );
+                        load_fr_bank( R_ECX );
                         load_fr( R_ECX, R_EAX, FRm );
                         MEM_WRITE_LONG( R_EDX, R_EAX ); // 12
                         if( FRm&1 ) {
@@ -2415,7 +2579,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                     	load_xf_bank( R_ECX );
                         } else {
                     	JMP_rel8( 39 );
-                    	load_spreg( R_ECX, REG_OFFSET(fr_bank) );
+                    	load_fr_bank( R_ECX );
                         }
                         load_fr( R_ECX, R_EAX, FRm&0x0E );
                         load_fr( R_ECX, R_ECX, FRm|0x01 );
@@ -2425,6 +2589,29 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                     case 0xB:
                         { /* FMOV FRm, @-Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t FRm = ((ir>>4)&0xF); 
+                        check_fpuen();
+                        load_reg( R_EDX, Rn );
+                        check_walign32( R_EDX );
+                        load_spreg( R_ECX, R_FPSCR );
+                        TEST_imm32_r32( FPSCR_SZ, R_ECX );
+                        JNE_rel8(20);
+                        load_fr_bank( R_ECX );
+                        load_fr( R_ECX, R_EAX, FRm );
+                        ADD_imm8s_r32(-4,R_EDX);
+                        store_reg( R_EDX, Rn );
+                        MEM_WRITE_LONG( R_EDX, R_EAX ); // 12
+                        if( FRm&1 ) {
+                    	JMP_rel8( 46 );
+                    	load_xf_bank( R_ECX );
+                        } else {
+                    	JMP_rel8( 39 );
+                    	load_fr_bank( R_ECX );
+                        }
+                        load_fr( R_ECX, R_EAX, FRm&0x0E );
+                        load_fr( R_ECX, R_ECX, FRm|0x01 );
+                        ADD_imm8s_r32(-8,R_EDX);
+                        store_reg( R_EDX, Rn );
+                        MEM_WRITE_DOUBLE( R_EDX, R_EAX, R_ECX );
                         }
                         break;
                     case 0xC:
@@ -2437,8 +2624,9 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                          * 4. 64-bit xd-to-dr (PR=1, FRm&1 == 1, FRn&1 == 0 )
                          * 5. 64-bit xd-to-xd (PR=1, FRm&1 == 1, FRn&1 == 1 )
                          */
+                        check_fpuen();
                         load_spreg( R_ECX, R_FPSCR );
-                        load_spreg( R_EDX, REG_OFFSET(fr_bank) );
+                        load_fr_bank( R_EDX );
                         TEST_imm32_r32( FPSCR_SZ, R_ECX );
                         JNE_rel8(8);
                         load_fr( R_EDX, R_EAX, FRm ); // PR=0 branch
@@ -2479,33 +2667,65 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                             case 0x0:
                                 { /* FSTS FPUL, FRn */
                                 uint32_t FRn = ((ir>>8)&0xF); 
+                                check_fpuen();
+                                load_fr_bank( R_ECX );
+                                load_spreg( R_EAX, R_FPUL );
+                                store_fr( R_ECX, R_EAX, FRn );
                                 }
                                 break;
                             case 0x1:
                                 { /* FLDS FRm, FPUL */
                                 uint32_t FRm = ((ir>>8)&0xF); 
+                                check_fpuen();
+                                load_fr_bank( R_ECX );
+                                load_fr( R_ECX, R_EAX, FRm );
+                                store_spreg( R_EAX, R_FPUL );
                                 }
                                 break;
                             case 0x2:
                                 { /* FLOAT FPUL, FRn */
                                 uint32_t FRn = ((ir>>8)&0xF); 
+                                check_fpuen();
+                                load_spreg( R_ECX, R_FPSCR );
+                                load_spreg(R_EDX, REG_OFFSET(fr_bank));
+                                FILD_sh4r(R_FPUL);
+                                TEST_imm32_r32( FPSCR_PR, R_ECX );
+                                JNE_rel8(5);
+                                pop_fr( R_EDX, FRn );
+                                JMP_rel8(3);
+                                pop_dr( R_EDX, FRn );
                                 }
                                 break;
                             case 0x3:
                                 { /* FTRC FRm, FPUL */
                                 uint32_t FRm = ((ir>>8)&0xF); 
+                                check_fpuen();
+                                // TODO
                                 }
                                 break;
                             case 0x4:
                                 { /* FNEG FRn */
                                 uint32_t FRn = ((ir>>8)&0xF); 
+                                check_fpuen();
+                                load_spreg( R_ECX, R_FPSCR );
+                                TEST_imm32_r32( FPSCR_PR, R_ECX );
+                                load_fr_bank( R_EDX );
+                                JNE_rel8(10);
+                                push_fr(R_EDX, FRn);
+                                FCHS_st0();
+                                pop_fr(R_EDX, FRn);
+                                JMP_rel8(8);
+                                push_dr(R_EDX, FRn);
+                                FCHS_st0();
+                                pop_dr(R_EDX, FRn);
                                 }
                                 break;
                             case 0x5:
                                 { /* FABS FRn */
                                 uint32_t FRn = ((ir>>8)&0xF); 
+                                check_fpuen();
                                 load_spreg( R_ECX, R_FPSCR );
-                                load_spreg( R_EDX, REG_OFFSET(fr_bank) );
+                                load_fr_bank( R_EDX );
                                 TEST_imm32_r32( FPSCR_PR, R_ECX );
                                 JNE_rel8(10);
                                 push_fr(R_EDX, FRn); // 3
@@ -2520,36 +2740,90 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                             case 0x6:
                                 { /* FSQRT FRn */
                                 uint32_t FRn = ((ir>>8)&0xF); 
+                                check_fpuen();
+                                load_spreg( R_ECX, R_FPSCR );
+                                TEST_imm32_r32( FPSCR_PR, R_ECX );
+                                load_fr_bank( R_EDX );
+                                JNE_rel8(10);
+                                push_fr(R_EDX, FRn);
+                                FSQRT_st0();
+                                pop_fr(R_EDX, FRn);
+                                JMP_rel8(8);
+                                push_dr(R_EDX, FRn);
+                                FSQRT_st0();
+                                pop_dr(R_EDX, FRn);
                                 }
                                 break;
                             case 0x7:
                                 { /* FSRRA FRn */
                                 uint32_t FRn = ((ir>>8)&0xF); 
+                                check_fpuen();
+                                load_spreg( R_ECX, R_FPSCR );
+                                TEST_imm32_r32( FPSCR_PR, R_ECX );
+                                load_fr_bank( R_EDX );
+                                JNE_rel8(12); // PR=0 only
+                                FLD1_st0();
+                                push_fr(R_EDX, FRn);
+                                FSQRT_st0();
+                                FDIVP_st(1);
+                                pop_fr(R_EDX, FRn);
                                 }
                                 break;
                             case 0x8:
                                 { /* FLDI0 FRn */
                                 uint32_t FRn = ((ir>>8)&0xF); 
+                                /* IFF PR=0 */
+                                  check_fpuen();
+                                  load_spreg( R_ECX, R_FPSCR );
+                                  TEST_imm32_r32( FPSCR_PR, R_ECX );
+                                  JNE_rel8(8);
+                                  XOR_r32_r32( R_EAX, R_EAX );
+                                  load_spreg( R_ECX, REG_OFFSET(fr_bank) );
+                                  store_fr( R_ECX, R_EAX, FRn );
                                 }
                                 break;
                             case 0x9:
                                 { /* FLDI1 FRn */
                                 uint32_t FRn = ((ir>>8)&0xF); 
+                                /* IFF PR=0 */
+                                  check_fpuen();
+                                  load_spreg( R_ECX, R_FPSCR );
+                                  TEST_imm32_r32( FPSCR_PR, R_ECX );
+                                  JNE_rel8(11);
+                                  load_imm32(R_EAX, 0x3F800000);
+                                  load_spreg( R_ECX, REG_OFFSET(fr_bank) );
+                                  store_fr( R_ECX, R_EAX, FRn );
                                 }
                                 break;
                             case 0xA:
                                 { /* FCNVSD FPUL, FRn */
                                 uint32_t FRn = ((ir>>8)&0xF); 
+                                check_fpuen();
+                                check_fpuen();
+                                load_spreg( R_ECX, R_FPSCR );
+                                TEST_imm32_r32( FPSCR_PR, R_ECX );
+                                JE_rel8(9); // only when PR=1
+                                load_fr_bank( R_ECX );
+                                push_fpul();
+                                pop_dr( R_ECX, FRn );
                                 }
                                 break;
                             case 0xB:
                                 { /* FCNVDS FRm, FPUL */
                                 uint32_t FRm = ((ir>>8)&0xF); 
+                                check_fpuen();
+                                load_spreg( R_ECX, R_FPSCR );
+                                TEST_imm32_r32( FPSCR_PR, R_ECX );
+                                JE_rel8(9); // only when PR=1
+                                load_fr_bank( R_ECX );
+                                push_dr( R_ECX, FRm );
+                                pop_fpul();
                                 }
                                 break;
                             case 0xE:
                                 { /* FIPR FVm, FVn */
                                 uint32_t FVn = ((ir>>10)&0x3); uint32_t FVm = ((ir>>8)&0x3); 
+                                check_fpuen();
                                 }
                                 break;
                             case 0xF:
@@ -2557,6 +2831,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                     case 0x0:
                                         { /* FSCA FPUL, FRn */
                                         uint32_t FRn = ((ir>>9)&0x7)<<1; 
+                                        check_fpuen();
                                         }
                                         break;
                                     case 0x1:
@@ -2564,16 +2839,25 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                             case 0x0:
                                                 { /* FTRV XMTRX, FVn */
                                                 uint32_t FVn = ((ir>>10)&0x3); 
+                                                check_fpuen();
                                                 }
                                                 break;
                                             case 0x1:
                                                 switch( (ir&0xC00) >> 10 ) {
                                                     case 0x0:
                                                         { /* FSCHG */
+                                                        check_fpuen();
+                                                        load_spreg( R_ECX, R_FPSCR );
+                                                        XOR_imm32_r32( FPSCR_SZ, R_ECX );
+                                                        store_spreg( R_ECX, R_FPSCR );
                                                         }
                                                         break;
                                                     case 0x2:
                                                         { /* FRCHG */
+                                                        check_fpuen();
+                                                        load_spreg( R_ECX, R_FPSCR );
+                                                        XOR_imm32_r32( FPSCR_FR, R_ECX );
+                                                        store_spreg( R_ECX, R_FPSCR );
                                                         }
                                                         break;
                                                     case 0x3:
@@ -2603,6 +2887,24 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                     case 0xE:
                         { /* FMAC FR0, FRm, FRn */
                         uint32_t FRn = ((ir>>8)&0xF); uint32_t FRm = ((ir>>4)&0xF); 
+                        check_fpuen();
+                        load_spreg( R_ECX, R_FPSCR );
+                        load_spreg( R_EDX, REG_OFFSET(fr_bank));
+                        TEST_imm32_r32( FPSCR_PR, R_ECX );
+                        JNE_rel8(18);
+                        push_fr( R_EDX, 0 );
+                        push_fr( R_EDX, FRm );
+                        FMULP_st(1);
+                        push_fr( R_EDX, FRn );
+                        FADDP_st(1);
+                        pop_fr( R_EDX, FRn );
+                        JMP_rel8(16);
+                        push_dr( R_EDX, 0 );
+                        push_dr( R_EDX, FRm );
+                        FMULP_st(1);
+                        push_dr( R_EDX, FRn );
+                        FADDP_st(1);
+                        pop_dr( R_EDX, FRn );
                         }
                         break;
                     default:
