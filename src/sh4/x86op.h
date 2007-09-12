@@ -1,5 +1,5 @@
 /**
- * $Id: x86op.h,v 1.5 2007-09-11 21:23:48 nkeynes Exp $
+ * $Id: x86op.h,v 1.6 2007-09-12 09:17:24 nkeynes Exp $
  * 
  * Definitions of x86 opcodes for use by the translator.
  *
@@ -151,10 +151,14 @@
 #define FABS_st0() OP(0xD9); OP(0xE1)
 #define FADDP_st(st) OP(0xDE); OP(0xC0+st)
 #define FCHS_st0() OP(0xD9); OP(0xE0)
+#define FCOMIP_st(st) OP(0xDF); OP(0xF0+st)
 #define FDIVP_st(st) OP(0xDE); OP(0xF8+st)
-#define FILD_sh4r(disp) OP(0xDB); MODRM_sh4r_r32(disp, 0)
-#define FISTTP_shr4(disp) OP(0xDB); MODRM_sh4r_r32(disp, 1)
+#define FILD_sh4r(disp) OP(0xDB); MODRM_r32_sh4r(0, disp)
+#define FISTTP_shr4(disp) OP(0xDB); MODRM_r32_sh4r(1, disp)
+#define FLD0_st0() OP(0xD9); OP(0xEE);
+#define FLD1_st0() OP(0xD9); OP(0xE8);
 #define FMULP_st(st) OP(0xDE); OP(0xC8+st)
+#define FPOP_st()  OP(0xDD); OP(0xC0); OP(0xD9); OP(0xF7)
 #define FSUB_st(st) OP(0xDE); OP(0xE8+st)
 #define FSQRT_st0() OP(0xD9); OP(0xFA)
 
