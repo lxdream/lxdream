@@ -1,5 +1,5 @@
 /**
- * $Id: sh4x86.c,v 1.7 2007-09-12 11:31:16 nkeynes Exp $
+ * $Id: sh4x86.c,v 1.8 2007-09-12 11:41:43 nkeynes Exp $
  * 
  * SH4 => x86 translation. This version does no real optimization, it just
  * outputs straight-line x86 code - it mainly exists to provide a baseline
@@ -369,7 +369,7 @@ void exit_block( )
     MUL_r32( R_ESI );
     ADD_r32_r32( R_EAX, R_ECX );
     store_spreg( R_ECX, REG_OFFSET(slice_cycle) );
-    XOR_r32_r32( R_EAX, R_EAX );
+    load_imm32( R_EAX, 1 );
     POP_r32(R_ESI);
     POP_r32(R_EDI);
     POP_r32(R_EBP);
