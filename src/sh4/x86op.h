@@ -1,5 +1,5 @@
 /**
- * $Id: x86op.h,v 1.6 2007-09-12 09:17:24 nkeynes Exp $
+ * $Id: x86op.h,v 1.7 2007-09-12 11:31:16 nkeynes Exp $
  * 
  * Definitions of x86 opcodes for use by the translator.
  *
@@ -37,6 +37,17 @@
 #define R_CH 5
 #define R_DH 6
 #define R_BH 7
+
+#ifdef DEBUG_JUMPS
+#define MARK_JMP(n,x) uint8_t *_mark_jmp_##x = xlat_output + n
+#define JMP_TARGET(x) assert( _mark_jmp_##x == xlat_output )
+#else
+#define MARK_JMP(n, x)
+#define JMP_TARGET(x)
+#endif
+
+
+
 
 
 #define OP(x) *xlat_output++ = (x)
@@ -100,7 +111,7 @@
 #define DEC_r32(r1)           OP(0x48+r1)
 #define IMUL_r32(r1)          OP(0xF7); MODRM_rm32_r32(r1,5)
 #define INC_r32(r1)           OP(0x40+r1)
-#define JMP_rel8(rel)  OP(0xEB); OP(rel)
+#define JMP_rel8(rel, label)  OP(0xEB); OP(rel); MARK_JMP(rel,label)
 #define MOV_r32_r32(r1,r2)    OP(0x89); MODRM_r32_rm32(r1,r2)
 #define MOV_r32_sh4r(r1,disp) OP(0x89); MODRM_r32_sh4r(r1,disp)
 #define MOV_moff32_EAX(off)   OP(0xA1); OP32(off)
@@ -163,20 +174,20 @@
 #define FSQRT_st0() OP(0xD9); OP(0xFA)
 
 /* Conditional branches */
-#define JE_rel8(rel)   OP(0x74); OP(rel)
-#define JA_rel8(rel)   OP(0x77); OP(rel)
-#define JAE_rel8(rel)  OP(0x73); OP(rel)
-#define JG_rel8(rel)   OP(0x7F); OP(rel)
-#define JGE_rel8(rel)  OP(0x7D); OP(rel)
-#define JC_rel8(rel)   OP(0x72); OP(rel)
-#define JO_rel8(rel)   OP(0x70); OP(rel)
-#define JNE_rel8(rel)  OP(0x75); OP(rel)
-#define JNA_rel8(rel)  OP(0x76); OP(rel)
-#define JNAE_rel8(rel) OP(0x72); OP(rel)
-#define JNG_rel8(rel)  OP(0x7E); OP(rel)
-#define JNGE_rel8(rel) OP(0x7C); OP(rel)
-#define JNC_rel8(rel)  OP(0x73); OP(rel)
-#define JNO_rel8(rel)  OP(0x71); OP(rel)
+#define JE_rel8(rel,label)   OP(0x74); OP(rel); MARK_JMP(rel,label)
+#define JA_rel8(rel,label)   OP(0x77); OP(rel); MARK_JMP(rel,label)
+#define JAE_rel8(rel,label)  OP(0x73); OP(rel); MARK_JMP(rel,label)
+#define JG_rel8(rel,label)   OP(0x7F); OP(rel); MARK_JMP(rel,label)
+#define JGE_rel8(rel,label)  OP(0x7D); OP(rel); MARK_JMP(rel,label)
+#define JC_rel8(rel,label)   OP(0x72); OP(rel); MARK_JMP(rel,label)
+#define JO_rel8(rel,label)   OP(0x70); OP(rel); MARK_JMP(rel,label)
+#define JNE_rel8(rel,label)  OP(0x75); OP(rel); MARK_JMP(rel,label)
+#define JNA_rel8(rel,label)  OP(0x76); OP(rel); MARK_JMP(rel,label)
+#define JNAE_rel8(rel,label) OP(0x72); OP(rel); MARK_JMP(rel,label)
+#define JNG_rel8(rel,label)  OP(0x7E); OP(rel); MARK_JMP(rel,label)
+#define JNGE_rel8(rel,label) OP(0x7C); OP(rel); MARK_JMP(rel,label)
+#define JNC_rel8(rel,label)  OP(0x73); OP(rel); MARK_JMP(rel,label)
+#define JNO_rel8(rel,label)  OP(0x71); OP(rel); MARK_JMP(rel,label)
 
 /* 32-bit long forms w/ backpatching to an exit routine */
 #define JE_exit(rel)  OP(0x0F); OP(0x84); sh4_x86_add_backpatch(xlat_output); OP32(rel)
