@@ -1,5 +1,5 @@
 /**
- * $Id: main.c,v 1.22 2007-09-08 04:38:38 nkeynes Exp $
+ * $Id: main.c,v 1.23 2007-09-12 09:21:01 nkeynes Exp $
  *
  * Main program, initializes dreamcast and gui, then passes control off to
  * the gtk main loop (currently). 
@@ -35,7 +35,7 @@
 
 #define S3M_PLAYER "s3mplay.bin"
 
-char *option_list = "a:s:A:V:puhbd:c:t:";
+char *option_list = "a:s:A:V:puhbd:c:t:x";
 struct option longopts[1] = { { NULL, 0, 0, 0 } };
 char *aica_program = NULL;
 char *s3m_file = NULL;
@@ -46,6 +46,7 @@ char *config_file = DEFAULT_CONFIG_FILENAME;
 gboolean start_immediately = FALSE;
 gboolean headless = FALSE;
 gboolean without_bios = FALSE;
+gboolean use_xlat = FALSE;
 uint32_t time_secs = 0;
 uint32_t time_nanos = 0;
 
@@ -103,6 +104,10 @@ int main (int argc, char *argv[])
 	    t = strtod(optarg, NULL);
 	    time_secs = (uint32_t)t;
 	    time_nanos = (int)((t - time_secs) * 1000000000);
+	    break;
+	case 'x': /* Use experimental translator */
+	    use_xlat = TRUE;
+	    break;
 	}
     }
 
@@ -178,6 +183,8 @@ int main (int argc, char *argv[])
     if( disc_file != NULL ) {
 	gdrom_mount_image( disc_file );
     }
+
+    sh4_set_use_xlat( use_xlat );
 
     if( start_immediately ) {
 	if( time_nanos != 0 || time_secs != 0 ) {
