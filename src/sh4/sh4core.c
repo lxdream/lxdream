@@ -1,5 +1,5 @@
 /**
- * $Id: sh4core.c,v 1.45 2007-09-12 09:20:38 nkeynes Exp $
+ * $Id: sh4core.c,v 1.46 2007-09-16 07:01:07 nkeynes Exp $
  * 
  * SH4 emulation core, and parent module for all the SH4 peripheral
  * modules.
@@ -823,10 +823,7 @@ gboolean sh4_execute_instruction( void )
                     case 0x4:
                         { /* DIV1 Rm, Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
-                        /* This is just from the sh4p manual with some
-                         * simplifications (someone want to check it's correct? :)
-                         * Why they couldn't just provide a real DIV instruction...
-                         */
+                        /* This is derived from the sh4 manual with some simplifications */
                         uint32_t tmp0, tmp1, tmp2, dir;
                     
                         dir = sh4r.q ^ sh4r.m;

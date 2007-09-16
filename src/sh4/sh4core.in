@@ -1,5 +1,5 @@
 /**
- * $Id: sh4core.in,v 1.5 2007-09-12 09:20:38 nkeynes Exp $
+ * $Id: sh4core.in,v 1.6 2007-09-16 07:01:07 nkeynes Exp $
  * 
  * SH4 emulation core, and parent module for all the SH4 peripheral
  * modules.
@@ -575,10 +575,7 @@ DIV0S Rm, Rn {:
     sh4r.t = sh4r.q ^ sh4r.m;
 :}
 DIV1 Rm, Rn {:
-    /* This is just from the sh4p manual with some
-     * simplifications (someone want to check it's correct? :)
-     * Why they couldn't just provide a real DIV instruction...
-     */
+    /* This is derived from the sh4 manual with some simplifications */
     uint32_t tmp0, tmp1, tmp2, dir;
 
     dir = sh4r.q ^ sh4r.m;
