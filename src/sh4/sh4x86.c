@@ -1,5 +1,5 @@
 /**
- * $Id: sh4x86.c,v 1.8 2007-09-12 11:41:43 nkeynes Exp $
+ * $Id: sh4x86.c,v 1.9 2007-09-16 07:03:23 nkeynes Exp $
  * 
  * SH4 => x86 translation. This version does no real optimization, it just
  * outputs straight-line x86 code - it mainly exists to provide a baseline
@@ -55,6 +55,15 @@ struct sh4_x86_state {
 #define EXIT_SLOT_FPU_DISABLED 35
 
 static struct sh4_x86_state sh4_x86;
+
+void signsat48( void )
+{
+    if( ((int64_t)sh4r.mac) < (int64_t)0xFFFF800000000000LL )
+	sh4r.mac = 0xFFFF800000000000LL;
+    else if( ((int64_t)sh4r.mac) > (int64_t)0x00007FFFFFFFFFFFLL )
+	sh4r.mac = 0x00007FFFFFFFFFFFLL;
+}
+
 
 void sh4_x86_init()
 {
@@ -156,11 +165,22 @@ void static inline store_fr( int bankreg, int x86reg, int frn )
  */
 static inline void load_xf_bank( int bankreg )
 {
+    NOT_r32( bankreg );
     SHR_imm8_r32( (21 - 6), bankreg ); // Extract bit 21 then *64 for bank size
     AND_imm8s_r32( 0x40, bankreg );    // Complete extraction
     OP(0x8D); OP(0x44+(bankreg<<3)); OP(0x28+bankreg); OP(REG_OFFSET(fr)); // LEA [ebp+bankreg+disp], bankreg
 }
 
+/**
+ * Update the fr_bank pointer based on the current fpscr value.
+ */
+static inline void update_fr_bank( int fpscrreg )
+{
+    SHR_imm8_r32( (21 - 6), fpscrreg ); // Extract bit 21 then *64 for bank size
+    AND_imm8s_r32( 0x40, fpscrreg );    // Complete extraction
+    OP(0x8D); OP(0x44+(fpscrreg<<3)); OP(0x28+fpscrreg); OP(REG_OFFSET(fr)); // LEA [ebp+fpscrreg+disp], fpscrreg
+    store_spreg( fpscrreg, REG_OFFSET(fr_bank) );
+}
 /**
  * Push FPUL (as a 32-bit float) onto the FPU stack
  */
@@ -242,11 +262,11 @@ static inline void call_func2( void *ptr, int arg1, int arg2 )
 static inline void MEM_WRITE_DOUBLE( int addr, int arg2a, int arg2b )
 {
     ADD_imm8s_r32( 4, addr );
-    PUSH_r32(addr);
     PUSH_r32(arg2b);
-    ADD_imm8s_r32( -4, addr );
     PUSH_r32(addr);
+    ADD_imm8s_r32( -4, addr );
     PUSH_r32(arg2a);
+    PUSH_r32(addr);
     call_func0(sh4_write_long);
     ADD_imm8s_r32( 8, R_ESP );
     call_func0(sh4_write_long);
@@ -324,6 +344,13 @@ static void check_walign32( int x86reg )
     JNE_exit(EXIT_DATA_ADDR_WRITE);
 }
 
+static inline void raise_exception( int exc )
+{
+    PUSH_imm32(exc);
+    call_func0(sh4_raise_exception);
+    ADD_imm8s_r32( 4, R_ESP );
+    sh4_x86.in_delay_slot = FALSE;
+}
 
 #define UNDEF()
 #define MEM_RESULT(value_reg) if(value_reg != R_EAX) { MOV_r32_r32(R_EAX,value_reg); }
@@ -334,8 +361,8 @@ static void check_walign32( int x86reg )
 #define MEM_WRITE_WORD( addr_reg, value_reg ) call_func2(sh4_write_word, addr_reg, value_reg)
 #define MEM_WRITE_LONG( addr_reg, value_reg ) call_func2(sh4_write_long, addr_reg, value_reg)
 
-#define RAISE_EXCEPTION( exc ) call_func1(sh4_raise_exception, exc);
-#define SLOTILLEGAL() RAISE_EXCEPTION(EXC_SLOT_ILLEGAL); return 1
+#define RAISE_EXCEPTION( exc ) raise_exception(exc); return 1;
+#define SLOTILLEGAL() JMP_exit(EXIT_SLOT_ILLEGAL); sh4_x86.in_delay_slot = FALSE; return 1;
 
 
 
@@ -415,6 +442,9 @@ void sh4_translate_end_block( sh4addr_t pc ) {
 
     load_imm32( R_EAX, (uint32_t)sh4_raise_exception ); // 6
     CALL_r32( R_EAX ); // 2
+    ADD_imm8s_r32( 4, R_ESP );
+    POP_r32(R_ESI);
+    POP_r32(R_EDI);
     POP_r32(R_EBP);
     RET();
 
@@ -443,6 +473,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                     case 0x0:
                                         { /* STC SR, Rn */
                                         uint32_t Rn = ((ir>>8)&0xF); 
+                                        check_priv();
                                         call_func0(sh4_read_sr);
                                         store_reg( R_EAX, Rn );
                                         }
@@ -457,6 +488,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                     case 0x2:
                                         { /* STC VBR, Rn */
                                         uint32_t Rn = ((ir>>8)&0xF); 
+                                        check_priv();
                                         load_spreg( R_EAX, R_VBR );
                                         store_reg( R_EAX, Rn );
                                         }
@@ -464,6 +496,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                     case 0x3:
                                         { /* STC SSR, Rn */
                                         uint32_t Rn = ((ir>>8)&0xF); 
+                                        check_priv();
                                         load_spreg( R_EAX, R_SSR );
                                         store_reg( R_EAX, Rn );
                                         }
@@ -471,6 +504,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                     case 0x4:
                                         { /* STC SPC, Rn */
                                         uint32_t Rn = ((ir>>8)&0xF); 
+                                        check_priv();
                                         load_spreg( R_EAX, R_SPC );
                                         store_reg( R_EAX, Rn );
                                         }
@@ -483,6 +517,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                             case 0x1:
                                 { /* STC Rm_BANK, Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm_BANK = ((ir>>4)&0x7); 
+                                check_priv();
                                 load_spreg( R_EAX, REG_OFFSET(r_bank[Rm_BANK]) );
                                 store_reg( R_EAX, Rn );
                                 }
@@ -502,7 +537,6 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                             	load_reg( R_EDI, Rn );
                             	ADD_r32_r32( R_EAX, R_EDI );
                             	sh4_x86.in_delay_slot = TRUE;
-                            	INC_r32(R_ESI);
                             	return 0;
                                 }
                                 }
@@ -514,8 +548,8 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                             	SLOTILLEGAL();
                                 } else {
                             	load_reg( R_EDI, Rn );
+                            	ADD_imm32_r32( pc + 4, R_EDI );
                             	sh4_x86.in_delay_slot = TRUE;
-                            	INC_r32(R_ESI);
                             	return 0;
                                 }
                                 }
@@ -698,6 +732,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                             case 0x3:
                                 { /* STC SGR, Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
+                                check_priv();
                                 load_spreg( R_EAX, R_SGR );
                                 store_reg( R_EAX, Rn );
                                 }
@@ -719,6 +754,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                             case 0xF:
                                 { /* STC DBR, Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
+                                check_priv();
                                 load_spreg( R_EAX, R_DBR );
                                 store_reg( R_EAX, Rn );
                                 }
@@ -737,7 +773,6 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                 } else {
                             	load_spreg( R_EDI, R_PR );
                             	sh4_x86.in_delay_slot = TRUE;
-                            	INC_r32(R_ESI);
                             	return 0;
                                 }
                                 }
@@ -753,13 +788,12 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                 if( sh4_x86.in_delay_slot ) {
                             	SLOTILLEGAL();
                                 } else {
-                            	load_spreg( R_EDI, R_PR );
+                            	load_spreg( R_EDI, R_SPC );
                             	load_spreg( R_EAX, R_SSR );
                             	call_func1( sh4_write_sr, R_EAX );
                             	sh4_x86.in_delay_slot = TRUE;
                             	sh4_x86.priv_checked = FALSE;
                             	sh4_x86.fpuen_checked = FALSE;
-                            	INC_r32(R_ESI);
                             	return 0;
                                 }
                                 }
@@ -804,6 +838,26 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                     case 0xF:
                         { /* MAC.L @Rm+, @Rn+ */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        load_reg( R_ECX, Rm );
+                        check_ralign32( R_ECX );
+                        load_reg( R_ECX, Rn );
+                        check_ralign32( R_ECX );
+                        ADD_imm8s_sh4r( 4, REG_OFFSET(r[Rn]) );
+                        MEM_READ_LONG( R_ECX, R_EAX );
+                        PUSH_r32( R_EAX );
+                        load_reg( R_ECX, Rm );
+                        ADD_imm8s_sh4r( 4, REG_OFFSET(r[Rm]) );
+                        MEM_READ_LONG( R_ECX, R_EAX );
+                        POP_r32( R_ECX );
+                        IMUL_r32( R_ECX );
+                        ADD_r32_sh4r( R_EAX, R_MACL );
+                        ADC_r32_sh4r( R_EDX, R_MACH );
+                    
+                        load_spreg( R_ECX, R_S );
+                        TEST_r32_r32(R_ECX, R_ECX);
+                        JE_rel8( 7, nosat );
+                        call_func0( signsat48 );
+                        JMP_TARGET( nosat );
                         }
                         break;
                     default:
@@ -836,8 +890,8 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
                         load_reg( R_ECX, Rn );
                         check_walign16( R_ECX );
-                        MEM_READ_WORD( R_ECX, R_EAX );
-                        store_reg( R_EAX, Rn );
+                        load_reg( R_EAX, Rm );
+                        MEM_WRITE_WORD( R_ECX, R_EAX );
                         }
                         break;
                     case 0x2:
@@ -854,7 +908,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
                         load_reg( R_EAX, Rm );
                         load_reg( R_ECX, Rn );
-                        ADD_imm8s_r32( -1, Rn );
+                        ADD_imm8s_r32( -1, R_ECX );
                         store_reg( R_ECX, Rn );
                         MEM_WRITE_BYTE( R_ECX, R_EAX );
                         }
@@ -866,6 +920,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                         check_walign16( R_ECX );
                         load_reg( R_EAX, Rm );
                         ADD_imm8s_r32( -2, R_ECX );
+                        store_reg( R_ECX, Rn );
                         MEM_WRITE_WORD( R_ECX, R_EAX );
                         }
                         break;
@@ -884,13 +939,13 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                         { /* DIV0S Rm, Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
                         load_reg( R_EAX, Rm );
-                        load_reg( R_ECX, Rm );
+                        load_reg( R_ECX, Rn );
                         SHR_imm8_r32( 31, R_EAX );
                         SHR_imm8_r32( 31, R_ECX );
                         store_spreg( R_EAX, R_M );
                         store_spreg( R_ECX, R_Q );
                         CMP_r32_r32( R_EAX, R_ECX );
-                        SETE_t();
+                        SETNE_t();
                         }
                         break;
                     case 0x8:
@@ -1015,19 +1070,26 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                     case 0x4:
                         { /* DIV1 Rm, Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
-                        load_reg( R_ECX, Rn );
+                        load_spreg( R_ECX, R_M );
+                        load_reg( R_EAX, Rn );
                         LDC_t();
-                        RCL1_r32( R_ECX ); // OP2
-                        SETC_r32( R_EDX ); // Q
-                        load_spreg( R_EAX, R_Q );
-                        CMP_sh4r_r32( R_M, R_EAX );
-                        JE_rel8(8,mqequal);
-                        ADD_sh4r_r32( REG_OFFSET(r[Rm]), R_ECX );
-                        JMP_rel8(3, mqnotequal);
+                        RCL1_r32( R_EAX );
+                        SETC_r8( R_DL ); // Q'
+                        CMP_sh4r_r32( R_Q, R_ECX );
+                        JE_rel8(5, mqequal);
+                        ADD_sh4r_r32( REG_OFFSET(r[Rm]), R_EAX );
+                        JMP_rel8(3, end);
                         JMP_TARGET(mqequal);
-                        SUB_sh4r_r32( REG_OFFSET(r[Rm]), R_ECX );
-                        JMP_TARGET(mqnotequal);
-                        // TODO
+                        SUB_sh4r_r32( REG_OFFSET(r[Rm]), R_EAX );
+                        JMP_TARGET(end);
+                        store_reg( R_EAX, Rn ); // Done with Rn now
+                        SETC_r8(R_AL); // tmp1
+                        XOR_r8_r8( R_DL, R_AL ); // Q' = Q ^ tmp1
+                        XOR_r8_r8( R_AL, R_CL ); // Q'' = Q' ^ M
+                        store_spreg( R_ECX, R_Q );
+                        XOR_imm8s_r32( 1, R_AL );   // T = !Q'
+                        MOVZX_r8_r32( R_AL, R_EAX );
+                        store_spreg( R_EAX, R_T );
                         }
                         break;
                     case 0x5:
@@ -1148,7 +1210,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                 { /* DT Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
                                 load_reg( R_EAX, Rn );
-                                ADD_imm8s_r32( -1, Rn );
+                                ADD_imm8s_r32( -1, R_EAX );
                                 store_reg( R_EAX, Rn );
                                 SETE_t();
                                 }
@@ -1203,7 +1265,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                 { /* STS.L MACH, @-Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
                                 load_reg( R_ECX, Rn );
-                                ADD_imm8s_r32( -4, Rn );
+                                ADD_imm8s_r32( -4, R_ECX );
                                 store_reg( R_ECX, Rn );
                                 load_spreg( R_EAX, R_MACH );
                                 MEM_WRITE_LONG( R_ECX, R_EAX );
@@ -1213,7 +1275,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                 { /* STS.L MACL, @-Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
                                 load_reg( R_ECX, Rn );
-                                ADD_imm8s_r32( -4, Rn );
+                                ADD_imm8s_r32( -4, R_ECX );
                                 store_reg( R_ECX, Rn );
                                 load_spreg( R_EAX, R_MACL );
                                 MEM_WRITE_LONG( R_ECX, R_EAX );
@@ -1223,7 +1285,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                 { /* STS.L PR, @-Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
                                 load_reg( R_ECX, Rn );
-                                ADD_imm8s_r32( -4, Rn );
+                                ADD_imm8s_r32( -4, R_ECX );
                                 store_reg( R_ECX, Rn );
                                 load_spreg( R_EAX, R_PR );
                                 MEM_WRITE_LONG( R_ECX, R_EAX );
@@ -1232,8 +1294,9 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                             case 0x3:
                                 { /* STC.L SGR, @-Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
+                                check_priv();
                                 load_reg( R_ECX, Rn );
-                                ADD_imm8s_r32( -4, Rn );
+                                ADD_imm8s_r32( -4, R_ECX );
                                 store_reg( R_ECX, Rn );
                                 load_spreg( R_EAX, R_SGR );
                                 MEM_WRITE_LONG( R_ECX, R_EAX );
@@ -1243,7 +1306,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                 { /* STS.L FPUL, @-Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
                                 load_reg( R_ECX, Rn );
-                                ADD_imm8s_r32( -4, Rn );
+                                ADD_imm8s_r32( -4, R_ECX );
                                 store_reg( R_ECX, Rn );
                                 load_spreg( R_EAX, R_FPUL );
                                 MEM_WRITE_LONG( R_ECX, R_EAX );
@@ -1253,7 +1316,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                 { /* STS.L FPSCR, @-Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
                                 load_reg( R_ECX, Rn );
-                                ADD_imm8s_r32( -4, Rn );
+                                ADD_imm8s_r32( -4, R_ECX );
                                 store_reg( R_ECX, Rn );
                                 load_spreg( R_EAX, R_FPSCR );
                                 MEM_WRITE_LONG( R_ECX, R_EAX );
@@ -1262,8 +1325,9 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                             case 0xF:
                                 { /* STC.L DBR, @-Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
+                                check_priv();
                                 load_reg( R_ECX, Rn );
-                                ADD_imm8s_r32( -4, Rn );
+                                ADD_imm8s_r32( -4, R_ECX );
                                 store_reg( R_ECX, Rn );
                                 load_spreg( R_EAX, R_DBR );
                                 MEM_WRITE_LONG( R_ECX, R_EAX );
@@ -1281,8 +1345,9 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                     case 0x0:
                                         { /* STC.L SR, @-Rn */
                                         uint32_t Rn = ((ir>>8)&0xF); 
+                                        check_priv();
                                         load_reg( R_ECX, Rn );
-                                        ADD_imm8s_r32( -4, Rn );
+                                        ADD_imm8s_r32( -4, R_ECX );
                                         store_reg( R_ECX, Rn );
                                         call_func0( sh4_read_sr );
                                         MEM_WRITE_LONG( R_ECX, R_EAX );
@@ -1292,7 +1357,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                         { /* STC.L GBR, @-Rn */
                                         uint32_t Rn = ((ir>>8)&0xF); 
                                         load_reg( R_ECX, Rn );
-                                        ADD_imm8s_r32( -4, Rn );
+                                        ADD_imm8s_r32( -4, R_ECX );
                                         store_reg( R_ECX, Rn );
                                         load_spreg( R_EAX, R_GBR );
                                         MEM_WRITE_LONG( R_ECX, R_EAX );
@@ -1301,8 +1366,9 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                     case 0x2:
                                         { /* STC.L VBR, @-Rn */
                                         uint32_t Rn = ((ir>>8)&0xF); 
+                                        check_priv();
                                         load_reg( R_ECX, Rn );
-                                        ADD_imm8s_r32( -4, Rn );
+                                        ADD_imm8s_r32( -4, R_ECX );
                                         store_reg( R_ECX, Rn );
                                         load_spreg( R_EAX, R_VBR );
                                         MEM_WRITE_LONG( R_ECX, R_EAX );
@@ -1311,8 +1377,9 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                     case 0x3:
                                         { /* STC.L SSR, @-Rn */
                                         uint32_t Rn = ((ir>>8)&0xF); 
+                                        check_priv();
                                         load_reg( R_ECX, Rn );
-                                        ADD_imm8s_r32( -4, Rn );
+                                        ADD_imm8s_r32( -4, R_ECX );
                                         store_reg( R_ECX, Rn );
                                         load_spreg( R_EAX, R_SSR );
                                         MEM_WRITE_LONG( R_ECX, R_EAX );
@@ -1321,8 +1388,9 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                     case 0x4:
                                         { /* STC.L SPC, @-Rn */
                                         uint32_t Rn = ((ir>>8)&0xF); 
+                                        check_priv();
                                         load_reg( R_ECX, Rn );
-                                        ADD_imm8s_r32( -4, Rn );
+                                        ADD_imm8s_r32( -4, R_ECX );
                                         store_reg( R_ECX, Rn );
                                         load_spreg( R_EAX, R_SPC );
                                         MEM_WRITE_LONG( R_ECX, R_EAX );
@@ -1336,8 +1404,9 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                             case 0x1:
                                 { /* STC.L Rm_BANK, @-Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm_BANK = ((ir>>4)&0x7); 
+                                check_priv();
                                 load_reg( R_ECX, Rn );
-                                ADD_imm8s_r32( -4, Rn );
+                                ADD_imm8s_r32( -4, R_ECX );
                                 store_reg( R_ECX, Rn );
                                 load_spreg( R_EAX, REG_OFFSET(r_bank[Rm_BANK]) );
                                 MEM_WRITE_LONG( R_ECX, R_EAX );
@@ -1443,6 +1512,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                             case 0x3:
                                 { /* LDC.L @Rm+, SGR */
                                 uint32_t Rm = ((ir>>8)&0xF); 
+                                check_priv();
                                 load_reg( R_EAX, Rm );
                                 MOV_r32_r32( R_EAX, R_ECX );
                                 ADD_imm8s_r32( 4, R_EAX );
@@ -1471,11 +1541,13 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                 store_reg( R_EAX, Rm );
                                 MEM_READ_LONG( R_ECX, R_EAX );
                                 store_spreg( R_EAX, R_FPSCR );
+                                update_fr_bank( R_EAX );
                                 }
                                 break;
                             case 0xF:
                                 { /* LDC.L @Rm+, DBR */
                                 uint32_t Rm = ((ir>>8)&0xF); 
+                                check_priv();
                                 load_reg( R_EAX, Rm );
                                 MOV_r32_r32( R_EAX, R_ECX );
                                 ADD_imm8s_r32( 4, R_EAX );
@@ -1496,14 +1568,19 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                     case 0x0:
                                         { /* LDC.L @Rm+, SR */
                                         uint32_t Rm = ((ir>>8)&0xF); 
-                                        load_reg( R_EAX, Rm );
-                                        MOV_r32_r32( R_EAX, R_ECX );
-                                        ADD_imm8s_r32( 4, R_EAX );
-                                        store_reg( R_EAX, Rm );
-                                        MEM_READ_LONG( R_ECX, R_EAX );
-                                        call_func1( sh4_write_sr, R_EAX );
-                                        sh4_x86.priv_checked = FALSE;
-                                        sh4_x86.fpuen_checked = FALSE;
+                                        if( sh4_x86.in_delay_slot ) {
+                                    	SLOTILLEGAL();
+                                        } else {
+                                    	check_priv();
+                                    	load_reg( R_EAX, Rm );
+                                    	MOV_r32_r32( R_EAX, R_ECX );
+                                    	ADD_imm8s_r32( 4, R_EAX );
+                                    	store_reg( R_EAX, Rm );
+                                    	MEM_READ_LONG( R_ECX, R_EAX );
+                                    	call_func1( sh4_write_sr, R_EAX );
+                                    	sh4_x86.priv_checked = FALSE;
+                                    	sh4_x86.fpuen_checked = FALSE;
+                                        }
                                         }
                                         break;
                                     case 0x1:
@@ -1520,6 +1597,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                     case 0x2:
                                         { /* LDC.L @Rm+, VBR */
                                         uint32_t Rm = ((ir>>8)&0xF); 
+                                        check_priv();
                                         load_reg( R_EAX, Rm );
                                         MOV_r32_r32( R_EAX, R_ECX );
                                         ADD_imm8s_r32( 4, R_EAX );
@@ -1531,6 +1609,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                     case 0x3:
                                         { /* LDC.L @Rm+, SSR */
                                         uint32_t Rm = ((ir>>8)&0xF); 
+                                        check_priv();
                                         load_reg( R_EAX, Rm );
                                         MOV_r32_r32( R_EAX, R_ECX );
                                         ADD_imm8s_r32( 4, R_EAX );
@@ -1542,6 +1621,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                     case 0x4:
                                         { /* LDC.L @Rm+, SPC */
                                         uint32_t Rm = ((ir>>8)&0xF); 
+                                        check_priv();
                                         load_reg( R_EAX, Rm );
                                         MOV_r32_r32( R_EAX, R_ECX );
                                         ADD_imm8s_r32( 4, R_EAX );
@@ -1558,6 +1638,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                             case 0x1:
                                 { /* LDC.L @Rm+, Rn_BANK */
                                 uint32_t Rm = ((ir>>8)&0xF); uint32_t Rn_BANK = ((ir>>4)&0x7); 
+                                check_priv();
                                 load_reg( R_EAX, Rm );
                                 MOV_r32_r32( R_EAX, R_ECX );
                                 ADD_imm8s_r32( 4, R_EAX );
@@ -1656,6 +1737,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                             case 0x3:
                                 { /* LDC Rm, SGR */
                                 uint32_t Rm = ((ir>>8)&0xF); 
+                                check_priv();
                                 load_reg( R_EAX, Rm );
                                 store_spreg( R_EAX, R_SGR );
                                 }
@@ -1672,11 +1754,13 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                 uint32_t Rm = ((ir>>8)&0xF); 
                                 load_reg( R_EAX, Rm );
                                 store_spreg( R_EAX, R_FPSCR );
+                                update_fr_bank( R_EAX );
                                 }
                                 break;
                             case 0xF:
                                 { /* LDC Rm, DBR */
                                 uint32_t Rm = ((ir>>8)&0xF); 
+                                check_priv();
                                 load_reg( R_EAX, Rm );
                                 store_spreg( R_EAX, R_DBR );
                                 }
@@ -1698,7 +1782,6 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                             	store_spreg( R_EAX, R_PR );
                             	load_reg( R_EDI, Rn );
                             	sh4_x86.in_delay_slot = TRUE;
-                            	INC_r32(R_ESI);
                             	return 0;
                                 }
                                 }
@@ -1711,6 +1794,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                 TEST_r8_r8( R_AL, R_AL );
                                 SETE_t();
                                 OR_imm8_r8( 0x80, R_AL );
+                                load_reg( R_ECX, Rn );
                                 MEM_WRITE_BYTE( R_ECX, R_EAX );
                                 }
                                 break;
@@ -1722,7 +1806,6 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                 } else {
                             	load_reg( R_EDI, Rn );
                             	sh4_x86.in_delay_slot = TRUE;
-                            	INC_r32(R_ESI);
                             	return 0;
                                 }
                                 }
@@ -1739,16 +1822,23 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                         load_reg( R_EAX, Rn );
                         load_reg( R_ECX, Rm );
                         CMP_imm32_r32( 0, R_ECX );
-                        JAE_rel8(9, doshl);
+                        JGE_rel8(16, doshl);
                                         
                         NEG_r32( R_ECX );      // 2
                         AND_imm8_r8( 0x1F, R_CL ); // 3
+                        JE_rel8( 4, emptysar);     // 2
                         SAR_r32_CL( R_EAX );       // 2
-                        JMP_rel8(5, end);          // 2
+                        JMP_rel8(10, end);          // 2
+                    
+                        JMP_TARGET(emptysar);
+                        SAR_imm8_r32(31, R_EAX );  // 3
+                        JMP_rel8(5, end2);
+                    
                         JMP_TARGET(doshl);
                         AND_imm8_r8( 0x1F, R_CL ); // 3
                         SHL_r32_CL( R_EAX );       // 2
                         JMP_TARGET(end);
+                        JMP_TARGET(end2);
                         store_reg( R_EAX, Rn );
                         }
                         break;
@@ -1757,13 +1847,24 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
                         load_reg( R_EAX, Rn );
                         load_reg( R_ECX, Rm );
+                        CMP_imm32_r32( 0, R_ECX );
+                        JGE_rel8(15, doshl);
                     
-                        MOV_r32_r32( R_EAX, R_EDX );
-                        SHL_r32_CL( R_EAX );
-                        NEG_r32( R_ECX );
-                        SHR_r32_CL( R_EDX );
-                        CMP_imm8s_r32( 0, R_ECX );
-                        CMOVAE_r32_r32( R_EDX,  R_EAX );
+                        NEG_r32( R_ECX );      // 2
+                        AND_imm8_r8( 0x1F, R_CL ); // 3
+                        JE_rel8( 4, emptyshr );
+                        SHR_r32_CL( R_EAX );       // 2
+                        JMP_rel8(9, end);          // 2
+                    
+                        JMP_TARGET(emptyshr);
+                        XOR_r32_r32( R_EAX, R_EAX );
+                        JMP_rel8(5, end2);
+                    
+                        JMP_TARGET(doshl);
+                        AND_imm8_r8( 0x1F, R_CL ); // 3
+                        SHL_r32_CL( R_EAX );       // 2
+                        JMP_TARGET(end);
+                        JMP_TARGET(end2);
                         store_reg( R_EAX, Rn );
                         }
                         break;
@@ -1774,10 +1875,15 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                     case 0x0:
                                         { /* LDC Rm, SR */
                                         uint32_t Rm = ((ir>>8)&0xF); 
-                                        load_reg( R_EAX, Rm );
-                                        call_func1( sh4_write_sr, R_EAX );
-                                        sh4_x86.priv_checked = FALSE;
-                                        sh4_x86.fpuen_checked = FALSE;
+                                        if( sh4_x86.in_delay_slot ) {
+                                    	SLOTILLEGAL();
+                                        } else {
+                                    	check_priv();
+                                    	load_reg( R_EAX, Rm );
+                                    	call_func1( sh4_write_sr, R_EAX );
+                                    	sh4_x86.priv_checked = FALSE;
+                                    	sh4_x86.fpuen_checked = FALSE;
+                                        }
                                         }
                                         break;
                                     case 0x1:
@@ -1790,6 +1896,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                     case 0x2:
                                         { /* LDC Rm, VBR */
                                         uint32_t Rm = ((ir>>8)&0xF); 
+                                        check_priv();
                                         load_reg( R_EAX, Rm );
                                         store_spreg( R_EAX, R_VBR );
                                         }
@@ -1797,6 +1904,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                     case 0x3:
                                         { /* LDC Rm, SSR */
                                         uint32_t Rm = ((ir>>8)&0xF); 
+                                        check_priv();
                                         load_reg( R_EAX, Rm );
                                         store_spreg( R_EAX, R_SSR );
                                         }
@@ -1804,6 +1912,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                     case 0x4:
                                         { /* LDC Rm, SPC */
                                         uint32_t Rm = ((ir>>8)&0xF); 
+                                        check_priv();
                                         load_reg( R_EAX, Rm );
                                         store_spreg( R_EAX, R_SPC );
                                         }
@@ -1816,6 +1925,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                             case 0x1:
                                 { /* LDC Rm, Rn_BANK */
                                 uint32_t Rm = ((ir>>8)&0xF); uint32_t Rn_BANK = ((ir>>4)&0x7); 
+                                check_priv();
                                 load_reg( R_EAX, Rm );
                                 store_spreg( R_EAX, REG_OFFSET(r_bank[Rn_BANK]) );
                                 }
@@ -1825,6 +1935,43 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                     case 0xF:
                         { /* MAC.W @Rm+, @Rn+ */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        load_reg( R_ECX, Rm );
+                        check_ralign16( R_ECX );
+                        load_reg( R_ECX, Rn );
+                        check_ralign16( R_ECX );
+                        ADD_imm8s_sh4r( 2, REG_OFFSET(r[Rn]) );
+                        MEM_READ_WORD( R_ECX, R_EAX );
+                        PUSH_r32( R_EAX );
+                        load_reg( R_ECX, Rm );
+                        ADD_imm8s_sh4r( 2, REG_OFFSET(r[Rm]) );
+                        MEM_READ_WORD( R_ECX, R_EAX );
+                        POP_r32( R_ECX );
+                        IMUL_r32( R_ECX );
+                    
+                        load_spreg( R_ECX, R_S );
+                        TEST_r32_r32( R_ECX, R_ECX );
+                        JE_rel8( 47, nosat );
+                    
+                        ADD_r32_sh4r( R_EAX, R_MACL );  // 6
+                        JNO_rel8( 51, end );            // 2
+                        load_imm32( R_EDX, 1 );         // 5
+                        store_spreg( R_EDX, R_MACH );   // 6
+                        JS_rel8( 13, positive );        // 2
+                        load_imm32( R_EAX, 0x80000000 );// 5
+                        store_spreg( R_EAX, R_MACL );   // 6
+                        JMP_rel8( 25, end2 );           // 2
+                    
+                        JMP_TARGET(positive);
+                        load_imm32( R_EAX, 0x7FFFFFFF );// 5
+                        store_spreg( R_EAX, R_MACL );   // 6
+                        JMP_rel8( 12, end3);            // 2
+                    
+                        JMP_TARGET(nosat);
+                        ADD_r32_sh4r( R_EAX, R_MACL );  // 6
+                        ADC_r32_sh4r( R_EDX, R_MACH );  // 6
+                        JMP_TARGET(end);
+                        JMP_TARGET(end2);
+                        JMP_TARGET(end3);
                         }
                         break;
                 }
@@ -1846,7 +1993,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
                         load_reg( R_ECX, Rm );
                         MEM_READ_BYTE( R_ECX, R_EAX );
-                        store_reg( R_ECX, Rn );
+                        store_reg( R_EAX, Rn );
                         }
                         break;
                     case 0x1:
@@ -1901,7 +2048,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                         { /* MOV.L @Rm+, Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
                         load_reg( R_EAX, Rm );
-                        check_ralign32( R_ECX );
+                        check_ralign32( R_EAX );
                         MOV_r32_r32( R_EAX, R_ECX );
                         ADD_imm8s_r32( 4, R_EAX );
                         store_reg( R_EAX, Rm );
@@ -2083,13 +2230,12 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                         if( sh4_x86.in_delay_slot ) {
                     	SLOTILLEGAL();
                         } else {
-                    	load_imm32( R_EDI, pc + 2 );
+                    	load_imm32( R_EDI, pc + 4 );
                     	CMP_imm8s_sh4r( 0, R_T );
                     	JE_rel8( 5, nottaken );
                     	load_imm32( R_EDI, disp + pc + 4 );
                     	JMP_TARGET(nottaken);
                     	sh4_x86.in_delay_slot = TRUE;
-                    	INC_r32(R_ESI);
                     	return 0;
                         }
                         }
@@ -2100,13 +2246,12 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                         if( sh4_x86.in_delay_slot ) {
                     	SLOTILLEGAL();
                         } else {
-                    	load_imm32( R_EDI, pc + 2 );
+                    	load_imm32( R_EDI, pc + 4 );
                     	CMP_imm8s_sh4r( 0, R_T );
                     	JNE_rel8( 5, nottaken );
                     	load_imm32( R_EDI, disp + pc + 4 );
                     	JMP_TARGET(nottaken);
                     	sh4_x86.in_delay_slot = TRUE;
-                    	INC_r32(R_ESI);
                     	return 0;
                         }
                         }
@@ -2136,7 +2281,6 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                 } else {
             	load_imm32( R_EDI, disp + pc + 4 );
             	sh4_x86.in_delay_slot = TRUE;
-            	INC_r32(R_ESI);
             	return 0;
                 }
                 }
@@ -2151,7 +2295,6 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
             	store_spreg( R_EAX, R_PR );
             	load_imm32( R_EDI, disp + pc + 4 );
             	sh4_x86.in_delay_slot = TRUE;
-            	INC_r32(R_ESI);
             	return 0;
                 }
                 }
@@ -2287,8 +2430,10 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                         load_reg( R_EAX, 0 );
                         load_spreg( R_ECX, R_GBR );
                         ADD_r32_r32( R_EAX, R_ECX );
-                        MEM_READ_BYTE( R_ECX, R_EAX );
-                        AND_imm32_r32(imm, R_ECX );
+                        PUSH_r32(R_ECX);
+                        call_func0(sh4_read_byte);
+                        POP_r32(R_ECX);
+                        AND_imm32_r32(imm, R_EAX );
                         MEM_WRITE_BYTE( R_ECX, R_EAX );
                         }
                         break;
@@ -2298,7 +2443,9 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                         load_reg( R_EAX, 0 );
                         load_spreg( R_ECX, R_GBR );
                         ADD_r32_r32( R_EAX, R_ECX );
-                        MEM_READ_BYTE( R_ECX, R_EAX );
+                        PUSH_r32(R_ECX);
+                        call_func0(sh4_read_byte);
+                        POP_r32(R_ECX);
                         XOR_imm32_r32( imm, R_EAX );
                         MEM_WRITE_BYTE( R_ECX, R_EAX );
                         }
@@ -2309,8 +2456,10 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                         load_reg( R_EAX, 0 );
                         load_spreg( R_ECX, R_GBR );
                         ADD_r32_r32( R_EAX, R_ECX );
-                        MEM_READ_BYTE( R_ECX, R_EAX );
-                        OR_imm32_r32(imm, R_ECX );
+                        PUSH_r32(R_ECX);
+                        call_func0(sh4_read_byte);
+                        POP_r32(R_ECX);
+                        OR_imm32_r32(imm, R_EAX );
                         MEM_WRITE_BYTE( R_ECX, R_EAX );
                         }
                         break;
@@ -2324,7 +2473,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                 } else {
             	load_imm32( R_ECX, (pc & 0xFFFFFFFC) + disp + 4 );
             	MEM_READ_LONG( R_ECX, R_EAX );
-            	store_reg( R_EAX, 0 );
+            	store_reg( R_EAX, Rn );
                 }
                 }
                 break;
@@ -2435,10 +2584,10 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                         JMP_TARGET(doubleprec);
                         push_dr(R_EDX, FRm);
                         push_dr(R_EDX, FRn);
+                        JMP_TARGET(end);
                         FCOMIP_st(1);
                         SETE_t();
                         FPOP_st();
-                        JMP_TARGET(end);
                         }
                         break;
                     case 0x5:
@@ -2475,7 +2624,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                         load_fr_bank( R_ECX );
                         store_fr( R_ECX, R_EAX, FRn );
                         if( FRn&1 ) {
-                    	JMP_rel8(46, end);
+                    	JMP_rel8(48, end);
                     	JMP_TARGET(doublesize);
                     	MEM_READ_DOUBLE( R_EDX, R_EAX, R_EDX );
                     	load_spreg( R_ECX, R_FPSCR ); // assume read_long clobbered it
@@ -2508,7 +2657,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                         load_fr( R_ECX, R_EAX, FRm );
                         MEM_WRITE_LONG( R_EDX, R_EAX ); // 12
                         if( FRm&1 ) {
-                    	JMP_rel8( 46, end );
+                    	JMP_rel8( 48, end );
                     	JMP_TARGET(doublesize);
                     	load_xf_bank( R_ECX );
                     	load_fr( R_ECX, R_EAX, FRm&0x0E );
@@ -2539,7 +2688,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                         load_fr_bank( R_ECX );
                         store_fr( R_ECX, R_EAX, FRn );
                         if( FRn&1 ) {
-                    	JMP_rel8(46, end);
+                    	JMP_rel8(48, end);
                     	JMP_TARGET(doublesize);
                     	MEM_READ_DOUBLE( R_EDX, R_EAX, R_EDX );
                     	load_spreg( R_ECX, R_FPSCR ); // assume read_long clobbered it
@@ -2574,7 +2723,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                         load_fr_bank( R_ECX );
                         store_fr( R_ECX, R_EAX, FRn );
                         if( FRn&1 ) {
-                    	JMP_rel8(52, end);
+                    	JMP_rel8(54, end);
                     	JMP_TARGET(doublesize);
                     	ADD_imm8s_r32( 8, R_EAX );
                     	store_reg(R_EAX, Rm);
@@ -2609,7 +2758,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                         load_fr( R_ECX, R_EAX, FRm );
                         MEM_WRITE_LONG( R_EDX, R_EAX ); // 12
                         if( FRm&1 ) {
-                    	JMP_rel8( 46, end );
+                    	JMP_rel8( 48, end );
                     	JMP_TARGET(doublesize);
                     	load_xf_bank( R_ECX );
                     	load_fr( R_ECX, R_EAX, FRm&0x0E );
@@ -2635,14 +2784,14 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                         check_walign32( R_EDX );
                         load_spreg( R_ECX, R_FPSCR );
                         TEST_imm32_r32( FPSCR_SZ, R_ECX );
-                        JNE_rel8(20, doublesize);
+                        JNE_rel8(26, doublesize);
                         load_fr_bank( R_ECX );
                         load_fr( R_ECX, R_EAX, FRm );
                         ADD_imm8s_r32(-4,R_EDX);
                         store_reg( R_EDX, Rn );
                         MEM_WRITE_LONG( R_EDX, R_EAX ); // 12
                         if( FRm&1 ) {
-                    	JMP_rel8( 46, end );
+                    	JMP_rel8( 54, end );
                     	JMP_TARGET(doublesize);
                     	load_xf_bank( R_ECX );
                     	load_fr( R_ECX, R_EAX, FRm&0x0E );
@@ -2652,7 +2801,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                     	MEM_WRITE_DOUBLE( R_EDX, R_EAX, R_ECX );
                     	JMP_TARGET(end);
                         } else {
-                    	JMP_rel8( 39, end );
+                    	JMP_rel8( 45, end );
                     	JMP_TARGET(doublesize);
                     	load_fr_bank( R_ECX );
                     	load_fr( R_ECX, R_EAX, FRm&0x0E );
@@ -2682,7 +2831,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                         load_fr( R_EDX, R_EAX, FRm ); // PR=0 branch
                         store_fr( R_EDX, R_EAX, FRn );
                         if( FRm&1 ) {
-                    	JMP_rel8(22, end);
+                    	JMP_rel8(24, end);
                     	JMP_TARGET(doublesize);
                     	load_xf_bank( R_ECX ); 
                     	load_fr( R_ECX, R_EAX, FRm-1 );
@@ -2698,7 +2847,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                     	JMP_TARGET(end);
                         } else /* FRm&1 == 0 */ {
                     	if( FRn&1 ) {
-                    	    JMP_rel8(22, end);
+                    	    JMP_rel8(24, end);
                     	    load_xf_bank( R_ECX );
                     	    load_fr( R_EDX, R_EAX, FRm );
                     	    load_fr( R_EDX, R_EDX, FRm+1 );
@@ -2925,16 +3074,17 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                                         load_spreg( R_ECX, R_FPSCR );
                                                         XOR_imm32_r32( FPSCR_FR, R_ECX );
                                                         store_spreg( R_ECX, R_FPSCR );
+                                                        update_fr_bank( R_ECX );
                                                         }
                                                         break;
                                                     case 0x3:
                                                         { /* UNDEF */
                                                         if( sh4_x86.in_delay_slot ) {
-                                                    	RAISE_EXCEPTION(EXC_SLOT_ILLEGAL);
+                                                    	SLOTILLEGAL();
                                                         } else {
-                                                    	RAISE_EXCEPTION(EXC_ILLEGAL);
+                                                    	JMP_exit(EXIT_ILLEGAL);
+                                                    	return 1;
                                                         }
-                                                        return 1;
                                                         }
                                                         break;
                                                     default:
@@ -2983,10 +3133,12 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                 break;
         }
 
-    INC_r32(R_ESI);
     if( sh4_x86.in_delay_slot ) {
+	ADD_imm8s_r32(2,R_ESI);
 	sh4_x86.in_delay_slot = FALSE;
 	return 1;
+    } else {
+	INC_r32(R_ESI);
     }
     return 0;
 }

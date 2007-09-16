@@ -1,5 +1,5 @@
 /**
- * $Id: sh4x86.in,v 1.9 2007-09-13 08:28:01 nkeynes Exp $
+ * $Id: sh4x86.in,v 1.10 2007-09-16 07:03:23 nkeynes Exp $
  * 
  * SH4 => x86 translation. This version does no real optimization, it just
  * outputs straight-line x86 code - it mainly exists to provide a baseline
@@ -55,6 +55,15 @@ struct sh4_x86_state {
 #define EXIT_SLOT_FPU_DISABLED 35
 
 static struct sh4_x86_state sh4_x86;
+
+void signsat48( void )
+{
+    if( ((int64_t)sh4r.mac) < (int64_t)0xFFFF800000000000LL )
+	sh4r.mac = 0xFFFF800000000000LL;
+    else if( ((int64_t)sh4r.mac) > (int64_t)0x00007FFFFFFFFFFFLL )
+	sh4r.mac = 0x00007FFFFFFFFFFFLL;
+}
+
 
 void sh4_x86_init()
 {
@@ -156,11 +165,22 @@ void static inline store_fr( int bankreg, int x86reg, int frn )
  */
 static inline void load_xf_bank( int bankreg )
 {
+    NOT_r32( bankreg );
     SHR_imm8_r32( (21 - 6), bankreg ); // Extract bit 21 then *64 for bank size
     AND_imm8s_r32( 0x40, bankreg );    // Complete extraction
     OP(0x8D); OP(0x44+(bankreg<<3)); OP(0x28+bankreg); OP(REG_OFFSET(fr)); // LEA [ebp+bankreg+disp], bankreg
 }
 
+/**
+ * Update the fr_bank pointer based on the current fpscr value.
+ */
+static inline void update_fr_bank( int fpscrreg )
+{
+    SHR_imm8_r32( (21 - 6), fpscrreg ); // Extract bit 21 then *64 for bank size
+    AND_imm8s_r32( 0x40, fpscrreg );    // Complete extraction
+    OP(0x8D); OP(0x44+(fpscrreg<<3)); OP(0x28+fpscrreg); OP(REG_OFFSET(fr)); // LEA [ebp+fpscrreg+disp], fpscrreg
+    store_spreg( fpscrreg, REG_OFFSET(fr_bank) );
+}
 /**
  * Push FPUL (as a 32-bit float) onto the FPU stack
  */
@@ -242,11 +262,11 @@ static inline void call_func2( void *ptr, int arg1, int arg2 )
 static inline void MEM_WRITE_DOUBLE( int addr, int arg2a, int arg2b )
 {
     ADD_imm8s_r32( 4, addr );
-    PUSH_r32(addr);
     PUSH_r32(arg2b);
-    ADD_imm8s_r32( -4, addr );
     PUSH_r32(addr);
+    ADD_imm8s_r32( -4, addr );
     PUSH_r32(arg2a);
+    PUSH_r32(addr);
     call_func0(sh4_write_long);
     ADD_imm8s_r32( 8, R_ESP );
     call_func0(sh4_write_long);
@@ -324,6 +344,13 @@ static void check_walign32( int x86reg )
     JNE_exit(EXIT_DATA_ADDR_WRITE);
 }
 
+static inline void raise_exception( int exc )
+{
+    PUSH_imm32(exc);
+    call_func0(sh4_raise_exception);
+    ADD_imm8s_r32( 4, R_ESP );
+    sh4_x86.in_delay_slot = FALSE;
+}
 
 #define UNDEF()
 #define MEM_RESULT(value_reg) if(value_reg != R_EAX) { MOV_r32_r32(R_EAX,value_reg); }
@@ -334,8 +361,8 @@ static void check_walign32( int x86reg )
 #define MEM_WRITE_WORD( addr_reg, value_reg ) call_func2(sh4_write_word, addr_reg, value_reg)
 #define MEM_WRITE_LONG( addr_reg, value_reg ) call_func2(sh4_write_long, addr_reg, value_reg)
 
-#define RAISE_EXCEPTION( exc ) call_func1(sh4_raise_exception, exc);
-#define SLOTILLEGAL() RAISE_EXCEPTION(EXC_SLOT_ILLEGAL); sh4_x86.in_delay_slot = FALSE; return 1
+#define RAISE_EXCEPTION( exc ) raise_exception(exc); return 1;
+#define SLOTILLEGAL() JMP_exit(EXIT_SLOT_ILLEGAL); sh4_x86.in_delay_slot = FALSE; return 1;
 
 
 
@@ -479,8 +506,10 @@ AND.B #imm, @(R0, GBR) {:
     load_reg( R_EAX, 0 );
     load_spreg( R_ECX, R_GBR );
     ADD_r32_r32( R_EAX, R_ECX );
-    MEM_READ_BYTE( R_ECX, R_EAX );
-    AND_imm32_r32(imm, R_ECX );
+    PUSH_r32(R_ECX);
+    call_func0(sh4_read_byte);
+    POP_r32(R_ECX);
+    AND_imm32_r32(imm, R_EAX );
     MEM_WRITE_BYTE( R_ECX, R_EAX );
 :}
 CMP/EQ Rm, Rn {:  
@@ -547,13 +576,13 @@ CMP/STR Rm, Rn {:
 :}
 DIV0S Rm, Rn {:
     load_reg( R_EAX, Rm );
-    load_reg( R_ECX, Rm );
+    load_reg( R_ECX, Rn );
     SHR_imm8_r32( 31, R_EAX );
     SHR_imm8_r32( 31, R_ECX );
     store_spreg( R_EAX, R_M );
     store_spreg( R_ECX, R_Q );
     CMP_r32_r32( R_EAX, R_ECX );
-    SETE_t();
+    SETNE_t();
 :}
 DIV0U {:  
     XOR_r32_r32( R_EAX, R_EAX );
@@ -561,20 +590,27 @@ DIV0U {:
     store_spreg( R_EAX, R_M );
     store_spreg( R_EAX, R_T );
 :}
-DIV1 Rm, Rn {:  
-    load_reg( R_ECX, Rn );
+DIV1 Rm, Rn {:
+    load_spreg( R_ECX, R_M );
+    load_reg( R_EAX, Rn );
     LDC_t();
-    RCL1_r32( R_ECX ); // OP2
-    SETC_r32( R_EDX ); // Q
-    load_spreg( R_EAX, R_Q );
-    CMP_sh4r_r32( R_M, R_EAX );
-    JE_rel8(8,mqequal);
-    ADD_sh4r_r32( REG_OFFSET(r[Rm]), R_ECX );
-    JMP_rel8(3, mqnotequal);
+    RCL1_r32( R_EAX );
+    SETC_r8( R_DL ); // Q'
+    CMP_sh4r_r32( R_Q, R_ECX );
+    JE_rel8(5, mqequal);
+    ADD_sh4r_r32( REG_OFFSET(r[Rm]), R_EAX );
+    JMP_rel8(3, end);
     JMP_TARGET(mqequal);
-    SUB_sh4r_r32( REG_OFFSET(r[Rm]), R_ECX );
-    JMP_TARGET(mqnotequal);
-    // TODO
+    SUB_sh4r_r32( REG_OFFSET(r[Rm]), R_EAX );
+    JMP_TARGET(end);
+    store_reg( R_EAX, Rn ); // Done with Rn now
+    SETC_r8(R_AL); // tmp1
+    XOR_r8_r8( R_DL, R_AL ); // Q' = Q ^ tmp1
+    XOR_r8_r8( R_AL, R_CL ); // Q'' = Q' ^ M
+    store_spreg( R_ECX, R_Q );
+    XOR_imm8s_r32( 1, R_AL );   // T = !Q'
+    MOVZX_r8_r32( R_AL, R_EAX );
+    store_spreg( R_EAX, R_T );
 :}
 DMULS.L Rm, Rn {:  
     load_reg( R_EAX, Rm );
@@ -616,8 +652,67 @@ EXTU.W Rm, Rn {:
     MOVZX_r16_r32( R_EAX, R_EAX );
     store_reg( R_EAX, Rn );
 :}
-MAC.L @Rm+, @Rn+ {:  :}
-MAC.W @Rm+, @Rn+ {:  :}
+MAC.L @Rm+, @Rn+ {:  
+    load_reg( R_ECX, Rm );
+    check_ralign32( R_ECX );
+    load_reg( R_ECX, Rn );
+    check_ralign32( R_ECX );
+    ADD_imm8s_sh4r( 4, REG_OFFSET(r[Rn]) );
+    MEM_READ_LONG( R_ECX, R_EAX );
+    PUSH_r32( R_EAX );
+    load_reg( R_ECX, Rm );
+    ADD_imm8s_sh4r( 4, REG_OFFSET(r[Rm]) );
+    MEM_READ_LONG( R_ECX, R_EAX );
+    POP_r32( R_ECX );
+    IMUL_r32( R_ECX );
+    ADD_r32_sh4r( R_EAX, R_MACL );
+    ADC_r32_sh4r( R_EDX, R_MACH );
+
+    load_spreg( R_ECX, R_S );
+    TEST_r32_r32(R_ECX, R_ECX);
+    JE_rel8( 7, nosat );
+    call_func0( signsat48 );
+    JMP_TARGET( nosat );
+:}
+MAC.W @Rm+, @Rn+ {:  
+    load_reg( R_ECX, Rm );
+    check_ralign16( R_ECX );
+    load_reg( R_ECX, Rn );
+    check_ralign16( R_ECX );
+    ADD_imm8s_sh4r( 2, REG_OFFSET(r[Rn]) );
+    MEM_READ_WORD( R_ECX, R_EAX );
+    PUSH_r32( R_EAX );
+    load_reg( R_ECX, Rm );
+    ADD_imm8s_sh4r( 2, REG_OFFSET(r[Rm]) );
+    MEM_READ_WORD( R_ECX, R_EAX );
+    POP_r32( R_ECX );
+    IMUL_r32( R_ECX );
+
+    load_spreg( R_ECX, R_S );
+    TEST_r32_r32( R_ECX, R_ECX );
+    JE_rel8( 47, nosat );
+
+    ADD_r32_sh4r( R_EAX, R_MACL );  // 6
+    JNO_rel8( 51, end );            // 2
+    load_imm32( R_EDX, 1 );         // 5
+    store_spreg( R_EDX, R_MACH );   // 6
+    JS_rel8( 13, positive );        // 2
+    load_imm32( R_EAX, 0x80000000 );// 5
+    store_spreg( R_EAX, R_MACL );   // 6
+    JMP_rel8( 25, end2 );           // 2
+
+    JMP_TARGET(positive);
+    load_imm32( R_EAX, 0x7FFFFFFF );// 5
+    store_spreg( R_EAX, R_MACL );   // 6
+    JMP_rel8( 12, end3);            // 2
+
+    JMP_TARGET(nosat);
+    ADD_r32_sh4r( R_EAX, R_MACL );  // 6
+    ADC_r32_sh4r( R_EDX, R_MACH );  // 6
+    JMP_TARGET(end);
+    JMP_TARGET(end2);
+    JMP_TARGET(end3);
+:}
 MOVT Rn {:  
     load_spreg( R_EAX, R_T );
     store_reg( R_EAX, Rn );
@@ -673,8 +768,10 @@ OR.B #imm, @(R0, GBR) {:
     load_reg( R_EAX, 0 );
     load_spreg( R_ECX, R_GBR );
     ADD_r32_r32( R_EAX, R_ECX );
-    MEM_READ_BYTE( R_ECX, R_EAX );
-    OR_imm32_r32(imm, R_ECX );
+    PUSH_r32(R_ECX);
+    call_func0(sh4_read_byte);
+    POP_r32(R_ECX);
+    OR_imm32_r32(imm, R_EAX );
     MEM_WRITE_BYTE( R_ECX, R_EAX );
 :}
 ROTCL Rn {:
@@ -708,34 +805,46 @@ SHAD Rm, Rn {:
     load_reg( R_EAX, Rn );
     load_reg( R_ECX, Rm );
     CMP_imm32_r32( 0, R_ECX );
-    JGE_rel8(9, doshl);
+    JGE_rel8(16, doshl);
                     
     NEG_r32( R_ECX );      // 2
     AND_imm8_r8( 0x1F, R_CL ); // 3
+    JE_rel8( 4, emptysar);     // 2
     SAR_r32_CL( R_EAX );       // 2
-    JMP_rel8(5, end);          // 2
+    JMP_rel8(10, end);          // 2
+
+    JMP_TARGET(emptysar);
+    SAR_imm8_r32(31, R_EAX );  // 3
+    JMP_rel8(5, end2);
 
     JMP_TARGET(doshl);
     AND_imm8_r8( 0x1F, R_CL ); // 3
     SHL_r32_CL( R_EAX );       // 2
     JMP_TARGET(end);
+    JMP_TARGET(end2);
     store_reg( R_EAX, Rn );
 :}
 SHLD Rm, Rn {:  
     load_reg( R_EAX, Rn );
     load_reg( R_ECX, Rm );
     CMP_imm32_r32( 0, R_ECX );
-    JGE_rel8(9, doshl);
+    JGE_rel8(15, doshl);
 
     NEG_r32( R_ECX );      // 2
     AND_imm8_r8( 0x1F, R_CL ); // 3
+    JE_rel8( 4, emptyshr );
     SHR_r32_CL( R_EAX );       // 2
-    JMP_rel8(5, end);          // 2
+    JMP_rel8(9, end);          // 2
+
+    JMP_TARGET(emptyshr);
+    XOR_r32_r32( R_EAX, R_EAX );
+    JMP_rel8(5, end2);
 
     JMP_TARGET(doshl);
     AND_imm8_r8( 0x1F, R_CL ); // 3
     SHL_r32_CL( R_EAX );       // 2
     JMP_TARGET(end);
+    JMP_TARGET(end2);
     store_reg( R_EAX, Rn );
 :}
 SHAL Rn {: 
@@ -827,6 +936,7 @@ TAS.B @Rn {:
     TEST_r8_r8( R_AL, R_AL );
     SETE_t();
     OR_imm8_r8( 0x80, R_AL );
+    load_reg( R_ECX, Rn );
     MEM_WRITE_BYTE( R_ECX, R_EAX );
 :}
 TST Rm, Rn {:  
@@ -863,7 +973,9 @@ XOR.B #imm, @(R0, GBR) {:
     load_reg( R_EAX, 0 );
     load_spreg( R_ECX, R_GBR );
     ADD_r32_r32( R_EAX, R_ECX );
-    MEM_READ_BYTE( R_ECX, R_EAX );
+    PUSH_r32(R_ECX);
+    call_func0(sh4_read_byte);
+    POP_r32(R_ECX);
     XOR_imm32_r32( imm, R_EAX );
     MEM_WRITE_BYTE( R_ECX, R_EAX );
 :}
@@ -919,7 +1031,7 @@ MOV.B R0, @(disp, Rn) {:
 MOV.B @Rm, Rn {:  
     load_reg( R_ECX, Rm );
     MEM_READ_BYTE( R_ECX, R_EAX );
-    store_reg( R_ECX, Rn );
+    store_reg( R_EAX, Rn );
 :}
 MOV.B @Rm+, Rn {:  
     load_reg( R_ECX, Rm );
@@ -1145,13 +1257,12 @@ BF/S disp {:
     if( sh4_x86.in_delay_slot ) {
 	SLOTILLEGAL();
     } else {
-	load_imm32( R_EDI, pc + 2 );
+	load_imm32( R_EDI, pc + 4 );
 	CMP_imm8s_sh4r( 0, R_T );
 	JNE_rel8( 5, nottaken );
 	load_imm32( R_EDI, disp + pc + 4 );
 	JMP_TARGET(nottaken);
 	sh4_x86.in_delay_slot = TRUE;
-	INC_r32(R_ESI);
 	return 0;
     }
 :}
@@ -1161,7 +1272,6 @@ BRA disp {:
     } else {
 	load_imm32( R_EDI, disp + pc + 4 );
 	sh4_x86.in_delay_slot = TRUE;
-	INC_r32(R_ESI);
 	return 0;
     }
 :}
@@ -1172,7 +1282,6 @@ BRAF Rn {:
 	load_reg( R_EDI, Rn );
 	ADD_imm32_r32( pc + 4, R_EDI );
 	sh4_x86.in_delay_slot = TRUE;
-	INC_r32(R_ESI);
 	return 0;
     }
 :}
@@ -1184,7 +1293,6 @@ BSR disp {:
 	store_spreg( R_EAX, R_PR );
 	load_imm32( R_EDI, disp + pc + 4 );
 	sh4_x86.in_delay_slot = TRUE;
-	INC_r32(R_ESI);
 	return 0;
     }
 :}
@@ -1197,7 +1305,6 @@ BSRF Rn {:
 	load_reg( R_EDI, Rn );
 	ADD_r32_r32( R_EAX, R_EDI );
 	sh4_x86.in_delay_slot = TRUE;
-	INC_r32(R_ESI);
 	return 0;
     }
 :}
@@ -1218,13 +1325,12 @@ BT/S disp {:
     if( sh4_x86.in_delay_slot ) {
 	SLOTILLEGAL();
     } else {
-	load_imm32( R_EDI, pc + 2 );
+	load_imm32( R_EDI, pc + 4 );
 	CMP_imm8s_sh4r( 0, R_T );
 	JE_rel8( 5, nottaken );
 	load_imm32( R_EDI, disp + pc + 4 );
 	JMP_TARGET(nottaken);
 	sh4_x86.in_delay_slot = TRUE;
-	INC_r32(R_ESI);
 	return 0;
     }
 :}
@@ -1234,7 +1340,6 @@ JMP @Rn {:
     } else {
 	load_reg( R_EDI, Rn );
 	sh4_x86.in_delay_slot = TRUE;
-	INC_r32(R_ESI);
 	return 0;
     }
 :}
@@ -1246,7 +1351,6 @@ JSR @Rn {:
 	store_spreg( R_EAX, R_PR );
 	load_reg( R_EDI, Rn );
 	sh4_x86.in_delay_slot = TRUE;
-	INC_r32(R_ESI);
 	return 0;
     }
 :}
@@ -1255,13 +1359,12 @@ RTE {:
     if( sh4_x86.in_delay_slot ) {
 	SLOTILLEGAL();
     } else {
-	load_spreg( R_EDI, R_PR );
+	load_spreg( R_EDI, R_SPC );
 	load_spreg( R_EAX, R_SSR );
 	call_func1( sh4_write_sr, R_EAX );
 	sh4_x86.in_delay_slot = TRUE;
 	sh4_x86.priv_checked = FALSE;
 	sh4_x86.fpuen_checked = FALSE;
-	INC_r32(R_ESI);
 	return 0;
     }
 :}
@@ -1271,7 +1374,6 @@ RTS {:
     } else {
 	load_spreg( R_EDI, R_PR );
 	sh4_x86.in_delay_slot = TRUE;
-	INC_r32(R_ESI);
 	return 0;
     }
 :}
@@ -1287,7 +1389,7 @@ UNDEF {:
     if( sh4_x86.in_delay_slot ) {
 	SLOTILLEGAL();
     } else {
-	RAISE_EXCEPTION(EXC_ILLEGAL);
+	JMP_exit(EXIT_ILLEGAL);
 	return 1;
     }
 :}
@@ -1331,7 +1433,7 @@ FMOV FRm, FRn {:
     load_fr( R_EDX, R_EAX, FRm ); // PR=0 branch
     store_fr( R_EDX, R_EAX, FRn );
     if( FRm&1 ) {
-	JMP_rel8(22, end);
+	JMP_rel8(24, end);
 	JMP_TARGET(doublesize);
 	load_xf_bank( R_ECX ); 
 	load_fr( R_ECX, R_EAX, FRm-1 );
@@ -1347,7 +1449,7 @@ FMOV FRm, FRn {:
 	JMP_TARGET(end);
     } else /* FRm&1 == 0 */ {
 	if( FRn&1 ) {
-	    JMP_rel8(22, end);
+	    JMP_rel8(24, end);
 	    load_xf_bank( R_ECX );
 	    load_fr( R_EDX, R_EAX, FRm );
 	    load_fr( R_EDX, R_EDX, FRm+1 );
@@ -1375,7 +1477,7 @@ FMOV FRm, @Rn {:
     load_fr( R_ECX, R_EAX, FRm );
     MEM_WRITE_LONG( R_EDX, R_EAX ); // 12
     if( FRm&1 ) {
-	JMP_rel8( 46, end );
+	JMP_rel8( 48, end );
 	JMP_TARGET(doublesize);
 	load_xf_bank( R_ECX );
 	load_fr( R_ECX, R_EAX, FRm&0x0E );
@@ -1403,7 +1505,7 @@ FMOV @Rm, FRn {:
     load_fr_bank( R_ECX );
     store_fr( R_ECX, R_EAX, FRn );
     if( FRn&1 ) {
-	JMP_rel8(46, end);
+	JMP_rel8(48, end);
 	JMP_TARGET(doublesize);
 	MEM_READ_DOUBLE( R_EDX, R_EAX, R_EDX );
 	load_spreg( R_ECX, R_FPSCR ); // assume read_long clobbered it
@@ -1434,7 +1536,7 @@ FMOV FRm, @-Rn {:
     store_reg( R_EDX, Rn );
     MEM_WRITE_LONG( R_EDX, R_EAX ); // 12
     if( FRm&1 ) {
-	JMP_rel8( 52, end );
+	JMP_rel8( 54, end );
 	JMP_TARGET(doublesize);
 	load_xf_bank( R_ECX );
 	load_fr( R_ECX, R_EAX, FRm&0x0E );
@@ -1469,7 +1571,7 @@ FMOV @Rm+, FRn {:
     load_fr_bank( R_ECX );
     store_fr( R_ECX, R_EAX, FRn );
     if( FRn&1 ) {
-	JMP_rel8(52, end);
+	JMP_rel8(54, end);
 	JMP_TARGET(doublesize);
 	ADD_imm8s_r32( 8, R_EAX );
 	store_reg(R_EAX, Rm);
@@ -1502,7 +1604,7 @@ FMOV FRm, @(R0, Rn) {:
     load_fr( R_ECX, R_EAX, FRm );
     MEM_WRITE_LONG( R_EDX, R_EAX ); // 12
     if( FRm&1 ) {
-	JMP_rel8( 46, end );
+	JMP_rel8( 48, end );
 	JMP_TARGET(doublesize);
 	load_xf_bank( R_ECX );
 	load_fr( R_ECX, R_EAX, FRm&0x0E );
@@ -1531,7 +1633,7 @@ FMOV @(R0, Rm), FRn {:
     load_fr_bank( R_ECX );
     store_fr( R_ECX, R_EAX, FRn );
     if( FRn&1 ) {
-	JMP_rel8(46, end);
+	JMP_rel8(48, end);
 	JMP_TARGET(doublesize);
 	MEM_READ_DOUBLE( R_EDX, R_EAX, R_EDX );
 	load_spreg( R_ECX, R_FPSCR ); // assume read_long clobbered it
@@ -1829,7 +1931,7 @@ FRCHG {:
     load_spreg( R_ECX, R_FPSCR );
     XOR_imm32_r32( FPSCR_FR, R_ECX );
     store_spreg( R_ECX, R_FPSCR );
-    
+    update_fr_bank( R_ECX );
 :}
 FSCHG {:  
     check_fpuen();
@@ -1840,36 +1942,47 @@ FSCHG {:
 
 /* Processor control instructions */
 LDC Rm, SR {:
-    load_reg( R_EAX, Rm );
-    call_func1( sh4_write_sr, R_EAX );
-    sh4_x86.priv_checked = FALSE;
-    sh4_x86.fpuen_checked = FALSE;
+    if( sh4_x86.in_delay_slot ) {
+	SLOTILLEGAL();
+    } else {
+	check_priv();
+	load_reg( R_EAX, Rm );
+	call_func1( sh4_write_sr, R_EAX );
+	sh4_x86.priv_checked = FALSE;
+	sh4_x86.fpuen_checked = FALSE;
+    }
 :}
 LDC Rm, GBR {: 
     load_reg( R_EAX, Rm );
     store_spreg( R_EAX, R_GBR );
 :}
 LDC Rm, VBR {:  
+    check_priv();
     load_reg( R_EAX, Rm );
     store_spreg( R_EAX, R_VBR );
 :}
 LDC Rm, SSR {:  
+    check_priv();
     load_reg( R_EAX, Rm );
     store_spreg( R_EAX, R_SSR );
 :}
 LDC Rm, SGR {:  
+    check_priv();
     load_reg( R_EAX, Rm );
     store_spreg( R_EAX, R_SGR );
 :}
 LDC Rm, SPC {:  
+    check_priv();
     load_reg( R_EAX, Rm );
     store_spreg( R_EAX, R_SPC );
 :}
 LDC Rm, DBR {:  
+    check_priv();
     load_reg( R_EAX, Rm );
     store_spreg( R_EAX, R_DBR );
 :}
 LDC Rm, Rn_BANK {:  
+    check_priv();
     load_reg( R_EAX, Rm );
     store_spreg( R_EAX, REG_OFFSET(r_bank[Rn_BANK]) );
 :}
@@ -1882,16 +1995,22 @@ LDC.L @Rm+, GBR {:
     store_spreg( R_EAX, R_GBR );
 :}
 LDC.L @Rm+, SR {:
-    load_reg( R_EAX, Rm );
-    MOV_r32_r32( R_EAX, R_ECX );
-    ADD_imm8s_r32( 4, R_EAX );
-    store_reg( R_EAX, Rm );
-    MEM_READ_LONG( R_ECX, R_EAX );
-    call_func1( sh4_write_sr, R_EAX );
-    sh4_x86.priv_checked = FALSE;
-    sh4_x86.fpuen_checked = FALSE;
+    if( sh4_x86.in_delay_slot ) {
+	SLOTILLEGAL();
+    } else {
+	check_priv();
+	load_reg( R_EAX, Rm );
+	MOV_r32_r32( R_EAX, R_ECX );
+	ADD_imm8s_r32( 4, R_EAX );
+	store_reg( R_EAX, Rm );
+	MEM_READ_LONG( R_ECX, R_EAX );
+	call_func1( sh4_write_sr, R_EAX );
+	sh4_x86.priv_checked = FALSE;
+	sh4_x86.fpuen_checked = FALSE;
+    }
 :}
 LDC.L @Rm+, VBR {:  
+    check_priv();
     load_reg( R_EAX, Rm );
     MOV_r32_r32( R_EAX, R_ECX );
     ADD_imm8s_r32( 4, R_EAX );
@@ -1900,6 +2019,7 @@ LDC.L @Rm+, VBR {:
     store_spreg( R_EAX, R_VBR );
 :}
 LDC.L @Rm+, SSR {:
+    check_priv();
     load_reg( R_EAX, Rm );
     MOV_r32_r32( R_EAX, R_ECX );
     ADD_imm8s_r32( 4, R_EAX );
@@ -1908,6 +2028,7 @@ LDC.L @Rm+, SSR {:
     store_spreg( R_EAX, R_SSR );
 :}
 LDC.L @Rm+, SGR {:  
+    check_priv();
     load_reg( R_EAX, Rm );
     MOV_r32_r32( R_EAX, R_ECX );
     ADD_imm8s_r32( 4, R_EAX );
@@ -1916,6 +2037,7 @@ LDC.L @Rm+, SGR {:
     store_spreg( R_EAX, R_SGR );
 :}
 LDC.L @Rm+, SPC {:  
+    check_priv();
     load_reg( R_EAX, Rm );
     MOV_r32_r32( R_EAX, R_ECX );
     ADD_imm8s_r32( 4, R_EAX );
@@ -1924,6 +2046,7 @@ LDC.L @Rm+, SPC {:
     store_spreg( R_EAX, R_SPC );
 :}
 LDC.L @Rm+, DBR {:  
+    check_priv();
     load_reg( R_EAX, Rm );
     MOV_r32_r32( R_EAX, R_ECX );
     ADD_imm8s_r32( 4, R_EAX );
@@ -1932,6 +2055,7 @@ LDC.L @Rm+, DBR {:
     store_spreg( R_EAX, R_DBR );
 :}
 LDC.L @Rm+, Rn_BANK {:  
+    check_priv();
     load_reg( R_EAX, Rm );
     MOV_r32_r32( R_EAX, R_ECX );
     ADD_imm8s_r32( 4, R_EAX );
@@ -1942,6 +2066,7 @@ LDC.L @Rm+, Rn_BANK {:
 LDS Rm, FPSCR {:  
     load_reg( R_EAX, Rm );
     store_spreg( R_EAX, R_FPSCR );
+    update_fr_bank( R_EAX );
 :}
 LDS.L @Rm+, FPSCR {:  
     load_reg( R_EAX, Rm );
@@ -1950,6 +2075,7 @@ LDS.L @Rm+, FPSCR {:
     store_reg( R_EAX, Rm );
     MEM_READ_LONG( R_ECX, R_EAX );
     store_spreg( R_EAX, R_FPSCR );
+    update_fr_bank( R_EAX );
 :}
 LDS Rm, FPUL {:  
     load_reg( R_EAX, Rm );
@@ -2013,40 +2139,48 @@ PREF @Rn {:
     JMP_TARGET(end);
     ADD_imm8s_r32( 4, R_ESP );
 :}
- SLEEP {: /* TODO */ :}
- STC SR, Rn {:
-     call_func0(sh4_read_sr);
-     store_reg( R_EAX, Rn );
+SLEEP {: /* TODO */ :}
+STC SR, Rn {:
+    check_priv();
+    call_func0(sh4_read_sr);
+    store_reg( R_EAX, Rn );
 :}
 STC GBR, Rn {:  
     load_spreg( R_EAX, R_GBR );
     store_reg( R_EAX, Rn );
 :}
 STC VBR, Rn {:  
+    check_priv();
     load_spreg( R_EAX, R_VBR );
     store_reg( R_EAX, Rn );
 :}
 STC SSR, Rn {:  
+    check_priv();
     load_spreg( R_EAX, R_SSR );
     store_reg( R_EAX, Rn );
 :}
 STC SPC, Rn {:  
+    check_priv();
     load_spreg( R_EAX, R_SPC );
     store_reg( R_EAX, Rn );
 :}
 STC SGR, Rn {:  
+    check_priv();
     load_spreg( R_EAX, R_SGR );
     store_reg( R_EAX, Rn );
 :}
 STC DBR, Rn {:  
+    check_priv();
     load_spreg( R_EAX, R_DBR );
     store_reg( R_EAX, Rn );
 :}
 STC Rm_BANK, Rn {:
+    check_priv();
     load_spreg( R_EAX, REG_OFFSET(r_bank[Rm_BANK]) );
     store_reg( R_EAX, Rn );
 :}
 STC.L SR, @-Rn {:
+    check_priv();
     load_reg( R_ECX, Rn );
     ADD_imm8s_r32( -4, R_ECX );
     store_reg( R_ECX, Rn );
@@ -2054,6 +2188,7 @@ STC.L SR, @-Rn {:
     MEM_WRITE_LONG( R_ECX, R_EAX );
 :}
 STC.L VBR, @-Rn {:  
+    check_priv();
     load_reg( R_ECX, Rn );
     ADD_imm8s_r32( -4, R_ECX );
     store_reg( R_ECX, Rn );
@@ -2061,6 +2196,7 @@ STC.L VBR, @-Rn {:
     MEM_WRITE_LONG( R_ECX, R_EAX );
 :}
 STC.L SSR, @-Rn {:  
+    check_priv();
     load_reg( R_ECX, Rn );
     ADD_imm8s_r32( -4, R_ECX );
     store_reg( R_ECX, Rn );
@@ -2068,6 +2204,7 @@ STC.L SSR, @-Rn {:
     MEM_WRITE_LONG( R_ECX, R_EAX );
 :}
 STC.L SPC, @-Rn {:  
+    check_priv();
     load_reg( R_ECX, Rn );
     ADD_imm8s_r32( -4, R_ECX );
     store_reg( R_ECX, Rn );
@@ -2075,6 +2212,7 @@ STC.L SPC, @-Rn {:
     MEM_WRITE_LONG( R_ECX, R_EAX );
 :}
 STC.L SGR, @-Rn {:  
+    check_priv();
     load_reg( R_ECX, Rn );
     ADD_imm8s_r32( -4, R_ECX );
     store_reg( R_ECX, Rn );
@@ -2082,6 +2220,7 @@ STC.L SGR, @-Rn {:
     MEM_WRITE_LONG( R_ECX, R_EAX );
 :}
 STC.L DBR, @-Rn {:  
+    check_priv();
     load_reg( R_ECX, Rn );
     ADD_imm8s_r32( -4, R_ECX );
     store_reg( R_ECX, Rn );
@@ -2089,6 +2228,7 @@ STC.L DBR, @-Rn {:
     MEM_WRITE_LONG( R_ECX, R_EAX );
 :}
 STC.L Rm_BANK, @-Rn {:  
+    check_priv();
     load_reg( R_ECX, Rn );
     ADD_imm8s_r32( -4, R_ECX );
     store_reg( R_ECX, Rn );
@@ -2160,10 +2300,12 @@ STS.L PR, @-Rn {:
 
 NOP {: /* Do nothing. Well, we could emit an 0x90, but what would really be the point? */ :}
 %%
-    INC_r32(R_ESI);
     if( sh4_x86.in_delay_slot ) {
+	ADD_imm8s_r32(2,R_ESI);
 	sh4_x86.in_delay_slot = FALSE;
 	return 1;
+    } else {
+	INC_r32(R_ESI);
     }
     return 0;
 }

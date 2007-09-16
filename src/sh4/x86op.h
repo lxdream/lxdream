@@ -1,5 +1,5 @@
 /**
- * $Id: x86op.h,v 1.7 2007-09-12 11:31:16 nkeynes Exp $
+ * $Id: x86op.h,v 1.8 2007-09-16 07:03:23 nkeynes Exp $
  * 
  * Definitions of x86 opcodes for use by the translator.
  *
@@ -92,10 +92,14 @@
 
 /* Major opcodes */
 #define ADD_sh4r_r32(disp,r1) OP(0x03); MODRM_r32_sh4r(r1,disp)
+#define ADD_r32_sh4r(r1,disp) OP(0x01); MODRM_r32_sh4r(r1,disp)
 #define ADD_r32_r32(r1,r2) OP(0x03); MODRM_rm32_r32(r1,r2)
 #define ADD_imm8s_r32(imm,r1) OP(0x83); MODRM_rm32_r32(r1, 0); OP(imm)
+#define ADD_imm8s_sh4r(imm,disp) OP(0x83); MODRM_r32_sh4r(0,disp); OP(imm)
 #define ADD_imm32_r32(imm32,r1) OP(0x81); MODRM_rm32_r32(r1,0); OP32(imm32)
 #define ADC_r32_r32(r1,r2)    OP(0x13); MODRM_rm32_r32(r1,r2)
+#define ADC_sh4r_r32(disp,r1) OP(0x13); MODRM_r32_sh4r(r1,disp)
+#define ADC_r32_sh4r(r1,disp) OP(0x11); MODRM_r32_sh4r(r1,disp)
 #define AND_r32_r32(r1,r2)    OP(0x23); MODRM_rm32_r32(r1,r2)
 #define AND_imm8_r8(imm8, r1) OP(0x80); MODRM_rm32_r32(r1,4); OP(imm8)
 #define AND_imm8s_r32(imm8,r1) OP(0x83); MODRM_rm32_r32(r1,4); OP(imm8)
@@ -153,6 +157,8 @@
 #define TEST_imm8_r8(imm8,r1) OP(0xF6); MODRM_rm32_r32(r1,0); OP(imm8)
 #define TEST_imm32_r32(imm,r1) OP(0xF7); MODRM_rm32_r32(r1,0); OP32(imm)
 #define XCHG_r8_r8(r1,r2)     OP(0x86); MODRM_rm32_r32(r1,r2)
+#define XOR_r8_r8(r1,r2)      OP(0x32); MODRM_rm32_r32(r1,r2)
+#define XOR_imm8s_r32(imm,r1)   OP(0x83); MODRM_rm32_r32(r1,6); OP(imm)
 #define XOR_r32_r32(r1,r2)    OP(0x33); MODRM_rm32_r32(r1,r2)
 #define XOR_sh4r_r32(disp,r1)    OP(0x33); MODRM_r32_sh4r(r1,disp)
 #define XOR_imm32_r32(imm,r1) OP(0x81); MODRM_rm32_r32(r1,6); OP32(imm)
@@ -188,8 +194,12 @@
 #define JNGE_rel8(rel,label) OP(0x7C); OP(rel); MARK_JMP(rel,label)
 #define JNC_rel8(rel,label)  OP(0x73); OP(rel); MARK_JMP(rel,label)
 #define JNO_rel8(rel,label)  OP(0x71); OP(rel); MARK_JMP(rel,label)
+#define JNS_rel8(rel,label)  OP(0x79); OP(rel); MARK_JMP(rel,label)
+#define JS_rel8(rel,label)   OP(0x78); OP(rel); MARK_JMP(rel,label)
+
 
 /* 32-bit long forms w/ backpatching to an exit routine */
+#define JMP_exit(rel)  OP(0xE9); sh4_x86_add_backpatch(xlat_output); OP32(rel)
 #define JE_exit(rel)  OP(0x0F); OP(0x84); sh4_x86_add_backpatch(xlat_output); OP32(rel)
 #define JA_exit(rel)  OP(0x0F); OP(0x87); sh4_x86_add_backpatch(xlat_output); OP32(rel)
 #define JAE_exit(rel) OP(0x0F); OP(0x83); sh4_x86_add_backpatch(xlat_output); OP32(rel)
@@ -240,8 +250,9 @@
 #define SETGE_t() SETGE_sh4r(R_T)
 #define SETC_t() SETC_sh4r(R_T)
 #define SETO_t() SETO_sh4r(R_T)
+#define SETNE_t() SETNE_sh4r(R_T)
 
-#define SETC_r32(r1)      OP(0x0F); OP(0x92); MODRM_rm32_r32(r1, 0)
+#define SETC_r8(r1)      OP(0x0F); OP(0x92); MODRM_rm32_r32(r1, 0)
 
 /* Pseudo-op Load carry from T: CMP [EBP+t], #01 ; CMC */
 #define LDC_t()     OP(0x83); MODRM_r32_sh4r(7,R_T); OP(0x01); CMC()
