@@ -56,6 +56,7 @@ int main()
     test_cmp();
     test_cmpstr();
     test_div0();
+    test_div1();
     test_float();
     test_fmov();
     test_ftrc();
