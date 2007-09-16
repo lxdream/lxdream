@@ -1,5 +1,5 @@
 /**
- * $Id: xltcache.c,v 1.3 2007-09-12 09:16:47 nkeynes Exp $
+ * $Id: xltcache.c,v 1.4 2007-09-16 06:59:47 nkeynes Exp $
  * 
  * Translation cache management. This part is architecture independent.
  *
@@ -128,7 +128,12 @@ void *xlat_get_code( sh4addr_t address )
     if( page == NULL ) {
 	return NULL;
     }
-    return page[XLAT_LUT_ENTRY(address)];
+    void *result = page[XLAT_LUT_ENTRY(address)];
+    if( result == ((void *)(1)) ) {
+	return NULL;
+    } else {
+	return result;
+    }
 }
 
 uint32_t xlat_get_block_size( void *block )
