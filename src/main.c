@@ -1,5 +1,5 @@
 /**
- * $Id: main.c,v 1.23 2007-09-12 09:21:01 nkeynes Exp $
+ * $Id: main.c,v 1.24 2007-09-18 10:48:57 nkeynes Exp $
  *
  * Main program, initializes dreamcast and gui, then passes control off to
  * the gtk main loop (currently). 
@@ -35,7 +35,7 @@
 
 #define S3M_PLAYER "s3mplay.bin"
 
-char *option_list = "a:s:A:V:puhbd:c:t:x";
+char *option_list = "a:s:A:V:puhbd:c:t:xD";
 struct option longopts[1] = { { NULL, 0, 0, 0 } };
 char *aica_program = NULL;
 char *s3m_file = NULL;
@@ -47,6 +47,7 @@ gboolean start_immediately = FALSE;
 gboolean headless = FALSE;
 gboolean without_bios = FALSE;
 gboolean use_xlat = FALSE;
+gboolean show_debugger = FALSE;
 uint32_t time_secs = 0;
 uint32_t time_nanos = 0;
 
@@ -77,6 +78,9 @@ int main (int argc, char *argv[])
 	    break;
 	case 'd': /* Mount disc */
 	    disc_file = optarg;
+	    break;
+	case 'D': /* Launch w/ debugger */
+	    show_debugger = TRUE;
 	    break;
 	case 's': /* AICA-only w/ S3M player */
 	    aica_program = S3M_PLAYER;
@@ -118,6 +122,9 @@ int main (int argc, char *argv[])
 	    gnome_init ("lxdream", VERSION, argc, argv);
 	    dreamcast_init();
 	    dreamcast_register_module( &gtk_gui_module );
+	    if( show_debugger ) {
+		gtk_gui_show_debugger();
+	    }
 	} else {
 	    dreamcast_init();
 	}

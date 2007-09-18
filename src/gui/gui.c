@@ -1,5 +1,5 @@
 /**
- * $Id: gui.c,v 1.13 2007-01-11 12:15:36 nkeynes Exp $
+ * $Id: gui.c,v 1.14 2007-09-18 10:48:57 nkeynes Exp $
  * 
  * Top-level GUI (GTK2) module.
  *
@@ -33,8 +33,7 @@ GdkColor clrNormal, clrChanged, clrError, clrWarn, clrPC, clrDebug, clrTrace;
 GdkColor clrBreak, clrTempBreak, clrWhite;
 PangoFontDescription *fixed_list_font;
 
-debug_info_t main_debug;
-
+debug_info_t main_debug = NULL;
 
 void open_file_callback(GtkWidget *btn, gint result, gpointer user_data);
 
@@ -55,7 +54,6 @@ const cpu_desc_t cpu_descs[4] = { &sh4_cpu_desc, &arm_cpu_desc, &armt_cpu_desc, 
 
 void gtk_gui_init() {
     GdkColormap *map;
-    GtkWidget *debug_win;
 
     clrNormal.red = clrNormal.green = clrNormal.blue = 0;
     clrChanged.red = clrChanged.green = 64*256;
@@ -88,13 +86,16 @@ void gtk_gui_init() {
     gdk_colormap_alloc_color(map, &clrTempBreak, TRUE, TRUE);
     gdk_colormap_alloc_color(map, &clrWhite, TRUE, TRUE);
     fixed_list_font = pango_font_description_from_string("Courier 10");
-    debug_win = create_debug_win ();
+}
+
+void gtk_gui_show_debugger()
+{
+    GtkWidget *debug_win = create_debug_win ();
     main_debug = init_debug_win(debug_win, cpu_descs);
     init_mmr_win();
     
     gtk_widget_show (debug_win);
-
-}
+}    
 
 /**
  * Hook called when DC starts running. Just disables the run/step buttons
@@ -130,12 +131,12 @@ uint32_t gtk_gui_run_slice( uint32_t nanosecs )
 }
 
 void gtk_gui_update(void) {
-    if( main_debug == NULL )
-	return;
-    update_registers(main_debug);
-    update_icount(main_debug);
-    update_mmr_win();
-    dump_win_update_all();
+    if( main_debug != NULL ) {
+	update_registers(main_debug);
+	update_icount(main_debug);
+	update_mmr_win();
+	dump_win_update_all();
+    }
 }
 
 void open_file_callback(GtkWidget *btn, gint result, gpointer user_data) {
