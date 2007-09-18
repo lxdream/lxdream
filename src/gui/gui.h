@@ -1,5 +1,5 @@
 /**
- * $Id: gui.h,v 1.15 2006-06-19 11:00:42 nkeynes Exp $
+ * $Id: gui.h,v 1.16 2007-09-18 10:48:57 nkeynes Exp $
  * 
  * General GUI definitions
  *
@@ -32,6 +32,7 @@ extern "C" {
 #endif
 
 void gtk_gui_init(void);
+void gtk_gui_show_debugger(void);
 void gtk_gui_update(void);
 extern struct dreamcast_module gtk_gui_module;
 

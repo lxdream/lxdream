@@ -1,5 +1,5 @@
 /**
- * $Id: debug_win.c,v 1.19 2006-05-15 08:28:52 nkeynes Exp $
+ * $Id: debug_win.c,v 1.20 2007-09-18 10:48:57 nkeynes Exp $
  * This file is responsible for the main debugger gui frame.
  *
  * Copyright (c) 2005 Nathan Keynes.
@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <gnome.h>
 #include <math.h>
+#include "sh4/sh4dasm.h"
 #include "gui/gui.h"
 #include "mem.h"
 #include "cpu.h"
@@ -26,6 +27,7 @@
 
 GdkColor *msg_colors[] = { &clrError, &clrError, &clrWarn, &clrNormal,
                            &clrDebug, &clrTrace };
+char *msg_levels[] = { "FATAL", "ERROR", "WARN", "INFO", "DEBUG", "TRACE" };
 
 void init_register_list( debug_info_t data );
 
@@ -34,7 +36,7 @@ struct debug_info_struct {
     int disasm_to;
     int disasm_pc;
     struct cpu_desc_struct *cpu;
-    struct cpu_desc_struct **cpu_list;
+    const cpu_desc_t *cpu_list;
     GtkCList *msgs_list;
     GtkCList *regs_list;
     GtkCList *disasm_list;
@@ -130,9 +132,11 @@ void update_registers( debug_info_t data )
 
 void update_icount( debug_info_t data )
 {
-    //    sprintf( data->icounter_text, "%d", *data->cpu->icount );
-    sprintf( data->icounter_text, "%d", pvr2_get_frame_count() );
-    gtk_progress_bar_set_text( data->icounter, data->icounter_text );
+    if( data != NULL ) {
+	//    sprintf( data->icounter_text, "%d", *data->cpu->icount );
+	sprintf( data->icounter_text, "%d", pvr2_get_frame_count() );
+	gtk_progress_bar_set_text( data->icounter, data->icounter_text );
+    }
 }
 
 void set_disassembly_region( debug_info_t data, unsigned int page )
@@ -292,7 +296,10 @@ void emit( void *ptr, int level, const gchar *source, const char *msg, ... )
     else data = (debug_info_t)ptr;
     va_start(ap, msg);
 
+    strftime( buf, sizeof(buf), "%H:%M:%S", localtime(&tm) );
+
     if( data == NULL ) {
+	fprintf( stderr, "%s %08X %-5s ", buf, *sh4_cpu_desc.pc, msg_levels[level] );
 	vfprintf( stderr, msg, ap );
 	fprintf( stderr, "\n" );
 	va_end(ap);
@@ -300,7 +307,6 @@ void emit( void *ptr, int level, const gchar *source, const char *msg, ... )
     }
 
     p = g_strdup_vprintf( msg, ap );
-    strftime( buf, sizeof(buf), "%H:%M:%S", localtime(&tm) );
     sprintf( addr, "%08X", *data->cpu->pc );
     arr[3] = p;
     posn = gtk_clist_append(data->msgs_list, arr);
@@ -333,8 +339,10 @@ void debug_win_enable_widget( debug_info_t data, const char *name,
 
 void debug_win_set_running( debug_info_t data, gboolean isRunning ) 
 {
-    debug_win_enable_widget( data, "stop_btn", isRunning );
-    debug_win_enable_widget( data, "step_btn", !isRunning );
-    debug_win_enable_widget( data, "run_btn", !isRunning );
-    debug_win_enable_widget( data, "runto_btn", !isRunning );
+    if( data != NULL ) {
+	debug_win_enable_widget( data, "stop_btn", isRunning );
+	debug_win_enable_widget( data, "step_btn", !isRunning );
+	debug_win_enable_widget( data, "run_btn", !isRunning );
+	debug_win_enable_widget( data, "runto_btn", !isRunning );
+    }
 }
