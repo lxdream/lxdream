@@ -1,5 +1,5 @@
 /**
- * $Id: sh4trans.h,v 1.1 2007-08-23 12:33:27 nkeynes Exp $
+ * $Id: sh4trans.h,v 1.2 2007-09-18 09:11:53 nkeynes Exp $
  * 
  * SH4->x86 translation module
  *
@@ -22,7 +22,7 @@
 /** Maximum size of a translated instruction, in bytes. This includes potentially
  * writing the entire epilogue
  */
-#define MAX_INSTRUCTION_SIZE 32
+#define MAX_INSTRUCTION_SIZE 256
 
 /**
 
