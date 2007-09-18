@@ -1,5 +1,5 @@
 /**
- * $Id: x86op.h,v 1.8 2007-09-16 07:03:23 nkeynes Exp $
+ * $Id: x86op.h,v 1.9 2007-09-18 08:59:00 nkeynes Exp $
  * 
  * Definitions of x86 opcodes for use by the translator.
  *
@@ -120,6 +120,7 @@
 #define MOV_r32_sh4r(r1,disp) OP(0x89); MODRM_r32_sh4r(r1,disp)
 #define MOV_moff32_EAX(off)   OP(0xA1); OP32(off)
 #define MOV_sh4r_r32(disp, r1)  OP(0x8B); MODRM_r32_sh4r(r1,disp)
+#define MOV_r32ind_r32(r1,r2) OP(0x8B); OP(0 + (r2<<3) + r1 )
 #define MOVSX_r8_r32(r1,r2)   OP(0x0F); OP(0xBE); MODRM_rm32_r32(r1,r2)
 #define MOVSX_r16_r32(r1,r2)  OP(0x0F); OP(0xBF); MODRM_rm32_r32(r1,r2)
 #define MOVZX_r8_r32(r1,r2)   OP(0x0F); OP(0xB6); MODRM_rm32_r32(r1,r2)
@@ -128,7 +129,7 @@
 #define NEG_r32(r1)           OP(0xF7); MODRM_rm32_r32(r1,3)
 #define NOT_r32(r1)           OP(0xF7); MODRM_rm32_r32(r1,2)
 #define OR_r32_r32(r1,r2)     OP(0x0B); MODRM_rm32_r32(r1,r2)
-#define OR_imm8_r8(imm,r1)    OP(0x80); MODRM_rm32_r32(r1,1)
+#define OR_imm8_r8(imm,r1)    OP(0x80); MODRM_rm32_r32(r1,1); OP(imm)
 #define OR_imm32_r32(imm,r1)  OP(0x81); MODRM_rm32_r32(r1,1); OP32(imm)
 #define OR_sh4r_r32(disp,r1)  OP(0x0B); MODRM_r32_sh4r(r1,disp)
 #define POP_r32(r1)           OP(0x58 + r1)
@@ -171,12 +172,13 @@
 #define FCOMIP_st(st) OP(0xDF); OP(0xF0+st)
 #define FDIVP_st(st) OP(0xDE); OP(0xF8+st)
 #define FILD_sh4r(disp) OP(0xDB); MODRM_r32_sh4r(0, disp)
-#define FISTTP_shr4(disp) OP(0xDB); MODRM_r32_sh4r(1, disp)
+#define FILD_r32ind(r32) OP(0xDB); OP(0x00+r32)
+#define FISTP_sh4r(disp) OP(0xDB); MODRM_r32_sh4r(3, disp)
 #define FLD0_st0() OP(0xD9); OP(0xEE);
 #define FLD1_st0() OP(0xD9); OP(0xE8);
 #define FMULP_st(st) OP(0xDE); OP(0xC8+st)
 #define FPOP_st()  OP(0xDD); OP(0xC0); OP(0xD9); OP(0xF7)
-#define FSUB_st(st) OP(0xDE); OP(0xE8+st)
+#define FSUBP_st(st) OP(0xDE); OP(0xE8+st)
 #define FSQRT_st0() OP(0xD9); OP(0xFA)
 
 /* Conditional branches */
