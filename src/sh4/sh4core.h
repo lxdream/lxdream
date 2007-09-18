@@ -1,5 +1,5 @@
 /**
- * $Id: sh4core.h,v 1.23 2007-09-12 09:20:38 nkeynes Exp $
+ * $Id: sh4core.h,v 1.24 2007-09-18 09:14:20 nkeynes Exp $
  * 
  * This file defines the internal functions exported/used by the SH4 core, 
  * except for disassembly functions defined in sh4dasm.h
@@ -98,6 +98,7 @@ void sh4_set_pc( int );
 
 gboolean sh4_execute_instruction( void );
 gboolean sh4_raise_exception( int );
+gboolean sh4_raise_trap( int );
 gboolean sh4_raise_slot_exception( int, int );
 gboolean sh4_raise_tlb_exception( int );
 void sh4_set_breakpoint( uint32_t pc, int type );

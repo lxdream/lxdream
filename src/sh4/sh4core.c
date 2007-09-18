@@ -1,5 +1,5 @@
 /**
- * $Id: sh4core.c,v 1.46 2007-09-16 07:01:07 nkeynes Exp $
+ * $Id: sh4core.c,v 1.47 2007-09-18 09:14:20 nkeynes Exp $
  * 
  * SH4 emulation core, and parent module for all the SH4 peripheral
  * modules.
@@ -42,8 +42,8 @@
 
 uint32_t sh4_run_slice( uint32_t );
 
-static uint16_t *sh4_icache = NULL;
-static uint32_t sh4_icache_addr = 0;
+uint16_t *sh4_icache = NULL;
+uint32_t sh4_icache_addr = 0;
 
 uint32_t sh4_run_slice( uint32_t nanosecs ) 
 {
@@ -68,6 +68,7 @@ uint32_t sh4_run_slice( uint32_t nanosecs )
 		    sh4_accept_interrupt();
 		}
 	    }
+	    //	    sh4_stats_add( sh4r.pc );
 	    if( !sh4_execute_instruction() ) {
 		break;
 	    }
@@ -284,6 +285,12 @@ uint32_t sh4_read_sr( void )
 gboolean sh4_raise_exception( int code )
 {
     RAISE( code, EXV_EXCEPTION );
+}
+
+gboolean sh4_raise_trap( int trap )
+{
+    MMIO_WRITE( MMU, TRA, trap<<2 );
+    return sh4_raise_exception( EXC_TRAP );
 }
 
 gboolean sh4_raise_slot_exception( int normal_code, int slot_code ) {
@@ -2163,9 +2170,12 @@ gboolean sh4_execute_instruction( void )
                                         uint32_t FRn = ((ir>>9)&0x7)<<1; 
                                         CHECKFPUEN();
                                         if( !IS_FPU_DOUBLEPREC() ) {
+                                    	sh4_fsca( FPULi, &(DRF(FRn>>1)) );
+                                    	/*
                                             float angle = (((float)(FPULi&0xFFFF))/65536.0) * 2 * M_PI;
                                             FR(FRn) = sinf(angle);
                                             FR((FRn)+1) = cosf(angle);
+                                    	*/
                                         }
                                         }
                                         break;
@@ -2176,6 +2186,8 @@ gboolean sh4_execute_instruction( void )
                                                 uint32_t FVn = ((ir>>10)&0x3); 
                                                 CHECKFPUEN();
                                                 if( !IS_FPU_DOUBLEPREC() ) {
+                                            	sh4_ftrv(&(DRF(FVn<<1)), &sh4r.fr[((~sh4r.fpscr)&FPSCR_FR)>>21][0]);
+                                            	/*
                                                     tmp = FVn<<2;
                                             	float *xf = &sh4r.fr[((~sh4r.fpscr)&FPSCR_FR)>>21][0];
                                                     float fv[4] = { FR(tmp), FR(tmp+1), FR(tmp+2), FR(tmp+3) };
@@ -2187,6 +2199,7 @@ gboolean sh4_execute_instruction( void )
                                             	    xf[11]*fv[2] + xf[15]*fv[3];
                                                     FR(tmp+3) = xf[2] * fv[0] + xf[6]*fv[1] +
                                             	    xf[10]*fv[2] + xf[14]*fv[3];
+                                            	*/
                                                 }
                                                 }
                                                 break;
