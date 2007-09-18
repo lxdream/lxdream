@@ -157,7 +157,7 @@ lxdream_SOURCES = \
         sh4/sh4.c sh4/intc.c sh4/intc.h sh4/sh4mem.c sh4/timer.c sh4/dmac.c \
         sh4/sh4core.c sh4/sh4core.h sh4/sh4dasm.c sh4/sh4dasm.h \
         sh4/sh4mmio.c sh4/sh4mmio.h sh4/scif.c sh4/xltcache.c sh4/xltcache.h \
-        sh4/sh4trans.c sh4/sh4trans.h sh4/sh4x86.c \
+        sh4/sh4trans.c sh4/sh4trans.h sh4/sh4x86.c sh4/sh4stat.c sh4/sh4stat.h \
         x86dasm/x86dasm.c x86dasm/x86dasm.h \
         x86dasm/i386-dis.c x86dasm/dis-init.c x86dasm/dis-buf.c \
         aica/armcore.c aica/armcore.h aica/armdasm.c aica/armmem.c \
@@ -221,10 +221,10 @@ am_lxdream_OBJECTS = main.$(OBJEXT) mem.$(OBJEXT) watch.$(OBJEXT) \
 	intc.$(OBJEXT) sh4mem.$(OBJEXT) timer.$(OBJEXT) dmac.$(OBJEXT) \
 	sh4core.$(OBJEXT) sh4dasm.$(OBJEXT) sh4mmio.$(OBJEXT) \
 	scif.$(OBJEXT) xltcache.$(OBJEXT) sh4trans.$(OBJEXT) \
-	sh4x86.$(OBJEXT) x86dasm.$(OBJEXT) i386-dis.$(OBJEXT) \
-	dis-init.$(OBJEXT) dis-buf.$(OBJEXT) armcore.$(OBJEXT) \
-	armdasm.$(OBJEXT) armmem.$(OBJEXT) aica.$(OBJEXT) \
-	audio.$(OBJEXT) pvr2.$(OBJEXT) pvr2mem.$(OBJEXT) \
+	sh4x86.$(OBJEXT) sh4stat.$(OBJEXT) x86dasm.$(OBJEXT) \
+	i386-dis.$(OBJEXT) dis-init.$(OBJEXT) dis-buf.$(OBJEXT) \
+	armcore.$(OBJEXT) armdasm.$(OBJEXT) armmem.$(OBJEXT) \
+	aica.$(OBJEXT) audio.$(OBJEXT) pvr2.$(OBJEXT) pvr2mem.$(OBJEXT) \
 	tacore.$(OBJEXT) render.$(OBJEXT) rendcore.$(OBJEXT) \
 	rendbkg.$(OBJEXT) rendsort.$(OBJEXT) texcache.$(OBJEXT) \
 	yuv.$(OBJEXT) rendsave.$(OBJEXT) maple.$(OBJEXT) \
@@ -282,15 +282,15 @@ am__depfiles_maybe = depfiles
 @AMDEP_TRUE@	./$(DEPDIR)/scif.Po ./$(DEPDIR)/sh4.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/sh4core.Po ./$(DEPDIR)/sh4dasm.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/sh4mem.Po ./$(DEPDIR)/sh4mmio.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/sh4trans.Po ./$(DEPDIR)/sh4x86.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/support.Po ./$(DEPDIR)/syscall.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/tacore.Po ./$(DEPDIR)/testsh4x86.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/testxlt.Po ./$(DEPDIR)/texcache.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/timer.Po ./$(DEPDIR)/util.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/video_gtk.Po ./$(DEPDIR)/video_null.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/video_x11.Po ./$(DEPDIR)/watch.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/x86dasm.Po ./$(DEPDIR)/xltcache.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/yuv.Po
+@AMDEP_TRUE@	./$(DEPDIR)/sh4stat.Po ./$(DEPDIR)/sh4trans.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/sh4x86.Po ./$(DEPDIR)/support.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/syscall.Po ./$(DEPDIR)/tacore.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/testsh4x86.Po ./$(DEPDIR)/testxlt.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/texcache.Po ./$(DEPDIR)/timer.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/util.Po ./$(DEPDIR)/video_gtk.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/video_null.Po ./$(DEPDIR)/video_x11.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/watch.Po ./$(DEPDIR)/x86dasm.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/xltcache.Po ./$(DEPDIR)/yuv.Po
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
@@ -413,6 +413,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sh4dasm.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sh4mem.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sh4mmio.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sh4stat.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sh4trans.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sh4x86.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/support.Po@am__quote@
@@ -914,6 +915,28 @@ sh4x86.obj: sh4/sh4x86.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/sh4x86.Po' tmpdepfile='$(DEPDIR)/sh4x86.TPo' @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sh4x86.obj `if test -f 'sh4/sh4x86.c'; then $(CYGPATH_W) 'sh4/sh4x86.c'; else $(CYGPATH_W) '$(srcdir)/sh4/sh4x86.c'; fi`
+
+sh4stat.o: sh4/sh4stat.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sh4stat.o -MD -MP -MF "$(DEPDIR)/sh4stat.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o sh4stat.o `test -f 'sh4/sh4stat.c' || echo '$(srcdir)/'`sh4/sh4stat.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/sh4stat.Tpo" "$(DEPDIR)/sh4stat.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/sh4stat.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='sh4/sh4stat.c' object='sh4stat.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/sh4stat.Po' tmpdepfile='$(DEPDIR)/sh4stat.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sh4stat.o `test -f 'sh4/sh4stat.c' || echo '$(srcdir)/'`sh4/sh4stat.c
+
+sh4stat.obj: sh4/sh4stat.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sh4stat.obj -MD -MP -MF "$(DEPDIR)/sh4stat.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o sh4stat.obj `if test -f 'sh4/sh4stat.c'; then $(CYGPATH_W) 'sh4/sh4stat.c'; else $(CYGPATH_W) '$(srcdir)/sh4/sh4stat.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/sh4stat.Tpo" "$(DEPDIR)/sh4stat.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/sh4stat.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='sh4/sh4stat.c' object='sh4stat.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/sh4stat.Po' tmpdepfile='$(DEPDIR)/sh4stat.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sh4stat.obj `if test -f 'sh4/sh4stat.c'; then $(CYGPATH_W) 'sh4/sh4stat.c'; else $(CYGPATH_W) '$(srcdir)/sh4/sh4stat.c'; fi`
 
 x86dasm.o: x86dasm/x86dasm.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT x86dasm.o -MD -MP -MF "$(DEPDIR)/x86dasm.Tpo" \
@@ -1991,6 +2014,8 @@ sh4/sh4dasm.c: gendec sh4/sh4.def sh4/sh4dasm.in
 	./gendec sh4/sh4.def sh4/sh4dasm.in -o sh4/sh4dasm.c
 sh4/sh4x86.c: gendec sh4/sh4.def sh4/sh4x86.in
 	./gendec sh4/sh4.def sh4/sh4x86.in -o sh4/sh4x86.c
+sh4/sh4stat.c: gendec sh4/sh4.def sh4/sh4stat.in
+	./gendec sh4/sh4.def sh4/sh4stat.in -o sh4/sh4stat.c
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:

@@ -23,7 +23,7 @@ lxdream_SOURCES = \
         sh4/sh4.c sh4/intc.c sh4/intc.h sh4/sh4mem.c sh4/timer.c sh4/dmac.c \
         sh4/sh4core.c sh4/sh4core.h sh4/sh4dasm.c sh4/sh4dasm.h \
         sh4/sh4mmio.c sh4/sh4mmio.h sh4/scif.c sh4/xltcache.c sh4/xltcache.h \
-        sh4/sh4trans.c sh4/sh4trans.h sh4/sh4x86.c \
+        sh4/sh4trans.c sh4/sh4trans.h sh4/sh4x86.c sh4/sh4stat.c sh4/sh4stat.h \
         x86dasm/x86dasm.c x86dasm/x86dasm.h \
         x86dasm/i386-dis.c x86dasm/dis-init.c x86dasm/dis-buf.c \
         aica/armcore.c aica/armcore.h aica/armdasm.c aica/armmem.c \
@@ -70,3 +70,5 @@ sh4/sh4dasm.c: gendec sh4/sh4.def sh4/sh4dasm.in
 	./gendec sh4/sh4.def sh4/sh4dasm.in -o sh4/sh4dasm.c
 sh4/sh4x86.c: gendec sh4/sh4.def sh4/sh4x86.in
 	./gendec sh4/sh4.def sh4/sh4x86.in -o sh4/sh4x86.c
+sh4/sh4stat.c: gendec sh4/sh4.def sh4/sh4stat.in
+	./gendec sh4/sh4.def sh4/sh4stat.in -o sh4/sh4stat.c
