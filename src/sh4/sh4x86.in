@@ -1,5 +1,5 @@
 /**
- * $Id: sh4x86.in,v 1.12 2007-09-19 09:15:18 nkeynes Exp $
+ * $Id: sh4x86.in,v 1.13 2007-09-19 10:04:16 nkeynes Exp $
  * 
  * SH4 => x86 translation. This version does no real optimization, it just
  * outputs straight-line x86 code - it mainly exists to provide a baseline
@@ -2120,6 +2120,7 @@ LDC Rm, Rn_BANK {:
 :}
 LDC.L @Rm+, GBR {:  
     load_reg( R_EAX, Rm );
+    check_ralign32( R_EAX );
     MOV_r32_r32( R_EAX, R_ECX );
     ADD_imm8s_r32( 4, R_EAX );
     store_reg( R_EAX, Rm );
@@ -2132,6 +2133,7 @@ LDC.L @Rm+, SR {:
     } else {
 	check_priv();
 	load_reg( R_EAX, Rm );
+	check_ralign32( R_EAX );
 	MOV_r32_r32( R_EAX, R_ECX );
 	ADD_imm8s_r32( 4, R_EAX );
 	store_reg( R_EAX, Rm );
@@ -2144,6 +2146,7 @@ LDC.L @Rm+, SR {:
 LDC.L @Rm+, VBR {:  
     check_priv();
     load_reg( R_EAX, Rm );
+    check_ralign32( R_EAX );
     MOV_r32_r32( R_EAX, R_ECX );
     ADD_imm8s_r32( 4, R_EAX );
     store_reg( R_EAX, Rm );
@@ -2162,6 +2165,7 @@ LDC.L @Rm+, SSR {:
 LDC.L @Rm+, SGR {:  
     check_priv();
     load_reg( R_EAX, Rm );
+    check_ralign32( R_EAX );
     MOV_r32_r32( R_EAX, R_ECX );
     ADD_imm8s_r32( 4, R_EAX );
     store_reg( R_EAX, Rm );
@@ -2171,6 +2175,7 @@ LDC.L @Rm+, SGR {:
 LDC.L @Rm+, SPC {:  
     check_priv();
     load_reg( R_EAX, Rm );
+    check_ralign32( R_EAX );
     MOV_r32_r32( R_EAX, R_ECX );
     ADD_imm8s_r32( 4, R_EAX );
     store_reg( R_EAX, Rm );
@@ -2180,6 +2185,7 @@ LDC.L @Rm+, SPC {:
 LDC.L @Rm+, DBR {:  
     check_priv();
     load_reg( R_EAX, Rm );
+    check_ralign32( R_EAX );
     MOV_r32_r32( R_EAX, R_ECX );
     ADD_imm8s_r32( 4, R_EAX );
     store_reg( R_EAX, Rm );
@@ -2189,6 +2195,7 @@ LDC.L @Rm+, DBR {:
 LDC.L @Rm+, Rn_BANK {:  
     check_priv();
     load_reg( R_EAX, Rm );
+    check_ralign32( R_EAX );
     MOV_r32_r32( R_EAX, R_ECX );
     ADD_imm8s_r32( 4, R_EAX );
     store_reg( R_EAX, Rm );
@@ -2202,6 +2209,7 @@ LDS Rm, FPSCR {:
 :}
 LDS.L @Rm+, FPSCR {:  
     load_reg( R_EAX, Rm );
+    check_ralign32( R_EAX );
     MOV_r32_r32( R_EAX, R_ECX );
     ADD_imm8s_r32( 4, R_EAX );
     store_reg( R_EAX, Rm );
@@ -2215,6 +2223,7 @@ LDS Rm, FPUL {:
 :}
 LDS.L @Rm+, FPUL {:  
     load_reg( R_EAX, Rm );
+    check_ralign32( R_EAX );
     MOV_r32_r32( R_EAX, R_ECX );
     ADD_imm8s_r32( 4, R_EAX );
     store_reg( R_EAX, Rm );
@@ -2227,6 +2236,7 @@ LDS Rm, MACH {:
 :}
 LDS.L @Rm+, MACH {:  
     load_reg( R_EAX, Rm );
+    check_ralign32( R_EAX );
     MOV_r32_r32( R_EAX, R_ECX );
     ADD_imm8s_r32( 4, R_EAX );
     store_reg( R_EAX, Rm );
@@ -2239,6 +2249,7 @@ LDS Rm, MACL {:
 :}
 LDS.L @Rm+, MACL {:  
     load_reg( R_EAX, Rm );
+    check_ralign32( R_EAX );
     MOV_r32_r32( R_EAX, R_ECX );
     ADD_imm8s_r32( 4, R_EAX );
     store_reg( R_EAX, Rm );
@@ -2251,6 +2262,7 @@ LDS Rm, PR {:
 :}
 LDS.L @Rm+, PR {:  
     load_reg( R_EAX, Rm );
+    check_ralign32( R_EAX );
     MOV_r32_r32( R_EAX, R_ECX );
     ADD_imm8s_r32( 4, R_EAX );
     store_reg( R_EAX, Rm );
@@ -2320,15 +2332,17 @@ STC Rm_BANK, Rn {:
 :}
 STC.L SR, @-Rn {:
     check_priv();
+    call_func0( sh4_read_sr );
     load_reg( R_ECX, Rn );
+    check_walign32( R_ECX );
     ADD_imm8s_r32( -4, R_ECX );
     store_reg( R_ECX, Rn );
-    call_func0( sh4_read_sr );
     MEM_WRITE_LONG( R_ECX, R_EAX );
 :}
 STC.L VBR, @-Rn {:  
     check_priv();
     load_reg( R_ECX, Rn );
+    check_walign32( R_ECX );
     ADD_imm8s_r32( -4, R_ECX );
     store_reg( R_ECX, Rn );
     load_spreg( R_EAX, R_VBR );
@@ -2337,6 +2351,7 @@ STC.L VBR, @-Rn {:
 STC.L SSR, @-Rn {:  
     check_priv();
     load_reg( R_ECX, Rn );
+    check_walign32( R_ECX );
     ADD_imm8s_r32( -4, R_ECX );
     store_reg( R_ECX, Rn );
     load_spreg( R_EAX, R_SSR );
@@ -2345,6 +2360,7 @@ STC.L SSR, @-Rn {:
 STC.L SPC, @-Rn {:  
     check_priv();
     load_reg( R_ECX, Rn );
+    check_walign32( R_ECX );
     ADD_imm8s_r32( -4, R_ECX );
     store_reg( R_ECX, Rn );
     load_spreg( R_EAX, R_SPC );
@@ -2353,6 +2369,7 @@ STC.L SPC, @-Rn {:
 STC.L SGR, @-Rn {:  
     check_priv();
     load_reg( R_ECX, Rn );
+    check_walign32( R_ECX );
     ADD_imm8s_r32( -4, R_ECX );
     store_reg( R_ECX, Rn );
     load_spreg( R_EAX, R_SGR );
@@ -2361,6 +2378,7 @@ STC.L SGR, @-Rn {:
 STC.L DBR, @-Rn {:  
     check_priv();
     load_reg( R_ECX, Rn );
+    check_walign32( R_ECX );
     ADD_imm8s_r32( -4, R_ECX );
     store_reg( R_ECX, Rn );
     load_spreg( R_EAX, R_DBR );
@@ -2369,6 +2387,7 @@ STC.L DBR, @-Rn {:
 STC.L Rm_BANK, @-Rn {:  
     check_priv();
     load_reg( R_ECX, Rn );
+    check_walign32( R_ECX );
     ADD_imm8s_r32( -4, R_ECX );
     store_reg( R_ECX, Rn );
     load_spreg( R_EAX, REG_OFFSET(r_bank[Rm_BANK]) );
@@ -2376,6 +2395,7 @@ STC.L Rm_BANK, @-Rn {:
 :}
 STC.L GBR, @-Rn {:  
     load_reg( R_ECX, Rn );
+    check_walign32( R_ECX );
     ADD_imm8s_r32( -4, R_ECX );
     store_reg( R_ECX, Rn );
     load_spreg( R_EAX, R_GBR );
@@ -2387,6 +2407,7 @@ STS FPSCR, Rn {:
 :}
 STS.L FPSCR, @-Rn {:  
     load_reg( R_ECX, Rn );
+    check_walign32( R_ECX );
     ADD_imm8s_r32( -4, R_ECX );
     store_reg( R_ECX, Rn );
     load_spreg( R_EAX, R_FPSCR );
@@ -2398,6 +2419,7 @@ STS FPUL, Rn {:
 :}
 STS.L FPUL, @-Rn {:  
     load_reg( R_ECX, Rn );
+    check_walign32( R_ECX );
     ADD_imm8s_r32( -4, R_ECX );
     store_reg( R_ECX, Rn );
     load_spreg( R_EAX, R_FPUL );
@@ -2409,6 +2431,7 @@ STS MACH, Rn {:
 :}
 STS.L MACH, @-Rn {:  
     load_reg( R_ECX, Rn );
+    check_walign32( R_ECX );
     ADD_imm8s_r32( -4, R_ECX );
     store_reg( R_ECX, Rn );
     load_spreg( R_EAX, R_MACH );
@@ -2420,6 +2443,7 @@ STS MACL, Rn {:
 :}
 STS.L MACL, @-Rn {:  
     load_reg( R_ECX, Rn );
+    check_walign32( R_ECX );
     ADD_imm8s_r32( -4, R_ECX );
     store_reg( R_ECX, Rn );
     load_spreg( R_EAX, R_MACL );
@@ -2431,6 +2455,7 @@ STS PR, Rn {:
 :}
 STS.L PR, @-Rn {:  
     load_reg( R_ECX, Rn );
+    check_walign32( R_ECX );
     ADD_imm8s_r32( -4, R_ECX );
     store_reg( R_ECX, Rn );
     load_spreg( R_EAX, R_PR );

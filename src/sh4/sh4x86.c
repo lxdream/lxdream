@@ -1,5 +1,5 @@
 /**
- * $Id: sh4x86.c,v 1.11 2007-09-19 09:15:18 nkeynes Exp $
+ * $Id: sh4x86.c,v 1.12 2007-09-19 10:04:16 nkeynes Exp $
  * 
  * SH4 => x86 translation. This version does no real optimization, it just
  * outputs straight-line x86 code - it mainly exists to provide a baseline
@@ -1328,6 +1328,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                 { /* STS.L MACH, @-Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
                                 load_reg( R_ECX, Rn );
+                                check_walign32( R_ECX );
                                 ADD_imm8s_r32( -4, R_ECX );
                                 store_reg( R_ECX, Rn );
                                 load_spreg( R_EAX, R_MACH );
@@ -1338,6 +1339,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                 { /* STS.L MACL, @-Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
                                 load_reg( R_ECX, Rn );
+                                check_walign32( R_ECX );
                                 ADD_imm8s_r32( -4, R_ECX );
                                 store_reg( R_ECX, Rn );
                                 load_spreg( R_EAX, R_MACL );
@@ -1348,6 +1350,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                 { /* STS.L PR, @-Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
                                 load_reg( R_ECX, Rn );
+                                check_walign32( R_ECX );
                                 ADD_imm8s_r32( -4, R_ECX );
                                 store_reg( R_ECX, Rn );
                                 load_spreg( R_EAX, R_PR );
@@ -1359,6 +1362,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                 uint32_t Rn = ((ir>>8)&0xF); 
                                 check_priv();
                                 load_reg( R_ECX, Rn );
+                                check_walign32( R_ECX );
                                 ADD_imm8s_r32( -4, R_ECX );
                                 store_reg( R_ECX, Rn );
                                 load_spreg( R_EAX, R_SGR );
@@ -1369,6 +1373,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                 { /* STS.L FPUL, @-Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
                                 load_reg( R_ECX, Rn );
+                                check_walign32( R_ECX );
                                 ADD_imm8s_r32( -4, R_ECX );
                                 store_reg( R_ECX, Rn );
                                 load_spreg( R_EAX, R_FPUL );
@@ -1379,6 +1384,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                 { /* STS.L FPSCR, @-Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
                                 load_reg( R_ECX, Rn );
+                                check_walign32( R_ECX );
                                 ADD_imm8s_r32( -4, R_ECX );
                                 store_reg( R_ECX, Rn );
                                 load_spreg( R_EAX, R_FPSCR );
@@ -1390,6 +1396,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                 uint32_t Rn = ((ir>>8)&0xF); 
                                 check_priv();
                                 load_reg( R_ECX, Rn );
+                                check_walign32( R_ECX );
                                 ADD_imm8s_r32( -4, R_ECX );
                                 store_reg( R_ECX, Rn );
                                 load_spreg( R_EAX, R_DBR );
@@ -1409,10 +1416,11 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                         { /* STC.L SR, @-Rn */
                                         uint32_t Rn = ((ir>>8)&0xF); 
                                         check_priv();
+                                        call_func0( sh4_read_sr );
                                         load_reg( R_ECX, Rn );
+                                        check_walign32( R_ECX );
                                         ADD_imm8s_r32( -4, R_ECX );
                                         store_reg( R_ECX, Rn );
-                                        call_func0( sh4_read_sr );
                                         MEM_WRITE_LONG( R_ECX, R_EAX );
                                         }
                                         break;
@@ -1420,6 +1428,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                         { /* STC.L GBR, @-Rn */
                                         uint32_t Rn = ((ir>>8)&0xF); 
                                         load_reg( R_ECX, Rn );
+                                        check_walign32( R_ECX );
                                         ADD_imm8s_r32( -4, R_ECX );
                                         store_reg( R_ECX, Rn );
                                         load_spreg( R_EAX, R_GBR );
@@ -1431,6 +1440,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                         uint32_t Rn = ((ir>>8)&0xF); 
                                         check_priv();
                                         load_reg( R_ECX, Rn );
+                                        check_walign32( R_ECX );
                                         ADD_imm8s_r32( -4, R_ECX );
                                         store_reg( R_ECX, Rn );
                                         load_spreg( R_EAX, R_VBR );
@@ -1442,6 +1452,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                         uint32_t Rn = ((ir>>8)&0xF); 
                                         check_priv();
                                         load_reg( R_ECX, Rn );
+                                        check_walign32( R_ECX );
                                         ADD_imm8s_r32( -4, R_ECX );
                                         store_reg( R_ECX, Rn );
                                         load_spreg( R_EAX, R_SSR );
@@ -1453,6 +1464,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                         uint32_t Rn = ((ir>>8)&0xF); 
                                         check_priv();
                                         load_reg( R_ECX, Rn );
+                                        check_walign32( R_ECX );
                                         ADD_imm8s_r32( -4, R_ECX );
                                         store_reg( R_ECX, Rn );
                                         load_spreg( R_EAX, R_SPC );
@@ -1469,6 +1481,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                 uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm_BANK = ((ir>>4)&0x7); 
                                 check_priv();
                                 load_reg( R_ECX, Rn );
+                                check_walign32( R_ECX );
                                 ADD_imm8s_r32( -4, R_ECX );
                                 store_reg( R_ECX, Rn );
                                 load_spreg( R_EAX, REG_OFFSET(r_bank[Rm_BANK]) );
@@ -1543,6 +1556,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                 { /* LDS.L @Rm+, MACH */
                                 uint32_t Rm = ((ir>>8)&0xF); 
                                 load_reg( R_EAX, Rm );
+                                check_ralign32( R_EAX );
                                 MOV_r32_r32( R_EAX, R_ECX );
                                 ADD_imm8s_r32( 4, R_EAX );
                                 store_reg( R_EAX, Rm );
@@ -1554,6 +1568,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                 { /* LDS.L @Rm+, MACL */
                                 uint32_t Rm = ((ir>>8)&0xF); 
                                 load_reg( R_EAX, Rm );
+                                check_ralign32( R_EAX );
                                 MOV_r32_r32( R_EAX, R_ECX );
                                 ADD_imm8s_r32( 4, R_EAX );
                                 store_reg( R_EAX, Rm );
@@ -1565,6 +1580,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                 { /* LDS.L @Rm+, PR */
                                 uint32_t Rm = ((ir>>8)&0xF); 
                                 load_reg( R_EAX, Rm );
+                                check_ralign32( R_EAX );
                                 MOV_r32_r32( R_EAX, R_ECX );
                                 ADD_imm8s_r32( 4, R_EAX );
                                 store_reg( R_EAX, Rm );
@@ -1577,6 +1593,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                 uint32_t Rm = ((ir>>8)&0xF); 
                                 check_priv();
                                 load_reg( R_EAX, Rm );
+                                check_ralign32( R_EAX );
                                 MOV_r32_r32( R_EAX, R_ECX );
                                 ADD_imm8s_r32( 4, R_EAX );
                                 store_reg( R_EAX, Rm );
@@ -1588,6 +1605,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                 { /* LDS.L @Rm+, FPUL */
                                 uint32_t Rm = ((ir>>8)&0xF); 
                                 load_reg( R_EAX, Rm );
+                                check_ralign32( R_EAX );
                                 MOV_r32_r32( R_EAX, R_ECX );
                                 ADD_imm8s_r32( 4, R_EAX );
                                 store_reg( R_EAX, Rm );
@@ -1599,6 +1617,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                 { /* LDS.L @Rm+, FPSCR */
                                 uint32_t Rm = ((ir>>8)&0xF); 
                                 load_reg( R_EAX, Rm );
+                                check_ralign32( R_EAX );
                                 MOV_r32_r32( R_EAX, R_ECX );
                                 ADD_imm8s_r32( 4, R_EAX );
                                 store_reg( R_EAX, Rm );
@@ -1612,6 +1631,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                 uint32_t Rm = ((ir>>8)&0xF); 
                                 check_priv();
                                 load_reg( R_EAX, Rm );
+                                check_ralign32( R_EAX );
                                 MOV_r32_r32( R_EAX, R_ECX );
                                 ADD_imm8s_r32( 4, R_EAX );
                                 store_reg( R_EAX, Rm );
@@ -1636,6 +1656,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                         } else {
                                     	check_priv();
                                     	load_reg( R_EAX, Rm );
+                                    	check_ralign32( R_EAX );
                                     	MOV_r32_r32( R_EAX, R_ECX );
                                     	ADD_imm8s_r32( 4, R_EAX );
                                     	store_reg( R_EAX, Rm );
@@ -1650,6 +1671,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                         { /* LDC.L @Rm+, GBR */
                                         uint32_t Rm = ((ir>>8)&0xF); 
                                         load_reg( R_EAX, Rm );
+                                        check_ralign32( R_EAX );
                                         MOV_r32_r32( R_EAX, R_ECX );
                                         ADD_imm8s_r32( 4, R_EAX );
                                         store_reg( R_EAX, Rm );
@@ -1662,6 +1684,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                         uint32_t Rm = ((ir>>8)&0xF); 
                                         check_priv();
                                         load_reg( R_EAX, Rm );
+                                        check_ralign32( R_EAX );
                                         MOV_r32_r32( R_EAX, R_ECX );
                                         ADD_imm8s_r32( 4, R_EAX );
                                         store_reg( R_EAX, Rm );
@@ -1686,6 +1709,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                         uint32_t Rm = ((ir>>8)&0xF); 
                                         check_priv();
                                         load_reg( R_EAX, Rm );
+                                        check_ralign32( R_EAX );
                                         MOV_r32_r32( R_EAX, R_ECX );
                                         ADD_imm8s_r32( 4, R_EAX );
                                         store_reg( R_EAX, Rm );
@@ -1703,6 +1727,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                 uint32_t Rm = ((ir>>8)&0xF); uint32_t Rn_BANK = ((ir>>4)&0x7); 
                                 check_priv();
                                 load_reg( R_EAX, Rm );
+                                check_ralign32( R_EAX );
                                 MOV_r32_r32( R_EAX, R_ECX );
                                 ADD_imm8s_r32( 4, R_EAX );
                                 store_reg( R_EAX, Rm );
