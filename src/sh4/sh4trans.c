@@ -1,5 +1,5 @@
 /**
- * $Id: sh4trans.c,v 1.3 2007-09-18 09:12:30 nkeynes Exp $
+ * $Id: sh4trans.c,v 1.4 2007-09-19 12:09:33 nkeynes Exp $
  * 
  * SH4 translation core module. This part handles the non-target-specific
  * section of the translation.
@@ -16,7 +16,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
-
+#include <assert.h>
 #include "sh4core.h"
 #include "sh4trans.h"
 #include "xltcache.h"
@@ -109,4 +109,28 @@ void * sh4_translate_basic_block( sh4addr_t start )
     return block->code;
 }
 
+/**
+ * Translate a linear basic block to a temporary buffer, execute it, and return
+ * the result of the execution. The translation is discarded.
+ */
+gboolean sh4_translate_and_run( sh4addr_t start )
+{
+    char buf[65536];
 
+    uint32_t pc = start;
+    int done;
+    xlat_output = buf;
+    uint8_t *eob = xlat_output + sizeof(buf);
+
+    sh4_translate_begin_block();
+
+    while( (done = sh4_x86_translate_instruction( pc )) == 0 ) {
+	assert( (eob - xlat_output) >= MAX_INSTRUCTION_SIZE );
+	pc += 2;
+    }
+    pc+=2;
+    sh4_translate_end_block(pc);
+
+    gboolean (*code)() = (void *)buf;
+    return code();
+}
