@@ -1,5 +1,5 @@
 /**
- * $Id: sh4x86.in,v 1.13 2007-09-19 10:04:16 nkeynes Exp $
+ * $Id: sh4x86.in,v 1.14 2007-09-19 11:30:30 nkeynes Exp $
  * 
  * SH4 => x86 translation. This version does no real optimization, it just
  * outputs straight-line x86 code - it mainly exists to provide a baseline
@@ -907,16 +907,19 @@ SHLD Rm, Rn {:
 SHAL Rn {: 
     load_reg( R_EAX, Rn );
     SHL1_r32( R_EAX );
+    SETC_t();
     store_reg( R_EAX, Rn );
 :}
 SHAR Rn {:  
     load_reg( R_EAX, Rn );
     SAR1_r32( R_EAX );
+    SETC_t();
     store_reg( R_EAX, Rn );
 :}
 SHLL Rn {:  
     load_reg( R_EAX, Rn );
     SHL1_r32( R_EAX );
+    SETC_t();
     store_reg( R_EAX, Rn );
 :}
 SHLL2 Rn {:
@@ -937,6 +940,7 @@ SHLL16 Rn {:
 SHLR Rn {:  
     load_reg( R_EAX, Rn );
     SHR1_r32( R_EAX );
+    SETC_t();
     store_reg( R_EAX, Rn );
 :}
 SHLR2 Rn {:  

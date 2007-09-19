@@ -1,5 +1,5 @@
 /**
- * $Id: sh4x86.c,v 1.12 2007-09-19 10:04:16 nkeynes Exp $
+ * $Id: sh4x86.c,v 1.13 2007-09-19 11:30:30 nkeynes Exp $
  * 
  * SH4 => x86 translation. This version does no real optimization, it just
  * outputs straight-line x86 code - it mainly exists to provide a baseline
@@ -1266,6 +1266,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                 uint32_t Rn = ((ir>>8)&0xF); 
                                 load_reg( R_EAX, Rn );
                                 SHL1_r32( R_EAX );
+                                SETC_t();
                                 store_reg( R_EAX, Rn );
                                 }
                                 break;
@@ -1283,6 +1284,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                 uint32_t Rn = ((ir>>8)&0xF); 
                                 load_reg( R_EAX, Rn );
                                 SHL1_r32( R_EAX );
+                                SETC_t();
                                 store_reg( R_EAX, Rn );
                                 }
                                 break;
@@ -1298,6 +1300,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                 uint32_t Rn = ((ir>>8)&0xF); 
                                 load_reg( R_EAX, Rn );
                                 SHR1_r32( R_EAX );
+                                SETC_t();
                                 store_reg( R_EAX, Rn );
                                 }
                                 break;
@@ -1314,6 +1317,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                 uint32_t Rn = ((ir>>8)&0xF); 
                                 load_reg( R_EAX, Rn );
                                 SAR1_r32( R_EAX );
+                                SETC_t();
                                 store_reg( R_EAX, Rn );
                                 }
                                 break;
