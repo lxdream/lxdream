@@ -62,6 +62,9 @@ int main()
     test_ftrc();
     test_mac();
     test_shld();
+    test_sub();
+    test_subc();
+    test_xtrct();
     fprintf( stdout, "--> %d/%d instruction tests passed (%d%%)\n\n",
 	     total_tests-total_fails, total_tests, 
 	     ((total_tests-total_fails)*100)/total_tests );

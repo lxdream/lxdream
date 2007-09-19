@@ -274,10 +274,10 @@ test_ftrc_11: ! test undefined instruction, pr=1
 	sts fpul, r1
 	mov.l test_ftrc_11_result, r2
 	cmp/eq r1, r2
-	bt test_ftrc_end
+	bt test_ftrc_12
 test_ftrc_11_fail:
 	fail test_ftrc_str_k
-	bra test_ftrc_end
+	bra test_ftrc_12
 	nop
 test_ftrc_11_input_a:
 	.long 0x40FFFF11
@@ -288,7 +288,40 @@ test_ftrc_11_input_c:
 test_ftrc_11_result:
 	.long 0x00000000
 
+test_ftrc_12:   ! single precision numeric tests (rounding)
+	mov.l r11, @-r15
+	mov.l r10, @-r15
+	mova test_ftrc_12_data, r0
+	mov r0, r10
+	mov #4, r11
+	clrpr
+test_ftrc_12_loop:	
+	add #1, r12
+	fmov @r10+, fr5
+	ftrc fr5, fpul
+	sts fpul, r4
+	mov.l @r10+, r5
+	cmp/eq r4, r5
+	bt test_ftrc_12_ok
+	fail test_ftrc_str_k
+test_ftrc_12_ok:
+	dt r11
+	bf test_ftrc_12_loop
+	bra test_ftrc_end
+	nop
+test_ftrc_12_data:
+	.long 0x449a5314
+	.long 0x000004D2
+	.long 0xC5A9C785
+	.long 0xFFFFEAC8
+	.long 0x49098291
+	.long 0x00089829
+	.long 0xC2DA999A
+	.long 0xFFFFFF93
+	
 test_ftrc_end:
+	mov.l @r15+, r10
+	mov.l @r15+, r11
 	end_test test_ftrc_str_k
 	
 test_ftrc_str:
