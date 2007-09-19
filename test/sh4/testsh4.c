@@ -61,6 +61,8 @@ int main()
     test_fmov();
     test_ftrc();
     test_mac();
+    test_rot();
+    test_shl();
     test_shld();
     test_sub();
     test_subc();

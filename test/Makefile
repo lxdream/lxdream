@@ -75,7 +75,8 @@ testsh4: crt0.so sh4/testsh4.so timer.so interrupt.so \
 	 sh4/add.so sh4/addc.so sh4/addv.so sh4/and.so sh4/andi.so \
 	 sh4/bf.so sh4/bt.so sh4/cmp.so sh4/cmpstr.so sh4/div0.so \
 	 sh4/div1.so sh4/float.so sh4/fmov.so sh4/ftrc.so sh4/mac.s \
-	 sh4/shld.so sh4/sub.so sh4/subc.so sh4/xtrct.so \
+	 sh4/rot.so sh4/shl.so sh4/shld.so sh4/sub.so sh4/subc.so \
+	 sh4/xtrct.so \
 	 sh4/excslot.so sh4/undef.so
 	$(SH4CC) $(SH4LDFLAGS) $^ -o $@ $(SH4LIBS)
 	$(SH4OBJCOPY) testsh4 testsh4.bin
