@@ -1,5 +1,5 @@
 /**
- * $Id: sh4x86.c,v 1.10 2007-09-18 08:59:00 nkeynes Exp $
+ * $Id: sh4x86.c,v 1.11 2007-09-19 09:15:18 nkeynes Exp $
  * 
  * SH4 => x86 translation. This version does no real optimization, it just
  * outputs straight-line x86 code - it mainly exists to provide a baseline
@@ -61,6 +61,8 @@ static struct sh4_x86_state sh4_x86;
 
 static uint32_t max_int = 0x7FFFFFFF;
 static uint32_t min_int = 0x80000000;
+static uint32_t save_fcw; /* save value for fpu control word */
+static uint32_t trunc_fcw = 0x0F7F; /* fcw value for truncation mode */
 void signsat48( void )
 {
     if( ((int64_t)sh4r.mac) < (int64_t)0xFFFF800000000000LL )
@@ -838,6 +840,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                 call_func0( sh4_sleep );
                                 sh4_x86.exit_code = 0;
                                 sh4_x86.in_delay_slot = FALSE;
+                                INC_r32(R_ESI);
                                 return 1;
                                 }
                                 break;
@@ -1067,9 +1070,9 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                         { /* XTRCT Rm, Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
                         load_reg( R_EAX, Rm );
-                        MOV_r32_r32( R_EAX, R_ECX );
-                        SHR_imm8_r32( 16, R_EAX );
-                        SHL_imm8_r32( 16, R_ECX );
+                        load_reg( R_ECX, Rn );
+                        SHL_imm8_r32( 16, R_EAX );
+                        SHR_imm8_r32( 16, R_ECX );
                         OR_r32_r32( R_EAX, R_ECX );
                         store_reg( R_ECX, Rn );
                         }
@@ -1196,6 +1199,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                         LDC_t();
                         SBB_r32_r32( R_EAX, R_ECX );
                         store_reg( R_ECX, Rn );
+                        SETC_t();
                         }
                         break;
                     case 0xB:
@@ -2480,7 +2484,7 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                         load_reg( R_ECX, R_GBR);
                         ADD_r32_r32( R_EAX, R_ECX );
                         MEM_READ_BYTE( R_ECX, R_EAX );
-                        TEST_imm8_r8( imm, R_EAX );
+                        TEST_imm8_r8( imm, R_AL );
                         SETE_t();
                         }
                         break;
@@ -2983,12 +2987,17 @@ uint32_t sh4_x86_translate_instruction( uint32_t pc )
                                 load_imm32( R_ECX, (uint32_t)&max_int );
                                 FILD_r32ind( R_ECX );
                                 FCOMIP_st(1);
-                                JNA_rel8( 16, sat );
+                                JNA_rel8( 32, sat );
                                 load_imm32( R_ECX, (uint32_t)&min_int );  // 5
                                 FILD_r32ind( R_ECX );           // 2
                                 FCOMIP_st(1);                   // 2
-                                JAE_rel8( 5, sat2 );            // 2
+                                JAE_rel8( 21, sat2 );            // 2
+                                load_imm32( R_EAX, (uint32_t)&save_fcw );
+                                FNSTCW_r32ind( R_EAX );
+                                load_imm32( R_EDX, (uint32_t)&trunc_fcw );
+                                FLDCW_r32ind( R_EDX );
                                 FISTP_sh4r(R_FPUL);             // 3
+                                FLDCW_r32ind( R_EAX );
                                 JMP_rel8( 9, end );             // 2
                             
                                 JMP_TARGET(sat);
