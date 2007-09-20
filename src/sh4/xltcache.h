@@ -1,5 +1,5 @@
 /**
- * $Id: xltcache.h,v 1.3 2007-09-12 09:16:47 nkeynes Exp $
+ * $Id: xltcache.h,v 1.4 2007-09-20 08:35:04 nkeynes Exp $
  * 
  * Translation cache support (architecture independent)
  *
@@ -78,6 +78,15 @@ uint32_t xlat_get_block_size( void *ptr );
  * Flush the code cache for the page containing the given address
  */
 void xlat_flush_page( sh4addr_t address );
+
+void xlat_invalidate_word( sh4addr_t address );
+void xlat_invalidate_long( sh4addr_t address );
+
+
+/**
+ * Invalidate the code cache for a memory region
+ */
+void xlat_invalidate_block( sh4addr_t address, size_t bytes );
 
 /**
  * Flush the entire code cache. This isn't as cheap as one might like

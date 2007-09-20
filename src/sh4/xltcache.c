@@ -1,5 +1,5 @@
 /**
- * $Id: xltcache.c,v 1.4 2007-09-16 06:59:47 nkeynes Exp $
+ * $Id: xltcache.c,v 1.5 2007-09-20 08:35:04 nkeynes Exp $
  * 
  * Translation cache management. This part is architecture independent.
  *
@@ -78,6 +78,12 @@ void xlat_cache_init()
     xlat_flush_cache();
 }
 
+void xlat_print_free( FILE *out )
+{
+    fprintf( out, "New space: %d\nTemp space: %d\nOld space: %d\n", 
+	     xlat_new_cache_ptr->size, xlat_temp_cache_ptr->size, xlat_old_cache_ptr->size );
+}
+
 /**
  * Reset the cache structure to its default state
  */
@@ -110,15 +116,82 @@ void xlat_flush_cache()
     }
 }
 
-void xlat_flush_page( sh4addr_t address )
+static void xlat_flush_page_by_lut( void **page )
 {
     int i;
-    void **page = xlat_lut[XLAT_LUT_PAGE(address)];
     for( i=0; i<XLAT_LUT_PAGE_ENTRIES; i++ ) {
 	if( IS_ENTRY_POINT(page[i]) ) {
 	    BLOCK_FOR_CODE(page[i])->active = 0;
 	}
 	page[i] = NULL;
+    }
+}
+
+void xlat_invalidate_word( sh4addr_t addr )
+{
+    if( xlat_lut ) {
+	void **page = xlat_lut[XLAT_LUT_PAGE(addr)];
+	if( page != NULL ) {
+	    int entry = XLAT_LUT_ENTRY(addr);
+	    if( page[entry] != NULL ) {
+		xlat_flush_page_by_lut(page);
+	    }
+	}
+    }
+}
+
+void xlat_invalidate_long( sh4addr_t addr )
+{
+    if( xlat_lut ) {
+	void **page = xlat_lut[XLAT_LUT_PAGE(addr)];
+	if( page != NULL ) {
+	    int entry = XLAT_LUT_ENTRY(addr);
+	    if( page[entry] != NULL || page[entry+1] != NULL ) {
+		xlat_flush_page_by_lut(page);
+	    }
+	}
+    }
+}
+
+void xlat_invalidate_block( sh4addr_t address, size_t size )
+{
+    int i;
+    int entry_count = size >> 1; // words;
+    uint32_t page_no = XLAT_LUT_PAGE(address);
+    int entry = XLAT_LUT_ENTRY(address);
+    if( xlat_lut ) {
+	do {
+	    void **page = xlat_lut[page_no];
+	    int page_entries = XLAT_LUT_PAGE_ENTRIES - entry;
+	    if( entry_count < page_entries ) {
+		page_entries = entry_count;
+	    }
+	    if( page != NULL ) {
+		if( page_entries == XLAT_LUT_PAGE_ENTRIES ) {
+		    /* Overwriting the entire page anyway */
+		    xlat_flush_page_by_lut(page);
+		} else {
+		    for( i=entry; i<entry+page_entries; i++ ) {
+			if( page[i] != NULL ) {
+			    xlat_flush_page_by_lut(page);
+			    break;
+			}
+		    }
+		}
+		entry_count -= page_entries;
+	    }
+	    page_no ++;
+	    entry_count -= page_entries;
+	    entry = 0;
+	} while( entry_count > 0 );
+    }
+}
+
+void xlat_flush_page( sh4addr_t address )
+{
+    void **page = xlat_lut[XLAT_LUT_PAGE(address)];
+    if( page != NULL ) {
+	xlat_flush_page_by_lut(page);
     }
 }
 

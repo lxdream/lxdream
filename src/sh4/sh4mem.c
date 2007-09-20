@@ -1,5 +1,5 @@
 /**
- * $Id: sh4mem.c,v 1.22 2007-09-08 04:38:11 nkeynes Exp $
+ * $Id: sh4mem.c,v 1.23 2007-09-20 08:35:04 nkeynes Exp $
  * sh4mem.c is responsible for the SH4's access to memory (including memory
  * mapped I/O), using the page maps created in mem.c
  *
@@ -152,6 +152,7 @@ int32_t sh4_read_long( uint32_t addr )
         TRACE_IO( "Long read %08X <= %08X", page, (addr&0xFFF), val, addr );
         return val;
     } else {
+	// fprintf( stderr, "MOV.L %08X <= %08X\n",*(int32_t *)(page+(addr&0xFFF)), addr );
         return *(int32_t *)(page+(addr&0xFFF));
     }
 }
@@ -227,6 +228,7 @@ int32_t sh4_read_byte( uint32_t addr )
         TRACE_IO( "Byte read %02X <= %08X", page, (addr&0xFFF), val&0xFF, addr );
         return val;
     } else {
+	//	fprintf( stderr, "MOV.B %02X <= %08X\n",(uint32_t)*(uint8_t *)(page+(addr&0xFFF)), addr );
         return SIGNEXT8(*(int8_t *)(page+(addr&0xFFF)));
     }
 }
@@ -234,7 +236,8 @@ int32_t sh4_read_byte( uint32_t addr )
 void sh4_write_long( uint32_t addr, uint32_t val )
 {
     char *page;
-    
+
+    // fprintf( stderr, "MOV.L %08X => %08X\n", val, addr );
     CHECK_WRITE_WATCH(addr,4,val);
 
     if( addr >= 0xE0000000 ) {
@@ -275,6 +278,7 @@ void sh4_write_long( uint32_t addr, uint32_t val )
         TRACE_IO( "Long write %08X => %08X", page, (addr&0xFFF), val, addr );
         io_rgn[(uint32_t)page]->io_write(addr&0xFFF, val);
     } else {
+	xlat_invalidate_long(addr);
         *(uint32_t *)(page+(addr&0xFFF)) = val;
     }
 }
@@ -283,6 +287,7 @@ void sh4_write_word( uint32_t addr, uint32_t val )
 {
     char *page;
 
+    //    fprintf( stderr, "MOV.W %04X => %08X\n", val, addr );
     CHECK_WRITE_WATCH(addr,2,val);
 
     if( addr >= 0xE0000000 ) {
@@ -302,6 +307,11 @@ void sh4_write_word( uint32_t addr, uint32_t val )
         sh4_stop();
         return;
     }
+    if( (addr&0x1FFFFFFF) < 0x200000 ) {
+        ERROR( "Attempted write to read-only memory: %08X => %08X", val, addr);
+        sh4_stop();
+        return;
+    }
     page = page_map[ (addr & 0x1FFFFFFF) >> 12 ];
     if( ((uint32_t)page) < MAX_IO_REGIONS ) { /* IO Region */
         if( page == NULL ) {
@@ -311,6 +321,7 @@ void sh4_write_word( uint32_t addr, uint32_t val )
         TRACE_IO( "Word write %04X => %08X", page, (addr&0xFFF), val&0xFFFF, addr );
         io_rgn[(uint32_t)page]->io_write(addr&0xFFF, val);
     } else {
+	xlat_invalidate_word(addr);
         *(uint16_t *)(page+(addr&0xFFF)) = val;
     }
 }
@@ -319,6 +330,7 @@ void sh4_write_byte( uint32_t addr, uint32_t val )
 {
     char *page;
     
+    //    fprintf( stderr, "MOV.B %02X => %08X\n", val, addr );
     CHECK_WRITE_WATCH(addr,1,val);
 
     if( addr >= 0xE0000000 ) {
@@ -339,6 +351,11 @@ void sh4_write_byte( uint32_t addr, uint32_t val )
         sh4_stop();
         return;
     }
+    if( (addr&0x1FFFFFFF) < 0x200000 ) {
+        ERROR( "Attempted write to read-only memory: %08X => %08X", val, addr);
+        sh4_stop();
+        return;
+    }
     page = page_map[ (addr & 0x1FFFFFFF) >> 12 ];
     if( ((uint32_t)page) < MAX_IO_REGIONS ) { /* IO Region */
         if( page == NULL ) {
@@ -348,6 +365,7 @@ void sh4_write_byte( uint32_t addr, uint32_t val )
         TRACE_IO( "Byte write %02X => %08X", page, (addr&0xFFF), val&0xFF, addr );
         io_rgn[(uint32_t)page]->io_write( (addr&0xFFF), val);
     } else {
+	xlat_invalidate_word(addr);
         *(uint8_t *)(page+(addr&0xFFF)) = val;
     }
 }
@@ -355,7 +373,7 @@ void sh4_write_byte( uint32_t addr, uint32_t val )
 
 
 /* FIXME: Handle all the many special cases when the range doesn't fall cleanly
- * into the same memory black
+ * into the same memory block
  */
 void mem_copy_from_sh4( char *dest, uint32_t srcaddr, size_t count ) {
     if( srcaddr >= 0x04000000 && srcaddr < 0x05000000 ) {
@@ -386,6 +404,7 @@ void mem_copy_to_sh4( uint32_t destaddr, char *src, size_t count ) {
     if( dest == NULL )
 	ERROR( "Attempted block write to unknown address %08X", destaddr );
     else {
+	xlat_invalidate_block( destaddr, count );
 	memcpy( dest, src, count );
     }
 }
