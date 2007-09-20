@@ -1,5 +1,5 @@
 /**
- * $Id: main.c,v 1.24 2007-09-18 10:48:57 nkeynes Exp $
+ * $Id: main.c,v 1.25 2007-09-20 08:42:40 nkeynes Exp $
  *
  * Main program, initializes dreamcast and gui, then passes control off to
  * the gtk main loop (currently). 
@@ -46,7 +46,7 @@ char *config_file = DEFAULT_CONFIG_FILENAME;
 gboolean start_immediately = FALSE;
 gboolean headless = FALSE;
 gboolean without_bios = FALSE;
-gboolean use_xlat = FALSE;
+gboolean use_xlat = TRUE;
 gboolean show_debugger = FALSE;
 uint32_t time_secs = 0;
 uint32_t time_nanos = 0;
@@ -109,8 +109,8 @@ int main (int argc, char *argv[])
 	    time_secs = (uint32_t)t;
 	    time_nanos = (int)((t - time_secs) * 1000000000);
 	    break;
-	case 'x': /* Use experimental translator */
-	    use_xlat = TRUE;
+	case 'x': /* Disable translator */
+	    use_xlat = FALSE;
 	    break;
 	}
     }
