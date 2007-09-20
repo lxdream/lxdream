@@ -1,5 +1,5 @@
 /**
- * $Id: sh4core.h,v 1.24 2007-09-18 09:14:20 nkeynes Exp $
+ * $Id: sh4core.h,v 1.25 2007-09-20 08:37:19 nkeynes Exp $
  * 
  * This file defines the internal functions exported/used by the SH4 core, 
  * except for disassembly functions defined in sh4dasm.h
@@ -95,6 +95,10 @@ void sh4_runfor( uint32_t count );
 int sh4_isrunning( void );
 void sh4_stop( void );
 void sh4_set_pc( int );
+void sh4_sleep( void );
+void sh4_fsca( uint32_t angle, float *fr );
+void sh4_ftrv( float *fv, float *xmtrx );
+void signsat48(void);
 
 gboolean sh4_execute_instruction( void );
 gboolean sh4_raise_exception( int );
