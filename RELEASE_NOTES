@@ -1,16 +1,22 @@
-Release notes for Milestone 2 
+Release notes for Milestone 3
 ===================================================
 
 Please note that this is a development release - many 
-things are not yet implemented, it's still quite slow, and not
-particularly user-friendly. Framerates are typically 4-5 frames 
-per second on a 3Ghz P4. If you're looking for something to just
+things are not yet implemented, it doesn't run at 100% speed, and it's not
+particularly user-friendly. If you're looking for something to just
 play DC games, you'll probably want to wait for the next version.
 
 Having said all that, some games are known to run to at least 
 some degree (aka everything we've tried), and most homebrew works 
-perfectly, albeit slowly - feel free to experiment and let us 
+perfectly or nearly so - feel free to experiment and let us 
 know how it goes.
+
+Changes since Milestone 2
+-------------------------
+* Implemented the SH4 translation core
+* A handful of minor bugfixes
+
+No really, that's it. The good stuff is coming next version, honest
 
 Changes since Milestone 1
 -------------------------
