@@ -1,5 +1,5 @@
 /**
- * $Id: gl_common.h,v 1.1 2007-02-11 10:09:32 nkeynes Exp $
+ * $Id: gl_common.h,v 1.2 2007-09-28 07:24:14 nkeynes Exp $
  *
  * Parent for all X11 display drivers.
  *
@@ -53,5 +53,13 @@ gboolean gl_read_render_buffer( render_buffer_t buffer, char *target );
 gboolean gl_fbo_is_supported();
 void gl_fbo_shutdown();
 void gl_fbo_init( display_driver_t driver );
+
+/****** Shader handling (gl_sl.c) *****/
+gboolean glsl_is_supported(void);
+gboolean glsl_load_shaders( const char *vert_shader, const char *frag_shader );
+void glsl_unload_shaders(void);
+
+extern const char *glsl_vertex_shader_src;
+extern const char *glsl_fragment_shader_src;
 
 #endif /* !video_gl_common_H */

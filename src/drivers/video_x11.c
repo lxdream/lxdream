@@ -1,5 +1,5 @@
 /**
- * $Id: video_x11.c,v 1.13 2007-09-08 04:05:35 nkeynes Exp $
+ * $Id: video_x11.c,v 1.14 2007-09-28 07:24:14 nkeynes Exp $
  *
  * Shared functions for all X11-based display drivers.
  *
@@ -20,6 +20,7 @@
 #include <GL/glx.h>
 #include "dream.h"
 #include "drivers/video_x11.h"
+#include "drivers/gl_common.h"
 
 extern uint32_t video_width, video_height;
 
@@ -30,6 +31,7 @@ extern uint32_t video_width, video_height;
 static Display *video_x11_display = NULL;
 static Screen *video_x11_screen = NULL;
 static Window video_x11_window = 0;
+static gboolean glsl_loaded = FALSE;
 
 /**
  * GLX parameters.
@@ -51,6 +53,17 @@ gboolean video_glx_init( Display *display, Screen *screen, Window window,
 
     if( gl_fbo_is_supported() ) {
 	gl_fbo_init(driver);
+
+#ifdef USE_GLSL
+	if( glsl_is_supported() ) {
+	    glsl_loaded = glsl_load_shaders( glsl_vertex_shader_src, glsl_fragment_shader_src );
+	    if( !glsl_loaded ) {
+	        WARN( "Shaders failed to load" );
+	    }
+	} else {
+	    WARN( "Shaders not supported" );
+	}
+#endif
 	return TRUE;
     } else {
 	/* Pbuffers? */
@@ -138,6 +151,9 @@ gboolean video_glx_create_window( int width, int height )
 
 void video_glx_shutdown()
 {
+    if( glsl_loaded ) {
+	glsl_unload_shaders();
+    }
     if( glx_window != None ) {
 	XDestroyWindow( video_x11_display, glx_window );
 	XFreeColormap( video_x11_display, win_attrs.colormap );
