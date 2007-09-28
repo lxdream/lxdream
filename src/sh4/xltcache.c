@@ -1,5 +1,5 @@
 /**
- * $Id: xltcache.c,v 1.5 2007-09-20 08:35:04 nkeynes Exp $
+ * $Id: xltcache.c,v 1.6 2007-09-28 07:26:35 nkeynes Exp $
  * 
  * Translation cache management. This part is architecture independent.
  *
@@ -197,17 +197,30 @@ void xlat_flush_page( sh4addr_t address )
 
 void *xlat_get_code( sh4addr_t address )
 {
+    void *result;
     void **page = xlat_lut[XLAT_LUT_PAGE(address)];
-    if( page == NULL ) {
-	return NULL;
+    if( page != NULL ) {
+	result = (void *)(((uint32_t)page[XLAT_LUT_ENTRY(address)]) & 0xFFFFFFFC);
     }
-    void *result = page[XLAT_LUT_ENTRY(address)];
-    if( result == ((void *)(1)) ) {
-	return NULL;
-    } else {
-	return result;
-    }
+    return result;
 }
+
+void **xlat_get_lut_entry( sh4addr_t address )
+{
+    void **page = xlat_lut[XLAT_LUT_PAGE(address)];
+
+    /* Add the LUT entry for the block */
+    if( page == NULL ) {
+	xlat_lut[XLAT_LUT_PAGE(address)] = page =
+	    mmap( NULL, XLAT_LUT_PAGE_SIZE, PROT_READ|PROT_WRITE,
+		  MAP_PRIVATE|MAP_ANONYMOUS, -1, 0 );
+	memset( page, 0, XLAT_LUT_PAGE_SIZE );
+    }
+    
+    return &page[XLAT_LUT_ENTRY(address)];
+}
+
+
 
 uint32_t xlat_get_block_size( void *block )
 {
@@ -223,6 +236,7 @@ uint32_t xlat_get_block_size( void *block )
  */
 static inline xlat_cache_block_t xlat_cut_block( xlat_cache_block_t block, int cutsize )
 {
+    cutsize = (cutsize + 3) & 0xFFFFFFFC; // force word alignment
     if( block->size > cutsize + MIN_TOTAL_SIZE ) {
 	int oldsize = block->size;
 	block->size = cutsize;
