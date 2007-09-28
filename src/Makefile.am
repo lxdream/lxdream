@@ -6,11 +6,12 @@ INCLUDES = \
         -Ish4 \
 	@PACKAGE_CFLAGS@
 
-bin_PROGRAMS = gendec lxdream
+bin_PROGRAMS = gendec genglsl lxdream
 
-BUILT_SOURCES = sh4/sh4core.c sh4/sh4dasm.c sh4/sh4x86.c
+BUILT_SOURCES = sh4/sh4core.c sh4/sh4dasm.c sh4/sh4x86.c drivers/gl_slsrc.c
 
 gendec_SOURCES = tools/gendec.c tools/gendec.h tools/insparse.c tools/actparse.c
+genglsl_SOURCES = tools/genglsl.c
 
 lxdream_SOURCES = \
         main.c \
@@ -43,11 +44,13 @@ lxdream_SOURCES = \
 	drivers/audio_null.c drivers/audio_esd.c \
 	drivers/video_null.c drivers/video_gtk.c drivers/video_gtk.h \
 	drivers/video_x11.c drivers/video_x11.h \
-	drivers/gl_common.c drivers/gl_common.h drivers/gl_fbo.c
+	drivers/gl_common.c drivers/gl_common.h drivers/gl_fbo.c \
+	drivers/gl_sl.c drivers/gl_slsrc.c
 
 lxdream_LDADD = @PACKAGE_LIBS@ $(INTLLIBS) -lesd
 
 gendec_LDADD = @PACKAGE_LIBS@ $(INTLLIBS)
+genglsl_LDADD = @PACKAGE_LIBS@ $(INTLLIBS)
 
 TESTS = test/testxlt
 
@@ -72,3 +75,5 @@ sh4/sh4x86.c: gendec sh4/sh4.def sh4/sh4x86.in
 	./gendec sh4/sh4.def sh4/sh4x86.in -o sh4/sh4x86.c
 sh4/sh4stat.c: gendec sh4/sh4.def sh4/sh4stat.in
 	./gendec sh4/sh4.def sh4/sh4stat.in -o sh4/sh4stat.c
+drivers/gl_slsrc.c: genglsl drivers/vertex.glsl drivers/fragment.glsl
+	./genglsl drivers/vertex.glsl drivers/fragment.glsl drivers/gl_slsrc.c
