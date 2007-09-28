@@ -1,5 +1,5 @@
 /**
- * $Id: sh4trans.c,v 1.4 2007-09-19 12:09:33 nkeynes Exp $
+ * $Id: sh4trans.c,v 1.5 2007-09-28 07:27:20 nkeynes Exp $
  * 
  * SH4 translation core module. This part handles the non-target-specific
  * section of the translation.
@@ -37,38 +37,36 @@ uint32_t sh4_xlat_run_slice( uint32_t nanosecs )
 	}
     }
 
+    void * (*code)() = NULL;
     while( sh4r.slice_cycle < nanosecs ) {
-	if( SH4_EVENT_PENDING() ) {
+	if( sh4r.event_pending <= sh4r.slice_cycle ) {
 	    if( sh4r.event_types & PENDING_EVENT ) {
 		event_execute();
 	    }
 	    /* Eventq execute may (quite likely) deliver an immediate IRQ */
 	    if( sh4r.event_types & PENDING_IRQ ) {
 		sh4_accept_interrupt();
+		code = NULL;
 	    }
 	}
+	
+	if( code ) { // fast path
+	    code = code();
+	} else {
+	    if( sh4r.pc > 0xFFFFFF00 ) {
+		syscall_invoke( sh4r.pc );
+		sh4r.in_delay_slot = 0;
+		sh4r.pc = sh4r.pr;
+	    }
 
-	if( sh4r.pc > 0xFFFFFF00 ) {
-	    syscall_invoke( sh4r.pc );
-	    sh4r.in_delay_slot = 0;
-	    sh4r.pc = sh4r.pr;
+	    code = xlat_get_code(sh4r.pc);
+	    if( code == NULL ) {
+		code = sh4_translate_basic_block( sh4r.pc );
+	    }
+	    code = code();
 	}
-
-	gboolean (*code)() = xlat_get_code(sh4r.pc);
-	if( code == NULL ) {
-	    code = sh4_translate_basic_block( sh4r.pc );
-	}
-	if( !code() )
-	    break;
     }
 
-    /* If we aborted early, but the cpu is still technically running,
-     * we're doing a hard abort - cut the timeslice back to what we
-     * actually executed
-     */
-    if( sh4r.slice_cycle < nanosecs && sh4r.sh4_state == SH4_STATE_RUNNING ) {
-	nanosecs = sh4r.slice_cycle;
-    }
     if( sh4r.sh4_state != SH4_STATE_STANDBY ) {
 	TMU_run_slice( nanosecs );
 	SCIF_run_slice( nanosecs );
@@ -87,23 +85,24 @@ uint8_t *xlat_output;
  */
 void * sh4_translate_basic_block( sh4addr_t start )
 {
-    uint32_t pc = start;
+    sh4addr_t pc = start;
     int done;
     xlat_cache_block_t block = xlat_start_block( start );
     xlat_output = (uint8_t *)block->code;
     uint8_t *eob = xlat_output + block->size;
-    sh4_translate_begin_block();
+    sh4_translate_begin_block(pc);
 
-    while( (done = sh4_x86_translate_instruction( pc )) == 0 ) {
+    do {
 	if( eob - xlat_output < MAX_INSTRUCTION_SIZE ) {
 	    uint8_t *oldstart = block->code;
 	    block = xlat_extend_block();
 	    xlat_output = block->code + (xlat_output - oldstart);
 	    eob = block->code + block->size;
 	}
+	done = sh4_x86_translate_instruction( pc ); 
 	pc += 2;
-    }
-    pc+=2;
+    } while( !done );
+    pc += (done - 2);
     sh4_translate_end_block(pc);
     xlat_commit_block( xlat_output - block->code, pc-start );
     return block->code;
@@ -113,7 +112,7 @@ void * sh4_translate_basic_block( sh4addr_t start )
  * Translate a linear basic block to a temporary buffer, execute it, and return
  * the result of the execution. The translation is discarded.
  */
-gboolean sh4_translate_and_run( sh4addr_t start )
+void *sh4_translate_and_run( sh4addr_t start )
 {
     char buf[65536];
 
@@ -122,7 +121,7 @@ gboolean sh4_translate_and_run( sh4addr_t start )
     xlat_output = buf;
     uint8_t *eob = xlat_output + sizeof(buf);
 
-    sh4_translate_begin_block();
+    sh4_translate_begin_block(pc);
 
     while( (done = sh4_x86_translate_instruction( pc )) == 0 ) {
 	assert( (eob - xlat_output) >= MAX_INSTRUCTION_SIZE );
@@ -131,6 +130,6 @@ gboolean sh4_translate_and_run( sh4addr_t start )
     pc+=2;
     sh4_translate_end_block(pc);
 
-    gboolean (*code)() = (void *)buf;
+    void * (*code)() = (void *)buf;
     return code();
 }
