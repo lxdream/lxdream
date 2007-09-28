@@ -1,5 +1,5 @@
 /**
- * $Id: xltcache.h,v 1.4 2007-09-20 08:35:04 nkeynes Exp $
+ * $Id: xltcache.h,v 1.5 2007-09-28 07:26:35 nkeynes Exp $
  * 
  * Translation cache support (architecture independent)
  *
@@ -67,6 +67,12 @@ void xlat_delete_block( xlat_cache_block_t block );
  * SH4 address, or NULL if there is no code for that address.
  */
 void *xlat_get_code( sh4addr_t address );
+
+/**
+ * Retrieve the address of the lookup table entry corresponding to the
+ * given SH4 address.
+ */
+void **xlat_get_lut_entry( sh4addr_t address );
 
 /**
  * Retrieve the size of the code block starting at the specified pointer. If the
