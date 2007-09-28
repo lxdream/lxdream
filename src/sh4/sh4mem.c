@@ -1,5 +1,5 @@
 /**
- * $Id: sh4mem.c,v 1.23 2007-09-20 08:35:04 nkeynes Exp $
+ * $Id: sh4mem.c,v 1.24 2007-09-28 07:25:22 nkeynes Exp $
  * sh4mem.c is responsible for the SH4's access to memory (including memory
  * mapped I/O), using the page maps created in mem.c
  *
@@ -49,6 +49,7 @@
 #define CHECK_WRITE_WATCH( addr, size, val )
 #endif
 
+#ifdef ENABLE_TRACE_IO
 #define TRACE_IO( str, p, r, ... ) if(io_rgn[(uint32_t)p]->trace_flag && !MMIO_NOTRACE_BYNUM((uint32_t)p,r)) \
     TRACE( str " [%s.%s: %s]", __VA_ARGS__,			       \
     MMIO_NAME_BYNUM((uint32_t)p), MMIO_REGID_BYNUM((uint32_t)p, r), \
@@ -57,6 +58,10 @@
 TRACE( str " [%s.%s: %s]", __VA_ARGS__, \
     io->id, MMIO_REGID_IOBYNUM(io, r), \
     MMIO_REGDESC_IOBYNUM(io, r) )
+#else
+#define TRACE_IO( str, p, r, ... )
+#define TRACE_P4IO( str, io, r, ... )
+#endif
 
 extern struct mem_region mem_rgn[];
 extern struct mmio_region *P4_io[];
@@ -135,12 +140,6 @@ int32_t sh4_read_long( uint32_t addr )
 	pvr2_render_buffer_invalidate(addr, FALSE);
     }
 
-    if( IS_MMU_ENABLED() ) {
-        ERROR( "user-mode & mmu translation not implemented, aborting", NULL );
-        sh4_stop();
-        return 0;
-    }
-
     page = page_map[ (addr & 0x1FFFFFFF) >> 12 ];
     if( ((uint32_t)page) < MAX_IO_REGIONS ) { /* IO Region */
         int32_t val;
@@ -152,7 +151,6 @@ int32_t sh4_read_long( uint32_t addr )
         TRACE_IO( "Long read %08X <= %08X", page, (addr&0xFFF), val, addr );
         return val;
     } else {
-	// fprintf( stderr, "MOV.L %08X <= %08X\n",*(int32_t *)(page+(addr&0xFFF)), addr );
         return *(int32_t *)(page+(addr&0xFFF));
     }
 }
@@ -173,13 +171,6 @@ int32_t sh4_read_word( uint32_t addr )
 	pvr2_render_buffer_invalidate(addr, FALSE);
     }
     
-
-    if( IS_MMU_ENABLED() ) {
-        ERROR( "user-mode & mmu translation not implemented, aborting", NULL );
-        sh4_stop();
-        return 0;
-    }
-
     page = page_map[ (addr & 0x1FFFFFFF) >> 12 ];
     if( ((uint32_t)page) < MAX_IO_REGIONS ) { /* IO Region */
         int32_t val;
@@ -211,12 +202,6 @@ int32_t sh4_read_byte( uint32_t addr )
     }
 
     
-    if( IS_MMU_ENABLED() ) {
-        ERROR( "user-mode & mmu translation not implemented, aborting", NULL );
-        sh4_stop();
-        return 0;
-    }
-
     page = page_map[ (addr & 0x1FFFFFFF) >> 12 ];
     if( ((uint32_t)page) < MAX_IO_REGIONS ) { /* IO Region */
         int32_t val;
@@ -253,11 +238,6 @@ void sh4_write_long( uint32_t addr, uint32_t val )
 	pvr2_render_buffer_invalidate(addr, TRUE);
     }
 
-    if( IS_MMU_ENABLED() ) {
-        ERROR( "user-mode & mmu translation not implemented, aborting", NULL );
-        sh4_stop();
-        return;
-    }
     if( (addr&0x1FFFFFFF) < 0x200000 ) {
         ERROR( "Attempted write to read-only memory: %08X => %08X", val, addr);
         sh4_stop();
@@ -302,11 +282,7 @@ void sh4_write_word( uint32_t addr, uint32_t val )
     } else if( (addr&0x1F800000) == 0x05000000 ) {
 	pvr2_render_buffer_invalidate(addr, TRUE);
     }
-    if( IS_MMU_ENABLED() ) {
-        ERROR( "user-mode & mmu translation not implemented, aborting", NULL );
-        sh4_stop();
-        return;
-    }
+
     if( (addr&0x1FFFFFFF) < 0x200000 ) {
         ERROR( "Attempted write to read-only memory: %08X => %08X", val, addr);
         sh4_stop();
@@ -346,11 +322,6 @@ void sh4_write_byte( uint32_t addr, uint32_t val )
 	pvr2_render_buffer_invalidate(addr, TRUE);
     }
     
-    if( IS_MMU_ENABLED() ) {
-        ERROR( "user-mode & mmu translation not implemented, aborting", NULL );
-        sh4_stop();
-        return;
-    }
     if( (addr&0x1FFFFFFF) < 0x200000 ) {
         ERROR( "Attempted write to read-only memory: %08X => %08X", val, addr);
         sh4_stop();
