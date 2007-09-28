@@ -1,5 +1,5 @@
 /**
- * $Id: sh4trans.h,v 1.2 2007-09-18 09:11:53 nkeynes Exp $
+ * $Id: sh4trans.h,v 1.3 2007-09-28 07:27:20 nkeynes Exp $
  * 
  * SH4->x86 translation module
  *
@@ -39,7 +39,7 @@ extern uint8_t *xlat_output;
 
 /************** Output generation ***************/
 
-void sh4_translate_begin_block();
+void sh4_translate_begin_block( sh4addr_t pc );
 
 uint32_t sh4_x86_translate_instruction( sh4addr_t pc );
 
