@@ -53,6 +53,7 @@ int main()
     test_andi();
     test_bf(); 
     test_bt();
+    test_bsr();
     test_cmp();
     test_cmpstr();
     test_div0();
