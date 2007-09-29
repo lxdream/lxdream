@@ -1,5 +1,5 @@
 /**
- * $Id: xltcache.c,v 1.6 2007-09-28 07:26:35 nkeynes Exp $
+ * $Id: xltcache.c,v 1.7 2007-09-29 11:06:40 nkeynes Exp $
  * 
  * Translation cache management. This part is architecture independent.
  *
@@ -53,7 +53,6 @@ xlat_cache_block_t xlat_temp_cache_ptr;
 xlat_cache_block_t xlat_old_cache;
 xlat_cache_block_t xlat_old_cache_ptr;
 static void ***xlat_lut;
-static void **xlat_lut2; /* second-tier page info */
 static gboolean xlat_initialized = FALSE;
 
 void xlat_cache_init() 
@@ -197,10 +196,10 @@ void xlat_flush_page( sh4addr_t address )
 
 void *xlat_get_code( sh4addr_t address )
 {
-    void *result;
+    void *result = NULL;
     void **page = xlat_lut[XLAT_LUT_PAGE(address)];
     if( page != NULL ) {
-	result = (void *)(((uint32_t)page[XLAT_LUT_ENTRY(address)]) & 0xFFFFFFFC);
+	result = (void *)(((uint32_t)(page[XLAT_LUT_ENTRY(address)])) & 0xFFFFFFFC);
     }
     return result;
 }
@@ -237,6 +236,7 @@ uint32_t xlat_get_block_size( void *block )
 static inline xlat_cache_block_t xlat_cut_block( xlat_cache_block_t block, int cutsize )
 {
     cutsize = (cutsize + 3) & 0xFFFFFFFC; // force word alignment
+    assert( cutsize <= block->size );
     if( block->size > cutsize + MIN_TOTAL_SIZE ) {
 	int oldsize = block->size;
 	block->size = cutsize;
@@ -365,36 +365,38 @@ xlat_cache_block_t xlat_start_block( sh4addr_t address )
     return xlat_new_create_ptr;
 }
 
-xlat_cache_block_t xlat_extend_block()
+xlat_cache_block_t xlat_extend_block( uint32_t newSize )
 {
-    if( xlat_new_cache_ptr->size == 0 ) {
-	/* Migrate to the front of the cache to keep it contiguous */
-	xlat_new_create_ptr->active = 0;
-	char *olddata = xlat_new_create_ptr->code;
-	int oldsize = xlat_new_create_ptr->size;
-	int size = oldsize + MIN_BLOCK_SIZE; /* minimum expansion */
-	void **lut_entry = xlat_new_create_ptr->lut_entry;
-	int allocation = -sizeof(struct xlat_cache_block);
-	xlat_new_cache_ptr = xlat_new_cache;
-	do {
+    while( xlat_new_create_ptr->size < newSize ) {
+	if( xlat_new_cache_ptr->size == 0 ) {
+	    /* Migrate to the front of the cache to keep it contiguous */
+	    xlat_new_create_ptr->active = 0;
+	    char *olddata = xlat_new_create_ptr->code;
+	    int oldsize = xlat_new_create_ptr->size;
+	    int size = oldsize + MIN_BLOCK_SIZE; /* minimum expansion */
+	    void **lut_entry = xlat_new_create_ptr->lut_entry;
+	    int allocation = -sizeof(struct xlat_cache_block);
+	    xlat_new_cache_ptr = xlat_new_cache;
+	    do {
+		if( xlat_new_cache_ptr->active ) {
+		    xlat_promote_to_temp_space( xlat_new_cache_ptr );
+		}
+		allocation += xlat_new_cache_ptr->size + sizeof(struct xlat_cache_block);
+		xlat_new_cache_ptr = NEXT(xlat_new_cache_ptr);
+	    } while( allocation < size );
+	    xlat_new_create_ptr = xlat_new_cache;
+	    xlat_new_create_ptr->active = 1;
+	    xlat_new_create_ptr->size = allocation;
+	    xlat_new_create_ptr->lut_entry = lut_entry;
+	    *lut_entry = &xlat_new_create_ptr->code;
+	    memmove( xlat_new_create_ptr->code, olddata, oldsize );
+	} else {
 	    if( xlat_new_cache_ptr->active ) {
 		xlat_promote_to_temp_space( xlat_new_cache_ptr );
 	    }
-	    allocation += xlat_new_cache_ptr->size + sizeof(struct xlat_cache_block);
+	    xlat_new_create_ptr->size += xlat_new_cache_ptr->size + sizeof(struct xlat_cache_block);
 	    xlat_new_cache_ptr = NEXT(xlat_new_cache_ptr);
-	} while( allocation < size );
-	xlat_new_create_ptr = xlat_new_cache;
-	xlat_new_create_ptr->active = 1;
-	xlat_new_create_ptr->size = allocation;
-	xlat_new_create_ptr->lut_entry = lut_entry;
-	*lut_entry = &xlat_new_create_ptr->code;
-	memmove( xlat_new_create_ptr->code, olddata, oldsize );
-    } else {
-	if( xlat_new_cache_ptr->active ) {
-	    xlat_promote_to_temp_space( xlat_new_cache_ptr );
 	}
-	xlat_new_create_ptr->size += xlat_new_cache_ptr->size + sizeof(struct xlat_cache_block);
-	xlat_new_cache_ptr = NEXT(xlat_new_cache_ptr);
     }
     return xlat_new_create_ptr;
 

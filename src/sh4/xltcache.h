@@ -1,5 +1,5 @@
 /**
- * $Id: xltcache.h,v 1.5 2007-09-28 07:26:35 nkeynes Exp $
+ * $Id: xltcache.h,v 1.6 2007-09-29 11:06:40 nkeynes Exp $
  * 
  * Translation cache support (architecture independent)
  *
@@ -37,7 +37,7 @@ xlat_cache_block_t xlat_start_block(sh4addr_t address);
  * and xlat_commit_block()). 
  * @return the new block, which may be different from the old block.
  */
-xlat_cache_block_t xlat_extend_block();
+xlat_cache_block_t xlat_extend_block( uint32_t newSize );
 
 /**
  * Commit the current translation block
