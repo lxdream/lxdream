@@ -1,5 +1,5 @@
 /**
- * $Id: sh4trans.c,v 1.5 2007-09-28 07:27:20 nkeynes Exp $
+ * $Id: sh4trans.c,v 1.6 2007-09-29 11:06:40 nkeynes Exp $
  * 
  * SH4 translation core module. This part handles the non-target-specific
  * section of the translation.
@@ -86,6 +86,7 @@ uint8_t *xlat_output;
 void * sh4_translate_basic_block( sh4addr_t start )
 {
     sh4addr_t pc = start;
+    sh4addr_t lastpc = (pc&0xFFFFF000)+0x1000;
     int done;
     xlat_cache_block_t block = xlat_start_block( start );
     xlat_output = (uint8_t *)block->code;
@@ -95,14 +96,23 @@ void * sh4_translate_basic_block( sh4addr_t start )
     do {
 	if( eob - xlat_output < MAX_INSTRUCTION_SIZE ) {
 	    uint8_t *oldstart = block->code;
-	    block = xlat_extend_block();
+	    block = xlat_extend_block( xlat_output - oldstart + MAX_INSTRUCTION_SIZE );
 	    xlat_output = block->code + (xlat_output - oldstart);
 	    eob = block->code + block->size;
 	}
 	done = sh4_x86_translate_instruction( pc ); 
+	assert( xlat_output <= eob );
 	pc += 2;
+	if ( pc >= lastpc ) {
+	    done = 2;
+	}
     } while( !done );
     pc += (done - 2);
+    if( eob - xlat_output < EPILOGUE_SIZE ) {
+	uint8_t *oldstart = block->code;
+	block = xlat_extend_block( xlat_output - oldstart + EPILOGUE_SIZE );
+	xlat_output = block->code + (xlat_output - oldstart);
+    }	
     sh4_translate_end_block(pc);
     xlat_commit_block( xlat_output - block->code, pc-start );
     return block->code;

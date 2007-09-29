@@ -1,5 +1,5 @@
 /**
- * $Id: sh4trans.h,v 1.3 2007-09-28 07:27:20 nkeynes Exp $
+ * $Id: sh4trans.h,v 1.4 2007-09-29 11:06:40 nkeynes Exp $
  * 
  * SH4->x86 translation module
  *
@@ -23,7 +23,10 @@
  * writing the entire epilogue
  */
 #define MAX_INSTRUCTION_SIZE 256
-
+/** Maximum size of the translation epilogue (current real size is 116 bytes, so
+ * allows a little room
+ */
+#define EPILOGUE_SIZE 128
 /**
 
  */
