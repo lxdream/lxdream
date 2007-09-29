@@ -1,5 +1,5 @@
 /**
- * $Id: sh4x86.c,v 1.15 2007-09-28 07:27:20 nkeynes Exp $
+ * $Id: sh4x86.c,v 1.16 2007-09-29 05:33:02 nkeynes Exp $
  * 
  * SH4 => x86 translation. This version does no real optimization, it just
  * outputs straight-line x86 code - it mainly exists to provide a baseline
@@ -42,6 +42,7 @@ struct sh4_x86_state {
     gboolean in_delay_slot;
     gboolean priv_checked; /* true if we've already checked the cpu mode. */
     gboolean fpuen_checked; /* true if we've already checked fpu enabled. */
+    gboolean branch_taken; /* true if we branched unconditionally */
     uint32_t block_start_pc;
 
     /* Allocated memory for the (block-wide) back-patch list */
@@ -371,6 +372,7 @@ void sh4_translate_begin_block( sh4addr_t pc )
     sh4_x86.in_delay_slot = FALSE;
     sh4_x86.priv_checked = FALSE;
     sh4_x86.fpuen_checked = FALSE;
+    sh4_x86.branch_taken = FALSE;
     sh4_x86.backpatch_posn = 0;
     sh4_x86.block_start_pc = pc;
 }
@@ -410,6 +412,10 @@ void exit_block_pcset( pc )
  * Write the block trailer (exception handling block)
  */
 void sh4_translate_end_block( sh4addr_t pc ) {
+    if( sh4_x86.branch_taken == FALSE ) {
+	// Didn't exit unconditionally already, so write the termination here
+	exit_block( pc, pc );
+    }
     if( sh4_x86.backpatch_posn != 0 ) {
 	uint8_t *end_ptr = xlat_output;
 	// Exception termination. Jump block for various exception codes:
@@ -562,6 +568,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                             	sh4_x86.in_delay_slot = TRUE;
                             	sh4_x86_translate_instruction( pc + 2 );
                             	exit_block_pcset(pc+2);
+                            	sh4_x86.branch_taken = TRUE;
                             	return 4;
                                 }
                                 }
@@ -578,6 +585,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                             	sh4_x86.in_delay_slot = TRUE;
                             	sh4_x86_translate_instruction( pc + 2 );
                             	exit_block_pcset(pc+2);
+                            	sh4_x86.branch_taken = TRUE;
                             	return 4;
                                 }
                                 }
@@ -804,6 +812,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                             	sh4_x86.in_delay_slot = TRUE;
                             	sh4_x86_translate_instruction(pc+2);
                             	exit_block_pcset(pc+2);
+                            	sh4_x86.branch_taken = TRUE;
                             	return 4;
                                 }
                                 }
@@ -814,7 +823,6 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                 call_func0( sh4_sleep );
                                 sh4_x86.in_delay_slot = FALSE;
                                 INC_r32(R_ESI);
-                                exit_block(pc+2, pc+2);
                                 return 2;
                                 }
                                 break;
@@ -833,6 +841,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                             	sh4_x86.fpuen_checked = FALSE;
                             	sh4_x86_translate_instruction(pc+2);
                             	exit_block_pcset(pc+2);
+                            	sh4_x86.branch_taken = TRUE;
                             	return 4;
                                 }
                                 }
@@ -1854,6 +1863,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                             	sh4_x86.in_delay_slot = TRUE;
                             	sh4_x86_translate_instruction(pc+2);
                             	exit_block_pcset(pc+2);
+                            	sh4_x86.branch_taken = TRUE;
                             	return 4;
                                 }
                                 }
@@ -1881,6 +1891,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                             	sh4_x86.in_delay_slot = TRUE;
                             	sh4_x86_translate_instruction(pc+2);
                             	exit_block_pcset(pc+2);
+                            	sh4_x86.branch_taken = TRUE;
                             	return 4;
                                 }
                                 }
@@ -2277,7 +2288,6 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                     	JE_rel8( 30, nottaken );
                     	exit_block( disp + pc + 4, pc+2 );
                     	JMP_TARGET(nottaken);
-                    	exit_block( pc + 2, pc+2 );
                     	return 2;
                         }
                         }
@@ -2292,7 +2302,6 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                     	JNE_rel8( 30, nottaken );
                     	exit_block( disp + pc + 4, pc+2 );
                     	JMP_TARGET(nottaken);
-                    	exit_block( pc + 2, pc + 2 );
                     	return 2;
                         }
                         }
@@ -2311,7 +2320,6 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                     	// not taken
                     	*patch = (xlat_output - ((uint8_t *)patch)) - 4;
                     	sh4_x86_translate_instruction(pc+2);
-                    	exit_block( pc + 4, pc+4 );
                     	return 4;
                         }
                         }
@@ -2330,7 +2338,6 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                     	// not taken
                     	*patch = (xlat_output - ((uint8_t *)patch)) - 4;
                     	sh4_x86_translate_instruction(pc+2);
-                    	exit_block( pc + 4, pc+4 );
                     	return 4;
                         }
                         }
@@ -2361,6 +2368,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
             	sh4_x86.in_delay_slot = TRUE;
             	sh4_x86_translate_instruction( pc + 2 );
             	exit_block( disp + pc + 4, pc+4 );
+            	sh4_x86.branch_taken = TRUE;
             	return 4;
                 }
                 }
@@ -2376,6 +2384,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
             	sh4_x86.in_delay_slot = TRUE;
             	sh4_x86_translate_instruction( pc + 2 );
             	exit_block( disp + pc + 4, pc+4 );
+            	sh4_x86.branch_taken = TRUE;
             	return 4;
                 }
                 }
@@ -2421,6 +2430,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                     	call_func0( sh4_raise_trap );
                     	ADD_imm8s_r32( 4, R_ESP );
                     	exit_block_pcset(pc);
+                    	sh4_x86.branch_taken = TRUE;
                     	return 2;
                         }
                         }
