@@ -1,5 +1,5 @@
 /**
- * $Id: controller.c,v 1.4 2006-05-20 02:40:51 nkeynes Exp $
+ * $Id: controller.c,v 1.5 2007-09-30 21:19:43 nkeynes Exp $
  *
  * Implements the standard dreamcast controller
  *
@@ -91,6 +91,10 @@ void controller_key_callback( void *mdev, uint32_t value, gboolean isKeyDown )
 	case JOY_DOWN:
 	    dev->condition[1] |= JOY_Y_AXIS;
 	    break;
+	case BUTTON_LEFT_TRIGGER:
+	case BUTTON_RIGHT_TRIGGER:
+	    dev->condition[0] |= value;
+	    break;
 	default:
 	    dev->condition[0] &= ~value;
 	}
@@ -103,6 +107,10 @@ void controller_key_callback( void *mdev, uint32_t value, gboolean isKeyDown )
 	case JOY_UP:
 	case JOY_DOWN:
 	    dev->condition[1] = (dev->condition[1] & ~JOY_Y_AXIS)| JOY_Y_AXIS_CENTER;
+	    break;
+	case BUTTON_LEFT_TRIGGER:
+	case BUTTON_RIGHT_TRIGGER:
+	    dev->condition[0] &= ~value;
 	    break;
 	default:
 	    dev->condition[0] |= value;
