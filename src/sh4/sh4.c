@@ -1,5 +1,5 @@
 /**
- * $Id: sh4.c,v 1.2 2007-09-20 08:37:19 nkeynes Exp $
+ * $Id: sh4.c,v 1.3 2007-10-01 11:51:25 nkeynes Exp $
  * 
  * SH4 parent module for all CPU modes and SH4 peripheral
  * modules.
@@ -117,6 +117,7 @@ void sh4_save_state( FILE *f )
 int sh4_load_state( FILE * f )
 {
     fread( &sh4r, sizeof(sh4r), 1, f );
+    sh4r.fr_bank = &sh4r.fr[(sh4r.fpscr&FPSCR_FR)>>21][0]; // Fixup internal FR pointer
     MMU_load_state( f );
     INTC_load_state( f );
     TMU_load_state( f );
