@@ -1,5 +1,5 @@
 /**
- * $Id: sh4mmio.c,v 1.12 2007-01-27 12:04:22 nkeynes Exp $
+ * $Id: sh4mmio.c,v 1.13 2007-10-02 08:48:27 nkeynes Exp $
  * 
  * Miscellaneous and not-really-implemented SH4 peripheral modules. Also
  * responsible for including the IMPL side of the SH4 MMIO pages.
@@ -39,11 +39,17 @@ static char *cache = NULL;
 void mmio_region_MMU_write( uint32_t reg, uint32_t val )
 {
     switch(reg) {
-        case CCR:
-            mmu_set_cache_mode( val & (CCR_OIX|CCR_ORA) );
-            break;
-        default:
-            break;
+    case MMUCR:
+	if( val & MMUCR_AT ) {
+	    ERROR( "MMU Address translation not implemented!" );
+	    dreamcast_stop();
+	}
+	break;
+    case CCR:
+	mmu_set_cache_mode( val & (CCR_OIX|CCR_ORA) );
+	break;
+    default:
+	break;
     }
     MMIO_WRITE( MMU, reg, val );
 }
