@@ -1,5 +1,5 @@
 /**
- * $Id: main.c,v 1.25 2007-09-20 08:42:40 nkeynes Exp $
+ * $Id: main.c,v 1.26 2007-10-03 08:22:27 nkeynes Exp $
  *
  * Main program, initializes dreamcast and gui, then passes control off to
  * the gtk main loop (currently). 
@@ -35,7 +35,7 @@
 
 #define S3M_PLAYER "s3mplay.bin"
 
-char *option_list = "a:s:A:V:puhbd:c:t:xD";
+char *option_list = "a:m:s:A:V:puhbd:c:t:xD";
 struct option longopts[1] = { { NULL, 0, 0, 0 } };
 char *aica_program = NULL;
 char *s3m_file = NULL;
@@ -50,6 +50,7 @@ gboolean use_xlat = TRUE;
 gboolean show_debugger = FALSE;
 uint32_t time_secs = 0;
 uint32_t time_nanos = 0;
+extern uint32_t sh4_cpu_multiplier;
 
 audio_driver_t audio_driver_list[] = { &audio_null_driver,
 				       &audio_esd_driver,
@@ -81,6 +82,10 @@ int main (int argc, char *argv[])
 	    break;
 	case 'D': /* Launch w/ debugger */
 	    show_debugger = TRUE;
+	    break;
+	case 'm': /* Set SH4 CPU clock multiplier (default 0.5) */
+	    t = strtod(optarg, NULL);
+	    sh4_cpu_multiplier = (int)(1000.0/t);
 	    break;
 	case 's': /* AICA-only w/ S3M player */
 	    aica_program = S3M_PLAYER;
