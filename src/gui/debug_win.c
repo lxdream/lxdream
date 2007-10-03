@@ -1,5 +1,5 @@
 /**
- * $Id: debug_win.c,v 1.20 2007-09-18 10:48:57 nkeynes Exp $
+ * $Id: debug_win.c,v 1.21 2007-10-03 09:32:09 nkeynes Exp $
  * This file is responsible for the main debugger gui frame.
  *
  * Copyright (c) 2005 Nathan Keynes.
@@ -28,6 +28,7 @@
 GdkColor *msg_colors[] = { &clrError, &clrError, &clrWarn, &clrNormal,
                            &clrDebug, &clrTrace };
 char *msg_levels[] = { "FATAL", "ERROR", "WARN", "INFO", "DEBUG", "TRACE" };
+int global_msg_level = EMIT_WARN;
 
 void init_register_list( debug_info_t data );
 
@@ -294,6 +295,10 @@ void emit( void *ptr, int level, const gchar *source, const char *msg, ... )
     if( ptr == NULL )
 	data = main_debug;
     else data = (debug_info_t)ptr;
+
+    if( level > global_msg_level ) {
+	return; // ignored
+    }
     va_start(ap, msg);
 
     strftime( buf, sizeof(buf), "%H:%M:%S", localtime(&tm) );
