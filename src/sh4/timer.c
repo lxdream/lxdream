@@ -1,5 +1,5 @@
 /**
- * $Id: timer.c,v 1.7 2007-01-25 10:18:42 nkeynes Exp $
+ * $Id: timer.c,v 1.8 2007-10-03 08:22:27 nkeynes Exp $
  * 
  * SH4 Timer/Clock peripheral modules (CPG, TMU, RTC), combined together to
  * keep things simple (they intertwine a bit).
@@ -28,6 +28,8 @@
 /* This is the base clock from which all other clocks are derived */
 uint32_t sh4_input_freq = SH4_BASE_RATE;
 
+uint32_t sh4_cpu_multiplier = 2000; /* = 0.5 * frequency */
+
 uint32_t sh4_cpu_freq = SH4_BASE_RATE;
 uint32_t sh4_bus_freq = SH4_BASE_RATE;
 uint32_t sh4_peripheral_freq = SH4_BASE_RATE / 2;
@@ -53,7 +55,7 @@ void mmio_region_CPG_write( uint32_t reg, uint32_t val )
     case FRQCR: /* Frequency control */
 	div = ifc_divider[(val >> 6) & 0x07];
 	sh4_cpu_freq = sh4_input_freq / div;
-	sh4_cpu_period = 2000 * div / sh4_input_freq;
+	sh4_cpu_period = sh4_cpu_multiplier * div / sh4_input_freq;
 	div = ifc_divider[(val >> 3) & 0x07];
 	sh4_bus_freq = sh4_input_freq / div;
 	sh4_bus_period = 1000 * div / sh4_input_freq;
