@@ -1,5 +1,5 @@
 /**
- * $Id: sh4mem.c,v 1.24 2007-09-28 07:25:22 nkeynes Exp $
+ * $Id: sh4mem.c,v 1.25 2007-10-04 08:47:52 nkeynes Exp $
  * sh4mem.c is responsible for the SH4's access to memory (including memory
  * mapped I/O), using the page maps created in mem.c
  *
@@ -65,6 +65,7 @@ TRACE( str " [%s.%s: %s]", __VA_ARGS__, \
 
 extern struct mem_region mem_rgn[];
 extern struct mmio_region *P4_io[];
+char *sh4_main_ram;
 
 int32_t sh4_read_p4( uint32_t addr )
 {
@@ -130,10 +131,11 @@ int32_t sh4_read_long( uint32_t addr )
     
     CHECK_READ_WATCH(addr,4);
 
-    if( addr >= 0xE0000000 ) /* P4 Area, handled specially */
+    if( addr >= 0xE0000000 ) { /* P4 Area, handled specially */
         return sh4_read_p4( addr );
-    
-    if( (addr&0x1F800000) == 0x04000000 ) {
+    } else if( (addr&0x1C000000) == 0x0C000000 ) {
+	return *(int32_t *)(sh4_main_ram + (addr&0x00FFFFFF));
+    } else if( (addr&0x1F800000) == 0x04000000 ) {
         addr = TRANSLATE_VIDEO_64BIT_ADDRESS(addr);
 	pvr2_render_buffer_invalidate(addr, FALSE);
     } else if( (addr&0x1F800000) == 0x05000000 ) {
@@ -161,10 +163,11 @@ int32_t sh4_read_word( uint32_t addr )
 
     CHECK_READ_WATCH(addr,2);
 
-    if( addr >= 0xE0000000 ) /* P4 Area, handled specially */
+    if( addr >= 0xE0000000 ) { /* P4 Area, handled specially */
         return SIGNEXT16(sh4_read_p4( addr ));
-    
-    if( (addr&0x1F800000) == 0x04000000 ) {
+    } else if( (addr&0x1C000000) == 0x0C000000 ) {
+	return SIGNEXT16(*(int16_t *)(sh4_main_ram + (addr&0x00FFFFFF)));
+    } else if( (addr&0x1F800000) == 0x04000000 ) {
         addr = TRANSLATE_VIDEO_64BIT_ADDRESS(addr);
 	pvr2_render_buffer_invalidate(addr, FALSE);
     } else if( (addr&0x1F800000) == 0x05000000 ) {
@@ -192,9 +195,11 @@ int32_t sh4_read_byte( uint32_t addr )
 
     CHECK_READ_WATCH(addr,1);
 
-    if( addr >= 0xE0000000 ) /* P4 Area, handled specially */
+    if( addr >= 0xE0000000 ) { /* P4 Area, handled specially */
         return SIGNEXT8(sh4_read_p4( addr ));
-    if( (addr&0x1F800000) == 0x04000000 ) {
+    } else if( (addr&0x1C000000) == 0x0C000000 ) {
+	return SIGNEXT8(*(int8_t *)(sh4_main_ram + (addr&0x00FFFFFF)));
+    } else if( (addr&0x1F800000) == 0x04000000 ) {
         addr = TRANSLATE_VIDEO_64BIT_ADDRESS(addr);
     	pvr2_render_buffer_invalidate(addr, FALSE);
     } else if( (addr&0x1F800000) == 0x05000000 ) {
@@ -213,7 +218,6 @@ int32_t sh4_read_byte( uint32_t addr )
         TRACE_IO( "Byte read %02X <= %08X", page, (addr&0xFFF), val&0xFF, addr );
         return val;
     } else {
-	//	fprintf( stderr, "MOV.B %02X <= %08X\n",(uint32_t)*(uint8_t *)(page+(addr&0xFFF)), addr );
         return SIGNEXT8(*(int8_t *)(page+(addr&0xFFF)));
     }
 }
@@ -228,9 +232,11 @@ void sh4_write_long( uint32_t addr, uint32_t val )
     if( addr >= 0xE0000000 ) {
         sh4_write_p4( addr, val );
         return;
-    }
-    if( (addr&0x1F800000) == 0x04000000 || 
-	(addr&0x1F800000) == 0x11000000 ) {
+    } else if( (addr&0x1C000000) == 0x0C000000 ) {
+	*(uint32_t *)(sh4_main_ram + (addr&0x00FFFFFF)) = val;
+	return;
+    } else if( (addr&0x1F800000) == 0x04000000 || 
+	       (addr&0x1F800000) == 0x11000000 ) {
 	texcache_invalidate_page(addr& 0x7FFFFF);
         addr = TRANSLATE_VIDEO_64BIT_ADDRESS(addr);
 	pvr2_render_buffer_invalidate(addr, TRUE);
@@ -273,8 +279,10 @@ void sh4_write_word( uint32_t addr, uint32_t val )
     if( addr >= 0xE0000000 ) {
         sh4_write_p4( addr, (int16_t)val );
         return;
-    }
-    if( (addr&0x1F800000) == 0x04000000 ||
+    } else if( (addr&0x1C000000) == 0x0C000000 ) {
+	*(uint16_t *)(sh4_main_ram + (addr&0x00FFFFFF)) = val;
+	return;
+    } else if( (addr&0x1F800000) == 0x04000000 ||
 	(addr&0x1F800000) == 0x11000000 ) {
 	texcache_invalidate_page(addr& 0x7FFFFF);
         addr = TRANSLATE_VIDEO_64BIT_ADDRESS(addr);
@@ -312,9 +320,11 @@ void sh4_write_byte( uint32_t addr, uint32_t val )
     if( addr >= 0xE0000000 ) {
         sh4_write_p4( addr, (int8_t)val );
         return;
-    }
-    if( (addr&0x1F800000) == 0x04000000 ||
-	(addr&0x1F800000) == 0x11000000 ) {
+    } else if( (addr&0x1C000000) == 0x0C000000 ) {
+	*(uint8_t *)(sh4_main_ram + (addr&0x00FFFFFF)) = val;
+	return;
+    } else if( (addr&0x1F800000) == 0x04000000 ||
+	       (addr&0x1F800000) == 0x11000000 ) {
 	texcache_invalidate_page(addr& 0x7FFFFF);
         addr = TRANSLATE_VIDEO_64BIT_ADDRESS(addr);
 	pvr2_render_buffer_invalidate(addr, TRUE);

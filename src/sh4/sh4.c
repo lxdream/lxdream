@@ -1,5 +1,5 @@
 /**
- * $Id: sh4.c,v 1.3 2007-10-01 11:51:25 nkeynes Exp $
+ * $Id: sh4.c,v 1.4 2007-10-04 08:47:52 nkeynes Exp $
  * 
  * SH4 parent module for all CPU modes and SH4 peripheral
  * modules.
@@ -48,6 +48,7 @@ struct dreamcast_module sh4_module = { "SH4", sh4_init, sh4_reset,
 struct sh4_registers sh4r;
 struct breakpoint_struct sh4_breakpoints[MAX_BREAKPOINTS];
 int sh4_breakpoint_count = 0;
+extern char *sh4_main_ram;
 
 void sh4_set_use_xlat( gboolean use )
 {
@@ -63,6 +64,7 @@ void sh4_set_use_xlat( gboolean use )
 void sh4_init(void)
 {
     register_io_regions( mmio_list_sh4mmio );
+    sh4_main_ram = mem_get_region_by_name(MEM_REGION_MAIN);
     MMU_init();
     sh4_reset();
 }
