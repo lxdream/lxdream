@@ -1,5 +1,5 @@
 /**
- * $Id: sh4x86.in,v 1.18 2007-10-03 12:19:03 nkeynes Exp $
+ * $Id: sh4x86.in,v 1.19 2007-10-04 08:47:27 nkeynes Exp $
  * 
  * SH4 => x86 translation. This version does no real optimization, it just
  * outputs straight-line x86 code - it mainly exists to provide a baseline
@@ -25,6 +25,7 @@
 #define DEBUG_JUMPS 1
 #endif
 
+#include "sh4/xltcache.h"
 #include "sh4/sh4core.h"
 #include "sh4/sh4trans.h"
 #include "sh4/sh4mmio.h"
@@ -44,12 +45,35 @@ struct sh4_x86_state {
     gboolean fpuen_checked; /* true if we've already checked fpu enabled. */
     gboolean branch_taken; /* true if we branched unconditionally */
     uint32_t block_start_pc;
+    int tstate;
 
     /* Allocated memory for the (block-wide) back-patch list */
     uint32_t **backpatch_list;
     uint32_t backpatch_posn;
     uint32_t backpatch_size;
 };
+
+#define TSTATE_NONE -1
+#define TSTATE_O    0
+#define TSTATE_C    2
+#define TSTATE_E    4
+#define TSTATE_NE   5
+#define TSTATE_G    0xF
+#define TSTATE_GE   0xD
+#define TSTATE_A    7
+#define TSTATE_AE   3
+
+/** Branch if T is set (either in the current cflags, or in sh4r.t) */
+#define JT_rel8(rel8,label) if( sh4_x86.tstate == TSTATE_NONE ) { \
+	CMP_imm8s_sh4r( 1, R_T ); sh4_x86.tstate = TSTATE_E; } \
+    OP(0x70+sh4_x86.tstate); OP(rel8); \
+    MARK_JMP(rel8,label)
+/** Branch if T is clear (either in the current cflags or in sh4r.t) */
+#define JF_rel8(rel8,label) if( sh4_x86.tstate == TSTATE_NONE ) { \
+	CMP_imm8s_sh4r( 1, R_T ); sh4_x86.tstate = TSTATE_E; } \
+    OP(0x70+ (sh4_x86.tstate^1)); OP(rel8); \
+    MARK_JMP(rel8, label)
+
 
 #define EXIT_DATA_ADDR_READ 0
 #define EXIT_DATA_ADDR_WRITE 7
@@ -403,6 +427,7 @@ void sh4_translate_begin_block( sh4addr_t pc )
     sh4_x86.branch_taken = FALSE;
     sh4_x86.backpatch_posn = 0;
     sh4_x86.block_start_pc = pc;
+    sh4_x86.tstate = TSTATE_NONE;
 }
 
 /**
@@ -427,9 +452,10 @@ void exit_block( sh4addr_t pc, sh4addr_t endpc )
  */
 void exit_block_pcset( pc )
 {
-    XOR_r32_r32( R_EAX, R_EAX );                       // 2
     load_imm32( R_ECX, ((pc - sh4_x86.block_start_pc)>>1)*sh4_cpu_period ); // 5
     ADD_r32_sh4r( R_ECX, REG_OFFSET(slice_cycle) );    // 6
+    load_spreg( R_EAX, REG_OFFSET(pc) );
+    call_func1(xlat_get_code,R_EAX);
     POP_r32(R_EBP);
     RET();
 }
@@ -462,20 +488,20 @@ void sh4_translate_end_block( sh4addr_t pc ) {
 	JMP_TARGET(target3);
 	JMP_TARGET(target4);
 	JMP_TARGET(target5);
+	// Raise exception
 	load_spreg( R_ECX, REG_OFFSET(pc) );
 	ADD_r32_r32( R_EDX, R_ECX );
 	ADD_r32_r32( R_EDX, R_ECX );
 	store_spreg( R_ECX, REG_OFFSET(pc) );
 	MOV_moff32_EAX( (uint32_t)&sh4_cpu_period );
-	load_spreg( R_ECX, REG_OFFSET(slice_cycle) );
 	MUL_r32( R_EDX );
-	ADD_r32_r32( R_EAX, R_ECX );
-	store_spreg( R_ECX, REG_OFFSET(slice_cycle) );
+	ADD_r32_sh4r( R_EAX, REG_OFFSET(slice_cycle) );
 	
 	load_imm32( R_EAX, (uint32_t)sh4_raise_exception ); // 6
 	CALL_r32( R_EAX ); // 2
 	ADD_imm8s_r32( 4, R_ESP );
-	XOR_r32_r32( R_EAX, R_EAX );
+	load_spreg( R_EAX, REG_OFFSET(pc) );
+	call_func1(xlat_get_code,R_EAX);
 	POP_r32(R_EBP);
 	RET();
 
@@ -524,19 +550,24 @@ ADD Rm, Rn {:
     load_reg( R_ECX, Rn );
     ADD_r32_r32( R_EAX, R_ECX );
     store_reg( R_ECX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 ADD #imm, Rn {:  
     load_reg( R_EAX, Rn );
     ADD_imm8s_r32( imm, R_EAX );
     store_reg( R_EAX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 ADDC Rm, Rn {:
+    if( sh4_x86.tstate != TSTATE_C ) {
+	LDC_t();
+    }
     load_reg( R_EAX, Rm );
     load_reg( R_ECX, Rn );
-    LDC_t();
     ADC_r32_r32( R_EAX, R_ECX );
     store_reg( R_ECX, Rn );
     SETC_t();
+    sh4_x86.tstate = TSTATE_C;
 :}
 ADDV Rm, Rn {:
     load_reg( R_EAX, Rm );
@@ -544,17 +575,20 @@ ADDV Rm, Rn {:
     ADD_r32_r32( R_EAX, R_ECX );
     store_reg( R_ECX, Rn );
     SETO_t();
+    sh4_x86.tstate = TSTATE_O;
 :}
 AND Rm, Rn {:
     load_reg( R_EAX, Rm );
     load_reg( R_ECX, Rn );
     AND_r32_r32( R_EAX, R_ECX );
     store_reg( R_ECX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 AND #imm, R0 {:  
     load_reg( R_EAX, 0 );
     AND_imm32_r32(imm, R_EAX); 
     store_reg( R_EAX, 0 );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 AND.B #imm, @(R0, GBR) {: 
     load_reg( R_EAX, 0 );
@@ -565,51 +599,60 @@ AND.B #imm, @(R0, GBR) {:
     POP_r32(R_ECX);
     AND_imm32_r32(imm, R_EAX );
     MEM_WRITE_BYTE( R_ECX, R_EAX );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 CMP/EQ Rm, Rn {:  
     load_reg( R_EAX, Rm );
     load_reg( R_ECX, Rn );
     CMP_r32_r32( R_EAX, R_ECX );
     SETE_t();
+    sh4_x86.tstate = TSTATE_E;
 :}
 CMP/EQ #imm, R0 {:  
     load_reg( R_EAX, 0 );
     CMP_imm8s_r32(imm, R_EAX);
     SETE_t();
+    sh4_x86.tstate = TSTATE_E;
 :}
 CMP/GE Rm, Rn {:  
     load_reg( R_EAX, Rm );
     load_reg( R_ECX, Rn );
     CMP_r32_r32( R_EAX, R_ECX );
     SETGE_t();
+    sh4_x86.tstate = TSTATE_GE;
 :}
 CMP/GT Rm, Rn {: 
     load_reg( R_EAX, Rm );
     load_reg( R_ECX, Rn );
     CMP_r32_r32( R_EAX, R_ECX );
     SETG_t();
+    sh4_x86.tstate = TSTATE_G;
 :}
 CMP/HI Rm, Rn {:  
     load_reg( R_EAX, Rm );
     load_reg( R_ECX, Rn );
     CMP_r32_r32( R_EAX, R_ECX );
     SETA_t();
+    sh4_x86.tstate = TSTATE_A;
 :}
 CMP/HS Rm, Rn {: 
     load_reg( R_EAX, Rm );
     load_reg( R_ECX, Rn );
     CMP_r32_r32( R_EAX, R_ECX );
     SETAE_t();
+    sh4_x86.tstate = TSTATE_AE;
  :}
 CMP/PL Rn {: 
     load_reg( R_EAX, Rn );
     CMP_imm8s_r32( 0, R_EAX );
     SETG_t();
+    sh4_x86.tstate = TSTATE_G;
 :}
 CMP/PZ Rn {:  
     load_reg( R_EAX, Rn );
     CMP_imm8s_r32( 0, R_EAX );
     SETGE_t();
+    sh4_x86.tstate = TSTATE_GE;
 :}
 CMP/STR Rm, Rn {:  
     load_reg( R_EAX, Rm );
@@ -627,6 +670,7 @@ CMP/STR Rm, Rn {:
     JMP_TARGET(target2);
     JMP_TARGET(target3);
     SETE_t();
+    sh4_x86.tstate = TSTATE_E;
 :}
 DIV0S Rm, Rn {:
     load_reg( R_EAX, Rm );
@@ -637,17 +681,21 @@ DIV0S Rm, Rn {:
     store_spreg( R_ECX, R_Q );
     CMP_r32_r32( R_EAX, R_ECX );
     SETNE_t();
+    sh4_x86.tstate = TSTATE_NE;
 :}
 DIV0U {:  
     XOR_r32_r32( R_EAX, R_EAX );
     store_spreg( R_EAX, R_Q );
     store_spreg( R_EAX, R_M );
     store_spreg( R_EAX, R_T );
+    sh4_x86.tstate = TSTATE_C; // works for DIV1
 :}
 DIV1 Rm, Rn {:
     load_spreg( R_ECX, R_M );
     load_reg( R_EAX, Rn );
-    LDC_t();
+    if( sh4_x86.tstate != TSTATE_C ) {
+	LDC_t();
+    }
     RCL1_r32( R_EAX );
     SETC_r8( R_DL ); // Q'
     CMP_sh4r_r32( R_Q, R_ECX );
@@ -665,6 +713,7 @@ DIV1 Rm, Rn {:
     XOR_imm8s_r32( 1, R_AL );   // T = !Q'
     MOVZX_r8_r32( R_AL, R_EAX );
     store_spreg( R_EAX, R_T );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 DMULS.L Rm, Rn {:  
     load_reg( R_EAX, Rm );
@@ -672,6 +721,7 @@ DMULS.L Rm, Rn {:
     IMUL_r32(R_ECX);
     store_spreg( R_EDX, R_MACH );
     store_spreg( R_EAX, R_MACL );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 DMULU.L Rm, Rn {:  
     load_reg( R_EAX, Rm );
@@ -679,12 +729,14 @@ DMULU.L Rm, Rn {:
     MUL_r32(R_ECX);
     store_spreg( R_EDX, R_MACH );
     store_spreg( R_EAX, R_MACL );    
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 DT Rn {:  
     load_reg( R_EAX, Rn );
     ADD_imm8s_r32( -1, R_EAX );
     store_reg( R_EAX, Rn );
     SETE_t();
+    sh4_x86.tstate = TSTATE_E;
 :}
 EXTS.B Rm, Rn {:  
     load_reg( R_EAX, Rm );
@@ -728,6 +780,7 @@ MAC.L @Rm+, @Rn+ {:
     JE_rel8( 7, nosat );
     call_func0( signsat48 );
     JMP_TARGET( nosat );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 MAC.W @Rm+, @Rn+ {:  
     load_reg( R_ECX, Rm );
@@ -768,6 +821,7 @@ MAC.W @Rm+, @Rn+ {:
     JMP_TARGET(end);
     JMP_TARGET(end2);
     JMP_TARGET(end3);
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 MOVT Rn {:  
     load_spreg( R_EAX, R_T );
@@ -778,23 +832,27 @@ MUL.L Rm, Rn {:
     load_reg( R_ECX, Rn );
     MUL_r32( R_ECX );
     store_spreg( R_EAX, R_MACL );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 MULS.W Rm, Rn {:
     load_reg16s( R_EAX, Rm );
     load_reg16s( R_ECX, Rn );
     MUL_r32( R_ECX );
     store_spreg( R_EAX, R_MACL );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 MULU.W Rm, Rn {:  
     load_reg16u( R_EAX, Rm );
     load_reg16u( R_ECX, Rn );
     MUL_r32( R_ECX );
     store_spreg( R_EAX, R_MACL );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 NEG Rm, Rn {:
     load_reg( R_EAX, Rm );
     NEG_r32( R_EAX );
     store_reg( R_EAX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 NEGC Rm, Rn {:  
     load_reg( R_EAX, Rm );
@@ -803,22 +861,26 @@ NEGC Rm, Rn {:
     SBB_r32_r32( R_EAX, R_ECX );
     store_reg( R_ECX, Rn );
     SETC_t();
+    sh4_x86.tstate = TSTATE_C;
 :}
 NOT Rm, Rn {:  
     load_reg( R_EAX, Rm );
     NOT_r32( R_EAX );
     store_reg( R_EAX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 OR Rm, Rn {:  
     load_reg( R_EAX, Rm );
     load_reg( R_ECX, Rn );
     OR_r32_r32( R_EAX, R_ECX );
     store_reg( R_ECX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 OR #imm, R0 {:
     load_reg( R_EAX, 0 );
     OR_imm32_r32(imm, R_EAX);
     store_reg( R_EAX, 0 );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 OR.B #imm, @(R0, GBR) {:  
     load_reg( R_EAX, 0 );
@@ -829,32 +891,41 @@ OR.B #imm, @(R0, GBR) {:
     POP_r32(R_ECX);
     OR_imm32_r32(imm, R_EAX );
     MEM_WRITE_BYTE( R_ECX, R_EAX );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 ROTCL Rn {:
     load_reg( R_EAX, Rn );
-    LDC_t();
+    if( sh4_x86.tstate != TSTATE_C ) {
+	LDC_t();
+    }
     RCL1_r32( R_EAX );
     store_reg( R_EAX, Rn );
     SETC_t();
+    sh4_x86.tstate = TSTATE_C;
 :}
 ROTCR Rn {:  
     load_reg( R_EAX, Rn );
-    LDC_t();
+    if( sh4_x86.tstate != TSTATE_C ) {
+	LDC_t();
+    }
     RCR1_r32( R_EAX );
     store_reg( R_EAX, Rn );
     SETC_t();
+    sh4_x86.tstate = TSTATE_C;
 :}
 ROTL Rn {:  
     load_reg( R_EAX, Rn );
     ROL1_r32( R_EAX );
     store_reg( R_EAX, Rn );
     SETC_t();
+    sh4_x86.tstate = TSTATE_C;
 :}
 ROTR Rn {:  
     load_reg( R_EAX, Rn );
     ROR1_r32( R_EAX );
     store_reg( R_EAX, Rn );
     SETC_t();
+    sh4_x86.tstate = TSTATE_C;
 :}
 SHAD Rm, Rn {:
     /* Annoyingly enough, not directly convertible */
@@ -879,6 +950,7 @@ SHAD Rm, Rn {:
     JMP_TARGET(end);
     JMP_TARGET(end2);
     store_reg( R_EAX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 SHLD Rm, Rn {:  
     load_reg( R_EAX, Rn );
@@ -902,74 +974,89 @@ SHLD Rm, Rn {:
     JMP_TARGET(end);
     JMP_TARGET(end2);
     store_reg( R_EAX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 SHAL Rn {: 
     load_reg( R_EAX, Rn );
     SHL1_r32( R_EAX );
     SETC_t();
     store_reg( R_EAX, Rn );
+    sh4_x86.tstate = TSTATE_C;
 :}
 SHAR Rn {:  
     load_reg( R_EAX, Rn );
     SAR1_r32( R_EAX );
     SETC_t();
     store_reg( R_EAX, Rn );
+    sh4_x86.tstate = TSTATE_C;
 :}
 SHLL Rn {:  
     load_reg( R_EAX, Rn );
     SHL1_r32( R_EAX );
     SETC_t();
     store_reg( R_EAX, Rn );
+    sh4_x86.tstate = TSTATE_C;
 :}
 SHLL2 Rn {:
     load_reg( R_EAX, Rn );
     SHL_imm8_r32( 2, R_EAX );
     store_reg( R_EAX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 SHLL8 Rn {:  
     load_reg( R_EAX, Rn );
     SHL_imm8_r32( 8, R_EAX );
     store_reg( R_EAX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 SHLL16 Rn {:  
     load_reg( R_EAX, Rn );
     SHL_imm8_r32( 16, R_EAX );
     store_reg( R_EAX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 SHLR Rn {:  
     load_reg( R_EAX, Rn );
     SHR1_r32( R_EAX );
     SETC_t();
     store_reg( R_EAX, Rn );
+    sh4_x86.tstate = TSTATE_C;
 :}
 SHLR2 Rn {:  
     load_reg( R_EAX, Rn );
     SHR_imm8_r32( 2, R_EAX );
     store_reg( R_EAX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 SHLR8 Rn {:  
     load_reg( R_EAX, Rn );
     SHR_imm8_r32( 8, R_EAX );
     store_reg( R_EAX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 SHLR16 Rn {:  
     load_reg( R_EAX, Rn );
     SHR_imm8_r32( 16, R_EAX );
     store_reg( R_EAX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 SUB Rm, Rn {:  
     load_reg( R_EAX, Rm );
     load_reg( R_ECX, Rn );
     SUB_r32_r32( R_EAX, R_ECX );
     store_reg( R_ECX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 SUBC Rm, Rn {:  
     load_reg( R_EAX, Rm );
     load_reg( R_ECX, Rn );
-    LDC_t();
+    if( sh4_x86.tstate != TSTATE_C ) {
+	LDC_t();
+    }
     SBB_r32_r32( R_EAX, R_ECX );
     store_reg( R_ECX, Rn );
     SETC_t();
+    sh4_x86.tstate = TSTATE_C;
 :}
 SUBV Rm, Rn {:  
     load_reg( R_EAX, Rm );
@@ -977,6 +1064,7 @@ SUBV Rm, Rn {:
     SUB_r32_r32( R_EAX, R_ECX );
     store_reg( R_ECX, Rn );
     SETO_t();
+    sh4_x86.tstate = TSTATE_O;
 :}
 SWAP.B Rm, Rn {:  
     load_reg( R_EAX, Rm );
@@ -990,6 +1078,7 @@ SWAP.W Rm, Rn {:
     SHR_imm8_r32( 16, R_EAX );
     OR_r32_r32( R_EAX, R_ECX );
     store_reg( R_ECX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 TAS.B @Rn {:  
     load_reg( R_ECX, Rn );
@@ -999,17 +1088,20 @@ TAS.B @Rn {:
     OR_imm8_r8( 0x80, R_AL );
     load_reg( R_ECX, Rn );
     MEM_WRITE_BYTE( R_ECX, R_EAX );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 TST Rm, Rn {:  
     load_reg( R_EAX, Rm );
     load_reg( R_ECX, Rn );
     TEST_r32_r32( R_EAX, R_ECX );
     SETE_t();
+    sh4_x86.tstate = TSTATE_E;
 :}
 TST #imm, R0 {:  
     load_reg( R_EAX, 0 );
     TEST_imm32_r32( imm, R_EAX );
     SETE_t();
+    sh4_x86.tstate = TSTATE_E;
 :}
 TST.B #imm, @(R0, GBR) {:  
     load_reg( R_EAX, 0);
@@ -1018,17 +1110,20 @@ TST.B #imm, @(R0, GBR) {:
     MEM_READ_BYTE( R_ECX, R_EAX );
     TEST_imm8_r8( imm, R_AL );
     SETE_t();
+    sh4_x86.tstate = TSTATE_E;
 :}
 XOR Rm, Rn {:  
     load_reg( R_EAX, Rm );
     load_reg( R_ECX, Rn );
     XOR_r32_r32( R_EAX, R_ECX );
     store_reg( R_ECX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 XOR #imm, R0 {:  
     load_reg( R_EAX, 0 );
     XOR_imm32_r32( imm, R_EAX );
     store_reg( R_EAX, 0 );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 XOR.B #imm, @(R0, GBR) {:  
     load_reg( R_EAX, 0 );
@@ -1039,6 +1134,7 @@ XOR.B #imm, @(R0, GBR) {:
     POP_r32(R_ECX);
     XOR_imm32_r32( imm, R_EAX );
     MEM_WRITE_BYTE( R_ECX, R_EAX );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 XTRCT Rm, Rn {:
     load_reg( R_EAX, Rm );
@@ -1047,6 +1143,7 @@ XTRCT Rm, Rn {:
     SHR_imm8_r32( 16, R_ECX );
     OR_r32_r32( R_EAX, R_ECX );
     store_reg( R_ECX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 
 /* Data move instructions */
@@ -1062,6 +1159,7 @@ MOV.B Rm, @Rn {:
     load_reg( R_EAX, Rm );
     load_reg( R_ECX, Rn );
     MEM_WRITE_BYTE( R_ECX, R_EAX );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 MOV.B Rm, @-Rn {:  
     load_reg( R_EAX, Rm );
@@ -1069,6 +1167,7 @@ MOV.B Rm, @-Rn {:
     ADD_imm8s_r32( -1, R_ECX );
     store_reg( R_ECX, Rn );
     MEM_WRITE_BYTE( R_ECX, R_EAX );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 MOV.B Rm, @(R0, Rn) {:  
     load_reg( R_EAX, 0 );
@@ -1076,23 +1175,27 @@ MOV.B Rm, @(R0, Rn) {:
     ADD_r32_r32( R_EAX, R_ECX );
     load_reg( R_EAX, Rm );
     MEM_WRITE_BYTE( R_ECX, R_EAX );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 MOV.B R0, @(disp, GBR) {:  
     load_reg( R_EAX, 0 );
     load_spreg( R_ECX, R_GBR );
     ADD_imm32_r32( disp, R_ECX );
     MEM_WRITE_BYTE( R_ECX, R_EAX );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 MOV.B R0, @(disp, Rn) {:  
     load_reg( R_EAX, 0 );
     load_reg( R_ECX, Rn );
     ADD_imm32_r32( disp, R_ECX );
     MEM_WRITE_BYTE( R_ECX, R_EAX );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 MOV.B @Rm, Rn {:  
     load_reg( R_ECX, Rm );
     MEM_READ_BYTE( R_ECX, R_EAX );
     store_reg( R_EAX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 MOV.B @Rm+, Rn {:  
     load_reg( R_ECX, Rm );
@@ -1101,6 +1204,7 @@ MOV.B @Rm+, Rn {:
     store_reg( R_EAX, Rm );
     MEM_READ_BYTE( R_ECX, R_EAX );
     store_reg( R_EAX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 MOV.B @(R0, Rm), Rn {:  
     load_reg( R_EAX, 0 );
@@ -1108,18 +1212,21 @@ MOV.B @(R0, Rm), Rn {:
     ADD_r32_r32( R_EAX, R_ECX );
     MEM_READ_BYTE( R_ECX, R_EAX );
     store_reg( R_EAX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 MOV.B @(disp, GBR), R0 {:  
     load_spreg( R_ECX, R_GBR );
     ADD_imm32_r32( disp, R_ECX );
     MEM_READ_BYTE( R_ECX, R_EAX );
     store_reg( R_EAX, 0 );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 MOV.B @(disp, Rm), R0 {:  
     load_reg( R_ECX, Rm );
     ADD_imm32_r32( disp, R_ECX );
     MEM_READ_BYTE( R_ECX, R_EAX );
     store_reg( R_EAX, 0 );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 MOV.L Rm, @Rn {:
     load_reg( R_EAX, Rm );
@@ -1127,6 +1234,7 @@ MOV.L Rm, @Rn {:
     precheck();
     check_walign32(R_ECX);
     MEM_WRITE_LONG( R_ECX, R_EAX );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 MOV.L Rm, @-Rn {:  
     load_reg( R_EAX, Rm );
@@ -1136,6 +1244,7 @@ MOV.L Rm, @-Rn {:
     ADD_imm8s_r32( -4, R_ECX );
     store_reg( R_ECX, Rn );
     MEM_WRITE_LONG( R_ECX, R_EAX );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 MOV.L Rm, @(R0, Rn) {:  
     load_reg( R_EAX, 0 );
@@ -1145,6 +1254,7 @@ MOV.L Rm, @(R0, Rn) {:
     check_walign32( R_ECX );
     load_reg( R_EAX, Rm );
     MEM_WRITE_LONG( R_ECX, R_EAX );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 MOV.L R0, @(disp, GBR) {:  
     load_spreg( R_ECX, R_GBR );
@@ -1153,6 +1263,7 @@ MOV.L R0, @(disp, GBR) {:
     precheck();
     check_walign32( R_ECX );
     MEM_WRITE_LONG( R_ECX, R_EAX );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 MOV.L Rm, @(disp, Rn) {:  
     load_reg( R_ECX, Rn );
@@ -1161,6 +1272,7 @@ MOV.L Rm, @(disp, Rn) {:
     precheck();
     check_walign32( R_ECX );
     MEM_WRITE_LONG( R_ECX, R_EAX );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 MOV.L @Rm, Rn {:  
     load_reg( R_ECX, Rm );
@@ -1168,6 +1280,7 @@ MOV.L @Rm, Rn {:
     check_ralign32( R_ECX );
     MEM_READ_LONG( R_ECX, R_EAX );
     store_reg( R_EAX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 MOV.L @Rm+, Rn {:  
     load_reg( R_EAX, Rm );
@@ -1178,6 +1291,7 @@ MOV.L @Rm+, Rn {:
     store_reg( R_EAX, Rm );
     MEM_READ_LONG( R_ECX, R_EAX );
     store_reg( R_EAX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 MOV.L @(R0, Rm), Rn {:  
     load_reg( R_EAX, 0 );
@@ -1187,6 +1301,7 @@ MOV.L @(R0, Rm), Rn {:
     check_ralign32( R_ECX );
     MEM_READ_LONG( R_ECX, R_EAX );
     store_reg( R_EAX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 MOV.L @(disp, GBR), R0 {:
     load_spreg( R_ECX, R_GBR );
@@ -1195,6 +1310,7 @@ MOV.L @(disp, GBR), R0 {:
     check_ralign32( R_ECX );
     MEM_READ_LONG( R_ECX, R_EAX );
     store_reg( R_EAX, 0 );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 MOV.L @(disp, PC), Rn {:  
     if( sh4_x86.in_delay_slot ) {
@@ -1209,6 +1325,7 @@ MOV.L @(disp, PC), Rn {:
 	    MEM_READ_LONG( R_ECX, R_EAX );
 	}
 	store_reg( R_EAX, Rn );
+	sh4_x86.tstate = TSTATE_NONE;
     }
 :}
 MOV.L @(disp, Rm), Rn {:  
@@ -1218,6 +1335,7 @@ MOV.L @(disp, Rm), Rn {:
     check_ralign32( R_ECX );
     MEM_READ_LONG( R_ECX, R_EAX );
     store_reg( R_EAX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 MOV.W Rm, @Rn {:  
     load_reg( R_ECX, Rn );
@@ -1225,6 +1343,7 @@ MOV.W Rm, @Rn {:
     check_walign16( R_ECX );
     load_reg( R_EAX, Rm );
     MEM_WRITE_WORD( R_ECX, R_EAX );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 MOV.W Rm, @-Rn {:  
     load_reg( R_ECX, Rn );
@@ -1234,6 +1353,7 @@ MOV.W Rm, @-Rn {:
     ADD_imm8s_r32( -2, R_ECX );
     store_reg( R_ECX, Rn );
     MEM_WRITE_WORD( R_ECX, R_EAX );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 MOV.W Rm, @(R0, Rn) {:  
     load_reg( R_EAX, 0 );
@@ -1243,6 +1363,7 @@ MOV.W Rm, @(R0, Rn) {:
     check_walign16( R_ECX );
     load_reg( R_EAX, Rm );
     MEM_WRITE_WORD( R_ECX, R_EAX );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 MOV.W R0, @(disp, GBR) {:  
     load_spreg( R_ECX, R_GBR );
@@ -1251,6 +1372,7 @@ MOV.W R0, @(disp, GBR) {:
     precheck();
     check_walign16( R_ECX );
     MEM_WRITE_WORD( R_ECX, R_EAX );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 MOV.W R0, @(disp, Rn) {:  
     load_reg( R_ECX, Rn );
@@ -1259,6 +1381,7 @@ MOV.W R0, @(disp, Rn) {:
     precheck();
     check_walign16( R_ECX );
     MEM_WRITE_WORD( R_ECX, R_EAX );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 MOV.W @Rm, Rn {:  
     load_reg( R_ECX, Rm );
@@ -1266,6 +1389,7 @@ MOV.W @Rm, Rn {:
     check_ralign16( R_ECX );
     MEM_READ_WORD( R_ECX, R_EAX );
     store_reg( R_EAX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 MOV.W @Rm+, Rn {:  
     load_reg( R_EAX, Rm );
@@ -1276,6 +1400,7 @@ MOV.W @Rm+, Rn {:
     store_reg( R_EAX, Rm );
     MEM_READ_WORD( R_ECX, R_EAX );
     store_reg( R_EAX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 MOV.W @(R0, Rm), Rn {:  
     load_reg( R_EAX, 0 );
@@ -1285,6 +1410,7 @@ MOV.W @(R0, Rm), Rn {:
     check_ralign16( R_ECX );
     MEM_READ_WORD( R_ECX, R_EAX );
     store_reg( R_EAX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 MOV.W @(disp, GBR), R0 {:  
     load_spreg( R_ECX, R_GBR );
@@ -1293,6 +1419,7 @@ MOV.W @(disp, GBR), R0 {:
     check_ralign16( R_ECX );
     MEM_READ_WORD( R_ECX, R_EAX );
     store_reg( R_EAX, 0 );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 MOV.W @(disp, PC), Rn {:  
     if( sh4_x86.in_delay_slot ) {
@@ -1301,6 +1428,7 @@ MOV.W @(disp, PC), Rn {:
 	load_imm32( R_ECX, pc + disp + 4 );
 	MEM_READ_WORD( R_ECX, R_EAX );
 	store_reg( R_EAX, Rn );
+	sh4_x86.tstate = TSTATE_NONE;
     }
 :}
 MOV.W @(disp, Rm), R0 {:  
@@ -1310,6 +1438,7 @@ MOV.W @(disp, Rm), R0 {:
     check_ralign16( R_ECX );
     MEM_READ_WORD( R_ECX, R_EAX );
     store_reg( R_EAX, 0 );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 MOVA @(disp, PC), R0 {:  
     if( sh4_x86.in_delay_slot ) {
@@ -1325,6 +1454,7 @@ MOVCA.L R0, @Rn {:
     precheck();
     check_walign32( R_ECX );
     MEM_WRITE_LONG( R_ECX, R_EAX );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 
 /* Control transfer instructions */
@@ -1332,8 +1462,7 @@ BF disp {:
     if( sh4_x86.in_delay_slot ) {
 	SLOTILLEGAL();
     } else {
-	CMP_imm8s_sh4r( 0, R_T );
-	JNE_rel8( 29, nottaken );
+	JT_rel8( 29, nottaken );
 	exit_block( disp + pc + 4, pc+2 );
 	JMP_TARGET(nottaken);
 	return 2;
@@ -1344,8 +1473,11 @@ BF/S disp {:
 	SLOTILLEGAL();
     } else {
 	sh4_x86.in_delay_slot = TRUE;
-	CMP_imm8s_sh4r( 0, R_T );
-	OP(0x0F); OP(0x85); uint32_t *patch = (uint32_t *)xlat_output; OP32(0); // JNE rel32
+	if( sh4_x86.tstate == TSTATE_NONE ) {
+	    CMP_imm8s_sh4r( 1, R_T );
+	    sh4_x86.tstate = TSTATE_E;
+	}
+	OP(0x0F); OP(0x80+sh4_x86.tstate); uint32_t *patch = (uint32_t *)xlat_output; OP32(0); // JNE rel32
 	sh4_x86_translate_instruction(pc+2);
 	exit_block( disp + pc + 4, pc+4 );
 	// not taken
@@ -1373,6 +1505,7 @@ BRAF Rn {:
 	ADD_imm32_r32( pc + 4, R_EAX );
 	store_spreg( R_EAX, REG_OFFSET(pc) );
 	sh4_x86.in_delay_slot = TRUE;
+	sh4_x86.tstate = TSTATE_NONE;
 	sh4_x86_translate_instruction( pc + 2 );
 	exit_block_pcset(pc+2);
 	sh4_x86.branch_taken = TRUE;
@@ -1401,6 +1534,7 @@ BSRF Rn {:
 	ADD_sh4r_r32( REG_OFFSET(r[Rn]), R_ECX );
 	store_spreg( R_ECX, REG_OFFSET(pc) );
 	sh4_x86.in_delay_slot = TRUE;
+	sh4_x86.tstate = TSTATE_NONE;
 	sh4_x86_translate_instruction( pc + 2 );
 	exit_block_pcset(pc+2);
 	sh4_x86.branch_taken = TRUE;
@@ -1411,8 +1545,7 @@ BT disp {:
     if( sh4_x86.in_delay_slot ) {
 	SLOTILLEGAL();
     } else {
-	CMP_imm8s_sh4r( 0, R_T );
-	JE_rel8( 29, nottaken );
+	JF_rel8( 29, nottaken );
 	exit_block( disp + pc + 4, pc+2 );
 	JMP_TARGET(nottaken);
 	return 2;
@@ -1423,8 +1556,11 @@ BT/S disp {:
 	SLOTILLEGAL();
     } else {
 	sh4_x86.in_delay_slot = TRUE;
-	CMP_imm8s_sh4r( 0, R_T );
-	OP(0x0F); OP(0x84); uint32_t *patch = (uint32_t *)xlat_output; OP32(0); // JE rel32
+	if( sh4_x86.tstate == TSTATE_NONE ) {
+	    CMP_imm8s_sh4r( 1, R_T );
+	    sh4_x86.tstate = TSTATE_E;
+	}
+	OP(0x0F); OP(0x80+(sh4_x86.tstate^1)); uint32_t *patch = (uint32_t *)xlat_output; OP32(0); // JE rel32
 	sh4_x86_translate_instruction(pc+2);
 	exit_block( disp + pc + 4, pc+4 );
 	// not taken
@@ -1473,6 +1609,7 @@ RTE {:
 	sh4_x86.in_delay_slot = TRUE;
 	sh4_x86.priv_checked = FALSE;
 	sh4_x86.fpuen_checked = FALSE;
+	sh4_x86.tstate = TSTATE_NONE;
 	sh4_x86_translate_instruction(pc+2);
 	exit_block_pcset(pc+2);
 	sh4_x86.branch_taken = TRUE;
@@ -1499,6 +1636,7 @@ TRAPA #imm {:
 	PUSH_imm32( imm );
 	call_func0( sh4_raise_trap );
 	ADD_imm8s_r32( 4, R_ESP );
+	sh4_x86.tstate = TSTATE_NONE;
 	exit_block_pcset(pc);
 	sh4_x86.branch_taken = TRUE;
 	return 2;
@@ -1518,22 +1656,27 @@ CLRMAC {:
     XOR_r32_r32(R_EAX, R_EAX);
     store_spreg( R_EAX, R_MACL );
     store_spreg( R_EAX, R_MACH );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 CLRS {:
     CLC();
     SETC_sh4r(R_S);
+    sh4_x86.tstate = TSTATE_C;
 :}
 CLRT {:  
     CLC();
     SETC_t();
+    sh4_x86.tstate = TSTATE_C;
 :}
 SETS {:  
     STC();
     SETC_sh4r(R_S);
+    sh4_x86.tstate = TSTATE_C;
 :}
 SETT {:  
     STC();
     SETC_t();
+    sh4_x86.tstate = TSTATE_C;
 :}
 
 /* Floating point moves */
@@ -1585,6 +1728,7 @@ FMOV FRm, FRn {:
 	    JMP_TARGET(end);
 	}
     }
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 FMOV FRm, @Rn {: 
     precheck();
@@ -1614,6 +1758,7 @@ FMOV FRm, @Rn {:
 	MEM_WRITE_DOUBLE( R_ECX, R_EAX, R_EDX );
 	JMP_TARGET(end);
     }
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 FMOV @Rm, FRn {:  
     precheck();
@@ -1644,6 +1789,7 @@ FMOV @Rm, FRn {:
 	store_fr( R_EDX, R_ECX, FRn|0x01 );
 	JMP_TARGET(end);
     }
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 FMOV FRm, @-Rn {:  
     precheck();
@@ -1679,6 +1825,7 @@ FMOV FRm, @-Rn {:
 	MEM_WRITE_DOUBLE( R_ECX, R_EAX, R_EDX );
 	JMP_TARGET(end);
     }
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 FMOV @Rm+, FRn {:
     precheck();
@@ -1715,6 +1862,7 @@ FMOV @Rm+, FRn {:
 	store_fr( R_EDX, R_ECX, FRn|0x01 );
 	JMP_TARGET(end);
     }
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 FMOV FRm, @(R0, Rn) {:  
     precheck();
@@ -1745,6 +1893,7 @@ FMOV FRm, @(R0, Rn) {:
 	MEM_WRITE_DOUBLE( R_ECX, R_EAX, R_EDX );
 	JMP_TARGET(end);
     }
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 FMOV @(R0, Rm), FRn {:  
     precheck();
@@ -1776,6 +1925,7 @@ FMOV @(R0, Rm), FRn {:
 	store_fr( R_EDX, R_ECX, FRn|0x01 );
 	JMP_TARGET(end);
     }
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 FLDI0 FRn {:  /* IFF PR=0 */
     check_fpuen();
@@ -1786,6 +1936,7 @@ FLDI0 FRn {:  /* IFF PR=0 */
     load_spreg( R_ECX, REG_OFFSET(fr_bank) );
     store_fr( R_ECX, R_EAX, FRn );
     JMP_TARGET(end);
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 FLDI1 FRn {:  /* IFF PR=0 */
     check_fpuen();
@@ -1796,6 +1947,7 @@ FLDI1 FRn {:  /* IFF PR=0 */
     load_spreg( R_ECX, REG_OFFSET(fr_bank) );
     store_fr( R_ECX, R_EAX, FRn );
     JMP_TARGET(end);
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 
 FLOAT FPUL, FRn {:  
@@ -1810,6 +1962,7 @@ FLOAT FPUL, FRn {:
     JMP_TARGET(doubleprec);
     pop_dr( R_EDX, FRn );
     JMP_TARGET(end);
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 FTRC FRm, FPUL {:  
     check_fpuen();
@@ -1844,18 +1997,21 @@ FTRC FRm, FPUL {:
     store_spreg( R_ECX, R_FPUL );
     FPOP_st();
     JMP_TARGET(end);
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 FLDS FRm, FPUL {:  
     check_fpuen();
     load_fr_bank( R_ECX );
     load_fr( R_ECX, R_EAX, FRm );
     store_spreg( R_EAX, R_FPUL );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 FSTS FPUL, FRn {:  
     check_fpuen();
     load_fr_bank( R_ECX );
     load_spreg( R_EAX, R_FPUL );
     store_fr( R_ECX, R_EAX, FRn );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 FCNVDS FRm, FPUL {:  
     check_fpuen();
@@ -1866,6 +2022,7 @@ FCNVDS FRm, FPUL {:
     push_dr( R_ECX, FRm );
     pop_fpul();
     JMP_TARGET(end);
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 FCNVSD FPUL, FRn {:  
     check_fpuen();
@@ -1876,6 +2033,7 @@ FCNVSD FPUL, FRn {:
     push_fpul();
     pop_dr( R_ECX, FRn );
     JMP_TARGET(end);
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 
 /* Floating point instructions */
@@ -1894,6 +2052,7 @@ FABS FRn {:
     FABS_st0();
     pop_dr(R_EDX, FRn);
     JMP_TARGET(end);
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 FADD FRm, FRn {:  
     check_fpuen();
@@ -1912,6 +2071,7 @@ FADD FRm, FRn {:
     FADDP_st(1);
     pop_dr(R_EDX, FRn);
     JMP_TARGET(end);
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 FDIV FRm, FRn {:  
     check_fpuen();
@@ -1930,6 +2090,7 @@ FDIV FRm, FRn {:
     FDIVP_st(1);
     pop_dr(R_EDX, FRn);
     JMP_TARGET(end);
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 FMAC FR0, FRm, FRn {:  
     check_fpuen();
@@ -1952,6 +2113,7 @@ FMAC FR0, FRm, FRn {:
     FADDP_st(1);
     pop_dr( R_EDX, FRn );
     JMP_TARGET(end);
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 
 FMUL FRm, FRn {:  
@@ -1971,6 +2133,7 @@ FMUL FRm, FRn {:
     FMULP_st(1);
     pop_dr(R_EDX, FRn);
     JMP_TARGET(end);
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 FNEG FRn {:  
     check_fpuen();
@@ -1987,6 +2150,7 @@ FNEG FRn {:
     FCHS_st0();
     pop_dr(R_EDX, FRn);
     JMP_TARGET(end);
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 FSRRA FRn {:  
     check_fpuen();
@@ -2000,6 +2164,7 @@ FSRRA FRn {:
     FDIVP_st(1);
     pop_fr(R_EDX, FRn);
     JMP_TARGET(end);
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 FSQRT FRn {:  
     check_fpuen();
@@ -2016,6 +2181,7 @@ FSQRT FRn {:
     FSQRT_st0();
     pop_dr(R_EDX, FRn);
     JMP_TARGET(end);
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 FSUB FRm, FRn {:  
     check_fpuen();
@@ -2034,6 +2200,7 @@ FSUB FRm, FRn {:
     FSUBP_st(1);
     pop_dr(R_EDX, FRn);
     JMP_TARGET(end);
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 
 FCMP/EQ FRm, FRn {:  
@@ -2052,6 +2219,7 @@ FCMP/EQ FRm, FRn {:
     FCOMIP_st(1);
     SETE_t();
     FPOP_st();
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 FCMP/GT FRm, FRn {:  
     check_fpuen();
@@ -2069,6 +2237,7 @@ FCMP/GT FRm, FRn {:
     FCOMIP_st(1);
     SETA_t();
     FPOP_st();
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 
 FSCA FPUL, FRn {:  
@@ -2081,6 +2250,7 @@ FSCA FPUL, FRn {:
     load_spreg( R_EDX, R_FPUL );
     call_func2( sh4_fsca, R_EDX, R_ECX );
     JMP_TARGET(doubleprec);
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 FIPR FVm, FVn {:  
     check_fpuen();
@@ -2106,6 +2276,7 @@ FIPR FVm, FVn {:
     FADDP_st(1);
     pop_fr( R_ECX, (FVn<<2)+3);
     JMP_TARGET(doubleprec);
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 FTRV XMTRX, FVn {:  
     check_fpuen();
@@ -2117,6 +2288,7 @@ FTRV XMTRX, FVn {:
     load_xf_bank( R_ECX );                 // 12
     call_func2( sh4_ftrv, R_EDX, R_ECX );  // 12
     JMP_TARGET(doubleprec);
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 
 FRCHG {:  
@@ -2125,12 +2297,14 @@ FRCHG {:
     XOR_imm32_r32( FPSCR_FR, R_ECX );
     store_spreg( R_ECX, R_FPSCR );
     update_fr_bank( R_ECX );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 FSCHG {:  
     check_fpuen();
     load_spreg( R_ECX, R_FPSCR );
     XOR_imm32_r32( FPSCR_SZ, R_ECX );
     store_spreg( R_ECX, R_FPSCR );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 
 /* Processor control instructions */
@@ -2143,6 +2317,7 @@ LDC Rm, SR {:
 	call_func1( sh4_write_sr, R_EAX );
 	sh4_x86.priv_checked = FALSE;
 	sh4_x86.fpuen_checked = FALSE;
+	sh4_x86.tstate = TSTATE_NONE;
     }
 :}
 LDC Rm, GBR {: 
@@ -2153,31 +2328,37 @@ LDC Rm, VBR {:
     check_priv();
     load_reg( R_EAX, Rm );
     store_spreg( R_EAX, R_VBR );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 LDC Rm, SSR {:  
     check_priv();
     load_reg( R_EAX, Rm );
     store_spreg( R_EAX, R_SSR );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 LDC Rm, SGR {:  
     check_priv();
     load_reg( R_EAX, Rm );
     store_spreg( R_EAX, R_SGR );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 LDC Rm, SPC {:  
     check_priv();
     load_reg( R_EAX, Rm );
     store_spreg( R_EAX, R_SPC );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 LDC Rm, DBR {:  
     check_priv();
     load_reg( R_EAX, Rm );
     store_spreg( R_EAX, R_DBR );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 LDC Rm, Rn_BANK {:  
     check_priv();
     load_reg( R_EAX, Rm );
     store_spreg( R_EAX, REG_OFFSET(r_bank[Rn_BANK]) );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 LDC.L @Rm+, GBR {:  
     load_reg( R_EAX, Rm );
@@ -2188,6 +2369,7 @@ LDC.L @Rm+, GBR {:
     store_reg( R_EAX, Rm );
     MEM_READ_LONG( R_ECX, R_EAX );
     store_spreg( R_EAX, R_GBR );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 LDC.L @Rm+, SR {:
     if( sh4_x86.in_delay_slot ) {
@@ -2204,6 +2386,7 @@ LDC.L @Rm+, SR {:
 	call_func1( sh4_write_sr, R_EAX );
 	sh4_x86.priv_checked = FALSE;
 	sh4_x86.fpuen_checked = FALSE;
+	sh4_x86.tstate = TSTATE_NONE;
     }
 :}
 LDC.L @Rm+, VBR {:  
@@ -2216,6 +2399,7 @@ LDC.L @Rm+, VBR {:
     store_reg( R_EAX, Rm );
     MEM_READ_LONG( R_ECX, R_EAX );
     store_spreg( R_EAX, R_VBR );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 LDC.L @Rm+, SSR {:
     precheck();
@@ -2227,6 +2411,7 @@ LDC.L @Rm+, SSR {:
     store_reg( R_EAX, Rm );
     MEM_READ_LONG( R_ECX, R_EAX );
     store_spreg( R_EAX, R_SSR );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 LDC.L @Rm+, SGR {:  
     precheck();
@@ -2238,6 +2423,7 @@ LDC.L @Rm+, SGR {:
     store_reg( R_EAX, Rm );
     MEM_READ_LONG( R_ECX, R_EAX );
     store_spreg( R_EAX, R_SGR );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 LDC.L @Rm+, SPC {:  
     precheck();
@@ -2249,6 +2435,7 @@ LDC.L @Rm+, SPC {:
     store_reg( R_EAX, Rm );
     MEM_READ_LONG( R_ECX, R_EAX );
     store_spreg( R_EAX, R_SPC );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 LDC.L @Rm+, DBR {:  
     precheck();
@@ -2260,6 +2447,7 @@ LDC.L @Rm+, DBR {:
     store_reg( R_EAX, Rm );
     MEM_READ_LONG( R_ECX, R_EAX );
     store_spreg( R_EAX, R_DBR );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 LDC.L @Rm+, Rn_BANK {:  
     precheck();
@@ -2271,11 +2459,13 @@ LDC.L @Rm+, Rn_BANK {:
     store_reg( R_EAX, Rm );
     MEM_READ_LONG( R_ECX, R_EAX );
     store_spreg( R_EAX, REG_OFFSET(r_bank[Rn_BANK]) );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 LDS Rm, FPSCR {:  
     load_reg( R_EAX, Rm );
     store_spreg( R_EAX, R_FPSCR );
     update_fr_bank( R_EAX );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 LDS.L @Rm+, FPSCR {:  
     load_reg( R_EAX, Rm );
@@ -2287,6 +2477,7 @@ LDS.L @Rm+, FPSCR {:
     MEM_READ_LONG( R_ECX, R_EAX );
     store_spreg( R_EAX, R_FPSCR );
     update_fr_bank( R_EAX );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 LDS Rm, FPUL {:  
     load_reg( R_EAX, Rm );
@@ -2301,6 +2492,7 @@ LDS.L @Rm+, FPUL {:
     store_reg( R_EAX, Rm );
     MEM_READ_LONG( R_ECX, R_EAX );
     store_spreg( R_EAX, R_FPUL );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 LDS Rm, MACH {: 
     load_reg( R_EAX, Rm );
@@ -2315,6 +2507,7 @@ LDS.L @Rm+, MACH {:
     store_reg( R_EAX, Rm );
     MEM_READ_LONG( R_ECX, R_EAX );
     store_spreg( R_EAX, R_MACH );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 LDS Rm, MACL {:  
     load_reg( R_EAX, Rm );
@@ -2329,6 +2522,7 @@ LDS.L @Rm+, MACL {:
     store_reg( R_EAX, Rm );
     MEM_READ_LONG( R_ECX, R_EAX );
     store_spreg( R_EAX, R_MACL );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 LDS Rm, PR {:  
     load_reg( R_EAX, Rm );
@@ -2343,6 +2537,7 @@ LDS.L @Rm+, PR {:
     store_reg( R_EAX, Rm );
     MEM_READ_LONG( R_ECX, R_EAX );
     store_spreg( R_EAX, R_PR );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 LDTLB {:  :}
 OCBI @Rn {:  :}
@@ -2357,10 +2552,12 @@ PREF @Rn {:
     call_func0( sh4_flush_store_queue );
     JMP_TARGET(end);
     ADD_imm8s_r32( 4, R_ESP );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 SLEEP {: 
     check_priv();
     call_func0( sh4_sleep );
+    sh4_x86.tstate = TSTATE_NONE;
     sh4_x86.in_delay_slot = FALSE;
     return 2;
 :}
@@ -2368,6 +2565,7 @@ STC SR, Rn {:
     check_priv();
     call_func0(sh4_read_sr);
     store_reg( R_EAX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 STC GBR, Rn {:  
     load_spreg( R_EAX, R_GBR );
@@ -2377,31 +2575,37 @@ STC VBR, Rn {:
     check_priv();
     load_spreg( R_EAX, R_VBR );
     store_reg( R_EAX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 STC SSR, Rn {:  
     check_priv();
     load_spreg( R_EAX, R_SSR );
     store_reg( R_EAX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 STC SPC, Rn {:  
     check_priv();
     load_spreg( R_EAX, R_SPC );
     store_reg( R_EAX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 STC SGR, Rn {:  
     check_priv();
     load_spreg( R_EAX, R_SGR );
     store_reg( R_EAX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 STC DBR, Rn {:  
     check_priv();
     load_spreg( R_EAX, R_DBR );
     store_reg( R_EAX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 STC Rm_BANK, Rn {:
     check_priv();
     load_spreg( R_EAX, REG_OFFSET(r_bank[Rm_BANK]) );
     store_reg( R_EAX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 STC.L SR, @-Rn {:
     precheck();
@@ -2412,6 +2616,7 @@ STC.L SR, @-Rn {:
     ADD_imm8s_r32( -4, R_ECX );
     store_reg( R_ECX, Rn );
     MEM_WRITE_LONG( R_ECX, R_EAX );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 STC.L VBR, @-Rn {:  
     precheck();
@@ -2422,6 +2627,7 @@ STC.L VBR, @-Rn {:
     store_reg( R_ECX, Rn );
     load_spreg( R_EAX, R_VBR );
     MEM_WRITE_LONG( R_ECX, R_EAX );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 STC.L SSR, @-Rn {:  
     precheck();
@@ -2432,6 +2638,7 @@ STC.L SSR, @-Rn {:
     store_reg( R_ECX, Rn );
     load_spreg( R_EAX, R_SSR );
     MEM_WRITE_LONG( R_ECX, R_EAX );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 STC.L SPC, @-Rn {:
     precheck();
@@ -2442,6 +2649,7 @@ STC.L SPC, @-Rn {:
     store_reg( R_ECX, Rn );
     load_spreg( R_EAX, R_SPC );
     MEM_WRITE_LONG( R_ECX, R_EAX );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 STC.L SGR, @-Rn {:  
     precheck();
@@ -2452,6 +2660,7 @@ STC.L SGR, @-Rn {:
     store_reg( R_ECX, Rn );
     load_spreg( R_EAX, R_SGR );
     MEM_WRITE_LONG( R_ECX, R_EAX );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 STC.L DBR, @-Rn {:  
     precheck();
@@ -2462,6 +2671,7 @@ STC.L DBR, @-Rn {:
     store_reg( R_ECX, Rn );
     load_spreg( R_EAX, R_DBR );
     MEM_WRITE_LONG( R_ECX, R_EAX );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 STC.L Rm_BANK, @-Rn {:  
     precheck();
@@ -2472,6 +2682,7 @@ STC.L Rm_BANK, @-Rn {:
     store_reg( R_ECX, Rn );
     load_spreg( R_EAX, REG_OFFSET(r_bank[Rm_BANK]) );
     MEM_WRITE_LONG( R_ECX, R_EAX );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 STC.L GBR, @-Rn {:  
     load_reg( R_ECX, Rn );
@@ -2481,6 +2692,7 @@ STC.L GBR, @-Rn {:
     store_reg( R_ECX, Rn );
     load_spreg( R_EAX, R_GBR );
     MEM_WRITE_LONG( R_ECX, R_EAX );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 STS FPSCR, Rn {:  
     load_spreg( R_EAX, R_FPSCR );
@@ -2494,6 +2706,7 @@ STS.L FPSCR, @-Rn {:
     store_reg( R_ECX, Rn );
     load_spreg( R_EAX, R_FPSCR );
     MEM_WRITE_LONG( R_ECX, R_EAX );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 STS FPUL, Rn {:  
     load_spreg( R_EAX, R_FPUL );
@@ -2507,6 +2720,7 @@ STS.L FPUL, @-Rn {:
     store_reg( R_ECX, Rn );
     load_spreg( R_EAX, R_FPUL );
     MEM_WRITE_LONG( R_ECX, R_EAX );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 STS MACH, Rn {:  
     load_spreg( R_EAX, R_MACH );
@@ -2520,6 +2734,7 @@ STS.L MACH, @-Rn {:
     store_reg( R_ECX, Rn );
     load_spreg( R_EAX, R_MACH );
     MEM_WRITE_LONG( R_ECX, R_EAX );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 STS MACL, Rn {:  
     load_spreg( R_EAX, R_MACL );
@@ -2533,6 +2748,7 @@ STS.L MACL, @-Rn {:
     store_reg( R_ECX, Rn );
     load_spreg( R_EAX, R_MACL );
     MEM_WRITE_LONG( R_ECX, R_EAX );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 STS PR, Rn {:  
     load_spreg( R_EAX, R_PR );
@@ -2546,6 +2762,7 @@ STS.L PR, @-Rn {:
     store_reg( R_ECX, Rn );
     load_spreg( R_EAX, R_PR );
     MEM_WRITE_LONG( R_ECX, R_EAX );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 
 NOP {: /* Do nothing. Well, we could emit an 0x90, but what would really be the point? */ :}

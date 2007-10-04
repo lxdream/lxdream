@@ -1,5 +1,5 @@
 /**
- * $Id: sh4trans.c,v 1.6 2007-09-29 11:06:40 nkeynes Exp $
+ * $Id: sh4trans.c,v 1.7 2007-10-04 08:47:27 nkeynes Exp $
  * 
  * SH4 translation core module. This part handles the non-target-specific
  * section of the translation.
@@ -50,9 +50,7 @@ uint32_t sh4_xlat_run_slice( uint32_t nanosecs )
 	    }
 	}
 	
-	if( code ) { // fast path
-	    code = code();
-	} else {
+	if( code == NULL ) {
 	    if( sh4r.pc > 0xFFFFFF00 ) {
 		syscall_invoke( sh4r.pc );
 		sh4r.in_delay_slot = 0;
@@ -63,8 +61,8 @@ uint32_t sh4_xlat_run_slice( uint32_t nanosecs )
 	    if( code == NULL ) {
 		code = sh4_translate_basic_block( sh4r.pc );
 	    }
-	    code = code();
 	}
+	code = code();
     }
 
     if( sh4r.sh4_state != SH4_STATE_STANDBY ) {

@@ -1,5 +1,5 @@
 /**
- * $Id: sh4x86.c,v 1.17 2007-10-03 12:19:03 nkeynes Exp $
+ * $Id: sh4x86.c,v 1.18 2007-10-04 08:47:27 nkeynes Exp $
  * 
  * SH4 => x86 translation. This version does no real optimization, it just
  * outputs straight-line x86 code - it mainly exists to provide a baseline
@@ -25,6 +25,7 @@
 #define DEBUG_JUMPS 1
 #endif
 
+#include "sh4/xltcache.h"
 #include "sh4/sh4core.h"
 #include "sh4/sh4trans.h"
 #include "sh4/sh4mmio.h"
@@ -44,12 +45,35 @@ struct sh4_x86_state {
     gboolean fpuen_checked; /* true if we've already checked fpu enabled. */
     gboolean branch_taken; /* true if we branched unconditionally */
     uint32_t block_start_pc;
+    int tstate;
 
     /* Allocated memory for the (block-wide) back-patch list */
     uint32_t **backpatch_list;
     uint32_t backpatch_posn;
     uint32_t backpatch_size;
 };
+
+#define TSTATE_NONE -1
+#define TSTATE_O    0
+#define TSTATE_C    2
+#define TSTATE_E    4
+#define TSTATE_NE   5
+#define TSTATE_G    0xF
+#define TSTATE_GE   0xD
+#define TSTATE_A    7
+#define TSTATE_AE   3
+
+/** Branch if T is set (either in the current cflags, or in sh4r.t) */
+#define JT_rel8(rel8,label) if( sh4_x86.tstate == TSTATE_NONE ) { \
+	CMP_imm8s_sh4r( 1, R_T ); sh4_x86.tstate = TSTATE_E; } \
+    OP(0x70+sh4_x86.tstate); OP(rel8); \
+    MARK_JMP(rel8,label)
+/** Branch if T is clear (either in the current cflags or in sh4r.t) */
+#define JF_rel8(rel8,label) if( sh4_x86.tstate == TSTATE_NONE ) { \
+	CMP_imm8s_sh4r( 1, R_T ); sh4_x86.tstate = TSTATE_E; } \
+    OP(0x70+ (sh4_x86.tstate^1)); OP(rel8); \
+    MARK_JMP(rel8, label)
+
 
 #define EXIT_DATA_ADDR_READ 0
 #define EXIT_DATA_ADDR_WRITE 7
@@ -403,6 +427,7 @@ void sh4_translate_begin_block( sh4addr_t pc )
     sh4_x86.branch_taken = FALSE;
     sh4_x86.backpatch_posn = 0;
     sh4_x86.block_start_pc = pc;
+    sh4_x86.tstate = TSTATE_NONE;
 }
 
 /**
@@ -427,9 +452,10 @@ void exit_block( sh4addr_t pc, sh4addr_t endpc )
  */
 void exit_block_pcset( pc )
 {
-    XOR_r32_r32( R_EAX, R_EAX );                       // 2
     load_imm32( R_ECX, ((pc - sh4_x86.block_start_pc)>>1)*sh4_cpu_period ); // 5
     ADD_r32_sh4r( R_ECX, REG_OFFSET(slice_cycle) );    // 6
+    load_spreg( R_EAX, REG_OFFSET(pc) );
+    call_func1(xlat_get_code,R_EAX);
     POP_r32(R_EBP);
     RET();
 }
@@ -462,20 +488,20 @@ void sh4_translate_end_block( sh4addr_t pc ) {
 	JMP_TARGET(target3);
 	JMP_TARGET(target4);
 	JMP_TARGET(target5);
+	// Raise exception
 	load_spreg( R_ECX, REG_OFFSET(pc) );
 	ADD_r32_r32( R_EDX, R_ECX );
 	ADD_r32_r32( R_EDX, R_ECX );
 	store_spreg( R_ECX, REG_OFFSET(pc) );
 	MOV_moff32_EAX( (uint32_t)&sh4_cpu_period );
-	load_spreg( R_ECX, REG_OFFSET(slice_cycle) );
 	MUL_r32( R_EDX );
-	ADD_r32_r32( R_EAX, R_ECX );
-	store_spreg( R_ECX, REG_OFFSET(slice_cycle) );
+	ADD_r32_sh4r( R_EAX, REG_OFFSET(slice_cycle) );
 	
 	load_imm32( R_EAX, (uint32_t)sh4_raise_exception ); // 6
 	CALL_r32( R_EAX ); // 2
 	ADD_imm8s_r32( 4, R_ESP );
-	XOR_r32_r32( R_EAX, R_EAX );
+	load_spreg( R_EAX, REG_OFFSET(pc) );
+	call_func1(xlat_get_code,R_EAX);
 	POP_r32(R_EBP);
 	RET();
 
@@ -530,6 +556,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                         check_priv();
                                         call_func0(sh4_read_sr);
                                         store_reg( R_EAX, Rn );
+                                        sh4_x86.tstate = TSTATE_NONE;
                                         }
                                         break;
                                     case 0x1:
@@ -545,6 +572,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                         check_priv();
                                         load_spreg( R_EAX, R_VBR );
                                         store_reg( R_EAX, Rn );
+                                        sh4_x86.tstate = TSTATE_NONE;
                                         }
                                         break;
                                     case 0x3:
@@ -553,6 +581,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                         check_priv();
                                         load_spreg( R_EAX, R_SSR );
                                         store_reg( R_EAX, Rn );
+                                        sh4_x86.tstate = TSTATE_NONE;
                                         }
                                         break;
                                     case 0x4:
@@ -561,6 +590,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                         check_priv();
                                         load_spreg( R_EAX, R_SPC );
                                         store_reg( R_EAX, Rn );
+                                        sh4_x86.tstate = TSTATE_NONE;
                                         }
                                         break;
                                     default:
@@ -574,6 +604,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                 check_priv();
                                 load_spreg( R_EAX, REG_OFFSET(r_bank[Rm_BANK]) );
                                 store_reg( R_EAX, Rn );
+                                sh4_x86.tstate = TSTATE_NONE;
                                 }
                                 break;
                         }
@@ -591,6 +622,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                             	ADD_sh4r_r32( REG_OFFSET(r[Rn]), R_ECX );
                             	store_spreg( R_ECX, REG_OFFSET(pc) );
                             	sh4_x86.in_delay_slot = TRUE;
+                            	sh4_x86.tstate = TSTATE_NONE;
                             	sh4_x86_translate_instruction( pc + 2 );
                             	exit_block_pcset(pc+2);
                             	sh4_x86.branch_taken = TRUE;
@@ -608,6 +640,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                             	ADD_imm32_r32( pc + 4, R_EAX );
                             	store_spreg( R_EAX, REG_OFFSET(pc) );
                             	sh4_x86.in_delay_slot = TRUE;
+                            	sh4_x86.tstate = TSTATE_NONE;
                             	sh4_x86_translate_instruction( pc + 2 );
                             	exit_block_pcset(pc+2);
                             	sh4_x86.branch_taken = TRUE;
@@ -626,6 +659,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                 call_func0( sh4_flush_store_queue );
                                 JMP_TARGET(end);
                                 ADD_imm8s_r32( 4, R_ESP );
+                                sh4_x86.tstate = TSTATE_NONE;
                                 }
                                 break;
                             case 0x9:
@@ -651,6 +685,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                 precheck();
                                 check_walign32( R_ECX );
                                 MEM_WRITE_LONG( R_ECX, R_EAX );
+                                sh4_x86.tstate = TSTATE_NONE;
                                 }
                                 break;
                             default:
@@ -666,6 +701,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         ADD_r32_r32( R_EAX, R_ECX );
                         load_reg( R_EAX, Rm );
                         MEM_WRITE_BYTE( R_ECX, R_EAX );
+                        sh4_x86.tstate = TSTATE_NONE;
                         }
                         break;
                     case 0x5:
@@ -678,6 +714,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         check_walign16( R_ECX );
                         load_reg( R_EAX, Rm );
                         MEM_WRITE_WORD( R_ECX, R_EAX );
+                        sh4_x86.tstate = TSTATE_NONE;
                         }
                         break;
                     case 0x6:
@@ -690,6 +727,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         check_walign32( R_ECX );
                         load_reg( R_EAX, Rm );
                         MEM_WRITE_LONG( R_ECX, R_EAX );
+                        sh4_x86.tstate = TSTATE_NONE;
                         }
                         break;
                     case 0x7:
@@ -699,6 +737,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         load_reg( R_ECX, Rn );
                         MUL_r32( R_ECX );
                         store_spreg( R_EAX, R_MACL );
+                        sh4_x86.tstate = TSTATE_NONE;
                         }
                         break;
                     case 0x8:
@@ -707,12 +746,14 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                 { /* CLRT */
                                 CLC();
                                 SETC_t();
+                                sh4_x86.tstate = TSTATE_C;
                                 }
                                 break;
                             case 0x1:
                                 { /* SETT */
                                 STC();
                                 SETC_t();
+                                sh4_x86.tstate = TSTATE_C;
                                 }
                                 break;
                             case 0x2:
@@ -720,6 +761,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                 XOR_r32_r32(R_EAX, R_EAX);
                                 store_spreg( R_EAX, R_MACL );
                                 store_spreg( R_EAX, R_MACH );
+                                sh4_x86.tstate = TSTATE_NONE;
                                 }
                                 break;
                             case 0x3:
@@ -730,12 +772,14 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                 { /* CLRS */
                                 CLC();
                                 SETC_sh4r(R_S);
+                                sh4_x86.tstate = TSTATE_C;
                                 }
                                 break;
                             case 0x5:
                                 { /* SETS */
                                 STC();
                                 SETC_sh4r(R_S);
+                                sh4_x86.tstate = TSTATE_C;
                                 }
                                 break;
                             default:
@@ -756,6 +800,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                 store_spreg( R_EAX, R_Q );
                                 store_spreg( R_EAX, R_M );
                                 store_spreg( R_EAX, R_T );
+                                sh4_x86.tstate = TSTATE_C; // works for DIV1
                                 }
                                 break;
                             case 0x2:
@@ -799,6 +844,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                 check_priv();
                                 load_spreg( R_EAX, R_SGR );
                                 store_reg( R_EAX, Rn );
+                                sh4_x86.tstate = TSTATE_NONE;
                                 }
                                 break;
                             case 0x5:
@@ -821,6 +867,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                 check_priv();
                                 load_spreg( R_EAX, R_DBR );
                                 store_reg( R_EAX, Rn );
+                                sh4_x86.tstate = TSTATE_NONE;
                                 }
                                 break;
                             default:
@@ -849,6 +896,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                 { /* SLEEP */
                                 check_priv();
                                 call_func0( sh4_sleep );
+                                sh4_x86.tstate = TSTATE_NONE;
                                 sh4_x86.in_delay_slot = FALSE;
                                 return 2;
                                 }
@@ -866,6 +914,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                             	sh4_x86.in_delay_slot = TRUE;
                             	sh4_x86.priv_checked = FALSE;
                             	sh4_x86.fpuen_checked = FALSE;
+                            	sh4_x86.tstate = TSTATE_NONE;
                             	sh4_x86_translate_instruction(pc+2);
                             	exit_block_pcset(pc+2);
                             	sh4_x86.branch_taken = TRUE;
@@ -886,6 +935,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         ADD_r32_r32( R_EAX, R_ECX );
                         MEM_READ_BYTE( R_ECX, R_EAX );
                         store_reg( R_EAX, Rn );
+                        sh4_x86.tstate = TSTATE_NONE;
                         }
                         break;
                     case 0xD:
@@ -898,6 +948,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         check_ralign16( R_ECX );
                         MEM_READ_WORD( R_ECX, R_EAX );
                         store_reg( R_EAX, Rn );
+                        sh4_x86.tstate = TSTATE_NONE;
                         }
                         break;
                     case 0xE:
@@ -910,6 +961,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         check_ralign32( R_ECX );
                         MEM_READ_LONG( R_ECX, R_EAX );
                         store_reg( R_EAX, Rn );
+                        sh4_x86.tstate = TSTATE_NONE;
                         }
                         break;
                     case 0xF:
@@ -936,6 +988,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         JE_rel8( 7, nosat );
                         call_func0( signsat48 );
                         JMP_TARGET( nosat );
+                        sh4_x86.tstate = TSTATE_NONE;
                         }
                         break;
                     default:
@@ -952,6 +1005,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                 precheck();
                 check_walign32( R_ECX );
                 MEM_WRITE_LONG( R_ECX, R_EAX );
+                sh4_x86.tstate = TSTATE_NONE;
                 }
                 break;
             case 0x2:
@@ -962,6 +1016,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         load_reg( R_EAX, Rm );
                         load_reg( R_ECX, Rn );
                         MEM_WRITE_BYTE( R_ECX, R_EAX );
+                        sh4_x86.tstate = TSTATE_NONE;
                         }
                         break;
                     case 0x1:
@@ -972,6 +1027,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         check_walign16( R_ECX );
                         load_reg( R_EAX, Rm );
                         MEM_WRITE_WORD( R_ECX, R_EAX );
+                        sh4_x86.tstate = TSTATE_NONE;
                         }
                         break;
                     case 0x2:
@@ -982,6 +1038,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         precheck();
                         check_walign32(R_ECX);
                         MEM_WRITE_LONG( R_ECX, R_EAX );
+                        sh4_x86.tstate = TSTATE_NONE;
                         }
                         break;
                     case 0x4:
@@ -992,6 +1049,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         ADD_imm8s_r32( -1, R_ECX );
                         store_reg( R_ECX, Rn );
                         MEM_WRITE_BYTE( R_ECX, R_EAX );
+                        sh4_x86.tstate = TSTATE_NONE;
                         }
                         break;
                     case 0x5:
@@ -1004,6 +1062,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         ADD_imm8s_r32( -2, R_ECX );
                         store_reg( R_ECX, Rn );
                         MEM_WRITE_WORD( R_ECX, R_EAX );
+                        sh4_x86.tstate = TSTATE_NONE;
                         }
                         break;
                     case 0x6:
@@ -1016,6 +1075,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         ADD_imm8s_r32( -4, R_ECX );
                         store_reg( R_ECX, Rn );
                         MEM_WRITE_LONG( R_ECX, R_EAX );
+                        sh4_x86.tstate = TSTATE_NONE;
                         }
                         break;
                     case 0x7:
@@ -1029,6 +1089,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         store_spreg( R_ECX, R_Q );
                         CMP_r32_r32( R_EAX, R_ECX );
                         SETNE_t();
+                        sh4_x86.tstate = TSTATE_NE;
                         }
                         break;
                     case 0x8:
@@ -1038,6 +1099,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         load_reg( R_ECX, Rn );
                         TEST_r32_r32( R_EAX, R_ECX );
                         SETE_t();
+                        sh4_x86.tstate = TSTATE_E;
                         }
                         break;
                     case 0x9:
@@ -1047,6 +1109,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         load_reg( R_ECX, Rn );
                         AND_r32_r32( R_EAX, R_ECX );
                         store_reg( R_ECX, Rn );
+                        sh4_x86.tstate = TSTATE_NONE;
                         }
                         break;
                     case 0xA:
@@ -1056,6 +1119,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         load_reg( R_ECX, Rn );
                         XOR_r32_r32( R_EAX, R_ECX );
                         store_reg( R_ECX, Rn );
+                        sh4_x86.tstate = TSTATE_NONE;
                         }
                         break;
                     case 0xB:
@@ -1065,6 +1129,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         load_reg( R_ECX, Rn );
                         OR_r32_r32( R_EAX, R_ECX );
                         store_reg( R_ECX, Rn );
+                        sh4_x86.tstate = TSTATE_NONE;
                         }
                         break;
                     case 0xC:
@@ -1085,6 +1150,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         JMP_TARGET(target2);
                         JMP_TARGET(target3);
                         SETE_t();
+                        sh4_x86.tstate = TSTATE_E;
                         }
                         break;
                     case 0xD:
@@ -1096,6 +1162,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         SHR_imm8_r32( 16, R_ECX );
                         OR_r32_r32( R_EAX, R_ECX );
                         store_reg( R_ECX, Rn );
+                        sh4_x86.tstate = TSTATE_NONE;
                         }
                         break;
                     case 0xE:
@@ -1105,6 +1172,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         load_reg16u( R_ECX, Rn );
                         MUL_r32( R_ECX );
                         store_spreg( R_EAX, R_MACL );
+                        sh4_x86.tstate = TSTATE_NONE;
                         }
                         break;
                     case 0xF:
@@ -1114,6 +1182,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         load_reg16s( R_ECX, Rn );
                         MUL_r32( R_ECX );
                         store_spreg( R_EAX, R_MACL );
+                        sh4_x86.tstate = TSTATE_NONE;
                         }
                         break;
                     default:
@@ -1130,6 +1199,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         load_reg( R_ECX, Rn );
                         CMP_r32_r32( R_EAX, R_ECX );
                         SETE_t();
+                        sh4_x86.tstate = TSTATE_E;
                         }
                         break;
                     case 0x2:
@@ -1139,6 +1209,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         load_reg( R_ECX, Rn );
                         CMP_r32_r32( R_EAX, R_ECX );
                         SETAE_t();
+                        sh4_x86.tstate = TSTATE_AE;
                         }
                         break;
                     case 0x3:
@@ -1148,6 +1219,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         load_reg( R_ECX, Rn );
                         CMP_r32_r32( R_EAX, R_ECX );
                         SETGE_t();
+                        sh4_x86.tstate = TSTATE_GE;
                         }
                         break;
                     case 0x4:
@@ -1155,7 +1227,9 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
                         load_spreg( R_ECX, R_M );
                         load_reg( R_EAX, Rn );
-                        LDC_t();
+                        if( sh4_x86.tstate != TSTATE_C ) {
+                    	LDC_t();
+                        }
                         RCL1_r32( R_EAX );
                         SETC_r8( R_DL ); // Q'
                         CMP_sh4r_r32( R_Q, R_ECX );
@@ -1173,6 +1247,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         XOR_imm8s_r32( 1, R_AL );   // T = !Q'
                         MOVZX_r8_r32( R_AL, R_EAX );
                         store_spreg( R_EAX, R_T );
+                        sh4_x86.tstate = TSTATE_NONE;
                         }
                         break;
                     case 0x5:
@@ -1182,7 +1257,8 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         load_reg( R_ECX, Rn );
                         MUL_r32(R_ECX);
                         store_spreg( R_EDX, R_MACH );
-                        store_spreg( R_EAX, R_MACL );
+                        store_spreg( R_EAX, R_MACL );    
+                        sh4_x86.tstate = TSTATE_NONE;
                         }
                         break;
                     case 0x6:
@@ -1192,6 +1268,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         load_reg( R_ECX, Rn );
                         CMP_r32_r32( R_EAX, R_ECX );
                         SETA_t();
+                        sh4_x86.tstate = TSTATE_A;
                         }
                         break;
                     case 0x7:
@@ -1201,6 +1278,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         load_reg( R_ECX, Rn );
                         CMP_r32_r32( R_EAX, R_ECX );
                         SETG_t();
+                        sh4_x86.tstate = TSTATE_G;
                         }
                         break;
                     case 0x8:
@@ -1210,6 +1288,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         load_reg( R_ECX, Rn );
                         SUB_r32_r32( R_EAX, R_ECX );
                         store_reg( R_ECX, Rn );
+                        sh4_x86.tstate = TSTATE_NONE;
                         }
                         break;
                     case 0xA:
@@ -1217,10 +1296,13 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
                         load_reg( R_EAX, Rm );
                         load_reg( R_ECX, Rn );
-                        LDC_t();
+                        if( sh4_x86.tstate != TSTATE_C ) {
+                    	LDC_t();
+                        }
                         SBB_r32_r32( R_EAX, R_ECX );
                         store_reg( R_ECX, Rn );
                         SETC_t();
+                        sh4_x86.tstate = TSTATE_C;
                         }
                         break;
                     case 0xB:
@@ -1231,6 +1313,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         SUB_r32_r32( R_EAX, R_ECX );
                         store_reg( R_ECX, Rn );
                         SETO_t();
+                        sh4_x86.tstate = TSTATE_O;
                         }
                         break;
                     case 0xC:
@@ -1240,6 +1323,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         load_reg( R_ECX, Rn );
                         ADD_r32_r32( R_EAX, R_ECX );
                         store_reg( R_ECX, Rn );
+                        sh4_x86.tstate = TSTATE_NONE;
                         }
                         break;
                     case 0xD:
@@ -1250,17 +1334,21 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         IMUL_r32(R_ECX);
                         store_spreg( R_EDX, R_MACH );
                         store_spreg( R_EAX, R_MACL );
+                        sh4_x86.tstate = TSTATE_NONE;
                         }
                         break;
                     case 0xE:
                         { /* ADDC Rm, Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        if( sh4_x86.tstate != TSTATE_C ) {
+                    	LDC_t();
+                        }
                         load_reg( R_EAX, Rm );
                         load_reg( R_ECX, Rn );
-                        LDC_t();
                         ADC_r32_r32( R_EAX, R_ECX );
                         store_reg( R_ECX, Rn );
                         SETC_t();
+                        sh4_x86.tstate = TSTATE_C;
                         }
                         break;
                     case 0xF:
@@ -1271,6 +1359,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         ADD_r32_r32( R_EAX, R_ECX );
                         store_reg( R_ECX, Rn );
                         SETO_t();
+                        sh4_x86.tstate = TSTATE_O;
                         }
                         break;
                     default:
@@ -1289,6 +1378,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                 SHL1_r32( R_EAX );
                                 SETC_t();
                                 store_reg( R_EAX, Rn );
+                                sh4_x86.tstate = TSTATE_C;
                                 }
                                 break;
                             case 0x1:
@@ -1298,6 +1388,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                 ADD_imm8s_r32( -1, R_EAX );
                                 store_reg( R_EAX, Rn );
                                 SETE_t();
+                                sh4_x86.tstate = TSTATE_E;
                                 }
                                 break;
                             case 0x2:
@@ -1307,6 +1398,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                 SHL1_r32( R_EAX );
                                 SETC_t();
                                 store_reg( R_EAX, Rn );
+                                sh4_x86.tstate = TSTATE_C;
                                 }
                                 break;
                             default:
@@ -1323,6 +1415,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                 SHR1_r32( R_EAX );
                                 SETC_t();
                                 store_reg( R_EAX, Rn );
+                                sh4_x86.tstate = TSTATE_C;
                                 }
                                 break;
                             case 0x1:
@@ -1331,6 +1424,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                 load_reg( R_EAX, Rn );
                                 CMP_imm8s_r32( 0, R_EAX );
                                 SETGE_t();
+                                sh4_x86.tstate = TSTATE_GE;
                                 }
                                 break;
                             case 0x2:
@@ -1340,6 +1434,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                 SAR1_r32( R_EAX );
                                 SETC_t();
                                 store_reg( R_EAX, Rn );
+                                sh4_x86.tstate = TSTATE_C;
                                 }
                                 break;
                             default:
@@ -1359,6 +1454,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                 store_reg( R_ECX, Rn );
                                 load_spreg( R_EAX, R_MACH );
                                 MEM_WRITE_LONG( R_ECX, R_EAX );
+                                sh4_x86.tstate = TSTATE_NONE;
                                 }
                                 break;
                             case 0x1:
@@ -1371,6 +1467,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                 store_reg( R_ECX, Rn );
                                 load_spreg( R_EAX, R_MACL );
                                 MEM_WRITE_LONG( R_ECX, R_EAX );
+                                sh4_x86.tstate = TSTATE_NONE;
                                 }
                                 break;
                             case 0x2:
@@ -1383,6 +1480,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                 store_reg( R_ECX, Rn );
                                 load_spreg( R_EAX, R_PR );
                                 MEM_WRITE_LONG( R_ECX, R_EAX );
+                                sh4_x86.tstate = TSTATE_NONE;
                                 }
                                 break;
                             case 0x3:
@@ -1396,6 +1494,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                 store_reg( R_ECX, Rn );
                                 load_spreg( R_EAX, R_SGR );
                                 MEM_WRITE_LONG( R_ECX, R_EAX );
+                                sh4_x86.tstate = TSTATE_NONE;
                                 }
                                 break;
                             case 0x5:
@@ -1408,6 +1507,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                 store_reg( R_ECX, Rn );
                                 load_spreg( R_EAX, R_FPUL );
                                 MEM_WRITE_LONG( R_ECX, R_EAX );
+                                sh4_x86.tstate = TSTATE_NONE;
                                 }
                                 break;
                             case 0x6:
@@ -1420,6 +1520,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                 store_reg( R_ECX, Rn );
                                 load_spreg( R_EAX, R_FPSCR );
                                 MEM_WRITE_LONG( R_ECX, R_EAX );
+                                sh4_x86.tstate = TSTATE_NONE;
                                 }
                                 break;
                             case 0xF:
@@ -1433,6 +1534,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                 store_reg( R_ECX, Rn );
                                 load_spreg( R_EAX, R_DBR );
                                 MEM_WRITE_LONG( R_ECX, R_EAX );
+                                sh4_x86.tstate = TSTATE_NONE;
                                 }
                                 break;
                             default:
@@ -1455,6 +1557,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                         ADD_imm8s_r32( -4, R_ECX );
                                         store_reg( R_ECX, Rn );
                                         MEM_WRITE_LONG( R_ECX, R_EAX );
+                                        sh4_x86.tstate = TSTATE_NONE;
                                         }
                                         break;
                                     case 0x1:
@@ -1467,6 +1570,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                         store_reg( R_ECX, Rn );
                                         load_spreg( R_EAX, R_GBR );
                                         MEM_WRITE_LONG( R_ECX, R_EAX );
+                                        sh4_x86.tstate = TSTATE_NONE;
                                         }
                                         break;
                                     case 0x2:
@@ -1480,6 +1584,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                         store_reg( R_ECX, Rn );
                                         load_spreg( R_EAX, R_VBR );
                                         MEM_WRITE_LONG( R_ECX, R_EAX );
+                                        sh4_x86.tstate = TSTATE_NONE;
                                         }
                                         break;
                                     case 0x3:
@@ -1493,6 +1598,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                         store_reg( R_ECX, Rn );
                                         load_spreg( R_EAX, R_SSR );
                                         MEM_WRITE_LONG( R_ECX, R_EAX );
+                                        sh4_x86.tstate = TSTATE_NONE;
                                         }
                                         break;
                                     case 0x4:
@@ -1506,6 +1612,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                         store_reg( R_ECX, Rn );
                                         load_spreg( R_EAX, R_SPC );
                                         MEM_WRITE_LONG( R_ECX, R_EAX );
+                                        sh4_x86.tstate = TSTATE_NONE;
                                         }
                                         break;
                                     default:
@@ -1524,6 +1631,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                 store_reg( R_ECX, Rn );
                                 load_spreg( R_EAX, REG_OFFSET(r_bank[Rm_BANK]) );
                                 MEM_WRITE_LONG( R_ECX, R_EAX );
+                                sh4_x86.tstate = TSTATE_NONE;
                                 }
                                 break;
                         }
@@ -1537,16 +1645,20 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                 ROL1_r32( R_EAX );
                                 store_reg( R_EAX, Rn );
                                 SETC_t();
+                                sh4_x86.tstate = TSTATE_C;
                                 }
                                 break;
                             case 0x2:
                                 { /* ROTCL Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
                                 load_reg( R_EAX, Rn );
-                                LDC_t();
+                                if( sh4_x86.tstate != TSTATE_C ) {
+                            	LDC_t();
+                                }
                                 RCL1_r32( R_EAX );
                                 store_reg( R_EAX, Rn );
                                 SETC_t();
+                                sh4_x86.tstate = TSTATE_C;
                                 }
                                 break;
                             default:
@@ -1563,6 +1675,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                 ROR1_r32( R_EAX );
                                 store_reg( R_EAX, Rn );
                                 SETC_t();
+                                sh4_x86.tstate = TSTATE_C;
                                 }
                                 break;
                             case 0x1:
@@ -1571,16 +1684,20 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                 load_reg( R_EAX, Rn );
                                 CMP_imm8s_r32( 0, R_EAX );
                                 SETG_t();
+                                sh4_x86.tstate = TSTATE_G;
                                 }
                                 break;
                             case 0x2:
                                 { /* ROTCR Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
                                 load_reg( R_EAX, Rn );
-                                LDC_t();
+                                if( sh4_x86.tstate != TSTATE_C ) {
+                            	LDC_t();
+                                }
                                 RCR1_r32( R_EAX );
                                 store_reg( R_EAX, Rn );
                                 SETC_t();
+                                sh4_x86.tstate = TSTATE_C;
                                 }
                                 break;
                             default:
@@ -1601,6 +1718,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                 store_reg( R_EAX, Rm );
                                 MEM_READ_LONG( R_ECX, R_EAX );
                                 store_spreg( R_EAX, R_MACH );
+                                sh4_x86.tstate = TSTATE_NONE;
                                 }
                                 break;
                             case 0x1:
@@ -1614,6 +1732,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                 store_reg( R_EAX, Rm );
                                 MEM_READ_LONG( R_ECX, R_EAX );
                                 store_spreg( R_EAX, R_MACL );
+                                sh4_x86.tstate = TSTATE_NONE;
                                 }
                                 break;
                             case 0x2:
@@ -1627,6 +1746,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                 store_reg( R_EAX, Rm );
                                 MEM_READ_LONG( R_ECX, R_EAX );
                                 store_spreg( R_EAX, R_PR );
+                                sh4_x86.tstate = TSTATE_NONE;
                                 }
                                 break;
                             case 0x3:
@@ -1641,6 +1761,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                 store_reg( R_EAX, Rm );
                                 MEM_READ_LONG( R_ECX, R_EAX );
                                 store_spreg( R_EAX, R_SGR );
+                                sh4_x86.tstate = TSTATE_NONE;
                                 }
                                 break;
                             case 0x5:
@@ -1654,6 +1775,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                 store_reg( R_EAX, Rm );
                                 MEM_READ_LONG( R_ECX, R_EAX );
                                 store_spreg( R_EAX, R_FPUL );
+                                sh4_x86.tstate = TSTATE_NONE;
                                 }
                                 break;
                             case 0x6:
@@ -1668,6 +1790,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                 MEM_READ_LONG( R_ECX, R_EAX );
                                 store_spreg( R_EAX, R_FPSCR );
                                 update_fr_bank( R_EAX );
+                                sh4_x86.tstate = TSTATE_NONE;
                                 }
                                 break;
                             case 0xF:
@@ -1682,6 +1805,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                 store_reg( R_EAX, Rm );
                                 MEM_READ_LONG( R_ECX, R_EAX );
                                 store_spreg( R_EAX, R_DBR );
+                                sh4_x86.tstate = TSTATE_NONE;
                                 }
                                 break;
                             default:
@@ -1710,6 +1834,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                     	call_func1( sh4_write_sr, R_EAX );
                                     	sh4_x86.priv_checked = FALSE;
                                     	sh4_x86.fpuen_checked = FALSE;
+                                    	sh4_x86.tstate = TSTATE_NONE;
                                         }
                                         }
                                         break;
@@ -1724,6 +1849,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                         store_reg( R_EAX, Rm );
                                         MEM_READ_LONG( R_ECX, R_EAX );
                                         store_spreg( R_EAX, R_GBR );
+                                        sh4_x86.tstate = TSTATE_NONE;
                                         }
                                         break;
                                     case 0x2:
@@ -1738,6 +1864,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                         store_reg( R_EAX, Rm );
                                         MEM_READ_LONG( R_ECX, R_EAX );
                                         store_spreg( R_EAX, R_VBR );
+                                        sh4_x86.tstate = TSTATE_NONE;
                                         }
                                         break;
                                     case 0x3:
@@ -1752,6 +1879,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                         store_reg( R_EAX, Rm );
                                         MEM_READ_LONG( R_ECX, R_EAX );
                                         store_spreg( R_EAX, R_SSR );
+                                        sh4_x86.tstate = TSTATE_NONE;
                                         }
                                         break;
                                     case 0x4:
@@ -1766,6 +1894,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                         store_reg( R_EAX, Rm );
                                         MEM_READ_LONG( R_ECX, R_EAX );
                                         store_spreg( R_EAX, R_SPC );
+                                        sh4_x86.tstate = TSTATE_NONE;
                                         }
                                         break;
                                     default:
@@ -1785,6 +1914,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                 store_reg( R_EAX, Rm );
                                 MEM_READ_LONG( R_ECX, R_EAX );
                                 store_spreg( R_EAX, REG_OFFSET(r_bank[Rn_BANK]) );
+                                sh4_x86.tstate = TSTATE_NONE;
                                 }
                                 break;
                         }
@@ -1797,6 +1927,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                 load_reg( R_EAX, Rn );
                                 SHL_imm8_r32( 2, R_EAX );
                                 store_reg( R_EAX, Rn );
+                                sh4_x86.tstate = TSTATE_NONE;
                                 }
                                 break;
                             case 0x1:
@@ -1805,6 +1936,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                 load_reg( R_EAX, Rn );
                                 SHL_imm8_r32( 8, R_EAX );
                                 store_reg( R_EAX, Rn );
+                                sh4_x86.tstate = TSTATE_NONE;
                                 }
                                 break;
                             case 0x2:
@@ -1813,6 +1945,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                 load_reg( R_EAX, Rn );
                                 SHL_imm8_r32( 16, R_EAX );
                                 store_reg( R_EAX, Rn );
+                                sh4_x86.tstate = TSTATE_NONE;
                                 }
                                 break;
                             default:
@@ -1828,6 +1961,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                 load_reg( R_EAX, Rn );
                                 SHR_imm8_r32( 2, R_EAX );
                                 store_reg( R_EAX, Rn );
+                                sh4_x86.tstate = TSTATE_NONE;
                                 }
                                 break;
                             case 0x1:
@@ -1836,6 +1970,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                 load_reg( R_EAX, Rn );
                                 SHR_imm8_r32( 8, R_EAX );
                                 store_reg( R_EAX, Rn );
+                                sh4_x86.tstate = TSTATE_NONE;
                                 }
                                 break;
                             case 0x2:
@@ -1844,6 +1979,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                 load_reg( R_EAX, Rn );
                                 SHR_imm8_r32( 16, R_EAX );
                                 store_reg( R_EAX, Rn );
+                                sh4_x86.tstate = TSTATE_NONE;
                                 }
                                 break;
                             default:
@@ -1880,6 +2016,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                 check_priv();
                                 load_reg( R_EAX, Rm );
                                 store_spreg( R_EAX, R_SGR );
+                                sh4_x86.tstate = TSTATE_NONE;
                                 }
                                 break;
                             case 0x5:
@@ -1895,6 +2032,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                 load_reg( R_EAX, Rm );
                                 store_spreg( R_EAX, R_FPSCR );
                                 update_fr_bank( R_EAX );
+                                sh4_x86.tstate = TSTATE_NONE;
                                 }
                                 break;
                             case 0xF:
@@ -1903,6 +2041,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                 check_priv();
                                 load_reg( R_EAX, Rm );
                                 store_spreg( R_EAX, R_DBR );
+                                sh4_x86.tstate = TSTATE_NONE;
                                 }
                                 break;
                             default:
@@ -1940,6 +2079,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                 OR_imm8_r8( 0x80, R_AL );
                                 load_reg( R_ECX, Rn );
                                 MEM_WRITE_BYTE( R_ECX, R_EAX );
+                                sh4_x86.tstate = TSTATE_NONE;
                                 }
                                 break;
                             case 0x2:
@@ -1988,6 +2128,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         JMP_TARGET(end);
                         JMP_TARGET(end2);
                         store_reg( R_EAX, Rn );
+                        sh4_x86.tstate = TSTATE_NONE;
                         }
                         break;
                     case 0xD:
@@ -2014,6 +2155,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         JMP_TARGET(end);
                         JMP_TARGET(end2);
                         store_reg( R_EAX, Rn );
+                        sh4_x86.tstate = TSTATE_NONE;
                         }
                         break;
                     case 0xE:
@@ -2031,6 +2173,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                     	call_func1( sh4_write_sr, R_EAX );
                                     	sh4_x86.priv_checked = FALSE;
                                     	sh4_x86.fpuen_checked = FALSE;
+                                    	sh4_x86.tstate = TSTATE_NONE;
                                         }
                                         }
                                         break;
@@ -2047,6 +2190,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                         check_priv();
                                         load_reg( R_EAX, Rm );
                                         store_spreg( R_EAX, R_VBR );
+                                        sh4_x86.tstate = TSTATE_NONE;
                                         }
                                         break;
                                     case 0x3:
@@ -2055,6 +2199,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                         check_priv();
                                         load_reg( R_EAX, Rm );
                                         store_spreg( R_EAX, R_SSR );
+                                        sh4_x86.tstate = TSTATE_NONE;
                                         }
                                         break;
                                     case 0x4:
@@ -2063,6 +2208,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                         check_priv();
                                         load_reg( R_EAX, Rm );
                                         store_spreg( R_EAX, R_SPC );
+                                        sh4_x86.tstate = TSTATE_NONE;
                                         }
                                         break;
                                     default:
@@ -2076,6 +2222,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                 check_priv();
                                 load_reg( R_EAX, Rm );
                                 store_spreg( R_EAX, REG_OFFSET(r_bank[Rn_BANK]) );
+                                sh4_x86.tstate = TSTATE_NONE;
                                 }
                                 break;
                         }
@@ -2121,6 +2268,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         JMP_TARGET(end);
                         JMP_TARGET(end2);
                         JMP_TARGET(end3);
+                        sh4_x86.tstate = TSTATE_NONE;
                         }
                         break;
                 }
@@ -2134,6 +2282,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                 check_ralign32( R_ECX );
                 MEM_READ_LONG( R_ECX, R_EAX );
                 store_reg( R_EAX, Rn );
+                sh4_x86.tstate = TSTATE_NONE;
                 }
                 break;
             case 0x6:
@@ -2144,6 +2293,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         load_reg( R_ECX, Rm );
                         MEM_READ_BYTE( R_ECX, R_EAX );
                         store_reg( R_EAX, Rn );
+                        sh4_x86.tstate = TSTATE_NONE;
                         }
                         break;
                     case 0x1:
@@ -2154,6 +2304,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         check_ralign16( R_ECX );
                         MEM_READ_WORD( R_ECX, R_EAX );
                         store_reg( R_EAX, Rn );
+                        sh4_x86.tstate = TSTATE_NONE;
                         }
                         break;
                     case 0x2:
@@ -2164,6 +2315,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         check_ralign32( R_ECX );
                         MEM_READ_LONG( R_ECX, R_EAX );
                         store_reg( R_EAX, Rn );
+                        sh4_x86.tstate = TSTATE_NONE;
                         }
                         break;
                     case 0x3:
@@ -2182,6 +2334,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         store_reg( R_EAX, Rm );
                         MEM_READ_BYTE( R_ECX, R_EAX );
                         store_reg( R_EAX, Rn );
+                        sh4_x86.tstate = TSTATE_NONE;
                         }
                         break;
                     case 0x5:
@@ -2195,6 +2348,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         store_reg( R_EAX, Rm );
                         MEM_READ_WORD( R_ECX, R_EAX );
                         store_reg( R_EAX, Rn );
+                        sh4_x86.tstate = TSTATE_NONE;
                         }
                         break;
                     case 0x6:
@@ -2208,6 +2362,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         store_reg( R_EAX, Rm );
                         MEM_READ_LONG( R_ECX, R_EAX );
                         store_reg( R_EAX, Rn );
+                        sh4_x86.tstate = TSTATE_NONE;
                         }
                         break;
                     case 0x7:
@@ -2216,6 +2371,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         load_reg( R_EAX, Rm );
                         NOT_r32( R_EAX );
                         store_reg( R_EAX, Rn );
+                        sh4_x86.tstate = TSTATE_NONE;
                         }
                         break;
                     case 0x8:
@@ -2235,6 +2391,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         SHR_imm8_r32( 16, R_EAX );
                         OR_r32_r32( R_EAX, R_ECX );
                         store_reg( R_ECX, Rn );
+                        sh4_x86.tstate = TSTATE_NONE;
                         }
                         break;
                     case 0xA:
@@ -2246,6 +2403,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         SBB_r32_r32( R_EAX, R_ECX );
                         store_reg( R_ECX, Rn );
                         SETC_t();
+                        sh4_x86.tstate = TSTATE_C;
                         }
                         break;
                     case 0xB:
@@ -2254,6 +2412,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         load_reg( R_EAX, Rm );
                         NEG_r32( R_EAX );
                         store_reg( R_EAX, Rn );
+                        sh4_x86.tstate = TSTATE_NONE;
                         }
                         break;
                     case 0xC:
@@ -2296,6 +2455,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                 load_reg( R_EAX, Rn );
                 ADD_imm8s_r32( imm, R_EAX );
                 store_reg( R_EAX, Rn );
+                sh4_x86.tstate = TSTATE_NONE;
                 }
                 break;
             case 0x8:
@@ -2307,6 +2467,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         load_reg( R_ECX, Rn );
                         ADD_imm32_r32( disp, R_ECX );
                         MEM_WRITE_BYTE( R_ECX, R_EAX );
+                        sh4_x86.tstate = TSTATE_NONE;
                         }
                         break;
                     case 0x1:
@@ -2318,6 +2479,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         precheck();
                         check_walign16( R_ECX );
                         MEM_WRITE_WORD( R_ECX, R_EAX );
+                        sh4_x86.tstate = TSTATE_NONE;
                         }
                         break;
                     case 0x4:
@@ -2327,6 +2489,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         ADD_imm32_r32( disp, R_ECX );
                         MEM_READ_BYTE( R_ECX, R_EAX );
                         store_reg( R_EAX, 0 );
+                        sh4_x86.tstate = TSTATE_NONE;
                         }
                         break;
                     case 0x5:
@@ -2338,6 +2501,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         check_ralign16( R_ECX );
                         MEM_READ_WORD( R_ECX, R_EAX );
                         store_reg( R_EAX, 0 );
+                        sh4_x86.tstate = TSTATE_NONE;
                         }
                         break;
                     case 0x8:
@@ -2346,6 +2510,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         load_reg( R_EAX, 0 );
                         CMP_imm8s_r32(imm, R_EAX);
                         SETE_t();
+                        sh4_x86.tstate = TSTATE_E;
                         }
                         break;
                     case 0x9:
@@ -2354,8 +2519,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         if( sh4_x86.in_delay_slot ) {
                     	SLOTILLEGAL();
                         } else {
-                    	CMP_imm8s_sh4r( 0, R_T );
-                    	JE_rel8( 29, nottaken );
+                    	JF_rel8( 29, nottaken );
                     	exit_block( disp + pc + 4, pc+2 );
                     	JMP_TARGET(nottaken);
                     	return 2;
@@ -2368,8 +2532,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         if( sh4_x86.in_delay_slot ) {
                     	SLOTILLEGAL();
                         } else {
-                    	CMP_imm8s_sh4r( 0, R_T );
-                    	JNE_rel8( 29, nottaken );
+                    	JT_rel8( 29, nottaken );
                     	exit_block( disp + pc + 4, pc+2 );
                     	JMP_TARGET(nottaken);
                     	return 2;
@@ -2383,8 +2546,11 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                     	SLOTILLEGAL();
                         } else {
                     	sh4_x86.in_delay_slot = TRUE;
-                    	CMP_imm8s_sh4r( 0, R_T );
-                    	OP(0x0F); OP(0x84); uint32_t *patch = (uint32_t *)xlat_output; OP32(0); // JE rel32
+                    	if( sh4_x86.tstate == TSTATE_NONE ) {
+                    	    CMP_imm8s_sh4r( 1, R_T );
+                    	    sh4_x86.tstate = TSTATE_E;
+                    	}
+                    	OP(0x0F); OP(0x80+(sh4_x86.tstate^1)); uint32_t *patch = (uint32_t *)xlat_output; OP32(0); // JE rel32
                     	sh4_x86_translate_instruction(pc+2);
                     	exit_block( disp + pc + 4, pc+4 );
                     	// not taken
@@ -2401,8 +2567,11 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                     	SLOTILLEGAL();
                         } else {
                     	sh4_x86.in_delay_slot = TRUE;
-                    	CMP_imm8s_sh4r( 0, R_T );
-                    	OP(0x0F); OP(0x85); uint32_t *patch = (uint32_t *)xlat_output; OP32(0); // JNE rel32
+                    	if( sh4_x86.tstate == TSTATE_NONE ) {
+                    	    CMP_imm8s_sh4r( 1, R_T );
+                    	    sh4_x86.tstate = TSTATE_E;
+                    	}
+                    	OP(0x0F); OP(0x80+sh4_x86.tstate); uint32_t *patch = (uint32_t *)xlat_output; OP32(0); // JNE rel32
                     	sh4_x86_translate_instruction(pc+2);
                     	exit_block( disp + pc + 4, pc+4 );
                     	// not taken
@@ -2426,6 +2595,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
             	load_imm32( R_ECX, pc + disp + 4 );
             	MEM_READ_WORD( R_ECX, R_EAX );
             	store_reg( R_EAX, Rn );
+            	sh4_x86.tstate = TSTATE_NONE;
                 }
                 }
                 break;
@@ -2468,6 +2638,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         load_spreg( R_ECX, R_GBR );
                         ADD_imm32_r32( disp, R_ECX );
                         MEM_WRITE_BYTE( R_ECX, R_EAX );
+                        sh4_x86.tstate = TSTATE_NONE;
                         }
                         break;
                     case 0x1:
@@ -2479,6 +2650,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         precheck();
                         check_walign16( R_ECX );
                         MEM_WRITE_WORD( R_ECX, R_EAX );
+                        sh4_x86.tstate = TSTATE_NONE;
                         }
                         break;
                     case 0x2:
@@ -2490,6 +2662,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         precheck();
                         check_walign32( R_ECX );
                         MEM_WRITE_LONG( R_ECX, R_EAX );
+                        sh4_x86.tstate = TSTATE_NONE;
                         }
                         break;
                     case 0x3:
@@ -2501,6 +2674,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                     	PUSH_imm32( imm );
                     	call_func0( sh4_raise_trap );
                     	ADD_imm8s_r32( 4, R_ESP );
+                    	sh4_x86.tstate = TSTATE_NONE;
                     	exit_block_pcset(pc);
                     	sh4_x86.branch_taken = TRUE;
                     	return 2;
@@ -2514,6 +2688,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         ADD_imm32_r32( disp, R_ECX );
                         MEM_READ_BYTE( R_ECX, R_EAX );
                         store_reg( R_EAX, 0 );
+                        sh4_x86.tstate = TSTATE_NONE;
                         }
                         break;
                     case 0x5:
@@ -2525,6 +2700,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         check_ralign16( R_ECX );
                         MEM_READ_WORD( R_ECX, R_EAX );
                         store_reg( R_EAX, 0 );
+                        sh4_x86.tstate = TSTATE_NONE;
                         }
                         break;
                     case 0x6:
@@ -2536,6 +2712,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         check_ralign32( R_ECX );
                         MEM_READ_LONG( R_ECX, R_EAX );
                         store_reg( R_EAX, 0 );
+                        sh4_x86.tstate = TSTATE_NONE;
                         }
                         break;
                     case 0x7:
@@ -2555,6 +2732,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         load_reg( R_EAX, 0 );
                         TEST_imm32_r32( imm, R_EAX );
                         SETE_t();
+                        sh4_x86.tstate = TSTATE_E;
                         }
                         break;
                     case 0x9:
@@ -2563,6 +2741,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         load_reg( R_EAX, 0 );
                         AND_imm32_r32(imm, R_EAX); 
                         store_reg( R_EAX, 0 );
+                        sh4_x86.tstate = TSTATE_NONE;
                         }
                         break;
                     case 0xA:
@@ -2571,6 +2750,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         load_reg( R_EAX, 0 );
                         XOR_imm32_r32( imm, R_EAX );
                         store_reg( R_EAX, 0 );
+                        sh4_x86.tstate = TSTATE_NONE;
                         }
                         break;
                     case 0xB:
@@ -2579,6 +2759,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         load_reg( R_EAX, 0 );
                         OR_imm32_r32(imm, R_EAX);
                         store_reg( R_EAX, 0 );
+                        sh4_x86.tstate = TSTATE_NONE;
                         }
                         break;
                     case 0xC:
@@ -2590,6 +2771,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         MEM_READ_BYTE( R_ECX, R_EAX );
                         TEST_imm8_r8( imm, R_AL );
                         SETE_t();
+                        sh4_x86.tstate = TSTATE_E;
                         }
                         break;
                     case 0xD:
@@ -2603,6 +2785,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         POP_r32(R_ECX);
                         AND_imm32_r32(imm, R_EAX );
                         MEM_WRITE_BYTE( R_ECX, R_EAX );
+                        sh4_x86.tstate = TSTATE_NONE;
                         }
                         break;
                     case 0xE:
@@ -2616,6 +2799,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         POP_r32(R_ECX);
                         XOR_imm32_r32( imm, R_EAX );
                         MEM_WRITE_BYTE( R_ECX, R_EAX );
+                        sh4_x86.tstate = TSTATE_NONE;
                         }
                         break;
                     case 0xF:
@@ -2629,6 +2813,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         POP_r32(R_ECX);
                         OR_imm32_r32(imm, R_EAX );
                         MEM_WRITE_BYTE( R_ECX, R_EAX );
+                        sh4_x86.tstate = TSTATE_NONE;
                         }
                         break;
                 }
@@ -2648,6 +2833,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
             	    MEM_READ_LONG( R_ECX, R_EAX );
             	}
             	store_reg( R_EAX, Rn );
+            	sh4_x86.tstate = TSTATE_NONE;
                 }
                 }
                 break;
@@ -2679,6 +2865,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         FADDP_st(1);
                         pop_dr(R_EDX, FRn);
                         JMP_TARGET(end);
+                        sh4_x86.tstate = TSTATE_NONE;
                         }
                         break;
                     case 0x1:
@@ -2700,6 +2887,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         FSUBP_st(1);
                         pop_dr(R_EDX, FRn);
                         JMP_TARGET(end);
+                        sh4_x86.tstate = TSTATE_NONE;
                         }
                         break;
                     case 0x2:
@@ -2721,6 +2909,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         FMULP_st(1);
                         pop_dr(R_EDX, FRn);
                         JMP_TARGET(end);
+                        sh4_x86.tstate = TSTATE_NONE;
                         }
                         break;
                     case 0x3:
@@ -2742,6 +2931,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         FDIVP_st(1);
                         pop_dr(R_EDX, FRn);
                         JMP_TARGET(end);
+                        sh4_x86.tstate = TSTATE_NONE;
                         }
                         break;
                     case 0x4:
@@ -2762,6 +2952,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         FCOMIP_st(1);
                         SETE_t();
                         FPOP_st();
+                        sh4_x86.tstate = TSTATE_NONE;
                         }
                         break;
                     case 0x5:
@@ -2782,6 +2973,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         FCOMIP_st(1);
                         SETA_t();
                         FPOP_st();
+                        sh4_x86.tstate = TSTATE_NONE;
                         }
                         break;
                     case 0x6:
@@ -2816,6 +3008,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                     	store_fr( R_EDX, R_ECX, FRn|0x01 );
                     	JMP_TARGET(end);
                         }
+                        sh4_x86.tstate = TSTATE_NONE;
                         }
                         break;
                     case 0x7:
@@ -2849,6 +3042,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                     	MEM_WRITE_DOUBLE( R_ECX, R_EAX, R_EDX );
                     	JMP_TARGET(end);
                         }
+                        sh4_x86.tstate = TSTATE_NONE;
                         }
                         break;
                     case 0x8:
@@ -2882,6 +3076,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                     	store_fr( R_EDX, R_ECX, FRn|0x01 );
                     	JMP_TARGET(end);
                         }
+                        sh4_x86.tstate = TSTATE_NONE;
                         }
                         break;
                     case 0x9:
@@ -2921,6 +3116,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                     	store_fr( R_EDX, R_ECX, FRn|0x01 );
                     	JMP_TARGET(end);
                         }
+                        sh4_x86.tstate = TSTATE_NONE;
                         }
                         break;
                     case 0xA:
@@ -2953,6 +3149,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                     	MEM_WRITE_DOUBLE( R_ECX, R_EAX, R_EDX );
                     	JMP_TARGET(end);
                         }
+                        sh4_x86.tstate = TSTATE_NONE;
                         }
                         break;
                     case 0xB:
@@ -2991,6 +3188,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                     	MEM_WRITE_DOUBLE( R_ECX, R_EAX, R_EDX );
                     	JMP_TARGET(end);
                         }
+                        sh4_x86.tstate = TSTATE_NONE;
                         }
                         break;
                     case 0xC:
@@ -3043,6 +3241,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                     	    JMP_TARGET(end);
                     	}
                         }
+                        sh4_x86.tstate = TSTATE_NONE;
                         }
                         break;
                     case 0xD:
@@ -3054,6 +3253,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                 load_fr_bank( R_ECX );
                                 load_spreg( R_EAX, R_FPUL );
                                 store_fr( R_ECX, R_EAX, FRn );
+                                sh4_x86.tstate = TSTATE_NONE;
                                 }
                                 break;
                             case 0x1:
@@ -3063,6 +3263,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                 load_fr_bank( R_ECX );
                                 load_fr( R_ECX, R_EAX, FRm );
                                 store_spreg( R_EAX, R_FPUL );
+                                sh4_x86.tstate = TSTATE_NONE;
                                 }
                                 break;
                             case 0x2:
@@ -3079,6 +3280,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                 JMP_TARGET(doubleprec);
                                 pop_dr( R_EDX, FRn );
                                 JMP_TARGET(end);
+                                sh4_x86.tstate = TSTATE_NONE;
                                 }
                                 break;
                             case 0x3:
@@ -3116,6 +3318,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                 store_spreg( R_ECX, R_FPUL );
                                 FPOP_st();
                                 JMP_TARGET(end);
+                                sh4_x86.tstate = TSTATE_NONE;
                                 }
                                 break;
                             case 0x4:
@@ -3135,6 +3338,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                 FCHS_st0();
                                 pop_dr(R_EDX, FRn);
                                 JMP_TARGET(end);
+                                sh4_x86.tstate = TSTATE_NONE;
                                 }
                                 break;
                             case 0x5:
@@ -3154,6 +3358,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                 FABS_st0();
                                 pop_dr(R_EDX, FRn);
                                 JMP_TARGET(end);
+                                sh4_x86.tstate = TSTATE_NONE;
                                 }
                                 break;
                             case 0x6:
@@ -3173,6 +3378,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                 FSQRT_st0();
                                 pop_dr(R_EDX, FRn);
                                 JMP_TARGET(end);
+                                sh4_x86.tstate = TSTATE_NONE;
                                 }
                                 break;
                             case 0x7:
@@ -3189,6 +3395,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                 FDIVP_st(1);
                                 pop_fr(R_EDX, FRn);
                                 JMP_TARGET(end);
+                                sh4_x86.tstate = TSTATE_NONE;
                                 }
                                 break;
                             case 0x8:
@@ -3203,6 +3410,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                   load_spreg( R_ECX, REG_OFFSET(fr_bank) );
                                   store_fr( R_ECX, R_EAX, FRn );
                                   JMP_TARGET(end);
+                                  sh4_x86.tstate = TSTATE_NONE;
                                 }
                                 break;
                             case 0x9:
@@ -3217,6 +3425,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                   load_spreg( R_ECX, REG_OFFSET(fr_bank) );
                                   store_fr( R_ECX, R_EAX, FRn );
                                   JMP_TARGET(end);
+                                  sh4_x86.tstate = TSTATE_NONE;
                                 }
                                 break;
                             case 0xA:
@@ -3230,6 +3439,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                 push_fpul();
                                 pop_dr( R_ECX, FRn );
                                 JMP_TARGET(end);
+                                sh4_x86.tstate = TSTATE_NONE;
                                 }
                                 break;
                             case 0xB:
@@ -3243,6 +3453,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                 push_dr( R_ECX, FRm );
                                 pop_fpul();
                                 JMP_TARGET(end);
+                                sh4_x86.tstate = TSTATE_NONE;
                                 }
                                 break;
                             case 0xE:
@@ -3271,6 +3482,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                 FADDP_st(1);
                                 pop_fr( R_ECX, (FVn<<2)+3);
                                 JMP_TARGET(doubleprec);
+                                sh4_x86.tstate = TSTATE_NONE;
                                 }
                                 break;
                             case 0xF:
@@ -3287,6 +3499,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                         load_spreg( R_EDX, R_FPUL );
                                         call_func2( sh4_fsca, R_EDX, R_ECX );
                                         JMP_TARGET(doubleprec);
+                                        sh4_x86.tstate = TSTATE_NONE;
                                         }
                                         break;
                                     case 0x1:
@@ -3303,6 +3516,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                                 load_xf_bank( R_ECX );                 // 12
                                                 call_func2( sh4_ftrv, R_EDX, R_ECX );  // 12
                                                 JMP_TARGET(doubleprec);
+                                                sh4_x86.tstate = TSTATE_NONE;
                                                 }
                                                 break;
                                             case 0x1:
@@ -3313,6 +3527,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                                         load_spreg( R_ECX, R_FPSCR );
                                                         XOR_imm32_r32( FPSCR_SZ, R_ECX );
                                                         store_spreg( R_ECX, R_FPSCR );
+                                                        sh4_x86.tstate = TSTATE_NONE;
                                                         }
                                                         break;
                                                     case 0x2:
@@ -3322,6 +3537,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                                                         XOR_imm32_r32( FPSCR_FR, R_ECX );
                                                         store_spreg( R_ECX, R_FPSCR );
                                                         update_fr_bank( R_ECX );
+                                                        sh4_x86.tstate = TSTATE_NONE;
                                                         }
                                                         break;
                                                     case 0x3:
@@ -3372,6 +3588,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                         FADDP_st(1);
                         pop_dr( R_EDX, FRn );
                         JMP_TARGET(end);
+                        sh4_x86.tstate = TSTATE_NONE;
                         }
                         break;
                     default:
