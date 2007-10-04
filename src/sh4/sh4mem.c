@@ -1,5 +1,5 @@
 /**
- * $Id: sh4mem.c,v 1.25 2007-10-04 08:47:52 nkeynes Exp $
+ * $Id: sh4mem.c,v 1.26 2007-10-04 10:49:41 nkeynes Exp $
  * sh4mem.c is responsible for the SH4's access to memory (including memory
  * mapped I/O), using the page maps created in mem.c
  *
@@ -234,6 +234,7 @@ void sh4_write_long( uint32_t addr, uint32_t val )
         return;
     } else if( (addr&0x1C000000) == 0x0C000000 ) {
 	*(uint32_t *)(sh4_main_ram + (addr&0x00FFFFFF)) = val;
+	xlat_invalidate_long(addr);
 	return;
     } else if( (addr&0x1F800000) == 0x04000000 || 
 	       (addr&0x1F800000) == 0x11000000 ) {
@@ -264,7 +265,6 @@ void sh4_write_long( uint32_t addr, uint32_t val )
         TRACE_IO( "Long write %08X => %08X", page, (addr&0xFFF), val, addr );
         io_rgn[(uint32_t)page]->io_write(addr&0xFFF, val);
     } else {
-	xlat_invalidate_long(addr);
         *(uint32_t *)(page+(addr&0xFFF)) = val;
     }
 }
@@ -281,6 +281,7 @@ void sh4_write_word( uint32_t addr, uint32_t val )
         return;
     } else if( (addr&0x1C000000) == 0x0C000000 ) {
 	*(uint16_t *)(sh4_main_ram + (addr&0x00FFFFFF)) = val;
+	xlat_invalidate_word(addr);
 	return;
     } else if( (addr&0x1F800000) == 0x04000000 ||
 	(addr&0x1F800000) == 0x11000000 ) {
@@ -305,7 +306,6 @@ void sh4_write_word( uint32_t addr, uint32_t val )
         TRACE_IO( "Word write %04X => %08X", page, (addr&0xFFF), val&0xFFFF, addr );
         io_rgn[(uint32_t)page]->io_write(addr&0xFFF, val);
     } else {
-	xlat_invalidate_word(addr);
         *(uint16_t *)(page+(addr&0xFFF)) = val;
     }
 }
@@ -322,6 +322,7 @@ void sh4_write_byte( uint32_t addr, uint32_t val )
         return;
     } else if( (addr&0x1C000000) == 0x0C000000 ) {
 	*(uint8_t *)(sh4_main_ram + (addr&0x00FFFFFF)) = val;
+	xlat_invalidate_word(addr);
 	return;
     } else if( (addr&0x1F800000) == 0x04000000 ||
 	       (addr&0x1F800000) == 0x11000000 ) {
@@ -346,7 +347,6 @@ void sh4_write_byte( uint32_t addr, uint32_t val )
         TRACE_IO( "Byte write %02X => %08X", page, (addr&0xFFF), val&0xFF, addr );
         io_rgn[(uint32_t)page]->io_write( (addr&0xFFF), val);
     } else {
-	xlat_invalidate_word(addr);
         *(uint8_t *)(page+(addr&0xFFF)) = val;
     }
 }
