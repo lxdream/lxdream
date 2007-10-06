@@ -1,5 +1,5 @@
 /**
- * $Id: gendec.c,v 1.1 2007-08-23 12:33:27 nkeynes Exp $
+ * $Id: gendec.c,v 1.2 2007-10-06 08:48:47 nkeynes Exp $
  * 
  * Parse the instruction and action files and generate an appropriate
  * instruction decoder.
@@ -44,99 +44,6 @@ struct option longopts[1] = { { NULL, 0, 0, 0 } };
 
 void usage() {
     printf( "gendec <instruction-file> <action-file> [ -o <output-file> ]\n" );
-}
-
-int main( int argc, char *argv[] )
-{
-    int opt, i;
-
-    /* Parse the command line */
-    while( (opt = getopt_long( argc, argv, option_list, longopts, NULL )) != -1 ) {
-        switch( opt ) {
-	case 't':
-	    gen_mode = GEN_TEMPLATE;
-	    break;
-	case 'o':
-	    out_filename = optarg;
-	    break;
-	case 'h':
-	    usage();
-	    exit(0);
-	}
-    }
-    if( optind < argc ) {
-	ins_filename = argv[optind++];
-    }
-    if( optind < argc ) {
-	act_filename = argv[optind++];
-    }
-
-    if( optind < argc || ins_filename == NULL || act_filename == NULL ) {
-	usage();
-	exit(1);
-    }
-    
-    if( out_filename == NULL ) {
-	if( gen_mode == GEN_TEMPLATE ) {
-	    out_filename = act_filename;
-	} else {
-	    char tmp[strlen(act_filename)+1];
-	    strcpy( tmp, act_filename);
-	    char *c = strrchr( tmp, '.' );
-	    if( c != NULL ) {
-		*c = '\0';
-	    }
-	    out_filename = g_strconcat( tmp, DEFAULT_OUT_EXT );
-	}
-    }
-
-    /* Open the files */
-    ins_file = fopen( ins_filename, "ro" );
-    if( ins_file == NULL ) {
-        fprintf( stderr, "Unable to open '%s' for reading (%s)\n", ins_filename, strerror(errno) );
-	exit(2);
-    }
-
-    act_file = fopen( act_filename, "ro" );
-    if( act_file == NULL ) {
-        fprintf( stderr, "Unable to open '%s' for reading (%s)\n", act_filename, strerror(errno) );
-	exit(3);
-    }
-	
-    /* Parse the input */
-    struct ruleset *rules = parse_ruleset_file( ins_file );
-    fclose( ins_file );
-    if( rules == NULL ) {
-	exit(5);
-    }
-
-    struct actionset *actions = parse_action_file( rules, act_file );
-    fclose( act_file );
-    if( actions == NULL ) {
-	exit(6);
-    }
-
-    /* Finally write out the results */
-    out_file = fopen( out_filename, "wo" );
-    if( out_file == NULL ) {
-        fprintf( stderr, "Unable to open '%s' for writing (%s)\n", out_filename, strerror(errno) );
-	exit(4);
-    }
-    
-    switch( gen_mode ) {
-    case GEN_SOURCE:
-	if( generate_decoder( rules, actions, out_file ) != 0 ) {
-	    exit(7);
-	}
-	break;
-    case GEN_TEMPLATE:
-	if( generate_template( rules, actions, out_file ) != 0 ) {
-	    exit(7);
-	}
-	break;
-    }
-    fclose( out_file );
-    return 0;
 }
 
 /**
@@ -191,7 +98,7 @@ void get_option_values_for_mask( uint32_t *options,
     }
 }
 
-fprint_indent( char *action, int depth, FILE *f )
+void fprint_indent( char *action, int depth, FILE *f )
 {
     int spaces = 0, needed = depth*8, i;
     char *text = action;
@@ -219,10 +126,9 @@ fprint_indent( char *action, int depth, FILE *f )
     }
 }
 
-fprint_action( struct rule *rule, char *action, int depth, FILE *f ) 
+void fprint_action( struct rule *rule, char *action, int depth, FILE *f ) 
 {
     int i;
-    char tmp[64];
     if( action == NULL ) {
 	fprintf( f, "%*cUNIMP(ir); /* %s */\n", depth*8, ' ', rule->format );
     } else {
@@ -255,10 +161,9 @@ fprint_action( struct rule *rule, char *action, int depth, FILE *f )
     }
 }
 
-int split_and_generate( struct ruleset *rules, struct actionset *actions, 
+void split_and_generate( struct ruleset *rules, struct actionset *actions, 
 			int ruleidx[], int rule_count, int input_mask, 
 			int depth, FILE *f ) {
-    char tmp[64];
     uint32_t mask;
     int i,j;
 
@@ -272,7 +177,7 @@ int split_and_generate( struct ruleset *rules, struct actionset *actions,
 	if( mask == 0 ) { /* No matching mask? */
 	    fprintf( stderr, "Error: unable to find a valid bitmask (%d rules, %08X input mask)\n", rule_count, input_mask );
 	    dump_rulesubset( rules, ruleidx, rule_count, stderr );
-	    return -1;
+	    return;
 	}
 	
 	/* break up the rules into sub-sets, and process each sub-set.
@@ -349,5 +254,99 @@ int generate_template( struct ruleset *rules, struct actionset *actions, FILE *f
     fputs( "%%\n", f );
     fputs( actions->posttext, f );
     
+    return 0;
+}
+
+
+int main( int argc, char *argv[] )
+{
+    int opt;
+
+    /* Parse the command line */
+    while( (opt = getopt_long( argc, argv, option_list, longopts, NULL )) != -1 ) {
+        switch( opt ) {
+	case 't':
+	    gen_mode = GEN_TEMPLATE;
+	    break;
+	case 'o':
+	    out_filename = optarg;
+	    break;
+	case 'h':
+	    usage();
+	    exit(0);
+	}
+    }
+    if( optind < argc ) {
+	ins_filename = argv[optind++];
+    }
+    if( optind < argc ) {
+	act_filename = argv[optind++];
+    }
+
+    if( optind < argc || ins_filename == NULL || act_filename == NULL ) {
+	usage();
+	exit(1);
+    }
+    
+    if( out_filename == NULL ) {
+	if( gen_mode == GEN_TEMPLATE ) {
+	    out_filename = act_filename;
+	} else {
+	    char tmp[strlen(act_filename)+1];
+	    strcpy( tmp, act_filename);
+	    char *c = strrchr( tmp, '.' );
+	    if( c != NULL ) {
+		*c = '\0';
+	    }
+	    out_filename = g_strconcat( tmp, DEFAULT_OUT_EXT, NULL );
+	}
+    }
+
+    /* Open the files */
+    ins_file = fopen( ins_filename, "ro" );
+    if( ins_file == NULL ) {
+        fprintf( stderr, "Unable to open '%s' for reading (%s)\n", ins_filename, strerror(errno) );
+	exit(2);
+    }
+
+    act_file = fopen( act_filename, "ro" );
+    if( act_file == NULL ) {
+        fprintf( stderr, "Unable to open '%s' for reading (%s)\n", act_filename, strerror(errno) );
+	exit(3);
+    }
+	
+    /* Parse the input */
+    struct ruleset *rules = parse_ruleset_file( ins_file );
+    fclose( ins_file );
+    if( rules == NULL ) {
+	exit(5);
+    }
+
+    struct actionset *actions = parse_action_file( rules, act_file );
+    fclose( act_file );
+    if( actions == NULL ) {
+	exit(6);
+    }
+
+    /* Finally write out the results */
+    out_file = fopen( out_filename, "wo" );
+    if( out_file == NULL ) {
+        fprintf( stderr, "Unable to open '%s' for writing (%s)\n", out_filename, strerror(errno) );
+	exit(4);
+    }
+    
+    switch( gen_mode ) {
+    case GEN_SOURCE:
+	if( generate_decoder( rules, actions, out_file ) != 0 ) {
+	    exit(7);
+	}
+	break;
+    case GEN_TEMPLATE:
+	if( generate_template( rules, actions, out_file ) != 0 ) {
+	    exit(7);
+	}
+	break;
+    }
+    fclose( out_file );
     return 0;
 }

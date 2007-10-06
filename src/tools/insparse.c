@@ -13,6 +13,16 @@ struct rule *new_rule() {
     return rule;
 }
 
+int parse_registers_block( char *buf, int buflen, FILE *f );
+int parse_rule( char **str, struct rule *rule );
+int parse_bitstring( char **str, struct rule *rule );
+int parse_bitoperand( char **str, struct rule *rule );
+int parse_integer( char **str );
+int parse_rule_format( char **str, struct rule *rule );
+int parse_operand_uses( char **str, struct rule *rule );
+
+
+
 struct ruleset *parse_ruleset_file( FILE *f ) 
 {
     struct ruleset *rules = malloc( sizeof(struct ruleset ) );
@@ -44,6 +54,7 @@ int parse_registers_block( char *buf, int buflen, FILE *f ) {
 	    break;
 	}
     } while( fgets( buf, buflen, f ) != NULL );
+    return 0;
 }
 
 /**
@@ -113,7 +124,6 @@ int parse_bitstring( char **str, struct rule *rule )
 int parse_bitoperand( char **str, struct rule *rule )
 {
     char *p = rule->operands[rule->operand_count].name;
-    char tmp[8];
 
     if( rule->operand_count == MAX_OPERANDS ) {
 	fprintf( stderr, "Maximum operands/rule exceeded (%d) at line %d\n", MAX_OPERANDS, yyline );
@@ -187,7 +197,7 @@ int parse_rule_format( char **str, struct rule *rule )
 
 int parse_operand_uses( char **str, struct rule *rule )
 {
-
+    return 0;
 }
 
 void dump_ruleset( struct ruleset *rules, FILE *f ) 
