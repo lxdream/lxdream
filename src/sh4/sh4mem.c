@@ -1,5 +1,5 @@
 /**
- * $Id: sh4mem.c,v 1.26 2007-10-04 10:49:41 nkeynes Exp $
+ * $Id: sh4mem.c,v 1.27 2007-10-06 09:03:24 nkeynes Exp $
  * sh4mem.c is responsible for the SH4's access to memory (including memory
  * mapped I/O), using the page maps created in mem.c
  *
@@ -23,10 +23,12 @@
 #include "dream.h"
 #include "mem.h"
 #include "mmio.h"
-#include "sh4core.h"
-#include "sh4mmio.h"
 #include "dreamcast.h"
+#include "sh4/sh4core.h"
+#include "sh4/sh4mmio.h"
+#include "sh4/xltcache.h"
 #include "pvr2/pvr2.h"
+#include "asic.h"
 
 #define OC_BASE 0x1C000000
 #define OC_TOP  0x20000000
@@ -370,8 +372,6 @@ void mem_copy_from_sh4( char *dest, uint32_t srcaddr, size_t count ) {
 }
 
 void mem_copy_to_sh4( uint32_t destaddr, char *src, size_t count ) {
-    int region;
-
     if( destaddr >= 0x10000000 && destaddr < 0x14000000 ) {
 	pvr2_dma_write( destaddr, src, count );
 	return;
@@ -396,6 +396,6 @@ void sh4_flush_store_queue( uint32_t addr )
     int queue = (addr&0x20)>>2;
     char *src = (char *)&sh4r.store_queue[queue];
     uint32_t hi = (MMIO_READ( MMU, (queue == 0 ? QACR0 : QACR1) ) & 0x1C) << 24;
-    uint32_t target = addr&0x03FFFFE0 | hi;
+    uint32_t target = (addr&0x03FFFFE0) | hi;
     mem_copy_to_sh4( target, src, 32 );
 }

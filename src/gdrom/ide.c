@@ -1,5 +1,5 @@
 /**
- * $Id: ide.c,v 1.23 2007-01-31 10:58:42 nkeynes Exp $
+ * $Id: ide.c,v 1.24 2007-10-06 08:58:00 nkeynes Exp $
  *
  * IDE interface implementation
  *
@@ -25,6 +25,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include "dream.h"
+#include "mem.h"
 #include "asic.h"
 #include "gdrom/ide.h"
 #include "gdrom/gdrom.h"
@@ -172,7 +173,6 @@ static void ide_save_state( FILE *f )
 
 static int ide_load_state( FILE *f )
 {
-    uint32_t length;
     fread( &idereg, sizeof(idereg), 1, f );
     fread( data_buffer, MAX_SECTOR_SIZE, 1, f );
     return 0;
@@ -429,7 +429,7 @@ uint8_t ide_get_drive_status( void )
  */
 static void ide_read_next_sector( void )
 {
-    int sector_size;
+    uint32_t sector_size;
     REQUIRE_DISC();
     gdrom_error_t status = 
 	gdrom_disc->read_sector( gdrom_disc, idereg.read_lba, idereg.read_mode, 
@@ -454,9 +454,8 @@ static void ide_read_next_sector( void )
  */
 void ide_packet_command( unsigned char *cmd )
 {
-    uint32_t length, datalen;
+    uint32_t length;
     uint32_t lba, status;
-    int mode;
 
     /* Okay we have the packet in the command buffer */
     INFO( "ATAPI packet: %02X %02X %02X %02X  %02X %02X %02X %02X  %02X %02X %02X %02X", 

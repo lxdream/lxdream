@@ -1,5 +1,5 @@
 /**
- * $Id: dreamcast.c,v 1.22 2007-09-08 04:38:38 nkeynes Exp $
+ * $Id: dreamcast.c,v 1.23 2007-10-06 08:59:42 nkeynes Exp $
  * Central switchboard for the system. This pulls all the individual modules
  * together into some kind of coherent structure. This is also where you'd
  * add Naomi support, if I ever get a board to play with...
@@ -36,7 +36,7 @@
 #define STATE_STOPPED 3 
 static volatile int dreamcast_state = STATE_UNINIT;
 static uint32_t timeslice_length = DEFAULT_TIMESLICE_LENGTH;
-static char *dreamcast_config = "DEFAULT";
+const char *dreamcast_config = "DEFAULT";
 
 #define MAX_MODULES 32
 static int num_modules = 0;
@@ -87,7 +87,7 @@ void dreamcast_configure( )
 
 void dreamcast_save_flash()
 {
-    char *file = dreamcast_get_config_value(CONFIG_FLASH_PATH);
+    const char *file = dreamcast_get_config_value(CONFIG_FLASH_PATH);
     mem_save_block( file, 0x00200000, 0x00020000 );
 }
 
@@ -199,7 +199,6 @@ void dreamcast_stop( void )
 void dreamcast_shutdown()
 {
     dreamcast_stop();
-    sh4_stop();
     dreamcast_save_flash();
 }
 
@@ -272,7 +271,7 @@ gboolean dreamcast_load_config( const gchar *filename )
 gboolean dreamcast_load_config_stream( FILE *f )
 {
 
-    char buf[512], *p;
+    char buf[512];
     int maple_device = -1, maple_subdevice = -1;
     struct dreamcast_config_group devgroup;
     struct dreamcast_config_group *group = NULL;
@@ -365,6 +364,7 @@ gboolean dreamcast_save_config( const gchar *filename )
     }
     result = dreamcast_save_config_stream(f);
     fclose(f);
+    return TRUE;
 }    
 
 gboolean dreamcast_save_config_stream( FILE *f )
@@ -416,7 +416,7 @@ struct save_state_header {
 int dreamcast_load_state( const gchar *filename )
 {
     int i,j;
-    uint32_t count, len;
+    uint32_t len;
     int have_read[MAX_MODULES];
     char tmp[64];
     struct save_state_header header;
@@ -485,6 +485,7 @@ int dreamcast_load_state( const gchar *filename )
     }
     fclose(f);
     INFO( "Save state read from %s", filename );
+    return 0;
 }
 
 int dreamcast_save_state( const gchar *filename )
@@ -514,5 +515,6 @@ int dreamcast_save_state( const gchar *filename )
     }
     fclose( f );
     INFO( "Save state written to %s", filename );
+    return 0;
 }
 

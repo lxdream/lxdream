@@ -1,5 +1,5 @@
 /**
- * $Id: linux.c,v 1.4 2007-02-11 10:11:05 nkeynes Exp $
+ * $Id: linux.c,v 1.5 2007-10-06 08:58:00 nkeynes Exp $
  *
  * Linux cd-rom device driver. 
  *
@@ -50,8 +50,8 @@ static gboolean linux_image_is_valid( FILE *f );
 static gdrom_disc_t linux_open_device( const gchar *filename, FILE *f );
 static gdrom_error_t linux_read_disc_toc( gdrom_image_t disc );
 static gdrom_error_t linux_read_sector( gdrom_disc_t disc, uint32_t sector,
-					int mode, char *buf, uint32_t *length );
-static gdrom_error_t linux_send_command( int fd, char *cmd, char *buffer, size_t *buflen,
+					int mode, unsigned char *buf, uint32_t *length );
+static gdrom_error_t linux_send_command( int fd, char *cmd, unsigned char *buffer, size_t *buflen,
 					 int direction );
 static int linux_drive_status( gdrom_disc_t disc );
 
@@ -81,7 +81,6 @@ static gboolean linux_image_is_valid( FILE *f )
 static gdrom_disc_t linux_open_device( const gchar *filename, FILE *f ) 
 {
     gdrom_disc_t disc;
-    int fd = fileno(f);
 
     disc = gdrom_image_new(f);
     if( disc == NULL ) {
@@ -113,7 +112,7 @@ static int linux_drive_status( gdrom_disc_t disc )
     if( status == CDS_DISC_OK ) {
 	status = ioctl(fd, CDROM_MEDIA_CHANGED, CDSL_CURRENT);
 	if( status != 0 ) {
-	    linux_read_disc_toc(disc);
+	    linux_read_disc_toc( (gdrom_image_t)disc);
 	}
 	return ((gdrom_image_t)disc)->disc_type | IDE_DISC_READY;
     } else {
@@ -127,7 +126,7 @@ static gdrom_error_t linux_read_disc_toc( gdrom_image_t disc )
 {
     int fd = fileno(disc->file);
     unsigned char buf[MAXTOCSIZE];
-    int buflen = sizeof(buf);
+    size_t buflen = sizeof(buf);
     char cmd[12] = { 0x43, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
     
     cmd[7] = (sizeof(buf))>>8;
@@ -188,13 +187,12 @@ static gdrom_error_t linux_read_disc_toc( gdrom_image_t disc )
 }
 
 static gdrom_error_t linux_read_sector( gdrom_disc_t disc, uint32_t sector,
-					int mode, char *buf, uint32_t *length )
+					int mode, unsigned char *buf, uint32_t *length )
 {
     gdrom_image_t image = (gdrom_image_t)disc;
     int fd = fileno(image->file);
     uint32_t real_sector = sector - CD_MSF_OFFSET;
     uint32_t sector_size = MAX_SECTOR_SIZE;
-    int i;
     char cmd[12] = { 0xBE, 0x10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
     cmd[1] = (mode & 0x0E) << 1;
@@ -220,7 +218,7 @@ static gdrom_error_t linux_read_sector( gdrom_disc_t disc, uint32_t sector,
  * @return 0 on success, -1 on an operating system error, or a sense error
  * code on a device error.
  */
-static gdrom_error_t linux_send_command( int fd, char *cmd, char *buffer, size_t *buflen,
+static gdrom_error_t linux_send_command( int fd, char *cmd, unsigned char *buffer, size_t *buflen,
 					 int direction )
 {
     struct request_sense sense;

@@ -1,5 +1,5 @@
 /**
- * $Id: util.c,v 1.6 2006-09-12 08:36:09 nkeynes Exp $
+ * $Id: util.c,v 1.7 2007-10-06 08:59:42 nkeynes Exp $
  *
  * Miscellaneous utility functions.
  *
@@ -18,7 +18,7 @@
 
 #include "dream.h"
 
-void fwrite_string( char *s, FILE *f )
+void fwrite_string( const char *s, FILE *f )
 {
     uint32_t len = 0;
     if( s == NULL ) {

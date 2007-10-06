@@ -1,5 +1,5 @@
 /**
- * $Id: gdimage.c,v 1.1 2007-01-31 10:58:42 nkeynes Exp $
+ * $Id: gdimage.c,v 1.2 2007-10-06 08:58:00 nkeynes Exp $
  *
  * GD-Rom image-file common functions. 
  *
@@ -16,15 +16,18 @@
  * GNU General Public License for more details.
  */
 
+#include <netinet/in.h>
+
 #include "gdrom/gdrom.h"
 #include "gdrom/packet.h"
+#include "bootstrap.h"
 
 static void gdrom_image_destroy( gdrom_disc_t disc );
 static gdrom_error_t gdrom_image_read_sector( gdrom_disc_t disc, uint32_t lba, int mode, 
-					      char *buf, uint32_t *readlength );
-static gdrom_error_t gdrom_image_read_toc( gdrom_disc_t disc, char *buf );
-static gdrom_error_t gdrom_image_read_session( gdrom_disc_t disc, int session, char *buf );
-static gdrom_error_t gdrom_image_read_position( gdrom_disc_t disc, uint32_t lba, char *buf );
+					      unsigned char *buf, uint32_t *readlength );
+static gdrom_error_t gdrom_image_read_toc( gdrom_disc_t disc, unsigned char *buf );
+static gdrom_error_t gdrom_image_read_session( gdrom_disc_t disc, int session, unsigned char *buf );
+static gdrom_error_t gdrom_image_read_position( gdrom_disc_t disc, uint32_t lba, unsigned char *buf );
 static int gdrom_image_drive_status( gdrom_disc_t disc );
 
 
@@ -81,10 +84,10 @@ static int gdrom_image_get_track_by_lba( gdrom_image_t image, uint32_t lba )
 }
 
 static gdrom_error_t gdrom_image_read_sector( gdrom_disc_t disc, uint32_t lba,
-					      int mode, char *buf, uint32_t *length )
+					      int mode, unsigned char *buf, uint32_t *length )
 {
     gdrom_image_t image = (gdrom_image_t)disc;
-    int i, file_offset, read_len, track_no;
+    int file_offset, read_len, track_no;
 
     track_no = gdrom_image_get_track_by_lba( image, lba );
     if( track_no == -1 ) {
@@ -122,7 +125,7 @@ static gdrom_error_t gdrom_image_read_sector( gdrom_disc_t disc, uint32_t lba,
 
 }
 
-static gdrom_error_t gdrom_image_read_toc( gdrom_disc_t disc, char *buf ) 
+static gdrom_error_t gdrom_image_read_toc( gdrom_disc_t disc, unsigned char *buf ) 
 {
     gdrom_image_t image = (gdrom_image_t)disc;
     struct gdrom_toc *toc = (struct gdrom_toc *)buf;
@@ -140,7 +143,7 @@ static gdrom_error_t gdrom_image_read_toc( gdrom_disc_t disc, char *buf )
     return PKT_ERR_OK;
 }
 
-static gdrom_error_t gdrom_image_read_session( gdrom_disc_t disc, int session, char *buf )
+static gdrom_error_t gdrom_image_read_session( gdrom_disc_t disc, int session, unsigned char *buf )
 {
     gdrom_image_t image = (gdrom_image_t)disc;
     struct gdrom_track *last_track = &image->track[image->track_count-1];
@@ -170,7 +173,7 @@ static gdrom_error_t gdrom_image_read_session( gdrom_disc_t disc, int session, c
     }
 }
 
-static gdrom_error_t gdrom_image_read_position( gdrom_disc_t disc, uint32_t lba, char *buf )
+static gdrom_error_t gdrom_image_read_position( gdrom_disc_t disc, uint32_t lba, unsigned char *buf )
 {
     gdrom_image_t image = (gdrom_image_t)disc;
     int track_no = gdrom_image_get_track_by_lba( image, lba );
@@ -190,6 +193,7 @@ static gdrom_error_t gdrom_image_read_position( gdrom_disc_t disc, uint32_t lba,
     buf[11] = (lba >> 16) & 0xFF;
     buf[12] = (lba >> 8) & 0xFF;
     buf[13] = lba & 0xFF;
+    return PKT_ERR_OK;
 }
 
 static int gdrom_image_drive_status( gdrom_disc_t disc ) 
@@ -217,7 +221,7 @@ void gdrom_image_dump_info( gdrom_disc_t d ) {
 	    }
 	}
 	if( boot_track != -1 ) {
-	    char boot_sector[MAX_SECTOR_SIZE];
+	    unsigned char boot_sector[MAX_SECTOR_SIZE];
 	    uint32_t length = sizeof(boot_sector);
 	    if( d->read_sector( d, disc->track[boot_track].lba, 0x28,
 				   boot_sector, &length ) == PKT_ERR_OK ) {

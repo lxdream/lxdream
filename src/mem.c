@@ -1,5 +1,5 @@
 /**
- * $Id: mem.c,v 1.14 2006-07-02 04:59:00 nkeynes Exp $
+ * $Id: mem.c,v 1.15 2007-10-06 08:59:42 nkeynes Exp $
  * mem.c is responsible for creating and maintaining the overall system memory
  * map, as visible from the SH4 processor. 
  *
@@ -165,7 +165,6 @@ int mem_save_block( const gchar *file, uint32_t start, uint32_t length )
     char *region;
     int len = 4096, total = 0;
     uint32_t addr = start;
-    struct stat st;
     FILE *f = fopen(file,"w");
 
     if( f == NULL )
@@ -224,7 +223,7 @@ int mem_load_block( const gchar *file, uint32_t start, uint32_t length )
 }
 
 struct mem_region *mem_map_region( void *mem, uint32_t base, uint32_t size,
-                                   char *name, int flags, uint32_t repeat_offset,
+                                   const char *name, int flags, uint32_t repeat_offset,
 				   uint32_t repeat_until )
 {
     int i;
@@ -244,12 +243,12 @@ struct mem_region *mem_map_region( void *mem, uint32_t base, uint32_t size,
     return &mem_rgn[num_mem_rgns-1];
 }
 
-void *mem_create_ram_region( uint32_t base, uint32_t size, char *name )
+void *mem_create_ram_region( uint32_t base, uint32_t size, const char *name )
 {
     return mem_create_repeating_ram_region( base, size, name, size, base );
 }
 
-void *mem_create_repeating_ram_region( uint32_t base, uint32_t size, char *name,
+void *mem_create_repeating_ram_region( uint32_t base, uint32_t size, const char *name,
 				       uint32_t repeat_offset, uint32_t repeat_until )
 {
     char *mem;
@@ -266,7 +265,7 @@ void *mem_create_repeating_ram_region( uint32_t base, uint32_t size, char *name,
     return mem;
 }
 
-void *mem_load_rom( char *file, uint32_t base, uint32_t size, uint32_t crc )
+void *mem_load_rom( const gchar *file, uint32_t base, uint32_t size, uint32_t crc )
 {
     char *mem;
     int fd;
@@ -285,7 +284,7 @@ void *mem_load_rom( char *file, uint32_t base, uint32_t size, uint32_t crc )
     mem_map_region( mem, base, size, file, MEM_FLAG_ROM, size, base );
 
     /* CRC check */
-    calc_crc = crc32(0L, mem, size);
+    calc_crc = crc32(0L, (unsigned char *)mem, size);
     if( calc_crc != crc ) {
         WARN( "Bios CRC Mismatch in %s: %08X (expected %08X)",
               file, calc_crc, crc);
@@ -294,7 +293,7 @@ void *mem_load_rom( char *file, uint32_t base, uint32_t size, uint32_t crc )
     return mem;
 }
 
-char *mem_get_region_by_name( char *name )
+char *mem_get_region_by_name( const char *name )
 {
     int i;
     for( i=0; i<num_mem_rgns; i++ ) {

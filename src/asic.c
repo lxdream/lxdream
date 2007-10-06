@@ -1,5 +1,5 @@
 /**
- * $Id: asic.c,v 1.28 2007-01-31 10:58:42 nkeynes Exp $
+ * $Id: asic.c,v 1.29 2007-10-06 08:59:42 nkeynes Exp $
  *
  * Support for the miscellaneous ASIC functions (Primarily event multiplexing,
  * and DMA). 
@@ -25,9 +25,11 @@
 #include "mem.h"
 #include "sh4/intc.h"
 #include "sh4/dmac.h"
+#include "sh4/sh4core.h"
 #include "dreamcast.h"
 #include "maple/maple.h"
 #include "gdrom/ide.h"
+#include "pvr2/pvr2.h"
 #include "asic.h"
 #define MMIO_IMPL
 #include "asic.h"
@@ -269,7 +271,7 @@ void g2_dma_transfer( int channel )
 	    uint32_t sh4addr = MMIO_READ( EXTDMA, G2DMA0SH4 + offset );
 	    uint32_t length = MMIO_READ( EXTDMA, G2DMA0SIZ + offset ) & 0x1FFFFFFF;
 	    uint32_t dir = MMIO_READ( EXTDMA, G2DMA0DIR + offset );
-	    uint32_t mode = MMIO_READ( EXTDMA, G2DMA0MOD + offset );
+	    // uint32_t mode = MMIO_READ( EXTDMA, G2DMA0MOD + offset );
 	    char buf[length];
 	    if( dir == 0 ) { /* SH4 to device */
 		mem_copy_from_sh4( buf, sh4addr, length );
@@ -294,7 +296,7 @@ void asic_ide_dma_transfer( )
 	    
 	    uint32_t addr = MMIO_READ( EXTDMA, IDEDMASH4 );
 	    uint32_t length = MMIO_READ( EXTDMA, IDEDMASIZ );
-	    int dir = MMIO_READ( EXTDMA, IDEDMADIR );
+	    // int dir = MMIO_READ( EXTDMA, IDEDMADIR );
 	    
 	    uint32_t xfer = ide_read_data_dma( addr, length );
 	    MMIO_WRITE( EXTDMA, IDEDMATXSIZ, xfer );

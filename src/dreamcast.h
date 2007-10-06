@@ -1,5 +1,5 @@
 /**
- * $Id: dreamcast.h,v 1.14 2007-09-08 04:38:38 nkeynes Exp $
+ * $Id: dreamcast.h,v 1.15 2007-10-06 08:59:42 nkeynes Exp $
  *
  * Public interface for dreamcast.c -
  * Central switchboard for the system. This pulls all the individual modules
@@ -31,11 +31,10 @@ extern "C" {
 
 #define DEFAULT_TIMESLICE_LENGTH 1000000 /* nanoseconds */
 
-#ifndef MB
 #define MB *1024*1024
-#endif
+#define KB *1024
 
-#define XLAT_NEW_CACHE_SIZE 8 MB
+#define XLAT_NEW_CACHE_SIZE 32 MB
 #define XLAT_TEMP_CACHE_SIZE 2 MB
 #define XLAT_OLD_CACHE_SIZE 8 MB
 
@@ -58,7 +57,8 @@ typedef struct dreamcast_config_group {
     struct dreamcast_config_entry *params;
 } *dreamcast_config_group_t;
 
-
+void dreamcast_configure(void);
+void dreamcast_configure_aica_only(void);
 void dreamcast_init(void);
 void dreamcast_reset(void);
 void dreamcast_run(void);
@@ -67,6 +67,8 @@ void dreamcast_stop(void);
 
 gboolean dreamcast_load_config( const gchar *filename );
 gboolean dreamcast_save_config( const gchar *filename );
+gboolean dreamcast_load_config_stream( FILE *f );
+gboolean dreamcast_save_config_stream( FILE *f );
 
 #define DREAMCAST_SAVE_MAGIC "%!-lxDream!Save\0"
 #define DREAMCAST_SAVE_VERSION 0x00010000

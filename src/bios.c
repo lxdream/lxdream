@@ -1,5 +1,5 @@
 /**
- * $Id: bios.c,v 1.2 2006-03-13 12:38:34 nkeynes Exp $
+ * $Id: bios.c,v 1.3 2007-10-06 08:59:42 nkeynes Exp $
  * 
  * "Fake" BIOS functions, for operation without the actual BIOS.
  *
@@ -19,6 +19,7 @@
 #include "dream.h"
 #include "mem.h"
 #include "syscall.h"
+#include "dreamcast.h"
 #include "sh4/sh4core.h"
 
 #define COMMAND_QUEUE_LENGTH 16
@@ -150,7 +151,7 @@ void bios_syscall( uint32_t syscallid )
 		    sh4r.r[0] = cmd->status;
 		    if( cmd->status == GD_CMD_STATUS_ERROR &&
 			sh4r.r[5] != 0 ) {
-			mem_copy_to_sh4( sh4r.r[5], &cmd->result, sizeof(cmd->result) );
+			mem_copy_to_sh4( sh4r.r[5], (char *)&cmd->result, sizeof(cmd->result) );
 		    }
 		}
 		break;
@@ -162,7 +163,7 @@ void bios_syscall( uint32_t syscallid )
 		break;
 	    case 4: /* Drive status */
 		if( sh4r.r[4] != 0 ) {
-		    mem_copy_to_sh4( sh4r.r[4], &bios_gdrom_status, 
+		    mem_copy_to_sh4( sh4r.r[4], (char *)&bios_gdrom_status, 
 				      sizeof(bios_gdrom_status) );
 		}
 		sh4r.r[0] = 0;

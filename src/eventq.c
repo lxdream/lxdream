@@ -1,5 +1,5 @@
 /**
- * $Id: eventq.c,v 1.1 2007-01-06 04:06:36 nkeynes Exp $
+ * $Id: eventq.c,v 1.2 2007-10-06 08:59:42 nkeynes Exp $
  *
  * Simple implementation of one-shot timers. Effectively this allows IO
  * devices to wait until a particular time before completing. We expect 
@@ -22,6 +22,7 @@
 #include <assert.h>
 #include "dreamcast.h"
 #include "eventq.h"
+#include "asic.h"
 #include "sh4core.h"
 
 #define LONG_SCAN_PERIOD 1000000000 /* 1 second */
@@ -149,8 +150,6 @@ void register_event_callback( int eventid, event_func_t func )
 
 void event_schedule( int eventid, uint32_t nanosecs )
 {
-    int i;
-
     nanosecs += sh4r.slice_cycle;
 
     event_t event = &events[eventid];
