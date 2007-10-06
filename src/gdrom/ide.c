@@ -1,5 +1,5 @@
 /**
- * $Id: ide.c,v 1.24 2007-10-06 08:58:00 nkeynes Exp $
+ * $Id: ide.c,v 1.25 2007-10-06 09:04:53 nkeynes Exp $
  *
  * IDE interface implementation
  *
@@ -307,7 +307,7 @@ uint32_t ide_read_data_dma( uint32_t addr, uint32_t length )
 	    if( xferlen > remaining ) {
 		xferlen = remaining;
 	    }
-	    mem_copy_to_sh4( addr, data_buffer + idereg.data_offset, xferlen );
+	    mem_copy_to_sh4( addr, (char *)(data_buffer + idereg.data_offset), xferlen );
 	    xfercount += xferlen;
 	    addr += xferlen;
 	    idereg.data_offset += xferlen;
