@@ -1,5 +1,5 @@
 /**
- * $Id: gendec.h,v 1.1 2007-08-23 12:33:27 nkeynes Exp $
+ * $Id: gendec.h,v 1.2 2007-10-06 08:48:47 nkeynes Exp $
  *
  * mem is responsible for creating and maintaining the overall system memory
  * map, as visible from the SH4 processor. (Note the ARM has a different map)
@@ -61,7 +61,8 @@ struct ruleset {
 };
 
 struct ruleset *parse_ruleset_file( FILE *f );
-    void dump_ruleset( struct ruleset *rules, FILE *f );
+void dump_ruleset( struct ruleset *rules, FILE *f );
+void dump_rulesubset( struct ruleset *rules, int ruleidx[], int rule_count, FILE *f );
 
 struct action {
     char operand_names[MAX_OPERANDS][MAX_OPERAND_NAME+1];

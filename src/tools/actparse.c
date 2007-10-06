@@ -8,7 +8,7 @@
 
 static int yyline;
 
-struct rule *new_action() {
+struct action *new_action() {
     struct action *action = malloc( sizeof( struct action ) );
     memset( action, 0, sizeof( struct action ) );
     return action;
