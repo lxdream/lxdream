@@ -1,5 +1,5 @@
 /**
- * $Id: dcload.c,v 1.6 2006-08-07 13:18:16 nkeynes Exp $
+ * $Id: dcload.c,v 1.7 2007-10-06 08:59:42 nkeynes Exp $
  * 
  * DC-load syscall implementation.
  *
@@ -17,9 +17,12 @@
  */
 
 #include <stdio.h>
+#include <unistd.h>
+#include <fcntl.h>
+
 #include "dream.h"
-#include "dreamcast.h"
 #include "mem.h"
+#include "dreamcast.h"
 #include "syscall.h"
 #include "sh4/sh4core.h"
 
@@ -75,7 +78,7 @@ int dcload_alloc_fd()
 
 void dcload_syscall( uint32_t syscall_id ) 
 {
-    uint32_t syscall = sh4r.r[4];
+    // uint32_t syscall = sh4r.r[4];
     int fd;
     switch( sh4r.r[4] ) {
     case SYS_READ:

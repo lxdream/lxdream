@@ -1,5 +1,5 @@
 /**
- * $Id: main.c,v 1.26 2007-10-03 08:22:27 nkeynes Exp $
+ * $Id: main.c,v 1.27 2007-10-06 09:00:10 nkeynes Exp $
  *
  * Main program, initializes dreamcast and gui, then passes control off to
  * the gtk main loop (currently). 
@@ -28,10 +28,14 @@
 #include "gui/gui.h"
 #include "dream.h"
 #include "syscall.h"
+#include "mem.h"
 #include "dreamcast.h"
-#include "aica/audio.h"
 #include "display.h"
+#include "loader.h"
+#include "aica/audio.h"
+#include "gdrom/gdrom.h"
 #include "maple/maple.h"
+#include "sh4/sh4core.h"
 
 #define S3M_PLAYER "s3mplay.bin"
 

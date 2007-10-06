@@ -1,5 +1,5 @@
 /**
- * $Id: sh4core.h,v 1.25 2007-09-20 08:37:19 nkeynes Exp $
+ * $Id: sh4core.h,v 1.26 2007-10-06 09:03:24 nkeynes Exp $
  * 
  * This file defines the internal functions exported/used by the SH4 core, 
  * except for disassembly functions defined in sh4dasm.h
@@ -149,6 +149,7 @@ void MMU_init( void );
 void MMU_reset( void );
 void MMU_save_state( FILE *f );
 int MMU_load_state( FILE *f );
+void SCIF_update_line_speed(void);
 
 #define SIGNEXT4(n) ((((int32_t)(n))<<28)>>28)
 #define SIGNEXT8(n) ((int32_t)((int8_t)(n)))

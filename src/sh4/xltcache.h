@@ -1,5 +1,5 @@
 /**
- * $Id: xltcache.h,v 1.6 2007-09-29 11:06:40 nkeynes Exp $
+ * $Id: xltcache.h,v 1.7 2007-10-06 09:03:24 nkeynes Exp $
  * 
  * Translation cache support (architecture independent)
  *
@@ -25,6 +25,11 @@ typedef struct xlat_cache_block {
     void **lut_entry; /* For deletion */
     unsigned char code[0];
 } *xlat_cache_block_t;
+
+/**
+ * Initialize the translation cache
+ */
+void xlat_cache_init(void);
 
 /**
  * Returns the next block in the new cache list that can be written to by the

@@ -1,5 +1,5 @@
 /**
- * $Id: xltcache.c,v 1.7 2007-09-29 11:06:40 nkeynes Exp $
+ * $Id: xltcache.c,v 1.8 2007-10-06 09:03:24 nkeynes Exp $
  * 
  * Translation cache management. This part is architecture independent.
  *
@@ -55,7 +55,7 @@ xlat_cache_block_t xlat_old_cache_ptr;
 static void ***xlat_lut;
 static gboolean xlat_initialized = FALSE;
 
-void xlat_cache_init() 
+void xlat_cache_init(void) 
 {
     if( !xlat_initialized ) {
 	xlat_initialized = TRUE;

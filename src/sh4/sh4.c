@@ -1,5 +1,5 @@
 /**
- * $Id: sh4.c,v 1.4 2007-10-04 08:47:52 nkeynes Exp $
+ * $Id: sh4.c,v 1.5 2007-10-06 09:03:24 nkeynes Exp $
  * 
  * SH4 parent module for all CPU modes and SH4 peripheral
  * modules.
@@ -20,9 +20,12 @@
 #define MODULE sh4_module
 #include <math.h>
 #include "dream.h"
+#include "dreamcast.h"
 #include "sh4/sh4core.h"
 #include "sh4/sh4mmio.h"
 #include "sh4/intc.h"
+#include "sh4/xltcache.h"
+#include "sh4/sh4stat.h"
 #include "mem.h"
 #include "clock.h"
 #include "syscall.h"
@@ -32,6 +35,7 @@
 #define EXV_INTERRUPT    0x600  /* External interrupt vector */
 
 void sh4_init( void );
+void sh4_x86_init( void );
 void sh4_reset( void );
 void sh4_start( void );
 void sh4_stop( void );

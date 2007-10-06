@@ -1,5 +1,5 @@
 /**
- * $Id: timer.c,v 1.8 2007-10-03 08:22:27 nkeynes Exp $
+ * $Id: timer.c,v 1.9 2007-10-06 09:03:24 nkeynes Exp $
  * 
  * SH4 Timer/Clock peripheral modules (CPG, TMU, RTC), combined together to
  * keep things simple (they intertwine a bit).
@@ -144,7 +144,7 @@ void TMU_set_timer_control( int timer,  int tcr )
     if( (oldtcr & TCR_UNF) == 0 ) {
 	tcr = tcr & (~TCR_UNF);
     } else {
-	if( (oldtcr & TCR_UNIE == 0) && 
+	if( ((oldtcr & TCR_UNIE) == 0) && 
 	    (tcr & TCR_IRQ_ACTIVE) == TCR_IRQ_ACTIVE ) {
 	    intc_raise_interrupt( INT_TMU_TUNI0 + timer );
 	} else if( (oldtcr & TCR_UNIE) != 0 && 

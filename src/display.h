@@ -1,5 +1,5 @@
 /**
- * $Id: display.h,v 1.6 2007-09-08 04:05:35 nkeynes Exp $
+ * $Id: display.h,v 1.7 2007-10-06 08:59:42 nkeynes Exp $
  *
  * The PC side of the video support (responsible for actually displaying / 
  * rendering frames)
@@ -20,10 +20,10 @@
 #ifndef dream_video_H
 #define dream_video_H
 
-#include "mem.h"
 #include <stdint.h>
 #include <glib.h>
 #include <GL/gl.h>
+#include "dream.h"
 
 #ifdef __cplusplus
 extern "C" {

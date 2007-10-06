@@ -1,5 +1,5 @@
 /**
- * $Id: bootstrap.h,v 1.4 2006-06-19 11:00:40 nkeynes Exp $
+ * $Id: bootstrap.h,v 1.5 2007-10-06 08:59:42 nkeynes Exp $
  *
  * CD Bootstrap header parsing. Mostly for informational purposes.
  *
@@ -32,7 +32,7 @@ extern "C" {
  * Dump the bootstrap info to the output log for infomational/debugging
  * purposes.
  */
-void bootstrap_dump(char *data, gboolean detail);
+void bootstrap_dump(unsigned char *data, gboolean detail);
 
 #ifdef __cplusplus
 }

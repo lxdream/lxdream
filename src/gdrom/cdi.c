@@ -1,5 +1,5 @@
 /**
- * $Id: cdi.c,v 1.6 2007-02-04 11:30:41 nkeynes Exp $
+ * $Id: cdi.c,v 1.7 2007-10-06 08:58:00 nkeynes Exp $
  *
  * CDI CD-image file support
  *
@@ -76,15 +76,13 @@ gdrom_disc_t cdi_image_open( const gchar *filename, FILE *f )
 {
     gdrom_disc_t disc = NULL;
     gdrom_image_t image;
-    int fd = -1, i,j, tmp;
+    int i,j;
     uint16_t session_count;
     uint16_t track_count;
     int total_tracks = 0;
-    int posn = 0, hdr;
+    int posn = 0;
     long len;
     struct cdi_trailer trail;
-    uint32_t new_fmt;
-    char tmpc;
     char marker[20];
 
     fseek( f, -8, SEEK_END );

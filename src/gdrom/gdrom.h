@@ -1,5 +1,5 @@
 /**
- * $Id: gdrom.h,v 1.10 2007-01-31 10:58:42 nkeynes Exp $
+ * $Id: gdrom.h,v 1.11 2007-10-06 08:58:00 nkeynes Exp $
  *
  * This file defines the structures and functions used by the GD-Rom
  * disc driver. (ie, the modules that supply a CD image to be used by the
@@ -83,7 +83,7 @@ typedef struct gdrom_disc {
      */
     gdrom_error_t (*read_sector)( struct gdrom_disc *disc,
 				  uint32_t lba, int mode, 
-				  char *buf, uint32_t *length );
+				  unsigned char *buf, uint32_t *length );
     
     /**
      * Read the TOC from the disc and write it into the specified buffer.
@@ -92,7 +92,7 @@ typedef struct gdrom_disc {
      * @param disc pointer to the disc structure
      * @param buf buffer to receive data (0x198 bytes long)
      */
-    gdrom_error_t (*read_toc)(struct gdrom_disc *disc, char *buf);
+    gdrom_error_t (*read_toc)(struct gdrom_disc *disc, unsigned char *buf);
 
     /**
      * Read the information for the specified sector and return it in the
@@ -101,7 +101,7 @@ typedef struct gdrom_disc {
      * @param session of interest. If 0, return end of disc information.
      * @param buf buffer to receive data (6 bytes)
      */
-    gdrom_error_t (*read_session)(struct gdrom_disc *disc, int session, char *buf);
+    gdrom_error_t (*read_session)(struct gdrom_disc *disc, int session, unsigned char *buf);
 
     /**
      * Read the position information (subchannel) for the specified sector
@@ -111,7 +111,7 @@ typedef struct gdrom_disc {
      * @param lba sector to get position information for
      * @param buf buffer to receive data (14 bytes)
      */
-    gdrom_error_t (*read_position)(struct gdrom_disc *disc, uint32_t lba, char *buf);
+    gdrom_error_t (*read_position)(struct gdrom_disc *disc, uint32_t lba, unsigned char *buf);
 
     /**
      * Return the current disc status, expressed as a combination of the 
@@ -175,17 +175,22 @@ gdrom_disc_t gdrom_image_new( FILE *file );
 gdrom_disc_t gdrom_image_open( const gchar *filename );
 
 /**
+ * Dump image info
+ */
+void gdrom_image_dump_info( gdrom_disc_t d );
+
+/**
  * Retrieve the disc table of contents, and write it into the buffer in the 
  * format expected by the DC.
  * @return 0 on success, error code on failure (eg no disc mounted)
  */
-gdrom_error_t gdrom_get_toc( char *buf );
+gdrom_error_t gdrom_get_toc( unsigned char *buf );
 
 /**
  * Retrieve the short (6-byte) session info, and write it into the buffer.
  * @return 0 on success, error code on failure.
  */
-gdrom_error_t gdrom_get_info( char *buf, int session );
+gdrom_error_t gdrom_get_info( unsigned char *buf, int session );
 
 gdrom_track_t gdrom_get_track( int track_no );
 
@@ -203,6 +208,6 @@ void gdrom_unmount_disc( void );
 gboolean gdrom_is_mounted( void );
 
 uint32_t gdrom_read_sectors( uint32_t sector, uint32_t sector_count,
-			     int mode, char *buf, uint32_t *length );
+			     int mode, unsigned char *buf, uint32_t *length );
 
 #endif

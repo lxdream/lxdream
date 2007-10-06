@@ -1,5 +1,5 @@
 /**
- * $Id: dream.h,v 1.12 2007-01-06 04:06:36 nkeynes Exp $
+ * $Id: dream.h,v 1.13 2007-10-06 08:59:42 nkeynes Exp $
  *
  * Miscellaneous application-wide declarations (mainly logging atm)
  *
@@ -111,11 +111,13 @@ void emit( void *, int level, const char *source, const char *msg, ... );
 #define DEBUG( ... ) emit( NULL, EMIT_DEBUG, MODULE.name, __VA_ARGS__ )
 #define TRACE( ... ) emit( NULL, EMIT_TRACE, MODULE.name, __VA_ARGS__ )
 
-void fwrite_string( char *s, FILE *f );
+void fwrite_string( const char *s, FILE *f );
 int fread_string( char *s, int maxlen, FILE *f );
 void fwrite_dump( unsigned char *buf, unsigned int length, FILE *f );
 void fwrite_dump32( unsigned int *buf, unsigned int length, FILE *f );
 void fwrite_dump32v( unsigned int *buf, unsigned int length, int wordsPerLine, FILE *f );
+
+typedef uint32_t sh4addr_t;
 
 #ifndef max
 #define max(a,b) ( (a) > (b) ? (a) : (b) )

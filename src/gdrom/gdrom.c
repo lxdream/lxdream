@@ -1,6 +1,6 @@
 
 /**
- * $Id: gdrom.c,v 1.12 2007-01-31 10:58:42 nkeynes Exp $
+ * $Id: gdrom.c,v 1.13 2007-10-06 08:58:00 nkeynes Exp $
  *
  * GD-Rom  access functions.
  *
@@ -39,7 +39,7 @@ gdrom_disc_t gdrom_image_open( const gchar *filename )
 
     int fd = open( filename, O_RDONLY | O_NONBLOCK );
     FILE *f;
-    int i,j;
+    int i;
     gdrom_image_class_t extclz = NULL;
 
     if( fd == -1 ) {

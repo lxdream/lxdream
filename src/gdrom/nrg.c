@@ -1,5 +1,5 @@
 /**
- * $Id: nrg.c,v 1.4 2007-01-31 10:58:42 nkeynes Exp $
+ * $Id: nrg.c,v 1.5 2007-10-06 08:58:00 nkeynes Exp $
  *
  * Nero (NRG) CD file format. File information stolen shamelessly from
  * libcdio.
@@ -20,6 +20,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <errno.h>
+#include <netinet/in.h>
 #include "gdrom/gdrom.h"
 #include "dream.h"
 

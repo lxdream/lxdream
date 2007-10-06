@@ -1,5 +1,5 @@
 /**
- * $Id: dmac.c,v 1.1 2006-01-01 08:08:40 nkeynes Exp $
+ * $Id: dmac.c,v 1.2 2007-10-06 09:03:24 nkeynes Exp $
  * 
  * SH4 onboard DMA controller (DMAC) peripheral.
  *
@@ -109,10 +109,11 @@ void mmio_region_DMAC_write( uint32_t reg, uint32_t val )
  * @param channel Channel number (0-3) to run.
  * @param run_count number of transfers to execute, or 0 to run to the 
  * end of the transfer count.
- * @return actual number of transfers run
  */
-int DMAC_run_channel( uint32_t channel, uint32_t run_count )
+void DMAC_run_channel( uint32_t channel, uint32_t run_count )
 {
+
+#if 0 /* Should really finish this */
     char burst[32]; /* Transfer burst */
     uint32_t control = DMA_CONTROL(channel);
 
@@ -158,6 +159,7 @@ int DMAC_run_channel( uint32_t channel, uint32_t run_count )
 	    count--;
 	}
     }
+#endif
 }
 
 /**
@@ -237,7 +239,6 @@ uint32_t DMAC_put_buffer( int channel, char *buf, uint32_t numBytes )
 {
     uint32_t control = DMA_CONTROL(channel);
     uint32_t dest, count, run_count, size, i;
-    char tmp[32];
 
     if( !IS_CHANNEL_ENABLED(control) || !IS_DMAC_ENABLED() )
 	return 0;

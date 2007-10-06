@@ -1,5 +1,5 @@
 /**
- * $Id: sh4stat.h,v 1.1 2007-09-18 08:58:23 nkeynes Exp $
+ * $Id: sh4stat.h,v 1.2 2007-10-06 09:03:24 nkeynes Exp $
  * 
  * Support module for collecting instruction stats
  *
@@ -54,3 +54,7 @@ enum sh4_inst_id {
     I_UNDEF };
 
 #define SH4_INSTRUCTION_COUNT I_UNDEF
+
+void sh4_stats_reset( void );
+void sh4_stats_print( FILE *out );
+void sh4_stats_add( uint32_t pc );
