@@ -1,5 +1,5 @@
 /**
- * $Id: intc.c,v 1.7 2007-01-06 04:06:36 nkeynes Exp $
+ * $Id: intc.c,v 1.8 2007-10-06 08:52:08 nkeynes Exp $
  *
  * SH4 onboard interrupt controller (INTC) implementation
  *
@@ -38,7 +38,7 @@ struct intc_sources_t {
     { "RTC_ATI",0x480 },{ "RTC_PRI",0x4A0 },{ "RTC_CUI",0x4C0 },
     { "SCI_ERI",0x4E0 },{ "SCI_RXI",0x500 },{ "SCI_TXI",0x520 },
     { "SCI_TEI",0x540 },
-    { "SCIF_ERI",0x700 },{ "SCIF_RXI",0x720, 0 },{ "SCIF_BRI",0x740 },
+    { "SCIF_ERI",0x700 },{ "SCIF_RXI",0x720 },{ "SCIF_BRI",0x740 },
     { "SCIF_TXI",0x760 },
     { "WDT_ITI",0x560 },{ "RCMI",0x580 },   { "ROVI",0x5A0 } };
 
@@ -165,7 +165,8 @@ void intc_clear_interrupt( int which )
 	if( intc_state.pending[i] == which ) {
 	    /* Shift array contents down */
 	    while( i < intc_state.num_pending-1 ) {
-		intc_state.pending[i] = intc_state.pending[++i];
+		intc_state.pending[i] = intc_state.pending[i+1];
+		i++;
 	    }
 	    intc_state.num_pending--;
 	    intc_mask_changed();
