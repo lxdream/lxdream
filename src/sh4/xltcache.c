@@ -1,5 +1,5 @@
 /**
- * $Id: xltcache.c,v 1.8 2007-10-06 09:03:24 nkeynes Exp $
+ * $Id: xltcache.c,v 1.9 2007-10-07 06:27:12 nkeynes Exp $
  * 
  * Translation cache management. This part is architecture independent.
  *
@@ -16,10 +16,12 @@
  * GNU General Public License for more details.
  */
 
-#include "sh4/xltcache.h"
-#include "dreamcast.h"
 #include <sys/mman.h>
 #include <assert.h>
+
+#include "dreamcast.h"
+#include "sh4/xltcache.h"
+#include "x86dasm/x86dasm.h"
 
 #define XLAT_LUT_PAGE_BITS 12
 #define XLAT_LUT_TOTAL_BITS 28
@@ -371,7 +373,7 @@ xlat_cache_block_t xlat_extend_block( uint32_t newSize )
 	if( xlat_new_cache_ptr->size == 0 ) {
 	    /* Migrate to the front of the cache to keep it contiguous */
 	    xlat_new_create_ptr->active = 0;
-	    char *olddata = xlat_new_create_ptr->code;
+	    unsigned char *olddata = xlat_new_create_ptr->code;
 	    int oldsize = xlat_new_create_ptr->size;
 	    int size = oldsize + MIN_BLOCK_SIZE; /* minimum expansion */
 	    void **lut_entry = xlat_new_create_ptr->lut_entry;
