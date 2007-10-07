@@ -1,5 +1,5 @@
 /**
- * $Id: scif.c,v 1.8 2006-01-01 08:08:40 nkeynes Exp $
+ * $Id: scif.c,v 1.9 2007-10-07 06:27:12 nkeynes Exp $
  * SCIF (Serial Communication Interface with FIFO) implementation - part of the 
  * SH4 standard on-chip peripheral set. The SCIF is hooked up to the DCs
  * external serial port
@@ -130,7 +130,7 @@ void serial_transmit_break() {
 #define IS_RECEIVE_IRQ_ENABLED() (MMIO_READ(SCIF,SCSCR2) & SCSCR2_RIE)
 #define IS_RECEIVE_ERROR_IRQ_ENABLED() (MMIO_READ(SCIF,SCSCR2) & (SCSCR2_RIE|SCSCR2_REIE))
 /* Receive is enabled if the RE bit is set in SCSCR2, and the ORER bit is cleared in SCLSR2 */
-#define IS_RECEIVE_ENABLED() ( (MMIO_READ(SCIF,SCSCR2) & SCSCR2_RE) && (MMIO_READ(SCIF,SCLSR2) & SCLSR2_ORER == 0) )
+#define IS_RECEIVE_ENABLED() ( (MMIO_READ(SCIF,SCSCR2) & SCSCR2_RE) && ((MMIO_READ(SCIF,SCLSR2) & SCLSR2_ORER) == 0) )
 /* Transmit is enabled if the TE bit is set in SCSCR2 */
 #define IS_TRANSMIT_ENABLED() (MMIO_READ(SCIF,SCSCR2) & SCSCR2_TE)
 #define IS_LOOPBACK_ENABLED() (MMIO_READ(SCIF,SCFCR2) & SCFCR2_LOOP)
@@ -393,7 +393,7 @@ void SCIF_update_status( uint32_t mask )
 
     if( sendq_size <= SCIF_sendq.trigger )
 	result |= SCFSR2_TDFE;
-    else if( result & SCFSR2_TDFE == 0 && IS_TRANSMIT_IRQ_ENABLED() )
+    else if( (result & SCFSR2_TDFE) == 0 && IS_TRANSMIT_IRQ_ENABLED() )
 	intc_clear_interrupt( INT_SCIF_TXI );
 
     if( recvq_size >= SCIF_recvq.trigger )
@@ -481,7 +481,7 @@ void mmio_region_SCIF_write( uint32_t reg, uint32_t val )
 	    serial_device->set_line_params( val );
 	}
 	tmp = MMIO_READ( SCIF, SCSMR2 );
-	if( tmp & 0x03 != val & 0x03 ) {
+	if( (tmp & 0x03) != (val & 0x03) ) {
 	    /* Clock change */
 	    SCIF_update_line_speed( );
 	}
@@ -502,11 +502,11 @@ void mmio_region_SCIF_write( uint32_t reg, uint32_t val )
 	 */
 	val &= 0x00FA;
 	/* Clear any interrupts that just became disabled */
-	if( val & SCSCR2_TIE == 0 )
+	if( (val & SCSCR2_TIE) == 0 )
 	    intc_clear_interrupt( INT_SCIF_TXI );
-	if( val & SCSCR2_RIE == 0 )
+	if( (val & SCSCR2_RIE) == 0 )
 	    intc_clear_interrupt( INT_SCIF_RXI );
-	if( val & (SCSCR2_RIE|SCSCR2_REIE) == 0 ) {
+	if( (val & (SCSCR2_RIE|SCSCR2_REIE)) == 0 ) {
 	    intc_clear_interrupt( INT_SCIF_ERI );
 	    intc_clear_interrupt( INT_SCIF_BRI );
 	}
@@ -609,7 +609,7 @@ void SCIF_clock_tick( void )
 	SCIF_recvq.head != SCIF_recvq.tail &&
 	SCIF_recvq_size() < SCIF_recvq.trigger ) {
 	uint32_t tmp = MMIO_READ( SCIF, SCFSR2 );
-	if( tmp & SCFSR2_DR == 0 ) {
+	if( (tmp & SCFSR2_DR) == 0 ) {
 	    MMIO_WRITE( SCIF, SCFSR2, tmp | SCFSR2_DR );
 	    if( IS_RECEIVE_IRQ_ENABLED() )
 		intc_raise_interrupt( INT_SCIF_RXI );

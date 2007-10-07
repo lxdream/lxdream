@@ -1,5 +1,5 @@
 /**
- * $Id: sh4mmio.c,v 1.13 2007-10-02 08:48:27 nkeynes Exp $
+ * $Id: sh4mmio.c,v 1.14 2007-10-07 06:27:12 nkeynes Exp $
  * 
  * Miscellaneous and not-really-implemented SH4 peripheral modules. Also
  * responsible for including the IMPL side of the SH4 MMIO pages.
@@ -20,12 +20,13 @@
 #define MODULE sh4_module
 
 #include "dream.h"
+#include "dreamcast.h"
 #include "mem.h"
 #include "clock.h"
-#include "sh4core.h"
-#include "sh4mmio.h"
+#include "sh4/sh4core.h"
+#include "sh4/sh4mmio.h"
 #define MMIO_IMPL
-#include "sh4mmio.h"
+#include "sh4/sh4mmio.h"
 
 /********************************* MMU *************************************/
 
@@ -149,7 +150,6 @@ MMIO_REGION_WRITE_DEFFN(BSC)
 int32_t mmio_region_BSC_read( uint32_t reg )
 {
     int32_t val;
-    int i;
     switch( reg ) {
         case PDTRA:
 	    val = bsc_read_pdtra();
