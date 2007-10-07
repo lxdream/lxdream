@@ -1,5 +1,5 @@
 /**
- * $Id: loader.c,v 1.15 2007-01-16 09:18:32 nkeynes Exp $
+ * $Id: loader.c,v 1.16 2007-10-07 06:21:14 nkeynes Exp $
  *
  * File loading routines, mostly for loading demos without going through the
  * whole procedure of making a CD image for them.
@@ -28,6 +28,8 @@
 #include "sh4core.h"
 #include "bootstrap.h"
 #include "dreamcast.h"
+#include "loader.h"
+#include "syscall.h"
 
 char bootstrap_magic[32] = "SEGA SEGAKATANA SEGA ENTERPRISES";
 char iso_magic[6] = "\001CD001";
@@ -44,10 +46,12 @@ char *file_loader_extensions[][2] = {
 #define CDI_V2 0x80000004
 #define CDI_V3 0x80000005
 
+int file_load_elf_fd( int fd );
+
+
 gboolean file_load_magic( const gchar *filename )
 {
     char buf[32];
-    uint32_t tmpa[2];
     struct stat st;
     
     int fd = open( filename, O_RDONLY );
@@ -68,7 +72,7 @@ gboolean file_load_magic( const gchar *filename )
     if( memcmp( buf, bootstrap_magic, 32 ) == 0 ) {
         /* we have a DC bootstrap */
         if( st.st_size == BOOTSTRAP_SIZE ) {
-            char *load = mem_get_region( BOOTSTRAP_LOAD_ADDR );
+            unsigned char *load = (unsigned char *)mem_get_region( BOOTSTRAP_LOAD_ADDR );
             lseek( fd, 0, SEEK_SET );
             read( fd, load, BOOTSTRAP_SIZE );
             bootstrap_dump( load, TRUE );
@@ -103,7 +107,7 @@ gboolean file_load_magic( const gchar *filename )
     return TRUE;
 }
 
-int file_load_postload( int pc )
+void file_load_postload( int pc )
 {
     const gchar *bootstrap_file = dreamcast_get_config_value(CONFIG_BOOTSTRAP);
     if( bootstrap_file != NULL ) {
@@ -125,11 +129,15 @@ int file_load_postload( int pc )
 }    
 
 
-int file_load_binary( const gchar *filename )
+gboolean file_load_binary( const gchar *filename )
 {
     /* Load the binary itself */
-    mem_load_block( filename, BINARY_LOAD_ADDR, -1 );
-    file_load_postload( BINARY_LOAD_ADDR );
+    if(  mem_load_block( filename, BINARY_LOAD_ADDR, -1 ) == 0 ) {
+	file_load_postload( BINARY_LOAD_ADDR );
+	return TRUE;
+    } else {
+	return FALSE;
+    }
 }
 
 int file_load_elf_fd( int fd ) 
@@ -165,5 +173,6 @@ int file_load_elf_fd( int fd )
 	}
     }
     
-    return file_load_postload( head.e_entry );
+    file_load_postload( head.e_entry );
+    return 0;
 }

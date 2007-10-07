@@ -1,5 +1,5 @@
 /**
- * $Id: loader.h,v 1.1 2005-12-24 08:02:14 nkeynes Exp $
+ * $Id: loader.h,v 1.2 2007-10-07 06:21:14 nkeynes Exp $
  *
  * Interface declarations for the binary loader routines (loader.c, elf.c)
  *
@@ -39,30 +39,30 @@ extern char *file_loader_extensions[][2];
  * for any other reason.
  * @return TRUE on success, otherwise FALSE and errno 
  */
-gboolean file_load_bootstrap( gchar *filename );
+gboolean file_load_bootstrap( const gchar *filename );
 
 /**
  * Load a miscellaneous .bin file, as commonly used in demos. No magic
  * applies, file is loaded as is at 8C010000
  */
-gboolean file_load_binary( gchar *filename );
+gboolean file_load_binary( const gchar *filename );
 
 /**
  * Load a "Self Boot Inducer" .sbi file, also commonly used to package
  * demos. (Actually a ZIP file with a predefined structure
  */
-gboolean file_load_sbi( gchar *filename );
+gboolean file_load_sbi( const gchar *filename );
 
 /**
  * Load an ELF executable binary file. Origin is file-dependent.
  */
-gboolean file_load_elf( gchar *filename );
+gboolean file_load_elf( const gchar *filename );
 
 /**
  * Load any of the above file types, using the appropriate magic to determine
  * which is actually applicable
  */
-gboolean file_load_magic( gchar *filename );
+gboolean file_load_magic( const gchar *filename );
 
 #ifdef __cplusplus
 }
