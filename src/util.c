@@ -1,5 +1,5 @@
 /**
- * $Id: util.c,v 1.7 2007-10-06 08:59:42 nkeynes Exp $
+ * $Id: util.c,v 1.8 2007-10-07 06:03:22 nkeynes Exp $
  *
  * Miscellaneous utility functions.
  *
@@ -16,6 +16,7 @@
  * GNU General Public License for more details.
  */
 
+#include <ctype.h>
 #include "dream.h"
 
 void fwrite_string( const char *s, FILE *f )
