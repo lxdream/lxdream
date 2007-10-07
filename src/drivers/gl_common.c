@@ -1,5 +1,5 @@
 /**
- * $Id: gl_common.c,v 1.1 2007-02-11 10:09:32 nkeynes Exp $
+ * $Id: gl_common.c,v 1.2 2007-10-07 05:42:25 nkeynes Exp $
  *
  * Common GL code that doesn't depend on a specific implementation
  *
@@ -77,7 +77,6 @@ gboolean gl_display_frame_buffer( frame_buffer_t frame )
     GLenum type = colour_formats[frame->colour_format].type;
     GLenum format = colour_formats[frame->colour_format].format;
     int bpp = colour_formats[frame->colour_format].bpp;
-    GLint texid;
 
     glViewport( 0, 0, video_width, video_height );
     glMatrixMode(GL_PROJECTION);
@@ -150,9 +149,9 @@ gboolean gl_read_render_buffer( render_buffer_t buffer, char *target )
     glFinish();
     GLenum type = colour_formats[buffer->colour_format].type;
     GLenum format = colour_formats[buffer->colour_format].format;
-    int line_size = buffer->width * colour_formats[buffer->colour_format].bpp;
-    int size = line_size * buffer->height;
-    int rowstride = (buffer->rowstride / colour_formats[buffer->colour_format].bpp) - buffer->width;
+    // int line_size = buffer->width * colour_formats[buffer->colour_format].bpp;
+    // int size = line_size * buffer->height;
+    // int rowstride = (buffer->rowstride / colour_formats[buffer->colour_format].bpp) - buffer->width;
     // glPixelStorei( GL_PACK_ROW_LENGTH, rowstride );
     
     glReadPixels( 0, 0, buffer->width, buffer->height, format, type, target );

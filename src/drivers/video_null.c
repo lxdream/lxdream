@@ -1,5 +1,5 @@
 /**
- * $Id: video_null.c,v 1.3 2007-02-11 10:09:32 nkeynes Exp $
+ * $Id: video_null.c,v 1.4 2007-10-07 05:42:25 nkeynes Exp $
  *
  * Null video output driver (ie no video output whatsoever)
  *
@@ -25,7 +25,6 @@ render_buffer_t video_null_create_render_buffer( uint32_t hres, uint32_t vres )
 
 void video_null_destroy_render_buffer( render_buffer_t buffer )
 {
-    return TRUE;
 }
 
 gboolean video_null_set_render_target( render_buffer_t buffer )
@@ -65,7 +64,7 @@ struct display_driver display_null_driver = { "null",
 					      video_null_create_render_buffer,
 					      video_null_destroy_render_buffer,
 					      video_null_set_render_target,
-					      video_null_display_render_buffer,
 					      video_null_display_frame_buffer,
+					      video_null_display_render_buffer,
 					      video_null_display_blank,
 					      video_null_read_render_buffer };

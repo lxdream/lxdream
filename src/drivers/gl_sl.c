@@ -1,5 +1,5 @@
 /**
- * $Id: gl_sl.c,v 1.1 2007-09-28 07:24:14 nkeynes Exp $
+ * $Id: gl_sl.c,v 1.2 2007-10-07 05:42:25 nkeynes Exp $
  *
  * GLSL shader loader/unloader. Current version assumes there's exactly
  * 1 shader program that's used globally. This may turn out not to be the
@@ -18,6 +18,7 @@
  * GNU General Public License for more details.
  */
 
+#define GL_GLEXT_PROTOTYPES 1
 
 #include <GL/gl.h>
 #include <GL/glext.h>
