@@ -1,5 +1,5 @@
 /**
- * $Id: gl_fbo.c,v 1.1 2007-02-11 10:09:32 nkeynes Exp $
+ * $Id: gl_fbo.c,v 1.2 2007-10-07 05:42:25 nkeynes Exp $
  *
  * GL framebuffer-based driver shell. This requires the EXT_framebuffer_object
  * extension, but is much nicer/faster/etc than pbuffers when it's available.
@@ -22,8 +22,13 @@
  * GNU General Public License for more details.
  */
 
+#define GL_GLEXT_PROTOTYPES 1
+
 #include <GL/gl.h>
+#include <GL/glext.h>
 #include "display.h"
+#include "drivers/video_x11.h"
+#include "drivers/gl_common.h"
 
 #define MAX_FRAMEBUFFERS 2
 #define MAX_TEXTURES_PER_FB 4
@@ -67,11 +72,11 @@ gboolean gl_fbo_is_supported()
 void gl_fbo_init( display_driver_t driver ) 
 {
     int i,j;
-    int fbids[MAX_FRAMEBUFFERS];
-    int rbids[MAX_FRAMEBUFFERS*2]; /* depth buffer, stencil buffer per fb */
+    GLuint fbids[MAX_FRAMEBUFFERS];
+    GLuint rbids[MAX_FRAMEBUFFERS*2]; /* depth buffer, stencil buffer per fb */
     
-    glGenFramebuffersEXT( MAX_FRAMEBUFFERS, &fbids );
-    glGenRenderbuffersEXT( MAX_FRAMEBUFFERS*2, &rbids );
+    glGenFramebuffersEXT( MAX_FRAMEBUFFERS, &fbids[0] );
+    glGenRenderbuffersEXT( MAX_FRAMEBUFFERS*2, &rbids[0] );
     for( i=0; i<MAX_FRAMEBUFFERS; i++ ) {
 	fbo[i].fb_id = fbids[i];
 	fbo[i].depth_id = rbids[i*2];
@@ -225,7 +230,7 @@ static gboolean gl_fbo_set_render_target( render_buffer_t buffer )
 {
     glGetError();
     int fb = gl_fbo_get_framebuffer( buffer->width, buffer->height );
-    GLint attach = gl_fbo_attach_texture( fb, buffer->buf_id );
+    gl_fbo_attach_texture( fb, buffer->buf_id );
     /* setup the gl context */
     glViewport( 0, 0, buffer->width, buffer->height );
     
@@ -293,7 +298,7 @@ static gboolean gl_fbo_display_blank( uint32_t colour )
 static gboolean gl_fbo_read_render_buffer( render_buffer_t buffer, char *target )
 {
     int fb = gl_fbo_get_framebuffer( buffer->width, buffer->height );
-    GLint attach = gl_fbo_attach_texture( fb, buffer->buf_id );
+    gl_fbo_attach_texture( fb, buffer->buf_id );
     return gl_read_render_buffer( buffer, target );
 }
 

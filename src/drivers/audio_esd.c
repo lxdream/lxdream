@@ -1,5 +1,5 @@
 /**
- * $Id: audio_esd.c,v 1.8 2006-07-02 04:59:00 nkeynes Exp $
+ * $Id: audio_esd.c,v 1.9 2007-10-07 05:42:25 nkeynes Exp $
  * 
  * The esd (esound) audio driver
  *
@@ -15,6 +15,8 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
+#include <stdio.h>
+#include <unistd.h>
 #include <esd.h>
 #include "aica/audio.h"
 #include "dream.h"

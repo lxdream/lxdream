@@ -1,5 +1,5 @@
 /**
- * $Id: video_x11.c,v 1.14 2007-09-28 07:24:14 nkeynes Exp $
+ * $Id: video_x11.c,v 1.15 2007-10-07 05:42:25 nkeynes Exp $
  *
  * Shared functions for all X11-based display drivers.
  *
@@ -40,6 +40,8 @@ static GLXContext glx_context;
 static Window glx_window;
 static XSetWindowAttributes win_attrs;
 
+gboolean video_glx_create_window( int width, int height );
+
 gboolean video_glx_init( Display *display, Screen *screen, Window window,
 			 int width, int height, display_driver_t driver )
 {
@@ -76,7 +78,6 @@ gboolean video_glx_init( Display *display, Screen *screen, Window window,
 gboolean video_glx_create_window( int width, int height )
 {
     int major, minor;
-    const char *glxExts, *glxServer;
     int visual_attrs[] = { GLX_RGBA, GLX_RED_SIZE, 4, 
 			   GLX_GREEN_SIZE, 4, 
 			   GLX_BLUE_SIZE, 4,
@@ -176,6 +177,7 @@ int video_glx_load_font( const gchar *font_name )
     lists = glGenLists(96);
     glXUseXFont(font->fid, 32, 96, lists);
     XFreeFont(video_x11_display, font);
+    return lists;
 }
 
 

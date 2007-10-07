@@ -1,5 +1,5 @@
 /**
- * $Id: video_gtk.c,v 1.11 2007-09-08 04:05:35 nkeynes Exp $
+ * $Id: video_gtk.c,v 1.12 2007-10-07 05:42:25 nkeynes Exp $
  *
  * The PC side of the video support (responsible for actually displaying / 
  * rendering frames)
@@ -44,6 +44,7 @@ gboolean video_gtk_keydown_callback(GtkWidget       *widget,
 				     gpointer         user_data)
 {
     input_event_keydown( event->keyval );
+    return TRUE;
 }
 
 uint16_t video_gtk_resolve_keysym( const gchar *keysym )
@@ -59,6 +60,7 @@ gboolean video_gtk_keyup_callback(GtkWidget       *widget,
 				  gpointer         user_data)
 {
     input_event_keyup( event->keyval );
+    return TRUE;
 }
 
 gboolean video_gtk_init()

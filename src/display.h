@@ -1,5 +1,5 @@
 /**
- * $Id: display.h,v 1.7 2007-10-06 08:59:42 nkeynes Exp $
+ * $Id: display.h,v 1.8 2007-10-07 05:42:24 nkeynes Exp $
  *
  * The PC side of the video support (responsible for actually displaying / 
  * rendering frames)
@@ -62,7 +62,7 @@ typedef struct render_buffer {
     sh4addr_t address; /* Address buffer was rendered to, or -1 for unrendered */
     uint32_t size; /* Size of buffer in bytes, must be width*height*bpp */
     int scale;
-    int buf_id; /* driver-specific buffer id, if applicable */
+    unsigned int buf_id; /* driver-specific buffer id, if applicable */
     gboolean flushed; /* True if the buffer has been flushed to vram */
 } *render_buffer_t;
 
