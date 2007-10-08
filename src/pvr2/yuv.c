@@ -1,5 +1,5 @@
 /**
- * $Id: yuv.c,v 1.4 2007-01-16 09:17:22 nkeynes Exp $
+ * $Id: yuv.c,v 1.5 2007-10-08 11:52:13 nkeynes Exp $
  *
  * YUV420 and YUV422 decoding
  *
@@ -33,7 +33,7 @@ struct yuv_state {
     int width;
     int height;
     int input_format;
-    char data[512];
+    unsigned char data[512];
     int data_length;
     int x, y;
 } pvr2_yuv_state;
@@ -83,7 +83,7 @@ uint16_t yuv422_lut[512] = { 0, 128, 64, 129, 1, 130, 65, 131, 2, 132, 66, 133, 
  * for a total of 384 bytes.
  * Output is UVYV = 32 bits = 2 horizontal pixels, 8x16 = 512 bytes
  */
-void pvr2_decode_yuv420( char *dest, char *src )
+void pvr2_decode_yuv420( unsigned char *dest, unsigned char *src )
 {
     int i;
     for( i=0; i<512; i++ ) {
@@ -91,7 +91,7 @@ void pvr2_decode_yuv420( char *dest, char *src )
     }
 }
 
-void pvr2_decode_yuv422( char *dest, char *src )
+void pvr2_decode_yuv422( unsigned char *dest, unsigned char *src )
 {
     int i;
     for( i=0; i<512; i++ ) {
@@ -103,9 +103,9 @@ void pvr2_decode_yuv422( char *dest, char *src )
  * Process a single macroblock of YUV data and write it out to 
  * texture vram.
  */
-void pvr2_yuv_process_block( char *data )
+void pvr2_yuv_process_block( unsigned char *data )
 {
-    char output[512];
+    unsigned char output[512];
 
     if( pvr2_yuv_state.input_format == FORMAT_YUV420 ) {
 	pvr2_decode_yuv420( output, data );
@@ -135,7 +135,7 @@ void pvr2_yuv_process_block( char *data )
  * for buffering the data into macroblock chunks and then passing it on to the
  * real processing
  */
-void pvr2_yuv_write( char *data, uint32_t length )
+void pvr2_yuv_write( unsigned char *data, uint32_t length )
 {
     int block_size = yuv_block_size[pvr2_yuv_state.input_format];
 

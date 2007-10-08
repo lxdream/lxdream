@@ -1,5 +1,5 @@
 /**
- * $Id: x86dasm.c,v 1.3 2007-09-12 09:16:47 nkeynes Exp $
+ * $Id: x86dasm.c,v 1.4 2007-10-08 11:48:10 nkeynes Exp $
  *
  * Wrapper around i386-dis to supply the same behaviour as the other
  * disassembly functions.
@@ -31,9 +31,7 @@ const struct cpu_desc_struct x86_cpu_desc =
       &sh4r.pc };
 
 static int x86_disasm_output( void *data, const char *format, ... );
-static int x86_read_memory( bfd_vma memaddr, bfd_byte *buffer, unsigned int length,
-			    struct disassemble_info *info );
-static int x86_print_address( bfd_vma memaddr, struct disassemble_info *info );
+static void x86_print_address( bfd_vma memaddr, struct disassemble_info *info );
 
 static struct disassemble_info x86_disasm_info;
 
@@ -54,7 +52,7 @@ void x86_disasm_block(FILE *out, void *start, uint32_t len)
     }
 }
 
-void x86_disasm_init(char *buf, uint32_t vma, int buflen)
+void x86_disasm_init(unsigned char *buf, uint32_t vma, int buflen)
 {
     init_disassemble_info( &x86_disasm_info, NULL, x86_disasm_output );
     x86_disasm_info.arch = bfd_arch_i386;
@@ -76,21 +74,20 @@ static const char *x86_find_symbol( bfd_vma memaddr, struct disassemble_info *in
 {
     int i;
     for( i=0; i<x86_num_symbols; i++ ) {
-	if( x86_symtab[i].ptr == (void *)memaddr ) {
+	if( x86_symtab[i].ptr == (void *)(uint32_t)memaddr ) {
 	    return x86_symtab[i].name;
 	}
     }
     return NULL;
 }
 
-static int x86_print_address( bfd_vma memaddr, struct disassemble_info *info )
+static void x86_print_address( bfd_vma memaddr, struct disassemble_info *info )
 {
     const char *sym = x86_find_symbol(memaddr, info);
     info->fprintf_func( info->stream, "%08X", memaddr );
     if( sym != NULL ) {
 	info->fprintf_func( info->stream, " <%s>", sym );
     }
-    return 0;
 }
 
 uint32_t x86_disasm_instruction( uint32_t pc, char *buf, int len, char *opcode )
@@ -101,7 +98,7 @@ uint32_t x86_disasm_instruction( uint32_t pc, char *buf, int len, char *opcode )
     buf[0] = 0;
     count = print_insn_i386_att( pc, &x86_disasm_info );
     if( count != 0 ) {
-	char tmp[count];
+	unsigned char tmp[count];
 	x86_disasm_info.read_memory_func( pc, tmp, count, &x86_disasm_info );
 	for( i=0; i<count; i++ ) {
 	    sprintf( opcode, "%02X ", ((unsigned int)tmp[i])&0xFF );

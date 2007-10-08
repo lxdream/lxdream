@@ -1,5 +1,5 @@
 /**
- * $Id: tacore.c,v 1.11 2007-01-31 10:31:53 nkeynes Exp $
+ * $Id: tacore.c,v 1.12 2007-10-08 11:52:13 nkeynes Exp $
  *
  * PVR2 Tile Accelerator implementation
  *
@@ -261,7 +261,7 @@ static uint32_t parse_intensity_colour( uint32_t base, float intensity )
 	(((((base & 0xFF) * i) & 0xFF00) |
 	  (((base & 0xFF00) * i) & 0xFF0000) |
 	  (((base & 0xFF0000) * i) & 0xFF000000)) >> 8) |
-	base & 0xFF000000;
+	(base & 0xFF000000);
 }
    	
 /**
@@ -369,7 +369,6 @@ static uint32_t ta_alloc_tilelist( uint32_t reference ) {
     uint32_t posn = MMIO_READ( PVR2, TA_LISTPOS );
     uint32_t limit = MMIO_READ( PVR2, TA_LISTEND ) >> 2;
     uint32_t newposn;
-    uint32_t result;
     if( ta_status.tilelist_dir == TA_GROW_DOWN ) {
 	newposn = posn - ta_status.tilelist_size;
 	if( posn == limit ) {
@@ -412,18 +411,18 @@ static uint32_t ta_alloc_tilelist( uint32_t reference ) {
 /**
  * Write a tile entry out to the matrix.
  */
-static int ta_write_tile_entry( int x, int y, uint32_t tile_entry ) {
+static void ta_write_tile_entry( int x, int y, uint32_t tile_entry ) {
     uint32_t tile = TILESLOT(x,y);
     uint32_t tilestart = tile;
     uint32_t value;
     uint32_t lasttri = 0;
-    int i,l;
+    int i;
 
     if( ta_status.clip_mode == TA_POLYCMD_CLIP_OUTSIDE &&
 	x >= ta_status.clip.x1 && x <= ta_status.clip.x2 &&
 	y >= ta_status.clip.y1 && y <= ta_status.clip.y2 ) {
 	/* Tile clipped out */
-	return 0;
+	return;
     }
 
     if( (tile_entry & 0x80000000) && 
@@ -475,11 +474,11 @@ static int ta_write_tile_entry( int x, int y, uint32_t tile_entry ) {
 	} else if( (value & 0xFF000000) == 0xE0000000 ) {
 	    value &= 0x00FFFFFF;
 	    if( value == tilestart )
-		return 0; /* Loop */
+		return; /* Loop */
 	    tilestart = tile = value;
 	} else {
 	    /* This should never happen */
-	    return 0;
+	    return;
 	}
     }
 }
@@ -1035,7 +1034,7 @@ static void ta_parse_vertex_block2( union ta_data *data ) {
 /**
  * Process 1 32-byte block of ta data
  */
-void pvr2_ta_process_block( char *input ) {
+void pvr2_ta_process_block( unsigned char *input ) {
     union ta_data *data = (union ta_data *)input;
 
     switch( ta_status.state ) {
@@ -1169,7 +1168,7 @@ void pvr2_ta_process_block( char *input ) {
  * far enough to generate the correct end-of-list events. Tile buffer is
  * entirely ignored.
  */
-void pvr2_ta_write( char *buf, uint32_t length )
+void pvr2_ta_write( unsigned char *buf, uint32_t length )
 {
     if( ta_status.debug_output ) {
 	fwrite_dump32( (uint32_t *)buf, length, stderr );

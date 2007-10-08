@@ -1,5 +1,5 @@
 /**
- * $Id: gui.c,v 1.14 2007-09-18 10:48:57 nkeynes Exp $
+ * $Id: gui.c,v 1.15 2007-10-08 11:48:56 nkeynes Exp $
  * 
  * Top-level GUI (GTK2) module.
  *
@@ -203,7 +203,7 @@ void save_file_dialog( char *title, file_callback_t action, char *pattern, char 
 
 uint32_t gtk_entry_get_hex_value( GtkEntry *entry, uint32_t defaultValue )
 {
-    gchar *text = gtk_entry_get_text(entry);
+    const gchar *text = gtk_entry_get_text(entry);
     if( text == NULL )
         return defaultValue;
     gchar *endptr;

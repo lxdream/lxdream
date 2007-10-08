@@ -1,5 +1,5 @@
 /**
- * $Id: rendcore.c,v 1.19 2007-02-11 10:09:32 nkeynes Exp $
+ * $Id: rendcore.c,v 1.20 2007-10-08 11:52:13 nkeynes Exp $
  *
  * PVR2 renderer core.
  *
@@ -18,6 +18,10 @@
 #include <sys/time.h>
 #include "pvr2/pvr2.h"
 #include "asic.h"
+
+#define GL_GLEXT_PROTOTYPES 1
+#include <GL/gl.h>
+#include <GL/glext.h>
 
 int pvr2_poly_depthmode[8] = { GL_NEVER, GL_LESS, GL_EQUAL, GL_LEQUAL,
 				      GL_GREATER, GL_NOTEQUAL, GL_GEQUAL, 
@@ -228,10 +232,10 @@ void render_unpack_vertexes( struct vertex_unpacked *out, uint32_t poly1,
 	out[i].rgba[3] = FARGB_A(argb);
 	if( POLY1_SPECULAR(poly1) ) {
 	    uint32_t offset = vertexes[k++];
-	    out[i].offset_rgba[0] = FARGB_R(argb);
-	    out[i].offset_rgba[1] = FARGB_G(argb);
-	    out[i].offset_rgba[2] = FARGB_B(argb);
-	    out[i].offset_rgba[3] = FARGB_A(argb);
+	    out[i].offset_rgba[0] = FARGB_R(offset);
+	    out[i].offset_rgba[1] = FARGB_G(offset);
+	    out[i].offset_rgba[2] = FARGB_B(offset);
+	    out[i].offset_rgba[3] = FARGB_A(offset);
 	}
 	vertexes += vertex_size;
     }
@@ -564,7 +568,6 @@ static float render_find_maximum_tile_z( pvraddr_t tile_entry, float inputz )
 	    tile_list = (uint32_t *)(video_base + (entry&0x007FFFFF));
 	} else {
 	    uint32_t *polygon = (uint32_t *)(video_base + poly_bank + ((entry & 0x000FFFFF) << 2));
-	    int is_modified = entry & 0x01000000;
 	    int vertex_length = (entry >> 21) & 0x07;
 	    int context_length = 3;
 	    if( (entry & 0x01000000) && (shadow_cfg==0) ) {
@@ -588,7 +591,6 @@ static float render_find_maximum_tile_z( pvraddr_t tile_entry, float inputz )
 	    } else if( (entry & 0xE0000000) == 0xA0000000 ) {
 		/* Sprite(s) */
 		int strip_count = ((entry >> 25) & 0x0F)+1;
-		int polygon_length = 4 * vertex_length + context_length;
 		int i;
 		float *vertexz = (float *)(polygon+context_length+2);
 		for( i=0; i<strip_count; i++ ) {
@@ -602,7 +604,7 @@ static float render_find_maximum_tile_z( pvraddr_t tile_entry, float inputz )
 		}
 	    } else {
 		/* Polygon */
-		int i, first=-1, last = -1;
+		int i;
 		float *vertexz = (float *)polygon+context_length+2;
 		for( i=0; i<6; i++ ) {
 		    if( (entry & (0x40000000>>i)) && *vertexz > z ) {
@@ -679,7 +681,7 @@ void render_print_vertexes( FILE *f, uint32_t poly1, uint32_t *vert_array[],
 			    int num_vertexes, int vertex_size )
 {
     char buf[256], *p;
-    int i,j, k;
+    int i, k;
     for( i=0; i<num_vertexes; i++ ) {
 	p = buf;
 	float *vertf = (float *)vert_array[i];
@@ -711,7 +713,7 @@ void render_print_polygon( FILE *f, uint32_t entry )
 {
     uint32_t poly_bank = MMIO_READ(PVR2,RENDER_POLYBASE);
     int shadow_cfg = MMIO_READ( PVR2, RENDER_SHADOW ) & 0x100;
-    int i, j;
+    int i;
 
     if( entry >> 28 == 0x0F ) {
 	fprintf( f, "EOT\n" );
@@ -719,7 +721,6 @@ void render_print_polygon( FILE *f, uint32_t entry )
 	fprintf( f, "LINK %08X\n", entry &0x7FFFFF );
     } else {
 	uint32_t *polygon = (uint32_t *)(video_base + poly_bank + ((entry & 0x000FFFFF) << 2));
-	int is_modified = entry & 0x01000000;
 	int vertex_length = (entry >> 21) & 0x07;
 	int context_length = 3;
 	if( (entry & 0x01000000) && (shadow_cfg==0) ) {
@@ -755,7 +756,6 @@ void render_print_polygon( FILE *f, uint32_t entry )
 	} else {
 	    /* Polygon */
 	    int last = -1;
-	    float *vertexz = (float *)polygon+context_length+2;
 	    uint32_t *array[8];
 	    for( i=0; i<6; i++ ) {
 		if( entry & (0x40000000>>i) ) {

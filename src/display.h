@@ -1,5 +1,5 @@
 /**
- * $Id: display.h,v 1.8 2007-10-07 05:42:24 nkeynes Exp $
+ * $Id: display.h,v 1.9 2007-10-08 11:49:35 nkeynes Exp $
  *
  * The PC side of the video support (responsible for actually displaying / 
  * rendering frames)
@@ -145,7 +145,7 @@ typedef struct display_driver {
      * using the format etc from the buffer. This may force a glFinish()
      * but does not invalidate the buffer.
      */
-    gboolean (*read_render_buffer)( render_buffer_t buffer, char *target );
+    gboolean (*read_render_buffer)( render_buffer_t buffer, unsigned char *target );
 
 } *display_driver_t;
 

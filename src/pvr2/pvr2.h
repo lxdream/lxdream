@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.h,v 1.35 2007-02-11 10:09:32 nkeynes Exp $
+ * $Id: pvr2.h,v 1.36 2007-10-08 11:52:13 nkeynes Exp $
  *
  * PVR2 (video chip) functions and macros.
  *
@@ -20,7 +20,6 @@
 #include "mem.h"
 #include "display.h"
 #include "pvr2/pvr2mmio.h"
-#include <GL/gl.h>
 
 typedef unsigned int pvraddr_t;
 typedef unsigned int pvr64addr_t;
@@ -118,24 +117,24 @@ gboolean pvr2_save_next_scene( const gchar *filename );
  * Write a block of data to an address in the DMA range (0x10000000 - 
  * 0x13FFFFFF), ie TA, YUV, or texture ram.
  */
-void pvr2_dma_write( sh4addr_t dest, char *src, uint32_t length );
+void pvr2_dma_write( sh4addr_t dest, unsigned char *src, uint32_t length );
 
 /**
  * Write to the interleaved memory address space (aka 64-bit address space).
  */
-void pvr2_vram64_write( sh4addr_t dest, char *src, uint32_t length );
+void pvr2_vram64_write( sh4addr_t dest, unsigned char *src, uint32_t length );
 
 /**
  * Write to the interleaved memory address space (aka 64-bit address space),
  * using a line length and stride.
  */
-void pvr2_vram64_write_stride( sh4addr_t dest, char *src, uint32_t line_bytes,
+void pvr2_vram64_write_stride( sh4addr_t dest, unsigned char *src, uint32_t line_bytes,
 			       uint32_t line_stride_bytes, uint32_t line_count );
 
 /**
  * Read from the interleaved memory address space (aka 64-bit address space)
  */
-void pvr2_vram64_read( char *dest, sh4addr_t src, uint32_t length );
+void pvr2_vram64_read( unsigned char *dest, sh4addr_t src, uint32_t length );
 
 /**
  * Read a twiddled image from interleaved memory address space (aka 64-bit address
@@ -143,7 +142,7 @@ void pvr2_vram64_read( char *dest, sh4addr_t src, uint32_t length );
  * Width and height must be powers of 2
  * This version reads 4-bit pixels.
  */
-void pvr2_vram64_read_twiddled_4( char *dest, sh4addr_t src, uint32_t width, uint32_t height );
+void pvr2_vram64_read_twiddled_4( unsigned char *dest, sh4addr_t src, uint32_t width, uint32_t height );
 
 
 /**
@@ -152,7 +151,7 @@ void pvr2_vram64_read_twiddled_4( char *dest, sh4addr_t src, uint32_t width, uin
  * Width and height must be powers of 2
  * This version reads 8-bit pixels.
  */
-void pvr2_vram64_read_twiddled_8( char *dest, sh4addr_t src, uint32_t width, uint32_t height );
+void pvr2_vram64_read_twiddled_8( unsigned char *dest, sh4addr_t src, uint32_t width, uint32_t height );
 
 /**
  * Read a twiddled image from interleaved memory address space (aka 64-bit address
@@ -160,14 +159,14 @@ void pvr2_vram64_read_twiddled_8( char *dest, sh4addr_t src, uint32_t width, uin
  * Width and height must be powers of 2, and src must be 16-bit aligned.
  * This version reads 16-bit pixels.
  */
-void pvr2_vram64_read_twiddled_16( char *dest, sh4addr_t src, uint32_t width, uint32_t height );
+void pvr2_vram64_read_twiddled_16( unsigned char *dest, sh4addr_t src, uint32_t width, uint32_t height );
 
 /**
  * Read an image from the interleaved memory address space (aka 64-bit address space) 
  * where the source and destination line sizes may differ. Note that both byte
  * counts must be a multiple of 4, and the src address must be 32-bit aligned.
  */
-void pvr2_vram64_read_stride( char *dest, uint32_t dest_line_bytes, sh4addr_t srcaddr,
+void pvr2_vram64_read_stride( unsigned char *dest, uint32_t dest_line_bytes, sh4addr_t srcaddr,
 			       uint32_t src_line_bytes, uint32_t line_count );
 /**
  * Dump a portion of vram to a stream from the interleaved memory address 
@@ -197,7 +196,7 @@ gboolean pvr2_render_buffer_invalidate( sh4addr_t addr, gboolean isWrite );
  * Process the data in the supplied buffer as an array of TA command lists.
  * Any excess bytes are held pending until a complete list is sent
  */
-void pvr2_ta_write( char *buf, uint32_t length );
+void pvr2_ta_write( unsigned char *buf, uint32_t length );
 
 
 /**
@@ -206,13 +205,18 @@ void pvr2_ta_write( char *buf, uint32_t length );
  */
 void pvr2_ta_init( void );
 
+void pvr2_ta_reset( void );
+
+void pvr2_ta_save_state( FILE *f );
+
+int pvr2_ta_load_state( FILE *f );
 
 /****************************** YUV Converter ****************************/
 
 /**
  * Process a block of YUV data.
  */
-void pvr2_yuv_write( char *buf, uint32_t length );
+void pvr2_yuv_write( unsigned char *buf, uint32_t length );
 
 /**
  * Initialize the YUV converter.
@@ -220,6 +224,10 @@ void pvr2_yuv_write( char *buf, uint32_t length );
 void pvr2_yuv_init( uint32_t target_addr );
 
 void pvr2_yuv_set_config( uint32_t config );
+
+void pvr2_yuv_save_state( FILE *f );
+
+int pvr2_yuv_load_state( FILE *f );
 
 /********************************* Renderer ******************************/
 
@@ -244,6 +252,9 @@ void pvr2_render_tilebuffer( int width, int height, int clipx1, int clipy1,
 			     int clipx2, int clipy2 );
 
 float pvr2_render_find_maximum_z();
+
+void pvr2_render_getsize( int *x, int *y );
+
 /**
  * Structure to hold a complete unpacked vertex (excluding modifier
  * volume parameters - generate separate vertexes in that case).
@@ -255,11 +266,24 @@ struct vertex_unpacked {
     float offset_rgba[4]; /* Offset color (RGBA order) */
 };
 
+void render_unpack_quad( struct vertex_unpacked *unpacked, uint32_t poly1,
+                         uint32_t *vertexes, int vertex_size,
+                         int render_mode );
+
+void render_unpack_vertexes( struct vertex_unpacked *out, uint32_t poly1,
+                             uint32_t *vertexes, int num_vertexes,
+                             int vertex_size, int render_mode );
+
 void render_unpacked_vertex_array( uint32_t poly1, struct vertex_unpacked *vertexes[], 
 				   int num_vertexes );
 
 void render_vertex_array( uint32_t poly1, uint32_t *vertexes[], int num_vertexes, 
 			  int vertex_size, int render_mode );
+
+void render_tile( pvraddr_t tile_entry, int render_mode, gboolean cheap_modifier_mode );
+
+void render_autosort_tile( pvraddr_t tile_entry, int render_mode, gboolean cheap_modifier_mode );
+
 
 /****************************** Texture Cache ****************************/
 
@@ -297,6 +321,8 @@ void texcache_invalidate_page( uint32_t texture_addr );
  */
 GLuint texcache_get_texture( uint32_t texture_addr, int width, int height,
 			     int mode );
+
+void pvr2_check_palette_changed(void);
 
 /************************* Rendering support macros **************************/
 #define POLY1_DEPTH_MODE(poly1) ( pvr2_poly_depthmode[(poly1)>>29] )

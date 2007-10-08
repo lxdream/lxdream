@@ -1,5 +1,5 @@
 /**
- * $Id: cpu.h,v 1.8 2007-01-17 21:28:43 nkeynes Exp $
+ * $Id: cpu.h,v 1.9 2007-10-08 11:50:15 nkeynes Exp $
  * 
  * Generic CPU definitions, primarily for providing information to the GUI.
  *
@@ -66,7 +66,7 @@ typedef struct cpu_desc_struct {
     size_t regs_size; /* Size of register structure in bytes */
     const struct reg_desc_struct *regs_info; /* Description of all registers */
     uint32_t *pc; /* Pointer to PC register */
-} *cpu_desc_t;
+} const *cpu_desc_t;
 
 #ifdef __cplusplus
 }

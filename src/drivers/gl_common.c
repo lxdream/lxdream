@@ -1,5 +1,5 @@
 /**
- * $Id: gl_common.c,v 1.2 2007-10-07 05:42:25 nkeynes Exp $
+ * $Id: gl_common.c,v 1.3 2007-10-08 11:49:35 nkeynes Exp $
  *
  * Common GL code that doesn't depend on a specific implementation
  *
@@ -142,7 +142,7 @@ gboolean gl_display_blank( uint32_t colour )
  * has already set the appropriate glReadBuffer(); in other words, unless
  * there's only one buffer this needs to be wrapped.
  */
-gboolean gl_read_render_buffer( render_buffer_t buffer, char *target ) 
+gboolean gl_read_render_buffer( render_buffer_t buffer, unsigned char *target ) 
 {
     if( buffer->address == -1 )
 	return FALSE;
