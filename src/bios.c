@@ -1,5 +1,5 @@
 /**
- * $Id: bios.c,v 1.3 2007-10-06 08:59:42 nkeynes Exp $
+ * $Id: bios.c,v 1.4 2007-10-08 12:06:01 nkeynes Exp $
  * 
  * "Fake" BIOS functions, for operation without the actual BIOS.
  *
@@ -151,7 +151,7 @@ void bios_syscall( uint32_t syscallid )
 		    sh4r.r[0] = cmd->status;
 		    if( cmd->status == GD_CMD_STATUS_ERROR &&
 			sh4r.r[5] != 0 ) {
-			mem_copy_to_sh4( sh4r.r[5], (char *)&cmd->result, sizeof(cmd->result) );
+			mem_copy_to_sh4( sh4r.r[5], (unsigned char *)&cmd->result, sizeof(cmd->result) );
 		    }
 		}
 		break;
@@ -163,7 +163,7 @@ void bios_syscall( uint32_t syscallid )
 		break;
 	    case 4: /* Drive status */
 		if( sh4r.r[4] != 0 ) {
-		    mem_copy_to_sh4( sh4r.r[4], (char *)&bios_gdrom_status, 
+		    mem_copy_to_sh4( sh4r.r[4], (unsigned char *)&bios_gdrom_status, 
 				      sizeof(bios_gdrom_status) );
 		}
 		sh4r.r[0] = 0;

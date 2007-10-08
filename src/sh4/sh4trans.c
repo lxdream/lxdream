@@ -1,5 +1,5 @@
 /**
- * $Id: sh4trans.c,v 1.7 2007-10-04 08:47:27 nkeynes Exp $
+ * $Id: sh4trans.c,v 1.8 2007-10-08 12:06:01 nkeynes Exp $
  * 
  * SH4 translation core module. This part handles the non-target-specific
  * section of the translation.
@@ -17,9 +17,11 @@
  * GNU General Public License for more details.
  */
 #include <assert.h>
-#include "sh4core.h"
-#include "sh4trans.h"
-#include "xltcache.h"
+#include "eventq.h"
+#include "syscall.h"
+#include "sh4/sh4core.h"
+#include "sh4/sh4trans.h"
+#include "sh4/xltcache.h"
 
 /**
  * Execute a timeslice using translated code only (ie translate/execute loop)
@@ -27,7 +29,6 @@
  */
 uint32_t sh4_xlat_run_slice( uint32_t nanosecs ) 
 {
-    int i;
     sh4r.slice_cycle = 0;
 
     if( sh4r.sh4_state != SH4_STATE_RUNNING ) {
@@ -122,9 +123,9 @@ void * sh4_translate_basic_block( sh4addr_t start )
  */
 void *sh4_translate_and_run( sh4addr_t start )
 {
-    char buf[65536];
+    unsigned char buf[65536];
 
-    uint32_t pc = start;
+    sh4addr_t pc = start;
     int done;
     xlat_output = buf;
     uint8_t *eob = xlat_output + sizeof(buf);

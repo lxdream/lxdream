@@ -1,5 +1,5 @@
 /**
- * $Id: sh4core.in,v 1.8 2007-09-20 08:37:19 nkeynes Exp $
+ * $Id: sh4core.in,v 1.9 2007-10-08 12:06:01 nkeynes Exp $
  * 
  * SH4 emulation core, and parent module for all the SH4 peripheral
  * modules.
@@ -20,12 +20,14 @@
 #define MODULE sh4_module
 #include <math.h>
 #include "dream.h"
-#include "sh4/sh4core.h"
-#include "sh4/sh4mmio.h"
-#include "sh4/intc.h"
+#include "dreamcast.h"
+#include "eventq.h"
 #include "mem.h"
 #include "clock.h"
 #include "syscall.h"
+#include "sh4/sh4core.h"
+#include "sh4/sh4mmio.h"
+#include "sh4/intc.h"
 
 #define SH4_CALLTRACE 1
 
@@ -126,7 +128,7 @@ static struct call_stack {
 static int call_stack_depth = 0;
 int sh4_call_trace_on = 0;
 
-static inline trace_call( sh4addr_t source, sh4addr_t dest ) 
+static inline void trace_call( sh4addr_t source, sh4addr_t dest ) 
 {
     if( call_stack_depth < MAX_CALLSTACK ) {
 	call_stack[call_stack_depth].call_addr = source;
@@ -136,7 +138,7 @@ static inline trace_call( sh4addr_t source, sh4addr_t dest )
     call_stack_depth++;
 }
 
-static inline trace_return( sh4addr_t source, sh4addr_t dest )
+static inline void trace_return( sh4addr_t source, sh4addr_t dest )
 {
     if( call_stack_depth > 0 ) {
 	call_stack_depth--;

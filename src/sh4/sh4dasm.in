@@ -1,5 +1,5 @@
 /**
- * $Id: sh4dasm.in,v 1.1 2007-08-23 12:33:27 nkeynes Exp $
+ * $Id: sh4dasm.in,v 1.2 2007-10-08 12:06:01 nkeynes Exp $
  * 
  * SH4 CPU definition and disassembly functions
  *
@@ -125,7 +125,7 @@ FMOV FRm, @(R0, Rn) {: snprintf( buf, len, "FMOV    FR%d, @(R0, R%d)", FRm, Rn )
 FMOV @Rm, FRn    {: snprintf( buf, len, "FMOV    @R%d, FR%d", Rm, FRn ); :}
 FMOV @Rm+, FRn   {: snprintf( buf, len, "FMOV    @R%d+, FR%d", Rm, FRn ); :}
 FMOV @(R0, Rm), FRn {: snprintf( buf, len, "FMOV    @(R0, R%d), FR%d", Rm, FRn ); :}
-FMUL FRm, FRn    {: snprintf( buf, len, "FMUL    FRm, FR%d", FRm, FRn ); :}
+FMUL FRm, FRn    {: snprintf( buf, len, "FMUL    FR%d, FR%d", FRm, FRn ); :}
 FNEG FRn         {: snprintf( buf, len, "FNEG    FR%d", FRn ); :}
 FRCHG            {: snprintf( buf, len, "FRCHG   " ); :}
 FSCA FPUL, FRn   {: snprintf( buf, len, "FSCA    FPUL, FR%d", FRn ); :}
@@ -133,7 +133,7 @@ FSCHG            {: snprintf( buf, len, "FSCHG   " ); :}
 FSQRT FRn        {: snprintf( buf, len, "FSQRT   FR%d", FRn ); :}
 FSRRA FRn        {: snprintf( buf, len, "FSRRA   FR%d", FRn ); :}
 FSTS FPUL, FRn   {: snprintf( buf, len, "FSTS    FPUL, FR%d", FRn ); :}
-FSUB FRm, FRn    {: snprintf( buf, len, "FSUB    FRm, FR%d", FRm, FRn ); :}
+FSUB FRm, FRn    {: snprintf( buf, len, "FSUB    FR%d, FR%d", FRm, FRn ); :}
 FTRC FRm, FPUL   {: snprintf( buf, len, "FTRC    FR%d, FPUL", FRm ); :}
 FTRV XMTRX, FVn  {: snprintf( buf, len, "FTRV    XMTRX, FV%d", FVn ); :}
 JMP @Rn          {: snprintf( buf, len, "JMP     @R%d", Rn ); :}
@@ -194,7 +194,7 @@ MOV.W Rm, @Rn    {: snprintf( buf, len, "MOV.W   R%d, @R%d", Rm, Rn ); :}
 MOV.W Rm, @-Rn   {: snprintf( buf, len, "MOV.W   R%d, @-R%d", Rm, Rn ); :}
 MOV.W Rm, @(R0, Rn) {: snprintf( buf, len, "MOV.W   R%d, @(R0, R%d)", Rm, Rn ); :}
 MOV.W R0, @(disp, GBR) {: snprintf( buf, len, "MOV.W   R0, @(%d, GBR)", disp); :}
-MOV.W R0, @(disp, Rn)  {: snprintf( buf, len, "MOV.W   R0, @(%d, Rn)", disp, Rn ); :}
+MOV.W R0, @(disp, Rn)  {: snprintf( buf, len, "MOV.W   R0, @(%d, R%d)", disp, Rn ); :}
 MOV.W @Rm, Rn    {: snprintf( buf, len, "MOV.W   @R%d, R%d", Rm, Rn ); :}
 MOV.W @Rm+, Rn   {: snprintf( buf, len, "MOV.W   @R%d+, R%d", Rm, Rn ); :}
 MOV.W @(R0, Rm), Rn {: snprintf( buf, len, "MOV.W   @(R0, R%d), R%d", Rm, Rn ); :}

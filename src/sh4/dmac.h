@@ -1,5 +1,5 @@
 /**
- * $Id: dmac.h,v 1.1 2006-01-02 14:48:29 nkeynes Exp $
+ * $Id: dmac.h,v 1.2 2007-10-08 12:06:01 nkeynes Exp $
  *
  * SH4 onboard DMA controller (DMAC) definitions.
  *
@@ -47,14 +47,14 @@ void DMAC_trigger( int dmac_trigger );
  * buffer up to a maximum of bytecount bytes. 
  * @return Actual number of bytes copied.
  */
-uint32_t DMAC_get_buffer( int channel, char *buf, uint32_t bytecount );
+uint32_t DMAC_get_buffer( int channel, unsigned char *buf, uint32_t bytecount );
 
 /**
  * execute an external-device-to-memory transfer. Copies data from the 
  * supplied buffer into memory up to a maximum of bytecount bytes. 
  * @return Actual number of bytes copied.
  */
-uint32_t DMAC_put_buffer( int channel, char *buf, uint32_t bytecount );
+uint32_t DMAC_put_buffer( int channel, unsigned char *buf, uint32_t bytecount );
 
 #ifdef __cplusplus
 }

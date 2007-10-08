@@ -1,5 +1,5 @@
 /**
- * $Id: sh4dasm.c,v 1.11 2007-08-23 12:33:27 nkeynes Exp $
+ * $Id: sh4dasm.c,v 1.12 2007-10-08 12:06:01 nkeynes Exp $
  * 
  * SH4 CPU definition and disassembly functions
  *
@@ -1146,7 +1146,7 @@ uint32_t sh4_disasm_instruction( uint32_t pc, char *buf, int len, char *opcode )
                     case 0x1:
                         { /* MOV.W R0, @(disp, Rn) */
                         uint32_t Rn = ((ir>>4)&0xF); uint32_t disp = (ir&0xF)<<1; 
-                        snprintf( buf, len, "MOV.W   R0, @(%d, Rn)", disp, Rn );
+                        snprintf( buf, len, "MOV.W   R0, @(%d, R%d)", disp, Rn );
                         }
                         break;
                     case 0x4:
@@ -1337,13 +1337,13 @@ uint32_t sh4_disasm_instruction( uint32_t pc, char *buf, int len, char *opcode )
                     case 0x1:
                         { /* FSUB FRm, FRn */
                         uint32_t FRn = ((ir>>8)&0xF); uint32_t FRm = ((ir>>4)&0xF); 
-                        snprintf( buf, len, "FSUB    FRm, FR%d", FRm, FRn );
+                        snprintf( buf, len, "FSUB    FR%d, FR%d", FRm, FRn );
                         }
                         break;
                     case 0x2:
                         { /* FMUL FRm, FRn */
                         uint32_t FRn = ((ir>>8)&0xF); uint32_t FRm = ((ir>>4)&0xF); 
-                        snprintf( buf, len, "FMUL    FRm, FR%d", FRm, FRn );
+                        snprintf( buf, len, "FMUL    FR%d, FR%d", FRm, FRn );
                         }
                         break;
                     case 0x3:
