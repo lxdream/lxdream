@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2mem.c,v 1.9 2007-02-11 10:09:32 nkeynes Exp $
+ * $Id: pvr2mem.c,v 1.10 2007-10-08 11:52:13 nkeynes Exp $
  *
  * PVR2 (Video) VRAM handling routines (mainly for the 64-bit region)
  *
@@ -20,9 +20,9 @@
 #include <stdio.h>
 #include <errno.h>
 
-extern char *video_base;
+extern unsigned char *video_base;
 
-void pvr2_dma_write( sh4addr_t destaddr, char *src, uint32_t count )
+void pvr2_dma_write( sh4addr_t destaddr, unsigned char *src, uint32_t count )
 {
     int region;
 
@@ -57,7 +57,7 @@ void pvr2_dma_write( sh4addr_t destaddr, char *src, uint32_t count )
     }	    
 }
 
-void pvr2_vram64_write( sh4addr_t destaddr, char *src, uint32_t length )
+void pvr2_vram64_write( sh4addr_t destaddr, unsigned char *src, uint32_t length )
 {
     int bank_flag = (destaddr & 0x04) >> 2;
     uint32_t *banks[2];
@@ -80,7 +80,7 @@ void pvr2_vram64_write( sh4addr_t destaddr, char *src, uint32_t length )
     
     /* Handle non-aligned start of source */
     if( destaddr & 0x03 ) {
-	char *dest = ((char *)banks[bank_flag]) + (destaddr & 0x03);
+	unsigned char *dest = ((unsigned char *)banks[bank_flag]) + (destaddr & 0x03);
 	for( i= destaddr & 0x03; i < 4 && length > 0; i++, length-- ) {
 	    *dest++ = *src++;
 	}
@@ -96,8 +96,8 @@ void pvr2_vram64_write( sh4addr_t destaddr, char *src, uint32_t length )
     
     /* Handle non-aligned end of source */
     if( length ) {
-	src = (char *)dwsrc;
-	char *dest = (char *)banks[bank_flag];
+	src = (unsigned char *)dwsrc;
+	unsigned char *dest = (unsigned char *)banks[bank_flag];
 	while( length-- > 0 ) {
 	    *dest++ = *src++;
 	}
@@ -109,7 +109,7 @@ void pvr2_vram64_write( sh4addr_t destaddr, char *src, uint32_t length )
  * The destaddr must be 32-bit aligned, and both line_bytes and line_stride_bytes
  * must be multiples of 4.
  */
-void pvr2_vram64_write_stride( sh4addr_t destaddr, char *src, uint32_t line_bytes, 
+void pvr2_vram64_write_stride( sh4addr_t destaddr, unsigned char *src, uint32_t line_bytes, 
 			       uint32_t line_stride_bytes, uint32_t line_count )
 {
     int bank_flag = (destaddr & 0x04) >> 2;
@@ -155,14 +155,14 @@ void pvr2_vram64_write_stride( sh4addr_t destaddr, char *src, uint32_t line_byte
  * must be multiples of 4. line_stride_bytes must be >= line_bytes.
  * This method is used to extract a "stride" texture from vram.
  */
-void pvr2_vram64_read_stride( char *dest, uint32_t dest_line_bytes, sh4addr_t srcaddr,
+void pvr2_vram64_read_stride( unsigned char *dest, uint32_t dest_line_bytes, sh4addr_t srcaddr,
 				   uint32_t src_line_bytes, uint32_t line_count )
 {
     int bank_flag = (srcaddr & 0x04) >> 2;
     uint32_t *banks[2];
     uint32_t *dwdest;
-    uint32_t dest_line_gap;
-    uint32_t src_line_gap;
+    uint32_t dest_line_gap = 0;
+    uint32_t src_line_gap = 0;
     uint32_t line_bytes;
     int src_line_gap_flag;
     int i,j;
@@ -301,13 +301,13 @@ static void pvr2_vram64_detwiddle_16( uint16_t *dest, uint16_t *banks[2], int of
  * @param width image width (must be a power of 2)
  * @param height image height (must be a power of 2)
  */
-void pvr2_vram64_read_twiddled_4( char *dest, sh4addr_t srcaddr, uint32_t width, uint32_t height )
+void pvr2_vram64_read_twiddled_4( unsigned char *dest, sh4addr_t srcaddr, uint32_t width, uint32_t height )
 {
     int offset_flag = (srcaddr & 0x07);
     uint8_t *banks[2];
     uint8_t *wdest = (uint8_t*)dest;
     uint32_t stride = width >> 1;
-    int i,j;
+    int i;
 
     srcaddr = srcaddr & 0x7FFFF8;
 
@@ -344,12 +344,12 @@ void pvr2_vram64_read_twiddled_4( char *dest, sh4addr_t srcaddr, uint32_t width,
  * @param width image width (must be a power of 2)
  * @param height image height (must be a power of 2)
  */
-void pvr2_vram64_read_twiddled_8( char *dest, sh4addr_t srcaddr, uint32_t width, uint32_t height )
+void pvr2_vram64_read_twiddled_8( unsigned char *dest, sh4addr_t srcaddr, uint32_t width, uint32_t height )
 {
     int offset_flag = (srcaddr & 0x07);
     uint8_t *banks[2];
     uint8_t *wdest = (uint8_t*)dest;
-    int i,j;
+    int i;
 
     srcaddr = srcaddr & 0x7FFFF8;
 
@@ -386,11 +386,11 @@ void pvr2_vram64_read_twiddled_8( char *dest, sh4addr_t srcaddr, uint32_t width,
  * @param width image width (must be a power of 2)
  * @param height image height (must be a power of 2)
  */
-void pvr2_vram64_read_twiddled_16( char *dest, sh4addr_t srcaddr, uint32_t width, uint32_t height ) {
+void pvr2_vram64_read_twiddled_16( unsigned char *dest, sh4addr_t srcaddr, uint32_t width, uint32_t height ) {
     int offset_flag = (srcaddr & 0x06) >> 1;
     uint16_t *banks[2];
     uint16_t *wdest = (uint16_t*)dest;
-    int i,j;
+    int i;
 
     srcaddr = srcaddr & 0x7FFFF8;
 
@@ -420,11 +420,11 @@ void pvr2_vram64_read_twiddled_16( char *dest, sh4addr_t srcaddr, uint32_t width
     }    
 }
 
-void pvr2_vram_write_invert( sh4addr_t destaddr, char *src, uint32_t length, uint32_t line_length,
+void pvr2_vram_write_invert( sh4addr_t destaddr, unsigned char *src, uint32_t length, uint32_t line_length,
 			     uint32_t src_stride )
 {
-    char *dest = video_base + (destaddr & 0x007FFFFF);
-    char *p = src + length - src_stride;
+    unsigned char *dest = video_base + (destaddr & 0x007FFFFF);
+    unsigned char *p = src + length - src_stride;
     while( p >= src ) {
 	memcpy( dest, p, line_length );
 	p -= src_stride;
@@ -432,7 +432,7 @@ void pvr2_vram_write_invert( sh4addr_t destaddr, char *src, uint32_t length, uin
     }
 }
 
-void pvr2_vram64_read( char *dest, sh4addr_t srcaddr, uint32_t length )
+void pvr2_vram64_read( unsigned char *dest, sh4addr_t srcaddr, uint32_t length )
 {
     int bank_flag = (srcaddr & 0x04) >> 2;
     uint32_t *banks[2];
@@ -466,8 +466,8 @@ void pvr2_vram64_read( char *dest, sh4addr_t srcaddr, uint32_t length )
     
     /* Handle non-aligned end of source */
     if( length ) {
-	dest = (char *)dwdest;
-	char *src = (char *)banks[bank_flag];
+	dest = (unsigned char *)dwdest;
+	unsigned char *src = (unsigned char *)banks[bank_flag];
 	while( length-- > 0 ) {
 	    *dest++ = *src++;
 	}
@@ -484,7 +484,7 @@ void pvr2_vram64_dump_file( sh4addr_t addr, uint32_t length, gchar *filename )
 	ERROR( "Unable to write to dump file '%s' (%s)", filename, strerror(errno) );
 	return;
     }
-    pvr2_vram64_read( (char *)tmp, addr, length );
+    pvr2_vram64_read( (unsigned char *)tmp, addr, length );
     fprintf( f, "%08X\n", addr );
     for( i =0; i<length>>2; i+=8 ) {
 	for( j=i; j<i+8; j++ ) {
@@ -500,7 +500,7 @@ void pvr2_vram64_dump_file( sh4addr_t addr, uint32_t length, gchar *filename )
 
 void pvr2_vram64_dump( sh4addr_t addr, uint32_t length, FILE *f ) 
 {
-    char tmp[length];
+    unsigned char tmp[length];
     pvr2_vram64_read( tmp, addr, length );
     fwrite_dump( tmp, length, f );
 }
@@ -518,14 +518,14 @@ void pvr2_vram64_dump( sh4addr_t addr, uint32_t length, FILE *f )
  */
 void pvr2_render_buffer_copy_to_sh4( render_buffer_t buffer )
 {
-    if( buffer->address & 0xFF000000 == 0x04000000 ) {
+    if( (buffer->address & 0xFF000000) == 0x04000000 ) {
 	/* Interlaced buffer. Go the double copy... :( */
-	char target[buffer->size];
+	unsigned char target[buffer->size];
 	display_driver->read_render_buffer( buffer, target );
 	pvr2_vram64_write( buffer->address, target, buffer->size );
     } else {
 	/* Regular buffer */
-        char target[buffer->size];
+        unsigned char target[buffer->size];
 	int line_size = buffer->width * colour_formats[buffer->colour_format].bpp;
 	display_driver->read_render_buffer( buffer, target );
         if( (buffer->scale & 0xFFFF) == 0x0800 ) {

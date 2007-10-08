@@ -1,5 +1,5 @@
 /**
- * $Id: texcache.c,v 1.26 2007-02-11 10:09:32 nkeynes Exp $
+ * $Id: texcache.c,v 1.27 2007-10-08 11:52:13 nkeynes Exp $
  *
  * Texture cache. Responsible for maintaining a working set of OpenGL 
  * textures. 
@@ -261,7 +261,7 @@ static void vq_get_codebook( struct vq_codebook *codebook,
     }
 }    
 
-static void vq_decode( uint16_t *output, char *input, int width, int height, 
+static void vq_decode( uint16_t *output, unsigned char *input, int width, int height, 
 		       struct vq_codebook *codebook ) {
     int i,j;
     
@@ -318,7 +318,7 @@ static void yuv_decode( uint32_t *output, uint32_t *input, int width, int height
  * Load texture data from the given address and parameters into the currently
  * bound OpenGL texture.
  */
-static texcache_load_texture( uint32_t texture_addr, int width, int height,
+static void texcache_load_texture( uint32_t texture_addr, int width, int height,
 			      int mode ) {
     int bpp_shift = 1; /* bytes per (output) pixel as a power of 2 */
     GLint intFormat = GL_RGBA, format, type;
@@ -353,6 +353,8 @@ static texcache_load_texture( uint32_t texture_addr, int width, int height,
 	    type = GL_UNSIGNED_INT_8_8_8_8_REV;
 	    bpp_shift = 2;
 	    break;
+	default:
+	    return; /* Can't happen, but it makes gcc stop complaining */
 	}
 	break;
 	    
@@ -379,16 +381,19 @@ static texcache_load_texture( uint32_t texture_addr, int width, int height,
 	break;
     case PVR2_TEX_FORMAT_BUMPMAP:
 	ERROR( "Bumpmap not supported" );
-	break;
+	return;
+    default:
+	ERROR( "Undefined texture format" );
+	return;
     }
 	
     if( PVR2_TEX_IS_STRIDE(mode) && tex_format != PVR2_TEX_FORMAT_IDX4 &&
 	tex_format != PVR2_TEX_FORMAT_IDX8 ) {
 	/* Stride textures cannot be mip-mapped, compressed, indexed or twiddled */
 	uint32_t stride = (MMIO_READ( PVR2, RENDER_TEXSIZE ) & 0x003F) << 5;
-	char data[(width*height) << bpp_shift];
+	unsigned char data[(width*height) << bpp_shift];
 	if( tex_format == PVR2_TEX_FORMAT_YUV422 ) {
-	    char tmp[(width*height)<<1];
+	    unsigned char tmp[(width*height)<<1];
 	    pvr2_vram64_read_stride( tmp, width<<1, texture_addr, stride<<1, height );
 	    yuv_decode( (uint32_t *)data, (uint32_t *)tmp, width, height );
 	} else {
@@ -414,19 +419,19 @@ static texcache_load_texture( uint32_t texture_addr, int width, int height,
 
     if( PVR2_TEX_IS_COMPRESSED(mode) ) {
 	uint16_t tmp[VQ_CODEBOOK_SIZE];
-	pvr2_vram64_read( (char *)tmp, texture_addr, VQ_CODEBOOK_SIZE );
+	pvr2_vram64_read( (unsigned char *)tmp, texture_addr, VQ_CODEBOOK_SIZE );
 	texture_addr += VQ_CODEBOOK_SIZE;
 	vq_get_codebook( &codebook, tmp );
     }
 
     for( level=last_level; level>= 0; level-- ) {
-	char data[dest_bytes];
+	unsigned char data[dest_bytes];
 	/* load data from image, detwiddling/uncompressing as required */
 	if( tex_format == PVR2_TEX_FORMAT_IDX8 ) {
 	    src_bytes = (mip_width * mip_height);
 	    int bank = (mode >> 25) &0x03;
 	    uint32_t *palette = ((uint32_t *)mmio_region_PVR2PAL.mem) + (bank<<8);
-	    char tmp[src_bytes];
+	    unsigned char tmp[src_bytes];
 	    pvr2_vram64_read_twiddled_8( tmp, texture_addr, mip_width, mip_height );
 	    if( bpp_shift == 2 ) {
 		decode_pal8_to_32( (uint32_t *)data, tmp, src_bytes, palette );
@@ -437,7 +442,7 @@ static texcache_load_texture( uint32_t texture_addr, int width, int height,
 	    src_bytes = (mip_width * mip_height) >> 1;
 	    int bank = (mode >>21 ) & 0x3F;
 	    uint32_t *palette = ((uint32_t *)mmio_region_PVR2PAL.mem) + (bank<<4);
-	    char tmp[src_bytes];
+	    unsigned char tmp[src_bytes];
 	    pvr2_vram64_read_twiddled_4( tmp, texture_addr, mip_width, mip_height );
 	    if( bpp_shift == 2 ) {
 		decode_pal4_to_32( (uint32_t *)data, tmp, src_bytes, palette );
@@ -446,7 +451,7 @@ static texcache_load_texture( uint32_t texture_addr, int width, int height,
 	    }
 	} else if( tex_format == PVR2_TEX_FORMAT_YUV422 ) {
 	    src_bytes = ((mip_width*mip_height)<<1);
-	    char tmp[src_bytes];
+	    unsigned char tmp[src_bytes];
 	    if( PVR2_TEX_IS_TWIDDLED(mode) ) {
 		pvr2_vram64_read_twiddled_16( tmp, texture_addr, mip_width, mip_height );
 	    } else {
@@ -455,7 +460,7 @@ static texcache_load_texture( uint32_t texture_addr, int width, int height,
 	    yuv_decode( (uint32_t *)data, (uint32_t *)tmp, mip_width, mip_height );
 	} else if( PVR2_TEX_IS_COMPRESSED(mode) ) {
 	    src_bytes = ((mip_width*mip_height) >> 2);
-	    char tmp[src_bytes];
+	    unsigned char tmp[src_bytes];
 	    if( PVR2_TEX_IS_TWIDDLED(mode) ) {
 		pvr2_vram64_read_twiddled_8( tmp, texture_addr, mip_width>>1, mip_height>>1 );
 	    } else {

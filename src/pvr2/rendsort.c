@@ -1,5 +1,5 @@
 /**
- * $Id: rendsort.c,v 1.5 2007-01-26 01:37:39 nkeynes Exp $
+ * $Id: rendsort.c,v 1.6 2007-10-08 11:52:13 nkeynes Exp $
  *
  * PVR2 renderer routines for depth sorted polygons
  *
@@ -148,7 +148,7 @@ void render_extract_triangles( pvraddr_t tile_entry, gboolean cheap_modifier_mod
 		}
 	    } else {
 		/* Polygon */
-		int i, first=-1, last = -1;
+		int i;
 		float *vertex = (float *)polygon+context_length;
 		for( i=0; i<6; i++ ) {
 		    if( entry & (0x40000000>>i) ) {
@@ -178,7 +178,7 @@ void render_extract_triangles( pvraddr_t tile_entry, gboolean cheap_modifier_mod
 void render_triangles( struct render_triangle *triangles, int num_triangles,
 		       int render_mode )
 {
-    int i,j, k, m = 0;
+    int i;
     for( i=0; i<num_triangles; i++ ) {
 	render_set_context( triangles[i].polygon, render_mode );
 	glEnable(GL_DEPTH_TEST);
@@ -194,10 +194,10 @@ void render_triangles( struct render_triangle *triangles, int num_triangles,
 
 }
 
-int compare_triangles( void *a, void *b ) 
+int compare_triangles( const void *a, const void *b ) 
 {
-    struct render_triangle *tri1 = a;
-    struct render_triangle *tri2 = b;
+    const struct render_triangle *tri1 = a;
+    const struct render_triangle *tri2 = b;
     if( tri1->minz < tri2->minz ) {  
 	return 1; // No these _aren't_ back to front...
     } else if( tri1->minz > tri2->minz ) {

@@ -1,5 +1,5 @@
 /**
- * $Id: video_null.c,v 1.4 2007-10-07 05:42:25 nkeynes Exp $
+ * $Id: video_null.c,v 1.5 2007-10-08 11:49:35 nkeynes Exp $
  *
  * Null video output driver (ie no video output whatsoever)
  *
@@ -37,7 +37,7 @@ gboolean video_null_display_render_buffer( render_buffer_t buffer )
     return TRUE;
 }
 
-gboolean video_null_read_render_buffer( render_buffer_t buffer, char *target )
+gboolean video_null_read_render_buffer( render_buffer_t buffer, unsigned char *target )
 {
     return TRUE;
 }

@@ -1,5 +1,5 @@
 /**
- * $Id: gl_common.h,v 1.2 2007-09-28 07:24:14 nkeynes Exp $
+ * $Id: gl_common.h,v 1.3 2007-10-08 11:49:35 nkeynes Exp $
  *
  * Parent for all X11 display drivers.
  *
@@ -46,7 +46,7 @@ gboolean gl_display_blank( uint32_t colour );
  * has already set the appropriate glReadBuffer(); in other words, unless
  * there's only one buffer this needs to be wrapped.
  */
-gboolean gl_read_render_buffer( render_buffer_t buffer, char *target );
+gboolean gl_read_render_buffer( render_buffer_t buffer, unsigned char *target );
 
 
 /****** FBO handling (gl_fbo.c) ******/

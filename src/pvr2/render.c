@@ -1,5 +1,5 @@
 /**
- * $Id: render.c,v 1.24 2007-02-11 10:09:32 nkeynes Exp $
+ * $Id: render.c,v 1.25 2007-10-08 11:52:13 nkeynes Exp $
  *
  * PVR2 Renderer support. This part is primarily
  *
@@ -16,20 +16,23 @@
  * GNU General Public License for more details.
  */
 
+#include <sys/time.h>
+#include <time.h>
 #include "pvr2/pvr2.h"
 #include "asic.h"
 
 
-int pvr2_render_font_list = -1;
 int pvr2_render_trace = 0;
 
+#if 0
+int pvr2_render_font_list = -1;
 int glPrintf( int x, int y, const char *fmt, ... )
 {
     va_list ap;     /* our argument pointer */
     char buf[256];
     int len;
     if (fmt == NULL)    /* if there is no string to draw do nothing */
-        return;
+        return 0;
     va_start(ap, fmt); 
     len = vsnprintf(buf, sizeof(buf), fmt, ap);
     va_end(ap);
@@ -49,6 +52,7 @@ int glPrintf( int x, int y, const char *fmt, ... )
 
     return len;
 }
+#endif
 
 void glDrawGrid( int width, int height )
 {
@@ -79,11 +83,11 @@ static void pvr2_render_prepare_context( render_buffer_t buffer,
 {
     /* Select and initialize the render context */
     display_driver->set_render_target(buffer);
-
+#if 0
     if( pvr2_render_font_list == -1 ) {
 	pvr2_render_font_list = video_glx_load_font( "-*-helvetica-*-r-normal--16-*-*-*-p-*-iso8859-1");
     }
-
+#endif
     pvr2_check_palette_changed();
 
     /* Setup the display model */
@@ -111,8 +115,9 @@ static void pvr2_render_prepare_context( render_buffer_t buffer,
  */
 void pvr2_render_scene( render_buffer_t buffer )
 {
-    struct tile_descriptor *tile_desc =
-	(struct tile_descriptor *)mem_get_region(PVR2_RAM_BASE + MMIO_READ( PVR2, RENDER_TILEBASE ));
+    struct timeval tva, tvb;
+
+    gettimeofday(&tva, NULL);
 
     float bgplanez = 1/MMIO_READF( PVR2, RENDER_FARCLIP );
     pvr2_render_prepare_context( buffer, bgplanez, 0 );
@@ -135,6 +140,9 @@ void pvr2_render_scene( render_buffer_t buffer )
     
     pvr2_render_tilebuffer( buffer->width, buffer->height, clip_x, clip_y, 
 			    clip_x + clip_width, clip_y + clip_height );
-    
-    DEBUG( "Rendered frame %d to %08X", pvr2_get_frame_count(), buffer->address );
+
+    gettimeofday( &tvb, NULL );
+    uint32_t ms = (tvb.tv_sec - tva.tv_sec) * 1000 + 
+	(tvb.tv_usec - tva.tv_usec)/1000;
+    DEBUG( "Rendered frame %d to %08X in %dms", pvr2_get_frame_count(), buffer->address, ms );
 }

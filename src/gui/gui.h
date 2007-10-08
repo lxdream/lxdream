@@ -1,5 +1,5 @@
 /**
- * $Id: gui.h,v 1.16 2007-09-18 10:48:57 nkeynes Exp $
+ * $Id: gui.h,v 1.17 2007-10-08 11:48:56 nkeynes Exp $
  * 
  * General GUI definitions
  *
@@ -39,7 +39,7 @@ extern struct dreamcast_module gtk_gui_module;
 typedef struct debug_info_struct *debug_info_t;
 extern debug_info_t main_debug;
 
-typedef int (*file_callback_t)( const gchar *filename );
+typedef gboolean (*file_callback_t)( const gchar *filename );
 void open_file_dialog( char *title, file_callback_t file_handler, char *pattern, char *patname, const gchar *initial_dir );
 void save_file_dialog( char *title, file_callback_t file_handler, char *pattern, char *patname, const gchar *initial_dir );
 
@@ -71,6 +71,8 @@ void mmr_open_win( void );
 void mmr_close_win( void );
 uint32_t gtk_entry_get_hex_value( GtkEntry *entry, uint32_t defaultValue );
 void gtk_entry_set_hex_value( GtkEntry *entry, uint32_t value );
+
+void dump_window_new( void );
 
 #ifdef __cplusplus
 }

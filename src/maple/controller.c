@@ -1,5 +1,5 @@
 /**
- * $Id: controller.c,v 1.5 2007-09-30 21:19:43 nkeynes Exp $
+ * $Id: controller.c,v 1.6 2007-10-08 11:49:35 nkeynes Exp $
  *
  * Implements the standard dreamcast controller
  *
@@ -19,6 +19,7 @@
 #include <stdlib.h>
 #include "dream.h"
 #include "dreamcast.h"
+#include "display.h"
 #include "maple.h"
 #include "maple/controller.h"
 
@@ -29,7 +30,7 @@ void controller_detach( maple_device_t dev );
 void controller_destroy( maple_device_t dev );
 maple_device_t controller_new();
 dreamcast_config_entry_t controller_get_config( maple_device_t dev );
-int controller_get_cond( maple_device_t dev, int function, char *outbuf,
+int controller_get_cond( maple_device_t dev, int function, unsigned char *outbuf,
                          int *outlen );
 
 typedef struct controller_device {
@@ -159,7 +160,7 @@ void controller_detach( maple_device_t dev )
 }
 
 
-int controller_get_cond( maple_device_t mdev, int function, char *outbuf,
+int controller_get_cond( maple_device_t mdev, int function, unsigned char *outbuf,
                          int *outlen )
 {
     controller_device_t dev = (controller_device_t)mdev;

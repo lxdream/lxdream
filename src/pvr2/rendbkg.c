@@ -1,5 +1,5 @@
 /**
- * $Id: rendbkg.c,v 1.6 2007-01-29 11:25:40 nkeynes Exp $
+ * $Id: rendbkg.c,v 1.7 2007-10-08 11:52:13 nkeynes Exp $
  *
  * PVR2 background renderer. 
  *
@@ -427,6 +427,8 @@ static void bkg_compute_scene( struct vertex_unpacked *base, int width, int heig
     center.x = base[1].x;
     center.y = base[1].y;
     center.z = (1/base[1].z);
+    center.u = base[1].u;
+    center.v = base[1].v;
     diff0.x = base[0].x - center.x;
     diff0.y = base[0].y - center.y;
     diff0.z = (1/base[0].z) - center.z;
@@ -586,7 +588,6 @@ void render_backplane( uint32_t *polygon, uint32_t width, uint32_t height, uint3
     struct vertex_unpacked vertex[3];
     int screen_vertexes[4] = {0,1,2,3};
     struct bkg_scene scene;
-    int i,j,k, num_vertexes;
     int vertex_length = (mode >> 24) & 0x07;
     int cheap_shadow = MMIO_READ( PVR2, RENDER_SHADOW ) & 0x100;
     int is_modified = mode & 0x08000000;

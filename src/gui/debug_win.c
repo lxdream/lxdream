@@ -1,5 +1,5 @@
 /**
- * $Id: debug_win.c,v 1.21 2007-10-03 09:32:09 nkeynes Exp $
+ * $Id: debug_win.c,v 1.22 2007-10-08 11:48:56 nkeynes Exp $
  * This file is responsible for the main debugger gui frame.
  *
  * Copyright (c) 2005 Nathan Keynes.
@@ -24,6 +24,7 @@
 #include "mem.h"
 #include "cpu.h"
 #include "display.h"
+#include "pvr2/pvr2.h"
 
 GdkColor *msg_colors[] = { &clrError, &clrError, &clrWarn, &clrNormal,
                            &clrDebug, &clrTrace };
@@ -36,7 +37,7 @@ struct debug_info_struct {
     int disasm_from;
     int disasm_to;
     int disasm_pc;
-    struct cpu_desc_struct *cpu;
+    const struct cpu_desc_struct *cpu;
     const cpu_desc_t *cpu_list;
     GtkCList *msgs_list;
     GtkCList *regs_list;
@@ -287,7 +288,7 @@ int address_to_row( debug_info_t data, uint32_t address ) {
 void emit( void *ptr, int level, const gchar *source, const char *msg, ... )
 {
     char buf[20], addr[10] = "", *p;
-    const char *arr[4] = {buf, source, addr};
+    const gchar *arr[4] = {buf, source, addr};
     int posn;
     time_t tm = time(NULL);
     va_list ap;
@@ -314,7 +315,7 @@ void emit( void *ptr, int level, const gchar *source, const char *msg, ... )
     p = g_strdup_vprintf( msg, ap );
     sprintf( addr, "%08X", *data->cpu->pc );
     arr[3] = p;
-    posn = gtk_clist_append(data->msgs_list, arr);
+    posn = gtk_clist_append(data->msgs_list, (gchar **)arr);
     free(p);
     va_end(ap);
 

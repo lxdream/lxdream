@@ -1,5 +1,5 @@
 /**
- * $Id: gl_fbo.c,v 1.2 2007-10-07 05:42:25 nkeynes Exp $
+ * $Id: gl_fbo.c,v 1.3 2007-10-08 11:49:35 nkeynes Exp $
  *
  * GL framebuffer-based driver shell. This requires the EXT_framebuffer_object
  * extension, but is much nicer/faster/etc than pbuffers when it's available.
@@ -39,7 +39,7 @@ static gboolean gl_fbo_set_render_target( render_buffer_t buffer );
 static gboolean gl_fbo_display_render_buffer( render_buffer_t buffer );
 static gboolean gl_fbo_display_frame_buffer( frame_buffer_t buffer );
 static gboolean gl_fbo_display_blank( uint32_t colour );
-static gboolean gl_fbo_read_render_buffer( render_buffer_t buffer, char *target );
+static gboolean gl_fbo_read_render_buffer( render_buffer_t buffer, unsigned char *target );
 
 extern uint32_t video_width, video_height;
 
@@ -295,7 +295,7 @@ static gboolean gl_fbo_display_blank( uint32_t colour )
     return gl_display_blank( colour );
 }
 
-static gboolean gl_fbo_read_render_buffer( render_buffer_t buffer, char *target )
+static gboolean gl_fbo_read_render_buffer( render_buffer_t buffer, unsigned char *target )
 {
     int fb = gl_fbo_get_framebuffer( buffer->width, buffer->height );
     gl_fbo_attach_texture( fb, buffer->buf_id );

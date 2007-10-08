@@ -1,5 +1,5 @@
 /**
- * $Id: rendsave.c,v 1.1 2007-01-16 10:34:46 nkeynes Exp $
+ * $Id: rendsave.c,v 1.2 2007-10-08 11:52:13 nkeynes Exp $
  *
  * Scene-save support. This is mainly for test/debug purposes.
  *
@@ -94,4 +94,5 @@ int pvr2_render_save_scene( const gchar *filename )
     uint32_t eof = 0xFFFFFFFF;
     fwrite( &eof, sizeof(uint32_t), 1, f );
     fclose( f );
+    return 0;
 }
