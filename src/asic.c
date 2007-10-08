@@ -1,5 +1,5 @@
 /**
- * $Id: asic.c,v 1.29 2007-10-06 08:59:42 nkeynes Exp $
+ * $Id: asic.c,v 1.30 2007-10-08 12:06:01 nkeynes Exp $
  *
  * Support for the miscellaneous ASIC functions (Primarily event multiplexing,
  * and DMA). 
@@ -272,7 +272,7 @@ void g2_dma_transfer( int channel )
 	    uint32_t length = MMIO_READ( EXTDMA, G2DMA0SIZ + offset ) & 0x1FFFFFFF;
 	    uint32_t dir = MMIO_READ( EXTDMA, G2DMA0DIR + offset );
 	    // uint32_t mode = MMIO_READ( EXTDMA, G2DMA0MOD + offset );
-	    char buf[length];
+	    unsigned char buf[length];
 	    if( dir == 0 ) { /* SH4 to device */
 		mem_copy_from_sh4( buf, sh4addr, length );
 		mem_copy_to_sh4( extaddr, buf, length );
@@ -311,7 +311,7 @@ void pvr_dma_transfer( )
 {
     sh4addr_t destaddr = MMIO_READ( ASIC, PVRDMADEST) &0x1FFFFFE0;
     uint32_t count = MMIO_READ( ASIC, PVRDMACNT );
-    char *data = alloca( count );
+    unsigned char *data = alloca( count );
     uint32_t rcount = DMAC_get_buffer( 2, data, count );
     if( rcount != count )
 	WARN( "PVR received %08X bytes from DMA, expected %08X", rcount, count );

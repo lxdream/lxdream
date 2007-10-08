@@ -1,5 +1,5 @@
 /**
- * $Id: dmac.c,v 1.2 2007-10-06 09:03:24 nkeynes Exp $
+ * $Id: dmac.c,v 1.3 2007-10-08 12:06:01 nkeynes Exp $
  * 
  * SH4 onboard DMA controller (DMAC) peripheral.
  *
@@ -170,7 +170,7 @@ void DMAC_run_channel( uint32_t channel, uint32_t run_count )
  *
  * @return the number of bytes actually transferred.
  */
-uint32_t DMAC_get_buffer( int channel, char *buf, uint32_t numBytes )
+uint32_t DMAC_get_buffer( int channel, unsigned char *buf, uint32_t numBytes )
 {
     uint32_t control = DMA_CONTROL(channel);
     uint32_t source, count, run_count, size, i;
@@ -235,7 +235,7 @@ uint32_t DMAC_get_buffer( int channel, char *buf, uint32_t numBytes )
     return run_count * size;
 }
 
-uint32_t DMAC_put_buffer( int channel, char *buf, uint32_t numBytes )
+uint32_t DMAC_put_buffer( int channel, unsigned char *buf, uint32_t numBytes )
 {
     uint32_t control = DMA_CONTROL(channel);
     uint32_t dest, count, run_count, size, i;

@@ -1,5 +1,5 @@
 /**
- * $Id: dump_win.c,v 1.2 2005-12-25 08:24:11 nkeynes Exp $
+ * $Id: dump_win.c,v 1.3 2007-10-08 12:06:01 nkeynes Exp $
  *
  * Implements the memory dump window.
  *
@@ -32,7 +32,7 @@ typedef struct dump_data {
     uint32_t start;
     uint32_t end;
     int flags;
-    char *data;
+    unsigned char *data;
 
     GtkEntry *fromInput, *toInput;
     GtkTextView *textArea;
@@ -46,7 +46,7 @@ static dump_data_t dump_list_head = NULL;
 gboolean on_dump_win_delete_event( GtkWidget *widget, GdkEvent *event,
                                    gpointer user_data );
 void on_dump_win_button_view_clicked( GtkWidget *widget, gpointer user_data );
-void dump_win_set_text( dump_data_t data, char *old_data, char *new_data );
+void dump_win_set_text( dump_data_t data, unsigned char *old_data, unsigned char *new_data );
 
 
 void dump_window_new( void ) {
@@ -143,7 +143,7 @@ void dump_win_update( dump_data_t data )
 {
     if( data->data == NULL )
         return;
-    char tmp[data->end-data->start];
+    unsigned char tmp[data->end-data->start];
     int length = data->end-data->start;
     memcpy( tmp, data->data, length );
     mem_copy_from_sh4( data->data, data->start, length );
@@ -159,7 +159,7 @@ void dump_win_update_all( )
     }
 }
 
-void dump_win_set_text( dump_data_t data, char *old_data, char *new_data )
+void dump_win_set_text( dump_data_t data, unsigned char *old_data, unsigned char *new_data )
 {
     GtkTextBuffer *buf = data->textBuffer;
     GtkTextTag *changedTag = data->changedTag;
