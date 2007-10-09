@@ -1,5 +1,5 @@
 /**
- * $Id: armdasm.c,v 1.12 2007-01-17 21:27:20 nkeynes Exp $
+ * $Id: armdasm.c,v 1.13 2007-10-09 08:11:51 nkeynes Exp $
  * 
  * armdasm.c    21 Aug 2004  - ARM7tdmi (ARMv4) disassembler
  *
@@ -43,7 +43,7 @@
 #define DISP24(ir) ((ir&0x00FFFFFF))
 #define FSXC(ir) msrFieldMask[RN(ir)]
 #define ROTIMM12(ir) ROTATE_RIGHT_LONG(IMM8(ir),IMMROT(ir))
-#define SIGNEXT24(n) ((n&0x00800000) ? (n|0xFF000000) : (n&0x00FFFFFF))
+#define SIGNEXT24(n) (((n)&0x00800000) ? ((n)|0xFF000000) : ((n)&0x00FFFFFF))
 
 
 
@@ -121,6 +121,7 @@ int arm_disasm_shift_operand( uint32_t ir, char *buf, int len )
 		operand = ROTATE_RIGHT_LONG(operand, tmp);
 		return snprintf(buf, len, "#%08Xh", operand );
 	}
+	return 0;
 }
 
 static int arm_disasm_address_index( uint32_t ir, char *buf, int len )

@@ -1,5 +1,5 @@
 /**
- * $Id: armcore.h,v 1.14 2006-01-22 22:40:05 nkeynes Exp $
+ * $Id: armcore.h,v 1.15 2007-10-09 08:11:51 nkeynes Exp $
  * 
  * Interface definitions for the ARM CPU emulation core proper.
  *
@@ -105,5 +105,5 @@ void arm_write_long_user( uint32_t addr, uint32_t val );
 void arm_write_byte_user( uint32_t addr, uint32_t val );
 int32_t arm_read_phys_word( uint32_t addr );
 int arm_has_page( uint32_t addr );
-
+void arm_mem_init(void);
 #endif /* !dream_armcore_H */
