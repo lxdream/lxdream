@@ -1,6 +1,6 @@
 
 /**
- * $Id: gdrom.c,v 1.13 2007-10-06 08:58:00 nkeynes Exp $
+ * $Id: gdrom.c,v 1.14 2007-10-09 08:45:00 nkeynes Exp $
  *
  * GD-Rom  access functions.
  *
@@ -93,12 +93,14 @@ void gdrom_mount_disc( gdrom_disc_t disc )
     gdrom_image_dump_info( disc );
 }
 
-gdrom_disc_t gdrom_mount_image( const gchar *filename )
+gboolean gdrom_mount_image( const gchar *filename )
 {
     gdrom_disc_t disc = gdrom_image_open(filename);
-    if( disc != NULL )
+    if( disc != NULL ) {
 	gdrom_mount_disc( disc );
-    return disc;
+	return TRUE;
+    }
+    return FALSE;
 }
 
 void gdrom_unmount_disc( ) 

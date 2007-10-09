@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.c,v 1.45 2007-09-11 01:05:05 nkeynes Exp $
+ * $Id: pvr2.c,v 1.46 2007-10-09 08:48:28 nkeynes Exp $
  *
  * PVR2 (Video) Core module implementation and MMIO registers.
  *
@@ -688,7 +688,7 @@ int32_t mmio_region_PVR2TA_read( uint32_t reg )
 
 void mmio_region_PVR2TA_write( uint32_t reg, uint32_t val )
 {
-    pvr2_ta_write( (char *)&val, sizeof(uint32_t) );
+    pvr2_ta_write( (unsigned char *)&val, sizeof(uint32_t) );
 }
 
 /**
@@ -728,7 +728,7 @@ render_buffer_t pvr2_next_render_buffer()
     uint32_t render_mode = MMIO_READ( PVR2, RENDER_MODE );
     uint32_t render_scale = MMIO_READ( PVR2, RENDER_SCALER );
     uint32_t render_stride = MMIO_READ( PVR2, RENDER_SIZE ) << 3;
-    gboolean render_to_tex;
+
     if( render_addr & 0x01000000 ) { /* vram64 */
 	render_addr = (render_addr & 0x00FFFFFF) + PVR2_RAM_BASE_INT;
     } else { /* vram32 */
@@ -757,7 +757,7 @@ render_buffer_t pvr2_next_render_buffer()
 		width*height ) {
 		pvr2_render_buffer_copy_to_sh4( render_buffers[i] );
 	    }
-	    render_buffers[i]->address == -1;
+	    render_buffers[i]->address = -1;
 	}
     }
 
@@ -812,7 +812,6 @@ gboolean pvr2_render_buffer_invalidate( sh4addr_t address, gboolean isWrite )
     address = address & 0x1FFFFFFF;
     for( i=0; i<render_buffer_count; i++ ) {
 	uint32_t bufaddr = render_buffers[i]->address;
-	uint32_t size = render_buffers[i]->size;
 	if( bufaddr != -1 && bufaddr <= address && 
 	    (bufaddr + render_buffers[i]->size) > address ) {
 	    if( !render_buffers[i]->flushed ) {
