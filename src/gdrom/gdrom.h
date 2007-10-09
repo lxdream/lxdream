@@ -1,5 +1,5 @@
 /**
- * $Id: gdrom.h,v 1.11 2007-10-06 08:58:00 nkeynes Exp $
+ * $Id: gdrom.h,v 1.12 2007-10-09 08:45:00 nkeynes Exp $
  *
  * This file defines the structures and functions used by the GD-Rom
  * disc driver. (ie, the modules that supply a CD image to be used by the
@@ -124,7 +124,7 @@ typedef struct gdrom_disc {
     /**
      * Begin playing audio from the given lba address on the disc.
      */
-    gdrom_error_t (*play_audio)(struct gdrom_disc *disc, uint32_t lba);
+    gdrom_error_t (*play_audio)(struct gdrom_disc *disc, uint32_t lba, uint32_t endlba);
 
     /**
      * Executed once per time slice to perform house-keeping operations 
@@ -198,8 +198,9 @@ uint8_t gdrom_get_track_no_by_lba( uint32_t lba );
 
 /**
  * Shortcut to open and mount an image file
+ * @return true on success
  */
-gdrom_disc_t gdrom_mount_image( const gchar *filename );
+gboolean gdrom_mount_image( const gchar *filename );
 
 void gdrom_mount_disc( gdrom_disc_t disc );
 
