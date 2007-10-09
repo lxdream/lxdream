@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.h,v 1.36 2007-10-08 11:52:13 nkeynes Exp $
+ * $Id: pvr2.h,v 1.37 2007-10-09 08:46:21 nkeynes Exp $
  *
  * PVR2 (video chip) functions and macros.
  *
@@ -38,6 +38,13 @@ typedef unsigned int pvr64addr_t;
 #define DISPCFG_I  0x00000010 /* Interlace enable */
 #define DISPCFG_BS 0x000000C0 /* Broadcast standard */
 #define DISPCFG_VO 0x00000100 /* Video output enable */
+
+#define DISPSYNC_LINE_MASK  0x000003FF
+#define DISPSYNC_EVEN_FIELD 0x00000000
+#define DISPSYNC_ODD_FIELD  0x00000400
+#define DISPSYNC_ACTIVE     0x00000800
+#define DISPSYNC_HSYNC      0x00001000
+#define DISPSYNC_VSYNC      0x00002000
 
 #define BS_NTSC 0x00000000
 #define BS_PAL  0x00000040
@@ -305,6 +312,16 @@ void texcache_gl_init( void );
 void texcache_shutdown( void );
 
 /**
+ * Flush (ie free) all textures.
+ */
+void texcache_flush( void );
+
+/**
+ * Flush all palette-based textures (if any)
+ */
+void texcache_invalidate_palette(void);
+
+/**
  * Evict all textures contained in the page identified by a texture address.
  */
 void texcache_invalidate_page( uint32_t texture_addr );
@@ -323,6 +340,9 @@ GLuint texcache_get_texture( uint32_t texture_addr, int width, int height,
 			     int mode );
 
 void pvr2_check_palette_changed(void);
+
+int pvr2_render_save_scene( const gchar *filename );
+
 
 /************************* Rendering support macros **************************/
 #define POLY1_DEPTH_MODE(poly1) ( pvr2_poly_depthmode[(poly1)>>29] )
