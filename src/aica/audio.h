@@ -1,5 +1,5 @@
 /**
- * $Id: audio.h,v 1.7 2006-03-16 12:41:59 nkeynes Exp $
+ * $Id: audio.h,v 1.8 2007-10-09 11:37:36 nkeynes Exp $
  * 
  * Audio engine, ie the part that does the actual work.
  *
@@ -37,7 +37,7 @@ extern "C" {
 
 typedef struct audio_channel {
     gboolean active;
-    uint32_t posn;
+    uint32_t posn; /* current sample #, 0 = first sample */
     uint32_t posn_left;
     uint32_t start;
     uint32_t end;
@@ -49,7 +49,6 @@ typedef struct audio_channel {
     int sample_format; 
     /* Envelope etc stuff */
     /* ADPCM */
-    int adpcm_nibble; /* 0 = low nibble, 1 = high nibble */
     int adpcm_step;
     int adpcm_predict;
 } *audio_channel_t;
@@ -102,6 +101,7 @@ void audio_mix_samples( int num_samples );
  */
 audio_channel_t audio_get_channel( int channel );
 
+void audio_start_stop_channel( int channel, gboolean start );
 void audio_start_channel( int channel );
 void audio_stop_channel( int channel );
 

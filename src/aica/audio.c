@@ -1,5 +1,5 @@
 /**
- * $Id: audio.c,v 1.8 2007-10-09 08:11:51 nkeynes Exp $
+ * $Id: audio.c,v 1.9 2007-10-09 11:37:36 nkeynes Exp $
  * 
  * Audio mixer core. Combines all the active streams into a single sound
  * buffer for output. 
@@ -25,7 +25,7 @@
 #include <string.h>
 
 #define NUM_BUFFERS 3
-#define MS_PER_BUFFER 50
+#define MS_PER_BUFFER 100
 
 #define BUFFER_EMPTY   0
 #define BUFFER_WRITING 1
@@ -198,7 +198,7 @@ void audio_mix_samples( int num_samples )
 	    switch( channel->sample_format ) {
 	    case AUDIO_FMT_16BIT:
 		for( j=0; j<num_samples; j++ ) {
-		    sample = *(int16_t *)(arm_mem + channel->posn + channel->start);
+		    sample = ((int16_t *)(arm_mem + channel->start))[channel->posn];
 		    result_buf[j][0] += sample * vol_left;
 		    result_buf[j][1] += sample * vol_right;
 		    
@@ -221,7 +221,7 @@ void audio_mix_samples( int num_samples )
 		break;
 	    case AUDIO_FMT_8BIT:
 		for( j=0; j<num_samples; j++ ) {
-		    sample = (*(int8_t *)(arm_mem + channel->posn + channel->start)) << 8;
+		    sample = ((int8_t *)(arm_mem + channel->start))[channel->posn] << 8;
 		    result_buf[j][0] += sample * vol_left;
 		    result_buf[j][1] += sample * vol_right;
 		    
@@ -250,22 +250,23 @@ void audio_mix_samples( int num_samples )
 		    channel->posn_left += channel->sample_rate;
 		    while( channel->posn_left > audio.output_rate ) {
 			channel->posn_left -= audio.output_rate;
-			if( channel->adpcm_nibble == 0 ) {
-			    uint8_t data = *(uint8_t *)(arm_mem + channel->posn + channel->start);
-			    adpcm_yamaha_decode_nibble( channel, (data >> 4) & 0x0F );
-			    channel->adpcm_nibble = 1;
-			} else {
-			    channel->posn++;
-			    if( channel->posn == channel->end ) {
-				if( channel->loop )
-				    channel->posn = channel->loop_start;
-				else
-				    audio_stop_channel(i);
+			channel->posn++;
+			if( channel->posn == channel->end ) {
+			    if( channel->loop ) {
+				channel->posn = channel->loop_start;
+				channel->adpcm_predict = 0;
+				channel->adpcm_step = 0;
+			    } else {
+				audio_stop_channel(i);
+				j = num_samples;
 				break;
 			    }
-			    uint8_t data = *(uint8_t *)(arm_mem + channel->posn + channel->start);
+			}
+			uint8_t data = ((uint8_t *)(arm_mem + channel->start))[channel->posn>>1];
+			if( channel->posn&1 ) {
+			    adpcm_yamaha_decode_nibble( channel, (data >> 4) & 0x0F );
+			} else {
 			    adpcm_yamaha_decode_nibble( channel, data & 0x0F );
-			    channel->adpcm_nibble = 0;
 			}
 		    }
 		}
@@ -314,6 +315,17 @@ audio_channel_t audio_get_channel( int channel )
     return &audio.channels[channel];
 }
 
+void audio_start_stop_channel( int channel, gboolean start )
+{
+    if( audio.channels[channel].active ) {
+	if( !start ) {
+	    audio_stop_channel(channel);
+	}
+    } else if( start ) {
+	audio_start_channel(channel);
+    }
+}
+
 void audio_stop_channel( int channel ) 
 {
     audio.channels[channel].active = FALSE;
@@ -324,8 +336,11 @@ void audio_start_channel( int channel )
 {
     audio.channels[channel].posn = 0;
     audio.channels[channel].posn_left = 0;
-    audio.channels[channel].adpcm_nibble = 0;
-    audio.channels[channel].adpcm_step = 0;
-    audio.channels[channel].adpcm_predict = 0;
     audio.channels[channel].active = TRUE;
+    if( audio.channels[channel].sample_format == AUDIO_FMT_ADPCM ) {
+	audio.channels[channel].adpcm_step = 0;
+	audio.channels[channel].adpcm_predict = 0;
+	uint8_t data = ((uint8_t *)(arm_mem + audio.channels[channel].start))[0];
+	adpcm_yamaha_decode_nibble( &audio.channels[channel], data & 0x0F );
+    }
 }
