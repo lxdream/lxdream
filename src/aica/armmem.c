@@ -1,5 +1,5 @@
 /**
- * $Id: armmem.c,v 1.7 2006-01-10 13:56:54 nkeynes Exp $
+ * $Id: armmem.c,v 1.8 2007-10-09 08:11:51 nkeynes Exp $
  *
  * Implements the ARM's memory map.
  *
@@ -101,7 +101,7 @@ void arm_write_long( uint32_t addr, uint32_t value )
 	    /* Undefined memory */
 	} 
     }
-    return 0;
+    return;
 }
 
 uint32_t arm_combine_byte( uint32_t addr, uint32_t val, uint8_t byte )
@@ -115,6 +115,8 @@ uint32_t arm_combine_byte( uint32_t addr, uint32_t val, uint8_t byte )
 	return (val & 0xFF00FFFF) | (byte<<16);
     case 3:
 	return (val & 0x00FFFFFF) | (byte<<24);
+    default:
+	return val; // Can't happen, but make gcc happy
     }
 }
 
@@ -151,7 +153,7 @@ void arm_write_byte( uint32_t addr, uint32_t value )
 	    /* Undefined memory */
 	} 
     }
-    return 0;
+    return;
 }
 
 /* User translations - TODO */

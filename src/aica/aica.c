@@ -1,5 +1,5 @@
 /**
- * $Id: aica.c,v 1.21 2007-01-17 09:37:22 nkeynes Exp $
+ * $Id: aica.c,v 1.22 2007-10-09 08:11:51 nkeynes Exp $
  * 
  * This is the core sound system (ie the bit which does the actual work)
  *
@@ -62,12 +62,8 @@ void aica_init( void )
 
 void aica_reset( void )
 {
-    struct timeval tv;
     arm_reset();
     aica_event(2); /* Pre-deliver a timer interrupt */
-
-    // gettimeofday( &tv, NULL );
-    // aica_time_of_day = tv.tv_sec + RTC_OFFSET;
     aica_time_of_day = 0x5bfc8900;
 }
 
@@ -183,7 +179,7 @@ void aica_enable( void )
  * 29  1  Volume
  * 2C
  * 30
- * 
+ */
 
 /* Write to channels 0-31 */
 void mmio_region_AICA0_write( uint32_t reg, uint32_t val )
@@ -233,7 +229,6 @@ void mmio_region_AICA2_write( uint32_t reg, uint32_t val )
 
 int32_t mmio_region_AICARTC_read( uint32_t reg )
 {
-    struct timeval tv;
     int32_t rv = 0;
     switch( reg ) {
     case AICA_RTCHI:

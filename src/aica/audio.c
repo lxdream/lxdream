@@ -1,5 +1,5 @@
 /**
- * $Id: audio.c,v 1.7 2006-12-15 10:19:49 nkeynes Exp $
+ * $Id: audio.c,v 1.8 2007-10-09 08:11:51 nkeynes Exp $
  * 
  * Audio mixer core. Combines all the active streams into a single sound
  * buffer for output. 
@@ -75,7 +75,7 @@ gboolean audio_set_driver( audio_driver_t driver,
 	bytes_per_sample <<= 1;
     if( samplerate == audio.output_rate &&
 	bytes_per_sample == audio.output_sample_size )
-	return;
+	return TRUE;
     samples_per_buffer = (samplerate * MS_PER_BUFFER / 1000);
     for( i=0; i<NUM_BUFFERS; i++ ) {
 	if( audio.output_buffers[i] != NULL )

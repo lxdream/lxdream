@@ -1,5 +1,5 @@
 /**
- * $Id: display.c,v 1.9 2007-10-07 06:03:22 nkeynes Exp $
+ * $Id: display.c,v 1.10 2007-10-09 08:12:29 nkeynes Exp $
  *
  * Generic support for keyboard and other input sources. The active display
  * driver is expected to deliver events here, where they're translated and
@@ -22,6 +22,7 @@
 #include <assert.h>
 #include "dream.h"
 #include "display.h"
+#include "pvr2/pvr2.h"
 
 typedef struct keymap_entry {
     uint16_t keycode;

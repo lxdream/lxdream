@@ -1,5 +1,5 @@
 /**
- * $Id: armcore.c,v 1.20 2006-01-22 22:40:05 nkeynes Exp $
+ * $Id: armcore.c,v 1.21 2007-10-09 08:11:51 nkeynes Exp $
  * 
  * ARM7TDMI CPU emulation core.
  *
@@ -18,6 +18,7 @@
 
 #define MODULE aica_module
 #include "dream.h"
+#include "dreamcast.h"
 #include "mem.h"
 #include "aica/armcore.h"
 #include "aica/aica.h"
@@ -405,7 +406,7 @@ void arm_set_mode( int targetMode )
 #define SHIFTIMM(ir) ((ir>>7)&0x1F)
 #define IMMROT(ir) ((ir>>7)&0x1E)
 #define ROTIMM12(ir) ROTATE_RIGHT_LONG(IMM8(ir),IMMROT(ir))
-#define SIGNEXT24(n) ((n&0x00800000) ? (n|0xFF000000) : (n&0x00FFFFFF))
+#define SIGNEXT24(n) (((n)&0x00800000) ? ((n)|0xFF000000) : ((n)&0x00FFFFFF))
 #define SHIFT(ir) ((ir>>4)&0x07)
 #define DISP24(ir) ((ir&0x00FFFFFF))
 #define UNDEF(ir) do{ arm_raise_exception( EXC_UNDEFINED ); return TRUE; } while(0)
@@ -632,7 +633,7 @@ static uint32_t arm_get_address_index( uint32_t ir )
  */
 static uint32_t arm_get_address_operand( uint32_t ir )
 {
-	uint32_t addr;
+	uint32_t addr=0;
 	
 	/* I P U . W */
 	switch( (ir>>21)&0x1D ) {
@@ -759,6 +760,7 @@ gboolean arm_execute_instruction( void )
 	cond = 1;
 	break;
     case 15: /* (NV) */
+    default:
 	cond = 0;
 	UNDEF(ir);
     }
