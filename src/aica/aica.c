@@ -1,5 +1,5 @@
 /**
- * $Id: aica.c,v 1.22 2007-10-09 08:11:51 nkeynes Exp $
+ * $Id: aica.c,v 1.23 2007-10-09 11:37:36 nkeynes Exp $
  * 
  * This is the core sound system (ie the bit which does the actual work)
  *
@@ -289,6 +289,19 @@ uint32_t aica_frequency_to_sample_rate( uint32_t freq )
     return rate;
 }
 
+void aica_start_stop_channels()
+{
+    int i;
+    for( i=0; i<32; i++ ) {
+	uint32_t val = MMIO_READ( AICA0, i<<7 );
+	audio_start_stop_channel(i, val&0x4000);
+    }
+    for( ; i<64; i++ ) {
+	uint32_t val = MMIO_READ( AICA1, (i-32)<<7 );
+	audio_start_stop_channel(i, val&0x4000);
+    }
+}
+
 /**
  * Derived directly from Dan Potter's log table
  */
@@ -334,16 +347,8 @@ void aica_write_channel( int channelNo, uint32_t reg, uint32_t val )
 	    channel->sample_format = AUDIO_FMT_ADPCM;
 	    break;
 	}
-	switch( (val >> 14) & 0x03 ) {
-	case 2: 
-	    audio_stop_channel( channelNo ); 
-	    break;
-	case 3: 
-	    audio_start_channel( channelNo ); 
-	    break;
-	default:
-	    break;
-	    /* Hrmm... */
+	if( val & 0x8000 ) {
+	    aica_start_stop_channels();
 	}
 	break;
     case 0x04: /* Low 16 address bits */
