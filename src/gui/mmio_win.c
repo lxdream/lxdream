@@ -1,5 +1,5 @@
 /**
- * $Id: mmio_win.c,v 1.6 2007-10-08 11:48:56 nkeynes Exp $
+ * $Id: mmio_win.c,v 1.7 2007-10-10 11:02:04 nkeynes Exp $
  *
  * Implements the MMIO register viewing window
  *
@@ -18,9 +18,9 @@
 
 #include <stdint.h>
 #include <gnome.h>
-#include "interface.h"
-#include "callbacks.h"
-#include "gui.h"
+#include "debugif.h"
+#include "debugcb.h"
+#include "gui/gtkui.h"
 #include "mem.h"
 #include "mmio.h"
 
@@ -84,7 +84,7 @@ static GtkCList *create_mmr_page( char *name, struct mmio_region *io_rgn )
     gtk_clist_set_column_title(list, 3, "Bit Pattern");
     gtk_clist_set_column_title(list, 4, "Description");
     gtk_clist_column_titles_show(list);
-    gtk_widget_modify_font( GTK_WIDGET(list), fixed_list_font );
+    gtk_widget_modify_font( GTK_WIDGET(list), gui_fixed_font );
     gtk_widget_show( GTK_WIDGET(list) );
     tab = gtk_label_new(_(name));
     gtk_widget_show( tab );
@@ -128,15 +128,15 @@ void update_mmr_win( void )
                 
                 gtk_clist_set_text( page, j, 2, data );
                 gtk_clist_set_text( page, j, 3, bits );
-                gtk_clist_set_foreground( page, j, &clrChanged );
+                gtk_clist_set_foreground( page, j, &gui_colour_changed );
                 
                 gtk_clist_set_text( all_page, count, 2, data );
                 gtk_clist_set_text( all_page, count, 3, bits );
-                gtk_clist_set_foreground( all_page, count, &clrChanged );
+                gtk_clist_set_foreground( all_page, count, &gui_colour_changed );
                 
             } else {
-                gtk_clist_set_foreground( page, j, &clrNormal );
-                gtk_clist_set_foreground( all_page, count, &clrNormal );
+                gtk_clist_set_foreground( page, j, &gui_colour_normal );
+                gtk_clist_set_foreground( all_page, count, &gui_colour_normal );
             }
             count++;
         }

@@ -1,5 +1,5 @@
 /**
- * $Id: debug_win.c,v 1.22 2007-10-08 11:48:56 nkeynes Exp $
+ * $Id: debug_win.c,v 1.23 2007-10-10 11:02:04 nkeynes Exp $
  * This file is responsible for the main debugger gui frame.
  *
  * Copyright (c) 2005 Nathan Keynes.
@@ -19,21 +19,27 @@
 #include <stdio.h>
 #include <gnome.h>
 #include <math.h>
-#include "sh4/sh4dasm.h"
-#include "gui/gui.h"
 #include "mem.h"
 #include "cpu.h"
-#include "display.h"
-#include "pvr2/pvr2.h"
+#include "debugif.h"
+#include "gui/gtkui.h"
+#include "sh4/sh4dasm.h"
+#include "aica/armdasm.h"
 
-GdkColor *msg_colors[] = { &clrError, &clrError, &clrWarn, &clrNormal,
-                           &clrDebug, &clrTrace };
+GdkColor *msg_colors[] = { &gui_colour_error, &gui_colour_error, &gui_colour_warn, 
+			   &gui_colour_normal,&gui_colour_debug, &gui_colour_trace };
 char *msg_levels[] = { "FATAL", "ERROR", "WARN", "INFO", "DEBUG", "TRACE" };
 int global_msg_level = EMIT_WARN;
 
-void init_register_list( debug_info_t data );
+const cpu_desc_t cpu_list[4] = { &sh4_cpu_desc, &arm_cpu_desc, &armt_cpu_desc, NULL };
 
-struct debug_info_struct {
+void init_register_list( debug_window_t data );
+uint32_t row_to_address( debug_window_t data, int row );
+void set_disassembly_pc( debug_window_t data, unsigned int pc, gboolean select );
+void set_disassembly_region( debug_window_t data, unsigned int page );
+void set_disassembly_cpu( debug_window_t data, const gchar *cpu );
+
+struct debug_window_info {
     int disasm_from;
     int disasm_to;
     int disasm_pc;
@@ -49,11 +55,12 @@ struct debug_info_struct {
     char saved_regs[0];
 };
 
-debug_info_t init_debug_win(GtkWidget *win, const cpu_desc_t *cpu_list )
+debug_window_t debug_window_new( )
 {
+    GtkWidget *win = create_debug_win();
     GnomeAppBar *appbar;
     
-    debug_info_t data = g_malloc0( sizeof(struct debug_info_struct) + cpu_list[0]->regs_size );
+    debug_window_t data = g_malloc0( sizeof(struct debug_window_info) + cpu_list[0]->regs_size );
     data->disasm_from = -1;
     data->disasm_to = -1;
     data->disasm_pc = -1;
@@ -62,7 +69,7 @@ debug_info_t init_debug_win(GtkWidget *win, const cpu_desc_t *cpu_list )
     
     data->regs_list= gtk_object_get_data(GTK_OBJECT(win), "reg_list");
     data->win = win;
-    gtk_widget_modify_font( GTK_WIDGET(data->regs_list), fixed_list_font );
+    gtk_widget_modify_font( GTK_WIDGET(data->regs_list), gui_fixed_font );
     init_register_list( data );
     data->msgs_list = gtk_object_get_data(GTK_OBJECT(win), "output_list");
     data->disasm_list = gtk_object_get_data(GTK_OBJECT(win), "disasm_list");
@@ -75,11 +82,22 @@ debug_info_t init_debug_win(GtkWidget *win, const cpu_desc_t *cpu_list )
     
     gtk_object_set_data( GTK_OBJECT(win), "debug_data", data );
     set_disassembly_pc( data, *data->cpu->pc, FALSE );
-    debug_win_set_running( data, FALSE );
+    debug_window_set_running( data, FALSE );
+
+    gtk_widget_show( win );
     return data;
 }
 
-void init_register_list( debug_info_t data ) 
+void debug_window_show( debug_window_t data, gboolean show )
+{
+    if( show ) {
+	gtk_widget_show( data->win );
+    } else {
+	gtk_widget_hide( data->win );
+    }
+}
+
+void init_register_list( debug_window_t data ) 
 {
     int i;
     char buf[20];
@@ -100,7 +118,7 @@ void init_register_list( debug_info_t data )
 /*
  * Check for changed registers and update the display
  */
-void update_registers( debug_info_t data )
+void debug_window_update( debug_window_t data )
 {
     int i;
     for( i=0; data->cpu->regs_info[i].name != NULL; i++ ) {
@@ -111,9 +129,9 @@ void update_registers( debug_info_t data )
                 char buf[20];
                 sprintf( buf, "%08X", *((uint32_t *)data->cpu->regs_info[i].value) );
                 gtk_clist_set_text( data->regs_list, i, 1, buf );
-                gtk_clist_set_foreground( data->regs_list, i, &clrChanged );
+                gtk_clist_set_foreground( data->regs_list, i, &gui_colour_changed );
             } else {
-                gtk_clist_set_foreground( data->regs_list, i, &clrNormal );
+                gtk_clist_set_foreground( data->regs_list, i, &gui_colour_normal );
             }
         } else {
             if( *((float *)data->cpu->regs_info[i].value) !=
@@ -121,9 +139,9 @@ void update_registers( debug_info_t data )
                 char buf[20];
                 sprintf( buf, "%f", *((float *)data->cpu->regs_info[i].value) );
                 gtk_clist_set_text( data->regs_list, i, 1, buf );
-                gtk_clist_set_foreground( data->regs_list, i, &clrChanged );
+                gtk_clist_set_foreground( data->regs_list, i, &gui_colour_changed );
             } else {
-                gtk_clist_set_foreground( data->regs_list, i, &clrNormal );
+                gtk_clist_set_foreground( data->regs_list, i, &gui_colour_normal );
             }
         }
     }
@@ -132,16 +150,7 @@ void update_registers( debug_info_t data )
     memcpy( data->saved_regs, data->cpu->regs, data->cpu->regs_size );
 }
 
-void update_icount( debug_info_t data )
-{
-    if( data != NULL ) {
-	//    sprintf( data->icounter_text, "%d", *data->cpu->icount );
-	sprintf( data->icounter_text, "%d", pvr2_get_frame_count() );
-	gtk_progress_bar_set_text( data->icounter, data->icounter_text );
-    }
-}
-
-void set_disassembly_region( debug_info_t data, unsigned int page )
+void set_disassembly_region( debug_window_t data, unsigned int page )
 {
     uint32_t i, posn, next;
     char buf[80];
@@ -159,29 +168,29 @@ void set_disassembly_region( debug_info_t data, unsigned int page )
     if( !data->cpu->is_valid_page_func( from ) ) {
         arr[3] = "This page is currently unmapped";
         gtk_clist_append( data->disasm_list, arr );
-        gtk_clist_set_foreground( data->disasm_list, 0, &clrError );
+        gtk_clist_set_foreground( data->disasm_list, 0, &gui_colour_error );
     } else {
         for( i=from; i<to; i = next ) {
 	    next = data->cpu->disasm_func( i, buf, sizeof(buf), opcode );
             sprintf( addr, "%08X", i );
             posn = gtk_clist_append( data->disasm_list, arr );
             if( buf[0] == '?' )
-                gtk_clist_set_foreground( data->disasm_list, posn, &clrWarn );
+                gtk_clist_set_foreground( data->disasm_list, posn, &gui_colour_warn );
 	    if( data->cpu->get_breakpoint != NULL ) {
 		int type = data->cpu->get_breakpoint( i );
 		switch(type) {
 		case BREAK_ONESHOT:
-		    gtk_clist_set_background( data->disasm_list, posn, &clrTempBreak );
+		    gtk_clist_set_background( data->disasm_list, posn, &gui_colour_temp_break );
 		    break;
 		case BREAK_KEEP:
-		    gtk_clist_set_background( data->disasm_list, posn, &clrBreak );
+		    gtk_clist_set_background( data->disasm_list, posn, &gui_colour_break );
 		    break;
 		}
 	    }
         }
         if( data->disasm_pc != -1 && data->disasm_pc >= from && data->disasm_pc < to )
             gtk_clist_set_foreground( data->disasm_list, address_to_row(data, data->disasm_pc),
-                                      &clrPC );
+                                      &gui_colour_pc );
     }
 
     if( page != from ) { /* not a page boundary */
@@ -191,7 +200,7 @@ void set_disassembly_region( debug_info_t data, unsigned int page )
     data->disasm_to = to;
 }
 
-void jump_to_disassembly( debug_info_t data, unsigned int addr, gboolean select )
+void jump_to_disassembly( debug_window_t data, unsigned int addr, gboolean select )
 {
     int row;
     
@@ -207,12 +216,12 @@ void jump_to_disassembly( debug_info_t data, unsigned int addr, gboolean select 
     }
 }
 
-void jump_to_pc( debug_info_t data, gboolean select )
+void jump_to_pc( debug_window_t data, gboolean select )
 {
     jump_to_disassembly( data, *data->cpu->pc, select );
 }
 
-void set_disassembly_pc( debug_info_t data, unsigned int pc, gboolean select )
+void set_disassembly_pc( debug_window_t data, unsigned int pc, gboolean select )
 {
     int row;
     
@@ -221,13 +230,13 @@ void set_disassembly_pc( debug_info_t data, unsigned int pc, gboolean select )
 	data->disasm_pc < data->disasm_to )
         gtk_clist_set_foreground( data->disasm_list, 
 				  (data->disasm_pc - data->disasm_from) / data->cpu->instr_size,
-                                  &clrNormal );
+                                  &gui_colour_normal );
     row = address_to_row( data, pc );
-    gtk_clist_set_foreground( data->disasm_list, row, &clrPC );
+    gtk_clist_set_foreground( data->disasm_list, row, &gui_colour_pc );
     data->disasm_pc = pc;
 }
 
-void set_disassembly_cpu( debug_info_t data, const gchar *cpu )
+void set_disassembly_cpu( debug_window_t data, const gchar *cpu )
 {
     int i;
     for( i=0; data->cpu_list[i] != NULL; i++ ) {
@@ -237,48 +246,47 @@ void set_disassembly_cpu( debug_info_t data, const gchar *cpu )
 		data->disasm_from = data->disasm_to = -1; /* Force reload */
 		set_disassembly_pc( data, *data->cpu->pc, FALSE );
 		init_register_list( data );
-		update_icount( data );
 	    }
 	    return;
 	}
     }
 }
 
-void debug_win_toggle_breakpoint( debug_info_t data, int row )
+void debug_win_toggle_breakpoint( debug_window_t data, int row )
 {
     uint32_t pc = row_to_address( data, row );
     int oldType = data->cpu->get_breakpoint( pc );
     if( oldType != BREAK_NONE ) {
 	data->cpu->clear_breakpoint( pc, oldType );
-	gtk_clist_set_background( data->disasm_list, row, &clrWhite );
+	gtk_clist_set_background( data->disasm_list, row, &gui_colour_white );
     } else {
 	data->cpu->set_breakpoint( pc, BREAK_KEEP );
-	gtk_clist_set_background( data->disasm_list, row, &clrBreak );
+	gtk_clist_set_background( data->disasm_list, row, &gui_colour_break );
     }
 }
 
-void debug_win_set_oneshot_breakpoint( debug_info_t data, int row )
+void debug_win_set_oneshot_breakpoint( debug_window_t data, int row )
 {
     uint32_t pc = row_to_address( data, row );
     data->cpu->clear_breakpoint( pc, BREAK_ONESHOT );
     data->cpu->set_breakpoint( pc, BREAK_ONESHOT );
-    gtk_clist_set_background( data->disasm_list, row, &clrTempBreak );
+    gtk_clist_set_background( data->disasm_list, row, &gui_colour_temp_break );
 }
 
 /**
  * Execute a single instruction using the current CPU mode.
  */
-void debug_win_single_step( debug_info_t data )
+void debug_win_single_step( debug_window_t data )
 {
     data->cpu->step_func();
     gtk_gui_update();
 }
 
-uint32_t row_to_address( debug_info_t data, int row ) {
+uint32_t row_to_address( debug_window_t data, int row ) {
     return data->cpu->instr_size * row + data->disasm_from;
 }
 
-int address_to_row( debug_info_t data, uint32_t address ) {
+int address_to_row( debug_window_t data, uint32_t address ) {
     if( data->disasm_from > address || data->disasm_to <= address )
 	return -1;
     return (address - data->disasm_from) / data->cpu->instr_size;
@@ -292,11 +300,12 @@ void emit( void *ptr, int level, const gchar *source, const char *msg, ... )
     int posn;
     time_t tm = time(NULL);
     va_list ap;
-    debug_info_t data;
+    debug_window_t data = NULL;
+    /*
     if( ptr == NULL )
-	data = main_debug;
-    else data = (debug_info_t)ptr;
-
+	data = debug_win;
+    else data = (debug_window_t)ptr;
+    */
     if( level > global_msg_level ) {
 	return; // ignored
     }
@@ -329,21 +338,21 @@ void emit( void *ptr, int level, const gchar *source, const char *msg, ... )
         gtk_main_iteration();
 }
 
-debug_info_t get_debug_info( GtkWidget *widget ) {
+debug_window_t get_debug_info( GtkWidget *widget ) {
     
     GtkWidget *win = gtk_widget_get_toplevel(widget);
-    debug_info_t data = (debug_info_t)gtk_object_get_data( GTK_OBJECT(win), "debug_data" );
+    debug_window_t data = (debug_window_t)gtk_object_get_data( GTK_OBJECT(win), "debug_data" );
     return data;
 }
 
-void debug_win_enable_widget( debug_info_t data, const char *name, 
+void debug_win_enable_widget( debug_window_t data, const char *name, 
 			      gboolean enabled )
 {
     GtkWidget *widget = GTK_WIDGET(gtk_object_get_data(GTK_OBJECT(data->win), name));
     gtk_widget_set_sensitive( widget, enabled );
 }    
 
-void debug_win_set_running( debug_info_t data, gboolean isRunning ) 
+void debug_window_set_running( debug_window_t data, gboolean isRunning ) 
 {
     if( data != NULL ) {
 	debug_win_enable_widget( data, "stop_btn", isRunning );

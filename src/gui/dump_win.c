@@ -1,5 +1,5 @@
 /**
- * $Id: dump_win.c,v 1.3 2007-10-08 12:06:01 nkeynes Exp $
+ * $Id: dump_win.c,v 1.4 2007-10-10 11:02:04 nkeynes Exp $
  *
  * Implements the memory dump window.
  *
@@ -19,9 +19,9 @@
 #include <gnome.h>
 #include <ctype.h>
 #include <assert.h>
-#include "gui.h"
-#include "interface.h"
 #include "mem.h"
+#include "gui/gtkui.h"
+#include "gui/debugif.h"
 
 #define MAX_DUMP_SIZE 4096
 
@@ -70,7 +70,7 @@ void dump_window_new( void ) {
                                                   NULL);
     gtk_text_view_set_buffer(data->textArea, data->textBuffer);
     gtk_text_view_set_editable(data->textArea, FALSE);
-    gtk_widget_modify_font(GTK_WIDGET(data->textArea),fixed_list_font);
+    gtk_widget_modify_font(GTK_WIDGET(data->textArea),gui_fixed_font);
         
     g_signal_connect ((gpointer) win, "delete_event",
                       G_CALLBACK (on_dump_win_delete_event),
@@ -81,6 +81,28 @@ void dump_window_new( void ) {
     gtk_widget_show( GTK_WIDGET(win) );
 }
 
+
+
+uint32_t gtk_entry_get_hex_value( GtkEntry *entry, uint32_t defaultValue )
+{
+    const gchar *text = gtk_entry_get_text(entry);
+    if( text == NULL )
+        return defaultValue;
+    gchar *endptr;
+    uint32_t value = strtoul( text, &endptr, 16 );
+    if( text == endptr ) { /* invalid input */
+        value = defaultValue;
+        gtk_entry_set_hex_value( entry, value );
+    }
+    return value;
+}
+
+void gtk_entry_set_hex_value( GtkEntry *entry, uint32_t value )
+{
+    char buf[10];
+    sprintf( buf, "%08X", value );
+    gtk_entry_set_text( entry, buf );
+}
 
         
 gboolean on_dump_win_delete_event( GtkWidget *widget, GdkEvent *event,
