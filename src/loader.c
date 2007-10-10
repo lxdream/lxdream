@@ -1,5 +1,5 @@
 /**
- * $Id: loader.c,v 1.16 2007-10-07 06:21:14 nkeynes Exp $
+ * $Id: loader.c,v 1.17 2007-10-10 11:02:04 nkeynes Exp $
  *
  * File loading routines, mostly for loading demos without going through the
  * whole procedure of making a CD image for them.
@@ -23,7 +23,6 @@
 #include <errno.h>
 #include <stdint.h>
 #include <elf.h>
-#include "gui/gui.h"
 #include "mem.h"
 #include "sh4core.h"
 #include "bootstrap.h"

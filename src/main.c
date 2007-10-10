@@ -1,5 +1,5 @@
 /**
- * $Id: main.c,v 1.27 2007-10-06 09:00:10 nkeynes Exp $
+ * $Id: main.c,v 1.28 2007-10-10 11:02:04 nkeynes Exp $
  *
  * Main program, initializes dreamcast and gui, then passes control off to
  * the gtk main loop (currently). 
@@ -24,8 +24,7 @@
 #endif
 #include <unistd.h>
 #include <getopt.h>
-#include <gnome.h>
-#include "gui/gui.h"
+#include "gui.h"
 #include "dream.h"
 #include "syscall.h"
 #include "mem.h"
@@ -72,6 +71,7 @@ int main (int argc, char *argv[])
     bindtextdomain (PACKAGE, PACKAGE_LOCALE_DIR);
     textdomain (PACKAGE);
 #endif
+    gboolean ui_initialized = gui_parse_cmdline(&argc, &argv);
   
     while( (opt = getopt_long( argc, argv, option_list, longopts, NULL )) != -1 ) {
 	switch( opt ) {
@@ -127,27 +127,12 @@ int main (int argc, char *argv[])
     dreamcast_load_config( config_file );
 
     if( aica_program == NULL ) {
-	if( !headless ) {
-	    gnome_init ("lxdream", VERSION, argc, argv);
-	    dreamcast_init();
-	    dreamcast_register_module( &gtk_gui_module );
-	    if( show_debugger ) {
-		gtk_gui_show_debugger();
-	    }
-	} else {
-	    dreamcast_init();
-	}
-
+	dreamcast_init();
     } else {
 	dreamcast_configure_aica_only();
 	mem_load_block( aica_program, 0x00800000, 2048*1024 );
 	if( s3m_file != NULL ) {
 	    mem_load_block( s3m_file, 0x00810000, 2048*1024 - 0x10000 );
-	}
-	if( !headless ) {
-	    gnome_init ("lxdream", VERSION, argc, argv);
-	    dreamcast_register_module( &gtk_gui_module );
-	    set_disassembly_cpu( main_debug, "ARM7" );
 	}
     }
 
@@ -173,6 +158,8 @@ int main (int argc, char *argv[])
     if( headless ) {
 	display_set_driver( &display_null_driver );
     } else {
+	gui_init(show_debugger);
+
 	gboolean initialized = FALSE;
 	for( i=0; display_driver_list[i] != NULL; i++ ) {
 	    if( strcasecmp( display_driver_list[i]->name, display_driver_name ) == 0 ) {
@@ -211,7 +198,7 @@ int main (int argc, char *argv[])
 	}
     }
     if( !headless ) {
-        gtk_main ();
+	gui_main_loop();
     }
     return 0;
 }

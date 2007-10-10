@@ -34,11 +34,11 @@ lxdream_SOURCES = \
 	pvr2/texcache.c pvr2/yuv.c pvr2/rendsave.c \
         maple/maple.c maple/maple.h \
         maple/controller.c maple/controller.h \
+        gui/gtkui.c gui/gtkui.h gui/main_win.c gui/gtkcb.c \
         gui/support.c gui/support.h \
-        gui/interface.c gui/interface.h \
-        gui/callbacks.c gui/callbacks.h \
-        gui/gui.c gui/gui.h gui/mmr_win.c \
-        gui/debug_win.c gui/dump_win.c \
+        gui/debugif.c gui/debugif.h \
+        gui/debugcb.c gui/debugcb.h \
+        gui/mmr_win.c gui/debug_win.c gui/dump_win.c \
         loader.c bootstrap.c util.c \
 	display.c display.h \
 	drivers/audio_null.c drivers/audio_esd.c \

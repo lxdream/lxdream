@@ -1,5 +1,5 @@
 /**
- * $Id: dream.h,v 1.13 2007-10-06 08:59:42 nkeynes Exp $
+ * $Id: dream.h,v 1.14 2007-10-10 11:02:04 nkeynes Exp $
  *
  * Miscellaneous application-wide declarations (mainly logging atm)
  *
@@ -30,6 +30,7 @@ extern "C" {
 #endif
 
 #define APP_NAME "lxDream"
+#define APP_VERSION "0.8"
 
 /************************ Modules ********************************/
 /**

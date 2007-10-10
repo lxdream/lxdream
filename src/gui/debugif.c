@@ -15,8 +15,8 @@
 #include <bonobo.h>
 #include <gnome.h>
 
-#include "callbacks.h"
-#include "interface.h"
+#include "debugcb.h"
+#include "debugif.h"
 #include "support.h"
 
 #define GLADE_HOOKUP_OBJECT(component,widget,name) \

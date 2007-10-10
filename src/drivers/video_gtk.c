@@ -1,5 +1,5 @@
 /**
- * $Id: video_gtk.c,v 1.12 2007-10-07 05:42:25 nkeynes Exp $
+ * $Id: video_gtk.c,v 1.13 2007-10-10 11:02:04 nkeynes Exp $
  *
  * The PC side of the video support (responsible for actually displaying / 
  * rendering frames)
@@ -23,9 +23,10 @@
 #include "dream.h"
 #include "display.h"
 #include "drivers/video_x11.h"
+#include "gui/gtkui.h"
 
 GdkImage *video_img = NULL;
-GtkWindow *video_win = NULL;
+GtkWidget *video_win = NULL;
 GtkWidget *video_area = NULL;
 uint32_t video_width = 640;
 uint32_t video_height = 480;
@@ -63,17 +64,29 @@ gboolean video_gtk_keyup_callback(GtkWidget       *widget,
     return TRUE;
 }
 
+gboolean video_gtk_expose_callback(GtkWidget *widget, GdkEventExpose *event, gpointer data )
+{
+    /* redisplay last frame */
+}
+
 gboolean video_gtk_init()
 {
+    /*
     video_win = GTK_WINDOW(gtk_window_new( GTK_WINDOW_TOPLEVEL ));
     gtk_window_set_title( video_win, APP_NAME " - Emulation Window" );
     gtk_window_set_policy( video_win, FALSE, FALSE, FALSE );
+    gtk_window_set_default_size( video_win, video_width, video_height );
+    */
     
+    video_win = gtk_gui_get_renderarea();
+
     g_signal_connect( video_win, "key_press_event", 
 		      G_CALLBACK(video_gtk_keydown_callback), NULL );
     g_signal_connect( video_win, "key_release_event", 
 		      G_CALLBACK(video_gtk_keyup_callback), NULL );
-    gtk_widget_add_events( GTK_WIDGET(video_win), 
+    g_signal_connect( video_win, "expose_event",
+		      G_CALLBACK(video_gtk_expose_callback), NULL );
+    gtk_widget_add_events( video_win, 
 			   GDK_KEY_PRESS_MASK | GDK_KEY_RELEASE_MASK |
 			   GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK );
     video_area = gtk_image_new();
@@ -84,7 +97,6 @@ gboolean video_gtk_init()
                                video_width, video_height );
     gtk_image_set_from_image( GTK_IMAGE(video_area), video_img, NULL );
 
-    gtk_window_set_default_size( video_win, video_width, video_height );
 
     return video_glx_init( gdk_x11_display_get_xdisplay( gtk_widget_get_display(GTK_WIDGET(video_win))),
 		    gdk_x11_screen_get_xscreen( gtk_widget_get_screen(GTK_WIDGET(video_win))),
