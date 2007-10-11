@@ -1,5 +1,5 @@
 /**
- * $Id: gl_fbo.c,v 1.3 2007-10-08 11:49:35 nkeynes Exp $
+ * $Id: gl_fbo.c,v 1.4 2007-10-11 11:08:36 nkeynes Exp $
  *
  * GL framebuffer-based driver shell. This requires the EXT_framebuffer_object
  * extension, but is much nicer/faster/etc than pbuffers when it's available.
@@ -249,6 +249,8 @@ static gboolean gl_fbo_display_render_buffer( render_buffer_t buffer )
     glEnable( GL_TEXTURE_RECTANGLE_ARB );
     glBindTexture( GL_TEXTURE_RECTANGLE_ARB, buffer->buf_id );
     glTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE );
+    glTexParameteri( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+    glTexParameteri( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
     glDrawBuffer( GL_FRONT );
     glReadBuffer( GL_FRONT );
     glDisable( GL_ALPHA_TEST );
@@ -265,13 +267,13 @@ static gboolean gl_fbo_display_render_buffer( render_buffer_t buffer )
     glBlendFunc( GL_ONE, GL_ZERO );
     glDisable( GL_DEPTH_TEST );
     glBegin( GL_QUADS );
-    glTexCoord2i( 0, buffer->height );
+    glTexCoord2i( 0.5, buffer->height-0.5 );
     glVertex2f( 0.0, 0.0 );
-    glTexCoord2i( buffer->width, buffer->height );
+    glTexCoord2i( buffer->width-0.5, buffer->height-0.5 );
     glVertex2f( buffer->width, 0.0 );
-    glTexCoord2i( buffer->width, 0 );
+    glTexCoord2i( buffer->width-0.5, 0 );
     glVertex2f( buffer->width, buffer->height );
-    glTexCoord2i( 0, 0 );
+    glTexCoord2i( 0.5, 0.5 );
     glVertex2f( 0.0, buffer->height );
     glEnd();
     glDisable( GL_TEXTURE_RECTANGLE_ARB );
