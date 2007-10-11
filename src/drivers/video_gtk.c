@@ -1,5 +1,5 @@
 /**
- * $Id: video_gtk.c,v 1.13 2007-10-10 11:02:04 nkeynes Exp $
+ * $Id: video_gtk.c,v 1.14 2007-10-11 08:20:38 nkeynes Exp $
  *
  * The PC side of the video support (responsible for actually displaying / 
  * rendering frames)
@@ -25,11 +25,9 @@
 #include "drivers/video_x11.h"
 #include "gui/gtkui.h"
 
-GdkImage *video_img = NULL;
-GtkWidget *video_win = NULL;
-GtkWidget *video_area = NULL;
-uint32_t video_width = 640;
-uint32_t video_height = 480;
+static GtkWidget *video_win = NULL;
+int video_width = 640;
+int video_height = 480;
 
 gboolean video_gtk_init();
 void video_gtk_shutdown();
@@ -69,6 +67,12 @@ gboolean video_gtk_expose_callback(GtkWidget *widget, GdkEventExpose *event, gpo
     /* redisplay last frame */
 }
 
+gboolean video_gtk_resize_callback(GtkWidget *widget, GdkEventConfigure *event, gpointer data )
+{
+    video_width = event->width;
+    video_height = event->height;
+}
+
 gboolean video_gtk_init()
 {
     /*
@@ -86,22 +90,17 @@ gboolean video_gtk_init()
 		      G_CALLBACK(video_gtk_keyup_callback), NULL );
     g_signal_connect( video_win, "expose_event",
 		      G_CALLBACK(video_gtk_expose_callback), NULL );
+    g_signal_connect( video_win, "configure_event",
+		      G_CALLBACK(video_gtk_resize_callback), NULL );
     gtk_widget_add_events( video_win, 
 			   GDK_KEY_PRESS_MASK | GDK_KEY_RELEASE_MASK |
 			   GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK );
-    video_area = gtk_image_new();
-    gtk_widget_show( GTK_WIDGET(video_area) );
-    gtk_container_add( GTK_CONTAINER(video_win), GTK_WIDGET(video_area) );
-    gtk_widget_show( GTK_WIDGET(video_win) );
-    video_img = gdk_image_new( GDK_IMAGE_FASTEST, gdk_visual_get_system(),
-                               video_width, video_height );
-    gtk_image_set_from_image( GTK_IMAGE(video_area), video_img, NULL );
-
-
+    video_width = video_win->allocation.width;
+    video_height = video_win->allocation.height;
     return video_glx_init( gdk_x11_display_get_xdisplay( gtk_widget_get_display(GTK_WIDGET(video_win))),
-		    gdk_x11_screen_get_xscreen( gtk_widget_get_screen(GTK_WIDGET(video_win))),
-		    GDK_WINDOW_XWINDOW( GTK_WIDGET(video_win)->window ),
-		    video_width, video_height, &display_gtk_driver );
+			   gdk_x11_screen_get_xscreen( gtk_widget_get_screen(GTK_WIDGET(video_win))),
+			   GDK_WINDOW_XWINDOW( GTK_WIDGET(video_win)->window ),
+			   video_width, video_height, &display_gtk_driver );
 }
 
 void video_gtk_shutdown()
