@@ -1,5 +1,5 @@
 /**
- * $Id: dream.h,v 1.14 2007-10-10 11:02:04 nkeynes Exp $
+ * $Id: dream.h,v 1.15 2007-10-11 08:22:03 nkeynes Exp $
  *
  * Miscellaneous application-wide declarations (mainly logging atm)
  *
@@ -103,14 +103,14 @@ extern struct dreamcast_module unknown_module;
 #define MODULE unknown_module
 #endif
 
-void emit( void *, int level, const char *source, const char *msg, ... );
+void log_message( void *, int level, const char *source, const char *msg, ... );
 
-#define FATAL( ... ) emit( NULL, EMIT_FATAL, MODULE.name, __VA_ARGS__ )
-#define ERROR( ... ) emit( NULL, EMIT_ERR, MODULE.name, __VA_ARGS__ )
-#define WARN( ... ) emit( NULL, EMIT_WARN, MODULE.name, __VA_ARGS__ )
-#define INFO( ... ) emit( NULL, EMIT_INFO, MODULE.name, __VA_ARGS__ )
-#define DEBUG( ... ) emit( NULL, EMIT_DEBUG, MODULE.name, __VA_ARGS__ )
-#define TRACE( ... ) emit( NULL, EMIT_TRACE, MODULE.name, __VA_ARGS__ )
+#define FATAL( ... ) log_message( NULL, EMIT_FATAL, MODULE.name, __VA_ARGS__ )
+#define ERROR( ... ) log_message( NULL, EMIT_ERR, MODULE.name, __VA_ARGS__ )
+#define WARN( ... ) log_message( NULL, EMIT_WARN, MODULE.name, __VA_ARGS__ )
+#define INFO( ... ) log_message( NULL, EMIT_INFO, MODULE.name, __VA_ARGS__ )
+#define DEBUG( ... ) log_message( NULL, EMIT_DEBUG, MODULE.name, __VA_ARGS__ )
+#define TRACE( ... ) log_message( NULL, EMIT_TRACE, MODULE.name, __VA_ARGS__ )
 
 void fwrite_string( const char *s, FILE *f );
 int fread_string( char *s, int maxlen, FILE *f );

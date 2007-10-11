@@ -1,5 +1,5 @@
 /**
- * $Id: bootstrap.c,v 1.7 2007-10-06 08:59:42 nkeynes Exp $
+ * $Id: bootstrap.c,v 1.8 2007-10-11 08:22:03 nkeynes Exp $
  *
  * CD Bootstrap header parsing. Mostly for informational purposes.
  *
@@ -128,8 +128,7 @@ void bootstrap_dump( unsigned char *data, gboolean detail )
     INFO( "  Product ID:   %-10.10s   Product Ver: %-6.6s   Date: %-8.8s",
           head->product_id, head->product_ver, head->product_date );
     if( detail ) {
-	emit( NULL, crc == hcrc ? EMIT_INFO : EMIT_WARN, "File", 
-              "  Header CRC:   %04X (Computed %04X)", hcrc, crc );
+	INFO( "  Header CRC:   %04X (Computed %04X)", hcrc, crc );
 	INFO( "  Boot File:    %-16.16s", head->boot_file );
 	INFO( "  Disc ID:      %-11.11s  Regions:      %-8.8s   Peripherals: %07X",
 	      head->gdrom_id, head->regions, periph );

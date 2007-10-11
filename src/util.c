@@ -1,5 +1,5 @@
 /**
- * $Id: util.c,v 1.8 2007-10-07 06:03:22 nkeynes Exp $
+ * $Id: util.c,v 1.9 2007-10-11 08:22:03 nkeynes Exp $
  *
  * Miscellaneous utility functions.
  *
@@ -17,7 +17,15 @@
  */
 
 #include <ctype.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
 #include "dream.h"
+#include "sh4/sh4core.h"
+
+char *msg_levels[] = { "FATAL", "ERROR", "WARN", "INFO", "DEBUG", "TRACE" };
+int global_msg_level = EMIT_WARN;
 
 void fwrite_string( const char *s, FILE *f )
 {
@@ -80,4 +88,26 @@ void fwrite_dump32v( unsigned int *data, unsigned int length, int wordsPerLine, 
 	}
 	fprintf( f, "\n" );
     }
+}
+
+
+void log_message( void *ptr, int level, const gchar *source, const char *msg, ... )
+{
+    char buf[20], addr[10] = "", *p;
+    const gchar *arr[4] = {buf, source, addr};
+    int posn;
+    time_t tm = time(NULL);
+    va_list ap;
+
+    if( level > global_msg_level ) {
+	return; // ignored
+    }
+    va_start(ap, msg);
+
+    strftime( buf, sizeof(buf), "%H:%M:%S", localtime(&tm) );
+
+    fprintf( stderr, "%s %08X %-5s ", buf, sh4r.pc, msg_levels[level] );
+    vfprintf( stderr, msg, ap );
+    fprintf( stderr, "\n" );
+    va_end(ap);
 }

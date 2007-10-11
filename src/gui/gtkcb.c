@@ -1,5 +1,5 @@
 /**
- * $Id: gtkcb.c,v 1.1 2007-10-10 11:02:04 nkeynes Exp $
+ * $Id: gtkcb.c,v 1.2 2007-10-11 08:22:03 nkeynes Exp $
  *
  * Action callbacks from the main window
  *
@@ -159,6 +159,10 @@ void exit_action_callback( GtkAction *action, gpointer user_data)
     exit(0);
 }
 
+void debugger_action_callback( GtkAction *action, gpointer user_data)
+{
+    gtk_gui_show_debugger();
+}
 
 void audio_settings_callback( GtkAction *action, gpointer user_data)
 {
