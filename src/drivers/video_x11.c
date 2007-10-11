@@ -1,5 +1,5 @@
 /**
- * $Id: video_x11.c,v 1.16 2007-10-11 08:20:38 nkeynes Exp $
+ * $Id: video_x11.c,v 1.17 2007-10-11 11:09:10 nkeynes Exp $
  *
  * Shared functions for all X11-based display drivers.
  *
@@ -97,10 +97,16 @@ gboolean video_glx_create_window( int width, int height )
 	return FALSE;
     }
 
+    XVisualInfo query;
+    int query_items = 1;
+    query.visualid = XVisualIDFromVisual(DefaultVisual(video_x11_display, screen));
+    visual = XGetVisualInfo(video_x11_display, VisualIDMask, &query, &query_items );
+
+    
     /* Find ourselves a nice visual */
-    visual = glXChooseVisual( video_x11_display, 
-			      screen,
-			      visual_attrs );
+    //visual = glXChooseVisual( video_x11_display, 
+    //		      screen,
+    //		      visual_attrs );
     if( visual == NULL ) {
 	ERROR( "Unable to obtain a compatible visual" );
 	return FALSE;
@@ -112,14 +118,13 @@ gboolean video_glx_create_window( int width, int height )
 	ERROR( "Unable to obtain a GLX Context. Possibly your system is broken in some small, undefineable way" );
 	return FALSE;
     }
-    
+    #if 0
 
     /* Ok, all good so far. Unfortunately the visual we need to use will 
      * almost certainly be different from the one our frame is using. Which 
      * means we have to jump through the following hoops to create a 
      * child window with the appropriate settings.
      */
-#if 0
     win_attrs.event_mask = 0;
     win_attrs.colormap = XCreateColormap( video_x11_display, 
 					  RootWindowOfScreen(video_x11_screen),
@@ -132,15 +137,18 @@ gboolean video_glx_create_window( int width, int height )
     if( glx_window == None ) {
 	/* Hrm. Aww, no window? */
 	ERROR( "Unable to create GLX window" );
-	glXDestroyContext( video_x11_display, glx_context );
+	glXDestroyContext( video_x11_display, gtl_context );
 	if( win_attrs.colormap ) 
 	    XFreeColormap( video_x11_display, win_attrs.colormap );
 	return FALSE;
     }
     XMapRaised( video_x11_display, glx_window );
-#endif
+    #endif
+
+    glx_window = video_x11_window;
+
     /* And finally set the window to be the active drawing area */
-    if( glXMakeCurrent( video_x11_display, video_x11_window, glx_context ) == False ) {
+    if( glXMakeCurrent( video_x11_display, glx_window, glx_context ) == False ) {
 	/* Ok you have _GOT_ to be kidding me */
 	ERROR( "Unable to prepare GLX window for drawing" );
 	XDestroyWindow( video_x11_display, glx_window );
