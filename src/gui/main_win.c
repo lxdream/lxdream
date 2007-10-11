@@ -1,5 +1,5 @@
 /**
- * $Id: main_win.c,v 1.1 2007-10-10 11:02:04 nkeynes Exp $
+ * $Id: main_win.c,v 1.2 2007-10-11 08:22:03 nkeynes Exp $
  *
  * Define the main (emu) GTK window, along with its menubars,
  * toolbars, etc.
@@ -44,6 +44,7 @@ static const GtkActionEntry ui_actions[] = {
     { "Run", GTK_STOCK_MEDIA_PLAY, "Resume", NULL, "Resume", G_CALLBACK(resume_action_callback) },
     { "LoadState", GTK_STOCK_REVERT_TO_SAVED, "_Load state...", "F4", "Load an lxdream save state", G_CALLBACK(load_state_action_callback) },
     { "SaveState", GTK_STOCK_SAVE_AS, "_Save state...", "F3", "Create an lxdream save state", G_CALLBACK(save_state_action_callback) },
+    { "Debugger", NULL, "_Debugger", NULL, "Open debugger window", G_CALLBACK(debugger_action_callback) },
     { "Exit", GTK_STOCK_QUIT, "E_xit", NULL, "Exit lxdream", G_CALLBACK(exit_action_callback) },
     { "AudioSettings", NULL, "_Audio...", NULL, "Configure audio output", G_CALLBACK(audio_settings_callback) },
     { "ControllerSettings", NULL, "_Controllers...", NULL, "Configure controllers", G_CALLBACK(controller_settings_callback) },
@@ -68,6 +69,7 @@ static const char *ui_description =
     "   <separator/>"
     "   <menuitem action='LoadState'/>"
     "   <menuitem action='SaveState'/>"
+    "   <menuitem action='Debugger'/>"
     "   <separator/>"
     "   <menuitem action='Exit'/>"
     "  </menu>"
@@ -109,6 +111,7 @@ main_window_t main_window_new( const gchar *title )
     GtkWidget *vbox;
     GtkUIManager *ui_manager;
     GtkAccelGroup *accel_group;
+    GtkWidget *frame;
     GError *error = NULL;
     main_window_t win = g_malloc0( sizeof(struct main_window_info) );
 
@@ -141,17 +144,22 @@ main_window_t main_window_new( const gchar *title )
     win->video = gtk_drawing_area_new();
     GTK_WIDGET_SET_FLAGS(win->video, GTK_CAN_FOCUS|GTK_CAN_DEFAULT);
     gtk_widget_set_size_request( win->video, 640, 480 ); 
+    frame = gtk_frame_new(NULL);
+    gtk_frame_set_shadow_type( GTK_FRAME(frame), GTK_SHADOW_IN );
+    gtk_container_add( GTK_CONTAINER(frame), win->video );
+
     win->statusbar = gtk_statusbar_new();
 
     vbox = gtk_vbox_new(FALSE, 0);
     gtk_container_add( GTK_CONTAINER(win->window), vbox );
     gtk_box_pack_start( GTK_BOX(vbox), win->menubar, FALSE, FALSE, 0 );
     gtk_box_pack_start( GTK_BOX(vbox), win->toolbar, FALSE, FALSE, 0 );
-    gtk_box_pack_start( GTK_BOX(vbox), win->video, TRUE, TRUE, 1 );
+    gtk_box_pack_start( GTK_BOX(vbox), frame, TRUE, TRUE, 0 );
     gtk_box_pack_start( GTK_BOX(vbox), win->statusbar, FALSE, FALSE, 0 );
     gtk_widget_show_all( win->window );
     gtk_widget_grab_focus( win->video );
     
+    gtk_statusbar_push( GTK_STATUSBAR(win->statusbar), 1, "Stopped" );
     return win;
 }
 
@@ -159,11 +167,24 @@ void main_window_set_running( main_window_t win, gboolean running )
 {
     SET_ACTION_ENABLED( win, "Pause", running );
     SET_ACTION_ENABLED( win, "Run", !running );
+    gtk_statusbar_pop( GTK_STATUSBAR(win->statusbar), 1 );
+    gtk_statusbar_push( GTK_STATUSBAR(win->statusbar), 1, running ? "Running" : "Stopped" );
 }
 
 void main_window_set_framerate( main_window_t win, float rate )
 {
 
+
+}
+
+void main_window_set_speed( main_window_t win, double speed )
+{
+    char buf[32];
+
+    snprintf( buf, 32, "Running (%2.4f%)", speed );
+    gtk_statusbar_pop( GTK_STATUSBAR(win->statusbar), 1 );
+    gtk_statusbar_push( GTK_STATUSBAR(win->statusbar), 1, buf );
+    
 
 }
 

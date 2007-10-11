@@ -1,5 +1,5 @@
 /**
- * $Id: gtkui.h,v 1.1 2007-10-10 11:02:04 nkeynes Exp $
+ * $Id: gtkui.h,v 1.2 2007-10-11 08:22:03 nkeynes Exp $
  *
  * Core GTK-based user interface
  *
@@ -38,6 +38,7 @@ main_window_t main_window_new( const gchar *title );
 GtkWidget *main_window_get_renderarea( main_window_t win );
 void main_window_set_running( main_window_t win, gboolean running );
 void main_window_set_framerate( main_window_t win, float rate );
+void main_window_set_speed( main_window_t win, double speed );
 
 debug_window_t debug_window_new();
 
@@ -62,6 +63,7 @@ void resume_action_callback( GtkAction *action, gpointer user_data);
 void load_state_action_callback( GtkAction *action, gpointer user_data);
 void save_state_action_callback( GtkAction *action, gpointer user_data);
 void about_action_callback( GtkAction *action, gpointer user_data);
+void debugger_action_callback( GtkAction *action, gpointer user_data);
 void exit_action_callback( GtkAction *action, gpointer user_data);
 
 void audio_settings_callback( GtkAction *action, gpointer user_data);

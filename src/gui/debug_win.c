@@ -1,5 +1,5 @@
 /**
- * $Id: debug_win.c,v 1.23 2007-10-10 11:02:04 nkeynes Exp $
+ * $Id: debug_win.c,v 1.24 2007-10-11 08:22:03 nkeynes Exp $
  * This file is responsible for the main debugger gui frame.
  *
  * Copyright (c) 2005 Nathan Keynes.
@@ -28,8 +28,6 @@
 
 GdkColor *msg_colors[] = { &gui_colour_error, &gui_colour_error, &gui_colour_warn, 
 			   &gui_colour_normal,&gui_colour_debug, &gui_colour_trace };
-char *msg_levels[] = { "FATAL", "ERROR", "WARN", "INFO", "DEBUG", "TRACE" };
-int global_msg_level = EMIT_WARN;
 
 const cpu_desc_t cpu_list[4] = { &sh4_cpu_desc, &arm_cpu_desc, &armt_cpu_desc, NULL };
 
@@ -292,7 +290,7 @@ int address_to_row( debug_window_t data, uint32_t address ) {
     return (address - data->disasm_from) / data->cpu->instr_size;
 }
 
-
+#if 0
 void emit( void *ptr, int level, const gchar *source, const char *msg, ... )
 {
     char buf[20], addr[10] = "", *p;
@@ -337,7 +335,7 @@ void emit( void *ptr, int level, const gchar *source, const char *msg, ... )
     while( gtk_events_pending() )
         gtk_main_iteration();
 }
-
+#endif
 debug_window_t get_debug_info( GtkWidget *widget ) {
     
     GtkWidget *win = gtk_widget_get_toplevel(widget);

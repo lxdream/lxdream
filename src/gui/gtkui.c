@@ -1,5 +1,5 @@
 /**
- * $Id: gtkui.c,v 1.1 2007-10-10 11:02:04 nkeynes Exp $
+ * $Id: gtkui.c,v 1.2 2007-10-11 08:22:03 nkeynes Exp $
  *
  * Core GTK-based user interface
  *
@@ -16,6 +16,8 @@
  * GNU General Public License for more details.
  */
 
+#include <sys/time.h>
+#include <time.h>
 #include "dream.h"
 #include "dreamcast.h"
 #include "gui/gtkui.h"
@@ -45,7 +47,7 @@ static mmio_window_t mmio_win = NULL;
  * Count of running nanoseconds - used to cut back on the GUI runtime
  */
 static uint32_t gtk_gui_nanos = 0;
-
+static struct timeval gtk_gui_lasttv;
 
 gboolean gui_parse_cmdline( int *argc, char **argv[] )
 {
@@ -97,6 +99,8 @@ void gtk_gui_start( void )
     if( debug_win != NULL ) {
 	debug_window_set_running( debug_win, TRUE );
     }
+    gtk_gui_nanos = 0;
+    gettimeofday(&gtk_gui_lasttv,NULL);
 }
 
 /**
@@ -129,10 +133,18 @@ uint32_t gtk_gui_run_slice( uint32_t nanosecs )
 {
     gtk_gui_nanos += nanosecs;
     if( gtk_gui_nanos > 100000000 ) { 
-	gtk_gui_nanos = 0;
+	struct timeval tv;
 	while( gtk_events_pending() )
 	    gtk_main_iteration();
-	//	main_window_set_framerate( main_win, pvr2_get_frame_rate() );
+	
+	gettimeofday(&tv,NULL);
+	double ns = ((tv.tv_sec - gtk_gui_lasttv.tv_sec) * 1000000000.0) +
+	    ((tv.tv_usec - gtk_gui_lasttv.tv_usec)*1000.0);
+	double speed = (float)( (double)gtk_gui_nanos * 100.0 / ns );
+	gtk_gui_lasttv.tv_sec = tv.tv_sec;
+	gtk_gui_lasttv.tv_usec = tv.tv_usec;
+	main_window_set_speed( main_win, speed );
+	gtk_gui_nanos = 0;
     }
     return nanosecs;
 }
