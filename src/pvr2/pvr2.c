@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.c,v 1.46 2007-10-09 08:48:28 nkeynes Exp $
+ * $Id: pvr2.c,v 1.47 2007-10-13 03:59:32 nkeynes Exp $
  *
  * PVR2 (Video) Core module implementation and MMIO registers.
  *
@@ -85,8 +85,9 @@ struct pvr2_state {
     gboolean interlaced;
 } pvr2_state;
 
-render_buffer_t render_buffers[MAX_RENDER_BUFFERS];
-int render_buffer_count = 0;
+static render_buffer_t render_buffers[MAX_RENDER_BUFFERS];
+static int render_buffer_count = 0;
+static render_buffer_t displayed_render_buffer = NULL;
 
 /**
  * Event handler for the hpos callback
@@ -136,6 +137,7 @@ static void pvr2_init( void )
 	render_buffers[i] = NULL;
     }
     render_buffer_count = 0;
+    displayed_render_buffer = NULL;
 }
 
 static void pvr2_reset( void )
@@ -245,10 +247,12 @@ void pvr2_display_frame( void )
     } else if( !bEnabled ) {
 	/* Output disabled == black */
 	display_driver->display_blank( 0 ); 
+	displayed_render_buffer = NULL;
     } else if( MMIO_READ( PVR2, DISP_CFG2 ) & 0x08 ) { 
 	/* Enabled but blanked - border colour */
 	uint32_t colour = MMIO_READ( PVR2, DISP_BORDER );
 	display_driver->display_blank( colour );
+	displayed_render_buffer = NULL;
     } else {
 	/* Real output - determine dimensions etc */
 	struct frame_buffer fbuf;
@@ -289,6 +293,7 @@ void pvr2_display_frame( void )
 	fbuf.address = (fbuf.address & 0x00FFFFFF) + PVR2_RAM_BASE;
 
 	render_buffer_t rbuf = pvr2_get_render_buffer( &fbuf );
+	displayed_render_buffer = rbuf;
 	if( rbuf != NULL ) {
 	    display_driver->display_render_buffer( rbuf );
 	} else {
@@ -744,12 +749,20 @@ render_buffer_t pvr2_next_render_buffer()
 	if( render_buffers[i]->width == width && render_buffers[i]->height == height ) {
 	    /* needs to be the right dimensions */
 	    if( render_buffers[i]->address == render_addr ) {
-		/* perfect */
-		result = render_buffers[i];
-		break;
-	    } else if( render_buffers[i]->address == -1 && result == NULL ) {
+		if( displayed_render_buffer == render_buffers[i] ) {
+		    /* Same address, but we can't use it because the
+		     * display has it. Mark it as unaddressed for later.
+		    render_buffers[i]->address = -1;
+		} else {
+		    /* perfect */
+		    result = render_buffers[i];
+		    break;
+		}
+	    } else if( render_buffers[i]->address == -1 && result == NULL && 
+		       displayed_render_buffer != render_buffers[i] ) {
 		result = render_buffers[i];
 	    }
+	    
 	} else if( render_buffers[i]->address == render_addr ) {
 	    /* right address, wrong size - if it's larger, flush it, otherwise 
 	     * nuke it quietly */
@@ -769,7 +782,8 @@ render_buffer_t pvr2_next_render_buffer()
 	    uint32_t field2_addr = MMIO_READ( PVR2, DISP_ADDR2 );
 	    for( i=0; i<render_buffer_count; i++ ) {
 		if( render_buffers[i]->address != field1_addr &&
-		    render_buffers[i]->address != field2_addr ) {
+		    render_buffers[i]->address != field2_addr &&
+		    render_buffers[i] != displayed_render_buffer ) {
 		    /* Never throw away the current "front buffer(s)" */
 		    result = render_buffers[i];
 		    pvr2_render_buffer_copy_to_sh4( result );
