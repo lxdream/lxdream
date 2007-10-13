@@ -1,5 +1,5 @@
 /**
- * $Id: video_gtk.c,v 1.14 2007-10-11 08:20:38 nkeynes Exp $
+ * $Id: video_gtk.c,v 1.15 2007-10-13 04:01:02 nkeynes Exp $
  *
  * The PC side of the video support (responsible for actually displaying / 
  * rendering frames)
@@ -64,24 +64,20 @@ gboolean video_gtk_keyup_callback(GtkWidget       *widget,
 
 gboolean video_gtk_expose_callback(GtkWidget *widget, GdkEventExpose *event, gpointer data )
 {
-    /* redisplay last frame */
+    gl_redisplay_last();
+    return TRUE;
 }
 
 gboolean video_gtk_resize_callback(GtkWidget *widget, GdkEventConfigure *event, gpointer data )
 {
     video_width = event->width;
     video_height = event->height;
+    gl_redisplay_last();
+    return TRUE;
 }
 
 gboolean video_gtk_init()
 {
-    /*
-    video_win = GTK_WINDOW(gtk_window_new( GTK_WINDOW_TOPLEVEL ));
-    gtk_window_set_title( video_win, APP_NAME " - Emulation Window" );
-    gtk_window_set_policy( video_win, FALSE, FALSE, FALSE );
-    gtk_window_set_default_size( video_win, video_width, video_height );
-    */
-    
     video_win = gtk_gui_get_renderarea();
 
     g_signal_connect( video_win, "key_press_event", 
@@ -95,6 +91,7 @@ gboolean video_gtk_init()
     gtk_widget_add_events( video_win, 
 			   GDK_KEY_PRESS_MASK | GDK_KEY_RELEASE_MASK |
 			   GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK );
+    gtk_widget_set_double_buffered( video_win, FALSE );
     video_width = video_win->allocation.width;
     video_height = video_win->allocation.height;
     return video_glx_init( gdk_x11_display_get_xdisplay( gtk_widget_get_display(GTK_WIDGET(video_win))),

@@ -1,5 +1,5 @@
 /**
- * $Id: gl_common.h,v 1.3 2007-10-08 11:49:35 nkeynes Exp $
+ * $Id: gl_common.h,v 1.4 2007-10-13 04:01:02 nkeynes Exp $
  *
  * Parent for all X11 display drivers.
  *
@@ -40,6 +40,20 @@ gboolean gl_display_frame_buffer( frame_buffer_t frame );
  */
 gboolean gl_display_blank( uint32_t colour );
 
+/**
+ * Copy the frame buffer contents to the specified texture id
+ */
+void gl_frame_buffer_to_tex_rectangle( frame_buffer_t frame, GLuint texid );
+
+/**
+ * Write a rectangular texture (GL_TEXTURE_RECTANGLE_ARB) to the display frame
+ */
+void gl_display_tex_rectangle( GLuint texid, uint32_t texwidth, uint32_t texheight, gboolean invert );
+
+/**
+ * Redisplay the last frame.
+ */
+void gl_redisplay_last();
 
 /**
  * Generic GL read_render_buffer. This function assumes that the caller

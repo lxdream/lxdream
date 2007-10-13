@@ -1,5 +1,5 @@
 /**
- * $Id: gl_fbo.c,v 1.4 2007-10-11 11:08:36 nkeynes Exp $
+ * $Id: gl_fbo.c,v 1.5 2007-10-13 04:01:02 nkeynes Exp $
  *
  * GL framebuffer-based driver shell. This requires the EXT_framebuffer_object
  * extension, but is much nicer/faster/etc than pbuffers when it's available.
@@ -245,14 +245,16 @@ static gboolean gl_fbo_display_render_buffer( render_buffer_t buffer )
 {
     glFinish();
     glBindFramebufferEXT( GL_FRAMEBUFFER_EXT, 0 ); // real window
+    glDrawBuffer( GL_FRONT );
+    glReadBuffer( GL_FRONT );
+    gl_display_tex_rectangle( buffer->buf_id, buffer->width, buffer->height, TRUE );
+    /*
     glViewport( 0, 0, video_width, video_height );
     glEnable( GL_TEXTURE_RECTANGLE_ARB );
     glBindTexture( GL_TEXTURE_RECTANGLE_ARB, buffer->buf_id );
     glTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE );
     glTexParameteri( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
     glTexParameteri( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-    glDrawBuffer( GL_FRONT );
-    glReadBuffer( GL_FRONT );
     glDisable( GL_ALPHA_TEST );
     glDisable( GL_DEPTH_TEST );
     glDisable( GL_SCISSOR_TEST );
@@ -278,6 +280,7 @@ static gboolean gl_fbo_display_render_buffer( render_buffer_t buffer )
     glEnd();
     glDisable( GL_TEXTURE_RECTANGLE_ARB );
     glFlush();
+    */
     return TRUE;
 }
 

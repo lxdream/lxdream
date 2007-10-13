@@ -1,5 +1,5 @@
 /**
- * $Id: gl_common.c,v 1.3 2007-10-08 11:49:35 nkeynes Exp $
+ * $Id: gl_common.c,v 1.4 2007-10-13 04:01:02 nkeynes Exp $
  *
  * Common GL code that doesn't depend on a specific implementation
  *
@@ -16,11 +16,20 @@
  * GNU General Public License for more details.
  */
 
+#include <sys/time.h>
+
 #include <GL/gl.h>
 #include "dream.h"
 #include "drivers/gl_common.h"
 
 extern uint32_t video_width, video_height;
+static GLuint frame_last_texid = 0, fbuf_id = 0;
+static uint32_t frame_width = 0;
+static uint32_t frame_height = 0;
+static uint32_t frame_colour = 0;
+static gboolean frame_inverted = FALSE;
+
+
 
 char *required_extensions[] = { "GL_EXT_framebuffer_object", NULL };
 
@@ -71,55 +80,76 @@ gboolean hasRequiredGLExtensions( )
     return isOK;
 }
 
-
-gboolean gl_display_frame_buffer( frame_buffer_t frame )
+void gl_frame_buffer_to_tex_rectangle( frame_buffer_t frame, GLuint texid )
 {
     GLenum type = colour_formats[frame->colour_format].type;
     GLenum format = colour_formats[frame->colour_format].format;
     int bpp = colour_formats[frame->colour_format].bpp;
+    int rowstride = (frame->rowstride / bpp) - frame->width;
+    
+    glPixelStorei( GL_UNPACK_ROW_LENGTH, rowstride );
+    glBindTexture( GL_TEXTURE_RECTANGLE_ARB, texid );
+    glTexImage2D( GL_TEXTURE_RECTANGLE_ARB, 0, GL_RGB,
+		  frame->width, frame->height, 0, format, type, frame->data );
+}
 
+void gl_display_tex_rectangle( GLuint texid, uint32_t tex_width, uint32_t tex_height, gboolean invert )
+{
+    float top, bottom;
+    if( invert ) {
+	top = ((float)tex_height) - 0.5;
+	bottom = 0.5;
+    } else {
+	top = 0.5;
+	bottom = ((float)tex_height) - 0.5;
+    }
+
+    /* Reset display parameters */
     glViewport( 0, 0, video_width, video_height );
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     glOrtho( 0, video_width, video_height, 0, 0, -65535 );
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
-    
-    /* Disable everything */
     glDisable( GL_TEXTURE_2D );
     glDisable( GL_ALPHA_TEST );
     glDisable( GL_DEPTH_TEST );
     glDisable( GL_SCISSOR_TEST );
     glDisable( GL_CULL_FACE );
 
-    float scale = ((float)video_height) / frame->height;
-    int rowstride = (frame->rowstride / bpp) - frame->width;
-    
-    
-    /*
-    glGenTextures( 1, &texid );
-    glBindTexture( GL_TEXTURE_2D, texid );
-    glTexImage2D( GL_TEXTURE_2D, 0, colour_formats[frame->colour_format].int_format,
-		  frame->width, frame->height, 0, format, type, frame->data );
+    /* Render the textured rectangle */
+    glEnable( GL_TEXTURE_RECTANGLE_ARB );
+    glBindTexture( GL_TEXTURE_RECTANGLE_ARB, texid );
+    glTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE );
+    glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glEnable( GL_BLEND );
+    glBlendFunc( GL_ONE, GL_ZERO );
     glBegin( GL_QUADS );
-    glTexCoord2i( 0, 1.0 );
+    glTexCoord2f( 0.5, top );
     glVertex2f( 0.0, 0.0 );
-    glTexCoord2i( 1.0, 1.0 );
-    glVertex2f( frame->width, 0.0 );
-    glTexCoord2i( 1.0, 0.0 );
-    glVertex2f( frame->width, frame->height );
-    glTexCoord2i( 0, 0.0 );
-    glVertex2f( 0.0, frame->height );
+    glTexCoord2f( ((float)tex_width)-0.5, top );
+    glVertex2f( video_width, 0.0 );
+    glTexCoord2f( ((float)tex_width)-0.5, bottom );
+    glVertex2f( video_width, video_height );
+    glTexCoord2f( 0.5, bottom );
+    glVertex2f( 0.0, video_height );
     glEnd();
-    glDeleteTextures( 1, &texid );
-    */
-    glRasterPos2i( 0, 0 );
-    glPixelZoom( 1.0f, -scale );
-    glPixelStorei( GL_UNPACK_ROW_LENGTH, rowstride );
-    glDrawPixels( frame->width, frame->height, format, type,
-		  frame->data );
-    
+    glDisable( GL_TEXTURE_RECTANGLE_ARB );
     glFlush();
+    frame_last_texid = texid;
+    frame_width = tex_width;
+    frame_height = tex_height;
+    frame_inverted = invert;
+}
+
+gboolean gl_display_frame_buffer( frame_buffer_t frame )
+{
+    if( fbuf_id == 0 ) {
+	glGenTextures( 1, &fbuf_id );
+    }
+    gl_frame_buffer_to_tex_rectangle( frame, fbuf_id );
+    gl_display_tex_rectangle( fbuf_id, frame->width, frame->height, FALSE );
     return TRUE;
 }
 
@@ -134,7 +164,18 @@ gboolean gl_display_blank( uint32_t colour )
     glColor3b( (colour >> 16) & 0xFF, (colour >> 8) & 0xFF, colour & 0xFF );
     glRecti(0,0, video_width, video_height );
     glFlush();
+    frame_colour = colour;
+    frame_last_texid = 0;
     return TRUE;
+}
+
+void gl_redisplay_last()
+{
+    if( frame_last_texid == 0 ) {
+	gl_display_blank( frame_colour );
+    } else {
+	gl_display_tex_rectangle( frame_last_texid, frame_width, frame_height, frame_inverted );
+    }
 }
 
 /**
