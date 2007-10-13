@@ -1,5 +1,5 @@
 /**
- * $Id: main_win.c,v 1.2 2007-10-11 08:22:03 nkeynes Exp $
+ * $Id: main_win.c,v 1.3 2007-10-13 03:58:31 nkeynes Exp $
  *
  * Define the main (emu) GTK window, along with its menubars,
  * toolbars, etc.
@@ -69,7 +69,6 @@ static const char *ui_description =
     "   <separator/>"
     "   <menuitem action='LoadState'/>"
     "   <menuitem action='SaveState'/>"
-    "   <menuitem action='Debugger'/>"
     "   <separator/>"
     "   <menuitem action='Exit'/>"
     "  </menu>"
@@ -121,7 +120,9 @@ main_window_t main_window_new( const gchar *title )
     win->actions = gtk_action_group_new("MenuActions");
     gtk_action_group_add_actions( win->actions, ui_actions, G_N_ELEMENTS(ui_actions), win->window );
     gtk_action_group_add_toggle_actions( win->actions, ui_toggle_actions, G_N_ELEMENTS(ui_toggle_actions), win->window );
+    DISABLE_ACTION(win, "AudioSettings");
     DISABLE_ACTION(win, "NetworkSettings");
+    DISABLE_ACTION(win, "VideoSettings");
     
     ui_manager = gtk_ui_manager_new();
     gtk_ui_manager_set_add_tearoffs(ui_manager, TRUE);
