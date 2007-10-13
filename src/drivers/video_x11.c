@@ -1,5 +1,5 @@
 /**
- * $Id: video_x11.c,v 1.17 2007-10-11 11:09:10 nkeynes Exp $
+ * $Id: video_x11.c,v 1.18 2007-10-13 04:00:23 nkeynes Exp $
  *
  * Shared functions for all X11-based display drivers.
  *
@@ -47,9 +47,9 @@ gboolean video_glx_init( Display *display, Screen *screen, Window window,
 {
     video_x11_display = display;
     video_x11_screen = screen;
-    video_x11_window = window;
+    glx_window = video_x11_window = window;
 
-    if( !video_glx_create_window(width,height) ) {
+    if( !video_glx_init_context(glx_window) ) {
 	return FALSE;
     }
 
@@ -75,9 +75,12 @@ gboolean video_glx_init( Display *display, Screen *screen, Window window,
     }
 }
 
-gboolean video_glx_create_window( int width, int height )
+/**
+ * Create a new window with a custom visual - not used at the moment,
+ * but retained for future reference.
+ */
+gboolean video_x11_create_window( int width, int height )
 {
-    int major, minor;
     int visual_attrs[] = { GLX_RGBA, GLX_RED_SIZE, 4, 
 			   GLX_GREEN_SIZE, 4, 
 			   GLX_BLUE_SIZE, 4,
@@ -87,44 +90,12 @@ gboolean video_glx_create_window( int width, int height )
 			   None };
     int screen = XScreenNumberOfScreen(video_x11_screen);
     XVisualInfo *visual;
-
-    if( glXQueryVersion( video_x11_display, &major, &minor ) == False ) {
-	ERROR( "X Display lacks the GLX nature" );
-	return FALSE;
-    }
-    if( major < 1 || minor < 2 ) {
-	ERROR( "X display supports GLX %d.%d, but we need at least 1.2", major, minor );
-	return FALSE;
-    }
-
-    XVisualInfo query;
-    int query_items = 1;
-    query.visualid = XVisualIDFromVisual(DefaultVisual(video_x11_display, screen));
-    visual = XGetVisualInfo(video_x11_display, VisualIDMask, &query, &query_items );
-
-    
     /* Find ourselves a nice visual */
-    //visual = glXChooseVisual( video_x11_display, 
-    //		      screen,
-    //		      visual_attrs );
-    if( visual == NULL ) {
-	ERROR( "Unable to obtain a compatible visual" );
-	return FALSE;
-    }
+    visual = glXChooseVisual( video_x11_display, 
+			      screen,
+			      visual_attrs );
 
-    /* And a matching gl context */
-    glx_context = glXCreateContext( video_x11_display, visual, None, True );
-    if( glx_context == NULL ) {
-	ERROR( "Unable to obtain a GLX Context. Possibly your system is broken in some small, undefineable way" );
-	return FALSE;
-    }
-    #if 0
-
-    /* Ok, all good so far. Unfortunately the visual we need to use will 
-     * almost certainly be different from the one our frame is using. Which 
-     * means we have to jump through the following hoops to create a 
-     * child window with the appropriate settings.
-     */
+    /* Create a child window with the visual in question */
     win_attrs.event_mask = 0;
     win_attrs.colormap = XCreateColormap( video_x11_display, 
 					  RootWindowOfScreen(video_x11_screen),
@@ -137,27 +108,63 @@ gboolean video_glx_create_window( int width, int height )
     if( glx_window == None ) {
 	/* Hrm. Aww, no window? */
 	ERROR( "Unable to create GLX window" );
-	glXDestroyContext( video_x11_display, gtl_context );
 	if( win_attrs.colormap ) 
 	    XFreeColormap( video_x11_display, win_attrs.colormap );
+	XFree(visual);
 	return FALSE;
     }
     XMapRaised( video_x11_display, glx_window );
-    #endif
 
-    glx_window = video_x11_window;
-
-    /* And finally set the window to be the active drawing area */
-    if( glXMakeCurrent( video_x11_display, glx_window, glx_context ) == False ) {
-	/* Ok you have _GOT_ to be kidding me */
-	ERROR( "Unable to prepare GLX window for drawing" );
-	XDestroyWindow( video_x11_display, glx_window );
-	XFreeColormap( video_x11_display, win_attrs.colormap );
-	glXDestroyContext( video_x11_display, glx_context );
-	return FALSE;
-    }
+    XFree(visual);
     return TRUE;
 }
+
+gboolean video_glx_init_context( Window window )
+{
+    XWindowAttributes attr;
+    XVisualInfo *visual;
+    XVisualInfo query;
+    int query_items = 1;
+
+    XGetWindowAttributes(video_x11_display, window, &attr);
+    
+    query.visualid = XVisualIDFromVisual(attr.visual);
+    visual = XGetVisualInfo(video_x11_display, VisualIDMask, &query, &query_items );
+    if( visual == NULL ) {
+	ERROR( "Unable to obtain a compatible visual" );
+	return FALSE;
+    }
+
+    int major, minor;
+    if( glXQueryVersion( video_x11_display, &major, &minor ) == False ) {
+	ERROR( "X Display lacks the GLX nature" );
+	XFree(visual);
+	return FALSE;
+    }
+    if( major < 1 || minor < 2 ) {
+	ERROR( "X display supports GLX %d.%d, but we need at least 1.2", major, minor );
+	XFree(visual);
+	return FALSE;
+    }
+
+    /* And a matching gl context */
+    glx_context = glXCreateContext( video_x11_display, visual, None, True );
+    if( glx_context == NULL ) {
+	ERROR( "Unable to obtain a GLX Context. Possibly your system is broken in some small, undefineable way" );
+	XFree(visual);
+	return FALSE;
+    }
+
+    if( glXMakeCurrent( video_x11_display, window, glx_context ) == False ) {
+	ERROR( "Unable to prepare GLX context for drawing" );
+	glXDestroyContext( video_x11_display, glx_context );
+	XFree(visual);
+	return FALSE;
+    }
+    XFree(visual);
+    return TRUE;
+}
+
 
 void video_glx_shutdown()
 {
