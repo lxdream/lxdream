@@ -1,5 +1,5 @@
 /**
- * $Id: gl_common.c,v 1.4 2007-10-13 04:01:02 nkeynes Exp $
+ * $Id: gl_common.c,v 1.5 2007-10-14 09:30:16 nkeynes Exp $
  *
  * Common GL code that doesn't depend on a specific implementation
  *
@@ -116,6 +116,42 @@ void gl_display_tex_rectangle( GLuint texid, uint32_t tex_width, uint32_t tex_he
     glDisable( GL_DEPTH_TEST );
     glDisable( GL_SCISSOR_TEST );
     glDisable( GL_CULL_FACE );
+    glColor3f( 0,0,0 );
+    
+
+    int x1=0,y1=0,x2=video_width,y2=video_height;
+
+    int ah = video_width * 0.75;
+
+    if( ah > video_height ) {
+	int w = (video_height/0.75);
+	x1 = (video_width - w)/2;
+	x2 -= x1;
+
+	glBegin( GL_QUADS );
+	glVertex2f( 0, 0 );
+	glVertex2f( x1, 0 );
+	glVertex2f( x1, video_height );
+	glVertex2f( 0, video_height);
+	glVertex2f( x2, 0 );
+	glVertex2f( video_width, 0 );
+	glVertex2f( video_width, video_height );
+	glVertex2f( x2, video_height);
+	glEnd();
+    } else if( ah < video_height ) {
+	y1 = (video_height - ah)/2;
+	y2 -= y1;
+	glBegin( GL_QUADS );
+	glVertex2f( 0, 0 );
+	glVertex2f( video_width, 0 );
+	glVertex2f( video_width, y1 );
+	glVertex2f( 0, y1 );
+	glVertex2f( 0, y2 );
+	glVertex2f( video_width, y2 );
+	glVertex2f( video_width, video_height );
+	glVertex2f( 0, video_height );
+	glEnd();
+    }
 
     /* Render the textured rectangle */
     glEnable( GL_TEXTURE_RECTANGLE_ARB );
@@ -127,13 +163,13 @@ void gl_display_tex_rectangle( GLuint texid, uint32_t tex_width, uint32_t tex_he
     glBlendFunc( GL_ONE, GL_ZERO );
     glBegin( GL_QUADS );
     glTexCoord2f( 0.5, top );
-    glVertex2f( 0.0, 0.0 );
+    glVertex2f( x1, y1 );
     glTexCoord2f( ((float)tex_width)-0.5, top );
-    glVertex2f( video_width, 0.0 );
+    glVertex2f( x2, y1 );
     glTexCoord2f( ((float)tex_width)-0.5, bottom );
-    glVertex2f( video_width, video_height );
+    glVertex2f( x2, y2 );
     glTexCoord2f( 0.5, bottom );
-    glVertex2f( 0.0, video_height );
+    glVertex2f( x1, y2 );
     glEnd();
     glDisable( GL_TEXTURE_RECTANGLE_ARB );
     glFlush();
