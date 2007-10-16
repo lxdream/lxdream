@@ -1,5 +1,5 @@
 /**
- * $Id: loader.c,v 1.17 2007-10-10 11:02:04 nkeynes Exp $
+ * $Id: loader.c,v 1.18 2007-10-16 12:28:42 nkeynes Exp $
  *
  * File loading routines, mostly for loading demos without going through the
  * whole procedure of making a CD image for them.
@@ -45,13 +45,14 @@ char *file_loader_extensions[][2] = {
 #define CDI_V2 0x80000004
 #define CDI_V3 0x80000005
 
-int file_load_elf_fd( int fd );
+gboolean file_load_elf_fd( int fd );
 
 
 gboolean file_load_magic( const gchar *filename )
 {
     char buf[32];
     struct stat st;
+    gboolean result = TRUE;
     
     int fd = open( filename, O_RDONLY );
     if( fd == -1 ) {
@@ -90,20 +91,20 @@ gboolean file_load_magic( const gchar *filename )
     } else if( memcmp( buf, "PK\x03\x04", 4 ) == 0 ) {
 	/* ZIP file, aka SBI file */
 	WARN( "SBI files not supported yet" );
+	result = FALSE;
     } else if( memcmp( buf, DREAMCAST_SAVE_MAGIC, 16 ) == 0 ) {
 	/* Save state */
-	dreamcast_load_state( filename );
+	result = (dreamcast_load_state( filename )==0);
     } else if( buf[0] == 0x7F && buf[1] == 'E' && 
 	       buf[2] == 'L' && buf[3] == 'F' ) {
 	/* ELF binary */
 	lseek( fd, 0, SEEK_SET );
-	file_load_elf_fd( fd );
+	result = file_load_elf_fd( fd );
     } else {
-	/* Assume raw binary */
-	file_load_binary( filename );
-    } 
+	result = FALSE;
+    }
     close(fd);
-    return TRUE;
+    return result;
 }
 
 void file_load_postload( int pc )
@@ -139,14 +140,14 @@ gboolean file_load_binary( const gchar *filename )
     }
 }
 
-int file_load_elf_fd( int fd ) 
+gboolean file_load_elf_fd( int fd ) 
 {
     Elf32_Ehdr head;
     Elf32_Phdr phdr;
     int i;
 
     if( read( fd, &head, sizeof(head) ) != sizeof(head) )
-	return -1;
+	return FALSE;
     if( head.e_ident[EI_CLASS] != ELFCLASS32 ||
 	head.e_ident[EI_DATA] != ELFDATA2LSB ||
 	head.e_ident[EI_VERSION] != 1 ||
@@ -154,7 +155,7 @@ int file_load_elf_fd( int fd )
 	head.e_machine != EM_SH ||
 	head.e_version != 1 ) {
 	ERROR( "File is not an SH4 ELF executable file" );
-	return -1;
+	return FALSE;
     }
 
     /* Program headers */
@@ -173,5 +174,5 @@ int file_load_elf_fd( int fd )
     }
     
     file_load_postload( head.e_entry );
-    return 0;
+    return TRUE;
 }

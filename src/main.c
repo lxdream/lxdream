@@ -1,5 +1,5 @@
 /**
- * $Id: main.c,v 1.28 2007-10-10 11:02:04 nkeynes Exp $
+ * $Id: main.c,v 1.29 2007-10-16 12:28:42 nkeynes Exp $
  *
  * Main program, initializes dreamcast and gui, then passes control off to
  * the gtk main loop (currently). 
@@ -179,8 +179,16 @@ int main (int argc, char *argv[])
 
     maple_reattach_all();
     INFO( "%s! ready...", APP_NAME );
-    if( optind < argc ) {
-	file_load_magic( argv[optind] );
+
+    for( ; optind < argc; optind++ ) {
+	gboolean ok = gdrom_mount_image(argv[optind]);
+	if( !ok ) {
+	    ok = file_load_magic( argv[optind] );
+	}
+	if( !ok ) {
+	    ERROR( "Unrecognized file '%s'", argv[optind] );
+	}
+	start_immediately = ok;
     }
 
     if( disc_file != NULL ) {
