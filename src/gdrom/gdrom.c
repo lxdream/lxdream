@@ -1,6 +1,6 @@
 
 /**
- * $Id: gdrom.c,v 1.14 2007-10-09 08:45:00 nkeynes Exp $
+ * $Id: gdrom.c,v 1.15 2007-10-16 12:28:42 nkeynes Exp $
  *
  * GD-Rom  access functions.
  *
@@ -79,9 +79,6 @@ gdrom_disc_t gdrom_image_open( const gchar *filename )
 	}
     }
 
-    if( !recognized ) {
-	ERROR( "Unable to open disc %s: Unsupported format", filename );
-    }
     fclose(f);
     return NULL;
 }
