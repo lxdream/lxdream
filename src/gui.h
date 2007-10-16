@@ -1,5 +1,5 @@
 /**
- * $Id: gui.h,v 1.1 2007-10-10 11:02:04 nkeynes Exp $
+ * $Id: gui.h,v 1.2 2007-10-16 12:36:29 nkeynes Exp $
  *
  * Public GUI declarations (used from elsewhere in the system)
  *
@@ -43,6 +43,8 @@ gboolean gui_init( gboolean debug );
  * exit normally.
  */
 void gui_main_loop(void);
+
+gboolean gui_error_dialog( const char *fmt, ... );
 
 typedef enum { IO_IDE, IO_NETWORK } io_activity_type;
 

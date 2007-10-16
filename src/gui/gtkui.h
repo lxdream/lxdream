@@ -1,5 +1,5 @@
 /**
- * $Id: gtkui.h,v 1.2 2007-10-11 08:22:03 nkeynes Exp $
+ * $Id: gtkui.h,v 1.3 2007-10-16 12:36:29 nkeynes Exp $
  *
  * Core GTK-based user interface
  *
@@ -35,6 +35,7 @@ typedef struct mmio_window_info *mmio_window_t;
  */
 main_window_t main_window_new( const gchar *title );
 
+GtkWindow *main_window_get_frame( main_window_t win );
 GtkWidget *main_window_get_renderarea( main_window_t win );
 void main_window_set_running( main_window_t win, gboolean running );
 void main_window_set_framerate( main_window_t win, float rate );
@@ -66,6 +67,7 @@ void about_action_callback( GtkAction *action, gpointer user_data);
 void debugger_action_callback( GtkAction *action, gpointer user_data);
 void exit_action_callback( GtkAction *action, gpointer user_data);
 
+void path_settings_callback( GtkAction *action, gpointer user_data);
 void audio_settings_callback( GtkAction *action, gpointer user_data);
 void controller_settings_callback( GtkAction *action, gpointer user_data);
 void network_settings_callback( GtkAction *action, gpointer user_data);

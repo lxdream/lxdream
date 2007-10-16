@@ -1,5 +1,5 @@
 /**
- * $Id: gtkcb.c,v 1.2 2007-10-11 08:22:03 nkeynes Exp $
+ * $Id: gtkcb.c,v 1.3 2007-10-16 12:36:29 nkeynes Exp $
  *
  * Action callbacks from the main window
  *
@@ -150,7 +150,8 @@ void about_action_callback( GtkAction *action, gpointer user_data)
 			             "copyright", "(C) 2003-2007 Nathan Keynes",
                                      NULL);
     gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
-    gtk_widget_show(dialog);
+    gtk_dialog_run(GTK_DIALOG(dialog));
+    gtk_widget_destroy(dialog);
     
 }
 
@@ -164,12 +165,17 @@ void debugger_action_callback( GtkAction *action, gpointer user_data)
     gtk_gui_show_debugger();
 }
 
+void path_settings_callback( GtkAction *action, gpointer user_data)
+{
+}
+
 void audio_settings_callback( GtkAction *action, gpointer user_data)
 {
 }
 
 void controller_settings_callback( GtkAction *action, gpointer user_data)
 {
+    controller_dialog_run( NULL );
 }
 
 void network_settings_callback( GtkAction *action, gpointer user_data)

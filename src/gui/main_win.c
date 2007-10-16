@@ -1,5 +1,5 @@
 /**
- * $Id: main_win.c,v 1.3 2007-10-13 03:58:31 nkeynes Exp $
+ * $Id: main_win.c,v 1.4 2007-10-16 12:36:29 nkeynes Exp $
  *
  * Define the main (emu) GTK window, along with its menubars,
  * toolbars, etc.
@@ -46,6 +46,7 @@ static const GtkActionEntry ui_actions[] = {
     { "SaveState", GTK_STOCK_SAVE_AS, "_Save state...", "F3", "Create an lxdream save state", G_CALLBACK(save_state_action_callback) },
     { "Debugger", NULL, "_Debugger", NULL, "Open debugger window", G_CALLBACK(debugger_action_callback) },
     { "Exit", GTK_STOCK_QUIT, "E_xit", NULL, "Exit lxdream", G_CALLBACK(exit_action_callback) },
+    { "PathSettings", NULL, "_Paths...", NULL, "Configure files and paths", G_CALLBACK(path_settings_callback) }, 
     { "AudioSettings", NULL, "_Audio...", NULL, "Configure audio output", G_CALLBACK(audio_settings_callback) },
     { "ControllerSettings", NULL, "_Controllers...", NULL, "Configure controllers", G_CALLBACK(controller_settings_callback) },
     { "NetworkSettings", NULL, "_Network...", NULL, "Configure network settings", G_CALLBACK(network_settings_callback) },
@@ -192,4 +193,9 @@ void main_window_set_speed( main_window_t win, double speed )
 GtkWidget *main_window_get_renderarea( main_window_t win )
 {
     return win->video;
+}
+
+GtkWindow *main_window_get_frame( main_window_t win )
+{
+    return GTK_WINDOW(win->window);
 }
