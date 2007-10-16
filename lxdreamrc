@@ -16,10 +16,9 @@ Device 0 = Sega Controller
   analog right = KP_Right
   analog up = KP_Up
   analog down = KP_Down
-  button X = A, a
-  button Y = S, s
-  button A = Z, z
-  button B = X, x
-  trigger left = D, d
-  trigger right = C, c
-
+  button X = a
+  button Y = s
+  button A = z
+  button B = x
+  trigger left = d
+  trigger right = c

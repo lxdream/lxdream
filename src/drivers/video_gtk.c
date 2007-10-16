@@ -1,5 +1,5 @@
 /**
- * $Id: video_gtk.c,v 1.15 2007-10-13 04:01:02 nkeynes Exp $
+ * $Id: video_gtk.c,v 1.16 2007-10-16 12:38:01 nkeynes Exp $
  *
  * The PC side of the video support (responsible for actually displaying / 
  * rendering frames)
@@ -36,13 +36,36 @@ uint16_t video_gtk_resolve_keysym( const gchar *keysym );
 struct display_driver display_gtk_driver = { "gtk", video_gtk_init, video_gtk_shutdown,
 					     video_gtk_resolve_keysym,
 					     NULL, NULL, NULL, NULL, NULL, NULL, NULL };
-					     
+
+/**
+ * Extract the keyval of the key event if no modifier keys were pressed -
+ * in other words get the keyval of the key by itself. The other way around
+ * would be to use the hardware keysyms directly rather than the keyvals,
+ * but the mapping looks to be messier.
+ */
+uint16_t video_gtk_unmodified_keyval( GdkEventKey *event )
+{
+    GdkKeymap *keymap = gdk_keymap_get_default();
+    guint keyval;
+    
+    gdk_keymap_translate_keyboard_state( keymap, event->hardware_keycode, 0, 0, &keyval, 
+					 NULL, NULL, NULL );
+    return keyval;
+}
 
 gboolean video_gtk_keydown_callback(GtkWidget       *widget,
 				     GdkEventKey     *event,
 				     gpointer         user_data)
 {
-    input_event_keydown( event->keyval );
+    input_event_keydown( video_gtk_unmodified_keyval(event) );
+    return TRUE;
+}
+
+gboolean video_gtk_keyup_callback(GtkWidget       *widget,
+				  GdkEventKey     *event,
+				  gpointer         user_data)
+{
+    input_event_keyup( video_gtk_unmodified_keyval(event) );
     return TRUE;
 }
 
@@ -52,14 +75,6 @@ uint16_t video_gtk_resolve_keysym( const gchar *keysym )
     if( val == GDK_VoidSymbol )
 	return 0;
     return (uint16_t)val;
-}
-
-gboolean video_gtk_keyup_callback(GtkWidget       *widget,
-				  GdkEventKey     *event,
-				  gpointer         user_data)
-{
-    input_event_keyup( event->keyval );
-    return TRUE;
 }
 
 gboolean video_gtk_expose_callback(GtkWidget *widget, GdkEventExpose *event, gpointer data )
