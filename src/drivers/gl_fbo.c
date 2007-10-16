@@ -1,5 +1,5 @@
 /**
- * $Id: gl_fbo.c,v 1.5 2007-10-13 04:01:02 nkeynes Exp $
+ * $Id: gl_fbo.c,v 1.6 2007-10-16 12:27:28 nkeynes Exp $
  *
  * GL framebuffer-based driver shell. This requires the EXT_framebuffer_object
  * extension, but is much nicer/faster/etc than pbuffers when it's available.
@@ -96,6 +96,10 @@ void gl_fbo_init( display_driver_t driver )
     driver->display_frame_buffer = gl_fbo_display_frame_buffer;
     driver->display_blank = gl_fbo_display_blank;
     driver->read_render_buffer = gl_fbo_read_render_buffer;
+
+    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
+    glDrawBuffer(GL_FRONT);
+    glReadBuffer(GL_FRONT);
 }
 
 void gl_fbo_shutdown()
