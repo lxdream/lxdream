@@ -1,5 +1,5 @@
 /**
- * $Id: sh4mem.c,v 1.28 2007-10-08 12:09:06 nkeynes Exp $
+ * $Id: sh4mem.c,v 1.29 2007-10-16 12:36:59 nkeynes Exp $
  * sh4mem.c is responsible for the SH4's access to memory (including memory
  * mapped I/O), using the page maps created in mem.c
  *
@@ -76,7 +76,7 @@ int32_t sh4_read_p4( uint32_t addr )
         if( (addr & 0xFF000000) != 0xF4000000 ) {
 	    /* OC address cache isn't implemented, but don't complain about it.
 	     * Complain about anything else though */
-            ERROR( "Attempted read from unknown P4 region: %08X", addr );
+            WARN( "Attempted read from unknown P4 region: %08X", addr );
         }
         return 0;
     } else {
@@ -96,7 +96,7 @@ void sh4_write_p4( uint32_t addr, int32_t val )
         } else if( (addr & 0xFF000000) != 0xF4000000 ) {
 	    /* OC address cache isn't implemented, but don't complain about it.
 	     * Complain about anything else though */
-            ERROR( "Attempted write to unknown P4 region: %08X", addr );
+            WARN( "Attempted write to unknown P4 region: %08X", addr );
         }
     } else {
 	TRACE_P4IO( "Long write %08X => %08X", io, (addr&0xFFF), val, addr );
@@ -117,7 +117,7 @@ int32_t sh4_read_phys_word( uint32_t addr )
     page = page_map[ (addr & 0x1FFFFFFF) >> 12 ];
     if( ((uint32_t)page) < MAX_IO_REGIONS ) { /* IO Region */
         if( page == NULL ) {
-            ERROR( "Attempted word read to missing page: %08X",
+            WARN( "Attempted word read to missing page: %08X",
                    addr );
             return 0;
         }
@@ -148,7 +148,7 @@ int32_t sh4_read_long( uint32_t addr )
     if( ((uint32_t)page) < MAX_IO_REGIONS ) { /* IO Region */
         int32_t val;
         if( page == NULL ) {
-            ERROR( "Attempted long read to missing page: %08X", addr );
+            WARN( "Attempted long read to missing page: %08X", addr );
             return 0;
         }
         val = io_rgn[(uint32_t)page]->io_read(addr&0xFFF);
@@ -180,7 +180,7 @@ int32_t sh4_read_word( uint32_t addr )
     if( ((uint32_t)page) < MAX_IO_REGIONS ) { /* IO Region */
         int32_t val;
         if( page == NULL ) {
-            ERROR( "Attempted word read to missing page: %08X", addr );
+	    WARN( "Attempted word read to missing page: %08X", addr );
             return 0;
         }
         val = SIGNEXT16(io_rgn[(uint32_t)page]->io_read(addr&0xFFF));
@@ -213,7 +213,7 @@ int32_t sh4_read_byte( uint32_t addr )
     if( ((uint32_t)page) < MAX_IO_REGIONS ) { /* IO Region */
         int32_t val;
         if( page == NULL ) {
-            ERROR( "Attempted byte read to missing page: %08X", addr );
+            WARN( "Attempted byte read to missing page: %08X", addr );
             return 0;
         }
         val = SIGNEXT8(io_rgn[(uint32_t)page]->io_read(addr&0xFFF));
@@ -248,7 +248,7 @@ void sh4_write_long( uint32_t addr, uint32_t val )
     }
 
     if( (addr&0x1FFFFFFF) < 0x200000 ) {
-        ERROR( "Attempted write to read-only memory: %08X => %08X", val, addr);
+        WARN( "Attempted write to read-only memory: %08X => %08X", val, addr);
         sh4_stop();
         return;
     }
@@ -261,7 +261,7 @@ void sh4_write_long( uint32_t addr, uint32_t val )
 	    if( (addr & 0x1F000000) >= 0x04000000 &&
 		(addr & 0x1F000000) < 0x07000000 )
 		return;
-            ERROR( "Long write to missing page: %08X => %08X", val, addr );
+            WARN( "Long write to missing page: %08X => %08X", val, addr );
             return;
         }
         TRACE_IO( "Long write %08X => %08X", page, (addr&0xFFF), val, addr );
@@ -295,14 +295,14 @@ void sh4_write_word( uint32_t addr, uint32_t val )
     }
 
     if( (addr&0x1FFFFFFF) < 0x200000 ) {
-        ERROR( "Attempted write to read-only memory: %08X => %08X", val, addr);
+        WARN( "Attempted write to read-only memory: %08X => %08X", val, addr);
         sh4_stop();
         return;
     }
     page = page_map[ (addr & 0x1FFFFFFF) >> 12 ];
     if( ((uint32_t)page) < MAX_IO_REGIONS ) { /* IO Region */
         if( page == NULL ) {
-            ERROR( "Attempted word write to missing page: %08X", addr );
+            WARN( "Attempted word write to missing page: %08X", addr );
             return;
         }
         TRACE_IO( "Word write %04X => %08X", page, (addr&0xFFF), val&0xFFFF, addr );
@@ -336,14 +336,14 @@ void sh4_write_byte( uint32_t addr, uint32_t val )
     }
     
     if( (addr&0x1FFFFFFF) < 0x200000 ) {
-        ERROR( "Attempted write to read-only memory: %08X => %08X", val, addr);
+        WARN( "Attempted write to read-only memory: %08X => %08X", val, addr);
         sh4_stop();
         return;
     }
     page = page_map[ (addr & 0x1FFFFFFF) >> 12 ];
     if( ((uint32_t)page) < MAX_IO_REGIONS ) { /* IO Region */
         if( page == NULL ) {
-            ERROR( "Attempted byte write to missing page: %08X", addr );
+            WARN( "Attempted byte write to missing page: %08X", addr );
             return;
         }
         TRACE_IO( "Byte write %02X => %08X", page, (addr&0xFFF), val&0xFF, addr );
@@ -364,7 +364,7 @@ void mem_copy_from_sh4( unsigned char *dest, uint32_t srcaddr, size_t count ) {
     } else {
 	char *src = mem_get_region(srcaddr);
 	if( src == NULL ) {
-	    ERROR( "Attempted block read from unknown address %08X", srcaddr );
+	    WARN( "Attempted block read from unknown address %08X", srcaddr );
 	} else {
 	    memcpy( dest, src, count );
 	}
@@ -383,7 +383,7 @@ void mem_copy_to_sh4( uint32_t destaddr, unsigned char *src, size_t count ) {
     }
     char *dest = mem_get_region(destaddr);
     if( dest == NULL )
-	ERROR( "Attempted block write to unknown address %08X", destaddr );
+	WARN( "Attempted block write to unknown address %08X", destaddr );
     else {
 	xlat_invalidate_block( destaddr, count );
 	memcpy( dest, src, count );
