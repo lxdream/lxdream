@@ -1,5 +1,5 @@
 /**
- * $Id: util.c,v 1.9 2007-10-11 08:22:03 nkeynes Exp $
+ * $Id: util.c,v 1.10 2007-10-16 12:36:29 nkeynes Exp $
  *
  * Miscellaneous utility functions.
  *
@@ -102,12 +102,23 @@ void log_message( void *ptr, int level, const gchar *source, const char *msg, ..
     if( level > global_msg_level ) {
 	return; // ignored
     }
+
     va_start(ap, msg);
 
-    strftime( buf, sizeof(buf), "%H:%M:%S", localtime(&tm) );
+    if( level <= EMIT_ERR ) {
+	gchar *text = g_strdup_vprintf( msg, ap );
+	if( gui_error_dialog( text ) ) {
+	    g_free(text);
+	    va_end(ap);
+	    return;
+	}
+	g_free(text);
+    }
 
+
+    strftime( buf, sizeof(buf), "%H:%M:%S", localtime(&tm) );
     fprintf( stderr, "%s %08X %-5s ", buf, sh4r.pc, msg_levels[level] );
     vfprintf( stderr, msg, ap );
-    fprintf( stderr, "\n" );
     va_end(ap);
+    fprintf( stderr, "\n" );
 }

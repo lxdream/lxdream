@@ -1,5 +1,5 @@
 /**
- * $Id: maple.h,v 1.5 2006-05-15 08:28:52 nkeynes Exp $
+ * $Id: maple.h,v 1.6 2007-10-16 12:36:29 nkeynes Exp $
  *
  * Maple bus definitions
  *
@@ -89,8 +89,10 @@ struct maple_device {
 
 extern struct maple_device_class controller_class;
 
-maple_device_t maple_new_device( const char *name );
+maple_device_t maple_new_device( const gchar *name );
 maple_device_t maple_get_device( unsigned int port, unsigned int periph );
+const maple_device_class_t maple_get_device_class( const gchar *name );
+const struct maple_device_class **maple_get_device_classes();
 dreamcast_config_entry_t maple_get_device_config( maple_device_t dev );
 
 void maple_handle_buffer( uint32_t buffer );

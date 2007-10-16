@@ -39,6 +39,7 @@ lxdream_SOURCES = \
         gui/debugif.c gui/debugif.h \
         gui/debugcb.c gui/debugcb.h \
         gui/mmr_win.c gui/debug_win.c gui/dump_win.c \
+        gui/ctrl_dlg.c \
         loader.c bootstrap.c util.c \
 	display.c display.h \
 	drivers/audio_null.c drivers/audio_esd.c \

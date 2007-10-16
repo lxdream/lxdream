@@ -1,5 +1,5 @@
 /**
- * $Id: gtkui.c,v 1.2 2007-10-11 08:22:03 nkeynes Exp $
+ * $Id: gtkui.c,v 1.3 2007-10-16 12:36:29 nkeynes Exp $
  *
  * Core GTK-based user interface
  *
@@ -68,6 +68,25 @@ gboolean gui_init( gboolean withDebug )
 void gui_main_loop(void)
 {
     gtk_main();
+}
+
+gboolean gui_error_dialog( const char *msg, ... )
+{
+    if( main_win != NULL ) {
+	va_list args;
+	GtkWidget *dialog = 
+	    gtk_message_dialog_new( main_window_get_frame(main_win), GTK_DIALOG_MODAL|GTK_DIALOG_DESTROY_WITH_PARENT,
+				    GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, NULL );
+	va_start(args, msg);
+	gchar *markup = g_markup_vprintf_escaped( msg, args );
+	va_end( args );
+	gtk_message_dialog_set_markup( GTK_MESSAGE_DIALOG(dialog), markup );
+	g_free(markup);
+	gtk_dialog_run(GTK_DIALOG(dialog));
+	gtk_widget_destroy(dialog);
+	return TRUE;
+    }
+    return FALSE;
 }
 
 void gui_update_io_activity( io_activity_type io, gboolean active )

@@ -1,5 +1,5 @@
 /**
- * $Id: maple.c,v 1.9 2006-06-15 10:33:05 nkeynes Exp $
+ * $Id: maple.c,v 1.10 2007-10-16 12:36:29 nkeynes Exp $
  *
  * Implements the core Maple bus, including DMA transfers to and from the bus.
  *
@@ -37,12 +37,26 @@ void maple_init( void )
 
 maple_device_t maple_new_device( const gchar *name )
 {
+    maple_device_class_t clz = maple_get_device_class(name);
+    if( clz != NULL ) {
+	return clz->new_device();
+    } 
+    return NULL;
+}
+
+const maple_device_class_t maple_get_device_class( const gchar *name )
+{
     int i;
     for( i=0; maple_device_classes[i] != NULL; i++ ) {
 	if( g_strcasecmp(maple_device_classes[i]->name, name ) == 0 )
-	    return maple_device_classes[i]->new_device();
+	    return maple_device_classes[i];
     }
     return NULL;
+}
+
+const struct maple_device_class **maple_get_device_classes()
+{
+    return maple_device_classes;
 }
 
 dreamcast_config_entry_t maple_get_device_config( maple_device_t dev )
@@ -105,8 +119,10 @@ void maple_handle_buffer( uint32_t address ) {
             gun = GETBYTE(1) & 0x01;
             length = GETBYTE(0) & 0xFF;
             return_addr = GETWORD(4);
-            if( return_addr == 0 ) {
-                /* ERROR */
+
+            if( (return_addr & 0x1C000000) != 0x0C000000 ) {
+		ERROR( "Bad return address in maple packet: %08X", return_addr );
+		break;
             }
             return_buf = mem_get_region(return_addr);
             cmd = GETBYTE(8);
@@ -114,10 +130,13 @@ void maple_handle_buffer( uint32_t address ) {
             send_addr = GETBYTE(10);
             /* Sanity checks */
             if( GETBYTE(11) != length ||
-                send_addr != (port<<6) ||
+                send_addr >> 6 != port ||
                 recv_addr >> 6 != port ||
                 return_buf == NULL ) {
-                /* ERROR */
+		ERROR( "Received bad packet: %02X %02X %02X %02X  %02X %02X %02X %02X  %02X %02X %02X %02X",
+		       buf[0], buf[1], buf[2], buf[3], buf[4], buf[5], buf[6], buf[7],
+		       buf[8], buf[9], buf[10], buf[11] );
+		break;
             }
             periph = 0;
             periph_id = recv_addr & 0x3F;
@@ -221,6 +240,7 @@ void maple_handle_buffer( uint32_t address ) {
                 return_buf[3] = out_length;
             }
             buf += 12 + (length<<2);
+	    address += 12 + (length<<2);
         }
         asic_event( EVENT_MAPLE_DMA );
     }
@@ -255,6 +275,9 @@ void maple_detach_device( unsigned int port, unsigned int periph ) {
     maple_devices[port][periph] = NULL;
     if( dev->detach != NULL ) {
         dev->detach(dev);
+    }
+    if( dev->destroy != NULL ) {
+	dev->destroy(dev);
     }
     if( periph == 0 ) {
         /* If we detach the main peripheral, we also have to detach all the
