@@ -1,5 +1,5 @@
 /**
- * $Id: main_win.c,v 1.4 2007-10-16 12:36:29 nkeynes Exp $
+ * $Id: main_win.c,v 1.5 2007-10-17 11:26:45 nkeynes Exp $
  *
  * Define the main (emu) GTK window, along with its menubars,
  * toolbars, etc.
@@ -54,7 +54,7 @@ static const GtkActionEntry ui_actions[] = {
     { "About", GTK_STOCK_ABOUT, "_About...", NULL, "About lxdream", G_CALLBACK(about_action_callback) }
 };
 static const GtkToggleActionEntry ui_toggle_actions[] = {
-    { "FullScreen", NULL, "_Full Screen", "F9", "Toggle full screen video", G_CALLBACK(fullscreen_toggle_callback), 0 },
+    { "FullScreen", NULL, "_Full Screen", "<alt>Return", "Toggle full screen video", G_CALLBACK(fullscreen_toggle_callback), 0 },
 };
     
 
@@ -74,6 +74,7 @@ static const char *ui_description =
     "   <menuitem action='Exit'/>"
     "  </menu>"
     "  <menu action='SettingsMenu'>"
+    "   <menuitem action='PathSettings'/>"
     "   <menuitem action='AudioSettings'/>"
     "   <menuitem action='ControllerSettings'/>"
     "   <menuitem action='NetworkSettings'/>"

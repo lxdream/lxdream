@@ -1,5 +1,5 @@
 /**
- * $Id: gtkui.c,v 1.3 2007-10-16 12:36:29 nkeynes Exp $
+ * $Id: gtkui.c,v 1.4 2007-10-17 11:26:45 nkeynes Exp $
  *
  * Core GTK-based user interface
  *
@@ -209,4 +209,20 @@ void gtk_gui_alloc_resources() {
     gdk_colormap_alloc_color(map, &gui_colour_temp_break, TRUE, TRUE);
     gdk_colormap_alloc_color(map, &gui_colour_white, TRUE, TRUE);
     gui_fixed_font = pango_font_description_from_string("Courier 10");
+}
+
+gint gtk_gui_run_property_dialog( const gchar *title, GtkWidget *panel )
+{
+    GtkWidget *dialog =
+	gtk_dialog_new_with_buttons(title, main_window_get_frame(main_win), 
+				    GTK_DIALOG_MODAL|GTK_DIALOG_DESTROY_WITH_PARENT,
+				    GTK_STOCK_OK, GTK_RESPONSE_ACCEPT,
+				    GTK_STOCK_CANCEL, GTK_RESPONSE_REJECT,
+				    NULL);
+    gint result;
+    gtk_widget_show_all(panel);
+    gtk_container_add( GTK_CONTAINER(GTK_DIALOG(dialog)->vbox), panel );
+    result = gtk_dialog_run( GTK_DIALOG(dialog) );
+    gtk_widget_destroy( dialog );
+    return result;
 }

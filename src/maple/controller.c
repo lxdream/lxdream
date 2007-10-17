@@ -1,5 +1,5 @@
 /**
- * $Id: controller.c,v 1.6 2007-10-08 11:49:35 nkeynes Exp $
+ * $Id: controller.c,v 1.7 2007-10-17 11:26:45 nkeynes Exp $
  *
  * Implements the standard dreamcast controller
  *
@@ -29,14 +29,14 @@ void controller_attach( maple_device_t dev );
 void controller_detach( maple_device_t dev );
 void controller_destroy( maple_device_t dev );
 maple_device_t controller_new();
-dreamcast_config_entry_t controller_get_config( maple_device_t dev );
+lxdream_config_entry_t controller_get_config( maple_device_t dev );
 int controller_get_cond( maple_device_t dev, int function, unsigned char *outbuf,
                          int *outlen );
 
 typedef struct controller_device {
     struct maple_device dev;
     uint32_t condition[2];
-    struct dreamcast_config_entry config[CONTROLLER_CONFIG_ENTRIES];
+    struct lxdream_config_entry config[CONTROLLER_CONFIG_ENTRIES];
 } *controller_device_t;
 
 struct maple_device_class controller_class = { "Sega Controller", controller_new };
@@ -119,7 +119,7 @@ void controller_key_callback( void *mdev, uint32_t value, gboolean isKeyDown )
     }
 }
 
-dreamcast_config_entry_t controller_get_config( maple_device_t mdev )
+lxdream_config_entry_t controller_get_config( maple_device_t mdev )
 {
     controller_device_t dev = (controller_device_t)mdev;
     return dev->config;

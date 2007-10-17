@@ -1,5 +1,5 @@
 /**
- * $Id: gtkcb.c,v 1.3 2007-10-16 12:36:29 nkeynes Exp $
+ * $Id: gtkcb.c,v 1.4 2007-10-17 11:26:45 nkeynes Exp $
  *
  * Action callbacks from the main window
  *
@@ -17,6 +17,7 @@
  */
 
 #include "dream.h"
+#include "config.h"
 #include "dreamcast.h"
 #include "gdrom/gdrom.h"
 #include "gui/gtkui.h"
@@ -113,7 +114,7 @@ void save_file_dialog( char *title, file_callback_t action, char *pattern, char 
 
 void mount_action_callback( GtkAction *action, gpointer user_data)
 {
-    const gchar *dir = dreamcast_get_config_value(CONFIG_DEFAULT_PATH);
+    const gchar *dir = lxdream_get_config_value(CONFIG_DEFAULT_PATH);
     open_file_dialog( "Open...", gdrom_mount_image, NULL, NULL, dir );
 }
 void reset_action_callback( GtkAction *action, gpointer user_data)
@@ -133,12 +134,12 @@ void resume_action_callback( GtkAction *action, gpointer user_data)
 
 void load_state_action_callback( GtkAction *action, gpointer user_data)
 {
-    const gchar *dir = dreamcast_get_config_value(CONFIG_SAVE_PATH);
+    const gchar *dir = lxdream_get_config_value(CONFIG_SAVE_PATH);
     open_file_dialog( "Load state...", dreamcast_load_state, "*.dst", "lxDream Save State (*.dst)", dir );
 }
 void save_state_action_callback( GtkAction *action, gpointer user_data)
 {
-    const gchar *dir = dreamcast_get_config_value(CONFIG_SAVE_PATH);
+    const gchar *dir = lxdream_get_config_value(CONFIG_SAVE_PATH);
     save_file_dialog( "Save state...", dreamcast_save_state, "*.dst", "lxDream Save State (*.dst)", dir );
 }
 void about_action_callback( GtkAction *action, gpointer user_data)
@@ -167,6 +168,7 @@ void debugger_action_callback( GtkAction *action, gpointer user_data)
 
 void path_settings_callback( GtkAction *action, gpointer user_data)
 {
+    path_dialog_run();
 }
 
 void audio_settings_callback( GtkAction *action, gpointer user_data)
@@ -175,7 +177,7 @@ void audio_settings_callback( GtkAction *action, gpointer user_data)
 
 void controller_settings_callback( GtkAction *action, gpointer user_data)
 {
-    controller_dialog_run( NULL );
+    controller_dialog_run( );
 }
 
 void network_settings_callback( GtkAction *action, gpointer user_data)

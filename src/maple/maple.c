@@ -1,5 +1,5 @@
 /**
- * $Id: maple.c,v 1.10 2007-10-16 12:36:29 nkeynes Exp $
+ * $Id: maple.c,v 1.11 2007-10-17 11:26:45 nkeynes Exp $
  *
  * Implements the core Maple bus, including DMA transfers to and from the bus.
  *
@@ -59,7 +59,7 @@ const struct maple_device_class **maple_get_device_classes()
     return maple_device_classes;
 }
 
-dreamcast_config_entry_t maple_get_device_config( maple_device_t dev )
+lxdream_config_entry_t maple_get_device_config( maple_device_t dev )
 {
     if( dev->get_config == NULL )
 	return NULL;

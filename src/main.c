@@ -1,5 +1,5 @@
 /**
- * $Id: main.c,v 1.29 2007-10-16 12:28:42 nkeynes Exp $
+ * $Id: main.c,v 1.30 2007-10-17 11:26:44 nkeynes Exp $
  *
  * Main program, initializes dreamcast and gui, then passes control off to
  * the gtk main loop (currently). 
@@ -19,18 +19,16 @@
  * GNU General Public License for more details.
  */
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
 #include <unistd.h>
 #include <getopt.h>
-#include "gui.h"
 #include "dream.h"
+#include "config.h"
 #include "syscall.h"
 #include "mem.h"
 #include "dreamcast.h"
 #include "display.h"
 #include "loader.h"
+#include "gui.h"
 #include "aica/audio.h"
 #include "gdrom/gdrom.h"
 #include "maple/maple.h"
@@ -45,7 +43,6 @@ char *s3m_file = NULL;
 char *disc_file = NULL;
 char *display_driver_name = "gtk";
 char *audio_driver_name = "esd";
-char *config_file = DEFAULT_CONFIG_FILENAME;
 gboolean start_immediately = FALSE;
 gboolean headless = FALSE;
 gboolean without_bios = FALSE;
@@ -79,7 +76,7 @@ int main (int argc, char *argv[])
 	    aica_program = optarg;
 	    break;
 	case 'c': /* Config file */
-	    config_file = optarg;
+	    lxdream_set_config_filename(optarg);
 	    break;
 	case 'd': /* Mount disc */
 	    disc_file = optarg;
@@ -124,7 +121,7 @@ int main (int argc, char *argv[])
 	}
     }
 
-    dreamcast_load_config( config_file );
+    lxdream_load_config( );
 
     if( aica_program == NULL ) {
 	dreamcast_init();

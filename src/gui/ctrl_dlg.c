@@ -1,5 +1,5 @@
 /**
- * $Id: ctrl_dlg.c,v 1.1 2007-10-16 12:36:29 nkeynes Exp $
+ * $Id: ctrl_dlg.c,v 1.2 2007-10-17 11:26:45 nkeynes Exp $
  *
  * Define the main (emu) GTK window, along with its menubars,
  * toolbars, etc.
@@ -79,7 +79,7 @@ void controller_commit_changes( )
 	    }
 	}
     }
-    dreamcast_save_config("testrc");
+    lxdream_save_config();
 }
 
 void controller_cancel_changes( )
@@ -93,7 +93,7 @@ void controller_cancel_changes( )
     }
 }
 
-GtkWidget *controller_pane_new()
+GtkWidget *controller_panel_new()
 {
     GtkWidget *table = gtk_table_new(4, 3, TRUE);
     GtkTreeIter iter;
@@ -125,7 +125,7 @@ GtkWidget *controller_pane_new()
 	maple_data[i].new_device = device;
 	maple_data[i].combo = combo;
 	maple_data[i].button = button;
-	g_signal_connect( button, "activate", 
+	g_signal_connect( button, "clicked", 
 			  G_CALLBACK( controller_properties_activated ), &maple_data[i] );
 	g_signal_connect( combo, "changed", 
 			  G_CALLBACK( controller_device_changed ), &maple_data[i] );
@@ -136,18 +136,7 @@ GtkWidget *controller_pane_new()
 
 void controller_dialog_run( GtkWindow *parent )
 {
-    GtkWidget *dialog =
-	gtk_dialog_new_with_buttons("Controller Settings", parent, 
-				    GTK_DIALOG_MODAL|GTK_DIALOG_DESTROY_WITH_PARENT,
-				    GTK_STOCK_OK, GTK_RESPONSE_ACCEPT,
-				    GTK_STOCK_CANCEL, GTK_RESPONSE_REJECT,
-				    NULL);
-    GtkWidget *panel = controller_pane_new();
-    gint result;
-    gtk_widget_show_all(panel);
-    gtk_container_add( GTK_CONTAINER(GTK_DIALOG(dialog)->vbox), panel );
-    result = gtk_dialog_run( GTK_DIALOG(dialog) );
-    gtk_widget_destroy( dialog );
+    gint result = gtk_gui_run_property_dialog( "Controller Settings", controller_panel_new() );
     if( result == GTK_RESPONSE_ACCEPT ) {
 	controller_commit_changes();
     } else {

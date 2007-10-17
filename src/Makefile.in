@@ -136,6 +136,7 @@ target_alias = @target_alias@
 INCLUDES = \
 	-DPACKAGE_DATA_DIR=\""$(datadir)"\" \
 	-DPACKAGE_LOCALE_DIR=\""$(prefix)/$(DATADIRNAME)/locale"\" \
+	-DPACKAGE_CONF_DIR=\""$(sysconfdir)"\" \
         -Ish4 \
 	@PACKAGE_CFLAGS@
 
@@ -148,7 +149,7 @@ gendec_SOURCES = tools/gendec.c tools/gendec.h tools/insparse.c tools/actparse.c
 genglsl_SOURCES = tools/genglsl.c
 
 lxdream_SOURCES = \
-        main.c \
+        main.c config.c config.h \
         mem.c mem.h mmio.h watch.c \
         asic.c asic.h \
         syscall.c syscall.h bios.c dcload.c \
@@ -173,7 +174,7 @@ lxdream_SOURCES = \
         gui/debugif.c gui/debugif.h \
         gui/debugcb.c gui/debugcb.h \
         gui/mmr_win.c gui/debug_win.c gui/dump_win.c \
-        gui/ctrl_dlg.c \
+        gui/ctrl_dlg.c gui/path_dlg.c \
         loader.c bootstrap.c util.c \
 	display.c display.h \
 	drivers/audio_null.c drivers/audio_esd.c \
@@ -221,8 +222,8 @@ am_genglsl_OBJECTS = genglsl.$(OBJEXT)
 genglsl_OBJECTS = $(am_genglsl_OBJECTS)
 genglsl_DEPENDENCIES =
 genglsl_LDFLAGS =
-am_lxdream_OBJECTS = main.$(OBJEXT) mem.$(OBJEXT) watch.$(OBJEXT) \
-	asic.$(OBJEXT) syscall.$(OBJEXT) bios.$(OBJEXT) \
+am_lxdream_OBJECTS = main.$(OBJEXT) config.$(OBJEXT) mem.$(OBJEXT) \
+	watch.$(OBJEXT) asic.$(OBJEXT) syscall.$(OBJEXT) bios.$(OBJEXT) \
 	dcload.$(OBJEXT) ide.$(OBJEXT) gdimage.$(OBJEXT) \
 	gdrom.$(OBJEXT) nrg.$(OBJEXT) cdi.$(OBJEXT) linux.$(OBJEXT) \
 	dreamcast.$(OBJEXT) eventq.$(OBJEXT) sh4.$(OBJEXT) \
@@ -239,11 +240,12 @@ am_lxdream_OBJECTS = main.$(OBJEXT) mem.$(OBJEXT) watch.$(OBJEXT) \
 	controller.$(OBJEXT) gtkui.$(OBJEXT) main_win.$(OBJEXT) \
 	gtkcb.$(OBJEXT) support.$(OBJEXT) debugif.$(OBJEXT) \
 	debugcb.$(OBJEXT) mmr_win.$(OBJEXT) debug_win.$(OBJEXT) \
-	dump_win.$(OBJEXT) ctrl_dlg.$(OBJEXT) loader.$(OBJEXT) \
-	bootstrap.$(OBJEXT) util.$(OBJEXT) display.$(OBJEXT) \
-	audio_null.$(OBJEXT) audio_esd.$(OBJEXT) video_null.$(OBJEXT) \
-	video_gtk.$(OBJEXT) video_x11.$(OBJEXT) gl_common.$(OBJEXT) \
-	gl_fbo.$(OBJEXT) gl_sl.$(OBJEXT) gl_slsrc.$(OBJEXT)
+	dump_win.$(OBJEXT) ctrl_dlg.$(OBJEXT) path_dlg.$(OBJEXT) \
+	loader.$(OBJEXT) bootstrap.$(OBJEXT) util.$(OBJEXT) \
+	display.$(OBJEXT) audio_null.$(OBJEXT) audio_esd.$(OBJEXT) \
+	video_null.$(OBJEXT) video_gtk.$(OBJEXT) video_x11.$(OBJEXT) \
+	gl_common.$(OBJEXT) gl_fbo.$(OBJEXT) gl_sl.$(OBJEXT) \
+	gl_slsrc.$(OBJEXT)
 lxdream_OBJECTS = $(am_lxdream_OBJECTS)
 lxdream_DEPENDENCIES =
 lxdream_LDFLAGS =
@@ -270,24 +272,25 @@ am__depfiles_maybe = depfiles
 @AMDEP_TRUE@	./$(DEPDIR)/audio.Po ./$(DEPDIR)/audio_esd.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/audio_null.Po ./$(DEPDIR)/bios.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/bootstrap.Po ./$(DEPDIR)/cdi.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/controller.Po ./$(DEPDIR)/ctrl_dlg.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/dcload.Po ./$(DEPDIR)/debug_win.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/debugcb.Po ./$(DEPDIR)/debugif.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/dis-buf.Po ./$(DEPDIR)/dis-init.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/display.Po ./$(DEPDIR)/dmac.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/dreamcast.Po ./$(DEPDIR)/dump_win.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/eventq.Po ./$(DEPDIR)/gdimage.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/gdrom.Po ./$(DEPDIR)/gendec.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/genglsl.Po ./$(DEPDIR)/gl_common.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/gl_fbo.Po ./$(DEPDIR)/gl_sl.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/gl_slsrc.Po ./$(DEPDIR)/gtkcb.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/gtkui.Po ./$(DEPDIR)/i386-dis.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/ide.Po ./$(DEPDIR)/insparse.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/intc.Po ./$(DEPDIR)/linux.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/loader.Po ./$(DEPDIR)/main.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/main_win.Po ./$(DEPDIR)/maple.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/mem.Po ./$(DEPDIR)/mmr_win.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/nrg.Po ./$(DEPDIR)/pvr2.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/config.Po ./$(DEPDIR)/controller.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/ctrl_dlg.Po ./$(DEPDIR)/dcload.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/debug_win.Po ./$(DEPDIR)/debugcb.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/debugif.Po ./$(DEPDIR)/dis-buf.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/dis-init.Po ./$(DEPDIR)/display.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/dmac.Po ./$(DEPDIR)/dreamcast.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/dump_win.Po ./$(DEPDIR)/eventq.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/gdimage.Po ./$(DEPDIR)/gdrom.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/gendec.Po ./$(DEPDIR)/genglsl.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/gl_common.Po ./$(DEPDIR)/gl_fbo.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/gl_sl.Po ./$(DEPDIR)/gl_slsrc.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/gtkcb.Po ./$(DEPDIR)/gtkui.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/i386-dis.Po ./$(DEPDIR)/ide.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/insparse.Po ./$(DEPDIR)/intc.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/linux.Po ./$(DEPDIR)/loader.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/main.Po ./$(DEPDIR)/main_win.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/maple.Po ./$(DEPDIR)/mem.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/mmr_win.Po ./$(DEPDIR)/nrg.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/path_dlg.Po ./$(DEPDIR)/pvr2.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/pvr2mem.Po ./$(DEPDIR)/rendbkg.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/rendcore.Po ./$(DEPDIR)/render.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/rendsave.Po ./$(DEPDIR)/rendsort.Po \
@@ -386,6 +389,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bios.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bootstrap.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cdi.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/config.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/controller.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ctrl_dlg.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dcload.Po@am__quote@
@@ -421,6 +425,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mem.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mmr_win.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nrg.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/path_dlg.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pvr2.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pvr2mem.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rendbkg.Po@am__quote@
@@ -1662,6 +1667,28 @@ ctrl_dlg.obj: gui/ctrl_dlg.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/ctrl_dlg.Po' tmpdepfile='$(DEPDIR)/ctrl_dlg.TPo' @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o ctrl_dlg.obj `if test -f 'gui/ctrl_dlg.c'; then $(CYGPATH_W) 'gui/ctrl_dlg.c'; else $(CYGPATH_W) '$(srcdir)/gui/ctrl_dlg.c'; fi`
+
+path_dlg.o: gui/path_dlg.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT path_dlg.o -MD -MP -MF "$(DEPDIR)/path_dlg.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o path_dlg.o `test -f 'gui/path_dlg.c' || echo '$(srcdir)/'`gui/path_dlg.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/path_dlg.Tpo" "$(DEPDIR)/path_dlg.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/path_dlg.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gui/path_dlg.c' object='path_dlg.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/path_dlg.Po' tmpdepfile='$(DEPDIR)/path_dlg.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o path_dlg.o `test -f 'gui/path_dlg.c' || echo '$(srcdir)/'`gui/path_dlg.c
+
+path_dlg.obj: gui/path_dlg.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT path_dlg.obj -MD -MP -MF "$(DEPDIR)/path_dlg.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o path_dlg.obj `if test -f 'gui/path_dlg.c'; then $(CYGPATH_W) 'gui/path_dlg.c'; else $(CYGPATH_W) '$(srcdir)/gui/path_dlg.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/path_dlg.Tpo" "$(DEPDIR)/path_dlg.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/path_dlg.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gui/path_dlg.c' object='path_dlg.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/path_dlg.Po' tmpdepfile='$(DEPDIR)/path_dlg.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o path_dlg.obj `if test -f 'gui/path_dlg.c'; then $(CYGPATH_W) 'gui/path_dlg.c'; else $(CYGPATH_W) '$(srcdir)/gui/path_dlg.c'; fi`
 
 audio_null.o: drivers/audio_null.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT audio_null.o -MD -MP -MF "$(DEPDIR)/audio_null.Tpo" \
