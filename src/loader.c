@@ -1,5 +1,5 @@
 /**
- * $Id: loader.c,v 1.18 2007-10-16 12:28:42 nkeynes Exp $
+ * $Id: loader.c,v 1.19 2007-10-17 11:26:45 nkeynes Exp $
  *
  * File loading routines, mostly for loading demos without going through the
  * whole procedure of making a CD image for them.
@@ -27,6 +27,7 @@
 #include "sh4core.h"
 #include "bootstrap.h"
 #include "dreamcast.h"
+#include "config.h"
 #include "loader.h"
 #include "syscall.h"
 
@@ -109,7 +110,7 @@ gboolean file_load_magic( const gchar *filename )
 
 void file_load_postload( int pc )
 {
-    const gchar *bootstrap_file = dreamcast_get_config_value(CONFIG_BOOTSTRAP);
+    const gchar *bootstrap_file = lxdream_get_config_value(CONFIG_BOOTSTRAP);
     if( bootstrap_file != NULL ) {
 	/* Load in a bootstrap before the binary, to initialize everything
 	 * correctly

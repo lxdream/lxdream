@@ -3,6 +3,7 @@
 INCLUDES = \
 	-DPACKAGE_DATA_DIR=\""$(datadir)"\" \
 	-DPACKAGE_LOCALE_DIR=\""$(prefix)/$(DATADIRNAME)/locale"\" \
+	-DPACKAGE_CONF_DIR=\""$(sysconfdir)"\" \
         -Ish4 \
 	@PACKAGE_CFLAGS@
 
@@ -14,7 +15,7 @@ gendec_SOURCES = tools/gendec.c tools/gendec.h tools/insparse.c tools/actparse.c
 genglsl_SOURCES = tools/genglsl.c
 
 lxdream_SOURCES = \
-        main.c \
+        main.c config.c config.h \
         mem.c mem.h mmio.h watch.c \
         asic.c asic.h \
         syscall.c syscall.h bios.c dcload.c \
@@ -39,7 +40,7 @@ lxdream_SOURCES = \
         gui/debugif.c gui/debugif.h \
         gui/debugcb.c gui/debugcb.h \
         gui/mmr_win.c gui/debug_win.c gui/dump_win.c \
-        gui/ctrl_dlg.c \
+        gui/ctrl_dlg.c gui/path_dlg.c \
         loader.c bootstrap.c util.c \
 	display.c display.h \
 	drivers/audio_null.c drivers/audio_esd.c \

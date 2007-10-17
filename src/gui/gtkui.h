@@ -1,5 +1,5 @@
 /**
- * $Id: gtkui.h,v 1.3 2007-10-16 12:36:29 nkeynes Exp $
+ * $Id: gtkui.h,v 1.4 2007-10-17 11:26:45 nkeynes Exp $
  *
  * Core GTK-based user interface
  *
@@ -34,7 +34,6 @@ typedef struct mmio_window_info *mmio_window_t;
  * opaque pointer to the window.
  */
 main_window_t main_window_new( const gchar *title );
-
 GtkWindow *main_window_get_frame( main_window_t win );
 GtkWidget *main_window_get_renderarea( main_window_t win );
 void main_window_set_running( main_window_t win, gboolean running );
@@ -42,14 +41,19 @@ void main_window_set_framerate( main_window_t win, float rate );
 void main_window_set_speed( main_window_t win, double speed );
 
 debug_window_t debug_window_new();
-
 void debug_window_show( debug_window_t win, gboolean show );
 void debug_window_set_running( debug_window_t win, gboolean running );
 void debug_window_update(debug_window_t win);
 
 mmio_window_t mmio_window_new();
-
 void mmio_window_show( mmio_window_t win, gboolean show );
+
+void controller_dialog_run();
+void path_dialog_run();
+
+/********************* Helper functions **********************/
+
+gint gtk_gui_run_property_dialog( const gchar *title, GtkWidget *panel );
 
 /******************** Video driver hooks *********************/
 

@@ -1,5 +1,5 @@
 /**
- * $Id: maple.h,v 1.6 2007-10-16 12:36:29 nkeynes Exp $
+ * $Id: maple.h,v 1.7 2007-10-17 11:26:45 nkeynes Exp $
  *
  * Maple bus definitions
  *
@@ -16,10 +16,11 @@
  * GNU General Public License for more details.
  */
 
-#ifndef dream_maple_H
-#define dream_maple_H 1
+#ifndef lxdream_maple_H
+#define lxdream_maple_H 1
 
-#include "dreamcast.h"
+#include <stdint.h>
+#include "config.h"
 
 #define MAPLE_CMD_INFO        1  /* Request device information */
 #define MAPLE_CMD_EXT_INFO    2  /* Request extended information */
@@ -70,7 +71,7 @@ struct maple_device {
     maple_device_class_t device_class;
     unsigned char ident[112];
     unsigned char version[80];
-    dreamcast_config_entry_t (*get_config)(struct maple_device *dev);
+    lxdream_config_entry_t (*get_config)(struct maple_device *dev);
     void (*attach)(struct maple_device *dev);
     void (*detach)(struct maple_device *dev);
     void (*destroy)(struct maple_device *dev);
@@ -93,7 +94,7 @@ maple_device_t maple_new_device( const gchar *name );
 maple_device_t maple_get_device( unsigned int port, unsigned int periph );
 const maple_device_class_t maple_get_device_class( const gchar *name );
 const struct maple_device_class **maple_get_device_classes();
-dreamcast_config_entry_t maple_get_device_config( maple_device_t dev );
+lxdream_config_entry_t maple_get_device_config( maple_device_t dev );
 
 void maple_handle_buffer( uint32_t buffer );
 void maple_attach_device( maple_device_t dev, unsigned int port, unsigned int periph );
@@ -101,4 +102,4 @@ void maple_detach_device( unsigned int port, unsigned int periph );
 void maple_detach_all( );
 void maple_reattach_all( );
 
-#endif /* !dream_maple_H */
+#endif /* !lxdream_maple_H */
