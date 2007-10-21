@@ -1,5 +1,5 @@
 /**
- * $Id: main_win.c,v 1.6 2007-10-21 05:21:35 nkeynes Exp $
+ * $Id: main_win.c,v 1.7 2007-10-21 11:38:02 nkeynes Exp $
  *
  * Define the main (emu) GTK window, along with its menubars,
  * toolbars, etc.
@@ -38,6 +38,11 @@ struct main_window_info {
     GtkActionGroup *actions;
 };
 
+gboolean on_main_window_deleted( GtkWidget *widget, GdkEvent event, gpointer user_data )
+{
+    exit(0);
+}
+
 main_window_t main_window_new( const gchar *title, GtkWidget *menubar, GtkWidget *toolbar,
 			       GtkAccelGroup *accel_group )
 {
@@ -70,6 +75,8 @@ main_window_t main_window_new( const gchar *title, GtkWidget *menubar, GtkWidget
     gtk_widget_grab_focus( win->video );
     
     gtk_statusbar_push( GTK_STATUSBAR(win->statusbar), 1, "Stopped" );
+    g_signal_connect( win->window, "delete_event", 
+		      G_CALLBACK(on_main_window_deleted), win );
     return win;
 }
 

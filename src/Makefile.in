@@ -171,8 +171,6 @@ lxdream_SOURCES = \
         maple/controller.c maple/controller.h \
         gui/gtkui.c gui/gtkui.h gui/main_win.c gui/gtkcb.c \
         gui/support.c gui/support.h \
-        gui/debugif.c gui/debugif.h \
-        gui/debugcb.c gui/debugcb.h \
         gui/mmio_win.c gui/debug_win.c gui/dump_win.c \
         gui/ctrl_dlg.c gui/path_dlg.c \
         loader.c bootstrap.c util.c \
@@ -238,14 +236,13 @@ am_lxdream_OBJECTS = main.$(OBJEXT) config.$(OBJEXT) mem.$(OBJEXT) \
 	rendbkg.$(OBJEXT) rendsort.$(OBJEXT) texcache.$(OBJEXT) \
 	yuv.$(OBJEXT) rendsave.$(OBJEXT) maple.$(OBJEXT) \
 	controller.$(OBJEXT) gtkui.$(OBJEXT) main_win.$(OBJEXT) \
-	gtkcb.$(OBJEXT) support.$(OBJEXT) debugif.$(OBJEXT) \
-	debugcb.$(OBJEXT) mmio_win.$(OBJEXT) debug_win.$(OBJEXT) \
-	dump_win.$(OBJEXT) ctrl_dlg.$(OBJEXT) path_dlg.$(OBJEXT) \
-	loader.$(OBJEXT) bootstrap.$(OBJEXT) util.$(OBJEXT) \
-	display.$(OBJEXT) audio_null.$(OBJEXT) audio_esd.$(OBJEXT) \
-	video_null.$(OBJEXT) video_gtk.$(OBJEXT) video_x11.$(OBJEXT) \
-	gl_common.$(OBJEXT) gl_fbo.$(OBJEXT) gl_sl.$(OBJEXT) \
-	gl_slsrc.$(OBJEXT)
+	gtkcb.$(OBJEXT) support.$(OBJEXT) mmio_win.$(OBJEXT) \
+	debug_win.$(OBJEXT) dump_win.$(OBJEXT) ctrl_dlg.$(OBJEXT) \
+	path_dlg.$(OBJEXT) loader.$(OBJEXT) bootstrap.$(OBJEXT) \
+	util.$(OBJEXT) display.$(OBJEXT) audio_null.$(OBJEXT) \
+	audio_esd.$(OBJEXT) video_null.$(OBJEXT) video_gtk.$(OBJEXT) \
+	video_x11.$(OBJEXT) gl_common.$(OBJEXT) gl_fbo.$(OBJEXT) \
+	gl_sl.$(OBJEXT) gl_slsrc.$(OBJEXT)
 lxdream_OBJECTS = $(am_lxdream_OBJECTS)
 lxdream_DEPENDENCIES =
 lxdream_LDFLAGS =
@@ -274,8 +271,7 @@ am__depfiles_maybe = depfiles
 @AMDEP_TRUE@	./$(DEPDIR)/bootstrap.Po ./$(DEPDIR)/cdi.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/config.Po ./$(DEPDIR)/controller.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/ctrl_dlg.Po ./$(DEPDIR)/dcload.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/debug_win.Po ./$(DEPDIR)/debugcb.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/debugif.Po ./$(DEPDIR)/dis-buf.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/debug_win.Po ./$(DEPDIR)/dis-buf.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/dis-init.Po ./$(DEPDIR)/display.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/dmac.Po ./$(DEPDIR)/dreamcast.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/dump_win.Po ./$(DEPDIR)/eventq.Po \
@@ -394,8 +390,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ctrl_dlg.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dcload.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/debug_win.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/debugcb.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/debugif.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dis-buf.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dis-init.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/display.Po@am__quote@
@@ -1535,50 +1529,6 @@ support.obj: gui/support.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/support.Po' tmpdepfile='$(DEPDIR)/support.TPo' @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o support.obj `if test -f 'gui/support.c'; then $(CYGPATH_W) 'gui/support.c'; else $(CYGPATH_W) '$(srcdir)/gui/support.c'; fi`
-
-debugif.o: gui/debugif.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT debugif.o -MD -MP -MF "$(DEPDIR)/debugif.Tpo" \
-@am__fastdepCC_TRUE@	  -c -o debugif.o `test -f 'gui/debugif.c' || echo '$(srcdir)/'`gui/debugif.c; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/debugif.Tpo" "$(DEPDIR)/debugif.Po"; \
-@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/debugif.Tpo"; exit 1; \
-@am__fastdepCC_TRUE@	fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gui/debugif.c' object='debugif.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/debugif.Po' tmpdepfile='$(DEPDIR)/debugif.TPo' @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o debugif.o `test -f 'gui/debugif.c' || echo '$(srcdir)/'`gui/debugif.c
-
-debugif.obj: gui/debugif.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT debugif.obj -MD -MP -MF "$(DEPDIR)/debugif.Tpo" \
-@am__fastdepCC_TRUE@	  -c -o debugif.obj `if test -f 'gui/debugif.c'; then $(CYGPATH_W) 'gui/debugif.c'; else $(CYGPATH_W) '$(srcdir)/gui/debugif.c'; fi`; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/debugif.Tpo" "$(DEPDIR)/debugif.Po"; \
-@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/debugif.Tpo"; exit 1; \
-@am__fastdepCC_TRUE@	fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gui/debugif.c' object='debugif.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/debugif.Po' tmpdepfile='$(DEPDIR)/debugif.TPo' @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o debugif.obj `if test -f 'gui/debugif.c'; then $(CYGPATH_W) 'gui/debugif.c'; else $(CYGPATH_W) '$(srcdir)/gui/debugif.c'; fi`
-
-debugcb.o: gui/debugcb.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT debugcb.o -MD -MP -MF "$(DEPDIR)/debugcb.Tpo" \
-@am__fastdepCC_TRUE@	  -c -o debugcb.o `test -f 'gui/debugcb.c' || echo '$(srcdir)/'`gui/debugcb.c; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/debugcb.Tpo" "$(DEPDIR)/debugcb.Po"; \
-@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/debugcb.Tpo"; exit 1; \
-@am__fastdepCC_TRUE@	fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gui/debugcb.c' object='debugcb.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/debugcb.Po' tmpdepfile='$(DEPDIR)/debugcb.TPo' @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o debugcb.o `test -f 'gui/debugcb.c' || echo '$(srcdir)/'`gui/debugcb.c
-
-debugcb.obj: gui/debugcb.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT debugcb.obj -MD -MP -MF "$(DEPDIR)/debugcb.Tpo" \
-@am__fastdepCC_TRUE@	  -c -o debugcb.obj `if test -f 'gui/debugcb.c'; then $(CYGPATH_W) 'gui/debugcb.c'; else $(CYGPATH_W) '$(srcdir)/gui/debugcb.c'; fi`; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/debugcb.Tpo" "$(DEPDIR)/debugcb.Po"; \
-@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/debugcb.Tpo"; exit 1; \
-@am__fastdepCC_TRUE@	fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gui/debugcb.c' object='debugcb.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/debugcb.Po' tmpdepfile='$(DEPDIR)/debugcb.TPo' @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o debugcb.obj `if test -f 'gui/debugcb.c'; then $(CYGPATH_W) 'gui/debugcb.c'; else $(CYGPATH_W) '$(srcdir)/gui/debugcb.c'; fi`
 
 mmio_win.o: gui/mmio_win.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT mmio_win.o -MD -MP -MF "$(DEPDIR)/mmio_win.Tpo" \

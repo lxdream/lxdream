@@ -1,5 +1,5 @@
 /**
- * $Id: mmio_win.c,v 1.8 2007-10-21 05:21:35 nkeynes Exp $
+ * $Id: mmio_win.c,v 1.9 2007-10-21 11:38:02 nkeynes Exp $
  *
  * Implements the MMIO register viewing window
  *
@@ -18,14 +18,15 @@
 
 #include <stdint.h>
 #include <gnome.h>
-#include "debugif.h"
-#include "debugcb.h"
 #include "gui/gtkui.h"
 #include "mem.h"
 #include "mmio.h"
 
-GtkWidget *mmr_win;
-GtkNotebook *mmr_book;
+
+struct mmio_window_info {
+    GtkWidget *window;
+    GtkWidget *notebook;
+};
 
 static void printbits( char *out, int nbits, uint32_t value )
 {
@@ -56,8 +57,36 @@ static void printhex( char *out, int nbits, uint32_t value )
     *out = '\0';
 }
     
-        
-static GtkCList *create_mmr_page( char *name, struct mmio_region *io_rgn )
+
+
+
+gboolean
+on_mmio_delete_event                (GtkWidget       *widget,
+                                        GdkEvent        *event,
+                                        gpointer         user_data)
+{
+    gtk_widget_hide(widget);
+    return TRUE;
+}
+
+
+void on_mmio_close_clicked( GtkButton *button, gpointer user_data)
+{
+    gtk_widget_hide( ((mmio_window_t)user_data)->window );
+}
+
+
+void on_trace_button_toggled           (GtkToggleButton *button,
+					gpointer user_data)
+{
+    struct mmio_region *io_rgn = (struct mmio_region *)user_data;
+    gboolean isActive = gtk_toggle_button_get_active(button);
+    if( io_rgn != NULL ) {
+	io_rgn->trace_flag = isActive ? 1 : 0;
+    }
+}
+
+static GtkCList *mmio_window_add_page( mmio_window_t mmio, char *name, struct mmio_region *io_rgn )
 {
     GtkCList *list;
     GtkWidget *scroll;
@@ -66,7 +95,6 @@ static GtkCList *create_mmr_page( char *name, struct mmio_region *io_rgn )
     GtkVBox *vbox;
 
     scroll = gtk_scrolled_window_new(NULL, NULL);
-    gtk_widget_show( scroll );
     gtk_scrolled_window_set_policy( GTK_SCROLLED_WINDOW(scroll),
                                     GTK_POLICY_AUTOMATIC, GTK_POLICY_ALWAYS );
     list = GTK_CLIST(gtk_clist_new(5));
@@ -85,38 +113,95 @@ static GtkCList *create_mmr_page( char *name, struct mmio_region *io_rgn )
     gtk_clist_set_column_title(list, 4, "Description");
     gtk_clist_column_titles_show(list);
     gtk_widget_modify_font( GTK_WIDGET(list), gui_fixed_font );
-    gtk_widget_show( GTK_WIDGET(list) );
     tab = gtk_label_new(_(name));
-    gtk_widget_show( tab );
     gtk_container_add( GTK_CONTAINER(scroll), GTK_WIDGET(list) );
     
     vbox = GTK_VBOX(gtk_vbox_new( FALSE, 0 ));
-    gtk_widget_show( GTK_WIDGET(vbox) );
     gtk_container_add( GTK_CONTAINER(vbox), GTK_WIDGET(scroll) );
 
     trace_button = GTK_CHECK_BUTTON(gtk_check_button_new_with_label("Trace access"));
-    gtk_widget_show( GTK_WIDGET(trace_button) );
     gtk_container_add( GTK_CONTAINER(vbox), GTK_WIDGET(trace_button) );
     gtk_box_set_child_packing( GTK_BOX(vbox), GTK_WIDGET(trace_button), 
 			       FALSE, FALSE, 0, GTK_PACK_START );
-    gtk_notebook_append_page( mmr_book, GTK_WIDGET(vbox), tab );
-    gtk_object_set_data( GTK_OBJECT(mmr_win), name, list );
+    gtk_notebook_append_page( GTK_NOTEBOOK(mmio->notebook), GTK_WIDGET(vbox), tab );
+    gtk_object_set_data( GTK_OBJECT(mmio->window), name, list );
     g_signal_connect ((gpointer) trace_button, "toggled",
                     G_CALLBACK (on_trace_button_toggled),
                     io_rgn);
     return list;
 }
 
-void mmio_win_update( mmio_window_t win )
+
+
+mmio_window_t mmio_window_new( const gchar *title )
+{
+    mmio_window_t mmio = g_malloc0( sizeof(struct mmio_window_info) );
+    
+    int i, j;
+    GtkCList *all_list;
+    GtkWidget *vbox1;
+    GtkWidget *hbuttonbox1;
+    GtkWidget *mmr_close;
+
+    mmio->window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
+    gtk_window_set_title (GTK_WINDOW (mmio->window), title);
+    gtk_window_set_default_size (GTK_WINDOW (mmio->window), 600, 600);
+
+    vbox1 = gtk_vbox_new (FALSE, 0);
+    gtk_container_add (GTK_CONTAINER (mmio->window), vbox1);
+
+    mmio->notebook = gtk_notebook_new ();
+    gtk_box_pack_start (GTK_BOX (vbox1), mmio->notebook, TRUE, TRUE, 0);
+    gtk_notebook_set_tab_pos (GTK_NOTEBOOK (mmio->notebook), GTK_POS_LEFT);
+
+    hbuttonbox1 = gtk_hbutton_box_new ();
+    gtk_box_pack_start (GTK_BOX (vbox1), hbuttonbox1, FALSE, TRUE, 0);
+    gtk_box_set_spacing (GTK_BOX (hbuttonbox1), 30);
+    
+    mmr_close = gtk_button_new_with_mnemonic (_("Close"));
+    gtk_container_add (GTK_CONTAINER (hbuttonbox1), mmr_close);
+    GTK_WIDGET_SET_FLAGS (mmr_close, GTK_CAN_DEFAULT);
+
+    /* Add the mmio register data */
+    all_list = mmio_window_add_page( mmio, "All", NULL );
+    for( i=0; i < num_io_rgns; i++ ) {
+        GtkCList *list = mmio_window_add_page( mmio, io_rgn[i]->id, io_rgn[i] );
+        for( j=0; io_rgn[i]->ports[j].id != NULL; j++ ) {
+            int sz = io_rgn[i]->ports[j].width;
+            char addr[10], data[10], bits[40];
+            char *arr[] = { addr, io_rgn[i]->ports[j].id, data, bits,
+                            io_rgn[i]->ports[j].desc };
+            sprintf( addr, "%08X",
+                     io_rgn[i]->base + io_rgn[i]->ports[j].offset );
+            printhex( data, sz, *io_rgn[i]->ports[j].val );
+            printbits( bits, io_rgn[i]->ports[j].width,
+                       *io_rgn[i]->ports[j].val );
+            gtk_clist_append( list, arr );
+            gtk_clist_append( all_list, arr );
+        }
+    }
+    
+    g_signal_connect ((gpointer) mmio->window, "delete_event",
+		      G_CALLBACK (on_mmio_delete_event),
+		      NULL);
+    g_signal_connect ((gpointer) mmr_close, "clicked",
+		      G_CALLBACK (on_mmio_close_clicked),
+		      mmio);
+
+    gtk_widget_show_all( mmio->window );
+    return mmio;
+}
+        
+void mmio_window_update( mmio_window_t mmio )
 {
     int i,j, count = 0;
     GtkCList *page, *all_page;
     char data[10], bits[40];
 
-    all_page = GTK_CLIST(gtk_object_get_data( GTK_OBJECT(mmr_win), "All" ));
+    all_page = GTK_CLIST(gtk_object_get_data( GTK_OBJECT(mmio->window), "All" ));
     
     for( i=0; i < num_io_rgns; i++ ) {
-        page = GTK_CLIST(gtk_object_get_data( GTK_OBJECT(mmr_win),
+        page = GTK_CLIST(gtk_object_get_data( GTK_OBJECT(mmio->window),
                                               io_rgn[i]->id ));
         for( j=0; io_rgn[i]->ports[j].id != NULL; j++ ) {
             if( *io_rgn[i]->ports[j].val !=
@@ -144,49 +229,12 @@ void mmio_win_update( mmio_window_t win )
     }
 }
 
-void init_mmr_win( void )
+void mmio_window_show( mmio_window_t mmio, gboolean show )
 {
-    int i, j;
-    GtkCList *all_list;
-    mmr_win = create_mmr_win();
-    mmr_book = GTK_NOTEBOOK( gtk_object_get_data( GTK_OBJECT(mmr_win), "mmr_notebook" ));
-    
-    /* kill the dummy page glade insists on adding */
-    gtk_notebook_remove_page( mmr_book, 0 );
-    
-    all_list = create_mmr_page( "All", NULL );
-    for( i=0; i < num_io_rgns; i++ ) {
-        GtkCList *list = create_mmr_page( io_rgn[i]->id, io_rgn[i] );
-        
-        for( j=0; io_rgn[i]->ports[j].id != NULL; j++ ) {
-            int sz = io_rgn[i]->ports[j].width;
-            char addr[10], data[10], bits[40];
-            char *arr[] = { addr, io_rgn[i]->ports[j].id, data, bits,
-                            io_rgn[i]->ports[j].desc };
-            sprintf( addr, "%08X",
-                     io_rgn[i]->base + io_rgn[i]->ports[j].offset );
-            printhex( data, sz, *io_rgn[i]->ports[j].val );
-            printbits( bits, io_rgn[i]->ports[j].width,
-                       *io_rgn[i]->ports[j].val );
-            gtk_clist_append( list, arr );
-            gtk_clist_append( all_list, arr );
-        }
+    if( show ) {
+	gtk_widget_show( mmio->window );
+    } else {
+	gtk_widget_hide( mmio->window );
     }
 }
 
-mmio_window_t mmio_window_new( const gchar *title )
-{
-    init_mmr_win();
-    gtk_widget_show( mmr_win );
-    return NULL;
-}
-
-void mmio_window_show( mmio_window_t mmio, gboolean show )
-{
-    gtk_widget_show( mmr_win );
-}
-
-void mmr_close_win( void )
-{
-    gtk_widget_hide( mmr_win );
-}

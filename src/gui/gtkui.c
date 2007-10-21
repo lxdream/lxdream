@@ -1,5 +1,5 @@
 /**
- * $Id: gtkui.c,v 1.5 2007-10-21 05:21:35 nkeynes Exp $
+ * $Id: gtkui.c,v 1.6 2007-10-21 11:38:02 nkeynes Exp $
  *
  * Core GTK-based user interface
  *
@@ -322,7 +322,7 @@ void gtk_gui_update( void )
 	debug_window_update(debug_win);
     }
     if( mmio_win ) {
-	mmio_win_update(mmio_win);
+	mmio_window_update(mmio_win);
     }
     dump_window_update_all();
 }
