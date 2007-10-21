@@ -1,6 +1,6 @@
 
 /**
- * $Id: gdrom.c,v 1.15 2007-10-16 12:28:42 nkeynes Exp $
+ * $Id: gdrom.c,v 1.16 2007-10-21 05:20:00 nkeynes Exp $
  *
  * GD-Rom  access functions.
  *
@@ -43,7 +43,6 @@ gdrom_disc_t gdrom_image_open( const gchar *filename )
     gdrom_image_class_t extclz = NULL;
 
     if( fd == -1 ) {
-	ERROR("Unable to open file '%s': %s", filename, strerror(errno));
 	return NULL;
     }
 
