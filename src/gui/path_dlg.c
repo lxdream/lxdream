@@ -1,5 +1,5 @@
 /**
- * $Id: path_dlg.c,v 1.1 2007-10-17 11:26:45 nkeynes Exp $
+ * $Id: path_dlg.c,v 1.2 2007-10-21 05:21:35 nkeynes Exp $
  *
  * Define the main (emu) GTK window, along with its menubars,
  * toolbars, etc.
@@ -101,7 +101,7 @@ GtkWidget *path_panel_new(void)
 	    gtk_button_set_image( GTK_BUTTON(button), image );
 	    g_signal_connect( button, "clicked", G_CALLBACK(path_file_button_clicked), text );
 	} else {
-	    GtkWidget *image = gtk_image_new_from_stock(GTK_STOCK_DIRECTORY, GTK_ICON_SIZE_BUTTON);
+	    GtkWidget *image = gtk_image_new_from_stock(GTK_STOCK_OPEN, GTK_ICON_SIZE_BUTTON);
 	    gtk_button_set_image( GTK_BUTTON(button), image );
 	    g_signal_connect( button, "clicked", G_CALLBACK(path_dir_button_clicked), text );
 	}

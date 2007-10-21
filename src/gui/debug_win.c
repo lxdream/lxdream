@@ -1,5 +1,5 @@
 /**
- * $Id: debug_win.c,v 1.24 2007-10-11 08:22:03 nkeynes Exp $
+ * $Id: debug_win.c,v 1.25 2007-10-21 05:21:35 nkeynes Exp $
  * This file is responsible for the main debugger gui frame.
  *
  * Copyright (c) 2005 Nathan Keynes.
@@ -17,11 +17,10 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <stdio.h>
-#include <gnome.h>
 #include <math.h>
+#include <gnome.h>
 #include "mem.h"
 #include "cpu.h"
-#include "debugif.h"
 #include "gui/gtkui.h"
 #include "sh4/sh4dasm.h"
 #include "aica/armdasm.h"
@@ -37,61 +36,153 @@ void set_disassembly_pc( debug_window_t data, unsigned int pc, gboolean select )
 void set_disassembly_region( debug_window_t data, unsigned int page );
 void set_disassembly_cpu( debug_window_t data, const gchar *cpu );
 
+void on_mode_field_changed ( GtkEditable *editable, gpointer user_data);
+gboolean on_page_field_key_press_event( GtkWidget * widget, GdkEventKey *event,
+                                        gpointer user_data);
+void on_jump_pc_btn_clicked( GtkButton *button, gpointer user_data);
+void on_disasm_list_select_row (GtkCList *clist, gint row, gint column,
+				GdkEvent *event, gpointer user_data);
+void on_disasm_list_unselect_row (GtkCList *clist, gint row, gint column,
+				  GdkEvent *event, gpointer user_data);
+
+
 struct debug_window_info {
     int disasm_from;
     int disasm_to;
     int disasm_pc;
     const struct cpu_desc_struct *cpu;
     const cpu_desc_t *cpu_list;
-    GtkCList *msgs_list;
     GtkCList *regs_list;
     GtkCList *disasm_list;
     GtkEntry *page_field;
-    GtkWidget *win;
-    GtkProgressBar *icounter;
-    char icounter_text[16];
+    GtkWidget *window;
+    GtkWidget *statusbar;
     char saved_regs[0];
 };
 
-debug_window_t debug_window_new( )
+debug_window_t debug_window_new( const gchar *title, GtkWidget *menubar, 
+				 GtkWidget *toolbar, GtkAccelGroup *accel_group )
 {
-    GtkWidget *win = create_debug_win();
-    GnomeAppBar *appbar;
-    
     debug_window_t data = g_malloc0( sizeof(struct debug_window_info) + cpu_list[0]->regs_size );
+        GtkWidget *vbox;
+    GtkWidget *frame;
+
+    data->window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+    gtk_window_set_default_size (GTK_WINDOW (data->window), 1000, 700);
+    gtk_window_set_title( GTK_WINDOW(data->window), title );
+    gtk_window_add_accel_group (GTK_WINDOW (data->window), accel_group);
+
+    gtk_toolbar_set_style( GTK_TOOLBAR(toolbar), GTK_TOOLBAR_ICONS );
+
+    data->statusbar = gtk_statusbar_new();
+
+    GtkWidget *hpaned = gtk_hpaned_new ();
+    gtk_paned_set_position (GTK_PANED (hpaned), 800);
+
+
+    GtkWidget *disasm_box = gtk_vbox_new(FALSE,0);
+    gtk_paned_pack1 (GTK_PANED (hpaned), disasm_box, TRUE, TRUE);
+
+    GtkWidget *hbox1 = gtk_hbox_new (FALSE, 0);
+    gtk_box_pack_start (GTK_BOX (disasm_box), hbox1, FALSE, FALSE, 3);
+    gtk_box_pack_start (GTK_BOX (hbox1), gtk_label_new (_("Page")), FALSE, FALSE, 4);
+    
+    data->page_field = GTK_ENTRY(gtk_entry_new ());
+    gtk_box_pack_start (GTK_BOX (hbox1), GTK_WIDGET(data->page_field), FALSE, TRUE, 0);
+    
+    GtkWidget *jump_pc_btn = gtk_button_new_with_mnemonic (_(" Jump to PC "));
+    gtk_box_pack_start (GTK_BOX (hbox1), jump_pc_btn, FALSE, FALSE, 4);
+    
+    gtk_box_pack_start (GTK_BOX (hbox1), gtk_label_new(_("Mode")), FALSE, FALSE, 5);
+    
+    GtkWidget *mode_box = gtk_combo_new ();
+    gtk_box_pack_start (GTK_BOX (hbox1), mode_box, FALSE, FALSE, 0);
+    GList *mode_box_items = NULL;
+    mode_box_items = g_list_append (mode_box_items, (gpointer) _("SH4"));
+    mode_box_items = g_list_append (mode_box_items, (gpointer) _("ARM7"));
+    mode_box_items = g_list_append (mode_box_items, (gpointer) _("ARM7T"));
+    gtk_combo_set_popdown_strings (GTK_COMBO (mode_box), mode_box_items);
+    g_list_free (mode_box_items);
+
+    GtkWidget *mode_field = GTK_COMBO (mode_box)->entry;
+    gtk_editable_set_editable (GTK_EDITABLE (mode_field), FALSE);
+
+    GtkWidget *disasm_scroll = gtk_scrolled_window_new (NULL, NULL);
+    gtk_box_pack_start (GTK_BOX (disasm_box), disasm_scroll, TRUE, TRUE, 0);
+    gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (disasm_scroll), GTK_SHADOW_IN);
+    data->disasm_list = GTK_CLIST(gtk_clist_new (4));
+    gtk_clist_set_column_width (GTK_CLIST (data->disasm_list), 0, 80);
+    gtk_clist_set_column_width (GTK_CLIST (data->disasm_list), 2, 80);
+    gtk_clist_set_column_width (GTK_CLIST (data->disasm_list), 3, 80);
+    gtk_clist_set_column_width( data->disasm_list, 1, 16 );
+    gtk_clist_column_titles_hide (GTK_CLIST (data->disasm_list));
+    gtk_container_add (GTK_CONTAINER (disasm_scroll), GTK_WIDGET(data->disasm_list));
+    
+    GtkWidget *reg_scroll = gtk_scrolled_window_new (NULL, NULL);
+    gtk_paned_pack2 (GTK_PANED (hpaned), reg_scroll, FALSE, TRUE);
+    gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (reg_scroll), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+    gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (reg_scroll), GTK_SHADOW_IN);
+    
+    data->regs_list = GTK_CLIST(gtk_clist_new (2));
+    gtk_container_add (GTK_CONTAINER (reg_scroll), GTK_WIDGET(data->regs_list));
+    gtk_clist_set_column_width (GTK_CLIST (data->regs_list), 0, 80);
+    gtk_clist_set_column_width (GTK_CLIST (data->regs_list), 1, 80);
+    gtk_clist_column_titles_hide (GTK_CLIST (data->regs_list));
+    gtk_widget_modify_font( GTK_WIDGET(data->regs_list), gui_fixed_font );
+    
+    vbox = gtk_vbox_new(FALSE, 0);
+    gtk_container_add( GTK_CONTAINER(data->window), vbox );
+    gtk_box_pack_start( GTK_BOX(vbox), menubar, FALSE, FALSE, 0 );
+    gtk_box_pack_start( GTK_BOX(vbox), toolbar, FALSE, FALSE, 0 );
+    gtk_box_pack_start( GTK_BOX(vbox), hpaned, TRUE, TRUE, 0 );
+    gtk_box_pack_start( GTK_BOX(vbox), data->statusbar, FALSE, FALSE, 0 );
+
+    g_signal_connect ((gpointer) data->page_field, "key_press_event",
+		      G_CALLBACK (on_page_field_key_press_event),
+		      data);
+    g_signal_connect ((gpointer) jump_pc_btn, "clicked",
+		      G_CALLBACK (on_jump_pc_btn_clicked),
+		      data);
+    g_signal_connect ((gpointer) mode_field, "changed",
+		      G_CALLBACK (on_mode_field_changed),
+		      data);
+    g_signal_connect ((gpointer) data->disasm_list, "select_row",
+		      G_CALLBACK (on_disasm_list_select_row),
+		      data);
+    g_signal_connect ((gpointer) data->disasm_list, "unselect_row",
+		      G_CALLBACK (on_disasm_list_unselect_row),
+		      data);
+    
     data->disasm_from = -1;
     data->disasm_to = -1;
     data->disasm_pc = -1;
     data->cpu = cpu_list[0];
     data->cpu_list = cpu_list;
     
-    data->regs_list= gtk_object_get_data(GTK_OBJECT(win), "reg_list");
-    data->win = win;
-    gtk_widget_modify_font( GTK_WIDGET(data->regs_list), gui_fixed_font );
     init_register_list( data );
-    data->msgs_list = gtk_object_get_data(GTK_OBJECT(win), "output_list");
-    data->disasm_list = gtk_object_get_data(GTK_OBJECT(win), "disasm_list");
-    gtk_clist_set_column_width( data->disasm_list, 1, 16 );
-    data->page_field = gtk_object_get_data(GTK_OBJECT(win), "page_field");
-
-    appbar = gtk_object_get_data(GTK_OBJECT(win), "debug_appbar");
-    data->icounter = gnome_appbar_get_progress( appbar );
-    gtk_progress_bar_set_text(data->icounter, "1");
-    
-    gtk_object_set_data( GTK_OBJECT(win), "debug_data", data );
+    gtk_object_set_data( GTK_OBJECT(data->window), "debug_data", data );
     set_disassembly_pc( data, *data->cpu->pc, FALSE );
     debug_window_set_running( data, FALSE );
 
-    gtk_widget_show( win );
+    gtk_widget_show_all( data->window );
     return data;
 }
 
 void debug_window_show( debug_window_t data, gboolean show )
 {
     if( show ) {
-	gtk_widget_show( data->win );
+	gtk_widget_show( data->window );
     } else {
-	gtk_widget_hide( data->win );
+	gtk_widget_hide( data->window );
+    }
+}
+
+int debug_window_get_selected_row( debug_window_t data )
+{
+    if( data->disasm_list->selection == NULL ) {
+	return -1;
+    } else {
+	return GPOINTER_TO_INT(data->disasm_list->selection->data);
     }
 }
 
@@ -144,7 +235,7 @@ void debug_window_update( debug_window_t data )
         }
     }
 
-    set_disassembly_pc( data, *data->cpu->pc, FALSE );
+    set_disassembly_pc( data, *data->cpu->pc, TRUE );
     memcpy( data->saved_regs, data->cpu->regs, data->cpu->regs_size );
 }
 
@@ -250,7 +341,7 @@ void set_disassembly_cpu( debug_window_t data, const gchar *cpu )
     }
 }
 
-void debug_win_toggle_breakpoint( debug_window_t data, int row )
+void debug_window_toggle_breakpoint( debug_window_t data, int row )
 {
     uint32_t pc = row_to_address( data, row );
     int oldType = data->cpu->get_breakpoint( pc );
@@ -263,7 +354,7 @@ void debug_win_toggle_breakpoint( debug_window_t data, int row )
     }
 }
 
-void debug_win_set_oneshot_breakpoint( debug_window_t data, int row )
+void debug_window_set_oneshot_breakpoint( debug_window_t data, int row )
 {
     uint32_t pc = row_to_address( data, row );
     data->cpu->clear_breakpoint( pc, BREAK_ONESHOT );
@@ -274,7 +365,7 @@ void debug_win_set_oneshot_breakpoint( debug_window_t data, int row )
 /**
  * Execute a single instruction using the current CPU mode.
  */
-void debug_win_single_step( debug_window_t data )
+void debug_window_single_step( debug_window_t data )
 {
     data->cpu->step_func();
     gtk_gui_update();
@@ -290,52 +381,6 @@ int address_to_row( debug_window_t data, uint32_t address ) {
     return (address - data->disasm_from) / data->cpu->instr_size;
 }
 
-#if 0
-void emit( void *ptr, int level, const gchar *source, const char *msg, ... )
-{
-    char buf[20], addr[10] = "", *p;
-    const gchar *arr[4] = {buf, source, addr};
-    int posn;
-    time_t tm = time(NULL);
-    va_list ap;
-    debug_window_t data = NULL;
-    /*
-    if( ptr == NULL )
-	data = debug_win;
-    else data = (debug_window_t)ptr;
-    */
-    if( level > global_msg_level ) {
-	return; // ignored
-    }
-    va_start(ap, msg);
-
-    strftime( buf, sizeof(buf), "%H:%M:%S", localtime(&tm) );
-
-    if( data == NULL ) {
-	fprintf( stderr, "%s %08X %-5s ", buf, *sh4_cpu_desc.pc, msg_levels[level] );
-	vfprintf( stderr, msg, ap );
-	fprintf( stderr, "\n" );
-	va_end(ap);
-	return;
-    }
-
-    p = g_strdup_vprintf( msg, ap );
-    sprintf( addr, "%08X", *data->cpu->pc );
-    arr[3] = p;
-    posn = gtk_clist_append(data->msgs_list, (gchar **)arr);
-    free(p);
-    va_end(ap);
-
-    gtk_clist_set_foreground( data->msgs_list, posn, msg_colors[level] );
-    gtk_clist_moveto( data->msgs_list, posn, 0, 1.0, 0.0 );
-
-    /* emit _really_ slows down the emu, to the point where the gui can be
-     * completely unresponsive if I don't include this:
-     */
-    while( gtk_events_pending() )
-        gtk_main_iteration();
-}
-#endif
 debug_window_t get_debug_info( GtkWidget *widget ) {
     
     GtkWidget *win = gtk_widget_get_toplevel(widget);
@@ -343,19 +388,57 @@ debug_window_t get_debug_info( GtkWidget *widget ) {
     return data;
 }
 
-void debug_win_enable_widget( debug_window_t data, const char *name, 
-			      gboolean enabled )
-{
-    GtkWidget *widget = GTK_WIDGET(gtk_object_get_data(GTK_OBJECT(data->win), name));
-    gtk_widget_set_sensitive( widget, enabled );
-}    
-
 void debug_window_set_running( debug_window_t data, gboolean isRunning ) 
 {
     if( data != NULL ) {
-	debug_win_enable_widget( data, "stop_btn", isRunning );
-	debug_win_enable_widget( data, "step_btn", !isRunning );
-	debug_win_enable_widget( data, "run_btn", !isRunning );
-	debug_win_enable_widget( data, "runto_btn", !isRunning );
+	gtk_gui_enable_action( "SingleStep", !isRunning );
+	gtk_gui_enable_action( "RunTo", !isRunning );
     }
+}
+
+void on_mode_field_changed ( GtkEditable *editable, gpointer user_data)
+{
+    const gchar *text = gtk_entry_get_text( GTK_ENTRY(editable) );
+    set_disassembly_cpu( gtk_gui_get_debugger(), text );
+}
+
+
+gboolean on_page_field_key_press_event( GtkWidget * widget, GdkEventKey *event,
+                                        gpointer user_data)
+{
+    if( event->keyval == GDK_Return || event->keyval == GDK_Linefeed ) {
+	debug_window_t data = get_debug_info(widget);
+        const gchar *text = gtk_entry_get_text( GTK_ENTRY(widget) );
+        gchar *endptr;
+        unsigned int val = strtoul( text, &endptr, 16 );
+        if( text == endptr ) { /* invalid input */
+            char buf[10];
+            sprintf( buf, "%08X", row_to_address(data,0) );
+            gtk_entry_set_text( GTK_ENTRY(widget), buf );
+        } else {
+            set_disassembly_region(data, val);
+        }
+    }
+    return FALSE;
+}
+
+
+void on_jump_pc_btn_clicked( GtkButton *button, gpointer user_data)
+{
+    debug_window_t data = get_debug_info( GTK_WIDGET(button) );
+    jump_to_pc( data, TRUE );
+}
+
+void on_disasm_list_select_row (GtkCList *clist, gint row, gint column,
+				GdkEvent *event, gpointer user_data)
+{
+    gtk_gui_enable_action( "SetBreakpoint", TRUE );
+    gtk_gui_enable_action( "RunTo", TRUE );
+}
+
+void on_disasm_list_unselect_row (GtkCList *clist, gint row, gint column,
+				  GdkEvent *event, gpointer user_data)
+{
+    gtk_gui_enable_action( "SetBreakpoint", FALSE );
+    gtk_gui_enable_action( "RunTo", FALSE );
 }

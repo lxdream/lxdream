@@ -1,5 +1,5 @@
 /**
- * $Id: mmio_win.c,v 1.7 2007-10-10 11:02:04 nkeynes Exp $
+ * $Id: mmio_win.c,v 1.8 2007-10-21 05:21:35 nkeynes Exp $
  *
  * Implements the MMIO register viewing window
  *
@@ -107,7 +107,7 @@ static GtkCList *create_mmr_page( char *name, struct mmio_region *io_rgn )
     return list;
 }
 
-void update_mmr_win( void )
+void mmio_win_update( mmio_window_t win )
 {
     int i,j, count = 0;
     GtkCList *page, *all_page;
@@ -174,7 +174,14 @@ void init_mmr_win( void )
     }
 }
 
-void mmr_open_win( void )
+mmio_window_t mmio_window_new( const gchar *title )
+{
+    init_mmr_win();
+    gtk_widget_show( mmr_win );
+    return NULL;
+}
+
+void mmio_window_show( mmio_window_t mmio, gboolean show )
 {
     gtk_widget_show( mmr_win );
 }

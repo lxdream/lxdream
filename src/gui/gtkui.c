@@ -1,5 +1,5 @@
 /**
- * $Id: gtkui.c,v 1.4 2007-10-17 11:26:45 nkeynes Exp $
+ * $Id: gtkui.c,v 1.5 2007-10-21 05:21:35 nkeynes Exp $
  *
  * Core GTK-based user interface
  *
@@ -44,10 +44,143 @@ static debug_window_t debug_win = NULL;
 static mmio_window_t mmio_win = NULL;
 
 /**
+ * UIManager and action helpers
+ */
+static GtkUIManager *global_ui_manager;
+static GtkAccelGroup *global_accel_group;
+static GtkActionGroup *global_action_group;
+
+/**
  * Count of running nanoseconds - used to cut back on the GUI runtime
  */
 static uint32_t gtk_gui_nanos = 0;
 static struct timeval gtk_gui_lasttv;
+
+
+#define ENABLE_ACTION(win,name) SET_ACTION_ENABLED(win,name,TRUE)
+#define DISABLE_ACTION(win,name) SET_ACTION_ENABLED(win,name,FALSE)
+
+// UI Actions
+static const GtkActionEntry ui_actions[] = {
+    { "FileMenu", NULL, "_File" },
+    { "SettingsMenu", NULL, "_Settings" },
+    { "HelpMenu", NULL, "_Help" },
+    { "Mount", GTK_STOCK_CDROM, "_Mount...", "<control>O", "Mount a cdrom disc", G_CALLBACK(mount_action_callback) },
+    { "Reset", GTK_STOCK_REFRESH, "_Reset", "<control>R", "Reset dreamcast", G_CALLBACK(reset_action_callback) },
+    { "Pause", GTK_STOCK_MEDIA_PAUSE, "_Pause", NULL, "Pause dreamcast", G_CALLBACK(pause_action_callback) },
+    { "Run", GTK_STOCK_MEDIA_PLAY, "Resume", NULL, "Resume", G_CALLBACK(resume_action_callback) },
+    { "LoadState", GTK_STOCK_REVERT_TO_SAVED, "_Load state...", "F4", "Load an lxdream save state", G_CALLBACK(load_state_action_callback) },
+    { "SaveState", GTK_STOCK_SAVE_AS, "_Save state...", "F3", "Create an lxdream save state", G_CALLBACK(save_state_action_callback) },
+    { "Exit", GTK_STOCK_QUIT, "E_xit", NULL, "Exit lxdream", G_CALLBACK(exit_action_callback) },
+    { "PathSettings", NULL, "_Paths...", NULL, "Configure files and paths", G_CALLBACK(path_settings_callback) }, 
+    { "AudioSettings", NULL, "_Audio...", NULL, "Configure audio output", G_CALLBACK(audio_settings_callback) },
+    { "ControllerSettings", NULL, "_Controllers...", NULL, "Configure controllers", G_CALLBACK(maple_settings_callback) },
+    { "NetworkSettings", NULL, "_Network...", NULL, "Configure network settings", G_CALLBACK(network_settings_callback) },
+    { "VideoSettings", NULL, "_Video...", NULL, "Configure video output", G_CALLBACK(video_settings_callback) },
+    { "About", GTK_STOCK_ABOUT, "_About...", NULL, "About lxdream", G_CALLBACK(about_action_callback) },
+    { "DebugMenu", NULL, "_Debug" },
+    { "Debugger", NULL, "_Debugger", NULL, "Open debugger window", G_CALLBACK(debugger_action_callback) },
+    { "DebugMem", NULL, "View _Memory", NULL, "View memory dump", G_CALLBACK(debug_memory_action_callback) },
+    { "DebugMmio", NULL, "View IO _Registers", NULL, "View MMIO Registers", G_CALLBACK(debug_mmio_action_callback) },
+    { "SaveScene", NULL, "_Save Scene", NULL, "Save next rendered scene", G_CALLBACK(save_scene_action_callback) },
+    { "SingleStep", GTK_STOCK_REDO, "_Single Step", NULL, "Single step", G_CALLBACK(debug_step_action_callback) },
+    { "RunTo", GTK_STOCK_GOTO_LAST, "Run _To", NULL, "Run to", G_CALLBACK( debug_runto_action_callback) },
+    { "SetBreakpoint", GTK_STOCK_CLOSE, "_Breakpoint", NULL, "Toggle breakpoint", G_CALLBACK( debug_breakpoint_action_callback) }
+};
+static const GtkToggleActionEntry ui_toggle_actions[] = {
+    { "FullScreen", NULL, "_Full Screen", "<alt>Return", "Toggle full screen video", G_CALLBACK(fullscreen_toggle_callback), 0 },
+};
+    
+// Menus and toolbars
+static const char *ui_description =
+    "<ui>"
+    " <menubar name='MainMenu'>"
+    "  <menu action='FileMenu'>"
+    "   <menuitem action='Mount'/>"
+    "   <separator/>"
+    "   <menuitem action='Reset'/>"
+    "   <menuitem action='Pause'/>"
+    "   <menuitem action='Run'/>"
+    "   <menuitem action='Debugger'/>"
+    "   <separator/>"
+    "   <menuitem action='LoadState'/>"
+    "   <menuitem action='SaveState'/>"
+    "   <separator/>"
+    "   <menuitem action='Exit'/>"
+    "  </menu>"
+    "  <menu action='SettingsMenu'>"
+    "   <menuitem action='PathSettings'/>"
+    "   <menuitem action='AudioSettings'/>"
+    "   <menuitem action='ControllerSettings'/>"
+    "   <menuitem action='NetworkSettings'/>"
+    "   <menuitem action='VideoSettings'/>"
+    "   <separator/>"
+    "   <menuitem action='FullScreen'/>"
+    "  </menu>"
+    "  <menu action='HelpMenu'>"
+    "   <menuitem action='About'/>"
+    "  </menu>"
+    " </menubar>"
+    " <toolbar name='MainToolbar'>"
+    "  <toolitem action='Mount'/>"
+    "  <toolitem action='Reset'/>"
+    "  <toolitem action='Pause'/>"
+    "  <toolitem action='Run'/>"
+    "  <separator/>"
+    "  <toolitem action='LoadState'/>"
+    "  <toolitem action='SaveState'/>"
+    " </toolbar>"
+    " <menubar name='DebugMenu'>"
+    "  <menu action='FileMenu'>"
+    "   <menuitem action='Mount'/>"
+    "   <separator/>"
+    "   <menuitem action='Reset'/>"
+    "   <separator/>"
+    "   <menuitem action='LoadState'/>"
+    "   <menuitem action='SaveState'/>"
+    "   <separator/>"
+    "   <menuitem action='Exit'/>"
+    "  </menu>"
+    "  <menu action='DebugMenu'>"
+    "   <menuitem action='DebugMem'/>"
+    "   <menuitem action='DebugMmio'/>"
+    "   <menuitem action='SaveScene'/>"
+    "   <separator/>"
+    "   <menuitem action='SetBreakpoint'/>"
+    "   <menuitem action='Pause'/>"
+    "   <menuitem action='SingleStep'/>"
+    "   <menuitem action='RunTo'/>"
+    "   <menuitem action='Run'/>"
+    "  </menu>"
+    "  <menu action='SettingsMenu'>"
+    "   <menuitem action='PathSettings'/>"
+    "   <menuitem action='AudioSettings'/>"
+    "   <menuitem action='ControllerSettings'/>"
+    "   <menuitem action='NetworkSettings'/>"
+    "   <menuitem action='VideoSettings'/>"
+    "   <separator/>"
+    "   <menuitem action='FullScreen'/>"
+    "  </menu>"
+    "  <menu action='HelpMenu'>"
+    "   <menuitem action='About'/>"
+    "  </menu>"
+    " </menubar>"
+    " <toolbar name='DebugToolbar'>"
+    "  <toolitem action='Mount'/>"
+    "  <toolitem action='Reset'/>"
+    "  <toolitem action='Pause'/>"
+    "  <separator/>"
+    "  <toolitem action='SingleStep'/>"
+    "  <toolitem action='RunTo'/>"
+    "  <toolitem action='Run'/>"
+    "  <toolitem action='SetBreakpoint'/>"
+    "  <separator/>"
+    "  <toolitem action='LoadState'/>"
+    "  <toolitem action='SaveState'/>"
+    " </toolbar>"
+    "</ui>";
+
+
 
 gboolean gui_parse_cmdline( int *argc, char **argv[] )
 {
@@ -56,12 +189,34 @@ gboolean gui_parse_cmdline( int *argc, char **argv[] )
 
 gboolean gui_init( gboolean withDebug )
 {
+    GError *error = NULL;
     dreamcast_register_module( &gtk_gui_module );
     gtk_gui_alloc_resources();
-    if( withDebug ) {
-	debug_win = debug_window_new();
+    
+    global_action_group = gtk_action_group_new("MenuActions");
+    gtk_action_group_add_actions( global_action_group, ui_actions, G_N_ELEMENTS(ui_actions), NULL );
+    gtk_action_group_add_toggle_actions( global_action_group, ui_toggle_actions, G_N_ELEMENTS(ui_toggle_actions), NULL );
+    gtk_gui_enable_action("AudioSettings", FALSE);
+    gtk_gui_enable_action("NetworkSettings", FALSE);
+    gtk_gui_enable_action("VideoSettings", FALSE);
+    global_ui_manager = gtk_ui_manager_new();
+    gtk_ui_manager_set_add_tearoffs(global_ui_manager, TRUE);
+    gtk_ui_manager_insert_action_group( global_ui_manager, global_action_group, 0 );
+
+    if (!gtk_ui_manager_add_ui_from_string (global_ui_manager, ui_description, -1, &error)) {
+	g_message ("building menus failed: %s", error->message);
+	g_error_free (error);
+	exit(1);
     }
-    main_win = main_window_new( APP_NAME " " APP_VERSION );
+    GtkAccelGroup *accel_group = gtk_ui_manager_get_accel_group (global_ui_manager);
+    GtkWidget *menubar = gtk_ui_manager_get_widget(global_ui_manager, "/MainMenu");
+    GtkWidget *toolbar = gtk_ui_manager_get_widget(global_ui_manager, "/MainToolbar");
+    main_win = main_window_new( APP_NAME " " APP_VERSION, menubar, toolbar, accel_group  );
+
+    if( withDebug ) {
+	gtk_gui_show_debugger();
+    }
+
     return TRUE;
 }
 
@@ -99,9 +254,37 @@ void gtk_gui_show_debugger()
     if( debug_win ) {
 	debug_window_show(debug_win, TRUE);
     } else {
-	debug_win = debug_window_new();
+	GtkAccelGroup *accel_group = gtk_ui_manager_get_accel_group (global_ui_manager);
+	GtkWidget *menubar = gtk_ui_manager_get_widget(global_ui_manager, "/DebugMenu");
+	GtkWidget *toolbar = gtk_ui_manager_get_widget(global_ui_manager, "/DebugToolbar");
+	debug_win = debug_window_new( APP_NAME " " APP_VERSION " :: Debugger", menubar, toolbar, accel_group  );
     }
-}    
+}
+
+void gtk_gui_show_mmio()
+{
+    if( mmio_win ) {
+	mmio_window_show(mmio_win, TRUE);
+    } else {
+	mmio_win = mmio_window_new( APP_NAME " " APP_VERSION " :: MMIO Registers" );
+    }
+}
+
+
+main_window_t gtk_gui_get_main()
+{
+    return main_win;
+}
+
+debug_window_t gtk_gui_get_debugger()
+{
+    return debug_win;
+}
+
+mmio_window_t gtk_gui_get_mmio()
+{
+    return mmio_win;
+}
 
 GtkWidget *gtk_gui_get_renderarea()
 {
@@ -141,7 +324,7 @@ void gtk_gui_update( void )
     if( mmio_win ) {
 	mmio_win_update(mmio_win);
     }
-    dump_win_update_all();
+    dump_window_update_all();
 }
 
 /**
@@ -211,7 +394,7 @@ void gtk_gui_alloc_resources() {
     gui_fixed_font = pango_font_description_from_string("Courier 10");
 }
 
-gint gtk_gui_run_property_dialog( const gchar *title, GtkWidget *panel )
+gint gtk_gui_run_property_dialog( const gchar *title, GtkWidget *panel, gtk_dialog_done_fn fn )
 {
     GtkWidget *dialog =
 	gtk_dialog_new_with_buttons(title, main_window_get_frame(main_win), 
@@ -223,6 +406,14 @@ gint gtk_gui_run_property_dialog( const gchar *title, GtkWidget *panel )
     gtk_widget_show_all(panel);
     gtk_container_add( GTK_CONTAINER(GTK_DIALOG(dialog)->vbox), panel );
     result = gtk_dialog_run( GTK_DIALOG(dialog) );
+    if( fn != NULL ) {
+	fn(panel, result == GTK_RESPONSE_ACCEPT);
+    }
     gtk_widget_destroy( dialog );
     return result;
+}
+
+void gtk_gui_enable_action( const gchar *action, gboolean enable )
+{
+    gtk_action_set_sensitive( gtk_action_group_get_action( global_action_group, action), enable);
 }

@@ -1,5 +1,5 @@
 /**
- * $Id: dump_win.c,v 1.4 2007-10-10 11:02:04 nkeynes Exp $
+ * $Id: dump_win.c,v 1.5 2007-10-21 05:21:35 nkeynes Exp $
  *
  * Implements the memory dump window.
  *
@@ -43,13 +43,13 @@ typedef struct dump_data {
 
 static dump_data_t dump_list_head = NULL;
 
-gboolean on_dump_win_delete_event( GtkWidget *widget, GdkEvent *event,
+gboolean on_dump_window_delete_event( GtkWidget *widget, GdkEvent *event,
                                    gpointer user_data );
-void on_dump_win_button_view_clicked( GtkWidget *widget, gpointer user_data );
-void dump_win_set_text( dump_data_t data, unsigned char *old_data, unsigned char *new_data );
+void on_dump_window_button_view_clicked( GtkWidget *widget, gpointer user_data );
+void dump_window_set_text( dump_data_t data, unsigned char *old_data, unsigned char *new_data );
 
 
-void dump_window_new( void ) {
+void dump_window_new( const gchar *title ) {
     GtkWidget *win = create_dump_win();
     GtkWidget *dump_view_button = (GtkWidget *)g_object_get_data(G_OBJECT(win), "dump_view_button");
     dump_data_t data = malloc( sizeof(struct dump_data) );
@@ -73,10 +73,10 @@ void dump_window_new( void ) {
     gtk_widget_modify_font(GTK_WIDGET(data->textArea),gui_fixed_font);
         
     g_signal_connect ((gpointer) win, "delete_event",
-                      G_CALLBACK (on_dump_win_delete_event),
+                      G_CALLBACK (on_dump_window_delete_event),
                       data);
     g_signal_connect ((gpointer) dump_view_button, "clicked",
-                      G_CALLBACK (on_dump_win_button_view_clicked),
+                      G_CALLBACK (on_dump_window_button_view_clicked),
                       data);
     gtk_widget_show( GTK_WIDGET(win) );
 }
@@ -105,7 +105,7 @@ void gtk_entry_set_hex_value( GtkEntry *entry, uint32_t value )
 }
 
         
-gboolean on_dump_win_delete_event( GtkWidget *widget, GdkEvent *event,
+gboolean on_dump_window_delete_event( GtkWidget *widget, GdkEvent *event,
                                    gpointer user_data )
 {
     dump_data_t data = (dump_data_t)user_data;
@@ -125,7 +125,7 @@ gboolean on_dump_win_delete_event( GtkWidget *widget, GdkEvent *event,
     return FALSE;
 }
 
-void on_dump_win_button_view_clicked( GtkWidget *widget, gpointer user_data )
+void on_dump_window_button_view_clicked( GtkWidget *widget, gpointer user_data )
 {
     dump_data_t data = (dump_data_t)user_data;
     uint32_t startVal, endVal;
@@ -156,12 +156,12 @@ void on_dump_win_button_view_clicked( GtkWidget *widget, gpointer user_data )
         if( startVal != endVal ) {
             data->data = malloc( endVal - startVal );
             mem_copy_from_sh4( data->data, startVal, endVal-startVal );
-            dump_win_set_text( data, data->data, data->data );
+            dump_window_set_text( data, data->data, data->data );
         }
     }
 }
 
-void dump_win_update( dump_data_t data )
+void dump_window_update( dump_data_t data )
 {
     if( data->data == NULL )
         return;
@@ -169,19 +169,19 @@ void dump_win_update( dump_data_t data )
     int length = data->end-data->start;
     memcpy( tmp, data->data, length );
     mem_copy_from_sh4( data->data, data->start, length );
-    dump_win_set_text( data, tmp, data->data );
+    dump_window_set_text( data, tmp, data->data );
 }
 
-void dump_win_update_all( )
+void dump_window_update_all( )
 {
     dump_data_t node = dump_list_head;
     while( node != NULL ) {
-        dump_win_update(node);
+        dump_window_update(node);
         node = node->next;
     }
 }
 
-void dump_win_set_text( dump_data_t data, unsigned char *old_data, unsigned char *new_data )
+void dump_window_set_text( dump_data_t data, unsigned char *old_data, unsigned char *new_data )
 {
     GtkTextBuffer *buf = data->textBuffer;
     GtkTextTag *changedTag = data->changedTag;
