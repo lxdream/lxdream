@@ -1,5 +1,5 @@
 /**
- * $Id: debug_win.c,v 1.25 2007-10-21 05:21:35 nkeynes Exp $
+ * $Id: debug_win.c,v 1.26 2007-10-21 11:38:02 nkeynes Exp $
  * This file is responsible for the main debugger gui frame.
  *
  * Copyright (c) 2005 Nathan Keynes.
@@ -44,7 +44,7 @@ void on_disasm_list_select_row (GtkCList *clist, gint row, gint column,
 				GdkEvent *event, gpointer user_data);
 void on_disasm_list_unselect_row (GtkCList *clist, gint row, gint column,
 				  GdkEvent *event, gpointer user_data);
-
+gboolean on_debug_delete_event(GtkWidget *widget, GdkEvent event, gpointer user_data);
 
 struct debug_window_info {
     int disasm_from;
@@ -78,7 +78,6 @@ debug_window_t debug_window_new( const gchar *title, GtkWidget *menubar,
 
     GtkWidget *hpaned = gtk_hpaned_new ();
     gtk_paned_set_position (GTK_PANED (hpaned), 800);
-
 
     GtkWidget *disasm_box = gtk_vbox_new(FALSE,0);
     gtk_paned_pack1 (GTK_PANED (hpaned), disasm_box, TRUE, TRUE);
@@ -151,6 +150,9 @@ debug_window_t debug_window_new( const gchar *title, GtkWidget *menubar,
 		      data);
     g_signal_connect ((gpointer) data->disasm_list, "unselect_row",
 		      G_CALLBACK (on_disasm_list_unselect_row),
+		      data);
+    g_signal_connect ((gpointer) data->window, "delete_event",
+		      G_CALLBACK (on_debug_delete_event),
 		      data);
     
     data->disasm_from = -1;
@@ -441,4 +443,10 @@ void on_disasm_list_unselect_row (GtkCList *clist, gint row, gint column,
 {
     gtk_gui_enable_action( "SetBreakpoint", FALSE );
     gtk_gui_enable_action( "RunTo", FALSE );
+}
+
+gboolean on_debug_delete_event(GtkWidget *widget, GdkEvent event, gpointer user_data)
+{
+    gtk_widget_hide( widget );
+    return TRUE;
 }

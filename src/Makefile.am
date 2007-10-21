@@ -37,8 +37,6 @@ lxdream_SOURCES = \
         maple/controller.c maple/controller.h \
         gui/gtkui.c gui/gtkui.h gui/main_win.c gui/gtkcb.c \
         gui/support.c gui/support.h \
-        gui/debugif.c gui/debugif.h \
-        gui/debugcb.c gui/debugcb.h \
         gui/mmio_win.c gui/debug_win.c gui/dump_win.c \
         gui/ctrl_dlg.c gui/path_dlg.c \
         loader.c bootstrap.c util.c \

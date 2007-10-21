@@ -1,5 +1,5 @@
 /**
- * $Id: gtkui.h,v 1.5 2007-10-21 05:21:35 nkeynes Exp $
+ * $Id: gtkui.h,v 1.6 2007-10-21 11:38:02 nkeynes Exp $
  *
  * Core GTK-based user interface
  *
@@ -28,6 +28,7 @@
 typedef struct main_window_info *main_window_t;
 typedef struct debug_window_info *debug_window_t;
 typedef struct mmio_window_info *mmio_window_t;
+typedef struct dump_window_info *dump_window_t;
 
 /**
  * Construct and show the main window, returning an 
@@ -54,7 +55,7 @@ void debug_window_toggle_breakpoint( debug_window_t data, int row );
 mmio_window_t mmio_window_new( const gchar *title );
 void mmio_window_show( mmio_window_t win, gboolean show );
 
-void dump_window_new( const gchar *title );
+dump_window_t dump_window_new( const gchar *title );
 
 void maple_dialog_run();
 void path_dialog_run();
