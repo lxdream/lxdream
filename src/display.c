@@ -1,5 +1,5 @@
 /**
- * $Id: display.c,v 1.10 2007-10-09 08:12:29 nkeynes Exp $
+ * $Id: display.c,v 1.11 2007-10-21 05:15:56 nkeynes Exp $
  *
  * Generic support for keyboard and other input sources. The active display
  * driver is expected to deliver events here, where they're translated and
@@ -38,9 +38,9 @@ struct colour_format colour_formats[] = {
     { GL_UNSIGNED_SHORT_1_5_5_5_REV, GL_BGRA, GL_RGB5_A1, 2 },
     { GL_UNSIGNED_SHORT_5_6_5, GL_RGB, GL_RGB5, 2 },
     { GL_UNSIGNED_SHORT_4_4_4_4_REV, GL_BGRA, GL_RGBA4, 2 },
-    { GL_UNSIGNED_INT_8_8_8_8_REV, GL_BGRA, GL_RGBA8, 4 }, /* YUV decoded to ARGB8888 */
+    { GL_UNSIGNED_BYTE, GL_BGRA, GL_RGBA8, 4 }, /* YUV decoded to ARGB8888 */
     { GL_UNSIGNED_BYTE, GL_BGR, GL_RGB, 3 },
-    { GL_UNSIGNED_INT_8_8_8_8_REV, GL_BGRA, GL_RGBA8, 4 },
+    { GL_UNSIGNED_BYTE, GL_BGRA, GL_RGBA8, 4 },
     
 };
 
@@ -62,10 +62,11 @@ static struct keymap_entry *input_create_key( uint16_t keycode )
     return key;
 }
 
-static void input_delete_key( uint16_t keycode )
+static void input_delete_key( uint16_t keycode, input_key_callback_t callback, void *data,
+			      uint32_t value )
 {
     struct keymap_entry *key = keymap[keycode];
-    if( key != NULL ) {
+    if( key != NULL && key->callback == callback && key->data == data && key->value == value ) {
 	free( key );
 	keymap[keycode] = NULL;
     }
@@ -98,14 +99,15 @@ gboolean input_register_key( const gchar *keysym, input_key_callback_t callback,
     return TRUE;
 }
 
-void input_unregister_key( const gchar *keysym )
+void input_unregister_key( const gchar *keysym, input_key_callback_t callback,
+			   void *data, uint32_t value )
 {
     if( display_driver == NULL || keysym == NULL )
 	return;
     uint16_t keycode = display_driver->resolve_keysym(keysym);
     if( keycode == 0 )
 	return;
-    input_delete_key( keycode );
+    input_delete_key( keycode, callback, data, value );
 }
     
 

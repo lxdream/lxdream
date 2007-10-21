@@ -1,5 +1,5 @@
 /**
- * $Id: controller.c,v 1.7 2007-10-17 11:26:45 nkeynes Exp $
+ * $Id: controller.c,v 1.8 2007-10-21 05:15:56 nkeynes Exp $
  *
  * Implements the standard dreamcast controller
  *
@@ -154,8 +154,24 @@ void controller_attach( maple_device_t mdev )
     input_register_key( dev->config[14].value, controller_key_callback, dev, BUTTON_START );
 }
 
-void controller_detach( maple_device_t dev )
+void controller_detach( maple_device_t mdev )
 {
+    controller_device_t dev = (controller_device_t)mdev;
+    input_unregister_key( dev->config[0].value, controller_key_callback, dev, BUTTON_DPAD_LEFT );
+    input_unregister_key( dev->config[1].value, controller_key_callback, dev, BUTTON_DPAD_RIGHT );
+    input_unregister_key( dev->config[2].value, controller_key_callback, dev, BUTTON_DPAD_UP );
+    input_unregister_key( dev->config[3].value, controller_key_callback, dev, BUTTON_DPAD_DOWN );
+    input_unregister_key( dev->config[4].value, controller_key_callback, dev, JOY_LEFT );
+    input_unregister_key( dev->config[5].value, controller_key_callback, dev, JOY_RIGHT );
+    input_unregister_key( dev->config[6].value, controller_key_callback, dev, JOY_UP );
+    input_unregister_key( dev->config[7].value, controller_key_callback, dev, JOY_DOWN );
+    input_unregister_key( dev->config[8].value, controller_key_callback, dev, BUTTON_X );
+    input_unregister_key( dev->config[9].value, controller_key_callback, dev, BUTTON_Y );
+    input_unregister_key( dev->config[10].value, controller_key_callback, dev, BUTTON_A );
+    input_unregister_key( dev->config[11].value, controller_key_callback, dev, BUTTON_B );
+    input_unregister_key( dev->config[12].value, controller_key_callback, dev, BUTTON_LEFT_TRIGGER );
+    input_unregister_key( dev->config[13].value, controller_key_callback, dev, BUTTON_RIGHT_TRIGGER );
+    input_unregister_key( dev->config[14].value, controller_key_callback, dev, BUTTON_START );
 
 }
 

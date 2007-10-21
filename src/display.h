@@ -1,5 +1,5 @@
 /**
- * $Id: display.h,v 1.9 2007-10-08 11:49:35 nkeynes Exp $
+ * $Id: display.h,v 1.10 2007-10-21 05:15:56 nkeynes Exp $
  *
  * The PC side of the video support (responsible for actually displaying / 
  * rendering frames)
@@ -165,7 +165,8 @@ typedef void (*input_key_callback_t)( void *data, uint32_t value, gboolean isKey
 gboolean input_register_key( const gchar *keysym, input_key_callback_t callback,
 			     void *data, uint32_t value );
 
-void input_unregister_key( const gchar *keysym );
+void input_unregister_key( const gchar *keysym, input_key_callback_t callback,
+			   void *data, uint32_t value );
 
 gboolean input_is_key_valid( const gchar *keysym );
 
