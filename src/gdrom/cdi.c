@@ -1,5 +1,5 @@
 /**
- * $Id: cdi.c,v 1.7 2007-10-06 08:58:00 nkeynes Exp $
+ * $Id: cdi.c,v 1.8 2007-10-21 05:20:15 nkeynes Exp $
  *
  * CDI CD-image file support
  *
@@ -69,7 +69,8 @@ gboolean cdi_image_is_valid( FILE *f )
     if( trail.header_offset >= len ||
         trail.header_offset == 0 )
 	return FALSE;
-    return trail.cdi_version == CDI_V2_ID || trail.cdi_version == CDI_V3_ID;
+    return trail.cdi_version == CDI_V2_ID || trail.cdi_version == CDI_V3_ID ||
+	trail.cdi_version == CDI_V35_ID;
 }
 
 gdrom_disc_t cdi_image_open( const gchar *filename, FILE *f )
@@ -91,12 +92,17 @@ gdrom_disc_t cdi_image_open( const gchar *filename, FILE *f )
     if( trail.header_offset >= len ||
         trail.header_offset == 0 )
 	return NULL;
+    
+    if( trail.cdi_version != CDI_V2_ID && trail.cdi_version != CDI_V3_ID &&
+	trail.cdi_version != CDI_V35_ID ) {
+	return NULL;
+    }
 
-    if( trail.cdi_version == CDI_V2_ID ) trail.cdi_version = 2;
-    else if( trail.cdi_version == CDI_V3_ID ) trail.cdi_version = 3;
-    else return NULL; 
-
-    fseek( f, trail.header_offset, SEEK_SET );
+    if( trail.cdi_version == CDI_V35_ID ) {
+	fseek( f, -trail.header_offset, SEEK_END );
+    } else {
+	fseek( f, trail.header_offset, SEEK_SET );
+    }
     fread( &session_count, sizeof(session_count), 1, f );
     
     disc = gdrom_image_new(f);
