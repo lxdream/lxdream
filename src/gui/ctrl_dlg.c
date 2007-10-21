@@ -1,5 +1,5 @@
 /**
- * $Id: ctrl_dlg.c,v 1.2 2007-10-17 11:26:45 nkeynes Exp $
+ * $Id: ctrl_dlg.c,v 1.3 2007-10-21 05:21:35 nkeynes Exp $
  *
  * Define the main (emu) GTK window, along with its menubars,
  * toolbars, etc.
@@ -26,6 +26,13 @@
 
 #define MAX_DEVICES 4
 
+static void controller_device_configure(maple_device_t device);
+
+struct maple_config_class {
+    const char *name;
+    void (*config_func)(maple_device_t device);
+};
+
 typedef struct maple_slot_data {
     maple_device_t old_device;
     maple_device_t new_device;
@@ -33,15 +40,90 @@ typedef struct maple_slot_data {
     GtkWidget *combo;
 } *maple_slot_data_t;
 
+static struct maple_config_class maple_device_config[] = {
+    { "Sega Controller", controller_device_configure },
+    { NULL, NULL } };
+
 static struct maple_slot_data maple_data[MAX_DEVICES];
 
-
-gboolean controller_properties_activated( GtkButton *button, gpointer user_data )
+static gboolean config_key_keypress( GtkWidget *widget, GdkEventKey *event, gpointer user_data )
 {
-    maple_slot_data_t data = (maple_slot_data_t)user_data;
+    GdkKeymap *keymap = gdk_keymap_get_default();
+    guint keyval;
+    
+    gdk_keymap_translate_keyboard_state( keymap, event->hardware_keycode, 0, 0, &keyval, 
+					 NULL, NULL, NULL );
+    gtk_entry_set_text( GTK_ENTRY(widget), gdk_keyval_name(keyval) );
+    return TRUE;
 }
 
-gboolean controller_device_changed( GtkComboBox *combo, gpointer user_data )
+static void controller_config_done( GtkWidget *panel, gboolean isOK )
+{
+    
+
+}
+
+static void controller_device_configure( maple_device_t device )
+{
+    lxdream_config_entry_t conf = device->get_config(device);
+    int count, i;
+    for( count=0; conf[count].key != NULL; count++ );
+
+    GtkWidget *table = gtk_table_new( (count+1)>>1, 6, FALSE );
+    for( i=0; i<count; i++ ) {
+	GtkWidget *text, *text2;
+	int x=0;
+	int y=i;
+	if( i >= (count+1)>>1 ) {
+	    x = 3;
+	    y -= (count+1)>>1;
+	}
+	gtk_table_attach( GTK_TABLE(table), gtk_label_new(conf[i].key), x, x+1, y, y+1, 
+			  GTK_SHRINK, GTK_SHRINK, 0, 0 );
+	gchar **parts = g_strsplit(conf[i].value,",",3);
+	
+	text = gtk_entry_new();
+	gtk_entry_set_width_chars( GTK_ENTRY(text), 8 );
+	g_signal_connect( text, "key_press_event", 
+			  G_CALLBACK(config_key_keypress), NULL );
+	gtk_table_attach_defaults( GTK_TABLE(table), text, x+1, x+2, y, y+1);
+
+	text2 = gtk_entry_new();
+	gtk_entry_set_width_chars( GTK_ENTRY(text2), 8 );
+	g_signal_connect( text2, "key_press_event", 
+			  G_CALLBACK(config_key_keypress), NULL );
+	gtk_table_attach_defaults( GTK_TABLE(table), text2, x+2, x+3, y, y+1);
+	if( parts[0] != NULL ) {
+	    gtk_entry_set_text( GTK_ENTRY(text), g_strstrip(parts[0]) );
+	    if( parts[1] != NULL ) {
+		gtk_entry_set_text( GTK_ENTRY(text2), g_strstrip(parts[1]) );
+	    }
+	}
+	g_strfreev(parts);
+    }
+    gtk_gui_run_property_dialog( "Controller Configuration", table, controller_config_done );
+}
+
+
+gboolean maple_properties_activated( GtkButton *button, gpointer user_data )
+{
+    maple_slot_data_t data = (maple_slot_data_t)user_data;
+    if( data->new_device != NULL ) {
+	int i;
+	for( i=0; maple_device_config[i].name != NULL; i++ ) {
+	    if( strcmp(data->new_device->device_class->name, maple_device_config[i].name) == 0 ) {
+		maple_device_config[i].config_func(data->new_device);
+		break;
+	    }
+	}
+	if( maple_device_config[i].name == NULL ) {
+	    gui_error_dialog( "No configuration page available for device type" );
+	}
+    }
+    return TRUE;
+}
+
+gboolean maple_device_changed( GtkComboBox *combo, gpointer user_data )
 {
     maple_slot_data_t data = (maple_slot_data_t)user_data;
     int active = gtk_combo_box_get_active(combo);
@@ -64,9 +146,10 @@ gboolean controller_device_changed( GtkComboBox *combo, gpointer user_data )
 	}
 	data->new_device = NULL;
     }
+    return TRUE;
 }
 
-void controller_commit_changes( )
+void maple_commit_changes( )
 {
     int i;
     for( i=0; i<MAX_DEVICES; i++ ) {
@@ -82,7 +165,7 @@ void controller_commit_changes( )
     lxdream_save_config();
 }
 
-void controller_cancel_changes( )
+void maple_cancel_changes( )
 {
     int i;
     for( i=0; i<MAX_DEVICES; i++ ) {
@@ -93,7 +176,7 @@ void controller_cancel_changes( )
     }
 }
 
-GtkWidget *controller_panel_new()
+GtkWidget *maple_panel_new()
 {
     GtkWidget *table = gtk_table_new(4, 3, TRUE);
     GtkTreeIter iter;
@@ -126,20 +209,20 @@ GtkWidget *controller_panel_new()
 	maple_data[i].combo = combo;
 	maple_data[i].button = button;
 	g_signal_connect( button, "clicked", 
-			  G_CALLBACK( controller_properties_activated ), &maple_data[i] );
+			  G_CALLBACK( maple_properties_activated ), &maple_data[i] );
 	g_signal_connect( combo, "changed", 
-			  G_CALLBACK( controller_device_changed ), &maple_data[i] );
+			  G_CALLBACK( maple_device_changed ), &maple_data[i] );
 
     }
     return table;
 }
 
-void controller_dialog_run( GtkWindow *parent )
+void maple_dialog_run( GtkWindow *parent )
 {
-    gint result = gtk_gui_run_property_dialog( "Controller Settings", controller_panel_new() );
+    gint result = gtk_gui_run_property_dialog( "Controller Settings", maple_panel_new(), NULL );
     if( result == GTK_RESPONSE_ACCEPT ) {
-	controller_commit_changes();
+	maple_commit_changes();
     } else {
-	controller_cancel_changes();
+	maple_cancel_changes();
     }
 }

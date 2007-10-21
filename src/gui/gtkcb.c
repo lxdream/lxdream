@@ -1,5 +1,5 @@
 /**
- * $Id: gtkcb.c,v 1.4 2007-10-17 11:26:45 nkeynes Exp $
+ * $Id: gtkcb.c,v 1.5 2007-10-21 05:21:35 nkeynes Exp $
  *
  * Action callbacks from the main window
  *
@@ -21,6 +21,7 @@
 #include "dreamcast.h"
 #include "gdrom/gdrom.h"
 #include "gui/gtkui.h"
+#include "pvr2/pvr2.h"
 
 typedef gboolean (*file_callback_t)( const gchar *filename );
 
@@ -161,11 +162,6 @@ void exit_action_callback( GtkAction *action, gpointer user_data)
     exit(0);
 }
 
-void debugger_action_callback( GtkAction *action, gpointer user_data)
-{
-    gtk_gui_show_debugger();
-}
-
 void path_settings_callback( GtkAction *action, gpointer user_data)
 {
     path_dialog_run();
@@ -175,9 +171,9 @@ void audio_settings_callback( GtkAction *action, gpointer user_data)
 {
 }
 
-void controller_settings_callback( GtkAction *action, gpointer user_data)
+void maple_settings_callback( GtkAction *action, gpointer user_data)
 {
-    controller_dialog_run( );
+    maple_dialog_run( );
 }
 
 void network_settings_callback( GtkAction *action, gpointer user_data)
@@ -190,4 +186,51 @@ void video_settings_callback( GtkAction *action, gpointer user_data)
 
 void fullscreen_toggle_callback( GtkToggleAction *action, gpointer user_data)
 {
+}
+
+void debugger_action_callback( GtkAction *action, gpointer user_data)
+{
+    gtk_gui_show_debugger();
+}
+
+void debug_memory_action_callback( GtkAction *action, gpointer user_data)
+{
+    dump_window_new( APP_NAME " " APP_VERSION " :: Memory dump" );
+}
+
+void debug_mmio_action_callback( GtkAction *action, gpointer user_data)
+{
+    gtk_gui_show_mmio();
+}
+
+void save_scene_action_callback( GtkAction *action, gpointer user_data)
+{
+    const gchar *dir = lxdream_get_config_value(CONFIG_SAVE_PATH);
+    save_file_dialog( "Save next scene...", pvr2_save_next_scene, "*.dsc", "lxdream scene file (*.dsc)", dir );
+}
+
+void debug_step_action_callback( GtkAction *action, gpointer user_data)
+{
+    debug_window_single_step(gtk_gui_get_debugger());
+}
+
+void debug_runto_action_callback( GtkAction *action, gpointer user_data)
+{
+    debug_window_t debug = gtk_gui_get_debugger();
+    int selected_row = debug_window_get_selected_row(debug);
+    if( selected_row == -1 ) {
+        WARN( "No address selected, so can't run to it", NULL );
+    } else {
+	debug_window_set_oneshot_breakpoint( debug, selected_row );
+	dreamcast_run();
+    }
+}
+
+void debug_breakpoint_action_callback( GtkAction *action, gpointer user_data)
+{
+    debug_window_t debug = gtk_gui_get_debugger();
+    int selected_row = debug_window_get_selected_row(debug);
+    if( selected_row != -1 ) {
+	debug_window_toggle_breakpoint( debug, selected_row );
+    }
 }

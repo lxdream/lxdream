@@ -1,5 +1,5 @@
 /**
- * $Id: gtkui.h,v 1.4 2007-10-17 11:26:45 nkeynes Exp $
+ * $Id: gtkui.h,v 1.5 2007-10-21 05:21:35 nkeynes Exp $
  *
  * Core GTK-based user interface
  *
@@ -33,27 +33,41 @@ typedef struct mmio_window_info *mmio_window_t;
  * Construct and show the main window, returning an 
  * opaque pointer to the window.
  */
-main_window_t main_window_new( const gchar *title );
+main_window_t main_window_new( const gchar *title, GtkWidget *menubar, 
+			       GtkWidget *toolbar, GtkAccelGroup *accel );
 GtkWindow *main_window_get_frame( main_window_t win );
 GtkWidget *main_window_get_renderarea( main_window_t win );
 void main_window_set_running( main_window_t win, gboolean running );
 void main_window_set_framerate( main_window_t win, float rate );
 void main_window_set_speed( main_window_t win, double speed );
 
-debug_window_t debug_window_new();
+debug_window_t debug_window_new( const gchar *title, GtkWidget *menubar,
+				 GtkWidget *toolbar, GtkAccelGroup *accel );
 void debug_window_show( debug_window_t win, gboolean show );
 void debug_window_set_running( debug_window_t win, gboolean running );
 void debug_window_update(debug_window_t win);
+void debug_window_single_step( debug_window_t data );
+void debug_window_set_oneshot_breakpoint( debug_window_t data, int row );
+void debug_window_toggle_breakpoint( debug_window_t data, int row );
 
-mmio_window_t mmio_window_new();
+
+mmio_window_t mmio_window_new( const gchar *title );
 void mmio_window_show( mmio_window_t win, gboolean show );
 
-void controller_dialog_run();
+void dump_window_new( const gchar *title );
+
+void maple_dialog_run();
 void path_dialog_run();
+
+main_window_t gtk_gui_get_main();
+debug_window_t gtk_gui_get_debugger();
+mmio_window_t gtk_gui_get_mmio();
 
 /********************* Helper functions **********************/
 
-gint gtk_gui_run_property_dialog( const gchar *title, GtkWidget *panel );
+typedef void (*gtk_dialog_done_fn)(GtkWidget *panel, gboolean isOK);
+void gtk_gui_enable_action( const gchar *action, gboolean enabled );
+gint gtk_gui_run_property_dialog( const gchar *title, GtkWidget *panel, gtk_dialog_done_fn fn );
 
 /******************** Video driver hooks *********************/
 
@@ -68,15 +82,22 @@ void resume_action_callback( GtkAction *action, gpointer user_data);
 void load_state_action_callback( GtkAction *action, gpointer user_data);
 void save_state_action_callback( GtkAction *action, gpointer user_data);
 void about_action_callback( GtkAction *action, gpointer user_data);
-void debugger_action_callback( GtkAction *action, gpointer user_data);
 void exit_action_callback( GtkAction *action, gpointer user_data);
 
 void path_settings_callback( GtkAction *action, gpointer user_data);
 void audio_settings_callback( GtkAction *action, gpointer user_data);
-void controller_settings_callback( GtkAction *action, gpointer user_data);
+void maple_settings_callback( GtkAction *action, gpointer user_data);
 void network_settings_callback( GtkAction *action, gpointer user_data);
 void video_settings_callback( GtkAction *action, gpointer user_data);
 void fullscreen_toggle_callback( GtkToggleAction *action, gpointer user_data);
+
+void debugger_action_callback( GtkAction *action, gpointer user_data);
+void debug_memory_action_callback( GtkAction *action, gpointer user_data);
+void debug_mmio_action_callback( GtkAction *action, gpointer user_data);
+void save_scene_action_callback( GtkAction *action, gpointer user_data);
+void debug_step_action_callback( GtkAction *action, gpointer user_data);
+void debug_runto_action_callback( GtkAction *action, gpointer user_data);
+void debug_breakpoint_action_callback( GtkAction *action, gpointer user_data);
 
 /*************** Constant colour/font values *****************/
 extern PangoFontDescription *gui_fixed_font;
