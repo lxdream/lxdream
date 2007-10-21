@@ -173,7 +173,7 @@ lxdream_SOURCES = \
         gui/support.c gui/support.h \
         gui/debugif.c gui/debugif.h \
         gui/debugcb.c gui/debugcb.h \
-        gui/mmr_win.c gui/debug_win.c gui/dump_win.c \
+        gui/mmio_win.c gui/debug_win.c gui/dump_win.c \
         gui/ctrl_dlg.c gui/path_dlg.c \
         loader.c bootstrap.c util.c \
 	display.c display.h \
@@ -239,7 +239,7 @@ am_lxdream_OBJECTS = main.$(OBJEXT) config.$(OBJEXT) mem.$(OBJEXT) \
 	yuv.$(OBJEXT) rendsave.$(OBJEXT) maple.$(OBJEXT) \
 	controller.$(OBJEXT) gtkui.$(OBJEXT) main_win.$(OBJEXT) \
 	gtkcb.$(OBJEXT) support.$(OBJEXT) debugif.$(OBJEXT) \
-	debugcb.$(OBJEXT) mmr_win.$(OBJEXT) debug_win.$(OBJEXT) \
+	debugcb.$(OBJEXT) mmio_win.$(OBJEXT) debug_win.$(OBJEXT) \
 	dump_win.$(OBJEXT) ctrl_dlg.$(OBJEXT) path_dlg.$(OBJEXT) \
 	loader.$(OBJEXT) bootstrap.$(OBJEXT) util.$(OBJEXT) \
 	display.$(OBJEXT) audio_null.$(OBJEXT) audio_esd.$(OBJEXT) \
@@ -289,7 +289,7 @@ am__depfiles_maybe = depfiles
 @AMDEP_TRUE@	./$(DEPDIR)/linux.Po ./$(DEPDIR)/loader.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/main.Po ./$(DEPDIR)/main_win.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/maple.Po ./$(DEPDIR)/mem.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/mmr_win.Po ./$(DEPDIR)/nrg.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/mmio_win.Po ./$(DEPDIR)/nrg.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/path_dlg.Po ./$(DEPDIR)/pvr2.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/pvr2mem.Po ./$(DEPDIR)/rendbkg.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/rendcore.Po ./$(DEPDIR)/render.Po \
@@ -423,7 +423,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main_win.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/maple.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mem.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mmr_win.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mmio_win.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nrg.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/path_dlg.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pvr2.Po@am__quote@
@@ -1580,27 +1580,27 @@ debugcb.obj: gui/debugcb.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o debugcb.obj `if test -f 'gui/debugcb.c'; then $(CYGPATH_W) 'gui/debugcb.c'; else $(CYGPATH_W) '$(srcdir)/gui/debugcb.c'; fi`
 
-mmr_win.o: gui/mmr_win.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT mmr_win.o -MD -MP -MF "$(DEPDIR)/mmr_win.Tpo" \
-@am__fastdepCC_TRUE@	  -c -o mmr_win.o `test -f 'gui/mmr_win.c' || echo '$(srcdir)/'`gui/mmr_win.c; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/mmr_win.Tpo" "$(DEPDIR)/mmr_win.Po"; \
-@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/mmr_win.Tpo"; exit 1; \
+mmio_win.o: gui/mmio_win.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT mmio_win.o -MD -MP -MF "$(DEPDIR)/mmio_win.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o mmio_win.o `test -f 'gui/mmio_win.c' || echo '$(srcdir)/'`gui/mmio_win.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/mmio_win.Tpo" "$(DEPDIR)/mmio_win.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/mmio_win.Tpo"; exit 1; \
 @am__fastdepCC_TRUE@	fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gui/mmr_win.c' object='mmr_win.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/mmr_win.Po' tmpdepfile='$(DEPDIR)/mmr_win.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gui/mmio_win.c' object='mmio_win.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/mmio_win.Po' tmpdepfile='$(DEPDIR)/mmio_win.TPo' @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o mmr_win.o `test -f 'gui/mmr_win.c' || echo '$(srcdir)/'`gui/mmr_win.c
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o mmio_win.o `test -f 'gui/mmio_win.c' || echo '$(srcdir)/'`gui/mmio_win.c
 
-mmr_win.obj: gui/mmr_win.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT mmr_win.obj -MD -MP -MF "$(DEPDIR)/mmr_win.Tpo" \
-@am__fastdepCC_TRUE@	  -c -o mmr_win.obj `if test -f 'gui/mmr_win.c'; then $(CYGPATH_W) 'gui/mmr_win.c'; else $(CYGPATH_W) '$(srcdir)/gui/mmr_win.c'; fi`; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/mmr_win.Tpo" "$(DEPDIR)/mmr_win.Po"; \
-@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/mmr_win.Tpo"; exit 1; \
+mmio_win.obj: gui/mmio_win.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT mmio_win.obj -MD -MP -MF "$(DEPDIR)/mmio_win.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o mmio_win.obj `if test -f 'gui/mmio_win.c'; then $(CYGPATH_W) 'gui/mmio_win.c'; else $(CYGPATH_W) '$(srcdir)/gui/mmio_win.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/mmio_win.Tpo" "$(DEPDIR)/mmio_win.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/mmio_win.Tpo"; exit 1; \
 @am__fastdepCC_TRUE@	fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gui/mmr_win.c' object='mmr_win.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/mmr_win.Po' tmpdepfile='$(DEPDIR)/mmr_win.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gui/mmio_win.c' object='mmio_win.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/mmio_win.Po' tmpdepfile='$(DEPDIR)/mmio_win.TPo' @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o mmr_win.obj `if test -f 'gui/mmr_win.c'; then $(CYGPATH_W) 'gui/mmr_win.c'; else $(CYGPATH_W) '$(srcdir)/gui/mmr_win.c'; fi`
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o mmio_win.obj `if test -f 'gui/mmio_win.c'; then $(CYGPATH_W) 'gui/mmio_win.c'; else $(CYGPATH_W) '$(srcdir)/gui/mmio_win.c'; fi`
 
 debug_win.o: gui/debug_win.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT debug_win.o -MD -MP -MF "$(DEPDIR)/debug_win.Tpo" \
