@@ -1,5 +1,5 @@
 /**
- * $Id: loader.c,v 1.19 2007-10-17 11:26:45 nkeynes Exp $
+ * $Id: loader.c,v 1.20 2007-10-21 05:20:35 nkeynes Exp $
  *
  * File loading routines, mostly for loading demos without going through the
  * whole procedure of making a CD image for them.
@@ -57,8 +57,6 @@ gboolean file_load_magic( const gchar *filename )
     
     int fd = open( filename, O_RDONLY );
     if( fd == -1 ) {
-        ERROR( "Unable to open file: '%s' (%s)", filename,
-               strerror(errno) );
         return FALSE;
     }
     
