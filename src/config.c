@@ -1,5 +1,5 @@
 /**
- * $Id: config.c,v 1.1 2007-10-17 11:26:45 nkeynes Exp $
+ * $Id: config.c,v 1.2 2007-10-22 21:12:54 nkeynes Exp $
  *
  * User configuration support
  *
@@ -115,6 +115,22 @@ void lxdream_set_config_value( int key, const gchar *value )
 	free( param->value );
     }
     param->value = g_strdup(value);
+}
+
+gboolean lxdream_set_group_value( lxdream_config_group_t group, const gchar *key, const gchar *value )
+{
+    int i;
+    for( i=0; group->params[i].key != NULL; i++ ) {
+	if( strcasecmp( group->params[i].key, key ) == 0 ) {
+	    if( group->params[i].value != group->params[i].default_value &&
+		group->params[i].value != NULL ) {
+		free( group->params[i].value );
+	    }
+	    group->params[i].value = g_strdup( value );
+	    return TRUE;
+	}
+    }
+    return FALSE;
 }
 
 gboolean lxdream_load_config( )
