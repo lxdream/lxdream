@@ -1,5 +1,5 @@
 /**
- * $Id: config.h,v 1.1 2007-10-17 11:26:45 nkeynes Exp $
+ * $Id: config.h,v 1.2 2007-10-22 21:12:54 nkeynes Exp $
  *
  * User configuration support
  *
@@ -52,7 +52,7 @@ extern struct lxdream_config_group lxdream_config_root[];
 const gchar *lxdream_get_config_value( int key );
 
 void lxdream_set_config_value( int key, const gchar *value );
-
+gboolean lxdream_set_group_value( lxdream_config_group_t group, const gchar *key, const gchar *value );
 /**
  * Search the standard locations for the configuration file:
  *   $HOME/.lxdreamrc
