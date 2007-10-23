@@ -2,10 +2,7 @@
 
 SUBDIRS = src po
 
-EXTRA_DIST = \
-	autogen.sh \
-	dream.glade \
-	dream.gladep
+EXTRA_DIST = autogen.sh
 
 install-data-local:
 	@$(NORMAL_INSTALL)
