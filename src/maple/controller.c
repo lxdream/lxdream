@@ -1,5 +1,5 @@
 /**
- * $Id: controller.c,v 1.8 2007-10-21 05:15:56 nkeynes Exp $
+ * $Id: controller.c,v 1.9 2007-10-23 10:47:17 nkeynes Exp $
  *
  * Implements the standard dreamcast controller
  *
@@ -28,6 +28,7 @@
 void controller_attach( maple_device_t dev );
 void controller_detach( maple_device_t dev );
 void controller_destroy( maple_device_t dev );
+maple_device_t controller_clone( maple_device_t dev );
 maple_device_t controller_new();
 lxdream_config_entry_t controller_get_config( maple_device_t dev );
 int controller_get_cond( maple_device_t dev, int function, unsigned char *outbuf,
@@ -44,7 +45,7 @@ struct maple_device_class controller_class = { "Sega Controller", controller_new
 static struct controller_device base_controller = {
     { MAPLE_DEVICE_TAG, &controller_class, CONTROLLER_IDENT, CONTROLLER_VERSION, 
       controller_get_config, controller_attach, controller_detach, controller_destroy,
-      NULL, NULL, controller_get_cond, NULL, NULL, NULL },
+      controller_clone, NULL, NULL, controller_get_cond, NULL, NULL, NULL },
     {0x0000FFFF, 0x80808080}, 
     {{ "dpad left", CONFIG_TYPE_KEY },
      { "dpad right", CONFIG_TYPE_KEY },
@@ -69,6 +70,15 @@ maple_device_t controller_new( )
 {
     controller_device_t dev = malloc( sizeof(struct controller_device) );
     memcpy( dev, &base_controller, sizeof(base_controller) );
+    return MAPLE_DEVICE(dev);
+}
+
+maple_device_t controller_clone( maple_device_t srcdevice )
+{
+    controller_device_t src = (controller_device_t)srcdevice;
+    controller_device_t dev = (controller_device_t)controller_new();
+    lxdream_copy_config_list( dev->config, src->config );
+    memcpy( dev->condition, src->condition, sizeof(src->condition) );
     return MAPLE_DEVICE(dev);
 }
 

@@ -1,5 +1,5 @@
 /**
- * $Id: maple.h,v 1.7 2007-10-17 11:26:45 nkeynes Exp $
+ * $Id: maple.h,v 1.8 2007-10-23 10:47:17 nkeynes Exp $
  *
  * Maple bus definitions
  *
@@ -75,7 +75,7 @@ struct maple_device {
     void (*attach)(struct maple_device *dev);
     void (*detach)(struct maple_device *dev);
     void (*destroy)(struct maple_device *dev);
-
+    struct maple_device * (*clone)(struct maple_device *dev);
     int (*reset)(struct maple_device *dev);
     int (*shutdown)(struct maple_device *dev);
     int (*get_condition)(struct maple_device *dev,
