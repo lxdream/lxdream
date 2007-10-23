@@ -1,5 +1,5 @@
 /**
- * $Id: dreamcast.c,v 1.24 2007-10-17 11:26:45 nkeynes Exp $
+ * $Id: dreamcast.c,v 1.25 2007-10-23 10:48:24 nkeynes Exp $
  * Central switchboard for the system. This pulls all the individual modules
  * together into some kind of coherent structure. This is also where you'd
  * add Naomi support, if I ever get a board to play with...
@@ -83,6 +83,14 @@ void dreamcast_configure( )
     dreamcast_register_module( &aica_module );
     dreamcast_register_module( &maple_module );
     dreamcast_register_module( &ide_module );
+}
+
+void dreamcast_config_changed(void)
+{
+    mem_load_rom( lxdream_get_config_value(CONFIG_BIOS_PATH),
+		  0x00000000, 0x00200000, 0x89f2b1a1 );
+    mem_load_block( lxdream_get_config_value(CONFIG_FLASH_PATH),
+		    0x00200000, 0x00020000 );
 }
 
 void dreamcast_save_flash()

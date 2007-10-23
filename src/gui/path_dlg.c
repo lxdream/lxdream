@@ -1,5 +1,5 @@
 /**
- * $Id: path_dlg.c,v 1.2 2007-10-21 05:21:35 nkeynes Exp $
+ * $Id: path_dlg.c,v 1.3 2007-10-23 10:48:24 nkeynes Exp $
  *
  * Define the main (emu) GTK window, along with its menubars,
  * toolbars, etc.
@@ -94,6 +94,7 @@ GtkWidget *path_panel_new(void)
 	gtk_table_attach( GTK_TABLE(table), gtk_label_new(path_label[i]), 0, 1, i, i+1,
 			  GTK_SHRINK, GTK_SHRINK, 0, 0);
 	gtk_entry_set_text( GTK_ENTRY(text), lxdream_get_config_value(path_id[i]) );
+	gtk_entry_set_width_chars( GTK_ENTRY(text), 48 );
 	gtk_table_attach_defaults( GTK_TABLE(table), text, 1, 2, i, i+1 );
 	gtk_table_attach( GTK_TABLE(table), button, 2, 3, i, i+1, GTK_SHRINK, GTK_SHRINK, 0, 0 );
 	if( path_action[i] == GTK_FILE_CHOOSER_ACTION_OPEN ) {
@@ -110,32 +111,21 @@ GtkWidget *path_panel_new(void)
 
 }
 
-void path_panel_commit_changes()
+void path_panel_done( GtkWidget *panel, gboolean isOK )
 {
-    int i;
-    for(i=0; i<5; i++ ) {
-	const char *filename = gtk_entry_get_text( GTK_ENTRY(path_entry[i]) );
-	lxdream_set_config_value( path_id[i], filename );
+    if( isOK ) {
+	int i;
+	for(i=0; i<5; i++ ) {
+	    const char *filename = gtk_entry_get_text( GTK_ENTRY(path_entry[i]) );
+	    lxdream_set_global_config_value( path_id[i], filename );
+	}
+	
+	lxdream_save_config();
+	dreamcast_config_changed();
     }
-
-    lxdream_save_config();
 }
 
 void path_dialog_run( void )
 {
-    GtkWidget *dialog =
-	gtk_dialog_new_with_buttons("Path Settings", NULL, 
-				    GTK_DIALOG_MODAL|GTK_DIALOG_DESTROY_WITH_PARENT,
-				    GTK_STOCK_OK, GTK_RESPONSE_ACCEPT,
-				    GTK_STOCK_CANCEL, GTK_RESPONSE_REJECT,
-				    NULL);
-    gint result;
-    GtkWidget *panel = path_panel_new();
-    gtk_widget_show_all(panel);
-    gtk_container_add( GTK_CONTAINER(GTK_DIALOG(dialog)->vbox), panel );
-    result = gtk_dialog_run( GTK_DIALOG(dialog) );
-    if( result == GTK_RESPONSE_ACCEPT ) {
-	path_panel_commit_changes();
-    }
-    gtk_widget_destroy( dialog );
+    gtk_gui_run_property_dialog( "Path Settings", path_panel_new(), path_panel_done );
 }
