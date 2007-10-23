@@ -1,5 +1,5 @@
 /**
- * $Id: mem.c,v 1.15 2007-10-06 08:59:42 nkeynes Exp $
+ * $Id: mem.c,v 1.16 2007-10-23 10:48:24 nkeynes Exp $
  * mem.c is responsible for creating and maintaining the overall system memory
  * map, as visible from the SH4 processor. 
  *
@@ -270,18 +270,21 @@ void *mem_load_rom( const gchar *file, uint32_t base, uint32_t size, uint32_t cr
     char *mem;
     int fd;
     uint32_t calc_crc;
-    fd = open( file, O_RDONLY );
-    if( fd == -1 ) {
-        ERROR( "Bios file not found: %s", file );
-        return NULL;
+
+    mem = mem_get_region(base);
+    if( mem == NULL ) {
+	mem = mmap( NULL, size, PROT_WRITE|PROT_READ, MAP_ANONYMOUS|MAP_PRIVATE, -1, 0 );
+	if( mem == MAP_FAILED ) {
+	    ERROR( "Unable to allocate ROM memory: %s (%s)", file, strerror(errno) );
+	    return NULL;
+	}
+	mem_map_region( mem, base, size, file, MEM_FLAG_ROM, size, base );
+    } else {
+	mprotect( mem, size, PROT_READ|PROT_WRITE );
     }
-    mem = mmap( NULL, size, PROT_READ, MAP_PRIVATE, fd, 0 );
-    if( mem == MAP_FAILED ) {
-        ERROR( "Unable to map bios file: %s (%s)", file, strerror(errno) );
-        close(fd);
-        return NULL;
-    }
-    mem_map_region( mem, base, size, file, MEM_FLAG_ROM, size, base );
+
+    mem_load_block( file, base, size );
+    mprotect( mem, size, PROT_READ );
 
     /* CRC check */
     calc_crc = crc32(0L, (unsigned char *)mem, size);

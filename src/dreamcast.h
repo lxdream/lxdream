@@ -1,5 +1,5 @@
 /**
- * $Id: dreamcast.h,v 1.18 2007-10-17 11:26:45 nkeynes Exp $
+ * $Id: dreamcast.h,v 1.19 2007-10-23 10:48:24 nkeynes Exp $
  *
  * Public interface for dreamcast.c -
  * Central switchboard for the system. This pulls all the individual modules
@@ -46,6 +46,7 @@ void dreamcast_run(void);
 void dreamcast_run_for( unsigned int seconds, unsigned int nanosecs );
 void dreamcast_stop(void);
 void dreamcast_shutdown(void);
+void dreamcast_config_changed(void);
 gboolean dreamcast_is_running(void);
 
 #define DREAMCAST_SAVE_MAGIC "%!-lxDream!Save\0"
