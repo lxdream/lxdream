@@ -1,5 +1,5 @@
 /**
- * $Id: config.c,v 1.2 2007-10-22 21:12:54 nkeynes Exp $
+ * $Id: config.c,v 1.3 2007-10-23 10:47:17 nkeynes Exp $
  *
  * User configuration support
  *
@@ -108,13 +108,17 @@ const gchar *lxdream_get_config_value( int key )
     return global_config[key].value;
 }
 
-void lxdream_set_config_value( int key, const gchar *value )
+void lxdream_set_config_value( lxdream_config_entry_t param, const gchar *value )
 {
-    struct lxdream_config_entry *param = &global_config[key];
     if( param->value != param->default_value && param->value != NULL ) {
 	free( param->value );
     }
     param->value = g_strdup(value);
+}
+
+void lxdream_set_global_config_value( int key, const gchar *value )
+{
+    lxdream_set_config_value(&global_config[key], value);
 }
 
 gboolean lxdream_set_group_value( lxdream_config_group_t group, const gchar *key, const gchar *value )
@@ -122,15 +126,19 @@ gboolean lxdream_set_group_value( lxdream_config_group_t group, const gchar *key
     int i;
     for( i=0; group->params[i].key != NULL; i++ ) {
 	if( strcasecmp( group->params[i].key, key ) == 0 ) {
-	    if( group->params[i].value != group->params[i].default_value &&
-		group->params[i].value != NULL ) {
-		free( group->params[i].value );
-	    }
-	    group->params[i].value = g_strdup( value );
+	    lxdream_set_config_value( &group->params[i], value );
 	    return TRUE;
 	}
     }
     return FALSE;
+}
+
+void lxdream_copy_config_list( lxdream_config_entry_t dest, lxdream_config_entry_t src )
+{
+    int i;
+    for( i=0; src[i].key != NULL; i++ ) {
+	lxdream_set_config_value( &dest[i], src[i].value );
+    }
 }
 
 gboolean lxdream_load_config( )
