@@ -1,5 +1,5 @@
 /**
- * $Id: audio.c,v 1.9 2007-10-09 11:37:36 nkeynes Exp $
+ * $Id: audio.c,v 1.10 2007-10-24 21:24:09 nkeynes Exp $
  * 
  * Audio mixer core. Combines all the active streams into a single sound
  * buffer for output. 
@@ -208,9 +208,10 @@ void audio_mix_samples( int num_samples )
 			channel->posn++;
 			
 			if( channel->posn == channel->end ) {
-			    if( channel->loop )
+			    if( channel->loop ) {
 				channel->posn = channel->loop_start;
-			    else {
+				channel->loop = LOOP_LOOPED;
+			    } else {
 				audio_stop_channel(i);
 				j = num_samples;
 				break;
@@ -231,9 +232,10 @@ void audio_mix_samples( int num_samples )
 			channel->posn++;
 			
 			if( channel->posn == channel->end ) {
-			    if( channel->loop )
+			    if( channel->loop ) {
 				channel->posn = channel->loop_start;
-			    else {
+				channel->loop = LOOP_LOOPED;
+			    } else {
 				audio_stop_channel(i);
 				j = num_samples;
 				break;
@@ -254,6 +256,7 @@ void audio_mix_samples( int num_samples )
 			if( channel->posn == channel->end ) {
 			    if( channel->loop ) {
 				channel->posn = channel->loop_start;
+				channel->loop = LOOP_LOOPED;
 				channel->adpcm_predict = 0;
 				channel->adpcm_step = 0;
 			    } else {

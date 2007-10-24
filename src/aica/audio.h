@@ -1,5 +1,5 @@
 /**
- * $Id: audio.h,v 1.8 2007-10-09 11:37:36 nkeynes Exp $
+ * $Id: audio.h,v 1.9 2007-10-24 21:24:09 nkeynes Exp $
  * 
  * Audio engine, ie the part that does the actual work.
  *
@@ -35,13 +35,15 @@ extern "C" {
 
 #define AUDIO_FMT_16ST (AUDIO_FMT_16BIT|AUDIO_FMT_STEREO)
 
+typedef enum { LOOP_OFF = 0, LOOP_ON = 1, LOOP_LOOPED = 2 } loop_t;
+
 typedef struct audio_channel {
     gboolean active;
     uint32_t posn; /* current sample #, 0 = first sample */
     uint32_t posn_left;
     uint32_t start;
     uint32_t end;
-    gboolean loop;
+    loop_t loop;
     uint32_t loop_start;
     int vol; /* 0..255 */
     int pan; /* 0 (left) .. 31 (right) */
