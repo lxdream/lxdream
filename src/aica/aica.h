@@ -1,5 +1,5 @@
 /**
- * $Id: aica.h,v 1.10 2007-01-17 09:37:22 nkeynes Exp $
+ * $Id: aica.h,v 1.11 2007-10-24 21:24:09 nkeynes Exp $
  * 
  * MMIO definitions for the AICA sound chip. Note that the regions defined
  * here are relative to the SH4 memory map (0x00700000 based), rather than
@@ -33,6 +33,9 @@ LONG_PORT( 0x040, CDDA_VOL_L, PORT_MRW, 0, "CDDA Volume left" )
 LONG_PORT( 0x044, CDDA_VOL_R, PORT_MRW, 0, "CDDA Volume right" )
 LONG_PORT( 0x800, VOL_MASTER, PORT_MRW, UNDEFINED, "Master volume" )
 LONG_PORT( 0x808, AICA_UNK7, PORT_MRW, 0, "AICA ??? 7" )
+LONG_PORT( 0x80C, AICA_CHANSEL, PORT_MRW, 0, "AICA channel select" )
+LONG_PORT( 0x810, AICA_CHANSTATE, PORT_MRW, 0, "AICA channel state" )
+LONG_PORT( 0x814, AICA_CHANPOSN, PORT_MRW, 0, "AICA channel position" )
 LONG_PORT( 0x880, AICA_UNK6, PORT_MRW, 0, "AICA ??? 6" )
 LONG_PORT( 0x890, AICA_TIMER, PORT_MRW, 0, "AICA Timer" )
 LONG_PORT( 0x89C, AICA_UNK1, PORT_MRW, 0, "AICA ??? 1" )

@@ -1,5 +1,5 @@
 /**
- * $Id: aica.c,v 1.23 2007-10-09 11:37:36 nkeynes Exp $
+ * $Id: aica.c,v 1.24 2007-10-24 21:24:09 nkeynes Exp $
  * 
  * This is the core sound system (ie the bit which does the actual work)
  *
@@ -30,7 +30,6 @@
 
 MMIO_REGION_READ_DEFFN( AICA0 )
 MMIO_REGION_READ_DEFFN( AICA1 )
-MMIO_REGION_READ_DEFFN( AICA2 )
 
 void aica_init( void );
 void aica_reset( void );
@@ -226,6 +225,30 @@ void mmio_region_AICA2_write( uint32_t reg, uint32_t val )
     }
 }
 
+int32_t mmio_region_AICA2_read( uint32_t reg )
+{
+    audio_channel_t channel;
+    uint32_t channo;
+    int32_t val;
+    switch( reg ) {
+    case AICA_CHANSTATE:
+	channo = (MMIO_READ( AICA2, AICA_CHANSEL ) >> 8) & 0x3F;
+	channel = audio_get_channel(channo);
+	if( channel->loop == LOOP_LOOPED ) {
+	    val = 0x8000;
+	    channel->loop = LOOP_ON;
+	} else {
+	    val = 0;
+	}
+	return val;
+    case AICA_CHANPOSN:
+	channo = (MMIO_READ( AICA2, AICA_CHANSEL ) >> 8) & 0x3F;
+	channel = audio_get_channel(channo);
+	return channel->posn;
+    default:
+	return MMIO_READ( AICA2, reg );
+    }
+}
 
 int32_t mmio_region_AICARTC_read( uint32_t reg )
 {
@@ -332,9 +355,9 @@ void aica_write_channel( int channelNo, uint32_t reg, uint32_t val )
     case 0x00: /* Config + high address bits*/
 	channel->start = (channel->start & 0xFFFF) | ((val&0x1F) << 16);
 	if( val & 0x200 ) 
-	    channel->loop = TRUE;
+	    channel->loop = LOOP_ON;
 	else 
-	    channel->loop = FALSE;
+	    channel->loop = LOOP_OFF;
 	switch( (val >> 7) & 0x03 ) {
 	case 0:
 	    channel->sample_format = AUDIO_FMT_16BIT;
