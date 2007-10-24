@@ -1,5 +1,5 @@
 /**
- * $Id: texcache.c,v 1.27 2007-10-08 11:52:13 nkeynes Exp $
+ * $Id: texcache.c,v 1.28 2007-10-24 21:23:22 nkeynes Exp $
  *
  * Texture cache. Responsible for maintaining a working set of OpenGL 
  * textures. 
@@ -38,7 +38,7 @@
  */
 
 typedef signed short texcache_entry_index;
-#define EMPTY_ENTRY 0xFF
+#define EMPTY_ENTRY -1
 
 static texcache_entry_index texcache_free_ptr = 0;
 static GLuint texcache_free_list[MAX_TEXTURES];
@@ -51,7 +51,7 @@ typedef struct texcache_entry {
     uint32_t lru_count;
 } *texcache_entry_t;
 
-static uint8_t texcache_page_lookup[PVR2_RAM_PAGES];
+static texcache_entry_index texcache_page_lookup[PVR2_RAM_PAGES];
 static uint32_t texcache_ref_counter;
 static struct texcache_entry texcache_active_list[MAX_TEXTURES];
 
@@ -124,6 +124,7 @@ void texcache_shutdown( )
 static void texcache_evict( int slot )
 {
     /* Remove the selected slot from the lookup table */
+    assert( texcache_active_list[slot].texture_addr != -1 );
     uint32_t evict_page = texcache_active_list[slot].texture_addr >> 12;
     texcache_entry_index replace_next = texcache_active_list[slot].next;
     texcache_active_list[slot].texture_addr = -1;
@@ -136,6 +137,7 @@ static void texcache_evict( int slot )
 	do {
 	    next = texcache_active_list[idx].next;
 	    if( next == slot ) {
+		assert( idx != replace_next );
 		texcache_active_list[idx].next = replace_next;
 		break;
 	    }
@@ -200,6 +202,8 @@ void texcache_invalidate_palette( )
 	if( texcache_active_list[i].texture_addr != -1 &&
 	    PVR2_TEX_IS_PALETTE(texcache_active_list[i].mode) ) {
 	    texcache_evict( i );
+	    texcache_free_ptr--;
+	    texcache_free_list[texcache_free_ptr] = i;
 	}
     }
 }
@@ -507,6 +511,7 @@ GLuint texcache_get_texture( uint32_t texture_addr, int width, int height,
 			     int mode )
 {
     uint32_t texture_page = texture_addr >> 12;
+    texcache_entry_index next;
     texcache_entry_index idx = texcache_page_lookup[texture_page];
     while( idx != EMPTY_ENTRY ) {
 	texcache_entry_t entry = &texcache_active_list[idx];
@@ -522,7 +527,7 @@ GLuint texcache_get_texture( uint32_t texture_addr, int width, int height,
     }
 
     /* Not found - check the free list */
-    int slot = 0;
+    texcache_entry_index slot = 0;
 
     if( texcache_free_ptr < MAX_TEXTURES ) {
 	slot = texcache_free_list[texcache_free_ptr++];
@@ -538,7 +543,19 @@ GLuint texcache_get_texture( uint32_t texture_addr, int width, int height,
     texcache_active_list[slot].lru_count = texcache_ref_counter++;
 
     /* Add entry to the lookup table */
-    texcache_active_list[slot].next = texcache_page_lookup[texture_page];
+    next = texcache_page_lookup[texture_page];
+    if( next == slot ) {
+	int i;
+	fprintf( stderr, "Active list: " );
+	for( i=0; i<MAX_TEXTURES; i++ ) {
+	    fprintf( stderr, "%d, ", texcache_active_list[i].next );
+	}
+	fprintf( stderr, "\n" );
+	assert( next != slot );
+	    
+    }
+    assert( next != slot );
+    texcache_active_list[slot].next = next;
     texcache_page_lookup[texture_page] = slot;
 
     /* Construct the GL texture */
