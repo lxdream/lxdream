@@ -1,5 +1,5 @@
 /**
- * $Id: audio.h,v 1.9 2007-10-24 21:24:09 nkeynes Exp $
+ * $Id: audio.h,v 1.10 2007-10-27 05:47:21 nkeynes Exp $
  * 
  * Audio engine, ie the part that does the actual work.
  *
@@ -19,11 +19,14 @@
 #define dream_audio_H 1
 
 #include <stdint.h>
+#include <stdio.h>
 #include <glib/gtypes.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#define AUDIO_CHANNEL_COUNT 64
 
 #define AUDIO_FMT_8BIT 0
 #define AUDIO_FMT_16BIT 1
@@ -107,6 +110,8 @@ void audio_start_stop_channel( int channel, gboolean start );
 void audio_start_channel( int channel );
 void audio_stop_channel( int channel );
 
+void audio_save_state( FILE *f );
+int audio_load_state( FILE *f );
 
 #ifdef __cplusplus
 }

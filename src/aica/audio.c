@@ -1,5 +1,5 @@
 /**
- * $Id: audio.c,v 1.10 2007-10-24 21:24:09 nkeynes Exp $
+ * $Id: audio.c,v 1.11 2007-10-27 05:47:21 nkeynes Exp $
  * 
  * Audio mixer core. Combines all the active streams into a single sound
  * buffer for output. 
@@ -38,7 +38,7 @@ struct audio_state {
     uint32_t output_format;
     uint32_t output_rate;
     uint32_t output_sample_size;
-    struct audio_channel channels[64];
+    struct audio_channel channels[AUDIO_CHANNEL_COUNT];
 } audio;
 
 audio_driver_t audio_driver = NULL;
@@ -46,6 +46,20 @@ audio_driver_t audio_driver = NULL;
 #define NEXT_BUFFER() ((audio.write_buffer == NUM_BUFFERS-1) ? 0 : audio.write_buffer+1)
 
 extern char *arm_mem;
+
+/**
+ * Preserve audio channel state only - don't bother saving the buffers
+ */
+void audio_save_state( FILE *f )
+{
+    fwrite( &audio.channels[0], sizeof(struct audio_channel), AUDIO_CHANNEL_COUNT, f );
+}
+
+int audio_load_state( FILE *f )
+{
+    int read = fread( &audio.channels[0], sizeof(struct audio_channel), AUDIO_CHANNEL_COUNT, f );
+    return (read == AUDIO_CHANNEL_COUNT ? 0 : -1 );
+}
 
 /**
  * Set the output driver, sample rate and format. Also initializes the 
@@ -189,7 +203,7 @@ void audio_mix_samples( int num_samples )
 
     memset( &result_buf, 0, sizeof(result_buf) );
 
-    for( i=0; i < 64; i++ ) {
+    for( i=0; i < AUDIO_CHANNEL_COUNT; i++ ) {
 	audio_channel_t channel = &audio.channels[i];
 	if( channel->active ) {
 	    int32_t sample;
