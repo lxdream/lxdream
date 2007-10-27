@@ -1,5 +1,5 @@
 /**
- * $Id: linux.c,v 1.5 2007-10-06 08:58:00 nkeynes Exp $
+ * $Id: linux.c,v 1.6 2007-10-27 05:44:54 nkeynes Exp $
  *
  * Linux cd-rom device driver. 
  *
@@ -22,6 +22,8 @@
 #include <linux/cdrom.h>
 #include <sys/stat.h>
 #include <sys/ioctl.h>
+#include <fstab.h>
+#include <fcntl.h>
 
 #include "gdrom/gdrom.h"
 #include "gdrom/packet.h"
@@ -57,6 +59,29 @@ static int linux_drive_status( gdrom_disc_t disc );
 
 struct gdrom_image_class linux_device_class = { "Linux", NULL,
 					     linux_image_is_valid, linux_open_device };
+GList *gdrom_get_native_devices(void)
+{
+    GList *list = NULL;
+    struct fstab *ent;
+    struct stat st;
+    setfsent();
+    while( (ent = getfsent()) != NULL ) {
+	if( (stat(ent->fs_spec, &st) != -1) && 
+	    S_ISBLK(st.st_mode) ) {
+	    /* Got a valid block device - is it a CDROM? */
+	    int fd = open(ent->fs_spec, O_RDONLY|O_NONBLOCK);
+	    if( fd == -1 )
+		continue;
+	    int caps = ioctl(fd, CDROM_GET_CAPABILITY);
+	    if( caps != -1 ) {
+		/* Appears to support CDROM functions */
+		list = g_list_append( list, g_strdup(ent->fs_spec) );
+	    }
+	    close(fd);
+	}
+    }
+    return list;
+}
 
 static gboolean linux_image_is_valid( FILE *f )
 {
@@ -82,7 +107,7 @@ static gdrom_disc_t linux_open_device( const gchar *filename, FILE *f )
 {
     gdrom_disc_t disc;
 
-    disc = gdrom_image_new(f);
+    disc = gdrom_image_new(filename, f);
     if( disc == NULL ) {
 	ERROR("Unable to allocate memory!");
 	return NULL;
@@ -184,6 +209,33 @@ static gdrom_error_t linux_read_disc_toc( gdrom_image_t disc )
 	disc->track[last_track].sector_count = leadout - disc->track[last_track].lba;
     }
     return 0;
+}
+
+static gdrom_error_t linux_play_audio( gdrom_disc_t disc, uint32_t lba, uint32_t endlba )
+{
+    int fd = fileno( ((gdrom_image_t)disc)->file );
+    uint32_t real_sector = lba - CD_MSF_OFFSET;
+    uint32_t length = endlba - lba;
+    uint32_t buflen = 0;
+    char cmd[12] = { 0xA5, 0,0,0, 0,0,0,0, 0,0,0,0 };
+    cmd[2] = (real_sector >> 24) & 0xFF;
+    cmd[3] = (real_sector >> 16) & 0xFF;
+    cmd[4] = (real_sector >> 8) & 0xFF;
+    cmd[5] = real_sector & 0xFF;
+    cmd[6] = (length >> 24) & 0xFF;
+    cmd[7] = (length >> 16) & 0xFF;
+    cmd[8] = (length >> 8) & 0xFF;
+    cmd[9] = length & 0xFF;
+    
+    return linux_send_command( fd, cmd, NULL, &buflen, CGC_DATA_NONE );
+}
+
+static gdrom_error_t linux_stop_audio( gdrom_disc_t disc )
+{
+    int fd = fileno( ((gdrom_image_t)disc)->file );
+    uint32_t buflen = 0;
+    char cmd[12] = {0x4E,0,0,0, 0,0,0,0, 0,0,0,0};
+    return linux_send_command( fd, cmd, NULL, &buflen, CGC_DATA_NONE );
 }
 
 static gdrom_error_t linux_read_sector( gdrom_disc_t disc, uint32_t sector,

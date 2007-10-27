@@ -1,5 +1,5 @@
 /**
- * $Id: cdi.c,v 1.8 2007-10-21 05:20:15 nkeynes Exp $
+ * $Id: cdi.c,v 1.9 2007-10-27 05:44:54 nkeynes Exp $
  *
  * CDI CD-image file support
  *
@@ -105,7 +105,7 @@ gdrom_disc_t cdi_image_open( const gchar *filename, FILE *f )
     }
     fread( &session_count, sizeof(session_count), 1, f );
     
-    disc = gdrom_image_new(f);
+    disc = gdrom_image_new(filename, f);
     if( disc == NULL ) {
 	fclose(f);
 	ERROR("Unable to allocate memory!");
@@ -198,6 +198,5 @@ gdrom_disc_t cdi_image_open( const gchar *filename, FILE *f )
 	}
     }
     image->track_count = total_tracks;
-    image->filename = filename;
     return disc;
 }

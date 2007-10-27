@@ -1,5 +1,5 @@
 /**
- * $Id: config.h,v 1.3 2007-10-23 10:47:17 nkeynes Exp $
+ * $Id: config.h,v 1.4 2007-10-27 05:44:53 nkeynes Exp $
  *
  * User configuration support
  *
@@ -45,6 +45,7 @@ typedef struct lxdream_config_group {
 #define CONFIG_DEFAULT_PATH 2
 #define CONFIG_SAVE_PATH 3
 #define CONFIG_BOOTSTRAP 4
+#define CONFIG_GDROM 5
 
 extern struct lxdream_config_group lxdream_config_root[];
 

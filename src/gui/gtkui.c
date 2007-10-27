@@ -1,5 +1,5 @@
 /**
- * $Id: gtkui.c,v 1.6 2007-10-21 11:38:02 nkeynes Exp $
+ * $Id: gtkui.c,v 1.7 2007-10-27 05:44:54 nkeynes Exp $
  *
  * Core GTK-based user interface
  *
@@ -20,6 +20,7 @@
 #include <time.h>
 #include "dream.h"
 #include "dreamcast.h"
+#include "gdrom/gdrom.h"
 #include "gui/gtkui.h"
 
 
@@ -56,7 +57,6 @@ static GtkActionGroup *global_action_group;
 static uint32_t gtk_gui_nanos = 0;
 static struct timeval gtk_gui_lasttv;
 
-
 #define ENABLE_ACTION(win,name) SET_ACTION_ENABLED(win,name,TRUE)
 #define DISABLE_ACTION(win,name) SET_ACTION_ENABLED(win,name,FALSE)
 
@@ -65,13 +65,15 @@ static const GtkActionEntry ui_actions[] = {
     { "FileMenu", NULL, "_File" },
     { "SettingsMenu", NULL, "_Settings" },
     { "HelpMenu", NULL, "_Help" },
-    { "Mount", GTK_STOCK_CDROM, "_Mount...", "<control>O", "Mount a cdrom disc", G_CALLBACK(mount_action_callback) },
     { "Reset", GTK_STOCK_REFRESH, "_Reset", "<control>R", "Reset dreamcast", G_CALLBACK(reset_action_callback) },
     { "Pause", GTK_STOCK_MEDIA_PAUSE, "_Pause", NULL, "Pause dreamcast", G_CALLBACK(pause_action_callback) },
     { "Run", GTK_STOCK_MEDIA_PLAY, "Resume", NULL, "Resume", G_CALLBACK(resume_action_callback) },
     { "LoadState", GTK_STOCK_REVERT_TO_SAVED, "_Load state...", "F4", "Load an lxdream save state", G_CALLBACK(load_state_action_callback) },
     { "SaveState", GTK_STOCK_SAVE_AS, "_Save state...", "F3", "Create an lxdream save state", G_CALLBACK(save_state_action_callback) },
     { "Exit", GTK_STOCK_QUIT, "E_xit", NULL, "Exit lxdream", G_CALLBACK(exit_action_callback) },
+    { "GdromSettings", NULL, "_GD-Rom..." },
+    { "GdromUnmount", NULL, "_Empty" },
+    { "GdromMount", GTK_STOCK_CDROM, "_Open Image...", "<control>O", "Mount a cdrom disc", G_CALLBACK(mount_action_callback) },
     { "PathSettings", NULL, "_Paths...", NULL, "Configure files and paths", G_CALLBACK(path_settings_callback) }, 
     { "AudioSettings", NULL, "_Audio...", NULL, "Configure audio output", G_CALLBACK(audio_settings_callback) },
     { "ControllerSettings", NULL, "_Controllers...", NULL, "Configure controllers", G_CALLBACK(maple_settings_callback) },
@@ -96,7 +98,7 @@ static const char *ui_description =
     "<ui>"
     " <menubar name='MainMenu'>"
     "  <menu action='FileMenu'>"
-    "   <menuitem action='Mount'/>"
+    "   <menuitem action='GdromSettings'/>"
     "   <separator/>"
     "   <menuitem action='Reset'/>"
     "   <menuitem action='Pause'/>"
@@ -122,7 +124,7 @@ static const char *ui_description =
     "  </menu>"
     " </menubar>"
     " <toolbar name='MainToolbar'>"
-    "  <toolitem action='Mount'/>"
+    "  <toolitem action='GdromMount'/>"
     "  <toolitem action='Reset'/>"
     "  <toolitem action='Pause'/>"
     "  <toolitem action='Run'/>"
@@ -132,7 +134,7 @@ static const char *ui_description =
     " </toolbar>"
     " <menubar name='DebugMenu'>"
     "  <menu action='FileMenu'>"
-    "   <menuitem action='Mount'/>"
+    "   <menuitem action='GdromMount'/>"
     "   <separator/>"
     "   <menuitem action='Reset'/>"
     "   <separator/>"
@@ -166,7 +168,7 @@ static const char *ui_description =
     "  </menu>"
     " </menubar>"
     " <toolbar name='DebugToolbar'>"
-    "  <toolitem action='Mount'/>"
+    "  <toolitem action='GdromMount'/>"
     "  <toolitem action='Reset'/>"
     "  <toolitem action='Pause'/>"
     "  <separator/>"
@@ -179,8 +181,6 @@ static const char *ui_description =
     "  <toolitem action='SaveState'/>"
     " </toolbar>"
     "</ui>";
-
-
 
 gboolean gui_parse_cmdline( int *argc, char **argv[] )
 {
@@ -199,6 +199,8 @@ gboolean gui_init( gboolean withDebug )
     gtk_gui_enable_action("AudioSettings", FALSE);
     gtk_gui_enable_action("NetworkSettings", FALSE);
     gtk_gui_enable_action("VideoSettings", FALSE);
+    gtk_gui_enable_action("FullScreen", FALSE);
+
     global_ui_manager = gtk_ui_manager_new();
     gtk_ui_manager_set_add_tearoffs(global_ui_manager, TRUE);
     gtk_ui_manager_insert_action_group( global_ui_manager, global_action_group, 0 );
@@ -211,8 +213,11 @@ gboolean gui_init( gboolean withDebug )
     GtkAccelGroup *accel_group = gtk_ui_manager_get_accel_group (global_ui_manager);
     GtkWidget *menubar = gtk_ui_manager_get_widget(global_ui_manager, "/MainMenu");
     GtkWidget *toolbar = gtk_ui_manager_get_widget(global_ui_manager, "/MainToolbar");
-    main_win = main_window_new( APP_NAME " " APP_VERSION, menubar, toolbar, accel_group  );
 
+    GtkWidget *gdrommenuitem = gtk_ui_manager_get_widget(global_ui_manager, "/MainMenu/FileMenu/GdromSettings");
+    GtkWidget *gdrommenu = gdrom_menu_new();
+    gtk_menu_item_set_submenu( GTK_MENU_ITEM(gdrommenuitem), gdrommenu );
+    main_win = main_window_new( APP_NAME " " APP_VERSION, menubar, toolbar, accel_group  );
     if( withDebug ) {
 	gtk_gui_show_debugger();
     }

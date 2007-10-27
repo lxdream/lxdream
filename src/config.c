@@ -1,5 +1,5 @@
 /**
- * $Id: config.c,v 1.3 2007-10-23 10:47:17 nkeynes Exp $
+ * $Id: config.c,v 1.4 2007-10-27 05:44:53 nkeynes Exp $
  *
  * User configuration support
  *
@@ -37,6 +37,7 @@ static struct lxdream_config_entry global_config[] =
      { "default path", CONFIG_TYPE_PATH, "." },
      { "save path", CONFIG_TYPE_PATH, "save" },
      { "bootstrap", CONFIG_TYPE_FILE, "IP.BIN" },
+     { "gdrom", CONFIG_TYPE_FILE, NULL },
      { NULL, CONFIG_TYPE_NONE }};
 
 static struct lxdream_config_entry serial_config[] =

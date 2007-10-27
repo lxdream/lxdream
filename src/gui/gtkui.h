@@ -1,5 +1,5 @@
 /**
- * $Id: gtkui.h,v 1.6 2007-10-21 11:38:02 nkeynes Exp $
+ * $Id: gtkui.h,v 1.7 2007-10-27 05:44:54 nkeynes Exp $
  *
  * Core GTK-based user interface
  *
@@ -63,6 +63,7 @@ void path_dialog_run();
 main_window_t gtk_gui_get_main();
 debug_window_t gtk_gui_get_debugger();
 mmio_window_t gtk_gui_get_mmio();
+void gtk_gui_show_debugger();
 
 /********************* Helper functions **********************/
 
@@ -99,6 +100,8 @@ void save_scene_action_callback( GtkAction *action, gpointer user_data);
 void debug_step_action_callback( GtkAction *action, gpointer user_data);
 void debug_runto_action_callback( GtkAction *action, gpointer user_data);
 void debug_breakpoint_action_callback( GtkAction *action, gpointer user_data);
+
+void gdrom_open_direct_callback( GtkWidget *widget, gpointer user_data );
 
 /*************** Constant colour/font values *****************/
 extern PangoFontDescription *gui_fixed_font;

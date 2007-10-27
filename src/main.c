@@ -1,5 +1,5 @@
 /**
- * $Id: main.c,v 1.30 2007-10-17 11:26:44 nkeynes Exp $
+ * $Id: main.c,v 1.31 2007-10-27 05:44:54 nkeynes Exp $
  *
  * Main program, initializes dreamcast and gui, then passes control off to
  * the gtk main loop (currently). 
@@ -69,7 +69,7 @@ int main (int argc, char *argv[])
     textdomain (PACKAGE);
 #endif
     gboolean ui_initialized = gui_parse_cmdline(&argc, &argv);
-  
+
     while( (opt = getopt_long( argc, argv, option_list, longopts, NULL )) != -1 ) {
 	switch( opt ) {
 	case 'a': /* AICA only mode - argument is an AICA program */
@@ -190,6 +190,15 @@ int main (int argc, char *argv[])
 
     if( disc_file != NULL ) {
 	gdrom_mount_image( disc_file );
+    }
+
+    if( gdrom_get_current_disc() == NULL ) {
+	disc_file = lxdream_get_config_value( CONFIG_GDROM );
+	if( disc_file != NULL ) {
+	    gdrom_mount_image( disc_file );
+	}
+    } else {
+	lxdream_set_global_config_value( CONFIG_GDROM, gdrom_get_current_disc()->name );
     }
 
     sh4_set_use_xlat( use_xlat );

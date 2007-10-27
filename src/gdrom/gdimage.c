@@ -1,5 +1,5 @@
 /**
- * $Id: gdimage.c,v 1.2 2007-10-06 08:58:00 nkeynes Exp $
+ * $Id: gdimage.c,v 1.3 2007-10-27 05:44:54 nkeynes Exp $
  *
  * GD-Rom image-file common functions. 
  *
@@ -47,7 +47,7 @@ void gdrom_image_init( gdrom_disc_t disc )
     disc->close = gdrom_image_destroy;
 }
 
-gdrom_disc_t gdrom_image_new( FILE *f )
+gdrom_disc_t gdrom_image_new( const gchar *filename, FILE *f )
 {
     gdrom_image_t image = (gdrom_image_t)calloc(sizeof(struct gdrom_image), 1);
     if( image == NULL ) {
@@ -55,9 +55,14 @@ gdrom_disc_t gdrom_image_new( FILE *f )
     }
     image->disc_type = IDE_DISC_CDROM;
     image->file = f;
-
     gdrom_disc_t disc = (gdrom_disc_t)image;
     gdrom_image_init(disc);
+    if( filename == NULL ) {
+	disc->name = NULL;
+    } else {
+	disc->name = g_strdup(filename);
+    }
+
     return disc;
 }
 
@@ -67,6 +72,10 @@ static void gdrom_image_destroy( gdrom_disc_t disc )
     if( img->file != NULL ) {
 	fclose(img->file);
 	img->file = NULL;
+    }
+    if( disc->name != NULL ) {
+	g_free( disc->name );
+	disc->name = NULL;
     }
     free( disc );
 }
