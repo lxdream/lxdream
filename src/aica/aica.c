@@ -1,7 +1,8 @@
 /**
- * $Id: aica.c,v 1.24 2007-10-24 21:24:09 nkeynes Exp $
+ * $Id: aica.c,v 1.25 2007-10-27 05:47:21 nkeynes Exp $
  * 
- * This is the core sound system (ie the bit which does the actual work)
+ * This module implements the AICA's IO interfaces, as well
+ * as providing the core AICA module to the system.
  *
  * Copyright (c) 2005 Nathan Keynes.
  *
@@ -43,9 +44,23 @@ struct dreamcast_module aica_module = { "AICA", aica_init, aica_reset,
 					aica_start, aica_run_slice, aica_stop,
 					aica_save_state, aica_load_state };
 
-/* 20 years in seconds */
-#define RTC_OFFSET 631152000
-unsigned int aica_time_of_day = 0;
+struct aica_state_struct {
+    uint32_t time_of_day;
+    /**
+     * Keep track of what we've done so far this second, to try to keep the
+     * precision of samples/second.
+     */
+    uint32_t samples_done;
+    uint32_t nanosecs_done;
+    /**
+     * Event (IRQ) state
+     */
+    int event_pending;
+    int clear_count;
+};
+
+static struct aica_state_struct aica_state;
+
 
 /**
  * Initialize the AICA subsystem. Note requires that 
@@ -62,8 +77,12 @@ void aica_init( void )
 void aica_reset( void )
 {
     arm_reset();
+    aica_state.time_of_day = 0x5bfc8900;
+    aica_state.samples_done = 0;
+    aica_state.nanosecs_done = 0;
+    aica_state.event_pending = 0;
+    aica_state.clear_count = 0;
     aica_event(2); /* Pre-deliver a timer interrupt */
-    aica_time_of_day = 0x5bfc8900;
 }
 
 void aica_start( void )
@@ -71,29 +90,22 @@ void aica_start( void )
 
 }
 
-/**
- * Keep track of what we've done so far this second, to try to keep the
- * precision of samples/second.
- */
-int samples_done = 0;
-uint32_t nanosecs_done = 0;
-
 uint32_t aica_run_slice( uint32_t nanosecs )
 {
     /* Run arm instructions */
     int reset = MMIO_READ( AICA2, AICA_RESET );
     if( (reset & 1) == 0 ) { /* Running */
-	int num_samples = (int)((uint64_t)AICA_SAMPLE_RATE * (nanosecs_done + nanosecs) / 1000000000) - samples_done;
+	int num_samples = (int)((uint64_t)AICA_SAMPLE_RATE * (aica_state.nanosecs_done + nanosecs) / 1000000000) - aica_state.samples_done;
 	num_samples = arm_run_slice( num_samples );
 	audio_mix_samples( num_samples );
 
-	samples_done += num_samples;
-	nanosecs_done += nanosecs;
+	aica_state.samples_done += num_samples;
+	aica_state.nanosecs_done += nanosecs;
     }
-    if( nanosecs_done > 1000000000 ) {
-	samples_done -= AICA_SAMPLE_RATE;
-	nanosecs_done -= 1000000000;
-	aica_time_of_day++;
+    if( aica_state.nanosecs_done > 1000000000 ) {
+	aica_state.samples_done -= AICA_SAMPLE_RATE;
+	aica_state.nanosecs_done -= 1000000000;
+	aica_state.time_of_day++;
     }
     return nanosecs;
 }
@@ -105,16 +117,17 @@ void aica_stop( void )
 
 void aica_save_state( FILE *f )
 {
+    fwrite( &aica_state, sizeof(struct aica_state_struct), 1, f );
     arm_save_state( f );
+    audio_save_state(f);
 }
 
 int aica_load_state( FILE *f )
 {
-    return arm_load_state( f );
+    fread( &aica_state, sizeof(struct aica_state_struct), 1, f );
+    arm_load_state( f );
+    return audio_load_state(f);
 }
-
-int aica_event_pending = 0;
-int aica_clear_count = 0;
 
 /* Note: This is probably not necessarily technically correct but it should
  * work in the meantime.
@@ -122,9 +135,9 @@ int aica_clear_count = 0;
 
 void aica_event( int event )
 {
-    if( aica_event_pending == 0 )
+    if( aica_state.event_pending == 0 )
 	armr.int_pending |= CPSR_F;
-    aica_event_pending |= (1<<event);
+    aica_state.event_pending |= (1<<event);
     
     int pending = MMIO_READ( AICA2, AICA_IRQ );
     if( pending == 0 || event < pending )
@@ -133,24 +146,24 @@ void aica_event( int event )
 
 void aica_clear_event( )
 {
-    aica_clear_count++;
-    if( aica_clear_count == 4 ) {
+    aica_state.clear_count++;
+    if( aica_state.clear_count == 4 ) {
 	int i;
-	aica_clear_count = 0;
+	aica_state.clear_count = 0;
 
 	for( i=0; i<8; i++ ) {
-	    if( aica_event_pending & (1<<i) ) {
-		aica_event_pending &= ~(1<<i);
+	    if( aica_state.event_pending & (1<<i) ) {
+		aica_state.event_pending &= ~(1<<i);
 		break;
 	    }
 	}
 	for( ;i<8; i++ ) {
-	    if( aica_event_pending & (1<<i) ) {
+	    if( aica_state.event_pending & (1<<i) ) {
 		MMIO_WRITE( AICA2, AICA_IRQ, i );
 		break;
 	    }
 	}
-	if( aica_event_pending == 0 )
+	if( aica_state.event_pending == 0 )
 	    armr.int_pending &= ~CPSR_F;
     }
 }
@@ -202,6 +215,7 @@ void mmio_region_AICA1_write( uint32_t reg, uint32_t val )
 void mmio_region_AICA2_write( uint32_t reg, uint32_t val )
 {
     uint32_t tmp;
+
     switch( reg ) {
     case AICA_RESET:
 	tmp = MMIO_READ( AICA2, AICA_RESET );
@@ -209,8 +223,8 @@ void mmio_region_AICA2_write( uint32_t reg, uint32_t val )
 	    /* ARM enabled - execute a core reset */
 	    DEBUG( "ARM enabled" );
 	    arm_reset();
-	    samples_done = 0;
-	    nanosecs_done = 0;
+	    aica_state.samples_done = 0;
+	    aica_state.nanosecs_done = 0;
 	} else if( (tmp&1) == 0 && (val&1) == 1 ) {
 	    DEBUG( "ARM disabled" );
 	}
@@ -255,10 +269,10 @@ int32_t mmio_region_AICARTC_read( uint32_t reg )
     int32_t rv = 0;
     switch( reg ) {
     case AICA_RTCHI:
-        rv = (aica_time_of_day >> 16) & 0xFFFF;
+        rv = (aica_state.time_of_day >> 16) & 0xFFFF;
 	break;
     case AICA_RTCLO:
-	rv = aica_time_of_day & 0xFFFF;
+	rv = aica_state.time_of_day & 0xFFFF;
 	break;
     }
     // DEBUG( "Read AICA RTC %d => %08X", reg, rv );
@@ -274,12 +288,12 @@ void mmio_region_AICARTC_write( uint32_t reg, uint32_t val )
 	break;
     case AICA_RTCLO:
 	if( MMIO_READ( AICARTC, AICA_RTCEN ) & 0x01 ) {
-	    aica_time_of_day = (aica_time_of_day & 0xFFFF0000) | (val & 0xFFFF);
+	    aica_state.time_of_day = (aica_state.time_of_day & 0xFFFF0000) | (val & 0xFFFF);
 	}
 	break;
     case AICA_RTCHI:
 	if( MMIO_READ( AICARTC, AICA_RTCEN ) & 0x01 ) {
-	    aica_time_of_day = (aica_time_of_day & 0xFFFF) | (val<<16);
+	    aica_state.time_of_day = (aica_state.time_of_day & 0xFFFF) | (val<<16);
 	    MMIO_WRITE( AICARTC, AICA_RTCEN, 0 );
 	}
 	break;

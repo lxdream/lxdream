@@ -1,5 +1,5 @@
 /**
- * $Id: aica.h,v 1.11 2007-10-24 21:24:09 nkeynes Exp $
+ * $Id: aica.h,v 1.12 2007-10-27 05:47:21 nkeynes Exp $
  * 
  * MMIO definitions for the AICA sound chip. Note that the regions defined
  * here are relative to the SH4 memory map (0x00700000 based), rather than
@@ -82,3 +82,9 @@ void aica_write_channel( int channel, uint32_t addr, uint32_t val );
  * per sample, which isn't cycle accurate at the moment.
  */
 #define AICA_SAMPLE_PERIOD (1000000000 / 44100)
+
+/**
+ * Offset between the AICA RTC and the unix timestamp
+ * (20 years expressed in seconds) 
+ */
+#define AICA_RTC_OFFSET 631152000
