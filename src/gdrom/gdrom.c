@@ -1,6 +1,6 @@
 
 /**
- * $Id: gdrom.c,v 1.16 2007-10-21 05:20:00 nkeynes Exp $
+ * $Id: gdrom.c,v 1.17 2007-10-27 05:44:54 nkeynes Exp $
  *
  * GD-Rom  access functions.
  *
@@ -108,3 +108,7 @@ void gdrom_unmount_disc( )
 
 }
 
+gdrom_disc_t gdrom_get_current_disc()
+{
+    return gdrom_disc;
+}

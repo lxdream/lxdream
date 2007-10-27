@@ -1,5 +1,5 @@
 /**
- * $Id: gdrom.h,v 1.12 2007-10-09 08:45:00 nkeynes Exp $
+ * $Id: gdrom.h,v 1.13 2007-10-27 05:44:54 nkeynes Exp $
  *
  * This file defines the structures and functions used by the GD-Rom
  * disc driver. (ie, the modules that supply a CD image to be used by the
@@ -22,6 +22,7 @@
 #define dream_gdrom_H 1
 
 #include "dream.h"
+#include <glib.h>
 
 #define MAX_SECTOR_SIZE 2352
 
@@ -137,6 +138,7 @@ typedef struct gdrom_disc {
      * the disc structure itself.
      */
     void (*close)( struct gdrom_disc *disc );
+    const gchar *name; /* Device name / Image filename */
 } *gdrom_disc_t;
 
 
@@ -146,7 +148,6 @@ typedef struct gdrom_image {
     int track_count;
     struct gdrom_track track[99];
     gchar mcn[14]; /* Media catalogue number */
-    const gchar *filename; /* Image filename */
     FILE *file; /* Open file stream */
 } *gdrom_image_t;
 
@@ -167,7 +168,7 @@ extern struct gdrom_image_class linux_device_class;
 /**
  * Construct a new image file using the default methods.
  */
-gdrom_disc_t gdrom_image_new( FILE *file );
+gdrom_disc_t gdrom_image_new( const gchar *filename, FILE *f );
 
 /**
  * Open an image file
@@ -207,6 +208,10 @@ void gdrom_mount_disc( gdrom_disc_t disc );
 void gdrom_unmount_disc( void );
 
 gboolean gdrom_is_mounted( void );
+
+gdrom_disc_t gdrom_get_current_disc();
+
+GList *gdrom_get_native_devices();
 
 uint32_t gdrom_read_sectors( uint32_t sector, uint32_t sector_count,
 			     int mode, unsigned char *buf, uint32_t *length );
