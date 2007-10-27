@@ -1,5 +1,5 @@
 /**
- * $Id: dreamcast.c,v 1.25 2007-10-23 10:48:24 nkeynes Exp $
+ * $Id: dreamcast.c,v 1.26 2007-10-27 05:47:55 nkeynes Exp $
  * Central switchboard for the system. This pulls all the individual modules
  * together into some kind of coherent structure. This is also where you'd
  * add Naomi support, if I ever get a board to play with...
@@ -67,11 +67,8 @@ void dreamcast_configure( )
     mem_create_ram_region( 0x00800000, 2 MB, MEM_REGION_AUDIO );
     mem_create_ram_region( 0x00703000, 8 KB, MEM_REGION_AUDIO_SCRATCH );
     mem_create_ram_region( 0x05000000, 8 MB, MEM_REGION_VIDEO );
-    if( mem_load_rom( lxdream_get_config_value(CONFIG_BIOS_PATH),
-		      0x00000000, 0x00200000, 0x89f2b1a1 ) == NULL ) {
-	/* Bios wasn't found. Dump an empty ram region in there for something to do */
-	mem_create_ram_region( 0x00000000, 0x00200000, MEM_REGION_BIOS );
-    }
+    mem_load_rom( lxdream_get_config_value(CONFIG_BIOS_PATH),
+		  0x00000000, 0x00200000, 0x89f2b1a1, MEM_REGION_BIOS );
     mem_create_ram_region( 0x00200000, 0x00020000, MEM_REGION_FLASH );
     mem_load_block( lxdream_get_config_value(CONFIG_FLASH_PATH),
 		    0x00200000, 0x00020000 );
@@ -88,7 +85,7 @@ void dreamcast_configure( )
 void dreamcast_config_changed(void)
 {
     mem_load_rom( lxdream_get_config_value(CONFIG_BIOS_PATH),
-		  0x00000000, 0x00200000, 0x89f2b1a1 );
+		  0x00000000, 0x00200000, 0x89f2b1a1, MEM_REGION_BIOS );
     mem_load_block( lxdream_get_config_value(CONFIG_FLASH_PATH),
 		    0x00200000, 0x00020000 );
 }

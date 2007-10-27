@@ -1,5 +1,5 @@
 /**
- * $Id: mem.c,v 1.16 2007-10-23 10:48:24 nkeynes Exp $
+ * $Id: mem.c,v 1.17 2007-10-27 05:47:55 nkeynes Exp $
  * mem.c is responsible for creating and maintaining the overall system memory
  * map, as visible from the SH4 processor. 
  *
@@ -265,7 +265,8 @@ void *mem_create_repeating_ram_region( uint32_t base, uint32_t size, const char 
     return mem;
 }
 
-void *mem_load_rom( const gchar *file, uint32_t base, uint32_t size, uint32_t crc )
+void *mem_load_rom( const gchar *file, uint32_t base, uint32_t size, uint32_t crc,
+		    const gchar *region_name )
 {
     char *mem;
     int fd;
