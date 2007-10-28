@@ -1,5 +1,5 @@
 /**
- * $Id: gdrom_menu.c,v 1.1 2007-10-27 05:44:54 nkeynes Exp $
+ * $Id: gdrom_menu.c,v 1.2 2007-10-28 07:36:11 nkeynes Exp $
  *
  * Creates and manages the GD-Rom attachment menu.
  *
@@ -105,12 +105,16 @@ void gdrom_menu_empty_callback( GtkWidget *widget, gpointer user_data )
     }
 }
 
-void gdrom_menu_open_file( const char *filename )
+gboolean gdrom_menu_open_file( const char *filename )
 {
+    gboolean result = FALSE;
     if( filename != NULL ) {
-	gdrom_mount_image(filename);
+	result = gdrom_mount_image(filename);
     }
-    gdrom_menu_update_all();
+    if( result ) {
+	gdrom_menu_update_all();
+    }
+    return result;
 }
 
 void gdrom_menu_open_image_callback( GtkWidget *widget, gpointer user_data )
