@@ -1,5 +1,5 @@
 /**
- * $Id: gtkui.c,v 1.7 2007-10-27 05:44:54 nkeynes Exp $
+ * $Id: gtkui.c,v 1.8 2007-10-28 08:29:29 nkeynes Exp $
  *
  * Core GTK-based user interface
  *
@@ -215,6 +215,7 @@ gboolean gui_init( gboolean withDebug )
     GtkWidget *toolbar = gtk_ui_manager_get_widget(global_ui_manager, "/MainToolbar");
 
     GtkWidget *gdrommenuitem = gtk_ui_manager_get_widget(global_ui_manager, "/MainMenu/FileMenu/GdromSettings");
+    gdrom_menu_init();
     GtkWidget *gdrommenu = gdrom_menu_new();
     gtk_menu_item_set_submenu( GTK_MENU_ITEM(gdrommenuitem), gdrommenu );
     main_win = main_window_new( APP_NAME " " APP_VERSION, menubar, toolbar, accel_group  );

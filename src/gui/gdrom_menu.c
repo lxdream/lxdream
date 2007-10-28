@@ -1,5 +1,5 @@
 /**
- * $Id: gdrom_menu.c,v 1.2 2007-10-28 07:36:11 nkeynes Exp $
+ * $Id: gdrom_menu.c,v 1.3 2007-10-28 08:29:29 nkeynes Exp $
  *
  * Creates and manages the GD-Rom attachment menu.
  *
@@ -66,6 +66,23 @@ gint gdrom_menu_add_recent_item( const gchar *name )
 	g_free( ptr->data );
 	gdrom_recent_list = g_list_remove( gdrom_recent_list, ptr->data );
     }
+
+    GList *ptr;
+    int size;
+    for( ptr = gdrom_recent_list; ptr != NULL; ptr = g_list_next(ptr) ) {
+	size += strlen( (gchar *)ptr->data ) + 1;
+    }
+    char buf[size];
+    strcpy( buf, (gchar *)gdrom_recent_list->data );
+    ptr = g_list_next(gdrom_recent_list);
+    while( ptr != NULL ) {
+	strcat( buf, ":" );
+	strcat( buf, (gchar *)ptr->data );
+	ptr = g_list_next(ptr);
+    }
+    lxdream_set_global_config_value( CONFIG_RECENT, buf );
+    lxdream_save_config();
+
     return g_list_length( gdrom_device_list ) + 2; // menu posn of new item
 }
 
@@ -102,6 +119,8 @@ void gdrom_menu_empty_callback( GtkWidget *widget, gpointer user_data )
     if( !gdrom_menu_adjusting ) {
 	gdrom_unmount_disc();
 	gdrom_menu_update_all();
+	lxdream_set_global_config_value( CONFIG_GDROM, NULL );
+	lxdream_save_config();
     }
 }
 
@@ -113,6 +132,8 @@ gboolean gdrom_menu_open_file( const char *filename )
     }
     if( result ) {
 	gdrom_menu_update_all();
+	lxdream_set_global_config_value( CONFIG_GDROM, filename );
+	lxdream_save_config();
     }
     return result;
 }
@@ -141,9 +162,6 @@ void gdrom_menu_build( GtkWidget *menu )
     g_signal_connect_after( empty, "activate", G_CALLBACK(gdrom_menu_empty_callback), NULL );
     gtk_menu_shell_append( GTK_MENU_SHELL(menu), empty );
     
-    if( gdrom_device_list == NULL ) {
-	gdrom_device_list = gdrom_get_native_devices();
-    }
     GList *ptr;
     for( ptr = gdrom_device_list; ptr != NULL; ptr = g_list_next(ptr) ) {
 	gchar *name = (gchar *)ptr->data;
@@ -204,4 +222,18 @@ void gdrom_menu_rebuild_all()
 	gdrom_menu_build(menu);
     }
     gdrom_menu_update_all();
+}
+
+void gdrom_menu_init()
+{
+    const gchar *recent = lxdream_get_config_value( CONFIG_RECENT );
+    gdrom_device_list = gdrom_get_native_devices();
+    if( recent != NULL ) {
+	gchar **list = g_strsplit(recent, ":", 5);
+	int i;
+	for( i=0; list[i] != NULL; i++ ) {
+	    gdrom_recent_list = g_list_append( gdrom_recent_list, g_strdup(list[i]) );
+	}
+	g_strfreev(list);
+    }
 }
