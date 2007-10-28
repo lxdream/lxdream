@@ -1,5 +1,5 @@
 /**
- * $Id: config.c,v 1.4 2007-10-27 05:44:53 nkeynes Exp $
+ * $Id: config.c,v 1.5 2007-10-28 08:29:29 nkeynes Exp $
  *
  * User configuration support
  *
@@ -38,6 +38,7 @@ static struct lxdream_config_entry global_config[] =
      { "save path", CONFIG_TYPE_PATH, "save" },
      { "bootstrap", CONFIG_TYPE_FILE, "IP.BIN" },
      { "gdrom", CONFIG_TYPE_FILE, NULL },
+     { "recent", CONFIG_TYPE_FILE, NULL },
      { NULL, CONFIG_TYPE_NONE }};
 
 static struct lxdream_config_entry serial_config[] =
@@ -290,7 +291,9 @@ gboolean lxdream_save_config_stream( FILE *f )
 	
 	if( entry != NULL ) {
 	    while( entry->key != NULL ) {
-		fprintf( f, "%s = %s\n", entry->key, entry->value );
+		if( entry->value != NULL ) {
+		    fprintf( f, "%s = %s\n", entry->key, entry->value );
+		}
 		entry++;
 	    }
 	} else if( strcmp(group->key, "controllers") == 0 ) {
@@ -305,7 +308,9 @@ gboolean lxdream_save_config_stream( FILE *f )
 			    fprintf( f, "Subdevice %d = %s\n", j, dev->device_class->name );
 			entry = dev->get_config(dev);
 			while( entry->key != NULL ) {
-			    fprintf( f, "%*c%s = %s\n", j==0?4:8, ' ',entry->key, entry->value );
+			    if( entry->value != NULL ) {
+				fprintf( f, "%*c%s = %s\n", j==0?4:8, ' ',entry->key, entry->value );
+			    }
 			    entry++;
 			}
 		    }

@@ -1,5 +1,5 @@
 /**
- * $Id: main.c,v 1.32 2007-10-28 07:36:11 nkeynes Exp $
+ * $Id: main.c,v 1.33 2007-10-28 08:29:29 nkeynes Exp $
  *
  * Main program, initializes dreamcast and gui, then passes control off to
  * the gtk main loop (currently). 
@@ -189,7 +189,7 @@ int main (int argc, char *argv[])
     }
 
     if( disc_file != NULL ) {
-	gdrom_mount_image( disc_file );
+	gdrom_menu_open_file( disc_file );
     }
 
     if( gdrom_get_current_disc() == NULL ) {
@@ -197,8 +197,6 @@ int main (int argc, char *argv[])
 	if( disc_file != NULL ) {
 	    gdrom_menu_open_file( disc_file );
 	}
-    } else {
-	lxdream_set_global_config_value( CONFIG_GDROM, gdrom_get_current_disc()->name );
     }
 
     sh4_set_use_xlat( use_xlat );

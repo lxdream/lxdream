@@ -1,5 +1,5 @@
 /**
- * $Id: gtkui.h,v 1.7 2007-10-27 05:44:54 nkeynes Exp $
+ * $Id: gtkui.h,v 1.8 2007-10-28 08:29:29 nkeynes Exp $
  *
  * Core GTK-based user interface
  *
@@ -70,6 +70,9 @@ void gtk_gui_show_debugger();
 typedef void (*gtk_dialog_done_fn)(GtkWidget *panel, gboolean isOK);
 void gtk_gui_enable_action( const gchar *action, gboolean enabled );
 gint gtk_gui_run_property_dialog( const gchar *title, GtkWidget *panel, gtk_dialog_done_fn fn );
+
+void gdrom_menu_init();
+GtkWidget *gdrom_menu_new();
 
 /******************** Video driver hooks *********************/
 
