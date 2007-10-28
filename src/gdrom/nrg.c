@@ -1,5 +1,5 @@
 /**
- * $Id: nrg.c,v 1.6 2007-10-27 05:44:54 nkeynes Exp $
+ * $Id: nrg.c,v 1.7 2007-10-28 07:23:46 nkeynes Exp $
  *
  * Nero (NRG) CD file format. File information stolen shamelessly from
  * libcdio.
@@ -180,7 +180,6 @@ static gdrom_disc_t nrg_image_open( const gchar *filename, FILE *f )
     
     disc = gdrom_image_new(filename, f);
     if( disc == NULL ) {
-	fclose(f);
 	ERROR("Unable to allocate memory!");
 	return NULL;
     }
@@ -249,7 +248,7 @@ static gdrom_disc_t nrg_image_open( const gchar *filename, FILE *f )
 		image->track[track_id].lba = ntohl(etnf->lba) + (i+1)*GDROM_PREGAP;
 		image->track[track_id].mode = nrg_track_mode( ntohl(etnf->mode) );
 		if( image->track[track_id].mode == -1 ) {
-		    disc->close(disc);
+		    gdrom_image_destroy_no_close(disc);
 		    return NULL;
 		}
 		if( image->track[track_id].mode == GDROM_CDDA )
