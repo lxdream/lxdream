@@ -1,5 +1,5 @@
 /**
- * $Id: cdi.c,v 1.9 2007-10-27 05:44:54 nkeynes Exp $
+ * $Id: cdi.c,v 1.10 2007-10-28 07:23:46 nkeynes Exp $
  *
  * CDI CD-image file support
  *
@@ -107,7 +107,6 @@ gdrom_disc_t cdi_image_open( const gchar *filename, FILE *f )
     
     disc = gdrom_image_new(filename, f);
     if( disc == NULL ) {
-	fclose(f);
 	ERROR("Unable to allocate memory!");
 	return NULL;
     }
@@ -117,7 +116,7 @@ gdrom_disc_t cdi_image_open( const gchar *filename, FILE *f )
 	fread( &track_count, sizeof(track_count), 1, f );
 	if( track_count + total_tracks > 99 ) {
 	    ERROR( "Invalid number of tracks, bad cdi image\n" );
-	    disc->close(disc);
+	    gdrom_image_destroy_no_close(disc);
 	    return NULL;
 	}
         for( j=0; j<track_count; j++ ) {
@@ -131,7 +130,7 @@ gdrom_disc_t cdi_image_open( const gchar *filename, FILE *f )
             fread( marker, 20, 1, f );
             if( memcmp( marker, TRACK_START_MARKER, 20) != 0 ) {
 		ERROR( "Track start marker not found, error reading cdi image\n" );
-		disc->close(disc);
+		gdrom_image_destroy_no_close(disc);
 		return NULL;
 	    }
 	    fseek( f, 4, SEEK_CUR );
@@ -148,7 +147,7 @@ gdrom_disc_t cdi_image_open( const gchar *filename, FILE *f )
 		image->track[total_tracks].flags = 0x01;
 		if( trk.sector_size != 2 ) {
 		    ERROR( "Invalid combination of mode %d with size %d", trk.mode, trk.sector_size );
-		    disc->close(disc);
+		    gdrom_image_destroy_no_close(disc);
 		    return NULL;
 		}
 		break;
@@ -158,7 +157,7 @@ gdrom_disc_t cdi_image_open( const gchar *filename, FILE *f )
 		image->track[total_tracks].flags = 0x41;
 		if( trk.sector_size != 0 ) {
 		    ERROR( "Invalid combination of mode %d with size %d", trk.mode, trk.sector_size );
-		    disc->close(disc);
+		    gdrom_image_destroy_no_close(disc);
 		    return NULL;
 		}
 		break;
@@ -176,13 +175,13 @@ gdrom_disc_t cdi_image_open( const gchar *filename, FILE *f )
 		case 2:
 		default:
 		    ERROR( "Invalid combination of mode %d with size %d", trk.mode, trk.sector_size );
-		    disc->close(disc);
+		    gdrom_image_destroy_no_close(disc);
 		    return NULL;
 		}
 		break;
 	    default:
 		ERROR( "Unsupported track mode %d", trk.mode );
-		disc->close(disc);
+		gdrom_image_destroy_no_close(disc);
 		return NULL;
 	    }
 	    image->track[total_tracks].offset = posn + 
@@ -191,11 +190,12 @@ gdrom_disc_t cdi_image_open( const gchar *filename, FILE *f )
 	    total_tracks++;
 	    fread( marker, 1, 9, f );
 	    if( memcmp( marker, EXT_MARKER, 9 ) == 0 ) {
-		fseek( f, 91, SEEK_CUR );
+		fseek( f, 79, SEEK_CUR );
 	    } else {
-		fseek( f, 3, SEEK_CUR );
+		fseek( f, -9, SEEK_CUR );
 	    }
 	}
+	fseek( f, 12, SEEK_CUR );
     }
     image->track_count = total_tracks;
     return disc;

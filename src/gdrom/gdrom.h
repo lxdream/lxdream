@@ -1,5 +1,5 @@
 /**
- * $Id: gdrom.h,v 1.13 2007-10-27 05:44:54 nkeynes Exp $
+ * $Id: gdrom.h,v 1.14 2007-10-28 07:23:46 nkeynes Exp $
  *
  * This file defines the structures and functions used by the GD-Rom
  * disc driver. (ie, the modules that supply a CD image to be used by the
@@ -179,6 +179,12 @@ gdrom_disc_t gdrom_image_open( const gchar *filename );
  * Dump image info
  */
 void gdrom_image_dump_info( gdrom_disc_t d );
+
+/**
+ * Destroy an image data structure without closing the file
+ * (Intended for use from image loaders only)
+ */
+void gdrom_image_destroy_no_close( gdrom_disc_t d );
 
 /**
  * Retrieve the disc table of contents, and write it into the buffer in the 

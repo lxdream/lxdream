@@ -1,5 +1,5 @@
 /**
- * $Id: linux.c,v 1.6 2007-10-27 05:44:54 nkeynes Exp $
+ * $Id: linux.c,v 1.7 2007-10-28 07:23:46 nkeynes Exp $
  *
  * Linux cd-rom device driver. 
  *
@@ -115,7 +115,7 @@ static gdrom_disc_t linux_open_device( const gchar *filename, FILE *f )
 
     gdrom_error_t status = linux_read_disc_toc( (gdrom_image_t)disc );
     if( status != 0 ) {
-	disc->close(disc);
+	gdrom_image_destroy_no_close(disc);
 	if( status == 0xFFFF ) {
 	    ERROR("Unable to load disc table of contents (%s)", strerror(errno));
 	} else {
