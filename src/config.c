@@ -1,5 +1,5 @@
 /**
- * $Id: config.c,v 1.5 2007-10-28 08:29:29 nkeynes Exp $
+ * $Id: config.c,v 1.6 2007-10-31 09:06:48 nkeynes Exp $
  *
  * User configuration support
  *
@@ -112,10 +112,12 @@ const gchar *lxdream_get_config_value( int key )
 
 void lxdream_set_config_value( lxdream_config_entry_t param, const gchar *value )
 {
-    if( param->value != param->default_value && param->value != NULL ) {
-	free( param->value );
+    if( param->value != value ) {
+	if( param->value != param->default_value && param->value != NULL ) {
+	    free( param->value );
+	}
+	param->value = g_strdup(value);
     }
-    param->value = g_strdup(value);
 }
 
 void lxdream_set_global_config_value( int key, const gchar *value )
