@@ -1,5 +1,5 @@
 /**
- * $Id: mmio_win.c,v 1.9 2007-10-21 11:38:02 nkeynes Exp $
+ * $Id: mmio_win.c,v 1.10 2007-10-31 12:23:19 nkeynes Exp $
  *
  * Implements the MMIO register viewing window
  *
@@ -17,7 +17,8 @@
  */
 
 #include <stdint.h>
-#include <gnome.h>
+#include <string.h>
+#include <glib/gi18n.h>
 #include "gui/gtkui.h"
 #include "mem.h"
 #include "mmio.h"

@@ -1,5 +1,5 @@
 /**
- * $Id: debug_win.c,v 1.27 2007-10-31 11:53:35 nkeynes Exp $
+ * $Id: debug_win.c,v 1.28 2007-10-31 12:23:19 nkeynes Exp $
  * This file is responsible for the main debugger gui frame.
  *
  * Copyright (c) 2005 Nathan Keynes.
@@ -17,8 +17,10 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <string.h>
 #include <math.h>
-#include <gnome.h>
+#include <glib/gi18n.h>
+#include <gdk/gdkkeysyms.h>
 #include "mem.h"
 #include "cpu.h"
 #include "gui/gtkui.h"
