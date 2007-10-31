@@ -1,5 +1,5 @@
 /**
- * $Id: rendcore.c,v 1.20 2007-10-08 11:52:13 nkeynes Exp $
+ * $Id: rendcore.c,v 1.21 2007-10-31 09:10:23 nkeynes Exp $
  *
  * PVR2 renderer core.
  *
@@ -41,8 +41,8 @@ int pvr2_poly_texblend[4] = {
     GL_MODULATE 
 };
 int pvr2_render_colour_format[8] = {
-    COLFMT_ARGB1555, COLFMT_RGB565, COLFMT_ARGB4444, COLFMT_ARGB1555,
-    COLFMT_RGB888, COLFMT_ARGB8888, COLFMT_ARGB8888, COLFMT_ARGB4444 };
+    COLFMT_BGRA1555, COLFMT_RGB565, COLFMT_BGRA4444, COLFMT_BGRA1555,
+    COLFMT_BGR888, COLFMT_BGRA8888, COLFMT_BGRA8888, COLFMT_BGRA4444 };
 
 
 #define CULL_NONE 0
@@ -428,7 +428,7 @@ void render_tile( pvraddr_t tile_entry, int render_mode, gboolean cheap_modifier
 		for( i=0; i<strip_count; i++ ) {
 		    render_set_context( polygon, render_mode );
 		    render_vertexes( *polygon, polygon+context_length, 3, vertex_length,
-				     render_mode );
+		    		     render_mode );
 		    polygon += polygon_length;
 		}
 	    } else if( (entry & 0xE0000000) == 0xA0000000 ) {
@@ -439,7 +439,7 @@ void render_tile( pvraddr_t tile_entry, int render_mode, gboolean cheap_modifier
 		for( i=0; i<strip_count; i++ ) {
 		    render_set_context( polygon, render_mode );
 		    render_quad_vertexes( *polygon, polygon+context_length, vertex_length,
-					  render_mode );
+		    			  render_mode );
 		    polygon += polygon_length;
 		}
 	    } else {
@@ -455,7 +455,7 @@ void render_tile( pvraddr_t tile_entry, int render_mode, gboolean cheap_modifier
 		    first = 0;
 		    render_set_context(polygon, render_mode);
 		    render_vertexes( *polygon, polygon+context_length + (first*vertex_length),
-				     (last-first+3), vertex_length, render_mode );
+		    		     (last-first+3), vertex_length, render_mode );
 		}
 	    }
 	}
@@ -487,8 +487,6 @@ void pvr2_render_tilebuffer( int width, int height, int clipx1, int clipy1,
 
     struct tile_segment *segment = (struct tile_segment *)(video_base + segmentbase);
 
-    struct timeval tv_start, tv_end;
-    gettimeofday(&tv_start, NULL);
     glEnable( GL_SCISSOR_TEST );
     do {
 	// fwrite_dump32v( (uint32_t *)segment, sizeof(struct tile_segment), 6, stderr );
@@ -548,9 +546,6 @@ void pvr2_render_tilebuffer( int width, int height, int clipx1, int clipy1,
 	}
     } while( ((segment++)->control & SEGMENT_END) == 0 );
     glDisable( GL_SCISSOR_TEST );
-
-    gettimeofday(&tv_end, NULL);
-    timersub(&tv_end,&tv_start, &tv_start);
 }
 
 static float render_find_maximum_tile_z( pvraddr_t tile_entry, float inputz )

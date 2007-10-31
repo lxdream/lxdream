@@ -1,5 +1,5 @@
 /**
- * $Id: gl_fbo.c,v 1.6 2007-10-16 12:27:28 nkeynes Exp $
+ * $Id: gl_fbo.c,v 1.7 2007-10-31 09:10:23 nkeynes Exp $
  *
  * GL framebuffer-based driver shell. This requires the EXT_framebuffer_object
  * extension, but is much nicer/faster/etc than pbuffers when it's available.
@@ -26,6 +26,8 @@
 
 #include <GL/gl.h>
 #include <GL/glext.h>
+#include <stdlib.h>
+#include "lxdream.h"
 #include "display.h"
 #include "drivers/video_x11.h"
 #include "drivers/gl_common.h"
@@ -37,9 +39,9 @@ static render_buffer_t gl_fbo_create_render_buffer( uint32_t width, uint32_t hei
 static void gl_fbo_destroy_render_buffer( render_buffer_t buffer );
 static gboolean gl_fbo_set_render_target( render_buffer_t buffer );
 static gboolean gl_fbo_display_render_buffer( render_buffer_t buffer );
-static gboolean gl_fbo_display_frame_buffer( frame_buffer_t buffer );
+static void gl_fbo_load_frame_buffer( frame_buffer_t frame, render_buffer_t buffer );
 static gboolean gl_fbo_display_blank( uint32_t colour );
-static gboolean gl_fbo_read_render_buffer( render_buffer_t buffer, unsigned char *target );
+static gboolean gl_fbo_read_render_buffer( unsigned char *target, render_buffer_t buffer, int rowstride, int format );
 
 extern uint32_t video_width, video_height;
 
@@ -93,7 +95,7 @@ void gl_fbo_init( display_driver_t driver )
     driver->destroy_render_buffer = gl_fbo_destroy_render_buffer;
     driver->set_render_target = gl_fbo_set_render_target;
     driver->display_render_buffer = gl_fbo_display_render_buffer;
-    driver->display_frame_buffer = gl_fbo_display_frame_buffer;
+    driver->load_frame_buffer = gl_fbo_load_frame_buffer;
     driver->display_blank = gl_fbo_display_blank;
     driver->read_render_buffer = gl_fbo_read_render_buffer;
 
@@ -218,6 +220,7 @@ static void gl_fbo_destroy_render_buffer( render_buffer_t buffer )
     for( i=0; i<MAX_FRAMEBUFFERS; i++ ) {
 	for( j=0; j < MAX_TEXTURES_PER_FB; j++ ) {
 	    if( fbo[i].tex_ids[j] == buffer->buf_id ) {
+		glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fbo[i].fb_id);
 		glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, ATTACHMENT_POINTS[j], 
 					  GL_TEXTURE_RECTANGLE_ARB, GL_NONE, 0 );
 		fbo[i].tex_ids[j] = -1;
@@ -232,6 +235,7 @@ static void gl_fbo_destroy_render_buffer( render_buffer_t buffer )
 
 static gboolean gl_fbo_set_render_target( render_buffer_t buffer )
 {
+    glFinish();
     glGetError();
     int fb = gl_fbo_get_framebuffer( buffer->width, buffer->height );
     gl_fbo_attach_texture( fb, buffer->buf_id );
@@ -248,66 +252,37 @@ static gboolean gl_fbo_set_render_target( render_buffer_t buffer )
 static gboolean gl_fbo_display_render_buffer( render_buffer_t buffer )
 {
     glFinish();
-    glBindFramebufferEXT( GL_FRAMEBUFFER_EXT, 0 ); // real window
-    glDrawBuffer( GL_FRONT );
-    glReadBuffer( GL_FRONT );
-    gl_display_tex_rectangle( buffer->buf_id, buffer->width, buffer->height, TRUE );
-    /*
-    glViewport( 0, 0, video_width, video_height );
-    glEnable( GL_TEXTURE_RECTANGLE_ARB );
-    glBindTexture( GL_TEXTURE_RECTANGLE_ARB, buffer->buf_id );
-    glTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE );
-    glTexParameteri( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-    glTexParameteri( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-    glDisable( GL_ALPHA_TEST );
-    glDisable( GL_DEPTH_TEST );
-    glDisable( GL_SCISSOR_TEST );
-    glDisable( GL_CULL_FACE );
-
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    glOrtho( 0, buffer->width, buffer->height, 0, 0, -65535 );
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
-    glEnable( GL_BLEND );
-    glBlendFunc( GL_ONE, GL_ZERO );
-    glDisable( GL_DEPTH_TEST );
-    glBegin( GL_QUADS );
-    glTexCoord2i( 0.5, buffer->height-0.5 );
-    glVertex2f( 0.0, 0.0 );
-    glTexCoord2i( buffer->width-0.5, buffer->height-0.5 );
-    glVertex2f( buffer->width, 0.0 );
-    glTexCoord2i( buffer->width-0.5, 0 );
-    glVertex2f( buffer->width, buffer->height );
-    glTexCoord2i( 0.5, 0.5 );
-    glVertex2f( 0.0, buffer->height );
-    glEnd();
-    glDisable( GL_TEXTURE_RECTANGLE_ARB );
-    glFlush();
-    */
+    gl_fbo_detach();
+    gl_display_render_buffer( buffer );
     return TRUE;
 }
 
-static gboolean gl_fbo_display_frame_buffer( frame_buffer_t buffer )
+static void gl_fbo_load_frame_buffer( frame_buffer_t frame, render_buffer_t buffer )
 {
-    glBindFramebufferEXT( GL_FRAMEBUFFER_EXT, 0 );
-    glDrawBuffer( GL_FRONT );
-    glReadBuffer( GL_FRONT );
-    return gl_display_frame_buffer( buffer );
+    glFinish();
+    gl_fbo_detach();
+    gl_load_frame_buffer( frame, buffer );
 }
 
 static gboolean gl_fbo_display_blank( uint32_t colour )
 {
-    glBindFramebufferEXT( GL_FRAMEBUFFER_EXT, 0 );
-    glDrawBuffer( GL_FRONT );
-    glReadBuffer( GL_FRONT );
+    glFinish();
+    gl_fbo_detach();
     return gl_display_blank( colour );
 }
 
-static gboolean gl_fbo_read_render_buffer( render_buffer_t buffer, unsigned char *target )
+void gl_fbo_detach()
+{
+    glBindFramebufferEXT( GL_FRAMEBUFFER_EXT, 0 );
+    glDrawBuffer( GL_FRONT );
+    glReadBuffer( GL_FRONT );
+}    
+
+static gboolean gl_fbo_read_render_buffer( unsigned char *target, render_buffer_t buffer, 
+					   int rowstride, int format )
 {
     int fb = gl_fbo_get_framebuffer( buffer->width, buffer->height );
     gl_fbo_attach_texture( fb, buffer->buf_id );
-    return gl_read_render_buffer( buffer, target );
+    return gl_read_render_buffer( target, buffer, rowstride, format );
 }
 

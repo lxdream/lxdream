@@ -1,5 +1,5 @@
 /**
- * $Id: gl_sl.c,v 1.2 2007-10-07 05:42:25 nkeynes Exp $
+ * $Id: gl_sl.c,v 1.3 2007-10-31 09:10:23 nkeynes Exp $
  *
  * GLSL shader loader/unloader. Current version assumes there's exactly
  * 1 shader program that's used globally. This may turn out not to be the
@@ -22,6 +22,7 @@
 
 #include <GL/gl.h>
 #include <GL/glext.h>
+#include "lxdream.h"
 #include "drivers/gl_common.h"
 #include "display.h"
 

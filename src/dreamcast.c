@@ -1,5 +1,5 @@
 /**
- * $Id: dreamcast.c,v 1.26 2007-10-27 05:47:55 nkeynes Exp $
+ * $Id: dreamcast.c,v 1.27 2007-10-31 09:10:23 nkeynes Exp $
  * Central switchboard for the system. This pulls all the individual modules
  * together into some kind of coherent structure. This is also where you'd
  * add Naomi support, if I ever get a board to play with...
@@ -220,62 +220,137 @@ struct save_state_header {
     uint32_t module_count;
 };
 
+struct chunk_header {
+    char marker[4]; /* Always BLCK */
+    char name[8]; /* Block (module) name */
+    uint32_t block_length;
+};
+
+/**
+ * Check the save state header to ensure that it is a valid, supported
+ * file. 
+ * @return the number of blocks following, or 0 if the file is invalid.
+ */
+int dreamcast_read_save_state_header( FILE *f )
+{
+    struct save_state_header header;
+    if( fread( &header, sizeof(header), 1, f ) != 1 ) {
+	return 0;
+    }
+    if( strncmp( header.magic, DREAMCAST_SAVE_MAGIC, 16 ) != 0 ) {
+	ERROR( "Not a %s save state file", APP_NAME );
+	return 0;
+    }
+    if( header.version != DREAMCAST_SAVE_VERSION ) {
+	ERROR( "%s save state version not supported", APP_NAME );
+	return 0;
+    }
+    if( header.module_count > MAX_MODULES ) {
+	ERROR( "%s save state is corrupted (bad module count)", APP_NAME );
+	return 0;
+    }
+    return header.module_count;
+}
+
+int dreamcast_write_chunk_header( const gchar *name, uint32_t length, FILE *f )
+{
+    struct chunk_header head;
+
+    memcpy( head.marker, "BLCK", 4 );
+    memset( head.name, 0, 8 );
+    memcpy( head.name, name, strlen(name) );
+    head.block_length = length;
+    return fwrite( &head, sizeof(head), 1, f );
+}
+
+
+frame_buffer_t dreamcast_load_preview( const gchar *filename )
+{
+    int i;
+    FILE *f = fopen( filename, "r" );
+    if( f == NULL ) return NULL;
+    
+    int module_count = dreamcast_read_save_state_header(f);
+    if( module_count <= 0 ) {
+	fclose(f);
+	return NULL;
+    }
+    for( i=0; i<module_count; i++ ) {
+	struct chunk_header head;
+	if( fread( &head, sizeof(head), 1, f ) != 1 ) {
+	    fclose(f);
+	    return NULL;
+	}
+	if( memcmp("BLCK", head.marker, 4) != 0 ) {
+	    fclose(f);
+	    return NULL;
+	}
+
+	if( strcmp("PVR2", head.name) == 0 ) {
+	    uint32_t buf_count;
+	    int has_front;
+	    fread( &buf_count, sizeof(buf_count), 1, f );
+	    fread( &has_front, sizeof(has_front), 1, f );
+	    if( buf_count != 0 && has_front ) {
+		frame_buffer_t result = read_png_from_stream(f);
+		fclose(f);
+		return result;
+	    }
+	    break;
+	} else {
+	    fseek( f, head.block_length, SEEK_CUR );
+	}
+    }
+    return NULL;
+}
+
 int dreamcast_load_state( const gchar *filename )
 {
     int i,j;
     uint32_t len;
+    int module_count;
     int have_read[MAX_MODULES];
-    char tmp[64];
-    struct save_state_header header;
-    FILE *f;
 
-    f = fopen( filename, "r" );
+    FILE *f = fopen( filename, "r" );
     if( f == NULL ) return errno;
 
-    fread( &header, sizeof(header), 1, f );
-    if( strncmp( header.magic, DREAMCAST_SAVE_MAGIC, 16 ) != 0 ) {
-	ERROR( "Not a %s save state file", APP_NAME );
+    module_count = dreamcast_read_save_state_header(f);
+    if( module_count <= 0 ) {
+	fclose(f);
 	return 1;
     }
-    if( header.version != DREAMCAST_SAVE_VERSION ) {
-	ERROR( "%s save state version not supported", APP_NAME );
-	return 1;
-    }
-    if( header.module_count > MAX_MODULES ) {
-	ERROR( "%s save state is corrupted (bad module count)", APP_NAME );
-	return 1;
-    }
+
     for( i=0; i<MAX_MODULES; i++ ) {
 	have_read[i] = 0;
     }
 
-    for( i=0; i<header.module_count; i++ ) {
-	fread(tmp, 4, 1, f );
-	if( strncmp(tmp, "BLCK", 4) != 0 ) {
+    for( i=0; i<module_count; i++ ) {
+	struct chunk_header chunk;
+	fread( &chunk, sizeof(chunk), 1, f );
+	if( strncmp(chunk.marker, "BLCK", 4) != 0 ) {
 	    ERROR( "%s save state is corrupted (missing block header %d)", APP_NAME, i );
-	    return 2;
-	}
-	len = fread_string(tmp, sizeof(tmp), f );
-	if( len > 64 || len < 1 ) {
-	    ERROR( "%s save state is corrupted (bad string)", APP_NAME );
+	    fclose(f);
 	    return 2;
 	}
 	
 	/* Find the matching module by name */
 	for( j=0; j<num_modules; j++ ) {
-	    if( strcmp(modules[j]->name,tmp) == 0 ) {
+	    if( strcmp(modules[j]->name,chunk.name) == 0 ) {
 		have_read[j] = 1;
 		if( modules[j]->load == NULL ) {
 		    ERROR( "%s save state is corrupted (no loader for %s)", APP_NAME, modules[j]->name );
+		    fclose(f);
 		    return 2;
 		} else if( modules[j]->load(f) != 0 ) {
 		    ERROR( "%s save state is corrupted (%s failed)", APP_NAME, modules[j]->name );
+		    fclose(f);
 		    return 2;
 		}
 		break;
 	    }
 	}
 	if( j == num_modules ) {
+	    fclose(f);
 	    ERROR( "%s save state contains unrecognized section", APP_NAME );
 	    return 2;
 	}
@@ -315,9 +390,15 @@ int dreamcast_save_state( const gchar *filename )
     fwrite( &header, sizeof(header), 1, f );
     for( i=0; i<num_modules; i++ ) {
 	if( modules[i]->save != NULL ) {
-	    fwrite( "BLCK", 4, 1, f );
-	    fwrite_string( modules[i]->name, f );
+	    uint32_t blocklen, posn1, posn2;
+	    dreamcast_write_chunk_header( modules[i]->name, 0, f );
+	    posn1 = ftell(f);
 	    modules[i]->save(f);
+	    posn2 = ftell(f);
+	    blocklen = posn2 - posn1;
+	    fseek( f, posn1-4, SEEK_SET );
+	    fwrite( &blocklen, sizeof(blocklen), 1, f );
+	    fseek( f, posn2, SEEK_SET );
 	}
     }
     fclose( f );

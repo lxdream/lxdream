@@ -1,5 +1,5 @@
 /**
- * $Id: texcache.c,v 1.28 2007-10-24 21:23:22 nkeynes Exp $
+ * $Id: texcache.c,v 1.29 2007-10-31 09:10:23 nkeynes Exp $
  *
  * Texture cache. Responsible for maintaining a working set of OpenGL 
  * textures. 
@@ -354,7 +354,7 @@ static void texcache_load_texture( uint32_t texture_addr, int width, int height,
 	    break;
 	case 3: /* ARGB8888 */
 	    format = GL_BGRA;
-	    type = GL_UNSIGNED_INT_8_8_8_8_REV;
+	    type = GL_UNSIGNED_BYTE;
 	    bpp_shift = 2;
 	    break;
 	default:
@@ -381,7 +381,7 @@ static void texcache_load_texture( uint32_t texture_addr, int width, int height,
 	 */
 	bpp_shift = 2;
 	format = GL_BGRA;
-	type = GL_UNSIGNED_INT_8_8_8_8_REV;
+	type = GL_UNSIGNED_BYTE;
 	break;
     case PVR2_TEX_FORMAT_BUMPMAP:
 	ERROR( "Bumpmap not supported" );

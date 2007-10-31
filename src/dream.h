@@ -1,5 +1,5 @@
 /**
- * $Id: dream.h,v 1.15 2007-10-11 08:22:03 nkeynes Exp $
+ * $Id: dream.h,v 1.16 2007-10-31 09:10:23 nkeynes Exp $
  *
  * Miscellaneous application-wide declarations (mainly logging atm)
  *
@@ -23,14 +23,11 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
-#include <glib/gtypes.h>
+#include "lxdream.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#define APP_NAME "lxDream"
-#define APP_VERSION "0.8"
 
 /************************ Modules ********************************/
 /**
@@ -90,39 +87,16 @@ extern struct dreamcast_module gui_module;
 extern struct dreamcast_module eventq_module;
 extern struct dreamcast_module unknown_module;
 
-/*************************** Logging **************************/
-
-#define EMIT_FATAL 0
-#define EMIT_ERR 1
-#define EMIT_WARN 2
-#define EMIT_INFO 3
-#define EMIT_DEBUG 4
-#define EMIT_TRACE 5
-
-#ifndef MODULE
-#define MODULE unknown_module
-#endif
-
-void log_message( void *, int level, const char *source, const char *msg, ... );
-
-#define FATAL( ... ) log_message( NULL, EMIT_FATAL, MODULE.name, __VA_ARGS__ )
-#define ERROR( ... ) log_message( NULL, EMIT_ERR, MODULE.name, __VA_ARGS__ )
-#define WARN( ... ) log_message( NULL, EMIT_WARN, MODULE.name, __VA_ARGS__ )
-#define INFO( ... ) log_message( NULL, EMIT_INFO, MODULE.name, __VA_ARGS__ )
-#define DEBUG( ... ) log_message( NULL, EMIT_DEBUG, MODULE.name, __VA_ARGS__ )
-#define TRACE( ... ) log_message( NULL, EMIT_TRACE, MODULE.name, __VA_ARGS__ )
-
 void fwrite_string( const char *s, FILE *f );
 int fread_string( char *s, int maxlen, FILE *f );
+void fwrite_gzip( void *p, size_t size, size_t num, FILE *f );
+int fread_gzip( void *p, size_t size, size_t num, FILE *f );
 void fwrite_dump( unsigned char *buf, unsigned int length, FILE *f );
 void fwrite_dump32( unsigned int *buf, unsigned int length, FILE *f );
 void fwrite_dump32v( unsigned int *buf, unsigned int length, int wordsPerLine, FILE *f );
 
-typedef uint32_t sh4addr_t;
-
-#ifndef max
-#define max(a,b) ( (a) > (b) ? (a) : (b) )
-#endif
+gboolean write_png_to_stream( FILE *f, frame_buffer_t );
+frame_buffer_t read_png_from_stream( FILE *f );
 
 #ifdef __cplusplus
 }

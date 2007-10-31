@@ -1,5 +1,5 @@
 /**
- * $Id: util.c,v 1.10 2007-10-16 12:36:29 nkeynes Exp $
+ * $Id: util.c,v 1.11 2007-10-31 09:10:23 nkeynes Exp $
  *
  * Miscellaneous utility functions.
  *
@@ -16,12 +16,17 @@
  * GNU General Public License for more details.
  */
 
+#include <assert.h>
 #include <ctype.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <zlib.h>
+#include <glib.h>
+#include <png.h>
 #include "dream.h"
+#include "display.h"
 #include "sh4/sh4core.h"
 
 char *msg_levels[] = { "FATAL", "ERROR", "WARN", "INFO", "DEBUG", "TRACE" };
@@ -47,6 +52,38 @@ int fread_string( char *s, int maxlen, FILE *f )
 	fread( s, len > maxlen ? maxlen : len, 1, f );
     }
     return len;
+}
+
+void fwrite_gzip( void *p, size_t sz, size_t count, FILE *f )
+{
+    uLongf size = sz*count;
+    uLongf csize = ((int)(size*1.001))+13;
+    unsigned char *tmp = g_malloc0( csize );
+    int status = compress( tmp, &csize, p, size );
+    assert( status == Z_OK );
+    fwrite( &csize, sizeof(csize), 1, f );
+    fwrite( tmp, csize, 1, f );
+    g_free(tmp);
+}
+
+int fread_gzip( void *p, size_t sz, size_t count, FILE *f )
+{
+    uLongf size = sz*count;
+    uLongf csize;
+    unsigned char *tmp;
+
+    fread( &csize, sizeof(csize), 1, f );
+    assert( csize <= (size*2) );
+    tmp = g_malloc0( csize );
+    fread( tmp, csize, 1, f );
+    int status = uncompress( p, &size, tmp, csize );
+    g_free(tmp);
+    if( status == Z_OK ) {
+	return count;
+    } else {
+	fprintf( stderr, "Error reading compressed data\n" );
+	return 0;
+    }
 }
 
 void fwrite_dump( unsigned char *data, unsigned int length, FILE *f ) 
@@ -90,6 +127,129 @@ void fwrite_dump32v( unsigned int *data, unsigned int length, int wordsPerLine, 
     }
 }
 
+gboolean write_png_to_stream( FILE *f, frame_buffer_t buffer )
+{
+    int coltype, i;
+    png_bytep p;
+    png_structp png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+    if (!png_ptr) {
+	return FALSE;
+    }
+
+    png_infop info_ptr = png_create_info_struct(png_ptr);
+    if (!info_ptr) {
+	png_destroy_write_struct(&png_ptr, NULL);
+	return FALSE;
+    }
+    
+    if( setjmp(png_jmpbuf(png_ptr)) ) {
+	png_destroy_write_struct(&png_ptr, &info_ptr);
+	return FALSE;
+    }
+    png_init_io( png_ptr, f );
+    switch( buffer->colour_format ) {
+    case COLFMT_BGR888:
+	coltype = PNG_COLOR_TYPE_RGB;
+	break;
+    case COLFMT_BGRA8888:
+	coltype = PNG_COLOR_TYPE_RGB_ALPHA;
+	break;
+    case COLFMT_BGR0888:
+	coltype = PNG_COLOR_TYPE_RGB;
+	break;
+    default:
+	coltype = PNG_COLOR_TYPE_RGB;
+    }
+    png_set_IHDR(png_ptr, info_ptr, buffer->width, buffer->height,
+		 8, coltype, PNG_INTERLACE_NONE, 
+		 PNG_COMPRESSION_TYPE_DEFAULT, 
+		 PNG_FILTER_TYPE_DEFAULT );
+    png_write_info(png_ptr, info_ptr);
+    if( buffer->colour_format == COLFMT_BGR0888 ) {
+	png_set_filler(png_ptr, 0, PNG_FILLER_AFTER);
+    }
+    png_set_bgr(png_ptr);
+    if( buffer->inverted ) {
+	p = buffer->data + (buffer->height*buffer->rowstride) - buffer->rowstride;
+	for(i=0; i<buffer->height; i++ ) {
+	    png_write_row(png_ptr, p);
+	    p-=buffer->rowstride;
+	}
+    } else {
+	p = buffer->data;
+	for(i=0; i<buffer->height; i++ ) {
+	    png_write_row(png_ptr, p);
+	    p+=buffer->rowstride;
+	}
+    }
+    png_write_end(png_ptr, info_ptr);
+    png_destroy_write_struct(&png_ptr, &info_ptr);
+    return TRUE;
+}
+
+frame_buffer_t read_png_from_stream( FILE *f )
+{
+    png_bytep p;
+    int i;
+    png_structp png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, 
+						 NULL, NULL, NULL);
+    if (!png_ptr) {
+	return NULL;
+    }
+
+    png_infop info_ptr = png_create_info_struct(png_ptr);
+    if (!info_ptr) {
+	png_destroy_read_struct(&png_ptr, NULL, NULL);
+	return NULL;
+    }
+    
+    png_infop end_info = png_create_info_struct(png_ptr);
+    if (!end_info) {
+	png_destroy_read_struct(&png_ptr, &info_ptr, NULL );
+	return NULL;
+    }
+
+    if( setjmp(png_jmpbuf(png_ptr)) ) {
+	png_destroy_read_struct(&png_ptr, &info_ptr, &end_info);
+	return NULL;
+    }
+
+    png_init_io(png_ptr, f);
+    png_read_info(png_ptr, info_ptr);
+    
+    png_uint_32 width, height;
+    int bit_depth, color_type, interlace_type,
+	compression_type, filter_method;
+    png_get_IHDR(png_ptr, info_ptr, &width, &height,
+		 &bit_depth, &color_type, &interlace_type,
+		 &compression_type, &filter_method);
+    assert( interlace_type == PNG_INTERLACE_NONE );
+    int rowbytes = png_get_rowbytes(png_ptr, info_ptr);
+    int channels = png_get_channels(png_ptr, info_ptr);
+    frame_buffer_t buffer = g_malloc( sizeof(struct frame_buffer) + rowbytes*height );
+    buffer->data = (char *)(buffer+1);
+    buffer->width = width;
+    buffer->height = height;
+    buffer->rowstride = rowbytes;
+    buffer->address = -1;
+    buffer->size = rowbytes*height;
+    buffer->inverted = FALSE;
+    if( channels == 4 ) {
+	buffer->colour_format = COLFMT_BGRA8888;
+    } else if( channels == 3 ) {
+	buffer->colour_format = COLFMT_RGB888;
+    }
+    
+    p = buffer->data;
+    for( i=0; i<height; i++ ) {
+	png_read_row(png_ptr, p, NULL );
+	p += rowbytes;
+    }
+
+    png_read_end(png_ptr, end_info);
+    png_destroy_read_struct(&png_ptr, &info_ptr, &end_info);
+    return buffer;
+}
 
 void log_message( void *ptr, int level, const gchar *source, const char *msg, ... )
 {

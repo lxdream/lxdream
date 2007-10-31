@@ -1,5 +1,5 @@
 /**
- * $Id: gtkui.c,v 1.8 2007-10-28 08:29:29 nkeynes Exp $
+ * $Id: gtkui.c,v 1.9 2007-10-31 09:10:23 nkeynes Exp $
  *
  * Core GTK-based user interface
  *
@@ -20,6 +20,7 @@
 #include <time.h>
 #include "dream.h"
 #include "dreamcast.h"
+#include "display.h"
 #include "gdrom/gdrom.h"
 #include "gui/gtkui.h"
 
@@ -134,7 +135,7 @@ static const char *ui_description =
     " </toolbar>"
     " <menubar name='DebugMenu'>"
     "  <menu action='FileMenu'>"
-    "   <menuitem action='GdromMount'/>"
+    "   <menuitem action='GdromSettings'/>"
     "   <separator/>"
     "   <menuitem action='Reset'/>"
     "   <separator/>"
@@ -263,6 +264,9 @@ void gtk_gui_show_debugger()
 	GtkAccelGroup *accel_group = gtk_ui_manager_get_accel_group (global_ui_manager);
 	GtkWidget *menubar = gtk_ui_manager_get_widget(global_ui_manager, "/DebugMenu");
 	GtkWidget *toolbar = gtk_ui_manager_get_widget(global_ui_manager, "/DebugToolbar");
+	GtkWidget *gdrommenuitem = gtk_ui_manager_get_widget(global_ui_manager, "/DebugMenu/FileMenu/GdromSettings");
+	GtkWidget *gdrommenu = gdrom_menu_new();
+	gtk_menu_item_set_submenu( GTK_MENU_ITEM(gdrommenuitem), gdrommenu );
 	debug_win = debug_window_new( APP_NAME " " APP_VERSION " :: Debugger", menubar, toolbar, accel_group  );
     }
 }
@@ -422,4 +426,24 @@ gint gtk_gui_run_property_dialog( const gchar *title, GtkWidget *panel, gtk_dial
 void gtk_gui_enable_action( const gchar *action, gboolean enable )
 {
     gtk_action_set_sensitive( gtk_action_group_get_action( global_action_group, action), enable);
+}
+
+static void delete_frame_buffer( guchar *pixels, gpointer buffer )
+{
+    if( buffer != NULL ) {
+	g_free(buffer);
+    }
+}
+
+GdkPixbuf *gdk_pixbuf_new_from_frame_buffer( frame_buffer_t buffer )
+{
+    return gdk_pixbuf_new_from_data( buffer->data, 
+				     GDK_COLORSPACE_RGB,
+				     (buffer->colour_format == COLFMT_BGRA8888),
+				     8,
+				     buffer->width,
+				     buffer->height,
+				     buffer->rowstride,
+				     delete_frame_buffer,
+				     buffer );
 }

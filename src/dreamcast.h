@@ -1,5 +1,5 @@
 /**
- * $Id: dreamcast.h,v 1.20 2007-10-27 05:48:22 nkeynes Exp $
+ * $Id: dreamcast.h,v 1.21 2007-10-31 09:10:23 nkeynes Exp $
  *
  * Public interface for dreamcast.c -
  * Central switchboard for the system. This pulls all the individual modules
@@ -23,16 +23,13 @@
 #define dreamcast_H 1
 
 #include <stdio.h>
-#include <glib/gtypes.h>
+#include "lxdream.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 #define DEFAULT_TIMESLICE_LENGTH 1000000 /* nanoseconds */
-
-#define MB *1024*1024
-#define KB *1024
 
 #define XLAT_NEW_CACHE_SIZE 32 MB
 #define XLAT_TEMP_CACHE_SIZE 2 MB
@@ -54,6 +51,15 @@ gboolean dreamcast_is_running(void);
 
 int dreamcast_save_state( const gchar *filename );
 int dreamcast_load_state( const gchar *filename );
+
+/**
+ * Load the front-buffer image from the specified file.
+ * If the file is not a valid save state, returns NULL. Otherwise,
+ * returns a newly allocated frame_buffer that should be freed
+ * by the caller. (The data buffer is contained within the
+ * allocation and does not need to be freed separately)
+ */
+frame_buffer_t dreamcast_load_preview( const gchar *filename );
 
 #define SCENE_SAVE_MAGIC "%!-lxDream!Scene"
 #define SCENE_SAVE_VERSION 0x00010000

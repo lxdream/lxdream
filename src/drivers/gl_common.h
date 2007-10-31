@@ -1,5 +1,5 @@
 /**
- * $Id: gl_common.h,v 1.4 2007-10-13 04:01:02 nkeynes Exp $
+ * $Id: gl_common.h,v 1.5 2007-10-31 09:10:23 nkeynes Exp $
  *
  * Parent for all X11 display drivers.
  *
@@ -31,9 +31,9 @@ gboolean isGLExtensionSupported( const char *extension );
 gboolean hasRequiredGLExtensions();
 
 /**
- * Generic GL routine to draw the given frame buffer in the display view.
+ * Generic GL routine to draw the given frame buffer into a render buffer
  */
-gboolean gl_display_frame_buffer( frame_buffer_t frame );
+gboolean gl_load_frame_buffer( frame_buffer_t frame, render_buffer_t buffer );
 
 /**
  * Generic GL routine to blank the display view with the specified colour.
@@ -41,14 +41,9 @@ gboolean gl_display_frame_buffer( frame_buffer_t frame );
 gboolean gl_display_blank( uint32_t colour );
 
 /**
- * Copy the frame buffer contents to the specified texture id
- */
-void gl_frame_buffer_to_tex_rectangle( frame_buffer_t frame, GLuint texid );
-
-/**
  * Write a rectangular texture (GL_TEXTURE_RECTANGLE_ARB) to the display frame
  */
-void gl_display_tex_rectangle( GLuint texid, uint32_t texwidth, uint32_t texheight, gboolean invert );
+void gl_display_render_buffer( render_buffer_t buffer );
 
 /**
  * Redisplay the last frame.
@@ -60,13 +55,15 @@ void gl_redisplay_last();
  * has already set the appropriate glReadBuffer(); in other words, unless
  * there's only one buffer this needs to be wrapped.
  */
-gboolean gl_read_render_buffer( render_buffer_t buffer, unsigned char *target );
+gboolean gl_read_render_buffer( unsigned char *target, render_buffer_t buffer, 
+				int rowstride, int colour_format );
 
 
 /****** FBO handling (gl_fbo.c) ******/
 gboolean gl_fbo_is_supported();
 void gl_fbo_shutdown();
 void gl_fbo_init( display_driver_t driver );
+void gl_fbo_detach();
 
 /****** Shader handling (gl_sl.c) *****/
 gboolean glsl_is_supported(void);
