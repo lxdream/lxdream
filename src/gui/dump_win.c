@@ -1,5 +1,5 @@
 /**
- * $Id: dump_win.c,v 1.6 2007-10-21 11:38:02 nkeynes Exp $
+ * $Id: dump_win.c,v 1.7 2007-10-31 12:23:19 nkeynes Exp $
  *
  * Implements the memory dump window.
  *
@@ -16,9 +16,10 @@
  * GNU General Public License for more details.
  */
 
-#include <gnome.h>
 #include <ctype.h>
 #include <assert.h>
+#include <string.h>
+#include <glib/gi18n.h>
 #include "mem.h"
 #include "gui/gtkui.h"
 
