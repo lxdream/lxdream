@@ -1,5 +1,5 @@
 /**
- * $Id: gdrom_menu.c,v 1.3 2007-10-28 08:29:29 nkeynes Exp $
+ * $Id: gdrom_menu.c,v 1.4 2007-10-31 11:22:10 nkeynes Exp $
  *
  * Creates and manages the GD-Rom attachment menu.
  *
@@ -68,7 +68,7 @@ gint gdrom_menu_add_recent_item( const gchar *name )
     }
 
     GList *ptr;
-    int size;
+    int size = 0;
     for( ptr = gdrom_recent_list; ptr != NULL; ptr = g_list_next(ptr) ) {
 	size += strlen( (gchar *)ptr->data ) + 1;
     }
