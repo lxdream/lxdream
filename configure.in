@@ -12,10 +12,12 @@ AC_HEADER_STDC
 
 PKG_CHECK_MODULES(PACKAGE, 
    [ libgnomeui-2.0 dnl
-     esound ])
+     esound dnl
+     libpng ])
 AC_SUBST(PACKAGE_CFLAGS)
 AC_SUBST(PACKAGE_LIBS)
 
+AC_CHECK_LIB(z, ucompress)
 AC_CHECK_LIB(GL, glXQueryVersion)
 
 GETTEXT_PACKAGE=dream
