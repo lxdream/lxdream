@@ -1,15 +1,24 @@
-Release notes for Milestone 3
+Release notes for lxdream 0.8
 ===================================================
 
-Please note that this is a development release - many 
-things are not yet implemented, it doesn't run at 100% speed, and it's not
-particularly user-friendly. If you're looking for something to just
-play DC games, you'll probably want to wait for the next version.
+
+Please note that this is an alpha release - many things are not yet 
+implemented, it has many bugs (especially wrt rendering), and it's
+not likely to run at 100% speed.
 
 Having said all that, some games are known to run to at least 
 some degree (aka everything we've tried), and most homebrew works 
 perfectly or nearly so - feel free to experiment and let us 
 know how it goes.
+
+Changes since Milestone 3
+-------------------------
+* Speed improvements (translation core now runs at roughly double the speed
+  of M3)
+* GUI Overhaul - it's actually somewhat usable now. Also removed the gnome
+  dependency (now just needs GTK 2.0)
+* Sound fixes (aka, some sound actually works now)
+* A few minor bugfixes and tweaks.
 
 Changes since Milestone 2
 -------------------------
@@ -30,17 +39,14 @@ Known issues
 The following are known bugs (as opposed to missing features) that will be
 fixed in the next release, but are too large to be fixed for this version:
 
-* Some games experience geometry corruption of varying levels. This is
-believed to be caused by an SH4 core bug.
-
 * Polygons that are partially clipped by the view frustum can be distorted
 quite badly
+* Limited depth precision causes tearing of view on some scenes.
 
 System requirements
 -------------------
 GTK 2.0+
-Gnome 2.0+
-ESounD 2.36+  (if you want interrupted stuttery sound[0])
+ESounD 2.36+
 OpenGL drivers with EXT_framebuffer_object support (any recent drivers should be
 fine)
 GCC, Make, etc.
