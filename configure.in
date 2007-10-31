@@ -11,7 +11,7 @@ AM_PROG_CC_STDC
 AC_HEADER_STDC
 
 PKG_CHECK_MODULES(PACKAGE, 
-   [ libgnomeui-2.0 dnl
+   [ gtk+-2.0 dnl
      esound dnl
      libpng ])
 AC_SUBST(PACKAGE_CFLAGS)
