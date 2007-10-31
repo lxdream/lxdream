@@ -1,5 +1,5 @@
 /**
- * $Id: display.c,v 1.11 2007-10-21 05:15:56 nkeynes Exp $
+ * $Id: display.c,v 1.12 2007-10-31 09:10:23 nkeynes Exp $
  *
  * Generic support for keyboard and other input sources. The active display
  * driver is expected to deliver events here, where they're translated and
@@ -41,6 +41,10 @@ struct colour_format colour_formats[] = {
     { GL_UNSIGNED_BYTE, GL_BGRA, GL_RGBA8, 4 }, /* YUV decoded to ARGB8888 */
     { GL_UNSIGNED_BYTE, GL_BGR, GL_RGB, 3 },
     { GL_UNSIGNED_BYTE, GL_BGRA, GL_RGBA8, 4 },
+    { GL_UNSIGNED_BYTE, GL_BGRA, GL_RGBA8, 4 }, /* Index4 decoded */
+    { GL_UNSIGNED_BYTE, GL_BGRA, GL_RGBA8, 4 }, /* Index8 decoded */
+    { GL_UNSIGNED_BYTE, GL_BGRA, GL_RGBA8, 4 },
+    { GL_UNSIGNED_BYTE, GL_RGB, GL_RGB, 3 },
     
 };
 

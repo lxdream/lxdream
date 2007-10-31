@@ -1,5 +1,5 @@
 /**
- * $Id: mem.h,v 1.14 2007-10-27 05:47:55 nkeynes Exp $
+ * $Id: mem.h,v 1.15 2007-10-31 09:10:23 nkeynes Exp $
  *
  * mem is responsible for creating and maintaining the overall system memory
  * map, as visible from the SH4 processor. (Note the ARM has a different map)
@@ -21,7 +21,7 @@
 #define dream_mem_H
 
 #include <stdint.h>
-#include "dream.h"
+#include "lxdream.h"
 
 #ifdef __cplusplus
 extern "C" {

@@ -1,5 +1,5 @@
 /**
- * $Id: gl_common.c,v 1.5 2007-10-14 09:30:16 nkeynes Exp $
+ * $Id: gl_common.c,v 1.6 2007-10-31 09:10:23 nkeynes Exp $
  *
  * Common GL code that doesn't depend on a specific implementation
  *
@@ -23,13 +23,7 @@
 #include "drivers/gl_common.h"
 
 extern uint32_t video_width, video_height;
-static GLuint frame_last_texid = 0, fbuf_id = 0;
-static uint32_t frame_width = 0;
-static uint32_t frame_height = 0;
 static uint32_t frame_colour = 0;
-static gboolean frame_inverted = FALSE;
-
-
 
 char *required_extensions[] = { "GL_EXT_framebuffer_object", NULL };
 
@@ -80,28 +74,15 @@ gboolean hasRequiredGLExtensions( )
     return isOK;
 }
 
-void gl_frame_buffer_to_tex_rectangle( frame_buffer_t frame, GLuint texid )
-{
-    GLenum type = colour_formats[frame->colour_format].type;
-    GLenum format = colour_formats[frame->colour_format].format;
-    int bpp = colour_formats[frame->colour_format].bpp;
-    int rowstride = (frame->rowstride / bpp) - frame->width;
-    
-    glPixelStorei( GL_UNPACK_ROW_LENGTH, rowstride );
-    glBindTexture( GL_TEXTURE_RECTANGLE_ARB, texid );
-    glTexImage2D( GL_TEXTURE_RECTANGLE_ARB, 0, GL_RGB,
-		  frame->width, frame->height, 0, format, type, frame->data );
-}
-
-void gl_display_tex_rectangle( GLuint texid, uint32_t tex_width, uint32_t tex_height, gboolean invert )
+void gl_display_render_buffer( render_buffer_t buffer )
 {
     float top, bottom;
-    if( invert ) {
-	top = ((float)tex_height) - 0.5;
+    if( buffer->inverted ) {
+	top = ((float)buffer->height) - 0.5;
 	bottom = 0.5;
     } else {
 	top = 0.5;
-	bottom = ((float)tex_height) - 0.5;
+	bottom = ((float)buffer->height) - 0.5;
     }
 
     /* Reset display parameters */
@@ -155,7 +136,7 @@ void gl_display_tex_rectangle( GLuint texid, uint32_t tex_width, uint32_t tex_he
 
     /* Render the textured rectangle */
     glEnable( GL_TEXTURE_RECTANGLE_ARB );
-    glBindTexture( GL_TEXTURE_RECTANGLE_ARB, texid );
+    glBindTexture( GL_TEXTURE_RECTANGLE_ARB, buffer->buf_id );
     glTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE );
     glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -164,29 +145,28 @@ void gl_display_tex_rectangle( GLuint texid, uint32_t tex_width, uint32_t tex_he
     glBegin( GL_QUADS );
     glTexCoord2f( 0.5, top );
     glVertex2f( x1, y1 );
-    glTexCoord2f( ((float)tex_width)-0.5, top );
+    glTexCoord2f( ((float)buffer->width)-0.5, top );
     glVertex2f( x2, y1 );
-    glTexCoord2f( ((float)tex_width)-0.5, bottom );
+    glTexCoord2f( ((float)buffer->width)-0.5, bottom );
     glVertex2f( x2, y2 );
     glTexCoord2f( 0.5, bottom );
     glVertex2f( x1, y2 );
     glEnd();
     glDisable( GL_TEXTURE_RECTANGLE_ARB );
     glFlush();
-    frame_last_texid = texid;
-    frame_width = tex_width;
-    frame_height = tex_height;
-    frame_inverted = invert;
 }
 
-gboolean gl_display_frame_buffer( frame_buffer_t frame )
+gboolean gl_load_frame_buffer( frame_buffer_t frame, render_buffer_t render )
 {
-    if( fbuf_id == 0 ) {
-	glGenTextures( 1, &fbuf_id );
-    }
-    gl_frame_buffer_to_tex_rectangle( frame, fbuf_id );
-    gl_display_tex_rectangle( fbuf_id, frame->width, frame->height, FALSE );
-    return TRUE;
+    GLenum type = colour_formats[frame->colour_format].type;
+    GLenum format = colour_formats[frame->colour_format].format;
+    int bpp = colour_formats[frame->colour_format].bpp;
+    int rowstride = (frame->rowstride / bpp) - frame->width;
+    
+    glPixelStorei( GL_UNPACK_ROW_LENGTH, rowstride );
+    glBindTexture( GL_TEXTURE_RECTANGLE_ARB, render->buf_id );
+    glTexSubImage2D( GL_TEXTURE_RECTANGLE_ARB, 0, 0,0,
+		  frame->width, frame->height, format, type, frame->data );
 }
 
 gboolean gl_display_blank( uint32_t colour )
@@ -201,16 +181,16 @@ gboolean gl_display_blank( uint32_t colour )
     glRecti(0,0, video_width, video_height );
     glFlush();
     frame_colour = colour;
-    frame_last_texid = 0;
     return TRUE;
 }
 
 void gl_redisplay_last()
 {
-    if( frame_last_texid == 0 ) {
+    render_buffer_t buffer = pvr2_get_front_buffer();
+    if( buffer == NULL ) {
 	gl_display_blank( frame_colour );
     } else {
-	gl_display_tex_rectangle( frame_last_texid, frame_width, frame_height, frame_inverted );
+	gl_display_render_buffer( buffer );
     }
 }
 
@@ -219,17 +199,16 @@ void gl_redisplay_last()
  * has already set the appropriate glReadBuffer(); in other words, unless
  * there's only one buffer this needs to be wrapped.
  */
-gboolean gl_read_render_buffer( render_buffer_t buffer, unsigned char *target ) 
+gboolean gl_read_render_buffer( unsigned char *target, render_buffer_t buffer, 
+				int rowstride, int colour_format ) 
 {
-    if( buffer->address == -1 )
-	return FALSE;
     glFinish();
-    GLenum type = colour_formats[buffer->colour_format].type;
-    GLenum format = colour_formats[buffer->colour_format].format;
-    // int line_size = buffer->width * colour_formats[buffer->colour_format].bpp;
+    GLenum type = colour_formats[colour_format].type;
+    GLenum format = colour_formats[colour_format].format;
+    // int line_size = buffer->width * colour_formats[colour_format].bpp;
     // int size = line_size * buffer->height;
-    // int rowstride = (buffer->rowstride / colour_formats[buffer->colour_format].bpp) - buffer->width;
-    // glPixelStorei( GL_PACK_ROW_LENGTH, rowstride );
+    int glrowstride = (rowstride / colour_formats[colour_format].bpp) - buffer->width;
+    glPixelStorei( GL_PACK_ROW_LENGTH, glrowstride );
     
     glReadPixels( 0, 0, buffer->width, buffer->height, format, type, target );
     return TRUE;

@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.c,v 1.47 2007-10-13 03:59:32 nkeynes Exp $
+ * $Id: pvr2.c,v 1.48 2007-10-31 09:10:23 nkeynes Exp $
  *
  * PVR2 (Video) Core module implementation and MMIO registers.
  *
@@ -17,6 +17,7 @@
  */
 #define MODULE pvr2_module
 
+#include <assert.h>
 #include "dream.h"
 #include "eventq.h"
 #include "display.h"
@@ -44,11 +45,12 @@ static void pvr2_update_raster_posn( uint32_t nanosecs );
 static void pvr2_schedule_scanline_event( int eventid, int line, int minimum_lines, int line_time_ns );
 static render_buffer_t pvr2_get_render_buffer( frame_buffer_t frame );
 static render_buffer_t pvr2_next_render_buffer( );
+static render_buffer_t pvr2_frame_buffer_to_render_buffer( frame_buffer_t frame );
 uint32_t pvr2_get_sync_status();
 
 void pvr2_display_frame( void );
 
-static int output_colour_formats[] = { COLFMT_ARGB1555, COLFMT_RGB565, COLFMT_RGB888, COLFMT_ARGB8888 };
+static int output_colour_formats[] = { COLFMT_BGRA1555, COLFMT_RGB565, COLFMT_BGR888, COLFMT_BGRA8888 };
 
 struct dreamcast_module pvr2_module = { "PVR2", pvr2_init, pvr2_reset, NULL, 
 					pvr2_run_slice, NULL,
@@ -142,6 +144,7 @@ static void pvr2_init( void )
 
 static void pvr2_reset( void )
 {
+    int i;
     pvr2_state.line_count = 0;
     pvr2_state.line_remainder = 0;
     pvr2_state.cycles_run = 0;
@@ -157,10 +160,113 @@ static void pvr2_reset( void )
     
     pvr2_ta_init();
     texcache_flush();
+    if( display_driver ) {
+	display_driver->display_blank(0);
+	for( i=0; i<render_buffer_count; i++ ) {
+	    display_driver->destroy_render_buffer(render_buffers[i]);
+	    render_buffers[i] = NULL;
+	}
+	render_buffer_count = 0;
+    }
 }
+
+void pvr2_save_render_buffer( FILE *f, render_buffer_t buffer )
+{
+    struct frame_buffer fbuf;
+
+    fbuf.width = buffer->width;
+    fbuf.height = buffer->height;
+    fbuf.rowstride = fbuf.width*3;
+    fbuf.colour_format = COLFMT_BGR888;
+    fbuf.inverted = buffer->inverted;
+    fbuf.data = g_malloc0( buffer->width * buffer->height * 3 );
+    
+    display_driver->read_render_buffer( fbuf.data, buffer, fbuf.rowstride, COLFMT_BGR888 );
+    write_png_to_stream( f, &fbuf );
+    g_free( fbuf.data );
+
+    fwrite( &buffer->rowstride, sizeof(buffer->rowstride), 1, f );
+    fwrite( &buffer->colour_format, sizeof(buffer->colour_format), 1, f );
+    fwrite( &buffer->address, sizeof(buffer->address), 1, f );
+    fwrite( &buffer->scale, sizeof(buffer->scale), 1, f );
+    fwrite( &buffer->flushed, sizeof(buffer->flushed), 1, f );
+    
+}
+
+render_buffer_t pvr2_load_render_buffer( FILE *f )
+{
+    frame_buffer_t frame = read_png_from_stream( f );
+    if( frame == NULL ) {
+	return NULL;
+    }
+
+    render_buffer_t buffer = pvr2_frame_buffer_to_render_buffer(frame);
+    assert( buffer != NULL );
+    fread( &buffer->rowstride, sizeof(buffer->rowstride), 1, f );
+    fread( &buffer->colour_format, sizeof(buffer->colour_format), 1, f );
+    fread( &buffer->address, sizeof(buffer->address), 1, f );
+    fread( &buffer->scale, sizeof(buffer->scale), 1, f );
+    fread( &buffer->flushed, sizeof(buffer->flushed), 1, f );
+    return buffer;
+}
+
+
+
+
+void pvr2_save_render_buffers( FILE *f )
+{
+    int i;
+    fwrite( &render_buffer_count, sizeof(render_buffer_count), 1, f );
+    if( displayed_render_buffer != NULL ) {
+	i = 1;
+	fwrite( &i, sizeof(i), 1, f );
+	pvr2_save_render_buffer( f, displayed_render_buffer );
+    } else {
+	i = 0;
+	fwrite( &i, sizeof(i), 1, f );
+    }
+
+    for( i=0; i<render_buffer_count; i++ ) {
+	if( render_buffers[i] != displayed_render_buffer && render_buffers[i] != NULL ) {
+	    pvr2_save_render_buffer( f, render_buffers[i] );
+	}
+    }
+}
+
+gboolean pvr2_load_render_buffers( FILE *f )
+{
+    uint32_t count;
+    int i, has_frontbuffer;
+
+    fread( &count, sizeof(count), 1, f );
+    if( count >= MAX_RENDER_BUFFERS ) {
+	return FALSE;
+    }
+    fread( &has_frontbuffer, sizeof(has_frontbuffer), 1, f );
+    for( i=0; i<render_buffer_count; i++ ) {
+	display_driver->destroy_render_buffer(render_buffers[i]);
+	render_buffers[i] = NULL;
+    }
+    render_buffer_count = 0;
+
+    if( has_frontbuffer ) {
+	displayed_render_buffer = pvr2_load_render_buffer(f);
+	display_driver->display_render_buffer( displayed_render_buffer );
+	count--;
+    }
+
+    for( i=0; i<count; i++ ) {
+	if( pvr2_load_render_buffer( f ) == NULL ) {
+	    return FALSE;
+	}
+    }
+    return TRUE;
+}
+    
 
 static void pvr2_save_state( FILE *f )
 {
+    pvr2_save_render_buffers( f );
     fwrite( &pvr2_state, sizeof(pvr2_state), 1, f );
     pvr2_ta_save_state( f );
     pvr2_yuv_save_state( f );
@@ -168,6 +274,8 @@ static void pvr2_save_state( FILE *f )
 
 static int pvr2_load_state( FILE *f )
 {
+    if( !pvr2_load_render_buffers(f) )
+	return 1;
     if( fread( &pvr2_state, sizeof(pvr2_state), 1, f ) != 1 )
 	return 1;
     if( pvr2_ta_load_state(f) ) {
@@ -218,6 +326,11 @@ static uint32_t pvr2_run_slice( uint32_t nanosecs )
 int pvr2_get_frame_count() 
 {
     return pvr2_state.frame_count;
+}
+
+render_buffer_t pvr2_get_front_buffer()
+{
+    return displayed_render_buffer;
 }
 
 gboolean pvr2_save_next_scene( const gchar *filename )
@@ -291,14 +404,16 @@ void pvr2_display_frame( void )
 	    fbuf.address = MMIO_READ( PVR2, DISP_ADDR1 );
 	}
 	fbuf.address = (fbuf.address & 0x00FFFFFF) + PVR2_RAM_BASE;
+	fbuf.inverted = FALSE;
+	fbuf.data = video_base + (fbuf.address&0x00FFFFFF);
 
 	render_buffer_t rbuf = pvr2_get_render_buffer( &fbuf );
+	if( rbuf == NULL ) {
+	    rbuf = pvr2_frame_buffer_to_render_buffer( &fbuf );
+	}
 	displayed_render_buffer = rbuf;
 	if( rbuf != NULL ) {
 	    display_driver->display_render_buffer( rbuf );
-	} else {
-	    fbuf.data = video_base + (fbuf.address&0x00FFFFFF);
-	    display_driver->display_frame_buffer( &fbuf );
 	}
     }
 }
@@ -716,7 +831,8 @@ render_buffer_t pvr2_get_render_buffer( frame_buffer_t frame )
 }
 
 /**
- * Determine the next render buffer to write into. The order of preference is:
+ * Allocate a render buffer with the requested parameters.
+ * The order of preference is:
  *   1. An existing buffer with the same address. (not flushed unless the new
  * size is smaller than the old one).
  *   2. An existing buffer with the same size chosen by LRU order. Old buffer
@@ -726,23 +842,10 @@ render_buffer_t pvr2_get_render_buffer( frame_buffer_t frame )
  * Note: The current display field(s) will never be overwritten except as a last
  * resort.
  */
-render_buffer_t pvr2_next_render_buffer()
+render_buffer_t pvr2_alloc_render_buffer( sh4addr_t render_addr, int width, int height )
 {
+    int i;
     render_buffer_t result = NULL;
-    uint32_t render_addr = MMIO_READ( PVR2, RENDER_ADDR1 );
-    uint32_t render_mode = MMIO_READ( PVR2, RENDER_MODE );
-    uint32_t render_scale = MMIO_READ( PVR2, RENDER_SCALER );
-    uint32_t render_stride = MMIO_READ( PVR2, RENDER_SIZE ) << 3;
-
-    if( render_addr & 0x01000000 ) { /* vram64 */
-	render_addr = (render_addr & 0x00FFFFFF) + PVR2_RAM_BASE_INT;
-    } else { /* vram32 */
-	render_addr = (render_addr & 0x00FFFFFF) + PVR2_RAM_BASE;
-    }
-
-    int width, height, i;
-    int colour_format = pvr2_render_colour_format[render_mode&0x07];
-    pvr2_render_getsize( &width, &height );
 
     /* Check existing buffers for an available buffer */
     for( i=0; i<render_buffer_count; i++ ) {
@@ -752,6 +855,7 @@ render_buffer_t pvr2_next_render_buffer()
 		if( displayed_render_buffer == render_buffers[i] ) {
 		    /* Same address, but we can't use it because the
 		     * display has it. Mark it as unaddressed for later.
+		     */
 		    render_buffers[i]->address = -1;
 		} else {
 		    /* perfect */
@@ -786,7 +890,9 @@ render_buffer_t pvr2_next_render_buffer()
 		    render_buffers[i] != displayed_render_buffer ) {
 		    /* Never throw away the current "front buffer(s)" */
 		    result = render_buffers[i];
-		    pvr2_render_buffer_copy_to_sh4( result );
+		    if( !result->flushed ) {
+			pvr2_render_buffer_copy_to_sh4( result );
+		    }
 		    if( result->width != width || result->height != height ) {
 			display_driver->destroy_render_buffer(render_buffers[i]);
 			result = display_driver->create_render_buffer(width,height);
@@ -799,22 +905,66 @@ render_buffer_t pvr2_next_render_buffer()
 	    result = display_driver->create_render_buffer(width,height);
 	    if( result != NULL ) { 
 		render_buffers[render_buffer_count++] = result;
-	    } else {
-		//		ERROR( "Failed to obtain a render buffer!" );
-		return NULL;
 	    }
 	}
     }
 
-    /* Setup the buffer */
-    result->rowstride = render_stride;
-    result->colour_format = colour_format;
-    result->scale = render_scale;
-    result->size = width * height * colour_formats[colour_format].bpp;
-    result->address = render_addr;
-    result->flushed = FALSE;
+    if( result != NULL ) {
+	result->address = render_addr;
+    }
     return result;
 }
+
+/**
+ * Allocate a render buffer based on the current rendering settings
+ */
+render_buffer_t pvr2_next_render_buffer()
+{
+    render_buffer_t result = NULL;
+    uint32_t render_addr = MMIO_READ( PVR2, RENDER_ADDR1 );
+    uint32_t render_mode = MMIO_READ( PVR2, RENDER_MODE );
+    uint32_t render_scale = MMIO_READ( PVR2, RENDER_SCALER );
+    uint32_t render_stride = MMIO_READ( PVR2, RENDER_SIZE ) << 3;
+
+    if( render_addr & 0x01000000 ) { /* vram64 */
+	render_addr = (render_addr & 0x00FFFFFF) + PVR2_RAM_BASE_INT;
+    } else { /* vram32 */
+	render_addr = (render_addr & 0x00FFFFFF) + PVR2_RAM_BASE;
+    }
+
+    int width, height;
+    int colour_format = pvr2_render_colour_format[render_mode&0x07];
+    pvr2_render_getsize( &width, &height );
+
+    result = pvr2_alloc_render_buffer( render_addr, width, height );
+    /* Setup the buffer */
+    if( result != NULL ) {
+	result->rowstride = render_stride;
+	result->colour_format = colour_format;
+	result->scale = render_scale;
+	result->size = width * height * colour_formats[colour_format].bpp;
+	result->flushed = FALSE;
+	result->inverted = TRUE; // render buffers are inverted normally
+    }
+    return result;
+}
+
+static render_buffer_t pvr2_frame_buffer_to_render_buffer( frame_buffer_t frame )
+{
+    render_buffer_t result = pvr2_alloc_render_buffer( frame->address, frame->width, frame->height );
+    if( result != NULL ) {
+	int bpp = colour_formats[frame->colour_format].bpp;
+	result->rowstride = frame->rowstride;
+	result->colour_format = frame->colour_format;
+	result->scale = 0x400;
+	result->size = frame->width * frame->height * bpp;
+	result->flushed = TRUE;
+	result->inverted = frame->inverted;
+	display_driver->load_frame_buffer( frame, result );
+    }
+    return result;
+}
+    
 
 /**
  * Invalidate any caching on the supplied address. Specifically, if it falls

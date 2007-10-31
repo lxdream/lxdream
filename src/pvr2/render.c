@@ -1,5 +1,5 @@
 /**
- * $Id: render.c,v 1.25 2007-10-08 11:52:13 nkeynes Exp $
+ * $Id: render.c,v 1.26 2007-10-31 09:10:23 nkeynes Exp $
  *
  * PVR2 Renderer support. This part is primarily
  *
@@ -106,6 +106,8 @@ static void pvr2_render_prepare_context( render_buffer_t buffer,
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     glClearDepth(0);
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+    glEnableClientState( GL_COLOR_ARRAY );
+    glEnableClientState( GL_VERTEX_ARRAY );
 }
 
 /**

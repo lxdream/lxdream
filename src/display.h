@@ -1,5 +1,5 @@
 /**
- * $Id: display.h,v 1.10 2007-10-21 05:15:56 nkeynes Exp $
+ * $Id: display.h,v 1.11 2007-10-31 09:10:23 nkeynes Exp $
  *
  * The PC side of the video support (responsible for actually displaying / 
  * rendering frames)
@@ -23,25 +23,26 @@
 #include <stdint.h>
 #include <glib.h>
 #include <GL/gl.h>
-#include "dream.h"
+#include "lxdream.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /**
- * Supported colour formats. Note that ARGB4444 is only ever used for texture
+ * Supported colour formats. Note that BGRA4444 is only ever used for texture
  * rendering (it's not valid for display purposes).
  */
-#define COLFMT_ARGB1555  0
+#define COLFMT_BGRA1555  0
 #define COLFMT_RGB565    1
-#define COLFMT_ARGB4444  2
+#define COLFMT_BGRA4444  2
 #define COLFMT_YUV422    3 /* 8-bit YUV (texture source only) */
-#define COLFMT_RGB888    4 /* 24-bit RGB */
-#define COLFMT_ARGB8888  5
+#define COLFMT_BGR888    4 /* 24-bit BGR */
+#define COLFMT_BGRA8888  5
 #define COLFMT_INDEX4    6 /* 4 bit indexed colour (texture source only) */
 #define COLFMT_INDEX8    7 /* 8-bit indexed colour (texture source only) */
-#define COLFMT_RGB0888   8 /* 32-bit RGB */
+#define COLFMT_BGR0888   8 /* 32-bit BGR */
+#define COLFMT_RGB888    9 /* 24-bit RGB (ie GL native) */
 
 struct colour_format {
     GLint type, format, int_format;
@@ -54,31 +55,33 @@ extern int colour_format_bytes[];
 /**
  * Structure to hold pixel data held in GL buffers.
  */
-typedef struct render_buffer {
+struct render_buffer {
     uint32_t width;
     uint32_t height;
     uint32_t rowstride;
     int colour_format;
     sh4addr_t address; /* Address buffer was rendered to, or -1 for unrendered */
     uint32_t size; /* Size of buffer in bytes, must be width*height*bpp */
+    gboolean inverted;/* True if the buffer is upside down */
     int scale;
     unsigned int buf_id; /* driver-specific buffer id, if applicable */
     gboolean flushed; /* True if the buffer has been flushed to vram */
-} *render_buffer_t;
+};
 
 /**
  * Structure to hold pixel data stored in pvr2 vram, as opposed to data in
  * GL buffers.
  */
-typedef struct frame_buffer {
+struct frame_buffer {
     uint32_t width;
     uint32_t height;
     uint32_t rowstride;
     int colour_format;
     sh4addr_t address;
     uint32_t size; /* Size of buffer in bytes, must be width*height*bpp */
+    gboolean inverted;/* True if the buffer is upside down */
     char *data;
-} * frame_buffer_t;
+};
 
 /**
  * Core video driver - exports function to setup a GL context, as well as handle
@@ -125,9 +128,10 @@ typedef struct display_driver {
     gboolean (*set_render_target)( render_buffer_t buffer );
 
     /**
-     * Display a single frame using the supplied pixmap data.
+     * Load the supplied frame buffer into the given render buffer.
+     * Included here to allow driver-specific optimizations.
      */
-    gboolean (*display_frame_buffer)( frame_buffer_t buffer );
+    void (*load_frame_buffer)( frame_buffer_t frame, render_buffer_t render );
 
     /**
      * Display a single frame using a previously rendered GL buffer.
@@ -136,7 +140,7 @@ typedef struct display_driver {
 
     /**
      * Display a single blanked frame using a fixed colour for the
-     * entire frame (specified in RGB888 format). 
+     * entire frame (specified in BGR888 format). 
      */
     gboolean (*display_blank)( uint32_t rgb );
 
@@ -144,8 +148,14 @@ typedef struct display_driver {
      * Copy the image data from the GL buffer to the target memory buffer,
      * using the format etc from the buffer. This may force a glFinish()
      * but does not invalidate the buffer.
+     * @param target buffer to fill with image data, which must be large enough
+     *  to accomodate the image.
+     * @param buffer Render buffer to read from.
+     * @param rowstride rowstride of the target data
+     * @param format colour format to output the data in.
      */
-    gboolean (*read_render_buffer)( render_buffer_t buffer, unsigned char *target );
+    gboolean (*read_render_buffer)( unsigned char *target, render_buffer_t buffer,
+				    int rowstride, int format );
 
 } *display_driver_t;
 

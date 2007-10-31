@@ -1,5 +1,5 @@
 /**
- * $Id: mem.c,v 1.17 2007-10-27 05:47:55 nkeynes Exp $
+ * $Id: mem.c,v 1.18 2007-10-31 09:10:23 nkeynes Exp $
  * mem.c is responsible for creating and maintaining the overall system memory
  * map, as visible from the SH4 processor. 
  *
@@ -99,7 +99,7 @@ void mem_save( FILE *f )
 	fwrite( &mem_rgn[i].flags, sizeof(int), 1, f );
 	fwrite( &mem_rgn[i].size, sizeof(uint32_t), 1, f );
 	if( mem_rgn[i].flags != MEM_FLAG_ROM )
-	    fwrite( mem_rgn[i].mem, mem_rgn[i].size, 1, f );
+	    fwrite_gzip( mem_rgn[i].mem, mem_rgn[i].size, 1, f );
     }
 
     /* All MMIO regions */
@@ -109,7 +109,7 @@ void mem_save( FILE *f )
 	fwrite( &io_rgn[i]->base, sizeof( uint32_t ), 1, f );
 	len = 4096;
 	fwrite( &len, sizeof(len), 1, f );
-	fwrite( io_rgn[i]->mem, len, 1, f );
+	fwrite_gzip( io_rgn[i]->mem, len, 1, f );
     }
 }
 
@@ -138,7 +138,7 @@ int mem_load( FILE *f )
 	    return -1;
 	}
 	if( flags != MEM_FLAG_ROM )
-	    fread( mem_rgn[i].mem, size, 1, f );
+	    fread_gzip( mem_rgn[i].mem, size, 1, f );
     }
 
     /* All MMIO regions */
@@ -155,7 +155,7 @@ int mem_load( FILE *f )
 	    ERROR( "Bad MMIO region %d %s", i, tmp );
 	    return -1;
 	}
-	fread( io_rgn[i]->mem, size, 1, f );
+	fread_gzip( io_rgn[i]->mem, size, 1, f );
     }
     return 0;
 }

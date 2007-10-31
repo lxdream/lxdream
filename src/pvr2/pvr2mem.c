@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2mem.c,v 1.10 2007-10-08 11:52:13 nkeynes Exp $
+ * $Id: pvr2mem.c,v 1.11 2007-10-31 09:10:23 nkeynes Exp $
  *
  * PVR2 (Video) VRAM handling routines (mainly for the 64-bit region)
  *
@@ -521,13 +521,13 @@ void pvr2_render_buffer_copy_to_sh4( render_buffer_t buffer )
     if( (buffer->address & 0xFF000000) == 0x04000000 ) {
 	/* Interlaced buffer. Go the double copy... :( */
 	unsigned char target[buffer->size];
-	display_driver->read_render_buffer( buffer, target );
+	display_driver->read_render_buffer( target, buffer, buffer->rowstride, buffer->colour_format );
 	pvr2_vram64_write( buffer->address, target, buffer->size );
     } else {
 	/* Regular buffer */
         unsigned char target[buffer->size];
 	int line_size = buffer->width * colour_formats[buffer->colour_format].bpp;
-	display_driver->read_render_buffer( buffer, target );
+	display_driver->read_render_buffer( target, buffer, buffer->rowstride, buffer->colour_format );
         if( (buffer->scale & 0xFFFF) == 0x0800 ) {
             pvr2_vram_write_invert( buffer->address, target, buffer->size, line_size, line_size << 1 );
         } else {

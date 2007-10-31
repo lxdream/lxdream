@@ -1,5 +1,5 @@
 /**
- * $Id: video_gtk.c,v 1.16 2007-10-16 12:38:01 nkeynes Exp $
+ * $Id: video_gtk.c,v 1.17 2007-10-31 09:10:23 nkeynes Exp $
  *
  * The PC side of the video support (responsible for actually displaying / 
  * rendering frames)
@@ -79,6 +79,7 @@ uint16_t video_gtk_resolve_keysym( const gchar *keysym )
 
 gboolean video_gtk_expose_callback(GtkWidget *widget, GdkEventExpose *event, gpointer data )
 {
+    gl_fbo_detach();
     gl_redisplay_last();
     return TRUE;
 }
@@ -87,6 +88,7 @@ gboolean video_gtk_resize_callback(GtkWidget *widget, GdkEventConfigure *event, 
 {
     video_width = event->width;
     video_height = event->height;
+    gl_fbo_detach();
     gl_redisplay_last();
     return TRUE;
 }
