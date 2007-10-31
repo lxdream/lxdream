@@ -1,5 +1,5 @@
 /**
- * $Id: aica.c,v 1.25 2007-10-27 05:47:21 nkeynes Exp $
+ * $Id: aica.c,v 1.26 2007-10-31 09:05:13 nkeynes Exp $
  * 
  * This module implements the AICA's IO interfaces, as well
  * as providing the core AICA module to the system.
@@ -413,7 +413,9 @@ void aica_write_channel( int channelNo, uint32_t reg, uint32_t val )
 	channel->pan = val;
 	break;
     case 0x28: /* Volume */
-	channel->vol = aica_volume_table[val & 0xFF];
+	// This isn't remotely correct, but it will have to suffice until I have
+	// time to figure out what's actually going on here... 
+	channel->vol = aica_volume_table[max((val & 0xFF),((val>>8)&0xFF))];
 	break;
     default: /* ??? */
 	break;
