@@ -1,5 +1,5 @@
 /**
- * $Id: x86dasm.h,v 1.4 2007-10-08 11:48:10 nkeynes Exp $
+ * $Id: x86dasm.h,v 1.5 2007-10-31 09:07:25 nkeynes Exp $
  *
  * Wrapper around i386-dis to supply the same behaviour as the other
  * disassembly functions.
@@ -17,6 +17,7 @@
  * GNU General Public License for more details.
  */
 
+#include <stdio.h>
 #include "cpu.h"
 #include "mem.h"
 extern const struct cpu_desc_struct x86_cpu_desc;
