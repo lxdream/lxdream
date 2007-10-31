@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <string.h>
 #include "mem.h"
 
 struct watch_point {

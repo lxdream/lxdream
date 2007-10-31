@@ -1,5 +1,5 @@
 /**
- * $Id: gui.h,v 1.2 2007-10-16 12:36:29 nkeynes Exp $
+ * $Id: gui.h,v 1.3 2007-10-31 11:53:35 nkeynes Exp $
  *
  * Public GUI declarations (used from elsewhere in the system)
  *
@@ -54,5 +54,10 @@ typedef enum { IO_IDE, IO_NETWORK } io_activity_type;
  * @param active TRUE if the I/O device is becoming active, FALSE if inactive.
  */
 void gui_update_io_activity( io_activity_type activity, gboolean active );
+
+/**
+ * Open a gdrom filename via the menu. FIXME: Should be generic
+ */
+gboolean gdrom_menu_open_file( const char *filename );
 
 #endif /* __lxdream_gui_H */

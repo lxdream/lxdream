@@ -1,5 +1,5 @@
 /**
- * $Id: debug_win.c,v 1.26 2007-10-21 11:38:02 nkeynes Exp $
+ * $Id: debug_win.c,v 1.27 2007-10-31 11:53:35 nkeynes Exp $
  * This file is responsible for the main debugger gui frame.
  *
  * Copyright (c) 2005 Nathan Keynes.
@@ -32,6 +32,7 @@ const cpu_desc_t cpu_list[4] = { &sh4_cpu_desc, &arm_cpu_desc, &armt_cpu_desc, N
 
 void init_register_list( debug_window_t data );
 uint32_t row_to_address( debug_window_t data, int row );
+int address_to_row( debug_window_t data, uint32_t address );
 void set_disassembly_pc( debug_window_t data, unsigned int pc, gboolean select );
 void set_disassembly_region( debug_window_t data, unsigned int page );
 void set_disassembly_cpu( debug_window_t data, const gchar *cpu );
@@ -65,7 +66,6 @@ debug_window_t debug_window_new( const gchar *title, GtkWidget *menubar,
 {
     debug_window_t data = g_malloc0( sizeof(struct debug_window_info) + cpu_list[0]->regs_size );
         GtkWidget *vbox;
-    GtkWidget *frame;
 
     data->window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_window_set_default_size (GTK_WINDOW (data->window), 1000, 700);

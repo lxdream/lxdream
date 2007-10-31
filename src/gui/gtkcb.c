@@ -1,5 +1,5 @@
 /**
- * $Id: gtkcb.c,v 1.6 2007-10-31 09:10:23 nkeynes Exp $
+ * $Id: gtkcb.c,v 1.7 2007-10-31 11:53:35 nkeynes Exp $
  *
  * Action callbacks from the main window
  *
@@ -23,27 +23,6 @@
 #include "gui/gtkui.h"
 #include "pvr2/pvr2.h"
 
-typedef gboolean (*file_callback_t)( const gchar *filename );
-
-static gboolean dreamcast_paused = FALSE;
-
-void dreamcast_pause()
-{
-    if( dreamcast_is_running() ) {
-	dreamcast_paused = TRUE;
-	dreamcast_stop();
-    }
-}
-
-void dreamcast_unpause()
-{
-    if( dreamcast_paused ) {
-	dreamcast_paused = FALSE;
-	if( !dreamcast_is_running() ) {
-	    dreamcast_run();
-	}
-    }
-}
 
 
 static void add_file_pattern( GtkFileChooser *chooser, char *pattern, char *patname )
@@ -248,6 +227,8 @@ void save_scene_action_callback( GtkAction *action, gpointer user_data)
     const gchar *dir = lxdream_get_config_value(CONFIG_SAVE_PATH);
     save_file_dialog( "Save next scene...", pvr2_save_next_scene, "*.dsc", "lxdream scene file (*.dsc)", dir );
 }
+
+int debug_window_get_selected_row( debug_window_t data );
 
 void debug_step_action_callback( GtkAction *action, gpointer user_data)
 {

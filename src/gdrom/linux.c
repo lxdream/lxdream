@@ -1,5 +1,5 @@
 /**
- * $Id: linux.c,v 1.7 2007-10-28 07:23:46 nkeynes Exp $
+ * $Id: linux.c,v 1.8 2007-10-31 11:53:35 nkeynes Exp $
  *
  * Linux cd-rom device driver. 
  *
@@ -15,6 +15,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
+#include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -211,7 +212,7 @@ static gdrom_error_t linux_read_disc_toc( gdrom_image_t disc )
     return 0;
 }
 
-static gdrom_error_t linux_play_audio( gdrom_disc_t disc, uint32_t lba, uint32_t endlba )
+ gdrom_error_t linux_play_audio( gdrom_disc_t disc, uint32_t lba, uint32_t endlba )
 {
     int fd = fileno( ((gdrom_image_t)disc)->file );
     uint32_t real_sector = lba - CD_MSF_OFFSET;
@@ -230,7 +231,7 @@ static gdrom_error_t linux_play_audio( gdrom_disc_t disc, uint32_t lba, uint32_t
     return linux_send_command( fd, cmd, NULL, &buflen, CGC_DATA_NONE );
 }
 
-static gdrom_error_t linux_stop_audio( gdrom_disc_t disc )
+gdrom_error_t linux_stop_audio( gdrom_disc_t disc )
 {
     int fd = fileno( ((gdrom_image_t)disc)->file );
     uint32_t buflen = 0;

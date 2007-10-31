@@ -1,5 +1,5 @@
 /**
- * $Id: x86dasm.c,v 1.4 2007-10-08 11:48:10 nkeynes Exp $
+ * $Id: x86dasm.c,v 1.5 2007-10-31 11:53:35 nkeynes Exp $
  *
  * Wrapper around i386-dis to supply the same behaviour as the other
  * disassembly functions.
@@ -18,6 +18,7 @@
  */
 
 #include <stdarg.h>
+#include <string.h>
 #include "x86dasm.h"
 #include "bfd.h"
 #include "dis-asm.h"

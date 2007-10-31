@@ -1,5 +1,5 @@
 /**
- * $Id: dreamcast.c,v 1.27 2007-10-31 09:10:23 nkeynes Exp $
+ * $Id: dreamcast.c,v 1.28 2007-10-31 11:53:35 nkeynes Exp $
  * Central switchboard for the system. This pulls all the individual modules
  * together into some kind of coherent structure. This is also where you'd
  * add Naomi support, if I ever get a board to play with...
@@ -307,7 +307,6 @@ frame_buffer_t dreamcast_load_preview( const gchar *filename )
 int dreamcast_load_state( const gchar *filename )
 {
     int i,j;
-    uint32_t len;
     int module_count;
     int have_read[MAX_MODULES];
 

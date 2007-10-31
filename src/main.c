@@ -1,5 +1,5 @@
 /**
- * $Id: main.c,v 1.33 2007-10-28 08:29:29 nkeynes Exp $
+ * $Id: main.c,v 1.34 2007-10-31 11:53:35 nkeynes Exp $
  *
  * Main program, initializes dreamcast and gui, then passes control off to
  * the gtk main loop (currently). 
@@ -40,7 +40,7 @@ char *option_list = "a:m:s:A:V:puhbd:c:t:xD";
 struct option longopts[1] = { { NULL, 0, 0, 0 } };
 char *aica_program = NULL;
 char *s3m_file = NULL;
-char *disc_file = NULL;
+const char *disc_file = NULL;
 char *display_driver_name = "gtk";
 char *audio_driver_name = "esd";
 gboolean start_immediately = FALSE;
@@ -68,7 +68,7 @@ int main (int argc, char *argv[])
     bindtextdomain (PACKAGE, PACKAGE_LOCALE_DIR);
     textdomain (PACKAGE);
 #endif
-    gboolean ui_initialized = gui_parse_cmdline(&argc, &argv);
+    gui_parse_cmdline(&argc, &argv);
 
     while( (opt = getopt_long( argc, argv, option_list, longopts, NULL )) != -1 ) {
 	switch( opt ) {

@@ -1,5 +1,5 @@
 /**
- * $Id: gtkui.c,v 1.9 2007-10-31 09:10:23 nkeynes Exp $
+ * $Id: gtkui.c,v 1.10 2007-10-31 11:53:35 nkeynes Exp $
  *
  * Core GTK-based user interface
  *
@@ -25,7 +25,6 @@
 #include "gui/gtkui.h"
 
 
-void gtk_gui_update( void );
 void gtk_gui_start( void );
 void gtk_gui_stop( void );
 void gtk_gui_alloc_resources ( void );
@@ -49,7 +48,6 @@ static mmio_window_t mmio_win = NULL;
  * UIManager and action helpers
  */
 static GtkUIManager *global_ui_manager;
-static GtkAccelGroup *global_accel_group;
 static GtkActionGroup *global_action_group;
 
 /**
@@ -437,7 +435,7 @@ static void delete_frame_buffer( guchar *pixels, gpointer buffer )
 
 GdkPixbuf *gdk_pixbuf_new_from_frame_buffer( frame_buffer_t buffer )
 {
-    return gdk_pixbuf_new_from_data( buffer->data, 
+    return gdk_pixbuf_new_from_data( (unsigned char *)buffer->data, 
 				     GDK_COLORSPACE_RGB,
 				     (buffer->colour_format == COLFMT_BGRA8888),
 				     8,

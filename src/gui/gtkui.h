@@ -1,5 +1,5 @@
 /**
- * $Id: gtkui.h,v 1.9 2007-10-31 09:10:23 nkeynes Exp $
+ * $Id: gtkui.h,v 1.10 2007-10-31 11:53:35 nkeynes Exp $
  *
  * Core GTK-based user interface
  *
@@ -20,6 +20,7 @@
 #define __lxdream_gtkui_H
 
 #include <gtk/gtk.h>
+#include "lxdream.h"
 #include "gui.h"
 #include "cpu.h"
 
@@ -54,15 +55,19 @@ void debug_window_toggle_breakpoint( debug_window_t data, int row );
 
 mmio_window_t mmio_window_new( const gchar *title );
 void mmio_window_show( mmio_window_t win, gboolean show );
+void mmio_window_update(mmio_window_t win);
 
 dump_window_t dump_window_new( const gchar *title );
+void dump_window_update_all();
 
 void maple_dialog_run();
 void path_dialog_run();
 
+void gtk_gui_update( void );
 main_window_t gtk_gui_get_main();
 debug_window_t gtk_gui_get_debugger();
 mmio_window_t gtk_gui_get_mmio();
+void gtk_gui_show_mmio();
 void gtk_gui_show_debugger();
 
 /********************* Helper functions **********************/
@@ -71,10 +76,15 @@ typedef void (*gtk_dialog_done_fn)(GtkWidget *panel, gboolean isOK);
 void gtk_gui_enable_action( const gchar *action, gboolean enabled );
 gint gtk_gui_run_property_dialog( const gchar *title, GtkWidget *panel, gtk_dialog_done_fn fn );
 
+
+typedef gboolean (*file_callback_t)( const gchar *filename );
+void open_file_dialog( char *title, file_callback_t action, char *pattern, char *patname,
+		       gchar const *initial_dir );
+
 /**
  * Construct a new pixbuf that takes ownership of the frame buffer
  */
-GdkPixbuf *gdk_pixbuf_new_from_frame_buffer( frame_buffer_t );
+GdkPixbuf *gdk_pixbuf_new_from_frame_buffer( frame_buffer_t buffer );
 
 void gdrom_menu_init();
 GtkWidget *gdrom_menu_new();

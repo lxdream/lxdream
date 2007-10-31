@@ -1,5 +1,5 @@
 /**
- * $Id: ctrl_dlg.c,v 1.4 2007-10-23 10:47:17 nkeynes Exp $
+ * $Id: ctrl_dlg.c,v 1.5 2007-10-31 11:53:35 nkeynes Exp $
  *
  * Define the main (emu) GTK window, along with its menubars,
  * toolbars, etc.
@@ -132,7 +132,6 @@ static void controller_device_configure( maple_device_t device )
     gtk_object_set_data( GTK_OBJECT(table), "maple_device", device );
     for( i=0; i<count; i++ ) {
 	GtkWidget *text, *text2;
-	GQuark quark;
 	char buf[64];
 	int x=0;
 	int y=i;
@@ -260,7 +259,6 @@ void maple_dialog_done( GtkWidget *panel, gboolean isOK )
 GtkWidget *maple_panel_new()
 {
     GtkWidget *table = gtk_table_new(4, 3, TRUE);
-    GtkTreeIter iter;
     int i,j;
     const struct maple_device_class **devices = maple_get_device_classes();
 
