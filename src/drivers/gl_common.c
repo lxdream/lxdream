@@ -1,5 +1,5 @@
 /**
- * $Id: gl_common.c,v 1.6 2007-10-31 09:10:23 nkeynes Exp $
+ * $Id: gl_common.c,v 1.7 2007-10-31 12:05:23 nkeynes Exp $
  *
  * Common GL code that doesn't depend on a specific implementation
  *
@@ -20,6 +20,7 @@
 
 #include <GL/gl.h>
 #include "dream.h"
+#include "pvr2/pvr2.h"
 #include "drivers/gl_common.h"
 
 extern uint32_t video_width, video_height;
@@ -166,7 +167,8 @@ gboolean gl_load_frame_buffer( frame_buffer_t frame, render_buffer_t render )
     glPixelStorei( GL_UNPACK_ROW_LENGTH, rowstride );
     glBindTexture( GL_TEXTURE_RECTANGLE_ARB, render->buf_id );
     glTexSubImage2D( GL_TEXTURE_RECTANGLE_ARB, 0, 0,0,
-		  frame->width, frame->height, format, type, frame->data );
+		     frame->width, frame->height, format, type, frame->data );
+    return TRUE;
 }
 
 gboolean gl_display_blank( uint32_t colour )

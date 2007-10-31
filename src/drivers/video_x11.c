@@ -1,5 +1,5 @@
 /**
- * $Id: video_x11.c,v 1.19 2007-10-31 09:11:14 nkeynes Exp $
+ * $Id: video_x11.c,v 1.20 2007-10-31 12:05:23 nkeynes Exp $
  *
  * Shared functions for all X11-based display drivers.
  *
@@ -41,6 +41,7 @@ static Window glx_window;
 static XSetWindowAttributes win_attrs;
 
 gboolean video_glx_create_window( int width, int height );
+gboolean video_glx_init_context( Window window );
 
 gboolean video_glx_init( Display *display, Screen *screen, Window window,
 			 int width, int height, display_driver_t driver )

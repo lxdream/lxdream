@@ -1,5 +1,5 @@
 /**
- * $Id: loader.c,v 1.20 2007-10-21 05:20:35 nkeynes Exp $
+ * $Id: loader.c,v 1.21 2007-10-31 12:05:23 nkeynes Exp $
  *
  * File loading routines, mostly for loading demos without going through the
  * whole procedure of making a CD image for them.
@@ -17,6 +17,7 @@
  * GNU General Public License for more details.
  */
 
+#include <unistd.h>
 #include <stdio.h>
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -30,6 +31,9 @@
 #include "config.h"
 #include "loader.h"
 #include "syscall.h"
+
+// FIXME: This probably shouldn't be here
+#include <gui/gtkui.h>
 
 char bootstrap_magic[32] = "SEGA SEGAKATANA SEGA ENTERPRISES";
 char iso_magic[6] = "\001CD001";
