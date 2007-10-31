@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.h,v 1.37 2007-10-09 08:46:21 nkeynes Exp $
+ * $Id: pvr2.h,v 1.38 2007-10-31 12:05:23 nkeynes Exp $
  *
  * PVR2 (video chip) functions and macros.
  *
@@ -65,6 +65,7 @@ typedef unsigned int pvr64addr_t;
 void pvr2_next_frame( void );
 void pvr2_set_base_address( uint32_t );
 int pvr2_get_frame_count( void );
+render_buffer_t pvr2_get_front_buffer();
 gboolean pvr2_save_next_scene( const gchar *filename );
 
 #define PVR2_CMD_END_OF_LIST 0x00

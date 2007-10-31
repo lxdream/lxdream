@@ -1,5 +1,5 @@
 /**
- * $Id: util.c,v 1.11 2007-10-31 09:10:23 nkeynes Exp $
+ * $Id: util.c,v 1.12 2007-10-31 12:05:23 nkeynes Exp $
  *
  * Miscellaneous utility functions.
  *
@@ -27,6 +27,7 @@
 #include <png.h>
 #include "dream.h"
 #include "display.h"
+#include "gui.h"
 #include "sh4/sh4core.h"
 
 char *msg_levels[] = { "FATAL", "ERROR", "WARN", "INFO", "DEBUG", "TRACE" };
@@ -170,13 +171,13 @@ gboolean write_png_to_stream( FILE *f, frame_buffer_t buffer )
     }
     png_set_bgr(png_ptr);
     if( buffer->inverted ) {
-	p = buffer->data + (buffer->height*buffer->rowstride) - buffer->rowstride;
+	p = (png_bytep)(buffer->data + (buffer->height*buffer->rowstride) - buffer->rowstride);
 	for(i=0; i<buffer->height; i++ ) {
 	    png_write_row(png_ptr, p);
 	    p-=buffer->rowstride;
 	}
     } else {
-	p = buffer->data;
+	p = (png_bytep)buffer->data;
 	for(i=0; i<buffer->height; i++ ) {
 	    png_write_row(png_ptr, p);
 	    p+=buffer->rowstride;
@@ -240,7 +241,7 @@ frame_buffer_t read_png_from_stream( FILE *f )
 	buffer->colour_format = COLFMT_RGB888;
     }
     
-    p = buffer->data;
+    p = (png_bytep)buffer->data;
     for( i=0; i<height; i++ ) {
 	png_read_row(png_ptr, p, NULL );
 	p += rowbytes;
@@ -253,9 +254,7 @@ frame_buffer_t read_png_from_stream( FILE *f )
 
 void log_message( void *ptr, int level, const gchar *source, const char *msg, ... )
 {
-    char buf[20], addr[10] = "", *p;
-    const gchar *arr[4] = {buf, source, addr};
-    int posn;
+    char buf[20];
     time_t tm = time(NULL);
     va_list ap;
 

@@ -1,5 +1,5 @@
 /**
- * $Id: path_dlg.c,v 1.3 2007-10-23 10:48:24 nkeynes Exp $
+ * $Id: path_dlg.c,v 1.4 2007-10-31 12:05:23 nkeynes Exp $
  *
  * Define the main (emu) GTK window, along with its menubars,
  * toolbars, etc.
@@ -21,6 +21,7 @@
 #include <gtk/gtk.h>
 
 #include "dream.h"
+#include "dreamcast.h"
 #include "config.h"
 #include "gui/gtkui.h"
 
@@ -55,6 +56,7 @@ static gboolean path_file_button_clicked( GtkWidget *button, gpointer user_data 
 	gtk_entry_set_text(GTK_ENTRY(entry), filename);
     }
     gtk_widget_destroy(file);
+    return TRUE;
 }
 
 static gboolean path_dir_button_clicked( GtkWidget *button, gpointer user_data )
@@ -76,17 +78,12 @@ static gboolean path_dir_button_clicked( GtkWidget *button, gpointer user_data )
 	gtk_entry_set_text(GTK_ENTRY(entry), filename);
     }
     gtk_widget_destroy(file);
-}
-
-static gboolean path_text_changed( GtkWidget *entry, gpointer user_data )
-{
-    const gchar *text = gtk_entry_get_text( GTK_ENTRY(entry) );
+    return TRUE;
 }
 
 GtkWidget *path_panel_new(void)
 {
     GtkWidget *table = gtk_table_new( 5, 3, FALSE );
-    GtkWidget *desc = gtk_label_new(NULL);
     int i;
     for( i=0; i<5; i++ ) {
 	GtkWidget *text = path_entry[i] = gtk_entry_new();
