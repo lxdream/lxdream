@@ -1,5 +1,5 @@
 /**
- * $Id: video_x11.c,v 1.18 2007-10-13 04:00:23 nkeynes Exp $
+ * $Id: video_x11.c,v 1.19 2007-10-31 09:11:14 nkeynes Exp $
  *
  * Shared functions for all X11-based display drivers.
  *
@@ -51,6 +51,10 @@ gboolean video_glx_init( Display *display, Screen *screen, Window window,
 
     if( !video_glx_init_context(glx_window) ) {
 	return FALSE;
+    }
+
+    if( !glXIsDirect(video_x11_display, glx_context) ) {
+    	WARN( "Not using direct rendering - this is likely to be slow" );
     }
 
     if( gl_fbo_is_supported() ) {
