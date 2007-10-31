@@ -1,5 +1,5 @@
 /**
- * $Id: sh4.c,v 1.5 2007-10-06 09:03:24 nkeynes Exp $
+ * $Id: sh4.c,v 1.6 2007-10-31 09:02:18 nkeynes Exp $
  * 
  * SH4 parent module for all CPU modes and SH4 peripheral
  * modules.
@@ -75,6 +75,10 @@ void sh4_init(void)
 
 void sh4_reset(void)
 {
+    if(	sh4_module.run_time_slice == sh4_xlat_run_slice ) {
+	xlat_flush_cache();
+    }
+
     /* zero everything out, for the sake of having a consistent state. */
     memset( &sh4r, 0, sizeof(sh4r) );
 
@@ -122,6 +126,9 @@ void sh4_save_state( FILE *f )
 
 int sh4_load_state( FILE * f )
 {
+    if(	sh4_module.run_time_slice == sh4_xlat_run_slice ) {
+	xlat_flush_cache();
+    }
     fread( &sh4r, sizeof(sh4r), 1, f );
     sh4r.fr_bank = &sh4r.fr[(sh4r.fpscr&FPSCR_FR)>>21][0]; // Fixup internal FR pointer
     MMU_load_state( f );
