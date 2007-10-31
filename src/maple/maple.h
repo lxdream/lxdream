@@ -1,5 +1,5 @@
 /**
- * $Id: maple.h,v 1.8 2007-10-23 10:47:17 nkeynes Exp $
+ * $Id: maple.h,v 1.9 2007-10-31 11:53:35 nkeynes Exp $
  *
  * Maple bus definitions
  *
@@ -55,7 +55,7 @@
 #define MAPLE_DEVICE_TAG 0x4D41504C
 #define MAPLE_DEVICE(x) ((maple_device_t)x)
 
-typedef struct maple_device_class *maple_device_class_t;
+typedef const struct maple_device_class *maple_device_class_t;
 typedef struct maple_device *maple_device_t;
 
 struct maple_device_class {
@@ -92,7 +92,7 @@ extern struct maple_device_class controller_class;
 
 maple_device_t maple_new_device( const gchar *name );
 maple_device_t maple_get_device( unsigned int port, unsigned int periph );
-const maple_device_class_t maple_get_device_class( const gchar *name );
+const struct maple_device_class *maple_get_device_class( const gchar *name );
 const struct maple_device_class **maple_get_device_classes();
 lxdream_config_entry_t maple_get_device_config( maple_device_t dev );
 

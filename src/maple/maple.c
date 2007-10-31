@@ -1,5 +1,5 @@
 /**
- * $Id: maple.c,v 1.11 2007-10-17 11:26:45 nkeynes Exp $
+ * $Id: maple.c,v 1.12 2007-10-31 11:53:35 nkeynes Exp $
  *
  * Implements the core Maple bus, including DMA transfers to and from the bus.
  *
@@ -18,6 +18,7 @@
 #define MODULE maple_module
 
 #include <assert.h>
+#include <glib/gstrfuncs.h>
 #include "dream.h"
 #include "mem.h"
 #include "asic.h"
@@ -44,7 +45,7 @@ maple_device_t maple_new_device( const gchar *name )
     return NULL;
 }
 
-const maple_device_class_t maple_get_device_class( const gchar *name )
+maple_device_class_t maple_get_device_class( const gchar *name )
 {
     int i;
     for( i=0; maple_device_classes[i] != NULL; i++ ) {
@@ -56,7 +57,7 @@ const maple_device_class_t maple_get_device_class( const gchar *name )
 
 const struct maple_device_class **maple_get_device_classes()
 {
-    return maple_device_classes;
+    return (const struct maple_device_class **)maple_device_classes;
 }
 
 lxdream_config_entry_t maple_get_device_config( maple_device_t dev )

@@ -1,5 +1,5 @@
 /**
- * $Id: config.c,v 1.6 2007-10-31 09:06:48 nkeynes Exp $
+ * $Id: config.c,v 1.7 2007-10-31 11:53:35 nkeynes Exp $
  *
  * User configuration support
  *
@@ -21,6 +21,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
+#include <glib/gmem.h>
 #include <glib/gstrfuncs.h>
 #include "dream.h"
 #include "config.h"
@@ -56,6 +57,7 @@ static gchar *lxdream_config_save_filename = NULL;
 
 gboolean lxdream_find_config()
 {
+    gboolean result = TRUE;
     char *home = getenv("HOME");
     if( lxdream_config_save_filename == NULL ) {
 	lxdream_config_save_filename = g_strdup_printf("%s/.%s", home, DEFAULT_CONFIG_FILENAME);
@@ -69,8 +71,10 @@ gboolean lxdream_find_config()
 	    lxdream_config_load_filename = g_strdup("./" DEFAULT_CONFIG_FILENAME);
 	} else {
 	    lxdream_config_load_filename = g_strdup(lxdream_config_save_filename);
+	    result = FALSE;
 	}	
-    } 
+    }
+    return result;
 }
 
 void lxdream_set_config_filename( const gchar *filename )

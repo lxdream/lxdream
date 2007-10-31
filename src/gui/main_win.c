@@ -1,5 +1,5 @@
 /**
- * $Id: main_win.c,v 1.7 2007-10-21 11:38:02 nkeynes Exp $
+ * $Id: main_win.c,v 1.8 2007-10-31 11:53:35 nkeynes Exp $
  *
  * Define the main (emu) GTK window, along with its menubars,
  * toolbars, etc.
@@ -98,7 +98,7 @@ void main_window_set_speed( main_window_t win, double speed )
 {
     char buf[32];
 
-    snprintf( buf, 32, "Running (%2.4f%)", speed );
+    snprintf( buf, 32, "Running (%2.4f%%)", speed );
     gtk_statusbar_pop( GTK_STATUSBAR(win->statusbar), 1 );
     gtk_statusbar_push( GTK_STATUSBAR(win->statusbar), 1, buf );
     
