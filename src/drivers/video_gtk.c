@@ -1,5 +1,5 @@
 /**
- * $Id: video_gtk.c,v 1.18 2007-10-31 12:05:23 nkeynes Exp $
+ * $Id: video_gtk.c,v 1.19 2007-10-31 12:43:51 nkeynes Exp $
  *
  * The PC side of the video support (responsible for actually displaying / 
  * rendering frames)
@@ -17,8 +17,8 @@
  * GNU General Public License for more details.
  */
 
-#include <gnome.h>
 #include <gdk/gdkx.h>
+#include <gdk/gdkkeysyms.h>
 #include <stdint.h>
 #include "dream.h"
 #include "display.h"
