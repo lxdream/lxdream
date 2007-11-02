@@ -1,5 +1,5 @@
 /**
- * $Id: gtkui.h,v 1.10 2007-10-31 11:53:35 nkeynes Exp $
+ * $Id: gtkui.h,v 1.11 2007-11-02 08:22:32 nkeynes Exp $
  *
  * Core GTK-based user interface
  *
@@ -42,6 +42,7 @@ GtkWidget *main_window_get_renderarea( main_window_t win );
 void main_window_set_running( main_window_t win, gboolean running );
 void main_window_set_framerate( main_window_t win, float rate );
 void main_window_set_speed( main_window_t win, double speed );
+void main_window_set_fullscreen( main_window_t win, gboolean fullscreen );
 
 debug_window_t debug_window_new( const gchar *title, GtkWidget *menubar,
 				 GtkWidget *toolbar, GtkAccelGroup *accel );
