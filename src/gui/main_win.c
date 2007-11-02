@@ -1,5 +1,5 @@
 /**
- * $Id: main_win.c,v 1.8 2007-10-31 11:53:35 nkeynes Exp $
+ * $Id: main_win.c,v 1.9 2007-11-02 08:22:33 nkeynes Exp $
  *
  * Define the main (emu) GTK window, along with its menubars,
  * toolbars, etc.
@@ -34,13 +34,24 @@
 struct main_window_info {
     GtkWidget *window;
     GtkWidget *video;
+    GtkWidget *menubar;
+    GtkWidget *toolbar;
     GtkWidget *statusbar;
     GtkActionGroup *actions;
 };
 
-gboolean on_main_window_deleted( GtkWidget *widget, GdkEvent event, gpointer user_data )
+static gboolean on_main_window_deleted( GtkWidget *widget, GdkEvent event, gpointer user_data )
 {
     exit(0);
+}
+
+static void on_main_window_state_changed( GtkWidget *widget, GdkEventWindowState *state, 
+					  gpointer userdata )
+{
+    if( state->changed_mask & GDK_WINDOW_STATE_FULLSCREEN ) {
+	gboolean fs = (state->new_window_state & GDK_WINDOW_STATE_FULLSCREEN);
+    }
+    return FALSE;
 }
 
 main_window_t main_window_new( const gchar *title, GtkWidget *menubar, GtkWidget *toolbar,
@@ -51,6 +62,8 @@ main_window_t main_window_new( const gchar *title, GtkWidget *menubar, GtkWidget
     main_window_t win = g_malloc0( sizeof(struct main_window_info) );
 
     win->window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+    win->menubar = menubar;
+    win->toolbar = toolbar;
     gtk_window_set_title( GTK_WINDOW(win->window), title );
     gtk_window_add_accel_group (GTK_WINDOW (win->window), accel_group);
 
@@ -77,6 +90,8 @@ main_window_t main_window_new( const gchar *title, GtkWidget *menubar, GtkWidget
     gtk_statusbar_push( GTK_STATUSBAR(win->statusbar), 1, "Stopped" );
     g_signal_connect( win->window, "delete_event", 
 		      G_CALLBACK(on_main_window_deleted), win );
+    g_signal_connect( win->window, "window-state-event",
+		      G_CALLBACK(on_main_window_state_changed), win );
     return win;
 }
 
@@ -113,4 +128,28 @@ GtkWidget *main_window_get_renderarea( main_window_t win )
 GtkWindow *main_window_get_frame( main_window_t win )
 {
     return GTK_WINDOW(win->window);
+}
+
+void main_window_set_fullscreen( main_window_t win, gboolean fullscreen )
+{
+    GtkWidget *frame = gtk_widget_get_parent(win->video);
+    if( frame->style == NULL ) {
+	gtk_widget_set_style( frame, gtk_style_new() );
+    }
+    if( fullscreen ) {
+	gtk_window_fullscreen( GTK_WINDOW(win->window) );
+	gtk_widget_hide( win->menubar );
+	gtk_widget_hide( win->toolbar );
+	gtk_widget_hide( win->statusbar );
+	
+	frame->style->xthickness = 0;
+	frame->style->ythickness = 0;
+    } else {
+	gtk_window_unfullscreen( GTK_WINDOW(win->window) );
+	frame->style->xthickness = 2;
+	frame->style->ythickness = 2;
+	gtk_widget_show( win->menubar );
+	gtk_widget_show( win->toolbar );
+	gtk_widget_show( win->statusbar );
+    }
 }

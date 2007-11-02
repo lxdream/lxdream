@@ -1,5 +1,5 @@
 /**
- * $Id: gtkui.c,v 1.10 2007-10-31 11:53:35 nkeynes Exp $
+ * $Id: gtkui.c,v 1.11 2007-11-02 08:22:32 nkeynes Exp $
  *
  * Core GTK-based user interface
  *
@@ -198,7 +198,6 @@ gboolean gui_init( gboolean withDebug )
     gtk_gui_enable_action("AudioSettings", FALSE);
     gtk_gui_enable_action("NetworkSettings", FALSE);
     gtk_gui_enable_action("VideoSettings", FALSE);
-    gtk_gui_enable_action("FullScreen", FALSE);
 
     global_ui_manager = gtk_ui_manager_new();
     gtk_ui_manager_set_add_tearoffs(global_ui_manager, TRUE);

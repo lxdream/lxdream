@@ -1,5 +1,5 @@
 /**
- * $Id: gtkcb.c,v 1.7 2007-10-31 11:53:35 nkeynes Exp $
+ * $Id: gtkcb.c,v 1.8 2007-11-02 08:22:32 nkeynes Exp $
  *
  * Action callbacks from the main window
  *
@@ -205,6 +205,7 @@ void video_settings_callback( GtkAction *action, gpointer user_data)
 
 void fullscreen_toggle_callback( GtkToggleAction *action, gpointer user_data)
 {
+    main_window_set_fullscreen(gtk_gui_get_main(), gtk_toggle_action_get_active(action));
 }
 
 void debugger_action_callback( GtkAction *action, gpointer user_data)
