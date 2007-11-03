@@ -17,8 +17,12 @@ PKG_CHECK_MODULES(PACKAGE,
 AC_SUBST(PACKAGE_CFLAGS)
 AC_SUBST(PACKAGE_LIBS)
 
-AC_CHECK_LIB(z, ucompress)
-AC_CHECK_LIB(GL, glXQueryVersion)
+AC_CHECK_LIB(z, uncompress, [], [
+    echo "Zlib (libz.so) could not be found, but is required."
+    exit 1])
+AC_CHECK_LIB(GL, glXQueryVersion, [], [
+    echo "The OpenGL library (libGL.so) could not be found, but is required."
+    exit 1])
 
 GETTEXT_PACKAGE=dream
 AC_SUBST(GETTEXT_PACKAGE)
