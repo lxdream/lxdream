@@ -1,5 +1,5 @@
 /**
- * $Id: xltcache.c,v 1.9 2007-10-07 06:27:12 nkeynes Exp $
+ * $Id: xltcache.c,v 1.10 2007-11-04 01:03:00 nkeynes Exp $
  * 
  * Translation cache management. This part is architecture independent.
  *
@@ -15,7 +15,8 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
-
+ 
+#include <sys/types.h>
 #include <sys/mman.h>
 #include <assert.h>
 
@@ -62,18 +63,18 @@ void xlat_cache_init(void)
     if( !xlat_initialized ) {
 	xlat_initialized = TRUE;
 	xlat_new_cache = mmap( NULL, XLAT_NEW_CACHE_SIZE, PROT_EXEC|PROT_READ|PROT_WRITE,
-			       MAP_PRIVATE|MAP_ANONYMOUS, -1, 0 );
+			       MAP_PRIVATE|MAP_ANON, -1, 0 );
 	xlat_temp_cache = mmap( NULL, XLAT_TEMP_CACHE_SIZE, PROT_EXEC|PROT_READ|PROT_WRITE,
-				MAP_PRIVATE|MAP_ANONYMOUS, -1, 0 );
+				MAP_PRIVATE|MAP_ANON, -1, 0 );
 	xlat_old_cache = mmap( NULL, XLAT_OLD_CACHE_SIZE, PROT_EXEC|PROT_READ|PROT_WRITE,
-			       MAP_PRIVATE|MAP_ANONYMOUS, -1, 0 );
+			       MAP_PRIVATE|MAP_ANON, -1, 0 );
 	xlat_new_cache_ptr = xlat_new_cache;
 	xlat_temp_cache_ptr = xlat_temp_cache;
 	xlat_old_cache_ptr = xlat_old_cache;
 	xlat_new_create_ptr = xlat_new_cache;
 	
 	xlat_lut = mmap( NULL, XLAT_LUT_PAGES*sizeof(void *), PROT_READ|PROT_WRITE,
-			 MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
+			 MAP_PRIVATE|MAP_ANON, -1, 0);
 	memset( xlat_lut, 0, XLAT_LUT_PAGES*sizeof(void *) );
     }
     xlat_flush_cache();
@@ -214,7 +215,7 @@ void **xlat_get_lut_entry( sh4addr_t address )
     if( page == NULL ) {
 	xlat_lut[XLAT_LUT_PAGE(address)] = page =
 	    mmap( NULL, XLAT_LUT_PAGE_SIZE, PROT_READ|PROT_WRITE,
-		  MAP_PRIVATE|MAP_ANONYMOUS, -1, 0 );
+		  MAP_PRIVATE|MAP_ANON, -1, 0 );
 	memset( page, 0, XLAT_LUT_PAGE_SIZE );
     }
     
@@ -351,7 +352,7 @@ xlat_cache_block_t xlat_start_block( sh4addr_t address )
     if( xlat_lut[XLAT_LUT_PAGE(address)] == NULL ) {
 	xlat_lut[XLAT_LUT_PAGE(address)] =
 	    mmap( NULL, XLAT_LUT_PAGE_SIZE, PROT_READ|PROT_WRITE,
-		  MAP_PRIVATE|MAP_ANONYMOUS, -1, 0 );
+		  MAP_PRIVATE|MAP_ANON, -1, 0 );
 	memset( xlat_lut[XLAT_LUT_PAGE(address)], 0, XLAT_LUT_PAGE_SIZE );
     }
 

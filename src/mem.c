@@ -1,5 +1,5 @@
 /**
- * $Id: mem.c,v 1.19 2007-10-31 11:53:35 nkeynes Exp $
+ * $Id: mem.c,v 1.20 2007-11-04 01:03:00 nkeynes Exp $
  * mem.c is responsible for creating and maintaining the overall system memory
  * map, as visible from the SH4 processor. 
  *
@@ -17,6 +17,7 @@
  */
 #define MODULE mem_module
 
+#include <sys/types.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <assert.h>
@@ -49,7 +50,7 @@ int num_io_rgns = 0, num_mem_rgns = 0;
 void *mem_alloc_pages( int n )
 {
     void *mem = mmap( NULL, n * 4096,
-                      PROT_READ|PROT_WRITE, MAP_ANONYMOUS|MAP_PRIVATE, -1, 0 );
+                      PROT_READ|PROT_WRITE, MAP_ANON|MAP_PRIVATE, -1, 0 );
     if( mem == MAP_FAILED ) {
         ERROR( "Memory allocation failure! (%s)", strerror(errno) );
         return NULL;
@@ -61,7 +62,7 @@ void *mem_alloc_pages( int n )
 void mem_init( void )
 {
     page_map = mmap( NULL, sizeof(char *) * PAGE_TABLE_ENTRIES,
-                     PROT_READ|PROT_WRITE, MAP_ANONYMOUS|MAP_PRIVATE, -1, 0 );
+                     PROT_READ|PROT_WRITE, MAP_ANON|MAP_PRIVATE, -1, 0 );
     if( page_map == MAP_FAILED ) {
         ERROR( "Unable to allocate page map! (%s)", strerror(errno) );
         page_map = NULL;
@@ -270,10 +271,11 @@ void *mem_load_rom( const gchar *file, uint32_t base, uint32_t size, uint32_t cr
 {
     char *mem;
     uint32_t calc_crc;
+    int status;
 
     mem = mem_get_region(base);
     if( mem == NULL ) {
-	mem = mmap( NULL, size, PROT_WRITE|PROT_READ, MAP_ANONYMOUS|MAP_PRIVATE, -1, 0 );
+	mem = mmap( NULL, size, PROT_WRITE|PROT_READ, MAP_ANON|MAP_PRIVATE, -1, 0 );
 	if( mem == MAP_FAILED ) {
 	    ERROR( "Unable to allocate ROM memory: %s (%s)", file, strerror(errno) );
 	    return NULL;
@@ -283,14 +285,16 @@ void *mem_load_rom( const gchar *file, uint32_t base, uint32_t size, uint32_t cr
 	mprotect( mem, size, PROT_READ|PROT_WRITE );
     }
 
-    mem_load_block( file, base, size );
+    status = mem_load_block( file, base, size );
     mprotect( mem, size, PROT_READ );
 
-    /* CRC check */
-    calc_crc = crc32(0L, (unsigned char *)mem, size);
-    if( calc_crc != crc ) {
-        WARN( "Bios CRC Mismatch in %s: %08X (expected %08X)",
-              file, calc_crc, crc);
+    if( status == 0 ) {
+	/* CRC check only if we loaded something */
+	calc_crc = crc32(0L, (unsigned char *)mem, size);
+	if( calc_crc != crc ) {
+	    WARN( "Bios CRC Mismatch in %s: %08X (expected %08X)",
+		  file, calc_crc, crc);
+	}
     }
     
     return mem;
