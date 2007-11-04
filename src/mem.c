@@ -1,5 +1,5 @@
 /**
- * $Id: mem.c,v 1.20 2007-11-04 01:03:00 nkeynes Exp $
+ * $Id: mem.c,v 1.21 2007-11-04 08:49:18 nkeynes Exp $
  * mem.c is responsible for creating and maintaining the overall system memory
  * map, as visible from the SH4 processor. 
  *
@@ -45,7 +45,7 @@ struct mem_region mem_rgn[MAX_MEM_REGIONS];
 struct mmio_region *io_rgn[MAX_IO_REGIONS];
 struct mmio_region *P4_io[4096];
 
-int num_io_rgns = 0, num_mem_rgns = 0;
+uintptr_t num_io_rgns = 0, num_mem_rgns = 0;
 
 void *mem_alloc_pages( int n )
 {
@@ -356,7 +356,7 @@ char *mem_get_page( uint32_t addr )
 char *mem_get_region( uint32_t addr )
 {
     char *page = page_map[ (addr & 0x1FFFFFFF) >> 12 ];
-    if( ((uint32_t)page) < MAX_IO_REGIONS ) { /* IO Region */
+    if( ((uintptr_t)page) < MAX_IO_REGIONS ) { /* IO Region */
         return NULL;
     } else {
         return page+(addr&0xFFF);
@@ -369,8 +369,8 @@ struct mmio_region *mem_get_io_region( uint32_t addr )
 	return P4_io[(addr&0x00FFFFFF)>>12];
     }
     char *page = page_map[(addr&0x1FFFFFFF)>>12];
-    if( ((uint32_t)page) < MAX_IO_REGIONS ) {
-	return io_rgn[(uint32_t)page];
+    if( ((uintptr_t)page) < MAX_IO_REGIONS ) {
+	return io_rgn[(uintptr_t)page];
     } else {
 	return NULL;
     }

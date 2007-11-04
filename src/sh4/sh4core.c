@@ -1,5 +1,5 @@
 /**
- * $Id: sh4core.c,v 1.49 2007-10-08 12:06:01 nkeynes Exp $
+ * $Id: sh4core.c,v 1.50 2007-11-04 08:49:18 nkeynes Exp $
  * 
  * SH4 emulation core, and parent module for all the SH4 peripheral
  * modules.
@@ -241,7 +241,7 @@ gboolean sh4_execute_instruction( void )
 	ir = sh4_icache[(pc&0xFFF)>>1];
     } else {
 	sh4_icache = (uint16_t *)mem_get_page(pc);
-	if( ((uint32_t)sh4_icache) < MAX_IO_REGIONS ) {
+	if( ((uintptr_t)sh4_icache) < MAX_IO_REGIONS ) {
 	    /* If someone's actually been so daft as to try to execute out of an IO
 	     * region, fallback on the full-blown memory read
 	     */
