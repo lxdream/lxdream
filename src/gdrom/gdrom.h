@@ -1,5 +1,5 @@
 /**
- * $Id: gdrom.h,v 1.14 2007-10-28 07:23:46 nkeynes Exp $
+ * $Id: gdrom.h,v 1.15 2007-11-04 05:07:49 nkeynes Exp $
  *
  * This file defines the structures and functions used by the GD-Rom
  * disc driver. (ie, the modules that supply a CD image to be used by the
@@ -163,7 +163,7 @@ typedef struct gdrom_image_class {
 
 extern struct gdrom_image_class nrg_image_class;
 extern struct gdrom_image_class cdi_image_class;
-extern struct gdrom_image_class linux_device_class;
+extern struct gdrom_image_class cdrom_device_class;
 
 /**
  * Construct a new image file using the default methods.

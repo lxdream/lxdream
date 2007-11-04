@@ -24,6 +24,11 @@ AC_CHECK_LIB(GL, glXQueryVersion, [], [
     echo "The OpenGL library (libGL.so) could not be found, but is required."
     exit 1])
 
+dnl Check for cdrom device support
+AC_CHECK_HEADER([linux/cdrom.h], [HAVE_LINUX_CDROM_H=yes], [
+    echo "Linux CDROM support not found, building without it."]  )
+AM_CONDITIONAL(CDROM_LINUX, [test "$HAVE_LINUX_CDROM_H" = "yes"])
+
 GETTEXT_PACKAGE=dream
 AC_SUBST(GETTEXT_PACKAGE)
 AC_DEFINE_UNQUOTED(GETTEXT_PACKAGE,"$GETTEXT_PACKAGE")

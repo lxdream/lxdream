@@ -1,5 +1,5 @@
 /**
- * $Id: linux.c,v 1.8 2007-10-31 11:53:35 nkeynes Exp $
+ * $Id: linux.c,v 1.9 2007-11-04 05:07:49 nkeynes Exp $
  *
  * Linux cd-rom device driver. 
  *
@@ -58,8 +58,8 @@ static gdrom_error_t linux_send_command( int fd, char *cmd, unsigned char *buffe
 					 int direction );
 static int linux_drive_status( gdrom_disc_t disc );
 
-struct gdrom_image_class linux_device_class = { "Linux", NULL,
-					     linux_image_is_valid, linux_open_device };
+struct gdrom_image_class cdrom_device_class = { "Linux", NULL,
+						linux_image_is_valid, linux_open_device };
 GList *gdrom_get_native_devices(void)
 {
     GList *list = NULL;
