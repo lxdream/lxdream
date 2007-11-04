@@ -20,7 +20,7 @@ lxdream_SOURCES = \
         asic.c asic.h \
         syscall.c syscall.h bios.c dcload.c \
         gdrom/ide.c gdrom/ide.h gdrom/packet.h gdrom/gdimage.c \
-	gdrom/gdrom.c gdrom/gdrom.h gdrom/nrg.c gdrom/cdi.c gdrom/linux.c \
+	gdrom/gdrom.c gdrom/gdrom.h gdrom/nrg.c gdrom/cdi.c \
         dreamcast.c dreamcast.h eventq.c eventq.h \
         sh4/sh4.c sh4/intc.c sh4/intc.h sh4/sh4mem.c sh4/timer.c sh4/dmac.c \
         sh4/sh4core.c sh4/sh4core.h sh4/sh4dasm.c sh4/sh4dasm.h \
@@ -45,6 +45,12 @@ lxdream_SOURCES = \
 	drivers/video_x11.c drivers/video_x11.h \
 	drivers/gl_common.c drivers/gl_common.h drivers/gl_fbo.c \
 	drivers/gl_sl.c drivers/gl_slsrc.c
+
+if CDROM_LINUX
+lxdream_SOURCES += gdrom/linux.c
+else
+lxdream_SOURCES += gdrom/cdnone.c
+endif
 
 lxdream_LDADD = @PACKAGE_LIBS@ $(INTLLIBS) -lesd
 
