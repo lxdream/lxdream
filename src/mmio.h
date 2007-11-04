@@ -1,5 +1,5 @@
 /**
- * $Id: mmio.h,v 1.7 2007-10-31 09:05:44 nkeynes Exp $
+ * $Id: mmio.h,v 1.8 2007-11-04 08:49:18 nkeynes Exp $
  *
  * mmio.h defines a complicated batch of macros used to build up the 
  * memory-mapped I/O regions in a reasonably readable fashion.
@@ -65,7 +65,7 @@ void register_io_region( struct mmio_region *mmio );
 void register_io_regions( struct mmio_region **mmiolist );
 
 extern struct mmio_region *io_rgn[];
-extern int num_io_rgns;
+extern uintptr_t num_io_rgns;
 
 #define MMIO_READ( id, r ) *((int32_t *)(mmio_region_##id.mem + (r)))
 #define MMIO_READF( id, r ) *((float *)(mmio_region_##id.mem + (r)))
