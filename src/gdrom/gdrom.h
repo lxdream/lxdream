@@ -1,5 +1,5 @@
 /**
- * $Id: gdrom.h,v 1.15 2007-11-04 05:07:49 nkeynes Exp $
+ * $Id: gdrom.h,v 1.16 2007-11-06 08:35:16 nkeynes Exp $
  *
  * This file defines the structures and functions used by the GD-Rom
  * disc driver. (ie, the modules that supply a CD image to be used by the
@@ -70,6 +70,7 @@ typedef struct gdrom_track {
     uint32_t sector_size; /* For convenience, determined by mode */
     uint32_t sector_count;
     uint32_t offset; /* File offset of start of track - image files only */
+    FILE *file;
 } *gdrom_track_t;
 
 typedef struct gdrom_disc {
@@ -163,6 +164,7 @@ typedef struct gdrom_image_class {
 
 extern struct gdrom_image_class nrg_image_class;
 extern struct gdrom_image_class cdi_image_class;
+extern struct gdrom_image_class gdi_image_class;
 extern struct gdrom_image_class cdrom_device_class;
 
 /**

@@ -1,6 +1,6 @@
 
 /**
- * $Id: gdrom.c,v 1.18 2007-11-04 05:07:49 nkeynes Exp $
+ * $Id: gdrom.c,v 1.19 2007-11-06 08:35:16 nkeynes Exp $
  *
  * GD-Rom  access functions.
  *
@@ -27,7 +27,11 @@
 
 extern gdrom_disc_t gdrom_disc;
 
-gdrom_image_class_t gdrom_image_classes[] = { &cdrom_device_class, &nrg_image_class, &cdi_image_class, NULL };
+gdrom_image_class_t gdrom_image_classes[] = { &cdrom_device_class, 
+					      &nrg_image_class, 
+					      &cdi_image_class, 
+					      &gdi_image_class, 
+					      NULL };
 
 char *gdrom_mode_names[] = { "Mode1", "Mode2", "XA 1", "XA2", "Audio", "GD-Rom" };
 uint32_t gdrom_sector_size[] = { 2048, 2336, 2048, 2324, 2352, 2336 };
