@@ -1,5 +1,5 @@
 /**
- * $Id: ide.h,v 1.13 2007-01-31 10:58:42 nkeynes Exp $
+ * $Id: ide.h,v 1.14 2007-11-06 08:35:33 nkeynes Exp $
  *
  * This file defines the interface and structures of the dreamcast's IDE 
  * port. Note that the register definitions are in asic.h, as the registers
@@ -25,6 +25,9 @@
 
 #include "dream.h"
 
+#define GDROM_SENSE_LENGTH 10
+#define GDROM_MODE_LENGTH 32
+
 struct ide_registers {
     /* IDE interface registers */
     uint8_t status;  /* A05F709C + A05F7018 Read-only */
@@ -43,22 +46,23 @@ struct ide_registers {
     uint8_t intrq_pending; /* Flag to indicate if the INTRQ line is active */
     gboolean interface_enabled;
     gboolean was_reset; /* Flag indicating that the device has just been reset */
-    int state;
+    uint32_t state;
+    uint32_t last_packet_command; /* Identifies the command executing during a r/w cycle */
 
     /* Sense response for the last executed packet command */
-    unsigned char gdrom_sense[10];
-
+    unsigned char gdrom_sense[GDROM_SENSE_LENGTH];
+    unsigned char gdrom_mode[GDROM_MODE_LENGTH];
 
     /* offset in the buffer of the next word to read/write, or -1
      * if inactive.
      */ 
-    int data_offset;
-    int data_length;
+    int32_t data_offset;
+    int32_t data_length;
    
     /* Status reporting information */
     uint8_t last_read_track;
-    uint32_t read_lba;
-    uint32_t read_mode;
+    uint32_t current_lba;
+    uint32_t current_mode;
     uint32_t sectors_left; /* sectors left after current read */
 };
 
@@ -116,7 +120,7 @@ void ide_write_data_pio( uint16_t value );
 uint32_t ide_read_data_dma( uint32_t addr, uint32_t length );
 uint8_t ide_read_status(void);
 uint8_t ide_get_drive_status(void);
-void ide_write_buffer( unsigned char *data, int length ); 
+void ide_write_buffer( unsigned char *data, uint32_t length ); 
 
 void ide_write_command( uint8_t command );
 void ide_write_control( uint8_t value );
