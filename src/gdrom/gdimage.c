@@ -1,5 +1,5 @@
 /**
- * $Id: gdimage.c,v 1.5 2007-10-31 11:53:35 nkeynes Exp $
+ * $Id: gdimage.c,v 1.6 2007-11-06 08:35:16 nkeynes Exp $
  *
  * GD-Rom image-file common functions. 
  *
@@ -68,10 +68,19 @@ gdrom_disc_t gdrom_image_new( const gchar *filename, FILE *f )
 
 static void gdrom_image_destroy( gdrom_disc_t disc )
 {
+    int i;
+    FILE *lastfile = NULL;
     gdrom_image_t img = (gdrom_image_t)disc;
     if( img->file != NULL ) {
 	fclose(img->file);
 	img->file = NULL;
+    }
+    for( i=0; i<img->track_count; i++ ) {
+	if( img->track[i].file != NULL && img->track[i].file != lastfile ) {
+	    lastfile = img->track[i].file;
+	    fclose(lastfile);
+	    img->track[i].file = NULL;
+	}
     }
     if( disc->name != NULL ) {
 	g_free( (gpointer)disc->name );
@@ -82,9 +91,18 @@ static void gdrom_image_destroy( gdrom_disc_t disc )
 
 void gdrom_image_destroy_no_close( gdrom_disc_t disc )
 {
+    int i;
+    FILE *lastfile = NULL;
     gdrom_image_t img = (gdrom_image_t)disc;
     if( img->file != NULL ) {
 	img->file = NULL;
+    }
+    for( i=0; i<img->track_count; i++ ) {
+	if( img->track[i].file != NULL && img->track[i].file != lastfile ) {
+	    lastfile = img->track[i].file;
+	    fclose(lastfile);
+	    img->track[i].file = NULL;
+	}
     }
     if( disc->name != NULL ) {
 	g_free( (gpointer)disc->name );
@@ -105,11 +123,33 @@ static int gdrom_image_get_track_by_lba( gdrom_image_t image, uint32_t lba )
     return -1;
 }
 
+/**
+ * Read a block from an image file, handling negative file offsets
+ * with 0-fill.
+ */
+static void gdrom_read_block( char *buf, int file_offset, int length, FILE *f )
+{
+    if( file_offset < 0 ) {
+	int size = -file_offset;
+	if( size >= length ) {
+	    memset( buf, 0, length );
+	    return;
+	} else {
+	    memset( buf, 0, size );
+	    file_offset = 0;
+	    length -= size;
+	}
+    }
+    fseek( f, file_offset, SEEK_SET );
+    fread( buf, length, 1, f );
+}
+
 static gdrom_error_t gdrom_image_read_sector( gdrom_disc_t disc, uint32_t lba,
 					      int mode, unsigned char *buf, uint32_t *length )
 {
     gdrom_image_t image = (gdrom_image_t)disc;
     int file_offset, read_len, track_no;
+    FILE *f;
 
     track_no = gdrom_image_get_track_by_lba( image, lba );
     if( track_no == -1 ) {
@@ -118,6 +158,13 @@ static gdrom_error_t gdrom_image_read_sector( gdrom_disc_t disc, uint32_t lba,
     struct gdrom_track *track = &image->track[track_no-1];
     file_offset = track->offset + track->sector_size * (lba - track->lba);
     read_len = track->sector_size;
+    if( track->file != NULL ) {
+	f = track->file;
+    } else {
+	f = image->file;
+    }
+
+    
 
     switch( mode ) {
     case 0x24:
@@ -125,14 +172,12 @@ static gdrom_error_t gdrom_image_read_sector( gdrom_disc_t disc, uint32_t lba,
 	switch( track->mode ) {
 	case GDROM_MODE1:
 	case GDROM_MODE2_XA1:
-	    fseek( image->file, file_offset, SEEK_SET );
-	    fread( buf, track->sector_size, 1, image->file );
+	    gdrom_read_block( buf, file_offset, track->sector_size, f );
 	    break;
 	case GDROM_MODE2:
 	    read_len = 2048;
 	    file_offset += 8; /* skip the subheader */
-	    fseek( image->file, file_offset, SEEK_SET );
-	    fread( buf, 2048, 1, image->file );
+	    gdrom_read_block( buf, file_offset, 2048, f );
 	    break;
 	default:
 	    return PKT_ERR_BADREADMODE;
