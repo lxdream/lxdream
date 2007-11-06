@@ -1,5 +1,5 @@
 /**
- * $Id: maple.c,v 1.12 2007-10-31 11:53:35 nkeynes Exp $
+ * $Id: maple.c,v 1.13 2007-11-06 12:23:25 nkeynes Exp $
  *
  * Implements the core Maple bus, including DMA transfers to and from the bus.
  *
@@ -110,17 +110,22 @@ void maple_handle_buffer( uint32_t address ) {
         unsigned int last = 0;
         int i = 0, count;
         for( count=0; !last; count++ ) {
-            unsigned int port, length, gun, periph, periph_id, out_length;
+            unsigned int port, length, mode, periph, periph_id, out_length;
             unsigned int cmd, recv_addr, send_addr;
             uint32_t return_addr;
             unsigned char *return_buf;
             
             last = GETBYTE(3) & 0x80; /* indicates last packet */
             port = GETBYTE(2) & 0x03;
-            gun = GETBYTE(1) & 0x01;
+            mode = GETBYTE(1) & 0x07;
             length = GETBYTE(0) & 0xFF;
             return_addr = GETWORD(4);
 
+	    if( mode == 0x07 ) {
+		buf += 4;
+		address +=4; /* skip? */
+		continue;
+	    }
             if( (return_addr & 0x1C000000) != 0x0C000000 ) {
 		ERROR( "Bad return address in maple packet: %08X", return_addr );
 		break;
