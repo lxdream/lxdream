@@ -1,5 +1,5 @@
 /**
- * $Id: main.c,v 1.34 2007-10-31 11:53:35 nkeynes Exp $
+ * $Id: main.c,v 1.35 2007-11-07 11:45:53 nkeynes Exp $
  *
  * Main program, initializes dreamcast and gui, then passes control off to
  * the gtk main loop (currently). 
@@ -64,6 +64,8 @@ int main (int argc, char *argv[])
 {
     int opt, i;
     double t;
+
+    install_crash_handler();
 #ifdef ENABLE_NLS
     bindtextdomain (PACKAGE, PACKAGE_LOCALE_DIR);
     textdomain (PACKAGE);
