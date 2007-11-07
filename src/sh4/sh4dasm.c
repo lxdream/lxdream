@@ -1,5 +1,5 @@
 /**
- * $Id: sh4dasm.c,v 1.12 2007-10-08 12:06:01 nkeynes Exp $
+ * $Id: sh4dasm.c,v 1.13 2007-11-07 11:46:58 nkeynes Exp $
  * 
  * SH4 CPU definition and disassembly functions
  *
@@ -1026,7 +1026,7 @@ uint32_t sh4_disasm_instruction( uint32_t pc, char *buf, int len, char *opcode )
             case 0x5:
                 { /* MOV.L @(disp, Rm), Rn */
                 uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); uint32_t disp = (ir&0xF)<<2; 
-                snprintf( buf, len, "MOV.L   @(%d, R%d), @R%d", disp, Rm, Rn );
+                snprintf( buf, len, "MOV.L   @(%d, R%d), R%d", disp, Rm, Rn );
                 }
                 break;
             case 0x6:

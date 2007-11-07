@@ -1,5 +1,5 @@
 /**
- * $Id: sh4dasm.in,v 1.2 2007-10-08 12:06:01 nkeynes Exp $
+ * $Id: sh4dasm.in,v 1.3 2007-11-07 11:46:58 nkeynes Exp $
  * 
  * SH4 CPU definition and disassembly functions
  *
@@ -189,7 +189,7 @@ MOV.L @Rm+, Rn   {: snprintf( buf, len, "MOV.L   @R%d+, R%d", Rm, Rn ); :}
 MOV.L @(R0, Rm), Rn {: snprintf( buf, len, "MOV.L   @(R0, R%d), R%d", Rm, Rn ); :}
 MOV.L @(disp, GBR), R0 {: snprintf( buf, len, "MOV.L   @(%d, GBR), R0",disp ); :}
 MOV.L @(disp, PC), Rn  {: snprintf( buf, len, "MOV.L   @($%xh), R%d ; <- #%08x", disp + (pc & 0xFFFFFFFC) + 4, Rn, sh4_read_long(disp+(pc&0xFFFFFFFC)+4) ); :}
-MOV.L @(disp, Rm), Rn  {: snprintf( buf, len, "MOV.L   @(%d, R%d), @R%d", disp, Rm, Rn ); :}
+MOV.L @(disp, Rm), Rn  {: snprintf( buf, len, "MOV.L   @(%d, R%d), R%d", disp, Rm, Rn ); :}
 MOV.W Rm, @Rn    {: snprintf( buf, len, "MOV.W   R%d, @R%d", Rm, Rn ); :}
 MOV.W Rm, @-Rn   {: snprintf( buf, len, "MOV.W   R%d, @-R%d", Rm, Rn ); :}
 MOV.W Rm, @(R0, Rn) {: snprintf( buf, len, "MOV.W   R%d, @(R0, R%d)", Rm, Rn ); :}
