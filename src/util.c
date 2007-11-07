@@ -1,5 +1,5 @@
 /**
- * $Id: util.c,v 1.12 2007-10-31 12:05:23 nkeynes Exp $
+ * $Id: util.c,v 1.13 2007-11-07 11:45:53 nkeynes Exp $
  *
  * Miscellaneous utility functions.
  *
@@ -16,11 +16,14 @@
  * GNU General Public License for more details.
  */
 
+#define HAVE_EXECINFO_H 1
+
 #include <assert.h>
 #include <ctype.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <signal.h>
 #include <time.h>
 #include <zlib.h>
 #include <glib.h>
@@ -31,7 +34,30 @@
 #include "sh4/sh4core.h"
 
 char *msg_levels[] = { "FATAL", "ERROR", "WARN", "INFO", "DEBUG", "TRACE" };
-int global_msg_level = EMIT_WARN;
+int global_msg_level = EMIT_INFO;
+
+static void report_crash( int signo, siginfo_t *info, void *ptr )
+{
+    char buf[128];
+
+    fprintf( stderr, "--- Aborting with signal %d ---\n", signo );
+    // Get gdb to print a nice backtrace for us
+    snprintf( buf, 128, "gdb -batch -f --quiet --pid=%d -ex bt", getpid() );
+    system(buf);
+
+    abort();
+}
+
+void install_crash_handler(void)
+{
+    struct sigaction sa;
+
+    sa.sa_sigaction = report_crash;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = SA_RESETHAND|SA_SIGINFO;
+    sigaction( SIGSEGV, &sa, NULL );
+}
+
 
 void fwrite_string( const char *s, FILE *f )
 {

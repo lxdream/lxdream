@@ -1,5 +1,5 @@
 /**
- * $Id: dream.h,v 1.16 2007-10-31 09:10:23 nkeynes Exp $
+ * $Id: dream.h,v 1.17 2007-11-07 11:45:53 nkeynes Exp $
  *
  * Miscellaneous application-wide declarations (mainly logging atm)
  *
@@ -94,6 +94,8 @@ int fread_gzip( void *p, size_t size, size_t num, FILE *f );
 void fwrite_dump( unsigned char *buf, unsigned int length, FILE *f );
 void fwrite_dump32( unsigned int *buf, unsigned int length, FILE *f );
 void fwrite_dump32v( unsigned int *buf, unsigned int length, int wordsPerLine, FILE *f );
+
+void install_crash_handler(void);
 
 gboolean write_png_to_stream( FILE *f, frame_buffer_t );
 frame_buffer_t read_png_from_stream( FILE *f );
