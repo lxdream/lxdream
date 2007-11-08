@@ -1,5 +1,5 @@
 /**
- * $Id: lxdream.h,v 1.2 2007-11-08 11:54:16 nkeynes Exp $
+ * $Id: lxdream.h,v 1.3 2007-11-08 11:55:47 nkeynes Exp $
  *
  * Common type definitions and forward declarations
  *
@@ -27,7 +27,7 @@ extern "C" {
 #endif
 
 #define APP_NAME "lxDream"
-#define APP_VERSION "0.8"
+#define APP_VERSION "0.8.1"
 
 #define MB *1024*1024
 #define KB *1024

@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 
 AC_INIT(configure.in)
-AM_INIT_AUTOMAKE(dream, 0.1)
+AM_INIT_AUTOMAKE(lxdream, 0.8.1)
 AM_MAINTAINER_MODE
 AM_CONFIG_HEADER(config.h)
 
@@ -14,9 +14,6 @@ PKG_CHECK_MODULES(PACKAGE,
    [ gtk+-2.0 dnl
      esound dnl
      libpng ])
-AC_SUBST(PACKAGE_CFLAGS)
-AC_SUBST(PACKAGE_LIBS)
-
 AC_CHECK_LIB(z, uncompress, [], [
     echo "Zlib (libz.so) could not be found, but is required."
     exit 1])
@@ -29,9 +26,12 @@ AC_CHECK_HEADER([linux/cdrom.h], [HAVE_LINUX_CDROM_H=yes], [
     echo "Linux CDROM support not found, building without it."]  )
 AM_CONDITIONAL(CDROM_LINUX, [test "$HAVE_LINUX_CDROM_H" = "yes"])
 
-GETTEXT_PACKAGE=dream
+GETTEXT_PACKAGE=lxdream
 AC_SUBST(GETTEXT_PACKAGE)
 AC_DEFINE_UNQUOTED(GETTEXT_PACKAGE,"$GETTEXT_PACKAGE")
+AC_SUBST(PACKAGE_CFLAGS)
+AC_SUBST(PACKAGE_LIBS)
+
 
 dnl Add the languages which your application supports here.
 ALL_LINGUAS=""

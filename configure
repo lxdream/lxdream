@@ -2025,8 +2025,8 @@ fi
 
 
 # Define the identity of the package.
- PACKAGE=dream
- VERSION=0.1
+ PACKAGE=lxdream
+ VERSION=0.8
 
 
 cat >>confdefs.h <<_ACEOF
@@ -5051,9 +5051,6 @@ echo "${ECHO_T}yes" >&6; }
 	:
 fi
 
-
-
-
 { echo "$as_me:$LINENO: checking for uncompress in -lz" >&5
 echo $ECHO_N "checking for uncompress in -lz... $ECHO_C" >&6; }
 if test "${ac_cv_lib_z_uncompress+set}" = set; then
@@ -5417,11 +5414,14 @@ else
 fi
 
 
-GETTEXT_PACKAGE=dream
+GETTEXT_PACKAGE=lxdream
 
 cat >>confdefs.h <<_ACEOF
 #define GETTEXT_PACKAGE "$GETTEXT_PACKAGE"
 _ACEOF
+
+
+
 
 
 ALL_LINGUAS=""
