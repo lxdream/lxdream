@@ -1,5 +1,5 @@
 /**
- * $Id: main_win.c,v 1.9 2007-11-02 08:22:33 nkeynes Exp $
+ * $Id: main_win.c,v 1.10 2007-11-08 10:46:41 nkeynes Exp $
  *
  * Define the main (emu) GTK window, along with its menubars,
  * toolbars, etc.
@@ -48,10 +48,29 @@ static gboolean on_main_window_deleted( GtkWidget *widget, GdkEvent event, gpoin
 static void on_main_window_state_changed( GtkWidget *widget, GdkEventWindowState *state, 
 					  gpointer userdata )
 {
+    main_window_t win = (main_window_t)userdata;
     if( state->changed_mask & GDK_WINDOW_STATE_FULLSCREEN ) {
 	gboolean fs = (state->new_window_state & GDK_WINDOW_STATE_FULLSCREEN);
+	GtkWidget *frame = gtk_widget_get_parent(win->video);
+	if( frame->style == NULL ) {
+	    gtk_widget_set_style( frame, gtk_style_new() );
+	}
+	if( fs ) {
+	    gtk_widget_hide( win->menubar );
+	    gtk_widget_hide( win->toolbar );
+	    gtk_widget_hide( win->statusbar );
+	    
+	    frame->style->xthickness = 0;
+	    frame->style->ythickness = 0;
+	} else {
+	    frame->style->xthickness = 2;
+	    frame->style->ythickness = 2;
+	    gtk_widget_show( win->menubar );
+	    gtk_widget_show( win->toolbar );
+	    gtk_widget_show( win->statusbar );
+	}
+	gtk_widget_queue_draw( win->window );
     }
-    return FALSE;
 }
 
 main_window_t main_window_new( const gchar *title, GtkWidget *menubar, GtkWidget *toolbar,
@@ -132,24 +151,9 @@ GtkWindow *main_window_get_frame( main_window_t win )
 
 void main_window_set_fullscreen( main_window_t win, gboolean fullscreen )
 {
-    GtkWidget *frame = gtk_widget_get_parent(win->video);
-    if( frame->style == NULL ) {
-	gtk_widget_set_style( frame, gtk_style_new() );
-    }
     if( fullscreen ) {
 	gtk_window_fullscreen( GTK_WINDOW(win->window) );
-	gtk_widget_hide( win->menubar );
-	gtk_widget_hide( win->toolbar );
-	gtk_widget_hide( win->statusbar );
-	
-	frame->style->xthickness = 0;
-	frame->style->ythickness = 0;
     } else {
 	gtk_window_unfullscreen( GTK_WINDOW(win->window) );
-	frame->style->xthickness = 2;
-	frame->style->ythickness = 2;
-	gtk_widget_show( win->menubar );
-	gtk_widget_show( win->toolbar );
-	gtk_widget_show( win->statusbar );
     }
 }
