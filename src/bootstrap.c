@@ -1,5 +1,5 @@
 /**
- * $Id: bootstrap.c,v 1.8 2007-10-11 08:22:03 nkeynes Exp $
+ * $Id: bootstrap.c,v 1.9 2007-11-08 11:54:16 nkeynes Exp $
  *
  * CD Bootstrap header parsing. Mostly for informational purposes.
  *
@@ -106,7 +106,7 @@ static char *dc_peripherals[] = { "Uses WinCE", "Unknown (0x0000002)",
  * @param detail true to include a ful information dump, false for just
  *  the facts, maam.
  */
-void bootstrap_dump( unsigned char *data, gboolean detail )
+void bootstrap_dump( void *data, gboolean detail )
 {
     struct dc_bootstrap_head *head;
     int i, got, periph, crc, hcrc;

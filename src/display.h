@@ -1,5 +1,5 @@
 /**
- * $Id: display.h,v 1.11 2007-10-31 09:10:23 nkeynes Exp $
+ * $Id: display.h,v 1.12 2007-11-08 11:54:16 nkeynes Exp $
  *
  * The PC side of the video support (responsible for actually displaying / 
  * rendering frames)
@@ -80,7 +80,7 @@ struct frame_buffer {
     sh4addr_t address;
     uint32_t size; /* Size of buffer in bytes, must be width*height*bpp */
     gboolean inverted;/* True if the buffer is upside down */
-    char *data;
+    unsigned char *data;
 };
 
 /**

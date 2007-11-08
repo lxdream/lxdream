@@ -1,5 +1,5 @@
 /**
- * $Id: dcload.c,v 1.7 2007-10-06 08:59:42 nkeynes Exp $
+ * $Id: dcload.c,v 1.8 2007-11-08 11:54:16 nkeynes Exp $
  * 
  * DC-load syscall implementation.
  *
@@ -86,7 +86,7 @@ void dcload_syscall( uint32_t syscall_id )
 	if( fd < 0 || fd >= MAX_OPEN_FDS || open_fds[fd] == -1 ) {
 	    sh4r.r[0] = -1;
 	} else {
-	    char *buf = mem_get_region( sh4r.r[6] );
+	    sh4ptr_t buf = mem_get_region( sh4r.r[6] );
 	    int length = sh4r.r[7];
 	    sh4r.r[0] = read( open_fds[fd], buf, length );
 	}
@@ -96,7 +96,7 @@ void dcload_syscall( uint32_t syscall_id )
 	if( fd < 0 || fd >= MAX_OPEN_FDS || open_fds[fd] == -1 ) {
 	    sh4r.r[0] = -1;
 	} else {
-	    char *buf = mem_get_region( sh4r.r[6] );
+	    sh4ptr_t buf = mem_get_region( sh4r.r[6] );
 	    int length = sh4r.r[7];
 	    sh4r.r[0] = write( open_fds[fd], buf, length );
 	}
@@ -117,7 +117,7 @@ void dcload_syscall( uint32_t syscall_id )
 	    if( fd == -1 ) {
 		sh4r.r[0] = -1;
 	    } else {
-		char *filename = mem_get_region( sh4r.r[5] );
+		char *filename = (char *)mem_get_region( sh4r.r[5] );
 		int realfd = open( filename, sh4r.r[6] );
 		open_fds[fd] = realfd;
 		sh4r.r[0] = realfd;

@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2mem.c,v 1.11 2007-10-31 09:10:23 nkeynes Exp $
+ * $Id: pvr2mem.c,v 1.12 2007-11-08 11:54:16 nkeynes Exp $
  *
  * PVR2 (Video) VRAM handling routines (mainly for the 64-bit region)
  *
@@ -37,7 +37,7 @@ void pvr2_dma_write( sh4addr_t destaddr, unsigned char *src, uint32_t count )
 	if( region == 0 ) {
 	    pvr2_vram64_write( destaddr, src, count );
 	} else {
-	    char *dest = mem_get_region(destaddr);
+	    unsigned char *dest = mem_get_region(destaddr);
 	    memcpy( dest, src, count );
 	}
 	break;
@@ -51,7 +51,7 @@ void pvr2_dma_write( sh4addr_t destaddr, unsigned char *src, uint32_t count )
 	if( region == 0 ) {
 	    pvr2_vram64_write( destaddr, src, count );
 	} else {
-	    char *dest = mem_get_region(destaddr);
+	    unsigned char *dest = mem_get_region(destaddr);
 	    memcpy( dest, src, count );
 	}
     }	    

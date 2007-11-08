@@ -1,5 +1,5 @@
 /**
- * $Id: controller.c,v 1.9 2007-10-23 10:47:17 nkeynes Exp $
+ * $Id: controller.c,v 1.10 2007-11-08 11:54:16 nkeynes Exp $
  *
  * Implements the standard dreamcast controller
  *
@@ -32,7 +32,7 @@ maple_device_t controller_clone( maple_device_t dev );
 maple_device_t controller_new();
 lxdream_config_entry_t controller_get_config( maple_device_t dev );
 int controller_get_cond( maple_device_t dev, int function, unsigned char *outbuf,
-                         int *outlen );
+                         unsigned int *outlen );
 
 typedef struct controller_device {
     struct maple_device dev;
@@ -187,7 +187,7 @@ void controller_detach( maple_device_t mdev )
 
 
 int controller_get_cond( maple_device_t mdev, int function, unsigned char *outbuf,
-                         int *outlen )
+                         unsigned int *outlen )
 {
     controller_device_t dev = (controller_device_t)mdev;
     if( function == MAPLE_FUNC_CONTROLLER ) {

@@ -1,5 +1,5 @@
 /**
- * $Id: lxdream.h,v 1.1 2007-10-31 09:10:23 nkeynes Exp $
+ * $Id: lxdream.h,v 1.2 2007-11-08 11:54:16 nkeynes Exp $
  *
  * Common type definitions and forward declarations
  *
@@ -36,8 +36,14 @@ extern "C" {
 #define max(a,b) ( (a) > (b) ? (a) : (b) )
 #endif
 
-
+/**
+ * A 32-bit address in SH4 space
+ */
 typedef uint32_t sh4addr_t;
+/**
+ * A direct pointer into SH4 memory
+ */
+typedef unsigned char *sh4ptr_t;
 
 /******************* Forward type declarations ******************/
 

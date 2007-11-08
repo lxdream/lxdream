@@ -1,5 +1,5 @@
 /**
- * $Id: bios.c,v 1.4 2007-10-08 12:06:01 nkeynes Exp $
+ * $Id: bios.c,v 1.5 2007-11-08 11:54:16 nkeynes Exp $
  * 
  * "Fake" BIOS functions, for operation without the actual BIOS.
  *
@@ -55,7 +55,7 @@
 typedef struct gdrom_command {
     int status;
     uint32_t cmd_code;
-    char *data;
+    sh4ptr_t data;
     uint32_t result[4];
 } *gdrom_command_t;
 
@@ -86,7 +86,7 @@ void bios_gdrom_init( void )
     memset( &gdrom_cmd_queue, 0, sizeof(gdrom_cmd_queue) );
 }
 
-uint32_t bios_gdrom_enqueue( uint32_t cmd, char *ptr )
+uint32_t bios_gdrom_enqueue( uint32_t cmd, sh4ptr_t ptr )
 {
     int i;
     for( i=0; i<COMMAND_QUEUE_LENGTH; i++ ) {
@@ -151,7 +151,7 @@ void bios_syscall( uint32_t syscallid )
 		    sh4r.r[0] = cmd->status;
 		    if( cmd->status == GD_CMD_STATUS_ERROR &&
 			sh4r.r[5] != 0 ) {
-			mem_copy_to_sh4( sh4r.r[5], (unsigned char *)&cmd->result, sizeof(cmd->result) );
+			mem_copy_to_sh4( sh4r.r[5], (sh4ptr_t)&cmd->result, sizeof(cmd->result) );
 		    }
 		}
 		break;
@@ -163,7 +163,7 @@ void bios_syscall( uint32_t syscallid )
 		break;
 	    case 4: /* Drive status */
 		if( sh4r.r[4] != 0 ) {
-		    mem_copy_to_sh4( sh4r.r[4], (unsigned char *)&bios_gdrom_status, 
+		    mem_copy_to_sh4( sh4r.r[4], (sh4ptr_t)&bios_gdrom_status, 
 				      sizeof(bios_gdrom_status) );
 		}
 		sh4r.r[0] = 0;

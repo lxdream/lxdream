@@ -1,5 +1,5 @@
 /**
- * $Id: maple.h,v 1.9 2007-10-31 11:53:35 nkeynes Exp $
+ * $Id: maple.h,v 1.10 2007-11-08 11:54:16 nkeynes Exp $
  *
  * Maple bus definitions
  *
@@ -79,13 +79,13 @@ struct maple_device {
     int (*reset)(struct maple_device *dev);
     int (*shutdown)(struct maple_device *dev);
     int (*get_condition)(struct maple_device *dev,
-                         int function, unsigned char *outbuf, int *buflen);
+                         int function, unsigned char *outbuf, unsigned int *buflen);
     int (*set_condition)(struct maple_device *dev,
-                         int function, unsigned char *inbuf, int buflen);
+                         int function, unsigned char *inbuf, unsigned int buflen);
     int (*read_block)(struct maple_device *dev,
-                      int function, uint32_t block, unsigned char *outbuf, int *buflen);
+                      int function, uint32_t block, unsigned char *outbuf, unsigned int *buflen);
     int (*write_block)(struct maple_device *dev,
-                       int function, uint32_t block, unsigned char *inbuf, int buflen);
+                       int function, uint32_t block, unsigned char *inbuf, unsigned int buflen);
 };
 
 extern struct maple_device_class controller_class;

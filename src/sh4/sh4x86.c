@@ -1,5 +1,5 @@
 /**
- * $Id: sh4x86.c,v 1.18 2007-10-04 08:47:27 nkeynes Exp $
+ * $Id: sh4x86.c,v 1.19 2007-11-08 11:54:16 nkeynes Exp $
  * 
  * SH4 => x86 translation. This version does no real optimization, it just
  * outputs straight-line x86 code - it mainly exists to provide a baseline
@@ -2825,7 +2825,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
             	SLOTILLEGAL();
                 } else {
             	uint32_t target = (pc & 0xFFFFFFFC) + disp + 4;
-            	char *ptr = mem_get_region(target);
+            	sh4ptr_t ptr = mem_get_region(target);
             	if( ptr != NULL ) {
             	    MOV_moff32_EAX( (uint32_t)ptr );
             	} else {
