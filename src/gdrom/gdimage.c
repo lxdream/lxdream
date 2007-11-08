@@ -1,5 +1,5 @@
 /**
- * $Id: gdimage.c,v 1.6 2007-11-06 08:35:16 nkeynes Exp $
+ * $Id: gdimage.c,v 1.7 2007-11-08 10:48:41 nkeynes Exp $
  *
  * GD-Rom image-file common functions. 
  *
@@ -30,6 +30,11 @@ static gdrom_error_t gdrom_image_read_session( gdrom_disc_t disc, int session, u
 static gdrom_error_t gdrom_image_read_position( gdrom_disc_t disc, uint32_t lba, unsigned char *buf );
 static int gdrom_image_drive_status( gdrom_disc_t disc );
 
+struct cdrom_sector_header {
+    uint8_t sync[12];
+    uint8_t msf[3];
+    uint8_t mode;
+};
 
 /**
  * Initialize a gdrom_disc structure with the gdrom_image_* methods
@@ -127,7 +132,7 @@ static int gdrom_image_get_track_by_lba( gdrom_image_t image, uint32_t lba )
  * Read a block from an image file, handling negative file offsets
  * with 0-fill.
  */
-static void gdrom_read_block( char *buf, int file_offset, int length, FILE *f )
+static void gdrom_read_block( unsigned char *buf, int file_offset, int length, FILE *f )
 {
     if( file_offset < 0 ) {
 	int size = -file_offset;
@@ -148,7 +153,9 @@ static gdrom_error_t gdrom_image_read_sector( gdrom_disc_t disc, uint32_t lba,
 					      int mode, unsigned char *buf, uint32_t *length )
 {
     gdrom_image_t image = (gdrom_image_t)disc;
+    struct cdrom_sector_header secthead;
     int file_offset, read_len, track_no;
+
     FILE *f;
 
     track_no = gdrom_image_get_track_by_lba( image, lba );
@@ -169,14 +176,28 @@ static gdrom_error_t gdrom_image_read_sector( gdrom_disc_t disc, uint32_t lba,
     switch( mode ) {
     case 0x24:
     case 0x28:
+	read_len = 2048;
 	switch( track->mode ) {
 	case GDROM_MODE1:
 	case GDROM_MODE2_XA1:
 	    gdrom_read_block( buf, file_offset, track->sector_size, f );
 	    break;
 	case GDROM_MODE2:
-	    read_len = 2048;
 	    file_offset += 8; /* skip the subheader */
+	    gdrom_read_block( buf, file_offset, 2048, f );
+	    break;
+	case GDROM_RAW:
+	    gdrom_read_block( (unsigned char *)(&secthead), file_offset, sizeof(secthead), f );
+	    switch( secthead.mode ) {
+	    case 1:
+		file_offset += 16;
+		break;
+	    case 2:
+		file_offset += 24;
+		break;
+	    default:
+		return PKT_ERR_BADREADMODE;
+	    }
 	    gdrom_read_block( buf, file_offset, 2048, f );
 	    break;
 	default:

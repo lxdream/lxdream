@@ -1,5 +1,5 @@
 /**
- * $Id: gdi.c,v 1.1 2007-11-06 08:35:16 nkeynes Exp $
+ * $Id: gdi.c,v 1.2 2007-11-08 10:48:41 nkeynes Exp $
  *
  * NullDC GDI image format
  *
@@ -86,7 +86,7 @@ static gdrom_disc_t gdi_image_open( const gchar *filename, FILE *f )
 	    return NULL;
 	}
 	sscanf( line, "%d %d %d %d %s %d", &track_no, &start_lba, &flags, &size,
-		&filename, &offset );
+		filename, &offset );
 	if( start_lba >= 45000 ) {
 	    image->track[i].session = 1;
 	} else {
@@ -110,14 +110,25 @@ static gdrom_disc_t gdi_image_open( const gchar *filename, FILE *f )
 	    }
 	    fstat( fileno(image->track[i].file), &st );
 	    image->track[i].sector_count = st.st_size / size;
-	    switch(size) {
-	    case 2048: image->track[i].mode = GDROM_MODE1; break;
-	    case 2336: image->track[i].mode = GDROM_GD; break;
-	    case 2352: image->track[i].mode = GDROM_CDDA; break;
-	    default:
-		gdrom_image_destroy_no_close(disc);
-		g_free(dirname);
-		return NULL;
+	    if( image->track[i].flags & TRACK_DATA ) {
+		/* Data track */
+		switch(size) {
+		case 2048: image->track[i].mode = GDROM_MODE1; break;
+		case 2336: image->track[i].mode = GDROM_GD; break;
+		case 2352: image->track[i].mode = GDROM_RAW; break;
+		default:
+		    gdrom_image_destroy_no_close(disc);
+		    g_free(dirname);
+		    return NULL;
+		}
+	    } else {
+		/* Audio track */
+		image->track[i].mode = GDROM_CDDA;
+		if( size != 2352 ) {
+		    gdrom_image_destroy_no_close(disc);
+		    g_free(dirname);
+		    return NULL;
+		}
 	    }
 	}
 	image->track[i].offset = offset;
