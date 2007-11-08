@@ -1,5 +1,5 @@
 /**
- * $Id: sh4stat.in,v 1.1 2007-09-18 08:58:23 nkeynes Exp $
+ * $Id: sh4stat.in,v 1.2 2007-11-08 11:37:49 nkeynes Exp $
  * 
  * Support module for collecting instruction stats
  *
@@ -177,9 +177,9 @@ void sh4_stats_print( FILE *out )
 {
     int i;
     for( i=0; i<= I_UNDEF; i++ ) {
-	fprintf( out, "%-20s\t%d\t%.2f%\n", sh4_stats_names[i], (uint32_t)sh4_stats[i], ((double)sh4_stats[i])*100.0/(double)sh4_stats_total );
+	fprintf( out, "%-20s\t%d\t%.2f%%\n", sh4_stats_names[i], (uint32_t)sh4_stats[i], ((double)sh4_stats[i])*100.0/(double)sh4_stats_total );
     }
-    fprintf( out, "Total: %d\n", sh4_stats_total );
+    fprintf( out, "Total: %lld\n", sh4_stats_total );
 }
 
 void sh4_stats_add( uint32_t pc ) 
