@@ -1,5 +1,5 @@
 /**
- * $Id: testsh4x86.c,v 1.5 2007-09-16 07:01:35 nkeynes Exp $
+ * $Id: testsh4x86.c,v 1.6 2007-11-08 10:49:16 nkeynes Exp $
  *
  * Test cases for the SH4 => x86 translator core. Takes as
  * input a binary SH4 object (and VMA), generates the
@@ -78,6 +78,13 @@ void sh4_write_sr( uint32_t val ) { }
 void syscall_invoke( uint32_t val ) { }
 uint32_t sh4_read_sr( void ) { }
 gboolean sh4_raise_exception( int exc ) {}
+gboolean sh4_raise_trap( int exc ) {}
+void sh4_sleep() { }
+void sh4_fsca( uint32_t angle, float *fr ) { }
+void sh4_ftrv( float *fv, float *xmtrx ) { }
+void signsat48(void) { }
+uint16_t *sh4_icache = NULL;
+uint32_t sh4_icache_addr = 0;
 
 void usage()
 {
