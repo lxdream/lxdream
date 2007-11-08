@@ -1,5 +1,5 @@
 /**
- * $Id: sh4.c,v 1.6 2007-10-31 09:02:18 nkeynes Exp $
+ * $Id: sh4.c,v 1.7 2007-11-08 11:54:16 nkeynes Exp $
  * 
  * SH4 parent module for all CPU modes and SH4 peripheral
  * modules.
@@ -52,7 +52,7 @@ struct dreamcast_module sh4_module = { "SH4", sh4_init, sh4_reset,
 struct sh4_registers sh4r;
 struct breakpoint_struct sh4_breakpoints[MAX_BREAKPOINTS];
 int sh4_breakpoint_count = 0;
-extern char *sh4_main_ram;
+extern sh4ptr_t sh4_main_ram;
 
 void sh4_set_use_xlat( gboolean use )
 {
@@ -106,6 +106,11 @@ void sh4_reset(void)
 
 void sh4_stop(void)
 {
+    if(	sh4_module.run_time_slice == sh4_xlat_run_slice ) {
+	/* If we were running with the translator, update new_pc and in_delay_slot */
+	sh4r.new_pc = sh4r.pc+2;
+	sh4r.in_delay_slot = FALSE;
+    }
 
 }
 

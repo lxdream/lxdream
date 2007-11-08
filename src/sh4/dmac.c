@@ -1,5 +1,5 @@
 /**
- * $Id: dmac.c,v 1.3 2007-10-08 12:06:01 nkeynes Exp $
+ * $Id: dmac.c,v 1.4 2007-11-08 11:54:16 nkeynes Exp $
  * 
  * SH4 onboard DMA controller (DMAC) peripheral.
  *
@@ -170,7 +170,7 @@ void DMAC_run_channel( uint32_t channel, uint32_t run_count )
  *
  * @return the number of bytes actually transferred.
  */
-uint32_t DMAC_get_buffer( int channel, unsigned char *buf, uint32_t numBytes )
+uint32_t DMAC_get_buffer( int channel, sh4ptr_t buf, uint32_t numBytes )
 {
     uint32_t control = DMA_CONTROL(channel);
     uint32_t source, count, run_count, size, i;
@@ -195,7 +195,7 @@ uint32_t DMAC_get_buffer( int channel, unsigned char *buf, uint32_t numBytes )
 	run_count = count;
 
     /* Do copy - FIXME: doesn't work when crossing regions */
-    char *region = mem_get_region( source );
+    sh4ptr_t region = mem_get_region( source );
     switch( (control >> 12) & 0x03 ) {
     case 0: 
 	memcpy( tmp, region, size );
@@ -235,7 +235,7 @@ uint32_t DMAC_get_buffer( int channel, unsigned char *buf, uint32_t numBytes )
     return run_count * size;
 }
 
-uint32_t DMAC_put_buffer( int channel, unsigned char *buf, uint32_t numBytes )
+uint32_t DMAC_put_buffer( int channel, sh4ptr_t buf, uint32_t numBytes )
 {
     uint32_t control = DMA_CONTROL(channel);
     uint32_t dest, count, run_count, size, i;
@@ -258,7 +258,7 @@ uint32_t DMAC_put_buffer( int channel, unsigned char *buf, uint32_t numBytes )
 	run_count = count;
 
     /* Do copy - FIXME: doesn't work when crossing regions */
-    char *region = mem_get_region( dest );
+    sh4ptr_t region = mem_get_region( dest );
     switch( (control >> 12) & 0x03 ) {
     case 0: 
 	for( i=0; i<run_count; i++ ) { 

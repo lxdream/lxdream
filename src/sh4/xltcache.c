@@ -1,5 +1,5 @@
 /**
- * $Id: xltcache.c,v 1.10 2007-11-04 01:03:00 nkeynes Exp $
+ * $Id: xltcache.c,v 1.11 2007-11-08 11:54:16 nkeynes Exp $
  * 
  * Translation cache management. This part is architecture independent.
  *
@@ -374,7 +374,7 @@ xlat_cache_block_t xlat_extend_block( uint32_t newSize )
 	if( xlat_new_cache_ptr->size == 0 ) {
 	    /* Migrate to the front of the cache to keep it contiguous */
 	    xlat_new_create_ptr->active = 0;
-	    unsigned char *olddata = xlat_new_create_ptr->code;
+	    sh4ptr_t olddata = xlat_new_create_ptr->code;
 	    int oldsize = xlat_new_create_ptr->size;
 	    int size = oldsize + MIN_BLOCK_SIZE; /* minimum expansion */
 	    void **lut_entry = xlat_new_create_ptr->lut_entry;

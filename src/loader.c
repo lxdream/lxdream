@@ -1,5 +1,5 @@
 /**
- * $Id: loader.c,v 1.21 2007-10-31 12:05:23 nkeynes Exp $
+ * $Id: loader.c,v 1.22 2007-11-08 11:54:16 nkeynes Exp $
  *
  * File loading routines, mostly for loading demos without going through the
  * whole procedure of making a CD image for them.
@@ -75,7 +75,7 @@ gboolean file_load_magic( const gchar *filename )
     if( memcmp( buf, bootstrap_magic, 32 ) == 0 ) {
         /* we have a DC bootstrap */
         if( st.st_size == BOOTSTRAP_SIZE ) {
-            unsigned char *load = (unsigned char *)mem_get_region( BOOTSTRAP_LOAD_ADDR );
+            sh4ptr_t load = mem_get_region( BOOTSTRAP_LOAD_ADDR );
             lseek( fd, 0, SEEK_SET );
             read( fd, load, BOOTSTRAP_SIZE );
             bootstrap_dump( load, TRUE );
@@ -167,7 +167,7 @@ gboolean file_load_elf_fd( int fd )
 	read( fd, &phdr, sizeof(phdr) );
 	if( phdr.p_type == PT_LOAD ) {
 	    lseek( fd, phdr.p_offset, SEEK_SET );
-	    char *target = mem_get_region( phdr.p_vaddr );
+	    sh4ptr_t target = mem_get_region( phdr.p_vaddr );
 	    read( fd, target, phdr.p_filesz );
 	    if( phdr.p_memsz > phdr.p_filesz ) {
 		memset( target + phdr.p_filesz, 0, phdr.p_memsz - phdr.p_filesz );

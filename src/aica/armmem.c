@@ -1,5 +1,5 @@
 /**
- * $Id: armmem.c,v 1.8 2007-10-09 08:11:51 nkeynes Exp $
+ * $Id: armmem.c,v 1.9 2007-11-08 11:54:16 nkeynes Exp $
  *
  * Implements the ARM's memory map.
  *
@@ -21,8 +21,8 @@
 #include "mem.h"
 #include "aica.h"
 
-char *arm_mem = NULL;
-char *arm_mem_scratch = NULL;
+unsigned char *arm_mem = NULL;
+unsigned char *arm_mem_scratch = NULL;
 
 void arm_mem_init() {
     arm_mem = mem_get_region_by_name( MEM_REGION_AUDIO );

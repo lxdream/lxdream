@@ -1,5 +1,5 @@
 /**
- * $Id: sh4mem.c,v 1.29 2007-10-16 12:36:59 nkeynes Exp $
+ * $Id: sh4mem.c,v 1.30 2007-11-08 11:54:16 nkeynes Exp $
  * sh4mem.c is responsible for the SH4's access to memory (including memory
  * mapped I/O), using the page maps created in mem.c
  *
@@ -67,7 +67,7 @@ TRACE( str " [%s.%s: %s]", __VA_ARGS__, \
 
 extern struct mem_region mem_rgn[];
 extern struct mmio_region *P4_io[];
-char *sh4_main_ram;
+sh4ptr_t sh4_main_ram;
 
 int32_t sh4_read_p4( uint32_t addr )
 {
@@ -106,7 +106,7 @@ void sh4_write_p4( uint32_t addr, int32_t val )
 
 int32_t sh4_read_phys_word( uint32_t addr )
 {
-    char *page;
+    sh4ptr_t page;
     if( addr >= 0xE0000000 ) /* P4 Area, handled specially */
         return SIGNEXT16(sh4_read_p4( addr ));
     
@@ -129,7 +129,7 @@ int32_t sh4_read_phys_word( uint32_t addr )
 
 int32_t sh4_read_long( uint32_t addr )
 {
-    char *page;
+    sh4ptr_t page;
     
     CHECK_READ_WATCH(addr,4);
 
@@ -161,7 +161,7 @@ int32_t sh4_read_long( uint32_t addr )
 
 int32_t sh4_read_word( uint32_t addr )
 {
-    char *page;
+    sh4ptr_t page;
 
     CHECK_READ_WATCH(addr,2);
 
@@ -193,7 +193,7 @@ int32_t sh4_read_word( uint32_t addr )
 
 int32_t sh4_read_byte( uint32_t addr )
 {
-    char *page;
+    sh4ptr_t page;
 
     CHECK_READ_WATCH(addr,1);
 
@@ -226,7 +226,7 @@ int32_t sh4_read_byte( uint32_t addr )
 
 void sh4_write_long( uint32_t addr, uint32_t val )
 {
-    char *page;
+    sh4ptr_t page;
 
     // fprintf( stderr, "MOV.L %08X => %08X\n", val, addr );
     CHECK_WRITE_WATCH(addr,4,val);
@@ -273,7 +273,7 @@ void sh4_write_long( uint32_t addr, uint32_t val )
 
 void sh4_write_word( uint32_t addr, uint32_t val )
 {
-    char *page;
+    sh4ptr_t page;
 
     //    fprintf( stderr, "MOV.W %04X => %08X\n", val, addr );
     CHECK_WRITE_WATCH(addr,2,val);
@@ -314,7 +314,7 @@ void sh4_write_word( uint32_t addr, uint32_t val )
 
 void sh4_write_byte( uint32_t addr, uint32_t val )
 {
-    char *page;
+    sh4ptr_t page;
     
     //    fprintf( stderr, "MOV.B %02X => %08X\n", val, addr );
     CHECK_WRITE_WATCH(addr,1,val);
@@ -358,11 +358,11 @@ void sh4_write_byte( uint32_t addr, uint32_t val )
 /* FIXME: Handle all the many special cases when the range doesn't fall cleanly
  * into the same memory block
  */
-void mem_copy_from_sh4( unsigned char *dest, uint32_t srcaddr, size_t count ) {
+void mem_copy_from_sh4( sh4ptr_t dest, uint32_t srcaddr, size_t count ) {
     if( srcaddr >= 0x04000000 && srcaddr < 0x05000000 ) {
 	pvr2_vram64_read( dest, srcaddr, count );
     } else {
-	char *src = mem_get_region(srcaddr);
+	sh4ptr_t src = mem_get_region(srcaddr);
 	if( src == NULL ) {
 	    WARN( "Attempted block read from unknown address %08X", srcaddr );
 	} else {
@@ -371,7 +371,7 @@ void mem_copy_from_sh4( unsigned char *dest, uint32_t srcaddr, size_t count ) {
     }
 }
 
-void mem_copy_to_sh4( uint32_t destaddr, unsigned char *src, size_t count ) {
+void mem_copy_to_sh4( uint32_t destaddr, sh4ptr_t src, size_t count ) {
     if( destaddr >= 0x10000000 && destaddr < 0x14000000 ) {
 	pvr2_dma_write( destaddr, src, count );
 	return;
@@ -381,7 +381,7 @@ void mem_copy_to_sh4( uint32_t destaddr, unsigned char *src, size_t count ) {
 	pvr2_vram64_write( destaddr, src, count );
 	return;
     }
-    char *dest = mem_get_region(destaddr);
+    sh4ptr_t dest = mem_get_region(destaddr);
     if( dest == NULL )
 	WARN( "Attempted block write to unknown address %08X", destaddr );
     else {
@@ -394,7 +394,7 @@ void sh4_flush_store_queue( uint32_t addr )
 {
     /* Store queue operation */
     int queue = (addr&0x20)>>2;
-    unsigned char *src = (unsigned char *)&sh4r.store_queue[queue];
+    sh4ptr_t src = (sh4ptr_t)&sh4r.store_queue[queue];
     uint32_t hi = (MMIO_READ( MMU, (queue == 0 ? QACR0 : QACR1) ) & 0x1C) << 24;
     uint32_t target = (addr&0x03FFFFE0) | hi;
     mem_copy_to_sh4( target, src, 32 );

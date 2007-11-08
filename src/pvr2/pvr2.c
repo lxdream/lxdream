@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.c,v 1.48 2007-10-31 09:10:23 nkeynes Exp $
+ * $Id: pvr2.c,v 1.49 2007-11-08 11:54:16 nkeynes Exp $
  *
  * PVR2 (Video) Core module implementation and MMIO registers.
  *
@@ -29,7 +29,7 @@
 #define MMIO_IMPL
 #include "pvr2/pvr2mmio.h"
 
-char *video_base;
+unsigned char *video_base;
 
 #define MAX_RENDER_BUFFERS 4
 

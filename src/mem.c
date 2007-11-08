@@ -1,5 +1,5 @@
 /**
- * $Id: mem.c,v 1.21 2007-11-04 08:49:18 nkeynes Exp $
+ * $Id: mem.c,v 1.22 2007-11-08 11:54:16 nkeynes Exp $
  * mem.c is responsible for creating and maintaining the overall system memory
  * map, as visible from the SH4 processor. 
  *
@@ -34,7 +34,7 @@
 #include "mmio.h"
 #include "dreamcast.h"
 
-char **page_map = NULL;
+sh4ptr_t *page_map = NULL;
 
 int mem_load(FILE *f);
 void mem_save(FILE *f);
@@ -163,7 +163,7 @@ int mem_load( FILE *f )
 
 int mem_save_block( const gchar *file, uint32_t start, uint32_t length )
 {
-    char *region;
+    sh4ptr_t region;
     int len = 4096, total = 0;
     uint32_t addr = start;
     FILE *f = fopen(file,"w");
@@ -191,7 +191,7 @@ int mem_save_block( const gchar *file, uint32_t start, uint32_t length )
 
 int mem_load_block( const gchar *file, uint32_t start, uint32_t length )
 {
-    char *region;
+    sh4ptr_t region;
     int len = 4096, total = 0;
     uint32_t addr = start;
     struct stat st;
@@ -269,7 +269,7 @@ void *mem_create_repeating_ram_region( uint32_t base, uint32_t size, const char 
 void *mem_load_rom( const gchar *file, uint32_t base, uint32_t size, uint32_t crc,
 		    const gchar *region_name )
 {
-    char *mem;
+    sh4ptr_t mem;
     uint32_t calc_crc;
     int status;
 
@@ -290,7 +290,7 @@ void *mem_load_rom( const gchar *file, uint32_t base, uint32_t size, uint32_t cr
 
     if( status == 0 ) {
 	/* CRC check only if we loaded something */
-	calc_crc = crc32(0L, (unsigned char *)mem, size);
+	calc_crc = crc32(0L, (sh4ptr_t)mem, size);
 	if( calc_crc != crc ) {
 	    WARN( "Bios CRC Mismatch in %s: %08X (expected %08X)",
 		  file, calc_crc, crc);
@@ -300,7 +300,7 @@ void *mem_load_rom( const gchar *file, uint32_t base, uint32_t size, uint32_t cr
     return mem;
 }
 
-char *mem_get_region_by_name( const char *name )
+sh4ptr_t mem_get_region_by_name( const char *name )
 {
     int i;
     for( i=0; i<num_mem_rgns; i++ ) {
@@ -330,7 +330,7 @@ void register_io_region( struct mmio_region *io )
         /* P4 area (on-chip I/O channels */
         P4_io[(io->base&0x1FFFFFFF)>>19] = io;
     } else {
-        page_map[io->base>>12] = (char *)num_io_rgns;
+        page_map[io->base>>12] = (sh4ptr_t )num_io_rgns;
     }
     io_rgn[num_io_rgns] = io;
     num_io_rgns++;
@@ -343,19 +343,19 @@ void register_io_regions( struct mmio_region **io )
 
 int mem_has_page( uint32_t addr )
 {
-    char *page = page_map[ (addr & 0x1FFFFFFF) >> 12 ];
+    sh4ptr_t page = page_map[ (addr & 0x1FFFFFFF) >> 12 ];
     return page != NULL;
 }
 
-char *mem_get_page( uint32_t addr )
+sh4ptr_t mem_get_page( uint32_t addr )
 {
-    char *page = page_map[ (addr & 0x1FFFFFFF) >> 12 ];
+    sh4ptr_t page = page_map[ (addr & 0x1FFFFFFF) >> 12 ];
     return page;
 }
 
-char *mem_get_region( uint32_t addr )
+sh4ptr_t mem_get_region( uint32_t addr )
 {
-    char *page = page_map[ (addr & 0x1FFFFFFF) >> 12 ];
+    sh4ptr_t page = page_map[ (addr & 0x1FFFFFFF) >> 12 ];
     if( ((uintptr_t)page) < MAX_IO_REGIONS ) { /* IO Region */
         return NULL;
     } else {
@@ -368,7 +368,7 @@ struct mmio_region *mem_get_io_region( uint32_t addr )
     if( addr > 0xFF000000 ) {
 	return P4_io[(addr&0x00FFFFFF)>>12];
     }
-    char *page = page_map[(addr&0x1FFFFFFF)>>12];
+    sh4ptr_t page = page_map[(addr&0x1FFFFFFF)>>12];
     if( ((uintptr_t)page) < MAX_IO_REGIONS ) {
 	return io_rgn[(uintptr_t)page];
     } else {

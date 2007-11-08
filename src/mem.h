@@ -1,5 +1,5 @@
 /**
- * $Id: mem.h,v 1.15 2007-10-31 09:10:23 nkeynes Exp $
+ * $Id: mem.h,v 1.16 2007-11-08 11:54:16 nkeynes Exp $
  *
  * mem is responsible for creating and maintaining the overall system memory
  * map, as visible from the SH4 processor. (Note the ARM has a different map)
@@ -31,7 +31,7 @@ typedef struct mem_region {
     uint32_t base;
     uint32_t size;
     const char *name;
-    char *mem;
+    sh4ptr_t mem;
     int flags;
 } *mem_region_t;
 
@@ -51,17 +51,17 @@ void *mem_create_repeating_ram_region( uint32_t base, uint32_t size, const char 
 void *mem_load_rom( const gchar *name, uint32_t base, uint32_t size, uint32_t crc,
 		    const gchar *region_name );
 void *mem_alloc_pages( int n );
-char *mem_get_region( uint32_t addr );
-char *mem_get_region_by_name( const char *name );
+sh4ptr_t mem_get_region( uint32_t addr );
+sh4ptr_t mem_get_region_by_name( const char *name );
 int mem_has_page( uint32_t addr );
-char *mem_get_page( uint32_t addr );
+sh4ptr_t mem_get_page( uint32_t addr );
 int mem_load_block( const gchar *filename, uint32_t base, uint32_t size );
 int mem_save_block( const gchar *filename, uint32_t base, uint32_t size );
 void mem_set_trace( uint32_t addr, int flag );
 void mem_init( void );
 void mem_reset( void );
-void mem_copy_from_sh4( unsigned char *dest, sh4addr_t src, size_t count );
-void mem_copy_to_sh4( sh4addr_t dest, unsigned char *src, size_t count );
+void mem_copy_from_sh4( sh4ptr_t dest, sh4addr_t src, size_t count );
+void mem_copy_to_sh4( sh4addr_t dest, sh4ptr_t src, size_t count );
 
 #define ENABLE_DEBUG_MODE 1
 
@@ -90,7 +90,7 @@ watch_point_t mem_new_watch( uint32_t start, uint32_t end, int flags );
 void mem_delete_watch( watch_point_t watch );
 watch_point_t mem_is_watched( uint32_t addr, int size, int op );
 
-extern char **page_map;
+extern sh4ptr_t *page_map;
 #ifdef __cplusplus
 }
 #endif

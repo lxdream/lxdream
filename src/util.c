@@ -1,5 +1,5 @@
 /**
- * $Id: util.c,v 1.13 2007-11-07 11:45:53 nkeynes Exp $
+ * $Id: util.c,v 1.14 2007-11-08 11:54:16 nkeynes Exp $
  *
  * Miscellaneous utility functions.
  *
@@ -34,7 +34,7 @@
 #include "sh4/sh4core.h"
 
 char *msg_levels[] = { "FATAL", "ERROR", "WARN", "INFO", "DEBUG", "TRACE" };
-int global_msg_level = EMIT_INFO;
+int global_msg_level = EMIT_WARN;
 
 static void report_crash( int signo, siginfo_t *info, void *ptr )
 {
@@ -254,7 +254,7 @@ frame_buffer_t read_png_from_stream( FILE *f )
     int rowbytes = png_get_rowbytes(png_ptr, info_ptr);
     int channels = png_get_channels(png_ptr, info_ptr);
     frame_buffer_t buffer = g_malloc( sizeof(struct frame_buffer) + rowbytes*height );
-    buffer->data = (char *)(buffer+1);
+    buffer->data = (unsigned char *)(buffer+1);
     buffer->width = width;
     buffer->height = height;
     buffer->rowstride = rowbytes;

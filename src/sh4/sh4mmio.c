@@ -1,5 +1,5 @@
 /**
- * $Id: sh4mmio.c,v 1.14 2007-10-07 06:27:12 nkeynes Exp $
+ * $Id: sh4mmio.c,v 1.15 2007-11-08 11:54:16 nkeynes Exp $
  * 
  * Miscellaneous and not-really-implemented SH4 peripheral modules. Also
  * responsible for including the IMPL side of the SH4 MMIO pages.
@@ -35,7 +35,7 @@ MMIO_REGION_READ_DEFFN( MMU )
 #define OCRAM_START (0x1C000000>>PAGE_BITS)
 #define OCRAM_END   (0x20000000>>PAGE_BITS)
 
-static char *cache = NULL;
+static sh4ptr_t cache = NULL;
 
 void mmio_region_MMU_write( uint32_t reg, uint32_t val )
 {
