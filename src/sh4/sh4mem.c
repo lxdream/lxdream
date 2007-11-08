@@ -1,5 +1,5 @@
 /**
- * $Id: sh4mem.c,v 1.30 2007-11-08 11:54:16 nkeynes Exp $
+ * $Id: sh4mem.c,v 1.31 2007-11-08 12:01:57 nkeynes Exp $
  * sh4mem.c is responsible for the SH4's access to memory (including memory
  * mapped I/O), using the page maps created in mem.c
  *
@@ -115,13 +115,13 @@ int32_t sh4_read_phys_word( uint32_t addr )
     }
 
     page = page_map[ (addr & 0x1FFFFFFF) >> 12 ];
-    if( ((uint32_t)page) < MAX_IO_REGIONS ) { /* IO Region */
+    if( ((uintptr_t)page) < MAX_IO_REGIONS ) { /* IO Region */
         if( page == NULL ) {
             WARN( "Attempted word read to missing page: %08X",
                    addr );
             return 0;
         }
-        return SIGNEXT16(io_rgn[(uint32_t)page]->io_read(addr&0xFFF));
+        return SIGNEXT16(io_rgn[(uintptr_t)page]->io_read(addr&0xFFF));
     } else {
         return SIGNEXT16(*(int16_t *)(page+(addr&0xFFF)));
     }
@@ -145,13 +145,13 @@ int32_t sh4_read_long( uint32_t addr )
     }
 
     page = page_map[ (addr & 0x1FFFFFFF) >> 12 ];
-    if( ((uint32_t)page) < MAX_IO_REGIONS ) { /* IO Region */
+    if( ((uintptr_t)page) < MAX_IO_REGIONS ) { /* IO Region */
         int32_t val;
         if( page == NULL ) {
             WARN( "Attempted long read to missing page: %08X", addr );
             return 0;
         }
-        val = io_rgn[(uint32_t)page]->io_read(addr&0xFFF);
+        val = io_rgn[(uintptr_t)page]->io_read(addr&0xFFF);
         TRACE_IO( "Long read %08X <= %08X", page, (addr&0xFFF), val, addr );
         return val;
     } else {
@@ -177,13 +177,13 @@ int32_t sh4_read_word( uint32_t addr )
     }
     
     page = page_map[ (addr & 0x1FFFFFFF) >> 12 ];
-    if( ((uint32_t)page) < MAX_IO_REGIONS ) { /* IO Region */
+    if( ((uintptr_t)page) < MAX_IO_REGIONS ) { /* IO Region */
         int32_t val;
         if( page == NULL ) {
 	    WARN( "Attempted word read to missing page: %08X", addr );
             return 0;
         }
-        val = SIGNEXT16(io_rgn[(uint32_t)page]->io_read(addr&0xFFF));
+        val = SIGNEXT16(io_rgn[(uintptr_t)page]->io_read(addr&0xFFF));
         TRACE_IO( "Word read %04X <= %08X", page, (addr&0xFFF), val&0xFFFF, addr );
         return val;
     } else {
@@ -210,13 +210,13 @@ int32_t sh4_read_byte( uint32_t addr )
 
     
     page = page_map[ (addr & 0x1FFFFFFF) >> 12 ];
-    if( ((uint32_t)page) < MAX_IO_REGIONS ) { /* IO Region */
+    if( ((uintptr_t)page) < MAX_IO_REGIONS ) { /* IO Region */
         int32_t val;
         if( page == NULL ) {
             WARN( "Attempted byte read to missing page: %08X", addr );
             return 0;
         }
-        val = SIGNEXT8(io_rgn[(uint32_t)page]->io_read(addr&0xFFF));
+        val = SIGNEXT8(io_rgn[(uintptr_t)page]->io_read(addr&0xFFF));
         TRACE_IO( "Byte read %02X <= %08X", page, (addr&0xFFF), val&0xFF, addr );
         return val;
     } else {
@@ -228,7 +228,6 @@ void sh4_write_long( uint32_t addr, uint32_t val )
 {
     sh4ptr_t page;
 
-    // fprintf( stderr, "MOV.L %08X => %08X\n", val, addr );
     CHECK_WRITE_WATCH(addr,4,val);
 
     if( addr >= 0xE0000000 ) {
@@ -256,7 +255,7 @@ void sh4_write_long( uint32_t addr, uint32_t val )
 	asic_g2_write_word();
 
     page = page_map[ (addr & 0x1FFFFFFF) >> 12 ];
-    if( ((uint32_t)page) < MAX_IO_REGIONS ) { /* IO Region */
+    if( ((uintptr_t)page) < MAX_IO_REGIONS ) { /* IO Region */
         if( page == NULL ) {
 	    if( (addr & 0x1F000000) >= 0x04000000 &&
 		(addr & 0x1F000000) < 0x07000000 )
@@ -265,7 +264,7 @@ void sh4_write_long( uint32_t addr, uint32_t val )
             return;
         }
         TRACE_IO( "Long write %08X => %08X", page, (addr&0xFFF), val, addr );
-        io_rgn[(uint32_t)page]->io_write(addr&0xFFF, val);
+        io_rgn[(uintptr_t)page]->io_write(addr&0xFFF, val);
     } else {
         *(uint32_t *)(page+(addr&0xFFF)) = val;
     }
@@ -275,7 +274,6 @@ void sh4_write_word( uint32_t addr, uint32_t val )
 {
     sh4ptr_t page;
 
-    //    fprintf( stderr, "MOV.W %04X => %08X\n", val, addr );
     CHECK_WRITE_WATCH(addr,2,val);
 
     if( addr >= 0xE0000000 ) {
@@ -300,13 +298,13 @@ void sh4_write_word( uint32_t addr, uint32_t val )
         return;
     }
     page = page_map[ (addr & 0x1FFFFFFF) >> 12 ];
-    if( ((uint32_t)page) < MAX_IO_REGIONS ) { /* IO Region */
+    if( ((uintptr_t)page) < MAX_IO_REGIONS ) { /* IO Region */
         if( page == NULL ) {
             WARN( "Attempted word write to missing page: %08X", addr );
             return;
         }
         TRACE_IO( "Word write %04X => %08X", page, (addr&0xFFF), val&0xFFFF, addr );
-        io_rgn[(uint32_t)page]->io_write(addr&0xFFF, val);
+        io_rgn[(uintptr_t)page]->io_write(addr&0xFFF, val);
     } else {
         *(uint16_t *)(page+(addr&0xFFF)) = val;
     }
@@ -316,7 +314,6 @@ void sh4_write_byte( uint32_t addr, uint32_t val )
 {
     sh4ptr_t page;
     
-    //    fprintf( stderr, "MOV.B %02X => %08X\n", val, addr );
     CHECK_WRITE_WATCH(addr,1,val);
 
     if( addr >= 0xE0000000 ) {
@@ -341,13 +338,13 @@ void sh4_write_byte( uint32_t addr, uint32_t val )
         return;
     }
     page = page_map[ (addr & 0x1FFFFFFF) >> 12 ];
-    if( ((uint32_t)page) < MAX_IO_REGIONS ) { /* IO Region */
+    if( ((uintptr_t)page) < MAX_IO_REGIONS ) { /* IO Region */
         if( page == NULL ) {
             WARN( "Attempted byte write to missing page: %08X", addr );
             return;
         }
         TRACE_IO( "Byte write %02X => %08X", page, (addr&0xFFF), val&0xFF, addr );
-        io_rgn[(uint32_t)page]->io_write( (addr&0xFFF), val);
+        io_rgn[(uintptr_t)page]->io_write( (addr&0xFFF), val);
     } else {
         *(uint8_t *)(page+(addr&0xFFF)) = val;
     }
