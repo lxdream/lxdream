@@ -1,5 +1,5 @@
 /**
- * $Id: lxdream.h,v 1.3 2007-11-08 11:55:47 nkeynes Exp $
+ * $Id: lxdream.h,v 1.4 2007-11-10 04:44:51 nkeynes Exp $
  *
  * Common type definitions and forward declarations
  *
@@ -21,6 +21,8 @@
 
 #include <stdint.h>
 #include <glib/gtypes.h>
+
+#include "../config.h"
 
 #ifdef __cplusplus
 extern "C" {
