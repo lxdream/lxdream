@@ -2,8 +2,10 @@
 
 src/main.c
 src/gui/gtkui.c
+src/gui/gtkcb.c
 src/gui/gdrom_menu.c
 src/gui/debug_win.c
 src/gui/mmio_win.c
 src/gui/dump_win.c
-src/gui/gtkcb.c
+src/gui/path_dlg.c
+src/gui/ctrl_dlg.c
