@@ -1,6 +1,9 @@
 # List of source files containing translatable strings.
 
 src/main.c
-src/interface.c
-src/callbacks.c
-src/support.c
+src/gui/gtkui.c
+src/gui/gdrom_menu.c
+src/gui/debug_win.c
+src/gui/mmio_win.c
+src/gui/dump_win.c
+src/gui/gtkcb.c
