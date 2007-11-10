@@ -1,5 +1,5 @@
 /**
- * $Id: ctrl_dlg.c,v 1.5 2007-10-31 11:53:35 nkeynes Exp $
+ * $Id: ctrl_dlg.c,v 1.6 2007-11-10 04:45:29 nkeynes Exp $
  *
  * Define the main (emu) GTK window, along with its menubars,
  * toolbars, etc.
@@ -51,7 +51,7 @@ static gboolean config_key_buttonpress( GtkWidget *widget, GdkEventButton *event
 {
     gboolean keypress_mode = GPOINTER_TO_INT(g_object_get_data( G_OBJECT(widget), "keypress_mode"));
     if( !keypress_mode ) {
-	gtk_entry_set_text( GTK_ENTRY(widget), "<press key>" );
+	gtk_entry_set_text( GTK_ENTRY(widget), _("<press key>") );
 	g_object_set_data( G_OBJECT(widget), "keypress_mode", GINT_TO_POINTER(TRUE) );
     }
     return FALSE;
@@ -78,7 +78,7 @@ static gboolean config_key_keypress( GtkWidget *widget, GdkEventKey *event, gpoi
 	switch( event->keyval ) {
 	case GDK_Return:
 	case GDK_KP_Enter:
-	    gtk_entry_set_text( GTK_ENTRY(widget), "<press key>" );
+	    gtk_entry_set_text( GTK_ENTRY(widget), _("<press key>") );
 	    g_object_set_data( G_OBJECT(widget), "keypress_mode", GINT_TO_POINTER(TRUE) );
 	    return TRUE;
 	case GDK_BackSpace:
@@ -177,7 +177,7 @@ static void controller_device_configure( maple_device_t device )
 	}
     }
     gtk_container_set_focus_chain( GTK_CONTAINER(table), focus_chain );
-    gtk_gui_run_property_dialog( "Controller Configuration", table, controller_config_done );
+    gtk_gui_run_property_dialog( _("Controller Configuration"), table, controller_config_done );
 }
 
 
@@ -197,7 +197,7 @@ gboolean maple_properties_activated( GtkButton *button, gpointer user_data )
 	    }
 	}
 	if( maple_device_config[i].name == NULL ) {
-	    gui_error_dialog( "No configuration page available for device type" );
+	    gui_error_dialog( _("No configuration page available for device type") );
 	}
     }
     return TRUE;
@@ -267,10 +267,10 @@ GtkWidget *maple_panel_new()
 	GtkWidget *combo, *button;
 	int active = 0;
 	maple_device_t device = maple_get_device(i,0);
-	sprintf( buf, "Slot %d.", i );
+	sprintf( buf, _("Slot %d."), i );
 	gtk_table_attach_defaults( GTK_TABLE(table), gtk_label_new(buf), 0, 1, i, i+1 );
 	combo = gtk_combo_box_new_text();
-	gtk_combo_box_append_text( GTK_COMBO_BOX(combo), "<empty>" );
+	gtk_combo_box_append_text( GTK_COMBO_BOX(combo), _("<empty>") );
 	for( j=0; devices[j] != NULL; j++ ) {
 	    gtk_combo_box_append_text(GTK_COMBO_BOX(combo), devices[j]->name);
 	    if( device != NULL && device->device_class == devices[j] ) {
@@ -298,5 +298,5 @@ GtkWidget *maple_panel_new()
 
 void maple_dialog_run( )
 {
-    gtk_gui_run_property_dialog( "Controller Settings", maple_panel_new(), maple_dialog_done );
+    gtk_gui_run_property_dialog( _("Controller Settings"), maple_panel_new(), maple_dialog_done );
 }

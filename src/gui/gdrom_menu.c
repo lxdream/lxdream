@@ -1,5 +1,5 @@
 /**
- * $Id: gdrom_menu.c,v 1.4 2007-10-31 11:22:10 nkeynes Exp $
+ * $Id: gdrom_menu.c,v 1.5 2007-11-10 04:45:29 nkeynes Exp $
  *
  * Creates and manages the GD-Rom attachment menu.
  *
@@ -18,6 +18,7 @@
 
 #include <assert.h>
 #include <libgen.h>
+#include <glib/gi18n.h>
 
 #include "dream.h"
 #include "dreamcast.h"
@@ -142,7 +143,7 @@ void gdrom_menu_open_image_callback( GtkWidget *widget, gpointer user_data )
 {
     if( !gdrom_menu_adjusting ) {
 	const gchar *dir = lxdream_get_config_value(CONFIG_DEFAULT_PATH);
-	open_file_dialog( "Open...", gdrom_menu_open_file, NULL, NULL, dir );
+	open_file_dialog( _("Open..."), gdrom_menu_open_file, NULL, NULL, dir );
     }
 }
 
@@ -157,7 +158,7 @@ void gdrom_menu_open_specified_callback( GtkWidget *widget, gpointer user_data )
 void gdrom_menu_build( GtkWidget *menu ) 
 {
     GSList *group = NULL;
-    GtkWidget *empty = gtk_radio_menu_item_new_with_label( group, "Empty" );
+    GtkWidget *empty = gtk_radio_menu_item_new_with_label( group, _("Empty") );
     group = gtk_radio_menu_item_get_group( GTK_RADIO_MENU_ITEM(empty) );
     g_signal_connect_after( empty, "activate", G_CALLBACK(gdrom_menu_empty_callback), NULL );
     gtk_menu_shell_append( GTK_MENU_SHELL(menu), empty );
@@ -188,7 +189,7 @@ void gdrom_menu_build( GtkWidget *menu )
 	}
     }
     gtk_menu_shell_append( GTK_MENU_SHELL(menu), gtk_separator_menu_item_new() );
-    GtkWidget *open = gtk_image_menu_item_new_with_label( "Open image file..." );
+    GtkWidget *open = gtk_image_menu_item_new_with_label( _("Open image file...") );
     g_signal_connect_after( open, "activate", G_CALLBACK(gdrom_menu_open_image_callback), NULL );
     gtk_menu_shell_append( GTK_MENU_SHELL(menu), open );
     gtk_widget_show_all(menu);
@@ -197,7 +198,7 @@ void gdrom_menu_build( GtkWidget *menu )
 GtkWidget *gdrom_menu_new()
 {
     GtkWidget *menu = gtk_menu_new();
-    gtk_menu_set_title( GTK_MENU(menu), "GD-Rom Settings" );
+    gtk_menu_set_title( GTK_MENU(menu), _("GD-Rom Settings") );
 
     gdrom_menu_build(menu);
 

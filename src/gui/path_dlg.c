@@ -1,5 +1,5 @@
 /**
- * $Id: path_dlg.c,v 1.4 2007-10-31 12:05:23 nkeynes Exp $
+ * $Id: path_dlg.c,v 1.5 2007-11-10 04:45:29 nkeynes Exp $
  *
  * Define the main (emu) GTK window, along with its menubars,
  * toolbars, etc.
@@ -25,8 +25,8 @@
 #include "config.h"
 #include "gui/gtkui.h"
 
-static const gchar *path_label[] = { "Bios rom", "Flash rom", "Default disc path", 
-				     "Save state path", "Bootstrap IP.BIN" };
+static const gchar *path_label[] = { N_("Bios rom"), N_("Flash rom"), N_("Default disc path"), 
+				     N_("Save state path"), N_("Bootstrap IP.BIN") };
 static const int path_id[] = { CONFIG_BIOS_PATH, CONFIG_FLASH_PATH, CONFIG_DEFAULT_PATH,
 			       CONFIG_SAVE_PATH, CONFIG_BOOTSTRAP };
 static GtkFileChooserAction path_action[] = {
@@ -41,7 +41,7 @@ static GtkWidget *path_entry[5];
 static gboolean path_file_button_clicked( GtkWidget *button, gpointer user_data )
 {
     GtkWidget *entry = GTK_WIDGET(user_data);
-    GtkWidget *file = gtk_file_chooser_dialog_new( "Select file", NULL,
+    GtkWidget *file = gtk_file_chooser_dialog_new( _("Select file"), NULL,
 					GTK_FILE_CHOOSER_ACTION_OPEN,
 					GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
 					GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT,
@@ -62,7 +62,7 @@ static gboolean path_file_button_clicked( GtkWidget *button, gpointer user_data 
 static gboolean path_dir_button_clicked( GtkWidget *button, gpointer user_data )
 {
     GtkWidget *entry = GTK_WIDGET(user_data);
-    GtkWidget *file = gtk_file_chooser_dialog_new( "Select file", NULL,
+    GtkWidget *file = gtk_file_chooser_dialog_new( _("Select file"), NULL,
 					GTK_FILE_CHOOSER_ACTION_OPEN,
 					GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
 					GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT,
@@ -88,7 +88,7 @@ GtkWidget *path_panel_new(void)
     for( i=0; i<5; i++ ) {
 	GtkWidget *text = path_entry[i] = gtk_entry_new();
 	GtkWidget *button = gtk_button_new();
-	gtk_table_attach( GTK_TABLE(table), gtk_label_new(path_label[i]), 0, 1, i, i+1,
+	gtk_table_attach( GTK_TABLE(table), gtk_label_new(Q_(path_label[i])), 0, 1, i, i+1,
 			  GTK_SHRINK, GTK_SHRINK, 0, 0);
 	gtk_entry_set_text( GTK_ENTRY(text), lxdream_get_config_value(path_id[i]) );
 	gtk_entry_set_width_chars( GTK_ENTRY(text), 48 );
@@ -124,5 +124,5 @@ void path_panel_done( GtkWidget *panel, gboolean isOK )
 
 void path_dialog_run( void )
 {
-    gtk_gui_run_property_dialog( "Path Settings", path_panel_new(), path_panel_done );
+    gtk_gui_run_property_dialog( _("Path Settings"), path_panel_new(), path_panel_done );
 }
