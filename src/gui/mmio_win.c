@@ -1,5 +1,5 @@
 /**
- * $Id: mmio_win.c,v 1.10 2007-10-31 12:23:19 nkeynes Exp $
+ * $Id: mmio_win.c,v 1.11 2007-11-10 04:45:29 nkeynes Exp $
  *
  * Implements the MMIO register viewing window
  *
@@ -107,11 +107,11 @@ static GtkCList *mmio_window_add_page( mmio_window_t mmio, char *name, struct mm
     gtk_clist_set_column_justification(list, 0, GTK_JUSTIFY_CENTER );
     gtk_clist_set_column_justification(list, 2, GTK_JUSTIFY_CENTER );
     gtk_clist_set_column_justification(list, 3, GTK_JUSTIFY_CENTER );
-    gtk_clist_set_column_title(list, 0, "Address");
-    gtk_clist_set_column_title(list, 1, "Register");
-    gtk_clist_set_column_title(list, 2, "Value");
-    gtk_clist_set_column_title(list, 3, "Bit Pattern");
-    gtk_clist_set_column_title(list, 4, "Description");
+    gtk_clist_set_column_title(list, 0, _("Address"));
+    gtk_clist_set_column_title(list, 1, _("Register"));
+    gtk_clist_set_column_title(list, 2, _("Value"));
+    gtk_clist_set_column_title(list, 3, _("Bit Pattern"));
+    gtk_clist_set_column_title(list, 4, _("Description"));
     gtk_clist_column_titles_show(list);
     gtk_widget_modify_font( GTK_WIDGET(list), gui_fixed_font );
     tab = gtk_label_new(_(name));
@@ -120,7 +120,7 @@ static GtkCList *mmio_window_add_page( mmio_window_t mmio, char *name, struct mm
     vbox = GTK_VBOX(gtk_vbox_new( FALSE, 0 ));
     gtk_container_add( GTK_CONTAINER(vbox), GTK_WIDGET(scroll) );
 
-    trace_button = GTK_CHECK_BUTTON(gtk_check_button_new_with_label("Trace access"));
+    trace_button = GTK_CHECK_BUTTON(gtk_check_button_new_with_label(_("Trace access")));
     gtk_container_add( GTK_CONTAINER(vbox), GTK_WIDGET(trace_button) );
     gtk_box_set_child_packing( GTK_BOX(vbox), GTK_WIDGET(trace_button), 
 			       FALSE, FALSE, 0, GTK_PACK_START );

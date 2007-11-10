@@ -1,5 +1,5 @@
 /**
- * $Id: gtkui.c,v 1.11 2007-11-02 08:22:32 nkeynes Exp $
+ * $Id: gtkui.c,v 1.12 2007-11-10 04:45:29 nkeynes Exp $
  *
  * Core GTK-based user interface
  *
@@ -16,9 +16,10 @@
  * GNU General Public License for more details.
  */
 
+#include "lxdream.h"
 #include <sys/time.h>
 #include <time.h>
-#include "dream.h"
+#include <glib/gi18n.h>
 #include "dreamcast.h"
 #include "display.h"
 #include "gdrom/gdrom.h"
@@ -61,32 +62,32 @@ static struct timeval gtk_gui_lasttv;
 
 // UI Actions
 static const GtkActionEntry ui_actions[] = {
-    { "FileMenu", NULL, "_File" },
-    { "SettingsMenu", NULL, "_Settings" },
-    { "HelpMenu", NULL, "_Help" },
-    { "Reset", GTK_STOCK_REFRESH, "_Reset", "<control>R", "Reset dreamcast", G_CALLBACK(reset_action_callback) },
-    { "Pause", GTK_STOCK_MEDIA_PAUSE, "_Pause", NULL, "Pause dreamcast", G_CALLBACK(pause_action_callback) },
-    { "Run", GTK_STOCK_MEDIA_PLAY, "Resume", NULL, "Resume", G_CALLBACK(resume_action_callback) },
-    { "LoadState", GTK_STOCK_REVERT_TO_SAVED, "_Load state...", "F4", "Load an lxdream save state", G_CALLBACK(load_state_action_callback) },
-    { "SaveState", GTK_STOCK_SAVE_AS, "_Save state...", "F3", "Create an lxdream save state", G_CALLBACK(save_state_action_callback) },
-    { "Exit", GTK_STOCK_QUIT, "E_xit", NULL, "Exit lxdream", G_CALLBACK(exit_action_callback) },
-    { "GdromSettings", NULL, "_GD-Rom..." },
-    { "GdromUnmount", NULL, "_Empty" },
-    { "GdromMount", GTK_STOCK_CDROM, "_Open Image...", "<control>O", "Mount a cdrom disc", G_CALLBACK(mount_action_callback) },
-    { "PathSettings", NULL, "_Paths...", NULL, "Configure files and paths", G_CALLBACK(path_settings_callback) }, 
-    { "AudioSettings", NULL, "_Audio...", NULL, "Configure audio output", G_CALLBACK(audio_settings_callback) },
-    { "ControllerSettings", NULL, "_Controllers...", NULL, "Configure controllers", G_CALLBACK(maple_settings_callback) },
-    { "NetworkSettings", NULL, "_Network...", NULL, "Configure network settings", G_CALLBACK(network_settings_callback) },
-    { "VideoSettings", NULL, "_Video...", NULL, "Configure video output", G_CALLBACK(video_settings_callback) },
-    { "About", GTK_STOCK_ABOUT, "_About...", NULL, "About lxdream", G_CALLBACK(about_action_callback) },
-    { "DebugMenu", NULL, "_Debug" },
-    { "Debugger", NULL, "_Debugger", NULL, "Open debugger window", G_CALLBACK(debugger_action_callback) },
-    { "DebugMem", NULL, "View _Memory", NULL, "View memory dump", G_CALLBACK(debug_memory_action_callback) },
-    { "DebugMmio", NULL, "View IO _Registers", NULL, "View MMIO Registers", G_CALLBACK(debug_mmio_action_callback) },
-    { "SaveScene", NULL, "_Save Scene", NULL, "Save next rendered scene", G_CALLBACK(save_scene_action_callback) },
-    { "SingleStep", GTK_STOCK_REDO, "_Single Step", NULL, "Single step", G_CALLBACK(debug_step_action_callback) },
-    { "RunTo", GTK_STOCK_GOTO_LAST, "Run _To", NULL, "Run to", G_CALLBACK( debug_runto_action_callback) },
-    { "SetBreakpoint", GTK_STOCK_CLOSE, "_Breakpoint", NULL, "Toggle breakpoint", G_CALLBACK( debug_breakpoint_action_callback) }
+    { "FileMenu", NULL, N_("_File") },
+    { "SettingsMenu", NULL, N_("_Settings") },
+    { "HelpMenu", NULL, N_("_Help") },
+    { "Reset", GTK_STOCK_REFRESH, N_("_Reset"), "<control>R", N_("Reset dreamcast"), G_CALLBACK(reset_action_callback) },
+    { "Pause", GTK_STOCK_MEDIA_PAUSE, N_("_Pause"), NULL, N_("Pause dreamcast"), G_CALLBACK(pause_action_callback) },
+    { "Run", GTK_STOCK_MEDIA_PLAY, N_("Resume"), NULL, N_("Resume"), G_CALLBACK(resume_action_callback) },
+    { "LoadState", GTK_STOCK_REVERT_TO_SAVED, N_("_Load state..."), "F4", N_("Load an lxdream save state"), G_CALLBACK(load_state_action_callback) },
+    { "SaveState", GTK_STOCK_SAVE_AS, N_("_Save state..."), "F3", N_("Create an lxdream save state"), G_CALLBACK(save_state_action_callback) },
+    { "Exit", GTK_STOCK_QUIT, N_("E_xit"), NULL, N_("Exit lxdream"), G_CALLBACK(exit_action_callback) },
+    { "GdromSettings", NULL, N_("_GD-Rom...") },
+    { "GdromUnmount", NULL, N_("_Empty") },
+    { "GdromMount", GTK_STOCK_CDROM, N_("_Open Image..."), "<control>O", N_("Mount a cdrom disc"), G_CALLBACK(mount_action_callback) },
+    { "PathSettings", NULL, N_("_Paths..."), NULL, N_("Configure files and paths"), G_CALLBACK(path_settings_callback) }, 
+    { "AudioSettings", NULL, N_("_Audio..."), NULL, N_("Configure audio output"), G_CALLBACK(audio_settings_callback) },
+    { "ControllerSettings", NULL, N_("_Controllers..."), NULL, N_("Configure controllers"), G_CALLBACK(maple_settings_callback) },
+    { "NetworkSettings", NULL, N_("_Network..."), NULL, N_("Configure network settings"), G_CALLBACK(network_settings_callback) },
+    { "VideoSettings", NULL, N_("_Video..."), NULL,N_( "Configure video output"), G_CALLBACK(video_settings_callback) },
+    { "About", GTK_STOCK_ABOUT, N_("_About..."), NULL, N_("About lxdream"), G_CALLBACK(about_action_callback) },
+    { "DebugMenu", NULL, N_("_Debug") },
+    { "Debugger", NULL, N_("_Debugger"), NULL, N_("Open debugger window"), G_CALLBACK(debugger_action_callback) },
+    { "DebugMem", NULL, N_("View _Memory"), NULL, N_("View memory dump"), G_CALLBACK(debug_memory_action_callback) },
+    { "DebugMmio", NULL, N_("View IO _Registers"), NULL, N_("View MMIO Registers"), G_CALLBACK(debug_mmio_action_callback) },
+    { "SaveScene", NULL, N_("_Save Scene"), NULL, N_("Save next rendered scene"), G_CALLBACK(save_scene_action_callback) },
+    { "SingleStep", GTK_STOCK_REDO, N_("_Single Step"), NULL, N_("Single step"), G_CALLBACK(debug_step_action_callback) },
+    { "RunTo", GTK_STOCK_GOTO_LAST, N_("Run _To"), NULL, N_("Run to"), G_CALLBACK( debug_runto_action_callback) },
+    { "SetBreakpoint", GTK_STOCK_CLOSE, N_("_Breakpoint"), NULL, N_("Toggle breakpoint"), G_CALLBACK( debug_breakpoint_action_callback) }
 };
 static const GtkToggleActionEntry ui_toggle_actions[] = {
     { "FullScreen", NULL, "_Full Screen", "<alt>Return", "Toggle full screen video", G_CALLBACK(fullscreen_toggle_callback), 0 },
@@ -193,6 +194,7 @@ gboolean gui_init( gboolean withDebug )
     gtk_gui_alloc_resources();
     
     global_action_group = gtk_action_group_new("MenuActions");
+    gtk_action_group_set_translation_domain( global_action_group, NULL );
     gtk_action_group_add_actions( global_action_group, ui_actions, G_N_ELEMENTS(ui_actions), NULL );
     gtk_action_group_add_toggle_actions( global_action_group, ui_toggle_actions, G_N_ELEMENTS(ui_toggle_actions), NULL );
     gtk_gui_enable_action("AudioSettings", FALSE);
@@ -264,7 +266,9 @@ void gtk_gui_show_debugger()
 	GtkWidget *gdrommenuitem = gtk_ui_manager_get_widget(global_ui_manager, "/DebugMenu/FileMenu/GdromSettings");
 	GtkWidget *gdrommenu = gdrom_menu_new();
 	gtk_menu_item_set_submenu( GTK_MENU_ITEM(gdrommenuitem), gdrommenu );
-	debug_win = debug_window_new( APP_NAME " " APP_VERSION " :: Debugger", menubar, toolbar, accel_group  );
+	gchar *title = g_strdup_printf( APP_NAME " " APP_VERSION " :: %s", _("Debugger"));
+	debug_win = debug_window_new( title, menubar, toolbar, accel_group  );
+	g_free(title);
     }
 }
 
@@ -273,7 +277,9 @@ void gtk_gui_show_mmio()
     if( mmio_win ) {
 	mmio_window_show(mmio_win, TRUE);
     } else {
-	mmio_win = mmio_window_new( APP_NAME " " APP_VERSION " :: MMIO Registers" );
+	gchar *title = g_strdup_printf( APP_NAME " " APP_VERSION " :: %s", _("MMIO Registers"));
+	mmio_win = mmio_window_new( title );
+	g_free(title);
     }
 }
 

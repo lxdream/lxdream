@@ -1,5 +1,5 @@
 /**
- * $Id: gtkui.h,v 1.11 2007-11-02 08:22:32 nkeynes Exp $
+ * $Id: gtkui.h,v 1.12 2007-11-10 04:45:29 nkeynes Exp $
  *
  * Core GTK-based user interface
  *
@@ -19,8 +19,9 @@
 #ifndef __lxdream_gtkui_H
 #define __lxdream_gtkui_H
 
-#include <gtk/gtk.h>
 #include "lxdream.h"
+#include <gtk/gtk.h>
+#include <glib/gi18n.h>
 #include "gui.h"
 #include "cpu.h"
 

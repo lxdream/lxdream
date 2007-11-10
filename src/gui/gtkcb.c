@@ -1,5 +1,5 @@
 /**
- * $Id: gtkcb.c,v 1.8 2007-11-02 08:22:32 nkeynes Exp $
+ * $Id: gtkcb.c,v 1.9 2007-11-10 04:45:29 nkeynes Exp $
  *
  * Action callbacks from the main window
  *
@@ -33,7 +33,7 @@ static void add_file_pattern( GtkFileChooser *chooser, char *pattern, char *patn
 	gtk_file_filter_set_name( filter, patname );
 	gtk_file_chooser_add_filter( chooser, filter );
 	filter = gtk_file_filter_new();
-	gtk_file_filter_set_name( filter, "All files" );
+	gtk_file_filter_set_name( filter, _("All files") );
 	gtk_file_filter_add_pattern( filter, "*" );
 	gtk_file_chooser_add_filter( chooser, filter );
     }
@@ -125,12 +125,12 @@ void load_state_action_callback( GtkAction *action, gpointer user_data)
     GtkWidget *file, *preview, *frame, *align;
     GtkRequisition size;
     const gchar *dir = lxdream_get_config_value(CONFIG_SAVE_PATH);
-    file = gtk_file_chooser_dialog_new( "Load state...", NULL,
+    file = gtk_file_chooser_dialog_new( _("Load state..."), NULL,
 					GTK_FILE_CHOOSER_ACTION_OPEN,
 					GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
 					GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT,
 					NULL );
-    add_file_pattern( GTK_FILE_CHOOSER(file), "*.dst", "lxDream Save State (*.dst)" );
+    add_file_pattern( GTK_FILE_CHOOSER(file), "*.dst", _("lxDream Save State (*.dst)") );
     gtk_object_set_data( GTK_OBJECT(file), "file_action", action );
 
     preview = gtk_image_new( );
@@ -160,7 +160,7 @@ void load_state_action_callback( GtkAction *action, gpointer user_data)
 void save_state_action_callback( GtkAction *action, gpointer user_data)
 {
     const gchar *dir = lxdream_get_config_value(CONFIG_SAVE_PATH);
-    save_file_dialog( "Save state...", dreamcast_save_state, "*.dst", "lxDream Save State (*.dst)", dir );
+    save_file_dialog( "Save state...", dreamcast_save_state, "*.dst", _("lxDream Save State (*.dst)"), dir );
 }
 void about_action_callback( GtkAction *action, gpointer user_data)
 {
@@ -215,7 +215,9 @@ void debugger_action_callback( GtkAction *action, gpointer user_data)
 
 void debug_memory_action_callback( GtkAction *action, gpointer user_data)
 {
-    dump_window_new( APP_NAME " " APP_VERSION " :: Memory dump" );
+    gchar *title = g_strdup_printf( APP_NAME " " APP_VERSION " :: %s", _("Memory dump") );
+    dump_window_new( title );
+    g_free(title);
 }
 
 void debug_mmio_action_callback( GtkAction *action, gpointer user_data)
@@ -226,7 +228,7 @@ void debug_mmio_action_callback( GtkAction *action, gpointer user_data)
 void save_scene_action_callback( GtkAction *action, gpointer user_data)
 {
     const gchar *dir = lxdream_get_config_value(CONFIG_SAVE_PATH);
-    save_file_dialog( "Save next scene...", pvr2_save_next_scene, "*.dsc", "lxdream scene file (*.dsc)", dir );
+    save_file_dialog( _("Save next scene..."), pvr2_save_next_scene, "*.dsc", _("lxdream scene file (*.dsc)"), dir );
 }
 
 int debug_window_get_selected_row( debug_window_t data );
@@ -241,7 +243,7 @@ void debug_runto_action_callback( GtkAction *action, gpointer user_data)
     debug_window_t debug = gtk_gui_get_debugger();
     int selected_row = debug_window_get_selected_row(debug);
     if( selected_row == -1 ) {
-        WARN( "No address selected, so can't run to it", NULL );
+        WARN( _("No address selected, so can't run to it"), NULL );
     } else {
 	debug_window_set_oneshot_breakpoint( debug, selected_row );
 	dreamcast_run();
