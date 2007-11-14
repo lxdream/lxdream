@@ -1,5 +1,5 @@
 /**
- * $Id: mem.c,v 1.22 2007-11-08 11:54:16 nkeynes Exp $
+ * $Id: mem.c,v 1.23 2007-11-14 10:21:33 nkeynes Exp $
  * mem.c is responsible for creating and maintaining the overall system memory
  * map, as visible from the SH4 processor. 
  *
@@ -61,7 +61,7 @@ void *mem_alloc_pages( int n )
 
 void mem_init( void )
 {
-    page_map = mmap( NULL, sizeof(char *) * PAGE_TABLE_ENTRIES,
+    page_map = mmap( NULL, sizeof(sh4ptr_t) * PAGE_TABLE_ENTRIES,
                      PROT_READ|PROT_WRITE, MAP_ANON|MAP_PRIVATE, -1, 0 );
     if( page_map == MAP_FAILED ) {
         ERROR( "Unable to allocate page map! (%s)", strerror(errno) );
@@ -69,7 +69,7 @@ void mem_init( void )
         return;
     }
 
-    memset( page_map, 0, sizeof(uint32_t) * PAGE_TABLE_ENTRIES );
+    memset( page_map, 0, sizeof(sh4ptr_t) * PAGE_TABLE_ENTRIES );
 }
 
 void mem_reset( void )
@@ -97,7 +97,7 @@ void mem_save( FILE *f )
     for( i=0; i<num_mem_rgns; i++ ) {
 	fwrite_string( mem_rgn[i].name, f );
 	fwrite( &mem_rgn[i].base, sizeof(uint32_t), 1, f );
-	fwrite( &mem_rgn[i].flags, sizeof(int), 1, f );
+	fwrite( &mem_rgn[i].flags, sizeof(uint32_t), 1, f );
 	fwrite( &mem_rgn[i].size, sizeof(uint32_t), 1, f );
 	if( mem_rgn[i].flags != MEM_FLAG_ROM )
 	    fwrite_gzip( mem_rgn[i].mem, mem_rgn[i].size, 1, f );
@@ -119,7 +119,7 @@ int mem_load( FILE *f )
     char tmp[64];
     uint32_t len;
     uint32_t base, size;
-    int flags;
+    uint32_t flags;
     int i;
 
     /* All memory regions */
