@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.c,v 1.49 2007-11-08 11:54:16 nkeynes Exp $
+ * $Id: pvr2.c,v 1.50 2007-11-14 10:23:28 nkeynes Exp $
  *
  * PVR2 (Video) Core module implementation and MMIO registers.
  *
@@ -239,7 +239,7 @@ gboolean pvr2_load_render_buffers( FILE *f )
     int i, has_frontbuffer;
 
     fread( &count, sizeof(count), 1, f );
-    if( count >= MAX_RENDER_BUFFERS ) {
+    if( count > MAX_RENDER_BUFFERS ) {
 	return FALSE;
     }
     fread( &has_frontbuffer, sizeof(has_frontbuffer), 1, f );
