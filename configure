@@ -2026,7 +2026,7 @@ fi
 
 # Define the identity of the package.
  PACKAGE=lxdream
- VERSION=0.8
+ VERSION=0.8.1
 
 
 cat >>confdefs.h <<_ACEOF
@@ -5424,7 +5424,7 @@ _ACEOF
 
 
 
-ALL_LINGUAS=""
+ALL_LINGUAS="de pt_BR"
 
 
 for ac_header in locale.h
