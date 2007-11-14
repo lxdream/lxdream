@@ -1,5 +1,5 @@
 /**
- * $Id: mem.h,v 1.16 2007-11-08 11:54:16 nkeynes Exp $
+ * $Id: mem.h,v 1.17 2007-11-14 10:21:33 nkeynes Exp $
  *
  * mem is responsible for creating and maintaining the overall system memory
  * map, as visible from the SH4 processor. (Note the ARM has a different map)
@@ -32,7 +32,7 @@ typedef struct mem_region {
     uint32_t size;
     const char *name;
     sh4ptr_t mem;
-    int flags;
+    uint32_t flags;
 } *mem_region_t;
 
 #define MAX_IO_REGIONS 24
