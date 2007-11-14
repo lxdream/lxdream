@@ -1,0 +1,378 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2007-11-10 14:59+1000\n"
+"PO-Revision-Date: 2007-11-10 12:45-0300\n"
+"Last-Translator: Gabriel Tillmann <gabriel_at@hotmail.com>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: src/gui/gtkui.c:65
+msgid "_File"
+msgstr "_Arquivo"
+
+#: src/gui/gtkui.c:66
+msgid "_Settings"
+msgstr "_Configurações"
+
+#: src/gui/gtkui.c:67
+msgid "_Help"
+msgstr "_Ajuda"
+
+#: src/gui/gtkui.c:68
+msgid "_Reset"
+msgstr "_Reiniciar"
+
+#: src/gui/gtkui.c:68
+msgid "Reset dreamcast"
+msgstr "Reiniciar dreamcast"
+
+#: src/gui/gtkui.c:69
+msgid "_Pause"
+msgstr "_Pausar"
+
+#: src/gui/gtkui.c:69
+msgid "Pause dreamcast"
+msgstr "_Pausar dreamcast"
+
+#: src/gui/gtkui.c:70
+msgid "Resume"
+msgstr "Continuar"
+
+#: src/gui/gtkui.c:71
+msgid "_Load state..."
+msgstr "_Carregar estado..."
+
+#: src/gui/gtkui.c:71
+msgid "Load an lxdream save state"
+msgstr "Carregar estado do lxdream"
+
+#: src/gui/gtkui.c:72
+msgid "_Save state..."
+msgstr "_Salvar estado..."
+
+#: src/gui/gtkui.c:72
+msgid "Create an lxdream save state"
+msgstr "Criar estado do lxdream"
+
+#: src/gui/gtkui.c:73
+msgid "E_xit"
+msgstr "S_air"
+
+#: src/gui/gtkui.c:73
+msgid "Exit lxdream"
+msgstr "Sair do lxdream"
+
+#: src/gui/gtkui.c:74
+msgid "_GD-Rom..."
+msgstr "_GD-Rom..."
+
+#: src/gui/gtkui.c:75
+msgid "_Empty"
+msgstr "_Vazio"
+
+#: src/gui/gtkui.c:76
+msgid "_Open Image..."
+msgstr "_Abrir Imagem..."
+
+#: src/gui/gtkui.c:76
+msgid "Mount a cdrom disc"
+msgstr "Montar disco de Cdrom"
+
+#: src/gui/gtkui.c:77
+msgid "_Paths..."
+msgstr "_Diretórios..."
+
+#: src/gui/gtkui.c:77
+msgid "Configure files and paths"
+msgstr "Configurar arquivos e diretórios"
+
+#: src/gui/gtkui.c:78
+msgid "_Audio..."
+msgstr "_Audio..."
+
+#: src/gui/gtkui.c:78
+msgid "Configure audio output"
+msgstr "Configurar saida de audio"
+
+#: src/gui/gtkui.c:79
+msgid "_Controllers..."
+msgstr "_Controles..."
+
+#: src/gui/gtkui.c:79
+msgid "Configure controllers"
+msgstr "Configurar Controles"
+
+#: src/gui/gtkui.c:80
+msgid "_Network..."
+msgstr "_Rede..."
+
+#: src/gui/gtkui.c:80
+msgid "Configure network settings"
+msgstr "Configurar rede"
+
+#: src/gui/gtkui.c:81
+msgid "_Video..."
+msgstr "_Video..."
+
+#: src/gui/gtkui.c:81
+msgid "Configure video output"
+msgstr "Configurar saída de vídeo"
+
+#: src/gui/gtkui.c:82
+msgid "_About..."
+msgstr "_Sobre..."
+
+#: src/gui/gtkui.c:82
+msgid "About lxdream"
+msgstr "Sobre o lxdream"
+
+#: src/gui/gtkui.c:83
+msgid "_Debug"
+msgstr "_Debug"
+
+#: src/gui/gtkui.c:84
+msgid "_Debugger"
+msgstr "_Debugger"
+
+#: src/gui/gtkui.c:84
+msgid "Open debugger window"
+msgstr "Abrir Janela do Debugger"
+
+#: src/gui/gtkui.c:85
+msgid "View _Memory"
+msgstr "Visualizar _Memória"
+
+#: src/gui/gtkui.c:85
+msgid "View memory dump"
+msgstr "Visualizar dump de memória"
+
+#: src/gui/gtkui.c:86
+msgid "View IO _Registers"
+msgstr "Visualizar _Registros de IO"
+
+#: src/gui/gtkui.c:86
+msgid "View MMIO Registers"
+msgstr "Visualizar Registros de MMIO"
+
+#: src/gui/gtkui.c:87
+msgid "_Save Scene"
+msgstr "_Salvar Cena"
+
+#: src/gui/gtkui.c:87
+msgid "Save next rendered scene"
+msgstr "Salvar próxima cesa renderizada"
+
+#: src/gui/gtkui.c:88
+msgid "_Single Step"
+msgstr "_Passo simples"
+
+#: src/gui/gtkui.c:88
+msgid "Single step"
+msgstr "Passo simples"
+
+#: src/gui/gtkui.c:89
+msgid "Run _To"
+msgstr "Correr _para"
+
+#: src/gui/gtkui.c:89
+msgid "Run to"
+msgstr "Correr para"
+
+#: src/gui/gtkui.c:90
+msgid "_Breakpoint"
+msgstr "_Ponto de quebra"
+
+#: src/gui/gtkui.c:90
+msgid "Toggle breakpoint"
+msgstr "Pinar Ponto de quebra"
+
+#: src/gui/gtkui.c:269
+msgid "Debugger"
+msgstr "Debugger"
+
+#: src/gui/gtkui.c:280
+msgid "MMIO Registers"
+msgstr "Registros de MMIO"
+
+#: src/gui/gtkcb.c:36
+msgid "All files"
+msgstr "Todos os Arquivos"
+
+#: src/gui/gtkcb.c:128
+msgid "Load state..."
+msgstr "Carregar stado..."
+
+#: src/gui/gtkcb.c:133
+#: src/gui/gtkcb.c:163
+msgid "lxDream Save State (*.dst)"
+msgstr "lxDream Save State (*.dst)"
+
+#: src/gui/gtkcb.c:218
+#: src/gui/dump_win.c:69
+msgid "Memory dump"
+msgstr "Dump de memória"
+
+#: src/gui/gtkcb.c:231
+msgid "Save next scene..."
+msgstr "Salvar próxima cena"
+
+#: src/gui/gtkcb.c:231
+msgid "lxdream scene file (*.dsc)"
+msgstr "lxdream scene file (*.dsc)"
+
+#: src/gui/gtkcb.c:246
+msgid "No address selected, so can't run to it"
+msgstr "Sem endereço selecionado, então impossível correr a ele"
+
+#: src/gui/gdrom_menu.c:146
+msgid "Open..."
+msgstr "Abrir..."
+
+#: src/gui/gdrom_menu.c:161
+msgid "Empty"
+msgstr "Vazio"
+
+#: src/gui/gdrom_menu.c:192
+msgid "Open image file..."
+msgstr "Abrir arquivo de imagem..."
+
+#: src/gui/gdrom_menu.c:201
+msgid "GD-Rom Settings"
+msgstr "Configurações de GD-Rom"
+
+#: src/gui/debug_win.c:89
+msgid "Page"
+msgstr "Página"
+
+#: src/gui/debug_win.c:94
+msgid " Jump to PC "
+msgstr "Pular para PC"
+
+#: src/gui/debug_win.c:97
+msgid "Mode"
+msgstr "Modo"
+
+#: src/gui/debug_win.c:102
+msgid "SH4"
+msgstr "SH4"
+
+#: src/gui/debug_win.c:103
+msgid "ARM7"
+msgstr "ARM7"
+
+#: src/gui/debug_win.c:104
+msgid "ARM7T"
+msgstr "ARM7T"
+
+#: src/gui/debug_win.c:262
+msgid "This page is currently unmapped"
+msgstr "Esta página encontra-se não mapeada"
+
+#: src/gui/mmio_win.c:110
+msgid "Address"
+msgstr "Endereço"
+
+#: src/gui/mmio_win.c:111
+msgid "Register"
+msgstr "Registro"
+
+#: src/gui/mmio_win.c:112
+msgid "Value"
+msgstr "Valor"
+
+#: src/gui/mmio_win.c:113
+msgid "Bit Pattern"
+msgstr "Padrão de Bit"
+
+#: src/gui/mmio_win.c:114
+msgid "Description"
+msgstr "Descrição"
+
+#: src/gui/mmio_win.c:123
+msgid "Trace access"
+msgstr "Acesso ao vestígio"
+
+#: src/gui/mmio_win.c:162
+msgid "Close"
+msgstr "Fechar"
+
+#: src/gui/dump_win.c:79
+msgid "View"
+msgstr "Ver"
+
+#: src/gui/dump_win.c:81
+msgid " From "
+msgstr "De"
+
+#: src/gui/dump_win.c:83
+msgid " To "
+msgstr "Para"
+
+#: src/gui/dump_win.c:86
+msgid "   "
+msgstr "   "
+
+#: src/gui/path_dlg.c:28
+msgid "Bios rom"
+msgstr "Bios rom"
+
+#: src/gui/path_dlg.c:28
+msgid "Flash rom"
+msgstr "Flash rom"
+
+#: src/gui/path_dlg.c:28
+msgid "Default disc path"
+msgstr "Diretório padrão do disco"
+
+#: src/gui/path_dlg.c:29
+msgid "Save state path"
+msgstr "diretório do estado salvo"
+
+#: src/gui/path_dlg.c:29
+msgid "Bootstrap IP.BIN"
+msgstr "Bootstrap IP.BIN"
+
+#: src/gui/path_dlg.c:44
+#: src/gui/path_dlg.c:65
+msgid "Select file"
+msgstr "Selecionar arquivo"
+
+#: src/gui/path_dlg.c:127
+msgid "Path Settings"
+msgstr "Configurações de diretórios"
+
+#: src/gui/ctrl_dlg.c:54
+#: src/gui/ctrl_dlg.c:81
+msgid "<press key>"
+msgstr "<Precione tecla>"
+
+#: src/gui/ctrl_dlg.c:180
+msgid "Controller Configuration"
+msgstr "Configuração de controle"
+
+#: src/gui/ctrl_dlg.c:200
+msgid "No configuration page available for device type"
+msgstr "Não há página de configuração disponível para este tipo de dispositivo"
+
+#: src/gui/ctrl_dlg.c:270
+#, c-format
+msgid "Slot %d."
+msgstr "Slot %d."
+
+#: src/gui/ctrl_dlg.c:273
+msgid "<empty>"
+msgstr "<Vazio>"
+
+#: src/gui/ctrl_dlg.c:301
+msgid "Controller Settings"
+msgstr "Configurações de Controle"
+
