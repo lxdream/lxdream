@@ -45,7 +45,6 @@ struct cdi_trailer {
 };
 
 struct cdi_track_data {
-    char unknown[0x19];
     uint32_t pregap_length;
     uint32_t length;
     char unknown2[6];
@@ -136,6 +135,13 @@ gdrom_disc_t cdi_image_open( const gchar *filename, FILE *f )
 	    fseek( f, 4, SEEK_CUR );
             fread( &fnamelen, 1, 1, f );
             fseek( f, (int)fnamelen, SEEK_CUR ); /* skip over the filename */
+	    fseek( f, 19, SEEK_CUR );
+	    fread( &new_fmt, sizeof(new_fmt), 1, f );
+	    if( new_fmt == 0x80000000 ) {
+		fseek( f, 10, SEEK_CUR );
+	    } else {
+		fseek( f, 2, SEEK_CUR );
+	    }
             fread( &trk, sizeof(trk), 1, f );
 	    image->track[total_tracks].session = i;
 	    image->track[total_tracks].lba = trk.start_lba + 150;
