@@ -18,7 +18,7 @@ ARMOBJCOPY	= arm-elf-objcopy
 
 BFDLIB		= -L/usr/local/sh-elf-bfd/lib -lbfd -liberty
 BFDINCLUDE	= /usr/local/sh-elf-bfd/include
-RUNTEST		= ../src/lxdream -c ./lxdream.rc -h -q -p
+RUNTEST		= ../src/lxdream -c ./lxdream.rc -puh
 
 
 # cygwin
@@ -63,11 +63,12 @@ SHARED_OBJECTS	=
 
 all: build-tests
 
-test: build-tests
-	$(RUNTEST) testmath
+check: build-tests
+	$(RUNTEST) testsh4
 	$(RUNTEST) testide -d ../disc/test.nrg
 	$(RUNTEST) testta < testta.data < testta2.data < testta3.data < testta4.data < testta5.data
 	$(RUNTEST) testregs
+	$(RUNTEST) testmath
 
 build-tests: testsh4 testmath testide testta testregs testrend testdisp testspu
 
