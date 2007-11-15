@@ -452,10 +452,3 @@ void xlat_check_integrity( )
     xlat_check_cache_integrity( xlat_old_cache, xlat_old_cache_ptr, XLAT_OLD_CACHE_SIZE );
 }
 
-
-void xlat_disasm_block( FILE *out, void *block )
-{
-    uint32_t buflen = xlat_get_block_size(block);
-    x86_set_symtab( NULL, 0 );
-    x86_disasm_block( out, block, buflen );
-}

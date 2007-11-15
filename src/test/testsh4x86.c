@@ -85,6 +85,8 @@ void sh4_ftrv( float *fv, float *xmtrx ) { }
 void signsat48(void) { }
 uint16_t *sh4_icache = NULL;
 uint32_t sh4_icache_addr = 0;
+gboolean gui_error_dialog( const char *fmt, ... ) { }
+
 
 void usage()
 {
