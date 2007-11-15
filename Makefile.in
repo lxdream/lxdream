@@ -135,7 +135,7 @@ sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
 
-SUBDIRS = src po
+SUBDIRS = src po test
 
 EXTRA_DIST = autogen.sh
 subdir = .
@@ -151,9 +151,9 @@ RECURSIVE_TARGETS = info-recursive dvi-recursive pdf-recursive \
 	installdirs-recursive install-recursive uninstall-recursive \
 	check-recursive installcheck-recursive
 DIST_COMMON = README $(srcdir)/Makefile.in $(srcdir)/configure AUTHORS \
-	COPYING ChangeLog INSTALL Makefile.am NEWS TODO acconfig.h \
-	aclocal.m4 config.h.in configure configure.in depcomp \
-	install-sh missing mkinstalldirs
+	COPYING ChangeLog INSTALL Makefile.am NEWS acconfig.h \
+	aclocal.m4 config.guess config.h.in config.sub configure \
+	configure.in depcomp install-sh missing mkinstalldirs
 DIST_SUBDIRS = $(SUBDIRS)
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-recursive
@@ -553,6 +553,8 @@ install-data-local:
 	    fi \
 	  done \
 	fi
+	$(mkinstalldirs) $(DESTDIR)$(sysconfdir)
+	$(INSTALL_DATA) lxdreamrc $(DESTDIR)$(sysconfdir)
 
 dist-hook:
 	if test -d pixmaps; then \

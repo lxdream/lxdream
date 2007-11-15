@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-SUBDIRS = src po
+SUBDIRS = src po test
 
 EXTRA_DIST = autogen.sh
 
@@ -14,6 +14,8 @@ install-data-local:
 	    fi \
 	  done \
 	fi
+	$(mkinstalldirs) $(DESTDIR)$(sysconfdir)
+	$(INSTALL_DATA) lxdreamrc $(DESTDIR)$(sysconfdir)
 
 dist-hook:
 	if test -d pixmaps; then \
