@@ -1,0 +1,12 @@
+Source: lxdream
+Section: otherosfs
+Priority: extra
+Maintainer: Nathan Keynes <nkeynes@lxdream.org>
+Build-Depends: debhelper (>= 5), autotools-dev
+Standards-Version: 3.7.2
+
+Package: lxdream
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Emulator for the Sega Dreamcast (TM) system
+ <insert long description, indented with spaces>
