@@ -7,7 +7,8 @@ INCLUDES = \
         -Ish4 \
 	@PACKAGE_CFLAGS@
 
-bin_PROGRAMS = gendec genglsl lxdream
+bin_PROGRAMS = lxdream
+noinst_PROGRAMS = gendec genglsl
 
 BUILT_SOURCES = sh4/sh4core.c sh4/sh4dasm.c sh4/sh4x86.c drivers/gl_slsrc.c
 
@@ -61,7 +62,7 @@ TESTS = test/testxlt
 
 check_PROGRAMS = test/testxlt test/testsh4x86
 
-test_testxlt_SOURCES = test/testxlt.c sh4/xltcache.c sh4/xltcache.h 
+test_testxlt_SOURCES = test/testxlt.c sh4/xltcache.c sh4/xltcache.h
 
 test_testsh4x86_SOURCES = test/testsh4x86.c x86dasm/x86dasm.c \
 	x86dasm/x86dasm.h x86dasm/i386-dis.c x86dasm/dis-init.c \
