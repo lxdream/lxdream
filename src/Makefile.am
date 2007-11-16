@@ -48,9 +48,9 @@ lxdream_SOURCES = \
 	drivers/gl_sl.c drivers/gl_slsrc.c
 
 if CDROM_LINUX
-lxdream_SOURCES += gdrom/linux.c
+lxdream_SOURCES += drivers/cd_linux.c
 else
-lxdream_SOURCES += gdrom/cdnone.c
+lxdream_SOURCES += drivers/cd_none.c
 endif
 
 lxdream_LDADD = @PACKAGE_LIBS@ $(INTLLIBS) -lesd
