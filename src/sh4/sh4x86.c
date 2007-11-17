@@ -1,5 +1,5 @@
 /**
- * $Id: sh4x86.c,v 1.19 2007-11-08 11:54:16 nkeynes Exp $
+ * $Id: sh4x86.in,v 1.20 2007-11-08 11:54:16 nkeynes Exp $
  * 
  * SH4 => x86 translation. This version does no real optimization, it just
  * outputs straight-line x86 code - it mainly exists to provide a baseline
@@ -522,7 +522,7 @@ extern uint32_t sh4_icache_addr;
  * @return true if the instruction marks the end of a basic block
  * (eg a branch or 
  */
-uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
+uint32_t sh4_translate_instruction( sh4addr_t pc )
 {
     uint32_t ir;
     /* Read instruction */
@@ -623,7 +623,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                             	store_spreg( R_ECX, REG_OFFSET(pc) );
                             	sh4_x86.in_delay_slot = TRUE;
                             	sh4_x86.tstate = TSTATE_NONE;
-                            	sh4_x86_translate_instruction( pc + 2 );
+                            	sh4_translate_instruction( pc + 2 );
                             	exit_block_pcset(pc+2);
                             	sh4_x86.branch_taken = TRUE;
                             	return 4;
@@ -641,7 +641,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                             	store_spreg( R_EAX, REG_OFFSET(pc) );
                             	sh4_x86.in_delay_slot = TRUE;
                             	sh4_x86.tstate = TSTATE_NONE;
-                            	sh4_x86_translate_instruction( pc + 2 );
+                            	sh4_translate_instruction( pc + 2 );
                             	exit_block_pcset(pc+2);
                             	sh4_x86.branch_taken = TRUE;
                             	return 4;
@@ -885,7 +885,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                             	load_spreg( R_ECX, R_PR );
                             	store_spreg( R_ECX, REG_OFFSET(pc) );
                             	sh4_x86.in_delay_slot = TRUE;
-                            	sh4_x86_translate_instruction(pc+2);
+                            	sh4_translate_instruction(pc+2);
                             	exit_block_pcset(pc+2);
                             	sh4_x86.branch_taken = TRUE;
                             	return 4;
@@ -915,7 +915,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                             	sh4_x86.priv_checked = FALSE;
                             	sh4_x86.fpuen_checked = FALSE;
                             	sh4_x86.tstate = TSTATE_NONE;
-                            	sh4_x86_translate_instruction(pc+2);
+                            	sh4_translate_instruction(pc+2);
                             	exit_block_pcset(pc+2);
                             	sh4_x86.branch_taken = TRUE;
                             	return 4;
@@ -2062,7 +2062,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                             	load_reg( R_ECX, Rn );
                             	store_spreg( R_ECX, REG_OFFSET(pc) );
                             	sh4_x86.in_delay_slot = TRUE;
-                            	sh4_x86_translate_instruction(pc+2);
+                            	sh4_translate_instruction(pc+2);
                             	exit_block_pcset(pc+2);
                             	sh4_x86.branch_taken = TRUE;
                             	return 4;
@@ -2091,7 +2091,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                             	load_reg( R_ECX, Rn );
                             	store_spreg( R_ECX, REG_OFFSET(pc) );
                             	sh4_x86.in_delay_slot = TRUE;
-                            	sh4_x86_translate_instruction(pc+2);
+                            	sh4_translate_instruction(pc+2);
                             	exit_block_pcset(pc+2);
                             	sh4_x86.branch_taken = TRUE;
                             	return 4;
@@ -2551,11 +2551,11 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                     	    sh4_x86.tstate = TSTATE_E;
                     	}
                     	OP(0x0F); OP(0x80+(sh4_x86.tstate^1)); uint32_t *patch = (uint32_t *)xlat_output; OP32(0); // JE rel32
-                    	sh4_x86_translate_instruction(pc+2);
+                    	sh4_translate_instruction(pc+2);
                     	exit_block( disp + pc + 4, pc+4 );
                     	// not taken
                     	*patch = (xlat_output - ((uint8_t *)patch)) - 4;
-                    	sh4_x86_translate_instruction(pc+2);
+                    	sh4_translate_instruction(pc+2);
                     	return 4;
                         }
                         }
@@ -2572,11 +2572,11 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
                     	    sh4_x86.tstate = TSTATE_E;
                     	}
                     	OP(0x0F); OP(0x80+sh4_x86.tstate); uint32_t *patch = (uint32_t *)xlat_output; OP32(0); // JNE rel32
-                    	sh4_x86_translate_instruction(pc+2);
+                    	sh4_translate_instruction(pc+2);
                     	exit_block( disp + pc + 4, pc+4 );
                     	// not taken
                     	*patch = (xlat_output - ((uint8_t *)patch)) - 4;
-                    	sh4_x86_translate_instruction(pc+2);
+                    	sh4_translate_instruction(pc+2);
                     	return 4;
                         }
                         }
@@ -2606,7 +2606,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
             	SLOTILLEGAL();
                 } else {
             	sh4_x86.in_delay_slot = TRUE;
-            	sh4_x86_translate_instruction( pc + 2 );
+            	sh4_translate_instruction( pc + 2 );
             	exit_block( disp + pc + 4, pc+4 );
             	sh4_x86.branch_taken = TRUE;
             	return 4;
@@ -2622,7 +2622,7 @@ uint32_t sh4_x86_translate_instruction( sh4addr_t pc )
             	load_imm32( R_EAX, pc + 4 );
             	store_spreg( R_EAX, R_PR );
             	sh4_x86.in_delay_slot = TRUE;
-            	sh4_x86_translate_instruction( pc + 2 );
+            	sh4_translate_instruction( pc + 2 );
             	exit_block( disp + pc + 4, pc+4 );
             	sh4_x86.branch_taken = TRUE;
             	return 4;

@@ -28,6 +28,9 @@
 /* Define to 1 if you have the `GL' library (-lGL). */
 #undef HAVE_LIBGL
 
+/* Define to 1 if you have the `z' library (-lz). */
+#undef HAVE_LIBZ
+
 /* Define to 1 if you have the <locale.h> header file. */
 #undef HAVE_LOCALE_H
 
@@ -72,6 +75,9 @@
 
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION
+
+/* SH4 Translator to use (if any) */
+#undef SH4_TRANSLATOR
 
 /* Define to 1 if you have the ANSI C header files. */
 #undef STDC_HEADERS

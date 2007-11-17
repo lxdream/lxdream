@@ -28,12 +28,16 @@ AC_CHECK_HEADER([GL/gl.h], [], [
 
 dnl Check for a supported cpu target for translation purposes
 case $host_cpu in
-    i386|i486|i586|i686|x86_64)
-	TRANSLATOR="x86";;
+    i386|i486|i586|i686)
+	SH4_TRANSLATOR="x86"
+        AC_DEFINE_UNQUOTED(SH4_TRANSLATOR,["x86"], [SH4 Translator to use (if any)] );;
+    x86_64)
+	SH4_TRANSLATOR="x86_64"
+        AC_DEFINE_UNQUOTED(SH4_TRANSLATOR,["x86_64"], [SH4 Translator to use (if any)] );;
     *)
 	echo "Warning: No translator available for $host. Building emulation core only";;
 esac
-AM_CONDITIONAL(BUILD_SH4X86, [test "$TRANSLATOR"="x86"])
+AM_CONDITIONAL(BUILD_SH4X86, [test "$SH4_TRANSLATOR" = "x86" -o "$SH4_TRANSLATOR" = "x86_64"])
 
 dnl Check for cdrom device support
 AC_CHECK_HEADER([linux/cdrom.h], [HAVE_LINUX_CDROM_H=yes], [

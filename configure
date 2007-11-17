@@ -5512,14 +5512,26 @@ fi
 
 
 case $host_cpu in
-    i386|i486|i586|i686|x86_64)
-	TRANSLATOR="x86";;
+    i386|i486|i586|i686)
+	SH4_TRANSLATOR="x86"
+
+cat >>confdefs.h <<_ACEOF
+#define SH4_TRANSLATOR "x86"
+_ACEOF
+;;
+    x86_64)
+	SH4_TRANSLATOR="x86_64"
+
+cat >>confdefs.h <<_ACEOF
+#define SH4_TRANSLATOR "x86_64"
+_ACEOF
+;;
     *)
 	echo "Warning: No translator available for $host. Building emulation core only";;
 esac
 
 
-if test "$TRANSLATOR"="x86"; then
+if test "$SH4_TRANSLATOR" = "x86" -o "$SH4_TRANSLATOR" = "x86_64"; then
   BUILD_SH4X86_TRUE=
   BUILD_SH4X86_FALSE='#'
 else
