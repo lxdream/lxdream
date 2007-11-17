@@ -39,7 +39,11 @@ test_undef_1a_pc:
 	not r1, r1
 	and r0, r1
 	ldc r1, sr
-	
+	bra test_undef_end	
+	nop
+! The following don't actually raise an exception, so skip over for the
+! moment.
+
 ! Gaps in the STC range (0x0nn2)
 test_undef_2:	! 0x52
 	add #1, r12
