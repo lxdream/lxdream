@@ -9,6 +9,8 @@ AC_ISC_POSIX
 AC_PROG_CC
 AM_PROG_CC_STDC
 AC_HEADER_STDC
+AC_CANONICAL_BUILD
+AC_CANONICAL_HOST
 
 PKG_CHECK_MODULES(PACKAGE, 
    [ gtk+-2.0 dnl
@@ -20,11 +22,46 @@ AC_CHECK_LIB(z, uncompress, [], [
 AC_CHECK_LIB(GL, glXQueryVersion, [], [
     echo "The OpenGL library (libGL.so) could not be found, but is required."
     exit 1])
+AC_CHECK_HEADER([GL/gl.h], [], [
+    echo "The OpenGL header files (eg GL/gl.h) could not be found, but are required."
+    exit 1])
+
+dnl Check for a supported cpu target for translation purposes
+case $host_cpu in
+    i386|i486|i586|i686|x86_64)
+	TRANSLATOR="x86";;
+    *)
+	echo "Warning: No translator available for $host. Building emulation core only";;
+esac
+AM_CONDITIONAL(BUILD_SH4X86, [test "$TRANSLATOR"="x86"])
 
 dnl Check for cdrom device support
 AC_CHECK_HEADER([linux/cdrom.h], [HAVE_LINUX_CDROM_H=yes], [
     echo "Linux CDROM support not found, building without it."]  )
 AM_CONDITIONAL(CDROM_LINUX, [test "$HAVE_LINUX_CDROM_H" = "yes"])
+
+dnl Check for cross-compiler availability
+AC_PATH_PROG(SHCC, [sh-elf-gcc])
+AC_PATH_PROG(SHLD, [sh-elf-ld])
+AC_PATH_PROG(SHOBJCOPY, [sh-elf-objcopy])
+AC_PATH_PROG(ARMCC, [arm-elf-gcc])
+AC_PATH_PROG(ARMLD, [arm-elf-ld])
+AC_PATH_PROG(ARMOBJCOPY, [arm-elf-objcopy])
+
+if test "x$SHCC" = "x" -o "x$SHLD" = "x" -o "x$SHOBJCOPY" = "x"; then
+  BUILD_SH="no"
+  echo "Warning: SH4 cross-compiler not found, system tests will be disabled."
+else
+  BUILD_SH="yes"
+fi
+if test "x$ARMCC" = "x" -o "x$ARMLD" = "x" -o "x$ARMOBJCOPY" = "x"; then
+  BUILD_ARM="no"
+  echo "Warning: ARM cross-compiler not found, AICA tests will be disabled."
+else
+  BUILD_ARM="yes"
+fi
+AM_CONDITIONAL(BUILD_SYSTEST, [test "$BUILD_SH" = "yes"])
+AM_CONDITIONAL(BUILD_ARMTEST, [test "$BUILD_ARM" = "yes"])
 
 GETTEXT_PACKAGE=lxdream
 AC_SUBST(GETTEXT_PACKAGE)
@@ -41,5 +78,6 @@ AC_OUTPUT([
 Makefile
 src/Makefile
 po/Makefile.in
+test/Makefile
 ])
 
