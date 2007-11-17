@@ -80,4 +80,5 @@ int main()
 
     fprintf( stdout, "Total: %d/%d tests passed (%d%%)\n", total_tests-total_fails,
 	     total_tests, ((total_tests-total_fails)*100)/total_tests );
+    return total_fails;
 }
