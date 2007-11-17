@@ -690,11 +690,31 @@ am__fastdepCC_FALSE
 CPP
 GREP
 EGREP
+build
+build_cpu
+build_vendor
+build_os
+host
+host_cpu
+host_vendor
+host_os
 PKG_CONFIG
 PACKAGE_CFLAGS
 PACKAGE_LIBS
+BUILD_SH4X86_TRUE
+BUILD_SH4X86_FALSE
 CDROM_LINUX_TRUE
 CDROM_LINUX_FALSE
+SHCC
+SHLD
+SHOBJCOPY
+ARMCC
+ARMLD
+ARMOBJCOPY
+BUILD_SYSTEST_TRUE
+BUILD_SYSTEST_FALSE
+BUILD_ARMTEST_TRUE
+BUILD_ARMTEST_FALSE
 GETTEXT_PACKAGE
 USE_NLS
 MSGFMT
@@ -1289,6 +1309,10 @@ Program names:
   --program-prefix=PREFIX            prepend PREFIX to installed program names
   --program-suffix=SUFFIX            append SUFFIX to installed program names
   --program-transform-name=PROGRAM   run sed PROGRAM on installed program names
+
+System types:
+  --build=BUILD     configure for building on BUILD [guessed]
+  --host=HOST       cross-compile to build programs to run on HOST [BUILD]
 _ACEOF
 fi
 
@@ -4818,6 +4842,89 @@ _ACEOF
 
 fi
 
+# Make sure we can run config.sub.
+$SHELL "$ac_aux_dir/config.sub" sun4 >/dev/null 2>&1 ||
+  { { echo "$as_me:$LINENO: error: cannot run $SHELL $ac_aux_dir/config.sub" >&5
+echo "$as_me: error: cannot run $SHELL $ac_aux_dir/config.sub" >&2;}
+   { (exit 1); exit 1; }; }
+
+{ echo "$as_me:$LINENO: checking build system type" >&5
+echo $ECHO_N "checking build system type... $ECHO_C" >&6; }
+if test "${ac_cv_build+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_build_alias=$build_alias
+test "x$ac_build_alias" = x &&
+  ac_build_alias=`$SHELL "$ac_aux_dir/config.guess"`
+test "x$ac_build_alias" = x &&
+  { { echo "$as_me:$LINENO: error: cannot guess build type; you must specify one" >&5
+echo "$as_me: error: cannot guess build type; you must specify one" >&2;}
+   { (exit 1); exit 1; }; }
+ac_cv_build=`$SHELL "$ac_aux_dir/config.sub" $ac_build_alias` ||
+  { { echo "$as_me:$LINENO: error: $SHELL $ac_aux_dir/config.sub $ac_build_alias failed" >&5
+echo "$as_me: error: $SHELL $ac_aux_dir/config.sub $ac_build_alias failed" >&2;}
+   { (exit 1); exit 1; }; }
+
+fi
+{ echo "$as_me:$LINENO: result: $ac_cv_build" >&5
+echo "${ECHO_T}$ac_cv_build" >&6; }
+case $ac_cv_build in
+*-*-*) ;;
+*) { { echo "$as_me:$LINENO: error: invalid value of canonical build" >&5
+echo "$as_me: error: invalid value of canonical build" >&2;}
+   { (exit 1); exit 1; }; };;
+esac
+build=$ac_cv_build
+ac_save_IFS=$IFS; IFS='-'
+set x $ac_cv_build
+shift
+build_cpu=$1
+build_vendor=$2
+shift; shift
+# Remember, the first character of IFS is used to create $*,
+# except with old shells:
+build_os=$*
+IFS=$ac_save_IFS
+case $build_os in *\ *) build_os=`echo "$build_os" | sed 's/ /-/g'`;; esac
+
+
+{ echo "$as_me:$LINENO: checking host system type" >&5
+echo $ECHO_N "checking host system type... $ECHO_C" >&6; }
+if test "${ac_cv_host+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  if test "x$host_alias" = x; then
+  ac_cv_host=$ac_cv_build
+else
+  ac_cv_host=`$SHELL "$ac_aux_dir/config.sub" $host_alias` ||
+    { { echo "$as_me:$LINENO: error: $SHELL $ac_aux_dir/config.sub $host_alias failed" >&5
+echo "$as_me: error: $SHELL $ac_aux_dir/config.sub $host_alias failed" >&2;}
+   { (exit 1); exit 1; }; }
+fi
+
+fi
+{ echo "$as_me:$LINENO: result: $ac_cv_host" >&5
+echo "${ECHO_T}$ac_cv_host" >&6; }
+case $ac_cv_host in
+*-*-*) ;;
+*) { { echo "$as_me:$LINENO: error: invalid value of canonical host" >&5
+echo "$as_me: error: invalid value of canonical host" >&2;}
+   { (exit 1); exit 1; }; };;
+esac
+host=$ac_cv_host
+ac_save_IFS=$IFS; IFS='-'
+set x $ac_cv_host
+shift
+host_cpu=$1
+host_vendor=$2
+shift; shift
+# Remember, the first character of IFS is used to create $*,
+# except with old shells:
+host_os=$*
+IFS=$ac_save_IFS
+case $host_os in *\ *) host_os=`echo "$host_os" | sed 's/ /-/g'`;; esac
+
+
 
 
 
@@ -5200,7 +5307,6 @@ else
     exit 1
 fi
 
-
 # On IRIX 5.3, sys/types and inttypes.h are conflicting.
 
 
@@ -5268,6 +5374,158 @@ _ACEOF
 fi
 
 done
+
+
+if test "${ac_cv_header_GL_gl_h+set}" = set; then
+  { echo "$as_me:$LINENO: checking for GL/gl.h" >&5
+echo $ECHO_N "checking for GL/gl.h... $ECHO_C" >&6; }
+if test "${ac_cv_header_GL_gl_h+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+fi
+{ echo "$as_me:$LINENO: result: $ac_cv_header_GL_gl_h" >&5
+echo "${ECHO_T}$ac_cv_header_GL_gl_h" >&6; }
+else
+  # Is the header compilable?
+{ echo "$as_me:$LINENO: checking GL/gl.h usability" >&5
+echo $ECHO_N "checking GL/gl.h usability... $ECHO_C" >&6; }
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+$ac_includes_default
+#include <GL/gl.h>
+_ACEOF
+rm -f conftest.$ac_objext
+if { (ac_try="$ac_compile"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
+  (eval "$ac_compile") 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && {
+	 test -z "$ac_c_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest.$ac_objext; then
+  ac_header_compiler=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+	ac_header_compiler=no
+fi
+
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+{ echo "$as_me:$LINENO: result: $ac_header_compiler" >&5
+echo "${ECHO_T}$ac_header_compiler" >&6; }
+
+# Is the header present?
+{ echo "$as_me:$LINENO: checking GL/gl.h presence" >&5
+echo $ECHO_N "checking GL/gl.h presence... $ECHO_C" >&6; }
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+#include <GL/gl.h>
+_ACEOF
+if { (ac_try="$ac_cpp conftest.$ac_ext"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
+  (eval "$ac_cpp conftest.$ac_ext") 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } >/dev/null && {
+	 test -z "$ac_c_preproc_warn_flag$ac_c_werror_flag" ||
+	 test ! -s conftest.err
+       }; then
+  ac_header_preproc=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+  ac_header_preproc=no
+fi
+
+rm -f conftest.err conftest.$ac_ext
+{ echo "$as_me:$LINENO: result: $ac_header_preproc" >&5
+echo "${ECHO_T}$ac_header_preproc" >&6; }
+
+# So?  What about this header?
+case $ac_header_compiler:$ac_header_preproc:$ac_c_preproc_warn_flag in
+  yes:no: )
+    { echo "$as_me:$LINENO: WARNING: GL/gl.h: accepted by the compiler, rejected by the preprocessor!" >&5
+echo "$as_me: WARNING: GL/gl.h: accepted by the compiler, rejected by the preprocessor!" >&2;}
+    { echo "$as_me:$LINENO: WARNING: GL/gl.h: proceeding with the compiler's result" >&5
+echo "$as_me: WARNING: GL/gl.h: proceeding with the compiler's result" >&2;}
+    ac_header_preproc=yes
+    ;;
+  no:yes:* )
+    { echo "$as_me:$LINENO: WARNING: GL/gl.h: present but cannot be compiled" >&5
+echo "$as_me: WARNING: GL/gl.h: present but cannot be compiled" >&2;}
+    { echo "$as_me:$LINENO: WARNING: GL/gl.h:     check for missing prerequisite headers?" >&5
+echo "$as_me: WARNING: GL/gl.h:     check for missing prerequisite headers?" >&2;}
+    { echo "$as_me:$LINENO: WARNING: GL/gl.h: see the Autoconf documentation" >&5
+echo "$as_me: WARNING: GL/gl.h: see the Autoconf documentation" >&2;}
+    { echo "$as_me:$LINENO: WARNING: GL/gl.h:     section \"Present But Cannot Be Compiled\"" >&5
+echo "$as_me: WARNING: GL/gl.h:     section \"Present But Cannot Be Compiled\"" >&2;}
+    { echo "$as_me:$LINENO: WARNING: GL/gl.h: proceeding with the preprocessor's result" >&5
+echo "$as_me: WARNING: GL/gl.h: proceeding with the preprocessor's result" >&2;}
+    { echo "$as_me:$LINENO: WARNING: GL/gl.h: in the future, the compiler will take precedence" >&5
+echo "$as_me: WARNING: GL/gl.h: in the future, the compiler will take precedence" >&2;}
+
+    ;;
+esac
+{ echo "$as_me:$LINENO: checking for GL/gl.h" >&5
+echo $ECHO_N "checking for GL/gl.h... $ECHO_C" >&6; }
+if test "${ac_cv_header_GL_gl_h+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_cv_header_GL_gl_h=$ac_header_preproc
+fi
+{ echo "$as_me:$LINENO: result: $ac_cv_header_GL_gl_h" >&5
+echo "${ECHO_T}$ac_cv_header_GL_gl_h" >&6; }
+
+fi
+if test $ac_cv_header_GL_gl_h = yes; then
+  :
+else
+
+    echo "The OpenGL header files (eg GL/gl.h) could not be found, but are required."
+    exit 1
+fi
+
+
+
+case $host_cpu in
+    i386|i486|i586|i686|x86_64)
+	TRANSLATOR="x86";;
+    *)
+	echo "Warning: No translator available for $host. Building emulation core only";;
+esac
+
+
+if test "$TRANSLATOR"="x86"; then
+  BUILD_SH4X86_TRUE=
+  BUILD_SH4X86_FALSE='#'
+else
+  BUILD_SH4X86_TRUE='#'
+  BUILD_SH4X86_FALSE=
+fi
 
 
 if test "${ac_cv_header_linux_cdrom_h+set}" = set; then
@@ -5411,6 +5669,280 @@ if test "$HAVE_LINUX_CDROM_H" = "yes"; then
 else
   CDROM_LINUX_TRUE='#'
   CDROM_LINUX_FALSE=
+fi
+
+
+# Extract the first word of "sh-elf-gcc", so it can be a program name with args.
+set dummy sh-elf-gcc; ac_word=$2
+{ echo "$as_me:$LINENO: checking for $ac_word" >&5
+echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6; }
+if test "${ac_cv_path_SHCC+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  case $SHCC in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_SHCC="$SHCC" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+  for ac_exec_ext in '' $ac_executable_extensions; do
+  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
+    ac_cv_path_SHCC="$as_dir/$ac_word$ac_exec_ext"
+    echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+done
+IFS=$as_save_IFS
+
+  ;;
+esac
+fi
+SHCC=$ac_cv_path_SHCC
+if test -n "$SHCC"; then
+  { echo "$as_me:$LINENO: result: $SHCC" >&5
+echo "${ECHO_T}$SHCC" >&6; }
+else
+  { echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6; }
+fi
+
+
+# Extract the first word of "sh-elf-ld", so it can be a program name with args.
+set dummy sh-elf-ld; ac_word=$2
+{ echo "$as_me:$LINENO: checking for $ac_word" >&5
+echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6; }
+if test "${ac_cv_path_SHLD+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  case $SHLD in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_SHLD="$SHLD" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+  for ac_exec_ext in '' $ac_executable_extensions; do
+  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
+    ac_cv_path_SHLD="$as_dir/$ac_word$ac_exec_ext"
+    echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+done
+IFS=$as_save_IFS
+
+  ;;
+esac
+fi
+SHLD=$ac_cv_path_SHLD
+if test -n "$SHLD"; then
+  { echo "$as_me:$LINENO: result: $SHLD" >&5
+echo "${ECHO_T}$SHLD" >&6; }
+else
+  { echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6; }
+fi
+
+
+# Extract the first word of "sh-elf-objcopy", so it can be a program name with args.
+set dummy sh-elf-objcopy; ac_word=$2
+{ echo "$as_me:$LINENO: checking for $ac_word" >&5
+echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6; }
+if test "${ac_cv_path_SHOBJCOPY+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  case $SHOBJCOPY in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_SHOBJCOPY="$SHOBJCOPY" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+  for ac_exec_ext in '' $ac_executable_extensions; do
+  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
+    ac_cv_path_SHOBJCOPY="$as_dir/$ac_word$ac_exec_ext"
+    echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+done
+IFS=$as_save_IFS
+
+  ;;
+esac
+fi
+SHOBJCOPY=$ac_cv_path_SHOBJCOPY
+if test -n "$SHOBJCOPY"; then
+  { echo "$as_me:$LINENO: result: $SHOBJCOPY" >&5
+echo "${ECHO_T}$SHOBJCOPY" >&6; }
+else
+  { echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6; }
+fi
+
+
+# Extract the first word of "arm-elf-gcc", so it can be a program name with args.
+set dummy arm-elf-gcc; ac_word=$2
+{ echo "$as_me:$LINENO: checking for $ac_word" >&5
+echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6; }
+if test "${ac_cv_path_ARMCC+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  case $ARMCC in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_ARMCC="$ARMCC" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+  for ac_exec_ext in '' $ac_executable_extensions; do
+  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
+    ac_cv_path_ARMCC="$as_dir/$ac_word$ac_exec_ext"
+    echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+done
+IFS=$as_save_IFS
+
+  ;;
+esac
+fi
+ARMCC=$ac_cv_path_ARMCC
+if test -n "$ARMCC"; then
+  { echo "$as_me:$LINENO: result: $ARMCC" >&5
+echo "${ECHO_T}$ARMCC" >&6; }
+else
+  { echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6; }
+fi
+
+
+# Extract the first word of "arm-elf-ld", so it can be a program name with args.
+set dummy arm-elf-ld; ac_word=$2
+{ echo "$as_me:$LINENO: checking for $ac_word" >&5
+echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6; }
+if test "${ac_cv_path_ARMLD+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  case $ARMLD in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_ARMLD="$ARMLD" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+  for ac_exec_ext in '' $ac_executable_extensions; do
+  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
+    ac_cv_path_ARMLD="$as_dir/$ac_word$ac_exec_ext"
+    echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+done
+IFS=$as_save_IFS
+
+  ;;
+esac
+fi
+ARMLD=$ac_cv_path_ARMLD
+if test -n "$ARMLD"; then
+  { echo "$as_me:$LINENO: result: $ARMLD" >&5
+echo "${ECHO_T}$ARMLD" >&6; }
+else
+  { echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6; }
+fi
+
+
+# Extract the first word of "arm-elf-objcopy", so it can be a program name with args.
+set dummy arm-elf-objcopy; ac_word=$2
+{ echo "$as_me:$LINENO: checking for $ac_word" >&5
+echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6; }
+if test "${ac_cv_path_ARMOBJCOPY+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  case $ARMOBJCOPY in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_ARMOBJCOPY="$ARMOBJCOPY" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+  for ac_exec_ext in '' $ac_executable_extensions; do
+  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
+    ac_cv_path_ARMOBJCOPY="$as_dir/$ac_word$ac_exec_ext"
+    echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+done
+IFS=$as_save_IFS
+
+  ;;
+esac
+fi
+ARMOBJCOPY=$ac_cv_path_ARMOBJCOPY
+if test -n "$ARMOBJCOPY"; then
+  { echo "$as_me:$LINENO: result: $ARMOBJCOPY" >&5
+echo "${ECHO_T}$ARMOBJCOPY" >&6; }
+else
+  { echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6; }
+fi
+
+
+
+if test "x$SHCC" = "x" -o "x$SHLD" = "x" -o "x$SHOBJCOPY" = "x"; then
+  BUILD_SH="no"
+  echo "Warning: SH4 cross-compiler not found, system tests will be disabled."
+else
+  BUILD_SH="yes"
+fi
+if test "x$ARMCC" = "x" -o "x$ARMLD" = "x" -o "x$ARMOBJCOPY" = "x"; then
+  BUILD_ARM="no"
+  echo "Warning: ARM cross-compiler not found, AICA tests will be disabled."
+else
+  BUILD_ARM="yes"
+fi
+
+
+if test "$BUILD_SH" = "yes"; then
+  BUILD_SYSTEST_TRUE=
+  BUILD_SYSTEST_FALSE='#'
+else
+  BUILD_SYSTEST_TRUE='#'
+  BUILD_SYSTEST_FALSE=
+fi
+
+
+
+if test "$BUILD_ARM" = "yes"; then
+  BUILD_ARMTEST_TRUE=
+  BUILD_ARMTEST_FALSE='#'
+else
+  BUILD_ARMTEST_TRUE='#'
+  BUILD_ARMTEST_FALSE=
 fi
 
 
@@ -6913,7 +7445,7 @@ echo "${ECHO_T}$LINGUAS" >&6; }
 	< $srcdir/po/POTFILES.in > po/POTFILES
 
 
-ac_config_files="$ac_config_files Makefile src/Makefile po/Makefile.in"
+ac_config_files="$ac_config_files Makefile src/Makefile po/Makefile.in test/Makefile"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -7039,10 +7571,31 @@ echo "$as_me: error: conditional \"am__fastdepCC\" was never defined.
 Usually this means the macro was only invoked conditionally." >&2;}
    { (exit 1); exit 1; }; }
 fi
+if test -z "${BUILD_SH4X86_TRUE}" && test -z "${BUILD_SH4X86_FALSE}"; then
+  { { echo "$as_me:$LINENO: error: conditional \"BUILD_SH4X86\" was never defined.
+Usually this means the macro was only invoked conditionally." >&5
+echo "$as_me: error: conditional \"BUILD_SH4X86\" was never defined.
+Usually this means the macro was only invoked conditionally." >&2;}
+   { (exit 1); exit 1; }; }
+fi
 if test -z "${CDROM_LINUX_TRUE}" && test -z "${CDROM_LINUX_FALSE}"; then
   { { echo "$as_me:$LINENO: error: conditional \"CDROM_LINUX\" was never defined.
 Usually this means the macro was only invoked conditionally." >&5
 echo "$as_me: error: conditional \"CDROM_LINUX\" was never defined.
+Usually this means the macro was only invoked conditionally." >&2;}
+   { (exit 1); exit 1; }; }
+fi
+if test -z "${BUILD_SYSTEST_TRUE}" && test -z "${BUILD_SYSTEST_FALSE}"; then
+  { { echo "$as_me:$LINENO: error: conditional \"BUILD_SYSTEST\" was never defined.
+Usually this means the macro was only invoked conditionally." >&5
+echo "$as_me: error: conditional \"BUILD_SYSTEST\" was never defined.
+Usually this means the macro was only invoked conditionally." >&2;}
+   { (exit 1); exit 1; }; }
+fi
+if test -z "${BUILD_ARMTEST_TRUE}" && test -z "${BUILD_ARMTEST_FALSE}"; then
+  { { echo "$as_me:$LINENO: error: conditional \"BUILD_ARMTEST\" was never defined.
+Usually this means the macro was only invoked conditionally." >&5
+echo "$as_me: error: conditional \"BUILD_ARMTEST\" was never defined.
 Usually this means the macro was only invoked conditionally." >&2;}
    { (exit 1); exit 1; }; }
 fi
@@ -7519,6 +8072,7 @@ do
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
     "src/Makefile") CONFIG_FILES="$CONFIG_FILES src/Makefile" ;;
     "po/Makefile.in") CONFIG_FILES="$CONFIG_FILES po/Makefile.in" ;;
+    "test/Makefile") CONFIG_FILES="$CONFIG_FILES test/Makefile" ;;
 
   *) { { echo "$as_me:$LINENO: error: invalid argument: $ac_config_target" >&5
 echo "$as_me: error: invalid argument: $ac_config_target" >&2;}
@@ -7658,26 +8212,26 @@ am__fastdepCC_FALSE!$am__fastdepCC_FALSE$ac_delim
 CPP!$CPP$ac_delim
 GREP!$GREP$ac_delim
 EGREP!$EGREP$ac_delim
+build!$build$ac_delim
+build_cpu!$build_cpu$ac_delim
+build_vendor!$build_vendor$ac_delim
+build_os!$build_os$ac_delim
+host!$host$ac_delim
+host_cpu!$host_cpu$ac_delim
+host_vendor!$host_vendor$ac_delim
+host_os!$host_os$ac_delim
 PKG_CONFIG!$PKG_CONFIG$ac_delim
 PACKAGE_CFLAGS!$PACKAGE_CFLAGS$ac_delim
 PACKAGE_LIBS!$PACKAGE_LIBS$ac_delim
+BUILD_SH4X86_TRUE!$BUILD_SH4X86_TRUE$ac_delim
+BUILD_SH4X86_FALSE!$BUILD_SH4X86_FALSE$ac_delim
 CDROM_LINUX_TRUE!$CDROM_LINUX_TRUE$ac_delim
 CDROM_LINUX_FALSE!$CDROM_LINUX_FALSE$ac_delim
-GETTEXT_PACKAGE!$GETTEXT_PACKAGE$ac_delim
-USE_NLS!$USE_NLS$ac_delim
-MSGFMT!$MSGFMT$ac_delim
-GMSGFMT!$GMSGFMT$ac_delim
-XGETTEXT!$XGETTEXT$ac_delim
-CATALOGS!$CATALOGS$ac_delim
-CATOBJEXT!$CATOBJEXT$ac_delim
-DATADIRNAME!$DATADIRNAME$ac_delim
-GMOFILES!$GMOFILES$ac_delim
-INSTOBJEXT!$INSTOBJEXT$ac_delim
-INTLLIBS!$INTLLIBS$ac_delim
-PO_IN_DATADIR_TRUE!$PO_IN_DATADIR_TRUE$ac_delim
-PO_IN_DATADIR_FALSE!$PO_IN_DATADIR_FALSE$ac_delim
-POFILES!$POFILES$ac_delim
-POSUB!$POSUB$ac_delim
+SHCC!$SHCC$ac_delim
+SHLD!$SHLD$ac_delim
+SHOBJCOPY!$SHOBJCOPY$ac_delim
+ARMCC!$ARMCC$ac_delim
+ARMLD!$ARMLD$ac_delim
 _ACEOF
 
   if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 97; then
@@ -7719,12 +8273,32 @@ _ACEOF
 ac_delim='%!_!# '
 for ac_last_try in false false false false false :; do
   cat >conf$$subs.sed <<_ACEOF
+ARMOBJCOPY!$ARMOBJCOPY$ac_delim
+BUILD_SYSTEST_TRUE!$BUILD_SYSTEST_TRUE$ac_delim
+BUILD_SYSTEST_FALSE!$BUILD_SYSTEST_FALSE$ac_delim
+BUILD_ARMTEST_TRUE!$BUILD_ARMTEST_TRUE$ac_delim
+BUILD_ARMTEST_FALSE!$BUILD_ARMTEST_FALSE$ac_delim
+GETTEXT_PACKAGE!$GETTEXT_PACKAGE$ac_delim
+USE_NLS!$USE_NLS$ac_delim
+MSGFMT!$MSGFMT$ac_delim
+GMSGFMT!$GMSGFMT$ac_delim
+XGETTEXT!$XGETTEXT$ac_delim
+CATALOGS!$CATALOGS$ac_delim
+CATOBJEXT!$CATOBJEXT$ac_delim
+DATADIRNAME!$DATADIRNAME$ac_delim
+GMOFILES!$GMOFILES$ac_delim
+INSTOBJEXT!$INSTOBJEXT$ac_delim
+INTLLIBS!$INTLLIBS$ac_delim
+PO_IN_DATADIR_TRUE!$PO_IN_DATADIR_TRUE$ac_delim
+PO_IN_DATADIR_FALSE!$PO_IN_DATADIR_FALSE$ac_delim
+POFILES!$POFILES$ac_delim
+POSUB!$POSUB$ac_delim
 MKINSTALLDIRS!$MKINSTALLDIRS$ac_delim
 LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 3; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 23; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5

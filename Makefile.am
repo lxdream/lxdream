@@ -1,6 +1,9 @@
 ## Process this file with automake to produce Makefile.in
 
-SUBDIRS = src po test
+if BUILD_SYSTEST
+  TEST_SUBDIR = test
+endif
+SUBDIRS = src po $(TEST_SUBDIR)
 
 EXTRA_DIST = autogen.sh
 

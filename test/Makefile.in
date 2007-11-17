@@ -1,23 +1,21 @@
 # host compiler and flags
-HOSTCC		= gcc
-HOSTCFLAGS	= -O2
-SH4CC		= sh-elf-gcc
+HOSTCC		= @CC@
+HOSTCFLAGS	= @CFLAGS@
+SH4CC		= @SHCC@
 SH4INC          = -Iinclude
 SH4CFLAGS	= $(SH4INC) -D_arch_dreamcast -D_arch_sub_pristine \
                   -O2 -fno-builtin -fno-strict-aliasing -ml -m4-single-only \
                   -fno-optimize-sibling-calls
-SH4LD		= sh-elf-ld
+SH4LD		= @SHLD@
 SH4LDFLAGS      = -fno-builtin -fno-strict-aliasing  -ml -m4-single-only \
                   -Wl,-Tdc.x -nostartfiles -nostdlib -Llib
 SH4LIBS         = -Wl,--start-group -lc -lgcc -lm -Wl,--end-group
-SH4OBJCOPY      = sh-elf-objcopy -O binary
-ARMCC		= arm-elf-gcc
+SH4OBJCOPY      = @SHOBJCOPY@ -O binary
+ARMCC		= @ARMCC@
 ARMCFLAGS	= -O2
-ARMLD		= arm-elf-ld
-ARMOBJCOPY	= arm-elf-objcopy
+ARMLD		= @ARMLD@
+ARMOBJCOPY	= @ARMOBJCOPY@
 
-BFDLIB		= -L/usr/local/sh-elf-bfd/lib -lbfd -liberty
-BFDINCLUDE	= /usr/local/sh-elf-bfd/include
 RUNTEST		= ../src/lxdream -c ./lxdream.rc -puh
 
 
@@ -64,11 +62,12 @@ SHARED_OBJECTS	=
 all: build-tests
 
 check: build-tests
+	cat testta.data testta2.data testta3.data testta4.data testta5.data | $(RUNTEST) testta
 	$(RUNTEST) testsh4
-	$(RUNTEST) testide -d ../disc/test.nrg
-	$(RUNTEST) testta < testta.data < testta2.data < testta3.data < testta4.data < testta5.data
 	$(RUNTEST) testregs
 	$(RUNTEST) testmath
+	$(RUNTEST) testide -d ../disc/test.nrg
+
 
 build-tests: testsh4 testmath testide testta testregs testrend testdisp testspu
 
