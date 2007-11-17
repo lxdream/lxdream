@@ -25,10 +25,8 @@ lxdream_SOURCES = \
         dreamcast.c dreamcast.h eventq.c eventq.h \
         sh4/sh4.c sh4/intc.c sh4/intc.h sh4/sh4mem.c sh4/timer.c sh4/dmac.c \
         sh4/sh4core.c sh4/sh4core.h sh4/sh4dasm.c sh4/sh4dasm.h \
-        sh4/sh4mmio.c sh4/sh4mmio.h sh4/scif.c sh4/xltcache.c sh4/xltcache.h \
-        sh4/sh4trans.c sh4/sh4trans.h sh4/sh4x86.c sh4/sh4stat.c sh4/sh4stat.h \
-        x86dasm/x86dasm.c x86dasm/x86dasm.h \
-        x86dasm/i386-dis.c x86dasm/dis-init.c x86dasm/dis-buf.c \
+        sh4/sh4mmio.c sh4/sh4mmio.h sh4/scif.c sh4/sh4stat.c sh4/sh4stat.h \
+	sh4/xltcache.c sh4/xltcache.h \
         aica/armcore.c aica/armcore.h aica/armdasm.c aica/armmem.c \
         aica/aica.c aica/aica.h aica/audio.c aica/audio.h \
 	pvr2/pvr2.c pvr2/pvr2.h pvr2/pvr2mem.c \
@@ -46,6 +44,13 @@ lxdream_SOURCES = \
 	drivers/video_x11.c drivers/video_x11.h \
 	drivers/gl_common.c drivers/gl_common.h drivers/gl_fbo.c \
 	drivers/gl_sl.c drivers/gl_slsrc.c
+
+if BUILD_SH4X86
+lxdream_SOURCES += sh4/sh4x86.c \
+        sh4/sh4trans.c sh4/sh4trans.h \
+        x86dasm/x86dasm.c x86dasm/x86dasm.h \
+        x86dasm/i386-dis.c x86dasm/dis-init.c x86dasm/dis-buf.c
+endif
 
 if CDROM_LINUX
 lxdream_SOURCES += drivers/cd_linux.c

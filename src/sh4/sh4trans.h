@@ -40,10 +40,11 @@ void *sh4_translate_basic_block( sh4addr_t start );
 
 extern uint8_t *xlat_output;
 
-/************** Output generation ***************/
+/******************************************************************************
+ * Code generation - these methods must be provided by the
+ * actual code gen (eg sh4x86.c) 
+ ******************************************************************************/
 
 void sh4_translate_begin_block( sh4addr_t pc );
-
-uint32_t sh4_x86_translate_instruction( sh4addr_t pc );
-
+uint32_t sh4_translate_instruction( sh4addr_t pc );
 void sh4_translate_end_block( sh4addr_t pc );

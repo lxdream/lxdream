@@ -35,7 +35,7 @@
 #define EXV_INTERRUPT    0x600  /* External interrupt vector */
 
 void sh4_init( void );
-void sh4_x86_init( void );
+void sh4_xlat_init( void );
 void sh4_reset( void );
 void sh4_start( void );
 void sh4_stop( void );
@@ -53,9 +53,12 @@ struct sh4_registers sh4r;
 struct breakpoint_struct sh4_breakpoints[MAX_BREAKPOINTS];
 int sh4_breakpoint_count = 0;
 extern sh4ptr_t sh4_main_ram;
+static gboolean sh4_use_translator = FALSE;
 
 void sh4_set_use_xlat( gboolean use )
 {
+// No-op if the translator was not built
+#ifdef SH4_TRANSLATOR
     if( use ) {
 	xlat_cache_init();
 	sh4_x86_init();
@@ -63,6 +66,8 @@ void sh4_set_use_xlat( gboolean use )
     } else {
 	sh4_module.run_time_slice = sh4_run_slice;
     }
+    sh4_use_translator = use;
+#endif
 }
 
 void sh4_init(void)
@@ -75,7 +80,7 @@ void sh4_init(void)
 
 void sh4_reset(void)
 {
-    if(	sh4_module.run_time_slice == sh4_xlat_run_slice ) {
+    if(	sh4_use_translator ) {
 	xlat_flush_cache();
     }
 
@@ -106,7 +111,7 @@ void sh4_reset(void)
 
 void sh4_stop(void)
 {
-    if(	sh4_module.run_time_slice == sh4_xlat_run_slice ) {
+    if(	sh4_use_translator ) {
 	/* If we were running with the translator, update new_pc and in_delay_slot */
 	sh4r.new_pc = sh4r.pc+2;
 	sh4r.in_delay_slot = FALSE;
@@ -116,7 +121,7 @@ void sh4_stop(void)
 
 void sh4_save_state( FILE *f )
 {
-    if(	sh4_module.run_time_slice == sh4_xlat_run_slice ) {
+    if(	sh4_use_translator ) {
 	/* If we were running with the translator, update new_pc and in_delay_slot */
 	sh4r.new_pc = sh4r.pc+2;
 	sh4r.in_delay_slot = FALSE;
@@ -131,7 +136,7 @@ void sh4_save_state( FILE *f )
 
 int sh4_load_state( FILE * f )
 {
-    if(	sh4_module.run_time_slice == sh4_xlat_run_slice ) {
+    if(	sh4_use_translator ) {
 	xlat_flush_cache();
     }
     fread( &sh4r, sizeof(sh4r), 1, f );
