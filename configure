@@ -5516,14 +5516,14 @@ case $host_cpu in
 	SH4_TRANSLATOR="x86"
 
 cat >>confdefs.h <<_ACEOF
-#define SH4_TRANSLATOR "x86"
+#define SH4_TRANSLATOR TARGET_X86
 _ACEOF
 ;;
     x86_64)
 	SH4_TRANSLATOR="x86_64"
 
 cat >>confdefs.h <<_ACEOF
-#define SH4_TRANSLATOR "x86_64"
+#define SH4_TRANSLATOR TARGET_X86_64
 _ACEOF
 ;;
     *)
