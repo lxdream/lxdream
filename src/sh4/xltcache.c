@@ -202,7 +202,7 @@ void *xlat_get_code( sh4addr_t address )
     void *result = NULL;
     void **page = xlat_lut[XLAT_LUT_PAGE(address)];
     if( page != NULL ) {
-	result = (void *)(((uint32_t)(page[XLAT_LUT_ENTRY(address)])) & 0xFFFFFFFC);
+	result = (void *)(((uintptr_t)(page[XLAT_LUT_ENTRY(address)])) & (~((uintptr_t)0x03)));
     }
     return result;
 }

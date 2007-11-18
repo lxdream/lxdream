@@ -152,6 +152,17 @@ static inline void load_imm32( int x86reg, uint32_t value ) {
 }
 
 /**
+ * Load an immediate 64-bit quantity (note: x86-64 only)
+ */
+static inline void load_imm64( int x86reg, uint32_t value ) {
+    /* mov #value, reg */
+    REXW();
+    OP(0xB8 + x86reg);
+    OP64(value);
+}
+
+
+/**
  * Emit an instruction to store an SH4 reg (RN)
  */
 void static inline store_reg( int x86reg, int sh4reg ) {
@@ -253,16 +264,161 @@ static inline void pop_dr( int bankreg, int frm )
     OP(0xDD); OP(0x58 + bankreg); OP(frm<<2); // FST.D [bankreg + frm*4]
 }
 
+#if SH4_TRANSLATOR == TARGET_X86_64
+/* X86-64 has different calling conventions... */
+/**
+ * Note: clobbers EAX to make the indirect call - this isn't usually
+ * a problem since the callee will usually clobber it anyway.
+ * Size: 12 bytes
+ */
+#define CALL_FUNC0_SIZE 12
+static inline void call_func0( void *ptr )
+{
+    load_imm64(R_EAX, (uint64_t)ptr);
+    CALL_r32(R_EAX);
+}
+
+#define CALL_FUNC1_SIZE 14
+static inline void call_func1( void *ptr, int arg1 )
+{
+    MOV_r32_r32(arg1, R_EDI);
+    call_func0(ptr);
+}
+
+#define CALL_FUNC2_SIZE 16
+static inline void call_func2( void *ptr, int arg1, int arg2 )
+{
+    MOV_r32_r32(arg1, R_EDI);
+    MOV_r32_r32(arg2, R_ESI);
+    call_func0(ptr);
+}
+
+#define MEM_WRITE_DOUBLE_SIZE 39
+/**
+ * Write a double (64-bit) value into memory, with the first word in arg2a, and
+ * the second in arg2b
+ */
+static inline void MEM_WRITE_DOUBLE( int addr, int arg2a, int arg2b )
+{
+/*
+    MOV_r32_r32( addr, R_EDI );
+    MOV_r32_r32( arg2b, R_ESI );
+    REXW(); SHL_imm8_r32( 32, R_ESI );
+    REXW(); MOVZX_r16_r32( arg2a, arg2a );
+    REXW(); OR_r32_r32( arg2a, R_ESI );
+    call_func0(sh4_write_quad);
+*/
+    PUSH_r32(arg2b);
+    PUSH_r32(addr);
+    call_func2(sh4_write_long, addr, arg2a);
+    POP_r32(addr);
+    POP_r32(arg2b);
+    ADD_imm8s_r32(4, addr);
+    call_func2(sh4_write_long, addr, arg2b);
+}
+
+#define MEM_READ_DOUBLE_SIZE 35
+/**
+ * Read a double (64-bit) value from memory, writing the first word into arg2a
+ * and the second into arg2b. The addr must not be in EAX
+ */
+static inline void MEM_READ_DOUBLE( int addr, int arg2a, int arg2b )
+{
+/*
+    MOV_r32_r32( addr, R_EDI );
+    call_func0(sh4_read_quad);
+    REXW(); MOV_r32_r32( R_EAX, arg2a );
+    REXW(); MOV_r32_r32( R_EAX, arg2b );
+    REXW(); SHR_imm8_r32( 32, arg2b );
+*/
+    PUSH_r32(addr);
+    call_func1(sh4_read_long, addr);
+    POP_r32(R_EDI);
+    PUSH_r32(R_EAX);
+    ADD_imm8s_r32(4, R_EDI);
+    call_func0(sh4_read_long);
+    MOV_r32_r32(R_EAX, arg2b);
+    POP_r32(arg2a);
+}
+
+#define EXIT_BLOCK_SIZE 35
+/**
+ * Exit the block to an absolute PC
+ */
+void exit_block( sh4addr_t pc, sh4addr_t endpc )
+{
+    load_imm32( R_ECX, pc );                            // 5
+    store_spreg( R_ECX, REG_OFFSET(pc) );               // 3
+    REXW(); MOV_moff32_EAX( xlat_get_lut_entry(pc) );
+    REXW(); AND_imm8s_r32( 0xFC, R_EAX ); // 3
+    load_imm32( R_ECX, ((endpc - sh4_x86.block_start_pc)>>1)*sh4_cpu_period ); // 5
+    ADD_r32_sh4r( R_ECX, REG_OFFSET(slice_cycle) );     // 6
+    POP_r32(R_EBP);
+    RET();
+}
+
+
+/**
+ * Write the block trailer (exception handling block)
+ */
+void sh4_translate_end_block( sh4addr_t pc ) {
+    if( sh4_x86.branch_taken == FALSE ) {
+	// Didn't exit unconditionally already, so write the termination here
+	exit_block( pc, pc );
+    }
+    if( sh4_x86.backpatch_posn != 0 ) {
+	uint8_t *end_ptr = xlat_output;
+	// Exception termination. Jump block for various exception codes:
+	load_imm32( R_EDI, EXC_DATA_ADDR_READ );
+	JMP_rel8( 33, target1 );
+	load_imm32( R_EDI, EXC_DATA_ADDR_WRITE );
+	JMP_rel8( 26, target2 );
+	load_imm32( R_EDI, EXC_ILLEGAL );
+	JMP_rel8( 19, target3 );
+	load_imm32( R_EDI, EXC_SLOT_ILLEGAL ); 
+	JMP_rel8( 12, target4 );
+	load_imm32( R_EDI, EXC_FPU_DISABLED ); 
+	JMP_rel8( 5, target5 );
+	load_imm32( R_EDI, EXC_SLOT_FPU_DISABLED );
+	// target
+	JMP_TARGET(target1);
+	JMP_TARGET(target2);
+	JMP_TARGET(target3);
+	JMP_TARGET(target4);
+	JMP_TARGET(target5);
+	// Raise exception
+	load_spreg( R_ECX, REG_OFFSET(pc) );
+	ADD_r32_r32( R_EDX, R_ECX );
+	ADD_r32_r32( R_EDX, R_ECX );
+	store_spreg( R_ECX, REG_OFFSET(pc) );
+	MOV_moff32_EAX( &sh4_cpu_period );
+	MUL_r32( R_EDX );
+	ADD_r32_sh4r( R_EAX, REG_OFFSET(slice_cycle) );
+
+	call_func0( sh4_raise_exception );
+	load_spreg( R_EAX, REG_OFFSET(pc) );
+	call_func1(xlat_get_code,R_EAX);
+	POP_r32(R_EBP);
+	RET();
+
+	sh4_x86_do_backpatch( end_ptr );
+    }
+}
+
+#else /* SH4_TRANSLATOR == TARGET_X86 */
+
 /**
  * Note: clobbers EAX to make the indirect call - this isn't usually
  * a problem since the callee will usually clobber it anyway.
  */
+#define CALL_FUNC0_SIZE 7
 static inline void call_func0( void *ptr )
 {
     load_imm32(R_EAX, (uint32_t)ptr);
     CALL_r32(R_EAX);
 }
 
+#define CALL_FUNC1_SIZE 11
 static inline void call_func1( void *ptr, int arg1 )
 {
     PUSH_r32(arg1);
@@ -270,6 +426,7 @@ static inline void call_func1( void *ptr, int arg1 )
     ADD_imm8s_r32( 4, R_ESP );
 }
 
+#define CALL_FUNC2_SIZE 12
 static inline void call_func2( void *ptr, int arg1, int arg2 )
 {
     PUSH_r32(arg2);
@@ -283,6 +440,7 @@ static inline void call_func2( void *ptr, int arg1, int arg2 )
  * the second in arg2b
  * NB: 30 bytes
  */
+#define MEM_WRITE_DOUBLE_SIZE 30
 static inline void MEM_WRITE_DOUBLE( int addr, int arg2a, int arg2b )
 {
     ADD_imm8s_r32( 4, addr );
@@ -302,6 +460,7 @@ static inline void MEM_WRITE_DOUBLE( int addr, int arg2a, int arg2b )
  * and the second into arg2b. The addr must not be in EAX
  * NB: 27 bytes
  */
+#define MEM_READ_DOUBLE_SIZE 27
 static inline void MEM_READ_DOUBLE( int addr, int arg2a, int arg2b )
 {
     PUSH_r32(addr);
@@ -315,6 +474,71 @@ static inline void MEM_READ_DOUBLE( int addr, int arg2a, int arg2b )
     MOV_r32_r32( R_EAX, arg2b );
     POP_r32(arg2a);
 }
+
+#define EXIT_BLOCK_SIZE 29
+/**
+ * Exit the block to an absolute PC
+ */
+void exit_block( sh4addr_t pc, sh4addr_t endpc )
+{
+    load_imm32( R_ECX, pc );                            // 5
+    store_spreg( R_ECX, REG_OFFSET(pc) );               // 3
+    MOV_moff32_EAX( xlat_get_lut_entry(pc) ); // 5
+    AND_imm8s_r32( 0xFC, R_EAX ); // 3
+    load_imm32( R_ECX, ((endpc - sh4_x86.block_start_pc)>>1)*sh4_cpu_period ); // 5
+    ADD_r32_sh4r( R_ECX, REG_OFFSET(slice_cycle) );     // 6
+    POP_r32(R_EBP);
+    RET();
+}
+
+/**
+ * Write the block trailer (exception handling block)
+ */
+void sh4_translate_end_block( sh4addr_t pc ) {
+    if( sh4_x86.branch_taken == FALSE ) {
+	// Didn't exit unconditionally already, so write the termination here
+	exit_block( pc, pc );
+    }
+    if( sh4_x86.backpatch_posn != 0 ) {
+	uint8_t *end_ptr = xlat_output;
+	// Exception termination. Jump block for various exception codes:
+	PUSH_imm32( EXC_DATA_ADDR_READ );
+	JMP_rel8( 33, target1 );
+	PUSH_imm32( EXC_DATA_ADDR_WRITE );
+	JMP_rel8( 26, target2 );
+	PUSH_imm32( EXC_ILLEGAL );
+	JMP_rel8( 19, target3 );
+	PUSH_imm32( EXC_SLOT_ILLEGAL ); 
+	JMP_rel8( 12, target4 );
+	PUSH_imm32( EXC_FPU_DISABLED ); 
+	JMP_rel8( 5, target5 );
+	PUSH_imm32( EXC_SLOT_FPU_DISABLED );
+	// target
+	JMP_TARGET(target1);
+	JMP_TARGET(target2);
+	JMP_TARGET(target3);
+	JMP_TARGET(target4);
+	JMP_TARGET(target5);
+	// Raise exception
+	load_spreg( R_ECX, REG_OFFSET(pc) );
+	ADD_r32_r32( R_EDX, R_ECX );
+	ADD_r32_r32( R_EDX, R_ECX );
+	store_spreg( R_ECX, REG_OFFSET(pc) );
+	MOV_moff32_EAX( &sh4_cpu_period );
+	MUL_r32( R_EDX );
+	ADD_r32_sh4r( R_EAX, REG_OFFSET(slice_cycle) );
+
+	call_func0( sh4_raise_exception );
+	ADD_imm8s_r32( 4, R_ESP );
+	load_spreg( R_EAX, REG_OFFSET(pc) );
+	call_func1(xlat_get_code,R_EAX);
+	POP_r32(R_EBP);
+	RET();
+
+	sh4_x86_do_backpatch( end_ptr );
+    }
+}
+#endif
 
 /* Exception checks - Note that all exception checks will clobber EAX */
 #define precheck() load_imm32(R_EDX, (pc-sh4_x86.block_start_pc-(sh4_x86.in_delay_slot?2:0))>>1)
@@ -431,22 +655,6 @@ void sh4_translate_begin_block( sh4addr_t pc )
 }
 
 /**
- * Exit the block to an absolute PC
- * Bytes: 29
- */
-void exit_block( sh4addr_t pc, sh4addr_t endpc )
-{
-    load_imm32( R_ECX, pc );                            // 5
-    store_spreg( R_ECX, REG_OFFSET(pc) );               // 3
-    MOV_moff32_EAX( (uint32_t)xlat_get_lut_entry(pc) ); // 5
-    AND_imm8s_r32( 0xFC, R_EAX ); // 3
-    load_imm32( R_ECX, ((endpc - sh4_x86.block_start_pc)>>1)*sh4_cpu_period ); // 5
-    ADD_r32_sh4r( R_ECX, REG_OFFSET(slice_cycle) );     // 6
-    POP_r32(R_EBP);
-    RET();
-}
-
-/**
  * Exit the block with sh4r.pc already written
  * Bytes: 15
  */
@@ -459,57 +667,6 @@ void exit_block_pcset( pc )
     POP_r32(R_EBP);
     RET();
 }
-
-/**
- * Write the block trailer (exception handling block)
- */
-void sh4_translate_end_block( sh4addr_t pc ) {
-    if( sh4_x86.branch_taken == FALSE ) {
-	// Didn't exit unconditionally already, so write the termination here
-	exit_block( pc, pc );
-    }
-    if( sh4_x86.backpatch_posn != 0 ) {
-	uint8_t *end_ptr = xlat_output;
-	// Exception termination. Jump block for various exception codes:
-	PUSH_imm32( EXC_DATA_ADDR_READ );
-	JMP_rel8( 33, target1 );
-	PUSH_imm32( EXC_DATA_ADDR_WRITE );
-	JMP_rel8( 26, target2 );
-	PUSH_imm32( EXC_ILLEGAL );
-	JMP_rel8( 19, target3 );
-	PUSH_imm32( EXC_SLOT_ILLEGAL ); 
-	JMP_rel8( 12, target4 );
-	PUSH_imm32( EXC_FPU_DISABLED ); 
-	JMP_rel8( 5, target5 );
-	PUSH_imm32( EXC_SLOT_FPU_DISABLED );
-	// target
-	JMP_TARGET(target1);
-	JMP_TARGET(target2);
-	JMP_TARGET(target3);
-	JMP_TARGET(target4);
-	JMP_TARGET(target5);
-	// Raise exception
-	load_spreg( R_ECX, REG_OFFSET(pc) );
-	ADD_r32_r32( R_EDX, R_ECX );
-	ADD_r32_r32( R_EDX, R_ECX );
-	store_spreg( R_ECX, REG_OFFSET(pc) );
-	MOV_moff32_EAX( (uint32_t)&sh4_cpu_period );
-	MUL_r32( R_EDX );
-	ADD_r32_sh4r( R_EAX, REG_OFFSET(slice_cycle) );
-	
-	load_imm32( R_EAX, (uint32_t)sh4_raise_exception ); // 6
-	CALL_r32( R_EAX ); // 2
-	ADD_imm8s_r32( 4, R_ESP );
-	load_spreg( R_EAX, REG_OFFSET(pc) );
-	call_func1(xlat_get_code,R_EAX);
-	POP_r32(R_EBP);
-	RET();
-
-	sh4_x86_do_backpatch( end_ptr );
-    }
-
-}
-
 
 extern uint16_t *sh4_icache;
 extern uint32_t sh4_icache_addr;
@@ -531,7 +688,7 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
 	ir = sh4_icache[(pc&0xFFF)>>1];
     } else {
 	sh4_icache = (uint16_t *)mem_get_page(pc);
-	if( ((uint32_t)sh4_icache) < MAX_IO_REGIONS ) {
+	if( ((uintptr_t)sh4_icache) < MAX_IO_REGIONS ) {
 	    /* If someone's actually been so daft as to try to execute out of an IO
 	     * region, fallback on the full-blown memory read
 	     */
@@ -655,7 +812,7 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                                 PUSH_r32( R_EAX );
                                 AND_imm32_r32( 0xFC000000, R_EAX );
                                 CMP_imm32_r32( 0xE0000000, R_EAX );
-                                JNE_rel8(7, end);
+                                JNE_rel8(CALL_FUNC0_SIZE, end);
                                 call_func0( sh4_flush_store_queue );
                                 JMP_TARGET(end);
                                 ADD_imm8s_r32( 4, R_ESP );
@@ -985,7 +1142,7 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                     
                         load_spreg( R_ECX, R_S );
                         TEST_r32_r32(R_ECX, R_ECX);
-                        JE_rel8( 7, nosat );
+                        JE_rel8( CALL_FUNC0_SIZE, nosat );
                         call_func0( signsat48 );
                         JMP_TARGET( nosat );
                         sh4_x86.tstate = TSTATE_NONE;
@@ -2519,7 +2676,7 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                         if( sh4_x86.in_delay_slot ) {
                     	SLOTILLEGAL();
                         } else {
-                    	JF_rel8( 29, nottaken );
+                    	JF_rel8( EXIT_BLOCK_SIZE, nottaken );
                     	exit_block( disp + pc + 4, pc+2 );
                     	JMP_TARGET(nottaken);
                     	return 2;
@@ -2532,7 +2689,7 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                         if( sh4_x86.in_delay_slot ) {
                     	SLOTILLEGAL();
                         } else {
-                    	JT_rel8( 29, nottaken );
+                    	JT_rel8( EXIT_BLOCK_SIZE, nottaken );
                     	exit_block( disp + pc + 4, pc+2 );
                     	JMP_TARGET(nottaken);
                     	return 2;
@@ -2671,8 +2828,8 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                         if( sh4_x86.in_delay_slot ) {
                     	SLOTILLEGAL();
                         } else {
-                    	PUSH_imm32( imm );
-                    	call_func0( sh4_raise_trap );
+                    	load_imm32( R_EAX, imm );
+                    	call_func1( sh4_raise_trap, R_EAX );
                     	ADD_imm8s_r32( 4, R_ESP );
                     	sh4_x86.tstate = TSTATE_NONE;
                     	exit_block_pcset(pc);
@@ -2781,7 +2938,7 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                         load_spreg( R_ECX, R_GBR );
                         ADD_r32_r32( R_EAX, R_ECX );
                         PUSH_r32(R_ECX);
-                        call_func0(sh4_read_byte);
+                        MEM_READ_BYTE( R_ECX, R_EAX );
                         POP_r32(R_ECX);
                         AND_imm32_r32(imm, R_EAX );
                         MEM_WRITE_BYTE( R_ECX, R_EAX );
@@ -2795,7 +2952,7 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                         load_spreg( R_ECX, R_GBR );
                         ADD_r32_r32( R_EAX, R_ECX );
                         PUSH_r32(R_ECX);
-                        call_func0(sh4_read_byte);
+                        MEM_READ_BYTE(R_ECX, R_EAX);
                         POP_r32(R_ECX);
                         XOR_imm32_r32( imm, R_EAX );
                         MEM_WRITE_BYTE( R_ECX, R_EAX );
@@ -2809,7 +2966,7 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                         load_spreg( R_ECX, R_GBR );
                         ADD_r32_r32( R_EAX, R_ECX );
                         PUSH_r32(R_ECX);
-                        call_func0(sh4_read_byte);
+                        MEM_READ_BYTE( R_ECX, R_EAX );
                         POP_r32(R_ECX);
                         OR_imm32_r32(imm, R_EAX );
                         MEM_WRITE_BYTE( R_ECX, R_EAX );
@@ -2827,7 +2984,7 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
             	uint32_t target = (pc & 0xFFFFFFFC) + disp + 4;
             	sh4ptr_t ptr = mem_get_region(target);
             	if( ptr != NULL ) {
-            	    MOV_moff32_EAX( (uint32_t)ptr );
+            	    MOV_moff32_EAX( ptr );
             	} else {
             	    load_imm32( R_ECX, target );
             	    MEM_READ_LONG( R_ECX, R_EAX );
@@ -2986,12 +3143,12 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                         check_ralign32( R_ECX );
                         load_spreg( R_EDX, R_FPSCR );
                         TEST_imm32_r32( FPSCR_SZ, R_EDX );
-                        JNE_rel8(19, doublesize);
+                        JNE_rel8(8 + CALL_FUNC1_SIZE, doublesize);
                         MEM_READ_LONG( R_ECX, R_EAX );
                         load_fr_bank( R_EDX );
                         store_fr( R_EDX, R_EAX, FRn );
                         if( FRn&1 ) {
-                    	JMP_rel8(48, end);
+                    	JMP_rel8(21 + MEM_READ_DOUBLE_SIZE, end);
                     	JMP_TARGET(doublesize);
                     	MEM_READ_DOUBLE( R_ECX, R_EAX, R_ECX );
                     	load_spreg( R_EDX, R_FPSCR ); // assume read_long clobbered it
@@ -3000,7 +3157,7 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                     	store_fr( R_EDX, R_ECX, FRn|0x01 );
                     	JMP_TARGET(end);
                         } else {
-                    	JMP_rel8(36, end);
+                    	JMP_rel8(9 + MEM_READ_DOUBLE_SIZE, end);
                     	JMP_TARGET(doublesize);
                     	MEM_READ_DOUBLE( R_ECX, R_EAX, R_ECX );
                     	load_fr_bank( R_EDX );
@@ -3021,12 +3178,12 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                         check_walign32( R_ECX );
                         load_spreg( R_EDX, R_FPSCR );
                         TEST_imm32_r32( FPSCR_SZ, R_EDX );
-                        JNE_rel8(20, doublesize);
+                        JNE_rel8(8 + CALL_FUNC2_SIZE, doublesize);
                         load_fr_bank( R_EDX );
                         load_fr( R_EDX, R_EAX, FRm );
                         MEM_WRITE_LONG( R_ECX, R_EAX ); // 12
                         if( FRm&1 ) {
-                    	JMP_rel8( 48, end );
+                    	JMP_rel8( 18 + MEM_WRITE_DOUBLE_SIZE, end );
                     	JMP_TARGET(doublesize);
                     	load_xf_bank( R_EDX );
                     	load_fr( R_EDX, R_EAX, FRm&0x0E );
@@ -3034,7 +3191,7 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                     	MEM_WRITE_DOUBLE( R_ECX, R_EAX, R_EDX );
                     	JMP_TARGET(end);
                         } else {
-                    	JMP_rel8( 39, end );
+                    	JMP_rel8( 9 + MEM_WRITE_DOUBLE_SIZE, end );
                     	JMP_TARGET(doublesize);
                     	load_fr_bank( R_EDX );
                     	load_fr( R_EDX, R_EAX, FRm&0x0E );
@@ -3054,12 +3211,12 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                         check_ralign32( R_ECX );
                         load_spreg( R_EDX, R_FPSCR );
                         TEST_imm32_r32( FPSCR_SZ, R_EDX );
-                        JNE_rel8(19, doublesize);
+                        JNE_rel8(8 + CALL_FUNC1_SIZE, doublesize);
                         MEM_READ_LONG( R_ECX, R_EAX );
                         load_fr_bank( R_EDX );
                         store_fr( R_EDX, R_EAX, FRn );
                         if( FRn&1 ) {
-                    	JMP_rel8(48, end);
+                    	JMP_rel8(21 + MEM_READ_DOUBLE_SIZE, end);
                     	JMP_TARGET(doublesize);
                     	MEM_READ_DOUBLE( R_ECX, R_EAX, R_ECX );
                     	load_spreg( R_EDX, R_FPSCR ); // assume read_long clobbered it
@@ -3068,7 +3225,7 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                     	store_fr( R_EDX, R_ECX, FRn|0x01 );
                     	JMP_TARGET(end);
                         } else {
-                    	JMP_rel8(36, end);
+                    	JMP_rel8(9 + MEM_READ_DOUBLE_SIZE, end);
                     	JMP_TARGET(doublesize);
                     	MEM_READ_DOUBLE( R_ECX, R_EAX, R_ECX );
                     	load_fr_bank( R_EDX );
@@ -3089,14 +3246,14 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                         MOV_r32_r32( R_ECX, R_EAX );
                         load_spreg( R_EDX, R_FPSCR );
                         TEST_imm32_r32( FPSCR_SZ, R_EDX );
-                        JNE_rel8(25, doublesize);
+                        JNE_rel8(14 + CALL_FUNC1_SIZE, doublesize);
                         ADD_imm8s_r32( 4, R_EAX );
                         store_reg( R_EAX, Rm );
                         MEM_READ_LONG( R_ECX, R_EAX );
                         load_fr_bank( R_EDX );
                         store_fr( R_EDX, R_EAX, FRn );
                         if( FRn&1 ) {
-                    	JMP_rel8(54, end);
+                    	JMP_rel8(27 + MEM_READ_DOUBLE_SIZE, end);
                     	JMP_TARGET(doublesize);
                     	ADD_imm8s_r32( 8, R_EAX );
                     	store_reg(R_EAX, Rm);
@@ -3107,7 +3264,7 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                     	store_fr( R_EDX, R_ECX, FRn|0x01 );
                     	JMP_TARGET(end);
                         } else {
-                    	JMP_rel8(42, end);
+                    	JMP_rel8(15 + MEM_READ_DOUBLE_SIZE, end);
                     	ADD_imm8s_r32( 8, R_EAX );
                     	store_reg(R_EAX, Rm);
                     	MEM_READ_DOUBLE( R_ECX, R_EAX, R_ECX );
@@ -3128,12 +3285,12 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                         check_walign32( R_ECX );
                         load_spreg( R_EDX, R_FPSCR );
                         TEST_imm32_r32( FPSCR_SZ, R_EDX );
-                        JNE_rel8(20, doublesize);
+                        JNE_rel8(8 + CALL_FUNC2_SIZE, doublesize);
                         load_fr_bank( R_EDX );
                         load_fr( R_EDX, R_EAX, FRm );
                         MEM_WRITE_LONG( R_ECX, R_EAX ); // 12
                         if( FRm&1 ) {
-                    	JMP_rel8( 48, end );
+                    	JMP_rel8( 18 + MEM_WRITE_DOUBLE_SIZE, end );
                     	JMP_TARGET(doublesize);
                     	load_xf_bank( R_EDX );
                     	load_fr( R_EDX, R_EAX, FRm&0x0E );
@@ -3141,7 +3298,7 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                     	MEM_WRITE_DOUBLE( R_ECX, R_EAX, R_EDX );
                     	JMP_TARGET(end);
                         } else {
-                    	JMP_rel8( 39, end );
+                    	JMP_rel8( 9 + MEM_WRITE_DOUBLE_SIZE, end );
                     	JMP_TARGET(doublesize);
                     	load_fr_bank( R_EDX );
                     	load_fr( R_EDX, R_EAX, FRm&0x0E );
@@ -3161,14 +3318,14 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                         check_walign32( R_ECX );
                         load_spreg( R_EDX, R_FPSCR );
                         TEST_imm32_r32( FPSCR_SZ, R_EDX );
-                        JNE_rel8(26, doublesize);
+                        JNE_rel8(14 + CALL_FUNC2_SIZE, doublesize);
                         load_fr_bank( R_EDX );
                         load_fr( R_EDX, R_EAX, FRm );
                         ADD_imm8s_r32(-4,R_ECX);
                         store_reg( R_ECX, Rn );
                         MEM_WRITE_LONG( R_ECX, R_EAX ); // 12
                         if( FRm&1 ) {
-                    	JMP_rel8( 54, end );
+                    	JMP_rel8( 24 + MEM_WRITE_DOUBLE_SIZE, end );
                     	JMP_TARGET(doublesize);
                     	load_xf_bank( R_EDX );
                     	load_fr( R_EDX, R_EAX, FRm&0x0E );
@@ -3178,7 +3335,7 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                     	MEM_WRITE_DOUBLE( R_ECX, R_EAX, R_EDX );
                     	JMP_TARGET(end);
                         } else {
-                    	JMP_rel8( 45, end );
+                    	JMP_rel8( 15 + MEM_WRITE_DOUBLE_SIZE, end );
                     	JMP_TARGET(doublesize);
                     	load_fr_bank( R_EDX );
                     	load_fr( R_EDX, R_EAX, FRm&0x0E );
@@ -3493,7 +3650,7 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                                         check_fpuen();
                                         load_spreg( R_ECX, R_FPSCR );
                                         TEST_imm32_r32( FPSCR_PR, R_ECX );
-                                        JNE_rel8( 21, doubleprec );
+                                        JNE_rel8( CALL_FUNC2_SIZE + 9, doubleprec );
                                         load_fr_bank( R_ECX );
                                         ADD_imm8s_r32( (FRn&0x0E)<<2, R_ECX );
                                         load_spreg( R_EDX, R_FPUL );
@@ -3510,7 +3667,7 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                                                 check_fpuen();
                                                 load_spreg( R_ECX, R_FPSCR );
                                                 TEST_imm32_r32( FPSCR_PR, R_ECX );
-                                                JNE_rel8( 30, doubleprec );
+                                                JNE_rel8( 18 + CALL_FUNC2_SIZE, doubleprec );
                                                 load_fr_bank( R_EDX );                 // 3
                                                 ADD_imm8s_r32( FVn<<4, R_EDX );        // 3
                                                 load_xf_bank( R_ECX );                 // 12

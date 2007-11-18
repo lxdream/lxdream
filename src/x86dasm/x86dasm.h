@@ -29,5 +29,5 @@ typedef struct x86_symbol {
 
 void x86_disasm_block( FILE *out, void *block, uint32_t len );
 void x86_set_symtab( x86_symbol *symtab, int num_symbols );
-void x86_disasm_init(unsigned char *buf, uint32_t vma, int buflen);
-uint32_t x86_disasm_instruction( uint32_t pc, char *buf, int len, char *opcode );
+void x86_disasm_init(unsigned char *buf, uintptr_t vma, int buflen);
+uint32_t x86_disasm_instruction( uintptr_t pc, char *buf, int len, char *opcode );
