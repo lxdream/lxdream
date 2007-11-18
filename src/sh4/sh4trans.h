@@ -45,6 +45,9 @@ extern uint8_t *xlat_output;
  * actual code gen (eg sh4x86.c) 
  ******************************************************************************/
 
+#define TARGET_X86 1
+#define TARGET_X86_64 2
+
 void sh4_translate_begin_block( sh4addr_t pc );
 uint32_t sh4_translate_instruction( sh4addr_t pc );
 void sh4_translate_end_block( sh4addr_t pc );

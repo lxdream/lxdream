@@ -99,7 +99,7 @@ void * sh4_translate_basic_block( sh4addr_t start )
 	    xlat_output = block->code + (xlat_output - oldstart);
 	    eob = block->code + block->size;
 	}
-	done = sh4_x86_translate_instruction( pc ); 
+	done = sh4_translate_instruction( pc ); 
 	assert( xlat_output <= eob );
 	pc += 2;
 	if ( pc >= lastpc ) {
@@ -132,7 +132,7 @@ void *sh4_translate_and_run( sh4addr_t start )
 
     sh4_translate_begin_block(pc);
 
-    while( (done = sh4_x86_translate_instruction( pc )) == 0 ) {
+    while( (done = sh4_translate_instruction( pc )) == 0 ) {
 	assert( (eob - xlat_output) >= MAX_INSTRUCTION_SIZE );
 	pc += 2;
     }

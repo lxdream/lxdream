@@ -114,14 +114,16 @@ void sh4_accept_interrupt( void );
 #define BREAK_PERM 2
 
 /* SH4 Memory */
-int32_t sh4_read_long( uint32_t addr );
-int32_t sh4_read_word( uint32_t addr );
-int32_t sh4_read_byte( uint32_t addr );
-void sh4_write_long( uint32_t addr, uint32_t val );
-void sh4_write_word( uint32_t addr, uint32_t val );
-void sh4_write_byte( uint32_t addr, uint32_t val );
-int32_t sh4_read_phys_word( uint32_t addr );
-void sh4_flush_store_queue( uint32_t addr );
+int64_t sh4_read_quad( sh4addr_t addr );
+int32_t sh4_read_long( sh4addr_t addr );
+int32_t sh4_read_word( sh4addr_t addr );
+int32_t sh4_read_byte( sh4addr_t addr );
+void sh4_write_quad( sh4addr_t addr, uint64_t val );
+void sh4_write_long( sh4addr_t addr, uint32_t val );
+void sh4_write_word( sh4addr_t addr, uint32_t val );
+void sh4_write_byte( sh4addr_t addr, uint32_t val );
+int32_t sh4_read_phys_word( sh4addr_t addr );
+void sh4_flush_store_queue( sh4addr_t addr );
 
 /* SH4 Support methods */
 uint32_t sh4_read_sr(void);

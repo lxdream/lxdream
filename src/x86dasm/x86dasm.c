@@ -23,6 +23,7 @@
 #include "bfd.h"
 #include "dis-asm.h"
 #include "sh4/sh4core.h"
+#include "sh4/sh4trans.h"
 
 extern const struct reg_desc_struct sh4_reg_map[];
 const struct cpu_desc_struct x86_cpu_desc = 
@@ -49,7 +50,7 @@ void xlat_disasm_block( FILE *out, void *block )
 
 void x86_disasm_block(FILE *out, void *start, uint32_t len)
 {
-    uint32_t start_addr = (uint32_t)start;
+    uintptr_t start_addr = (uintptr_t)start;
     uint32_t pc;
     x86_disasm_init( start, start_addr, len );
     for( pc = start_addr; pc < start_addr + len;  ) {
@@ -61,11 +62,15 @@ void x86_disasm_block(FILE *out, void *start, uint32_t len)
     }
 }
 
-void x86_disasm_init(unsigned char *buf, uint32_t vma, int buflen)
+void x86_disasm_init(unsigned char *buf, uintptr_t vma, int buflen)
 {
     init_disassemble_info( &x86_disasm_info, NULL, x86_disasm_output );
     x86_disasm_info.arch = bfd_arch_i386;
+#if SH4_TRANSLATOR == TARGET_X86_64
+    x86_disasm_info.mach =  bfd_mach_x86_64_intel_syntax;
+#else
     x86_disasm_info.mach = bfd_mach_i386_i386_intel_syntax;
+#endif
     x86_disasm_info.endian = BFD_ENDIAN_LITTLE;
     x86_disasm_info.buffer = buf;
     x86_disasm_info.buffer_vma = vma;
@@ -83,7 +88,7 @@ static const char *x86_find_symbol( bfd_vma memaddr, struct disassemble_info *in
 {
     int i;
     for( i=0; i<x86_num_symbols; i++ ) {
-	if( x86_symtab[i].ptr == (void *)(uint32_t)memaddr ) {
+	if( x86_symtab[i].ptr == (void *)(uintptr_t)memaddr ) {
 	    return x86_symtab[i].name;
 	}
     }
@@ -99,7 +104,7 @@ static void x86_print_address( bfd_vma memaddr, struct disassemble_info *info )
     }
 }
 
-uint32_t x86_disasm_instruction( uint32_t pc, char *buf, int len, char *opcode )
+uint32_t x86_disasm_instruction( uintptr_t pc, char *buf, int len, char *opcode )
 {
     int count, i;
 

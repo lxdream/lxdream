@@ -69,7 +69,7 @@ extern struct mem_region mem_rgn[];
 extern struct mmio_region *P4_io[];
 sh4ptr_t sh4_main_ram;
 
-int32_t sh4_read_p4( uint32_t addr )
+int32_t sh4_read_p4( sh4addr_t addr )
 {
     struct mmio_region *io = P4_io[(addr&0x1FFFFFFF)>>19];
     if( !io ) {
@@ -86,7 +86,7 @@ int32_t sh4_read_p4( uint32_t addr )
     }    
 }
 
-void sh4_write_p4( uint32_t addr, int32_t val )
+void sh4_write_p4( sh4addr_t addr, int32_t val )
 {
     struct mmio_region *io = P4_io[(addr&0x1FFFFFFF)>>19];
     if( !io ) {
@@ -104,7 +104,7 @@ void sh4_write_p4( uint32_t addr, int32_t val )
     }
 }
 
-int32_t sh4_read_phys_word( uint32_t addr )
+int32_t sh4_read_phys_word( sh4addr_t addr )
 {
     sh4ptr_t page;
     if( addr >= 0xE0000000 ) /* P4 Area, handled specially */
@@ -127,7 +127,16 @@ int32_t sh4_read_phys_word( uint32_t addr )
     }
 }
 
-int32_t sh4_read_long( uint32_t addr )
+/**
+ * Convenience function to read a quad-word (implemented as two long reads).
+ */
+int64_t sh4_read_quad( sh4addr_t addr )
+{
+    return ((int64_t)((uint32_t)sh4_read_long(addr))) |
+	(((int64_t)((uint32_t)sh4_read_long(addr+4))) << 32);
+}
+
+int32_t sh4_read_long( sh4addr_t addr )
 {
     sh4ptr_t page;
     
@@ -159,7 +168,7 @@ int32_t sh4_read_long( uint32_t addr )
     }
 }
 
-int32_t sh4_read_word( uint32_t addr )
+int32_t sh4_read_word( sh4addr_t addr )
 {
     sh4ptr_t page;
 
@@ -191,7 +200,7 @@ int32_t sh4_read_word( uint32_t addr )
     }
 }
 
-int32_t sh4_read_byte( uint32_t addr )
+int32_t sh4_read_byte( sh4addr_t addr )
 {
     sh4ptr_t page;
 
@@ -224,7 +233,16 @@ int32_t sh4_read_byte( uint32_t addr )
     }
 }
 
-void sh4_write_long( uint32_t addr, uint32_t val )
+/**
+ * Convenience function to write a quad-word (implemented as two long writes).
+ */
+void sh4_write_quad( sh4addr_t addr, uint64_t val )
+{
+    sh4_write_long( addr, (uint32_t)val );
+    sh4_write_long( addr+4, (uint32_t)(val>>32) );
+}
+
+void sh4_write_long( sh4addr_t addr, uint32_t val )
 {
     sh4ptr_t page;
 
@@ -270,7 +288,7 @@ void sh4_write_long( uint32_t addr, uint32_t val )
     }
 }
 
-void sh4_write_word( uint32_t addr, uint32_t val )
+void sh4_write_word( sh4addr_t addr, uint32_t val )
 {
     sh4ptr_t page;
 
@@ -310,7 +328,7 @@ void sh4_write_word( uint32_t addr, uint32_t val )
     }
 }
 
-void sh4_write_byte( uint32_t addr, uint32_t val )
+void sh4_write_byte( sh4addr_t addr, uint32_t val )
 {
     sh4ptr_t page;
     
@@ -355,7 +373,7 @@ void sh4_write_byte( uint32_t addr, uint32_t val )
 /* FIXME: Handle all the many special cases when the range doesn't fall cleanly
  * into the same memory block
  */
-void mem_copy_from_sh4( sh4ptr_t dest, uint32_t srcaddr, size_t count ) {
+void mem_copy_from_sh4( sh4ptr_t dest, sh4addr_t srcaddr, size_t count ) {
     if( srcaddr >= 0x04000000 && srcaddr < 0x05000000 ) {
 	pvr2_vram64_read( dest, srcaddr, count );
     } else {
@@ -368,7 +386,7 @@ void mem_copy_from_sh4( sh4ptr_t dest, uint32_t srcaddr, size_t count ) {
     }
 }
 
-void mem_copy_to_sh4( uint32_t destaddr, sh4ptr_t src, size_t count ) {
+void mem_copy_to_sh4( sh4addr_t destaddr, sh4ptr_t src, size_t count ) {
     if( destaddr >= 0x10000000 && destaddr < 0x14000000 ) {
 	pvr2_dma_write( destaddr, src, count );
 	return;
@@ -387,7 +405,7 @@ void mem_copy_to_sh4( uint32_t destaddr, sh4ptr_t src, size_t count ) {
     }
 }
 
-void sh4_flush_store_queue( uint32_t addr )
+void sh4_flush_store_queue( sh4addr_t addr )
 {
     /* Store queue operation */
     int queue = (addr&0x20)>>2;

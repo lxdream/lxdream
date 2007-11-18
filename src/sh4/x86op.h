@@ -52,6 +52,12 @@
 
 #define OP(x) *xlat_output++ = (x)
 #define OP32(x) *((uint32_t *)xlat_output) = (x); xlat_output+=4
+#define OP64(x) *((uint64_t *)xlat_output) = (x); xlat_output+=8
+#if SH4_TRANSLATOR == TARGET_X86_64
+#define OPPTR(x) OP64((uint64_t)(x))
+#else
+#define OPPTR(x) OP32((uint32_t)(x))
+#endif
 
 /* Offset of a reg relative to the sh4r structure */
 #define REG_OFFSET(reg)  (((char *)&sh4r.reg) - ((char *)&sh4r))
@@ -90,6 +96,8 @@
 
 #define MODRM_r32_sh4r(r1,disp) if(disp>127){ MODRM_r32_ebp32(r1,disp);}else{ MODRM_r32_ebp8(r1,(unsigned char)disp); }
 
+#define REXW() OP(0x48)
+
 /* Major opcodes */
 #define ADD_sh4r_r32(disp,r1) OP(0x03); MODRM_r32_sh4r(r1,disp)
 #define ADD_r32_sh4r(r1,disp) OP(0x01); MODRM_r32_sh4r(r1,disp)
@@ -118,7 +126,7 @@
 #define JMP_rel8(rel, label)  OP(0xEB); OP(rel); MARK_JMP(rel,label)
 #define MOV_r32_r32(r1,r2)    OP(0x89); MODRM_r32_rm32(r1,r2)
 #define MOV_r32_sh4r(r1,disp) OP(0x89); MODRM_r32_sh4r(r1,disp)
-#define MOV_moff32_EAX(off)   OP(0xA1); OP32(off)
+#define MOV_moff32_EAX(off)   OP(0xA1); OPPTR(off)
 #define MOV_sh4r_r32(disp, r1)  OP(0x8B); MODRM_r32_sh4r(r1,disp)
 #define MOV_r32ind_r32(r1,r2) OP(0x8B); OP(0 + (r2<<3) + r1 )
 #define MOVSX_r8_r32(r1,r2)   OP(0x0F); OP(0xBE); MODRM_rm32_r32(r1,r2)
