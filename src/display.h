@@ -159,6 +159,7 @@ typedef struct display_driver {
 
 } *display_driver_t;
 
+display_driver_t get_display_driver_by_name( const char *name );
 gboolean display_set_driver( display_driver_t driver );
 
 extern uint32_t pvr2_frame_counter;

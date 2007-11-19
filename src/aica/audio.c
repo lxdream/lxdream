@@ -24,6 +24,13 @@
 #include <assert.h>
 #include <string.h>
 
+audio_driver_t audio_driver_list[] = { 
+#ifdef HAVE_ESOUND
+				       &audio_esd_driver,
+#endif
+				       &audio_null_driver,
+				       NULL };
+
 #define NUM_BUFFERS 3
 #define MS_PER_BUFFER 100
 
@@ -59,6 +66,21 @@ int audio_load_state( FILE *f )
 {
     int read = fread( &audio.channels[0], sizeof(struct audio_channel), AUDIO_CHANNEL_COUNT, f );
     return (read == AUDIO_CHANNEL_COUNT ? 0 : -1 );
+}
+
+audio_driver_t get_audio_driver_by_name( const char *name )
+{
+    int i;
+    if( name == NULL ) {
+	return audio_driver_list[0];
+    }
+    for( i=0; audio_driver_list[i] != NULL; i++ ) {
+	if( strcasecmp( audio_driver_list[i]->name, name ) == 0 ) {
+	    return audio_driver_list[i];
+	}
+    }
+
+    return NULL;
 }
 
 /**

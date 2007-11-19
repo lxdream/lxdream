@@ -4,8 +4,6 @@
  * Main program, initializes dreamcast and gui, then passes control off to
  * the gtk main loop (currently). 
  *
- * FIXME: Remove explicit GTK/Gnome references from this file
- *
  * Copyright (c) 2005 Nathan Keynes.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -41,8 +39,8 @@ struct option longopts[1] = { { NULL, 0, 0, 0 } };
 char *aica_program = NULL;
 char *s3m_file = NULL;
 const char *disc_file = NULL;
-char *display_driver_name = "gtk";
-char *audio_driver_name = "esd";
+char *display_driver_name = NULL;
+char *audio_driver_name = NULL;
 gboolean start_immediately = FALSE;
 gboolean headless = FALSE;
 gboolean without_bios = FALSE;
@@ -52,25 +50,18 @@ uint32_t time_secs = 0;
 uint32_t time_nanos = 0;
 extern uint32_t sh4_cpu_multiplier;
 
-audio_driver_t audio_driver_list[] = { &audio_null_driver,
-				       &audio_esd_driver,
-				       NULL };
-
-display_driver_t display_driver_list[] = { &display_null_driver,
-					   &display_gtk_driver,
-					   NULL };
-
 int main (int argc, char *argv[])
 {
     int opt, i;
     double t;
+    gboolean display_ok;
 
     install_crash_handler();
 #ifdef ENABLE_NLS
     bindtextdomain (PACKAGE, PACKAGE_LOCALE_DIR);
     textdomain (PACKAGE);
 #endif
-    gui_parse_cmdline(&argc, &argv);
+    display_ok = gui_parse_cmdline(&argc, &argv);
 
     while( (opt = getopt_long( argc, argv, option_list, longopts, NULL )) != -1 ) {
 	switch( opt ) {
@@ -140,17 +131,13 @@ int main (int argc, char *argv[])
 	dcload_install();
     }
 
-    for( i=0; audio_driver_list[i] != NULL; i++ ) {
-	if( strcasecmp( audio_driver_list[i]->name, audio_driver_name ) == 0 ) {
-	    if( audio_set_driver( audio_driver_list[i], 44100, AUDIO_FMT_16ST ) == FALSE ) {
-		audio_set_driver( &audio_null_driver, 44100, AUDIO_FMT_16ST );
-	    }
-	    break;
-	}
-
-    }
-    if( audio_driver_list[i] == NULL ) {
-	ERROR( "Audio driver '%s' not found, using null driver", audio_driver_name );
+    audio_driver_t audio_driver = get_audio_driver_by_name(audio_driver_name);
+    if( audio_driver == NULL ) {
+	ERROR( "Audio driver '%s' not found, aborting.", audio_driver_name );
+	exit(2);
+    } else if( audio_set_driver( audio_driver, 44100, AUDIO_FMT_16ST ) == FALSE ) {
+	ERROR( "Failed to initialize audio driver '%s', using null driver", 
+	       audio_driver->name );
 	audio_set_driver( &audio_null_driver, 44100, AUDIO_FMT_16ST );
     }
 
@@ -159,20 +146,14 @@ int main (int argc, char *argv[])
     } else {
 	gui_init(show_debugger);
 
-	gboolean initialized = FALSE;
-	for( i=0; display_driver_list[i] != NULL; i++ ) {
-	    if( strcasecmp( display_driver_list[i]->name, display_driver_name ) == 0 ) {
-		initialized = display_set_driver( display_driver_list[i] );
-		break;
-	    }
-	}
-	if( !initialized ) {
-	    if( display_driver_list[i] == NULL ) {
-		ERROR( "Video driver '%s' not found, using null driver", display_driver_name );
-	    } else {
-		ERROR( "Video driver '%s' failed to initialize, falling back to null driver", display_driver_name );
-	    }
-	    display_set_driver( &display_null_driver );
+	display_driver_t display_driver = get_display_driver_by_name(display_driver_name);
+	if( display_driver == NULL ) {
+	    ERROR( "Video driver '%s' not found, aborting.", display_driver_name );
+	    exit(2);
+	} else if( display_set_driver( display_driver ) == FALSE ) {
+	    ERROR( "Video driver '%s' failed to initialize (could not connect to display?)", 
+		   display_driver->name );
+	    exit(2);
 	}
     }
 
