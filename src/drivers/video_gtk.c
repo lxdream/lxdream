@@ -97,6 +97,9 @@ gboolean video_gtk_resize_callback(GtkWidget *widget, GdkEventConfigure *event, 
 gboolean video_gtk_init()
 {
     video_win = gtk_gui_get_renderarea();
+    if( video_win == NULL ) {
+	return FALSE;
+    }
 
     g_signal_connect( video_win, "key_press_event", 
 		      G_CALLBACK(video_gtk_keydown_callback), NULL );
@@ -120,8 +123,10 @@ gboolean video_gtk_init()
 
 void video_gtk_shutdown()
 {
-    video_glx_shutdown();
-    gtk_widget_destroy( GTK_WIDGET(video_win) );
+    if( video_win != NULL ) {
+	video_glx_shutdown();
+	gtk_widget_destroy( GTK_WIDGET(video_win) );
+    }
 
 }
 
