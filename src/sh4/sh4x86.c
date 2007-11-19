@@ -266,6 +266,9 @@ static inline void pop_dr( int bankreg, int frm )
 
 #if SH4_TRANSLATOR == TARGET_X86_64
 /* X86-64 has different calling conventions... */
+
+#define load_ptr( reg, ptr ) load_imm64( reg, (uint64_t)ptr );
+    
 /**
  * Note: clobbers EAX to make the indirect call - this isn't usually
  * a problem since the callee will usually clobber it anyway.
@@ -406,6 +409,8 @@ void sh4_translate_end_block( sh4addr_t pc ) {
 }
 
 #else /* SH4_TRANSLATOR == TARGET_X86 */
+
+#define load_ptr( reg, ptr ) load_imm32( reg, (uint32_t)ptr );
 
 /**
  * Note: clobbers EAX to make the indirect call - this isn't usually
@@ -643,7 +648,7 @@ void sh4_translate_begin_block( sh4addr_t pc )
 {
     PUSH_r32(R_EBP);
     /* mov &sh4r, ebp */
-    load_imm32( R_EBP, (uint32_t)&sh4r );
+    load_ptr( R_EBP, &sh4r );
     
     sh4_x86.in_delay_slot = FALSE;
     sh4_x86.priv_checked = FALSE;
@@ -809,13 +814,12 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                                 { /* PREF @Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
                                 load_reg( R_EAX, Rn );
-                                PUSH_r32( R_EAX );
+                                MOV_r32_r32( R_EAX, R_ECX );
                                 AND_imm32_r32( 0xFC000000, R_EAX );
                                 CMP_imm32_r32( 0xE0000000, R_EAX );
-                                JNE_rel8(CALL_FUNC0_SIZE, end);
-                                call_func0( sh4_flush_store_queue );
+                                JNE_rel8(CALL_FUNC1_SIZE, end);
+                                call_func1( sh4_flush_store_queue, R_ECX );
                                 JMP_TARGET(end);
-                                ADD_imm8s_r32( 4, R_ESP );
                                 sh4_x86.tstate = TSTATE_NONE;
                                 }
                                 break;
