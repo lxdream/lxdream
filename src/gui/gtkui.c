@@ -57,6 +57,8 @@ static GtkActionGroup *global_action_group;
 static uint32_t gtk_gui_nanos = 0;
 static struct timeval gtk_gui_lasttv;
 
+static gboolean gtk_gui_init_ok = FALSE;
+
 #define ENABLE_ACTION(win,name) SET_ACTION_ENABLED(win,name,TRUE)
 #define DISABLE_ACTION(win,name) SET_ACTION_ENABLED(win,name,FALSE)
 
@@ -184,46 +186,51 @@ static const char *ui_description =
 
 gboolean gui_parse_cmdline( int *argc, char **argv[] )
 {
-    return gtk_init_check( argc, argv );
+    gtk_gui_init_ok = gtk_init_check( argc, argv );
+    return gtk_gui_init_ok;
 }
 
 gboolean gui_init( gboolean withDebug )
 {
-    GError *error = NULL;
-    dreamcast_register_module( &gtk_gui_module );
-    gtk_gui_alloc_resources();
-    
-    global_action_group = gtk_action_group_new("MenuActions");
-    gtk_action_group_set_translation_domain( global_action_group, NULL );
-    gtk_action_group_add_actions( global_action_group, ui_actions, G_N_ELEMENTS(ui_actions), NULL );
-    gtk_action_group_add_toggle_actions( global_action_group, ui_toggle_actions, G_N_ELEMENTS(ui_toggle_actions), NULL );
-    gtk_gui_enable_action("AudioSettings", FALSE);
-    gtk_gui_enable_action("NetworkSettings", FALSE);
-    gtk_gui_enable_action("VideoSettings", FALSE);
+    if( gtk_gui_init_ok ) {
+	GError *error = NULL;
+	dreamcast_register_module( &gtk_gui_module );
+	gtk_gui_alloc_resources();
+	
+	global_action_group = gtk_action_group_new("MenuActions");
+	gtk_action_group_set_translation_domain( global_action_group, NULL );
+	gtk_action_group_add_actions( global_action_group, ui_actions, G_N_ELEMENTS(ui_actions), NULL );
+	gtk_action_group_add_toggle_actions( global_action_group, ui_toggle_actions, G_N_ELEMENTS(ui_toggle_actions), NULL );
+	gtk_gui_enable_action("AudioSettings", FALSE);
+	gtk_gui_enable_action("NetworkSettings", FALSE);
+	gtk_gui_enable_action("VideoSettings", FALSE);
+	
+	global_ui_manager = gtk_ui_manager_new();
+	gtk_ui_manager_set_add_tearoffs(global_ui_manager, TRUE);
+	gtk_ui_manager_insert_action_group( global_ui_manager, global_action_group, 0 );
+	
+	if (!gtk_ui_manager_add_ui_from_string (global_ui_manager, ui_description, -1, &error)) {
+	    g_message ("building menus failed: %s", error->message);
+	    g_error_free (error);
+	    exit(1);
+	}
+	GtkAccelGroup *accel_group = gtk_ui_manager_get_accel_group (global_ui_manager);
+	GtkWidget *menubar = gtk_ui_manager_get_widget(global_ui_manager, "/MainMenu");
+	GtkWidget *toolbar = gtk_ui_manager_get_widget(global_ui_manager, "/MainToolbar");
+	
+	GtkWidget *gdrommenuitem = gtk_ui_manager_get_widget(global_ui_manager, "/MainMenu/FileMenu/GdromSettings");
+	gdrom_menu_init();
+	GtkWidget *gdrommenu = gdrom_menu_new();
+	gtk_menu_item_set_submenu( GTK_MENU_ITEM(gdrommenuitem), gdrommenu );
+	main_win = main_window_new( APP_NAME " " APP_VERSION, menubar, toolbar, accel_group  );
+	if( withDebug ) {
+	    gtk_gui_show_debugger();
+	}
 
-    global_ui_manager = gtk_ui_manager_new();
-    gtk_ui_manager_set_add_tearoffs(global_ui_manager, TRUE);
-    gtk_ui_manager_insert_action_group( global_ui_manager, global_action_group, 0 );
-
-    if (!gtk_ui_manager_add_ui_from_string (global_ui_manager, ui_description, -1, &error)) {
-	g_message ("building menus failed: %s", error->message);
-	g_error_free (error);
-	exit(1);
+	return TRUE;
+    } else {
+	return FALSE;
     }
-    GtkAccelGroup *accel_group = gtk_ui_manager_get_accel_group (global_ui_manager);
-    GtkWidget *menubar = gtk_ui_manager_get_widget(global_ui_manager, "/MainMenu");
-    GtkWidget *toolbar = gtk_ui_manager_get_widget(global_ui_manager, "/MainToolbar");
-
-    GtkWidget *gdrommenuitem = gtk_ui_manager_get_widget(global_ui_manager, "/MainMenu/FileMenu/GdromSettings");
-    gdrom_menu_init();
-    GtkWidget *gdrommenu = gdrom_menu_new();
-    gtk_menu_item_set_submenu( GTK_MENU_ITEM(gdrommenuitem), gdrommenu );
-    main_win = main_window_new( APP_NAME " " APP_VERSION, menubar, toolbar, accel_group  );
-    if( withDebug ) {
-	gtk_gui_show_debugger();
-    }
-
-    return TRUE;
 }
 
 void gui_main_loop(void)
@@ -301,7 +308,11 @@ mmio_window_t gtk_gui_get_mmio()
 
 GtkWidget *gtk_gui_get_renderarea()
 {
-    return main_window_get_renderarea(main_win);
+    if( main_win == NULL ) {
+	return NULL;
+    } else {
+	return main_window_get_renderarea(main_win);
+    }
 }
 
 /**
