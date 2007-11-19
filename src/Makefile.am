@@ -5,7 +5,7 @@ INCLUDES = \
 	-DPACKAGE_LOCALE_DIR=\""$(prefix)/$(DATADIRNAME)/locale"\" \
 	-DPACKAGE_CONF_DIR=\""$(sysconfdir)"\" \
         -Ish4 \
-	@PACKAGE_CFLAGS@
+	@PACKAGE_CFLAGS@ @ESOUND_CFLAGS@
 
 bin_PROGRAMS = lxdream
 noinst_PROGRAMS = gendec genglsl
@@ -39,7 +39,7 @@ lxdream_SOURCES = \
         gui/ctrl_dlg.c gui/path_dlg.c gui/gdrom_menu.c \
         loader.c bootstrap.c util.c \
 	display.c display.h \
-	drivers/audio_null.c drivers/audio_esd.c \
+	drivers/audio_null.c \
 	drivers/video_null.c drivers/video_gtk.c drivers/video_gtk.h \
 	drivers/video_x11.c drivers/video_x11.h \
 	drivers/gl_common.c drivers/gl_common.h drivers/gl_fbo.c \
@@ -58,7 +58,11 @@ else
 lxdream_SOURCES += drivers/cd_none.c
 endif
 
-lxdream_LDADD = @PACKAGE_LIBS@ $(INTLLIBS) -lesd
+if AUDIO_ESOUND
+lxdream_SOURCES += drivers/audio_esd.c
+endif
+
+lxdream_LDADD = @PACKAGE_LIBS@ @ESOUND_LIBS@ $(INTLLIBS)
 
 gendec_LDADD = @PACKAGE_LIBS@ $(INTLLIBS)
 genglsl_LDADD = @PACKAGE_LIBS@ $(INTLLIBS)

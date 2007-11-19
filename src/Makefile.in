@@ -43,6 +43,7 @@ host_triplet = @host@
 
 @CDROM_LINUX_TRUE@am__append_2 = drivers/cd_linux.c
 @CDROM_LINUX_FALSE@am__append_3 = drivers/cd_none.c
+@AUDIO_ESOUND_TRUE@am__append_4 = drivers/audio_esd.c
 ACLOCAL = @ACLOCAL@
 AMDEP_FALSE = @AMDEP_FALSE@
 AMDEP_TRUE = @AMDEP_TRUE@
@@ -50,6 +51,8 @@ AMTAR = @AMTAR@
 ARMCC = @ARMCC@
 ARMLD = @ARMLD@
 ARMOBJCOPY = @ARMOBJCOPY@
+AUDIO_ESOUND_FALSE = @AUDIO_ESOUND_FALSE@
+AUDIO_ESOUND_TRUE = @AUDIO_ESOUND_TRUE@
 AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
 AUTOMAKE = @AUTOMAKE@
@@ -77,6 +80,8 @@ ECHO_C = @ECHO_C@
 ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
 EGREP = @EGREP@
+ESOUND_CFLAGS = @ESOUND_CFLAGS@
+ESOUND_LIBS = @ESOUND_LIBS@
 EXEEXT = @EXEEXT@
 GETTEXT_PACKAGE = @GETTEXT_PACKAGE@
 GMOFILES = @GMOFILES@
@@ -168,7 +173,7 @@ INCLUDES = \
 	-DPACKAGE_LOCALE_DIR=\""$(prefix)/$(DATADIRNAME)/locale"\" \
 	-DPACKAGE_CONF_DIR=\""$(sysconfdir)"\" \
         -Ish4 \
-	@PACKAGE_CFLAGS@
+	@PACKAGE_CFLAGS@ @ESOUND_CFLAGS@
 
 
 bin_PROGRAMS = lxdream
@@ -203,14 +208,14 @@ lxdream_SOURCES = \
         gui/ctrl_dlg.c gui/path_dlg.c gui/gdrom_menu.c \
         loader.c bootstrap.c util.c \
 	display.c display.h \
-	drivers/audio_null.c drivers/audio_esd.c \
+	drivers/audio_null.c \
 	drivers/video_null.c drivers/video_gtk.c drivers/video_gtk.h \
 	drivers/video_x11.c drivers/video_x11.h \
 	drivers/gl_common.c drivers/gl_common.h drivers/gl_fbo.c \
 	drivers/gl_sl.c drivers/gl_slsrc.c\
-$(am__append_1) $(am__append_2) $(am__append_3)
+$(am__append_1) $(am__append_2) $(am__append_3) $(am__append_4)
 
-lxdream_LDADD = @PACKAGE_LIBS@ $(INTLLIBS) -lesd
+lxdream_LDADD = @PACKAGE_LIBS@ @ESOUND_LIBS@ $(INTLLIBS)
 
 gendec_LDADD = @PACKAGE_LIBS@ $(INTLLIBS)
 genglsl_LDADD = @PACKAGE_LIBS@ $(INTLLIBS)
@@ -267,18 +272,19 @@ am__lxdream_SOURCES_DIST = main.c config.c config.h mem.c mem.h mmio.h \
 	gui/gtkcb.c gui/mmio_win.c gui/debug_win.c gui/dump_win.c \
 	gui/ctrl_dlg.c gui/path_dlg.c gui/gdrom_menu.c loader.c \
 	bootstrap.c util.c display.c display.h drivers/audio_null.c \
-	drivers/audio_esd.c drivers/video_null.c drivers/video_gtk.c \
-	drivers/video_gtk.h drivers/video_x11.c drivers/video_x11.h \
-	drivers/gl_common.c drivers/gl_common.h drivers/gl_fbo.c \
-	drivers/gl_sl.c drivers/gl_slsrc.c sh4/sh4x86.c sh4/sh4trans.c \
-	sh4/sh4trans.h x86dasm/x86dasm.c x86dasm/x86dasm.h \
-	x86dasm/i386-dis.c x86dasm/dis-init.c x86dasm/dis-buf.c \
-	drivers/cd_linux.c drivers/cd_none.c
+	drivers/video_null.c drivers/video_gtk.c drivers/video_gtk.h \
+	drivers/video_x11.c drivers/video_x11.h drivers/gl_common.c \
+	drivers/gl_common.h drivers/gl_fbo.c drivers/gl_sl.c \
+	drivers/gl_slsrc.c sh4/sh4x86.c sh4/sh4trans.c sh4/sh4trans.h \
+	x86dasm/x86dasm.c x86dasm/x86dasm.h x86dasm/i386-dis.c \
+	x86dasm/dis-init.c x86dasm/dis-buf.c drivers/cd_linux.c \
+	drivers/cd_none.c drivers/audio_esd.c
 @BUILD_SH4X86_TRUE@am__objects_1 = sh4x86.$(OBJEXT) sh4trans.$(OBJEXT) \
 @BUILD_SH4X86_TRUE@	x86dasm.$(OBJEXT) i386-dis.$(OBJEXT) \
 @BUILD_SH4X86_TRUE@	dis-init.$(OBJEXT) dis-buf.$(OBJEXT)
 @CDROM_LINUX_TRUE@am__objects_2 = cd_linux.$(OBJEXT)
 @CDROM_LINUX_FALSE@am__objects_3 = cd_none.$(OBJEXT)
+@AUDIO_ESOUND_TRUE@am__objects_4 = audio_esd.$(OBJEXT)
 am_lxdream_OBJECTS = main.$(OBJEXT) config.$(OBJEXT) mem.$(OBJEXT) \
 	watch.$(OBJEXT) asic.$(OBJEXT) syscall.$(OBJEXT) bios.$(OBJEXT) \
 	dcload.$(OBJEXT) ide.$(OBJEXT) gdimage.$(OBJEXT) \
@@ -297,10 +303,10 @@ am_lxdream_OBJECTS = main.$(OBJEXT) config.$(OBJEXT) mem.$(OBJEXT) \
 	dump_win.$(OBJEXT) ctrl_dlg.$(OBJEXT) path_dlg.$(OBJEXT) \
 	gdrom_menu.$(OBJEXT) loader.$(OBJEXT) bootstrap.$(OBJEXT) \
 	util.$(OBJEXT) display.$(OBJEXT) audio_null.$(OBJEXT) \
-	audio_esd.$(OBJEXT) video_null.$(OBJEXT) video_gtk.$(OBJEXT) \
-	video_x11.$(OBJEXT) gl_common.$(OBJEXT) gl_fbo.$(OBJEXT) \
-	gl_sl.$(OBJEXT) gl_slsrc.$(OBJEXT) $(am__objects_1) \
-	$(am__objects_2) $(am__objects_3)
+	video_null.$(OBJEXT) video_gtk.$(OBJEXT) video_x11.$(OBJEXT) \
+	gl_common.$(OBJEXT) gl_fbo.$(OBJEXT) gl_sl.$(OBJEXT) \
+	gl_slsrc.$(OBJEXT) $(am__objects_1) $(am__objects_2) \
+	$(am__objects_3) $(am__objects_4)
 lxdream_OBJECTS = $(am_lxdream_OBJECTS)
 lxdream_DEPENDENCIES =
 lxdream_LDFLAGS =
@@ -1595,28 +1601,6 @@ audio_null.obj: drivers/audio_null.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o audio_null.obj `if test -f 'drivers/audio_null.c'; then $(CYGPATH_W) 'drivers/audio_null.c'; else $(CYGPATH_W) '$(srcdir)/drivers/audio_null.c'; fi`
 
-audio_esd.o: drivers/audio_esd.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT audio_esd.o -MD -MP -MF "$(DEPDIR)/audio_esd.Tpo" \
-@am__fastdepCC_TRUE@	  -c -o audio_esd.o `test -f 'drivers/audio_esd.c' || echo '$(srcdir)/'`drivers/audio_esd.c; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/audio_esd.Tpo" "$(DEPDIR)/audio_esd.Po"; \
-@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/audio_esd.Tpo"; exit 1; \
-@am__fastdepCC_TRUE@	fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/audio_esd.c' object='audio_esd.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/audio_esd.Po' tmpdepfile='$(DEPDIR)/audio_esd.TPo' @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o audio_esd.o `test -f 'drivers/audio_esd.c' || echo '$(srcdir)/'`drivers/audio_esd.c
-
-audio_esd.obj: drivers/audio_esd.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT audio_esd.obj -MD -MP -MF "$(DEPDIR)/audio_esd.Tpo" \
-@am__fastdepCC_TRUE@	  -c -o audio_esd.obj `if test -f 'drivers/audio_esd.c'; then $(CYGPATH_W) 'drivers/audio_esd.c'; else $(CYGPATH_W) '$(srcdir)/drivers/audio_esd.c'; fi`; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/audio_esd.Tpo" "$(DEPDIR)/audio_esd.Po"; \
-@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/audio_esd.Tpo"; exit 1; \
-@am__fastdepCC_TRUE@	fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/audio_esd.c' object='audio_esd.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/audio_esd.Po' tmpdepfile='$(DEPDIR)/audio_esd.TPo' @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o audio_esd.obj `if test -f 'drivers/audio_esd.c'; then $(CYGPATH_W) 'drivers/audio_esd.c'; else $(CYGPATH_W) '$(srcdir)/drivers/audio_esd.c'; fi`
-
 video_null.o: drivers/video_null.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT video_null.o -MD -MP -MF "$(DEPDIR)/video_null.Tpo" \
 @am__fastdepCC_TRUE@	  -c -o video_null.o `test -f 'drivers/video_null.c' || echo '$(srcdir)/'`drivers/video_null.c; \
@@ -1946,6 +1930,28 @@ cd_none.obj: drivers/cd_none.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/cd_none.Po' tmpdepfile='$(DEPDIR)/cd_none.TPo' @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o cd_none.obj `if test -f 'drivers/cd_none.c'; then $(CYGPATH_W) 'drivers/cd_none.c'; else $(CYGPATH_W) '$(srcdir)/drivers/cd_none.c'; fi`
+
+audio_esd.o: drivers/audio_esd.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT audio_esd.o -MD -MP -MF "$(DEPDIR)/audio_esd.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o audio_esd.o `test -f 'drivers/audio_esd.c' || echo '$(srcdir)/'`drivers/audio_esd.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/audio_esd.Tpo" "$(DEPDIR)/audio_esd.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/audio_esd.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/audio_esd.c' object='audio_esd.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/audio_esd.Po' tmpdepfile='$(DEPDIR)/audio_esd.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o audio_esd.o `test -f 'drivers/audio_esd.c' || echo '$(srcdir)/'`drivers/audio_esd.c
+
+audio_esd.obj: drivers/audio_esd.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT audio_esd.obj -MD -MP -MF "$(DEPDIR)/audio_esd.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o audio_esd.obj `if test -f 'drivers/audio_esd.c'; then $(CYGPATH_W) 'drivers/audio_esd.c'; else $(CYGPATH_W) '$(srcdir)/drivers/audio_esd.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/audio_esd.Tpo" "$(DEPDIR)/audio_esd.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/audio_esd.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/audio_esd.c' object='audio_esd.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/audio_esd.Po' tmpdepfile='$(DEPDIR)/audio_esd.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o audio_esd.obj `if test -f 'drivers/audio_esd.c'; then $(CYGPATH_W) 'drivers/audio_esd.c'; else $(CYGPATH_W) '$(srcdir)/drivers/audio_esd.c'; fi`
 
 testsh4x86.o: test/testsh4x86.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT testsh4x86.o -MD -MP -MF "$(DEPDIR)/testsh4x86.Tpo" \

@@ -14,8 +14,13 @@ AC_CANONICAL_HOST
 
 PKG_CHECK_MODULES(PACKAGE, 
    [ gtk+-2.0 dnl
-     esound dnl
      libpng ])
+PKG_CHECK_MODULES(ESOUND, [esound], [ 
+     HAVE_ESOUND='yes'
+     AC_DEFINE([HAVE_ESOUND],1,[Have esound support]) ], 
+   [ echo "Warning: esound not found - building without audio support" ])
+AM_CONDITIONAL( AUDIO_ESOUND, [test "$HAVE_ESOUND" = 'yes'] )
+
 AC_CHECK_LIB(z, uncompress, [], [
     echo "Zlib (libz.so) could not be found, but is required."
     exit 1])
@@ -69,7 +74,7 @@ AM_CONDITIONAL(BUILD_ARMTEST, [test "$BUILD_ARM" = "yes"])
 
 GETTEXT_PACKAGE=lxdream
 AC_SUBST(GETTEXT_PACKAGE)
-AC_DEFINE_UNQUOTED(GETTEXT_PACKAGE,"$GETTEXT_PACKAGE")
+AC_DEFINE_UNQUOTED(GETTEXT_PACKAGE,"$GETTEXT_PACKAGE",[translation domain])
 AC_SUBST(PACKAGE_CFLAGS)
 AC_SUBST(PACKAGE_LIBS)
 
