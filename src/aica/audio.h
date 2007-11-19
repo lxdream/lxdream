@@ -75,6 +75,8 @@ typedef struct audio_driver {
 extern struct audio_driver audio_null_driver;
 extern struct audio_driver audio_esd_driver;
 
+audio_driver_t get_audio_driver_by_name( const char *name );
+
 /**
  * Set the output driver, sample rate and format. Also initializes the 
  * output buffers, flushing any current data and reallocating as 

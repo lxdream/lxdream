@@ -19,6 +19,7 @@
 #include <X11/Xlib.h>
 #include <GL/glx.h>
 #include "dream.h"
+#include "pvr2/pvr2.h"
 #include "drivers/video_x11.h"
 #include "drivers/gl_common.h"
 
@@ -167,6 +168,8 @@ gboolean video_glx_init_context( Window window )
 	return FALSE;
     }
     XFree(visual);
+
+    texcache_gl_init();
     return TRUE;
 }
 

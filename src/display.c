@@ -24,6 +24,11 @@
 #include "display.h"
 #include "pvr2/pvr2.h"
 
+display_driver_t display_driver_list[] = { 
+					   &display_gtk_driver,
+					   &display_null_driver,
+					   NULL };
+
 typedef struct keymap_entry {
     uint16_t keycode;
     input_key_callback_t callback;
@@ -148,6 +153,20 @@ void input_event_keyup( uint16_t keycode )
     }
 }
 
+display_driver_t get_display_driver_by_name( const char *name )
+{
+    int i;
+    if( name == NULL ) {
+	return display_driver_list[0];
+    }
+    for( i=0; display_driver_list[i] != NULL; i++ ) {
+	if( strcasecmp( display_driver_list[i]->name, name ) == 0 ) {
+	    return display_driver_list[i];
+	}
+    }
+
+    return NULL;
+}
 
 
 gboolean display_set_driver( display_driver_t driver )
@@ -159,8 +178,8 @@ gboolean display_set_driver( display_driver_t driver )
     display_driver = driver;
     if( driver->init_driver != NULL )
 	rv = driver->init_driver();
-    if( rv ) {
-	texcache_gl_init();
+    if( !rv ) {
+	display_driver = NULL;
     }
     return rv;
 }
