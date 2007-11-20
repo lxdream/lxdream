@@ -70,7 +70,7 @@ debug_window_t debug_window_new( const gchar *title, GtkWidget *menubar,
         GtkWidget *vbox;
 
     data->window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-    gtk_window_set_default_size (GTK_WINDOW (data->window), 1000, 700);
+    gtk_window_set_default_size (GTK_WINDOW (data->window), 640, 480);
     gtk_window_set_title( GTK_WINDOW(data->window), title );
     gtk_window_add_accel_group (GTK_WINDOW (data->window), accel_group);
 
