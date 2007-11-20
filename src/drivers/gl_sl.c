@@ -28,8 +28,6 @@
 
 #define MAX_ERROR_BUF 4096
 
-static GLuint glsl_program, glsl_vert_shader, glsl_frag_shader;
-
 gboolean glsl_is_supported()
 {
     return isGLExtensionSupported("GL_ARB_fragment_shader") &&
@@ -38,6 +36,8 @@ gboolean glsl_is_supported()
 }
 
 #ifdef GL_ARB_shader_objects
+static GLhandleARB glsl_program, glsl_vert_shader, glsl_frag_shader;
+
 void glsl_print_error( char *msg, GLhandleARB obj )
 {
     char buf[MAX_ERROR_BUF];
@@ -107,6 +107,8 @@ void glsl_unload_shaders(void)
 }
 
 #else
+static GLuint glsl_program, glsl_vert_shader, glsl_frag_shader;
+
 gboolean glsl_check_shader_error( char *msg, GLuint shader )
 {
     GLint value;
