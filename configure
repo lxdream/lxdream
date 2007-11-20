@@ -699,14 +699,18 @@ host_cpu
 host_vendor
 host_os
 PKG_CONFIG
-PACKAGE_CFLAGS
-PACKAGE_LIBS
+LIBPNG_CFLAGS
+LIBPNG_LIBS
+GTK_CFLAGS
+GTK_LIBS
+GUI_GTK_TRUE
+GUI_GTK_FALSE
+BUILD_SH4X86_TRUE
+BUILD_SH4X86_FALSE
 ESOUND_CFLAGS
 ESOUND_LIBS
 AUDIO_ESOUND_TRUE
 AUDIO_ESOUND_FALSE
-BUILD_SH4X86_TRUE
-BUILD_SH4X86_FALSE
 CDROM_LINUX_TRUE
 CDROM_LINUX_FALSE
 SHCC
@@ -748,8 +752,10 @@ LIBS
 CPPFLAGS
 CPP
 PKG_CONFIG
-PACKAGE_CFLAGS
-PACKAGE_LIBS
+LIBPNG_CFLAGS
+LIBPNG_LIBS
+GTK_CFLAGS
+GTK_LIBS
 ESOUND_CFLAGS
 ESOUND_LIBS'
 
@@ -1344,10 +1350,11 @@ Some influential environment variables:
               you have headers in a nonstandard directory <include dir>
   CPP         C preprocessor
   PKG_CONFIG  path to pkg-config utility
-  PACKAGE_CFLAGS
-              C compiler flags for PACKAGE, overriding pkg-config
-  PACKAGE_LIBS
-              linker flags for PACKAGE, overriding pkg-config
+  LIBPNG_CFLAGS
+              C compiler flags for LIBPNG, overriding pkg-config
+  LIBPNG_LIBS linker flags for LIBPNG, overriding pkg-config
+  GTK_CFLAGS  C compiler flags for GTK, overriding pkg-config
+  GTK_LIBS    linker flags for GTK, overriding pkg-config
   ESOUND_CFLAGS
               C compiler flags for ESOUND, overriding pkg-config
   ESOUND_LIBS linker flags for ESOUND, overriding pkg-config
@@ -5057,20 +5064,20 @@ echo "${ECHO_T}no" >&6; }
 fi
 
 pkg_failed=no
-{ echo "$as_me:$LINENO: checking for PACKAGE" >&5
-echo $ECHO_N "checking for PACKAGE... $ECHO_C" >&6; }
+{ echo "$as_me:$LINENO: checking for LIBPNG" >&5
+echo $ECHO_N "checking for LIBPNG... $ECHO_C" >&6; }
 
 if test -n "$PKG_CONFIG"; then
-    if test -n "$PACKAGE_CFLAGS"; then
-        pkg_cv_PACKAGE_CFLAGS="$PACKAGE_CFLAGS"
+    if test -n "$LIBPNG_CFLAGS"; then
+        pkg_cv_LIBPNG_CFLAGS="$LIBPNG_CFLAGS"
     else
         if test -n "$PKG_CONFIG" && \
-    { (echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \" gtk+-2.0      libpng \"") >&5
-  ($PKG_CONFIG --exists --print-errors " gtk+-2.0      libpng ") 2>&5
+    { (echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"libpng \"") >&5
+  ($PKG_CONFIG --exists --print-errors "libpng ") 2>&5
   ac_status=$?
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); }; then
-  pkg_cv_PACKAGE_CFLAGS=`$PKG_CONFIG --cflags " gtk+-2.0      libpng " 2>/dev/null`
+  pkg_cv_LIBPNG_CFLAGS=`$PKG_CONFIG --cflags "libpng " 2>/dev/null`
 else
   pkg_failed=yes
 fi
@@ -5079,16 +5086,16 @@ else
 	pkg_failed=untried
 fi
 if test -n "$PKG_CONFIG"; then
-    if test -n "$PACKAGE_LIBS"; then
-        pkg_cv_PACKAGE_LIBS="$PACKAGE_LIBS"
+    if test -n "$LIBPNG_LIBS"; then
+        pkg_cv_LIBPNG_LIBS="$LIBPNG_LIBS"
     else
         if test -n "$PKG_CONFIG" && \
-    { (echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \" gtk+-2.0      libpng \"") >&5
-  ($PKG_CONFIG --exists --print-errors " gtk+-2.0      libpng ") 2>&5
+    { (echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"libpng \"") >&5
+  ($PKG_CONFIG --exists --print-errors "libpng ") 2>&5
   ac_status=$?
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); }; then
-  pkg_cv_PACKAGE_LIBS=`$PKG_CONFIG --libs " gtk+-2.0      libpng " 2>/dev/null`
+  pkg_cv_LIBPNG_LIBS=`$PKG_CONFIG --libs "libpng " 2>/dev/null`
 else
   pkg_failed=yes
 fi
@@ -5107,33 +5114,33 @@ else
         _pkg_short_errors_supported=no
 fi
         if test $_pkg_short_errors_supported = yes; then
-	        PACKAGE_PKG_ERRORS=`$PKG_CONFIG --short-errors --errors-to-stdout --print-errors " gtk+-2.0      libpng "`
+	        LIBPNG_PKG_ERRORS=`$PKG_CONFIG --short-errors --errors-to-stdout --print-errors "libpng "`
         else
-	        PACKAGE_PKG_ERRORS=`$PKG_CONFIG --errors-to-stdout --print-errors " gtk+-2.0      libpng "`
+	        LIBPNG_PKG_ERRORS=`$PKG_CONFIG --errors-to-stdout --print-errors "libpng "`
         fi
 	# Put the nasty error message in config.log where it belongs
-	echo "$PACKAGE_PKG_ERRORS" >&5
+	echo "$LIBPNG_PKG_ERRORS" >&5
 
-	{ { echo "$as_me:$LINENO: error: Package requirements ( gtk+-2.0      libpng ) were not met:
+	{ { echo "$as_me:$LINENO: error: Package requirements (libpng ) were not met:
 
-$PACKAGE_PKG_ERRORS
+$LIBPNG_PKG_ERRORS
 
 Consider adjusting the PKG_CONFIG_PATH environment variable if you
 installed software in a non-standard prefix.
 
-Alternatively, you may set the environment variables PACKAGE_CFLAGS
-and PACKAGE_LIBS to avoid the need to call pkg-config.
+Alternatively, you may set the environment variables LIBPNG_CFLAGS
+and LIBPNG_LIBS to avoid the need to call pkg-config.
 See the pkg-config man page for more details.
 " >&5
-echo "$as_me: error: Package requirements ( gtk+-2.0      libpng ) were not met:
+echo "$as_me: error: Package requirements (libpng ) were not met:
 
-$PACKAGE_PKG_ERRORS
+$LIBPNG_PKG_ERRORS
 
 Consider adjusting the PKG_CONFIG_PATH environment variable if you
 installed software in a non-standard prefix.
 
-Alternatively, you may set the environment variables PACKAGE_CFLAGS
-and PACKAGE_LIBS to avoid the need to call pkg-config.
+Alternatively, you may set the environment variables LIBPNG_CFLAGS
+and LIBPNG_LIBS to avoid the need to call pkg-config.
 See the pkg-config man page for more details.
 " >&2;}
    { (exit 1); exit 1; }; }
@@ -5142,8 +5149,8 @@ elif test $pkg_failed = untried; then
 is in your PATH or set the PKG_CONFIG environment variable to the full
 path to pkg-config.
 
-Alternatively, you may set the environment variables PACKAGE_CFLAGS
-and PACKAGE_LIBS to avoid the need to call pkg-config.
+Alternatively, you may set the environment variables LIBPNG_CFLAGS
+and LIBPNG_LIBS to avoid the need to call pkg-config.
 See the pkg-config man page for more details.
 
 To get pkg-config, see <http://www.freedesktop.org/software/pkgconfig>.
@@ -5152,179 +5159,19 @@ echo "$as_me: error: The pkg-config script could not be found or is too old.  Ma
 is in your PATH or set the PKG_CONFIG environment variable to the full
 path to pkg-config.
 
-Alternatively, you may set the environment variables PACKAGE_CFLAGS
-and PACKAGE_LIBS to avoid the need to call pkg-config.
+Alternatively, you may set the environment variables LIBPNG_CFLAGS
+and LIBPNG_LIBS to avoid the need to call pkg-config.
 See the pkg-config man page for more details.
 
 To get pkg-config, see <http://www.freedesktop.org/software/pkgconfig>.
 See \`config.log' for more details." >&2;}
    { (exit 1); exit 1; }; }
 else
-	PACKAGE_CFLAGS=$pkg_cv_PACKAGE_CFLAGS
-	PACKAGE_LIBS=$pkg_cv_PACKAGE_LIBS
+	LIBPNG_CFLAGS=$pkg_cv_LIBPNG_CFLAGS
+	LIBPNG_LIBS=$pkg_cv_LIBPNG_LIBS
         { echo "$as_me:$LINENO: result: yes" >&5
 echo "${ECHO_T}yes" >&6; }
 	:
-fi
-
-pkg_failed=no
-{ echo "$as_me:$LINENO: checking for ESOUND" >&5
-echo $ECHO_N "checking for ESOUND... $ECHO_C" >&6; }
-
-if test -n "$PKG_CONFIG"; then
-    if test -n "$ESOUND_CFLAGS"; then
-        pkg_cv_ESOUND_CFLAGS="$ESOUND_CFLAGS"
-    else
-        if test -n "$PKG_CONFIG" && \
-    { (echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"esound\"") >&5
-  ($PKG_CONFIG --exists --print-errors "esound") 2>&5
-  ac_status=$?
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); }; then
-  pkg_cv_ESOUND_CFLAGS=`$PKG_CONFIG --cflags "esound" 2>/dev/null`
-else
-  pkg_failed=yes
-fi
-    fi
-else
-	pkg_failed=untried
-fi
-if test -n "$PKG_CONFIG"; then
-    if test -n "$ESOUND_LIBS"; then
-        pkg_cv_ESOUND_LIBS="$ESOUND_LIBS"
-    else
-        if test -n "$PKG_CONFIG" && \
-    { (echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"esound\"") >&5
-  ($PKG_CONFIG --exists --print-errors "esound") 2>&5
-  ac_status=$?
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); }; then
-  pkg_cv_ESOUND_LIBS=`$PKG_CONFIG --libs "esound" 2>/dev/null`
-else
-  pkg_failed=yes
-fi
-    fi
-else
-	pkg_failed=untried
-fi
-
-
-
-if test $pkg_failed = yes; then
-
-if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
-        _pkg_short_errors_supported=yes
-else
-        _pkg_short_errors_supported=no
-fi
-        if test $_pkg_short_errors_supported = yes; then
-	        ESOUND_PKG_ERRORS=`$PKG_CONFIG --short-errors --errors-to-stdout --print-errors "esound"`
-        else
-	        ESOUND_PKG_ERRORS=`$PKG_CONFIG --errors-to-stdout --print-errors "esound"`
-        fi
-	# Put the nasty error message in config.log where it belongs
-	echo "$ESOUND_PKG_ERRORS" >&5
-
-	 echo "Warning: esound not found - building without audio support"
-elif test $pkg_failed = untried; then
-	 echo "Warning: esound not found - building without audio support"
-else
-	ESOUND_CFLAGS=$pkg_cv_ESOUND_CFLAGS
-	ESOUND_LIBS=$pkg_cv_ESOUND_LIBS
-        { echo "$as_me:$LINENO: result: yes" >&5
-echo "${ECHO_T}yes" >&6; }
-
-     HAVE_ESOUND='yes'
-
-cat >>confdefs.h <<\_ACEOF
-#define HAVE_ESOUND 1
-_ACEOF
-
-fi
-
-
-if test "$HAVE_ESOUND" = 'yes' ; then
-  AUDIO_ESOUND_TRUE=
-  AUDIO_ESOUND_FALSE='#'
-else
-  AUDIO_ESOUND_TRUE='#'
-  AUDIO_ESOUND_FALSE=
-fi
-
-
-
-{ echo "$as_me:$LINENO: checking for uncompress in -lz" >&5
-echo $ECHO_N "checking for uncompress in -lz... $ECHO_C" >&6; }
-if test "${ac_cv_lib_z_uncompress+set}" = set; then
-  echo $ECHO_N "(cached) $ECHO_C" >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lz  $LIBS"
-cat >conftest.$ac_ext <<_ACEOF
-/* confdefs.h.  */
-_ACEOF
-cat confdefs.h >>conftest.$ac_ext
-cat >>conftest.$ac_ext <<_ACEOF
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char uncompress ();
-int
-main ()
-{
-return uncompress ();
-  ;
-  return 0;
-}
-_ACEOF
-rm -f conftest.$ac_objext conftest$ac_exeext
-if { (ac_try="$ac_link"
-case "(($ac_try" in
-  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
-  *) ac_try_echo=$ac_try;;
-esac
-eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
-  (eval "$ac_link") 2>conftest.er1
-  ac_status=$?
-  grep -v '^ *+' conftest.er1 >conftest.err
-  rm -f conftest.er1
-  cat conftest.err >&5
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); } && {
-	 test -z "$ac_c_werror_flag" ||
-	 test ! -s conftest.err
-       } && test -s conftest$ac_exeext &&
-       $as_test_x conftest$ac_exeext; then
-  ac_cv_lib_z_uncompress=yes
-else
-  echo "$as_me: failed program was:" >&5
-sed 's/^/| /' conftest.$ac_ext >&5
-
-	ac_cv_lib_z_uncompress=no
-fi
-
-rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
-      conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ echo "$as_me:$LINENO: result: $ac_cv_lib_z_uncompress" >&5
-echo "${ECHO_T}$ac_cv_lib_z_uncompress" >&6; }
-if test $ac_cv_lib_z_uncompress = yes; then
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBZ 1
-_ACEOF
-
-  LIBS="-lz $LIBS"
-
-else
-
-    echo "Zlib (libz.so) could not be found, but is required."
-    exit 1
 fi
 
 
@@ -5606,6 +5453,203 @@ fi
 
 
 
+{ echo "$as_me:$LINENO: checking for uncompress in -lz" >&5
+echo $ECHO_N "checking for uncompress in -lz... $ECHO_C" >&6; }
+if test "${ac_cv_lib_z_uncompress+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lz  $LIBS"
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char uncompress ();
+int
+main ()
+{
+return uncompress ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (ac_try="$ac_link"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
+  (eval "$ac_link") 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && {
+	 test -z "$ac_c_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest$ac_exeext &&
+       $as_test_x conftest$ac_exeext; then
+  ac_cv_lib_z_uncompress=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+	ac_cv_lib_z_uncompress=no
+fi
+
+rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
+      conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ echo "$as_me:$LINENO: result: $ac_cv_lib_z_uncompress" >&5
+echo "${ECHO_T}$ac_cv_lib_z_uncompress" >&6; }
+if test $ac_cv_lib_z_uncompress = yes; then
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBZ 1
+_ACEOF
+
+  LIBS="-lz $LIBS"
+
+else
+
+    echo "Zlib (libz.so) could not be found, but is required."
+    exit 1
+fi
+
+
+
+pkg_failed=no
+{ echo "$as_me:$LINENO: checking for GTK" >&5
+echo $ECHO_N "checking for GTK... $ECHO_C" >&6; }
+
+if test -n "$PKG_CONFIG"; then
+    if test -n "$GTK_CFLAGS"; then
+        pkg_cv_GTK_CFLAGS="$GTK_CFLAGS"
+    else
+        if test -n "$PKG_CONFIG" && \
+    { (echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"gtk+-2.0\"") >&5
+  ($PKG_CONFIG --exists --print-errors "gtk+-2.0") 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; then
+  pkg_cv_GTK_CFLAGS=`$PKG_CONFIG --cflags "gtk+-2.0" 2>/dev/null`
+else
+  pkg_failed=yes
+fi
+    fi
+else
+	pkg_failed=untried
+fi
+if test -n "$PKG_CONFIG"; then
+    if test -n "$GTK_LIBS"; then
+        pkg_cv_GTK_LIBS="$GTK_LIBS"
+    else
+        if test -n "$PKG_CONFIG" && \
+    { (echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"gtk+-2.0\"") >&5
+  ($PKG_CONFIG --exists --print-errors "gtk+-2.0") 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; then
+  pkg_cv_GTK_LIBS=`$PKG_CONFIG --libs "gtk+-2.0" 2>/dev/null`
+else
+  pkg_failed=yes
+fi
+    fi
+else
+	pkg_failed=untried
+fi
+
+
+
+if test $pkg_failed = yes; then
+
+if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
+        _pkg_short_errors_supported=yes
+else
+        _pkg_short_errors_supported=no
+fi
+        if test $_pkg_short_errors_supported = yes; then
+	        GTK_PKG_ERRORS=`$PKG_CONFIG --short-errors --errors-to-stdout --print-errors "gtk+-2.0"`
+        else
+	        GTK_PKG_ERRORS=`$PKG_CONFIG --errors-to-stdout --print-errors "gtk+-2.0"`
+        fi
+	# Put the nasty error message in config.log where it belongs
+	echo "$GTK_PKG_ERRORS" >&5
+
+	{ { echo "$as_me:$LINENO: error: Package requirements (gtk+-2.0) were not met:
+
+$GTK_PKG_ERRORS
+
+Consider adjusting the PKG_CONFIG_PATH environment variable if you
+installed software in a non-standard prefix.
+
+Alternatively, you may set the environment variables GTK_CFLAGS
+and GTK_LIBS to avoid the need to call pkg-config.
+See the pkg-config man page for more details.
+" >&5
+echo "$as_me: error: Package requirements (gtk+-2.0) were not met:
+
+$GTK_PKG_ERRORS
+
+Consider adjusting the PKG_CONFIG_PATH environment variable if you
+installed software in a non-standard prefix.
+
+Alternatively, you may set the environment variables GTK_CFLAGS
+and GTK_LIBS to avoid the need to call pkg-config.
+See the pkg-config man page for more details.
+" >&2;}
+   { (exit 1); exit 1; }; }
+elif test $pkg_failed = untried; then
+	{ { echo "$as_me:$LINENO: error: The pkg-config script could not be found or is too old.  Make sure it
+is in your PATH or set the PKG_CONFIG environment variable to the full
+path to pkg-config.
+
+Alternatively, you may set the environment variables GTK_CFLAGS
+and GTK_LIBS to avoid the need to call pkg-config.
+See the pkg-config man page for more details.
+
+To get pkg-config, see <http://www.freedesktop.org/software/pkgconfig>.
+See \`config.log' for more details." >&5
+echo "$as_me: error: The pkg-config script could not be found or is too old.  Make sure it
+is in your PATH or set the PKG_CONFIG environment variable to the full
+path to pkg-config.
+
+Alternatively, you may set the environment variables GTK_CFLAGS
+and GTK_LIBS to avoid the need to call pkg-config.
+See the pkg-config man page for more details.
+
+To get pkg-config, see <http://www.freedesktop.org/software/pkgconfig>.
+See \`config.log' for more details." >&2;}
+   { (exit 1); exit 1; }; }
+else
+	GTK_CFLAGS=$pkg_cv_GTK_CFLAGS
+	GTK_LIBS=$pkg_cv_GTK_LIBS
+        { echo "$as_me:$LINENO: result: yes" >&5
+echo "${ECHO_T}yes" >&6; }
+	HAVE_GTK='yes'
+fi
+
+
+if test "$HAVE_GTK" = 'yes'; then
+  GUI_GTK_TRUE=
+  GUI_GTK_FALSE='#'
+else
+  GUI_GTK_TRUE='#'
+  GUI_GTK_FALSE=
+fi
+
+
 case $host_cpu in
     i386|i486|i586|i686)
 	SH4_TRANSLATOR="x86"
@@ -5632,6 +5676,92 @@ if test "$SH4_TRANSLATOR" = "x86" -o "$SH4_TRANSLATOR" = "x86_64"; then
 else
   BUILD_SH4X86_TRUE='#'
   BUILD_SH4X86_FALSE=
+fi
+
+
+
+pkg_failed=no
+{ echo "$as_me:$LINENO: checking for ESOUND" >&5
+echo $ECHO_N "checking for ESOUND... $ECHO_C" >&6; }
+
+if test -n "$PKG_CONFIG"; then
+    if test -n "$ESOUND_CFLAGS"; then
+        pkg_cv_ESOUND_CFLAGS="$ESOUND_CFLAGS"
+    else
+        if test -n "$PKG_CONFIG" && \
+    { (echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"esound\"") >&5
+  ($PKG_CONFIG --exists --print-errors "esound") 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; then
+  pkg_cv_ESOUND_CFLAGS=`$PKG_CONFIG --cflags "esound" 2>/dev/null`
+else
+  pkg_failed=yes
+fi
+    fi
+else
+	pkg_failed=untried
+fi
+if test -n "$PKG_CONFIG"; then
+    if test -n "$ESOUND_LIBS"; then
+        pkg_cv_ESOUND_LIBS="$ESOUND_LIBS"
+    else
+        if test -n "$PKG_CONFIG" && \
+    { (echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"esound\"") >&5
+  ($PKG_CONFIG --exists --print-errors "esound") 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; then
+  pkg_cv_ESOUND_LIBS=`$PKG_CONFIG --libs "esound" 2>/dev/null`
+else
+  pkg_failed=yes
+fi
+    fi
+else
+	pkg_failed=untried
+fi
+
+
+
+if test $pkg_failed = yes; then
+
+if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
+        _pkg_short_errors_supported=yes
+else
+        _pkg_short_errors_supported=no
+fi
+        if test $_pkg_short_errors_supported = yes; then
+	        ESOUND_PKG_ERRORS=`$PKG_CONFIG --short-errors --errors-to-stdout --print-errors "esound"`
+        else
+	        ESOUND_PKG_ERRORS=`$PKG_CONFIG --errors-to-stdout --print-errors "esound"`
+        fi
+	# Put the nasty error message in config.log where it belongs
+	echo "$ESOUND_PKG_ERRORS" >&5
+
+	 echo "Warning: esound not found - building without audio support"
+elif test $pkg_failed = untried; then
+	 echo "Warning: esound not found - building without audio support"
+else
+	ESOUND_CFLAGS=$pkg_cv_ESOUND_CFLAGS
+	ESOUND_LIBS=$pkg_cv_ESOUND_LIBS
+        { echo "$as_me:$LINENO: result: yes" >&5
+echo "${ECHO_T}yes" >&6; }
+
+     HAVE_ESOUND='yes'
+
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_ESOUND 1
+_ACEOF
+
+fi
+
+
+if test "$HAVE_ESOUND" = 'yes' ; then
+  AUDIO_ESOUND_TRUE=
+  AUDIO_ESOUND_FALSE='#'
+else
+  AUDIO_ESOUND_TRUE='#'
+  AUDIO_ESOUND_FALSE=
 fi
 
 
@@ -6053,15 +6183,13 @@ else
 fi
 
 
+
 GETTEXT_PACKAGE=lxdream
 
 
 cat >>confdefs.h <<_ACEOF
 #define GETTEXT_PACKAGE "$GETTEXT_PACKAGE"
 _ACEOF
-
-
-
 
 
 ALL_LINGUAS="de pt_BR"
@@ -7679,10 +7807,10 @@ echo "$as_me: error: conditional \"am__fastdepCC\" was never defined.
 Usually this means the macro was only invoked conditionally." >&2;}
    { (exit 1); exit 1; }; }
 fi
-if test -z "${AUDIO_ESOUND_TRUE}" && test -z "${AUDIO_ESOUND_FALSE}"; then
-  { { echo "$as_me:$LINENO: error: conditional \"AUDIO_ESOUND\" was never defined.
+if test -z "${GUI_GTK_TRUE}" && test -z "${GUI_GTK_FALSE}"; then
+  { { echo "$as_me:$LINENO: error: conditional \"GUI_GTK\" was never defined.
 Usually this means the macro was only invoked conditionally." >&5
-echo "$as_me: error: conditional \"AUDIO_ESOUND\" was never defined.
+echo "$as_me: error: conditional \"GUI_GTK\" was never defined.
 Usually this means the macro was only invoked conditionally." >&2;}
    { (exit 1); exit 1; }; }
 fi
@@ -7690,6 +7818,13 @@ if test -z "${BUILD_SH4X86_TRUE}" && test -z "${BUILD_SH4X86_FALSE}"; then
   { { echo "$as_me:$LINENO: error: conditional \"BUILD_SH4X86\" was never defined.
 Usually this means the macro was only invoked conditionally." >&5
 echo "$as_me: error: conditional \"BUILD_SH4X86\" was never defined.
+Usually this means the macro was only invoked conditionally." >&2;}
+   { (exit 1); exit 1; }; }
+fi
+if test -z "${AUDIO_ESOUND_TRUE}" && test -z "${AUDIO_ESOUND_FALSE}"; then
+  { { echo "$as_me:$LINENO: error: conditional \"AUDIO_ESOUND\" was never defined.
+Usually this means the macro was only invoked conditionally." >&5
+echo "$as_me: error: conditional \"AUDIO_ESOUND\" was never defined.
 Usually this means the macro was only invoked conditionally." >&2;}
    { (exit 1); exit 1; }; }
 fi
@@ -8336,17 +8471,17 @@ host_cpu!$host_cpu$ac_delim
 host_vendor!$host_vendor$ac_delim
 host_os!$host_os$ac_delim
 PKG_CONFIG!$PKG_CONFIG$ac_delim
-PACKAGE_CFLAGS!$PACKAGE_CFLAGS$ac_delim
-PACKAGE_LIBS!$PACKAGE_LIBS$ac_delim
+LIBPNG_CFLAGS!$LIBPNG_CFLAGS$ac_delim
+LIBPNG_LIBS!$LIBPNG_LIBS$ac_delim
+GTK_CFLAGS!$GTK_CFLAGS$ac_delim
+GTK_LIBS!$GTK_LIBS$ac_delim
+GUI_GTK_TRUE!$GUI_GTK_TRUE$ac_delim
+GUI_GTK_FALSE!$GUI_GTK_FALSE$ac_delim
+BUILD_SH4X86_TRUE!$BUILD_SH4X86_TRUE$ac_delim
+BUILD_SH4X86_FALSE!$BUILD_SH4X86_FALSE$ac_delim
 ESOUND_CFLAGS!$ESOUND_CFLAGS$ac_delim
 ESOUND_LIBS!$ESOUND_LIBS$ac_delim
 AUDIO_ESOUND_TRUE!$AUDIO_ESOUND_TRUE$ac_delim
-AUDIO_ESOUND_FALSE!$AUDIO_ESOUND_FALSE$ac_delim
-BUILD_SH4X86_TRUE!$BUILD_SH4X86_TRUE$ac_delim
-BUILD_SH4X86_FALSE!$BUILD_SH4X86_FALSE$ac_delim
-CDROM_LINUX_TRUE!$CDROM_LINUX_TRUE$ac_delim
-CDROM_LINUX_FALSE!$CDROM_LINUX_FALSE$ac_delim
-SHCC!$SHCC$ac_delim
 _ACEOF
 
   if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 97; then
@@ -8388,6 +8523,10 @@ _ACEOF
 ac_delim='%!_!# '
 for ac_last_try in false false false false false :; do
   cat >conf$$subs.sed <<_ACEOF
+AUDIO_ESOUND_FALSE!$AUDIO_ESOUND_FALSE$ac_delim
+CDROM_LINUX_TRUE!$CDROM_LINUX_TRUE$ac_delim
+CDROM_LINUX_FALSE!$CDROM_LINUX_FALSE$ac_delim
+SHCC!$SHCC$ac_delim
 SHLD!$SHLD$ac_delim
 SHOBJCOPY!$SHOBJCOPY$ac_delim
 ARMCC!$ARMCC$ac_delim
@@ -8417,7 +8556,7 @@ LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 27; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 31; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5

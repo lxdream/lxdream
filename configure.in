@@ -12,24 +12,24 @@ AC_HEADER_STDC
 AC_CANONICAL_BUILD
 AC_CANONICAL_HOST
 
-PKG_CHECK_MODULES(PACKAGE, 
-   [ gtk+-2.0 dnl
-     libpng ])
-PKG_CHECK_MODULES(ESOUND, [esound], [ 
-     HAVE_ESOUND='yes'
-     AC_DEFINE([HAVE_ESOUND],1,[Have esound support]) ], 
-   [ echo "Warning: esound not found - building without audio support" ])
-AM_CONDITIONAL( AUDIO_ESOUND, [test "$HAVE_ESOUND" = 'yes'] )
+dnl ----------- Check for mandatory dependencies --------------
+dnl Check for libpng (required)
+PKG_CHECK_MODULES(LIBPNG, [libpng] )
 
-AC_CHECK_LIB(z, uncompress, [], [
-    echo "Zlib (libz.so) could not be found, but is required."
-    exit 1])
 AC_CHECK_LIB(GL, glXQueryVersion, [], [
     echo "The OpenGL library (libGL.so) could not be found, but is required."
     exit 1])
 AC_CHECK_HEADER([GL/gl.h], [], [
     echo "The OpenGL header files (eg GL/gl.h) could not be found, but are required."
     exit 1])
+dnl Implied by libpng, but check explicitly just in case
+AC_CHECK_LIB(z, uncompress, [], [
+    echo "Zlib (libz.so) could not be found, but is required."
+    exit 1])
+
+dnl Check for GTK (required for unix systems)
+PKG_CHECK_MODULES(GTK, gtk+-2.0, [HAVE_GTK='yes'])
+AM_CONDITIONAL(GUI_GTK, [test "$HAVE_GTK" = 'yes'])
 
 dnl Check for a supported cpu target for translation purposes
 case $host_cpu in
@@ -44,12 +44,20 @@ case $host_cpu in
 esac
 AM_CONDITIONAL(BUILD_SH4X86, [test "$SH4_TRANSLATOR" = "x86" -o "$SH4_TRANSLATOR" = "x86_64"])
 
-dnl Check for cdrom device support
+dnl ------------------ Optional driver support -------------------
+dnl Check for esound
+PKG_CHECK_MODULES(ESOUND, [esound], [ 
+     HAVE_ESOUND='yes'
+     AC_DEFINE([HAVE_ESOUND],1,[Have esound support]) ], 
+   [ echo "Warning: esound not found - building without audio support" ])
+AM_CONDITIONAL( AUDIO_ESOUND, [test "$HAVE_ESOUND" = 'yes'] )
+
+dnl Check for linux cdrom device support
 AC_CHECK_HEADER([linux/cdrom.h], [HAVE_LINUX_CDROM_H=yes], [
     echo "Linux CDROM support not found, building without it."]  )
 AM_CONDITIONAL(CDROM_LINUX, [test "$HAVE_LINUX_CDROM_H" = "yes"])
 
-dnl Check for cross-compiler availability
+dnl Check for cross-compiler availability - needed for system tests
 AC_PATH_PROG(SHCC, [sh-elf-gcc])
 AC_PATH_PROG(SHLD, [sh-elf-ld])
 AC_PATH_PROG(SHOBJCOPY, [sh-elf-objcopy])
@@ -72,12 +80,11 @@ fi
 AM_CONDITIONAL(BUILD_SYSTEST, [test "$BUILD_SH" = "yes"])
 AM_CONDITIONAL(BUILD_ARMTEST, [test "$BUILD_ARM" = "yes"])
 
+
+dnl ----------------------- All done, finish up -----------------------
 GETTEXT_PACKAGE=lxdream
 AC_SUBST(GETTEXT_PACKAGE)
 AC_DEFINE_UNQUOTED(GETTEXT_PACKAGE,"$GETTEXT_PACKAGE",[translation domain])
-AC_SUBST(PACKAGE_CFLAGS)
-AC_SUBST(PACKAGE_LIBS)
-
 
 dnl Add the languages which your application supports here.
 ALL_LINGUAS="de pt_BR"

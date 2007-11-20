@@ -28,7 +28,7 @@
 #include <gtk/gtk.h>
 
 #include "dream.h"
-#include "gui/gtkui.h"
+#include "gtkui/gtkui.h"
 
 
 struct main_window_info {

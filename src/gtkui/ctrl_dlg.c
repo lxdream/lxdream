@@ -22,7 +22,7 @@
 #include <gdk/gdkkeysyms.h>
 
 #include "dream.h"
-#include "gui/gtkui.h"
+#include "gtkui/gtkui.h"
 #include "maple/maple.h"
 
 #define MAX_DEVICES 4

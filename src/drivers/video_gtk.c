@@ -24,7 +24,7 @@
 #include "display.h"
 #include "drivers/video_x11.h"
 #include "drivers/gl_common.h"
-#include "gui/gtkui.h"
+#include "gtkui/gtkui.h"
 
 static GtkWidget *video_win = NULL;
 int video_width = 640;

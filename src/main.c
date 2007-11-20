@@ -2,7 +2,7 @@
  * $Id: main.c,v 1.35 2007-11-07 11:45:53 nkeynes Exp $
  *
  * Main program, initializes dreamcast and gui, then passes control off to
- * the gtk main loop (currently). 
+ * the main loop. 
  *
  * Copyright (c) 2005 Nathan Keynes.
  *

@@ -19,7 +19,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <glib/gi18n.h>
-#include "gui/gtkui.h"
+#include "gtkui/gtkui.h"
 #include "mem.h"
 #include "mmio.h"
 
