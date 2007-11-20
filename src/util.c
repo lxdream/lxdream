@@ -289,21 +289,18 @@ void log_message( void *ptr, int level, const gchar *source, const char *msg, ..
     }
 
     va_start(ap, msg);
-
+    gchar *text = g_strdup_vprintf( msg, ap );
+    va_end(ap);
+    
     if( level <= EMIT_ERR ) {
-	gchar *text = g_strdup_vprintf( msg, ap );
 	if( gui_error_dialog( text ) ) {
 	    g_free(text);
-	    va_end(ap);
 	    return;
 	}
-	g_free(text);
     }
 
 
     strftime( buf, sizeof(buf), "%H:%M:%S", localtime(&tm) );
-    fprintf( stderr, "%s %08X %-5s ", buf, sh4r.pc, msg_levels[level] );
-    vfprintf( stderr, msg, ap );
-    va_end(ap);
-    fprintf( stderr, "\n" );
+    fprintf( stderr, "%s %08X %-5s %s\n", buf, sh4r.pc, msg_levels[level], text );
+    g_free(text);
 }
