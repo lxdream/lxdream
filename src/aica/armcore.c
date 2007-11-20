@@ -1380,7 +1380,7 @@ gboolean arm_execute_instruction( void )
 
     if( armr.r[15] >= 0x00200000 ) {
 	armr.running = FALSE;
-	ERROR( "ARM Halted: BRANCH to invalid address %08X at %08X", armr.r[15], pc );
+	WARN( "ARM Halted: BRANCH to invalid address %08X at %08X", armr.r[15], pc );
 	return FALSE;
     }
     return TRUE;
