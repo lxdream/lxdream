@@ -1795,9 +1795,10 @@ TRAPA #imm {:
     if( sh4_x86.in_delay_slot ) {
 	SLOTILLEGAL();
     } else {
+	load_imm32( R_ECX, pc+2 );
+	store_spreg( R_ECX, REG_OFFSET(pc) );
 	load_imm32( R_EAX, imm );
 	call_func1( sh4_raise_trap, R_EAX );
-	ADD_imm8s_r32( 4, R_ESP );
 	sh4_x86.tstate = TSTATE_NONE;
 	exit_block_pcset(pc);
 	sh4_x86.branch_taken = TRUE;

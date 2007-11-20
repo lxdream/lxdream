@@ -67,6 +67,7 @@ int main()
     test_shld();
     test_sub();
     test_subc();
+    test_trapa();
     test_tas();
     test_xtrct();
     fprintf( stdout, "--> %d/%d instruction tests passed (%d%%)\n\n",
