@@ -31,9 +31,7 @@
 #include "config.h"
 #include "loader.h"
 #include "syscall.h"
-
-// FIXME: This probably shouldn't be here
-#include <gui/gtkui.h>
+#include "gui.h"
 
 char bootstrap_magic[32] = "SEGA SEGAKATANA SEGA ENTERPRISES";
 char iso_magic[6] = "\001CD001";
@@ -80,7 +78,7 @@ gboolean file_load_magic( const gchar *filename )
             read( fd, load, BOOTSTRAP_SIZE );
             bootstrap_dump( load, TRUE );
             sh4_set_pc( BOOTSTRAP_LOAD_ADDR + 0x300 );
-            gtk_gui_update();
+            gui_update_state();
         } else {
             /* look for a valid ISO9660 header */
             lseek( fd, 32768, SEEK_SET );
@@ -128,7 +126,7 @@ void file_load_postload( int pc )
     }
     bios_install();
     dcload_install();
-    gtk_gui_update();
+    gui_update_state();
 }    
 
 

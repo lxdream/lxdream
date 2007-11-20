@@ -24,7 +24,7 @@
 #include "dreamcast.h"
 #include "config.h"
 #include "gdrom/gdrom.h"
-#include "gui/gtkui.h"
+#include "gtkui/gtkui.h"
 
 #define MAX_RECENT_ITEMS 5
 

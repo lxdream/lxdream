@@ -23,7 +23,7 @@
 #include "dream.h"
 #include "dreamcast.h"
 #include "config.h"
-#include "gui/gtkui.h"
+#include "gtkui/gtkui.h"
 
 static const gchar *path_label[] = { N_("Bios rom"), N_("Flash rom"), N_("Default disc path"), 
 				     N_("Save state path"), N_("Bootstrap IP.BIN") };

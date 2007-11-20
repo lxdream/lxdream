@@ -23,7 +23,7 @@
 #include "dreamcast.h"
 #include "display.h"
 #include "gdrom/gdrom.h"
-#include "gui/gtkui.h"
+#include "gtkui/gtkui.h"
 
 
 void gtk_gui_start( void );
@@ -236,6 +236,11 @@ gboolean gui_init( gboolean withDebug )
 void gui_main_loop(void)
 {
     gtk_main();
+}
+
+void gui_update_state(void)
+{
+    gtk_gui_update();
 }
 
 gboolean gui_error_dialog( const char *msg, ... )

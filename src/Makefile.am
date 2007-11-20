@@ -5,7 +5,7 @@ INCLUDES = \
 	-DPACKAGE_LOCALE_DIR=\""$(prefix)/$(DATADIRNAME)/locale"\" \
 	-DPACKAGE_CONF_DIR=\""$(sysconfdir)"\" \
         -Ish4 \
-	@PACKAGE_CFLAGS@ @ESOUND_CFLAGS@
+	@GTK_CFLAGS@ @LIBPNG_CFLAGS@ @ESOUND_CFLAGS@
 
 bin_PROGRAMS = lxdream
 noinst_PROGRAMS = gendec genglsl
@@ -34,14 +34,9 @@ lxdream_SOURCES = \
 	pvr2/texcache.c pvr2/yuv.c pvr2/rendsave.c \
         maple/maple.c maple/maple.h \
         maple/controller.c maple/controller.h \
-        gui/gtkui.c gui/gtkui.h gui/main_win.c gui/gtkcb.c \
-        gui/mmio_win.c gui/debug_win.c gui/dump_win.c \
-        gui/ctrl_dlg.c gui/path_dlg.c gui/gdrom_menu.c \
         loader.c bootstrap.c util.c \
 	display.c display.h \
-	drivers/audio_null.c \
-	drivers/video_null.c drivers/video_gtk.c drivers/video_gtk.h \
-	drivers/video_x11.c drivers/video_x11.h \
+	drivers/audio_null.c drivers/video_null.c \
 	drivers/gl_common.c drivers/gl_common.h drivers/gl_fbo.c \
 	drivers/gl_sl.c drivers/gl_slsrc.c
 
@@ -50,6 +45,15 @@ lxdream_SOURCES += sh4/sh4x86.c \
         sh4/sh4trans.c sh4/sh4trans.h \
         x86dasm/x86dasm.c x86dasm/x86dasm.h \
         x86dasm/i386-dis.c x86dasm/dis-init.c x86dasm/dis-buf.c
+endif
+
+if GUI_GTK
+lxdream_SOURCES += gtkui/gtkui.c gtkui/gtkui.h \
+	gtkui/main_win.c gtkui/gtkcb.c \
+        gtkui/mmio_win.c gtkui/debug_win.c gtkui/dump_win.c \
+        gtkui/ctrl_dlg.c gtkui/path_dlg.c gtkui/gdrom_menu.c \
+        drivers/video_gtk.c drivers/video_gtk.h \
+	drivers/video_x11.c drivers/video_x11.h
 endif
 
 if CDROM_LINUX
@@ -62,10 +66,10 @@ if AUDIO_ESOUND
 lxdream_SOURCES += drivers/audio_esd.c
 endif
 
-lxdream_LDADD = @PACKAGE_LIBS@ @ESOUND_LIBS@ $(INTLLIBS)
+lxdream_LDADD = @GTK_LIBS@ @LIBPNG_LIBS@ @ESOUND_LIBS@ $(INTLLIBS)
 
-gendec_LDADD = @PACKAGE_LIBS@ $(INTLLIBS)
-genglsl_LDADD = @PACKAGE_LIBS@ $(INTLLIBS)
+gendec_LDADD = @GTK_LIBS@ $(INTLLIBS)
+genglsl_LDADD = @GTK_LIBS@ $(INTLLIBS)
 
 TESTS = test/testxlt
 

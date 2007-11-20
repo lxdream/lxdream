@@ -21,7 +21,7 @@
 #include <string.h>
 #include <glib/gi18n.h>
 #include "mem.h"
-#include "gui/gtkui.h"
+#include "gtkui/gtkui.h"
 
 #define MAX_DUMP_SIZE 4096
 

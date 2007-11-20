@@ -23,7 +23,7 @@
 #include <gdk/gdkkeysyms.h>
 #include "mem.h"
 #include "cpu.h"
-#include "gui/gtkui.h"
+#include "gtkui/gtkui.h"
 #include "sh4/sh4dasm.h"
 #include "aica/armdasm.h"
 

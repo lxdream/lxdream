@@ -20,7 +20,7 @@
 #include "config.h"
 #include "dreamcast.h"
 #include "gdrom/gdrom.h"
-#include "gui/gtkui.h"
+#include "gtkui/gtkui.h"
 #include "pvr2/pvr2.h"
 
 
