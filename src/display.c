@@ -25,7 +25,9 @@
 #include "pvr2/pvr2.h"
 
 display_driver_t display_driver_list[] = { 
+#ifdef HAVE_GTK
 					   &display_gtk_driver,
+#endif
 					   &display_null_driver,
 					   NULL };
 
