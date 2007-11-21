@@ -22,8 +22,14 @@
 
 #include <stdint.h>
 #include <glib.h>
-#include <GL/gl.h>
 #include "lxdream.h"
+#ifdef APPLE_BUILD
+#include <OpenGL/gl.h>
+#include <OpenGL/glext.h>
+#else
+#include <GL/gl.h>
+#include <GL/glext.h>
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -166,6 +172,7 @@ extern uint32_t pvr2_frame_counter;
 
 extern display_driver_t display_driver;
 
+extern struct display_driver display_agl_driver;
 extern struct display_driver display_gtk_driver;
 extern struct display_driver display_null_driver;
 

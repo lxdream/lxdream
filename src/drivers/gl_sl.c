@@ -20,11 +20,9 @@
 
 #define GL_GLEXT_PROTOTYPES 1
 
-#include <GL/gl.h>
-#include <GL/glext.h>
 #include "lxdream.h"
-#include "drivers/gl_common.h"
 #include "display.h"
+#include "drivers/gl_common.h"
 
 #define MAX_ERROR_BUF 4096
 
