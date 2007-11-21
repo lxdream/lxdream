@@ -5142,7 +5142,7 @@ if test $ac_cv_header_Carbon_Carbon_h = yes; then
 
    HAVE_CARBON='yes'
    APPLE_BUILD='yes'
-   LIBS="$LIBS -framework OpenGL -framework AGL -framework Carbon"
+   LIBS="$LIBS -framework OpenGL -framework AGL -framework Carbon -L/usr/X11R6/lib -lGL"
 
 cat >>confdefs.h <<\_ACEOF
 #define HAVE_CARBON 1
