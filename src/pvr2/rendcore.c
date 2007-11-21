@@ -18,10 +18,7 @@
 #include <sys/time.h>
 #include "pvr2/pvr2.h"
 #include "asic.h"
-
-#define GL_GLEXT_PROTOTYPES 1
-#include <GL/gl.h>
-#include <GL/glext.h>
+#include "display.h"
 
 int pvr2_poly_depthmode[8] = { GL_NEVER, GL_LESS, GL_EQUAL, GL_LEQUAL,
 				      GL_GREATER, GL_NOTEQUAL, GL_GEQUAL, 

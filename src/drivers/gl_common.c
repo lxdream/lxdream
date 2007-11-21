@@ -18,8 +18,7 @@
 
 #include <sys/time.h>
 
-#include <GL/gl.h>
-#include "dream.h"
+#include "display.h"
 #include "pvr2/pvr2.h"
 #include "drivers/gl_common.h"
 
