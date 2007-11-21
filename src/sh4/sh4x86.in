@@ -45,6 +45,7 @@ struct sh4_x86_state {
     gboolean fpuen_checked; /* true if we've already checked fpu enabled. */
     gboolean branch_taken; /* true if we branched unconditionally */
     uint32_t block_start_pc;
+	uint32_t stack_posn;   /* Trace stack height for alignment purposes */
     int tstate;
 
     /* Allocated memory for the (block-wide) back-patch list */
@@ -264,287 +265,6 @@ static inline void pop_dr( int bankreg, int frm )
     OP(0xDD); OP(0x58 + bankreg); OP(frm<<2); // FST.D [bankreg + frm*4]
 }
 
-#if SH4_TRANSLATOR == TARGET_X86_64
-/* X86-64 has different calling conventions... */
-
-#define load_ptr( reg, ptr ) load_imm64( reg, (uint64_t)ptr );
-    
-/**
- * Note: clobbers EAX to make the indirect call - this isn't usually
- * a problem since the callee will usually clobber it anyway.
- * Size: 12 bytes
- */
-#define CALL_FUNC0_SIZE 12
-static inline void call_func0( void *ptr )
-{
-    load_imm64(R_EAX, (uint64_t)ptr);
-    CALL_r32(R_EAX);
-}
-
-#define CALL_FUNC1_SIZE 14
-static inline void call_func1( void *ptr, int arg1 )
-{
-    MOV_r32_r32(arg1, R_EDI);
-    call_func0(ptr);
-}
-
-#define CALL_FUNC2_SIZE 16
-static inline void call_func2( void *ptr, int arg1, int arg2 )
-{
-    MOV_r32_r32(arg1, R_EDI);
-    MOV_r32_r32(arg2, R_ESI);
-    call_func0(ptr);
-}
-
-#define MEM_WRITE_DOUBLE_SIZE 39
-/**
- * Write a double (64-bit) value into memory, with the first word in arg2a, and
- * the second in arg2b
- */
-static inline void MEM_WRITE_DOUBLE( int addr, int arg2a, int arg2b )
-{
-/*
-    MOV_r32_r32( addr, R_EDI );
-    MOV_r32_r32( arg2b, R_ESI );
-    REXW(); SHL_imm8_r32( 32, R_ESI );
-    REXW(); MOVZX_r16_r32( arg2a, arg2a );
-    REXW(); OR_r32_r32( arg2a, R_ESI );
-    call_func0(sh4_write_quad);
-*/
-    PUSH_r32(arg2b);
-    PUSH_r32(addr);
-    call_func2(sh4_write_long, addr, arg2a);
-    POP_r32(addr);
-    POP_r32(arg2b);
-    ADD_imm8s_r32(4, addr);
-    call_func2(sh4_write_long, addr, arg2b);
-}
-
-#define MEM_READ_DOUBLE_SIZE 35
-/**
- * Read a double (64-bit) value from memory, writing the first word into arg2a
- * and the second into arg2b. The addr must not be in EAX
- */
-static inline void MEM_READ_DOUBLE( int addr, int arg2a, int arg2b )
-{
-/*
-    MOV_r32_r32( addr, R_EDI );
-    call_func0(sh4_read_quad);
-    REXW(); MOV_r32_r32( R_EAX, arg2a );
-    REXW(); MOV_r32_r32( R_EAX, arg2b );
-    REXW(); SHR_imm8_r32( 32, arg2b );
-*/
-    PUSH_r32(addr);
-    call_func1(sh4_read_long, addr);
-    POP_r32(R_EDI);
-    PUSH_r32(R_EAX);
-    ADD_imm8s_r32(4, R_EDI);
-    call_func0(sh4_read_long);
-    MOV_r32_r32(R_EAX, arg2b);
-    POP_r32(arg2a);
-}
-
-#define EXIT_BLOCK_SIZE 35
-/**
- * Exit the block to an absolute PC
- */
-void exit_block( sh4addr_t pc, sh4addr_t endpc )
-{
-    load_imm32( R_ECX, pc );                            // 5
-    store_spreg( R_ECX, REG_OFFSET(pc) );               // 3
-    REXW(); MOV_moff32_EAX( xlat_get_lut_entry(pc) );
-    REXW(); AND_imm8s_r32( 0xFC, R_EAX ); // 3
-    load_imm32( R_ECX, ((endpc - sh4_x86.block_start_pc)>>1)*sh4_cpu_period ); // 5
-    ADD_r32_sh4r( R_ECX, REG_OFFSET(slice_cycle) );     // 6
-    POP_r32(R_EBP);
-    RET();
-}
-
-
-/**
- * Write the block trailer (exception handling block)
- */
-void sh4_translate_end_block( sh4addr_t pc ) {
-    if( sh4_x86.branch_taken == FALSE ) {
-	// Didn't exit unconditionally already, so write the termination here
-	exit_block( pc, pc );
-    }
-    if( sh4_x86.backpatch_posn != 0 ) {
-	uint8_t *end_ptr = xlat_output;
-	// Exception termination. Jump block for various exception codes:
-	load_imm32( R_EDI, EXC_DATA_ADDR_READ );
-	JMP_rel8( 33, target1 );
-	load_imm32( R_EDI, EXC_DATA_ADDR_WRITE );
-	JMP_rel8( 26, target2 );
-	load_imm32( R_EDI, EXC_ILLEGAL );
-	JMP_rel8( 19, target3 );
-	load_imm32( R_EDI, EXC_SLOT_ILLEGAL ); 
-	JMP_rel8( 12, target4 );
-	load_imm32( R_EDI, EXC_FPU_DISABLED ); 
-	JMP_rel8( 5, target5 );
-	load_imm32( R_EDI, EXC_SLOT_FPU_DISABLED );
-	// target
-	JMP_TARGET(target1);
-	JMP_TARGET(target2);
-	JMP_TARGET(target3);
-	JMP_TARGET(target4);
-	JMP_TARGET(target5);
-	// Raise exception
-	load_spreg( R_ECX, REG_OFFSET(pc) );
-	ADD_r32_r32( R_EDX, R_ECX );
-	ADD_r32_r32( R_EDX, R_ECX );
-	store_spreg( R_ECX, REG_OFFSET(pc) );
-	MOV_moff32_EAX( &sh4_cpu_period );
-	MUL_r32( R_EDX );
-	ADD_r32_sh4r( R_EAX, REG_OFFSET(slice_cycle) );
-
-	call_func0( sh4_raise_exception );
-	load_spreg( R_EAX, REG_OFFSET(pc) );
-	call_func1(xlat_get_code,R_EAX);
-	POP_r32(R_EBP);
-	RET();
-
-	sh4_x86_do_backpatch( end_ptr );
-    }
-}
-
-#else /* SH4_TRANSLATOR == TARGET_X86 */
-
-#define load_ptr( reg, ptr ) load_imm32( reg, (uint32_t)ptr );
-
-/**
- * Note: clobbers EAX to make the indirect call - this isn't usually
- * a problem since the callee will usually clobber it anyway.
- */
-#define CALL_FUNC0_SIZE 7
-static inline void call_func0( void *ptr )
-{
-    load_imm32(R_EAX, (uint32_t)ptr);
-    CALL_r32(R_EAX);
-}
-
-#define CALL_FUNC1_SIZE 11
-static inline void call_func1( void *ptr, int arg1 )
-{
-    PUSH_r32(arg1);
-    call_func0(ptr);
-    ADD_imm8s_r32( 4, R_ESP );
-}
-
-#define CALL_FUNC2_SIZE 12
-static inline void call_func2( void *ptr, int arg1, int arg2 )
-{
-    PUSH_r32(arg2);
-    PUSH_r32(arg1);
-    call_func0(ptr);
-    ADD_imm8s_r32( 8, R_ESP );
-}
-
-/**
- * Write a double (64-bit) value into memory, with the first word in arg2a, and
- * the second in arg2b
- * NB: 30 bytes
- */
-#define MEM_WRITE_DOUBLE_SIZE 30
-static inline void MEM_WRITE_DOUBLE( int addr, int arg2a, int arg2b )
-{
-    ADD_imm8s_r32( 4, addr );
-    PUSH_r32(arg2b);
-    PUSH_r32(addr);
-    ADD_imm8s_r32( -4, addr );
-    PUSH_r32(arg2a);
-    PUSH_r32(addr);
-    call_func0(sh4_write_long);
-    ADD_imm8s_r32( 8, R_ESP );
-    call_func0(sh4_write_long);
-    ADD_imm8s_r32( 8, R_ESP );
-}
-
-/**
- * Read a double (64-bit) value from memory, writing the first word into arg2a
- * and the second into arg2b. The addr must not be in EAX
- * NB: 27 bytes
- */
-#define MEM_READ_DOUBLE_SIZE 27
-static inline void MEM_READ_DOUBLE( int addr, int arg2a, int arg2b )
-{
-    PUSH_r32(addr);
-    call_func0(sh4_read_long);
-    POP_r32(addr);
-    PUSH_r32(R_EAX);
-    ADD_imm8s_r32( 4, addr );
-    PUSH_r32(addr);
-    call_func0(sh4_read_long);
-    ADD_imm8s_r32( 4, R_ESP );
-    MOV_r32_r32( R_EAX, arg2b );
-    POP_r32(arg2a);
-}
-
-#define EXIT_BLOCK_SIZE 29
-/**
- * Exit the block to an absolute PC
- */
-void exit_block( sh4addr_t pc, sh4addr_t endpc )
-{
-    load_imm32( R_ECX, pc );                            // 5
-    store_spreg( R_ECX, REG_OFFSET(pc) );               // 3
-    MOV_moff32_EAX( xlat_get_lut_entry(pc) ); // 5
-    AND_imm8s_r32( 0xFC, R_EAX ); // 3
-    load_imm32( R_ECX, ((endpc - sh4_x86.block_start_pc)>>1)*sh4_cpu_period ); // 5
-    ADD_r32_sh4r( R_ECX, REG_OFFSET(slice_cycle) );     // 6
-    POP_r32(R_EBP);
-    RET();
-}
-
-/**
- * Write the block trailer (exception handling block)
- */
-void sh4_translate_end_block( sh4addr_t pc ) {
-    if( sh4_x86.branch_taken == FALSE ) {
-	// Didn't exit unconditionally already, so write the termination here
-	exit_block( pc, pc );
-    }
-    if( sh4_x86.backpatch_posn != 0 ) {
-	uint8_t *end_ptr = xlat_output;
-	// Exception termination. Jump block for various exception codes:
-	PUSH_imm32( EXC_DATA_ADDR_READ );
-	JMP_rel8( 33, target1 );
-	PUSH_imm32( EXC_DATA_ADDR_WRITE );
-	JMP_rel8( 26, target2 );
-	PUSH_imm32( EXC_ILLEGAL );
-	JMP_rel8( 19, target3 );
-	PUSH_imm32( EXC_SLOT_ILLEGAL ); 
-	JMP_rel8( 12, target4 );
-	PUSH_imm32( EXC_FPU_DISABLED ); 
-	JMP_rel8( 5, target5 );
-	PUSH_imm32( EXC_SLOT_FPU_DISABLED );
-	// target
-	JMP_TARGET(target1);
-	JMP_TARGET(target2);
-	JMP_TARGET(target3);
-	JMP_TARGET(target4);
-	JMP_TARGET(target5);
-	// Raise exception
-	load_spreg( R_ECX, REG_OFFSET(pc) );
-	ADD_r32_r32( R_EDX, R_ECX );
-	ADD_r32_r32( R_EDX, R_ECX );
-	store_spreg( R_ECX, REG_OFFSET(pc) );
-	MOV_moff32_EAX( &sh4_cpu_period );
-	MUL_r32( R_EDX );
-	ADD_r32_sh4r( R_EAX, REG_OFFSET(slice_cycle) );
-
-	call_func0( sh4_raise_exception );
-	ADD_imm8s_r32( 4, R_ESP );
-	load_spreg( R_EAX, REG_OFFSET(pc) );
-	call_func1(xlat_get_code,R_EAX);
-	POP_r32(R_EBP);
-	RET();
-
-	sh4_x86_do_backpatch( end_ptr );
-    }
-}
-#endif
-
 /* Exception checks - Note that all exception checks will clobber EAX */
 #define precheck() load_imm32(R_EDX, (pc-sh4_x86.block_start_pc-(sh4_x86.in_delay_slot?2:0))>>1)
 
@@ -638,43 +358,20 @@ static void check_walign32( int x86reg )
 
 #define SLOTILLEGAL() precheck(); JMP_exit(EXIT_SLOT_ILLEGAL); sh4_x86.in_delay_slot = FALSE; return 1;
 
-
-
-/**
- * Emit the 'start of block' assembly. Sets up the stack frame and save
- * SI/DI as required
- */
-void sh4_translate_begin_block( sh4addr_t pc ) 
-{
-    PUSH_r32(R_EBP);
-    /* mov &sh4r, ebp */
-    load_ptr( R_EBP, &sh4r );
-    
-    sh4_x86.in_delay_slot = FALSE;
-    sh4_x86.priv_checked = FALSE;
-    sh4_x86.fpuen_checked = FALSE;
-    sh4_x86.branch_taken = FALSE;
-    sh4_x86.backpatch_posn = 0;
-    sh4_x86.block_start_pc = pc;
-    sh4_x86.tstate = TSTATE_NONE;
-}
-
-/**
- * Exit the block with sh4r.pc already written
- * Bytes: 15
- */
-void exit_block_pcset( pc )
-{
-    load_imm32( R_ECX, ((pc - sh4_x86.block_start_pc)>>1)*sh4_cpu_period ); // 5
-    ADD_r32_sh4r( R_ECX, REG_OFFSET(slice_cycle) );    // 6
-    load_spreg( R_EAX, REG_OFFSET(pc) );
-    call_func1(xlat_get_code,R_EAX);
-    POP_r32(R_EBP);
-    RET();
-}
-
 extern uint16_t *sh4_icache;
 extern uint32_t sh4_icache_addr;
+
+/****** Import appropriate calling conventions ******/
+#if SH4_TRANSLATOR == TARGET_X86_64
+#include "sh4/ia64abi.h"
+#else /* SH4_TRANSLATOR == TARGET_X86 */
+#ifdef APPLE_BUILD
+#include "sh4/ia32mac.h"
+#else
+#include "sh4/ia32abi.h"
+#endif
+#endif
+
 
 /**
  * Translate a single instruction. Delayed branches are handled specially

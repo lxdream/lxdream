@@ -55,9 +55,31 @@
 #define OP64(x) *((uint64_t *)xlat_output) = (x); xlat_output+=8
 #if SH4_TRANSLATOR == TARGET_X86_64
 #define OPPTR(x) OP64((uint64_t)(x))
+#define STACK_ALIGN 16
+#define POP_r32(r1)           OP(0x58 + r1); sh4_x86.stack_posn -= 8;
+#define PUSH_r32(r1)          OP(0x50 + r1); sh4_x86.stack_posn += 8;
+#define PUSH_imm32(imm)       OP(0x68); OP32(imm); sh4_x86.stack_posn += 4;
+#define PUSH_imm64(imm)       REXW(); OP(0x68); OP64(imm); sh4_x86.stack_posn += 8;
 #else
 #define OPPTR(x) OP32((uint32_t)(x))
+#ifdef APPLE_BUILD
+#define STACK_ALIGN 16
+#define POP_r32(r1)           OP(0x58 + r1); sh4_x86.stack_posn -= 4;
+#define PUSH_r32(r1)          OP(0x50 + r1); sh4_x86.stack_posn += 4;
+#define PUSH_imm32(imm)       OP(0x68); OP32(imm); sh4_x86.stack_posn += 4;
+#else
+#define POP_r32(r1)           OP(0x58 + r1)
+#define PUSH_r32(r1)          OP(0x50 + r1)
+#define PUSH_imm32(imm)       OP(0x68); OP32(imm)
 #endif
+#endif
+
+#ifdef STACK_ALIGN
+#else
+#define POP_r32(r1)           OP(0x58 + r1)
+#define PUSH_r32(r1)          OP(0x50 + r1)
+#endif
+
 
 /* Offset of a reg relative to the sh4r structure */
 #define REG_OFFSET(reg)  (((char *)&sh4r.reg) - ((char *)&sh4r))
@@ -140,9 +162,6 @@
 #define OR_imm8_r8(imm,r1)    OP(0x80); MODRM_rm32_r32(r1,1); OP(imm)
 #define OR_imm32_r32(imm,r1)  OP(0x81); MODRM_rm32_r32(r1,1); OP32(imm)
 #define OR_sh4r_r32(disp,r1)  OP(0x0B); MODRM_r32_sh4r(r1,disp)
-#define POP_r32(r1)           OP(0x58 + r1)
-#define PUSH_r32(r1)          OP(0x50 + r1)
-#define PUSH_imm32(imm)       OP(0x68); OP32(imm)
 #define RCL1_r32(r1)          OP(0xD1); MODRM_rm32_r32(r1,2)
 #define RCR1_r32(r1)          OP(0xD1); MODRM_rm32_r32(r1,3)
 #define RET()                 OP(0xC3)
@@ -161,6 +180,7 @@
 #define STC()                 OP(0xF9)
 #define SUB_r32_r32(r1,r2)    OP(0x2B); MODRM_rm32_r32(r1,r2)
 #define SUB_sh4r_r32(disp,r1)  OP(0x2B); MODRM_r32_sh4r(r1, disp)
+#define SUB_imm8s_r32(imm,r1) ADD_imm8s_r32(-(imm),r1)
 #define TEST_r8_r8(r1,r2)     OP(0x84); MODRM_r32_rm32(r1,r2)
 #define TEST_r32_r32(r1,r2)   OP(0x85); MODRM_rm32_r32(r1,r2)
 #define TEST_imm8_r8(imm8,r1) OP(0xF6); MODRM_rm32_r32(r1,0); OP(imm8)

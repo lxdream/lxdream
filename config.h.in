@@ -7,6 +7,9 @@
 #undef HAVE_STPCPY
 #undef HAVE_LIBSM
 
+/* Building on an apple platform. Things are different... */
+#undef APPLE_BUILD
+
 /* always defined to indicate that i18n is enabled */
 #undef ENABLE_NLS
 
@@ -16,6 +19,9 @@
 /* Define to 1 if you have the `bind_textdomain_codeset' function. */
 #undef HAVE_BIND_TEXTDOMAIN_CODESET
 
+/* Have Carbon framework */
+#undef HAVE_CARBON
+
 /* Define to 1 if you have the `dcgettext' function. */
 #undef HAVE_DCGETTEXT
 
@@ -24,6 +30,9 @@
 
 /* Define if the GNU gettext() function is already present or preinstalled. */
 #undef HAVE_GETTEXT
+
+/* Have GTK libraries */
+#undef HAVE_GTK
 
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H

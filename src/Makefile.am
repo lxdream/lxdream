@@ -41,7 +41,8 @@ lxdream_SOURCES = \
 	drivers/gl_sl.c drivers/gl_slsrc.c
 
 if BUILD_SH4X86
-lxdream_SOURCES += sh4/sh4x86.c \
+lxdream_SOURCES += sh4/sh4x86.c sh4/x86op.h \
+        sh4/ia32abi.h sh4/ia32mac.h sh4/ia64abi.h \
         sh4/sh4trans.c sh4/sh4trans.h \
         x86dasm/x86dasm.c x86dasm/x86dasm.h \
         x86dasm/i386-dis.c x86dasm/dis-init.c x86dasm/dis-buf.c
