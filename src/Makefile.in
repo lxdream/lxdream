@@ -36,7 +36,8 @@ NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
 host_triplet = @host@
-@BUILD_SH4X86_TRUE@am__append_1 = sh4/sh4x86.c \
+@BUILD_SH4X86_TRUE@am__append_1 = sh4/sh4x86.c sh4/x86op.h \
+@BUILD_SH4X86_TRUE@        sh4/ia32abi.h sh4/ia32mac.h sh4/ia64abi.h \
 @BUILD_SH4X86_TRUE@        sh4/sh4trans.c sh4/sh4trans.h \
 @BUILD_SH4X86_TRUE@        x86dasm/x86dasm.c x86dasm/x86dasm.h \
 @BUILD_SH4X86_TRUE@        x86dasm/i386-dis.c x86dasm/dis-init.c x86dasm/dis-buf.c
@@ -96,6 +97,8 @@ GMSGFMT = @GMSGFMT@
 GREP = @GREP@
 GTK_CFLAGS = @GTK_CFLAGS@
 GTK_LIBS = @GTK_LIBS@
+GUI_CARBON_FALSE = @GUI_CARBON_FALSE@
+GUI_CARBON_TRUE = @GUI_CARBON_TRUE@
 GUI_GTK_FALSE = @GUI_GTK_FALSE@
 GUI_GTK_TRUE = @GUI_GTK_TRUE@
 INSTALL_DATA = @INSTALL_DATA@
@@ -277,7 +280,8 @@ am__lxdream_SOURCES_DIST = main.c config.c config.h mem.c mem.h mmio.h \
 	maple/controller.h loader.c bootstrap.c util.c display.c \
 	display.h drivers/audio_null.c drivers/video_null.c \
 	drivers/gl_common.c drivers/gl_common.h drivers/gl_fbo.c \
-	drivers/gl_sl.c drivers/gl_slsrc.c sh4/sh4x86.c sh4/sh4trans.c \
+	drivers/gl_sl.c drivers/gl_slsrc.c sh4/sh4x86.c sh4/x86op.h \
+	sh4/ia32abi.h sh4/ia32mac.h sh4/ia64abi.h sh4/sh4trans.c \
 	sh4/sh4trans.h x86dasm/x86dasm.c x86dasm/x86dasm.h \
 	x86dasm/i386-dis.c x86dasm/dis-init.c x86dasm/dis-buf.c \
 	gtkui/gtkui.c gtkui/gtkui.h gtkui/main_win.c gtkui/gtkcb.c \
