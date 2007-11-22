@@ -198,7 +198,7 @@ int mem_load_block( const gchar *file, uint32_t start, uint32_t length )
     FILE *f = fopen(file,"r");
 
     if( f == NULL ) {
-	ERROR( "Unable to load file '%s': %s", file, strerror(errno) );
+	WARN( "Unable to load file '%s': %s", file, strerror(errno) );
 	return -1;
     }
     fstat( fileno(f), &st );
@@ -266,8 +266,8 @@ void *mem_create_repeating_ram_region( uint32_t base, uint32_t size, const char 
     return mem;
 }
 
-void *mem_load_rom( const gchar *file, uint32_t base, uint32_t size, uint32_t crc,
-		    const gchar *region_name )
+gboolean mem_load_rom( const gchar *file, uint32_t base, uint32_t size, uint32_t crc,
+		       const gchar *region_name )
 {
     sh4ptr_t mem;
     uint32_t calc_crc;
@@ -278,7 +278,7 @@ void *mem_load_rom( const gchar *file, uint32_t base, uint32_t size, uint32_t cr
 	mem = mmap( NULL, size, PROT_WRITE|PROT_READ, MAP_ANON|MAP_PRIVATE, -1, 0 );
 	if( mem == MAP_FAILED ) {
 	    ERROR( "Unable to allocate ROM memory: %s (%s)", file, strerror(errno) );
-	    return NULL;
+	    return FALSE;
 	}
 	mem_map_region( mem, base, size, file, MEM_FLAG_ROM, size, base );
     } else {
@@ -295,9 +295,10 @@ void *mem_load_rom( const gchar *file, uint32_t base, uint32_t size, uint32_t cr
 	    WARN( "Bios CRC Mismatch in %s: %08X (expected %08X)",
 		  file, calc_crc, crc);
 	}
+	return TRUE;
     }
     
-    return mem;
+    return FALSE;
 }
 
 sh4ptr_t mem_get_region_by_name( const char *name )

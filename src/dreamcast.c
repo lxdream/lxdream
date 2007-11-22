@@ -18,6 +18,7 @@
  */
 
 #include <errno.h>
+#include <glib.h>
 #include "dream.h"
 #include "config.h"
 #include "mem.h"
@@ -30,13 +31,14 @@
 /**
  * Current state of the DC virtual machine
  */
-#define STATE_UNINIT 0
-#define STATE_RUNNING 1
-#define STATE_STOPPING 2
-#define STATE_STOPPED 3 
-static volatile int dreamcast_state = STATE_UNINIT;
+typedef enum { STATE_UNINIT=0, STATE_RUNNING, 
+	       STATE_STOPPING, STATE_STOPPED } dreamcast_state_t;
+
+static volatile dreamcast_state_t dreamcast_state = STATE_UNINIT;
+static gboolean dreamcast_has_bios = FALSE;
+static gchar *dreamcast_program_name = NULL;
+static sh4addr_t dreamcast_entry_point = 0xA0000000;
 static uint32_t timeslice_length = DEFAULT_TIMESLICE_LENGTH;
-const char *dreamcast_config = "DEFAULT";
 
 #define MAX_MODULES 32
 static int num_modules = 0;
@@ -67,8 +69,9 @@ void dreamcast_configure( )
     mem_create_ram_region( 0x00800000, 2 MB, MEM_REGION_AUDIO );
     mem_create_ram_region( 0x00703000, 8 KB, MEM_REGION_AUDIO_SCRATCH );
     mem_create_ram_region( 0x05000000, 8 MB, MEM_REGION_VIDEO );
-    mem_load_rom( lxdream_get_config_value(CONFIG_BIOS_PATH),
-		  0x00000000, 0x00200000, 0x89f2b1a1, MEM_REGION_BIOS );
+    dreamcast_has_bios = mem_load_rom( lxdream_get_config_value(CONFIG_BIOS_PATH),
+				       0x00000000, 0x00200000, 0x89f2b1a1,
+				       MEM_REGION_BIOS );
     mem_create_ram_region( 0x00200000, 0x00020000, MEM_REGION_FLASH );
     mem_load_block( lxdream_get_config_value(CONFIG_FLASH_PATH),
 		    0x00200000, 0x00020000 );
@@ -84,8 +87,9 @@ void dreamcast_configure( )
 
 void dreamcast_config_changed(void)
 {
-    mem_load_rom( lxdream_get_config_value(CONFIG_BIOS_PATH),
-		  0x00000000, 0x00200000, 0x89f2b1a1, MEM_REGION_BIOS );
+    dreamcast_has_bios = mem_load_rom( lxdream_get_config_value(CONFIG_BIOS_PATH),
+				       0x00000000, 0x00200000, 0x89f2b1a1, 
+				       MEM_REGION_BIOS );
     mem_load_block( lxdream_get_config_value(CONFIG_FLASH_PATH),
 		    0x00200000, 0x00020000 );
 }
@@ -207,9 +211,30 @@ void dreamcast_shutdown()
     dreamcast_save_flash();
 }
 
+void dreamcast_program_loaded( const gchar *name, sh4addr_t entry_point )
+{
+    if( dreamcast_program_name != NULL ) {
+        g_free(dreamcast_program_name);
+    }
+    dreamcast_program_name = g_strdup(name);
+    dreamcast_entry_point = entry_point;
+    sh4_set_pc(entry_point);
+    if( !dreamcast_has_bios ) {
+        bios_install();
+    }
+    dcload_install();
+    gui_update_state();
+}
+
 gboolean dreamcast_is_running( void )
 {
     return dreamcast_state == STATE_RUNNING;
+}
+
+gboolean dreamcast_can_run(void)
+{
+    return dreamcast_state != STATE_UNINIT &&
+      (dreamcast_has_bios || dreamcast_program_name != NULL);
 }
 
 /********************************* Save States *****************************/

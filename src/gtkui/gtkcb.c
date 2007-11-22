@@ -22,7 +22,7 @@
 #include "gdrom/gdrom.h"
 #include "gtkui/gtkui.h"
 #include "pvr2/pvr2.h"
-
+#include "loader.h"
 
 
 static void add_file_pattern( GtkFileChooser *chooser, char *pattern, char *patname )
@@ -99,6 +99,12 @@ void pause_action_callback( GtkAction *action, gpointer user_data)
 void resume_action_callback( GtkAction *action, gpointer user_data)
 {
     dreamcast_run();
+}
+
+void load_binary_action_callback( GtkAction *action, gpointer user_data)
+{
+    const gchar *dir = lxdream_get_config_value(CONFIG_DEFAULT_PATH);
+    open_file_dialog( "Open Binary...", file_load_magic, NULL, NULL, dir );
 }
 
 void load_state_preview_callback( GtkFileChooser *chooser, gpointer user_data )

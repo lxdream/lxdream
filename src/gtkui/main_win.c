@@ -117,7 +117,7 @@ main_window_t main_window_new( const gchar *title, GtkWidget *menubar, GtkWidget
 void main_window_set_running( main_window_t win, gboolean running )
 {
     gtk_gui_enable_action( "Pause", running );
-    gtk_gui_enable_action( "Run", !running );
+    gtk_gui_enable_action( "Run", !running && dreamcast_can_run() );
     gtk_statusbar_pop( GTK_STATUSBAR(win->statusbar), 1 );
     gtk_statusbar_push( GTK_STATUSBAR(win->statusbar), 1, running ? "Running" : "Stopped" );
 }

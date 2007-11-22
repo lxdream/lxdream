@@ -48,8 +48,14 @@ typedef struct mem_region {
 void *mem_create_ram_region( uint32_t base, uint32_t size, const char *name );
 void *mem_create_repeating_ram_region( uint32_t base, uint32_t size, const char *name, 
 				       uint32_t repeat_offset, uint32_t last_repeat );
-void *mem_load_rom( const gchar *name, uint32_t base, uint32_t size, uint32_t crc,
-		    const gchar *region_name );
+/**
+ * Load a ROM image from the specified filename. If the memory region has not
+ * been allocated, it is created now, otherwise the existing region is reused.
+ * If the CRC check fails, a warning will be printed.
+ * @return TRUE if the image was loaded successfully (irrespective of CRC failure).
+ */
+gboolean mem_load_rom( const gchar *filename, uint32_t base, uint32_t size, 
+		       uint32_t crc, const gchar *region_name );
 void *mem_alloc_pages( int n );
 sh4ptr_t mem_get_region( uint32_t addr );
 sh4ptr_t mem_get_region_by_name( const char *name );

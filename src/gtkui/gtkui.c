@@ -67,6 +67,7 @@ static const GtkActionEntry ui_actions[] = {
     { "FileMenu", NULL, N_("_File") },
     { "SettingsMenu", NULL, N_("_Settings") },
     { "HelpMenu", NULL, N_("_Help") },
+    { "LoadBinary", NULL, N_("Load _Binary..."), NULL, N_("Load and run a program binary"), G_CALLBACK(load_binary_action_callback) },
     { "Reset", GTK_STOCK_REFRESH, N_("_Reset"), "<control>R", N_("Reset dreamcast"), G_CALLBACK(reset_action_callback) },
     { "Pause", GTK_STOCK_MEDIA_PAUSE, N_("_Pause"), NULL, N_("Pause dreamcast"), G_CALLBACK(pause_action_callback) },
     { "Run", GTK_STOCK_MEDIA_PLAY, N_("Resume"), NULL, N_("Resume"), G_CALLBACK(resume_action_callback) },
@@ -100,6 +101,7 @@ static const char *ui_description =
     "<ui>"
     " <menubar name='MainMenu'>"
     "  <menu action='FileMenu'>"
+    "   <menuitem action='LoadBinary'/>"
     "   <menuitem action='GdromSettings'/>"
     "   <separator/>"
     "   <menuitem action='Reset'/>"
@@ -235,6 +237,7 @@ gboolean gui_init( gboolean withDebug )
 
 void gui_main_loop(void)
 {
+    gtk_gui_update();
     gtk_main();
 }
 
@@ -346,6 +349,8 @@ void gtk_gui_stop( void )
 
 void gtk_gui_update( void )
 {
+    gtk_gui_enable_action("Run", dreamcast_can_run() && !dreamcast_is_running() );
+    gtk_gui_enable_action("Pause", dreamcast_is_running() );
     if( debug_win ) {
 	debug_window_set_running( debug_win, FALSE );
 	debug_window_update(debug_win);

@@ -396,7 +396,7 @@ void debug_window_set_running( debug_window_t data, gboolean isRunning )
 {
     if( data != NULL ) {
 	gtk_gui_enable_action( "SingleStep", !isRunning );
-	gtk_gui_enable_action( "RunTo", !isRunning );
+	gtk_gui_enable_action( "RunTo", !isRunning && dreamcast_can_run() );
     }
 }
 
@@ -437,7 +437,7 @@ void on_disasm_list_select_row (GtkCList *clist, gint row, gint column,
 				GdkEvent *event, gpointer user_data)
 {
     gtk_gui_enable_action( "SetBreakpoint", TRUE );
-    gtk_gui_enable_action( "RunTo", TRUE );
+    gtk_gui_enable_action( "RunTo", dreamcast_can_run() );
 }
 
 void on_disasm_list_unselect_row (GtkCList *clist, gint row, gint column,
