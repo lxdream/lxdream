@@ -53,6 +53,12 @@ gboolean dreamcast_is_running(void);
  */
 gboolean dreamcast_can_run(void);
 
+/**
+ * Notify the VM that a program (ELF or other binary) has been loaded.
+ * 
+ */
+void dreamcast_program_loaded( const gchar *name, sh4addr_t entry_point );
+
 #define DREAMCAST_SAVE_MAGIC "%!-lxDream!Save\0"
 #define DREAMCAST_SAVE_VERSION 0x00010002
 
