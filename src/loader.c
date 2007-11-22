@@ -25,13 +25,10 @@
 #include <stdint.h>
 #include <elf.h>
 #include "mem.h"
-#include "sh4core.h"
 #include "bootstrap.h"
 #include "dreamcast.h"
 #include "config.h"
 #include "loader.h"
-#include "syscall.h"
-#include "gui.h"
 
 char bootstrap_magic[32] = "SEGA SEGAKATANA SEGA ENTERPRISES";
 char iso_magic[6] = "\001CD001";
@@ -48,7 +45,7 @@ char *file_loader_extensions[][2] = {
 #define CDI_V2 0x80000004
 #define CDI_V3 0x80000005
 
-gboolean file_load_elf_fd( int fd );
+gboolean file_load_elf_fd( const gchar *filename, int fd );
 
 
 gboolean file_load_magic( const gchar *filename )
@@ -77,8 +74,7 @@ gboolean file_load_magic( const gchar *filename )
             lseek( fd, 0, SEEK_SET );
             read( fd, load, BOOTSTRAP_SIZE );
             bootstrap_dump( load, TRUE );
-            sh4_set_pc( BOOTSTRAP_LOAD_ADDR + 0x300 );
-            gui_update_state();
+	    dreamcast_program_loaded( filename, BOOTSTRAP_LOAD_ADDR + 0x300 );
         } else {
             /* look for a valid ISO9660 header */
             lseek( fd, 32768, SEEK_SET );
@@ -100,7 +96,7 @@ gboolean file_load_magic( const gchar *filename )
 	       buf[2] == 'L' && buf[3] == 'F' ) {
 	/* ELF binary */
 	lseek( fd, 0, SEEK_SET );
-	result = file_load_elf_fd( fd );
+	result = file_load_elf_fd( filename, fd );
     } else {
 	result = FALSE;
     }
@@ -108,25 +104,19 @@ gboolean file_load_magic( const gchar *filename )
     return result;
 }
 
-void file_load_postload( int pc )
+void file_load_postload( const gchar *filename, int pc )
 {
     const gchar *bootstrap_file = lxdream_get_config_value(CONFIG_BOOTSTRAP);
     if( bootstrap_file != NULL ) {
 	/* Load in a bootstrap before the binary, to initialize everything
 	 * correctly
 	 */
-	if( mem_load_block( bootstrap_file, BOOTSTRAP_LOAD_ADDR, BOOTSTRAP_SIZE ) != 0 ) {
-	    /* Try it without the bootstrap */
-	    sh4_set_pc( pc );
-	} else {
-	    sh4_set_pc( BOOTSTRAP_LOAD_ADDR + 0x300 );
+        if( mem_load_block( bootstrap_file, BOOTSTRAP_LOAD_ADDR, BOOTSTRAP_SIZE ) == 0 ) {
+	    dreamcast_program_loaded( filename, BOOTSTRAP_LOAD_ADDR+0x300 );
+	    return;
 	}
-    } else {
-	sh4_set_pc( pc );
     }
-    bios_install();
-    dcload_install();
-    gui_update_state();
+    dreamcast_program_loaded( filename, pc );
 }    
 
 
@@ -134,14 +124,14 @@ gboolean file_load_binary( const gchar *filename )
 {
     /* Load the binary itself */
     if(  mem_load_block( filename, BINARY_LOAD_ADDR, -1 ) == 0 ) {
-	file_load_postload( BINARY_LOAD_ADDR );
+      file_load_postload( filename, BINARY_LOAD_ADDR );
 	return TRUE;
     } else {
 	return FALSE;
     }
 }
 
-gboolean file_load_elf_fd( int fd ) 
+gboolean file_load_elf_fd( const gchar *filename, int fd ) 
 {
     Elf32_Ehdr head;
     Elf32_Phdr phdr;
@@ -174,6 +164,6 @@ gboolean file_load_elf_fd( int fd )
 	}
     }
     
-    file_load_postload( head.e_entry );
+    file_load_postload( filename, head.e_entry );
     return TRUE;
 }

@@ -119,6 +119,7 @@ void path_panel_done( GtkWidget *panel, gboolean isOK )
 	
 	lxdream_save_config();
 	dreamcast_config_changed();
+	gtk_gui_update();
     }
 }
 

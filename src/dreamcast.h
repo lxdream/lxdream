@@ -46,6 +46,13 @@ void dreamcast_shutdown(void);
 void dreamcast_config_changed(void);
 gboolean dreamcast_is_running(void);
 
+/**
+ * Return if it's possible to start the VM - currently this requires 
+ * a) A configured system
+ * b) Some code to run (either a user program or a ROM)
+ */
+gboolean dreamcast_can_run(void);
+
 #define DREAMCAST_SAVE_MAGIC "%!-lxDream!Save\0"
 #define DREAMCAST_SAVE_VERSION 0x00010002
 

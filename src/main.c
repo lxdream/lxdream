@@ -57,6 +57,7 @@ int main (int argc, char *argv[])
     gboolean display_ok;
 
     install_crash_handler();
+    gdrom_get_native_devices();
 #ifdef ENABLE_NLS
     bindtextdomain (PACKAGE, PACKAGE_LOCALE_DIR);
     textdomain (PACKAGE);
@@ -185,11 +186,15 @@ int main (int argc, char *argv[])
     sh4_set_use_xlat( use_xlat );
 
     if( start_immediately ) {
-	if( time_nanos != 0 || time_secs != 0 ) {
-	    dreamcast_run_for(time_secs, time_nanos);
-	    return 0;
+        if( dreamcast_can_run() ) {
+	    if( time_nanos != 0 || time_secs != 0 ) {
+	        dreamcast_run_for(time_secs, time_nanos);
+		return 0;
+	    } else {
+	        dreamcast_run();
+	    }
 	} else {
-	    dreamcast_run();
+	    ERROR( "Unable to start dreamcast: no program/bios loaded" );
 	}
     }
     if( !headless ) {

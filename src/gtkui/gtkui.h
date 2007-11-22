@@ -97,6 +97,7 @@ GtkWidget *gtk_gui_get_renderarea();
 
 /******************* Callback declarations *******************/
 
+void load_binary_action_callback( GtkAction *action, gpointer user_data);
 void mount_action_callback( GtkAction *action, gpointer user_data);
 void reset_action_callback( GtkAction *action, gpointer user_data);
 void pause_action_callback( GtkAction *action, gpointer user_data);
