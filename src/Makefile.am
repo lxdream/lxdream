@@ -54,7 +54,7 @@ lxdream_SOURCES += gtkui/gtkui.c gtkui/gtkui.h \
         gtkui/mmio_win.c gtkui/debug_win.c gtkui/dump_win.c \
         gtkui/ctrl_dlg.c gtkui/path_dlg.c gtkui/gdrom_menu.c \
         drivers/video_gtk.c drivers/video_gtk.h \
-	drivers/video_x11.c drivers/video_x11.h
+	drivers/video_glx.c drivers/video_glx.h
 endif
 
 if CDROM_LINUX

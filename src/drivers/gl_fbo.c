@@ -27,7 +27,6 @@
 #include <stdlib.h>
 #include "lxdream.h"
 #include "display.h"
-#include "drivers/video_x11.h"
 #include "drivers/gl_common.h"
 
 #define MAX_FRAMEBUFFERS 2
@@ -259,7 +258,7 @@ static void gl_fbo_load_frame_buffer( frame_buffer_t frame, render_buffer_t buff
 {
     glFinish();
     gl_fbo_detach();
-    gl_load_frame_buffer( frame, buffer );
+    gl_load_frame_buffer( frame, buffer->buf_id );
 }
 
 static gboolean gl_fbo_display_blank( uint32_t colour )

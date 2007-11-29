@@ -22,7 +22,7 @@
 #include <stdint.h>
 #include "dream.h"
 #include "display.h"
-#include "drivers/video_x11.h"
+#include "drivers/video_glx.h"
 #include "drivers/gl_common.h"
 #include "gtkui/gtkui.h"
 
@@ -80,8 +80,12 @@ uint16_t video_gtk_resolve_keysym( const gchar *keysym )
 
 gboolean video_gtk_expose_callback(GtkWidget *widget, GdkEventExpose *event, gpointer data )
 {
-    gl_fbo_detach();
-    gl_redisplay_last();
+    render_buffer_t buffer = pvr2_get_front_buffer();
+    if( buffer == NULL ) {
+	display_gtk_driver.display_blank(pvr2_get_border_colour());
+    } else {
+	display_gtk_driver.display_render_buffer(buffer);
+    }
     return TRUE;
 }
 
@@ -89,13 +93,13 @@ gboolean video_gtk_resize_callback(GtkWidget *widget, GdkEventConfigure *event, 
 {
     video_width = event->width;
     video_height = event->height;
-    gl_fbo_detach();
-    gl_redisplay_last();
+    video_gtk_expose_callback(widget, NULL, data);
     return TRUE;
 }
 
 gboolean video_gtk_init()
 {
+  
     video_win = gtk_gui_get_renderarea();
     if( video_win == NULL ) {
 	return FALSE;
@@ -115,17 +119,16 @@ gboolean video_gtk_init()
     gtk_widget_set_double_buffered( video_win, FALSE );
     video_width = video_win->allocation.width;
     video_height = video_win->allocation.height;
-    return video_glx_init( gdk_x11_display_get_xdisplay( gtk_widget_get_display(GTK_WIDGET(video_win))),
-			   gdk_x11_screen_get_xscreen( gtk_widget_get_screen(GTK_WIDGET(video_win))),
-			   GDK_WINDOW_XWINDOW( GTK_WIDGET(video_win)->window ),
-			   video_width, video_height, &display_gtk_driver );
+    Display *display = gdk_x11_display_get_xdisplay( gtk_widget_get_display(GTK_WIDGET(video_win)));
+    Window window = GDK_WINDOW_XWINDOW( GTK_WIDGET(video_win)->window );
+    video_glx_init_context( display, window );
+    video_glx_init_driver( &display_gtk_driver );
 }
 
 void video_gtk_shutdown()
 {
     if( video_win != NULL ) {
 	video_glx_shutdown();
-	gtk_widget_destroy( GTK_WIDGET(video_win) );
     }
 
 }

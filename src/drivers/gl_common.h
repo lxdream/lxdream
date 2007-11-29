@@ -31,9 +31,9 @@ gboolean isGLExtensionSupported( const char *extension );
 gboolean hasRequiredGLExtensions();
 
 /**
- * Generic GL routine to draw the given frame buffer into a render buffer
+ * Generic GL routine to draw the given frame buffer into a texture
  */
-gboolean gl_load_frame_buffer( frame_buffer_t frame, render_buffer_t buffer );
+gboolean gl_load_frame_buffer( frame_buffer_t frame, int tex_id );
 
 /**
  * Generic GL routine to blank the display view with the specified colour.
@@ -44,6 +44,11 @@ gboolean gl_display_blank( uint32_t colour );
  * Write a rectangular texture (GL_TEXTURE_RECTANGLE_ARB) to the display frame
  */
 void gl_display_render_buffer( render_buffer_t buffer );
+
+/**
+ * Write a rectangular texture (GL_TEXTURE_RECTANGLE_ARB) to the display frame
+ */
+void gl_texture_window( int width, int height, int tex_id, gboolean inverted );
 
 /**
  * Redisplay the last frame.
