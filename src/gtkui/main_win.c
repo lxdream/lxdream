@@ -26,9 +26,12 @@
 #include <stdlib.h>
 
 #include <gtk/gtk.h>
+#include <gdk/gdkx.h>
+#include <X11/Xutil.h>
 
 #include "dream.h"
 #include "gtkui/gtkui.h"
+#include "drivers/video_glx.h"
 
 
 struct main_window_info {
@@ -87,8 +90,17 @@ main_window_t main_window_new( const gchar *title, GtkWidget *menubar, GtkWidget
     gtk_window_add_accel_group (GTK_WINDOW (win->window), accel_group);
 
     gtk_toolbar_set_style( GTK_TOOLBAR(toolbar), GTK_TOOLBAR_ICONS );
+    
+    Display *display = gdk_x11_display_get_xdisplay( gtk_widget_get_display(win->window));
+    Screen *screen = gdk_x11_screen_get_xscreen( gtk_widget_get_screen(win->window));
+    int screen_no = XScreenNumberOfScreen(screen);
+    video_glx_init(display, screen_no);
 
+    XVisualInfo *visual = video_glx_get_visual();
+    GdkVisual *gdkvis = gdk_x11_screen_lookup_visual( gtk_widget_get_screen(win->window), visual->visualid );
+    GdkColormap *colormap = gdk_colormap_new( gdkvis, FALSE );
     win->video = gtk_drawing_area_new();
+    gtk_widget_set_colormap( win->video, colormap );
     GTK_WIDGET_SET_FLAGS(win->video, GTK_CAN_FOCUS|GTK_CAN_DEFAULT);
     gtk_widget_set_size_request( win->video, 640, 480 ); 
     frame = gtk_frame_new(NULL);

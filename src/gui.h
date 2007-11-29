@@ -49,6 +49,11 @@ gboolean gui_error_dialog( const char *fmt, ... );
 typedef enum { IO_IDE, IO_NETWORK } io_activity_type;
 
 /**
+ * Notify the GUI of state changes (eg binary was loaded and PC changed)
+ */
+void gui_update_state();
+
+/**
  * Notify the GUI of I/O activity. 
  * @param activity the type of IO activity being reported.
  * @param active TRUE if the I/O device is becoming active, FALSE if inactive.

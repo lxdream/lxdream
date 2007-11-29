@@ -90,6 +90,7 @@ struct pvr2_state {
 static render_buffer_t render_buffers[MAX_RENDER_BUFFERS];
 static int render_buffer_count = 0;
 static render_buffer_t displayed_render_buffer = NULL;
+static uint32_t displayed_border_colour = 0;
 
 /**
  * Event handler for the hpos callback
@@ -140,6 +141,7 @@ static void pvr2_init( void )
     }
     render_buffer_count = 0;
     displayed_render_buffer = NULL;
+    displayed_border_colour = 0;
 }
 
 static void pvr2_reset( void )
@@ -333,6 +335,11 @@ render_buffer_t pvr2_get_front_buffer()
     return displayed_render_buffer;
 }
 
+uint32_t pvr2_get_border_colour()
+{
+    return displayed_border_colour;
+}
+
 gboolean pvr2_save_next_scene( const gchar *filename )
 {
     if( pvr2_state.save_next_render_filename != NULL ) {
@@ -359,13 +366,14 @@ void pvr2_display_frame( void )
 	return; /* can't really do anything much */
     } else if( !bEnabled ) {
 	/* Output disabled == black */
-	display_driver->display_blank( 0 ); 
 	displayed_render_buffer = NULL;
+	displayed_border_colour = 0;
+	display_driver->display_blank( 0 ); 
     } else if( MMIO_READ( PVR2, DISP_CFG2 ) & 0x08 ) { 
 	/* Enabled but blanked - border colour */
-	uint32_t colour = MMIO_READ( PVR2, DISP_BORDER );
-	display_driver->display_blank( colour );
+	displayed_border_colour = MMIO_READ( PVR2, DISP_BORDER );
 	displayed_render_buffer = NULL;
+	display_driver->display_blank( displayed_border_colour );
     } else {
 	/* Real output - determine dimensions etc */
 	struct frame_buffer fbuf;

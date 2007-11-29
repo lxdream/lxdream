@@ -23,7 +23,6 @@
 #include "drivers/gl_common.h"
 
 extern uint32_t video_width, video_height;
-static uint32_t frame_colour = 0;
 
 char *required_extensions[] = { "GL_EXT_framebuffer_object", NULL };
 
@@ -74,18 +73,12 @@ gboolean hasRequiredGLExtensions( )
     return isOK;
 }
 
-void gl_display_render_buffer( render_buffer_t buffer )
+/**
+ * Reset the gl state to simple orthographic projection with 
+ * texturing, alpha/depth/scissor/cull tests disabled.
+ */
+void gl_reset_state()
 {
-    float top, bottom;
-    if( buffer->inverted ) {
-	top = ((float)buffer->height) - 0.5;
-	bottom = 0.5;
-    } else {
-	top = 0.5;
-	bottom = ((float)buffer->height) - 0.5;
-    }
-
-    /* Reset display parameters */
     glViewport( 0, 0, video_width, video_height );
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
@@ -97,8 +90,28 @@ void gl_display_render_buffer( render_buffer_t buffer )
     glDisable( GL_DEPTH_TEST );
     glDisable( GL_SCISSOR_TEST );
     glDisable( GL_CULL_FACE );
-    glColor3f( 0,0,0 );
-    
+    glDrawBuffer( GL_FRONT );
+}
+
+void gl_display_render_buffer( render_buffer_t buffer )
+{
+    gl_texture_window( buffer->width, buffer->height, buffer->buf_id, buffer->inverted );
+}
+
+void gl_texture_window( int width, int height, int tex_id, gboolean inverted )
+{
+    float top, bottom;
+    if( inverted ) {
+	top = ((float)height) - 0.5;
+	bottom = 0.5;
+    } else {
+	top = 0.5;
+	bottom = ((float)height) - 0.5;
+    }
+
+    /* Reset display parameters */
+    gl_reset_state();
+    glColor3f( 0,0,0 );    
 
     int x1=0,y1=0,x2=video_width,y2=video_height;
 
@@ -136,7 +149,7 @@ void gl_display_render_buffer( render_buffer_t buffer )
 
     /* Render the textured rectangle */
     glEnable( GL_TEXTURE_RECTANGLE_ARB );
-    glBindTexture( GL_TEXTURE_RECTANGLE_ARB, buffer->buf_id );
+    glBindTexture( GL_TEXTURE_RECTANGLE_ARB, tex_id );
     glTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE );
     glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -145,9 +158,9 @@ void gl_display_render_buffer( render_buffer_t buffer )
     glBegin( GL_QUADS );
     glTexCoord2f( 0.5, top );
     glVertex2f( x1, y1 );
-    glTexCoord2f( ((float)buffer->width)-0.5, top );
+    glTexCoord2f( ((float)width)-0.5, top );
     glVertex2f( x2, y1 );
-    glTexCoord2f( ((float)buffer->width)-0.5, bottom );
+    glTexCoord2f( ((float)width)-0.5, bottom );
     glVertex2f( x2, y2 );
     glTexCoord2f( 0.5, bottom );
     glVertex2f( x1, y2 );
@@ -156,7 +169,7 @@ void gl_display_render_buffer( render_buffer_t buffer )
     glFlush();
 }
 
-gboolean gl_load_frame_buffer( frame_buffer_t frame, render_buffer_t render )
+gboolean gl_load_frame_buffer( frame_buffer_t frame, int tex_id )
 {
     GLenum type = colour_formats[frame->colour_format].type;
     GLenum format = colour_formats[frame->colour_format].format;
@@ -164,7 +177,7 @@ gboolean gl_load_frame_buffer( frame_buffer_t frame, render_buffer_t render )
     int rowstride = (frame->rowstride / bpp) - frame->width;
     
     glPixelStorei( GL_UNPACK_ROW_LENGTH, rowstride );
-    glBindTexture( GL_TEXTURE_RECTANGLE_ARB, render->buf_id );
+    glBindTexture( GL_TEXTURE_RECTANGLE_ARB, tex_id );
     glTexSubImage2D( GL_TEXTURE_RECTANGLE_ARB, 0, 0,0,
 		     frame->width, frame->height, format, type, frame->data );
     return TRUE;
@@ -172,27 +185,11 @@ gboolean gl_load_frame_buffer( frame_buffer_t frame, render_buffer_t render )
 
 gboolean gl_display_blank( uint32_t colour )
 {
-    glViewport( 0, 0, video_width, video_height );
-    glMatrixMode( GL_PROJECTION );
-    glLoadIdentity();
-    glOrtho( 0, video_width, video_height, 0, 0, -65535 );
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
-    glColor3b( (colour >> 16) & 0xFF, (colour >> 8) & 0xFF, colour & 0xFF );
+    gl_reset_state();
+    glColor3ub( (colour >> 16) & 0xFF, (colour >> 8) & 0xFF, colour & 0xFF );
     glRecti(0,0, video_width, video_height );
     glFlush();
-    frame_colour = colour;
     return TRUE;
-}
-
-void gl_redisplay_last()
-{
-    render_buffer_t buffer = pvr2_get_front_buffer();
-    if( buffer == NULL ) {
-	gl_display_blank( frame_colour );
-    } else {
-	gl_display_render_buffer( buffer );
-    }
 }
 
 /**
