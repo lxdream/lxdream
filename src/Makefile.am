@@ -9,7 +9,10 @@ INCLUDES = \
 
 bin_PROGRAMS = lxdream
 noinst_PROGRAMS = gendec genglsl
+check_PROGRAMS = test/testxlt
 
+AM_CFLAGS = -D_ISOC99_SOURCE -D_BSD_SOURCE 
+TESTS = test/testxlt
 BUILT_SOURCES = sh4/sh4core.c sh4/sh4dasm.c sh4/sh4x86.c drivers/gl_slsrc.c
 
 gendec_SOURCES = tools/gendec.c tools/gendec.h tools/insparse.c tools/actparse.c
@@ -24,7 +27,7 @@ lxdream_SOURCES = \
 	gdrom/gdrom.c gdrom/gdrom.h gdrom/nrg.c gdrom/cdi.c gdrom/gdi.c \
         dreamcast.c dreamcast.h eventq.c eventq.h \
         sh4/sh4.c sh4/intc.c sh4/intc.h sh4/sh4mem.c sh4/timer.c sh4/dmac.c \
-        sh4/sh4core.c sh4/sh4core.h sh4/sh4dasm.c sh4/sh4dasm.h \
+        sh4/mmu.c sh4/sh4core.c sh4/sh4core.h sh4/sh4dasm.c sh4/sh4dasm.h \
         sh4/sh4mmio.c sh4/sh4mmio.h sh4/scif.c sh4/sh4stat.c sh4/sh4stat.h \
 	sh4/xltcache.c sh4/xltcache.h \
         aica/armcore.c aica/armcore.h aica/armdasm.c aica/armmem.c \
@@ -46,6 +49,16 @@ lxdream_SOURCES += sh4/sh4x86.c sh4/x86op.h \
         sh4/sh4trans.c sh4/sh4trans.h \
         x86dasm/x86dasm.c x86dasm/x86dasm.h \
         x86dasm/i386-dis.c x86dasm/dis-init.c x86dasm/dis-buf.c
+
+test_testsh4x86_SOURCES = test/testsh4x86.c x86dasm/x86dasm.c \
+	x86dasm/x86dasm.h x86dasm/i386-dis.c x86dasm/dis-init.c \
+	x86dasm/dis-buf.c \
+	sh4/sh4dasm.c sh4/sh4trans.c sh4/sh4x86.c sh4/xltcache.c \
+	sh4/xltcache.h mem.c util.c
+test_testsh4x86_LDADD = @GTK_LIBS@
+
+check_PROGRAMS += test/testsh4x86
+
 endif
 
 if GUI_GTK
@@ -72,20 +85,8 @@ lxdream_LDADD = @GTK_LIBS@ @LIBPNG_LIBS@ @ESOUND_LIBS@ $(INTLLIBS)
 gendec_LDADD = @GTK_LIBS@ $(INTLLIBS)
 genglsl_LDADD = @GTK_LIBS@ $(INTLLIBS)
 
-TESTS = test/testxlt
-
-check_PROGRAMS = test/testxlt test/testsh4x86
 
 test_testxlt_SOURCES = test/testxlt.c sh4/xltcache.c sh4/xltcache.h
-
-test_testsh4x86_SOURCES = test/testsh4x86.c x86dasm/x86dasm.c \
-	x86dasm/x86dasm.h x86dasm/i386-dis.c x86dasm/dis-init.c \
-	x86dasm/dis-buf.c \
-	sh4/sh4dasm.c sh4/sh4trans.c sh4/sh4x86.c sh4/xltcache.c \
-	sh4/xltcache.h mem.c util.c
-test_testsh4x86_LDADD = @PACKAGE_LIBS@
-
-AM_CFLAGS = -D_ISOC99_SOURCE -D_BSD_SOURCE 
 
 sh4/sh4core.c: gendec sh4/sh4.def sh4/sh4core.in
 	./gendec sh4/sh4.def sh4/sh4core.in -o sh4/sh4core.c

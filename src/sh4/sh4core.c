@@ -1,5 +1,5 @@
 /**
- * $Id: sh4core.c,v 1.50 2007-11-04 08:49:18 nkeynes Exp $
+ * $Id: sh4core.in,v 1.10 2007-11-04 08:49:18 nkeynes Exp $
  * 
  * SH4 emulation core, and parent module for all the SH4 peripheral
  * modules.
@@ -417,7 +417,7 @@ gboolean sh4_execute_instruction( void )
                                 break;
                             case 0x3:
                                 { /* LDTLB */
-                                /* TODO */
+                                MMU_ldtlb();
                                 }
                                 break;
                             case 0x4:

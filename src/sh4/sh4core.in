@@ -336,7 +336,7 @@ SWAP.W Rm, Rn {: sh4r.r[Rn] = (sh4r.r[Rm]>>16) | (sh4r.r[Rm]<<16); :}
 CLRT {: sh4r.t = 0; :}
 SETT {: sh4r.t = 1; :}
 CLRMAC {: sh4r.mac = 0; :}
-LDTLB {: /* TODO */ :}
+LDTLB {: MMU_ldtlb(); :}
 CLRS {: sh4r.s = 0; :}
 SETS {: sh4r.s = 1; :}
 MOVT Rn {: sh4r.r[Rn] = sh4r.t; :}

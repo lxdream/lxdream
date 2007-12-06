@@ -42,16 +42,17 @@ host_triplet = @host@
 @BUILD_SH4X86_TRUE@        x86dasm/x86dasm.c x86dasm/x86dasm.h \
 @BUILD_SH4X86_TRUE@        x86dasm/i386-dis.c x86dasm/dis-init.c x86dasm/dis-buf.c
 
-@GUI_GTK_TRUE@am__append_2 = gtkui/gtkui.c gtkui/gtkui.h \
+@BUILD_SH4X86_TRUE@am__append_2 = test/testsh4x86
+@GUI_GTK_TRUE@am__append_3 = gtkui/gtkui.c gtkui/gtkui.h \
 @GUI_GTK_TRUE@	gtkui/main_win.c gtkui/gtkcb.c \
 @GUI_GTK_TRUE@        gtkui/mmio_win.c gtkui/debug_win.c gtkui/dump_win.c \
 @GUI_GTK_TRUE@        gtkui/ctrl_dlg.c gtkui/path_dlg.c gtkui/gdrom_menu.c \
 @GUI_GTK_TRUE@        drivers/video_gtk.c drivers/video_gtk.h \
 @GUI_GTK_TRUE@	drivers/video_glx.c drivers/video_glx.h
 
-@CDROM_LINUX_TRUE@am__append_3 = drivers/cd_linux.c
-@CDROM_LINUX_FALSE@am__append_4 = drivers/cd_none.c
-@AUDIO_ESOUND_TRUE@am__append_5 = drivers/audio_esd.c
+@CDROM_LINUX_TRUE@am__append_4 = drivers/cd_linux.c
+@CDROM_LINUX_FALSE@am__append_5 = drivers/cd_none.c
+@AUDIO_ESOUND_TRUE@am__append_6 = drivers/audio_esd.c
 ACLOCAL = @ACLOCAL@
 AMDEP_FALSE = @AMDEP_FALSE@
 AMDEP_TRUE = @AMDEP_TRUE@
@@ -192,7 +193,10 @@ INCLUDES = \
 
 bin_PROGRAMS = lxdream
 noinst_PROGRAMS = gendec genglsl
+check_PROGRAMS = test/testxlt $(am__append_2)
 
+AM_CFLAGS = -D_ISOC99_SOURCE -D_BSD_SOURCE 
+TESTS = test/testxlt
 BUILT_SOURCES = sh4/sh4core.c sh4/sh4dasm.c sh4/sh4x86.c drivers/gl_slsrc.c
 
 gendec_SOURCES = tools/gendec.c tools/gendec.h tools/insparse.c tools/actparse.c
@@ -207,7 +211,7 @@ lxdream_SOURCES = \
 	gdrom/gdrom.c gdrom/gdrom.h gdrom/nrg.c gdrom/cdi.c gdrom/gdi.c \
         dreamcast.c dreamcast.h eventq.c eventq.h \
         sh4/sh4.c sh4/intc.c sh4/intc.h sh4/sh4mem.c sh4/timer.c sh4/dmac.c \
-        sh4/sh4core.c sh4/sh4core.h sh4/sh4dasm.c sh4/sh4dasm.h \
+        sh4/mmu.c sh4/sh4core.c sh4/sh4core.h sh4/sh4dasm.c sh4/sh4dasm.h \
         sh4/sh4mmio.c sh4/sh4mmio.h sh4/scif.c sh4/sh4stat.c sh4/sh4stat.h \
 	sh4/xltcache.c sh4/xltcache.h \
         aica/armcore.c aica/armcore.h aica/armdasm.c aica/armmem.c \
@@ -222,35 +226,31 @@ lxdream_SOURCES = \
 	drivers/audio_null.c drivers/video_null.c \
 	drivers/gl_common.c drivers/gl_common.h drivers/gl_fbo.c \
 	drivers/gl_sl.c drivers/gl_slsrc.c\
-$(am__append_1) $(am__append_2) $(am__append_3) $(am__append_4) $(am__append_5)
+$(am__append_1) $(am__append_3) $(am__append_4) $(am__append_5) $(am__append_6)
+
+@BUILD_SH4X86_TRUE@test_testsh4x86_SOURCES = test/testsh4x86.c x86dasm/x86dasm.c \
+@BUILD_SH4X86_TRUE@	x86dasm/x86dasm.h x86dasm/i386-dis.c x86dasm/dis-init.c \
+@BUILD_SH4X86_TRUE@	x86dasm/dis-buf.c \
+@BUILD_SH4X86_TRUE@	sh4/sh4dasm.c sh4/sh4trans.c sh4/sh4x86.c sh4/xltcache.c \
+@BUILD_SH4X86_TRUE@	sh4/xltcache.h mem.c util.c
+
+@BUILD_SH4X86_TRUE@test_testsh4x86_LDADD = @GTK_LIBS@
 
 lxdream_LDADD = @GTK_LIBS@ @LIBPNG_LIBS@ @ESOUND_LIBS@ $(INTLLIBS)
 
 gendec_LDADD = @GTK_LIBS@ $(INTLLIBS)
 genglsl_LDADD = @GTK_LIBS@ $(INTLLIBS)
 
-TESTS = test/testxlt
-
-check_PROGRAMS = test/testxlt test/testsh4x86
-
 test_testxlt_SOURCES = test/testxlt.c sh4/xltcache.c sh4/xltcache.h
-
-test_testsh4x86_SOURCES = test/testsh4x86.c x86dasm/x86dasm.c \
-	x86dasm/x86dasm.h x86dasm/i386-dis.c x86dasm/dis-init.c \
-	x86dasm/dis-buf.c \
-	sh4/sh4dasm.c sh4/sh4trans.c sh4/sh4x86.c sh4/xltcache.c \
-	sh4/xltcache.h mem.c util.c
-
-test_testsh4x86_LDADD = @PACKAGE_LIBS@
-
-AM_CFLAGS = -D_ISOC99_SOURCE -D_BSD_SOURCE 
 subdir = src
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
 bin_PROGRAMS = lxdream$(EXEEXT)
-check_PROGRAMS = test/testxlt$(EXEEXT) test/testsh4x86$(EXEEXT)
+@BUILD_SH4X86_TRUE@check_PROGRAMS = test/testxlt$(EXEEXT) \
+@BUILD_SH4X86_TRUE@	test/testsh4x86$(EXEEXT)
+@BUILD_SH4X86_FALSE@check_PROGRAMS = test/testxlt$(EXEEXT)
 noinst_PROGRAMS = gendec$(EXEEXT) genglsl$(EXEEXT)
 PROGRAMS = $(bin_PROGRAMS) $(noinst_PROGRAMS)
 
@@ -268,12 +268,12 @@ am__lxdream_SOURCES_DIST = main.c config.c config.h mem.c mem.h mmio.h \
 	gdrom/ide.c gdrom/ide.h gdrom/packet.h gdrom/gdimage.c \
 	gdrom/gdrom.c gdrom/gdrom.h gdrom/nrg.c gdrom/cdi.c gdrom/gdi.c \
 	dreamcast.c dreamcast.h eventq.c eventq.h sh4/sh4.c sh4/intc.c \
-	sh4/intc.h sh4/sh4mem.c sh4/timer.c sh4/dmac.c sh4/sh4core.c \
-	sh4/sh4core.h sh4/sh4dasm.c sh4/sh4dasm.h sh4/sh4mmio.c \
-	sh4/sh4mmio.h sh4/scif.c sh4/sh4stat.c sh4/sh4stat.h \
-	sh4/xltcache.c sh4/xltcache.h aica/armcore.c aica/armcore.h \
-	aica/armdasm.c aica/armmem.c aica/aica.c aica/aica.h \
-	aica/audio.c aica/audio.h pvr2/pvr2.c pvr2/pvr2.h \
+	sh4/intc.h sh4/sh4mem.c sh4/timer.c sh4/dmac.c sh4/mmu.c \
+	sh4/sh4core.c sh4/sh4core.h sh4/sh4dasm.c sh4/sh4dasm.h \
+	sh4/sh4mmio.c sh4/sh4mmio.h sh4/scif.c sh4/sh4stat.c \
+	sh4/sh4stat.h sh4/xltcache.c sh4/xltcache.h aica/armcore.c \
+	aica/armcore.h aica/armdasm.c aica/armmem.c aica/aica.c \
+	aica/aica.h aica/audio.c aica/audio.h pvr2/pvr2.c pvr2/pvr2.h \
 	pvr2/pvr2mem.c pvr2/tacore.c pvr2/render.c pvr2/rendcore.c \
 	pvr2/rendbkg.c pvr2/rendsort.c pvr2/texcache.c pvr2/yuv.c \
 	pvr2/rendsave.c maple/maple.c maple/maple.h maple/controller.c \
@@ -308,28 +308,35 @@ am_lxdream_OBJECTS = main.$(OBJEXT) config.$(OBJEXT) mem.$(OBJEXT) \
 	gdrom.$(OBJEXT) nrg.$(OBJEXT) cdi.$(OBJEXT) gdi.$(OBJEXT) \
 	dreamcast.$(OBJEXT) eventq.$(OBJEXT) sh4.$(OBJEXT) \
 	intc.$(OBJEXT) sh4mem.$(OBJEXT) timer.$(OBJEXT) dmac.$(OBJEXT) \
-	sh4core.$(OBJEXT) sh4dasm.$(OBJEXT) sh4mmio.$(OBJEXT) \
-	scif.$(OBJEXT) sh4stat.$(OBJEXT) xltcache.$(OBJEXT) \
-	armcore.$(OBJEXT) armdasm.$(OBJEXT) armmem.$(OBJEXT) \
-	aica.$(OBJEXT) audio.$(OBJEXT) pvr2.$(OBJEXT) pvr2mem.$(OBJEXT) \
-	tacore.$(OBJEXT) render.$(OBJEXT) rendcore.$(OBJEXT) \
-	rendbkg.$(OBJEXT) rendsort.$(OBJEXT) texcache.$(OBJEXT) \
-	yuv.$(OBJEXT) rendsave.$(OBJEXT) maple.$(OBJEXT) \
-	controller.$(OBJEXT) loader.$(OBJEXT) bootstrap.$(OBJEXT) \
-	util.$(OBJEXT) display.$(OBJEXT) audio_null.$(OBJEXT) \
-	video_null.$(OBJEXT) gl_common.$(OBJEXT) gl_fbo.$(OBJEXT) \
-	gl_sl.$(OBJEXT) gl_slsrc.$(OBJEXT) $(am__objects_1) \
-	$(am__objects_2) $(am__objects_3) $(am__objects_4) \
-	$(am__objects_5)
+	mmu.$(OBJEXT) sh4core.$(OBJEXT) sh4dasm.$(OBJEXT) \
+	sh4mmio.$(OBJEXT) scif.$(OBJEXT) sh4stat.$(OBJEXT) \
+	xltcache.$(OBJEXT) armcore.$(OBJEXT) armdasm.$(OBJEXT) \
+	armmem.$(OBJEXT) aica.$(OBJEXT) audio.$(OBJEXT) pvr2.$(OBJEXT) \
+	pvr2mem.$(OBJEXT) tacore.$(OBJEXT) render.$(OBJEXT) \
+	rendcore.$(OBJEXT) rendbkg.$(OBJEXT) rendsort.$(OBJEXT) \
+	texcache.$(OBJEXT) yuv.$(OBJEXT) rendsave.$(OBJEXT) \
+	maple.$(OBJEXT) controller.$(OBJEXT) loader.$(OBJEXT) \
+	bootstrap.$(OBJEXT) util.$(OBJEXT) display.$(OBJEXT) \
+	audio_null.$(OBJEXT) video_null.$(OBJEXT) gl_common.$(OBJEXT) \
+	gl_fbo.$(OBJEXT) gl_sl.$(OBJEXT) gl_slsrc.$(OBJEXT) \
+	$(am__objects_1) $(am__objects_2) $(am__objects_3) \
+	$(am__objects_4) $(am__objects_5)
 lxdream_OBJECTS = $(am_lxdream_OBJECTS)
 lxdream_DEPENDENCIES =
 lxdream_LDFLAGS =
-am_test_testsh4x86_OBJECTS = testsh4x86.$(OBJEXT) x86dasm.$(OBJEXT) \
-	i386-dis.$(OBJEXT) dis-init.$(OBJEXT) dis-buf.$(OBJEXT) \
-	sh4dasm.$(OBJEXT) sh4trans.$(OBJEXT) sh4x86.$(OBJEXT) \
-	xltcache.$(OBJEXT) mem.$(OBJEXT) util.$(OBJEXT)
+am__test_testsh4x86_SOURCES_DIST = test/testsh4x86.c x86dasm/x86dasm.c \
+	x86dasm/x86dasm.h x86dasm/i386-dis.c x86dasm/dis-init.c \
+	x86dasm/dis-buf.c sh4/sh4dasm.c sh4/sh4trans.c sh4/sh4x86.c \
+	sh4/xltcache.c sh4/xltcache.h mem.c util.c
+@BUILD_SH4X86_TRUE@am_test_testsh4x86_OBJECTS = testsh4x86.$(OBJEXT) \
+@BUILD_SH4X86_TRUE@	x86dasm.$(OBJEXT) i386-dis.$(OBJEXT) \
+@BUILD_SH4X86_TRUE@	dis-init.$(OBJEXT) dis-buf.$(OBJEXT) \
+@BUILD_SH4X86_TRUE@	sh4dasm.$(OBJEXT) sh4trans.$(OBJEXT) \
+@BUILD_SH4X86_TRUE@	sh4x86.$(OBJEXT) xltcache.$(OBJEXT) \
+@BUILD_SH4X86_TRUE@	mem.$(OBJEXT) util.$(OBJEXT)
 test_testsh4x86_OBJECTS = $(am_test_testsh4x86_OBJECTS)
-test_testsh4x86_DEPENDENCIES =
+@BUILD_SH4X86_TRUE@test_testsh4x86_DEPENDENCIES =
+@BUILD_SH4X86_FALSE@test_testsh4x86_DEPENDENCIES =
 test_testsh4x86_LDFLAGS =
 am__dirstamp = $(am__leading_dot)dirstamp
 am_test_testxlt_OBJECTS = testxlt.$(OBJEXT) xltcache.$(OBJEXT)
@@ -365,28 +372,29 @@ am__depfiles_maybe = depfiles
 @AMDEP_TRUE@	./$(DEPDIR)/loader.Po ./$(DEPDIR)/main.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/main_win.Po ./$(DEPDIR)/maple.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/mem.Po ./$(DEPDIR)/mmio_win.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/nrg.Po ./$(DEPDIR)/path_dlg.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/pvr2.Po ./$(DEPDIR)/pvr2mem.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/rendbkg.Po ./$(DEPDIR)/rendcore.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/render.Po ./$(DEPDIR)/rendsave.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/rendsort.Po ./$(DEPDIR)/scif.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/sh4.Po ./$(DEPDIR)/sh4core.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/sh4dasm.Po ./$(DEPDIR)/sh4mem.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/sh4mmio.Po ./$(DEPDIR)/sh4stat.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/sh4trans.Po ./$(DEPDIR)/sh4x86.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/syscall.Po ./$(DEPDIR)/tacore.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/testsh4x86.Po ./$(DEPDIR)/testxlt.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/texcache.Po ./$(DEPDIR)/timer.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/util.Po ./$(DEPDIR)/video_glx.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/video_gtk.Po ./$(DEPDIR)/video_null.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/watch.Po ./$(DEPDIR)/x86dasm.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/xltcache.Po ./$(DEPDIR)/yuv.Po
+@AMDEP_TRUE@	./$(DEPDIR)/mmu.Po ./$(DEPDIR)/nrg.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/path_dlg.Po ./$(DEPDIR)/pvr2.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/pvr2mem.Po ./$(DEPDIR)/rendbkg.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/rendcore.Po ./$(DEPDIR)/render.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/rendsave.Po ./$(DEPDIR)/rendsort.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/scif.Po ./$(DEPDIR)/sh4.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/sh4core.Po ./$(DEPDIR)/sh4dasm.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/sh4mem.Po ./$(DEPDIR)/sh4mmio.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/sh4stat.Po ./$(DEPDIR)/sh4trans.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/sh4x86.Po ./$(DEPDIR)/syscall.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/tacore.Po ./$(DEPDIR)/testsh4x86.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/testxlt.Po ./$(DEPDIR)/texcache.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/timer.Po ./$(DEPDIR)/util.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/video_glx.Po ./$(DEPDIR)/video_gtk.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/video_null.Po ./$(DEPDIR)/watch.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/x86dasm.Po ./$(DEPDIR)/xltcache.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/yuv.Po
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
 LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
 DIST_SOURCES = $(gendec_SOURCES) $(genglsl_SOURCES) \
-	$(am__lxdream_SOURCES_DIST) $(test_testsh4x86_SOURCES) \
+	$(am__lxdream_SOURCES_DIST) $(am__test_testsh4x86_SOURCES_DIST) \
 	$(test_testxlt_SOURCES)
 DIST_COMMON = $(srcdir)/Makefile.in Makefile.am
 SOURCES = $(gendec_SOURCES) $(genglsl_SOURCES) $(lxdream_SOURCES) $(test_testsh4x86_SOURCES) $(test_testxlt_SOURCES)
@@ -504,6 +512,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/maple.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mem.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mmio_win.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mmu.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nrg.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/path_dlg.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pvr2.Po@am__quote@
@@ -888,6 +897,28 @@ dmac.obj: sh4/dmac.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/dmac.Po' tmpdepfile='$(DEPDIR)/dmac.TPo' @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o dmac.obj `if test -f 'sh4/dmac.c'; then $(CYGPATH_W) 'sh4/dmac.c'; else $(CYGPATH_W) '$(srcdir)/sh4/dmac.c'; fi`
+
+mmu.o: sh4/mmu.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT mmu.o -MD -MP -MF "$(DEPDIR)/mmu.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o mmu.o `test -f 'sh4/mmu.c' || echo '$(srcdir)/'`sh4/mmu.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/mmu.Tpo" "$(DEPDIR)/mmu.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/mmu.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='sh4/mmu.c' object='mmu.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/mmu.Po' tmpdepfile='$(DEPDIR)/mmu.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o mmu.o `test -f 'sh4/mmu.c' || echo '$(srcdir)/'`sh4/mmu.c
+
+mmu.obj: sh4/mmu.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT mmu.obj -MD -MP -MF "$(DEPDIR)/mmu.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o mmu.obj `if test -f 'sh4/mmu.c'; then $(CYGPATH_W) 'sh4/mmu.c'; else $(CYGPATH_W) '$(srcdir)/sh4/mmu.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/mmu.Tpo" "$(DEPDIR)/mmu.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/mmu.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='sh4/mmu.c' object='mmu.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/mmu.Po' tmpdepfile='$(DEPDIR)/mmu.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o mmu.obj `if test -f 'sh4/mmu.c'; then $(CYGPATH_W) 'sh4/mmu.c'; else $(CYGPATH_W) '$(srcdir)/sh4/mmu.c'; fi`
 
 sh4core.o: sh4/sh4core.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sh4core.o -MD -MP -MF "$(DEPDIR)/sh4core.Tpo" \

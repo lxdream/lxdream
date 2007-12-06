@@ -17,6 +17,7 @@
  * GNU General Public License for more details.
  */
 
+#include "lxdream.h"
 #include "mmio.h"
 
 #if (defined(MMIO_IMPL) && !defined(SH4MMIO_IMPL)) || \
@@ -35,8 +36,8 @@ MMIO_REGION_BEGIN( 0xFF000000, MMU, "MMU Registers" )
     LONG_PORT( 0x008, TTB,  PORT_MRW, UNDEFINED, "Translation table base" )
     LONG_PORT( 0x00C, TEA,  PORT_MRW, UNDEFINED, "TLB exception address" )
     LONG_PORT( 0x010, MMUCR,PORT_MRW, 0, "MMU control register" )
-    BYTE_PORT( 0x14, BASRA, PORT_MRW, UNDEFINED, "Break ASID A" ) /* UBC */
-    BYTE_PORT( 0x18, BASRB, PORT_MRW, UNDEFINED, "Break ASID B" ) /* UBC */
+    BYTE_PORT( 0x014, BASRA, PORT_MRW, UNDEFINED, "Break ASID A" ) /* UBC */
+    BYTE_PORT( 0x018, BASRB, PORT_MRW, UNDEFINED, "Break ASID B" ) /* UBC */
     LONG_PORT( 0x01C, CCR,  PORT_MRW, 0, "Cache control register" )
     LONG_PORT( 0x020, TRA,  PORT_MRW, UNDEFINED, "TRAPA exception register" )
     LONG_PORT( 0x024, EXPEVT,PORT_MRW, 0, "Exception event register" )
@@ -208,7 +209,25 @@ MMIO_REGION_LIST_END
 #define MEM_OC_INDEX0   CCR_ORA
 #define MEM_OC_INDEX1   CCR_ORA|CCR_OIX
 
+/* MMU functions */
 void mmu_init(void);
 void mmu_set_cache_mode( int );
+void mmu_ldtlb(void);
 
+int32_t mmu_icache_addr_read( sh4addr_t addr );
+int32_t mmu_icache_data_read( sh4addr_t addr );
+int32_t mmu_itlb_addr_read( sh4addr_t addr );
+int32_t mmu_itlb_data_read( sh4addr_t addr );
+int32_t mmu_ocache_addr_read( sh4addr_t addr );
+int32_t mmu_ocache_data_read( sh4addr_t addr );
+int32_t mmu_utlb_addr_read( sh4addr_t addr );
+int32_t mmu_utlb_data_read( sh4addr_t addr );
+void mmu_icache_addr_write( sh4addr_t addr, uint32_t val );
+void mmu_icache_data_write( sh4addr_t addr, uint32_t val );
+void mmu_itlb_addr_write( sh4addr_t addr, uint32_t val );
+void mmu_itlb_data_write( sh4addr_t addr, uint32_t val );
+void mmu_ocache_addr_write( sh4addr_t addr, uint32_t val );
+void mmu_ocache_data_write( sh4addr_t addr, uint32_t val );
+void mmu_utlb_addr_write( sh4addr_t addr, uint32_t val );
+void mmu_utlb_data_write( sh4addr_t addr, uint32_t val );
 #endif
