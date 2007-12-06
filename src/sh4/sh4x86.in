@@ -2399,7 +2399,9 @@ LDS.L @Rm+, PR {:
     store_spreg( R_EAX, R_PR );
     sh4_x86.tstate = TSTATE_NONE;
 :}
-LDTLB {:  :}
+LDTLB {:  
+    MMU_ldtlb();
+:}
 OCBI @Rn {:  :}
 OCBP @Rn {:  :}
 OCBWB @Rn {:  :}

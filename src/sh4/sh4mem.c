@@ -17,6 +17,7 @@
  */
 
 #define MODULE sh4_module
+#define ENABLE_TRACE_IO 1
 
 #include <string.h>
 #include <zlib.h>
@@ -73,12 +74,23 @@ int32_t sh4_read_p4( sh4addr_t addr )
 {
     struct mmio_region *io = P4_io[(addr&0x1FFFFFFF)>>19];
     if( !io ) {
-        if( (addr & 0xFF000000) != 0xF4000000 ) {
-	    /* OC address cache isn't implemented, but don't complain about it.
-	     * Complain about anything else though */
-            WARN( "Attempted read from unknown P4 region: %08X", addr );
+	switch( addr & 0x1F000000 ) {
+	case 0x00000000: case 0x01000000: case 0x02000000: case 0x03000000: 
+	    /* Store queue - readable? */
+	    return 0;
+	    break;
+	case 0x10000000: return mmu_icache_addr_read( addr );
+	case 0x11000000: return mmu_icache_data_read( addr );
+	case 0x12000000: return mmu_itlb_addr_read( addr );
+	case 0x13000000: return mmu_itlb_data_read( addr );
+	case 0x14000000: return mmu_ocache_addr_read( addr );
+	case 0x15000000: return mmu_ocache_data_read( addr );
+	case 0x16000000: return mmu_utlb_addr_read( addr );
+	case 0x17000000: return mmu_utlb_data_read( addr );
+	default:
+            WARN( "Attempted read from unknown or invalid P4 region: %08X", addr );
+	    return 0;
         }
-        return 0;
     } else {
 	int32_t val = io->io_read( addr&0xFFF );
 	TRACE_P4IO( "Long read %08X <= %08X", io, (addr&0xFFF), val, addr );
@@ -90,12 +102,20 @@ void sh4_write_p4( sh4addr_t addr, int32_t val )
 {
     struct mmio_region *io = P4_io[(addr&0x1FFFFFFF)>>19];
     if( !io ) {
-        if( (addr & 0xFC000000) == 0xE0000000 ) {
+	switch( addr & 0x1F000000 ) {
+	case 0x00000000: case 0x01000000: case 0x02000000: case 0x03000000: 
             /* Store queue */
             SH4_WRITE_STORE_QUEUE( addr, val );
-        } else if( (addr & 0xFF000000) != 0xF4000000 ) {
-	    /* OC address cache isn't implemented, but don't complain about it.
-	     * Complain about anything else though */
+	    break;
+	case 0x10000000: mmu_icache_addr_write( addr, val ); break;
+	case 0x11000000: mmu_icache_data_write( addr, val ); break;
+	case 0x12000000: mmu_itlb_addr_write( addr, val ); break;
+	case 0x13000000: mmu_itlb_data_write( addr, val ); break;
+	case 0x14000000: mmu_ocache_addr_write( addr, val ); break;
+	case 0x15000000: mmu_ocache_data_write( addr, val ); break;
+	case 0x16000000: mmu_utlb_addr_write( addr, val ); break;
+	case 0x17000000: mmu_utlb_data_write( addr, val ); break;
+	default:
             WARN( "Attempted write to unknown P4 region: %08X", addr );
         }
     } else {

@@ -151,6 +151,7 @@ void MMU_init( void );
 void MMU_reset( void );
 void MMU_save_state( FILE *f );
 int MMU_load_state( FILE *f );
+void MMU_ldtlb();
 void SCIF_update_line_speed(void);
 
 #define SIGNEXT4(n) ((((int32_t)(n))<<28)>>28)

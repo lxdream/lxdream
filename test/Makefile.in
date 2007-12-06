@@ -16,7 +16,7 @@ ARMCFLAGS	= -O2
 ARMLD		= @ARMLD@
 ARMOBJCOPY	= @ARMOBJCOPY@
 
-RUNTEST		= ../src/lxdream -c ./lxdream.rc -puh
+RUNTEST		= ../src/lxdream -c ./lxdream.rc -puh -A null
 
 
 # cygwin
@@ -64,12 +64,12 @@ all: build-tests
 check: build-tests
 	cat testta.data testta2.data testta3.data testta4.data testta5.data | $(RUNTEST) testta
 	$(RUNTEST) testsh4
+	$(RUNTEST) testmmu
 	$(RUNTEST) testregs
-	$(RUNTEST) testmath
-	$(RUNTEST) testide -d ../disc/test.nrg
+#	$(RUNTEST) testide -d ../disc/test.nrg
 
 
-build-tests: testsh4 testmath testide testta testregs testrend testdisp testspu
+build-tests: testsh4 testmath testide testta testregs testrend testdisp testspu testmmu
 
 testsh4: crt0.so sh4/testsh4.so timer.so interrupt.so \
 	 sh4/add.so sh4/addc.so sh4/addv.so sh4/and.so sh4/andi.so \
@@ -85,6 +85,10 @@ testsh4: crt0.so sh4/testsh4.so timer.so interrupt.so \
 testide: crt0.so testide.so ide.so lib.so testdata.so
 	$(SH4CC) $(SH4LDFLAGS) $^ -o $@ $(SH4LIBS)
 	$(SH4OBJCOPY) testide testide.bin
+
+testmmu: crt0.so testmmu.so lib.so 
+	$(SH4CC) $(SH4LDFLAGS) $^ -o $@ $(SH4LIBS)
+	$(SH4OBJCOPY) testmmu testmmu.bin
 
 testmath: crt0.so $(SHARED_OBJECTS) testmath.so math.so
 	$(SH4CC) $(SH4LDFLAGS) $^  -o $@ $(SH4LIBS)

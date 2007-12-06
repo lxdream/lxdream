@@ -70,6 +70,7 @@ int sh4_get_breakpoint( uint32_t pc ) { }
 void event_execute() {}
 void TMU_run_slice( uint32_t nanos ) {}
 void SCIF_run_slice( uint32_t nanos ) {}
+void MMU_ldtlb(void) {}
 void sh4_write_byte( uint32_t addr, uint32_t val ) {}
 void sh4_write_word( uint32_t addr, uint32_t val ) {}
 void sh4_write_long( uint32_t addr, uint32_t val ) {}
