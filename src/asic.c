@@ -374,6 +374,7 @@ void mmio_region_ASIC_write( uint32_t reg, uint32_t val )
 	    pvr_dma_transfer();
 	}
 	break;
+	
     case MAPLE_DMA:
 	MMIO_WRITE( ASIC, reg, val );
 	break;
@@ -463,6 +464,9 @@ MMIO_REGION_WRITE_FN( EXTDMA, reg, val )
     case IDEDMASIZ:
 	MMIO_WRITE( EXTDMA, reg, val & 0x01FFFFFE );
 	break;
+    case IDEDMADIR:
+	MMIO_WRITE( EXTDMA, reg, val & 1 );
+	break;
     case IDEDMACTL1:
     case IDEDMACTL2:
 	MMIO_WRITE( EXTDMA, reg, val & 0x01 );
@@ -478,34 +482,50 @@ MMIO_REGION_WRITE_FN( EXTDMA, reg, val )
 	    idereg.interface_enabled = FALSE;
 	}
 	break;
+    case G2DMA0EXT: case G2DMA0SH4: case G2DMA0SIZ:
+    case G2DMA1EXT: case G2DMA1SH4: case G2DMA1SIZ:
+    case G2DMA2EXT: case G2DMA2SH4: case G2DMA2SIZ:
+    case G2DMA3EXT: case G2DMA3SH4: case G2DMA3SIZ:
+	MMIO_WRITE( EXTDMA, reg, val & 0x9FFFFFE0 );
+	break;
+    case G2DMA0MOD: case G2DMA1MOD: case G2DMA2MOD: case G2DMA3MOD:
+	MMIO_WRITE( EXTDMA, reg, val & 0x07 );
+	break;
+    case G2DMA0DIR: case G2DMA1DIR: case G2DMA2DIR: case G2DMA3DIR:
+	MMIO_WRITE( EXTDMA, reg, val & 0x01 );
+	break;
     case G2DMA0CTL1:
     case G2DMA0CTL2:
-	MMIO_WRITE( EXTDMA, reg, val );
+	MMIO_WRITE( EXTDMA, reg, val & 1);
 	g2_dma_transfer( 0 );
 	break;
     case G2DMA0STOP:
+	MMIO_WRITE( EXTDMA, reg, val & 0x37 );
 	break;
     case G2DMA1CTL1:
     case G2DMA1CTL2:
-	MMIO_WRITE( EXTDMA, reg, val );
+	MMIO_WRITE( EXTDMA, reg, val & 1);
 	g2_dma_transfer( 1 );
 	break;
 
     case G2DMA1STOP:
+	MMIO_WRITE( EXTDMA, reg, val & 0x37 );
 	break;
     case G2DMA2CTL1:
     case G2DMA2CTL2:
-	MMIO_WRITE( EXTDMA, reg, val );
+	MMIO_WRITE( EXTDMA, reg, val &1 );
 	g2_dma_transfer( 2 );
 	break;
     case G2DMA2STOP:
+	MMIO_WRITE( EXTDMA, reg, val & 0x37 );
 	break;
     case G2DMA3CTL1:
     case G2DMA3CTL2:
-	MMIO_WRITE( EXTDMA, reg, val );
+	MMIO_WRITE( EXTDMA, reg, val &1 );
 	g2_dma_transfer( 3 );
 	break;
     case G2DMA3STOP:
+	MMIO_WRITE( EXTDMA, reg, val & 0x37 );
 	break;
     case PVRDMA2CTL1:
     case PVRDMA2CTL2:
