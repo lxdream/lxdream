@@ -66,13 +66,14 @@ static inline void MEM_WRITE_DOUBLE( int addr, int arg2a, int arg2b )
     call_func2(sh4_write_long, addr, arg2b);
 }
 
-#define MEM_READ_DOUBLE_SIZE 35
+#define MEM_READ_DOUBLE_SIZE 43
 /**
  * Read a double (64-bit) value from memory, writing the first word into arg2a
  * and the second into arg2b. The addr must not be in EAX
  */
 static inline void MEM_READ_DOUBLE( int addr, int arg2a, int arg2b )
 {
+    REXW(); SUB_imm8s_r32( 8, R_ESP );
     PUSH_r32(addr);
     call_func1(sh4_read_long, addr);
     POP_r32(R_EDI);
@@ -81,6 +82,7 @@ static inline void MEM_READ_DOUBLE( int addr, int arg2a, int arg2b )
     call_func0(sh4_read_long);
     MOV_r32_r32(R_EAX, arg2b);
     POP_r32(arg2a);
+    REXW(); ADD_imm8s_r32( 8, R_ESP );
 }
 
 
@@ -101,7 +103,6 @@ void sh4_translate_begin_block( sh4addr_t pc )
     sh4_x86.backpatch_posn = 0;
     sh4_x86.block_start_pc = pc;
     sh4_x86.tstate = TSTATE_NONE;
-    sh4_x86.stack_posn = 0;
 }
 
 /**
