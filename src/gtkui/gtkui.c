@@ -349,8 +349,10 @@ void gtk_gui_stop( void )
 
 void gtk_gui_update( void )
 {
-    gtk_gui_enable_action("Run", dreamcast_can_run() && !dreamcast_is_running() );
-    gtk_gui_enable_action("Pause", dreamcast_is_running() );
+    if( global_action_group ) {
+	gtk_gui_enable_action("Run", dreamcast_can_run() && !dreamcast_is_running() );
+	gtk_gui_enable_action("Pause", dreamcast_is_running() );
+    }
     if( debug_win ) {
 	debug_window_set_running( debug_win, FALSE );
 	debug_window_update(debug_win);
