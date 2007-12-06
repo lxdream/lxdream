@@ -186,11 +186,11 @@ test_float_6: ! Test max -int
 	sts fpul, r2
 	mov.l test_float_6_result, r1
 	cmp/eq r1, r2
-	bt test_float_7
+	bt test_float_end
 
 test_float_6_fail:
 	fail test_float_str_k
-	bra test_float_7
+	bra test_float_end
 	nop
 	
 test_float_6_input:
