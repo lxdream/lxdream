@@ -56,12 +56,16 @@
 #if SH4_TRANSLATOR == TARGET_X86_64
 #define OPPTR(x) OP64((uint64_t)(x))
 #define STACK_ALIGN 16
-#define POP_r32(r1)           OP(0x58 + r1); sh4_x86.stack_posn -= 8;
-#define PUSH_r32(r1)          OP(0x50 + r1); sh4_x86.stack_posn += 8;
-#define PUSH_imm32(imm)       OP(0x68); OP32(imm); sh4_x86.stack_posn += 4;
-#define PUSH_imm64(imm)       REXW(); OP(0x68); OP64(imm); sh4_x86.stack_posn += 8;
+#define POP_r32(r1)           OP(0x58 + r1);
+#define POP_realigned_r32(r1)   OP(0x58 + r1); REXW(); ADD_imm8s_r32(8,R_ESP)
+#define PUSH_r32(r1)          OP(0x50 + r1);
+#define PUSH_realigned_r32(r1)  REXW(); SUB_imm8s_r32(8, R_ESP); OP(0x50 + r1)
+#define PUSH_imm32(imm)       OP(0x68); OP32(imm);
+#define PUSH_imm64(imm)       REXW(); OP(0x68); OP64(imm);
 #else
 #define OPPTR(x) OP32((uint32_t)(x))
+#define POP_realigned_r32(r1)   POP_r32(r1)
+#define PUSH_realigned_r32(r1)  PUSH_r32(r1)
 #ifdef APPLE_BUILD
 #define STACK_ALIGN 16
 #define POP_r32(r1)           OP(0x58 + r1); sh4_x86.stack_posn -= 4;

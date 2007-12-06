@@ -45,7 +45,7 @@ struct sh4_x86_state {
     gboolean fpuen_checked; /* true if we've already checked fpu enabled. */
     gboolean branch_taken; /* true if we branched unconditionally */
     uint32_t block_start_pc;
-	uint32_t stack_posn;   /* Trace stack height for alignment purposes */
+    uint32_t stack_posn;   /* Trace stack height for alignment purposes */
     int tstate;
 
     /* Allocated memory for the (block-wide) back-patch list */
@@ -832,11 +832,11 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                         check_ralign32( R_ECX );
                         ADD_imm8s_sh4r( 4, REG_OFFSET(r[Rn]) );
                         MEM_READ_LONG( R_ECX, R_EAX );
-                        PUSH_r32( R_EAX );
+                        PUSH_realigned_r32( R_EAX );
                         load_reg( R_ECX, Rm );
                         ADD_imm8s_sh4r( 4, REG_OFFSET(r[Rm]) );
                         MEM_READ_LONG( R_ECX, R_EAX );
-                        POP_r32( R_ECX );
+                        POP_realigned_r32( R_ECX );
                         IMUL_r32( R_ECX );
                         ADD_r32_sh4r( R_EAX, R_MACL );
                         ADC_r32_sh4r( R_EDX, R_MACH );
@@ -2095,11 +2095,11 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                         check_ralign16( R_ECX );
                         ADD_imm8s_sh4r( 2, REG_OFFSET(r[Rn]) );
                         MEM_READ_WORD( R_ECX, R_EAX );
-                        PUSH_r32( R_EAX );
+                        PUSH_realigned_r32( R_EAX );
                         load_reg( R_ECX, Rm );
                         ADD_imm8s_sh4r( 2, REG_OFFSET(r[Rm]) );
                         MEM_READ_WORD( R_ECX, R_EAX );
-                        POP_r32( R_ECX );
+                        POP_realigned_r32( R_ECX );
                         IMUL_r32( R_ECX );
                     
                         load_spreg( R_ECX, R_S );
@@ -2639,9 +2639,9 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                         load_reg( R_EAX, 0 );
                         load_spreg( R_ECX, R_GBR );
                         ADD_r32_r32( R_EAX, R_ECX );
-                        PUSH_r32(R_ECX);
+                        PUSH_realigned_r32(R_ECX);
                         MEM_READ_BYTE( R_ECX, R_EAX );
-                        POP_r32(R_ECX);
+                        POP_realigned_r32(R_ECX);
                         AND_imm32_r32(imm, R_EAX );
                         MEM_WRITE_BYTE( R_ECX, R_EAX );
                         sh4_x86.tstate = TSTATE_NONE;
@@ -2653,9 +2653,9 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                         load_reg( R_EAX, 0 );
                         load_spreg( R_ECX, R_GBR );
                         ADD_r32_r32( R_EAX, R_ECX );
-                        PUSH_r32(R_ECX);
+                        PUSH_realigned_r32(R_ECX);
                         MEM_READ_BYTE(R_ECX, R_EAX);
-                        POP_r32(R_ECX);
+                        POP_realigned_r32(R_ECX);
                         XOR_imm32_r32( imm, R_EAX );
                         MEM_WRITE_BYTE( R_ECX, R_EAX );
                         sh4_x86.tstate = TSTATE_NONE;
@@ -2667,9 +2667,9 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                         load_reg( R_EAX, 0 );
                         load_spreg( R_ECX, R_GBR );
                         ADD_r32_r32( R_EAX, R_ECX );
-                        PUSH_r32(R_ECX);
+                        PUSH_realigned_r32(R_ECX);
                         MEM_READ_BYTE( R_ECX, R_EAX );
-                        POP_r32(R_ECX);
+                        POP_realigned_r32(R_ECX);
                         OR_imm32_r32(imm, R_EAX );
                         MEM_WRITE_BYTE( R_ECX, R_EAX );
                         sh4_x86.tstate = TSTATE_NONE;
