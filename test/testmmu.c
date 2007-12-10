@@ -62,4 +62,5 @@ void test_tlb_mmio()
 int main( int argc, char *argv[] )
 {
     test_tlb_mmio();
+    return 0;
 }
