@@ -32,11 +32,13 @@ int video_height = 480;
 
 gboolean video_gtk_init();
 void video_gtk_shutdown();
+gboolean video_gtk_display_blank( uint32_t colour );
 uint16_t video_gtk_resolve_keysym( const gchar *keysym );
 
 struct display_driver display_gtk_driver = { "gtk", video_gtk_init, video_gtk_shutdown,
 					     video_gtk_resolve_keysym,
-					     NULL, NULL, NULL, NULL, NULL, NULL, NULL };
+					     NULL, NULL, NULL, NULL, NULL, 
+					     video_gtk_display_blank, NULL };
 
 /**
  * Extract the keyval of the key event if no modifier keys were pressed -
@@ -121,8 +123,24 @@ gboolean video_gtk_init()
     video_height = video_win->allocation.height;
     Display *display = gdk_x11_display_get_xdisplay( gtk_widget_get_display(GTK_WIDGET(video_win)));
     Window window = GDK_WINDOW_XWINDOW( GTK_WIDGET(video_win)->window );
-    video_glx_init_context( display, window );
-    video_glx_init_driver( &display_gtk_driver );
+    if( ! video_glx_init_context( display, window ) ||
+        ! video_glx_init_driver( &display_gtk_driver ) ) {
+        return FALSE;
+    }
+    return TRUE;
+}
+
+gboolean video_gtk_display_blank( uint32_t colour )
+{
+    GdkGC *gc = gdk_gc_new(video_win->window);
+    GdkColor color = {0, ((colour>>16)&0xFF)*257, ((colour>>8)&0xFF)*257, ((colour)&0xFF)*257 };
+    GdkColormap *cmap = gdk_colormap_get_system();
+    gdk_colormap_alloc_color( cmap, &color, TRUE, TRUE );
+    gdk_gc_set_foreground( gc, &color );
+    gdk_gc_set_background( gc, &color );
+    gdk_draw_rectangle( video_win->window, gc, TRUE, 0, 0, video_width, video_height );
+    gdk_gc_destroy(gc);
+    gdk_colormap_free_colors( cmap, &color, 1 );
 }
 
 void video_gtk_shutdown()
