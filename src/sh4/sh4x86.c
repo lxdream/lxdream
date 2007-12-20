@@ -624,7 +624,7 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                                 break;
                             case 0x3:
                                 { /* LDTLB */
-                                MMU_ldtlb();
+                                call_func0( MMU_ldtlb );
                                 }
                                 break;
                             case 0x4:
