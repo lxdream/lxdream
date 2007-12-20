@@ -2400,7 +2400,7 @@ LDS.L @Rm+, PR {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 LDTLB {:  
-    MMU_ldtlb();
+    call_func0( MMU_ldtlb );
 :}
 OCBI @Rn {:  :}
 OCBP @Rn {:  :}
