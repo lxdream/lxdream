@@ -17,7 +17,6 @@
  */
 
 #define MODULE sh4_module
-#define ENABLE_TRACE_IO 1
 
 #include <string.h>
 #include <zlib.h>

@@ -63,7 +63,7 @@ int mem_has_page( uint32_t addr );
 sh4ptr_t mem_get_page( uint32_t addr );
 int mem_load_block( const gchar *filename, uint32_t base, uint32_t size );
 int mem_save_block( const gchar *filename, uint32_t base, uint32_t size );
-void mem_set_trace( uint32_t addr, int flag );
+void mem_set_trace( const gchar *tracelist, int flag );
 void mem_init( void );
 void mem_reset( void );
 void mem_copy_from_sh4( sh4ptr_t dest, sh4addr_t src, size_t count );

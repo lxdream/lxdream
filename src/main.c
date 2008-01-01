@@ -34,13 +34,14 @@
 
 #define S3M_PLAYER "s3mplay.bin"
 
-char *option_list = "a:m:s:A:V:v:puhbd:c:t:xD";
+char *option_list = "a:m:s:A:V:v:puhbd:c:t:T:xD";
 struct option longopts[1] = { { NULL, 0, 0, 0 } };
 char *aica_program = NULL;
 char *s3m_file = NULL;
 const char *disc_file = NULL;
 char *display_driver_name = NULL;
 char *audio_driver_name = NULL;
+char *trace_regions = NULL;
 gboolean start_immediately = FALSE;
 gboolean headless = FALSE;
 gboolean without_bios = FALSE;
@@ -109,6 +110,9 @@ int main (int argc, char *argv[])
 	    time_secs = (uint32_t)t;
 	    time_nanos = (int)((t - time_secs) * 1000000000);
 	    break;
+	case 'T': /* trace regions */
+	    trace_regions = optarg;
+	    break;
 	case 'v': /* Log verbosity */
 	    if( !set_global_log_level(optarg) ) {
 		ERROR( "Unrecognized log level '%s'", optarg );
@@ -131,6 +135,7 @@ int main (int argc, char *argv[])
 	    mem_load_block( s3m_file, 0x00810000, 2048*1024 - 0x10000 );
 	}
     }
+    mem_set_trace( trace_regions, TRUE );
 
     if( without_bios ) {
     	bios_install();
