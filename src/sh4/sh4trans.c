@@ -23,6 +23,9 @@
 #include "sh4/sh4trans.h"
 #include "sh4/xltcache.h"
 
+
+uint32_t last_pc;
+void *last_code;
 /**
  * Execute a timeslice using translated code only (ie translate/execute loop)
  * Note this version does not support breakpoints
@@ -60,9 +63,22 @@ uint32_t sh4_xlat_run_slice( uint32_t nanosecs )
 
 	    code = xlat_get_code(sh4r.pc);
 	    if( code == NULL ) {
+		uint64_t ppa = mmu_vma_to_phys_exec( sh4r.pc );
+		if( ppa>>32 ) {
+		    // not found, exception
+		    ppa = mmu_vma_to_phys_exec( sh4r.pc );
+		    if( ppa>>32 ) {
+			// double fault - halt
+			dreamcast_stop();
+			ERROR( "Double fault - halting" );
+			return nanosecs;
+		    }
+		}
 		code = sh4_translate_basic_block( sh4r.pc );
 	    }
 	}
+        last_pc = sh4r.pc;
+        last_code = code;	
 	code = code();
     }
 

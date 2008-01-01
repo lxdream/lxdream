@@ -30,10 +30,6 @@
 #include "clock.h"
 #include "syscall.h"
 
-#define EXV_EXCEPTION    0x100  /* General exception vector */
-#define EXV_TLBMISS      0x400  /* TLB-miss exception vector */
-#define EXV_INTERRUPT    0x600  /* External interrupt vector */
-
 void sh4_init( void );
 void sh4_xlat_init( void );
 void sh4_reset( void );
@@ -252,6 +248,21 @@ uint32_t sh4_read_sr( void )
 gboolean sh4_raise_exception( int code )
 {
     RAISE( code, EXV_EXCEPTION );
+}
+
+/**
+ * Raise a CPU reset exception with the specified exception code.
+ */
+gboolean sh4_raise_reset( int code )
+{
+    // FIXME: reset modules as per "manual reset"
+    sh4_reset();
+    MMIO_WRITE(MMU,EXPEVT,code);
+    sh4r.vbr = 0;
+    sh4r.pc = 0xA0000000;
+    sh4r.new_pc = sh4r.pc + 2;
+    sh4_write_sr( (sh4r.sr|SR_MD|SR_BL|SR_RB|SR_IMASK)
+		  &(~SR_FD) );
 }
 
 gboolean sh4_raise_trap( int trap )

@@ -34,6 +34,12 @@
 
 #define DEFAULT_BACKPATCH_SIZE 4096
 
+struct backpatch_record {
+    uint32_t *fixup_addr;
+    uint32_t fixup_icount;
+    uint32_t exc_code;
+};
+
 /** 
  * Struct to manage internal translation state. This state is not saved -
  * it is only valid between calls to sh4_translate_begin_block() and
@@ -49,7 +55,7 @@ struct sh4_x86_state {
     int tstate;
 
     /* Allocated memory for the (block-wide) back-patch list */
-    uint32_t **backpatch_list;
+    struct backpatch_record *backpatch_list;
     uint32_t backpatch_posn;
     uint32_t backpatch_size;
 };
@@ -75,14 +81,6 @@ struct sh4_x86_state {
     OP(0x70+ (sh4_x86.tstate^1)); OP(rel8); \
     MARK_JMP(rel8, label)
 
-
-#define EXIT_DATA_ADDR_READ 0
-#define EXIT_DATA_ADDR_WRITE 7
-#define EXIT_ILLEGAL 14
-#define EXIT_SLOT_ILLEGAL 21
-#define EXIT_FPU_DISABLED 28
-#define EXIT_SLOT_FPU_DISABLED 35
-
 static struct sh4_x86_state sh4_x86;
 
 static uint32_t max_int = 0x7FFFFFFF;
@@ -93,26 +91,25 @@ static uint32_t trunc_fcw = 0x0F7F; /* fcw value for truncation mode */
 void sh4_x86_init()
 {
     sh4_x86.backpatch_list = malloc(DEFAULT_BACKPATCH_SIZE);
-    sh4_x86.backpatch_size = DEFAULT_BACKPATCH_SIZE / sizeof(uint32_t *);
+    sh4_x86.backpatch_size = DEFAULT_BACKPATCH_SIZE / sizeof(struct backpatch_record);
 }
 
 
-static void sh4_x86_add_backpatch( uint8_t *ptr )
+static void sh4_x86_add_backpatch( uint8_t *fixup_addr, uint32_t fixup_pc, uint32_t exc_code )
 {
     if( sh4_x86.backpatch_posn == sh4_x86.backpatch_size ) {
 	sh4_x86.backpatch_size <<= 1;
-	sh4_x86.backpatch_list = realloc( sh4_x86.backpatch_list, sh4_x86.backpatch_size * sizeof(uint32_t *) );
+	sh4_x86.backpatch_list = realloc( sh4_x86.backpatch_list, 
+					  sh4_x86.backpatch_size * sizeof(struct backpatch_record));
 	assert( sh4_x86.backpatch_list != NULL );
     }
-    sh4_x86.backpatch_list[sh4_x86.backpatch_posn++] = (uint32_t *)ptr;
-}
-
-static void sh4_x86_do_backpatch( uint8_t *reloc_base )
-{
-    unsigned int i;
-    for( i=0; i<sh4_x86.backpatch_posn; i++ ) {
-	*sh4_x86.backpatch_list[i] += (reloc_base - ((uint8_t *)sh4_x86.backpatch_list[i]) - 4);
+    if( sh4_x86.in_delay_slot ) {
+	fixup_pc -= 2;
     }
+    sh4_x86.backpatch_list[sh4_x86.backpatch_posn].fixup_addr = (uint32_t *)fixup_addr;
+    sh4_x86.backpatch_list[sh4_x86.backpatch_posn].fixup_icount = (fixup_pc - sh4_x86.block_start_pc)>>1;
+    sh4_x86.backpatch_list[sh4_x86.backpatch_posn].exc_code = exc_code;
+    sh4_x86.backpatch_posn++;
 }
 
 /**
@@ -266,97 +263,60 @@ static inline void pop_dr( int bankreg, int frm )
 }
 
 /* Exception checks - Note that all exception checks will clobber EAX */
-#define precheck() load_imm32(R_EDX, (pc-sh4_x86.block_start_pc-(sh4_x86.in_delay_slot?2:0))>>1)
 
 #define check_priv( ) \
     if( !sh4_x86.priv_checked ) { \
 	sh4_x86.priv_checked = TRUE;\
-	precheck();\
 	load_spreg( R_EAX, R_SR );\
 	AND_imm32_r32( SR_MD, R_EAX );\
 	if( sh4_x86.in_delay_slot ) {\
-	    JE_exit( EXIT_SLOT_ILLEGAL );\
+	    JE_exc( EXC_SLOT_ILLEGAL );\
 	} else {\
-	    JE_exit( EXIT_ILLEGAL );\
+	    JE_exc( EXC_ILLEGAL );\
 	}\
     }\
-
-
-static void check_priv_no_precheck()
-{
-    if( !sh4_x86.priv_checked ) {
-	sh4_x86.priv_checked = TRUE;
-	load_spreg( R_EAX, R_SR );
-	AND_imm32_r32( SR_MD, R_EAX );
-	if( sh4_x86.in_delay_slot ) {
-	    JE_exit( EXIT_SLOT_ILLEGAL );
-	} else {
-	    JE_exit( EXIT_ILLEGAL );
-	}
-    }
-}
 
 #define check_fpuen( ) \
     if( !sh4_x86.fpuen_checked ) {\
 	sh4_x86.fpuen_checked = TRUE;\
-	precheck();\
 	load_spreg( R_EAX, R_SR );\
 	AND_imm32_r32( SR_FD, R_EAX );\
 	if( sh4_x86.in_delay_slot ) {\
-	    JNE_exit(EXIT_SLOT_FPU_DISABLED);\
+	    JNE_exc(EXC_SLOT_FPU_DISABLED);\
 	} else {\
-	    JNE_exit(EXIT_FPU_DISABLED);\
+	    JNE_exc(EXC_FPU_DISABLED);\
 	}\
     }
 
-static void check_fpuen_no_precheck()
-{
-    if( !sh4_x86.fpuen_checked ) {
-	sh4_x86.fpuen_checked = TRUE;
-	load_spreg( R_EAX, R_SR );
-	AND_imm32_r32( SR_FD, R_EAX );
-	if( sh4_x86.in_delay_slot ) {
-	    JNE_exit(EXIT_SLOT_FPU_DISABLED);
-	} else {
-	    JNE_exit(EXIT_FPU_DISABLED);
-	}
-    }
+#define check_ralign16( x86reg ) \
+    TEST_imm32_r32( 0x00000001, x86reg ); \
+    JNE_exc(EXC_DATA_ADDR_READ)
 
-}
+#define check_walign16( x86reg ) \
+    TEST_imm32_r32( 0x00000001, x86reg ); \
+    JNE_exc(EXC_DATA_ADDR_WRITE);
 
-static void check_ralign16( int x86reg )
-{
-    TEST_imm32_r32( 0x00000001, x86reg );
-    JNE_exit(EXIT_DATA_ADDR_READ);
-}
+#define check_ralign32( x86reg ) \
+    TEST_imm32_r32( 0x00000003, x86reg ); \
+    JNE_exc(EXC_DATA_ADDR_READ)
 
-static void check_walign16( int x86reg )
-{
-    TEST_imm32_r32( 0x00000001, x86reg );
-    JNE_exit(EXIT_DATA_ADDR_WRITE);
-}
-
-static void check_ralign32( int x86reg )
-{
-    TEST_imm32_r32( 0x00000003, x86reg );
-    JNE_exit(EXIT_DATA_ADDR_READ);
-}
-static void check_walign32( int x86reg )
-{
-    TEST_imm32_r32( 0x00000003, x86reg );
-    JNE_exit(EXIT_DATA_ADDR_WRITE);
-}
+#define check_walign32( x86reg ) \
+    TEST_imm32_r32( 0x00000003, x86reg ); \
+    JNE_exc(EXC_DATA_ADDR_WRITE);
 
 #define UNDEF()
 #define MEM_RESULT(value_reg) if(value_reg != R_EAX) { MOV_r32_r32(R_EAX,value_reg); }
-#define MEM_READ_BYTE( addr_reg, value_reg ) call_func1(sh4_read_byte, addr_reg ); MEM_RESULT(value_reg)
-#define MEM_READ_WORD( addr_reg, value_reg ) call_func1(sh4_read_word, addr_reg ); MEM_RESULT(value_reg)
-#define MEM_READ_LONG( addr_reg, value_reg ) call_func1(sh4_read_long, addr_reg ); MEM_RESULT(value_reg)
-#define MEM_WRITE_BYTE( addr_reg, value_reg ) call_func2(sh4_write_byte, addr_reg, value_reg)
-#define MEM_WRITE_WORD( addr_reg, value_reg ) call_func2(sh4_write_word, addr_reg, value_reg)
-#define MEM_WRITE_LONG( addr_reg, value_reg ) call_func2(sh4_write_long, addr_reg, value_reg)
+#define MEM_READ_BYTE( addr_reg, value_reg ) call_func1(sh4_read_byte, addr_reg ); TEST_r32_r32( R_EDX, R_EDX ); JNE_exc(-1); MEM_RESULT(value_reg) 
+#define MEM_READ_WORD( addr_reg, value_reg ) call_func1(sh4_read_word, addr_reg ); TEST_r32_r32( R_EDX, R_EDX ); JNE_exc(-1); MEM_RESULT(value_reg) 
+#define MEM_READ_LONG( addr_reg, value_reg ) call_func1(sh4_read_long, addr_reg ); TEST_r32_r32( R_EDX, R_EDX ); JNE_exc(-1); MEM_RESULT(value_reg) 
+#define MEM_WRITE_BYTE( addr_reg, value_reg ) call_func2(sh4_write_byte, addr_reg, value_reg); TEST_r32_r32( R_EAX, R_EAX ); JNE_exc(-1);
+#define MEM_WRITE_WORD( addr_reg, value_reg ) call_func2(sh4_write_word, addr_reg, value_reg); TEST_r32_r32( R_EAX, R_EAX ); JNE_exc(-1);
+#define MEM_WRITE_LONG( addr_reg, value_reg ) call_func2(sh4_write_long, addr_reg, value_reg); TEST_r32_r32( R_EAX, R_EAX ); JNE_exc(-1);
 
-#define SLOTILLEGAL() precheck(); JMP_exit(EXIT_SLOT_ILLEGAL); sh4_x86.in_delay_slot = FALSE; return 1;
+#define MEM_READ_SIZE  (CALL_FUNC1_SIZE+8)
+#define MEM_WRITE_SIZE (CALL_FUNC2_SIZE+8)
+
+#define SLOTILLEGAL() JMP_exc(EXC_SLOT_ILLEGAL); sh4_x86.in_delay_slot = FALSE; return 1;
 
 extern uint16_t *sh4_icache;
 extern uint32_t sh4_icache_addr;
@@ -389,7 +349,8 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
     if( sh4_icache != NULL && pageaddr == sh4_icache_addr ) {
 	ir = sh4_icache[(pc&0xFFF)>>1];
     } else {
-	sh4_icache = (uint16_t *)mem_get_page(pc);
+	uint64_t phys = mmu_vma_to_phys_exec(pc);
+	sh4_icache = (uint16_t *)mem_get_page((uint32_t)phys);
 	if( ((uintptr_t)sh4_icache) < MAX_IO_REGIONS ) {
 	    /* If someone's actually been so daft as to try to execute out of an IO
 	     * region, fallback on the full-blown memory read
@@ -540,7 +501,6 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                                 uint32_t Rn = ((ir>>8)&0xF); 
                                 load_reg( R_EAX, 0 );
                                 load_reg( R_ECX, Rn );
-                                precheck();
                                 check_walign32( R_ECX );
                                 MEM_WRITE_LONG( R_ECX, R_EAX );
                                 sh4_x86.tstate = TSTATE_NONE;
@@ -568,7 +528,6 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                         load_reg( R_EAX, 0 );
                         load_reg( R_ECX, Rn );
                         ADD_r32_r32( R_EAX, R_ECX );
-                        precheck();
                         check_walign16( R_ECX );
                         load_reg( R_EAX, Rm );
                         MEM_WRITE_WORD( R_ECX, R_EAX );
@@ -581,7 +540,6 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                         load_reg( R_EAX, 0 );
                         load_reg( R_ECX, Rn );
                         ADD_r32_r32( R_EAX, R_ECX );
-                        precheck();
                         check_walign32( R_ECX );
                         load_reg( R_EAX, Rm );
                         MEM_WRITE_LONG( R_ECX, R_EAX );
@@ -803,7 +761,6 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                         load_reg( R_EAX, 0 );
                         load_reg( R_ECX, Rm );
                         ADD_r32_r32( R_EAX, R_ECX );
-                        precheck();
                         check_ralign16( R_ECX );
                         MEM_READ_WORD( R_ECX, R_EAX );
                         store_reg( R_EAX, Rn );
@@ -816,7 +773,6 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                         load_reg( R_EAX, 0 );
                         load_reg( R_ECX, Rm );
                         ADD_r32_r32( R_EAX, R_ECX );
-                        precheck();
                         check_ralign32( R_ECX );
                         MEM_READ_LONG( R_ECX, R_EAX );
                         store_reg( R_EAX, Rn );
@@ -827,7 +783,6 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                         { /* MAC.L @Rm+, @Rn+ */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
                         load_reg( R_ECX, Rm );
-                        precheck();
                         check_ralign32( R_ECX );
                         load_reg( R_ECX, Rn );
                         check_ralign32( R_ECX );
@@ -861,7 +816,6 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                 load_reg( R_ECX, Rn );
                 load_reg( R_EAX, Rm );
                 ADD_imm32_r32( disp, R_ECX );
-                precheck();
                 check_walign32( R_ECX );
                 MEM_WRITE_LONG( R_ECX, R_EAX );
                 sh4_x86.tstate = TSTATE_NONE;
@@ -882,7 +836,6 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                         { /* MOV.W Rm, @Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
                         load_reg( R_ECX, Rn );
-                        precheck();
                         check_walign16( R_ECX );
                         load_reg( R_EAX, Rm );
                         MEM_WRITE_WORD( R_ECX, R_EAX );
@@ -894,7 +847,6 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
                         load_reg( R_EAX, Rm );
                         load_reg( R_ECX, Rn );
-                        precheck();
                         check_walign32(R_ECX);
                         MEM_WRITE_LONG( R_ECX, R_EAX );
                         sh4_x86.tstate = TSTATE_NONE;
@@ -915,7 +867,6 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                         { /* MOV.W Rm, @-Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
                         load_reg( R_ECX, Rn );
-                        precheck();
                         check_walign16( R_ECX );
                         load_reg( R_EAX, Rm );
                         ADD_imm8s_r32( -2, R_ECX );
@@ -929,7 +880,6 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
                         load_reg( R_EAX, Rm );
                         load_reg( R_ECX, Rn );
-                        precheck();
                         check_walign32( R_ECX );
                         ADD_imm8s_r32( -4, R_ECX );
                         store_reg( R_ECX, Rn );
@@ -1307,7 +1257,6 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                                 { /* STS.L MACH, @-Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
                                 load_reg( R_ECX, Rn );
-                                precheck();
                                 check_walign32( R_ECX );
                                 ADD_imm8s_r32( -4, R_ECX );
                                 store_reg( R_ECX, Rn );
@@ -1320,7 +1269,6 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                                 { /* STS.L MACL, @-Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
                                 load_reg( R_ECX, Rn );
-                                precheck();
                                 check_walign32( R_ECX );
                                 ADD_imm8s_r32( -4, R_ECX );
                                 store_reg( R_ECX, Rn );
@@ -1333,7 +1281,6 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                                 { /* STS.L PR, @-Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
                                 load_reg( R_ECX, Rn );
-                                precheck();
                                 check_walign32( R_ECX );
                                 ADD_imm8s_r32( -4, R_ECX );
                                 store_reg( R_ECX, Rn );
@@ -1345,8 +1292,7 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                             case 0x3:
                                 { /* STC.L SGR, @-Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
-                                precheck();
-                                check_priv_no_precheck();
+                                check_priv();
                                 load_reg( R_ECX, Rn );
                                 check_walign32( R_ECX );
                                 ADD_imm8s_r32( -4, R_ECX );
@@ -1360,7 +1306,6 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                                 { /* STS.L FPUL, @-Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
                                 load_reg( R_ECX, Rn );
-                                precheck();
                                 check_walign32( R_ECX );
                                 ADD_imm8s_r32( -4, R_ECX );
                                 store_reg( R_ECX, Rn );
@@ -1373,7 +1318,6 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                                 { /* STS.L FPSCR, @-Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
                                 load_reg( R_ECX, Rn );
-                                precheck();
                                 check_walign32( R_ECX );
                                 ADD_imm8s_r32( -4, R_ECX );
                                 store_reg( R_ECX, Rn );
@@ -1385,8 +1329,7 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                             case 0xF:
                                 { /* STC.L DBR, @-Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
-                                precheck();
-                                check_priv_no_precheck();
+                                check_priv();
                                 load_reg( R_ECX, Rn );
                                 check_walign32( R_ECX );
                                 ADD_imm8s_r32( -4, R_ECX );
@@ -1408,8 +1351,7 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                                     case 0x0:
                                         { /* STC.L SR, @-Rn */
                                         uint32_t Rn = ((ir>>8)&0xF); 
-                                        precheck();
-                                        check_priv_no_precheck();
+                                        check_priv();
                                         call_func0( sh4_read_sr );
                                         load_reg( R_ECX, Rn );
                                         check_walign32( R_ECX );
@@ -1423,7 +1365,6 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                                         { /* STC.L GBR, @-Rn */
                                         uint32_t Rn = ((ir>>8)&0xF); 
                                         load_reg( R_ECX, Rn );
-                                        precheck();
                                         check_walign32( R_ECX );
                                         ADD_imm8s_r32( -4, R_ECX );
                                         store_reg( R_ECX, Rn );
@@ -1435,8 +1376,7 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                                     case 0x2:
                                         { /* STC.L VBR, @-Rn */
                                         uint32_t Rn = ((ir>>8)&0xF); 
-                                        precheck();
-                                        check_priv_no_precheck();
+                                        check_priv();
                                         load_reg( R_ECX, Rn );
                                         check_walign32( R_ECX );
                                         ADD_imm8s_r32( -4, R_ECX );
@@ -1449,8 +1389,7 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                                     case 0x3:
                                         { /* STC.L SSR, @-Rn */
                                         uint32_t Rn = ((ir>>8)&0xF); 
-                                        precheck();
-                                        check_priv_no_precheck();
+                                        check_priv();
                                         load_reg( R_ECX, Rn );
                                         check_walign32( R_ECX );
                                         ADD_imm8s_r32( -4, R_ECX );
@@ -1463,8 +1402,7 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                                     case 0x4:
                                         { /* STC.L SPC, @-Rn */
                                         uint32_t Rn = ((ir>>8)&0xF); 
-                                        precheck();
-                                        check_priv_no_precheck();
+                                        check_priv();
                                         load_reg( R_ECX, Rn );
                                         check_walign32( R_ECX );
                                         ADD_imm8s_r32( -4, R_ECX );
@@ -1482,8 +1420,7 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                             case 0x1:
                                 { /* STC.L Rm_BANK, @-Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm_BANK = ((ir>>4)&0x7); 
-                                precheck();
-                                check_priv_no_precheck();
+                                check_priv();
                                 load_reg( R_ECX, Rn );
                                 check_walign32( R_ECX );
                                 ADD_imm8s_r32( -4, R_ECX );
@@ -1570,7 +1507,6 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                                 { /* LDS.L @Rm+, MACH */
                                 uint32_t Rm = ((ir>>8)&0xF); 
                                 load_reg( R_EAX, Rm );
-                                precheck();
                                 check_ralign32( R_EAX );
                                 MOV_r32_r32( R_EAX, R_ECX );
                                 ADD_imm8s_r32( 4, R_EAX );
@@ -1584,7 +1520,6 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                                 { /* LDS.L @Rm+, MACL */
                                 uint32_t Rm = ((ir>>8)&0xF); 
                                 load_reg( R_EAX, Rm );
-                                precheck();
                                 check_ralign32( R_EAX );
                                 MOV_r32_r32( R_EAX, R_ECX );
                                 ADD_imm8s_r32( 4, R_EAX );
@@ -1598,7 +1533,6 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                                 { /* LDS.L @Rm+, PR */
                                 uint32_t Rm = ((ir>>8)&0xF); 
                                 load_reg( R_EAX, Rm );
-                                precheck();
                                 check_ralign32( R_EAX );
                                 MOV_r32_r32( R_EAX, R_ECX );
                                 ADD_imm8s_r32( 4, R_EAX );
@@ -1611,8 +1545,7 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                             case 0x3:
                                 { /* LDC.L @Rm+, SGR */
                                 uint32_t Rm = ((ir>>8)&0xF); 
-                                precheck();
-                                check_priv_no_precheck();
+                                check_priv();
                                 load_reg( R_EAX, Rm );
                                 check_ralign32( R_EAX );
                                 MOV_r32_r32( R_EAX, R_ECX );
@@ -1627,7 +1560,6 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                                 { /* LDS.L @Rm+, FPUL */
                                 uint32_t Rm = ((ir>>8)&0xF); 
                                 load_reg( R_EAX, Rm );
-                                precheck();
                                 check_ralign32( R_EAX );
                                 MOV_r32_r32( R_EAX, R_ECX );
                                 ADD_imm8s_r32( 4, R_EAX );
@@ -1641,7 +1573,6 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                                 { /* LDS.L @Rm+, FPSCR */
                                 uint32_t Rm = ((ir>>8)&0xF); 
                                 load_reg( R_EAX, Rm );
-                                precheck();
                                 check_ralign32( R_EAX );
                                 MOV_r32_r32( R_EAX, R_ECX );
                                 ADD_imm8s_r32( 4, R_EAX );
@@ -1655,8 +1586,7 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                             case 0xF:
                                 { /* LDC.L @Rm+, DBR */
                                 uint32_t Rm = ((ir>>8)&0xF); 
-                                precheck();
-                                check_priv_no_precheck();
+                                check_priv();
                                 load_reg( R_EAX, Rm );
                                 check_ralign32( R_EAX );
                                 MOV_r32_r32( R_EAX, R_ECX );
@@ -1682,8 +1612,7 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                                         if( sh4_x86.in_delay_slot ) {
                                     	SLOTILLEGAL();
                                         } else {
-                                    	precheck();
-                                    	check_priv_no_precheck();
+                                    	check_priv();
                                     	load_reg( R_EAX, Rm );
                                     	check_ralign32( R_EAX );
                                     	MOV_r32_r32( R_EAX, R_ECX );
@@ -1701,7 +1630,6 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                                         { /* LDC.L @Rm+, GBR */
                                         uint32_t Rm = ((ir>>8)&0xF); 
                                         load_reg( R_EAX, Rm );
-                                        precheck();
                                         check_ralign32( R_EAX );
                                         MOV_r32_r32( R_EAX, R_ECX );
                                         ADD_imm8s_r32( 4, R_EAX );
@@ -1714,8 +1642,7 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                                     case 0x2:
                                         { /* LDC.L @Rm+, VBR */
                                         uint32_t Rm = ((ir>>8)&0xF); 
-                                        precheck();
-                                        check_priv_no_precheck();
+                                        check_priv();
                                         load_reg( R_EAX, Rm );
                                         check_ralign32( R_EAX );
                                         MOV_r32_r32( R_EAX, R_ECX );
@@ -1729,8 +1656,7 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                                     case 0x3:
                                         { /* LDC.L @Rm+, SSR */
                                         uint32_t Rm = ((ir>>8)&0xF); 
-                                        precheck();
-                                        check_priv_no_precheck();
+                                        check_priv();
                                         load_reg( R_EAX, Rm );
                                         check_ralign32( R_EAX );
                                         MOV_r32_r32( R_EAX, R_ECX );
@@ -1744,8 +1670,7 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                                     case 0x4:
                                         { /* LDC.L @Rm+, SPC */
                                         uint32_t Rm = ((ir>>8)&0xF); 
-                                        precheck();
-                                        check_priv_no_precheck();
+                                        check_priv();
                                         load_reg( R_EAX, Rm );
                                         check_ralign32( R_EAX );
                                         MOV_r32_r32( R_EAX, R_ECX );
@@ -1764,8 +1689,7 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                             case 0x1:
                                 { /* LDC.L @Rm+, Rn_BANK */
                                 uint32_t Rm = ((ir>>8)&0xF); uint32_t Rn_BANK = ((ir>>4)&0x7); 
-                                precheck();
-                                check_priv_no_precheck();
+                                check_priv();
                                 load_reg( R_EAX, Rm );
                                 check_ralign32( R_EAX );
                                 MOV_r32_r32( R_EAX, R_ECX );
@@ -2090,7 +2014,6 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                         { /* MAC.W @Rm+, @Rn+ */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
                         load_reg( R_ECX, Rm );
-                        precheck();
                         check_ralign16( R_ECX );
                         load_reg( R_ECX, Rn );
                         check_ralign16( R_ECX );
@@ -2137,7 +2060,6 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                 uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); uint32_t disp = (ir&0xF)<<2; 
                 load_reg( R_ECX, Rm );
                 ADD_imm8s_r32( disp, R_ECX );
-                precheck();
                 check_ralign32( R_ECX );
                 MEM_READ_LONG( R_ECX, R_EAX );
                 store_reg( R_EAX, Rn );
@@ -2159,7 +2081,6 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                         { /* MOV.W @Rm, Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
                         load_reg( R_ECX, Rm );
-                        precheck();
                         check_ralign16( R_ECX );
                         MEM_READ_WORD( R_ECX, R_EAX );
                         store_reg( R_EAX, Rn );
@@ -2170,7 +2091,6 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                         { /* MOV.L @Rm, Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
                         load_reg( R_ECX, Rm );
-                        precheck();
                         check_ralign32( R_ECX );
                         MEM_READ_LONG( R_ECX, R_EAX );
                         store_reg( R_EAX, Rn );
@@ -2200,7 +2120,6 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                         { /* MOV.W @Rm+, Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
                         load_reg( R_EAX, Rm );
-                        precheck();
                         check_ralign16( R_EAX );
                         MOV_r32_r32( R_EAX, R_ECX );
                         ADD_imm8s_r32( 2, R_EAX );
@@ -2214,7 +2133,6 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                         { /* MOV.L @Rm+, Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
                         load_reg( R_EAX, Rm );
-                        precheck();
                         check_ralign32( R_EAX );
                         MOV_r32_r32( R_EAX, R_ECX );
                         ADD_imm8s_r32( 4, R_EAX );
@@ -2335,7 +2253,6 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                         load_reg( R_ECX, Rn );
                         load_reg( R_EAX, 0 );
                         ADD_imm32_r32( disp, R_ECX );
-                        precheck();
                         check_walign16( R_ECX );
                         MEM_WRITE_WORD( R_ECX, R_EAX );
                         sh4_x86.tstate = TSTATE_NONE;
@@ -2356,7 +2273,6 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                         uint32_t Rm = ((ir>>4)&0xF); uint32_t disp = (ir&0xF)<<1; 
                         load_reg( R_ECX, Rm );
                         ADD_imm32_r32( disp, R_ECX );
-                        precheck();
                         check_ralign16( R_ECX );
                         MEM_READ_WORD( R_ECX, R_EAX );
                         store_reg( R_EAX, 0 );
@@ -2506,7 +2422,6 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                         load_spreg( R_ECX, R_GBR );
                         load_reg( R_EAX, 0 );
                         ADD_imm32_r32( disp, R_ECX );
-                        precheck();
                         check_walign16( R_ECX );
                         MEM_WRITE_WORD( R_ECX, R_EAX );
                         sh4_x86.tstate = TSTATE_NONE;
@@ -2518,7 +2433,6 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                         load_spreg( R_ECX, R_GBR );
                         load_reg( R_EAX, 0 );
                         ADD_imm32_r32( disp, R_ECX );
-                        precheck();
                         check_walign32( R_ECX );
                         MEM_WRITE_LONG( R_ECX, R_EAX );
                         sh4_x86.tstate = TSTATE_NONE;
@@ -2556,7 +2470,6 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                         uint32_t disp = (ir&0xFF)<<1; 
                         load_spreg( R_ECX, R_GBR );
                         ADD_imm32_r32( disp, R_ECX );
-                        precheck();
                         check_ralign16( R_ECX );
                         MEM_READ_WORD( R_ECX, R_EAX );
                         store_reg( R_EAX, 0 );
@@ -2568,7 +2481,6 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                         uint32_t disp = (ir&0xFF)<<2; 
                         load_spreg( R_ECX, R_GBR );
                         ADD_imm32_r32( disp, R_ECX );
-                        precheck();
                         check_ralign32( R_ECX );
                         MEM_READ_LONG( R_ECX, R_EAX );
                         store_reg( R_EAX, 0 );
@@ -2685,7 +2597,7 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
             	SLOTILLEGAL();
                 } else {
             	uint32_t target = (pc & 0xFFFFFFFC) + disp + 4;
-            	sh4ptr_t ptr = mem_get_region(target);
+            	sh4ptr_t ptr = sh4_get_region_by_vma(target);
             	if( ptr != NULL ) {
             	    MOV_moff32_EAX( ptr );
             	} else {
@@ -2839,14 +2751,13 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                     case 0x6:
                         { /* FMOV @(R0, Rm), FRn */
                         uint32_t FRn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
-                        precheck();
-                        check_fpuen_no_precheck();
+                        check_fpuen();
                         load_reg( R_ECX, Rm );
                         ADD_sh4r_r32( REG_OFFSET(r[0]), R_ECX );
                         check_ralign32( R_ECX );
                         load_spreg( R_EDX, R_FPSCR );
                         TEST_imm32_r32( FPSCR_SZ, R_EDX );
-                        JNE_rel8(8 + CALL_FUNC1_SIZE, doublesize);
+                        JNE_rel8(8 + MEM_READ_SIZE, doublesize);
                         MEM_READ_LONG( R_ECX, R_EAX );
                         load_fr_bank( R_EDX );
                         store_fr( R_EDX, R_EAX, FRn );
@@ -2874,14 +2785,13 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                     case 0x7:
                         { /* FMOV FRm, @(R0, Rn) */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t FRm = ((ir>>4)&0xF); 
-                        precheck();
-                        check_fpuen_no_precheck();
+                        check_fpuen();
                         load_reg( R_ECX, Rn );
                         ADD_sh4r_r32( REG_OFFSET(r[0]), R_ECX );
                         check_walign32( R_ECX );
                         load_spreg( R_EDX, R_FPSCR );
                         TEST_imm32_r32( FPSCR_SZ, R_EDX );
-                        JNE_rel8(8 + CALL_FUNC2_SIZE, doublesize);
+                        JNE_rel8(8 + MEM_WRITE_SIZE, doublesize);
                         load_fr_bank( R_EDX );
                         load_fr( R_EDX, R_EAX, FRm );
                         MEM_WRITE_LONG( R_ECX, R_EAX ); // 12
@@ -2908,13 +2818,12 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                     case 0x8:
                         { /* FMOV @Rm, FRn */
                         uint32_t FRn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
-                        precheck();
-                        check_fpuen_no_precheck();
+                        check_fpuen();
                         load_reg( R_ECX, Rm );
                         check_ralign32( R_ECX );
                         load_spreg( R_EDX, R_FPSCR );
                         TEST_imm32_r32( FPSCR_SZ, R_EDX );
-                        JNE_rel8(8 + CALL_FUNC1_SIZE, doublesize);
+                        JNE_rel8(8 + MEM_READ_SIZE, doublesize);
                         MEM_READ_LONG( R_ECX, R_EAX );
                         load_fr_bank( R_EDX );
                         store_fr( R_EDX, R_EAX, FRn );
@@ -2942,14 +2851,13 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                     case 0x9:
                         { /* FMOV @Rm+, FRn */
                         uint32_t FRn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
-                        precheck();
-                        check_fpuen_no_precheck();
+                        check_fpuen();
                         load_reg( R_ECX, Rm );
                         check_ralign32( R_ECX );
                         MOV_r32_r32( R_ECX, R_EAX );
                         load_spreg( R_EDX, R_FPSCR );
                         TEST_imm32_r32( FPSCR_SZ, R_EDX );
-                        JNE_rel8(14 + CALL_FUNC1_SIZE, doublesize);
+                        JNE_rel8(14 + MEM_READ_SIZE, doublesize);
                         ADD_imm8s_r32( 4, R_EAX );
                         store_reg( R_EAX, Rm );
                         MEM_READ_LONG( R_ECX, R_EAX );
@@ -2982,13 +2890,12 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                     case 0xA:
                         { /* FMOV FRm, @Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t FRm = ((ir>>4)&0xF); 
-                        precheck();
-                        check_fpuen_no_precheck();
+                        check_fpuen();
                         load_reg( R_ECX, Rn );
                         check_walign32( R_ECX );
                         load_spreg( R_EDX, R_FPSCR );
                         TEST_imm32_r32( FPSCR_SZ, R_EDX );
-                        JNE_rel8(8 + CALL_FUNC2_SIZE, doublesize);
+                        JNE_rel8(8 + MEM_WRITE_SIZE, doublesize);
                         load_fr_bank( R_EDX );
                         load_fr( R_EDX, R_EAX, FRm );
                         MEM_WRITE_LONG( R_ECX, R_EAX ); // 12
@@ -3015,13 +2922,12 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                     case 0xB:
                         { /* FMOV FRm, @-Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t FRm = ((ir>>4)&0xF); 
-                        precheck();
-                        check_fpuen_no_precheck();
+                        check_fpuen();
                         load_reg( R_ECX, Rn );
                         check_walign32( R_ECX );
                         load_spreg( R_EDX, R_FPSCR );
                         TEST_imm32_r32( FPSCR_SZ, R_EDX );
-                        JNE_rel8(14 + CALL_FUNC2_SIZE, doublesize);
+                        JNE_rel8(14 + MEM_WRITE_SIZE, doublesize);
                         load_fr_bank( R_EDX );
                         load_fr( R_EDX, R_EAX, FRm );
                         ADD_imm8s_r32(-4,R_ECX);
@@ -3405,8 +3311,7 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                                                         if( sh4_x86.in_delay_slot ) {
                                                     	SLOTILLEGAL();
                                                         } else {
-                                                    	precheck();
-                                                    	JMP_exit(EXIT_ILLEGAL);
+                                                    	JMP_exc(EXC_ILLEGAL);
                                                     	return 2;
                                                         }
                                                         }

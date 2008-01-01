@@ -153,26 +153,9 @@ void sh4_translate_end_block( sh4addr_t pc ) {
 	exit_block( pc, pc );
     }
     if( sh4_x86.backpatch_posn != 0 ) {
-	uint8_t *end_ptr = xlat_output;
-	// Exception termination. Jump block for various exception codes:
-	PUSH_imm32( EXC_DATA_ADDR_READ );
-	JMP_rel8( 33, target1 );
-	PUSH_imm32( EXC_DATA_ADDR_WRITE );
-	JMP_rel8( 26, target2 );
-	PUSH_imm32( EXC_ILLEGAL );
-	JMP_rel8( 19, target3 );
-	PUSH_imm32( EXC_SLOT_ILLEGAL ); 
-	JMP_rel8( 12, target4 );
-	PUSH_imm32( EXC_FPU_DISABLED ); 
-	JMP_rel8( 5, target5 );
-	PUSH_imm32( EXC_SLOT_FPU_DISABLED );
-	// target
-	JMP_TARGET(target1);
-	JMP_TARGET(target2);
-	JMP_TARGET(target3);
-	JMP_TARGET(target4);
-	JMP_TARGET(target5);
+	unsigned int i;
 	// Raise exception
+	uint8_t *end_ptr = xlat_output;
 	load_spreg( R_ECX, REG_OFFSET(pc) );
 	ADD_r32_r32( R_EDX, R_ECX );
 	ADD_r32_r32( R_EDX, R_ECX );
@@ -188,7 +171,34 @@ void sh4_translate_end_block( sh4addr_t pc ) {
 	POP_r32(R_EBP);
 	RET();
 
-	sh4_x86_do_backpatch( end_ptr );
+	// Exception already raised - just cleanup
+	uint8_t *preexc_ptr = xlat_output;
+	load_imm32( R_ECX, sh4_x86.block_start_pc );
+	ADD_r32_r32( R_EDX, R_ECX );
+	ADD_r32_r32( R_EDX, R_ECX );
+	store_spreg( R_ECX, REG_OFFSET(spc) );
+	MOV_moff32_EAX( &sh4_cpu_period );
+	MUL_r32( R_EDX );
+	ADD_r32_sh4r( R_EAX, REG_OFFSET(slice_cycle) );
+	load_spreg( R_EAX, REG_OFFSET(pc) );
+	call_func1(xlat_get_code,R_EAX);
+	POP_r32(R_EBP);
+	RET();
+
+	for( i=0; i< sh4_x86.backpatch_posn; i++ ) {
+	    *sh4_x86.backpatch_list[i].fixup_addr =
+		xlat_output - ((uint8_t *)sh4_x86.backpatch_list[i].fixup_addr) - 4;
+	    if( sh4_x86.backpatch_list[i].exc_code == -1 ) {
+		load_imm32( R_EDX, sh4_x86.backpatch_list[i].fixup_icount );
+		int rel = preexc_ptr - xlat_output;
+		JMP_rel(rel);
+	    } else {
+		PUSH_imm32( sh4_x86.backpatch_list[i].exc_code );
+		load_imm32( R_EDX, sh4_x86.backpatch_list[i].fixup_icount );
+		int rel = end_ptr - xlat_output;
+		JMP_rel(rel);
+	    }
+	}
     }
 }
 
