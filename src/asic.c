@@ -25,7 +25,7 @@
 #include "mem.h"
 #include "sh4/intc.h"
 #include "sh4/dmac.h"
-#include "sh4/sh4core.h"
+#include "sh4/sh4.h"
 #include "dreamcast.h"
 #include "maple/maple.h"
 #include "gdrom/ide.h"
@@ -387,11 +387,6 @@ int32_t mmio_region_ASIC_read( uint32_t reg )
 {
     int32_t val;
     switch( reg ) {
-        /*
-        case 0x89C:
-            sh4_stop();
-            return 0x000000B;
-        */     
     case PIRQ0:
     case PIRQ1:
     case PIRQ2:
@@ -531,8 +526,6 @@ MMIO_REGION_WRITE_FN( EXTDMA, reg, val )
     case PVRDMA2CTL2:
 	if( val != 0 ) {
 	    ERROR( "Write to unimplemented DMA control register %08X", reg );
-	    //dreamcast_stop();
-	    //sh4_stop();
 	}
 	break;
     default:

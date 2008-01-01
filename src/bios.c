@@ -20,7 +20,7 @@
 #include "mem.h"
 #include "syscall.h"
 #include "dreamcast.h"
-#include "sh4/sh4core.h"
+#include "sh4/sh4.h"
 
 #define COMMAND_QUEUE_LENGTH 16
 

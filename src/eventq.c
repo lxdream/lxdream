@@ -23,7 +23,7 @@
 #include "dreamcast.h"
 #include "eventq.h"
 #include "asic.h"
-#include "sh4core.h"
+#include "sh4.h"
 
 #define LONG_SCAN_PERIOD 1000000000 /* 1 second */
 

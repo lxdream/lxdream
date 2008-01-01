@@ -22,7 +22,7 @@
 #include "x86dasm.h"
 #include "bfd.h"
 #include "dis-asm.h"
-#include "sh4/sh4core.h"
+#include "sh4/sh4.h"
 #include "sh4/sh4trans.h"
 
 extern const struct reg_desc_struct sh4_reg_map[];

@@ -19,7 +19,7 @@
 #include "dream.h"
 #include "mem.h"
 #include "syscall.h"
-#include "sh4/sh4core.h"
+#include "sh4/sh4.h"
 
 
 struct syscall_hook {

@@ -24,7 +24,7 @@
 #include "mem.h"
 #include "dreamcast.h"
 #include "syscall.h"
-#include "sh4/sh4core.h"
+#include "sh4/sh4.h"
 
 #define SYS_READ 0
 #define SYS_WRITE 1
