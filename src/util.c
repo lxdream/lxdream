@@ -278,6 +278,30 @@ frame_buffer_t read_png_from_stream( FILE *f )
     return buffer;
 }
 
+int get_log_level_from_string( const gchar *str )
+{
+    switch( tolower(str[0]) ) {
+    case 'd': return EMIT_DEBUG;
+    case 'e': return EMIT_ERR;
+    case 'f': return EMIT_FATAL;
+    case 'i': return EMIT_INFO;
+    case 't': return EMIT_TRACE;
+    case 'w': return EMIT_WARN;
+    default: return -1;
+    }
+}
+
+gboolean set_global_log_level( const gchar *str ) 
+{
+    int l = get_log_level_from_string(str);
+    if( l == -1 ) {
+	return FALSE;
+    } else {
+	global_msg_level = l;
+	return TRUE;
+    }
+}
+
 void log_message( void *ptr, int level, const gchar *source, const char *msg, ... )
 {
     char buf[20];

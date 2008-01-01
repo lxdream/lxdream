@@ -67,6 +67,7 @@ typedef struct frame_buffer *frame_buffer_t;
 #define MODULE_NAME "*****"
 #endif
 
+gboolean set_global_log_level( const gchar *level );
 void log_message( void *, int level, const char *source, const char *msg, ... );
 
 #define FATAL( ... ) log_message( NULL, EMIT_FATAL, MODULE_NAME, __VA_ARGS__ )
