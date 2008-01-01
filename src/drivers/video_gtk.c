@@ -24,6 +24,7 @@
 #include "display.h"
 #include "drivers/video_glx.h"
 #include "drivers/gl_common.h"
+#include "pvr2/pvr2.h"
 #include "gtkui/gtkui.h"
 
 static GtkWidget *video_win = NULL;
