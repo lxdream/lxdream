@@ -1,5 +1,5 @@
 /**
- * $Id: cpu.h,v 1.9 2007-10-08 11:50:15 nkeynes Exp $
+ * $Id$
  * 
  * Generic CPU definitions, primarily for providing information to the GUI.
  *

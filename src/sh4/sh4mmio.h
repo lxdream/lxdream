@@ -1,5 +1,5 @@
 /**
- * $Id: sh4mmio.h,v 1.4 2005-12-25 05:57:00 nkeynes Exp $
+ * $Id$
  * 
  * MMIO region and supporting function declarations. Private to the sh4
  * module.

@@ -3,7 +3,7 @@
 
    (c)2000 Dan Potter
 
-   $Id: bin2c.c,v 1.1 2006-07-11 01:35:23 nkeynes Exp $
+   $Id$
    Note: Licensed under the new BSD license, see README.KOS  -NK
 */
 

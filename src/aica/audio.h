@@ -1,5 +1,5 @@
 /**
- * $Id: audio.h,v 1.10 2007-10-27 05:47:21 nkeynes Exp $
+ * $Id$
  * 
  * Audio engine, ie the part that does the actual work.
  *

@@ -1,5 +1,5 @@
 /**
- * $Id: debug_win.c,v 1.29 2007-11-10 04:45:29 nkeynes Exp $
+ * $Id$
  * This file is responsible for the main debugger gui frame.
  *
  * Copyright (c) 2005 Nathan Keynes.

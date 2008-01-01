@@ -1,5 +1,5 @@
 /**
- * $Id: packet.h,v 1.8 2007-11-06 08:35:33 nkeynes Exp $
+ * $Id$
  *
  * This file defines the command codes and any other flags used by the 
  * GD-Rom ATAPI packet commands.

@@ -1,5 +1,5 @@
 /**
- * $Id: gl_common.c,v 1.7 2007-10-31 12:05:23 nkeynes Exp $
+ * $Id$
  *
  * Common GL code that doesn't depend on a specific implementation
  *

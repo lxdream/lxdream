@@ -1,5 +1,5 @@
 /**
- * $Id: mmio_win.c,v 1.11 2007-11-10 04:45:29 nkeynes Exp $
+ * $Id$
  *
  * Implements the MMIO register viewing window
  *

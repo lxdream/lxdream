@@ -1,5 +1,5 @@
 /**
- * $Id: linux.c,v 1.9 2007-11-04 05:07:49 nkeynes Exp $
+ * $Id$
  *
  * Linux cd-rom device driver. 
  *

@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.h,v 1.38 2007-10-31 12:05:23 nkeynes Exp $
+ * $Id$
  *
  * PVR2 (video chip) functions and macros.
  *

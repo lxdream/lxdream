@@ -1,6 +1,6 @@
 
 /**
- * $Id: gdrom.c,v 1.19 2007-11-06 08:35:16 nkeynes Exp $
+ * $Id$
  *
  * GD-Rom  access functions.
  *

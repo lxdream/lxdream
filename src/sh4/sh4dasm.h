@@ -1,5 +1,5 @@
 /**
- * $Id: sh4dasm.h,v 1.6 2006-01-01 08:08:40 nkeynes Exp $
+ * $Id$
  * 
  * SH4 CPU definition and disassembly function declarations
  *

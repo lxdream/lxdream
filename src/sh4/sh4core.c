@@ -1,5 +1,5 @@
 /**
- * $Id: sh4core.in,v 1.10 2007-11-04 08:49:18 nkeynes Exp $
+ * $Id$
  * 
  * SH4 emulation core, and parent module for all the SH4 peripheral
  * modules.

@@ -1,5 +1,5 @@
 /**
- * $Id: sh4trans.h,v 1.4 2007-09-29 11:06:40 nkeynes Exp $
+ * $Id$
  * 
  * SH4->x86 translation module
  *

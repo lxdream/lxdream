@@ -1,5 +1,5 @@
 /**
- * $Id: xltcache.h,v 1.7 2007-10-06 09:03:24 nkeynes Exp $
+ * $Id$
  * 
  * Translation cache support (architecture independent)
  *

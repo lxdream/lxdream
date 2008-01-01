@@ -1,5 +1,5 @@
 /**
- * $Id: gl_fbo.c,v 1.7 2007-10-31 09:10:23 nkeynes Exp $
+ * $Id$
  *
  * GL framebuffer-based driver shell. This requires the EXT_framebuffer_object
  * extension, but is much nicer/faster/etc than pbuffers when it's available.

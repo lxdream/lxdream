@@ -1,5 +1,5 @@
 /**
- * $Id: gui.h,v 1.3 2007-10-31 11:53:35 nkeynes Exp $
+ * $Id$
  *
  * Public GUI declarations (used from elsewhere in the system)
  *

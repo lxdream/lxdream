@@ -1,5 +1,5 @@
 /**
- * $Id: sh4stat.h,v 1.2 2007-10-06 09:03:24 nkeynes Exp $
+ * $Id$
  * 
  * Support module for collecting instruction stats
  *

@@ -1,5 +1,5 @@
 /**
- * $Id: texcache.c,v 1.29 2007-10-31 09:10:23 nkeynes Exp $
+ * $Id$
  *
  * Texture cache. Responsible for maintaining a working set of OpenGL 
  * textures. 

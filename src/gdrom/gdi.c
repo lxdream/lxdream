@@ -1,5 +1,5 @@
 /**
- * $Id: gdi.c,v 1.2 2007-11-08 10:48:41 nkeynes Exp $
+ * $Id$
  *
  * NullDC GDI image format
  *

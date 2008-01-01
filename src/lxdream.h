@@ -1,5 +1,5 @@
 /**
- * $Id: lxdream.h,v 1.4 2007-11-10 04:44:51 nkeynes Exp $
+ * $Id$
  *
  * Common type definitions and forward declarations
  *

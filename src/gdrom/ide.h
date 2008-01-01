@@ -1,5 +1,5 @@
 /**
- * $Id: ide.h,v 1.14 2007-11-06 08:35:33 nkeynes Exp $
+ * $Id$
  *
  * This file defines the interface and structures of the dreamcast's IDE 
  * port. Note that the register definitions are in asic.h, as the registers

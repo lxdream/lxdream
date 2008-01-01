@@ -1,5 +1,5 @@
 /**
- * $Id: dreamcast.c,v 1.28 2007-10-31 11:53:35 nkeynes Exp $
+ * $Id$
  * Central switchboard for the system. This pulls all the individual modules
  * together into some kind of coherent structure. This is also where you'd
  * add Naomi support, if I ever get a board to play with...

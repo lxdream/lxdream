@@ -1,5 +1,5 @@
 /**
- * $Id: tacore.c,v 1.12 2007-10-08 11:52:13 nkeynes Exp $
+ * $Id$
  *
  * PVR2 Tile Accelerator implementation
  *

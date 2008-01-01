@@ -1,5 +1,5 @@
 /**
- * $Id: sh4mem.c,v 1.31 2007-11-08 12:01:57 nkeynes Exp $
+ * $Id$
  * sh4mem.c is responsible for the SH4's access to memory (including memory
  * mapped I/O), using the page maps created in mem.c
  *

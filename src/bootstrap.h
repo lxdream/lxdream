@@ -1,5 +1,5 @@
 /**
- * $Id: bootstrap.h,v 1.6 2007-11-08 11:54:16 nkeynes Exp $
+ * $Id$
  *
  * CD Bootstrap header parsing. Mostly for informational purposes.
  *

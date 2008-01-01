@@ -1,5 +1,5 @@
 /**
- * $Id: dmac.h,v 1.2 2007-10-08 12:06:01 nkeynes Exp $
+ * $Id$
  *
  * SH4 onboard DMA controller (DMAC) definitions.
  *

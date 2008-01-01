@@ -1,5 +1,5 @@
 /**
- * $Id: sh4x86.in,v 1.20 2007-11-08 11:54:16 nkeynes Exp $
+ * $Id$
  * 
  * SH4 => x86 translation. This version does no real optimization, it just
  * outputs straight-line x86 code - it mainly exists to provide a baseline

@@ -1,5 +1,5 @@
 /**
- * $Id: sh4trans.c,v 1.8 2007-10-08 12:06:01 nkeynes Exp $
+ * $Id$
  * 
  * SH4 translation core module. This part handles the non-target-specific
  * section of the translation.

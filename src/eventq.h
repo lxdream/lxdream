@@ -1,5 +1,5 @@
 /**
- * $Id: eventq.h,v 1.1 2007-01-06 04:06:36 nkeynes Exp $
+ * $Id$
  *
  * Simple implementation of one-shot timers. Effectively this allows IO
  * devices to wait until a particular time before completing. We expect 

@@ -1,5 +1,5 @@
 /**
- * $Id: testregs.c,v 1.4 2007-01-31 11:00:25 nkeynes Exp $
+ * $Id$
  * 
  * Register mask tests. These are simple "write value to register and check
  * that we read back what we expect" tests.

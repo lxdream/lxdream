@@ -1,5 +1,5 @@
 /**
- * $Id: rendsave.c,v 1.2 2007-10-08 11:52:13 nkeynes Exp $
+ * $Id$
  *
  * Scene-save support. This is mainly for test/debug purposes.
  *

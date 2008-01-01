@@ -1,5 +1,5 @@
 /**
- * $Id: asic.c,v 1.30 2007-10-08 12:06:01 nkeynes Exp $
+ * $Id$
  *
  * Support for the miscellaneous ASIC functions (Primarily event multiplexing,
  * and DMA). 

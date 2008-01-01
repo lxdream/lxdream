@@ -1,5 +1,5 @@
 /**
- * $Id: testdata.c,v 1.5 2007-01-31 11:01:58 nkeynes Exp $
+ * $Id$
  * 
  * Test data loader.
  *

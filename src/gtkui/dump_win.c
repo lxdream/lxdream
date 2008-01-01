@@ -1,5 +1,5 @@
 /**
- * $Id: dump_win.c,v 1.7 2007-10-31 12:23:19 nkeynes Exp $
+ * $Id$
  *
  * Implements the memory dump window.
  *

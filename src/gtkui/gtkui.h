@@ -1,5 +1,5 @@
 /**
- * $Id: gtkui.h,v 1.12 2007-11-10 04:45:29 nkeynes Exp $
+ * $Id$
  *
  * Core GTK-based user interface
  *

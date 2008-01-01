@@ -1,5 +1,5 @@
 /**
- * $Id: timer.c,v 1.9 2007-10-06 09:03:24 nkeynes Exp $
+ * $Id$
  * 
  * SH4 Timer/Clock peripheral modules (CPG, TMU, RTC), combined together to
  * keep things simple (they intertwine a bit).

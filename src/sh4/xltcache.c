@@ -1,5 +1,5 @@
 /**
- * $Id: xltcache.c,v 1.11 2007-11-08 11:54:16 nkeynes Exp $
+ * $Id$
  * 
  * Translation cache management. This part is architecture independent.
  *
