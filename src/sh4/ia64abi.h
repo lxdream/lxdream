@@ -1,5 +1,5 @@
 /**
- * $Id: ia64abi.in,v 1.20 2007-11-08 11:54:16 nkeynes Exp $
+ * $Id$
  * 
  * Provides the implementation for the ia32 ABI (eg prologue, epilogue, and
  * calling conventions)

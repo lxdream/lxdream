@@ -1,5 +1,5 @@
 /**
- * $Id: ctrl_dlg.c,v 1.6 2007-11-10 04:45:29 nkeynes Exp $
+ * $Id$
  *
  * Define the main (emu) GTK window, along with its menubars,
  * toolbars, etc.

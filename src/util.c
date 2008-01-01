@@ -1,5 +1,5 @@
 /**
- * $Id: util.c,v 1.14 2007-11-08 11:54:16 nkeynes Exp $
+ * $Id$
  *
  * Miscellaneous utility functions.
  *

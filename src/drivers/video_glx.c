@@ -1,5 +1,5 @@
 /**
- * $Id: video_x11.c,v 1.20 2007-10-31 12:05:23 nkeynes Exp $
+ * $Id$
  *
  * Shared functions for all X11-based display drivers.
  *

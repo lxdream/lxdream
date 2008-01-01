@@ -1,5 +1,5 @@
 /**
- * $Id: sh4core.h,v 1.26 2007-10-06 09:03:24 nkeynes Exp $
+ * $Id$
  * 
  * This file defines the internal functions exported/used by the SH4 core, 
  * except for disassembly functions defined in sh4dasm.h

@@ -1,5 +1,5 @@
 /**
- * $Id: audio.c,v 1.11 2007-10-27 05:47:21 nkeynes Exp $
+ * $Id$
  * 
  * Audio mixer core. Combines all the active streams into a single sound
  * buffer for output. 

@@ -1,5 +1,5 @@
 /**
- * $Id: audio_esd.c,v 1.9 2007-10-07 05:42:25 nkeynes Exp $
+ * $Id$
  * 
  * The esd (esound) audio driver
  *

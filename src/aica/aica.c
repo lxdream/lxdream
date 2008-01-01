@@ -1,5 +1,5 @@
 /**
- * $Id: aica.c,v 1.26 2007-10-31 09:05:13 nkeynes Exp $
+ * $Id$
  * 
  * This module implements the AICA's IO interfaces, as well
  * as providing the core AICA module to the system.

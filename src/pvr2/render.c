@@ -1,5 +1,5 @@
 /**
- * $Id: render.c,v 1.26 2007-10-31 09:10:23 nkeynes Exp $
+ * $Id$
  *
  * PVR2 Renderer support. This part is primarily
  *

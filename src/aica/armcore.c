@@ -1,5 +1,5 @@
 /**
- * $Id: armcore.c,v 1.21 2007-10-09 08:11:51 nkeynes Exp $
+ * $Id$
  * 
  * ARM7TDMI CPU emulation core.
  *

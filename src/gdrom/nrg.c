@@ -1,5 +1,5 @@
 /**
- * $Id: nrg.c,v 1.7 2007-10-28 07:23:46 nkeynes Exp $
+ * $Id$
  *
  * Nero (NRG) CD file format. File information stolen shamelessly from
  * libcdio.

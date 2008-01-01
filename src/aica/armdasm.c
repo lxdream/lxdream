@@ -1,5 +1,5 @@
 /**
- * $Id: armdasm.c,v 1.13 2007-10-09 08:11:51 nkeynes Exp $
+ * $Id$
  * 
  * armdasm.c    21 Aug 2004  - ARM7tdmi (ARMv4) disassembler
  *

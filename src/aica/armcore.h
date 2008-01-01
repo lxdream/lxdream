@@ -1,5 +1,5 @@
 /**
- * $Id: armcore.h,v 1.15 2007-10-09 08:11:51 nkeynes Exp $
+ * $Id$
  * 
  * Interface definitions for the ARM CPU emulation core proper.
  *

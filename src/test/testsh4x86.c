@@ -1,5 +1,5 @@
 /**
- * $Id: testsh4x86.c,v 1.6 2007-11-08 10:49:16 nkeynes Exp $
+ * $Id$
  *
  * Test cases for the SH4 => x86 translator core. Takes as
  * input a binary SH4 object (and VMA), generates the

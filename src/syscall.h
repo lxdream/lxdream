@@ -1,5 +1,5 @@
 /**
- * $Id: syscall.h,v 1.3 2006-08-07 13:18:16 nkeynes Exp $
+ * $Id$
  * 
  * Generic syscall support - ability to add hooks into SH4 code to call out
  * to the emu.

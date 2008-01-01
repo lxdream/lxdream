@@ -1,5 +1,5 @@
 /**
- * $Id: gl_sl.c,v 1.3 2007-10-31 09:10:23 nkeynes Exp $
+ * $Id$
  *
  * GLSL shader loader/unloader. Current version assumes there's exactly
  * 1 shader program that's used globally. This may turn out not to be the

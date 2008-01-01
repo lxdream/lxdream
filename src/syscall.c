@@ -1,5 +1,5 @@
 /**
- * $Id: syscall.c,v 1.1 2006-03-13 12:38:34 nkeynes Exp $
+ * $Id$
  * 
  * Routines to add hook functions that are callable from the SH4
  *

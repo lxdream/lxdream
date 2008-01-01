@@ -1,5 +1,5 @@
 /*
- * $Id: testdata.h,v 1.3 2007-01-03 09:05:13 nkeynes Exp $
+ * $Id$
  * 
  * Test data loader
  *

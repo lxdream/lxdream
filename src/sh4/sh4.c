@@ -1,5 +1,5 @@
 /**
- * $Id: sh4.c,v 1.7 2007-11-08 11:54:16 nkeynes Exp $
+ * $Id$
  * 
  * SH4 parent module for all CPU modes and SH4 peripheral
  * modules.

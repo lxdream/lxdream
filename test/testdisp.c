@@ -1,5 +1,5 @@
 /**
- * $Id: testdisp.c,v 1.3 2007-01-11 06:53:31 nkeynes Exp $
+ * $Id$
  *
  * Display (2D) tests. Mainly tests video timing / sync (obviously
  * it can't actually test display output since there's no way of

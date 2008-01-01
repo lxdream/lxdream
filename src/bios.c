@@ -1,5 +1,5 @@
 /**
- * $Id: bios.c,v 1.5 2007-11-08 11:54:16 nkeynes Exp $
+ * $Id$
  * 
  * "Fake" BIOS functions, for operation without the actual BIOS.
  *

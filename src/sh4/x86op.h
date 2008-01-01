@@ -1,5 +1,5 @@
 /**
- * $Id: x86op.h,v 1.10 2007-09-19 09:15:18 nkeynes Exp $
+ * $Id$
  * 
  * Definitions of x86 opcodes for use by the translator.
  *

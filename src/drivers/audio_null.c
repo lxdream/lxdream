@@ -1,5 +1,5 @@
 /**
- * $Id: audio_null.c,v 1.3 2006-03-14 12:45:53 nkeynes Exp $
+ * $Id$
  * 
  * The "null" audio driver, which just discards all input without even
  * looking at it.

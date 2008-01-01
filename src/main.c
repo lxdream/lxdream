@@ -1,5 +1,5 @@
 /**
- * $Id: main.c,v 1.35 2007-11-07 11:45:53 nkeynes Exp $
+ * $Id$
  *
  * Main program, initializes dreamcast and gui, then passes control off to
  * the main loop. 

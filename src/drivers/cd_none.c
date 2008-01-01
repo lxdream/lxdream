@@ -1,5 +1,5 @@
 /**
- * $Id: cdnone.c,v 1.1 2007-11-04 05:07:49 nkeynes Exp $
+ * $Id$
  *
  * The "null" cdrom device driver. Just provides a couple of empty stubs.
  *

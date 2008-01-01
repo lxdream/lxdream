@@ -1,5 +1,5 @@
 /**
- * $Id: mmio.h,v 1.8 2007-11-04 08:49:18 nkeynes Exp $
+ * $Id$
  *
  * mmio.h defines a complicated batch of macros used to build up the 
  * memory-mapped I/O regions in a reasonably readable fashion.

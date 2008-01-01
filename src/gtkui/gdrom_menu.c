@@ -1,5 +1,5 @@
 /**
- * $Id: gdrom_menu.c,v 1.5 2007-11-10 04:45:29 nkeynes Exp $
+ * $Id$
  *
  * Creates and manages the GD-Rom attachment menu.
  *

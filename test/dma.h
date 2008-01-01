@@ -1,5 +1,5 @@
 /**
- * $Id: dma.h,v 1.1 2006-07-11 01:35:23 nkeynes Exp $
+ * $Id$
  * 
  * DMA support code
  *

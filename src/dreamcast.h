@@ -1,5 +1,5 @@
 /**
- * $Id: dreamcast.h,v 1.22 2007-11-06 08:35:33 nkeynes Exp $
+ * $Id$
  *
  * Public interface for dreamcast.c -
  * Central switchboard for the system. This pulls all the individual modules

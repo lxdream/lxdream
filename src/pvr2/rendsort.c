@@ -1,5 +1,5 @@
 /**
- * $Id: rendsort.c,v 1.6 2007-10-08 11:52:13 nkeynes Exp $
+ * $Id$
  *
  * PVR2 renderer routines for depth sorted polygons
  *

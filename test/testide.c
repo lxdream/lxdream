@@ -1,5 +1,5 @@
 /**
- * $Id: testide.c,v 1.6 2007-01-03 09:05:13 nkeynes Exp $
+ * $Id$
  *
  * IDE interface test cases. Covers all (known) IDE registers in the 
  * 5F7000 - 5F74FF range including DMA, but does not cover any GD-Rom
