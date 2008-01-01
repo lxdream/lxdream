@@ -281,7 +281,7 @@ gboolean mem_load_rom( const gchar *file, uint32_t base, uint32_t size, uint32_t
 	    ERROR( "Unable to allocate ROM memory: %s (%s)", file, strerror(errno) );
 	    return FALSE;
 	}
-	mem_map_region( mem, base, size, file, MEM_FLAG_ROM, size, base );
+	mem_map_region( mem, base, size, region_name, MEM_FLAG_ROM, size, base );
     } else {
 	mprotect( mem, size, PROT_READ|PROT_WRITE );
     }
