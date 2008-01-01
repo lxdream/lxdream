@@ -34,7 +34,7 @@
 
 #define S3M_PLAYER "s3mplay.bin"
 
-char *option_list = "a:m:s:A:V:puhbd:c:t:xD";
+char *option_list = "a:m:s:A:V:v:puhbd:c:t:xD";
 struct option longopts[1] = { { NULL, 0, 0, 0 } };
 char *aica_program = NULL;
 char *s3m_file = NULL;
@@ -108,6 +108,11 @@ int main (int argc, char *argv[])
 	    t = strtod(optarg, NULL);
 	    time_secs = (uint32_t)t;
 	    time_nanos = (int)((t - time_secs) * 1000000000);
+	    break;
+	case 'v': /* Log verbosity */
+	    if( !set_global_log_level(optarg) ) {
+		ERROR( "Unrecognized log level '%s'", optarg );
+	    }
 	    break;
 	case 'x': /* Disable translator */
 	    use_xlat = FALSE;
