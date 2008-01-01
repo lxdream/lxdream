@@ -102,6 +102,7 @@ void signsat48(void);
 
 gboolean sh4_execute_instruction( void );
 gboolean sh4_raise_exception( int );
+gboolean sh4_raise_reset( int );
 gboolean sh4_raise_trap( int );
 gboolean sh4_raise_slot_exception( int, int );
 gboolean sh4_raise_tlb_exception( int );
@@ -114,16 +115,21 @@ void sh4_accept_interrupt( void );
 #define BREAK_PERM 2
 
 /* SH4 Memory */
+uint64_t mmu_vma_to_phys_read( sh4addr_t addr );
+uint64_t mmu_vma_to_phys_write( sh4addr_t addr );
+uint64_t mmu_vma_to_phys_exec( sh4addr_t addr );
+
 int64_t sh4_read_quad( sh4addr_t addr );
-int32_t sh4_read_long( sh4addr_t addr );
-int32_t sh4_read_word( sh4addr_t addr );
-int32_t sh4_read_byte( sh4addr_t addr );
+int64_t sh4_read_long( sh4addr_t addr );
+int64_t sh4_read_word( sh4addr_t addr );
+int64_t sh4_read_byte( sh4addr_t addr );
 void sh4_write_quad( sh4addr_t addr, uint64_t val );
-void sh4_write_long( sh4addr_t addr, uint32_t val );
-void sh4_write_word( sh4addr_t addr, uint32_t val );
-void sh4_write_byte( sh4addr_t addr, uint32_t val );
+int32_t sh4_write_long( sh4addr_t addr, uint32_t val );
+int32_t sh4_write_word( sh4addr_t addr, uint32_t val );
+int32_t sh4_write_byte( sh4addr_t addr, uint32_t val );
 int32_t sh4_read_phys_word( sh4addr_t addr );
 void sh4_flush_store_queue( sh4addr_t addr );
+sh4ptr_t sh4_get_region_by_vma( sh4addr_t addr );
 
 /* SH4 Support methods */
 uint32_t sh4_read_sr(void);
@@ -160,6 +166,7 @@ void SCIF_update_line_speed(void);
 #define SIGNEXT16(n) ((int32_t)((int16_t)(n)))
 #define SIGNEXT32(n) ((int64_t)((int32_t)(n)))
 #define SIGNEXT48(n) ((((int64_t)(n))<<16)>>16)
+#define ZEROEXT32(n) ((int64_t)((uint64_t)((uint32_t)(n))))
 
 /* Status Register (SR) bits */
 #define SR_MD    0x40000000 /* Processor mode ( User=0, Privileged=1 ) */ 
@@ -201,15 +208,25 @@ void SCIF_update_line_speed(void);
 #define FPULi    (sh4r.fpul)
 
 /* CPU-generated exception code/vector pairs */
-#define EXC_POWER_RESET    0x000 /* vector special */
-#define EXC_MANUAL_RESET   0x020
-#define EXC_DATA_ADDR_READ 0x0E0
+#define EXC_POWER_RESET     0x000 /* vector special */
+#define EXC_MANUAL_RESET    0x020
+#define EXC_TLB_MISS_READ   0x040
+#define EXC_TLB_MISS_WRITE  0x060
+#define EXC_INIT_PAGE_WRITE 0x080
+#define EXC_TLB_PROT_READ   0x0A0
+#define EXC_TLB_PROT_WRITE  0x0C0
+#define EXC_DATA_ADDR_READ  0x0E0
 #define EXC_DATA_ADDR_WRITE 0x100
-#define EXC_SLOT_ILLEGAL   0x1A0
-#define EXC_ILLEGAL        0x180
-#define EXC_TRAP           0x160
-#define EXC_FPU_DISABLED   0x800
+#define EXC_TLB_MULTI_HIT   0x140
+#define EXC_SLOT_ILLEGAL    0x1A0
+#define EXC_ILLEGAL         0x180
+#define EXC_TRAP            0x160
+#define EXC_FPU_DISABLED    0x800
 #define EXC_SLOT_FPU_DISABLED 0x820
+
+#define EXV_EXCEPTION    0x100  /* General exception vector */
+#define EXV_TLBMISS      0x400  /* TLB-miss exception vector */
+#define EXV_INTERRUPT    0x600  /* External interrupt vector */
 
 /* Exceptions (for use with sh4_raise_exception) */
 
