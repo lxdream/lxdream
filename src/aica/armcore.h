@@ -19,7 +19,8 @@
 #ifndef dream_armcore_H
 #define dream_armcore_H 1
 
-#include "dream.h"
+#include "lxdream.h"
+#include "mem.h"
 #include <stdint.h>
 #include <stdio.h>
 
@@ -88,8 +89,8 @@ uint32_t arm_run_slice( uint32_t nanosecs );
 void arm_save_state( FILE *f );
 int arm_load_state( FILE *f );
 gboolean arm_execute_instruction( void );
-void arm_set_breakpoint( uint32_t pc, int type );
-gboolean arm_clear_breakpoint( uint32_t pc, int type );
+void arm_set_breakpoint( uint32_t pc, breakpoint_type_t type );
+gboolean arm_clear_breakpoint( uint32_t pc, breakpoint_type_t type );
 int arm_get_breakpoint( uint32_t pc );
 
 /* ARM Memory */

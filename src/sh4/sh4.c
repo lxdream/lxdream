@@ -51,6 +51,16 @@ int sh4_breakpoint_count = 0;
 extern sh4ptr_t sh4_main_ram;
 static gboolean sh4_use_translator = FALSE;
 
+struct sh4_icache_info {
+    char *page;
+    uint32_t page_start;
+    uint32_t page_size;
+};
+
+extern struct sh4_icache_info sh4_icache;
+
+// struct sh4_icache_info sh4_icache = { NULL, -1, -1 };
+
 void sh4_set_use_xlat( gboolean use )
 {
 // No-op if the translator was not built
@@ -144,14 +154,14 @@ int sh4_load_state( FILE * f )
 }
 
 
-void sh4_set_breakpoint( uint32_t pc, int type )
+void sh4_set_breakpoint( uint32_t pc, breakpoint_type_t type )
 {
     sh4_breakpoints[sh4_breakpoint_count].address = pc;
     sh4_breakpoints[sh4_breakpoint_count].type = type;
     sh4_breakpoint_count++;
 }
 
-gboolean sh4_clear_breakpoint( uint32_t pc, int type )
+gboolean sh4_clear_breakpoint( uint32_t pc, breakpoint_type_t type )
 {
     int i;
 
