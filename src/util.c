@@ -31,7 +31,7 @@
 #include "dream.h"
 #include "display.h"
 #include "gui.h"
-#include "sh4/sh4core.h"
+#include "sh4/sh4.h"
 
 char *msg_levels[] = { "FATAL", "ERROR", "WARN", "INFO", "DEBUG", "TRACE" };
 int global_msg_level = EMIT_WARN;

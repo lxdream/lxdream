@@ -30,7 +30,7 @@
 #include "aica/audio.h"
 #include "gdrom/gdrom.h"
 #include "maple/maple.h"
-#include "sh4/sh4core.h"
+#include "sh4/sh4.h"
 
 #define S3M_PLAYER "s3mplay.bin"
 
