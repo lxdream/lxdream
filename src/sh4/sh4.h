@@ -21,6 +21,7 @@
 #define lxdream_sh4_H 1
 
 #include "lxdream.h"
+#include "mem.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -108,16 +109,9 @@ void sh4_set_pc( int pc );
 gboolean sh4_execute_instruction( void );
 
 /* SH4 breakpoints */
-
-#define BREAK_ONESHOT 1
-#define BREAK_PERM 2
-
-void sh4_set_breakpoint( uint32_t pc, int type );
-gboolean sh4_clear_breakpoint( uint32_t pc, int type );
+void sh4_set_breakpoint( uint32_t pc, breakpoint_type_t type );
+gboolean sh4_clear_breakpoint( uint32_t pc, breakpoint_type_t type );
 int sh4_get_breakpoint( uint32_t pc );
-
-
-
 
 #ifdef __cplusplus
 }
