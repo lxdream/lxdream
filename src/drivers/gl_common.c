@@ -102,11 +102,11 @@ void gl_texture_window( int width, int height, int tex_id, gboolean inverted )
 {
     float top, bottom;
     if( inverted ) {
-	top = ((float)height) - 0.5;
-	bottom = 0.5;
+	top = ((float)height);
+	bottom = 0;
     } else {
-	top = 0.5;
-	bottom = ((float)height) - 0.5;
+	top = 0;
+	bottom = ((float)height);
     }
 
     /* Reset display parameters */
@@ -156,13 +156,13 @@ void gl_texture_window( int width, int height, int tex_id, gboolean inverted )
     glEnable( GL_BLEND );
     glBlendFunc( GL_ONE, GL_ZERO );
     glBegin( GL_QUADS );
-    glTexCoord2f( 0.5, top );
+    glTexCoord2f( 0, top );
     glVertex2f( x1, y1 );
-    glTexCoord2f( ((float)width)-0.5, top );
+    glTexCoord2f( ((float)width), top );
     glVertex2f( x2, y1 );
-    glTexCoord2f( ((float)width)-0.5, bottom );
+    glTexCoord2f( ((float)width), bottom );
     glVertex2f( x2, y2 );
-    glTexCoord2f( 0.5, bottom );
+    glTexCoord2f( 0, bottom );
     glVertex2f( x1, y2 );
     glEnd();
     glDisable( GL_TEXTURE_RECTANGLE_ARB );
