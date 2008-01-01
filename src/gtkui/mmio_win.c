@@ -121,8 +121,10 @@ static GtkCList *mmio_window_add_page( mmio_window_t mmio, char *name, struct mm
     gtk_container_add( GTK_CONTAINER(vbox), GTK_WIDGET(scroll) );
 
     trace_button = GTK_CHECK_BUTTON(gtk_check_button_new_with_label(_("Trace access")));
-    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(trace_button), 
-				 io_rgn->trace_flag ? TRUE : FALSE);
+    if( io_rgn != NULL ) {
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(trace_button), 
+				     io_rgn->trace_flag ? TRUE : FALSE);
+    }
     gtk_container_add( GTK_CONTAINER(vbox), GTK_WIDGET(trace_button) );
     gtk_box_set_child_packing( GTK_BOX(vbox), GTK_WIDGET(trace_button), 
 			       FALSE, FALSE, 0, GTK_PACK_START );
