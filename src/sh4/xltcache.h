@@ -74,6 +74,14 @@ void xlat_delete_block( xlat_cache_block_t block );
 void *xlat_get_code( sh4addr_t address );
 
 /**
+ * Retrieve the entry point for the translated code corresponding to the given
+ * SH4 virtual address, or NULL if there is no code for the address. 
+ * If the virtual address cannot be resolved, this method will raise a TLB miss 
+ * exception, and return NULL.
+ */
+void *xlat_get_code_by_vma( sh4vma_t address );
+
+/**
  * Retrieve the address of the lookup table entry corresponding to the
  * given SH4 address.
  */

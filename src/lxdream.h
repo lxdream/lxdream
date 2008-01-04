@@ -39,9 +39,15 @@ extern "C" {
 #endif
 
 /**
- * A 32-bit address in SH4 space
+ * A 29-bit address in SH4 external address space
  */
 typedef uint32_t sh4addr_t;
+
+/**
+ * A 32-bit address in SH4 virtual address space.
+ */
+typedef uint32_t sh4vma_t;
+
 /**
  * A direct pointer into SH4 memory
  */

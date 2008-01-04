@@ -48,18 +48,9 @@ struct dreamcast_module sh4_module = { "SH4", sh4_init, sh4_reset,
 struct sh4_registers sh4r;
 struct breakpoint_struct sh4_breakpoints[MAX_BREAKPOINTS];
 int sh4_breakpoint_count = 0;
-extern sh4ptr_t sh4_main_ram;
+sh4ptr_t sh4_main_ram;
 static gboolean sh4_use_translator = FALSE;
-
-struct sh4_icache_info {
-    char *page;
-    uint32_t page_start;
-    uint32_t page_size;
-};
-
-extern struct sh4_icache_info sh4_icache;
-
-// struct sh4_icache_info sh4_icache = { NULL, -1, -1 };
+struct sh4_icache_struct sh4_icache = { NULL, -1, -1, 0 };
 
 void sh4_set_use_xlat( gboolean use )
 {

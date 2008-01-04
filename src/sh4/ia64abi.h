@@ -109,12 +109,12 @@ void sh4_translate_begin_block( sh4addr_t pc )
  * Exit the block with sh4r.pc already written
  * Bytes: 15
  */
-void exit_block_pcset( pc )
+void exit_block_pcset( sh4addr_t pc )
 {
     load_imm32( R_ECX, ((pc - sh4_x86.block_start_pc)>>1)*sh4_cpu_period ); // 5
     ADD_r32_sh4r( R_ECX, REG_OFFSET(slice_cycle) );    // 6
     load_spreg( R_EAX, REG_OFFSET(pc) );
-    call_func1(xlat_get_code,R_EAX);
+    call_func1(xlat_get_code_by_vma,R_EAX);
     POP_r32(R_EBP);
     RET();
 }
@@ -157,7 +157,7 @@ void sh4_translate_end_block( sh4addr_t pc ) {
 
 	call_func0( sh4_raise_exception );
 	load_spreg( R_EAX, REG_OFFSET(pc) );
-	call_func1(xlat_get_code,R_EAX);
+	call_func1(xlat_get_code_by_vma,R_EAX);
 	POP_r32(R_EBP);
 	RET();
 
@@ -171,7 +171,7 @@ void sh4_translate_end_block( sh4addr_t pc ) {
 	MUL_r32( R_EDX );
 	ADD_r32_sh4r( R_EAX, REG_OFFSET(slice_cycle) );
 	load_spreg( R_EAX, REG_OFFSET(pc) );
-	call_func1(xlat_get_code,R_EAX);
+	call_func1(xlat_get_code_by_vma,R_EAX);
 	POP_r32(R_EBP);
 	RET();
 

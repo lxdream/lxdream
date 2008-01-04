@@ -70,6 +70,7 @@ static struct utlb_entry mmu_utlb[UTLB_ENTRY_COUNT];
 static uint32_t mmu_urc;
 static uint32_t mmu_urb;
 static uint32_t mmu_lrui;
+static uint32_t mmu_asid; // current asid
 
 static sh4ptr_t cache = NULL;
 
@@ -101,6 +102,10 @@ void mmio_region_MMU_write( uint32_t reg, uint32_t val )
     switch(reg) {
     case PTEH:
 	val &= 0xFFFFFCFF;
+	if( (val & 0xFF) != mmu_asid ) {
+	    mmu_asid = val&0xFF;
+	    sh4_icache.page_vma = -1; // invalidate icache as asid has changed
+	}
 	break;
     case PTEL:
 	val &= 0x1FFFFDFF;
@@ -234,17 +239,15 @@ static inline void mmu_flush_pages( struct utlb_entry *ent )
  */
 
 /**
- * Perform the actual utlb lookup.
+ * Perform the actual utlb lookup w/ asid matching.
  * Possible utcomes are:
  *   0..63 Single match - good, return entry found
  *   -1 No match - raise a tlb data miss exception
  *   -2 Multiple matches - raise a multi-hit exception (reset)
  * @param vpn virtual address to resolve
- * @param asid Address space identifier
- * @param use_asid whether to require an asid match on non-shared pages.
  * @return the resultant UTLB entry, or an error.
  */
-static inline int mmu_utlb_lookup_vpn( uint32_t vpn, uint32_t asid, int use_asid )
+static inline int mmu_utlb_lookup_vpn_asid( uint32_t vpn )
 {
     int result = -1;
     unsigned int i;
@@ -254,28 +257,48 @@ static inline int mmu_utlb_lookup_vpn( uint32_t vpn, uint32_t asid, int use_asid
 	mmu_urc = 0;
     }
 
-    if( use_asid ) {
-	for( i = 0; i < UTLB_ENTRY_COUNT; i++ ) {
-	    if( (mmu_utlb[i].flags & TLB_VALID) &&
-	        ((mmu_utlb[i].flags & TLB_SHARE) || asid == mmu_utlb[i].asid) && 
-		((mmu_utlb[i].vpn ^ vpn) & mmu_utlb[i].mask) == 0 ) {
-		if( result != -1 ) {
-		    return -2;
-		}
-		result = i;
+    for( i = 0; i < UTLB_ENTRY_COUNT; i++ ) {
+	if( (mmu_utlb[i].flags & TLB_VALID) &&
+	    ((mmu_utlb[i].flags & TLB_SHARE) || mmu_asid == mmu_utlb[i].asid) && 
+	    ((mmu_utlb[i].vpn ^ vpn) & mmu_utlb[i].mask) == 0 ) {
+	    if( result != -1 ) {
+		return -2;
 	    }
-	}
-    } else {
-	for( i = 0; i < UTLB_ENTRY_COUNT; i++ ) {
-	    if( (mmu_utlb[i].flags & TLB_VALID) &&
-		((mmu_utlb[i].vpn ^ vpn) & mmu_utlb[i].mask) == 0 ) {
-		if( result != -1 ) {
-		    return -2;
-		}
-		result = i;
-	    }
+	    result = i;
 	}
     }
+    return result;
+}
+
+/**
+ * Perform the actual utlb lookup matching on vpn only
+ * Possible utcomes are:
+ *   0..63 Single match - good, return entry found
+ *   -1 No match - raise a tlb data miss exception
+ *   -2 Multiple matches - raise a multi-hit exception (reset)
+ * @param vpn virtual address to resolve
+ * @return the resultant UTLB entry, or an error.
+ */
+static inline int mmu_utlb_lookup_vpn( uint32_t vpn )
+{
+    int result = -1;
+    unsigned int i;
+
+    mmu_urc++;
+    if( mmu_urc == mmu_urb || mmu_urc == 0x40 ) {
+	mmu_urc = 0;
+    }
+
+    for( i = 0; i < UTLB_ENTRY_COUNT; i++ ) {
+	if( (mmu_utlb[i].flags & TLB_VALID) &&
+	    ((mmu_utlb[i].vpn ^ vpn) & mmu_utlb[i].mask) == 0 ) {
+	    if( result != -1 ) {
+		return -2;
+	    }
+	    result = i;
+	}
+    }
+
     return result;
 }
 
@@ -300,53 +323,9 @@ static inline mmu_utlb_lookup_assoc( uint32_t vpn, uint32_t asid )
 }
 
 /**
- * Perform the actual itlb lookup.
- * Possible utcomes are:
- *   0..63 Single match - good, return entry found
- *   -1 No match - raise a tlb data miss exception
- *   -2 Multiple matches - raise a multi-hit exception (reset)
- * @param vpn virtual address to resolve
- * @param asid Address space identifier
- * @param use_asid whether to require an asid match on non-shared pages.
- * @return the resultant ITLB entry, or an error.
+ * Update the ITLB by replacing the LRU entry with the specified UTLB entry.
+ * @return the number (0-3) of the replaced entry.
  */
-static inline int mmu_itlb_lookup_vpn( uint32_t vpn, uint32_t asid, int use_asid )
-{
-    int result = -1;
-    unsigned int i;
-    if( use_asid ) {
-	for( i = 0; i < ITLB_ENTRY_COUNT; i++ ) {
-	    if( (mmu_itlb[i].flags & TLB_VALID) &&
-	        ((mmu_itlb[i].flags & TLB_SHARE) || asid == mmu_itlb[i].asid) && 
-		((mmu_itlb[i].vpn ^ vpn) & mmu_itlb[i].mask) == 0 ) {
-		if( result != -1 ) {
-		    return -2;
-		}
-		result = i;
-	    }
-	}
-    } else {
-	for( i = 0; i < ITLB_ENTRY_COUNT; i++ ) {
-	    if( (mmu_itlb[i].flags & TLB_VALID) &&
-		((mmu_itlb[i].vpn ^ vpn) & mmu_itlb[i].mask) == 0 ) {
-		if( result != -1 ) {
-		    return -2;
-		}
-		result = i;
-	    }
-	}
-    }
-
-    switch( result ) {
-    case 0: mmu_lrui = (mmu_lrui & 0x07); break;
-    case 1: mmu_lrui = (mmu_lrui & 0x19) | 0x20; break;
-    case 2: mmu_lrui = (mmu_lrui & 0x3E) | 0x14; break;
-    case 3: mmu_lrui = (mmu_lrui | 0x0B); break;
-    }
-	
-    return result;
-}
-
 static int inline mmu_itlb_update_from_utlb( int entryNo )
 {
     int replace;
@@ -374,6 +353,93 @@ static int inline mmu_itlb_update_from_utlb( int entryNo )
 }
 
 /**
+ * Perform the actual itlb lookup w/ asid protection
+ * Possible utcomes are:
+ *   0..63 Single match - good, return entry found
+ *   -1 No match - raise a tlb data miss exception
+ *   -2 Multiple matches - raise a multi-hit exception (reset)
+ * @param vpn virtual address to resolve
+ * @return the resultant ITLB entry, or an error.
+ */
+static inline int mmu_itlb_lookup_vpn_asid( uint32_t vpn )
+{
+    int result = -1;
+    unsigned int i;
+
+    for( i = 0; i < ITLB_ENTRY_COUNT; i++ ) {
+	if( (mmu_itlb[i].flags & TLB_VALID) &&
+	    ((mmu_itlb[i].flags & TLB_SHARE) || mmu_asid == mmu_itlb[i].asid) && 
+	    ((mmu_itlb[i].vpn ^ vpn) & mmu_itlb[i].mask) == 0 ) {
+	    if( result != -1 ) {
+		return -2;
+	    }
+	    result = i;
+	}
+    }
+
+    if( result == -1 ) {
+	int utlbEntry = mmu_utlb_lookup_vpn( vpn );
+	if( utlbEntry == -1 ) {
+	    return -1;
+	} else {
+	    return mmu_itlb_update_from_utlb( utlbEntry );
+	}
+    }
+
+    switch( result ) {
+    case 0: mmu_lrui = (mmu_lrui & 0x07); break;
+    case 1: mmu_lrui = (mmu_lrui & 0x19) | 0x20; break;
+    case 2: mmu_lrui = (mmu_lrui & 0x3E) | 0x14; break;
+    case 3: mmu_lrui = (mmu_lrui | 0x0B); break;
+    }
+	
+    return result;
+}
+
+/**
+ * Perform the actual itlb lookup on vpn only
+ * Possible utcomes are:
+ *   0..63 Single match - good, return entry found
+ *   -1 No match - raise a tlb data miss exception
+ *   -2 Multiple matches - raise a multi-hit exception (reset)
+ * @param vpn virtual address to resolve
+ * @return the resultant ITLB entry, or an error.
+ */
+static inline int mmu_itlb_lookup_vpn( uint32_t vpn )
+{
+    int result = -1;
+    unsigned int i;
+
+    for( i = 0; i < ITLB_ENTRY_COUNT; i++ ) {
+	if( (mmu_itlb[i].flags & TLB_VALID) &&
+	    ((mmu_itlb[i].vpn ^ vpn) & mmu_itlb[i].mask) == 0 ) {
+	    if( result != -1 ) {
+		return -2;
+	    }
+	    result = i;
+	}
+    }
+
+    if( result == -1 ) {
+	int utlbEntry = mmu_utlb_lookup_vpn( vpn );
+	if( utlbEntry == -1 ) {
+	    return -1;
+	} else {
+	    return mmu_itlb_update_from_utlb( utlbEntry );
+	}
+    }
+
+    switch( result ) {
+    case 0: mmu_lrui = (mmu_lrui & 0x07); break;
+    case 1: mmu_lrui = (mmu_lrui & 0x19) | 0x20; break;
+    case 2: mmu_lrui = (mmu_lrui & 0x3E) | 0x14; break;
+    case 3: mmu_lrui = (mmu_lrui | 0x0B); break;
+    }
+	
+    return result;
+}
+
+/**
  * Find a ITLB entry for the associative TLB write - same as the normal
  * lookup but ignores the valid bit.
  */
@@ -396,18 +462,15 @@ static inline mmu_itlb_lookup_assoc( uint32_t vpn, uint32_t asid )
 #define RAISE_TLB_ERROR(code, vpn) \
     MMIO_WRITE(MMU, TEA, vpn); \
     MMIO_WRITE(MMU, PTEH, ((MMIO_READ(MMU, PTEH) & 0x000003FF) | (vpn&0xFFFFFC00))); \
-    sh4_raise_tlb_exception(code); \
-    return (((uint64_t)code)<<32)
+    sh4_raise_tlb_exception(code);
 
 #define RAISE_MEM_ERROR(code, vpn) \
     MMIO_WRITE(MMU, TEA, vpn); \
     MMIO_WRITE(MMU, PTEH, ((MMIO_READ(MMU, PTEH) & 0x000003FF) | (vpn&0xFFFFFC00))); \
-    sh4_raise_exception(code); \
-    return (((uint64_t)code)<<32)
+    sh4_raise_exception(code);
 
 #define RAISE_OTHER_ERROR(code) \
-    sh4_raise_exception(code); \
-    return (((uint64_t)EXV_EXCEPTION)<<32)
+    sh4_raise_exception(code);
 
 /**
  * Abort with a non-MMU address error. Caused by user-mode code attempting
@@ -423,8 +486,7 @@ static inline mmu_itlb_lookup_assoc( uint32_t vpn, uint32_t asid )
 #define MMU_TLB_WRITE_PROT_ERROR(vpn) RAISE_MEM_ERROR(EXC_TLB_PROT_WRITE, vpn)
 #define MMU_TLB_MULTI_HIT_ERROR(vpn) sh4_raise_reset(EXC_TLB_MULTI_HIT); \
     MMIO_WRITE(MMU, TEA, vpn); \
-    MMIO_WRITE(MMU, PTEH, ((MMIO_READ(MMU, PTEH) & 0x000003FF) | (vpn&0xFFFFFC00))); \
-    return (((uint64_t)EXC_TLB_MULTI_HIT)<<32)
+    MMIO_WRITE(MMU, PTEH, ((MMIO_READ(MMU, PTEH) & 0x000003FF) | (vpn&0xFFFFFC00)));
 
 uint64_t mmu_vma_to_phys_write( sh4addr_t addr )
 {
@@ -442,6 +504,7 @@ uint64_t mmu_vma_to_phys_write( sh4addr_t addr )
 		return (uint64_t)addr;
 	    }
 	    MMU_WRITE_ADDR_ERROR();
+	    return 0x100000000LL;
 	}
     }
     
@@ -450,28 +513,31 @@ uint64_t mmu_vma_to_phys_write( sh4addr_t addr )
     }
 
     /* If we get this far, translation is required */
-
-    int use_asid = ((mmucr & MMUCR_SV) == 0) || !IS_SH4_PRIVMODE();
-    uint32_t asid = MMIO_READ( MMU, PTEH ) & 0xFF;
-    
-    int entryNo = mmu_utlb_lookup_vpn( addr, asid, use_asid );
+    int entryNo;
+    if( ((mmucr & MMUCR_SV) == 0) || !IS_SH4_PRIVMODE() ) {
+	entryNo = mmu_utlb_lookup_vpn_asid( addr );
+    } else {
+	entryNo = mmu_utlb_lookup_vpn( addr );
+    }
 
     switch(entryNo) {
     case -1:
 	MMU_TLB_WRITE_MISS_ERROR(addr);
-	break;
+	return 0x100000000LL;
     case -2:
 	MMU_TLB_MULTI_HIT_ERROR(addr);
-	break;
+        return 0x100000000LL;
     default:
 	if( IS_SH4_PRIVMODE() ? ((mmu_utlb[entryNo].flags & TLB_WRITABLE) == 0)
 	    : ((mmu_utlb[entryNo].flags & TLB_USERWRITABLE) != TLB_USERWRITABLE) ) {
 	    /* protection violation */
 	    MMU_TLB_WRITE_PROT_ERROR(addr);
+	    return 0x100000000LL;
 	}
 
 	if( (mmu_utlb[entryNo].flags & TLB_DIRTY) == 0 ) {
 	    MMU_TLB_INITIAL_WRITE_ERROR(addr);
+	    return 0x100000000LL;
 	}
 
 	/* finally generate the target address */
@@ -481,64 +547,6 @@ uint64_t mmu_vma_to_phys_write( sh4addr_t addr )
     return -1;
 
 }
-
-uint64_t mmu_vma_to_phys_exec( sh4addr_t addr )
-{
-    uint32_t mmucr = MMIO_READ(MMU,MMUCR);
-    if( addr & 0x80000000 ) {
-	if( IS_SH4_PRIVMODE()  ) {
-	    if( addr < 0xC0000000 ) {
-		/* P1, P2 and P4 regions are pass-through (no translation) */
-		return (uint64_t)addr;
-	    } else if( addr >= 0xE0000000 ) {
-		MMU_READ_ADDR_ERROR();
-	    }
-	} else {
-	    MMU_READ_ADDR_ERROR();
-	}
-    }
-    
-    if( (mmucr & MMUCR_AT) == 0 ) {
-	return (uint64_t)addr;
-    }
-
-    /* If we get this far, translation is required */
-    int use_asid = ((mmucr & MMUCR_SV) == 0) || !IS_SH4_PRIVMODE();
-    uint32_t asid = MMIO_READ( MMU, PTEH ) & 0xFF;
-    
-    int entryNo = mmu_itlb_lookup_vpn( addr, asid, use_asid );
-    if( entryNo == -1 ) {
-	entryNo = mmu_utlb_lookup_vpn( addr, asid, use_asid );
-	if( entryNo >= 0 ) {
-	    entryNo = mmu_itlb_update_from_utlb( entryNo );
-	}
-    }
-    switch(entryNo) {
-    case -1:
-	MMU_TLB_READ_MISS_ERROR(addr);
-	break;
-    case -2:
-	MMU_TLB_MULTI_HIT_ERROR(addr);
-	break;
-    default:
-	if( (mmu_itlb[entryNo].flags & TLB_USERMODE) == 0 &&
-	    !IS_SH4_PRIVMODE() ) {
-	    /* protection violation */
-	    MMU_TLB_READ_PROT_ERROR(addr);
-	}
-
-	/* finally generate the target address */
-	return (mmu_itlb[entryNo].ppn & mmu_itlb[entryNo].mask) | 
-	    (addr & (~mmu_itlb[entryNo].mask));
-    }
-    return -1;
-}
-
-uint64_t mmu_vma_to_phys_read_noexc( sh4addr_t addr ) {
-
-
-}
-
 
 uint64_t mmu_vma_to_phys_read( sh4addr_t addr )
 {
@@ -556,6 +564,7 @@ uint64_t mmu_vma_to_phys_read( sh4addr_t addr )
 		return (uint64_t)addr;
 	    }
 	    MMU_READ_ADDR_ERROR();
+	    return 0x100000000LL;
 	}
     }
     
@@ -564,24 +573,26 @@ uint64_t mmu_vma_to_phys_read( sh4addr_t addr )
     }
 
     /* If we get this far, translation is required */
-
-    int use_asid = ((mmucr & MMUCR_SV) == 0) || !IS_SH4_PRIVMODE();
-    uint32_t asid = MMIO_READ( MMU, PTEH ) & 0xFF;
-    
-    int entryNo = mmu_utlb_lookup_vpn( addr, asid, use_asid );
+    int entryNo;
+    if( ((mmucr & MMUCR_SV) == 0) || !IS_SH4_PRIVMODE() ) {
+	entryNo = mmu_utlb_lookup_vpn_asid( addr );
+    } else {
+	entryNo = mmu_utlb_lookup_vpn( addr );
+    }
 
     switch(entryNo) {
     case -1:
 	MMU_TLB_READ_MISS_ERROR(addr);
-	break;
+	return 0x100000000LL;
     case -2:
 	MMU_TLB_MULTI_HIT_ERROR(addr);
-	break;
+	return 0x100000000LL;
     default:
 	if( (mmu_utlb[entryNo].flags & TLB_USERMODE) == 0 &&
 	    !IS_SH4_PRIVMODE() ) {
 	    /* protection violation */
 	    MMU_TLB_READ_PROT_ERROR(addr);
+	    return 0x100000000LL;
 	}
 
 	/* finally generate the target address */
@@ -719,4 +730,107 @@ void mmu_ocache_addr_write( sh4addr_t addr, uint32_t val )
 
 void mmu_ocache_data_write( sh4addr_t addr, uint32_t val )
 {
+}
+
+/**
+ * Update the icache for an untranslated address
+ */
+void mmu_update_icache_phys( sh4addr_t addr )
+{
+    if( (addr & 0x1C000000) == 0x0C000000 ) {
+	/* Main ram */
+	sh4_icache.page_vma = addr & 0xFF000000;
+	sh4_icache.page_ppa = 0x0C000000;
+	sh4_icache.mask = 0xFF000000;
+	sh4_icache.page = sh4_main_ram;
+    } else if( (addr & 0x1FE00000 == 0 ) ) {
+	/* BIOS ROM */
+	sh4_icache.page_vma = addr & 0xFFE00000;
+	sh4_icache.page_ppa = 0;
+	sh4_icache.mask = 0xFFE00000;
+	sh4_icache.page = mem_get_region(0);
+    } else {
+	/* not supported */
+	sh4_icache.page_vma = -1;
+    }
+}
+
+/**
+ * Update the sh4_icache structure to describe the page(s) containing the
+ * given vma. If the address does not reference a RAM/ROM region, the icache
+ * will be invalidated instead.
+ * If AT is on, this method will raise TLB exceptions normally
+ * (hence this method should only be used immediately prior to execution of
+ * code), and otherwise will set the icache according to the matching TLB entry.
+ * If AT is off, this method will set the entire referenced RAM/ROM region in
+ * the icache.
+ * @return TRUE if the update completed (successfully or otherwise), FALSE
+ * if an exception was raised.
+ */
+gboolean mmu_update_icache( sh4vma_t addr )
+{
+    int entryNo;
+    if( IS_SH4_PRIVMODE()  ) {
+	if( addr & 0x80000000 ) {
+	    if( addr < 0xC0000000 ) {
+		/* P1, P2 and P4 regions are pass-through (no translation) */
+		mmu_update_icache_phys(addr);
+		return TRUE;
+	    } else if( addr >= 0xE0000000 && addr < 0xFFFFFF00 ) {
+		MMU_READ_ADDR_ERROR();
+		return FALSE;
+	    }
+	} else {
+	    MMU_READ_ADDR_ERROR();
+	    return FALSE;
+	}
+    
+	uint32_t mmucr = MMIO_READ(MMU,MMUCR);
+	if( (mmucr & MMUCR_AT) == 0 ) {
+	    mmu_update_icache_phys(addr);
+	    return TRUE;
+	}
+
+	entryNo = mmu_itlb_lookup_vpn( addr );
+    } else {
+	if( addr & 0x80000000 ) {
+	    MMU_READ_ADDR_ERROR();
+	    return FALSE;
+	}
+
+	uint32_t mmucr = MMIO_READ(MMU,MMUCR);
+	if( (mmucr & MMUCR_AT) == 0 ) {
+	    mmu_update_icache_phys(addr);
+	    return TRUE;
+	}
+	
+	if( mmucr & MMUCR_SV ) {
+	    entryNo = mmu_itlb_lookup_vpn( addr );
+	} else {
+	    entryNo = mmu_itlb_lookup_vpn_asid( addr );
+	}
+	if( entryNo != -1 && (mmu_itlb[entryNo].flags & TLB_USERMODE) == 0 ) {
+	    MMU_TLB_READ_PROT_ERROR(addr);
+	    return FALSE;
+	}
+    }
+
+    switch(entryNo) {
+    case -1:
+	MMU_TLB_READ_MISS_ERROR(addr);
+	return FALSE;
+    case -2:
+	MMU_TLB_MULTI_HIT_ERROR(addr);
+	return FALSE;
+    default:
+	sh4_icache.page_ppa = mmu_itlb[entryNo].ppn & mmu_itlb[entryNo].mask;
+	sh4_icache.page = mem_get_region( sh4_icache.page_ppa );
+	if( sh4_icache.page == NULL ) {
+	    sh4_icache.page_vma = -1;
+	} else {
+	    sh4_icache.page_vma = mmu_itlb[entryNo].vpn & mmu_itlb[entryNo].mask;
+	    sh4_icache.mask = mmu_itlb[entryNo].mask;
+	}
+	return TRUE;
+    }
 }
