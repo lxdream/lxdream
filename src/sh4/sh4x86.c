@@ -318,9 +318,6 @@ static inline void pop_dr( int bankreg, int frm )
 
 #define SLOTILLEGAL() JMP_exc(EXC_SLOT_ILLEGAL); sh4_x86.in_delay_slot = FALSE; return 1;
 
-extern uint16_t *sh4_icache;
-extern uint32_t sh4_icache_addr;
-
 /****** Import appropriate calling conventions ******/
 #if SH4_TRANSLATOR == TARGET_X86_64
 #include "sh4/ia64abi.h"
@@ -345,24 +342,11 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
 {
     uint32_t ir;
     /* Read instruction */
-    uint32_t pageaddr = pc >> 12;
-    if( sh4_icache != NULL && pageaddr == sh4_icache_addr ) {
-	ir = sh4_icache[(pc&0xFFF)>>1];
+    if( IS_IN_ICACHE(pc) ) {
+	ir = *(uint16_t *)GET_ICACHE_PTR(pc);
     } else {
-	uint64_t phys = mmu_vma_to_phys_exec(pc);
-	sh4_icache = (uint16_t *)mem_get_page((uint32_t)phys);
-	if( ((uintptr_t)sh4_icache) < MAX_IO_REGIONS ) {
-	    /* If someone's actually been so daft as to try to execute out of an IO
-	     * region, fallback on the full-blown memory read
-	     */
-	    sh4_icache = NULL;
-	    ir = sh4_read_word(pc);
-	} else {
-	    sh4_icache_addr = pageaddr;
-	    ir = sh4_icache[(pc&0xFFF)>>1];
-	}
+	ir = sh4_read_word(pc);
     }
-
         switch( (ir&0xF000) >> 12 ) {
             case 0x0:
                 switch( ir&0xF ) {
@@ -2367,10 +2351,19 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                 if( sh4_x86.in_delay_slot ) {
             	SLOTILLEGAL();
                 } else {
-            	load_imm32( R_ECX, pc + disp + 4 );
-            	MEM_READ_WORD( R_ECX, R_EAX );
+            	// See comments for MOV.L @(disp, PC), Rn
+            	uint32_t target = pc + disp + 4;
+            	if( IS_IN_ICACHE(target) ) {
+            	    sh4ptr_t ptr = GET_ICACHE_PTR(target);
+            	    MOV_moff32_EAX( ptr );
+            	    MOVSX_r16_r32( R_EAX, R_EAX );
+            	} else {
+            	    load_imm32( R_ECX, (pc - sh4_x86.block_start_pc) + disp + 4 );
+            	    ADD_sh4r_r32( R_PC, R_ECX );
+            	    MEM_READ_WORD( R_ECX, R_EAX );
+            	    sh4_x86.tstate = TSTATE_NONE;
+            	}
             	store_reg( R_EAX, Rn );
-            	sh4_x86.tstate = TSTATE_NONE;
                 }
                 }
                 break;
@@ -2493,7 +2486,8 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                         if( sh4_x86.in_delay_slot ) {
                     	SLOTILLEGAL();
                         } else {
-                    	load_imm32( R_ECX, (pc & 0xFFFFFFFC) + disp + 4 );
+                    	load_imm32( R_ECX, (pc - sh4_x86.block_start_pc) + disp + 4 - (pc&0x03) );
+                    	ADD_sh4r_r32( R_PC, R_ECX );
                     	store_reg( R_ECX, 0 );
                         }
                         }
@@ -2597,15 +2591,28 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
             	SLOTILLEGAL();
                 } else {
             	uint32_t target = (pc & 0xFFFFFFFC) + disp + 4;
-            	sh4ptr_t ptr = sh4_get_region_by_vma(target);
-            	if( ptr != NULL ) {
+            	if( IS_IN_ICACHE(target) ) {
+            	    // If the target address is in the same page as the code, it's
+            	    // pretty safe to just ref it directly and circumvent the whole
+            	    // memory subsystem. (this is a big performance win)
+            
+            	    // FIXME: There's a corner-case that's not handled here when
+            	    // the current code-page is in the ITLB but not in the UTLB.
+            	    // (should generate a TLB miss although need to test SH4 
+            	    // behaviour to confirm) Unlikely to be anyone depending on this
+            	    // behaviour though.
+            	    sh4ptr_t ptr = GET_ICACHE_PTR(target);
             	    MOV_moff32_EAX( ptr );
             	} else {
-            	    load_imm32( R_ECX, target );
+            	    // Note: we use sh4r.pc for the calc as we could be running at a
+            	    // different virtual address than the translation was done with,
+            	    // but we can safely assume that the low bits are the same.
+            	    load_imm32( R_ECX, (pc-sh4_x86.block_start_pc) + disp + 4 - (pc&0x03) );
+            	    ADD_sh4r_r32( R_PC, R_ECX );
             	    MEM_READ_LONG( R_ECX, R_EAX );
+            	    sh4_x86.tstate = TSTATE_NONE;
             	}
             	store_reg( R_EAX, Rn );
-            	sh4_x86.tstate = TSTATE_NONE;
                 }
                 }
                 break;

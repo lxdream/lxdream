@@ -38,9 +38,6 @@
 
 /********************** SH4 Module Definition ****************************/
 
-uint16_t *sh4_icache = NULL;
-uint32_t sh4_icache_addr = 0;
-
 uint32_t sh4_run_slice( uint32_t nanosecs ) 
 {
     int i;
@@ -238,20 +235,13 @@ gboolean sh4_execute_instruction( void )
 
     /* Read instruction */
     uint32_t pageaddr = pc >> 12;
-    if( sh4_icache != NULL && pageaddr == sh4_icache_addr ) {
-	ir = sh4_icache[(pc&0xFFF)>>1];
+    if( !IS_IN_ICACHE(pc) ) {
+	mmu_update_icache(pc);
+    }
+    if( IS_IN_ICACHE(pc) ) {
+	ir = *(uint16_t *)GET_ICACHE_PTR(pc);
     } else {
-	sh4_icache = (uint16_t *)mem_get_page(pc);
-	if( ((uintptr_t)sh4_icache) < MAX_IO_REGIONS ) {
-	    /* If someone's actually been so daft as to try to execute out of an IO
-	     * region, fallback on the full-blown memory read
-	     */
-	    sh4_icache = NULL;
-	    MEM_READ_WORD(pc, ir);
-	} else {
-	    sh4_icache_addr = pageaddr;
-	    ir = sh4_icache[(pc&0xFFF)>>1];
-	}
+	ir = sh4_read_word(pc);
     }
         switch( (ir&0xF000) >> 12 ) {
             case 0x0:

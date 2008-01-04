@@ -21,6 +21,7 @@
 #include <assert.h>
 
 #include "dreamcast.h"
+#include "sh4/sh4core.h"
 #include "sh4/xltcache.h"
 #include "x86dasm/x86dasm.h"
 
@@ -204,6 +205,29 @@ void *xlat_get_code( sh4addr_t address )
     if( page != NULL ) {
 	result = (void *)(((uintptr_t)(page[XLAT_LUT_ENTRY(address)])) & (~((uintptr_t)0x03)));
     }
+    return result;
+}
+
+void *xlat_get_code_by_vma( sh4vma_t vma )
+{
+    void *result = NULL;
+
+
+    if( !IS_IN_ICACHE(vma) ) {
+	if( !mmu_update_icache(sh4r.pc) ) {
+	    // fault - off to the fault handler
+	    if( !mmu_update_icache(sh4r.pc) ) {
+		// double fault - halt
+		dreamcast_stop();
+		ERROR( "Double fault - halting" );
+		return NULL;
+	    }
+	}
+    }
+    if( sh4_icache.page_vma != -1 ) {
+	result = xlat_get_code( GET_ICACHE_PHYS(vma) );
+    }
+
     return result;
 }
 

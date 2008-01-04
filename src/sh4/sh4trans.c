@@ -61,19 +61,8 @@ uint32_t sh4_xlat_run_slice( uint32_t nanosecs )
 		sh4r.pc = sh4r.pr;
 	    }
 
-	    code = xlat_get_code(sh4r.pc);
+	    code = xlat_get_code_by_vma( sh4r.pc );
 	    if( code == NULL ) {
-		uint64_t ppa = mmu_vma_to_phys_exec( sh4r.pc );
-		if( ppa>>32 ) {
-		    // not found, exception
-		    ppa = mmu_vma_to_phys_exec( sh4r.pc );
-		    if( ppa>>32 ) {
-			// double fault - halt
-			dreamcast_stop();
-			ERROR( "Double fault - halting" );
-			return nanosecs;
-		    }
-		}
 		code = sh4_translate_basic_block( sh4r.pc );
 	    }
 	}

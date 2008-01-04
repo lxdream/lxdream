@@ -67,7 +67,6 @@ TRACE( str " [%s.%s: %s]", __VA_ARGS__, \
 
 extern struct mem_region mem_rgn[];
 extern struct mmio_region *P4_io[];
-sh4ptr_t sh4_main_ram;
 
 int32_t sh4_read_p4( sh4addr_t addr )
 {

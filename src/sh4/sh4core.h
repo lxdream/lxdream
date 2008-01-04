@@ -33,6 +33,37 @@ extern "C" {
 /* Breakpoint data structure */
 extern struct breakpoint_struct sh4_breakpoints[MAX_BREAKPOINTS];
 extern int sh4_breakpoint_count;
+extern sh4ptr_t sh4_main_ram;
+
+/**
+ * Cached direct pointer to the current instruction page. If AT is on, this
+ * is derived from the ITLB, otherwise this will be the entire memory region.
+ * This is actually a fairly useful optimization, as we can make a lot of
+ * assumptions about the "current page" that we can't make in general for
+ * arbitrary virtual addresses.
+ */
+struct sh4_icache_struct {
+    sh4ptr_t page; // Page pointer (NULL if no page)
+    sh4vma_t page_vma; // virtual address of the page.
+    sh4addr_t page_ppa; // physical address of the page
+    uint32_t mask;  // page mask 
+};
+extern struct sh4_icache_struct sh4_icache;
+
+/**
+ * Test if a given address is contained in the current icache entry
+ */
+#define IS_IN_ICACHE(addr) (sh4_icache.page_vma == ((addr) & sh4_icache.mask))
+/**
+ * Return a pointer for the given vma, under the assumption that it is
+ * actually contained in the current icache entry.
+ */
+#define GET_ICACHE_PTR(addr) (sh4_icache.page + ((addr)-sh4_icache.page_vma))
+/**
+ * Return the physical (external) address for the given vma, assuming that it is
+ * actually contained in the current icache entry.
+ */
+#define GET_ICACHE_PHYS(addr) (sh4_icache.page_ppa + ((addr)-sh4_icache.page_vma))
 
 /* SH4 module functions */
 void sh4_init( void );
@@ -74,9 +105,10 @@ void sh4_write_sr(uint32_t val);
 void signsat48(void);
 
 /* SH4 Memory */
-uint64_t mmu_vma_to_phys_read( sh4addr_t addr );
-uint64_t mmu_vma_to_phys_write( sh4addr_t addr );
-uint64_t mmu_vma_to_phys_exec( sh4addr_t addr );
+gboolean mmu_update_icache( sh4vma_t addr );
+uint64_t mmu_vma_to_phys_read( sh4vma_t addr );
+uint64_t mmu_vma_to_phys_write( sh4vma_t addr );
+uint64_t mmu_vma_to_phys_exec( sh4vma_t addr );
 
 int64_t sh4_read_quad( sh4addr_t addr );
 int64_t sh4_read_long( sh4addr_t addr );
