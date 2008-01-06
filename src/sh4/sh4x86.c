@@ -54,6 +54,9 @@ struct sh4_x86_state {
     uint32_t stack_posn;   /* Trace stack height for alignment purposes */
     int tstate;
 
+    /* mode flags */
+    gboolean tlb_on; /* True if tlb translation is active */
+
     /* Allocated memory for the (block-wide) back-patch list */
     struct backpatch_record *backpatch_list;
     uint32_t backpatch_posn;
@@ -306,15 +309,34 @@ static inline void pop_dr( int bankreg, int frm )
 
 #define UNDEF()
 #define MEM_RESULT(value_reg) if(value_reg != R_EAX) { MOV_r32_r32(R_EAX,value_reg); }
-#define MEM_READ_BYTE( addr_reg, value_reg ) call_func1(sh4_read_byte, addr_reg ); TEST_r32_r32( R_EDX, R_EDX ); JNE_exc(-1); MEM_RESULT(value_reg) 
-#define MEM_READ_WORD( addr_reg, value_reg ) call_func1(sh4_read_word, addr_reg ); TEST_r32_r32( R_EDX, R_EDX ); JNE_exc(-1); MEM_RESULT(value_reg) 
-#define MEM_READ_LONG( addr_reg, value_reg ) call_func1(sh4_read_long, addr_reg ); TEST_r32_r32( R_EDX, R_EDX ); JNE_exc(-1); MEM_RESULT(value_reg) 
-#define MEM_WRITE_BYTE( addr_reg, value_reg ) call_func2(sh4_write_byte, addr_reg, value_reg); TEST_r32_r32( R_EAX, R_EAX ); JNE_exc(-1);
-#define MEM_WRITE_WORD( addr_reg, value_reg ) call_func2(sh4_write_word, addr_reg, value_reg); TEST_r32_r32( R_EAX, R_EAX ); JNE_exc(-1);
-#define MEM_WRITE_LONG( addr_reg, value_reg ) call_func2(sh4_write_long, addr_reg, value_reg); TEST_r32_r32( R_EAX, R_EAX ); JNE_exc(-1);
+#define MEM_READ_BYTE_PHYS( addr_reg, value_reg ) call_func1(sh4_read_byte, addr_reg ); MEM_RESULT(value_reg)
+#define MEM_READ_WORD_PHYS( addr_reg, value_reg ) call_func1(sh4_read_word, addr_reg ); MEM_RESULT(value_reg)
+#define MEM_READ_LONG_PHYS( addr_reg, value_reg ) call_func1(sh4_read_long, addr_reg ); MEM_RESULT(value_reg)
+#define MEM_WRITE_BYTE_PHYS( addr_reg, value_reg ) call_func2(sh4_write_byte, addr_reg, value_reg)
+#define MEM_WRITE_WORD_PHYS( addr_reg, value_reg ) call_func2(sh4_write_word, addr_reg, value_reg)
+#define MEM_WRITE_LONG_PHYS( addr_reg, value_reg ) call_func2(sh4_write_long, addr_reg, value_reg)
 
-#define MEM_READ_SIZE  (CALL_FUNC1_SIZE+8)
-#define MEM_WRITE_SIZE (CALL_FUNC2_SIZE+8)
+#define MEM_READ_BYTE_VMA( addr_reg, value_reg ) call_func1(mmu_vma_to_phys_read, addr_reg); CMP_imm32_r32(MMU_VMA_ERROR, R_EAX); JE_exc(-1); call_func1(sh4_read_byte, R_EAX); MEM_RESULT(value_reg)
+#define MEM_READ_WORD_VMA( addr_reg, value_reg ) call_func1(mmu_vma_to_phys_read, addr_reg); CMP_imm32_r32(MMU_VMA_ERROR, R_EAX); JE_exc(-1); call_func1(sh4_read_word, R_EAX); MEM_RESULT(value_reg)
+#define MEM_READ_LONG_VMA( addr_reg, value_reg ) call_func1(mmu_vma_to_phys_read, addr_reg); CMP_imm32_r32(MMU_VMA_ERROR, R_EAX); JE_exc(-1); call_func1(sh4_read_long, R_EAX); MEM_RESULT(value_reg)
+#define MEM_WRITE_BYTE_VMA( addr_reg, value_reg ) call_func1(mmu_vma_to_phys_write, addr_reg); CMP_imm32_r32(MMU_VMA_ERROR, R_EAX); JE_exc(-1); call_func2(sh4_write_byte, R_EAX, value_reg)
+#define MEM_WRITE_WORD_VMA( addr_reg, value_reg ) call_func1(mmu_vma_to_phys_write, addr_reg); CMP_imm32_r32(MMU_VMA_ERROR, R_EAX); JE_exc(-1); call_func2(sh4_write_word, R_EAX, value_reg)
+#define MEM_WRITE_LONG_VMA( addr_reg, value_reg ) call_func1(mmu_vma_to_phys_write, addr_reg); CMP_imm32_r32(MMU_VMA_ERROR, R_EAX); JE_exc(-1); call_func2(sh4_write_long, R_EAX, value_reg)
+
+#define MEM_READ_BYTE( addr_reg, value_reg ) if(sh4_x86.tlb_on){MEM_READ_BYTE_VMA(addr_reg,value_reg);}else{MEM_READ_BYTE_PHYS(addr_reg, value_reg);}
+#define MEM_READ_WORD( addr_reg, value_reg ) if(sh4_x86.tlb_on){MEM_READ_WORD_VMA(addr_reg,value_reg);}else{MEM_READ_WORD_PHYS(addr_reg, value_reg);}
+#define MEM_READ_LONG( addr_reg, value_reg ) if(sh4_x86.tlb_on){MEM_READ_LONG_VMA(addr_reg,value_reg);}else{MEM_READ_LONG_PHYS(addr_reg, value_reg);}
+#define MEM_WRITE_BYTE( addr_reg, value_reg ) if(sh4_x86.tlb_on){MEM_WRITE_BYTE_VMA(addr_reg,value_reg);}else{MEM_WRITE_BYTE_PHYS(addr_reg, value_reg);}
+#define MEM_WRITE_WORD( addr_reg, value_reg ) if(sh4_x86.tlb_on){MEM_WRITE_WORD_VMA(addr_reg,value_reg);}else{MEM_WRITE_WORD_PHYS(addr_reg, value_reg);}
+#define MEM_WRITE_LONG( addr_reg, value_reg ) if(sh4_x86.tlb_on){MEM_WRITE_LONG_VMA(addr_reg,value_reg);}else{MEM_WRITE_LONG_PHYS(addr_reg, value_reg);}
+
+#define MEM_READ_SIZE_PHYS (CALL_FUNC1_SIZE)
+#define MEM_WRITE_SIZE_PHYS (CALL_FUNC2_SIZE)
+#define MEM_READ_SIZE_VMA (CALL_FUNC1_SIZE + CALL_FUNC1_SIZE + 12)
+#define MEM_WRITE_SIZE_VMA (CALL_FUNC1_SIZE + CALL_FUNC2_SIZE + 12)
+
+#define MEM_READ_SIZE (sh4_x86.tlb_on?MEM_READ_SIZE_VMA:MEM_READ_SIZE_PHYS)
+#define MEM_WRITE_SIZE (sh4_x86.tlb_on?MEM_WRITE_SIZE_VMA:MEM_WRITE_SIZE_PHYS)
 
 #define SLOTILLEGAL() JMP_exc(EXC_SLOT_ILLEGAL); sh4_x86.in_delay_slot = FALSE; return 1;
 

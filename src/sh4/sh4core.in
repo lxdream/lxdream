@@ -161,12 +161,12 @@ void fprint_stack_trace( FILE *f )
 #define TRACE_RETURN( source, dest )
 #endif
 
-#define MEM_READ_BYTE( addr, val ) memtmp = sh4_read_byte(addr); if( memtmp >> 32 ) { return TRUE; } else { val = ((uint32_t)memtmp); }
-#define MEM_READ_WORD( addr, val ) memtmp = sh4_read_word(addr); if( memtmp >> 32 ) { return TRUE; } else { val = ((uint32_t)memtmp); }
-#define MEM_READ_LONG( addr, val ) memtmp = sh4_read_long(addr); if( memtmp >> 32 ) { return TRUE; } else { val = ((uint32_t)memtmp); }
-#define MEM_WRITE_BYTE( addr, val ) if( sh4_write_byte(addr, val) ) { return TRUE; }
-#define MEM_WRITE_WORD( addr, val ) if( sh4_write_word(addr, val) ) { return TRUE; }
-#define MEM_WRITE_LONG( addr, val ) if( sh4_write_long(addr, val) ) { return TRUE; }
+#define MEM_READ_BYTE( addr, val ) memtmp = mmu_vma_to_phys_read(addr); if( memtmp == MMU_VMA_ERROR ) { return TRUE; } else { val = sh4_read_byte(memtmp); }
+#define MEM_READ_WORD( addr, val ) memtmp = mmu_vma_to_phys_read(addr); if( memtmp == MMU_VMA_ERROR ) { return TRUE; } else { val = sh4_read_word(memtmp); }
+#define MEM_READ_LONG( addr, val ) memtmp = mmu_vma_to_phys_read(addr); if( memtmp == MMU_VMA_ERROR ) { return TRUE; } else { val = sh4_read_long(memtmp); }
+#define MEM_WRITE_BYTE( addr, val ) memtmp = mmu_vma_to_phys_write(addr); if( memtmp == MMU_VMA_ERROR ) { return TRUE; } else { sh4_write_byte(memtmp, val); }
+#define MEM_WRITE_WORD( addr, val ) memtmp = mmu_vma_to_phys_write(addr); if( memtmp == MMU_VMA_ERROR ) { return TRUE; } else { sh4_write_word(memtmp, val); }
+#define MEM_WRITE_LONG( addr, val ) memtmp = mmu_vma_to_phys_write(addr); if( memtmp == MMU_VMA_ERROR ) { return TRUE; } else { sh4_write_long(memtmp, val); }
 
 #define FP_WIDTH (IS_FPU_DOUBLESIZE() ? 8 : 4)
 
