@@ -109,6 +109,7 @@ void sh4_translate_begin_block( sh4addr_t pc )
     sh4_x86.branch_taken = FALSE;
     sh4_x86.backpatch_posn = 0;
     sh4_x86.block_start_pc = pc;
+    sh4_x86.tlb_on = MMIO_READ(MMU,MMUCR)&MMUCR_AT;
     sh4_x86.tstate = TSTATE_NONE;
 #ifdef STACK_ALIGN
 	sh4_x86.stack_posn = 8;
@@ -124,7 +125,11 @@ void exit_block_pcset( sh4addr_t pc )
     load_imm32( R_ECX, ((pc - sh4_x86.block_start_pc)>>1)*sh4_cpu_period ); // 5
     ADD_r32_sh4r( R_ECX, REG_OFFSET(slice_cycle) );    // 6
     load_spreg( R_EAX, REG_OFFSET(pc) );
-    call_func1(xlat_get_code_by_vma,R_EAX);
+    if( sh4_x86.tlb_on ) {
+	call_func1(xlat_get_code_by_vma,R_EAX);
+    } else {
+	call_func1(xlat_get_code,R_EAX);
+    } 
     POP_r32(R_EBP);
     RET();
 }
@@ -167,7 +172,11 @@ void sh4_translate_end_block( sh4addr_t pc ) {
 	call_func0( sh4_raise_exception );
 	ADD_imm8s_r32( 4, R_ESP );
 	load_spreg( R_EAX, REG_OFFSET(pc) );
-	call_func1(xlat_get_code_by_vma,R_EAX);
+	if( sh4_x86.tlb_on ) {
+	    call_func1(xlat_get_code_by_vma,R_EAX);
+	} else {
+	    call_func1(xlat_get_code,R_EAX);
+	}
 	POP_r32(R_EBP);
 	RET();
 
@@ -181,7 +190,11 @@ void sh4_translate_end_block( sh4addr_t pc ) {
 	MUL_r32( R_EDX );
 	ADD_r32_sh4r( R_EAX, REG_OFFSET(slice_cycle) );
 	load_spreg( R_EAX, REG_OFFSET(pc) );
-	call_func1(xlat_get_code_by_vma,R_EAX);
+	if( sh4_x86.tlb_on ) {
+	    call_func1(xlat_get_code_by_vma,R_EAX);
+	} else {
+	    call_func1(xlat_get_code,R_EAX);
+	}
 	POP_r32(R_EBP);
 	RET();
 

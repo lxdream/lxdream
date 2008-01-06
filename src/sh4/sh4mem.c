@@ -154,17 +154,11 @@ int64_t sh4_read_quad( sh4addr_t addr )
 	(((int64_t)((uint32_t)sh4_read_long(addr+4))) << 32);
 }
 
-int64_t sh4_read_long( sh4addr_t vma )
+int32_t sh4_read_long( sh4addr_t addr )
 {
     sh4ptr_t page;
     
     CHECK_READ_WATCH(addr,4);
-
-    uint64_t ppa = mmu_vma_to_phys_read(vma);
-    if( ppa>>32 ) {
-	return ppa;
-    }
-    sh4addr_t addr = (sh4addr_t)ppa;
 
     if( addr >= 0xE0000000 ) { /* P4 Area, handled specially */
         return ZEROEXT32(sh4_read_p4( addr ));
@@ -192,17 +186,11 @@ int64_t sh4_read_long( sh4addr_t vma )
     }
 }
 
-int64_t sh4_read_word( sh4addr_t vma )
+int32_t sh4_read_word( sh4addr_t addr )
 {
     sh4ptr_t page;
 
     CHECK_READ_WATCH(addr,2);
-
-    uint64_t ppa = mmu_vma_to_phys_read(vma);
-    if( ppa>>32 ) {
-	return ppa;
-    }
-    sh4addr_t addr = (sh4addr_t)ppa;
 
     if( addr >= 0xE0000000 ) { /* P4 Area, handled specially */
         return ZEROEXT32(SIGNEXT16(sh4_read_p4( addr )));
@@ -230,17 +218,11 @@ int64_t sh4_read_word( sh4addr_t vma )
     }
 }
 
-int64_t sh4_read_byte( sh4addr_t vma )
+int32_t sh4_read_byte( sh4addr_t addr )
 {
     sh4ptr_t page;
 
     CHECK_READ_WATCH(addr,1);
-
-    uint64_t ppa = mmu_vma_to_phys_read(vma);
-    if( ppa>>32 ) {
-	return ppa;
-    }
-    sh4addr_t addr = (sh4addr_t)ppa;
 
     if( addr >= 0xE0000000 ) { /* P4 Area, handled specially */
         return ZEROEXT32(SIGNEXT8(sh4_read_p4( addr )));
@@ -278,25 +260,19 @@ void sh4_write_quad( sh4addr_t addr, uint64_t val )
     sh4_write_long( addr+4, (uint32_t)(val>>32) );
 }
 
-int32_t sh4_write_long( sh4addr_t vma, uint32_t val )
+void sh4_write_long( sh4addr_t addr, uint32_t val )
 {
     sh4ptr_t page;
-
-    uint64_t ppa = mmu_vma_to_phys_write(vma);
-    if( ppa>>32 ) {
-	return ppa>>32;
-    }
-    sh4addr_t addr = (sh4addr_t)ppa;
 
     CHECK_WRITE_WATCH(addr,4,val);
 
     if( addr >= 0xE0000000 ) {
         sh4_write_p4( addr, val );
-        return 0;
+        return;
     } else if( (addr&0x1C000000) == 0x0C000000 ) {
 	*(uint32_t *)(sh4_main_ram + (addr&0x00FFFFFF)) = val;
 	xlat_invalidate_long(addr);
-	return 0;
+	return;
     } else if( (addr&0x1F800000) == 0x04000000 || 
 	       (addr&0x1F800000) == 0x11000000 ) {
 	texcache_invalidate_page(addr& 0x7FFFFF);
@@ -309,7 +285,7 @@ int32_t sh4_write_long( sh4addr_t vma, uint32_t val )
     if( (addr&0x1FFFFFFF) < 0x200000 ) {
         WARN( "Attempted write to read-only memory: %08X => %08X", val, addr);
         sh4_stop();
-        return 0;
+        return;
     }
     if( (addr&0x1F800000) == 0x00800000 )
 	asic_g2_write_word();
@@ -319,37 +295,30 @@ int32_t sh4_write_long( sh4addr_t vma, uint32_t val )
         if( page == NULL ) {
 	    if( (addr & 0x1F000000) >= 0x04000000 &&
 		(addr & 0x1F000000) < 0x07000000 )
-		return 0;
+		return;
             WARN( "Long write to missing page: %08X => %08X", val, addr );
-            return 0;
+            return;
         }
         TRACE_IO( "Long write %08X => %08X", page, (addr&0xFFF), val, addr );
         io_rgn[(uintptr_t)page]->io_write(addr&0xFFF, val);
     } else {
         *(uint32_t *)(page+(addr&0xFFF)) = val;
     }
-    return 0;
 }
 
-int32_t sh4_write_word( sh4addr_t vma, uint32_t val )
+void sh4_write_word( sh4addr_t addr, uint32_t val )
 {
     sh4ptr_t page;
-
-    uint64_t ppa = mmu_vma_to_phys_write(vma);
-    if( ppa>>32 ) {
-	return ppa>>32;
-    }
-    sh4addr_t addr = (sh4addr_t)ppa;
 
     CHECK_WRITE_WATCH(addr,2,val);
 
     if( addr >= 0xE0000000 ) {
         sh4_write_p4( addr, (int16_t)val );
-        return 0;
+        return;
     } else if( (addr&0x1C000000) == 0x0C000000 ) {
 	*(uint16_t *)(sh4_main_ram + (addr&0x00FFFFFF)) = val;
 	xlat_invalidate_word(addr);
-	return 0;
+	return;
     } else if( (addr&0x1F800000) == 0x04000000 ||
 	(addr&0x1F800000) == 0x11000000 ) {
 	texcache_invalidate_page(addr& 0x7FFFFF);
@@ -362,41 +331,34 @@ int32_t sh4_write_word( sh4addr_t vma, uint32_t val )
     if( (addr&0x1FFFFFFF) < 0x200000 ) {
         WARN( "Attempted write to read-only memory: %08X => %08X", val, addr);
         sh4_stop();
-        return 0;
+        return;
     }
     page = page_map[ (addr & 0x1FFFFFFF) >> 12 ];
     if( ((uintptr_t)page) < MAX_IO_REGIONS ) { /* IO Region */
         if( page == NULL ) {
             WARN( "Attempted word write to missing page: %08X", addr );
-            return 0;
+            return;
         }
         TRACE_IO( "Word write %04X => %08X", page, (addr&0xFFF), val&0xFFFF, addr );
         io_rgn[(uintptr_t)page]->io_write(addr&0xFFF, val);
     } else {
         *(uint16_t *)(page+(addr&0xFFF)) = val;
     }
-    return 0;
 }
 
-int32_t sh4_write_byte( sh4addr_t vma, uint32_t val )
+void sh4_write_byte( sh4addr_t addr, uint32_t val )
 {
     sh4ptr_t page;
 
-    uint64_t ppa = mmu_vma_to_phys_write(vma);
-    if( ppa>>32 ) {
-	return ppa>>32;
-    }
-    sh4addr_t addr = (sh4addr_t)ppa;
-    
     CHECK_WRITE_WATCH(addr,1,val);
 
     if( addr >= 0xE0000000 ) {
         sh4_write_p4( addr, (int8_t)val );
-        return 0;
+        return;
     } else if( (addr&0x1C000000) == 0x0C000000 ) {
 	*(uint8_t *)(sh4_main_ram + (addr&0x00FFFFFF)) = val;
 	xlat_invalidate_word(addr);
-	return 0;
+	return;
     } else if( (addr&0x1F800000) == 0x04000000 ||
 	       (addr&0x1F800000) == 0x11000000 ) {
 	texcache_invalidate_page(addr& 0x7FFFFF);
@@ -409,20 +371,19 @@ int32_t sh4_write_byte( sh4addr_t vma, uint32_t val )
     if( (addr&0x1FFFFFFF) < 0x200000 ) {
         WARN( "Attempted write to read-only memory: %08X => %08X", val, addr);
         sh4_stop();
-        return 0;
+        return;
     }
     page = page_map[ (addr & 0x1FFFFFFF) >> 12 ];
     if( ((uintptr_t)page) < MAX_IO_REGIONS ) { /* IO Region */
         if( page == NULL ) {
             WARN( "Attempted byte write to missing page: %08X", addr );
-            return 0;
+            return;
         }
         TRACE_IO( "Byte write %02X => %08X", page, (addr&0xFFF), val&0xFF, addr );
         io_rgn[(uintptr_t)page]->io_write( (addr&0xFFF), val);
     } else {
         *(uint8_t *)(page+(addr&0xFFF)) = val;
     }
-    return 0;
 }
 
 

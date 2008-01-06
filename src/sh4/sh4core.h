@@ -105,22 +105,37 @@ void sh4_write_sr(uint32_t val);
 void signsat48(void);
 
 /* SH4 Memory */
+#define MMU_VMA_ERROR 0x8000000
+/**
+ * Update the sh4_icache structure to contain the specified vma. If the vma
+ * cannot be resolved, an MMU exception is raised and the function returns
+ * FALSE. Otherwise, returns TRUE and updates sh4_icache accordingly.
+ * Note: If the vma resolves to a non-memory area, sh4_icache will be 
+ * invalidated, but the function will still return TRUE.
+ * @return FALSE if an MMU exception was raised, otherwise TRUE.
+ */
 gboolean mmu_update_icache( sh4vma_t addr );
-uint64_t mmu_vma_to_phys_read( sh4vma_t addr );
-uint64_t mmu_vma_to_phys_write( sh4vma_t addr );
-uint64_t mmu_vma_to_phys_exec( sh4vma_t addr );
+
+/**
+ * Resolve a virtual address through the TLB for a read operation, returning 
+ * the resultant P4 or external address. If the resolution fails, the 
+ * appropriate MMU exception is raised and the value MMU_VMA_ERROR is returned.
+ * @return An external address (0x00000000-0x1FFFFFFF), a P4 address
+ * (0xE0000000 - 0xFFFFFFFF), or MMU_VMA_ERROR.
+ */
+sh4addr_t mmu_vma_to_phys_read( sh4vma_t addr );
+sh4addr_t mmu_vma_to_phys_write( sh4vma_t addr );
 
 int64_t sh4_read_quad( sh4addr_t addr );
-int64_t sh4_read_long( sh4addr_t addr );
-int64_t sh4_read_word( sh4addr_t addr );
-int64_t sh4_read_byte( sh4addr_t addr );
+int32_t sh4_read_long( sh4addr_t addr );
+int32_t sh4_read_word( sh4addr_t addr );
+int32_t sh4_read_byte( sh4addr_t addr );
 void sh4_write_quad( sh4addr_t addr, uint64_t val );
-int32_t sh4_write_long( sh4addr_t addr, uint32_t val );
-int32_t sh4_write_word( sh4addr_t addr, uint32_t val );
-int32_t sh4_write_byte( sh4addr_t addr, uint32_t val );
+void sh4_write_long( sh4addr_t addr, uint32_t val );
+void sh4_write_word( sh4addr_t addr, uint32_t val );
+void sh4_write_byte( sh4addr_t addr, uint32_t val );
 int32_t sh4_read_phys_word( sh4addr_t addr );
 void sh4_flush_store_queue( sh4addr_t addr );
-sh4ptr_t sh4_get_region_by_vma( sh4addr_t addr );
 
 /* SH4 Exceptions */
 #define EXC_POWER_RESET     0x000 /* reset vector */
