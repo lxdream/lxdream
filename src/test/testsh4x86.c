@@ -64,8 +64,8 @@ int32_t sh4_read_long( uint32_t addr )
 // Stubs
 gboolean sh4_execute_instruction( ) { }
 void sh4_accept_interrupt() {}
-void sh4_set_breakpoint( uint32_t pc, int type ) { }
-gboolean sh4_clear_breakpoint( uint32_t pc, int type ) { }
+void sh4_set_breakpoint( uint32_t pc, breakpoint_type_t type ) { }
+gboolean sh4_clear_breakpoint( uint32_t pc, breakpoint_type_t type ) { }
 int sh4_get_breakpoint( uint32_t pc ) { }
 void event_execute() {}
 void TMU_run_slice( uint32_t nanos ) {}
@@ -77,6 +77,9 @@ void sh4_write_long( uint32_t addr, uint32_t val ) {}
 void sh4_flush_store_queue( uint32_t addr ) {}
 void sh4_write_sr( uint32_t val ) { }
 void syscall_invoke( uint32_t val ) { }
+void dreamcast_stop() {} 
+sh4addr_t mmu_vma_to_phys_read( sh4vma_t vma ) { return vma & 0x1FFFFFFF; }
+sh4addr_t mmu_vma_to_phys_write( sh4vma_t vma ) { return vma & 0x1FFFFFFF; }
 uint32_t sh4_read_sr( void ) { }
 gboolean sh4_raise_exception( int exc ) {}
 gboolean sh4_raise_trap( int exc ) {}
@@ -84,10 +87,8 @@ void sh4_sleep() { }
 void sh4_fsca( uint32_t angle, float *fr ) { }
 void sh4_ftrv( float *fv, float *xmtrx ) { }
 void signsat48(void) { }
-uint16_t *sh4_icache = NULL;
-uint32_t sh4_icache_addr = 0;
 gboolean gui_error_dialog( const char *fmt, ... ) { }
-
+struct sh4_icache_struct sh4_icache;
 
 void usage()
 {

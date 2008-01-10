@@ -185,6 +185,7 @@ void sh4_accept_interrupt( void );
 #define SR_T     0x00000001 /* True/false or carry/borrow */
 #define SR_MASK  0x700083F3
 #define SR_MQSTMASK 0xFFFFFCFC /* Mask to clear the flags we're keeping separately */
+#define SR_MDRB  0x60000000 /* MD+RB mask for convenience */
 
 #define IS_SH4_PRIVMODE() (sh4r.sr&SR_MD)
 #define SH4_INTMASK() ((sh4r.sr&SR_IMASK)>>4)

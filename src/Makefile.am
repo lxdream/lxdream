@@ -48,16 +48,27 @@ lxdream_SOURCES += sh4/sh4x86.c sh4/x86op.h \
         sh4/ia32abi.h sh4/ia32mac.h sh4/ia64abi.h \
         sh4/sh4trans.c sh4/sh4trans.h \
         x86dasm/x86dasm.c x86dasm/x86dasm.h \
-        x86dasm/i386-dis.c x86dasm/dis-init.c x86dasm/dis-buf.c
+        x86dasm/i386-dis.c x86dasm/dis-init.c x86dasm/dis-buf.c 
 
+test_testsh4x86_LDADD = @GTK_LIBS@
+
+check_PROGRAMS += test/testsh4x86
+
+if BUILD_X86_64
+lxdream_SOURCES += sh4/ia64asm.s
 test_testsh4x86_SOURCES = test/testsh4x86.c x86dasm/x86dasm.c \
 	x86dasm/x86dasm.h x86dasm/i386-dis.c x86dasm/dis-init.c \
 	x86dasm/dis-buf.c \
 	sh4/sh4dasm.c sh4/sh4trans.c sh4/sh4x86.c sh4/xltcache.c \
-	sh4/xltcache.h mem.c util.c
-test_testsh4x86_LDADD = @GTK_LIBS@
-
-check_PROGRAMS += test/testsh4x86
+	sh4/xltcache.h mem.c util.c sh4/ia64asm.s
+else
+lxdream_SOURCES += sh4/ia32asm.s
+test_testsh4x86_SOURCES = test/testsh4x86.c x86dasm/x86dasm.c \
+	x86dasm/x86dasm.h x86dasm/i386-dis.c x86dasm/dis-init.c \
+	x86dasm/dis-buf.c \
+	sh4/sh4dasm.c sh4/sh4trans.c sh4/sh4x86.c sh4/xltcache.c \
+	sh4/xltcache.h mem.c util.c sh4/ia32asm.s
+endif
 
 endif
 

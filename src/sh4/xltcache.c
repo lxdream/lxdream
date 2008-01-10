@@ -208,27 +208,33 @@ void *xlat_get_code( sh4addr_t address )
     return result;
 }
 
-void *xlat_get_code_by_vma( sh4vma_t vma )
+xlat_recovery_record_t xlat_get_recovery( void *code, void *native_pc, gboolean recover_after )
 {
-    void *result = NULL;
-
-
-    if( !IS_IN_ICACHE(vma) ) {
-	if( !mmu_update_icache(sh4r.pc) ) {
-	    // fault - off to the fault handler
-	    if( !mmu_update_icache(sh4r.pc) ) {
-		// double fault - halt
-		dreamcast_stop();
-		ERROR( "Double fault - halting" );
+    if( code != NULL ) {
+	xlat_cache_block_t block = BLOCK_FOR_CODE(code);
+	uint32_t count = block->recover_table_size;
+	xlat_recovery_record_t records = block->recover_table;
+	uint32_t posn;
+	if( recover_after ) {
+	    if( records[count-1].xlat_pc <= (uintptr_t)native_pc ) {
 		return NULL;
 	    }
+	    for( posn=count-1; posn > 0; posn-- ) {
+		if( records[posn-1].xlat_pc <= (uintptr_t)native_pc ) {
+		    return &records[posn];
+		}
+	    }
+	    return &records[0]; // shouldn't happen
+	} else {
+	    for( posn = 1; posn < count; posn++ ) {
+		if( records[posn].xlat_pc > (uintptr_t)native_pc ) {
+		    return &records[posn-1];
+		}
+	    }
+	    return &records[count-1];
 	}
     }
-    if( sh4_icache.page_vma != -1 ) {
-	result = xlat_get_code( GET_ICACHE_PHYS(vma) );
-    }
-
-    return result;
+    return NULL;
 }
 
 void **xlat_get_lut_entry( sh4addr_t address )
@@ -252,6 +258,16 @@ uint32_t xlat_get_block_size( void *block )
 {
     xlat_cache_block_t xlt = (xlat_cache_block_t)(((char *)block)-sizeof(struct xlat_cache_block));
     return xlt->size;
+}
+
+uint32_t xlat_get_code_size( void *block )
+{
+    xlat_cache_block_t xlt = (xlat_cache_block_t)(((char *)block)-sizeof(struct xlat_cache_block));
+    if( xlt->recover_table == NULL ) {
+	return xlt->size;
+    } else {
+	return ((uint8_t *)xlt->recover_table) - ((uint8_t *)block);
+    }
 }
 
 /**

@@ -426,6 +426,9 @@ void mem_copy_to_sh4( sh4addr_t destaddr, sh4ptr_t src, size_t count ) {
 void sh4_flush_store_queue( sh4addr_t addr )
 {
     /* Store queue operation */
+    if( IS_MMU_ENABLED() ) {
+
+    }
     int queue = (addr&0x20)>>2;
     sh4ptr_t src = (sh4ptr_t)&sh4r.store_queue[queue];
     uint32_t hi = (MMIO_READ( MMU, (queue == 0 ? QACR0 : QACR1) ) & 0x1C) << 24;
