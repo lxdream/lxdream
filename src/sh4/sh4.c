@@ -67,6 +67,11 @@ void sh4_set_use_xlat( gboolean use )
 #endif
 }
 
+gboolean sh4_is_using_xlat()
+{
+    return sh4_use_translator;
+}
+
 void sh4_init(void)
 {
     register_io_regions( mmio_list_sh4mmio );
@@ -200,7 +205,9 @@ static void sh4_switch_banks( )
 
 void sh4_write_sr( uint32_t newval )
 {
-    if( (newval ^ sh4r.sr) & SR_RB )
+    int oldbank = (sh4r.sr&SR_MDRB) == SR_MDRB;
+    int newbank = (newval&SR_MDRB) == SR_MDRB;
+    if( oldbank != newbank )
         sh4_switch_banks();
     sh4r.sr = newval;
     sh4r.t = (newval&SR_T) ? 1 : 0;

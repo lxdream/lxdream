@@ -60,7 +60,7 @@ gboolean dreamcast_can_run(void);
 void dreamcast_program_loaded( const gchar *name, sh4addr_t entry_point );
 
 #define DREAMCAST_SAVE_MAGIC "%!-lxDream!Save\0"
-#define DREAMCAST_SAVE_VERSION 0x00010002
+#define DREAMCAST_SAVE_VERSION 0x00010003
 
 int dreamcast_save_state( const gchar *filename );
 int dreamcast_load_state( const gchar *filename );

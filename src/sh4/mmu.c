@@ -158,11 +158,12 @@ void mmio_region_MMU_write( uint32_t reg, uint32_t val )
 	mmu_lrui = (val >> 26) & 0x3F;
 	val &= 0x00000301;
 	tmp = MMIO_READ( MMU, MMUCR );
-	if( ((val ^ tmp) & MMUCR_AT) ) {
+	if( ((val ^ tmp) & MMUCR_AT) && sh4_is_using_xlat() ) {
 	    // AT flag has changed state - flush the xlt cache as all bets
 	    // are off now. We also need to force an immediate exit from the
 	    // current block
-	    xlat_flush_cache();
+	    MMIO_WRITE( MMU, MMUCR, val );
+	    sh4_translate_flush_cache();
 	}
 	break;
     case CCR:
@@ -221,7 +222,7 @@ int MMU_load_state( FILE *f )
 	return 1;
     }
     if( fread( &mmu_asid, sizeof(mmu_asid), 1, f ) != 1 ) {
-	return 1;
+    	return 1;
     }
     return 0;
 }

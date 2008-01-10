@@ -43,7 +43,7 @@ static int x86_num_symbols = 0;
 
 void xlat_disasm_block( FILE *out, void *block )
 {
-    uint32_t buflen = xlat_get_block_size(block);
+    uint32_t buflen = xlat_get_code_size(block);
     x86_set_symtab( NULL, 0 );
     x86_disasm_block( out, block, buflen );
 }

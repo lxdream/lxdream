@@ -97,6 +97,11 @@ extern struct sh4_registers sh4r;
 void sh4_set_use_xlat( gboolean use );
 
 /**
+ * Test if system is currently using the translation engine.
+ */
+gboolean sh4_is_using_xlat();
+
+/**
  * Explicitly set the SH4 PC to the supplied value - this will be the next
  * instruction executed. This should only be called while the system is stopped.
  */

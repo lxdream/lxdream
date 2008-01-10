@@ -1006,6 +1006,38 @@ esac
 
 AU_DEFUN([fp_PROG_CC_STDC], [AM_PROG_CC_STDC])
 
+# Figure out how to run the assembler.             -*- Autoconf -*-
+
+# serial 2
+
+# Copyright 2001 Free Software Foundation, Inc.
+
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2, or (at your option)
+# any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
+# 02111-1307, USA.
+
+# AM_PROG_AS
+# ----------
+AC_DEFUN([AM_PROG_AS],
+[# By default we simply use the C compiler to build assembly code.
+AC_REQUIRE([AC_PROG_CC])
+: ${CCAS='$(CC)'}
+# Set ASFLAGS if not already set.
+: ${CCASFLAGS='$(CFLAGS)'}
+AC_SUBST(CCAS)
+AC_SUBST(CCASFLAGS)])
+
 # pkg.m4 - Macros to locate and utilise pkg-config.            -*- Autoconf -*-
 # 
 # Copyright © 2004 Scott James Remnant <scott@netsplit.com>.
@@ -1144,7 +1176,8 @@ installed software in a non-standard prefix.
 
 _PKG_TEXT
 ])],
-		[$4])
+		[AC_MSG_RESULT([no])
+                $4])
 elif test $pkg_failed = untried; then
 	ifelse([$4], , [AC_MSG_FAILURE(dnl
 [The pkg-config script could not be found or is too old.  Make sure it
@@ -1266,7 +1299,8 @@ AC_SUBST($1)dnl
 #-----------------
 glib_DEFUN([GLIB_WITH_NLS],
   dnl NLS is obligatory
-  [USE_NLS=yes
+  [AC_REQUIRE([AC_CANONICAL_HOST])dnl
+    USE_NLS=yes
     AC_SUBST(USE_NLS)
 
     gt_cv_have_gettext=no
@@ -1370,6 +1404,20 @@ glib_DEFUN([GLIB_WITH_NLS],
           glib_save_LIBS="$LIBS"
           LIBS="$LIBS $INTLLIBS"
 	  AC_CHECK_FUNCS(dcgettext)
+	  MSGFMT_OPTS=
+	  AC_MSG_CHECKING([if msgfmt accepts -c])
+	  GLIB_RUN_PROG([$MSGFMT -c -o /dev/null],[
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Project-Id-Version: test 1.0\n"
+"PO-Revision-Date: 2007-02-15 12:01+0100\n"
+"Last-Translator: test <foo@bar.xx>\n"
+"Language-Team: C <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Transfer-Encoding: 8bit\n"
+], [MSGFMT_OPTS=-c; AC_MSG_RESULT([yes])], [AC_MSG_RESULT([no])])
+	  AC_SUBST(MSGFMT_OPTS)
 	  AC_PATH_PROG(GMSGFMT, gmsgfmt, $MSGFMT)
 	  GLIB_PATH_PROG_WITH_TEST(XGETTEXT, xgettext,
 	    [test -z "`$ac_dir/$ac_word -h 2>&1 | grep '(HELP)'`"], :)
@@ -1541,8 +1589,10 @@ glib_DEFUN([GLIB_DEFINE_LOCALEDIR],
 [glib_REQUIRE([GLIB_GNU_GETTEXT])dnl
 glib_save_prefix="$prefix"
 glib_save_exec_prefix="$exec_prefix"
+glib_save_datarootdir="$datarootdir"
 test "x$prefix" = xNONE && prefix=$ac_default_prefix
 test "x$exec_prefix" = xNONE && exec_prefix=$prefix
+datarootdir=`eval echo "${datarootdir}"`
 if test "x$CATOBJEXT" = "x.mo" ; then
   localedir=`eval echo "${libdir}/locale"`
 else
@@ -1550,6 +1600,7 @@ else
 fi
 prefix="$glib_save_prefix"
 exec_prefix="$glib_save_exec_prefix"
+datarootdir="$glib_save_datarootdir"
 AC_DEFINE_UNQUOTED($1, "$localedir",
   [Define the location where the catalogs will be installed])
 ])
@@ -1561,4 +1612,21 @@ ifdef(glib_configure_in,[],[
 AC_DEFUN([AM_GLIB_GNU_GETTEXT],[GLIB_GNU_GETTEXT($@)])
 AC_DEFUN([AM_GLIB_DEFINE_LOCALEDIR],[GLIB_DEFINE_LOCALEDIR($@)])
 ])dnl
+
+# GLIB_RUN_PROG(PROGRAM, TEST-FILE, [ACTION-IF-PASS], [ACTION-IF-FAIL])
+# 
+# Create a temporary file with TEST-FILE as its contents and pass the
+# file name to PROGRAM.  Perform ACTION-IF-PASS if PROGRAM exits with
+# 0 and perform ACTION-IF-FAIL for any other exit status.
+AC_DEFUN([GLIB_RUN_PROG],
+[cat >conftest.foo <<_ACEOF
+$2
+_ACEOF
+if AC_RUN_LOG([$1 conftest.foo]); then
+  m4_ifval([$3], [$3], [:])
+m4_ifvaln([$4], [else $4])dnl
+echo "$as_me: failed input was:" >&AS_MESSAGE_LOG_FD
+sed 's/^/| /' conftest.foo >&AS_MESSAGE_LOG_FD
+fi])
+
 
