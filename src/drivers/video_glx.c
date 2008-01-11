@@ -16,13 +16,12 @@
  * GNU General Public License for more details.
  */
 
+#include "display.h"
+#include "pvr2/pvr2.h"
+#include "drivers/gl_common.h"
 #include <X11/Xlib.h>
 #include <GL/glx.h>
-#include <GL/gl.h>
-#include "dream.h"
-#include "pvr2/pvr2.h"
 #include "drivers/video_glx.h"
-#include "drivers/gl_common.h"
 
 /**
  * General X11 parameters. The front-end driver is expected to set this up
