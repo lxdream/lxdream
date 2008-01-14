@@ -125,7 +125,7 @@ void sh4_x86_add_recovery( uint32_t pc )
     xlat_recovery[xlat_recovery_posn].sh4_icount = (pc - sh4_x86.block_start_pc)>>1;
     xlat_recovery_posn++;
 }
-    
+
 /**
  * Emit an instruction to load an SH4 reg into a real register
  */
@@ -355,11 +355,18 @@ static inline void pop_dr( int bankreg, int frm )
 #endif
 #endif
 
+void sh4_translate_emit_breakpoint( sh4vma_t pc )
+{
+    load_imm32( R_EAX, XLAT_EXIT_BREAKPOINT );
+    call_func1( sh4_translate_exit, R_EAX );
+}
+    
 
 /**
  * Translate a single instruction. Delayed branches are handled specially
  * by translating both branch and delayed instruction as a single unit (as
  * 
+ * The instruction MUST be in the icache (assert check)
  *
  * @return true if the instruction marks the end of a basic block
  * (eg a branch or 
@@ -367,12 +374,21 @@ static inline void pop_dr( int bankreg, int frm )
 uint32_t sh4_translate_instruction( sh4addr_t pc )
 {
     uint32_t ir;
-    /* Read instruction */
-    if( IS_IN_ICACHE(pc) ) {
-	ir = *(uint16_t *)GET_ICACHE_PTR(pc);
-    } else {
+    /* Read instruction from icache */
+    assert( IS_IN_ICACHE(pc) );
+    ir = *(uint16_t *)GET_ICACHE_PTR(pc);
+    
+	/* PC is not in the current icache - this usually means we're running
+	 * with MMU on, and we've gone past the end of the page. And since 
+	 * sh4_translate_block is pretty careful about this, it means we're
+	 * almost certainly in a delay slot.
+	 *
+	 * Since we can't assume the page is present (and we can't fault it in
+	 * at this point, inline a call to sh4_execute_instruction (with a few
+	 * small repairs to cope with the different environment).
+	 */
 	ir = sh4_read_word(pc);
-    }
+
     if( !sh4_x86.in_delay_slot ) {
 	sh4_x86_add_recovery(pc);
     }
@@ -488,8 +504,10 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
                                 MOV_r32_r32( R_EAX, R_ECX );
                                 AND_imm32_r32( 0xFC000000, R_EAX );
                                 CMP_imm32_r32( 0xE0000000, R_EAX );
-                                JNE_rel8(CALL_FUNC1_SIZE, end);
+                                JNE_rel8(8+CALL_FUNC1_SIZE, end);
                                 call_func1( sh4_flush_store_queue, R_ECX );
+                                TEST_r32_r32( R_EAX, R_EAX );
+                                JE_exc(-1);
                                 JMP_TARGET(end);
                                 sh4_x86.tstate = TSTATE_NONE;
                                 }

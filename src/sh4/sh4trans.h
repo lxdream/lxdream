@@ -35,6 +35,22 @@
 #define MAX_RECOVERY_SIZE 2048
 
 /**
+ * Translation flag - exit the current block but continue (eg exception handling)
+ */
+#define XLAT_EXIT_CONTINUE 1
+
+/**
+ * Translation flag - exit the current block and halt immediately (eg fatal error)
+ */
+#define XLAT_EXIT_HALT 2
+
+/**
+ * Translation flag - exit the current block and halt immediately for a system
+ * breakpoint.
+ */
+#define XLAT_EXIT_BREAKPOINT 3
+
+/**
  */
 uint32_t sh4_xlat_run_slice( uint32_t nanosecs );
 
@@ -79,3 +95,9 @@ typedef void (*unwind_thunk_t)(void);
  * @return This method never returns. 
  */
 void sh4_translate_unwind_stack( gboolean is_completion, unwind_thunk_t thunk );
+
+/**
+ * From within the translator, immediately exit the current translation block with
+ * the specified exit code (one of the XLAT_EXIT_* values).
+ */
+void sh4_translate_exit( int exit_code );

@@ -235,4 +235,28 @@ void sh4_translate_end_block( sh4addr_t pc ) {
     }
 }
 
+
+void *xlat_get_native_pc()
+{
+    void *result = NULL;
+    asm(
+	"mov %%rbp, %%rax\n\t"
+	"mov $0x8, %%ecx\n\t"
+	"mov %1, %%rdx\n"
+"frame_loop: test %%rax, %%rax\n\t"
+	"je frame_not_found\n\t"
+	"cmpq (%%rax), %%rdx\n\t"
+	"je frame_found\n\t"
+	"sub $0x1, %%ecx\n\t"
+	"je frame_not_found\n\t"
+	"movq (%%rax), %%rax\n\t"
+	"jmp frame_loop\n"
+"frame_found: movq 0x4(%%rax), %0\n"
+"frame_not_found:"
+	: "=r" (result)
+	: "r" (&sh4r)
+	: "rax", "rcx", "rdx" );
+    return result;
+}
+
 #endif

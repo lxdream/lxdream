@@ -244,6 +244,29 @@ void sh4_translate_end_block( sh4addr_t pc ) {
     }
 }
 
+void *xlat_get_native_pc()
+{
+    void *result = NULL;
+    asm(
+	"mov %%ebp, %%eax\n\t"
+	"mov $0x8, %%ecx\n\t"
+	"mov %1, %%edx\n"
+"frame_loop: test %%eax, %%eax\n\t"
+	"je frame_not_found\n\t"
+	"cmp (%%eax), %%edx\n\t"
+	"je frame_found\n\t"
+	"sub $0x1, %%ecx\n\t"
+	"je frame_not_found\n\t"
+	"movl (%%eax), %%eax\n\t"
+	"jmp frame_loop\n"
+"frame_found: movl 0x4(%%eax), %0\n"
+"frame_not_found:"
+	: "=r" (result)
+	: "r" (&sh4r)
+	: "eax", "ecx", "edx" );
+    return result;
+}
+
 #endif
 
 

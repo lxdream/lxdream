@@ -423,19 +423,6 @@ void mem_copy_to_sh4( sh4addr_t destaddr, sh4ptr_t src, size_t count ) {
     }
 }
 
-void sh4_flush_store_queue( sh4addr_t addr )
-{
-    /* Store queue operation */
-    if( IS_MMU_ENABLED() ) {
-
-    }
-    int queue = (addr&0x20)>>2;
-    sh4ptr_t src = (sh4ptr_t)&sh4r.store_queue[queue];
-    uint32_t hi = (MMIO_READ( MMU, (queue == 0 ? QACR0 : QACR1) ) & 0x1C) << 24;
-    uint32_t target = (addr&0x03FFFFE0) | hi;
-    mem_copy_to_sh4( target, src, 32 );
-}
-
 sh4ptr_t sh4_get_region_by_vma( sh4addr_t vma )
 {
     uint64_t ppa = mmu_vma_to_phys_read(vma);

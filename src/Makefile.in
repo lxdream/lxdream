@@ -43,18 +43,16 @@ host_triplet = @host@
 @BUILD_SH4X86_TRUE@        x86dasm/i386-dis.c x86dasm/dis-init.c x86dasm/dis-buf.c 
 
 @BUILD_SH4X86_TRUE@am__append_2 = test/testsh4x86
-@BUILD_SH4X86_TRUE@@BUILD_X86_64_TRUE@am__append_3 = sh4/ia64asm.s
-@BUILD_SH4X86_TRUE@@BUILD_X86_64_FALSE@am__append_4 = sh4/ia32asm.s
-@GUI_GTK_TRUE@am__append_5 = gtkui/gtkui.c gtkui/gtkui.h \
+@GUI_GTK_TRUE@am__append_3 = gtkui/gtkui.c gtkui/gtkui.h \
 @GUI_GTK_TRUE@	gtkui/main_win.c gtkui/gtkcb.c \
 @GUI_GTK_TRUE@        gtkui/mmio_win.c gtkui/debug_win.c gtkui/dump_win.c \
 @GUI_GTK_TRUE@        gtkui/ctrl_dlg.c gtkui/path_dlg.c gtkui/gdrom_menu.c \
 @GUI_GTK_TRUE@        drivers/video_gtk.c drivers/video_gtk.h \
 @GUI_GTK_TRUE@	drivers/video_glx.c drivers/video_glx.h
 
-@CDROM_LINUX_TRUE@am__append_6 = drivers/cd_linux.c
-@CDROM_LINUX_FALSE@am__append_7 = drivers/cd_none.c
-@AUDIO_ESOUND_TRUE@am__append_8 = drivers/audio_esd.c
+@CDROM_LINUX_TRUE@am__append_4 = drivers/cd_linux.c
+@CDROM_LINUX_FALSE@am__append_5 = drivers/cd_none.c
+@AUDIO_ESOUND_TRUE@am__append_6 = drivers/audio_esd.c
 ACLOCAL = @ACLOCAL@
 AMDEP_FALSE = @AMDEP_FALSE@
 AMDEP_TRUE = @AMDEP_TRUE@
@@ -233,20 +231,14 @@ lxdream_SOURCES = \
 	drivers/audio_null.c drivers/video_null.c \
 	drivers/gl_common.c drivers/gl_common.h drivers/gl_fbo.c \
 	drivers/gl_sl.c drivers/gl_slsrc.c\
-$(am__append_1) $(am__append_3) $(am__append_4) $(am__append_5) $(am__append_6) $(am__append_7) $(am__append_8)
+$(am__append_1) $(am__append_3) $(am__append_4) $(am__append_5) $(am__append_6)
 
 @BUILD_SH4X86_TRUE@test_testsh4x86_LDADD = @GTK_LIBS@
-@BUILD_SH4X86_TRUE@@BUILD_X86_64_FALSE@test_testsh4x86_SOURCES = test/testsh4x86.c x86dasm/x86dasm.c \
-@BUILD_SH4X86_TRUE@@BUILD_X86_64_FALSE@	x86dasm/x86dasm.h x86dasm/i386-dis.c x86dasm/dis-init.c \
-@BUILD_SH4X86_TRUE@@BUILD_X86_64_FALSE@	x86dasm/dis-buf.c \
-@BUILD_SH4X86_TRUE@@BUILD_X86_64_FALSE@	sh4/sh4dasm.c sh4/sh4trans.c sh4/sh4x86.c sh4/xltcache.c \
-@BUILD_SH4X86_TRUE@@BUILD_X86_64_FALSE@	sh4/xltcache.h mem.c util.c sh4/ia32asm.s
-
-@BUILD_SH4X86_TRUE@@BUILD_X86_64_TRUE@test_testsh4x86_SOURCES = test/testsh4x86.c x86dasm/x86dasm.c \
-@BUILD_SH4X86_TRUE@@BUILD_X86_64_TRUE@	x86dasm/x86dasm.h x86dasm/i386-dis.c x86dasm/dis-init.c \
-@BUILD_SH4X86_TRUE@@BUILD_X86_64_TRUE@	x86dasm/dis-buf.c \
-@BUILD_SH4X86_TRUE@@BUILD_X86_64_TRUE@	sh4/sh4dasm.c sh4/sh4trans.c sh4/sh4x86.c sh4/xltcache.c \
-@BUILD_SH4X86_TRUE@@BUILD_X86_64_TRUE@	sh4/xltcache.h mem.c util.c sh4/ia64asm.s
+@BUILD_SH4X86_TRUE@test_testsh4x86_SOURCES = test/testsh4x86.c x86dasm/x86dasm.c \
+@BUILD_SH4X86_TRUE@	x86dasm/x86dasm.h x86dasm/i386-dis.c x86dasm/dis-init.c \
+@BUILD_SH4X86_TRUE@	x86dasm/dis-buf.c \
+@BUILD_SH4X86_TRUE@	sh4/sh4dasm.c sh4/sh4trans.c sh4/sh4x86.c sh4/xltcache.c \
+@BUILD_SH4X86_TRUE@	sh4/xltcache.h mem.c util.c sh4/mmu.c
 
 
 lxdream_LDADD = @GTK_LIBS@ @LIBPNG_LIBS@ @ESOUND_LIBS@ $(INTLLIBS)
@@ -297,26 +289,24 @@ am__lxdream_SOURCES_DIST = main.c config.c config.h mem.c mem.h mmio.h \
 	sh4/sh4x86.c sh4/x86op.h sh4/ia32abi.h sh4/ia32mac.h \
 	sh4/ia64abi.h sh4/sh4trans.c sh4/sh4trans.h x86dasm/x86dasm.c \
 	x86dasm/x86dasm.h x86dasm/i386-dis.c x86dasm/dis-init.c \
-	x86dasm/dis-buf.c sh4/ia64asm.s sh4/ia32asm.s gtkui/gtkui.c \
-	gtkui/gtkui.h gtkui/main_win.c gtkui/gtkcb.c gtkui/mmio_win.c \
-	gtkui/debug_win.c gtkui/dump_win.c gtkui/ctrl_dlg.c \
-	gtkui/path_dlg.c gtkui/gdrom_menu.c drivers/video_gtk.c \
-	drivers/video_gtk.h drivers/video_glx.c drivers/video_glx.h \
-	drivers/cd_linux.c drivers/cd_none.c drivers/audio_esd.c
+	x86dasm/dis-buf.c gtkui/gtkui.c gtkui/gtkui.h gtkui/main_win.c \
+	gtkui/gtkcb.c gtkui/mmio_win.c gtkui/debug_win.c \
+	gtkui/dump_win.c gtkui/ctrl_dlg.c gtkui/path_dlg.c \
+	gtkui/gdrom_menu.c drivers/video_gtk.c drivers/video_gtk.h \
+	drivers/video_glx.c drivers/video_glx.h drivers/cd_linux.c \
+	drivers/cd_none.c drivers/audio_esd.c
 @BUILD_SH4X86_TRUE@am__objects_1 = sh4x86.$(OBJEXT) sh4trans.$(OBJEXT) \
 @BUILD_SH4X86_TRUE@	x86dasm.$(OBJEXT) i386-dis.$(OBJEXT) \
 @BUILD_SH4X86_TRUE@	dis-init.$(OBJEXT) dis-buf.$(OBJEXT)
-@BUILD_SH4X86_TRUE@@BUILD_X86_64_TRUE@am__objects_2 = ia64asm.$(OBJEXT)
-@BUILD_SH4X86_TRUE@@BUILD_X86_64_FALSE@am__objects_3 = ia32asm.$(OBJEXT)
-@GUI_GTK_TRUE@am__objects_4 = gtkui.$(OBJEXT) main_win.$(OBJEXT) \
+@GUI_GTK_TRUE@am__objects_2 = gtkui.$(OBJEXT) main_win.$(OBJEXT) \
 @GUI_GTK_TRUE@	gtkcb.$(OBJEXT) mmio_win.$(OBJEXT) \
 @GUI_GTK_TRUE@	debug_win.$(OBJEXT) dump_win.$(OBJEXT) \
 @GUI_GTK_TRUE@	ctrl_dlg.$(OBJEXT) path_dlg.$(OBJEXT) \
 @GUI_GTK_TRUE@	gdrom_menu.$(OBJEXT) video_gtk.$(OBJEXT) \
 @GUI_GTK_TRUE@	video_glx.$(OBJEXT)
-@CDROM_LINUX_TRUE@am__objects_5 = cd_linux.$(OBJEXT)
-@CDROM_LINUX_FALSE@am__objects_6 = cd_none.$(OBJEXT)
-@AUDIO_ESOUND_TRUE@am__objects_7 = audio_esd.$(OBJEXT)
+@CDROM_LINUX_TRUE@am__objects_3 = cd_linux.$(OBJEXT)
+@CDROM_LINUX_FALSE@am__objects_4 = cd_none.$(OBJEXT)
+@AUDIO_ESOUND_TRUE@am__objects_5 = audio_esd.$(OBJEXT)
 am_lxdream_OBJECTS = main.$(OBJEXT) config.$(OBJEXT) mem.$(OBJEXT) \
 	watch.$(OBJEXT) asic.$(OBJEXT) syscall.$(OBJEXT) bios.$(OBJEXT) \
 	dcload.$(OBJEXT) ide.$(OBJEXT) gdimage.$(OBJEXT) \
@@ -335,42 +325,20 @@ am_lxdream_OBJECTS = main.$(OBJEXT) config.$(OBJEXT) mem.$(OBJEXT) \
 	audio_null.$(OBJEXT) video_null.$(OBJEXT) gl_common.$(OBJEXT) \
 	gl_fbo.$(OBJEXT) gl_sl.$(OBJEXT) gl_slsrc.$(OBJEXT) \
 	$(am__objects_1) $(am__objects_2) $(am__objects_3) \
-	$(am__objects_4) $(am__objects_5) $(am__objects_6) \
-	$(am__objects_7)
+	$(am__objects_4) $(am__objects_5)
 lxdream_OBJECTS = $(am_lxdream_OBJECTS)
 lxdream_DEPENDENCIES =
 lxdream_LDFLAGS =
 am__test_testsh4x86_SOURCES_DIST = test/testsh4x86.c x86dasm/x86dasm.c \
 	x86dasm/x86dasm.h x86dasm/i386-dis.c x86dasm/dis-init.c \
 	x86dasm/dis-buf.c sh4/sh4dasm.c sh4/sh4trans.c sh4/sh4x86.c \
-	sh4/xltcache.c sh4/xltcache.h mem.c util.c sh4/ia32asm.s \
-	sh4/ia64asm.s
-@BUILD_SH4X86_TRUE@@BUILD_X86_64_TRUE@am_test_testsh4x86_OBJECTS = \
-@BUILD_SH4X86_TRUE@@BUILD_X86_64_TRUE@	testsh4x86.$(OBJEXT) \
-@BUILD_SH4X86_TRUE@@BUILD_X86_64_TRUE@	x86dasm.$(OBJEXT) \
-@BUILD_SH4X86_TRUE@@BUILD_X86_64_TRUE@	i386-dis.$(OBJEXT) \
-@BUILD_SH4X86_TRUE@@BUILD_X86_64_TRUE@	dis-init.$(OBJEXT) \
-@BUILD_SH4X86_TRUE@@BUILD_X86_64_TRUE@	dis-buf.$(OBJEXT) \
-@BUILD_SH4X86_TRUE@@BUILD_X86_64_TRUE@	sh4dasm.$(OBJEXT) \
-@BUILD_SH4X86_TRUE@@BUILD_X86_64_TRUE@	sh4trans.$(OBJEXT) \
-@BUILD_SH4X86_TRUE@@BUILD_X86_64_TRUE@	sh4x86.$(OBJEXT) \
-@BUILD_SH4X86_TRUE@@BUILD_X86_64_TRUE@	xltcache.$(OBJEXT) \
-@BUILD_SH4X86_TRUE@@BUILD_X86_64_TRUE@	mem.$(OBJEXT) \
-@BUILD_SH4X86_TRUE@@BUILD_X86_64_TRUE@	util.$(OBJEXT) \
-@BUILD_SH4X86_TRUE@@BUILD_X86_64_TRUE@	ia64asm.$(OBJEXT)
-@BUILD_SH4X86_TRUE@@BUILD_X86_64_FALSE@am_test_testsh4x86_OBJECTS = \
-@BUILD_SH4X86_TRUE@@BUILD_X86_64_FALSE@	testsh4x86.$(OBJEXT) \
-@BUILD_SH4X86_TRUE@@BUILD_X86_64_FALSE@	x86dasm.$(OBJEXT) \
-@BUILD_SH4X86_TRUE@@BUILD_X86_64_FALSE@	i386-dis.$(OBJEXT) \
-@BUILD_SH4X86_TRUE@@BUILD_X86_64_FALSE@	dis-init.$(OBJEXT) \
-@BUILD_SH4X86_TRUE@@BUILD_X86_64_FALSE@	dis-buf.$(OBJEXT) \
-@BUILD_SH4X86_TRUE@@BUILD_X86_64_FALSE@	sh4dasm.$(OBJEXT) \
-@BUILD_SH4X86_TRUE@@BUILD_X86_64_FALSE@	sh4trans.$(OBJEXT) \
-@BUILD_SH4X86_TRUE@@BUILD_X86_64_FALSE@	sh4x86.$(OBJEXT) \
-@BUILD_SH4X86_TRUE@@BUILD_X86_64_FALSE@	xltcache.$(OBJEXT) \
-@BUILD_SH4X86_TRUE@@BUILD_X86_64_FALSE@	mem.$(OBJEXT) \
-@BUILD_SH4X86_TRUE@@BUILD_X86_64_FALSE@	util.$(OBJEXT) \
-@BUILD_SH4X86_TRUE@@BUILD_X86_64_FALSE@	ia32asm.$(OBJEXT)
+	sh4/xltcache.c sh4/xltcache.h mem.c util.c sh4/mmu.c
+@BUILD_SH4X86_TRUE@am_test_testsh4x86_OBJECTS = testsh4x86.$(OBJEXT) \
+@BUILD_SH4X86_TRUE@	x86dasm.$(OBJEXT) i386-dis.$(OBJEXT) \
+@BUILD_SH4X86_TRUE@	dis-init.$(OBJEXT) dis-buf.$(OBJEXT) \
+@BUILD_SH4X86_TRUE@	sh4dasm.$(OBJEXT) sh4trans.$(OBJEXT) \
+@BUILD_SH4X86_TRUE@	sh4x86.$(OBJEXT) xltcache.$(OBJEXT) \
+@BUILD_SH4X86_TRUE@	mem.$(OBJEXT) util.$(OBJEXT) mmu.$(OBJEXT)
 test_testsh4x86_OBJECTS = $(am_test_testsh4x86_OBJECTS)
 @BUILD_SH4X86_TRUE@test_testsh4x86_DEPENDENCIES =
 @BUILD_SH4X86_FALSE@test_testsh4x86_DEPENDENCIES =
@@ -430,7 +398,6 @@ COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
 LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
-CCASCOMPILE = $(CCAS) $(AM_CCASFLAGS) $(CCASFLAGS)
 DIST_SOURCES = $(gendec_SOURCES) $(genglsl_SOURCES) \
 	$(am__lxdream_SOURCES_DIST) $(am__test_testsh4x86_SOURCES_DIST) \
 	$(test_testxlt_SOURCES)
@@ -441,7 +408,7 @@ all: $(BUILT_SOURCES)
 	$(MAKE) $(AM_MAKEFLAGS) all-am
 
 .SUFFIXES:
-.SUFFIXES: .c .o .obj .s
+.SUFFIXES: .c .o .obj
 $(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ Makefile.am  $(top_srcdir)/configure.in $(ACLOCAL_M4)
 	cd $(top_srcdir) && \
 	  $(AUTOMAKE) --gnu  src/Makefile
@@ -2079,24 +2046,6 @@ testxlt.obj: test/testxlt.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/testxlt.Po' tmpdepfile='$(DEPDIR)/testxlt.TPo' @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o testxlt.obj `if test -f 'test/testxlt.c'; then $(CYGPATH_W) 'test/testxlt.c'; else $(CYGPATH_W) '$(srcdir)/test/testxlt.c'; fi`
-
-.s.o:
-	$(CCASCOMPILE) -c `test -f '$<' || echo '$(srcdir)/'`$<
-
-.s.obj:
-	$(CCASCOMPILE) -c `if test -f '$<'; then $(CYGPATH_W) '$<'; else $(CYGPATH_W) '$(srcdir)/$<'; fi`
-
-ia64asm.o: sh4/ia64asm.s
-	$(CCAS) $(AM_CCASFLAGS) $(CCASFLAGS) -c -o ia64asm.o `test -f 'sh4/ia64asm.s' || echo '$(srcdir)/'`sh4/ia64asm.s
-
-ia64asm.obj: sh4/ia64asm.s
-	$(CCAS) $(AM_CCASFLAGS) $(CCASFLAGS) -c -o ia64asm.obj `if test -f 'sh4/ia64asm.s'; then $(CYGPATH_W) 'sh4/ia64asm.s'; else $(CYGPATH_W) '$(srcdir)/sh4/ia64asm.s'; fi`
-
-ia32asm.o: sh4/ia32asm.s
-	$(CCAS) $(AM_CCASFLAGS) $(CCASFLAGS) -c -o ia32asm.o `test -f 'sh4/ia32asm.s' || echo '$(srcdir)/'`sh4/ia32asm.s
-
-ia32asm.obj: sh4/ia32asm.s
-	$(CCAS) $(AM_CCASFLAGS) $(CCASFLAGS) -c -o ia32asm.obj `if test -f 'sh4/ia32asm.s'; then $(CYGPATH_W) 'sh4/ia32asm.s'; else $(CYGPATH_W) '$(srcdir)/sh4/ia32asm.s'; fi`
 uninstall-info-am:
 
 ETAGS = etags
