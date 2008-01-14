@@ -154,6 +154,9 @@ void sh4_set_breakpoint( uint32_t pc, breakpoint_type_t type )
 {
     sh4_breakpoints[sh4_breakpoint_count].address = pc;
     sh4_breakpoints[sh4_breakpoint_count].type = type;
+    if( sh4_use_translator ) {
+	xlat_invalidate_word( pc );
+    }
     sh4_breakpoint_count++;
 }
 
@@ -167,6 +170,9 @@ gboolean sh4_clear_breakpoint( uint32_t pc, breakpoint_type_t type )
 	    while( ++i < sh4_breakpoint_count ) {
 		sh4_breakpoints[i-1].address = sh4_breakpoints[i].address;
 		sh4_breakpoints[i-1].type = sh4_breakpoints[i].type;
+	    }
+	    if( sh4_use_translator ) {
+		xlat_invalidate_word( pc );
 	    }
 	    sh4_breakpoint_count--;
 	    return TRUE;
