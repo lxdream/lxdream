@@ -25,6 +25,11 @@
 #include "x86dasm/x86dasm.h"
 #include "sh4/sh4trans.h"
 #include "sh4/sh4core.h"
+#include "sh4/sh4mmio.h"
+
+struct mmio_region mmio_region_MMU;
+struct breakpoint_struct sh4_breakpoints[MAX_BREAKPOINTS];
+int sh4_breakpoint_count = 0;
 
 #define MAX_INS_SIZE 32
 
@@ -36,6 +41,7 @@ char *diff_file = NULL;
 char *output_file = NULL;
 uint32_t start_addr = 0x8C010000;
 uint32_t sh4_cpu_period = 5;
+sh4ptr_t sh4_main_ram;
 FILE *in;
 
 char *inbuf;
@@ -66,22 +72,22 @@ gboolean sh4_execute_instruction( ) { }
 void sh4_accept_interrupt() {}
 void sh4_set_breakpoint( uint32_t pc, breakpoint_type_t type ) { }
 gboolean sh4_clear_breakpoint( uint32_t pc, breakpoint_type_t type ) { }
+gboolean sh4_is_using_xlat() { return TRUE; }
 int sh4_get_breakpoint( uint32_t pc ) { }
 void event_execute() {}
 void TMU_run_slice( uint32_t nanos ) {}
 void SCIF_run_slice( uint32_t nanos ) {}
-void MMU_ldtlb(void) {}
 void sh4_write_byte( uint32_t addr, uint32_t val ) {}
 void sh4_write_word( uint32_t addr, uint32_t val ) {}
 void sh4_write_long( uint32_t addr, uint32_t val ) {}
-void sh4_flush_store_queue( uint32_t addr ) {}
+void mem_copy_to_sh4( sh4addr_t addr, sh4ptr_t src, size_t size ) { }
 void sh4_write_sr( uint32_t val ) { }
 void syscall_invoke( uint32_t val ) { }
 void dreamcast_stop() {} 
-sh4addr_t mmu_vma_to_phys_read( sh4vma_t vma ) { return vma & 0x1FFFFFFF; }
-sh4addr_t mmu_vma_to_phys_write( sh4vma_t vma ) { return vma & 0x1FFFFFFF; }
 uint32_t sh4_read_sr( void ) { }
+gboolean sh4_raise_reset( int exc ) {}
 gboolean sh4_raise_exception( int exc ) {}
+gboolean sh4_raise_tlb_exception( int exc ) {}
 gboolean sh4_raise_trap( int exc ) {}
 void sh4_sleep() { }
 void sh4_fsca( uint32_t angle, float *fr ) { }
