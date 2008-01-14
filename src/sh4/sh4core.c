@@ -1693,9 +1693,9 @@ gboolean sh4_execute_instruction( void )
                         { /* TRAPA #imm */
                         uint32_t imm = (ir&0xFF); 
                         CHECKSLOTILLEGAL();
-                        MMIO_WRITE( MMU, TRA, imm<<2 );
                         sh4r.pc += 2;
-                        sh4_raise_exception( EXC_TRAP );
+                        sh4_raise_trap( imm );
+                        return TRUE;
                         }
                         break;
                     case 0x4:

@@ -635,9 +635,9 @@ BSR disp {:
 :}
 TRAPA #imm {:
     CHECKSLOTILLEGAL();
-    MMIO_WRITE( MMU, TRA, imm<<2 );
     sh4r.pc += 2;
-    sh4_raise_exception( EXC_TRAP );
+    sh4_raise_trap( imm );
+    return TRUE;
 :}
 RTS {: 
     CHECKSLOTILLEGAL();
