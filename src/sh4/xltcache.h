@@ -37,14 +37,16 @@ typedef struct xlat_recovery_record {
                          // (0 = first instruction, 1 = second instruction, ... )
 } *xlat_recovery_record_t;
 
-typedef struct xlat_cache_block {
+struct xlat_cache_block {
     int active;  /* 0 = deleted, 1 = normal. 2 = accessed (temp-space only) */
     uint32_t size;
     void **lut_entry; /* For deletion */
     xlat_recovery_record_t recover_table;
     uint32_t recover_table_size;
     unsigned char code[0];
-} *xlat_cache_block_t;
+} __attribute__((packed));
+
+typedef struct xlat_cache_block *xlat_cache_block_t;
 
 /**
  * Initialize the translation cache

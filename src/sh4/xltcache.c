@@ -220,14 +220,14 @@ xlat_recovery_record_t xlat_get_recovery( void *code, void *native_pc, gboolean 
 		return NULL;
 	    }
 	    for( posn=count-1; posn > 0; posn-- ) {
-		if( records[posn-1].xlat_pc <= (uintptr_t)native_pc ) {
+		if( records[posn-1].xlat_pc < (uintptr_t)native_pc ) {
 		    return &records[posn];
 		}
 	    }
 	    return &records[0]; // shouldn't happen
 	} else {
 	    for( posn = 1; posn < count; posn++ ) {
-		if( records[posn].xlat_pc > (uintptr_t)native_pc ) {
+		if( records[posn].xlat_pc >= (uintptr_t)native_pc ) {
 		    return &records[posn-1];
 		}
 	    }
