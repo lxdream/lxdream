@@ -27,6 +27,13 @@
 
 
 static jmp_buf xlat_jmp_buf;
+static gboolean xlat_running = FALSE;
+
+gboolean sh4_xlat_is_running()
+{
+    return xlat_running;
+}
+
 /**
  * Execute a timeslice using translated code only (ie translate/execute loop)
  * Note this version does not support breakpoints
@@ -53,9 +60,12 @@ uint32_t sh4_xlat_run_slice( uint32_t nanosecs )
 	    dreamcast_stop();
 	    return sh4r.slice_cycle;
 	}
+    case XLAT_EXIT_SYSRESET:
+	dreamcast_reset();
 	break;
     }
-
+    
+    xlat_running = TRUE;
     void * (*code)() = NULL;
     while( sh4r.slice_cycle < nanosecs ) {
 	if( sh4r.event_pending <= sh4r.slice_cycle ) {
@@ -83,6 +93,8 @@ uint32_t sh4_xlat_run_slice( uint32_t nanosecs )
 	}
 	code = code();
     }
+
+    xlat_running = FALSE;
 
     if( sh4r.sh4_state != SH4_STATE_STANDBY ) {
 	TMU_run_slice( nanosecs );
@@ -184,21 +196,24 @@ void sh4_translate_unwind_stack( gboolean abort_after, unwind_thunk_t thunk )
 	thunk();
     }
     // finally longjmp back into sh4_xlat_run_slice
+    xlat_running = FALSE;
     longjmp(xlat_jmp_buf, XLAT_EXIT_CONTINUE);
 } 
 
 void sh4_translate_exit( int exit_code )
 {
     void *pc = xlat_get_native_pc();
-    assert(pc != NULL);
-
-    void *code = xlat_get_code( sh4r.pc );
-    xlat_recovery_record_t recover = xlat_get_recovery(code, pc, TRUE);
-    if( recover != NULL ) {
-	// Can be null if there is no recovery necessary
-	sh4_translate_run_recovery(recover);
+    if( pc != NULL ) {
+	// could be null if we're not actually running inside the translator
+	void *code = xlat_get_code( sh4r.pc );
+	xlat_recovery_record_t recover = xlat_get_recovery(code, pc, TRUE);
+	if( recover != NULL ) {
+	    // Can be null if there is no recovery necessary
+	    sh4_translate_run_recovery(recover);
+	}
     }
     // finally longjmp back into sh4_xlat_run_slice
+    xlat_running = FALSE;
     longjmp(xlat_jmp_buf, exit_code);
 }
 
@@ -224,6 +239,7 @@ void sh4_translate_flush_cache()
 	// Can be null if there is no recovery necessary
 	sh4_translate_run_recovery(recover);
 	xlat_flush_cache();
+	xlat_running = FALSE;
 	longjmp(xlat_jmp_buf, XLAT_EXIT_CONTINUE);
     } else {
 	xlat_flush_cache();
@@ -244,8 +260,8 @@ void *xlat_get_code_by_vma( sh4vma_t vma )
 	    // fault - off to the fault handler
 	    if( !mmu_update_icache(sh4r.pc) ) {
 		// double fault - halt
-		dreamcast_stop();
 		ERROR( "Double fault - halting" );
+		dreamcast_stop();
 		return NULL;
 	    }
 	}
