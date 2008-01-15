@@ -51,8 +51,19 @@
 #define XLAT_EXIT_BREAKPOINT 3
 
 /**
+ * Translation flag - exit the current block and continue after performing a full
+ * system reset (dreamcast_reset())
+ */
+#define XLAT_EXIT_SYSRESET 4
+
+/**
  */
 uint32_t sh4_xlat_run_slice( uint32_t nanosecs );
+
+/**
+ * Return true if translated code is currently running
+ */
+gboolean sh4_xlat_is_running();
 
 /**
  * Translate the specified block of code starting from the specified start

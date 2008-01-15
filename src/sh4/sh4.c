@@ -261,6 +261,7 @@ uint32_t sh4_read_sr( void )
  */
 gboolean sh4_raise_exception( int code )
 {
+    fprintf( stderr, "EXC %04X: %08X\n", code, sh4r.pc );
     RAISE( code, EXV_EXCEPTION );
 }
 
@@ -282,7 +283,7 @@ gboolean sh4_raise_reset( int code )
 gboolean sh4_raise_trap( int trap )
 {
     MMIO_WRITE( MMU, TRA, trap<<2 );
-    return sh4_raise_exception( EXC_TRAP );
+    RAISE( EXC_TRAP, EXV_EXCEPTION );
 }
 
 gboolean sh4_raise_slot_exception( int normal_code, int slot_code ) {
