@@ -184,6 +184,7 @@ void MMU_init()
 void MMU_reset()
 {
     mmio_region_MMU_write( CCR, 0 );
+    mmio_region_MMU_write( MMUCR, 0 );
 }
 
 void MMU_save_state( FILE *f )
@@ -331,9 +332,11 @@ static inline mmu_utlb_lookup_assoc( uint32_t vpn, uint32_t asid )
     int result = -1;
     unsigned int i;
     for( i = 0; i < UTLB_ENTRY_COUNT; i++ ) {
-	if( ((mmu_utlb[i].flags & TLB_SHARE) || asid == mmu_utlb[i].asid) && 
+	if( (mmu_utlb[i].flags & TLB_VALID) &&
+	    ((mmu_utlb[i].flags & TLB_SHARE) || asid == mmu_utlb[i].asid) && 
 	    ((mmu_utlb[i].vpn ^ vpn) & mmu_utlb[i].mask) == 0 ) {
 	    if( result != -1 ) {
+		fprintf( stderr, "TLB Multi hit: %d %d\n", result, i );
 		return -2;
 	    }
 	    result = i;
@@ -351,7 +354,8 @@ static inline mmu_itlb_lookup_assoc( uint32_t vpn, uint32_t asid )
     int result = -1;
     unsigned int i;
     for( i = 0; i < ITLB_ENTRY_COUNT; i++ ) {
-	if( ((mmu_itlb[i].flags & TLB_SHARE) || asid == mmu_itlb[i].asid) && 
+	if( (mmu_itlb[i].flags & TLB_VALID) &&
+	    ((mmu_itlb[i].flags & TLB_SHARE) || asid == mmu_itlb[i].asid) && 
 	    ((mmu_itlb[i].vpn ^ vpn) & mmu_itlb[i].mask) == 0 ) {
 	    if( result != -1 ) {
 		return -2;
@@ -365,8 +369,7 @@ static inline mmu_itlb_lookup_assoc( uint32_t vpn, uint32_t asid )
 void mmu_utlb_addr_write( sh4addr_t addr, uint32_t val )
 {
     if( UTLB_ASSOC(addr) ) {
-	uint32_t asid = MMIO_READ( MMU, PTEH ) & 0xFF;
-	int utlb = mmu_utlb_lookup_assoc( val, asid );
+	int utlb = mmu_utlb_lookup_assoc( val, mmu_asid );
 	if( utlb >= 0 ) {
 	    struct utlb_entry *ent = &mmu_utlb[utlb];
 	    ent->flags = ent->flags & ~(TLB_DIRTY|TLB_VALID);
@@ -374,7 +377,7 @@ void mmu_utlb_addr_write( sh4addr_t addr, uint32_t val )
 	    ent->flags |= ((val & 0x200)>>7);
 	}
 
-	int itlb = mmu_itlb_lookup_assoc( val, asid );
+	int itlb = mmu_itlb_lookup_assoc( val, mmu_asid );
 	if( itlb >= 0 ) {
 	    struct itlb_entry *ent = &mmu_itlb[itlb];
 	    ent->flags = (ent->flags & (~TLB_VALID)) | (val & TLB_VALID);
@@ -522,7 +525,7 @@ static int inline mmu_itlb_update_from_utlb( int entryNo )
 {
     int replace;
     /* Determine entry to replace based on lrui */
-    if( mmu_lrui & 0x38 == 0x38 ) {
+    if( (mmu_lrui & 0x38) == 0x38 ) {
 	replace = 0;
 	mmu_lrui = mmu_lrui & 0x07;
     } else if( (mmu_lrui & 0x26) == 0x06 ) {
@@ -570,9 +573,9 @@ static inline int mmu_itlb_lookup_vpn_asid( uint32_t vpn )
     }
 
     if( result == -1 ) {
-	int utlbEntry = mmu_utlb_lookup_vpn( vpn );
-	if( utlbEntry == -1 ) {
-	    return -1;
+	int utlbEntry = mmu_utlb_lookup_vpn_asid( vpn );
+	if( utlbEntry < 0 ) {
+	    return utlbEntry;
 	} else {
 	    return mmu_itlb_update_from_utlb( utlbEntry );
 	}
@@ -614,8 +617,8 @@ static inline int mmu_itlb_lookup_vpn( uint32_t vpn )
 
     if( result == -1 ) {
 	int utlbEntry = mmu_utlb_lookup_vpn( vpn );
-	if( utlbEntry == -1 ) {
-	    return -1;
+	if( utlbEntry < 0 ) {
+	    return utlbEntry;
 	} else {
 	    return mmu_itlb_update_from_utlb( utlbEntry );
 	}
