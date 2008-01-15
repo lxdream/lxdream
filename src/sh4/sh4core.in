@@ -18,6 +18,7 @@
  */
 
 #define MODULE sh4_module
+#include <assert.h>
 #include <math.h>
 #include "dream.h"
 #include "dreamcast.h"
@@ -234,15 +235,20 @@ gboolean sh4_execute_instruction( void )
     CHECKRALIGN16(pc);
 
     /* Read instruction */
-    uint32_t pageaddr = pc >> 12;
     if( !IS_IN_ICACHE(pc) ) {
-	mmu_update_icache(pc);
+	if( !mmu_update_icache(pc) ) {
+	    // Fault - look for the fault handler
+	    if( !mmu_update_icache(sh4r.pc) ) {
+		// double fault - halt
+		ERROR( "Double fault - halting" );
+		dreamcast_stop();
+		return FALSE;
+	    }
+	}
+	pc = sh4r.pc;
     }
-    if( IS_IN_ICACHE(pc) ) {
-	ir = *(uint16_t *)GET_ICACHE_PTR(pc);
-    } else {
-	ir = sh4_read_word(pc);
-    }
+    assert( IS_IN_ICACHE(pc) );
+    ir = *(uint16_t *)GET_ICACHE_PTR(sh4r.pc);
 %%
 AND Rm, Rn {: sh4r.r[Rn] &= sh4r.r[Rm]; :}
 AND #imm, R0 {: R0 &= imm; :}
