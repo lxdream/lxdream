@@ -387,7 +387,6 @@ uint32_t sh4_translate_instruction( sh4addr_t pc )
 	 * at this point, inline a call to sh4_execute_instruction (with a few
 	 * small repairs to cope with the different environment).
 	 */
-	ir = sh4_read_word(pc);
 
     if( !sh4_x86.in_delay_slot ) {
 	sh4_x86_add_recovery(pc);
