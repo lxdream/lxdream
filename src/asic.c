@@ -348,7 +348,6 @@ void mmio_region_ASIC_write( uint32_t reg, uint32_t val )
     case SYSRESET:
 	if( val == 0x7611 ) {
 	    dreamcast_reset();
-	    sh4r.new_pc = sh4r.pc;
 	} else {
 	    WARN( "Unknown value %08X written to SYSRESET port", val );
 	}
