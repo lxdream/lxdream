@@ -240,6 +240,24 @@ L2:	.long \expectpc
 L3:	
 .endm
 
+.macro assert_tlb_exc_caught testname, expectpc, expectvpn
+LOCAL L1, L2, L3
+	mov.l L1, r3
+	mov.l \testname, r4
+	mov r12, r5
+	mov.l L2, r6
+	mov.l \expectvpn, r7
+	jsr @r3
+	nop
+	add r0, r13
+	bra L3
+	nop
+.align 4
+L1:	.long _assert_exception_caught
+L2:	.long \expectpc
+L3:	
+.endm
+
 	.align 2
 assert_t_set_message:
 	.string "Expected T=1 but was 0"

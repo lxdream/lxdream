@@ -1,5 +1,5 @@
 /**
- * $Id: rendbkg.c,v 1.7 2007-10-08 11:52:13 nkeynes Exp $
+ * $Id$
  *
  * PVR2 background renderer. 
  *

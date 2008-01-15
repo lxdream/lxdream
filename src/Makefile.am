@@ -29,7 +29,7 @@ lxdream_SOURCES = \
         sh4/sh4.c sh4/intc.c sh4/intc.h sh4/sh4mem.c sh4/timer.c sh4/dmac.c \
         sh4/mmu.c sh4/sh4core.c sh4/sh4core.h sh4/sh4dasm.c sh4/sh4dasm.h \
         sh4/sh4mmio.c sh4/sh4mmio.h sh4/scif.c sh4/sh4stat.c sh4/sh4stat.h \
-	sh4/xltcache.c sh4/xltcache.h \
+	sh4/xltcache.c sh4/xltcache.h sh4/sh4.h \
         aica/armcore.c aica/armcore.h aica/armdasm.c aica/armmem.c \
         aica/aica.c aica/aica.h aica/audio.c aica/audio.h \
 	pvr2/pvr2.c pvr2/pvr2.h pvr2/pvr2mem.c \
@@ -48,17 +48,16 @@ lxdream_SOURCES += sh4/sh4x86.c sh4/x86op.h \
         sh4/ia32abi.h sh4/ia32mac.h sh4/ia64abi.h \
         sh4/sh4trans.c sh4/sh4trans.h \
         x86dasm/x86dasm.c x86dasm/x86dasm.h \
-        x86dasm/i386-dis.c x86dasm/dis-init.c x86dasm/dis-buf.c
+        x86dasm/i386-dis.c x86dasm/dis-init.c x86dasm/dis-buf.c 
 
+test_testsh4x86_LDADD = @GTK_LIBS@
 test_testsh4x86_SOURCES = test/testsh4x86.c x86dasm/x86dasm.c \
 	x86dasm/x86dasm.h x86dasm/i386-dis.c x86dasm/dis-init.c \
 	x86dasm/dis-buf.c \
 	sh4/sh4dasm.c sh4/sh4trans.c sh4/sh4x86.c sh4/xltcache.c \
-	sh4/xltcache.h mem.c util.c
-test_testsh4x86_LDADD = @GTK_LIBS@
+	sh4/xltcache.h mem.c util.c sh4/mmu.c
 
 check_PROGRAMS += test/testsh4x86
-
 endif
 
 if GUI_GTK

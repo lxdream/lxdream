@@ -1,5 +1,5 @@
 /**
- * $Id: controller.h,v 1.3 2006-05-20 02:40:51 nkeynes Exp $
+ * $Id$
  *
  * Definitions for the standard controller device
  *

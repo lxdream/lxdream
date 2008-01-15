@@ -1,5 +1,5 @@
 /**
- * $Id: serial.h,v 1.1 2005-12-22 07:38:06 nkeynes Exp $
+ * $Id$
  * External interface to the dreamcast serial port, implemented by 
  * sh4/scif.c
  *

@@ -1,5 +1,5 @@
 /**
- * $Id: gendec.c,v 1.2 2007-10-06 08:48:47 nkeynes Exp $
+ * $Id$
  * 
  * Parse the instruction and action files and generate an appropriate
  * instruction decoder.

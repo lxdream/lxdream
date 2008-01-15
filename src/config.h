@@ -1,5 +1,5 @@
 /**
- * $Id: config.h,v 1.5 2007-10-28 08:29:29 nkeynes Exp $
+ * $Id$
  *
  * User configuration support
  *

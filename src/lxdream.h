@@ -1,5 +1,5 @@
 /**
- * $Id: lxdream.h,v 1.4 2007-11-10 04:44:51 nkeynes Exp $
+ * $Id$
  *
  * Common type definitions and forward declarations
  *
@@ -39,9 +39,15 @@ extern "C" {
 #endif
 
 /**
- * A 32-bit address in SH4 space
+ * A 29-bit address in SH4 external address space
  */
 typedef uint32_t sh4addr_t;
+
+/**
+ * A 32-bit address in SH4 virtual address space.
+ */
+typedef uint32_t sh4vma_t;
+
 /**
  * A direct pointer into SH4 memory
  */
@@ -67,6 +73,7 @@ typedef struct frame_buffer *frame_buffer_t;
 #define MODULE_NAME "*****"
 #endif
 
+gboolean set_global_log_level( const gchar *level );
 void log_message( void *, int level, const char *source, const char *msg, ... );
 
 #define FATAL( ... ) log_message( NULL, EMIT_FATAL, MODULE_NAME, __VA_ARGS__ )

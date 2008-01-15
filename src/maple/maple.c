@@ -1,5 +1,5 @@
 /**
- * $Id: maple.c,v 1.13 2007-11-06 12:23:25 nkeynes Exp $
+ * $Id$
  *
  * Implements the core Maple bus, including DMA transfers to and from the bus.
  *

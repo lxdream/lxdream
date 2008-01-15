@@ -17,6 +17,7 @@ ARMLD		= @ARMLD@
 ARMOBJCOPY	= @ARMOBJCOPY@
 
 RUNTEST		= ../src/lxdream -c ./lxdream.rc -puh -A null
+RUNTESTX	= ../src/lxdream -c ./lxdream.rc -xpuh -A null
 
 
 # cygwin
@@ -62,10 +63,11 @@ SHARED_OBJECTS	=
 all: build-tests
 
 check: build-tests
-	cat testta.data testta2.data testta3.data testta4.data testta5.data | $(RUNTEST) testta
 	$(RUNTEST) testsh4
+	$(RUNTESTX) testsh4
 	$(RUNTEST) testmmu
 	$(RUNTEST) testregs
+	cat testta.data testta2.data testta3.data testta4.data testta5.data | $(RUNTEST) testta
 #	$(RUNTEST) testide -d ../disc/test.nrg
 
 
@@ -78,7 +80,7 @@ testsh4: crt0.so sh4/testsh4.so timer.so interrupt.so \
 	 sh4/mac.s \
 	 sh4/rot.so sh4/shl.so sh4/shld.so sh4/sub.so sh4/subc.so \
 	 sh4/trapa.so sh4/tas.so sh4/xtrct.so \
-	 sh4/excslot.so sh4/undef.so
+	 sh4/excslot.so sh4/undef.so sh4/tlb.so
 	$(SH4CC) $(SH4LDFLAGS) $^ -o $@ $(SH4LIBS)
 	$(SH4OBJCOPY) testsh4 testsh4.bin
 

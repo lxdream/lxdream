@@ -1,5 +1,5 @@
 /**
- * $Id: dmac.c,v 1.2 2006-08-02 04:13:15 nkeynes Exp $
+ * $Id$
  * 
  * DMA support code
  *

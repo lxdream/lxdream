@@ -1,5 +1,5 @@
 /**
- * $Id: video_x11.c,v 1.20 2007-10-31 12:05:23 nkeynes Exp $
+ * $Id$
  *
  * Shared functions for all X11-based display drivers.
  *
@@ -16,13 +16,12 @@
  * GNU General Public License for more details.
  */
 
+#include "display.h"
+#include "pvr2/pvr2.h"
+#include "drivers/gl_common.h"
 #include <X11/Xlib.h>
 #include <GL/glx.h>
-#include <GL/gl.h>
-#include "dream.h"
-#include "pvr2/pvr2.h"
 #include "drivers/video_glx.h"
-#include "drivers/gl_common.h"
 
 /**
  * General X11 parameters. The front-end driver is expected to set this up

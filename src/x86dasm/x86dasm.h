@@ -1,5 +1,5 @@
 /**
- * $Id: x86dasm.h,v 1.5 2007-10-31 09:07:25 nkeynes Exp $
+ * $Id$
  *
  * Wrapper around i386-dis to supply the same behaviour as the other
  * disassembly functions.

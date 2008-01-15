@@ -1,5 +1,5 @@
 /**
- * $Id: cdi.h,v 1.2 2005-12-25 08:24:11 nkeynes Exp $
+ * $Id$
  *
  * CDI CD-image file support
  *

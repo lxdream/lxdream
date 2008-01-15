@@ -1,5 +1,5 @@
 /**
- * $Id: sh4core.in,v 1.10 2007-11-04 08:49:18 nkeynes Exp $
+ * $Id$
  * 
  * SH4 emulation core, and parent module for all the SH4 peripheral
  * modules.
@@ -18,6 +18,7 @@
  */
 
 #define MODULE sh4_module
+#include <assert.h>
 #include <math.h>
 #include "dream.h"
 #include "dreamcast.h"
@@ -37,9 +38,6 @@
 #define MIN_INTF -2147483648.0
 
 /********************** SH4 Module Definition ****************************/
-
-uint16_t *sh4_icache = NULL;
-uint32_t sh4_icache_addr = 0;
 
 uint32_t sh4_run_slice( uint32_t nanosecs ) 
 {
@@ -164,12 +162,12 @@ void fprint_stack_trace( FILE *f )
 #define TRACE_RETURN( source, dest )
 #endif
 
-#define MEM_READ_BYTE( addr ) sh4_read_byte(addr)
-#define MEM_READ_WORD( addr ) sh4_read_word(addr)
-#define MEM_READ_LONG( addr ) sh4_read_long(addr)
-#define MEM_WRITE_BYTE( addr, val ) sh4_write_byte(addr, val)
-#define MEM_WRITE_WORD( addr, val ) sh4_write_word(addr, val)
-#define MEM_WRITE_LONG( addr, val ) sh4_write_long(addr, val)
+#define MEM_READ_BYTE( addr, val ) memtmp = mmu_vma_to_phys_read(addr); if( memtmp == MMU_VMA_ERROR ) { return TRUE; } else { val = sh4_read_byte(memtmp); }
+#define MEM_READ_WORD( addr, val ) memtmp = mmu_vma_to_phys_read(addr); if( memtmp == MMU_VMA_ERROR ) { return TRUE; } else { val = sh4_read_word(memtmp); }
+#define MEM_READ_LONG( addr, val ) memtmp = mmu_vma_to_phys_read(addr); if( memtmp == MMU_VMA_ERROR ) { return TRUE; } else { val = sh4_read_long(memtmp); }
+#define MEM_WRITE_BYTE( addr, val ) memtmp = mmu_vma_to_phys_write(addr); if( memtmp == MMU_VMA_ERROR ) { return TRUE; } else { sh4_write_byte(memtmp, val); }
+#define MEM_WRITE_WORD( addr, val ) memtmp = mmu_vma_to_phys_write(addr); if( memtmp == MMU_VMA_ERROR ) { return TRUE; } else { sh4_write_word(memtmp, val); }
+#define MEM_WRITE_LONG( addr, val ) memtmp = mmu_vma_to_phys_write(addr); if( memtmp == MMU_VMA_ERROR ) { return TRUE; } else { sh4_write_long(memtmp, val); }
 
 #define FP_WIDTH (IS_FPU_DOUBLESIZE() ? 8 : 4)
 
@@ -223,6 +221,7 @@ gboolean sh4_execute_instruction( void )
     uint32_t tmp;
     float ftmp;
     double dtmp;
+    int64_t memtmp; // temporary holder for memory reads
     
 #define R0 sh4r.r[0]
     pc = sh4r.pc;
@@ -236,22 +235,20 @@ gboolean sh4_execute_instruction( void )
     CHECKRALIGN16(pc);
 
     /* Read instruction */
-    uint32_t pageaddr = pc >> 12;
-    if( sh4_icache != NULL && pageaddr == sh4_icache_addr ) {
-	ir = sh4_icache[(pc&0xFFF)>>1];
-    } else {
-	sh4_icache = (uint16_t *)mem_get_page(pc);
-	if( ((uintptr_t)sh4_icache) < MAX_IO_REGIONS ) {
-	    /* If someone's actually been so daft as to try to execute out of an IO
-	     * region, fallback on the full-blown memory read
-	     */
-	    sh4_icache = NULL;
-	    ir = MEM_READ_WORD(pc);
-	} else {
-	    sh4_icache_addr = pageaddr;
-	    ir = sh4_icache[(pc&0xFFF)>>1];
+    if( !IS_IN_ICACHE(pc) ) {
+	if( !mmu_update_icache(pc) ) {
+	    // Fault - look for the fault handler
+	    if( !mmu_update_icache(sh4r.pc) ) {
+		// double fault - halt
+		ERROR( "Double fault - halting" );
+		dreamcast_stop();
+		return FALSE;
+	    }
 	}
+	pc = sh4r.pc;
     }
+    assert( IS_IN_ICACHE(pc) );
+    ir = *(uint16_t *)GET_ICACHE_PTR(sh4r.pc);
         switch( (ir&0xF000) >> 12 ) {
             case 0x0:
                 switch( ir&0xF ) {
@@ -551,21 +548,21 @@ gboolean sh4_execute_instruction( void )
                     case 0xC:
                         { /* MOV.B @(R0, Rm), Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
-                        sh4r.r[Rn] = MEM_READ_BYTE( R0 + sh4r.r[Rm] );
+                        MEM_READ_BYTE( R0 + sh4r.r[Rm], sh4r.r[Rn] );
                         }
                         break;
                     case 0xD:
                         { /* MOV.W @(R0, Rm), Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
                         CHECKRALIGN16( R0 + sh4r.r[Rm] );
-                                           sh4r.r[Rn] = MEM_READ_WORD( R0 + sh4r.r[Rm] );
+                           MEM_READ_WORD( R0 + sh4r.r[Rm], sh4r.r[Rn] );
                         }
                         break;
                     case 0xE:
                         { /* MOV.L @(R0, Rm), Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
                         CHECKRALIGN32( R0 + sh4r.r[Rm] );
-                                           sh4r.r[Rn] = MEM_READ_LONG( R0 + sh4r.r[Rm] );
+                           MEM_READ_LONG( R0 + sh4r.r[Rm], sh4r.r[Rn] );
                         }
                         break;
                     case 0xF:
@@ -573,9 +570,11 @@ gboolean sh4_execute_instruction( void )
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
                         CHECKRALIGN32( sh4r.r[Rm] );
                         CHECKRALIGN32( sh4r.r[Rn] );
-                        int64_t tmpl = SIGNEXT32(MEM_READ_LONG(sh4r.r[Rn]));
+                        MEM_READ_LONG(sh4r.r[Rn], tmp);
+                        int64_t tmpl = SIGNEXT32(tmp);
                         sh4r.r[Rn] += 4;
-                        tmpl = tmpl * SIGNEXT32(MEM_READ_LONG(sh4r.r[Rm])) + sh4r.mac;
+                        MEM_READ_LONG(sh4r.r[Rm], tmp);
+                        tmpl = tmpl * SIGNEXT32(tmp) + sh4r.mac;
                         sh4r.r[Rm] += 4;
                         if( sh4r.s ) {
                             /* 48-bit Saturation. Yuch */
@@ -1058,8 +1057,9 @@ gboolean sh4_execute_instruction( void )
                                 { /* LDS.L @Rm+, MACH */
                                 uint32_t Rm = ((ir>>8)&0xF); 
                                 CHECKRALIGN32( sh4r.r[Rm] );
+                                MEM_READ_LONG(sh4r.r[Rm], tmp);
                                 sh4r.mac = (sh4r.mac & 0x00000000FFFFFFFF) |
-                                           (((uint64_t)MEM_READ_LONG(sh4r.r[Rm]))<<32);
+                            	(((uint64_t)tmp)<<32);
                                 sh4r.r[Rm] += 4;
                                 }
                                 break;
@@ -1067,8 +1067,9 @@ gboolean sh4_execute_instruction( void )
                                 { /* LDS.L @Rm+, MACL */
                                 uint32_t Rm = ((ir>>8)&0xF); 
                                 CHECKRALIGN32( sh4r.r[Rm] );
+                                MEM_READ_LONG(sh4r.r[Rm], tmp);
                                 sh4r.mac = (sh4r.mac & 0xFFFFFFFF00000000LL) |
-                                           (uint64_t)((uint32_t)MEM_READ_LONG(sh4r.r[Rm]));
+                                           (uint64_t)((uint32_t)tmp);
                                 sh4r.r[Rm] += 4;
                                 }
                                 break;
@@ -1076,7 +1077,7 @@ gboolean sh4_execute_instruction( void )
                                 { /* LDS.L @Rm+, PR */
                                 uint32_t Rm = ((ir>>8)&0xF); 
                                 CHECKRALIGN32( sh4r.r[Rm] );
-                                sh4r.pr = MEM_READ_LONG( sh4r.r[Rm] );
+                                MEM_READ_LONG( sh4r.r[Rm], sh4r.pr );
                                 sh4r.r[Rm] += 4;
                                 }
                                 break;
@@ -1085,7 +1086,7 @@ gboolean sh4_execute_instruction( void )
                                 uint32_t Rm = ((ir>>8)&0xF); 
                                 CHECKPRIV();
                                 CHECKRALIGN32( sh4r.r[Rm] );
-                                sh4r.sgr = MEM_READ_LONG(sh4r.r[Rm]);
+                                MEM_READ_LONG(sh4r.r[Rm], sh4r.sgr);
                                 sh4r.r[Rm] +=4;
                                 }
                                 break;
@@ -1093,7 +1094,7 @@ gboolean sh4_execute_instruction( void )
                                 { /* LDS.L @Rm+, FPUL */
                                 uint32_t Rm = ((ir>>8)&0xF); 
                                 CHECKRALIGN32( sh4r.r[Rm] );
-                                sh4r.fpul = MEM_READ_LONG(sh4r.r[Rm]);
+                                MEM_READ_LONG(sh4r.r[Rm], sh4r.fpul);
                                 sh4r.r[Rm] +=4;
                                 }
                                 break;
@@ -1101,7 +1102,7 @@ gboolean sh4_execute_instruction( void )
                                 { /* LDS.L @Rm+, FPSCR */
                                 uint32_t Rm = ((ir>>8)&0xF); 
                                 CHECKRALIGN32( sh4r.r[Rm] );
-                                sh4r.fpscr = MEM_READ_LONG(sh4r.r[Rm]);
+                                MEM_READ_LONG(sh4r.r[Rm], sh4r.fpscr);
                                 sh4r.r[Rm] +=4;
                                 sh4r.fr_bank = &sh4r.fr[(sh4r.fpscr&FPSCR_FR)>>21][0];
                                 }
@@ -1111,7 +1112,7 @@ gboolean sh4_execute_instruction( void )
                                 uint32_t Rm = ((ir>>8)&0xF); 
                                 CHECKPRIV();
                                 CHECKRALIGN32( sh4r.r[Rm] );
-                                sh4r.dbr = MEM_READ_LONG(sh4r.r[Rm]);
+                                MEM_READ_LONG(sh4r.r[Rm], sh4r.dbr);
                                 sh4r.r[Rm] +=4;
                                 }
                                 break;
@@ -1130,7 +1131,8 @@ gboolean sh4_execute_instruction( void )
                                         CHECKSLOTILLEGAL();
                                         CHECKPRIV();
                                         CHECKWALIGN32( sh4r.r[Rm] );
-                                        sh4_write_sr( MEM_READ_LONG(sh4r.r[Rm]) );
+                                        MEM_READ_LONG(sh4r.r[Rm], tmp);
+                                        sh4_write_sr( tmp );
                                         sh4r.r[Rm] +=4;
                                         }
                                         break;
@@ -1138,7 +1140,7 @@ gboolean sh4_execute_instruction( void )
                                         { /* LDC.L @Rm+, GBR */
                                         uint32_t Rm = ((ir>>8)&0xF); 
                                         CHECKRALIGN32( sh4r.r[Rm] );
-                                        sh4r.gbr = MEM_READ_LONG(sh4r.r[Rm]);
+                                        MEM_READ_LONG(sh4r.r[Rm], sh4r.gbr);
                                         sh4r.r[Rm] +=4;
                                         }
                                         break;
@@ -1147,7 +1149,7 @@ gboolean sh4_execute_instruction( void )
                                         uint32_t Rm = ((ir>>8)&0xF); 
                                         CHECKPRIV();
                                         CHECKRALIGN32( sh4r.r[Rm] );
-                                        sh4r.vbr = MEM_READ_LONG(sh4r.r[Rm]);
+                                        MEM_READ_LONG(sh4r.r[Rm], sh4r.vbr);
                                         sh4r.r[Rm] +=4;
                                         }
                                         break;
@@ -1156,7 +1158,7 @@ gboolean sh4_execute_instruction( void )
                                         uint32_t Rm = ((ir>>8)&0xF); 
                                         CHECKPRIV();
                                         CHECKRALIGN32( sh4r.r[Rm] );
-                                        sh4r.ssr = MEM_READ_LONG(sh4r.r[Rm]);
+                                        MEM_READ_LONG(sh4r.r[Rm], sh4r.ssr);
                                         sh4r.r[Rm] +=4;
                                         }
                                         break;
@@ -1165,7 +1167,7 @@ gboolean sh4_execute_instruction( void )
                                         uint32_t Rm = ((ir>>8)&0xF); 
                                         CHECKPRIV();
                                         CHECKRALIGN32( sh4r.r[Rm] );
-                                        sh4r.spc = MEM_READ_LONG(sh4r.r[Rm]);
+                                        MEM_READ_LONG(sh4r.r[Rm], sh4r.spc);
                                         sh4r.r[Rm] +=4;
                                         }
                                         break;
@@ -1179,7 +1181,7 @@ gboolean sh4_execute_instruction( void )
                                 uint32_t Rm = ((ir>>8)&0xF); uint32_t Rn_BANK = ((ir>>4)&0x7); 
                                 CHECKPRIV();
                                 CHECKRALIGN32( sh4r.r[Rm] );
-                                sh4r.r_bank[Rn_BANK] = MEM_READ_LONG( sh4r.r[Rm] );
+                                MEM_READ_LONG( sh4r.r[Rm], sh4r.r_bank[Rn_BANK] );
                                 sh4r.r[Rm] += 4;
                                 }
                                 break;
@@ -1307,7 +1309,7 @@ gboolean sh4_execute_instruction( void )
                             case 0x1:
                                 { /* TAS.B @Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
-                                tmp = MEM_READ_BYTE( sh4r.r[Rn] );
+                                MEM_READ_BYTE( sh4r.r[Rn], tmp );
                                 sh4r.t = ( tmp == 0 ? 1 : 0 );
                                 MEM_WRITE_BYTE( sh4r.r[Rn], tmp | 0x80 );
                                 }
@@ -1406,9 +1408,11 @@ gboolean sh4_execute_instruction( void )
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
                         CHECKRALIGN16( sh4r.r[Rn] );
                         CHECKRALIGN16( sh4r.r[Rm] );
-                        int32_t stmp = SIGNEXT16(MEM_READ_WORD(sh4r.r[Rn]));
+                        MEM_READ_WORD(sh4r.r[Rn], tmp);
+                        int32_t stmp = SIGNEXT16(tmp);
                         sh4r.r[Rn] += 2;
-                        stmp = stmp * SIGNEXT16(MEM_READ_WORD(sh4r.r[Rm]));
+                        MEM_READ_WORD(sh4r.r[Rm], tmp);
+                        stmp = stmp * SIGNEXT16(tmp);
                         sh4r.r[Rm] += 2;
                         if( sh4r.s ) {
                     	int64_t tmpl = (int64_t)((int32_t)sh4r.mac) + (int64_t)stmp;
@@ -1432,7 +1436,7 @@ gboolean sh4_execute_instruction( void )
                 uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); uint32_t disp = (ir&0xF)<<2; 
                 tmp = sh4r.r[Rm] + disp;
                 CHECKRALIGN32( tmp );
-                sh4r.r[Rn] = MEM_READ_LONG( tmp );
+                MEM_READ_LONG( tmp, sh4r.r[Rn] );
                 }
                 break;
             case 0x6:
@@ -1440,19 +1444,19 @@ gboolean sh4_execute_instruction( void )
                     case 0x0:
                         { /* MOV.B @Rm, Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
-                        sh4r.r[Rn] = MEM_READ_BYTE( sh4r.r[Rm] );
+                        MEM_READ_BYTE( sh4r.r[Rm], sh4r.r[Rn] );
                         }
                         break;
                     case 0x1:
                         { /* MOV.W @Rm, Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
-                        CHECKRALIGN16( sh4r.r[Rm] ); sh4r.r[Rn] = MEM_READ_WORD( sh4r.r[Rm] );
+                        CHECKRALIGN16( sh4r.r[Rm] ); MEM_READ_WORD( sh4r.r[Rm], sh4r.r[Rn] );
                         }
                         break;
                     case 0x2:
                         { /* MOV.L @Rm, Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
-                        CHECKRALIGN32( sh4r.r[Rm] ); sh4r.r[Rn] = MEM_READ_LONG( sh4r.r[Rm] );
+                        CHECKRALIGN32( sh4r.r[Rm] ); MEM_READ_LONG( sh4r.r[Rm], sh4r.r[Rn] );
                         }
                         break;
                     case 0x3:
@@ -1464,19 +1468,19 @@ gboolean sh4_execute_instruction( void )
                     case 0x4:
                         { /* MOV.B @Rm+, Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
-                        sh4r.r[Rn] = MEM_READ_BYTE( sh4r.r[Rm] ); sh4r.r[Rm] ++;
+                        MEM_READ_BYTE( sh4r.r[Rm], sh4r.r[Rn] ); sh4r.r[Rm] ++;
                         }
                         break;
                     case 0x5:
                         { /* MOV.W @Rm+, Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
-                        CHECKRALIGN16( sh4r.r[Rm] ); sh4r.r[Rn] = MEM_READ_WORD( sh4r.r[Rm] ); sh4r.r[Rm] += 2;
+                        CHECKRALIGN16( sh4r.r[Rm] ); MEM_READ_WORD( sh4r.r[Rm], sh4r.r[Rn] ); sh4r.r[Rm] += 2;
                         }
                         break;
                     case 0x6:
                         { /* MOV.L @Rm+, Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
-                        CHECKRALIGN32( sh4r.r[Rm] ); sh4r.r[Rn] = MEM_READ_LONG( sh4r.r[Rm] ); sh4r.r[Rm] += 4;
+                        CHECKRALIGN32( sh4r.r[Rm] ); MEM_READ_LONG( sh4r.r[Rm], sh4r.r[Rn] ); sh4r.r[Rm] += 4;
                         }
                         break;
                     case 0x7:
@@ -1562,7 +1566,7 @@ gboolean sh4_execute_instruction( void )
                     case 0x4:
                         { /* MOV.B @(disp, Rm), R0 */
                         uint32_t Rm = ((ir>>4)&0xF); uint32_t disp = (ir&0xF); 
-                        R0 = MEM_READ_BYTE( sh4r.r[Rm] + disp );
+                        MEM_READ_BYTE( sh4r.r[Rm] + disp, R0 );
                         }
                         break;
                     case 0x5:
@@ -1570,7 +1574,7 @@ gboolean sh4_execute_instruction( void )
                         uint32_t Rm = ((ir>>4)&0xF); uint32_t disp = (ir&0xF)<<1; 
                         tmp = sh4r.r[Rm] + disp;
                         CHECKRALIGN16( tmp );
-                        R0 = MEM_READ_WORD( tmp );
+                        MEM_READ_WORD( tmp, R0 );
                         }
                         break;
                     case 0x8:
@@ -1640,7 +1644,7 @@ gboolean sh4_execute_instruction( void )
                 uint32_t Rn = ((ir>>8)&0xF); uint32_t disp = (ir&0xFF)<<1; 
                 CHECKSLOTILLEGAL();
                 tmp = pc + 4 + disp;
-                sh4r.r[Rn] = MEM_READ_WORD( tmp );
+                MEM_READ_WORD( tmp, sh4r.r[Rn] );
                 }
                 break;
             case 0xA:
@@ -1695,15 +1699,15 @@ gboolean sh4_execute_instruction( void )
                         { /* TRAPA #imm */
                         uint32_t imm = (ir&0xFF); 
                         CHECKSLOTILLEGAL();
-                        MMIO_WRITE( MMU, TRA, imm<<2 );
                         sh4r.pc += 2;
-                        sh4_raise_exception( EXC_TRAP );
+                        sh4_raise_trap( imm );
+                        return TRUE;
                         }
                         break;
                     case 0x4:
                         { /* MOV.B @(disp, GBR), R0 */
                         uint32_t disp = (ir&0xFF); 
-                        R0 = MEM_READ_BYTE( sh4r.gbr + disp );
+                        MEM_READ_BYTE( sh4r.gbr + disp, R0 );
                         }
                         break;
                     case 0x5:
@@ -1711,7 +1715,7 @@ gboolean sh4_execute_instruction( void )
                         uint32_t disp = (ir&0xFF)<<1; 
                         tmp = sh4r.gbr + disp;
                         CHECKRALIGN16( tmp );
-                        R0 = MEM_READ_WORD( tmp );
+                        MEM_READ_WORD( tmp, R0 );
                         }
                         break;
                     case 0x6:
@@ -1719,7 +1723,7 @@ gboolean sh4_execute_instruction( void )
                         uint32_t disp = (ir&0xFF)<<2; 
                         tmp = sh4r.gbr + disp;
                         CHECKRALIGN32( tmp );
-                        R0 = MEM_READ_LONG( tmp );
+                        MEM_READ_LONG( tmp, R0 );
                         }
                         break;
                     case 0x7:
@@ -1756,25 +1760,25 @@ gboolean sh4_execute_instruction( void )
                     case 0xC:
                         { /* TST.B #imm, @(R0, GBR) */
                         uint32_t imm = (ir&0xFF); 
-                        sh4r.t = ( MEM_READ_BYTE(R0 + sh4r.gbr) & imm ? 0 : 1 );
+                        MEM_READ_BYTE(R0+sh4r.gbr, tmp); sh4r.t = ( tmp & imm ? 0 : 1 );
                         }
                         break;
                     case 0xD:
                         { /* AND.B #imm, @(R0, GBR) */
                         uint32_t imm = (ir&0xFF); 
-                        MEM_WRITE_BYTE( R0 + sh4r.gbr, imm & MEM_READ_BYTE(R0 + sh4r.gbr) );
+                        MEM_READ_BYTE(R0+sh4r.gbr, tmp); MEM_WRITE_BYTE( R0 + sh4r.gbr, imm & tmp );
                         }
                         break;
                     case 0xE:
                         { /* XOR.B #imm, @(R0, GBR) */
                         uint32_t imm = (ir&0xFF); 
-                        MEM_WRITE_BYTE( R0 + sh4r.gbr, imm ^ MEM_READ_BYTE(R0 + sh4r.gbr) );
+                        MEM_READ_BYTE(R0+sh4r.gbr, tmp); MEM_WRITE_BYTE( R0 + sh4r.gbr, imm ^ tmp );
                         }
                         break;
                     case 0xF:
                         { /* OR.B #imm, @(R0, GBR) */
                         uint32_t imm = (ir&0xFF); 
-                        MEM_WRITE_BYTE( R0 + sh4r.gbr, imm | MEM_READ_BYTE(R0 + sh4r.gbr) );
+                        MEM_READ_BYTE(R0+sh4r.gbr, tmp); MEM_WRITE_BYTE( R0 + sh4r.gbr, imm | tmp );
                         }
                         break;
                 }
@@ -1784,7 +1788,7 @@ gboolean sh4_execute_instruction( void )
                 uint32_t Rn = ((ir>>8)&0xF); uint32_t disp = (ir&0xFF)<<2; 
                 CHECKSLOTILLEGAL();
                 tmp = (pc&0xFFFFFFFC) + disp + 4;
-                sh4r.r[Rn] = MEM_READ_LONG( tmp );
+                MEM_READ_LONG( tmp, sh4r.r[Rn] );
                 }
                 break;
             case 0xE:

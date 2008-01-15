@@ -1,5 +1,5 @@
 /**
- * $Id: rendload.c,v 1.1 2007-01-16 11:09:39 nkeynes Exp $
+ * $Id$
  *
  * Scene-save loader support. This is the other side of rendsave.c
  *

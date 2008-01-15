@@ -1,5 +1,5 @@
 /**
- * $Id: dreamcast.c,v 1.28 2007-10-31 11:53:35 nkeynes Exp $
+ * $Id$
  * Central switchboard for the system. This pulls all the individual modules
  * together into some kind of coherent structure. This is also where you'd
  * add Naomi support, if I ever get a board to play with...
@@ -27,6 +27,7 @@
 #include "dreamcast.h"
 #include "gdrom/ide.h"
 #include "maple/maple.h"
+#include "sh4/sh4trans.h"
 
 /**
  * Current state of the DC virtual machine
@@ -131,6 +132,9 @@ void dreamcast_init( void )
 void dreamcast_reset( void )
 {
     int i;
+    if( sh4_xlat_is_running() ) {
+	sh4_translate_exit( XLAT_EXIT_SYSRESET );
+    }
     for( i=0; i<num_modules; i++ ) {
 	if( modules[i]->reset != NULL )
 	    modules[i]->reset();
@@ -201,6 +205,9 @@ void dreamcast_run_for( unsigned int seconds, unsigned int nanosecs )
 
 void dreamcast_stop( void )
 {
+    if( sh4_xlat_is_running() ) {
+	sh4_translate_exit( XLAT_EXIT_HALT );
+    }
     if( dreamcast_state == STATE_RUNNING )
 	dreamcast_state = STATE_STOPPING;
 }
@@ -219,9 +226,7 @@ void dreamcast_program_loaded( const gchar *name, sh4addr_t entry_point )
     dreamcast_program_name = g_strdup(name);
     dreamcast_entry_point = entry_point;
     sh4_set_pc(entry_point);
-    if( !dreamcast_has_bios ) {
-        bios_install();
-    }
+    bios_install();
     dcload_install();
     gui_update_state();
 }

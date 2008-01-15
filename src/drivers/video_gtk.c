@@ -1,5 +1,5 @@
 /**
- * $Id: video_gtk.c,v 1.19 2007-10-31 12:43:51 nkeynes Exp $
+ * $Id$
  *
  * The PC side of the video support (responsible for actually displaying / 
  * rendering frames)
@@ -24,6 +24,7 @@
 #include "display.h"
 #include "drivers/video_glx.h"
 #include "drivers/gl_common.h"
+#include "pvr2/pvr2.h"
 #include "gtkui/gtkui.h"
 
 static GtkWidget *video_win = NULL;

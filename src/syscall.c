@@ -1,5 +1,5 @@
 /**
- * $Id: syscall.c,v 1.1 2006-03-13 12:38:34 nkeynes Exp $
+ * $Id$
  * 
  * Routines to add hook functions that are callable from the SH4
  *
@@ -19,7 +19,7 @@
 #include "dream.h"
 #include "mem.h"
 #include "syscall.h"
-#include "sh4/sh4core.h"
+#include "sh4/sh4.h"
 
 
 struct syscall_hook {

@@ -1,5 +1,5 @@
 /**
- * $Id: aica.h,v 1.12 2007-10-27 05:47:21 nkeynes Exp $
+ * $Id$
  * 
  * MMIO definitions for the AICA sound chip. Note that the regions defined
  * here are relative to the SH4 memory map (0x00700000 based), rather than

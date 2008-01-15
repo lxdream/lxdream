@@ -1,5 +1,5 @@
 /**
- * $Id: display.c,v 1.12 2007-10-31 09:10:23 nkeynes Exp $
+ * $Id$
  *
  * Generic support for keyboard and other input sources. The active display
  * driver is expected to deliver events here, where they're translated and

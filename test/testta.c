@@ -1,5 +1,5 @@
 /**
- * $Id: testta.c,v 1.4 2006-08-18 09:32:32 nkeynes Exp $
+ * $Id$
  * 
  * Tile Accelerator test cases 
  *

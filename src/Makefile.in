@@ -40,7 +40,7 @@ host_triplet = @host@
 @BUILD_SH4X86_TRUE@        sh4/ia32abi.h sh4/ia32mac.h sh4/ia64abi.h \
 @BUILD_SH4X86_TRUE@        sh4/sh4trans.c sh4/sh4trans.h \
 @BUILD_SH4X86_TRUE@        x86dasm/x86dasm.c x86dasm/x86dasm.h \
-@BUILD_SH4X86_TRUE@        x86dasm/i386-dis.c x86dasm/dis-init.c x86dasm/dis-buf.c
+@BUILD_SH4X86_TRUE@        x86dasm/i386-dis.c x86dasm/dis-init.c x86dasm/dis-buf.c 
 
 @BUILD_SH4X86_TRUE@am__append_2 = test/testsh4x86
 @GUI_GTK_TRUE@am__append_3 = gtkui/gtkui.c gtkui/gtkui.h \
@@ -72,9 +72,13 @@ BUILD_SH4X86_FALSE = @BUILD_SH4X86_FALSE@
 BUILD_SH4X86_TRUE = @BUILD_SH4X86_TRUE@
 BUILD_SYSTEST_FALSE = @BUILD_SYSTEST_FALSE@
 BUILD_SYSTEST_TRUE = @BUILD_SYSTEST_TRUE@
+BUILD_X86_64_FALSE = @BUILD_X86_64_FALSE@
+BUILD_X86_64_TRUE = @BUILD_X86_64_TRUE@
 CATALOGS = @CATALOGS@
 CATOBJEXT = @CATOBJEXT@
 CC = @CC@
+CCAS = @CCAS@
+CCASFLAGS = @CCASFLAGS@
 CCDEPMODE = @CCDEPMODE@
 CDROM_LINUX_FALSE = @CDROM_LINUX_FALSE@
 CDROM_LINUX_TRUE = @CDROM_LINUX_TRUE@
@@ -120,6 +124,7 @@ MAINTAINER_MODE_TRUE = @MAINTAINER_MODE_TRUE@
 MAKEINFO = @MAKEINFO@
 MKINSTALLDIRS = @MKINSTALLDIRS@
 MSGFMT = @MSGFMT@
+MSGFMT_OPTS = @MSGFMT_OPTS@
 OBJEXT = @OBJEXT@
 PACKAGE = @PACKAGE@
 PACKAGE_BUGREPORT = @PACKAGE_BUGREPORT@
@@ -213,7 +218,7 @@ lxdream_SOURCES = \
         sh4/sh4.c sh4/intc.c sh4/intc.h sh4/sh4mem.c sh4/timer.c sh4/dmac.c \
         sh4/mmu.c sh4/sh4core.c sh4/sh4core.h sh4/sh4dasm.c sh4/sh4dasm.h \
         sh4/sh4mmio.c sh4/sh4mmio.h sh4/scif.c sh4/sh4stat.c sh4/sh4stat.h \
-	sh4/xltcache.c sh4/xltcache.h \
+	sh4/xltcache.c sh4/xltcache.h sh4/sh4.h \
         aica/armcore.c aica/armcore.h aica/armdasm.c aica/armmem.c \
         aica/aica.c aica/aica.h aica/audio.c aica/audio.h \
 	pvr2/pvr2.c pvr2/pvr2.h pvr2/pvr2mem.c \
@@ -228,13 +233,13 @@ lxdream_SOURCES = \
 	drivers/gl_sl.c drivers/gl_slsrc.c\
 $(am__append_1) $(am__append_3) $(am__append_4) $(am__append_5) $(am__append_6)
 
+@BUILD_SH4X86_TRUE@test_testsh4x86_LDADD = @GTK_LIBS@
 @BUILD_SH4X86_TRUE@test_testsh4x86_SOURCES = test/testsh4x86.c x86dasm/x86dasm.c \
 @BUILD_SH4X86_TRUE@	x86dasm/x86dasm.h x86dasm/i386-dis.c x86dasm/dis-init.c \
 @BUILD_SH4X86_TRUE@	x86dasm/dis-buf.c \
 @BUILD_SH4X86_TRUE@	sh4/sh4dasm.c sh4/sh4trans.c sh4/sh4x86.c sh4/xltcache.c \
-@BUILD_SH4X86_TRUE@	sh4/xltcache.h mem.c util.c
+@BUILD_SH4X86_TRUE@	sh4/xltcache.h mem.c util.c sh4/mmu.c
 
-@BUILD_SH4X86_TRUE@test_testsh4x86_LDADD = @GTK_LIBS@
 
 lxdream_LDADD = @GTK_LIBS@ @LIBPNG_LIBS@ @ESOUND_LIBS@ $(INTLLIBS)
 
@@ -271,25 +276,25 @@ am__lxdream_SOURCES_DIST = main.c config.c config.h mem.c mem.h mmio.h \
 	sh4/intc.h sh4/sh4mem.c sh4/timer.c sh4/dmac.c sh4/mmu.c \
 	sh4/sh4core.c sh4/sh4core.h sh4/sh4dasm.c sh4/sh4dasm.h \
 	sh4/sh4mmio.c sh4/sh4mmio.h sh4/scif.c sh4/sh4stat.c \
-	sh4/sh4stat.h sh4/xltcache.c sh4/xltcache.h aica/armcore.c \
-	aica/armcore.h aica/armdasm.c aica/armmem.c aica/aica.c \
-	aica/aica.h aica/audio.c aica/audio.h pvr2/pvr2.c pvr2/pvr2.h \
-	pvr2/pvr2mem.c pvr2/tacore.c pvr2/render.c pvr2/rendcore.c \
-	pvr2/rendbkg.c pvr2/rendsort.c pvr2/texcache.c pvr2/yuv.c \
-	pvr2/rendsave.c maple/maple.c maple/maple.h maple/controller.c \
-	maple/controller.h loader.c bootstrap.c util.c display.c \
-	display.h drivers/audio_null.c drivers/video_null.c \
-	drivers/gl_common.c drivers/gl_common.h drivers/gl_fbo.c \
-	drivers/gl_sl.c drivers/gl_slsrc.c sh4/sh4x86.c sh4/x86op.h \
-	sh4/ia32abi.h sh4/ia32mac.h sh4/ia64abi.h sh4/sh4trans.c \
-	sh4/sh4trans.h x86dasm/x86dasm.c x86dasm/x86dasm.h \
-	x86dasm/i386-dis.c x86dasm/dis-init.c x86dasm/dis-buf.c \
-	gtkui/gtkui.c gtkui/gtkui.h gtkui/main_win.c gtkui/gtkcb.c \
-	gtkui/mmio_win.c gtkui/debug_win.c gtkui/dump_win.c \
-	gtkui/ctrl_dlg.c gtkui/path_dlg.c gtkui/gdrom_menu.c \
-	drivers/video_gtk.c drivers/video_gtk.h drivers/video_glx.c \
-	drivers/video_glx.h drivers/cd_linux.c drivers/cd_none.c \
-	drivers/audio_esd.c
+	sh4/sh4stat.h sh4/xltcache.c sh4/xltcache.h sh4/sh4.h \
+	aica/armcore.c aica/armcore.h aica/armdasm.c aica/armmem.c \
+	aica/aica.c aica/aica.h aica/audio.c aica/audio.h pvr2/pvr2.c \
+	pvr2/pvr2.h pvr2/pvr2mem.c pvr2/tacore.c pvr2/render.c \
+	pvr2/rendcore.c pvr2/rendbkg.c pvr2/rendsort.c pvr2/texcache.c \
+	pvr2/yuv.c pvr2/rendsave.c maple/maple.c maple/maple.h \
+	maple/controller.c maple/controller.h loader.c bootstrap.c \
+	util.c display.c display.h drivers/audio_null.c \
+	drivers/video_null.c drivers/gl_common.c drivers/gl_common.h \
+	drivers/gl_fbo.c drivers/gl_sl.c drivers/gl_slsrc.c \
+	sh4/sh4x86.c sh4/x86op.h sh4/ia32abi.h sh4/ia32mac.h \
+	sh4/ia64abi.h sh4/sh4trans.c sh4/sh4trans.h x86dasm/x86dasm.c \
+	x86dasm/x86dasm.h x86dasm/i386-dis.c x86dasm/dis-init.c \
+	x86dasm/dis-buf.c gtkui/gtkui.c gtkui/gtkui.h gtkui/main_win.c \
+	gtkui/gtkcb.c gtkui/mmio_win.c gtkui/debug_win.c \
+	gtkui/dump_win.c gtkui/ctrl_dlg.c gtkui/path_dlg.c \
+	gtkui/gdrom_menu.c drivers/video_gtk.c drivers/video_gtk.h \
+	drivers/video_glx.c drivers/video_glx.h drivers/cd_linux.c \
+	drivers/cd_none.c drivers/audio_esd.c
 @BUILD_SH4X86_TRUE@am__objects_1 = sh4x86.$(OBJEXT) sh4trans.$(OBJEXT) \
 @BUILD_SH4X86_TRUE@	x86dasm.$(OBJEXT) i386-dis.$(OBJEXT) \
 @BUILD_SH4X86_TRUE@	dis-init.$(OBJEXT) dis-buf.$(OBJEXT)
@@ -327,13 +332,13 @@ lxdream_LDFLAGS =
 am__test_testsh4x86_SOURCES_DIST = test/testsh4x86.c x86dasm/x86dasm.c \
 	x86dasm/x86dasm.h x86dasm/i386-dis.c x86dasm/dis-init.c \
 	x86dasm/dis-buf.c sh4/sh4dasm.c sh4/sh4trans.c sh4/sh4x86.c \
-	sh4/xltcache.c sh4/xltcache.h mem.c util.c
+	sh4/xltcache.c sh4/xltcache.h mem.c util.c sh4/mmu.c
 @BUILD_SH4X86_TRUE@am_test_testsh4x86_OBJECTS = testsh4x86.$(OBJEXT) \
 @BUILD_SH4X86_TRUE@	x86dasm.$(OBJEXT) i386-dis.$(OBJEXT) \
 @BUILD_SH4X86_TRUE@	dis-init.$(OBJEXT) dis-buf.$(OBJEXT) \
 @BUILD_SH4X86_TRUE@	sh4dasm.$(OBJEXT) sh4trans.$(OBJEXT) \
 @BUILD_SH4X86_TRUE@	sh4x86.$(OBJEXT) xltcache.$(OBJEXT) \
-@BUILD_SH4X86_TRUE@	mem.$(OBJEXT) util.$(OBJEXT)
+@BUILD_SH4X86_TRUE@	mem.$(OBJEXT) util.$(OBJEXT) mmu.$(OBJEXT)
 test_testsh4x86_OBJECTS = $(am_test_testsh4x86_OBJECTS)
 @BUILD_SH4X86_TRUE@test_testsh4x86_DEPENDENCIES =
 @BUILD_SH4X86_FALSE@test_testsh4x86_DEPENDENCIES =

@@ -1,5 +1,5 @@
 /**
- * $Id: sh4mmio.c,v 1.15 2007-11-08 11:54:16 nkeynes Exp $
+ * $Id$
  * 
  * Miscellaneous and not-really-implemented SH4 peripheral modules. Also
  * responsible for including the IMPL side of the SH4 MMIO pages.

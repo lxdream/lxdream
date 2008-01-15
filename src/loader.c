@@ -1,5 +1,5 @@
 /**
- * $Id: loader.c,v 1.22 2007-11-08 11:54:16 nkeynes Exp $
+ * $Id$
  *
  * File loading routines, mostly for loading demos without going through the
  * whole procedure of making a CD image for them.

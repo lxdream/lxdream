@@ -1,5 +1,5 @@
 /**
- * $Id: mem.c,v 1.23 2007-11-14 10:21:33 nkeynes Exp $
+ * $Id$
  * mem.c is responsible for creating and maintaining the overall system memory
  * map, as visible from the SH4 processor. 
  *
@@ -20,6 +20,7 @@
 #include <sys/types.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
+#include <glib/gstrfuncs.h>
 #include <assert.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -280,7 +281,7 @@ gboolean mem_load_rom( const gchar *file, uint32_t base, uint32_t size, uint32_t
 	    ERROR( "Unable to allocate ROM memory: %s (%s)", file, strerror(errno) );
 	    return FALSE;
 	}
-	mem_map_region( mem, base, size, file, MEM_FLAG_ROM, size, base );
+	mem_map_region( mem, base, size, region_name, MEM_FLAG_ROM, size, base );
     } else {
 	mprotect( mem, size, PROT_READ|PROT_WRITE );
     }
@@ -377,10 +378,39 @@ struct mmio_region *mem_get_io_region( uint32_t addr )
     }
 }
 
-void mem_set_trace( uint32_t addr, int flag )
+struct mmio_region *mem_get_io_region_by_name( const gchar *name )
 {
-    struct mmio_region *region = mem_get_io_region(addr);
-    if( region != NULL )
-	region->trace_flag = flag;
+    int i;
+    for( i=0; i<num_io_rgns; i++ ) {
+	if( strcasecmp(io_rgn[i]->id, name) == 0 ) {
+	    return io_rgn[i];
+	}
+    }
+    return NULL;
+}
+
+void mem_set_trace( const gchar *tracelist, gboolean flag )
+{
+    if( tracelist != NULL ) {
+	gchar ** tracev = g_strsplit_set( tracelist, ",:; \t\r\n", 0 );
+	int i;
+	for( i=0; tracev[i] != NULL; i++ ) {
+	    // Special case "all" - trace everything
+	    if( strcasecmp(tracev[i], "all") == 0 ) {
+		int j;
+		for( j=0; j<num_io_rgns; j++ ) {
+		    io_rgn[j]->trace_flag = flag ? 1 : 0;
+		}
+		break;
+	    }
+	    struct mmio_region *region = mem_get_io_region_by_name( tracev[i] );
+	    if( region == NULL ) {
+		WARN( "Unknown IO region '%s'", tracev[i] );
+	    } else {
+		region->trace_flag = flag ? 1 : 0;
+	    }
+	}
+	g_strfreev( tracev );
+    }
 }
 

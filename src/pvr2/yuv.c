@@ -1,5 +1,5 @@
 /**
- * $Id: yuv.c,v 1.5 2007-10-08 11:52:13 nkeynes Exp $
+ * $Id$
  *
  * YUV420 and YUV422 decoding
  *
