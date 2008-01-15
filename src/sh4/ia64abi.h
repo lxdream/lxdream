@@ -20,6 +20,7 @@
 #ifndef __lxdream_x86_64abi_H
 #define __lxdream_x86_64abi_H 1
 
+#include <unwind.h>
 
 #define load_ptr( reg, ptr ) load_imm64( reg, (uint64_t)ptr );
     
@@ -159,7 +160,7 @@ void exit_block_rel( sh4addr_t pc, sh4addr_t endpc )
     ADD_sh4r_r32( R_PC, R_ECX );
     store_spreg( R_ECX, REG_OFFSET(pc) );               // 3
     if( IS_IN_ICACHE(pc) ) {
-	MOV_moff32_EAX( xlat_get_lut_entry(GET_ICACHE_PHYS(pc)) ); // 5
+	REXW(); MOV_moff32_EAX( xlat_get_lut_entry(GET_ICACHE_PHYS(pc)) ); // 5
     } else if( sh4_x86.tlb_on ) {
 	call_func1(xlat_get_code_by_vma,R_ECX);
     } else {
@@ -235,27 +236,24 @@ void sh4_translate_end_block( sh4addr_t pc ) {
     }
 }
 
+_Unwind_Reason_Code xlat_check_frame( struct _Unwind_Context *context, void *arg )
+{
+    void *rbp = (void *)_Unwind_GetGR(context, 6);
+    if( rbp == (void *)&sh4r ) { 
+        void **result = (void **)arg;
+        *result = (void *)_Unwind_GetIP(context);
+        return _URC_NORMAL_STOP;
+    }
+    
+    return _URC_NO_REASON;
+}
 
 void *xlat_get_native_pc()
 {
+    struct _Unwind_Exception exc;
+    
     void *result = NULL;
-    asm(
-	"mov %%rbp, %%rax\n\t"
-	"mov $0x8, %%ecx\n\t"
-	"mov %1, %%rdx\n"
-"frame_loop: test %%rax, %%rax\n\t"
-	"je frame_not_found\n\t"
-	"cmpq (%%rax), %%rdx\n\t"
-	"je frame_found\n\t"
-	"sub $0x1, %%ecx\n\t"
-	"je frame_not_found\n\t"
-	"movq (%%rax), %%rax\n\t"
-	"jmp frame_loop\n"
-"frame_found: movq 0x4(%%rax), %0\n"
-"frame_not_found:"
-	: "=r" (result)
-	: "r" (&sh4r)
-	: "rax", "rcx", "rdx" );
+    _Unwind_Backtrace( xlat_check_frame, &result );
     return result;
 }
 
