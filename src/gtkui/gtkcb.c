@@ -1,5 +1,5 @@
 /**
- * $Id: gtkcb.c,v 1.9 2007-11-10 04:45:29 nkeynes Exp $
+ * $Id$
  *
  * Action callbacks from the main window
  *

@@ -13,6 +13,12 @@
 /* always defined to indicate that i18n is enabled */
 #undef ENABLE_NLS
 
+/* Enable IO tracing */
+#undef ENABLE_TRACE_IO
+
+/* Enable watchpoints */
+#undef ENABLE_WATCH
+
 /* translation domain */
 #undef GETTEXT_PACKAGE
 

@@ -1,5 +1,5 @@
 /**
- * $Id: gl_common.h,v 1.5 2007-10-31 09:10:23 nkeynes Exp $
+ * $Id$
  *
  * Parent for all X11 display drivers.
  *

@@ -1,5 +1,5 @@
 /**
- * $Id: util.c,v 1.14 2007-11-08 11:54:16 nkeynes Exp $
+ * $Id$
  *
  * Miscellaneous utility functions.
  *
@@ -31,7 +31,7 @@
 #include "dream.h"
 #include "display.h"
 #include "gui.h"
-#include "sh4/sh4core.h"
+#include "sh4/sh4.h"
 
 char *msg_levels[] = { "FATAL", "ERROR", "WARN", "INFO", "DEBUG", "TRACE" };
 int global_msg_level = EMIT_WARN;
@@ -276,6 +276,30 @@ frame_buffer_t read_png_from_stream( FILE *f )
     png_read_end(png_ptr, end_info);
     png_destroy_read_struct(&png_ptr, &info_ptr, &end_info);
     return buffer;
+}
+
+int get_log_level_from_string( const gchar *str )
+{
+    switch( tolower(str[0]) ) {
+    case 'd': return EMIT_DEBUG;
+    case 'e': return EMIT_ERR;
+    case 'f': return EMIT_FATAL;
+    case 'i': return EMIT_INFO;
+    case 't': return EMIT_TRACE;
+    case 'w': return EMIT_WARN;
+    default: return -1;
+    }
+}
+
+gboolean set_global_log_level( const gchar *str ) 
+{
+    int l = get_log_level_from_string(str);
+    if( l == -1 ) {
+	return FALSE;
+    } else {
+	global_msg_level = l;
+	return TRUE;
+    }
 }
 
 void log_message( void *ptr, int level, const gchar *source, const char *msg, ... )

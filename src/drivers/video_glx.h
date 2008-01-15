@@ -1,5 +1,5 @@
 /**
- * $Id: video_glx.h,v 1.5 2007-09-08 04:05:35 nkeynes Exp $
+ * $Id$
  *
  * Parent for all glx-based display drivers.
  *

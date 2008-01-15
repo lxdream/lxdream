@@ -1,5 +1,5 @@
 /**
- * $Id: armdasm.h,v 1.2 2005-12-25 05:57:00 nkeynes Exp $
+ * $Id$
  * 
  * ARM CPU definition and disassembly function declarations
  *

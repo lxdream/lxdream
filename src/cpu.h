@@ -1,5 +1,5 @@
 /**
- * $Id: cpu.h,v 1.9 2007-10-08 11:50:15 nkeynes Exp $
+ * $Id$
  * 
  * Generic CPU definitions, primarily for providing information to the GUI.
  *
@@ -19,9 +19,8 @@
 #ifndef dream_cpu_H
 #define dream_cpu_H 1
 
-#include <stdint.h>
-#include <stdlib.h>
-#include <glib/gtypes.h>
+#include "lxdream.h"
+#include "mem.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -58,8 +57,8 @@ typedef struct cpu_desc_struct {
     disasm_func_t disasm_func; /* Disassembly function */
     gboolean (*step_func)(); /* Single step function */
     int (*is_valid_page_func)(uint32_t); /* Test for valid memory page */
-    void (*set_breakpoint)(uint32_t, int);
-    gboolean (*clear_breakpoint)(uint32_t, int);
+    void (*set_breakpoint)(uint32_t, breakpoint_type_t);
+    gboolean (*clear_breakpoint)(uint32_t, breakpoint_type_t);
     int (*get_breakpoint)(uint32_t);
     size_t instr_size; /* Size of instruction */
     char *regs; /* Pointer to start of registers */

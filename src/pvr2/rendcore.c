@@ -1,5 +1,5 @@
 /**
- * $Id: rendcore.c,v 1.21 2007-10-31 09:10:23 nkeynes Exp $
+ * $Id$
  *
  * PVR2 renderer core.
  *

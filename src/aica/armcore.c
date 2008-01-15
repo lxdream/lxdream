@@ -1,5 +1,5 @@
 /**
- * $Id: armcore.c,v 1.21 2007-10-09 08:11:51 nkeynes Exp $
+ * $Id$
  * 
  * ARM7TDMI CPU emulation core.
  *
@@ -53,14 +53,14 @@ uint32_t arm_cpu_period = 1000 / ARM_BASE_RATE;
 static struct breakpoint_struct arm_breakpoints[MAX_BREAKPOINTS];
 static int arm_breakpoint_count = 0;
 
-void arm_set_breakpoint( uint32_t pc, int type )
+void arm_set_breakpoint( uint32_t pc, breakpoint_type_t type )
 {
     arm_breakpoints[arm_breakpoint_count].address = pc;
     arm_breakpoints[arm_breakpoint_count].type = type;
     arm_breakpoint_count++;
 }
 
-gboolean arm_clear_breakpoint( uint32_t pc, int type )
+gboolean arm_clear_breakpoint( uint32_t pc, breakpoint_type_t type )
 {
     int i;
 

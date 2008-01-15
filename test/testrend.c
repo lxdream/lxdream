@@ -1,5 +1,5 @@
 /**
- * $Id: testrend.c,v 1.4 2007-01-31 11:02:50 nkeynes Exp $
+ * $Id$
  * 
  * Renderer test cases
  *

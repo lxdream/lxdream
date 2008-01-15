@@ -1,5 +1,5 @@
 /**
- * $Id: eventq.c,v 1.2 2007-10-06 08:59:42 nkeynes Exp $
+ * $Id$
  *
  * Simple implementation of one-shot timers. Effectively this allows IO
  * devices to wait until a particular time before completing. We expect 
@@ -23,7 +23,7 @@
 #include "dreamcast.h"
 #include "eventq.h"
 #include "asic.h"
-#include "sh4core.h"
+#include "sh4.h"
 
 #define LONG_SCAN_PERIOD 1000000000 /* 1 second */
 

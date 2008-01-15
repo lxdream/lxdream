@@ -1,5 +1,5 @@
 /**
- * $Id: display.h,v 1.12 2007-11-08 11:54:16 nkeynes Exp $
+ * $Id$
  *
  * The PC side of the video support (responsible for actually displaying / 
  * rendering frames)

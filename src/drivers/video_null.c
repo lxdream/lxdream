@@ -1,5 +1,5 @@
 /**
- * $Id: video_null.c,v 1.7 2007-10-31 12:05:23 nkeynes Exp $
+ * $Id$
  *
  * Null video output driver (ie no video output whatsoever)
  *

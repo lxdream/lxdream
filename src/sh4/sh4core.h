@@ -1,5 +1,5 @@
 /**
- * $Id: sh4core.h,v 1.26 2007-10-06 09:03:24 nkeynes Exp $
+ * $Id$
  * 
  * This file defines the internal functions exported/used by the SH4 core, 
  * except for disassembly functions defined in sh4dasm.h
@@ -24,96 +24,108 @@
 #include <stdint.h>
 #include <stdio.h>
 #include "mem.h"
+#include "sh4/sh4.h"
 
 #ifdef __cplusplus
 extern "C" {
-#if 0
-}
-#endif
 #endif
 
-
-/**
- * SH4 is running normally 
- */
-#define SH4_STATE_RUNNING 1
-/**
- * SH4 is not executing instructions but all peripheral modules are still
- * running
- */
-#define SH4_STATE_SLEEP 2
-/**
- * SH4 is not executing instructions, DMAC is halted, but all other peripheral
- * modules are still running
- */
-#define SH4_STATE_DEEP_SLEEP 3
-/**
- * SH4 is not executing instructions and all peripheral modules are also
- * stopped. As close as you can get to powered-off without actually being
- * off.
- */
-#define SH4_STATE_STANDBY 4
-
-#define PENDING_IRQ 1
-#define PENDING_EVENT 2
-
-struct sh4_registers {
-    uint32_t r[16];
-    uint32_t sr, pr, pc, fpscr;
-    uint32_t t, m, q, s; /* really boolean - 0 or 1 */
-    int32_t fpul;
-    float *fr_bank;
-    float fr[2][16];
-    uint64_t mac;
-    uint32_t gbr, ssr, spc, sgr, dbr, vbr;
-
-    uint32_t r_bank[8]; /* hidden banked registers */
-    int32_t store_queue[16]; /* technically 2 banks of 32 bytes */
-    
-    uint32_t new_pc; /* Not a real register, but used to handle delay slots */
-    uint32_t event_pending; /* slice cycle time of the next pending event, or FFFFFFFF
-                             when no events are pending */
-    uint32_t event_types; /* bit 0 = IRQ pending, bit 1 = general event pending */
-    int in_delay_slot; /* flag to indicate the current instruction is in
-                             * a delay slot (certain rules apply) */
-    uint32_t slice_cycle; /* Current nanosecond within the timeslice */
-    int sh4_state; /* Current power-on state (one of the SH4_STATE_* values ) */
-};
-
-extern struct sh4_registers sh4r;
+/* Breakpoint data structure */
 extern struct breakpoint_struct sh4_breakpoints[MAX_BREAKPOINTS];
 extern int sh4_breakpoint_count;
+extern sh4ptr_t sh4_main_ram;
 
+/**
+ * Cached direct pointer to the current instruction page. If AT is on, this
+ * is derived from the ITLB, otherwise this will be the entire memory region.
+ * This is actually a fairly useful optimization, as we can make a lot of
+ * assumptions about the "current page" that we can't make in general for
+ * arbitrary virtual addresses.
+ */
+struct sh4_icache_struct {
+    sh4ptr_t page; // Page pointer (NULL if no page)
+    sh4vma_t page_vma; // virtual address of the page.
+    sh4addr_t page_ppa; // physical address of the page
+    uint32_t mask;  // page mask 
+};
+extern struct sh4_icache_struct sh4_icache;
 
-/* Public functions */
-void sh4_set_use_xlat( gboolean use );
+/**
+ * Test if a given address is contained in the current icache entry
+ */
+#define IS_IN_ICACHE(addr) (sh4_icache.page_vma == ((addr) & sh4_icache.mask))
+/**
+ * Return a pointer for the given vma, under the assumption that it is
+ * actually contained in the current icache entry.
+ */
+#define GET_ICACHE_PTR(addr) (sh4_icache.page + ((addr)-sh4_icache.page_vma))
+/**
+ * Return the physical (external) address for the given vma, assuming that it is
+ * actually contained in the current icache entry.
+ */
+#define GET_ICACHE_PHYS(addr) (sh4_icache.page_ppa + ((addr)-sh4_icache.page_vma))
+
+/* SH4 module functions */
 void sh4_init( void );
 void sh4_reset( void );
 void sh4_run( void );
-void sh4_runto( uint32_t pc, uint32_t count );
-void sh4_runfor( uint32_t count );
-int sh4_isrunning( void );
 void sh4_stop( void );
-void sh4_set_pc( int );
+
+/* SH4 peripheral module functions */
+void CPG_reset( void );
+void DMAC_reset( void );
+void DMAC_run_slice( uint32_t );
+void DMAC_save_state( FILE * );
+int DMAC_load_state( FILE * );
+void INTC_reset( void );
+void INTC_save_state( FILE *f );
+int INTC_load_state( FILE *f );
+void MMU_init( void );
+void MMU_reset( void );
+void MMU_save_state( FILE *f );
+int MMU_load_state( FILE *f );
+void MMU_ldtlb();
+void SCIF_reset( void );
+void SCIF_run_slice( uint32_t );
+void SCIF_save_state( FILE *f );
+int SCIF_load_state( FILE *f );
+void SCIF_update_line_speed(void);
+void TMU_reset( void );
+void TMU_run_slice( uint32_t );
+void TMU_save_state( FILE * );
+int TMU_load_state( FILE * );
+void TMU_update_clocks( void );
+
+/* SH4 instruction support methods */
 void sh4_sleep( void );
 void sh4_fsca( uint32_t angle, float *fr );
 void sh4_ftrv( float *fv, float *xmtrx );
+uint32_t sh4_read_sr(void);
+void sh4_write_sr(uint32_t val);
 void signsat48(void);
 
-gboolean sh4_execute_instruction( void );
-gboolean sh4_raise_exception( int );
-gboolean sh4_raise_trap( int );
-gboolean sh4_raise_slot_exception( int, int );
-gboolean sh4_raise_tlb_exception( int );
-void sh4_set_breakpoint( uint32_t pc, int type );
-gboolean sh4_clear_breakpoint( uint32_t pc, int type );
-int sh4_get_breakpoint( uint32_t pc );
-void sh4_accept_interrupt( void );
-
-#define BREAK_ONESHOT 1
-#define BREAK_PERM 2
-
 /* SH4 Memory */
+#define MMU_VMA_ERROR 0x8000000
+/**
+ * Update the sh4_icache structure to contain the specified vma. If the vma
+ * cannot be resolved, an MMU exception is raised and the function returns
+ * FALSE. Otherwise, returns TRUE and updates sh4_icache accordingly.
+ * Note: If the vma resolves to a non-memory area, sh4_icache will be 
+ * invalidated, but the function will still return TRUE.
+ * @return FALSE if an MMU exception was raised, otherwise TRUE.
+ */
+gboolean mmu_update_icache( sh4vma_t addr );
+
+/**
+ * Resolve a virtual address through the TLB for a read operation, returning 
+ * the resultant P4 or external address. If the resolution fails, the 
+ * appropriate MMU exception is raised and the value MMU_VMA_ERROR is returned.
+ * @return An external address (0x00000000-0x1FFFFFFF), a P4 address
+ * (0xE0000000 - 0xFFFFFFFF), or MMU_VMA_ERROR.
+ */
+sh4addr_t mmu_vma_to_phys_read( sh4vma_t addr );
+sh4addr_t mmu_vma_to_phys_write( sh4vma_t addr );
+
 int64_t sh4_read_quad( sh4addr_t addr );
 int32_t sh4_read_long( sh4addr_t addr );
 int32_t sh4_read_word( sh4addr_t addr );
@@ -123,36 +135,35 @@ void sh4_write_long( sh4addr_t addr, uint32_t val );
 void sh4_write_word( sh4addr_t addr, uint32_t val );
 void sh4_write_byte( sh4addr_t addr, uint32_t val );
 int32_t sh4_read_phys_word( sh4addr_t addr );
-void sh4_flush_store_queue( sh4addr_t addr );
+gboolean sh4_flush_store_queue( sh4addr_t addr );
 
-/* SH4 Support methods */
-uint32_t sh4_read_sr(void);
-void sh4_write_sr(uint32_t val);
+/* SH4 Exceptions */
+#define EXC_POWER_RESET     0x000 /* reset vector */
+#define EXC_MANUAL_RESET    0x020 /* reset vector */
+#define EXC_TLB_MISS_READ   0x040 /* TLB vector */
+#define EXC_TLB_MISS_WRITE  0x060 /* TLB vector */
+#define EXC_INIT_PAGE_WRITE 0x080
+#define EXC_TLB_PROT_READ   0x0A0
+#define EXC_TLB_PROT_WRITE  0x0C0
+#define EXC_DATA_ADDR_READ  0x0E0
+#define EXC_DATA_ADDR_WRITE 0x100
+#define EXC_TLB_MULTI_HIT   0x140
+#define EXC_SLOT_ILLEGAL    0x1A0
+#define EXC_ILLEGAL         0x180
+#define EXC_TRAP            0x160
+#define EXC_FPU_DISABLED    0x800
+#define EXC_SLOT_FPU_DISABLED 0x820
 
-/* Peripheral functions */
-void CPG_reset( void );
-void TMU_run_slice( uint32_t );
-void TMU_update_clocks( void );
-void TMU_reset( void );
-void TMU_save_state( FILE * );
-int TMU_load_state( FILE * );
-void DMAC_reset( void );
-void DMAC_run_slice( uint32_t );
-void DMAC_save_state( FILE * );
-int DMAC_load_state( FILE * );
-void SCIF_reset( void );
-void SCIF_run_slice( uint32_t );
-void SCIF_save_state( FILE *f );
-int SCIF_load_state( FILE *f );
-void INTC_reset( void );
-void INTC_save_state( FILE *f );
-int INTC_load_state( FILE *f );
-void MMU_init( void );
-void MMU_reset( void );
-void MMU_save_state( FILE *f );
-int MMU_load_state( FILE *f );
-void MMU_ldtlb();
-void SCIF_update_line_speed(void);
+#define EXV_EXCEPTION    0x100  /* General exception vector */
+#define EXV_TLBMISS      0x400  /* TLB-miss exception vector */
+#define EXV_INTERRUPT    0x600  /* External interrupt vector */
+
+gboolean sh4_raise_exception( int );
+gboolean sh4_raise_reset( int );
+gboolean sh4_raise_trap( int );
+gboolean sh4_raise_slot_exception( int, int );
+gboolean sh4_raise_tlb_exception( int );
+void sh4_accept_interrupt( void );
 
 #define SIGNEXT4(n) ((((int32_t)(n))<<28)>>28)
 #define SIGNEXT8(n) ((int32_t)((int8_t)(n)))
@@ -160,6 +171,7 @@ void SCIF_update_line_speed(void);
 #define SIGNEXT16(n) ((int32_t)((int16_t)(n)))
 #define SIGNEXT32(n) ((int64_t)((int32_t)(n)))
 #define SIGNEXT48(n) ((((int64_t)(n))<<16)>>16)
+#define ZEROEXT32(n) ((int64_t)((uint64_t)((uint32_t)(n))))
 
 /* Status Register (SR) bits */
 #define SR_MD    0x40000000 /* Processor mode ( User=0, Privileged=1 ) */ 
@@ -173,6 +185,7 @@ void SCIF_update_line_speed(void);
 #define SR_T     0x00000001 /* True/false or carry/borrow */
 #define SR_MASK  0x700083F3
 #define SR_MQSTMASK 0xFFFFFCFC /* Mask to clear the flags we're keeping separately */
+#define SR_MDRB  0x60000000 /* MD+RB mask for convenience */
 
 #define IS_SH4_PRIVMODE() (sh4r.sr&SR_MD)
 #define SH4_INTMASK() ((sh4r.sr&SR_IMASK)>>4)
@@ -199,34 +212,6 @@ void SCIF_update_line_speed(void);
 #define DR(x) DRb((x>>1), (x&1))
 #define FPULf   *((float *)&sh4r.fpul)
 #define FPULi    (sh4r.fpul)
-
-/* CPU-generated exception code/vector pairs */
-#define EXC_POWER_RESET    0x000 /* vector special */
-#define EXC_MANUAL_RESET   0x020
-#define EXC_DATA_ADDR_READ 0x0E0
-#define EXC_DATA_ADDR_WRITE 0x100
-#define EXC_SLOT_ILLEGAL   0x1A0
-#define EXC_ILLEGAL        0x180
-#define EXC_TRAP           0x160
-#define EXC_FPU_DISABLED   0x800
-#define EXC_SLOT_FPU_DISABLED 0x820
-
-/* Exceptions (for use with sh4_raise_exception) */
-
-#define EX_ILLEGAL_INSTRUCTION 0x180, 0x100
-#define EX_SLOT_ILLEGAL        0x1A0, 0x100
-#define EX_TLB_MISS_READ       0x040, 0x400
-#define EX_TLB_MISS_WRITE      0x060, 0x400
-#define EX_INIT_PAGE_WRITE     0x080, 0x100
-#define EX_TLB_PROT_READ       0x0A0, 0x100
-#define EX_TLB_PROT_WRITE      0x0C0, 0x100
-#define EX_DATA_ADDR_READ      0x0E0, 0x100
-#define EX_DATA_ADDR_WRITE     0x100, 0x100
-#define EX_FPU_EXCEPTION       0x120, 0x100
-#define EX_TRAPA               0x160, 0x100
-#define EX_BREAKPOINT          0x1E0, 0x100
-#define EX_FPU_DISABLED        0x800, 0x100
-#define EX_SLOT_FPU_DISABLED   0x820, 0x100
 
 #define SH4_WRITE_STORE_QUEUE(addr,val) sh4r.store_queue[(addr>>2)&0xF] = val;
 

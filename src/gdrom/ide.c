@@ -1,5 +1,5 @@
 /**
- * $Id: ide.c,v 1.27 2007-11-06 08:35:33 nkeynes Exp $
+ * $Id$
  *
  * IDE interface implementation
  *

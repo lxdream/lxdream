@@ -1,5 +1,5 @@
 /**
- * $Id: dream.h,v 1.17 2007-11-07 11:45:53 nkeynes Exp $
+ * $Id$
  *
  * Miscellaneous application-wide declarations (mainly logging atm)
  *

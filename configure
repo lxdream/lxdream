@@ -687,6 +687,8 @@ AMDEPBACKSLASH
 CCDEPMODE
 am__fastdepCC_TRUE
 am__fastdepCC_FALSE
+CCAS
+CCASFLAGS
 CPP
 GREP
 EGREP
@@ -709,6 +711,8 @@ GUI_GTK_TRUE
 GUI_GTK_FALSE
 BUILD_SH4X86_TRUE
 BUILD_SH4X86_FALSE
+BUILD_X86_64_TRUE
+BUILD_X86_64_FALSE
 ESOUND_CFLAGS
 ESOUND_LIBS
 AUDIO_ESOUND_TRUE
@@ -728,6 +732,7 @@ BUILD_ARMTEST_FALSE
 GETTEXT_PACKAGE
 USE_NLS
 MSGFMT
+MSGFMT_OPTS
 GMSGFMT
 XGETTEXT
 CATALOGS
@@ -1341,6 +1346,10 @@ Optional Features:
                           (and sometimes confusing) to the casual installer
   --disable-dependency-tracking Speeds up one-time builds
   --enable-dependency-tracking  Do not reject slow dependency extractors
+  --enable-trace          Enable generation of IO traces (warning: hurts
+                          performance)
+  --enable-watch          Enable watchpoints in the debugger (warning: hurts
+                          performance)
 
 Some influential environment variables:
   CC          C compiler command
@@ -4293,6 +4302,13 @@ case "x$am_cv_prog_cc_stdc" in
   *) CC="$CC $am_cv_prog_cc_stdc" ;;
 esac
 
+# By default we simply use the C compiler to build assembly code.
+
+: ${CCAS='$(CC)'}
+# Set ASFLAGS if not already set.
+: ${CCASFLAGS='$(CFLAGS)'}
+
+
 ac_ext=c
 ac_cpp='$CPP $CPPFLAGS'
 ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
@@ -4943,6 +4959,27 @@ IFS=$ac_save_IFS
 case $host_os in *\ *) host_os=`echo "$host_os" | sed 's/ /-/g'`;; esac
 
 
+# Check whether --enable-trace was given.
+if test "${enable_trace+set}" = set; then
+  enableval=$enable_trace; if test "$enableval" == "yes"; then
+
+cat >>confdefs.h <<\_ACEOF
+#define ENABLE_TRACE_IO 1
+_ACEOF
+
+    fi
+fi
+
+# Check whether --enable-watch was given.
+if test "${enable_watch+set}" = set; then
+  enableval=$enable_watch; if test "$enableval" == "yes"; then
+
+cat >>confdefs.h <<\_ACEOF
+#define ENABLE_WATCH 1
+_ACEOF
+
+   fi
+fi
 
 # On IRIX 5.3, sys/types and inttypes.h are conflicting.
 
@@ -5848,6 +5885,16 @@ fi
 
 
 
+if test "$SH4_TRANSLATOR" = "x86_64"; then
+  BUILD_X86_64_TRUE=
+  BUILD_X86_64_FALSE='#'
+else
+  BUILD_X86_64_TRUE='#'
+  BUILD_X86_64_FALSE=
+fi
+
+
+
 pkg_failed=no
 { echo "$as_me:$LINENO: checking for ESOUND" >&5
 echo $ECHO_N "checking for ESOUND... $ECHO_C" >&6; }
@@ -5906,7 +5953,9 @@ fi
 	# Put the nasty error message in config.log where it belongs
 	echo "$ESOUND_PKG_ERRORS" >&5
 
-	 echo "Warning: esound not found - building without audio support"
+	{ echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6; }
+                 echo "Warning: esound not found - building without audio support"
 elif test $pkg_failed = untried; then
 	 echo "Warning: esound not found - building without audio support"
 else
@@ -6562,7 +6611,7 @@ _ACEOF
 
     fi
   fi
-     USE_NLS=yes
+         USE_NLS=yes
 
 
     gt_cv_have_gettext=no
@@ -7517,6 +7566,35 @@ _ACEOF
 fi
 done
 
+	  MSGFMT_OPTS=
+	  { echo "$as_me:$LINENO: checking if msgfmt accepts -c" >&5
+echo $ECHO_N "checking if msgfmt accepts -c... $ECHO_C" >&6; }
+	  cat >conftest.foo <<_ACEOF
+
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Project-Id-Version: test 1.0\n"
+"PO-Revision-Date: 2007-02-15 12:01+0100\n"
+"Last-Translator: test <foo@bar.xx>\n"
+"Language-Team: C <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+_ACEOF
+if { (echo "$as_me:$LINENO: \$MSGFMT -c -o /dev/null conftest.foo") >&5
+  ($MSGFMT -c -o /dev/null conftest.foo) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; then
+  MSGFMT_OPTS=-c; { echo "$as_me:$LINENO: result: yes" >&5
+echo "${ECHO_T}yes" >&6; }
+else { echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6; }
+echo "$as_me: failed input was:" >&5
+sed 's/^/| /' conftest.foo >&5
+fi
+
 	  # Extract the first word of "gmsgfmt", so it can be a program name with args.
 set dummy gmsgfmt; ac_word=$2
 { echo "$as_me:$LINENO: checking for $ac_word" >&5
@@ -7993,6 +8071,13 @@ if test -z "${BUILD_SH4X86_TRUE}" && test -z "${BUILD_SH4X86_FALSE}"; then
   { { echo "$as_me:$LINENO: error: conditional \"BUILD_SH4X86\" was never defined.
 Usually this means the macro was only invoked conditionally." >&5
 echo "$as_me: error: conditional \"BUILD_SH4X86\" was never defined.
+Usually this means the macro was only invoked conditionally." >&2;}
+   { (exit 1); exit 1; }; }
+fi
+if test -z "${BUILD_X86_64_TRUE}" && test -z "${BUILD_X86_64_FALSE}"; then
+  { { echo "$as_me:$LINENO: error: conditional \"BUILD_X86_64\" was never defined.
+Usually this means the macro was only invoked conditionally." >&5
+echo "$as_me: error: conditional \"BUILD_X86_64\" was never defined.
 Usually this means the macro was only invoked conditionally." >&2;}
    { (exit 1); exit 1; }; }
 fi
@@ -8634,6 +8719,8 @@ AMDEPBACKSLASH!$AMDEPBACKSLASH$ac_delim
 CCDEPMODE!$CCDEPMODE$ac_delim
 am__fastdepCC_TRUE!$am__fastdepCC_TRUE$ac_delim
 am__fastdepCC_FALSE!$am__fastdepCC_FALSE$ac_delim
+CCAS!$CCAS$ac_delim
+CCASFLAGS!$CCASFLAGS$ac_delim
 CPP!$CPP$ac_delim
 GREP!$GREP$ac_delim
 EGREP!$EGREP$ac_delim
@@ -8655,8 +8742,6 @@ GUI_CARBON_FALSE!$GUI_CARBON_FALSE$ac_delim
 GUI_GTK_TRUE!$GUI_GTK_TRUE$ac_delim
 GUI_GTK_FALSE!$GUI_GTK_FALSE$ac_delim
 BUILD_SH4X86_TRUE!$BUILD_SH4X86_TRUE$ac_delim
-BUILD_SH4X86_FALSE!$BUILD_SH4X86_FALSE$ac_delim
-ESOUND_CFLAGS!$ESOUND_CFLAGS$ac_delim
 _ACEOF
 
   if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 97; then
@@ -8698,6 +8783,10 @@ _ACEOF
 ac_delim='%!_!# '
 for ac_last_try in false false false false false :; do
   cat >conf$$subs.sed <<_ACEOF
+BUILD_SH4X86_FALSE!$BUILD_SH4X86_FALSE$ac_delim
+BUILD_X86_64_TRUE!$BUILD_X86_64_TRUE$ac_delim
+BUILD_X86_64_FALSE!$BUILD_X86_64_FALSE$ac_delim
+ESOUND_CFLAGS!$ESOUND_CFLAGS$ac_delim
 ESOUND_LIBS!$ESOUND_LIBS$ac_delim
 AUDIO_ESOUND_TRUE!$AUDIO_ESOUND_TRUE$ac_delim
 AUDIO_ESOUND_FALSE!$AUDIO_ESOUND_FALSE$ac_delim
@@ -8716,6 +8805,7 @@ BUILD_ARMTEST_FALSE!$BUILD_ARMTEST_FALSE$ac_delim
 GETTEXT_PACKAGE!$GETTEXT_PACKAGE$ac_delim
 USE_NLS!$USE_NLS$ac_delim
 MSGFMT!$MSGFMT$ac_delim
+MSGFMT_OPTS!$MSGFMT_OPTS$ac_delim
 GMSGFMT!$GMSGFMT$ac_delim
 XGETTEXT!$XGETTEXT$ac_delim
 CATALOGS!$CATALOGS$ac_delim
@@ -8733,7 +8823,7 @@ LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 33; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 38; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5

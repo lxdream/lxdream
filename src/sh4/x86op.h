@@ -1,5 +1,5 @@
 /**
- * $Id: x86op.h,v 1.10 2007-09-19 09:15:18 nkeynes Exp $
+ * $Id$
  * 
  * Definitions of x86 opcodes for use by the translator.
  *
@@ -99,6 +99,7 @@
 #define R_VBR REG_OFFSET(vbr)
 #define R_MACH REG_OFFSET(mac)+4
 #define R_MACL REG_OFFSET(mac)
+#define R_PC REG_OFFSET(pc)
 #define R_PR REG_OFFSET(pr)
 #define R_SGR REG_OFFSET(sgr)
 #define R_FPUL REG_OFFSET(fpul)
@@ -233,23 +234,27 @@
 #define JNS_rel8(rel,label)  OP(0x79); OP(rel); MARK_JMP(rel,label)
 #define JS_rel8(rel,label)   OP(0x78); OP(rel); MARK_JMP(rel,label)
 
+/** JMP relative 8 or 32 depending on size of rel. rel offset
+ * from the start of the instruction (not end)
+ */
+#define JMP_rel(rel) if((rel)<-126||(rel)>129) { OP(0xE9); OP32((rel)-5); } else { OP(0xEB); OP((rel)-2); }
 
-/* 32-bit long forms w/ backpatching to an exit routine */
-#define JMP_exit(rel)  OP(0xE9); sh4_x86_add_backpatch(xlat_output); OP32(rel)
-#define JE_exit(rel)  OP(0x0F); OP(0x84); sh4_x86_add_backpatch(xlat_output); OP32(rel)
-#define JA_exit(rel)  OP(0x0F); OP(0x87); sh4_x86_add_backpatch(xlat_output); OP32(rel)
-#define JAE_exit(rel) OP(0x0F); OP(0x83); sh4_x86_add_backpatch(xlat_output); OP32(rel)
-#define JG_exit(rel)  OP(0x0F); OP(0x8F); sh4_x86_add_backpatch(xlat_output); OP32(rel)
-#define JGE_exit(rel) OP(0x0F); OP(0x8D); sh4_x86_add_backpatch(xlat_output); OP32(rel)
-#define JC_exit(rel)  OP(0x0F); OP(0x82); sh4_x86_add_backpatch(xlat_output); OP32(rel)
-#define JO_exit(rel)  OP(0x0F); OP(0x80); sh4_x86_add_backpatch(xlat_output); OP32(rel)
-#define JNE_exit(rel) OP(0x0F); OP(0x85); sh4_x86_add_backpatch(xlat_output); OP32(rel)
-#define JNA_exit(rel) OP(0x0F); OP(0x86); sh4_x86_add_backpatch(xlat_output); OP32(rel)
-#define JNAE_exit(rel) OP(0x0F);OP(0x82); sh4_x86_add_backpatch(xlat_output); OP32(rel)
-#define JNG_exit(rel) OP(0x0F); OP(0x8E); sh4_x86_add_backpatch(xlat_output); OP32(rel)
-#define JNGE_exit(rel) OP(0x0F);OP(0x8C); sh4_x86_add_backpatch(xlat_output); OP32(rel)
-#define JNC_exit(rel) OP(0x0F); OP(0x83); sh4_x86_add_backpatch(xlat_output); OP32(rel)
-#define JNO_exit(rel) OP(0x0F); OP(0x81); sh4_x86_add_backpatch(xlat_output); OP32(rel)
+/* 32-bit long forms w/ backpatching to an exception routine */
+#define JMP_exc(exc)  OP(0xE9); sh4_x86_add_backpatch(xlat_output, pc, exc); OP32(0)
+#define JE_exc(exc)  OP(0x0F); OP(0x84); sh4_x86_add_backpatch(xlat_output, pc, exc); OP32(0)
+#define JA_exc(exc)  OP(0x0F); OP(0x87); sh4_x86_add_backpatch(xlat_output, pc, exc); OP32(0)
+#define JAE_exc(exc) OP(0x0F); OP(0x83); sh4_x86_add_backpatch(xlat_output, pc, exc); OP32(0)
+#define JG_exc(exc)  OP(0x0F); OP(0x8F); sh4_x86_add_backpatch(xlat_output, pc, exc); OP32(0)
+#define JGE_exc(exc) OP(0x0F); OP(0x8D); sh4_x86_add_backpatch(xlat_output, pc, exc); OP32(0)
+#define JC_exc(exc)  OP(0x0F); OP(0x82); sh4_x86_add_backpatch(xlat_output, pc, exc); OP32(0)
+#define JO_exc(exc)  OP(0x0F); OP(0x80); sh4_x86_add_backpatch(xlat_output, pc, exc); OP32(0)
+#define JNE_exc(exc) OP(0x0F); OP(0x85); sh4_x86_add_backpatch(xlat_output, pc, exc); OP32(0)
+#define JNA_exc(exc) OP(0x0F); OP(0x86); sh4_x86_add_backpatch(xlat_output, pc, exc); OP32(0)
+#define JNAE_exc(exc) OP(0x0F);OP(0x82); sh4_x86_add_backpatch(xlat_output, pc, exc); OP32(0)
+#define JNG_exc(exc) OP(0x0F); OP(0x8E); sh4_x86_add_backpatch(xlat_output, pc, exc); OP32(0)
+#define JNGE_exc(exc) OP(0x0F);OP(0x8C); sh4_x86_add_backpatch(xlat_output, pc, exc); OP32(0)
+#define JNC_exc(exc) OP(0x0F); OP(0x83); sh4_x86_add_backpatch(xlat_output, pc, exc); OP32(0)
+#define JNO_exc(exc) OP(0x0F); OP(0x81); sh4_x86_add_backpatch(xlat_output, pc, exc); OP32(0)
 
 
 /* Conditional moves ebp-rel */

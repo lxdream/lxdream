@@ -1,5 +1,5 @@
 /**
- * $Id: debug_win.c,v 1.29 2007-11-10 04:45:29 nkeynes Exp $
+ * $Id$
  * This file is responsible for the main debugger gui frame.
  *
  * Copyright (c) 2005 Nathan Keynes.
@@ -70,7 +70,7 @@ debug_window_t debug_window_new( const gchar *title, GtkWidget *menubar,
         GtkWidget *vbox;
 
     data->window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-    gtk_window_set_default_size (GTK_WINDOW (data->window), 640, 480);
+    gtk_window_set_default_size (GTK_WINDOW (data->window), 700, 480);
     gtk_window_set_title( GTK_WINDOW(data->window), title );
     gtk_window_add_accel_group (GTK_WINDOW (data->window), accel_group);
 
@@ -79,7 +79,7 @@ debug_window_t debug_window_new( const gchar *title, GtkWidget *menubar,
     data->statusbar = gtk_statusbar_new();
 
     GtkWidget *hpaned = gtk_hpaned_new ();
-    gtk_paned_set_position (GTK_PANED (hpaned), 800);
+    gtk_paned_set_position (GTK_PANED (hpaned), 500);
 
     GtkWidget *disasm_box = gtk_vbox_new(FALSE,0);
     gtk_paned_pack1 (GTK_PANED (hpaned), disasm_box, TRUE, TRUE);

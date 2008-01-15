@@ -1,5 +1,5 @@
 /**
- * $Id: dmac.c,v 1.4 2007-11-08 11:54:16 nkeynes Exp $
+ * $Id$
  * 
  * SH4 onboard DMA controller (DMAC) peripheral.
  *

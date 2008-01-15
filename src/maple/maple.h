@@ -1,5 +1,5 @@
 /**
- * $Id: maple.h,v 1.10 2007-11-08 11:54:16 nkeynes Exp $
+ * $Id$
  *
  * Maple bus definitions
  *

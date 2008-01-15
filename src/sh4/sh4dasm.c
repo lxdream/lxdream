@@ -1,5 +1,5 @@
 /**
- * $Id: sh4dasm.c,v 1.13 2007-11-07 11:46:58 nkeynes Exp $
+ * $Id$
  * 
  * SH4 CPU definition and disassembly functions
  *
@@ -1550,19 +1550,16 @@ uint32_t sh4_disasm_instruction( uint32_t pc, char *buf, int len, char *opcode )
 }
 
 
-void sh4_disasm_region( const gchar *filename, int from, int to )
+void sh4_disasm_region( FILE *f, int from, int to )
 {
     int pc;
     char buf[80];
     char opcode[16];
-    FILE *f;
     
-    f = fopen( filename, "w" );
     for( pc = from; pc < to; pc+=2 ) {
         buf[0] = '\0';
         sh4_disasm_instruction( pc,
                                 buf, sizeof(buf), opcode );
         fprintf( f, "  %08x:  %s  %s\n", pc, opcode, buf );
     }
-    fclose(f);
 }

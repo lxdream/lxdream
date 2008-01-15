@@ -1,5 +1,5 @@
 /**
- * $Id: bios.c,v 1.5 2007-11-08 11:54:16 nkeynes Exp $
+ * $Id$
  * 
  * "Fake" BIOS functions, for operation without the actual BIOS.
  *
@@ -20,7 +20,7 @@
 #include "mem.h"
 #include "syscall.h"
 #include "dreamcast.h"
-#include "sh4/sh4core.h"
+#include "sh4/sh4.h"
 
 #define COMMAND_QUEUE_LENGTH 16
 

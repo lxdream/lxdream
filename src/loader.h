@@ -1,5 +1,5 @@
 /**
- * $Id: loader.h,v 1.2 2007-10-07 06:21:14 nkeynes Exp $
+ * $Id$
  *
  * Interface declarations for the binary loader routines (loader.c, elf.c)
  *

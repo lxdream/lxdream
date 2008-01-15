@@ -1,5 +1,5 @@
 /**
- * $Id: asic.c,v 1.2 2006-08-04 01:38:30 nkeynes Exp $
+ * $Id$
  * 
  * General ASIC support code
  *

@@ -1,5 +1,5 @@
 /**
- * $Id: asic.h,v 1.19 2007-01-25 10:16:32 nkeynes Exp $
+ * $Id$
  *
  * Support for the miscellaneous ASIC functions (Primarily event multiplexing,
  * and DMA). Includes MMIO definitions for the 5f6000 and 5f7000 regions, 

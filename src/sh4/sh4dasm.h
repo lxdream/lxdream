@@ -1,5 +1,5 @@
 /**
- * $Id: sh4dasm.h,v 1.6 2006-01-01 08:08:40 nkeynes Exp $
+ * $Id$
  * 
  * SH4 CPU definition and disassembly function declarations
  *
@@ -28,7 +28,7 @@ extern "C" {
 #include <stdio.h>
 
 uint32_t sh4_disasm_instruction( uint32_t pc, char *buf, int len, char * );
-void sh4_disasm_region( const gchar *filename, int from, int to );
+void sh4_disasm_region( FILE *f, int from, int to );
 
 extern const struct cpu_desc_struct sh4_cpu_desc;
 

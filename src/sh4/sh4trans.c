@@ -1,5 +1,5 @@
 /**
- * $Id: sh4trans.c,v 1.8 2007-10-08 12:06:01 nkeynes Exp $
+ * $Id$
  * 
  * SH4 translation core module. This part handles the non-target-specific
  * section of the translation.
@@ -17,11 +17,22 @@
  * GNU General Public License for more details.
  */
 #include <assert.h>
+#include <setjmp.h>
 #include "eventq.h"
 #include "syscall.h"
+#include "clock.h"
 #include "sh4/sh4core.h"
 #include "sh4/sh4trans.h"
 #include "sh4/xltcache.h"
+
+
+static jmp_buf xlat_jmp_buf;
+static gboolean xlat_running = FALSE;
+
+gboolean sh4_xlat_is_running()
+{
+    return xlat_running;
+}
 
 /**
  * Execute a timeslice using translated code only (ie translate/execute loop)
@@ -38,6 +49,23 @@ uint32_t sh4_xlat_run_slice( uint32_t nanosecs )
 	}
     }
 
+    switch( setjmp(xlat_jmp_buf) ) {
+    case XLAT_EXIT_BREAKPOINT:
+	sh4_clear_breakpoint( sh4r.pc, BREAK_ONESHOT );
+	/* fallthrough */
+    case XLAT_EXIT_HALT:
+	if( sh4r.sh4_state != SH4_STATE_STANDBY ) {
+	    TMU_run_slice( sh4r.slice_cycle );
+	    SCIF_run_slice( sh4r.slice_cycle );
+	    dreamcast_stop();
+	    return sh4r.slice_cycle;
+	}
+    case XLAT_EXIT_SYSRESET:
+	dreamcast_reset();
+	break;
+    }
+    
+    xlat_running = TRUE;
     void * (*code)() = NULL;
     while( sh4r.slice_cycle < nanosecs ) {
 	if( sh4r.event_pending <= sh4r.slice_cycle ) {
@@ -58,13 +86,15 @@ uint32_t sh4_xlat_run_slice( uint32_t nanosecs )
 		sh4r.pc = sh4r.pr;
 	    }
 
-	    code = xlat_get_code(sh4r.pc);
+	    code = xlat_get_code_by_vma( sh4r.pc );
 	    if( code == NULL ) {
 		code = sh4_translate_basic_block( sh4r.pc );
 	    }
 	}
 	code = code();
     }
+
+    xlat_running = FALSE;
 
     if( sh4r.sh4_state != SH4_STATE_STANDBY ) {
 	TMU_run_slice( nanosecs );
@@ -74,6 +104,8 @@ uint32_t sh4_xlat_run_slice( uint32_t nanosecs )
 }
 
 uint8_t *xlat_output;
+struct xlat_recovery_record xlat_recovery[MAX_RECOVERY_SIZE];
+uint32_t xlat_recovery_posn;
 
 /**
  * Translate a linear basic block, ie all instructions from the start address
@@ -86,13 +118,21 @@ void * sh4_translate_basic_block( sh4addr_t start )
 {
     sh4addr_t pc = start;
     sh4addr_t lastpc = (pc&0xFFFFF000)+0x1000;
-    int done;
+    int done, i;
     xlat_cache_block_t block = xlat_start_block( start );
     xlat_output = (uint8_t *)block->code;
+    xlat_recovery_posn = 0;
     uint8_t *eob = xlat_output + block->size;
     sh4_translate_begin_block(pc);
 
     do {
+	/* check for breakpoints at this pc */
+	for( i=0; i<sh4_breakpoint_count; i++ ) {
+	    if( sh4_breakpoints[i].address == pc ) {
+		sh4_translate_emit_breakpoint(pc);
+		break;
+	    }
+	}
 	if( eob - xlat_output < MAX_INSTRUCTION_SIZE ) {
 	    uint8_t *oldstart = block->code;
 	    block = xlat_extend_block( xlat_output - oldstart + MAX_INSTRUCTION_SIZE );
@@ -113,32 +153,123 @@ void * sh4_translate_basic_block( sh4addr_t start )
 	xlat_output = block->code + (xlat_output - oldstart);
     }	
     sh4_translate_end_block(pc);
-    xlat_commit_block( xlat_output - block->code, pc-start );
+
+    /* Write the recovery records onto the end of the code block */
+    uint32_t recovery_size = sizeof(struct xlat_recovery_record)*xlat_recovery_posn;
+    uint32_t finalsize = xlat_output - block->code + recovery_size;
+    if( finalsize > block->size ) {
+	uint8_t *oldstart = block->code;
+	block = xlat_extend_block( finalsize );
+	xlat_output = block->code + (xlat_output - oldstart);
+    }
+    memcpy( xlat_output, xlat_recovery, recovery_size);
+    block->recover_table = (xlat_recovery_record_t)xlat_output;
+    block->recover_table_size = xlat_recovery_posn;
+    xlat_commit_block( finalsize, pc-start );
     return block->code;
 }
 
 /**
- * Translate a linear basic block to a temporary buffer, execute it, and return
- * the result of the execution. The translation is discarded.
+ * "Execute" the supplied recovery record. Currently this only updates
+ * sh4r.pc and sh4r.slice_cycle according to the currently executing
+ * instruction. In future this may be more sophisticated (ie will
+ * call into generated code).
  */
-void *sh4_translate_and_run( sh4addr_t start )
+void sh4_translate_run_recovery( xlat_recovery_record_t recovery )
 {
-    unsigned char buf[65536];
-
-    sh4addr_t pc = start;
-    int done;
-    xlat_output = buf;
-    uint8_t *eob = xlat_output + sizeof(buf);
-
-    sh4_translate_begin_block(pc);
-
-    while( (done = sh4_translate_instruction( pc )) == 0 ) {
-	assert( (eob - xlat_output) >= MAX_INSTRUCTION_SIZE );
-	pc += 2;
-    }
-    pc+=2;
-    sh4_translate_end_block(pc);
-
-    void * (*code)() = (void *)buf;
-    return code();
+    sh4r.slice_cycle += (recovery->sh4_icount * sh4_cpu_period);
+    sh4r.pc += (recovery->sh4_icount<<1);
 }
+
+void sh4_translate_unwind_stack( gboolean abort_after, unwind_thunk_t thunk )
+{
+    void *pc = xlat_get_native_pc();
+
+    assert( pc != NULL );
+    void *code = xlat_get_code( sh4r.pc );
+    xlat_recovery_record_t recover = xlat_get_recovery(code, pc, TRUE);
+    if( recover != NULL ) {
+	// Can be null if there is no recovery necessary
+	sh4_translate_run_recovery(recover);
+    }
+    if( thunk != NULL ) {
+	thunk();
+    }
+    // finally longjmp back into sh4_xlat_run_slice
+    xlat_running = FALSE;
+    longjmp(xlat_jmp_buf, XLAT_EXIT_CONTINUE);
+} 
+
+void sh4_translate_exit( int exit_code )
+{
+    void *pc = xlat_get_native_pc();
+    if( pc != NULL ) {
+	// could be null if we're not actually running inside the translator
+	void *code = xlat_get_code( sh4r.pc );
+	xlat_recovery_record_t recover = xlat_get_recovery(code, pc, TRUE);
+	if( recover != NULL ) {
+	    // Can be null if there is no recovery necessary
+	    sh4_translate_run_recovery(recover);
+	}
+    }
+    // finally longjmp back into sh4_xlat_run_slice
+    xlat_running = FALSE;
+    longjmp(xlat_jmp_buf, exit_code);
+}
+
+/**
+ * Exit the current block at the end of the current instruction, flush the
+ * translation cache (completely) and return control to sh4_xlat_run_slice.
+ *
+ * As a special case, if the current instruction is actually the last 
+ * instruction in the block (ie it's in a delay slot), this function 
+ * returns to allow normal completion of the translation block. Otherwise
+ * this function never returns.
+ *
+ * Must only be invoked (indirectly) from within translated code.
+ */
+void sh4_translate_flush_cache()
+{
+    void *pc = xlat_get_native_pc();
+    assert( pc != NULL );
+
+    void *code = xlat_get_code( sh4r.pc );
+    xlat_recovery_record_t recover = xlat_get_recovery(code, pc, TRUE);
+    if( recover != NULL ) {
+	// Can be null if there is no recovery necessary
+	sh4_translate_run_recovery(recover);
+	xlat_flush_cache();
+	xlat_running = FALSE;
+	longjmp(xlat_jmp_buf, XLAT_EXIT_CONTINUE);
+    } else {
+	xlat_flush_cache();
+	return;
+    }
+}
+
+void *xlat_get_code_by_vma( sh4vma_t vma )
+{
+    void *result = NULL;
+
+    if( !IS_IN_ICACHE(vma) ) {
+	if( vma > 0xFFFFFF00 ) {
+	    // lxdream hook
+	    return NULL;
+	}
+	if( !mmu_update_icache(sh4r.pc) ) {
+	    // fault - off to the fault handler
+	    if( !mmu_update_icache(sh4r.pc) ) {
+		// double fault - halt
+		ERROR( "Double fault - halting" );
+		dreamcast_stop();
+		return NULL;
+	    }
+	}
+    }
+    if( sh4_icache.page_vma != -1 ) {
+	result = xlat_get_code( GET_ICACHE_PHYS(vma) );
+    }
+
+    return result;
+}
+

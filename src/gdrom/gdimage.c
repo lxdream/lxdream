@@ -1,5 +1,5 @@
 /**
- * $Id: gdimage.c,v 1.7 2007-11-08 10:48:41 nkeynes Exp $
+ * $Id$
  *
  * GD-Rom image-file common functions. 
  *

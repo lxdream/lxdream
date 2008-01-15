@@ -1,5 +1,5 @@
 /**
- * $Id: clock.h,v 1.5 2007-01-06 04:06:36 nkeynes Exp $
+ * $Id$
  * External interface to the dreamcast serial port, implemented by 
  * sh4/scif.c
  *

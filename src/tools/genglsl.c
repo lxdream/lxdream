@@ -1,5 +1,5 @@
 /**
- * $Id: genglsl.c,v 1.1 2007-09-28 07:24:14 nkeynes Exp $
+ * $Id$
  *
  * Trivial tool to take two shader source files and dump them out in
  * a C file with appropriate escaping.

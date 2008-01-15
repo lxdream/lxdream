@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include "../lib.h"
 
 int total_tests = 0;
 int total_fails = 0;
@@ -42,6 +43,29 @@ int assert_exception_caught( char *testname, int number, unsigned int expectedpc
     }
 }
 
+int assert_tlb_exception_caught( char *testname, int number, unsigned int expectedpc,
+				 unsigned int vpn )
+{
+    if( assert_exception_caught(testname, number, expectedpc) == 1 ) {
+	return 1;
+    }
+    
+    unsigned int pteh = long_read(0xFF000000);
+    if( (pteh & 0xFFFFFC00) != (vpn & 0xFFFFFC00) ) {
+	fprintf(stderr, "%s: Test %d failed: Expected PTEH.VPN = %08X, but was %08X\n",
+		testname, number, (vpn>>10), (pteh>>10) );
+	return 1;
+    }
+
+    unsigned int tea = long_read(0xFF00000C);
+    if( tea != vpn ) {
+	fprintf(stderr, "%s: Test %d failed: Expected TEA = %08X, but was %08X\n",
+		testname, number, vpn, tea );
+	return 1;
+    }
+    return 0;
+}
+
 int main()
 {
     fprintf( stdout, "Instruction tests...\n" );
@@ -77,6 +101,7 @@ int main()
     fprintf( stdout, "Exception tests...\n" );
     test_slot_illegal();
     test_undefined();
+    test_tlb();
     remove_interrupt_handler();
 
     fprintf( stdout, "Total: %d/%d tests passed (%d%%)\n", total_tests-total_fails,

@@ -1,5 +1,5 @@
 /**
- * $Id: x86dasm.c,v 1.5 2007-10-31 11:53:35 nkeynes Exp $
+ * $Id$
  *
  * Wrapper around i386-dis to supply the same behaviour as the other
  * disassembly functions.
@@ -22,7 +22,7 @@
 #include "x86dasm.h"
 #include "bfd.h"
 #include "dis-asm.h"
-#include "sh4/sh4core.h"
+#include "sh4/sh4.h"
 #include "sh4/sh4trans.h"
 
 extern const struct reg_desc_struct sh4_reg_map[];
@@ -43,7 +43,7 @@ static int x86_num_symbols = 0;
 
 void xlat_disasm_block( FILE *out, void *block )
 {
-    uint32_t buflen = xlat_get_block_size(block);
+    uint32_t buflen = xlat_get_code_size(block);
     x86_set_symtab( NULL, 0 );
     x86_disasm_block( out, block, buflen );
 }

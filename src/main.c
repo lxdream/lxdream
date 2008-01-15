@@ -1,5 +1,5 @@
 /**
- * $Id: main.c,v 1.35 2007-11-07 11:45:53 nkeynes Exp $
+ * $Id$
  *
  * Main program, initializes dreamcast and gui, then passes control off to
  * the main loop. 
@@ -30,18 +30,20 @@
 #include "aica/audio.h"
 #include "gdrom/gdrom.h"
 #include "maple/maple.h"
-#include "sh4/sh4core.h"
+#include "sh4/sh4.h"
 
 #define S3M_PLAYER "s3mplay.bin"
 
-char *option_list = "a:m:s:A:V:puhbd:c:t:xD";
+char *option_list = "a:m:s:A:V:v:puhbd:c:t:T:xDn";
 struct option longopts[1] = { { NULL, 0, 0, 0 } };
 char *aica_program = NULL;
 char *s3m_file = NULL;
 const char *disc_file = NULL;
 char *display_driver_name = NULL;
 char *audio_driver_name = NULL;
+char *trace_regions = NULL;
 gboolean start_immediately = FALSE;
+gboolean no_start = FALSE;
 gboolean headless = FALSE;
 gboolean without_bios = FALSE;
 gboolean use_xlat = TRUE;
@@ -82,6 +84,10 @@ int main (int argc, char *argv[])
 	    t = strtod(optarg, NULL);
 	    sh4_cpu_multiplier = (int)(1000.0/t);
 	    break;
+	case 'n': /* Don't start immediately */
+	    no_start = TRUE;
+	    start_immediately = FALSE;
+	    break;
 	case 's': /* AICA-only w/ S3M player */
 	    aica_program = S3M_PLAYER;
 	    s3m_file = optarg;
@@ -94,6 +100,7 @@ int main (int argc, char *argv[])
 	    break;
 	case 'p': /* Start immediately */
 	    start_immediately = TRUE;
+	    no_start = FALSE;
     	    break;
 	case 'u': /* Allow unsafe dcload syscalls */
 	    dcload_set_allow_unsafe(TRUE);
@@ -108,6 +115,14 @@ int main (int argc, char *argv[])
 	    t = strtod(optarg, NULL);
 	    time_secs = (uint32_t)t;
 	    time_nanos = (int)((t - time_secs) * 1000000000);
+	    break;
+	case 'T': /* trace regions */
+	    trace_regions = optarg;
+	    break;
+	case 'v': /* Log verbosity */
+	    if( !set_global_log_level(optarg) ) {
+		ERROR( "Unrecognized log level '%s'", optarg );
+	    }
 	    break;
 	case 'x': /* Disable translator */
 	    use_xlat = FALSE;
@@ -126,6 +141,7 @@ int main (int argc, char *argv[])
 	    mem_load_block( s3m_file, 0x00810000, 2048*1024 - 0x10000 );
 	}
     }
+    mem_set_trace( trace_regions, TRUE );
 
     if( without_bios ) {
     	bios_install();
@@ -169,7 +185,9 @@ int main (int argc, char *argv[])
 	if( !ok ) {
 	    ERROR( "Unrecognized file '%s'", argv[optind] );
 	}
-	start_immediately = ok;
+	if( !no_start ) {
+	    start_immediately = ok;
+	}
     }
 
     if( disc_file != NULL ) {

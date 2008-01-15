@@ -1,5 +1,5 @@
 /**
- * $Id: sh4mem.c,v 1.31 2007-11-08 12:01:57 nkeynes Exp $
+ * $Id$
  * sh4mem.c is responsible for the SH4's access to memory (including memory
  * mapped I/O), using the page maps created in mem.c
  *
@@ -17,7 +17,6 @@
  */
 
 #define MODULE sh4_module
-#define ENABLE_TRACE_IO 1
 
 #include <string.h>
 #include <zlib.h>
@@ -68,7 +67,6 @@ TRACE( str " [%s.%s: %s]", __VA_ARGS__, \
 
 extern struct mem_region mem_rgn[];
 extern struct mmio_region *P4_io[];
-sh4ptr_t sh4_main_ram;
 
 int32_t sh4_read_p4( sh4addr_t addr )
 {
@@ -163,9 +161,9 @@ int32_t sh4_read_long( sh4addr_t addr )
     CHECK_READ_WATCH(addr,4);
 
     if( addr >= 0xE0000000 ) { /* P4 Area, handled specially */
-        return sh4_read_p4( addr );
+        return ZEROEXT32(sh4_read_p4( addr ));
     } else if( (addr&0x1C000000) == 0x0C000000 ) {
-	return *(int32_t *)(sh4_main_ram + (addr&0x00FFFFFF));
+	return ZEROEXT32(*(int32_t *)(sh4_main_ram + (addr&0x00FFFFFF)));
     } else if( (addr&0x1F800000) == 0x04000000 ) {
         addr = TRANSLATE_VIDEO_64BIT_ADDRESS(addr);
 	pvr2_render_buffer_invalidate(addr, FALSE);
@@ -182,9 +180,9 @@ int32_t sh4_read_long( sh4addr_t addr )
         }
         val = io_rgn[(uintptr_t)page]->io_read(addr&0xFFF);
         TRACE_IO( "Long read %08X <= %08X", page, (addr&0xFFF), val, addr );
-        return val;
+        return ZEROEXT32(val);
     } else {
-        return *(int32_t *)(page+(addr&0xFFF));
+        return ZEROEXT32(*(int32_t *)(page+(addr&0xFFF)));
     }
 }
 
@@ -195,9 +193,9 @@ int32_t sh4_read_word( sh4addr_t addr )
     CHECK_READ_WATCH(addr,2);
 
     if( addr >= 0xE0000000 ) { /* P4 Area, handled specially */
-        return SIGNEXT16(sh4_read_p4( addr ));
+        return ZEROEXT32(SIGNEXT16(sh4_read_p4( addr )));
     } else if( (addr&0x1C000000) == 0x0C000000 ) {
-	return SIGNEXT16(*(int16_t *)(sh4_main_ram + (addr&0x00FFFFFF)));
+	return ZEROEXT32(SIGNEXT16(*(int16_t *)(sh4_main_ram + (addr&0x00FFFFFF))));
     } else if( (addr&0x1F800000) == 0x04000000 ) {
         addr = TRANSLATE_VIDEO_64BIT_ADDRESS(addr);
 	pvr2_render_buffer_invalidate(addr, FALSE);
@@ -214,9 +212,9 @@ int32_t sh4_read_word( sh4addr_t addr )
         }
         val = SIGNEXT16(io_rgn[(uintptr_t)page]->io_read(addr&0xFFF));
         TRACE_IO( "Word read %04X <= %08X", page, (addr&0xFFF), val&0xFFFF, addr );
-        return val;
+        return ZEROEXT32(val);
     } else {
-        return SIGNEXT16(*(int16_t *)(page+(addr&0xFFF)));
+        return ZEROEXT32(SIGNEXT16(*(int16_t *)(page+(addr&0xFFF))));
     }
 }
 
@@ -227,9 +225,9 @@ int32_t sh4_read_byte( sh4addr_t addr )
     CHECK_READ_WATCH(addr,1);
 
     if( addr >= 0xE0000000 ) { /* P4 Area, handled specially */
-        return SIGNEXT8(sh4_read_p4( addr ));
+        return ZEROEXT32(SIGNEXT8(sh4_read_p4( addr )));
     } else if( (addr&0x1C000000) == 0x0C000000 ) {
-	return SIGNEXT8(*(int8_t *)(sh4_main_ram + (addr&0x00FFFFFF)));
+	return ZEROEXT32(SIGNEXT8(*(int8_t *)(sh4_main_ram + (addr&0x00FFFFFF))));
     } else if( (addr&0x1F800000) == 0x04000000 ) {
         addr = TRANSLATE_VIDEO_64BIT_ADDRESS(addr);
     	pvr2_render_buffer_invalidate(addr, FALSE);
@@ -247,9 +245,9 @@ int32_t sh4_read_byte( sh4addr_t addr )
         }
         val = SIGNEXT8(io_rgn[(uintptr_t)page]->io_read(addr&0xFFF));
         TRACE_IO( "Byte read %02X <= %08X", page, (addr&0xFFF), val&0xFF, addr );
-        return val;
+        return ZEROEXT32(val);
     } else {
-        return SIGNEXT8(*(int8_t *)(page+(addr&0xFFF)));
+        return ZEROEXT32(SIGNEXT8(*(int8_t *)(page+(addr&0xFFF))));
     }
 }
 
@@ -351,7 +349,7 @@ void sh4_write_word( sh4addr_t addr, uint32_t val )
 void sh4_write_byte( sh4addr_t addr, uint32_t val )
 {
     sh4ptr_t page;
-    
+
     CHECK_WRITE_WATCH(addr,1,val);
 
     if( addr >= 0xE0000000 ) {
@@ -425,12 +423,19 @@ void mem_copy_to_sh4( sh4addr_t destaddr, sh4ptr_t src, size_t count ) {
     }
 }
 
-void sh4_flush_store_queue( sh4addr_t addr )
+sh4ptr_t sh4_get_region_by_vma( sh4addr_t vma )
 {
-    /* Store queue operation */
-    int queue = (addr&0x20)>>2;
-    sh4ptr_t src = (sh4ptr_t)&sh4r.store_queue[queue];
-    uint32_t hi = (MMIO_READ( MMU, (queue == 0 ? QACR0 : QACR1) ) & 0x1C) << 24;
-    uint32_t target = (addr&0x03FFFFE0) | hi;
-    mem_copy_to_sh4( target, src, 32 );
+    uint64_t ppa = mmu_vma_to_phys_read(vma);
+    if( ppa>>32 ) {
+	return 0;
+    }
+
+    sh4addr_t addr = (sh4addr_t)ppa;
+    sh4ptr_t page = page_map[ (addr & 0x1FFFFFFF) >> 12 ];
+    if( ((uintptr_t)page) < MAX_IO_REGIONS ) { /* IO Region */
+        return NULL;
+    } else {
+        return page+(addr&0xFFF);
+    }
 }
+

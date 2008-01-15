@@ -1,5 +1,5 @@
 /**
- * $Id: mem.h,v 1.17 2007-11-14 10:21:33 nkeynes Exp $
+ * $Id$
  *
  * mem is responsible for creating and maintaining the overall system memory
  * map, as visible from the SH4 processor. (Note the ARM has a different map)
@@ -63,7 +63,7 @@ int mem_has_page( uint32_t addr );
 sh4ptr_t mem_get_page( uint32_t addr );
 int mem_load_block( const gchar *filename, uint32_t base, uint32_t size );
 int mem_save_block( const gchar *filename, uint32_t base, uint32_t size );
-void mem_set_trace( uint32_t addr, int flag );
+void mem_set_trace( const gchar *tracelist, int flag );
 void mem_init( void );
 void mem_reset( void );
 void mem_copy_from_sh4( sh4ptr_t dest, sh4addr_t src, size_t count );
@@ -71,24 +71,22 @@ void mem_copy_to_sh4( sh4addr_t dest, sh4ptr_t src, size_t count );
 
 #define ENABLE_DEBUG_MODE 1
 
+typedef enum { BREAK_NONE=0, BREAK_ONESHOT=1, BREAK_KEEP=2 } breakpoint_type_t;
+
 struct breakpoint_struct {
     uint32_t address;
-    int type;
+    breakpoint_type_t type;
 };
 
 #define MAX_BREAKPOINTS 32
-#define BREAK_NONE 0
-#define BREAK_ONESHOT 1
-#define BREAK_KEEP 2
 
-#undef ENABLE_WATCH
+
+#define MEM_FLAG_ROM 4 /* Mem region is ROM-based */
+#define MEM_FLAG_RAM 6 
 
 #define WATCH_WRITE 1
 #define WATCH_READ  2
 #define WATCH_EXEC  3  /* AKA Breakpoint :) */
-
-#define MEM_FLAG_ROM 4 /* Mem region is ROM-based */
-#define MEM_FLAG_RAM 6 
 
 typedef struct watch_point *watch_point_t;
 

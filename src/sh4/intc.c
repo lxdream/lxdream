@@ -1,5 +1,5 @@
 /**
- * $Id: intc.c,v 1.8 2007-10-06 08:52:08 nkeynes Exp $
+ * $Id$
  *
  * SH4 onboard interrupt controller (INTC) implementation
  *

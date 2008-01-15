@@ -1,5 +1,5 @@
 /**
- * $Id: gendec.h,v 1.2 2007-10-06 08:48:47 nkeynes Exp $
+ * $Id$
  *
  * mem is responsible for creating and maintaining the overall system memory
  * map, as visible from the SH4 processor. (Note the ARM has a different map)

@@ -1,5 +1,5 @@
 /**
- * $Id: sh4.c,v 1.7 2007-11-08 11:54:16 nkeynes Exp $
+ * $Id$
  * 
  * SH4 parent module for all CPU modes and SH4 peripheral
  * modules.
@@ -30,10 +30,6 @@
 #include "clock.h"
 #include "syscall.h"
 
-#define EXV_EXCEPTION    0x100  /* General exception vector */
-#define EXV_TLBMISS      0x400  /* TLB-miss exception vector */
-#define EXV_INTERRUPT    0x600  /* External interrupt vector */
-
 void sh4_init( void );
 void sh4_xlat_init( void );
 void sh4_reset( void );
@@ -52,8 +48,9 @@ struct dreamcast_module sh4_module = { "SH4", sh4_init, sh4_reset,
 struct sh4_registers sh4r;
 struct breakpoint_struct sh4_breakpoints[MAX_BREAKPOINTS];
 int sh4_breakpoint_count = 0;
-extern sh4ptr_t sh4_main_ram;
+sh4ptr_t sh4_main_ram;
 static gboolean sh4_use_translator = FALSE;
+struct sh4_icache_struct sh4_icache = { NULL, -1, -1, 0 };
 
 void sh4_set_use_xlat( gboolean use )
 {
@@ -68,6 +65,11 @@ void sh4_set_use_xlat( gboolean use )
     }
     sh4_use_translator = use;
 #endif
+}
+
+gboolean sh4_is_using_xlat()
+{
+    return sh4_use_translator;
 }
 
 void sh4_init(void)
@@ -148,14 +150,17 @@ int sh4_load_state( FILE * f )
 }
 
 
-void sh4_set_breakpoint( uint32_t pc, int type )
+void sh4_set_breakpoint( uint32_t pc, breakpoint_type_t type )
 {
     sh4_breakpoints[sh4_breakpoint_count].address = pc;
     sh4_breakpoints[sh4_breakpoint_count].type = type;
+    if( sh4_use_translator ) {
+	xlat_invalidate_word( pc );
+    }
     sh4_breakpoint_count++;
 }
 
-gboolean sh4_clear_breakpoint( uint32_t pc, int type )
+gboolean sh4_clear_breakpoint( uint32_t pc, breakpoint_type_t type )
 {
     int i;
 
@@ -165,6 +170,9 @@ gboolean sh4_clear_breakpoint( uint32_t pc, int type )
 	    while( ++i < sh4_breakpoint_count ) {
 		sh4_breakpoints[i-1].address = sh4_breakpoints[i].address;
 		sh4_breakpoints[i-1].type = sh4_breakpoints[i].type;
+	    }
+	    if( sh4_use_translator ) {
+		xlat_invalidate_word( pc );
 	    }
 	    sh4_breakpoint_count--;
 	    return TRUE;
@@ -203,7 +211,9 @@ static void sh4_switch_banks( )
 
 void sh4_write_sr( uint32_t newval )
 {
-    if( (newval ^ sh4r.sr) & SR_RB )
+    int oldbank = (sh4r.sr&SR_MDRB) == SR_MDRB;
+    int newbank = (newval&SR_MDRB) == SR_MDRB;
+    if( oldbank != newbank )
         sh4_switch_banks();
     sh4r.sr = newval;
     sh4r.t = (newval&SR_T) ? 1 : 0;
@@ -254,10 +264,25 @@ gboolean sh4_raise_exception( int code )
     RAISE( code, EXV_EXCEPTION );
 }
 
+/**
+ * Raise a CPU reset exception with the specified exception code.
+ */
+gboolean sh4_raise_reset( int code )
+{
+    // FIXME: reset modules as per "manual reset"
+    sh4_reset();
+    MMIO_WRITE(MMU,EXPEVT,code);
+    sh4r.vbr = 0;
+    sh4r.pc = 0xA0000000;
+    sh4r.new_pc = sh4r.pc + 2;
+    sh4_write_sr( (sh4r.sr|SR_MD|SR_BL|SR_RB|SR_IMASK)
+		  &(~SR_FD) );
+}
+
 gboolean sh4_raise_trap( int trap )
 {
     MMIO_WRITE( MMU, TRA, trap<<2 );
-    return sh4_raise_exception( EXC_TRAP );
+    RAISE( EXC_TRAP, EXV_EXCEPTION );
 }
 
 gboolean sh4_raise_slot_exception( int normal_code, int slot_code ) {

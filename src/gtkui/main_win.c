@@ -1,5 +1,5 @@
 /**
- * $Id: main_win.c,v 1.10 2007-11-08 10:46:41 nkeynes Exp $
+ * $Id$
  *
  * Define the main (emu) GTK window, along with its menubars,
  * toolbars, etc.
