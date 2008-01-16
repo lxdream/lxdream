@@ -100,6 +100,7 @@
 #define R_MACH REG_OFFSET(mac)+4
 #define R_MACL REG_OFFSET(mac)
 #define R_PC REG_OFFSET(pc)
+#define R_NEW_PC REG_OFFSET(new_pc)
 #define R_PR REG_OFFSET(pr)
 #define R_SGR REG_OFFSET(sgr)
 #define R_FPUL REG_OFFSET(fpul)
