@@ -123,6 +123,11 @@ void * sh4_translate_basic_block( sh4addr_t start )
     xlat_output = (uint8_t *)block->code;
     xlat_recovery_posn = 0;
     uint8_t *eob = xlat_output + block->size;
+
+    if( GET_ICACHE_END() < lastpc ) {
+	lastpc = GET_ICACHE_END();
+    }
+
     sh4_translate_begin_block(pc);
 
     do {
@@ -251,25 +256,27 @@ void *xlat_get_code_by_vma( sh4vma_t vma )
 {
     void *result = NULL;
 
-    if( !IS_IN_ICACHE(vma) ) {
-	if( vma > 0xFFFFFF00 ) {
-	    // lxdream hook
-	    return NULL;
-	}
-	if( !mmu_update_icache(sh4r.pc) ) {
-	    // fault - off to the fault handler
-	    if( !mmu_update_icache(sh4r.pc) ) {
-		// double fault - halt
-		ERROR( "Double fault - halting" );
-		dreamcast_stop();
-		return NULL;
-	    }
-	}
-    }
-    if( sh4_icache.page_vma != -1 ) {
+    if( IS_IN_ICACHE(vma) ) {
 	result = xlat_get_code( GET_ICACHE_PHYS(vma) );
     }
 
+    if( vma > 0xFFFFFF00 ) {
+	// lxdream hook
+	return NULL;
+    }
+
+    if( !mmu_update_icache(vma) ) {
+	// fault - off to the fault handler
+	if( !mmu_update_icache(sh4r.pc) ) {
+	    // double fault - halt
+	    ERROR( "Double fault - halting" );
+	    dreamcast_stop();
+	    return NULL;
+	}
+    }
+
+    assert( IS_IN_ICACHE(sh4r.pc) );
+    result = xlat_get_code( GET_ICACHE_PHYS(sh4r.pc) );
     return result;
 }
 
