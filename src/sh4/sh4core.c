@@ -568,14 +568,24 @@ gboolean sh4_execute_instruction( void )
                     case 0xF:
                         { /* MAC.L @Rm+, @Rn+ */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
-                        CHECKRALIGN32( sh4r.r[Rm] );
-                        CHECKRALIGN32( sh4r.r[Rn] );
-                        MEM_READ_LONG(sh4r.r[Rn], tmp);
-                        int64_t tmpl = SIGNEXT32(tmp);
-                        sh4r.r[Rn] += 4;
-                        MEM_READ_LONG(sh4r.r[Rm], tmp);
-                        tmpl = tmpl * SIGNEXT32(tmp) + sh4r.mac;
-                        sh4r.r[Rm] += 4;
+                        int64_t tmpl;
+                        if( Rm == Rn ) {
+                    	CHECKRALIGN32( sh4r.r[Rn] );
+                    	MEM_READ_LONG(sh4r.r[Rn], tmp);
+                    	tmpl = SIGNEXT32(tmp);
+                    	MEM_READ_LONG(sh4r.r[Rn]+4, tmp);
+                    	tmpl = tmpl * SIGNEXT32(tmp) + sh4r.mac;
+                    	sh4r.r[Rn] += 8;
+                        } else {
+                    	CHECKRALIGN32( sh4r.r[Rm] );
+                    	CHECKRALIGN32( sh4r.r[Rn] );
+                    	MEM_READ_LONG(sh4r.r[Rn], tmp);
+                    	tmpl = SIGNEXT32(tmp);
+                    	MEM_READ_LONG(sh4r.r[Rm], tmp);
+                    	tmpl = tmpl * SIGNEXT32(tmp) + sh4r.mac;
+                    	sh4r.r[Rn] += 4;
+                    	sh4r.r[Rm] += 4;
+                        }
                         if( sh4r.s ) {
                             /* 48-bit Saturation. Yuch */
                             if( tmpl < (int64_t)0xFFFF800000000000LL )
@@ -622,19 +632,19 @@ gboolean sh4_execute_instruction( void )
                     case 0x4:
                         { /* MOV.B Rm, @-Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
-                        sh4r.r[Rn] --; MEM_WRITE_BYTE( sh4r.r[Rn], sh4r.r[Rm] );
+                        MEM_WRITE_BYTE( sh4r.r[Rn]-1, sh4r.r[Rm] ); sh4r.r[Rn]--;
                         }
                         break;
                     case 0x5:
                         { /* MOV.W Rm, @-Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
-                        sh4r.r[Rn] -= 2; CHECKWALIGN16( sh4r.r[Rn] ); MEM_WRITE_WORD( sh4r.r[Rn], sh4r.r[Rm] );
+                        CHECKWALIGN16( sh4r.r[Rn] ); MEM_WRITE_WORD( sh4r.r[Rn]-2, sh4r.r[Rm] ); sh4r.r[Rn] -= 2;
                         }
                         break;
                     case 0x6:
                         { /* MOV.L Rm, @-Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
-                        sh4r.r[Rn] -= 4; CHECKWALIGN32( sh4r.r[Rn] ); MEM_WRITE_LONG( sh4r.r[Rn], sh4r.r[Rm] );
+                        CHECKWALIGN32( sh4r.r[Rn] ); MEM_WRITE_LONG( sh4r.r[Rn]-4, sh4r.r[Rm] ); sh4r.r[Rn] -= 4;
                         }
                         break;
                     case 0x7:
@@ -873,59 +883,59 @@ gboolean sh4_execute_instruction( void )
                             case 0x0:
                                 { /* STS.L MACH, @-Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
-                                sh4r.r[Rn] -= 4;
                                 CHECKWALIGN32( sh4r.r[Rn] );
-                                MEM_WRITE_LONG( sh4r.r[Rn], (sh4r.mac>>32) );
+                                MEM_WRITE_LONG( sh4r.r[Rn]-4, (sh4r.mac>>32) );
+                                sh4r.r[Rn] -= 4;
                                 }
                                 break;
                             case 0x1:
                                 { /* STS.L MACL, @-Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
-                                sh4r.r[Rn] -= 4;
                                 CHECKWALIGN32( sh4r.r[Rn] );
-                                MEM_WRITE_LONG( sh4r.r[Rn], (uint32_t)sh4r.mac );
+                                MEM_WRITE_LONG( sh4r.r[Rn]-4, (uint32_t)sh4r.mac );
+                                sh4r.r[Rn] -= 4;
                                 }
                                 break;
                             case 0x2:
                                 { /* STS.L PR, @-Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
-                                sh4r.r[Rn] -= 4;
                                 CHECKWALIGN32( sh4r.r[Rn] );
-                                MEM_WRITE_LONG( sh4r.r[Rn], sh4r.pr );
+                                MEM_WRITE_LONG( sh4r.r[Rn]-4, sh4r.pr );
+                                sh4r.r[Rn] -= 4;
                                 }
                                 break;
                             case 0x3:
                                 { /* STC.L SGR, @-Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
                                 CHECKPRIV();
-                                sh4r.r[Rn] -= 4;
                                 CHECKWALIGN32( sh4r.r[Rn] );
-                                MEM_WRITE_LONG( sh4r.r[Rn], sh4r.sgr );
+                                MEM_WRITE_LONG( sh4r.r[Rn]-4, sh4r.sgr );
+                                sh4r.r[Rn] -= 4;
                                 }
                                 break;
                             case 0x5:
                                 { /* STS.L FPUL, @-Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
-                                sh4r.r[Rn] -= 4;
                                 CHECKWALIGN32( sh4r.r[Rn] );
-                                MEM_WRITE_LONG( sh4r.r[Rn], sh4r.fpul );
+                                MEM_WRITE_LONG( sh4r.r[Rn]-4, sh4r.fpul );
+                                sh4r.r[Rn] -= 4;
                                 }
                                 break;
                             case 0x6:
                                 { /* STS.L FPSCR, @-Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
-                                sh4r.r[Rn] -= 4;
                                 CHECKWALIGN32( sh4r.r[Rn] );
-                                MEM_WRITE_LONG( sh4r.r[Rn], sh4r.fpscr );
+                                MEM_WRITE_LONG( sh4r.r[Rn]-4, sh4r.fpscr );
+                                sh4r.r[Rn] -= 4;
                                 }
                                 break;
                             case 0xF:
                                 { /* STC.L DBR, @-Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
                                 CHECKPRIV();
-                                sh4r.r[Rn] -= 4;
                                 CHECKWALIGN32( sh4r.r[Rn] );
-                                MEM_WRITE_LONG( sh4r.r[Rn], sh4r.dbr );
+                                MEM_WRITE_LONG( sh4r.r[Rn]-4, sh4r.dbr );
+                                sh4r.r[Rn] -= 4;
                                 }
                                 break;
                             default:
@@ -941,44 +951,44 @@ gboolean sh4_execute_instruction( void )
                                         { /* STC.L SR, @-Rn */
                                         uint32_t Rn = ((ir>>8)&0xF); 
                                         CHECKPRIV();
-                                        sh4r.r[Rn] -= 4;
                                         CHECKWALIGN32( sh4r.r[Rn] );
-                                        MEM_WRITE_LONG( sh4r.r[Rn], sh4_read_sr() );
+                                        MEM_WRITE_LONG( sh4r.r[Rn]-4, sh4_read_sr() );
+                                        sh4r.r[Rn] -= 4;
                                         }
                                         break;
                                     case 0x1:
                                         { /* STC.L GBR, @-Rn */
                                         uint32_t Rn = ((ir>>8)&0xF); 
-                                        sh4r.r[Rn] -= 4;
                                         CHECKWALIGN32( sh4r.r[Rn] );
-                                        MEM_WRITE_LONG( sh4r.r[Rn], sh4r.gbr );
+                                        MEM_WRITE_LONG( sh4r.r[Rn]-4, sh4r.gbr );
+                                        sh4r.r[Rn] -= 4;
                                         }
                                         break;
                                     case 0x2:
                                         { /* STC.L VBR, @-Rn */
                                         uint32_t Rn = ((ir>>8)&0xF); 
                                         CHECKPRIV();
-                                        sh4r.r[Rn] -= 4;
                                         CHECKWALIGN32( sh4r.r[Rn] );
-                                        MEM_WRITE_LONG( sh4r.r[Rn], sh4r.vbr );
+                                        MEM_WRITE_LONG( sh4r.r[Rn]-4, sh4r.vbr );
+                                        sh4r.r[Rn] -= 4;
                                         }
                                         break;
                                     case 0x3:
                                         { /* STC.L SSR, @-Rn */
                                         uint32_t Rn = ((ir>>8)&0xF); 
                                         CHECKPRIV();
-                                        sh4r.r[Rn] -= 4;
                                         CHECKWALIGN32( sh4r.r[Rn] );
-                                        MEM_WRITE_LONG( sh4r.r[Rn], sh4r.ssr );
+                                        MEM_WRITE_LONG( sh4r.r[Rn]-4, sh4r.ssr );
+                                        sh4r.r[Rn] -= 4;
                                         }
                                         break;
                                     case 0x4:
                                         { /* STC.L SPC, @-Rn */
                                         uint32_t Rn = ((ir>>8)&0xF); 
                                         CHECKPRIV();
-                                        sh4r.r[Rn] -= 4;
                                         CHECKWALIGN32( sh4r.r[Rn] );
-                                        MEM_WRITE_LONG( sh4r.r[Rn], sh4r.spc );
+                                        MEM_WRITE_LONG( sh4r.r[Rn]-4, sh4r.spc );
+                                        sh4r.r[Rn] -= 4;
                                         }
                                         break;
                                     default:
@@ -990,9 +1000,9 @@ gboolean sh4_execute_instruction( void )
                                 { /* STC.L Rm_BANK, @-Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm_BANK = ((ir>>4)&0x7); 
                                 CHECKPRIV();
-                                sh4r.r[Rn] -= 4;
                                 CHECKWALIGN32( sh4r.r[Rn] );
-                                MEM_WRITE_LONG( sh4r.r[Rn], sh4r.r_bank[Rm_BANK] );
+                                MEM_WRITE_LONG( sh4r.r[Rn]-4, sh4r.r_bank[Rm_BANK] );
+                                sh4r.r[Rn] -= 4;
                                 }
                                 break;
                         }
@@ -1406,14 +1416,24 @@ gboolean sh4_execute_instruction( void )
                     case 0xF:
                         { /* MAC.W @Rm+, @Rn+ */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
-                        CHECKRALIGN16( sh4r.r[Rn] );
-                        CHECKRALIGN16( sh4r.r[Rm] );
-                        MEM_READ_WORD(sh4r.r[Rn], tmp);
-                        int32_t stmp = SIGNEXT16(tmp);
-                        sh4r.r[Rn] += 2;
-                        MEM_READ_WORD(sh4r.r[Rm], tmp);
-                        stmp = stmp * SIGNEXT16(tmp);
-                        sh4r.r[Rm] += 2;
+                        int32_t stmp;
+                        if( Rm == Rn ) {
+                    	CHECKRALIGN16(sh4r.r[Rn]);
+                    	MEM_READ_WORD( sh4r.r[Rn], tmp );
+                    	stmp = SIGNEXT16(tmp);
+                    	MEM_READ_WORD( sh4r.r[Rn]+2, tmp );
+                    	stmp *= SIGNEXT16(tmp);
+                    	sh4r.r[Rn] += 4;
+                        } else {
+                    	CHECKRALIGN16( sh4r.r[Rn] );
+                    	CHECKRALIGN16( sh4r.r[Rm] );
+                    	MEM_READ_WORD(sh4r.r[Rn], tmp);
+                    	stmp = SIGNEXT16(tmp);
+                    	MEM_READ_WORD(sh4r.r[Rm], tmp);
+                    	stmp = stmp * SIGNEXT16(tmp);
+                    	sh4r.r[Rn] += 2;
+                    	sh4r.r[Rm] += 2;
+                        }
                         if( sh4r.s ) {
                     	int64_t tmpl = (int64_t)((int32_t)sh4r.mac) + (int64_t)stmp;
                     	if( tmpl > (int64_t)0x000000007FFFFFFFLL ) {
@@ -1898,7 +1918,7 @@ gboolean sh4_execute_instruction( void )
                     case 0xB:
                         { /* FMOV FRm, @-Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t FRm = ((ir>>4)&0xF); 
-                        sh4r.r[Rn] -= FP_WIDTH; MEM_FP_WRITE( sh4r.r[Rn], FRm );
+                        MEM_FP_WRITE( sh4r.r[Rn] - FP_WIDTH, FRm ); sh4r.r[Rn] -= FP_WIDTH;
                         }
                         break;
                     case 0xC:

@@ -377,9 +377,9 @@ MOV.L Rm, @(disp, Rn) {:
 MOV.B Rm, @Rn {: MEM_WRITE_BYTE( sh4r.r[Rn], sh4r.r[Rm] ); :}
 MOV.W Rm, @Rn {: CHECKWALIGN16( sh4r.r[Rn] ); MEM_WRITE_WORD( sh4r.r[Rn], sh4r.r[Rm] ); :}
 MOV.L Rm, @Rn {: CHECKWALIGN32( sh4r.r[Rn] ); MEM_WRITE_LONG( sh4r.r[Rn], sh4r.r[Rm] ); :}
-MOV.B Rm, @-Rn {: sh4r.r[Rn] --; MEM_WRITE_BYTE( sh4r.r[Rn], sh4r.r[Rm] ); :}
-MOV.W Rm, @-Rn {: sh4r.r[Rn] -= 2; CHECKWALIGN16( sh4r.r[Rn] ); MEM_WRITE_WORD( sh4r.r[Rn], sh4r.r[Rm] ); :}
-MOV.L Rm, @-Rn {: sh4r.r[Rn] -= 4; CHECKWALIGN32( sh4r.r[Rn] ); MEM_WRITE_LONG( sh4r.r[Rn], sh4r.r[Rm] ); :}
+ MOV.B Rm, @-Rn {: MEM_WRITE_BYTE( sh4r.r[Rn]-1, sh4r.r[Rm] ); sh4r.r[Rn]--; :}
+ MOV.W Rm, @-Rn {: CHECKWALIGN16( sh4r.r[Rn] ); MEM_WRITE_WORD( sh4r.r[Rn]-2, sh4r.r[Rm] ); sh4r.r[Rn] -= 2; :}
+ MOV.L Rm, @-Rn {: CHECKWALIGN32( sh4r.r[Rn] ); MEM_WRITE_LONG( sh4r.r[Rn]-4, sh4r.r[Rm] ); sh4r.r[Rn] -= 4; :}
 MOV.L @(disp, Rm), Rn {:
     tmp = sh4r.r[Rm] + disp;
     CHECKRALIGN32( tmp );
@@ -501,14 +501,24 @@ DT Rn {:
     sh4r.t = ( sh4r.r[Rn] == 0 ? 1 : 0 );
 :}
 MAC.W @Rm+, @Rn+ {:
-    CHECKRALIGN16( sh4r.r[Rn] );
-    CHECKRALIGN16( sh4r.r[Rm] );
-    MEM_READ_WORD(sh4r.r[Rn], tmp);
-    int32_t stmp = SIGNEXT16(tmp);
-    sh4r.r[Rn] += 2;
-    MEM_READ_WORD(sh4r.r[Rm], tmp);
-    stmp = stmp * SIGNEXT16(tmp);
-    sh4r.r[Rm] += 2;
+    int32_t stmp;
+    if( Rm == Rn ) {
+	CHECKRALIGN16(sh4r.r[Rn]);
+	MEM_READ_WORD( sh4r.r[Rn], tmp );
+	stmp = SIGNEXT16(tmp);
+	MEM_READ_WORD( sh4r.r[Rn]+2, tmp );
+	stmp *= SIGNEXT16(tmp);
+	sh4r.r[Rn] += 4;
+    } else {
+	CHECKRALIGN16( sh4r.r[Rn] );
+	CHECKRALIGN16( sh4r.r[Rm] );
+	MEM_READ_WORD(sh4r.r[Rn], tmp);
+	stmp = SIGNEXT16(tmp);
+	MEM_READ_WORD(sh4r.r[Rm], tmp);
+	stmp = stmp * SIGNEXT16(tmp);
+	sh4r.r[Rn] += 2;
+	sh4r.r[Rm] += 2;
+    }
     if( sh4r.s ) {
 	int64_t tmpl = (int64_t)((int32_t)sh4r.mac) + (int64_t)stmp;
 	if( tmpl > (int64_t)0x000000007FFFFFFFLL ) {
@@ -524,14 +534,24 @@ MAC.W @Rm+, @Rn+ {:
     }
 :}
 MAC.L @Rm+, @Rn+ {:
-    CHECKRALIGN32( sh4r.r[Rm] );
-    CHECKRALIGN32( sh4r.r[Rn] );
-    MEM_READ_LONG(sh4r.r[Rn], tmp);
-    int64_t tmpl = SIGNEXT32(tmp);
-    sh4r.r[Rn] += 4;
-    MEM_READ_LONG(sh4r.r[Rm], tmp);
-    tmpl = tmpl * SIGNEXT32(tmp) + sh4r.mac;
-    sh4r.r[Rm] += 4;
+    int64_t tmpl;
+    if( Rm == Rn ) {
+	CHECKRALIGN32( sh4r.r[Rn] );
+	MEM_READ_LONG(sh4r.r[Rn], tmp);
+	tmpl = SIGNEXT32(tmp);
+	MEM_READ_LONG(sh4r.r[Rn]+4, tmp);
+	tmpl = tmpl * SIGNEXT32(tmp) + sh4r.mac;
+	sh4r.r[Rn] += 8;
+    } else {
+	CHECKRALIGN32( sh4r.r[Rm] );
+	CHECKRALIGN32( sh4r.r[Rn] );
+	MEM_READ_LONG(sh4r.r[Rn], tmp);
+	tmpl = SIGNEXT32(tmp);
+	MEM_READ_LONG(sh4r.r[Rm], tmp);
+	tmpl = tmpl * SIGNEXT32(tmp) + sh4r.mac;
+	sh4r.r[Rn] += 4;
+	sh4r.r[Rm] += 4;
+    }
     if( sh4r.s ) {
         /* 48-bit Saturation. Yuch */
         if( tmpl < (int64_t)0xFFFF800000000000LL )
@@ -692,15 +712,15 @@ JSR @Rn {:
 :}
 STS MACH, Rn {: sh4r.r[Rn] = (sh4r.mac>>32); :}
 STS.L MACH, @-Rn {:
-    sh4r.r[Rn] -= 4;
     CHECKWALIGN32( sh4r.r[Rn] );
-    MEM_WRITE_LONG( sh4r.r[Rn], (sh4r.mac>>32) );
+    MEM_WRITE_LONG( sh4r.r[Rn]-4, (sh4r.mac>>32) );
+    sh4r.r[Rn] -= 4;
 :}
 STC.L SR, @-Rn {:
     CHECKPRIV();
-    sh4r.r[Rn] -= 4;
     CHECKWALIGN32( sh4r.r[Rn] );
-    MEM_WRITE_LONG( sh4r.r[Rn], sh4_read_sr() );
+    MEM_WRITE_LONG( sh4r.r[Rn]-4, sh4_read_sr() );
+    sh4r.r[Rn] -= 4;
 :}
 LDS.L @Rm+, MACH {:
     CHECKRALIGN32( sh4r.r[Rm] );
@@ -738,14 +758,14 @@ LDC.L @Rm+, SGR {:
 :}
 STS MACL, Rn {: sh4r.r[Rn] = (uint32_t)sh4r.mac; :}
 STS.L MACL, @-Rn {:
-    sh4r.r[Rn] -= 4;
     CHECKWALIGN32( sh4r.r[Rn] );
-    MEM_WRITE_LONG( sh4r.r[Rn], (uint32_t)sh4r.mac );
+    MEM_WRITE_LONG( sh4r.r[Rn]-4, (uint32_t)sh4r.mac );
+    sh4r.r[Rn] -= 4;
 :}
 STC.L GBR, @-Rn {:
-    sh4r.r[Rn] -= 4;
     CHECKWALIGN32( sh4r.r[Rn] );
-    MEM_WRITE_LONG( sh4r.r[Rn], sh4r.gbr );
+    MEM_WRITE_LONG( sh4r.r[Rn]-4, sh4r.gbr );
+    sh4r.r[Rn] -= 4;
 :}
 LDS.L @Rm+, MACL {:
     CHECKRALIGN32( sh4r.r[Rm] );
@@ -766,15 +786,15 @@ LDS Rm, MACL {:
 LDC Rm, GBR {: sh4r.gbr = sh4r.r[Rm]; :}
 STS PR, Rn {: sh4r.r[Rn] = sh4r.pr; :}
 STS.L PR, @-Rn {:
-    sh4r.r[Rn] -= 4;
     CHECKWALIGN32( sh4r.r[Rn] );
-    MEM_WRITE_LONG( sh4r.r[Rn], sh4r.pr );
+    MEM_WRITE_LONG( sh4r.r[Rn]-4, sh4r.pr );
+    sh4r.r[Rn] -= 4;
 :}
 STC.L VBR, @-Rn {:
     CHECKPRIV();
-    sh4r.r[Rn] -= 4;
     CHECKWALIGN32( sh4r.r[Rn] );
-    MEM_WRITE_LONG( sh4r.r[Rn], sh4r.vbr );
+    MEM_WRITE_LONG( sh4r.r[Rn]-4, sh4r.vbr );
+    sh4r.r[Rn] -= 4;
 :}
 LDS.L @Rm+, PR {:
     CHECKRALIGN32( sh4r.r[Rm] );
@@ -798,15 +818,15 @@ STC SGR, Rn {:
 :}
 STC.L SGR, @-Rn {:
     CHECKPRIV();
-    sh4r.r[Rn] -= 4;
     CHECKWALIGN32( sh4r.r[Rn] );
-    MEM_WRITE_LONG( sh4r.r[Rn], sh4r.sgr );
+    MEM_WRITE_LONG( sh4r.r[Rn]-4, sh4r.sgr );
+    sh4r.r[Rn] -= 4;
 :}
 STC.L SSR, @-Rn {:
     CHECKPRIV();
-    sh4r.r[Rn] -= 4;
     CHECKWALIGN32( sh4r.r[Rn] );
-    MEM_WRITE_LONG( sh4r.r[Rn], sh4r.ssr );
+    MEM_WRITE_LONG( sh4r.r[Rn]-4, sh4r.ssr );
+    sh4r.r[Rn] -= 4;
 :}
 LDC.L @Rm+, SSR {:
     CHECKPRIV();
@@ -820,9 +840,9 @@ LDC Rm, SSR {:
 :}
 STC.L SPC, @-Rn {:
     CHECKPRIV();
-    sh4r.r[Rn] -= 4;
     CHECKWALIGN32( sh4r.r[Rn] );
-    MEM_WRITE_LONG( sh4r.r[Rn], sh4r.spc );
+    MEM_WRITE_LONG( sh4r.r[Rn]-4, sh4r.spc );
+    sh4r.r[Rn] -= 4;
 :}
 LDC.L @Rm+, SPC {:
     CHECKPRIV();
@@ -836,9 +856,9 @@ LDC Rm, SPC {:
 :}
 STS FPUL, Rn {: sh4r.r[Rn] = sh4r.fpul; :}
 STS.L FPUL, @-Rn {:
-    sh4r.r[Rn] -= 4;
     CHECKWALIGN32( sh4r.r[Rn] );
-    MEM_WRITE_LONG( sh4r.r[Rn], sh4r.fpul );
+    MEM_WRITE_LONG( sh4r.r[Rn]-4, sh4r.fpul );
+    sh4r.r[Rn] -= 4;
 :}
 LDS.L @Rm+, FPUL {:
     CHECKRALIGN32( sh4r.r[Rm] );
@@ -848,9 +868,9 @@ LDS.L @Rm+, FPUL {:
 LDS Rm, FPUL {: sh4r.fpul = sh4r.r[Rm]; :}
 STS FPSCR, Rn {: sh4r.r[Rn] = sh4r.fpscr; :}
 STS.L FPSCR, @-Rn {:
-    sh4r.r[Rn] -= 4;
     CHECKWALIGN32( sh4r.r[Rn] );
-    MEM_WRITE_LONG( sh4r.r[Rn], sh4r.fpscr );
+    MEM_WRITE_LONG( sh4r.r[Rn]-4, sh4r.fpscr );
+    sh4r.r[Rn] -= 4;
 :}
 LDS.L @Rm+, FPSCR {:
     CHECKRALIGN32( sh4r.r[Rm] );
@@ -865,9 +885,9 @@ LDS Rm, FPSCR {:
 STC DBR, Rn {: CHECKPRIV(); sh4r.r[Rn] = sh4r.dbr; :}
 STC.L DBR, @-Rn {:
     CHECKPRIV();
-    sh4r.r[Rn] -= 4;
     CHECKWALIGN32( sh4r.r[Rn] );
-    MEM_WRITE_LONG( sh4r.r[Rn], sh4r.dbr );
+    MEM_WRITE_LONG( sh4r.r[Rn]-4, sh4r.dbr );
+    sh4r.r[Rn] -= 4;
 :}
 LDC.L @Rm+, DBR {:
     CHECKPRIV();
@@ -881,9 +901,9 @@ LDC Rm, DBR {:
 :}
 STC.L Rm_BANK, @-Rn {:
     CHECKPRIV();
-    sh4r.r[Rn] -= 4;
     CHECKWALIGN32( sh4r.r[Rn] );
-    MEM_WRITE_LONG( sh4r.r[Rn], sh4r.r_bank[Rm_BANK] );
+    MEM_WRITE_LONG( sh4r.r[Rn]-4, sh4r.r_bank[Rm_BANK] );
+    sh4r.r[Rn] -= 4;
 :}
 LDC.L @Rm+, Rn_BANK {:
     CHECKPRIV();
@@ -978,7 +998,7 @@ FMOV FRm, @(R0, Rn) {: MEM_FP_WRITE( sh4r.r[Rn] + R0, FRm ); :}
 FMOV @Rm, FRn {: MEM_FP_READ( sh4r.r[Rm], FRn ); :}
 FMOV @Rm+, FRn {: MEM_FP_READ( sh4r.r[Rm], FRn ); sh4r.r[Rm] += FP_WIDTH; :}
 FMOV FRm, @Rn {: MEM_FP_WRITE( sh4r.r[Rn], FRm ); :}
-FMOV FRm, @-Rn {: sh4r.r[Rn] -= FP_WIDTH; MEM_FP_WRITE( sh4r.r[Rn], FRm ); :}
+ FMOV FRm, @-Rn {: MEM_FP_WRITE( sh4r.r[Rn] - FP_WIDTH, FRm ); sh4r.r[Rn] -= FP_WIDTH; :}
 FMOV FRm, FRn {: 
     if( IS_FPU_DOUBLESIZE() )
 	DR(FRn) = DR(FRm);
