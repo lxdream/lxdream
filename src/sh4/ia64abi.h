@@ -110,13 +110,30 @@ void sh4_translate_begin_block( sh4addr_t pc )
 
 /**
  * Exit the block with sh4r.pc already written
- * Bytes: 15
  */
 void exit_block_pcset( sh4addr_t pc )
 {
     load_imm32( R_ECX, ((pc - sh4_x86.block_start_pc)>>1)*sh4_cpu_period ); // 5
     ADD_r32_sh4r( R_ECX, REG_OFFSET(slice_cycle) );    // 6
-    load_spreg( R_EAX, REG_OFFSET(pc) );
+    load_spreg( R_EAX, R_PC );
+    if( sh4_x86.tlb_on ) {
+	call_func1(xlat_get_code_by_vma,R_EAX);
+    } else {
+	call_func1(xlat_get_code,R_EAX);
+    }
+    POP_r32(R_EBP);
+    RET();
+}
+
+/**
+ * Exit the block with sh4r.new_pc written with the target address
+ */
+void exit_block_newpcset( sh4addr_t pc )
+{
+    load_imm32( R_ECX, ((pc - sh4_x86.block_start_pc)>>1)*sh4_cpu_period ); // 5
+    ADD_r32_sh4r( R_ECX, REG_OFFSET(slice_cycle) );    // 6
+    load_spreg( R_EAX, R_NEW_PC );
+    store_spreg( R_EAX, R_PC );
     if( sh4_x86.tlb_on ) {
 	call_func1(xlat_get_code_by_vma,R_EAX);
     } else {
