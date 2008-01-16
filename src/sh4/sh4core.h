@@ -65,6 +65,12 @@ extern struct sh4_icache_struct sh4_icache;
  */
 #define GET_ICACHE_PHYS(addr) (sh4_icache.page_ppa + ((addr)-sh4_icache.page_vma))
 
+/**
+ * Return the virtual (vma) address for the first address past the end of the 
+ * cache entry. Assumes that there is in fact a current icache entry.
+ */
+#define GET_ICACHE_END() (sh4_icache.page_vma + (~sh4_icache.mask) + 1)
+
 /* SH4 module functions */
 void sh4_init( void );
 void sh4_reset( void );
