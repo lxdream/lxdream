@@ -41,7 +41,7 @@ struct xlat_cache_block {
     int active;  /* 0 = deleted, 1 = normal. 2 = accessed (temp-space only) */
     uint32_t size;
     void **lut_entry; /* For deletion */
-    xlat_recovery_record_t recover_table;
+    uint32_t recover_table_offset; // Offset from code[0] of the recovery table;
     uint32_t recover_table_size;
     unsigned char code[0];
 } __attribute__((packed));

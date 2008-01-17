@@ -168,7 +168,7 @@ void * sh4_translate_basic_block( sh4addr_t start )
 	xlat_output = block->code + (xlat_output - oldstart);
     }
     memcpy( xlat_output, xlat_recovery, recovery_size);
-    block->recover_table = (xlat_recovery_record_t)xlat_output;
+    block->recover_table_offset = xlat_output - (uint8_t *)block->code;
     block->recover_table_size = xlat_recovery_posn;
     xlat_commit_block( finalsize, pc-start );
     return block->code;
