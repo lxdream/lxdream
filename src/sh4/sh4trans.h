@@ -87,6 +87,7 @@ extern uint32_t xlat_recovery_posn;
 void sh4_translate_begin_block( sh4addr_t pc );
 uint32_t sh4_translate_instruction( sh4addr_t pc );
 void sh4_translate_end_block( sh4addr_t pc );
+uint32_t sh4_translate_end_block_size();
 
 typedef void (*unwind_thunk_t)(void);
 
