@@ -213,7 +213,7 @@ xlat_recovery_record_t xlat_get_recovery( void *code, void *native_pc, gboolean 
     if( code != NULL ) {
 	xlat_cache_block_t block = BLOCK_FOR_CODE(code);
 	uint32_t count = block->recover_table_size;
-	xlat_recovery_record_t records = block->recover_table;
+	xlat_recovery_record_t records = (xlat_recovery_record_t)(&block->code[block->recover_table_offset]);
 	uint32_t posn;
 	if( recover_after ) {
 	    if( records[count-1].xlat_pc <= (uintptr_t)native_pc ) {
@@ -263,10 +263,10 @@ uint32_t xlat_get_block_size( void *block )
 uint32_t xlat_get_code_size( void *block )
 {
     xlat_cache_block_t xlt = (xlat_cache_block_t)(((char *)block)-sizeof(struct xlat_cache_block));
-    if( xlt->recover_table == NULL ) {
+    if( xlt->recover_table_offset == 0 ) {
 	return xlt->size;
     } else {
-	return ((uint8_t *)xlt->recover_table) - ((uint8_t *)block);
+	return xlt->recover_table_offset;
     }
 }
 
