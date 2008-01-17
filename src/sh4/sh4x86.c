@@ -364,8 +364,8 @@ static inline void pop_dr( int bankreg, int frm )
  */
 void sh4_translate_emit_breakpoint( sh4vma_t pc )
 {
-    load_imm32( R_EAX, XLAT_EXIT_BREAKPOINT );
-    call_func1( sh4_translate_exit, R_EAX );
+    load_imm32( R_EAX, pc );
+    call_func1( sh4_translate_breakpoint_hit, R_EAX );
 }
 
 /**

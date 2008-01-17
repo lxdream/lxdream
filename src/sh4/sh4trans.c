@@ -36,7 +36,6 @@ gboolean sh4_xlat_is_running()
 
 /**
  * Execute a timeslice using translated code only (ie translate/execute loop)
- * Note this version does not support breakpoints
  */
 uint32_t sh4_xlat_run_slice( uint32_t nanosecs ) 
 {
@@ -95,6 +94,7 @@ uint32_t sh4_xlat_run_slice( uint32_t nanosecs )
     }
 
     xlat_running = FALSE;
+    sh4_starting = FALSE;
 
     if( sh4r.sh4_state != SH4_STATE_STANDBY ) {
 	TMU_run_slice( nanosecs );
@@ -220,6 +220,14 @@ void sh4_translate_exit( int exit_code )
     // finally longjmp back into sh4_xlat_run_slice
     xlat_running = FALSE;
     longjmp(xlat_jmp_buf, exit_code);
+}
+
+void sh4_translate_breakpoint_hit(uint32_t pc)
+{
+    if( sh4_starting && sh4r.slice_cycle == 0 && pc == sh4r.pc ) {
+	return;
+    }
+    sh4_translate_exit( XLAT_EXIT_BREAKPOINT );
 }
 
 /**

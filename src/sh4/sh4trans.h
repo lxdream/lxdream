@@ -112,3 +112,10 @@ void sh4_translate_unwind_stack( gboolean is_completion, unwind_thunk_t thunk );
  * the specified exit code (one of the XLAT_EXIT_* values).
  */
 void sh4_translate_exit( int exit_code );
+
+/**
+ * Support function called from the translator when a breakpoint is hit.
+ * Either returns immediately (to skip the breakpoint), or aborts the current
+ * cycle and never returns.
+ */
+void sh4_translate_breakpoint_hit( sh4vma_t pc );
