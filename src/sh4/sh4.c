@@ -42,13 +42,14 @@ uint32_t sh4_run_slice( uint32_t );
 uint32_t sh4_xlat_run_slice( uint32_t );
 
 struct dreamcast_module sh4_module = { "SH4", sh4_init, sh4_reset, 
-				       NULL, sh4_run_slice, sh4_stop,
+				       sh4_start, sh4_run_slice, sh4_stop,
 				       sh4_save_state, sh4_load_state };
 
 struct sh4_registers sh4r;
 struct breakpoint_struct sh4_breakpoints[MAX_BREAKPOINTS];
 int sh4_breakpoint_count = 0;
 sh4ptr_t sh4_main_ram;
+gboolean sh4_starting = FALSE;
 static gboolean sh4_use_translator = FALSE;
 struct sh4_icache_struct sh4_icache = { NULL, -1, -1, 0 };
 
@@ -78,6 +79,11 @@ void sh4_init(void)
     sh4_main_ram = mem_get_region_by_name(MEM_REGION_MAIN);
     MMU_init();
     sh4_reset();
+}
+
+void sh4_start(void)
+{
+    sh4_starting = TRUE;
 }
 
 void sh4_reset(void)

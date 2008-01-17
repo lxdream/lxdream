@@ -34,6 +34,7 @@ extern "C" {
 extern struct breakpoint_struct sh4_breakpoints[MAX_BREAKPOINTS];
 extern int sh4_breakpoint_count;
 extern sh4ptr_t sh4_main_ram;
+extern gboolean sh4_starting;
 
 /**
  * Cached direct pointer to the current instruction page. If AT is on, this
