@@ -359,6 +359,12 @@ static inline void pop_dr( int bankreg, int frm )
 #endif
 #endif
 
+uint32_t sh4_translate_end_block_size()
+{
+    return EPILOGUE_SIZE + (sh4_x86.backpatch_posn*12);
+}
+
+
 /**
  * Embed a breakpoint into the generated code
  */

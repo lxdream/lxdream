@@ -88,6 +88,7 @@ uint32_t sh4_xlat_run_slice( uint32_t nanosecs )
 	    code = xlat_get_code_by_vma( sh4r.pc );
 	    if( code == NULL ) {
 		code = sh4_translate_basic_block( sh4r.pc );
+//		xlat_check_integrity();
 	    }
 	}
 	code = code();
@@ -152,21 +153,17 @@ void * sh4_translate_basic_block( sh4addr_t start )
 	}
     } while( !done );
     pc += (done - 2);
-    if( eob - xlat_output < EPILOGUE_SIZE ) {
+    int epilogue_size = sh4_translate_end_block_size();
+    uint32_t recovery_size = sizeof(struct xlat_recovery_record)*xlat_recovery_posn;
+    uint32_t finalsize = xlat_output - block->code + epilogue_size + recovery_size;
+    if( eob - xlat_output < finalsize ) {
 	uint8_t *oldstart = block->code;
-	block = xlat_extend_block( xlat_output - oldstart + EPILOGUE_SIZE );
+	block = xlat_extend_block( finalsize );
 	xlat_output = block->code + (xlat_output - oldstart);
     }	
     sh4_translate_end_block(pc);
 
     /* Write the recovery records onto the end of the code block */
-    uint32_t recovery_size = sizeof(struct xlat_recovery_record)*xlat_recovery_posn;
-    uint32_t finalsize = xlat_output - block->code + recovery_size;
-    if( finalsize > block->size ) {
-	uint8_t *oldstart = block->code;
-	block = xlat_extend_block( finalsize );
-	xlat_output = block->code + (xlat_output - oldstart);
-    }
     memcpy( xlat_output, xlat_recovery, recovery_size);
     block->recover_table_offset = xlat_output - (uint8_t *)block->code;
     block->recover_table_size = xlat_recovery_posn;
