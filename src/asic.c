@@ -247,7 +247,7 @@ void asic_check_cleared_events( )
 {
     int i, setA = 0, setB = 0, setC = 0;
     uint32_t bits;
-    for( i=0; i<3; i++ ) {
+    for( i=0; i<12; i+=4 ) {
 	bits = MMIO_READ( ASIC, PIRQ0 + i );
 	setA |= (bits & MMIO_READ(ASIC, IRQA0 + i ));
 	setB |= (bits & MMIO_READ(ASIC, IRQB0 + i ));
@@ -259,6 +259,30 @@ void asic_check_cleared_events( )
 	intc_clear_interrupt( INT_IRQ11 );
     if( setC == 0 )
 	intc_clear_interrupt( INT_IRQ9 );
+}
+
+void asic_event_mask_changed( )
+{
+    int i, setA = 0, setB = 0, setC = 0;
+    uint32_t bits;
+    for( i=0; i<12; i+=4 ) {
+	bits = MMIO_READ( ASIC, PIRQ0 + i );
+	setA |= (bits & MMIO_READ(ASIC, IRQA0 + i ));
+	setB |= (bits & MMIO_READ(ASIC, IRQB0 + i ));
+	setC |= (bits & MMIO_READ(ASIC, IRQC0 + i ));
+    }
+    if( setA == 0 ) 
+	intc_clear_interrupt( INT_IRQ13 );
+    else
+	intc_raise_interrupt( INT_IRQ13 );
+    if( setB == 0 )
+	intc_clear_interrupt( INT_IRQ11 );
+    else
+	intc_raise_interrupt( INT_IRQ11 );
+    if( setC == 0 )
+	intc_clear_interrupt( INT_IRQ9 );
+    else
+	intc_raise_interrupt( INT_IRQ9 );
 }
 
 void g2_dma_transfer( int channel )
@@ -344,6 +368,18 @@ void mmio_region_ASIC_write( uint32_t reg, uint32_t val )
 	    MMIO_WRITE( ASIC, PIRQ0, MMIO_READ( ASIC, PIRQ0 ) & 0x7FFFFFFF );
 	}
 	asic_check_cleared_events();
+	break;
+    case IRQA0:
+    case IRQA1:
+    case IRQA2:
+    case IRQB0:
+    case IRQB1:
+    case IRQB2:
+    case IRQC0:
+    case IRQC1:
+    case IRQC2:
+	MMIO_WRITE( ASIC, reg, val );
+	asic_event_mask_changed();
 	break;
     case SYSRESET:
 	if( val == 0x7611 ) {
