@@ -1273,7 +1273,7 @@ uint32_t sh4_disasm_instruction( uint32_t pc, char *buf, int len, char *opcode )
                     case 0x9:
                         { /* AND #imm, R0 */
                         uint32_t imm = (ir&0xFF); 
-                        snprintf( buf, len, "ADD     #%d, R0", imm );
+                        snprintf( buf, len, "AND     #%d, R0", imm );
                         }
                         break;
                     case 0xA:

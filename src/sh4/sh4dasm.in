@@ -73,7 +73,7 @@ ADD #imm, Rn     {: snprintf( buf, len, "ADD     #%d, R%d", imm, Rn ); :}
 ADDC Rm, Rn      {: snprintf( buf, len, "ADDC    R%d, R%d", Rm, Rn ); :}
 ADDV Rm, Rn      {: snprintf( buf, len, "ADDV    R%d, R%d", Rm, Rn ); :}
 AND Rm, Rn       {: snprintf( buf, len, "AND     R%d, R%d", Rm, Rn ); :}
-AND #imm, R0     {: snprintf( buf, len, "ADD     #%d, R0", imm ); :}
+AND #imm, R0     {: snprintf( buf, len, "AND     #%d, R0", imm ); :}
 AND.B #imm, @(R0, GBR) {: snprintf( buf, len, "AND.B   #%d, @(R0, GBR)", imm ); :}
 BF disp          {: snprintf( buf, len, "BF      $%xh", disp+pc+4 ); :}
 BF/S disp        {: snprintf( buf, len, "BF/S    $%xh", disp+pc+4 ); :}
