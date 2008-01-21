@@ -239,8 +239,12 @@ void sh4_translate_end_block( sh4addr_t pc ) {
 	for( i=0; i< sh4_x86.backpatch_posn; i++ ) {
 	    *sh4_x86.backpatch_list[i].fixup_addr =
 		xlat_output - ((uint8_t *)sh4_x86.backpatch_list[i].fixup_addr) - 4;
-	    if( sh4_x86.backpatch_list[i].exc_code == -1 ) {
+	    if( sh4_x86.backpatch_list[i].exc_code < 0 ) {
 		load_imm32( R_EDX, sh4_x86.backpatch_list[i].fixup_icount );
+		int stack_adj = -1 - sh4_x86.backpatch_list[i].exc_code;
+		if( stack_adj > 0 ) { 
+		    ADD_imm8s_r32( stack_adj, R_ESP );
+		}
 		int rel = preexc_ptr - xlat_output;
 		JMP_rel(rel);
 	    } else {

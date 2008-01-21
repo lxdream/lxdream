@@ -88,9 +88,9 @@ uint32_t sh4_xlat_run_slice( uint32_t nanosecs )
 	    code = xlat_get_code_by_vma( sh4r.pc );
 	    if( code == NULL ) {
 		code = sh4_translate_basic_block( sh4r.pc );
-//		xlat_check_integrity();
 	    }
 	}
+	uint32_t oldpc = sh4r.pc;
 	code = code();
     }
 
@@ -105,8 +105,17 @@ uint32_t sh4_xlat_run_slice( uint32_t nanosecs )
 }
 
 uint8_t *xlat_output;
+xlat_cache_block_t xlat_current_block;
 struct xlat_recovery_record xlat_recovery[MAX_RECOVERY_SIZE];
 uint32_t xlat_recovery_posn;
+
+void sh4_translate_add_recovery( uint32_t icount )
+{
+    xlat_recovery[xlat_recovery_posn].xlat_offset = 
+	((uintptr_t)xlat_output) - ((uintptr_t)xlat_current_block->code);
+    xlat_recovery[xlat_recovery_posn].sh4_icount = icount;
+    xlat_recovery_posn++;
+}
 
 /**
  * Translate a linear basic block, ie all instructions from the start address
@@ -120,10 +129,10 @@ void * sh4_translate_basic_block( sh4addr_t start )
     sh4addr_t pc = start;
     sh4addr_t lastpc = (pc&0xFFFFF000)+0x1000;
     int done, i;
-    xlat_cache_block_t block = xlat_start_block( start );
-    xlat_output = (uint8_t *)block->code;
+    xlat_current_block = xlat_start_block( start );
+    xlat_output = (uint8_t *)xlat_current_block->code;
     xlat_recovery_posn = 0;
-    uint8_t *eob = xlat_output + block->size;
+    uint8_t *eob = xlat_output + xlat_current_block->size;
 
     if( GET_ICACHE_END() < lastpc ) {
 	lastpc = GET_ICACHE_END();
@@ -140,10 +149,10 @@ void * sh4_translate_basic_block( sh4addr_t start )
 	    }
 	}
 	if( eob - xlat_output < MAX_INSTRUCTION_SIZE ) {
-	    uint8_t *oldstart = block->code;
-	    block = xlat_extend_block( xlat_output - oldstart + MAX_INSTRUCTION_SIZE );
-	    xlat_output = block->code + (xlat_output - oldstart);
-	    eob = block->code + block->size;
+	    uint8_t *oldstart = xlat_current_block->code;
+	    xlat_current_block = xlat_extend_block( xlat_output - oldstart + MAX_INSTRUCTION_SIZE );
+	    xlat_output = xlat_current_block->code + (xlat_output - oldstart);
+	    eob = xlat_current_block->code + xlat_current_block->size;
 	}
 	done = sh4_translate_instruction( pc ); 
 	assert( xlat_output <= eob );
@@ -155,20 +164,20 @@ void * sh4_translate_basic_block( sh4addr_t start )
     pc += (done - 2);
     int epilogue_size = sh4_translate_end_block_size();
     uint32_t recovery_size = sizeof(struct xlat_recovery_record)*xlat_recovery_posn;
-    uint32_t finalsize = xlat_output - block->code + epilogue_size + recovery_size;
+    uint32_t finalsize = xlat_output - xlat_current_block->code + epilogue_size + recovery_size;
     if( eob - xlat_output < finalsize ) {
-	uint8_t *oldstart = block->code;
-	block = xlat_extend_block( finalsize );
-	xlat_output = block->code + (xlat_output - oldstart);
+	uint8_t *oldstart = xlat_current_block->code;
+	xlat_current_block = xlat_extend_block( finalsize );
+	xlat_output = xlat_current_block->code + (xlat_output - oldstart);
     }	
     sh4_translate_end_block(pc);
 
     /* Write the recovery records onto the end of the code block */
     memcpy( xlat_output, xlat_recovery, recovery_size);
-    block->recover_table_offset = xlat_output - (uint8_t *)block->code;
-    block->recover_table_size = xlat_recovery_posn;
+    xlat_current_block->recover_table_offset = xlat_output - (uint8_t *)xlat_current_block->code;
+    xlat_current_block->recover_table_size = xlat_recovery_posn;
     xlat_commit_block( finalsize, pc-start );
-    return block->code;
+    return xlat_current_block->code;
 }
 
 /**

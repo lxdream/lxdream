@@ -37,7 +37,7 @@
 struct backpatch_record {
     uint32_t *fixup_addr;
     uint32_t fixup_icount;
-    uint32_t exc_code;
+    int32_t exc_code;
 };
 
 #define MAX_RECOVERY_SIZE 2048
@@ -67,8 +67,6 @@ struct sh4_x86_state {
     struct backpatch_record *backpatch_list;
     uint32_t backpatch_posn;
     uint32_t backpatch_size;
-    struct xlat_recovery_record recovery_list[MAX_RECOVERY_SIZE];
-    uint32_t recovery_posn;
 };
 
 #define TSTATE_NONE -1
@@ -121,13 +119,6 @@ static void sh4_x86_add_backpatch( uint8_t *fixup_addr, uint32_t fixup_pc, uint3
     sh4_x86.backpatch_list[sh4_x86.backpatch_posn].fixup_icount = (fixup_pc - sh4_x86.block_start_pc)>>1;
     sh4_x86.backpatch_list[sh4_x86.backpatch_posn].exc_code = exc_code;
     sh4_x86.backpatch_posn++;
-}
-
-void sh4_x86_add_recovery( uint32_t pc )
-{
-    xlat_recovery[xlat_recovery_posn].xlat_pc = (uintptr_t)xlat_output;
-    xlat_recovery[xlat_recovery_posn].sh4_icount = (pc - sh4_x86.block_start_pc)>>1;
-    xlat_recovery_posn++;
 }
 
 /**
@@ -336,6 +327,8 @@ static inline void pop_dr( int bankreg, int frm )
  * on, otherwise do nothing. Clobbers EAX, ECX and EDX. May raise a TLB exception or address error.
  */
 #define MMU_TRANSLATE_READ( addr_reg ) if( sh4_x86.tlb_on ) { call_func1(mmu_vma_to_phys_read, addr_reg); CMP_imm32_r32(MMU_VMA_ERROR, R_EAX); JE_exc(-1); MEM_RESULT(addr_reg); }
+
+#define MMU_TRANSLATE_READ_EXC( addr_reg, exc_code ) if( sh4_x86.tlb_on ) { call_func1(mmu_vma_to_phys_read, addr_reg); CMP_imm32_r32(MMU_VMA_ERROR, R_EAX); JE_exc(exc_code); MEM_RESULT(addr_reg) }
 /**
  * Perform MMU translation on the address in addr_reg for a write operation, iff the TLB is turned 
  * on, otherwise do nothing. Clobbers EAX, ECX and EDX. May raise a TLB exception or address error.
@@ -361,7 +354,11 @@ static inline void pop_dr( int bankreg, int frm )
 
 uint32_t sh4_translate_end_block_size()
 {
-    return EPILOGUE_SIZE + (sh4_x86.backpatch_posn*12);
+    if( sh4_x86.backpatch_posn <= 3 ) {
+	return EPILOGUE_SIZE + (sh4_x86.backpatch_posn*12);
+    } else {
+	return EPILOGUE_SIZE + 48 + (sh4_x86.backpatch_posn-3)*15;
+    }
 }
 
 
@@ -428,7 +425,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
 	 */
 
     if( !sh4_x86.in_delay_slot ) {
-	sh4_x86_add_recovery(pc);
+	sh4_translate_add_recovery( (pc - sh4_x86.block_start_pc)>>1 );
     }
 %%
 /* ALU operations */
@@ -654,7 +651,7 @@ MAC.L @Rm+, @Rn+ {:
 	PUSH_realigned_r32( R_EAX );
 	load_reg( R_EAX, Rn );
 	ADD_imm8s_r32( 4, R_EAX );
-	MMU_TRANSLATE_READ( R_EAX );
+	MMU_TRANSLATE_READ_EXC( R_EAX, -5 );
 	ADD_imm8s_sh4r( 8, REG_OFFSET(r[Rn]) );
 	// Note translate twice in case of page boundaries. Maybe worth
 	// adding a page-boundary check to skip the second translation
@@ -662,10 +659,11 @@ MAC.L @Rm+, @Rn+ {:
 	load_reg( R_EAX, Rm );
 	check_ralign32( R_EAX );
 	MMU_TRANSLATE_READ( R_EAX );
+	load_reg( R_ECX, Rn );
+	check_ralign32( R_ECX );
 	PUSH_realigned_r32( R_EAX );
-	load_reg( R_EAX, Rn );
-	check_ralign32( R_EAX );
-	MMU_TRANSLATE_READ( R_EAX );
+	MMU_TRANSLATE_READ_EXC( R_ECX, -5 );
+	MOV_r32_r32( R_ECX, R_EAX );
 	ADD_imm8s_sh4r( 4, REG_OFFSET(r[Rn]) );
 	ADD_imm8s_sh4r( 4, REG_OFFSET(r[Rm]) );
     }
@@ -694,7 +692,7 @@ MAC.W @Rm+, @Rn+ {:
 	PUSH_realigned_r32( R_EAX );
 	load_reg( R_EAX, Rn );
 	ADD_imm8s_r32( 2, R_EAX );
-	MMU_TRANSLATE_READ( R_EAX );
+	MMU_TRANSLATE_READ_EXC( R_EAX, -5 );
 	ADD_imm8s_sh4r( 4, REG_OFFSET(r[Rn]) );
 	// Note translate twice in case of page boundaries. Maybe worth
 	// adding a page-boundary check to skip the second translation
@@ -702,10 +700,11 @@ MAC.W @Rm+, @Rn+ {:
 	load_reg( R_EAX, Rm );
 	check_ralign16( R_EAX );
 	MMU_TRANSLATE_READ( R_EAX );
+	load_reg( R_ECX, Rn );
+	check_ralign16( R_ECX );
 	PUSH_realigned_r32( R_EAX );
-	load_reg( R_EAX, Rn );
-	check_ralign16( R_EAX );
-	MMU_TRANSLATE_READ( R_EAX );
+	MMU_TRANSLATE_READ_EXC( R_ECX, -5 );
+	MOV_r32_r32( R_ECX, R_EAX );
 	ADD_imm8s_sh4r( 2, REG_OFFSET(r[Rn]) );
 	ADD_imm8s_sh4r( 2, REG_OFFSET(r[Rm]) );
     }
