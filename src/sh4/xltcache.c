@@ -211,23 +211,24 @@ void *xlat_get_code( sh4addr_t address )
 xlat_recovery_record_t xlat_get_recovery( void *code, void *native_pc, gboolean recover_after )
 {
     if( code != NULL ) {
+	uintptr_t pc_offset = ((uint8_t *)native_pc) - ((uint8_t *)code);
 	xlat_cache_block_t block = BLOCK_FOR_CODE(code);
 	uint32_t count = block->recover_table_size;
 	xlat_recovery_record_t records = (xlat_recovery_record_t)(&block->code[block->recover_table_offset]);
 	uint32_t posn;
 	if( recover_after ) {
-	    if( records[count-1].xlat_pc <= (uintptr_t)native_pc ) {
+	    if( records[count-1].xlat_offset <= pc_offset ) {
 		return NULL;
 	    }
 	    for( posn=count-1; posn > 0; posn-- ) {
-		if( records[posn-1].xlat_pc < (uintptr_t)native_pc ) {
+		if( records[posn-1].xlat_offset < pc_offset ) {
 		    return &records[posn];
 		}
 	    }
 	    return &records[0]; // shouldn't happen
 	} else {
 	    for( posn = 1; posn < count; posn++ ) {
-		if( records[posn].xlat_pc >= (uintptr_t)native_pc ) {
+		if( records[posn].xlat_offset >= pc_offset ) {
 		    return &records[posn-1];
 		}
 	    }
@@ -322,6 +323,8 @@ static void xlat_promote_to_old_space( xlat_cache_block_t block )
     start_block->active = 1;
     start_block->size = allocation;
     start_block->lut_entry = block->lut_entry;
+    start_block->recover_table_offset = block->recover_table_offset;
+    start_block->recover_table_size = block->recover_table_size;
     *block->lut_entry = &start_block->code;
     memcpy( start_block->code, block->code, block->size );
     xlat_old_cache_ptr = xlat_cut_block(start_block, size );
@@ -343,6 +346,9 @@ void xlat_promote_to_temp_space( xlat_cache_block_t block )
     do {
 	if( curr->active == BLOCK_USED ) {
 	    xlat_promote_to_old_space( curr );
+	} else if( curr->active == BLOCK_ACTIVE ) {
+	    // Active but not used, release block
+	   *((uintptr_t *)curr->lut_entry) &= ((uintptr_t)0x03);
 	}
 	allocation += curr->size + sizeof(struct xlat_cache_block);
 	curr = NEXT(curr);
@@ -362,6 +368,8 @@ void xlat_promote_to_temp_space( xlat_cache_block_t block )
     start_block->active = 1;
     start_block->size = allocation;
     start_block->lut_entry = block->lut_entry;
+    start_block->recover_table_offset = block->recover_table_offset;
+    start_block->recover_table_size = block->recover_table_size;
     *block->lut_entry = &start_block->code;
     memcpy( start_block->code, block->code, block->size );
     xlat_temp_cache_ptr = xlat_cut_block(start_block, size );
@@ -482,7 +490,7 @@ void xlat_check_cache_integrity( xlat_cache_block_t cache, xlat_cache_block_t pt
 	cache = NEXT(cache);
     }
     assert( cache == tail );
-    assert( foundptr == 1 );
+    assert( foundptr == 1 || tail == ptr );
 }
 
 void xlat_check_integrity( )

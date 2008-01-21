@@ -32,7 +32,7 @@
  * 
  */
 typedef struct xlat_recovery_record {
-    uintptr_t xlat_pc;    // native (translated) pc 
+    uint32_t xlat_offset;    // native (translated) pc 
     uint32_t sh4_icount; // instruction number of the corresponding SH4 instruction
                          // (0 = first instruction, 1 = second instruction, ... )
 } *xlat_recovery_record_t;
