@@ -43,14 +43,15 @@ const struct reg_desc_struct sh4_reg_map[] =
 
 
 const struct cpu_desc_struct sh4_cpu_desc = 
-    { "SH4", sh4_disasm_instruction, sh4_execute_instruction, mem_has_page, 
+    { "SH4", sh4_disasm_instruction, sh4_execute_instruction, sh4_has_page, 
       sh4_set_breakpoint, sh4_clear_breakpoint, sh4_get_breakpoint, 2,
       (char *)&sh4r, sizeof(sh4r), sh4_reg_map,
       &sh4r.pc };
 
-uint32_t sh4_disasm_instruction( uint32_t pc, char *buf, int len, char *opcode )
+uint32_t sh4_disasm_instruction( sh4vma_t pc, char *buf, int len, char *opcode )
 {
-    uint16_t ir = sh4_read_word(pc);
+    sh4addr_t addr = mmu_vma_to_phys_disasm(pc);
+    uint16_t ir = sh4_read_word(addr);
 
 #define UNDEF(ir) snprintf( buf, len, "????    " );
 #define RN(ir) ((ir&0x0F00)>>8)
@@ -1199,7 +1200,7 @@ uint32_t sh4_disasm_instruction( uint32_t pc, char *buf, int len, char *opcode )
             case 0x9:
                 { /* MOV.W @(disp, PC), Rn */
                 uint32_t Rn = ((ir>>8)&0xF); uint32_t disp = (ir&0xFF)<<1; 
-                snprintf( buf, len, "MOV.W   @($%xh), R%d ; <- #%08x", disp + pc + 4, Rn, sh4_read_word(disp+pc+4) );
+                snprintf( buf, len, "MOV.W   @($%xh), R%d ; <- #%08x", disp + pc + 4, Rn, sh4_read_word(disp+addr+4) );
                 }
                 break;
             case 0xA:
@@ -1317,7 +1318,7 @@ uint32_t sh4_disasm_instruction( uint32_t pc, char *buf, int len, char *opcode )
             case 0xD:
                 { /* MOV.L @(disp, PC), Rn */
                 uint32_t Rn = ((ir>>8)&0xF); uint32_t disp = (ir&0xFF)<<2; 
-                snprintf( buf, len, "MOV.L   @($%xh), R%d ; <- #%08x", disp + (pc & 0xFFFFFFFC) + 4, Rn, sh4_read_long(disp+(pc&0xFFFFFFFC)+4) );
+                snprintf( buf, len, "MOV.L   @($%xh), R%d ; <- #%08x", disp + (pc & 0xFFFFFFFC) + 4, Rn, sh4_read_long(disp+(addr&0xFFFFFFFC)+4) );
                 }
                 break;
             case 0xE:

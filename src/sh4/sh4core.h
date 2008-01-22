@@ -110,6 +110,7 @@ void sh4_ftrv( float *fv, float *xmtrx );
 uint32_t sh4_read_sr(void);
 void sh4_write_sr(uint32_t val);
 void signsat48(void);
+gboolean sh4_has_page( sh4vma_t vma );
 
 /* SH4 Memory */
 #define MMU_VMA_ERROR 0x8000000
@@ -132,6 +133,7 @@ gboolean mmu_update_icache( sh4vma_t addr );
  */
 sh4addr_t mmu_vma_to_phys_read( sh4vma_t addr );
 sh4addr_t mmu_vma_to_phys_write( sh4vma_t addr );
+sh4addr_t mmu_vma_to_phys_disasm( sh4vma_t addr );
 
 int64_t sh4_read_quad( sh4addr_t addr );
 int32_t sh4_read_long( sh4addr_t addr );

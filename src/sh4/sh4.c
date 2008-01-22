@@ -358,3 +358,8 @@ void sh4_ftrv( float *target, float *xf )
 	xf[10]*fv[2] + xf[14]*fv[3];
 }
 
+gboolean sh4_has_page( sh4vma_t vma )
+{
+    sh4addr_t addr = mmu_vma_to_phys_disasm(vma);
+    return addr != MMU_VMA_ERROR && mem_has_page(addr);
+}
