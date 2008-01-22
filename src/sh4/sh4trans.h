@@ -74,6 +74,7 @@ void *sh4_translate_basic_block( sh4addr_t start );
 
 extern uint8_t *xlat_output;
 extern struct xlat_recovery_record xlat_recovery[MAX_RECOVERY_SIZE];
+extern xlat_cache_block_t xlat_current_block;
 extern uint32_t xlat_recovery_posn;
 
 /******************************************************************************
