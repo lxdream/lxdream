@@ -371,29 +371,39 @@ void sh4_translate_emit_breakpoint( sh4vma_t pc )
     call_func1( sh4_translate_breakpoint_hit, R_EAX );
 }
 
+
+#define UNTRANSLATABLE(pc) !IS_IN_ICACHE(pc)
+
 /**
  * Embed a call to sh4_execute_instruction for situations that we
- * can't translate (mainly page-crossing delay slots at the moment).
- * Caller is responsible for setting new_pc.
+ * can't translate (just page-crossing delay slots at the moment).
+ * Caller is responsible for setting new_pc before calling this function.
+ *
+ * Performs:
+ *   Set PC = endpc
+ *   Set sh4r.in_delay_slot = sh4_x86.in_delay_slot
+ *   Update slice_cycle for endpc+2 (single step doesn't update slice_cycle)
+ *   Call sh4_execute_instruction
+ *   Call xlat_get_code_by_vma / xlat_get_code as for normal exit
  */
-void sh4_emulator_exit( sh4vma_t endpc )
+void exit_block_emu( sh4vma_t endpc )
 {
     load_imm32( R_ECX, endpc - sh4_x86.block_start_pc );   // 5
     ADD_r32_sh4r( R_ECX, R_PC );
     
-    load_imm32( R_ECX, ((endpc - sh4_x86.block_start_pc)>>1)*sh4_cpu_period ); // 5
+    load_imm32( R_ECX, (((endpc - sh4_x86.block_start_pc)>>1)+1)*sh4_cpu_period ); // 5
     ADD_r32_sh4r( R_ECX, REG_OFFSET(slice_cycle) );     // 6
     load_imm32( R_ECX, sh4_x86.in_delay_slot ? 1 : 0 );
     store_spreg( R_ECX, REG_OFFSET(in_delay_slot) );
 
     call_func0( sh4_execute_instruction );    
-    load_imm32( R_EAX, R_PC );
+    load_spreg( R_EAX, R_PC );
     if( sh4_x86.tlb_on ) {
 	call_func1(xlat_get_code_by_vma,R_EAX);
     } else {
 	call_func1(xlat_get_code,R_EAX);
     }
-    AND_imm8s_r32( 0xFC, R_EAX ); // 3
+    AND_imm8s_rptr( 0xFC, R_EAX );
     POP_r32(R_EBP);
     RET();
 } 
@@ -507,11 +517,17 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             	ADD_sh4r_r32( REG_OFFSET(r[Rn]), R_EAX );
                             	store_spreg( R_EAX, R_NEW_PC );
                             
+                            	sh4_x86.in_delay_slot = DELAY_PC;
                             	sh4_x86.tstate = TSTATE_NONE;
-                            	sh4_translate_instruction( pc + 2 );
-                            	exit_block_newpcset(pc+2);
                             	sh4_x86.branch_taken = TRUE;
-                            	return 4;
+                            	if( UNTRANSLATABLE(pc+2) ) {
+                            	    exit_block_emu(pc+2);
+                            	    return 2;
+                            	} else {
+                            	    sh4_translate_instruction( pc + 2 );
+                            	    exit_block_newpcset(pc+2);
+                            	    return 4;
+                            	}
                                 }
                                 }
                                 break;
@@ -527,10 +543,15 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             	store_spreg( R_EAX, R_NEW_PC );
                             	sh4_x86.in_delay_slot = DELAY_PC;
                             	sh4_x86.tstate = TSTATE_NONE;
-                            	sh4_translate_instruction( pc + 2 );
-                            	exit_block_newpcset(pc+2);
                             	sh4_x86.branch_taken = TRUE;
-                            	return 4;
+                            	if( UNTRANSLATABLE(pc+2) ) {
+                            	    exit_block_emu(pc+2);
+                            	    return 2;
+                            	} else {
+                            	    sh4_translate_instruction( pc + 2 );
+                            	    exit_block_newpcset(pc+2);
+                            	    return 4;
+                            	}
                                 }
                                 }
                                 break;
@@ -774,10 +795,15 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             	load_spreg( R_ECX, R_PR );
                             	store_spreg( R_ECX, R_NEW_PC );
                             	sh4_x86.in_delay_slot = DELAY_PC;
-                            	sh4_translate_instruction(pc+2);
-                            	exit_block_newpcset(pc+2);
                             	sh4_x86.branch_taken = TRUE;
-                            	return 4;
+                            	if( UNTRANSLATABLE(pc+2) ) {
+                            	    exit_block_emu(pc+2);
+                            	    return 2;
+                            	} else {
+                            	    sh4_translate_instruction(pc+2);
+                            	    exit_block_newpcset(pc+2);
+                            	    return 4;
+                            	}
                                 }
                                 }
                                 break;
@@ -804,10 +830,15 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             	sh4_x86.priv_checked = FALSE;
                             	sh4_x86.fpuen_checked = FALSE;
                             	sh4_x86.tstate = TSTATE_NONE;
-                            	sh4_translate_instruction(pc+2);
-                            	exit_block_newpcset(pc+2);
                             	sh4_x86.branch_taken = TRUE;
-                            	return 4;
+                            	if( UNTRANSLATABLE(pc+2) ) {
+                            	    exit_block_emu(pc+2);
+                            	    return 2;
+                            	} else {
+                            	    sh4_translate_instruction(pc+2);
+                            	    exit_block_newpcset(pc+2);
+                            	    return 4;
+                            	}
                                 }
                                 }
                                 break;
@@ -1947,10 +1978,17 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             	store_spreg( R_EAX, R_PR );
                             	load_reg( R_ECX, Rn );
                             	store_spreg( R_ECX, R_NEW_PC );
-                            	sh4_translate_instruction(pc+2);
-                            	exit_block_newpcset(pc+2);
+                            	sh4_x86.in_delay_slot = DELAY_PC;
                             	sh4_x86.branch_taken = TRUE;
-                            	return 4;
+                            	sh4_x86.tstate = TSTATE_NONE;
+                            	if( UNTRANSLATABLE(pc+2) ) {
+                            	    exit_block_emu(pc+2);
+                            	    return 2;
+                            	} else {
+                            	    sh4_translate_instruction(pc+2);
+                            	    exit_block_newpcset(pc+2);
+                            	    return 4;
+                            	}
                                 }
                                 }
                                 break;
@@ -1978,10 +2016,15 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             	load_reg( R_ECX, Rn );
                             	store_spreg( R_ECX, R_NEW_PC );
                             	sh4_x86.in_delay_slot = DELAY_PC;
-                            	sh4_translate_instruction(pc+2);
-                            	exit_block_newpcset(pc+2);
                             	sh4_x86.branch_taken = TRUE;
-                            	return 4;
+                            	if( UNTRANSLATABLE(pc+2) ) {
+                            	    exit_block_emu(pc+2);
+                            	    return 2;
+                            	} else {
+                            	    sh4_translate_instruction(pc+2);
+                            	    exit_block_newpcset(pc+2);
+                            	    return 4;
+                            	}
                                 }
                                 }
                                 break;
@@ -2277,7 +2320,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                         { /* SWAP.B Rm, Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
                         load_reg( R_EAX, Rm );
-                        XCHG_r8_r8( R_AL, R_AH );
+                        XCHG_r8_r8( R_AL, R_AH ); // NB: does not touch EFLAGS
                         store_reg( R_EAX, Rn );
                         }
                         break;
@@ -2449,17 +2492,29 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     	SLOTILLEGAL();
                         } else {
                     	sh4_x86.in_delay_slot = DELAY_PC;
-                    	if( sh4_x86.tstate == TSTATE_NONE ) {
-                    	    CMP_imm8s_sh4r( 1, R_T );
-                    	    sh4_x86.tstate = TSTATE_E;
+                    	if( UNTRANSLATABLE(pc+2) ) {
+                    	    load_imm32( R_EAX, pc + 4 - sh4_x86.block_start_pc );
+                    	    JF_rel8(6,nottaken);
+                    	    ADD_imm32_r32( disp, R_EAX );
+                    	    JMP_TARGET(nottaken);
+                    	    ADD_sh4r_r32( R_PC, R_EAX );
+                    	    store_spreg( R_EAX, R_NEW_PC );
+                    	    exit_block_emu(pc+2);
+                    	    sh4_x86.branch_taken = TRUE;
+                    	    return 2;
+                    	} else {
+                    	    if( sh4_x86.tstate == TSTATE_NONE ) {
+                    		CMP_imm8s_sh4r( 1, R_T );
+                    		sh4_x86.tstate = TSTATE_E;
+                    	    }
+                    	    OP(0x0F); OP(0x80+(sh4_x86.tstate^1)); uint32_t *patch = (uint32_t *)xlat_output; OP32(0); // JF rel32
+                    	    sh4_translate_instruction(pc+2);
+                    	    exit_block_rel( disp + pc + 4, pc+4 );
+                    	    // not taken
+                    	    *patch = (xlat_output - ((uint8_t *)patch)) - 4;
+                    	    sh4_translate_instruction(pc+2);
+                    	    return 4;
                     	}
-                    	OP(0x0F); OP(0x80+(sh4_x86.tstate^1)); uint32_t *patch = (uint32_t *)xlat_output; OP32(0); // JE rel32
-                    	sh4_translate_instruction(pc+2);
-                    	exit_block_rel( disp + pc + 4, pc+4 );
-                    	// not taken
-                    	*patch = (xlat_output - ((uint8_t *)patch)) - 4;
-                    	sh4_translate_instruction(pc+2);
-                    	return 4;
                         }
                         }
                         break;
@@ -2469,19 +2524,32 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                         if( sh4_x86.in_delay_slot ) {
                     	SLOTILLEGAL();
                         } else {
-                    	sh4vma_t target = disp + pc + 4;
                     	sh4_x86.in_delay_slot = DELAY_PC;
-                    	if( sh4_x86.tstate == TSTATE_NONE ) {
-                    	    CMP_imm8s_sh4r( 1, R_T );
-                    	    sh4_x86.tstate = TSTATE_E;
+                    	if( UNTRANSLATABLE(pc+2) ) {
+                    	    load_imm32( R_EAX, pc + 4 - sh4_x86.block_start_pc );
+                    	    JT_rel8(6,nottaken);
+                    	    ADD_imm32_r32( disp, R_EAX );
+                    	    JMP_TARGET(nottaken);
+                    	    ADD_sh4r_r32( R_PC, R_EAX );
+                    	    store_spreg( R_EAX, R_NEW_PC );
+                    	    exit_block_emu(pc+2);
+                    	    sh4_x86.branch_taken = TRUE;
+                    	    return 2;
+                    	} else {
+                    	    if( sh4_x86.tstate == TSTATE_NONE ) {
+                    		CMP_imm8s_sh4r( 1, R_T );
+                    		sh4_x86.tstate = TSTATE_E;
+                    	    }
+                    	    sh4vma_t target = disp + pc + 4;
+                    	    OP(0x0F); OP(0x80+sh4_x86.tstate); uint32_t *patch = (uint32_t *)xlat_output; OP32(0); // JT rel32
+                    	    sh4_translate_instruction(pc+2);
+                    	    exit_block_rel( target, pc+4 );
+                    	    
+                    	    // not taken
+                    	    *patch = (xlat_output - ((uint8_t *)patch)) - 4;
+                    	    sh4_translate_instruction(pc+2);
+                    	    return 4;
                     	}
-                    	OP(0x0F); OP(0x80+sh4_x86.tstate); uint32_t *patch = (uint32_t *)xlat_output; OP32(0); // JNE rel32
-                    	sh4_translate_instruction(pc+2);
-                    	exit_block_rel( target, pc+4 );
-                    	// not taken
-                    	*patch = (xlat_output - ((uint8_t *)patch)) - 4;
-                    	sh4_translate_instruction(pc+2);
-                    	return 4;
                         }
                         }
                         break;
@@ -2520,10 +2588,18 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
             	SLOTILLEGAL();
                 } else {
             	sh4_x86.in_delay_slot = DELAY_PC;
-            	sh4_translate_instruction( pc + 2 );
-            	exit_block_rel( disp + pc + 4, pc+4 );
             	sh4_x86.branch_taken = TRUE;
-            	return 4;
+            	if( UNTRANSLATABLE(pc+2) ) {
+            	    load_spreg( R_EAX, R_PC );
+            	    ADD_imm32_r32( pc + disp + 4 - sh4_x86.block_start_pc, R_EAX );
+            	    store_spreg( R_EAX, R_NEW_PC );
+            	    exit_block_emu(pc+2);
+            	    return 2;
+            	} else {
+            	    sh4_translate_instruction( pc + 2 );
+            	    exit_block_rel( disp + pc + 4, pc+4 );
+            	    return 4;
+            	}
                 }
                 }
                 break;
@@ -2537,10 +2613,18 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
             	ADD_imm32_r32( pc + 4 - sh4_x86.block_start_pc, R_EAX );
             	store_spreg( R_EAX, R_PR );
             	sh4_x86.in_delay_slot = DELAY_PC;
-            	sh4_translate_instruction( pc + 2 );
-            	exit_block_rel( disp + pc + 4, pc+4 );
             	sh4_x86.branch_taken = TRUE;
-            	return 4;
+            	sh4_x86.tstate = TSTATE_NONE;
+            	if( UNTRANSLATABLE(pc+2) ) {
+            	    ADD_imm32_r32( disp, R_EAX );
+            	    store_spreg( R_EAX, R_NEW_PC );
+            	    exit_block_emu(pc+2);
+            	    return 2;
+            	} else {
+            	    sh4_translate_instruction( pc + 2 );
+            	    exit_block_rel( disp + pc + 4, pc+4 );
+            	    return 4;
+            	}
                 }
                 }
                 break;
