@@ -39,6 +39,7 @@ struct option longopts[1] = { { NULL, 0, 0, 0 } };
 char *input_file = NULL;
 char *diff_file = NULL;
 char *output_file = NULL;
+gboolean sh4_starting;
 uint32_t start_addr = 0x8C010000;
 uint32_t sh4_cpu_period = 5;
 sh4ptr_t sh4_main_ram;
@@ -82,6 +83,7 @@ void sh4_write_word( uint32_t addr, uint32_t val ) {}
 void sh4_write_long( uint32_t addr, uint32_t val ) {}
 void mem_copy_to_sh4( sh4addr_t addr, sh4ptr_t src, size_t size ) { }
 void sh4_write_sr( uint32_t val ) { }
+gboolean sh4_has_page( sh4vma_t vma ) { return TRUE; }
 void syscall_invoke( uint32_t val ) { }
 void dreamcast_stop() {} 
 void dreamcast_reset() {}
