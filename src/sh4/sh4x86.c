@@ -35,7 +35,7 @@
 #define DEFAULT_BACKPATCH_SIZE 4096
 
 struct backpatch_record {
-    uint32_t *fixup_addr;
+    uint32_t fixup_offset;
     uint32_t fixup_icount;
     int32_t exc_code;
 };
@@ -115,7 +115,8 @@ static void sh4_x86_add_backpatch( uint8_t *fixup_addr, uint32_t fixup_pc, uint3
     if( sh4_x86.in_delay_slot ) {
 	fixup_pc -= 2;
     }
-    sh4_x86.backpatch_list[sh4_x86.backpatch_posn].fixup_addr = (uint32_t *)fixup_addr;
+    sh4_x86.backpatch_list[sh4_x86.backpatch_posn].fixup_offset = 
+	((uint8_t *)fixup_addr) - ((uint8_t *)xlat_current_block->code);
     sh4_x86.backpatch_list[sh4_x86.backpatch_posn].fixup_icount = (fixup_pc - sh4_x86.block_start_pc)>>1;
     sh4_x86.backpatch_list[sh4_x86.backpatch_posn].exc_code = exc_code;
     sh4_x86.backpatch_posn++;
