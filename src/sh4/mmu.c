@@ -849,6 +849,41 @@ gboolean mmu_update_icache( sh4vma_t addr )
     }
 }
 
+/**
+ * Translate address for disassembly purposes (ie performs an instruction 
+ * lookup) - does not raise exceptions or modify any state, and ignores
+ * protection bits. Returns the translated address, or MMU_VMA_ERROR
+ * on translation failure. 
+ */
+sh4addr_t mmu_vma_to_phys_disasm( sh4vma_t vma )
+{
+    if( vma & 0x80000000 ) {
+	if( vma < 0xC0000000 ) {
+	    /* P1, P2 and P4 regions are pass-through (no translation) */
+	    return VMA_TO_EXT_ADDR(vma);
+	} else if( vma >= 0xE0000000 && vma < 0xFFFFFF00 ) {
+	    /* Not translatable */
+	    return MMU_VMA_ERROR;
+	}
+    }
+
+    uint32_t mmucr = MMIO_READ(MMU,MMUCR);
+    if( (mmucr & MMUCR_AT) == 0 ) {
+	return VMA_TO_EXT_ADDR(vma);
+    }
+    
+    int entryNo = mmu_itlb_lookup_vpn( vma );
+    if( entryNo == -2 ) {
+	entryNo = mmu_itlb_lookup_vpn_asid( vma );
+    }
+    if( entryNo < 0 ) {
+	return MMU_VMA_ERROR;
+    } else {
+	return (mmu_itlb[entryNo].ppn & mmu_itlb[entryNo].mask) | 
+	    (vma & (~mmu_itlb[entryNo].mask));	
+    }
+}
+
 gboolean sh4_flush_store_queue( sh4addr_t addr )
 {
     uint32_t mmucr = MMIO_READ(MMU,MMUCR);
