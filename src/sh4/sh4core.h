@@ -113,7 +113,7 @@ void signsat48(void);
 gboolean sh4_has_page( sh4vma_t vma );
 
 /* SH4 Memory */
-#define MMU_VMA_ERROR 0x8000000
+#define MMU_VMA_ERROR 0x80000000
 /**
  * Update the sh4_icache structure to contain the specified vma. If the vma
  * cannot be resolved, an MMU exception is raised and the function returns
