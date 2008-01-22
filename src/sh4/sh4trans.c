@@ -271,7 +271,7 @@ void *xlat_get_code_by_vma( sh4vma_t vma )
     void *result = NULL;
 
     if( IS_IN_ICACHE(vma) ) {
-	result = xlat_get_code( GET_ICACHE_PHYS(vma) );
+	return xlat_get_code( GET_ICACHE_PHYS(vma) );
     }
 
     if( vma > 0xFFFFFF00 ) {
