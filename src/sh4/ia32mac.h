@@ -130,7 +130,6 @@ void sh4_translate_begin_block( sh4addr_t pc )
     sh4_x86.fpuen_checked = FALSE;
     sh4_x86.branch_taken = FALSE;
     sh4_x86.backpatch_posn = 0;
-    sh4_x86.recovery_posn = 0;
     sh4_x86.block_start_pc = pc;
     sh4_x86.tstate = TSTATE_NONE;
     sh4_x86.tlb_on = IS_MMU_ENABLED();
