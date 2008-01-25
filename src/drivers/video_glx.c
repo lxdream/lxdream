@@ -32,7 +32,7 @@ Window video_x11_window = 0;
 static gboolean glsl_loaded = FALSE;
 
 static int glx_version = 100;
-static XVisualInfo *glx_visual;
+static XVisualInfo *glx_visual = NULL;
 static GLXFBConfig glx_fbconfig;
 static GLXContext glx_context = NULL;
 static gboolean glx_is_initialized = FALSE;
@@ -100,7 +100,7 @@ gboolean video_glx_init( Display *display, int screen )
     glx_pbuffer_supported = (glx_version >= 103 ||
 			     isServerGLXExtensionSupported(display, screen,
 						     "GLX_SGIX_pbuffer") );
-    
+
     if( glx_fbconfig_supported ) {
 	int nelem;
         int fb_attribs[] = { GLX_DRAWABLE_TYPE, 
@@ -125,6 +125,11 @@ gboolean video_glx_init( Display *display, int screen )
         int attribs[] = { GLX_RGBA, GLX_DEPTH_SIZE, 24, 0 };
 	glx_visual = glXChooseVisual( display, screen, attribs );
     }
+
+    if( glx_visual == NULL ) {
+        return FALSE;
+    }
+
     glx_is_initialized = TRUE;
     return TRUE;
 }
