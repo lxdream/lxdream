@@ -94,7 +94,10 @@ main_window_t main_window_new( const gchar *title, GtkWidget *menubar, GtkWidget
     Display *display = gdk_x11_display_get_xdisplay( gtk_widget_get_display(win->window));
     Screen *screen = gdk_x11_screen_get_xscreen( gtk_widget_get_screen(win->window));
     int screen_no = XScreenNumberOfScreen(screen);
-    video_glx_init(display, screen_no);
+    if( !video_glx_init(display, screen_no) ) {
+        ERROR( "Unable to initialize GLX, aborting" );
+	exit(3);
+    }
 
     XVisualInfo *visual = video_glx_get_visual();
     GdkVisual *gdkvis = gdk_x11_screen_lookup_visual( gtk_widget_get_screen(win->window), visual->visualid );
