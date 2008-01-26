@@ -1,5 +1,5 @@
 /**
- * $Id: mouse.c 602 2008-01-15 20:50:23Z nkeynes $
+ * $Id$
  *
  * Implementation of the standard mouse device
  *
