@@ -165,10 +165,13 @@ static gboolean on_video_window_key_pressed( GtkWidget *widget, GdkEventKey *eve
 	/* Check for ungrab key combo (ctrl-alt). Unfortunately GDK sends it as
 	 * a singly-modified keypress rather than a double-modified 'null' press, 
 	 * so we have to do a little more work.
+	 * Only check Ctrl/Shift/Alt for state - don't want to check numlock/capslock/
+	 * mouse buttons/etc
 	 */
-	if( (event->state == GDK_CONTROL_MASK &&
+	int state = event->state & (GDK_SHIFT_MASK|GDK_CONTROL_MASK|GDK_MOD1_MASK);
+	if( (state == GDK_CONTROL_MASK &&
 	     (event->keyval == GDK_Alt_L || event->keyval == GDK_Alt_R)) ||
-	    (event->state == GDK_MOD1_MASK &&
+	    (state == GDK_MOD1_MASK &&
 	     (event->keyval == GDK_Control_L || event->keyval == GDK_Control_R)) ) {
 	    video_window_ungrab_display(win);
 	    // Consume the keypress, DC doesn't get it.
