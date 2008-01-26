@@ -225,6 +225,7 @@ gboolean gui_init( gboolean withDebug )
 	GtkWidget *gdrommenu = gdrom_menu_new();
 	gtk_menu_item_set_submenu( GTK_MENU_ITEM(gdrommenuitem), gdrommenu );
 	main_win = main_window_new( APP_NAME " " APP_VERSION, menubar, toolbar, accel_group  );
+	main_window_set_use_grab(main_win, TRUE);
 	if( withDebug ) {
 	    gtk_gui_show_debugger();
 	}
@@ -473,3 +474,20 @@ GdkPixbuf *gdk_pixbuf_new_from_frame_buffer( frame_buffer_t buffer )
 				     delete_frame_buffer,
 				     buffer );
 }
+
+/**
+ * Extract the keyval of the key event if no modifier keys were pressed -
+ * in other words get the keyval of the key by itself. The other way around
+ * would be to use the hardware keysyms directly rather than the keyvals,
+ * but the mapping looks to be messier.
+ */
+uint16_t gtk_get_unmodified_keyval( GdkEventKey *event )
+{
+    GdkKeymap *keymap = gdk_keymap_get_default();
+    guint keyval;
+    
+    gdk_keymap_translate_keyboard_state( keymap, event->hardware_keycode, 0, 0, &keyval, 
+					 NULL, NULL, NULL );
+    return keyval;
+}
+

@@ -312,12 +312,13 @@ gboolean lxdream_save_config_stream( FILE *f )
 			    fprintf( f, "Device %d = %s\n", i, dev->device_class->name );
 			else 
 			    fprintf( f, "Subdevice %d = %s\n", j, dev->device_class->name );
-			entry = dev->get_config(dev);
-			while( entry->key != NULL ) {
-			    if( entry->value != NULL ) {
-				fprintf( f, "%*c%s = %s\n", j==0?4:8, ' ',entry->key, entry->value );
+			if( dev->get_config != NULL && ((entry = dev->get_config(dev)) != NULL) ) {
+			    while( entry->key != NULL ) {
+				if( entry->value != NULL ) {
+				    fprintf( f, "%*c%s = %s\n", j==0?4:8, ' ',entry->key, entry->value );
+				}
+				entry++;
 			    }
-			    entry++;
 			}
 		    }
 		}

@@ -89,6 +89,8 @@ struct maple_device {
 };
 
 extern struct maple_device_class controller_class;
+extern struct maple_device_class keyboard_class;
+extern struct maple_device_class mouse_class;
 
 maple_device_t maple_new_device( const gchar *name );
 maple_device_t maple_get_device( unsigned int port, unsigned int periph );
@@ -101,5 +103,10 @@ void maple_attach_device( maple_device_t dev, unsigned int port, unsigned int pe
 void maple_detach_device( unsigned int port, unsigned int periph );
 void maple_detach_all( );
 void maple_reattach_all( );
+
+/**
+ * Default destroy implementation that just frees the dev memory.
+ */
+void maple_default_destroy( maple_device_t dev );
 
 #endif /* !lxdream_maple_H */

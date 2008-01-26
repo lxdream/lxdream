@@ -36,9 +36,9 @@ lxdream_SOURCES = \
 	pvr2/tacore.c pvr2/render.c pvr2/rendcore.c pvr2/rendbkg.c pvr2/rendsort.c \
 	pvr2/texcache.c pvr2/yuv.c pvr2/rendsave.c \
         maple/maple.c maple/maple.h \
-        maple/controller.c maple/controller.h \
+        maple/controller.c maple/controller.h maple/kbd.c maple/mouse.c \
         loader.c bootstrap.c util.c \
-	display.c display.h \
+	display.c display.h dckeysyms.h \
 	drivers/audio_null.c drivers/video_null.c \
 	drivers/gl_common.c drivers/gl_common.h drivers/gl_fbo.c \
 	drivers/gl_sl.c drivers/gl_slsrc.c

@@ -180,7 +180,6 @@ static void controller_device_configure( maple_device_t device )
     gtk_gui_run_property_dialog( _("Controller Configuration"), table, controller_config_done );
 }
 
-
 gboolean maple_properties_activated( GtkButton *button, gpointer user_data )
 {
     maple_slot_data_t data = (maple_slot_data_t)user_data;
@@ -207,7 +206,7 @@ gboolean maple_device_changed( GtkComboBox *combo, gpointer user_data )
 {
     maple_slot_data_t data = (maple_slot_data_t)user_data;
     int active = gtk_combo_box_get_active(combo);
-    gtk_widget_set_sensitive(data->button, active != 0);
+    gboolean has_config = FALSE;
     if( active != 0 ) {
 	gchar *devname = gtk_combo_box_get_active_text(combo);
 	const maple_device_class_t devclz = maple_get_device_class(devname);
@@ -220,12 +219,14 @@ gboolean maple_device_changed( GtkComboBox *combo, gpointer user_data )
 	} else {
 	    data->new_device = maple_new_device(devname);
 	}
+	has_config = data->new_device != NULL && data->new_device->get_config != NULL;
     } else {
 	if( data->new_device != NULL && data->new_device != data->old_device ) {
 	    data->new_device->destroy(data->new_device);
 	}
 	data->new_device = NULL;
     }
+    gtk_widget_set_sensitive(data->button, has_config);
     return TRUE;
 }
 
@@ -280,7 +281,7 @@ GtkWidget *maple_panel_new()
 	gtk_combo_box_set_active(GTK_COMBO_BOX(combo), active);
 	gtk_table_attach_defaults( GTK_TABLE(table), combo, 1, 2, i, i+1 );
 	button = gtk_button_new_from_stock( GTK_STOCK_PROPERTIES );
-	gtk_widget_set_sensitive(button, active != 0);
+	gtk_widget_set_sensitive(button, active != 0 && device->get_config != NULL);
 	gtk_table_attach_defaults( GTK_TABLE(table), button, 2, 3, i, i+1 );
 
 	maple_data[i].old_device = device;
