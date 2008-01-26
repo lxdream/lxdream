@@ -29,7 +29,8 @@ void maple_init( void );
 struct dreamcast_module maple_module = { "Maple", maple_init, NULL, NULL, NULL,
 					 NULL, NULL, NULL };
 
-struct maple_device_class *maple_device_classes[] = { &controller_class, NULL };
+struct maple_device_class *maple_device_classes[] = { 
+    &controller_class, &keyboard_class, &mouse_class, NULL };
 
 void maple_init( void )
 {
@@ -322,9 +323,16 @@ void maple_reattach_all() {
 	for( j=0; j<6; j++ ) {
 	    if( maple_devices[i][j] != NULL ) {
 		maple_device_t dev = maple_devices[i][j];
+		if( dev->detach != NULL ) 
+		    dev->detach(dev);
 		if( dev->attach != NULL )
 		    dev->attach(dev);
 	    }
 	}
     }
+}
+
+void maple_default_destroy( maple_device_t mdev )
+{
+    free(mdev);
 }

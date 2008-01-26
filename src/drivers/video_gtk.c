@@ -22,6 +22,7 @@
 #include <stdint.h>
 #include "dream.h"
 #include "display.h"
+#include "dckeysyms.h"
 #include "drivers/video_glx.h"
 #include "drivers/gl_common.h"
 #include "pvr2/pvr2.h"
@@ -35,43 +36,13 @@ gboolean video_gtk_init();
 void video_gtk_shutdown();
 gboolean video_gtk_display_blank( uint32_t colour );
 uint16_t video_gtk_resolve_keysym( const gchar *keysym );
+uint16_t video_gtk_keycode_to_dckeysym(uint32_t keycode);
 
 struct display_driver display_gtk_driver = { "gtk", video_gtk_init, video_gtk_shutdown,
 					     video_gtk_resolve_keysym,
+					     video_gtk_keycode_to_dckeysym,
 					     NULL, NULL, NULL, NULL, NULL, 
 					     video_gtk_display_blank, NULL };
-
-/**
- * Extract the keyval of the key event if no modifier keys were pressed -
- * in other words get the keyval of the key by itself. The other way around
- * would be to use the hardware keysyms directly rather than the keyvals,
- * but the mapping looks to be messier.
- */
-uint16_t video_gtk_unmodified_keyval( GdkEventKey *event )
-{
-    GdkKeymap *keymap = gdk_keymap_get_default();
-    guint keyval;
-    
-    gdk_keymap_translate_keyboard_state( keymap, event->hardware_keycode, 0, 0, &keyval, 
-					 NULL, NULL, NULL );
-    return keyval;
-}
-
-gboolean video_gtk_keydown_callback(GtkWidget       *widget,
-				     GdkEventKey     *event,
-				     gpointer         user_data)
-{
-    input_event_keydown( video_gtk_unmodified_keyval(event) );
-    return TRUE;
-}
-
-gboolean video_gtk_keyup_callback(GtkWidget       *widget,
-				  GdkEventKey     *event,
-				  gpointer         user_data)
-{
-    input_event_keyup( video_gtk_unmodified_keyval(event) );
-    return TRUE;
-}
 
 uint16_t video_gtk_resolve_keysym( const gchar *keysym )
 {
@@ -100,6 +71,85 @@ gboolean video_gtk_resize_callback(GtkWidget *widget, GdkEventConfigure *event, 
     return TRUE;
 }
 
+uint16_t video_gtk_keycode_to_dckeysym(uint32_t keycode)
+{
+    if( keycode >= 'a' && keycode <= 'z' ) {
+	return (keycode - 'a') + DCKB_A;
+    } else if( keycode >= '1' && keycode <= '9' ) {
+	return (keycode - '1') + DCKB_1;
+    }
+    switch(keycode) {
+    case XK_0:         return DCKB_0;
+    case XK_Return:    return DCKB_ENTER;
+    case XK_Escape:    return DCKB_ESCAPE;
+    case XK_BackSpace: return DCKB_BACKSPACE;
+    case XK_Tab:       return DCKB_TAB;
+    case XK_space:     return DCKB_SPACE;
+    case XK_minus:     return DCKB_MINUS;
+    case XK_equal:     return DCKB_EQUAL;
+    case XK_bracketleft: return DCKB_LBRACKET;
+    case XK_bracketright: return DCKB_RBRACKET;
+    case XK_semicolon: return DCKB_SEMICOLON;
+    case XK_apostrophe:return DCKB_QUOTE;
+    case XK_grave : return DCKB_BACKQUOTE;
+    case XK_comma:     return DCKB_COMMA;
+    case XK_period:    return DCKB_PERIOD;
+    case XK_slash:     return DCKB_SLASH; 
+    case XK_Caps_Lock: return DCKB_CAPSLOCK;
+    case XK_F1:        return DCKB_F1;
+    case XK_F2:        return DCKB_F2;
+    case XK_F3:        return DCKB_F3;
+    case XK_F4:        return DCKB_F4;
+    case XK_F5:        return DCKB_F5;
+    case XK_F6:        return DCKB_F6;
+    case XK_F7:        return DCKB_F7;
+    case XK_F8:        return DCKB_F8;
+    case XK_F9:        return DCKB_F9;
+    case XK_F10:       return DCKB_F10;
+    case XK_F11:       return DCKB_F11;
+    case XK_F12:       return DCKB_F12;
+    case XK_Scroll_Lock: return DCKB_SCROLLLOCK;
+    case XK_Pause:     return DCKB_PAUSE;
+    case XK_Insert:    return DCKB_INSERT;
+    case XK_Home:      return DCKB_HOME;
+    case XK_Page_Up:   return DCKB_PAGEUP;
+    case XK_Delete:    return DCKB_DELETE;
+    case XK_End:       return DCKB_END;
+    case XK_Page_Down: return DCKB_PAGEDOWN;
+    case XK_Right:     return DCKB_RIGHT;
+    case XK_Left:      return DCKB_LEFT;
+    case XK_Down:      return DCKB_DOWN;
+    case XK_Up:        return DCKB_UP;
+    case XK_Num_Lock:  return DCKB_NUMLOCK;
+    case XK_KP_Divide: return DCKB_KP_SLASH;
+    case XK_KP_Multiply: return DCKB_KP_STAR;
+    case XK_KP_Subtract: return DCKB_KP_MINUS;
+    case XK_KP_Add:    return DCKB_KP_PLUS;
+    case XK_KP_Enter:  return DCKB_KP_ENTER;
+    case XK_KP_1:      return DCKB_KP_1;
+    case XK_KP_2:      return DCKB_KP_2;
+    case XK_KP_3:      return DCKB_KP_3;
+    case XK_KP_4:      return DCKB_KP_4;
+    case XK_KP_5:      return DCKB_KP_5;
+    case XK_KP_6:      return DCKB_KP_6;
+    case XK_KP_7:      return DCKB_KP_7;
+    case XK_KP_8:      return DCKB_KP_8;
+    case XK_KP_9:      return DCKB_KP_9;
+    case XK_KP_0:      return DCKB_KP_0;
+    case XK_KP_Decimal:return DCKB_KP_PERIOD;
+    case XK_backslash: return DCKB_BACKSLASH;
+    case XK_Control_L: return DCKB_CONTROL_L;
+    case XK_Shift_L:   return DCKB_SHIFT_L;
+    case XK_Alt_L:     return DCKB_ALT_L;
+    case XK_Meta_L:    return DCKB_S1;
+    case XK_Control_R: return DCKB_CONTROL_R;
+    case XK_Shift_R:   return DCKB_SHIFT_R;
+    case XK_Alt_R:     return DCKB_ALT_R;
+    case XK_Meta_R:    return DCKB_S2;
+    }
+    return DCKB_NONE;
+}
+
 gboolean video_gtk_init()
 {
   
@@ -108,18 +158,10 @@ gboolean video_gtk_init()
 	return FALSE;
     }
 
-    g_signal_connect( video_win, "key_press_event", 
-		      G_CALLBACK(video_gtk_keydown_callback), NULL );
-    g_signal_connect( video_win, "key_release_event", 
-		      G_CALLBACK(video_gtk_keyup_callback), NULL );
     g_signal_connect( video_win, "expose_event",
 		      G_CALLBACK(video_gtk_expose_callback), NULL );
     g_signal_connect( video_win, "configure_event",
 		      G_CALLBACK(video_gtk_resize_callback), NULL );
-    gtk_widget_add_events( video_win, 
-			   GDK_KEY_PRESS_MASK | GDK_KEY_RELEASE_MASK |
-			   GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK );
-    gtk_widget_set_double_buffered( video_win, FALSE );
     video_width = video_win->allocation.width;
     video_height = video_win->allocation.height;
     Display *display = gdk_x11_display_get_xdisplay( gtk_widget_get_display(GTK_WIDGET(video_win)));

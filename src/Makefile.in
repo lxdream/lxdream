@@ -225,9 +225,9 @@ lxdream_SOURCES = \
 	pvr2/tacore.c pvr2/render.c pvr2/rendcore.c pvr2/rendbkg.c pvr2/rendsort.c \
 	pvr2/texcache.c pvr2/yuv.c pvr2/rendsave.c \
         maple/maple.c maple/maple.h \
-        maple/controller.c maple/controller.h \
+        maple/controller.c maple/controller.h maple/kbd.c maple/mouse.c \
         loader.c bootstrap.c util.c \
-	display.c display.h \
+	display.c display.h dckeysyms.h \
 	drivers/audio_null.c drivers/video_null.c \
 	drivers/gl_common.c drivers/gl_common.h drivers/gl_fbo.c \
 	drivers/gl_sl.c drivers/gl_slsrc.c\
@@ -282,19 +282,19 @@ am__lxdream_SOURCES_DIST = main.c config.c config.h mem.c mem.h mmio.h \
 	pvr2/pvr2.h pvr2/pvr2mem.c pvr2/tacore.c pvr2/render.c \
 	pvr2/rendcore.c pvr2/rendbkg.c pvr2/rendsort.c pvr2/texcache.c \
 	pvr2/yuv.c pvr2/rendsave.c maple/maple.c maple/maple.h \
-	maple/controller.c maple/controller.h loader.c bootstrap.c \
-	util.c display.c display.h drivers/audio_null.c \
-	drivers/video_null.c drivers/gl_common.c drivers/gl_common.h \
-	drivers/gl_fbo.c drivers/gl_sl.c drivers/gl_slsrc.c \
-	sh4/sh4x86.c sh4/x86op.h sh4/ia32abi.h sh4/ia32mac.h \
-	sh4/ia64abi.h sh4/sh4trans.c sh4/sh4trans.h x86dasm/x86dasm.c \
-	x86dasm/x86dasm.h x86dasm/i386-dis.c x86dasm/dis-init.c \
-	x86dasm/dis-buf.c gtkui/gtkui.c gtkui/gtkui.h gtkui/main_win.c \
-	gtkui/gtkcb.c gtkui/mmio_win.c gtkui/debug_win.c \
-	gtkui/dump_win.c gtkui/ctrl_dlg.c gtkui/path_dlg.c \
-	gtkui/gdrom_menu.c drivers/video_gtk.c drivers/video_gtk.h \
-	drivers/video_glx.c drivers/video_glx.h drivers/cd_linux.c \
-	drivers/cd_none.c drivers/audio_esd.c
+	maple/controller.c maple/controller.h maple/kbd.c maple/mouse.c \
+	loader.c bootstrap.c util.c display.c display.h dckeysyms.h \
+	drivers/audio_null.c drivers/video_null.c drivers/gl_common.c \
+	drivers/gl_common.h drivers/gl_fbo.c drivers/gl_sl.c \
+	drivers/gl_slsrc.c sh4/sh4x86.c sh4/x86op.h sh4/ia32abi.h \
+	sh4/ia32mac.h sh4/ia64abi.h sh4/sh4trans.c sh4/sh4trans.h \
+	x86dasm/x86dasm.c x86dasm/x86dasm.h x86dasm/i386-dis.c \
+	x86dasm/dis-init.c x86dasm/dis-buf.c gtkui/gtkui.c \
+	gtkui/gtkui.h gtkui/main_win.c gtkui/gtkcb.c gtkui/mmio_win.c \
+	gtkui/debug_win.c gtkui/dump_win.c gtkui/ctrl_dlg.c \
+	gtkui/path_dlg.c gtkui/gdrom_menu.c drivers/video_gtk.c \
+	drivers/video_gtk.h drivers/video_glx.c drivers/video_glx.h \
+	drivers/cd_linux.c drivers/cd_none.c drivers/audio_esd.c
 @BUILD_SH4X86_TRUE@am__objects_1 = sh4x86.$(OBJEXT) sh4trans.$(OBJEXT) \
 @BUILD_SH4X86_TRUE@	x86dasm.$(OBJEXT) i386-dis.$(OBJEXT) \
 @BUILD_SH4X86_TRUE@	dis-init.$(OBJEXT) dis-buf.$(OBJEXT)
@@ -320,12 +320,13 @@ am_lxdream_OBJECTS = main.$(OBJEXT) config.$(OBJEXT) mem.$(OBJEXT) \
 	pvr2mem.$(OBJEXT) tacore.$(OBJEXT) render.$(OBJEXT) \
 	rendcore.$(OBJEXT) rendbkg.$(OBJEXT) rendsort.$(OBJEXT) \
 	texcache.$(OBJEXT) yuv.$(OBJEXT) rendsave.$(OBJEXT) \
-	maple.$(OBJEXT) controller.$(OBJEXT) loader.$(OBJEXT) \
-	bootstrap.$(OBJEXT) util.$(OBJEXT) display.$(OBJEXT) \
-	audio_null.$(OBJEXT) video_null.$(OBJEXT) gl_common.$(OBJEXT) \
-	gl_fbo.$(OBJEXT) gl_sl.$(OBJEXT) gl_slsrc.$(OBJEXT) \
-	$(am__objects_1) $(am__objects_2) $(am__objects_3) \
-	$(am__objects_4) $(am__objects_5)
+	maple.$(OBJEXT) controller.$(OBJEXT) kbd.$(OBJEXT) \
+	mouse.$(OBJEXT) loader.$(OBJEXT) bootstrap.$(OBJEXT) \
+	util.$(OBJEXT) display.$(OBJEXT) audio_null.$(OBJEXT) \
+	video_null.$(OBJEXT) gl_common.$(OBJEXT) gl_fbo.$(OBJEXT) \
+	gl_sl.$(OBJEXT) gl_slsrc.$(OBJEXT) $(am__objects_1) \
+	$(am__objects_2) $(am__objects_3) $(am__objects_4) \
+	$(am__objects_5)
 lxdream_OBJECTS = $(am_lxdream_OBJECTS)
 lxdream_DEPENDENCIES =
 lxdream_LDFLAGS =
@@ -374,10 +375,11 @@ am__depfiles_maybe = depfiles
 @AMDEP_TRUE@	./$(DEPDIR)/gtkcb.Po ./$(DEPDIR)/gtkui.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/i386-dis.Po ./$(DEPDIR)/ide.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/insparse.Po ./$(DEPDIR)/intc.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/loader.Po ./$(DEPDIR)/main.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/main_win.Po ./$(DEPDIR)/maple.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/mem.Po ./$(DEPDIR)/mmio_win.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/mmu.Po ./$(DEPDIR)/nrg.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/kbd.Po ./$(DEPDIR)/loader.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/main.Po ./$(DEPDIR)/main_win.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/maple.Po ./$(DEPDIR)/mem.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/mmio_win.Po ./$(DEPDIR)/mmu.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/mouse.Po ./$(DEPDIR)/nrg.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/path_dlg.Po ./$(DEPDIR)/pvr2.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/pvr2mem.Po ./$(DEPDIR)/rendbkg.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/rendcore.Po ./$(DEPDIR)/render.Po \
@@ -511,6 +513,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ide.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/insparse.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/intc.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/kbd.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/loader.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main_win.Po@am__quote@
@@ -518,6 +521,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mem.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mmio_win.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mmu.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mouse.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nrg.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/path_dlg.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pvr2.Po@am__quote@
@@ -1430,6 +1434,50 @@ controller.obj: maple/controller.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/controller.Po' tmpdepfile='$(DEPDIR)/controller.TPo' @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o controller.obj `if test -f 'maple/controller.c'; then $(CYGPATH_W) 'maple/controller.c'; else $(CYGPATH_W) '$(srcdir)/maple/controller.c'; fi`
+
+kbd.o: maple/kbd.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT kbd.o -MD -MP -MF "$(DEPDIR)/kbd.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o kbd.o `test -f 'maple/kbd.c' || echo '$(srcdir)/'`maple/kbd.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/kbd.Tpo" "$(DEPDIR)/kbd.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/kbd.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='maple/kbd.c' object='kbd.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/kbd.Po' tmpdepfile='$(DEPDIR)/kbd.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o kbd.o `test -f 'maple/kbd.c' || echo '$(srcdir)/'`maple/kbd.c
+
+kbd.obj: maple/kbd.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT kbd.obj -MD -MP -MF "$(DEPDIR)/kbd.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o kbd.obj `if test -f 'maple/kbd.c'; then $(CYGPATH_W) 'maple/kbd.c'; else $(CYGPATH_W) '$(srcdir)/maple/kbd.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/kbd.Tpo" "$(DEPDIR)/kbd.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/kbd.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='maple/kbd.c' object='kbd.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/kbd.Po' tmpdepfile='$(DEPDIR)/kbd.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o kbd.obj `if test -f 'maple/kbd.c'; then $(CYGPATH_W) 'maple/kbd.c'; else $(CYGPATH_W) '$(srcdir)/maple/kbd.c'; fi`
+
+mouse.o: maple/mouse.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT mouse.o -MD -MP -MF "$(DEPDIR)/mouse.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o mouse.o `test -f 'maple/mouse.c' || echo '$(srcdir)/'`maple/mouse.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/mouse.Tpo" "$(DEPDIR)/mouse.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/mouse.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='maple/mouse.c' object='mouse.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/mouse.Po' tmpdepfile='$(DEPDIR)/mouse.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o mouse.o `test -f 'maple/mouse.c' || echo '$(srcdir)/'`maple/mouse.c
+
+mouse.obj: maple/mouse.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT mouse.obj -MD -MP -MF "$(DEPDIR)/mouse.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o mouse.obj `if test -f 'maple/mouse.c'; then $(CYGPATH_W) 'maple/mouse.c'; else $(CYGPATH_W) '$(srcdir)/maple/mouse.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/mouse.Tpo" "$(DEPDIR)/mouse.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/mouse.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='maple/mouse.c' object='mouse.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/mouse.Po' tmpdepfile='$(DEPDIR)/mouse.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o mouse.obj `if test -f 'maple/mouse.c'; then $(CYGPATH_W) 'maple/mouse.c'; else $(CYGPATH_W) '$(srcdir)/maple/mouse.c'; fi`
 
 audio_null.o: drivers/audio_null.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT audio_null.o -MD -MP -MF "$(DEPDIR)/audio_null.Tpo" \

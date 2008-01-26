@@ -118,6 +118,11 @@ typedef struct display_driver {
     uint16_t (*resolve_keysym)( const gchar *keysym );
 
     /**
+     * Given a native system keycode, convert it to a dreamcast keyboard code.
+     */
+    uint16_t (*convert_to_dckeysym)( uint16_t keycode );
+
+    /**
      * Create a render target with the given width and height.
      */
     render_buffer_t (*create_render_buffer)( uint32_t width, uint32_t height );
@@ -180,11 +185,37 @@ extern struct display_driver display_null_driver;
 
 typedef void (*input_key_callback_t)( void *data, uint32_t value, gboolean isKeyDown );
 
+/**
+ * Callback to receive mouse input events
+ * @param data pointer passed in at the time the hook was registered
+ * @param buttons bitmask of button states, where bit 0 is button 0 (left), bit 1 is button
+ * 1 (middle), bit 2 is button 2 (right) and so forth.
+ * @param x Horizontal movement since the last invocation (in relative mode) or window position 
+ * (in absolute mode).
+ * @param y Vertical movement since the last invocation (in relative mode) or window position
+ * (in absolute mode).
+ */
+typedef void (*input_mouse_callback_t)( void *data, uint32_t buttons, int32_t x, int32_t y );
+
 gboolean input_register_key( const gchar *keysym, input_key_callback_t callback,
 			     void *data, uint32_t value );
 
 void input_unregister_key( const gchar *keysym, input_key_callback_t callback,
 			   void *data, uint32_t value );
+
+/**
+ * Register a hook to receive all input events
+ */
+gboolean input_register_hook( input_key_callback_t callback, void *data );
+void input_unregister_hook( input_key_callback_t callback, void *data );
+
+/**
+ * Register a mouse event hook.
+ * @param relative TRUE if the caller wants relative mouse movement, FALSE for
+ * absolute mouse positioning. It's not generally possible to receive both at the same time.
+ */
+gboolean input_register_mouse_hook( gboolean relative, input_mouse_callback_t callback, void *data );
+void input_unregister_mouse_hook( input_mouse_callback_t callback, void *data );
 
 gboolean input_is_key_valid( const gchar *keysym );
 
@@ -194,7 +225,9 @@ void input_event_keydown( uint16_t keycode );
 
 void input_event_keyup( uint16_t keycode );
 
+void input_event_mouse( uint32_t buttons, int32_t x_axis, int32_t y_axis );
 
+uint16_t input_keycode_to_dckeysym( uint16_t keycode );
 
 #ifdef __cplusplus
 }

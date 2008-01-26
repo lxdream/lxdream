@@ -44,6 +44,7 @@ void main_window_set_running( main_window_t win, gboolean running );
 void main_window_set_framerate( main_window_t win, float rate );
 void main_window_set_speed( main_window_t win, double speed );
 void main_window_set_fullscreen( main_window_t win, gboolean fullscreen );
+void main_window_set_use_grab( main_window_t win, gboolean grab );
 
 debug_window_t debug_window_new( const gchar *title, GtkWidget *menubar,
 				 GtkWidget *toolbar, GtkAccelGroup *accel );
@@ -82,6 +83,13 @@ gint gtk_gui_run_property_dialog( const gchar *title, GtkWidget *panel, gtk_dial
 typedef gboolean (*file_callback_t)( const gchar *filename );
 void open_file_dialog( char *title, file_callback_t action, char *pattern, char *patname,
 		       gchar const *initial_dir );
+/**
+ * Extract the keyval of the key event if no modifier keys were pressed -
+ * in other words get the keyval of the key by itself. The other way around
+ * would be to use the hardware keysyms directly rather than the keyvals,
+ * but the mapping looks to be messier.
+ */
+uint16_t gtk_get_unmodified_keyval( GdkEventKey *event );
 
 /**
  * Construct a new pixbuf that takes ownership of the frame buffer
