@@ -29,7 +29,7 @@ extern "C" {
 #endif
 
 #define APP_NAME "lxDream"
-#define APP_VERSION "0.8.1"
+#define APP_VERSION "0.8.3"
 
 #define MB *1024*1024
 #define KB *1024
