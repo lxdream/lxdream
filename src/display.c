@@ -113,6 +113,19 @@ gboolean input_register_device( input_driver_t driver, uint16_t max_keycode )
     return TRUE;
 }
 
+gboolean input_has_device( const gchar *id )
+{
+    GList *ptr;
+    for( ptr = input_drivers; ptr != NULL; ptr = g_list_next(ptr) ) {
+	input_driver_entry_t entry = (input_driver_entry_t)ptr->data;
+	if( strcasecmp(entry->driver->id, id) == 0 ) {
+	    return TRUE;
+	}
+    }
+    return FALSE;
+}
+
+
 void input_unregister_device( input_driver_t driver )
 {
     GList *ptr;

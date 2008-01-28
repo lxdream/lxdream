@@ -275,6 +275,13 @@ typedef struct input_driver {
 gboolean input_register_device( input_driver_t driver, uint16_t max_keycode );
 
 /**
+ * Determine if the system has an input driver with the given unique ID.
+ * @param id driver id to check
+ * @return TRUE if the device exists, otherwise FALSE
+ */
+gboolean input_has_device( const gchar *id );
+
+/**
  * Unregister an input driver.
  * @param driver the driver to unregister
  * If the driver is not in fact registered, this function has no effect.

@@ -25,11 +25,6 @@
 gboolean linux_joystick_init();
 
 /**
- * Re-scan the available joystick devices, adding any new ones.
- */
-gboolean linux_joystick_rescan();
-
-/**
  * Shutdown the linux joystick system
  */
 void linux_joystick_shutdown();
