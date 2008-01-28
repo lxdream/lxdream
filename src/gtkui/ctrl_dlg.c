@@ -21,7 +21,8 @@
 #include <gtk/gtk.h>
 #include <gdk/gdkkeysyms.h>
 
-#include "dream.h"
+#include "lxdream.h"
+#include "display.h"
 #include "gtkui/gtkui.h"
 #include "maple/maple.h"
 
@@ -47,12 +48,21 @@ static struct maple_config_class maple_device_config[] = {
 
 static struct maple_slot_data maple_data[MAX_DEVICES];
 
+static void config_keysym_hook( void *data, const gchar *keysym )
+{
+    GtkWidget *widget = (GtkWidget *)data;
+    gtk_entry_set_text( GTK_ENTRY(widget), keysym );
+    g_object_set_data( G_OBJECT(widget), "keypress_mode", GINT_TO_POINTER(FALSE) );
+    input_set_keysym_hook(NULL, NULL);
+}
+
 static gboolean config_key_buttonpress( GtkWidget *widget, GdkEventButton *event, gpointer user_data )
 {
     gboolean keypress_mode = GPOINTER_TO_INT(g_object_get_data( G_OBJECT(widget), "keypress_mode"));
     if( !keypress_mode ) {
 	gtk_entry_set_text( GTK_ENTRY(widget), _("<press key>") );
 	g_object_set_data( G_OBJECT(widget), "keypress_mode", GINT_TO_POINTER(TRUE) );
+	input_set_keysym_hook(config_keysym_hook, widget);
     }
     return FALSE;
 }
@@ -73,6 +83,7 @@ static gboolean config_key_keypress( GtkWidget *widget, GdkEventKey *event, gpoi
 					     NULL, NULL, NULL );
 	gtk_entry_set_text( GTK_ENTRY(widget), gdk_keyval_name(keyval) );
 	g_object_set_data( G_OBJECT(widget), "keypress_mode", GINT_TO_POINTER(FALSE) );
+	input_set_keysym_hook(NULL, NULL);
 	return TRUE;
     } else {
 	switch( event->keyval ) {
@@ -80,6 +91,7 @@ static gboolean config_key_keypress( GtkWidget *widget, GdkEventKey *event, gpoi
 	case GDK_KP_Enter:
 	    gtk_entry_set_text( GTK_ENTRY(widget), _("<press key>") );
 	    g_object_set_data( G_OBJECT(widget), "keypress_mode", GINT_TO_POINTER(TRUE) );
+	    input_set_keysym_hook(config_keysym_hook, widget);
 	    return TRUE;
 	case GDK_BackSpace:
 	case GDK_Delete:
@@ -118,7 +130,7 @@ static void controller_config_done( GtkWidget *panel, gboolean isOK )
 	    }
 	}
     }
-	
+    input_set_keysym_hook(NULL, NULL);
 }
 
 static void controller_device_configure( maple_device_t device )

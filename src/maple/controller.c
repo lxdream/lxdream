@@ -85,7 +85,7 @@ maple_device_t controller_clone( maple_device_t srcdevice )
 /**
  * Input callback 
  */
-void controller_key_callback( void *mdev, uint32_t value, gboolean isKeyDown )
+void controller_key_callback( void *mdev, uint32_t value, uint32_t pressure, gboolean isKeyDown )
 {
     controller_device_t dev = (controller_device_t)mdev;
     if( isKeyDown ) {

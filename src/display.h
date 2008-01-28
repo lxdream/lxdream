@@ -123,6 +123,12 @@ typedef struct display_driver {
     uint16_t (*convert_to_dckeysym)( uint16_t keycode );
 
     /**
+     * Given a device-specific event code, return the corresponding keysym.
+     * The string should be newly allocated (caller will free)
+     */
+    gchar *(*get_keysym_for_keycode)( uint16_t keycode );
+
+    /**
      * Create a render target with the given width and height.
      */
     render_buffer_t (*create_render_buffer)( uint32_t width, uint32_t height );
@@ -183,7 +189,7 @@ extern struct display_driver display_null_driver;
 
 /****************** Input methods **********************/
 
-typedef void (*input_key_callback_t)( void *data, uint32_t value, gboolean isKeyDown );
+typedef void (*input_key_callback_t)( void *data, uint32_t value, uint32_t pressure, gboolean isKeyDown );
 
 /**
  * Callback to receive mouse input events
@@ -221,13 +227,83 @@ gboolean input_is_key_valid( const gchar *keysym );
 
 gboolean input_is_key_registered( const gchar *keysym );
 
-void input_event_keydown( uint16_t keycode );
+uint16_t input_keycode_to_dckeysym( uint16_t keycode );
 
-void input_event_keyup( uint16_t keycode );
+/********************** Display/Input methods ***********************/
+
+/**
+ * Auxilliary input driver - provides input separate to and in addition to the
+ * core UI/display. (primarily used for joystick devices)
+ */
+typedef struct input_driver {
+    const char *id; /* Short identifier to display in the UI for the device (eg "JS0" ) */
+
+    /**
+     * Given a particular keysym, return the keycode associated with it.
+     * @param keysym The keysym to be resolved, ie "Tab"
+     * @return the display-specific keycode, or 0 if the keysym cannot
+     * be resolved.
+     */
+    uint16_t (*resolve_keysym)( struct input_driver *driver, const gchar *keysym );
+
+    /**
+     * Given a device-specific event code, convert it to a dreamcast keyboard code.
+     * This is only required for actual keyboard devices, other devices should just
+     * leave this method NULL.
+     */
+    uint16_t (*convert_to_dckeysym)( struct input_driver *driver, uint16_t keycode );
+
+    /**
+     * Given a device-specific event code, return the corresponding keysym.
+     * The string should be newly allocated (caller will free)
+     */
+    gchar *(*get_keysym_for_keycode)( struct input_driver *driver, uint16_t keycode );
+
+    /**
+     * Destroy the input driver.
+     */
+    void (*destroy)( struct input_driver *driver );
+
+} *input_driver_t;       
+
+/**
+ * Register a new input driver (which must have a unique name)
+ * @param driver the driver to register
+ * @param max_keycode the highest possible keycode reported by the device
+ * @return TRUE on success, FALSE on failure (eg driver already registed).
+ */
+gboolean input_register_device( input_driver_t driver, uint16_t max_keycode );
+
+/**
+ * Unregister an input driver.
+ * @param driver the driver to unregister
+ * If the driver is not in fact registered, this function has no effect.
+ */
+void input_unregister_device( input_driver_t driver );
+
+/**
+ * Called from the UI to indicate that the emulation window is focused (ie
+ * able to receive input). This method is used to gate non-UI input devices -
+ * when the display is not focused, all input events will be silently ignored.
+ */
+void display_set_focused( gboolean has_focus );
+
+void input_event_keydown( input_driver_t input, uint16_t keycode, uint32_t pressure );
+
+void input_event_keyup( input_driver_t input, uint16_t keycode, uint32_t pressure );
 
 void input_event_mouse( uint32_t buttons, int32_t x_axis, int32_t y_axis );
 
-uint16_t input_keycode_to_dckeysym( uint16_t keycode );
+
+typedef void (*display_keysym_callback_t)( void *data, const gchar *keysym );
+
+/**
+ * Set the keysym hook function (normally used by the UI to receive non-UI
+ * input events during configuration.
+ */
+void input_set_keysym_hook( display_keysym_callback_t hook, void *data );
+
+
 
 #ifdef __cplusplus
 }

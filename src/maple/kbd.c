@@ -105,7 +105,7 @@ void keyboard_key_up( keyboard_device_t dev, uint8_t key )
     }
 }
 
-void keyboard_input_hook( void *mdev, uint32_t keycode, gboolean isKeyDown )
+void keyboard_input_hook( void *mdev, uint32_t keycode, uint32_t pressure, gboolean isKeyDown )
 {
     keyboard_device_t dev = (keyboard_device_t)mdev;
     uint16_t key = input_keycode_to_dckeysym( keycode );

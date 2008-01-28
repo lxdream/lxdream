@@ -52,7 +52,8 @@ host_triplet = @host@
 
 @CDROM_LINUX_TRUE@am__append_4 = drivers/cd_linux.c
 @CDROM_LINUX_FALSE@am__append_5 = drivers/cd_none.c
-@AUDIO_ESOUND_TRUE@am__append_6 = drivers/audio_esd.c
+@JOY_LINUX_TRUE@am__append_6 = drivers/joy_linux.c
+@AUDIO_ESOUND_TRUE@am__append_7 = drivers/audio_esd.c
 ACLOCAL = @ACLOCAL@
 AMDEP_FALSE = @AMDEP_FALSE@
 AMDEP_TRUE = @AMDEP_TRUE@
@@ -112,6 +113,8 @@ INSTALL_SCRIPT = @INSTALL_SCRIPT@
 INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
 INSTOBJEXT = @INSTOBJEXT@
 INTLLIBS = @INTLLIBS@
+JOY_LINUX_FALSE = @JOY_LINUX_FALSE@
+JOY_LINUX_TRUE = @JOY_LINUX_TRUE@
 LDFLAGS = @LDFLAGS@
 LIBOBJS = @LIBOBJS@
 LIBPNG_CFLAGS = @LIBPNG_CFLAGS@
@@ -231,7 +234,7 @@ lxdream_SOURCES = \
 	drivers/audio_null.c drivers/video_null.c \
 	drivers/gl_common.c drivers/gl_common.h drivers/gl_fbo.c \
 	drivers/gl_sl.c drivers/gl_slsrc.c\
-$(am__append_1) $(am__append_3) $(am__append_4) $(am__append_5) $(am__append_6)
+$(am__append_1) $(am__append_3) $(am__append_4) $(am__append_5) $(am__append_6) $(am__append_7)
 
 @BUILD_SH4X86_TRUE@test_testsh4x86_LDADD = @GTK_LIBS@
 @BUILD_SH4X86_TRUE@test_testsh4x86_SOURCES = test/testsh4x86.c x86dasm/x86dasm.c \
@@ -294,7 +297,8 @@ am__lxdream_SOURCES_DIST = main.c config.c config.h mem.c mem.h mmio.h \
 	gtkui/debug_win.c gtkui/dump_win.c gtkui/ctrl_dlg.c \
 	gtkui/path_dlg.c gtkui/gdrom_menu.c drivers/video_gtk.c \
 	drivers/video_gtk.h drivers/video_glx.c drivers/video_glx.h \
-	drivers/cd_linux.c drivers/cd_none.c drivers/audio_esd.c
+	drivers/cd_linux.c drivers/cd_none.c drivers/joy_linux.c \
+	drivers/audio_esd.c
 @BUILD_SH4X86_TRUE@am__objects_1 = sh4x86.$(OBJEXT) sh4trans.$(OBJEXT) \
 @BUILD_SH4X86_TRUE@	x86dasm.$(OBJEXT) i386-dis.$(OBJEXT) \
 @BUILD_SH4X86_TRUE@	dis-init.$(OBJEXT) dis-buf.$(OBJEXT)
@@ -306,7 +310,8 @@ am__lxdream_SOURCES_DIST = main.c config.c config.h mem.c mem.h mmio.h \
 @GUI_GTK_TRUE@	video_glx.$(OBJEXT)
 @CDROM_LINUX_TRUE@am__objects_3 = cd_linux.$(OBJEXT)
 @CDROM_LINUX_FALSE@am__objects_4 = cd_none.$(OBJEXT)
-@AUDIO_ESOUND_TRUE@am__objects_5 = audio_esd.$(OBJEXT)
+@JOY_LINUX_TRUE@am__objects_5 = joy_linux.$(OBJEXT)
+@AUDIO_ESOUND_TRUE@am__objects_6 = audio_esd.$(OBJEXT)
 am_lxdream_OBJECTS = main.$(OBJEXT) config.$(OBJEXT) mem.$(OBJEXT) \
 	watch.$(OBJEXT) asic.$(OBJEXT) syscall.$(OBJEXT) bios.$(OBJEXT) \
 	dcload.$(OBJEXT) ide.$(OBJEXT) gdimage.$(OBJEXT) \
@@ -326,7 +331,7 @@ am_lxdream_OBJECTS = main.$(OBJEXT) config.$(OBJEXT) mem.$(OBJEXT) \
 	video_null.$(OBJEXT) gl_common.$(OBJEXT) gl_fbo.$(OBJEXT) \
 	gl_sl.$(OBJEXT) gl_slsrc.$(OBJEXT) $(am__objects_1) \
 	$(am__objects_2) $(am__objects_3) $(am__objects_4) \
-	$(am__objects_5)
+	$(am__objects_5) $(am__objects_6)
 lxdream_OBJECTS = $(am_lxdream_OBJECTS)
 lxdream_DEPENDENCIES =
 lxdream_LDFLAGS =
@@ -375,27 +380,27 @@ am__depfiles_maybe = depfiles
 @AMDEP_TRUE@	./$(DEPDIR)/gtkcb.Po ./$(DEPDIR)/gtkui.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/i386-dis.Po ./$(DEPDIR)/ide.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/insparse.Po ./$(DEPDIR)/intc.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/kbd.Po ./$(DEPDIR)/loader.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/main.Po ./$(DEPDIR)/main_win.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/maple.Po ./$(DEPDIR)/mem.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/mmio_win.Po ./$(DEPDIR)/mmu.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/mouse.Po ./$(DEPDIR)/nrg.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/path_dlg.Po ./$(DEPDIR)/pvr2.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/pvr2mem.Po ./$(DEPDIR)/rendbkg.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/rendcore.Po ./$(DEPDIR)/render.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/rendsave.Po ./$(DEPDIR)/rendsort.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/scif.Po ./$(DEPDIR)/sh4.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/sh4core.Po ./$(DEPDIR)/sh4dasm.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/sh4mem.Po ./$(DEPDIR)/sh4mmio.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/sh4stat.Po ./$(DEPDIR)/sh4trans.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/sh4x86.Po ./$(DEPDIR)/syscall.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/tacore.Po ./$(DEPDIR)/testsh4x86.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/testxlt.Po ./$(DEPDIR)/texcache.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/timer.Po ./$(DEPDIR)/util.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/video_glx.Po ./$(DEPDIR)/video_gtk.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/video_null.Po ./$(DEPDIR)/watch.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/x86dasm.Po ./$(DEPDIR)/xltcache.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/yuv.Po
+@AMDEP_TRUE@	./$(DEPDIR)/joy_linux.Po ./$(DEPDIR)/kbd.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/loader.Po ./$(DEPDIR)/main.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/main_win.Po ./$(DEPDIR)/maple.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/mem.Po ./$(DEPDIR)/mmio_win.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/mmu.Po ./$(DEPDIR)/mouse.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/nrg.Po ./$(DEPDIR)/path_dlg.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/pvr2.Po ./$(DEPDIR)/pvr2mem.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/rendbkg.Po ./$(DEPDIR)/rendcore.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/render.Po ./$(DEPDIR)/rendsave.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/rendsort.Po ./$(DEPDIR)/scif.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/sh4.Po ./$(DEPDIR)/sh4core.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/sh4dasm.Po ./$(DEPDIR)/sh4mem.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/sh4mmio.Po ./$(DEPDIR)/sh4stat.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/sh4trans.Po ./$(DEPDIR)/sh4x86.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/syscall.Po ./$(DEPDIR)/tacore.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/testsh4x86.Po ./$(DEPDIR)/testxlt.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/texcache.Po ./$(DEPDIR)/timer.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/util.Po ./$(DEPDIR)/video_glx.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/video_gtk.Po ./$(DEPDIR)/video_null.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/watch.Po ./$(DEPDIR)/x86dasm.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/xltcache.Po ./$(DEPDIR)/yuv.Po
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
@@ -513,6 +518,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ide.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/insparse.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/intc.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/joy_linux.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/kbd.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/loader.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main.Po@am__quote@
@@ -2028,6 +2034,28 @@ cd_none.obj: drivers/cd_none.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/cd_none.Po' tmpdepfile='$(DEPDIR)/cd_none.TPo' @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o cd_none.obj `if test -f 'drivers/cd_none.c'; then $(CYGPATH_W) 'drivers/cd_none.c'; else $(CYGPATH_W) '$(srcdir)/drivers/cd_none.c'; fi`
+
+joy_linux.o: drivers/joy_linux.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT joy_linux.o -MD -MP -MF "$(DEPDIR)/joy_linux.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o joy_linux.o `test -f 'drivers/joy_linux.c' || echo '$(srcdir)/'`drivers/joy_linux.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/joy_linux.Tpo" "$(DEPDIR)/joy_linux.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/joy_linux.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/joy_linux.c' object='joy_linux.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/joy_linux.Po' tmpdepfile='$(DEPDIR)/joy_linux.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o joy_linux.o `test -f 'drivers/joy_linux.c' || echo '$(srcdir)/'`drivers/joy_linux.c
+
+joy_linux.obj: drivers/joy_linux.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT joy_linux.obj -MD -MP -MF "$(DEPDIR)/joy_linux.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o joy_linux.obj `if test -f 'drivers/joy_linux.c'; then $(CYGPATH_W) 'drivers/joy_linux.c'; else $(CYGPATH_W) '$(srcdir)/drivers/joy_linux.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/joy_linux.Tpo" "$(DEPDIR)/joy_linux.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/joy_linux.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/joy_linux.c' object='joy_linux.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/joy_linux.Po' tmpdepfile='$(DEPDIR)/joy_linux.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o joy_linux.obj `if test -f 'drivers/joy_linux.c'; then $(CYGPATH_W) 'drivers/joy_linux.c'; else $(CYGPATH_W) '$(srcdir)/drivers/joy_linux.c'; fi`
 
 audio_esd.o: drivers/audio_esd.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT audio_esd.o -MD -MP -MF "$(DEPDIR)/audio_esd.Tpo" \

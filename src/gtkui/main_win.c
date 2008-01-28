@@ -178,7 +178,7 @@ static gboolean on_video_window_key_pressed( GtkWidget *widget, GdkEventKey *eve
 	    return TRUE;
 	}
     }
-    input_event_keydown( gtk_get_unmodified_keyval(event) );
+    input_event_keydown( NULL, gtk_get_unmodified_keyval(event), 1 );
     return TRUE;
 }
 
@@ -186,7 +186,7 @@ static gboolean on_video_window_key_released( GtkWidget *widget, GdkEventKey *ev
 					     gpointer user_data )
 {
     main_window_t win = (main_window_t)user_data;
-    input_event_keyup( gtk_get_unmodified_keyval(event) );
+    input_event_keyup( NULL, gtk_get_unmodified_keyval(event), 0 );
     return TRUE;
 }
 
@@ -195,6 +195,12 @@ static gboolean on_video_window_grab_broken( GtkWidget *widget, GdkEventGrabBrok
 {
     main_window_t win = (main_window_t)user_data;
     fprintf( stderr, "Grab broken\n" );
+}
+
+static gboolean on_video_window_focus_changed( GtkWidget *widget, GdkEventFocus *event,
+					       gpointer user_data )
+{
+    display_set_focused(event->in);
 }
 
 /*************************** Main window (frame) ******************************/
@@ -299,11 +305,15 @@ main_window_t main_window_new( const gchar *title, GtkWidget *menubar, GtkWidget
 		      G_CALLBACK(on_video_window_mouse_pressed), win );
     g_signal_connect( win->video, "button-release-event", 
 		      G_CALLBACK(on_video_window_mouse_released), win );
+    g_signal_connect( win->video, "focus-in-event",
+		      G_CALLBACK(on_video_window_focus_changed), win);
+    g_signal_connect( win->video, "focus-out-event",
+		      G_CALLBACK(on_video_window_focus_changed), win);
 
     gtk_widget_add_events( win->video, 
 			   GDK_KEY_PRESS_MASK | GDK_KEY_RELEASE_MASK |
 			   GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK |
-			   GDK_POINTER_MOTION_MASK );
+			   GDK_POINTER_MOTION_MASK | GDK_FOCUS_CHANGE_MASK );
 
     return win;
 }

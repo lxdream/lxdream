@@ -1,3 +1,6 @@
+
+
+
 /**
  * $Id$
  *
@@ -61,6 +64,7 @@ struct display_driver display_null_driver = { "null",
 					      NULL,
 					      NULL,
 					      NULL, 
+					      NULL,
 					      video_null_create_render_buffer,
 					      video_null_destroy_render_buffer,
 					      video_null_set_render_target,

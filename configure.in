@@ -85,6 +85,12 @@ AC_CHECK_HEADER([linux/cdrom.h], [HAVE_LINUX_CDROM_H=yes], [
     echo "Linux CDROM support not found, building without it."]  )
 AM_CONDITIONAL(CDROM_LINUX, [test "$HAVE_LINUX_CDROM_H" = "yes"])
 
+AC_CHECK_HEADER([linux/joystick.h], [
+    HAVE_LINUX_JOYSTICK_H=yes
+    AC_DEFINE([HAVE_LINUX_JOYSTICK], 1, [Have linux joystick support]) ], 
+  [ echo "Linux Joystick support not found, building without it."] )
+AM_CONDITIONAL(JOY_LINUX, [test "$HAVE_LINUX_JOYSTICK_H" = "yes"])
+
 dnl Check for cross-compiler availability - needed for system tests
 AC_PATH_PROG(SHCC, [sh-elf-gcc])
 AC_PATH_PROG(SHLD, [sh-elf-ld])
