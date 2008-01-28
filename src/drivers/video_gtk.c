@@ -36,11 +36,12 @@ gboolean video_gtk_init();
 void video_gtk_shutdown();
 gboolean video_gtk_display_blank( uint32_t colour );
 uint16_t video_gtk_resolve_keysym( const gchar *keysym );
-uint16_t video_gtk_keycode_to_dckeysym(uint32_t keycode);
+uint16_t video_gtk_keycode_to_dckeysym(uint16_t keycode);
 
 struct display_driver display_gtk_driver = { "gtk", video_gtk_init, video_gtk_shutdown,
 					     video_gtk_resolve_keysym,
 					     video_gtk_keycode_to_dckeysym,
+					     NULL,
 					     NULL, NULL, NULL, NULL, NULL, 
 					     video_gtk_display_blank, NULL };
 
@@ -71,7 +72,7 @@ gboolean video_gtk_resize_callback(GtkWidget *widget, GdkEventConfigure *event, 
     return TRUE;
 }
 
-uint16_t video_gtk_keycode_to_dckeysym(uint32_t keycode)
+uint16_t video_gtk_keycode_to_dckeysym(uint16_t keycode)
 {
     if( keycode >= 'a' && keycode <= 'z' ) {
 	return (keycode - 'a') + DCKB_A;
@@ -170,6 +171,9 @@ gboolean video_gtk_init()
         ! video_glx_init_driver( &display_gtk_driver ) ) {
         return FALSE;
     }
+#ifdef HAVE_LINUX_JOYSTICK
+    linux_joystick_init();
+#endif
     return TRUE;
 }
 

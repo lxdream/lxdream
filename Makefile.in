@@ -95,6 +95,8 @@ INSTALL_SCRIPT = @INSTALL_SCRIPT@
 INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
 INSTOBJEXT = @INSTOBJEXT@
 INTLLIBS = @INTLLIBS@
+JOY_LINUX_FALSE = @JOY_LINUX_FALSE@
+JOY_LINUX_TRUE = @JOY_LINUX_TRUE@
 LDFLAGS = @LDFLAGS@
 LIBOBJS = @LIBOBJS@
 LIBPNG_CFLAGS = @LIBPNG_CFLAGS@
@@ -188,7 +190,7 @@ RECURSIVE_TARGETS = info-recursive dvi-recursive pdf-recursive \
 	installdirs-recursive install-recursive uninstall-recursive \
 	check-recursive installcheck-recursive
 DIST_COMMON = README $(srcdir)/Makefile.in $(srcdir)/configure AUTHORS \
-	COPYING ChangeLog INSTALL Makefile.am NEWS TODO acconfig.h \
+	COPYING ChangeLog INSTALL Makefile.am NEWS acconfig.h \
 	aclocal.m4 config.guess config.h.in config.sub configure \
 	configure.in depcomp install-sh missing mkinstalldirs
 DIST_SUBDIRS = src po test

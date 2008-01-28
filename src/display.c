@@ -31,8 +31,24 @@ display_driver_t display_driver_list[] = {
 					   &display_null_driver,
 					   NULL };
 
+/* Some explanation:
+ *   The system has at least one "root" device representing the main display 
+ * (which may be the null display). This device is part of the display_driver
+ * and generates events with no input_driver. The root device has no id
+ * as such (for the purposes of event names)
+ *
+ *   The system may also have one or more auxilliary devices which each have
+ * an input_driver and an id (eg "JS0"). So the keysym "Return" is (de)coded by
+ * the root device, and the keysym "JS0: Button0" is (de)coded by the JS0 input
+ * device as "Button0".
+ *
+ *   For the moment, mice are handled specially, as they behave a little
+ * differently from other devices (although this will probably change in the 
+ * future.
+ */
+
+
 typedef struct keymap_entry {
-    uint16_t keycode;
     input_key_callback_t callback;
     void *data;
     uint32_t value;
@@ -45,6 +61,12 @@ typedef struct mouse_entry {
     void *data;
     struct mouse_entry *next;
 } *mouse_entry_t;
+
+typedef struct input_driver_entry {
+    input_driver_t driver;
+    uint16_t entry_count;
+    struct keymap_entry *keymap[0];
+} *input_driver_entry_t;
 
 /**
  * Colour format information
@@ -66,68 +88,183 @@ struct colour_format colour_formats[] = {
 /**
  * FIXME: make this more memory efficient
  */
-struct keymap_entry *keymap[65536];
-struct keymap_entry *keyhooks = NULL;
-struct mouse_entry *mousehooks = NULL;
+static struct keymap_entry *root_keymap[65535];
+static struct keymap_entry *keyhooks = NULL;
+static struct mouse_entry *mousehooks = NULL;
+static gboolean display_focused = TRUE;
+static GList *input_drivers= NULL;
+static display_keysym_callback_t display_keysym_hook = NULL;
+void *display_keysym_hook_data;
 
-static struct keymap_entry *input_create_key( uint16_t keycode )
+gboolean input_register_device( input_driver_t driver, uint16_t max_keycode )
 {
-    struct keymap_entry *key = keymap[ keycode ];
-    if( key == NULL ) {
-	key = malloc( sizeof( struct keymap_entry ) );
-	assert( key != NULL );
-	keymap[ keycode ] = key;
-	key->keycode = keycode;
+    GList *ptr;
+    for( ptr = input_drivers; ptr != NULL; ptr = g_list_next(ptr) ) {
+	input_driver_entry_t entry = (input_driver_entry_t)ptr->data;
+	if( strcasecmp( entry->driver->id, driver->id ) == 0 ) {
+	    return FALSE;
+	}
     }
-    return key;
+
+    input_driver_entry_t entry = g_malloc0( sizeof(struct input_driver_entry) + (sizeof(keymap_entry_t) * max_keycode) );
+    entry->driver = driver;
+    entry->entry_count = max_keycode;
+    input_drivers = g_list_append( input_drivers, entry );
+    return TRUE;
 }
 
-static void input_delete_key( uint16_t keycode, input_key_callback_t callback, void *data,
-			      uint32_t value )
+void input_unregister_device( input_driver_t driver )
 {
-    struct keymap_entry *key = keymap[keycode];
-    if( key != NULL && key->callback == callback && key->data == data && key->value == value ) {
-	free( key );
-	keymap[keycode] = NULL;
+    GList *ptr;
+    for( ptr = input_drivers; ptr != NULL; ptr = g_list_next(ptr) ) {
+	input_driver_entry_t entry = (input_driver_entry_t)ptr->data;
+	if( entry->driver == driver ) {
+	    if( driver->destroy != NULL ) {
+		driver->destroy(driver);
+	    }
+	    input_drivers = g_list_remove(input_drivers, (gpointer)entry);
+	    g_free( entry );
+	    return;
+	}
     }
 }
 
-static struct keymap_entry *input_get_key( uint16_t keycode )
+/**
+ * Resolve the keysym and return a pointer to the keymap entry pointer
+ * @return keymap pointer or NULL if the key was unresolved
+ */
+static struct keymap_entry **input_entry_from_keysym( const gchar *keysym )
 {
-    return keymap[ keycode ];
+    if( keysym == NULL || keysym[0] == 0 ) {
+	return NULL;
+    }
+    char **strv = g_strsplit(keysym,":",2);
+    if( strv[1] == NULL ) {
+	/* root device */
+	if( display_driver == NULL || display_driver->resolve_keysym == NULL) {
+	    // Root device has no input handling
+	    g_strfreev(strv);
+	    return NULL;
+	}
+	uint16_t keycode = display_driver->resolve_keysym(g_strstrip(strv[0]));
+	g_strfreev(strv);
+	if( keycode == 0 ) {
+	    return NULL;
+	}
+	return &root_keymap[keycode-1];
+    } else {
+	char *id = g_strstrip(strv[0]);
+	GList *ptr;
+	for( ptr = input_drivers; ptr != NULL; ptr = g_list_next(ptr) ) {
+	    input_driver_entry_t entry = (input_driver_entry_t)ptr->data;
+	    if( strcasecmp( entry->driver->id, id ) == 0 ) {
+		/* we have ze device */
+		if( entry->driver->resolve_keysym == NULL ) {
+		    g_strfreev(strv);
+		    return NULL;
+		} 
+		uint16_t keycode = entry->driver->resolve_keysym(entry->driver, g_strstrip(strv[1]));
+		g_strfreev(strv);
+		if( keycode == 0 || keycode > entry->entry_count ) {
+		    return NULL;
+		}
+		return &entry->keymap[keycode-1];
+	    }
+	}
+	g_strfreev(strv);
+	return NULL; // device not found
+    }
 }
+
+static struct keymap_entry **input_entry_from_keycode( input_driver_t driver, uint16_t keycode )
+{
+    GList *ptr;
+
+    if( keycode == 0 ) {
+	return NULL;
+    }
+
+    if( driver == NULL ) {
+	return &root_keymap[keycode-1];
+    }
+
+    for( ptr = input_drivers; ptr != NULL; ptr = g_list_next(ptr) ) {
+	input_driver_entry_t entry = (input_driver_entry_t)ptr->data;
+	if( entry->driver == driver ) {
+	    if( keycode > entry->entry_count ) {
+		return NULL;
+	    } else {
+		return &entry->keymap[keycode-1];
+	    }
+	}
+    }
+    return NULL;
+}
+
+static gchar *input_keysym_for_keycode( input_driver_t driver, uint16_t keycode )
+{
+    if( keycode == 0 ) {
+	return NULL;
+    }
+    if( driver == NULL ) {
+	if( display_driver != NULL && display_driver->get_keysym_for_keycode != NULL ) {
+	    return display_driver->get_keysym_for_keycode(keycode);
+	}
+    } else if( driver->get_keysym_for_keycode ) {
+	gchar *sym = driver->get_keysym_for_keycode(driver,keycode);
+	if( sym != NULL ) {
+	    gchar *result = g_strdup_printf( "%s: %s", driver->id, sym );
+	    g_free(sym);
+	    return result;
+	}
+    }
+    return NULL;
+}
+
 
 gboolean input_register_key( const gchar *keysym, input_key_callback_t callback,
 			     void *data, uint32_t value )
 {
-    if( display_driver == NULL || keysym == NULL || display_driver->resolve_keysym == NULL )
-	return FALSE; /* No display driver */
+    if( keysym == NULL ) {
+	return FALSE;
+    }
+    int keys = 0;
     gchar **strv = g_strsplit(keysym, ",", 16);
     gchar **s = strv;
     while( *s != NULL ) {
-	uint16_t keycode = display_driver->resolve_keysym(g_strstrip(*s));
-	if( keycode == 0 )
-	    return FALSE; /* Invalid keysym */
-	
-	struct keymap_entry *key = input_create_key( keycode );
-	key->callback = callback;
-	key->data = data;
-	key->value = value;
+	keymap_entry_t *entryp = input_entry_from_keysym(*s);
+	if( entryp != NULL ) {
+	    *entryp = g_malloc0(sizeof(struct keymap_entry));
+	    (*entryp)->callback = callback;
+	    (*entryp)->data = data;
+	    (*entryp)->value = value;
+	    keys++;
+	}
 	s++;
     }
     g_strfreev(strv);
-    return TRUE;
+    return keys != 0;
 }
 
 void input_unregister_key( const gchar *keysym, input_key_callback_t callback,
 			   void *data, uint32_t value )
 {
-    if( display_driver == NULL || keysym == NULL || display_driver->resolve_keysym == NULL )
+    if( keysym == NULL ) {
 	return;
-    uint16_t keycode = display_driver->resolve_keysym(keysym);
-    if( keycode == 0 )
-	return;
-    input_delete_key( keycode, callback, data, value );
+    }
+
+    gchar **strv = g_strsplit(keysym, ",", 16);
+    gchar **s = strv;
+    while( *s != NULL ) {
+	keymap_entry_t *entryp = input_entry_from_keysym(*s);
+	if( entryp != NULL && *entryp != NULL && (*entryp)->callback == callback &&
+	    (*entryp)->data == data && (*entryp)->value == value ) {
+	    g_free( *entryp );
+	    *entryp = NULL;
+	}
+	s++;
+    }
+    g_strfreev(strv);
 }
 
 gboolean input_register_hook( input_key_callback_t callback,
@@ -204,44 +341,51 @@ void input_event_mouse( uint32_t buttons, int32_t x, int32_t y )
 
 gboolean input_is_key_valid( const gchar *keysym )
 {
-    if( display_driver == NULL )
-	return FALSE; /* No display driver */
-    return display_driver->resolve_keysym(keysym) != 0;
+    keymap_entry_t *ptr = input_entry_from_keysym(keysym);
+    return ptr != NULL;
 }
 
 gboolean input_is_key_registered( const gchar *keysym )
 {
-    if( display_driver == NULL )
-	return FALSE;
-    uint16_t keycode = display_driver->resolve_keysym(keysym);
-    if( keycode == 0 )
-	return FALSE;
-    return input_get_key( keycode ) != NULL;
+    keymap_entry_t *ptr = input_entry_from_keysym(keysym);
+    return ptr != NULL && *ptr != NULL;
 }
 
-void input_event_keydown( uint16_t keycode )
+void input_event_keydown( input_driver_t driver, uint16_t keycode, uint32_t pressure )
 {
-    struct keymap_entry *key = input_get_key(keycode);
-    if( key != NULL ) {
-	key->callback( key->data, key->value, TRUE );
+    if( display_focused ) {
+	keymap_entry_t *entryp = input_entry_from_keycode(driver,keycode);
+	if( entryp != NULL && *entryp != NULL ) {
+	    (*entryp)->callback( (*entryp)->data, (*entryp)->value, pressure, TRUE );
+	}
+	keymap_entry_t key = keyhooks;
+	while( key != NULL ) {
+	    key->callback( key->data, keycode, pressure, TRUE );
+	    key = key->next;
+	}
     }
-    key = keyhooks;
-    while( key != NULL ) {
-	key->callback( key->data, keycode, TRUE );
-	key = key->next;
+    if( display_keysym_hook != NULL ) {
+	gchar *sym = input_keysym_for_keycode( driver, keycode );
+	if( sym != NULL ) {
+	    display_keysym_hook(display_keysym_hook_data, sym);
+	    g_free(sym);
+	}
     }
 }
 
-void input_event_keyup( uint16_t keycode )
+void input_event_keyup( input_driver_t driver, uint16_t keycode, uint32_t pressure )
 {
-    struct keymap_entry *key = input_get_key(keycode);
-    if( key != NULL ) {
-	key->callback( key->data, key->value, FALSE );
-    }
-    key = keyhooks;
-    while( key != NULL ) {
-	key->callback( key->data, keycode, FALSE );
-	key = key->next;
+    if( display_focused ) {
+	keymap_entry_t *entryp = input_entry_from_keycode(driver,keycode);
+	if( entryp != NULL && *entryp != NULL ) {
+	    (*entryp)->callback( (*entryp)->data, (*entryp)->value, pressure, FALSE );
+	}
+
+	keymap_entry_t key = keyhooks;
+	while( key != NULL ) {
+	    key->callback( key->data, keycode, pressure, FALSE );
+	    key = key->next;
+	}
     }
 }
 
@@ -279,4 +423,15 @@ gboolean display_set_driver( display_driver_t driver )
 	display_driver = NULL;
     }
     return rv;
+}
+
+void display_set_focused( gboolean has_focus )
+{
+    display_focused = has_focus;
+}
+
+void input_set_keysym_hook( display_keysym_callback_t hook, void *data )
+{
+    display_keysym_hook = hook;
+    display_keysym_hook_data = data;
 }
