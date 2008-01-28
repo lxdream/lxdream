@@ -116,3 +116,11 @@ gdrom_disc_t gdrom_get_current_disc()
 {
     return gdrom_disc;
 }
+
+gchar *gdrom_get_relative_filename( const gchar *base_name, const gchar *rel_name )
+{
+    gchar *dirname = g_path_get_dirname(base_name);
+    gchar *pathname = g_strdup_printf( "%s%c%s", dirname, G_DIR_SEPARATOR, rel_name );
+    g_free(dirname);
+    return pathname;
+}

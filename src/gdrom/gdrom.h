@@ -224,4 +224,11 @@ GList *gdrom_get_native_devices();
 uint32_t gdrom_read_sectors( uint32_t sector, uint32_t sector_count,
 			     int mode, unsigned char *buf, uint32_t *length );
 
+/**
+ * Given a base filename (eg for a .cue file), generate the path for the given
+ * find_name relative to the original file. 
+ * @return a newly allocated string.
+ */
+gchar *gdrom_get_relative_filename( const gchar *base_name, const gchar *find_name );
+
 #endif
