@@ -217,7 +217,7 @@ xlat_recovery_record_t xlat_get_recovery( void *code, void *native_pc, gboolean 
 	xlat_recovery_record_t records = (xlat_recovery_record_t)(&block->code[block->recover_table_offset]);
 	uint32_t posn;
 	if( recover_after ) {
-	    if( records[count-1].xlat_offset <= pc_offset ) {
+	    if( records[count-1].xlat_offset < pc_offset ) {
 		return NULL;
 	    }
 	    for( posn=count-1; posn > 0; posn-- ) {

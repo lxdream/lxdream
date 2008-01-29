@@ -77,6 +77,9 @@ void sh4_init( void );
 void sh4_reset( void );
 void sh4_run( void );
 void sh4_stop( void );
+uint32_t sh4_run_slice( uint32_t nanos ); // Run single timeslice using emulator
+uint32_t sh4_xlat_run_slice( uint32_t nanos ); // Run single timeslice using translator
+uint32_t sh4_sleep_run_slice( uint32_t nanos ); // Run single timeslice while the CPU is asleep
 
 /* SH4 peripheral module functions */
 void CPG_reset( void );

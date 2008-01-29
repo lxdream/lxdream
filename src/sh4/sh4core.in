@@ -45,10 +45,7 @@ uint32_t sh4_run_slice( uint32_t nanosecs )
     sh4r.slice_cycle = 0;
 
     if( sh4r.sh4_state != SH4_STATE_RUNNING ) {
-	if( sh4r.event_pending < nanosecs ) {
-	    sh4r.sh4_state = SH4_STATE_RUNNING;
-	    sh4r.slice_cycle = sh4r.event_pending;
-	}
+	sh4_sleep_run_slice(nanosecs);
     }
 
     if( sh4_breakpoint_count == 0 ) {
