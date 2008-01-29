@@ -57,6 +57,11 @@
 #define XLAT_EXIT_SYSRESET 4
 
 /**
+ * Translation flag - exit the current block and continue after the next IRQ.
+ */
+#define XLAT_EXIT_SLEEP 5
+
+/**
  */
 uint32_t sh4_xlat_run_slice( uint32_t nanosecs );
 

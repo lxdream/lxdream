@@ -19,6 +19,7 @@
 
 #define MODULE sh4_module
 #include <math.h>
+#include <assert.h>
 #include "dream.h"
 #include "dreamcast.h"
 #include "sh4/sh4core.h"
@@ -26,6 +27,7 @@
 #include "sh4/intc.h"
 #include "sh4/xltcache.h"
 #include "sh4/sh4stat.h"
+#include "sh4/sh4trans.h"
 #include "mem.h"
 #include "clock.h"
 #include "syscall.h"
@@ -332,14 +334,78 @@ void sh4_fsca( uint32_t anglei, float *fr )
     *fr = sinf(angle);
 }
 
+/**
+ * Enter sleep mode (eg by executing a SLEEP instruction).
+ * Sets sh4_state appropriately and ensures any stopping peripheral modules
+ * are up to date.
+ */
 void sh4_sleep(void)
 {
     if( MMIO_READ( CPG, STBCR ) & 0x80 ) {
 	sh4r.sh4_state = SH4_STATE_STANDBY;
+	/* Bring all running peripheral modules up to date, and then halt them. */
+	TMU_run_slice( sh4r.slice_cycle );
+	SCIF_run_slice( sh4r.slice_cycle );
     } else {
-	sh4r.sh4_state = SH4_STATE_SLEEP;
+	if( MMIO_READ( CPG, STBCR2 ) & 0x80 ) {
+	    sh4r.sh4_state = SH4_STATE_DEEP_SLEEP;
+	    /* Halt DMAC but other peripherals still running */
+	    
+	} else {
+	    sh4r.sh4_state = SH4_STATE_SLEEP;
+	}
+    }
+    if( sh4_xlat_is_running() ) {
+	sh4_translate_exit( XLAT_EXIT_SLEEP );
     }
 }
+
+/**
+ * Wakeup following sleep mode (IRQ or reset). Sets state back to running,
+ * and restarts any peripheral devices that were stopped.
+ */
+void sh4_wakeup(void)
+{
+    switch( sh4r.sh4_state ) {
+    case SH4_STATE_STANDBY:
+	break;
+    case SH4_STATE_DEEP_SLEEP:
+	break;
+    case SH4_STATE_SLEEP:
+	break;
+    }
+    sh4r.sh4_state = SH4_STATE_RUNNING;
+}
+
+/**
+ * Run a time slice (or portion of a timeslice) while the SH4 is sleeping.
+ * Returns when either the SH4 wakes up (interrupt received) or the end of
+ * the slice is reached. Updates sh4.slice_cycle with the exit time and
+ * returns the same value.
+ */
+uint32_t sh4_sleep_run_slice( uint32_t nanosecs )
+{
+    int sleep_state = sh4r.sh4_state;
+    assert( sleep_state != SH4_STATE_RUNNING );
+    while( sh4r.event_pending < nanosecs ) {
+	sh4r.slice_cycle = sh4r.event_pending;
+	if( sh4r.event_types & PENDING_EVENT ) {
+	    event_execute();
+	}
+	if( sh4r.event_types & PENDING_IRQ ) {
+	    sh4_wakeup();
+	    nanosecs = sh4r.event_pending;
+	    break;
+	}
+    }
+    sh4r.slice_cycle = nanosecs;
+    if( sleep_state != SH4_STATE_STANDBY ) {
+	TMU_run_slice( nanosecs );
+	SCIF_run_slice( nanosecs );
+    }
+    return sh4r.slice_cycle;
+}
+
 
 /**
  * Compute the matrix tranform of fv given the matrix xf.

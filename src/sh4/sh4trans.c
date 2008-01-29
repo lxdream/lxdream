@@ -42,10 +42,7 @@ uint32_t sh4_xlat_run_slice( uint32_t nanosecs )
     sh4r.slice_cycle = 0;
 
     if( sh4r.sh4_state != SH4_STATE_RUNNING ) {
-	if( sh4r.event_pending < nanosecs ) {
-	    sh4r.sh4_state = SH4_STATE_RUNNING;
-	    sh4r.slice_cycle = sh4r.event_pending;
-	}
+	sh4_sleep_run_slice(nanosecs);
     }
 
     switch( setjmp(xlat_jmp_buf) ) {
@@ -62,6 +59,9 @@ uint32_t sh4_xlat_run_slice( uint32_t nanosecs )
     case XLAT_EXIT_SYSRESET:
 	dreamcast_reset();
 	break;
+    case XLAT_EXIT_SLEEP:
+	sh4_sleep_run_slice(nanosecs);
+        break;	
     }
     
     xlat_running = TRUE;
@@ -162,6 +162,10 @@ void * sh4_translate_basic_block( sh4addr_t start )
 	}
     } while( !done );
     pc += (done - 2);
+
+    // Add end-of-block recovery for post-instruction checks
+    sh4_translate_add_recovery( (pc - start)>>1 ); 
+
     int epilogue_size = sh4_translate_end_block_size();
     uint32_t recovery_size = sizeof(struct xlat_recovery_record)*xlat_recovery_posn;
     uint32_t finalsize = xlat_output - xlat_current_block->code + epilogue_size + recovery_size;
