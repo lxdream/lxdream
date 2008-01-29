@@ -154,7 +154,7 @@ static void controller_device_configure( maple_device_t device )
 	gtk_table_attach( GTK_TABLE(table), gtk_label_new(conf[i].key), x, x+1, y, y+1, 
 			  GTK_SHRINK, GTK_SHRINK, 0, 0 );
 	text = gtk_entry_new();
-	gtk_entry_set_width_chars( GTK_ENTRY(text), 8 );
+	gtk_entry_set_width_chars( GTK_ENTRY(text), 11 );
 	gtk_entry_set_editable( GTK_ENTRY(text), FALSE );
 	g_signal_connect( text, "key_press_event", 
 			  G_CALLBACK(config_key_keypress), NULL );
@@ -166,7 +166,7 @@ static void controller_device_configure( maple_device_t device )
 	gtk_table_attach_defaults( GTK_TABLE(table), text, x+1, x+2, y, y+1);
 	focus_chain = g_list_append( focus_chain, text );
 	text2 = gtk_entry_new();
-	gtk_entry_set_width_chars( GTK_ENTRY(text2), 8 );
+	gtk_entry_set_width_chars( GTK_ENTRY(text2), 11 );
 	gtk_entry_set_editable( GTK_ENTRY(text2), FALSE );
 	g_signal_connect( text2, "key_press_event", 
 			  G_CALLBACK(config_key_keypress), NULL );
