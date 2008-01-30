@@ -240,23 +240,24 @@ void linux_joystick_shutdown(void)
 
 /*************************** dnotify support **********************/
 
-static volatile gboolean need_input_rescan = FALSE;
+static volatile int need_input_rescan = 0;
 static int watch_dir_fd;
 
 static gboolean gtk_loop_check_input(gpointer data)
 {
-    if( need_input_rescan ) {
+    if( need_input_rescan == 1 ) {
+	need_input_rescan = 0;
 	int js = linux_joystick_scan();
 	if( js > 0 ) {
 	    maple_reattach_all();
 	}
     }
-    return TRUE;
+    return need_input_rescan != 2;
 }
 
 static void dnotify_handler(int sig )
 {
-    need_input_rescan = TRUE;
+    need_input_rescan = 1;
 }
 
 static gboolean linux_joystick_install_watch( const gchar *dir )
@@ -280,4 +281,5 @@ static void linux_joystick_uninstall_watch(void)
 {
     signal( SIGRTMIN+1, SIG_IGN );
     close( watch_dir_fd );
+    need_input_rescan = 2;
 }
