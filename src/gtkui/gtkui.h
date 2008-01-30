@@ -92,6 +92,15 @@ void open_file_dialog( char *title, file_callback_t action, char *pattern, char 
 uint16_t gtk_get_unmodified_keyval( GdkEventKey *event );
 
 /**
+ * Map a hardware keycode (not keyval) to a modifier state mask.
+ * @param display The display (containing the modifier map)
+ * @param keycde The hardware keycode to map
+ * @return The modifier mask (eg GDK_CONTROL_MASK) or 0 if the keycode
+ * is not recognized as a modifier key.
+ */
+guint gdk_keycode_to_modifier( GdkDisplay *display, guint keycode );
+
+/**
  * Construct a new pixbuf that takes ownership of the frame buffer
  */
 GdkPixbuf *gdk_pixbuf_new_from_frame_buffer( frame_buffer_t buffer );
