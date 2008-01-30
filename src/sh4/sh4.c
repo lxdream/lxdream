@@ -80,6 +80,7 @@ void sh4_init(void)
     register_io_regions( mmio_list_sh4mmio );
     sh4_main_ram = mem_get_region_by_name(MEM_REGION_MAIN);
     MMU_init();
+    TMU_init();
     sh4_reset();
 }
 
@@ -399,10 +400,6 @@ uint32_t sh4_sleep_run_slice( uint32_t nanosecs )
 	}
     }
     sh4r.slice_cycle = nanosecs;
-    if( sleep_state != SH4_STATE_STANDBY ) {
-	TMU_run_slice( nanosecs );
-	SCIF_run_slice( nanosecs );
-    }
     return sh4r.slice_cycle;
 }
 

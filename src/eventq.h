@@ -68,4 +68,6 @@ void event_execute();
 
 /* Events 1..96 are defined as the corresponding ASIC events. */
 
-
+#define EVENT_TMU0 97
+#define EVENT_TMU1 98
+#define EVENT_TMU2 99
