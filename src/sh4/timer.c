@@ -17,12 +17,14 @@
  * GNU General Public License for more details.
  */
 
-#include "dream.h"
+#include <assert.h>
+#include "lxdream.h"
 #include "mem.h"
 #include "clock.h"
-#include "sh4core.h"
-#include "sh4mmio.h"
-#include "intc.h"
+#include "eventq.h"
+#include "sh4/sh4core.h"
+#include "sh4/sh4mmio.h"
+#include "sh4/intc.h"
 
 /********************************* CPG *************************************/
 /* This is the base clock from which all other clocks are derived */
@@ -100,8 +102,21 @@ void mmio_region_RTC_write( uint32_t reg, uint32_t val )
 
 /********************************** TMU *************************************/
 
+#define TMU_IS_RUNNING(timer)  (MMIO_READ(TMU,TSTR) & (1<<timer))
+
 uint32_t TMU_count( int timer, uint32_t nanosecs );
 
+void TMU_event_callback( int eventid )
+{
+    TMU_count( eventid - EVENT_TMU0, sh4r.slice_cycle );
+}
+
+void TMU_init(void)
+{
+    register_event_callback( EVENT_TMU0, TMU_event_callback );
+    register_event_callback( EVENT_TMU1, TMU_event_callback );
+    register_event_callback( EVENT_TMU2, TMU_event_callback );
+}    
 
 #define TCR_ICPF 0x0200
 #define TCR_UNF  0x0100
@@ -115,22 +130,19 @@ struct TMU_timer {
     uint32_t timer_run; /* cycles already run from this slice */
 };
 
-struct TMU_timer TMU_timers[3];
+static struct TMU_timer TMU_timers[3];
 
 int32_t mmio_region_TMU_read( uint32_t reg )
 {
     switch( reg ) {
     case TCNT0:
 	TMU_count( 0, sh4r.slice_cycle );
-	TMU_timers[0].timer_run = sh4r.slice_cycle;
 	break;
     case TCNT1:
 	TMU_count( 1, sh4r.slice_cycle );
-	TMU_timers[1].timer_run = sh4r.slice_cycle;
 	break;
     case TCNT2:
 	TMU_count( 2, sh4r.slice_cycle );
-	TMU_timers[2].timer_run = sh4r.slice_cycle;
 	break;
     }
     return MMIO_READ( TMU, reg );
@@ -187,10 +199,19 @@ void TMU_set_timer_control( int timer,  int tcr )
     MMIO_WRITE( TMU, TCR0 + (12*timer), tcr );
 }
 
+void TMU_schedule_timer( int timer )
+{
+    uint64_t duration = (uint64_t)((uint32_t)(MMIO_READ( TMU, TCNT0 + 12*timer )+1)) * 
+	(uint64_t)TMU_timers[timer].timer_period - TMU_timers[timer].timer_remainder;
+    event_schedule_long( EVENT_TMU0+timer, (uint32_t)(duration / 1000000000), 
+			 (uint32_t)(duration % 1000000000) );
+}
+
 void TMU_start( int timer )
 {
     TMU_timers[timer].timer_run = sh4r.slice_cycle;
     TMU_timers[timer].timer_remainder = 0;
+    TMU_schedule_timer( timer );
 }
 
 /**
@@ -199,7 +220,7 @@ void TMU_start( int timer )
 void TMU_stop( int timer )
 {
     TMU_count( timer, sh4r.slice_cycle );
-    TMU_timers[timer].timer_run = sh4r.slice_cycle;
+    event_cancel( EVENT_TMU0+timer );
 }
 
 /**
@@ -207,25 +228,28 @@ void TMU_stop( int timer )
  */
 uint32_t TMU_count( int timer, uint32_t nanosecs ) 
 {
-    nanosecs = nanosecs + TMU_timers[timer].timer_remainder -
+    uint32_t run_ns = nanosecs + TMU_timers[timer].timer_remainder -
 	TMU_timers[timer].timer_run;
     TMU_timers[timer].timer_remainder = 
-	nanosecs % TMU_timers[timer].timer_period;
-    uint32_t count = nanosecs / TMU_timers[timer].timer_period;
+	run_ns % TMU_timers[timer].timer_period;
+    TMU_timers[timer].timer_run = nanosecs;
+    uint32_t count = run_ns / TMU_timers[timer].timer_period;
     uint32_t value = MMIO_READ( TMU, TCNT0 + 12*timer );
     uint32_t reset = MMIO_READ( TMU, TCOR0 + 12*timer );
     if( count > value ) {
 	uint32_t tcr = MMIO_READ( TMU, TCR0 + 12*timer );
 	tcr |= TCR_UNF;
 	count -= value;
-        value = reset - (count % reset);
+        value = reset - (count % reset) + 1;
 	MMIO_WRITE( TMU, TCR0 + 12*timer, tcr );
 	if( tcr & TCR_UNIE ) 
 	    intc_raise_interrupt( INT_TMU_TUNI0 + timer );
+	MMIO_WRITE( TMU, TCNT0 + 12*timer, value );
+	TMU_schedule_timer(timer);
     } else {
 	value -= count;
+	MMIO_WRITE( TMU, TCNT0 + 12*timer, value );
     }
-    MMIO_WRITE( TMU, TCNT0 + 12*timer, value );
     return value;
 }
 
@@ -253,25 +277,51 @@ void mmio_region_TMU_write( uint32_t reg, uint32_t val )
     case TCR2:
 	TMU_set_timer_control( 2, val );
 	return;
+    case TCNT0:
+	MMIO_WRITE( TMU, reg, val );
+	if( TMU_IS_RUNNING(0) ) { // reschedule
+	    TMU_timers[0].timer_run = sh4r.slice_cycle;
+	    TMU_schedule_timer( 0 );
+	}
+	return;
+    case TCNT1:
+	MMIO_WRITE( TMU, reg, val );
+	if( TMU_IS_RUNNING(1) ) { // reschedule
+	    TMU_timers[1].timer_run = sh4r.slice_cycle;
+	    TMU_schedule_timer( 1 );
+	}
+	return;
+    case TCNT2:
+	MMIO_WRITE( TMU, reg, val );
+	if( TMU_IS_RUNNING(2) ) { // reschedule
+	    TMU_timers[2].timer_run = sh4r.slice_cycle;
+	    TMU_schedule_timer( 2 );
+	}
+	return;
     }
     MMIO_WRITE( TMU, reg, val );
 }
 
-void TMU_run_slice( uint32_t nanosecs )
+void TMU_count_all( uint32_t nanosecs )
 {
     int tcr = MMIO_READ( TMU, TSTR );
     if( tcr & 0x01 ) {
 	TMU_count( 0, nanosecs );
-	TMU_timers[0].timer_run = 0;
     }
     if( tcr & 0x02 ) {
 	TMU_count( 1, nanosecs );
-	TMU_timers[1].timer_run = 0;
     }
     if( tcr & 0x04 ) {
 	TMU_count( 2, nanosecs );
-	TMU_timers[2].timer_run = 0;
     }
+}
+
+void TMU_run_slice( uint32_t nanosecs )
+{
+    TMU_count_all( nanosecs );
+    TMU_timers[0].timer_run = 0;
+    TMU_timers[1].timer_run = 0;
+    TMU_timers[2].timer_run = 0;
 }
 
 void TMU_update_clocks()

@@ -96,7 +96,7 @@ uint32_t sh4_xlat_run_slice( uint32_t nanosecs )
 
     xlat_running = FALSE;
     sh4_starting = FALSE;
-
+    sh4r.slice_cycle = nanosecs;
     if( sh4r.sh4_state != SH4_STATE_STANDBY ) {
 	TMU_run_slice( nanosecs );
 	SCIF_run_slice( nanosecs );
