@@ -20,6 +20,7 @@
 #include <sys/time.h>
 #include <time.h>
 #include <glib/gi18n.h>
+#include <gtk/gtkversion.h>
 #include "dreamcast.h"
 #include "display.h"
 #include "gdrom/gdrom.h"
@@ -490,4 +491,70 @@ uint16_t gtk_get_unmodified_keyval( GdkEventKey *event )
 					 NULL, NULL, NULL );
     return keyval;
 }
+
+/************* X11-specificness **********/
+#include <gdk/gdkx.h>
+
+guint gdk_keycode_to_modifier( GdkDisplay *display, guint keycode )
+{
+  int i;
+  int result = 0;
+  Display *xdisplay = GDK_DISPLAY_XDISPLAY (display);
+  XModifierKeymap *keymap = XGetModifierMapping( xdisplay );
+  for( i=0; i<8*keymap->max_keypermod; i++ ) {
+    if( keymap->modifiermap[i] == keycode ) {
+      result = 1 << (i/keymap->max_keypermod);
+      break;
+    }
+  }
+  XFreeModifiermap(keymap);
+  return result;
+}
+
+#if !(GTK_CHECK_VERSION(2,8,0))
+/* gdk_display_warp_pointer was added in GTK 2.8. If we're using an earlier
+ * version, include the code here. (Can't just set the dependency on 2.8 as
+ * it still hasn't been ported to OSX...) Original copyright statement belo
+ */
+
+/* GDK - The GIMP Drawing Kit
+ * Copyright (C) 1995-1997 Peter Mattis, Spencer Kimball and Josh MacDonald
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
+ */
+
+/*
+ * Modified by the GTK+ Team and others 1997-2000.  See the AUTHORS
+ * file for a list of people on the GTK+ Team.  See the ChangeLog
+ * files for a list of changes.  These files are distributed with
+ * GTK+ at ftp://ftp.gtk.org/pub/gtk/. 
+ */
+void gdk_display_warp_pointer (GdkDisplay *display,
+                          GdkScreen  *screen,
+                          gint        x,
+                          gint        y)
+{
+  Display *xdisplay;
+  Window dest;
+
+  xdisplay = GDK_DISPLAY_XDISPLAY (display);
+  dest = GDK_WINDOW_XWINDOW (gdk_screen_get_root_window (screen));
+
+  XWarpPointer (xdisplay, None, dest, 0, 0, 0, 0, x, y);  
+}
+
+#endif
 

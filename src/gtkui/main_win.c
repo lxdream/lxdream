@@ -168,11 +168,10 @@ static gboolean on_video_window_key_pressed( GtkWidget *widget, GdkEventKey *eve
 	 * Only check Ctrl/Shift/Alt for state - don't want to check numlock/capslock/
 	 * mouse buttons/etc
 	 */
-	int state = event->state & (GDK_SHIFT_MASK|GDK_CONTROL_MASK|GDK_MOD1_MASK);
-	if( (state == GDK_CONTROL_MASK &&
-	     (event->keyval == GDK_Alt_L || event->keyval == GDK_Alt_R)) ||
-	    (state == GDK_MOD1_MASK &&
-	     (event->keyval == GDK_Control_L || event->keyval == GDK_Control_R)) ) {
+        int mod = gdk_keycode_to_modifier(gtk_widget_get_display(widget), event->hardware_keycode);
+	int state = event->state & gtk_accelerator_get_default_mod_mask();
+	if( (state == GDK_CONTROL_MASK && mod == GDK_MOD1_MASK) ||
+	    (state == GDK_MOD1_MASK && mod == GDK_CONTROL_MASK) ) {
 	    video_window_ungrab_display(win);
 	    // Consume the keypress, DC doesn't get it.
 	    return TRUE;
@@ -188,13 +187,6 @@ static gboolean on_video_window_key_released( GtkWidget *widget, GdkEventKey *ev
     main_window_t win = (main_window_t)user_data;
     input_event_keyup( NULL, gtk_get_unmodified_keyval(event), 0 );
     return TRUE;
-}
-
-static gboolean on_video_window_grab_broken( GtkWidget *widget, GdkEventGrabBroken *event,
-					gpointer user_data )
-{
-    main_window_t win = (main_window_t)user_data;
-    fprintf( stderr, "Grab broken\n" );
 }
 
 static gboolean on_video_window_focus_changed( GtkWidget *widget, GdkEventFocus *event,
@@ -293,8 +285,6 @@ main_window_t main_window_new( const gchar *title, GtkWidget *menubar, GtkWidget
     g_signal_connect( win->window, "window-state-event",
 		      G_CALLBACK(on_main_window_state_changed), win );
 
-    g_signal_connect( win->video, "grab-broken-event",
-		      G_CALLBACK(on_video_window_grab_broken), win );
     g_signal_connect( win->video, "key-press-event",
 		      G_CALLBACK(on_video_window_key_pressed), win );
     g_signal_connect( win->video, "key-release-event",
