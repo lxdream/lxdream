@@ -16,10 +16,12 @@
  * GNU General Public License for more details.
  */
 
+#define _GNU_SOURCE
 #include <sys/types.h>
 #include <sys/ioctl.h>
 #include <errno.h>
 #include <stdio.h>
+#include <signal.h>
 #include <string.h>
 #include <fcntl.h>
 #include <dirent.h>
@@ -50,6 +52,8 @@ static linux_joystick_t linux_joystick_add( const gchar *filename, int fd );
 static uint16_t linux_joystick_resolve_keysym( input_driver_t dev, const gchar *str );
 static gchar *linux_joystick_keysym_for_keycode( input_driver_t dev, uint16_t keycode );
 static void linux_joystick_destroy( input_driver_t joy );
+static gboolean linux_joystick_install_watch( const gchar *dir );
+static void linux_joystick_uninstall_watch( void );
 
 /**
  * Convert keysym to keycode. Keysyms are either Button%d or Axis%d[+-], with buttons
@@ -125,7 +129,6 @@ static gboolean linux_joystick_callback( GIOChannel *source, GIOCondition condit
     linux_joystick_t joy = (linux_joystick_t)data;
 
     if( condition & G_IO_HUP ) {
-	close(joy->fd);
 	INFO( "Joystick '%s' disconnected\n", joy->name );
 	input_unregister_device((input_driver_t)joy);
 	return FALSE;
@@ -195,6 +198,12 @@ linux_joystick_t linux_joystick_new( const gchar *filename, int fd )
 
 int linux_joystick_init()
 {
+    linux_joystick_install_watch(INPUT_PATH);
+    linux_joystick_scan();
+}
+
+int linux_joystick_scan()
+{
     int joysticks = 0;
     struct dirent *ent;
     DIR *dir = opendir(INPUT_PATH);
@@ -224,3 +233,51 @@ int linux_joystick_init()
     return joysticks;
 }
 
+void linux_joystick_shutdown(void)
+{
+    linux_joystick_uninstall_watch();
+}
+
+/*************************** dnotify support **********************/
+
+static volatile gboolean need_input_rescan = FALSE;
+static int watch_dir_fd;
+
+static gboolean gtk_loop_check_input(gpointer data)
+{
+    if( need_input_rescan ) {
+	int js = linux_joystick_scan();
+	if( js > 0 ) {
+	    maple_reattach_all();
+	}
+    }
+    return TRUE;
+}
+
+static void dnotify_handler(int sig )
+{
+    need_input_rescan = TRUE;
+}
+
+static gboolean linux_joystick_install_watch( const gchar *dir )
+{
+    int fd = open( dir, O_RDONLY|O_NONBLOCK );
+    if( fd == -1 ) {
+	return FALSE;
+    }
+    
+    signal( SIGRTMIN+1, dnotify_handler );
+    fcntl(fd, F_SETSIG, SIGRTMIN + 1);
+    if( fcntl(fd, F_NOTIFY, DN_CREATE|DN_MULTISHOT) == -1 ) {
+	close(fd);
+	return FALSE;
+    }
+    watch_dir_fd = fd;
+    g_timeout_add( 500, gtk_loop_check_input, NULL );
+}
+
+static void linux_joystick_uninstall_watch(void)
+{
+    signal( SIGRTMIN+1, SIG_IGN );
+    close( watch_dir_fd );
+}

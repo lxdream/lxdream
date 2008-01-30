@@ -195,6 +195,8 @@ void video_gtk_shutdown()
     if( video_win != NULL ) {
 	video_glx_shutdown();
     }
-
+#ifdef HAVE_LINUX_JOYSTICK
+    linux_joystick_shutdown();
+#endif
 }
 
