@@ -26,6 +26,8 @@
 #include "gdrom/gdrom.h"
 #include "gtkui/gtkui.h"
 
+/* Base GUI clock is 10ms */
+#define GUI_TICK_PERIOD 10000000
 
 void gtk_gui_start( void );
 void gtk_gui_stop( void );
@@ -56,6 +58,7 @@ static GtkActionGroup *global_action_group;
  * Count of running nanoseconds - used to cut back on the GUI runtime
  */
 static uint32_t gtk_gui_nanos = 0;
+static uint32_t gtk_gui_ticks = 0;
 static struct timeval gtk_gui_lasttv;
 
 static gboolean gtk_gui_init_ok = FALSE;
@@ -366,25 +369,45 @@ void gtk_gui_update( void )
 }
 
 /**
- * Module run-slice. Because UI processing is fairly expensive, only 
- * run the processing about 10 times a second while we're emulating.
+ * Module run-slice. Run the event loop 100 times/second (doesn't really need to be
+ * any more often than this), and update the speed display 10 times/second. 
+ *
+ * Also detect if we're running too fast here and yield for a bit
  */
 uint32_t gtk_gui_run_slice( uint32_t nanosecs ) 
 {
     gtk_gui_nanos += nanosecs;
-    if( gtk_gui_nanos > 100000000 ) { 
-	struct timeval tv;
+    if( gtk_gui_nanos > GUI_TICK_PERIOD ) { /* 10 ms */
+	gtk_gui_nanos -= GUI_TICK_PERIOD;
+	gtk_gui_ticks ++;
+	uint32_t current_period = gtk_gui_ticks * GUI_TICK_PERIOD;
+
+	// Run the event loop
 	while( gtk_events_pending() )
-	    gtk_main_iteration();
-	
+	    gtk_main_iteration();	
+
+	struct timeval tv;
 	gettimeofday(&tv,NULL);
-	double ns = ((tv.tv_sec - gtk_gui_lasttv.tv_sec) * 1000000000.0) +
-	    ((tv.tv_usec - gtk_gui_lasttv.tv_usec)*1000.0);
-	double speed = (float)( (double)gtk_gui_nanos * 100.0 / ns );
-	gtk_gui_lasttv.tv_sec = tv.tv_sec;
-	gtk_gui_lasttv.tv_usec = tv.tv_usec;
-	main_window_set_speed( main_win, speed );
-	gtk_gui_nanos = 0;
+	uint32_t ns = ((tv.tv_sec - gtk_gui_lasttv.tv_sec) * 1000000000) + 
+	    (tv.tv_usec - gtk_gui_lasttv.tv_usec)*1000;
+	if( (ns * 1.05) < current_period ) {
+	    // We've gotten ahead - sleep for a little bit
+	    struct timespec tv;
+	    tv.tv_sec = 0;
+	    tv.tv_nsec = current_period - ns;
+	    nanosleep(&tv, &tv);
+	}
+
+	/* Update the display every 10 ticks (ie 10 times a second) and 
+	 * save the current tv value */
+	if( gtk_gui_ticks > 10 ) {
+	    gtk_gui_ticks -= 10;
+	    
+	    double speed = (float)( (double)current_period * 100.0 / ns );
+	    gtk_gui_lasttv.tv_sec = tv.tv_sec;
+	    gtk_gui_lasttv.tv_usec = tv.tv_usec;
+	    main_window_set_speed( main_win, speed );
+	}
     }
     return nanosecs;
 }
