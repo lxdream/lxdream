@@ -851,31 +851,45 @@ LDC Rm, SPC {:
     CHECKPRIV();
     sh4r.spc = sh4r.r[Rm];
 :}
-STS FPUL, Rn {: sh4r.r[Rn] = sh4r.fpul; :}
+STS FPUL, Rn {: 
+    CHECKFPUEN();
+    sh4r.r[Rn] = sh4r.fpul; 
+:}
 STS.L FPUL, @-Rn {:
+    CHECKFPUEN();
     CHECKWALIGN32( sh4r.r[Rn] );
     MEM_WRITE_LONG( sh4r.r[Rn]-4, sh4r.fpul );
     sh4r.r[Rn] -= 4;
 :}
 LDS.L @Rm+, FPUL {:
+    CHECKFPUEN();
     CHECKRALIGN32( sh4r.r[Rm] );
     MEM_READ_LONG(sh4r.r[Rm], sh4r.fpul);
     sh4r.r[Rm] +=4;
 :}
-LDS Rm, FPUL {: sh4r.fpul = sh4r.r[Rm]; :}
-STS FPSCR, Rn {: sh4r.r[Rn] = sh4r.fpscr; :}
+LDS Rm, FPUL {:
+    CHECKFPUEN();
+    sh4r.fpul = sh4r.r[Rm]; 
+:}
+STS FPSCR, Rn {: 
+    CHECKFPUEN();
+    sh4r.r[Rn] = sh4r.fpscr; 
+:}
 STS.L FPSCR, @-Rn {:
+    CHECKFPUEN();
     CHECKWALIGN32( sh4r.r[Rn] );
     MEM_WRITE_LONG( sh4r.r[Rn]-4, sh4r.fpscr );
     sh4r.r[Rn] -= 4;
 :}
 LDS.L @Rm+, FPSCR {:
+    CHECKFPUEN();
     CHECKRALIGN32( sh4r.r[Rm] );
     MEM_READ_LONG(sh4r.r[Rm], sh4r.fpscr);
     sh4r.r[Rm] +=4;
     sh4r.fr_bank = &sh4r.fr[(sh4r.fpscr&FPSCR_FR)>>21][0];
 :}
 LDS Rm, FPSCR {: 
+    CHECKFPUEN();
     sh4r.fpscr = sh4r.r[Rm]; 
     sh4r.fr_bank = &sh4r.fr[(sh4r.fpscr&FPSCR_FR)>>21][0];
 :}

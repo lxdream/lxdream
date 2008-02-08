@@ -2487,13 +2487,15 @@ LDC.L @Rm+, Rn_BANK {:
     store_spreg( R_EAX, REG_OFFSET(r_bank[Rn_BANK]) );
     sh4_x86.tstate = TSTATE_NONE;
 :}
-LDS Rm, FPSCR {:  
+LDS Rm, FPSCR {:
+    check_fpuen();
     load_reg( R_EAX, Rm );
     store_spreg( R_EAX, R_FPSCR );
     update_fr_bank( R_EAX );
     sh4_x86.tstate = TSTATE_NONE;
 :}
 LDS.L @Rm+, FPSCR {:  
+    check_fpuen();
     load_reg( R_EAX, Rm );
     check_ralign32( R_EAX );
     MMU_TRANSLATE_READ( R_EAX );
@@ -2504,10 +2506,12 @@ LDS.L @Rm+, FPSCR {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 LDS Rm, FPUL {:  
+    check_fpuen();
     load_reg( R_EAX, Rm );
     store_spreg( R_EAX, R_FPUL );
 :}
 LDS.L @Rm+, FPUL {:  
+    check_fpuen();
     load_reg( R_EAX, Rm );
     check_ralign32( R_EAX );
     MMU_TRANSLATE_READ( R_EAX );
@@ -2716,10 +2720,12 @@ STC.L GBR, @-Rn {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 STS FPSCR, Rn {:  
+    check_fpuen();
     load_spreg( R_EAX, R_FPSCR );
     store_reg( R_EAX, Rn );
 :}
 STS.L FPSCR, @-Rn {:  
+    check_fpuen();
     load_reg( R_EAX, Rn );
     check_walign32( R_EAX );
     ADD_imm8s_r32( -4, R_EAX );
@@ -2730,10 +2736,12 @@ STS.L FPSCR, @-Rn {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 STS FPUL, Rn {:  
+    check_fpuen();
     load_spreg( R_EAX, R_FPUL );
     store_reg( R_EAX, Rn );
 :}
 STS.L FPUL, @-Rn {:  
+    check_fpuen();
     load_reg( R_EAX, Rn );
     check_walign32( R_EAX );
     ADD_imm8s_r32( -4, R_EAX );

@@ -482,12 +482,14 @@ gboolean sh4_execute_instruction( void )
                             case 0x5:
                                 { /* STS FPUL, Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
+                                CHECKFPUEN();
                                 sh4r.r[Rn] = sh4r.fpul;
                                 }
                                 break;
                             case 0x6:
                                 { /* STS FPSCR, Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
+                                CHECKFPUEN();
                                 sh4r.r[Rn] = sh4r.fpscr;
                                 }
                                 break;
@@ -913,6 +915,7 @@ gboolean sh4_execute_instruction( void )
                             case 0x5:
                                 { /* STS.L FPUL, @-Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
+                                CHECKFPUEN();
                                 CHECKWALIGN32( sh4r.r[Rn] );
                                 MEM_WRITE_LONG( sh4r.r[Rn]-4, sh4r.fpul );
                                 sh4r.r[Rn] -= 4;
@@ -921,6 +924,7 @@ gboolean sh4_execute_instruction( void )
                             case 0x6:
                                 { /* STS.L FPSCR, @-Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
+                                CHECKFPUEN();
                                 CHECKWALIGN32( sh4r.r[Rn] );
                                 MEM_WRITE_LONG( sh4r.r[Rn]-4, sh4r.fpscr );
                                 sh4r.r[Rn] -= 4;
@@ -1100,6 +1104,7 @@ gboolean sh4_execute_instruction( void )
                             case 0x5:
                                 { /* LDS.L @Rm+, FPUL */
                                 uint32_t Rm = ((ir>>8)&0xF); 
+                                CHECKFPUEN();
                                 CHECKRALIGN32( sh4r.r[Rm] );
                                 MEM_READ_LONG(sh4r.r[Rm], sh4r.fpul);
                                 sh4r.r[Rm] +=4;
@@ -1108,6 +1113,7 @@ gboolean sh4_execute_instruction( void )
                             case 0x6:
                                 { /* LDS.L @Rm+, FPSCR */
                                 uint32_t Rm = ((ir>>8)&0xF); 
+                                CHECKFPUEN();
                                 CHECKRALIGN32( sh4r.r[Rm] );
                                 MEM_READ_LONG(sh4r.r[Rm], sh4r.fpscr);
                                 sh4r.r[Rm] +=4;
@@ -1276,12 +1282,14 @@ gboolean sh4_execute_instruction( void )
                             case 0x5:
                                 { /* LDS Rm, FPUL */
                                 uint32_t Rm = ((ir>>8)&0xF); 
+                                CHECKFPUEN();
                                 sh4r.fpul = sh4r.r[Rm];
                                 }
                                 break;
                             case 0x6:
                                 { /* LDS Rm, FPSCR */
                                 uint32_t Rm = ((ir>>8)&0xF); 
+                                CHECKFPUEN();
                                 sh4r.fpscr = sh4r.r[Rm]; 
                                 sh4r.fr_bank = &sh4r.fr[(sh4r.fpscr&FPSCR_FR)>>21][0];
                                 }

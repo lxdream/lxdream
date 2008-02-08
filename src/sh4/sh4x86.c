@@ -761,6 +761,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x5:
                                 { /* STS FPUL, Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
+                                check_fpuen();
                                 load_spreg( R_EAX, R_FPUL );
                                 store_reg( R_EAX, Rn );
                                 }
@@ -768,6 +769,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x6:
                                 { /* STS FPSCR, Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
+                                check_fpuen();
                                 load_spreg( R_EAX, R_FPSCR );
                                 store_reg( R_EAX, Rn );
                                 }
@@ -1441,6 +1443,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x5:
                                 { /* STS.L FPUL, @-Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
+                                check_fpuen();
                                 load_reg( R_EAX, Rn );
                                 check_walign32( R_EAX );
                                 ADD_imm8s_r32( -4, R_EAX );
@@ -1454,6 +1457,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x6:
                                 { /* STS.L FPSCR, @-Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
+                                check_fpuen();
                                 load_reg( R_EAX, Rn );
                                 check_walign32( R_EAX );
                                 ADD_imm8s_r32( -4, R_EAX );
@@ -1702,6 +1706,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x5:
                                 { /* LDS.L @Rm+, FPUL */
                                 uint32_t Rm = ((ir>>8)&0xF); 
+                                check_fpuen();
                                 load_reg( R_EAX, Rm );
                                 check_ralign32( R_EAX );
                                 MMU_TRANSLATE_READ( R_EAX );
@@ -1714,6 +1719,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x6:
                                 { /* LDS.L @Rm+, FPSCR */
                                 uint32_t Rm = ((ir>>8)&0xF); 
+                                check_fpuen();
                                 load_reg( R_EAX, Rm );
                                 check_ralign32( R_EAX );
                                 MMU_TRANSLATE_READ( R_EAX );
@@ -1939,6 +1945,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x5:
                                 { /* LDS Rm, FPUL */
                                 uint32_t Rm = ((ir>>8)&0xF); 
+                                check_fpuen();
                                 load_reg( R_EAX, Rm );
                                 store_spreg( R_EAX, R_FPUL );
                                 }
@@ -1946,6 +1953,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x6:
                                 { /* LDS Rm, FPSCR */
                                 uint32_t Rm = ((ir>>8)&0xF); 
+                                check_fpuen();
                                 load_reg( R_EAX, Rm );
                                 store_spreg( R_EAX, R_FPSCR );
                                 update_fr_bank( R_EAX );
