@@ -297,17 +297,19 @@ void input_unregister_hook( input_key_callback_t callback,
 {
     keymap_entry_t key = keyhooks;
     if( key != NULL ) {
-	keymap_entry_t next = key->next;
 	if( key->callback == callback && key->data == data ) {
+	    keyhooks = keyhooks->next;
 	    free(key);
-	    keyhooks = next;
 	    return;
 	}
-	while( next != NULL ) {
-	    if( next->callback == callback && next->data == data ) {
+	while( key->next != NULL ) {
+	    if( key->next->callback == callback && key->next->data == data ) {
+                keymap_entry_t next = key->next;
 		key->next = next->next;
 		free(next);
+		return;
 	    }
+	    key = key->next;
 	}
     }
 }
@@ -328,17 +330,19 @@ void input_unregister_mouse_hook( input_mouse_callback_t callback, void *data )
 {
     mouse_entry_t ent = mousehooks;
     if( ent != NULL ) {
-	mouse_entry_t next = ent->next;
 	if( ent->callback == callback && ent->data == data ) {
+	    mousehooks = mousehooks->next;
 	    free(ent);
-	    mousehooks = next;
 	    return;
 	}
-	while( next != NULL ) {
-	    if( next->callback == callback && next->data == data ) {
+	while( ent->next != NULL ) {
+	    if( ent->next->callback == callback && ent->next->data == data ) {
+                mouse_entry_t next = ent->next;
 		ent->next = next->next;
 		free(next);
+		return;
 	    }
+	    ent = ent->next;
 	}
     }
 }
