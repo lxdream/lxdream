@@ -190,6 +190,7 @@ void ide_set_packet_result( uint16_t result )
     idereg.count = 3;
     if( result != 0 ) {
 	idereg.status = 0x51;
+	idereg.state = IDE_STATE_IDLE;
 	ide_raise_interrupt();
     } else {
 	idereg.status = idereg.status & ~(IDE_STATUS_BSY|IDE_STATUS_CHK);
@@ -325,29 +326,27 @@ uint16_t ide_read_data_pio( void ) {
 uint32_t ide_read_data_dma( uint32_t addr, uint32_t length )
 {
     uint32_t xfercount = 0;
-    if( idereg.state == IDE_STATE_DMA_READ ) {
-	while( xfercount < length ) {
-	    int xferlen = length - xfercount;
-	    int remaining = idereg.data_length - idereg.data_offset;
-	    if( xferlen > remaining ) {
-		xferlen = remaining;
-	    }
-	    mem_copy_to_sh4( addr, (data_buffer + idereg.data_offset), xferlen );
-	    xfercount += xferlen;
-	    addr += xferlen;
-	    idereg.data_offset += xferlen;
-	    if( idereg.data_offset >= idereg.data_length ) {
-		if( idereg.sectors_left > 0 ) {
-		    ide_read_next_sector();
-		} else {
-		    idereg.data_offset = -1;
-		    idereg.state = IDE_STATE_IDLE;
-		    idereg.status = 0x50;
-		    idereg.count = 0x03;
-		    ide_raise_interrupt();
-		    asic_event( EVENT_IDE_DMA );
-		    break;
-		}
+    while( xfercount < length && idereg.state == IDE_STATE_DMA_READ ) {
+	int xferlen = length - xfercount;
+	int remaining = idereg.data_length - idereg.data_offset;
+	if( xferlen > remaining ) {
+	    xferlen = remaining;
+	}
+	mem_copy_to_sh4( addr, (data_buffer + idereg.data_offset), xferlen );
+	xfercount += xferlen;
+	addr += xferlen;
+	idereg.data_offset += xferlen;
+	if( idereg.data_offset >= idereg.data_length ) {
+	    if( idereg.sectors_left > 0 ) {
+		ide_read_next_sector();
+	    } else {
+		idereg.data_offset = -1;
+		idereg.state = IDE_STATE_IDLE;
+		idereg.status = 0x50;
+		idereg.count = 0x03;
+		ide_raise_interrupt();
+		asic_event( EVENT_IDE_DMA );
+		break;
 	    }
 	}
     }
