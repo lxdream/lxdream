@@ -225,7 +225,9 @@ gboolean maple_device_changed( GtkComboBox *combo, gpointer user_data )
 	assert(devclz != NULL);
 	if( data->new_device != NULL ) {
 	    if( data->new_device->device_class != devclz ) {
-		data->new_device->destroy(data->new_device);
+		if( data->new_device != data->old_device ) {
+		    data->new_device->destroy(data->new_device);
+		}
 		data->new_device = maple_new_device(devname);
 	    }
 	} else {
