@@ -137,7 +137,7 @@ uint16_t video_gtk_keycode_to_dckeysym(uint16_t keycode)
     case GDK_KP_Up:     return DCKB_KP_8;
     case GDK_KP_Page_Up:return DCKB_KP_9;
     case GDK_KP_Insert: return DCKB_KP_0;
-    case GDK_KP_Decimal:return DCKB_KP_PERIOD;
+    case GDK_KP_Delete: return DCKB_KP_PERIOD;
     case GDK_backslash: return DCKB_BACKSLASH;
     case GDK_Control_L: return DCKB_CONTROL_L;
     case GDK_Shift_L:   return DCKB_SHIFT_L;
