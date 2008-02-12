@@ -43,13 +43,14 @@ void open_file_dialog( char *title, file_callback_t action, char *pattern, char 
 		       gchar const *initial_dir )
 {
     GtkWidget *file;
+    gchar *initial_path = get_absolute_path(initial_dir);
     file = gtk_file_chooser_dialog_new( title, NULL,
 					GTK_FILE_CHOOSER_ACTION_OPEN,
 					GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
 					GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT,
 					NULL );
     add_file_pattern( GTK_FILE_CHOOSER(file), pattern, patname );
-    gtk_file_chooser_set_current_folder( GTK_FILE_CHOOSER(file), initial_dir );
+    gtk_file_chooser_set_current_folder( GTK_FILE_CHOOSER(file), initial_path );
     gtk_window_set_modal( GTK_WINDOW(file), TRUE );
     gtk_dialog_set_default_response( GTK_DIALOG(file), GTK_RESPONSE_ACCEPT );
     int result = gtk_dialog_run( GTK_DIALOG(file) );
@@ -58,19 +59,21 @@ void open_file_dialog( char *title, file_callback_t action, char *pattern, char 
 	action( filename );
     }
     gtk_widget_destroy(file);
+    g_free(initial_path);
 }
 
 void save_file_dialog( char *title, file_callback_t action, char *pattern, char *patname,
 		       gchar const *initial_dir )
 {
     GtkWidget *file;
+    gchar *initial_path = get_absolute_path(initial_dir);
     file = gtk_file_chooser_dialog_new( title, NULL,
 					GTK_FILE_CHOOSER_ACTION_SAVE,
 					GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
 					GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT,
 					NULL );
     add_file_pattern( GTK_FILE_CHOOSER(file), pattern, patname );
-    gtk_file_chooser_set_current_folder( GTK_FILE_CHOOSER(file), initial_dir );
+    gtk_file_chooser_set_current_folder( GTK_FILE_CHOOSER(file), initial_path );
     gtk_window_set_modal( GTK_WINDOW(file), TRUE );
     gtk_dialog_set_default_response( GTK_DIALOG(file), GTK_RESPONSE_ACCEPT );
     int result = gtk_dialog_run( GTK_DIALOG(file) );
@@ -79,6 +82,7 @@ void save_file_dialog( char *title, file_callback_t action, char *pattern, char 
 	action( filename );
     }
     gtk_widget_destroy(file);
+    g_free(initial_path);
 }
 
 void mount_action_callback( GtkAction *action, gpointer user_data)
@@ -131,6 +135,7 @@ void load_state_action_callback( GtkAction *action, gpointer user_data)
     GtkWidget *file, *preview, *frame, *align;
     GtkRequisition size;
     const gchar *dir = lxdream_get_config_value(CONFIG_SAVE_PATH);
+    const gchar *path = get_absolute_path(dir);
     file = gtk_file_chooser_dialog_new( _("Load state..."), NULL,
 					GTK_FILE_CHOOSER_ACTION_OPEN,
 					GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
@@ -153,7 +158,7 @@ void load_state_action_callback( GtkAction *action, gpointer user_data)
     gtk_file_chooser_set_preview_widget(GTK_FILE_CHOOSER(file), align);
     g_signal_connect( file, "update-preview", G_CALLBACK(load_state_preview_callback),
 		      preview );
-    gtk_file_chooser_set_current_folder( GTK_FILE_CHOOSER(file), dir );
+    gtk_file_chooser_set_current_folder( GTK_FILE_CHOOSER(file), path );
     gtk_window_set_modal( GTK_WINDOW(file), TRUE );
     int result = gtk_dialog_run( GTK_DIALOG(file) );
     if( result == GTK_RESPONSE_ACCEPT ) {
@@ -161,6 +166,7 @@ void load_state_action_callback( GtkAction *action, gpointer user_data)
 	dreamcast_load_state( filename );
     }
     gtk_widget_destroy(file);
+    g_free(path);
 }
 
 void save_state_action_callback( GtkAction *action, gpointer user_data)

@@ -101,6 +101,13 @@ uint16_t gtk_get_unmodified_keyval( GdkEventKey *event );
 guint gdk_keycode_to_modifier( GdkDisplay *display, guint keycode );
 
 /**
+ * Return an absolute path for the given input path, as a newly allocated
+ * string. If the input path is already absolute, the returned string will
+ * be identical to the input string.
+ */
+gchar *get_absolute_path( const gchar *path );
+
+/**
  * Construct a new pixbuf that takes ownership of the frame buffer
  */
 GdkPixbuf *gdk_pixbuf_new_from_frame_buffer( frame_buffer_t buffer );
