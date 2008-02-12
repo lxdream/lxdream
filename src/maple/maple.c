@@ -194,8 +194,8 @@ void maple_handle_buffer( uint32_t address ) {
                         else status = dev->get_condition(dev, func,
                                                          return_buf+8,
                                                          &out_length );
-			out_length++;
                         if( status == 0 ) {
+                            out_length++;
                             status = MAPLE_RESP_DATA;
                             PUTWORD(4,func);
                         }
