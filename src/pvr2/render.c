@@ -18,6 +18,7 @@
 
 #include <sys/time.h>
 #include <time.h>
+#include <math.h>
 #include "pvr2/pvr2.h"
 #include "asic.h"
 
@@ -79,7 +80,7 @@ void glDrawGrid( int width, int height )
  * Prepare the OpenGL context to receive instructions for a new frame.
  */
 static void pvr2_render_prepare_context( render_buffer_t buffer,
-					 float bgplanez, float nearz ) 
+					 float nearz, float farz )
 {
     /* Select and initialize the render context */
     display_driver->set_render_target(buffer);
@@ -95,7 +96,7 @@ static void pvr2_render_prepare_context( render_buffer_t buffer,
     glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    glOrtho( 0, buffer->width, buffer->height, 0, -bgplanez, -nearz );
+    glOrtho( 0, buffer->width, buffer->height, 0, -nearz, -farz );
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
     glCullFace( GL_BACK );
@@ -121,8 +122,10 @@ void pvr2_render_scene( render_buffer_t buffer )
 
     gettimeofday(&tva, NULL);
 
-    float bgplanez = 1/MMIO_READF( PVR2, RENDER_FARCLIP );
-    pvr2_render_prepare_context( buffer, bgplanez, 0 );
+    float farz, nearz;
+    pvr2_render_find_z_range( &nearz, &farz );
+    float bgplanez = MMIO_READF( PVR2, RENDER_FARCLIP );
+    pvr2_render_prepare_context( buffer, nearz, farz );
 
     int clip_x = MMIO_READ( PVR2, RENDER_HCLIP ) & 0x03FF;
     int clip_y = MMIO_READ( PVR2, RENDER_VCLIP ) & 0x03FF;

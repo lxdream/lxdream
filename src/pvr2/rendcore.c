@@ -16,6 +16,8 @@
  * GNU General Public License for more details.
  */
 #include <sys/time.h>
+#include <assert.h>
+#include <string.h>
 #include "pvr2/pvr2.h"
 #include "asic.h"
 #include "display.h"
@@ -41,33 +43,11 @@ int pvr2_render_colour_format[8] = {
     COLFMT_BGRA1555, COLFMT_RGB565, COLFMT_BGRA4444, COLFMT_BGRA1555,
     COLFMT_BGR888, COLFMT_BGRA8888, COLFMT_BGRA8888, COLFMT_BGRA4444 };
 
-
-#define CULL_NONE 0
-#define CULL_SMALL 1
-#define CULL_CCW 2
-#define CULL_CW 3
-
-#define SEGMENT_END         0x80000000
-#define SEGMENT_ZCLEAR      0x40000000
-#define SEGMENT_SORT_TRANS  0x20000000
-#define SEGMENT_START       0x10000000
-#define SEGMENT_X(c)        (((c) >> 2) & 0x3F)
-#define SEGMENT_Y(c)        (((c) >> 8) & 0x3F)
-#define NO_POINTER          0x80000000
-
 extern char *video_base;
 
 gboolean pvr2_force_fragment_alpha = FALSE;
 gboolean pvr2_debug_render = FALSE;
 
-struct tile_segment {
-    uint32_t control;
-    pvraddr_t opaque_ptr;
-    pvraddr_t opaquemod_ptr;
-    pvraddr_t trans_ptr;
-    pvraddr_t transmod_ptr;
-    pvraddr_t punchout_ptr;
-};
 
 void render_print_tilelist( FILE *f, uint32_t tile_entry );
 
@@ -272,9 +252,9 @@ void render_unpack_quad( struct vertex_unpacked *unpacked, uint32_t poly1,
 	       (unpacked[3].y - unpacked[1].y) * diff1.x) / detxy;
     float s = ((unpacked[3].y - unpacked[1].y) * diff0.x -
 	       (unpacked[3].x - unpacked[1].x) * diff0.y) / detxy;
-    diff0.z = (1/unpacked[0].z) - (1/unpacked[1].z);
-    diff1.z = (1/unpacked[2].z) - (1/unpacked[1].z);
-    unpacked[3].z = 1/((1/unpacked[1].z) + (t*diff0.z) + (s*diff1.z));
+    diff0.z = unpacked[0].z - unpacked[1].z;
+    diff1.z = unpacked[2].z - unpacked[1].z;
+    unpacked[3].z = unpacked[1].z + (t*diff0.z) + (s*diff1.z);
 
     diff0.u = unpacked[0].u - unpacked[1].u;
     diff0.v = unpacked[0].v - unpacked[1].v;
@@ -320,7 +300,8 @@ void render_unpacked_vertex_array( uint32_t poly1, struct vertex_unpacked *verte
 				   vertexes[i]->offset_rgba[1],
 				   vertexes[i]->offset_rgba[2] );
 	}
-	glVertex3f( vertexes[i]->x, vertexes[i]->y, 1/vertexes[i]->z );
+	assert( vertexes[i]->z > 0 && !isinf(vertexes[i]->z) );
+	glVertex3f( vertexes[i]->x, vertexes[i]->y, vertexes[i]->z );
     }
 
     glEnd();
@@ -375,7 +356,8 @@ void render_vertex_array( uint32_t poly1, uint32_t *vert_array[], int num_vertex
 	    glSecondaryColor3ubEXT( (GLubyte)(spec >> 16), (GLubyte)(spec >> 8), 
 				 (GLubyte)spec );
 	}
-	glVertex3f( vertexf[0], vertexf[1], 1/vertexf[2] );
+	//	assert( vertexf[2] > 0 && !isinf(vertexf[2]) );
+	glVertex3f( vertexf[0], vertexf[1], vertexf[2] );
 	vertexes += vertex_size;
     }
 
@@ -545,13 +527,12 @@ void pvr2_render_tilebuffer( int width, int height, int clipx1, int clipy1,
     glDisable( GL_SCISSOR_TEST );
 }
 
-static float render_find_maximum_tile_z( pvraddr_t tile_entry, float inputz )
+static void render_find_maximum_tile_z( pvraddr_t tile_entry, float *minimumz, float *maximumz )
 {
     uint32_t poly_bank = MMIO_READ(PVR2,RENDER_POLYBASE);
     uint32_t *tile_list = (uint32_t *)(video_base+tile_entry);
     int shadow_cfg = MMIO_READ( PVR2, RENDER_SHADOW ) & 0x100;
     int i, j;
-    float z = inputz;
     do {
 	uint32_t entry = *tile_list++;
 	if( entry >> 28 == 0x0F ) {
@@ -573,8 +554,10 @@ static float render_find_maximum_tile_z( pvraddr_t tile_entry, float inputz )
 		float *vertexz = (float *)(polygon+context_length+2);
 		for( i=0; i<strip_count; i++ ) {
 		    for( j=0; j<3; j++ ) {
-			if( *vertexz > z ) {
-			    z = *vertexz;
+			if( *vertexz > *maximumz ) {
+			    *maximumz = *vertexz;
+			} else if( *vertexz < *minimumz ) {
+			    *minimumz = *vertexz;
 			}
 			vertexz += vertex_length;
 		    }
@@ -587,8 +570,10 @@ static float render_find_maximum_tile_z( pvraddr_t tile_entry, float inputz )
 		float *vertexz = (float *)(polygon+context_length+2);
 		for( i=0; i<strip_count; i++ ) {
 		    for( j=0; j<4; j++ ) {
-			if( *vertexz > z ) {
-			    z = *vertexz;
+			if( *vertexz > *maximumz ) {
+			    *maximumz = *vertexz;
+			} else if( *vertexz < *minimumz ) {
+			    *minimumz = *vertexz;
 			}
 			vertexz += vertex_length;
 		    }
@@ -599,48 +584,50 @@ static float render_find_maximum_tile_z( pvraddr_t tile_entry, float inputz )
 		int i;
 		float *vertexz = (float *)polygon+context_length+2;
 		for( i=0; i<6; i++ ) {
-		    if( (entry & (0x40000000>>i)) && *vertexz > z ) {
-			z = *vertexz;
+		    if( (entry & (0x40000000>>i)) ) {
+			if( *vertexz > *maximumz ) {
+			    *maximumz = *vertexz;
+			} else if( *vertexz < *minimumz ) {
+			    *minimumz = *vertexz;
+			}
 		    }
 		    vertexz += vertex_length;
 		}
 	    }
 	}
     } while(1);
-    return z;
 }
 
 /**
  * Scan through the scene to determine the largest z value (in order to set up
  * an appropriate near clip plane).
  */
-float pvr2_render_find_maximum_z( )
+void pvr2_render_find_z_range( float *minimumz, float *maximumz )
 {
     pvraddr_t segmentbase = MMIO_READ( PVR2, RENDER_TILEBASE );
-    float maximumz = MMIO_READF( PVR2, RENDER_FARCLIP ); /* Initialize to the far clip plane */
+    *minimumz = MMIO_READF( PVR2, RENDER_FARCLIP ); /* Initialize to the far clip plane */
+    *maximumz = *minimumz;
 
     struct tile_segment *segment = (struct tile_segment *)(video_base + segmentbase);
     do {
 	
 	if( (segment->opaque_ptr & NO_POINTER) == 0 ) {
-	    maximumz = render_find_maximum_tile_z(segment->opaque_ptr, maximumz);
+	    render_find_maximum_tile_z(segment->opaque_ptr, minimumz, maximumz);
 	}
 	if( (segment->opaquemod_ptr & NO_POINTER) == 0 ) {
-	    maximumz = render_find_maximum_tile_z(segment->opaquemod_ptr, maximumz);
+	    render_find_maximum_tile_z(segment->opaquemod_ptr, minimumz, maximumz);
 	}
 	if( (segment->trans_ptr & NO_POINTER) == 0 ) {
-	    maximumz = render_find_maximum_tile_z(segment->trans_ptr, maximumz);
+	    render_find_maximum_tile_z(segment->trans_ptr, minimumz, maximumz);
 	}
 	if( (segment->transmod_ptr & NO_POINTER) == 0 ) {
-	    maximumz = render_find_maximum_tile_z(segment->transmod_ptr, maximumz);
+	    render_find_maximum_tile_z(segment->transmod_ptr, minimumz, maximumz);
 	}
 	if( (segment->punchout_ptr & NO_POINTER) == 0 ) {
-	    maximumz = render_find_maximum_tile_z(segment->punchout_ptr, maximumz);
+	    render_find_maximum_tile_z(segment->punchout_ptr, minimumz, maximumz);
 	}
 
     } while( ((segment++)->control & SEGMENT_END) == 0 );
-
-    return 1/maximumz;
 }
 
 /**

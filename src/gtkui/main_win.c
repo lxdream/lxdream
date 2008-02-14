@@ -250,16 +250,21 @@ main_window_t main_window_new( const gchar *title, GtkWidget *menubar, GtkWidget
     Display *display = gdk_x11_display_get_xdisplay( gtk_widget_get_display(win->window));
     Screen *screen = gdk_x11_screen_get_xscreen( gtk_widget_get_screen(win->window));
     int screen_no = XScreenNumberOfScreen(screen);
+#ifndef HAVE_LIBOSMESA
     if( !video_glx_init(display, screen_no) ) {
         ERROR( "Unable to initialize GLX, aborting" );
 	exit(3);
     }
+#endif
 
-    XVisualInfo *visual = video_glx_get_visual();
-    GdkVisual *gdkvis = gdk_x11_screen_lookup_visual( gtk_widget_get_screen(win->window), visual->visualid );
-    GdkColormap *colormap = gdk_colormap_new( gdkvis, FALSE );
     win->video = gtk_drawing_area_new();
-    gtk_widget_set_colormap( win->video, colormap );
+
+    XVisualInfo *visual = video_gtk_get_visual();
+    if( visual != NULL ) {
+	GdkVisual *gdkvis = gdk_x11_screen_lookup_visual( gtk_widget_get_screen(win->window), visual->visualid );
+	GdkColormap *colormap = gdk_colormap_new( gdkvis, FALSE );
+	gtk_widget_set_colormap( win->video, colormap );
+    }
     GTK_WIDGET_SET_FLAGS(win->video, GTK_CAN_FOCUS|GTK_CAN_DEFAULT);
     gtk_widget_set_size_request( win->video, 640, 480 ); 
     gtk_widget_set_double_buffered( win->video, FALSE );

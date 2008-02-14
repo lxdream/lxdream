@@ -111,6 +111,8 @@ MKINSTALLDIRS = @MKINSTALLDIRS@
 MSGFMT = @MSGFMT@
 MSGFMT_OPTS = @MSGFMT_OPTS@
 OBJEXT = @OBJEXT@
+OSMESA_DRIVER_FALSE = @OSMESA_DRIVER_FALSE@
+OSMESA_DRIVER_TRUE = @OSMESA_DRIVER_TRUE@
 PACKAGE = @PACKAGE@
 PACKAGE_BUGREPORT = @PACKAGE_BUGREPORT@
 PACKAGE_NAME = @PACKAGE_NAME@
@@ -190,7 +192,7 @@ RECURSIVE_TARGETS = info-recursive dvi-recursive pdf-recursive \
 	installdirs-recursive install-recursive uninstall-recursive \
 	check-recursive installcheck-recursive
 DIST_COMMON = README $(srcdir)/Makefile.in $(srcdir)/configure AUTHORS \
-	COPYING ChangeLog INSTALL Makefile.am NEWS acconfig.h \
+	COPYING ChangeLog INSTALL Makefile.am NEWS TODO acconfig.h \
 	aclocal.m4 config.guess config.h.in config.sub configure \
 	configure.in depcomp install-sh missing mkinstalldirs
 DIST_SUBDIRS = src po test
