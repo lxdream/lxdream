@@ -1,5 +1,5 @@
 /**
- * $Id: video_gtk.c 636 2008-01-30 11:31:21Z nkeynes $
+ * $Id$
  *
  * The PC side of the video support (responsible for actually displaying / 
  * rendering frames)

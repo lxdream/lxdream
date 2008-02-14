@@ -1,5 +1,5 @@
 /**
- * $Id: gl_common.c 602 2008-01-15 20:50:23Z nkeynes $
+ * $Id$
  *
  * Manage the internal vertex/polygon buffers and scene data structure. 
  * Where possible this uses VBOs for the vertex + index data.

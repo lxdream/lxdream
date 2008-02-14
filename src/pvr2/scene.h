@@ -1,5 +1,5 @@
 /**
- * $Id: pvr2.h 602 2008-01-15 20:50:23Z nkeynes $
+ * $Id$
  *
  * PVR2 rendering functions (private)
  *
