@@ -1,5 +1,5 @@
 /**
- * $Id: joy_linux.c,v 1.12 2007-11-08 11:54:16 nkeynes Exp $
+ * $Id$
  *
  * Linux joystick input device support
  *
