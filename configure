@@ -700,6 +700,8 @@ host
 host_cpu
 host_vendor
 host_os
+OSMESA_DRIVER_TRUE
+OSMESA_DRIVER_FALSE
 PKG_CONFIG
 LIBPNG_CFLAGS
 LIBPNG_LIBS
@@ -1352,6 +1354,12 @@ Optional Features:
                           performance)
   --enable-watch          Enable watchpoints in the debugger (warning: hurts
                           performance)
+
+Optional Packages:
+  --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
+  --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
+  --with-osmesa           Build with the osmesa GL library (software
+                          rendering)
 
 Some influential environment variables:
   CC          C compiler command
@@ -4983,6 +4991,15 @@ _ACEOF
    fi
 fi
 
+
+# Check whether --with-osmesa was given.
+if test "${with_osmesa+set}" = set; then
+  withval=$with_osmesa;
+else
+  with_osmesa=no
+fi
+
+
 # On IRIX 5.3, sys/types and inttypes.h are conflicting.
 
 
@@ -5050,6 +5067,235 @@ _ACEOF
 fi
 
 done
+
+
+if test "x$with_osmesa" != xno; then
+
+
+{ echo "$as_me:$LINENO: checking for OSMesaCreateContext in -lOSMesa" >&5
+echo $ECHO_N "checking for OSMesaCreateContext in -lOSMesa... $ECHO_C" >&6; }
+if test "${ac_cv_lib_OSMesa_OSMesaCreateContext+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lOSMesa  $LIBS"
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char OSMesaCreateContext ();
+int
+main ()
+{
+return OSMesaCreateContext ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (ac_try="$ac_link"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
+  (eval "$ac_link") 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && {
+	 test -z "$ac_c_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest$ac_exeext &&
+       $as_test_x conftest$ac_exeext; then
+  ac_cv_lib_OSMesa_OSMesaCreateContext=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+	ac_cv_lib_OSMesa_OSMesaCreateContext=no
+fi
+
+rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
+      conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ echo "$as_me:$LINENO: result: $ac_cv_lib_OSMesa_OSMesaCreateContext" >&5
+echo "${ECHO_T}$ac_cv_lib_OSMesa_OSMesaCreateContext" >&6; }
+if test $ac_cv_lib_OSMesa_OSMesaCreateContext = yes; then
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBOSMESA 1
+_ACEOF
+
+  LIBS="-lOSMesa $LIBS"
+
+else
+  { { echo "$as_me:$LINENO: error: --with-osmesa was given, but OSMesa library could not be found
+See \`config.log' for more details." >&5
+echo "$as_me: error: --with-osmesa was given, but OSMesa library could not be found
+See \`config.log' for more details." >&2;}
+   { (exit 1); exit 1; }; }
+fi
+
+  if test "${ac_cv_header_GL_osmesa_h+set}" = set; then
+  { echo "$as_me:$LINENO: checking for GL/osmesa.h" >&5
+echo $ECHO_N "checking for GL/osmesa.h... $ECHO_C" >&6; }
+if test "${ac_cv_header_GL_osmesa_h+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+fi
+{ echo "$as_me:$LINENO: result: $ac_cv_header_GL_osmesa_h" >&5
+echo "${ECHO_T}$ac_cv_header_GL_osmesa_h" >&6; }
+else
+  # Is the header compilable?
+{ echo "$as_me:$LINENO: checking GL/osmesa.h usability" >&5
+echo $ECHO_N "checking GL/osmesa.h usability... $ECHO_C" >&6; }
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+$ac_includes_default
+#include <GL/osmesa.h>
+_ACEOF
+rm -f conftest.$ac_objext
+if { (ac_try="$ac_compile"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
+  (eval "$ac_compile") 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && {
+	 test -z "$ac_c_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest.$ac_objext; then
+  ac_header_compiler=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+	ac_header_compiler=no
+fi
+
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+{ echo "$as_me:$LINENO: result: $ac_header_compiler" >&5
+echo "${ECHO_T}$ac_header_compiler" >&6; }
+
+# Is the header present?
+{ echo "$as_me:$LINENO: checking GL/osmesa.h presence" >&5
+echo $ECHO_N "checking GL/osmesa.h presence... $ECHO_C" >&6; }
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+#include <GL/osmesa.h>
+_ACEOF
+if { (ac_try="$ac_cpp conftest.$ac_ext"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
+  (eval "$ac_cpp conftest.$ac_ext") 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } >/dev/null && {
+	 test -z "$ac_c_preproc_warn_flag$ac_c_werror_flag" ||
+	 test ! -s conftest.err
+       }; then
+  ac_header_preproc=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+  ac_header_preproc=no
+fi
+
+rm -f conftest.err conftest.$ac_ext
+{ echo "$as_me:$LINENO: result: $ac_header_preproc" >&5
+echo "${ECHO_T}$ac_header_preproc" >&6; }
+
+# So?  What about this header?
+case $ac_header_compiler:$ac_header_preproc:$ac_c_preproc_warn_flag in
+  yes:no: )
+    { echo "$as_me:$LINENO: WARNING: GL/osmesa.h: accepted by the compiler, rejected by the preprocessor!" >&5
+echo "$as_me: WARNING: GL/osmesa.h: accepted by the compiler, rejected by the preprocessor!" >&2;}
+    { echo "$as_me:$LINENO: WARNING: GL/osmesa.h: proceeding with the compiler's result" >&5
+echo "$as_me: WARNING: GL/osmesa.h: proceeding with the compiler's result" >&2;}
+    ac_header_preproc=yes
+    ;;
+  no:yes:* )
+    { echo "$as_me:$LINENO: WARNING: GL/osmesa.h: present but cannot be compiled" >&5
+echo "$as_me: WARNING: GL/osmesa.h: present but cannot be compiled" >&2;}
+    { echo "$as_me:$LINENO: WARNING: GL/osmesa.h:     check for missing prerequisite headers?" >&5
+echo "$as_me: WARNING: GL/osmesa.h:     check for missing prerequisite headers?" >&2;}
+    { echo "$as_me:$LINENO: WARNING: GL/osmesa.h: see the Autoconf documentation" >&5
+echo "$as_me: WARNING: GL/osmesa.h: see the Autoconf documentation" >&2;}
+    { echo "$as_me:$LINENO: WARNING: GL/osmesa.h:     section \"Present But Cannot Be Compiled\"" >&5
+echo "$as_me: WARNING: GL/osmesa.h:     section \"Present But Cannot Be Compiled\"" >&2;}
+    { echo "$as_me:$LINENO: WARNING: GL/osmesa.h: proceeding with the preprocessor's result" >&5
+echo "$as_me: WARNING: GL/osmesa.h: proceeding with the preprocessor's result" >&2;}
+    { echo "$as_me:$LINENO: WARNING: GL/osmesa.h: in the future, the compiler will take precedence" >&5
+echo "$as_me: WARNING: GL/osmesa.h: in the future, the compiler will take precedence" >&2;}
+
+    ;;
+esac
+{ echo "$as_me:$LINENO: checking for GL/osmesa.h" >&5
+echo $ECHO_N "checking for GL/osmesa.h... $ECHO_C" >&6; }
+if test "${ac_cv_header_GL_osmesa_h+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_cv_header_GL_osmesa_h=$ac_header_preproc
+fi
+{ echo "$as_me:$LINENO: result: $ac_cv_header_GL_osmesa_h" >&5
+echo "${ECHO_T}$ac_cv_header_GL_osmesa_h" >&6; }
+
+fi
+if test $ac_cv_header_GL_osmesa_h = yes; then
+  :
+else
+  { { echo "$as_me:$LINENO: error: --with-osmesa was given, but osmesa.h could not be found
+See \`config.log' for more details." >&5
+echo "$as_me: error: --with-osmesa was given, but osmesa.h could not be found
+See \`config.log' for more details." >&2;}
+   { (exit 1); exit 1; }; }
+fi
+
+
+
+fi
+
+
+
+if test "x$with_osmesa" != xno; then
+  OSMESA_DRIVER_TRUE=
+  OSMESA_DRIVER_FALSE='#'
+else
+  OSMESA_DRIVER_TRUE='#'
+  OSMESA_DRIVER_FALSE=
+fi
 
 
 if test "${ac_cv_header_Carbon_Carbon_h+set}" = set; then
@@ -5506,6 +5752,7 @@ fi
 
 
 if test "$APPLE_BUILD" != 'yes'; then
+if test "x$with_osmesa" == "xno"; then
 
 { echo "$as_me:$LINENO: checking for glXQueryVersion in -lGL" >&5
 echo $ECHO_N "checking for glXQueryVersion in -lGL... $ECHO_C" >&6; }
@@ -5715,6 +5962,7 @@ else
 fi
 
 
+fi
 fi
 
 
@@ -8204,6 +8452,13 @@ echo "$as_me: error: conditional \"am__fastdepCC\" was never defined.
 Usually this means the macro was only invoked conditionally." >&2;}
    { (exit 1); exit 1; }; }
 fi
+if test -z "${OSMESA_DRIVER_TRUE}" && test -z "${OSMESA_DRIVER_FALSE}"; then
+  { { echo "$as_me:$LINENO: error: conditional \"OSMESA_DRIVER\" was never defined.
+Usually this means the macro was only invoked conditionally." >&5
+echo "$as_me: error: conditional \"OSMESA_DRIVER\" was never defined.
+Usually this means the macro was only invoked conditionally." >&2;}
+   { (exit 1); exit 1; }; }
+fi
 if test -z "${GUI_CARBON_TRUE}" && test -z "${GUI_CARBON_FALSE}"; then
   { { echo "$as_me:$LINENO: error: conditional \"GUI_CARBON\" was never defined.
 Usually this means the macro was only invoked conditionally." >&5
@@ -8890,6 +9145,8 @@ host!$host$ac_delim
 host_cpu!$host_cpu$ac_delim
 host_vendor!$host_vendor$ac_delim
 host_os!$host_os$ac_delim
+OSMESA_DRIVER_TRUE!$OSMESA_DRIVER_TRUE$ac_delim
+OSMESA_DRIVER_FALSE!$OSMESA_DRIVER_FALSE$ac_delim
 PKG_CONFIG!$PKG_CONFIG$ac_delim
 LIBPNG_CFLAGS!$LIBPNG_CFLAGS$ac_delim
 LIBPNG_LIBS!$LIBPNG_LIBS$ac_delim
@@ -8898,8 +9155,6 @@ GTK_LIBS!$GTK_LIBS$ac_delim
 GUI_CARBON_TRUE!$GUI_CARBON_TRUE$ac_delim
 GUI_CARBON_FALSE!$GUI_CARBON_FALSE$ac_delim
 GUI_GTK_TRUE!$GUI_GTK_TRUE$ac_delim
-GUI_GTK_FALSE!$GUI_GTK_FALSE$ac_delim
-BUILD_SH4X86_TRUE!$BUILD_SH4X86_TRUE$ac_delim
 _ACEOF
 
   if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 97; then
@@ -8941,6 +9196,8 @@ _ACEOF
 ac_delim='%!_!# '
 for ac_last_try in false false false false false :; do
   cat >conf$$subs.sed <<_ACEOF
+GUI_GTK_FALSE!$GUI_GTK_FALSE$ac_delim
+BUILD_SH4X86_TRUE!$BUILD_SH4X86_TRUE$ac_delim
 BUILD_SH4X86_FALSE!$BUILD_SH4X86_FALSE$ac_delim
 BUILD_X86_64_TRUE!$BUILD_X86_64_TRUE$ac_delim
 BUILD_X86_64_FALSE!$BUILD_X86_64_FALSE$ac_delim
@@ -8983,7 +9240,7 @@ LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 40; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 42; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5

@@ -16,7 +16,11 @@
  * GNU General Public License for more details.
  */
 
-#include "dream.h"
+#ifndef lxdream_pvr2_H
+#define lxdream_pvr2_H 1
+
+#include <stdio.h>
+#include "lxdream.h"
 #include "mem.h"
 #include "display.h"
 #include "pvr2/pvr2mmio.h"
@@ -240,6 +244,8 @@ int pvr2_yuv_load_state( FILE *f );
 
 /********************************* Renderer ******************************/
 
+void pvr2_read_scene( void );
+
 /**
  * Render the current scene stored in PVR ram to the GL back buffer.
  */
@@ -260,7 +266,7 @@ void render_set_context( uint32_t *context, int render_mode );
 void pvr2_render_tilebuffer( int width, int height, int clipx1, int clipy1, 
 			     int clipx2, int clipy2 );
 
-float pvr2_render_find_maximum_z();
+void pvr2_render_find_z_range( float *min, float *max );
 
 void pvr2_render_getsize( int *x, int *y );
 
@@ -292,7 +298,6 @@ void render_vertex_array( uint32_t poly1, uint32_t *vertexes[], int num_vertexes
 void render_tile( pvraddr_t tile_entry, int render_mode, gboolean cheap_modifier_mode );
 
 void render_autosort_tile( pvraddr_t tile_entry, int render_mode, gboolean cheap_modifier_mode );
-
 
 /****************************** Texture Cache ****************************/
 
@@ -377,3 +382,29 @@ extern int pvr2_poly_texblend[4];
 extern int pvr2_render_colour_format[8];
 
 float halftofloat(uint16_t half);
+
+#define CULL_NONE 0
+#define CULL_SMALL 1
+#define CULL_CCW 2
+#define CULL_CW 3
+
+#define SEGMENT_END         0x80000000
+#define SEGMENT_ZCLEAR      0x40000000
+#define SEGMENT_SORT_TRANS  0x20000000
+#define SEGMENT_START       0x10000000
+#define SEGMENT_X(c)        (((c) >> 2) & 0x3F)
+#define SEGMENT_Y(c)        (((c) >> 8) & 0x3F)
+#define NO_POINTER          0x80000000
+#define IS_TILE_PTR(p)      ( ((p)&NO_POINTER) == 0 )
+#define IS_LAST_SEGMENT(s)  (((s)->control) & SEGMENT_END)
+
+struct tile_segment {
+    uint32_t control;
+    pvraddr_t opaque_ptr;
+    pvraddr_t opaquemod_ptr;
+    pvraddr_t trans_ptr;
+    pvraddr_t transmod_ptr;
+    pvraddr_t punchout_ptr;
+};
+
+#endif /* !lxdream_pvr2_H */

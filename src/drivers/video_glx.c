@@ -16,12 +16,14 @@
  * GNU General Public License for more details.
  */
 
+#include <string.h>
 #include "display.h"
-#include "pvr2/pvr2.h"
-#include "drivers/gl_common.h"
 #include <X11/Xlib.h>
 #include <GL/glx.h>
+#include "pvr2/pvr2.h"
+#include "pvr2/glutil.h"
 #include "drivers/video_glx.h"
+#include "drivers/video_gl.h"
 
 /**
  * General X11 parameters. The front-end driver is expected to set this up
@@ -166,6 +168,13 @@ gboolean video_glx_init_context( Display *display, Window window )
 
     if( !glXIsDirect(display, glx_context) ) {
     	WARN( "Not using direct rendering - this is likely to be slow" );
+    }
+
+    if( glsl_is_supported() ) {
+	//if( !glsl_load_shaders( glsl_vertex_shader_src, glsl_fragment_shader_src ) ) {
+	if( !glsl_load_shaders( glsl_vertex_shader_src, NULL ) ) {
+            WARN( "Unable to load GL shaders" );
+        }
     }
 
     texcache_gl_init();

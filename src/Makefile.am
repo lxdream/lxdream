@@ -13,7 +13,7 @@ check_PROGRAMS = test/testxlt
 
 AM_CFLAGS = -D_ISOC99_SOURCE -D_BSD_SOURCE 
 TESTS = test/testxlt
-BUILT_SOURCES = sh4/sh4core.c sh4/sh4dasm.c sh4/sh4x86.c drivers/gl_slsrc.c
+BUILT_SOURCES = sh4/sh4core.c sh4/sh4dasm.c sh4/sh4x86.c pvr2/gl_slsrc.c
 
 gendec_SOURCES = tools/gendec.c tools/gendec.h tools/insparse.c tools/actparse.c
 genglsl_SOURCES = tools/genglsl.c
@@ -34,14 +34,14 @@ lxdream_SOURCES = \
         aica/aica.c aica/aica.h aica/audio.c aica/audio.h \
 	pvr2/pvr2.c pvr2/pvr2.h pvr2/pvr2mem.c \
 	pvr2/tacore.c pvr2/render.c pvr2/rendcore.c pvr2/rendbkg.c pvr2/rendsort.c \
-	pvr2/texcache.c pvr2/yuv.c pvr2/rendsave.c \
+	pvr2/texcache.c pvr2/yuv.c pvr2/rendsave.c pvr2/scene.c pvr2/scene.h \
+	pvr2/gl_sl.c pvr2/gl_slsrc.c pvr2/glutil.c pvr2/glutil.h \
         maple/maple.c maple/maple.h \
         maple/controller.c maple/controller.h maple/kbd.c maple/mouse.c \
         loader.c bootstrap.c util.c \
 	display.c display.h dckeysyms.h \
 	drivers/audio_null.c drivers/video_null.c \
-	drivers/gl_common.c drivers/gl_common.h drivers/gl_fbo.c \
-	drivers/gl_sl.c drivers/gl_slsrc.c
+	drivers/video_gl.c drivers/video_gl.h drivers/gl_fbo.c
 
 if BUILD_SH4X86
 lxdream_SOURCES += sh4/sh4x86.c sh4/x86op.h \
@@ -61,12 +61,21 @@ check_PROGRAMS += test/testsh4x86
 endif
 
 if GUI_GTK
+if OSMESA_DRIVER
 lxdream_SOURCES += gtkui/gtkui.c gtkui/gtkui.h \
 	gtkui/main_win.c gtkui/gtkcb.c \
         gtkui/mmio_win.c gtkui/debug_win.c gtkui/dump_win.c \
         gtkui/ctrl_dlg.c gtkui/path_dlg.c gtkui/gdrom_menu.c \
         drivers/video_gtk.c drivers/video_gtk.h \
-	drivers/video_glx.c drivers/video_glx.h
+        drivers/video_gdk.c drivers/video_gdk.h 
+else
+lxdream_SOURCES += gtkui/gtkui.c gtkui/gtkui.h \
+	gtkui/main_win.c gtkui/gtkcb.c \
+        gtkui/mmio_win.c gtkui/debug_win.c gtkui/dump_win.c \
+        gtkui/ctrl_dlg.c gtkui/path_dlg.c gtkui/gdrom_menu.c \
+        drivers/video_gtk.c drivers/video_gtk.h \
+        drivers/video_glx.c drivers/video_glx.h
+endif
 endif
 
 if CDROM_LINUX
@@ -99,5 +108,5 @@ sh4/sh4x86.c: gendec sh4/sh4.def sh4/sh4x86.in
 	./gendec sh4/sh4.def sh4/sh4x86.in -o sh4/sh4x86.c
 sh4/sh4stat.c: gendec sh4/sh4.def sh4/sh4stat.in
 	./gendec sh4/sh4.def sh4/sh4stat.in -o sh4/sh4stat.c
-drivers/gl_slsrc.c: genglsl drivers/vertex.glsl drivers/fragment.glsl
-	./genglsl drivers/vertex.glsl drivers/fragment.glsl drivers/gl_slsrc.c
+pvr2/gl_slsrc.c: genglsl pvr2/vertex.glsl pvr2/fragment.glsl
+	./genglsl pvr2/vertex.glsl pvr2/fragment.glsl pvr2/gl_slsrc.c

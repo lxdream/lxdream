@@ -49,6 +49,9 @@
 /* Define to 1 if you have the `GL' library (-lGL). */
 #undef HAVE_LIBGL
 
+/* Define to 1 if you have the `OSMesa' library (-lOSMesa). */
+#undef HAVE_LIBOSMESA
+
 /* Define to 1 if you have the `z' library (-lz). */
 #undef HAVE_LIBZ
 

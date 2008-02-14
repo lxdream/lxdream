@@ -72,9 +72,9 @@ static void compute_triangle_boxes( struct render_triangle *triangle, int num_tr
 	triangle[i].maxx = MAX3(triangle[i].vertexes[0][0],triangle[i].vertexes[1][0],triangle[i].vertexes[2][0]);
 	triangle[i].miny = MIN3(triangle[i].vertexes[0][1],triangle[i].vertexes[1][1],triangle[i].vertexes[2][1]);
 	triangle[i].maxy = MAX3(triangle[i].vertexes[0][1],triangle[i].vertexes[1][1],triangle[i].vertexes[2][1]);
-	float az = 1/triangle[i].vertexes[0][2];
-	float bz = 1/triangle[i].vertexes[1][2];
-	float cz = 1/triangle[i].vertexes[2][2];
+	float az = triangle[i].vertexes[0][2];
+	float bz = triangle[i].vertexes[1][2];
+	float cz = triangle[i].vertexes[2][2];
 	triangle[i].minz = MIN3(az,bz,cz);
 	triangle[i].maxz = MAX3(az,bz,cz);
     }
@@ -198,9 +198,9 @@ int compare_triangles( const void *a, const void *b )
 {
     const struct render_triangle *tri1 = a;
     const struct render_triangle *tri2 = b;
-    if( tri1->minz < tri2->minz ) {  
-	return 1; // No these _aren't_ back to front...
-    } else if( tri1->minz > tri2->minz ) {
+    if( tri1->minz > tri2->minz ) {  
+	return 1; 
+    } else if( tri1->minz < tri2->minz ) {
 	return -1;
     } else {
 	return 0;

@@ -426,15 +426,15 @@ static void bkg_compute_scene( struct vertex_unpacked *base, int width, int heig
 
     center.x = base[1].x;
     center.y = base[1].y;
-    center.z = (1/base[1].z);
+    center.z = base[1].z;
     center.u = base[1].u;
     center.v = base[1].v;
     diff0.x = base[0].x - center.x;
     diff0.y = base[0].y - center.y;
-    diff0.z = (1/base[0].z) - center.z;
+    diff0.z = base[0].z - center.z;
     diff1.x = base[2].x - center.x;
     diff1.y = base[2].y - center.y;
-    diff1.z = (1/base[2].z) - center.z;
+    diff1.z = base[2].z - center.z;
 
     float detxy = ((diff1.y) * (diff0.x)) - ((diff0.y) * (diff1.x));
     
@@ -461,7 +461,7 @@ static void bkg_compute_scene( struct vertex_unpacked *base, int width, int heig
 	    scene->vertexes[i].rgba[1] = base[2].rgba[1];
 	    scene->vertexes[i].rgba[2] = base[2].rgba[2];
 	    scene->vertexes[i].rgba[3] = base[2].rgba[3];
-	    scene->vertexes[i].z = 1/base[2].z;
+	    scene->vertexes[i].z = base[2].z;
 	    scene->vertexes[i].u = base[2].u;
 	    scene->vertexes[i].v = base[2].v;
 	}
