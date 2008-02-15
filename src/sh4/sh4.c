@@ -388,6 +388,7 @@ uint32_t sh4_sleep_run_slice( uint32_t nanosecs )
 {
     int sleep_state = sh4r.sh4_state;
     assert( sleep_state != SH4_STATE_RUNNING );
+    
     while( sh4r.event_pending < nanosecs ) {
 	sh4r.slice_cycle = sh4r.event_pending;
 	if( sh4r.event_types & PENDING_EVENT ) {
@@ -395,8 +396,7 @@ uint32_t sh4_sleep_run_slice( uint32_t nanosecs )
 	}
 	if( sh4r.event_types & PENDING_IRQ ) {
 	    sh4_wakeup();
-	    nanosecs = sh4r.event_pending;
-	    break;
+	    return sh4r.slice_cycle;
 	}
     }
     sh4r.slice_cycle = nanosecs;
