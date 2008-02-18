@@ -28,9 +28,9 @@ typedef enum {
 } tile_sort_mode_t;
 
 struct vertex_struct {
-    float x,y,z;
     float u,v;
     uint32_t rgba;
+    float x,y,z;
     uint32_t offset_rgba;
 };
 
@@ -117,8 +117,7 @@ struct pvr2_scene_struct {
 
     /** Pointer to the start of the tile segment list in PVR2 VRAM (32-bit) */
     struct tile_segment *segment_list;
-    /** Map from PVR2 polygon address to an element of poly_array. Temporary, 
-     * used only during poly buffer parsing */
+    /** Map from PVR2 polygon address to an element of poly_array. */
     struct polygon_struct **buf_to_poly_map;
     /** Pointer to the start of the raw polygon buffer in PVR2 VRAM (32-bit).
      * Also only used during parsing */

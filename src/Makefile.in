@@ -236,7 +236,7 @@ lxdream_SOURCES = \
 	pvr2/pvr2.c pvr2/pvr2.h pvr2/pvr2mem.c \
 	pvr2/tacore.c pvr2/render.c pvr2/rendcore.c pvr2/rendbkg.c pvr2/rendsort.c \
 	pvr2/texcache.c pvr2/yuv.c pvr2/rendsave.c pvr2/scene.c pvr2/scene.h \
-	pvr2/gl_sl.c pvr2/gl_slsrc.c pvr2/glutil.c pvr2/glutil.h \
+	pvr2/gl_sl.c pvr2/gl_slsrc.c pvr2/glutil.c pvr2/glutil.h pvr2/glrender.c \
         maple/maple.c maple/maple.h \
         maple/controller.c maple/controller.h maple/kbd.c maple/mouse.c \
         loader.c bootstrap.c util.c \
@@ -295,7 +295,7 @@ am__lxdream_SOURCES_DIST = main.c config.c config.h mem.c mem.h mmio.h \
 	pvr2/rendcore.c pvr2/rendbkg.c pvr2/rendsort.c pvr2/texcache.c \
 	pvr2/yuv.c pvr2/rendsave.c pvr2/scene.c pvr2/scene.h \
 	pvr2/gl_sl.c pvr2/gl_slsrc.c pvr2/glutil.c pvr2/glutil.h \
-	maple/maple.c maple/maple.h maple/controller.c \
+	pvr2/glrender.c maple/maple.c maple/maple.h maple/controller.c \
 	maple/controller.h maple/kbd.c maple/mouse.c loader.c \
 	bootstrap.c util.c display.c display.h dckeysyms.h \
 	drivers/audio_null.c drivers/video_null.c drivers/video_gl.c \
@@ -353,13 +353,13 @@ am_lxdream_OBJECTS = main.$(OBJEXT) config.$(OBJEXT) mem.$(OBJEXT) \
 	rendcore.$(OBJEXT) rendbkg.$(OBJEXT) rendsort.$(OBJEXT) \
 	texcache.$(OBJEXT) yuv.$(OBJEXT) rendsave.$(OBJEXT) \
 	scene.$(OBJEXT) gl_sl.$(OBJEXT) gl_slsrc.$(OBJEXT) \
-	glutil.$(OBJEXT) maple.$(OBJEXT) controller.$(OBJEXT) \
-	kbd.$(OBJEXT) mouse.$(OBJEXT) loader.$(OBJEXT) \
-	bootstrap.$(OBJEXT) util.$(OBJEXT) display.$(OBJEXT) \
-	audio_null.$(OBJEXT) video_null.$(OBJEXT) video_gl.$(OBJEXT) \
-	gl_fbo.$(OBJEXT) $(am__objects_1) $(am__objects_2) \
-	$(am__objects_3) $(am__objects_4) $(am__objects_5) \
-	$(am__objects_6) $(am__objects_7)
+	glutil.$(OBJEXT) glrender.$(OBJEXT) maple.$(OBJEXT) \
+	controller.$(OBJEXT) kbd.$(OBJEXT) mouse.$(OBJEXT) \
+	loader.$(OBJEXT) bootstrap.$(OBJEXT) util.$(OBJEXT) \
+	display.$(OBJEXT) audio_null.$(OBJEXT) video_null.$(OBJEXT) \
+	video_gl.$(OBJEXT) gl_fbo.$(OBJEXT) $(am__objects_1) \
+	$(am__objects_2) $(am__objects_3) $(am__objects_4) \
+	$(am__objects_5) $(am__objects_6) $(am__objects_7)
 lxdream_OBJECTS = $(am_lxdream_OBJECTS)
 lxdream_DEPENDENCIES =
 lxdream_LDFLAGS =
@@ -404,33 +404,33 @@ am__depfiles_maybe = depfiles
 @AMDEP_TRUE@	./$(DEPDIR)/gdrom.Po ./$(DEPDIR)/gdrom_menu.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/gendec.Po ./$(DEPDIR)/genglsl.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/gl_fbo.Po ./$(DEPDIR)/gl_sl.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/gl_slsrc.Po ./$(DEPDIR)/glutil.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/gtkcb.Po ./$(DEPDIR)/gtkui.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/i386-dis.Po ./$(DEPDIR)/ide.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/insparse.Po ./$(DEPDIR)/intc.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/joy_linux.Po ./$(DEPDIR)/kbd.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/loader.Po ./$(DEPDIR)/main.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/main_win.Po ./$(DEPDIR)/maple.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/mem.Po ./$(DEPDIR)/mmio_win.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/mmu.Po ./$(DEPDIR)/mouse.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/nrg.Po ./$(DEPDIR)/path_dlg.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/pvr2.Po ./$(DEPDIR)/pvr2mem.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/rendbkg.Po ./$(DEPDIR)/rendcore.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/render.Po ./$(DEPDIR)/rendsave.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/rendsort.Po ./$(DEPDIR)/scene.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/scif.Po ./$(DEPDIR)/sh4.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/sh4core.Po ./$(DEPDIR)/sh4dasm.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/sh4mem.Po ./$(DEPDIR)/sh4mmio.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/sh4stat.Po ./$(DEPDIR)/sh4trans.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/sh4x86.Po ./$(DEPDIR)/syscall.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/tacore.Po ./$(DEPDIR)/testsh4x86.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/testxlt.Po ./$(DEPDIR)/texcache.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/timer.Po ./$(DEPDIR)/util.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/video_gdk.Po ./$(DEPDIR)/video_gl.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/video_glx.Po ./$(DEPDIR)/video_gtk.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/video_null.Po ./$(DEPDIR)/watch.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/x86dasm.Po ./$(DEPDIR)/xltcache.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/yuv.Po
+@AMDEP_TRUE@	./$(DEPDIR)/gl_slsrc.Po ./$(DEPDIR)/glrender.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/glutil.Po ./$(DEPDIR)/gtkcb.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/gtkui.Po ./$(DEPDIR)/i386-dis.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/ide.Po ./$(DEPDIR)/insparse.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/intc.Po ./$(DEPDIR)/joy_linux.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/kbd.Po ./$(DEPDIR)/loader.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/main.Po ./$(DEPDIR)/main_win.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/maple.Po ./$(DEPDIR)/mem.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/mmio_win.Po ./$(DEPDIR)/mmu.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/mouse.Po ./$(DEPDIR)/nrg.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/path_dlg.Po ./$(DEPDIR)/pvr2.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/pvr2mem.Po ./$(DEPDIR)/rendbkg.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/rendcore.Po ./$(DEPDIR)/render.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/rendsave.Po ./$(DEPDIR)/rendsort.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/scene.Po ./$(DEPDIR)/scif.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/sh4.Po ./$(DEPDIR)/sh4core.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/sh4dasm.Po ./$(DEPDIR)/sh4mem.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/sh4mmio.Po ./$(DEPDIR)/sh4stat.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/sh4trans.Po ./$(DEPDIR)/sh4x86.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/syscall.Po ./$(DEPDIR)/tacore.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/testsh4x86.Po ./$(DEPDIR)/testxlt.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/texcache.Po ./$(DEPDIR)/timer.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/util.Po ./$(DEPDIR)/video_gdk.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/video_gl.Po ./$(DEPDIR)/video_glx.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/video_gtk.Po ./$(DEPDIR)/video_null.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/watch.Po ./$(DEPDIR)/x86dasm.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/xltcache.Po ./$(DEPDIR)/yuv.Po
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
@@ -541,6 +541,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gl_fbo.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gl_sl.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gl_slsrc.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/glrender.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/glutil.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gtkcb.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gtkui.Po@am__quote@
@@ -1517,6 +1518,28 @@ glutil.obj: pvr2/glutil.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/glutil.Po' tmpdepfile='$(DEPDIR)/glutil.TPo' @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o glutil.obj `if test -f 'pvr2/glutil.c'; then $(CYGPATH_W) 'pvr2/glutil.c'; else $(CYGPATH_W) '$(srcdir)/pvr2/glutil.c'; fi`
+
+glrender.o: pvr2/glrender.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT glrender.o -MD -MP -MF "$(DEPDIR)/glrender.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o glrender.o `test -f 'pvr2/glrender.c' || echo '$(srcdir)/'`pvr2/glrender.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/glrender.Tpo" "$(DEPDIR)/glrender.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/glrender.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='pvr2/glrender.c' object='glrender.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/glrender.Po' tmpdepfile='$(DEPDIR)/glrender.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o glrender.o `test -f 'pvr2/glrender.c' || echo '$(srcdir)/'`pvr2/glrender.c
+
+glrender.obj: pvr2/glrender.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT glrender.obj -MD -MP -MF "$(DEPDIR)/glrender.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o glrender.obj `if test -f 'pvr2/glrender.c'; then $(CYGPATH_W) 'pvr2/glrender.c'; else $(CYGPATH_W) '$(srcdir)/pvr2/glrender.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/glrender.Tpo" "$(DEPDIR)/glrender.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/glrender.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='pvr2/glrender.c' object='glrender.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/glrender.Po' tmpdepfile='$(DEPDIR)/glrender.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o glrender.obj `if test -f 'pvr2/glrender.c'; then $(CYGPATH_W) 'pvr2/glrender.c'; else $(CYGPATH_W) '$(srcdir)/pvr2/glrender.c'; fi`
 
 maple.o: maple/maple.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT maple.o -MD -MP -MF "$(DEPDIR)/maple.Tpo" \

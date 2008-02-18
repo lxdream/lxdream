@@ -8,7 +8,6 @@ void main()\n\
 {\n\
     gl_Position.xy = ftransform().xy;\n\
     gl_Position.z = gl_Vertex.z;\n\
-    gl_Position.w = 1;\n\
     gl_FrontColor = gl_Color;\n\
     gl_FrontSecondaryColor = gl_SecondaryColor;\n\
     gl_TexCoord[0] = gl_MultiTexCoord0;\n\

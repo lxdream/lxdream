@@ -454,9 +454,10 @@ void mmio_region_PVR2_write( uint32_t reg, uint32_t val )
 	    g_free( pvr2_state.save_next_render_filename );
 	    pvr2_state.save_next_render_filename = NULL;
 	}
+	pvr2_scene_read();
 	render_buffer_t buffer = pvr2_next_render_buffer();
 	if( buffer != NULL ) {
-	    pvr2_render_scene( buffer );
+	    pvr2_scene_render( buffer );
 	}
 	asic_event( EVENT_PVR_RENDER_DONE );
 	break;
@@ -940,9 +941,9 @@ render_buffer_t pvr2_next_render_buffer()
 	render_addr = (render_addr & 0x00FFFFFF) + PVR2_RAM_BASE;
     }
 
-    int width, height;
+    int width = pvr2_scene_buffer_width();
+    int height = pvr2_scene_buffer_height();
     int colour_format = pvr2_render_colour_format[render_mode&0x07];
-    pvr2_render_getsize( &width, &height );
 
     result = pvr2_alloc_render_buffer( render_addr, width, height );
     /* Setup the buffer */
