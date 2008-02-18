@@ -106,7 +106,7 @@ static void pvr2_render_prepare_context( render_buffer_t buffer,
     glDisable( GL_SCISSOR_TEST );
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     glClearDepth(0);
-    glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+    glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT );
     glEnableClientState( GL_COLOR_ARRAY );
     glEnableClientState( GL_VERTEX_ARRAY );
 }

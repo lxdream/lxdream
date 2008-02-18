@@ -177,7 +177,7 @@ gboolean video_glx_init_context( Display *display, Window window )
         }
     }
 
-    texcache_gl_init();
+    pvr2_setup_gl_context();
     video_x11_display = display;
     video_x11_window = window;
 

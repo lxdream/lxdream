@@ -55,7 +55,7 @@ void video_gdk_init_driver( display_driver_t driver )
 
     osmesa_context = OSMesaCreateContextExt( OSMESA_RGBA, 32, 0, 0, 0 );
     OSMesaMakeCurrent( osmesa_context, NULL, GL_UNSIGNED_BYTE, 640, 480 );
-    texcache_gl_init();
+    pvr2_setup_gl_context();
 }
 
 int video_gdk_find_free()
