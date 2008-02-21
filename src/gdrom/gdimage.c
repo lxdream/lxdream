@@ -174,6 +174,7 @@ static gdrom_error_t gdrom_image_read_sector( gdrom_disc_t disc, uint32_t lba,
     
 
     switch( mode ) {
+    case 0x20: /* Actually, read anything, but for now... */
     case 0x24:
     case 0x28:
 	read_len = 2048;
