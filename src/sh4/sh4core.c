@@ -263,7 +263,6 @@ gboolean sh4_execute_instruction( void )
                                     case 0x1:
                                         { /* STC GBR, Rn */
                                         uint32_t Rn = ((ir>>8)&0xF); 
-                                        CHECKPRIV();
                                         sh4r.r[Rn] = sh4r.gbr;
                                         }
                                         break;
