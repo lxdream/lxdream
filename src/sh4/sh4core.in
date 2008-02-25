@@ -931,7 +931,6 @@ STC SR, Rn {:
     sh4r.r[Rn] = sh4_read_sr();
 :}
 STC GBR, Rn {:
-    CHECKPRIV();
     sh4r.r[Rn] = sh4r.gbr;
 :}
 STC VBR, Rn {:
