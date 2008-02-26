@@ -24,6 +24,12 @@
 int esd_handle = -1;
 int esd_sample_size = 1;
 
+
+gboolean audio_esd_init()
+{
+  return TRUE;
+}
+
 gboolean audio_esd_set_format( uint32_t rate, uint32_t format )
 {
     if( esd_handle != -1 ) {
@@ -58,5 +64,14 @@ gboolean audio_esd_process_buffer( audio_buffer_t buffer )
     }
 }
 
-struct audio_driver audio_esd_driver = { "esd", audio_esd_set_format, audio_esd_process_buffer };
+gboolean audio_esd_close()
+{
+  return TRUE;
+}
+
+struct audio_driver audio_esd_driver = { "esd", 
+					 audio_esd_init,
+					 audio_esd_set_format, 
+					 audio_esd_process_buffer,
+                                         audio_esd_close};
 

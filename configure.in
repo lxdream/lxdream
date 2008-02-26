@@ -77,8 +77,15 @@ dnl Check for esound
 PKG_CHECK_MODULES(ESOUND, [esound], [ 
      HAVE_ESOUND='yes'
      AC_DEFINE([HAVE_ESOUND],1,[Have esound support]) ], 
-   [ echo "Warning: esound not found - building without audio support" ])
+   [ echo "Warning: esound not found - building without esd audio support" ])
 AM_CONDITIONAL( AUDIO_ESOUND, [test "$HAVE_ESOUND" = 'yes'] )
+
+dnl Check for alsa support
+PKG_CHECK_MODULES(ALSA, [alsa], [ 
+     HAVE_ALSA='yes'
+     AC_DEFINE([HAVE_ALSA],1,[Have alsa support]) ], 
+   [ echo "Warning: alsa not found - building without alsa audio support" ])
+AM_CONDITIONAL( AUDIO_ALSA, [test "$HAVE_ALSA" = 'yes'] )
 
 dnl Check for linux cdrom device support
 AC_CHECK_HEADER([linux/cdrom.h], [HAVE_LINUX_CDROM_H=yes], [

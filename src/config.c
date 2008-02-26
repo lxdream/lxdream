@@ -27,6 +27,9 @@
 #include "config.h"
 #include "maple/maple.h"
 
+
+extern struct lxdream_config_entry alsa_config[];
+
 gboolean lxdream_load_config_file( const gchar *filename );
 gboolean lxdream_save_config_file( const gchar *filename );
 gboolean lxdream_load_config_stream( FILE *f );
@@ -50,6 +53,9 @@ struct lxdream_config_group lxdream_config_root[] =
     {{ "global", global_config },
      { "controllers", NULL },
      { "serial", serial_config },
+#ifdef HAVE_ALSA
+     { "alsa", alsa_config },
+#endif
      { NULL, CONFIG_TYPE_NONE }};
 
 static gchar *lxdream_config_load_filename = NULL;

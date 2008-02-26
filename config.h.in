@@ -22,6 +22,9 @@
 /* translation domain */
 #undef GETTEXT_PACKAGE
 
+/* Have alsa support */
+#undef HAVE_ALSA
+
 /* Define to 1 if you have the `bind_textdomain_codeset' function. */
 #undef HAVE_BIND_TEXTDOMAIN_CODESET
 

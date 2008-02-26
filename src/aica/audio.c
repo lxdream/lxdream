@@ -28,6 +28,9 @@ audio_driver_t audio_driver_list[] = {
 #ifdef HAVE_ESOUND
 				       &audio_esd_driver,
 #endif
+#ifdef HAVE_ALSA
+				       &audio_alsa_driver,
+#endif
 				       &audio_null_driver,
 				       NULL };
 

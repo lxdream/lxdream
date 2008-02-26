@@ -18,6 +18,11 @@
  */
 #include "aica/audio.h"
 
+gboolean audio_null_init()
+{
+  return TRUE;
+}
+
 gboolean audio_null_set_format( uint32_t rate, uint32_t format )
 {
     return TRUE;
@@ -28,4 +33,13 @@ gboolean audio_null_process_buffer( audio_buffer_t buffer )
     return TRUE;
 }
 
-struct audio_driver audio_null_driver = { "null", audio_null_set_format, audio_null_process_buffer };
+gboolean audio_null_close()
+{
+  return TRUE;
+}
+
+struct audio_driver audio_null_driver = { "null", 
+					  audio_null_init,
+					  audio_null_set_format, 
+					  audio_null_process_buffer,
+                                          audio_null_close};
