@@ -113,15 +113,13 @@ uint32_t arm_run_slice( uint32_t num_samples )
 	}
 	
 	k = MMIO_READ( AICA2, AICA_TCR );
-	if( k & 0x40 ) {
-	    uint8_t val = MMIO_READ( AICA2, AICA_TIMER );
-	    val++;
-	    if( val == 0 ) {
-		aica_event( AICA_EVENT_TIMER );
-		MMIO_WRITE( AICA2, AICA_TCR, k & ~0x40 );
-	    }
-	    MMIO_WRITE( AICA2, AICA_TIMER, val );
+	uint8_t val = MMIO_READ( AICA2, AICA_TIMER );
+	val++;
+	if( val == 0 ) {
+	    aica_event( AICA_EVENT_TIMER );
+	    // MMIO_WRITE( AICA2, AICA_TCR, k & ~0x40 );
 	}
+	MMIO_WRITE( AICA2, AICA_TIMER, val );
 	if( !dreamcast_is_running() )
 	    break;
     }
