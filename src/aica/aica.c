@@ -82,7 +82,7 @@ void aica_reset( void )
     aica_state.nanosecs_done = 0;
     aica_state.event_pending = 0;
     aica_state.clear_count = 0;
-    aica_event(2); /* Pre-deliver a timer interrupt */
+//    aica_event(2); /* Pre-deliver a timer interrupt */
 }
 
 void aica_start( void )
