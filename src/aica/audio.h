@@ -68,12 +68,15 @@ typedef struct audio_buffer {
 
 typedef struct audio_driver {
     char *name;
+    gboolean (*init)(  );
     gboolean (*set_output_format)( uint32_t sample_rate, uint32_t format );
     gboolean (*process_buffer)( audio_buffer_t buffer );
+    gboolean (*close)(  );
 } *audio_driver_t;
 
 extern struct audio_driver audio_null_driver;
 extern struct audio_driver audio_esd_driver;
+extern struct audio_driver audio_alsa_driver;
 
 audio_driver_t get_audio_driver_by_name( const char *name );
 
