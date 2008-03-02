@@ -154,8 +154,8 @@ uint32_t static nrg_track_mode( uint8_t mode )
 {
     switch( mode ) {
     case 0: return GDROM_MODE1;
-    case 2: return GDROM_MODE2_XA1;
-    case 3: return GDROM_MODE2;
+    case 2: return GDROM_MODE2_FORM1;
+    case 3: return GDROM_SEMIRAW_MODE2;
     case 7: return GDROM_CDDA;
     default: 
 	ERROR( "Unrecognized track mode %d in Nero image", mode );

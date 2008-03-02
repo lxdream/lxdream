@@ -33,8 +33,9 @@ gdrom_image_class_t gdrom_image_classes[] = { &cdrom_device_class,
 					      &gdi_image_class, 
 					      NULL };
 
-char *gdrom_mode_names[] = { "Mode1", "Mode2", "XA 1", "XA2", "Audio", "GD-Rom" };
-uint32_t gdrom_sector_size[] = { 2048, 2336, 2048, 2324, 2352, 2336 };
+char *gdrom_mode_names[] = { "Mode 0", "Mode 1", "Mode 2", "Mode 2 Form 1", "Mode 2 Form 2", "Audio", 
+			     "Mode 2 semiraw", "XA Raw", "Non-XA Raw" };
+uint32_t gdrom_sector_size[] = { 0, 2048, 2336, 2048, 2324, 2352, 2336, 2352, 2352 };
 
 gdrom_disc_t gdrom_image_open( const gchar *filename )
 {

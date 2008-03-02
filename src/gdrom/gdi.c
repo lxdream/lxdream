@@ -114,8 +114,8 @@ static gdrom_disc_t gdi_image_open( const gchar *filename, FILE *f )
 		/* Data track */
 		switch(size) {
 		case 2048: image->track[i].mode = GDROM_MODE1; break;
-		case 2336: image->track[i].mode = GDROM_GD; break;
-		case 2352: image->track[i].mode = GDROM_RAW; break;
+		case 2336: image->track[i].mode = GDROM_SEMIRAW_MODE2; break;
+		case 2352: image->track[i].mode = GDROM_RAW_XA; break;
 		default:
 		    gdrom_image_destroy_no_close(disc);
 		    g_free(dirname);
