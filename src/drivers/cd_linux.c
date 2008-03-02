@@ -127,7 +127,6 @@ static gdrom_disc_t linux_open_device( const gchar *filename, FILE *f )
     }
     disc->read_sector = linux_read_sector;
     disc->drive_status = linux_drive_status;
-    ((gdrom_image_t)disc)->disc_type = IDE_DISC_CDROM;
     return disc;
 }
 
@@ -167,7 +166,7 @@ static gdrom_error_t linux_read_disc_toc( gdrom_image_t disc )
     int last_track = -1;
     int leadout = -1;
     int len = (buf[0] << 8) | buf[1];
-    int session_type = GDROM_MODE1;
+    int session_type = -1;
     int i;
     for( i = 4; i<len; i+=11 ) {
 	int session = buf[i];
@@ -195,10 +194,12 @@ static gdrom_error_t linux_read_disc_toc( gdrom_image_t disc )
 	} else switch( (adr << 8) | point ) {
 	case 0x1A0: /* session info */
 	    if( buf[i+9] == 0x20 ) {
-		session_type = GDROM_MODE2;
+		session_type = IDE_DISC_CDROMXA;
 	    } else {
-		session_type = GDROM_MODE1;
+		session_type = IDE_DISC_CDROM;
 	    }
+	    disc->disc_type = session_type;
+	    break;
 	case 0x1A2: /* leadout */
 	    leadout = MSFTOLBA(buf[i+8], buf[i+9], buf[i+10]);
 	    break;
@@ -256,7 +257,20 @@ static gdrom_error_t linux_read_sector( gdrom_disc_t disc, uint32_t sector,
     cmd[6] = 0;
     cmd[7] = 0;
     cmd[8] = 1;
-    cmd[9] = 0x10;
+
+    if( READ_CD_RAW(mode) ) {
+	cmd[9] = 0xF0;
+    } else {
+	if( READ_CD_HEADER(mode) ) {
+	    cmd[9] = 0xA0;
+	}
+	if( READ_CD_SUBHEAD(mode) ) {
+	    cmd[9] |= 0x40;
+	}
+	if( READ_CD_DATA(mode) ) {
+	    cmd[9] |= 0x10;
+	}
+    }
     
     gdrom_error_t status = linux_send_command( fd, cmd, buf, &sector_size, CGC_DATA_READ );
     if( status != 0 ) {
@@ -285,7 +299,7 @@ static gdrom_error_t linux_send_command( int fd, char *cmd, unsigned char *buffe
     cgc.sense = &sense;
     cgc.data_direction = direction;
     
-    if( ioctl(fd, CDROM_SEND_PACKET, &cgc) == -1 ) {
+    if( ioctl(fd, CDROM_SEND_PACKET, &cgc) < 0 ) {
 	if( sense.sense_key == 0 ) {
 	    return -1; 
 	} else {

@@ -171,11 +171,11 @@ gdrom_disc_t cdi_image_open( const gchar *filename, FILE *f )
 		image->track[total_tracks].flags = 0x41;
 		switch( trk.sector_size ) {
 		case 0:
-		    image->track[total_tracks].mode = GDROM_MODE2_XA1;
+		    image->track[total_tracks].mode = GDROM_MODE2_FORM1;
 		    image->track[total_tracks].sector_size = 2048;
 		    break;
 		case 1:
-		    image->track[total_tracks].mode = GDROM_MODE2;
+		    image->track[total_tracks].mode = GDROM_SEMIRAW_MODE2;
 		    image->track[total_tracks].sector_size = 2336;
 		    break;
 		case 2:

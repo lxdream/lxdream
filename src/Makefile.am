@@ -25,6 +25,8 @@ lxdream_SOURCES = \
         syscall.c syscall.h bios.c dcload.c \
         gdrom/ide.c gdrom/ide.h gdrom/packet.h gdrom/gdimage.c \
 	gdrom/gdrom.c gdrom/gdrom.h gdrom/nrg.c gdrom/cdi.c gdrom/gdi.c \
+	gdrom/edc_ecc.c gdrom/ecc.h gdrom/edc_crctable.h gdrom/edc_encoder.h \
+	gdrom/edc_l2sq.h gdrom/scramble.h \
         dreamcast.c dreamcast.h eventq.c eventq.h \
         sh4/sh4.c sh4/intc.c sh4/intc.h sh4/sh4mem.c sh4/timer.c sh4/dmac.c \
         sh4/mmu.c sh4/sh4core.c sh4/sh4core.h sh4/sh4dasm.c sh4/sh4dasm.h \

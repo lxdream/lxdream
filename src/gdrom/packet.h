@@ -66,5 +66,17 @@
 #define PKT_ERR_BADREADMODE 0x6405  /* Illegal mode for this track */
 #define PKT_ERR_RESET     0x2906
 
-#define IDE_READ_MODE1 0x20
-#define IDE_READ_RAW   0x30
+/* Parse CD read */
+#define READ_CD_MODE(x)    ((x)&0x0E)
+#define READ_CD_MODE_ANY   0x00
+#define READ_CD_MODE_CDDA  0x02 
+#define READ_CD_MODE_1     0x04
+#define READ_CD_MODE_2     0x06
+#define READ_CD_MODE_2_FORM_1 0x08
+#define READ_CD_MODE_2_FORM_2 0x0A
+
+#define READ_CD_CHANNELS(x) ((x)&0xF0)
+#define READ_CD_HEADER(x)  ((x)&0x80)
+#define READ_CD_SUBHEAD(x) ((x)&0x40)
+#define READ_CD_DATA(x)    ((x)&0x20)
+#define READ_CD_RAW(x)     ((x)&0x10)

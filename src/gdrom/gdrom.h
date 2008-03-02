@@ -37,25 +37,42 @@ struct gdrom_toc {
 
 extern uint32_t gdrom_sector_size[];
 #define GDROM_SECTOR_SIZE(x) gdrom_sector_size[x]
+/**
+ * Track data type enumeration for cd images and devices. This somewhat
+ * conflates the real track mode with the format of the image file, but
+ * it manages to make sense so far.
+ */
 typedef enum {
-    GDROM_MODE1,
-    GDROM_MODE2,
-    GDROM_MODE2_XA1,
-    GDROM_MODE2_XA2,
-    GDROM_CDDA,
-    GDROM_GD,
-    GDROM_RAW
+    GDROM_MODE0,          // Mode 0 - should never actually see this
+/* Data-only modes (image file contains only the user data) */
+    GDROM_MODE1,          // Standard CD-Rom Mode 1 data track
+    GDROM_MODE2_FORMLESS, // Mode 2 data track with no sub-structure (rare)
+    GDROM_MODE2_FORM1,    // Mode 2/Form 1 data track (standard for multisession)
+    GDROM_MODE2_FORM2,    // Mode 2/Form 2 data track (also fairly uncommon).
+    GDROM_CDDA,           // Standard audio track
+
+/* This one is somewhat special - the image file contains the 2336 bytes of
+ * "extended user data", which in turn contains either a form 1 or form 2
+ * sector. In other words it's a raw mode2 XA sector without the 16-byte header.
+ */
+    GDROM_SEMIRAW_MODE2,
+/* Raw modes (image contains the full 2352-byte sector). Split into XA/Non-XA
+ * here for convenience, although it's really a session level flag. */
+    GDROM_RAW_XA,
+    GDROM_RAW_NONXA,
 } gdrom_track_mode_t;
 
 /* The disc register indicates the current contents of the drive. When open
  * contains 0x06.
  */
-#define IDE_DISC_AUDIO 0x00
-#define IDE_DISC_NONE  0x06
-#define IDE_DISC_CDROM 0x20
-#define IDE_DISC_GDROM 0x80
 #define IDE_DISC_READY 0x01 /* ored with above */
 #define IDE_DISC_IDLE  0x02 /* ie spun-down */
+#define IDE_DISC_NONE  0x06
+
+#define IDE_DISC_AUDIO   0x00
+#define IDE_DISC_CDROM   0x10
+#define IDE_DISC_CDROMXA 0x20
+#define IDE_DISC_GDROM   0x80
 
 #define TRACK_PRE_EMPHASIS   0x10
 #define TRACK_COPY_PERMITTED 0x20
