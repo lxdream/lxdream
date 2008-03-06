@@ -16,9 +16,32 @@
  * GNU General Public License for more details.
  */
 
+#include <assert.h>
 #include "display.h"
 #include "pvr2/pvr2.h"
 #include "pvr2/scene.h"
+
+int pvr2_poly_depthmode[8] = { GL_NEVER, GL_LESS, GL_EQUAL, GL_LEQUAL,
+				      GL_GREATER, GL_NOTEQUAL, GL_GEQUAL, 
+				      GL_ALWAYS };
+int pvr2_poly_srcblend[8] = { 
+    GL_ZERO, GL_ONE, GL_DST_COLOR, GL_ONE_MINUS_DST_COLOR,
+    GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_DST_ALPHA, 
+    GL_ONE_MINUS_DST_ALPHA };
+int pvr2_poly_dstblend[8] = {
+    GL_ZERO, GL_ONE, GL_SRC_COLOR, GL_ONE_MINUS_SRC_COLOR,
+    GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_DST_ALPHA,
+    GL_ONE_MINUS_DST_ALPHA };
+int pvr2_poly_texblend[4] = {
+    GL_REPLACE, 
+    GL_MODULATE,  
+    GL_DECAL, 
+    GL_MODULATE 
+};
+int pvr2_render_colour_format[8] = {
+    COLFMT_BGRA1555, COLFMT_RGB565, COLFMT_BGRA4444, COLFMT_BGRA1555,
+    COLFMT_BGR888, COLFMT_BGRA8888, COLFMT_BGRA8888, COLFMT_BGRA4444 };
+
 
 /**
  * Clip the tile bounds to the clipping plane. 
@@ -33,13 +56,35 @@ static gboolean clip_tile_bounds( uint32_t *tile, float *clip )
     return tile[0] < tile[1] && tile[2] < tile[3];
 }
 
+void pvr2_scene_load_textures()
+{
+    int i;
+    for( i=0; i < pvr2_scene.poly_count; i++ ) {
+	struct polygon_struct *poly = &pvr2_scene.poly_array[i];
+	if( POLY1_TEXTURED(poly->context[0]) ) {
+	    poly->tex_id = texcache_get_texture( poly->context[2],
+						 POLY2_TEX_WIDTH(poly->context[1]),
+						 POLY2_TEX_HEIGHT(poly->context[1]) );
+	    if( poly->mod_vertex_index != -1 ) {
+		poly->mod_tex_id = texcache_get_texture( poly->context[4],
+							 POLY2_TEX_WIDTH(poly->context[3]),
+							 POLY2_TEX_HEIGHT(poly->context[3]) );
+	    }
+	} else {
+	    poly->tex_id = -1;
+	    poly->mod_tex_id = -1;
+	}
+    }
+}
+
+
+
 /**
  * Once-off call to setup the OpenGL context.
  */
 void pvr2_setup_gl_context()
 {
     texcache_gl_init(); // Allocate texture IDs
-    glShadeModel(GL_SMOOTH);
     glCullFace( GL_BACK );
     glEnable( GL_BLEND );
     glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
@@ -56,13 +101,111 @@ void pvr2_setup_gl_context()
     glClearStencil(0);
 }
 
-static void gl_render_poly( struct polygon_struct *poly )
+/**
+ * Setup the GL context for the supplied polygon context.
+ * @param context pointer to 3 or 5 words of polygon context
+ * @param modified boolean flag indicating that the modified
+ *  version should be used, rather than the normal version.
+ */
+void render_set_context( uint32_t *context, int render_mode )
 {
-    render_set_context( poly->context, RENDER_NORMAL );
-    glDrawArrays(GL_TRIANGLE_STRIP, poly->vertex_index, poly->vertex_count );
+    uint32_t poly1 = context[0], poly2, texture;
+    if( render_mode == RENDER_FULLMOD ) {
+	poly2 = context[3];
+	texture = context[4];
+    } else {
+	poly2 = context[1];
+	texture = context[2];
+    }
+    
+    if( POLY1_DEPTH_ENABLE(poly1) ) {
+	glEnable( GL_DEPTH_TEST );
+	glDepthFunc( POLY1_DEPTH_MODE(poly1) );
+    } else {
+	glDisable( GL_DEPTH_TEST );
+    }
+    
+    switch( POLY1_CULL_MODE(poly1) ) {
+    case CULL_NONE:
+    case CULL_SMALL:
+	glDisable( GL_CULL_FACE );
+	break;
+    case CULL_CCW:
+	glEnable( GL_CULL_FACE );
+	glFrontFace( GL_CW );
+	break;
+    case CULL_CW:
+	glEnable( GL_CULL_FACE );
+	glFrontFace( GL_CCW );
+	break;
+    }
+
+    if( POLY1_SPECULAR(poly1) ) {
+	glEnable(GL_COLOR_SUM);
+    } else {
+	glDisable(GL_COLOR_SUM);
+    }
+
+
+    if( POLY1_TEXTURED(poly1) ) {
+	int width = POLY2_TEX_WIDTH(poly2);
+	int height = POLY2_TEX_HEIGHT(poly2);
+	glEnable(GL_TEXTURE_2D);
+	switch( POLY2_TEX_BLEND(poly2) ) {
+	case 0: /* Replace */
+	    glTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE );
+	    break;
+	case 2:/* Decal */
+	    glTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL );
+	    break;
+	case 1: /* Modulate RGB */
+	    /* This is not directly supported by opengl (other than by mucking
+	     * with the texture format), but we get the same effect by forcing
+	     * the fragment alpha to 1.0 and using GL_MODULATE.
+	     */
+	case 3: /* Modulate RGBA */
+	    glTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE );
+	    break;
+	}
+
+	if( POLY2_TEX_CLAMP_U(poly2) ) {
+	    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP );
+	} else {
+	    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
+	}	    
+	if( POLY2_TEX_CLAMP_V(poly2) ) {
+	    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP );
+	} else {
+	    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
+	}
+    } else {
+	glDisable( GL_TEXTURE_2D );
+    }
+
+    glShadeModel( POLY1_SHADE_MODEL(poly1) );
+
+    int srcblend = POLY2_SRC_BLEND(poly2);
+    int destblend = POLY2_DEST_BLEND(poly2);
+    glBlendFunc( srcblend, destblend );
+
+    if( POLY2_SRC_BLEND_TARGET(poly2) || POLY2_DEST_BLEND_TARGET(poly2) ) {
+	ERROR( "Accumulation buffer not supported" );
+    }
+
 }
 
-static void gl_render_tilelist( pvraddr_t tile_entry )
+
+static void gl_render_poly( struct polygon_struct *poly )
+{
+    if( poly->tex_id != -1 ) {
+	glBindTexture(GL_TEXTURE_2D, poly->tex_id);
+    }
+    render_set_context( poly->context, RENDER_NORMAL );
+    glDrawArrays(GL_TRIANGLE_STRIP, poly->vertex_index, poly->vertex_count );
+
+}
+
+void gl_render_tilelist( pvraddr_t tile_entry )
 {
     uint32_t *tile_list = (uint32_t *)(video_base+tile_entry);
     int strip_count;
@@ -76,21 +219,21 @@ static void gl_render_tilelist( pvraddr_t tile_entry )
 	case 0x0E:
 	    tile_list = (uint32_t *)(video_base + (entry&0x007FFFFF));
 	    break;
-	case 0x08:
-	case 0x09:
-	case 0x0A:
-	case 0x0B:
+	case 0x08: case 0x09: case 0x0A: case 0x0B:
 	    strip_count = ((entry >> 25) & 0x0F)+1;
 	    poly = pvr2_scene.buf_to_poly_map[entry&0x000FFFFF];
 	    while( strip_count > 0 ) {
+		assert( poly != NULL );
 		gl_render_poly( poly );
 		poly = poly->next;
 		strip_count--;
 	    }
 	    break;
 	default:
-	    poly = pvr2_scene.buf_to_poly_map[entry&0x000FFFFF];
-	    gl_render_poly( poly );
+	    if( entry & 0x7E000000 ) {
+		poly = pvr2_scene.buf_to_poly_map[entry&0x000FFFFF];
+		gl_render_poly( poly );
+	    }
 	}
     }	    
 }
@@ -102,8 +245,17 @@ static void gl_render_tilelist( pvraddr_t tile_entry )
 void pvr2_scene_render( render_buffer_t buffer )
 {
     /* Scene setup */
+    struct timeval start_tv, tex_tv, end_tv;
+
+    gettimeofday(&start_tv, NULL);
     display_driver->set_render_target(buffer);
     pvr2_check_palette_changed();
+    pvr2_scene_load_textures();
+    
+    gettimeofday( &tex_tv, NULL );
+    uint32_t ms = (tex_tv.tv_sec - start_tv.tv_sec) * 1000 +
+        (tex_tv.tv_usec - start_tv.tv_usec)/1000;
+    DEBUG( "Scene setup in %dms", ms );
 
     /* Setup view projection matrix */
     glMatrixMode(GL_PROJECTION);
@@ -114,7 +266,7 @@ void pvr2_scene_render( render_buffer_t buffer )
 	farz*= 2.0;
     }
     glOrtho( 0, pvr2_scene.buffer_width, pvr2_scene.buffer_height, 0, 
-	     -nearz, -farz );
+    	     -nearz, -farz );
 
     /* Clear the buffer (FIXME: May not want always want to do this) */
     glDisable( GL_SCISSOR_TEST );
@@ -148,7 +300,12 @@ void pvr2_scene_render( render_buffer_t buffer )
 	    gl_render_tilelist(segment->opaque_ptr);
 	}
 	if( IS_TILE_PTR(segment->trans_ptr) ) {
-	    gl_render_tilelist(segment->trans_ptr);
+	    if( pvr2_scene.sort_mode == SORT_NEVER || 
+		(pvr2_scene.sort_mode == SORT_TILEFLAG && (segment->control&SEGMENT_SORT_TRANS))) {
+		gl_render_tilelist(segment->trans_ptr);
+	    } else {
+		render_autosort_tile(segment->trans_ptr, RENDER_NORMAL, !pvr2_scene.full_shadow);
+	    }
 	}
 	if( IS_TILE_PTR(segment->punchout_ptr) ) {
 	    gl_render_tilelist(segment->punchout_ptr);
@@ -156,4 +313,8 @@ void pvr2_scene_render( render_buffer_t buffer )
     } while( !IS_LAST_SEGMENT(segment++) );
     glDisable( GL_SCISSOR_TEST );
 
+    gettimeofday( &end_tv, NULL );
+    ms = (end_tv.tv_sec - tex_tv.tv_sec) * 1000 +
+        (end_tv.tv_usec - tex_tv.tv_usec)/1000;
+    DEBUG( "Scene render in %dms", ms );
 }

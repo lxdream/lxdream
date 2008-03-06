@@ -15,10 +15,11 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
-#include "pvr2.h"
-#include "asic.h"
+#include <string.h>
 #include <stdio.h>
 #include <errno.h>
+#include "pvr2.h"
+#include "asic.h"
 
 extern unsigned char *video_base;
 

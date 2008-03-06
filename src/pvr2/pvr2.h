@@ -343,8 +343,7 @@ void texcache_invalidate_page( uint32_t texture_addr );
  * If the texture has already been bound, return the ID to which it was
  * bound. Otherwise obtain an unused texture ID and set it up appropriately.
  */
-GLuint texcache_get_texture( uint32_t texture_addr, int width, int height,
-			     int mode );
+GLuint texcache_get_texture( uint32_t texture_word, int width, int height );
 
 void pvr2_check_palette_changed(void);
 
@@ -355,6 +354,7 @@ int pvr2_render_save_scene( const gchar *filename );
 #define POLY1_DEPTH_MODE(poly1) ( pvr2_poly_depthmode[(poly1)>>29] )
 #define POLY1_DEPTH_ENABLE(poly1) (((poly1)&0x04000000) == 0 )
 #define POLY1_CULL_MODE(poly1) (((poly1)>>27)&0x03)
+#define POLY1_CULL_ENABLE(poly1) (((poly1)>>28)&0x01)
 #define POLY1_TEXTURED(poly1) (((poly1)&0x02000000))
 #define POLY1_SPECULAR(poly1) (((poly1)&0x01000000))
 #define POLY1_GOURAUD_SHADED(poly1) ((poly1)&0x00800000)
@@ -380,8 +380,6 @@ extern int pvr2_poly_srcblend[8];
 extern int pvr2_poly_dstblend[8];
 extern int pvr2_poly_texblend[4];
 extern int pvr2_render_colour_format[8];
-
-float halftofloat(uint16_t half);
 
 #define CULL_NONE 0
 #define CULL_SMALL 1
