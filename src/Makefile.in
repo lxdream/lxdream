@@ -234,7 +234,7 @@ lxdream_SOURCES = \
         aica/armcore.c aica/armcore.h aica/armdasm.c aica/armmem.c \
         aica/aica.c aica/aica.h aica/audio.c aica/audio.h \
 	pvr2/pvr2.c pvr2/pvr2.h pvr2/pvr2mem.c \
-	pvr2/tacore.c pvr2/render.c pvr2/rendcore.c pvr2/rendbkg.c pvr2/rendsort.c \
+	pvr2/tacore.c pvr2/rendbkg.c pvr2/rendsort.c \
 	pvr2/texcache.c pvr2/yuv.c pvr2/rendsave.c pvr2/scene.c pvr2/scene.h \
 	pvr2/gl_sl.c pvr2/gl_slsrc.c pvr2/glutil.c pvr2/glutil.h pvr2/glrender.c \
         maple/maple.c maple/maple.h \
@@ -291,25 +291,24 @@ am__lxdream_SOURCES_DIST = main.c config.c config.h mem.c mem.h mmio.h \
 	sh4/sh4stat.h sh4/xltcache.c sh4/xltcache.h sh4/sh4.h \
 	aica/armcore.c aica/armcore.h aica/armdasm.c aica/armmem.c \
 	aica/aica.c aica/aica.h aica/audio.c aica/audio.h pvr2/pvr2.c \
-	pvr2/pvr2.h pvr2/pvr2mem.c pvr2/tacore.c pvr2/render.c \
-	pvr2/rendcore.c pvr2/rendbkg.c pvr2/rendsort.c pvr2/texcache.c \
-	pvr2/yuv.c pvr2/rendsave.c pvr2/scene.c pvr2/scene.h \
-	pvr2/gl_sl.c pvr2/gl_slsrc.c pvr2/glutil.c pvr2/glutil.h \
-	pvr2/glrender.c maple/maple.c maple/maple.h maple/controller.c \
-	maple/controller.h maple/kbd.c maple/mouse.c loader.c \
-	bootstrap.c util.c display.c display.h dckeysyms.h \
-	drivers/audio_null.c drivers/video_null.c drivers/video_gl.c \
-	drivers/video_gl.h drivers/gl_fbo.c sh4/sh4x86.c sh4/x86op.h \
-	sh4/ia32abi.h sh4/ia32mac.h sh4/ia64abi.h sh4/sh4trans.c \
-	sh4/sh4trans.h x86dasm/x86dasm.c x86dasm/x86dasm.h \
-	x86dasm/i386-dis.c x86dasm/dis-init.c x86dasm/dis-buf.c \
-	gtkui/gtkui.c gtkui/gtkui.h gtkui/main_win.c gtkui/gtkcb.c \
-	gtkui/mmio_win.c gtkui/debug_win.c gtkui/dump_win.c \
-	gtkui/ctrl_dlg.c gtkui/path_dlg.c gtkui/gdrom_menu.c \
-	drivers/video_gtk.c drivers/video_gtk.h drivers/video_gdk.c \
-	drivers/video_gdk.h drivers/video_glx.c drivers/video_glx.h \
-	drivers/cd_linux.c drivers/cd_none.c drivers/joy_linux.c \
-	drivers/audio_esd.c
+	pvr2/pvr2.h pvr2/pvr2mem.c pvr2/tacore.c pvr2/rendbkg.c \
+	pvr2/rendsort.c pvr2/texcache.c pvr2/yuv.c pvr2/rendsave.c \
+	pvr2/scene.c pvr2/scene.h pvr2/gl_sl.c pvr2/gl_slsrc.c \
+	pvr2/glutil.c pvr2/glutil.h pvr2/glrender.c maple/maple.c \
+	maple/maple.h maple/controller.c maple/controller.h maple/kbd.c \
+	maple/mouse.c loader.c bootstrap.c util.c display.c display.h \
+	dckeysyms.h drivers/audio_null.c drivers/video_null.c \
+	drivers/video_gl.c drivers/video_gl.h drivers/gl_fbo.c \
+	sh4/sh4x86.c sh4/x86op.h sh4/ia32abi.h sh4/ia32mac.h \
+	sh4/ia64abi.h sh4/sh4trans.c sh4/sh4trans.h x86dasm/x86dasm.c \
+	x86dasm/x86dasm.h x86dasm/i386-dis.c x86dasm/dis-init.c \
+	x86dasm/dis-buf.c gtkui/gtkui.c gtkui/gtkui.h gtkui/main_win.c \
+	gtkui/gtkcb.c gtkui/mmio_win.c gtkui/debug_win.c \
+	gtkui/dump_win.c gtkui/ctrl_dlg.c gtkui/path_dlg.c \
+	gtkui/gdrom_menu.c drivers/video_gtk.c drivers/video_gtk.h \
+	drivers/video_gdk.c drivers/video_gdk.h drivers/video_glx.c \
+	drivers/video_glx.h drivers/cd_linux.c drivers/cd_none.c \
+	drivers/joy_linux.c drivers/audio_esd.c
 @BUILD_SH4X86_TRUE@am__objects_1 = sh4x86.$(OBJEXT) sh4trans.$(OBJEXT) \
 @BUILD_SH4X86_TRUE@	x86dasm.$(OBJEXT) i386-dis.$(OBJEXT) \
 @BUILD_SH4X86_TRUE@	dis-init.$(OBJEXT) dis-buf.$(OBJEXT)
@@ -349,17 +348,17 @@ am_lxdream_OBJECTS = main.$(OBJEXT) config.$(OBJEXT) mem.$(OBJEXT) \
 	sh4mmio.$(OBJEXT) scif.$(OBJEXT) sh4stat.$(OBJEXT) \
 	xltcache.$(OBJEXT) armcore.$(OBJEXT) armdasm.$(OBJEXT) \
 	armmem.$(OBJEXT) aica.$(OBJEXT) audio.$(OBJEXT) pvr2.$(OBJEXT) \
-	pvr2mem.$(OBJEXT) tacore.$(OBJEXT) render.$(OBJEXT) \
-	rendcore.$(OBJEXT) rendbkg.$(OBJEXT) rendsort.$(OBJEXT) \
-	texcache.$(OBJEXT) yuv.$(OBJEXT) rendsave.$(OBJEXT) \
-	scene.$(OBJEXT) gl_sl.$(OBJEXT) gl_slsrc.$(OBJEXT) \
-	glutil.$(OBJEXT) glrender.$(OBJEXT) maple.$(OBJEXT) \
-	controller.$(OBJEXT) kbd.$(OBJEXT) mouse.$(OBJEXT) \
-	loader.$(OBJEXT) bootstrap.$(OBJEXT) util.$(OBJEXT) \
-	display.$(OBJEXT) audio_null.$(OBJEXT) video_null.$(OBJEXT) \
-	video_gl.$(OBJEXT) gl_fbo.$(OBJEXT) $(am__objects_1) \
-	$(am__objects_2) $(am__objects_3) $(am__objects_4) \
-	$(am__objects_5) $(am__objects_6) $(am__objects_7)
+	pvr2mem.$(OBJEXT) tacore.$(OBJEXT) rendbkg.$(OBJEXT) \
+	rendsort.$(OBJEXT) texcache.$(OBJEXT) yuv.$(OBJEXT) \
+	rendsave.$(OBJEXT) scene.$(OBJEXT) gl_sl.$(OBJEXT) \
+	gl_slsrc.$(OBJEXT) glutil.$(OBJEXT) glrender.$(OBJEXT) \
+	maple.$(OBJEXT) controller.$(OBJEXT) kbd.$(OBJEXT) \
+	mouse.$(OBJEXT) loader.$(OBJEXT) bootstrap.$(OBJEXT) \
+	util.$(OBJEXT) display.$(OBJEXT) audio_null.$(OBJEXT) \
+	video_null.$(OBJEXT) video_gl.$(OBJEXT) gl_fbo.$(OBJEXT) \
+	$(am__objects_1) $(am__objects_2) $(am__objects_3) \
+	$(am__objects_4) $(am__objects_5) $(am__objects_6) \
+	$(am__objects_7)
 lxdream_OBJECTS = $(am_lxdream_OBJECTS)
 lxdream_DEPENDENCIES =
 lxdream_LDFLAGS =
@@ -416,7 +415,6 @@ am__depfiles_maybe = depfiles
 @AMDEP_TRUE@	./$(DEPDIR)/mouse.Po ./$(DEPDIR)/nrg.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/path_dlg.Po ./$(DEPDIR)/pvr2.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/pvr2mem.Po ./$(DEPDIR)/rendbkg.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/rendcore.Po ./$(DEPDIR)/render.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/rendsave.Po ./$(DEPDIR)/rendsort.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/scene.Po ./$(DEPDIR)/scif.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/sh4.Po ./$(DEPDIR)/sh4core.Po \
@@ -564,8 +562,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pvr2.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pvr2mem.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rendbkg.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rendcore.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/render.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rendsave.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rendsort.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/scene.Po@am__quote@
@@ -1276,50 +1272,6 @@ tacore.obj: pvr2/tacore.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/tacore.Po' tmpdepfile='$(DEPDIR)/tacore.TPo' @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o tacore.obj `if test -f 'pvr2/tacore.c'; then $(CYGPATH_W) 'pvr2/tacore.c'; else $(CYGPATH_W) '$(srcdir)/pvr2/tacore.c'; fi`
-
-render.o: pvr2/render.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT render.o -MD -MP -MF "$(DEPDIR)/render.Tpo" \
-@am__fastdepCC_TRUE@	  -c -o render.o `test -f 'pvr2/render.c' || echo '$(srcdir)/'`pvr2/render.c; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/render.Tpo" "$(DEPDIR)/render.Po"; \
-@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/render.Tpo"; exit 1; \
-@am__fastdepCC_TRUE@	fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='pvr2/render.c' object='render.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/render.Po' tmpdepfile='$(DEPDIR)/render.TPo' @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o render.o `test -f 'pvr2/render.c' || echo '$(srcdir)/'`pvr2/render.c
-
-render.obj: pvr2/render.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT render.obj -MD -MP -MF "$(DEPDIR)/render.Tpo" \
-@am__fastdepCC_TRUE@	  -c -o render.obj `if test -f 'pvr2/render.c'; then $(CYGPATH_W) 'pvr2/render.c'; else $(CYGPATH_W) '$(srcdir)/pvr2/render.c'; fi`; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/render.Tpo" "$(DEPDIR)/render.Po"; \
-@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/render.Tpo"; exit 1; \
-@am__fastdepCC_TRUE@	fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='pvr2/render.c' object='render.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/render.Po' tmpdepfile='$(DEPDIR)/render.TPo' @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o render.obj `if test -f 'pvr2/render.c'; then $(CYGPATH_W) 'pvr2/render.c'; else $(CYGPATH_W) '$(srcdir)/pvr2/render.c'; fi`
-
-rendcore.o: pvr2/rendcore.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT rendcore.o -MD -MP -MF "$(DEPDIR)/rendcore.Tpo" \
-@am__fastdepCC_TRUE@	  -c -o rendcore.o `test -f 'pvr2/rendcore.c' || echo '$(srcdir)/'`pvr2/rendcore.c; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/rendcore.Tpo" "$(DEPDIR)/rendcore.Po"; \
-@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/rendcore.Tpo"; exit 1; \
-@am__fastdepCC_TRUE@	fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='pvr2/rendcore.c' object='rendcore.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/rendcore.Po' tmpdepfile='$(DEPDIR)/rendcore.TPo' @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o rendcore.o `test -f 'pvr2/rendcore.c' || echo '$(srcdir)/'`pvr2/rendcore.c
-
-rendcore.obj: pvr2/rendcore.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT rendcore.obj -MD -MP -MF "$(DEPDIR)/rendcore.Tpo" \
-@am__fastdepCC_TRUE@	  -c -o rendcore.obj `if test -f 'pvr2/rendcore.c'; then $(CYGPATH_W) 'pvr2/rendcore.c'; else $(CYGPATH_W) '$(srcdir)/pvr2/rendcore.c'; fi`; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/rendcore.Tpo" "$(DEPDIR)/rendcore.Po"; \
-@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/rendcore.Tpo"; exit 1; \
-@am__fastdepCC_TRUE@	fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='pvr2/rendcore.c' object='rendcore.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/rendcore.Po' tmpdepfile='$(DEPDIR)/rendcore.TPo' @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o rendcore.obj `if test -f 'pvr2/rendcore.c'; then $(CYGPATH_W) 'pvr2/rendcore.c'; else $(CYGPATH_W) '$(srcdir)/pvr2/rendcore.c'; fi`
 
 rendbkg.o: pvr2/rendbkg.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT rendbkg.o -MD -MP -MF "$(DEPDIR)/rendbkg.Tpo" \

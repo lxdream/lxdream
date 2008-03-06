@@ -19,6 +19,7 @@
 
 #include <assert.h>
 #include <string.h>
+#include <math.h>
 #include "lxdream.h"
 #include "display.h"
 #include "pvr2/pvr2.h"
@@ -33,6 +34,29 @@ static inline uint32_t bgra_to_rgba(uint32_t bgra)
     return (bgra&0xFF00FF00) | ((bgra&0x00FF0000)>>16) | ((bgra&0x000000FF)<<16);
 }
 
+/**
+ * Convert a half-float (16-bit) FP number to a regular 32-bit float.
+ * Source is 1-bit sign, 5-bit exponent, 10-bit mantissa.
+ * TODO: Check the correctness of this.
+ */
+static float halftofloat( uint16_t half )
+{
+    union {
+        float f;
+        uint32_t i;
+    } temp;
+    /* int e = ((half & 0x7C00) >> 10) - 15 + 127;
+
+    temp.i = ((half & 0x8000) << 16) | (e << 23) |
+    ((half & 0x03FF) << 13); */
+    temp.i = ((uint32_t)half)<<16;
+    return temp.f;
+}
+
+
+
+
+
 struct pvr2_scene_struct pvr2_scene;
 
 static gboolean vbo_init = FALSE;
@@ -46,10 +70,12 @@ static gboolean vbo_supported = FALSE;
 void pvr2_scene_init()
 {
     if( !vbo_init ) {
+#ifdef ENABLE_VERTEX_BUFFER
 	if( isGLExtensionSupported(VBO_EXT_STRING) ) {
 	    vbo_supported = TRUE;
 	    pvr2_scene.vbo_id = 1;
 	}
+#endif
 	pvr2_scene.vertex_array = NULL;
 	pvr2_scene.vertex_array_size = 0;
 	pvr2_scene.poly_array = g_malloc( MAX_POLY_BUFFER_SIZE );
@@ -70,16 +96,23 @@ void pvr2_scene_reset()
 
 void pvr2_scene_shutdown()
 {
+#ifdef ENABLE_VERTEX_BUFFER
     if( vbo_supported ) {
 	glBindBufferARB( GL_ARRAY_BUFFER_ARB, 0 );
 	glDeleteBuffersARB( 1, &pvr2_scene.vbo_id );
 	pvr2_scene.vbo_id = 0;
     } else {
+#endif
 	g_free( pvr2_scene.vertex_array );
 	pvr2_scene.vertex_array = NULL;
+#ifdef ENABLE_VERTEX_BUFFER
     }
+#endif
+
     g_free( pvr2_scene.poly_array );
+    pvr2_scene.poly_array = NULL;
     g_free( pvr2_scene.buf_to_poly_map );
+    pvr2_scene.buf_to_poly_map = NULL;
     vbo_init = FALSE;
 }
 
@@ -87,9 +120,9 @@ void *vertex_buffer_map()
 {
     glGetError();
     uint32_t size = pvr2_scene.vertex_count * sizeof(struct vertex_struct);
+#ifdef ENABLE_VERTEX_BUFFER
     if( vbo_supported ) {
 	glBindBufferARB( GL_ARRAY_BUFFER_ARB, pvr2_scene.vbo_id );
-	assert( glGetError() == 0 );
 	if( size > pvr2_scene.vertex_array_size ) {
 	    glBufferDataARB( GL_ARRAY_BUFFER_ARB, size, NULL, GL_DYNAMIC_DRAW_ARB );
 	    int status = glGetError();
@@ -102,21 +135,28 @@ void *vertex_buffer_map()
 	pvr2_scene.vertex_array = glMapBufferARB( GL_ARRAY_BUFFER_ARB, GL_WRITE_ONLY_ARB );
 	assert(pvr2_scene.vertex_array != NULL );
     } else {
+#endif
 	if( size > pvr2_scene.vertex_array_size ) {
 	    pvr2_scene.vertex_array = g_realloc( pvr2_scene.vertex_array, size );
 	}
+#ifdef ENABLE_VERTEX_BUFFER
     }
+#endif
     return pvr2_scene.vertex_array;
 }
 
 gboolean vertex_buffer_unmap()
 {
+#ifdef ENABLE_VERTEX_BUFFER
     if( vbo_supported ) {
 	pvr2_scene.vertex_array = NULL;
 	return glUnmapBufferARB( GL_ARRAY_BUFFER_ARB );
     } else {
 	return TRUE;
     }
+#else
+    return TRUE;
+#endif
 }
 
 static struct polygon_struct *scene_add_polygon( pvraddr_t poly_idx, int vertex_count,
@@ -135,6 +175,7 @@ static struct polygon_struct *scene_add_polygon( pvraddr_t poly_idx, int vertex_
 	poly->context = (uint32_t *)(video_base + MMIO_READ(PVR2,RENDER_POLYBASE) + (poly_idx<<2));
 	poly->vertex_count = vertex_count;
 	poly->vertex_index = -1;
+	poly->mod_vertex_index = -1;
 	poly->next = NULL;
 	pvr2_scene.buf_to_poly_map[poly_idx] = poly;
 	pvr2_scene.vertex_count += (vertex_count * vert_mul);
@@ -168,6 +209,9 @@ static void pvr2_decode_render_vertex( struct vertex_struct *vert, uint32_t poly
     vert->y = *data.fval++;
 
     float z = *data.fval++;
+    if( !isfinite(z) ) {
+	z = 0;
+    }
     if( z > pvr2_scene.bounds[5] ) {
 	pvr2_scene.bounds[5] = z;
     } else if( z < pvr2_scene.bounds[4] && z != 0 ) {
@@ -194,11 +238,15 @@ static void pvr2_decode_render_vertex( struct vertex_struct *vert, uint32_t poly
 	vert->rgba = bgra_to_rgba((*data.ival++) | 0xFF000000);
 	if( POLY1_SPECULAR(poly1) ) {
 	    vert->offset_rgba = bgra_to_rgba((*data.ival++) | 0xFF000000);
+	} else {
+	    vert->offset_rgba = 0;
 	}
     } else {
 	vert->rgba = bgra_to_rgba(*data.ival++);
 	if( POLY1_SPECULAR(poly1) ) {
 	    vert->offset_rgba = bgra_to_rgba(*data.ival++);
+	} else {
+	    vert->offset_rgba = 0;
 	}
     }
 }
@@ -279,11 +327,11 @@ static void scene_add_vertexes( pvraddr_t poly_idx, int vertex_length,
     uint32_t *context = ptr;
     unsigned int i;
 
-    assert( poly != NULL );
     if( poly->vertex_index == -1 ) {
 	ptr += (is_modified ? 5 : 3 );
 	poly->vertex_index = pvr2_scene.vertex_index;
 	
+	assert( poly != NULL );
 	assert( pvr2_scene.vertex_index + poly->vertex_count <= pvr2_scene.vertex_count );
 	for( i=0; i<poly->vertex_count; i++ ) {
 	    pvr2_decode_render_vertex( &pvr2_scene.vertex_array[pvr2_scene.vertex_index++], context[0], context[1], ptr, 0 );
@@ -291,6 +339,7 @@ static void scene_add_vertexes( pvraddr_t poly_idx, int vertex_length,
 	}
 	if( is_modified ) {
 	    int mod_offset = (vertex_length - 3)>>1;
+	    assert( pvr2_scene.vertex_index + poly->vertex_count <= pvr2_scene.vertex_count );
 	    ptr = &pvr2_scene.pvr2_pbuf[poly_idx] + 5;
 	    poly->mod_vertex_index = pvr2_scene.vertex_index;
 	    for( i=0; i<poly->vertex_count; i++ ) {
@@ -316,6 +365,7 @@ static void scene_add_quad_vertexes( pvraddr_t poly_idx, int vertex_length,
 	struct vertex_struct quad[4];
 	
 	assert( poly != NULL );
+	assert( pvr2_scene.vertex_index + poly->vertex_count <= pvr2_scene.vertex_count );
 	ptr += (is_modified ? 5 : 3 );
 	poly->vertex_index = pvr2_scene.vertex_index;
 	for( i=0; i<4; i++ ) {
@@ -331,6 +381,7 @@ static void scene_add_quad_vertexes( pvraddr_t poly_idx, int vertex_length,
 	
 	if( is_modified ) {
 	    int mod_offset = (vertex_length - 3)>>1;
+	    assert( pvr2_scene.vertex_index + poly->vertex_count <= pvr2_scene.vertex_count );
 	    ptr = &pvr2_scene.pvr2_pbuf[poly_idx] + 5;
 	    poly->mod_vertex_index = pvr2_scene.vertex_index;
 	    for( i=0; i<4; i++ ) {
@@ -516,7 +567,7 @@ void pvr2_scene_read( void )
 	    pvr2_scene.sort_mode = SORT_ALWAYS;
 	}
     } else {
-	pvr2_scene.sort_mode = SORT_BYFLAG;
+	pvr2_scene.sort_mode = SORT_TILEFLAG;
     }
 
     // Pass 1: Extract polygon list 
@@ -557,7 +608,46 @@ void pvr2_scene_read( void )
 		segment++;
 	    }
 	} while( (control & SEGMENT_END) == 0 );
-	
 	vertex_buffer_unmap();
     }
+}
+
+/**
+ * Dump the current scene to file in a (mostly) human readable form
+ */
+void pvr2_scene_dump( FILE *f )
+{
+    int i,j;
+
+    fprintf( f, "Polygons: %d\n", pvr2_scene.poly_count );
+    for( i=0; i<pvr2_scene.poly_count; i++ ) {
+	struct polygon_struct *poly = &pvr2_scene.poly_array[i];
+	fprintf( f, "  %08X ", ((char *)poly->context) - video_base );
+	switch( poly->vertex_count ) {
+	case 3: fprintf( f, "Tri     " ); break;
+	case 4: fprintf( f, "Quad    " ); break;
+	default: fprintf( f,"%d-Strip ", poly->vertex_count-2 ); break;
+	}
+	fprintf( f, "%08X %08X %08X ", poly->context[0], poly->context[1], poly->context[2] );
+	if( poly->mod_vertex_index != -1 ) {
+	    fprintf( f, "%08X %08X\n", poly->context[3], poly->context[5] );
+	} else {
+	    fprintf( f, "\n" );
+	}
+	
+	for( j=0; j<poly->vertex_count; j++ ) {
+	    struct vertex_struct *v = &pvr2_scene.vertex_array[poly->vertex_index+j];
+	    fprintf( f, "    %.5f %.5f %.5f, (%.5f,%.5f) %08X %08X\n", v->x, v->y, v->z, v->u, v->v,
+		     v->rgba, v->offset_rgba );
+	}
+	if( poly->mod_vertex_index != -1 ) {
+	    fprintf( f, "  ---\n" );
+	    for( j=0; j<poly->vertex_count; j++ ) {
+		struct vertex_struct *v = &pvr2_scene.vertex_array[poly->mod_vertex_index+j];
+		fprintf( f, "    %.5f %.5f %.5f, (%.5f,%.5f) %08X %08X\n", v->x, v->y, v->z, v->u, v->v,
+			 v->rgba, v->offset_rgba );
+	    }
+	}
+    }
+
 }

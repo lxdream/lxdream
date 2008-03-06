@@ -15,7 +15,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
-
+#include <string.h>
 #include "pvr2/glutil.h"
 
 /**
@@ -34,6 +34,11 @@ gboolean isGLExtensionSupported( const char *extension )
     if (where || *extension == '\0')
 	return 0;
     extensions = glGetString(GL_EXTENSIONS);
+    if( extensions == NULL ) {
+	/* No GL available, so we're pretty sure the extension isn't
+	 * available either. */
+	return FALSE;
+    }
     /* It takes a bit of care to be fool-proof about parsing the
        OpenGL extensions string. Don't be fooled by sub-strings,
        etc. */

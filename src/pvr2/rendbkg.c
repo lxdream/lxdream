@@ -49,6 +49,70 @@
 #define FARGB_B(x) (((float)(((x)&0xFF)+1))/256.0)
 
 /**
+ * Convert a half-float (16-bit) FP number to a regular 32-bit float.
+ * Source is 1-bit sign, 5-bit exponent, 10-bit mantissa.
+ * TODO: Check the correctness of this.
+ */
+static float halftofloat( uint16_t half )
+{
+    union {
+        float f;
+        uint32_t i;
+    } temp;
+    /* int e = ((half & 0x7C00) >> 10) - 15 + 127;
+
+    temp.i = ((half & 0x8000) << 16) | (e << 23) |
+    ((half & 0x03FF) << 13); */
+    temp.i = ((uint32_t)half)<<16;
+    return temp.f;
+}
+
+void render_unpack_vertexes( struct vertex_unpacked *out, uint32_t poly1, 
+			     uint32_t *vertexes, int num_vertexes,
+			     int vertex_size, int render_mode )
+{
+    int m = 0, i;
+    if( render_mode == RENDER_FULLMOD ) {
+	m = (vertex_size - 3)/2;
+    }
+
+    for( i=0; i<num_vertexes; i++ ) {
+	float *vertexf = (float *)vertexes;
+	int k = m + 3;
+	out[i].x = vertexf[0];
+	out[i].y = vertexf[1];
+	out[i].z = vertexf[2];
+    	if( POLY1_TEXTURED(poly1) ) {
+	    if( POLY1_UV16(poly1) ) {
+		out[i].u = halftofloat(vertexes[k]>>16);
+		out[i].v = halftofloat(vertexes[k]);
+		k++;
+	    } else {
+		out[i].u = vertexf[k];
+		out[i].v = vertexf[k+1];
+		k+=2;
+	    }
+	} else {
+	    out[i].u = 0;
+	    out[i].v = 0;
+	}
+	uint32_t argb = vertexes[k++];
+	out[i].rgba[0] = FARGB_R(argb);
+	out[i].rgba[1] = FARGB_G(argb);
+        out[i].rgba[2] = FARGB_B(argb);
+	out[i].rgba[3] = FARGB_A(argb);
+	if( POLY1_SPECULAR(poly1) ) {
+	    uint32_t offset = vertexes[k++];
+	    out[i].offset_rgba[0] = FARGB_R(offset);
+	    out[i].offset_rgba[1] = FARGB_G(offset);
+	    out[i].offset_rgba[2] = FARGB_B(offset);
+	    out[i].offset_rgba[3] = FARGB_A(offset);
+	}
+	vertexes += vertex_size;
+    }
+}
+
+/**
  * Compute the line where k = target_k, (where k is normally one of
  * r,g,b,a, or z) and determines the points at which the line intersects
  * the viewport (0,0,width,height).

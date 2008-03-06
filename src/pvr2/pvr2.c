@@ -203,12 +203,17 @@ render_buffer_t pvr2_load_render_buffer( FILE *f )
     }
 
     render_buffer_t buffer = pvr2_frame_buffer_to_render_buffer(frame);
-    assert( buffer != NULL );
-    fread( &buffer->rowstride, sizeof(buffer->rowstride), 1, f );
-    fread( &buffer->colour_format, sizeof(buffer->colour_format), 1, f );
-    fread( &buffer->address, sizeof(buffer->address), 1, f );
-    fread( &buffer->scale, sizeof(buffer->scale), 1, f );
-    fread( &buffer->flushed, sizeof(buffer->flushed), 1, f );
+    if( buffer != NULL ) {
+	fread( &buffer->rowstride, sizeof(buffer->rowstride), 1, f );
+	fread( &buffer->colour_format, sizeof(buffer->colour_format), 1, f );
+	fread( &buffer->address, sizeof(buffer->address), 1, f );
+	fread( &buffer->scale, sizeof(buffer->scale), 1, f );
+	fread( &buffer->flushed, sizeof(buffer->flushed), 1, f );
+    } else {
+	fseek( f, sizeof(buffer->rowstride)+sizeof(buffer->colour_format)+
+	       sizeof(buffer->address)+sizeof(buffer->scale)+
+	       sizeof(buffer->flushed), SEEK_CUR );
+    }
     return buffer;
 }
 
@@ -258,9 +263,7 @@ gboolean pvr2_load_render_buffers( FILE *f )
     }
 
     for( i=0; i<count; i++ ) {
-	if( pvr2_load_render_buffer( f ) == NULL ) {
-	    return FALSE;
-	}
+	pvr2_load_render_buffer( f );
     }
     return TRUE;
 }

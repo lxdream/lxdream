@@ -509,20 +509,19 @@ static void texcache_load_texture( uint32_t texture_addr, int width, int height,
  * If the texture has already been bound, return the ID to which it was
  * bound. Otherwise obtain an unused texture ID and set it up appropriately.
  */
-GLuint texcache_get_texture( uint32_t texture_addr, int width, int height,
-			     int mode )
+GLuint texcache_get_texture( uint32_t texture_word, int width, int height )
 {
+    uint32_t texture_addr = (texture_word & 0x000FFFFF)<<3;
     uint32_t texture_page = texture_addr >> 12;
     texcache_entry_index next;
     texcache_entry_index idx = texcache_page_lookup[texture_page];
     while( idx != EMPTY_ENTRY ) {
 	texcache_entry_t entry = &texcache_active_list[idx];
 	if( entry->texture_addr == texture_addr &&
-	    entry->mode == mode &&
+	    entry->mode == texture_word &&
 	    entry->width == width &&
 	    entry->height == height ) {
 	    entry->lru_count = texcache_ref_counter++;
-	    glBindTexture( GL_TEXTURE_2D, entry->texture_id );
 	    return entry->texture_id;
 	}
         idx = entry->next;
@@ -542,7 +541,7 @@ GLuint texcache_get_texture( uint32_t texture_addr, int width, int height,
     texcache_active_list[slot].texture_addr = texture_addr;
     texcache_active_list[slot].width = width;
     texcache_active_list[slot].height = height;
-    texcache_active_list[slot].mode = mode;
+    texcache_active_list[slot].mode = texture_word;
     texcache_active_list[slot].lru_count = texcache_ref_counter++;
 
     /* Add entry to the lookup table */
@@ -563,9 +562,8 @@ GLuint texcache_get_texture( uint32_t texture_addr, int width, int height,
 
     /* Construct the GL texture */
     glBindTexture( GL_TEXTURE_2D, texcache_active_list[slot].texture_id );
-    texcache_load_texture( texture_addr, width, height, mode );
+    texcache_load_texture( texture_addr, width, height, texture_word );
 
-    texcache_integrity_check();
     return texcache_active_list[slot].texture_id;
 }
 

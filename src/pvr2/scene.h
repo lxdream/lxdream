@@ -23,7 +23,7 @@
 
 typedef enum { 
     SORT_NEVER = 0, 
-    SORT_BYFLAG = 1, /* In this mode, sorting is controlled by the per-segment flag */
+    SORT_TILEFLAG = 1, /* In this mode, sorting is controlled by the per-segment flag */
     SORT_ALWAYS = 2 
 } tile_sort_mode_t;
 
@@ -38,7 +38,9 @@ struct polygon_struct {
     uint32_t *context;
     int cull;             // culling mode
     uint32_t vertex_count; // number of vertexes in polygon
+    uint32_t tex_id;
     int32_t vertex_index; // index of first vertex in vertex buffer
+    uint32_t mod_tex_id;
     int32_t mod_vertex_index; // index of first modified vertex in vertex buffer
     float center_z;
     struct polygon_struct *next; // chain for tri/quad arrays
