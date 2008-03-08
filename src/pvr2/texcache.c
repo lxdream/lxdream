@@ -19,6 +19,7 @@
  */
 
 #include <assert.h>
+#include <string.h>
 #include "pvr2/pvr2.h"
 
 /** Specifies the maximum number of OpenGL
