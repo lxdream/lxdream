@@ -281,24 +281,6 @@ struct vertex_unpacked {
     float offset_rgba[4]; /* Offset color (RGBA order) */
 };
 
-void render_unpack_quad( struct vertex_unpacked *unpacked, uint32_t poly1,
-                         uint32_t *vertexes, int vertex_size,
-                         int render_mode );
-
-void render_unpack_vertexes( struct vertex_unpacked *out, uint32_t poly1,
-                             uint32_t *vertexes, int num_vertexes,
-                             int vertex_size, int render_mode );
-
-void render_unpacked_vertex_array( uint32_t poly1, struct vertex_unpacked *vertexes[], 
-				   int num_vertexes );
-
-void render_vertex_array( uint32_t poly1, uint32_t *vertexes[], int num_vertexes, 
-			  int vertex_size, int render_mode );
-
-void render_tile( pvraddr_t tile_entry, int render_mode, gboolean cheap_modifier_mode );
-
-void render_autosort_tile( pvraddr_t tile_entry, int render_mode, gboolean cheap_modifier_mode );
-
 /****************************** Texture Cache ****************************/
 
 /**
