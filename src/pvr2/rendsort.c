@@ -157,12 +157,12 @@ void sort_render_triangles( struct sort_triangle *triangles, int num_triangles,
 	render_set_context( poly->context, RENDER_NORMAL );
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_GEQUAL);
+	/* Fix cull direction */
 	if( triangles[i].triangle_num & 1 ) {
 	    glCullFace(GL_FRONT);
 	} else {
 	    glCullFace(GL_BACK);
 	}
-	/* Fix cull direction */
 	glDrawArrays(GL_TRIANGLE_STRIP, poly->vertex_index + triangles[i].triangle_num, 3 );
     }
 }
@@ -171,7 +171,7 @@ int compare_triangles( const void *a, const void *b )
 {
     const struct sort_triangle *tri1 = a;
     const struct sort_triangle *tri2 = b;
-    return tri1->minz - tri2->minz;
+    return tri2->minz - tri1->minz;
 }
 
 void sort_triangles( struct sort_triangle *triangles, int num_triangles )
@@ -179,7 +179,7 @@ void sort_triangles( struct sort_triangle *triangles, int num_triangles )
     qsort( triangles, num_triangles, sizeof(struct sort_triangle), compare_triangles );
 } 
 			
-void render_autosort_tile( pvraddr_t tile_entry, int render_mode, gboolean cheap_modifier_mode ) 
+void render_autosort_tile( pvraddr_t tile_entry, int render_mode ) 
 {
     int num_triangles = sort_count_triangles(tile_entry);
     if( num_triangles == 0 ) {

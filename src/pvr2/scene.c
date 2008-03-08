@@ -45,10 +45,6 @@ static float halftofloat( uint16_t half )
         float f;
         uint32_t i;
     } temp;
-    /* int e = ((half & 0x7C00) >> 10) - 15 + 127;
-
-    temp.i = ((half & 0x8000) << 16) | (e << 23) |
-    ((half & 0x03FF) << 13); */
     temp.i = ((uint32_t)half)<<16;
     return temp.f;
 }
@@ -211,6 +207,8 @@ static void pvr2_decode_render_vertex( struct vertex_struct *vert, uint32_t poly
     float z = *data.fval++;
     if( !isfinite(z) ) {
 	z = 0;
+    } else if( z != 0 ) {
+	z = 1/z;
     }
     if( z > pvr2_scene.bounds[5] ) {
 	pvr2_scene.bounds[5] = z;

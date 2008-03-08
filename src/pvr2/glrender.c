@@ -151,23 +151,7 @@ void render_set_context( uint32_t *context, int render_mode )
 	int width = POLY2_TEX_WIDTH(poly2);
 	int height = POLY2_TEX_HEIGHT(poly2);
 	glEnable(GL_TEXTURE_2D);
-	switch( POLY2_TEX_BLEND(poly2) ) {
-	case 0: /* Replace */
-	    glTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE );
-	    break;
-	case 2:/* Decal */
-	    glTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL );
-	    break;
-	case 1: /* Modulate RGB */
-	    /* This is not directly supported by opengl (other than by mucking
-	     * with the texture format), but we get the same effect by forcing
-	     * the fragment alpha to 1.0 and using GL_MODULATE.
-	     */
-	case 3: /* Modulate RGBA */
-	    glTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE );
-	    break;
-	}
-
+	glTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, pvr2_poly_texblend[POLY2_TEX_BLEND(poly2)] );
 	if( POLY2_TEX_CLAMP_U(poly2) ) {
 	    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP );
 	} else {
@@ -266,7 +250,7 @@ void pvr2_scene_render( render_buffer_t buffer )
 	farz*= 2.0;
     }
     glOrtho( 0, pvr2_scene.buffer_width, pvr2_scene.buffer_height, 0, 
-    	     -nearz, -farz );
+    	     -farz, -nearz );
 
     /* Clear the buffer (FIXME: May not want always want to do this) */
     glDisable( GL_SCISSOR_TEST );
@@ -304,7 +288,7 @@ void pvr2_scene_render( render_buffer_t buffer )
 		(pvr2_scene.sort_mode == SORT_TILEFLAG && (segment->control&SEGMENT_SORT_TRANS))) {
 		gl_render_tilelist(segment->trans_ptr);
 	    } else {
-		render_autosort_tile(segment->trans_ptr, RENDER_NORMAL, !pvr2_scene.full_shadow);
+		render_autosort_tile(segment->trans_ptr, RENDER_NORMAL );
 	    }
 	}
 	if( IS_TILE_PTR(segment->punchout_ptr) ) {
