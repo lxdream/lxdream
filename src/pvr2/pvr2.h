@@ -334,7 +334,7 @@ int pvr2_render_save_scene( const gchar *filename );
 
 /************************* Rendering support macros **************************/
 #define POLY1_DEPTH_MODE(poly1) ( pvr2_poly_depthmode[(poly1)>>29] )
-#define POLY1_DEPTH_ENABLE(poly1) (((poly1)&0x04000000) == 0 )
+#define POLY1_DEPTH_WRITE(poly1) (((poly1)&0x04000000) == 0 )
 #define POLY1_CULL_MODE(poly1) (((poly1)>>27)&0x03)
 #define POLY1_CULL_ENABLE(poly1) (((poly1)>>28)&0x01)
 #define POLY1_TEXTURED(poly1) (((poly1)&0x02000000))

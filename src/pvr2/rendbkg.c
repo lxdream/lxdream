@@ -672,4 +672,6 @@ void render_backplane( uint32_t *polygon, uint32_t width, uint32_t height, uint3
     glDisable(GL_DEPTH_TEST);
     glBlendFunc(GL_ONE, GL_ZERO); /* For now, just disable alpha blending on the bkg */
     bkg_render_region(&scene, 0, screen_vertexes, 4, *polygon);
+    glEnable(GL_CULL_FACE);
+    glEnable(GL_DEPTH_TEST);
 }

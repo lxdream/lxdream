@@ -87,6 +87,7 @@ void pvr2_setup_gl_context()
     texcache_gl_init(); // Allocate texture IDs
     glCullFace( GL_BACK );
     glEnable( GL_BLEND );
+    glEnable( GL_DEPTH_TEST );
     glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
@@ -118,12 +119,8 @@ void render_set_context( uint32_t *context, int render_mode )
 	texture = context[2];
     }
     
-    if( POLY1_DEPTH_ENABLE(poly1) ) {
-	glEnable( GL_DEPTH_TEST );
-	glDepthFunc( POLY1_DEPTH_MODE(poly1) );
-    } else {
-	glDisable( GL_DEPTH_TEST );
-    }
+    glDepthFunc( POLY1_DEPTH_MODE(poly1) );
+    glDepthMask( POLY1_DEPTH_WRITE(poly1) ? GL_TRUE : GL_FALSE );
     
     switch( POLY1_CULL_MODE(poly1) ) {
     case CULL_NONE:
@@ -186,7 +183,6 @@ static void gl_render_poly( struct polygon_struct *poly )
     }
     render_set_context( poly->context, RENDER_NORMAL );
     glDrawArrays(GL_TRIANGLE_STRIP, poly->vertex_index, poly->vertex_count );
-
 }
 
 void gl_render_tilelist( pvraddr_t tile_entry )
@@ -251,6 +247,8 @@ void pvr2_scene_render( render_buffer_t buffer )
     }
     glOrtho( 0, pvr2_scene.buffer_width, pvr2_scene.buffer_height, 0, 
     	     -farz, -nearz );
+    float alphaRef = ((float)(MMIO_READ(PVR2, RENDER_ALPHA_REF)&0xFF)+1)/256.0;
+    glAlphaFunc( GL_GEQUAL, alphaRef );
 
     /* Clear the buffer (FIXME: May not want always want to do this) */
     glDisable( GL_SCISSOR_TEST );
@@ -292,7 +290,9 @@ void pvr2_scene_render( render_buffer_t buffer )
 	    }
 	}
 	if( IS_TILE_PTR(segment->punchout_ptr) ) {
-	    gl_render_tilelist(segment->punchout_ptr);
+	    glEnable(GL_ALPHA_TEST );
+	    render_autosort_tile(segment->punchout_ptr, RENDER_NORMAL );
+	    glDisable(GL_ALPHA_TEST );
 	}
     } while( !IS_LAST_SEGMENT(segment++) );
     glDisable( GL_SCISSOR_TEST );
