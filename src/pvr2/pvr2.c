@@ -585,7 +585,9 @@ void mmio_region_PVR2_write( uint32_t reg, uint32_t val )
     case RENDER_PALETTE:
 	MMIO_WRITE( PVR2, reg, val&0x00000003 );
 	break;
-
+    case RENDER_ALPHA_REF:
+	MMIO_WRITE( PVR2, reg, val&0x000000FF );
+	break;
 	/********** CRTC registers *************/
     case DISP_HBORDER:
     case DISP_VBORDER:
@@ -680,9 +682,6 @@ void mmio_region_PVR2_write( uint32_t reg, uint32_t val )
 	break;
     case PVRUNK5:
 	MMIO_WRITE( PVR2, reg, val&0x0000FFFF );
-	break;
-    case PVRUNK6:
-	MMIO_WRITE( PVR2, reg, val&0x000000FF );
 	break;
     case PVRUNK7:
 	MMIO_WRITE( PVR2, reg, val&0x00000001 );
