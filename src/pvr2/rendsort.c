@@ -30,7 +30,7 @@ extern char *video_base;
 struct sort_triangle {
     struct polygon_struct *poly;
     int triangle_num; // triangle number in the poly, from 0
-    float minz;
+    float maxz;
 };
 
 #define SENTINEL 0xDEADBEEF
@@ -66,7 +66,7 @@ int sort_count_triangles( pvraddr_t tile_entry ) {
 
 /**
  * Extract a triangle list from the tile (basically indexes into the polygon list, plus
- * computing minz while we go through it
+ * computing maxz while we go through it
  */
 int sort_extract_triangles( pvraddr_t tile_entry, struct sort_triangle *triangles )
 {
@@ -98,7 +98,7 @@ int sort_extract_triangles( pvraddr_t tile_entry, struct sort_triangle *triangle
 		    struct polygon_struct *poly = pvr2_scene.buf_to_poly_map[poly_addr];
 		    triangles[count].poly = poly;
 		    triangles[count].triangle_num = 0;
-		    triangles[count].minz = MIN3( pvr2_scene.vertex_array[poly->vertex_index].z,
+		    triangles[count].maxz = MAX3( pvr2_scene.vertex_array[poly->vertex_index].z,
 						  pvr2_scene.vertex_array[poly->vertex_index+1].z,
 						  pvr2_scene.vertex_array[poly->vertex_index+2].z );
 		    poly_addr += polygon_length;
@@ -113,13 +113,13 @@ int sort_extract_triangles( pvraddr_t tile_entry, struct sort_triangle *triangle
 		    struct polygon_struct *poly = pvr2_scene.buf_to_poly_map[poly_addr];
 		    triangles[count].poly = poly;
 		    triangles[count].triangle_num = 0;
-		    triangles[count].minz = MIN3( pvr2_scene.vertex_array[poly->vertex_index].z,
+		    triangles[count].maxz = MAX3( pvr2_scene.vertex_array[poly->vertex_index].z,
 						  pvr2_scene.vertex_array[poly->vertex_index+1].z,
 						  pvr2_scene.vertex_array[poly->vertex_index+2].z );
 		    count++;
 		    triangles[count].poly = poly;
 		    triangles[count].triangle_num = 1;
-		    triangles[count].minz = MIN3( pvr2_scene.vertex_array[poly->vertex_index+1].z,
+		    triangles[count].maxz = MAX3( pvr2_scene.vertex_array[poly->vertex_index+1].z,
 						  pvr2_scene.vertex_array[poly->vertex_index+2].z,
 						  pvr2_scene.vertex_array[poly->vertex_index+3].z );
 		    count++;
@@ -133,7 +133,7 @@ int sort_extract_triangles( pvraddr_t tile_entry, struct sort_triangle *triangle
 		    if( entry & (0x40000000>>i) ) {
 			triangles[count].poly = poly;
 			triangles[count].triangle_num = i;
-			triangles[count].minz = MIN3( pvr2_scene.vertex_array[poly->vertex_index+i].z,
+			triangles[count].maxz = MAX3( pvr2_scene.vertex_array[poly->vertex_index+i].z,
 						      pvr2_scene.vertex_array[poly->vertex_index+i+1].z,
 						      pvr2_scene.vertex_array[poly->vertex_index+i+2].z );
 			count++;
@@ -155,7 +155,7 @@ void sort_render_triangles( struct sort_triangle *triangles, int num_triangles,
 	    glBindTexture(GL_TEXTURE_2D, poly->tex_id);
 	}
 	render_set_context( poly->context, RENDER_NORMAL );
-	glEnable(GL_DEPTH_TEST);
+	glDepthMask(GL_FALSE);
 	glDepthFunc(GL_GEQUAL);
 	/* Fix cull direction */
 	if( triangles[i].triangle_num & 1 ) {
@@ -163,6 +163,7 @@ void sort_render_triangles( struct sort_triangle *triangles, int num_triangles,
 	} else {
 	    glCullFace(GL_BACK);
 	}
+	
 	glDrawArrays(GL_TRIANGLE_STRIP, poly->vertex_index + triangles[i].triangle_num, 3 );
     }
 }
@@ -171,7 +172,7 @@ int compare_triangles( const void *a, const void *b )
 {
     const struct sort_triangle *tri1 = a;
     const struct sort_triangle *tri2 = b;
-    return tri2->minz - tri1->minz;
+    return tri2->maxz - tri1->maxz;
 }
 
 void sort_triangles( struct sort_triangle *triangles, int num_triangles )
@@ -191,7 +192,8 @@ void render_autosort_tile( pvraddr_t tile_entry, int render_mode )
 	// Reserve space for num_triangles / 2 * 4 vertexes (maximum possible number of
 	// quad vertices)
 	triangles[num_triangles].poly = (void *)SENTINEL;
-	sort_extract_triangles(tile_entry, triangles);
+	int extracted_triangles = sort_extract_triangles(tile_entry, triangles);
+	assert( extracted_triangles == num_triangles );
 	sort_triangles( triangles, num_triangles );
 	sort_render_triangles(triangles, num_triangles, render_mode);
 	glCullFace(GL_BACK);
