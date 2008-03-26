@@ -6,8 +6,9 @@ const char *glsl_vertex_shader_src = "// Standard PVR2 vertex shader\n\
 \n\
 void main()\n\
 {\n\
-    gl_Position = ftransform();\n\
-//    gl_Position.z = log(gl_Vertex.z);\n\
+    vec4 tmp = ftransform();\n\
+    float w = gl_Vertex.z;\n\
+    gl_Position  = tmp * w;\n\
     gl_FrontColor = gl_Color;\n\
     gl_FrontSecondaryColor = gl_SecondaryColor;\n\
     gl_TexCoord[0] = gl_MultiTexCoord0;\n\
