@@ -203,12 +203,17 @@ render_buffer_t pvr2_load_render_buffer( FILE *f )
     }
 
     render_buffer_t buffer = pvr2_frame_buffer_to_render_buffer(frame);
-    assert( buffer != NULL );
-    fread( &buffer->rowstride, sizeof(buffer->rowstride), 1, f );
-    fread( &buffer->colour_format, sizeof(buffer->colour_format), 1, f );
-    fread( &buffer->address, sizeof(buffer->address), 1, f );
-    fread( &buffer->scale, sizeof(buffer->scale), 1, f );
-    fread( &buffer->flushed, sizeof(buffer->flushed), 1, f );
+    if( buffer != NULL ) {
+	fread( &buffer->rowstride, sizeof(buffer->rowstride), 1, f );
+	fread( &buffer->colour_format, sizeof(buffer->colour_format), 1, f );
+	fread( &buffer->address, sizeof(buffer->address), 1, f );
+	fread( &buffer->scale, sizeof(buffer->scale), 1, f );
+	fread( &buffer->flushed, sizeof(buffer->flushed), 1, f );
+    } else {
+	fseek( f, sizeof(buffer->rowstride)+sizeof(buffer->colour_format)+
+	       sizeof(buffer->address)+sizeof(buffer->scale)+
+	       sizeof(buffer->flushed), SEEK_CUR );
+    }
     return buffer;
 }
 
@@ -258,9 +263,7 @@ gboolean pvr2_load_render_buffers( FILE *f )
     }
 
     for( i=0; i<count; i++ ) {
-	if( pvr2_load_render_buffer( f ) == NULL ) {
-	    return FALSE;
-	}
+	pvr2_load_render_buffer( f );
     }
     return TRUE;
 }
@@ -454,9 +457,10 @@ void mmio_region_PVR2_write( uint32_t reg, uint32_t val )
 	    g_free( pvr2_state.save_next_render_filename );
 	    pvr2_state.save_next_render_filename = NULL;
 	}
+	pvr2_scene_read();
 	render_buffer_t buffer = pvr2_next_render_buffer();
 	if( buffer != NULL ) {
-	    pvr2_render_scene( buffer );
+	    pvr2_scene_render( buffer );
 	}
 	asic_event( EVENT_PVR_RENDER_DONE );
 	break;
@@ -581,7 +585,9 @@ void mmio_region_PVR2_write( uint32_t reg, uint32_t val )
     case RENDER_PALETTE:
 	MMIO_WRITE( PVR2, reg, val&0x00000003 );
 	break;
-
+    case RENDER_ALPHA_REF:
+	MMIO_WRITE( PVR2, reg, val&0x000000FF );
+	break;
 	/********** CRTC registers *************/
     case DISP_HBORDER:
     case DISP_VBORDER:
@@ -676,9 +682,6 @@ void mmio_region_PVR2_write( uint32_t reg, uint32_t val )
 	break;
     case PVRUNK5:
 	MMIO_WRITE( PVR2, reg, val&0x0000FFFF );
-	break;
-    case PVRUNK6:
-	MMIO_WRITE( PVR2, reg, val&0x000000FF );
 	break;
     case PVRUNK7:
 	MMIO_WRITE( PVR2, reg, val&0x00000001 );
@@ -940,9 +943,9 @@ render_buffer_t pvr2_next_render_buffer()
 	render_addr = (render_addr & 0x00FFFFFF) + PVR2_RAM_BASE;
     }
 
-    int width, height;
+    int width = pvr2_scene_buffer_width();
+    int height = pvr2_scene_buffer_height();
     int colour_format = pvr2_render_colour_format[render_mode&0x07];
-    pvr2_render_getsize( &width, &height );
 
     result = pvr2_alloc_render_buffer( render_addr, width, height );
     /* Setup the buffer */

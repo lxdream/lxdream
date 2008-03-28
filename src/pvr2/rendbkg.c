@@ -49,6 +49,70 @@
 #define FARGB_B(x) (((float)(((x)&0xFF)+1))/256.0)
 
 /**
+ * Convert a half-float (16-bit) FP number to a regular 32-bit float.
+ * Source is 1-bit sign, 5-bit exponent, 10-bit mantissa.
+ * TODO: Check the correctness of this.
+ */
+static float halftofloat( uint16_t half )
+{
+    union {
+        float f;
+        uint32_t i;
+    } temp;
+    /* int e = ((half & 0x7C00) >> 10) - 15 + 127;
+
+    temp.i = ((half & 0x8000) << 16) | (e << 23) |
+    ((half & 0x03FF) << 13); */
+    temp.i = ((uint32_t)half)<<16;
+    return temp.f;
+}
+
+void render_unpack_vertexes( struct vertex_unpacked *out, uint32_t poly1, 
+			     uint32_t *vertexes, int num_vertexes,
+			     int vertex_size, int render_mode )
+{
+    int m = 0, i;
+    if( render_mode == RENDER_FULLMOD ) {
+	m = (vertex_size - 3)/2;
+    }
+
+    for( i=0; i<num_vertexes; i++ ) {
+	float *vertexf = (float *)vertexes;
+	int k = m + 3;
+	out[i].x = vertexf[0];
+	out[i].y = vertexf[1];
+	out[i].z = vertexf[2];
+    	if( POLY1_TEXTURED(poly1) ) {
+	    if( POLY1_UV16(poly1) ) {
+		out[i].u = halftofloat(vertexes[k]>>16);
+		out[i].v = halftofloat(vertexes[k]);
+		k++;
+	    } else {
+		out[i].u = vertexf[k];
+		out[i].v = vertexf[k+1];
+		k+=2;
+	    }
+	} else {
+	    out[i].u = 0;
+	    out[i].v = 0;
+	}
+	uint32_t argb = vertexes[k++];
+	out[i].rgba[0] = FARGB_R(argb);
+	out[i].rgba[1] = FARGB_G(argb);
+        out[i].rgba[2] = FARGB_B(argb);
+	out[i].rgba[3] = FARGB_A(argb);
+	if( POLY1_SPECULAR(poly1) ) {
+	    uint32_t offset = vertexes[k++];
+	    out[i].offset_rgba[0] = FARGB_R(offset);
+	    out[i].offset_rgba[1] = FARGB_G(offset);
+	    out[i].offset_rgba[2] = FARGB_B(offset);
+	    out[i].offset_rgba[3] = FARGB_A(offset);
+	}
+	vertexes += vertex_size;
+    }
+}
+
+/**
  * Compute the line where k = target_k, (where k is normally one of
  * r,g,b,a, or z) and determines the points at which the line intersects
  * the viewport (0,0,width,height).
@@ -426,15 +490,15 @@ static void bkg_compute_scene( struct vertex_unpacked *base, int width, int heig
 
     center.x = base[1].x;
     center.y = base[1].y;
-    center.z = (1/base[1].z);
+    center.z = base[1].z;
     center.u = base[1].u;
     center.v = base[1].v;
     diff0.x = base[0].x - center.x;
     diff0.y = base[0].y - center.y;
-    diff0.z = (1/base[0].z) - center.z;
+    diff0.z = base[0].z - center.z;
     diff1.x = base[2].x - center.x;
     diff1.y = base[2].y - center.y;
-    diff1.z = (1/base[2].z) - center.z;
+    diff1.z = base[2].z - center.z;
 
     float detxy = ((diff1.y) * (diff0.x)) - ((diff0.y) * (diff1.x));
     
@@ -461,7 +525,7 @@ static void bkg_compute_scene( struct vertex_unpacked *base, int width, int heig
 	    scene->vertexes[i].rgba[1] = base[2].rgba[1];
 	    scene->vertexes[i].rgba[2] = base[2].rgba[2];
 	    scene->vertexes[i].rgba[3] = base[2].rgba[3];
-	    scene->vertexes[i].z = 1/base[2].z;
+	    scene->vertexes[i].z = base[2].z;
 	    scene->vertexes[i].u = base[2].u;
 	    scene->vertexes[i].v = base[2].v;
 	}
@@ -608,4 +672,6 @@ void render_backplane( uint32_t *polygon, uint32_t width, uint32_t height, uint3
     glDisable(GL_DEPTH_TEST);
     glBlendFunc(GL_ONE, GL_ZERO); /* For now, just disable alpha blending on the bkg */
     bkg_render_region(&scene, 0, screen_vertexes, 4, *polygon);
+    glEnable(GL_CULL_FACE);
+    glEnable(GL_DEPTH_TEST);
 }

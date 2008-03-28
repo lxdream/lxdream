@@ -43,18 +43,25 @@ host_triplet = @host@
 @BUILD_SH4X86_TRUE@        x86dasm/i386-dis.c x86dasm/dis-init.c x86dasm/dis-buf.c 
 
 @BUILD_SH4X86_TRUE@am__append_2 = test/testsh4x86
-@GUI_GTK_TRUE@am__append_3 = gtkui/gtkui.c gtkui/gtkui.h \
-@GUI_GTK_TRUE@	gtkui/main_win.c gtkui/gtkcb.c \
-@GUI_GTK_TRUE@        gtkui/mmio_win.c gtkui/debug_win.c gtkui/dump_win.c \
-@GUI_GTK_TRUE@        gtkui/ctrl_dlg.c gtkui/path_dlg.c gtkui/gdrom_menu.c \
-@GUI_GTK_TRUE@        drivers/video_gtk.c drivers/video_gtk.h \
-@GUI_GTK_TRUE@	drivers/video_glx.c drivers/video_glx.h
+@GUI_GTK_TRUE@@OSMESA_DRIVER_TRUE@am__append_3 = gtkui/gtkui.c gtkui/gtkui.h \
+@GUI_GTK_TRUE@@OSMESA_DRIVER_TRUE@	gtkui/main_win.c gtkui/gtkcb.c \
+@GUI_GTK_TRUE@@OSMESA_DRIVER_TRUE@        gtkui/mmio_win.c gtkui/debug_win.c gtkui/dump_win.c \
+@GUI_GTK_TRUE@@OSMESA_DRIVER_TRUE@        gtkui/ctrl_dlg.c gtkui/path_dlg.c gtkui/gdrom_menu.c \
+@GUI_GTK_TRUE@@OSMESA_DRIVER_TRUE@        drivers/video_gtk.c drivers/video_gtk.h \
+@GUI_GTK_TRUE@@OSMESA_DRIVER_TRUE@        drivers/video_gdk.c drivers/video_gdk.h 
 
-@CDROM_LINUX_TRUE@am__append_4 = drivers/cd_linux.c
-@CDROM_LINUX_FALSE@am__append_5 = drivers/cd_none.c
-@JOY_LINUX_TRUE@am__append_6 = drivers/joy_linux.c
-@AUDIO_ESOUND_TRUE@am__append_7 = drivers/audio_esd.c
-@AUDIO_ALSA_TRUE@am__append_8 = drivers/audio_alsa.c
+@GUI_GTK_TRUE@@OSMESA_DRIVER_FALSE@am__append_4 = gtkui/gtkui.c gtkui/gtkui.h \
+@GUI_GTK_TRUE@@OSMESA_DRIVER_FALSE@	gtkui/main_win.c gtkui/gtkcb.c \
+@GUI_GTK_TRUE@@OSMESA_DRIVER_FALSE@        gtkui/mmio_win.c gtkui/debug_win.c gtkui/dump_win.c \
+@GUI_GTK_TRUE@@OSMESA_DRIVER_FALSE@        gtkui/ctrl_dlg.c gtkui/path_dlg.c gtkui/gdrom_menu.c \
+@GUI_GTK_TRUE@@OSMESA_DRIVER_FALSE@        drivers/video_gtk.c drivers/video_gtk.h \
+@GUI_GTK_TRUE@@OSMESA_DRIVER_FALSE@        drivers/video_glx.c drivers/video_glx.h
+
+@CDROM_LINUX_TRUE@am__append_5 = drivers/cd_linux.c
+@CDROM_LINUX_FALSE@am__append_6 = drivers/cd_none.c
+@JOY_LINUX_TRUE@am__append_7 = drivers/joy_linux.c
+@AUDIO_ESOUND_TRUE@am__append_8 = drivers/audio_esd.c
+@AUDIO_ALSA_TRUE@am__append_9 = drivers/audio_alsa.c
 ACLOCAL = @ACLOCAL@
 ALSA_CFLAGS = @ALSA_CFLAGS@
 ALSA_LIBS = @ALSA_LIBS@
@@ -134,6 +141,8 @@ MKINSTALLDIRS = @MKINSTALLDIRS@
 MSGFMT = @MSGFMT@
 MSGFMT_OPTS = @MSGFMT_OPTS@
 OBJEXT = @OBJEXT@
+OSMESA_DRIVER_FALSE = @OSMESA_DRIVER_FALSE@
+OSMESA_DRIVER_TRUE = @OSMESA_DRIVER_TRUE@
 PACKAGE = @PACKAGE@
 PACKAGE_BUGREPORT = @PACKAGE_BUGREPORT@
 PACKAGE_NAME = @PACKAGE_NAME@
@@ -210,7 +219,7 @@ check_PROGRAMS = test/testxlt $(am__append_2)
 
 AM_CFLAGS = -D_ISOC99_SOURCE -D_BSD_SOURCE 
 TESTS = test/testxlt
-BUILT_SOURCES = sh4/sh4core.c sh4/sh4dasm.c sh4/sh4x86.c drivers/gl_slsrc.c
+BUILT_SOURCES = sh4/sh4core.c sh4/sh4dasm.c sh4/sh4x86.c pvr2/gl_slsrc.c
 
 gendec_SOURCES = tools/gendec.c tools/gendec.h tools/insparse.c tools/actparse.c
 genglsl_SOURCES = tools/genglsl.c
@@ -232,16 +241,16 @@ lxdream_SOURCES = \
         aica/armcore.c aica/armcore.h aica/armdasm.c aica/armmem.c \
         aica/aica.c aica/aica.h aica/audio.c aica/audio.h \
 	pvr2/pvr2.c pvr2/pvr2.h pvr2/pvr2mem.c \
-	pvr2/tacore.c pvr2/render.c pvr2/rendcore.c pvr2/rendbkg.c pvr2/rendsort.c \
-	pvr2/texcache.c pvr2/yuv.c pvr2/rendsave.c \
+	pvr2/tacore.c pvr2/rendbkg.c pvr2/rendsort.c \
+	pvr2/texcache.c pvr2/yuv.c pvr2/rendsave.c pvr2/scene.c pvr2/scene.h \
+	pvr2/gl_sl.c pvr2/gl_slsrc.c pvr2/glutil.c pvr2/glutil.h pvr2/glrender.c \
         maple/maple.c maple/maple.h \
         maple/controller.c maple/controller.h maple/kbd.c maple/mouse.c \
         loader.c bootstrap.c util.c \
 	display.c display.h dckeysyms.h \
 	drivers/audio_null.c drivers/video_null.c \
-	drivers/gl_common.c drivers/gl_common.h drivers/gl_fbo.c \
-	drivers/gl_sl.c drivers/gl_slsrc.c\
-$(am__append_1) $(am__append_3) $(am__append_4) $(am__append_5) $(am__append_6) $(am__append_7) $(am__append_8)
+	drivers/video_gl.c drivers/video_gl.h drivers/gl_fbo.c\
+$(am__append_1) $(am__append_3) $(am__append_4) $(am__append_5) $(am__append_6) $(am__append_7) $(am__append_8) $(am__append_9)
 
 @BUILD_SH4X86_TRUE@test_testsh4x86_LDADD = @GTK_LIBS@
 @BUILD_SH4X86_TRUE@test_testsh4x86_SOURCES = test/testsh4x86.c x86dasm/x86dasm.c \
@@ -291,37 +300,54 @@ am__lxdream_SOURCES_DIST = main.c config.c config.h mem.c mem.h mmio.h \
 	sh4/sh4stat.h sh4/xltcache.c sh4/xltcache.h sh4/sh4.h \
 	aica/armcore.c aica/armcore.h aica/armdasm.c aica/armmem.c \
 	aica/aica.c aica/aica.h aica/audio.c aica/audio.h pvr2/pvr2.c \
-	pvr2/pvr2.h pvr2/pvr2mem.c pvr2/tacore.c pvr2/render.c \
-	pvr2/rendcore.c pvr2/rendbkg.c pvr2/rendsort.c pvr2/texcache.c \
-	pvr2/yuv.c pvr2/rendsave.c maple/maple.c maple/maple.h \
-	maple/controller.c maple/controller.h maple/kbd.c maple/mouse.c \
-	loader.c bootstrap.c util.c display.c display.h dckeysyms.h \
-	drivers/audio_null.c drivers/video_null.c drivers/gl_common.c \
-	drivers/gl_common.h drivers/gl_fbo.c drivers/gl_sl.c \
-	drivers/gl_slsrc.c sh4/sh4x86.c sh4/x86op.h sh4/ia32abi.h \
-	sh4/ia32mac.h sh4/ia64abi.h sh4/sh4trans.c sh4/sh4trans.h \
-	x86dasm/x86dasm.c x86dasm/x86dasm.h x86dasm/i386-dis.c \
-	x86dasm/dis-init.c x86dasm/dis-buf.c gtkui/gtkui.c \
-	gtkui/gtkui.h gtkui/main_win.c gtkui/gtkcb.c gtkui/mmio_win.c \
-	gtkui/debug_win.c gtkui/dump_win.c gtkui/ctrl_dlg.c \
-	gtkui/path_dlg.c gtkui/gdrom_menu.c drivers/video_gtk.c \
-	drivers/video_gtk.h drivers/video_glx.c drivers/video_glx.h \
-	drivers/cd_linux.c drivers/cd_none.c drivers/joy_linux.c \
-	drivers/audio_esd.c drivers/audio_alsa.c
+	pvr2/pvr2.h pvr2/pvr2mem.c pvr2/tacore.c pvr2/rendbkg.c \
+	pvr2/rendsort.c pvr2/texcache.c pvr2/yuv.c pvr2/rendsave.c \
+	pvr2/scene.c pvr2/scene.h pvr2/gl_sl.c pvr2/gl_slsrc.c \
+	pvr2/glutil.c pvr2/glutil.h pvr2/glrender.c maple/maple.c \
+	maple/maple.h maple/controller.c maple/controller.h maple/kbd.c \
+	maple/mouse.c loader.c bootstrap.c util.c display.c display.h \
+	dckeysyms.h drivers/audio_null.c drivers/video_null.c \
+	drivers/video_gl.c drivers/video_gl.h drivers/gl_fbo.c \
+	sh4/sh4x86.c sh4/x86op.h sh4/ia32abi.h sh4/ia32mac.h \
+	sh4/ia64abi.h sh4/sh4trans.c sh4/sh4trans.h x86dasm/x86dasm.c \
+	x86dasm/x86dasm.h x86dasm/i386-dis.c x86dasm/dis-init.c \
+	x86dasm/dis-buf.c gtkui/gtkui.c gtkui/gtkui.h gtkui/main_win.c \
+	gtkui/gtkcb.c gtkui/mmio_win.c gtkui/debug_win.c \
+	gtkui/dump_win.c gtkui/ctrl_dlg.c gtkui/path_dlg.c \
+	gtkui/gdrom_menu.c drivers/video_gtk.c drivers/video_gtk.h \
+	drivers/video_gdk.c drivers/video_gdk.h drivers/video_glx.c \
+	drivers/video_glx.h drivers/cd_linux.c drivers/cd_none.c \
+	drivers/joy_linux.c drivers/audio_esd.c drivers/audio_alsa.c
 @BUILD_SH4X86_TRUE@am__objects_1 = sh4x86.$(OBJEXT) sh4trans.$(OBJEXT) \
 @BUILD_SH4X86_TRUE@	x86dasm.$(OBJEXT) i386-dis.$(OBJEXT) \
 @BUILD_SH4X86_TRUE@	dis-init.$(OBJEXT) dis-buf.$(OBJEXT)
-@GUI_GTK_TRUE@am__objects_2 = gtkui.$(OBJEXT) main_win.$(OBJEXT) \
-@GUI_GTK_TRUE@	gtkcb.$(OBJEXT) mmio_win.$(OBJEXT) \
-@GUI_GTK_TRUE@	debug_win.$(OBJEXT) dump_win.$(OBJEXT) \
-@GUI_GTK_TRUE@	ctrl_dlg.$(OBJEXT) path_dlg.$(OBJEXT) \
-@GUI_GTK_TRUE@	gdrom_menu.$(OBJEXT) video_gtk.$(OBJEXT) \
-@GUI_GTK_TRUE@	video_glx.$(OBJEXT)
-@CDROM_LINUX_TRUE@am__objects_3 = cd_linux.$(OBJEXT)
-@CDROM_LINUX_FALSE@am__objects_4 = cd_none.$(OBJEXT)
-@JOY_LINUX_TRUE@am__objects_5 = joy_linux.$(OBJEXT)
-@AUDIO_ESOUND_TRUE@am__objects_6 = audio_esd.$(OBJEXT)
-@AUDIO_ALSA_TRUE@am__objects_7 = audio_alsa.$(OBJEXT)
+@GUI_GTK_TRUE@@OSMESA_DRIVER_TRUE@am__objects_2 = gtkui.$(OBJEXT) \
+@GUI_GTK_TRUE@@OSMESA_DRIVER_TRUE@	main_win.$(OBJEXT) \
+@GUI_GTK_TRUE@@OSMESA_DRIVER_TRUE@	gtkcb.$(OBJEXT) \
+@GUI_GTK_TRUE@@OSMESA_DRIVER_TRUE@	mmio_win.$(OBJEXT) \
+@GUI_GTK_TRUE@@OSMESA_DRIVER_TRUE@	debug_win.$(OBJEXT) \
+@GUI_GTK_TRUE@@OSMESA_DRIVER_TRUE@	dump_win.$(OBJEXT) \
+@GUI_GTK_TRUE@@OSMESA_DRIVER_TRUE@	ctrl_dlg.$(OBJEXT) \
+@GUI_GTK_TRUE@@OSMESA_DRIVER_TRUE@	path_dlg.$(OBJEXT) \
+@GUI_GTK_TRUE@@OSMESA_DRIVER_TRUE@	gdrom_menu.$(OBJEXT) \
+@GUI_GTK_TRUE@@OSMESA_DRIVER_TRUE@	video_gtk.$(OBJEXT) \
+@GUI_GTK_TRUE@@OSMESA_DRIVER_TRUE@	video_gdk.$(OBJEXT)
+@GUI_GTK_TRUE@@OSMESA_DRIVER_FALSE@am__objects_3 = gtkui.$(OBJEXT) \
+@GUI_GTK_TRUE@@OSMESA_DRIVER_FALSE@	main_win.$(OBJEXT) \
+@GUI_GTK_TRUE@@OSMESA_DRIVER_FALSE@	gtkcb.$(OBJEXT) \
+@GUI_GTK_TRUE@@OSMESA_DRIVER_FALSE@	mmio_win.$(OBJEXT) \
+@GUI_GTK_TRUE@@OSMESA_DRIVER_FALSE@	debug_win.$(OBJEXT) \
+@GUI_GTK_TRUE@@OSMESA_DRIVER_FALSE@	dump_win.$(OBJEXT) \
+@GUI_GTK_TRUE@@OSMESA_DRIVER_FALSE@	ctrl_dlg.$(OBJEXT) \
+@GUI_GTK_TRUE@@OSMESA_DRIVER_FALSE@	path_dlg.$(OBJEXT) \
+@GUI_GTK_TRUE@@OSMESA_DRIVER_FALSE@	gdrom_menu.$(OBJEXT) \
+@GUI_GTK_TRUE@@OSMESA_DRIVER_FALSE@	video_gtk.$(OBJEXT) \
+@GUI_GTK_TRUE@@OSMESA_DRIVER_FALSE@	video_glx.$(OBJEXT)
+@CDROM_LINUX_TRUE@am__objects_4 = cd_linux.$(OBJEXT)
+@CDROM_LINUX_FALSE@am__objects_5 = cd_none.$(OBJEXT)
+@JOY_LINUX_TRUE@am__objects_6 = joy_linux.$(OBJEXT)
+@AUDIO_ESOUND_TRUE@am__objects_7 = audio_esd.$(OBJEXT)
+@AUDIO_ALSA_TRUE@am__objects_8 = audio_alsa.$(OBJEXT)
 am_lxdream_OBJECTS = main.$(OBJEXT) config.$(OBJEXT) mem.$(OBJEXT) \
 	watch.$(OBJEXT) asic.$(OBJEXT) syscall.$(OBJEXT) bios.$(OBJEXT) \
 	dcload.$(OBJEXT) ide.$(OBJEXT) gdimage.$(OBJEXT) \
@@ -333,16 +359,17 @@ am_lxdream_OBJECTS = main.$(OBJEXT) config.$(OBJEXT) mem.$(OBJEXT) \
 	sh4stat.$(OBJEXT) xltcache.$(OBJEXT) armcore.$(OBJEXT) \
 	armdasm.$(OBJEXT) armmem.$(OBJEXT) aica.$(OBJEXT) \
 	audio.$(OBJEXT) pvr2.$(OBJEXT) pvr2mem.$(OBJEXT) \
-	tacore.$(OBJEXT) render.$(OBJEXT) rendcore.$(OBJEXT) \
-	rendbkg.$(OBJEXT) rendsort.$(OBJEXT) texcache.$(OBJEXT) \
-	yuv.$(OBJEXT) rendsave.$(OBJEXT) maple.$(OBJEXT) \
+	tacore.$(OBJEXT) rendbkg.$(OBJEXT) rendsort.$(OBJEXT) \
+	texcache.$(OBJEXT) yuv.$(OBJEXT) rendsave.$(OBJEXT) \
+	scene.$(OBJEXT) gl_sl.$(OBJEXT) gl_slsrc.$(OBJEXT) \
+	glutil.$(OBJEXT) glrender.$(OBJEXT) maple.$(OBJEXT) \
 	controller.$(OBJEXT) kbd.$(OBJEXT) mouse.$(OBJEXT) \
 	loader.$(OBJEXT) bootstrap.$(OBJEXT) util.$(OBJEXT) \
 	display.$(OBJEXT) audio_null.$(OBJEXT) video_null.$(OBJEXT) \
-	gl_common.$(OBJEXT) gl_fbo.$(OBJEXT) gl_sl.$(OBJEXT) \
-	gl_slsrc.$(OBJEXT) $(am__objects_1) $(am__objects_2) \
-	$(am__objects_3) $(am__objects_4) $(am__objects_5) \
-	$(am__objects_6) $(am__objects_7)
+	video_gl.$(OBJEXT) gl_fbo.$(OBJEXT) $(am__objects_1) \
+	$(am__objects_2) $(am__objects_3) $(am__objects_4) \
+	$(am__objects_5) $(am__objects_6) $(am__objects_7) \
+	$(am__objects_8)
 lxdream_OBJECTS = $(am_lxdream_OBJECTS)
 lxdream_DEPENDENCIES =
 lxdream_LDFLAGS =
@@ -387,21 +414,21 @@ am__depfiles_maybe = depfiles
 @AMDEP_TRUE@	./$(DEPDIR)/gdi.Po ./$(DEPDIR)/gdimage.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/gdrom.Po ./$(DEPDIR)/gdrom_menu.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/gendec.Po ./$(DEPDIR)/genglsl.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/gl_common.Po ./$(DEPDIR)/gl_fbo.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/gl_sl.Po ./$(DEPDIR)/gl_slsrc.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/gtkcb.Po ./$(DEPDIR)/gtkui.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/i386-dis.Po ./$(DEPDIR)/ide.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/insparse.Po ./$(DEPDIR)/intc.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/joy_linux.Po ./$(DEPDIR)/kbd.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/loader.Po ./$(DEPDIR)/main.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/main_win.Po ./$(DEPDIR)/maple.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/mem.Po ./$(DEPDIR)/mmio_win.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/mmu.Po ./$(DEPDIR)/mouse.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/nrg.Po ./$(DEPDIR)/path_dlg.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/pvr2.Po ./$(DEPDIR)/pvr2mem.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/rendbkg.Po ./$(DEPDIR)/rendcore.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/render.Po ./$(DEPDIR)/rendsave.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/rendsort.Po ./$(DEPDIR)/scif.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/gl_fbo.Po ./$(DEPDIR)/gl_sl.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/gl_slsrc.Po ./$(DEPDIR)/glrender.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/glutil.Po ./$(DEPDIR)/gtkcb.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/gtkui.Po ./$(DEPDIR)/i386-dis.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/ide.Po ./$(DEPDIR)/insparse.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/intc.Po ./$(DEPDIR)/joy_linux.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/kbd.Po ./$(DEPDIR)/loader.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/main.Po ./$(DEPDIR)/main_win.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/maple.Po ./$(DEPDIR)/mem.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/mmio_win.Po ./$(DEPDIR)/mmu.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/mouse.Po ./$(DEPDIR)/nrg.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/path_dlg.Po ./$(DEPDIR)/pvr2.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/pvr2mem.Po ./$(DEPDIR)/rendbkg.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/rendsave.Po ./$(DEPDIR)/rendsort.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/scene.Po ./$(DEPDIR)/scif.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/sh4.Po ./$(DEPDIR)/sh4core.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/sh4dasm.Po ./$(DEPDIR)/sh4mem.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/sh4mmio.Po ./$(DEPDIR)/sh4stat.Po \
@@ -409,7 +436,8 @@ am__depfiles_maybe = depfiles
 @AMDEP_TRUE@	./$(DEPDIR)/syscall.Po ./$(DEPDIR)/tacore.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/testsh4x86.Po ./$(DEPDIR)/testxlt.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/texcache.Po ./$(DEPDIR)/timer.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/util.Po ./$(DEPDIR)/video_glx.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/util.Po ./$(DEPDIR)/video_gdk.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/video_gl.Po ./$(DEPDIR)/video_glx.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/video_gtk.Po ./$(DEPDIR)/video_null.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/watch.Po ./$(DEPDIR)/x86dasm.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/xltcache.Po ./$(DEPDIR)/yuv.Po
@@ -522,10 +550,11 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gdrom_menu.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gendec.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/genglsl.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gl_common.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gl_fbo.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gl_sl.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gl_slsrc.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/glrender.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/glutil.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gtkcb.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gtkui.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/i386-dis.Po@am__quote@
@@ -547,10 +576,9 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pvr2.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pvr2mem.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rendbkg.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rendcore.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/render.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rendsave.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rendsort.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/scene.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/scif.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sh4.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sh4core.Po@am__quote@
@@ -567,6 +595,8 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/texcache.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/timer.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/util.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/video_gdk.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/video_gl.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/video_glx.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/video_gtk.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/video_null.Po@am__quote@
@@ -1279,50 +1309,6 @@ tacore.obj: pvr2/tacore.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o tacore.obj `if test -f 'pvr2/tacore.c'; then $(CYGPATH_W) 'pvr2/tacore.c'; else $(CYGPATH_W) '$(srcdir)/pvr2/tacore.c'; fi`
 
-render.o: pvr2/render.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT render.o -MD -MP -MF "$(DEPDIR)/render.Tpo" \
-@am__fastdepCC_TRUE@	  -c -o render.o `test -f 'pvr2/render.c' || echo '$(srcdir)/'`pvr2/render.c; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/render.Tpo" "$(DEPDIR)/render.Po"; \
-@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/render.Tpo"; exit 1; \
-@am__fastdepCC_TRUE@	fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='pvr2/render.c' object='render.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/render.Po' tmpdepfile='$(DEPDIR)/render.TPo' @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o render.o `test -f 'pvr2/render.c' || echo '$(srcdir)/'`pvr2/render.c
-
-render.obj: pvr2/render.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT render.obj -MD -MP -MF "$(DEPDIR)/render.Tpo" \
-@am__fastdepCC_TRUE@	  -c -o render.obj `if test -f 'pvr2/render.c'; then $(CYGPATH_W) 'pvr2/render.c'; else $(CYGPATH_W) '$(srcdir)/pvr2/render.c'; fi`; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/render.Tpo" "$(DEPDIR)/render.Po"; \
-@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/render.Tpo"; exit 1; \
-@am__fastdepCC_TRUE@	fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='pvr2/render.c' object='render.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/render.Po' tmpdepfile='$(DEPDIR)/render.TPo' @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o render.obj `if test -f 'pvr2/render.c'; then $(CYGPATH_W) 'pvr2/render.c'; else $(CYGPATH_W) '$(srcdir)/pvr2/render.c'; fi`
-
-rendcore.o: pvr2/rendcore.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT rendcore.o -MD -MP -MF "$(DEPDIR)/rendcore.Tpo" \
-@am__fastdepCC_TRUE@	  -c -o rendcore.o `test -f 'pvr2/rendcore.c' || echo '$(srcdir)/'`pvr2/rendcore.c; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/rendcore.Tpo" "$(DEPDIR)/rendcore.Po"; \
-@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/rendcore.Tpo"; exit 1; \
-@am__fastdepCC_TRUE@	fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='pvr2/rendcore.c' object='rendcore.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/rendcore.Po' tmpdepfile='$(DEPDIR)/rendcore.TPo' @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o rendcore.o `test -f 'pvr2/rendcore.c' || echo '$(srcdir)/'`pvr2/rendcore.c
-
-rendcore.obj: pvr2/rendcore.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT rendcore.obj -MD -MP -MF "$(DEPDIR)/rendcore.Tpo" \
-@am__fastdepCC_TRUE@	  -c -o rendcore.obj `if test -f 'pvr2/rendcore.c'; then $(CYGPATH_W) 'pvr2/rendcore.c'; else $(CYGPATH_W) '$(srcdir)/pvr2/rendcore.c'; fi`; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/rendcore.Tpo" "$(DEPDIR)/rendcore.Po"; \
-@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/rendcore.Tpo"; exit 1; \
-@am__fastdepCC_TRUE@	fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='pvr2/rendcore.c' object='rendcore.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/rendcore.Po' tmpdepfile='$(DEPDIR)/rendcore.TPo' @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o rendcore.obj `if test -f 'pvr2/rendcore.c'; then $(CYGPATH_W) 'pvr2/rendcore.c'; else $(CYGPATH_W) '$(srcdir)/pvr2/rendcore.c'; fi`
-
 rendbkg.o: pvr2/rendbkg.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT rendbkg.o -MD -MP -MF "$(DEPDIR)/rendbkg.Tpo" \
 @am__fastdepCC_TRUE@	  -c -o rendbkg.o `test -f 'pvr2/rendbkg.c' || echo '$(srcdir)/'`pvr2/rendbkg.c; \
@@ -1432,6 +1418,116 @@ rendsave.obj: pvr2/rendsave.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/rendsave.Po' tmpdepfile='$(DEPDIR)/rendsave.TPo' @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o rendsave.obj `if test -f 'pvr2/rendsave.c'; then $(CYGPATH_W) 'pvr2/rendsave.c'; else $(CYGPATH_W) '$(srcdir)/pvr2/rendsave.c'; fi`
+
+scene.o: pvr2/scene.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT scene.o -MD -MP -MF "$(DEPDIR)/scene.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o scene.o `test -f 'pvr2/scene.c' || echo '$(srcdir)/'`pvr2/scene.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/scene.Tpo" "$(DEPDIR)/scene.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/scene.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='pvr2/scene.c' object='scene.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/scene.Po' tmpdepfile='$(DEPDIR)/scene.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o scene.o `test -f 'pvr2/scene.c' || echo '$(srcdir)/'`pvr2/scene.c
+
+scene.obj: pvr2/scene.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT scene.obj -MD -MP -MF "$(DEPDIR)/scene.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o scene.obj `if test -f 'pvr2/scene.c'; then $(CYGPATH_W) 'pvr2/scene.c'; else $(CYGPATH_W) '$(srcdir)/pvr2/scene.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/scene.Tpo" "$(DEPDIR)/scene.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/scene.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='pvr2/scene.c' object='scene.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/scene.Po' tmpdepfile='$(DEPDIR)/scene.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o scene.obj `if test -f 'pvr2/scene.c'; then $(CYGPATH_W) 'pvr2/scene.c'; else $(CYGPATH_W) '$(srcdir)/pvr2/scene.c'; fi`
+
+gl_sl.o: pvr2/gl_sl.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT gl_sl.o -MD -MP -MF "$(DEPDIR)/gl_sl.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o gl_sl.o `test -f 'pvr2/gl_sl.c' || echo '$(srcdir)/'`pvr2/gl_sl.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/gl_sl.Tpo" "$(DEPDIR)/gl_sl.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/gl_sl.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='pvr2/gl_sl.c' object='gl_sl.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/gl_sl.Po' tmpdepfile='$(DEPDIR)/gl_sl.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o gl_sl.o `test -f 'pvr2/gl_sl.c' || echo '$(srcdir)/'`pvr2/gl_sl.c
+
+gl_sl.obj: pvr2/gl_sl.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT gl_sl.obj -MD -MP -MF "$(DEPDIR)/gl_sl.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o gl_sl.obj `if test -f 'pvr2/gl_sl.c'; then $(CYGPATH_W) 'pvr2/gl_sl.c'; else $(CYGPATH_W) '$(srcdir)/pvr2/gl_sl.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/gl_sl.Tpo" "$(DEPDIR)/gl_sl.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/gl_sl.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='pvr2/gl_sl.c' object='gl_sl.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/gl_sl.Po' tmpdepfile='$(DEPDIR)/gl_sl.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o gl_sl.obj `if test -f 'pvr2/gl_sl.c'; then $(CYGPATH_W) 'pvr2/gl_sl.c'; else $(CYGPATH_W) '$(srcdir)/pvr2/gl_sl.c'; fi`
+
+gl_slsrc.o: pvr2/gl_slsrc.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT gl_slsrc.o -MD -MP -MF "$(DEPDIR)/gl_slsrc.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o gl_slsrc.o `test -f 'pvr2/gl_slsrc.c' || echo '$(srcdir)/'`pvr2/gl_slsrc.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/gl_slsrc.Tpo" "$(DEPDIR)/gl_slsrc.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/gl_slsrc.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='pvr2/gl_slsrc.c' object='gl_slsrc.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/gl_slsrc.Po' tmpdepfile='$(DEPDIR)/gl_slsrc.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o gl_slsrc.o `test -f 'pvr2/gl_slsrc.c' || echo '$(srcdir)/'`pvr2/gl_slsrc.c
+
+gl_slsrc.obj: pvr2/gl_slsrc.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT gl_slsrc.obj -MD -MP -MF "$(DEPDIR)/gl_slsrc.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o gl_slsrc.obj `if test -f 'pvr2/gl_slsrc.c'; then $(CYGPATH_W) 'pvr2/gl_slsrc.c'; else $(CYGPATH_W) '$(srcdir)/pvr2/gl_slsrc.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/gl_slsrc.Tpo" "$(DEPDIR)/gl_slsrc.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/gl_slsrc.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='pvr2/gl_slsrc.c' object='gl_slsrc.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/gl_slsrc.Po' tmpdepfile='$(DEPDIR)/gl_slsrc.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o gl_slsrc.obj `if test -f 'pvr2/gl_slsrc.c'; then $(CYGPATH_W) 'pvr2/gl_slsrc.c'; else $(CYGPATH_W) '$(srcdir)/pvr2/gl_slsrc.c'; fi`
+
+glutil.o: pvr2/glutil.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT glutil.o -MD -MP -MF "$(DEPDIR)/glutil.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o glutil.o `test -f 'pvr2/glutil.c' || echo '$(srcdir)/'`pvr2/glutil.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/glutil.Tpo" "$(DEPDIR)/glutil.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/glutil.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='pvr2/glutil.c' object='glutil.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/glutil.Po' tmpdepfile='$(DEPDIR)/glutil.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o glutil.o `test -f 'pvr2/glutil.c' || echo '$(srcdir)/'`pvr2/glutil.c
+
+glutil.obj: pvr2/glutil.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT glutil.obj -MD -MP -MF "$(DEPDIR)/glutil.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o glutil.obj `if test -f 'pvr2/glutil.c'; then $(CYGPATH_W) 'pvr2/glutil.c'; else $(CYGPATH_W) '$(srcdir)/pvr2/glutil.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/glutil.Tpo" "$(DEPDIR)/glutil.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/glutil.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='pvr2/glutil.c' object='glutil.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/glutil.Po' tmpdepfile='$(DEPDIR)/glutil.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o glutil.obj `if test -f 'pvr2/glutil.c'; then $(CYGPATH_W) 'pvr2/glutil.c'; else $(CYGPATH_W) '$(srcdir)/pvr2/glutil.c'; fi`
+
+glrender.o: pvr2/glrender.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT glrender.o -MD -MP -MF "$(DEPDIR)/glrender.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o glrender.o `test -f 'pvr2/glrender.c' || echo '$(srcdir)/'`pvr2/glrender.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/glrender.Tpo" "$(DEPDIR)/glrender.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/glrender.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='pvr2/glrender.c' object='glrender.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/glrender.Po' tmpdepfile='$(DEPDIR)/glrender.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o glrender.o `test -f 'pvr2/glrender.c' || echo '$(srcdir)/'`pvr2/glrender.c
+
+glrender.obj: pvr2/glrender.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT glrender.obj -MD -MP -MF "$(DEPDIR)/glrender.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o glrender.obj `if test -f 'pvr2/glrender.c'; then $(CYGPATH_W) 'pvr2/glrender.c'; else $(CYGPATH_W) '$(srcdir)/pvr2/glrender.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/glrender.Tpo" "$(DEPDIR)/glrender.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/glrender.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='pvr2/glrender.c' object='glrender.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/glrender.Po' tmpdepfile='$(DEPDIR)/glrender.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o glrender.obj `if test -f 'pvr2/glrender.c'; then $(CYGPATH_W) 'pvr2/glrender.c'; else $(CYGPATH_W) '$(srcdir)/pvr2/glrender.c'; fi`
 
 maple.o: maple/maple.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT maple.o -MD -MP -MF "$(DEPDIR)/maple.Tpo" \
@@ -1565,27 +1661,27 @@ video_null.obj: drivers/video_null.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o video_null.obj `if test -f 'drivers/video_null.c'; then $(CYGPATH_W) 'drivers/video_null.c'; else $(CYGPATH_W) '$(srcdir)/drivers/video_null.c'; fi`
 
-gl_common.o: drivers/gl_common.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT gl_common.o -MD -MP -MF "$(DEPDIR)/gl_common.Tpo" \
-@am__fastdepCC_TRUE@	  -c -o gl_common.o `test -f 'drivers/gl_common.c' || echo '$(srcdir)/'`drivers/gl_common.c; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/gl_common.Tpo" "$(DEPDIR)/gl_common.Po"; \
-@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/gl_common.Tpo"; exit 1; \
+video_gl.o: drivers/video_gl.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT video_gl.o -MD -MP -MF "$(DEPDIR)/video_gl.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o video_gl.o `test -f 'drivers/video_gl.c' || echo '$(srcdir)/'`drivers/video_gl.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/video_gl.Tpo" "$(DEPDIR)/video_gl.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/video_gl.Tpo"; exit 1; \
 @am__fastdepCC_TRUE@	fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/gl_common.c' object='gl_common.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/gl_common.Po' tmpdepfile='$(DEPDIR)/gl_common.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/video_gl.c' object='video_gl.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/video_gl.Po' tmpdepfile='$(DEPDIR)/video_gl.TPo' @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o gl_common.o `test -f 'drivers/gl_common.c' || echo '$(srcdir)/'`drivers/gl_common.c
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o video_gl.o `test -f 'drivers/video_gl.c' || echo '$(srcdir)/'`drivers/video_gl.c
 
-gl_common.obj: drivers/gl_common.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT gl_common.obj -MD -MP -MF "$(DEPDIR)/gl_common.Tpo" \
-@am__fastdepCC_TRUE@	  -c -o gl_common.obj `if test -f 'drivers/gl_common.c'; then $(CYGPATH_W) 'drivers/gl_common.c'; else $(CYGPATH_W) '$(srcdir)/drivers/gl_common.c'; fi`; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/gl_common.Tpo" "$(DEPDIR)/gl_common.Po"; \
-@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/gl_common.Tpo"; exit 1; \
+video_gl.obj: drivers/video_gl.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT video_gl.obj -MD -MP -MF "$(DEPDIR)/video_gl.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o video_gl.obj `if test -f 'drivers/video_gl.c'; then $(CYGPATH_W) 'drivers/video_gl.c'; else $(CYGPATH_W) '$(srcdir)/drivers/video_gl.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/video_gl.Tpo" "$(DEPDIR)/video_gl.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/video_gl.Tpo"; exit 1; \
 @am__fastdepCC_TRUE@	fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/gl_common.c' object='gl_common.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/gl_common.Po' tmpdepfile='$(DEPDIR)/gl_common.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/video_gl.c' object='video_gl.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/video_gl.Po' tmpdepfile='$(DEPDIR)/video_gl.TPo' @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o gl_common.obj `if test -f 'drivers/gl_common.c'; then $(CYGPATH_W) 'drivers/gl_common.c'; else $(CYGPATH_W) '$(srcdir)/drivers/gl_common.c'; fi`
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o video_gl.obj `if test -f 'drivers/video_gl.c'; then $(CYGPATH_W) 'drivers/video_gl.c'; else $(CYGPATH_W) '$(srcdir)/drivers/video_gl.c'; fi`
 
 gl_fbo.o: drivers/gl_fbo.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT gl_fbo.o -MD -MP -MF "$(DEPDIR)/gl_fbo.Tpo" \
@@ -1608,50 +1704,6 @@ gl_fbo.obj: drivers/gl_fbo.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/gl_fbo.Po' tmpdepfile='$(DEPDIR)/gl_fbo.TPo' @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o gl_fbo.obj `if test -f 'drivers/gl_fbo.c'; then $(CYGPATH_W) 'drivers/gl_fbo.c'; else $(CYGPATH_W) '$(srcdir)/drivers/gl_fbo.c'; fi`
-
-gl_sl.o: drivers/gl_sl.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT gl_sl.o -MD -MP -MF "$(DEPDIR)/gl_sl.Tpo" \
-@am__fastdepCC_TRUE@	  -c -o gl_sl.o `test -f 'drivers/gl_sl.c' || echo '$(srcdir)/'`drivers/gl_sl.c; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/gl_sl.Tpo" "$(DEPDIR)/gl_sl.Po"; \
-@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/gl_sl.Tpo"; exit 1; \
-@am__fastdepCC_TRUE@	fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/gl_sl.c' object='gl_sl.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/gl_sl.Po' tmpdepfile='$(DEPDIR)/gl_sl.TPo' @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o gl_sl.o `test -f 'drivers/gl_sl.c' || echo '$(srcdir)/'`drivers/gl_sl.c
-
-gl_sl.obj: drivers/gl_sl.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT gl_sl.obj -MD -MP -MF "$(DEPDIR)/gl_sl.Tpo" \
-@am__fastdepCC_TRUE@	  -c -o gl_sl.obj `if test -f 'drivers/gl_sl.c'; then $(CYGPATH_W) 'drivers/gl_sl.c'; else $(CYGPATH_W) '$(srcdir)/drivers/gl_sl.c'; fi`; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/gl_sl.Tpo" "$(DEPDIR)/gl_sl.Po"; \
-@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/gl_sl.Tpo"; exit 1; \
-@am__fastdepCC_TRUE@	fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/gl_sl.c' object='gl_sl.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/gl_sl.Po' tmpdepfile='$(DEPDIR)/gl_sl.TPo' @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o gl_sl.obj `if test -f 'drivers/gl_sl.c'; then $(CYGPATH_W) 'drivers/gl_sl.c'; else $(CYGPATH_W) '$(srcdir)/drivers/gl_sl.c'; fi`
-
-gl_slsrc.o: drivers/gl_slsrc.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT gl_slsrc.o -MD -MP -MF "$(DEPDIR)/gl_slsrc.Tpo" \
-@am__fastdepCC_TRUE@	  -c -o gl_slsrc.o `test -f 'drivers/gl_slsrc.c' || echo '$(srcdir)/'`drivers/gl_slsrc.c; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/gl_slsrc.Tpo" "$(DEPDIR)/gl_slsrc.Po"; \
-@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/gl_slsrc.Tpo"; exit 1; \
-@am__fastdepCC_TRUE@	fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/gl_slsrc.c' object='gl_slsrc.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/gl_slsrc.Po' tmpdepfile='$(DEPDIR)/gl_slsrc.TPo' @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o gl_slsrc.o `test -f 'drivers/gl_slsrc.c' || echo '$(srcdir)/'`drivers/gl_slsrc.c
-
-gl_slsrc.obj: drivers/gl_slsrc.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT gl_slsrc.obj -MD -MP -MF "$(DEPDIR)/gl_slsrc.Tpo" \
-@am__fastdepCC_TRUE@	  -c -o gl_slsrc.obj `if test -f 'drivers/gl_slsrc.c'; then $(CYGPATH_W) 'drivers/gl_slsrc.c'; else $(CYGPATH_W) '$(srcdir)/drivers/gl_slsrc.c'; fi`; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/gl_slsrc.Tpo" "$(DEPDIR)/gl_slsrc.Po"; \
-@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/gl_slsrc.Tpo"; exit 1; \
-@am__fastdepCC_TRUE@	fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/gl_slsrc.c' object='gl_slsrc.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/gl_slsrc.Po' tmpdepfile='$(DEPDIR)/gl_slsrc.TPo' @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o gl_slsrc.obj `if test -f 'drivers/gl_slsrc.c'; then $(CYGPATH_W) 'drivers/gl_slsrc.c'; else $(CYGPATH_W) '$(srcdir)/drivers/gl_slsrc.c'; fi`
 
 sh4x86.o: sh4/sh4x86.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sh4x86.o -MD -MP -MF "$(DEPDIR)/sh4x86.Tpo" \
@@ -2004,6 +2056,28 @@ video_gtk.obj: drivers/video_gtk.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/video_gtk.Po' tmpdepfile='$(DEPDIR)/video_gtk.TPo' @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o video_gtk.obj `if test -f 'drivers/video_gtk.c'; then $(CYGPATH_W) 'drivers/video_gtk.c'; else $(CYGPATH_W) '$(srcdir)/drivers/video_gtk.c'; fi`
+
+video_gdk.o: drivers/video_gdk.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT video_gdk.o -MD -MP -MF "$(DEPDIR)/video_gdk.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o video_gdk.o `test -f 'drivers/video_gdk.c' || echo '$(srcdir)/'`drivers/video_gdk.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/video_gdk.Tpo" "$(DEPDIR)/video_gdk.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/video_gdk.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/video_gdk.c' object='video_gdk.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/video_gdk.Po' tmpdepfile='$(DEPDIR)/video_gdk.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o video_gdk.o `test -f 'drivers/video_gdk.c' || echo '$(srcdir)/'`drivers/video_gdk.c
+
+video_gdk.obj: drivers/video_gdk.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT video_gdk.obj -MD -MP -MF "$(DEPDIR)/video_gdk.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o video_gdk.obj `if test -f 'drivers/video_gdk.c'; then $(CYGPATH_W) 'drivers/video_gdk.c'; else $(CYGPATH_W) '$(srcdir)/drivers/video_gdk.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/video_gdk.Tpo" "$(DEPDIR)/video_gdk.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/video_gdk.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/video_gdk.c' object='video_gdk.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/video_gdk.Po' tmpdepfile='$(DEPDIR)/video_gdk.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o video_gdk.obj `if test -f 'drivers/video_gdk.c'; then $(CYGPATH_W) 'drivers/video_gdk.c'; else $(CYGPATH_W) '$(srcdir)/drivers/video_gdk.c'; fi`
 
 video_glx.o: drivers/video_glx.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT video_glx.o -MD -MP -MF "$(DEPDIR)/video_glx.Tpo" \
@@ -2445,8 +2519,8 @@ sh4/sh4x86.c: gendec sh4/sh4.def sh4/sh4x86.in
 	./gendec sh4/sh4.def sh4/sh4x86.in -o sh4/sh4x86.c
 sh4/sh4stat.c: gendec sh4/sh4.def sh4/sh4stat.in
 	./gendec sh4/sh4.def sh4/sh4stat.in -o sh4/sh4stat.c
-drivers/gl_slsrc.c: genglsl drivers/vertex.glsl drivers/fragment.glsl
-	./genglsl drivers/vertex.glsl drivers/fragment.glsl drivers/gl_slsrc.c
+pvr2/gl_slsrc.c: genglsl pvr2/vertex.glsl pvr2/fragment.glsl
+	./genglsl pvr2/vertex.glsl pvr2/fragment.glsl pvr2/gl_slsrc.c
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:

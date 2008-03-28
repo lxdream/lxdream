@@ -16,21 +16,21 @@
  * GNU General Public License for more details.
  */
 #include <sys/time.h>
+#include <string.h>
+#include <assert.h>
 #include "pvr2/pvr2.h"
+#include "pvr2/scene.h"
 #include "asic.h"
 
 extern char *video_base;
-extern gboolean pvr2_force_fragment_alpha;
 
 #define MIN3( a,b,c ) ((a) < (b) ? ( (a) < (c) ? (a) : (c) ) : ((b) < (c) ? (b) : (c)) )
 #define MAX3( a,b,c ) ((a) > (b) ? ( (a) > (c) ? (a) : (c) ) : ((b) > (c) ? (b) : (c)) )
 
-struct render_triangle {
-    uint32_t *polygon;
-    int vertex_length; /* Number of 32-bit words in vertex, or 0 for an unpacked vertex */
-    float minx,miny,minz;
-    float maxx,maxy,maxz;
-    float *vertexes[3];
+struct sort_triangle {
+    struct polygon_struct *poly;
+    int triangle_num; // triangle number in the poly, from 0
+    float maxz;
 };
 
 #define SENTINEL 0xDEADBEEF
@@ -39,7 +39,7 @@ struct render_triangle {
  * Count the number of triangles in the list starting at the given 
  * pvr memory address.
  */
-int render_count_triangles( pvraddr_t tile_entry ) {
+int sort_count_triangles( pvraddr_t tile_entry ) {
     uint32_t *tile_list = (uint32_t *)(video_base+tile_entry);
     int count = 0;
     while(1) {
@@ -64,27 +64,12 @@ int render_count_triangles( pvraddr_t tile_entry ) {
     return count;
 }
 
-static void compute_triangle_boxes( struct render_triangle *triangle, int num_triangles )
+/**
+ * Extract a triangle list from the tile (basically indexes into the polygon list, plus
+ * computing maxz while we go through it
+ */
+int sort_extract_triangles( pvraddr_t tile_entry, struct sort_triangle *triangles )
 {
-    int i;
-    for( i=0; i<num_triangles; i++ ) {
-	triangle[i].minx = MIN3(triangle[i].vertexes[0][0],triangle[i].vertexes[1][0],triangle[i].vertexes[2][0]);
-	triangle[i].maxx = MAX3(triangle[i].vertexes[0][0],triangle[i].vertexes[1][0],triangle[i].vertexes[2][0]);
-	triangle[i].miny = MIN3(triangle[i].vertexes[0][1],triangle[i].vertexes[1][1],triangle[i].vertexes[2][1]);
-	triangle[i].maxy = MAX3(triangle[i].vertexes[0][1],triangle[i].vertexes[1][1],triangle[i].vertexes[2][1]);
-	float az = 1/triangle[i].vertexes[0][2];
-	float bz = 1/triangle[i].vertexes[1][2];
-	float cz = 1/triangle[i].vertexes[2][2];
-	triangle[i].minz = MIN3(az,bz,cz);
-	triangle[i].maxz = MAX3(az,bz,cz);
-    }
-}
-
-void render_extract_triangles( pvraddr_t tile_entry, gboolean cheap_modifier_mode, 
-			       struct render_triangle *triangles, int num_triangles,
-			       struct vertex_unpacked *vertex_space, int render_mode )
-{
-    uint32_t poly_bank = MMIO_READ(PVR2,RENDER_POLYBASE);
     uint32_t *tile_list = (uint32_t *)(video_base+tile_entry);
     int count = 0;
     while(1) {
@@ -94,11 +79,11 @@ void render_extract_triangles( pvraddr_t tile_entry, gboolean cheap_modifier_mod
 	} else if( entry >> 28 == 0x0E ) {
 	    tile_list = (uint32_t *)(video_base+(entry&0x007FFFFF));
 	} else {
-	    uint32_t *polygon = (uint32_t *)(video_base + poly_bank + ((entry & 0x000FFFFF) << 2));
+	    uint32_t poly_addr = entry & 0x000FFFFF;
 	    int is_modified = entry & 0x01000000;
 	    int vertex_length = (entry >> 21) & 0x07;
 	    int context_length = 3;
-	    if( is_modified && !cheap_modifier_mode ) {
+	    if( is_modified && pvr2_scene.full_shadow ) {
 		context_length = 5;
 		vertex_length *= 2 ;
 	    }
@@ -110,127 +95,108 @@ void render_extract_triangles( pvraddr_t tile_entry, gboolean cheap_modifier_mod
 		int polygon_length = 3 * vertex_length + context_length;
 		int i;
 		for( i=0; i<strip_count; i++ ) {
-		    float *vertex = (float *)(polygon+context_length);
-		    triangles[count].polygon = polygon;
-		    triangles[count].vertex_length = vertex_length;
-		    triangles[count].vertexes[0] = vertex;
-		    vertex+=vertex_length;
-		    triangles[count].vertexes[1] = vertex;
-		    vertex+=vertex_length;
-		    triangles[count].vertexes[2] = vertex;
-		    polygon += polygon_length;
+		    struct polygon_struct *poly = pvr2_scene.buf_to_poly_map[poly_addr];
+		    triangles[count].poly = poly;
+		    triangles[count].triangle_num = 0;
+		    triangles[count].maxz = MAX3( pvr2_scene.vertex_array[poly->vertex_index].z,
+						  pvr2_scene.vertex_array[poly->vertex_index+1].z,
+						  pvr2_scene.vertex_array[poly->vertex_index+2].z );
+		    poly_addr += polygon_length;
 		    count++;
 		}
 	    } else if( (entry & 0xE0000000) == 0xA0000000 ) {
 		/* Quad(s) */
 		int strip_count = ((entry >> 25) & 0x0F)+1;
 		int polygon_length = 4 * vertex_length + context_length;
-		
 		int i;
 		for( i=0; i<strip_count; i++ ) {
-		    render_unpack_quad( vertex_space, *polygon, (polygon+context_length),
-					vertex_length, render_mode );
-		    triangles[count].polygon = polygon;
-		    triangles[count].vertex_length = 0;
-		    triangles[count].vertexes[0] = (float *)vertex_space;
-		    triangles[count].vertexes[1] = (float *)(vertex_space + 1);
-		    triangles[count].vertexes[2] = (float *)(vertex_space + 3);
+		    struct polygon_struct *poly = pvr2_scene.buf_to_poly_map[poly_addr];
+		    triangles[count].poly = poly;
+		    triangles[count].triangle_num = 0;
+		    triangles[count].maxz = MAX3( pvr2_scene.vertex_array[poly->vertex_index].z,
+						  pvr2_scene.vertex_array[poly->vertex_index+1].z,
+						  pvr2_scene.vertex_array[poly->vertex_index+2].z );
 		    count++;
-		    /* Preserve face direction */
-		    triangles[count].polygon = polygon;
-		    triangles[count].vertex_length = 0;
-		    triangles[count].vertexes[0] = (float *)(vertex_space + 1);
-		    triangles[count].vertexes[1] = (float *)(vertex_space + 2);
-		    triangles[count].vertexes[2] = (float *)(vertex_space + 3);
+		    triangles[count].poly = poly;
+		    triangles[count].triangle_num = 1;
+		    triangles[count].maxz = MAX3( pvr2_scene.vertex_array[poly->vertex_index+1].z,
+						  pvr2_scene.vertex_array[poly->vertex_index+2].z,
+						  pvr2_scene.vertex_array[poly->vertex_index+3].z );
 		    count++;
-		    vertex_space += 4;
-		    polygon += polygon_length;
+		    poly_addr += polygon_length;
 		}
 	    } else {
 		/* Polygon */
 		int i;
-		float *vertex = (float *)polygon+context_length;
+		struct polygon_struct *poly = pvr2_scene.buf_to_poly_map[poly_addr];
 		for( i=0; i<6; i++ ) {
 		    if( entry & (0x40000000>>i) ) {
-			triangles[count].polygon = polygon;
-			triangles[count].vertex_length = vertex_length;
-			if( i&1 ) {
-			    triangles[count].vertexes[0] = vertex + vertex_length;
-			    triangles[count].vertexes[1] = vertex;
-			    triangles[count].vertexes[2] = vertex + (vertex_length<<1);
-			} else {
-			    triangles[count].vertexes[0] = vertex;
-			    triangles[count].vertexes[1] = vertex + vertex_length;
-			    triangles[count].vertexes[2] = vertex + (vertex_length<<1);
-			}
+			triangles[count].poly = poly;
+			triangles[count].triangle_num = i;
+			triangles[count].maxz = MAX3( pvr2_scene.vertex_array[poly->vertex_index+i].z,
+						      pvr2_scene.vertex_array[poly->vertex_index+i+1].z,
+						      pvr2_scene.vertex_array[poly->vertex_index+i+2].z );
 			count++;
 		    }
-		    vertex += vertex_length;
 		}
 	    }
 	}
     }
-    if( count != num_triangles ) {
-	ERROR( "Extracted triangles do not match expected count!" );
-    }
+    return count;
 }
 
-void render_triangles( struct render_triangle *triangles, int num_triangles,
-		       int render_mode )
+void sort_render_triangles( struct sort_triangle *triangles, int num_triangles,
+			    int render_mode )
 {
     int i;
     for( i=0; i<num_triangles; i++ ) {
-	render_set_context( triangles[i].polygon, render_mode );
-	glEnable(GL_DEPTH_TEST);
-	glDepthFunc(GL_GEQUAL);
-	if( triangles[i].vertex_length == 0 ) {
-	    render_unpacked_vertex_array( *triangles[i].polygon, (struct vertex_unpacked **)triangles[i].vertexes, 3 );
-	} else {
-	    render_vertex_array( *triangles[i].polygon, (uint32_t **)triangles[i].vertexes, 3,
-				 triangles[i].vertex_length, render_mode );
+	struct polygon_struct *poly = triangles[i].poly;
+	if( poly->tex_id != -1 ) {
+	    glBindTexture(GL_TEXTURE_2D, poly->tex_id);
 	}
+	render_set_context( poly->context, RENDER_NORMAL );
+	glDepthMask(GL_FALSE);
+	glDepthFunc(GL_GEQUAL);
+	/* Fix cull direction */
+	if( triangles[i].triangle_num & 1 ) {
+	    glCullFace(GL_FRONT);
+	} else {
+	    glCullFace(GL_BACK);
+	}
+	
+	glDrawArrays(GL_TRIANGLE_STRIP, poly->vertex_index + triangles[i].triangle_num, 3 );
     }
-
-
 }
 
 int compare_triangles( const void *a, const void *b ) 
 {
-    const struct render_triangle *tri1 = a;
-    const struct render_triangle *tri2 = b;
-    if( tri1->minz < tri2->minz ) {  
-	return 1; // No these _aren't_ back to front...
-    } else if( tri1->minz > tri2->minz ) {
-	return -1;
-    } else {
-	return 0;
-    }
+    const struct sort_triangle *tri1 = a;
+    const struct sort_triangle *tri2 = b;
+    return tri2->maxz - tri1->maxz;
 }
 
-void sort_triangles( struct render_triangle *triangles, int num_triangles )
+void sort_triangles( struct sort_triangle *triangles, int num_triangles )
 {
-    qsort( triangles, num_triangles, sizeof(struct render_triangle), compare_triangles );
+    qsort( triangles, num_triangles, sizeof(struct sort_triangle), compare_triangles );
 } 
 			
-void render_autosort_tile( pvraddr_t tile_entry, int render_mode, gboolean cheap_modifier_mode ) 
+void render_autosort_tile( pvraddr_t tile_entry, int render_mode ) 
 {
-    int num_triangles = render_count_triangles(tile_entry);
+    int num_triangles = sort_count_triangles(tile_entry);
     if( num_triangles == 0 ) {
 	return; /* nothing to do */
     } else if( num_triangles == 1 ) { /* Triangle can hardly overlap with itself */
-	render_tile( tile_entry, render_mode, cheap_modifier_mode );
+	gl_render_tilelist(tile_entry);
     } else { /* Ooh boy here we go... */
-	struct render_triangle triangles[num_triangles+1];
-	struct vertex_unpacked vertex_space[num_triangles << 1]; 
+	struct sort_triangle triangles[num_triangles+1];
 	// Reserve space for num_triangles / 2 * 4 vertexes (maximum possible number of
 	// quad vertices)
-	triangles[num_triangles].polygon = (void *)SENTINEL;
-	render_extract_triangles(tile_entry, cheap_modifier_mode, triangles, num_triangles, vertex_space, render_mode);
-	compute_triangle_boxes(triangles, num_triangles);
+	triangles[num_triangles].poly = (void *)SENTINEL;
+	int extracted_triangles = sort_extract_triangles(tile_entry, triangles);
+	assert( extracted_triangles == num_triangles );
 	sort_triangles( triangles, num_triangles );
-	render_triangles(triangles, num_triangles, render_mode);
-	if( triangles[num_triangles].polygon != (void *)SENTINEL ) {
-	    fprintf( stderr, "Triangle overflow in render_autosort_tile!" );
-	}
+	sort_render_triangles(triangles, num_triangles, render_mode);
+	glCullFace(GL_BACK);
+	assert( triangles[num_triangles].poly == (void *)SENTINEL );
     }
 }
