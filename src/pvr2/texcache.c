@@ -19,6 +19,7 @@
  */
 
 #include <assert.h>
+#include <string.h>
 #include "pvr2/pvr2.h"
 
 /** Specifies the maximum number of OpenGL
@@ -67,6 +68,7 @@ void texcache_init( )
     for( i=0; i<MAX_TEXTURES; i++ ) {
 	texcache_free_list[i] = i;
 	texcache_active_list[i].texture_addr = -1;
+	texcache_active_list[i].next = EMPTY_ENTRY;
     }
     texcache_free_ptr = 0;
     texcache_ref_counter = 0;
@@ -99,6 +101,7 @@ void texcache_flush( )
     }
     for( i=0; i<MAX_TEXTURES; i++ ) {
 	texcache_free_list[i] = i;
+	texcache_active_list[i].next = EMPTY_ENTRY;
     }
     texcache_free_ptr = 0;
     texcache_ref_counter = 0;
@@ -507,25 +510,25 @@ static void texcache_load_texture( uint32_t texture_addr, int width, int height,
  * If the texture has already been bound, return the ID to which it was
  * bound. Otherwise obtain an unused texture ID and set it up appropriately.
  */
-GLuint texcache_get_texture( uint32_t texture_addr, int width, int height,
-			     int mode )
+GLuint texcache_get_texture( uint32_t texture_word, int width, int height )
 {
+    uint32_t texture_addr = (texture_word & 0x000FFFFF)<<3;
     uint32_t texture_page = texture_addr >> 12;
     texcache_entry_index next;
     texcache_entry_index idx = texcache_page_lookup[texture_page];
     while( idx != EMPTY_ENTRY ) {
 	texcache_entry_t entry = &texcache_active_list[idx];
 	if( entry->texture_addr == texture_addr &&
-	    entry->mode == mode &&
+	    entry->mode == texture_word &&
 	    entry->width == width &&
 	    entry->height == height ) {
 	    entry->lru_count = texcache_ref_counter++;
-	    glBindTexture( GL_TEXTURE_2D, entry->texture_id );
 	    return entry->texture_id;
 	}
         idx = entry->next;
     }
 
+    
     /* Not found - check the free list */
     texcache_entry_index slot = 0;
 
@@ -539,7 +542,7 @@ GLuint texcache_get_texture( uint32_t texture_addr, int width, int height,
     texcache_active_list[slot].texture_addr = texture_addr;
     texcache_active_list[slot].width = width;
     texcache_active_list[slot].height = height;
-    texcache_active_list[slot].mode = mode;
+    texcache_active_list[slot].mode = texture_word;
     texcache_active_list[slot].lru_count = texcache_ref_counter++;
 
     /* Add entry to the lookup table */
@@ -560,7 +563,45 @@ GLuint texcache_get_texture( uint32_t texture_addr, int width, int height,
 
     /* Construct the GL texture */
     glBindTexture( GL_TEXTURE_2D, texcache_active_list[slot].texture_id );
-    texcache_load_texture( texture_addr, width, height, mode );
-    
+    texcache_load_texture( texture_addr, width, height, texture_word );
+
     return texcache_active_list[slot].texture_id;
+}
+
+/**
+ * Check the integrity of the texcache. Verifies that every cache slot
+ * appears exactly once on either the free list or one page list. For 
+ * active slots, the texture address must also match the page it appears on.
+ * 
+ */
+void texcache_integrity_check()
+{
+    int i;
+    int slot_found[MAX_TEXTURES];
+    
+    memset( slot_found, 0, sizeof(slot_found) );
+
+    /* Check entries on the free list */
+    for( i= texcache_free_ptr; i< MAX_TEXTURES; i++ ) {
+	int slot = texcache_free_list[i];
+	assert( slot_found[slot] == 0 );
+	assert( texcache_active_list[slot].next == EMPTY_ENTRY );
+	slot_found[slot] = 1;
+    }
+
+    /* Check entries on the active lists */
+    for( i=0; i< PVR2_RAM_PAGES; i++ ) {
+	int slot = texcache_page_lookup[i];
+	while( slot != EMPTY_ENTRY ) {
+	    assert( slot_found[slot] == 0 );
+	    assert( (texcache_active_list[slot].texture_addr >> 12) == i );
+	    slot_found[slot] = 2;
+	    slot = texcache_active_list[slot].next;
+	}
+    }
+
+    /* Make sure we didn't miss any entries */
+    for( i=0; i<MAX_TEXTURES; i++ ) {
+	assert( slot_found[i] != 0 );
+    }
 }

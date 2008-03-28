@@ -20,58 +20,9 @@
 
 #include "display.h"
 #include "pvr2/pvr2.h"
-#include "drivers/gl_common.h"
+#include "drivers/video_gl.h"
 
 extern uint32_t video_width, video_height;
-
-char *required_extensions[] = { "GL_EXT_framebuffer_object", NULL };
-
-/**
- * Test if a specific extension is supported. From opengl.org
- * @param extension extension name to check for
- * @return TRUE if supported, otherwise FALSE.
- */
-gboolean isGLExtensionSupported( const char *extension )
-{
-    const GLubyte *extensions = NULL;
-    const GLubyte *start;
-    GLubyte *where, *terminator;
-
-    /* Extension names should not have spaces. */
-    where = (GLubyte *) strchr(extension, ' ');
-    if (where || *extension == '\0')
-	return 0;
-    extensions = glGetString(GL_EXTENSIONS);
-    /* It takes a bit of care to be fool-proof about parsing the
-       OpenGL extensions string. Don't be fooled by sub-strings,
-       etc. */
-    start = extensions;
-    for (;;) {
-	where = (GLubyte *) strstr((const char *) start, extension);
-	if (!where)
-	    break;
-	terminator = where + strlen(extension);
-	if (where == start || *(where - 1) == ' ')
-	    if (*terminator == ' ' || *terminator == '\0')
-		return TRUE;
-	start = terminator;
-    }
-    return FALSE;
-}
-
-gboolean hasRequiredGLExtensions( ) 
-{
-    int i;
-    gboolean isOK = TRUE;
-
-    for( i=0; required_extensions[i] != NULL; i++ ) {
-	if( !isGLExtensionSupported(required_extensions[i]) ) {
-	    ERROR( "Required OpenGL extension not supported: %s", required_extensions[i] );
-	    isOK = FALSE;
-	}
-    }
-    return isOK;
-}
 
 /**
  * Reset the gl state to simple orthographic projection with 
@@ -82,7 +33,7 @@ void gl_reset_state()
     glViewport( 0, 0, video_width, video_height );
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    glOrtho( 0, video_width, video_height, 0, 0, -65535 );
+    glOrtho( 0, video_width, video_height, 0, 0, 65535 );
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
     glDisable( GL_TEXTURE_2D );

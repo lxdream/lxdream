@@ -16,7 +16,11 @@
  * GNU General Public License for more details.
  */
 
-#include "dream.h"
+#ifndef lxdream_pvr2_H
+#define lxdream_pvr2_H 1
+
+#include <stdio.h>
+#include "lxdream.h"
 #include "mem.h"
 #include "display.h"
 #include "pvr2/pvr2mmio.h"
@@ -240,6 +244,8 @@ int pvr2_yuv_load_state( FILE *f );
 
 /********************************* Renderer ******************************/
 
+void pvr2_read_scene( void );
+
 /**
  * Render the current scene stored in PVR ram to the GL back buffer.
  */
@@ -260,7 +266,7 @@ void render_set_context( uint32_t *context, int render_mode );
 void pvr2_render_tilebuffer( int width, int height, int clipx1, int clipy1, 
 			     int clipx2, int clipy2 );
 
-float pvr2_render_find_maximum_z();
+void pvr2_render_find_z_range( float *min, float *max );
 
 void pvr2_render_getsize( int *x, int *y );
 
@@ -274,25 +280,6 @@ struct vertex_unpacked {
     float rgba[4];        /* Fragment colour (RGBA order) */
     float offset_rgba[4]; /* Offset color (RGBA order) */
 };
-
-void render_unpack_quad( struct vertex_unpacked *unpacked, uint32_t poly1,
-                         uint32_t *vertexes, int vertex_size,
-                         int render_mode );
-
-void render_unpack_vertexes( struct vertex_unpacked *out, uint32_t poly1,
-                             uint32_t *vertexes, int num_vertexes,
-                             int vertex_size, int render_mode );
-
-void render_unpacked_vertex_array( uint32_t poly1, struct vertex_unpacked *vertexes[], 
-				   int num_vertexes );
-
-void render_vertex_array( uint32_t poly1, uint32_t *vertexes[], int num_vertexes, 
-			  int vertex_size, int render_mode );
-
-void render_tile( pvraddr_t tile_entry, int render_mode, gboolean cheap_modifier_mode );
-
-void render_autosort_tile( pvraddr_t tile_entry, int render_mode, gboolean cheap_modifier_mode );
-
 
 /****************************** Texture Cache ****************************/
 
@@ -338,8 +325,7 @@ void texcache_invalidate_page( uint32_t texture_addr );
  * If the texture has already been bound, return the ID to which it was
  * bound. Otherwise obtain an unused texture ID and set it up appropriately.
  */
-GLuint texcache_get_texture( uint32_t texture_addr, int width, int height,
-			     int mode );
+GLuint texcache_get_texture( uint32_t texture_word, int width, int height );
 
 void pvr2_check_palette_changed(void);
 
@@ -348,8 +334,9 @@ int pvr2_render_save_scene( const gchar *filename );
 
 /************************* Rendering support macros **************************/
 #define POLY1_DEPTH_MODE(poly1) ( pvr2_poly_depthmode[(poly1)>>29] )
-#define POLY1_DEPTH_ENABLE(poly1) (((poly1)&0x04000000) == 0 )
+#define POLY1_DEPTH_WRITE(poly1) (((poly1)&0x04000000) == 0 )
 #define POLY1_CULL_MODE(poly1) (((poly1)>>27)&0x03)
+#define POLY1_CULL_ENABLE(poly1) (((poly1)>>28)&0x01)
 #define POLY1_TEXTURED(poly1) (((poly1)&0x02000000))
 #define POLY1_SPECULAR(poly1) (((poly1)&0x01000000))
 #define POLY1_GOURAUD_SHADED(poly1) ((poly1)&0x00800000)
@@ -376,4 +363,28 @@ extern int pvr2_poly_dstblend[8];
 extern int pvr2_poly_texblend[4];
 extern int pvr2_render_colour_format[8];
 
-float halftofloat(uint16_t half);
+#define CULL_NONE 0
+#define CULL_SMALL 1
+#define CULL_CCW 2
+#define CULL_CW 3
+
+#define SEGMENT_END         0x80000000
+#define SEGMENT_ZCLEAR      0x40000000
+#define SEGMENT_SORT_TRANS  0x20000000
+#define SEGMENT_START       0x10000000
+#define SEGMENT_X(c)        (((c) >> 2) & 0x3F)
+#define SEGMENT_Y(c)        (((c) >> 8) & 0x3F)
+#define NO_POINTER          0x80000000
+#define IS_TILE_PTR(p)      ( ((p)&NO_POINTER) == 0 )
+#define IS_LAST_SEGMENT(s)  (((s)->control) & SEGMENT_END)
+
+struct tile_segment {
+    uint32_t control;
+    pvraddr_t opaque_ptr;
+    pvraddr_t opaquemod_ptr;
+    pvraddr_t trans_ptr;
+    pvraddr_t transmod_ptr;
+    pvraddr_t punchout_ptr;
+};
+
+#endif /* !lxdream_pvr2_H */

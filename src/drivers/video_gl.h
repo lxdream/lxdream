@@ -19,17 +19,6 @@
 #ifndef video_gl_common_H
 #define video_gl_common_H
 
-#include "display.h"
-
-/**
- * Test if a specific extension is supported. From opengl.org
- * @param extension extension name to check for
- * @return TRUE if supported, otherwise FALSE.
- */
-gboolean isGLExtensionSupported( const char *extension );
-
-gboolean hasRequiredGLExtensions();
-
 /**
  * Generic GL routine to draw the given frame buffer into a texture
  */
@@ -51,11 +40,6 @@ void gl_display_render_buffer( render_buffer_t buffer );
 void gl_texture_window( int width, int height, int tex_id, gboolean inverted );
 
 /**
- * Redisplay the last frame.
- */
-void gl_redisplay_last();
-
-/**
  * Generic GL read_render_buffer. This function assumes that the caller
  * has already set the appropriate glReadBuffer(); in other words, unless
  * there's only one buffer this needs to be wrapped.
@@ -69,13 +53,5 @@ gboolean gl_fbo_is_supported();
 void gl_fbo_shutdown();
 void gl_fbo_init( display_driver_t driver );
 void gl_fbo_detach();
-
-/****** Shader handling (gl_sl.c) *****/
-gboolean glsl_is_supported(void);
-gboolean glsl_load_shaders( const char *vert_shader, const char *frag_shader );
-void glsl_unload_shaders(void);
-
-extern const char *glsl_vertex_shader_src;
-extern const char *glsl_fragment_shader_src;
 
 #endif /* !video_gl_common_H */
