@@ -151,11 +151,15 @@ void render_set_context( uint32_t *context, int render_mode )
 	glTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, pvr2_poly_texblend[POLY2_TEX_BLEND(poly2)] );
 	if( POLY2_TEX_CLAMP_U(poly2) ) {
 	    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP );
+	} else if( POLY2_TEX_MIRROR_U(poly2) ) {
+	    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT_ARB );
 	} else {
 	    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
 	}	    
 	if( POLY2_TEX_CLAMP_V(poly2) ) {
 	    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP );
+	} else if( POLY2_TEX_MIRROR_V(poly2) ) {
+	    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT_ARB );
 	} else {
 	    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
 	}
