@@ -334,6 +334,7 @@ static void texcache_load_texture( uint32_t texture_addr, int width, int height,
     GLint filter = GL_LINEAR;
 
     glPixelStorei( GL_UNPACK_ROW_LENGTH, 0 );
+
     /* Decode the format parameters */
     switch( tex_format ) {
     case PVR2_TEX_FORMAT_IDX4:
@@ -412,18 +413,6 @@ static void texcache_load_texture( uint32_t texture_addr, int width, int height,
 	return;
     } 
 
-    int level=0, last_level = 0, mip_width = width, mip_height = height, src_bytes, dest_bytes;
-    if( PVR2_TEX_IS_MIPMAPPED(mode) ) {
-	int i;
-	for( i=0; 1<<i < width; i++ );
-	last_level = i;
-	mip_width = 2;
-	mip_height= 2;
-	filter = GL_LINEAR_MIPMAP_LINEAR;
-    }
-    dest_bytes = (mip_width * mip_height) << bpp_shift;
-    src_bytes = dest_bytes; // Modes will change this (below)
-
     if( PVR2_TEX_IS_COMPRESSED(mode) ) {
 	uint16_t tmp[VQ_CODEBOOK_SIZE];
 	pvr2_vram64_read( (unsigned char *)tmp, texture_addr, VQ_CODEBOOK_SIZE );
@@ -431,7 +420,35 @@ static void texcache_load_texture( uint32_t texture_addr, int width, int height,
 	vq_get_codebook( &codebook, tmp );
     }
 
-    for( level=last_level; level>= 0; level-- ) {
+    int level=0, last_level = 0, mip_width = width, mip_height = height, src_bytes, dest_bytes;
+    if( PVR2_TEX_IS_MIPMAPPED(mode) ) {
+	uint32_t src_offset = 0;
+	filter = GL_LINEAR_MIPMAP_LINEAR;
+	mip_height = height = width;
+	while( (1<<last_level) < width ) {
+	    last_level++;
+	    src_offset += ((width>>last_level)*(width>>last_level));
+	}
+	if( width != 1 ) {
+	    src_offset += 3;
+	}
+	if( PVR2_TEX_IS_COMPRESSED(mode) ) {
+	    src_offset >>= 2;
+	} else if( tex_format == PVR2_TEX_FORMAT_IDX4 ) {
+	    src_offset >>= 1;
+	} else if( tex_format == PVR2_TEX_FORMAT_YUV422 ) {
+	    src_offset <<= 1;
+	} else if( tex_format != PVR2_TEX_FORMAT_IDX8 ) {
+	    src_offset <<= bpp_shift;
+	}
+	texture_addr += src_offset;
+    }
+    
+
+    dest_bytes = (mip_width * mip_height) << bpp_shift;
+    src_bytes = dest_bytes; // Modes will change this (below)
+
+    for( level=0; level<= last_level; level++ ) {
 	unsigned char data[dest_bytes];
 	/* load data from image, detwiddling/uncompressing as required */
 	if( tex_format == PVR2_TEX_FORMAT_IDX8 ) {
@@ -484,15 +501,16 @@ static void texcache_load_texture( uint32_t texture_addr, int width, int height,
 	if( level == last_level && level != 0 ) { /* 1x1 stored within a 2x2 */
 	    glTexImage2D( GL_TEXTURE_2D, level, intFormat, 1, 1, 0, format, type,
 			  data + (3 << bpp_shift) );
-	    texture_addr += src_bytes;
 	} else {
 	    glTexImage2D( GL_TEXTURE_2D, level, intFormat, mip_width, mip_height, 0, format, type,
 			  data );
-	    texture_addr += src_bytes;
-	    mip_width <<= 1;
-	    mip_height <<= 1;
-	    dest_bytes <<= 2;
-	    src_bytes <<= 2;
+	    if( mip_width > 2 ) {
+		mip_width >>= 1;
+		mip_height >>= 1;
+		dest_bytes >>= 2;
+		src_bytes >>= 2;
+	    }
+	    texture_addr -= src_bytes;
 	}
     }
 
