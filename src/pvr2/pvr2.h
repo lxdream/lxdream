@@ -352,6 +352,8 @@ int pvr2_render_save_scene( const gchar *filename );
 #define POLY2_COLOUR_CLAMP_ENABLE(poly2) ((poly2)&0x00200000)
 #define POLY2_ALPHA_ENABLE(poly2)        ((poly2)&0x00100000)
 #define POLY2_TEX_ALPHA_ENABLE(poly2)   (((poly2)&0x00080000) == 0 )
+#define POLY2_TEX_MIRROR_U(poly2)        ((poly2)&0x00040000)
+#define POLY2_TEX_MIRROR_V(poly2)        ((poly2)&0x00020000)
 #define POLY2_TEX_CLAMP_U(poly2)         ((poly2)&0x00010000)
 #define POLY2_TEX_CLAMP_V(poly2)         ((poly2)&0x00008000)
 #define POLY2_TEX_WIDTH(poly2) ( 1<< ((((poly2) >> 3) & 0x07 ) + 3) )
