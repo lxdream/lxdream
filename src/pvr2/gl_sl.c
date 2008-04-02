@@ -128,7 +128,7 @@ void glsl_unload_shaders(void)
     glDeleteObjectARB(glsl_frag_shader);
 }
 
-#else
+#elif HAVE_OPENGL_SHADER
 static GLuint glsl_program = 0, glsl_vert_shader = 0, glsl_frag_shader = 0;
 
 gboolean glsl_check_shader_error( char *msg, GLuint shader )
@@ -220,4 +220,15 @@ void glsl_unload_shaders(void)
     glDeleteShader(glsl_vert_shader);
     glDeleteShader(glsl_frag_shader);
 }
+
+#else
+gboolean glsl_load_shaders( const char *vertex_src, const char *fragment_src )
+{
+    return FALSE;
+}
+
+void glsl_unload_shaders()
+{
+}
+
 #endif

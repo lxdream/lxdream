@@ -63,6 +63,10 @@ AC_CHECK_HEADER([GL/gl.h], [], [
 fi
 fi
 
+AC_CHECK_FUNC(glGenFramebuffersEXT, [ AC_DEFINE([HAVE_OPENGL_FBO],1,[Have EXT_framebuffer_object support]) ], [])
+AC_CHECK_FUNC(glCreateShader, [ AC_DEFINE([HAVE_OPENGL_SHADER],1,[Have 2.0 shader support]) ], [])
+AC_CHECK_FUNC(glCreateShaderObjectARB, [ AC_DEFINE([HAVE_OPENGL_SHADER_ARB],1,[Have ARB shader support]) ], [])
+
 dnl Check for GTK (required for unix systems)
 PKG_CHECK_MODULES(GTK, gtk+-2.0, [
     HAVE_GTK='yes'
