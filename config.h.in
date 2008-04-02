@@ -67,6 +67,15 @@
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H
 
+/* Have EXT_framebuffer_object support */
+#undef HAVE_OPENGL_FBO
+
+/* Have 2.0 shader support */
+#undef HAVE_OPENGL_SHADER
+
+/* Have ARB shader support */
+#undef HAVE_OPENGL_SHADER_ARB
+
 /* Define to 1 if you have the <stdint.h> header file. */
 #undef HAVE_STDINT_H
 

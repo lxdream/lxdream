@@ -30,6 +30,8 @@
 #include "drivers/video_gl.h"
 #include "pvr2/glutil.h"
 
+#ifdef HAVE_OPENGL_FBO
+
 #define MAX_FRAMEBUFFERS 2
 #define MAX_TEXTURES_PER_FB 4
 
@@ -288,3 +290,14 @@ static gboolean gl_fbo_read_render_buffer( unsigned char *target, render_buffer_
     return gl_read_render_buffer( target, buffer, rowstride, format );
 }
 
+#else
+gboolean gl_fbo_is_supported()
+{
+    return FALSE;
+}
+
+void gl_fbo_init( display_driver_t driver ) 
+{
+}
+
+#endif
