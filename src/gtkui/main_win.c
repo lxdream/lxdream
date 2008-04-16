@@ -33,11 +33,6 @@
 #include "lxdream.h"
 #include "gtkui/gtkui.h"
 
-#ifdef HAVE_GLX
-#include <gdk/gdkx.h>
-#include "drivers/video_glx.h"
-#endif
-
 
 struct main_window_info {
     GtkWidget *window;
@@ -250,26 +245,7 @@ main_window_t main_window_new( const gchar *title, GtkWidget *menubar, GtkWidget
 
     gtk_toolbar_set_style( GTK_TOOLBAR(toolbar), GTK_TOOLBAR_ICONS );
 
-    win->video = gtk_drawing_area_new();
-
-#ifdef HAVE_GLX    
-    Display *display = gdk_x11_display_get_xdisplay( gtk_widget_get_display(win->window));
-    Screen *screen = gdk_x11_screen_get_xscreen( gtk_widget_get_screen(win->window));
-    int screen_no = XScreenNumberOfScreen(screen);
-    if( !video_glx_init(display, screen_no) ) {
-        ERROR( "Unable to initialize GLX, aborting" );
-	exit(3);
-    }
-
-    XVisualInfo *visual = video_gtk_get_visual();
-    if( visual != NULL ) {
-	GdkVisual *gdkvis = gdk_x11_screen_lookup_visual( gtk_widget_get_screen(win->window), visual->visualid );
-	GdkColormap *colormap = gdk_colormap_new( gdkvis, FALSE );
-	gtk_widget_set_colormap( win->video, colormap );
-    }
-#endif
-
-    GTK_WIDGET_SET_FLAGS(win->video, GTK_CAN_FOCUS|GTK_CAN_DEFAULT);
+    win->video = video_gtk_create_drawable();
     gtk_widget_set_size_request( win->video, 640, 480 ); 
     gtk_widget_set_double_buffered( win->video, FALSE );
     frame = gtk_frame_new(NULL);
