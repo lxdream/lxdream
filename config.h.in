@@ -28,8 +28,8 @@
 /* Define to 1 if you have the `bind_textdomain_codeset' function. */
 #undef HAVE_BIND_TEXTDOMAIN_CODESET
 
-/* Have Carbon framework */
-#undef HAVE_CARBON
+/* Have Cocoa framework */
+#undef HAVE_COCOA
 
 /* Define to 1 if you have the `dcgettext' function. */
 #undef HAVE_DCGETTEXT
@@ -40,8 +40,17 @@
 /* Define if the GNU gettext() function is already present or preinstalled. */
 #undef HAVE_GETTEXT
 
+/* Have GLX support */
+#undef HAVE_GLX
+
 /* Have GTK libraries */
 #undef HAVE_GTK
+
+/* Building with GTK+Cocoa */
+#undef HAVE_GTK_OSX
+
+/* Building with GTK+X11 */
+#undef HAVE_GTK_X11
 
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
@@ -67,6 +76,9 @@
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H
 
+/* Have NSOpenGL support */
+#undef HAVE_NSGL
+
 /* Have EXT_framebuffer_object support */
 #undef HAVE_OPENGL_FBO
 
@@ -75,6 +87,9 @@
 
 /* Have ARB shader support */
 #undef HAVE_OPENGL_SHADER_ARB
+
+/* Building with the OSMesa video driver */
+#undef HAVE_OSMESA
 
 /* Have pulseaudio support */
 #undef HAVE_PULSE

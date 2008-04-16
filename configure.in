@@ -26,23 +26,18 @@ AC_ARG_WITH( osmesa,
    AS_HELP_STRING( [--with-osmesa], [Build with the osmesa GL library (software rendering)]),
    [], [with_osmesa=no])
 
-AS_IF([test "x$with_osmesa" != xno], [ 
-  AC_CHECK_LIB([OSMesa], [OSMesaCreateContext], [],
-    [AC_MSG_FAILURE( [--with-osmesa was given, but OSMesa library could not be found])])
-  AC_CHECK_HEADER([GL/osmesa.h], [],
-    [AC_MSG_FAILURE( [--with-osmesa was given, but osmesa.h could not be found])])
-  ])
-AM_CONDITIONAL(OSMESA_DRIVER, [test "x$with_osmesa" != xno])
 
 dnl ----------- Check for mandatory dependencies --------------
 dnl Building on MAC?
-AC_CHECK_HEADER([Carbon/Carbon.h], [
-   HAVE_CARBON='yes'
+AC_CHECK_HEADER([Cocoa/Cocoa.h], [
+   HAVE_COCOA='yes'
    APPLE_BUILD='yes'
-   LIBS="$LIBS -framework OpenGL -framework AGL -framework Carbon -L/usr/X11R6/lib -lGL"
-   AC_DEFINE(HAVE_CARBON,[1],[Have Carbon framework])
+   LIBS="$LIBS -framework AppKit"
+   LIBS="$LIBS -Wl,-dylib_file,/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib:/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib -framework OpenGL"
+   AC_DEFINE(HAVE_COCOA,[1],[Have Cocoa framework])
    AC_DEFINE(APPLE_BUILD,[1],[Building on an apple platform. Things are different...])
 ])
+AM_CONDITIONAL(GUI_CARBON, [test "$HAVE_COCOA" = 'yes'])
 
 dnl Check for libpng (required)
 PKG_CHECK_MODULES(LIBPNG, [libpng] )
@@ -52,29 +47,74 @@ AC_CHECK_LIB(z, uncompress, [], [
     echo "Zlib (libz.so) could not be found, but is required."
     exit 1])
 
-if test "$APPLE_BUILD" != 'yes'; then
-if test "x$with_osmesa" == "xno"; then
-AC_CHECK_LIB(GL, glXQueryVersion, [], [
-    echo "The OpenGL library (libGL.so) could not be found, but is required."
-    exit 1])
-AC_CHECK_HEADER([GL/gl.h], [], [
-    echo "The OpenGL header files (eg GL/gl.h) could not be found, but are required."
-    exit 1])
-fi
-fi
 
-AC_CHECK_FUNC(glGenFramebuffersEXT, [ AC_DEFINE([HAVE_OPENGL_FBO],1,[Have EXT_framebuffer_object support]) ], [])
-AC_CHECK_FUNC(glCreateShader, [ AC_DEFINE([HAVE_OPENGL_SHADER],1,[Have 2.0 shader support]) ], [])
-AC_CHECK_FUNC(glCreateShaderObjectARB, [ AC_DEFINE([HAVE_OPENGL_SHADER_ARB],1,[Have ARB shader support]) ], [])
-
-dnl Check for GTK (required for unix systems)
+dnl Check for GTK (currently compulsory)
 PKG_CHECK_MODULES(GTK, gtk+-2.0, [
     HAVE_GTK='yes'
     AC_DEFINE([HAVE_GTK],1,[Have GTK libraries])
 ])
-
-AM_CONDITIONAL(GUI_CARBON, [test "$HAVE_CARBON" = 'yes'])
 AM_CONDITIONAL(GUI_GTK, [test "$HAVE_GTK" = 'yes'])
+
+dnl Which GTK port do we have?
+LIBS="$LIBS $GTK_LIBS"
+AC_CHECK_FUNC(gdk_x11_display_get_xdisplay, [ 
+   HAVE_GTK_X11='yes'
+   AC_DEFINE([HAVE_GTK_X11],1,[Building with GTK+X11]) ], [])
+AC_CHECK_FUNC(gdk_quartz_window_get_nsview, [ 
+   HAVE_GTK_OSX='yes'
+   AC_DEFINE([HAVE_GTK_OSX],1,[Building with GTK+Cocoa]) ], [])
+
+dnl ------------------ Video driver support -------------------
+AS_IF([test "x$with_osmesa" != xno], [ 
+
+dnl User requested OSMesa (ie pure software rendering)
+  AC_CHECK_LIB([OSMesa], [OSMesaCreateContext], [],
+    [AC_MSG_FAILURE( [--with-osmesa was given, but OSMesa library could not be found])])
+  AC_CHECK_HEADER([GL/osmesa.h], [],
+    [AC_MSG_FAILURE( [--with-osmesa was given, but osmesa.h could not be found])])
+  HAVE_OSMESA='yes'
+  AC_DEFINE([HAVE_OSMESA],1,[Building with the OSMesa video driver]) ], [
+
+dnl Otherwise we want a real GL library (unless we're on darwin, in which case it's already
+dnl taken care of above).
+   if test "x$APPLE_BUILD" != 'xyes'; then
+      AC_CHECK_LIB(GL, glVertex3f, [], [
+          AC_MSG_FAILURE( ["The OpenGL library (libGL.so) could not be found, but is required."])])
+      AC_CHECK_HEADER([GL/gl.h], [], [
+          AC_MSG_FAILURE( ["The OpenGL header files (eg GL/gl.h) could not be found, but are required."])])
+   fi
+
+dnl Now work out how to get from the UI to GL - this is usually the painful part.
+   if test "x$HAVE_GTK_X11" = "xyes"; then
+      if test "x$APPLE_BUILD" = "xyes"; then
+         LIBS="$LIBS -L/usr/X11/lib -lGL"
+      fi
+      AC_CHECK_FUNC(glXQueryVersion, [
+         HAVE_GLX='yes'
+         AC_DEFINE([HAVE_GLX], 1, [Have GLX support]) ] )
+   elif test "x$HAVE_GTK_OSX" = "xyes"; then
+      AC_CHECK_FUNC(NSOpenGLGetVersion, [
+         HAVE_NSGL='yes'
+         AC_DEFINE([HAVE_NSGL],1, [Have NSOpenGL support]) ] )
+   fi
+      
+])
+
+
+dnl OK, now decide which video driver(s) we can build
+if test "x$HAVE_OSMESA" = "x" -a "x$HAVE_GLX" = "x" -a "x$HAVE_NSGL" = "x"; then
+   echo "Warning: Building with no video support"
+fi
+
+AM_CONDITIONAL(VIDEO_OSMESA, [test "x$HAVE_OSMESA" = "xyes"])
+AM_CONDITIONAL(VIDEO_GLX, [test "x$HAVE_GLX" = "xyes"])
+AM_CONDITIONAL(VIDEO_NSGL, [test "x$HAVE_NSGL" = "xyes"])
+
+dnl Check for optional (but highly desireable) OpenGL features
+AC_CHECK_FUNC(glGenFramebuffersEXT, [ AC_DEFINE([HAVE_OPENGL_FBO],1,[Have EXT_framebuffer_object support]) ], [])
+AC_CHECK_FUNC(glCreateShader, [ AC_DEFINE([HAVE_OPENGL_SHADER],1,[Have 2.0 shader support]) ], [])
+AC_CHECK_FUNC(glCreateShaderObjectARB, [ AC_DEFINE([HAVE_OPENGL_SHADER_ARB],1,[Have ARB shader support]) ], [])
+
 
 dnl Check for a supported cpu target for translation purposes
 case $host_cpu in
@@ -117,7 +157,6 @@ dnl Check for linux cdrom device support
 AC_CHECK_HEADER([linux/cdrom.h], [HAVE_LINUX_CDROM_H=yes], [
     echo "Linux CDROM support not found, building without it."]  )
 AM_CONDITIONAL(CDROM_LINUX, [test "$HAVE_LINUX_CDROM_H" = "yes"])
-
 
 AC_CHECK_HEADER([linux/joystick.h], [
     HAVE_LINUX_JOYSTICK_H=yes

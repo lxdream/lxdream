@@ -17,17 +17,87 @@
  * GNU General Public License for more details.
  */
 
-#include <gdk/gdkx.h>
 #include <gdk/gdkkeysyms.h>
 #include <stdint.h>
-#include "dream.h"
+#include "lxdream.h"
 #include "display.h"
 #include "dckeysyms.h"
-#include "drivers/video_glx.h"
 #include "drivers/video_gl.h"
 #include "pvr2/pvr2.h"
 #include "gtkui/gtkui.h"
 
+#ifdef HAVE_GTK_X11
+
+#include <gdk/gdkx.h>
+#include "drivers/video_glx.h"
+
+/************* X11-specificness **********/
+
+guint gdk_keycode_to_modifier( GdkDisplay *display, guint keycode )
+{
+  int i;
+  int result = 0;
+  Display *xdisplay = GDK_DISPLAY_XDISPLAY (display);
+  XModifierKeymap *keymap = XGetModifierMapping( xdisplay );
+  for( i=0; i<8*keymap->max_keypermod; i++ ) {
+    if( keymap->modifiermap[i] == keycode ) {
+      result = 1 << (i/keymap->max_keypermod);
+      break;
+    }
+  }
+  XFreeModifiermap(keymap);
+  return result;
+}
+
+#if !(GTK_CHECK_VERSION(2,8,0))
+/* gdk_display_warp_pointer was added in GTK 2.8. If we're using an earlier
+ * version, include the code here. (Can't just set the dependency on 2.8 as
+ * it still hasn't been included in fink yet...) Original copyright statement
+ * below.
+ */
+
+/* GDK - The GIMP Drawing Kit
+ * Copyright (C) 1995-1997 Peter Mattis, Spencer Kimball and Josh MacDonald
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
+ */
+
+/*
+ * Modified by the GTK+ Team and others 1997-2000.  See the AUTHORS
+ * file for a list of people on the GTK+ Team.  See the ChangeLog
+ * files for a list of changes.  These files are distributed with
+ * GTK+ at ftp://ftp.gtk.org/pub/gtk/. 
+ */
+void gdk_display_warp_pointer (GdkDisplay *display,
+                          GdkScreen  *screen,
+                          gint        x,
+                          gint        y)
+{
+  Display *xdisplay;
+  Window dest;
+
+  xdisplay = GDK_DISPLAY_XDISPLAY (display);
+  dest = GDK_WINDOW_XWINDOW (gdk_screen_get_root_window (screen));
+
+  XWarpPointer (xdisplay, None, dest, 0, 0, 0, 0, x, y);  
+}
+
+#endif
+
+#endif
 GtkWidget *gtk_video_win = NULL;
 int video_width = 640;
 int video_height = 480;
@@ -165,15 +235,17 @@ gboolean video_gtk_init()
 		      G_CALLBACK(video_gtk_resize_callback), NULL );
     video_width = gtk_video_win->allocation.width;
     video_height = gtk_video_win->allocation.height;
-    Display *display = gdk_x11_display_get_xdisplay( gtk_widget_get_display(GTK_WIDGET(gtk_video_win)));
-    Window window = GDK_WINDOW_XWINDOW( GTK_WIDGET(gtk_video_win)->window );
-#ifdef HAVE_LIBOSMESA
+#ifdef HAVE_OSMESA
     video_gdk_init_driver( &display_gtk_driver );
 #else
+#ifdef HAVE_GLX
+    Display *display = gdk_x11_display_get_xdisplay( gtk_widget_get_display(GTK_WIDGET(gtk_video_win)));
+    Window window = GDK_WINDOW_XWINDOW( GTK_WIDGET(gtk_video_win)->window );
     if( ! video_glx_init_context( display, window ) ||
         ! video_glx_init_driver( &display_gtk_driver ) ) {
         return FALSE;
     }
+#endif
 #endif
 
 #ifdef HAVE_LINUX_JOYSTICK
@@ -195,19 +267,21 @@ gboolean video_gtk_display_blank( uint32_t colour )
     gdk_colormap_free_colors( cmap, &color, 1 );
 }
 
+#ifdef HAVE_GTK_X11
 XVisualInfo *video_gtk_get_visual()
 {
-#ifdef HAVE_LIBOSMESA
+#ifdef HAVE_OSMESA
     return NULL;
 #else
     return video_glx_get_visual();
 #endif
 }
+#endif
 
 void video_gtk_shutdown()
 {
     if( gtk_video_win != NULL ) {
-#ifdef HAVE_LIBOSMESA
+#ifdef HAVE_OSMESA
         video_gdk_shutdown();
 #else
 	video_glx_shutdown();
