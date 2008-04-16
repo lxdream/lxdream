@@ -20,7 +20,7 @@
 #include <assert.h>
 #include <gtk/gtk.h>
 
-#include "dream.h"
+#include "lxdream.h"
 #include "dreamcast.h"
 #include "config.h"
 #include "gtkui/gtkui.h"

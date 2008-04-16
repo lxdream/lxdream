@@ -63,31 +63,23 @@ check_PROGRAMS += test/testsh4x86
 endif
 
 if GUI_GTK
-if OSMESA_DRIVER
 lxdream_SOURCES += gtkui/gtkui.c gtkui/gtkui.h \
 	gtkui/main_win.c gtkui/gtkcb.c \
         gtkui/mmio_win.c gtkui/debug_win.c gtkui/dump_win.c \
         gtkui/ctrl_dlg.c gtkui/path_dlg.c gtkui/gdrom_menu.c \
-        drivers/video_gtk.c drivers/video_gtk.h \
-        drivers/video_gdk.c drivers/video_gdk.h 
-else
-lxdream_SOURCES += gtkui/gtkui.c gtkui/gtkui.h \
-	gtkui/main_win.c gtkui/gtkcb.c \
-        gtkui/mmio_win.c gtkui/debug_win.c gtkui/dump_win.c \
-        gtkui/ctrl_dlg.c gtkui/path_dlg.c gtkui/gdrom_menu.c \
-        drivers/video_gtk.c drivers/video_gtk.h \
-        drivers/video_glx.c drivers/video_glx.h
-endif
+        drivers/video_gtk.c drivers/video_gtk.h
 endif
 
-if CDROM_LINUX
-lxdream_SOURCES += drivers/cd_linux.c
-else
-lxdream_SOURCES += drivers/cd_none.c
+if VIDEO_OSMESA
+lxdream_SOURCES += drivers/video_gdk.c drivers/video_gdk.h 
 endif
 
-if JOY_LINUX
-lxdream_SOURCES += drivers/joy_linux.c
+if VIDEO_GLX 
+lxdream_SOURCES += drivers/video_glx.c drivers/video_glx.h
+endif
+
+if VIDEO_NSGL
+lxdream_SOURCES += drivers/video_nsgl.c drivers/video_nsgl.h
 endif
 
 if AUDIO_PULSE
@@ -101,6 +93,18 @@ endif
 if AUDIO_ALSA
 lxdream_SOURCES += drivers/audio_alsa.c
 endif
+
+
+if CDROM_LINUX
+lxdream_SOURCES += drivers/cd_linux.c
+else
+lxdream_SOURCES += drivers/cd_none.c
+endif
+
+if JOY_LINUX
+lxdream_SOURCES += drivers/joy_linux.c
+endif
+
 
 lxdream_LDADD = @GTK_LIBS@ @LIBPNG_LIBS@ @PULSE_LIBS@ @ESOUND_LIBS@ @ALSA_LIBS@ $(INTLLIBS)
 
