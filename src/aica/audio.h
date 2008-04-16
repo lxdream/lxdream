@@ -75,6 +75,7 @@ typedef struct audio_driver {
 } *audio_driver_t;
 
 extern struct audio_driver audio_null_driver;
+extern struct audio_driver audio_pulse_driver;
 extern struct audio_driver audio_esd_driver;
 extern struct audio_driver audio_alsa_driver;
 

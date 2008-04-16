@@ -76,6 +76,9 @@
 /* Have ARB shader support */
 #undef HAVE_OPENGL_SHADER_ARB
 
+/* Have pulseaudio support */
+#undef HAVE_PULSE
+
 /* Define to 1 if you have the <stdint.h> header file. */
 #undef HAVE_STDINT_H
 

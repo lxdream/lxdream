@@ -5,7 +5,7 @@ INCLUDES = \
 	-DPACKAGE_LOCALE_DIR=\""$(prefix)/$(DATADIRNAME)/locale"\" \
 	-DPACKAGE_CONF_DIR=\""$(sysconfdir)"\" \
         -Ish4 \
-	@GTK_CFLAGS@ @LIBPNG_CFLAGS@ @ESOUND_CFLAGS@ @ALSA_CFLAGS@
+	@GTK_CFLAGS@ @LIBPNG_CFLAGS@ @PULSE_CFLAGS@ @ESOUND_CFLAGS@ @ALSA_CFLAGS@
 
 bin_PROGRAMS = lxdream
 noinst_PROGRAMS = gendec genglsl
@@ -90,6 +90,10 @@ if JOY_LINUX
 lxdream_SOURCES += drivers/joy_linux.c
 endif
 
+if AUDIO_PULSE
+lxdream_SOURCES += drivers/audio_pulse.c
+endif
+
 if AUDIO_ESOUND
 lxdream_SOURCES += drivers/audio_esd.c
 endif
@@ -98,7 +102,7 @@ if AUDIO_ALSA
 lxdream_SOURCES += drivers/audio_alsa.c
 endif
 
-lxdream_LDADD = @GTK_LIBS@ @LIBPNG_LIBS@ @ESOUND_LIBS@ @ALSA_LIBS@ $(INTLLIBS)
+lxdream_LDADD = @GTK_LIBS@ @LIBPNG_LIBS@ @PULSE_LIBS@ @ESOUND_LIBS@ @ALSA_LIBS@ $(INTLLIBS)
 
 gendec_LDADD = @GTK_LIBS@ $(INTLLIBS)
 genglsl_LDADD = @GTK_LIBS@ $(INTLLIBS)

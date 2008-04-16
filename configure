@@ -715,6 +715,10 @@ BUILD_SH4X86_TRUE
 BUILD_SH4X86_FALSE
 BUILD_X86_64_TRUE
 BUILD_X86_64_FALSE
+PULSE_CFLAGS
+PULSE_LIBS
+AUDIO_PULSE_TRUE
+AUDIO_PULSE_FALSE
 ESOUND_CFLAGS
 ESOUND_LIBS
 AUDIO_ESOUND_TRUE
@@ -771,6 +775,8 @@ LIBPNG_CFLAGS
 LIBPNG_LIBS
 GTK_CFLAGS
 GTK_LIBS
+PULSE_CFLAGS
+PULSE_LIBS
 ESOUND_CFLAGS
 ESOUND_LIBS
 ALSA_CFLAGS
@@ -1382,6 +1388,9 @@ Some influential environment variables:
   LIBPNG_LIBS linker flags for LIBPNG, overriding pkg-config
   GTK_CFLAGS  C compiler flags for GTK, overriding pkg-config
   GTK_LIBS    linker flags for GTK, overriding pkg-config
+  PULSE_CFLAGS
+              C compiler flags for PULSE, overriding pkg-config
+  PULSE_LIBS  linker flags for PULSE, overriding pkg-config
   ESOUND_CFLAGS
               C compiler flags for ESOUND, overriding pkg-config
   ESOUND_LIBS linker flags for ESOUND, overriding pkg-config
@@ -6422,6 +6431,94 @@ fi
 
 
 pkg_failed=no
+{ echo "$as_me:$LINENO: checking for PULSE" >&5
+echo $ECHO_N "checking for PULSE... $ECHO_C" >&6; }
+
+if test -n "$PKG_CONFIG"; then
+    if test -n "$PULSE_CFLAGS"; then
+        pkg_cv_PULSE_CFLAGS="$PULSE_CFLAGS"
+    else
+        if test -n "$PKG_CONFIG" && \
+    { (echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"libpulse-simple\"") >&5
+  ($PKG_CONFIG --exists --print-errors "libpulse-simple") 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; then
+  pkg_cv_PULSE_CFLAGS=`$PKG_CONFIG --cflags "libpulse-simple" 2>/dev/null`
+else
+  pkg_failed=yes
+fi
+    fi
+else
+	pkg_failed=untried
+fi
+if test -n "$PKG_CONFIG"; then
+    if test -n "$PULSE_LIBS"; then
+        pkg_cv_PULSE_LIBS="$PULSE_LIBS"
+    else
+        if test -n "$PKG_CONFIG" && \
+    { (echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"libpulse-simple\"") >&5
+  ($PKG_CONFIG --exists --print-errors "libpulse-simple") 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; then
+  pkg_cv_PULSE_LIBS=`$PKG_CONFIG --libs "libpulse-simple" 2>/dev/null`
+else
+  pkg_failed=yes
+fi
+    fi
+else
+	pkg_failed=untried
+fi
+
+
+
+if test $pkg_failed = yes; then
+
+if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
+        _pkg_short_errors_supported=yes
+else
+        _pkg_short_errors_supported=no
+fi
+        if test $_pkg_short_errors_supported = yes; then
+	        PULSE_PKG_ERRORS=`$PKG_CONFIG --short-errors --errors-to-stdout --print-errors "libpulse-simple"`
+        else
+	        PULSE_PKG_ERRORS=`$PKG_CONFIG --errors-to-stdout --print-errors "libpulse-simple"`
+        fi
+	# Put the nasty error message in config.log where it belongs
+	echo "$PULSE_PKG_ERRORS" >&5
+
+	{ echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6; }
+                true
+elif test $pkg_failed = untried; then
+	true
+else
+	PULSE_CFLAGS=$pkg_cv_PULSE_CFLAGS
+	PULSE_LIBS=$pkg_cv_PULSE_LIBS
+        { echo "$as_me:$LINENO: result: yes" >&5
+echo "${ECHO_T}yes" >&6; }
+
+     HAVE_PULSE='yes'
+
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_PULSE 1
+_ACEOF
+
+fi
+
+
+if test "$HAVE_PULSE" = 'yes' ; then
+  AUDIO_PULSE_TRUE=
+  AUDIO_PULSE_FALSE='#'
+else
+  AUDIO_PULSE_TRUE='#'
+  AUDIO_PULSE_FALSE=
+fi
+
+
+
+pkg_failed=no
 { echo "$as_me:$LINENO: checking for ESOUND" >&5
 echo $ECHO_N "checking for ESOUND... $ECHO_C" >&6; }
 
@@ -6481,9 +6578,9 @@ fi
 
 	{ echo "$as_me:$LINENO: result: no" >&5
 echo "${ECHO_T}no" >&6; }
-                 echo "Warning: esound not found - building without esd audio support"
+                true
 elif test $pkg_failed = untried; then
-	 echo "Warning: esound not found - building without esd audio support"
+	true
 else
 	ESOUND_CFLAGS=$pkg_cv_ESOUND_CFLAGS
 	ESOUND_LIBS=$pkg_cv_ESOUND_LIBS
@@ -6569,9 +6666,9 @@ fi
 
 	{ echo "$as_me:$LINENO: result: no" >&5
 echo "${ECHO_T}no" >&6; }
-                 echo "Warning: alsa not found - building without alsa audio support"
+                true
 elif test $pkg_failed = untried; then
-	 echo "Warning: alsa not found - building without alsa audio support"
+	true
 else
 	ALSA_CFLAGS=$pkg_cv_ALSA_CFLAGS
 	ALSA_LIBS=$pkg_cv_ALSA_LIBS
@@ -6595,6 +6692,10 @@ else
   AUDIO_ALSA_FALSE=
 fi
 
+
+if test "x$HAVE_ESOUND" = "x" -a "x$HAVE_ALSA" = "x" -a "x$HAVE_PULSE" = "x"; then
+   echo "Warning: Building without audio support"
+fi
 
 if test "${ac_cv_header_linux_cdrom_h+set}" = set; then
   { echo "$as_me:$LINENO: checking for linux/cdrom.h" >&5
@@ -6738,6 +6839,7 @@ else
   CDROM_LINUX_TRUE='#'
   CDROM_LINUX_FALSE=
 fi
+
 
 
 if test "${ac_cv_header_linux_joystick_h+set}" = set; then
@@ -8851,6 +8953,13 @@ echo "$as_me: error: conditional \"BUILD_X86_64\" was never defined.
 Usually this means the macro was only invoked conditionally." >&2;}
    { (exit 1); exit 1; }; }
 fi
+if test -z "${AUDIO_PULSE_TRUE}" && test -z "${AUDIO_PULSE_FALSE}"; then
+  { { echo "$as_me:$LINENO: error: conditional \"AUDIO_PULSE\" was never defined.
+Usually this means the macro was only invoked conditionally." >&5
+echo "$as_me: error: conditional \"AUDIO_PULSE\" was never defined.
+Usually this means the macro was only invoked conditionally." >&2;}
+   { (exit 1); exit 1; }; }
+fi
 if test -z "${AUDIO_ESOUND_TRUE}" && test -z "${AUDIO_ESOUND_FALSE}"; then
   { { echo "$as_me:$LINENO: error: conditional \"AUDIO_ESOUND\" was never defined.
 Usually this means the macro was only invoked conditionally." >&5
@@ -9572,6 +9681,10 @@ BUILD_SH4X86_TRUE!$BUILD_SH4X86_TRUE$ac_delim
 BUILD_SH4X86_FALSE!$BUILD_SH4X86_FALSE$ac_delim
 BUILD_X86_64_TRUE!$BUILD_X86_64_TRUE$ac_delim
 BUILD_X86_64_FALSE!$BUILD_X86_64_FALSE$ac_delim
+PULSE_CFLAGS!$PULSE_CFLAGS$ac_delim
+PULSE_LIBS!$PULSE_LIBS$ac_delim
+AUDIO_PULSE_TRUE!$AUDIO_PULSE_TRUE$ac_delim
+AUDIO_PULSE_FALSE!$AUDIO_PULSE_FALSE$ac_delim
 ESOUND_CFLAGS!$ESOUND_CFLAGS$ac_delim
 ESOUND_LIBS!$ESOUND_LIBS$ac_delim
 AUDIO_ESOUND_TRUE!$AUDIO_ESOUND_TRUE$ac_delim
@@ -9615,7 +9728,7 @@ LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 46; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 50; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5
