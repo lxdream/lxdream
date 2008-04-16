@@ -98,7 +98,8 @@ void gdk_display_warp_pointer (GdkDisplay *display,
 #endif
 
 #endif
-GtkWidget *gtk_video_win = NULL;
+
+static GtkWidget *gtk_video_drawable = NULL;
 int video_width = 640;
 int video_height = 480;
 
@@ -221,26 +222,51 @@ uint16_t video_gtk_keycode_to_dckeysym(uint16_t keycode)
     return DCKB_NONE;
 }
 
+GtkWidget *video_gtk_create_drawable()
+{
+    GtkWidget *drawable = gtk_drawing_area_new();
+    GTK_WIDGET_SET_FLAGS(drawable, GTK_CAN_FOCUS|GTK_CAN_DEFAULT);
+
+    g_signal_connect( drawable, "expose_event",
+		      G_CALLBACK(video_gtk_expose_callback), NULL );
+    g_signal_connect( drawable, "configure_event",
+		      G_CALLBACK(video_gtk_resize_callback), NULL );
+
+#ifdef HAVE_GLX
+    Display *display = gdk_x11_display_get_xdisplay( gtk_widget_get_display(drawable));
+    Screen *screen = gdk_x11_screen_get_xscreen( gtk_widget_get_screen(drawable));
+    int screen_no = XScreenNumberOfScreen(screen);
+    if( !video_glx_init(display, screen_no) ) {
+        ERROR( "Unable to initialize GLX, aborting" );
+        exit(3);
+    }
+
+    XVisualInfo *visual = video_glx_get_visual();
+    if( visual != NULL ) {
+        GdkVisual *gdkvis = gdk_x11_screen_lookup_visual( gtk_widget_get_screen(drawable), visual->visualid );
+        GdkColormap *colormap = gdk_colormap_new( gdkvis, FALSE );
+        gtk_widget_set_colormap( drawable, colormap );
+    }
+#endif
+    gtk_video_drawable = drawable;
+    return drawable;
+}
+
 gboolean video_gtk_init()
 {
   
-    gtk_video_win = gtk_gui_get_renderarea();
-    if( gtk_video_win == NULL ) {
+    if( gtk_video_drawable == NULL ) {
 	return FALSE;
     }
 
-    g_signal_connect( gtk_video_win, "expose_event",
-		      G_CALLBACK(video_gtk_expose_callback), NULL );
-    g_signal_connect( gtk_video_win, "configure_event",
-		      G_CALLBACK(video_gtk_resize_callback), NULL );
-    video_width = gtk_video_win->allocation.width;
-    video_height = gtk_video_win->allocation.height;
+    video_width = gtk_video_drawable->allocation.width;
+    video_height = gtk_video_drawable->allocation.height;
 #ifdef HAVE_OSMESA
     video_gdk_init_driver( &display_gtk_driver );
 #else
 #ifdef HAVE_GLX
-    Display *display = gdk_x11_display_get_xdisplay( gtk_widget_get_display(GTK_WIDGET(gtk_video_win)));
-    Window window = GDK_WINDOW_XWINDOW( GTK_WIDGET(gtk_video_win)->window );
+    Display *display = gdk_x11_display_get_xdisplay( gtk_widget_get_display(GTK_WIDGET(gtk_video_drawable)));
+    Window window = GDK_WINDOW_XWINDOW( GTK_WIDGET(gtk_video_drawable)->window );
     if( ! video_glx_init_context( display, window ) ||
         ! video_glx_init_driver( &display_gtk_driver ) ) {
         return FALSE;
@@ -256,35 +282,26 @@ gboolean video_gtk_init()
 
 gboolean video_gtk_display_blank( uint32_t colour )
 {
-    GdkGC *gc = gdk_gc_new(gtk_video_win->window);
+    GdkGC *gc = gdk_gc_new(gtk_video_drawable->window);
     GdkColor color = {0, ((colour>>16)&0xFF)*257, ((colour>>8)&0xFF)*257, ((colour)&0xFF)*257 };
     GdkColormap *cmap = gdk_colormap_get_system();
     gdk_colormap_alloc_color( cmap, &color, TRUE, TRUE );
     gdk_gc_set_foreground( gc, &color );
     gdk_gc_set_background( gc, &color );
-    gdk_draw_rectangle( gtk_video_win->window, gc, TRUE, 0, 0, video_width, video_height );
+    gdk_draw_rectangle( gtk_video_drawable->window, gc, TRUE, 0, 0, video_width, video_height );
     gdk_gc_destroy(gc);
     gdk_colormap_free_colors( cmap, &color, 1 );
 }
 
-#ifdef HAVE_GTK_X11
-XVisualInfo *video_gtk_get_visual()
-{
-#ifdef HAVE_OSMESA
-    return NULL;
-#else
-    return video_glx_get_visual();
-#endif
-}
-#endif
-
 void video_gtk_shutdown()
 {
-    if( gtk_video_win != NULL ) {
+    if( gtk_video_drawable != NULL ) {
 #ifdef HAVE_OSMESA
         video_gdk_shutdown();
 #else
+#ifdef HAVE_GLX
 	video_glx_shutdown();
+#endif
 #endif
     }
 #ifdef HAVE_LINUX_JOYSTICK
