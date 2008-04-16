@@ -27,18 +27,26 @@ AC_ARG_WITH( osmesa,
    [], [with_osmesa=no])
 
 
-dnl ----------- Check for mandatory dependencies --------------
-dnl Building on MAC?
-AC_CHECK_HEADER([Cocoa/Cocoa.h], [
-   HAVE_COCOA='yes'
-   APPLE_BUILD='yes'
-   LIBS="$LIBS -framework AppKit"
-   LIBS="$LIBS -Wl,-dylib_file,/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib:/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib -framework OpenGL"
-   AC_DEFINE(HAVE_COCOA,[1],[Have Cocoa framework])
-   AC_DEFINE(APPLE_BUILD,[1],[Building on an apple platform. Things are different...])
-])
-AM_CONDITIONAL(GUI_CARBON, [test "$HAVE_COCOA" = 'yes'])
+dnl ------------ Check if we're building on Darwn --------------
 
+dnl For starters, do we have a working objective-c compiler?
+lxdream_save_cppflags="$CPPFLAGS"
+CPPFLAGS="$CPPFLAGS -x objective-c"
+AC_TRY_COMPILE([@interface Foo @end],, [
+
+   AC_CHECK_HEADER([Cocoa/Cocoa.h], [
+      HAVE_COCOA='yes'
+      APPLE_BUILD='yes'
+      LIBS="$LIBS -framework AppKit"
+      LIBS="$LIBS -Wl,-dylib_file,/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib:/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib -framework OpenGL"
+      AC_DEFINE(HAVE_COCOA,[1],[Have Cocoa framework])
+      AC_DEFINE(APPLE_BUILD,[1],[Building on an apple platform. Things are different...])
+   ])
+
+], [CPPFLAGS="$lxdream_save_cppflags"] )
+AM_CONDITIONAL(GUI_COCOA, [test "$HAVE_COCOA" = 'yes'])
+
+dnl ----------- Check for mandatory dependencies --------------
 dnl Check for libpng (required)
 PKG_CHECK_MODULES(LIBPNG, [libpng] )
 

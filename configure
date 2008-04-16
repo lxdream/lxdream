@@ -725,8 +725,8 @@ host
 host_cpu
 host_vendor
 host_os
-GUI_CARBON_TRUE
-GUI_CARBON_FALSE
+GUI_COCOA_TRUE
+GUI_COCOA_FALSE
 PKG_CONFIG
 LIBPNG_CFLAGS
 LIBPNG_LIBS
@@ -5873,6 +5873,9 @@ fi
 
 
 
+
+lxdream_save_cppflags="$CPPFLAGS"
+CPPFLAGS="$CPPFLAGS -x objective-c"
 # On IRIX 5.3, sys/types and inttypes.h are conflicting.
 
 
@@ -5945,7 +5948,42 @@ fi
 done
 
 
-if test "${ac_cv_header_Cocoa_Cocoa_h+set}" = set; then
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+@interface Foo @end
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext
+if { (ac_try="$ac_compile"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval ac_try_echo="\"\$as_me:$LINENO: $ac_try_echo\""
+$as_echo "$ac_try_echo") >&5
+  (eval "$ac_compile") 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  $as_echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && {
+	 test -z "$ac_c_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest.$ac_objext; then
+
+
+   if test "${ac_cv_header_Cocoa_Cocoa_h+set}" = set; then
   { $as_echo "$as_me:$LINENO: checking for Cocoa/Cocoa.h" >&5
 $as_echo_n "checking for Cocoa/Cocoa.h... " >&6; }
 if test "${ac_cv_header_Cocoa_Cocoa_h+set}" = set; then
@@ -6074,10 +6112,10 @@ $as_echo "$ac_cv_header_Cocoa_Cocoa_h" >&6; }
 fi
 if test $ac_cv_header_Cocoa_Cocoa_h = yes; then
 
-   HAVE_COCOA='yes'
-   APPLE_BUILD='yes'
-   LIBS="$LIBS -framework AppKit"
-   LIBS="$LIBS -Wl,-dylib_file,/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib:/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib -framework OpenGL"
+      HAVE_COCOA='yes'
+      APPLE_BUILD='yes'
+      LIBS="$LIBS -framework AppKit"
+      LIBS="$LIBS -Wl,-dylib_file,/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib:/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib -framework OpenGL"
 
 cat >>confdefs.h <<\_ACEOF
 #define HAVE_COCOA 1
@@ -6094,12 +6132,22 @@ fi
 
 
 
-if test "$HAVE_COCOA" = 'yes'; then
-  GUI_CARBON_TRUE=
-  GUI_CARBON_FALSE='#'
 else
-  GUI_CARBON_TRUE='#'
-  GUI_CARBON_FALSE=
+  $as_echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+	CPPFLAGS="$lxdream_save_cppflags"
+fi
+
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+
+
+if test "$HAVE_COCOA" = 'yes'; then
+  GUI_COCOA_TRUE=
+  GUI_COCOA_FALSE='#'
+else
+  GUI_COCOA_TRUE='#'
+  GUI_COCOA_FALSE=
 fi
 
 
@@ -10314,10 +10362,10 @@ $as_echo "$as_me: error: conditional \"am__fastdepCC\" was never defined.
 Usually this means the macro was only invoked conditionally." >&2;}
    { (exit 1); exit 1; }; }
 fi
-if test -z "${GUI_CARBON_TRUE}" && test -z "${GUI_CARBON_FALSE}"; then
-  { { $as_echo "$as_me:$LINENO: error: conditional \"GUI_CARBON\" was never defined.
+if test -z "${GUI_COCOA_TRUE}" && test -z "${GUI_COCOA_FALSE}"; then
+  { { $as_echo "$as_me:$LINENO: error: conditional \"GUI_COCOA\" was never defined.
 Usually this means the macro was only invoked conditionally." >&5
-$as_echo "$as_me: error: conditional \"GUI_CARBON\" was never defined.
+$as_echo "$as_me: error: conditional \"GUI_COCOA\" was never defined.
 Usually this means the macro was only invoked conditionally." >&2;}
    { (exit 1); exit 1; }; }
 fi
