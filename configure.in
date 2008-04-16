@@ -91,24 +91,33 @@ AM_CONDITIONAL(BUILD_SH4X86, [test "$SH4_TRANSLATOR" = "x86" -o "$SH4_TRANSLATOR
 AM_CONDITIONAL(BUILD_X86_64, [test "$SH4_TRANSLATOR" = "x86_64"])
 
 dnl ------------------ Optional driver support -------------------
+dnl Check for pulseaudio
+PKG_CHECK_MODULES(PULSE, [libpulse-simple], [
+     HAVE_PULSE='yes'
+     AC_DEFINE([HAVE_PULSE],1,[Have pulseaudio support]) ], [true])
+AM_CONDITIONAL( AUDIO_PULSE, [test "$HAVE_PULSE" = 'yes'] )
+
 dnl Check for esound
 PKG_CHECK_MODULES(ESOUND, [esound], [ 
      HAVE_ESOUND='yes'
-     AC_DEFINE([HAVE_ESOUND],1,[Have esound support]) ], 
-   [ echo "Warning: esound not found - building without esd audio support" ])
+     AC_DEFINE([HAVE_ESOUND],1,[Have esound support]) ], [true])
 AM_CONDITIONAL( AUDIO_ESOUND, [test "$HAVE_ESOUND" = 'yes'] )
 
 dnl Check for alsa support
 PKG_CHECK_MODULES(ALSA, [alsa], [ 
      HAVE_ALSA='yes'
-     AC_DEFINE([HAVE_ALSA],1,[Have alsa support]) ], 
-   [ echo "Warning: alsa not found - building without alsa audio support" ])
+     AC_DEFINE([HAVE_ALSA],1,[Have alsa support]) ], [true])
 AM_CONDITIONAL( AUDIO_ALSA, [test "$HAVE_ALSA" = 'yes'] )
+
+if test "x$HAVE_ESOUND" = "x" -a "x$HAVE_ALSA" = "x" -a "x$HAVE_PULSE" = "x"; then
+   echo "Warning: Building without audio support"
+fi
 
 dnl Check for linux cdrom device support
 AC_CHECK_HEADER([linux/cdrom.h], [HAVE_LINUX_CDROM_H=yes], [
     echo "Linux CDROM support not found, building without it."]  )
 AM_CONDITIONAL(CDROM_LINUX, [test "$HAVE_LINUX_CDROM_H" = "yes"])
+
 
 AC_CHECK_HEADER([linux/joystick.h], [
     HAVE_LINUX_JOYSTICK_H=yes

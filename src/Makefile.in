@@ -60,8 +60,9 @@ host_triplet = @host@
 @CDROM_LINUX_TRUE@am__append_5 = drivers/cd_linux.c
 @CDROM_LINUX_FALSE@am__append_6 = drivers/cd_none.c
 @JOY_LINUX_TRUE@am__append_7 = drivers/joy_linux.c
-@AUDIO_ESOUND_TRUE@am__append_8 = drivers/audio_esd.c
-@AUDIO_ALSA_TRUE@am__append_9 = drivers/audio_alsa.c
+@AUDIO_PULSE_TRUE@am__append_8 = drivers/audio_pulse.c
+@AUDIO_ESOUND_TRUE@am__append_9 = drivers/audio_esd.c
+@AUDIO_ALSA_TRUE@am__append_10 = drivers/audio_alsa.c
 ACLOCAL = @ACLOCAL@
 ALSA_CFLAGS = @ALSA_CFLAGS@
 ALSA_LIBS = @ALSA_LIBS@
@@ -75,6 +76,8 @@ AUDIO_ALSA_FALSE = @AUDIO_ALSA_FALSE@
 AUDIO_ALSA_TRUE = @AUDIO_ALSA_TRUE@
 AUDIO_ESOUND_FALSE = @AUDIO_ESOUND_FALSE@
 AUDIO_ESOUND_TRUE = @AUDIO_ESOUND_TRUE@
+AUDIO_PULSE_FALSE = @AUDIO_PULSE_FALSE@
+AUDIO_PULSE_TRUE = @AUDIO_PULSE_TRUE@
 AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
 AUTOMAKE = @AUTOMAKE@
@@ -155,6 +158,8 @@ POFILES = @POFILES@
 POSUB = @POSUB@
 PO_IN_DATADIR_FALSE = @PO_IN_DATADIR_FALSE@
 PO_IN_DATADIR_TRUE = @PO_IN_DATADIR_TRUE@
+PULSE_CFLAGS = @PULSE_CFLAGS@
+PULSE_LIBS = @PULSE_LIBS@
 SET_MAKE = @SET_MAKE@
 SHCC = @SHCC@
 SHELL = @SHELL@
@@ -210,7 +215,7 @@ INCLUDES = \
 	-DPACKAGE_LOCALE_DIR=\""$(prefix)/$(DATADIRNAME)/locale"\" \
 	-DPACKAGE_CONF_DIR=\""$(sysconfdir)"\" \
         -Ish4 \
-	@GTK_CFLAGS@ @LIBPNG_CFLAGS@ @ESOUND_CFLAGS@ @ALSA_CFLAGS@
+	@GTK_CFLAGS@ @LIBPNG_CFLAGS@ @PULSE_CFLAGS@ @ESOUND_CFLAGS@ @ALSA_CFLAGS@
 
 
 bin_PROGRAMS = lxdream
@@ -250,7 +255,7 @@ lxdream_SOURCES = \
 	display.c display.h dckeysyms.h \
 	drivers/audio_null.c drivers/video_null.c \
 	drivers/video_gl.c drivers/video_gl.h drivers/gl_fbo.c\
-$(am__append_1) $(am__append_3) $(am__append_4) $(am__append_5) $(am__append_6) $(am__append_7) $(am__append_8) $(am__append_9)
+$(am__append_1) $(am__append_3) $(am__append_4) $(am__append_5) $(am__append_6) $(am__append_7) $(am__append_8) $(am__append_9) $(am__append_10)
 
 @BUILD_SH4X86_TRUE@test_testsh4x86_LDADD = @GTK_LIBS@
 @BUILD_SH4X86_TRUE@test_testsh4x86_SOURCES = test/testsh4x86.c x86dasm/x86dasm.c \
@@ -260,7 +265,7 @@ $(am__append_1) $(am__append_3) $(am__append_4) $(am__append_5) $(am__append_6) 
 @BUILD_SH4X86_TRUE@	sh4/xltcache.h mem.c util.c sh4/mmu.c
 
 
-lxdream_LDADD = @GTK_LIBS@ @LIBPNG_LIBS@ @ESOUND_LIBS@ @ALSA_LIBS@ $(INTLLIBS)
+lxdream_LDADD = @GTK_LIBS@ @LIBPNG_LIBS@ @PULSE_LIBS@ @ESOUND_LIBS@ @ALSA_LIBS@ $(INTLLIBS)
 
 gendec_LDADD = @GTK_LIBS@ $(INTLLIBS)
 genglsl_LDADD = @GTK_LIBS@ $(INTLLIBS)
@@ -317,7 +322,8 @@ am__lxdream_SOURCES_DIST = main.c config.c config.h mem.c mem.h mmio.h \
 	gtkui/gdrom_menu.c drivers/video_gtk.c drivers/video_gtk.h \
 	drivers/video_gdk.c drivers/video_gdk.h drivers/video_glx.c \
 	drivers/video_glx.h drivers/cd_linux.c drivers/cd_none.c \
-	drivers/joy_linux.c drivers/audio_esd.c drivers/audio_alsa.c
+	drivers/joy_linux.c drivers/audio_pulse.c drivers/audio_esd.c \
+	drivers/audio_alsa.c
 @BUILD_SH4X86_TRUE@am__objects_1 = sh4x86.$(OBJEXT) sh4trans.$(OBJEXT) \
 @BUILD_SH4X86_TRUE@	x86dasm.$(OBJEXT) i386-dis.$(OBJEXT) \
 @BUILD_SH4X86_TRUE@	dis-init.$(OBJEXT) dis-buf.$(OBJEXT)
@@ -346,8 +352,9 @@ am__lxdream_SOURCES_DIST = main.c config.c config.h mem.c mem.h mmio.h \
 @CDROM_LINUX_TRUE@am__objects_4 = cd_linux.$(OBJEXT)
 @CDROM_LINUX_FALSE@am__objects_5 = cd_none.$(OBJEXT)
 @JOY_LINUX_TRUE@am__objects_6 = joy_linux.$(OBJEXT)
-@AUDIO_ESOUND_TRUE@am__objects_7 = audio_esd.$(OBJEXT)
-@AUDIO_ALSA_TRUE@am__objects_8 = audio_alsa.$(OBJEXT)
+@AUDIO_PULSE_TRUE@am__objects_7 = audio_pulse.$(OBJEXT)
+@AUDIO_ESOUND_TRUE@am__objects_8 = audio_esd.$(OBJEXT)
+@AUDIO_ALSA_TRUE@am__objects_9 = audio_alsa.$(OBJEXT)
 am_lxdream_OBJECTS = main.$(OBJEXT) config.$(OBJEXT) mem.$(OBJEXT) \
 	watch.$(OBJEXT) asic.$(OBJEXT) syscall.$(OBJEXT) bios.$(OBJEXT) \
 	dcload.$(OBJEXT) ide.$(OBJEXT) gdimage.$(OBJEXT) \
@@ -369,7 +376,7 @@ am_lxdream_OBJECTS = main.$(OBJEXT) config.$(OBJEXT) mem.$(OBJEXT) \
 	video_gl.$(OBJEXT) gl_fbo.$(OBJEXT) $(am__objects_1) \
 	$(am__objects_2) $(am__objects_3) $(am__objects_4) \
 	$(am__objects_5) $(am__objects_6) $(am__objects_7) \
-	$(am__objects_8)
+	$(am__objects_8) $(am__objects_9)
 lxdream_OBJECTS = $(am_lxdream_OBJECTS)
 lxdream_DEPENDENCIES =
 lxdream_LDFLAGS =
@@ -402,45 +409,46 @@ am__depfiles_maybe = depfiles
 @AMDEP_TRUE@	./$(DEPDIR)/armmem.Po ./$(DEPDIR)/asic.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/audio.Po ./$(DEPDIR)/audio_alsa.Po \
 @AMDEP_TRUE@	./$(DEPDIR)/audio_esd.Po ./$(DEPDIR)/audio_null.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/bios.Po ./$(DEPDIR)/bootstrap.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/cd_linux.Po ./$(DEPDIR)/cd_none.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/cdi.Po ./$(DEPDIR)/config.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/controller.Po ./$(DEPDIR)/ctrl_dlg.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/dcload.Po ./$(DEPDIR)/debug_win.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/dis-buf.Po ./$(DEPDIR)/dis-init.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/display.Po ./$(DEPDIR)/dmac.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/dreamcast.Po ./$(DEPDIR)/dump_win.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/edc_ecc.Po ./$(DEPDIR)/eventq.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/gdi.Po ./$(DEPDIR)/gdimage.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/gdrom.Po ./$(DEPDIR)/gdrom_menu.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/gendec.Po ./$(DEPDIR)/genglsl.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/gl_fbo.Po ./$(DEPDIR)/gl_sl.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/gl_slsrc.Po ./$(DEPDIR)/glrender.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/glutil.Po ./$(DEPDIR)/gtkcb.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/gtkui.Po ./$(DEPDIR)/i386-dis.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/ide.Po ./$(DEPDIR)/insparse.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/intc.Po ./$(DEPDIR)/joy_linux.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/kbd.Po ./$(DEPDIR)/loader.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/main.Po ./$(DEPDIR)/main_win.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/maple.Po ./$(DEPDIR)/mem.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/mmio_win.Po ./$(DEPDIR)/mmu.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/mouse.Po ./$(DEPDIR)/nrg.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/path_dlg.Po ./$(DEPDIR)/pvr2.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/pvr2mem.Po ./$(DEPDIR)/rendbkg.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/rendsave.Po ./$(DEPDIR)/rendsort.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/scene.Po ./$(DEPDIR)/scif.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/sh4.Po ./$(DEPDIR)/sh4core.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/sh4dasm.Po ./$(DEPDIR)/sh4mem.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/sh4mmio.Po ./$(DEPDIR)/sh4stat.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/sh4trans.Po ./$(DEPDIR)/sh4x86.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/syscall.Po ./$(DEPDIR)/tacore.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/testsh4x86.Po ./$(DEPDIR)/testxlt.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/texcache.Po ./$(DEPDIR)/timer.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/util.Po ./$(DEPDIR)/video_gdk.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/video_gl.Po ./$(DEPDIR)/video_glx.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/video_gtk.Po ./$(DEPDIR)/video_null.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/watch.Po ./$(DEPDIR)/x86dasm.Po \
-@AMDEP_TRUE@	./$(DEPDIR)/xltcache.Po ./$(DEPDIR)/yuv.Po
+@AMDEP_TRUE@	./$(DEPDIR)/audio_pulse.Po ./$(DEPDIR)/bios.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/bootstrap.Po ./$(DEPDIR)/cd_linux.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/cd_none.Po ./$(DEPDIR)/cdi.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/config.Po ./$(DEPDIR)/controller.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/ctrl_dlg.Po ./$(DEPDIR)/dcload.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/debug_win.Po ./$(DEPDIR)/dis-buf.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/dis-init.Po ./$(DEPDIR)/display.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/dmac.Po ./$(DEPDIR)/dreamcast.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/dump_win.Po ./$(DEPDIR)/edc_ecc.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/eventq.Po ./$(DEPDIR)/gdi.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/gdimage.Po ./$(DEPDIR)/gdrom.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/gdrom_menu.Po ./$(DEPDIR)/gendec.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/genglsl.Po ./$(DEPDIR)/gl_fbo.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/gl_sl.Po ./$(DEPDIR)/gl_slsrc.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/glrender.Po ./$(DEPDIR)/glutil.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/gtkcb.Po ./$(DEPDIR)/gtkui.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/i386-dis.Po ./$(DEPDIR)/ide.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/insparse.Po ./$(DEPDIR)/intc.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/joy_linux.Po ./$(DEPDIR)/kbd.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/loader.Po ./$(DEPDIR)/main.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/main_win.Po ./$(DEPDIR)/maple.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/mem.Po ./$(DEPDIR)/mmio_win.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/mmu.Po ./$(DEPDIR)/mouse.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/nrg.Po ./$(DEPDIR)/path_dlg.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/pvr2.Po ./$(DEPDIR)/pvr2mem.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/rendbkg.Po ./$(DEPDIR)/rendsave.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/rendsort.Po ./$(DEPDIR)/scene.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/scif.Po ./$(DEPDIR)/sh4.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/sh4core.Po ./$(DEPDIR)/sh4dasm.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/sh4mem.Po ./$(DEPDIR)/sh4mmio.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/sh4stat.Po ./$(DEPDIR)/sh4trans.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/sh4x86.Po ./$(DEPDIR)/syscall.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/tacore.Po ./$(DEPDIR)/testsh4x86.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/testxlt.Po ./$(DEPDIR)/texcache.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/timer.Po ./$(DEPDIR)/util.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/video_gdk.Po ./$(DEPDIR)/video_gl.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/video_glx.Po ./$(DEPDIR)/video_gtk.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/video_null.Po ./$(DEPDIR)/watch.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/x86dasm.Po ./$(DEPDIR)/xltcache.Po \
+@AMDEP_TRUE@	./$(DEPDIR)/yuv.Po
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
@@ -526,6 +534,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/audio_alsa.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/audio_esd.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/audio_null.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/audio_pulse.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bios.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bootstrap.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cd_linux.Po@am__quote@
@@ -2166,6 +2175,28 @@ joy_linux.obj: drivers/joy_linux.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/joy_linux.Po' tmpdepfile='$(DEPDIR)/joy_linux.TPo' @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o joy_linux.obj `if test -f 'drivers/joy_linux.c'; then $(CYGPATH_W) 'drivers/joy_linux.c'; else $(CYGPATH_W) '$(srcdir)/drivers/joy_linux.c'; fi`
+
+audio_pulse.o: drivers/audio_pulse.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT audio_pulse.o -MD -MP -MF "$(DEPDIR)/audio_pulse.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o audio_pulse.o `test -f 'drivers/audio_pulse.c' || echo '$(srcdir)/'`drivers/audio_pulse.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/audio_pulse.Tpo" "$(DEPDIR)/audio_pulse.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/audio_pulse.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/audio_pulse.c' object='audio_pulse.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/audio_pulse.Po' tmpdepfile='$(DEPDIR)/audio_pulse.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o audio_pulse.o `test -f 'drivers/audio_pulse.c' || echo '$(srcdir)/'`drivers/audio_pulse.c
+
+audio_pulse.obj: drivers/audio_pulse.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT audio_pulse.obj -MD -MP -MF "$(DEPDIR)/audio_pulse.Tpo" \
+@am__fastdepCC_TRUE@	  -c -o audio_pulse.obj `if test -f 'drivers/audio_pulse.c'; then $(CYGPATH_W) 'drivers/audio_pulse.c'; else $(CYGPATH_W) '$(srcdir)/drivers/audio_pulse.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/audio_pulse.Tpo" "$(DEPDIR)/audio_pulse.Po"; \
+@am__fastdepCC_TRUE@	else rm -f "$(DEPDIR)/audio_pulse.Tpo"; exit 1; \
+@am__fastdepCC_TRUE@	fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/audio_pulse.c' object='audio_pulse.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	depfile='$(DEPDIR)/audio_pulse.Po' tmpdepfile='$(DEPDIR)/audio_pulse.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o audio_pulse.obj `if test -f 'drivers/audio_pulse.c'; then $(CYGPATH_W) 'drivers/audio_pulse.c'; else $(CYGPATH_W) '$(srcdir)/drivers/audio_pulse.c'; fi`
 
 audio_esd.o: drivers/audio_esd.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT audio_esd.o -MD -MP -MF "$(DEPDIR)/audio_esd.Tpo" \

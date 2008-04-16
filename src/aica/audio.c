@@ -25,6 +25,9 @@
 #include <string.h>
 
 audio_driver_t audio_driver_list[] = { 
+#ifdef HAVE_PULSE
+                                       &audio_pulse_driver,
+#endif
 #ifdef HAVE_ESOUND
 				       &audio_esd_driver,
 #endif
