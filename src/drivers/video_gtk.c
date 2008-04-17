@@ -99,7 +99,7 @@ void gdk_display_warp_pointer (GdkDisplay *display,
 
 #endif
 
-static GtkWidget *gtk_video_drawable = NULL;
+GtkWidget *gtk_video_drawable = NULL;
 int video_width = 640;
 int video_height = 480;
 

@@ -21,13 +21,14 @@
 #include <gdk/gdk.h>
 #include <gdk-pixbuf/gdk-pixbuf.h>
 #include <gtk/gtkwidget.h>
+#include <GL/glu.h>
 #include <GL/osmesa.h>
 #include "lxdream.h"
 #include "display.h"
 
 #define MAX_PIXBUF 16
 
-extern GtkWidget *gtk_video_win;
+extern GtkWidget *gtk_video_drawable;
 extern int video_width, video_height;
 
 static render_buffer_t gdk_pixbuf_create_render_buffer( uint32_t width, uint32_t height );
@@ -111,7 +112,7 @@ static gboolean gdk_pixbuf_display_render_buffer( render_buffer_t buffer )
     glFinish();
 
     void *pb = pixbuf_array[buffer->buf_id];
-    GdkGC *gc = gtk_video_win->style->fg_gc[GTK_STATE_NORMAL];
+    GdkGC *gc = gtk_video_drawable->style->fg_gc[GTK_STATE_NORMAL];
     GdkColor black = {0,0,0,0};
 
     assert(gc);
@@ -127,36 +128,36 @@ static gboolean gdk_pixbuf_display_render_buffer( render_buffer_t buffer )
 	x2 -= x1;
 	gdk_gc_set_foreground( gc, &black );
 	gdk_gc_set_background( gc, &black );
-	gdk_draw_rectangle( gtk_video_win->window, gc, TRUE, 0, 0, x1, video_height );
-	gdk_draw_rectangle( gtk_video_win->window, gc, TRUE, x2, 0, video_width, video_height );
+	gdk_draw_rectangle( gtk_video_drawable->window, gc, TRUE, 0, 0, x1, video_height );
+	gdk_draw_rectangle( gtk_video_drawable->window, gc, TRUE, x2, 0, video_width, video_height );
     } else if( ah < video_height ) {
 	y1 = (video_height - ah)/2;
 	y2 -= y1;
 	gdk_gc_set_foreground( gc, &black );
 	gdk_gc_set_background( gc, &black );
-	gdk_draw_rectangle( gtk_video_win->window, gc, TRUE, 0, 0, video_width, y1 );
-	gdk_draw_rectangle( gtk_video_win->window, gc, TRUE, 0, y2, video_width, video_height );
+	gdk_draw_rectangle( gtk_video_drawable->window, gc, TRUE, 0, 0, video_width, y1 );
+	gdk_draw_rectangle( gtk_video_drawable->window, gc, TRUE, 0, y2, video_width, video_height );
     }
     int w = x2-x1;
     int h = y2-y1;
     
     if( w != buffer->width || h != buffer->height ) {
-	gdk_draw_rgb_32_image( gtk_video_win->window, gc, x1, y1, buffer->width, buffer->height, GDK_RGB_DITHER_NONE,
+	gdk_draw_rgb_32_image( gtk_video_drawable->window, gc, x1, y1, buffer->width, buffer->height, GDK_RGB_DITHER_NONE,
 			       pb, buffer->width*4 );
     } else {
-	gdk_draw_rgb_32_image( gtk_video_win->window, gc, x1, y1, buffer->width, buffer->height, GDK_RGB_DITHER_NONE,
+	gdk_draw_rgb_32_image( gtk_video_drawable->window, gc, x1, y1, buffer->width, buffer->height, GDK_RGB_DITHER_NONE,
 			       pb, buffer->width*4 );
     }
 }
 
 static gboolean gdk_pixbuf_display_blank( uint32_t colour )
 {
-    GdkGC *gc = gtk_video_win->style->fg_gc[GTK_STATE_NORMAL];
+    GdkGC *gc = gtk_video_drawable->style->fg_gc[GTK_STATE_NORMAL];
     GdkColor col = { };
 
     gdk_gc_set_foreground( gc, &col );
     gdk_gc_set_background( gc, &col );
-    gdk_draw_rectangle( gtk_video_win->window, gc, TRUE, 0, 0, video_width, video_height );
+    gdk_draw_rectangle( gtk_video_drawable->window, gc, TRUE, 0, 0, video_width, video_height );
     return TRUE;
 }
 
