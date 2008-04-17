@@ -99,6 +99,21 @@ void gdk_display_warp_pointer (GdkDisplay *display,
 
 #endif
 
+#ifdef HAVE_GTK_OSX
+#include "drivers/video_nsgl.h"
+
+// Include this prototype as some systems don't have gdkquartz.h installed
+NSView  *gdk_quartz_window_get_nsview( GdkWindow *window);
+
+guint gdk_keycode_to_modifier( GdkDisplay *display, guint keycode )
+{
+        return 0;
+}
+
+#endif
+
+
+
 GtkWidget *gtk_video_drawable = NULL;
 int video_width = 640;
 int video_height = 480;
@@ -271,6 +286,13 @@ gboolean video_gtk_init()
         ! video_glx_init_driver( &display_gtk_driver ) ) {
         return FALSE;
     }
+#else
+#ifdef HAVE_NSGL
+    NSView *view = gdk_quartz_window_get_nsview(gtk_video_drawable->window);
+    if( ! video_nsgl_init_driver( view, &display_gtk_driver ) ) {
+    	return FALSE;
+    }
+#endif
 #endif
 #endif
 
@@ -301,6 +323,10 @@ void video_gtk_shutdown()
 #else
 #ifdef HAVE_GLX
 	video_glx_shutdown();
+#else
+#ifdef HAVE_NSGL
+	video_nsgl_shutdown();
+#endif
 #endif
 #endif
     }
