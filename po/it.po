@@ -7,133 +7,133 @@ msgid ""
 msgstr ""
 "Project-Id-Version: lxdream 0.8.3\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2007-11-10 18:53+0100\n"
-"PO-Revision-Date: 2007-11-10 18:53+0100\n"
-"Last-Translator: Thomas Kowaliczek (LinuxDonald) LinuxDonald@LinuxDonald.de\n"
-"Language-Team: DE <trans-de@lxdream.org>\n"
-"MIME-Version: 1.0\n"
+"POT-Creation-Date: 2007-11-10 14:59+1000\n"
+"PO-Revision-Date: 2008-04-10 00:00+0000\n"
+"Last-Translator: Ghost22 <ghost22@infinito.it>\n"
+"Language-Team: Italiano <LL@li.org>\n"
+"MIME-Version: 0.1\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
 #: src/gui/gtkui.c:65
 msgid "_File"
-msgstr "_Datei"
+msgstr "File"
 
 #: src/gui/gtkui.c:66
 msgid "_Settings"
-msgstr "_Einstellungen"
+msgstr "Opzioni"
 
 #: src/gui/gtkui.c:67
 msgid "_Help"
-msgstr "_Hilfe"
+msgstr "Aiuto"
 
 #: src/gui/gtkui.c:68
 msgid "_Reset"
-msgstr "_Neustart"
+msgstr "Riavvia"
 
 #: src/gui/gtkui.c:68
 msgid "Reset dreamcast"
-msgstr "Dreamcast neustarten"
+msgstr "Riavvia dreamcast"
 
 #: src/gui/gtkui.c:69
 msgid "_Pause"
-msgstr "_Pause"
+msgstr "Pausa"
 
 #: src/gui/gtkui.c:69
 msgid "Pause dreamcast"
-msgstr "Dreamcast pausieren"
+msgstr "Pausa dreamcast"
 
 #: src/gui/gtkui.c:70
 msgid "Resume"
-msgstr "Weiter"
+msgstr "Continua"
 
 #: src/gui/gtkui.c:71
 msgid "_Load state..."
-msgstr "_Speicherstand laden"
+msgstr "Carica stato"
 
 #: src/gui/gtkui.c:71
 msgid "Load an lxdream save state"
-msgstr "Einen lxdream speicherstand laden"
+msgstr "Carica un salvataggio di stato del lxdream"
 
 #: src/gui/gtkui.c:72
 msgid "_Save state..."
-msgstr "_Speicherstand speichern"
+msgstr "Salva lo stato"
 
 #: src/gui/gtkui.c:72
 msgid "Create an lxdream save state"
-msgstr "Einen lxdream speicherstand erstellen"
+msgstr "Crea un salvataggio di stato dell lxdream"
 
 #: src/gui/gtkui.c:73
 msgid "E_xit"
-msgstr "E_xit"
+msgstr "Uscita"
 
 #: src/gui/gtkui.c:73
 msgid "Exit lxdream"
-msgstr "Exit lxdream"
+msgstr "Chiudi lxdream"
 
 #: src/gui/gtkui.c:74
 msgid "_GD-Rom..."
-msgstr "_GD-Rom"
+msgstr "GD-Rom"
 
 #: src/gui/gtkui.c:75
 msgid "_Empty"
-msgstr "_Leer"
+msgstr "Vuoto"
 
 #: src/gui/gtkui.c:76
 msgid "_Open Image..."
-msgstr "_Image öffnen"
+msgstr "Carica una immagine"
 
 #: src/gui/gtkui.c:76
 msgid "Mount a cdrom disc"
-msgstr "Eine CD-Rom mounten"
+msgstr "Monta un cdrom"
 
 #: src/gui/gtkui.c:77
 msgid "_Paths..."
-msgstr "_Pfade..."
+msgstr "Percorso"
 
 #: src/gui/gtkui.c:77
 msgid "Configure files and paths"
-msgstr "Pfade und Dateien einstellen"
+msgstr "Configura files e percorsi"
 
 #: src/gui/gtkui.c:78
 msgid "_Audio..."
-msgstr "_Audio..."
+msgstr "Audio"
 
 #: src/gui/gtkui.c:78
 msgid "Configure audio output"
-msgstr "Audioausgabe einstellen"
+msgstr "Configura l'audio"
 
 #: src/gui/gtkui.c:79
 msgid "_Controllers..."
-msgstr "_Kontroller..."
+msgstr "Controlli"
 
 #: src/gui/gtkui.c:79
 msgid "Configure controllers"
-msgstr "Kontroller einstellen"
+msgstr "Configura i controlli"
 
 #: src/gui/gtkui.c:80
 msgid "_Network..."
-msgstr "_Netzwerk..."
+msgstr "Rete"
 
 #: src/gui/gtkui.c:80
 msgid "Configure network settings"
-msgstr "Netzwerk einstellungen einstellen"
+msgstr "Configura la rete"
 
 #: src/gui/gtkui.c:81
 msgid "_Video..."
-msgstr "_Video..."
+msgstr "Video"
 
 #: src/gui/gtkui.c:81
 msgid "Configure video output"
-msgstr "Video ausgang einstellen"
+msgstr "Configura il video"
 
 #: src/gui/gtkui.c:82
 msgid "_About..."
-msgstr "_Über..."
+msgstr "Informazioni.."
 
 #: src/gui/gtkui.c:82
 msgid "About lxdream"
-msgstr "Über lxdream"
+msgstr "Informazioni su lxdream"
 
 #: src/gui/gtkui.c:83
 msgid "_Debug"
@@ -145,55 +145,55 @@ msgstr "_Debugger"
 
 #: src/gui/gtkui.c:84
 msgid "Open debugger window"
-msgstr "Debugger fenster öffnen"
+msgstr "Apri una dinestra di debugger"
 
 #: src/gui/gtkui.c:85
 msgid "View _Memory"
-msgstr "Speicher anschauen"
+msgstr "Vedi la memoria"
 
 #: src/gui/gtkui.c:85
 msgid "View memory dump"
-msgstr "Speicher dump anschauen"
+msgstr "Vedi il dump di memoria"
 
 #: src/gui/gtkui.c:86
 msgid "View IO _Registers"
-msgstr "IO Register anschauen"
+msgstr "Vedi i registri IO"
 
 #: src/gui/gtkui.c:86
 msgid "View MMIO Registers"
-msgstr "MMIO Register anschauen"
+msgstr "Vedi i registri MMIO"
 
 #: src/gui/gtkui.c:87
 msgid "_Save Scene"
-msgstr "_Szene speichern"
+msgstr "Salva la scena"
 
 #: src/gui/gtkui.c:87
 msgid "Save next rendered scene"
-msgstr "Speichern nächsten gerenderten Szene"
+msgstr "Salva la prossima scena render"
 
 #: src/gui/gtkui.c:88
 msgid "_Single Step"
-msgstr "_Einzelnen Schritt"
+msgstr "_Singolo Passo"
 
 #: src/gui/gtkui.c:88
 msgid "Single step"
-msgstr "Einzelnen Schritt"
+msgstr "Singolo passo"
 
 #: src/gui/gtkui.c:89
 msgid "Run _To"
-msgstr "Gehe zu"
+msgstr "Vai _a"
 
 #: src/gui/gtkui.c:89
 msgid "Run to"
-msgstr "Gehe zu"
+msgstr "Vai a"
 
 #: src/gui/gtkui.c:90
 msgid "_Breakpoint"
-msgstr "_Unterbrechungspunkt"
+msgstr "Punto di fermo"
 
 #: src/gui/gtkui.c:90
 msgid "Toggle breakpoint"
-msgstr "Unterbrechungspunkt umschalten"
+msgstr "Commuta breakpoint"
 
 #: src/gui/gtkui.c:269
 msgid "Debugger"
@@ -201,65 +201,63 @@ msgstr "Debugger"
 
 #: src/gui/gtkui.c:280
 msgid "MMIO Registers"
-msgstr "MMIO Register"
+msgstr "Registri MMIO"
 
 #: src/gui/gtkcb.c:36
 msgid "All files"
-msgstr "Alle Dateien"
+msgstr "Tutti i files"
 
 #: src/gui/gtkcb.c:128
 msgid "Load state..."
-msgstr "Speicherpunkt laden..."
+msgstr "Carica stato..."
 
-#: src/gui/gtkcb.c:133
-#: src/gui/gtkcb.c:163
+#: src/gui/gtkcb.c:133 src/gui/gtkcb.c:163
 msgid "lxDream Save State (*.dst)"
-msgstr "lxDream Speicherpunt (*.dst)"
+msgstr "Salvataggio stato LxDream (*.dst)"
 
-#: src/gui/gtkcb.c:218
-#: src/gui/dump_win.c:69
+#: src/gui/gtkcb.c:218 src/gui/dump_win.c:69
 msgid "Memory dump"
-msgstr "Speicher dump"
+msgstr "Memoria"
 
 #: src/gui/gtkcb.c:231
 msgid "Save next scene..."
-msgstr "Nächste Szene speichern"
+msgstr "Salva prossima scena..."
 
 #: src/gui/gtkcb.c:231
 msgid "lxdream scene file (*.dsc)"
-msgstr "lxdream szene Datei (*.dsc)"
+msgstr "file scena lxdream (*.dsc)"
 
 #: src/gui/gtkcb.c:246
 msgid "No address selected, so can't run to it"
-msgstr "Keine Adresse ausgewählt, also kann es nicht laufen"
+msgstr "Nessun indirizzo selezionato, quindi non posso andarci"
 
 #: src/gui/gdrom_menu.c:146
 msgid "Open..."
-msgstr "Öffnen..."
+msgstr "Apri"
 
 #: src/gui/gdrom_menu.c:161
 msgid "Empty"
-msgstr "Leer"
+msgstr "Vuoto"
 
 #: src/gui/gdrom_menu.c:192
 msgid "Open image file..."
-msgstr "Image Datei öffnen"
+msgstr "Apri un file immagine"
 
 #: src/gui/gdrom_menu.c:201
 msgid "GD-Rom Settings"
-msgstr "GD-Rom Einstellungen"
+msgstr "Opzioni GD-Rom"
 
 #: src/gui/debug_win.c:89
 msgid "Page"
-msgstr "Seite"
+msgstr "Pagina"
 
 #: src/gui/debug_win.c:94
 msgid " Jump to PC "
-msgstr " Zum PC springen"
+msgstr "Salta al Pc"
 
 #: src/gui/debug_win.c:97
 msgid "Mode"
-msgstr "Modus"
+msgstr "Modo"
 
 #: src/gui/debug_win.c:102
 msgid "SH4"
@@ -275,19 +273,19 @@ msgstr "ARM7T"
 
 #: src/gui/debug_win.c:262
 msgid "This page is currently unmapped"
-msgstr "Diese Seite ist noch nicht auf"
+msgstr "Questa pagina non è mappata"
 
 #: src/gui/mmio_win.c:110
 msgid "Address"
-msgstr "Adresse"
+msgstr "Indirizzo"
 
 #: src/gui/mmio_win.c:111
 msgid "Register"
-msgstr "Register"
+msgstr "Registra"
 
 #: src/gui/mmio_win.c:112
 msgid "Value"
-msgstr "Wert"
+msgstr "Valore"
 
 #: src/gui/mmio_win.c:113
 msgid "Bit Pattern"
@@ -295,27 +293,27 @@ msgstr "Bit Pattern"
 
 #: src/gui/mmio_win.c:114
 msgid "Description"
-msgstr "Beschreibung"
+msgstr "Descrizione"
 
 #: src/gui/mmio_win.c:123
 msgid "Trace access"
-msgstr "Trace Zugang"
+msgstr "Traccia accesso"
 
 #: src/gui/mmio_win.c:162
 msgid "Close"
-msgstr "Schließen"
+msgstr "Chiudi"
 
 #: src/gui/dump_win.c:79
 msgid "View"
-msgstr "Ansehen"
+msgstr "Vedi"
 
 #: src/gui/dump_win.c:81
 msgid " From "
-msgstr " aus"
+msgstr "Da"
 
 #: src/gui/dump_win.c:83
 msgid " To "
-msgstr " zu"
+msgstr "A"
 
 #: src/gui/dump_win.c:86
 msgid "   "
@@ -331,37 +329,35 @@ msgstr "Flash rom"
 
 #: src/gui/path_dlg.c:28
 msgid "Default disc path"
-msgstr "Standart CD pfad"
+msgstr "Indirizzo predefinito del disco"
 
 #: src/gui/path_dlg.c:29
 msgid "Save state path"
-msgstr "Speicherstand pfad"
+msgstr "Percorso del salvataggio dello stato"
 
 #: src/gui/path_dlg.c:29
 msgid "Bootstrap IP.BIN"
 msgstr "Bootstrap IP.BIN"
 
-#: src/gui/path_dlg.c:44
-#: src/gui/path_dlg.c:65
+#: src/gui/path_dlg.c:44 src/gui/path_dlg.c:65
 msgid "Select file"
-msgstr "Datei auswählen"
+msgstr "Seleziona un file"
 
 #: src/gui/path_dlg.c:127
 msgid "Path Settings"
-msgstr "Pfad einstellungen"
+msgstr "Configura i percorsi"
 
-#: src/gui/ctrl_dlg.c:54
-#: src/gui/ctrl_dlg.c:81
+#: src/gui/ctrl_dlg.c:54 src/gui/ctrl_dlg.c:81
 msgid "<press key>"
-msgstr "<Taste drücken>"
+msgstr "<premi un tasto>"
 
 #: src/gui/ctrl_dlg.c:180
 msgid "Controller Configuration"
-msgstr "Kontroller Konfiguration"
+msgstr "Configura il controller"
 
 #: src/gui/ctrl_dlg.c:200
 msgid "No configuration page available for device type"
-msgstr "Keine Konfigurationseite für dieses Gerät"
+msgstr "Nessuna configurazione è attivabile per questo tipo di periferica"
 
 #: src/gui/ctrl_dlg.c:270
 #, c-format
@@ -370,9 +366,8 @@ msgstr "Slot %d."
 
 #: src/gui/ctrl_dlg.c:273
 msgid "<empty>"
-msgstr "<leer>"
+msgstr "<vuoto>"
 
 #: src/gui/ctrl_dlg.c:301
 msgid "Controller Settings"
-msgstr "Kontroller einstellungen"
-
+msgstr "Opzioni del controller"

@@ -5,7 +5,7 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: lxdream 0.8.1\n"
+"Project-Id-Version: lxdream 0.8.3\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2007-11-10 14:59+1000\n"
 "PO-Revision-Date: 2007-11-10 12:45-0300\n"
