@@ -1,7 +1,7 @@
 /**
  * $Id$
  *
- * Parent for all X11 display drivers.
+ * Common GL code that doesn't depend on a specific implementation
  *
  * Copyright (c) 2005 Nathan Keynes.
  *
