@@ -1,5 +1,5 @@
 /**
- * $Id: audio_pulse.c 661 2008-02-26 01:10:48Z bhaal22 $
+ * $Id$
  * 
  * The pulseaudio sound driver
  *
