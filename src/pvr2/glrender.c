@@ -20,6 +20,7 @@
 #include "display.h"
 #include "pvr2/pvr2.h"
 #include "pvr2/scene.h"
+#include "pvr2/glutil.h"
 
 int pvr2_poly_depthmode[8] = { GL_NEVER, GL_LESS, GL_EQUAL, GL_LEQUAL,
 				      GL_GREATER, GL_NOTEQUAL, GL_GEQUAL, 
@@ -84,6 +85,13 @@ void pvr2_scene_load_textures()
  */
 void pvr2_setup_gl_context()
 {
+
+    if( glsl_is_supported() ) {
+    	if( !glsl_load_shaders( glsl_vertex_shader_src, NULL ) ) {
+            WARN( "Unable to load GL shaders" );
+        }
+    }
+    
     texcache_gl_init(); // Allocate texture IDs
     glCullFace( GL_BACK );
     glEnable( GL_BLEND );
