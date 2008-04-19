@@ -28,6 +28,14 @@
  */
 gboolean isGLExtensionSupported( const char *extension );
 
+/**
+ * Test if secondary color (GL_COLOR_SUM) is supported.
+ */
+gboolean isGLSecondaryColorSupported();
+
+gboolean isGLVertexBufferSupported();
+gboolean isGLPixelBufferSupported();
+gboolean isGLMirroredTextureSupported();
 
 /****** Shader handling (gl_sl.c) *****/
 gboolean glsl_is_supported(void);

@@ -26,8 +26,6 @@
 #include "pvr2/glutil.h"
 #include "pvr2/scene.h"
 
-#define VBO_EXT_STRING "GL_ARB_vertex_buffer_object"
-#define PBO_EXT_STRING "GL_ARB_pixel_buffer_object"
 
 static inline uint32_t bgra_to_rgba(uint32_t bgra)
 {
@@ -67,7 +65,7 @@ void pvr2_scene_init()
 {
     if( !vbo_init ) {
 #ifdef ENABLE_VERTEX_BUFFER
-	if( isGLExtensionSupported(VBO_EXT_STRING) ) {
+	if( isGLVertexBufferSupported() ) {
 	    vbo_supported = TRUE;
 	    pvr2_scene.vbo_id = 1;
 	}
