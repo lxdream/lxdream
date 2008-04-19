@@ -18,6 +18,26 @@
 #include <string.h>
 #include "pvr2/glutil.h"
 
+gboolean isGLSecondaryColorSupported()
+{
+	return isGLExtensionSupported("GL_EXT_secondary_color");
+}
+
+gboolean isGLVertexBufferSupported()
+{
+	return isGLExtensionSupported("GL_ARB_vertex_buffer_object");
+}
+
+gboolean isGLPixelBufferSupported()
+{
+	return isGLExtensionSupported("GL_ARB_pixel_buffer_object");
+}
+
+gboolean isGLMirroredTextureSupported()
+{
+	return isGLExtensionSupported("GL_ARB_texture_mirrored_repeat");
+}
+
 /**
  * Test if a specific extension is supported. From opengl.org
  * @param extension extension name to check for
