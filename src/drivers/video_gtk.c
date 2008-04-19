@@ -296,6 +296,8 @@ gboolean video_gtk_init()
 #endif
 #endif
 
+    pvr2_setup_gl_context();
+    
 #ifdef HAVE_LINUX_JOYSTICK
     linux_joystick_init();
 #endif

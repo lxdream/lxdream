@@ -170,14 +170,6 @@ gboolean video_glx_init_context( Display *display, Window window )
     	WARN( "Not using direct rendering - this is likely to be slow" );
     }
 
-    if( glsl_is_supported() ) {
-	//if( !glsl_load_shaders( glsl_vertex_shader_src, glsl_fragment_shader_src ) ) {
-	if( !glsl_load_shaders( glsl_vertex_shader_src, NULL ) ) {
-            WARN( "Unable to load GL shaders" );
-        }
-    }
-
-    pvr2_setup_gl_context();
     video_x11_display = display;
     video_x11_window = window;
 

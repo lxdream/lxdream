@@ -44,12 +44,7 @@ gboolean video_nsgl_init_driver( NSView *view, display_driver_t driver )
 		ERROR( "FBO not supported" );
 		return FALSE;
 	}
-	
-    if( glsl_is_supported() ) {
-    	if( !glsl_load_shaders( glsl_vertex_shader_src, NULL ) ) {
-            WARN( "Unable to load GL shaders" );
-        }
-    }
+
 	return TRUE;
 }
 
