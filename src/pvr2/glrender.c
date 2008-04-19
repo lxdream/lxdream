@@ -269,7 +269,7 @@ void pvr2_scene_render( render_buffer_t buffer )
 
     /* Setup vertex array pointers */
     glInterleavedArrays(GL_T2F_C4UB_V3F, sizeof(struct vertex_struct), pvr2_scene.vertex_array);
-    glSecondaryColorPointerEXT(4, GL_UNSIGNED_BYTE, sizeof(struct vertex_struct), &pvr2_scene.vertex_array[0].offset_rgba );
+    glSecondaryColorPointerEXT(3, GL_UNSIGNED_BYTE, sizeof(struct vertex_struct), &pvr2_scene.vertex_array[0].offset_rgba );
 
     uint32_t bgplane_mode = MMIO_READ(PVR2, RENDER_BGPLANE);
     uint32_t *bgplane = pvr2_scene.pvr2_pbuf + (((bgplane_mode & 0x00FFFFFF)) >> 3) ;
