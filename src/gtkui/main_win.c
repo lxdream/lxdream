@@ -160,6 +160,15 @@ static gboolean on_video_window_key_pressed( GtkWidget *widget, GdkEventKey *eve
 {
     main_window_t win = (main_window_t)user_data;
     if( win->is_grabbed ) {
+#ifdef HAVE_GTK_OSX
+    /* On OSX, use the command key rather than ctrl-alt. Mainly because GTK/OSX 
+     * doesn't seem to be able to get ctrl-alt reliably 
+     **/
+    if( event->keyval == GDK_Meta_L || event->keyval == GDK_Meta_R ) {
+    	video_window_ungrab_display(win);
+    	return TRUE;
+    }
+#else    	
 	/* Check for ungrab key combo (ctrl-alt). Unfortunately GDK sends it as
 	 * a singly-modified keypress rather than a double-modified 'null' press, 
 	 * so we have to do a little more work.
@@ -174,6 +183,7 @@ static gboolean on_video_window_key_pressed( GtkWidget *widget, GdkEventKey *eve
 	    // Consume the keypress, DC doesn't get it.
 	    return TRUE;
 	}
+#endif
     }
     input_event_keydown( NULL, gtk_get_unmodified_keyval(event), 1 );
     return TRUE;
@@ -298,7 +308,11 @@ void main_window_set_status_text( main_window_t win, char *text )
     gtk_statusbar_pop( GTK_STATUSBAR(win->statusbar), 1 );
     if( win->is_grabbed ) {
 	char buf[128];
+#ifdef HAVE_GTK_OSX
+	snprintf( buf, sizeof(buf), "%s %s", text, _("(Press <command> to release grab)") );
+#else	
 	snprintf( buf, sizeof(buf), "%s %s", text, _("(Press <ctrl><alt> to release grab)") );
+#endif
 	gtk_statusbar_push( GTK_STATUSBAR(win->statusbar), 1, buf );
     } else {
 	gtk_statusbar_push( GTK_STATUSBAR(win->statusbar), 1, text );
