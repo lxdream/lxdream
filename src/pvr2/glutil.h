@@ -41,6 +41,7 @@ gboolean isGLMirroredTextureSupported();
 gboolean glsl_is_supported(void);
 gboolean glsl_load_shaders( const char *vert_shader, const char *frag_shader );
 void glsl_unload_shaders(void);
+void glsl_enable_shaders( gboolean enable );
 
 extern const char *glsl_vertex_shader_src;
 extern const char *glsl_fragment_shader_src;

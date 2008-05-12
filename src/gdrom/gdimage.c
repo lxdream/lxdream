@@ -151,7 +151,7 @@ static gboolean gdrom_read_block( unsigned char *buf, int file_offset, int lengt
 	int size = -file_offset;
 	if( size >= length ) {
 	    memset( buf, 0, length );
-	    return;
+	    return TRUE;
 	} else {
 	    memset( buf, 0, size );
 	    file_offset = 0;
@@ -288,7 +288,6 @@ static gdrom_error_t gdrom_image_read_sector( gdrom_disc_t disc, uint32_t lba,
 	break;
     }
 
-    int mode_restrict = READ_CD_MODE(mode);
     if( !gdrom_is_compatible_read_mode(sector_mode, READ_CD_MODE(mode)) ) {
 	return PKT_ERR_BADREADMODE;
     }

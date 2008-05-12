@@ -38,7 +38,7 @@ const struct reg_desc_struct sh4_reg_map[] =
     {"VBR",REG_INT, &sh4r.vbr},
     {"PC", REG_INT, &sh4r.pc}, {"PR", REG_INT, &sh4r.pr},
     {"MACL",REG_INT, &sh4r.mac},{"MACH",REG_INT, ((uint32_t *)&sh4r.mac)+1},
-    {"FPUL", REG_INT, &sh4r.fpul}, {"FPSCR", REG_INT, &sh4r.fpscr},
+    {"FPUL", REG_INT, &sh4r.fpul.i}, {"FPSCR", REG_INT, &sh4r.fpscr},
     {NULL, 0, NULL} };
 
 

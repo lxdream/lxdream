@@ -23,6 +23,8 @@
 #include <stdio.h>
 #include <signal.h>
 #include <string.h>
+#include <stdlib.h>
+#include <unistd.h>
 #include <fcntl.h>
 #include <dirent.h>
 #include <ctype.h>
@@ -33,6 +35,8 @@
 
 #include "lxdream.h"
 #include "display.h"
+#include "maple/maple.h"
+#include "drivers/joy_linux.h"
 
 #define INPUT_PATH "/dev/input"
 
@@ -48,7 +52,8 @@ typedef struct linux_joystick {
 
 static gboolean linux_joystick_callback( GIOChannel *source, GIOCondition condition, 
 					 gpointer data );
-static linux_joystick_t linux_joystick_add( const gchar *filename, int fd );
+static int linux_joystick_scan();
+static linux_joystick_t linux_joystick_new( const gchar *filename, int fd );
 static uint16_t linux_joystick_resolve_keysym( input_driver_t dev, const gchar *str );
 static gchar *linux_joystick_keysym_for_keycode( input_driver_t dev, uint16_t keycode );
 static void linux_joystick_destroy( input_driver_t joy );
@@ -157,8 +162,8 @@ static gboolean linux_joystick_callback( GIOChannel *source, GIOCondition condit
 		}
 	    }
 	}
-	return TRUE;
     }
+    return TRUE;
 }
 
 /**
@@ -166,7 +171,7 @@ static gboolean linux_joystick_callback( GIOChannel *source, GIOCondition condit
  * descriptor. The joystick is automatically added to the watch list.
  * @return The new joystick, or NULL if an error occurred.
  */
-linux_joystick_t linux_joystick_new( const gchar *filename, int fd )
+static linux_joystick_t linux_joystick_new( const gchar *filename, int fd )
 {
     linux_joystick_t joy = g_malloc0(sizeof(struct linux_joystick));
     joy->filename = filename;
@@ -196,13 +201,7 @@ linux_joystick_t linux_joystick_new( const gchar *filename, int fd )
     return joy;
 }
 
-int linux_joystick_init()
-{
-    linux_joystick_install_watch(INPUT_PATH);
-    linux_joystick_scan();
-}
-
-int linux_joystick_scan()
+static int linux_joystick_scan()
 {
     int joysticks = 0;
     struct dirent *ent;
@@ -231,6 +230,15 @@ int linux_joystick_scan()
 
     closedir(dir);
     return joysticks;
+}
+
+gboolean linux_joystick_init()
+{
+    if( !linux_joystick_install_watch(INPUT_PATH) ) {
+	return FALSE;
+    }
+    linux_joystick_scan();
+    return TRUE;
 }
 
 void linux_joystick_shutdown(void)
@@ -275,6 +283,7 @@ static gboolean linux_joystick_install_watch( const gchar *dir )
     }
     watch_dir_fd = fd;
     g_timeout_add( 500, gtk_loop_check_input, NULL );
+    return TRUE;
 }
 
 static void linux_joystick_uninstall_watch(void)

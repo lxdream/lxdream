@@ -20,6 +20,7 @@
 #include <errno.h>
 #include "pvr2.h"
 #include "asic.h"
+#include "dream.h"
 
 extern unsigned char *video_base;
 

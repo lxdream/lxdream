@@ -21,40 +21,37 @@
 
 #include "display.h"
 
-render_buffer_t video_null_create_render_buffer( uint32_t hres, uint32_t vres )
+static render_buffer_t video_null_create_render_buffer( uint32_t hres, uint32_t vres )
 {
     return NULL;
 }
 
-void video_null_destroy_render_buffer( render_buffer_t buffer )
+static void video_null_destroy_render_buffer( render_buffer_t buffer )
 {
 }
 
-gboolean video_null_set_render_target( render_buffer_t buffer )
-{
-    return TRUE;
-}
-
-gboolean video_null_display_render_buffer( render_buffer_t buffer )
+static gboolean video_null_set_render_target( render_buffer_t buffer )
 {
     return TRUE;
 }
 
-gboolean video_null_read_render_buffer( unsigned char *target, render_buffer_t buffer, int rowstride, int format )
+static void video_null_display_render_buffer( render_buffer_t buffer )
+{
+}
+
+static gboolean video_null_read_render_buffer( unsigned char *target, 
+					       render_buffer_t buffer, 
+					       int rowstride, int format )
 {
     return TRUE;
 }
 
-void video_null_load_frame_buffer( frame_buffer_t frame, render_buffer_t buffer )
+static void video_null_load_frame_buffer( frame_buffer_t frame, 
+					  render_buffer_t buffer )
 {
 }
 
-gboolean video_null_display_blank( uint32_t colour )
-{
-    return TRUE;
-}
-
-void video_null_display_back_buffer( void )
+static void video_null_display_blank( uint32_t colour )
 {
 }
 

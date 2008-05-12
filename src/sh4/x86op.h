@@ -38,17 +38,9 @@
 #define R_DH 6
 #define R_BH 7
 
-#ifdef DEBUG_JUMPS
-#define MARK_JMP(n,x) uint8_t *_mark_jmp_##x = xlat_output + n
-#define JMP_TARGET(x) assert( _mark_jmp_##x == xlat_output )
-#else
-#define MARK_JMP(n, x)
-#define JMP_TARGET(x)
-#endif
-
-
-
-
+#define MARK_JMP8(x) uint8_t *_mark_jmp_##x = xlat_output
+#define MARK_JMP32(x) uint32_t *_mark_jmp_##x = (uint32_t *)xlat_output
+#define JMP_TARGET(x) *_mark_jmp_##x += (xlat_output - _mark_jmp_##x)
 
 #define OP(x) *xlat_output++ = (x)
 #define OP32(x) *((uint32_t *)xlat_output) = (x); xlat_output+=4
@@ -90,7 +82,7 @@
 
 
 /* Offset of a reg relative to the sh4r structure */
-#define REG_OFFSET(reg)  (((char *)&sh4r.reg) - ((char *)&sh4r))
+#define REG_OFFSET(reg)  (((char *)&sh4r.reg) - ((char *)&sh4r) - 128)
 
 #define R_T   REG_OFFSET(t)
 #define R_Q   REG_OFFSET(q)
@@ -155,7 +147,8 @@
 #define DEC_r32(r1)           OP(0x48+r1)
 #define IMUL_r32(r1)          OP(0xF7); MODRM_rm32_r32(r1,5)
 #define INC_r32(r1)           OP(0x40+r1)
-#define JMP_rel8(rel, label)  OP(0xEB); OP(rel); MARK_JMP(rel,label)
+#define JMP_rel8(label)  OP(0xEB); MARK_JMP8(label); OP(-1); 
+#define LEA_sh4r_r32(disp,r1) OP(0x8D); MODRM_r32_sh4r(r1,disp)
 #define MOV_r32_r32(r1,r2)    OP(0x89); MODRM_r32_rm32(r1,r2)
 #define MOV_r32_sh4r(r1,disp) OP(0x89); MODRM_r32_sh4r(r1,disp)
 #define MOV_moff32_EAX(off)   OP(0xA1); OPPTR(off)
@@ -209,35 +202,44 @@
 #define FCHS_st0() OP(0xD9); OP(0xE0)
 #define FCOMIP_st(st) OP(0xDF); OP(0xF0+st)
 #define FDIVP_st(st) OP(0xDE); OP(0xF8+st)
-#define FILD_sh4r(disp) OP(0xDB); MODRM_r32_sh4r(0, disp)
 #define FILD_r32ind(r32) OP(0xDB); OP(0x00+r32)
-#define FISTP_sh4r(disp) OP(0xDB); MODRM_r32_sh4r(3, disp)
 #define FLD0_st0() OP(0xD9); OP(0xEE);
 #define FLD1_st0() OP(0xD9); OP(0xE8);
+#define FLDf_sh4r(disp) OP(0xD9); MODRM_r32_sh4r(0, disp)
+#define FLDd_sh4r(disp) OP(0xDD); MODRM_r32_sh4r(0, disp)
 #define FLDCW_r32ind(r32) OP(0xD9); OP(0x28+r32)
 #define FMULP_st(st) OP(0xDE); OP(0xC8+st)
 #define FNSTCW_r32ind(r32) OP(0xD9); OP(0x38+r32)
 #define FPOP_st()  OP(0xDD); OP(0xC0); OP(0xD9); OP(0xF7)
+#define FSTPf_sh4r(disp) OP(0xD9); MODRM_r32_sh4r(3, disp)
+#define FSTPd_sh4r(disp) OP(0xDD); MODRM_r32_sh4r(3, disp)
 #define FSUBP_st(st) OP(0xDE); OP(0xE8+st)
 #define FSQRT_st0() OP(0xD9); OP(0xFA)
 
+#define FILD_sh4r(disp) OP(0xDB); MODRM_r32_sh4r(0, disp)
+#define FLDF_sh4r(disp) OP(0xD9); MODRM_r32_sh4r(0, disp)
+#define FLDD_sh4r(disp) OP(0xDD); MODRM_r32_sh4r(0, disp)
+#define FISTP_sh4r(disp) OP(0xDB); MODRM_r32_sh4r(3, disp)
+#define FSTPF_sh4r(disp) OP(0xD9); MODRM_r32_sh4r(3,disp)
+#define FSTPD_sh4r(disp) OP(0xDD); MODRM_r32_sh4r(3,disp)
+
 /* Conditional branches */
-#define JE_rel8(rel,label)   OP(0x74); OP(rel); MARK_JMP(rel,label)
-#define JA_rel8(rel,label)   OP(0x77); OP(rel); MARK_JMP(rel,label)
-#define JAE_rel8(rel,label)  OP(0x73); OP(rel); MARK_JMP(rel,label)
-#define JG_rel8(rel,label)   OP(0x7F); OP(rel); MARK_JMP(rel,label)
-#define JGE_rel8(rel,label)  OP(0x7D); OP(rel); MARK_JMP(rel,label)
-#define JC_rel8(rel,label)   OP(0x72); OP(rel); MARK_JMP(rel,label)
-#define JO_rel8(rel,label)   OP(0x70); OP(rel); MARK_JMP(rel,label)
-#define JNE_rel8(rel,label)  OP(0x75); OP(rel); MARK_JMP(rel,label)
-#define JNA_rel8(rel,label)  OP(0x76); OP(rel); MARK_JMP(rel,label)
-#define JNAE_rel8(rel,label) OP(0x72); OP(rel); MARK_JMP(rel,label)
-#define JNG_rel8(rel,label)  OP(0x7E); OP(rel); MARK_JMP(rel,label)
-#define JNGE_rel8(rel,label) OP(0x7C); OP(rel); MARK_JMP(rel,label)
-#define JNC_rel8(rel,label)  OP(0x73); OP(rel); MARK_JMP(rel,label)
-#define JNO_rel8(rel,label)  OP(0x71); OP(rel); MARK_JMP(rel,label)
-#define JNS_rel8(rel,label)  OP(0x79); OP(rel); MARK_JMP(rel,label)
-#define JS_rel8(rel,label)   OP(0x78); OP(rel); MARK_JMP(rel,label)
+#define JE_rel8(label)   OP(0x74); MARK_JMP8(label); OP(-1)
+#define JA_rel8(label)   OP(0x77); MARK_JMP8(label); OP(-1)
+#define JAE_rel8(label)  OP(0x73); MARK_JMP8(label); OP(-1)
+#define JG_rel8(label)   OP(0x7F); MARK_JMP8(label); OP(-1)
+#define JGE_rel8(label)  OP(0x7D); MARK_JMP8(label); OP(-1)
+#define JC_rel8(label)   OP(0x72); MARK_JMP8(label); OP(-1)
+#define JO_rel8(label)   OP(0x70); MARK_JMP8(label); OP(-1)
+#define JNE_rel8(label)  OP(0x75); MARK_JMP8(label); OP(-1)
+#define JNA_rel8(label)  OP(0x76); MARK_JMP8(label); OP(-1)
+#define JNAE_rel8(label) OP(0x72); MARK_JMP8(label); OP(-1)
+#define JNG_rel8(label)  OP(0x7E); MARK_JMP8(label); OP(-1)
+#define JNGE_rel8(label) OP(0x7C); MARK_JMP8(label); OP(-1)
+#define JNC_rel8(label)  OP(0x73); MARK_JMP8(label); OP(-1)
+#define JNO_rel8(label)  OP(0x71); MARK_JMP8(label); OP(-1)
+#define JNS_rel8(label)  OP(0x79); MARK_JMP8(label); OP(-1)
+#define JS_rel8(label)   OP(0x78); MARK_JMP8(label); OP(-1)
 
 /** JMP relative 8 or 32 depending on size of rel. rel offset
  * from the start of the instruction (not end)

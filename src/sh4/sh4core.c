@@ -482,7 +482,7 @@ gboolean sh4_execute_instruction( void )
                                 { /* STS FPUL, Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
                                 CHECKFPUEN();
-                                sh4r.r[Rn] = sh4r.fpul;
+                                sh4r.r[Rn] = FPULi;
                                 }
                                 break;
                             case 0x6:
@@ -916,7 +916,7 @@ gboolean sh4_execute_instruction( void )
                                 uint32_t Rn = ((ir>>8)&0xF); 
                                 CHECKFPUEN();
                                 CHECKWALIGN32( sh4r.r[Rn] );
-                                MEM_WRITE_LONG( sh4r.r[Rn]-4, sh4r.fpul );
+                                MEM_WRITE_LONG( sh4r.r[Rn]-4, FPULi );
                                 sh4r.r[Rn] -= 4;
                                 }
                                 break;
@@ -1105,7 +1105,7 @@ gboolean sh4_execute_instruction( void )
                                 uint32_t Rm = ((ir>>8)&0xF); 
                                 CHECKFPUEN();
                                 CHECKRALIGN32( sh4r.r[Rm] );
-                                MEM_READ_LONG(sh4r.r[Rm], sh4r.fpul);
+                                MEM_READ_LONG(sh4r.r[Rm], FPULi);
                                 sh4r.r[Rm] +=4;
                                 }
                                 break;
@@ -1114,9 +1114,9 @@ gboolean sh4_execute_instruction( void )
                                 uint32_t Rm = ((ir>>8)&0xF); 
                                 CHECKFPUEN();
                                 CHECKRALIGN32( sh4r.r[Rm] );
-                                MEM_READ_LONG(sh4r.r[Rm], sh4r.fpscr);
+                                MEM_READ_LONG(sh4r.r[Rm], tmp);
                                 sh4r.r[Rm] +=4;
-                                sh4r.fr_bank = &sh4r.fr[(sh4r.fpscr&FPSCR_FR)>>21][0];
+                                sh4_write_fpscr( tmp );
                                 }
                                 break;
                             case 0xF:
@@ -1282,15 +1282,14 @@ gboolean sh4_execute_instruction( void )
                                 { /* LDS Rm, FPUL */
                                 uint32_t Rm = ((ir>>8)&0xF); 
                                 CHECKFPUEN();
-                                sh4r.fpul = sh4r.r[Rm];
+                                FPULi = sh4r.r[Rm];
                                 }
                                 break;
                             case 0x6:
                                 { /* LDS Rm, FPSCR */
                                 uint32_t Rm = ((ir>>8)&0xF); 
                                 CHECKFPUEN();
-                                sh4r.fpscr = sh4r.r[Rm]; 
-                                sh4r.fr_bank = &sh4r.fr[(sh4r.fpscr&FPSCR_FR)>>21][0];
+                                sh4_write_fpscr( sh4r.r[Rm] );
                                 }
                                 break;
                             case 0xF:
@@ -2111,20 +2110,7 @@ gboolean sh4_execute_instruction( void )
                                                 uint32_t FVn = ((ir>>10)&0x3); 
                                                 CHECKFPUEN();
                                                 if( !IS_FPU_DOUBLEPREC() ) {
-                                            	sh4_ftrv(&(DRF(FVn<<1)), &sh4r.fr[((~sh4r.fpscr)&FPSCR_FR)>>21][0]);
-                                            	/*
-                                                    tmp = FVn<<2;
-                                            	float *xf = &sh4r.fr[((~sh4r.fpscr)&FPSCR_FR)>>21][0];
-                                                    float fv[4] = { FR(tmp), FR(tmp+1), FR(tmp+2), FR(tmp+3) };
-                                                    FR(tmp) = xf[1] * fv[0] + xf[5]*fv[1] +
-                                            	    xf[9]*fv[2] + xf[13]*fv[3];
-                                                    FR(tmp+1) = xf[0] * fv[0] + xf[4]*fv[1] +
-                                            	    xf[8]*fv[2] + xf[12]*fv[3];
-                                                    FR(tmp+2) = xf[3] * fv[0] + xf[7]*fv[1] +
-                                            	    xf[11]*fv[2] + xf[15]*fv[3];
-                                                    FR(tmp+3) = xf[2] * fv[0] + xf[6]*fv[1] +
-                                            	    xf[10]*fv[2] + xf[14]*fv[3];
-                                            	*/
+                                            	sh4_ftrv(&(DRF(FVn<<1)) );
                                                 }
                                                 }
                                                 break;
@@ -2139,7 +2125,7 @@ gboolean sh4_execute_instruction( void )
                                                         { /* FRCHG */
                                                         CHECKFPUEN(); 
                                                         sh4r.fpscr ^= FPSCR_FR; 
-                                                        sh4r.fr_bank = &sh4r.fr[(sh4r.fpscr&FPSCR_FR)>>21][0];
+                                                        sh4_switch_fr_banks();
                                                         }
                                                         break;
                                                     case 0x3:

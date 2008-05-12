@@ -31,6 +31,8 @@
 #include <X11/Xutil.h>
 
 #include "lxdream.h"
+#include "dreamcast.h"
+#include "display.h"
 #include "gtkui/gtkui.h"
 
 
@@ -192,7 +194,6 @@ static gboolean on_video_window_key_pressed( GtkWidget *widget, GdkEventKey *eve
 static gboolean on_video_window_key_released( GtkWidget *widget, GdkEventKey *event,
 					     gpointer user_data )
 {
-    main_window_t win = (main_window_t)user_data;
     input_event_keyup( NULL, gtk_get_unmodified_keyval(event), 0 );
     return TRUE;
 }
@@ -201,6 +202,7 @@ static gboolean on_video_window_focus_changed( GtkWidget *widget, GdkEventFocus 
 					       gpointer user_data )
 {
     display_set_focused(event->in);
+    return TRUE;
 }
 
 /*************************** Main window (frame) ******************************/

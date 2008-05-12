@@ -95,7 +95,7 @@ void sh4_translate_begin_block( sh4addr_t pc )
 {
     PUSH_r32(R_EBP);
     /* mov &sh4r, ebp */
-    load_ptr( R_EBP, &sh4r );
+    load_ptr( R_EBP, ((uint8_t *)&sh4r) + 128 );
     
     sh4_x86.in_delay_slot = FALSE;
     sh4_x86.priv_checked = FALSE;
@@ -259,7 +259,8 @@ void sh4_translate_end_block( sh4addr_t pc ) {
 _Unwind_Reason_Code xlat_check_frame( struct _Unwind_Context *context, void *arg )
 {
     void *rbp = (void *)_Unwind_GetGR(context, 6);
-    if( rbp == (void *)&sh4r ) { 
+    void *expect = (((uint8_t *)&sh4r) + 128 )
+    if( rbp == expect ) { 
         void **result = (void **)arg;
         *result = (void *)_Unwind_GetIP(context);
         return _URC_NORMAL_STOP;

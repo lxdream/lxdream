@@ -134,13 +134,12 @@ gboolean gl_load_frame_buffer( frame_buffer_t frame, int tex_id )
     return TRUE;
 }
 
-gboolean gl_display_blank( uint32_t colour )
+void gl_display_blank( uint32_t colour )
 {
     gl_reset_state();
     glColor3ub( (colour >> 16) & 0xFF, (colour >> 8) & 0xFF, colour & 0xFF );
     glRecti(0,0, video_width, video_height );
     glFlush();
-    return TRUE;
 }
 
 /**

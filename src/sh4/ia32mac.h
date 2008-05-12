@@ -123,7 +123,7 @@ void sh4_translate_begin_block( sh4addr_t pc )
 {
     PUSH_r32(R_EBP);
     /* mov &sh4r, ebp */
-    load_ptr( R_EBP, &sh4r );
+    load_ptr( R_EBP, ((uint8_t *)&sh4r) + 128 );
     
     sh4_x86.in_delay_slot = FALSE;
     sh4_x86.priv_checked = FALSE;
@@ -306,7 +306,7 @@ void *xlat_get_native_pc()
 "frame_found: movl 0x4(%%eax), %0\n"
 "frame_not_found:"
 	: "=r" (result)
-	: "r" (&sh4r)
+	: "r" (((uint8_t *)&sh4r) + 128 )
 	: "eax", "ecx", "edx" );
     return result;
 }

@@ -100,6 +100,7 @@ void SCIF_run_slice( uint32_t );
 void SCIF_save_state( FILE *f );
 int SCIF_load_state( FILE *f );
 void SCIF_update_line_speed(void);
+void TMU_init( void );
 void TMU_reset( void );
 void TMU_run_slice( uint32_t );
 void TMU_save_state( FILE * );
@@ -109,9 +110,11 @@ void TMU_update_clocks( void );
 /* SH4 instruction support methods */
 void sh4_sleep( void );
 void sh4_fsca( uint32_t angle, float *fr );
-void sh4_ftrv( float *fv, float *xmtrx );
+void sh4_ftrv( float *fv );
 uint32_t sh4_read_sr(void);
 void sh4_write_sr(uint32_t val);
+void sh4_write_fpscr(uint32_t val);
+void sh4_switch_fr_banks(void);
 void signsat48(void);
 gboolean sh4_has_page( sh4vma_t vma );
 
@@ -216,14 +219,14 @@ void sh4_accept_interrupt( void );
 #define IS_FPU_DOUBLESIZE() (sh4r.fpscr&FPSCR_SZ)
 #define IS_FPU_ENABLED() ((sh4r.sr&SR_FD)==0)
 
-#define FR(x) sh4r.fr_bank[(x)^1]
-#define DRF(x) ((double *)sh4r.fr_bank)[x]
-#define XF(x) sh4r.fr[((~sh4r.fpscr)&FPSCR_FR)>>21][(x)^1]
-#define XDR(x) ((double *)(sh4r.fr[((~sh4r.fpscr)&FPSCR_FR)>>21]))[x]
-#define DRb(x,b) ((double *)(sh4r.fr[((b ? (~sh4r.fpscr) : sh4r.fpscr)&FPSCR_FR)>>21]))[x]
-#define DR(x) DRb((x>>1), (x&1))
-#define FPULf   *((float *)&sh4r.fpul)
-#define FPULi    (sh4r.fpul)
+#define FR(x) sh4r.fr[0][(x)^1]
+#define DRF(x) *((double *)&sh4r.fr[0][(x)<<1])
+#define XF(x) sh4r.fr[1][(x)^1]
+#define XDR(x) *((double *)&sh4r.fr[1][(x)<<1])
+#define DRb(x,b) *((double *)&sh4r.fr[b][(x)<<1])
+#define DR(x) *((double *)&sh4r.fr[x&1][x&0x0E])
+#define FPULf    (sh4r.fpul.f)
+#define FPULi    (sh4r.fpul.i)
 
 #define SH4_WRITE_STORE_QUEUE(addr,val) sh4r.store_queue[(addr>>2)&0xF] = val;
 

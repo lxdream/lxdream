@@ -20,6 +20,8 @@
 #ifndef dream_video_H
 #define dream_video_H
 
+#define GL_GLEXT_PROTOTYPES 1
+
 #include <stdint.h>
 #include <glib.h>
 #include "lxdream.h"
@@ -153,13 +155,13 @@ typedef struct display_driver {
     /**
      * Display a single frame using a previously rendered GL buffer.
      */
-    gboolean (*display_render_buffer)( render_buffer_t buffer );
+    void (*display_render_buffer)( render_buffer_t buffer );
 
     /**
      * Display a single blanked frame using a fixed colour for the
      * entire frame (specified in BGR888 format). 
      */
-    gboolean (*display_blank)( uint32_t rgb );
+    void (*display_blank)( uint32_t rgb );
 
     /**
      * Copy the image data from the GL buffer to the target memory buffer,

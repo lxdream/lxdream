@@ -34,9 +34,9 @@ extern int video_width, video_height;
 static render_buffer_t gdk_pixbuf_create_render_buffer( uint32_t width, uint32_t height );
 static void gdk_pixbuf_destroy_render_buffer( render_buffer_t buffer );
 static gboolean gdk_pixbuf_set_render_target( render_buffer_t buffer );
-static gboolean gdk_pixbuf_display_render_buffer( render_buffer_t buffer );
+static void gdk_pixbuf_display_render_buffer( render_buffer_t buffer );
 static void gdk_pixbuf_load_frame_buffer( frame_buffer_t frame, render_buffer_t buffer );
-static gboolean gdk_pixbuf_display_blank( uint32_t colour );
+static void gdk_pixbuf_display_blank( uint32_t colour );
 static gboolean gdk_pixbuf_read_render_buffer( unsigned char *target, render_buffer_t buffer, int rowstride, int format );
 
 static void *pixbuf_array[MAX_PIXBUF];
@@ -107,7 +107,7 @@ static void gdk_pixbuf_destroy_render_buffer( render_buffer_t buffer )
     }
 }
 
-static gboolean gdk_pixbuf_display_render_buffer( render_buffer_t buffer )
+static void gdk_pixbuf_display_render_buffer( render_buffer_t buffer )
 {
     glFinish();
 
@@ -150,7 +150,7 @@ static gboolean gdk_pixbuf_display_render_buffer( render_buffer_t buffer )
     }
 }
 
-static gboolean gdk_pixbuf_display_blank( uint32_t colour )
+static void gdk_pixbuf_display_blank( uint32_t colour )
 {
     GdkGC *gc = gtk_video_drawable->style->fg_gc[GTK_STATE_NORMAL];
     GdkColor col = { };
@@ -158,7 +158,6 @@ static gboolean gdk_pixbuf_display_blank( uint32_t colour )
     gdk_gc_set_foreground( gc, &col );
     gdk_gc_set_background( gc, &col );
     gdk_draw_rectangle( gtk_video_drawable->window, gc, TRUE, 0, 0, video_width, video_height );
-    return TRUE;
 }
 
 static gboolean gdk_pixbuf_set_render_target( render_buffer_t buffer )

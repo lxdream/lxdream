@@ -244,31 +244,24 @@ int pvr2_yuv_load_state( FILE *f );
 
 /********************************* Renderer ******************************/
 
-void pvr2_read_scene( void );
-
 /**
  * Render the current scene stored in PVR ram to the GL back buffer.
  */
-void pvr2_render_scene( render_buffer_t buffer );
+void pvr2_scene_render( render_buffer_t buffer );
 
 /**
- * Display the scene rendered to the supplied address.
- * @return TRUE if there was an available render that was displayed,
- * otherwise FALSE (and no action was taken)
+ * Perform the initial once-off GL setup, usually immediately after the GL
+ * context is first bound.
  */
-gboolean pvr2_render_display_frame( uint32_t address );
-
+void pvr2_setup_gl_context();
 
 void render_backplane( uint32_t *polygon, uint32_t width, uint32_t height, uint32_t mode );
 
+void render_autosort_tile( pvraddr_t tile_entry, int render_mode );
+
 void render_set_context( uint32_t *context, int render_mode );
 
-void pvr2_render_tilebuffer( int width, int height, int clipx1, int clipy1, 
-			     int clipx2, int clipy2 );
-
-void pvr2_render_find_z_range( float *min, float *max );
-
-void pvr2_render_getsize( int *x, int *y );
+void gl_render_tilelist( pvraddr_t tile_entry );
 
 /**
  * Structure to hold a complete unpacked vertex (excluding modifier

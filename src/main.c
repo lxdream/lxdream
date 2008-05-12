@@ -19,8 +19,8 @@
 
 #include <unistd.h>
 #include <getopt.h>
-#include "dream.h"
-#include "config.h"
+#include <glib/gi18n.h>
+#include "lxdream.h"
 #include "syscall.h"
 #include "mem.h"
 #include "dreamcast.h"
@@ -54,7 +54,7 @@ extern uint32_t sh4_cpu_multiplier;
 
 int main (int argc, char *argv[])
 {
-    int opt, i;
+    int opt;
     double t;
     gboolean display_ok;
 

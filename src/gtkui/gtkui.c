@@ -19,6 +19,7 @@
 #include "lxdream.h"
 #include <sys/time.h>
 #include <time.h>
+#include <unistd.h>
 #include <glib/gi18n.h>
 #include <gtk/gtkversion.h>
 #include "dreamcast.h"
@@ -317,15 +318,6 @@ debug_window_t gtk_gui_get_debugger()
 mmio_window_t gtk_gui_get_mmio()
 {
     return mmio_win;
-}
-
-GtkWidget *gtk_gui_get_renderarea()
-{
-    if( main_win == NULL ) {
-	return NULL;
-    } else {
-	return main_window_get_renderarea(main_win);
-    }
 }
 
 /**

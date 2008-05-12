@@ -16,7 +16,7 @@
  * GNU General Public License for more details.
  */
 
-#include "dream.h"
+#include "lxdream.h"
 #include "mem.h"
 #include "syscall.h"
 #include "sh4/sh4.h"
@@ -42,7 +42,7 @@ void syscall_add_hook_vector( uint32_t hook_id, uint32_t vector_addr,
     hook_id &= 0xFF;
     syscall_add_hook( hook_id, hook );
     syscall_hooks[hook_id].vector = vector_addr;
-    sh4_write_long( vector_addr, 0xFFFFFF00 + hook_id );
+    mem_write_long( vector_addr, 0xFFFFFF00 + hook_id );
 }
 
 void syscall_invoke( uint32_t hook_id )
@@ -62,7 +62,7 @@ void syscall_repatch_vectors( )
     for( i=0; i<256; i++ ) {
 	if( syscall_hooks[i].hook != NULL &&
 	    syscall_hooks[i].vector != 0 ) {
-	    sh4_write_long( syscall_hooks[i].vector, 0xFFFFFF00 + i );
+	    mem_write_long( syscall_hooks[i].vector, 0xFFFFFF00 + i );
 	}
     }
 }

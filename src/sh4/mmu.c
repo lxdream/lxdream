@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include "sh4/sh4mmio.h"
 #include "sh4/sh4core.h"
+#include "sh4/sh4trans.h"
 #include "mem.h"
 
 #define VMA_TO_EXT_ADDR(vma) ((vma)&0x1FFFFFFF)
@@ -119,6 +120,7 @@ static uint32_t get_mask_for_flags( uint32_t flags )
     case TLB_SIZE_4K: return MASK_4K;
     case TLB_SIZE_64K: return MASK_64K;
     case TLB_SIZE_1M: return MASK_1M;
+    default: return 0; /* Unreachable */
     }
 }
 
@@ -327,7 +329,7 @@ int32_t mmu_utlb_data_read( sh4addr_t addr )
  * Find a UTLB entry for the associative TLB write - same as the normal
  * lookup but ignores the valid bit.
  */
-static inline mmu_utlb_lookup_assoc( uint32_t vpn, uint32_t asid )
+static inline int mmu_utlb_lookup_assoc( uint32_t vpn, uint32_t asid )
 {
     int result = -1;
     unsigned int i;
@@ -349,7 +351,7 @@ static inline mmu_utlb_lookup_assoc( uint32_t vpn, uint32_t asid )
  * Find a ITLB entry for the associative TLB write - same as the normal
  * lookup but ignores the valid bit.
  */
-static inline mmu_itlb_lookup_assoc( uint32_t vpn, uint32_t asid )
+static inline int mmu_itlb_lookup_assoc( uint32_t vpn, uint32_t asid )
 {
     int result = -1;
     unsigned int i;

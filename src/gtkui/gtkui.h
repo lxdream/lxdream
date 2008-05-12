@@ -115,9 +115,9 @@ GdkPixbuf *gdk_pixbuf_new_from_frame_buffer( frame_buffer_t buffer );
 void gdrom_menu_init();
 GtkWidget *gdrom_menu_new();
 
-/******************** Video driver hooks *********************/
+/******************** Video driver hook *********************/
 
-GtkWidget *gtk_gui_get_renderarea();
+GtkWidget *video_gtk_create_drawable();
 
 /******************* Callback declarations *******************/
 

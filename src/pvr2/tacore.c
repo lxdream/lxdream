@@ -16,8 +16,10 @@
  * GNU General Public License for more details.
  */
 #include <string.h>
+#include "lxdream.h"
 #include "pvr2.h"
 #include "asic.h"
+#include "dream.h"
 
 #define STATE_IDLE                 0
 #define STATE_IN_LIST              1

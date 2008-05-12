@@ -28,7 +28,6 @@
 
 
 static snd_pcm_t *_soundDevice = NULL;
-static int frames;
 static int frame_bytes;
 
 
@@ -40,21 +39,16 @@ struct lxdream_config_entry alsa_config[] = {
 
 gboolean audio_alsa_init(  )
 {
-    int err;
-
     return TRUE;
 }
 
 
 gboolean audio_alsa_set_format( uint32_t rate, uint32_t format )
 {
-    int i;
     int err;
     snd_pcm_hw_params_t *hw_params;
     snd_pcm_sw_params_t *sw_params;
     snd_pcm_uframes_t frames;
-    unsigned int resample = 1;
-    unsigned int actualRate = rate;
     snd_pcm_uframes_t bufferSize;
     int dir;
 
@@ -187,8 +181,6 @@ gboolean audio_alsa_process_buffer( audio_buffer_t buffer )
 
 gboolean audio_alsa_close(  )
 {
-    int err;
-
     return TRUE;
 }
 

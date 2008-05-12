@@ -17,6 +17,7 @@
  */
 
 #include <assert.h>
+#include <sys/time.h>
 #include "display.h"
 #include "pvr2/pvr2.h"
 #include "pvr2/scene.h"
@@ -153,8 +154,6 @@ void render_set_context( uint32_t *context, int render_mode )
 
 
     if( POLY1_TEXTURED(poly1) ) {
-	int width = POLY2_TEX_WIDTH(poly2);
-	int height = POLY2_TEX_HEIGHT(poly2);
 	glEnable(GL_TEXTURE_2D);
 	glTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, pvr2_poly_texblend[POLY2_TEX_BLEND(poly2)] );
 	if( POLY2_TEX_CLAMP_U(poly2) ) {
@@ -271,6 +270,9 @@ void pvr2_scene_render( render_buffer_t buffer )
     glInterleavedArrays(GL_T2F_C4UB_V3F, sizeof(struct vertex_struct), pvr2_scene.vertex_array);
     glSecondaryColorPointerEXT(3, GL_UNSIGNED_BYTE, sizeof(struct vertex_struct), &pvr2_scene.vertex_array[0].offset_rgba );
 
+    /* Turn on the shaders (if available) */
+    glsl_enable_shaders(TRUE);
+
     uint32_t bgplane_mode = MMIO_READ(PVR2, RENDER_BGPLANE);
     uint32_t *bgplane = pvr2_scene.pvr2_pbuf + (((bgplane_mode & 0x00FFFFFF)) >> 3) ;
     render_backplane( bgplane, pvr2_scene.buffer_width, pvr2_scene.buffer_height, bgplane_mode );
@@ -283,7 +285,7 @@ void pvr2_scene_render( render_buffer_t buffer )
 	int tilex = SEGMENT_X(segment->control);
 	int tiley = SEGMENT_Y(segment->control);
 	
-	int tile_bounds[4] = { tilex << 5, (tilex+1)<<5, tiley<<5, (tiley+1)<<5 };
+	uint32_t tile_bounds[4] = { tilex << 5, (tilex+1)<<5, tiley<<5, (tiley+1)<<5 };
 	if( !clip_tile_bounds(tile_bounds, pvr2_scene.bounds) ) {
 	    continue; // fully clipped, skip tile
 	}
@@ -309,6 +311,8 @@ void pvr2_scene_render( render_buffer_t buffer )
 	}
     } while( !IS_LAST_SEGMENT(segment++) );
     glDisable( GL_SCISSOR_TEST );
+
+    glsl_enable_shaders(FALSE);
 
     gettimeofday( &end_tv, NULL );
     ms = (end_tv.tv_sec - tex_tv.tv_sec) * 1000 +
