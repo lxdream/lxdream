@@ -81,6 +81,8 @@ void SCIF_run_slice( uint32_t nanos ) {}
 void sh4_write_byte( uint32_t addr, uint32_t val ) {}
 void sh4_write_word( uint32_t addr, uint32_t val ) {}
 void sh4_write_long( uint32_t addr, uint32_t val ) {}
+void sh4_write_fpscr( uint32_t val ) { }
+void sh4_switch_fr_banks() { }
 void mem_copy_to_sh4( sh4addr_t addr, sh4ptr_t src, size_t size ) { }
 void sh4_write_sr( uint32_t val ) { }
 gboolean sh4_has_page( sh4vma_t vma ) { return TRUE; }

@@ -19,14 +19,16 @@
 
 #include <errno.h>
 #include <glib.h>
-#include "dream.h"
-#include "config.h"
+#include "lxdream.h"
 #include "mem.h"
-#include "aica/aica.h"
-#include "asic.h"
 #include "dreamcast.h"
+#include "asic.h"
+#include "syscall.h"
+#include "gui.h"
+#include "aica/aica.h"
 #include "gdrom/ide.h"
 #include "maple/maple.h"
+#include "sh4/sh4.h"
 #include "sh4/sh4trans.h"
 
 /**

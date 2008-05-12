@@ -21,6 +21,7 @@
 #include "eventq.h"
 #include "syscall.h"
 #include "clock.h"
+#include "dreamcast.h"
 #include "sh4/sh4core.h"
 #include "sh4/sh4trans.h"
 #include "sh4/xltcache.h"
@@ -90,7 +91,6 @@ uint32_t sh4_xlat_run_slice( uint32_t nanosecs )
 		code = sh4_translate_basic_block( sh4r.pc );
 	    }
 	}
-	uint32_t oldpc = sh4r.pc;
 	code = code();
     }
 

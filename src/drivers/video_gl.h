@@ -25,9 +25,14 @@
 gboolean gl_load_frame_buffer( frame_buffer_t frame, int tex_id );
 
 /**
+ * Reset the GL state to its initial values
+ */
+void gl_reset_state();
+
+/**
  * Generic GL routine to blank the display view with the specified colour.
  */
-gboolean gl_display_blank( uint32_t colour );
+void gl_display_blank( uint32_t colour );
 
 /**
  * Write a rectangular texture (GL_TEXTURE_RECTANGLE_ARB) to the display frame

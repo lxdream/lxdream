@@ -135,7 +135,7 @@ void load_state_action_callback( GtkAction *action, gpointer user_data)
     GtkWidget *file, *preview, *frame, *align;
     GtkRequisition size;
     const gchar *dir = lxdream_get_config_value(CONFIG_SAVE_PATH);
-    const gchar *path = get_absolute_path(dir);
+    gchar *path = get_absolute_path(dir);
     file = gtk_file_chooser_dialog_new( _("Load state..."), NULL,
 					GTK_FILE_CHOOSER_ACTION_OPEN,
 					GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,

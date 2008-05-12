@@ -54,7 +54,10 @@ static float halftofloat( uint16_t half )
 struct pvr2_scene_struct pvr2_scene;
 
 static gboolean vbo_init = FALSE;
+
+#ifdef ENABLE_VERTEX_BUFFER
 static gboolean vbo_supported = FALSE;
+#endif
 
 /**
  * Test for VBO support, and allocate all the system memory needed for the
@@ -618,7 +621,7 @@ void pvr2_scene_dump( FILE *f )
     fprintf( f, "Polygons: %d\n", pvr2_scene.poly_count );
     for( i=0; i<pvr2_scene.poly_count; i++ ) {
 	struct polygon_struct *poly = &pvr2_scene.poly_array[i];
-	fprintf( f, "  %08X ", ((char *)poly->context) - video_base );
+	fprintf( f, "  %08X ", ((unsigned char *)poly->context) - video_base );
 	switch( poly->vertex_count ) {
 	case 3: fprintf( f, "Tri     " ); break;
 	case 4: fprintf( f, "Quad    " ); break;

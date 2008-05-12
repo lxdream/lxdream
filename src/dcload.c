@@ -162,5 +162,5 @@ void dcload_install()
     open_fds[1] = 1;
     open_fds[2] = 2;
     syscall_add_hook_vector( 0xF0, SYSCALL_ADDR, dcload_syscall );
-    sh4_write_long( SYS_MAGIC_ADDR, SYS_MAGIC );
+    mem_write_long( SYS_MAGIC_ADDR, SYS_MAGIC );
 }

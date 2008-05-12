@@ -80,15 +80,14 @@ struct sh4_x86_state {
 #define TSTATE_AE   3
 
 /** Branch if T is set (either in the current cflags, or in sh4r.t) */
-#define JT_rel8(rel8,label) if( sh4_x86.tstate == TSTATE_NONE ) { \
+#define JT_rel8(label) if( sh4_x86.tstate == TSTATE_NONE ) { \
 	CMP_imm8s_sh4r( 1, R_T ); sh4_x86.tstate = TSTATE_E; } \
-    OP(0x70+sh4_x86.tstate); OP(rel8); \
-    MARK_JMP(rel8,label)
+    OP(0x70+sh4_x86.tstate); MARK_JMP8(label); OP(-1)
+
 /** Branch if T is clear (either in the current cflags or in sh4r.t) */
-#define JF_rel8(rel8,label) if( sh4_x86.tstate == TSTATE_NONE ) { \
+#define JF_rel8(label) if( sh4_x86.tstate == TSTATE_NONE ) { \
 	CMP_imm8s_sh4r( 1, R_T ); sh4_x86.tstate = TSTATE_E; } \
-    OP(0x70+ (sh4_x86.tstate^1)); OP(rel8); \
-    MARK_JMP(rel8, label)
+    OP(0x70+ (sh4_x86.tstate^1)); MARK_JMP8(label); OP(-1)
 
 static struct sh4_x86_state sh4_x86;
 
@@ -97,7 +96,7 @@ static uint32_t min_int = 0x80000000;
 static uint32_t save_fcw; /* save value for fpu control word */
 static uint32_t trunc_fcw = 0x0F7F; /* fcw value for truncation mode */
 
-void sh4_x86_init()
+void sh4_translate_init(void)
 {
     sh4_x86.backpatch_list = malloc(DEFAULT_BACKPATCH_SIZE);
     sh4_x86.backpatch_size = DEFAULT_BACKPATCH_SIZE / sizeof(struct backpatch_record);
@@ -169,7 +168,6 @@ static inline void load_imm64( int x86reg, uint32_t value ) {
     OP64(value);
 }
 
-
 /**
  * Emit an instruction to store an SH4 reg (RN)
  */
@@ -180,97 +178,42 @@ void static inline store_reg( int x86reg, int sh4reg ) {
     OP(REG_OFFSET(r[sh4reg]));
 }
 
-#define load_fr_bank(bankreg) load_spreg( bankreg, REG_OFFSET(fr_bank))
-
 /**
  * Load an FR register (single-precision floating point) into an integer x86
  * register (eg for register-to-register moves)
  */
-void static inline load_fr( int bankreg, int x86reg, int frm )
-{
-    OP(0x8B); OP(0x40+bankreg+(x86reg<<3)); OP((frm^1)<<2);
-}
+#define load_fr(reg,frm)  OP(0x8B); MODRM_r32_ebp32(reg, REG_OFFSET(fr[0][(frm)^1]) )
+#define load_xf(reg,frm)  OP(0x8B); MODRM_r32_ebp32(reg, REG_OFFSET(fr[1][(frm)^1]) )
 
 /**
- * Store an FR register (single-precision floating point) into an integer x86
+ * Load the low half of a DR register (DR or XD) into an integer x86 register 
+ */
+#define load_dr0(reg,frm) OP(0x8B); MODRM_r32_ebp32(reg, REG_OFFSET(fr[frm&1][frm|0x01]) )
+#define load_dr1(reg,frm) OP(0x8B); MODRM_r32_ebp32(reg, REG_OFFSET(fr[frm&1][frm&0x0E]) )
+
+/**
+ * Store an FR register (single-precision floating point) from an integer x86+
  * register (eg for register-to-register moves)
  */
-void static inline store_fr( int bankreg, int x86reg, int frn )
-{
-    OP(0x89);  OP(0x40+bankreg+(x86reg<<3)); OP((frn^1)<<2);
-}
+#define store_fr(reg,frm) OP(0x89); MODRM_r32_ebp32( reg, REG_OFFSET(fr[0][(frm)^1]) )
+#define store_xf(reg,frm) OP(0x89); MODRM_r32_ebp32( reg, REG_OFFSET(fr[1][(frm)^1]) )
+
+#define store_dr0(reg,frm) OP(0x89); MODRM_r32_ebp32( reg, REG_OFFSET(fr[frm&1][frm|0x01]) )
+#define store_dr1(reg,frm) OP(0x89); MODRM_r32_ebp32( reg, REG_OFFSET(fr[frm&1][frm&0x0E]) )
 
 
-/**
- * Load a pointer to the back fp back into the specified x86 register. The
- * bankreg must have been previously loaded with FPSCR.
- * NB: 12 bytes
- */
-static inline void load_xf_bank( int bankreg )
-{
-    NOT_r32( bankreg );
-    SHR_imm8_r32( (21 - 6), bankreg ); // Extract bit 21 then *64 for bank size
-    AND_imm8s_r32( 0x40, bankreg );    // Complete extraction
-    OP(0x8D); OP(0x44+(bankreg<<3)); OP(0x28+bankreg); OP(REG_OFFSET(fr)); // LEA [ebp+bankreg+disp], bankreg
-}
+#define push_fpul()  FLDF_sh4r(R_FPUL)
+#define pop_fpul()   FSTPF_sh4r(R_FPUL)
+#define push_fr(frm) FLDF_sh4r( REG_OFFSET(fr[0][(frm)^1]) )
+#define pop_fr(frm)  FSTPF_sh4r( REG_OFFSET(fr[0][(frm)^1]) )
+#define push_xf(frm) FLDF_sh4r( REG_OFFSET(fr[1][(frm)^1]) )
+#define pop_xf(frm)  FSTPF_sh4r( REG_OFFSET(fr[1][(frm)^1]) )
+#define push_dr(frm) FLDD_sh4r( REG_OFFSET(fr[0][(frm)&0x0E]) )
+#define pop_dr(frm)  FSTPD_sh4r( REG_OFFSET(fr[0][(frm)&0x0E]) )
+#define push_xdr(frm) FLDD_sh4r( REG_OFFSET(fr[1][(frm)&0x0E]) )
+#define pop_xdr(frm)  FSTPD_sh4r( REG_OFFSET(fr[1][(frm)&0x0E]) )
 
-/**
- * Update the fr_bank pointer based on the current fpscr value.
- */
-static inline void update_fr_bank( int fpscrreg )
-{
-    SHR_imm8_r32( (21 - 6), fpscrreg ); // Extract bit 21 then *64 for bank size
-    AND_imm8s_r32( 0x40, fpscrreg );    // Complete extraction
-    OP(0x8D); OP(0x44+(fpscrreg<<3)); OP(0x28+fpscrreg); OP(REG_OFFSET(fr)); // LEA [ebp+fpscrreg+disp], fpscrreg
-    store_spreg( fpscrreg, REG_OFFSET(fr_bank) );
-}
-/**
- * Push FPUL (as a 32-bit float) onto the FPU stack
- */
-static inline void push_fpul( )
-{
-    OP(0xD9); OP(0x45); OP(R_FPUL);
-}
 
-/**
- * Pop FPUL (as a 32-bit float) from the FPU stack
- */
-static inline void pop_fpul( )
-{
-    OP(0xD9); OP(0x5D); OP(R_FPUL);
-}
-
-/**
- * Push a 32-bit float onto the FPU stack, with bankreg previously loaded
- * with the location of the current fp bank.
- */
-static inline void push_fr( int bankreg, int frm ) 
-{
-    OP(0xD9); OP(0x40 + bankreg); OP((frm^1)<<2);  // FLD.S [bankreg + frm^1*4]
-}
-
-/**
- * Pop a 32-bit float from the FPU stack and store it back into the fp bank, 
- * with bankreg previously loaded with the location of the current fp bank.
- */
-static inline void pop_fr( int bankreg, int frm )
-{
-    OP(0xD9); OP(0x58 + bankreg); OP((frm^1)<<2); // FST.S [bankreg + frm^1*4]
-}
-
-/**
- * Push a 64-bit double onto the FPU stack, with bankreg previously loaded
- * with the location of the current fp bank.
- */
-static inline void push_dr( int bankreg, int frm )
-{
-    OP(0xDD); OP(0x40 + bankreg); OP(frm<<2); // FLD.D [bankreg + frm*4]
-}
-
-static inline void pop_dr( int bankreg, int frm )
-{
-    OP(0xDD); OP(0x58 + bankreg); OP(frm<<2); // FST.D [bankreg + frm*4]
-}
 
 /* Exception checks - Note that all exception checks will clobber EAX */
 
@@ -555,13 +498,13 @@ CMP/STR Rm, Rn {:
     load_reg( R_ECX, Rn );
     XOR_r32_r32( R_ECX, R_EAX );
     TEST_r8_r8( R_AL, R_AL );
-    JE_rel8(13, target1);
-    TEST_r8_r8( R_AH, R_AH ); // 2
-    JE_rel8(9, target2);
-    SHR_imm8_r32( 16, R_EAX ); // 3
-    TEST_r8_r8( R_AL, R_AL ); // 2
-    JE_rel8(2, target3);
-    TEST_r8_r8( R_AH, R_AH ); // 2
+    JE_rel8(target1);
+    TEST_r8_r8( R_AH, R_AH );
+    JE_rel8(target2);
+    SHR_imm8_r32( 16, R_EAX );
+    TEST_r8_r8( R_AL, R_AL );
+    JE_rel8(target3);
+    TEST_r8_r8( R_AH, R_AH );
     JMP_TARGET(target1);
     JMP_TARGET(target2);
     JMP_TARGET(target3);
@@ -595,9 +538,9 @@ DIV1 Rm, Rn {:
     RCL1_r32( R_EAX );
     SETC_r8( R_DL ); // Q'
     CMP_sh4r_r32( R_Q, R_ECX );
-    JE_rel8(5, mqequal);
+    JE_rel8(mqequal);
     ADD_sh4r_r32( REG_OFFSET(r[Rm]), R_EAX );
-    JMP_rel8(3, end);
+    JMP_rel8(end);
     JMP_TARGET(mqequal);
     SUB_sh4r_r32( REG_OFFSET(r[Rm]), R_EAX );
     JMP_TARGET(end);
@@ -690,7 +633,7 @@ MAC.L @Rm+, @Rn+ {:
 
     load_spreg( R_ECX, R_S );
     TEST_r32_r32(R_ECX, R_ECX);
-    JE_rel8( CALL_FUNC0_SIZE, nosat );
+    JE_rel8( nosat );
     call_func0( signsat48 );
     JMP_TARGET( nosat );
     sh4_x86.tstate = TSTATE_NONE;
@@ -728,21 +671,21 @@ MAC.W @Rm+, @Rn+ {:
 
     load_spreg( R_ECX, R_S );
     TEST_r32_r32( R_ECX, R_ECX );
-    JE_rel8( 47, nosat );
+    JE_rel8( nosat );
 
     ADD_r32_sh4r( R_EAX, R_MACL );  // 6
-    JNO_rel8( 51, end );            // 2
+    JNO_rel8( end );            // 2
     load_imm32( R_EDX, 1 );         // 5
     store_spreg( R_EDX, R_MACH );   // 6
-    JS_rel8( 13, positive );        // 2
+    JS_rel8( positive );        // 2
     load_imm32( R_EAX, 0x80000000 );// 5
     store_spreg( R_EAX, R_MACL );   // 6
-    JMP_rel8( 25, end2 );           // 2
+    JMP_rel8(end2);           // 2
 
     JMP_TARGET(positive);
     load_imm32( R_EAX, 0x7FFFFFFF );// 5
     store_spreg( R_EAX, R_MACL );   // 6
-    JMP_rel8( 12, end3);            // 2
+    JMP_rel8(end3);            // 2
 
     JMP_TARGET(nosat);
     ADD_r32_sh4r( R_EAX, R_MACL );  // 6
@@ -862,17 +805,17 @@ SHAD Rm, Rn {:
     load_reg( R_EAX, Rn );
     load_reg( R_ECX, Rm );
     CMP_imm32_r32( 0, R_ECX );
-    JGE_rel8(16, doshl);
+    JGE_rel8(doshl);
                     
     NEG_r32( R_ECX );      // 2
     AND_imm8_r8( 0x1F, R_CL ); // 3
-    JE_rel8( 4, emptysar);     // 2
+    JE_rel8(emptysar);     // 2
     SAR_r32_CL( R_EAX );       // 2
-    JMP_rel8(10, end);          // 2
+    JMP_rel8(end);          // 2
 
     JMP_TARGET(emptysar);
     SAR_imm8_r32(31, R_EAX );  // 3
-    JMP_rel8(5, end2);
+    JMP_rel8(end2);
 
     JMP_TARGET(doshl);
     AND_imm8_r8( 0x1F, R_CL ); // 3
@@ -886,17 +829,17 @@ SHLD Rm, Rn {:
     load_reg( R_EAX, Rn );
     load_reg( R_ECX, Rm );
     CMP_imm32_r32( 0, R_ECX );
-    JGE_rel8(15, doshl);
+    JGE_rel8(doshl);
 
     NEG_r32( R_ECX );      // 2
     AND_imm8_r8( 0x1F, R_CL ); // 3
-    JE_rel8( 4, emptyshr );
+    JE_rel8(emptyshr );
     SHR_r32_CL( R_EAX );       // 2
-    JMP_rel8(9, end);          // 2
+    JMP_rel8(end);          // 2
 
     JMP_TARGET(emptyshr);
     XOR_r32_r32( R_EAX, R_EAX );
-    JMP_rel8(5, end2);
+    JMP_rel8(end2);
 
     JMP_TARGET(doshl);
     AND_imm8_r8( 0x1F, R_CL ); // 3
@@ -1427,7 +1370,7 @@ BF disp {:
 	SLOTILLEGAL();
     } else {
 	sh4vma_t target = disp + pc + 4;
-	JT_rel8( EXIT_BLOCK_REL_SIZE(target), nottaken );
+	JT_rel8( nottaken );
 	exit_block_rel(target, pc+2 );
 	JMP_TARGET(nottaken);
 	return 2;
@@ -1440,7 +1383,7 @@ BF/S disp {:
 	sh4_x86.in_delay_slot = DELAY_PC;
 	if( UNTRANSLATABLE(pc+2) ) {
 	    load_imm32( R_EAX, pc + 4 - sh4_x86.block_start_pc );
-	    JT_rel8(6,nottaken);
+	    JT_rel8(nottaken);
 	    ADD_imm32_r32( disp, R_EAX );
 	    JMP_TARGET(nottaken);
 	    ADD_sh4r_r32( R_PC, R_EAX );
@@ -1555,7 +1498,7 @@ BT disp {:
 	SLOTILLEGAL();
     } else {
 	sh4vma_t target = disp + pc + 4;
-	JF_rel8( EXIT_BLOCK_REL_SIZE(target), nottaken );
+	JF_rel8( nottaken );
 	exit_block_rel(target, pc+2 );
 	JMP_TARGET(nottaken);
 	return 2;
@@ -1568,7 +1511,7 @@ BT/S disp {:
 	sh4_x86.in_delay_slot = DELAY_PC;
 	if( UNTRANSLATABLE(pc+2) ) {
 	    load_imm32( R_EAX, pc + 4 - sh4_x86.block_start_pc );
-	    JF_rel8(6,nottaken);
+	    JF_rel8(nottaken);
 	    ADD_imm32_r32( disp, R_EAX );
 	    JMP_TARGET(nottaken);
 	    ADD_sh4r_r32( R_PC, R_EAX );
@@ -1734,44 +1677,17 @@ FMOV FRm, FRn {:
      */
     check_fpuen();
     load_spreg( R_ECX, R_FPSCR );
-    load_fr_bank( R_EDX );
     TEST_imm32_r32( FPSCR_SZ, R_ECX );
-    JNE_rel8(8, doublesize);
-    load_fr( R_EDX, R_EAX, FRm ); // PR=0 branch
-    store_fr( R_EDX, R_EAX, FRn );
-    if( FRm&1 ) {
-	JMP_rel8(24, end);
-	JMP_TARGET(doublesize);
-	load_xf_bank( R_ECX ); 
-	load_fr( R_ECX, R_EAX, FRm-1 );
-	if( FRn&1 ) {
-	    load_fr( R_ECX, R_EDX, FRm );
-	    store_fr( R_ECX, R_EAX, FRn-1 );
-	    store_fr( R_ECX, R_EDX, FRn );
-	} else /* FRn&1 == 0 */ {
-	    load_fr( R_ECX, R_ECX, FRm );
-	    store_fr( R_EDX, R_EAX, FRn );
-	    store_fr( R_EDX, R_ECX, FRn+1 );
-	}
-	JMP_TARGET(end);
-    } else /* FRm&1 == 0 */ {
-	if( FRn&1 ) {
-	    JMP_rel8(24, end);
-	    load_xf_bank( R_ECX );
-	    load_fr( R_EDX, R_EAX, FRm );
-	    load_fr( R_EDX, R_EDX, FRm+1 );
-	    store_fr( R_ECX, R_EAX, FRn-1 );
-	    store_fr( R_ECX, R_EDX, FRn );
-	    JMP_TARGET(end);
-	} else /* FRn&1 == 0 */ {
-	    JMP_rel8(12, end);
-	    load_fr( R_EDX, R_EAX, FRm );
-	    load_fr( R_EDX, R_ECX, FRm+1 );
-	    store_fr( R_EDX, R_EAX, FRn );
-	    store_fr( R_EDX, R_ECX, FRn+1 );
-	    JMP_TARGET(end);
-	}
-    }
+    JNE_rel8(doublesize);
+    load_fr( R_EAX, FRm ); // PR=0 branch
+    store_fr( R_EAX, FRn );
+    JMP_rel8(end);
+    JMP_TARGET(doublesize);
+    load_dr0( R_EAX, FRm );
+    load_dr1( R_ECX, FRm );
+    store_dr0( R_EAX, FRn );
+    store_dr1( R_ECX, FRn );
+    JMP_TARGET(end);
     sh4_x86.tstate = TSTATE_NONE;
 :}
 FMOV FRm, @Rn {: 
@@ -1781,27 +1697,17 @@ FMOV FRm, @Rn {:
     MMU_TRANSLATE_WRITE( R_EAX );
     load_spreg( R_EDX, R_FPSCR );
     TEST_imm32_r32( FPSCR_SZ, R_EDX );
-    JNE_rel8(8 + MEM_WRITE_SIZE, doublesize);
-    load_fr_bank( R_EDX );
-    load_fr( R_EDX, R_ECX, FRm );
+    JNE_rel8(doublesize);
+
+    load_fr( R_ECX, FRm );
     MEM_WRITE_LONG( R_EAX, R_ECX ); // 12
-    if( FRm&1 ) {
-	JMP_rel8( 18 + MEM_WRITE_DOUBLE_SIZE, end );
-	JMP_TARGET(doublesize);
-	load_xf_bank( R_EDX );
-	load_fr( R_EDX, R_ECX, FRm&0x0E );
-	load_fr( R_EDX, R_EDX, FRm|0x01 );
-	MEM_WRITE_DOUBLE( R_EAX, R_ECX, R_EDX );
-	JMP_TARGET(end);
-    } else {
-	JMP_rel8( 9 + MEM_WRITE_DOUBLE_SIZE, end );
-	JMP_TARGET(doublesize);
-	load_fr_bank( R_EDX );
-	load_fr( R_EDX, R_ECX, FRm&0x0E );
-	load_fr( R_EDX, R_EDX, FRm|0x01 );
-	MEM_WRITE_DOUBLE( R_EAX, R_ECX, R_EDX );
-	JMP_TARGET(end);
-    }
+    JMP_rel8(end);
+
+    JMP_TARGET(doublesize);
+    load_dr0( R_ECX, FRm );
+    load_dr1( R_EDX, FRm );
+    MEM_WRITE_DOUBLE( R_EAX, R_ECX, R_EDX );
+    JMP_TARGET(end);
     sh4_x86.tstate = TSTATE_NONE;
 :}
 FMOV @Rm, FRn {:  
@@ -1811,28 +1717,17 @@ FMOV @Rm, FRn {:
     MMU_TRANSLATE_READ( R_EAX );
     load_spreg( R_EDX, R_FPSCR );
     TEST_imm32_r32( FPSCR_SZ, R_EDX );
-    JNE_rel8(8 + MEM_READ_SIZE, doublesize);
+    JNE_rel8(doublesize);
+
     MEM_READ_LONG( R_EAX, R_EAX );
-    load_fr_bank( R_EDX );
-    store_fr( R_EDX, R_EAX, FRn );
-    if( FRn&1 ) {
-	JMP_rel8(21 + MEM_READ_DOUBLE_SIZE, end);
-	JMP_TARGET(doublesize);
-	MEM_READ_DOUBLE( R_EAX, R_ECX, R_EAX );
-	load_spreg( R_EDX, R_FPSCR ); // assume read_long clobbered it
-	load_xf_bank( R_EDX );
-	store_fr( R_EDX, R_ECX, FRn&0x0E );
-	store_fr( R_EDX, R_EAX, FRn|0x01 );
-	JMP_TARGET(end);
-    } else {
-	JMP_rel8(9 + MEM_READ_DOUBLE_SIZE, end);
-	JMP_TARGET(doublesize);
-	MEM_READ_DOUBLE( R_EAX, R_ECX, R_EAX );
-	load_fr_bank( R_EDX );
-	store_fr( R_EDX, R_ECX, FRn&0x0E );
-	store_fr( R_EDX, R_EAX, FRn|0x01 );
-	JMP_TARGET(end);
-    }
+    store_fr( R_EAX, FRn );
+    JMP_rel8(end);
+
+    JMP_TARGET(doublesize);
+    MEM_READ_DOUBLE( R_EAX, R_ECX, R_EAX );
+    store_dr0( R_ECX, FRn );
+    store_dr1( R_EAX, FRn );
+    JMP_TARGET(end);
     sh4_x86.tstate = TSTATE_NONE;
 :}
 FMOV FRm, @-Rn {:  
@@ -1841,36 +1736,24 @@ FMOV FRm, @-Rn {:
     check_walign32( R_EAX );
     load_spreg( R_EDX, R_FPSCR );
     TEST_imm32_r32( FPSCR_SZ, R_EDX );
-    JNE_rel8(15 + MEM_WRITE_SIZE + MMU_TRANSLATE_SIZE, doublesize);
+    JNE_rel8(doublesize);
+
     ADD_imm8s_r32( -4, R_EAX );
     MMU_TRANSLATE_WRITE( R_EAX );
-    load_fr_bank( R_EDX );
-    load_fr( R_EDX, R_ECX, FRm );
+    load_fr( R_ECX, FRm );
     ADD_imm8s_sh4r(-4,REG_OFFSET(r[Rn]));
-    MEM_WRITE_LONG( R_EAX, R_ECX ); // 12
-    if( FRm&1 ) {
-	JMP_rel8( 25 + MEM_WRITE_DOUBLE_SIZE + MMU_TRANSLATE_SIZE, end );
-	JMP_TARGET(doublesize);
-	ADD_imm8s_r32(-8,R_EAX);
-	MMU_TRANSLATE_WRITE( R_EAX );
-	load_xf_bank( R_EDX );
-	load_fr( R_EDX, R_ECX, FRm&0x0E );
-	load_fr( R_EDX, R_EDX, FRm|0x01 );
-	ADD_imm8s_sh4r(-8,REG_OFFSET(r[Rn]));
-	MEM_WRITE_DOUBLE( R_EAX, R_ECX, R_EDX );
-	JMP_TARGET(end);
-    } else {
-	JMP_rel8( 16 + MEM_WRITE_DOUBLE_SIZE + MMU_TRANSLATE_SIZE, end );
-	JMP_TARGET(doublesize);
-	ADD_imm8s_r32(-8,R_EAX);
-	MMU_TRANSLATE_WRITE( R_EAX );
-	load_fr_bank( R_EDX );
-	load_fr( R_EDX, R_ECX, FRm&0x0E );
-	load_fr( R_EDX, R_EDX, FRm|0x01 );
-	ADD_imm8s_sh4r(-8,REG_OFFSET(r[Rn]));
-	MEM_WRITE_DOUBLE( R_EAX, R_ECX, R_EDX );
-	JMP_TARGET(end);
-    }
+    MEM_WRITE_LONG( R_EAX, R_ECX );
+    JMP_rel8(end);
+
+    JMP_TARGET(doublesize);
+    ADD_imm8s_r32(-8,R_EAX);
+    MMU_TRANSLATE_WRITE( R_EAX );
+    load_dr0( R_ECX, FRm );
+    load_dr1( R_EDX, FRm );
+    ADD_imm8s_sh4r(-8,REG_OFFSET(r[Rn]));
+    MEM_WRITE_DOUBLE( R_EAX, R_ECX, R_EDX );
+    JMP_TARGET(end);
+
     sh4_x86.tstate = TSTATE_NONE;
 :}
 FMOV @Rm+, FRn {:
@@ -1880,30 +1763,20 @@ FMOV @Rm+, FRn {:
     MMU_TRANSLATE_READ( R_EAX );
     load_spreg( R_EDX, R_FPSCR );
     TEST_imm32_r32( FPSCR_SZ, R_EDX );
-    JNE_rel8(12 + MEM_READ_SIZE, doublesize);
+    JNE_rel8(doublesize);
+
     ADD_imm8s_sh4r( 4, REG_OFFSET(r[Rm]) );
     MEM_READ_LONG( R_EAX, R_EAX );
-    load_fr_bank( R_EDX );
-    store_fr( R_EDX, R_EAX, FRn );
-    if( FRn&1 ) {
-	JMP_rel8(25 + MEM_READ_DOUBLE_SIZE, end);
-	JMP_TARGET(doublesize);
-	ADD_imm8s_sh4r( 8, REG_OFFSET(r[Rm]) );
-	MEM_READ_DOUBLE( R_EAX, R_ECX, R_EAX );
-	load_spreg( R_EDX, R_FPSCR ); // assume read_long clobbered it
-	load_xf_bank( R_EDX );
-	store_fr( R_EDX, R_ECX, FRn&0x0E );
-	store_fr( R_EDX, R_EAX, FRn|0x01 );
-	JMP_TARGET(end);
-    } else {
-	JMP_rel8(13 + MEM_READ_DOUBLE_SIZE, end);
-	ADD_imm8s_sh4r( 8, REG_OFFSET(r[Rm]) );
-	MEM_READ_DOUBLE( R_EAX, R_ECX, R_EAX );
-	load_fr_bank( R_EDX );
-	store_fr( R_EDX, R_ECX, FRn&0x0E );
-	store_fr( R_EDX, R_EAX, FRn|0x01 );
-	JMP_TARGET(end);
-    }
+    store_fr( R_EAX, FRn );
+    JMP_rel8(end);
+
+    JMP_TARGET(doublesize);
+    ADD_imm8s_sh4r( 8, REG_OFFSET(r[Rm]) );
+    MEM_READ_DOUBLE( R_EAX, R_ECX, R_EAX );
+    store_dr0( R_ECX, FRn );
+    store_dr1( R_EAX, FRn );
+    JMP_TARGET(end);
+
     sh4_x86.tstate = TSTATE_NONE;
 :}
 FMOV FRm, @(R0, Rn) {:  
@@ -1914,27 +1787,18 @@ FMOV FRm, @(R0, Rn) {:
     MMU_TRANSLATE_WRITE( R_EAX );
     load_spreg( R_EDX, R_FPSCR );
     TEST_imm32_r32( FPSCR_SZ, R_EDX );
-    JNE_rel8(8 + MEM_WRITE_SIZE, doublesize);
-    load_fr_bank( R_EDX );
-    load_fr( R_EDX, R_ECX, FRm );
+    JNE_rel8(doublesize);
+
+    load_fr( R_ECX, FRm );
     MEM_WRITE_LONG( R_EAX, R_ECX ); // 12
-    if( FRm&1 ) {
-	JMP_rel8( 18 + MEM_WRITE_DOUBLE_SIZE, end );
-	JMP_TARGET(doublesize);
-	load_xf_bank( R_EDX );
-	load_fr( R_EDX, R_ECX, FRm&0x0E );
-	load_fr( R_EDX, R_EDX, FRm|0x01 );
-	MEM_WRITE_DOUBLE( R_EAX, R_ECX, R_EDX );
-	JMP_TARGET(end);
-    } else {
-	JMP_rel8( 9 + MEM_WRITE_DOUBLE_SIZE, end );
-	JMP_TARGET(doublesize);
-	load_fr_bank( R_EDX );
-	load_fr( R_EDX, R_ECX, FRm&0x0E );
-	load_fr( R_EDX, R_EDX, FRm|0x01 );
-	MEM_WRITE_DOUBLE( R_EAX, R_ECX, R_EDX );
-	JMP_TARGET(end);
-    }
+    JMP_rel8(end);
+
+    JMP_TARGET(doublesize);
+    load_dr0( R_ECX, FRm );
+    load_dr1( R_EDX, FRm );
+    MEM_WRITE_DOUBLE( R_EAX, R_ECX, R_EDX );
+    JMP_TARGET(end);
+
     sh4_x86.tstate = TSTATE_NONE;
 :}
 FMOV @(R0, Rm), FRn {:  
@@ -1945,38 +1809,27 @@ FMOV @(R0, Rm), FRn {:
     MMU_TRANSLATE_READ( R_EAX );
     load_spreg( R_EDX, R_FPSCR );
     TEST_imm32_r32( FPSCR_SZ, R_EDX );
-    JNE_rel8(8 + MEM_READ_SIZE, doublesize);
+    JNE_rel8(doublesize);
+
     MEM_READ_LONG( R_EAX, R_EAX );
-    load_fr_bank( R_EDX );
-    store_fr( R_EDX, R_EAX, FRn );
-    if( FRn&1 ) {
-	JMP_rel8(21 + MEM_READ_DOUBLE_SIZE, end);
-	JMP_TARGET(doublesize);
-	MEM_READ_DOUBLE( R_EAX, R_ECX, R_EAX );
-	load_spreg( R_EDX, R_FPSCR ); // assume read_long clobbered it
-	load_xf_bank( R_EDX );
-	store_fr( R_EDX, R_ECX, FRn&0x0E );
-	store_fr( R_EDX, R_EAX, FRn|0x01 );
-	JMP_TARGET(end);
-    } else {
-	JMP_rel8(9 + MEM_READ_DOUBLE_SIZE, end);
-	JMP_TARGET(doublesize);
-	MEM_READ_DOUBLE( R_EAX, R_ECX, R_EAX );
-	load_fr_bank( R_EDX );
-	store_fr( R_EDX, R_ECX, FRn&0x0E );
-	store_fr( R_EDX, R_EAX, FRn|0x01 );
-	JMP_TARGET(end);
-    }
+    store_fr( R_EAX, FRn );
+    JMP_rel8(end);
+
+    JMP_TARGET(doublesize);
+    MEM_READ_DOUBLE( R_EAX, R_ECX, R_EAX );
+    store_dr0( R_ECX, FRn );
+    store_dr1( R_EAX, FRn );
+    JMP_TARGET(end);
+
     sh4_x86.tstate = TSTATE_NONE;
 :}
 FLDI0 FRn {:  /* IFF PR=0 */
     check_fpuen();
     load_spreg( R_ECX, R_FPSCR );
     TEST_imm32_r32( FPSCR_PR, R_ECX );
-    JNE_rel8(8, end);
+    JNE_rel8(end);
     XOR_r32_r32( R_EAX, R_EAX );
-    load_spreg( R_ECX, REG_OFFSET(fr_bank) );
-    store_fr( R_ECX, R_EAX, FRn );
+    store_fr( R_EAX, FRn );
     JMP_TARGET(end);
     sh4_x86.tstate = TSTATE_NONE;
 :}
@@ -1984,10 +1837,9 @@ FLDI1 FRn {:  /* IFF PR=0 */
     check_fpuen();
     load_spreg( R_ECX, R_FPSCR );
     TEST_imm32_r32( FPSCR_PR, R_ECX );
-    JNE_rel8(11, end);
+    JNE_rel8(end);
     load_imm32(R_EAX, 0x3F800000);
-    load_spreg( R_ECX, REG_OFFSET(fr_bank) );
-    store_fr( R_ECX, R_EAX, FRn );
+    store_fr( R_EAX, FRn );
     JMP_TARGET(end);
     sh4_x86.tstate = TSTATE_NONE;
 :}
@@ -1995,43 +1847,41 @@ FLDI1 FRn {:  /* IFF PR=0 */
 FLOAT FPUL, FRn {:  
     check_fpuen();
     load_spreg( R_ECX, R_FPSCR );
-    load_spreg(R_EDX, REG_OFFSET(fr_bank));
     FILD_sh4r(R_FPUL);
     TEST_imm32_r32( FPSCR_PR, R_ECX );
-    JNE_rel8(5, doubleprec);
-    pop_fr( R_EDX, FRn );
-    JMP_rel8(3, end);
+    JNE_rel8(doubleprec);
+    pop_fr( FRn );
+    JMP_rel8(end);
     JMP_TARGET(doubleprec);
-    pop_dr( R_EDX, FRn );
+    pop_dr( FRn );
     JMP_TARGET(end);
     sh4_x86.tstate = TSTATE_NONE;
 :}
 FTRC FRm, FPUL {:  
     check_fpuen();
     load_spreg( R_ECX, R_FPSCR );
-    load_fr_bank( R_EDX );
     TEST_imm32_r32( FPSCR_PR, R_ECX );
-    JNE_rel8(5, doubleprec);
-    push_fr( R_EDX, FRm );
-    JMP_rel8(3, doop);
+    JNE_rel8(doubleprec);
+    push_fr( FRm );
+    JMP_rel8(doop);
     JMP_TARGET(doubleprec);
-    push_dr( R_EDX, FRm );
+    push_dr( FRm );
     JMP_TARGET( doop );
     load_imm32( R_ECX, (uint32_t)&max_int );
     FILD_r32ind( R_ECX );
     FCOMIP_st(1);
-    JNA_rel8( 32, sat );
+    JNA_rel8( sat );
     load_imm32( R_ECX, (uint32_t)&min_int );  // 5
     FILD_r32ind( R_ECX );           // 2
     FCOMIP_st(1);                   // 2
-    JAE_rel8( 21, sat2 );            // 2
+    JAE_rel8( sat2 );            // 2
     load_imm32( R_EAX, (uint32_t)&save_fcw );
     FNSTCW_r32ind( R_EAX );
     load_imm32( R_EDX, (uint32_t)&trunc_fcw );
     FLDCW_r32ind( R_EDX );
     FISTP_sh4r(R_FPUL);             // 3
     FLDCW_r32ind( R_EAX );
-    JMP_rel8( 9, end );             // 2
+    JMP_rel8(end);             // 2
 
     JMP_TARGET(sat);
     JMP_TARGET(sat2);
@@ -2043,25 +1893,22 @@ FTRC FRm, FPUL {:
 :}
 FLDS FRm, FPUL {:  
     check_fpuen();
-    load_fr_bank( R_ECX );
-    load_fr( R_ECX, R_EAX, FRm );
+    load_fr( R_EAX, FRm );
     store_spreg( R_EAX, R_FPUL );
     sh4_x86.tstate = TSTATE_NONE;
 :}
 FSTS FPUL, FRn {:  
     check_fpuen();
-    load_fr_bank( R_ECX );
     load_spreg( R_EAX, R_FPUL );
-    store_fr( R_ECX, R_EAX, FRn );
+    store_fr( R_EAX, FRn );
     sh4_x86.tstate = TSTATE_NONE;
 :}
 FCNVDS FRm, FPUL {:  
     check_fpuen();
     load_spreg( R_ECX, R_FPSCR );
     TEST_imm32_r32( FPSCR_PR, R_ECX );
-    JE_rel8(9, end); // only when PR=1
-    load_fr_bank( R_ECX );
-    push_dr( R_ECX, FRm );
+    JE_rel8(end); // only when PR=1
+    push_dr( FRm );
     pop_fpul();
     JMP_TARGET(end);
     sh4_x86.tstate = TSTATE_NONE;
@@ -2070,10 +1917,9 @@ FCNVSD FPUL, FRn {:
     check_fpuen();
     load_spreg( R_ECX, R_FPSCR );
     TEST_imm32_r32( FPSCR_PR, R_ECX );
-    JE_rel8(9, end); // only when PR=1
-    load_fr_bank( R_ECX );
+    JE_rel8(end); // only when PR=1
     push_fpul();
-    pop_dr( R_ECX, FRn );
+    pop_dr( FRn );
     JMP_TARGET(end);
     sh4_x86.tstate = TSTATE_NONE;
 :}
@@ -2082,17 +1928,16 @@ FCNVSD FPUL, FRn {:
 FABS FRn {:  
     check_fpuen();
     load_spreg( R_ECX, R_FPSCR );
-    load_fr_bank( R_EDX );
     TEST_imm32_r32( FPSCR_PR, R_ECX );
-    JNE_rel8(10, doubleprec);
-    push_fr(R_EDX, FRn); // 3
+    JNE_rel8(doubleprec);
+    push_fr(FRn); // 6
     FABS_st0(); // 2
-    pop_fr( R_EDX, FRn); //3
-    JMP_rel8(8,end); // 2
+    pop_fr(FRn); //6
+    JMP_rel8(end); // 2
     JMP_TARGET(doubleprec);
-    push_dr(R_EDX, FRn);
+    push_dr(FRn);
     FABS_st0();
-    pop_dr(R_EDX, FRn);
+    pop_dr(FRn);
     JMP_TARGET(end);
     sh4_x86.tstate = TSTATE_NONE;
 :}
@@ -2100,18 +1945,17 @@ FADD FRm, FRn {:
     check_fpuen();
     load_spreg( R_ECX, R_FPSCR );
     TEST_imm32_r32( FPSCR_PR, R_ECX );
-    load_fr_bank( R_EDX );
-    JNE_rel8(13,doubleprec);
-    push_fr(R_EDX, FRm);
-    push_fr(R_EDX, FRn);
+    JNE_rel8(doubleprec);
+    push_fr(FRm);
+    push_fr(FRn);
     FADDP_st(1);
-    pop_fr(R_EDX, FRn);
-    JMP_rel8(11,end);
+    pop_fr(FRn);
+    JMP_rel8(end);
     JMP_TARGET(doubleprec);
-    push_dr(R_EDX, FRm);
-    push_dr(R_EDX, FRn);
+    push_dr(FRm);
+    push_dr(FRn);
     FADDP_st(1);
-    pop_dr(R_EDX, FRn);
+    pop_dr(FRn);
     JMP_TARGET(end);
     sh4_x86.tstate = TSTATE_NONE;
 :}
@@ -2119,41 +1963,39 @@ FDIV FRm, FRn {:
     check_fpuen();
     load_spreg( R_ECX, R_FPSCR );
     TEST_imm32_r32( FPSCR_PR, R_ECX );
-    load_fr_bank( R_EDX );
-    JNE_rel8(13, doubleprec);
-    push_fr(R_EDX, FRn);
-    push_fr(R_EDX, FRm);
+    JNE_rel8(doubleprec);
+    push_fr(FRn);
+    push_fr(FRm);
     FDIVP_st(1);
-    pop_fr(R_EDX, FRn);
-    JMP_rel8(11, end);
+    pop_fr(FRn);
+    JMP_rel8(end);
     JMP_TARGET(doubleprec);
-    push_dr(R_EDX, FRn);
-    push_dr(R_EDX, FRm);
+    push_dr(FRn);
+    push_dr(FRm);
     FDIVP_st(1);
-    pop_dr(R_EDX, FRn);
+    pop_dr(FRn);
     JMP_TARGET(end);
     sh4_x86.tstate = TSTATE_NONE;
 :}
 FMAC FR0, FRm, FRn {:  
     check_fpuen();
     load_spreg( R_ECX, R_FPSCR );
-    load_spreg( R_EDX, REG_OFFSET(fr_bank));
     TEST_imm32_r32( FPSCR_PR, R_ECX );
-    JNE_rel8(18, doubleprec);
-    push_fr( R_EDX, 0 );
-    push_fr( R_EDX, FRm );
+    JNE_rel8(doubleprec);
+    push_fr( 0 );
+    push_fr( FRm );
     FMULP_st(1);
-    push_fr( R_EDX, FRn );
+    push_fr( FRn );
     FADDP_st(1);
-    pop_fr( R_EDX, FRn );
-    JMP_rel8(16, end);
+    pop_fr( FRn );
+    JMP_rel8(end);
     JMP_TARGET(doubleprec);
-    push_dr( R_EDX, 0 );
-    push_dr( R_EDX, FRm );
+    push_dr( 0 );
+    push_dr( FRm );
     FMULP_st(1);
-    push_dr( R_EDX, FRn );
+    push_dr( FRn );
     FADDP_st(1);
-    pop_dr( R_EDX, FRn );
+    pop_dr( FRn );
     JMP_TARGET(end);
     sh4_x86.tstate = TSTATE_NONE;
 :}
@@ -2162,18 +2004,17 @@ FMUL FRm, FRn {:
     check_fpuen();
     load_spreg( R_ECX, R_FPSCR );
     TEST_imm32_r32( FPSCR_PR, R_ECX );
-    load_fr_bank( R_EDX );
-    JNE_rel8(13, doubleprec);
-    push_fr(R_EDX, FRm);
-    push_fr(R_EDX, FRn);
+    JNE_rel8(doubleprec);
+    push_fr(FRm);
+    push_fr(FRn);
     FMULP_st(1);
-    pop_fr(R_EDX, FRn);
-    JMP_rel8(11, end);
+    pop_fr(FRn);
+    JMP_rel8(end);
     JMP_TARGET(doubleprec);
-    push_dr(R_EDX, FRm);
-    push_dr(R_EDX, FRn);
+    push_dr(FRm);
+    push_dr(FRn);
     FMULP_st(1);
-    pop_dr(R_EDX, FRn);
+    pop_dr(FRn);
     JMP_TARGET(end);
     sh4_x86.tstate = TSTATE_NONE;
 :}
@@ -2181,16 +2022,15 @@ FNEG FRn {:
     check_fpuen();
     load_spreg( R_ECX, R_FPSCR );
     TEST_imm32_r32( FPSCR_PR, R_ECX );
-    load_fr_bank( R_EDX );
-    JNE_rel8(10, doubleprec);
-    push_fr(R_EDX, FRn);
+    JNE_rel8(doubleprec);
+    push_fr(FRn);
     FCHS_st0();
-    pop_fr(R_EDX, FRn);
-    JMP_rel8(8, end);
+    pop_fr(FRn);
+    JMP_rel8(end);
     JMP_TARGET(doubleprec);
-    push_dr(R_EDX, FRn);
+    push_dr(FRn);
     FCHS_st0();
-    pop_dr(R_EDX, FRn);
+    pop_dr(FRn);
     JMP_TARGET(end);
     sh4_x86.tstate = TSTATE_NONE;
 :}
@@ -2198,13 +2038,12 @@ FSRRA FRn {:
     check_fpuen();
     load_spreg( R_ECX, R_FPSCR );
     TEST_imm32_r32( FPSCR_PR, R_ECX );
-    load_fr_bank( R_EDX );
-    JNE_rel8(12, end); // PR=0 only
+    JNE_rel8(end); // PR=0 only
     FLD1_st0();
-    push_fr(R_EDX, FRn);
+    push_fr(FRn);
     FSQRT_st0();
     FDIVP_st(1);
-    pop_fr(R_EDX, FRn);
+    pop_fr(FRn);
     JMP_TARGET(end);
     sh4_x86.tstate = TSTATE_NONE;
 :}
@@ -2212,16 +2051,15 @@ FSQRT FRn {:
     check_fpuen();
     load_spreg( R_ECX, R_FPSCR );
     TEST_imm32_r32( FPSCR_PR, R_ECX );
-    load_fr_bank( R_EDX );
-    JNE_rel8(10, doubleprec);
-    push_fr(R_EDX, FRn);
+    JNE_rel8(doubleprec);
+    push_fr(FRn);
     FSQRT_st0();
-    pop_fr(R_EDX, FRn);
-    JMP_rel8(8, end);
+    pop_fr(FRn);
+    JMP_rel8(end);
     JMP_TARGET(doubleprec);
-    push_dr(R_EDX, FRn);
+    push_dr(FRn);
     FSQRT_st0();
-    pop_dr(R_EDX, FRn);
+    pop_dr(FRn);
     JMP_TARGET(end);
     sh4_x86.tstate = TSTATE_NONE;
 :}
@@ -2229,18 +2067,17 @@ FSUB FRm, FRn {:
     check_fpuen();
     load_spreg( R_ECX, R_FPSCR );
     TEST_imm32_r32( FPSCR_PR, R_ECX );
-    load_fr_bank( R_EDX );
-    JNE_rel8(13, doubleprec);
-    push_fr(R_EDX, FRn);
-    push_fr(R_EDX, FRm);
+    JNE_rel8(doubleprec);
+    push_fr(FRn);
+    push_fr(FRm);
     FSUBP_st(1);
-    pop_fr(R_EDX, FRn);
-    JMP_rel8(11, end);
+    pop_fr(FRn);
+    JMP_rel8(end);
     JMP_TARGET(doubleprec);
-    push_dr(R_EDX, FRn);
-    push_dr(R_EDX, FRm);
+    push_dr(FRn);
+    push_dr(FRm);
     FSUBP_st(1);
-    pop_dr(R_EDX, FRn);
+    pop_dr(FRn);
     JMP_TARGET(end);
     sh4_x86.tstate = TSTATE_NONE;
 :}
@@ -2249,14 +2086,13 @@ FCMP/EQ FRm, FRn {:
     check_fpuen();
     load_spreg( R_ECX, R_FPSCR );
     TEST_imm32_r32( FPSCR_PR, R_ECX );
-    load_fr_bank( R_EDX );
-    JNE_rel8(8, doubleprec);
-    push_fr(R_EDX, FRm);
-    push_fr(R_EDX, FRn);
-    JMP_rel8(6, end);
+    JNE_rel8(doubleprec);
+    push_fr(FRm);
+    push_fr(FRn);
+    JMP_rel8(end);
     JMP_TARGET(doubleprec);
-    push_dr(R_EDX, FRm);
-    push_dr(R_EDX, FRn);
+    push_dr(FRm);
+    push_dr(FRn);
     JMP_TARGET(end);
     FCOMIP_st(1);
     SETE_t();
@@ -2267,14 +2103,13 @@ FCMP/GT FRm, FRn {:
     check_fpuen();
     load_spreg( R_ECX, R_FPSCR );
     TEST_imm32_r32( FPSCR_PR, R_ECX );
-    load_fr_bank( R_EDX );
-    JNE_rel8(8, doubleprec);
-    push_fr(R_EDX, FRm);
-    push_fr(R_EDX, FRn);
-    JMP_rel8(6, end);
+    JNE_rel8(doubleprec);
+    push_fr(FRm);
+    push_fr(FRn);
+    JMP_rel8(end);
     JMP_TARGET(doubleprec);
-    push_dr(R_EDX, FRm);
-    push_dr(R_EDX, FRn);
+    push_dr(FRm);
+    push_dr(FRn);
     JMP_TARGET(end);
     FCOMIP_st(1);
     SETA_t();
@@ -2286,9 +2121,8 @@ FSCA FPUL, FRn {:
     check_fpuen();
     load_spreg( R_ECX, R_FPSCR );
     TEST_imm32_r32( FPSCR_PR, R_ECX );
-    JNE_rel8( CALL_FUNC2_SIZE + 9, doubleprec );
-    load_fr_bank( R_ECX );
-    ADD_imm8s_r32( (FRn&0x0E)<<2, R_ECX );
+    JNE_rel8(doubleprec );
+    LEA_sh4r_r32( REG_OFFSET(fr[0][FRn&0x0E]), R_ECX );
     load_spreg( R_EDX, R_FPUL );
     call_func2( sh4_fsca, R_EDX, R_ECX );
     JMP_TARGET(doubleprec);
@@ -2298,25 +2132,24 @@ FIPR FVm, FVn {:
     check_fpuen();
     load_spreg( R_ECX, R_FPSCR );
     TEST_imm32_r32( FPSCR_PR, R_ECX );
-    JNE_rel8(44, doubleprec);
+    JNE_rel8( doubleprec);
     
-    load_fr_bank( R_ECX );
-    push_fr( R_ECX, FVm<<2 );
-    push_fr( R_ECX, FVn<<2 );
+    push_fr( FVm<<2 );
+    push_fr( FVn<<2 );
     FMULP_st(1);
-    push_fr( R_ECX, (FVm<<2)+1);
-    push_fr( R_ECX, (FVn<<2)+1);
-    FMULP_st(1);
-    FADDP_st(1);
-    push_fr( R_ECX, (FVm<<2)+2);
-    push_fr( R_ECX, (FVn<<2)+2);
+    push_fr( (FVm<<2)+1);
+    push_fr( (FVn<<2)+1);
     FMULP_st(1);
     FADDP_st(1);
-    push_fr( R_ECX, (FVm<<2)+3);
-    push_fr( R_ECX, (FVn<<2)+3);
+    push_fr( (FVm<<2)+2);
+    push_fr( (FVn<<2)+2);
     FMULP_st(1);
     FADDP_st(1);
-    pop_fr( R_ECX, (FVn<<2)+3);
+    push_fr( (FVm<<2)+3);
+    push_fr( (FVn<<2)+3);
+    FMULP_st(1);
+    FADDP_st(1);
+    pop_fr( (FVn<<2)+3);
     JMP_TARGET(doubleprec);
     sh4_x86.tstate = TSTATE_NONE;
 :}
@@ -2324,11 +2157,9 @@ FTRV XMTRX, FVn {:
     check_fpuen();
     load_spreg( R_ECX, R_FPSCR );
     TEST_imm32_r32( FPSCR_PR, R_ECX );
-    JNE_rel8( 18 + CALL_FUNC2_SIZE, doubleprec );
-    load_fr_bank( R_EDX );                 // 3
-    ADD_imm8s_r32( FVn<<4, R_EDX );        // 3
-    load_xf_bank( R_ECX );                 // 12
-    call_func2( sh4_ftrv, R_EDX, R_ECX );  // 12
+    JNE_rel8( doubleprec );
+    LEA_sh4r_r32( REG_OFFSET(fr[0][FVn<<2]), R_EDX );
+    call_func1( sh4_ftrv, R_EDX );  // 12
     JMP_TARGET(doubleprec);
     sh4_x86.tstate = TSTATE_NONE;
 :}
@@ -2338,7 +2169,7 @@ FRCHG {:
     load_spreg( R_ECX, R_FPSCR );
     XOR_imm32_r32( FPSCR_FR, R_ECX );
     store_spreg( R_ECX, R_FPSCR );
-    update_fr_bank( R_ECX );
+    call_func0( sh4_switch_fr_banks );
     sh4_x86.tstate = TSTATE_NONE;
 :}
 FSCHG {:  
@@ -2490,8 +2321,7 @@ LDC.L @Rm+, Rn_BANK {:
 LDS Rm, FPSCR {:
     check_fpuen();
     load_reg( R_EAX, Rm );
-    store_spreg( R_EAX, R_FPSCR );
-    update_fr_bank( R_EAX );
+    call_func1( sh4_write_fpscr, R_EAX );
     sh4_x86.tstate = TSTATE_NONE;
 :}
 LDS.L @Rm+, FPSCR {:  
@@ -2501,8 +2331,7 @@ LDS.L @Rm+, FPSCR {:
     MMU_TRANSLATE_READ( R_EAX );
     ADD_imm8s_sh4r( 4, REG_OFFSET(r[Rm]) );
     MEM_READ_LONG( R_EAX, R_EAX );
-    store_spreg( R_EAX, R_FPSCR );
-    update_fr_bank( R_EAX );
+    call_func1( sh4_write_fpscr, R_EAX );
     sh4_x86.tstate = TSTATE_NONE;
 :}
 LDS Rm, FPUL {:  
@@ -2570,7 +2399,7 @@ PREF @Rn {:
     MOV_r32_r32( R_EAX, R_ECX );
     AND_imm32_r32( 0xFC000000, R_EAX );
     CMP_imm32_r32( 0xE0000000, R_EAX );
-    JNE_rel8(8+CALL_FUNC1_SIZE, end);
+    JNE_rel8(end);
     call_func1( sh4_flush_store_queue, R_ECX );
     TEST_r32_r32( R_EAX, R_EAX );
     JE_exc(-1);

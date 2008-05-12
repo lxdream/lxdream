@@ -18,8 +18,6 @@
  * GNU General Public License for more details.
  */
 
-#define GL_GLEXT_PROTOTYPES 1
-
 #include "lxdream.h"
 #include "display.h"
 #include "pvr2/glutil.h"
@@ -107,7 +105,7 @@ gboolean glsl_load_shaders( const char *vertex_src, const char *fragment_src )
     return pok;
 }
 
-void glsl_enable_shader(gboolean en)
+void glsl_enable_shaders(gboolean en)
 {
     if( glsl_program != 0 ) {
 	if( en ) {
@@ -200,7 +198,7 @@ gboolean glsl_load_shaders( const char *vertex_src, const char *fragment_src )
 }
 
 
-void glsl_enable_shader(gboolean en)
+void glsl_enable_shaders(gboolean en)
 {
     if( glsl_program != 0 ) {
 	if( en ) {
@@ -231,4 +229,7 @@ void glsl_unload_shaders()
 {
 }
 
+void glsl_enable_shaders( gboolean enable )
+{
+}
 #endif

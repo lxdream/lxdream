@@ -23,6 +23,7 @@
 #include "display.h"
 #include "dckeysyms.h"
 #include "drivers/video_gl.h"
+#include "drivers/joy_linux.h"
 #include "pvr2/pvr2.h"
 #include "gtkui/gtkui.h"
 
@@ -120,7 +121,7 @@ int video_height = 480;
 
 gboolean video_gtk_init();
 void video_gtk_shutdown();
-gboolean video_gtk_display_blank( uint32_t colour );
+void video_gtk_display_blank( uint32_t colour );
 uint16_t video_gtk_resolve_keysym( const gchar *keysym );
 uint16_t video_gtk_keycode_to_dckeysym(uint16_t keycode);
 
@@ -304,7 +305,7 @@ gboolean video_gtk_init()
     return TRUE;
 }
 
-gboolean video_gtk_display_blank( uint32_t colour )
+void video_gtk_display_blank( uint32_t colour )
 {
     GdkGC *gc = gdk_gc_new(gtk_video_drawable->window);
     GdkColor color = {0, ((colour>>16)&0xFF)*257, ((colour>>8)&0xFF)*257, ((colour)&0xFF)*257 };

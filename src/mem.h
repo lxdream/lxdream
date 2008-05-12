@@ -69,6 +69,13 @@ void mem_reset( void );
 void mem_copy_from_sh4( sh4ptr_t dest, sh4addr_t src, size_t count );
 void mem_copy_to_sh4( sh4addr_t dest, sh4ptr_t src, size_t count );
 
+/**
+ * Write a long value directly to SH4-addressable memory.
+ * @param dest a valid, writable physical memory address, relative to the SH4
+ * @param value the value to write.
+ */
+void mem_write_long( sh4addr_t dest, uint32_t value );
+
 #define ENABLE_DEBUG_MODE 1
 
 typedef enum { BREAK_NONE=0, BREAK_ONESHOT=1, BREAK_KEEP=2 } breakpoint_type_t;

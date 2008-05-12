@@ -853,23 +853,23 @@ LDC Rm, SPC {:
 :}
 STS FPUL, Rn {: 
     CHECKFPUEN();
-    sh4r.r[Rn] = sh4r.fpul; 
+    sh4r.r[Rn] = FPULi; 
 :}
 STS.L FPUL, @-Rn {:
     CHECKFPUEN();
     CHECKWALIGN32( sh4r.r[Rn] );
-    MEM_WRITE_LONG( sh4r.r[Rn]-4, sh4r.fpul );
+    MEM_WRITE_LONG( sh4r.r[Rn]-4, FPULi );
     sh4r.r[Rn] -= 4;
 :}
 LDS.L @Rm+, FPUL {:
     CHECKFPUEN();
     CHECKRALIGN32( sh4r.r[Rm] );
-    MEM_READ_LONG(sh4r.r[Rm], sh4r.fpul);
+    MEM_READ_LONG(sh4r.r[Rm], FPULi);
     sh4r.r[Rm] +=4;
 :}
 LDS Rm, FPUL {:
     CHECKFPUEN();
-    sh4r.fpul = sh4r.r[Rm]; 
+    FPULi = sh4r.r[Rm]; 
 :}
 STS FPSCR, Rn {: 
     CHECKFPUEN();
@@ -884,14 +884,13 @@ STS.L FPSCR, @-Rn {:
 LDS.L @Rm+, FPSCR {:
     CHECKFPUEN();
     CHECKRALIGN32( sh4r.r[Rm] );
-    MEM_READ_LONG(sh4r.r[Rm], sh4r.fpscr);
+    MEM_READ_LONG(sh4r.r[Rm], tmp);
     sh4r.r[Rm] +=4;
-    sh4r.fr_bank = &sh4r.fr[(sh4r.fpscr&FPSCR_FR)>>21][0];
+    sh4_write_fpscr( tmp );
 :}
 LDS Rm, FPSCR {: 
     CHECKFPUEN();
-    sh4r.fpscr = sh4r.r[Rm]; 
-    sh4r.fr_bank = &sh4r.fr[(sh4r.fpscr&FPSCR_FR)>>21][0];
+    sh4_write_fpscr( sh4r.r[Rm] );
 :}
 STC DBR, Rn {: CHECKPRIV(); sh4r.r[Rn] = sh4r.dbr; :}
 STC.L DBR, @-Rn {:
@@ -1106,7 +1105,7 @@ FMAC FR0, FRm, FRn {:
 FRCHG {: 
     CHECKFPUEN(); 
     sh4r.fpscr ^= FPSCR_FR; 
-    sh4r.fr_bank = &sh4r.fr[(sh4r.fpscr&FPSCR_FR)>>21][0];
+    sh4_switch_fr_banks();
 :}
 FSCHG {: CHECKFPUEN(); sh4r.fpscr ^= FPSCR_SZ; :}
 FCNVSD FPUL, FRn {:
@@ -1153,20 +1152,7 @@ FSCA FPUL, FRn {:
 FTRV XMTRX, FVn {:
     CHECKFPUEN();
     if( !IS_FPU_DOUBLEPREC() ) {
-	sh4_ftrv(&(DRF(FVn<<1)), &sh4r.fr[((~sh4r.fpscr)&FPSCR_FR)>>21][0]);
-	/*
-        tmp = FVn<<2;
-	float *xf = &sh4r.fr[((~sh4r.fpscr)&FPSCR_FR)>>21][0];
-        float fv[4] = { FR(tmp), FR(tmp+1), FR(tmp+2), FR(tmp+3) };
-        FR(tmp) = xf[1] * fv[0] + xf[5]*fv[1] +
-	    xf[9]*fv[2] + xf[13]*fv[3];
-        FR(tmp+1) = xf[0] * fv[0] + xf[4]*fv[1] +
-	    xf[8]*fv[2] + xf[12]*fv[3];
-        FR(tmp+2) = xf[3] * fv[0] + xf[7]*fv[1] +
-	    xf[11]*fv[2] + xf[15]*fv[3];
-        FR(tmp+3) = xf[2] * fv[0] + xf[6]*fv[1] +
-	    xf[10]*fv[2] + xf[14]*fv[3];
-	*/
+	sh4_ftrv(&(DRF(FVn<<1)) );
     }
 :}
 UNDEF {:

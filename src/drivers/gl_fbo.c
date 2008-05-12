@@ -38,9 +38,9 @@
 static render_buffer_t gl_fbo_create_render_buffer( uint32_t width, uint32_t height );
 static void gl_fbo_destroy_render_buffer( render_buffer_t buffer );
 static gboolean gl_fbo_set_render_target( render_buffer_t buffer );
-static gboolean gl_fbo_display_render_buffer( render_buffer_t buffer );
+static void gl_fbo_display_render_buffer( render_buffer_t buffer );
 static void gl_fbo_load_frame_buffer( frame_buffer_t frame, render_buffer_t buffer );
-static gboolean gl_fbo_display_blank( uint32_t colour );
+static void gl_fbo_display_blank( uint32_t colour );
 static gboolean gl_fbo_read_render_buffer( unsigned char *target, render_buffer_t buffer, int rowstride, int format );
 
 extern uint32_t video_width, video_height;
@@ -241,7 +241,6 @@ static gboolean gl_fbo_set_render_target( render_buffer_t buffer )
     gl_fbo_attach_texture( fb, buffer->buf_id );
     /* setup the gl context */
     glViewport( 0, 0, buffer->width, buffer->height );
-    glsl_enable_shader(TRUE);
     
     return TRUE;
 }
@@ -250,29 +249,25 @@ static gboolean gl_fbo_set_render_target( render_buffer_t buffer )
  * Render the texture holding the given buffer to the front window
  * buffer.
  */
-static gboolean gl_fbo_display_render_buffer( render_buffer_t buffer )
+static void gl_fbo_display_render_buffer( render_buffer_t buffer )
 {
     glFinish();
     gl_fbo_detach();
-    glsl_enable_shader(FALSE);
     gl_display_render_buffer( buffer );
-    return TRUE;
 }
 
 static void gl_fbo_load_frame_buffer( frame_buffer_t frame, render_buffer_t buffer )
 {
     glFinish();
     gl_fbo_detach();
-    glsl_enable_shader(FALSE);
     gl_load_frame_buffer( frame, buffer->buf_id );
 }
 
-static gboolean gl_fbo_display_blank( uint32_t colour )
+static void gl_fbo_display_blank( uint32_t colour )
 {
     glFinish();
     gl_fbo_detach();
-    glsl_enable_shader(FALSE);
-    return gl_display_blank( colour );
+    gl_display_blank( colour );
 }
 
 void gl_fbo_detach()

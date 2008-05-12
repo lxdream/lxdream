@@ -66,8 +66,11 @@ struct sh4_registers {
     uint32_t r[16];
     uint32_t sr, pr, pc, fpscr;
     uint32_t t, m, q, s; /* really boolean - 0 or 1 */
-    int32_t fpul;
-    float *fr_bank;
+    union {
+	int32_t i;
+	float f;
+    } fpul;
+    float *pad;
     float fr[2][16];
     uint64_t mac;
     uint32_t gbr, ssr, spc, sgr, dbr, vbr;

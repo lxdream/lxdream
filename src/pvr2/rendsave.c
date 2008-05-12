@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <time.h>
+#include <string.h>
 #include "pvr2/pvr2.h"
 #include "dreamcast.h"
 

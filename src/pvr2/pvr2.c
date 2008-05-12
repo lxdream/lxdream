@@ -25,6 +25,7 @@
 #include "asic.h"
 #include "clock.h"
 #include "pvr2/pvr2.h"
+#include "pvr2/scene.h"
 #include "sh4/sh4.h"
 #define MMIO_IMPL
 #include "pvr2/pvr2mmio.h"

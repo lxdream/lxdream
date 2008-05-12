@@ -22,15 +22,16 @@
 #include <assert.h>
 #include "dream.h"
 #include "dreamcast.h"
-#include "sh4/sh4core.h"
-#include "sh4/sh4mmio.h"
-#include "sh4/intc.h"
-#include "sh4/xltcache.h"
-#include "sh4/sh4stat.h"
-#include "sh4/sh4trans.h"
 #include "mem.h"
 #include "clock.h"
+#include "eventq.h"
 #include "syscall.h"
+#include "sh4/intc.h"
+#include "sh4/sh4core.h"
+#include "sh4/sh4mmio.h"
+#include "sh4/sh4stat.h"
+#include "sh4/sh4trans.h"
+#include "sh4/xltcache.h"
 
 void sh4_init( void );
 void sh4_xlat_init( void );
@@ -61,7 +62,7 @@ void sh4_set_use_xlat( gboolean use )
 #ifdef SH4_TRANSLATOR
     if( use ) {
 	xlat_cache_init();
-	sh4_x86_init();
+	sh4_translate_init();
 	sh4_module.run_time_slice = sh4_xlat_run_slice;
     } else {
 	sh4_module.run_time_slice = sh4_run_slice;
@@ -106,7 +107,6 @@ void sh4_reset(void)
     sh4r.vbr   = 0x00000000;
     sh4r.fpscr = 0x00040001;
     sh4r.sr    = 0x700000F0;
-    sh4r.fr_bank = &sh4r.fr[0][0];
 
     /* Mem reset will do this, but if we want to reset _just_ the SH4... */
     MMIO_WRITE( MMU, EXPEVT, EXC_POWER_RESET );
@@ -151,7 +151,6 @@ int sh4_load_state( FILE * f )
 	xlat_flush_cache();
     }
     fread( &sh4r, sizeof(sh4r), 1, f );
-    sh4r.fr_bank = &sh4r.fr[(sh4r.fpscr&FPSCR_FR)>>21][0]; // Fixup internal FR pointer
     MMU_load_state( f );
     INTC_load_state( f );
     TMU_load_state( f );
@@ -218,6 +217,16 @@ static void sh4_switch_banks( )
     memcpy( sh4r.r_bank, tmp, sizeof(uint32_t)*8 );
 }
 
+void sh4_switch_fr_banks()
+{
+    int i;
+    for( i=0; i<16; i++ ) {
+	float tmp = sh4r.fr[0][i];
+	sh4r.fr[0][i] = sh4r.fr[1][i];
+	sh4r.fr[1][i] = tmp;
+    }
+}
+
 void sh4_write_sr( uint32_t newval )
 {
     int oldbank = (sh4r.sr&SR_MDRB) == SR_MDRB;
@@ -230,6 +239,14 @@ void sh4_write_sr( uint32_t newval )
     sh4r.m = (newval&SR_M) ? 1 : 0;
     sh4r.q = (newval&SR_Q) ? 1 : 0;
     intc_mask_changed();
+}
+
+void sh4_write_fpscr( uint32_t newval )
+{
+    if( (sh4r.fpscr ^ newval) & FPSCR_FR ) {
+	sh4_switch_fr_banks();
+    }
+    sh4r.fpscr = newval;
 }
 
 uint32_t sh4_read_sr( void )
@@ -286,6 +303,7 @@ gboolean sh4_raise_reset( int code )
     sh4r.new_pc = sh4r.pc + 2;
     sh4_write_sr( (sh4r.sr|SR_MD|SR_BL|SR_RB|SR_IMASK)
 		  &(~SR_FD) );
+    return TRUE;
 }
 
 gboolean sh4_raise_trap( int trap )
@@ -408,17 +426,17 @@ uint32_t sh4_sleep_run_slice( uint32_t nanosecs )
  * Compute the matrix tranform of fv given the matrix xf.
  * Both fv and xf are word-swapped as per the sh4r.fr banks
  */
-void sh4_ftrv( float *target, float *xf )
+void sh4_ftrv( float *target )
 {
     float fv[4] = { target[1], target[0], target[3], target[2] };
-    target[1] = xf[1] * fv[0] + xf[5]*fv[1] +
-	xf[9]*fv[2] + xf[13]*fv[3];
-    target[0] = xf[0] * fv[0] + xf[4]*fv[1] +
-	xf[8]*fv[2] + xf[12]*fv[3];
-    target[3] = xf[3] * fv[0] + xf[7]*fv[1] +
-	xf[11]*fv[2] + xf[15]*fv[3];
-    target[2] = xf[2] * fv[0] + xf[6]*fv[1] +
-	xf[10]*fv[2] + xf[14]*fv[3];
+    target[1] = sh4r.fr[1][1] * fv[0] + sh4r.fr[1][5]*fv[1] +
+	sh4r.fr[1][9]*fv[2] + sh4r.fr[1][13]*fv[3];
+    target[0] = sh4r.fr[1][0] * fv[0] + sh4r.fr[1][4]*fv[1] +
+	sh4r.fr[1][8]*fv[2] + sh4r.fr[1][12]*fv[3];
+    target[3] = sh4r.fr[1][3] * fv[0] + sh4r.fr[1][7]*fv[1] +
+	sh4r.fr[1][11]*fv[2] + sh4r.fr[1][15]*fv[3];
+    target[2] = sh4r.fr[1][2] * fv[0] + sh4r.fr[1][6]*fv[1] +
+	sh4r.fr[1][10]*fv[2] + sh4r.fr[1][14]*fv[3];
 }
 
 gboolean sh4_has_page( sh4vma_t vma )

@@ -22,8 +22,6 @@
 #include "pvr2/scene.h"
 #include "asic.h"
 
-extern char *video_base;
-
 #define MIN3( a,b,c ) ((a) < (b) ? ( (a) < (c) ? (a) : (c) ) : ((b) < (c) ? (b) : (c)) )
 #define MAX3( a,b,c ) ((a) > (b) ? ( (a) > (c) ? (a) : (c) ) : ((b) > (c) ? (b) : (c)) )
 

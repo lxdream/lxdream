@@ -50,7 +50,10 @@ void pvr2_scene_init(void);
 void pvr2_scene_read(void);
 void pvr2_scene_shutdown();
 
-extern char *video_base;
+uint32_t pvr2_scene_buffer_width();
+uint32_t pvr2_scene_buffer_height();
+
+extern unsigned char *video_base;
 
 /**
  * Maximum possible size of the vertex buffer. This is figured as follows:

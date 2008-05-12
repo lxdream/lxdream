@@ -365,6 +365,13 @@ sh4ptr_t mem_get_region( uint32_t addr )
     }
 }
 
+void mem_write_long( sh4addr_t addr, uint32_t value )
+{
+    sh4ptr_t ptr = mem_get_region(addr);
+    assert(ptr != NULL);
+    *((uint32_t *)ptr) = value;
+}
+
 struct mmio_region *mem_get_io_region( uint32_t addr )
 {
     if( addr > 0xFF000000 ) {

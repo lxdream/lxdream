@@ -71,11 +71,22 @@ uint32_t sh4_xlat_run_slice( uint32_t nanosecs );
 gboolean sh4_xlat_is_running();
 
 /**
+ * Initialize the translation engine (if required). Note xlat cache
+ * must already be initialized.
+ */
+void sh4_xlat_init();
+
+/**
  * Translate the specified block of code starting from the specified start
  * address until the first branch/jump instruction.
  */
 void *sh4_translate_basic_block( sh4addr_t start );
 
+/**
+ * Add a recovery record for the current code generation position, with the
+ * specified instruction count
+ */
+void sh4_translate_add_recovery( uint32_t icount );
 
 extern uint8_t *xlat_output;
 extern struct xlat_recovery_record xlat_recovery[MAX_RECOVERY_SIZE];
@@ -90,10 +101,12 @@ extern uint32_t xlat_recovery_posn;
 #define TARGET_X86 1
 #define TARGET_X86_64 2
 
+void sh4_translate_init( void );
 void sh4_translate_begin_block( sh4addr_t pc );
 uint32_t sh4_translate_instruction( sh4addr_t pc );
 void sh4_translate_end_block( sh4addr_t pc );
 uint32_t sh4_translate_end_block_size();
+void sh4_translate_emit_breakpoint( sh4vma_t pc );
 
 typedef void (*unwind_thunk_t)(void);
 
@@ -119,6 +132,13 @@ void sh4_translate_unwind_stack( gboolean is_completion, unwind_thunk_t thunk );
  * the specified exit code (one of the XLAT_EXIT_* values).
  */
 void sh4_translate_exit( int exit_code );
+
+/**
+ * From within the translator, exit the current block at the end of the 
+ * current instruction, flush the translation cache (completely) and return
+ * control to sh4_xlat_run_slice.
+ */
+void sh4_translate_flush_cache( void );
 
 /**
  * Support function called from the translator when a breakpoint is hit.

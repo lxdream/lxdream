@@ -31,7 +31,6 @@
  */
 Display *video_x11_display = NULL;
 Window video_x11_window = 0;
-static gboolean glsl_loaded = FALSE;
 
 static int glx_version = 100;
 static XVisualInfo *glx_visual = NULL;
@@ -40,16 +39,16 @@ static GLXContext glx_context = NULL;
 static gboolean glx_is_initialized = FALSE;
 static gboolean glx_fbconfig_supported = FALSE;
 static gboolean glx_pbuffer_supported = FALSE;
-static int glx_pbuffer_texture = 0; 
+static GLuint glx_pbuffer_texture = 0; 
 
 /* Prototypes for pbuffer support methods */
 static void glx_pbuffer_init( display_driver_t driver );
 static render_buffer_t glx_pbuffer_create_render_buffer( uint32_t width, uint32_t height );
 static void glx_pbuffer_destroy_render_buffer( render_buffer_t buffer );
 static gboolean glx_pbuffer_set_render_target( render_buffer_t buffer );
-static gboolean glx_pbuffer_display_render_buffer( render_buffer_t buffer );
+static void glx_pbuffer_display_render_buffer( render_buffer_t buffer );
 static void glx_pbuffer_load_frame_buffer( frame_buffer_t frame, render_buffer_t buffer );
-static gboolean glx_pbuffer_display_blank( uint32_t colour );
+static void glx_pbuffer_display_blank( uint32_t colour );
 static gboolean glx_pbuffer_read_render_buffer( unsigned char *target, render_buffer_t buffer, int rowstride, int format );
 
 /**
@@ -300,7 +299,7 @@ static gboolean glx_pbuffer_set_render_target( render_buffer_t buffer )
  * Render the texture holding the given buffer to the front window
  * buffer.
  */
-static gboolean glx_pbuffer_display_render_buffer( render_buffer_t buffer )
+static void glx_pbuffer_display_render_buffer( render_buffer_t buffer )
 {
     glFinish();
     glReadBuffer( GL_FRONT );
@@ -310,7 +309,6 @@ static gboolean glx_pbuffer_display_render_buffer( render_buffer_t buffer )
     glCopyTexImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, GL_RGBA, 0, 0, buffer->width, buffer->height, 0 );
     video_glx_make_window_current();
     gl_texture_window( buffer->width, buffer->height, glx_pbuffer_texture, buffer->inverted );
-    return TRUE;
 }
 
 static void glx_pbuffer_load_frame_buffer( frame_buffer_t frame, render_buffer_t buffer )
@@ -330,11 +328,11 @@ static void glx_pbuffer_load_frame_buffer( frame_buffer_t frame, render_buffer_t
     glFlush();
 }
 
-static gboolean glx_pbuffer_display_blank( uint32_t colour )
+static void glx_pbuffer_display_blank( uint32_t colour )
 {
     glFinish();
     video_glx_make_window_current();
-    return gl_display_blank( colour );
+    gl_display_blank( colour );
 }
 
 static gboolean glx_pbuffer_read_render_buffer( unsigned char *target, render_buffer_t buffer, 
