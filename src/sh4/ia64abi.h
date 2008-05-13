@@ -259,7 +259,7 @@ void sh4_translate_end_block( sh4addr_t pc ) {
 _Unwind_Reason_Code xlat_check_frame( struct _Unwind_Context *context, void *arg )
 {
     void *rbp = (void *)_Unwind_GetGR(context, 6);
-    void *expect = (((uint8_t *)&sh4r) + 128 )
+    void *expect = (((uint8_t *)&sh4r) + 128 );
     if( rbp == expect ) { 
         void **result = (void **)arg;
         *result = (void *)_Unwind_GetIP(context);
