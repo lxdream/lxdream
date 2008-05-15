@@ -20,7 +20,7 @@
 #define MODULE sh4_module
 #include <math.h>
 #include <assert.h>
-#include "dream.h"
+#include "lxdream.h"
 #include "dreamcast.h"
 #include "mem.h"
 #include "clock.h"
@@ -83,6 +83,9 @@ void sh4_init(void)
     MMU_init();
     TMU_init();
     sh4_reset();
+#ifdef ENABLE_SH4STATS
+    sh4_stats_reset();
+#endif
 }
 
 void sh4_start(void)
@@ -117,7 +120,10 @@ void sh4_reset(void)
     MMU_reset();
     TMU_reset();
     SCIF_reset();
+
+#ifdef ENABLE_SH4STATS
     sh4_stats_reset();
+#endif
 }
 
 void sh4_stop(void)

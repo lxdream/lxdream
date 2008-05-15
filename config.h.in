@@ -13,6 +13,9 @@
 /* always defined to indicate that i18n is enabled */
 #undef ENABLE_NLS
 
+/* Enable SH4 statistics */
+#undef ENABLE_SH4STATS
+
 /* Enable IO tracing */
 #undef ENABLE_TRACE_IO
 

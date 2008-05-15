@@ -28,6 +28,7 @@
 #include "sh4/xltcache.h"
 #include "sh4/sh4core.h"
 #include "sh4/sh4trans.h"
+#include "sh4/sh4stat.h"
 #include "sh4/sh4mmio.h"
 #include "sh4/x86op.h"
 #include "clock.h"
@@ -78,6 +79,12 @@ struct sh4_x86_state {
 #define TSTATE_GE   0xD
 #define TSTATE_A    7
 #define TSTATE_AE   3
+
+#ifdef ENABLE_SH4STATS
+#define COUNT_INST(id) load_imm32(R_EAX,id); call_func1(sh4_stats_add, R_EAX); sh4_x86.tstate = TSTATE_NONE
+#else
+#define COUNT_INST(id)
+#endif
 
 /** Branch if T is set (either in the current cflags, or in sh4r.t) */
 #define JT_rel8(label) if( sh4_x86.tstate == TSTATE_NONE ) { \
@@ -384,6 +391,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
 %%
 /* ALU operations */
 ADD Rm, Rn {:
+    COUNT_INST(I_ADD);
     load_reg( R_EAX, Rm );
     load_reg( R_ECX, Rn );
     ADD_r32_r32( R_EAX, R_ECX );
@@ -391,12 +399,14 @@ ADD Rm, Rn {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 ADD #imm, Rn {:  
+    COUNT_INST(I_ADDI);
     load_reg( R_EAX, Rn );
     ADD_imm8s_r32( imm, R_EAX );
     store_reg( R_EAX, Rn );
     sh4_x86.tstate = TSTATE_NONE;
 :}
 ADDC Rm, Rn {:
+    COUNT_INST(I_ADDC);
     if( sh4_x86.tstate != TSTATE_C ) {
 	LDC_t();
     }
@@ -408,6 +418,7 @@ ADDC Rm, Rn {:
     sh4_x86.tstate = TSTATE_C;
 :}
 ADDV Rm, Rn {:
+    COUNT_INST(I_ADDV);
     load_reg( R_EAX, Rm );
     load_reg( R_ECX, Rn );
     ADD_r32_r32( R_EAX, R_ECX );
@@ -416,6 +427,7 @@ ADDV Rm, Rn {:
     sh4_x86.tstate = TSTATE_O;
 :}
 AND Rm, Rn {:
+    COUNT_INST(I_AND);
     load_reg( R_EAX, Rm );
     load_reg( R_ECX, Rn );
     AND_r32_r32( R_EAX, R_ECX );
@@ -423,12 +435,14 @@ AND Rm, Rn {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 AND #imm, R0 {:  
+    COUNT_INST(I_ANDI);
     load_reg( R_EAX, 0 );
     AND_imm32_r32(imm, R_EAX); 
     store_reg( R_EAX, 0 );
     sh4_x86.tstate = TSTATE_NONE;
 :}
 AND.B #imm, @(R0, GBR) {: 
+    COUNT_INST(I_ANDB);
     load_reg( R_EAX, 0 );
     load_spreg( R_ECX, R_GBR );
     ADD_r32_r32( R_ECX, R_EAX );
@@ -441,6 +455,7 @@ AND.B #imm, @(R0, GBR) {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 CMP/EQ Rm, Rn {:  
+    COUNT_INST(I_CMPEQ);
     load_reg( R_EAX, Rm );
     load_reg( R_ECX, Rn );
     CMP_r32_r32( R_EAX, R_ECX );
@@ -448,12 +463,14 @@ CMP/EQ Rm, Rn {:
     sh4_x86.tstate = TSTATE_E;
 :}
 CMP/EQ #imm, R0 {:  
+    COUNT_INST(I_CMPEQI);
     load_reg( R_EAX, 0 );
     CMP_imm8s_r32(imm, R_EAX);
     SETE_t();
     sh4_x86.tstate = TSTATE_E;
 :}
 CMP/GE Rm, Rn {:  
+    COUNT_INST(I_CMPGE);
     load_reg( R_EAX, Rm );
     load_reg( R_ECX, Rn );
     CMP_r32_r32( R_EAX, R_ECX );
@@ -461,6 +478,7 @@ CMP/GE Rm, Rn {:
     sh4_x86.tstate = TSTATE_GE;
 :}
 CMP/GT Rm, Rn {: 
+    COUNT_INST(I_CMPGT);
     load_reg( R_EAX, Rm );
     load_reg( R_ECX, Rn );
     CMP_r32_r32( R_EAX, R_ECX );
@@ -468,6 +486,7 @@ CMP/GT Rm, Rn {:
     sh4_x86.tstate = TSTATE_G;
 :}
 CMP/HI Rm, Rn {:  
+    COUNT_INST(I_CMPHI);
     load_reg( R_EAX, Rm );
     load_reg( R_ECX, Rn );
     CMP_r32_r32( R_EAX, R_ECX );
@@ -475,6 +494,7 @@ CMP/HI Rm, Rn {:
     sh4_x86.tstate = TSTATE_A;
 :}
 CMP/HS Rm, Rn {: 
+    COUNT_INST(I_CMPHS);
     load_reg( R_EAX, Rm );
     load_reg( R_ECX, Rn );
     CMP_r32_r32( R_EAX, R_ECX );
@@ -482,18 +502,21 @@ CMP/HS Rm, Rn {:
     sh4_x86.tstate = TSTATE_AE;
  :}
 CMP/PL Rn {: 
+    COUNT_INST(I_CMPPL);
     load_reg( R_EAX, Rn );
     CMP_imm8s_r32( 0, R_EAX );
     SETG_t();
     sh4_x86.tstate = TSTATE_G;
 :}
 CMP/PZ Rn {:  
+    COUNT_INST(I_CMPPZ);
     load_reg( R_EAX, Rn );
     CMP_imm8s_r32( 0, R_EAX );
     SETGE_t();
     sh4_x86.tstate = TSTATE_GE;
 :}
 CMP/STR Rm, Rn {:  
+    COUNT_INST(I_CMPSTR);
     load_reg( R_EAX, Rm );
     load_reg( R_ECX, Rn );
     XOR_r32_r32( R_ECX, R_EAX );
@@ -512,6 +535,7 @@ CMP/STR Rm, Rn {:
     sh4_x86.tstate = TSTATE_E;
 :}
 DIV0S Rm, Rn {:
+    COUNT_INST(I_DIV0S);
     load_reg( R_EAX, Rm );
     load_reg( R_ECX, Rn );
     SHR_imm8_r32( 31, R_EAX );
@@ -523,6 +547,7 @@ DIV0S Rm, Rn {:
     sh4_x86.tstate = TSTATE_NE;
 :}
 DIV0U {:  
+    COUNT_INST(I_DIV0U);
     XOR_r32_r32( R_EAX, R_EAX );
     store_spreg( R_EAX, R_Q );
     store_spreg( R_EAX, R_M );
@@ -530,6 +555,7 @@ DIV0U {:
     sh4_x86.tstate = TSTATE_C; // works for DIV1
 :}
 DIV1 Rm, Rn {:
+    COUNT_INST(I_DIV1);
     load_spreg( R_ECX, R_M );
     load_reg( R_EAX, Rn );
     if( sh4_x86.tstate != TSTATE_C ) {
@@ -555,6 +581,7 @@ DIV1 Rm, Rn {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 DMULS.L Rm, Rn {:  
+    COUNT_INST(I_DMULS);
     load_reg( R_EAX, Rm );
     load_reg( R_ECX, Rn );
     IMUL_r32(R_ECX);
@@ -563,6 +590,7 @@ DMULS.L Rm, Rn {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 DMULU.L Rm, Rn {:  
+    COUNT_INST(I_DMULU);
     load_reg( R_EAX, Rm );
     load_reg( R_ECX, Rn );
     MUL_r32(R_ECX);
@@ -571,6 +599,7 @@ DMULU.L Rm, Rn {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 DT Rn {:  
+    COUNT_INST(I_DT);
     load_reg( R_EAX, Rn );
     ADD_imm8s_r32( -1, R_EAX );
     store_reg( R_EAX, Rn );
@@ -578,26 +607,31 @@ DT Rn {:
     sh4_x86.tstate = TSTATE_E;
 :}
 EXTS.B Rm, Rn {:  
+    COUNT_INST(I_EXTSB);
     load_reg( R_EAX, Rm );
     MOVSX_r8_r32( R_EAX, R_EAX );
     store_reg( R_EAX, Rn );
 :}
 EXTS.W Rm, Rn {:  
+    COUNT_INST(I_EXTSW);
     load_reg( R_EAX, Rm );
     MOVSX_r16_r32( R_EAX, R_EAX );
     store_reg( R_EAX, Rn );
 :}
 EXTU.B Rm, Rn {:  
+    COUNT_INST(I_EXTUB);
     load_reg( R_EAX, Rm );
     MOVZX_r8_r32( R_EAX, R_EAX );
     store_reg( R_EAX, Rn );
 :}
 EXTU.W Rm, Rn {:  
+    COUNT_INST(I_EXTUW);
     load_reg( R_EAX, Rm );
     MOVZX_r16_r32( R_EAX, R_EAX );
     store_reg( R_EAX, Rn );
 :}
 MAC.L @Rm+, @Rn+ {:
+    COUNT_INST(I_MACL);
     if( Rm == Rn ) {
 	load_reg( R_EAX, Rm );
 	check_ralign32( R_EAX );
@@ -639,6 +673,7 @@ MAC.L @Rm+, @Rn+ {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 MAC.W @Rm+, @Rn+ {:  
+    COUNT_INST(I_MACW);
     if( Rm == Rn ) {
 	load_reg( R_EAX, Rm );
 	check_ralign16( R_EAX );
@@ -696,10 +731,12 @@ MAC.W @Rm+, @Rn+ {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 MOVT Rn {:  
+    COUNT_INST(I_MOVT);
     load_spreg( R_EAX, R_T );
     store_reg( R_EAX, Rn );
 :}
 MUL.L Rm, Rn {:  
+    COUNT_INST(I_MULL);
     load_reg( R_EAX, Rm );
     load_reg( R_ECX, Rn );
     MUL_r32( R_ECX );
@@ -707,6 +744,7 @@ MUL.L Rm, Rn {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 MULS.W Rm, Rn {:
+    COUNT_INST(I_MULSW);
     load_reg16s( R_EAX, Rm );
     load_reg16s( R_ECX, Rn );
     MUL_r32( R_ECX );
@@ -714,6 +752,7 @@ MULS.W Rm, Rn {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 MULU.W Rm, Rn {:  
+    COUNT_INST(I_MULUW);
     load_reg16u( R_EAX, Rm );
     load_reg16u( R_ECX, Rn );
     MUL_r32( R_ECX );
@@ -721,12 +760,14 @@ MULU.W Rm, Rn {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 NEG Rm, Rn {:
+    COUNT_INST(I_NEG);
     load_reg( R_EAX, Rm );
     NEG_r32( R_EAX );
     store_reg( R_EAX, Rn );
     sh4_x86.tstate = TSTATE_NONE;
 :}
 NEGC Rm, Rn {:  
+    COUNT_INST(I_NEGC);
     load_reg( R_EAX, Rm );
     XOR_r32_r32( R_ECX, R_ECX );
     LDC_t();
@@ -736,12 +777,14 @@ NEGC Rm, Rn {:
     sh4_x86.tstate = TSTATE_C;
 :}
 NOT Rm, Rn {:  
+    COUNT_INST(I_NOT);
     load_reg( R_EAX, Rm );
     NOT_r32( R_EAX );
     store_reg( R_EAX, Rn );
     sh4_x86.tstate = TSTATE_NONE;
 :}
 OR Rm, Rn {:  
+    COUNT_INST(I_OR);
     load_reg( R_EAX, Rm );
     load_reg( R_ECX, Rn );
     OR_r32_r32( R_EAX, R_ECX );
@@ -749,12 +792,14 @@ OR Rm, Rn {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 OR #imm, R0 {:
+    COUNT_INST(I_ORI);
     load_reg( R_EAX, 0 );
     OR_imm32_r32(imm, R_EAX);
     store_reg( R_EAX, 0 );
     sh4_x86.tstate = TSTATE_NONE;
 :}
 OR.B #imm, @(R0, GBR) {:  
+    COUNT_INST(I_ORB);
     load_reg( R_EAX, 0 );
     load_spreg( R_ECX, R_GBR );
     ADD_r32_r32( R_ECX, R_EAX );
@@ -767,6 +812,7 @@ OR.B #imm, @(R0, GBR) {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 ROTCL Rn {:
+    COUNT_INST(I_ROTCL);
     load_reg( R_EAX, Rn );
     if( sh4_x86.tstate != TSTATE_C ) {
 	LDC_t();
@@ -777,6 +823,7 @@ ROTCL Rn {:
     sh4_x86.tstate = TSTATE_C;
 :}
 ROTCR Rn {:  
+    COUNT_INST(I_ROTCR);
     load_reg( R_EAX, Rn );
     if( sh4_x86.tstate != TSTATE_C ) {
 	LDC_t();
@@ -787,6 +834,7 @@ ROTCR Rn {:
     sh4_x86.tstate = TSTATE_C;
 :}
 ROTL Rn {:  
+    COUNT_INST(I_ROTL);
     load_reg( R_EAX, Rn );
     ROL1_r32( R_EAX );
     store_reg( R_EAX, Rn );
@@ -794,6 +842,7 @@ ROTL Rn {:
     sh4_x86.tstate = TSTATE_C;
 :}
 ROTR Rn {:  
+    COUNT_INST(I_ROTR);
     load_reg( R_EAX, Rn );
     ROR1_r32( R_EAX );
     store_reg( R_EAX, Rn );
@@ -801,6 +850,7 @@ ROTR Rn {:
     sh4_x86.tstate = TSTATE_C;
 :}
 SHAD Rm, Rn {:
+    COUNT_INST(I_SHAD);
     /* Annoyingly enough, not directly convertible */
     load_reg( R_EAX, Rn );
     load_reg( R_ECX, Rm );
@@ -826,6 +876,7 @@ SHAD Rm, Rn {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 SHLD Rm, Rn {:  
+    COUNT_INST(I_SHLD);
     load_reg( R_EAX, Rn );
     load_reg( R_ECX, Rm );
     CMP_imm32_r32( 0, R_ECX );
@@ -850,6 +901,7 @@ SHLD Rm, Rn {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 SHAL Rn {: 
+    COUNT_INST(I_SHAL);
     load_reg( R_EAX, Rn );
     SHL1_r32( R_EAX );
     SETC_t();
@@ -857,6 +909,7 @@ SHAL Rn {:
     sh4_x86.tstate = TSTATE_C;
 :}
 SHAR Rn {:  
+    COUNT_INST(I_SHAR);
     load_reg( R_EAX, Rn );
     SAR1_r32( R_EAX );
     SETC_t();
@@ -864,6 +917,7 @@ SHAR Rn {:
     sh4_x86.tstate = TSTATE_C;
 :}
 SHLL Rn {:  
+    COUNT_INST(I_SHLL);
     load_reg( R_EAX, Rn );
     SHL1_r32( R_EAX );
     SETC_t();
@@ -871,24 +925,28 @@ SHLL Rn {:
     sh4_x86.tstate = TSTATE_C;
 :}
 SHLL2 Rn {:
+    COUNT_INST(I_SHLL);
     load_reg( R_EAX, Rn );
     SHL_imm8_r32( 2, R_EAX );
     store_reg( R_EAX, Rn );
     sh4_x86.tstate = TSTATE_NONE;
 :}
 SHLL8 Rn {:  
+    COUNT_INST(I_SHLL);
     load_reg( R_EAX, Rn );
     SHL_imm8_r32( 8, R_EAX );
     store_reg( R_EAX, Rn );
     sh4_x86.tstate = TSTATE_NONE;
 :}
 SHLL16 Rn {:  
+    COUNT_INST(I_SHLL);
     load_reg( R_EAX, Rn );
     SHL_imm8_r32( 16, R_EAX );
     store_reg( R_EAX, Rn );
     sh4_x86.tstate = TSTATE_NONE;
 :}
 SHLR Rn {:  
+    COUNT_INST(I_SHLR);
     load_reg( R_EAX, Rn );
     SHR1_r32( R_EAX );
     SETC_t();
@@ -896,24 +954,28 @@ SHLR Rn {:
     sh4_x86.tstate = TSTATE_C;
 :}
 SHLR2 Rn {:  
+    COUNT_INST(I_SHLR);
     load_reg( R_EAX, Rn );
     SHR_imm8_r32( 2, R_EAX );
     store_reg( R_EAX, Rn );
     sh4_x86.tstate = TSTATE_NONE;
 :}
 SHLR8 Rn {:  
+    COUNT_INST(I_SHLR);
     load_reg( R_EAX, Rn );
     SHR_imm8_r32( 8, R_EAX );
     store_reg( R_EAX, Rn );
     sh4_x86.tstate = TSTATE_NONE;
 :}
 SHLR16 Rn {:  
+    COUNT_INST(I_SHLR);
     load_reg( R_EAX, Rn );
     SHR_imm8_r32( 16, R_EAX );
     store_reg( R_EAX, Rn );
     sh4_x86.tstate = TSTATE_NONE;
 :}
 SUB Rm, Rn {:  
+    COUNT_INST(I_SUB);
     load_reg( R_EAX, Rm );
     load_reg( R_ECX, Rn );
     SUB_r32_r32( R_EAX, R_ECX );
@@ -921,6 +983,7 @@ SUB Rm, Rn {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 SUBC Rm, Rn {:  
+    COUNT_INST(I_SUBC);
     load_reg( R_EAX, Rm );
     load_reg( R_ECX, Rn );
     if( sh4_x86.tstate != TSTATE_C ) {
@@ -932,6 +995,7 @@ SUBC Rm, Rn {:
     sh4_x86.tstate = TSTATE_C;
 :}
 SUBV Rm, Rn {:  
+    COUNT_INST(I_SUBV);
     load_reg( R_EAX, Rm );
     load_reg( R_ECX, Rn );
     SUB_r32_r32( R_EAX, R_ECX );
@@ -940,11 +1004,13 @@ SUBV Rm, Rn {:
     sh4_x86.tstate = TSTATE_O;
 :}
 SWAP.B Rm, Rn {:  
+    COUNT_INST(I_SWAPB);
     load_reg( R_EAX, Rm );
     XCHG_r8_r8( R_AL, R_AH ); // NB: does not touch EFLAGS
     store_reg( R_EAX, Rn );
 :}
 SWAP.W Rm, Rn {:  
+    COUNT_INST(I_SWAPB);
     load_reg( R_EAX, Rm );
     MOV_r32_r32( R_EAX, R_ECX );
     SHL_imm8_r32( 16, R_ECX );
@@ -954,6 +1020,7 @@ SWAP.W Rm, Rn {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 TAS.B @Rn {:  
+    COUNT_INST(I_TASB);
     load_reg( R_EAX, Rn );
     MMU_TRANSLATE_WRITE( R_EAX );
     PUSH_realigned_r32( R_EAX );
@@ -966,6 +1033,7 @@ TAS.B @Rn {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 TST Rm, Rn {:  
+    COUNT_INST(I_TST);
     load_reg( R_EAX, Rm );
     load_reg( R_ECX, Rn );
     TEST_r32_r32( R_EAX, R_ECX );
@@ -973,12 +1041,14 @@ TST Rm, Rn {:
     sh4_x86.tstate = TSTATE_E;
 :}
 TST #imm, R0 {:  
+    COUNT_INST(I_TSTI);
     load_reg( R_EAX, 0 );
     TEST_imm32_r32( imm, R_EAX );
     SETE_t();
     sh4_x86.tstate = TSTATE_E;
 :}
 TST.B #imm, @(R0, GBR) {:  
+    COUNT_INST(I_TSTB);
     load_reg( R_EAX, 0);
     load_reg( R_ECX, R_GBR);
     ADD_r32_r32( R_ECX, R_EAX );
@@ -989,6 +1059,7 @@ TST.B #imm, @(R0, GBR) {:
     sh4_x86.tstate = TSTATE_E;
 :}
 XOR Rm, Rn {:  
+    COUNT_INST(I_XOR);
     load_reg( R_EAX, Rm );
     load_reg( R_ECX, Rn );
     XOR_r32_r32( R_EAX, R_ECX );
@@ -996,12 +1067,14 @@ XOR Rm, Rn {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 XOR #imm, R0 {:  
+    COUNT_INST(I_XORI);
     load_reg( R_EAX, 0 );
     XOR_imm32_r32( imm, R_EAX );
     store_reg( R_EAX, 0 );
     sh4_x86.tstate = TSTATE_NONE;
 :}
 XOR.B #imm, @(R0, GBR) {:  
+    COUNT_INST(I_XORB);
     load_reg( R_EAX, 0 );
     load_spreg( R_ECX, R_GBR );
     ADD_r32_r32( R_ECX, R_EAX );
@@ -1014,6 +1087,7 @@ XOR.B #imm, @(R0, GBR) {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 XTRCT Rm, Rn {:
+    COUNT_INST(I_XTRCT);
     load_reg( R_EAX, Rm );
     load_reg( R_ECX, Rn );
     SHL_imm8_r32( 16, R_EAX );
@@ -1025,14 +1099,17 @@ XTRCT Rm, Rn {:
 
 /* Data move instructions */
 MOV Rm, Rn {:  
+    COUNT_INST(I_MOV);
     load_reg( R_EAX, Rm );
     store_reg( R_EAX, Rn );
 :}
 MOV #imm, Rn {:  
+    COUNT_INST(I_MOVI);
     load_imm32( R_EAX, imm );
     store_reg( R_EAX, Rn );
 :}
 MOV.B Rm, @Rn {:  
+    COUNT_INST(I_MOVB);
     load_reg( R_EAX, Rn );
     MMU_TRANSLATE_WRITE( R_EAX );
     load_reg( R_EDX, Rm );
@@ -1040,6 +1117,7 @@ MOV.B Rm, @Rn {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 MOV.B Rm, @-Rn {:  
+    COUNT_INST(I_MOVB);
     load_reg( R_EAX, Rn );
     ADD_imm8s_r32( -1, R_EAX );
     MMU_TRANSLATE_WRITE( R_EAX );
@@ -1049,6 +1127,7 @@ MOV.B Rm, @-Rn {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 MOV.B Rm, @(R0, Rn) {:  
+    COUNT_INST(I_MOVB);
     load_reg( R_EAX, 0 );
     load_reg( R_ECX, Rn );
     ADD_r32_r32( R_ECX, R_EAX );
@@ -1058,6 +1137,7 @@ MOV.B Rm, @(R0, Rn) {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 MOV.B R0, @(disp, GBR) {:  
+    COUNT_INST(I_MOVB);
     load_spreg( R_EAX, R_GBR );
     ADD_imm32_r32( disp, R_EAX );
     MMU_TRANSLATE_WRITE( R_EAX );
@@ -1066,6 +1146,7 @@ MOV.B R0, @(disp, GBR) {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 MOV.B R0, @(disp, Rn) {:  
+    COUNT_INST(I_MOVB);
     load_reg( R_EAX, Rn );
     ADD_imm32_r32( disp, R_EAX );
     MMU_TRANSLATE_WRITE( R_EAX );
@@ -1074,6 +1155,7 @@ MOV.B R0, @(disp, Rn) {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 MOV.B @Rm, Rn {:  
+    COUNT_INST(I_MOVB);
     load_reg( R_EAX, Rm );
     MMU_TRANSLATE_READ( R_EAX );
     MEM_READ_BYTE( R_EAX, R_EAX );
@@ -1081,6 +1163,7 @@ MOV.B @Rm, Rn {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 MOV.B @Rm+, Rn {:  
+    COUNT_INST(I_MOVB);
     load_reg( R_EAX, Rm );
     MMU_TRANSLATE_READ( R_EAX );
     ADD_imm8s_sh4r( 1, REG_OFFSET(r[Rm]) );
@@ -1089,6 +1172,7 @@ MOV.B @Rm+, Rn {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 MOV.B @(R0, Rm), Rn {:  
+    COUNT_INST(I_MOVB);
     load_reg( R_EAX, 0 );
     load_reg( R_ECX, Rm );
     ADD_r32_r32( R_ECX, R_EAX );
@@ -1098,6 +1182,7 @@ MOV.B @(R0, Rm), Rn {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 MOV.B @(disp, GBR), R0 {:  
+    COUNT_INST(I_MOVB);
     load_spreg( R_EAX, R_GBR );
     ADD_imm32_r32( disp, R_EAX );
     MMU_TRANSLATE_READ( R_EAX );
@@ -1106,6 +1191,7 @@ MOV.B @(disp, GBR), R0 {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 MOV.B @(disp, Rm), R0 {:  
+    COUNT_INST(I_MOVB);
     load_reg( R_EAX, Rm );
     ADD_imm32_r32( disp, R_EAX );
     MMU_TRANSLATE_READ( R_EAX );
@@ -1114,6 +1200,7 @@ MOV.B @(disp, Rm), R0 {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 MOV.L Rm, @Rn {:
+    COUNT_INST(I_MOVL);
     load_reg( R_EAX, Rn );
     check_walign32(R_EAX);
     MMU_TRANSLATE_WRITE( R_EAX );
@@ -1122,6 +1209,7 @@ MOV.L Rm, @Rn {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 MOV.L Rm, @-Rn {:  
+    COUNT_INST(I_MOVL);
     load_reg( R_EAX, Rn );
     ADD_imm8s_r32( -4, R_EAX );
     check_walign32( R_EAX );
@@ -1132,6 +1220,7 @@ MOV.L Rm, @-Rn {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 MOV.L Rm, @(R0, Rn) {:  
+    COUNT_INST(I_MOVL);
     load_reg( R_EAX, 0 );
     load_reg( R_ECX, Rn );
     ADD_r32_r32( R_ECX, R_EAX );
@@ -1142,6 +1231,7 @@ MOV.L Rm, @(R0, Rn) {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 MOV.L R0, @(disp, GBR) {:  
+    COUNT_INST(I_MOVL);
     load_spreg( R_EAX, R_GBR );
     ADD_imm32_r32( disp, R_EAX );
     check_walign32( R_EAX );
@@ -1151,6 +1241,7 @@ MOV.L R0, @(disp, GBR) {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 MOV.L Rm, @(disp, Rn) {:  
+    COUNT_INST(I_MOVL);
     load_reg( R_EAX, Rn );
     ADD_imm32_r32( disp, R_EAX );
     check_walign32( R_EAX );
@@ -1160,6 +1251,7 @@ MOV.L Rm, @(disp, Rn) {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 MOV.L @Rm, Rn {:  
+    COUNT_INST(I_MOVL);
     load_reg( R_EAX, Rm );
     check_ralign32( R_EAX );
     MMU_TRANSLATE_READ( R_EAX );
@@ -1168,6 +1260,7 @@ MOV.L @Rm, Rn {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 MOV.L @Rm+, Rn {:  
+    COUNT_INST(I_MOVL);
     load_reg( R_EAX, Rm );
     check_ralign32( R_EAX );
     MMU_TRANSLATE_READ( R_EAX );
@@ -1177,6 +1270,7 @@ MOV.L @Rm+, Rn {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 MOV.L @(R0, Rm), Rn {:  
+    COUNT_INST(I_MOVL);
     load_reg( R_EAX, 0 );
     load_reg( R_ECX, Rm );
     ADD_r32_r32( R_ECX, R_EAX );
@@ -1187,6 +1281,7 @@ MOV.L @(R0, Rm), Rn {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 MOV.L @(disp, GBR), R0 {:
+    COUNT_INST(I_MOVL);
     load_spreg( R_EAX, R_GBR );
     ADD_imm32_r32( disp, R_EAX );
     check_ralign32( R_EAX );
@@ -1196,6 +1291,7 @@ MOV.L @(disp, GBR), R0 {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 MOV.L @(disp, PC), Rn {:  
+    COUNT_INST(I_MOVLPC);
     if( sh4_x86.in_delay_slot ) {
 	SLOTILLEGAL();
     } else {
@@ -1226,6 +1322,7 @@ MOV.L @(disp, PC), Rn {:
     }
 :}
 MOV.L @(disp, Rm), Rn {:  
+    COUNT_INST(I_MOVL);
     load_reg( R_EAX, Rm );
     ADD_imm8s_r32( disp, R_EAX );
     check_ralign32( R_EAX );
@@ -1235,6 +1332,7 @@ MOV.L @(disp, Rm), Rn {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 MOV.W Rm, @Rn {:  
+    COUNT_INST(I_MOVW);
     load_reg( R_EAX, Rn );
     check_walign16( R_EAX );
     MMU_TRANSLATE_WRITE( R_EAX )
@@ -1243,6 +1341,7 @@ MOV.W Rm, @Rn {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 MOV.W Rm, @-Rn {:  
+    COUNT_INST(I_MOVW);
     load_reg( R_EAX, Rn );
     ADD_imm8s_r32( -2, R_EAX );
     check_walign16( R_EAX );
@@ -1253,6 +1352,7 @@ MOV.W Rm, @-Rn {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 MOV.W Rm, @(R0, Rn) {:  
+    COUNT_INST(I_MOVW);
     load_reg( R_EAX, 0 );
     load_reg( R_ECX, Rn );
     ADD_r32_r32( R_ECX, R_EAX );
@@ -1263,6 +1363,7 @@ MOV.W Rm, @(R0, Rn) {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 MOV.W R0, @(disp, GBR) {:  
+    COUNT_INST(I_MOVW);
     load_spreg( R_EAX, R_GBR );
     ADD_imm32_r32( disp, R_EAX );
     check_walign16( R_EAX );
@@ -1272,6 +1373,7 @@ MOV.W R0, @(disp, GBR) {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 MOV.W R0, @(disp, Rn) {:  
+    COUNT_INST(I_MOVW);
     load_reg( R_EAX, Rn );
     ADD_imm32_r32( disp, R_EAX );
     check_walign16( R_EAX );
@@ -1281,6 +1383,7 @@ MOV.W R0, @(disp, Rn) {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 MOV.W @Rm, Rn {:  
+    COUNT_INST(I_MOVW);
     load_reg( R_EAX, Rm );
     check_ralign16( R_EAX );
     MMU_TRANSLATE_READ( R_EAX );
@@ -1289,6 +1392,7 @@ MOV.W @Rm, Rn {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 MOV.W @Rm+, Rn {:  
+    COUNT_INST(I_MOVW);
     load_reg( R_EAX, Rm );
     check_ralign16( R_EAX );
     MMU_TRANSLATE_READ( R_EAX );
@@ -1298,6 +1402,7 @@ MOV.W @Rm+, Rn {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 MOV.W @(R0, Rm), Rn {:  
+    COUNT_INST(I_MOVW);
     load_reg( R_EAX, 0 );
     load_reg( R_ECX, Rm );
     ADD_r32_r32( R_ECX, R_EAX );
@@ -1308,6 +1413,7 @@ MOV.W @(R0, Rm), Rn {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 MOV.W @(disp, GBR), R0 {:  
+    COUNT_INST(I_MOVW);
     load_spreg( R_EAX, R_GBR );
     ADD_imm32_r32( disp, R_EAX );
     check_ralign16( R_EAX );
@@ -1317,6 +1423,7 @@ MOV.W @(disp, GBR), R0 {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 MOV.W @(disp, PC), Rn {:  
+    COUNT_INST(I_MOVW);
     if( sh4_x86.in_delay_slot ) {
 	SLOTILLEGAL();
     } else {
@@ -1337,6 +1444,7 @@ MOV.W @(disp, PC), Rn {:
     }
 :}
 MOV.W @(disp, Rm), R0 {:  
+    COUNT_INST(I_MOVW);
     load_reg( R_EAX, Rm );
     ADD_imm32_r32( disp, R_EAX );
     check_ralign16( R_EAX );
@@ -1346,6 +1454,7 @@ MOV.W @(disp, Rm), R0 {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 MOVA @(disp, PC), R0 {:  
+    COUNT_INST(I_MOVA);
     if( sh4_x86.in_delay_slot ) {
 	SLOTILLEGAL();
     } else {
@@ -1356,6 +1465,7 @@ MOVA @(disp, PC), R0 {:
     }
 :}
 MOVCA.L R0, @Rn {:  
+    COUNT_INST(I_MOVCA);
     load_reg( R_EAX, Rn );
     check_walign32( R_EAX );
     MMU_TRANSLATE_WRITE( R_EAX );
@@ -1366,6 +1476,7 @@ MOVCA.L R0, @Rn {:
 
 /* Control transfer instructions */
 BF disp {:
+    COUNT_INST(I_BF);
     if( sh4_x86.in_delay_slot ) {
 	SLOTILLEGAL();
     } else {
@@ -1377,6 +1488,7 @@ BF disp {:
     }
 :}
 BF/S disp {:
+    COUNT_INST(I_BFS);
     if( sh4_x86.in_delay_slot ) {
 	SLOTILLEGAL();
     } else {
@@ -1409,6 +1521,7 @@ BF/S disp {:
     }
 :}
 BRA disp {:  
+    COUNT_INST(I_BRA);
     if( sh4_x86.in_delay_slot ) {
 	SLOTILLEGAL();
     } else {
@@ -1428,6 +1541,7 @@ BRA disp {:
     }
 :}
 BRAF Rn {:  
+    COUNT_INST(I_BRAF);
     if( sh4_x86.in_delay_slot ) {
 	SLOTILLEGAL();
     } else {
@@ -1449,6 +1563,7 @@ BRAF Rn {:
     }
 :}
 BSR disp {:  
+    COUNT_INST(I_BSR);
     if( sh4_x86.in_delay_slot ) {
 	SLOTILLEGAL();
     } else {
@@ -1471,6 +1586,7 @@ BSR disp {:
     }
 :}
 BSRF Rn {:  
+    COUNT_INST(I_BSRF);
     if( sh4_x86.in_delay_slot ) {
 	SLOTILLEGAL();
     } else {
@@ -1494,6 +1610,7 @@ BSRF Rn {:
     }
 :}
 BT disp {:
+    COUNT_INST(I_BT);
     if( sh4_x86.in_delay_slot ) {
 	SLOTILLEGAL();
     } else {
@@ -1505,6 +1622,7 @@ BT disp {:
     }
 :}
 BT/S disp {:
+    COUNT_INST(I_BTS);
     if( sh4_x86.in_delay_slot ) {
 	SLOTILLEGAL();
     } else {
@@ -1535,6 +1653,7 @@ BT/S disp {:
     }
 :}
 JMP @Rn {:  
+    COUNT_INST(I_JMP);
     if( sh4_x86.in_delay_slot ) {
 	SLOTILLEGAL();
     } else {
@@ -1553,6 +1672,7 @@ JMP @Rn {:
     }
 :}
 JSR @Rn {:  
+    COUNT_INST(I_JSR);
     if( sh4_x86.in_delay_slot ) {
 	SLOTILLEGAL();
     } else {
@@ -1575,6 +1695,7 @@ JSR @Rn {:
     }
 :}
 RTE {:  
+    COUNT_INST(I_RTE);
     if( sh4_x86.in_delay_slot ) {
 	SLOTILLEGAL();
     } else {
@@ -1599,6 +1720,7 @@ RTE {:
     }
 :}
 RTS {:  
+    COUNT_INST(I_RTS);
     if( sh4_x86.in_delay_slot ) {
 	SLOTILLEGAL();
     } else {
@@ -1617,6 +1739,7 @@ RTS {:
     }
 :}
 TRAPA #imm {:  
+    COUNT_INST(I_TRAPA);
     if( sh4_x86.in_delay_slot ) {
 	SLOTILLEGAL();
     } else {
@@ -1631,6 +1754,7 @@ TRAPA #imm {:
     }
 :}
 UNDEF {:  
+    COUNT_INST(I_UNDEF);
     if( sh4_x86.in_delay_slot ) {
 	SLOTILLEGAL();
     } else {
@@ -1640,27 +1764,32 @@ UNDEF {:
 :}
 
 CLRMAC {:  
+    COUNT_INST(I_CLRMAC);
     XOR_r32_r32(R_EAX, R_EAX);
     store_spreg( R_EAX, R_MACL );
     store_spreg( R_EAX, R_MACH );
     sh4_x86.tstate = TSTATE_NONE;
 :}
 CLRS {:
+    COUNT_INST(I_CLRS);
     CLC();
     SETC_sh4r(R_S);
     sh4_x86.tstate = TSTATE_C;
 :}
 CLRT {:  
+    COUNT_INST(I_CLRT);
     CLC();
     SETC_t();
     sh4_x86.tstate = TSTATE_C;
 :}
 SETS {:  
+    COUNT_INST(I_SETS);
     STC();
     SETC_sh4r(R_S);
     sh4_x86.tstate = TSTATE_C;
 :}
 SETT {:  
+    COUNT_INST(I_SETT);
     STC();
     SETC_t();
     sh4_x86.tstate = TSTATE_C;
@@ -1668,6 +1797,7 @@ SETT {:
 
 /* Floating point moves */
 FMOV FRm, FRn {:  
+    COUNT_INST(I_FMOV1);
     /* As horrible as this looks, it's actually covering 5 separate cases:
      * 1. 32-bit fr-to-fr (PR=0)
      * 2. 64-bit dr-to-dr (PR=1, FRm&1 == 0, FRn&1 == 0 )
@@ -1691,6 +1821,7 @@ FMOV FRm, FRn {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 FMOV FRm, @Rn {: 
+    COUNT_INST(I_FMOV2);
     check_fpuen();
     load_reg( R_EAX, Rn );
     check_walign32( R_EAX );
@@ -1711,6 +1842,7 @@ FMOV FRm, @Rn {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 FMOV @Rm, FRn {:  
+    COUNT_INST(I_FMOV5);
     check_fpuen();
     load_reg( R_EAX, Rm );
     check_ralign32( R_EAX );
@@ -1731,6 +1863,7 @@ FMOV @Rm, FRn {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 FMOV FRm, @-Rn {:  
+    COUNT_INST(I_FMOV3);
     check_fpuen();
     load_reg( R_EAX, Rn );
     check_walign32( R_EAX );
@@ -1757,6 +1890,7 @@ FMOV FRm, @-Rn {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 FMOV @Rm+, FRn {:
+    COUNT_INST(I_FMOV6);
     check_fpuen();
     load_reg( R_EAX, Rm );
     check_ralign32( R_EAX );
@@ -1780,6 +1914,7 @@ FMOV @Rm+, FRn {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 FMOV FRm, @(R0, Rn) {:  
+    COUNT_INST(I_FMOV4);
     check_fpuen();
     load_reg( R_EAX, Rn );
     ADD_sh4r_r32( REG_OFFSET(r[0]), R_EAX );
@@ -1802,6 +1937,7 @@ FMOV FRm, @(R0, Rn) {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 FMOV @(R0, Rm), FRn {:  
+    COUNT_INST(I_FMOV7);
     check_fpuen();
     load_reg( R_EAX, Rm );
     ADD_sh4r_r32( REG_OFFSET(r[0]), R_EAX );
@@ -1824,6 +1960,7 @@ FMOV @(R0, Rm), FRn {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 FLDI0 FRn {:  /* IFF PR=0 */
+    COUNT_INST(I_FLDI0);
     check_fpuen();
     load_spreg( R_ECX, R_FPSCR );
     TEST_imm32_r32( FPSCR_PR, R_ECX );
@@ -1834,6 +1971,7 @@ FLDI0 FRn {:  /* IFF PR=0 */
     sh4_x86.tstate = TSTATE_NONE;
 :}
 FLDI1 FRn {:  /* IFF PR=0 */
+    COUNT_INST(I_FLDI1);
     check_fpuen();
     load_spreg( R_ECX, R_FPSCR );
     TEST_imm32_r32( FPSCR_PR, R_ECX );
@@ -1845,6 +1983,7 @@ FLDI1 FRn {:  /* IFF PR=0 */
 :}
 
 FLOAT FPUL, FRn {:  
+    COUNT_INST(I_FLOAT);
     check_fpuen();
     load_spreg( R_ECX, R_FPSCR );
     FILD_sh4r(R_FPUL);
@@ -1858,6 +1997,7 @@ FLOAT FPUL, FRn {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 FTRC FRm, FPUL {:  
+    COUNT_INST(I_FTRC);
     check_fpuen();
     load_spreg( R_ECX, R_FPSCR );
     TEST_imm32_r32( FPSCR_PR, R_ECX );
@@ -1892,18 +2032,21 @@ FTRC FRm, FPUL {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 FLDS FRm, FPUL {:  
+    COUNT_INST(I_FLDS);
     check_fpuen();
     load_fr( R_EAX, FRm );
     store_spreg( R_EAX, R_FPUL );
     sh4_x86.tstate = TSTATE_NONE;
 :}
 FSTS FPUL, FRn {:  
+    COUNT_INST(I_FSTS);
     check_fpuen();
     load_spreg( R_EAX, R_FPUL );
     store_fr( R_EAX, FRn );
     sh4_x86.tstate = TSTATE_NONE;
 :}
 FCNVDS FRm, FPUL {:  
+    COUNT_INST(I_FCNVDS);
     check_fpuen();
     load_spreg( R_ECX, R_FPSCR );
     TEST_imm32_r32( FPSCR_PR, R_ECX );
@@ -1914,6 +2057,7 @@ FCNVDS FRm, FPUL {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 FCNVSD FPUL, FRn {:  
+    COUNT_INST(I_FCNVSD);
     check_fpuen();
     load_spreg( R_ECX, R_FPSCR );
     TEST_imm32_r32( FPSCR_PR, R_ECX );
@@ -1926,6 +2070,7 @@ FCNVSD FPUL, FRn {:
 
 /* Floating point instructions */
 FABS FRn {:  
+    COUNT_INST(I_FABS);
     check_fpuen();
     load_spreg( R_ECX, R_FPSCR );
     TEST_imm32_r32( FPSCR_PR, R_ECX );
@@ -1942,6 +2087,7 @@ FABS FRn {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 FADD FRm, FRn {:  
+    COUNT_INST(I_FADD);
     check_fpuen();
     load_spreg( R_ECX, R_FPSCR );
     TEST_imm32_r32( FPSCR_PR, R_ECX );
@@ -1960,6 +2106,7 @@ FADD FRm, FRn {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 FDIV FRm, FRn {:  
+    COUNT_INST(I_FDIV);
     check_fpuen();
     load_spreg( R_ECX, R_FPSCR );
     TEST_imm32_r32( FPSCR_PR, R_ECX );
@@ -1978,6 +2125,7 @@ FDIV FRm, FRn {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 FMAC FR0, FRm, FRn {:  
+    COUNT_INST(I_FMAC);
     check_fpuen();
     load_spreg( R_ECX, R_FPSCR );
     TEST_imm32_r32( FPSCR_PR, R_ECX );
@@ -2001,6 +2149,7 @@ FMAC FR0, FRm, FRn {:
 :}
 
 FMUL FRm, FRn {:  
+    COUNT_INST(I_FMUL);
     check_fpuen();
     load_spreg( R_ECX, R_FPSCR );
     TEST_imm32_r32( FPSCR_PR, R_ECX );
@@ -2019,6 +2168,7 @@ FMUL FRm, FRn {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 FNEG FRn {:  
+    COUNT_INST(I_FNEG);
     check_fpuen();
     load_spreg( R_ECX, R_FPSCR );
     TEST_imm32_r32( FPSCR_PR, R_ECX );
@@ -2035,6 +2185,7 @@ FNEG FRn {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 FSRRA FRn {:  
+    COUNT_INST(I_FSRRA);
     check_fpuen();
     load_spreg( R_ECX, R_FPSCR );
     TEST_imm32_r32( FPSCR_PR, R_ECX );
@@ -2048,6 +2199,7 @@ FSRRA FRn {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 FSQRT FRn {:  
+    COUNT_INST(I_FSQRT);
     check_fpuen();
     load_spreg( R_ECX, R_FPSCR );
     TEST_imm32_r32( FPSCR_PR, R_ECX );
@@ -2064,6 +2216,7 @@ FSQRT FRn {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 FSUB FRm, FRn {:  
+    COUNT_INST(I_FSUB);
     check_fpuen();
     load_spreg( R_ECX, R_FPSCR );
     TEST_imm32_r32( FPSCR_PR, R_ECX );
@@ -2083,6 +2236,7 @@ FSUB FRm, FRn {:
 :}
 
 FCMP/EQ FRm, FRn {:  
+    COUNT_INST(I_FCMPEQ);
     check_fpuen();
     load_spreg( R_ECX, R_FPSCR );
     TEST_imm32_r32( FPSCR_PR, R_ECX );
@@ -2100,6 +2254,7 @@ FCMP/EQ FRm, FRn {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 FCMP/GT FRm, FRn {:  
+    COUNT_INST(I_FCMPGT);
     check_fpuen();
     load_spreg( R_ECX, R_FPSCR );
     TEST_imm32_r32( FPSCR_PR, R_ECX );
@@ -2118,6 +2273,7 @@ FCMP/GT FRm, FRn {:
 :}
 
 FSCA FPUL, FRn {:  
+    COUNT_INST(I_FSCA);
     check_fpuen();
     load_spreg( R_ECX, R_FPSCR );
     TEST_imm32_r32( FPSCR_PR, R_ECX );
@@ -2129,6 +2285,7 @@ FSCA FPUL, FRn {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 FIPR FVm, FVn {:  
+    COUNT_INST(I_FIPR);
     check_fpuen();
     load_spreg( R_ECX, R_FPSCR );
     TEST_imm32_r32( FPSCR_PR, R_ECX );
@@ -2154,6 +2311,7 @@ FIPR FVm, FVn {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 FTRV XMTRX, FVn {:  
+    COUNT_INST(I_FTRV);
     check_fpuen();
     load_spreg( R_ECX, R_FPSCR );
     TEST_imm32_r32( FPSCR_PR, R_ECX );
@@ -2165,6 +2323,7 @@ FTRV XMTRX, FVn {:
 :}
 
 FRCHG {:  
+    COUNT_INST(I_FRCHG);
     check_fpuen();
     load_spreg( R_ECX, R_FPSCR );
     XOR_imm32_r32( FPSCR_FR, R_ECX );
@@ -2173,6 +2332,7 @@ FRCHG {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 FSCHG {:  
+    COUNT_INST(I_FSCHG);
     check_fpuen();
     load_spreg( R_ECX, R_FPSCR );
     XOR_imm32_r32( FPSCR_SZ, R_ECX );
@@ -2182,6 +2342,7 @@ FSCHG {:
 
 /* Processor control instructions */
 LDC Rm, SR {:
+    COUNT_INST(I_LDCSR);
     if( sh4_x86.in_delay_slot ) {
 	SLOTILLEGAL();
     } else {
@@ -2194,46 +2355,54 @@ LDC Rm, SR {:
     }
 :}
 LDC Rm, GBR {: 
+    COUNT_INST(I_LDC);
     load_reg( R_EAX, Rm );
     store_spreg( R_EAX, R_GBR );
 :}
 LDC Rm, VBR {:  
+    COUNT_INST(I_LDC);
     check_priv();
     load_reg( R_EAX, Rm );
     store_spreg( R_EAX, R_VBR );
     sh4_x86.tstate = TSTATE_NONE;
 :}
 LDC Rm, SSR {:  
+    COUNT_INST(I_LDC);
     check_priv();
     load_reg( R_EAX, Rm );
     store_spreg( R_EAX, R_SSR );
     sh4_x86.tstate = TSTATE_NONE;
 :}
 LDC Rm, SGR {:  
+    COUNT_INST(I_LDC);
     check_priv();
     load_reg( R_EAX, Rm );
     store_spreg( R_EAX, R_SGR );
     sh4_x86.tstate = TSTATE_NONE;
 :}
 LDC Rm, SPC {:  
+    COUNT_INST(I_LDC);
     check_priv();
     load_reg( R_EAX, Rm );
     store_spreg( R_EAX, R_SPC );
     sh4_x86.tstate = TSTATE_NONE;
 :}
 LDC Rm, DBR {:  
+    COUNT_INST(I_LDC);
     check_priv();
     load_reg( R_EAX, Rm );
     store_spreg( R_EAX, R_DBR );
     sh4_x86.tstate = TSTATE_NONE;
 :}
 LDC Rm, Rn_BANK {:  
+    COUNT_INST(I_LDC);
     check_priv();
     load_reg( R_EAX, Rm );
     store_spreg( R_EAX, REG_OFFSET(r_bank[Rn_BANK]) );
     sh4_x86.tstate = TSTATE_NONE;
 :}
 LDC.L @Rm+, GBR {:  
+    COUNT_INST(I_LDCM);
     load_reg( R_EAX, Rm );
     check_ralign32( R_EAX );
     MMU_TRANSLATE_READ( R_EAX );
@@ -2243,6 +2412,7 @@ LDC.L @Rm+, GBR {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 LDC.L @Rm+, SR {:
+    COUNT_INST(I_LDCSRM);
     if( sh4_x86.in_delay_slot ) {
 	SLOTILLEGAL();
     } else {
@@ -2259,6 +2429,7 @@ LDC.L @Rm+, SR {:
     }
 :}
 LDC.L @Rm+, VBR {:  
+    COUNT_INST(I_LDCM);
     check_priv();
     load_reg( R_EAX, Rm );
     check_ralign32( R_EAX );
@@ -2269,6 +2440,7 @@ LDC.L @Rm+, VBR {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 LDC.L @Rm+, SSR {:
+    COUNT_INST(I_LDCM);
     check_priv();
     load_reg( R_EAX, Rm );
     check_ralign32( R_EAX );
@@ -2279,6 +2451,7 @@ LDC.L @Rm+, SSR {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 LDC.L @Rm+, SGR {:  
+    COUNT_INST(I_LDCM);
     check_priv();
     load_reg( R_EAX, Rm );
     check_ralign32( R_EAX );
@@ -2289,6 +2462,7 @@ LDC.L @Rm+, SGR {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 LDC.L @Rm+, SPC {:  
+    COUNT_INST(I_LDCM);
     check_priv();
     load_reg( R_EAX, Rm );
     check_ralign32( R_EAX );
@@ -2299,6 +2473,7 @@ LDC.L @Rm+, SPC {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 LDC.L @Rm+, DBR {:  
+    COUNT_INST(I_LDCM);
     check_priv();
     load_reg( R_EAX, Rm );
     check_ralign32( R_EAX );
@@ -2309,6 +2484,7 @@ LDC.L @Rm+, DBR {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 LDC.L @Rm+, Rn_BANK {:  
+    COUNT_INST(I_LDCM);
     check_priv();
     load_reg( R_EAX, Rm );
     check_ralign32( R_EAX );
@@ -2319,12 +2495,14 @@ LDC.L @Rm+, Rn_BANK {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 LDS Rm, FPSCR {:
+    COUNT_INST(I_LDS);
     check_fpuen();
     load_reg( R_EAX, Rm );
     call_func1( sh4_write_fpscr, R_EAX );
     sh4_x86.tstate = TSTATE_NONE;
 :}
 LDS.L @Rm+, FPSCR {:  
+    COUNT_INST(I_LDS);
     check_fpuen();
     load_reg( R_EAX, Rm );
     check_ralign32( R_EAX );
@@ -2335,11 +2513,13 @@ LDS.L @Rm+, FPSCR {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 LDS Rm, FPUL {:  
+    COUNT_INST(I_LDS);
     check_fpuen();
     load_reg( R_EAX, Rm );
     store_spreg( R_EAX, R_FPUL );
 :}
 LDS.L @Rm+, FPUL {:  
+    COUNT_INST(I_LDSM);
     check_fpuen();
     load_reg( R_EAX, Rm );
     check_ralign32( R_EAX );
@@ -2350,10 +2530,12 @@ LDS.L @Rm+, FPUL {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 LDS Rm, MACH {: 
+    COUNT_INST(I_LDS);
     load_reg( R_EAX, Rm );
     store_spreg( R_EAX, R_MACH );
 :}
 LDS.L @Rm+, MACH {:  
+    COUNT_INST(I_LDSM);
     load_reg( R_EAX, Rm );
     check_ralign32( R_EAX );
     MMU_TRANSLATE_READ( R_EAX );
@@ -2363,10 +2545,12 @@ LDS.L @Rm+, MACH {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 LDS Rm, MACL {:  
+    COUNT_INST(I_LDS);
     load_reg( R_EAX, Rm );
     store_spreg( R_EAX, R_MACL );
 :}
 LDS.L @Rm+, MACL {:  
+    COUNT_INST(I_LDSM);
     load_reg( R_EAX, Rm );
     check_ralign32( R_EAX );
     MMU_TRANSLATE_READ( R_EAX );
@@ -2376,10 +2560,12 @@ LDS.L @Rm+, MACL {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 LDS Rm, PR {:  
+    COUNT_INST(I_LDS);
     load_reg( R_EAX, Rm );
     store_spreg( R_EAX, R_PR );
 :}
 LDS.L @Rm+, PR {:  
+    COUNT_INST(I_LDSM);
     load_reg( R_EAX, Rm );
     check_ralign32( R_EAX );
     MMU_TRANSLATE_READ( R_EAX );
@@ -2389,12 +2575,20 @@ LDS.L @Rm+, PR {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 LDTLB {:  
+    COUNT_INST(I_LDTLB);
     call_func0( MMU_ldtlb );
 :}
-OCBI @Rn {:  :}
-OCBP @Rn {:  :}
-OCBWB @Rn {:  :}
+OCBI @Rn {:
+    COUNT_INST(I_OCBI);
+:}
+OCBP @Rn {:
+    COUNT_INST(I_OCBP);
+:}
+OCBWB @Rn {:
+    COUNT_INST(I_OCBWB);
+:}
 PREF @Rn {:
+    COUNT_INST(I_PREF);
     load_reg( R_EAX, Rn );
     MOV_r32_r32( R_EAX, R_ECX );
     AND_imm32_r32( 0xFC000000, R_EAX );
@@ -2407,6 +2601,7 @@ PREF @Rn {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 SLEEP {: 
+    COUNT_INST(I_SLEEP);
     check_priv();
     call_func0( sh4_sleep );
     sh4_x86.tstate = TSTATE_NONE;
@@ -2414,52 +2609,61 @@ SLEEP {:
     return 2;
 :}
 STC SR, Rn {:
+    COUNT_INST(I_STCSR);
     check_priv();
     call_func0(sh4_read_sr);
     store_reg( R_EAX, Rn );
     sh4_x86.tstate = TSTATE_NONE;
 :}
 STC GBR, Rn {:  
+    COUNT_INST(I_STC);
     load_spreg( R_EAX, R_GBR );
     store_reg( R_EAX, Rn );
 :}
 STC VBR, Rn {:  
+    COUNT_INST(I_STC);
     check_priv();
     load_spreg( R_EAX, R_VBR );
     store_reg( R_EAX, Rn );
     sh4_x86.tstate = TSTATE_NONE;
 :}
 STC SSR, Rn {:  
+    COUNT_INST(I_STC);
     check_priv();
     load_spreg( R_EAX, R_SSR );
     store_reg( R_EAX, Rn );
     sh4_x86.tstate = TSTATE_NONE;
 :}
 STC SPC, Rn {:  
+    COUNT_INST(I_STC);
     check_priv();
     load_spreg( R_EAX, R_SPC );
     store_reg( R_EAX, Rn );
     sh4_x86.tstate = TSTATE_NONE;
 :}
 STC SGR, Rn {:  
+    COUNT_INST(I_STC);
     check_priv();
     load_spreg( R_EAX, R_SGR );
     store_reg( R_EAX, Rn );
     sh4_x86.tstate = TSTATE_NONE;
 :}
 STC DBR, Rn {:  
+    COUNT_INST(I_STC);
     check_priv();
     load_spreg( R_EAX, R_DBR );
     store_reg( R_EAX, Rn );
     sh4_x86.tstate = TSTATE_NONE;
 :}
 STC Rm_BANK, Rn {:
+    COUNT_INST(I_STC);
     check_priv();
     load_spreg( R_EAX, REG_OFFSET(r_bank[Rm_BANK]) );
     store_reg( R_EAX, Rn );
     sh4_x86.tstate = TSTATE_NONE;
 :}
 STC.L SR, @-Rn {:
+    COUNT_INST(I_STCSRM);
     check_priv();
     load_reg( R_EAX, Rn );
     check_walign32( R_EAX );
@@ -2473,6 +2677,7 @@ STC.L SR, @-Rn {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 STC.L VBR, @-Rn {:  
+    COUNT_INST(I_STCM);
     check_priv();
     load_reg( R_EAX, Rn );
     check_walign32( R_EAX );
@@ -2484,6 +2689,7 @@ STC.L VBR, @-Rn {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 STC.L SSR, @-Rn {:  
+    COUNT_INST(I_STCM);
     check_priv();
     load_reg( R_EAX, Rn );
     check_walign32( R_EAX );
@@ -2495,6 +2701,7 @@ STC.L SSR, @-Rn {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 STC.L SPC, @-Rn {:
+    COUNT_INST(I_STCM);
     check_priv();
     load_reg( R_EAX, Rn );
     check_walign32( R_EAX );
@@ -2506,6 +2713,7 @@ STC.L SPC, @-Rn {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 STC.L SGR, @-Rn {:  
+    COUNT_INST(I_STCM);
     check_priv();
     load_reg( R_EAX, Rn );
     check_walign32( R_EAX );
@@ -2517,6 +2725,7 @@ STC.L SGR, @-Rn {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 STC.L DBR, @-Rn {:  
+    COUNT_INST(I_STCM);
     check_priv();
     load_reg( R_EAX, Rn );
     check_walign32( R_EAX );
@@ -2528,6 +2737,7 @@ STC.L DBR, @-Rn {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 STC.L Rm_BANK, @-Rn {:  
+    COUNT_INST(I_STCM);
     check_priv();
     load_reg( R_EAX, Rn );
     check_walign32( R_EAX );
@@ -2539,6 +2749,7 @@ STC.L Rm_BANK, @-Rn {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 STC.L GBR, @-Rn {:  
+    COUNT_INST(I_STCM);
     load_reg( R_EAX, Rn );
     check_walign32( R_EAX );
     ADD_imm8s_r32( -4, R_EAX );
@@ -2549,11 +2760,13 @@ STC.L GBR, @-Rn {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 STS FPSCR, Rn {:  
+    COUNT_INST(I_STS);
     check_fpuen();
     load_spreg( R_EAX, R_FPSCR );
     store_reg( R_EAX, Rn );
 :}
 STS.L FPSCR, @-Rn {:  
+    COUNT_INST(I_STSM);
     check_fpuen();
     load_reg( R_EAX, Rn );
     check_walign32( R_EAX );
@@ -2565,11 +2778,13 @@ STS.L FPSCR, @-Rn {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 STS FPUL, Rn {:  
+    COUNT_INST(I_STS);
     check_fpuen();
     load_spreg( R_EAX, R_FPUL );
     store_reg( R_EAX, Rn );
 :}
 STS.L FPUL, @-Rn {:  
+    COUNT_INST(I_STSM);
     check_fpuen();
     load_reg( R_EAX, Rn );
     check_walign32( R_EAX );
@@ -2581,10 +2796,12 @@ STS.L FPUL, @-Rn {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 STS MACH, Rn {:  
+    COUNT_INST(I_STS);
     load_spreg( R_EAX, R_MACH );
     store_reg( R_EAX, Rn );
 :}
 STS.L MACH, @-Rn {:  
+    COUNT_INST(I_STSM);
     load_reg( R_EAX, Rn );
     check_walign32( R_EAX );
     ADD_imm8s_r32( -4, R_EAX );
@@ -2595,10 +2812,12 @@ STS.L MACH, @-Rn {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 STS MACL, Rn {:  
+    COUNT_INST(I_STS);
     load_spreg( R_EAX, R_MACL );
     store_reg( R_EAX, Rn );
 :}
 STS.L MACL, @-Rn {:  
+    COUNT_INST(I_STSM);
     load_reg( R_EAX, Rn );
     check_walign32( R_EAX );
     ADD_imm8s_r32( -4, R_EAX );
@@ -2609,10 +2828,12 @@ STS.L MACL, @-Rn {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 STS PR, Rn {:  
+    COUNT_INST(I_STS);
     load_spreg( R_EAX, R_PR );
     store_reg( R_EAX, Rn );
 :}
 STS.L PR, @-Rn {:  
+    COUNT_INST(I_STSM);
     load_reg( R_EAX, Rn );
     check_walign32( R_EAX );
     ADD_imm8s_r32( -4, R_EAX );
@@ -2623,7 +2844,10 @@ STS.L PR, @-Rn {:
     sh4_x86.tstate = TSTATE_NONE;
 :}
 
-NOP {: /* Do nothing. Well, we could emit an 0x90, but what would really be the point? */ :}
+NOP {: 
+    COUNT_INST(I_NOP);
+    /* Do nothing. Well, we could emit an 0x90, but what would really be the point? */ 
+:}
 %%
     sh4_x86.in_delay_slot = DELAY_NONE;
     return 0;

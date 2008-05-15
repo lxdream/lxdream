@@ -209,6 +209,7 @@ static gboolean on_video_window_focus_changed( GtkWidget *widget, GdkEventFocus 
 
 static gboolean on_main_window_deleted( GtkWidget *widget, GdkEvent event, gpointer user_data )
 {
+    dreamcast_shutdown();
     exit(0);
 }
 

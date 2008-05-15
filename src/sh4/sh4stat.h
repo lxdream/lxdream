@@ -16,7 +16,13 @@
  * GNU General Public License for more details.
  */
 
-enum sh4_inst_id {
+#ifndef lxdream_sh4stat_H
+#define lxdream_sh4stat_H
+
+#include <stdio.h>
+#include <stdint.h>
+
+typedef enum {
     I_UNKNOWN,
     I_ADD, I_ADDI, I_ADDC, I_ADDV,
     I_AND, I_ANDI, I_ANDB, 
@@ -51,10 +57,14 @@ enum sh4_inst_id {
     I_TST, I_TSTI, I_TSTB,  
     I_XOR, I_XORI, I_XORB,  
     I_XTRCT, 
-    I_UNDEF };
+    I_UNDEF } sh4_inst_id;
 
 #define SH4_INSTRUCTION_COUNT I_UNDEF
 
 void sh4_stats_reset( void );
 void sh4_stats_print( FILE *out );
-void sh4_stats_add( uint32_t pc );
+void sh4_stats_add( sh4_inst_id id );
+void sh4_stats_add_by_pc( uint32_t pc );
+
+
+#endif /* !lxdream_sh4stat_H */

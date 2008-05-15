@@ -207,6 +207,7 @@ int main (int argc, char *argv[])
         if( dreamcast_can_run() ) {
 	    if( time_nanos != 0 || time_secs != 0 ) {
 	        dreamcast_run_for(time_secs, time_nanos);
+		dreamcast_shutdown();
 		return 0;
 	    } else {
 	        dreamcast_run();
@@ -218,6 +219,7 @@ int main (int argc, char *argv[])
     if( !headless ) {
 	gui_main_loop();
     }
+    dreamcast_shutdown();
     return 0;
 }
 
