@@ -22,6 +22,11 @@ AC_ARG_ENABLE( watch,
    [if test "$enableval" == "yes"; then
      AC_DEFINE(ENABLE_WATCH, 1, [Enable watchpoints])
    fi] )
+AC_ARG_ENABLE( sh4stats,
+   AS_HELP_STRING( [--enable-sh4stats], [Enable statistics on executed sh4 instructions]),
+   [if test "$enableval" == "yes"; then
+     AC_DEFINE(ENABLE_SH4STATS, 1, [Enable SH4 statistics])
+    fi] )
 AC_ARG_WITH( osmesa,
    AS_HELP_STRING( [--with-osmesa], [Build with the osmesa GL library (software rendering)]),
    [], [with_osmesa=no])

@@ -145,6 +145,7 @@ void dcload_syscall( uint32_t syscall_id )
 	break;
     case SYS_EXIT:
 	if( dcload_allow_unsafe ) {
+	    dreamcast_shutdown();
 	    exit( sh4r.r[5] );
 	} else {
 	    dreamcast_stop();

@@ -190,6 +190,7 @@ void about_action_callback( GtkAction *action, gpointer user_data)
 
 void exit_action_callback( GtkAction *action, gpointer user_data)
 {
+    dreamcast_shutdown();
     exit(0);
 }
 

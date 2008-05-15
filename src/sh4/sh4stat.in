@@ -182,7 +182,13 @@ void sh4_stats_print( FILE *out )
     fprintf( out, "Total: %lld\n", sh4_stats_total );
 }
 
-void sh4_stats_add( uint32_t pc ) 
+void sh4_stats_add( sh4_inst_id item )
+{
+    sh4_stats[item]++;
+    sh4_stats_total++;
+}
+
+void sh4_stats_add_by_pc( uint32_t pc ) 
 {
     uint16_t ir = sh4_read_word(pc);
 #define UNDEF() sh4_stats[0]++

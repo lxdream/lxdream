@@ -28,6 +28,7 @@
 #include "sh4/xltcache.h"
 #include "sh4/sh4core.h"
 #include "sh4/sh4trans.h"
+#include "sh4/sh4stat.h"
 #include "sh4/sh4mmio.h"
 #include "sh4/x86op.h"
 #include "clock.h"
@@ -78,6 +79,12 @@ struct sh4_x86_state {
 #define TSTATE_GE   0xD
 #define TSTATE_A    7
 #define TSTATE_AE   3
+
+#ifdef ENABLE_SH4STATS
+#define COUNT_INST(id) load_imm32(R_EAX,id); call_func1(sh4_stats_add, R_EAX); sh4_x86.tstate = TSTATE_NONE
+#else
+#define COUNT_INST(id)
+#endif
 
 /** Branch if T is set (either in the current cflags, or in sh4r.t) */
 #define JT_rel8(label) if( sh4_x86.tstate == TSTATE_NONE ) { \
@@ -391,6 +398,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                                     case 0x0:
                                         { /* STC SR, Rn */
                                         uint32_t Rn = ((ir>>8)&0xF); 
+                                        COUNT_INST(I_STCSR);
                                         check_priv();
                                         call_func0(sh4_read_sr);
                                         store_reg( R_EAX, Rn );
@@ -400,6 +408,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                                     case 0x1:
                                         { /* STC GBR, Rn */
                                         uint32_t Rn = ((ir>>8)&0xF); 
+                                        COUNT_INST(I_STC);
                                         load_spreg( R_EAX, R_GBR );
                                         store_reg( R_EAX, Rn );
                                         }
@@ -407,6 +416,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                                     case 0x2:
                                         { /* STC VBR, Rn */
                                         uint32_t Rn = ((ir>>8)&0xF); 
+                                        COUNT_INST(I_STC);
                                         check_priv();
                                         load_spreg( R_EAX, R_VBR );
                                         store_reg( R_EAX, Rn );
@@ -416,6 +426,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                                     case 0x3:
                                         { /* STC SSR, Rn */
                                         uint32_t Rn = ((ir>>8)&0xF); 
+                                        COUNT_INST(I_STC);
                                         check_priv();
                                         load_spreg( R_EAX, R_SSR );
                                         store_reg( R_EAX, Rn );
@@ -425,6 +436,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                                     case 0x4:
                                         { /* STC SPC, Rn */
                                         uint32_t Rn = ((ir>>8)&0xF); 
+                                        COUNT_INST(I_STC);
                                         check_priv();
                                         load_spreg( R_EAX, R_SPC );
                                         store_reg( R_EAX, Rn );
@@ -439,6 +451,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x1:
                                 { /* STC Rm_BANK, Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm_BANK = ((ir>>4)&0x7); 
+                                COUNT_INST(I_STC);
                                 check_priv();
                                 load_spreg( R_EAX, REG_OFFSET(r_bank[Rm_BANK]) );
                                 store_reg( R_EAX, Rn );
@@ -452,6 +465,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x0:
                                 { /* BSRF Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
+                                COUNT_INST(I_BSRF);
                                 if( sh4_x86.in_delay_slot ) {
                             	SLOTILLEGAL();
                                 } else {
@@ -478,6 +492,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x2:
                                 { /* BRAF Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
+                                COUNT_INST(I_BRAF);
                                 if( sh4_x86.in_delay_slot ) {
                             	SLOTILLEGAL();
                                 } else {
@@ -502,6 +517,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x8:
                                 { /* PREF @Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
+                                COUNT_INST(I_PREF);
                                 load_reg( R_EAX, Rn );
                                 MOV_r32_r32( R_EAX, R_ECX );
                                 AND_imm32_r32( 0xFC000000, R_EAX );
@@ -517,21 +533,25 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x9:
                                 { /* OCBI @Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
+                                COUNT_INST(I_OCBI);
                                 }
                                 break;
                             case 0xA:
                                 { /* OCBP @Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
+                                COUNT_INST(I_OCBP);
                                 }
                                 break;
                             case 0xB:
                                 { /* OCBWB @Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
+                                COUNT_INST(I_OCBWB);
                                 }
                                 break;
                             case 0xC:
                                 { /* MOVCA.L R0, @Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
+                                COUNT_INST(I_MOVCA);
                                 load_reg( R_EAX, Rn );
                                 check_walign32( R_EAX );
                                 MMU_TRANSLATE_WRITE( R_EAX );
@@ -548,6 +568,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0x4:
                         { /* MOV.B Rm, @(R0, Rn) */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_MOVB);
                         load_reg( R_EAX, 0 );
                         load_reg( R_ECX, Rn );
                         ADD_r32_r32( R_ECX, R_EAX );
@@ -560,6 +581,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0x5:
                         { /* MOV.W Rm, @(R0, Rn) */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_MOVW);
                         load_reg( R_EAX, 0 );
                         load_reg( R_ECX, Rn );
                         ADD_r32_r32( R_ECX, R_EAX );
@@ -573,6 +595,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0x6:
                         { /* MOV.L Rm, @(R0, Rn) */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_MOVL);
                         load_reg( R_EAX, 0 );
                         load_reg( R_ECX, Rn );
                         ADD_r32_r32( R_ECX, R_EAX );
@@ -586,6 +609,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0x7:
                         { /* MUL.L Rm, Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_MULL);
                         load_reg( R_EAX, Rm );
                         load_reg( R_ECX, Rn );
                         MUL_r32( R_ECX );
@@ -597,6 +621,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                         switch( (ir&0xFF0) >> 4 ) {
                             case 0x0:
                                 { /* CLRT */
+                                COUNT_INST(I_CLRT);
                                 CLC();
                                 SETC_t();
                                 sh4_x86.tstate = TSTATE_C;
@@ -604,6 +629,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                                 break;
                             case 0x1:
                                 { /* SETT */
+                                COUNT_INST(I_SETT);
                                 STC();
                                 SETC_t();
                                 sh4_x86.tstate = TSTATE_C;
@@ -611,6 +637,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                                 break;
                             case 0x2:
                                 { /* CLRMAC */
+                                COUNT_INST(I_CLRMAC);
                                 XOR_r32_r32(R_EAX, R_EAX);
                                 store_spreg( R_EAX, R_MACL );
                                 store_spreg( R_EAX, R_MACH );
@@ -619,11 +646,13 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                                 break;
                             case 0x3:
                                 { /* LDTLB */
+                                COUNT_INST(I_LDTLB);
                                 call_func0( MMU_ldtlb );
                                 }
                                 break;
                             case 0x4:
                                 { /* CLRS */
+                                COUNT_INST(I_CLRS);
                                 CLC();
                                 SETC_sh4r(R_S);
                                 sh4_x86.tstate = TSTATE_C;
@@ -631,6 +660,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                                 break;
                             case 0x5:
                                 { /* SETS */
+                                COUNT_INST(I_SETS);
                                 STC();
                                 SETC_sh4r(R_S);
                                 sh4_x86.tstate = TSTATE_C;
@@ -645,11 +675,13 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                         switch( (ir&0xF0) >> 4 ) {
                             case 0x0:
                                 { /* NOP */
+                                COUNT_INST(I_NOP);
                                 /* Do nothing. Well, we could emit an 0x90, but what would really be the point? */
                                 }
                                 break;
                             case 0x1:
                                 { /* DIV0U */
+                                COUNT_INST(I_DIV0U);
                                 XOR_r32_r32( R_EAX, R_EAX );
                                 store_spreg( R_EAX, R_Q );
                                 store_spreg( R_EAX, R_M );
@@ -660,6 +692,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x2:
                                 { /* MOVT Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
+                                COUNT_INST(I_MOVT);
                                 load_spreg( R_EAX, R_T );
                                 store_reg( R_EAX, Rn );
                                 }
@@ -674,6 +707,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x0:
                                 { /* STS MACH, Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
+                                COUNT_INST(I_STS);
                                 load_spreg( R_EAX, R_MACH );
                                 store_reg( R_EAX, Rn );
                                 }
@@ -681,6 +715,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x1:
                                 { /* STS MACL, Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
+                                COUNT_INST(I_STS);
                                 load_spreg( R_EAX, R_MACL );
                                 store_reg( R_EAX, Rn );
                                 }
@@ -688,6 +723,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x2:
                                 { /* STS PR, Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
+                                COUNT_INST(I_STS);
                                 load_spreg( R_EAX, R_PR );
                                 store_reg( R_EAX, Rn );
                                 }
@@ -695,6 +731,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x3:
                                 { /* STC SGR, Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
+                                COUNT_INST(I_STC);
                                 check_priv();
                                 load_spreg( R_EAX, R_SGR );
                                 store_reg( R_EAX, Rn );
@@ -704,6 +741,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x5:
                                 { /* STS FPUL, Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
+                                COUNT_INST(I_STS);
                                 check_fpuen();
                                 load_spreg( R_EAX, R_FPUL );
                                 store_reg( R_EAX, Rn );
@@ -712,6 +750,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x6:
                                 { /* STS FPSCR, Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
+                                COUNT_INST(I_STS);
                                 check_fpuen();
                                 load_spreg( R_EAX, R_FPSCR );
                                 store_reg( R_EAX, Rn );
@@ -720,6 +759,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0xF:
                                 { /* STC DBR, Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
+                                COUNT_INST(I_STC);
                                 check_priv();
                                 load_spreg( R_EAX, R_DBR );
                                 store_reg( R_EAX, Rn );
@@ -735,6 +775,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                         switch( (ir&0xFF0) >> 4 ) {
                             case 0x0:
                                 { /* RTS */
+                                COUNT_INST(I_RTS);
                                 if( sh4_x86.in_delay_slot ) {
                             	SLOTILLEGAL();
                                 } else {
@@ -755,6 +796,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                                 break;
                             case 0x1:
                                 { /* SLEEP */
+                                COUNT_INST(I_SLEEP);
                                 check_priv();
                                 call_func0( sh4_sleep );
                                 sh4_x86.tstate = TSTATE_NONE;
@@ -764,6 +806,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                                 break;
                             case 0x2:
                                 { /* RTE */
+                                COUNT_INST(I_RTE);
                                 if( sh4_x86.in_delay_slot ) {
                             	SLOTILLEGAL();
                                 } else {
@@ -796,6 +839,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0xC:
                         { /* MOV.B @(R0, Rm), Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_MOVB);
                         load_reg( R_EAX, 0 );
                         load_reg( R_ECX, Rm );
                         ADD_r32_r32( R_ECX, R_EAX );
@@ -808,6 +852,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0xD:
                         { /* MOV.W @(R0, Rm), Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_MOVW);
                         load_reg( R_EAX, 0 );
                         load_reg( R_ECX, Rm );
                         ADD_r32_r32( R_ECX, R_EAX );
@@ -821,6 +866,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0xE:
                         { /* MOV.L @(R0, Rm), Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_MOVL);
                         load_reg( R_EAX, 0 );
                         load_reg( R_ECX, Rm );
                         ADD_r32_r32( R_ECX, R_EAX );
@@ -834,6 +880,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0xF:
                         { /* MAC.L @Rm+, @Rn+ */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_MACL);
                         if( Rm == Rn ) {
                     	load_reg( R_EAX, Rm );
                     	check_ralign32( R_EAX );
@@ -883,6 +930,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
             case 0x1:
                 { /* MOV.L Rm, @(disp, Rn) */
                 uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); uint32_t disp = (ir&0xF)<<2; 
+                COUNT_INST(I_MOVL);
                 load_reg( R_EAX, Rn );
                 ADD_imm32_r32( disp, R_EAX );
                 check_walign32( R_EAX );
@@ -897,6 +945,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0x0:
                         { /* MOV.B Rm, @Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_MOVB);
                         load_reg( R_EAX, Rn );
                         MMU_TRANSLATE_WRITE( R_EAX );
                         load_reg( R_EDX, Rm );
@@ -907,6 +956,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0x1:
                         { /* MOV.W Rm, @Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_MOVW);
                         load_reg( R_EAX, Rn );
                         check_walign16( R_EAX );
                         MMU_TRANSLATE_WRITE( R_EAX )
@@ -918,6 +968,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0x2:
                         { /* MOV.L Rm, @Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_MOVL);
                         load_reg( R_EAX, Rn );
                         check_walign32(R_EAX);
                         MMU_TRANSLATE_WRITE( R_EAX );
@@ -929,6 +980,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0x4:
                         { /* MOV.B Rm, @-Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_MOVB);
                         load_reg( R_EAX, Rn );
                         ADD_imm8s_r32( -1, R_EAX );
                         MMU_TRANSLATE_WRITE( R_EAX );
@@ -941,6 +993,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0x5:
                         { /* MOV.W Rm, @-Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_MOVW);
                         load_reg( R_EAX, Rn );
                         ADD_imm8s_r32( -2, R_EAX );
                         check_walign16( R_EAX );
@@ -954,6 +1007,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0x6:
                         { /* MOV.L Rm, @-Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_MOVL);
                         load_reg( R_EAX, Rn );
                         ADD_imm8s_r32( -4, R_EAX );
                         check_walign32( R_EAX );
@@ -967,6 +1021,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0x7:
                         { /* DIV0S Rm, Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_DIV0S);
                         load_reg( R_EAX, Rm );
                         load_reg( R_ECX, Rn );
                         SHR_imm8_r32( 31, R_EAX );
@@ -981,6 +1036,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0x8:
                         { /* TST Rm, Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_TST);
                         load_reg( R_EAX, Rm );
                         load_reg( R_ECX, Rn );
                         TEST_r32_r32( R_EAX, R_ECX );
@@ -991,6 +1047,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0x9:
                         { /* AND Rm, Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_AND);
                         load_reg( R_EAX, Rm );
                         load_reg( R_ECX, Rn );
                         AND_r32_r32( R_EAX, R_ECX );
@@ -1001,6 +1058,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0xA:
                         { /* XOR Rm, Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_XOR);
                         load_reg( R_EAX, Rm );
                         load_reg( R_ECX, Rn );
                         XOR_r32_r32( R_EAX, R_ECX );
@@ -1011,6 +1069,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0xB:
                         { /* OR Rm, Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_OR);
                         load_reg( R_EAX, Rm );
                         load_reg( R_ECX, Rn );
                         OR_r32_r32( R_EAX, R_ECX );
@@ -1021,6 +1080,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0xC:
                         { /* CMP/STR Rm, Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_CMPSTR);
                         load_reg( R_EAX, Rm );
                         load_reg( R_ECX, Rn );
                         XOR_r32_r32( R_ECX, R_EAX );
@@ -1042,6 +1102,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0xD:
                         { /* XTRCT Rm, Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_XTRCT);
                         load_reg( R_EAX, Rm );
                         load_reg( R_ECX, Rn );
                         SHL_imm8_r32( 16, R_EAX );
@@ -1054,6 +1115,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0xE:
                         { /* MULU.W Rm, Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_MULUW);
                         load_reg16u( R_EAX, Rm );
                         load_reg16u( R_ECX, Rn );
                         MUL_r32( R_ECX );
@@ -1064,6 +1126,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0xF:
                         { /* MULS.W Rm, Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_MULSW);
                         load_reg16s( R_EAX, Rm );
                         load_reg16s( R_ECX, Rn );
                         MUL_r32( R_ECX );
@@ -1081,6 +1144,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0x0:
                         { /* CMP/EQ Rm, Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_CMPEQ);
                         load_reg( R_EAX, Rm );
                         load_reg( R_ECX, Rn );
                         CMP_r32_r32( R_EAX, R_ECX );
@@ -1091,6 +1155,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0x2:
                         { /* CMP/HS Rm, Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_CMPHS);
                         load_reg( R_EAX, Rm );
                         load_reg( R_ECX, Rn );
                         CMP_r32_r32( R_EAX, R_ECX );
@@ -1101,6 +1166,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0x3:
                         { /* CMP/GE Rm, Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_CMPGE);
                         load_reg( R_EAX, Rm );
                         load_reg( R_ECX, Rn );
                         CMP_r32_r32( R_EAX, R_ECX );
@@ -1111,6 +1177,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0x4:
                         { /* DIV1 Rm, Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_DIV1);
                         load_spreg( R_ECX, R_M );
                         load_reg( R_EAX, Rn );
                         if( sh4_x86.tstate != TSTATE_C ) {
@@ -1139,6 +1206,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0x5:
                         { /* DMULU.L Rm, Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_DMULU);
                         load_reg( R_EAX, Rm );
                         load_reg( R_ECX, Rn );
                         MUL_r32(R_ECX);
@@ -1150,6 +1218,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0x6:
                         { /* CMP/HI Rm, Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_CMPHI);
                         load_reg( R_EAX, Rm );
                         load_reg( R_ECX, Rn );
                         CMP_r32_r32( R_EAX, R_ECX );
@@ -1160,6 +1229,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0x7:
                         { /* CMP/GT Rm, Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_CMPGT);
                         load_reg( R_EAX, Rm );
                         load_reg( R_ECX, Rn );
                         CMP_r32_r32( R_EAX, R_ECX );
@@ -1170,6 +1240,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0x8:
                         { /* SUB Rm, Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_SUB);
                         load_reg( R_EAX, Rm );
                         load_reg( R_ECX, Rn );
                         SUB_r32_r32( R_EAX, R_ECX );
@@ -1180,6 +1251,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0xA:
                         { /* SUBC Rm, Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_SUBC);
                         load_reg( R_EAX, Rm );
                         load_reg( R_ECX, Rn );
                         if( sh4_x86.tstate != TSTATE_C ) {
@@ -1194,6 +1266,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0xB:
                         { /* SUBV Rm, Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_SUBV);
                         load_reg( R_EAX, Rm );
                         load_reg( R_ECX, Rn );
                         SUB_r32_r32( R_EAX, R_ECX );
@@ -1205,6 +1278,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0xC:
                         { /* ADD Rm, Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_ADD);
                         load_reg( R_EAX, Rm );
                         load_reg( R_ECX, Rn );
                         ADD_r32_r32( R_EAX, R_ECX );
@@ -1215,6 +1289,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0xD:
                         { /* DMULS.L Rm, Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_DMULS);
                         load_reg( R_EAX, Rm );
                         load_reg( R_ECX, Rn );
                         IMUL_r32(R_ECX);
@@ -1226,6 +1301,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0xE:
                         { /* ADDC Rm, Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_ADDC);
                         if( sh4_x86.tstate != TSTATE_C ) {
                     	LDC_t();
                         }
@@ -1240,6 +1316,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0xF:
                         { /* ADDV Rm, Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_ADDV);
                         load_reg( R_EAX, Rm );
                         load_reg( R_ECX, Rn );
                         ADD_r32_r32( R_EAX, R_ECX );
@@ -1260,6 +1337,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x0:
                                 { /* SHLL Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
+                                COUNT_INST(I_SHLL);
                                 load_reg( R_EAX, Rn );
                                 SHL1_r32( R_EAX );
                                 SETC_t();
@@ -1270,6 +1348,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x1:
                                 { /* DT Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
+                                COUNT_INST(I_DT);
                                 load_reg( R_EAX, Rn );
                                 ADD_imm8s_r32( -1, R_EAX );
                                 store_reg( R_EAX, Rn );
@@ -1280,6 +1359,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x2:
                                 { /* SHAL Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
+                                COUNT_INST(I_SHAL);
                                 load_reg( R_EAX, Rn );
                                 SHL1_r32( R_EAX );
                                 SETC_t();
@@ -1297,6 +1377,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x0:
                                 { /* SHLR Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
+                                COUNT_INST(I_SHLR);
                                 load_reg( R_EAX, Rn );
                                 SHR1_r32( R_EAX );
                                 SETC_t();
@@ -1307,6 +1388,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x1:
                                 { /* CMP/PZ Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
+                                COUNT_INST(I_CMPPZ);
                                 load_reg( R_EAX, Rn );
                                 CMP_imm8s_r32( 0, R_EAX );
                                 SETGE_t();
@@ -1316,6 +1398,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x2:
                                 { /* SHAR Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
+                                COUNT_INST(I_SHAR);
                                 load_reg( R_EAX, Rn );
                                 SAR1_r32( R_EAX );
                                 SETC_t();
@@ -1333,6 +1416,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x0:
                                 { /* STS.L MACH, @-Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
+                                COUNT_INST(I_STSM);
                                 load_reg( R_EAX, Rn );
                                 check_walign32( R_EAX );
                                 ADD_imm8s_r32( -4, R_EAX );
@@ -1346,6 +1430,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x1:
                                 { /* STS.L MACL, @-Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
+                                COUNT_INST(I_STSM);
                                 load_reg( R_EAX, Rn );
                                 check_walign32( R_EAX );
                                 ADD_imm8s_r32( -4, R_EAX );
@@ -1359,6 +1444,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x2:
                                 { /* STS.L PR, @-Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
+                                COUNT_INST(I_STSM);
                                 load_reg( R_EAX, Rn );
                                 check_walign32( R_EAX );
                                 ADD_imm8s_r32( -4, R_EAX );
@@ -1372,6 +1458,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x3:
                                 { /* STC.L SGR, @-Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
+                                COUNT_INST(I_STCM);
                                 check_priv();
                                 load_reg( R_EAX, Rn );
                                 check_walign32( R_EAX );
@@ -1386,6 +1473,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x5:
                                 { /* STS.L FPUL, @-Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
+                                COUNT_INST(I_STSM);
                                 check_fpuen();
                                 load_reg( R_EAX, Rn );
                                 check_walign32( R_EAX );
@@ -1400,6 +1488,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x6:
                                 { /* STS.L FPSCR, @-Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
+                                COUNT_INST(I_STSM);
                                 check_fpuen();
                                 load_reg( R_EAX, Rn );
                                 check_walign32( R_EAX );
@@ -1414,6 +1503,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0xF:
                                 { /* STC.L DBR, @-Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
+                                COUNT_INST(I_STCM);
                                 check_priv();
                                 load_reg( R_EAX, Rn );
                                 check_walign32( R_EAX );
@@ -1437,6 +1527,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                                     case 0x0:
                                         { /* STC.L SR, @-Rn */
                                         uint32_t Rn = ((ir>>8)&0xF); 
+                                        COUNT_INST(I_STCSRM);
                                         check_priv();
                                         load_reg( R_EAX, Rn );
                                         check_walign32( R_EAX );
@@ -1453,6 +1544,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                                     case 0x1:
                                         { /* STC.L GBR, @-Rn */
                                         uint32_t Rn = ((ir>>8)&0xF); 
+                                        COUNT_INST(I_STCM);
                                         load_reg( R_EAX, Rn );
                                         check_walign32( R_EAX );
                                         ADD_imm8s_r32( -4, R_EAX );
@@ -1466,6 +1558,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                                     case 0x2:
                                         { /* STC.L VBR, @-Rn */
                                         uint32_t Rn = ((ir>>8)&0xF); 
+                                        COUNT_INST(I_STCM);
                                         check_priv();
                                         load_reg( R_EAX, Rn );
                                         check_walign32( R_EAX );
@@ -1480,6 +1573,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                                     case 0x3:
                                         { /* STC.L SSR, @-Rn */
                                         uint32_t Rn = ((ir>>8)&0xF); 
+                                        COUNT_INST(I_STCM);
                                         check_priv();
                                         load_reg( R_EAX, Rn );
                                         check_walign32( R_EAX );
@@ -1494,6 +1588,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                                     case 0x4:
                                         { /* STC.L SPC, @-Rn */
                                         uint32_t Rn = ((ir>>8)&0xF); 
+                                        COUNT_INST(I_STCM);
                                         check_priv();
                                         load_reg( R_EAX, Rn );
                                         check_walign32( R_EAX );
@@ -1513,6 +1608,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x1:
                                 { /* STC.L Rm_BANK, @-Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm_BANK = ((ir>>4)&0x7); 
+                                COUNT_INST(I_STCM);
                                 check_priv();
                                 load_reg( R_EAX, Rn );
                                 check_walign32( R_EAX );
@@ -1531,6 +1627,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x0:
                                 { /* ROTL Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
+                                COUNT_INST(I_ROTL);
                                 load_reg( R_EAX, Rn );
                                 ROL1_r32( R_EAX );
                                 store_reg( R_EAX, Rn );
@@ -1541,6 +1638,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x2:
                                 { /* ROTCL Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
+                                COUNT_INST(I_ROTCL);
                                 load_reg( R_EAX, Rn );
                                 if( sh4_x86.tstate != TSTATE_C ) {
                             	LDC_t();
@@ -1561,6 +1659,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x0:
                                 { /* ROTR Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
+                                COUNT_INST(I_ROTR);
                                 load_reg( R_EAX, Rn );
                                 ROR1_r32( R_EAX );
                                 store_reg( R_EAX, Rn );
@@ -1571,6 +1670,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x1:
                                 { /* CMP/PL Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
+                                COUNT_INST(I_CMPPL);
                                 load_reg( R_EAX, Rn );
                                 CMP_imm8s_r32( 0, R_EAX );
                                 SETG_t();
@@ -1580,6 +1680,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x2:
                                 { /* ROTCR Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
+                                COUNT_INST(I_ROTCR);
                                 load_reg( R_EAX, Rn );
                                 if( sh4_x86.tstate != TSTATE_C ) {
                             	LDC_t();
@@ -1600,6 +1701,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x0:
                                 { /* LDS.L @Rm+, MACH */
                                 uint32_t Rm = ((ir>>8)&0xF); 
+                                COUNT_INST(I_LDSM);
                                 load_reg( R_EAX, Rm );
                                 check_ralign32( R_EAX );
                                 MMU_TRANSLATE_READ( R_EAX );
@@ -1612,6 +1714,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x1:
                                 { /* LDS.L @Rm+, MACL */
                                 uint32_t Rm = ((ir>>8)&0xF); 
+                                COUNT_INST(I_LDSM);
                                 load_reg( R_EAX, Rm );
                                 check_ralign32( R_EAX );
                                 MMU_TRANSLATE_READ( R_EAX );
@@ -1624,6 +1727,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x2:
                                 { /* LDS.L @Rm+, PR */
                                 uint32_t Rm = ((ir>>8)&0xF); 
+                                COUNT_INST(I_LDSM);
                                 load_reg( R_EAX, Rm );
                                 check_ralign32( R_EAX );
                                 MMU_TRANSLATE_READ( R_EAX );
@@ -1636,6 +1740,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x3:
                                 { /* LDC.L @Rm+, SGR */
                                 uint32_t Rm = ((ir>>8)&0xF); 
+                                COUNT_INST(I_LDCM);
                                 check_priv();
                                 load_reg( R_EAX, Rm );
                                 check_ralign32( R_EAX );
@@ -1649,6 +1754,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x5:
                                 { /* LDS.L @Rm+, FPUL */
                                 uint32_t Rm = ((ir>>8)&0xF); 
+                                COUNT_INST(I_LDSM);
                                 check_fpuen();
                                 load_reg( R_EAX, Rm );
                                 check_ralign32( R_EAX );
@@ -1662,6 +1768,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x6:
                                 { /* LDS.L @Rm+, FPSCR */
                                 uint32_t Rm = ((ir>>8)&0xF); 
+                                COUNT_INST(I_LDS);
                                 check_fpuen();
                                 load_reg( R_EAX, Rm );
                                 check_ralign32( R_EAX );
@@ -1675,6 +1782,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0xF:
                                 { /* LDC.L @Rm+, DBR */
                                 uint32_t Rm = ((ir>>8)&0xF); 
+                                COUNT_INST(I_LDCM);
                                 check_priv();
                                 load_reg( R_EAX, Rm );
                                 check_ralign32( R_EAX );
@@ -1697,6 +1805,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                                     case 0x0:
                                         { /* LDC.L @Rm+, SR */
                                         uint32_t Rm = ((ir>>8)&0xF); 
+                                        COUNT_INST(I_LDCSRM);
                                         if( sh4_x86.in_delay_slot ) {
                                     	SLOTILLEGAL();
                                         } else {
@@ -1716,6 +1825,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                                     case 0x1:
                                         { /* LDC.L @Rm+, GBR */
                                         uint32_t Rm = ((ir>>8)&0xF); 
+                                        COUNT_INST(I_LDCM);
                                         load_reg( R_EAX, Rm );
                                         check_ralign32( R_EAX );
                                         MMU_TRANSLATE_READ( R_EAX );
@@ -1728,6 +1838,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                                     case 0x2:
                                         { /* LDC.L @Rm+, VBR */
                                         uint32_t Rm = ((ir>>8)&0xF); 
+                                        COUNT_INST(I_LDCM);
                                         check_priv();
                                         load_reg( R_EAX, Rm );
                                         check_ralign32( R_EAX );
@@ -1741,6 +1852,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                                     case 0x3:
                                         { /* LDC.L @Rm+, SSR */
                                         uint32_t Rm = ((ir>>8)&0xF); 
+                                        COUNT_INST(I_LDCM);
                                         check_priv();
                                         load_reg( R_EAX, Rm );
                                         check_ralign32( R_EAX );
@@ -1754,6 +1866,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                                     case 0x4:
                                         { /* LDC.L @Rm+, SPC */
                                         uint32_t Rm = ((ir>>8)&0xF); 
+                                        COUNT_INST(I_LDCM);
                                         check_priv();
                                         load_reg( R_EAX, Rm );
                                         check_ralign32( R_EAX );
@@ -1772,6 +1885,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x1:
                                 { /* LDC.L @Rm+, Rn_BANK */
                                 uint32_t Rm = ((ir>>8)&0xF); uint32_t Rn_BANK = ((ir>>4)&0x7); 
+                                COUNT_INST(I_LDCM);
                                 check_priv();
                                 load_reg( R_EAX, Rm );
                                 check_ralign32( R_EAX );
@@ -1789,6 +1903,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x0:
                                 { /* SHLL2 Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
+                                COUNT_INST(I_SHLL);
                                 load_reg( R_EAX, Rn );
                                 SHL_imm8_r32( 2, R_EAX );
                                 store_reg( R_EAX, Rn );
@@ -1798,6 +1913,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x1:
                                 { /* SHLL8 Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
+                                COUNT_INST(I_SHLL);
                                 load_reg( R_EAX, Rn );
                                 SHL_imm8_r32( 8, R_EAX );
                                 store_reg( R_EAX, Rn );
@@ -1807,6 +1923,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x2:
                                 { /* SHLL16 Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
+                                COUNT_INST(I_SHLL);
                                 load_reg( R_EAX, Rn );
                                 SHL_imm8_r32( 16, R_EAX );
                                 store_reg( R_EAX, Rn );
@@ -1823,6 +1940,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x0:
                                 { /* SHLR2 Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
+                                COUNT_INST(I_SHLR);
                                 load_reg( R_EAX, Rn );
                                 SHR_imm8_r32( 2, R_EAX );
                                 store_reg( R_EAX, Rn );
@@ -1832,6 +1950,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x1:
                                 { /* SHLR8 Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
+                                COUNT_INST(I_SHLR);
                                 load_reg( R_EAX, Rn );
                                 SHR_imm8_r32( 8, R_EAX );
                                 store_reg( R_EAX, Rn );
@@ -1841,6 +1960,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x2:
                                 { /* SHLR16 Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
+                                COUNT_INST(I_SHLR);
                                 load_reg( R_EAX, Rn );
                                 SHR_imm8_r32( 16, R_EAX );
                                 store_reg( R_EAX, Rn );
@@ -1857,6 +1977,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x0:
                                 { /* LDS Rm, MACH */
                                 uint32_t Rm = ((ir>>8)&0xF); 
+                                COUNT_INST(I_LDS);
                                 load_reg( R_EAX, Rm );
                                 store_spreg( R_EAX, R_MACH );
                                 }
@@ -1864,6 +1985,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x1:
                                 { /* LDS Rm, MACL */
                                 uint32_t Rm = ((ir>>8)&0xF); 
+                                COUNT_INST(I_LDS);
                                 load_reg( R_EAX, Rm );
                                 store_spreg( R_EAX, R_MACL );
                                 }
@@ -1871,6 +1993,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x2:
                                 { /* LDS Rm, PR */
                                 uint32_t Rm = ((ir>>8)&0xF); 
+                                COUNT_INST(I_LDS);
                                 load_reg( R_EAX, Rm );
                                 store_spreg( R_EAX, R_PR );
                                 }
@@ -1878,6 +2001,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x3:
                                 { /* LDC Rm, SGR */
                                 uint32_t Rm = ((ir>>8)&0xF); 
+                                COUNT_INST(I_LDC);
                                 check_priv();
                                 load_reg( R_EAX, Rm );
                                 store_spreg( R_EAX, R_SGR );
@@ -1887,6 +2011,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x5:
                                 { /* LDS Rm, FPUL */
                                 uint32_t Rm = ((ir>>8)&0xF); 
+                                COUNT_INST(I_LDS);
                                 check_fpuen();
                                 load_reg( R_EAX, Rm );
                                 store_spreg( R_EAX, R_FPUL );
@@ -1895,6 +2020,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x6:
                                 { /* LDS Rm, FPSCR */
                                 uint32_t Rm = ((ir>>8)&0xF); 
+                                COUNT_INST(I_LDS);
                                 check_fpuen();
                                 load_reg( R_EAX, Rm );
                                 call_func1( sh4_write_fpscr, R_EAX );
@@ -1904,6 +2030,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0xF:
                                 { /* LDC Rm, DBR */
                                 uint32_t Rm = ((ir>>8)&0xF); 
+                                COUNT_INST(I_LDC);
                                 check_priv();
                                 load_reg( R_EAX, Rm );
                                 store_spreg( R_EAX, R_DBR );
@@ -1920,6 +2047,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x0:
                                 { /* JSR @Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
+                                COUNT_INST(I_JSR);
                                 if( sh4_x86.in_delay_slot ) {
                             	SLOTILLEGAL();
                                 } else {
@@ -1945,6 +2073,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x1:
                                 { /* TAS.B @Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
+                                COUNT_INST(I_TASB);
                                 load_reg( R_EAX, Rn );
                                 MMU_TRANSLATE_WRITE( R_EAX );
                                 PUSH_realigned_r32( R_EAX );
@@ -1960,6 +2089,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x2:
                                 { /* JMP @Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
+                                COUNT_INST(I_JMP);
                                 if( sh4_x86.in_delay_slot ) {
                             	SLOTILLEGAL();
                                 } else {
@@ -1986,6 +2116,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0xC:
                         { /* SHAD Rm, Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_SHAD);
                         /* Annoyingly enough, not directly convertible */
                         load_reg( R_EAX, Rn );
                         load_reg( R_ECX, Rm );
@@ -2014,6 +2145,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0xD:
                         { /* SHLD Rm, Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_SHLD);
                         load_reg( R_EAX, Rn );
                         load_reg( R_ECX, Rm );
                         CMP_imm32_r32( 0, R_ECX );
@@ -2045,6 +2177,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                                     case 0x0:
                                         { /* LDC Rm, SR */
                                         uint32_t Rm = ((ir>>8)&0xF); 
+                                        COUNT_INST(I_LDCSR);
                                         if( sh4_x86.in_delay_slot ) {
                                     	SLOTILLEGAL();
                                         } else {
@@ -2060,6 +2193,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                                     case 0x1:
                                         { /* LDC Rm, GBR */
                                         uint32_t Rm = ((ir>>8)&0xF); 
+                                        COUNT_INST(I_LDC);
                                         load_reg( R_EAX, Rm );
                                         store_spreg( R_EAX, R_GBR );
                                         }
@@ -2067,6 +2201,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                                     case 0x2:
                                         { /* LDC Rm, VBR */
                                         uint32_t Rm = ((ir>>8)&0xF); 
+                                        COUNT_INST(I_LDC);
                                         check_priv();
                                         load_reg( R_EAX, Rm );
                                         store_spreg( R_EAX, R_VBR );
@@ -2076,6 +2211,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                                     case 0x3:
                                         { /* LDC Rm, SSR */
                                         uint32_t Rm = ((ir>>8)&0xF); 
+                                        COUNT_INST(I_LDC);
                                         check_priv();
                                         load_reg( R_EAX, Rm );
                                         store_spreg( R_EAX, R_SSR );
@@ -2085,6 +2221,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                                     case 0x4:
                                         { /* LDC Rm, SPC */
                                         uint32_t Rm = ((ir>>8)&0xF); 
+                                        COUNT_INST(I_LDC);
                                         check_priv();
                                         load_reg( R_EAX, Rm );
                                         store_spreg( R_EAX, R_SPC );
@@ -2099,6 +2236,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x1:
                                 { /* LDC Rm, Rn_BANK */
                                 uint32_t Rm = ((ir>>8)&0xF); uint32_t Rn_BANK = ((ir>>4)&0x7); 
+                                COUNT_INST(I_LDC);
                                 check_priv();
                                 load_reg( R_EAX, Rm );
                                 store_spreg( R_EAX, REG_OFFSET(r_bank[Rn_BANK]) );
@@ -2110,6 +2248,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0xF:
                         { /* MAC.W @Rm+, @Rn+ */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_MACW);
                         if( Rm == Rn ) {
                     	load_reg( R_EAX, Rm );
                     	check_ralign16( R_EAX );
@@ -2172,6 +2311,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
             case 0x5:
                 { /* MOV.L @(disp, Rm), Rn */
                 uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); uint32_t disp = (ir&0xF)<<2; 
+                COUNT_INST(I_MOVL);
                 load_reg( R_EAX, Rm );
                 ADD_imm8s_r32( disp, R_EAX );
                 check_ralign32( R_EAX );
@@ -2186,6 +2326,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0x0:
                         { /* MOV.B @Rm, Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_MOVB);
                         load_reg( R_EAX, Rm );
                         MMU_TRANSLATE_READ( R_EAX );
                         MEM_READ_BYTE( R_EAX, R_EAX );
@@ -2196,6 +2337,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0x1:
                         { /* MOV.W @Rm, Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_MOVW);
                         load_reg( R_EAX, Rm );
                         check_ralign16( R_EAX );
                         MMU_TRANSLATE_READ( R_EAX );
@@ -2207,6 +2349,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0x2:
                         { /* MOV.L @Rm, Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_MOVL);
                         load_reg( R_EAX, Rm );
                         check_ralign32( R_EAX );
                         MMU_TRANSLATE_READ( R_EAX );
@@ -2218,6 +2361,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0x3:
                         { /* MOV Rm, Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_MOV);
                         load_reg( R_EAX, Rm );
                         store_reg( R_EAX, Rn );
                         }
@@ -2225,6 +2369,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0x4:
                         { /* MOV.B @Rm+, Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_MOVB);
                         load_reg( R_EAX, Rm );
                         MMU_TRANSLATE_READ( R_EAX );
                         ADD_imm8s_sh4r( 1, REG_OFFSET(r[Rm]) );
@@ -2236,6 +2381,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0x5:
                         { /* MOV.W @Rm+, Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_MOVW);
                         load_reg( R_EAX, Rm );
                         check_ralign16( R_EAX );
                         MMU_TRANSLATE_READ( R_EAX );
@@ -2248,6 +2394,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0x6:
                         { /* MOV.L @Rm+, Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_MOVL);
                         load_reg( R_EAX, Rm );
                         check_ralign32( R_EAX );
                         MMU_TRANSLATE_READ( R_EAX );
@@ -2260,6 +2407,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0x7:
                         { /* NOT Rm, Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_NOT);
                         load_reg( R_EAX, Rm );
                         NOT_r32( R_EAX );
                         store_reg( R_EAX, Rn );
@@ -2269,6 +2417,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0x8:
                         { /* SWAP.B Rm, Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_SWAPB);
                         load_reg( R_EAX, Rm );
                         XCHG_r8_r8( R_AL, R_AH ); // NB: does not touch EFLAGS
                         store_reg( R_EAX, Rn );
@@ -2277,6 +2426,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0x9:
                         { /* SWAP.W Rm, Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_SWAPB);
                         load_reg( R_EAX, Rm );
                         MOV_r32_r32( R_EAX, R_ECX );
                         SHL_imm8_r32( 16, R_ECX );
@@ -2289,6 +2439,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0xA:
                         { /* NEGC Rm, Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_NEGC);
                         load_reg( R_EAX, Rm );
                         XOR_r32_r32( R_ECX, R_ECX );
                         LDC_t();
@@ -2301,6 +2452,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0xB:
                         { /* NEG Rm, Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_NEG);
                         load_reg( R_EAX, Rm );
                         NEG_r32( R_EAX );
                         store_reg( R_EAX, Rn );
@@ -2310,6 +2462,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0xC:
                         { /* EXTU.B Rm, Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_EXTUB);
                         load_reg( R_EAX, Rm );
                         MOVZX_r8_r32( R_EAX, R_EAX );
                         store_reg( R_EAX, Rn );
@@ -2318,6 +2471,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0xD:
                         { /* EXTU.W Rm, Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_EXTUW);
                         load_reg( R_EAX, Rm );
                         MOVZX_r16_r32( R_EAX, R_EAX );
                         store_reg( R_EAX, Rn );
@@ -2326,6 +2480,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0xE:
                         { /* EXTS.B Rm, Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_EXTSB);
                         load_reg( R_EAX, Rm );
                         MOVSX_r8_r32( R_EAX, R_EAX );
                         store_reg( R_EAX, Rn );
@@ -2334,6 +2489,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0xF:
                         { /* EXTS.W Rm, Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_EXTSW);
                         load_reg( R_EAX, Rm );
                         MOVSX_r16_r32( R_EAX, R_EAX );
                         store_reg( R_EAX, Rn );
@@ -2344,6 +2500,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
             case 0x7:
                 { /* ADD #imm, Rn */
                 uint32_t Rn = ((ir>>8)&0xF); int32_t imm = SIGNEXT8(ir&0xFF); 
+                COUNT_INST(I_ADDI);
                 load_reg( R_EAX, Rn );
                 ADD_imm8s_r32( imm, R_EAX );
                 store_reg( R_EAX, Rn );
@@ -2355,6 +2512,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0x0:
                         { /* MOV.B R0, @(disp, Rn) */
                         uint32_t Rn = ((ir>>4)&0xF); uint32_t disp = (ir&0xF); 
+                        COUNT_INST(I_MOVB);
                         load_reg( R_EAX, Rn );
                         ADD_imm32_r32( disp, R_EAX );
                         MMU_TRANSLATE_WRITE( R_EAX );
@@ -2366,6 +2524,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0x1:
                         { /* MOV.W R0, @(disp, Rn) */
                         uint32_t Rn = ((ir>>4)&0xF); uint32_t disp = (ir&0xF)<<1; 
+                        COUNT_INST(I_MOVW);
                         load_reg( R_EAX, Rn );
                         ADD_imm32_r32( disp, R_EAX );
                         check_walign16( R_EAX );
@@ -2378,6 +2537,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0x4:
                         { /* MOV.B @(disp, Rm), R0 */
                         uint32_t Rm = ((ir>>4)&0xF); uint32_t disp = (ir&0xF); 
+                        COUNT_INST(I_MOVB);
                         load_reg( R_EAX, Rm );
                         ADD_imm32_r32( disp, R_EAX );
                         MMU_TRANSLATE_READ( R_EAX );
@@ -2389,6 +2549,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0x5:
                         { /* MOV.W @(disp, Rm), R0 */
                         uint32_t Rm = ((ir>>4)&0xF); uint32_t disp = (ir&0xF)<<1; 
+                        COUNT_INST(I_MOVW);
                         load_reg( R_EAX, Rm );
                         ADD_imm32_r32( disp, R_EAX );
                         check_ralign16( R_EAX );
@@ -2401,6 +2562,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0x8:
                         { /* CMP/EQ #imm, R0 */
                         int32_t imm = SIGNEXT8(ir&0xFF); 
+                        COUNT_INST(I_CMPEQI);
                         load_reg( R_EAX, 0 );
                         CMP_imm8s_r32(imm, R_EAX);
                         SETE_t();
@@ -2410,6 +2572,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0x9:
                         { /* BT disp */
                         int32_t disp = SIGNEXT8(ir&0xFF)<<1; 
+                        COUNT_INST(I_BT);
                         if( sh4_x86.in_delay_slot ) {
                     	SLOTILLEGAL();
                         } else {
@@ -2424,6 +2587,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0xB:
                         { /* BF disp */
                         int32_t disp = SIGNEXT8(ir&0xFF)<<1; 
+                        COUNT_INST(I_BF);
                         if( sh4_x86.in_delay_slot ) {
                     	SLOTILLEGAL();
                         } else {
@@ -2438,6 +2602,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0xD:
                         { /* BT/S disp */
                         int32_t disp = SIGNEXT8(ir&0xFF)<<1; 
+                        COUNT_INST(I_BTS);
                         if( sh4_x86.in_delay_slot ) {
                     	SLOTILLEGAL();
                         } else {
@@ -2471,6 +2636,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0xF:
                         { /* BF/S disp */
                         int32_t disp = SIGNEXT8(ir&0xFF)<<1; 
+                        COUNT_INST(I_BFS);
                         if( sh4_x86.in_delay_slot ) {
                     	SLOTILLEGAL();
                         } else {
@@ -2511,6 +2677,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
             case 0x9:
                 { /* MOV.W @(disp, PC), Rn */
                 uint32_t Rn = ((ir>>8)&0xF); uint32_t disp = (ir&0xFF)<<1; 
+                COUNT_INST(I_MOVW);
                 if( sh4_x86.in_delay_slot ) {
             	SLOTILLEGAL();
                 } else {
@@ -2534,6 +2701,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
             case 0xA:
                 { /* BRA disp */
                 int32_t disp = SIGNEXT12(ir&0xFFF)<<1; 
+                COUNT_INST(I_BRA);
                 if( sh4_x86.in_delay_slot ) {
             	SLOTILLEGAL();
                 } else {
@@ -2556,6 +2724,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
             case 0xB:
                 { /* BSR disp */
                 int32_t disp = SIGNEXT12(ir&0xFFF)<<1; 
+                COUNT_INST(I_BSR);
                 if( sh4_x86.in_delay_slot ) {
             	SLOTILLEGAL();
                 } else {
@@ -2583,6 +2752,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0x0:
                         { /* MOV.B R0, @(disp, GBR) */
                         uint32_t disp = (ir&0xFF); 
+                        COUNT_INST(I_MOVB);
                         load_spreg( R_EAX, R_GBR );
                         ADD_imm32_r32( disp, R_EAX );
                         MMU_TRANSLATE_WRITE( R_EAX );
@@ -2594,6 +2764,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0x1:
                         { /* MOV.W R0, @(disp, GBR) */
                         uint32_t disp = (ir&0xFF)<<1; 
+                        COUNT_INST(I_MOVW);
                         load_spreg( R_EAX, R_GBR );
                         ADD_imm32_r32( disp, R_EAX );
                         check_walign16( R_EAX );
@@ -2606,6 +2777,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0x2:
                         { /* MOV.L R0, @(disp, GBR) */
                         uint32_t disp = (ir&0xFF)<<2; 
+                        COUNT_INST(I_MOVL);
                         load_spreg( R_EAX, R_GBR );
                         ADD_imm32_r32( disp, R_EAX );
                         check_walign32( R_EAX );
@@ -2618,6 +2790,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0x3:
                         { /* TRAPA #imm */
                         uint32_t imm = (ir&0xFF); 
+                        COUNT_INST(I_TRAPA);
                         if( sh4_x86.in_delay_slot ) {
                     	SLOTILLEGAL();
                         } else {
@@ -2635,6 +2808,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0x4:
                         { /* MOV.B @(disp, GBR), R0 */
                         uint32_t disp = (ir&0xFF); 
+                        COUNT_INST(I_MOVB);
                         load_spreg( R_EAX, R_GBR );
                         ADD_imm32_r32( disp, R_EAX );
                         MMU_TRANSLATE_READ( R_EAX );
@@ -2646,6 +2820,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0x5:
                         { /* MOV.W @(disp, GBR), R0 */
                         uint32_t disp = (ir&0xFF)<<1; 
+                        COUNT_INST(I_MOVW);
                         load_spreg( R_EAX, R_GBR );
                         ADD_imm32_r32( disp, R_EAX );
                         check_ralign16( R_EAX );
@@ -2658,6 +2833,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0x6:
                         { /* MOV.L @(disp, GBR), R0 */
                         uint32_t disp = (ir&0xFF)<<2; 
+                        COUNT_INST(I_MOVL);
                         load_spreg( R_EAX, R_GBR );
                         ADD_imm32_r32( disp, R_EAX );
                         check_ralign32( R_EAX );
@@ -2670,6 +2846,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0x7:
                         { /* MOVA @(disp, PC), R0 */
                         uint32_t disp = (ir&0xFF)<<2; 
+                        COUNT_INST(I_MOVA);
                         if( sh4_x86.in_delay_slot ) {
                     	SLOTILLEGAL();
                         } else {
@@ -2683,6 +2860,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0x8:
                         { /* TST #imm, R0 */
                         uint32_t imm = (ir&0xFF); 
+                        COUNT_INST(I_TSTI);
                         load_reg( R_EAX, 0 );
                         TEST_imm32_r32( imm, R_EAX );
                         SETE_t();
@@ -2692,6 +2870,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0x9:
                         { /* AND #imm, R0 */
                         uint32_t imm = (ir&0xFF); 
+                        COUNT_INST(I_ANDI);
                         load_reg( R_EAX, 0 );
                         AND_imm32_r32(imm, R_EAX); 
                         store_reg( R_EAX, 0 );
@@ -2701,6 +2880,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0xA:
                         { /* XOR #imm, R0 */
                         uint32_t imm = (ir&0xFF); 
+                        COUNT_INST(I_XORI);
                         load_reg( R_EAX, 0 );
                         XOR_imm32_r32( imm, R_EAX );
                         store_reg( R_EAX, 0 );
@@ -2710,6 +2890,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0xB:
                         { /* OR #imm, R0 */
                         uint32_t imm = (ir&0xFF); 
+                        COUNT_INST(I_ORI);
                         load_reg( R_EAX, 0 );
                         OR_imm32_r32(imm, R_EAX);
                         store_reg( R_EAX, 0 );
@@ -2719,6 +2900,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0xC:
                         { /* TST.B #imm, @(R0, GBR) */
                         uint32_t imm = (ir&0xFF); 
+                        COUNT_INST(I_TSTB);
                         load_reg( R_EAX, 0);
                         load_reg( R_ECX, R_GBR);
                         ADD_r32_r32( R_ECX, R_EAX );
@@ -2732,6 +2914,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0xD:
                         { /* AND.B #imm, @(R0, GBR) */
                         uint32_t imm = (ir&0xFF); 
+                        COUNT_INST(I_ANDB);
                         load_reg( R_EAX, 0 );
                         load_spreg( R_ECX, R_GBR );
                         ADD_r32_r32( R_ECX, R_EAX );
@@ -2747,6 +2930,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0xE:
                         { /* XOR.B #imm, @(R0, GBR) */
                         uint32_t imm = (ir&0xFF); 
+                        COUNT_INST(I_XORB);
                         load_reg( R_EAX, 0 );
                         load_spreg( R_ECX, R_GBR );
                         ADD_r32_r32( R_ECX, R_EAX );
@@ -2762,6 +2946,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0xF:
                         { /* OR.B #imm, @(R0, GBR) */
                         uint32_t imm = (ir&0xFF); 
+                        COUNT_INST(I_ORB);
                         load_reg( R_EAX, 0 );
                         load_spreg( R_ECX, R_GBR );
                         ADD_r32_r32( R_ECX, R_EAX );
@@ -2779,6 +2964,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
             case 0xD:
                 { /* MOV.L @(disp, PC), Rn */
                 uint32_t Rn = ((ir>>8)&0xF); uint32_t disp = (ir&0xFF)<<2; 
+                COUNT_INST(I_MOVLPC);
                 if( sh4_x86.in_delay_slot ) {
             	SLOTILLEGAL();
                 } else {
@@ -2812,6 +2998,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
             case 0xE:
                 { /* MOV #imm, Rn */
                 uint32_t Rn = ((ir>>8)&0xF); int32_t imm = SIGNEXT8(ir&0xFF); 
+                COUNT_INST(I_MOVI);
                 load_imm32( R_EAX, imm );
                 store_reg( R_EAX, Rn );
                 }
@@ -2821,6 +3008,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0x0:
                         { /* FADD FRm, FRn */
                         uint32_t FRn = ((ir>>8)&0xF); uint32_t FRm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_FADD);
                         check_fpuen();
                         load_spreg( R_ECX, R_FPSCR );
                         TEST_imm32_r32( FPSCR_PR, R_ECX );
@@ -2842,6 +3030,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0x1:
                         { /* FSUB FRm, FRn */
                         uint32_t FRn = ((ir>>8)&0xF); uint32_t FRm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_FSUB);
                         check_fpuen();
                         load_spreg( R_ECX, R_FPSCR );
                         TEST_imm32_r32( FPSCR_PR, R_ECX );
@@ -2863,6 +3052,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0x2:
                         { /* FMUL FRm, FRn */
                         uint32_t FRn = ((ir>>8)&0xF); uint32_t FRm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_FMUL);
                         check_fpuen();
                         load_spreg( R_ECX, R_FPSCR );
                         TEST_imm32_r32( FPSCR_PR, R_ECX );
@@ -2884,6 +3074,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0x3:
                         { /* FDIV FRm, FRn */
                         uint32_t FRn = ((ir>>8)&0xF); uint32_t FRm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_FDIV);
                         check_fpuen();
                         load_spreg( R_ECX, R_FPSCR );
                         TEST_imm32_r32( FPSCR_PR, R_ECX );
@@ -2905,6 +3096,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0x4:
                         { /* FCMP/EQ FRm, FRn */
                         uint32_t FRn = ((ir>>8)&0xF); uint32_t FRm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_FCMPEQ);
                         check_fpuen();
                         load_spreg( R_ECX, R_FPSCR );
                         TEST_imm32_r32( FPSCR_PR, R_ECX );
@@ -2925,6 +3117,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0x5:
                         { /* FCMP/GT FRm, FRn */
                         uint32_t FRn = ((ir>>8)&0xF); uint32_t FRm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_FCMPGT);
                         check_fpuen();
                         load_spreg( R_ECX, R_FPSCR );
                         TEST_imm32_r32( FPSCR_PR, R_ECX );
@@ -2945,6 +3138,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0x6:
                         { /* FMOV @(R0, Rm), FRn */
                         uint32_t FRn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_FMOV7);
                         check_fpuen();
                         load_reg( R_EAX, Rm );
                         ADD_sh4r_r32( REG_OFFSET(r[0]), R_EAX );
@@ -2970,6 +3164,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0x7:
                         { /* FMOV FRm, @(R0, Rn) */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t FRm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_FMOV4);
                         check_fpuen();
                         load_reg( R_EAX, Rn );
                         ADD_sh4r_r32( REG_OFFSET(r[0]), R_EAX );
@@ -2995,6 +3190,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0x8:
                         { /* FMOV @Rm, FRn */
                         uint32_t FRn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_FMOV5);
                         check_fpuen();
                         load_reg( R_EAX, Rm );
                         check_ralign32( R_EAX );
@@ -3018,6 +3214,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0x9:
                         { /* FMOV @Rm+, FRn */
                         uint32_t FRn = ((ir>>8)&0xF); uint32_t Rm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_FMOV6);
                         check_fpuen();
                         load_reg( R_EAX, Rm );
                         check_ralign32( R_EAX );
@@ -3044,6 +3241,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0xA:
                         { /* FMOV FRm, @Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t FRm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_FMOV2);
                         check_fpuen();
                         load_reg( R_EAX, Rn );
                         check_walign32( R_EAX );
@@ -3067,6 +3265,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0xB:
                         { /* FMOV FRm, @-Rn */
                         uint32_t Rn = ((ir>>8)&0xF); uint32_t FRm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_FMOV3);
                         check_fpuen();
                         load_reg( R_EAX, Rn );
                         check_walign32( R_EAX );
@@ -3096,6 +3295,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0xC:
                         { /* FMOV FRm, FRn */
                         uint32_t FRn = ((ir>>8)&0xF); uint32_t FRm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_FMOV1);
                         /* As horrible as this looks, it's actually covering 5 separate cases:
                          * 1. 32-bit fr-to-fr (PR=0)
                          * 2. 64-bit dr-to-dr (PR=1, FRm&1 == 0, FRn&1 == 0 )
@@ -3124,6 +3324,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x0:
                                 { /* FSTS FPUL, FRn */
                                 uint32_t FRn = ((ir>>8)&0xF); 
+                                COUNT_INST(I_FSTS);
                                 check_fpuen();
                                 load_spreg( R_EAX, R_FPUL );
                                 store_fr( R_EAX, FRn );
@@ -3133,6 +3334,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x1:
                                 { /* FLDS FRm, FPUL */
                                 uint32_t FRm = ((ir>>8)&0xF); 
+                                COUNT_INST(I_FLDS);
                                 check_fpuen();
                                 load_fr( R_EAX, FRm );
                                 store_spreg( R_EAX, R_FPUL );
@@ -3142,6 +3344,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x2:
                                 { /* FLOAT FPUL, FRn */
                                 uint32_t FRn = ((ir>>8)&0xF); 
+                                COUNT_INST(I_FLOAT);
                                 check_fpuen();
                                 load_spreg( R_ECX, R_FPSCR );
                                 FILD_sh4r(R_FPUL);
@@ -3158,6 +3361,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x3:
                                 { /* FTRC FRm, FPUL */
                                 uint32_t FRm = ((ir>>8)&0xF); 
+                                COUNT_INST(I_FTRC);
                                 check_fpuen();
                                 load_spreg( R_ECX, R_FPSCR );
                                 TEST_imm32_r32( FPSCR_PR, R_ECX );
@@ -3195,6 +3399,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x4:
                                 { /* FNEG FRn */
                                 uint32_t FRn = ((ir>>8)&0xF); 
+                                COUNT_INST(I_FNEG);
                                 check_fpuen();
                                 load_spreg( R_ECX, R_FPSCR );
                                 TEST_imm32_r32( FPSCR_PR, R_ECX );
@@ -3214,6 +3419,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x5:
                                 { /* FABS FRn */
                                 uint32_t FRn = ((ir>>8)&0xF); 
+                                COUNT_INST(I_FABS);
                                 check_fpuen();
                                 load_spreg( R_ECX, R_FPSCR );
                                 TEST_imm32_r32( FPSCR_PR, R_ECX );
@@ -3233,6 +3439,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x6:
                                 { /* FSQRT FRn */
                                 uint32_t FRn = ((ir>>8)&0xF); 
+                                COUNT_INST(I_FSQRT);
                                 check_fpuen();
                                 load_spreg( R_ECX, R_FPSCR );
                                 TEST_imm32_r32( FPSCR_PR, R_ECX );
@@ -3252,6 +3459,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x7:
                                 { /* FSRRA FRn */
                                 uint32_t FRn = ((ir>>8)&0xF); 
+                                COUNT_INST(I_FSRRA);
                                 check_fpuen();
                                 load_spreg( R_ECX, R_FPSCR );
                                 TEST_imm32_r32( FPSCR_PR, R_ECX );
@@ -3269,6 +3477,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                                 { /* FLDI0 FRn */
                                 uint32_t FRn = ((ir>>8)&0xF); 
                                 /* IFF PR=0 */
+                                  COUNT_INST(I_FLDI0);
                                   check_fpuen();
                                   load_spreg( R_ECX, R_FPSCR );
                                   TEST_imm32_r32( FPSCR_PR, R_ECX );
@@ -3283,6 +3492,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                                 { /* FLDI1 FRn */
                                 uint32_t FRn = ((ir>>8)&0xF); 
                                 /* IFF PR=0 */
+                                  COUNT_INST(I_FLDI1);
                                   check_fpuen();
                                   load_spreg( R_ECX, R_FPSCR );
                                   TEST_imm32_r32( FPSCR_PR, R_ECX );
@@ -3296,6 +3506,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0xA:
                                 { /* FCNVSD FPUL, FRn */
                                 uint32_t FRn = ((ir>>8)&0xF); 
+                                COUNT_INST(I_FCNVSD);
                                 check_fpuen();
                                 load_spreg( R_ECX, R_FPSCR );
                                 TEST_imm32_r32( FPSCR_PR, R_ECX );
@@ -3309,6 +3520,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0xB:
                                 { /* FCNVDS FRm, FPUL */
                                 uint32_t FRm = ((ir>>8)&0xF); 
+                                COUNT_INST(I_FCNVDS);
                                 check_fpuen();
                                 load_spreg( R_ECX, R_FPSCR );
                                 TEST_imm32_r32( FPSCR_PR, R_ECX );
@@ -3322,6 +3534,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0xE:
                                 { /* FIPR FVm, FVn */
                                 uint32_t FVn = ((ir>>10)&0x3); uint32_t FVm = ((ir>>8)&0x3); 
+                                COUNT_INST(I_FIPR);
                                 check_fpuen();
                                 load_spreg( R_ECX, R_FPSCR );
                                 TEST_imm32_r32( FPSCR_PR, R_ECX );
@@ -3352,6 +3565,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                                     case 0x0:
                                         { /* FSCA FPUL, FRn */
                                         uint32_t FRn = ((ir>>9)&0x7)<<1; 
+                                        COUNT_INST(I_FSCA);
                                         check_fpuen();
                                         load_spreg( R_ECX, R_FPSCR );
                                         TEST_imm32_r32( FPSCR_PR, R_ECX );
@@ -3368,6 +3582,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                                             case 0x0:
                                                 { /* FTRV XMTRX, FVn */
                                                 uint32_t FVn = ((ir>>10)&0x3); 
+                                                COUNT_INST(I_FTRV);
                                                 check_fpuen();
                                                 load_spreg( R_ECX, R_FPSCR );
                                                 TEST_imm32_r32( FPSCR_PR, R_ECX );
@@ -3382,6 +3597,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                                                 switch( (ir&0xC00) >> 10 ) {
                                                     case 0x0:
                                                         { /* FSCHG */
+                                                        COUNT_INST(I_FSCHG);
                                                         check_fpuen();
                                                         load_spreg( R_ECX, R_FPSCR );
                                                         XOR_imm32_r32( FPSCR_SZ, R_ECX );
@@ -3391,6 +3607,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                                                         break;
                                                     case 0x2:
                                                         { /* FRCHG */
+                                                        COUNT_INST(I_FRCHG);
                                                         check_fpuen();
                                                         load_spreg( R_ECX, R_FPSCR );
                                                         XOR_imm32_r32( FPSCR_FR, R_ECX );
@@ -3401,6 +3618,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                                                         break;
                                                     case 0x3:
                                                         { /* UNDEF */
+                                                        COUNT_INST(I_UNDEF);
                                                         if( sh4_x86.in_delay_slot ) {
                                                     	SLOTILLEGAL();
                                                         } else {
@@ -3426,6 +3644,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                     case 0xE:
                         { /* FMAC FR0, FRm, FRn */
                         uint32_t FRn = ((ir>>8)&0xF); uint32_t FRm = ((ir>>4)&0xF); 
+                        COUNT_INST(I_FMAC);
                         check_fpuen();
                         load_spreg( R_ECX, R_FPSCR );
                         TEST_imm32_r32( FPSCR_PR, R_ECX );

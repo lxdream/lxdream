@@ -218,6 +218,9 @@ void dreamcast_shutdown()
 {
     dreamcast_stop();
     dreamcast_save_flash();
+#ifdef ENABLE_SH4STATS
+    sh4_stats_print(stdout);
+#endif
 }
 
 void dreamcast_program_loaded( const gchar *name, sh4addr_t entry_point )

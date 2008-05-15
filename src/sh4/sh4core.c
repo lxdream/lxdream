@@ -28,6 +28,7 @@
 #include "syscall.h"
 #include "sh4/sh4core.h"
 #include "sh4/sh4mmio.h"
+#include "sh4/sh4stat.h"
 #include "sh4/intc.h"
 
 #define SH4_CALLTRACE 1
@@ -228,8 +229,13 @@ gboolean sh4_execute_instruction( void )
 	sh4r.in_delay_slot = 0;
 	pc = sh4r.pc = sh4r.pr;
 	sh4r.new_pc = sh4r.pc + 2;
+        return TRUE;
     }
     CHECKRALIGN16(pc);
+
+#ifdef ENABLE_SH4STATS
+    sh4_stats_add_by_pc(sh4r.pc);
+#endif
 
     /* Read instruction */
     if( !IS_IN_ICACHE(pc) ) {
