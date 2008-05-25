@@ -97,7 +97,7 @@ gboolean sh4_raise_trap( int exc ) {}
 void sh4_sleep() { }
 uint32_t sh4_sleep_run_slice(uint32_t nanosecs) { }
 void sh4_fsca( uint32_t angle, float *fr ) { }
-void sh4_ftrv( float *fv, float *xmtrx ) { }
+void sh4_ftrv( float *fv ) { }
 void signsat48(void) { }
 gboolean gui_error_dialog( const char *fmt, ... ) { }
 struct sh4_icache_struct sh4_icache;
