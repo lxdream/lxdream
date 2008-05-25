@@ -98,7 +98,9 @@ static const char *sh4_stats_names[] = {
 "LDC Rm, *",
 "LDC.L @Rm+, SR",
 "LDC.L @Rm+, *",
+"LDS Rm, FPSCR",
 "LDS Rm, *",
+"LDS.L @Rm+, FPSCR",
 "LDS.L @Rm+, *",
 "LDTLB",
 "MAC.L @Rm+, @Rn+",
@@ -145,7 +147,9 @@ static const char *sh4_stats_names[] = {
 "STC *, Rn",
 "STC.L SR, @-Rn",
 "STC.L *, @-Rn",
+"STS FPSCR, Rn",
 "STS *, Rn",
+"STS.L FPSCR, @-Rn",
 "STS.L *, @-Rn",
 "SUB Rm, Rn",
 "SUBC Rm, Rn",
@@ -279,8 +283,8 @@ LDC.L @Rm+, SGR {: sh4_stats[I_LDCM]++; :}
 LDC.L @Rm+, SPC {: sh4_stats[I_LDCM]++; :}
 LDC.L @Rm+, DBR {: sh4_stats[I_LDCM]++; :}
 LDC.L @Rm+, Rn_BANK {: sh4_stats[I_LDCM]++; :}
-LDS Rm, FPSCR {: sh4_stats[I_LDS]++; :}
-LDS.L @Rm+, FPSCR {: sh4_stats[I_LDSM]++; :}
+LDS Rm, FPSCR {: sh4_stats[I_LDSFPSCR]++; :}
+LDS.L @Rm+, FPSCR {: sh4_stats[I_LDSFPSCRM]++; :}
 LDS Rm, FPUL {: sh4_stats[I_LDS]++; :}
 LDS.L @Rm+, FPUL {: sh4_stats[I_LDSM]++; :}
 LDS Rm, MACH {: sh4_stats[I_LDS]++; :}
@@ -380,8 +384,8 @@ STC.L SGR, @-Rn {: sh4_stats[I_STCM]++; :}
 STC.L DBR, @-Rn {: sh4_stats[I_STCM]++; :}
 STC.L Rm_BANK, @-Rn {: sh4_stats[I_STCM]++; :}
 STC.L GBR, @-Rn {: sh4_stats[I_STCM]++; :}
-STS FPSCR, Rn {: sh4_stats[I_STS]++; :}
-STS.L FPSCR, @-Rn {: sh4_stats[I_STSM]++; :}
+STS FPSCR, Rn {: sh4_stats[I_STSFPSCR]++; :}
+STS.L FPSCR, @-Rn {: sh4_stats[I_STSFPSCRM]++; :}
 STS FPUL, Rn {: sh4_stats[I_STS]++; :}
 STS.L FPUL, @-Rn {: sh4_stats[I_STSM]++; :}
 STS MACH, Rn {: sh4_stats[I_STS]++; :}

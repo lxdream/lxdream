@@ -750,7 +750,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x6:
                                 { /* STS FPSCR, Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
-                                COUNT_INST(I_STS);
+                                COUNT_INST(I_STSFPSCR);
                                 check_fpuen();
                                 load_spreg( R_EAX, R_FPSCR );
                                 store_reg( R_EAX, Rn );
@@ -1488,7 +1488,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x6:
                                 { /* STS.L FPSCR, @-Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
-                                COUNT_INST(I_STSM);
+                                COUNT_INST(I_STSFPSCRM);
                                 check_fpuen();
                                 load_reg( R_EAX, Rn );
                                 check_walign32( R_EAX );
@@ -1768,7 +1768,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x6:
                                 { /* LDS.L @Rm+, FPSCR */
                                 uint32_t Rm = ((ir>>8)&0xF); 
-                                COUNT_INST(I_LDS);
+                                COUNT_INST(I_LDSFPSCRM);
                                 check_fpuen();
                                 load_reg( R_EAX, Rm );
                                 check_ralign32( R_EAX );
@@ -2020,7 +2020,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                             case 0x6:
                                 { /* LDS Rm, FPSCR */
                                 uint32_t Rm = ((ir>>8)&0xF); 
-                                COUNT_INST(I_LDS);
+                                COUNT_INST(I_LDSFPSCR);
                                 check_fpuen();
                                 load_reg( R_EAX, Rm );
                                 call_func1( sh4_write_fpscr, R_EAX );
@@ -3296,18 +3296,11 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                         { /* FMOV FRm, FRn */
                         uint32_t FRn = ((ir>>8)&0xF); uint32_t FRm = ((ir>>4)&0xF); 
                         COUNT_INST(I_FMOV1);
-                        /* As horrible as this looks, it's actually covering 5 separate cases:
-                         * 1. 32-bit fr-to-fr (PR=0)
-                         * 2. 64-bit dr-to-dr (PR=1, FRm&1 == 0, FRn&1 == 0 )
-                         * 3. 64-bit dr-to-xd (PR=1, FRm&1 == 0, FRn&1 == 1 )
-                         * 4. 64-bit xd-to-dr (PR=1, FRm&1 == 1, FRn&1 == 0 )
-                         * 5. 64-bit xd-to-xd (PR=1, FRm&1 == 1, FRn&1 == 1 )
-                         */
                         check_fpuen();
                         load_spreg( R_ECX, R_FPSCR );
                         TEST_imm32_r32( FPSCR_SZ, R_ECX );
                         JNE_rel8(doublesize);
-                        load_fr( R_EAX, FRm ); // PR=0 branch
+                        load_fr( R_EAX, FRm ); // SZ=0 branch
                         store_fr( R_EAX, FRn );
                         JMP_rel8(end);
                         JMP_TARGET(doublesize);
