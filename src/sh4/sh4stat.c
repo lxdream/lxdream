@@ -98,7 +98,9 @@ static const char *sh4_stats_names[] = {
 "LDC Rm, *",
 "LDC.L @Rm+, SR",
 "LDC.L @Rm+, *",
+"LDS Rm, FPSCR",
 "LDS Rm, *",
+"LDS.L @Rm+, FPSCR",
 "LDS.L @Rm+, *",
 "LDTLB",
 "MAC.L @Rm+, @Rn+",
@@ -145,7 +147,9 @@ static const char *sh4_stats_names[] = {
 "STC *, Rn",
 "STC.L SR, @-Rn",
 "STC.L *, @-Rn",
+"STS FPSCR, Rn",
 "STS *, Rn",
+"STS.L FPSCR, @-Rn",
 "STS.L *, @-Rn",
 "SUB Rm, Rn",
 "SUBC Rm, Rn",
@@ -410,7 +414,7 @@ void sh4_stats_add_by_pc( uint32_t pc )
                             case 0x6:
                                 { /* STS FPSCR, Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
-                                sh4_stats[I_STS]++;
+                                sh4_stats[I_STSFPSCR]++;
                                 }
                                 break;
                             case 0xF:
@@ -756,7 +760,7 @@ void sh4_stats_add_by_pc( uint32_t pc )
                             case 0x6:
                                 { /* STS.L FPSCR, @-Rn */
                                 uint32_t Rn = ((ir>>8)&0xF); 
-                                sh4_stats[I_STSM]++;
+                                sh4_stats[I_STSFPSCRM]++;
                                 }
                                 break;
                             case 0xF:
@@ -896,7 +900,7 @@ void sh4_stats_add_by_pc( uint32_t pc )
                             case 0x6:
                                 { /* LDS.L @Rm+, FPSCR */
                                 uint32_t Rm = ((ir>>8)&0xF); 
-                                sh4_stats[I_LDSM]++;
+                                sh4_stats[I_LDSFPSCRM]++;
                                 }
                                 break;
                             case 0xF:
@@ -1042,7 +1046,7 @@ void sh4_stats_add_by_pc( uint32_t pc )
                             case 0x6:
                                 { /* LDS Rm, FPSCR */
                                 uint32_t Rm = ((ir>>8)&0xF); 
-                                sh4_stats[I_LDS]++;
+                                sh4_stats[I_LDSFPSCR]++;
                                 }
                                 break;
                             case 0xF:
