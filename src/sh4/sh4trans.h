@@ -99,7 +99,6 @@ extern uint32_t xlat_recovery_posn;
  ******************************************************************************/
 
 #define TARGET_X86 1
-#define TARGET_X86_64 2
 
 void sh4_translate_init( void );
 void sh4_translate_begin_block( sh4addr_t pc );

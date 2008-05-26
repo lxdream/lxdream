@@ -45,7 +45,7 @@
 #define OP(x) *xlat_output++ = (x)
 #define OP32(x) *((uint32_t *)xlat_output) = (x); xlat_output+=4
 #define OP64(x) *((uint64_t *)xlat_output) = (x); xlat_output+=8
-#if SH4_TRANSLATOR == TARGET_X86_64
+#if SIZEOF_VOID_P == 8
 #define OPPTR(x) OP64((uint64_t)(x))
 #define AND_imm8s_rptr(imm, r1)  REXW(); AND_imm8s_r32( imm, r1 )
 #define MOV_moffptr_EAX(offptr)  REXW(); MOV_moff32_EAX( offptr )
@@ -56,7 +56,7 @@
 #define PUSH_realigned_r32(r1)  REXW(); SUB_imm8s_r32(8, R_ESP); OP(0x50 + r1)
 #define PUSH_imm32(imm)       OP(0x68); OP32(imm);
 #define PUSH_imm64(imm)       REXW(); OP(0x68); OP64(imm);
-#else
+#else /* 32-bit system */
 #define OPPTR(x) OP32((uint32_t)(x))
 #define AND_imm8s_rptr(imm, r1) AND_imm8s_r32( imm, r1 )
 #define MOV_moffptr_EAX(offptr) MOV_moff32_EAX( offptr )

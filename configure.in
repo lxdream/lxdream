@@ -9,6 +9,7 @@ AC_ISC_POSIX
 AC_PROG_CC
 AM_PROG_CC_STDC
 AM_PROG_AS
+AC_CHECK_SIZEOF([void *])
 AC_HEADER_STDC
 AC_CANONICAL_BUILD
 AC_CANONICAL_HOST
@@ -131,12 +132,9 @@ AC_CHECK_FUNC(glCreateShaderObjectARB, [ AC_DEFINE([HAVE_OPENGL_SHADER_ARB],1,[H
 
 dnl Check for a supported cpu target for translation purposes
 case $host_cpu in
-    i386|i486|i586|i686)
+    i386|i486|i586|i686|x86_64)
 	SH4_TRANSLATOR="x86"
         AC_DEFINE_UNQUOTED(SH4_TRANSLATOR,[TARGET_X86], [SH4 Translator to use (if any)] );;
-    x86_64)
-	SH4_TRANSLATOR="x86_64"
-        AC_DEFINE_UNQUOTED(SH4_TRANSLATOR,[TARGET_X86_64], [SH4 Translator to use (if any)] );;
     *)
 	echo "Warning: No translator available for $host. Building emulation core only";;
 esac
