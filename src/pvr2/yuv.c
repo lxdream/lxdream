@@ -30,12 +30,12 @@ static int yuv_block_size[2] = { YUV420_BLOCK_SIZE, YUV422_BLOCK_SIZE };
 
 struct yuv_state {
     uint32_t target;
-    int width;
-    int height;
-    int input_format;
+    uint32_t width;
+    uint32_t height;
+    uint32_t input_format;
     unsigned char data[512];
-    int data_length;
-    int x, y;
+    uint32_t data_length;
+    uint32_t x, y;
 } pvr2_yuv_state;
 
 /**

@@ -127,39 +127,39 @@ struct pvr2_ta_vertex {
 };
 
 struct tile_bounds {
-    int x1, y1, x2, y2;
+    int32_t x1, y1, x2, y2;
 };
 
 struct pvr2_ta_status {
-    int state;
-    int width, height; /* Tile resolution, ie 20x15 */
-    int tilelist_dir; /* Growth direction of the tilelist, 0 = up, 1 = down */
+    int32_t state;
+    int32_t width, height; /* Tile resolution, ie 20x15 */
+    int32_t tilelist_dir; /* Growth direction of the tilelist, 0 = up, 1 = down */
     uint32_t tilelist_size; /* Size of the tilelist segments */
     uint32_t tilelist_start; /* Initial address of the tilelist */
-    int polybuf_start; /* Initial bank address of the polygon buffer (ie &0x00F00000) */
-    int current_vertex_type;
-    gboolean accept_vertexes;
-    int vertex_count; /* index of last start-vertex seen, or -1 if no vertexes 
+    uint32_t polybuf_start; /* Initial bank address of the polygon buffer (ie &0x00F00000) */
+    int32_t current_vertex_type;
+    uint32_t accept_vertexes; /* 0 = NO, 1 = YES */
+    int32_t vertex_count; /* index of last start-vertex seen, or -1 if no vertexes 
 			 * are present
 			 */
-    int max_vertex;     /* Maximum number of vertexes in the current polygon (3/4/6/8) */
-    int current_list_type;
+    uint32_t max_vertex;     /* Maximum number of vertexes in the current polygon (3/4/6/8) */
+    uint32_t current_list_type;
     uint32_t current_tile_matrix; /* Memory location of the first tile for the current list. */
     uint32_t current_tile_size; /* Size of the tile matrix space  in 32-bit words (0/8/16/32)*/
     uint32_t intensity1, intensity2;
     struct tile_bounds clip;
-    int clip_mode;
+    int32_t clip_mode;
     /**
      * Current working object
      */
-    int poly_context_size;
-    int poly_vertex_size;
-    int poly_parity;
+    int32_t poly_context_size;
+    int32_t poly_vertex_size;
+    int32_t poly_parity;
     uint32_t poly_context[5];
     uint32_t poly_pointer;
     struct tile_bounds last_triangle_bounds;
     struct pvr2_ta_vertex poly_vertex[8];
-    int debug_output;
+    uint32_t debug_output;
 };
 
 static struct pvr2_ta_status ta_status;

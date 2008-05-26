@@ -67,11 +67,11 @@ struct render_buffer {
     uint32_t width;
     uint32_t height;
     uint32_t rowstride;
-    int colour_format;
+    uint32_t colour_format;
     sh4addr_t address; /* Address buffer was rendered to, or -1 for unrendered */
     uint32_t size; /* Size of buffer in bytes, must be width*height*bpp */
     gboolean inverted;/* True if the buffer is upside down */
-    int scale;
+    uint32_t scale;
     unsigned int buf_id; /* driver-specific buffer id, if applicable */
     gboolean flushed; /* True if the buffer has been flushed to vram */
 };
@@ -84,7 +84,7 @@ struct frame_buffer {
     uint32_t width;
     uint32_t height;
     uint32_t rowstride;
-    int colour_format;
+    uint32_t colour_format;
     sh4addr_t address;
     uint32_t size; /* Size of buffer in bytes, must be width*height*bpp */
     gboolean inverted;/* True if the buffer is upside down */

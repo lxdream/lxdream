@@ -72,8 +72,8 @@ struct pvr2_state {
     uint32_t irq_vpos1;
     uint32_t irq_vpos2;
     uint32_t odd_even_field; /* 1 = odd, 0 = even */
-    gboolean palette_changed; /* TRUE if palette has changed since last render */
-    gchar *save_next_render_filename;
+    int32_t palette_changed; /* TRUE if palette has changed since last render */
+    uint32_t padding; /* FIXME: Remove in next DST version */
     /* timing */
     uint32_t dot_clock;
     uint32_t total_lines;
@@ -85,11 +85,12 @@ struct pvr2_state {
     uint32_t back_porch_ns;
     uint32_t retrace_start_line;
     uint32_t retrace_end_line;
-    gboolean interlaced;
+    int32_t interlaced;
 } pvr2_state;
 
+static gchar *save_next_render_filename;
 static render_buffer_t render_buffers[MAX_RENDER_BUFFERS];
-static int render_buffer_count = 0;
+static uint32_t render_buffer_count = 0;
 static render_buffer_t displayed_render_buffer = NULL;
 static uint32_t displayed_border_colour = 0;
 
@@ -136,7 +137,7 @@ static void pvr2_init( void )
     texcache_init();
     pvr2_reset();
     pvr2_ta_reset();
-    pvr2_state.save_next_render_filename = NULL;
+    save_next_render_filename = NULL;
     for( i=0; i<MAX_RENDER_BUFFERS; i++ ) {
 	render_buffers[i] = NULL;
     }
@@ -192,7 +193,8 @@ void pvr2_save_render_buffer( FILE *f, render_buffer_t buffer )
     fwrite( &buffer->colour_format, sizeof(buffer->colour_format), 1, f );
     fwrite( &buffer->address, sizeof(buffer->address), 1, f );
     fwrite( &buffer->scale, sizeof(buffer->scale), 1, f );
-    fwrite( &buffer->flushed, sizeof(buffer->flushed), 1, f );
+    int32_t flushed = (int32_t)buffer->flushed; // Force to 32-bits for save-file consistency
+    fwrite( &flushed, sizeof(flushed), 1, f );
     
 }
 
@@ -205,15 +207,17 @@ render_buffer_t pvr2_load_render_buffer( FILE *f )
 
     render_buffer_t buffer = pvr2_frame_buffer_to_render_buffer(frame);
     if( buffer != NULL ) {
+        int32_t flushed;
 	fread( &buffer->rowstride, sizeof(buffer->rowstride), 1, f );
 	fread( &buffer->colour_format, sizeof(buffer->colour_format), 1, f );
 	fread( &buffer->address, sizeof(buffer->address), 1, f );
 	fread( &buffer->scale, sizeof(buffer->scale), 1, f );
-	fread( &buffer->flushed, sizeof(buffer->flushed), 1, f );
+	fread( &flushed, sizeof(flushed), 1, f );
+	buffer->flushed = (gboolean)flushed;
     } else {
 	fseek( f, sizeof(buffer->rowstride)+sizeof(buffer->colour_format)+
 	       sizeof(buffer->address)+sizeof(buffer->scale)+
-	       sizeof(buffer->flushed), SEEK_CUR );
+	       sizeof(int32_t), SEEK_CUR );
     }
     return buffer;
 }
@@ -224,14 +228,15 @@ render_buffer_t pvr2_load_render_buffer( FILE *f )
 void pvr2_save_render_buffers( FILE *f )
 {
     int i;
+    uint32_t has_frontbuffer;
     fwrite( &render_buffer_count, sizeof(render_buffer_count), 1, f );
     if( displayed_render_buffer != NULL ) {
-	i = 1;
-	fwrite( &i, sizeof(i), 1, f );
+	has_frontbuffer = 1;
+	fwrite( &has_frontbuffer, sizeof(has_frontbuffer), 1, f );
 	pvr2_save_render_buffer( f, displayed_render_buffer );
     } else {
-	i = 0;
-	fwrite( &i, sizeof(i), 1, f );
+	has_frontbuffer = 0;
+	fwrite( &has_frontbuffer, sizeof(has_frontbuffer), 1, f );
     }
 
     for( i=0; i<render_buffer_count; i++ ) {
@@ -243,8 +248,8 @@ void pvr2_save_render_buffers( FILE *f )
 
 gboolean pvr2_load_render_buffers( FILE *f )
 {
-    uint32_t count;
-    int i, has_frontbuffer;
+    uint32_t count, has_frontbuffer;
+    int i;
 
     fread( &count, sizeof(count), 1, f );
     if( count > MAX_RENDER_BUFFERS ) {
@@ -346,10 +351,10 @@ uint32_t pvr2_get_border_colour()
 
 gboolean pvr2_save_next_scene( const gchar *filename )
 {
-    if( pvr2_state.save_next_render_filename != NULL ) {
-	g_free( pvr2_state.save_next_render_filename );
+    if( save_next_render_filename != NULL ) {
+	g_free( save_next_render_filename );
     } 
-    pvr2_state.save_next_render_filename = g_strdup(filename);
+    save_next_render_filename = g_strdup(filename);
     return TRUE;
 }
 
@@ -451,12 +456,12 @@ void mmio_region_PVR2_write( uint32_t reg, uint32_t val )
 	MMIO_WRITE( PVR2, reg, val );
 	break;
     case RENDER_START: /* Don't really care what value */
-	if( pvr2_state.save_next_render_filename != NULL ) {
-	    if( pvr2_render_save_scene(pvr2_state.save_next_render_filename) == 0 ) {
-		INFO( "Saved scene to %s", pvr2_state.save_next_render_filename);
+	if( save_next_render_filename != NULL ) {
+	    if( pvr2_render_save_scene(save_next_render_filename) == 0 ) {
+		INFO( "Saved scene to %s", save_next_render_filename);
 	    }
-	    g_free( pvr2_state.save_next_render_filename );
-	    pvr2_state.save_next_render_filename = NULL;
+	    g_free( save_next_render_filename );
+	    save_next_render_filename = NULL;
 	}
 	pvr2_scene_read();
 	render_buffer_t buffer = pvr2_next_render_buffer();

@@ -255,7 +255,7 @@ void event_reset()
 
 void event_save_state( FILE *f )
 {
-    int id, i;
+    int32_t id, i;
     id = event_head == NULL ? -1 : event_head->id;
     fwrite( &id, sizeof(id), 1, f );
     id = long_event_head == NULL ? -1 : long_event_head->id;
@@ -270,7 +270,7 @@ void event_save_state( FILE *f )
 
 int event_load_state( FILE *f )
 {
-    int id, i;
+    int32_t id, i;
     fread( &id, sizeof(id), 1, f );
     event_head = id == -1 ? NULL : &events[id];
     fread( &id, sizeof(id), 1, f );

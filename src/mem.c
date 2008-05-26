@@ -46,7 +46,7 @@ struct mem_region mem_rgn[MAX_MEM_REGIONS];
 struct mmio_region *io_rgn[MAX_IO_REGIONS];
 struct mmio_region *P4_io[4096];
 
-uintptr_t num_io_rgns = 0, num_mem_rgns = 0;
+uint32_t num_io_rgns = 0, num_mem_rgns = 0;
 
 void *mem_alloc_pages( int n )
 {
@@ -332,7 +332,7 @@ void register_io_region( struct mmio_region *io )
         /* P4 area (on-chip I/O channels */
         P4_io[(io->base&0x1FFFFFFF)>>19] = io;
     } else {
-        page_map[io->base>>12] = (sh4ptr_t )num_io_rgns;
+        page_map[io->base>>12] = (sh4ptr_t)(uintptr_t)num_io_rgns;
     }
     io_rgn[num_io_rgns] = io;
     num_io_rgns++;
