@@ -65,7 +65,7 @@ void register_io_region( struct mmio_region *mmio );
 void register_io_regions( struct mmio_region **mmiolist );
 
 extern struct mmio_region *io_rgn[];
-extern uintptr_t num_io_rgns;
+extern uint32_t num_io_rgns;
 
 #define MMIO_READ( id, r ) *((int32_t *)(mmio_region_##id.mem + (r)))
 #define MMIO_READF( id, r ) *((float *)(mmio_region_##id.mem + (r)))

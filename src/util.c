@@ -88,7 +88,8 @@ void fwrite_gzip( void *p, size_t sz, size_t count, FILE *f )
     unsigned char *tmp = g_malloc0( csize );
     int status = compress( tmp, &csize, p, size );
     assert( status == Z_OK );
-    fwrite( &csize, sizeof(csize), 1, f );
+    uint32_t wsize = (uint32_t)csize;
+    fwrite( &wsize, sizeof(wsize), 1, f );
     fwrite( tmp, csize, 1, f );
     g_free(tmp);
 }
@@ -96,7 +97,7 @@ void fwrite_gzip( void *p, size_t sz, size_t count, FILE *f )
 int fread_gzip( void *p, size_t sz, size_t count, FILE *f )
 {
     uLongf size = sz*count;
-    uLongf csize;
+    uint32_t csize;
     unsigned char *tmp;
 
     fread( &csize, sizeof(csize), 1, f );
