@@ -293,9 +293,9 @@ void static inline store_reg( int x86reg, int sh4reg ) {
 #define SLOTILLEGAL() JMP_exc(EXC_SLOT_ILLEGAL); sh4_x86.in_delay_slot = DELAY_NONE; return 1;
 
 /****** Import appropriate calling conventions ******/
-#if SH4_TRANSLATOR == TARGET_X86_64
+#if SIZEOF_VOID_P == 8
 #include "sh4/ia64abi.h"
-#else /* SH4_TRANSLATOR == TARGET_X86 */
+#else /* 32-bit system */
 #ifdef APPLE_BUILD
 #include "sh4/ia32mac.h"
 #else
