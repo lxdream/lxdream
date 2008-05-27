@@ -20,6 +20,7 @@
 #include "display.h"
 #include <X11/Xlib.h>
 #include <GL/glx.h>
+#include <string.h>
 #include "pvr2/pvr2.h"
 #include "pvr2/glutil.h"
 #include "drivers/video_glx.h"
@@ -112,7 +113,16 @@ gboolean video_glx_init( Display *display, int screen )
 						  fb_attribs, &nelem );
 
 	if( configs == NULL || nelem == 0 ) {
-	    /* Didn't work. Fallback to 1.2 methods */
+	    /* Try a 16-bit depth buffer and see if it helps */
+	    fb_attribs[5] = 16;
+	    configs = glXChooseFBConfig( display, screen, fb_attribs, &nelem );
+	    if( nelem > 0 ) {
+                WARN( "Using a 16-bit depth buffer - expect video glitches" );
+            }
+
+        }
+        if( configs == NULL || nelem == 0 ) {
+	    /* Still didn't work. Fallback to 1.2 methods */
 	    glx_fbconfig_supported = FALSE;
 	    glx_pbuffer_supported = FALSE;
 	} else {
@@ -125,6 +135,14 @@ gboolean video_glx_init( Display *display, int screen )
     if( !glx_fbconfig_supported ) {
         int attribs[] = { GLX_RGBA, GLX_DEPTH_SIZE, 24, 0 };
 	glx_visual = glXChooseVisual( display, screen, attribs );
+        if( glx_visual == NULL ) {
+            /* Try the 16-bit fallback here too */
+            attribs[2] = 16;
+            glx_visual = glXChooseVisual( display, screen, attribs );
+            if( glx_visual != NULL ) {
+                WARN( "Using a 16-bit depth buffer - expect video glitches" );
+            }
+        }
     }
 
     if( glx_visual == NULL ) {
