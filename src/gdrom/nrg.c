@@ -21,7 +21,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <glib/gtypes.h>
-#include "gdrom/gdrom.h"
+#include "gdrom/gddriver.h"
 #include "dream.h"
 
 static gboolean nrg_image_is_valid( FILE *f );

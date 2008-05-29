@@ -22,7 +22,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <sys/stat.h>
-#include "gdrom/gdrom.h"
+#include "gdrom/gddriver.h"
 
 #define CDI_V2_ID 0x80000004
 #define CDI_V3_ID 0x80000005

@@ -17,6 +17,7 @@
  * GNU General Public License for more details.
  */
 
+#include <stdlib.h>
 #include <unistd.h>
 #include <getopt.h>
 #include <glib/gi18n.h>
@@ -178,7 +179,7 @@ int main (int argc, char *argv[])
     INFO( "%s! ready...", APP_NAME );
 
     for( ; optind < argc; optind++ ) {
-	gboolean ok = gdrom_menu_open_file(argv[optind]);
+	gboolean ok = gdrom_mount_image(argv[optind]);
 	if( !ok ) {
 	    ok = file_load_magic( argv[optind] );
 	}
@@ -191,14 +192,14 @@ int main (int argc, char *argv[])
     }
 
     if( disc_file != NULL ) {
-	gdrom_menu_open_file( disc_file );
+        gdrom_mount_image( disc_file );
     }
 
     if( gdrom_get_current_disc() == NULL ) {
-	disc_file = lxdream_get_config_value( CONFIG_GDROM );
-	if( disc_file != NULL ) {
-	    gdrom_menu_open_file( disc_file );
-	}
+        disc_file = lxdream_get_config_value( CONFIG_GDROM );
+        if( disc_file != NULL ) {
+            gdrom_mount_image( disc_file );
+        }
     }
 
     sh4_set_use_xlat( use_xlat );
