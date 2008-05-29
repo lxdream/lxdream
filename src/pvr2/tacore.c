@@ -17,7 +17,8 @@
  */
 #include <string.h>
 #include "lxdream.h"
-#include "pvr2.h"
+#include "pvr2/pvr2.h"
+#include "pvr2/pvr2mmio.h"
 #include "asic.h"
 #include "dream.h"
 

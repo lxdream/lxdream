@@ -20,6 +20,7 @@
 #include <sys/time.h>
 #include "display.h"
 #include "pvr2/pvr2.h"
+#include "pvr2/pvr2mmio.h"
 #include "pvr2/scene.h"
 #include "pvr2/glutil.h"
 

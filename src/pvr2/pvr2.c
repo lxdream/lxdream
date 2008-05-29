@@ -25,6 +25,7 @@
 #include "asic.h"
 #include "clock.h"
 #include "pvr2/pvr2.h"
+#include "pvr2/pvr2mmio.h"
 #include "pvr2/scene.h"
 #include "sh4/sh4.h"
 #define MMIO_IMPL
@@ -339,14 +340,15 @@ int pvr2_get_frame_count()
     return pvr2_state.frame_count;
 }
 
-render_buffer_t pvr2_get_front_buffer()
+void pvr2_redraw_display()
 {
-    return displayed_render_buffer;
-}
-
-uint32_t pvr2_get_border_colour()
-{
-    return displayed_border_colour;
+    if( display_driver != NULL ) {
+        if( displayed_render_buffer == NULL ) {
+            display_driver->display_blank(displayed_border_colour);
+        } else {
+            display_driver->display_render_buffer(displayed_render_buffer);
+        }
+    }
 }
 
 gboolean pvr2_save_next_scene( const gchar *filename )

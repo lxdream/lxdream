@@ -21,6 +21,7 @@
 #include <assert.h>
 #include <string.h>
 #include "pvr2/pvr2.h"
+#include "pvr2/pvr2mmio.h"
 
 /** Specifies the maximum number of OpenGL
  * textures we're willing to have open at a time. If more are

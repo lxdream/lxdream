@@ -21,6 +21,7 @@
 #include <time.h>
 #include <string.h>
 #include "pvr2/pvr2.h"
+#include "pvr2/pvr2mmio.h"
 #include "dreamcast.h"
 
 /**
