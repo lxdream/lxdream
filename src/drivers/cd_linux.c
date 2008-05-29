@@ -26,7 +26,7 @@
 #include <fstab.h>
 #include <fcntl.h>
 
-#include "gdrom/gdrom.h"
+#include "gdrom/gddriver.h"
 #include "gdrom/packet.h"
 #include "dream.h"
 

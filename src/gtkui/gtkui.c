@@ -16,19 +16,18 @@
  * GNU General Public License for more details.
  */
 
-#include "lxdream.h"
-#include <sys/time.h>
 #include <time.h>
+#include <stdlib.h>
 #include <unistd.h>
+#include <sys/time.h>
 #include <glib/gi18n.h>
 #include <gtk/gtkversion.h>
+#include "lxdream.h"
 #include "dreamcast.h"
+#include "dream.h"
 #include "display.h"
 #include "gdrom/gdrom.h"
 #include "gtkui/gtkui.h"
-
-/* Base GUI clock is 10ms */
-#define GUI_TICK_PERIOD 10000000
 
 void gtk_gui_start( void );
 void gtk_gui_stop( void );
@@ -370,36 +369,36 @@ uint32_t gtk_gui_run_slice( uint32_t nanosecs )
 {
     gtk_gui_nanos += nanosecs;
     if( gtk_gui_nanos > GUI_TICK_PERIOD ) { /* 10 ms */
-	gtk_gui_nanos -= GUI_TICK_PERIOD;
-	gtk_gui_ticks ++;
-	uint32_t current_period = gtk_gui_ticks * GUI_TICK_PERIOD;
+        gtk_gui_nanos -= GUI_TICK_PERIOD;
+        gtk_gui_ticks ++;
+        uint32_t current_period = gtk_gui_ticks * GUI_TICK_PERIOD;
 
-	// Run the event loop
-	while( gtk_events_pending() )
-	    gtk_main_iteration();	
+        // Run the event loop
+        while( gtk_events_pending() )
+            gtk_main_iteration();	
 
-	struct timeval tv;
-	gettimeofday(&tv,NULL);
-	uint32_t ns = ((tv.tv_sec - gtk_gui_lasttv.tv_sec) * 1000000000) + 
-	    (tv.tv_usec - gtk_gui_lasttv.tv_usec)*1000;
-	if( (ns * 1.05) < current_period ) {
-	    // We've gotten ahead - sleep for a little bit
-	    struct timespec tv;
-	    tv.tv_sec = 0;
-	    tv.tv_nsec = current_period - ns;
-	    nanosleep(&tv, &tv);
-	}
+        struct timeval tv;
+        gettimeofday(&tv,NULL);
+        uint32_t ns = ((tv.tv_sec - gtk_gui_lasttv.tv_sec) * 1000000000) + 
+        (tv.tv_usec - gtk_gui_lasttv.tv_usec)*1000;
+        if( (ns * 1.05) < current_period ) {
+            // We've gotten ahead - sleep for a little bit
+            struct timespec tv;
+            tv.tv_sec = 0;
+            tv.tv_nsec = current_period - ns;
+            nanosleep(&tv, &tv);
+        }
 
-	/* Update the display every 10 ticks (ie 10 times a second) and 
-	 * save the current tv value */
-	if( gtk_gui_ticks > 10 ) {
-	    gtk_gui_ticks -= 10;
-	    
-	    double speed = (float)( (double)current_period * 100.0 / ns );
-	    gtk_gui_lasttv.tv_sec = tv.tv_sec;
-	    gtk_gui_lasttv.tv_usec = tv.tv_usec;
-	    main_window_set_speed( main_win, speed );
-	}
+        /* Update the display every 10 ticks (ie 10 times a second) and 
+         * save the current tv value */
+        if( gtk_gui_ticks > 10 ) {
+            gtk_gui_ticks -= 10;
+
+            double speed = (float)( (double)current_period * 100.0 / ns );
+            gtk_gui_lasttv.tv_sec = tv.tv_sec;
+            gtk_gui_lasttv.tv_usec = tv.tv_usec;
+            main_window_set_speed( main_win, speed );
+        }
     }
     return nanosecs;
 }

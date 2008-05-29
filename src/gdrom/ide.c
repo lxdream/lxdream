@@ -28,7 +28,7 @@
 #include "mem.h"
 #include "asic.h"
 #include "gdrom/ide.h"
-#include "gdrom/gdrom.h"
+#include "gdrom/gddriver.h"
 #include "gdrom/packet.h"
 
 #define MAX_WRITE_BUF 4096

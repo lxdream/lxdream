@@ -23,7 +23,7 @@
 #include <errno.h>
 #include <sys/stat.h>
 #include <glib/gutils.h>
-#include "gdrom/gdrom.h"
+#include "gdrom/gddriver.h"
 
 
 static gboolean gdi_image_is_valid( FILE *f );

@@ -89,27 +89,27 @@ gint gdrom_menu_add_recent_item( const gchar *name )
 
 void gdrom_menu_update_all()
 {
-    gdrom_disc_t disc = gdrom_get_current_disc();
+    const gchar *disc_name = gdrom_get_current_disc_name();
     gint posn = 0;
     GList *ptr;
 
     gdrom_menu_adjusting = TRUE;
 
-    if( disc != NULL ) {
-	posn = gdrom_menu_find_item( disc->name );
-	if( posn == -1 ) {
-	    posn = gdrom_menu_add_recent_item( disc->name );
-	    gdrom_menu_rebuild_all();
-	}
+    if( disc_name != NULL ) {
+        posn = gdrom_menu_find_item( disc_name );
+        if( posn == -1 ) {
+            posn = gdrom_menu_add_recent_item( disc_name );
+            gdrom_menu_rebuild_all();
+        }
     }
 
     for( ptr = gdrom_menu_list; ptr != NULL; ptr = g_list_next(ptr) ) {
-	GtkWidget *menu = GTK_WIDGET(ptr->data);
-	GList *children = gtk_container_get_children( GTK_CONTAINER(menu) );
-	GList *item = g_list_nth( children, posn );
-	assert( item != NULL );
-	gtk_check_menu_item_set_active( GTK_CHECK_MENU_ITEM(item->data), TRUE );
-	g_list_free(children);
+        GtkWidget *menu = GTK_WIDGET(ptr->data);
+        GList *children = gtk_container_get_children( GTK_CONTAINER(menu) );
+        GList *item = g_list_nth( children, posn );
+        assert( item != NULL );
+        gtk_check_menu_item_set_active( GTK_CHECK_MENU_ITEM(item->data), TRUE );
+        g_list_free(children);
     }    
 
     gdrom_menu_adjusting = FALSE;
@@ -118,10 +118,16 @@ void gdrom_menu_update_all()
 void gdrom_menu_empty_callback( GtkWidget *widget, gpointer user_data )
 {
     if( !gdrom_menu_adjusting ) {
-	gdrom_unmount_disc();
-	gdrom_menu_update_all();
-	lxdream_set_global_config_value( CONFIG_GDROM, NULL );
-	lxdream_save_config();
+        gdrom_unmount_disc();
+        lxdream_set_global_config_value( CONFIG_GDROM, NULL );
+        lxdream_save_config();
+    }
+}
+
+void gdrom_menu_disc_changed( gdrom_disc_t disc, const gchar *name, void *user_data )
+{
+    if( !gdrom_menu_adjusting ) {
+        gdrom_menu_update_all();
     }
 }
 
@@ -129,12 +135,11 @@ gboolean gdrom_menu_open_file( const char *filename )
 {
     gboolean result = FALSE;
     if( filename != NULL ) {
-	result = gdrom_mount_image(filename);
+        result = gdrom_mount_image(filename);
     }
     if( result ) {
-	gdrom_menu_update_all();
-	lxdream_set_global_config_value( CONFIG_GDROM, filename );
-	lxdream_save_config();
+        lxdream_set_global_config_value( CONFIG_GDROM, filename );
+        lxdream_save_config();
     }
     return result;
 }
@@ -142,8 +147,8 @@ gboolean gdrom_menu_open_file( const char *filename )
 void gdrom_menu_open_image_callback( GtkWidget *widget, gpointer user_data )
 {
     if( !gdrom_menu_adjusting ) {
-	const gchar *dir = lxdream_get_config_value(CONFIG_DEFAULT_PATH);
-	open_file_dialog( _("Open..."), gdrom_menu_open_file, NULL, NULL, dir );
+        const gchar *dir = lxdream_get_config_value(CONFIG_DEFAULT_PATH);
+        open_file_dialog( _("Open..."), gdrom_menu_open_file, NULL, NULL, dir );
     }
 }
 
@@ -228,6 +233,7 @@ void gdrom_menu_rebuild_all()
 void gdrom_menu_init()
 {
     const gchar *recent = lxdream_get_config_value( CONFIG_RECENT );
+    register_gdrom_disc_change_hook( gdrom_menu_disc_changed, NULL );
     gdrom_device_list = gdrom_get_native_devices();
     if( recent != NULL ) {
 	gchar **list = g_strsplit(recent, ":", 5);

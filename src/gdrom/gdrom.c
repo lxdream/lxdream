@@ -20,12 +20,21 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <glib/gutils.h>
 #include "gdrom/ide.h"
 #include "gdrom/gdrom.h"
+#include "gdrom/gddriver.h"
 #include "gdrom/packet.h"
 #include "dream.h"
 
 extern gdrom_disc_t gdrom_disc;
+
+DEFINE_HOOK( gdrom_disc_change_hook, gdrom_disc_change_hook_t )
+
+gdrom_fire_disc_changed( gdrom_disc_t disc )
+{
+    CALL_HOOKS( gdrom_disc_change_hook, disc, disc == NULL ? NULL : disc->name );
+}
 
 gdrom_image_class_t gdrom_image_classes[] = { &cdrom_device_class, 
 					      &nrg_image_class, 
@@ -89,17 +98,20 @@ gdrom_disc_t gdrom_image_open( const gchar *filename )
 
 void gdrom_mount_disc( gdrom_disc_t disc ) 
 {
-    gdrom_unmount_disc();
-    gdrom_disc = disc;
-    gdrom_image_dump_info( disc );
+    if( disc != gdrom_disc ) {
+        gdrom_unmount_disc();
+        gdrom_disc = disc;
+        gdrom_image_dump_info( disc );
+        gdrom_fire_disc_changed( disc );
+    }
 }
 
 gboolean gdrom_mount_image( const gchar *filename )
 {
     gdrom_disc_t disc = gdrom_image_open(filename);
     if( disc != NULL ) {
-	gdrom_mount_disc( disc );
-	return TRUE;
+        gdrom_mount_disc( disc );
+        return TRUE;
     }
     return FALSE;
 }
@@ -107,7 +119,8 @@ gboolean gdrom_mount_image( const gchar *filename )
 void gdrom_unmount_disc( ) 
 {
     if( gdrom_disc != NULL ) {
-	gdrom_disc->close(gdrom_disc);
+        gdrom_disc->close(gdrom_disc);
+        gdrom_fire_disc_changed(NULL);
     }
     gdrom_disc = NULL;
 
@@ -116,6 +129,15 @@ void gdrom_unmount_disc( )
 gdrom_disc_t gdrom_get_current_disc()
 {
     return gdrom_disc;
+}
+
+const gchar *gdrom_get_current_disc_name()
+{
+    if( gdrom_disc == NULL ) {
+        return NULL;
+    } else {
+        return gdrom_disc->name;
+    }
 }
 
 gchar *gdrom_get_relative_filename( const gchar *base_name, const gchar *rel_name )

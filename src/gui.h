@@ -21,6 +21,9 @@
 
 #include <glib/gtypes.h>
 
+/* Base GUI clock is 10ms */
+#define GUI_TICK_PERIOD 10000000
+
 /**
  * GUI-provided method to scan the command line for standard arguments,
  * invoked prior to regular command line processing. The command line
@@ -59,10 +62,5 @@ void gui_update_state();
  * @param active TRUE if the I/O device is becoming active, FALSE if inactive.
  */
 void gui_update_io_activity( io_activity_type activity, gboolean active );
-
-/**
- * Open a gdrom filename via the menu. FIXME: Should be generic
- */
-gboolean gdrom_menu_open_file( const char *filename );
 
 #endif /* __lxdream_gui_H */

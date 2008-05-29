@@ -16,7 +16,7 @@
  * GNU General Public License for more details.
  */
 
-#include "gdrom/gdrom.h"
+#include "gdrom/gddriver.h"
 
 static gboolean cdnone_image_is_valid( FILE *f );
 static gdrom_disc_t cdnone_open_device( const gchar *filename, FILE *f );

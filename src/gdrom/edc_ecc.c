@@ -43,7 +43,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-#include "gdrom.h"
+#include "gdrom/gddriver.h"
 #include "ecc.h"
 
 #define xaligned(a, s)          ((((uintptr_t)(a)) & (s)) == 0 )
