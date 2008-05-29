@@ -19,6 +19,7 @@
 
 #include <gdk/gdkkeysyms.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include "lxdream.h"
 #include "display.h"
 #include "dckeysyms.h"
@@ -142,12 +143,7 @@ uint16_t video_gtk_resolve_keysym( const gchar *keysym )
 
 gboolean video_gtk_expose_callback(GtkWidget *widget, GdkEventExpose *event, gpointer data )
 {
-    render_buffer_t buffer = pvr2_get_front_buffer();
-    if( buffer == NULL ) {
-	display_gtk_driver.display_blank(pvr2_get_border_colour());
-    } else {
-	display_gtk_driver.display_render_buffer(buffer);
-    }
+    pvr2_redraw_display();
     return TRUE;
 }
 
@@ -155,7 +151,7 @@ gboolean video_gtk_resize_callback(GtkWidget *widget, GdkEventConfigure *event, 
 {
     video_width = event->width;
     video_height = event->height;
-    video_gtk_expose_callback(widget, NULL, data);
+    pvr2_redraw_display();
     return TRUE;
 }
 

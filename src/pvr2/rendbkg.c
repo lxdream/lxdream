@@ -37,6 +37,7 @@
 #include <sys/time.h>
 #include "display.h"
 #include "pvr2/pvr2.h"
+#include "pvr2/pvr2mmio.h"
 #include <math.h>
 
 #define MAX_CLAMP_LINES 8

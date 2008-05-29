@@ -18,6 +18,7 @@
 #include "dream.h"
 #include "asic.h"
 #include "pvr2/pvr2.h"
+#include "pvr2/pvr2mmio.h"
 
 #define YUV420_BLOCK_SIZE 384
 #define YUV422_BLOCK_SIZE 512

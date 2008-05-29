@@ -23,7 +23,6 @@
 #include "lxdream.h"
 #include "mem.h"
 #include "display.h"
-#include "pvr2/pvr2mmio.h"
 
 typedef unsigned int pvraddr_t;
 typedef unsigned int pvr64addr_t;
@@ -69,8 +68,7 @@ typedef unsigned int pvr64addr_t;
 void pvr2_next_frame( void );
 void pvr2_set_base_address( uint32_t );
 int pvr2_get_frame_count( void );
-render_buffer_t pvr2_get_front_buffer();
-uint32_t pvr2_get_border_colour();
+void pvr2_redraw_display();
 gboolean pvr2_save_next_scene( const gchar *filename );
 
 #define PVR2_CMD_END_OF_LIST 0x00
