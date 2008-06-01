@@ -36,7 +36,9 @@ void gl_reset_state()
     glOrtho( 0, video_width, video_height, 0, 0, 65535 );
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
+    glEnable( GL_BLEND );
     glDisable( GL_TEXTURE_2D );
+    glDisable( GL_TEXTURE_RECTANGLE_ARB );
     glDisable( GL_ALPHA_TEST );
     glDisable( GL_DEPTH_TEST );
     glDisable( GL_SCISSOR_TEST );

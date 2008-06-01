@@ -240,10 +240,14 @@ gboolean gui_init( gboolean withDebug )
     }
 }
 
-void gui_main_loop(void)
+void gui_main_loop( gboolean run )
 {
     gtk_gui_update();
-    gtk_main();
+    if( run ) {
+        dreamcast_run();
+    } else {
+        gtk_main();
+    }
 }
 
 void gui_update_state(void)

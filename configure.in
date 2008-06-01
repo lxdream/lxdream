@@ -31,9 +31,10 @@ AC_ARG_ENABLE( sh4stats,
 AC_ARG_WITH( osmesa,
    AS_HELP_STRING( [--with-osmesa], [Build with the osmesa GL library (software rendering)]),
    [], [with_osmesa=no])
+AC_ARG_WITH( gtk,
+   AS_HELP_STRING( [--with-gtk], [Build with the GTK UI. Default on X11 systems]), [with_gtk=yes], [with_gtk=x11] )
 
-
-dnl ------------ Check if we're building on Darwn --------------
+dnl ------------ Check if we're building on Darwin --------------
 
 dnl For starters, do we have a working objective-c compiler?
 lxdream_save_cppflags="$CPPFLAGS"
@@ -49,8 +50,12 @@ AC_TRY_COMPILE([@interface Foo @end],, [
       AC_DEFINE(APPLE_BUILD,[1],[Building on an apple platform. Things are different...])
    ])
 
+   if test "x$with_gtk" = "xx11"; then
+      with_gtk=no
+   fi
+
 ], [CPPFLAGS="$lxdream_save_cppflags"] )
-AM_CONDITIONAL(GUI_COCOA, [test "$HAVE_COCOA" = 'yes'])
+AM_CONDITIONAL(GUI_COCOA, [test "$HAVE_COCOA" = 'yes' -a "$with_gtk" = "no"])
 
 dnl ----------- Check for mandatory dependencies --------------
 dnl Check for libpng (required)
@@ -61,22 +66,27 @@ AC_CHECK_LIB(z, uncompress, [], [
     echo "Zlib (libz.so) could not be found, but is required."
     exit 1])
 
+if test "x$with_gtk" = "xno"; then
+   dnl Check for GLIB only
+   PKG_CHECK_MODULES(GLIB, glib-2.0)
+else
+   dnl Check for GTK
+   PKG_CHECK_MODULES(GTK, gtk+-2.0, [
+       HAVE_GTK='yes'
+       AC_DEFINE([HAVE_GTK],1,[Have GTK libraries])
+   ])
 
-dnl Check for GTK (currently compulsory)
-PKG_CHECK_MODULES(GTK, gtk+-2.0, [
-    HAVE_GTK='yes'
-    AC_DEFINE([HAVE_GTK],1,[Have GTK libraries])
-])
+   dnl Which GTK port do we have?
+   LIBS="$LIBS $GTK_LIBS"
+   AC_CHECK_FUNC(gdk_x11_display_get_xdisplay, [ 
+      HAVE_GTK_X11='yes'
+      AC_DEFINE([HAVE_GTK_X11],1,[Building with GTK+X11]) ], [])
+   AC_CHECK_FUNC(gdk_quartz_window_get_nsview, [ 
+      HAVE_GTK_OSX='yes'
+      AC_DEFINE([HAVE_GTK_OSX],1,[Building with GTK+Cocoa]) ], [])
+fi
+
 AM_CONDITIONAL(GUI_GTK, [test "$HAVE_GTK" = 'yes'])
-
-dnl Which GTK port do we have?
-LIBS="$LIBS $GTK_LIBS"
-AC_CHECK_FUNC(gdk_x11_display_get_xdisplay, [ 
-   HAVE_GTK_X11='yes'
-   AC_DEFINE([HAVE_GTK_X11],1,[Building with GTK+X11]) ], [])
-AC_CHECK_FUNC(gdk_quartz_window_get_nsview, [ 
-   HAVE_GTK_OSX='yes'
-   AC_DEFINE([HAVE_GTK_OSX],1,[Building with GTK+Cocoa]) ], [])
 
 dnl ------------------ Video driver support -------------------
 AS_IF([test "x$with_osmesa" != xno], [ 
@@ -96,6 +106,10 @@ dnl taken care of above).
           AC_MSG_FAILURE( ["The OpenGL library (libGL.so) could not be found, but is required."])])
       AC_CHECK_HEADER([GL/gl.h], [], [
           AC_MSG_FAILURE( ["The OpenGL header files (eg GL/gl.h) could not be found, but are required."])])
+   else
+      AC_CHECK_FUNC(NSOpenGLGetVersion, [
+         HAVE_NSGL='yes'
+         AC_DEFINE([HAVE_NSGL],1, [Have NSOpenGL support]) ] )
    fi
 
 dnl Now work out how to get from the UI to GL - this is usually the painful part.
@@ -106,10 +120,7 @@ dnl Now work out how to get from the UI to GL - this is usually the painful part
       AC_CHECK_FUNC(glXQueryVersion, [
          HAVE_GLX='yes'
          AC_DEFINE([HAVE_GLX], 1, [Have GLX support]) ] )
-   elif test "x$HAVE_GTK_OSX" = "xyes"; then
-      AC_CHECK_FUNC(NSOpenGLGetVersion, [
-         HAVE_NSGL='yes'
-         AC_DEFINE([HAVE_NSGL],1, [Have NSOpenGL support]) ] )
+dnl   elif test "x$HAVE_GTK_OSX" = "xyes"; then
    fi
       
 ])

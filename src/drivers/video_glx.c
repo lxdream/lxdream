@@ -102,7 +102,7 @@ gboolean video_glx_init( Display *display, int screen )
     glx_pbuffer_supported = (glx_version >= 103 ||
 			     isServerGLXExtensionSupported(display, screen,
 						     "GLX_SGIX_pbuffer") );
-
+    glx_fbconfig_supported = FALSE;						    
     if( glx_fbconfig_supported ) {
 	int nelem;
         int fb_attribs[] = { GLX_DRAWABLE_TYPE, 

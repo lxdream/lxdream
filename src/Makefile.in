@@ -52,15 +52,18 @@ check_PROGRAMS = test/testxlt$(EXEEXT) $(am__EXEEXT_1)
 @GUI_GTK_TRUE@        gtkui/ctrl_dlg.c gtkui/path_dlg.c gtkui/gdrom_menu.c \
 @GUI_GTK_TRUE@        drivers/video_gtk.c drivers/video_gtk.h
 
-@VIDEO_OSMESA_TRUE@am__append_4 = drivers/video_gdk.c drivers/video_gdk.h 
-@VIDEO_GLX_TRUE@am__append_5 = drivers/video_glx.c drivers/video_glx.h
-@VIDEO_NSGL_TRUE@am__append_6 = drivers/video_nsgl.c drivers/video_nsgl.h
-@AUDIO_PULSE_TRUE@am__append_7 = drivers/audio_pulse.c
-@AUDIO_ESOUND_TRUE@am__append_8 = drivers/audio_esd.c
-@AUDIO_ALSA_TRUE@am__append_9 = drivers/audio_alsa.c
-@CDROM_LINUX_TRUE@am__append_10 = drivers/cd_linux.c
-@CDROM_LINUX_FALSE@am__append_11 = drivers/cd_none.c
-@JOY_LINUX_TRUE@am__append_12 = drivers/joy_linux.c
+@GUI_COCOA_TRUE@am__append_4 = cocoaui/cocoaui.c cocoaui/cocoaui.h \
+@GUI_COCOA_TRUE@	cocoaui/cocoa_win.c drivers/video_osx.c drivers/mac_keymap.h
+
+@VIDEO_OSMESA_TRUE@am__append_5 = drivers/video_gdk.c drivers/video_gdk.h 
+@VIDEO_GLX_TRUE@am__append_6 = drivers/video_glx.c drivers/video_glx.h
+@VIDEO_NSGL_TRUE@am__append_7 = drivers/video_nsgl.c drivers/video_nsgl.h
+@AUDIO_PULSE_TRUE@am__append_8 = drivers/audio_pulse.c
+@AUDIO_ESOUND_TRUE@am__append_9 = drivers/audio_esd.c
+@AUDIO_ALSA_TRUE@am__append_10 = drivers/audio_alsa.c
+@CDROM_LINUX_TRUE@am__append_11 = drivers/cd_linux.c
+@CDROM_LINUX_FALSE@am__append_12 = drivers/cd_none.c
+@JOY_LINUX_TRUE@am__append_13 = drivers/joy_linux.c
 subdir = src
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -110,11 +113,12 @@ am__lxdream_SOURCES_DIST = main.c config.c config.h mem.c mem.h mmio.h \
 	gtkui/gtkui.h gtkui/main_win.c gtkui/gtkcb.c gtkui/mmio_win.c \
 	gtkui/debug_win.c gtkui/dump_win.c gtkui/ctrl_dlg.c \
 	gtkui/path_dlg.c gtkui/gdrom_menu.c drivers/video_gtk.c \
-	drivers/video_gtk.h drivers/video_gdk.c drivers/video_gdk.h \
-	drivers/video_glx.c drivers/video_glx.h drivers/video_nsgl.c \
-	drivers/video_nsgl.h drivers/audio_pulse.c drivers/audio_esd.c \
-	drivers/audio_alsa.c drivers/cd_linux.c drivers/cd_none.c \
-	drivers/joy_linux.c
+	drivers/video_gtk.h cocoaui/cocoaui.c cocoaui/cocoaui.h \
+	cocoaui/cocoa_win.c drivers/video_osx.c drivers/mac_keymap.h \
+	drivers/video_gdk.c drivers/video_gdk.h drivers/video_glx.c \
+	drivers/video_glx.h drivers/video_nsgl.c drivers/video_nsgl.h \
+	drivers/audio_pulse.c drivers/audio_esd.c drivers/audio_alsa.c \
+	drivers/cd_linux.c drivers/cd_none.c drivers/joy_linux.c
 @BUILD_SH4X86_TRUE@am__objects_1 = sh4x86.$(OBJEXT) sh4trans.$(OBJEXT) \
 @BUILD_SH4X86_TRUE@	x86dasm.$(OBJEXT) i386-dis.$(OBJEXT) \
 @BUILD_SH4X86_TRUE@	dis-init.$(OBJEXT) dis-buf.$(OBJEXT)
@@ -123,15 +127,17 @@ am__lxdream_SOURCES_DIST = main.c config.c config.h mem.c mem.h mmio.h \
 @GUI_GTK_TRUE@	debug_win.$(OBJEXT) dump_win.$(OBJEXT) \
 @GUI_GTK_TRUE@	ctrl_dlg.$(OBJEXT) path_dlg.$(OBJEXT) \
 @GUI_GTK_TRUE@	gdrom_menu.$(OBJEXT) video_gtk.$(OBJEXT)
-@VIDEO_OSMESA_TRUE@am__objects_3 = video_gdk.$(OBJEXT)
-@VIDEO_GLX_TRUE@am__objects_4 = video_glx.$(OBJEXT)
-@VIDEO_NSGL_TRUE@am__objects_5 = video_nsgl.$(OBJEXT)
-@AUDIO_PULSE_TRUE@am__objects_6 = audio_pulse.$(OBJEXT)
-@AUDIO_ESOUND_TRUE@am__objects_7 = audio_esd.$(OBJEXT)
-@AUDIO_ALSA_TRUE@am__objects_8 = audio_alsa.$(OBJEXT)
-@CDROM_LINUX_TRUE@am__objects_9 = cd_linux.$(OBJEXT)
-@CDROM_LINUX_FALSE@am__objects_10 = cd_none.$(OBJEXT)
-@JOY_LINUX_TRUE@am__objects_11 = joy_linux.$(OBJEXT)
+@GUI_COCOA_TRUE@am__objects_3 = cocoaui.$(OBJEXT) cocoa_win.$(OBJEXT) \
+@GUI_COCOA_TRUE@	video_osx.$(OBJEXT)
+@VIDEO_OSMESA_TRUE@am__objects_4 = video_gdk.$(OBJEXT)
+@VIDEO_GLX_TRUE@am__objects_5 = video_glx.$(OBJEXT)
+@VIDEO_NSGL_TRUE@am__objects_6 = video_nsgl.$(OBJEXT)
+@AUDIO_PULSE_TRUE@am__objects_7 = audio_pulse.$(OBJEXT)
+@AUDIO_ESOUND_TRUE@am__objects_8 = audio_esd.$(OBJEXT)
+@AUDIO_ALSA_TRUE@am__objects_9 = audio_alsa.$(OBJEXT)
+@CDROM_LINUX_TRUE@am__objects_10 = cd_linux.$(OBJEXT)
+@CDROM_LINUX_FALSE@am__objects_11 = cd_none.$(OBJEXT)
+@JOY_LINUX_TRUE@am__objects_12 = joy_linux.$(OBJEXT)
 am_lxdream_OBJECTS = main.$(OBJEXT) config.$(OBJEXT) mem.$(OBJEXT) \
 	watch.$(OBJEXT) asic.$(OBJEXT) syscall.$(OBJEXT) \
 	bios.$(OBJEXT) dcload.$(OBJEXT) ide.$(OBJEXT) \
@@ -154,7 +160,7 @@ am_lxdream_OBJECTS = main.$(OBJEXT) config.$(OBJEXT) mem.$(OBJEXT) \
 	$(am__objects_2) $(am__objects_3) $(am__objects_4) \
 	$(am__objects_5) $(am__objects_6) $(am__objects_7) \
 	$(am__objects_8) $(am__objects_9) $(am__objects_10) \
-	$(am__objects_11)
+	$(am__objects_11) $(am__objects_12)
 lxdream_OBJECTS = $(am_lxdream_OBJECTS)
 lxdream_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am__test_testsh4x86_SOURCES_DIST = test/testsh4x86.c x86dasm/x86dasm.c \
@@ -238,13 +244,15 @@ ESOUND_CFLAGS = @ESOUND_CFLAGS@
 ESOUND_LIBS = @ESOUND_LIBS@
 EXEEXT = @EXEEXT@
 GETTEXT_PACKAGE = @GETTEXT_PACKAGE@
+GLIB_CFLAGS = @GLIB_CFLAGS@
+GLIB_LIBS = @GLIB_LIBS@
 GMOFILES = @GMOFILES@
 GMSGFMT = @GMSGFMT@
 GREP = @GREP@
 GTK_CFLAGS = @GTK_CFLAGS@
 GTK_LIBS = @GTK_LIBS@
-GUI_CARBON_FALSE = @GUI_CARBON_FALSE@
-GUI_CARBON_TRUE = @GUI_CARBON_TRUE@
+GUI_COCOA_FALSE = @GUI_COCOA_FALSE@
+GUI_COCOA_TRUE = @GUI_COCOA_TRUE@
 GUI_GTK_FALSE = @GUI_GTK_FALSE@
 GUI_GTK_TRUE = @GUI_GTK_TRUE@
 INSTALL_DATA = @INSTALL_DATA@
@@ -346,11 +354,11 @@ INCLUDES = \
 	-DPACKAGE_LOCALE_DIR=\""$(prefix)/$(DATADIRNAME)/locale"\" \
 	-DPACKAGE_CONF_DIR=\""$(sysconfdir)"\" \
         -Ish4 \
-	@GTK_CFLAGS@ @LIBPNG_CFLAGS@ @PULSE_CFLAGS@ @ESOUND_CFLAGS@ @ALSA_CFLAGS@
+	@GLIB_CFLAGS@ @GTK_CFLAGS@ @LIBPNG_CFLAGS@ @PULSE_CFLAGS@ @ESOUND_CFLAGS@ @ALSA_CFLAGS@
 
 AM_CFLAGS = -D_ISOC99_SOURCE -D_BSD_SOURCE 
 TESTS = test/testxlt
-BUILT_SOURCES = sh4/sh4core.c sh4/sh4dasm.c sh4/sh4x86.c pvr2/gl_slsrc.c
+BUILT_SOURCES = sh4/sh4core.c sh4/sh4dasm.c sh4/sh4x86.c pvr2/gl_slsrc.c drivers/mac_keymap.h
 gendec_SOURCES = tools/gendec.c tools/gendec.h tools/insparse.c tools/actparse.c
 genglsl_SOURCES = tools/genglsl.c
 lxdream_SOURCES = main.c config.c config.h mem.c mem.h mmio.h watch.c \
@@ -377,17 +385,18 @@ lxdream_SOURCES = main.c config.c config.h mem.c mem.h mmio.h watch.c \
 	drivers/gl_fbo.c $(am__append_1) $(am__append_3) \
 	$(am__append_4) $(am__append_5) $(am__append_6) \
 	$(am__append_7) $(am__append_8) $(am__append_9) \
-	$(am__append_10) $(am__append_11) $(am__append_12)
-@BUILD_SH4X86_TRUE@test_testsh4x86_LDADD = @GTK_LIBS@
+	$(am__append_10) $(am__append_11) $(am__append_12) \
+	$(am__append_13)
+@BUILD_SH4X86_TRUE@test_testsh4x86_LDADD = @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@
 @BUILD_SH4X86_TRUE@test_testsh4x86_SOURCES = test/testsh4x86.c x86dasm/x86dasm.c \
 @BUILD_SH4X86_TRUE@	x86dasm/x86dasm.h x86dasm/i386-dis.c x86dasm/dis-init.c \
 @BUILD_SH4X86_TRUE@	x86dasm/dis-buf.c \
 @BUILD_SH4X86_TRUE@	sh4/sh4dasm.c sh4/sh4trans.c sh4/sh4x86.c sh4/xltcache.c \
 @BUILD_SH4X86_TRUE@	sh4/xltcache.h mem.c util.c sh4/mmu.c
 
-lxdream_LDADD = @GTK_LIBS@ @LIBPNG_LIBS@ @PULSE_LIBS@ @ESOUND_LIBS@ @ALSA_LIBS@ $(INTLLIBS)
-gendec_LDADD = @GTK_LIBS@ $(INTLLIBS)
-genglsl_LDADD = @GTK_LIBS@ $(INTLLIBS)
+lxdream_LDADD = @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@ @PULSE_LIBS@ @ESOUND_LIBS@ @ALSA_LIBS@ $(INTLLIBS)
+gendec_LDADD = @GLIB_LIBS@ @GTK_LIBS@ $(INTLLIBS)
+genglsl_LDADD = @GLIB_LIBS@ @GTK_LIBS@ $(INTLLIBS)
 test_testxlt_SOURCES = test/testxlt.c sh4/xltcache.c sh4/xltcache.h
 all: $(BUILT_SOURCES)
 	$(MAKE) $(AM_MAKEFLAGS) all-am
@@ -493,6 +502,8 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cd_linux.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cd_none.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cdi.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cocoa_win.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cocoaui.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/config.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/controller.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ctrl_dlg.Po@am__quote@
@@ -563,6 +574,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/video_gtk.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/video_nsgl.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/video_null.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/video_osx.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/watch.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/x86dasm.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xltcache.Po@am__quote@
@@ -1492,6 +1504,48 @@ video_gtk.obj: drivers/video_gtk.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o video_gtk.obj `if test -f 'drivers/video_gtk.c'; then $(CYGPATH_W) 'drivers/video_gtk.c'; else $(CYGPATH_W) '$(srcdir)/drivers/video_gtk.c'; fi`
 
+cocoaui.o: cocoaui/cocoaui.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT cocoaui.o -MD -MP -MF "$(DEPDIR)/cocoaui.Tpo" -c -o cocoaui.o `test -f 'cocoaui/cocoaui.c' || echo '$(srcdir)/'`cocoaui/cocoaui.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/cocoaui.Tpo" "$(DEPDIR)/cocoaui.Po"; else rm -f "$(DEPDIR)/cocoaui.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='cocoaui/cocoaui.c' object='cocoaui.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o cocoaui.o `test -f 'cocoaui/cocoaui.c' || echo '$(srcdir)/'`cocoaui/cocoaui.c
+
+cocoaui.obj: cocoaui/cocoaui.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT cocoaui.obj -MD -MP -MF "$(DEPDIR)/cocoaui.Tpo" -c -o cocoaui.obj `if test -f 'cocoaui/cocoaui.c'; then $(CYGPATH_W) 'cocoaui/cocoaui.c'; else $(CYGPATH_W) '$(srcdir)/cocoaui/cocoaui.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/cocoaui.Tpo" "$(DEPDIR)/cocoaui.Po"; else rm -f "$(DEPDIR)/cocoaui.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='cocoaui/cocoaui.c' object='cocoaui.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o cocoaui.obj `if test -f 'cocoaui/cocoaui.c'; then $(CYGPATH_W) 'cocoaui/cocoaui.c'; else $(CYGPATH_W) '$(srcdir)/cocoaui/cocoaui.c'; fi`
+
+cocoa_win.o: cocoaui/cocoa_win.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT cocoa_win.o -MD -MP -MF "$(DEPDIR)/cocoa_win.Tpo" -c -o cocoa_win.o `test -f 'cocoaui/cocoa_win.c' || echo '$(srcdir)/'`cocoaui/cocoa_win.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/cocoa_win.Tpo" "$(DEPDIR)/cocoa_win.Po"; else rm -f "$(DEPDIR)/cocoa_win.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='cocoaui/cocoa_win.c' object='cocoa_win.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o cocoa_win.o `test -f 'cocoaui/cocoa_win.c' || echo '$(srcdir)/'`cocoaui/cocoa_win.c
+
+cocoa_win.obj: cocoaui/cocoa_win.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT cocoa_win.obj -MD -MP -MF "$(DEPDIR)/cocoa_win.Tpo" -c -o cocoa_win.obj `if test -f 'cocoaui/cocoa_win.c'; then $(CYGPATH_W) 'cocoaui/cocoa_win.c'; else $(CYGPATH_W) '$(srcdir)/cocoaui/cocoa_win.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/cocoa_win.Tpo" "$(DEPDIR)/cocoa_win.Po"; else rm -f "$(DEPDIR)/cocoa_win.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='cocoaui/cocoa_win.c' object='cocoa_win.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o cocoa_win.obj `if test -f 'cocoaui/cocoa_win.c'; then $(CYGPATH_W) 'cocoaui/cocoa_win.c'; else $(CYGPATH_W) '$(srcdir)/cocoaui/cocoa_win.c'; fi`
+
+video_osx.o: drivers/video_osx.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT video_osx.o -MD -MP -MF "$(DEPDIR)/video_osx.Tpo" -c -o video_osx.o `test -f 'drivers/video_osx.c' || echo '$(srcdir)/'`drivers/video_osx.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/video_osx.Tpo" "$(DEPDIR)/video_osx.Po"; else rm -f "$(DEPDIR)/video_osx.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/video_osx.c' object='video_osx.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o video_osx.o `test -f 'drivers/video_osx.c' || echo '$(srcdir)/'`drivers/video_osx.c
+
+video_osx.obj: drivers/video_osx.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT video_osx.obj -MD -MP -MF "$(DEPDIR)/video_osx.Tpo" -c -o video_osx.obj `if test -f 'drivers/video_osx.c'; then $(CYGPATH_W) 'drivers/video_osx.c'; else $(CYGPATH_W) '$(srcdir)/drivers/video_osx.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/video_osx.Tpo" "$(DEPDIR)/video_osx.Po"; else rm -f "$(DEPDIR)/video_osx.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/video_osx.c' object='video_osx.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o video_osx.obj `if test -f 'drivers/video_osx.c'; then $(CYGPATH_W) 'drivers/video_osx.c'; else $(CYGPATH_W) '$(srcdir)/drivers/video_osx.c'; fi`
+
 video_gdk.o: drivers/video_gdk.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT video_gdk.o -MD -MP -MF "$(DEPDIR)/video_gdk.Tpo" -c -o video_gdk.o `test -f 'drivers/video_gdk.c' || echo '$(srcdir)/'`drivers/video_gdk.c; \
 @am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/video_gdk.Tpo" "$(DEPDIR)/video_gdk.Po"; else rm -f "$(DEPDIR)/video_gdk.Tpo"; exit 1; fi
@@ -1905,6 +1959,8 @@ sh4/sh4stat.c: gendec sh4/sh4.def sh4/sh4stat.in
 	./gendec sh4/sh4.def sh4/sh4stat.in -o sh4/sh4stat.c
 pvr2/gl_slsrc.c: genglsl pvr2/vertex.glsl pvr2/fragment.glsl
 	./genglsl pvr2/vertex.glsl pvr2/fragment.glsl pvr2/gl_slsrc.c
+drivers/mac_keymap.h: drivers/mac_keymap.txt drivers/genkeymap.pl
+	drivers/genkeymap.pl mac drivers/mac_keymap.txt > drivers/mac_keymap.h
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:

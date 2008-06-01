@@ -204,6 +204,7 @@ int main (int argc, char *argv[])
 
     sh4_set_use_xlat( use_xlat );
 
+    /*
     if( start_immediately ) {
         if( dreamcast_can_run() ) {
 	    if( time_nanos != 0 || time_secs != 0 ) {
@@ -217,8 +218,9 @@ int main (int argc, char *argv[])
 	    ERROR( "Unable to start dreamcast: no program/bios loaded" );
 	}
     }
+    */
     if( !headless ) {
-	gui_main_loop();
+        gui_main_loop( start_immediately && dreamcast_can_run() );
     }
     dreamcast_shutdown();
     return 0;

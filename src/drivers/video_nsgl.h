@@ -33,5 +33,9 @@ gboolean video_nsgl_init_driver( NSView *view, display_driver_t driver );
  */
 void video_nsgl_shutdown();
 
+/**
+ * Standard front/back buffer swap
+ */
+void video_nsgl_swap_buffers();
 
 #endif /* !video_nsgl_H */

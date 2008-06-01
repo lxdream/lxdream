@@ -5,7 +5,7 @@ INCLUDES = \
 	-DPACKAGE_LOCALE_DIR=\""$(prefix)/$(DATADIRNAME)/locale"\" \
 	-DPACKAGE_CONF_DIR=\""$(sysconfdir)"\" \
         -Ish4 \
-	@GTK_CFLAGS@ @LIBPNG_CFLAGS@ @PULSE_CFLAGS@ @ESOUND_CFLAGS@ @ALSA_CFLAGS@
+	@GLIB_CFLAGS@ @GTK_CFLAGS@ @LIBPNG_CFLAGS@ @PULSE_CFLAGS@ @ESOUND_CFLAGS@ @ALSA_CFLAGS@
 
 bin_PROGRAMS = lxdream
 noinst_PROGRAMS = gendec genglsl
@@ -13,7 +13,7 @@ check_PROGRAMS = test/testxlt
 
 AM_CFLAGS = -D_ISOC99_SOURCE -D_BSD_SOURCE 
 TESTS = test/testxlt
-BUILT_SOURCES = sh4/sh4core.c sh4/sh4dasm.c sh4/sh4x86.c pvr2/gl_slsrc.c
+BUILT_SOURCES = sh4/sh4core.c sh4/sh4dasm.c sh4/sh4x86.c pvr2/gl_slsrc.c drivers/mac_keymap.h
 
 gendec_SOURCES = tools/gendec.c tools/gendec.h tools/insparse.c tools/actparse.c
 genglsl_SOURCES = tools/genglsl.c
@@ -52,7 +52,7 @@ lxdream_SOURCES += sh4/sh4x86.c sh4/x86op.h \
         x86dasm/x86dasm.c x86dasm/x86dasm.h \
         x86dasm/i386-dis.c x86dasm/dis-init.c x86dasm/dis-buf.c 
 
-test_testsh4x86_LDADD = @GTK_LIBS@
+test_testsh4x86_LDADD = @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@
 test_testsh4x86_SOURCES = test/testsh4x86.c x86dasm/x86dasm.c \
 	x86dasm/x86dasm.h x86dasm/i386-dis.c x86dasm/dis-init.c \
 	x86dasm/dis-buf.c \
@@ -68,6 +68,11 @@ lxdream_SOURCES += gtkui/gtkui.c gtkui/gtkui.h \
         gtkui/mmio_win.c gtkui/debug_win.c gtkui/dump_win.c \
         gtkui/ctrl_dlg.c gtkui/path_dlg.c gtkui/gdrom_menu.c \
         drivers/video_gtk.c drivers/video_gtk.h
+endif
+
+if GUI_COCOA
+lxdream_SOURCES += cocoaui/cocoaui.c cocoaui/cocoaui.h \
+	cocoaui/cocoa_win.c drivers/video_osx.c drivers/mac_keymap.h
 endif
 
 if VIDEO_OSMESA
@@ -106,10 +111,10 @@ lxdream_SOURCES += drivers/joy_linux.c
 endif
 
 
-lxdream_LDADD = @GTK_LIBS@ @LIBPNG_LIBS@ @PULSE_LIBS@ @ESOUND_LIBS@ @ALSA_LIBS@ $(INTLLIBS)
+lxdream_LDADD = @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@ @PULSE_LIBS@ @ESOUND_LIBS@ @ALSA_LIBS@ $(INTLLIBS)
 
-gendec_LDADD = @GTK_LIBS@ $(INTLLIBS)
-genglsl_LDADD = @GTK_LIBS@ $(INTLLIBS)
+gendec_LDADD = @GLIB_LIBS@ @GTK_LIBS@ $(INTLLIBS)
+genglsl_LDADD = @GLIB_LIBS@ @GTK_LIBS@ $(INTLLIBS)
 
 
 test_testxlt_SOURCES = test/testxlt.c sh4/xltcache.c sh4/xltcache.h
@@ -124,3 +129,6 @@ sh4/sh4stat.c: gendec sh4/sh4.def sh4/sh4stat.in
 	./gendec sh4/sh4.def sh4/sh4stat.in -o sh4/sh4stat.c
 pvr2/gl_slsrc.c: genglsl pvr2/vertex.glsl pvr2/fragment.glsl
 	./genglsl pvr2/vertex.glsl pvr2/fragment.glsl pvr2/gl_slsrc.c
+drivers/mac_keymap.h: drivers/mac_keymap.txt drivers/genkeymap.pl
+	drivers/genkeymap.pl mac drivers/mac_keymap.txt > drivers/mac_keymap.h
+	

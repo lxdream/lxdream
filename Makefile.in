@@ -38,7 +38,7 @@ host_triplet = @host@
 DIST_COMMON = README $(am__configure_deps) $(srcdir)/Makefile.am \
 	$(srcdir)/Makefile.in $(srcdir)/config.h.in \
 	$(top_srcdir)/configure $(top_srcdir)/test/Makefile.in AUTHORS \
-	COPYING ChangeLog INSTALL NEWS acconfig.h config.guess \
+	COPYING ChangeLog INSTALL NEWS TODO acconfig.h config.guess \
 	config.sub depcomp install-sh missing mkinstalldirs
 subdir = .
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -122,13 +122,15 @@ ESOUND_CFLAGS = @ESOUND_CFLAGS@
 ESOUND_LIBS = @ESOUND_LIBS@
 EXEEXT = @EXEEXT@
 GETTEXT_PACKAGE = @GETTEXT_PACKAGE@
+GLIB_CFLAGS = @GLIB_CFLAGS@
+GLIB_LIBS = @GLIB_LIBS@
 GMOFILES = @GMOFILES@
 GMSGFMT = @GMSGFMT@
 GREP = @GREP@
 GTK_CFLAGS = @GTK_CFLAGS@
 GTK_LIBS = @GTK_LIBS@
-GUI_CARBON_FALSE = @GUI_CARBON_FALSE@
-GUI_CARBON_TRUE = @GUI_CARBON_TRUE@
+GUI_COCOA_FALSE = @GUI_COCOA_FALSE@
+GUI_COCOA_TRUE = @GUI_COCOA_TRUE@
 GUI_GTK_FALSE = @GUI_GTK_FALSE@
 GUI_GTK_TRUE = @GUI_GTK_TRUE@
 INSTALL_DATA = @INSTALL_DATA@
@@ -681,6 +683,13 @@ dist-hook:
 	    fi \
 	  done \
 	fi
+
+# Build a Mac OS X bundle. This is meaningless anywhere else
+bundle: all
+	mkdir -p lxdream.app/Contents/MacOS
+	mkdir -p lxdream.app/Contents/Resources
+	cp src/lxdream lxdream.app/Contents/MacOS
+	cp -R pixmaps/* lxdream.app/Contents/Resources
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:
