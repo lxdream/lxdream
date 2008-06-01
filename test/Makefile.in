@@ -60,7 +60,7 @@ SHARED_OBJECTS	=
 	./bin2c $< $<.c
 	$(SH4CC) $(SH4CFLAGS) -o $@ -c $<.c
 
-all: build-tests
+all:
 
 check: build-tests
 	$(RUNTEST) testsh4
