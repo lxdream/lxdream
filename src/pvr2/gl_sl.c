@@ -99,6 +99,7 @@ gboolean glsl_load_shaders( const char *vertex_src, const char *fragment_src )
     if( pok ) {
 	glUseProgramObjectARB(glsl_program);
 	pok = glsl_check_program_error( "Failed to apply shader program", glsl_program );
+	glsl_enable_shaders(FALSE); // initially disabled
     } else {
 	glsl_unload_shaders();
     }
@@ -191,6 +192,8 @@ gboolean glsl_load_shaders( const char *vertex_src, const char *fragment_src )
 
     if( pok ) {
 	glUseProgram(glsl_program);
+	pok = glsl_check_program_error( "Failed to apply shader program", glsl_program );
+	glsl_enable_shaders(FALSE); // initially disabled
     } else {
 	glsl_unload_shaders();
     }
