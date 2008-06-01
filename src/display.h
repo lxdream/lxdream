@@ -185,8 +185,8 @@ extern uint32_t pvr2_frame_counter;
 
 extern display_driver_t display_driver;
 
-extern struct display_driver display_agl_driver;
 extern struct display_driver display_gtk_driver;
+extern struct display_driver display_osx_driver;
 extern struct display_driver display_null_driver;
 
 /****************** Input methods **********************/

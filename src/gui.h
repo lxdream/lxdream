@@ -44,8 +44,10 @@ gboolean gui_init( gboolean debug );
 /**
  * Enter the GUI main loop. If this method ever returns, the system will
  * exit normally.
+ * 
+ * @param run TRUE if the system should start running immediately, otherwise
  */
-void gui_main_loop(void);
+void gui_main_loop( gboolean run );
 
 gboolean gui_error_dialog( const char *fmt, ... );
 

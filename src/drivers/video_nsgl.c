@@ -21,13 +21,14 @@
 #include "drivers/video_gl.h"
 #include "pvr2/glutil.h"
 
-static NSOpenGLContext *nsgl_context;
+static NSOpenGLContext *nsgl_context = nil;
 
 gboolean video_nsgl_init_driver( NSView *view, display_driver_t driver )
 {
+    NSAutoreleasePool *pool = [NSAutoreleasePool new];
 	NSOpenGLPixelFormatAttribute attributes[] = {
 			NSOpenGLPFAWindow,
-			NSOpenGLPFADoubleBuffer,
+//			NSOpenGLPFADoubleBuffer,
 			NSOpenGLPFADepthSize, (NSOpenGLPixelFormatAttribute)24,
 			(NSOpenGLPixelFormatAttribute)nil };
 	
@@ -37,7 +38,7 @@ gboolean video_nsgl_init_driver( NSView *view, display_driver_t driver )
 		[[NSOpenGLContext alloc] initWithFormat: pixelFormat shareContext: nil];
 	[nsgl_context setView: view];
 	[nsgl_context makeCurrentContext];
-	
+	[pool release];
 	if( gl_fbo_is_supported() ) {
 		gl_fbo_init(driver);
 	} else {
@@ -46,6 +47,27 @@ gboolean video_nsgl_init_driver( NSView *view, display_driver_t driver )
 	}
 
 	return TRUE;
+}
+
+void video_nsgl_update()
+{
+    if( nsgl_context != nil ) {
+        [nsgl_context update];
+    }
+}
+
+void video_nsgl_make_current()
+{
+    if( nsgl_context != nil ) {
+        [nsgl_context makeCurrentContext];
+    }
+}
+
+void video_nsgl_swap_buffers()
+{
+    if( nsgl_context != nil ) {
+        [nsgl_context flushBuffer];
+    }
 }
 
 void video_nsgl_shutdown()

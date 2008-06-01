@@ -24,10 +24,14 @@
 #include "display.h"
 #include "pvr2/pvr2.h"
 
-display_driver_t display_driver_list[] = { 
+display_driver_t display_driver_list[] = {
 #ifdef HAVE_GTK
 					   &display_gtk_driver,
+#else
+#ifdef HAVE_COCOA
+					   &display_osx_driver,
 #endif
+#endif					   
 					   &display_null_driver,
 					   NULL };
 

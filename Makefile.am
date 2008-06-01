@@ -30,3 +30,9 @@ dist-hook:
 	  done \
 	fi
 
+# Build a Mac OS X bundle. This is meaningless anywhere else
+bundle: all
+	mkdir -p lxdream.app/Contents/MacOS
+	mkdir -p lxdream.app/Contents/Resources
+	cp src/lxdream lxdream.app/Contents/MacOS
+	cp -R pixmaps/* lxdream.app/Contents/Resources
