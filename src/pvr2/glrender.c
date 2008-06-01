@@ -258,7 +258,7 @@ void pvr2_scene_render( render_buffer_t buffer )
 	farz*= 2.0;
     }
     glOrtho( 0, pvr2_scene.buffer_width, pvr2_scene.buffer_height, 0, 
-    	     -farz, -nearz );
+    	     -farz-1, -nearz );
     float alphaRef = ((float)(MMIO_READ(PVR2, RENDER_ALPHA_REF)&0xFF)+1)/256.0;
     glAlphaFunc( GL_GEQUAL, alphaRef );
 
