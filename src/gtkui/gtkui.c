@@ -245,6 +245,7 @@ void gui_main_loop( gboolean run )
     gtk_gui_update();
     if( run ) {
         dreamcast_run();
+        gtk_main();
     } else {
         gtk_main();
     }

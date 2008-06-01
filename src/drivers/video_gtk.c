@@ -198,7 +198,7 @@ uint16_t video_gtk_keycode_to_dckeysym(uint16_t keycode)
     case GDK_Home:      return DCKB_Home;
     case GDK_Page_Up:   return DCKB_Page_Up;
     case GDK_Delete:    return DCKB_Delete;
-    case GDK_End:       return DCKB_nd;
+    case GDK_End:       return DCKB_End;
     case GDK_Page_Down: return DCKB_Page_Down;
     case GDK_Right:     return DCKB_Right;
     case GDK_Left:      return DCKB_Left;
