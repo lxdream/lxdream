@@ -19,6 +19,7 @@
 #include <AppKit/AppKit.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/time.h>
 #include "lxdream.h"
 #include "dreamcast.h"
@@ -198,7 +199,14 @@ static void cocoa_gui_create_menu(void)
 
 gboolean gui_parse_cmdline( int *argc, char **argv[] )
 {
-	/* do nothing */
+    /* If started from the finder, the first (and only) arg will look something like 
+    * -psn_0_... - we want to remove this so that lxdream doesn't try to process it 
+    * normally
+    */
+    if( *argc == 2 && strncmp((*argv)[1], "-psn_", 5) == 0 ) {
+        *argc = 1;
+    }
+    return TRUE;
 }
 
 gboolean gui_init( gboolean withDebug )
@@ -233,7 +241,13 @@ void gui_update_state(void)
 
 gboolean gui_error_dialog( const char *msg, ... )
 {
-	
+    NSString *error_string;
+    
+    va_list args;
+    va_start(args, msg);
+    error_string = [[NSString alloc] initWithFormat: [NSString stringWithCString: msg] arguments: args];
+    NSRunAlertPanel(@"Error in lxdream", error_string, nil, nil, nil);
+    va_end(args);
 }
 
 void gui_update_io_activity( io_activity_type io, gboolean active )
