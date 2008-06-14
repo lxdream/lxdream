@@ -217,6 +217,9 @@ gboolean gui_init( gboolean withDebug )
     [NSApplication sharedApplication];
     LxdreamDelegate *delegate = [[LxdreamDelegate alloc] init];
     [NSApp setDelegate: delegate];
+    NSString *iconFile = [[NSBundle mainBundle] pathForResource:@"dcemu" ofType:@"gif"];
+    NSImage *iconImage = [[NSImage alloc] initWithContentsOfFile: iconFile];
+    [NSApp setApplicationIconImage: iconImage];   
     cocoa_gui_create_menu();
     NSWindow *window = cocoa_gui_create_main_window();
     [window makeKeyAndOrderFront: nil];
