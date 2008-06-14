@@ -101,6 +101,13 @@ void pvr2_setup_gl_context()
     glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
+    
+#ifdef HAVE_OPENGL_CLAMP_COLOR
+    if( isGLExtensionSupported("GL_ARB_color_buffer_float") ) {
+        glClampColorARB(GL_CLAMP_VERTEX_COLOR_ARB, GL_FALSE );
+        glClampColorARB(GL_CLAMP_FRAGMENT_COLOR_ARB, GL_FALSE );
+    }
+#endif
 
     glEnableClientState( GL_COLOR_ARRAY );
     glEnableClientState( GL_VERTEX_ARRAY );
@@ -197,6 +204,23 @@ static void gl_render_poly( struct polygon_struct *poly )
     glDrawArrays(GL_TRIANGLE_STRIP, poly->vertex_index, poly->vertex_count );
 }
 
+
+static void gl_render_bkgnd( struct polygon_struct *poly )
+{
+    if( poly->tex_id != -1 ) {
+        glBindTexture(GL_TEXTURE_2D, poly->tex_id);
+    }
+    render_set_context( poly->context, RENDER_NORMAL );
+    glDisable( GL_DEPTH_TEST );
+    glDisable( GL_CULL_FACE );
+    glBlendFunc( GL_ONE, GL_ZERO );
+    glDrawArrays(GL_TRIANGLE_STRIP, poly->vertex_index, poly->vertex_count );
+    glEnable( GL_CULL_FACE );
+    glEnable( GL_DEPTH_TEST );
+}
+
+
+
 void gl_render_tilelist( pvraddr_t tile_entry )
 {
     uint32_t *tile_list = (uint32_t *)(video_base+tile_entry);
@@ -255,10 +279,10 @@ void pvr2_scene_render( render_buffer_t buffer )
     float nearz = pvr2_scene.bounds[4];
     float farz = pvr2_scene.bounds[5];
     if( nearz == farz ) {
-	farz*= 2.0;
+        farz*= 4.0;
     }
     glOrtho( 0, pvr2_scene.buffer_width, pvr2_scene.buffer_height, 0, 
-    	     -farz-1, -nearz );
+    	     -farz, -nearz );
     float alphaRef = ((float)(MMIO_READ(PVR2, RENDER_ALPHA_REF)&0xFF)+1)/256.0;
     glAlphaFunc( GL_GEQUAL, alphaRef );
 
@@ -268,15 +292,16 @@ void pvr2_scene_render( render_buffer_t buffer )
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT );
 
     /* Setup vertex array pointers */
-    glInterleavedArrays(GL_T2F_C4UB_V3F, sizeof(struct vertex_struct), pvr2_scene.vertex_array);
-    glSecondaryColorPointerEXT(3, GL_UNSIGNED_BYTE, sizeof(struct vertex_struct), &pvr2_scene.vertex_array[0].offset_rgba );
+    glVertexPointer(3, GL_FLOAT, sizeof(struct vertex_struct), &pvr2_scene.vertex_array[0].x);
+    glColorPointer(4, GL_FLOAT, sizeof(struct vertex_struct), &pvr2_scene.vertex_array[0].rgba[0]);
+    glTexCoordPointer(2, GL_FLOAT, sizeof(struct vertex_struct), &pvr2_scene.vertex_array[0].u);
+    glSecondaryColorPointerEXT(3, GL_FLOAT, sizeof(struct vertex_struct), pvr2_scene.vertex_array[0].offset_rgba );
 
     /* Turn on the shaders (if available) */
     glsl_enable_shaders(TRUE);
 
-    uint32_t bgplane_mode = MMIO_READ(PVR2, RENDER_BGPLANE);
-    uint32_t *bgplane = pvr2_scene.pvr2_pbuf + (((bgplane_mode & 0x00FFFFFF)) >> 3) ;
-    render_backplane( bgplane, pvr2_scene.buffer_width, pvr2_scene.buffer_height, bgplane_mode );
+    /* Render the background */
+    gl_render_bkgnd( pvr2_scene.bkgnd_poly );
     
     glEnable( GL_SCISSOR_TEST );
 

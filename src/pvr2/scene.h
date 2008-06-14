@@ -29,9 +29,9 @@ typedef enum {
 
 struct vertex_struct {
     float u,v;
-    uint32_t rgba;
     float x,y,z;
-    uint32_t offset_rgba;
+    float rgba[4];
+    float offset_rgba[4];
 };
 
 struct polygon_struct {
@@ -69,7 +69,7 @@ extern unsigned char *video_base;
 
 /**
  * Maximum polygons - smallest is 1 polygon in 48 bytes, giving
- * 87381
+ * 87381, plus 1 for the background
  * 
  */
 #define MAX_POLYGONS 87382
@@ -100,6 +100,9 @@ struct pvr2_scene_struct {
     /** Pointer to the polygon data for the scene (main ram). 
      * This will always have room for at least MAX_POLYGONS */
     struct polygon_struct *poly_array;
+    /** Pointer to the background polygon. This is always a quad, and
+     * normally the last member of poly_array */
+    struct polygon_struct *bkgnd_poly;
     /** Total number of polygons in the scene */
     uint32_t poly_count;
 

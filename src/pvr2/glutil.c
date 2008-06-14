@@ -16,6 +16,7 @@
  * GNU General Public License for more details.
  */
 #include <string.h>
+#include <glib/gstrfuncs.h>
 #include "pvr2/glutil.h"
 
 gboolean isGLSecondaryColorSupported()
@@ -74,4 +75,21 @@ gboolean isGLExtensionSupported( const char *extension )
 	start = terminator;
     }
     return FALSE;
+}
+
+void glPrintInfo( FILE *out )
+{
+    const GLubyte *extensions = glGetString(GL_EXTENSIONS);
+    gchar **ext_split = g_strsplit(extensions, " ", 0);
+    unsigned int i;
+    
+    fprintf( out, "GL Vendor: %s\n", glGetString(GL_VENDOR) );
+    fprintf( out, "GL Renderer: %s\n", glGetString(GL_RENDERER) );
+    fprintf( out, "GL Version: %s\n", glGetString(GL_VERSION) );
+    
+    fprintf( out, "Supported GL Extensions:\n" );
+    for( i=0; ext_split[i] != NULL; i++ ) {
+        fprintf( out, "  %s\n", ext_split[i] );
+    }
+    g_strfreev(ext_split);
 }

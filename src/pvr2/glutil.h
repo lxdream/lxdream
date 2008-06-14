@@ -19,6 +19,7 @@
 #ifndef lxdream_glutil_H
 #define lxdream_glutil_H
 
+#include <stdio.h>
 #include "display.h"
 
 /**
@@ -27,6 +28,11 @@
  * @return TRUE if supported, otherwise FALSE.
  */
 gboolean isGLExtensionSupported( const char *extension );
+
+/**
+ * Dump GL information to the output stream, usually for debugging purposes
+ */
+void glPrintInfo( FILE *out );
 
 /**
  * Test if secondary color (GL_COLOR_SUM) is supported.
