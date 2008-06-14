@@ -98,25 +98,25 @@ am__lxdream_SOURCES_DIST = main.c config.c config.h mem.c mem.h mmio.h \
 	sh4/sh4stat.h sh4/xltcache.c sh4/xltcache.h sh4/sh4.h \
 	aica/armcore.c aica/armcore.h aica/armdasm.c aica/armmem.c \
 	aica/aica.c aica/aica.h aica/audio.c aica/audio.h pvr2/pvr2.c \
-	pvr2/pvr2.h pvr2/pvr2mem.c pvr2/tacore.c pvr2/rendbkg.c \
-	pvr2/rendsort.c pvr2/texcache.c pvr2/yuv.c pvr2/rendsave.c \
-	pvr2/scene.c pvr2/scene.h pvr2/gl_sl.c pvr2/gl_slsrc.c \
-	pvr2/glutil.c pvr2/glutil.h pvr2/glrender.c maple/maple.c \
-	maple/maple.h maple/controller.c maple/controller.h \
-	maple/kbd.c maple/mouse.c loader.c bootstrap.c util.c \
-	display.c display.h dckeysyms.h drivers/audio_null.c \
-	drivers/video_null.c drivers/video_gl.c drivers/video_gl.h \
-	drivers/gl_fbo.c sh4/sh4x86.c sh4/x86op.h sh4/ia32abi.h \
-	sh4/ia32mac.h sh4/ia64abi.h sh4/sh4trans.c sh4/sh4trans.h \
-	x86dasm/x86dasm.c x86dasm/x86dasm.h x86dasm/i386-dis.c \
-	x86dasm/dis-init.c x86dasm/dis-buf.c gtkui/gtkui.c \
-	gtkui/gtkui.h gtkui/main_win.c gtkui/gtkcb.c gtkui/mmio_win.c \
-	gtkui/debug_win.c gtkui/dump_win.c gtkui/ctrl_dlg.c \
-	gtkui/path_dlg.c gtkui/gdrom_menu.c drivers/video_gtk.c \
-	drivers/video_gtk.h cocoaui/cocoaui.c cocoaui/cocoaui.h \
-	cocoaui/cocoa_win.c drivers/video_osx.c drivers/mac_keymap.h \
-	drivers/video_gdk.c drivers/video_gdk.h drivers/video_glx.c \
-	drivers/video_glx.h drivers/video_nsgl.c drivers/video_nsgl.h \
+	pvr2/pvr2.h pvr2/pvr2mem.c pvr2/tacore.c pvr2/rendsort.c \
+	pvr2/texcache.c pvr2/yuv.c pvr2/rendsave.c pvr2/scene.c \
+	pvr2/scene.h pvr2/gl_sl.c pvr2/gl_slsrc.c pvr2/glutil.c \
+	pvr2/glutil.h pvr2/glrender.c maple/maple.c maple/maple.h \
+	maple/controller.c maple/controller.h maple/kbd.c \
+	maple/mouse.c loader.c bootstrap.c util.c display.c display.h \
+	dckeysyms.h drivers/audio_null.c drivers/video_null.c \
+	drivers/video_gl.c drivers/video_gl.h drivers/gl_fbo.c \
+	sh4/sh4x86.c sh4/x86op.h sh4/ia32abi.h sh4/ia32mac.h \
+	sh4/ia64abi.h sh4/sh4trans.c sh4/sh4trans.h x86dasm/x86dasm.c \
+	x86dasm/x86dasm.h x86dasm/i386-dis.c x86dasm/dis-init.c \
+	x86dasm/dis-buf.c gtkui/gtkui.c gtkui/gtkui.h gtkui/main_win.c \
+	gtkui/gtkcb.c gtkui/mmio_win.c gtkui/debug_win.c \
+	gtkui/dump_win.c gtkui/ctrl_dlg.c gtkui/path_dlg.c \
+	gtkui/gdrom_menu.c drivers/video_gtk.c drivers/video_gtk.h \
+	cocoaui/cocoaui.c cocoaui/cocoaui.h cocoaui/cocoa_win.c \
+	drivers/video_osx.c drivers/mac_keymap.h drivers/video_gdk.c \
+	drivers/video_gdk.h drivers/video_glx.c drivers/video_glx.h \
+	drivers/video_nsgl.c drivers/video_nsgl.h \
 	drivers/audio_pulse.c drivers/audio_esd.c drivers/audio_alsa.c \
 	drivers/cd_linux.c drivers/cd_none.c drivers/joy_linux.c
 @BUILD_SH4X86_TRUE@am__objects_1 = sh4x86.$(OBJEXT) sh4trans.$(OBJEXT) \
@@ -149,18 +149,18 @@ am_lxdream_OBJECTS = main.$(OBJEXT) config.$(OBJEXT) mem.$(OBJEXT) \
 	sh4stat.$(OBJEXT) xltcache.$(OBJEXT) armcore.$(OBJEXT) \
 	armdasm.$(OBJEXT) armmem.$(OBJEXT) aica.$(OBJEXT) \
 	audio.$(OBJEXT) pvr2.$(OBJEXT) pvr2mem.$(OBJEXT) \
-	tacore.$(OBJEXT) rendbkg.$(OBJEXT) rendsort.$(OBJEXT) \
-	texcache.$(OBJEXT) yuv.$(OBJEXT) rendsave.$(OBJEXT) \
-	scene.$(OBJEXT) gl_sl.$(OBJEXT) gl_slsrc.$(OBJEXT) \
-	glutil.$(OBJEXT) glrender.$(OBJEXT) maple.$(OBJEXT) \
-	controller.$(OBJEXT) kbd.$(OBJEXT) mouse.$(OBJEXT) \
-	loader.$(OBJEXT) bootstrap.$(OBJEXT) util.$(OBJEXT) \
-	display.$(OBJEXT) audio_null.$(OBJEXT) video_null.$(OBJEXT) \
-	video_gl.$(OBJEXT) gl_fbo.$(OBJEXT) $(am__objects_1) \
-	$(am__objects_2) $(am__objects_3) $(am__objects_4) \
-	$(am__objects_5) $(am__objects_6) $(am__objects_7) \
-	$(am__objects_8) $(am__objects_9) $(am__objects_10) \
-	$(am__objects_11) $(am__objects_12)
+	tacore.$(OBJEXT) rendsort.$(OBJEXT) texcache.$(OBJEXT) \
+	yuv.$(OBJEXT) rendsave.$(OBJEXT) scene.$(OBJEXT) \
+	gl_sl.$(OBJEXT) gl_slsrc.$(OBJEXT) glutil.$(OBJEXT) \
+	glrender.$(OBJEXT) maple.$(OBJEXT) controller.$(OBJEXT) \
+	kbd.$(OBJEXT) mouse.$(OBJEXT) loader.$(OBJEXT) \
+	bootstrap.$(OBJEXT) util.$(OBJEXT) display.$(OBJEXT) \
+	audio_null.$(OBJEXT) video_null.$(OBJEXT) video_gl.$(OBJEXT) \
+	gl_fbo.$(OBJEXT) $(am__objects_1) $(am__objects_2) \
+	$(am__objects_3) $(am__objects_4) $(am__objects_5) \
+	$(am__objects_6) $(am__objects_7) $(am__objects_8) \
+	$(am__objects_9) $(am__objects_10) $(am__objects_11) \
+	$(am__objects_12)
 lxdream_OBJECTS = $(am_lxdream_OBJECTS)
 lxdream_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am__test_testsh4x86_SOURCES_DIST = test/testsh4x86.c x86dasm/x86dasm.c \
@@ -374,19 +374,18 @@ lxdream_SOURCES = main.c config.c config.h mem.c mem.h mmio.h watch.c \
 	sh4/sh4stat.h sh4/xltcache.c sh4/xltcache.h sh4/sh4.h \
 	aica/armcore.c aica/armcore.h aica/armdasm.c aica/armmem.c \
 	aica/aica.c aica/aica.h aica/audio.c aica/audio.h pvr2/pvr2.c \
-	pvr2/pvr2.h pvr2/pvr2mem.c pvr2/tacore.c pvr2/rendbkg.c \
-	pvr2/rendsort.c pvr2/texcache.c pvr2/yuv.c pvr2/rendsave.c \
-	pvr2/scene.c pvr2/scene.h pvr2/gl_sl.c pvr2/gl_slsrc.c \
-	pvr2/glutil.c pvr2/glutil.h pvr2/glrender.c maple/maple.c \
-	maple/maple.h maple/controller.c maple/controller.h \
-	maple/kbd.c maple/mouse.c loader.c bootstrap.c util.c \
-	display.c display.h dckeysyms.h drivers/audio_null.c \
-	drivers/video_null.c drivers/video_gl.c drivers/video_gl.h \
-	drivers/gl_fbo.c $(am__append_1) $(am__append_3) \
-	$(am__append_4) $(am__append_5) $(am__append_6) \
-	$(am__append_7) $(am__append_8) $(am__append_9) \
-	$(am__append_10) $(am__append_11) $(am__append_12) \
-	$(am__append_13)
+	pvr2/pvr2.h pvr2/pvr2mem.c pvr2/tacore.c pvr2/rendsort.c \
+	pvr2/texcache.c pvr2/yuv.c pvr2/rendsave.c pvr2/scene.c \
+	pvr2/scene.h pvr2/gl_sl.c pvr2/gl_slsrc.c pvr2/glutil.c \
+	pvr2/glutil.h pvr2/glrender.c maple/maple.c maple/maple.h \
+	maple/controller.c maple/controller.h maple/kbd.c \
+	maple/mouse.c loader.c bootstrap.c util.c display.c display.h \
+	dckeysyms.h drivers/audio_null.c drivers/video_null.c \
+	drivers/video_gl.c drivers/video_gl.h drivers/gl_fbo.c \
+	$(am__append_1) $(am__append_3) $(am__append_4) \
+	$(am__append_5) $(am__append_6) $(am__append_7) \
+	$(am__append_8) $(am__append_9) $(am__append_10) \
+	$(am__append_11) $(am__append_12) $(am__append_13)
 @BUILD_SH4X86_TRUE@test_testsh4x86_LDADD = @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@
 @BUILD_SH4X86_TRUE@test_testsh4x86_SOURCES = test/testsh4x86.c x86dasm/x86dasm.c \
 @BUILD_SH4X86_TRUE@	x86dasm/x86dasm.h x86dasm/i386-dis.c x86dasm/dis-init.c \
@@ -548,7 +547,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/path_dlg.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pvr2.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pvr2mem.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rendbkg.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rendsave.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rendsort.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/scene.Po@am__quote@
@@ -1027,20 +1025,6 @@ tacore.obj: pvr2/tacore.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='pvr2/tacore.c' object='tacore.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o tacore.obj `if test -f 'pvr2/tacore.c'; then $(CYGPATH_W) 'pvr2/tacore.c'; else $(CYGPATH_W) '$(srcdir)/pvr2/tacore.c'; fi`
-
-rendbkg.o: pvr2/rendbkg.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT rendbkg.o -MD -MP -MF "$(DEPDIR)/rendbkg.Tpo" -c -o rendbkg.o `test -f 'pvr2/rendbkg.c' || echo '$(srcdir)/'`pvr2/rendbkg.c; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/rendbkg.Tpo" "$(DEPDIR)/rendbkg.Po"; else rm -f "$(DEPDIR)/rendbkg.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='pvr2/rendbkg.c' object='rendbkg.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o rendbkg.o `test -f 'pvr2/rendbkg.c' || echo '$(srcdir)/'`pvr2/rendbkg.c
-
-rendbkg.obj: pvr2/rendbkg.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT rendbkg.obj -MD -MP -MF "$(DEPDIR)/rendbkg.Tpo" -c -o rendbkg.obj `if test -f 'pvr2/rendbkg.c'; then $(CYGPATH_W) 'pvr2/rendbkg.c'; else $(CYGPATH_W) '$(srcdir)/pvr2/rendbkg.c'; fi`; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/rendbkg.Tpo" "$(DEPDIR)/rendbkg.Po"; else rm -f "$(DEPDIR)/rendbkg.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='pvr2/rendbkg.c' object='rendbkg.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o rendbkg.obj `if test -f 'pvr2/rendbkg.c'; then $(CYGPATH_W) 'pvr2/rendbkg.c'; else $(CYGPATH_W) '$(srcdir)/pvr2/rendbkg.c'; fi`
 
 rendsort.o: pvr2/rendsort.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT rendsort.o -MD -MP -MF "$(DEPDIR)/rendsort.Tpo" -c -o rendsort.o `test -f 'pvr2/rendsort.c' || echo '$(srcdir)/'`pvr2/rendsort.c; \

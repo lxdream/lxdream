@@ -82,6 +82,9 @@
 /* Have NSOpenGL support */
 #undef HAVE_NSGL
 
+/* Have Color Clamp */
+#undef HAVE_OPENGL_CLAMP_COLOR
+
 /* Have EXT_framebuffer_object support */
 #undef HAVE_OPENGL_FBO
 
