@@ -39,9 +39,11 @@ typedef enum { STATE_UNINIT=0, STATE_RUNNING,
 
 static volatile dreamcast_state_t dreamcast_state = STATE_UNINIT;
 static gboolean dreamcast_has_bios = FALSE;
+static gboolean dreamcast_exit_on_stop = FALSE;
 static gchar *dreamcast_program_name = NULL;
 static sh4addr_t dreamcast_entry_point = 0xA0000000;
 static uint32_t timeslice_length = DEFAULT_TIMESLICE_LENGTH;
+static uint64_t run_time_nanosecs = 0;
 
 #define MAX_MODULES 32
 static int num_modules = 0;
@@ -124,6 +126,15 @@ void dreamcast_register_module( dreamcast_module_t module )
 	module->init();
 }
 
+void dreamcast_set_run_time( uint32_t secs, uint32_t nanosecs )
+{
+    run_time_nanosecs = (((uint64_t)secs) * 1000000000) + nanosecs;
+}
+
+void dreamcast_set_exit_on_stop( gboolean flag )
+{
+    dreamcast_exit_on_stop = flag;
+}
 
 void dreamcast_init( void )
 {
@@ -146,63 +157,56 @@ void dreamcast_reset( void )
 void dreamcast_run( void )
 {
     int i;
-    if( dreamcast_state != STATE_RUNNING ) {
-	for( i=0; i<num_modules; i++ ) {
-	    if( modules[i]->start != NULL )
-		modules[i]->start();
-	}
-    }
-    dreamcast_state = STATE_RUNNING;
-    while( dreamcast_state == STATE_RUNNING ) {
-	int time_to_run = timeslice_length;
-	for( i=0; i<num_modules; i++ ) {
-	    if( modules[i]->run_time_slice != NULL )
-		time_to_run = modules[i]->run_time_slice( time_to_run );
-	}
-
-    }
-
-    for( i=0; i<num_modules; i++ ) {
-	if( modules[i]->stop != NULL )
-	    modules[i]->stop();
-    }
-    dreamcast_state = STATE_STOPPED;
-}
-
-void dreamcast_run_for( unsigned int seconds, unsigned int nanosecs )
-{
     
-    int i;
     if( dreamcast_state != STATE_RUNNING ) {
-	for( i=0; i<num_modules; i++ ) {
-	    if( modules[i]->start != NULL )
-		modules[i]->start();
-	}
+        for( i=0; i<num_modules; i++ ) {
+            if( modules[i]->start != NULL )
+                modules[i]->start();
+        }
     }
+ 
     dreamcast_state = STATE_RUNNING;
-    uint32_t nanos = 0;
-    if( nanosecs != 0 ) {
-        nanos = 1000000000 - nanosecs;
-	seconds++;
-    }
-    while( dreamcast_state == STATE_RUNNING && seconds != 0 ) {
-	int time_to_run = timeslice_length;
-	for( i=0; i<num_modules; i++ ) {
-	    if( modules[i]->run_time_slice != NULL )
-		time_to_run = modules[i]->run_time_slice( time_to_run );
-	}
-	nanos += time_to_run;
-	if( nanos >= 1000000000 ) {
-	    nanos -= 1000000000;
-	    seconds--;
-	}
+    
+    if( run_time_nanosecs != 0 ) {
+        while( dreamcast_state == STATE_RUNNING ) {
+            uint32_t time_to_run = timeslice_length;
+            if( run_time_nanosecs < time_to_run ) {
+                time_to_run = (uint32_t)run_time_nanosecs;
+            }
+            
+            for( i=0; i<num_modules; i++ ) {
+                if( modules[i]->run_time_slice != NULL )
+                    time_to_run = modules[i]->run_time_slice( time_to_run );
+            }
+            
+            if( run_time_nanosecs > time_to_run ) {
+                run_time_nanosecs -= time_to_run;
+            } else {
+                run_time_nanosecs = 0; // Finished
+                break;
+            }
+        }
+    } else {
+        while( dreamcast_state == STATE_RUNNING ) {
+            int time_to_run = timeslice_length;
+            for( i=0; i<num_modules; i++ ) {
+                if( modules[i]->run_time_slice != NULL )
+                    time_to_run = modules[i]->run_time_slice( time_to_run );
+            }
+
+        }
     }
 
     for( i=0; i<num_modules; i++ ) {
-	if( modules[i]->stop != NULL )
-	    modules[i]->stop();
+        if( modules[i]->stop != NULL )
+            modules[i]->stop();
     }
     dreamcast_state = STATE_STOPPED;
+    
+    if( dreamcast_exit_on_stop ) {
+        dreamcast_shutdown();
+        exit(0);
+    }
 }
 
 void dreamcast_stop( void )

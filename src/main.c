@@ -49,8 +49,6 @@ gboolean headless = FALSE;
 gboolean without_bios = FALSE;
 gboolean use_xlat = TRUE;
 gboolean show_debugger = FALSE;
-uint32_t time_secs = 0;
-uint32_t time_nanos = 0;
 extern uint32_t sh4_cpu_multiplier;
 
 int main (int argc, char *argv[])
@@ -58,6 +56,7 @@ int main (int argc, char *argv[])
     int opt;
     double t;
     gboolean display_ok;
+    uint32_t time_secs, time_nanos;
 
     install_crash_handler();
     gdrom_get_native_devices();
@@ -112,10 +111,12 @@ int main (int argc, char *argv[])
         case 'h': /* Headless */
             headless = TRUE;
             break;
-	case 't': /* Time limit */
+	case 't': /* Time limit + auto quit */
 	    t = strtod(optarg, NULL);
 	    time_secs = (uint32_t)t;
 	    time_nanos = (int)((t - time_secs) * 1000000000);
+	    dreamcast_set_run_time( time_secs, time_nanos );
+	    dreamcast_set_exit_on_stop( TRUE );
 	    break;
 	case 'T': /* trace regions */
 	    trace_regions = optarg;
@@ -204,22 +205,9 @@ int main (int argc, char *argv[])
 
     sh4_set_use_xlat( use_xlat );
 
-    /*
-    if( start_immediately ) {
-        if( dreamcast_can_run() ) {
-	    if( time_nanos != 0 || time_secs != 0 ) {
-	        dreamcast_run_for(time_secs, time_nanos);
-		dreamcast_shutdown();
-		return 0;
-	    } else {
-	        dreamcast_run();
-	    }
-	} else {
-	    ERROR( "Unable to start dreamcast: no program/bios loaded" );
-	}
-    }
-    */
-    if( !headless ) {
+    if( headless ) {
+        dreamcast_run();
+    } else {
         gui_main_loop( start_immediately && dreamcast_can_run() );
     }
     dreamcast_shutdown();
