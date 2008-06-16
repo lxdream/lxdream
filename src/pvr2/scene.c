@@ -123,11 +123,11 @@ void pvr2_scene_shutdown()
 
 void *vertex_buffer_map()
 {
-    glGetError();
     // Allow 8 vertexes for the background (4+4)
     uint32_t size = (pvr2_scene.vertex_count + 8) * sizeof(struct vertex_struct);
 #ifdef ENABLE_VERTEX_BUFFER
     if( vbo_supported ) {
+        glGetError();
 	glBindBufferARB( GL_ARRAY_BUFFER_ARB, pvr2_scene.vbo_id );
 	if( size > pvr2_scene.vertex_array_size ) {
 	    glBufferDataARB( GL_ARRAY_BUFFER_ARB, size, NULL, GL_DYNAMIC_DRAW_ARB );
