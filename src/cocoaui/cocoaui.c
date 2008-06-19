@@ -96,9 +96,12 @@ static void cocoa_gui_create_menu(void)
     NSMenu *menu = [NSMenu new];
     [menu addItem: menuItem];
     
+    NSMenu *gdromMenu = cocoa_gdrom_menu_new();
+    
     NSMenu *fileMenu = [[NSMenu alloc] initWithTitle: NS_("File")];
     [fileMenu addItemWithTitle: NS_("Load Binary") action: @selector(load_binary_action:) keyEquivalent: @"b"];
-    [fileMenu addItemWithTitle: NS_("GD-Rom") action: @selector(mount_action:) keyEquivalent: @"g"];
+    [[fileMenu addItemWithTitle: NS_("GD-Rom") action: nil keyEquivalent: @""]
+      setSubmenu: gdromMenu];
     [fileMenu addItem: [NSMenuItem separatorItem]];
     [[fileMenu addItemWithTitle: NS_("Reset") action: @selector(reset_action:) keyEquivalent: @"r"]
       setKeyEquivalentModifierMask:(NSAlternateKeyMask|NSCommandKeyMask)];
@@ -193,6 +196,10 @@ static void cocoa_gui_create_menu(void)
 - (void) run_immediate
 {
     dreamcast_run();
+}
+- (void) gdrom_list_action: (id)sender
+{
+    gdrom_list_set_selection( [sender tag] );
 }
 @end
 

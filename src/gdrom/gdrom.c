@@ -121,9 +121,8 @@ void gdrom_unmount_disc( )
     if( gdrom_disc != NULL ) {
         gdrom_disc->close(gdrom_disc);
         gdrom_fire_disc_changed(NULL);
+        gdrom_disc = NULL;
     }
-    gdrom_disc = NULL;
-
 }
 
 gdrom_disc_t gdrom_get_current_disc()
