@@ -40,7 +40,7 @@ lxdream_SOURCES = \
 	pvr2/gl_sl.c pvr2/gl_slsrc.c pvr2/glutil.c pvr2/glutil.h pvr2/glrender.c \
         maple/maple.c maple/maple.h \
         maple/controller.c maple/controller.h maple/kbd.c maple/mouse.c \
-        loader.c bootstrap.c util.c \
+        loader.c bootstrap.c util.c gdlist.c gdlist.h \
 	display.c display.h dckeysyms.h \
 	drivers/audio_null.c drivers/video_null.c \
 	drivers/video_gl.c drivers/video_gl.h drivers/gl_fbo.c
@@ -72,7 +72,7 @@ endif
 
 if GUI_COCOA
 lxdream_SOURCES += cocoaui/cocoaui.c cocoaui/cocoaui.h \
-	cocoaui/cocoa_win.c drivers/video_osx.c drivers/mac_keymap.h
+	cocoaui/cocoa_win.c cocoaui/cocoa_gd.c drivers/video_osx.c drivers/mac_keymap.h
 endif
 
 if VIDEO_OSMESA

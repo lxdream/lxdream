@@ -178,7 +178,7 @@ int mem_save_block( const gchar *file, uint32_t start, uint32_t length )
 	if( len > (length-total) ) 
 	    len = (length-total);
 	if( fwrite( region, len, 1, f ) != 1 ) {
-	    ERROR( "Unexpected error: %d %d", len, errno );
+	    ERROR( "Unexpected error writing blocks: %d (%s)", len, strerror(errno) );
 	    break;
 	}
 	    
@@ -212,7 +212,7 @@ int mem_load_block( const gchar *file, uint32_t start, uint32_t length )
 	if( len > (length-total) ) 
 	    len = (length-total);
 	if( fread( region, len, 1, f ) != 1 ) {
-	    ERROR( "Unexpected error: %d %d", len, errno );
+	    ERROR( "Unexpected error reading: %d (%s)", len, strerror(errno) );
 	    break;
 	}
 	    

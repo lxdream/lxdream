@@ -133,7 +133,8 @@ int main (int argc, char *argv[])
     }
 
     lxdream_load_config( );
-
+    gdrom_list_init();
+    
     if( aica_program == NULL ) {
 	dreamcast_init();
     } else {

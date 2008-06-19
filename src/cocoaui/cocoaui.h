@@ -25,6 +25,7 @@
 #define NS_(x) [NSString stringWithUTF8String: _(x)]
 
 NSWindow *cocoa_gui_create_main_window();
+NSMenu *cocoa_gdrom_menu_new();
 NSView *video_osx_create_drawable();
 
 @interface LxdreamMainWindow : NSWindow 
