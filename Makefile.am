@@ -30,9 +30,15 @@ dist-hook:
 	  done \
 	fi
 
+if GUI_COCOA
 # Build a Mac OS X bundle. This is meaningless anywhere else
-bundle: all
+all-local:
+	@echo --- Building Mac Bundle ---
 	mkdir -p lxdream.app/Contents/MacOS
 	mkdir -p lxdream.app/Contents/Resources
 	cp src/lxdream lxdream.app/Contents/MacOS
 	cp -R pixmaps/* lxdream.app/Contents/Resources
+	@echo --- Done ---
+endif
+
+bundle: all
