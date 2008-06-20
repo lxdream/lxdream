@@ -47,6 +47,7 @@ static uint32_t cocoa_gui_nanos = 0;
 static uint32_t cocoa_gui_ticks = 0;
 static struct timeval cocoa_gui_lasttv;
 static BOOL cocoa_gui_autorun = NO;
+static BOOL cocoa_gui_is_running = NO;
 
 @interface NSApplication (PrivateAdditions)
 - (void) setAppleMenu:(NSMenu *)aMenu;
@@ -238,10 +239,10 @@ void gui_main_loop( gboolean run )
 {
     if( run ) {
         cocoa_gui_autorun = YES;
-        /*
-             */
     }
+    cocoa_gui_is_running = YES;
 	[NSApp run];
+	cocoa_gui_is_running = NO;
 }
 
 void gui_update_state(void)
@@ -251,13 +252,18 @@ void gui_update_state(void)
 
 gboolean gui_error_dialog( const char *msg, ... )
 {
-    NSString *error_string;
-    
-    va_list args;
-    va_start(args, msg);
-    error_string = [[NSString alloc] initWithFormat: [NSString stringWithCString: msg] arguments: args];
-    NSRunAlertPanel(@"Error in lxdream", error_string, nil, nil, nil);
-    va_end(args);
+    if( cocoa_gui_is_running ) {
+        NSString *error_string;
+
+        va_list args;
+        va_start(args, msg);
+        error_string = [[NSString alloc] initWithFormat: [NSString stringWithCString: msg] arguments: args];
+        NSRunAlertPanel(@"Error in lxdream", error_string, nil, nil, nil);
+        va_end(args);
+        return TRUE;
+    } else {
+        return FALSE;
+    }
 }
 
 void gui_update_io_activity( io_activity_type io, gboolean active )
