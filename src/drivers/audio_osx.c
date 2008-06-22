@@ -17,21 +17,26 @@
  */
 #include <stdio.h>
 #include <unistd.h>
-#include <AudioToolbox/AudioToolbox.h>
-#include <AudioUnit/AudioUnitProperties.h>
+#include <CoreAudio/CoreAudio.h>
 #include "aica/audio.h"
 #include "lxdream.h"
 
-static AudioUnit output_au;
-static volatile audio_buffer_t output_buffer = NULL;
-static int sample_size;
+#define BUFFER_SIZE (sizeof(float)*2*2205)
 
-OSStatus audio_osx_callback( void *inRefCon, AudioUnitRenderActionFlags *ioActionFlags,
-                             const AudioTimeStamp *inTimeStamp, UInt32 inBusNumber,
-                             UInt32 inNumberFrames, AudioBufferList *ioData )
+static AudioDeviceID output_device;
+static volatile audio_buffer_t output_buffer = NULL;
+static uint32_t buffer_size;
+
+OSStatus audio_osx_callback( AudioDeviceID inDevice,
+        const AudioTimeStamp *inNow,
+        const AudioBufferList *inInputData,
+        const AudioTimeStamp *inInputTime,
+        AudioBufferList *outOutputData,
+        const AudioTimeStamp *inOutputTime,
+        void *inClientData)
 {
-    char *output = ioData->mBuffers[0].mData;
-    int data_requested = inNumberFrames * sample_size;
+    char *output = outOutputData->mBuffers[0].mData;
+    int data_requested = buffer_size;
 
     while( output_buffer != NULL && data_requested > 0 ) {
         int copysize = output_buffer->length - output_buffer->posn;
@@ -54,62 +59,36 @@ OSStatus audio_osx_callback( void *inRefCon, AudioUnitRenderActionFlags *ioActio
 
 static gboolean audio_osx_shutdown()
 {
-    AudioUnitUninitialize( output_au );
-    CloseComponent( output_au );
+    AudioDeviceStop( output_device, audio_osx_callback );
+    AudioDeviceRemoveIOProc( output_device, audio_osx_callback );
     return TRUE;
 }
 
 static gboolean audio_osx_init()
 {
-    AURenderCallbackStruct callbackData;
+    UInt32 size = sizeof(output_device);
     AudioStreamBasicDescription outputDesc;
     UInt32 outputDescSize = sizeof(outputDesc);
-    ComponentDescription cd;
-    Component c;
-
-    cd.componentType = kAudioUnitType_Output;
-    cd.componentSubType = kAudioUnitSubType_DefaultOutput;
-    cd.componentManufacturer = kAudioUnitManufacturer_Apple;
-    cd.componentFlags = 0;
-    cd.componentFlagsMask = 0;
-
-    c = FindNextComponent( NULL, &cd );
-    if( c == NULL ) {
+    
+    if( AudioHardwareGetProperty(kAudioHardwarePropertyDefaultOutputDevice,
+                                 &size, &output_device) != noErr ||
+        output_device == kAudioDeviceUnknown ) {
+        return FALSE;
+    }
+     
+    if( AudioDeviceGetProperty( output_device, 1, 0, kAudioDevicePropertyStreamFormat,
+            &outputDescSize, &outputDesc ) != noErr ) {
         return FALSE;
     }
     
-    if( OpenAComponent( c, &output_au ) != noErr ) {
-        return FALSE;
-    }
- 
-    if( AudioUnitGetProperty( output_au, kAudioUnitProperty_StreamFormat,
-            kAudioUnitScope_Global, 0, &outputDesc, &outputDescSize ) != noErr ) {
-        CloseComponent( output_au );
+    buffer_size = BUFFER_SIZE;
+    
+    if( AudioDeviceSetProperty( output_device, 0, 0, 0, kAudioDevicePropertyBufferSize,
+                                sizeof(buffer_size), &buffer_size ) != noErr ) {
         return FALSE;
     }
     
-    outputDesc.mSampleRate = DEFAULT_SAMPLE_RATE;
-    sample_size = outputDesc.mBytesPerFrame;
-    
-    if( AudioUnitSetProperty( output_au, kAudioUnitProperty_StreamFormat,
-            kAudioUnitScope_Global, 0, &outputDesc, sizeof(outputDesc) ) != noErr ) {
-        CloseComponent( output_au );
-        return FALSE;
-    }
-    
-    if( AudioUnitInitialize( output_au ) != noErr ) {
-        CloseComponent( output_au );
-        return FALSE;
-    }
-
-    callbackData.inputProc = audio_osx_callback;
-    callbackData.inputProcRefCon = NULL;
-    if( AudioUnitSetProperty( output_au, kAudioUnitProperty_SetRenderCallback,
-            kAudioUnitScope_Global, 0, &callbackData, sizeof(callbackData)) != noErr ) {
-        audio_osx_shutdown();
-        return FALSE;
-    }
-    
+    AudioDeviceAddIOProc( output_device, audio_osx_callback, NULL );    
     return TRUE;
 }
 static gboolean audio_osx_process_buffer( audio_buffer_t buffer )
@@ -117,22 +96,26 @@ static gboolean audio_osx_process_buffer( audio_buffer_t buffer )
     if( output_buffer == NULL ) {
         output_buffer = buffer;
         output_buffer->posn = 0;
-        AudioOutputUnitStart(output_au);
+        AudioDeviceStart(output_device, audio_osx_callback);
         return FALSE;
     }
 }
 
 void audio_osx_start()
 {
+    if( output_buffer != NULL ) {
+        AudioDeviceStart(output_device, audio_osx_callback);
+    }
 }
 
 void audio_osx_stop()
 {
+    AudioDeviceStop( output_device, audio_osx_callback );
 }
 
 
 struct audio_driver audio_osx_driver = { 
-        "osx", 
+        "osx",
         N_("OS X CoreAudio system driver"), 
         DEFAULT_SAMPLE_RATE,
         AUDIO_FMT_FLOATST,
