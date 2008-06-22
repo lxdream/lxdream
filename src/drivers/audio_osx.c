@@ -131,7 +131,9 @@ void audio_osx_stop()
 }
 
 
-struct audio_driver audio_osx_driver = { "osx", 
+struct audio_driver audio_osx_driver = { 
+        "osx", 
+        N_("OS X CoreAudio system driver"), 
         DEFAULT_SAMPLE_RATE,
         AUDIO_FMT_FLOATST,
         audio_osx_init,

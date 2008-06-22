@@ -36,12 +36,15 @@ static void video_osx_display_blank( uint32_t colour );
 static uint16_t video_osx_resolve_keysym( const gchar *keysym );
 static uint16_t video_osx_keycode_to_dckeysym(uint16_t keycode);
 
-struct display_driver display_osx_driver = { "osx", video_osx_init, video_osx_shutdown,
-                    video_osx_resolve_keysym,
-                    video_osx_keycode_to_dckeysym,
-                    NULL,
-                    NULL, NULL, NULL, NULL, NULL, 
-                    video_osx_display_blank, NULL };
+struct display_driver display_osx_driver = { 
+        "osx",
+        N_("OS X Cocoa GUI-based OpenGL driver"),
+        video_osx_init, video_osx_shutdown,
+        video_osx_resolve_keysym,
+        video_osx_keycode_to_dckeysym,
+        NULL,
+        NULL, NULL, NULL, NULL, NULL, 
+        video_osx_display_blank, NULL };
 
 
 static NSView *video_view = NULL;

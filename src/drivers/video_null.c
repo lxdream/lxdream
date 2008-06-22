@@ -56,16 +56,18 @@ static void video_null_display_blank( uint32_t colour )
 }
 
 
-struct display_driver display_null_driver = { "null", 
-					      NULL,
-					      NULL,
-					      NULL,
-					      NULL, 
-					      NULL,
-					      video_null_create_render_buffer,
-					      video_null_destroy_render_buffer,
-					      video_null_set_render_target,
-					      video_null_load_frame_buffer,
-					      video_null_display_render_buffer,
-					      video_null_display_blank,
-					      video_null_read_render_buffer };
+struct display_driver display_null_driver = { 
+        "null",
+        N_("Null (no video) driver"),
+        NULL,
+        NULL,
+        NULL,
+        NULL, 
+        NULL,
+        video_null_create_render_buffer,
+        video_null_destroy_render_buffer,
+        video_null_set_render_target,
+        video_null_load_frame_buffer,
+        video_null_display_render_buffer,
+        video_null_display_blank,
+        video_null_read_render_buffer };

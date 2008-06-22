@@ -21,6 +21,8 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <glib/gtypes.h>
+#include <glib/gi18n.h>
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -75,6 +77,7 @@ typedef struct audio_buffer {
 
 typedef struct audio_driver {
     char *name;
+    char *description;
     uint32_t sample_rate;
     uint32_t sample_format;
     gboolean (*init)( );
@@ -83,6 +86,12 @@ typedef struct audio_driver {
     void (*stop)( );
     gboolean (*shutdown)(  );
 } *audio_driver_t;
+
+
+/**
+ * Print the configured audio drivers to the output stream, one to a line.
+ */
+void print_audio_drivers( FILE *out );
 
 audio_driver_t get_audio_driver_by_name( const char *name );
 

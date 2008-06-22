@@ -184,6 +184,7 @@ gboolean audio_alsa_shutdown(  )
 
 struct audio_driver audio_alsa_driver = { 
     "alsa",
+    N_("Linux ALSA system driver"),
     DEFAULT_SAMPLE_RATE,
     DEFAULT_SAMPLE_FORMAT,
     audio_alsa_init,

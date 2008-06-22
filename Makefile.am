@@ -1,11 +1,18 @@
 ## Process this file with automake to produce Makefile.in
 
+POD2MAN=@POD2MAN@
+
 if BUILD_SYSTEST
   TEST_SUBDIR = test
 endif
 SUBDIRS = src po $(TEST_SUBDIR)
 
 EXTRA_DIST = autogen.sh
+
+man_MANS = lxdream.1
+
+lxdream.1: lxdream.pod
+	$(POD2MAN) $< $@
 
 install-data-local:
 	@$(NORMAL_INSTALL)

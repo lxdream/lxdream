@@ -19,7 +19,7 @@
 
 #include "aica/aica.h"
 #include "aica/audio.h"
-#include "glib/gmem.h"
+#include <glib/gmem.h>
 #include "dream.h"
 #include <assert.h>
 #include <string.h>
@@ -48,7 +48,7 @@ audio_driver_t audio_driver_list[] = {
       NULL };
 
 #define NUM_BUFFERS 3
-#define MS_PER_BUFFER 1000
+#define MS_PER_BUFFER 100
 
 #define BUFFER_EMPTY   0
 #define BUFFER_WRITING 1
@@ -97,6 +97,16 @@ audio_driver_t get_audio_driver_by_name( const char *name )
     }
 
     return NULL;
+}
+
+void print_audio_drivers( FILE * out )
+{
+    int i;
+    fprintf( out, "Available audio drivers:\n" );
+    for( i=0; audio_driver_list[i] != NULL; i++ ) {
+        fprintf( out, "  %-8s %s\n", audio_driver_list[i]->name,
+                 gettext(audio_driver_list[i]->description) );
+    }
 }
 
 audio_driver_t audio_init_driver( const char *preferred_driver )
@@ -407,7 +417,7 @@ void audio_mix_samples( int num_samples )
         break;
     }
     case AUDIO_FMT_8BIT: {
-        int8_t *data = (uint8_t *)&buf->data[buf->posn];
+        int8_t *data = (int8_t *)&buf->data[buf->posn];
         for( j=0; j < num_samples; j++ ) {
             *data++ = (int8_t)(result_buf[j][0] >> 16);
             *data++ = (int8_t)(result_buf[j][1] >> 16);	
@@ -419,7 +429,7 @@ void audio_mix_samples( int num_samples )
                     break;
                 }
                 buf = audio.output_buffers[audio.write_buffer];
-                data = (uint8_t *)&buf->data[0];
+                data = (int8_t *)&buf->data[0];
             }
         }
         break;

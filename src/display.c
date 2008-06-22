@@ -415,6 +415,16 @@ uint16_t input_keycode_to_dckeysym( uint16_t keycode )
     return display_driver->convert_to_dckeysym(keycode);
 }
 
+void print_display_drivers( FILE *out )
+{
+    int i;
+    fprintf( out, "Available video drivers:\n" );
+    for( i=0; display_driver_list[i] != NULL; i++ ) {
+        fprintf( out, "  %-8s %s\n", display_driver_list[i]->name,
+                 gettext(display_driver_list[i]->description) );
+    }
+}
+
 display_driver_t get_display_driver_by_name( const char *name )
 {
     int i;

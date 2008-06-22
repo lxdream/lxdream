@@ -23,7 +23,9 @@
 #define GL_GLEXT_PROTOTYPES 1
 
 #include <stdint.h>
+#include <stdio.h>
 #include <glib.h>
+#include <glib/gi18n.h>
 #include "lxdream.h"
 #ifdef APPLE_BUILD
 #include <OpenGL/gl.h>
@@ -97,6 +99,11 @@ struct frame_buffer {
  */
 typedef struct display_driver {
     char *name;
+    /**
+     * Short (<60 chars) description of the driver. This should be marked for
+     * localization.
+     */
+    char *description;
     /**
      * Initialize the driver. This is called only once at startup time, and
      * is guaranteed to be called before any other methods.
@@ -178,6 +185,10 @@ typedef struct display_driver {
 
 } *display_driver_t;
 
+/**
+ * Print the configured video drivers to the output stream, one to a line.
+ */
+void print_display_drivers( FILE *out );
 display_driver_t get_display_driver_by_name( const char *name );
 gboolean display_set_driver( display_driver_t driver );
 

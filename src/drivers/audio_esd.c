@@ -69,7 +69,9 @@ gboolean audio_esd_shutdown()
     return TRUE;
 }
 
-struct audio_driver audio_esd_driver = { "esd", 
+struct audio_driver audio_esd_driver = { 
+        "esd",
+        N_("Enlightened Sound Daemon driver"),
         DEFAULT_SAMPLE_RATE,
         DEFAULT_SAMPLE_FORMAT,
         audio_esd_init,

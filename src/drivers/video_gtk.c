@@ -126,13 +126,17 @@ void video_gtk_display_blank( uint32_t colour );
 uint16_t video_gtk_resolve_keysym( const gchar *keysym );
 uint16_t video_gtk_keycode_to_dckeysym(uint16_t keycode);
 
-struct display_driver display_gtk_driver = { "gtk", video_gtk_init, video_gtk_shutdown,
-					     video_gtk_resolve_keysym,
-					     video_gtk_keycode_to_dckeysym,
-					     NULL,
-					     NULL, NULL, NULL, NULL, NULL, 
-					     video_gtk_display_blank, NULL };
-
+struct display_driver display_gtk_driver = { 
+        "gtk",
+        N_("GTK-based OpenGL driver"),
+        video_gtk_init, 
+        video_gtk_shutdown,
+        video_gtk_resolve_keysym,
+        video_gtk_keycode_to_dckeysym,
+        NULL,
+        NULL, NULL, NULL, NULL, NULL, 
+        video_gtk_display_blank, NULL };
+    
 uint16_t video_gtk_resolve_keysym( const gchar *keysym )
 {
     int val = gdk_keyval_from_name( keysym );
