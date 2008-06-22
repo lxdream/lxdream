@@ -120,6 +120,7 @@ int main (int argc, char *argv[])
 	    break;
 	case 'T': /* trace regions */
 	    trace_regions = optarg;
+	    set_global_log_level("trace");
 	    break;
 	case 'v': /* Log verbosity */
 	    if( !set_global_log_level(optarg) ) {
