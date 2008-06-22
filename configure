@@ -7774,6 +7774,7 @@ fi
 
 
   HAVE_OSMESA='yes'
+  VIDEO_DRIVERS="$VIDEO_DRIVERS osmesa"
 
 cat >>confdefs.h <<\_ACEOF
 #define HAVE_OSMESA 1
@@ -8093,6 +8094,7 @@ $as_echo "$ac_cv_func_NSOpenGLGetVersion" >&6; }
 if test $ac_cv_func_NSOpenGLGetVersion = yes; then
 
          HAVE_NSGL='yes'
+         VIDEO_DRIVERS="$VIDEO_DRIVERS nsgl"
 
 cat >>confdefs.h <<\_ACEOF
 #define HAVE_NSGL 1
@@ -8194,6 +8196,7 @@ $as_echo "$ac_cv_func_glXQueryVersion" >&6; }
 if test $ac_cv_func_glXQueryVersion = yes; then
 
          HAVE_GLX='yes'
+         VIDEO_DRIVERS="$VIDEO_DRIVERS glx"
 
 cat >>confdefs.h <<\_ACEOF
 #define HAVE_GLX 1
@@ -8208,9 +8211,6 @@ fi
 
 
 
-if test "x$HAVE_OSMESA" = "x" -a "x$HAVE_GLX" = "x" -a "x$HAVE_NSGL" = "x"; then
-   echo "Warning: Building with no video support"
-fi
 
 
 
@@ -8625,8 +8625,6 @@ cat >>confdefs.h <<_ACEOF
 #define SH4_TRANSLATOR TARGET_X86
 _ACEOF
 ;;
-    *)
-	echo "Warning: No translator available for $host. Building emulation core only";;
 esac
 
 
@@ -8649,18 +8647,18 @@ else
 fi
 
 
-if test "${ac_cv_header_AudioToolbox_AudioToolbox_h+set}" = set; then
-  { $as_echo "$as_me:$LINENO: checking for AudioToolbox/AudioToolbox.h" >&5
-$as_echo_n "checking for AudioToolbox/AudioToolbox.h... " >&6; }
-if test "${ac_cv_header_AudioToolbox_AudioToolbox_h+set}" = set; then
+if test "${ac_cv_header_CoreAudio_CoreAudio_h+set}" = set; then
+  { $as_echo "$as_me:$LINENO: checking for CoreAudio/CoreAudio.h" >&5
+$as_echo_n "checking for CoreAudio/CoreAudio.h... " >&6; }
+if test "${ac_cv_header_CoreAudio_CoreAudio_h+set}" = set; then
   $as_echo_n "(cached) " >&6
 fi
-{ $as_echo "$as_me:$LINENO: result: $ac_cv_header_AudioToolbox_AudioToolbox_h" >&5
-$as_echo "$ac_cv_header_AudioToolbox_AudioToolbox_h" >&6; }
+{ $as_echo "$as_me:$LINENO: result: $ac_cv_header_CoreAudio_CoreAudio_h" >&5
+$as_echo "$ac_cv_header_CoreAudio_CoreAudio_h" >&6; }
 else
   # Is the header compilable?
-{ $as_echo "$as_me:$LINENO: checking AudioToolbox/AudioToolbox.h usability" >&5
-$as_echo_n "checking AudioToolbox/AudioToolbox.h usability... " >&6; }
+{ $as_echo "$as_me:$LINENO: checking CoreAudio/CoreAudio.h usability" >&5
+$as_echo_n "checking CoreAudio/CoreAudio.h usability... " >&6; }
 cat >conftest.$ac_ext <<_ACEOF
 /* confdefs.h.  */
 _ACEOF
@@ -8668,7 +8666,7 @@ cat confdefs.h >>conftest.$ac_ext
 cat >>conftest.$ac_ext <<_ACEOF
 /* end confdefs.h.  */
 $ac_includes_default
-#include <AudioToolbox/AudioToolbox.h>
+#include <CoreAudio/CoreAudio.h>
 _ACEOF
 rm -f conftest.$ac_objext
 if { (ac_try="$ac_compile"
@@ -8701,15 +8699,15 @@ rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
 $as_echo "$ac_header_compiler" >&6; }
 
 # Is the header present?
-{ $as_echo "$as_me:$LINENO: checking AudioToolbox/AudioToolbox.h presence" >&5
-$as_echo_n "checking AudioToolbox/AudioToolbox.h presence... " >&6; }
+{ $as_echo "$as_me:$LINENO: checking CoreAudio/CoreAudio.h presence" >&5
+$as_echo_n "checking CoreAudio/CoreAudio.h presence... " >&6; }
 cat >conftest.$ac_ext <<_ACEOF
 /* confdefs.h.  */
 _ACEOF
 cat confdefs.h >>conftest.$ac_ext
 cat >>conftest.$ac_ext <<_ACEOF
 /* end confdefs.h.  */
-#include <AudioToolbox/AudioToolbox.h>
+#include <CoreAudio/CoreAudio.h>
 _ACEOF
 if { (ac_try="$ac_cpp conftest.$ac_ext"
 case "(($ac_try" in
@@ -8743,43 +8741,44 @@ $as_echo "$ac_header_preproc" >&6; }
 # So?  What about this header?
 case $ac_header_compiler:$ac_header_preproc:$ac_c_preproc_warn_flag in
   yes:no: )
-    { $as_echo "$as_me:$LINENO: WARNING: AudioToolbox/AudioToolbox.h: accepted by the compiler, rejected by the preprocessor!" >&5
-$as_echo "$as_me: WARNING: AudioToolbox/AudioToolbox.h: accepted by the compiler, rejected by the preprocessor!" >&2;}
-    { $as_echo "$as_me:$LINENO: WARNING: AudioToolbox/AudioToolbox.h: proceeding with the compiler's result" >&5
-$as_echo "$as_me: WARNING: AudioToolbox/AudioToolbox.h: proceeding with the compiler's result" >&2;}
+    { $as_echo "$as_me:$LINENO: WARNING: CoreAudio/CoreAudio.h: accepted by the compiler, rejected by the preprocessor!" >&5
+$as_echo "$as_me: WARNING: CoreAudio/CoreAudio.h: accepted by the compiler, rejected by the preprocessor!" >&2;}
+    { $as_echo "$as_me:$LINENO: WARNING: CoreAudio/CoreAudio.h: proceeding with the compiler's result" >&5
+$as_echo "$as_me: WARNING: CoreAudio/CoreAudio.h: proceeding with the compiler's result" >&2;}
     ac_header_preproc=yes
     ;;
   no:yes:* )
-    { $as_echo "$as_me:$LINENO: WARNING: AudioToolbox/AudioToolbox.h: present but cannot be compiled" >&5
-$as_echo "$as_me: WARNING: AudioToolbox/AudioToolbox.h: present but cannot be compiled" >&2;}
-    { $as_echo "$as_me:$LINENO: WARNING: AudioToolbox/AudioToolbox.h:     check for missing prerequisite headers?" >&5
-$as_echo "$as_me: WARNING: AudioToolbox/AudioToolbox.h:     check for missing prerequisite headers?" >&2;}
-    { $as_echo "$as_me:$LINENO: WARNING: AudioToolbox/AudioToolbox.h: see the Autoconf documentation" >&5
-$as_echo "$as_me: WARNING: AudioToolbox/AudioToolbox.h: see the Autoconf documentation" >&2;}
-    { $as_echo "$as_me:$LINENO: WARNING: AudioToolbox/AudioToolbox.h:     section \"Present But Cannot Be Compiled\"" >&5
-$as_echo "$as_me: WARNING: AudioToolbox/AudioToolbox.h:     section \"Present But Cannot Be Compiled\"" >&2;}
-    { $as_echo "$as_me:$LINENO: WARNING: AudioToolbox/AudioToolbox.h: proceeding with the preprocessor's result" >&5
-$as_echo "$as_me: WARNING: AudioToolbox/AudioToolbox.h: proceeding with the preprocessor's result" >&2;}
-    { $as_echo "$as_me:$LINENO: WARNING: AudioToolbox/AudioToolbox.h: in the future, the compiler will take precedence" >&5
-$as_echo "$as_me: WARNING: AudioToolbox/AudioToolbox.h: in the future, the compiler will take precedence" >&2;}
+    { $as_echo "$as_me:$LINENO: WARNING: CoreAudio/CoreAudio.h: present but cannot be compiled" >&5
+$as_echo "$as_me: WARNING: CoreAudio/CoreAudio.h: present but cannot be compiled" >&2;}
+    { $as_echo "$as_me:$LINENO: WARNING: CoreAudio/CoreAudio.h:     check for missing prerequisite headers?" >&5
+$as_echo "$as_me: WARNING: CoreAudio/CoreAudio.h:     check for missing prerequisite headers?" >&2;}
+    { $as_echo "$as_me:$LINENO: WARNING: CoreAudio/CoreAudio.h: see the Autoconf documentation" >&5
+$as_echo "$as_me: WARNING: CoreAudio/CoreAudio.h: see the Autoconf documentation" >&2;}
+    { $as_echo "$as_me:$LINENO: WARNING: CoreAudio/CoreAudio.h:     section \"Present But Cannot Be Compiled\"" >&5
+$as_echo "$as_me: WARNING: CoreAudio/CoreAudio.h:     section \"Present But Cannot Be Compiled\"" >&2;}
+    { $as_echo "$as_me:$LINENO: WARNING: CoreAudio/CoreAudio.h: proceeding with the preprocessor's result" >&5
+$as_echo "$as_me: WARNING: CoreAudio/CoreAudio.h: proceeding with the preprocessor's result" >&2;}
+    { $as_echo "$as_me:$LINENO: WARNING: CoreAudio/CoreAudio.h: in the future, the compiler will take precedence" >&5
+$as_echo "$as_me: WARNING: CoreAudio/CoreAudio.h: in the future, the compiler will take precedence" >&2;}
 
     ;;
 esac
-{ $as_echo "$as_me:$LINENO: checking for AudioToolbox/AudioToolbox.h" >&5
-$as_echo_n "checking for AudioToolbox/AudioToolbox.h... " >&6; }
-if test "${ac_cv_header_AudioToolbox_AudioToolbox_h+set}" = set; then
+{ $as_echo "$as_me:$LINENO: checking for CoreAudio/CoreAudio.h" >&5
+$as_echo_n "checking for CoreAudio/CoreAudio.h... " >&6; }
+if test "${ac_cv_header_CoreAudio_CoreAudio_h+set}" = set; then
   $as_echo_n "(cached) " >&6
 else
-  ac_cv_header_AudioToolbox_AudioToolbox_h=$ac_header_preproc
+  ac_cv_header_CoreAudio_CoreAudio_h=$ac_header_preproc
 fi
-{ $as_echo "$as_me:$LINENO: result: $ac_cv_header_AudioToolbox_AudioToolbox_h" >&5
-$as_echo "$ac_cv_header_AudioToolbox_AudioToolbox_h" >&6; }
+{ $as_echo "$as_me:$LINENO: result: $ac_cv_header_CoreAudio_CoreAudio_h" >&5
+$as_echo "$ac_cv_header_CoreAudio_CoreAudio_h" >&6; }
 
 fi
-if test $ac_cv_header_AudioToolbox_AudioToolbox_h = yes; then
+if test $ac_cv_header_CoreAudio_CoreAudio_h = yes; then
 
      HAVE_CORE_AUDIO=yes
-     LIBS="$LIBS -framework AudioToolbox -framework AudioUnit"
+     LIBS="$LIBS -framework CoreAudio"
+     AUDIO_DRIVERS="$AUDIO_DRIVERS osx"
 
 cat >>confdefs.h <<\_ACEOF
 #define HAVE_CORE_AUDIO 1
@@ -8872,6 +8871,7 @@ else
 $as_echo "yes" >&6; }
 
      HAVE_PULSE='yes'
+     AUDIO_DRIVERS="$AUDIO_DRIVERS pulse"
 
 cat >>confdefs.h <<\_ACEOF
 #define HAVE_PULSE 1
@@ -8960,6 +8960,7 @@ else
 $as_echo "yes" >&6; }
 
      HAVE_ESOUND='yes'
+     AUDIO_DRIVERS="$AUDIO_DRIVERS esd"
 
 cat >>confdefs.h <<\_ACEOF
 #define HAVE_ESOUND 1
@@ -9048,6 +9049,7 @@ else
 $as_echo "yes" >&6; }
 
      HAVE_ALSA='yes'
+     AUDIO_DRIVERS="$AUDIO_DRIVERS alsa"
 
 cat >>confdefs.h <<\_ACEOF
 #define HAVE_ALSA 1
@@ -9065,9 +9067,6 @@ else
 fi
 
 
-if test "x$HAVE_ESOUND" = "x" -a "x$HAVE_ALSA" = "x" -a "x$HAVE_PULSE" = "x"; then
-   echo "Warning: Building without audio support"
-fi
 
 if test "${ac_cv_header_linux_cdrom_h+set}" = set; then
   { $as_echo "$as_me:$LINENO: checking for linux/cdrom.h" >&5
@@ -12789,4 +12788,37 @@ if test -n "$ac_unrecognized_opts" && test "$enable_option_checking" != no; then
 $as_echo "$as_me: WARNING: Unrecognized options: $ac_unrecognized_opts" >&2;}
 fi
 
+
+
+echo
+echo "Configuration complete"
+echo
+
+if test "x$HAVE_GTK" = x; then
+  if test "x$HAVE_COCOA" = x; then
+     echo "  User interface: none"
+  else
+     echo "  User interface: Cocoa"
+  fi
+else
+  echo "  User interface: GTK"
+fi
+
+if test "x$SH4_TRANSLATOR" = "x"; then
+  echo "  SH4 translator: None (emulation core only)"
+else
+  echo "  SH4 translator: $SH4_TRANSLATOR"
+fi
+
+if test "x$VIDEO_DRIVERS" = "x"; then
+   echo "  Video drivers: none (no supported GL found)"
+else
+   echo "  Video drivers: $VIDEO_DRIVERS"
+fi
+
+if test "x$AUDIO_DRIVERS" = "x"; then
+   echo "  Audio drivers: none (no supported output devices found)"
+else
+   echo "  Audio drivers: $AUDIO_DRIVERS"
+fi
 
