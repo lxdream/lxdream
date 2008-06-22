@@ -57,7 +57,7 @@ gdrom_disc_t gdrom_image_open( const gchar *filename )
     gdrom_image_class_t extclz = NULL;
 
     if( fd == -1 ) {
-	return NULL;
+       return NULL;
     }
 
     f = fdopen(fd, "ro");
@@ -99,7 +99,9 @@ gdrom_disc_t gdrom_image_open( const gchar *filename )
 void gdrom_mount_disc( gdrom_disc_t disc ) 
 {
     if( disc != gdrom_disc ) {
-        gdrom_unmount_disc();
+        if( gdrom_disc != NULL ) {
+            gdrom_disc->close(gdrom_disc);
+        }
         gdrom_disc = disc;
         gdrom_image_dump_info( disc );
         gdrom_fire_disc_changed( disc );
@@ -109,7 +111,7 @@ void gdrom_mount_disc( gdrom_disc_t disc )
 gboolean gdrom_mount_image( const gchar *filename )
 {
     gdrom_disc_t disc = gdrom_image_open(filename);
-    if( disc != NULL ) {
+    if( disc != NULL ) {         
         gdrom_mount_disc( disc );
         return TRUE;
     }
