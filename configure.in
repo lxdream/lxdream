@@ -103,6 +103,7 @@ dnl User requested OSMesa (ie pure software rendering)
   AC_CHECK_HEADER([GL/osmesa.h], [],
     [AC_MSG_FAILURE( [--with-osmesa was given, but osmesa.h could not be found])])
   HAVE_OSMESA='yes'
+  VIDEO_DRIVERS="$VIDEO_DRIVERS osmesa"
   AC_DEFINE([HAVE_OSMESA],1,[Building with the OSMesa video driver]) ], [
 
 dnl Otherwise we want a real GL library (unless we're on darwin, in which case it's already
@@ -115,6 +116,7 @@ dnl taken care of above).
    else
       AC_CHECK_FUNC(NSOpenGLGetVersion, [
          HAVE_NSGL='yes'
+         VIDEO_DRIVERS="$VIDEO_DRIVERS nsgl"
          AC_DEFINE([HAVE_NSGL],1, [Have NSOpenGL support]) ] )
    fi
 
@@ -125,17 +127,13 @@ dnl Now work out how to get from the UI to GL - this is usually the painful part
       fi
       AC_CHECK_FUNC(glXQueryVersion, [
          HAVE_GLX='yes'
+         VIDEO_DRIVERS="$VIDEO_DRIVERS glx"
          AC_DEFINE([HAVE_GLX], 1, [Have GLX support]) ] )
-dnl   elif test "x$HAVE_GTK_OSX" = "xyes"; then
    fi
       
 ])
 
 
-dnl OK, now decide which video driver(s) we can build
-if test "x$HAVE_OSMESA" = "x" -a "x$HAVE_GLX" = "x" -a "x$HAVE_NSGL" = "x"; then
-   echo "Warning: Building with no video support"
-fi
 
 AM_CONDITIONAL(VIDEO_OSMESA, [test "x$HAVE_OSMESA" = "xyes"])
 AM_CONDITIONAL(VIDEO_GLX, [test "x$HAVE_GLX" = "xyes"])
@@ -153,41 +151,40 @@ case $host_cpu in
     i386|i486|i586|i686|x86_64)
 	SH4_TRANSLATOR="x86"
         AC_DEFINE_UNQUOTED(SH4_TRANSLATOR,[TARGET_X86], [SH4 Translator to use (if any)] );;
-    *)
-	echo "Warning: No translator available for $host. Building emulation core only";;
 esac
 AM_CONDITIONAL(BUILD_SH4X86, [test "$SH4_TRANSLATOR" = "x86" -o "$SH4_TRANSLATOR" = "x86_64"])
 AM_CONDITIONAL(BUILD_X86_64, [test "$SH4_TRANSLATOR" = "x86_64"])
 
 dnl ------------------ Optional driver support -------------------
 dnl Check for Apple CoreAudio
-AC_CHECK_HEADER([AudioToolbox/AudioToolbox.h], [
+AC_CHECK_HEADER([CoreAudio/CoreAudio.h], [
      HAVE_CORE_AUDIO=yes
-     LIBS="$LIBS -framework AudioToolbox -framework AudioUnit"
+     LIBS="$LIBS -framework CoreAudio"
+     AUDIO_DRIVERS="$AUDIO_DRIVERS osx"
      AC_DEFINE([HAVE_CORE_AUDIO], 1, [Have Apple CoreAudio support]) ],[true ])
 AM_CONDITIONAL( AUDIO_OSX, [test "$HAVE_CORE_AUDIO" = 'yes'] )
 
 dnl Check for pulseaudio
 PKG_CHECK_MODULES(PULSE, [libpulse-simple], [
      HAVE_PULSE='yes'
+     AUDIO_DRIVERS="$AUDIO_DRIVERS pulse"
      AC_DEFINE([HAVE_PULSE],1,[Have pulseaudio support]) ], [true])
 AM_CONDITIONAL( AUDIO_PULSE, [test "$HAVE_PULSE" = 'yes'] )
 
 dnl Check for esound
 PKG_CHECK_MODULES(ESOUND, [esound], [ 
      HAVE_ESOUND='yes'
+     AUDIO_DRIVERS="$AUDIO_DRIVERS esd"
      AC_DEFINE([HAVE_ESOUND],1,[Have esound support]) ], [true])
 AM_CONDITIONAL( AUDIO_ESOUND, [test "$HAVE_ESOUND" = 'yes'] )
 
 dnl Check for alsa support
 PKG_CHECK_MODULES(ALSA, [alsa], [ 
      HAVE_ALSA='yes'
+     AUDIO_DRIVERS="$AUDIO_DRIVERS alsa"
      AC_DEFINE([HAVE_ALSA],1,[Have alsa support]) ], [true])
 AM_CONDITIONAL( AUDIO_ALSA, [test "$HAVE_ALSA" = 'yes'] )
 
-if test "x$HAVE_ESOUND" = "x" -a "x$HAVE_ALSA" = "x" -a "x$HAVE_PULSE" = "x"; then
-   echo "Warning: Building without audio support"
-fi
 
 dnl Check for linux cdrom device support
 AC_CHECK_HEADER([linux/cdrom.h], [HAVE_LINUX_CDROM_H=yes], [
@@ -239,4 +236,38 @@ src/Makefile
 po/Makefile.in
 test/Makefile
 ])
+
+dnl ------------------------- Print out a summary ----------------------
+
+echo
+echo "Configuration complete"
+echo
+
+if test "x$HAVE_GTK" = x; then
+  if test "x$HAVE_COCOA" = x; then
+     echo "  User interface: none"
+  else
+     echo "  User interface: Cocoa"
+  fi
+else
+  echo "  User interface: GTK"
+fi
+
+if test "x$SH4_TRANSLATOR" = "x"; then
+  echo "  SH4 translator: None (emulation core only)"
+else
+  echo "  SH4 translator: $SH4_TRANSLATOR"
+fi
+
+if test "x$VIDEO_DRIVERS" = "x"; then
+   echo "  Video drivers: none (no supported GL found)"
+else
+   echo "  Video drivers: $VIDEO_DRIVERS"
+fi
+
+if test "x$AUDIO_DRIVERS" = "x"; then
+   echo "  Audio drivers: none (no supported output devices found)"
+else
+   echo "  Audio drivers: $AUDIO_DRIVERS"
+fi
 
