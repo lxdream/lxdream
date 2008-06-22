@@ -74,7 +74,9 @@ gboolean audio_pulse_shutdown()
   return TRUE;
 }
 
-struct audio_driver audio_pulse_driver = { "pulse",
+struct audio_driver audio_pulse_driver = { 
+        "pulse",
+        N_("PulseAudio sound server driver"),
         DEFAULT_SAMPLE_RATE,
         DEFAULT_SAMPLE_FORMAT,
         audio_pulse_init,

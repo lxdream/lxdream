@@ -79,7 +79,7 @@ gboolean isGLExtensionSupported( const char *extension )
 
 void glPrintInfo( FILE *out )
 {
-    const GLubyte *extensions = glGetString(GL_EXTENSIONS);
+    const gchar *extensions = (const gchar *)glGetString(GL_EXTENSIONS);
     gchar **ext_split = g_strsplit(extensions, " ", 0);
     unsigned int i;
     

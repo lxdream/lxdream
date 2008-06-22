@@ -33,7 +33,9 @@ gboolean audio_null_shutdown()
   return TRUE;
 }
 
-struct audio_driver audio_null_driver = { "null",
+struct audio_driver audio_null_driver = { 
+        "null",
+        N_("Null (no audio) driver"),
         DEFAULT_SAMPLE_RATE,
         DEFAULT_SAMPLE_FORMAT,
         audio_null_init,
