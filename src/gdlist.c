@@ -173,15 +173,13 @@ gboolean gdrom_list_set_selection( int posn )
     
     if( posn <= gdrom_device_count ) {
         gchar *entry = g_list_nth_data(gdrom_device_list, posn-1);
-        gdrom_mount_image(entry);
-        return TRUE;
+        return gdrom_mount_image(entry);
     }
     
     posn -= FIRST_RECENT_INDEX;
     if( posn >= 0 && posn < gdrom_recent_count ) {
         gchar *entry = g_list_nth_data(gdrom_recent_list, posn);
-        gdrom_mount_image(entry);
-        return TRUE;
+        return gdrom_mount_image(entry);
     }
     
     return FALSE;
@@ -222,4 +220,25 @@ const gchar *gdrom_list_get_display_name( int posn )
 
     gchar *entry = g_list_nth_data(gdrom_recent_list, posn-FIRST_RECENT_INDEX);
     return basename(entry);
+}
+
+const gchar *gdrom_list_get_filename( int posn )
+{
+   if( posn == 0 ) {
+       return _("Empty");
+   }
+   
+   if( posn <= gdrom_device_count ) {
+       return g_list_nth_data(gdrom_device_list, posn-1);
+   }
+   
+   if( posn == gdrom_device_count + 1) {
+       return "";
+   }
+   
+   if( posn < 0 || posn > gdrom_list_size() ) {
+       return NULL;
+   }
+
+   return g_list_nth_data(gdrom_recent_list, posn-FIRST_RECENT_INDEX);
 }
