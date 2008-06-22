@@ -39,17 +39,13 @@ struct lxdream_config_entry alsa_config[] = {
 
 gboolean audio_alsa_init(  )
 {
-    return TRUE;
-}
-
-
-gboolean audio_alsa_set_format( uint32_t rate, uint32_t format )
-{
     int err;
     snd_pcm_hw_params_t *hw_params;
     snd_pcm_sw_params_t *sw_params;
     snd_pcm_uframes_t frames;
     snd_pcm_uframes_t bufferSize;
+    int rate = DEFAULT_SAMPLE_RATE;
+    int format = DEFAULT_SAMPLE_FORMAT;
     int dir;
 
 
@@ -179,7 +175,7 @@ gboolean audio_alsa_process_buffer( audio_buffer_t buffer )
 }
 
 
-gboolean audio_alsa_close(  )
+gboolean audio_alsa_shutdown(  )
 {
     return TRUE;
 }
@@ -188,8 +184,11 @@ gboolean audio_alsa_close(  )
 
 struct audio_driver audio_alsa_driver = { 
     "alsa",
+    DEFAULT_SAMPLE_RATE,
+    DEFAULT_SAMPLE_FORMAT,
     audio_alsa_init,
-    audio_alsa_set_format,
+    NULL,
     audio_alsa_process_buffer,
-    audio_alsa_close
+    NULL,
+    audio_alsa_shutdown
 };

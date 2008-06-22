@@ -34,6 +34,9 @@
 /* Have Cocoa framework */
 #undef HAVE_COCOA
 
+/* Have Apple CoreAudio support */
+#undef HAVE_CORE_AUDIO
+
 /* Define to 1 if you have the `dcgettext' function. */
 #undef HAVE_DCGETTEXT
 

@@ -23,13 +23,10 @@
 
 static pa_simple *pulse_server = NULL;
 
-gboolean audio_pulse_init()
+gboolean audio_init( )
 {
-  return TRUE;
-}
-
-gboolean audio_pulse_set_format( uint32_t rate, uint32_t format )
-{
+    int rate = DEFAULT_SAMPLE_RATE;
+    int format = DEFAULT_SAMPLE_FORMAT;
     pa_sample_spec ss;
 
     if( pulse_server != NULL ) {
@@ -70,16 +67,19 @@ gboolean audio_pulse_process_buffer( audio_buffer_t buffer )
     }
 }
 
-gboolean audio_pulse_close()
+gboolean audio_pulse_shutdown()
 {
   pa_simple_free(pulse_server);
   pulse_server = NULL;
   return TRUE;
 }
 
-struct audio_driver audio_pulse_driver = { "pulse", 
-					 audio_pulse_init,
-					 audio_pulse_set_format, 
-					 audio_pulse_process_buffer,
-                                         audio_pulse_close};
+struct audio_driver audio_pulse_driver = { "pulse",
+        DEFAULT_SAMPLE_RATE,
+        DEFAULT_SAMPLE_FORMAT,
+        audio_pulse_init,
+        NULL,
+        audio_pulse_process_buffer,
+        NULL,
+        audio_pulse_shutdown};
 

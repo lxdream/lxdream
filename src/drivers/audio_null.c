@@ -23,23 +23,21 @@ gboolean audio_null_init()
   return TRUE;
 }
 
-gboolean audio_null_set_format( uint32_t rate, uint32_t format )
-{
-    return TRUE;
-}
-
 gboolean audio_null_process_buffer( audio_buffer_t buffer )
 {
     return TRUE;
 }
 
-gboolean audio_null_close()
+gboolean audio_null_shutdown()
 {
   return TRUE;
 }
 
-struct audio_driver audio_null_driver = { "null", 
-					  audio_null_init,
-					  audio_null_set_format, 
-					  audio_null_process_buffer,
-                                          audio_null_close};
+struct audio_driver audio_null_driver = { "null",
+        DEFAULT_SAMPLE_RATE,
+        DEFAULT_SAMPLE_FORMAT,
+        audio_null_init,
+        NULL,
+        audio_null_process_buffer,
+        NULL,
+        audio_null_shutdown};
