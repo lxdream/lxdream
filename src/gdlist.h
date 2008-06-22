@@ -55,6 +55,8 @@ int gdrom_list_size(void);
  */
 const gchar *gdrom_list_get_display_name(int index);
 
+const gchar *gdrom_list_get_filename(int index);
+
 /**
  * Change the current gdrom selection to the selected index. This will mount the
  * appropriate drive/image where necessary.
