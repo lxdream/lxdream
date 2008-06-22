@@ -16,8 +16,8 @@ ARMCFLAGS	= -O2
 ARMLD		= @ARMLD@
 ARMOBJCOPY	= @ARMOBJCOPY@
 
-RUNTEST		= ../src/lxdream -c ./lxdream.rc -puh -A null
-RUNTESTX	= ../src/lxdream -c ./lxdream.rc -xpuh -A null
+RUNTEST		= ../src/lxdream -c ./lxdream.rc -puH -A null
+RUNTESTX	= ../src/lxdream -c ./lxdream.rc -xpuH -A null
 
 
 # cygwin
