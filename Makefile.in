@@ -85,6 +85,8 @@ AUDIO_ALSA_FALSE = @AUDIO_ALSA_FALSE@
 AUDIO_ALSA_TRUE = @AUDIO_ALSA_TRUE@
 AUDIO_ESOUND_FALSE = @AUDIO_ESOUND_FALSE@
 AUDIO_ESOUND_TRUE = @AUDIO_ESOUND_TRUE@
+AUDIO_OSX_FALSE = @AUDIO_OSX_FALSE@
+AUDIO_OSX_TRUE = @AUDIO_OSX_TRUE@
 AUDIO_PULSE_FALSE = @AUDIO_PULSE_FALSE@
 AUDIO_PULSE_TRUE = @AUDIO_PULSE_TRUE@
 AUTOCONF = @AUTOCONF@
@@ -567,7 +569,8 @@ distcleancheck: distclean
 	       exit 1; } >&2
 check-am: all-am
 check: check-recursive
-all-am: Makefile config.h
+@GUI_COCOA_FALSE@all-local:
+all-am: Makefile config.h all-local
 installdirs: installdirs-recursive
 installdirs-am:
 install: install-recursive
@@ -645,10 +648,10 @@ uninstall-am: uninstall-info-am
 
 uninstall-info: uninstall-info-recursive
 
-.PHONY: $(RECURSIVE_TARGETS) CTAGS GTAGS all all-am am--refresh check \
-	check-am clean clean-generic clean-recursive ctags \
-	ctags-recursive dist dist-all dist-bzip2 dist-gzip dist-hook \
-	dist-shar dist-tarZ dist-zip distcheck distclean \
+.PHONY: $(RECURSIVE_TARGETS) CTAGS GTAGS all all-am all-local \
+	am--refresh check check-am clean clean-generic clean-recursive \
+	ctags ctags-recursive dist dist-all dist-bzip2 dist-gzip \
+	dist-hook dist-shar dist-tarZ dist-zip distcheck distclean \
 	distclean-generic distclean-hdr distclean-recursive \
 	distclean-tags distcleancheck distdir distuninstallcheck dvi \
 	dvi-am html html-am info info-am install install-am \
@@ -685,11 +688,13 @@ dist-hook:
 	fi
 
 # Build a Mac OS X bundle. This is meaningless anywhere else
-bundle: all
-	mkdir -p lxdream.app/Contents/MacOS
-	mkdir -p lxdream.app/Contents/Resources
-	cp src/lxdream lxdream.app/Contents/MacOS
-	cp -R pixmaps/* lxdream.app/Contents/Resources
+@GUI_COCOA_TRUE@all-local:
+@GUI_COCOA_TRUE@	@echo --- Building Mac Bundle ---
+@GUI_COCOA_TRUE@	mkdir -p lxdream.app/Contents/MacOS
+@GUI_COCOA_TRUE@	mkdir -p lxdream.app/Contents/Resources
+@GUI_COCOA_TRUE@	cp src/lxdream lxdream.app/Contents/MacOS
+@GUI_COCOA_TRUE@	cp -R pixmaps/* lxdream.app/Contents/Resources
+@GUI_COCOA_TRUE@	@echo --- Done ---
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:
