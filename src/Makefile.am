@@ -87,6 +87,10 @@ if VIDEO_NSGL
 lxdream_SOURCES += drivers/video_nsgl.c drivers/video_nsgl.h
 endif
 
+if AUDIO_OSX
+lxdream_SOURCES += drivers/audio_osx.c
+endif
+
 if AUDIO_PULSE
 lxdream_SOURCES += drivers/audio_pulse.c
 endif

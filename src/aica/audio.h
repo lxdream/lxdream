@@ -31,13 +31,20 @@ extern "C" {
 #define AUDIO_FMT_8BIT 0
 #define AUDIO_FMT_16BIT 1
 #define AUDIO_FMT_ADPCM 2
+#define AUDIO_FMT_FLOAT 3  // 32-bit -1.0 to 1.0
 #define AUDIO_FMT_MONO 0
 #define AUDIO_FMT_STEREO 4
 #define AUDIO_FMT_SIGNED 0
 #define AUDIO_FMT_UNSIGNED 8
+    
+#define AUDIO_FMT_SAMPLE_MASK 3
 
 #define AUDIO_FMT_16ST (AUDIO_FMT_16BIT|AUDIO_FMT_STEREO)
+#define AUDIO_FMT_FLOATST (AUDIO_FMT_FLOAT|AUDIO_FMT_STEREO)
 
+#define DEFAULT_SAMPLE_RATE 44100
+#define DEFAULT_SAMPLE_FORMAT AUDIO_FMT_16ST
+    
 typedef enum { LOOP_OFF = 0, LOOP_ON = 1, LOOP_LOOPED = 2 } loop_t;
 
 typedef struct audio_channel {
@@ -68,16 +75,14 @@ typedef struct audio_buffer {
 
 typedef struct audio_driver {
     char *name;
-    gboolean (*init)(  );
-    gboolean (*set_output_format)( uint32_t sample_rate, uint32_t format );
+    uint32_t sample_rate;
+    uint32_t sample_format;
+    gboolean (*init)( );
+    void (*start)( );
     gboolean (*process_buffer)( audio_buffer_t buffer );
-    gboolean (*close)(  );
+    void (*stop)( );
+    gboolean (*shutdown)(  );
 } *audio_driver_t;
-
-extern struct audio_driver audio_null_driver;
-extern struct audio_driver audio_pulse_driver;
-extern struct audio_driver audio_esd_driver;
-extern struct audio_driver audio_alsa_driver;
 
 audio_driver_t get_audio_driver_by_name( const char *name );
 
@@ -86,8 +91,7 @@ audio_driver_t get_audio_driver_by_name( const char *name );
  * output buffers, flushing any current data and reallocating as 
  * necessary. Must be called before attempting to generate any audio.
  */
-gboolean audio_set_driver( audio_driver_t driver, uint32_t samplerate,
-		       int format );
+gboolean audio_set_driver( audio_driver_t driver );
 
 /**
  * Mark the current write buffer as full and prepare the next buffer for

@@ -27,28 +27,26 @@ int esd_sample_size = 1;
 
 gboolean audio_esd_init()
 {
-  return TRUE;
-}
-
-gboolean audio_esd_set_format( uint32_t rate, uint32_t format )
-{
+    int format = DEFAULT_SAMPLE_FORMAT;
+    int rate = DEFAULT_SAMPLE_RATE;
+    
     if( esd_handle != -1 ) {
-	esd_close(esd_handle);
+        esd_close(esd_handle);
     }
     esd_format_t esd_format = 0;
     esd_sample_size = 1;
     if( format & AUDIO_FMT_16BIT ) {
-	esd_format |= ESD_BITS16;
+        esd_format |= ESD_BITS16;
     } else esd_format |= ESD_BITS8;
     if( format & AUDIO_FMT_STEREO ) {
-	esd_format |= ESD_STEREO;
+        esd_format |= ESD_STEREO;
     }
     else esd_format |= ESD_MONO;
-    
+
     esd_handle = esd_play_stream( esd_format, rate, "localhost", "lxdream" );
     if( esd_handle == -1 ) {
-	ERROR( "Unable to open audio output (ESD)" );
-	return FALSE;
+        ERROR( "Unable to open audio output (ESD)" );
+        return FALSE;
     }
     return TRUE;
 }
@@ -56,22 +54,27 @@ gboolean audio_esd_set_format( uint32_t rate, uint32_t format )
 gboolean audio_esd_process_buffer( audio_buffer_t buffer )
 {
     if( esd_handle != -1 ) {
-	write( esd_handle, buffer->data, buffer->length );
-	return TRUE;
+        write( esd_handle, buffer->data, buffer->length );
+        return TRUE;
     } else {
-	ERROR( "ESD not initialized" );
-	return FALSE;
+        ERROR( "ESD not initialized" );
+        return FALSE;
     }
 }
 
-gboolean audio_esd_close()
+gboolean audio_esd_shutdown()
 {
-  return TRUE;
+    close(esd_handle);
+    esd_handle = -1;
+    return TRUE;
 }
 
 struct audio_driver audio_esd_driver = { "esd", 
-					 audio_esd_init,
-					 audio_esd_set_format, 
-					 audio_esd_process_buffer,
-                                         audio_esd_close};
+        DEFAULT_SAMPLE_RATE,
+        DEFAULT_SAMPLE_FORMAT,
+        audio_esd_init,
+        NULL, 
+        audio_esd_process_buffer,
+        NULL,
+        audio_esd_shutdown};
 

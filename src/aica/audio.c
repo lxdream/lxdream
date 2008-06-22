@@ -24,21 +24,31 @@
 #include <assert.h>
 #include <string.h>
 
-audio_driver_t audio_driver_list[] = { 
+
+extern struct audio_driver audio_null_driver;
+extern struct audio_driver audio_osx_driver;
+extern struct audio_driver audio_pulse_driver;
+extern struct audio_driver audio_esd_driver;
+extern struct audio_driver audio_alsa_driver;
+
+audio_driver_t audio_driver_list[] = {
+#ifdef HAVE_CORE_AUDIO
+      &audio_osx_driver,
+#endif
 #ifdef HAVE_PULSE
-                                       &audio_pulse_driver,
+      &audio_pulse_driver,
 #endif
 #ifdef HAVE_ESOUND
-				       &audio_esd_driver,
+      &audio_esd_driver,
 #endif
 #ifdef HAVE_ALSA
-				       &audio_alsa_driver,
+      &audio_alsa_driver,
 #endif
-				       &audio_null_driver,
-				       NULL };
+      &audio_null_driver,
+      NULL };
 
 #define NUM_BUFFERS 3
-#define MS_PER_BUFFER 100
+#define MS_PER_BUFFER 1000
 
 #define BUFFER_EMPTY   0
 #define BUFFER_WRITING 1
@@ -78,15 +88,28 @@ audio_driver_t get_audio_driver_by_name( const char *name )
 {
     int i;
     if( name == NULL ) {
-	return audio_driver_list[0];
+        return audio_driver_list[0];
     }
     for( i=0; audio_driver_list[i] != NULL; i++ ) {
-	if( strcasecmp( audio_driver_list[i]->name, name ) == 0 ) {
-	    return audio_driver_list[i];
-	}
+        if( strcasecmp( audio_driver_list[i]->name, name ) == 0 ) {
+            return audio_driver_list[i];
+        }
     }
 
     return NULL;
+}
+
+audio_driver_t audio_init_driver( const char *preferred_driver )
+{
+    audio_driver_t audio_driver = get_audio_driver_by_name(preferred_driver);
+    if( audio_driver == NULL ) {
+        ERROR( "Audio driver '%s' not found, aborting.", preferred_driver );
+        exit(2);
+    } else if( audio_set_driver( audio_driver ) == FALSE ) {
+        ERROR( "Failed to initialize audio driver '%s', using null driver", 
+                audio_driver->name );
+        audio_set_driver( &audio_null_driver );
+    }    
 }
 
 /**
@@ -94,41 +117,50 @@ audio_driver_t get_audio_driver_by_name( const char *name )
  * output buffers, flushing any current data and reallocating as 
  * necessary.
  */
-gboolean audio_set_driver( audio_driver_t driver, 
-			   uint32_t samplerate, int format )
+gboolean audio_set_driver( audio_driver_t driver )
 {
     uint32_t bytes_per_sample = 1;
     uint32_t samples_per_buffer;
     int i;
 
     if( audio_driver == NULL || driver != NULL ) {
-	if( driver == NULL  )
-	    driver = &audio_null_driver;
-	if( driver != audio_driver ) {	
-	    if( !driver->set_output_format( samplerate, format ) )
-		return FALSE;
-	    audio_driver = driver;
-	}
+        if( driver == NULL  )
+            driver = &audio_null_driver;
+        if( driver != audio_driver ) {	
+            if( !driver->init() )
+                return FALSE;
+            audio_driver = driver;
+        }
     }
 
-    if( format & AUDIO_FMT_16BIT )
-	bytes_per_sample = 2;
-    if( format & AUDIO_FMT_STEREO )
-	bytes_per_sample <<= 1;
-    if( samplerate == audio.output_rate &&
-	bytes_per_sample == audio.output_sample_size )
-	return TRUE;
-    samples_per_buffer = (samplerate * MS_PER_BUFFER / 1000);
-    for( i=0; i<NUM_BUFFERS; i++ ) {
-	if( audio.output_buffers[i] != NULL )
-	    free(audio.output_buffers[i]);
-	audio.output_buffers[i] = g_malloc0( sizeof(struct audio_buffer) + samples_per_buffer * bytes_per_sample );
-	audio.output_buffers[i]->length = samples_per_buffer * bytes_per_sample;
-	audio.output_buffers[i]->posn = 0;
-	audio.output_buffers[i]->status = BUFFER_EMPTY;
+    switch( driver->sample_format & AUDIO_FMT_SAMPLE_MASK ) {
+    case AUDIO_FMT_8BIT:
+        bytes_per_sample = 1;
+        break;
+    case AUDIO_FMT_16BIT:
+        bytes_per_sample = 2;
+        break;
+    case AUDIO_FMT_FLOAT:
+        bytes_per_sample = 4;
+        break;
     }
-    audio.output_format = format;
-    audio.output_rate = samplerate;
+
+    if( driver->sample_format & AUDIO_FMT_STEREO )
+        bytes_per_sample <<= 1;
+    if( driver->sample_rate == audio.output_rate &&
+            bytes_per_sample == audio.output_sample_size )
+        return TRUE;
+    samples_per_buffer = (driver->sample_rate * MS_PER_BUFFER / 1000);
+    for( i=0; i<NUM_BUFFERS; i++ ) {
+        if( audio.output_buffers[i] != NULL )
+            free(audio.output_buffers[i]);
+        audio.output_buffers[i] = g_malloc0( sizeof(struct audio_buffer) + samples_per_buffer * bytes_per_sample );
+        audio.output_buffers[i]->length = samples_per_buffer * bytes_per_sample;
+        audio.output_buffers[i]->posn = 0;
+        audio.output_buffers[i]->status = BUFFER_EMPTY;
+    }
+    audio.output_format = driver->sample_format;
+    audio.output_rate = driver->sample_rate;
     audio.output_sample_size = bytes_per_sample;
     audio.write_buffer = 0;
     audio.read_buffer = 0;
@@ -147,16 +179,17 @@ audio_buffer_t audio_next_write_buffer( )
     audio_buffer_t current = audio.output_buffers[audio.write_buffer];
     current->status = BUFFER_FULL;
     if( audio.read_buffer == audio.write_buffer &&
-	audio_driver->process_buffer( current ) ) {
-	audio_next_read_buffer();
+            audio_driver->process_buffer( current ) ) {
+        audio_next_read_buffer();
     }
-    audio.write_buffer = NEXT_BUFFER();
-    result = audio.output_buffers[audio.write_buffer];
+    int next_buffer = NEXT_BUFFER();
+    result = audio.output_buffers[next_buffer];
     if( result->status == BUFFER_FULL )
-	return NULL;
+        return NULL;
     else {
-	result->status = BUFFER_WRITING;
-	return result;
+        audio.write_buffer = next_buffer;
+        result->status = BUFFER_WRITING;
+        return result;
     }
 }
 
@@ -167,17 +200,24 @@ audio_buffer_t audio_next_write_buffer( )
 audio_buffer_t audio_next_read_buffer( )
 {
     audio_buffer_t current = audio.output_buffers[audio.read_buffer];
-    assert( current->status == BUFFER_FULL );
-    current->status = BUFFER_EMPTY;
-    current->posn = 0;
-    audio.read_buffer++;
-    if( audio.read_buffer == NUM_BUFFERS )
-	audio.read_buffer = 0;
-    
-    current = audio.output_buffers[audio.read_buffer];
-    if( current->status == BUFFER_FULL )
-	return current;
-    else return NULL;
+    if( current->status == BUFFER_FULL ) {
+        // Current read buffer has data, which we've just emptied
+        current->status = BUFFER_EMPTY;
+        current->posn = 0;
+        audio.read_buffer++;
+        if( audio.read_buffer == NUM_BUFFERS )
+            audio.read_buffer = 0;
+
+        current = audio.output_buffers[audio.read_buffer];
+        if( current->status == BUFFER_FULL ) {
+            current->posn = 0;
+            return current;
+        }
+        else return NULL;
+    } else {
+        return NULL;
+    }
+
 }
 
 /*************************** ADPCM ***********************************/
@@ -232,124 +272,158 @@ void audio_mix_samples( int num_samples )
     memset( &result_buf, 0, sizeof(result_buf) );
 
     for( i=0; i < AUDIO_CHANNEL_COUNT; i++ ) {
-	audio_channel_t channel = &audio.channels[i];
-	if( channel->active ) {
-	    int32_t sample;
-	    int vol_left = (channel->vol * (32 - channel->pan)) >> 5;
-	    int vol_right = (channel->vol * (channel->pan + 1)) >> 5;
-	    switch( channel->sample_format ) {
-	    case AUDIO_FMT_16BIT:
-		for( j=0; j<num_samples; j++ ) {
-		    sample = ((int16_t *)(arm_mem + channel->start))[channel->posn];
-		    result_buf[j][0] += sample * vol_left;
-		    result_buf[j][1] += sample * vol_right;
-		    
-		    channel->posn_left += channel->sample_rate;
-		    while( channel->posn_left > audio.output_rate ) {
-			channel->posn_left -= audio.output_rate;
-			channel->posn++;
-			
-			if( channel->posn == channel->end ) {
-			    if( channel->loop ) {
-				channel->posn = channel->loop_start;
-				channel->loop = LOOP_LOOPED;
-			    } else {
-				audio_stop_channel(i);
-				j = num_samples;
-				break;
-			    }
-			}
-		    }
-		}
-		break;
-	    case AUDIO_FMT_8BIT:
-		for( j=0; j<num_samples; j++ ) {
-		    sample = ((int8_t *)(arm_mem + channel->start))[channel->posn] << 8;
-		    result_buf[j][0] += sample * vol_left;
-		    result_buf[j][1] += sample * vol_right;
-		    
-		    channel->posn_left += channel->sample_rate;
-		    while( channel->posn_left > audio.output_rate ) {
-			channel->posn_left -= audio.output_rate;
-			channel->posn++;
-			
-			if( channel->posn == channel->end ) {
-			    if( channel->loop ) {
-				channel->posn = channel->loop_start;
-				channel->loop = LOOP_LOOPED;
-			    } else {
-				audio_stop_channel(i);
-				j = num_samples;
-				break;
-			    }
-			}
-		    }
-		}
-		break;
-	    case AUDIO_FMT_ADPCM:
-		for( j=0; j<num_samples; j++ ) {
-		    sample = (int16_t)channel->adpcm_predict;
-		    result_buf[j][0] += sample * vol_left;
-		    result_buf[j][1] += sample * vol_right;
-		    channel->posn_left += channel->sample_rate;
-		    while( channel->posn_left > audio.output_rate ) {
-			channel->posn_left -= audio.output_rate;
-			channel->posn++;
-			if( channel->posn == channel->end ) {
-			    if( channel->loop ) {
-				channel->posn = channel->loop_start;
-				channel->loop = LOOP_LOOPED;
-				channel->adpcm_predict = 0;
-				channel->adpcm_step = 0;
-			    } else {
-				audio_stop_channel(i);
-				j = num_samples;
-				break;
-			    }
-			}
-			uint8_t data = ((uint8_t *)(arm_mem + channel->start))[channel->posn>>1];
-			if( channel->posn&1 ) {
-			    adpcm_yamaha_decode_nibble( channel, (data >> 4) & 0x0F );
-			} else {
-			    adpcm_yamaha_decode_nibble( channel, data & 0x0F );
-			}
-		    }
-		}
-		break;
-	    default:
-		break;
-	    }
-	}
+        audio_channel_t channel = &audio.channels[i];
+        if( channel->active ) {
+            int32_t sample;
+            int vol_left = (channel->vol * (32 - channel->pan)) >> 5;
+            int vol_right = (channel->vol * (channel->pan + 1)) >> 5;
+            switch( channel->sample_format ) {
+            case AUDIO_FMT_16BIT:
+                for( j=0; j<num_samples; j++ ) {
+                    sample = ((int16_t *)(arm_mem + channel->start))[channel->posn];
+                    result_buf[j][0] += sample * vol_left;
+                    result_buf[j][1] += sample * vol_right;
+
+                    channel->posn_left += channel->sample_rate;
+                    while( channel->posn_left > audio.output_rate ) {
+                        channel->posn_left -= audio.output_rate;
+                        channel->posn++;
+
+                        if( channel->posn == channel->end ) {
+                            if( channel->loop ) {
+                                channel->posn = channel->loop_start;
+                                channel->loop = LOOP_LOOPED;
+                            } else {
+                                audio_stop_channel(i);
+                                j = num_samples;
+                                break;
+                            }
+                        }
+                    }
+                }
+                break;
+            case AUDIO_FMT_8BIT:
+                for( j=0; j<num_samples; j++ ) {
+                    sample = ((int8_t *)(arm_mem + channel->start))[channel->posn] << 8;
+                    result_buf[j][0] += sample * vol_left;
+                    result_buf[j][1] += sample * vol_right;
+
+                    channel->posn_left += channel->sample_rate;
+                    while( channel->posn_left > audio.output_rate ) {
+                        channel->posn_left -= audio.output_rate;
+                        channel->posn++;
+
+                        if( channel->posn == channel->end ) {
+                            if( channel->loop ) {
+                                channel->posn = channel->loop_start;
+                                channel->loop = LOOP_LOOPED;
+                            } else {
+                                audio_stop_channel(i);
+                                j = num_samples;
+                                break;
+                            }
+                        }
+                    }
+                }
+                break;
+            case AUDIO_FMT_ADPCM:
+                for( j=0; j<num_samples; j++ ) {
+                    sample = (int16_t)channel->adpcm_predict;
+                    result_buf[j][0] += sample * vol_left;
+                    result_buf[j][1] += sample * vol_right;
+                    channel->posn_left += channel->sample_rate;
+                    while( channel->posn_left > audio.output_rate ) {
+                        channel->posn_left -= audio.output_rate;
+                        channel->posn++;
+                        if( channel->posn == channel->end ) {
+                            if( channel->loop ) {
+                                channel->posn = channel->loop_start;
+                                channel->loop = LOOP_LOOPED;
+                                channel->adpcm_predict = 0;
+                                channel->adpcm_step = 0;
+                            } else {
+                                audio_stop_channel(i);
+                                j = num_samples;
+                                break;
+                            }
+                        }
+                        uint8_t data = ((uint8_t *)(arm_mem + channel->start))[channel->posn>>1];
+                        if( channel->posn&1 ) {
+                            adpcm_yamaha_decode_nibble( channel, (data >> 4) & 0x0F );
+                        } else {
+                            adpcm_yamaha_decode_nibble( channel, data & 0x0F );
+                        }
+                    }
+                }
+                break;
+            default:
+                break;
+            }
+        }
     }
 	    
     /* Down-render to the final output format */
+    audio_buffer_t buf = audio.output_buffers[audio.write_buffer];
+    if( buf->status == BUFFER_FULL ) {
+        buf = audio_next_write_buffer();
+        if( buf == NULL ) { // no available space
+            return;
+        }
+    }
     
-    if( audio.output_format & AUDIO_FMT_16BIT ) {
-	audio_buffer_t buf = audio.output_buffers[audio.write_buffer];
-	uint16_t *data = (uint16_t *)&buf->data[buf->posn];
-	for( j=0; j < num_samples; j++ ) {
-	    *data++ = (int16_t)(result_buf[j][0] >> 6);
-	    *data++ = (int16_t)(result_buf[j][1] >> 6);	
-	    buf->posn += 4;
-	    if( buf->posn == buf->length ) {
-		audio_next_write_buffer();
-		buf = audio.output_buffers[audio.write_buffer];
-		data = (uint16_t *)&buf->data[0];
-	    }
-	}
-    } else {
-	audio_buffer_t buf = audio.output_buffers[audio.write_buffer];
-	uint8_t *data = (uint8_t *)&buf->data[buf->posn];
-	for( j=0; j < num_samples; j++ ) {
-	    *data++ = (uint8_t)(result_buf[j][0] >> 16);
-	    *data++ = (uint8_t)(result_buf[j][1] >> 16);	
-	    buf->posn += 2;
-	    if( buf->posn == buf->length ) {
-		audio_next_write_buffer();
-		buf = audio.output_buffers[audio.write_buffer];
-		data = (uint8_t *)&buf->data[0];
-	    }
-	}
+    switch( audio.output_format & AUDIO_FMT_SAMPLE_MASK ) {
+    case AUDIO_FMT_FLOAT: {
+        float scale = 1.0/SHRT_MAX;
+        float *data = (float *)&buf->data[buf->posn];
+        for( j=0; j<num_samples; j++ ) {
+            *data++ = scale * (result_buf[j][0] >> 6);
+            *data++ = scale * (result_buf[j][1] >> 6);
+            buf->posn += 8;
+            if( buf->posn == buf->length ) {
+                buf = audio_next_write_buffer();
+                if( buf == NULL ) {
+                    break;
+                }
+                data = (float *)&buf->data[0];
+            }
+        }
+        break;
+    }
+    case AUDIO_FMT_16BIT: {
+        int16_t *data = (int16_t *)&buf->data[buf->posn];
+        for( j=0; j < num_samples; j++ ) {
+            *data++ = (int16_t)(result_buf[j][0] >> 6);
+            *data++ = (int16_t)(result_buf[j][1] >> 6);	
+            buf->posn += 4;
+            if( buf->posn == buf->length ) {
+                buf = audio_next_write_buffer();
+                if( buf == NULL ) {
+                    // All buffers are full
+                    break;
+                }
+                data = (int16_t *)&buf->data[0];
+            }
+        }
+        break;
+    }
+    case AUDIO_FMT_8BIT: {
+        int8_t *data = (uint8_t *)&buf->data[buf->posn];
+        for( j=0; j < num_samples; j++ ) {
+            *data++ = (int8_t)(result_buf[j][0] >> 16);
+            *data++ = (int8_t)(result_buf[j][1] >> 16);	
+            buf->posn += 2;
+            if( buf->posn == buf->length ) {
+                buf = audio_next_write_buffer();
+                if( buf == NULL ) {
+                    // All buffers are full
+                    break;
+                }
+                buf = audio.output_buffers[audio.write_buffer];
+                data = (uint8_t *)&buf->data[0];
+            }
+        }
+        break;
+    }
     }
 }
 

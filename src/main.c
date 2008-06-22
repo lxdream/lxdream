@@ -148,19 +148,11 @@ int main (int argc, char *argv[])
 
     if( without_bios ) {
     	bios_install();
-	dcload_install();
+    	dcload_install();
     }
 
-    audio_driver_t audio_driver = get_audio_driver_by_name(audio_driver_name);
-    if( audio_driver == NULL ) {
-	ERROR( "Audio driver '%s' not found, aborting.", audio_driver_name );
-	exit(2);
-    } else if( audio_set_driver( audio_driver, 44100, AUDIO_FMT_16ST ) == FALSE ) {
-	ERROR( "Failed to initialize audio driver '%s', using null driver", 
-	       audio_driver->name );
-	audio_set_driver( &audio_null_driver, 44100, AUDIO_FMT_16ST );
-    }
-
+    audio_init_driver( audio_driver_name, 44100, AUDIO_FMT_16ST );
+    
     if( headless ) {
 	display_set_driver( &display_null_driver );
     } else {
