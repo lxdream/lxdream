@@ -6774,14 +6774,13 @@ cat >>confdefs.h <<\_ACEOF
 #define APPLE_BUILD 1
 _ACEOF
 
+      if test "x$with_gtk" = "xx11"; then
+        with_gtk=no
+      fi
 
 fi
 
 
-
-   if test "x$with_gtk" = "xx11"; then
-      with_gtk=no
-   fi
 
 
 else
