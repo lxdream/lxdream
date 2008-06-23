@@ -54,11 +54,10 @@ AC_TRY_COMPILE([@interface Foo @end],, [
       LIBS="$LIBS -Wl,-dylib_file,/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib:/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib -framework OpenGL"
       AC_DEFINE(HAVE_COCOA,[1],[Have Cocoa framework])
       AC_DEFINE(APPLE_BUILD,[1],[Building on an apple platform. Things are different...])
+      if test "x$with_gtk" = "xx11"; then
+        with_gtk=no
+      fi
    ])
-
-   if test "x$with_gtk" = "xx11"; then
-      with_gtk=no
-   fi
 
 ], [CPPFLAGS="$lxdream_save_cppflags"] )
 AM_CONDITIONAL(GUI_COCOA, [test "$HAVE_COCOA" = 'yes' -a "$with_gtk" = "no"])
