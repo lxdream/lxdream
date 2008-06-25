@@ -135,31 +135,31 @@ void * sh4_translate_basic_block( sh4addr_t start )
     uint8_t *eob = xlat_output + xlat_current_block->size;
 
     if( GET_ICACHE_END() < lastpc ) {
-	lastpc = GET_ICACHE_END();
+        lastpc = GET_ICACHE_END();
     }
 
     sh4_translate_begin_block(pc);
 
     do {
-	/* check for breakpoints at this pc */
-	for( i=0; i<sh4_breakpoint_count; i++ ) {
-	    if( sh4_breakpoints[i].address == pc ) {
-		sh4_translate_emit_breakpoint(pc);
-		break;
-	    }
-	}
-	if( eob - xlat_output < MAX_INSTRUCTION_SIZE ) {
-	    uint8_t *oldstart = xlat_current_block->code;
-	    xlat_current_block = xlat_extend_block( xlat_output - oldstart + MAX_INSTRUCTION_SIZE );
-	    xlat_output = xlat_current_block->code + (xlat_output - oldstart);
-	    eob = xlat_current_block->code + xlat_current_block->size;
-	}
-	done = sh4_translate_instruction( pc ); 
-	assert( xlat_output <= eob );
-	pc += 2;
-	if ( pc >= lastpc ) {
-	    done = 2;
-	}
+        /* check for breakpoints at this pc */
+        for( i=0; i<sh4_breakpoint_count; i++ ) {
+            if( sh4_breakpoints[i].address == pc ) {
+                sh4_translate_emit_breakpoint(pc);
+                break;
+            }
+        }
+        if( eob - xlat_output < MAX_INSTRUCTION_SIZE ) {
+            uint8_t *oldstart = xlat_current_block->code;
+            xlat_current_block = xlat_extend_block( xlat_output - oldstart + MAX_INSTRUCTION_SIZE );
+            xlat_output = xlat_current_block->code + (xlat_output - oldstart);
+            eob = xlat_current_block->code + xlat_current_block->size;
+        }
+        done = sh4_translate_instruction( pc ); 
+        assert( xlat_output <= eob );
+        pc += 2;
+        if ( pc >= lastpc ) {
+            done = 2;
+        }
     } while( !done );
     pc += (done - 2);
 
@@ -168,14 +168,15 @@ void * sh4_translate_basic_block( sh4addr_t start )
 
     int epilogue_size = sh4_translate_end_block_size();
     uint32_t recovery_size = sizeof(struct xlat_recovery_record)*xlat_recovery_posn;
-    uint32_t finalsize = xlat_output - xlat_current_block->code + epilogue_size + recovery_size;
-    if( eob - xlat_output < finalsize ) {
-	uint8_t *oldstart = xlat_current_block->code;
-	xlat_current_block = xlat_extend_block( finalsize );
-	xlat_output = xlat_current_block->code + (xlat_output - oldstart);
+    uint32_t finalsize = (xlat_output - xlat_current_block->code) + epilogue_size + recovery_size;
+    if( xlat_current_block->size < finalsize ) {
+        uint8_t *oldstart = xlat_current_block->code;
+        xlat_current_block = xlat_extend_block( finalsize );
+        xlat_output = xlat_current_block->code + (xlat_output - oldstart);
     }	
     sh4_translate_end_block(pc);
-
+    assert( xlat_output <= (xlat_current_block->code + xlat_current_block->size - recovery_size) );
+    
     /* Write the recovery records onto the end of the code block */
     memcpy( xlat_output, xlat_recovery, recovery_size);
     xlat_current_block->recover_table_offset = xlat_output - (uint8_t *)xlat_current_block->code;
