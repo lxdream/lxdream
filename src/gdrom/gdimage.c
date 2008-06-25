@@ -477,3 +477,24 @@ void gdrom_image_dump_info( gdrom_disc_t d ) {
     }
 }
 
+gdrom_device_t gdrom_device_new( const gchar *name, const gchar *dev_name )
+{
+    struct gdrom_device *dev = g_malloc0( sizeof(struct gdrom_device) );
+    dev->name = g_strdup(name);
+    dev->device_name = g_strdup(dev_name);
+    return dev;
+}
+
+void gdrom_device_destroy( gdrom_device_t dev )
+{
+    if( dev->name != NULL ) {
+        g_free( dev->name );
+        dev->name = NULL;
+    }
+    if( dev->device_name != NULL ) {
+        g_free( dev->device_name );
+        dev->device_name = NULL;
+    }
+    g_free( dev );
+}
+    

@@ -28,6 +28,7 @@
 
 #define MAX_SECTOR_SIZE 2352
 
+
 struct gdrom_toc {
     uint32_t track[99];
     uint32_t first, last, leadout;
@@ -201,5 +202,9 @@ void gdrom_image_destroy_no_close( gdrom_disc_t d );
  * @return a newly allocated string.
  */
 gchar *gdrom_get_relative_filename( const gchar *base_name, const gchar *find_name );
+
+gdrom_device_t gdrom_device_new( const gchar *name, const gchar *dev_name );
+
+void gdrom_device_destroy( gdrom_device_t dev );
 
 #endif

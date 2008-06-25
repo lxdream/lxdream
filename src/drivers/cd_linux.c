@@ -60,7 +60,7 @@ static int linux_drive_status( gdrom_disc_t disc );
 
 struct gdrom_image_class cdrom_device_class = { "Linux", NULL,
 						linux_image_is_valid, linux_open_device };
-GList *gdrom_get_native_devices(void)
+GList *cdrom_get_native_devices(void)
 {
     GList *list = NULL;
     struct fstab *ent;
@@ -76,12 +76,17 @@ GList *gdrom_get_native_devices(void)
 	    int caps = ioctl(fd, CDROM_GET_CAPABILITY);
 	    if( caps != -1 ) {
 		/* Appears to support CDROM functions */
-		list = g_list_append( list, g_strdup(ent->fs_spec) );
+		list = g_list_append( list, gdrom_device_new(ent->fs_spec, ent->fs_spec));
 	    }
 	    close(fd);
 	}
     }
     return list;
+}
+
+gdrom_disc_t cdrom_open_device( const gchar *method, const gchar *path )
+{
+    return NULL;
 }
 
 static gboolean linux_image_is_valid( FILE *f )

@@ -46,18 +46,40 @@ char *gdrom_mode_names[] = { "Mode 0", "Mode 1", "Mode 2", "Mode 2 Form 1", "Mod
 			     "Mode 2 semiraw", "XA Raw", "Non-XA Raw" };
 uint32_t gdrom_sector_size[] = { 0, 2048, 2336, 2048, 2324, 2352, 2336, 2352, 2352 };
 
-gdrom_disc_t gdrom_image_open( const gchar *filename )
+gdrom_disc_t gdrom_image_open( const gchar *inFilename )
 {
+    const gchar *filename = inFilename;
     const gchar *ext = strrchr(filename, '.');
     gdrom_disc_t disc = NULL;
-
-    int fd = open( filename, O_RDONLY | O_NONBLOCK );
+    int fd;
     FILE *f;
     int i;
     gdrom_image_class_t extclz = NULL;
 
+    // Check for a url-style filename.
+    char *lizard_lips = strstr( filename, "://" );
+    if( lizard_lips != NULL ) {
+        gchar *path = lizard_lips + 3;
+        int method_len = (lizard_lips-filename);
+        gchar method[method_len + 1];
+        memcpy( method, filename, method_len );
+        method[method_len] = '\0';
+    
+        if( strcasecmp( method, "file" ) == 0 ) {
+            filename = path;
+        } else if( strcasecmp( method, "dvd" ) == 0 ||
+                strcasecmp( method, "cd" ) == 0 ||
+                strcasecmp( method, "cdrom" ) ) {
+            return cdrom_open_device( method, path );
+        } else {
+            ERROR( "Unrecognized URL method '%s' in filename '%s'", method, filename );
+            return NULL;
+        }
+    }
+    
+    fd = open( filename, O_RDONLY | O_NONBLOCK );
     if( fd == -1 ) {
-       return NULL;
+        return NULL;
     }
 
     f = fdopen(fd, "ro");

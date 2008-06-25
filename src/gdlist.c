@@ -43,9 +43,9 @@ gint gdrom_list_find( const gchar *name )
     GList *ptr;
 
     for( ptr = gdrom_device_list; ptr != NULL; ptr = g_list_next(ptr) ) {
-        gchar *device = (gchar *)ptr->data;
+        gdrom_device_t device = (gdrom_device_t)ptr->data;
         posn++;
-        if( strcmp(device, name) == 0 ) {
+        if( strcmp(device->name, name) == 0 ) {
             return posn;
         }
     }
@@ -148,7 +148,7 @@ void gdrom_list_init()
 {
     const gchar *recent = lxdream_get_config_value( CONFIG_RECENT );
     register_gdrom_disc_change_hook( gdrom_list_disc_changed, NULL );
-    gdrom_device_list = gdrom_get_native_devices();
+    gdrom_device_list = cdrom_get_native_devices();
     if( recent != NULL ) {
         gchar **list = g_strsplit(recent, ":", MAX_RECENT_ITEMS);
         int i;
@@ -172,8 +172,8 @@ gboolean gdrom_list_set_selection( int posn )
     }
     
     if( posn <= gdrom_device_count ) {
-        gchar *entry = g_list_nth_data(gdrom_device_list, posn-1);
-        return gdrom_mount_image(entry);
+        gdrom_device_t device = g_list_nth_data(gdrom_device_list, posn-1);
+        return gdrom_mount_image(device->name);
     }
     
     posn -= FIRST_RECENT_INDEX;
@@ -207,7 +207,8 @@ const gchar *gdrom_list_get_display_name( int posn )
     }
     
     if( posn <= gdrom_device_count ) {
-        return g_list_nth_data(gdrom_device_list, posn-1);
+        gdrom_device_t device = g_list_nth_data(gdrom_device_list, posn-1);
+        return device->device_name;
     }
     
     if( posn == gdrom_device_count + 1) {
@@ -229,7 +230,8 @@ const gchar *gdrom_list_get_filename( int posn )
    }
    
    if( posn <= gdrom_device_count ) {
-       return g_list_nth_data(gdrom_device_list, posn-1);
+       gdrom_device_t device = g_list_nth_data(gdrom_device_list, posn-1);
+       return device->name;
    }
    
    if( posn == gdrom_device_count + 1) {
