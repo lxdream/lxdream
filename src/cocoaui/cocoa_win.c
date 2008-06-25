@@ -20,7 +20,8 @@
 #include "lxdream.h"
 #include <ApplicationServices/ApplicationServices.h>
 
-#define STATUSBAR_HEIGHT 20
+#define STATUSBAR_HEIGHT 25
+#define STATUS_TEXT_HEIGHT 22
 
 @interface LxdreamToolbarDelegate : NSObject {
     NSArray *identifiers;
@@ -107,7 +108,7 @@
     if( [super initWithContentRect: contentRect
            styleMask: ( NSTitledWindowMask | NSClosableWindowMask | 
                NSMiniaturizableWindowMask | NSResizableWindowMask |
-               NSTexturedBackgroundWindowMask | NSUnifiedTitleAndToolbarWindowMask )
+               NSUnifiedTitleAndToolbarWindowMask )
            backing: NSBackingStoreBuffered defer: NO ] == nil ) {
         return nil;
     } else {
@@ -116,7 +117,7 @@
         [video setFrameOrigin: NSMakePoint(0.0,STATUSBAR_HEIGHT)];
         
         status = 
-            [[NSTextField alloc] initWithFrame: NSMakeRect(0.0,0.0,videoRect.size.width,STATUSBAR_HEIGHT)];
+            [[NSTextField alloc] initWithFrame: NSMakeRect(0.0,0.0,videoRect.size.width,STATUS_TEXT_HEIGHT)];
         [status setStringValue: @"Idle"];
         [status setEditable: NO];
         [status setDrawsBackground: NO];
@@ -125,8 +126,8 @@
         [[self contentView] addSubview: status];
         [self makeFirstResponder: video];
 
-        [self setAutorecalculatesContentBorderThickness: YES forEdge: NSMinYEdge ];
-        [self setContentBorderThickness: 15.0 forEdge: NSMinYEdge];
+        [self setAutorecalculatesContentBorderThickness: NO forEdge: NSMinYEdge ];
+        [self setContentBorderThickness: STATUSBAR_HEIGHT forEdge: NSMinYEdge];
 
         // Share the app delegate for the purposes of keeping it in one place
         [self setDelegate: [NSApp delegate]];
