@@ -1564,3 +1564,8 @@ void sh4_disasm_region( FILE *f, int from, int to )
         fprintf( f, "  %08x:  %s  %s\n", pc, opcode, buf );
     }
 }
+
+void sh4_dump_region( int from, int to )
+{
+    sh4_disasm_region( stdout, from, to );
+}
