@@ -23,7 +23,7 @@
 
 static pa_simple *pulse_server = NULL;
 
-gboolean audio_init( )
+gboolean audio_pulse_init( )
 {
     int rate = DEFAULT_SAMPLE_RATE;
     int format = DEFAULT_SAMPLE_FORMAT;
