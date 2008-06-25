@@ -20,10 +20,10 @@
 #include "dream.h"
 #include "mem.h"
 
-/** Maximum size of a translated instruction, in bytes. This includes potentially
- * writing the entire epilogue
+/** Maximum size of a translated instruction, in bytes. Current worst case seems
+ * to be a BF/S followed by one of the long FMOVs.
  */
-#define MAX_INSTRUCTION_SIZE 256
+#define MAX_INSTRUCTION_SIZE 384
 /** Maximum size of the translation epilogue (current real size is 116 bytes, so
  * allows a little room
  */
