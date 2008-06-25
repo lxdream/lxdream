@@ -97,7 +97,6 @@ int main (int argc, char *argv[])
     uint32_t time_secs, time_nanos;
 
     install_crash_handler();
-    gdrom_get_native_devices();
 #ifdef ENABLE_NLS
     bindtextdomain (PACKAGE, PACKAGE_LOCALE_DIR);
     textdomain (PACKAGE);
