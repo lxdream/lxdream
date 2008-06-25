@@ -106,7 +106,13 @@ endif
 
 if CDROM_LINUX
 lxdream_SOURCES += drivers/cd_linux.c
-else
+endif
+
+if CDROM_OSX
+lxdream_SOURCES += drivers/cd_osx.c
+endif
+
+if CDROM_NONE
 lxdream_SOURCES += drivers/cd_none.c
 endif
 

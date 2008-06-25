@@ -26,6 +26,14 @@
 
 typedef uint16_t gdrom_error_t;
 
+
+struct gdrom_device {
+    char *name;  // internal name
+    char *device_name; // Human-readable device name
+};
+
+typedef struct gdrom_device *gdrom_device_t;
+
 typedef struct gdrom_disc *gdrom_disc_t;
 
 typedef gboolean (*gdrom_disc_change_hook_t)( gdrom_disc_t new_disc, const gchar *new_disc_name, void *user_data );
@@ -59,8 +67,6 @@ gdrom_disc_t gdrom_get_current_disc();
 
 const gchar *gdrom_get_current_disc_name();
 
-GList *gdrom_get_native_devices();
-
 uint32_t gdrom_read_sectors( uint32_t sector, uint32_t sector_count,
 			     int mode, unsigned char *buf, uint32_t *length );
 
@@ -79,5 +85,27 @@ gdrom_error_t gdrom_get_toc( unsigned char *buf );
 gdrom_error_t gdrom_get_info( unsigned char *buf, int session );
 
 uint8_t gdrom_get_track_no_by_lba( uint32_t lba );
+
+
+/**
+ * Native CD-ROM API - provided by drivers/cd_*.c
+ *
+ * A device name is either a system special file (most unixes) or a url of the
+ * form dvd://<identifier> or cd://<identifier>, where <identifier> is a system
+ * defined string that uniquely identifies a particular device.
+ */
+
+/**
+ * Return a list of gdrom_device_t defining all CD/DVD drives in the host system.
+ */
+GList *cdrom_get_native_devices();
+
+/**
+ * Open a native device given a device name and url method. Eg, for the url dvd://1
+ * this function will be invoked with method = "dvd" and name = "1"
+ * 
+ * @return NULL on failure, otherwise a valid gdrom_disc_t that can be mounted.
+ */
+gdrom_disc_t cdrom_open_device( const gchar *method, const gchar *name );
 
 #endif

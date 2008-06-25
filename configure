@@ -764,6 +764,10 @@ AUDIO_ALSA_TRUE
 AUDIO_ALSA_FALSE
 CDROM_LINUX_TRUE
 CDROM_LINUX_FALSE
+CDROM_OSX_TRUE
+CDROM_OSX_FALSE
+CDROM_NONE_TRUE
+CDROM_NONE_FALSE
 JOY_LINUX_TRUE
 JOY_LINUX_FALSE
 SHCC
@@ -9195,21 +9199,40 @@ $as_echo "$ac_cv_header_linux_cdrom_h" >&6; }
 
 fi
 if test $ac_cv_header_linux_cdrom_h = yes; then
-  HAVE_LINUX_CDROM_H=yes
+  CDROM_DRIVER=linux
 else
-
-    echo "Linux CDROM support not found, building without it."
+  true
 fi
 
 
 
 
-if test "$HAVE_LINUX_CDROM_H" = "yes"; then
+if test "x$CDROM_DRIVER" = "xlinux"; then
   CDROM_LINUX_TRUE=
   CDROM_LINUX_FALSE='#'
 else
   CDROM_LINUX_TRUE='#'
   CDROM_LINUX_FALSE=
+fi
+
+
+
+if test "x$CDROM_DRIVER" = "xosx"; then
+  CDROM_OSX_TRUE=
+  CDROM_OSX_FALSE='#'
+else
+  CDROM_OSX_TRUE='#'
+  CDROM_OSX_FALSE=
+fi
+
+
+
+if test "x$CDROM_DRIVER" = "x"; then
+  CDROM_NONE_TRUE=
+  CDROM_NONE_FALSE='#'
+else
+  CDROM_NONE_TRUE='#'
+  CDROM_NONE_FALSE=
 fi
 
 
@@ -11448,6 +11471,20 @@ $as_echo "$as_me: error: conditional \"CDROM_LINUX\" was never defined.
 Usually this means the macro was only invoked conditionally." >&2;}
    { (exit 1); exit 1; }; }
 fi
+if test -z "${CDROM_OSX_TRUE}" && test -z "${CDROM_OSX_FALSE}"; then
+  { { $as_echo "$as_me:$LINENO: error: conditional \"CDROM_OSX\" was never defined.
+Usually this means the macro was only invoked conditionally." >&5
+$as_echo "$as_me: error: conditional \"CDROM_OSX\" was never defined.
+Usually this means the macro was only invoked conditionally." >&2;}
+   { (exit 1); exit 1; }; }
+fi
+if test -z "${CDROM_NONE_TRUE}" && test -z "${CDROM_NONE_FALSE}"; then
+  { { $as_echo "$as_me:$LINENO: error: conditional \"CDROM_NONE\" was never defined.
+Usually this means the macro was only invoked conditionally." >&5
+$as_echo "$as_me: error: conditional \"CDROM_NONE\" was never defined.
+Usually this means the macro was only invoked conditionally." >&2;}
+   { (exit 1); exit 1; }; }
+fi
 if test -z "${JOY_LINUX_TRUE}" && test -z "${JOY_LINUX_FALSE}"; then
   { { $as_echo "$as_me:$LINENO: error: conditional \"JOY_LINUX\" was never defined.
 Usually this means the macro was only invoked conditionally." >&5
@@ -12821,3 +12858,8 @@ else
    echo "  Audio drivers: $AUDIO_DRIVERS"
 fi
 
+if test "x$CDROM_DRIVER" = "x"; then
+   echo "  CD-ROM driver: none (no supported cd-rom devices found)"
+else
+   echo "  CD-ROM driver: $CDROM_DRIVER"
+fi

@@ -63,8 +63,9 @@ check_PROGRAMS = test/testxlt$(EXEEXT) $(am__EXEEXT_1)
 @AUDIO_ESOUND_TRUE@am__append_10 = drivers/audio_esd.c
 @AUDIO_ALSA_TRUE@am__append_11 = drivers/audio_alsa.c
 @CDROM_LINUX_TRUE@am__append_12 = drivers/cd_linux.c
-@CDROM_LINUX_FALSE@am__append_13 = drivers/cd_none.c
-@JOY_LINUX_TRUE@am__append_14 = drivers/joy_linux.c
+@CDROM_OSX_TRUE@am__append_13 = drivers/cd_osx.c
+@CDROM_NONE_TRUE@am__append_14 = drivers/cd_none.c
+@JOY_LINUX_TRUE@am__append_15 = drivers/joy_linux.c
 subdir = src
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -120,7 +121,7 @@ am__lxdream_SOURCES_DIST = main.c config.c config.h mem.c mem.h mmio.h \
 	drivers/video_glx.c drivers/video_glx.h drivers/video_nsgl.c \
 	drivers/video_nsgl.h drivers/audio_osx.c drivers/audio_pulse.c \
 	drivers/audio_esd.c drivers/audio_alsa.c drivers/cd_linux.c \
-	drivers/cd_none.c drivers/joy_linux.c
+	drivers/cd_osx.c drivers/cd_none.c drivers/joy_linux.c
 @BUILD_SH4X86_TRUE@am__objects_1 = sh4x86.$(OBJEXT) sh4trans.$(OBJEXT) \
 @BUILD_SH4X86_TRUE@	x86dasm.$(OBJEXT) i386-dis.$(OBJEXT) \
 @BUILD_SH4X86_TRUE@	dis-init.$(OBJEXT) dis-buf.$(OBJEXT)
@@ -139,8 +140,9 @@ am__lxdream_SOURCES_DIST = main.c config.c config.h mem.c mem.h mmio.h \
 @AUDIO_ESOUND_TRUE@am__objects_9 = audio_esd.$(OBJEXT)
 @AUDIO_ALSA_TRUE@am__objects_10 = audio_alsa.$(OBJEXT)
 @CDROM_LINUX_TRUE@am__objects_11 = cd_linux.$(OBJEXT)
-@CDROM_LINUX_FALSE@am__objects_12 = cd_none.$(OBJEXT)
-@JOY_LINUX_TRUE@am__objects_13 = joy_linux.$(OBJEXT)
+@CDROM_OSX_TRUE@am__objects_12 = cd_osx.$(OBJEXT)
+@CDROM_NONE_TRUE@am__objects_13 = cd_none.$(OBJEXT)
+@JOY_LINUX_TRUE@am__objects_14 = joy_linux.$(OBJEXT)
 am_lxdream_OBJECTS = main.$(OBJEXT) config.$(OBJEXT) mem.$(OBJEXT) \
 	watch.$(OBJEXT) asic.$(OBJEXT) syscall.$(OBJEXT) \
 	bios.$(OBJEXT) dcload.$(OBJEXT) ide.$(OBJEXT) \
@@ -163,7 +165,8 @@ am_lxdream_OBJECTS = main.$(OBJEXT) config.$(OBJEXT) mem.$(OBJEXT) \
 	$(am__objects_2) $(am__objects_3) $(am__objects_4) \
 	$(am__objects_5) $(am__objects_6) $(am__objects_7) \
 	$(am__objects_8) $(am__objects_9) $(am__objects_10) \
-	$(am__objects_11) $(am__objects_12) $(am__objects_13)
+	$(am__objects_11) $(am__objects_12) $(am__objects_13) \
+	$(am__objects_14)
 lxdream_OBJECTS = $(am_lxdream_OBJECTS)
 lxdream_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am__test_testsh4x86_SOURCES_DIST = test/testsh4x86.c x86dasm/x86dasm.c \
@@ -234,6 +237,10 @@ CCASFLAGS = @CCASFLAGS@
 CCDEPMODE = @CCDEPMODE@
 CDROM_LINUX_FALSE = @CDROM_LINUX_FALSE@
 CDROM_LINUX_TRUE = @CDROM_LINUX_TRUE@
+CDROM_NONE_FALSE = @CDROM_NONE_FALSE@
+CDROM_NONE_TRUE = @CDROM_NONE_TRUE@
+CDROM_OSX_FALSE = @CDROM_OSX_FALSE@
+CDROM_OSX_TRUE = @CDROM_OSX_TRUE@
 CFLAGS = @CFLAGS@
 CPP = @CPP@
 CPPFLAGS = @CPPFLAGS@
@@ -393,7 +400,7 @@ lxdream_SOURCES = main.c config.c config.h mem.c mem.h mmio.h watch.c \
 	$(am__append_4) $(am__append_5) $(am__append_6) \
 	$(am__append_7) $(am__append_8) $(am__append_9) \
 	$(am__append_10) $(am__append_11) $(am__append_12) \
-	$(am__append_13) $(am__append_14)
+	$(am__append_13) $(am__append_14) $(am__append_15)
 @BUILD_SH4X86_TRUE@test_testsh4x86_LDADD = @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@
 @BUILD_SH4X86_TRUE@test_testsh4x86_SOURCES = test/testsh4x86.c x86dasm/x86dasm.c \
 @BUILD_SH4X86_TRUE@	x86dasm/x86dasm.h x86dasm/i386-dis.c x86dasm/dis-init.c \
@@ -509,6 +516,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bootstrap.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cd_linux.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cd_none.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cd_osx.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cdi.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cocoa_gd.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cocoa_win.Po@am__quote@
@@ -1666,6 +1674,20 @@ cd_linux.obj: drivers/cd_linux.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/cd_linux.c' object='cd_linux.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o cd_linux.obj `if test -f 'drivers/cd_linux.c'; then $(CYGPATH_W) 'drivers/cd_linux.c'; else $(CYGPATH_W) '$(srcdir)/drivers/cd_linux.c'; fi`
+
+cd_osx.o: drivers/cd_osx.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT cd_osx.o -MD -MP -MF "$(DEPDIR)/cd_osx.Tpo" -c -o cd_osx.o `test -f 'drivers/cd_osx.c' || echo '$(srcdir)/'`drivers/cd_osx.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/cd_osx.Tpo" "$(DEPDIR)/cd_osx.Po"; else rm -f "$(DEPDIR)/cd_osx.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/cd_osx.c' object='cd_osx.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o cd_osx.o `test -f 'drivers/cd_osx.c' || echo '$(srcdir)/'`drivers/cd_osx.c
+
+cd_osx.obj: drivers/cd_osx.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT cd_osx.obj -MD -MP -MF "$(DEPDIR)/cd_osx.Tpo" -c -o cd_osx.obj `if test -f 'drivers/cd_osx.c'; then $(CYGPATH_W) 'drivers/cd_osx.c'; else $(CYGPATH_W) '$(srcdir)/drivers/cd_osx.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/cd_osx.Tpo" "$(DEPDIR)/cd_osx.Po"; else rm -f "$(DEPDIR)/cd_osx.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/cd_osx.c' object='cd_osx.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o cd_osx.obj `if test -f 'drivers/cd_osx.c'; then $(CYGPATH_W) 'drivers/cd_osx.c'; else $(CYGPATH_W) '$(srcdir)/drivers/cd_osx.c'; fi`
 
 cd_none.o: drivers/cd_none.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT cd_none.o -MD -MP -MF "$(DEPDIR)/cd_none.Tpo" -c -o cd_none.o `test -f 'drivers/cd_none.c' || echo '$(srcdir)/'`drivers/cd_none.c; \

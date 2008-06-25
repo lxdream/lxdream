@@ -185,10 +185,14 @@ PKG_CHECK_MODULES(ALSA, [alsa], [
 AM_CONDITIONAL( AUDIO_ALSA, [test "$HAVE_ALSA" = 'yes'] )
 
 
-dnl Check for linux cdrom device support
-AC_CHECK_HEADER([linux/cdrom.h], [HAVE_LINUX_CDROM_H=yes], [
-    echo "Linux CDROM support not found, building without it."]  )
-AM_CONDITIONAL(CDROM_LINUX, [test "$HAVE_LINUX_CDROM_H" = "yes"])
+dnl Check for native cdrom support. There can be only one.
+AC_CHECK_HEADER([linux/cdrom.h], [CDROM_DRIVER=linux], [true])
+dnl AC_CHECK_HEADER([IOKit/IOKitLib.h], [
+dnl     CDROM_DRIVER=osx
+dnl     LIBS="$LIBS -framework IOKit"],[true])
+AM_CONDITIONAL(CDROM_LINUX, [test "x$CDROM_DRIVER" = "xlinux"])
+AM_CONDITIONAL(CDROM_OSX, [test "x$CDROM_DRIVER" = "xosx"])
+AM_CONDITIONAL(CDROM_NONE, [test "x$CDROM_DRIVER" = "x"])
 
 AC_CHECK_HEADER([linux/joystick.h], [
     HAVE_LINUX_JOYSTICK_H=yes
@@ -270,3 +274,8 @@ else
    echo "  Audio drivers: $AUDIO_DRIVERS"
 fi
 
+if test "x$CDROM_DRIVER" = "x"; then
+   echo "  CD-ROM driver: none (no supported cd-rom devices found)"
+else
+   echo "  CD-ROM driver: $CDROM_DRIVER"
+fi
