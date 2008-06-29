@@ -32,7 +32,7 @@ while( $#worklist >= 0 ) {
             $targetpath = "$TARGETDIR/$libname";
             $libid = "\@executable_path/../Frameworks/$libname";
             if( !$done{$libname} ) {
-                $done{libname} = 1;
+                $done{$libname} = 1;
                 push @worklist, $targetpath;
                 system( ("cp", $lib, $targetpath) ) == 0 || die "Failed to copy $lib to $targetpath";
                 system( ($NTOOL, "-id", $libid, $targetpath) ) == 0 || die "Failed to set $lib ID to $libid";
