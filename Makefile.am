@@ -45,6 +45,7 @@ all-local:
 	mkdir -p lxdream.app/Contents/Resources
 	cp src/lxdream lxdream.app/Contents/MacOS
 	cp -R pixmaps/* lxdream.app/Contents/Resources
+	$(srcdir)/bundlelibs.pl lxdream.app/Contents/MacOS/lxdream lxdream.app/Contents/Frameworks
 	@echo --- Done ---
 endif
 
