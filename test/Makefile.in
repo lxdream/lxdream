@@ -142,3 +142,5 @@ testFF10: crt0.so testFF10.so lib.so
 clean:
 	rm -f *.o *.so *.ao *.ac *.bin mapleid ide readmem dumpasic
 
+distclean: clean
+	rm -f Makefile
