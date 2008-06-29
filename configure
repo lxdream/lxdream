@@ -809,6 +809,8 @@ enable_watch
 enable_sh4stats
 with_osmesa
 with_gtk
+with_esd
+with_pulse
 '
       ac_precious_vars='build_alias
 host_alias
@@ -1478,6 +1480,8 @@ Optional Packages:
   --with-osmesa           Build with the osmesa GL library (software
                           rendering)
   --with-gtk              Build with the GTK UI. Default on X11 systems
+  --with-esd              Build with support for the ESounD audio system
+  --with-pulse            Build with support for the PulseAudio audio system
 
 Some influential environment variables:
   CC          C compiler command
@@ -6597,6 +6601,18 @@ else
 fi
 
 
+# Check whether --with-esd was given.
+if test "${with_esd+set}" = set; then
+  withval=$with_esd;
+fi
+
+
+# Check whether --with-pulse was given.
+if test "${with_pulse+set}" = set; then
+  withval=$with_pulse;
+fi
+
+
 
 lxdream_save_cppflags="$CPPFLAGS"
 CPPFLAGS="$CPPFLAGS -x objective-c"
@@ -8803,6 +8819,7 @@ else
 fi
 
 
+if test "x$with_pulse" != "xno"; then
 
 pkg_failed=no
 { $as_echo "$as_me:$LINENO: checking for PULSE" >&5
@@ -8864,22 +8881,40 @@ fi
 
 	{ $as_echo "$as_me:$LINENO: result: no" >&5
 $as_echo "no" >&6; }
-                true
+
+       if test "x$with_pulse" = "xyes"; then
+          { { $as_echo "$as_me:$LINENO: error: PulseAudio audio package could not be found (but was required)
+See \`config.log' for more details." >&5
+$as_echo "$as_me: error: PulseAudio audio package could not be found (but was required)
+See \`config.log' for more details." >&2;}
+   { (exit 1); exit 1; }; }
+       fi
+
 elif test $pkg_failed = untried; then
-	true
+
+       if test "x$with_pulse" = "xyes"; then
+          { { $as_echo "$as_me:$LINENO: error: PulseAudio audio package could not be found (but was required)
+See \`config.log' for more details." >&5
+$as_echo "$as_me: error: PulseAudio audio package could not be found (but was required)
+See \`config.log' for more details." >&2;}
+   { (exit 1); exit 1; }; }
+       fi
+
 else
 	PULSE_CFLAGS=$pkg_cv_PULSE_CFLAGS
 	PULSE_LIBS=$pkg_cv_PULSE_LIBS
         { $as_echo "$as_me:$LINENO: result: yes" >&5
 $as_echo "yes" >&6; }
 
-     HAVE_PULSE='yes'
-     AUDIO_DRIVERS="$AUDIO_DRIVERS pulse"
+       HAVE_PULSE='yes'
+       AUDIO_DRIVERS="$AUDIO_DRIVERS pulse"
 
 cat >>confdefs.h <<\_ACEOF
 #define HAVE_PULSE 1
 _ACEOF
 
+
+fi
 fi
 
 
@@ -8892,6 +8927,7 @@ else
 fi
 
 
+if test "x$with_esd" != "xno"; then
 
 pkg_failed=no
 { $as_echo "$as_me:$LINENO: checking for ESOUND" >&5
@@ -8953,22 +8989,40 @@ fi
 
 	{ $as_echo "$as_me:$LINENO: result: no" >&5
 $as_echo "no" >&6; }
-                true
+
+       if test "x$with_esd" = "xyes"; then
+          { { $as_echo "$as_me:$LINENO: error: ESounD audio package could not be found (but was required)
+See \`config.log' for more details." >&5
+$as_echo "$as_me: error: ESounD audio package could not be found (but was required)
+See \`config.log' for more details." >&2;}
+   { (exit 1); exit 1; }; }
+       fi
+
 elif test $pkg_failed = untried; then
-	true
+
+       if test "x$with_esd" = "xyes"; then
+          { { $as_echo "$as_me:$LINENO: error: ESounD audio package could not be found (but was required)
+See \`config.log' for more details." >&5
+$as_echo "$as_me: error: ESounD audio package could not be found (but was required)
+See \`config.log' for more details." >&2;}
+   { (exit 1); exit 1; }; }
+       fi
+
 else
 	ESOUND_CFLAGS=$pkg_cv_ESOUND_CFLAGS
 	ESOUND_LIBS=$pkg_cv_ESOUND_LIBS
         { $as_echo "$as_me:$LINENO: result: yes" >&5
 $as_echo "yes" >&6; }
 
-     HAVE_ESOUND='yes'
-     AUDIO_DRIVERS="$AUDIO_DRIVERS esd"
+       HAVE_ESOUND='yes'
+       AUDIO_DRIVERS="$AUDIO_DRIVERS esd"
 
 cat >>confdefs.h <<\_ACEOF
 #define HAVE_ESOUND 1
 _ACEOF
 
+
+fi
 fi
 
 
