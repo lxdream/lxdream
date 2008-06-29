@@ -755,11 +755,18 @@ dist-hook:
 # Build a Mac OS X bundle. This is meaningless anywhere else
 @GUI_COCOA_TRUE@all-local:
 @GUI_COCOA_TRUE@	@echo --- Building Mac Bundle ---
+@GUI_COCOA_TRUE@	rm -rf lxdream.app
 @GUI_COCOA_TRUE@	mkdir -p lxdream.app/Contents/MacOS
 @GUI_COCOA_TRUE@	mkdir -p lxdream.app/Contents/Resources
 @GUI_COCOA_TRUE@	cp src/lxdream lxdream.app/Contents/MacOS
 @GUI_COCOA_TRUE@	cp -R pixmaps/* lxdream.app/Contents/Resources
 @GUI_COCOA_TRUE@	$(srcdir)/bundlelibs.pl lxdream.app/Contents/MacOS/lxdream lxdream.app/Contents/Frameworks
+@GUI_COCOA_TRUE@	for cat in $(CATALOGS); do \
+@GUI_COCOA_TRUE@	   catname=`basename "$$cat"`; \
+@GUI_COCOA_TRUE@	   catname=`echo $$catname|sed -e 's/$(CATOBJEXT)$$//'`; \
+@GUI_COCOA_TRUE@	   mkdir -p "lxdream.app/Contents/Resources/$$catname/LC_MESSAGES"; \
+@GUI_COCOA_TRUE@	   cp "po/$$cat" "lxdream.app/Contents/Resources/$$catname/LC_MESSAGES/lxdream.$(CATOBJEXT)"; \
+@GUI_COCOA_TRUE@	done
 @GUI_COCOA_TRUE@	@echo --- Done ---
 
 bundle: all
