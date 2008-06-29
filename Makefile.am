@@ -41,11 +41,18 @@ if GUI_COCOA
 # Build a Mac OS X bundle. This is meaningless anywhere else
 all-local:
 	@echo --- Building Mac Bundle ---
+	rm -rf lxdream.app
 	mkdir -p lxdream.app/Contents/MacOS
 	mkdir -p lxdream.app/Contents/Resources
 	cp src/lxdream lxdream.app/Contents/MacOS
 	cp -R pixmaps/* lxdream.app/Contents/Resources
 	$(srcdir)/bundlelibs.pl lxdream.app/Contents/MacOS/lxdream lxdream.app/Contents/Frameworks
+	for cat in $(CATALOGS); do \
+	   catname=`basename "$$cat"`; \
+	   catname=`echo $$catname|sed -e 's/$(CATOBJEXT)$$//'`; \
+	   mkdir -p "lxdream.app/Contents/Resources/$$catname/LC_MESSAGES"; \
+	   cp "po/$$cat" "lxdream.app/Contents/Resources/$$catname/LC_MESSAGES/lxdream.$(CATOBJEXT)"; \
+	done
 	@echo --- Done ---
 endif
 
