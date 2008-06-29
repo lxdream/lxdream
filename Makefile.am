@@ -1,6 +1,7 @@
 ## Process this file with automake to produce Makefile.in
 
 POD2MAN=@POD2MAN@
+BUNDLE=lxdream.app
 
 if BUILD_SYSTEST
   TEST_SUBDIR = test
@@ -41,17 +42,17 @@ if GUI_COCOA
 # Build a Mac OS X bundle. This is meaningless anywhere else
 all-local:
 	@echo --- Building Mac Bundle ---
-	rm -rf lxdream.app
-	mkdir -p lxdream.app/Contents/MacOS
-	mkdir -p lxdream.app/Contents/Resources
-	cp src/lxdream lxdream.app/Contents/MacOS
-	cp -R pixmaps/* lxdream.app/Contents/Resources
-	$(srcdir)/bundlelibs.pl lxdream.app/Contents/MacOS/lxdream lxdream.app/Contents/Frameworks
+	rm -rf $(BUNDLE)
+	mkdir -p $(BUNDLE)/Contents/MacOS
+	mkdir -p $(BUNDLE)/Contents/Resources
+	cp src/lxdream $(BUNDLE)/Contents/MacOS
+	cp -R pixmaps/* $(BUNDLE)/Contents/Resources
+	$(srcdir)/bundlelibs.pl $(BUNDLE)/Contents/MacOS/lxdream $(BUNDLE)/Contents/Frameworks
 	for cat in $(CATALOGS); do \
 	   catname=`basename "$$cat"`; \
 	   catname=`echo $$catname|sed -e 's/$(CATOBJEXT)$$//'`; \
-	   mkdir -p "lxdream.app/Contents/Resources/$$catname/LC_MESSAGES"; \
-	   cp "po/$$cat" "lxdream.app/Contents/Resources/$$catname/LC_MESSAGES/lxdream.$(CATOBJEXT)"; \
+	   mkdir -p "$(BUNDLE)/Contents/Resources/$$catname/LC_MESSAGES"; \
+	   cp "po/$$cat" "$(BUNDLE)/Contents/Resources/$$catname/LC_MESSAGES/lxdream.$(CATOBJEXT)"; \
 	done
 	@echo --- Done ---
 endif
