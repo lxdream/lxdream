@@ -22,8 +22,10 @@
 #include <string.h>
 #include <sys/time.h>
 #include "lxdream.h"
-#include "dreamcast.h"
 #include "dream.h"
+#include "dreamcast.h"
+#include "config.h"
+#include "display.h"
 #include "gui.h"
 #include "cocoaui/cocoaui.h"
 
@@ -146,8 +148,10 @@ static void cocoa_gui_create_menu(void)
 - (void) load_action: (id)sender
 {
     NSOpenPanel *panel = [NSOpenPanel openPanel];
+    const gchar *dir = lxdream_get_config_value(CONFIG_SAVE_PATH);
+    NSString *path = (dir == NULL ? NSHomeDirectory() : [NSString stringWithCString: dir]);
     NSArray *fileTypes = [NSArray arrayWithObject: @"dst"];
-    int result = [panel runModalForDirectory: NSHomeDirectory() file: nil types: fileTypes];
+    int result = [panel runModalForDirectory: path file: nil types: fileTypes];
     if( result == NSOKButton && [[panel filenames] count] > 0 ) {
         NSString *filename = [[panel filenames] objectAtIndex: 0];
         dreamcast_load_state( [filename UTF8String] );
@@ -156,8 +160,10 @@ static void cocoa_gui_create_menu(void)
 - (void) save_action: (id)sender
 {
     NSSavePanel *panel = [NSSavePanel savePanel];
+    const gchar *dir = lxdream_get_config_value(CONFIG_SAVE_PATH);
+    NSString *path = (dir == NULL ? NSHomeDirectory() : [NSString stringWithCString: dir]);
     [panel setRequiredFileType: @"dst"];
-    int result = [panel runModalForDirectory: NSHomeDirectory() file:@""];
+    int result = [panel runModalForDirectory: path file:@""];
     if( result == NSOKButton ) {
         NSString *filename = [panel filename];
         dreamcast_save_state( [filename UTF8String] );
@@ -166,7 +172,9 @@ static void cocoa_gui_create_menu(void)
 - (void) load_binary_action: (id)sender
 {
     NSOpenPanel *panel = [NSOpenPanel openPanel];
-    int result = [panel runModalForDirectory: NSHomeDirectory() file: nil types: nil];
+    const gchar *dir = lxdream_get_config_value(CONFIG_DEFAULT_PATH);
+    NSString *path = (dir == NULL ? NSHomeDirectory() : [NSString stringWithCString: dir]);
+    int result = [panel runModalForDirectory: path file: nil types: nil];
     if( result == NSOKButton && [[panel filenames] count] > 0 ) {
         NSString *filename = [[panel filenames] objectAtIndex: 0];
         file_load_magic( [filename UTF8String] );
@@ -175,7 +183,9 @@ static void cocoa_gui_create_menu(void)
 - (void) mount_action: (id)sender
 {
     NSOpenPanel *panel = [NSOpenPanel openPanel];
-    int result = [panel runModalForDirectory: NSHomeDirectory() file: nil types: nil];
+    const gchar *dir = lxdream_get_config_value(CONFIG_DEFAULT_PATH);
+    NSString *path = (dir == NULL ? NSHomeDirectory() : [NSString stringWithCString: dir]);
+    int result = [panel runModalForDirectory: path file: nil types: nil];
     if( result == NSOKButton && [[panel filenames] count] > 0 ) {
         NSString *filename = [[panel filenames] objectAtIndex: 0];
         gdrom_mount_image( [filename UTF8String] );
@@ -223,6 +233,7 @@ gboolean gui_init( gboolean withDebug )
     
     NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
     [NSApplication sharedApplication];
+    
     LxdreamDelegate *delegate = [[LxdreamDelegate alloc] init];
     [NSApp setDelegate: delegate];
     NSString *iconFile = [[NSBundle mainBundle] pathForResource:@"dcemu" ofType:@"gif"];
@@ -232,6 +243,7 @@ gboolean gui_init( gboolean withDebug )
     NSWindow *window = cocoa_gui_create_main_window();
     [window makeKeyAndOrderFront: nil];
     [NSApp activateIgnoringOtherApps: YES];   
+    
     [pool release];
 }
 
@@ -347,4 +359,19 @@ void cocoa_gui_run_later( void )
     [[NSRunLoop currentRunLoop] performSelector: @selector(run_immediate) 
          target: [NSApp delegate] argument: nil order: 1 
          modes: [NSArray arrayWithObject: NSDefaultRunLoopMode] ];
+}
+
+NSImage *NSImage_new_from_framebuffer( frame_buffer_t buffer )
+{
+    NSBitmapImageRep *rep = 
+        [[NSBitmapImageRep alloc] initWithBitmapDataPlanes: &buffer->data
+         pixelsWide: buffer->width  pixelsHigh: buffer->height
+        bitsPerSample: 8 samplesPerPixel: 3
+        hasAlpha: NO isPlanar: NO
+        colorSpaceName: NSDeviceRGBColorSpace  bitmapFormat: 0
+        bytesPerRow: buffer->rowstride  bitsPerPixel: 24];
+   
+    NSImage *image = [[NSImage alloc] initWithSize: NSMakeSize(0.0,0.0)];
+    [image addRepresentation: rep];
+    return image;
 }
