@@ -52,7 +52,7 @@ all-local:
 	   catname=`basename "$$cat"`; \
 	   catname=`echo $$catname|sed -e 's/$(CATOBJEXT)$$//'`; \
 	   mkdir -p "$(BUNDLE)/Contents/Resources/$$catname/LC_MESSAGES"; \
-	   cp "po/$$cat" "$(BUNDLE)/Contents/Resources/$$catname/LC_MESSAGES/lxdream.$(CATOBJEXT)"; \
+	   cp "po/$$cat" "$(BUNDLE)/Contents/Resources/$$catname/LC_MESSAGES/lxdream$(CATOBJEXT)"; \
 	done
 	@echo --- Done ---
 endif
