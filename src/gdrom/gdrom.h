@@ -37,8 +37,10 @@ typedef struct gdrom_device *gdrom_device_t;
 typedef struct gdrom_disc *gdrom_disc_t;
 
 typedef gboolean (*gdrom_disc_change_hook_t)( gdrom_disc_t new_disc, const gchar *new_disc_name, void *user_data );
-
 DECLARE_HOOK(gdrom_disc_change_hook, gdrom_disc_change_hook_t);
+
+typedef gboolean (*gdrom_drive_list_change_hook_t)( GList *drive_list, void *user_data );
+DECLARE_HOOK(gdrom_drive_list_change_hook, gdrom_drive_list_change_hook_t);
 
 /**
  * Open an image file

@@ -205,9 +205,9 @@ AM_CONDITIONAL( AUDIO_ALSA, [test "$HAVE_ALSA" = 'yes'] )
 
 dnl Check for native cdrom support. There can be only one.
 AC_CHECK_HEADER([linux/cdrom.h], [CDROM_DRIVER=linux], [true])
-dnl AC_CHECK_HEADER([IOKit/IOKitLib.h], [
-dnl     CDROM_DRIVER=osx
-dnl     LIBS="$LIBS -framework IOKit"],[true])
+AC_CHECK_HEADER([IOKit/IOKitLib.h], [
+     CDROM_DRIVER=osx
+     LIBS="$LIBS -framework IOKit"],[true])
 AM_CONDITIONAL(CDROM_LINUX, [test "x$CDROM_DRIVER" = "xlinux"])
 AM_CONDITIONAL(CDROM_OSX, [test "x$CDROM_DRIVER" = "xosx"])
 AM_CONDITIONAL(CDROM_NONE, [test "x$CDROM_DRIVER" = "x"])
