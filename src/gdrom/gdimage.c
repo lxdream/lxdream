@@ -441,7 +441,11 @@ static gdrom_error_t gdrom_image_read_position( gdrom_disc_t disc, uint32_t lba,
 static int gdrom_image_drive_status( gdrom_disc_t disc ) 
 {
     gdrom_image_t image = (gdrom_image_t)disc;
-    return image->disc_type | IDE_DISC_READY;
+    if( image->disc_type == IDE_DISC_NONE ) {
+        return IDE_DISC_NONE;
+    } else {
+        return image->disc_type | IDE_DISC_READY;
+    }
 }
 
 void gdrom_image_dump_info( gdrom_disc_t d ) {

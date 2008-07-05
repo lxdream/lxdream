@@ -28,6 +28,9 @@
 
 #define MAX_SECTOR_SIZE 2352
 
+#define CD_FRAMES_PER_SECOND 75
+#define CD_SECONDS_PER_MINUTE 60
+#define CD_FRAMES_PER_MINUTE (CD_FRAMES_PER_SECOND*CD_SECONDS_PER_MINUTE)
 
 struct gdrom_toc {
     uint32_t track[99];
@@ -167,6 +170,7 @@ typedef struct gdrom_image {
     struct gdrom_track track[99];
     gchar mcn[14]; /* Media catalogue number */
     FILE *file; /* Open file stream */
+    void *private; /* image private data */
 } *gdrom_image_t;
 
 /**
@@ -207,4 +211,15 @@ gdrom_device_t gdrom_device_new( const gchar *name, const gchar *dev_name );
 
 void gdrom_device_destroy( gdrom_device_t dev );
 
+/************* Host-native support functions ***************/
+
+/**
+ * Parse a format 2 TOC, and write the results into the supplied disc structure.
+ */
+void mmc_parse_toc2( gdrom_image_t disc, unsigned char *buf );
+
+/**
+ * Construct a Read CD command for the given sector + mode
+ */
+void mmc_make_read_cd_cmd( char *cmd, uint32_t sector, int mode );
 #endif

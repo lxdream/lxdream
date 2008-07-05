@@ -34,8 +34,6 @@
 #define MAXTOCSIZE 4 + (MAXTOCENTRIES*11)
 #define MAX_SECTORS_PER_CALL 1
 
-#define MSFTOLBA( m,s,f ) (f + (s*CD_FRAMES) + (m*CD_FRAMES*CD_SECS))
-
 static uint32_t inline lbatomsf( uint32_t lba ) {
     union cdrom_addr addr;
     lba = lba + CD_MSF_OFFSET;
@@ -164,57 +162,9 @@ static gdrom_error_t linux_read_disc_toc( gdrom_image_t disc )
     memset( buf, 0, sizeof(buf) );
     gdrom_error_t status = linux_send_command( fd, cmd, buf, &buflen, CGC_DATA_READ );
     if( status != 0 ) {
-	return status;
+        return status;
     }
-
-    int max_track = 0;
-    int last_track = -1;
-    int leadout = -1;
-    int len = (buf[0] << 8) | buf[1];
-    int session_type = -1;
-    int i;
-    for( i = 4; i<len; i+=11 ) {
-	int session = buf[i];
-	int adr = buf[i+1] >> 4;
-	int point = buf[i+3];
-	if( adr == 0x01 && point > 0 && point < 100 ) {
-	    /* Track info */
-	    int trackno = point-1;
-	    if( point > max_track ) {
-		max_track = point;
-	    }
-	    disc->track[trackno].flags = (buf[i+1] & 0x0F) << 4;
-	    disc->track[trackno].session = session - 1;
-	    disc->track[trackno].lba = MSFTOLBA(buf[i+8],buf[i+9],buf[i+10]);
-	    if( disc->track[trackno].flags & TRACK_DATA ) {
-		disc->track[trackno].mode = GDROM_MODE1;
-	    } else {
-		disc->track[trackno].mode = GDROM_CDDA;
-	    }
-	    if( last_track != -1 ) {
-		disc->track[last_track].sector_count = disc->track[trackno].lba -
-		    disc->track[last_track].lba;
-	    }
-	    last_track = trackno;
-	} else switch( (adr << 8) | point ) {
-	case 0x1A0: /* session info */
-	    if( buf[i+9] == 0x20 ) {
-		session_type = IDE_DISC_CDROMXA;
-	    } else {
-		session_type = IDE_DISC_CDROM;
-	    }
-	    disc->disc_type = session_type;
-	    break;
-	case 0x1A2: /* leadout */
-	    leadout = MSFTOLBA(buf[i+8], buf[i+9], buf[i+10]);
-	    break;
-	}
-    }
-    disc->track_count = max_track;
-
-    if( leadout != -1 && last_track != -1 ) {
-	disc->track[last_track].sector_count = leadout - disc->track[last_track].lba;
-    }
+    mmc_parse_toc2( disc, buf );
     return 0;
 }
 
@@ -252,34 +202,13 @@ static gdrom_error_t linux_read_sector( gdrom_disc_t disc, uint32_t sector,
     int fd = fileno(image->file);
     uint32_t real_sector = sector - CD_MSF_OFFSET;
     uint32_t sector_size = MAX_SECTOR_SIZE;
-    char cmd[12] = { 0xBE, 0x10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-
-    cmd[1] = (mode & 0x0E) << 1;
-    cmd[2] = (real_sector >> 24) & 0xFF;
-    cmd[3] = (real_sector >> 16) & 0xFF;
-    cmd[4] = (real_sector >> 8) & 0xFF;
-    cmd[5] = real_sector & 0xFF;
-    cmd[6] = 0;
-    cmd[7] = 0;
-    cmd[8] = 1;
-
-    if( READ_CD_RAW(mode) ) {
-	cmd[9] = 0xF0;
-    } else {
-	if( READ_CD_HEADER(mode) ) {
-	    cmd[9] = 0xA0;
-	}
-	if( READ_CD_SUBHEAD(mode) ) {
-	    cmd[9] |= 0x40;
-	}
-	if( READ_CD_DATA(mode) ) {
-	    cmd[9] |= 0x10;
-	}
-    }
+    char cmd[12];
+    
+    mmc_make_read_cd_cmd( cmd, real_sector, mode );
     
     gdrom_error_t status = linux_send_command( fd, cmd, buf, &sector_size, CGC_DATA_READ );
     if( status != 0 ) {
-	return status;
+        return status;
     }
     *length = 2048;
     return 0;

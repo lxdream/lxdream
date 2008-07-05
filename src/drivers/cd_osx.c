@@ -17,166 +17,86 @@
  */
 
 #include <IOKit/IOKitLib.h>
+#include <IOKit/IOBSD.h>
 #include <IOKit/storage/IOStorageDeviceCharacteristics.h>
-#include <IOKit/scsi-commands/SCSITaskLib.h>
-#include <IOKit/scsi-commands/SCSICommandOperationCodes.h>
+#include <IOKit/storage/IOCDMediaBSDClient.h>
+#include <IOKit/storage/IOCDTypes.h>
+#include <sys/param.h>
+#include <errno.h>
 #include <stdio.h>
+#include <string.h>
+#include <paths.h>
 #include "gdrom/gddriver.h"
+#include "gdrom/packet.h"
+#include "drivers/osx_iokit.h"
 
-static gboolean osx_image_is_valid( FILE *f );
-static gdrom_disc_t osx_open_device( const gchar *filename, FILE *f );
+#define MAXTOCENTRIES 600  /* This is a fairly generous overestimate really */
+#define MAXTOCSIZE 4 + (MAXTOCENTRIES*11)
+
+static gboolean cdrom_osx_image_is_valid( FILE *f );
+static gdrom_disc_t cdrom_osx_open_device( const gchar *filename, FILE *f );
+static gdrom_error_t cdrom_osx_read_toc( gdrom_image_t disc );
+static gdrom_error_t cdrom_osx_read_sector( gdrom_disc_t disc, uint32_t sector,
+                    int mode, unsigned char *buf, uint32_t *length );
 
 struct gdrom_image_class cdrom_device_class = { "osx", NULL,
-                        osx_image_is_valid, osx_open_device };
+                        cdrom_osx_image_is_valid, cdrom_osx_open_device };
 
-typedef struct osx_cdrom_disc {
-    struct gdrom_disc disc;
-    
-    io_object_t entry;
-    MMCDeviceInterface **mmc;
-    SCSITaskDeviceInterface **scsi;
-} *osx_cdrom_disc_t;
+#define OSX_DRIVE(disc) ( (osx_cdrom_drive_t)(((gdrom_image_t)disc)->private) )
 
-/**
- * CD-ROM drive visitor. Returns FALSE to continue iterating, TRUE if the desired CD-ROM
- * has been found. In the latter case, the io_object is returned from find_cdrom_device
- * (and not freed)
- */ 
-typedef gboolean (*find_cdrom_callback_t)( io_object_t object, char *vendor, char *product,
-                                      void *user_data );
-
-io_object_t find_cdrom_device( find_cdrom_callback_t callback, void *user_data )
+static void cdrom_osx_destroy( gdrom_disc_t disc )
 {
-    mach_port_t master_port;
-    CFMutableDictionaryRef match;
-    io_iterator_t services;
-    io_object_t object;
-    
-    if( IOMasterPort( MACH_PORT_NULL, &master_port ) != KERN_SUCCESS ) {
-        return; // Failed to get the master port?
-    }
-    
-    match = IOServiceMatching("IODVDServices");
-    if( IOServiceGetMatchingServices(master_port, match, &services) != kIOReturnSuccess ) {
-        return;
-    }
-    
-    while( (object = IOIteratorNext(services)) != 0 ) {
-        CFMutableDictionaryRef props = 0;
-        if( IORegistryEntryCreateCFProperties(object, &props, kCFAllocatorDefault, kNilOptions) == KERN_SUCCESS ) {
-            CFDictionaryRef dict = 
-                (CFDictionaryRef)CFDictionaryGetValue(props, CFSTR(kIOPropertyDeviceCharacteristicsKey));
-            if( dict ) {
-                /* The vendor name. */
-                char vendor[256] = "", product[256] = "";
-                CFTypeRef value = CFDictionaryGetValue(dict, CFSTR(kIOPropertyVendorNameKey));
-                if( value && CFGetTypeID(value) == CFStringGetTypeID() ) {
-                    CFStringGetCString( (CFStringRef)value, vendor, sizeof(vendor), 
-                                        kCFStringEncodingUTF8 );
-                }
-                value = CFDictionaryGetValue(dict, CFSTR(kIOPropertyProductNameKey));
-                if ( value && CFGetTypeID(value) == CFStringGetTypeID() ) {
-                    CFStringGetCString( (CFStringRef)value, product, sizeof(product), 
-                                        kCFStringEncodingUTF8 );
-                }
-                if( callback(object, vendor, product, user_data) ) {
-                    CFRelease(props);
-                    IOObjectRelease(services);
-                    return object;
-                }
-            }
-            CFRelease(props);
-        }
-        
-        IOObjectRelease(object);
-    }
-    IOObjectRelease(services);
+    osx_cdrom_close_drive( OSX_DRIVE(disc) );
+    gdrom_image_destroy_no_close( disc );
 }
 
-io_object_t get_cdrom_by_service_path( const gchar *path )
+static void cdrom_osx_media_changed( osx_cdrom_drive_t drive, gboolean present,
+                                     void *user_data )
 {
-    mach_port_t master_port;
-    io_object_t result;
-
-    if( IOMasterPort( MACH_PORT_NULL, &master_port ) != KERN_SUCCESS ) {
-        return MACH_PORT_NULL; // Failed to get the master port?
+    gdrom_image_t image = (gdrom_image_t)user_data;
+    if( present ) {
+        cdrom_osx_read_toc( image );
+    } else {
+        image->disc_type = IDE_DISC_NONE;
+        image->track_count = 0;        
     }
-    
-    return IORegistryEntryFromPath( master_port, path );
 }
 
-void cdrom_osx_destroy( gdrom_disc_t disc )
+
+static gdrom_disc_t cdrom_osx_new( const char *name, osx_cdrom_drive_t drive )
 {
-    osx_cdrom_disc_t cdrom = (osx_cdrom_disc_t)disc;
+    char tmp[strlen(name)+7];
+    sprintf( tmp, "dvd://%s", name );
+    gdrom_image_t image = (gdrom_image_t)gdrom_image_new(tmp, NULL);
+    image->private = drive;
     
-    if( cdrom->scsi != NULL ) {
-        (*cdrom->scsi)->Release(cdrom->scsi);
-        cdrom->scsi = NULL;
-    }
-    if( cdrom->mmc != NULL ) {
-        (*cdrom->mmc)->Release(cdrom->mmc);
-        cdrom->mmc = NULL;
-    }
-    if( cdrom->entry != MACH_PORT_NULL ) {
-        IOObjectRelease( cdrom->entry );
-        cdrom->entry = MACH_PORT_NULL;
-    }
-    
-    if( disc->name != NULL ) {
-        g_free( (gpointer)disc->name );
-        disc->name = NULL;
-    }
-    g_free(disc);
+    image->disc.read_sector = cdrom_osx_read_sector;
+    image->disc.close = cdrom_osx_destroy;
+    cdrom_osx_read_toc(image);
+    osx_cdrom_set_media_changed_callback( drive, cdrom_osx_media_changed, image );
+    return (gdrom_disc_t)image;
 }
 
-gdrom_disc_t cdrom_osx_new( io_object_t obj )
+gdrom_disc_t cdrom_open_device( const gchar *method, const gchar *path )
 {
-    osx_cdrom_disc_t cdrom = g_malloc0( sizeof(struct osx_cdrom_disc) );
-    gdrom_disc_t disc = &cdrom->disc;
-    IOCFPlugInInterface **pluginInterface = NULL;
-    HRESULT herr;
-    SInt32 score = 0;
+    gdrom_disc_t result = NULL;
     
-    cdrom->entry = obj;
-    
-    if( IOCreatePlugInInterfaceForService( obj, kIOMMCDeviceUserClientTypeID,
-            kIOCFPlugInInterfaceID, &pluginInterface, &score ) != KERN_SUCCESS ) {
-        ERROR( "Failed to create plugin interface" );
-        cdrom_osx_destroy(disc);
+    osx_cdrom_drive_t drive = osx_cdrom_open_drive(path);
+    if( drive == NULL ) {
         return NULL;
+    } else {
+        return cdrom_osx_new( path, drive );
     }
-    
-    herr = (*pluginInterface)->QueryInterface( pluginInterface,
-            CFUUIDGetUUIDBytes( kIOMMCDeviceInterfaceID ), (LPVOID *)&cdrom->mmc );
-    (*pluginInterface)->Release(pluginInterface);
-    pluginInterface = NULL;
-    if( herr != S_OK ) {
-        ERROR( "Failed to create MMC interface" );
-        cdrom_osx_destroy(disc);
-        return NULL;
-    }
-    
-    cdrom->scsi = (*cdrom->mmc)->GetSCSITaskDeviceInterface( cdrom->mmc );
-    if( cdrom->scsi == NULL ) {
-        ERROR( "Failed to create SCSI interface" );
-        cdrom_osx_destroy(disc);
-        return NULL;
-    }
-    
-    char name[sizeof(io_string_t) + 6] = "dvd://";
-    IORegistryEntryGetPath( cdrom->entry, kIOServicePlane, name+6 );
-    disc->name = g_strdup(name);
-    
-    disc->close = cdrom_osx_destroy;
-    return disc;
 }
 
-gboolean cdrom_enum_callback( io_object_t object, char *vendor, char *product, void *ptr )
+
+
+static gboolean cdrom_enum_callback( io_object_t object, char *vendor, char *product, char *iopath, void *ptr )
 {
     GList **list = (GList **)ptr;
-    char tmp1[sizeof(io_string_t) + 6] = "dvd://";
+    char tmp1[sizeof(io_string_t) + 6];
     char tmp2[512];
-    IORegistryEntryGetPath( object, kIOServicePlane, tmp1+6 );
+    snprintf( tmp1, sizeof(tmp1), "dvd://%s", iopath );
     snprintf( tmp2, sizeof(tmp2), "%s %s", vendor, product );
     *list = g_list_append( *list, gdrom_device_new( tmp1, tmp2 ) );
     return FALSE;
@@ -185,34 +105,102 @@ gboolean cdrom_enum_callback( io_object_t object, char *vendor, char *product, v
 GList *cdrom_get_native_devices(void)
 {
     GList *list = NULL;
-    find_cdrom_device(cdrom_enum_callback, &list);
+    find_cdrom_drive(cdrom_enum_callback, &list);
+    
+    osx_register_iokit_notifications();
     return list;
 }
 
-gdrom_disc_t cdrom_open_device( const gchar *method, const gchar *path )
-{
-    io_object_t obj;
-    gdrom_disc_t result = NULL;
-    
-    if( strncasecmp( path, "IOService:", 10 ) == 0 ) {
-        obj = get_cdrom_by_service_path( path );
-    }
-    
-    if( obj == MACH_PORT_NULL ) {
-        return NULL;
-    } else {
-        return cdrom_osx_new( obj );
-    }
-}
 
 
-
-static gboolean osx_image_is_valid( FILE *f )
+static gboolean cdrom_osx_image_is_valid( FILE *f )
 {
     return FALSE;
 }
 
-static gdrom_disc_t osx_open_device( const gchar *filename, FILE *f )
+static gdrom_disc_t cdrom_osx_open_device( const gchar *filename, FILE *f )
 {
     return NULL;
 }
+
+static gdrom_error_t cdrom_osx_read_toc( gdrom_image_t image )
+{
+    osx_cdrom_drive_t drive = OSX_DRIVE(image);
+    
+    int fh = osx_cdrom_get_media_handle(drive);
+    if( fh == -1 ) {
+        image->disc_type = IDE_DISC_NONE;
+        image->track_count = 0;
+        return -1;
+    } else {
+        unsigned char buf[MAXTOCSIZE];
+        dk_cd_read_toc_t readtoc;
+        memset( &readtoc, 0, sizeof(readtoc) );
+        readtoc.format = 2;
+        readtoc.formatAsTime = 0;
+        readtoc.address.session = 0;
+        readtoc.bufferLength = sizeof(buf);
+        readtoc.buffer = buf;
+        
+        if( ioctl(fh, DKIOCCDREADTOC, &readtoc ) == -1 ) {
+            ERROR( "Failed to read TOC: %s", strerror(errno) );
+            image->disc_type = IDE_DISC_NONE;
+            image->track_count = 0;
+            return -1;
+        } else {
+            mmc_parse_toc2( image, buf );
+        }
+    }
+    return 0;
+}
+
+static gdrom_error_t cdrom_osx_read_sector( gdrom_disc_t disc, uint32_t sector,
+                    int mode, unsigned char *buf, uint32_t *length ) 
+{
+    osx_cdrom_drive_t drive = OSX_DRIVE(disc);
+    int fh = osx_cdrom_get_media_handle(drive);
+    if( fh == -1 ) {
+        return PKT_ERR_NODISC;
+    } else {
+        dk_cd_read_t readcd;
+
+        memset( &readcd, 0, sizeof(readcd) );
+        // This is complicated by needing to know the exact read size. Gah.
+        if( READ_CD_RAW(mode) ) {
+            *length = 2352;
+            readcd.sectorArea = 0xF8; 
+        } else {
+            // This is incomplete...
+            if( READ_CD_DATA(mode) ) {
+                readcd.sectorArea = kCDSectorAreaUser;
+                switch( READ_CD_MODE(mode) ) {
+                case READ_CD_MODE_CDDA:
+                    *length = 2352;
+                    break;
+                case READ_CD_MODE_1:
+                case READ_CD_MODE_2_FORM_1:
+                    *length = 2048;
+                    break;
+                case READ_CD_MODE_2:
+                    *length = 2336;
+                    break;
+                case READ_CD_MODE_2_FORM_2:
+                    *length = 2324;
+                    break;
+                }
+            }
+        }
+        
+        readcd.offset = *length * (sector - 150);
+        readcd.sectorType = READ_CD_MODE(mode)>>1;
+        readcd.bufferLength = *length;
+        readcd.buffer = buf;
+        if( ioctl( fh, DKIOCCDREAD, &readcd ) == -1 ) {
+            ERROR( "Failed to read CD: %s", strerror(errno) );
+            return -1;
+        } else {
+            return 0;
+        }
+    }
+}
+
