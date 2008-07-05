@@ -32,6 +32,9 @@ void mmc_make_read_cd_cmd( char *cmd, uint32_t real_sector, int mode )
     cmd[6] = 0;
     cmd[7] = 0;
     cmd[8] = 1;
+    cmd[9] = 0;
+    cmd[10]= 0;
+    cmd[11]= 0;
 
     if( READ_CD_RAW(mode) ) {
         cmd[9] = 0xF0;
