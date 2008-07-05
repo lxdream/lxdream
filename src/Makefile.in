@@ -63,7 +63,7 @@ check_PROGRAMS = test/testxlt$(EXEEXT) $(am__EXEEXT_1)
 @AUDIO_ESOUND_TRUE@am__append_10 = drivers/audio_esd.c
 @AUDIO_ALSA_TRUE@am__append_11 = drivers/audio_alsa.c
 @CDROM_LINUX_TRUE@am__append_12 = drivers/cd_linux.c
-@CDROM_OSX_TRUE@am__append_13 = drivers/cd_osx.c
+@CDROM_OSX_TRUE@am__append_13 = drivers/cd_osx.c drivers/osx_iokit.c
 @CDROM_NONE_TRUE@am__append_14 = drivers/cd_none.c
 @JOY_LINUX_TRUE@am__append_15 = drivers/joy_linux.c
 subdir = src
@@ -93,35 +93,36 @@ am__lxdream_SOURCES_DIST = main.c config.c config.h mem.c mem.h mmio.h \
 	gdrom/gdrom.c gdrom/gdrom.h gdrom/nrg.c gdrom/cdi.c \
 	gdrom/gdi.c gdrom/edc_ecc.c gdrom/ecc.h gdrom/edc_crctable.h \
 	gdrom/edc_encoder.h gdrom/edc_l2sq.h gdrom/scramble.h \
-	dreamcast.c dreamcast.h eventq.c eventq.h sh4/sh4.c sh4/intc.c \
-	sh4/intc.h sh4/sh4mem.c sh4/timer.c sh4/dmac.c sh4/mmu.c \
-	sh4/sh4core.c sh4/sh4core.h sh4/sh4dasm.c sh4/sh4dasm.h \
-	sh4/sh4mmio.c sh4/sh4mmio.h sh4/scif.c sh4/sh4stat.c \
-	sh4/sh4stat.h sh4/xltcache.c sh4/xltcache.h sh4/sh4.h \
-	aica/armcore.c aica/armcore.h aica/armdasm.c aica/armmem.c \
-	aica/aica.c aica/aica.h aica/audio.c aica/audio.h pvr2/pvr2.c \
-	pvr2/pvr2.h pvr2/pvr2mem.c pvr2/tacore.c pvr2/rendsort.c \
-	pvr2/texcache.c pvr2/yuv.c pvr2/rendsave.c pvr2/scene.c \
-	pvr2/scene.h pvr2/gl_sl.c pvr2/gl_slsrc.c pvr2/glutil.c \
-	pvr2/glutil.h pvr2/glrender.c maple/maple.c maple/maple.h \
-	maple/controller.c maple/controller.h maple/kbd.c \
-	maple/mouse.c loader.c bootstrap.c util.c gdlist.c gdlist.h \
-	display.c display.h dckeysyms.h drivers/audio_null.c \
-	drivers/video_null.c drivers/video_gl.c drivers/video_gl.h \
-	drivers/gl_fbo.c sh4/sh4x86.c sh4/x86op.h sh4/ia32abi.h \
-	sh4/ia32mac.h sh4/ia64abi.h sh4/sh4trans.c sh4/sh4trans.h \
-	x86dasm/x86dasm.c x86dasm/x86dasm.h x86dasm/i386-dis.c \
-	x86dasm/dis-init.c x86dasm/dis-buf.c gtkui/gtkui.c \
-	gtkui/gtkui.h gtkui/main_win.c gtkui/gtkcb.c gtkui/mmio_win.c \
-	gtkui/debug_win.c gtkui/dump_win.c gtkui/ctrl_dlg.c \
-	gtkui/path_dlg.c gtkui/gdrom_menu.c drivers/video_gtk.c \
-	drivers/video_gtk.h cocoaui/cocoaui.c cocoaui/cocoaui.h \
-	cocoaui/cocoa_win.c cocoaui/cocoa_gd.c drivers/video_osx.c \
-	drivers/mac_keymap.h drivers/video_gdk.c drivers/video_gdk.h \
-	drivers/video_glx.c drivers/video_glx.h drivers/video_nsgl.c \
-	drivers/video_nsgl.h drivers/audio_osx.c drivers/audio_pulse.c \
-	drivers/audio_esd.c drivers/audio_alsa.c drivers/cd_linux.c \
-	drivers/cd_osx.c drivers/cd_none.c drivers/joy_linux.c
+	gdrom/mmc.c dreamcast.c dreamcast.h eventq.c eventq.h \
+	sh4/sh4.c sh4/intc.c sh4/intc.h sh4/sh4mem.c sh4/timer.c \
+	sh4/dmac.c sh4/mmu.c sh4/sh4core.c sh4/sh4core.h sh4/sh4dasm.c \
+	sh4/sh4dasm.h sh4/sh4mmio.c sh4/sh4mmio.h sh4/scif.c \
+	sh4/sh4stat.c sh4/sh4stat.h sh4/xltcache.c sh4/xltcache.h \
+	sh4/sh4.h aica/armcore.c aica/armcore.h aica/armdasm.c \
+	aica/armmem.c aica/aica.c aica/aica.h aica/audio.c \
+	aica/audio.h pvr2/pvr2.c pvr2/pvr2.h pvr2/pvr2mem.c \
+	pvr2/tacore.c pvr2/rendsort.c pvr2/texcache.c pvr2/yuv.c \
+	pvr2/rendsave.c pvr2/scene.c pvr2/scene.h pvr2/gl_sl.c \
+	pvr2/gl_slsrc.c pvr2/glutil.c pvr2/glutil.h pvr2/glrender.c \
+	maple/maple.c maple/maple.h maple/controller.c \
+	maple/controller.h maple/kbd.c maple/mouse.c loader.c \
+	bootstrap.c util.c gdlist.c gdlist.h display.c display.h \
+	dckeysyms.h drivers/audio_null.c drivers/video_null.c \
+	drivers/video_gl.c drivers/video_gl.h drivers/gl_fbo.c \
+	sh4/sh4x86.c sh4/x86op.h sh4/ia32abi.h sh4/ia32mac.h \
+	sh4/ia64abi.h sh4/sh4trans.c sh4/sh4trans.h x86dasm/x86dasm.c \
+	x86dasm/x86dasm.h x86dasm/i386-dis.c x86dasm/dis-init.c \
+	x86dasm/dis-buf.c gtkui/gtkui.c gtkui/gtkui.h gtkui/main_win.c \
+	gtkui/gtkcb.c gtkui/mmio_win.c gtkui/debug_win.c \
+	gtkui/dump_win.c gtkui/ctrl_dlg.c gtkui/path_dlg.c \
+	gtkui/gdrom_menu.c drivers/video_gtk.c drivers/video_gtk.h \
+	cocoaui/cocoaui.c cocoaui/cocoaui.h cocoaui/cocoa_win.c \
+	cocoaui/cocoa_gd.c drivers/video_osx.c drivers/mac_keymap.h \
+	drivers/video_gdk.c drivers/video_gdk.h drivers/video_glx.c \
+	drivers/video_glx.h drivers/video_nsgl.c drivers/video_nsgl.h \
+	drivers/audio_osx.c drivers/audio_pulse.c drivers/audio_esd.c \
+	drivers/audio_alsa.c drivers/cd_linux.c drivers/cd_osx.c \
+	drivers/osx_iokit.c drivers/cd_none.c drivers/joy_linux.c
 @BUILD_SH4X86_TRUE@am__objects_1 = sh4x86.$(OBJEXT) sh4trans.$(OBJEXT) \
 @BUILD_SH4X86_TRUE@	x86dasm.$(OBJEXT) i386-dis.$(OBJEXT) \
 @BUILD_SH4X86_TRUE@	dis-init.$(OBJEXT) dis-buf.$(OBJEXT)
@@ -140,33 +141,33 @@ am__lxdream_SOURCES_DIST = main.c config.c config.h mem.c mem.h mmio.h \
 @AUDIO_ESOUND_TRUE@am__objects_9 = audio_esd.$(OBJEXT)
 @AUDIO_ALSA_TRUE@am__objects_10 = audio_alsa.$(OBJEXT)
 @CDROM_LINUX_TRUE@am__objects_11 = cd_linux.$(OBJEXT)
-@CDROM_OSX_TRUE@am__objects_12 = cd_osx.$(OBJEXT)
+@CDROM_OSX_TRUE@am__objects_12 = cd_osx.$(OBJEXT) osx_iokit.$(OBJEXT)
 @CDROM_NONE_TRUE@am__objects_13 = cd_none.$(OBJEXT)
 @JOY_LINUX_TRUE@am__objects_14 = joy_linux.$(OBJEXT)
 am_lxdream_OBJECTS = main.$(OBJEXT) config.$(OBJEXT) mem.$(OBJEXT) \
 	watch.$(OBJEXT) asic.$(OBJEXT) syscall.$(OBJEXT) \
 	bios.$(OBJEXT) dcload.$(OBJEXT) ide.$(OBJEXT) \
 	gdimage.$(OBJEXT) gdrom.$(OBJEXT) nrg.$(OBJEXT) cdi.$(OBJEXT) \
-	gdi.$(OBJEXT) edc_ecc.$(OBJEXT) dreamcast.$(OBJEXT) \
-	eventq.$(OBJEXT) sh4.$(OBJEXT) intc.$(OBJEXT) sh4mem.$(OBJEXT) \
-	timer.$(OBJEXT) dmac.$(OBJEXT) mmu.$(OBJEXT) sh4core.$(OBJEXT) \
-	sh4dasm.$(OBJEXT) sh4mmio.$(OBJEXT) scif.$(OBJEXT) \
-	sh4stat.$(OBJEXT) xltcache.$(OBJEXT) armcore.$(OBJEXT) \
-	armdasm.$(OBJEXT) armmem.$(OBJEXT) aica.$(OBJEXT) \
-	audio.$(OBJEXT) pvr2.$(OBJEXT) pvr2mem.$(OBJEXT) \
-	tacore.$(OBJEXT) rendsort.$(OBJEXT) texcache.$(OBJEXT) \
-	yuv.$(OBJEXT) rendsave.$(OBJEXT) scene.$(OBJEXT) \
-	gl_sl.$(OBJEXT) gl_slsrc.$(OBJEXT) glutil.$(OBJEXT) \
-	glrender.$(OBJEXT) maple.$(OBJEXT) controller.$(OBJEXT) \
-	kbd.$(OBJEXT) mouse.$(OBJEXT) loader.$(OBJEXT) \
-	bootstrap.$(OBJEXT) util.$(OBJEXT) gdlist.$(OBJEXT) \
-	display.$(OBJEXT) audio_null.$(OBJEXT) video_null.$(OBJEXT) \
-	video_gl.$(OBJEXT) gl_fbo.$(OBJEXT) $(am__objects_1) \
-	$(am__objects_2) $(am__objects_3) $(am__objects_4) \
-	$(am__objects_5) $(am__objects_6) $(am__objects_7) \
-	$(am__objects_8) $(am__objects_9) $(am__objects_10) \
-	$(am__objects_11) $(am__objects_12) $(am__objects_13) \
-	$(am__objects_14)
+	gdi.$(OBJEXT) edc_ecc.$(OBJEXT) mmc.$(OBJEXT) \
+	dreamcast.$(OBJEXT) eventq.$(OBJEXT) sh4.$(OBJEXT) \
+	intc.$(OBJEXT) sh4mem.$(OBJEXT) timer.$(OBJEXT) dmac.$(OBJEXT) \
+	mmu.$(OBJEXT) sh4core.$(OBJEXT) sh4dasm.$(OBJEXT) \
+	sh4mmio.$(OBJEXT) scif.$(OBJEXT) sh4stat.$(OBJEXT) \
+	xltcache.$(OBJEXT) armcore.$(OBJEXT) armdasm.$(OBJEXT) \
+	armmem.$(OBJEXT) aica.$(OBJEXT) audio.$(OBJEXT) pvr2.$(OBJEXT) \
+	pvr2mem.$(OBJEXT) tacore.$(OBJEXT) rendsort.$(OBJEXT) \
+	texcache.$(OBJEXT) yuv.$(OBJEXT) rendsave.$(OBJEXT) \
+	scene.$(OBJEXT) gl_sl.$(OBJEXT) gl_slsrc.$(OBJEXT) \
+	glutil.$(OBJEXT) glrender.$(OBJEXT) maple.$(OBJEXT) \
+	controller.$(OBJEXT) kbd.$(OBJEXT) mouse.$(OBJEXT) \
+	loader.$(OBJEXT) bootstrap.$(OBJEXT) util.$(OBJEXT) \
+	gdlist.$(OBJEXT) display.$(OBJEXT) audio_null.$(OBJEXT) \
+	video_null.$(OBJEXT) video_gl.$(OBJEXT) gl_fbo.$(OBJEXT) \
+	$(am__objects_1) $(am__objects_2) $(am__objects_3) \
+	$(am__objects_4) $(am__objects_5) $(am__objects_6) \
+	$(am__objects_7) $(am__objects_8) $(am__objects_9) \
+	$(am__objects_10) $(am__objects_11) $(am__objects_12) \
+	$(am__objects_13) $(am__objects_14)
 lxdream_OBJECTS = $(am_lxdream_OBJECTS)
 lxdream_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am__test_testsh4x86_SOURCES_DIST = test/testsh4x86.c x86dasm/x86dasm.c \
@@ -381,26 +382,27 @@ lxdream_SOURCES = main.c config.c config.h mem.c mem.h mmio.h watch.c \
 	gdrom/gdrom.h gdrom/nrg.c gdrom/cdi.c gdrom/gdi.c \
 	gdrom/edc_ecc.c gdrom/ecc.h gdrom/edc_crctable.h \
 	gdrom/edc_encoder.h gdrom/edc_l2sq.h gdrom/scramble.h \
-	dreamcast.c dreamcast.h eventq.c eventq.h sh4/sh4.c sh4/intc.c \
-	sh4/intc.h sh4/sh4mem.c sh4/timer.c sh4/dmac.c sh4/mmu.c \
-	sh4/sh4core.c sh4/sh4core.h sh4/sh4dasm.c sh4/sh4dasm.h \
-	sh4/sh4mmio.c sh4/sh4mmio.h sh4/scif.c sh4/sh4stat.c \
-	sh4/sh4stat.h sh4/xltcache.c sh4/xltcache.h sh4/sh4.h \
-	aica/armcore.c aica/armcore.h aica/armdasm.c aica/armmem.c \
-	aica/aica.c aica/aica.h aica/audio.c aica/audio.h pvr2/pvr2.c \
-	pvr2/pvr2.h pvr2/pvr2mem.c pvr2/tacore.c pvr2/rendsort.c \
-	pvr2/texcache.c pvr2/yuv.c pvr2/rendsave.c pvr2/scene.c \
-	pvr2/scene.h pvr2/gl_sl.c pvr2/gl_slsrc.c pvr2/glutil.c \
-	pvr2/glutil.h pvr2/glrender.c maple/maple.c maple/maple.h \
-	maple/controller.c maple/controller.h maple/kbd.c \
-	maple/mouse.c loader.c bootstrap.c util.c gdlist.c gdlist.h \
-	display.c display.h dckeysyms.h drivers/audio_null.c \
-	drivers/video_null.c drivers/video_gl.c drivers/video_gl.h \
-	drivers/gl_fbo.c $(am__append_1) $(am__append_3) \
-	$(am__append_4) $(am__append_5) $(am__append_6) \
-	$(am__append_7) $(am__append_8) $(am__append_9) \
-	$(am__append_10) $(am__append_11) $(am__append_12) \
-	$(am__append_13) $(am__append_14) $(am__append_15)
+	gdrom/mmc.c dreamcast.c dreamcast.h eventq.c eventq.h \
+	sh4/sh4.c sh4/intc.c sh4/intc.h sh4/sh4mem.c sh4/timer.c \
+	sh4/dmac.c sh4/mmu.c sh4/sh4core.c sh4/sh4core.h sh4/sh4dasm.c \
+	sh4/sh4dasm.h sh4/sh4mmio.c sh4/sh4mmio.h sh4/scif.c \
+	sh4/sh4stat.c sh4/sh4stat.h sh4/xltcache.c sh4/xltcache.h \
+	sh4/sh4.h aica/armcore.c aica/armcore.h aica/armdasm.c \
+	aica/armmem.c aica/aica.c aica/aica.h aica/audio.c \
+	aica/audio.h pvr2/pvr2.c pvr2/pvr2.h pvr2/pvr2mem.c \
+	pvr2/tacore.c pvr2/rendsort.c pvr2/texcache.c pvr2/yuv.c \
+	pvr2/rendsave.c pvr2/scene.c pvr2/scene.h pvr2/gl_sl.c \
+	pvr2/gl_slsrc.c pvr2/glutil.c pvr2/glutil.h pvr2/glrender.c \
+	maple/maple.c maple/maple.h maple/controller.c \
+	maple/controller.h maple/kbd.c maple/mouse.c loader.c \
+	bootstrap.c util.c gdlist.c gdlist.h display.c display.h \
+	dckeysyms.h drivers/audio_null.c drivers/video_null.c \
+	drivers/video_gl.c drivers/video_gl.h drivers/gl_fbo.c \
+	$(am__append_1) $(am__append_3) $(am__append_4) \
+	$(am__append_5) $(am__append_6) $(am__append_7) \
+	$(am__append_8) $(am__append_9) $(am__append_10) \
+	$(am__append_11) $(am__append_12) $(am__append_13) \
+	$(am__append_14) $(am__append_15)
 @BUILD_SH4X86_TRUE@test_testsh4x86_LDADD = @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@
 @BUILD_SH4X86_TRUE@test_testsh4x86_SOURCES = test/testsh4x86.c x86dasm/x86dasm.c \
 @BUILD_SH4X86_TRUE@	x86dasm/x86dasm.h x86dasm/i386-dis.c x86dasm/dis-init.c \
@@ -559,10 +561,12 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main_win.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/maple.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mem.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mmc.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mmio_win.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mmu.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mouse.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nrg.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/osx_iokit.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/path_dlg.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pvr2.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pvr2mem.Po@am__quote@
@@ -764,6 +768,20 @@ edc_ecc.obj: gdrom/edc_ecc.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gdrom/edc_ecc.c' object='edc_ecc.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o edc_ecc.obj `if test -f 'gdrom/edc_ecc.c'; then $(CYGPATH_W) 'gdrom/edc_ecc.c'; else $(CYGPATH_W) '$(srcdir)/gdrom/edc_ecc.c'; fi`
+
+mmc.o: gdrom/mmc.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT mmc.o -MD -MP -MF "$(DEPDIR)/mmc.Tpo" -c -o mmc.o `test -f 'gdrom/mmc.c' || echo '$(srcdir)/'`gdrom/mmc.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/mmc.Tpo" "$(DEPDIR)/mmc.Po"; else rm -f "$(DEPDIR)/mmc.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gdrom/mmc.c' object='mmc.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o mmc.o `test -f 'gdrom/mmc.c' || echo '$(srcdir)/'`gdrom/mmc.c
+
+mmc.obj: gdrom/mmc.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT mmc.obj -MD -MP -MF "$(DEPDIR)/mmc.Tpo" -c -o mmc.obj `if test -f 'gdrom/mmc.c'; then $(CYGPATH_W) 'gdrom/mmc.c'; else $(CYGPATH_W) '$(srcdir)/gdrom/mmc.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/mmc.Tpo" "$(DEPDIR)/mmc.Po"; else rm -f "$(DEPDIR)/mmc.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gdrom/mmc.c' object='mmc.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o mmc.obj `if test -f 'gdrom/mmc.c'; then $(CYGPATH_W) 'gdrom/mmc.c'; else $(CYGPATH_W) '$(srcdir)/gdrom/mmc.c'; fi`
 
 sh4.o: sh4/sh4.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sh4.o -MD -MP -MF "$(DEPDIR)/sh4.Tpo" -c -o sh4.o `test -f 'sh4/sh4.c' || echo '$(srcdir)/'`sh4/sh4.c; \
@@ -1688,6 +1706,20 @@ cd_osx.obj: drivers/cd_osx.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/cd_osx.c' object='cd_osx.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o cd_osx.obj `if test -f 'drivers/cd_osx.c'; then $(CYGPATH_W) 'drivers/cd_osx.c'; else $(CYGPATH_W) '$(srcdir)/drivers/cd_osx.c'; fi`
+
+osx_iokit.o: drivers/osx_iokit.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT osx_iokit.o -MD -MP -MF "$(DEPDIR)/osx_iokit.Tpo" -c -o osx_iokit.o `test -f 'drivers/osx_iokit.c' || echo '$(srcdir)/'`drivers/osx_iokit.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/osx_iokit.Tpo" "$(DEPDIR)/osx_iokit.Po"; else rm -f "$(DEPDIR)/osx_iokit.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/osx_iokit.c' object='osx_iokit.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o osx_iokit.o `test -f 'drivers/osx_iokit.c' || echo '$(srcdir)/'`drivers/osx_iokit.c
+
+osx_iokit.obj: drivers/osx_iokit.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT osx_iokit.obj -MD -MP -MF "$(DEPDIR)/osx_iokit.Tpo" -c -o osx_iokit.obj `if test -f 'drivers/osx_iokit.c'; then $(CYGPATH_W) 'drivers/osx_iokit.c'; else $(CYGPATH_W) '$(srcdir)/drivers/osx_iokit.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/osx_iokit.Tpo" "$(DEPDIR)/osx_iokit.Po"; else rm -f "$(DEPDIR)/osx_iokit.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/osx_iokit.c' object='osx_iokit.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o osx_iokit.obj `if test -f 'drivers/osx_iokit.c'; then $(CYGPATH_W) 'drivers/osx_iokit.c'; else $(CYGPATH_W) '$(srcdir)/drivers/osx_iokit.c'; fi`
 
 cd_none.o: drivers/cd_none.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT cd_none.o -MD -MP -MF "$(DEPDIR)/cd_none.Tpo" -c -o cd_none.o `test -f 'drivers/cd_none.c' || echo '$(srcdir)/'`drivers/cd_none.c; \
