@@ -1,5 +1,5 @@
 /**
- * $Id: osx_iokit.h 687 2008-05-12 10:00:13Z nkeynes $
+ * $Id$
  *
  * General OS X IOKit support (primarily for cdrom support)
  *

@@ -1,5 +1,5 @@
 /**
- * $Id: cd_osx.c 727 2008-06-25 10:40:45Z nkeynes $
+ * $Id$
  *
  * OSX support functions for handling the IOKit registry. 
  * Currently this manages access to CD/DVD drives + media, plus HID devices.
