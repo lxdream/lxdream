@@ -33,6 +33,10 @@
 #include "maple/maple.h"
 #include "sh4/sh4.h"
 
+#ifdef APPLE_BUILD
+#include <AppKit/AppKit.h>
+#endif
+
 char *option_list = "a:A:c:dhHl:m:npt:T:uvV:x?";
 struct option longopts[] = {
         { "aica", required_argument, NULL, 'a' },
@@ -89,6 +93,25 @@ void print_usage()
     printf( "   -x                     %s\n", _("Disable the SH4 translator") );
 }
 
+void bind_gettext_domain()
+{
+#ifdef ENABLE_NLS
+#ifdef APPLE_BUILD
+    NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+    NSString *resourcePath = [[NSBundle mainBundle] resourcePath];
+    bindtextdomain( PACKAGE, [resourcePath UTF8String] );
+#ifdef HAVE_BIND_TEXTDOMAIN_CODESET
+    bind_textdomain_codeset( PACKAGE, "UTF-8" );
+#endif
+    [pool release];    
+#else    
+    bindtextdomain (PACKAGE, PACKAGE_LOCALE_DIR);
+#endif
+    textdomain(PACKAGE);
+    
+#endif
+}
+
 int main (int argc, char *argv[])
 {
     int opt;
@@ -97,10 +120,7 @@ int main (int argc, char *argv[])
     uint32_t time_secs, time_nanos;
 
     install_crash_handler();
-#ifdef ENABLE_NLS
-    bindtextdomain (PACKAGE, PACKAGE_LOCALE_DIR);
-    textdomain (PACKAGE);
-#endif
+    bind_gettext_domain();
     display_ok = gui_parse_cmdline(&argc, &argv);
 
     while( (opt = getopt_long( argc, argv, option_list, longopts, NULL )) != -1 ) {
