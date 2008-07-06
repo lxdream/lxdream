@@ -32,7 +32,7 @@ static int frame_bytes;
 
 
 struct lxdream_config_entry alsa_config[] = {
-    {"device", CONFIG_TYPE_FILE, "default"},
+    {"device", N_("Audio output device"), CONFIG_TYPE_FILE, "default"},
     {NULL, CONFIG_TYPE_NONE}
 };
 

@@ -36,17 +36,17 @@ gboolean lxdream_load_config_stream( FILE *f );
 gboolean lxdream_save_config_stream( FILE *f );
 
 static struct lxdream_config_entry global_config[] =
-    {{ "bios", CONFIG_TYPE_FILE, "dcboot.rom" },
-     { "flash", CONFIG_TYPE_FILE, "dcflash.rom" },
-     { "default path", CONFIG_TYPE_PATH, "." },
-     { "save path", CONFIG_TYPE_PATH, "save" },
-     { "bootstrap", CONFIG_TYPE_FILE, "IP.BIN" },
-     { "gdrom", CONFIG_TYPE_FILE, NULL },
-     { "recent", CONFIG_TYPE_FILE, NULL },
+    {{ "bios", N_("Bios ROM"), CONFIG_TYPE_FILE, "dcboot.rom" },
+     { "flash", N_("Flash ROM"), CONFIG_TYPE_FILE, "dcflash.rom" },
+     { "default path", N_("Default disc path"), CONFIG_TYPE_PATH, "." },
+     { "save path", N_("Save-state path"), CONFIG_TYPE_PATH, "save" },
+     { "bootstrap", N_("Bootstrap IP.BIN"), CONFIG_TYPE_FILE, "IP.BIN" },
+     { "gdrom", NULL, CONFIG_TYPE_FILE, NULL },
+     { "recent", NULL, CONFIG_TYPE_FILE, NULL },
      { NULL, CONFIG_TYPE_NONE }};
 
 static struct lxdream_config_entry serial_config[] =
-    {{ "device", CONFIG_TYPE_FILE, "/dev/ttyS1" },
+    {{ "device", N_("Serial device"), CONFIG_TYPE_FILE, "/dev/ttyS1" },
      { NULL, CONFIG_TYPE_NONE }};
 
 struct lxdream_config_group lxdream_config_root[] = 
@@ -133,6 +133,11 @@ void lxdream_set_config_value( lxdream_config_entry_t param, const gchar *value 
 void lxdream_set_global_config_value( int key, const gchar *value )
 {
     lxdream_set_config_value(&global_config[key], value);
+}
+
+const lxdream_config_entry_t lxdream_get_config_entry( int key )
+{
+    return &global_config[key];
 }
 
 gboolean lxdream_set_group_value( lxdream_config_group_t group, const gchar *key, const gchar *value )
