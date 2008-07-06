@@ -694,6 +694,9 @@ void mmio_region_PVR2_write( uint32_t reg, uint32_t val )
     case PVRUNK7:
 	MMIO_WRITE( PVR2, reg, val&0x00000001 );
 	break;
+    case PVRUNK8:
+        MMIO_WRITE( PVR2, reg, val&0x0300FFFF );
+        break;
     }
 }
 

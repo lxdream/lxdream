@@ -350,6 +350,16 @@ void pvr_dma_transfer( )
     asic_event( EVENT_PVR_DMA );
 }
 
+void sort_dma_transfer( )
+{
+    sh4addr_t table_addr = MMIO_READ( ASIC, SORTDMATBL );
+    sh4addr_t data_addr = MMIO_READ( ASIC, SORTDMADATA );
+    int table_size = MMIO_READ( ASIC, SORTDMATSIZ );
+    int data_size = MMIO_READ( ASIC, SORTDMADSIZ );
+    
+    WARN( "Sort DMA not implemented" );
+}
+
 void mmio_region_ASIC_write( uint32_t reg, uint32_t val )
 {
     switch( reg ) {
@@ -409,7 +419,19 @@ void mmio_region_ASIC_write( uint32_t reg, uint32_t val )
 	    pvr_dma_transfer();
 	}
 	break;
-	
+    case SORTDMATBL: case SORTDMADATA:
+        MMIO_WRITE( ASIC, reg, (val & 0x0FFFFFE0) | 0x08000000 );
+        break;
+    case SORTDMATSIZ: case SORTDMADSIZ:
+        MMIO_WRITE( ASIC, reg, (val & 1) );
+        break;
+    case SORTDMACTL:
+        val = val & 1;
+        MMIO_WRITE( ASIC, reg, val );
+        if( val == 1 ) {
+            sort_dma_transfer();
+        }
+        break;
     case MAPLE_DMA:
 	MMIO_WRITE( ASIC, reg, val );
 	break;
