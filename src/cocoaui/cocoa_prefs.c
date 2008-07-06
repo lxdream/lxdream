@@ -1,5 +1,5 @@
 /**
- * $Id: cocoa_win.c 723 2008-06-25 00:39:02Z nkeynes $
+ * $Id$
  *
  * Construct and manage the preferences panel under cocoa.
  *

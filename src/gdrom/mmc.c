@@ -1,5 +1,5 @@
 /**
- * $Id: mmc.c 662 2008-03-02 11:38:08Z nkeynes $
+ * $Id$
  *
  * MMC host-side support functions.
  *

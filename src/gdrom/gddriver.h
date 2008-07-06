@@ -1,5 +1,5 @@
 /**
- * $Id: gdrom.h 662 2008-03-02 11:38:08Z nkeynes $
+ * $Id$
  *
  * This file defines the structures and functions used by the GD-Rom
  * disc drivers. (ie, the modules that supply a CD image to be used by the
