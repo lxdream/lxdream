@@ -220,7 +220,10 @@ void dreamcast_stop( void )
 
 void dreamcast_shutdown()
 {
-    dreamcast_stop();
+    // Don't do a dreamcast_stop - if we're calling this out of SH4 code,
+    // it's a shutdown-and-quit event
+    if( dreamcast_state == STATE_RUNNING )
+        dreamcast_state = STATE_STOPPING;
     dreamcast_save_flash();
 #ifdef ENABLE_SH4STATS
     sh4_stats_print(stdout);
