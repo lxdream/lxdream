@@ -3,7 +3,7 @@
  *
  * Core Cocoa-based user interface
  *
- * Copyright (c) 2005 Nathan Keynes.
+ * Copyright (c) 2008 Nathan Keynes.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -67,10 +67,13 @@ static void cocoa_gui_create_menu(void)
 
     /* Add menu items */
     title = [@"About " stringByAppendingString:appName];
-    [appleMenu addItemWithTitle:title action:@selector(orderFrontStandardAboutPanel:) keyEquivalent:@""];
-    [appleMenu addItem:[NSMenuItem separatorItem]];
-
+    [appleMenu addItemWithTitle:title action:@selector(about_action:) keyEquivalent:@""];
+    
+//    [appleMenu addItem:[NSMenuItem separatorItem]];
+//    [appleMenu addItemWithTitle: NS_("Preferences...") action:@selector(preferences_action:) keyEquivalent:@","];
+    
     // Services Menu
+    [appleMenu addItem:[NSMenuItem separatorItem]];
     services = [[[NSMenu alloc] init] autorelease];
     [appleMenu addItemWithTitle:@"Services" action:nil keyEquivalent:@""];
     [appleMenu setSubmenu: services forItem: [appleMenu itemWithTitle: @"Services"]];
@@ -144,6 +147,20 @@ static void cocoa_gui_create_menu(void)
         cocoa_gui_autorun = NO;
         cocoa_gui_run_later();
     }
+}
+- (void) about_action: (id)sender
+{
+    NSArray *keys = [NSArray arrayWithObjects: @"Version", @"Copyright", nil];
+    NSArray *values = [NSArray arrayWithObjects: @APP_VERSION, @"Copyright (C) 2005-2008 Nathan Keynes",  nil];
+
+    NSDictionary *options= [NSDictionary dictionaryWithObjects: values forKeys: keys];
+
+    [NSApp orderFrontStandardAboutPanelWithOptions: options];
+}
+- (void) preferences_action: (id)sender
+{
+    LxdreamPrefsPanel *panel = [[LxdreamPrefsPanel alloc] initWithContentRect: NSMakeRect(0,0,600,400)];
+    [NSApp runModalForWindow: panel];
 }
 - (void) load_action: (id)sender
 {
@@ -238,6 +255,7 @@ gboolean gui_init( gboolean withDebug )
     [NSApp setDelegate: delegate];
     NSString *iconFile = [[NSBundle mainBundle] pathForResource:@"dcemu" ofType:@"gif"];
     NSImage *iconImage = [[NSImage alloc] initWithContentsOfFile: iconFile];
+    [iconImage setName: @"NSApplicationIcon"];
     [NSApp setApplicationIconImage: iconImage];   
     cocoa_gui_create_menu();
     NSWindow *window = cocoa_gui_create_main_window();

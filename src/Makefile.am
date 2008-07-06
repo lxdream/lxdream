@@ -72,7 +72,8 @@ endif
 
 if GUI_COCOA
 lxdream_SOURCES += cocoaui/cocoaui.c cocoaui/cocoaui.h \
-	cocoaui/cocoa_win.c cocoaui/cocoa_gd.c drivers/video_osx.c drivers/mac_keymap.h
+	cocoaui/cocoa_win.c cocoaui/cocoa_gd.c cocoaui/cocoa_prefs.c \
+	drivers/video_osx.c drivers/mac_keymap.h
 endif
 
 if VIDEO_OSMESA

@@ -41,5 +41,10 @@ NSView *video_osx_create_drawable();
 - (void)setIsGrabbed:(BOOL)grab;
 @end
 
+@interface LxdreamPrefsPanel : NSPanel
+{
+}
+- (id)initWithContentRect:(NSRect)contentRect;
+@end
 
 #endif /* lxdream_cocoaui_H */
