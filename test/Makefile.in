@@ -1,32 +1,29 @@
+srcdir = @srcdir@
+top_srcdir = @top_srcdir@
+VPATH = @srcdir@
+
 # host compiler and flags
 HOSTCC		= @CC@
 HOSTCFLAGS	= @CFLAGS@
+
 SH4CC		= @SHCC@
-SH4INC          = -Iinclude
+SH4INC          = -I$(srcdir)/include
 SH4CFLAGS	= $(SH4INC) -D_arch_dreamcast -D_arch_sub_pristine \
                   -O2 -fno-builtin -fno-strict-aliasing -ml -m4-single-only \
                   -fno-optimize-sibling-calls
 SH4LD		= @SHLD@
 SH4LDFLAGS      = -fno-builtin -fno-strict-aliasing  -ml -m4-single-only \
-                  -Wl,-Tdc.x -nostartfiles -nostdlib -Llib
+                  -Wl,-T$(srcdir)/dc.x -nostartfiles -nostdlib -L$(srcdir)/lib
 SH4LIBS         = -Wl,--start-group -lc -lgcc -lm -Wl,--end-group
 SH4OBJCOPY      = @SHOBJCOPY@ -O binary
+
 ARMCC		= @ARMCC@
 ARMCFLAGS	= -O2
 ARMLD		= @ARMLD@
 ARMOBJCOPY	= @ARMOBJCOPY@
 
-RUNTEST		= ../src/lxdream -c ./lxdream.rc -puH -A null
-RUNTESTX	= ../src/lxdream -c ./lxdream.rc -xpuH -A null
-
-
-# cygwin
-# these must point to your sh-elf bfd, not the system one
-#BFDLIB		= -L/usr/local/lib -lbfd -liberty -lintl
-#BFDINCLUDE	= /usr/local/include
-
-#SHARED_OBJECTS	= crt0.so dcload-syscall.so dcload-syscalls.so memcpy.so lib.so
-SHARED_OBJECTS	=
+RUNTEST		= ../src/lxdream -c $(srcdir)/lxdream.rc -puH -A null
+RUNTESTX	= ../src/lxdream -c $(srcdir)/lxdream.rc -xpuH -A null
 
 %.ao: %.c
 	$(ARMCC) $(ARMCFLAGS) -o $@ -c $< 
@@ -77,7 +74,7 @@ testsh4: crt0.so sh4/testsh4.so timer.so interrupt.so \
 	 sh4/add.so sh4/addc.so sh4/addv.so sh4/and.so sh4/andi.so \
 	 sh4/bf.so sh4/bsr.so sh4/bt.so sh4/cmp.so sh4/cmpstr.so \
 	 sh4/div0.so sh4/div1.so sh4/float.so sh4/fmov.so sh4/ftrc.so \
-	 sh4/mac.s \
+	 sh4/mac.so \
 	 sh4/rot.so sh4/shl.so sh4/shld.so sh4/sub.so sh4/subc.so \
 	 sh4/trapa.so sh4/tas.so sh4/xtrct.so \
 	 sh4/excslot.so sh4/undef.so sh4/tlb.so

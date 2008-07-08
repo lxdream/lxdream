@@ -11,6 +11,7 @@ bin_PROGRAMS = lxdream
 noinst_PROGRAMS = gendec genglsl
 check_PROGRAMS = test/testxlt
 
+EXTRA_DIST=drivers/genkeymap.pl
 AM_CFLAGS = -D_ISOC99_SOURCE -D_BSD_SOURCE 
 TESTS = test/testxlt
 BUILT_SOURCES = sh4/sh4core.c sh4/sh4dasm.c sh4/sh4x86.c pvr2/gl_slsrc.c drivers/mac_keymap.h
@@ -19,38 +20,43 @@ gendec_SOURCES = tools/gendec.c tools/gendec.h tools/insparse.c tools/actparse.c
 genglsl_SOURCES = tools/genglsl.c
 
 lxdream_SOURCES = \
-        main.c config.c config.h \
+        main.c config.c config.h lxdream.h dream.h gui.h cpu.h hook.h \
         mem.c mem.h mmio.h watch.c \
-        asic.c asic.h \
+        asic.c asic.h clock.h serial.h \
         syscall.c syscall.h bios.c dcload.c \
         gdrom/ide.c gdrom/ide.h gdrom/packet.h gdrom/gdimage.c \
 	gdrom/gdrom.c gdrom/gdrom.h gdrom/nrg.c gdrom/cdi.c gdrom/gdi.c \
 	gdrom/edc_ecc.c gdrom/ecc.h gdrom/edc_crctable.h gdrom/edc_encoder.h \
-	gdrom/edc_l2sq.h gdrom/scramble.h gdrom/mmc.c \
+	gdrom/edc_l2sq.h gdrom/edc_scramble.h gdrom/mmc.c gdrom/gddriver.h \
         dreamcast.c dreamcast.h eventq.c eventq.h \
         sh4/sh4.c sh4/intc.c sh4/intc.h sh4/sh4mem.c sh4/timer.c sh4/dmac.c \
         sh4/mmu.c sh4/sh4core.c sh4/sh4core.h sh4/sh4dasm.c sh4/sh4dasm.h \
         sh4/sh4mmio.c sh4/sh4mmio.h sh4/scif.c sh4/sh4stat.c sh4/sh4stat.h \
-	sh4/xltcache.c sh4/xltcache.h sh4/sh4.h \
-        aica/armcore.c aica/armcore.h aica/armdasm.c aica/armmem.c \
+	sh4/xltcache.c sh4/xltcache.h sh4/sh4.h sh4/dmac.h \
+        aica/armcore.c aica/armcore.h aica/armdasm.c aica/armdasm.h aica/armmem.c \
         aica/aica.c aica/aica.h aica/audio.c aica/audio.h \
-	pvr2/pvr2.c pvr2/pvr2.h pvr2/pvr2mem.c \
+	pvr2/pvr2.c pvr2/pvr2.h pvr2/pvr2mem.c pvr2/pvr2mmio.h \
 	pvr2/tacore.c pvr2/rendsort.c \
 	pvr2/texcache.c pvr2/yuv.c pvr2/rendsave.c pvr2/scene.c pvr2/scene.h \
 	pvr2/gl_sl.c pvr2/gl_slsrc.c pvr2/glutil.c pvr2/glutil.h pvr2/glrender.c \
+	pvr2/vertex.glsl pvr2/fragment.glsl \
         maple/maple.c maple/maple.h \
         maple/controller.c maple/controller.h maple/kbd.c maple/mouse.c \
-        loader.c bootstrap.c util.c gdlist.c gdlist.h \
+        loader.c loader.h elf.h bootstrap.c bootstrap.h util.c gdlist.c gdlist.h \
 	display.c display.h dckeysyms.h \
 	drivers/audio_null.c drivers/video_null.c \
-	drivers/video_gl.c drivers/video_gl.h drivers/gl_fbo.c
+	drivers/video_gl.c drivers/video_gl.h drivers/gl_fbo.c \
+	sh4/sh4.def sh4/sh4core.in sh4/sh4x86.in sh4/sh4dasm.in sh4/sh4stat.in
+	
 
 if BUILD_SH4X86
 lxdream_SOURCES += sh4/sh4x86.c sh4/x86op.h \
         sh4/ia32abi.h sh4/ia32mac.h sh4/ia64abi.h \
         sh4/sh4trans.c sh4/sh4trans.h \
         x86dasm/x86dasm.c x86dasm/x86dasm.h \
-        x86dasm/i386-dis.c x86dasm/dis-init.c x86dasm/dis-buf.c 
+        x86dasm/i386-dis.c x86dasm/dis-init.c x86dasm/dis-buf.c \
+        x86dasm/ansidecl.h x86dasm/bfd.h x86dasm/config.h x86dasm/dis-asm.h \
+        x86dasm/opintl.h x86dasm/symcat.h x86dasm/sysdep.h
 
 test_testsh4x86_LDADD = @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@
 test_testsh4x86_SOURCES = test/testsh4x86.c x86dasm/x86dasm.c \
@@ -67,17 +73,17 @@ lxdream_SOURCES += gtkui/gtkui.c gtkui/gtkui.h \
 	gtkui/main_win.c gtkui/gtkcb.c \
         gtkui/mmio_win.c gtkui/debug_win.c gtkui/dump_win.c \
         gtkui/ctrl_dlg.c gtkui/path_dlg.c gtkui/gdrom_menu.c \
-        drivers/video_gtk.c drivers/video_gtk.h
+        drivers/video_gtk.c
 endif
 
 if GUI_COCOA
 lxdream_SOURCES += cocoaui/cocoaui.c cocoaui/cocoaui.h \
 	cocoaui/cocoa_win.c cocoaui/cocoa_gd.c cocoaui/cocoa_prefs.c \
-	drivers/video_osx.c drivers/mac_keymap.h
+	drivers/video_osx.c drivers/mac_keymap.h drivers/mac_keymap.txt
 endif
 
 if VIDEO_OSMESA
-lxdream_SOURCES += drivers/video_gdk.c drivers/video_gdk.h 
+lxdream_SOURCES += drivers/video_gdk.c
 endif
 
 if VIDEO_GLX 
@@ -110,7 +116,7 @@ lxdream_SOURCES += drivers/cd_linux.c
 endif
 
 if CDROM_OSX
-lxdream_SOURCES += drivers/cd_osx.c drivers/osx_iokit.c
+lxdream_SOURCES += drivers/cd_osx.c drivers/osx_iokit.c drivers/osx_iokit.h
 endif
 
 if CDROM_NONE
@@ -131,15 +137,20 @@ genglsl_LDADD = @GLIB_LIBS@ @GTK_LIBS@ $(INTLLIBS)
 test_testxlt_SOURCES = test/testxlt.c sh4/xltcache.c sh4/xltcache.h
 
 sh4/sh4core.c: gendec sh4/sh4.def sh4/sh4core.in
-	./gendec sh4/sh4.def sh4/sh4core.in -o sh4/sh4core.c
+	mkdir -p `dirname $@`
+	./gendec $(srcdir)/sh4/sh4.def $(srcdir)/sh4/sh4core.in -o $@
 sh4/sh4dasm.c: gendec sh4/sh4.def sh4/sh4dasm.in
-	./gendec sh4/sh4.def sh4/sh4dasm.in -o sh4/sh4dasm.c
+	mkdir -p `dirname $@`
+	./gendec $(srcdir)/sh4/sh4.def $(srcdir)/sh4/sh4dasm.in -o $@
 sh4/sh4x86.c: gendec sh4/sh4.def sh4/sh4x86.in
-	./gendec sh4/sh4.def sh4/sh4x86.in -o sh4/sh4x86.c
+	mkdir -p `dirname $@`
+	./gendec $(srcdir)/sh4/sh4.def $(srcdir)/sh4/sh4x86.in -o $@
 sh4/sh4stat.c: gendec sh4/sh4.def sh4/sh4stat.in
-	./gendec sh4/sh4.def sh4/sh4stat.in -o sh4/sh4stat.c
+	mkdir -p `dirname $@`
+	./gendec $(srcdir)/sh4/sh4.def $(srcdir)/sh4/sh4stat.in -o $@
 pvr2/gl_slsrc.c: genglsl pvr2/vertex.glsl pvr2/fragment.glsl
-	./genglsl pvr2/vertex.glsl pvr2/fragment.glsl pvr2/gl_slsrc.c
+	mkdir -p `dirname $@`
+	./genglsl $(srcdir)/pvr2/vertex.glsl $(srcdir)/pvr2/fragment.glsl $@
 drivers/mac_keymap.h: drivers/mac_keymap.txt drivers/genkeymap.pl
-	drivers/genkeymap.pl mac drivers/mac_keymap.txt > drivers/mac_keymap.h
+	$(srcdir)/drivers/genkeymap.pl mac $(srcdir)/drivers/mac_keymap.txt > $@
 	
