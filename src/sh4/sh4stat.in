@@ -17,8 +17,8 @@
  */
 
 #include "dream.h"
-#include "sh4stat.h"
-#include "sh4core.h"
+#include "sh4/sh4stat.h"
+#include "sh4/sh4core.h"
 
 static uint64_t sh4_stats[SH4_INSTRUCTION_COUNT+1];
 static uint64_t sh4_stats_total;
