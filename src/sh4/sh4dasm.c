@@ -16,8 +16,8 @@
  * GNU General Public License for more details.
  */
 
-#include "sh4core.h"
-#include "sh4dasm.h"
+#include "sh4/sh4core.h"
+#include "sh4/sh4dasm.h"
 #include "mem.h"
 
 #define UNIMP(ir) snprintf( buf, len, "???     " )
