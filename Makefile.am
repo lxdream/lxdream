@@ -8,7 +8,7 @@ if BUILD_SYSTEST
 endif
 SUBDIRS = src po $(TEST_SUBDIR)
 
-EXTRA_DIST = autogen.sh
+EXTRA_DIST = autogen.sh lxdream.pod bundlelibs.pl
 
 man_MANS = lxdream.1
 
@@ -29,9 +29,9 @@ install-data-local:
 	$(INSTALL_DATA) lxdreamrc $(DESTDIR)$(sysconfdir)
 
 dist-hook:
-	if test -d pixmaps; then \
+	if test -d $(srcdir)/pixmaps; then \
 	  mkdir $(distdir)/pixmaps; \
-	  for pixmap in pixmaps/*; do \
+	  for pixmap in $(srcdir)/pixmaps/*; do \
 	    if test -f $$pixmap; then \
 	      cp -p $$pixmap $(distdir)/pixmaps; \
 	    fi \
@@ -46,7 +46,7 @@ all-local:
 	mkdir -p $(BUNDLE)/Contents/MacOS
 	mkdir -p $(BUNDLE)/Contents/Resources
 	cp src/lxdream $(BUNDLE)/Contents/MacOS
-	cp -R pixmaps/* $(BUNDLE)/Contents/Resources
+	cp -R $(srcdir)/pixmaps/* $(BUNDLE)/Contents/Resources
 	$(srcdir)/bundlelibs.pl $(BUNDLE)/Contents/MacOS/lxdream $(BUNDLE)/Contents/Frameworks
 	for cat in $(CATALOGS); do \
 	   catname=`basename "$$cat"`; \

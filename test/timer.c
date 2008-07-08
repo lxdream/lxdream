@@ -1,4 +1,4 @@
-#include "../lib.h"
+#include "lib.h"
 #define TMU_CHANNEL 2
 #define BASE_TICKS_PER_US 200
 #define CLOCK_DIVIDER 16
