@@ -264,6 +264,14 @@ void static inline store_reg( int x86reg, int sh4reg ) {
     TEST_imm32_r32( 0x00000003, x86reg ); \
     JNE_exc(EXC_DATA_ADDR_WRITE);
 
+#define check_ralign64( x86reg ) \
+    TEST_imm32_r32( 0x00000007, x86reg ); \
+    JNE_exc(EXC_DATA_ADDR_READ)
+
+#define check_walign64( x86reg ) \
+    TEST_imm32_r32( 0x00000007, x86reg ); \
+    JNE_exc(EXC_DATA_ADDR_WRITE);
+
 #define UNDEF()
 #define MEM_RESULT(value_reg) if(value_reg != R_EAX) { MOV_r32_r32(R_EAX,value_reg); }
 #define MEM_READ_BYTE( addr_reg, value_reg ) call_func1(sh4_read_byte, addr_reg ); MEM_RESULT(value_reg)
@@ -3142,17 +3150,19 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                         check_fpuen();
                         load_reg( R_EAX, Rm );
                         ADD_sh4r_r32( REG_OFFSET(r[0]), R_EAX );
-                        check_ralign32( R_EAX );
-                        MMU_TRANSLATE_READ( R_EAX );
                         load_spreg( R_EDX, R_FPSCR );
                         TEST_imm32_r32( FPSCR_SZ, R_EDX );
                         JNE_rel8(doublesize);
                     
+                        check_ralign32( R_EAX );
+                        MMU_TRANSLATE_READ( R_EAX );
                         MEM_READ_LONG( R_EAX, R_EAX );
                         store_fr( R_EAX, FRn );
                         JMP_rel8(end);
                     
                         JMP_TARGET(doublesize);
+                        check_ralign64( R_EAX );
+                        MMU_TRANSLATE_READ( R_EAX );
                         MEM_READ_DOUBLE( R_EAX, R_ECX, R_EAX );
                         store_dr0( R_ECX, FRn );
                         store_dr1( R_EAX, FRn );
@@ -3168,17 +3178,19 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                         check_fpuen();
                         load_reg( R_EAX, Rn );
                         ADD_sh4r_r32( REG_OFFSET(r[0]), R_EAX );
-                        check_walign32( R_EAX );
-                        MMU_TRANSLATE_WRITE( R_EAX );
                         load_spreg( R_EDX, R_FPSCR );
                         TEST_imm32_r32( FPSCR_SZ, R_EDX );
                         JNE_rel8(doublesize);
                     
+                        check_walign32( R_EAX );
+                        MMU_TRANSLATE_WRITE( R_EAX );
                         load_fr( R_ECX, FRm );
                         MEM_WRITE_LONG( R_EAX, R_ECX ); // 12
                         JMP_rel8(end);
                     
                         JMP_TARGET(doublesize);
+                        check_walign64( R_EAX );
+                        MMU_TRANSLATE_WRITE( R_EAX );
                         load_dr0( R_ECX, FRm );
                         load_dr1( R_EDX, FRm );
                         MEM_WRITE_DOUBLE( R_EAX, R_ECX, R_EDX );
@@ -3193,17 +3205,19 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                         COUNT_INST(I_FMOV5);
                         check_fpuen();
                         load_reg( R_EAX, Rm );
-                        check_ralign32( R_EAX );
-                        MMU_TRANSLATE_READ( R_EAX );
                         load_spreg( R_EDX, R_FPSCR );
                         TEST_imm32_r32( FPSCR_SZ, R_EDX );
                         JNE_rel8(doublesize);
                     
+                        check_ralign32( R_EAX );
+                        MMU_TRANSLATE_READ( R_EAX );
                         MEM_READ_LONG( R_EAX, R_EAX );
                         store_fr( R_EAX, FRn );
                         JMP_rel8(end);
                     
                         JMP_TARGET(doublesize);
+                        check_ralign64( R_EAX );
+                        MMU_TRANSLATE_READ( R_EAX );
                         MEM_READ_DOUBLE( R_EAX, R_ECX, R_EAX );
                         store_dr0( R_ECX, FRn );
                         store_dr1( R_EAX, FRn );
@@ -3217,18 +3231,20 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                         COUNT_INST(I_FMOV6);
                         check_fpuen();
                         load_reg( R_EAX, Rm );
-                        check_ralign32( R_EAX );
-                        MMU_TRANSLATE_READ( R_EAX );
                         load_spreg( R_EDX, R_FPSCR );
                         TEST_imm32_r32( FPSCR_SZ, R_EDX );
                         JNE_rel8(doublesize);
                     
+                        check_ralign32( R_EAX );
+                        MMU_TRANSLATE_READ( R_EAX );
                         ADD_imm8s_sh4r( 4, REG_OFFSET(r[Rm]) );
                         MEM_READ_LONG( R_EAX, R_EAX );
                         store_fr( R_EAX, FRn );
                         JMP_rel8(end);
                     
                         JMP_TARGET(doublesize);
+                        check_ralign64( R_EAX );
+                        MMU_TRANSLATE_READ( R_EAX );
                         ADD_imm8s_sh4r( 8, REG_OFFSET(r[Rm]) );
                         MEM_READ_DOUBLE( R_EAX, R_ECX, R_EAX );
                         store_dr0( R_ECX, FRn );
@@ -3244,17 +3260,19 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                         COUNT_INST(I_FMOV2);
                         check_fpuen();
                         load_reg( R_EAX, Rn );
-                        check_walign32( R_EAX );
-                        MMU_TRANSLATE_WRITE( R_EAX );
                         load_spreg( R_EDX, R_FPSCR );
                         TEST_imm32_r32( FPSCR_SZ, R_EDX );
                         JNE_rel8(doublesize);
                     
+                        check_walign32( R_EAX );
+                        MMU_TRANSLATE_WRITE( R_EAX );
                         load_fr( R_ECX, FRm );
                         MEM_WRITE_LONG( R_EAX, R_ECX ); // 12
                         JMP_rel8(end);
                     
                         JMP_TARGET(doublesize);
+                        check_walign64( R_EAX );
+                        MMU_TRANSLATE_WRITE( R_EAX );
                         load_dr0( R_ECX, FRm );
                         load_dr1( R_EDX, FRm );
                         MEM_WRITE_DOUBLE( R_EAX, R_ECX, R_EDX );
@@ -3268,11 +3286,11 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                         COUNT_INST(I_FMOV3);
                         check_fpuen();
                         load_reg( R_EAX, Rn );
-                        check_walign32( R_EAX );
                         load_spreg( R_EDX, R_FPSCR );
                         TEST_imm32_r32( FPSCR_SZ, R_EDX );
                         JNE_rel8(doublesize);
                     
+                        check_walign32( R_EAX );
                         ADD_imm8s_r32( -4, R_EAX );
                         MMU_TRANSLATE_WRITE( R_EAX );
                         load_fr( R_ECX, FRm );
@@ -3281,6 +3299,7 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
                         JMP_rel8(end);
                     
                         JMP_TARGET(doublesize);
+                        check_walign64( R_EAX );
                         ADD_imm8s_r32(-8,R_EAX);
                         MMU_TRANSLATE_WRITE( R_EAX );
                         load_dr0( R_ECX, FRm );

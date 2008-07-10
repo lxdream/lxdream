@@ -160,6 +160,18 @@ void fprint_stack_trace( FILE *f )
 #define TRACE_RETURN( source, dest )
 #endif
 
+#define CHECKPRIV() if( !IS_SH4_PRIVMODE() ) return sh4_raise_slot_exception( EXC_ILLEGAL, EXC_SLOT_ILLEGAL )
+#define CHECKRALIGN16(addr) if( (addr)&0x01 ) return sh4_raise_exception( EXC_DATA_ADDR_READ )
+#define CHECKRALIGN32(addr) if( (addr)&0x03 ) return sh4_raise_exception( EXC_DATA_ADDR_READ )
+#define CHECKRALIGN64(addr) if( (addr)&0x07 ) return sh4_raise_exception( EXC_DATA_ADDR_READ )
+#define CHECKWALIGN16(addr) if( (addr)&0x01 ) return sh4_raise_exception( EXC_DATA_ADDR_WRITE )
+#define CHECKWALIGN32(addr) if( (addr)&0x03 ) return sh4_raise_exception( EXC_DATA_ADDR_WRITE )
+#define CHECKWALIGN64(addr) if( (addr)&0x07 ) return sh4_raise_exception( EXC_DATA_ADDR_WRITE )
+
+#define CHECKFPUEN() if( !IS_FPU_ENABLED() ) { if( ir == 0xFFFD ) { UNDEF(ir); } else { return sh4_raise_slot_exception( EXC_FPU_DISABLED, EXC_SLOT_FPU_DISABLED ); } }
+#define CHECKDEST(p) if( (p) == 0 ) { ERROR( "%08X: Branch/jump to NULL, CPU halted", sh4r.pc ); dreamcast_stop(); return FALSE; }
+#define CHECKSLOTILLEGAL() if(sh4r.in_delay_slot) return sh4_raise_exception(EXC_SLOT_ILLEGAL)
+
 #define MEM_READ_BYTE( addr, val ) memtmp = mmu_vma_to_phys_read(addr); if( memtmp == MMU_VMA_ERROR ) { return TRUE; } else { val = sh4_read_byte(memtmp); }
 #define MEM_READ_WORD( addr, val ) memtmp = mmu_vma_to_phys_read(addr); if( memtmp == MMU_VMA_ERROR ) { return TRUE; } else { val = sh4_read_word(memtmp); }
 #define MEM_READ_LONG( addr, val ) memtmp = mmu_vma_to_phys_read(addr); if( memtmp == MMU_VMA_ERROR ) { return TRUE; } else { val = sh4_read_long(memtmp); }
@@ -169,48 +181,54 @@ void fprint_stack_trace( FILE *f )
 
 #define FP_WIDTH (IS_FPU_DOUBLESIZE() ? 8 : 4)
 
-#define MEM_FP_READ( addr, reg ) sh4_read_float( addr, reg );
-#define MEM_FP_WRITE( addr, reg ) sh4_write_float( addr, reg );
-
-#define CHECKPRIV() if( !IS_SH4_PRIVMODE() ) return sh4_raise_slot_exception( EXC_ILLEGAL, EXC_SLOT_ILLEGAL )
-#define CHECKRALIGN16(addr) if( (addr)&0x01 ) return sh4_raise_exception( EXC_DATA_ADDR_READ )
-#define CHECKRALIGN32(addr) if( (addr)&0x03 ) return sh4_raise_exception( EXC_DATA_ADDR_READ )
-#define CHECKWALIGN16(addr) if( (addr)&0x01 ) return sh4_raise_exception( EXC_DATA_ADDR_WRITE )
-#define CHECKWALIGN32(addr) if( (addr)&0x03 ) return sh4_raise_exception( EXC_DATA_ADDR_WRITE )
-
-#define CHECKFPUEN() if( !IS_FPU_ENABLED() ) { if( ir == 0xFFFD ) { UNDEF(ir); } else { return sh4_raise_slot_exception( EXC_FPU_DISABLED, EXC_SLOT_FPU_DISABLED ); } }
-#define CHECKDEST(p) if( (p) == 0 ) { ERROR( "%08X: Branch/jump to NULL, CPU halted", sh4r.pc ); dreamcast_stop(); return FALSE; }
-#define CHECKSLOTILLEGAL() if(sh4r.in_delay_slot) return sh4_raise_exception(EXC_SLOT_ILLEGAL)
-
-static void sh4_write_float( uint32_t addr, int reg )
-{
-    if( IS_FPU_DOUBLESIZE() ) {
-	if( reg & 1 ) {
-	    sh4_write_long( addr, *((uint32_t *)&XF((reg)&0x0E)) );
-	    sh4_write_long( addr+4, *((uint32_t *)&XF(reg)) );
-	} else {
-	    sh4_write_long( addr, *((uint32_t *)&FR(reg)) ); 
-	    sh4_write_long( addr+4, *((uint32_t *)&FR((reg)|0x01)) );
-	}
-    } else {
-	sh4_write_long( addr, *((uint32_t *)&FR((reg))) );
+#define MEM_FP_READ( addr, reg ) \
+    if( IS_FPU_DOUBLESIZE() ) { \
+	CHECKRALIGN64(addr); \
+	memtmp = mmu_vma_to_phys_read(addr); \
+	if( memtmp == MMU_VMA_ERROR ) { \
+	    return TRUE; \
+	} else { \
+	    if( reg & 1 ) { \
+                *((uint32_t *)&XF((reg) & 0x0E)) = sh4_read_long(memtmp); \
+	        *((uint32_t *)&XF(reg)) = sh4_read_long(memtmp+4); \
+	    } else { \
+	        *((uint32_t *)&FR(reg)) = sh4_read_long(memtmp); \
+	        *((uint32_t *)&FR((reg) | 0x01)) = sh4_read_long(memtmp+4); \
+	    } \
+	} \
+    } else { \
+        CHECKRALIGN32(addr); \
+        memtmp = mmu_vma_to_phys_read(addr); \
+        if( memtmp == MMU_VMA_ERROR ) { \
+            return TRUE; \
+        } else { \
+	    *((uint32_t *)&FR(reg)) = sh4_read_long(memtmp); \
+	} \
     }
-}
-
-static void sh4_read_float( uint32_t addr, int reg )
-{
-    if( IS_FPU_DOUBLESIZE() ) {
-	if( reg & 1 ) {
-	    *((uint32_t *)&XF((reg) & 0x0E)) = sh4_read_long(addr);
-	    *((uint32_t *)&XF(reg)) = sh4_read_long(addr+4);
-	} else {
-	    *((uint32_t *)&FR(reg)) = sh4_read_long(addr);
-	    *((uint32_t *)&FR((reg) | 0x01)) = sh4_read_long(addr+4);
-	}
-    } else {
-	*((uint32_t *)&FR(reg)) = sh4_read_long(addr);
+#define MEM_FP_WRITE( addr, reg ) \
+    if( IS_FPU_DOUBLESIZE() ) { \
+        CHECKWALIGN64(addr); \
+	memtmp = mmu_vma_to_phys_write(addr); \
+	if( memtmp == MMU_VMA_ERROR ) { \
+	    return TRUE; \
+	} else { \
+            if( reg & 1 ) { \
+	        sh4_write_long( memtmp, *((uint32_t *)&XF((reg)&0x0E)) ); \
+	        sh4_write_long( memtmp+4, *((uint32_t *)&XF(reg)) ); \
+	    } else { \
+	        sh4_write_long( memtmp, *((uint32_t *)&FR(reg)) ); \ 
+	        sh4_write_long( memtmp+4, *((uint32_t *)&FR((reg)|0x01)) ); \
+	    } \
+	} \
+    } else { \
+    	CHECKWALIGN32(addr); \
+	memtmp = mmu_vma_to_phys_write(addr); \
+	if( memtmp == MMU_VMA_ERROR ) { \
+	    return TRUE; \
+	} else { \
+	    sh4_write_long( memtmp, *((uint32_t *)&FR((reg))) ); \
+	} \
     }
-}
 
 gboolean sh4_execute_instruction( void )
 {
