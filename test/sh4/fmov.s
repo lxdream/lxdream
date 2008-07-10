@@ -304,17 +304,83 @@ test_fmov_7_data_a:
 	.long 0
 test_fmov_7_data_b:	
 	.long 0
+test_fmov_str_k:
+	.long test_fmov_str
 
-test_fmov_8:
+! Test non-64-bit aligned memory read/writes with FMOV variants
+
+test_fmov_8: ! @Rm to DRn
+	add #1, r12
+	mova test_fmov_ua64_a, r0
+	expect_exc 0x000000E0
+test_fmov_8_exc_pc:	
+	fmov @r0, fr8
+	assert_exc_caught test_fmov_str_k_2 test_fmov_8_exc_pc
+	
+test_fmov_9: ! DRm to @Rm
+	add #1, r12
+	mova test_fmov_ua64_a, r0
+	expect_exc 0x00000100
+test_fmov_9_exc_pc:
+	fmov fr8, @r0
+	assert_exc_caught test_fmov_str_k_2 test_fmov_9_exc_pc
+	
+test_fmov_10: ! @Rm+ to DRn
+	add #1, r12
+	mova test_fmov_ua64_a, r0
+	expect_exc 0x000000E0
+test_fmov_10_exc_pc:	
+	fmov @r0+, fr8
+	assert_exc_caught test_fmov_str_k_2 test_fmov_10_exc_pc
+	
+test_fmov_11: ! DRm to @Rm-
+	add #1, r12
+	mova test_fmov_ua64_a, r0
+	expect_exc 0x00000100
+test_fmov_11_exc_pc:
+	fmov fr8, @-r0
+	assert_exc_caught test_fmov_str_k_2 test_fmov_11_exc_pc
+
+test_fmov_12: ! @(R0,Rm) to DRn
+	add #1, r12
+	mova test_fmov_ua64_pad, r0
+	mov #4, r4
+	expect_exc 0x000000E0
+test_fmov_12_exc_pc:	
+	fmov @(r0,r4), fr8
+	assert_exc_caught test_fmov_str_k_2 test_fmov_12_exc_pc
+	
+test_fmov_13: ! DRm to @(R0,Rn)
+	add #1, r12
+	mova test_fmov_ua64_pad, r0
+	mov #4, r4
+	expect_exc 0x00000100
+test_fmov_13_exc_pc:
+	fmov fr8, @(r0,r4)
+	assert_exc_caught test_fmov_str_k_2 test_fmov_13_exc_pc
+
+	
+	bra test_fmov_end
+
+
+.align 8
+test_fmov_ua64_pad:
+	.long 0  ! ensure not aligned on 64-bit boundaries
+test_fmov_ua64_a:
+	.long 0x09080706
+test_fmov_u64_b:
+	.long 0x14253647
+
 	
 test_fmov_end:
 	xor r0, r0
 	lds r0, fpscr
-	end_test test_fmov_str_k
+	end_test test_fmov_str_k_2
 	
 test_fmov_str:
 	.string "FMOV"
 	
 .align 4
-test_fmov_str_k:
+test_fmov_str_k_2:
 	.long test_fmov_str
+	
