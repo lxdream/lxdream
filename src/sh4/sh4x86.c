@@ -41,8 +41,6 @@ struct backpatch_record {
     int32_t exc_code;
 };
 
-#define MAX_RECOVERY_SIZE 2048
-
 #define DELAY_NONE 0
 #define DELAY_PC 1
 #define DELAY_PC_PR 2
