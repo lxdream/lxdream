@@ -32,7 +32,7 @@
 /** Maximum number of recovery records for a translated block (2048 based on
  * 1 record per SH4 instruction in a 4K page).
  */
-#define MAX_RECOVERY_SIZE 2048
+#define MAX_RECOVERY_SIZE 2049
 
 /**
  * Translation flag - exit the current block but continue (eg exception handling)
