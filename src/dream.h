@@ -16,8 +16,8 @@
  * GNU General Public License for more details.
  */
 
-#ifndef dream_H
-#define dream_H 1
+#ifndef lxdream_dream_H
+#define lxdream_dream_H 1
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -103,4 +103,4 @@ frame_buffer_t read_png_from_stream( FILE *f );
 #ifdef __cplusplus
 }
 #endif
-#endif
+#endif /* !lxdream_dream_H */

@@ -24,6 +24,10 @@
 #include "mem.h"
 #include "display.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef unsigned int pvraddr_t;
 typedef unsigned int pvr64addr_t;
 
@@ -140,7 +144,7 @@ void pvr2_vram64_write( sh4addr_t dest, unsigned char *src, uint32_t length );
  * using a line length and stride.
  */
 void pvr2_vram64_write_stride( sh4addr_t dest, unsigned char *src, uint32_t line_bytes,
-			       uint32_t line_stride_bytes, uint32_t line_count );
+                               uint32_t line_stride_bytes, uint32_t line_count );
 
 /**
  * Read from the interleaved memory address space (aka 64-bit address space)
@@ -178,7 +182,7 @@ void pvr2_vram64_read_twiddled_16( unsigned char *dest, sh4addr_t src, uint32_t 
  * counts must be a multiple of 4, and the src address must be 32-bit aligned.
  */
 void pvr2_vram64_read_stride( unsigned char *dest, uint32_t dest_line_bytes, sh4addr_t srcaddr,
-			       uint32_t src_line_bytes, uint32_t line_count );
+                              uint32_t src_line_bytes, uint32_t line_count );
 /**
  * Dump a portion of vram to a stream from the interleaved memory address 
  * space.
@@ -379,5 +383,9 @@ struct tile_segment {
     pvraddr_t transmod_ptr;
     pvraddr_t punchout_ptr;
 };
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* !lxdream_pvr2_H */

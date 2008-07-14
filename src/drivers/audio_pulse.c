@@ -39,18 +39,18 @@ gboolean audio_pulse_init( )
     } else {
         ss.format = PA_SAMPLE_U8;
     }
-    
+
     if( format & AUDIO_FMT_STEREO ) {
-	ss.channels = 2;
+        ss.channels = 2;
     } else {
         ss.channels = 1;
     }
 
     pulse_server = pa_simple_new(NULL, APP_NAME, PA_STREAM_PLAYBACK,
-                                 NULL, "Audio", &ss, NULL, NULL, NULL);
+            NULL, "Audio", &ss, NULL, NULL, NULL);
     if( pulse_server == NULL ) {
-	ERROR( "Unable to open audio output (pulseaudio)" );
-	return FALSE;
+        ERROR( "Unable to open audio output (pulseaudio)" );
+        return FALSE;
     }
     return TRUE;
 }
@@ -60,18 +60,18 @@ gboolean audio_pulse_process_buffer( audio_buffer_t buffer )
     if( pulse_server != NULL ) {
         int error;
         pa_simple_write( pulse_server, buffer->data, buffer->length, &error );
-	return TRUE;
+        return TRUE;
     } else {
-	ERROR( "Pulseaudio not initialized" );
-	return FALSE;
+        ERROR( "Pulseaudio not initialized" );
+        return FALSE;
     }
 }
 
 gboolean audio_pulse_shutdown()
 {
-  pa_simple_free(pulse_server);
-  pulse_server = NULL;
-  return TRUE;
+    pa_simple_free(pulse_server);
+    pulse_server = NULL;
+    return TRUE;
 }
 
 struct audio_driver audio_pulse_driver = { 

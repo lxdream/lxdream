@@ -29,7 +29,8 @@
     NSDictionary *items;
 }
 - (NSToolbarItem *) createToolbarItem: (NSString *)id label: (NSString *) label 
-    tooltip: (NSString *)tooltip icon: (NSString *)icon action: (SEL) action; 
+                              tooltip: (NSString *)tooltip 
+                                 icon: (NSString *)icon action: (SEL) action; 
 @end
 
 @implementation LxdreamToolbarDelegate
@@ -45,27 +46,27 @@
                             tooltip: @"Pause dreamcast" icon: @"tb-pause"
                             action: @selector(pause_action:)];
     NSToolbarItem *run = [self createToolbarItem: @"Run" label: @"Resume"
-                            tooltip: @"Resume" icon: @"tb-run"
-                            action: @selector(run_action:)];
+                          tooltip: @"Resume" icon: @"tb-run"
+                          action: @selector(run_action:)];
     NSToolbarItem *load = [self createToolbarItem: @"LoadState" label: @"Load State..."
-                            tooltip: @"Load an lxdream save state" icon: @"tb-load"
-                            action: @selector(load_action:)];
+                           tooltip: @"Load an lxdream save state" icon: @"tb-load"
+                           action: @selector(load_action:)];
     NSToolbarItem *save = [self createToolbarItem: @"SaveState" label: @"Save State..."
-                            tooltip: @"Create an lxdream save state" icon: @"tb-save"
-                            action: @selector(save_action:)];
+                           tooltip: @"Create an lxdream save state" icon: @"tb-save"
+                           action: @selector(save_action:)];
     [pause setEnabled: NO];
     identifiers = 
         [NSArray arrayWithObjects: @"GdromMount", @"Reset", @"Pause", @"Run", @"LoadState", @"SaveState", nil ];
     defaults = 
         [NSArray arrayWithObjects: @"GdromMount", @"Reset", @"Pause", @"Run", 
-                     NSToolbarSeparatorItemIdentifier, @"LoadState", @"SaveState", nil ];
+         NSToolbarSeparatorItemIdentifier, @"LoadState", @"SaveState", nil ];
     NSArray *values = [NSArray arrayWithObjects: mount, reset, pause, run, load, save, nil ];
     items = [NSDictionary dictionaryWithObjects: values forKeys: identifiers];
     return self;
 }
 
 - (NSToolbarItem *) createToolbarItem: (NSString *)id label: (NSString *) label 
-    tooltip: (NSString *)tooltip icon: (NSString *)icon action: (SEL) action 
+tooltip: (NSString *)tooltip icon: (NSString *)icon action: (SEL) action 
 {
     NSToolbarItem *item = [[NSToolbarItem alloc] initWithItemIdentifier: id];
     [item setLabel: label];
@@ -94,9 +95,9 @@
 }
 
 - (NSToolbarItem *) toolbar:(NSToolbar *)toolbar itemForItemIdentifier:(NSString *)itemIdentifier
-     willBeInsertedIntoToolbar:(BOOL)flag 
+willBeInsertedIntoToolbar:(BOOL)flag 
 {
-     return [items objectForKey: itemIdentifier];
+    return [items objectForKey: itemIdentifier];
 }
 @end
 
@@ -106,16 +107,16 @@
     NSRect contentRect = NSMakeRect(videoRect.origin.x,videoRect.origin.y,
             videoRect.size.width,videoRect.size.height+STATUSBAR_HEIGHT);
     if( [super initWithContentRect: contentRect
-           styleMask: ( NSTitledWindowMask | NSClosableWindowMask | 
-               NSMiniaturizableWindowMask | NSResizableWindowMask |
-               NSUnifiedTitleAndToolbarWindowMask )
-           backing: NSBackingStoreBuffered defer: NO ] == nil ) {
+         styleMask: ( NSTitledWindowMask | NSClosableWindowMask | 
+                 NSMiniaturizableWindowMask | NSResizableWindowMask |
+                 NSUnifiedTitleAndToolbarWindowMask )
+                 backing: NSBackingStoreBuffered defer: NO ] == nil ) {
         return nil;
     } else {
         isGrabbed = NO;
         video = video_osx_create_drawable();
         [video setFrameOrigin: NSMakePoint(0.0,STATUSBAR_HEIGHT)];
-        
+
         status = 
             [[NSTextField alloc] initWithFrame: NSMakeRect(0.0,0.0,videoRect.size.width,STATUS_TEXT_HEIGHT)];
         [status setStringValue: @"Idle"];
@@ -185,7 +186,7 @@
 
 NSWindow *cocoa_gui_create_main_window()
 {
-   NSRect contentRect = {{0,0},{640,480}};
-   NSWindow *main_win = [[LxdreamMainWindow alloc] initWithContentRect: contentRect]; 
-   return main_win;
+    NSRect contentRect = {{0,0},{640,480}};
+    NSWindow *main_win = [[LxdreamMainWindow alloc] initWithContentRect: contentRect]; 
+    return main_win;
 }

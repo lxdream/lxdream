@@ -26,7 +26,8 @@
     NSDictionary *items;
 }
 - (NSToolbarItem *) createToolbarItem: (NSString *)id label: (NSString *) label 
-    tooltip: (NSString *)tooltip icon: (NSString *)icon action: (SEL) action; 
+                              tooltip: (NSString *)tooltip icon: (NSString *)icon 
+                               action: (SEL) action; 
 @end
 
 @implementation LxdreamPrefsToolbarDelegate
@@ -46,7 +47,7 @@
 }
 
 - (NSToolbarItem *) createToolbarItem: (NSString *)id label: (NSString *) label 
-    tooltip: (NSString *)tooltip icon: (NSString *)icon action: (SEL) action 
+tooltip: (NSString *)tooltip icon: (NSString *)icon action: (SEL) action 
 {
     NSToolbarItem *item = [[NSToolbarItem alloc] initWithItemIdentifier: id];
     [item setLabel: label];
@@ -75,9 +76,9 @@
 }
 
 - (NSToolbarItem *) toolbar:(NSToolbar *)toolbar itemForItemIdentifier:(NSString *)itemIdentifier
-     willBeInsertedIntoToolbar:(BOOL)flag 
+willBeInsertedIntoToolbar:(BOOL)flag 
 {
-     return [items objectForKey: itemIdentifier];
+    return [items objectForKey: itemIdentifier];
 }
 - (void)paths_action: (id)sender
 {
@@ -102,10 +103,10 @@
 - (id)initWithContentRect:(NSRect)contentRect 
 {
     if( [super initWithContentRect: contentRect
-           styleMask: ( NSTitledWindowMask | NSClosableWindowMask | 
-               NSMiniaturizableWindowMask | NSResizableWindowMask |
-               NSUnifiedTitleAndToolbarWindowMask )
-           backing: NSBackingStoreBuffered defer: NO ] == nil ) {
+         styleMask: ( NSTitledWindowMask | NSClosableWindowMask | 
+                 NSMiniaturizableWindowMask | NSResizableWindowMask |
+                 NSUnifiedTitleAndToolbarWindowMask )
+                 backing: NSBackingStoreBuffered defer: NO ] == nil ) {
         return nil;
     } else {
         [self setTitle: NS_("Preferences")];

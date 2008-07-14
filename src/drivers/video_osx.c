@@ -81,15 +81,15 @@ int video_height = 480;
 }
 - (BOOL)isOpaque
 {
-   return YES;
+    return YES;
 }
 - (BOOL)acceptsFirstResponder
 {
-   return YES;
+    return YES;
 }
 - (BOOL)isFlipped
 {
-   return YES;
+    return YES;
 }
 //--------------------------------------------------------------------
 - (void)drawRect: (NSRect) rect
@@ -122,7 +122,7 @@ int video_height = 480;
         CGAssociateMouseAndMouseCursorPosition(YES);
         [((LxdreamMainWindow *)[self window]) setIsGrabbed: NO];
     }
-    
+
     if( flagsMask[keycode] == 0 ) {
         input_event_keydown( NULL, keycode+1, 1 );
         flagsMask[keycode] = 1;
@@ -206,14 +206,14 @@ NSView *video_osx_create_drawable()
 
 static gboolean video_osx_init()
 {
-   if( video_view == NULL ) {
-      return FALSE;
-   }
-   if( !video_nsgl_init_driver(video_view, &display_osx_driver) ) {
-      return FALSE;
-   }
-   pvr2_setup_gl_context();
-   return TRUE;
+    if( video_view == NULL ) {
+        return FALSE;
+    }
+    if( !video_nsgl_init_driver(video_view, &display_osx_driver) ) {
+        return FALSE;
+    }
+    pvr2_setup_gl_context();
+    return TRUE;
 }
 
 static void video_osx_shutdown()

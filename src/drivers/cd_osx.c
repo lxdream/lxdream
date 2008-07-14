@@ -37,10 +37,10 @@ static gboolean cdrom_osx_image_is_valid( FILE *f );
 static gdrom_disc_t cdrom_osx_open_device( const gchar *filename, FILE *f );
 static gdrom_error_t cdrom_osx_read_toc( gdrom_image_t disc );
 static gdrom_error_t cdrom_osx_read_sector( gdrom_disc_t disc, uint32_t sector,
-                    int mode, unsigned char *buf, uint32_t *length );
+                                            int mode, unsigned char *buf, uint32_t *length );
 
 struct gdrom_image_class cdrom_device_class = { "osx", NULL,
-                        cdrom_osx_image_is_valid, cdrom_osx_open_device };
+        cdrom_osx_image_is_valid, cdrom_osx_open_device };
 
 #define OSX_DRIVE(disc) ( (osx_cdrom_drive_t)(((gdrom_image_t)disc)->private) )
 
@@ -69,7 +69,7 @@ static gdrom_disc_t cdrom_osx_new( const char *name, osx_cdrom_drive_t drive )
     sprintf( tmp, "dvd://%s", name );
     gdrom_image_t image = (gdrom_image_t)gdrom_image_new(tmp, NULL);
     image->private = drive;
-    
+
     image->disc.read_sector = cdrom_osx_read_sector;
     image->disc.close = cdrom_osx_destroy;
     cdrom_osx_read_toc(image);
@@ -80,7 +80,7 @@ static gdrom_disc_t cdrom_osx_new( const char *name, osx_cdrom_drive_t drive )
 gdrom_disc_t cdrom_open_device( const gchar *method, const gchar *path )
 {
     gdrom_disc_t result = NULL;
-    
+
     osx_cdrom_drive_t drive = osx_cdrom_open_drive(path);
     if( drive == NULL ) {
         return NULL;
@@ -106,7 +106,7 @@ GList *cdrom_get_native_devices(void)
 {
     GList *list = NULL;
     find_cdrom_drive(cdrom_enum_callback, &list);
-    
+
     osx_register_iokit_notifications();
     return list;
 }
@@ -126,7 +126,7 @@ static gdrom_disc_t cdrom_osx_open_device( const gchar *filename, FILE *f )
 static gdrom_error_t cdrom_osx_read_toc( gdrom_image_t image )
 {
     osx_cdrom_drive_t drive = OSX_DRIVE(image);
-    
+
     int fh = osx_cdrom_get_media_handle(drive);
     if( fh == -1 ) {
         image->disc_type = IDE_DISC_NONE;
@@ -141,7 +141,7 @@ static gdrom_error_t cdrom_osx_read_toc( gdrom_image_t image )
         readtoc.address.session = 0;
         readtoc.bufferLength = sizeof(buf);
         readtoc.buffer = buf;
-        
+
         if( ioctl(fh, DKIOCCDREADTOC, &readtoc ) == -1 ) {
             ERROR( "Failed to read TOC: %s", strerror(errno) );
             image->disc_type = IDE_DISC_NONE;
@@ -155,7 +155,7 @@ static gdrom_error_t cdrom_osx_read_toc( gdrom_image_t image )
 }
 
 static gdrom_error_t cdrom_osx_read_sector( gdrom_disc_t disc, uint32_t sector,
-                    int mode, unsigned char *buf, uint32_t *length ) 
+                                            int mode, unsigned char *buf, uint32_t *length ) 
 {
     osx_cdrom_drive_t drive = OSX_DRIVE(disc);
     int fh = osx_cdrom_get_media_handle(drive);
@@ -190,7 +190,7 @@ static gdrom_error_t cdrom_osx_read_sector( gdrom_disc_t disc, uint32_t sector,
                 }
             }
         }
-        
+
         readcd.offset = *length * (sector - 150);
         readcd.sectorType = READ_CD_MODE(mode)>>1;
         readcd.bufferLength = *length;

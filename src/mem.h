@@ -17,8 +17,8 @@
  * GNU General Public License for more details.
  */
 
-#ifndef dream_mem_H
-#define dream_mem_H
+#ifndef lxdream_mem_H
+#define lxdream_mem_H 1
 
 #include <stdint.h>
 #include "lxdream.h"
@@ -102,7 +102,9 @@ void mem_delete_watch( watch_point_t watch );
 watch_point_t mem_is_watched( uint32_t addr, int size, int op );
 
 extern sh4ptr_t *page_map;
+
 #ifdef __cplusplus
 }
 #endif
-#endif
+
+#endif /* !lxdream_mem_H */

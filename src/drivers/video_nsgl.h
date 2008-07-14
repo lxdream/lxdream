@@ -16,11 +16,15 @@
  * GNU General Public License for more details.
  */
 
-#ifndef video_nsgl_H
-#define video_nsgl_H
+#ifndef lxdream_video_nsgl_H
+#define lxdream_video_nsgl_H 1
 
 #include <AppKit/NSView.h>
 #include "display.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**
  * Initialize the display driver by setting the appropriate methods
@@ -37,5 +41,9 @@ void video_nsgl_shutdown();
  * Standard front/back buffer swap
  */
 void video_nsgl_swap_buffers();
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* !video_nsgl_H */

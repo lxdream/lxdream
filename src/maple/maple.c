@@ -27,10 +27,10 @@
 void maple_init( void );
 
 struct dreamcast_module maple_module = { "Maple", maple_init, NULL, NULL, NULL,
-					 NULL, NULL, NULL };
+        NULL, NULL, NULL };
 
 struct maple_device_class *maple_device_classes[] = { 
-    &controller_class, &keyboard_class, &mouse_class, NULL };
+        &controller_class, &keyboard_class, &mouse_class, NULL };
 
 void maple_init( void )
 {
@@ -41,7 +41,7 @@ maple_device_t maple_new_device( const gchar *name )
 {
     maple_device_class_t clz = maple_get_device_class(name);
     if( clz != NULL ) {
-	return clz->new_device();
+        return clz->new_device();
     } 
     return NULL;
 }
@@ -50,8 +50,8 @@ maple_device_class_t maple_get_device_class( const gchar *name )
 {
     int i;
     for( i=0; maple_device_classes[i] != NULL; i++ ) {
-	if( g_strcasecmp(maple_device_classes[i]->name, name ) == 0 )
-	    return maple_device_classes[i];
+        if( g_strcasecmp(maple_device_classes[i]->name, name ) == 0 )
+            return maple_device_classes[i];
     }
     return NULL;
 }
@@ -64,7 +64,7 @@ const struct maple_device_class **maple_get_device_classes()
 lxdream_config_entry_t maple_get_device_config( maple_device_t dev )
 {
     if( dev->get_config == NULL )
-	return NULL;
+        return NULL;
     return dev->get_config(dev);
 }
 
@@ -97,9 +97,9 @@ int maple_periph_mask[4];
 
 maple_device_t maple_get_device( unsigned int port, unsigned int periph ) {
     if( port >= 4 )
-	return NULL;
+        return NULL;
     if( periph >= 6 )
-	return NULL;
+        return NULL;
     return maple_devices[port][periph];
 }
 
@@ -115,21 +115,21 @@ void maple_handle_buffer( uint32_t address ) {
             unsigned int cmd, recv_addr, send_addr;
             uint32_t return_addr;
             unsigned char *return_buf;
-            
+
             last = GETBYTE(3) & 0x80; /* indicates last packet */
             port = GETBYTE(2) & 0x03;
             mode = GETBYTE(1) & 0x07;
             length = GETBYTE(0) & 0xFF;
             return_addr = GETWORD(4);
 
-	    if( mode == 0x07 ) {
-		buf += 4;
-		address +=4; /* skip? */
-		continue;
-	    }
+            if( mode == 0x07 ) {
+                buf += 4;
+                address +=4; /* skip? */
+                continue;
+            }
             if( (return_addr & 0x1C000000) != 0x0C000000 ) {
-		ERROR( "Bad return address in maple packet: %08X", return_addr );
-		break;
+                ERROR( "Bad return address in maple packet: %08X", return_addr );
+                break;
             }
             return_buf = mem_get_region(return_addr);
             cmd = GETBYTE(8);
@@ -137,13 +137,13 @@ void maple_handle_buffer( uint32_t address ) {
             send_addr = GETBYTE(10);
             /* Sanity checks */
             if( GETBYTE(11) != length ||
-                send_addr >> 6 != port ||
-                recv_addr >> 6 != port ||
-                return_buf == NULL ) {
-		ERROR( "Received bad packet: %02X %02X %02X %02X  %02X %02X %02X %02X  %02X %02X %02X %02X",
-		       buf[0], buf[1], buf[2], buf[3], buf[4], buf[5], buf[6], buf[7],
-		       buf[8], buf[9], buf[10], buf[11] );
-		break;
+                    send_addr >> 6 != port ||
+                    recv_addr >> 6 != port ||
+                    return_buf == NULL ) {
+                ERROR( "Received bad packet: %02X %02X %02X %02X  %02X %02X %02X %02X  %02X %02X %02X %02X",
+                        buf[0], buf[1], buf[2], buf[3], buf[4], buf[5], buf[6], buf[7],
+                        buf[8], buf[9], buf[10], buf[11] );
+                break;
             }
             periph = 0;
             periph_id = recv_addr & 0x3F;
@@ -167,77 +167,77 @@ void maple_handle_buffer( uint32_t address ) {
                 int status, func, block;
                 out_length = 0;
                 switch( cmd ) {
-                    case MAPLE_CMD_INFO:
-                        status = MAPLE_RESP_INFO;
-                        memcpy( return_buf+4, dev->ident, 112 );
-                        out_length = 0x1C;
-                        break;
-                    case MAPLE_CMD_EXT_INFO:
-                        status = MAPLE_RESP_EXT_INFO;
-                        memcpy( return_buf+4, dev->ident, 192 );
-                        out_length = 0x30;
-                        break;
-                    case MAPLE_CMD_RESET:
-                        if( dev->reset == NULL )
-                            status = MAPLE_RESP_ACK;
-                        else status = dev->reset(dev);
-                        break;
-                    case MAPLE_CMD_SHUTDOWN:
-                        if( dev->shutdown == NULL )
-                            status = MAPLE_RESP_ACK;
-                        else status = dev->shutdown(dev);
-                        break;
-                    case MAPLE_CMD_GET_COND:
-                        func = GETWORD(12);
-                        if( dev->get_condition == NULL )
-                            status = MAPLE_ERR_CMD_UNKNOWN;
-                        else status = dev->get_condition(dev, func,
-                                                         return_buf+8,
-                                                         &out_length );
-                        if( status == 0 ) {
-                            out_length++;
-                            status = MAPLE_RESP_DATA;
-                            PUTWORD(4,func);
-                        }
-                        break;
-                    case MAPLE_CMD_SET_COND:
-                        func = GETWORD(12);
-                        if( dev->set_condition == NULL )
-                            status = MAPLE_ERR_CMD_UNKNOWN;
-                        else status = dev->set_condition(dev, func,
-                                                         buf+16,
-                                                         length);
+                case MAPLE_CMD_INFO:
+                    status = MAPLE_RESP_INFO;
+                    memcpy( return_buf+4, dev->ident, 112 );
+                    out_length = 0x1C;
+                    break;
+                case MAPLE_CMD_EXT_INFO:
+                    status = MAPLE_RESP_EXT_INFO;
+                    memcpy( return_buf+4, dev->ident, 192 );
+                    out_length = 0x30;
+                    break;
+                case MAPLE_CMD_RESET:
+                    if( dev->reset == NULL )
+                        status = MAPLE_RESP_ACK;
+                    else status = dev->reset(dev);
+                    break;
+                case MAPLE_CMD_SHUTDOWN:
+                    if( dev->shutdown == NULL )
+                        status = MAPLE_RESP_ACK;
+                    else status = dev->shutdown(dev);
+                    break;
+                case MAPLE_CMD_GET_COND:
+                    func = GETWORD(12);
+                    if( dev->get_condition == NULL )
+                        status = MAPLE_ERR_CMD_UNKNOWN;
+                    else status = dev->get_condition(dev, func,
+                            return_buf+8,
+                            &out_length );
+                    if( status == 0 ) {
+                        out_length++;
+                        status = MAPLE_RESP_DATA;
+                        PUTWORD(4,func);
+                    }
+                    break;
+                case MAPLE_CMD_SET_COND:
+                    func = GETWORD(12);
+                    if( dev->set_condition == NULL )
+                        status = MAPLE_ERR_CMD_UNKNOWN;
+                    else status = dev->set_condition(dev, func,
+                            buf+16,
+                            length);
+                    if( status == 0 )
+                        status = MAPLE_RESP_ACK;
+                    break;
+                case MAPLE_CMD_READ_BLOCK:
+                    func = GETWORD(12);
+                    block = GETWORD(16);
+                    if( dev->read_block == NULL )
+                        status = MAPLE_ERR_CMD_UNKNOWN;
+                    else status = dev->read_block(dev, func, block,
+                            return_buf+12,
+                            &out_length );
+                    if( status == 0 ) {
+                        status = MAPLE_RESP_DATA;
+                        PUTWORD(4,func);
+                        PUTWORD(8,block);
+                    }
+                    break;
+                case MAPLE_CMD_WRITE_BLOCK:
+                    func = GETWORD(12);
+                    block = GETWORD(16);
+                    if( dev->write_block == NULL )
+                        status = MAPLE_ERR_CMD_UNKNOWN;
+                    else {
+                        status = dev->write_block(dev, func, block, 
+                                buf+20, length);
                         if( status == 0 )
                             status = MAPLE_RESP_ACK;
-                        break;
-                    case MAPLE_CMD_READ_BLOCK:
-                        func = GETWORD(12);
-                        block = GETWORD(16);
-                        if( dev->read_block == NULL )
-                            status = MAPLE_ERR_CMD_UNKNOWN;
-                        else status = dev->read_block(dev, func, block,
-                                                      return_buf+12,
-                                                      &out_length );
-                        if( status == 0 ) {
-                            status = MAPLE_RESP_DATA;
-                            PUTWORD(4,func);
-                            PUTWORD(8,block);
-                        }
-                        break;
-                    case MAPLE_CMD_WRITE_BLOCK:
-                        func = GETWORD(12);
-                        block = GETWORD(16);
-                        if( dev->write_block == NULL )
-                            status = MAPLE_ERR_CMD_UNKNOWN;
-                        else {
-                            status = dev->write_block(dev, func, block, 
-                                                      buf+20, length);
-                            if( status == 0 )
-                                status = MAPLE_RESP_ACK;
-                        }
-                        break;
-                    default:
-                        status = MAPLE_ERR_CMD_UNKNOWN;
+                    }
+                    break;
+                default:
+                    status = MAPLE_ERR_CMD_UNKNOWN;
                 }
                 return_buf[0] = status;
                 return_buf[1] = send_addr;
@@ -247,7 +247,7 @@ void maple_handle_buffer( uint32_t address ) {
                 return_buf[3] = out_length;
             }
             buf += 12 + (length<<2);
-	    address += 12 + (length<<2);
+            address += 12 + (length<<2);
         }
         asic_event( EVENT_MAPLE_DMA );
     }
@@ -262,7 +262,7 @@ void maple_attach_device( maple_device_t dev, unsigned int port,
         /* Detach existing peripheral first */
         maple_detach_device( port, periph );
     }
-    
+
     maple_devices[port][periph] = dev;
     if( periph != 0 )
         maple_periph_mask[port] |= (1<<(periph-1));
@@ -284,7 +284,7 @@ void maple_detach_device( unsigned int port, unsigned int periph ) {
         dev->detach(dev);
     }
     if( dev->destroy != NULL ) {
-	dev->destroy(dev);
+        dev->destroy(dev);
     }
     if( periph == 0 ) {
         /* If we detach the main peripheral, we also have to detach all the
@@ -298,37 +298,37 @@ void maple_detach_device( unsigned int port, unsigned int periph ) {
     } else {
         maple_periph_mask[port] &= (~(1<<(periph-1)));
     }
-    
+
 }
 
 void maple_detach_all() {
     int i, j;
     for( i=0; i<4; i++ ) {
-	for( j=0; j<6; j++ ) {
-	    if( maple_devices[i][j] != NULL ) {
-		maple_device_t dev = maple_devices[i][j];
-		if( dev->detach != NULL )
-		    dev->detach(dev);
-		if( dev->destroy != NULL )
-		    dev->destroy(dev);
-	    }
-	}
-	maple_periph_mask[i] = 0;
+        for( j=0; j<6; j++ ) {
+            if( maple_devices[i][j] != NULL ) {
+                maple_device_t dev = maple_devices[i][j];
+                if( dev->detach != NULL )
+                    dev->detach(dev);
+                if( dev->destroy != NULL )
+                    dev->destroy(dev);
+            }
+        }
+        maple_periph_mask[i] = 0;
     }
 }
 
 void maple_reattach_all() {
     int i, j;
     for( i=0; i<4; i++ ) {
-	for( j=0; j<6; j++ ) {
-	    if( maple_devices[i][j] != NULL ) {
-		maple_device_t dev = maple_devices[i][j];
-		if( dev->detach != NULL ) 
-		    dev->detach(dev);
-		if( dev->attach != NULL )
-		    dev->attach(dev);
-	    }
-	}
+        for( j=0; j<6; j++ ) {
+            if( maple_devices[i][j] != NULL ) {
+                maple_device_t dev = maple_devices[i][j];
+                if( dev->detach != NULL ) 
+                    dev->detach(dev);
+                if( dev->attach != NULL )
+                    dev->attach(dev);
+            }
+        }
     }
 }
 

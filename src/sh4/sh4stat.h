@@ -17,10 +17,14 @@
  */
 
 #ifndef lxdream_sh4stat_H
-#define lxdream_sh4stat_H
+#define lxdream_sh4stat_H 1
 
 #include <stdio.h>
 #include <stdint.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 typedef enum {
     I_UNKNOWN,
@@ -61,10 +65,13 @@ typedef enum {
 
 #define SH4_INSTRUCTION_COUNT I_UNDEF
 
-void sh4_stats_reset( void );
-void sh4_stats_print( FILE *out );
-void sh4_stats_add( sh4_inst_id id );
-void sh4_stats_add_by_pc( uint32_t pc );
+    void sh4_stats_reset( void );
+    void sh4_stats_print( FILE *out );
+    void sh4_stats_add( sh4_inst_id id );
+    void sh4_stats_add_by_pc( uint32_t pc );
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* !lxdream_sh4stat_H */

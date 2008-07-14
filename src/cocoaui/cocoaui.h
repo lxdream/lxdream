@@ -16,12 +16,16 @@
  * GNU General Public License for more details.
  */
 
-#import <AppKit/AppKit.h>
-#include <glib/gi18n.h>
-
 #ifndef lxdream_cocoaui_H
 #define lxdream_cocoaui_H
 
+#import <AppKit/AppKit.h>
+#include <glib/gi18n.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+    
 #define NS_(x) [NSString stringWithUTF8String: _(x)]
 
 NSWindow *cocoa_gui_create_main_window();
@@ -47,4 +51,8 @@ NSView *video_osx_create_drawable();
 - (id)initWithContentRect:(NSRect)contentRect;
 @end
 
+#ifdef __cplusplus
+}
+#endif
+    
 #endif /* lxdream_cocoaui_H */

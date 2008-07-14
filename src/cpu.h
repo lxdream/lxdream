@@ -16,8 +16,8 @@
  * GNU General Public License for more details.
  */
 
-#ifndef dream_cpu_H
-#define dream_cpu_H 1
+#ifndef lxdream_cpu_H
+#define lxdream_cpu_H 1
 
 #include "lxdream.h"
 #include "mem.h"
@@ -71,4 +71,4 @@ typedef struct cpu_desc_struct {
 }
 #endif
 
-#endif /* !dream_cpu_H */
+#endif /* !lxdream_cpu_H */

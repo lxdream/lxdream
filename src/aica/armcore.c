@@ -30,12 +30,12 @@ struct arm_registers armr;
 void arm_set_mode( int mode );
 
 uint32_t arm_exceptions[][2] = {{ MODE_SVC, 0x00000000 },
-				{ MODE_UND, 0x00000004 },
-				{ MODE_SVC, 0x00000008 },
-				{ MODE_ABT, 0x0000000C },
-				{ MODE_ABT, 0x00000010 },
-				{ MODE_IRQ, 0x00000018 },
-				{ MODE_FIQ, 0x0000001C } };
+        { MODE_UND, 0x00000004 },
+        { MODE_SVC, 0x00000008 },
+        { MODE_ABT, 0x0000000C },
+        { MODE_ABT, 0x00000010 },
+        { MODE_IRQ, 0x00000018 },
+        { MODE_FIQ, 0x0000001C } };
 
 #define EXC_RESET 0
 #define EXC_UNDEFINED 1
@@ -65,15 +65,15 @@ gboolean arm_clear_breakpoint( uint32_t pc, breakpoint_type_t type )
     int i;
 
     for( i=0; i<arm_breakpoint_count; i++ ) {
-	if( arm_breakpoints[i].address == pc && 
-	    arm_breakpoints[i].type == type ) {
-	    while( ++i < arm_breakpoint_count ) {
-		arm_breakpoints[i-1].address = arm_breakpoints[i].address;
-		arm_breakpoints[i-1].type = arm_breakpoints[i].type;
-	    }
-	    arm_breakpoint_count--;
-	    return TRUE;
-	}
+        if( arm_breakpoints[i].address == pc && 
+                arm_breakpoints[i].type == type ) {
+            while( ++i < arm_breakpoint_count ) {
+                arm_breakpoints[i-1].address = arm_breakpoints[i].address;
+                arm_breakpoints[i-1].type = arm_breakpoints[i].type;
+            }
+            arm_breakpoint_count--;
+            return TRUE;
+        }
     }
     return FALSE;
 }
@@ -82,8 +82,8 @@ int arm_get_breakpoint( uint32_t pc )
 {
     int i;
     for( i=0; i<arm_breakpoint_count; i++ ) {
-	if( arm_breakpoints[i].address == pc )
-	    return arm_breakpoints[i].type;
+        if( arm_breakpoints[i].address == pc )
+            return arm_breakpoints[i].type;
     }
     return 0;
 }
@@ -93,35 +93,35 @@ uint32_t arm_run_slice( uint32_t num_samples )
     int i,j,k;
 
     if( !armr.running )
-	return num_samples;
+        return num_samples;
 
     for( i=0; i<num_samples; i++ ) {
-	for( j=0; j < CYCLES_PER_SAMPLE; j++ ) {
-	    armr.icount++;
-	    if( !arm_execute_instruction() )
-		return i;
+        for( j=0; j < CYCLES_PER_SAMPLE; j++ ) {
+            armr.icount++;
+            if( !arm_execute_instruction() )
+                return i;
 #ifdef ENABLE_DEBUG_MODE
-	    for( k=0; k<arm_breakpoint_count; k++ ) {
-		if( arm_breakpoints[k].address == armr.r[15] ) {
-		    dreamcast_stop();
-		    if( arm_breakpoints[k].type == BREAK_ONESHOT )
-			arm_clear_breakpoint( armr.r[15], BREAK_ONESHOT );
-		    return i;
-		}
-	    }
+            for( k=0; k<arm_breakpoint_count; k++ ) {
+                if( arm_breakpoints[k].address == armr.r[15] ) {
+                    dreamcast_stop();
+                    if( arm_breakpoints[k].type == BREAK_ONESHOT )
+                        arm_clear_breakpoint( armr.r[15], BREAK_ONESHOT );
+                    return i;
+                }
+            }
 #endif	
-	}
-	
-	k = MMIO_READ( AICA2, AICA_TCR );
-	uint8_t val = MMIO_READ( AICA2, AICA_TIMER );
-	val++;
-	if( val == 0 ) {
-	    aica_event( AICA_EVENT_TIMER );
-	    // MMIO_WRITE( AICA2, AICA_TCR, k & ~0x40 );
-	}
-	MMIO_WRITE( AICA2, AICA_TIMER, val );
-	if( !dreamcast_is_running() )
-	    break;
+        }
+
+        k = MMIO_READ( AICA2, AICA_TCR );
+        uint8_t val = MMIO_READ( AICA2, AICA_TIMER );
+        val++;
+        if( val == 0 ) {
+            aica_event( AICA_EVENT_TIMER );
+            // MMIO_WRITE( AICA2, AICA_TCR, k & ~0x40 );
+        }
+        MMIO_WRITE( AICA2, AICA_TIMER, val );
+        if( !dreamcast_is_running() )
+            break;
     }
 
     return i;
@@ -173,12 +173,12 @@ uint32_t arm_get_cpsr( void )
 static uint32_t *arm_user_reg( int reg )
 {
     if( IS_EXCEPTION_MODE() ) {
-	if( reg == 13 || reg == 14 )
-	    return &armr.user_r[reg-8];
-	if( IS_FIQ_MODE() ) {
-	    if( reg >= 8 || reg <= 12 )
-		return &armr.user_r[reg-8];
-	}
+        if( reg == 13 || reg == 14 )
+            return &armr.user_r[reg-8];
+        if( IS_FIQ_MODE() ) {
+            if( reg >= 8 || reg <= 12 )
+                return &armr.user_r[reg-8];
+        }
     }
     return &armr.r[reg];
 }
@@ -195,23 +195,23 @@ static uint32_t *arm_user_reg( int reg )
 void arm_set_cpsr( uint32_t value, uint32_t fields )
 {
     if( IS_PRIVILEGED_MODE() ) {
-	if( fields & SET_CPSR_CONTROL ) {
-	    int mode = value & CPSR_MODE;
-	    arm_set_mode( mode );
-	    armr.t = ( value & CPSR_T ); /* Technically illegal to change */
-	    armr.cpsr = (armr.cpsr & 0xFFFFFF00) | (value & 0x000000FF);
-	}
+        if( fields & SET_CPSR_CONTROL ) {
+            int mode = value & CPSR_MODE;
+            arm_set_mode( mode );
+            armr.t = ( value & CPSR_T ); /* Technically illegal to change */
+            armr.cpsr = (armr.cpsr & 0xFFFFFF00) | (value & 0x000000FF);
+        }
 
-	/* Middle 16 bits not currently defined */
+        /* Middle 16 bits not currently defined */
     }
     if( fields & SET_CPSR_FLAGS ) {
-	/* Break flags directly out of given value - don't bother writing
-	 * back to CPSR 
-	 */
-	armr.n = ( value & CPSR_N );
-	armr.z = ( value & CPSR_Z );
-	armr.c = ( value & CPSR_C );
-	armr.v = ( value & CPSR_V );
+        /* Break flags directly out of given value - don't bother writing
+         * back to CPSR 
+         */
+        armr.n = ( value & CPSR_N );
+        armr.z = ( value & CPSR_Z );
+        armr.c = ( value & CPSR_C );
+        armr.v = ( value & CPSR_V );
     }
 }
 
@@ -219,15 +219,15 @@ void arm_set_spsr( uint32_t value, uint32_t fields )
 {
     /* Only defined if we actually have an SPSR register */
     if( IS_EXCEPTION_MODE() ) {
-	if( fields & SET_CPSR_CONTROL ) {
-	    armr.spsr = (armr.spsr & 0xFFFFFF00) | (value & 0x000000FF);
-	}
+        if( fields & SET_CPSR_CONTROL ) {
+            armr.spsr = (armr.spsr & 0xFFFFFF00) | (value & 0x000000FF);
+        }
 
-	/* Middle 16 bits not currently defined */
+        /* Middle 16 bits not currently defined */
 
-	if( fields & SET_CPSR_FLAGS ) {
-	    armr.spsr = (armr.spsr & 0x00FFFFFF) | (value & 0xFF000000);
-	}
+        if( fields & SET_CPSR_FLAGS ) {
+            armr.spsr = (armr.spsr & 0x00FFFFFF) | (value & 0xFF000000);
+        }
     }
 }
 
@@ -244,7 +244,7 @@ void arm_raise_exception( int exception )
     armr.r[14] = armr.r[15] + 4;
     armr.cpsr = (spsr & 0xFFFFFF00) | mode | CPSR_I; 
     if( mode == MODE_FIQ )
-	armr.cpsr |= CPSR_F;
+        armr.cpsr |= CPSR_F;
     armr.r[15] = arm_exceptions[exception][1];
 }
 
@@ -272,92 +272,92 @@ void arm_set_mode( int targetMode )
 {
     int currentMode = armr.cpsr & CPSR_MODE;
     if( currentMode == targetMode )
-	return;
+        return;
 
     switch( currentMode ) {
     case MODE_USER:
     case MODE_SYS:
-	armr.user_r[5] = armr.r[13];
-	armr.user_r[6] = armr.r[14];
-	break;
+        armr.user_r[5] = armr.r[13];
+        armr.user_r[6] = armr.r[14];
+        break;
     case MODE_SVC:
-	armr.svc_r[0] = armr.r[13];
-	armr.svc_r[1] = armr.r[14];
-	armr.svc_r[2] = armr.spsr;
-	break;
+        armr.svc_r[0] = armr.r[13];
+        armr.svc_r[1] = armr.r[14];
+        armr.svc_r[2] = armr.spsr;
+        break;
     case MODE_ABT:
-	armr.abt_r[0] = armr.r[13];
-	armr.abt_r[1] = armr.r[14];
-	armr.abt_r[2] = armr.spsr;
-	break;
+        armr.abt_r[0] = armr.r[13];
+        armr.abt_r[1] = armr.r[14];
+        armr.abt_r[2] = armr.spsr;
+        break;
     case MODE_UND:
-	armr.und_r[0] = armr.r[13];
-	armr.und_r[1] = armr.r[14];
-	armr.und_r[2] = armr.spsr;
-	break;
+        armr.und_r[0] = armr.r[13];
+        armr.und_r[1] = armr.r[14];
+        armr.und_r[2] = armr.spsr;
+        break;
     case MODE_IRQ:
-	armr.irq_r[0] = armr.r[13];
-	armr.irq_r[1] = armr.r[14];
-	armr.irq_r[2] = armr.spsr;
-	break;
+        armr.irq_r[0] = armr.r[13];
+        armr.irq_r[1] = armr.r[14];
+        armr.irq_r[2] = armr.spsr;
+        break;
     case MODE_FIQ:
-	armr.fiq_r[0] = armr.r[8];
-	armr.fiq_r[1] = armr.r[9];
-	armr.fiq_r[2] = armr.r[10];
-	armr.fiq_r[3] = armr.r[11];
-	armr.fiq_r[4] = armr.r[12];
-	armr.fiq_r[5] = armr.r[13];
-	armr.fiq_r[6] = armr.r[14];
-	armr.fiq_r[7] = armr.spsr;
-	armr.r[8] = armr.user_r[0];
-	armr.r[9] = armr.user_r[1];
-	armr.r[10] = armr.user_r[2];
-	armr.r[11] = armr.user_r[3];
-	armr.r[12] = armr.user_r[4];
-	break;
+        armr.fiq_r[0] = armr.r[8];
+        armr.fiq_r[1] = armr.r[9];
+        armr.fiq_r[2] = armr.r[10];
+        armr.fiq_r[3] = armr.r[11];
+        armr.fiq_r[4] = armr.r[12];
+        armr.fiq_r[5] = armr.r[13];
+        armr.fiq_r[6] = armr.r[14];
+        armr.fiq_r[7] = armr.spsr;
+        armr.r[8] = armr.user_r[0];
+        armr.r[9] = armr.user_r[1];
+        armr.r[10] = armr.user_r[2];
+        armr.r[11] = armr.user_r[3];
+        armr.r[12] = armr.user_r[4];
+        break;
     }
-    
+
     switch( targetMode ) {
     case MODE_USER:
     case MODE_SYS:
-	armr.r[13] = armr.user_r[5];
-	armr.r[14] = armr.user_r[6];
-	break;
+        armr.r[13] = armr.user_r[5];
+        armr.r[14] = armr.user_r[6];
+        break;
     case MODE_SVC:
-	armr.r[13] = armr.svc_r[0];
-	armr.r[14] = armr.svc_r[1];
-	armr.spsr = armr.svc_r[2];
-	break;
+        armr.r[13] = armr.svc_r[0];
+        armr.r[14] = armr.svc_r[1];
+        armr.spsr = armr.svc_r[2];
+        break;
     case MODE_ABT:
-	armr.r[13] = armr.abt_r[0];
-	armr.r[14] = armr.abt_r[1];
-	armr.spsr = armr.abt_r[2];
-	break;
+        armr.r[13] = armr.abt_r[0];
+        armr.r[14] = armr.abt_r[1];
+        armr.spsr = armr.abt_r[2];
+        break;
     case MODE_UND:
-	armr.r[13] = armr.und_r[0];
-	armr.r[14] = armr.und_r[1];
-	armr.spsr = armr.und_r[2];
-	break;
+        armr.r[13] = armr.und_r[0];
+        armr.r[14] = armr.und_r[1];
+        armr.spsr = armr.und_r[2];
+        break;
     case MODE_IRQ:
-	armr.r[13] = armr.irq_r[0];
-	armr.r[14] = armr.irq_r[1];
-	armr.spsr = armr.irq_r[2];
-	break;
+        armr.r[13] = armr.irq_r[0];
+        armr.r[14] = armr.irq_r[1];
+        armr.spsr = armr.irq_r[2];
+        break;
     case MODE_FIQ:
-	armr.user_r[0] = armr.r[8];
-	armr.user_r[1] = armr.r[9];
-	armr.user_r[2] = armr.r[10];
-	armr.user_r[3] = armr.r[11];
-	armr.user_r[4] = armr.r[12];
-	armr.r[8] = armr.fiq_r[0];
-	armr.r[9] = armr.fiq_r[1];
-	armr.r[10] = armr.fiq_r[2];
-	armr.r[11] = armr.fiq_r[3];
-	armr.r[12] = armr.fiq_r[4];
-	armr.r[13] = armr.fiq_r[5];
-	armr.r[14] = armr.fiq_r[6];
-	armr.spsr = armr.fiq_r[7];
-	break;
+        armr.user_r[0] = armr.r[8];
+        armr.user_r[1] = armr.r[9];
+        armr.user_r[2] = armr.r[10];
+        armr.user_r[3] = armr.r[11];
+        armr.user_r[4] = armr.r[12];
+        armr.r[8] = armr.fiq_r[0];
+        armr.r[9] = armr.fiq_r[1];
+        armr.r[10] = armr.fiq_r[2];
+        armr.r[11] = armr.fiq_r[3];
+        armr.r[12] = armr.fiq_r[4];
+        armr.r[13] = armr.fiq_r[5];
+        armr.r[14] = armr.fiq_r[6];
+        armr.spsr = armr.fiq_r[7];
+        break;
     }
 }
 
@@ -418,54 +418,54 @@ void arm_set_mode( int targetMode )
  */
 static uint32_t arm_get_shift_operand( uint32_t ir )
 {
-	uint32_t operand, tmp;
-	if( IFLAG(ir) == 0 ) {
-		operand = RM(ir);
-		switch(SHIFT(ir)) {
-		case 0: /* (Rm << imm) */
-			operand = operand << SHIFTIMM(ir);
-			break;
-		case 1: /* (Rm << Rs) */
-			tmp = RS(ir)&0xFF;
-			if( tmp > 31 ) operand = 0;
-			else operand = operand << tmp;
-			break;
-		case 2: /* (Rm >> imm) */
-			operand = operand >> SHIFTIMM(ir);
-			break;
-		case 3: /* (Rm >> Rs) */
-			tmp = RS(ir) & 0xFF;
-			if( tmp > 31 ) operand = 0;
-			else operand = operand >> ir;
-			break;
-		case 4: /* (Rm >>> imm) */
-			tmp = SHIFTIMM(ir);
-			if( tmp == 0 ) operand = ((int32_t)operand) >> 31;
-			else operand = ((int32_t)operand) >> tmp;
-			break;
-		case 5: /* (Rm >>> Rs) */
-			tmp = RS(ir) & 0xFF;
-			if( tmp > 31 ) operand = ((int32_t)operand) >> 31;
-			else operand = ((int32_t)operand) >> tmp;
-			break;
-		case 6:
-			tmp = SHIFTIMM(ir);
-			if( tmp == 0 ) /* RRX aka rotate with carry */
-				operand = (operand >> 1) | (armr.c<<31);
-			else
-				operand = ROTATE_RIGHT_LONG(operand,tmp);
-			break;
-		case 7:
-			tmp = RS(ir)&0x1F;
-			operand = ROTATE_RIGHT_LONG(operand,tmp);
-			break;
-		}
-	} else {
-		operand = IMM8(ir);
-		tmp = IMMROT(ir);
-		operand = ROTATE_RIGHT_LONG(operand, tmp);
-	}
-	return operand;
+    uint32_t operand, tmp;
+    if( IFLAG(ir) == 0 ) {
+        operand = RM(ir);
+        switch(SHIFT(ir)) {
+        case 0: /* (Rm << imm) */
+            operand = operand << SHIFTIMM(ir);
+            break;
+        case 1: /* (Rm << Rs) */
+            tmp = RS(ir)&0xFF;
+            if( tmp > 31 ) operand = 0;
+            else operand = operand << tmp;
+            break;
+        case 2: /* (Rm >> imm) */
+            operand = operand >> SHIFTIMM(ir);
+            break;
+        case 3: /* (Rm >> Rs) */
+            tmp = RS(ir) & 0xFF;
+            if( tmp > 31 ) operand = 0;
+            else operand = operand >> ir;
+            break;
+        case 4: /* (Rm >>> imm) */
+            tmp = SHIFTIMM(ir);
+            if( tmp == 0 ) operand = ((int32_t)operand) >> 31;
+            else operand = ((int32_t)operand) >> tmp;
+            break;
+        case 5: /* (Rm >>> Rs) */
+            tmp = RS(ir) & 0xFF;
+            if( tmp > 31 ) operand = ((int32_t)operand) >> 31;
+            else operand = ((int32_t)operand) >> tmp;
+            break;
+        case 6:
+            tmp = SHIFTIMM(ir);
+            if( tmp == 0 ) /* RRX aka rotate with carry */
+                operand = (operand >> 1) | (armr.c<<31);
+            else
+                operand = ROTATE_RIGHT_LONG(operand,tmp);
+            break;
+        case 7:
+            tmp = RS(ir)&0x1F;
+            operand = ROTATE_RIGHT_LONG(operand,tmp);
+            break;
+        }
+    } else {
+        operand = IMM8(ir);
+        tmp = IMMROT(ir);
+        operand = ROTATE_RIGHT_LONG(operand, tmp);
+    }
+    return operand;
 }
 
 /**
@@ -475,115 +475,115 @@ static uint32_t arm_get_shift_operand( uint32_t ir )
  */
 static uint32_t arm_get_shift_operand_s( uint32_t ir )
 {
-	uint32_t operand, tmp;
-	if( IFLAG(ir) == 0 ) {
-		operand = RM(ir);
-		switch(SHIFT(ir)) {
-		case 0: /* (Rm << imm) */
-			tmp = SHIFTIMM(ir);
-			if( tmp == 0 ) { /* Rm */
-				armr.shift_c = armr.c;
-			} else { /* Rm << imm */
-				armr.shift_c = (operand >> (32-tmp)) & 0x01;
-				operand = operand << tmp;
-			}
-			break;
-		case 1: /* (Rm << Rs) */
-			tmp = RS(ir)&0xFF;
-			if( tmp == 0 ) {
-				armr.shift_c = armr.c;
-			} else {
-				if( tmp <= 32 )
-					armr.shift_c = (operand >> (32-tmp)) & 0x01;
-				else armr.shift_c = 0;
-				if( tmp < 32 )
-					operand = operand << tmp;
-				else operand = 0;
-			}
-			break;
-		case 2: /* (Rm >> imm) */
-			tmp = SHIFTIMM(ir);
-			if( tmp == 0 ) {
-				armr.shift_c = operand >> 31;
-				operand = 0;
-			} else {
-				armr.shift_c = (operand >> (tmp-1)) & 0x01;
-				operand = RM(ir) >> tmp;
-			}
-			break;
-		case 3: /* (Rm >> Rs) */
-			tmp = RS(ir) & 0xFF;
-			if( tmp == 0 ) {
-				armr.shift_c = armr.c;
-			} else {
-				if( tmp <= 32 )
-					armr.shift_c = (operand >> (tmp-1))&0x01;
-				else armr.shift_c = 0;
-				if( tmp < 32 )
-					operand = operand >> tmp;
-				else operand = 0;
-			}
-			break;
-		case 4: /* (Rm >>> imm) */
-			tmp = SHIFTIMM(ir);
-			if( tmp == 0 ) {
-				armr.shift_c = operand >> 31;
-				operand = -armr.shift_c;
-			} else {
-				armr.shift_c = (operand >> (tmp-1)) & 0x01;
-				operand = ((int32_t)operand) >> tmp;
-			}
-			break;
-		case 5: /* (Rm >>> Rs) */
-			tmp = RS(ir) & 0xFF;
-			if( tmp == 0 ) {
-				armr.shift_c = armr.c;
-			} else {
-				if( tmp < 32 ) {
-					armr.shift_c = (operand >> (tmp-1))&0x01;
-					operand = ((int32_t)operand) >> tmp;
-				} else {
-					armr.shift_c = operand >> 31;
-					operand = ((int32_t)operand) >> 31;
-				}
-			}
-			break;
-		case 6:
-			tmp = SHIFTIMM(ir);
-			if( tmp == 0 ) { /* RRX aka rotate with carry */
-				armr.shift_c = operand&0x01;
-				operand = (operand >> 1) | (armr.c<<31);
-			} else {
-				armr.shift_c = operand>>(tmp-1);
-				operand = ROTATE_RIGHT_LONG(operand,tmp);
-			}
-			break;
-		case 7:
-			tmp = RS(ir)&0xFF;
-			if( tmp == 0 ) {
-				armr.shift_c = armr.c;
-			} else {
-				tmp &= 0x1F;
-				if( tmp == 0 ) {
-					armr.shift_c = operand>>31;
-				} else {
-					armr.shift_c = (operand>>(tmp-1))&0x1;
-					operand = ROTATE_RIGHT_LONG(operand,tmp);
-				}
-			}
-			break;
-		}
-	} else {
-		operand = IMM8(ir);
-		tmp = IMMROT(ir);
-		if( tmp == 0 ) {
-			armr.shift_c = armr.c;
-		} else {
-			operand = ROTATE_RIGHT_LONG(operand, tmp);
-			armr.shift_c = operand>>31;
-		}
-	}
-	return operand;
+    uint32_t operand, tmp;
+    if( IFLAG(ir) == 0 ) {
+        operand = RM(ir);
+        switch(SHIFT(ir)) {
+        case 0: /* (Rm << imm) */
+            tmp = SHIFTIMM(ir);
+            if( tmp == 0 ) { /* Rm */
+                armr.shift_c = armr.c;
+            } else { /* Rm << imm */
+                armr.shift_c = (operand >> (32-tmp)) & 0x01;
+                operand = operand << tmp;
+            }
+            break;
+        case 1: /* (Rm << Rs) */
+            tmp = RS(ir)&0xFF;
+            if( tmp == 0 ) {
+                armr.shift_c = armr.c;
+            } else {
+                if( tmp <= 32 )
+                    armr.shift_c = (operand >> (32-tmp)) & 0x01;
+                else armr.shift_c = 0;
+                if( tmp < 32 )
+                    operand = operand << tmp;
+                else operand = 0;
+            }
+            break;
+        case 2: /* (Rm >> imm) */
+            tmp = SHIFTIMM(ir);
+            if( tmp == 0 ) {
+                armr.shift_c = operand >> 31;
+                operand = 0;
+            } else {
+                armr.shift_c = (operand >> (tmp-1)) & 0x01;
+                operand = RM(ir) >> tmp;
+            }
+            break;
+        case 3: /* (Rm >> Rs) */
+            tmp = RS(ir) & 0xFF;
+            if( tmp == 0 ) {
+                armr.shift_c = armr.c;
+            } else {
+                if( tmp <= 32 )
+                    armr.shift_c = (operand >> (tmp-1))&0x01;
+                else armr.shift_c = 0;
+                if( tmp < 32 )
+                    operand = operand >> tmp;
+                else operand = 0;
+            }
+            break;
+        case 4: /* (Rm >>> imm) */
+            tmp = SHIFTIMM(ir);
+            if( tmp == 0 ) {
+                armr.shift_c = operand >> 31;
+                operand = -armr.shift_c;
+            } else {
+                armr.shift_c = (operand >> (tmp-1)) & 0x01;
+                operand = ((int32_t)operand) >> tmp;
+            }
+            break;
+        case 5: /* (Rm >>> Rs) */
+            tmp = RS(ir) & 0xFF;
+            if( tmp == 0 ) {
+                armr.shift_c = armr.c;
+            } else {
+                if( tmp < 32 ) {
+                    armr.shift_c = (operand >> (tmp-1))&0x01;
+                    operand = ((int32_t)operand) >> tmp;
+                } else {
+                    armr.shift_c = operand >> 31;
+                    operand = ((int32_t)operand) >> 31;
+                }
+            }
+            break;
+        case 6:
+            tmp = SHIFTIMM(ir);
+            if( tmp == 0 ) { /* RRX aka rotate with carry */
+                armr.shift_c = operand&0x01;
+                operand = (operand >> 1) | (armr.c<<31);
+            } else {
+                armr.shift_c = operand>>(tmp-1);
+                operand = ROTATE_RIGHT_LONG(operand,tmp);
+            }
+            break;
+        case 7:
+            tmp = RS(ir)&0xFF;
+            if( tmp == 0 ) {
+                armr.shift_c = armr.c;
+            } else {
+                tmp &= 0x1F;
+                if( tmp == 0 ) {
+                    armr.shift_c = operand>>31;
+                } else {
+                    armr.shift_c = (operand>>(tmp-1))&0x1;
+                    operand = ROTATE_RIGHT_LONG(operand,tmp);
+                }
+            }
+            break;
+        }
+    } else {
+        operand = IMM8(ir);
+        tmp = IMMROT(ir);
+        if( tmp == 0 ) {
+            armr.shift_c = armr.c;
+        } else {
+            operand = ROTATE_RIGHT_LONG(operand, tmp);
+            armr.shift_c = operand>>31;
+        }
+    }
+    return operand;
 }
 
 /**
@@ -595,31 +595,31 @@ static uint32_t arm_get_shift_operand_s( uint32_t ir )
  */
 static uint32_t arm_get_address_index( uint32_t ir )
 {
-	uint32_t operand = RM(ir);
-	uint32_t tmp;
-	
-	switch(SHIFT(ir)) {
-	case 0: /* (Rm << imm) */
-		operand = operand << SHIFTIMM(ir);
-		break;
-	case 2: /* (Rm >> imm) */
-		operand = operand >> SHIFTIMM(ir);
-		break;
-	case 4: /* (Rm >>> imm) */
-		tmp = SHIFTIMM(ir);
-		if( tmp == 0 ) operand = ((int32_t)operand) >> 31;
-		else operand = ((int32_t)operand) >> tmp;
-		break;
-	case 6:
-		tmp = SHIFTIMM(ir);
-		if( tmp == 0 ) /* RRX aka rotate with carry */
-			operand = (operand >> 1) | (armr.c<<31);
-		else
-			operand = ROTATE_RIGHT_LONG(operand,tmp);
-		break;
-	default: UNIMP(ir);
-	}
-	return operand;	
+    uint32_t operand = RM(ir);
+    uint32_t tmp;
+
+    switch(SHIFT(ir)) {
+    case 0: /* (Rm << imm) */
+        operand = operand << SHIFTIMM(ir);
+        break;
+    case 2: /* (Rm >> imm) */
+        operand = operand >> SHIFTIMM(ir);
+        break;
+    case 4: /* (Rm >>> imm) */
+        tmp = SHIFTIMM(ir);
+        if( tmp == 0 ) operand = ((int32_t)operand) >> 31;
+        else operand = ((int32_t)operand) >> tmp;
+        break;
+    case 6:
+        tmp = SHIFTIMM(ir);
+        if( tmp == 0 ) /* RRX aka rotate with carry */
+            operand = (operand >> 1) | (armr.c<<31);
+        else
+            operand = ROTATE_RIGHT_LONG(operand,tmp);
+        break;
+    default: UNIMP(ir);
+    }
+    return operand;	
 }
 
 /**
@@ -631,60 +631,60 @@ static uint32_t arm_get_address_index( uint32_t ir )
  */
 static uint32_t arm_get_address_operand( uint32_t ir )
 {
-	uint32_t addr=0;
-	
-	/* I P U . W */
-	switch( (ir>>21)&0x1D ) {
-	case 0: /* Rn -= imm offset (post-indexed) [5.2.8 A5-28] */
-	case 1:
-		addr = RN(ir);
-		LRN(ir) = addr - IMM12(ir);
-		break;
-	case 4: /* Rn += imm offsett (post-indexed) [5.2.8 A5-28] */
-	case 5:
-		addr = RN(ir);
-		LRN(ir) = addr + IMM12(ir);
-		break;
-	case 8: /* Rn - imm offset  [5.2.2 A5-20] */
-		addr = RN(ir) - IMM12(ir);
-		break;
-	case 9: /* Rn -= imm offset (pre-indexed)  [5.2.5 A5-24] */
-		addr = RN(ir) - IMM12(ir);
-		LRN(ir) = addr;
-		break;
-	case 12: /* Rn + imm offset  [5.2.2 A5-20] */
-		addr = RN(ir) + IMM12(ir);
-		break;
-	case 13: /* Rn += imm offset  [5.2.5 A5-24 ] */
-		addr = RN(ir) + IMM12(ir);
-		LRN(ir) = addr;
-		break;
-	case 16: /* Rn -= Rm (post-indexed)  [5.2.10 A5-32 ] */
-	case 17:
-		addr = RN(ir);
-		LRN(ir) = addr - arm_get_address_index(ir);
-		break;
-	case 20: /* Rn += Rm (post-indexed)  [5.2.10 A5-32 ] */
-	case 21:
-		addr = RN(ir);
-		LRN(ir) = addr - arm_get_address_index(ir);
-		break;
-	case 24: /* Rn - Rm  [5.2.4 A5-23] */
-		addr = RN(ir) - arm_get_address_index(ir);
-		break;
-	case 25: /* RN -= Rm (pre-indexed)  [5.2.7 A5-26] */
-		addr = RN(ir) - arm_get_address_index(ir);
-		LRN(ir) = addr;
-		break;
-	case 28: /* Rn + Rm  [5.2.4 A5-23] */
-		addr = RN(ir) + arm_get_address_index(ir);
-		break;
-	case 29: /* RN += Rm (pre-indexed) [5.2.7 A5-26] */
-		addr = RN(ir) + arm_get_address_index(ir);
-		LRN(ir) = addr;
-		break;
-	}
-	return addr;
+    uint32_t addr=0;
+
+    /* I P U . W */
+    switch( (ir>>21)&0x1D ) {
+    case 0: /* Rn -= imm offset (post-indexed) [5.2.8 A5-28] */
+    case 1:
+        addr = RN(ir);
+        LRN(ir) = addr - IMM12(ir);
+        break;
+    case 4: /* Rn += imm offsett (post-indexed) [5.2.8 A5-28] */
+    case 5:
+        addr = RN(ir);
+        LRN(ir) = addr + IMM12(ir);
+        break;
+    case 8: /* Rn - imm offset  [5.2.2 A5-20] */
+        addr = RN(ir) - IMM12(ir);
+        break;
+    case 9: /* Rn -= imm offset (pre-indexed)  [5.2.5 A5-24] */
+        addr = RN(ir) - IMM12(ir);
+        LRN(ir) = addr;
+        break;
+    case 12: /* Rn + imm offset  [5.2.2 A5-20] */
+        addr = RN(ir) + IMM12(ir);
+        break;
+    case 13: /* Rn += imm offset  [5.2.5 A5-24 ] */
+        addr = RN(ir) + IMM12(ir);
+        LRN(ir) = addr;
+        break;
+    case 16: /* Rn -= Rm (post-indexed)  [5.2.10 A5-32 ] */
+    case 17:
+        addr = RN(ir);
+        LRN(ir) = addr - arm_get_address_index(ir);
+        break;
+    case 20: /* Rn += Rm (post-indexed)  [5.2.10 A5-32 ] */
+    case 21:
+        addr = RN(ir);
+        LRN(ir) = addr - arm_get_address_index(ir);
+        break;
+    case 24: /* Rn - Rm  [5.2.4 A5-23] */
+        addr = RN(ir) - arm_get_address_index(ir);
+        break;
+    case 25: /* RN -= Rm (pre-indexed)  [5.2.7 A5-26] */
+        addr = RN(ir) - arm_get_address_index(ir);
+        LRN(ir) = addr;
+        break;
+    case 28: /* Rn + Rm  [5.2.4 A5-23] */
+        addr = RN(ir) + arm_get_address_index(ir);
+        break;
+    case 29: /* RN += Rm (pre-indexed) [5.2.7 A5-26] */
+        addr = RN(ir) + arm_get_address_index(ir);
+        LRN(ir) = addr;
+        break;
+    }
+    return addr;
 }
 
 gboolean arm_execute_instruction( void ) 
@@ -696,11 +696,11 @@ gboolean arm_execute_instruction( void )
 
     tmp = armr.int_pending & (~armr.cpsr);
     if( tmp ) {
-	if( tmp & CPSR_F ) {
-	    arm_raise_exception( EXC_FAST_IRQ );
-	} else {
-	    arm_raise_exception( EXC_IRQ );
-	}
+        if( tmp & CPSR_F ) {
+            arm_raise_exception( EXC_FAST_IRQ );
+        } else {
+            arm_raise_exception( EXC_IRQ );
+        }
     }
 
     ir = MEM_READ_LONG(PC);
@@ -713,673 +713,673 @@ gboolean arm_execute_instruction( void )
      */
     switch( COND(ir) ) {
     case 0: /* EQ */ 
-	cond = armr.z;
-	break;
+        cond = armr.z;
+        break;
     case 1: /* NE */
-	cond = !armr.z;
-	break;
+        cond = !armr.z;
+        break;
     case 2: /* CS/HS */
-	cond = armr.c;
-	break;
+        cond = armr.c;
+        break;
     case 3: /* CC/LO */
-	cond = !armr.c;
-	break;
+        cond = !armr.c;
+        break;
     case 4: /* MI */
-	cond = armr.n;
-	break;
+        cond = armr.n;
+        break;
     case 5: /* PL */
-	cond = !armr.n;
-	break;
+        cond = !armr.n;
+        break;
     case 6: /* VS */
-	cond = armr.v;
-	break;
+        cond = armr.v;
+        break;
     case 7: /* VC */
-	cond = !armr.v;
-	break;
+        cond = !armr.v;
+        break;
     case 8: /* HI */
-	cond = armr.c && !armr.z;
-	break;
+        cond = armr.c && !armr.z;
+        break;
     case 9: /* LS */
-	cond = (!armr.c) || armr.z;
-	break;
+        cond = (!armr.c) || armr.z;
+        break;
     case 10: /* GE */
-	cond = (armr.n == armr.v);
-	break;
+        cond = (armr.n == armr.v);
+        break;
     case 11: /* LT */
-	cond = (armr.n != armr.v);
-	break;
+        cond = (armr.n != armr.v);
+        break;
     case 12: /* GT */
-	cond = (!armr.z) && (armr.n == armr.v);
-	break;
+        cond = (!armr.z) && (armr.n == armr.v);
+        break;
     case 13: /* LE */
-	cond = armr.z || (armr.n != armr.v);
-	break;
+        cond = armr.z || (armr.n != armr.v);
+        break;
     case 14: /* AL */
-	cond = 1;
-	break;
+        cond = 1;
+        break;
     case 15: /* (NV) */
     default:
-	cond = 0;
-	UNDEF(ir);
+        cond = 0;
+        UNDEF(ir);
     }
     if( cond ) {
 
-    /**
-     * Condition passed, now for the actual instructions...
-     */
-    switch( GRP(ir) ) {
-    case 0:
-	if( (ir & 0x0D900000) == 0x01000000 ) {
-	    /* Instructions that aren't actual data processing even though
-	     * they sit in the DP instruction block.
-	     */
-	    switch( ir & 0x0FF000F0 ) {
-	    case 0x01200010: /* BX Rd */
-		armr.t = ir & 0x01;
-		armr.r[15] = RM(ir) & 0xFFFFFFFE;
-		break;
-	    case 0x01000000: /* MRS Rd, CPSR */
-		LRD(ir) = arm_get_cpsr();
-		break;
-	    case 0x01400000: /* MRS Rd, SPSR */
-		LRD(ir) = armr.spsr;
-		break;
-	    case 0x01200000: /* MSR CPSR, Rd */
-		arm_set_cpsr( RM(ir), ir );
-		break;
-	    case 0x01600000: /* MSR SPSR, Rd */
-		arm_set_spsr( RM(ir), ir );
-		break;
-	    case 0x03200000: /* MSR CPSR, imm */
-		arm_set_cpsr( ROTIMM12(ir), ir );
-		break;
-	    case 0x03600000: /* MSR SPSR, imm */
-		arm_set_spsr( ROTIMM12(ir), ir );
-		break;
-	    default:
-		UNIMP(ir);
-	    }
-	} else if( (ir & 0x0E000090) == 0x00000090 ) {
-	    /* Neither are these */
-	    switch( (ir>>5)&0x03 ) {
-	    case 0:
-		/* Arithmetic extension area */
-		switch(OPCODE(ir)) {
-		case 0: /* MUL */
-		    LRN(ir) = RM(ir) * RS(ir);
-		    break;
-		case 1: /* MULS */
-		    tmp = RM(ir) * RS(ir);
-		    LRN(ir) = tmp;
-		    armr.n = tmp>>31;
-		    armr.z = (tmp == 0);
-		    break;
-		case 2: /* MLA */
-		    LRN(ir) = RM(ir) * RS(ir) + RD(ir);
-		    break;
-		case 3: /* MLAS */
-		    tmp = RM(ir) * RS(ir) + RD(ir);
-		    LRN(ir) = tmp;
-		    armr.n = tmp>>31;
-		    armr.z = (tmp == 0);
-		    break;
-		case 8: /* UMULL */
-		case 9: /* UMULLS */
-		case 10: /* UMLAL */
-		case 11: /* UMLALS */
-		case 12: /* SMULL */
-		case 13: /* SMULLS */
-		case 14: /* SMLAL */
-		case 15: /* SMLALS */
-		    UNIMP(ir);
-		    break;
-		case 16: /* SWP */
-		    tmp = arm_read_long( RN(ir) );
-		    switch( RN(ir) & 0x03 ) {
-		    case 1:
-			tmp = ROTATE_RIGHT_LONG(tmp, 8);
-			break;
-		    case 2:
-			tmp = ROTATE_RIGHT_LONG(tmp, 16);
-			break;
-		    case 3:
-			tmp = ROTATE_RIGHT_LONG(tmp, 24);
-			break;
-		    }
-		    arm_write_long( RN(ir), RM(ir) );
-		    LRD(ir) = tmp;
-		    break;
-		case 20: /* SWPB */
-		    tmp = arm_read_byte( RN(ir) );
-		    arm_write_byte( RN(ir), RM(ir) );
-		    LRD(ir) = tmp;
-		    break;
-		default:
-		    UNIMP(ir);
-		}
-		break;
-	    case 1:
-		if( LFLAG(ir) ) {
-		    /* LDRH */
-		} else {
-		    /* STRH */
-		}
-		UNIMP(ir);
-		break;
-	    case 2:
-		if( LFLAG(ir) ) {
-		    /* LDRSB */
-		} else {
-		}
-		UNIMP(ir);
-		break;
-	    case 3:
-		if( LFLAG(ir) ) {
-		    /* LDRSH */
-		} else {
-		}
-		UNIMP(ir);
-		break;
-	    }
-	} else {
-	    /* Data processing */
+        /**
+         * Condition passed, now for the actual instructions...
+         */
+        switch( GRP(ir) ) {
+        case 0:
+            if( (ir & 0x0D900000) == 0x01000000 ) {
+                /* Instructions that aren't actual data processing even though
+                 * they sit in the DP instruction block.
+                 */
+                switch( ir & 0x0FF000F0 ) {
+                case 0x01200010: /* BX Rd */
+                    armr.t = ir & 0x01;
+                    armr.r[15] = RM(ir) & 0xFFFFFFFE;
+                    break;
+                case 0x01000000: /* MRS Rd, CPSR */
+                    LRD(ir) = arm_get_cpsr();
+                    break;
+                case 0x01400000: /* MRS Rd, SPSR */
+                    LRD(ir) = armr.spsr;
+                    break;
+                case 0x01200000: /* MSR CPSR, Rd */
+                    arm_set_cpsr( RM(ir), ir );
+                    break;
+                case 0x01600000: /* MSR SPSR, Rd */
+                    arm_set_spsr( RM(ir), ir );
+                    break;
+                case 0x03200000: /* MSR CPSR, imm */
+                    arm_set_cpsr( ROTIMM12(ir), ir );
+                    break;
+                case 0x03600000: /* MSR SPSR, imm */
+                    arm_set_spsr( ROTIMM12(ir), ir );
+                    break;
+                default:
+                    UNIMP(ir);
+                }
+            } else if( (ir & 0x0E000090) == 0x00000090 ) {
+                /* Neither are these */
+                switch( (ir>>5)&0x03 ) {
+                case 0:
+                    /* Arithmetic extension area */
+                    switch(OPCODE(ir)) {
+                    case 0: /* MUL */
+                        LRN(ir) = RM(ir) * RS(ir);
+                        break;
+                    case 1: /* MULS */
+                        tmp = RM(ir) * RS(ir);
+                        LRN(ir) = tmp;
+                        armr.n = tmp>>31;
+                        armr.z = (tmp == 0);
+                        break;
+                    case 2: /* MLA */
+                        LRN(ir) = RM(ir) * RS(ir) + RD(ir);
+                        break;
+                    case 3: /* MLAS */
+                        tmp = RM(ir) * RS(ir) + RD(ir);
+                        LRN(ir) = tmp;
+                        armr.n = tmp>>31;
+                        armr.z = (tmp == 0);
+                        break;
+                    case 8: /* UMULL */
+                    case 9: /* UMULLS */
+                    case 10: /* UMLAL */
+                    case 11: /* UMLALS */
+                    case 12: /* SMULL */
+                    case 13: /* SMULLS */
+                    case 14: /* SMLAL */
+                    case 15: /* SMLALS */
+                        UNIMP(ir);
+                        break;
+                    case 16: /* SWP */
+                        tmp = arm_read_long( RN(ir) );
+                        switch( RN(ir) & 0x03 ) {
+                        case 1:
+                            tmp = ROTATE_RIGHT_LONG(tmp, 8);
+                            break;
+                        case 2:
+                            tmp = ROTATE_RIGHT_LONG(tmp, 16);
+                            break;
+                        case 3:
+                            tmp = ROTATE_RIGHT_LONG(tmp, 24);
+                            break;
+                        }
+                        arm_write_long( RN(ir), RM(ir) );
+                        LRD(ir) = tmp;
+                        break;
+                        case 20: /* SWPB */
+                            tmp = arm_read_byte( RN(ir) );
+                            arm_write_byte( RN(ir), RM(ir) );
+                            LRD(ir) = tmp;
+                            break;
+                        default:
+                            UNIMP(ir);
+                    }
+                    break;
+                    case 1:
+                        if( LFLAG(ir) ) {
+                            /* LDRH */
+                        } else {
+                            /* STRH */
+                        }
+                        UNIMP(ir);
+                        break;
+                    case 2:
+                        if( LFLAG(ir) ) {
+                            /* LDRSB */
+                        } else {
+                        }
+                        UNIMP(ir);
+                        break;
+                    case 3:
+                        if( LFLAG(ir) ) {
+                            /* LDRSH */
+                        } else {
+                        }
+                        UNIMP(ir);
+                        break;
+                }
+            } else {
+                /* Data processing */
 
-	    switch(OPCODE(ir)) {
-	    case 0: /* AND Rd, Rn, operand */
-		LRD(ir) = RN(ir) & arm_get_shift_operand(ir);
-		break;
-	    case 1: /* ANDS Rd, Rn, operand */
-		operand = arm_get_shift_operand_s(ir) & RN(ir);
-		LRD(ir) = operand;
-		if( RDn(ir) == 15 ) {
-		    arm_restore_cpsr();
-		} else {
-		    armr.n = operand>>31;
-		    armr.z = (operand == 0);
-		    armr.c = armr.shift_c;
-		}
-		break;
-	    case 2: /* EOR Rd, Rn, operand */
-		LRD(ir) = RN(ir) ^ arm_get_shift_operand(ir);
-		break;
-	    case 3: /* EORS Rd, Rn, operand */
-		operand = arm_get_shift_operand_s(ir) ^ RN(ir);
-		LRD(ir) = operand;
-		if( RDn(ir) == 15 ) {
-		    arm_restore_cpsr();
-		} else {
-		    armr.n = operand>>31;
-		    armr.z = (operand == 0);
-		    armr.c = armr.shift_c;
-		}
-		break;
-	    case 4: /* SUB Rd, Rn, operand */
-		LRD(ir) = RN(ir) - arm_get_shift_operand(ir);
-		break;
-	    case 5: /* SUBS Rd, Rn, operand */
-		operand = RN(ir);
-		operand2 = arm_get_shift_operand(ir);
-		tmp = operand - operand2;
-		LRD(ir) = tmp;
-		if( RDn(ir) == 15 ) {
-		    arm_restore_cpsr();
-		} else {
-		    armr.n = tmp>>31;
-		    armr.z = (tmp == 0);
-		    armr.c = IS_NOTBORROW(tmp,operand,operand2);
-		    armr.v = IS_SUBOVERFLOW(tmp,operand,operand2);
-		}
-		break;
-	    case 6: /* RSB Rd, operand, Rn */
-		LRD(ir) = arm_get_shift_operand(ir) - RN(ir);
-		break;
-	    case 7: /* RSBS Rd, operand, Rn */
-		operand = arm_get_shift_operand(ir);
-		operand2 = RN(ir);
-		tmp = operand - operand2;
-		LRD(ir) = tmp;
-		if( RDn(ir) == 15 ) {
-		    arm_restore_cpsr();
-		} else {
-		    armr.n = tmp>>31;
-		    armr.z = (tmp == 0);
-		    armr.c = IS_NOTBORROW(tmp,operand,operand2);
-		    armr.v = IS_SUBOVERFLOW(tmp,operand,operand2);
-		}
-		break;
-	    case 8: /* ADD Rd, Rn, operand */
-		LRD(ir) = RN(ir) + arm_get_shift_operand(ir);
-		break;
-	    case 9: /* ADDS Rd, Rn, operand */
-		operand = arm_get_shift_operand(ir);
-		operand2 = RN(ir);
-		tmp = operand + operand2;
-		LRD(ir) = tmp;
-		if( RDn(ir) == 15 ) {
-		    arm_restore_cpsr();
-		} else {
-		    armr.n = tmp>>31;
-		    armr.z = (tmp == 0);
-		    armr.c = IS_CARRY(tmp,operand,operand2);
-		    armr.v = IS_ADDOVERFLOW(tmp,operand,operand2);
-		}
-		break;			
-	    case 10: /* ADC */
-		LRD(ir) = RN(ir) + arm_get_shift_operand(ir) + 
-		    (armr.c ? 1 : 0);
-		break;
-	    case 11: /* ADCS */
-		operand = arm_get_shift_operand(ir);
-		operand2 = RN(ir);
-		tmp = operand + operand2;
-		tmp2 = tmp + armr.c ? 1 : 0;
-		LRD(ir) = tmp2;
-		if( RDn(ir) == 15 ) {
-		    arm_restore_cpsr();
-		} else {
-		    armr.n = tmp >> 31;
-		    armr.z = (tmp == 0 );
-		    armr.c = IS_CARRY(tmp,operand,operand2) ||
-			(tmp2 < tmp);
-		    armr.v = IS_ADDOVERFLOW(tmp,operand, operand2) ||
-			((tmp&0x80000000) != (tmp2&0x80000000));
-		}
-		break;
-	    case 12: /* SBC */
-		LRD(ir) = RN(ir) - arm_get_shift_operand(ir) - 
-		    (armr.c ? 0 : 1);
-		break;
-	    case 13: /* SBCS */
-		operand = RN(ir);
-		operand2 = arm_get_shift_operand(ir);
-		tmp = operand - operand2;
-		tmp2 = tmp - (armr.c ? 0 : 1);
-		if( RDn(ir) == 15 ) {
-		    arm_restore_cpsr();
-		} else {
-		    armr.n = tmp >> 31;
-		    armr.z = (tmp == 0 );
-		    armr.c = IS_NOTBORROW(tmp,operand,operand2) &&
-			(tmp2<tmp);
-		    armr.v = IS_SUBOVERFLOW(tmp,operand,operand2) ||
-			((tmp&0x80000000) != (tmp2&0x80000000));
-		}
-		break;
-	    case 14: /* RSC */
-		LRD(ir) = arm_get_shift_operand(ir) - RN(ir) -
-		    (armr.c ? 0 : 1);
-		break;
-	    case 15: /* RSCS */
-		operand = arm_get_shift_operand(ir);
-		operand2 = RN(ir);
-		tmp = operand - operand2;
-		tmp2 = tmp - (armr.c ? 0 : 1);
-		if( RDn(ir) == 15 ) {
-		    arm_restore_cpsr();
-		} else {
-		    armr.n = tmp >> 31;
-		    armr.z = (tmp == 0 );
-		    armr.c = IS_NOTBORROW(tmp,operand,operand2) &&
-			(tmp2<tmp);
-		    armr.v = IS_SUBOVERFLOW(tmp,operand,operand2) ||
-			((tmp&0x80000000) != (tmp2&0x80000000));
-		}
-		break;
-	    case 17: /* TST Rn, operand */
-		operand = arm_get_shift_operand_s(ir) & RN(ir);
-		armr.n = operand>>31;
-		armr.z = (operand == 0);
-		armr.c = armr.shift_c;
-		break;
-	    case 19: /* TEQ Rn, operand */
-		operand = arm_get_shift_operand_s(ir) ^ RN(ir);
-		armr.n = operand>>31;
-		armr.z = (operand == 0);
-		armr.c = armr.shift_c;
-		break;				
-	    case 21: /* CMP Rn, operand */
-		operand = RN(ir);
-		operand2 = arm_get_shift_operand(ir);
-		tmp = operand - operand2;
-		armr.n = tmp>>31;
-		armr.z = (tmp == 0);
-		armr.c = IS_NOTBORROW(tmp,operand,operand2);
-		armr.v = IS_SUBOVERFLOW(tmp,operand,operand2);
-		break;
-	    case 23: /* CMN Rn, operand */
-		operand = RN(ir);
-		operand2 = arm_get_shift_operand(ir);
-		tmp = operand + operand2;
-		armr.n = tmp>>31;
-		armr.z = (tmp == 0);
-		armr.c = IS_CARRY(tmp,operand,operand2);
-		armr.v = IS_ADDOVERFLOW(tmp,operand,operand2);
-		break;
-	    case 24: /* ORR Rd, Rn, operand */
-		LRD(ir) = RN(ir) | arm_get_shift_operand(ir);
-		break;
-	    case 25: /* ORRS Rd, Rn, operand */
-		operand = arm_get_shift_operand_s(ir) | RN(ir);
-		LRD(ir) = operand;
-		if( RDn(ir) == 15 ) {
-		    arm_restore_cpsr();
-		} else {
-		    armr.n = operand>>31;
-		    armr.z = (operand == 0);
-		    armr.c = armr.shift_c;
-		}
-		break;
-	    case 26: /* MOV Rd, operand */
-		LRD(ir) = arm_get_shift_operand(ir);
-		break;
-	    case 27: /* MOVS Rd, operand */
-		operand = arm_get_shift_operand_s(ir);
-		LRD(ir) = operand;
-		if( RDn(ir) == 15 ) {
-		    arm_restore_cpsr();
-		} else {
-		    armr.n = operand>>31;
-		    armr.z = (operand == 0);
-		    armr.c = armr.shift_c;
-		}
-		break;
-	    case 28: /* BIC Rd, Rn, operand */
-		LRD(ir) = RN(ir) & (~arm_get_shift_operand(ir));
-		break;
-	    case 29: /* BICS Rd, Rn, operand */
-		operand = RN(ir) & (~arm_get_shift_operand_s(ir));
-		LRD(ir) = operand;
-		if( RDn(ir) == 15 ) {
-		    arm_restore_cpsr();
-		} else {
-		    armr.n = operand>>31;
-		    armr.z = (operand == 0);
-		    armr.c = armr.shift_c;
-		}
-		break;
-	    case 30: /* MVN Rd, operand */
-		LRD(ir) = ~arm_get_shift_operand(ir);
-		break;
-	    case 31: /* MVNS Rd, operand */
-		operand = ~arm_get_shift_operand_s(ir);
-		LRD(ir) = operand;
-		if( RDn(ir) == 15 ) {
-		    arm_restore_cpsr();
-		} else {
-		    armr.n = operand>>31;
-		    armr.z = (operand == 0);
-		    armr.c = armr.shift_c;
-		}
-		break;
-	    default:
-		UNIMP(ir);
-	    }
-	}
-	break;
-    case 1: /* Load/store */
-	operand = arm_get_address_operand(ir);
-	switch( (ir>>20)&0x17 ) {
-	case 0: case 16: case 18: /* STR Rd, address */
-	    arm_write_long( operand, RD(ir) );
-	    break;
-	case 1: case 17: case 19: /* LDR Rd, address */
-	    LRD(ir) = arm_read_long(operand);
-	    break;
-	case 2: /* STRT Rd, address */
-	    arm_write_long_user( operand, RD(ir) );
-	    break;
-	case 3: /* LDRT Rd, address */
-	    LRD(ir) = arm_read_long_user( operand );
-	    break;
-	case 4: case 20: case 22: /* STRB Rd, address */
-	    arm_write_byte( operand, RD(ir) );
-	    break;
-	case 5: case 21: case 23: /* LDRB Rd, address */
-	    LRD(ir) = arm_read_byte( operand );
-	    break;
-	case 6: /* STRBT Rd, address */
-	    arm_write_byte_user( operand, RD(ir) );
-	    break;
-	case 7: /* LDRBT Rd, address */
-	    LRD(ir) = arm_read_byte_user( operand );
-	    break;
-	}
-	break;
-    case 2: /* Load/store multiple, branch*/
-	if( (ir & 0x02000000) == 0x02000000 ) { /* B[L] imm24 */
-	    operand = (SIGNEXT24(ir&0x00FFFFFF) << 2);
-	    if( (ir & 0x01000000) == 0x01000000 ) { 
-		armr.r[14] = pc; /* BL */
-	    }
-	    armr.r[15] = pc + 4 + operand;
-	} else { /* Load/store multiple */
-	    gboolean needRestore = FALSE;
-	    operand = RN(ir);
-	    
-	    switch( (ir & 0x01D00000) >> 20 ) {
-	    case 0: /* STMDA */
-		if( ir & 0x8000 ) {
-		    arm_write_long( operand, armr.r[15]+4 );
-		    operand -= 4;
-		}
-		for( i=14; i>= 0; i-- ) {
-		    if( (ir & (1<<i)) ) {
-			arm_write_long( operand, armr.r[i] );
-			operand -= 4;
-		    }
-		}
-		break;
-	    case 1: /* LDMDA */
-		for( i=15; i>= 0; i-- ) {
-		    if( (ir & (1<<i)) ) {
-			armr.r[i] = arm_read_long( operand );
-			operand -= 4;
-		    }
-		}
-		break;
-	    case 4: /* STMDA (S) */
-		if( ir & 0x8000 ) {
-		    arm_write_long( operand, armr.r[15]+4 );
-		    operand -= 4;
-		}
-		for( i=14; i>= 0; i-- ) {
-		    if( (ir & (1<<i)) ) {
-			arm_write_long( operand, USER_R(i) );
-			operand -= 4;
-		    }
-		}
-		break;
-	    case 5: /* LDMDA (S) */
-		if( (ir&0x00008000) ) { /* Load PC */
-		    for( i=15; i>= 0; i-- ) {
-			if( (ir & (1<<i)) ) {
-			    armr.r[i] = arm_read_long( operand );
-			    operand -= 4;
-			}
-		    }
-		    needRestore = TRUE;
-		} else {
-		    for( i=15; i>= 0; i-- ) {
-			if( (ir & (1<<i)) ) {
-			    USER_R(i) = arm_read_long( operand );
-			    operand -= 4;
-			}
-		    }
-		}
-		break;
-	    case 8: /* STMIA */
-		for( i=0; i< 15; i++ ) {
-		    if( (ir & (1<<i)) ) {
-			arm_write_long( operand, armr.r[i] );
-			operand += 4;
-		    }
-		}
-		if( ir & 0x8000 ) {
-		    arm_write_long( operand, armr.r[15]+4 );
-		    operand += 4;
-		}
-		break;
-	    case 9: /* LDMIA */
-		for( i=0; i< 16; i++ ) {
-		    if( (ir & (1<<i)) ) {
-			armr.r[i] = arm_read_long( operand );
-			operand += 4;
-		    }
-		}
-		break;
-	    case 12: /* STMIA (S) */
-		for( i=0; i< 15; i++ ) {
-		    if( (ir & (1<<i)) ) {
-			arm_write_long( operand, USER_R(i) );
-			operand += 4;
-		    }
-		}
-		if( ir & 0x8000 ) {
-		    arm_write_long( operand, armr.r[15]+4 );
-		    operand += 4;
-		}
-		break;
-	    case 13: /* LDMIA (S) */
-		if( (ir&0x00008000) ) { /* Load PC */
-		    for( i=0; i < 16; i++ ) {
-			if( (ir & (1<<i)) ) {
-			    armr.r[i] = arm_read_long( operand );
-			    operand += 4;
-			}
-		    }
-		    needRestore = TRUE;
-		} else {
-		    for( i=0; i < 16; i++ ) {
-			if( (ir & (1<<i)) ) {
-			    USER_R(i) = arm_read_long( operand );
-			    operand += 4;
-			}
-		    }
-		}
-		break;
-	    case 16: /* STMDB */
-		if( ir & 0x8000 ) {
-		    operand -= 4;
-		    arm_write_long( operand, armr.r[15]+4 );
-		}
-		for( i=14; i>= 0; i-- ) {
-		    if( (ir & (1<<i)) ) {
-			operand -= 4;
-			arm_write_long( operand, armr.r[i] );
-		    }
-		}
-		break;
-	    case 17: /* LDMDB */
-		for( i=15; i>= 0; i-- ) {
-		    if( (ir & (1<<i)) ) {
-			operand -= 4;
-			armr.r[i] = arm_read_long( operand );
-		    }
-		}
-		break;
-	    case 20: /* STMDB (S) */
-		if( ir & 0x8000 ) {
-		    operand -= 4;
-		    arm_write_long( operand, armr.r[15]+4 );
-		}
-		for( i=14; i>= 0; i-- ) {
-		    if( (ir & (1<<i)) ) {
-			operand -= 4;
-			arm_write_long( operand, USER_R(i) );
-		    }
-		}
-		break;
-	    case 21: /* LDMDB (S) */
-		if( (ir&0x00008000) ) { /* Load PC */
-		    for( i=15; i>= 0; i-- ) {
-			if( (ir & (1<<i)) ) {
-			    operand -= 4;
-			    armr.r[i] = arm_read_long( operand );
-			}
-		    }
-		    needRestore = TRUE;
-		} else {
-		    for( i=15; i>= 0; i-- ) {
-			if( (ir & (1<<i)) ) {
-			    operand -= 4;
-			    USER_R(i) = arm_read_long( operand );
-			}
-		    }
-		}
-		break;
-	    case 24: /* STMIB */
-		for( i=0; i< 15; i++ ) {
-		    if( (ir & (1<<i)) ) {
-			operand += 4;
-			arm_write_long( operand, armr.r[i] );
-		    }
-		}
-		if( ir & 0x8000 ) {
-		    operand += 4;
-		    arm_write_long( operand, armr.r[15]+4 );
-		}
-		break;
-	    case 25: /* LDMIB */
-		for( i=0; i< 16; i++ ) {
-		    if( (ir & (1<<i)) ) {
-			operand += 4;
-			armr.r[i] = arm_read_long( operand );
-		    }
-		}
-		break;
-	    case 28: /* STMIB (S) */
-		for( i=0; i< 15; i++ ) {
-		    if( (ir & (1<<i)) ) {
-			operand += 4;
-			arm_write_long( operand, USER_R(i) );
-		    }
-		}
-		if( ir & 0x8000 ) {
-		    operand += 4;
-		    arm_write_long( operand, armr.r[15]+4 );
-		}
-		break;
-	    case 29: /* LDMIB (S) */
-		if( (ir&0x00008000) ) { /* Load PC */
-		    for( i=0; i < 16; i++ ) {
-			if( (ir & (1<<i)) ) {
-			    operand += 4;
-			    armr.r[i] = arm_read_long( operand );
-			}
-		    }
-		    needRestore = TRUE;
-		} else {
-		    for( i=0; i < 16; i++ ) {
-			if( (ir & (1<<i)) ) {
-			    operand += 4;
-			    USER_R(i) = arm_read_long( operand );
-			}
-		    }
-		}
-		break;
-	    }
-	    
-	    if( WFLAG(ir) ) 
-		LRN(ir) = operand;
-	    if( needRestore ) 
-		arm_restore_cpsr();
-	}
-	break;
-    case 3: /* Copro */
-	if( (ir & 0x0F000000) == 0x0F000000 ) { /* SWI */
-	    arm_raise_exception( EXC_SOFTWARE );
-	} else {
-	    UNIMP(ir);
-	}
-	break;
-    }
+                switch(OPCODE(ir)) {
+                case 0: /* AND Rd, Rn, operand */
+                    LRD(ir) = RN(ir) & arm_get_shift_operand(ir);
+                    break;
+                case 1: /* ANDS Rd, Rn, operand */
+                    operand = arm_get_shift_operand_s(ir) & RN(ir);
+                    LRD(ir) = operand;
+                    if( RDn(ir) == 15 ) {
+                        arm_restore_cpsr();
+                    } else {
+                        armr.n = operand>>31;
+                        armr.z = (operand == 0);
+                        armr.c = armr.shift_c;
+                    }
+                    break;
+                case 2: /* EOR Rd, Rn, operand */
+                    LRD(ir) = RN(ir) ^ arm_get_shift_operand(ir);
+                    break;
+                case 3: /* EORS Rd, Rn, operand */
+                    operand = arm_get_shift_operand_s(ir) ^ RN(ir);
+                    LRD(ir) = operand;
+                    if( RDn(ir) == 15 ) {
+                        arm_restore_cpsr();
+                    } else {
+                        armr.n = operand>>31;
+                        armr.z = (operand == 0);
+                        armr.c = armr.shift_c;
+                    }
+                    break;
+                case 4: /* SUB Rd, Rn, operand */
+                    LRD(ir) = RN(ir) - arm_get_shift_operand(ir);
+                    break;
+                case 5: /* SUBS Rd, Rn, operand */
+                    operand = RN(ir);
+                    operand2 = arm_get_shift_operand(ir);
+                    tmp = operand - operand2;
+                    LRD(ir) = tmp;
+                    if( RDn(ir) == 15 ) {
+                        arm_restore_cpsr();
+                    } else {
+                        armr.n = tmp>>31;
+                        armr.z = (tmp == 0);
+                        armr.c = IS_NOTBORROW(tmp,operand,operand2);
+                        armr.v = IS_SUBOVERFLOW(tmp,operand,operand2);
+                    }
+                    break;
+                case 6: /* RSB Rd, operand, Rn */
+                    LRD(ir) = arm_get_shift_operand(ir) - RN(ir);
+                    break;
+                case 7: /* RSBS Rd, operand, Rn */
+                    operand = arm_get_shift_operand(ir);
+                    operand2 = RN(ir);
+                    tmp = operand - operand2;
+                    LRD(ir) = tmp;
+                    if( RDn(ir) == 15 ) {
+                        arm_restore_cpsr();
+                    } else {
+                        armr.n = tmp>>31;
+                        armr.z = (tmp == 0);
+                        armr.c = IS_NOTBORROW(tmp,operand,operand2);
+                        armr.v = IS_SUBOVERFLOW(tmp,operand,operand2);
+                    }
+                    break;
+                case 8: /* ADD Rd, Rn, operand */
+                    LRD(ir) = RN(ir) + arm_get_shift_operand(ir);
+                    break;
+                case 9: /* ADDS Rd, Rn, operand */
+                    operand = arm_get_shift_operand(ir);
+                    operand2 = RN(ir);
+                    tmp = operand + operand2;
+                    LRD(ir) = tmp;
+                    if( RDn(ir) == 15 ) {
+                        arm_restore_cpsr();
+                    } else {
+                        armr.n = tmp>>31;
+                        armr.z = (tmp == 0);
+                        armr.c = IS_CARRY(tmp,operand,operand2);
+                        armr.v = IS_ADDOVERFLOW(tmp,operand,operand2);
+                    }
+                    break;			
+                case 10: /* ADC */
+                    LRD(ir) = RN(ir) + arm_get_shift_operand(ir) + 
+                    (armr.c ? 1 : 0);
+                    break;
+                case 11: /* ADCS */
+                    operand = arm_get_shift_operand(ir);
+                    operand2 = RN(ir);
+                    tmp = operand + operand2;
+                    tmp2 = tmp + armr.c ? 1 : 0;
+                    LRD(ir) = tmp2;
+                    if( RDn(ir) == 15 ) {
+                        arm_restore_cpsr();
+                    } else {
+                        armr.n = tmp >> 31;
+                        armr.z = (tmp == 0 );
+                        armr.c = IS_CARRY(tmp,operand,operand2) ||
+                        (tmp2 < tmp);
+                        armr.v = IS_ADDOVERFLOW(tmp,operand, operand2) ||
+                        ((tmp&0x80000000) != (tmp2&0x80000000));
+                    }
+                    break;
+                case 12: /* SBC */
+                    LRD(ir) = RN(ir) - arm_get_shift_operand(ir) - 
+                    (armr.c ? 0 : 1);
+                    break;
+                case 13: /* SBCS */
+                    operand = RN(ir);
+                    operand2 = arm_get_shift_operand(ir);
+                    tmp = operand - operand2;
+                    tmp2 = tmp - (armr.c ? 0 : 1);
+                    if( RDn(ir) == 15 ) {
+                        arm_restore_cpsr();
+                    } else {
+                        armr.n = tmp >> 31;
+                        armr.z = (tmp == 0 );
+                        armr.c = IS_NOTBORROW(tmp,operand,operand2) &&
+                        (tmp2<tmp);
+                        armr.v = IS_SUBOVERFLOW(tmp,operand,operand2) ||
+                        ((tmp&0x80000000) != (tmp2&0x80000000));
+                    }
+                    break;
+                case 14: /* RSC */
+                    LRD(ir) = arm_get_shift_operand(ir) - RN(ir) -
+                    (armr.c ? 0 : 1);
+                    break;
+                case 15: /* RSCS */
+                    operand = arm_get_shift_operand(ir);
+                    operand2 = RN(ir);
+                    tmp = operand - operand2;
+                    tmp2 = tmp - (armr.c ? 0 : 1);
+                    if( RDn(ir) == 15 ) {
+                        arm_restore_cpsr();
+                    } else {
+                        armr.n = tmp >> 31;
+                        armr.z = (tmp == 0 );
+                        armr.c = IS_NOTBORROW(tmp,operand,operand2) &&
+                        (tmp2<tmp);
+                        armr.v = IS_SUBOVERFLOW(tmp,operand,operand2) ||
+                        ((tmp&0x80000000) != (tmp2&0x80000000));
+                    }
+                    break;
+                case 17: /* TST Rn, operand */
+                    operand = arm_get_shift_operand_s(ir) & RN(ir);
+                    armr.n = operand>>31;
+                    armr.z = (operand == 0);
+                    armr.c = armr.shift_c;
+                    break;
+                case 19: /* TEQ Rn, operand */
+                    operand = arm_get_shift_operand_s(ir) ^ RN(ir);
+                    armr.n = operand>>31;
+                    armr.z = (operand == 0);
+                    armr.c = armr.shift_c;
+                    break;				
+                case 21: /* CMP Rn, operand */
+                    operand = RN(ir);
+                    operand2 = arm_get_shift_operand(ir);
+                    tmp = operand - operand2;
+                    armr.n = tmp>>31;
+                    armr.z = (tmp == 0);
+                    armr.c = IS_NOTBORROW(tmp,operand,operand2);
+                    armr.v = IS_SUBOVERFLOW(tmp,operand,operand2);
+                    break;
+                case 23: /* CMN Rn, operand */
+                    operand = RN(ir);
+                    operand2 = arm_get_shift_operand(ir);
+                    tmp = operand + operand2;
+                    armr.n = tmp>>31;
+                    armr.z = (tmp == 0);
+                    armr.c = IS_CARRY(tmp,operand,operand2);
+                    armr.v = IS_ADDOVERFLOW(tmp,operand,operand2);
+                    break;
+                case 24: /* ORR Rd, Rn, operand */
+                    LRD(ir) = RN(ir) | arm_get_shift_operand(ir);
+                    break;
+                case 25: /* ORRS Rd, Rn, operand */
+                    operand = arm_get_shift_operand_s(ir) | RN(ir);
+                    LRD(ir) = operand;
+                    if( RDn(ir) == 15 ) {
+                        arm_restore_cpsr();
+                    } else {
+                        armr.n = operand>>31;
+                        armr.z = (operand == 0);
+                        armr.c = armr.shift_c;
+                    }
+                    break;
+                case 26: /* MOV Rd, operand */
+                    LRD(ir) = arm_get_shift_operand(ir);
+                    break;
+                case 27: /* MOVS Rd, operand */
+                    operand = arm_get_shift_operand_s(ir);
+                    LRD(ir) = operand;
+                    if( RDn(ir) == 15 ) {
+                        arm_restore_cpsr();
+                    } else {
+                        armr.n = operand>>31;
+                        armr.z = (operand == 0);
+                        armr.c = armr.shift_c;
+                    }
+                    break;
+                case 28: /* BIC Rd, Rn, operand */
+                    LRD(ir) = RN(ir) & (~arm_get_shift_operand(ir));
+                    break;
+                case 29: /* BICS Rd, Rn, operand */
+                    operand = RN(ir) & (~arm_get_shift_operand_s(ir));
+                    LRD(ir) = operand;
+                    if( RDn(ir) == 15 ) {
+                        arm_restore_cpsr();
+                    } else {
+                        armr.n = operand>>31;
+                        armr.z = (operand == 0);
+                        armr.c = armr.shift_c;
+                    }
+                    break;
+                case 30: /* MVN Rd, operand */
+                    LRD(ir) = ~arm_get_shift_operand(ir);
+                    break;
+                case 31: /* MVNS Rd, operand */
+                    operand = ~arm_get_shift_operand_s(ir);
+                    LRD(ir) = operand;
+                    if( RDn(ir) == 15 ) {
+                        arm_restore_cpsr();
+                    } else {
+                        armr.n = operand>>31;
+                        armr.z = (operand == 0);
+                        armr.c = armr.shift_c;
+                    }
+                    break;
+                default:
+                    UNIMP(ir);
+                }
+            }
+            break;
+        case 1: /* Load/store */
+            operand = arm_get_address_operand(ir);
+            switch( (ir>>20)&0x17 ) {
+            case 0: case 16: case 18: /* STR Rd, address */
+                arm_write_long( operand, RD(ir) );
+                break;
+            case 1: case 17: case 19: /* LDR Rd, address */
+                LRD(ir) = arm_read_long(operand);
+                break;
+            case 2: /* STRT Rd, address */
+                arm_write_long_user( operand, RD(ir) );
+                break;
+            case 3: /* LDRT Rd, address */
+                LRD(ir) = arm_read_long_user( operand );
+                break;
+            case 4: case 20: case 22: /* STRB Rd, address */
+                arm_write_byte( operand, RD(ir) );
+                break;
+            case 5: case 21: case 23: /* LDRB Rd, address */
+                LRD(ir) = arm_read_byte( operand );
+                break;
+            case 6: /* STRBT Rd, address */
+                arm_write_byte_user( operand, RD(ir) );
+                break;
+            case 7: /* LDRBT Rd, address */
+                LRD(ir) = arm_read_byte_user( operand );
+                break;
+            }
+            break;
+            case 2: /* Load/store multiple, branch*/
+                if( (ir & 0x02000000) == 0x02000000 ) { /* B[L] imm24 */
+                    operand = (SIGNEXT24(ir&0x00FFFFFF) << 2);
+                    if( (ir & 0x01000000) == 0x01000000 ) { 
+                        armr.r[14] = pc; /* BL */
+                    }
+                    armr.r[15] = pc + 4 + operand;
+                } else { /* Load/store multiple */
+                    gboolean needRestore = FALSE;
+                    operand = RN(ir);
+
+                    switch( (ir & 0x01D00000) >> 20 ) {
+                    case 0: /* STMDA */
+                        if( ir & 0x8000 ) {
+                            arm_write_long( operand, armr.r[15]+4 );
+                            operand -= 4;
+                        }
+                        for( i=14; i>= 0; i-- ) {
+                            if( (ir & (1<<i)) ) {
+                                arm_write_long( operand, armr.r[i] );
+                                operand -= 4;
+                            }
+                        }
+                        break;
+                    case 1: /* LDMDA */
+                        for( i=15; i>= 0; i-- ) {
+                            if( (ir & (1<<i)) ) {
+                                armr.r[i] = arm_read_long( operand );
+                                operand -= 4;
+                            }
+                        }
+                        break;
+                    case 4: /* STMDA (S) */
+                        if( ir & 0x8000 ) {
+                            arm_write_long( operand, armr.r[15]+4 );
+                            operand -= 4;
+                        }
+                        for( i=14; i>= 0; i-- ) {
+                            if( (ir & (1<<i)) ) {
+                                arm_write_long( operand, USER_R(i) );
+                                operand -= 4;
+                            }
+                        }
+                        break;
+                    case 5: /* LDMDA (S) */
+                        if( (ir&0x00008000) ) { /* Load PC */
+                            for( i=15; i>= 0; i-- ) {
+                                if( (ir & (1<<i)) ) {
+                                    armr.r[i] = arm_read_long( operand );
+                                    operand -= 4;
+                                }
+                            }
+                            needRestore = TRUE;
+                        } else {
+                            for( i=15; i>= 0; i-- ) {
+                                if( (ir & (1<<i)) ) {
+                                    USER_R(i) = arm_read_long( operand );
+                                    operand -= 4;
+                                }
+                            }
+                        }
+                        break;
+                    case 8: /* STMIA */
+                        for( i=0; i< 15; i++ ) {
+                            if( (ir & (1<<i)) ) {
+                                arm_write_long( operand, armr.r[i] );
+                                operand += 4;
+                            }
+                        }
+                        if( ir & 0x8000 ) {
+                            arm_write_long( operand, armr.r[15]+4 );
+                            operand += 4;
+                        }
+                        break;
+                    case 9: /* LDMIA */
+                        for( i=0; i< 16; i++ ) {
+                            if( (ir & (1<<i)) ) {
+                                armr.r[i] = arm_read_long( operand );
+                                operand += 4;
+                            }
+                        }
+                        break;
+                    case 12: /* STMIA (S) */
+                        for( i=0; i< 15; i++ ) {
+                            if( (ir & (1<<i)) ) {
+                                arm_write_long( operand, USER_R(i) );
+                                operand += 4;
+                            }
+                        }
+                        if( ir & 0x8000 ) {
+                            arm_write_long( operand, armr.r[15]+4 );
+                            operand += 4;
+                        }
+                        break;
+                    case 13: /* LDMIA (S) */
+                        if( (ir&0x00008000) ) { /* Load PC */
+                            for( i=0; i < 16; i++ ) {
+                                if( (ir & (1<<i)) ) {
+                                    armr.r[i] = arm_read_long( operand );
+                                    operand += 4;
+                                }
+                            }
+                            needRestore = TRUE;
+                        } else {
+                            for( i=0; i < 16; i++ ) {
+                                if( (ir & (1<<i)) ) {
+                                    USER_R(i) = arm_read_long( operand );
+                                    operand += 4;
+                                }
+                            }
+                        }
+                        break;
+                    case 16: /* STMDB */
+                        if( ir & 0x8000 ) {
+                            operand -= 4;
+                            arm_write_long( operand, armr.r[15]+4 );
+                        }
+                        for( i=14; i>= 0; i-- ) {
+                            if( (ir & (1<<i)) ) {
+                                operand -= 4;
+                                arm_write_long( operand, armr.r[i] );
+                            }
+                        }
+                        break;
+                    case 17: /* LDMDB */
+                        for( i=15; i>= 0; i-- ) {
+                            if( (ir & (1<<i)) ) {
+                                operand -= 4;
+                                armr.r[i] = arm_read_long( operand );
+                            }
+                        }
+                        break;
+                    case 20: /* STMDB (S) */
+                        if( ir & 0x8000 ) {
+                            operand -= 4;
+                            arm_write_long( operand, armr.r[15]+4 );
+                        }
+                        for( i=14; i>= 0; i-- ) {
+                            if( (ir & (1<<i)) ) {
+                                operand -= 4;
+                                arm_write_long( operand, USER_R(i) );
+                            }
+                        }
+                        break;
+                    case 21: /* LDMDB (S) */
+                        if( (ir&0x00008000) ) { /* Load PC */
+                            for( i=15; i>= 0; i-- ) {
+                                if( (ir & (1<<i)) ) {
+                                    operand -= 4;
+                                    armr.r[i] = arm_read_long( operand );
+                                }
+                            }
+                            needRestore = TRUE;
+                        } else {
+                            for( i=15; i>= 0; i-- ) {
+                                if( (ir & (1<<i)) ) {
+                                    operand -= 4;
+                                    USER_R(i) = arm_read_long( operand );
+                                }
+                            }
+                        }
+                        break;
+                    case 24: /* STMIB */
+                        for( i=0; i< 15; i++ ) {
+                            if( (ir & (1<<i)) ) {
+                                operand += 4;
+                                arm_write_long( operand, armr.r[i] );
+                            }
+                        }
+                        if( ir & 0x8000 ) {
+                            operand += 4;
+                            arm_write_long( operand, armr.r[15]+4 );
+                        }
+                        break;
+                    case 25: /* LDMIB */
+                        for( i=0; i< 16; i++ ) {
+                            if( (ir & (1<<i)) ) {
+                                operand += 4;
+                                armr.r[i] = arm_read_long( operand );
+                            }
+                        }
+                        break;
+                    case 28: /* STMIB (S) */
+                        for( i=0; i< 15; i++ ) {
+                            if( (ir & (1<<i)) ) {
+                                operand += 4;
+                                arm_write_long( operand, USER_R(i) );
+                            }
+                        }
+                        if( ir & 0x8000 ) {
+                            operand += 4;
+                            arm_write_long( operand, armr.r[15]+4 );
+                        }
+                        break;
+                    case 29: /* LDMIB (S) */
+                        if( (ir&0x00008000) ) { /* Load PC */
+                            for( i=0; i < 16; i++ ) {
+                                if( (ir & (1<<i)) ) {
+                                    operand += 4;
+                                    armr.r[i] = arm_read_long( operand );
+                                }
+                            }
+                            needRestore = TRUE;
+                        } else {
+                            for( i=0; i < 16; i++ ) {
+                                if( (ir & (1<<i)) ) {
+                                    operand += 4;
+                                    USER_R(i) = arm_read_long( operand );
+                                }
+                            }
+                        }
+                        break;
+                    }
+
+                    if( WFLAG(ir) ) 
+                        LRN(ir) = operand;
+                    if( needRestore ) 
+                        arm_restore_cpsr();
+                }
+                break;
+            case 3: /* Copro */
+                if( (ir & 0x0F000000) == 0x0F000000 ) { /* SWI */
+                    arm_raise_exception( EXC_SOFTWARE );
+                } else {
+                    UNIMP(ir);
+                }
+                break;
+        }
 
     }
 
     if( armr.r[15] >= 0x00200000 ) {
-	armr.running = FALSE;
-	WARN( "ARM Halted: BRANCH to invalid address %08X at %08X", armr.r[15], pc );
-	return FALSE;
+        armr.running = FALSE;
+        WARN( "ARM Halted: BRANCH to invalid address %08X at %08X", armr.r[15], pc );
+        return FALSE;
     }
     return TRUE;
 }

@@ -36,11 +36,11 @@ void cocoa_gui_run_later( void );
 uint32_t cocoa_gui_run_slice( uint32_t nanosecs );
 
 struct dreamcast_module cocoa_gui_module = { "gui", NULL,
-                  cocoa_gui_update, 
-                  cocoa_gui_start, 
-                  cocoa_gui_run_slice, 
-                  cocoa_gui_stop, 
-                  NULL, NULL };
+        cocoa_gui_update, 
+        cocoa_gui_start, 
+        cocoa_gui_run_slice, 
+        cocoa_gui_stop, 
+        NULL, NULL };
 
 /**
  * Count of running nanoseconds - used to cut back on the GUI runtime
@@ -61,17 +61,17 @@ static void cocoa_gui_create_menu(void)
     NSMenuItem *menuItem;
     NSString *title;
     NSString *appName;
-    
+
     appName = @"Lxdream";
     appleMenu = [[NSMenu alloc] initWithTitle:@""];
 
     /* Add menu items */
     title = [@"About " stringByAppendingString:appName];
     [appleMenu addItemWithTitle:title action:@selector(about_action:) keyEquivalent:@""];
-    
-//    [appleMenu addItem:[NSMenuItem separatorItem]];
-//    [appleMenu addItemWithTitle: NS_("Preferences...") action:@selector(preferences_action:) keyEquivalent:@","];
-    
+
+    //    [appleMenu addItem:[NSMenuItem separatorItem]];
+    //    [appleMenu addItemWithTitle: NS_("Preferences...") action:@selector(preferences_action:) keyEquivalent:@","];
+
     // Services Menu
     [appleMenu addItem:[NSMenuItem separatorItem]];
     services = [[[NSMenu alloc] init] autorelease];
@@ -84,8 +84,8 @@ static void cocoa_gui_create_menu(void)
 
     // Hide Others
     menuItem = (NSMenuItem *)[appleMenu addItemWithTitle:@"Hide Others" 
-                                                  action:@selector(hideOtherApplications:) 
-                                           keyEquivalent:@"h"];
+                              action:@selector(hideOtherApplications:) 
+                              keyEquivalent:@"h"];
     [menuItem setKeyEquivalentModifierMask:(NSAlternateKeyMask|NSCommandKeyMask)];
 
     // Show All
@@ -101,9 +101,9 @@ static void cocoa_gui_create_menu(void)
     [menuItem setSubmenu: appleMenu];
     NSMenu *menu = [NSMenu new];
     [menu addItem: menuItem];
-    
+
     NSMenu *gdromMenu = cocoa_gdrom_menu_new();
-    
+
     NSMenu *fileMenu = [[NSMenu alloc] initWithTitle: NS_("File")];
     [fileMenu addItemWithTitle: NS_("Load Binary") action: @selector(load_binary_action:) keyEquivalent: @"b"];
     [[fileMenu addItemWithTitle: NS_("GD-Rom") action: nil keyEquivalent: @""]
@@ -116,11 +116,11 @@ static void cocoa_gui_create_menu(void)
     [fileMenu addItem: [NSMenuItem separatorItem]];
     [fileMenu addItemWithTitle: NS_("Load State") action: @selector(load_action:) keyEquivalent: @"o"];
     [fileMenu addItemWithTitle: NS_("Save State") action: @selector(save_action:) keyEquivalent: @"s"];
-    
+
     menuItem = [[NSMenuItem alloc] initWithTitle:NS_("File") action: nil keyEquivalent: @""];
     [menuItem setSubmenu: fileMenu];
     [menu addItem: menuItem];
-    
+
     /* Tell the application object that this is now the application menu */
     [NSApp setMainMenu: menu];
     [NSApp setAppleMenu: appleMenu];
@@ -235,9 +235,9 @@ static void cocoa_gui_create_menu(void)
 gboolean gui_parse_cmdline( int *argc, char **argv[] )
 {
     /* If started from the finder, the first (and only) arg will look something like 
-    * -psn_0_... - we want to remove this so that lxdream doesn't try to process it 
-    * normally
-    */
+     * -psn_0_... - we want to remove this so that lxdream doesn't try to process it 
+     * normally
+     */
     if( *argc == 2 && strncmp((*argv)[1], "-psn_", 5) == 0 ) {
         *argc = 1;
     }
@@ -247,10 +247,10 @@ gboolean gui_parse_cmdline( int *argc, char **argv[] )
 gboolean gui_init( gboolean withDebug )
 {
     dreamcast_register_module( &cocoa_gui_module );
-    
+
     NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
     [NSApplication sharedApplication];
-    
+
     LxdreamDelegate *delegate = [[LxdreamDelegate alloc] init];
     [NSApp setDelegate: delegate];
     NSString *iconFile = [[NSBundle mainBundle] pathForResource:@"dcemu" ofType:@"gif"];
@@ -261,7 +261,7 @@ gboolean gui_init( gboolean withDebug )
     NSWindow *window = cocoa_gui_create_main_window();
     [window makeKeyAndOrderFront: nil];
     [NSApp activateIgnoringOtherApps: YES];   
-    
+
     [pool release];
 }
 
@@ -271,8 +271,8 @@ void gui_main_loop( gboolean run )
         cocoa_gui_autorun = YES;
     }
     cocoa_gui_is_running = YES;
-	[NSApp run];
-	cocoa_gui_is_running = NO;
+    [NSApp run];
+    cocoa_gui_is_running = NO;
 }
 
 void gui_update_state(void)
@@ -352,7 +352,7 @@ uint32_t cocoa_gui_run_slice( uint32_t nanosecs )
 
 void cocoa_gui_update( void )
 {
-    
+
 }
 
 void cocoa_gui_start( void )
@@ -375,8 +375,8 @@ void cocoa_gui_stop( void )
 void cocoa_gui_run_later( void )
 {
     [[NSRunLoop currentRunLoop] performSelector: @selector(run_immediate) 
-         target: [NSApp delegate] argument: nil order: 1 
-         modes: [NSArray arrayWithObject: NSDefaultRunLoopMode] ];
+     target: [NSApp delegate] argument: nil order: 1 
+     modes: [NSArray arrayWithObject: NSDefaultRunLoopMode] ];
 }
 
 NSImage *NSImage_new_from_framebuffer( frame_buffer_t buffer )
@@ -384,11 +384,11 @@ NSImage *NSImage_new_from_framebuffer( frame_buffer_t buffer )
     NSBitmapImageRep *rep = 
         [[NSBitmapImageRep alloc] initWithBitmapDataPlanes: &buffer->data
          pixelsWide: buffer->width  pixelsHigh: buffer->height
-        bitsPerSample: 8 samplesPerPixel: 3
-        hasAlpha: NO isPlanar: NO
-        colorSpaceName: NSDeviceRGBColorSpace  bitmapFormat: 0
-        bytesPerRow: buffer->rowstride  bitsPerPixel: 24];
-   
+         bitsPerSample: 8 samplesPerPixel: 3
+         hasAlpha: NO isPlanar: NO
+         colorSpaceName: NSDeviceRGBColorSpace  bitmapFormat: 0
+         bytesPerRow: buffer->rowstride  bitsPerPixel: 24];
+
     NSImage *image = [[NSImage alloc] initWithSize: NSMakeSize(0.0,0.0)];
     [image addRepresentation: rep];
     return image;

@@ -17,8 +17,8 @@
  * GNU General Public License for more details.
  */
 
-#ifndef dream_video_H
-#define dream_video_H
+#ifndef lxdream_display_H
+#define lxdream_display_H 1
 
 #define GL_GLEXT_PROTOTYPES 1
 
@@ -181,7 +181,7 @@ typedef struct display_driver {
      * @param format colour format to output the data in.
      */
     gboolean (*read_render_buffer)( unsigned char *target, render_buffer_t buffer,
-				    int rowstride, int format );
+            int rowstride, int format );
 
 } *display_driver_t;
 
@@ -217,10 +217,10 @@ typedef void (*input_key_callback_t)( void *data, uint32_t value, uint32_t press
 typedef void (*input_mouse_callback_t)( void *data, uint32_t buttons, int32_t x, int32_t y );
 
 gboolean input_register_key( const gchar *keysym, input_key_callback_t callback,
-			     void *data, uint32_t value );
+                             void *data, uint32_t value );
 
 void input_unregister_key( const gchar *keysym, input_key_callback_t callback,
-			   void *data, uint32_t value );
+                           void *data, uint32_t value );
 
 /**
  * Register a hook to receive all input events
@@ -328,4 +328,4 @@ void input_set_keysym_hook( display_keysym_callback_t hook, void *data );
 #ifdef __cplusplus
 }
 #endif
-#endif
+#endif /* !lxdream_display_H */

@@ -22,6 +22,10 @@
 
 #include "hook.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef gboolean (*gdrom_list_change_hook_t)(gboolean list_changed, int selection, void *user_data);
 DECLARE_HOOK(gdrom_list_change_hook, gdrom_list_change_hook_t);
 
@@ -63,5 +67,9 @@ const gchar *gdrom_list_get_filename(int index);
  * @return TRUE if the selection was updated, FALSE if the position was invalid. 
  */
 gboolean gdrom_list_set_selection(int posn);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* lxdream_gdlist_H */

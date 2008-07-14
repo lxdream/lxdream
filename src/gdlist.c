@@ -126,7 +126,7 @@ gboolean gdrom_list_disc_changed( gdrom_disc_t disc, const gchar *disc_name, voi
             list_changed = TRUE;
         }
     }
-    
+
     lxdream_set_global_config_value( CONFIG_GDROM, disc_name );
     lxdream_save_config();   
 
@@ -159,7 +159,7 @@ void gdrom_list_init()
     }
     gdrom_device_count = g_list_length(gdrom_device_list);
     gdrom_recent_count = g_list_length(gdrom_recent_list);
-    
+
     // Run the hooks in case anyone registered before the list was initialized
     CALL_HOOKS( gdrom_list_change_hook, TRUE, gdrom_list_get_selection() );
 }
@@ -170,18 +170,18 @@ gboolean gdrom_list_set_selection( int posn )
         gdrom_unmount_disc();
         return TRUE;
     }
-    
+
     if( posn <= gdrom_device_count ) {
         gdrom_device_t device = g_list_nth_data(gdrom_device_list, posn-1);
         return gdrom_mount_image(device->name);
     }
-    
+
     posn -= FIRST_RECENT_INDEX;
     if( posn >= 0 && posn < gdrom_recent_count ) {
         gchar *entry = g_list_nth_data(gdrom_recent_list, posn);
         return gdrom_mount_image(entry);
     }
-    
+
     return FALSE;
 }
 
@@ -205,16 +205,16 @@ const gchar *gdrom_list_get_display_name( int posn )
     if( posn == 0 ) {
         return _("Empty");
     }
-    
+
     if( posn <= gdrom_device_count ) {
         gdrom_device_t device = g_list_nth_data(gdrom_device_list, posn-1);
         return device->device_name;
     }
-    
+
     if( posn == gdrom_device_count + 1) {
         return "";
     }
-    
+
     if( posn < 0 || posn > gdrom_list_size() ) {
         return NULL;
     }
@@ -225,22 +225,22 @@ const gchar *gdrom_list_get_display_name( int posn )
 
 const gchar *gdrom_list_get_filename( int posn )
 {
-   if( posn == 0 ) {
-       return _("Empty");
-   }
-   
-   if( posn <= gdrom_device_count ) {
-       gdrom_device_t device = g_list_nth_data(gdrom_device_list, posn-1);
-       return device->name;
-   }
-   
-   if( posn == gdrom_device_count + 1) {
-       return "";
-   }
-   
-   if( posn < 0 || posn > gdrom_list_size() ) {
-       return NULL;
-   }
+    if( posn == 0 ) {
+        return _("Empty");
+    }
 
-   return g_list_nth_data(gdrom_recent_list, posn-FIRST_RECENT_INDEX);
+    if( posn <= gdrom_device_count ) {
+        gdrom_device_t device = g_list_nth_data(gdrom_device_list, posn-1);
+        return device->name;
+    }
+
+    if( posn == gdrom_device_count + 1) {
+        return "";
+    }
+
+    if( posn < 0 || posn > gdrom_list_size() ) {
+        return NULL;
+    }
+
+    return g_list_nth_data(gdrom_recent_list, posn-FIRST_RECENT_INDEX);
 }

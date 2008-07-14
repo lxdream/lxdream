@@ -16,14 +16,18 @@
  * GNU General Public License for more details.
  */
 
-#ifndef __lxdream_gtkui_H
-#define __lxdream_gtkui_H
+#ifndef lxdream_gtkui_H
+#define lxdream_gtkui_H 1
 
 #include "lxdream.h"
 #include <gtk/gtk.h>
 #include <glib/gi18n.h>
 #include "gui.h"
 #include "cpu.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /********************* Top-level windows *********************/
 
@@ -37,7 +41,7 @@ typedef struct dump_window_info *dump_window_t;
  * opaque pointer to the window.
  */
 main_window_t main_window_new( const gchar *title, GtkWidget *menubar, 
-			       GtkWidget *toolbar, GtkAccelGroup *accel );
+                               GtkWidget *toolbar, GtkAccelGroup *accel );
 GtkWindow *main_window_get_frame( main_window_t win );
 GtkWidget *main_window_get_renderarea( main_window_t win );
 void main_window_set_running( main_window_t win, gboolean running );
@@ -47,7 +51,7 @@ void main_window_set_fullscreen( main_window_t win, gboolean fullscreen );
 void main_window_set_use_grab( main_window_t win, gboolean grab );
 
 debug_window_t debug_window_new( const gchar *title, GtkWidget *menubar,
-				 GtkWidget *toolbar, GtkAccelGroup *accel );
+                                 GtkWidget *toolbar, GtkAccelGroup *accel );
 void debug_window_show( debug_window_t win, gboolean show );
 void debug_window_set_running( debug_window_t win, gboolean running );
 void debug_window_update(debug_window_t win);
@@ -82,7 +86,7 @@ gint gtk_gui_run_property_dialog( const gchar *title, GtkWidget *panel, gtk_dial
 
 typedef gboolean (*file_callback_t)( const gchar *filename );
 void open_file_dialog( char *title, file_callback_t action, char *pattern, char *patname,
-		       gchar const *initial_dir );
+                       gchar const *initial_dir );
 /**
  * Extract the keyval of the key event if no modifier keys were pressed -
  * in other words get the keyval of the key by itself. The other way around
@@ -155,4 +159,8 @@ extern GdkColor gui_colour_warn, gui_colour_pc, gui_colour_debug;
 extern GdkColor gui_colour_trace, gui_colour_break, gui_colour_temp_break;
 extern GdkColor gui_colour_white;
 
-#endif /* __lxdream_gtkui_H */
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* lxdream_gtkui_H */

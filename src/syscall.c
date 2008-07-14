@@ -31,13 +31,13 @@ void syscall_add_hook( uint32_t hook_id, syscall_hook_func_t hook )
 {
     hook_id &= 0xFF;
     if( syscall_hooks[hook_id].hook != NULL )
-	WARN( "Overwriting existing hook %02X", hook_id );
+        WARN( "Overwriting existing hook %02X", hook_id );
     syscall_hooks[hook_id].hook = hook;
     syscall_hooks[hook_id].vector = 0;
 }
 
 void syscall_add_hook_vector( uint32_t hook_id, uint32_t vector_addr,
-			      syscall_hook_func_t hook )
+                              syscall_hook_func_t hook )
 {
     hook_id &= 0xFF;
     syscall_add_hook( hook_id, hook );
@@ -50,9 +50,9 @@ void syscall_invoke( uint32_t hook_id )
     hook_id &= 0xFF;
     syscall_hook_func_t hook = syscall_hooks[hook_id].hook;
     if( hook == NULL ) {
-	WARN( "Invoked non-existent hook %02X", hook_id );
+        WARN( "Invoked non-existent hook %02X", hook_id );
     } else {
-	hook(hook_id);
+        hook(hook_id);
     }
 }
 
@@ -60,9 +60,9 @@ void syscall_repatch_vectors( )
 {
     int i;
     for( i=0; i<256; i++ ) {
-	if( syscall_hooks[i].hook != NULL &&
-	    syscall_hooks[i].vector != 0 ) {
-	    mem_write_long( syscall_hooks[i].vector, 0xFFFFFF00 + i );
-	}
+        if( syscall_hooks[i].hook != NULL &&
+                syscall_hooks[i].vector != 0 ) {
+            mem_write_long( syscall_hooks[i].vector, 0xFFFFFF00 + i );
+        }
     }
 }

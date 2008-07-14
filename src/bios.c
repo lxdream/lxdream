@@ -71,13 +71,13 @@ void bios_gdrom_run_command( gdrom_command_t cmd )
     DEBUG( "BIOS GD command %d", cmd->cmd_code );
     switch( cmd->cmd_code ) {
     case GD_CMD_INIT:
-	/* *shrug* */
-	cmd->status = GD_CMD_STATUS_DONE;
-	break;
+        /* *shrug* */
+        cmd->status = GD_CMD_STATUS_DONE;
+        break;
     default:
-	cmd->status = GD_CMD_STATUS_ERROR;
-	cmd->result[0] = GD_ERROR_SYSTEM;
-	break;
+        cmd->status = GD_CMD_STATUS_ERROR;
+        cmd->result[0] = GD_ERROR_SYSTEM;
+        break;
     }
 }
 
@@ -90,12 +90,12 @@ uint32_t bios_gdrom_enqueue( uint32_t cmd, sh4ptr_t ptr )
 {
     int i;
     for( i=0; i<COMMAND_QUEUE_LENGTH; i++ ) {
-	if( gdrom_cmd_queue[i].status != GD_CMD_STATUS_ACTIVE ) {
-	    gdrom_cmd_queue[i].status = GD_CMD_STATUS_ACTIVE;
-	    gdrom_cmd_queue[i].cmd_code = cmd;
-	    gdrom_cmd_queue[i].data = ptr;
-	    return i;
-	}
+        if( gdrom_cmd_queue[i].status != GD_CMD_STATUS_ACTIVE ) {
+            gdrom_cmd_queue[i].status = GD_CMD_STATUS_ACTIVE;
+            gdrom_cmd_queue[i].cmd_code = cmd;
+            gdrom_cmd_queue[i].data = ptr;
+            return i;
+        }
     }
     return -1;
 }
@@ -104,17 +104,17 @@ void bios_gdrom_run_queue( void )
 {
     int i;
     for( i=0; i<COMMAND_QUEUE_LENGTH; i++ ) {
-	if( gdrom_cmd_queue[i].status == GD_CMD_STATUS_ACTIVE ) {
-	    bios_gdrom_run_command( &gdrom_cmd_queue[i] );
-	}
+        if( gdrom_cmd_queue[i].status == GD_CMD_STATUS_ACTIVE ) {
+            bios_gdrom_run_command( &gdrom_cmd_queue[i] );
+        }
     }
 }
 
 gdrom_command_t bios_gdrom_get_command( uint32_t id )
 {
     if( id >= COMMAND_QUEUE_LENGTH ||
-	gdrom_cmd_queue[id].status == GD_CMD_STATUS_NONE )
-	return NULL;
+            gdrom_cmd_queue[id].status == GD_CMD_STATUS_NONE )
+        return NULL;
     return &gdrom_cmd_queue[id];
 }
 
@@ -128,78 +128,78 @@ void bios_syscall( uint32_t syscallid )
 
     switch( syscallid ) {
     case 0xB0: /* sysinfo */
-	break;
+        break;
     case 0xB4: /* Font */
-	break;
+        break;
     case 0xB8: /* Flash */
-	break;
+        break;
     case 0xBC: /* Misc/GD-Rom */
-	switch( sh4r.r[6] ) {
-	case 0: /* GD-Rom */
-	    switch( sh4r.r[7] ) {
-	    case 0: /* Send command */
-		if( sh4r.r[5] == 0 )
-		    sh4r.r[0] = bios_gdrom_enqueue( sh4r.r[4], NULL );
-		else
-		    sh4r.r[0] = bios_gdrom_enqueue( sh4r.r[4], mem_get_region(sh4r.r[5]) );
-		break;
-	    case 1:  /* Check command */
-		cmd = bios_gdrom_get_command( sh4r.r[4] );
-		if( cmd == NULL ) {
-		    sh4r.r[0] = GD_CMD_STATUS_NONE;
-		} else {
-		    sh4r.r[0] = cmd->status;
-		    if( cmd->status == GD_CMD_STATUS_ERROR &&
-			sh4r.r[5] != 0 ) {
-			mem_copy_to_sh4( sh4r.r[5], (sh4ptr_t)&cmd->result, sizeof(cmd->result) );
-		    }
-		}
-		break;
-	    case 2: /* Mainloop */
-		bios_gdrom_run_queue();
-		break;
-	    case 3: /* Init */
-		bios_gdrom_init();
-		break;
-	    case 4: /* Drive status */
-		if( sh4r.r[4] != 0 ) {
-		    mem_copy_to_sh4( sh4r.r[4], (sh4ptr_t)&bios_gdrom_status, 
-				      sizeof(bios_gdrom_status) );
-		}
-		sh4r.r[0] = 0;
-		break;
-	    case 8: /* Abort command */
-		cmd = bios_gdrom_get_command( sh4r.r[4] );
-		if( cmd == NULL || cmd->status != GD_CMD_STATUS_ACTIVE ) {
-		    sh4r.r[0] = -1;
-		} else {
-		    cmd->status = GD_CMD_STATUS_ABORT;
-		    sh4r.r[0] = 0;
-		}
-		break;
-	    case 9: /* Reset */
-		break;
-	    case 10: /* Set mode */
-		sh4r.r[0] = 0;
-		break;
-	    }
-	    break;
-	case -1: /* Misc */
-	    break;
-	default: /* ??? */
-	    break;
-	}
-	break;
-    case 0xE0: /* Menu */
-	switch( sh4r.r[7] ) {
-	case 0:
-	    WARN( "Entering main program" );
-	    break;
-	case 1:
-	    WARN( "Program aborted to DC menu");
-	    dreamcast_stop();
-	    break;
-	}
+        switch( sh4r.r[6] ) {
+        case 0: /* GD-Rom */
+            switch( sh4r.r[7] ) {
+            case 0: /* Send command */
+                if( sh4r.r[5] == 0 )
+                    sh4r.r[0] = bios_gdrom_enqueue( sh4r.r[4], NULL );
+                else
+                    sh4r.r[0] = bios_gdrom_enqueue( sh4r.r[4], mem_get_region(sh4r.r[5]) );
+                break;
+            case 1:  /* Check command */
+                cmd = bios_gdrom_get_command( sh4r.r[4] );
+                if( cmd == NULL ) {
+                    sh4r.r[0] = GD_CMD_STATUS_NONE;
+                } else {
+                    sh4r.r[0] = cmd->status;
+                    if( cmd->status == GD_CMD_STATUS_ERROR &&
+                            sh4r.r[5] != 0 ) {
+                        mem_copy_to_sh4( sh4r.r[5], (sh4ptr_t)&cmd->result, sizeof(cmd->result) );
+                    }
+                }
+                break;
+            case 2: /* Mainloop */
+                bios_gdrom_run_queue();
+                break;
+            case 3: /* Init */
+                bios_gdrom_init();
+                break;
+            case 4: /* Drive status */
+                if( sh4r.r[4] != 0 ) {
+                    mem_copy_to_sh4( sh4r.r[4], (sh4ptr_t)&bios_gdrom_status, 
+                            sizeof(bios_gdrom_status) );
+                }
+                sh4r.r[0] = 0;
+                break;
+            case 8: /* Abort command */
+                cmd = bios_gdrom_get_command( sh4r.r[4] );
+                if( cmd == NULL || cmd->status != GD_CMD_STATUS_ACTIVE ) {
+                    sh4r.r[0] = -1;
+                } else {
+                    cmd->status = GD_CMD_STATUS_ABORT;
+                    sh4r.r[0] = 0;
+                }
+                break;
+            case 9: /* Reset */
+                break;
+            case 10: /* Set mode */
+                sh4r.r[0] = 0;
+                break;
+            }
+            break;
+            case -1: /* Misc */
+            break;
+            default: /* ??? */
+                break;
+        }
+        break;
+        case 0xE0: /* Menu */
+            switch( sh4r.r[7] ) {
+            case 0:
+                WARN( "Entering main program" );
+                break;
+            case 1:
+                WARN( "Program aborted to DC menu");
+                dreamcast_stop();
+                break;
+            }
     }
 }
 

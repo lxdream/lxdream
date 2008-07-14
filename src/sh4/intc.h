@@ -16,16 +16,13 @@
  * GNU General Public License for more details.
  */
 
-#ifndef sh4intc_H
-#define sh4intc_H 1
+#ifndef lxdream_intc_H
+#define lxdream_intc_H 1
 
 #include "sh4core.h"
 
 #ifdef __cplusplus
 extern "C" {
-#if 0
-}
-#endif
 #endif
 
 #define INT_IRQ0        0     /* External Interrupt request 0 */
@@ -83,4 +80,4 @@ void intc_mask_changed( void );
 }
 #endif
 
-#endif /* !sh4intc_H */
+#endif /* !lxdream_intc_H */

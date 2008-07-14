@@ -16,8 +16,12 @@
  * GNU General Public License for more details.
  */
 
-#ifndef __lxdream_x86op_H
-#define __lxdream_x86op_H
+#ifndef lxdream_x86op_H
+#define lxdream_x86op_H 1
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #define R_NONE -1
 #define R_EAX 0
@@ -305,4 +309,8 @@
 /* Pseudo-op Load carry from T: CMP [EBP+t], #01 ; CMC */
 #define LDC_t()     OP(0x83); MODRM_r32_sh4r(7,R_T); OP(0x01); CMC()
 
-#endif /* !__lxdream_x86op_H */
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* !lxdream_x86op_H */

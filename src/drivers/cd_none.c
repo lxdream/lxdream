@@ -22,7 +22,7 @@ static gboolean cdnone_image_is_valid( FILE *f );
 static gdrom_disc_t cdnone_open_device( const gchar *filename, FILE *f );
 
 struct gdrom_image_class cdrom_device_class = { "None", NULL,
-						cdnone_image_is_valid, cdnone_open_device };
+        cdnone_image_is_valid, cdnone_open_device };
 
 GList *cdrom_get_native_devices(void)
 {

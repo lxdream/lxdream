@@ -39,9 +39,9 @@ uint16_t bsc_read_pdtra()
     uint16_t output = MMIO_READ( BSC, PDTRA );
     uint16_t input_mask = 0, output_mask = 0;
     for( i=0; i<16; i++ ) {
-	int bits = (pctra >> (i<<1)) & 0x03;
-	if( bits == 2 ) input_mask |= (1<<i);
-	else if( bits != 0 ) output_mask |= (1<<i);
+        int bits = (pctra >> (i<<1)) & 0x03;
+        if( bits == 2 ) input_mask |= (1<<i);
+        else if( bits != 0 ) output_mask |= (1<<i);
     }
 
     /* ??? */
@@ -61,9 +61,9 @@ uint32_t bsc_read_pdtrb()
     uint16_t output = MMIO_READ( BSC, PDTRB );
     uint16_t input_mask = 0, output_mask = 0;
     for( i=0; i<4; i++ ) {
-	int bits = (pctrb >> (i<<1)) & 0x03;
-	if( bits == 2 ) input_mask |= (1<<i);
-	else if( bits != 0 ) output_mask |= (1<<i);
+        int bits = (pctrb >> (i<<1)) & 0x03;
+        if( bits == 2 ) input_mask |= (1<<i);
+        else if( bits != 0 ) output_mask |= (1<<i);
     }
 
     return ((bsc_input>>16) & input_mask) | output;
@@ -76,14 +76,14 @@ int32_t mmio_region_BSC_read( uint32_t reg )
 {
     int32_t val;
     switch( reg ) {
-        case PDTRA:
-	    val = bsc_read_pdtra();
-	    break;
-        case PDTRB:
-	    val = bsc_read_pdtrb();
-	    break;
-        default:
-            val = MMIO_READ( BSC, reg );
+    case PDTRA:
+        val = bsc_read_pdtra();
+        break;
+    case PDTRB:
+        val = bsc_read_pdtrb();
+        break;
+    default:
+        val = MMIO_READ( BSC, reg );
     }
     return val;
 }

@@ -22,6 +22,10 @@
 #include <glib/gtypes.h>
 #include <glib/gi18n.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define CONFIG_TYPE_NONE 0
 #define CONFIG_TYPE_FILE 1
 #define CONFIG_TYPE_PATH 2
@@ -88,5 +92,8 @@ gboolean lxdream_load_config( );
  */
 gboolean lxdream_save_config( );
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* !lxdream_config_H */

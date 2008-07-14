@@ -20,10 +20,14 @@
  * GNU General Public License for more details.
  */
 
-#ifndef dream_ide_H
-#define dream_ide_H 1
+#ifndef lxdream_ide_H
+#define lxdream_ide_H 1
 
-#include "dream.h"
+#include "lxdream.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #define GDROM_SENSE_LENGTH 10
 #define GDROM_MODE_LENGTH 32
@@ -126,4 +130,9 @@ void ide_write_command( uint8_t command );
 void ide_write_control( uint8_t value );
 
 void ide_dma_read_req( uint32_t addr, uint32_t length );
+
+#ifdef __cplusplus
+}
 #endif
+    
+#endif /* !lxdream_ide_H */

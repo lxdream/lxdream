@@ -1,6 +1,3 @@
-
-
-
 /**
  * $Id$
  *
@@ -40,14 +37,14 @@ static void video_null_display_render_buffer( render_buffer_t buffer )
 }
 
 static gboolean video_null_read_render_buffer( unsigned char *target, 
-					       render_buffer_t buffer, 
-					       int rowstride, int format )
+                                               render_buffer_t buffer, 
+                                               int rowstride, int format )
 {
     return TRUE;
 }
 
 static void video_null_load_frame_buffer( frame_buffer_t frame, 
-					  render_buffer_t buffer )
+                                          render_buffer_t buffer )
 {
 }
 

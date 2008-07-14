@@ -16,11 +16,15 @@
  * GNU General Public License for more details.
  */
 
-#ifndef video_glx_driver_H
-#define video_glx_driver_H
+#ifndef lxdream_video_glx_H
+#define lxdream_video_glx_H 1
 
 #include "X11/Xlib.h"
 #include "display.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**
  * Initialize GLX support. Detect capabilities, visuals, etc. 
@@ -51,5 +55,9 @@ gboolean video_glx_init_driver( display_driver_t driver );
  * Shutdown GLX support and release all resources.
  */
 void video_glx_shutdown();
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

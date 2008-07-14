@@ -23,6 +23,10 @@
 #if (defined(MMIO_IMPL) && !defined(SH4MMIO_IMPL)) || \
     (!defined(MMIO_IMPL) && !defined(SH4MMIO_IFACE))
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifdef MMIO_IMPL
 #define SH4MMIO_IMPL
 #else
@@ -230,4 +234,10 @@ void mmu_ocache_addr_write( sh4addr_t addr, uint32_t val );
 void mmu_ocache_data_write( sh4addr_t addr, uint32_t val );
 void mmu_utlb_addr_write( sh4addr_t addr, uint32_t val );
 void mmu_utlb_data_write( sh4addr_t addr, uint32_t val );
+
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif

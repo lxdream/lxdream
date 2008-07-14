@@ -16,10 +16,14 @@
  * GNU General Public License for more details.
  */
 
-#ifndef __lxdream_gui_H
-#define __lxdream_gui_H
+#ifndef lxdream_gui_H
+#define lxdream_gui_H
 
 #include <glib/gtypes.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* Base GUI clock is 10ms */
 #define GUI_TICK_PERIOD 10000000
@@ -65,4 +69,8 @@ void gui_update_state();
  */
 void gui_update_io_activity( io_activity_type activity, gboolean active );
 
-#endif /* __lxdream_gui_H */
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* lxdream_gui_H */

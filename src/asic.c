@@ -52,7 +52,7 @@ static int asic_load_state( FILE *f );
 static uint32_t g2_update_fifo_status( uint32_t slice_cycle );
 
 struct dreamcast_module asic_module = { "ASIC", asic_init, asic_reset, NULL, asic_run_slice,
-					NULL, asic_save_state, asic_load_state };
+        NULL, asic_save_state, asic_load_state };
 
 #define G2_BIT5_TICKS 60
 #define G2_BIT4_TICKS 160
@@ -73,33 +73,33 @@ static uint32_t asic_run_slice( uint32_t nanosecs )
 {
     g2_update_fifo_status(nanosecs);
     if( g2_state.bit5_off_timer <= (int32_t)nanosecs ) {
-	g2_state.bit5_off_timer = -1;
+        g2_state.bit5_off_timer = -1;
     } else {
-	g2_state.bit5_off_timer -= nanosecs;
+        g2_state.bit5_off_timer -= nanosecs;
     }
 
     if( g2_state.bit4_off_timer <= (int32_t)nanosecs ) {
-	g2_state.bit4_off_timer = -1;
+        g2_state.bit4_off_timer = -1;
     } else {
-	g2_state.bit4_off_timer -= nanosecs;
+        g2_state.bit4_off_timer -= nanosecs;
     }
     if( g2_state.bit4_on_timer <= (int32_t)nanosecs ) {
-	g2_state.bit4_on_timer = -1;
+        g2_state.bit4_on_timer = -1;
     } else {
-	g2_state.bit4_on_timer -= nanosecs;
+        g2_state.bit4_on_timer -= nanosecs;
     }
-    
+
     if( g2_state.bit0_off_timer <= (int32_t)nanosecs ) {
-	g2_state.bit0_off_timer = -1;
+        g2_state.bit0_off_timer = -1;
     } else {
-	g2_state.bit0_off_timer -= nanosecs;
+        g2_state.bit0_off_timer -= nanosecs;
     }
     if( g2_state.bit0_on_timer <= (int32_t)nanosecs ) {
-	g2_state.bit0_on_timer = -1;
+        g2_state.bit0_on_timer = -1;
     } else {
-	g2_state.bit0_on_timer -= nanosecs;
+        g2_state.bit0_on_timer -= nanosecs;
     }
-        
+
     return nanosecs;
 }
 
@@ -123,9 +123,9 @@ static void asic_save_state( FILE *f )
 static int asic_load_state( FILE *f )
 {
     if( fread( &g2_state, sizeof(g2_state), 1, f ) != 1 )
-	return 1;
+        return 1;
     else
-	return 0;
+        return 0;
 }
 
 
@@ -146,29 +146,29 @@ static int asic_load_state( FILE *f )
 void asic_g2_write_word()
 {
     if( g2_state.bit5_off_timer < (int32_t)sh4r.slice_cycle ) {
-	g2_state.bit5_off_timer = sh4r.slice_cycle + G2_BIT5_TICKS;
+        g2_state.bit5_off_timer = sh4r.slice_cycle + G2_BIT5_TICKS;
     } else {
-	g2_state.bit5_off_timer += G2_BIT5_TICKS;
+        g2_state.bit5_off_timer += G2_BIT5_TICKS;
     }
 
     if( g2_state.bit4_on_timer < (int32_t)sh4r.slice_cycle ) {
-	g2_state.bit4_on_timer = sh4r.slice_cycle + G2_BIT5_TICKS;
+        g2_state.bit4_on_timer = sh4r.slice_cycle + G2_BIT5_TICKS;
     }
 
     if( g2_state.bit4_off_timer < (int32_t)sh4r.slice_cycle ) {
-	g2_state.bit4_off_timer = g2_state.bit4_on_timer + G2_BIT4_TICKS;
+        g2_state.bit4_off_timer = g2_state.bit4_on_timer + G2_BIT4_TICKS;
     } else {
-	g2_state.bit4_off_timer += G2_BIT4_TICKS;
+        g2_state.bit4_off_timer += G2_BIT4_TICKS;
     }
 
     if( g2_state.bit0_on_timer < (int32_t)sh4r.slice_cycle ) {
-	g2_state.bit0_on_timer = sh4r.slice_cycle + G2_BIT0_ON_TICKS;
+        g2_state.bit0_on_timer = sh4r.slice_cycle + G2_BIT0_ON_TICKS;
     }
 
     if( g2_state.bit0_off_timer < (int32_t)sh4r.slice_cycle ) {
-	g2_state.bit0_off_timer = g2_state.bit0_on_timer + G2_BIT0_OFF_TICKS;
+        g2_state.bit0_off_timer = g2_state.bit0_on_timer + G2_BIT0_OFF_TICKS;
     } else {
-	g2_state.bit0_off_timer += G2_BIT0_OFF_TICKS;
+        g2_state.bit0_off_timer += G2_BIT0_OFF_TICKS;
     }
 
     MMIO_WRITE( ASIC, G2STATUS, MMIO_READ(ASIC, G2STATUS) | 0x20 );
@@ -178,25 +178,25 @@ static uint32_t g2_update_fifo_status( uint32_t nanos )
 {
     uint32_t val = MMIO_READ( ASIC, G2STATUS );
     if( ((uint32_t)g2_state.bit5_off_timer) <= nanos ) {
-	val = val & (~0x20);
-	g2_state.bit5_off_timer = -1;
+        val = val & (~0x20);
+        g2_state.bit5_off_timer = -1;
     }
     if( ((uint32_t)g2_state.bit4_on_timer) <= nanos ) {
-	val = val | 0x10;
-	g2_state.bit4_on_timer = -1;
+        val = val | 0x10;
+        g2_state.bit4_on_timer = -1;
     }
     if( ((uint32_t)g2_state.bit4_off_timer) <= nanos ) {
-	val = val & (~0x10);
-	g2_state.bit4_off_timer = -1;
+        val = val & (~0x10);
+        g2_state.bit4_off_timer = -1;
     } 
 
     if( ((uint32_t)g2_state.bit0_on_timer) <= nanos ) {
-	val = val | 0x01;
-	g2_state.bit0_on_timer = -1;
+        val = val | 0x01;
+        g2_state.bit0_on_timer = -1;
     }
     if( ((uint32_t)g2_state.bit0_off_timer) <= nanos ) {
-	val = val & (~0x01);
-	g2_state.bit0_off_timer = -1;
+        val = val & (~0x01);
+        g2_state.bit0_off_timer = -1;
     } 
 
     MMIO_WRITE( ASIC, G2STATUS, val );
@@ -221,9 +221,9 @@ void asic_event( int event )
         intc_raise_interrupt( INT_IRQ9 );
 
     if( event >= 64 ) { /* Third word */
-	asic_event( EVENT_CASCADE2 );
+        asic_event( EVENT_CASCADE2 );
     } else if( event >= 32 ) { /* Second word */
-	asic_event( EVENT_CASCADE1 );
+        asic_event( EVENT_CASCADE1 );
     }
 }
 
@@ -232,14 +232,14 @@ void asic_clear_event( int event ) {
     uint32_t result = MMIO_READ(ASIC, PIRQ0 + offset)  & (~(1<<(event&0x1F)));
     MMIO_WRITE( ASIC, PIRQ0 + offset, result );
     if( result == 0 ) {
-	/* clear cascades if necessary */
-	if( event >= 64 ) {
-	    MMIO_WRITE( ASIC, PIRQ0, MMIO_READ( ASIC, PIRQ0 ) & 0x7FFFFFFF );
-	} else if( event >= 32 ) {
-	    MMIO_WRITE( ASIC, PIRQ0, MMIO_READ( ASIC, PIRQ0 ) & 0xBFFFFFFF );
-	}
+        /* clear cascades if necessary */
+        if( event >= 64 ) {
+            MMIO_WRITE( ASIC, PIRQ0, MMIO_READ( ASIC, PIRQ0 ) & 0x7FFFFFFF );
+        } else if( event >= 32 ) {
+            MMIO_WRITE( ASIC, PIRQ0, MMIO_READ( ASIC, PIRQ0 ) & 0xBFFFFFFF );
+        }
     }
-	    
+
     asic_check_cleared_events();
 }
 
@@ -248,17 +248,17 @@ void asic_check_cleared_events( )
     int i, setA = 0, setB = 0, setC = 0;
     uint32_t bits;
     for( i=0; i<12; i+=4 ) {
-	bits = MMIO_READ( ASIC, PIRQ0 + i );
-	setA |= (bits & MMIO_READ(ASIC, IRQA0 + i ));
-	setB |= (bits & MMIO_READ(ASIC, IRQB0 + i ));
-	setC |= (bits & MMIO_READ(ASIC, IRQC0 + i ));
+        bits = MMIO_READ( ASIC, PIRQ0 + i );
+        setA |= (bits & MMIO_READ(ASIC, IRQA0 + i ));
+        setB |= (bits & MMIO_READ(ASIC, IRQB0 + i ));
+        setC |= (bits & MMIO_READ(ASIC, IRQC0 + i ));
     }
     if( setA == 0 )
-	intc_clear_interrupt( INT_IRQ13 );
+        intc_clear_interrupt( INT_IRQ13 );
     if( setB == 0 )
-	intc_clear_interrupt( INT_IRQ11 );
+        intc_clear_interrupt( INT_IRQ11 );
     if( setC == 0 )
-	intc_clear_interrupt( INT_IRQ9 );
+        intc_clear_interrupt( INT_IRQ9 );
 }
 
 void asic_event_mask_changed( )
@@ -266,23 +266,23 @@ void asic_event_mask_changed( )
     int i, setA = 0, setB = 0, setC = 0;
     uint32_t bits;
     for( i=0; i<12; i+=4 ) {
-	bits = MMIO_READ( ASIC, PIRQ0 + i );
-	setA |= (bits & MMIO_READ(ASIC, IRQA0 + i ));
-	setB |= (bits & MMIO_READ(ASIC, IRQB0 + i ));
-	setC |= (bits & MMIO_READ(ASIC, IRQC0 + i ));
+        bits = MMIO_READ( ASIC, PIRQ0 + i );
+        setA |= (bits & MMIO_READ(ASIC, IRQA0 + i ));
+        setB |= (bits & MMIO_READ(ASIC, IRQB0 + i ));
+        setC |= (bits & MMIO_READ(ASIC, IRQC0 + i ));
     }
     if( setA == 0 ) 
-	intc_clear_interrupt( INT_IRQ13 );
+        intc_clear_interrupt( INT_IRQ13 );
     else
-	intc_raise_interrupt( INT_IRQ13 );
+        intc_raise_interrupt( INT_IRQ13 );
     if( setB == 0 )
-	intc_clear_interrupt( INT_IRQ11 );
+        intc_clear_interrupt( INT_IRQ11 );
     else
-	intc_raise_interrupt( INT_IRQ11 );
+        intc_raise_interrupt( INT_IRQ11 );
     if( setC == 0 )
-	intc_clear_interrupt( INT_IRQ9 );
+        intc_clear_interrupt( INT_IRQ9 );
     else
-	intc_raise_interrupt( INT_IRQ9 );
+        intc_raise_interrupt( INT_IRQ9 );
 }
 
 void g2_dma_transfer( int channel )
@@ -290,44 +290,44 @@ void g2_dma_transfer( int channel )
     uint32_t offset = channel << 5;
 
     if( MMIO_READ( EXTDMA, G2DMA0CTL1 + offset ) == 1 ) {
-	if( MMIO_READ( EXTDMA, G2DMA0CTL2 + offset ) == 1 ) {
-	    uint32_t extaddr = MMIO_READ( EXTDMA, G2DMA0EXT + offset );
-	    uint32_t sh4addr = MMIO_READ( EXTDMA, G2DMA0SH4 + offset );
-	    uint32_t length = MMIO_READ( EXTDMA, G2DMA0SIZ + offset ) & 0x1FFFFFFF;
-	    uint32_t dir = MMIO_READ( EXTDMA, G2DMA0DIR + offset );
-	    // uint32_t mode = MMIO_READ( EXTDMA, G2DMA0MOD + offset );
-	    unsigned char buf[length];
-	    if( dir == 0 ) { /* SH4 to device */
-		mem_copy_from_sh4( buf, sh4addr, length );
-		mem_copy_to_sh4( extaddr, buf, length );
-	    } else { /* Device to SH4 */
-		mem_copy_from_sh4( buf, extaddr, length );
-		mem_copy_to_sh4( sh4addr, buf, length );
-	    }
-	    MMIO_WRITE( EXTDMA, G2DMA0CTL2 + offset, 0 );
-	    asic_event( EVENT_G2_DMA0 + channel );
-	} else {
-	    MMIO_WRITE( EXTDMA, G2DMA0CTL2 + offset, 0 );
-	}
+        if( MMIO_READ( EXTDMA, G2DMA0CTL2 + offset ) == 1 ) {
+            uint32_t extaddr = MMIO_READ( EXTDMA, G2DMA0EXT + offset );
+            uint32_t sh4addr = MMIO_READ( EXTDMA, G2DMA0SH4 + offset );
+            uint32_t length = MMIO_READ( EXTDMA, G2DMA0SIZ + offset ) & 0x1FFFFFFF;
+            uint32_t dir = MMIO_READ( EXTDMA, G2DMA0DIR + offset );
+            // uint32_t mode = MMIO_READ( EXTDMA, G2DMA0MOD + offset );
+            unsigned char buf[length];
+            if( dir == 0 ) { /* SH4 to device */
+                mem_copy_from_sh4( buf, sh4addr, length );
+                mem_copy_to_sh4( extaddr, buf, length );
+            } else { /* Device to SH4 */
+                mem_copy_from_sh4( buf, extaddr, length );
+                mem_copy_to_sh4( sh4addr, buf, length );
+            }
+            MMIO_WRITE( EXTDMA, G2DMA0CTL2 + offset, 0 );
+            asic_event( EVENT_G2_DMA0 + channel );
+        } else {
+            MMIO_WRITE( EXTDMA, G2DMA0CTL2 + offset, 0 );
+        }
     }
 }
 
 void asic_ide_dma_transfer( )
 {	
     if( MMIO_READ( EXTDMA, IDEDMACTL2 ) == 1 ) {
-	if( MMIO_READ( EXTDMA, IDEDMACTL1 ) == 1 ) {
-	    MMIO_WRITE( EXTDMA, IDEDMATXSIZ, 0 );
-	    
-	    uint32_t addr = MMIO_READ( EXTDMA, IDEDMASH4 );
-	    uint32_t length = MMIO_READ( EXTDMA, IDEDMASIZ );
-	    // int dir = MMIO_READ( EXTDMA, IDEDMADIR );
-	    
-	    uint32_t xfer = ide_read_data_dma( addr, length );
-	    MMIO_WRITE( EXTDMA, IDEDMATXSIZ, xfer );
-	    MMIO_WRITE( EXTDMA, IDEDMACTL2, 0 );
-	} else { /* 0 */
-	    MMIO_WRITE( EXTDMA, IDEDMACTL2, 0 );
-	}
+        if( MMIO_READ( EXTDMA, IDEDMACTL1 ) == 1 ) {
+            MMIO_WRITE( EXTDMA, IDEDMATXSIZ, 0 );
+
+            uint32_t addr = MMIO_READ( EXTDMA, IDEDMASH4 );
+            uint32_t length = MMIO_READ( EXTDMA, IDEDMASIZ );
+            // int dir = MMIO_READ( EXTDMA, IDEDMADIR );
+
+            uint32_t xfer = ide_read_data_dma( addr, length );
+            MMIO_WRITE( EXTDMA, IDEDMATXSIZ, xfer );
+            MMIO_WRITE( EXTDMA, IDEDMACTL2, 0 );
+        } else { /* 0 */
+            MMIO_WRITE( EXTDMA, IDEDMACTL2, 0 );
+        }
     }
 }
 
@@ -338,14 +338,14 @@ void pvr_dma_transfer( )
     unsigned char *data = alloca( count );
     uint32_t rcount = DMAC_get_buffer( 2, data, count );
     if( rcount != count )
-	WARN( "PVR received %08X bytes from DMA, expected %08X", rcount, count );
-    
+        WARN( "PVR received %08X bytes from DMA, expected %08X", rcount, count );
+
     pvr2_dma_write( destaddr, data, rcount );
-    
+
     MMIO_WRITE( ASIC, PVRDMACTL, 0 );
     MMIO_WRITE( ASIC, PVRDMACNT, 0 );
     if( destaddr & 0x01000000 ) { /* Write to texture RAM */
-	MMIO_WRITE( ASIC, PVRDMADEST, destaddr + rcount );
+        MMIO_WRITE( ASIC, PVRDMADEST, destaddr + rcount );
     }
     asic_event( EVENT_PVR_DMA );
 }
@@ -356,7 +356,7 @@ void sort_dma_transfer( )
     sh4addr_t data_addr = MMIO_READ( ASIC, SORTDMADATA );
     int table_size = MMIO_READ( ASIC, SORTDMATSIZ );
     int data_size = MMIO_READ( ASIC, SORTDMADSIZ );
-    
+
     WARN( "Sort DMA not implemented" );
 }
 
@@ -364,21 +364,21 @@ void mmio_region_ASIC_write( uint32_t reg, uint32_t val )
 {
     switch( reg ) {
     case PIRQ1:
-	break; /* Treat this as read-only for the moment */
+        break; /* Treat this as read-only for the moment */
     case PIRQ0:
-	val = val & 0x3FFFFFFF; /* Top two bits aren't clearable */
-	MMIO_WRITE( ASIC, reg, MMIO_READ(ASIC, reg)&~val );
-	asic_check_cleared_events();
-	break;
+        val = val & 0x3FFFFFFF; /* Top two bits aren't clearable */
+        MMIO_WRITE( ASIC, reg, MMIO_READ(ASIC, reg)&~val );
+        asic_check_cleared_events();
+        break;
     case PIRQ2:
-	/* Clear any events */
-	val = MMIO_READ(ASIC, reg)&(~val);
-	MMIO_WRITE( ASIC, reg, val );
-	if( val == 0 ) { /* all clear - clear the cascade bit */
-	    MMIO_WRITE( ASIC, PIRQ0, MMIO_READ( ASIC, PIRQ0 ) & 0x7FFFFFFF );
-	}
-	asic_check_cleared_events();
-	break;
+        /* Clear any events */
+        val = MMIO_READ(ASIC, reg)&(~val);
+        MMIO_WRITE( ASIC, reg, val );
+        if( val == 0 ) { /* all clear - clear the cascade bit */
+            MMIO_WRITE( ASIC, PIRQ0, MMIO_READ( ASIC, PIRQ0 ) & 0x7FFFFFFF );
+        }
+        asic_check_cleared_events();
+        break;
     case IRQA0:
     case IRQA1:
     case IRQA2:
@@ -388,37 +388,37 @@ void mmio_region_ASIC_write( uint32_t reg, uint32_t val )
     case IRQC0:
     case IRQC1:
     case IRQC2:
-	MMIO_WRITE( ASIC, reg, val );
-	asic_event_mask_changed();
-	break;
+        MMIO_WRITE( ASIC, reg, val );
+        asic_event_mask_changed();
+        break;
     case SYSRESET:
-	if( val == 0x7611 ) {
-	    dreamcast_reset();
-	} else {
-	    WARN( "Unknown value %08X written to SYSRESET port", val );
-	}
-	break;
+        if( val == 0x7611 ) {
+            dreamcast_reset();
+        } else {
+            WARN( "Unknown value %08X written to SYSRESET port", val );
+        }
+        break;
     case MAPLE_STATE:
-	MMIO_WRITE( ASIC, reg, val );
-	if( val & 1 ) {
-	    uint32_t maple_addr = MMIO_READ( ASIC, MAPLE_DMA) &0x1FFFFFE0;
-	    maple_handle_buffer( maple_addr );
-	    MMIO_WRITE( ASIC, reg, 0 );
-	}
-	break;
+        MMIO_WRITE( ASIC, reg, val );
+        if( val & 1 ) {
+            uint32_t maple_addr = MMIO_READ( ASIC, MAPLE_DMA) &0x1FFFFFE0;
+            maple_handle_buffer( maple_addr );
+            MMIO_WRITE( ASIC, reg, 0 );
+        }
+        break;
     case PVRDMADEST:
-	MMIO_WRITE( ASIC, reg, (val & 0x03FFFFE0) | 0x10000000 );
-	break;
+        MMIO_WRITE( ASIC, reg, (val & 0x03FFFFE0) | 0x10000000 );
+        break;
     case PVRDMACNT: 
-	MMIO_WRITE( ASIC, reg, val & 0x00FFFFE0 );
-	break;
+        MMIO_WRITE( ASIC, reg, val & 0x00FFFFE0 );
+        break;
     case PVRDMACTL: /* Initiate PVR DMA transfer */
-	val = val & 0x01;
-	MMIO_WRITE( ASIC, reg, val );
-	if( val == 1 ) {
-	    pvr_dma_transfer();
-	}
-	break;
+        val = val & 0x01;
+        MMIO_WRITE( ASIC, reg, val );
+        if( val == 1 ) {
+            pvr_dma_transfer();
+        }
+        break;
     case SORTDMATBL: case SORTDMADATA:
         MMIO_WRITE( ASIC, reg, (val & 0x0FFFFFE0) | 0x08000000 );
         break;
@@ -433,10 +433,10 @@ void mmio_region_ASIC_write( uint32_t reg, uint32_t val )
         }
         break;
     case MAPLE_DMA:
-	MMIO_WRITE( ASIC, reg, val );
-	break;
+        MMIO_WRITE( ASIC, reg, val );
+        break;
     default:
-	MMIO_WRITE( ASIC, reg, val );
+        MMIO_WRITE( ASIC, reg, val );
     }
 }
 
@@ -457,136 +457,136 @@ int32_t mmio_region_ASIC_read( uint32_t reg )
     case IRQC1:
     case IRQC2:
     case MAPLE_STATE:
-	val = MMIO_READ(ASIC, reg);
-	return val;            
+        val = MMIO_READ(ASIC, reg);
+        return val;            
     case G2STATUS:
-	return g2_read_status();
+        return g2_read_status();
     default:
-	val = MMIO_READ(ASIC, reg);
-	return val;
+        val = MMIO_READ(ASIC, reg);
+        return val;
     }
-    
+
 }
 
 MMIO_REGION_WRITE_FN( EXTDMA, reg, val )
 {
     if( !idereg.interface_enabled && IS_IDE_REGISTER(reg) ) {
-	return; /* disabled */
+        return; /* disabled */
     }
 
     switch( reg ) {
     case IDEALTSTATUS: /* Device control */
-	ide_write_control( val );
-	break;
+        ide_write_control( val );
+        break;
     case IDEDATA:
-	ide_write_data_pio( val );
-	break;
+        ide_write_data_pio( val );
+        break;
     case IDEFEAT:
-	if( ide_can_write_regs() )
-	    idereg.feature = (uint8_t)val;
-	break;
+        if( ide_can_write_regs() )
+            idereg.feature = (uint8_t)val;
+        break;
     case IDECOUNT:
-	if( ide_can_write_regs() )
-	    idereg.count = (uint8_t)val;
-	break;
+        if( ide_can_write_regs() )
+            idereg.count = (uint8_t)val;
+        break;
     case IDELBA0:
-	if( ide_can_write_regs() )
-	    idereg.lba0 = (uint8_t)val;
-	break;
+        if( ide_can_write_regs() )
+            idereg.lba0 = (uint8_t)val;
+        break;
     case IDELBA1:
-	if( ide_can_write_regs() )
-	    idereg.lba1 = (uint8_t)val;
-	break;
+        if( ide_can_write_regs() )
+            idereg.lba1 = (uint8_t)val;
+        break;
     case IDELBA2:
-	if( ide_can_write_regs() )
-	    idereg.lba2 = (uint8_t)val;
-	break;
+        if( ide_can_write_regs() )
+            idereg.lba2 = (uint8_t)val;
+        break;
     case IDEDEV:
-	if( ide_can_write_regs() )
-	    idereg.device = (uint8_t)val;
-	break;
+        if( ide_can_write_regs() )
+            idereg.device = (uint8_t)val;
+        break;
     case IDECMD:
-	if( ide_can_write_regs() || val == IDE_CMD_NOP ) {
-	    ide_write_command( (uint8_t)val );
-	}
-	break;
+        if( ide_can_write_regs() || val == IDE_CMD_NOP ) {
+            ide_write_command( (uint8_t)val );
+        }
+        break;
     case IDEDMASH4:
-	MMIO_WRITE( EXTDMA, reg, val & 0x1FFFFFE0 );
-	break;
+        MMIO_WRITE( EXTDMA, reg, val & 0x1FFFFFE0 );
+        break;
     case IDEDMASIZ:
-	MMIO_WRITE( EXTDMA, reg, val & 0x01FFFFFE );
-	break;
+        MMIO_WRITE( EXTDMA, reg, val & 0x01FFFFFE );
+        break;
     case IDEDMADIR:
-	MMIO_WRITE( EXTDMA, reg, val & 1 );
-	break;
+        MMIO_WRITE( EXTDMA, reg, val & 1 );
+        break;
     case IDEDMACTL1:
     case IDEDMACTL2:
-	MMIO_WRITE( EXTDMA, reg, val & 0x01 );
-	asic_ide_dma_transfer( );
-	break;
+        MMIO_WRITE( EXTDMA, reg, val & 0x01 );
+        asic_ide_dma_transfer( );
+        break;
     case IDEACTIVATE:
-	if( val == 0x001FFFFF ) {
-	    idereg.interface_enabled = TRUE;
-	    /* Conventional wisdom says that this is necessary but not
-	     * sufficient to enable the IDE interface.
-	     */
-	} else if( val == 0x000042FE ) {
-	    idereg.interface_enabled = FALSE;
-	}
-	break;
+        if( val == 0x001FFFFF ) {
+            idereg.interface_enabled = TRUE;
+            /* Conventional wisdom says that this is necessary but not
+             * sufficient to enable the IDE interface.
+             */
+        } else if( val == 0x000042FE ) {
+            idereg.interface_enabled = FALSE;
+        }
+        break;
     case G2DMA0EXT: case G2DMA0SH4: case G2DMA0SIZ:
     case G2DMA1EXT: case G2DMA1SH4: case G2DMA1SIZ:
     case G2DMA2EXT: case G2DMA2SH4: case G2DMA2SIZ:
     case G2DMA3EXT: case G2DMA3SH4: case G2DMA3SIZ:
-	MMIO_WRITE( EXTDMA, reg, val & 0x9FFFFFE0 );
-	break;
+        MMIO_WRITE( EXTDMA, reg, val & 0x9FFFFFE0 );
+        break;
     case G2DMA0MOD: case G2DMA1MOD: case G2DMA2MOD: case G2DMA3MOD:
-	MMIO_WRITE( EXTDMA, reg, val & 0x07 );
-	break;
+        MMIO_WRITE( EXTDMA, reg, val & 0x07 );
+        break;
     case G2DMA0DIR: case G2DMA1DIR: case G2DMA2DIR: case G2DMA3DIR:
-	MMIO_WRITE( EXTDMA, reg, val & 0x01 );
-	break;
+        MMIO_WRITE( EXTDMA, reg, val & 0x01 );
+        break;
     case G2DMA0CTL1:
     case G2DMA0CTL2:
-	MMIO_WRITE( EXTDMA, reg, val & 1);
-	g2_dma_transfer( 0 );
-	break;
+        MMIO_WRITE( EXTDMA, reg, val & 1);
+        g2_dma_transfer( 0 );
+        break;
     case G2DMA0STOP:
-	MMIO_WRITE( EXTDMA, reg, val & 0x37 );
-	break;
+        MMIO_WRITE( EXTDMA, reg, val & 0x37 );
+        break;
     case G2DMA1CTL1:
     case G2DMA1CTL2:
-	MMIO_WRITE( EXTDMA, reg, val & 1);
-	g2_dma_transfer( 1 );
-	break;
+        MMIO_WRITE( EXTDMA, reg, val & 1);
+        g2_dma_transfer( 1 );
+        break;
 
     case G2DMA1STOP:
-	MMIO_WRITE( EXTDMA, reg, val & 0x37 );
-	break;
+        MMIO_WRITE( EXTDMA, reg, val & 0x37 );
+        break;
     case G2DMA2CTL1:
     case G2DMA2CTL2:
-	MMIO_WRITE( EXTDMA, reg, val &1 );
-	g2_dma_transfer( 2 );
-	break;
+        MMIO_WRITE( EXTDMA, reg, val &1 );
+        g2_dma_transfer( 2 );
+        break;
     case G2DMA2STOP:
-	MMIO_WRITE( EXTDMA, reg, val & 0x37 );
-	break;
+        MMIO_WRITE( EXTDMA, reg, val & 0x37 );
+        break;
     case G2DMA3CTL1:
     case G2DMA3CTL2:
-	MMIO_WRITE( EXTDMA, reg, val &1 );
-	g2_dma_transfer( 3 );
-	break;
+        MMIO_WRITE( EXTDMA, reg, val &1 );
+        g2_dma_transfer( 3 );
+        break;
     case G2DMA3STOP:
-	MMIO_WRITE( EXTDMA, reg, val & 0x37 );
-	break;
+        MMIO_WRITE( EXTDMA, reg, val & 0x37 );
+        break;
     case PVRDMA2CTL1:
     case PVRDMA2CTL2:
-	if( val != 0 ) {
-	    ERROR( "Write to unimplemented DMA control register %08X", reg );
-	}
-	break;
+        if( val != 0 ) {
+            ERROR( "Write to unimplemented DMA control register %08X", reg );
+        }
+        break;
     default:
-            MMIO_WRITE( EXTDMA, reg, val );
+        MMIO_WRITE( EXTDMA, reg, val );
     }
 }
 
@@ -594,13 +594,13 @@ MMIO_REGION_READ_FN( EXTDMA, reg )
 {
     uint32_t val;
     if( !idereg.interface_enabled && IS_IDE_REGISTER(reg) ) {
-	return 0xFFFFFFFF; /* disabled */
+        return 0xFFFFFFFF; /* disabled */
     }
 
     switch( reg ) {
     case IDEALTSTATUS: 
-	val = idereg.status;
-	return val;
+        val = idereg.status;
+        return val;
     case IDEDATA: return ide_read_data_pio( );
     case IDEFEAT: return idereg.error;
     case IDECOUNT:return idereg.count;
@@ -609,11 +609,11 @@ MMIO_REGION_READ_FN( EXTDMA, reg )
     case IDELBA2: return idereg.lba2;
     case IDEDEV: return idereg.device;
     case IDECMD:
-	val = ide_read_status();
-	return val;
+        val = ide_read_status();
+        return val;
     default:
-	val = MMIO_READ( EXTDMA, reg );
-	return val;
+        val = MMIO_READ( EXTDMA, reg );
+        return val;
     }
 }
 

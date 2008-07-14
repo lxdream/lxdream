@@ -16,8 +16,8 @@
  * GNU General Public License for more details.
  */
 
-#ifndef armdasm_H
-#define armdasm_H 1
+#ifndef lxdream_armdasm_H
+#define lxdream_armdasm_H 1
 
 #include "cpu.h"
 
@@ -36,4 +36,4 @@ extern const struct cpu_desc_struct armt_cpu_desc;
 }
 #endif
 
-#endif
+#endif /* !lxdream_armdasm_H */

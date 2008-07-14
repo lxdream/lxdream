@@ -58,7 +58,7 @@ static gboolean glx_pbuffer_read_render_buffer( unsigned char *target, render_bu
  * @return TRUE if supported, otherwise FALSE.
  */
 gboolean isServerGLXExtensionSupported( Display *display, int screen, 
-					const char *extension )
+                                        const char *extension )
 {
     const char *extensions = NULL;
     const char *start;
@@ -67,18 +67,18 @@ gboolean isServerGLXExtensionSupported( Display *display, int screen,
     /* Extension names should not have spaces. */
     where = strchr(extension, ' ');
     if (where || *extension == '\0')
-	return 0;
+        return 0;
     extensions = glXQueryServerString(display, screen, GLX_EXTENSIONS);
     start = extensions;
     for (;;) {
-	where = strstr((const char *) start, extension);
-	if (!where)
-	    break;
-	terminator = where + strlen(extension);
-	if (where == start || *(where - 1) == ' ')
-	    if (*terminator == ' ' || *terminator == '\0')
-		return TRUE;
-	start = terminator;
+        where = strstr((const char *) start, extension);
+        if (!where)
+            break;
+        terminator = where + strlen(extension);
+        if (where == start || *(where - 1) == ' ')
+            if (*terminator == ' ' || *terminator == '\0')
+                return TRUE;
+        start = terminator;
     }
     return FALSE;
 }
@@ -95,45 +95,45 @@ gboolean video_glx_init( Display *display, int screen )
     if( result != False ) {
         glx_version = (major*100) + minor;
     }
-    
-    glx_fbconfig_supported = (glx_version >= 103 || 
-			      isServerGLXExtensionSupported(display, screen,
-						      "GLX_SGIX_fbconfig") );
-    glx_pbuffer_supported = (glx_version >= 103 ||
-			     isServerGLXExtensionSupported(display, screen,
-						     "GLX_SGIX_pbuffer") );
-    if( glx_fbconfig_supported ) {
-	int nelem;
-        int fb_attribs[] = { GLX_DRAWABLE_TYPE, 
-			     GLX_PBUFFER_BIT|GLX_WINDOW_BIT, 
-			     GLX_RENDER_TYPE, GLX_RGBA_BIT, 
-			     GLX_DEPTH_SIZE, 24, 0 };
-	GLXFBConfig *configs = glXChooseFBConfig( display, screen, 
-						  fb_attribs, &nelem );
 
-	if( configs == NULL || nelem == 0 ) {
-	    /* Try a 16-bit depth buffer and see if it helps */
-	    fb_attribs[5] = 16;
-	    configs = glXChooseFBConfig( display, screen, fb_attribs, &nelem );
-	    if( nelem > 0 ) {
+    glx_fbconfig_supported = (glx_version >= 103 || 
+            isServerGLXExtensionSupported(display, screen,
+                    "GLX_SGIX_fbconfig") );
+    glx_pbuffer_supported = (glx_version >= 103 ||
+            isServerGLXExtensionSupported(display, screen,
+                    "GLX_SGIX_pbuffer") );
+    if( glx_fbconfig_supported ) {
+        int nelem;
+        int fb_attribs[] = { GLX_DRAWABLE_TYPE, 
+                GLX_PBUFFER_BIT|GLX_WINDOW_BIT, 
+                GLX_RENDER_TYPE, GLX_RGBA_BIT, 
+                GLX_DEPTH_SIZE, 24, 0 };
+        GLXFBConfig *configs = glXChooseFBConfig( display, screen, 
+                fb_attribs, &nelem );
+
+        if( configs == NULL || nelem == 0 ) {
+            /* Try a 16-bit depth buffer and see if it helps */
+            fb_attribs[5] = 16;
+            configs = glXChooseFBConfig( display, screen, fb_attribs, &nelem );
+            if( nelem > 0 ) {
                 WARN( "Using a 16-bit depth buffer - expect video glitches" );
             }
 
         }
         if( configs == NULL || nelem == 0 ) {
-	    /* Still didn't work. Fallback to 1.2 methods */
-	    glx_fbconfig_supported = FALSE;
-	    glx_pbuffer_supported = FALSE;
-	} else {
-	    glx_fbconfig = configs[0];
-	    glx_visual = glXGetVisualFromFBConfig(display, glx_fbconfig);
-	    XFree(configs);
-	}
+            /* Still didn't work. Fallback to 1.2 methods */
+            glx_fbconfig_supported = FALSE;
+            glx_pbuffer_supported = FALSE;
+        } else {
+            glx_fbconfig = configs[0];
+            glx_visual = glXGetVisualFromFBConfig(display, glx_fbconfig);
+            XFree(configs);
+        }
     }
 
     if( !glx_fbconfig_supported ) {
         int attribs[] = { GLX_RGBA, GLX_DEPTH_SIZE, 24, 0 };
-	glx_visual = glXChooseVisual( display, screen, attribs );
+        glx_visual = glXChooseVisual( display, screen, attribs );
         if( glx_visual == NULL ) {
             /* Try the 16-bit fallback here too */
             attribs[2] = 16;
@@ -156,34 +156,34 @@ gboolean video_glx_init_context( Display *display, Window window )
 {
     if( glx_fbconfig_supported ) {
         glx_context = glXCreateNewContext( display, glx_fbconfig, 
-					   GLX_RGBA_TYPE, NULL, True );
-	if( glx_context == NULL ) {
-	    ERROR( "Unable to create a GLX Context.");
-	    return FALSE;
-	}
+                GLX_RGBA_TYPE, NULL, True );
+        if( glx_context == NULL ) {
+            ERROR( "Unable to create a GLX Context.");
+            return FALSE;
+        }
 
-	if( glXMakeContextCurrent( display, window, window, 
-				   glx_context ) == False ) {
-	    ERROR( "Unable to prepare GLX context for drawing" );
-	    glXDestroyContext( display, glx_context );
-	    return FALSE;
-	}
+        if( glXMakeContextCurrent( display, window, window, 
+                glx_context ) == False ) {
+            ERROR( "Unable to prepare GLX context for drawing" );
+            glXDestroyContext( display, glx_context );
+            return FALSE;
+        }
     } else {
         glx_context = glXCreateContext( display, glx_visual, None, True );
-	if( glx_context == NULL ) {
-	    ERROR( "Unable to create a GLX Context.");
-	    return FALSE;
-	}
-	
-	if( glXMakeCurrent( display, window, glx_context ) == False ) {
-	    ERROR( "Unable to prepare GLX context for drawing" );
-	    glXDestroyContext( display, glx_context );
-	    return FALSE;
-	}
+        if( glx_context == NULL ) {
+            ERROR( "Unable to create a GLX Context.");
+            return FALSE;
+        }
+
+        if( glXMakeCurrent( display, window, glx_context ) == False ) {
+            ERROR( "Unable to prepare GLX context for drawing" );
+            glXDestroyContext( display, glx_context );
+            return FALSE;
+        }
     }
 
     if( !glXIsDirect(display, glx_context) ) {
-    	WARN( "Not using direct rendering - this is likely to be slow" );
+        WARN( "Not using direct rendering - this is likely to be slow" );
     }
 
     video_x11_display = display;
@@ -195,13 +195,13 @@ gboolean video_glx_init_context( Display *display, Window window )
 gboolean video_glx_init_driver( display_driver_t driver )
 {
     if( gl_fbo_is_supported() ) { // First preference
-	gl_fbo_init(driver);
+        gl_fbo_init(driver);
     } else if( glx_pbuffer_supported ) {
-	glx_pbuffer_init(driver);
+        glx_pbuffer_init(driver);
     } else {
         ERROR( "Unable to create render buffers (requires either EXT_framebuffer_object or GLX 1.3+)" );
         video_glx_shutdown();
-	return FALSE;
+        return FALSE;
     }
     return TRUE;
 }
@@ -209,15 +209,15 @@ gboolean video_glx_init_driver( display_driver_t driver )
 
 void video_glx_shutdown()
 {
-  //    texcache_gl_shutdown();
+    //    texcache_gl_shutdown();
     glx_is_initialized = FALSE;
     if( glx_context != NULL ) {
         glXDestroyContext( video_x11_display, glx_context );
-	glx_context = NULL;
+        glx_context = NULL;
     }
     if( glx_visual != NULL ) {
         XFree(glx_visual);
-	glx_visual = NULL;
+        glx_visual = NULL;
     }
 }
 
@@ -233,8 +233,8 @@ int video_glx_load_font( const gchar *font_name )
     int lists;
     XFontStruct *font = XLoadQueryFont(video_x11_display, font_name );
     if (font == NULL)
-	return -1;
-    
+        return -1;
+
     lists = glGenLists(96);
     glXUseXFont(font->fid, 32, 96, lists);
     XFreeFont(video_x11_display, font);
@@ -279,11 +279,11 @@ void glx_pbuffer_shutdown()
 static render_buffer_t glx_pbuffer_create_render_buffer( uint32_t width, uint32_t height )
 {
     int attribs[] = { GLX_PBUFFER_WIDTH, width, GLX_PBUFFER_HEIGHT, height,
-                      GLX_PRESERVED_CONTENTS, True, 0 };
+            GLX_PRESERVED_CONTENTS, True, 0 };
     GLXPbuffer pb = glXCreatePbuffer( video_x11_display, glx_fbconfig, attribs );
     if( pb == (GLXPbuffer)NULL ) {
-	ERROR( "Unable to create pbuffer" );
-	return NULL;
+        ERROR( "Unable to create pbuffer" );
+        return NULL;
     }
     render_buffer_t buffer = calloc( sizeof(struct render_buffer), 1 );
     buffer->width = width;
@@ -303,12 +303,12 @@ static gboolean glx_pbuffer_set_render_target( render_buffer_t buffer )
 {
     glFinish();
     if( glXMakeContextCurrent( video_x11_display, (GLXPbuffer)buffer->buf_id, (GLXPbuffer)buffer->buf_id, glx_context ) == False ) {
-	ERROR( "Make context current (pbuffer) failed!" );
+        ERROR( "Make context current (pbuffer) failed!" );
     }
     /* setup the gl context */
     glViewport( 0, 0, buffer->width, buffer->height );
     glDrawBuffer(GL_FRONT);
-    
+
     return TRUE;
 }
 
@@ -336,7 +336,7 @@ static void glx_pbuffer_load_frame_buffer( frame_buffer_t frame, render_buffer_t
     GLenum format = colour_formats[frame->colour_format].format;
     int bpp = colour_formats[frame->colour_format].bpp;
     int rowstride = (frame->rowstride / bpp) - frame->width;
-    
+
     gl_reset_state();
     glPixelStorei( GL_UNPACK_ROW_LENGTH, rowstride );
     glRasterPos2f(0.375, frame->height-0.375);
@@ -353,7 +353,7 @@ static void glx_pbuffer_display_blank( uint32_t colour )
 }
 
 static gboolean glx_pbuffer_read_render_buffer( unsigned char *target, render_buffer_t buffer, 
-					       int rowstride, int format )
+                                                int rowstride, int format )
 {
     glXMakeCurrent( video_x11_display, (GLXDrawable)buffer->buf_id, glx_context );
     glReadBuffer( GL_FRONT );

@@ -80,8 +80,8 @@ watch_point_t mem_is_watched( uint32_t addr, int size, int op )
             continue;
         count++;
         if( watch_arr[i].flags & op &&
-            watch_arr[i].start < addr+size &&
-            watch_arr[i].end >= addr ) {
+                watch_arr[i].start < addr+size &&
+                watch_arr[i].end >= addr ) {
             return &watch_arr[i];
         }
     }

@@ -19,6 +19,10 @@
 #ifndef lxdream_joy_linux_H
 #define lxdream_joy_linux_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * Initialize the linux joystick code, and scan for devices
  */
@@ -29,6 +33,8 @@ gboolean linux_joystick_init();
  */
 void linux_joystick_shutdown();
 
-
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* !lxdream_joy_linux_H */

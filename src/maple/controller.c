@@ -43,26 +43,26 @@ typedef struct controller_device {
 struct maple_device_class controller_class = { "Sega Controller", controller_new };
 
 static struct controller_device base_controller = {
-    { MAPLE_DEVICE_TAG, &controller_class, CONTROLLER_IDENT, CONTROLLER_VERSION, 
-      controller_get_config, controller_attach, controller_detach, controller_destroy,
-      controller_clone, NULL, NULL, controller_get_cond, NULL, NULL, NULL },
-    {0x0000FFFF, 0x80808080}, 
-    {{ "dpad left", N_("Dpad left"), CONFIG_TYPE_KEY },
-     { "dpad right", N_("Dpad right"), CONFIG_TYPE_KEY },
-     { "dpad up", N_("Dpad up"), CONFIG_TYPE_KEY },
-     { "dpad down", N_("Dpad down"), CONFIG_TYPE_KEY },
-     { "analog left", N_("Analog left"), CONFIG_TYPE_KEY },
-     { "analog right", N_("Analog right"), CONFIG_TYPE_KEY },
-     { "analog up", N_("Analog up"), CONFIG_TYPE_KEY },
-     { "analog down", N_("Analog down"), CONFIG_TYPE_KEY },
-     { "button X", N_("Button X"), CONFIG_TYPE_KEY },
-     { "button Y", N_("Button Y"), CONFIG_TYPE_KEY },
-     { "button A", N_("Button A"), CONFIG_TYPE_KEY },
-     { "button B", N_("Button B"), CONFIG_TYPE_KEY },
-     { "trigger left", N_("Trigger left"), CONFIG_TYPE_KEY },
-     { "trigger right", N_("Trigger right"), CONFIG_TYPE_KEY },
-     { "start", N_("Start button"), CONFIG_TYPE_KEY },
-     { NULL, CONFIG_TYPE_NONE }} };
+        { MAPLE_DEVICE_TAG, &controller_class, CONTROLLER_IDENT, CONTROLLER_VERSION, 
+          controller_get_config, controller_attach, controller_detach, controller_destroy,
+          controller_clone, NULL, NULL, controller_get_cond, NULL, NULL, NULL },
+          {0x0000FFFF, 0x80808080}, 
+          {{ "dpad left", N_("Dpad left"), CONFIG_TYPE_KEY },
+           { "dpad right", N_("Dpad right"), CONFIG_TYPE_KEY },
+           { "dpad up", N_("Dpad up"), CONFIG_TYPE_KEY },
+           { "dpad down", N_("Dpad down"), CONFIG_TYPE_KEY },
+           { "analog left", N_("Analog left"), CONFIG_TYPE_KEY },
+           { "analog right", N_("Analog right"), CONFIG_TYPE_KEY },
+           { "analog up", N_("Analog up"), CONFIG_TYPE_KEY },
+           { "analog down", N_("Analog down"), CONFIG_TYPE_KEY },
+           { "button X", N_("Button X"), CONFIG_TYPE_KEY },
+           { "button Y", N_("Button Y"), CONFIG_TYPE_KEY },
+           { "button A", N_("Button A"), CONFIG_TYPE_KEY },
+           { "button B", N_("Button B"), CONFIG_TYPE_KEY },
+           { "trigger left", N_("Trigger left"), CONFIG_TYPE_KEY },
+           { "trigger right", N_("Trigger right"), CONFIG_TYPE_KEY },
+           { "start", N_("Start button"), CONFIG_TYPE_KEY },
+           { NULL, CONFIG_TYPE_NONE }} };
 
 #define CONTROLLER(x) ((controller_device_t)(x))
 
@@ -89,43 +89,43 @@ void controller_key_callback( void *mdev, uint32_t value, uint32_t pressure, gbo
 {
     controller_device_t dev = (controller_device_t)mdev;
     if( isKeyDown ) {
-	switch( value ) {
-	case JOY_LEFT:
-	    dev->condition[1] &= ~JOY_X_AXIS;
-	    break;
-	case JOY_RIGHT:
-	    dev->condition[1] |= JOY_X_AXIS;
-	    break;
-	case JOY_UP:
-	    dev->condition[1] &= ~JOY_Y_AXIS;
-	    break;
-	case JOY_DOWN:
-	    dev->condition[1] |= JOY_Y_AXIS;
-	    break;
-	case BUTTON_LEFT_TRIGGER:
-	case BUTTON_RIGHT_TRIGGER:
-	    dev->condition[0] |= value;
-	    break;
-	default:
-	    dev->condition[0] &= ~value;
-	}
+        switch( value ) {
+        case JOY_LEFT:
+            dev->condition[1] &= ~JOY_X_AXIS;
+            break;
+        case JOY_RIGHT:
+            dev->condition[1] |= JOY_X_AXIS;
+            break;
+        case JOY_UP:
+            dev->condition[1] &= ~JOY_Y_AXIS;
+            break;
+        case JOY_DOWN:
+            dev->condition[1] |= JOY_Y_AXIS;
+            break;
+        case BUTTON_LEFT_TRIGGER:
+        case BUTTON_RIGHT_TRIGGER:
+            dev->condition[0] |= value;
+            break;
+        default:
+            dev->condition[0] &= ~value;
+        }
     } else {
-	switch(value ) {
-	case JOY_LEFT:
-	case JOY_RIGHT:
-	    dev->condition[1] = (dev->condition[1] & ~JOY_X_AXIS)| JOY_X_AXIS_CENTER;
-	    break;
-	case JOY_UP:
-	case JOY_DOWN:
-	    dev->condition[1] = (dev->condition[1] & ~JOY_Y_AXIS)| JOY_Y_AXIS_CENTER;
-	    break;
-	case BUTTON_LEFT_TRIGGER:
-	case BUTTON_RIGHT_TRIGGER:
-	    dev->condition[0] &= ~value;
-	    break;
-	default:
-	    dev->condition[0] |= value;
-	}
+        switch(value ) {
+        case JOY_LEFT:
+        case JOY_RIGHT:
+            dev->condition[1] = (dev->condition[1] & ~JOY_X_AXIS)| JOY_X_AXIS_CENTER;
+            break;
+        case JOY_UP:
+        case JOY_DOWN:
+            dev->condition[1] = (dev->condition[1] & ~JOY_Y_AXIS)| JOY_Y_AXIS_CENTER;
+            break;
+        case BUTTON_LEFT_TRIGGER:
+        case BUTTON_RIGHT_TRIGGER:
+            dev->condition[0] &= ~value;
+            break;
+        default:
+            dev->condition[0] |= value;
+        }
     }
 }
 

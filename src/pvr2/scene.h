@@ -1,7 +1,7 @@
 /**
  * $Id$
  *
- * PVR2 rendering functions (private)
+ * PVR2 scene description structure (pvr2-private)
  *
  * Copyright (c) 2005 Nathan Keynes.
  *
@@ -16,8 +16,12 @@
  * GNU General Public License for more details.
  */
 
-#ifndef lxdream_render_H
-#define lxdream_render_H 1
+#ifndef lxdream_scene_H
+#define lxdream_scene_H 1
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /************************* Intermediate vertex buffer ************************/
 
@@ -140,5 +144,8 @@ struct pvr2_scene_struct {
  */
 extern struct pvr2_scene_struct pvr2_scene;
 
+#ifdef __cplusplus
+}
+#endif
 
-#endif /* !lxdream_render_H */
+#endif /* !lxdream_scene_H */

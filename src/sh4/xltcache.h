@@ -20,7 +20,7 @@
 #include "mem.h"
 
 #ifndef lxdream_xltcache_H
-#define lxdream_xltcache_H
+#define lxdream_xltcache_H 1
 
 /**
  * For now, recovery is purely a matter of mapping native pc => sh4 pc,
@@ -33,8 +33,8 @@
  */
 typedef struct xlat_recovery_record {
     uint32_t xlat_offset;    // native (translated) pc 
-    uint32_t sh4_icount; // instruction number of the corresponding SH4 instruction
-                         // (0 = first instruction, 1 = second instruction, ... )
+    uint32_t sh4_icount;     // instruction number of the corresponding SH4 instruction
+                             // (0 = first instruction, 1 = second instruction, ... )
 } *xlat_recovery_record_t;
 
 struct xlat_cache_block {

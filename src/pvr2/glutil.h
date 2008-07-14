@@ -22,6 +22,10 @@
 #include <stdio.h>
 #include "display.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * Test if a specific extension is supported. From opengl.org
  * @param extension extension name to check for
@@ -51,5 +55,9 @@ void glsl_enable_shaders( gboolean enable );
 
 extern const char *glsl_vertex_shader_src;
 extern const char *glsl_fragment_shader_src;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* !lxdream_glutil_H */

@@ -37,18 +37,18 @@
 
 guint gdk_keycode_to_modifier( GdkDisplay *display, guint keycode )
 {
-  int i;
-  int result = 0;
-  Display *xdisplay = GDK_DISPLAY_XDISPLAY (display);
-  XModifierKeymap *keymap = XGetModifierMapping( xdisplay );
-  for( i=0; i<8*keymap->max_keypermod; i++ ) {
-    if( keymap->modifiermap[i] == keycode ) {
-      result = 1 << (i/keymap->max_keypermod);
-      break;
+    int i;
+    int result = 0;
+    Display *xdisplay = GDK_DISPLAY_XDISPLAY (display);
+    XModifierKeymap *keymap = XGetModifierMapping( xdisplay );
+    for( i=0; i<8*keymap->max_keypermod; i++ ) {
+        if( keymap->modifiermap[i] == keycode ) {
+            result = 1 << (i/keymap->max_keypermod);
+            break;
+        }
     }
-  }
-  XFreeModifiermap(keymap);
-  return result;
+    XFreeModifiermap(keymap);
+    return result;
 }
 
 #if !(GTK_CHECK_VERSION(2,8,0))
@@ -84,17 +84,17 @@ guint gdk_keycode_to_modifier( GdkDisplay *display, guint keycode )
  * GTK+ at ftp://ftp.gtk.org/pub/gtk/. 
  */
 void gdk_display_warp_pointer (GdkDisplay *display,
-                          GdkScreen  *screen,
-                          gint        x,
-                          gint        y)
+                               GdkScreen  *screen,
+                               gint        x,
+                               gint        y)
 {
-  Display *xdisplay;
-  Window dest;
+    Display *xdisplay;
+    Window dest;
 
-  xdisplay = GDK_DISPLAY_XDISPLAY (display);
-  dest = GDK_WINDOW_XWINDOW (gdk_screen_get_root_window (screen));
+    xdisplay = GDK_DISPLAY_XDISPLAY (display);
+    dest = GDK_WINDOW_XWINDOW (gdk_screen_get_root_window (screen));
 
-  XWarpPointer (xdisplay, None, dest, 0, 0, 0, 0, x, y);  
+    XWarpPointer (xdisplay, None, dest, 0, 0, 0, 0, x, y);  
 }
 
 #endif
@@ -109,7 +109,7 @@ NSView  *gdk_quartz_window_get_nsview( GdkWindow *window);
 
 guint gdk_keycode_to_modifier( GdkDisplay *display, guint keycode )
 {
-        return 0;
+    return 0;
 }
 
 #endif
@@ -136,12 +136,12 @@ struct display_driver display_gtk_driver = {
         NULL,
         NULL, NULL, NULL, NULL, NULL, 
         video_gtk_display_blank, NULL };
-    
+
 uint16_t video_gtk_resolve_keysym( const gchar *keysym )
 {
     int val = gdk_keyval_from_name( keysym );
     if( val == GDK_VoidSymbol )
-	return 0;
+        return 0;
     return (uint16_t)val;
 }
 
@@ -162,9 +162,9 @@ gboolean video_gtk_resize_callback(GtkWidget *widget, GdkEventConfigure *event, 
 uint16_t video_gtk_keycode_to_dckeysym(uint16_t keycode)
 {
     if( keycode >= 'a' && keycode <= 'z' ) {
-	return (keycode - 'a') + DCKB_a;
+        return (keycode - 'a') + DCKB_a;
     } else if( keycode >= '1' && keycode <= '9' ) {
-	return (keycode - '1') + DCKB_1;
+        return (keycode - '1') + DCKB_1;
     }
     switch(keycode) {
     case GDK_0:         return DCKB_0;
@@ -244,9 +244,9 @@ GtkWidget *video_gtk_create_drawable()
     GTK_WIDGET_SET_FLAGS(drawable, GTK_CAN_FOCUS|GTK_CAN_DEFAULT);
 
     g_signal_connect( drawable, "expose_event",
-		      G_CALLBACK(video_gtk_expose_callback), NULL );
+                      G_CALLBACK(video_gtk_expose_callback), NULL );
     g_signal_connect( drawable, "configure_event",
-		      G_CALLBACK(video_gtk_resize_callback), NULL );
+                      G_CALLBACK(video_gtk_resize_callback), NULL );
 
 #ifdef HAVE_GLX
     Display *display = gdk_x11_display_get_xdisplay( gtk_widget_get_display(drawable));
@@ -270,9 +270,9 @@ GtkWidget *video_gtk_create_drawable()
 
 gboolean video_gtk_init()
 {
-  
+
     if( gtk_video_drawable == NULL ) {
-	return FALSE;
+        return FALSE;
     }
 
     video_width = gtk_video_drawable->allocation.width;
@@ -284,21 +284,21 @@ gboolean video_gtk_init()
     Display *display = gdk_x11_display_get_xdisplay( gtk_widget_get_display(GTK_WIDGET(gtk_video_drawable)));
     Window window = GDK_WINDOW_XWINDOW( GTK_WIDGET(gtk_video_drawable)->window );
     if( ! video_glx_init_context( display, window ) ||
-        ! video_glx_init_driver( &display_gtk_driver ) ) {
+            ! video_glx_init_driver( &display_gtk_driver ) ) {
         return FALSE;
     }
 #else
 #ifdef HAVE_NSGL
     NSView *view = gdk_quartz_window_get_nsview(gtk_video_drawable->window);
     if( ! video_nsgl_init_driver( view, &display_gtk_driver ) ) {
-    	return FALSE;
+        return FALSE;
     }
 #endif
 #endif
 #endif
 
     pvr2_setup_gl_context();
-    
+
 #ifdef HAVE_LINUX_JOYSTICK
     linux_joystick_init();
 #endif
@@ -325,10 +325,10 @@ void video_gtk_shutdown()
         video_gdk_shutdown();
 #else
 #ifdef HAVE_GLX
-	video_glx_shutdown();
+        video_glx_shutdown();
 #else
 #ifdef HAVE_NSGL
-	video_nsgl_shutdown();
+        video_nsgl_shutdown();
 #endif
 #endif
 #endif

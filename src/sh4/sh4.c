@@ -45,8 +45,8 @@ uint32_t sh4_run_slice( uint32_t );
 uint32_t sh4_xlat_run_slice( uint32_t );
 
 struct dreamcast_module sh4_module = { "SH4", sh4_init, sh4_reset, 
-				       sh4_start, sh4_run_slice, sh4_stop,
-				       sh4_save_state, sh4_load_state };
+        sh4_start, sh4_run_slice, sh4_stop,
+        sh4_save_state, sh4_load_state };
 
 struct sh4_registers sh4r;
 struct breakpoint_struct sh4_breakpoints[MAX_BREAKPOINTS];
@@ -58,14 +58,14 @@ struct sh4_icache_struct sh4_icache = { NULL, -1, -1, 0 };
 
 void sh4_set_use_xlat( gboolean use )
 {
-// No-op if the translator was not built
+    // No-op if the translator was not built
 #ifdef SH4_TRANSLATOR
     if( use ) {
-	xlat_cache_init();
-	sh4_translate_init();
-	sh4_module.run_time_slice = sh4_xlat_run_slice;
+        xlat_cache_init();
+        sh4_translate_init();
+        sh4_module.run_time_slice = sh4_xlat_run_slice;
     } else {
-	sh4_module.run_time_slice = sh4_run_slice;
+        sh4_module.run_time_slice = sh4_run_slice;
     }
     sh4_use_translator = use;
 #endif
@@ -96,7 +96,7 @@ void sh4_start(void)
 void sh4_reset(void)
 {
     if(	sh4_use_translator ) {
-	xlat_flush_cache();
+        xlat_flush_cache();
     }
 
     /* zero everything out, for the sake of having a consistent state. */
@@ -129,9 +129,9 @@ void sh4_reset(void)
 void sh4_stop(void)
 {
     if(	sh4_use_translator ) {
-	/* If we were running with the translator, update new_pc and in_delay_slot */
-	sh4r.new_pc = sh4r.pc+2;
-	sh4r.in_delay_slot = FALSE;
+        /* If we were running with the translator, update new_pc and in_delay_slot */
+        sh4r.new_pc = sh4r.pc+2;
+        sh4r.in_delay_slot = FALSE;
     }
 
 }
@@ -139,9 +139,9 @@ void sh4_stop(void)
 void sh4_save_state( FILE *f )
 {
     if(	sh4_use_translator ) {
-	/* If we were running with the translator, update new_pc and in_delay_slot */
-	sh4r.new_pc = sh4r.pc+2;
-	sh4r.in_delay_slot = FALSE;
+        /* If we were running with the translator, update new_pc and in_delay_slot */
+        sh4r.new_pc = sh4r.pc+2;
+        sh4r.in_delay_slot = FALSE;
     }
 
     fwrite( &sh4r, sizeof(sh4r), 1, f );
@@ -154,7 +154,7 @@ void sh4_save_state( FILE *f )
 int sh4_load_state( FILE * f )
 {
     if(	sh4_use_translator ) {
-	xlat_flush_cache();
+        xlat_flush_cache();
     }
     fread( &sh4r, sizeof(sh4r), 1, f );
     MMU_load_state( f );
@@ -169,7 +169,7 @@ void sh4_set_breakpoint( uint32_t pc, breakpoint_type_t type )
     sh4_breakpoints[sh4_breakpoint_count].address = pc;
     sh4_breakpoints[sh4_breakpoint_count].type = type;
     if( sh4_use_translator ) {
-	xlat_invalidate_word( pc );
+        xlat_invalidate_word( pc );
     }
     sh4_breakpoint_count++;
 }
@@ -179,18 +179,18 @@ gboolean sh4_clear_breakpoint( uint32_t pc, breakpoint_type_t type )
     int i;
 
     for( i=0; i<sh4_breakpoint_count; i++ ) {
-	if( sh4_breakpoints[i].address == pc && 
-	    sh4_breakpoints[i].type == type ) {
-	    while( ++i < sh4_breakpoint_count ) {
-		sh4_breakpoints[i-1].address = sh4_breakpoints[i].address;
-		sh4_breakpoints[i-1].type = sh4_breakpoints[i].type;
-	    }
-	    if( sh4_use_translator ) {
-		xlat_invalidate_word( pc );
-	    }
-	    sh4_breakpoint_count--;
-	    return TRUE;
-	}
+        if( sh4_breakpoints[i].address == pc && 
+                sh4_breakpoints[i].type == type ) {
+            while( ++i < sh4_breakpoint_count ) {
+                sh4_breakpoints[i-1].address = sh4_breakpoints[i].address;
+                sh4_breakpoints[i-1].type = sh4_breakpoints[i].type;
+            }
+            if( sh4_use_translator ) {
+                xlat_invalidate_word( pc );
+            }
+            sh4_breakpoint_count--;
+            return TRUE;
+        }
     }
     return FALSE;
 }
@@ -199,8 +199,8 @@ int sh4_get_breakpoint( uint32_t pc )
 {
     int i;
     for( i=0; i<sh4_breakpoint_count; i++ ) {
-	if( sh4_breakpoints[i].address == pc )
-	    return sh4_breakpoints[i].type;
+        if( sh4_breakpoints[i].address == pc )
+            return sh4_breakpoints[i].type;
     }
     return 0;
 }
@@ -227,9 +227,9 @@ void sh4_switch_fr_banks()
 {
     int i;
     for( i=0; i<16; i++ ) {
-	float tmp = sh4r.fr[0][i];
-	sh4r.fr[0][i] = sh4r.fr[1][i];
-	sh4r.fr[1][i] = tmp;
+        float tmp = sh4r.fr[0][i];
+        sh4r.fr[0][i] = sh4r.fr[1][i];
+        sh4r.fr[1][i] = tmp;
     }
 }
 
@@ -250,7 +250,7 @@ void sh4_write_sr( uint32_t newval )
 void sh4_write_fpscr( uint32_t newval )
 {
     if( (sh4r.fpscr ^ newval) & FPSCR_FR ) {
-	sh4_switch_fr_banks();
+        sh4_switch_fr_banks();
     }
     sh4r.fpscr = newval;
 }
@@ -280,10 +280,10 @@ uint32_t sh4_read_sr( void )
         sh4r.pc = sh4r.vbr + v; \
         sh4r.new_pc = sh4r.pc + 2; \
         sh4_write_sr( sh4r.ssr |SR_MD|SR_BL|SR_RB ); \
-	if( sh4r.in_delay_slot ) { \
-	    sh4r.in_delay_slot = 0; \
-	    sh4r.spc -= 2; \
-	} \
+        if( sh4r.in_delay_slot ) { \
+            sh4r.in_delay_slot = 0; \
+            sh4r.spc -= 2; \
+        } \
     } \
     return TRUE; } while(0)
 
@@ -308,7 +308,7 @@ gboolean sh4_raise_reset( int code )
     sh4r.pc = 0xA0000000;
     sh4r.new_pc = sh4r.pc + 2;
     sh4_write_sr( (sh4r.sr|SR_MD|SR_BL|SR_RB|SR_IMASK)
-		  &(~SR_FD) );
+                  &(~SR_FD) );
     return TRUE;
 }
 
@@ -320,9 +320,9 @@ gboolean sh4_raise_trap( int trap )
 
 gboolean sh4_raise_slot_exception( int normal_code, int slot_code ) {
     if( sh4r.in_delay_slot ) {
-	return sh4_raise_exception(slot_code);
+        return sh4_raise_exception(slot_code);
     } else {
-	return sh4_raise_exception(normal_code);
+        return sh4_raise_exception(normal_code);
     }
 }
 
@@ -347,9 +347,9 @@ void sh4_accept_interrupt( void )
 void signsat48( void )
 {
     if( ((int64_t)sh4r.mac) < (int64_t)0xFFFF800000000000LL )
-	sh4r.mac = 0xFFFF800000000000LL;
+        sh4r.mac = 0xFFFF800000000000LL;
     else if( ((int64_t)sh4r.mac) > (int64_t)0x00007FFFFFFFFFFFLL )
-	sh4r.mac = 0x00007FFFFFFFFFFFLL;
+        sh4r.mac = 0x00007FFFFFFFFFFFLL;
 }
 
 void sh4_fsca( uint32_t anglei, float *fr )
@@ -367,21 +367,21 @@ void sh4_fsca( uint32_t anglei, float *fr )
 void sh4_sleep(void)
 {
     if( MMIO_READ( CPG, STBCR ) & 0x80 ) {
-	sh4r.sh4_state = SH4_STATE_STANDBY;
-	/* Bring all running peripheral modules up to date, and then halt them. */
-	TMU_run_slice( sh4r.slice_cycle );
-	SCIF_run_slice( sh4r.slice_cycle );
+        sh4r.sh4_state = SH4_STATE_STANDBY;
+        /* Bring all running peripheral modules up to date, and then halt them. */
+        TMU_run_slice( sh4r.slice_cycle );
+        SCIF_run_slice( sh4r.slice_cycle );
     } else {
-	if( MMIO_READ( CPG, STBCR2 ) & 0x80 ) {
-	    sh4r.sh4_state = SH4_STATE_DEEP_SLEEP;
-	    /* Halt DMAC but other peripherals still running */
-	    
-	} else {
-	    sh4r.sh4_state = SH4_STATE_SLEEP;
-	}
+        if( MMIO_READ( CPG, STBCR2 ) & 0x80 ) {
+            sh4r.sh4_state = SH4_STATE_DEEP_SLEEP;
+            /* Halt DMAC but other peripherals still running */
+
+        } else {
+            sh4r.sh4_state = SH4_STATE_SLEEP;
+        }
     }
     if( sh4_xlat_is_running() ) {
-	sh4_translate_exit( XLAT_EXIT_SLEEP );
+        sh4_translate_exit( XLAT_EXIT_SLEEP );
     }
 }
 
@@ -393,11 +393,11 @@ void sh4_wakeup(void)
 {
     switch( sh4r.sh4_state ) {
     case SH4_STATE_STANDBY:
-	break;
+        break;
     case SH4_STATE_DEEP_SLEEP:
-	break;
+        break;
     case SH4_STATE_SLEEP:
-	break;
+        break;
     }
     sh4r.sh4_state = SH4_STATE_RUNNING;
 }
@@ -412,16 +412,16 @@ uint32_t sh4_sleep_run_slice( uint32_t nanosecs )
 {
     int sleep_state = sh4r.sh4_state;
     assert( sleep_state != SH4_STATE_RUNNING );
-    
+
     while( sh4r.event_pending < nanosecs ) {
-	sh4r.slice_cycle = sh4r.event_pending;
-	if( sh4r.event_types & PENDING_EVENT ) {
-	    event_execute();
-	}
-	if( sh4r.event_types & PENDING_IRQ ) {
-	    sh4_wakeup();
-	    return sh4r.slice_cycle;
-	}
+        sh4r.slice_cycle = sh4r.event_pending;
+        if( sh4r.event_types & PENDING_EVENT ) {
+            event_execute();
+        }
+        if( sh4r.event_types & PENDING_IRQ ) {
+            sh4_wakeup();
+            return sh4r.slice_cycle;
+        }
     }
     sh4r.slice_cycle = nanosecs;
     return sh4r.slice_cycle;
@@ -436,13 +436,13 @@ void sh4_ftrv( float *target )
 {
     float fv[4] = { target[1], target[0], target[3], target[2] };
     target[1] = sh4r.fr[1][1] * fv[0] + sh4r.fr[1][5]*fv[1] +
-	sh4r.fr[1][9]*fv[2] + sh4r.fr[1][13]*fv[3];
+    sh4r.fr[1][9]*fv[2] + sh4r.fr[1][13]*fv[3];
     target[0] = sh4r.fr[1][0] * fv[0] + sh4r.fr[1][4]*fv[1] +
-	sh4r.fr[1][8]*fv[2] + sh4r.fr[1][12]*fv[3];
+    sh4r.fr[1][8]*fv[2] + sh4r.fr[1][12]*fv[3];
     target[3] = sh4r.fr[1][3] * fv[0] + sh4r.fr[1][7]*fv[1] +
-	sh4r.fr[1][11]*fv[2] + sh4r.fr[1][15]*fv[3];
+    sh4r.fr[1][11]*fv[2] + sh4r.fr[1][15]*fv[3];
     target[2] = sh4r.fr[1][2] * fv[0] + sh4r.fr[1][6]*fv[1] +
-	sh4r.fr[1][10]*fv[2] + sh4r.fr[1][14]*fv[3];
+    sh4r.fr[1][10]*fv[2] + sh4r.fr[1][14]*fv[3];
 }
 
 gboolean sh4_has_page( sh4vma_t vma )

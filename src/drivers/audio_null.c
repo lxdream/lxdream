@@ -20,7 +20,7 @@
 
 gboolean audio_null_init()
 {
-  return TRUE;
+    return TRUE;
 }
 
 gboolean audio_null_process_buffer( audio_buffer_t buffer )
@@ -30,7 +30,7 @@ gboolean audio_null_process_buffer( audio_buffer_t buffer )
 
 gboolean audio_null_shutdown()
 {
-  return TRUE;
+    return TRUE;
 }
 
 struct audio_driver audio_null_driver = { 

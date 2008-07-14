@@ -16,8 +16,8 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
-#ifndef dream_syscall_H
-#define dream_syscall_H 1
+#ifndef lxdream_syscall_H
+#define lxdream_syscall_H 1
 
 #include <stdint.h>
 #include <glib/gtypes.h>
@@ -74,4 +74,5 @@ void dcload_set_allow_unsafe( gboolean allow );
 #ifdef __cplusplus
 }
 #endif
-#endif
+
+#endif /* !lxdream_syscall_H */
