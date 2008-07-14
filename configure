@@ -746,8 +746,6 @@ VIDEO_NSGL_TRUE
 VIDEO_NSGL_FALSE
 BUILD_SH4X86_TRUE
 BUILD_SH4X86_FALSE
-BUILD_X86_64_TRUE
-BUILD_X86_64_FALSE
 AUDIO_OSX_TRUE
 AUDIO_OSX_FALSE
 PULSE_CFLAGS
@@ -804,6 +802,7 @@ ac_user_opts='
 enable_option_checking
 enable_maintainer_mode
 enable_dependency_tracking
+enable_translator
 enable_trace
 enable_watch
 enable_sh4stats
@@ -1468,6 +1467,7 @@ Optional Features:
 			  (and sometimes confusing) to the casual installer
   --disable-dependency-tracking  speeds up one-time build
   --enable-dependency-tracking   do not reject slow dependency extractors
+  --disable-translator    Disable the SH4 translator (Enable by default)
   --enable-trace          Enable generation of IO traces (warning: hurts
                           performance)
   --enable-watch          Enable watchpoints in the debugger (warning: hurts
@@ -2276,7 +2276,7 @@ fi
 
 # Define the identity of the package.
  PACKAGE=lxdream
- VERSION=0.8.1
+ VERSION=0.8.3
 
 
 cat >>confdefs.h <<_ACEOF
@@ -6551,6 +6551,13 @@ fi
 
 
 
+# Check whether --enable-translator was given.
+if test "${enable_translator+set}" = set; then
+  enableval=$enable_translator; true
+else
+  enable_translator=yes
+fi
+
 # Check whether --enable-trace was given.
 if test "${enable_trace+set}" = set; then
   enableval=$enable_trace; if test "$enableval" == "yes"; then
@@ -8636,33 +8643,26 @@ fi
 
 
 
-case $host_cpu in
-    i386|i486|i586|i686|x86_64)
-	SH4_TRANSLATOR="x86"
+
+if test "x$enable_translator" != "xno"; then
+    case $host_cpu in
+        i386|i486|i586|i686|x86_64)
+	    SH4_TRANSLATOR="x86"
 
 cat >>confdefs.h <<_ACEOF
 #define SH4_TRANSLATOR TARGET_X86
 _ACEOF
 ;;
-esac
+    esac
+fi
 
 
-if test "$SH4_TRANSLATOR" = "x86" -o "$SH4_TRANSLATOR" = "x86_64"; then
+if test "$SH4_TRANSLATOR" = "x86"; then
   BUILD_SH4X86_TRUE=
   BUILD_SH4X86_FALSE='#'
 else
   BUILD_SH4X86_TRUE='#'
   BUILD_SH4X86_FALSE=
-fi
-
-
-
-if test "$SH4_TRANSLATOR" = "x86_64"; then
-  BUILD_X86_64_TRUE=
-  BUILD_X86_64_FALSE='#'
-else
-  BUILD_X86_64_TRUE='#'
-  BUILD_X86_64_FALSE=
 fi
 
 
@@ -11616,13 +11616,6 @@ if test -z "${BUILD_SH4X86_TRUE}" && test -z "${BUILD_SH4X86_FALSE}"; then
   { { $as_echo "$as_me:$LINENO: error: conditional \"BUILD_SH4X86\" was never defined.
 Usually this means the macro was only invoked conditionally." >&5
 $as_echo "$as_me: error: conditional \"BUILD_SH4X86\" was never defined.
-Usually this means the macro was only invoked conditionally." >&2;}
-   { (exit 1); exit 1; }; }
-fi
-if test -z "${BUILD_X86_64_TRUE}" && test -z "${BUILD_X86_64_FALSE}"; then
-  { { $as_echo "$as_me:$LINENO: error: conditional \"BUILD_X86_64\" was never defined.
-Usually this means the macro was only invoked conditionally." >&5
-$as_echo "$as_me: error: conditional \"BUILD_X86_64\" was never defined.
 Usually this means the macro was only invoked conditionally." >&2;}
    { (exit 1); exit 1; }; }
 fi

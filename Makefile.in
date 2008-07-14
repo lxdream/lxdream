@@ -38,7 +38,7 @@ host_triplet = @host@
 DIST_COMMON = README $(am__configure_deps) $(srcdir)/Makefile.am \
 	$(srcdir)/Makefile.in $(srcdir)/config.h.in \
 	$(top_srcdir)/configure $(top_srcdir)/test/Makefile.in AUTHORS \
-	COPYING ChangeLog INSTALL NEWS TODO acconfig.h config.guess \
+	COPYING ChangeLog INSTALL NEWS acconfig.h config.guess \
 	config.sub depcomp install-sh missing mkinstalldirs
 subdir = .
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -103,8 +103,6 @@ BUILD_SH4X86_FALSE = @BUILD_SH4X86_FALSE@
 BUILD_SH4X86_TRUE = @BUILD_SH4X86_TRUE@
 BUILD_SYSTEST_FALSE = @BUILD_SYSTEST_FALSE@
 BUILD_SYSTEST_TRUE = @BUILD_SYSTEST_TRUE@
-BUILD_X86_64_FALSE = @BUILD_X86_64_FALSE@
-BUILD_X86_64_TRUE = @BUILD_X86_64_TRUE@
 CATALOGS = @CATALOGS@
 CATOBJEXT = @CATOBJEXT@
 CC = @CC@

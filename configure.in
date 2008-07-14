@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 
 AC_INIT(configure.in)
-AM_INIT_AUTOMAKE(lxdream, 0.8.1)
+AM_INIT_AUTOMAKE(lxdream, 0.8.3)
 AM_MAINTAINER_MODE
 AM_CONFIG_HEADER(config.h)
 
@@ -19,6 +19,9 @@ AC_PATH_PROG(POD2HTML, [pod2html])
 
 dnl ---------------- enable/with flags ------------------
 
+AC_ARG_ENABLE( translator, 
+   AS_HELP_STRING( [--disable-translator], [Disable the SH4 translator (Enable by default)]),
+   [true], [enable_translator=yes] )
 AC_ARG_ENABLE( trace, 
    AS_HELP_STRING( [--enable-trace], [Enable generation of IO traces (warning: hurts performance)]),
    [if test "$enableval" == "yes"; then
@@ -149,14 +152,16 @@ AC_CHECK_FUNC(glCreateShaderObjectARB, [ AC_DEFINE([HAVE_OPENGL_SHADER_ARB],1,[H
 AC_CHECK_FUNC(glClampColorARB, [ AC_DEFINE([HAVE_OPENGL_CLAMP_COLOR],1,[Have Color Clamp]) ], [])
 
 
-dnl Check for a supported cpu target for translation purposes
-case $host_cpu in
-    i386|i486|i586|i686|x86_64)
-	SH4_TRANSLATOR="x86"
-        AC_DEFINE_UNQUOTED(SH4_TRANSLATOR,[TARGET_X86], [SH4 Translator to use (if any)] );;
-esac
-AM_CONDITIONAL(BUILD_SH4X86, [test "$SH4_TRANSLATOR" = "x86" -o "$SH4_TRANSLATOR" = "x86_64"])
-AM_CONDITIONAL(BUILD_X86_64, [test "$SH4_TRANSLATOR" = "x86_64"])
+dnl ------------------- SH4 translator target -------------------
+
+if test "x$enable_translator" != "xno"; then
+    case $host_cpu in
+        i386|i486|i586|i686|x86_64)
+	    SH4_TRANSLATOR="x86"
+            AC_DEFINE_UNQUOTED(SH4_TRANSLATOR,[TARGET_X86], [SH4 Translator to use (if any)] );;
+    esac
+fi
+AM_CONDITIONAL(BUILD_SH4X86, [test "$SH4_TRANSLATOR" = "x86"])
 
 dnl ------------------ Optional driver support -------------------
 dnl Check for Apple CoreAudio
