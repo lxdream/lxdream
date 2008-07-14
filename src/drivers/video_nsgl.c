@@ -26,27 +26,27 @@ static NSOpenGLContext *nsgl_context = nil;
 gboolean video_nsgl_init_driver( NSView *view, display_driver_t driver )
 {
     NSAutoreleasePool *pool = [NSAutoreleasePool new];
-	NSOpenGLPixelFormatAttribute attributes[] = {
-			NSOpenGLPFAWindow,
-//			NSOpenGLPFADoubleBuffer,
-			NSOpenGLPFADepthSize, (NSOpenGLPixelFormatAttribute)24,
-			(NSOpenGLPixelFormatAttribute)nil };
-	
-	NSOpenGLPixelFormat *pixelFormat = 
-		[[[NSOpenGLPixelFormat alloc] initWithAttributes: attributes] autorelease];
-	nsgl_context = 
-		[[NSOpenGLContext alloc] initWithFormat: pixelFormat shareContext: nil];
-	[nsgl_context setView: view];
-	[nsgl_context makeCurrentContext];
-	[pool release];
-	if( gl_fbo_is_supported() ) {
-		gl_fbo_init(driver);
-	} else {
-		ERROR( "FBO not supported" );
-		return FALSE;
-	}
+    NSOpenGLPixelFormatAttribute attributes[] = {
+            NSOpenGLPFAWindow,
+            // NSOpenGLPFADoubleBuffer,
+            NSOpenGLPFADepthSize, (NSOpenGLPixelFormatAttribute)24,
+            (NSOpenGLPixelFormatAttribute)nil };
 
-	return TRUE;
+    NSOpenGLPixelFormat *pixelFormat = 
+        [[[NSOpenGLPixelFormat alloc] initWithAttributes: attributes] autorelease];
+    nsgl_context = 
+        [[NSOpenGLContext alloc] initWithFormat: pixelFormat shareContext: nil];
+    [nsgl_context setView: view];
+    [nsgl_context makeCurrentContext];
+    [pool release];
+    if( gl_fbo_is_supported() ) {
+        gl_fbo_init(driver);
+    } else {
+        ERROR( "FBO not supported" );
+        return FALSE;
+    }
+
+    return TRUE;
 }
 
 void video_nsgl_update()
@@ -72,9 +72,9 @@ void video_nsgl_swap_buffers()
 
 void video_nsgl_shutdown()
 {
-	if( nsgl_context != nil ) {
-		[NSOpenGLContext clearCurrentContext];
-		[nsgl_context release];
-		nsgl_context = nil;
-	}
+    if( nsgl_context != nil ) {
+        [NSOpenGLContext clearCurrentContext];
+        [nsgl_context release];
+        nsgl_context = nil;
+    }
 }

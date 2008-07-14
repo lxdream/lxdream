@@ -15,8 +15,8 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
-#ifndef dream_serial_H
-#define dream_serial_H 1
+#ifndef lxdream_serial_H
+#define lxdream_serial_H 1
 
 #include <stdint.h>
 
@@ -48,4 +48,4 @@ void serial_transmit_break( void );
 }
 #endif
 
-#endif
+#endif /* !lxdream_serial_H */

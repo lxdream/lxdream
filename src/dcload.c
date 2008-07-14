@@ -69,9 +69,9 @@ int dcload_alloc_fd()
 {
     int i;
     for( i=0; i<MAX_OPEN_FDS; i++ ) {
-	if( open_fds[i] == -1 ) {
-	    return i;
-	}
+        if( open_fds[i] == -1 ) {
+            return i;
+        }
     }
     return -1;
 }
@@ -82,76 +82,76 @@ void dcload_syscall( uint32_t syscall_id )
     int fd;
     switch( sh4r.r[4] ) {
     case SYS_READ:
-	fd = sh4r.r[5];
-	if( fd < 0 || fd >= MAX_OPEN_FDS || open_fds[fd] == -1 ) {
-	    sh4r.r[0] = -1;
-	} else {
-	    sh4ptr_t buf = mem_get_region( sh4r.r[6] );
-	    int length = sh4r.r[7];
-	    sh4r.r[0] = read( open_fds[fd], buf, length );
-	}
-	break;
+        fd = sh4r.r[5];
+        if( fd < 0 || fd >= MAX_OPEN_FDS || open_fds[fd] == -1 ) {
+            sh4r.r[0] = -1;
+        } else {
+            sh4ptr_t buf = mem_get_region( sh4r.r[6] );
+            int length = sh4r.r[7];
+            sh4r.r[0] = read( open_fds[fd], buf, length );
+        }
+        break;
     case SYS_WRITE:
-	fd = sh4r.r[5];
-	if( fd < 0 || fd >= MAX_OPEN_FDS || open_fds[fd] == -1 ) {
-	    sh4r.r[0] = -1;
-	} else {
-	    sh4ptr_t buf = mem_get_region( sh4r.r[6] );
-	    int length = sh4r.r[7];
-	    sh4r.r[0] = write( open_fds[fd], buf, length );
-	}
-	break;
+        fd = sh4r.r[5];
+        if( fd < 0 || fd >= MAX_OPEN_FDS || open_fds[fd] == -1 ) {
+            sh4r.r[0] = -1;
+        } else {
+            sh4ptr_t buf = mem_get_region( sh4r.r[6] );
+            int length = sh4r.r[7];
+            sh4r.r[0] = write( open_fds[fd], buf, length );
+        }
+        break;
     case SYS_LSEEK:
-	fd = sh4r.r[5];
-	if( fd < 0 || fd >= MAX_OPEN_FDS || open_fds[fd] == -1 ) {
-	    sh4r.r[0] = -1;
-	} else {
-	    sh4r.r[0] = lseek( open_fds[fd], sh4r.r[6], sh4r.r[7] );
-	}
-	break;
+        fd = sh4r.r[5];
+        if( fd < 0 || fd >= MAX_OPEN_FDS || open_fds[fd] == -1 ) {
+            sh4r.r[0] = -1;
+        } else {
+            sh4r.r[0] = lseek( open_fds[fd], sh4r.r[6], sh4r.r[7] );
+        }
+        break;
 
-/* Secure access only */
+        /* Secure access only */
     case SYS_OPEN:
-	if( dcload_allow_unsafe ) {
-	    fd = dcload_alloc_fd();
-	    if( fd == -1 ) {
-		sh4r.r[0] = -1;
-	    } else {
-		char *filename = (char *)mem_get_region( sh4r.r[5] );
-		int realfd = open( filename, sh4r.r[6] );
-		open_fds[fd] = realfd;
-		sh4r.r[0] = realfd;
-	    }
-	} else {
-	    ERROR( "Denying access to local filesystem" );
-	    sh4r.r[0] = -1;
-	}
-	break;
+        if( dcload_allow_unsafe ) {
+            fd = dcload_alloc_fd();
+            if( fd == -1 ) {
+                sh4r.r[0] = -1;
+            } else {
+                char *filename = (char *)mem_get_region( sh4r.r[5] );
+                int realfd = open( filename, sh4r.r[6] );
+                open_fds[fd] = realfd;
+                sh4r.r[0] = realfd;
+            }
+        } else {
+            ERROR( "Denying access to local filesystem" );
+            sh4r.r[0] = -1;
+        }
+        break;
     case SYS_CLOSE:
-	if( dcload_allow_unsafe ) {
-	    fd = sh4r.r[5];
-	    if( fd < 0 || fd >= MAX_OPEN_FDS || open_fds[fd] == -1 ) {
-		sh4r.r[0] = -1;
-	    } else {
-		if( open_fds[fd] > 2 ) {
-		    sh4r.r[0] = close( open_fds[fd] );
-		} else {
-		    /* Don't actually close real fds 0-2 */
-		    sh4r.r[0] = 0;
-		}
-		open_fds[fd] = -1;
-	    }
-	}
-	break;
+        if( dcload_allow_unsafe ) {
+            fd = sh4r.r[5];
+            if( fd < 0 || fd >= MAX_OPEN_FDS || open_fds[fd] == -1 ) {
+                sh4r.r[0] = -1;
+            } else {
+                if( open_fds[fd] > 2 ) {
+                    sh4r.r[0] = close( open_fds[fd] );
+                } else {
+                    /* Don't actually close real fds 0-2 */
+                    sh4r.r[0] = 0;
+                }
+                open_fds[fd] = -1;
+            }
+        }
+        break;
     case SYS_EXIT:
-	if( dcload_allow_unsafe ) {
-	    dreamcast_shutdown();
-	    exit( sh4r.r[5] );
-	} else {
-	    dreamcast_stop();
-	}
+        if( dcload_allow_unsafe ) {
+            dreamcast_shutdown();
+            exit( sh4r.r[5] );
+        } else {
+            dreamcast_stop();
+        }
     default:
-	sh4r.r[0] = -1;
+        sh4r.r[0] = -1;
     }
 
 }

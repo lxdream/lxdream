@@ -19,8 +19,8 @@
  * GNU General Public License for more details.
  */
 
-#ifndef dreamcast_H
-#define dreamcast_H 1
+#ifndef lxdream_dreamcast_H
+#define lxdream_dreamcast_H 1
 
 #include <stdio.h>
 #include "lxdream.h"
@@ -82,4 +82,4 @@ frame_buffer_t dreamcast_load_preview( const gchar *filename );
 }
 #endif
 
-#endif /* !dreamcast_H */
+#endif /* !lxdream_dreamcast_H */

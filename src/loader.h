@@ -16,8 +16,8 @@
  * GNU General Public License for more details.
  */
 
-#ifndef dreamcast_loader_H
-#define dreamcast_loader_H 1
+#ifndef lxdream_loader_H
+#define lxdream_loader_H 1
 
 #include <stdio.h>
 #include <glib/gtypes.h>
@@ -68,5 +68,5 @@ gboolean file_load_magic( const gchar *filename );
 }
 #endif
 
-#endif /* !dream_loader_H */
+#endif /* !lxdream_loader_H */
 

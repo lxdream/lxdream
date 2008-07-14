@@ -67,8 +67,8 @@ struct sh4_registers {
     uint32_t sr, pr, pc, fpscr;
     uint32_t t, m, q, s; /* really boolean - 0 or 1 */
     union {
-	int32_t i;
-	float f;
+        int32_t i;
+        float f;
     } fpul;
     uint32_t pad; // FIXME: remove in next DST version
     float fr[2][16];
@@ -77,13 +77,13 @@ struct sh4_registers {
 
     uint32_t r_bank[8]; /* hidden banked registers */
     int32_t store_queue[16]; /* technically 2 banks of 32 bytes */
-    
+
     uint32_t new_pc; /* Not a real register, but used to handle delay slots */
     uint32_t event_pending; /* slice cycle time of the next pending event, or FFFFFFFF
                              when no events are pending */
     uint32_t event_types; /* bit 0 = IRQ pending, bit 1 = general event pending */
     int in_delay_slot; /* flag to indicate the current instruction is in
-                             * a delay slot (certain rules apply) */
+     * a delay slot (certain rules apply) */
     uint32_t slice_cycle; /* Current nanosecond within the timeslice */
     int sh4_state; /* Current power-on state (one of the SH4_STATE_* values ) */
 };

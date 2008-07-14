@@ -47,7 +47,7 @@ void gdrom_menu_build( GtkWidget *menu )
 {
     unsigned int i, len;
     GSList *group = NULL;
-    
+
     len = gdrom_list_size();
     for( i=0; i < len; i++ ) {
         const gchar *entry = gdrom_list_get_display_name(i);
@@ -107,6 +107,6 @@ GtkWidget *gdrom_menu_new()
     register_gdrom_list_change_hook(gdrom_menu_update, menu);
     gdrom_menu_update( FALSE, gdrom_list_get_selection(), menu );
     gtk_widget_show_all(menu);
-    
+
     return menu;
 }

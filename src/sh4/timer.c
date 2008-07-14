@@ -55,23 +55,23 @@ void mmio_region_CPG_write( uint32_t reg, uint32_t val )
     uint32_t div;
     switch( reg ) {
     case FRQCR: /* Frequency control */
-	div = ifc_divider[(val >> 6) & 0x07];
-	sh4_cpu_freq = sh4_input_freq / div;
-	sh4_cpu_period = sh4_cpu_multiplier * div / sh4_input_freq;
-	div = ifc_divider[(val >> 3) & 0x07];
-	sh4_bus_freq = sh4_input_freq / div;
-	sh4_bus_period = 1000 * div / sh4_input_freq;
-	div = pfc_divider[val & 0x07];
-	sh4_peripheral_freq = sh4_input_freq / div;
-	sh4_peripheral_period = 1000 * div / sh4_input_freq;
+        div = ifc_divider[(val >> 6) & 0x07];
+        sh4_cpu_freq = sh4_input_freq / div;
+        sh4_cpu_period = sh4_cpu_multiplier * div / sh4_input_freq;
+        div = ifc_divider[(val >> 3) & 0x07];
+        sh4_bus_freq = sh4_input_freq / div;
+        sh4_bus_period = 1000 * div / sh4_input_freq;
+        div = pfc_divider[val & 0x07];
+        sh4_peripheral_freq = sh4_input_freq / div;
+        sh4_peripheral_period = 1000 * div / sh4_input_freq;
 
-	/* Update everything that depends on the peripheral frequency */
-	SCIF_update_line_speed();
-	break;
+        /* Update everything that depends on the peripheral frequency */
+        SCIF_update_line_speed();
+        break;
     case WTCSR: /* Watchdog timer */
-	break;
+        break;
     }
-	
+
     MMIO_WRITE( CPG, reg, val );
 }
 
@@ -136,14 +136,14 @@ int32_t mmio_region_TMU_read( uint32_t reg )
 {
     switch( reg ) {
     case TCNT0:
-	TMU_count( 0, sh4r.slice_cycle );
-	break;
+        TMU_count( 0, sh4r.slice_cycle );
+        break;
     case TCNT1:
-	TMU_count( 1, sh4r.slice_cycle );
-	break;
+        TMU_count( 1, sh4r.slice_cycle );
+        break;
     case TCNT2:
-	TMU_count( 2, sh4r.slice_cycle );
-	break;
+        TMU_count( 2, sh4r.slice_cycle );
+        break;
     }
     return MMIO_READ( TMU, reg );
 }
@@ -154,45 +154,45 @@ void TMU_set_timer_control( int timer,  int tcr )
     uint32_t oldtcr = MMIO_READ( TMU, TCR0 + (12*timer) );
 
     if( (oldtcr & TCR_UNF) == 0 ) {
-	tcr = tcr & (~TCR_UNF);
+        tcr = tcr & (~TCR_UNF);
     } else {
-	if( ((oldtcr & TCR_UNIE) == 0) && 
-	    (tcr & TCR_IRQ_ACTIVE) == TCR_IRQ_ACTIVE ) {
-	    intc_raise_interrupt( INT_TMU_TUNI0 + timer );
-	} else if( (oldtcr & TCR_UNIE) != 0 && 
-		   (tcr & TCR_IRQ_ACTIVE) != TCR_IRQ_ACTIVE ) {
-	    intc_clear_interrupt( INT_TMU_TUNI0 + timer );
-	}
+        if( ((oldtcr & TCR_UNIE) == 0) && 
+                (tcr & TCR_IRQ_ACTIVE) == TCR_IRQ_ACTIVE ) {
+            intc_raise_interrupt( INT_TMU_TUNI0 + timer );
+        } else if( (oldtcr & TCR_UNIE) != 0 && 
+                (tcr & TCR_IRQ_ACTIVE) != TCR_IRQ_ACTIVE ) {
+            intc_clear_interrupt( INT_TMU_TUNI0 + timer );
+        }
     }
 
     switch( tcr & 0x07 ) {
     case 0:
-	period = sh4_peripheral_period << 2 ;
-	break;
+        period = sh4_peripheral_period << 2 ;
+        break;
     case 1: 
-	period = sh4_peripheral_period << 4;
-	break;
+        period = sh4_peripheral_period << 4;
+        break;
     case 2:
-	period = sh4_peripheral_period << 6;
-	break;
+        period = sh4_peripheral_period << 6;
+        break;
     case 3: 
-	period = sh4_peripheral_period << 8;
-	break;
+        period = sh4_peripheral_period << 8;
+        break;
     case 4:
-	period = sh4_peripheral_period << 10;
-	break;
+        period = sh4_peripheral_period << 10;
+        break;
     case 5:
-	/* Illegal value. */
-	ERROR( "TMU %d period set to illegal value (5)", timer );
-	period = sh4_peripheral_period << 12; /* for something to do */
-	break;
+        /* Illegal value. */
+        ERROR( "TMU %d period set to illegal value (5)", timer );
+        period = sh4_peripheral_period << 12; /* for something to do */
+        break;
     case 6:
-	period = rtc_output_period;
-	break;
+        period = rtc_output_period;
+        break;
     case 7:
-	/* External clock... Hrm? */
-	period = sh4_peripheral_period; /* I dunno... */
-	break;
+        /* External clock... Hrm? */
+        period = sh4_peripheral_period; /* I dunno... */
+        break;
     }
     TMU_timers[timer].timer_period = period;
 
@@ -202,9 +202,9 @@ void TMU_set_timer_control( int timer,  int tcr )
 void TMU_schedule_timer( int timer )
 {
     uint64_t duration = (uint64_t)((uint32_t)(MMIO_READ( TMU, TCNT0 + 12*timer )+1)) * 
-	(uint64_t)TMU_timers[timer].timer_period - TMU_timers[timer].timer_remainder;
+    (uint64_t)TMU_timers[timer].timer_period - TMU_timers[timer].timer_remainder;
     event_schedule_long( EVENT_TMU0+timer, (uint32_t)(duration / 1000000000), 
-			 (uint32_t)(duration % 1000000000) );
+                         (uint32_t)(duration % 1000000000) );
 }
 
 void TMU_start( int timer )
@@ -229,26 +229,26 @@ void TMU_stop( int timer )
 uint32_t TMU_count( int timer, uint32_t nanosecs ) 
 {
     uint32_t run_ns = nanosecs + TMU_timers[timer].timer_remainder -
-	TMU_timers[timer].timer_run;
+    TMU_timers[timer].timer_run;
     TMU_timers[timer].timer_remainder = 
-	run_ns % TMU_timers[timer].timer_period;
+        run_ns % TMU_timers[timer].timer_period;
     TMU_timers[timer].timer_run = nanosecs;
     uint32_t count = run_ns / TMU_timers[timer].timer_period;
     uint32_t value = MMIO_READ( TMU, TCNT0 + 12*timer );
     uint32_t reset = MMIO_READ( TMU, TCOR0 + 12*timer );
     if( count > value ) {
-	uint32_t tcr = MMIO_READ( TMU, TCR0 + 12*timer );
-	tcr |= TCR_UNF;
-	count -= value;
+        uint32_t tcr = MMIO_READ( TMU, TCR0 + 12*timer );
+        tcr |= TCR_UNF;
+        count -= value;
         value = reset - (count % reset) + 1;
-	MMIO_WRITE( TMU, TCR0 + 12*timer, tcr );
-	if( tcr & TCR_UNIE ) 
-	    intc_raise_interrupt( INT_TMU_TUNI0 + timer );
-	MMIO_WRITE( TMU, TCNT0 + 12*timer, value );
-	TMU_schedule_timer(timer);
+        MMIO_WRITE( TMU, TCR0 + 12*timer, tcr );
+        if( tcr & TCR_UNIE ) 
+            intc_raise_interrupt( INT_TMU_TUNI0 + timer );
+        MMIO_WRITE( TMU, TCNT0 + 12*timer, value );
+        TMU_schedule_timer(timer);
     } else {
-	value -= count;
-	MMIO_WRITE( TMU, TCNT0 + 12*timer, value );
+        value -= count;
+        MMIO_WRITE( TMU, TCNT0 + 12*timer, value );
     }
     return value;
 }
@@ -259,45 +259,45 @@ void mmio_region_TMU_write( uint32_t reg, uint32_t val )
     int i;
     switch( reg ) {
     case TSTR:
-	oldval = MMIO_READ( TMU, TSTR );
-	for( i=0; i<3; i++ ) {
-	    uint32_t tmp = 1<<i;
-	    if( (oldval & tmp) != 0 && (val&tmp) == 0  )
-		TMU_stop(i);
-	    else if( (oldval&tmp) == 0 && (val&tmp) != 0 )
-		TMU_start(i);
-	}
-	break;
+        oldval = MMIO_READ( TMU, TSTR );
+        for( i=0; i<3; i++ ) {
+            uint32_t tmp = 1<<i;
+            if( (oldval & tmp) != 0 && (val&tmp) == 0  )
+                TMU_stop(i);
+            else if( (oldval&tmp) == 0 && (val&tmp) != 0 )
+                TMU_start(i);
+        }
+        break;
     case TCR0:
-	TMU_set_timer_control( 0, val );
-	return;
+        TMU_set_timer_control( 0, val );
+        return;
     case TCR1:
-	TMU_set_timer_control( 1, val );
-	return;
+        TMU_set_timer_control( 1, val );
+        return;
     case TCR2:
-	TMU_set_timer_control( 2, val );
-	return;
+        TMU_set_timer_control( 2, val );
+        return;
     case TCNT0:
-	MMIO_WRITE( TMU, reg, val );
-	if( TMU_IS_RUNNING(0) ) { // reschedule
-	    TMU_timers[0].timer_run = sh4r.slice_cycle;
-	    TMU_schedule_timer( 0 );
-	}
-	return;
+        MMIO_WRITE( TMU, reg, val );
+        if( TMU_IS_RUNNING(0) ) { // reschedule
+            TMU_timers[0].timer_run = sh4r.slice_cycle;
+            TMU_schedule_timer( 0 );
+        }
+        return;
     case TCNT1:
-	MMIO_WRITE( TMU, reg, val );
-	if( TMU_IS_RUNNING(1) ) { // reschedule
-	    TMU_timers[1].timer_run = sh4r.slice_cycle;
-	    TMU_schedule_timer( 1 );
-	}
-	return;
+        MMIO_WRITE( TMU, reg, val );
+        if( TMU_IS_RUNNING(1) ) { // reschedule
+            TMU_timers[1].timer_run = sh4r.slice_cycle;
+            TMU_schedule_timer( 1 );
+        }
+        return;
     case TCNT2:
-	MMIO_WRITE( TMU, reg, val );
-	if( TMU_IS_RUNNING(2) ) { // reschedule
-	    TMU_timers[2].timer_run = sh4r.slice_cycle;
-	    TMU_schedule_timer( 2 );
-	}
-	return;
+        MMIO_WRITE( TMU, reg, val );
+        if( TMU_IS_RUNNING(2) ) { // reschedule
+            TMU_timers[2].timer_run = sh4r.slice_cycle;
+            TMU_schedule_timer( 2 );
+        }
+        return;
     }
     MMIO_WRITE( TMU, reg, val );
 }
@@ -306,13 +306,13 @@ void TMU_count_all( uint32_t nanosecs )
 {
     int tcr = MMIO_READ( TMU, TSTR );
     if( tcr & 0x01 ) {
-	TMU_count( 0, nanosecs );
+        TMU_count( 0, nanosecs );
     }
     if( tcr & 0x02 ) {
-	TMU_count( 1, nanosecs );
+        TMU_count( 1, nanosecs );
     }
     if( tcr & 0x04 ) {
-	TMU_count( 2, nanosecs );
+        TMU_count( 2, nanosecs );
     }
 }
 

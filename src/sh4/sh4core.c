@@ -216,7 +216,7 @@ void fprint_stack_trace( FILE *f )
 	        sh4_write_long( memtmp, *((uint32_t *)&XF((reg)&0x0E)) ); \
 	        sh4_write_long( memtmp+4, *((uint32_t *)&XF(reg)) ); \
 	    } else { \
-	        sh4_write_long( memtmp, *((uint32_t *)&FR(reg)) ); \ 
+	        sh4_write_long( memtmp, *((uint32_t *)&FR(reg)) ); \
 	        sh4_write_long( memtmp+4, *((uint32_t *)&FR((reg)|0x01)) ); \
 	    } \
 	} \

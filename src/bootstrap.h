@@ -19,14 +19,14 @@
 /*
  * IP.BIN related code. Ref: http://mc.pp.se/dc/ip0000.bin.html
  */
-#ifndef dream_bootstrap_H
-#define dream_bootstrap_H 1
+#ifndef lxdream_bootstrap_H
+#define lxdream_bootstrap_H 1
+
+#include "lxdream.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include "dream.h"
 
 /**
  * Dump the bootstrap info to the output log for infomational/debugging
@@ -37,4 +37,5 @@ void bootstrap_dump(void *data, gboolean detail);
 #ifdef __cplusplus
 }
 #endif
-#endif /* !dream_bootstrap_H */
+
+#endif /* !lxdream_bootstrap_H */

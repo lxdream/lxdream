@@ -16,8 +16,8 @@
  * GNU General Public License for more details.
  */
 
-#ifndef sh4dasm_H
-#define sh4dasm_H 1
+#ifndef lxdream_sh4dasm_H
+#define lxdream_sh4dasm_H 1
 
 #include "cpu.h"
 
@@ -36,4 +36,4 @@ extern const struct cpu_desc_struct sh4_cpu_desc;
 }
 #endif
 
-#endif
+#endif /* !lxdream_sh4dasm_H */

@@ -1,5 +1,6 @@
 /**
  * $Id$
+ * 
  * External interface to the dreamcast serial port, implemented by 
  * sh4/scif.c
  *
@@ -15,8 +16,9 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
-#ifndef dream_clock_H
-#define dream_clock_H 1
+
+#ifndef lxdream_clock_H
+#define lxdream_clock_H 1
 
 #include <stdint.h>
 

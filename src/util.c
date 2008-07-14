@@ -63,11 +63,11 @@ void fwrite_string( const char *s, FILE *f )
 {
     uint32_t len = 0;
     if( s == NULL ) {
-	fwrite( &len, sizeof(len), 1, f );
+        fwrite( &len, sizeof(len), 1, f );
     } else {
-	len = strlen(s)+1;
-	fwrite( &len, sizeof(len), 1, f );
-	fwrite( s, len, 1, f );
+        len = strlen(s)+1;
+        fwrite( &len, sizeof(len), 1, f );
+        fwrite( s, len, 1, f );
     }
 }
 
@@ -76,7 +76,7 @@ int fread_string( char *s, int maxlen, FILE *f )
     uint32_t len;
     fread( &len, sizeof(len), 1, f );
     if( len != 0 ) {
-	fread( s, len > maxlen ? maxlen : len, 1, f );
+        fread( s, len > maxlen ? maxlen : len, 1, f );
     }
     return len;
 }
@@ -107,10 +107,10 @@ int fread_gzip( void *p, size_t sz, size_t count, FILE *f )
     int status = uncompress( p, &size, tmp, csize );
     g_free(tmp);
     if( status == Z_OK ) {
-	return count;
+        return count;
     } else {
-	fprintf( stderr, "Error reading compressed data\n" );
-	return 0;
+        fprintf( stderr, "Error reading compressed data\n" );
+        return 0;
     }
 }
 
@@ -118,20 +118,20 @@ void fwrite_dump( unsigned char *data, unsigned int length, FILE *f )
 {
     unsigned int i, j;
     for( i =0; i<length; i+=16 ) {
-	fprintf( f, "%08X:", i);
-	for( j=i; j<i+16; j++ ) {
-	    if( (j % 4) == 0 )
-		fprintf( f, " " );
-	    if( j < length )
-		fprintf( f, " %02X", (unsigned int)(data[j]) );
-	    else
-		fprintf( f, "   " );
-	}
-	fprintf( f, "  " );
-	for( j=i; j<i+16 && j<length; j++ ) {
-	    fprintf( f, "%c", isprint(data[j]) ? data[j] : '.' );
-	}
-	fprintf( f, "\n" );
+        fprintf( f, "%08X:", i);
+        for( j=i; j<i+16; j++ ) {
+            if( (j % 4) == 0 )
+                fprintf( f, " " );
+            if( j < length )
+                fprintf( f, " %02X", (unsigned int)(data[j]) );
+            else
+                fprintf( f, "   " );
+        }
+        fprintf( f, "  " );
+        for( j=i; j<i+16 && j<length; j++ ) {
+            fprintf( f, "%c", isprint(data[j]) ? data[j] : '.' );
+        }
+        fprintf( f, "\n" );
     }
 }
 
@@ -144,14 +144,14 @@ void fwrite_dump32v( unsigned int *data, unsigned int length, int wordsPerLine, 
 {
     unsigned int i, j;
     for( i =0; i<length>>2; i+=wordsPerLine ) {
-	fprintf( f, "%08X:", i);
-	for( j=i; j<i+wordsPerLine; j++ ) {
-	    if( j < length )
-		fprintf( f, " %08X", (unsigned int)(data[j]) );
-	    else
-		fprintf( f, "         " );
-	}
-	fprintf( f, "\n" );
+        fprintf( f, "%08X:", i);
+        for( j=i; j<i+wordsPerLine; j++ ) {
+            if( j < length )
+                fprintf( f, " %08X", (unsigned int)(data[j]) );
+            else
+                fprintf( f, "         " );
+        }
+        fprintf( f, "\n" );
     }
 }
 
@@ -161,54 +161,54 @@ gboolean write_png_to_stream( FILE *f, frame_buffer_t buffer )
     png_bytep p;
     png_structp png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
     if (!png_ptr) {
-	return FALSE;
+        return FALSE;
     }
 
     png_infop info_ptr = png_create_info_struct(png_ptr);
     if (!info_ptr) {
-	png_destroy_write_struct(&png_ptr, NULL);
-	return FALSE;
+        png_destroy_write_struct(&png_ptr, NULL);
+        return FALSE;
     }
-    
+
     if( setjmp(png_jmpbuf(png_ptr)) ) {
-	png_destroy_write_struct(&png_ptr, &info_ptr);
-	return FALSE;
+        png_destroy_write_struct(&png_ptr, &info_ptr);
+        return FALSE;
     }
     png_init_io( png_ptr, f );
     switch( buffer->colour_format ) {
     case COLFMT_BGR888:
-	coltype = PNG_COLOR_TYPE_RGB;
-	break;
+        coltype = PNG_COLOR_TYPE_RGB;
+        break;
     case COLFMT_BGRA8888:
-	coltype = PNG_COLOR_TYPE_RGB_ALPHA;
-	break;
+        coltype = PNG_COLOR_TYPE_RGB_ALPHA;
+        break;
     case COLFMT_BGR0888:
-	coltype = PNG_COLOR_TYPE_RGB;
-	break;
+        coltype = PNG_COLOR_TYPE_RGB;
+        break;
     default:
-	coltype = PNG_COLOR_TYPE_RGB;
+        coltype = PNG_COLOR_TYPE_RGB;
     }
     png_set_IHDR(png_ptr, info_ptr, buffer->width, buffer->height,
-		 8, coltype, PNG_INTERLACE_NONE, 
-		 PNG_COMPRESSION_TYPE_DEFAULT, 
-		 PNG_FILTER_TYPE_DEFAULT );
+                 8, coltype, PNG_INTERLACE_NONE, 
+                 PNG_COMPRESSION_TYPE_DEFAULT, 
+                 PNG_FILTER_TYPE_DEFAULT );
     png_write_info(png_ptr, info_ptr);
     if( buffer->colour_format == COLFMT_BGR0888 ) {
-	png_set_filler(png_ptr, 0, PNG_FILLER_AFTER);
+        png_set_filler(png_ptr, 0, PNG_FILLER_AFTER);
     }
     png_set_bgr(png_ptr);
     if( buffer->inverted ) {
-	p = (png_bytep)(buffer->data + (buffer->height*buffer->rowstride) - buffer->rowstride);
-	for(i=0; i<buffer->height; i++ ) {
-	    png_write_row(png_ptr, p);
-	    p-=buffer->rowstride;
-	}
+        p = (png_bytep)(buffer->data + (buffer->height*buffer->rowstride) - buffer->rowstride);
+        for(i=0; i<buffer->height; i++ ) {
+            png_write_row(png_ptr, p);
+            p-=buffer->rowstride;
+        }
     } else {
-	p = (png_bytep)buffer->data;
-	for(i=0; i<buffer->height; i++ ) {
-	    png_write_row(png_ptr, p);
-	    p+=buffer->rowstride;
-	}
+        p = (png_bytep)buffer->data;
+        for(i=0; i<buffer->height; i++ ) {
+            png_write_row(png_ptr, p);
+            p+=buffer->rowstride;
+        }
     }
     png_write_end(png_ptr, info_ptr);
     png_destroy_write_struct(&png_ptr, &info_ptr);
@@ -220,37 +220,37 @@ frame_buffer_t read_png_from_stream( FILE *f )
     png_bytep p;
     int i;
     png_structp png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, 
-						 NULL, NULL, NULL);
+            NULL, NULL, NULL);
     if (!png_ptr) {
-	return NULL;
+        return NULL;
     }
 
     png_infop info_ptr = png_create_info_struct(png_ptr);
     if (!info_ptr) {
-	png_destroy_read_struct(&png_ptr, NULL, NULL);
-	return NULL;
+        png_destroy_read_struct(&png_ptr, NULL, NULL);
+        return NULL;
     }
-    
+
     png_infop end_info = png_create_info_struct(png_ptr);
     if (!end_info) {
-	png_destroy_read_struct(&png_ptr, &info_ptr, NULL );
-	return NULL;
+        png_destroy_read_struct(&png_ptr, &info_ptr, NULL );
+        return NULL;
     }
 
     if( setjmp(png_jmpbuf(png_ptr)) ) {
-	png_destroy_read_struct(&png_ptr, &info_ptr, &end_info);
-	return NULL;
+        png_destroy_read_struct(&png_ptr, &info_ptr, &end_info);
+        return NULL;
     }
 
     png_init_io(png_ptr, f);
     png_read_info(png_ptr, info_ptr);
-    
+
     png_uint_32 width, height;
     int bit_depth, color_type, interlace_type,
-	compression_type, filter_method;
+    compression_type, filter_method;
     png_get_IHDR(png_ptr, info_ptr, &width, &height,
-		 &bit_depth, &color_type, &interlace_type,
-		 &compression_type, &filter_method);
+                 &bit_depth, &color_type, &interlace_type,
+                 &compression_type, &filter_method);
     assert( interlace_type == PNG_INTERLACE_NONE );
     int rowbytes = png_get_rowbytes(png_ptr, info_ptr);
     int channels = png_get_channels(png_ptr, info_ptr);
@@ -263,15 +263,15 @@ frame_buffer_t read_png_from_stream( FILE *f )
     buffer->size = rowbytes*height;
     buffer->inverted = FALSE;
     if( channels == 4 ) {
-	buffer->colour_format = COLFMT_BGRA8888;
+        buffer->colour_format = COLFMT_BGRA8888;
     } else if( channels == 3 ) {
-	buffer->colour_format = COLFMT_RGB888;
+        buffer->colour_format = COLFMT_RGB888;
     }
-    
+
     p = (png_bytep)buffer->data;
     for( i=0; i<height; i++ ) {
-	png_read_row(png_ptr, p, NULL );
-	p += rowbytes;
+        png_read_row(png_ptr, p, NULL );
+        p += rowbytes;
     }
 
     png_read_end(png_ptr, end_info);
@@ -296,10 +296,10 @@ gboolean set_global_log_level( const gchar *str )
 {
     int l = get_log_level_from_string(str);
     if( l == -1 ) {
-	return FALSE;
+        return FALSE;
     } else {
-	global_msg_level = l;
-	return TRUE;
+        global_msg_level = l;
+        return TRUE;
     }
 }
 
@@ -310,18 +310,18 @@ void log_message( void *ptr, int level, const gchar *source, const char *msg, ..
     va_list ap;
 
     if( level > global_msg_level ) {
-	return; // ignored
+        return; // ignored
     }
 
     va_start(ap, msg);
     gchar *text = g_strdup_vprintf( msg, ap );
     va_end(ap);
-    
+
     if( level <= EMIT_ERR ) {
-	if( gui_error_dialog( text ) ) {
-	    g_free(text);
-	    return;
-	}
+        if( gui_error_dialog( text ) ) {
+            g_free(text);
+            return;
+        }
     }
 
 

@@ -28,12 +28,12 @@ static volatile audio_buffer_t output_buffer = NULL;
 static uint32_t buffer_size;
 
 OSStatus audio_osx_callback( AudioDeviceID inDevice,
-        const AudioTimeStamp *inNow,
-        const AudioBufferList *inInputData,
-        const AudioTimeStamp *inInputTime,
-        AudioBufferList *outOutputData,
-        const AudioTimeStamp *inOutputTime,
-        void *inClientData)
+                             const AudioTimeStamp *inNow,
+                             const AudioBufferList *inInputData,
+                             const AudioTimeStamp *inInputTime,
+                             AudioBufferList *outOutputData,
+                             const AudioTimeStamp *inOutputTime,
+                             void *inClientData)
 {
     char *output = outOutputData->mBuffers[0].mData;
     int data_requested = buffer_size;
@@ -69,25 +69,25 @@ static gboolean audio_osx_init()
     UInt32 size = sizeof(output_device);
     AudioStreamBasicDescription outputDesc;
     UInt32 outputDescSize = sizeof(outputDesc);
-    
+
     if( AudioHardwareGetProperty(kAudioHardwarePropertyDefaultOutputDevice,
-                                 &size, &output_device) != noErr ||
-        output_device == kAudioDeviceUnknown ) {
+            &size, &output_device) != noErr ||
+            output_device == kAudioDeviceUnknown ) {
         return FALSE;
     }
-     
+
     if( AudioDeviceGetProperty( output_device, 1, 0, kAudioDevicePropertyStreamFormat,
             &outputDescSize, &outputDesc ) != noErr ) {
         return FALSE;
     }
-    
+
     buffer_size = BUFFER_SIZE;
-    
+
     if( AudioDeviceSetProperty( output_device, 0, 0, 0, kAudioDevicePropertyBufferSize,
-                                sizeof(buffer_size), &buffer_size ) != noErr ) {
+            sizeof(buffer_size), &buffer_size ) != noErr ) {
         return FALSE;
     }
-    
+
     AudioDeviceAddIOProc( output_device, audio_osx_callback, NULL );    
     return TRUE;
 }

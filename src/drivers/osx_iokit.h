@@ -32,7 +32,7 @@
  * (and not freed)
  */ 
 typedef gboolean (*find_drive_callback_t)( io_object_t object, char *vendor, char *product,
-                                           char *iopath, void *user_data );
+        char *iopath, void *user_data );
 
 /**
  * Search for a CD or DVD drive (instance of IODVDServices or IOCompactDiscServices).

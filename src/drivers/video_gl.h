@@ -16,8 +16,12 @@
  * GNU General Public License for more details.
  */
 
-#ifndef video_gl_common_H
-#define video_gl_common_H
+#ifndef lxdream_video_gl_H
+#define lxdream_video_gl_H 1
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**
  * Generic GL routine to draw the given frame buffer into a texture
@@ -50,7 +54,7 @@ void gl_texture_window( int width, int height, int tex_id, gboolean inverted );
  * there's only one buffer this needs to be wrapped.
  */
 gboolean gl_read_render_buffer( unsigned char *target, render_buffer_t buffer, 
-				int rowstride, int colour_format );
+                                int rowstride, int colour_format );
 
 
 /****** FBO handling (gl_fbo.c) ******/
@@ -59,4 +63,8 @@ void gl_fbo_shutdown();
 void gl_fbo_init( display_driver_t driver );
 void gl_fbo_detach();
 
-#endif /* !video_gl_common_H */
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* !lxdream_video_gl_H */

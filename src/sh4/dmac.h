@@ -16,8 +16,8 @@
  * GNU General Public License for more details.
  */
 
-#ifndef dream_sh4dmac_H
-#define dream_sh4dmac_H 1
+#ifndef lxdream_dmac_H
+#define lxdream_dmac_H 1
 
 #include <stdint.h>
 
@@ -59,4 +59,5 @@ uint32_t DMAC_put_buffer( int channel, unsigned char *buf, uint32_t bytecount );
 #ifdef __cplusplus
 }
 #endif
-#endif
+
+#endif /* !lxdream_dmac_H */

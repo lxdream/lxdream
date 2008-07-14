@@ -17,8 +17,8 @@
  * GNU General Public License for more details.
  */
 
-#ifndef gendec_H
-#define gendec_H
+#ifndef lxdream_gendec_H
+#define lxdream_gendec_H 1
 
 #include <stdint.h>
 
@@ -82,4 +82,5 @@ int generate_decoder( struct ruleset *rules, struct actionset *actions, FILE *f 
 #ifdef __cplusplus
 }
 #endif
-#endif
+
+#endif /* !lxdream_gendec_H */

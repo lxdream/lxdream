@@ -17,6 +17,9 @@
  * GNU General Public License for more details.
  */
 
+#ifndef lxdream_packet_H
+#define lxdream_packet_H 1
+
 /**
  * Valid command codes (hex):
  * 00  Test 
@@ -80,3 +83,5 @@
 #define READ_CD_SUBHEAD(x) ((x)&0x40)
 #define READ_CD_DATA(x)    ((x)&0x20)
 #define READ_CD_RAW(x)     ((x)&0x10)
+
+#endif /* !lxdream_packet_H */

@@ -24,6 +24,10 @@
 #include "hook.h"
 #include <glib/glist.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef uint16_t gdrom_error_t;
 
 
@@ -70,7 +74,7 @@ gdrom_disc_t gdrom_get_current_disc();
 const gchar *gdrom_get_current_disc_name();
 
 uint32_t gdrom_read_sectors( uint32_t sector, uint32_t sector_count,
-			     int mode, unsigned char *buf, uint32_t *length );
+                             int mode, unsigned char *buf, uint32_t *length );
 
 
 /**
@@ -110,4 +114,8 @@ GList *cdrom_get_native_devices();
  */
 gdrom_disc_t cdrom_open_device( const gchar *method, const gchar *name );
 
+#ifdef __cplusplus
+}
 #endif
+
+#endif /* !lxdream_gdrom_H */

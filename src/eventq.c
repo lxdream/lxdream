@@ -20,6 +20,7 @@
  */
 
 #include <assert.h>
+#include "dream.h"
 #include "dreamcast.h"
 #include "eventq.h"
 #include "asic.h"
@@ -53,29 +54,29 @@ void event_save_state( FILE *f );
 int event_load_state( FILE * f );
 
 struct dreamcast_module eventq_module = { "EVENTQ", event_init, event_reset, NULL, event_run_slice,
-					NULL, event_save_state, event_load_state };
+        NULL, event_save_state, event_load_state };
 
 static void event_update_pending( ) 
 {
     if( event_head == NULL ) {
-	if( !(sh4r.event_types & PENDING_IRQ) ) {
-	    sh4r.event_pending = NOT_SCHEDULED;
-	}
-	sh4r.event_types &= (~PENDING_EVENT);
+        if( !(sh4r.event_types & PENDING_IRQ) ) {
+            sh4r.event_pending = NOT_SCHEDULED;
+        }
+        sh4r.event_types &= (~PENDING_EVENT);
     } else {
-	if( !(sh4r.event_types & PENDING_IRQ) ) {
-	    sh4r.event_pending = event_head->nanosecs;
-	}
-	sh4r.event_types |= PENDING_EVENT;
+        if( !(sh4r.event_types & PENDING_IRQ) ) {
+            sh4r.event_pending = event_head->nanosecs;
+        }
+        sh4r.event_types |= PENDING_EVENT;
     }
 }
 
 uint32_t event_get_next_time( ) 
 {
     if( event_head == NULL ) {
-	return NOT_SCHEDULED;
+        return NOT_SCHEDULED;
     } else {
-	return event_head->nanosecs;
+        return event_head->nanosecs;
     }
 }
 
@@ -85,61 +86,61 @@ uint32_t event_get_next_time( )
 static void event_enqueue( event_t event ) 
 {
     if( event_head == NULL || event->nanosecs < event_head->nanosecs ) {
-	event->next = event_head;
-	event_head = event;
-	event_update_pending();
+        event->next = event_head;
+        event_head = event;
+        event_update_pending();
     } else {
-	event_t cur = event_head;
-	event_t next = cur->next;
-	while( next != NULL && event->nanosecs >= next->nanosecs ) {
-	    cur = next;
-	    next = cur->next;
-	}
-	event->next = next;
-	cur->next = event;
+        event_t cur = event_head;
+        event_t next = cur->next;
+        while( next != NULL && event->nanosecs >= next->nanosecs ) {
+            cur = next;
+            next = cur->next;
+        }
+        event->next = next;
+        cur->next = event;
     }
 }
 
 static void event_dequeue( event_t event )
 {
     if( event_head == NULL ) {
-	ERROR( "Empty event queue but should contain event %d", event->id );
+        ERROR( "Empty event queue but should contain event %d", event->id );
     } else if( event_head == event ) {
-	/* removing queue head */
-	event_head = event_head->next;
-	event_update_pending();
+        /* removing queue head */
+        event_head = event_head->next;
+        event_update_pending();
     } else {
-	event_t cur = event_head;
-	event_t next = cur->next;
-	while( next != NULL ) {
-	    if( next == event ) {
-		cur->next = next->next;
-		break;
-	    }
-	    cur = next;
-	    next = cur->next;
-	}
+        event_t cur = event_head;
+        event_t next = cur->next;
+        while( next != NULL ) {
+            if( next == event ) {
+                cur->next = next->next;
+                break;
+            }
+            cur = next;
+            next = cur->next;
+        }
     }
 }
 
 static void event_dequeue_long( event_t event ) 
 {
     if( long_event_head == NULL ) {
-	ERROR( "Empty long event queue but should contain event %d", event->id );
+        ERROR( "Empty long event queue but should contain event %d", event->id );
     } else if( long_event_head == event ) {
-	/* removing queue head */
-	long_event_head = long_event_head->next;
+        /* removing queue head */
+        long_event_head = long_event_head->next;
     } else {
-	event_t cur = long_event_head;
-	event_t next = cur->next;
-	while( next != NULL ) {
-	    if( next == event ) {
-		cur->next = next->next;
-		break;
-	    }
-	    cur = next;
-	    next = cur->next;
-	}
+        event_t cur = long_event_head;
+        event_t next = cur->next;
+        while( next != NULL ) {
+            if( next == event ) {
+                cur->next = next->next;
+                break;
+            }
+            cur = next;
+            next = cur->next;
+        }
     }
 }
 
@@ -155,49 +156,49 @@ void event_schedule( int eventid, uint32_t nanosecs )
     event_t event = &events[eventid];
 
     if( event->nanosecs != NOT_SCHEDULED ) {
-	/* Event is already scheduled. Remove it from the list first */
-	event_cancel(eventid);
+        /* Event is already scheduled. Remove it from the list first */
+        event_cancel(eventid);
     }
 
     event->id = eventid;
     event->seconds = 0;
     event->nanosecs = nanosecs;
-    
+
     event_enqueue( event );
 }
 
 void event_schedule_long( int eventid, uint32_t seconds, uint32_t nanosecs ) {
     if( seconds == 0 ) {
-	event_schedule( eventid, nanosecs );
+        event_schedule( eventid, nanosecs );
     } else {
-	event_t event = &events[eventid];
+        event_t event = &events[eventid];
 
-	if( event->nanosecs != NOT_SCHEDULED ) {
-	    /* Event is already scheduled. Remove it from the list first */
-	    event_cancel(eventid);
-	}
+        if( event->nanosecs != NOT_SCHEDULED ) {
+            /* Event is already scheduled. Remove it from the list first */
+            event_cancel(eventid);
+        }
 
-	event->id = eventid;
-	event->seconds = seconds;
-	event->nanosecs = nanosecs;
-	event->next = long_event_head;
-	long_event_head = event;
+        event->id = eventid;
+        event->seconds = seconds;
+        event->nanosecs = nanosecs;
+        event->next = long_event_head;
+        long_event_head = event;
     }
-	
+
 }
 
 void event_cancel( int eventid )
 {
     event_t event = &events[eventid];
     if( event->nanosecs == NOT_SCHEDULED ) {
-	return; /* not scheduled */
+        return; /* not scheduled */
     } else {
-	event->nanosecs = NOT_SCHEDULED;
-	if( event->seconds != 0 ) { /* long term event */
-	    event_dequeue_long( event );
-	} else {
-	    event_dequeue( event );
-	}
+        event->nanosecs = NOT_SCHEDULED;
+        if( event->seconds != 0 ) { /* long term event */
+            event_dequeue_long( event );
+        } else {
+            event_dequeue( event );
+        }
     }
 }
 
@@ -206,12 +207,12 @@ void event_execute()
 {
     /* Loop in case we missed some or got a couple scheduled for the same time */
     while( event_head != NULL && event_head->nanosecs <= sh4r.slice_cycle ) {
-	event_t event = event_head;
-	event_head = event->next;
-	event->nanosecs = NOT_SCHEDULED;
-	// Note: Make sure the internal state is consistent before calling the
-	// user function, as it will (quite likely) enqueue another event.
-	event->func( event->id );
+        event_t event = event_head;
+        event_head = event->next;
+        event->nanosecs = NOT_SCHEDULED;
+        // Note: Make sure the internal state is consistent before calling the
+        // user function, as it will (quite likely) enqueue another event.
+        event->func( event->id );
     }
 
     event_update_pending();
@@ -226,14 +227,14 @@ void event_init()
 {
     int i;
     for( i=0; i<MAX_EVENT_ID; i++ ) {
-	events[i].id = i;
-	events[i].nanosecs = NOT_SCHEDULED;
-	if( i < 96 ) {
-	    events[i].func = event_asic_callback;
-	} else {
-	    events[i].func = NULL;
-	}
-	events[i].next = NULL;
+        events[i].id = i;
+        events[i].nanosecs = NOT_SCHEDULED;
+        if( i < 96 ) {
+            events[i].func = event_asic_callback;
+        } else {
+            events[i].func = NULL;
+        }
+        events[i].next = NULL;
     }
     event_head = NULL;
     long_event_head = NULL;
@@ -249,7 +250,7 @@ void event_reset()
     long_event_head = NULL;
     long_scan_time_remaining = LONG_SCAN_PERIOD;
     for( i=0; i<MAX_EVENT_ID; i++ ) {
-	events[i].nanosecs = NOT_SCHEDULED;
+        events[i].nanosecs = NOT_SCHEDULED;
     }
 }
 
@@ -262,9 +263,9 @@ void event_save_state( FILE *f )
     fwrite( &id, sizeof(id), 1, f );
     fwrite( &long_scan_time_remaining, sizeof(long_scan_time_remaining), 1, f );
     for( i=0; i<MAX_EVENT_ID; i++ ) {
-	fwrite( &events[i].id, sizeof(uint32_t), 3, f ); /* First 3 words from structure */
-	id = events[i].next == NULL ? -1 : events[i].next->id;
-	fwrite( &id, sizeof(id), 1, f );
+        fwrite( &events[i].id, sizeof(uint32_t), 3, f ); /* First 3 words from structure */
+        id = events[i].next == NULL ? -1 : events[i].next->id;
+        fwrite( &id, sizeof(id), 1, f );
     }
 }
 
@@ -277,9 +278,9 @@ int event_load_state( FILE *f )
     long_event_head = id == -1 ? NULL : &events[id];
     fread( &long_scan_time_remaining, sizeof(long_scan_time_remaining), 1, f );
     for( i=0; i<MAX_EVENT_ID; i++ ) {
-	fread( &events[i].id, sizeof(uint32_t), 3, f );
-	fread( &id, sizeof(id), 1, f );
-	events[i].next = id == -1 ? NULL : &events[id];
+        fread( &events[i].id, sizeof(uint32_t), 3, f );
+        fread( &id, sizeof(id), 1, f );
+        events[i].next = id == -1 ? NULL : &events[id];
     }
     return 0;
 }
@@ -291,23 +292,23 @@ int event_load_state( FILE *f )
 static void event_scan_long()
 {
     while( long_event_head != NULL && --long_event_head->seconds == 0 ) {
-	event_t event = long_event_head;
-	long_event_head = event->next;
-	event_enqueue(event);
+        event_t event = long_event_head;
+        long_event_head = event->next;
+        event_enqueue(event);
     }
 
     if( long_event_head != NULL ) {
-	event_t last = long_event_head;
-	event_t cur = last->next;
-	while( cur != NULL ) {
-	    if( --cur->seconds == 0 ) {
-		last->next = cur->next;
-		event_enqueue(cur);
-	    } else {
-		last = cur;
-	    }
-	    cur = last->next;
-	}
+        event_t last = long_event_head;
+        event_t cur = last->next;
+        while( cur != NULL ) {
+            if( --cur->seconds == 0 ) {
+                last->next = cur->next;
+                event_enqueue(cur);
+            } else {
+                last = cur;
+            }
+            cur = last->next;
+        }
     }
 }
 
@@ -320,18 +321,18 @@ uint32_t event_run_slice( uint32_t nanosecs )
 {
     event_t event = event_head;
     while( event != NULL ) {
-	if( event->nanosecs <= nanosecs ) {
-	    event->nanosecs = 0;
-	} else {
-	    event->nanosecs -= nanosecs;
-	}
-	event = event->next;
+        if( event->nanosecs <= nanosecs ) {
+            event->nanosecs = 0;
+        } else {
+            event->nanosecs -= nanosecs;
+        }
+        event = event->next;
     }
 
     long_scan_time_remaining -= nanosecs;
     if( long_scan_time_remaining <= 0 ) {
-	long_scan_time_remaining += LONG_SCAN_PERIOD;
-	event_scan_long();
+        long_scan_time_remaining += LONG_SCAN_PERIOD;
+        event_scan_long();
     }
 
     event_update_pending();

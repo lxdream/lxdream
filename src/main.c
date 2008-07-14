@@ -73,7 +73,7 @@ void print_usage()
 {
     print_version();
     printf( "Usage: lxdream [options] [disc-file] [program-file]\n\n" );
-    
+
     printf( "Options:\n" );
     printf( "   -a, --aica=PROGFILE    %s\n", _("Run the AICA SPU only, with the supplied program") );
     printf( "   -A, --audio=DRIVER     %s\n", _("Use the specified audio driver (? to list)") );
@@ -108,7 +108,7 @@ void bind_gettext_domain()
     bindtextdomain (PACKAGE, PACKAGE_LOCALE_DIR);
 #endif
     textdomain(PACKAGE);
-    
+
 #endif
 }
 
@@ -124,84 +124,84 @@ int main (int argc, char *argv[])
     display_ok = gui_parse_cmdline(&argc, &argv);
 
     while( (opt = getopt_long( argc, argv, option_list, longopts, NULL )) != -1 ) {
-	switch( opt ) {
-	case 'a': /* AICA only mode - argument is an AICA program */
-	    aica_program = optarg;
-	    break;
-    case 'A': /* Audio driver */
-        audio_driver_name = optarg;
-        if( strcmp(audio_driver_name, "?") == 0 ) {
-            print_version();
-            print_audio_drivers(stdout);
+        switch( opt ) {
+        case 'a': /* AICA only mode - argument is an AICA program */
+            aica_program = optarg;
+            break;
+        case 'A': /* Audio driver */
+            audio_driver_name = optarg;
+            if( strcmp(audio_driver_name, "?") == 0 ) {
+                print_version();
+                print_audio_drivers(stdout);
+                exit(0);
+            }
+            break;
+        case 'c': /* Config file */
+            lxdream_set_config_filename(optarg);
+            break;
+        case 'd': /* Launch w/ debugger */
+            show_debugger = TRUE;
+            break;
+        case 'h': /* help */
+        case '?':
+            print_usage();
             exit(0);
-        }
-        break;
-	case 'c': /* Config file */
-	    lxdream_set_config_filename(optarg);
-	    break;
-	case 'd': /* Launch w/ debugger */
-	    show_debugger = TRUE;
-	    break;
-    case 'h': /* help */
-    case '?':
-        print_usage();
-        exit(0);
-        break;
-    case 'H': /* Headless - shorthand for -V null */
-        display_driver_name = "null";
-        break;
-    case 'l': /* Log verbosity */
-        if( !set_global_log_level(optarg) ) {
-            ERROR( "Unrecognized log level '%s'", optarg );
-        }
-        break;
-	case 'm': /* Set SH4 CPU clock multiplier (default 0.5) */
-	    t = strtod(optarg, NULL);
-	    sh4_cpu_multiplier = (int)(1000.0/t);
-	    break;
-	case 'n': /* Don't start immediately */
-	    no_start = TRUE;
-	    start_immediately = FALSE;
-	    break;
-	case 'p': /* Start immediately */
-	    start_immediately = TRUE;
-	    no_start = FALSE;
-	    break;
-	case 't': /* Time limit + auto quit */
-	    t = strtod(optarg, NULL);
-	    time_secs = (uint32_t)t;
-	    time_nanos = (int)((t - time_secs) * 1000000000);
-	    dreamcast_set_run_time( time_secs, time_nanos );
-	    dreamcast_set_exit_on_stop( TRUE );
-	    break;
-	case 'T': /* trace regions */
-	    trace_regions = optarg;
-	    set_global_log_level("trace");
-	    break;
-    case 'u': /* Allow unsafe dcload syscalls */
-        dcload_set_allow_unsafe(TRUE);
-        break;
-	case 'v': 
-	    print_version();
-	    exit(0);
-	    break;
-    case 'V': /* Video driver */
-        display_driver_name = optarg;
-        if( strcmp(display_driver_name,"?") == 0 ) {
+            break;
+        case 'H': /* Headless - shorthand for -V null */
+            display_driver_name = "null";
+            break;
+        case 'l': /* Log verbosity */
+            if( !set_global_log_level(optarg) ) {
+                ERROR( "Unrecognized log level '%s'", optarg );
+            }
+            break;
+        case 'm': /* Set SH4 CPU clock multiplier (default 0.5) */
+            t = strtod(optarg, NULL);
+            sh4_cpu_multiplier = (int)(1000.0/t);
+            break;
+        case 'n': /* Don't start immediately */
+            no_start = TRUE;
+            start_immediately = FALSE;
+            break;
+        case 'p': /* Start immediately */
+            start_immediately = TRUE;
+            no_start = FALSE;
+            break;
+        case 't': /* Time limit + auto quit */
+            t = strtod(optarg, NULL);
+            time_secs = (uint32_t)t;
+            time_nanos = (int)((t - time_secs) * 1000000000);
+            dreamcast_set_run_time( time_secs, time_nanos );
+            dreamcast_set_exit_on_stop( TRUE );
+            break;
+        case 'T': /* trace regions */
+            trace_regions = optarg;
+            set_global_log_level("trace");
+            break;
+        case 'u': /* Allow unsafe dcload syscalls */
+            dcload_set_allow_unsafe(TRUE);
+            break;
+        case 'v': 
             print_version();
-            print_display_drivers(stdout);
             exit(0);
+            break;
+        case 'V': /* Video driver */
+            display_driver_name = optarg;
+            if( strcmp(display_driver_name,"?") == 0 ) {
+                print_version();
+                print_display_drivers(stdout);
+                exit(0);
+            }
+            break;
+        case 'x': /* Disable translator */
+            use_xlat = FALSE;
+            break;
         }
-        break;
-	case 'x': /* Disable translator */
-	    use_xlat = FALSE;
-	    break;
-	}
     }
 
     lxdream_load_config( );
     gdrom_list_init();
-    
+
     if( aica_program == NULL ) {
         dreamcast_init();
     } else {
@@ -211,7 +211,7 @@ int main (int argc, char *argv[])
     mem_set_trace( trace_regions, TRUE );
 
     audio_init_driver( audio_driver_name, 44100, AUDIO_FMT_16ST );
-    
+
     headless = display_driver_name != NULL && strcasecmp( display_driver_name, "null" ) == 0;
     if( headless ) {
         display_set_driver( &display_null_driver );

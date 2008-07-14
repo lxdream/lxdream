@@ -55,11 +55,11 @@ void gl_texture_window( int width, int height, int tex_id, gboolean inverted )
 {
     float top, bottom;
     if( inverted ) {
-	top = ((float)height);
-	bottom = 0;
+        top = ((float)height);
+        bottom = 0;
     } else {
-	top = 0;
-	bottom = ((float)height);
+        top = 0;
+        bottom = ((float)height);
     }
 
     /* Reset display parameters */
@@ -71,33 +71,33 @@ void gl_texture_window( int width, int height, int tex_id, gboolean inverted )
     int ah = video_width * 0.75;
 
     if( ah > video_height ) {
-	int w = (video_height/0.75);
-	x1 = (video_width - w)/2;
-	x2 -= x1;
+        int w = (video_height/0.75);
+        x1 = (video_width - w)/2;
+        x2 -= x1;
 
-	glBegin( GL_QUADS );
-	glVertex2f( 0, 0 );
-	glVertex2f( x1, 0 );
-	glVertex2f( x1, video_height );
-	glVertex2f( 0, video_height);
-	glVertex2f( x2, 0 );
-	glVertex2f( video_width, 0 );
-	glVertex2f( video_width, video_height );
-	glVertex2f( x2, video_height);
-	glEnd();
+        glBegin( GL_QUADS );
+        glVertex2f( 0, 0 );
+        glVertex2f( x1, 0 );
+        glVertex2f( x1, video_height );
+        glVertex2f( 0, video_height);
+        glVertex2f( x2, 0 );
+        glVertex2f( video_width, 0 );
+        glVertex2f( video_width, video_height );
+        glVertex2f( x2, video_height);
+        glEnd();
     } else if( ah < video_height ) {
-	y1 = (video_height - ah)/2;
-	y2 -= y1;
-	glBegin( GL_QUADS );
-	glVertex2f( 0, 0 );
-	glVertex2f( video_width, 0 );
-	glVertex2f( video_width, y1 );
-	glVertex2f( 0, y1 );
-	glVertex2f( 0, y2 );
-	glVertex2f( video_width, y2 );
-	glVertex2f( video_width, video_height );
-	glVertex2f( 0, video_height );
-	glEnd();
+        y1 = (video_height - ah)/2;
+        y2 -= y1;
+        glBegin( GL_QUADS );
+        glVertex2f( 0, 0 );
+        glVertex2f( video_width, 0 );
+        glVertex2f( video_width, y1 );
+        glVertex2f( 0, y1 );
+        glVertex2f( 0, y2 );
+        glVertex2f( video_width, y2 );
+        glVertex2f( video_width, video_height );
+        glVertex2f( 0, video_height );
+        glEnd();
     }
 
     /* Render the textured rectangle */
@@ -128,11 +128,11 @@ gboolean gl_load_frame_buffer( frame_buffer_t frame, int tex_id )
     GLenum format = colour_formats[frame->colour_format].format;
     int bpp = colour_formats[frame->colour_format].bpp;
     int rowstride = (frame->rowstride / bpp) - frame->width;
-    
+
     glPixelStorei( GL_UNPACK_ROW_LENGTH, rowstride );
     glBindTexture( GL_TEXTURE_RECTANGLE_ARB, tex_id );
     glTexSubImage2D( GL_TEXTURE_RECTANGLE_ARB, 0, 0,0,
-		     frame->width, frame->height, format, type, frame->data );
+                     frame->width, frame->height, format, type, frame->data );
     return TRUE;
 }
 
@@ -150,7 +150,7 @@ void gl_display_blank( uint32_t colour )
  * there's only one buffer this needs to be wrapped.
  */
 gboolean gl_read_render_buffer( unsigned char *target, render_buffer_t buffer, 
-				int rowstride, int colour_format ) 
+                                int rowstride, int colour_format ) 
 {
     glFinish();
     GLenum type = colour_formats[colour_format].type;
@@ -159,7 +159,7 @@ gboolean gl_read_render_buffer( unsigned char *target, render_buffer_t buffer,
     // int size = line_size * buffer->height;
     int glrowstride = (rowstride / colour_formats[colour_format].bpp) - buffer->width;
     glPixelStorei( GL_PACK_ROW_LENGTH, glrowstride );
-    
+
     glReadPixels( 0, 0, buffer->width, buffer->height, format, type, target );
     return TRUE;
 }

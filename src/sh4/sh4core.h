@@ -17,8 +17,8 @@
  * GNU General Public License for more details.
  */
 
-#ifndef sh4core_H
-#define sh4core_H 1
+#ifndef lxdream_sh4core_H
+#define lxdream_sh4core_H 1
 
 #include <glib/gtypes.h>
 #include <stdint.h>
@@ -233,5 +233,6 @@ void sh4_accept_interrupt( void );
 #ifdef __cplusplus
 }
 #endif
-#endif
+
+#endif /* !lxdream_sh4core_H */
 

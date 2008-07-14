@@ -37,13 +37,13 @@ gdrom_fire_disc_changed( gdrom_disc_t disc )
 }
 
 gdrom_image_class_t gdrom_image_classes[] = { &cdrom_device_class, 
-					      &nrg_image_class, 
-					      &cdi_image_class, 
-					      &gdi_image_class, 
-					      NULL };
+        &nrg_image_class, 
+        &cdi_image_class, 
+        &gdi_image_class, 
+        NULL };
 
 char *gdrom_mode_names[] = { "Mode 0", "Mode 1", "Mode 2", "Mode 2 Form 1", "Mode 2 Form 2", "Audio", 
-			     "Mode 2 semiraw", "XA Raw", "Non-XA Raw" };
+        "Mode 2 semiraw", "XA Raw", "Non-XA Raw" };
 uint32_t gdrom_sector_size[] = { 0, 2048, 2336, 2048, 2324, 2352, 2336, 2352, 2352 };
 
 gdrom_disc_t gdrom_image_open( const gchar *inFilename )
@@ -64,7 +64,7 @@ gdrom_disc_t gdrom_image_open( const gchar *inFilename )
         gchar method[method_len + 1];
         memcpy( method, filename, method_len );
         method[method_len] = '\0';
-    
+
         if( strcasecmp( method, "file" ) == 0 ) {
             filename = path;
         } else if( strcasecmp( method, "dvd" ) == 0 ||
@@ -76,7 +76,7 @@ gdrom_disc_t gdrom_image_open( const gchar *inFilename )
             return NULL;
         }
     }
-    
+
     fd = open( filename, O_RDONLY | O_NONBLOCK );
     if( fd == -1 ) {
         return NULL;
@@ -87,31 +87,31 @@ gdrom_disc_t gdrom_image_open( const gchar *inFilename )
 
     /* try extensions */
     if( ext != NULL ) {
-	ext++; /* Skip the '.' */
-	for( i=0; gdrom_image_classes[i] != NULL; i++ ) {
-	    if( gdrom_image_classes[i]->extension != NULL &&
-		strcasecmp( gdrom_image_classes[i]->extension, ext ) == 0 ) {
-		extclz = gdrom_image_classes[i];
-		if( extclz->is_valid_file(f) ) {
-		    disc = extclz->open_image_file(filename, f);
-		    if( disc != NULL )
-			return disc;
-		}
-		break;
-	    }
-	}
+        ext++; /* Skip the '.' */
+        for( i=0; gdrom_image_classes[i] != NULL; i++ ) {
+            if( gdrom_image_classes[i]->extension != NULL &&
+                    strcasecmp( gdrom_image_classes[i]->extension, ext ) == 0 ) {
+                extclz = gdrom_image_classes[i];
+                if( extclz->is_valid_file(f) ) {
+                    disc = extclz->open_image_file(filename, f);
+                    if( disc != NULL )
+                        return disc;
+                }
+                break;
+            }
+        }
     }
 
     /* Okay, fall back to magic */
     gboolean recognized = FALSE;
     for( i=0; gdrom_image_classes[i] != NULL; i++ ) {
-	if( gdrom_image_classes[i] != extclz &&
-	    gdrom_image_classes[i]->is_valid_file(f) ) {
-	    recognized = TRUE;
-	    disc = gdrom_image_classes[i]->open_image_file(filename, f);
-	    if( disc != NULL )
-		return disc;
-	}
+        if( gdrom_image_classes[i] != extclz &&
+                gdrom_image_classes[i]->is_valid_file(f) ) {
+            recognized = TRUE;
+            disc = gdrom_image_classes[i]->open_image_file(filename, f);
+            if( disc != NULL )
+                return disc;
+        }
     }
 
     fclose(f);

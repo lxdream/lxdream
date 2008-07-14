@@ -33,19 +33,19 @@ extern struct audio_driver audio_alsa_driver;
 
 audio_driver_t audio_driver_list[] = {
 #ifdef HAVE_CORE_AUDIO
-      &audio_osx_driver,
+        &audio_osx_driver,
 #endif
 #ifdef HAVE_PULSE
-      &audio_pulse_driver,
+        &audio_pulse_driver,
 #endif
 #ifdef HAVE_ESOUND
-      &audio_esd_driver,
+        &audio_esd_driver,
 #endif
 #ifdef HAVE_ALSA
-      &audio_alsa_driver,
+        &audio_alsa_driver,
 #endif
-      &audio_null_driver,
-      NULL };
+        &audio_null_driver,
+        NULL };
 
 #define NUM_BUFFERS 3
 #define MS_PER_BUFFER 100
@@ -105,7 +105,7 @@ void print_audio_drivers( FILE * out )
     fprintf( out, "Available audio drivers:\n" );
     for( i=0; audio_driver_list[i] != NULL; i++ ) {
         fprintf( out, "  %-8s %s\n", audio_driver_list[i]->name,
-                 gettext(audio_driver_list[i]->description) );
+                gettext(audio_driver_list[i]->description) );
     }
 }
 
@@ -239,23 +239,23 @@ audio_buffer_t audio_next_read_buffer( )
  */
 
 #define CLAMP_TO_SHORT(value) \
-if (value > 32767) \
+    if (value > 32767) \
     value = 32767; \
-else if (value < -32768) \
+    else if (value < -32768) \
     value = -32768; \
 
 static const int yamaha_indexscale[] = {
-    230, 230, 230, 230, 307, 409, 512, 614,
-    230, 230, 230, 230, 307, 409, 512, 614
+        230, 230, 230, 230, 307, 409, 512, 614,
+        230, 230, 230, 230, 307, 409, 512, 614
 };
 
 static const int yamaha_difflookup[] = {
-    1, 3, 5, 7, 9, 11, 13, 15,
-    -1, -3, -5, -7, -9, -11, -13, -15
+        1, 3, 5, 7, 9, 11, 13, 15,
+        -1, -3, -5, -7, -9, -11, -13, -15
 };
 
 static inline short adpcm_yamaha_decode_nibble( audio_channel_t c, 
-						unsigned char nibble )
+                                                unsigned char nibble )
 {
     if( c->adpcm_step == 0 ) {
         c->adpcm_predict = 0;
@@ -371,7 +371,7 @@ void audio_mix_samples( int num_samples )
             }
         }
     }
-	    
+
     /* Down-render to the final output format */
     audio_buffer_t buf = audio.output_buffers[audio.write_buffer];
     if( buf->status == BUFFER_FULL ) {
@@ -380,7 +380,7 @@ void audio_mix_samples( int num_samples )
             return;
         }
     }
-    
+
     switch( audio.output_format & AUDIO_FMT_SAMPLE_MASK ) {
     case AUDIO_FMT_FLOAT: {
         float scale = 1.0/SHRT_MAX;
@@ -447,11 +447,11 @@ audio_channel_t audio_get_channel( int channel )
 void audio_start_stop_channel( int channel, gboolean start )
 {
     if( audio.channels[channel].active ) {
-	if( !start ) {
-	    audio_stop_channel(channel);
-	}
+        if( !start ) {
+            audio_stop_channel(channel);
+        }
     } else if( start ) {
-	audio_start_channel(channel);
+        audio_start_channel(channel);
     }
 }
 
@@ -467,9 +467,9 @@ void audio_start_channel( int channel )
     audio.channels[channel].posn_left = 0;
     audio.channels[channel].active = TRUE;
     if( audio.channels[channel].sample_format == AUDIO_FMT_ADPCM ) {
-	audio.channels[channel].adpcm_step = 0;
-	audio.channels[channel].adpcm_predict = 0;
-	uint8_t data = ((uint8_t *)(arm_mem + audio.channels[channel].start))[0];
-	adpcm_yamaha_decode_nibble( &audio.channels[channel], data & 0x0F );
+        audio.channels[channel].adpcm_step = 0;
+        audio.channels[channel].adpcm_predict = 0;
+        uint8_t data = ((uint8_t *)(arm_mem + audio.channels[channel].start))[0];
+        adpcm_yamaha_decode_nibble( &audio.channels[channel], data & 0x0F );
     }
 }

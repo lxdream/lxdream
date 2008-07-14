@@ -18,13 +18,17 @@
  * GNU General Public License for more details.
  */
 
-#ifndef lxdream_gdrom_driver_H
-#define lxdream_gdrom_driver_H 1
+#ifndef lxdream_gddriver_H
+#define lxdream_gddriver_H 1
 
 #include <stdio.h>
 #include "lxdream.h"
 #include "gdrom/gdrom.h"
 #include <glib/gstrfuncs.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #define MAX_SECTOR_SIZE 2352
 
@@ -48,20 +52,20 @@ extern uint32_t gdrom_sector_size[];
  */
 typedef enum {
     GDROM_MODE0,          // Mode 0 - should never actually see this
-/* Data-only modes (image file contains only the user data) */
+    /* Data-only modes (image file contains only the user data) */
     GDROM_MODE1,          // Standard CD-Rom Mode 1 data track
     GDROM_MODE2_FORMLESS, // Mode 2 data track with no sub-structure (rare)
     GDROM_MODE2_FORM1,    // Mode 2/Form 1 data track (standard for multisession)
     GDROM_MODE2_FORM2,    // Mode 2/Form 2 data track (also fairly uncommon).
     GDROM_CDDA,           // Standard audio track
 
-/* This one is somewhat special - the image file contains the 2336 bytes of
- * "extended user data", which in turn contains either a form 1 or form 2
- * sector. In other words it's a raw mode2 XA sector without the 16-byte header.
- */
+    /* This one is somewhat special - the image file contains the 2336 bytes of
+     * "extended user data", which in turn contains either a form 1 or form 2
+     * sector. In other words it's a raw mode2 XA sector without the 16-byte header.
+     */
     GDROM_SEMIRAW_MODE2,
-/* Raw modes (image contains the full 2352-byte sector). Split into XA/Non-XA
- * here for convenience, although it's really a session level flag. */
+    /* Raw modes (image contains the full 2352-byte sector). Split into XA/Non-XA
+     * here for convenience, although it's really a session level flag. */
     GDROM_RAW_XA,
     GDROM_RAW_NONXA,
 } gdrom_track_mode_t;
@@ -105,9 +109,9 @@ struct gdrom_disc {
      * @return PKT_ERR_OK on success, or another PKT_ERR_* code on failure.
      */
     gdrom_error_t (*read_sector)( struct gdrom_disc *disc,
-                  uint32_t lba, int mode, 
-                  unsigned char *buf, uint32_t *length );
-    
+            uint32_t lba, int mode, 
+            unsigned char *buf, uint32_t *length );
+
     /**
      * Read the TOC from the disc and write it into the specified buffer.
      * The method is responsible for returning the data in gd-rom
@@ -222,4 +226,5 @@ void mmc_parse_toc2( gdrom_image_t disc, unsigned char *buf );
  * Construct a Read CD command for the given sector + mode
  */
 void mmc_make_read_cd_cmd( char *cmd, uint32_t sector, int mode );
-#endif
+
+#endif /* !lxdream_gddriver_H */

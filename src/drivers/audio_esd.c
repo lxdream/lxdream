@@ -29,7 +29,7 @@ gboolean audio_esd_init()
 {
     int format = DEFAULT_SAMPLE_FORMAT;
     int rate = DEFAULT_SAMPLE_RATE;
-    
+
     if( esd_handle != -1 ) {
         esd_close(esd_handle);
     }

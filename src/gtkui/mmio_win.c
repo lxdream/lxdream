@@ -57,14 +57,14 @@ static void printhex( char *out, int nbits, uint32_t value )
     }
     *out = '\0';
 }
-    
+
 
 
 
 gboolean
 on_mmio_delete_event                (GtkWidget       *widget,
-                                        GdkEvent        *event,
-                                        gpointer         user_data)
+                                     GdkEvent        *event,
+                                     gpointer         user_data)
 {
     gtk_widget_hide(widget);
     return TRUE;
@@ -78,12 +78,12 @@ void on_mmio_close_clicked( GtkButton *button, gpointer user_data)
 
 
 void on_trace_button_toggled           (GtkToggleButton *button,
-					gpointer user_data)
+                                        gpointer user_data)
 {
     struct mmio_region *io_rgn = (struct mmio_region *)user_data;
     gboolean isActive = gtk_toggle_button_get_active(button);
     if( io_rgn != NULL ) {
-	io_rgn->trace_flag = isActive ? 1 : 0;
+        io_rgn->trace_flag = isActive ? 1 : 0;
     }
 }
 
@@ -116,23 +116,23 @@ static GtkCList *mmio_window_add_page( mmio_window_t mmio, char *name, struct mm
     gtk_widget_modify_font( GTK_WIDGET(list), gui_fixed_font );
     tab = gtk_label_new(_(name));
     gtk_container_add( GTK_CONTAINER(scroll), GTK_WIDGET(list) );
-    
+
     vbox = GTK_VBOX(gtk_vbox_new( FALSE, 0 ));
     gtk_container_add( GTK_CONTAINER(vbox), GTK_WIDGET(scroll) );
 
     trace_button = GTK_CHECK_BUTTON(gtk_check_button_new_with_label(_("Trace access")));
     if( io_rgn != NULL ) {
-	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(trace_button), 
-				     io_rgn->trace_flag ? TRUE : FALSE);
+        gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(trace_button), 
+                io_rgn->trace_flag ? TRUE : FALSE);
     }
     gtk_container_add( GTK_CONTAINER(vbox), GTK_WIDGET(trace_button) );
     gtk_box_set_child_packing( GTK_BOX(vbox), GTK_WIDGET(trace_button), 
-			       FALSE, FALSE, 0, GTK_PACK_START );
+                               FALSE, FALSE, 0, GTK_PACK_START );
     gtk_notebook_append_page( GTK_NOTEBOOK(mmio->notebook), GTK_WIDGET(vbox), tab );
     gtk_object_set_data( GTK_OBJECT(mmio->window), name, list );
     g_signal_connect ((gpointer) trace_button, "toggled",
-                    G_CALLBACK (on_trace_button_toggled),
-                    io_rgn);
+                      G_CALLBACK (on_trace_button_toggled),
+                      io_rgn);
     return list;
 }
 
@@ -141,7 +141,7 @@ static GtkCList *mmio_window_add_page( mmio_window_t mmio, char *name, struct mm
 mmio_window_t mmio_window_new( const gchar *title )
 {
     mmio_window_t mmio = g_malloc0( sizeof(struct mmio_window_info) );
-    
+
     int i, j;
     GtkCList *all_list;
     GtkWidget *vbox1;
@@ -162,7 +162,7 @@ mmio_window_t mmio_window_new( const gchar *title )
     hbuttonbox1 = gtk_hbutton_box_new ();
     gtk_box_pack_start (GTK_BOX (vbox1), hbuttonbox1, FALSE, TRUE, 0);
     gtk_box_set_spacing (GTK_BOX (hbuttonbox1), 30);
-    
+
     mmr_close = gtk_button_new_with_mnemonic (_("Close"));
     gtk_container_add (GTK_CONTAINER (hbuttonbox1), mmr_close);
     GTK_WIDGET_SET_FLAGS (mmr_close, GTK_CAN_DEFAULT);
@@ -175,7 +175,7 @@ mmio_window_t mmio_window_new( const gchar *title )
             int sz = io_rgn[i]->ports[j].width;
             char addr[10], data[10], bits[40];
             char *arr[] = { addr, io_rgn[i]->ports[j].id, data, bits,
-                            io_rgn[i]->ports[j].desc };
+                    io_rgn[i]->ports[j].desc };
             sprintf( addr, "%08X",
                      io_rgn[i]->base + io_rgn[i]->ports[j].offset );
             printhex( data, sz, *io_rgn[i]->ports[j].val );
@@ -185,18 +185,18 @@ mmio_window_t mmio_window_new( const gchar *title )
             gtk_clist_append( all_list, arr );
         }
     }
-    
+
     g_signal_connect ((gpointer) mmio->window, "delete_event",
-		      G_CALLBACK (on_mmio_delete_event),
-		      NULL);
+                      G_CALLBACK (on_mmio_delete_event),
+                      NULL);
     g_signal_connect ((gpointer) mmr_close, "clicked",
-		      G_CALLBACK (on_mmio_close_clicked),
-		      mmio);
+                      G_CALLBACK (on_mmio_close_clicked),
+                      mmio);
 
     gtk_widget_show_all( mmio->window );
     return mmio;
 }
-        
+
 void mmio_window_update( mmio_window_t mmio )
 {
     int i,j, count = 0;
@@ -204,10 +204,10 @@ void mmio_window_update( mmio_window_t mmio )
     char data[10], bits[40];
 
     all_page = GTK_CLIST(gtk_object_get_data( GTK_OBJECT(mmio->window), "All" ));
-    
+
     for( i=0; i < num_io_rgns; i++ ) {
         page = GTK_CLIST(gtk_object_get_data( GTK_OBJECT(mmio->window),
-                                              io_rgn[i]->id ));
+                io_rgn[i]->id ));
         for( j=0; io_rgn[i]->ports[j].id != NULL; j++ ) {
             if( *io_rgn[i]->ports[j].val !=
                 *(uint32_t *)(io_rgn[i]->save_mem+io_rgn[i]->ports[j].offset)){
@@ -215,15 +215,15 @@ void mmio_window_update( mmio_window_t mmio )
                 /* Changed */
                 printhex( data, sz, *io_rgn[i]->ports[j].val );
                 printbits( bits, sz, *io_rgn[i]->ports[j].val );
-                
+
                 gtk_clist_set_text( page, j, 2, data );
                 gtk_clist_set_text( page, j, 3, bits );
                 gtk_clist_set_foreground( page, j, &gui_colour_changed );
-                
+
                 gtk_clist_set_text( all_page, count, 2, data );
                 gtk_clist_set_text( all_page, count, 3, bits );
                 gtk_clist_set_foreground( all_page, count, &gui_colour_changed );
-                
+
             } else {
                 gtk_clist_set_foreground( page, j, &gui_colour_normal );
                 gtk_clist_set_foreground( all_page, count, &gui_colour_normal );
@@ -237,9 +237,9 @@ void mmio_window_update( mmio_window_t mmio )
 void mmio_window_show( mmio_window_t mmio, gboolean show )
 {
     if( show ) {
-	gtk_widget_show( mmio->window );
+        gtk_widget_show( mmio->window );
     } else {
-	gtk_widget_hide( mmio->window );
+        gtk_widget_hide( mmio->window );
     }
 }
 

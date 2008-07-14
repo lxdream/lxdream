@@ -128,9 +128,9 @@ int32_t mmio_region_MMU_read( uint32_t reg )
 {
     switch( reg ) {
     case MMUCR:
-	return MMIO_READ( MMU, MMUCR) | (mmu_urc<<10) | (mmu_urb<<18) | (mmu_lrui<<26);
+        return MMIO_READ( MMU, MMUCR) | (mmu_urc<<10) | (mmu_urb<<18) | (mmu_lrui<<26);
     default:
-	return MMIO_READ( MMU, reg );
+        return MMIO_READ( MMU, reg );
     }
 }
 
@@ -139,40 +139,40 @@ void mmio_region_MMU_write( uint32_t reg, uint32_t val )
     uint32_t tmp;
     switch(reg) {
     case PTEH:
-	val &= 0xFFFFFCFF;
-	if( (val & 0xFF) != mmu_asid ) {
-	    mmu_asid = val&0xFF;
-	    sh4_icache.page_vma = -1; // invalidate icache as asid has changed
-	}
-	break;
+        val &= 0xFFFFFCFF;
+        if( (val & 0xFF) != mmu_asid ) {
+            mmu_asid = val&0xFF;
+            sh4_icache.page_vma = -1; // invalidate icache as asid has changed
+        }
+        break;
     case PTEL:
-	val &= 0x1FFFFDFF;
-	break;
+        val &= 0x1FFFFDFF;
+        break;
     case PTEA:
-	val &= 0x0000000F;
-	break;
+        val &= 0x0000000F;
+        break;
     case MMUCR:
-	if( val & MMUCR_TI ) {
-	    mmu_invalidate_tlb();
-	}
-	mmu_urc = (val >> 10) & 0x3F;
-	mmu_urb = (val >> 18) & 0x3F;
-	mmu_lrui = (val >> 26) & 0x3F;
-	val &= 0x00000301;
-	tmp = MMIO_READ( MMU, MMUCR );
-	if( ((val ^ tmp) & MMUCR_AT) && sh4_is_using_xlat() ) {
-	    // AT flag has changed state - flush the xlt cache as all bets
-	    // are off now. We also need to force an immediate exit from the
-	    // current block
-	    MMIO_WRITE( MMU, MMUCR, val );
-	    sh4_translate_flush_cache();
-	}
-	break;
+        if( val & MMUCR_TI ) {
+            mmu_invalidate_tlb();
+        }
+        mmu_urc = (val >> 10) & 0x3F;
+        mmu_urb = (val >> 18) & 0x3F;
+        mmu_lrui = (val >> 26) & 0x3F;
+        val &= 0x00000301;
+        tmp = MMIO_READ( MMU, MMUCR );
+        if( ((val ^ tmp) & MMUCR_AT) && sh4_is_using_xlat() ) {
+            // AT flag has changed state - flush the xlt cache as all bets
+            // are off now. We also need to force an immediate exit from the
+            // current block
+            MMIO_WRITE( MMU, MMUCR, val );
+            sh4_translate_flush_cache();
+        }
+        break;
     case CCR:
-	mmu_set_cache_mode( val & (CCR_OIX|CCR_ORA) );
-	break;
+        mmu_set_cache_mode( val & (CCR_OIX|CCR_ORA) );
+        break;
     default:
-	break;
+        break;
     }
     MMIO_WRITE( MMU, reg, val );
 }
@@ -207,25 +207,25 @@ int MMU_load_state( FILE *f )
      */
     mmio_region_MMU_write( CCR, MMIO_READ(MMU, CCR) );
     if( fread( cache, 4096, 2, f ) != 2 ) {
-	return 1;
+        return 1;
     }
     if( fread( &mmu_itlb, sizeof(mmu_itlb), 1, f ) != 1 ) {
-	return 1;
+        return 1;
     }
     if( fread( &mmu_utlb, sizeof(mmu_utlb), 1, f ) != 1 ) {
-	return 1;
+        return 1;
     }
     if( fread( &mmu_urc, sizeof(mmu_urc), 1, f ) != 1 ) {
-	return 1;
+        return 1;
     }
     if( fread( &mmu_urc, sizeof(mmu_urb), 1, f ) != 1 ) {
-	return 1;
+        return 1;
     }
     if( fread( &mmu_lrui, sizeof(mmu_lrui), 1, f ) != 1 ) {
-	return 1;
+        return 1;
     }
     if( fread( &mmu_asid, sizeof(mmu_asid), 1, f ) != 1 ) {
-    	return 1;
+        return 1;
     }
     return 0;
 }
@@ -234,18 +234,18 @@ void mmu_set_cache_mode( int mode )
 {
     uint32_t i;
     switch( mode ) {
-        case MEM_OC_INDEX0: /* OIX=0 */
-            for( i=OCRAM_START; i<OCRAM_END; i++ )
-                page_map[i] = cache + ((i&0x02)<<(PAGE_BITS-1));
-            break;
-        case MEM_OC_INDEX1: /* OIX=1 */
-            for( i=OCRAM_START; i<OCRAM_END; i++ )
-                page_map[i] = cache + ((i&0x02000000)>>(25-PAGE_BITS));
-            break;
-        default: /* disabled */
-            for( i=OCRAM_START; i<OCRAM_END; i++ )
-                page_map[i] = NULL;
-            break;
+    case MEM_OC_INDEX0: /* OIX=0 */
+        for( i=OCRAM_START; i<OCRAM_END; i++ )
+            page_map[i] = cache + ((i&0x02)<<(PAGE_BITS-1));
+        break;
+    case MEM_OC_INDEX1: /* OIX=1 */
+        for( i=OCRAM_START; i<OCRAM_END; i++ )
+            page_map[i] = cache + ((i&0x02000000)>>(25-PAGE_BITS));
+        break;
+    default: /* disabled */
+        for( i=OCRAM_START; i<OCRAM_END; i++ )
+            page_map[i] = NULL;
+        break;
     }
 }
 
@@ -269,10 +269,10 @@ static void mmu_invalidate_tlb()
 {
     int i;
     for( i=0; i<ITLB_ENTRY_COUNT; i++ ) {
-	mmu_itlb[i].flags &= (~TLB_VALID);
+        mmu_itlb[i].flags &= (~TLB_VALID);
     }
     for( i=0; i<UTLB_ENTRY_COUNT; i++ ) {
-	mmu_utlb[i].flags &= (~TLB_VALID);
+        mmu_utlb[i].flags &= (~TLB_VALID);
     }
 }
 
@@ -313,15 +313,15 @@ int32_t mmu_utlb_addr_read( sh4addr_t addr )
 {
     struct utlb_entry *ent = &mmu_utlb[UTLB_ENTRY(addr)];
     return ent->vpn | ent->asid | (ent->flags & TLB_VALID) |
-	((ent->flags & TLB_DIRTY)<<7);
+    ((ent->flags & TLB_DIRTY)<<7);
 }
 int32_t mmu_utlb_data_read( sh4addr_t addr )
 {
     struct utlb_entry *ent = &mmu_utlb[UTLB_ENTRY(addr)];
     if( UTLB_DATA2(addr) ) {
-	return ent->pcmcia;
+        return ent->pcmcia;
     } else {
-	return ent->ppn | ent->flags;
+        return ent->ppn | ent->flags;
     }
 }
 
@@ -334,15 +334,15 @@ static inline int mmu_utlb_lookup_assoc( uint32_t vpn, uint32_t asid )
     int result = -1;
     unsigned int i;
     for( i = 0; i < UTLB_ENTRY_COUNT; i++ ) {
-	if( (mmu_utlb[i].flags & TLB_VALID) &&
-	    ((mmu_utlb[i].flags & TLB_SHARE) || asid == mmu_utlb[i].asid) && 
-	    ((mmu_utlb[i].vpn ^ vpn) & mmu_utlb[i].mask) == 0 ) {
-	    if( result != -1 ) {
-		fprintf( stderr, "TLB Multi hit: %d %d\n", result, i );
-		return -2;
-	    }
-	    result = i;
-	}
+        if( (mmu_utlb[i].flags & TLB_VALID) &&
+                ((mmu_utlb[i].flags & TLB_SHARE) || asid == mmu_utlb[i].asid) && 
+                ((mmu_utlb[i].vpn ^ vpn) & mmu_utlb[i].mask) == 0 ) {
+            if( result != -1 ) {
+                fprintf( stderr, "TLB Multi hit: %d %d\n", result, i );
+                return -2;
+            }
+            result = i;
+        }
     }
     return result;
 }
@@ -356,14 +356,14 @@ static inline int mmu_itlb_lookup_assoc( uint32_t vpn, uint32_t asid )
     int result = -1;
     unsigned int i;
     for( i = 0; i < ITLB_ENTRY_COUNT; i++ ) {
-	if( (mmu_itlb[i].flags & TLB_VALID) &&
-	    ((mmu_itlb[i].flags & TLB_SHARE) || asid == mmu_itlb[i].asid) && 
-	    ((mmu_itlb[i].vpn ^ vpn) & mmu_itlb[i].mask) == 0 ) {
-	    if( result != -1 ) {
-		return -2;
-	    }
-	    result = i;
-	}
+        if( (mmu_itlb[i].flags & TLB_VALID) &&
+                ((mmu_itlb[i].flags & TLB_SHARE) || asid == mmu_itlb[i].asid) && 
+                ((mmu_itlb[i].vpn ^ vpn) & mmu_itlb[i].mask) == 0 ) {
+            if( result != -1 ) {
+                return -2;
+            }
+            result = i;
+        }
     }
     return result;
 }
@@ -371,31 +371,31 @@ static inline int mmu_itlb_lookup_assoc( uint32_t vpn, uint32_t asid )
 void mmu_utlb_addr_write( sh4addr_t addr, uint32_t val )
 {
     if( UTLB_ASSOC(addr) ) {
-	int utlb = mmu_utlb_lookup_assoc( val, mmu_asid );
-	if( utlb >= 0 ) {
-	    struct utlb_entry *ent = &mmu_utlb[utlb];
-	    ent->flags = ent->flags & ~(TLB_DIRTY|TLB_VALID);
-	    ent->flags |= (val & TLB_VALID);
-	    ent->flags |= ((val & 0x200)>>7);
-	}
+        int utlb = mmu_utlb_lookup_assoc( val, mmu_asid );
+        if( utlb >= 0 ) {
+            struct utlb_entry *ent = &mmu_utlb[utlb];
+            ent->flags = ent->flags & ~(TLB_DIRTY|TLB_VALID);
+            ent->flags |= (val & TLB_VALID);
+            ent->flags |= ((val & 0x200)>>7);
+        }
 
-	int itlb = mmu_itlb_lookup_assoc( val, mmu_asid );
-	if( itlb >= 0 ) {
-	    struct itlb_entry *ent = &mmu_itlb[itlb];
-	    ent->flags = (ent->flags & (~TLB_VALID)) | (val & TLB_VALID);
-	}
+        int itlb = mmu_itlb_lookup_assoc( val, mmu_asid );
+        if( itlb >= 0 ) {
+            struct itlb_entry *ent = &mmu_itlb[itlb];
+            ent->flags = (ent->flags & (~TLB_VALID)) | (val & TLB_VALID);
+        }
 
-	if( itlb == -2 || utlb == -2 ) {
-	    MMU_TLB_MULTI_HIT_ERROR(addr);
-	    return;
-	}
+        if( itlb == -2 || utlb == -2 ) {
+            MMU_TLB_MULTI_HIT_ERROR(addr);
+            return;
+        }
     } else {
-	struct utlb_entry *ent = &mmu_utlb[UTLB_ENTRY(addr)];
-	ent->vpn = (val & 0xFFFFFC00);
-	ent->asid = (val & 0xFF);
-	ent->flags = (ent->flags & ~(TLB_DIRTY|TLB_VALID));
-	ent->flags |= (val & TLB_VALID);
-	ent->flags |= ((val & 0x200)>>7);
+        struct utlb_entry *ent = &mmu_utlb[UTLB_ENTRY(addr)];
+        ent->vpn = (val & 0xFFFFFC00);
+        ent->asid = (val & 0xFF);
+        ent->flags = (ent->flags & ~(TLB_DIRTY|TLB_VALID));
+        ent->flags |= (val & TLB_VALID);
+        ent->flags |= ((val & 0x200)>>7);
     }
 }
 
@@ -403,11 +403,11 @@ void mmu_utlb_data_write( sh4addr_t addr, uint32_t val )
 {
     struct utlb_entry *ent = &mmu_utlb[UTLB_ENTRY(addr)];
     if( UTLB_DATA2(addr) ) {
-	ent->pcmcia = val & 0x0000000F;
+        ent->pcmcia = val & 0x0000000F;
     } else {
-	ent->ppn = (val & 0x1FFFFC00);
-	ent->flags = (val & 0x000001FF);
-	ent->mask = get_mask_for_flags(val);
+        ent->ppn = (val & 0x1FFFFC00);
+        ent->flags = (val & 0x000001FF);
+        ent->mask = get_mask_for_flags(val);
     }
 }
 
@@ -471,18 +471,18 @@ static inline int mmu_utlb_lookup_vpn_asid( uint32_t vpn )
 
     mmu_urc++;
     if( mmu_urc == mmu_urb || mmu_urc == 0x40 ) {
-	mmu_urc = 0;
+        mmu_urc = 0;
     }
 
     for( i = 0; i < UTLB_ENTRY_COUNT; i++ ) {
-	if( (mmu_utlb[i].flags & TLB_VALID) &&
-	    ((mmu_utlb[i].flags & TLB_SHARE) || mmu_asid == mmu_utlb[i].asid) && 
-	    ((mmu_utlb[i].vpn ^ vpn) & mmu_utlb[i].mask) == 0 ) {
-	    if( result != -1 ) {
-		return -2;
-	    }
-	    result = i;
-	}
+        if( (mmu_utlb[i].flags & TLB_VALID) &&
+                ((mmu_utlb[i].flags & TLB_SHARE) || mmu_asid == mmu_utlb[i].asid) && 
+                ((mmu_utlb[i].vpn ^ vpn) & mmu_utlb[i].mask) == 0 ) {
+            if( result != -1 ) {
+                return -2;
+            }
+            result = i;
+        }
     }
     return result;
 }
@@ -503,17 +503,17 @@ static inline int mmu_utlb_lookup_vpn( uint32_t vpn )
 
     mmu_urc++;
     if( mmu_urc == mmu_urb || mmu_urc == 0x40 ) {
-	mmu_urc = 0;
+        mmu_urc = 0;
     }
 
     for( i = 0; i < UTLB_ENTRY_COUNT; i++ ) {
-	if( (mmu_utlb[i].flags & TLB_VALID) &&
-	    ((mmu_utlb[i].vpn ^ vpn) & mmu_utlb[i].mask) == 0 ) {
-	    if( result != -1 ) {
-		return -2;
-	    }
-	    result = i;
-	}
+        if( (mmu_utlb[i].flags & TLB_VALID) &&
+                ((mmu_utlb[i].vpn ^ vpn) & mmu_utlb[i].mask) == 0 ) {
+            if( result != -1 ) {
+                return -2;
+            }
+            result = i;
+        }
     }
 
     return result;
@@ -528,17 +528,17 @@ static int inline mmu_itlb_update_from_utlb( int entryNo )
     int replace;
     /* Determine entry to replace based on lrui */
     if( (mmu_lrui & 0x38) == 0x38 ) {
-	replace = 0;
-	mmu_lrui = mmu_lrui & 0x07;
+        replace = 0;
+        mmu_lrui = mmu_lrui & 0x07;
     } else if( (mmu_lrui & 0x26) == 0x06 ) {
-	replace = 1;
-	mmu_lrui = (mmu_lrui & 0x19) | 0x20;
+        replace = 1;
+        mmu_lrui = (mmu_lrui & 0x19) | 0x20;
     } else if( (mmu_lrui & 0x15) == 0x01 ) {
-	replace = 2;
-	mmu_lrui = (mmu_lrui & 0x3E) | 0x14;
+        replace = 2;
+        mmu_lrui = (mmu_lrui & 0x3E) | 0x14;
     } else { // Note - gets invalid entries too
-	replace = 3;
-	mmu_lrui = (mmu_lrui | 0x0B);
+        replace = 3;
+        mmu_lrui = (mmu_lrui | 0x0B);
     } 
 
     mmu_itlb[replace].vpn = mmu_utlb[entryNo].vpn;
@@ -564,23 +564,23 @@ static inline int mmu_itlb_lookup_vpn_asid( uint32_t vpn )
     unsigned int i;
 
     for( i = 0; i < ITLB_ENTRY_COUNT; i++ ) {
-	if( (mmu_itlb[i].flags & TLB_VALID) &&
-	    ((mmu_itlb[i].flags & TLB_SHARE) || mmu_asid == mmu_itlb[i].asid) && 
-	    ((mmu_itlb[i].vpn ^ vpn) & mmu_itlb[i].mask) == 0 ) {
-	    if( result != -1 ) {
-		return -2;
-	    }
-	    result = i;
-	}
+        if( (mmu_itlb[i].flags & TLB_VALID) &&
+                ((mmu_itlb[i].flags & TLB_SHARE) || mmu_asid == mmu_itlb[i].asid) && 
+                ((mmu_itlb[i].vpn ^ vpn) & mmu_itlb[i].mask) == 0 ) {
+            if( result != -1 ) {
+                return -2;
+            }
+            result = i;
+        }
     }
 
     if( result == -1 ) {
-	int utlbEntry = mmu_utlb_lookup_vpn_asid( vpn );
-	if( utlbEntry < 0 ) {
-	    return utlbEntry;
-	} else {
-	    return mmu_itlb_update_from_utlb( utlbEntry );
-	}
+        int utlbEntry = mmu_utlb_lookup_vpn_asid( vpn );
+        if( utlbEntry < 0 ) {
+            return utlbEntry;
+        } else {
+            return mmu_itlb_update_from_utlb( utlbEntry );
+        }
     }
 
     switch( result ) {
@@ -589,7 +589,7 @@ static inline int mmu_itlb_lookup_vpn_asid( uint32_t vpn )
     case 2: mmu_lrui = (mmu_lrui & 0x3E) | 0x14; break;
     case 3: mmu_lrui = (mmu_lrui | 0x0B); break;
     }
-	
+
     return result;
 }
 
@@ -608,22 +608,22 @@ static inline int mmu_itlb_lookup_vpn( uint32_t vpn )
     unsigned int i;
 
     for( i = 0; i < ITLB_ENTRY_COUNT; i++ ) {
-	if( (mmu_itlb[i].flags & TLB_VALID) &&
-	    ((mmu_itlb[i].vpn ^ vpn) & mmu_itlb[i].mask) == 0 ) {
-	    if( result != -1 ) {
-		return -2;
-	    }
-	    result = i;
-	}
+        if( (mmu_itlb[i].flags & TLB_VALID) &&
+                ((mmu_itlb[i].vpn ^ vpn) & mmu_itlb[i].mask) == 0 ) {
+            if( result != -1 ) {
+                return -2;
+            }
+            result = i;
+        }
     }
 
     if( result == -1 ) {
-	int utlbEntry = mmu_utlb_lookup_vpn( vpn );
-	if( utlbEntry < 0 ) {
-	    return utlbEntry;
-	} else {
-	    return mmu_itlb_update_from_utlb( utlbEntry );
-	}
+        int utlbEntry = mmu_utlb_lookup_vpn( vpn );
+        if( utlbEntry < 0 ) {
+            return utlbEntry;
+        } else {
+            return mmu_itlb_update_from_utlb( utlbEntry );
+        }
     }
 
     switch( result ) {
@@ -632,7 +632,7 @@ static inline int mmu_itlb_lookup_vpn( uint32_t vpn )
     case 2: mmu_lrui = (mmu_lrui & 0x3E) | 0x14; break;
     case 3: mmu_lrui = (mmu_lrui | 0x0B); break;
     }
-	
+
     return result;
 }
 
@@ -640,54 +640,54 @@ sh4addr_t mmu_vma_to_phys_read( sh4vma_t addr )
 {
     uint32_t mmucr = MMIO_READ(MMU,MMUCR);
     if( addr & 0x80000000 ) {
-	if( IS_SH4_PRIVMODE() ) {
-	    if( addr >= 0xE0000000 ) {
-		return addr; /* P4 - passthrough */
-	    } else if( addr < 0xC0000000 ) {
-		/* P1, P2 regions are pass-through (no translation) */
-		return VMA_TO_EXT_ADDR(addr);
-	    }
-	} else {
-	    if( addr >= 0xE0000000 && addr < 0xE4000000 &&
-		((mmucr&MMUCR_SQMD) == 0) ) {
-		/* Conditional user-mode access to the store-queue (no translation) */
-		return addr;
-	    }
-	    MMU_READ_ADDR_ERROR();
-	    return MMU_VMA_ERROR;
-	}
+        if( IS_SH4_PRIVMODE() ) {
+            if( addr >= 0xE0000000 ) {
+                return addr; /* P4 - passthrough */
+            } else if( addr < 0xC0000000 ) {
+                /* P1, P2 regions are pass-through (no translation) */
+                return VMA_TO_EXT_ADDR(addr);
+            }
+        } else {
+            if( addr >= 0xE0000000 && addr < 0xE4000000 &&
+                    ((mmucr&MMUCR_SQMD) == 0) ) {
+                /* Conditional user-mode access to the store-queue (no translation) */
+                return addr;
+            }
+            MMU_READ_ADDR_ERROR();
+            return MMU_VMA_ERROR;
+        }
     }
-    
+
     if( (mmucr & MMUCR_AT) == 0 ) {
-	return VMA_TO_EXT_ADDR(addr);
+        return VMA_TO_EXT_ADDR(addr);
     }
 
     /* If we get this far, translation is required */
     int entryNo;
     if( ((mmucr & MMUCR_SV) == 0) || !IS_SH4_PRIVMODE() ) {
-	entryNo = mmu_utlb_lookup_vpn_asid( addr );
+        entryNo = mmu_utlb_lookup_vpn_asid( addr );
     } else {
-	entryNo = mmu_utlb_lookup_vpn( addr );
+        entryNo = mmu_utlb_lookup_vpn( addr );
     }
 
     switch(entryNo) {
     case -1:
-	MMU_TLB_READ_MISS_ERROR(addr);
-	return MMU_VMA_ERROR;
+    MMU_TLB_READ_MISS_ERROR(addr);
+    return MMU_VMA_ERROR;
     case -2:
-	MMU_TLB_MULTI_HIT_ERROR(addr);
-	return MMU_VMA_ERROR;
+    MMU_TLB_MULTI_HIT_ERROR(addr);
+    return MMU_VMA_ERROR;
     default:
-	if( (mmu_utlb[entryNo].flags & TLB_USERMODE) == 0 &&
-	    !IS_SH4_PRIVMODE() ) {
-	    /* protection violation */
-	    MMU_TLB_READ_PROT_ERROR(addr);
-	    return MMU_VMA_ERROR;
-	}
+        if( (mmu_utlb[entryNo].flags & TLB_USERMODE) == 0 &&
+                !IS_SH4_PRIVMODE() ) {
+            /* protection violation */
+            MMU_TLB_READ_PROT_ERROR(addr);
+            return MMU_VMA_ERROR;
+        }
 
-	/* finally generate the target address */
-	return (mmu_utlb[entryNo].ppn & mmu_utlb[entryNo].mask) | 
-	    (addr & (~mmu_utlb[entryNo].mask));
+        /* finally generate the target address */
+        return (mmu_utlb[entryNo].ppn & mmu_utlb[entryNo].mask) | 
+        (addr & (~mmu_utlb[entryNo].mask));
     }
 }
 
@@ -695,59 +695,59 @@ sh4addr_t mmu_vma_to_phys_write( sh4vma_t addr )
 {
     uint32_t mmucr = MMIO_READ(MMU,MMUCR);
     if( addr & 0x80000000 ) {
-	if( IS_SH4_PRIVMODE() ) {
-	    if( addr >= 0xE0000000 ) {
-		return addr; /* P4 - passthrough */
-	    } else if( addr < 0xC0000000 ) {
-		/* P1, P2 regions are pass-through (no translation) */
-		return VMA_TO_EXT_ADDR(addr);
-	    }
-	} else {
-	    if( addr >= 0xE0000000 && addr < 0xE4000000 &&
-		((mmucr&MMUCR_SQMD) == 0) ) {
-		/* Conditional user-mode access to the store-queue (no translation) */
-		return addr;
-	    }
-	    MMU_WRITE_ADDR_ERROR();
-	    return MMU_VMA_ERROR;
-	}
+        if( IS_SH4_PRIVMODE() ) {
+            if( addr >= 0xE0000000 ) {
+                return addr; /* P4 - passthrough */
+            } else if( addr < 0xC0000000 ) {
+                /* P1, P2 regions are pass-through (no translation) */
+                return VMA_TO_EXT_ADDR(addr);
+            }
+        } else {
+            if( addr >= 0xE0000000 && addr < 0xE4000000 &&
+                    ((mmucr&MMUCR_SQMD) == 0) ) {
+                /* Conditional user-mode access to the store-queue (no translation) */
+                return addr;
+            }
+            MMU_WRITE_ADDR_ERROR();
+            return MMU_VMA_ERROR;
+        }
     }
-    
+
     if( (mmucr & MMUCR_AT) == 0 ) {
-	return VMA_TO_EXT_ADDR(addr);
+        return VMA_TO_EXT_ADDR(addr);
     }
 
     /* If we get this far, translation is required */
     int entryNo;
     if( ((mmucr & MMUCR_SV) == 0) || !IS_SH4_PRIVMODE() ) {
-	entryNo = mmu_utlb_lookup_vpn_asid( addr );
+        entryNo = mmu_utlb_lookup_vpn_asid( addr );
     } else {
-	entryNo = mmu_utlb_lookup_vpn( addr );
+        entryNo = mmu_utlb_lookup_vpn( addr );
     }
 
     switch(entryNo) {
     case -1:
-	MMU_TLB_WRITE_MISS_ERROR(addr);
-	return MMU_VMA_ERROR;
+    MMU_TLB_WRITE_MISS_ERROR(addr);
+    return MMU_VMA_ERROR;
     case -2:
-	MMU_TLB_MULTI_HIT_ERROR(addr);
-	return MMU_VMA_ERROR;
+    MMU_TLB_MULTI_HIT_ERROR(addr);
+    return MMU_VMA_ERROR;
     default:
-	if( IS_SH4_PRIVMODE() ? ((mmu_utlb[entryNo].flags & TLB_WRITABLE) == 0)
-	    : ((mmu_utlb[entryNo].flags & TLB_USERWRITABLE) != TLB_USERWRITABLE) ) {
-	    /* protection violation */
-	    MMU_TLB_WRITE_PROT_ERROR(addr);
-	    return MMU_VMA_ERROR;
-	}
+        if( IS_SH4_PRIVMODE() ? ((mmu_utlb[entryNo].flags & TLB_WRITABLE) == 0)
+                : ((mmu_utlb[entryNo].flags & TLB_USERWRITABLE) != TLB_USERWRITABLE) ) {
+            /* protection violation */
+            MMU_TLB_WRITE_PROT_ERROR(addr);
+            return MMU_VMA_ERROR;
+        }
 
-	if( (mmu_utlb[entryNo].flags & TLB_DIRTY) == 0 ) {
-	    MMU_TLB_INITIAL_WRITE_ERROR(addr);
-	    return MMU_VMA_ERROR;
-	}
+        if( (mmu_utlb[entryNo].flags & TLB_DIRTY) == 0 ) {
+            MMU_TLB_INITIAL_WRITE_ERROR(addr);
+            return MMU_VMA_ERROR;
+        }
 
-	/* finally generate the target address */
-	return (mmu_utlb[entryNo].ppn & mmu_utlb[entryNo].mask) | 
-	    (addr & (~mmu_utlb[entryNo].mask));
+        /* finally generate the target address */
+        return (mmu_utlb[entryNo].ppn & mmu_utlb[entryNo].mask) | 
+        (addr & (~mmu_utlb[entryNo].mask));
     }
 }
 
@@ -757,20 +757,20 @@ sh4addr_t mmu_vma_to_phys_write( sh4vma_t addr )
 void mmu_update_icache_phys( sh4addr_t addr )
 {
     if( (addr & 0x1C000000) == 0x0C000000 ) {
-	/* Main ram */
-	sh4_icache.page_vma = addr & 0xFF000000;
-	sh4_icache.page_ppa = 0x0C000000;
-	sh4_icache.mask = 0xFF000000;
-	sh4_icache.page = sh4_main_ram;
+        /* Main ram */
+        sh4_icache.page_vma = addr & 0xFF000000;
+        sh4_icache.page_ppa = 0x0C000000;
+        sh4_icache.mask = 0xFF000000;
+        sh4_icache.page = sh4_main_ram;
     } else if( (addr & 0x1FE00000) == 0 ) {
-	/* BIOS ROM */
-	sh4_icache.page_vma = addr & 0xFFE00000;
-	sh4_icache.page_ppa = 0;
-	sh4_icache.mask = 0xFFE00000;
-	sh4_icache.page = mem_get_region(0);
+        /* BIOS ROM */
+        sh4_icache.page_vma = addr & 0xFFE00000;
+        sh4_icache.page_ppa = 0;
+        sh4_icache.mask = 0xFFE00000;
+        sh4_icache.page = mem_get_region(0);
     } else {
-	/* not supported */
-	sh4_icache.page_vma = -1;
+        /* not supported */
+        sh4_icache.page_vma = -1;
     }
 }
 
@@ -790,64 +790,64 @@ gboolean mmu_update_icache( sh4vma_t addr )
 {
     int entryNo;
     if( IS_SH4_PRIVMODE()  ) {
-	if( addr & 0x80000000 ) {
-	    if( addr < 0xC0000000 ) {
-		/* P1, P2 and P4 regions are pass-through (no translation) */
-		mmu_update_icache_phys(addr);
-		return TRUE;
-	    } else if( addr >= 0xE0000000 && addr < 0xFFFFFF00 ) {
-		MMU_READ_ADDR_ERROR();
-		return FALSE;
-	    }
-	}
-    
-	uint32_t mmucr = MMIO_READ(MMU,MMUCR);
-	if( (mmucr & MMUCR_AT) == 0 ) {
-	    mmu_update_icache_phys(addr);
-	    return TRUE;
-	}
+        if( addr & 0x80000000 ) {
+            if( addr < 0xC0000000 ) {
+                /* P1, P2 and P4 regions are pass-through (no translation) */
+                mmu_update_icache_phys(addr);
+                return TRUE;
+            } else if( addr >= 0xE0000000 && addr < 0xFFFFFF00 ) {
+                MMU_READ_ADDR_ERROR();
+                return FALSE;
+            }
+        }
 
-	entryNo = mmu_itlb_lookup_vpn( addr );
+        uint32_t mmucr = MMIO_READ(MMU,MMUCR);
+        if( (mmucr & MMUCR_AT) == 0 ) {
+            mmu_update_icache_phys(addr);
+            return TRUE;
+        }
+
+        entryNo = mmu_itlb_lookup_vpn( addr );
     } else {
-	if( addr & 0x80000000 ) {
-	    MMU_READ_ADDR_ERROR();
-	    return FALSE;
-	}
+        if( addr & 0x80000000 ) {
+            MMU_READ_ADDR_ERROR();
+            return FALSE;
+        }
 
-	uint32_t mmucr = MMIO_READ(MMU,MMUCR);
-	if( (mmucr & MMUCR_AT) == 0 ) {
-	    mmu_update_icache_phys(addr);
-	    return TRUE;
-	}
-	
-	if( mmucr & MMUCR_SV ) {
-	    entryNo = mmu_itlb_lookup_vpn( addr );
-	} else {
-	    entryNo = mmu_itlb_lookup_vpn_asid( addr );
-	}
-	if( entryNo != -1 && (mmu_itlb[entryNo].flags & TLB_USERMODE) == 0 ) {
-	    MMU_TLB_READ_PROT_ERROR(addr);
-	    return FALSE;
-	}
+        uint32_t mmucr = MMIO_READ(MMU,MMUCR);
+        if( (mmucr & MMUCR_AT) == 0 ) {
+            mmu_update_icache_phys(addr);
+            return TRUE;
+        }
+
+        if( mmucr & MMUCR_SV ) {
+            entryNo = mmu_itlb_lookup_vpn( addr );
+        } else {
+            entryNo = mmu_itlb_lookup_vpn_asid( addr );
+        }
+        if( entryNo != -1 && (mmu_itlb[entryNo].flags & TLB_USERMODE) == 0 ) {
+            MMU_TLB_READ_PROT_ERROR(addr);
+            return FALSE;
+        }
     }
 
     switch(entryNo) {
     case -1:
-	MMU_TLB_READ_MISS_ERROR(addr);
-	return FALSE;
+    MMU_TLB_READ_MISS_ERROR(addr);
+    return FALSE;
     case -2:
-	MMU_TLB_MULTI_HIT_ERROR(addr);
-	return FALSE;
+    MMU_TLB_MULTI_HIT_ERROR(addr);
+    return FALSE;
     default:
-	sh4_icache.page_ppa = mmu_itlb[entryNo].ppn & mmu_itlb[entryNo].mask;
-	sh4_icache.page = mem_get_region( sh4_icache.page_ppa );
-	if( sh4_icache.page == NULL ) {
-	    sh4_icache.page_vma = -1;
-	} else {
-	    sh4_icache.page_vma = mmu_itlb[entryNo].vpn & mmu_itlb[entryNo].mask;
-	    sh4_icache.mask = mmu_itlb[entryNo].mask;
-	}
-	return TRUE;
+        sh4_icache.page_ppa = mmu_itlb[entryNo].ppn & mmu_itlb[entryNo].mask;
+        sh4_icache.page = mem_get_region( sh4_icache.page_ppa );
+        if( sh4_icache.page == NULL ) {
+            sh4_icache.page_vma = -1;
+        } else {
+            sh4_icache.page_vma = mmu_itlb[entryNo].vpn & mmu_itlb[entryNo].mask;
+            sh4_icache.mask = mmu_itlb[entryNo].mask;
+        }
+        return TRUE;
     }
 }
 
@@ -860,29 +860,29 @@ gboolean mmu_update_icache( sh4vma_t addr )
 sh4addr_t mmu_vma_to_phys_disasm( sh4vma_t vma )
 {
     if( vma & 0x80000000 ) {
-	if( vma < 0xC0000000 ) {
-	    /* P1, P2 and P4 regions are pass-through (no translation) */
-	    return VMA_TO_EXT_ADDR(vma);
-	} else if( vma >= 0xE0000000 && vma < 0xFFFFFF00 ) {
-	    /* Not translatable */
-	    return MMU_VMA_ERROR;
-	}
+        if( vma < 0xC0000000 ) {
+            /* P1, P2 and P4 regions are pass-through (no translation) */
+            return VMA_TO_EXT_ADDR(vma);
+        } else if( vma >= 0xE0000000 && vma < 0xFFFFFF00 ) {
+            /* Not translatable */
+            return MMU_VMA_ERROR;
+        }
     }
 
     uint32_t mmucr = MMIO_READ(MMU,MMUCR);
     if( (mmucr & MMUCR_AT) == 0 ) {
-	return VMA_TO_EXT_ADDR(vma);
+        return VMA_TO_EXT_ADDR(vma);
     }
-    
+
     int entryNo = mmu_itlb_lookup_vpn( vma );
     if( entryNo == -2 ) {
-	entryNo = mmu_itlb_lookup_vpn_asid( vma );
+        entryNo = mmu_itlb_lookup_vpn_asid( vma );
     }
     if( entryNo < 0 ) {
-	return MMU_VMA_ERROR;
+        return MMU_VMA_ERROR;
     } else {
-	return (mmu_itlb[entryNo].ppn & mmu_itlb[entryNo].mask) | 
-	    (vma & (~mmu_itlb[entryNo].mask));	
+        return (mmu_itlb[entryNo].ppn & mmu_itlb[entryNo].mask) | 
+        (vma & (~mmu_itlb[entryNo].mask));	
     }
 }
 
@@ -894,39 +894,39 @@ gboolean sh4_flush_store_queue( sh4addr_t addr )
     sh4addr_t target;
     /* Store queue operation */
     if( mmucr & MMUCR_AT ) {
-	int entryNo;
-	if( ((mmucr & MMUCR_SV) == 0) || !IS_SH4_PRIVMODE() ) {
-	    entryNo = mmu_utlb_lookup_vpn_asid( addr );
-	} else {
-	    entryNo = mmu_utlb_lookup_vpn( addr );
-	}
-	switch(entryNo) {
-	case -1:
-	    MMU_TLB_WRITE_MISS_ERROR(addr);
-	    return FALSE;
-	case -2:
-	    MMU_TLB_MULTI_HIT_ERROR(addr);
-	    return FALSE;
-	default:
-	    if( IS_SH4_PRIVMODE() ? ((mmu_utlb[entryNo].flags & TLB_WRITABLE) == 0)
-		: ((mmu_utlb[entryNo].flags & TLB_USERWRITABLE) != TLB_USERWRITABLE) ) {
-		/* protection violation */
-		MMU_TLB_WRITE_PROT_ERROR(addr);
-		return FALSE;
-	    }
-	    
-	    if( (mmu_utlb[entryNo].flags & TLB_DIRTY) == 0 ) {
-		MMU_TLB_INITIAL_WRITE_ERROR(addr);
-		return FALSE;
-	    }
-	    
-	    /* finally generate the target address */
-	    target = ((mmu_utlb[entryNo].ppn & mmu_utlb[entryNo].mask) | 
-		      (addr & (~mmu_utlb[entryNo].mask))) & 0xFFFFFFE0;
-	}
+        int entryNo;
+        if( ((mmucr & MMUCR_SV) == 0) || !IS_SH4_PRIVMODE() ) {
+            entryNo = mmu_utlb_lookup_vpn_asid( addr );
+        } else {
+            entryNo = mmu_utlb_lookup_vpn( addr );
+        }
+        switch(entryNo) {
+        case -1:
+        MMU_TLB_WRITE_MISS_ERROR(addr);
+        return FALSE;
+        case -2:
+        MMU_TLB_MULTI_HIT_ERROR(addr);
+        return FALSE;
+        default:
+            if( IS_SH4_PRIVMODE() ? ((mmu_utlb[entryNo].flags & TLB_WRITABLE) == 0)
+                    : ((mmu_utlb[entryNo].flags & TLB_USERWRITABLE) != TLB_USERWRITABLE) ) {
+                /* protection violation */
+                MMU_TLB_WRITE_PROT_ERROR(addr);
+                return FALSE;
+            }
+
+            if( (mmu_utlb[entryNo].flags & TLB_DIRTY) == 0 ) {
+                MMU_TLB_INITIAL_WRITE_ERROR(addr);
+                return FALSE;
+            }
+
+            /* finally generate the target address */
+            target = ((mmu_utlb[entryNo].ppn & mmu_utlb[entryNo].mask) | 
+                    (addr & (~mmu_utlb[entryNo].mask))) & 0xFFFFFFE0;
+        }
     } else {
-	uint32_t hi = (MMIO_READ( MMU, (queue == 0 ? QACR0 : QACR1) ) & 0x1C) << 24;
-	target = (addr&0x03FFFFE0) | hi;
+        uint32_t hi = (MMIO_READ( MMU, (queue == 0 ? QACR0 : QACR1) ) & 0x1C) << 24;
+        target = (addr&0x03FFFFE0) | hi;
     }
     mem_copy_to_sh4( target, src, 32 );
     return TRUE;

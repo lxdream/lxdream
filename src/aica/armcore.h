@@ -16,13 +16,17 @@
  * GNU General Public License for more details.
  */
 
-#ifndef dream_armcore_H
-#define dream_armcore_H 1
+#ifndef lxdream_armcore_H
+#define lxdream_armcore_H 1
 
 #include "lxdream.h"
 #include "mem.h"
 #include <stdint.h>
 #include <stdio.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #define ARM_BASE_RATE 2 /* MHZ */
 extern uint32_t arm_cpu_freq;
@@ -107,4 +111,9 @@ void arm_write_byte_user( uint32_t addr, uint32_t val );
 int32_t arm_read_phys_word( uint32_t addr );
 int arm_has_page( uint32_t addr );
 void arm_mem_init(void);
-#endif /* !dream_armcore_H */
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* !lxdream_armcore_H */

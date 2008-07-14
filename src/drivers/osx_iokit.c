@@ -52,7 +52,7 @@ static gboolean get_bsdname_for_iomedia( io_object_t iomedia, char *buf, int buf
  * we're interested in is service termination.
  */
 static void osx_cdrom_media_notify( void *ref, io_service_t service, uint32_t msgType,
-                              void *msgArgument )
+                                    void *msgArgument )
 {
     if( msgType == kIOMessageServiceIsTerminated ) {
         osx_cdrom_drive_t drive = (osx_cdrom_drive_t)ref;
@@ -79,13 +79,13 @@ static void osx_cdrom_media_notify( void *ref, io_service_t service, uint32_t ms
 static void osx_cdrom_media_inserted( void *ref, io_iterator_t iterator )
 {
     osx_cdrom_drive_t drive = (osx_cdrom_drive_t)ref;
-    
+
     io_object_t object;
     while( (object = IOIteratorNext(iterator)) != 0 ) {
         io_string_t iopath = "";
         IORegistryEntryGetPath( object, kIOServicePlane, iopath );
         if( drive != NULL && g_str_has_prefix(iopath, drive->ioservice_path ) &&
-            get_bsdname_for_iomedia(object, drive->media_path, sizeof(drive->media_path)) ) {
+                get_bsdname_for_iomedia(object, drive->media_path, sizeof(drive->media_path)) ) {
             // A disc was inserted within the drive of interest
             if( drive->media_fh != -1 ) {
                 close(drive->media_fh);
@@ -98,7 +98,7 @@ static void osx_cdrom_media_inserted( void *ref, io_iterator_t iterator )
             // Add a notification listener to get removal events.
             IOServiceAddInterestNotification( notify_port, object, kIOGeneralInterest, 
                                               osx_cdrom_media_notify, drive, &drive->media_unload_iterator ); 
-        
+
         }
         IOObjectRelease( object );
     }
@@ -106,11 +106,11 @@ static void osx_cdrom_media_inserted( void *ref, io_iterator_t iterator )
 
 static void osx_drives_changed( void *ref, io_iterator_t iterator )
 {
-   io_object_t object;
-   while( (object = IOIteratorNext(iterator)) != 0 ) {
-       IOObjectRelease(object);
-   }
-   
+    io_object_t object;
+    while( (object = IOIteratorNext(iterator)) != 0 ) {
+        IOObjectRelease(object);
+    }
+
 }
 
 /******************** Support functions *********************/
@@ -123,13 +123,13 @@ static gboolean get_bsdname_for_iomedia( io_object_t iomedia, char *buf, int buf
 {
     gboolean result = FALSE;
     CFTypeRef pathRef = IORegistryEntryCreateCFProperty(iomedia, CFSTR(kIOBSDNameKey),
-                                                        kCFAllocatorDefault, 0 );
+            kCFAllocatorDefault, 0 );
     if( pathRef ) {
         char pathlen;
         strcpy( buf, _PATH_DEV "r" );
         pathlen = strlen(buf);
         if( CFStringGetCString( pathRef, buf + pathlen, buflen-pathlen,
-            kCFStringEncodingASCII ) != noErr ) {
+                kCFStringEncodingASCII ) != noErr ) {
             result = TRUE;
         }
         CFRelease(pathRef);
@@ -138,7 +138,7 @@ static gboolean get_bsdname_for_iomedia( io_object_t iomedia, char *buf, int buf
 }
 
 static gboolean osx_cdrom_drive_get_name( io_object_t object, char *vendor, int vendor_len,
-                                    char *product, int product_len )
+                                          char *product, int product_len )
 {
     gboolean result = FALSE;
     CFMutableDictionaryRef props = 0;
@@ -152,7 +152,7 @@ static gboolean osx_cdrom_drive_get_name( io_object_t object, char *vendor, int 
             } else {
                 vendor[0] = 0;
             }
-            
+
             value = CFDictionaryGetValue(dict, CFSTR(kIOPropertyProductNameKey));
             if ( value && CFGetTypeID(value) == CFStringGetTypeID() ) {
                 CFStringGetCString( (CFStringRef)value, product, product_len, kCFStringEncodingUTF8 );
@@ -174,7 +174,7 @@ static gboolean osx_cdrom_drive_get_name( io_object_t object, char *vendor, int 
 static osx_cdrom_drive_t osx_cdrom_drive_new( io_object_t device )  
 {
     osx_cdrom_drive_t drive = g_malloc0(sizeof(struct osx_cdrom_drive));
-    
+
     IORegistryEntryGetPath( device, kIOServicePlane, drive->ioservice_path );
     osx_cdrom_drive_get_name( device, drive->vendor_name, sizeof(drive->vendor_name),
                               drive->product_name, sizeof(drive->product_name) );
@@ -199,7 +199,7 @@ osx_cdrom_drive_t osx_cdrom_open_drive( const char *devname )
     if( object == MACH_PORT_NULL ) {
         return NULL;
     }
-    
+
     osx_cdrom_drive_t drive = osx_cdrom_drive_new( object );
     IOObjectRelease( object );
     return drive;
@@ -258,7 +258,7 @@ static io_object_t iterator_find_cdrom( io_object_t iterator, find_drive_callbac
     }
     IOObjectRelease(iterator);
 }
-    
+
 
 /**
  * Search for a CD or DVD drive (instance of IODVDServices or IOCompactDiscServices).
@@ -276,21 +276,21 @@ io_object_t find_cdrom_drive( find_drive_callback_t callback, void *user_data )
     CFMutableDictionaryRef match;
     io_iterator_t services;
     io_object_t result;
-    
+
     if( IOMasterPort( MACH_PORT_NULL, &master_port ) != KERN_SUCCESS ) {
         return 0; // Failed to get the master port?
     }
-    
+
     match = IOServiceMatching("IODVDServices");
     if( IOServiceGetMatchingServices(master_port, match, &services) != kIOReturnSuccess ) {
         return 0;
     }
-    
+
     result = iterator_find_cdrom( services, callback, user_data );
     if( result != 0 ) {
         return result;
     }
-    
+
     match = IOServiceMatching("IOCompactDiscServices");
     if( IOServiceGetMatchingServices(master_port, match, &services) != kIOReturnSuccess ) {
         return 0;
@@ -330,7 +330,7 @@ gboolean osx_register_iokit_notifications()
         ERROR( "IOServiceAddMatchingNotification failed" );
     }
     osx_drives_changed(NULL, iokit_iterators[1]);
-    
+
     if( IOServiceAddMatchingNotification( notify_port, kIOFirstPublishNotification, 
             IOServiceMatching(kIOHIDDeviceKey),
             osx_hid_inserted, NULL, &iokit_iterators[4] ) != kIOReturnSuccess ) {

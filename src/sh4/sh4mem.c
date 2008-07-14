@@ -54,12 +54,12 @@
 #ifdef ENABLE_TRACE_IO
 #define TRACE_IO( str, p, r, ... ) if(io_rgn[(uint32_t)p]->trace_flag && !MMIO_NOTRACE_BYNUM((uint32_t)p,r)) \
     TRACE( str " [%s.%s: %s]", __VA_ARGS__,			       \
-    MMIO_NAME_BYNUM((uint32_t)p), MMIO_REGID_BYNUM((uint32_t)p, r), \
-    MMIO_REGDESC_BYNUM((uint32_t)p, r) )
+            MMIO_NAME_BYNUM((uint32_t)p), MMIO_REGID_BYNUM((uint32_t)p, r), \
+            MMIO_REGDESC_BYNUM((uint32_t)p, r) )
 #define TRACE_P4IO( str, io, r, ... ) if(io->trace_flag && !MMIO_NOTRACE_IOBYNUM(io,r)) \
-TRACE( str " [%s.%s: %s]", __VA_ARGS__, \
-    io->id, MMIO_REGID_IOBYNUM(io, r), \
-    MMIO_REGDESC_IOBYNUM(io, r) )
+    TRACE( str " [%s.%s: %s]", __VA_ARGS__, \
+            io->id, MMIO_REGID_IOBYNUM(io, r), \
+            MMIO_REGDESC_IOBYNUM(io, r) )
 #else
 #define TRACE_IO( str, p, r, ... )
 #define TRACE_P4IO( str, io, r, ... )
@@ -72,26 +72,26 @@ int32_t sh4_read_p4( sh4addr_t addr )
 {
     struct mmio_region *io = P4_io[(addr&0x1FFFFFFF)>>19];
     if( !io ) {
-	switch( addr & 0x1F000000 ) {
-	case 0x00000000: case 0x01000000: case 0x02000000: case 0x03000000: 
-	    /* Store queue - readable? */
-	    return 0;
-	    break;
-	case 0x10000000: return mmu_icache_addr_read( addr );
-	case 0x11000000: return mmu_icache_data_read( addr );
-	case 0x12000000: return mmu_itlb_addr_read( addr );
-	case 0x13000000: return mmu_itlb_data_read( addr );
-	case 0x14000000: return mmu_ocache_addr_read( addr );
-	case 0x15000000: return mmu_ocache_data_read( addr );
-	case 0x16000000: return mmu_utlb_addr_read( addr );
-	case 0x17000000: return mmu_utlb_data_read( addr );
-	default:
+        switch( addr & 0x1F000000 ) {
+        case 0x00000000: case 0x01000000: case 0x02000000: case 0x03000000: 
+            /* Store queue - readable? */
+            return 0;
+            break;
+        case 0x10000000: return mmu_icache_addr_read( addr );
+        case 0x11000000: return mmu_icache_data_read( addr );
+        case 0x12000000: return mmu_itlb_addr_read( addr );
+        case 0x13000000: return mmu_itlb_data_read( addr );
+        case 0x14000000: return mmu_ocache_addr_read( addr );
+        case 0x15000000: return mmu_ocache_data_read( addr );
+        case 0x16000000: return mmu_utlb_addr_read( addr );
+        case 0x17000000: return mmu_utlb_data_read( addr );
+        default:
             WARN( "Attempted read from unknown or invalid P4 region: %08X", addr );
-	    return 0;
+            return 0;
         }
     } else {
-	int32_t val = io->io_read( addr&0xFFF );
-	TRACE_P4IO( "Long read %08X <= %08X", io, (addr&0xFFF), val, addr );
+        int32_t val = io->io_read( addr&0xFFF );
+        TRACE_P4IO( "Long read %08X <= %08X", io, (addr&0xFFF), val, addr );
         return val;
     }    
 }
@@ -100,24 +100,24 @@ void sh4_write_p4( sh4addr_t addr, int32_t val )
 {
     struct mmio_region *io = P4_io[(addr&0x1FFFFFFF)>>19];
     if( !io ) {
-	switch( addr & 0x1F000000 ) {
-	case 0x00000000: case 0x01000000: case 0x02000000: case 0x03000000: 
+        switch( addr & 0x1F000000 ) {
+        case 0x00000000: case 0x01000000: case 0x02000000: case 0x03000000: 
             /* Store queue */
             SH4_WRITE_STORE_QUEUE( addr, val );
-	    break;
-	case 0x10000000: mmu_icache_addr_write( addr, val ); break;
-	case 0x11000000: mmu_icache_data_write( addr, val ); break;
-	case 0x12000000: mmu_itlb_addr_write( addr, val ); break;
-	case 0x13000000: mmu_itlb_data_write( addr, val ); break;
-	case 0x14000000: mmu_ocache_addr_write( addr, val ); break;
-	case 0x15000000: mmu_ocache_data_write( addr, val ); break;
-	case 0x16000000: mmu_utlb_addr_write( addr, val ); break;
-	case 0x17000000: mmu_utlb_data_write( addr, val ); break;
-	default:
+            break;
+        case 0x10000000: mmu_icache_addr_write( addr, val ); break;
+        case 0x11000000: mmu_icache_data_write( addr, val ); break;
+        case 0x12000000: mmu_itlb_addr_write( addr, val ); break;
+        case 0x13000000: mmu_itlb_data_write( addr, val ); break;
+        case 0x14000000: mmu_ocache_addr_write( addr, val ); break;
+        case 0x15000000: mmu_ocache_data_write( addr, val ); break;
+        case 0x16000000: mmu_utlb_addr_write( addr, val ); break;
+        case 0x17000000: mmu_utlb_data_write( addr, val ); break;
+        default:
             WARN( "Attempted write to unknown P4 region: %08X", addr );
         }
     } else {
-	TRACE_P4IO( "Long write %08X => %08X", io, (addr&0xFFF), val, addr );
+        TRACE_P4IO( "Long write %08X => %08X", io, (addr&0xFFF), val, addr );
         io->io_write( addr&0xFFF, val );
     }
 }
@@ -127,7 +127,7 @@ int32_t sh4_read_phys_word( sh4addr_t addr )
     sh4ptr_t page;
     if( addr >= 0xE0000000 ) /* P4 Area, handled specially */
         return SIGNEXT16(sh4_read_p4( addr ));
-    
+
     if( (addr&0x1F800000) == 0x04000000 ) {
         addr = TRANSLATE_VIDEO_64BIT_ADDRESS(addr);
     }
@@ -136,7 +136,7 @@ int32_t sh4_read_phys_word( sh4addr_t addr )
     if( ((uintptr_t)page) < MAX_IO_REGIONS ) { /* IO Region */
         if( page == NULL ) {
             WARN( "Attempted word read to missing page: %08X",
-                   addr );
+                    addr );
             return 0;
         }
         return SIGNEXT16(io_rgn[(uintptr_t)page]->io_read(addr&0xFFF));
@@ -151,24 +151,24 @@ int32_t sh4_read_phys_word( sh4addr_t addr )
 int64_t sh4_read_quad( sh4addr_t addr )
 {
     return ((int64_t)((uint32_t)sh4_read_long(addr))) |
-	(((int64_t)((uint32_t)sh4_read_long(addr+4))) << 32);
+    (((int64_t)((uint32_t)sh4_read_long(addr+4))) << 32);
 }
 
 int32_t sh4_read_long( sh4addr_t addr )
 {
     sh4ptr_t page;
-    
+
     CHECK_READ_WATCH(addr,4);
 
     if( addr >= 0xE0000000 ) { /* P4 Area, handled specially */
         return ZEROEXT32(sh4_read_p4( addr ));
     } else if( (addr&0x1C000000) == 0x0C000000 ) {
-	return ZEROEXT32(*(int32_t *)(sh4_main_ram + (addr&0x00FFFFFF)));
+        return ZEROEXT32(*(int32_t *)(sh4_main_ram + (addr&0x00FFFFFF)));
     } else if( (addr&0x1F800000) == 0x04000000 ) {
         addr = TRANSLATE_VIDEO_64BIT_ADDRESS(addr);
-	pvr2_render_buffer_invalidate(addr, FALSE);
+        pvr2_render_buffer_invalidate(addr, FALSE);
     } else if( (addr&0x1F800000) == 0x05000000 ) {
-	pvr2_render_buffer_invalidate(addr, FALSE);
+        pvr2_render_buffer_invalidate(addr, FALSE);
     }
 
     page = page_map[ (addr & 0x1FFFFFFF) >> 12 ];
@@ -195,19 +195,19 @@ int32_t sh4_read_word( sh4addr_t addr )
     if( addr >= 0xE0000000 ) { /* P4 Area, handled specially */
         return ZEROEXT32(SIGNEXT16(sh4_read_p4( addr )));
     } else if( (addr&0x1C000000) == 0x0C000000 ) {
-	return ZEROEXT32(SIGNEXT16(*(int16_t *)(sh4_main_ram + (addr&0x00FFFFFF))));
+        return ZEROEXT32(SIGNEXT16(*(int16_t *)(sh4_main_ram + (addr&0x00FFFFFF))));
     } else if( (addr&0x1F800000) == 0x04000000 ) {
         addr = TRANSLATE_VIDEO_64BIT_ADDRESS(addr);
-	pvr2_render_buffer_invalidate(addr, FALSE);
+        pvr2_render_buffer_invalidate(addr, FALSE);
     } else if( (addr&0x1F800000) == 0x05000000 ) {
-	pvr2_render_buffer_invalidate(addr, FALSE);
+        pvr2_render_buffer_invalidate(addr, FALSE);
     }
-    
+
     page = page_map[ (addr & 0x1FFFFFFF) >> 12 ];
     if( ((uintptr_t)page) < MAX_IO_REGIONS ) { /* IO Region */
         int32_t val;
         if( page == NULL ) {
-	    WARN( "Attempted word read to missing page: %08X", addr );
+            WARN( "Attempted word read to missing page: %08X", addr );
             return 0;
         }
         val = SIGNEXT16(io_rgn[(uintptr_t)page]->io_read(addr&0xFFF));
@@ -227,15 +227,15 @@ int32_t sh4_read_byte( sh4addr_t addr )
     if( addr >= 0xE0000000 ) { /* P4 Area, handled specially */
         return ZEROEXT32(SIGNEXT8(sh4_read_p4( addr )));
     } else if( (addr&0x1C000000) == 0x0C000000 ) {
-	return ZEROEXT32(SIGNEXT8(*(int8_t *)(sh4_main_ram + (addr&0x00FFFFFF))));
+        return ZEROEXT32(SIGNEXT8(*(int8_t *)(sh4_main_ram + (addr&0x00FFFFFF))));
     } else if( (addr&0x1F800000) == 0x04000000 ) {
         addr = TRANSLATE_VIDEO_64BIT_ADDRESS(addr);
-    	pvr2_render_buffer_invalidate(addr, FALSE);
+        pvr2_render_buffer_invalidate(addr, FALSE);
     } else if( (addr&0x1F800000) == 0x05000000 ) {
-	pvr2_render_buffer_invalidate(addr, FALSE);
+        pvr2_render_buffer_invalidate(addr, FALSE);
     }
 
-    
+
     page = page_map[ (addr & 0x1FFFFFFF) >> 12 ];
     if( ((uintptr_t)page) < MAX_IO_REGIONS ) { /* IO Region */
         int32_t val;
@@ -270,16 +270,16 @@ void sh4_write_long( sh4addr_t addr, uint32_t val )
         sh4_write_p4( addr, val );
         return;
     } else if( (addr&0x1C000000) == 0x0C000000 ) {
-	*(uint32_t *)(sh4_main_ram + (addr&0x00FFFFFF)) = val;
-	xlat_invalidate_long(addr);
-	return;
+        *(uint32_t *)(sh4_main_ram + (addr&0x00FFFFFF)) = val;
+        xlat_invalidate_long(addr);
+        return;
     } else if( (addr&0x1F800000) == 0x04000000 || 
-	       (addr&0x1F800000) == 0x11000000 ) {
-	texcache_invalidate_page(addr& 0x7FFFFF);
+            (addr&0x1F800000) == 0x11000000 ) {
+        texcache_invalidate_page(addr& 0x7FFFFF);
         addr = TRANSLATE_VIDEO_64BIT_ADDRESS(addr);
-	pvr2_render_buffer_invalidate(addr, TRUE);
+        pvr2_render_buffer_invalidate(addr, TRUE);
     } else if( (addr&0x1F800000) == 0x05000000 ) {
-	pvr2_render_buffer_invalidate(addr, TRUE);
+        pvr2_render_buffer_invalidate(addr, TRUE);
     }
 
     if( (addr&0x1FFFFFFF) < 0x200000 ) {
@@ -288,14 +288,14 @@ void sh4_write_long( sh4addr_t addr, uint32_t val )
         return;
     }
     if( (addr&0x1F800000) == 0x00800000 )
-	asic_g2_write_word();
+        asic_g2_write_word();
 
     page = page_map[ (addr & 0x1FFFFFFF) >> 12 ];
     if( ((uintptr_t)page) < MAX_IO_REGIONS ) { /* IO Region */
         if( page == NULL ) {
-	    if( (addr & 0x1F000000) >= 0x04000000 &&
-		(addr & 0x1F000000) < 0x07000000 )
-		return;
+            if( (addr & 0x1F000000) >= 0x04000000 &&
+                    (addr & 0x1F000000) < 0x07000000 )
+                return;
             WARN( "Long write to missing page: %08X => %08X", val, addr );
             return;
         }
@@ -316,16 +316,16 @@ void sh4_write_word( sh4addr_t addr, uint32_t val )
         sh4_write_p4( addr, (int16_t)val );
         return;
     } else if( (addr&0x1C000000) == 0x0C000000 ) {
-	*(uint16_t *)(sh4_main_ram + (addr&0x00FFFFFF)) = val;
-	xlat_invalidate_word(addr);
-	return;
+        *(uint16_t *)(sh4_main_ram + (addr&0x00FFFFFF)) = val;
+        xlat_invalidate_word(addr);
+        return;
     } else if( (addr&0x1F800000) == 0x04000000 ||
-	(addr&0x1F800000) == 0x11000000 ) {
-	texcache_invalidate_page(addr& 0x7FFFFF);
+            (addr&0x1F800000) == 0x11000000 ) {
+        texcache_invalidate_page(addr& 0x7FFFFF);
         addr = TRANSLATE_VIDEO_64BIT_ADDRESS(addr);
-	pvr2_render_buffer_invalidate(addr, TRUE);
+        pvr2_render_buffer_invalidate(addr, TRUE);
     } else if( (addr&0x1F800000) == 0x05000000 ) {
-	pvr2_render_buffer_invalidate(addr, TRUE);
+        pvr2_render_buffer_invalidate(addr, TRUE);
     }
 
     if( (addr&0x1FFFFFFF) < 0x200000 ) {
@@ -356,18 +356,18 @@ void sh4_write_byte( sh4addr_t addr, uint32_t val )
         sh4_write_p4( addr, (int8_t)val );
         return;
     } else if( (addr&0x1C000000) == 0x0C000000 ) {
-	*(uint8_t *)(sh4_main_ram + (addr&0x00FFFFFF)) = val;
-	xlat_invalidate_word(addr);
-	return;
+        *(uint8_t *)(sh4_main_ram + (addr&0x00FFFFFF)) = val;
+        xlat_invalidate_word(addr);
+        return;
     } else if( (addr&0x1F800000) == 0x04000000 ||
-	       (addr&0x1F800000) == 0x11000000 ) {
-	texcache_invalidate_page(addr& 0x7FFFFF);
+            (addr&0x1F800000) == 0x11000000 ) {
+        texcache_invalidate_page(addr& 0x7FFFFF);
         addr = TRANSLATE_VIDEO_64BIT_ADDRESS(addr);
-	pvr2_render_buffer_invalidate(addr, TRUE);
+        pvr2_render_buffer_invalidate(addr, TRUE);
     } else if( (addr&0x1F800000) == 0x05000000 ) {
-	pvr2_render_buffer_invalidate(addr, TRUE);
+        pvr2_render_buffer_invalidate(addr, TRUE);
     }
-    
+
     if( (addr&0x1FFFFFFF) < 0x200000 ) {
         WARN( "Attempted write to read-only memory: %08X => %08X", val, addr);
         sh4_stop();
@@ -393,33 +393,33 @@ void sh4_write_byte( sh4addr_t addr, uint32_t val )
  */
 void mem_copy_from_sh4( sh4ptr_t dest, sh4addr_t srcaddr, size_t count ) {
     if( srcaddr >= 0x04000000 && srcaddr < 0x05000000 ) {
-	pvr2_vram64_read( dest, srcaddr, count );
+        pvr2_vram64_read( dest, srcaddr, count );
     } else {
-	sh4ptr_t src = mem_get_region(srcaddr);
-	if( src == NULL ) {
-	    WARN( "Attempted block read from unknown address %08X", srcaddr );
-	} else {
-	    memcpy( dest, src, count );
-	}
+        sh4ptr_t src = mem_get_region(srcaddr);
+        if( src == NULL ) {
+            WARN( "Attempted block read from unknown address %08X", srcaddr );
+        } else {
+            memcpy( dest, src, count );
+        }
     }
 }
 
 void mem_copy_to_sh4( sh4addr_t destaddr, sh4ptr_t src, size_t count ) {
     if( destaddr >= 0x10000000 && destaddr < 0x14000000 ) {
-	pvr2_dma_write( destaddr, src, count );
-	return;
+        pvr2_dma_write( destaddr, src, count );
+        return;
     } else if( (destaddr & 0x1F800000) == 0x05000000 ) {
-	pvr2_render_buffer_invalidate( destaddr, TRUE );
+        pvr2_render_buffer_invalidate( destaddr, TRUE );
     } else if( (destaddr & 0x1F800000) == 0x04000000 ) {
-	pvr2_vram64_write( destaddr, src, count );
-	return;
+        pvr2_vram64_write( destaddr, src, count );
+        return;
     }
     sh4ptr_t dest = mem_get_region(destaddr);
     if( dest == NULL )
-	WARN( "Attempted block write to unknown address %08X", destaddr );
+        WARN( "Attempted block write to unknown address %08X", destaddr );
     else {
-	xlat_invalidate_block( destaddr, count );
-	memcpy( dest, src, count );
+        xlat_invalidate_block( destaddr, count );
+        memcpy( dest, src, count );
     }
 }
 
@@ -427,7 +427,7 @@ sh4ptr_t sh4_get_region_by_vma( sh4addr_t vma )
 {
     sh4addr_t addr = mmu_vma_to_phys_read(vma);
     if( addr == MMU_VMA_ERROR ) {
-	return NULL;
+        return NULL;
     }
 
     sh4ptr_t page = page_map[ (addr & 0x1FFFFFFF) >> 12 ];

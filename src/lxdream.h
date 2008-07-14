@@ -16,8 +16,8 @@
  * GNU General Public License for more details.
  */
 
-#ifndef lxdream_common_H
-#define lxdream_common_H 1
+#ifndef lxdream_lxdream_H
+#define lxdream_lxdream_H 1
 
 #include <stdint.h>
 #include <glib/gtypes.h>
@@ -89,4 +89,4 @@ void log_message( void *, int level, const char *source, const char *msg, ... );
 }
 #endif
 
-#endif /* !lxdream_common_H */
+#endif /* !lxdream_lxdream_H */

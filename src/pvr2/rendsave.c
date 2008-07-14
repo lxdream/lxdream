@@ -49,20 +49,20 @@ static void pvr2_find_referenced_pages( char *pages )
 int pvr2_render_save_scene( const gchar *filename )
 {
     struct header {
-	char magic[16];
-	uint32_t version;
-	uint32_t timestamp;
-	uint32_t frame_count;
+        char magic[16];
+        uint32_t version;
+        uint32_t timestamp;
+        uint32_t frame_count;
     } scene_header;
 
     char page_map[SAVE_PAGE_COUNT];
     int i,j;
     pvr2_find_referenced_pages(page_map);
-    
+
     FILE *f = fopen( filename, "wo" ); 
     if( f == NULL ) {
-	ERROR( "Unable to open file '%s' to write scene data: %s", filename, strerror(errno) );
-	return -1;
+        ERROR( "Unable to open file '%s' to write scene data: %s", filename, strerror(errno) );
+        return -1;
     }
 
     /* Header */
@@ -81,16 +81,16 @@ int pvr2_render_save_scene( const gchar *filename )
 
     /* Write out the VRAM pages we care about */
     for( i=0; i<SAVE_PAGE_COUNT; i++ ) {
-	if( page_map[i] != 0 ) {
-	    for( j=i+1; j<SAVE_PAGE_COUNT && page_map[j] != 0; j++ );
-	    /* Write region from i..j-1 */
-	    uint32_t start = i * SAVE_PAGE_SIZE;
-	    uint32_t length = (j-i) * SAVE_PAGE_SIZE;
-	    fwrite( &start, sizeof(uint32_t), 1, f );
-	    fwrite( &length, sizeof(uint32_t), 1, f );
-	    fwrite( video_base + start, 1, length, f );
-	    i = j-1;
-	}
+        if( page_map[i] != 0 ) {
+            for( j=i+1; j<SAVE_PAGE_COUNT && page_map[j] != 0; j++ );
+            /* Write region from i..j-1 */
+            uint32_t start = i * SAVE_PAGE_SIZE;
+            uint32_t length = (j-i) * SAVE_PAGE_SIZE;
+            fwrite( &start, sizeof(uint32_t), 1, f );
+            fwrite( &length, sizeof(uint32_t), 1, f );
+            fwrite( video_base + start, 1, length, f );
+            i = j-1;
+        }
     }
     /* Write out the EOF marker */
     uint32_t eof = 0xFFFFFFFF;

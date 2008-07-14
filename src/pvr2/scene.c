@@ -76,16 +76,16 @@ void pvr2_scene_init()
 {
     if( !vbo_init ) {
 #ifdef ENABLE_VERTEX_BUFFER
-	if( isGLVertexBufferSupported() ) {
-	    vbo_supported = TRUE;
-	    pvr2_scene.vbo_id = 1;
-	}
+        if( isGLVertexBufferSupported() ) {
+            vbo_supported = TRUE;
+            pvr2_scene.vbo_id = 1;
+        }
 #endif
-	pvr2_scene.vertex_array = NULL;
-	pvr2_scene.vertex_array_size = 0;
-	pvr2_scene.poly_array = g_malloc( MAX_POLY_BUFFER_SIZE );
-	pvr2_scene.buf_to_poly_map = g_malloc0( BUF_POLY_MAP_SIZE );
-	vbo_init = TRUE;
+        pvr2_scene.vertex_array = NULL;
+        pvr2_scene.vertex_array_size = 0;
+        pvr2_scene.poly_array = g_malloc( MAX_POLY_BUFFER_SIZE );
+        pvr2_scene.buf_to_poly_map = g_malloc0( BUF_POLY_MAP_SIZE );
+        vbo_init = TRUE;
     }
 }
 
@@ -103,13 +103,13 @@ void pvr2_scene_shutdown()
 {
 #ifdef ENABLE_VERTEX_BUFFER
     if( vbo_supported ) {
-	glBindBufferARB( GL_ARRAY_BUFFER_ARB, 0 );
-	glDeleteBuffersARB( 1, &pvr2_scene.vbo_id );
-	pvr2_scene.vbo_id = 0;
+        glBindBufferARB( GL_ARRAY_BUFFER_ARB, 0 );
+        glDeleteBuffersARB( 1, &pvr2_scene.vbo_id );
+        pvr2_scene.vbo_id = 0;
     } else {
 #endif
-	g_free( pvr2_scene.vertex_array );
-	pvr2_scene.vertex_array = NULL;
+        g_free( pvr2_scene.vertex_array );
+        pvr2_scene.vertex_array = NULL;
 #ifdef ENABLE_VERTEX_BUFFER
     }
 #endif
@@ -128,23 +128,23 @@ void *vertex_buffer_map()
 #ifdef ENABLE_VERTEX_BUFFER
     if( vbo_supported ) {
         glGetError();
-	glBindBufferARB( GL_ARRAY_BUFFER_ARB, pvr2_scene.vbo_id );
-	if( size > pvr2_scene.vertex_array_size ) {
-	    glBufferDataARB( GL_ARRAY_BUFFER_ARB, size, NULL, GL_DYNAMIC_DRAW_ARB );
-	    int status = glGetError();
-	    if( status != 0 ) {
-		fprintf( stderr, "Error %08X allocating vertex buffer\n", status );
-		abort();
-	    }
-	    pvr2_scene.vertex_array_size = size;
-	}
-	pvr2_scene.vertex_array = glMapBufferARB( GL_ARRAY_BUFFER_ARB, GL_WRITE_ONLY_ARB );
-	assert(pvr2_scene.vertex_array != NULL );
+        glBindBufferARB( GL_ARRAY_BUFFER_ARB, pvr2_scene.vbo_id );
+        if( size > pvr2_scene.vertex_array_size ) {
+            glBufferDataARB( GL_ARRAY_BUFFER_ARB, size, NULL, GL_DYNAMIC_DRAW_ARB );
+            int status = glGetError();
+            if( status != 0 ) {
+                fprintf( stderr, "Error %08X allocating vertex buffer\n", status );
+                abort();
+            }
+            pvr2_scene.vertex_array_size = size;
+        }
+        pvr2_scene.vertex_array = glMapBufferARB( GL_ARRAY_BUFFER_ARB, GL_WRITE_ONLY_ARB );
+        assert(pvr2_scene.vertex_array != NULL );
     } else {
 #endif
-	if( size > pvr2_scene.vertex_array_size ) {
-	    pvr2_scene.vertex_array = g_realloc( pvr2_scene.vertex_array, size );
-	}
+        if( size > pvr2_scene.vertex_array_size ) {
+            pvr2_scene.vertex_array = g_realloc( pvr2_scene.vertex_array, size );
+        }
 #ifdef ENABLE_VERTEX_BUFFER
     }
 #endif
@@ -155,10 +155,10 @@ gboolean vertex_buffer_unmap()
 {
 #ifdef ENABLE_VERTEX_BUFFER
     if( vbo_supported ) {
-	pvr2_scene.vertex_array = NULL;
-	return glUnmapBufferARB( GL_ARRAY_BUFFER_ARB );
+        pvr2_scene.vertex_array = NULL;
+        return glUnmapBufferARB( GL_ARRAY_BUFFER_ARB );
     } else {
-	return TRUE;
+        return TRUE;
     }
 #else
     return TRUE;
@@ -200,8 +200,8 @@ static struct polygon_struct *scene_add_polygon( pvraddr_t poly_idx, int vertex_
  *        the normal vertex, half the vertex length for the modified vertex.
  */
 static void pvr2_decode_render_vertex( struct vertex_struct *vert, uint32_t poly1, 
-				       uint32_t poly2, uint32_t *pvr2_data, 
-				       int modify_offset )
+                                       uint32_t poly2, uint32_t *pvr2_data, 
+                                       int modify_offset )
 {
     gboolean force_alpha = !POLY2_ALPHA_ENABLE(poly2);
     union pvr2_data_type {
@@ -265,8 +265,8 @@ static void pvr2_decode_render_vertex( struct vertex_struct *vert, uint32_t poly
  */
 static void scene_compute_vertexes( struct vertex_struct *result, 
                                     int result_count,
-					                struct vertex_struct *input,
-					                gboolean is_solid_shaded )
+                                    struct vertex_struct *input,
+                                    gboolean is_solid_shaded )
 {
     int i,j;
     float sx = input[2].x - input[1].x;
@@ -330,7 +330,7 @@ static void scene_compute_vertexes( struct vertex_struct *result,
 }
 
 static void scene_add_vertexes( pvraddr_t poly_idx, int vertex_length,
-        gboolean is_modified )
+                                gboolean is_modified )
 {
     struct polygon_struct *poly = pvr2_scene.buf_to_poly_map[poly_idx];
     uint32_t *ptr = &pvr2_scene.pvr2_pbuf[poly_idx];
@@ -361,7 +361,7 @@ static void scene_add_vertexes( pvraddr_t poly_idx, int vertex_length,
 }
 
 static void scene_add_quad_vertexes( pvraddr_t poly_idx, int vertex_length, 
-					     gboolean is_modified )
+                                     gboolean is_modified )
 {
     struct polygon_struct *poly = pvr2_scene.buf_to_poly_map[poly_idx];
     uint32_t *ptr = &pvr2_scene.pvr2_pbuf[poly_idx];
@@ -369,41 +369,41 @@ static void scene_add_quad_vertexes( pvraddr_t poly_idx, int vertex_length,
     unsigned int i;
 
     if( poly->vertex_index == -1 ) {
-	// Construct it locally and copy to the vertex buffer, as the VBO is 
-	// allowed to be horribly slow for reads (ie it could be direct-mapped
-	// vram).
-	struct vertex_struct quad[4];
-	
-	assert( poly != NULL );
-	assert( pvr2_scene.vertex_index + poly->vertex_count <= pvr2_scene.vertex_count );
-	ptr += (is_modified ? 5 : 3 );
-	poly->vertex_index = pvr2_scene.vertex_index;
-	for( i=0; i<4; i++ ) {
-	    pvr2_decode_render_vertex( &quad[i], context[0], context[1], ptr, 0 );
-	    ptr += vertex_length;
-	}
-	scene_compute_vertexes( &quad[3], 1, &quad[0], !POLY1_GOURAUD_SHADED(context[0]) );
-	// Swap last two vertexes (quad arrangement => tri strip arrangement)
-	memcpy( &pvr2_scene.vertex_array[pvr2_scene.vertex_index], quad, sizeof(struct vertex_struct)*2 );
-	memcpy( &pvr2_scene.vertex_array[pvr2_scene.vertex_index+2], &quad[3], sizeof(struct vertex_struct) );
-	memcpy( &pvr2_scene.vertex_array[pvr2_scene.vertex_index+3], &quad[2], sizeof(struct vertex_struct) );
-	pvr2_scene.vertex_index += 4;
-	
-	if( is_modified ) {
-        int mod_offset = (vertex_length - 3)>>1;
-	    assert( pvr2_scene.vertex_index + poly->vertex_count <= pvr2_scene.vertex_count );
-	    ptr = &pvr2_scene.pvr2_pbuf[poly_idx] + 5;
-	    poly->mod_vertex_index = pvr2_scene.vertex_index;
-	    for( i=0; i<4; i++ ) {
-		pvr2_decode_render_vertex( &quad[4], context[0], context[3], ptr, mod_offset );
-		ptr += vertex_length;
-	    }
+        // Construct it locally and copy to the vertex buffer, as the VBO is 
+        // allowed to be horribly slow for reads (ie it could be direct-mapped
+        // vram).
+        struct vertex_struct quad[4];
+
+        assert( poly != NULL );
+        assert( pvr2_scene.vertex_index + poly->vertex_count <= pvr2_scene.vertex_count );
+        ptr += (is_modified ? 5 : 3 );
+        poly->vertex_index = pvr2_scene.vertex_index;
+        for( i=0; i<4; i++ ) {
+            pvr2_decode_render_vertex( &quad[i], context[0], context[1], ptr, 0 );
+            ptr += vertex_length;
+        }
         scene_compute_vertexes( &quad[3], 1, &quad[0], !POLY1_GOURAUD_SHADED(context[0]) );
-	    memcpy( &pvr2_scene.vertex_array[pvr2_scene.vertex_index], quad, sizeof(struct vertex_struct)*2 );
-	    memcpy( &pvr2_scene.vertex_array[pvr2_scene.vertex_index+2], &quad[3], sizeof(struct vertex_struct) );
-	    memcpy( &pvr2_scene.vertex_array[pvr2_scene.vertex_index+3], &quad[2], sizeof(struct vertex_struct) );
-	    pvr2_scene.vertex_index += 4;
-	}
+        // Swap last two vertexes (quad arrangement => tri strip arrangement)
+        memcpy( &pvr2_scene.vertex_array[pvr2_scene.vertex_index], quad, sizeof(struct vertex_struct)*2 );
+        memcpy( &pvr2_scene.vertex_array[pvr2_scene.vertex_index+2], &quad[3], sizeof(struct vertex_struct) );
+        memcpy( &pvr2_scene.vertex_array[pvr2_scene.vertex_index+3], &quad[2], sizeof(struct vertex_struct) );
+        pvr2_scene.vertex_index += 4;
+
+        if( is_modified ) {
+            int mod_offset = (vertex_length - 3)>>1;
+            assert( pvr2_scene.vertex_index + poly->vertex_count <= pvr2_scene.vertex_count );
+            ptr = &pvr2_scene.pvr2_pbuf[poly_idx] + 5;
+            poly->mod_vertex_index = pvr2_scene.vertex_index;
+            for( i=0; i<4; i++ ) {
+                pvr2_decode_render_vertex( &quad[4], context[0], context[3], ptr, mod_offset );
+                ptr += vertex_length;
+            }
+            scene_compute_vertexes( &quad[3], 1, &quad[0], !POLY1_GOURAUD_SHADED(context[0]) );
+            memcpy( &pvr2_scene.vertex_array[pvr2_scene.vertex_index], quad, sizeof(struct vertex_struct)*2 );
+            memcpy( &pvr2_scene.vertex_array[pvr2_scene.vertex_index+2], &quad[3], sizeof(struct vertex_struct) );
+            memcpy( &pvr2_scene.vertex_array[pvr2_scene.vertex_index+3], &quad[2], sizeof(struct vertex_struct) );
+            pvr2_scene.vertex_index += 4;
+        }
     }
 }
 
@@ -476,54 +476,54 @@ static void scene_extract_vertexes( pvraddr_t tile_entry )
 {
     uint32_t *tile_list = (uint32_t *)(video_base+tile_entry);
     do {
-	uint32_t entry = *tile_list++;
-	if( entry >> 28 == 0x0F ) {
-	    break;
-	} else if( entry >> 28 == 0x0E ) {
-	    tile_list = (uint32_t *)(video_base + (entry&0x007FFFFF));
-	} else {
-	    pvraddr_t polyaddr = entry&0x000FFFFF;
-	    int is_modified = (entry & 0x01000000) && pvr2_scene.full_shadow;
-	    int vertex_length = (entry >> 21) & 0x07;
-	    int context_length = 3;
-	    if( is_modified ) {
-		context_length = 5;
-		vertex_length <<=1 ;
-	    }
-	    vertex_length += 3;
-	    
-	    if( (entry & 0xE0000000) == 0x80000000 ) {
-		/* Triangle(s) */
-		int strip_count = ((entry >> 25) & 0x0F)+1;
-		int polygon_length = 3 * vertex_length + context_length;
-		int i;
-		for( i=0; i<strip_count; i++ ) {
-		    scene_add_vertexes( polyaddr, vertex_length, is_modified );
-		    polyaddr += polygon_length;
-		}
-	    } else if( (entry & 0xE0000000) == 0xA0000000 ) {
-		/* Sprite(s) */
-		int strip_count = ((entry >> 25) & 0x0F)+1;
-		int polygon_length = 4 * vertex_length + context_length;
-		int i;
-		for( i=0; i<strip_count; i++ ) {
-		    scene_add_quad_vertexes( polyaddr, vertex_length, is_modified );
-		    polyaddr += polygon_length;
-		}
-	    } else {
-		/* Polygon */
-		int i, last = -1;
-		for( i=5; i>=0; i-- ) {
-		    if( entry & (0x40000000>>i) ) {
-			last = i;
-			break;
-		    }
-		}
-		if( last != -1 ) {
-		    scene_add_vertexes( polyaddr, vertex_length, is_modified );
-		}
-	    }
-	}
+        uint32_t entry = *tile_list++;
+        if( entry >> 28 == 0x0F ) {
+            break;
+        } else if( entry >> 28 == 0x0E ) {
+            tile_list = (uint32_t *)(video_base + (entry&0x007FFFFF));
+        } else {
+            pvraddr_t polyaddr = entry&0x000FFFFF;
+            int is_modified = (entry & 0x01000000) && pvr2_scene.full_shadow;
+            int vertex_length = (entry >> 21) & 0x07;
+            int context_length = 3;
+            if( is_modified ) {
+                context_length = 5;
+                vertex_length <<=1 ;
+            }
+            vertex_length += 3;
+
+            if( (entry & 0xE0000000) == 0x80000000 ) {
+                /* Triangle(s) */
+                int strip_count = ((entry >> 25) & 0x0F)+1;
+                int polygon_length = 3 * vertex_length + context_length;
+                int i;
+                for( i=0; i<strip_count; i++ ) {
+                    scene_add_vertexes( polyaddr, vertex_length, is_modified );
+                    polyaddr += polygon_length;
+                }
+            } else if( (entry & 0xE0000000) == 0xA0000000 ) {
+                /* Sprite(s) */
+                int strip_count = ((entry >> 25) & 0x0F)+1;
+                int polygon_length = 4 * vertex_length + context_length;
+                int i;
+                for( i=0; i<strip_count; i++ ) {
+                    scene_add_quad_vertexes( polyaddr, vertex_length, is_modified );
+                    polyaddr += polygon_length;
+                }
+            } else {
+                /* Polygon */
+                int i, last = -1;
+                for( i=5; i>=0; i-- ) {
+                    if( entry & (0x40000000>>i) ) {
+                        last = i;
+                        break;
+                    }
+                }
+                if( last != -1 ) {
+                    scene_add_vertexes( polyaddr, vertex_length, is_modified );
+                }
+            }
+        }
     } while( 1 );    
 }
 
@@ -553,12 +553,12 @@ static void scene_extract_background( void )
 
     poly->next = NULL;
     pvr2_scene.bkgnd_poly = poly;
-    
+
     struct vertex_struct base_vertexes[3];
     uint32_t *ptr = context + context_length; 
     for( i=0; i<3; i++ ) {
         pvr2_decode_render_vertex( &base_vertexes[i], context[0], context[1],
-                                   ptr, 0 );
+                ptr, 0 );
         ptr += vertex_length;
     }
     struct vertex_struct *result_vertexes = &pvr2_scene.vertex_array[poly->vertex_index];
@@ -573,7 +573,7 @@ static void scene_extract_background( void )
         ptr = context + context_length;
         for( i=0; i<3; i++ ) {
             pvr2_decode_render_vertex( &base_vertexes[i], context[0], context[3],
-                                       ptr, mod_offset );
+                    ptr, mod_offset );
             ptr += vertex_length;
         }
         result_vertexes = &pvr2_scene.vertex_array[poly->mod_vertex_index];
@@ -583,7 +583,7 @@ static void scene_extract_background( void )
         result_vertexes[2].y = result_vertexes[3].y  = pvr2_scene.buffer_height;
         scene_compute_vertexes( result_vertexes, 4, base_vertexes, !POLY1_GOURAUD_SHADED(context[0]) );
     }
-        
+
 }
 
 
@@ -677,9 +677,9 @@ void pvr2_scene_read( void )
             segment++;
         }
     } while( (control & SEGMENT_END) == 0 );
-    
+
     scene_extract_background();
- 
+
     vertex_buffer_unmap();
 }
 
@@ -692,33 +692,33 @@ void pvr2_scene_dump( FILE *f )
 
     fprintf( f, "Polygons: %d\n", pvr2_scene.poly_count );
     for( i=0; i<pvr2_scene.poly_count; i++ ) {
-	struct polygon_struct *poly = &pvr2_scene.poly_array[i];
-	fprintf( f, "  %08X ", ((unsigned char *)poly->context) - video_base );
-	switch( poly->vertex_count ) {
-	case 3: fprintf( f, "Tri     " ); break;
-	case 4: fprintf( f, "Quad    " ); break;
-	default: fprintf( f,"%d-Strip ", poly->vertex_count-2 ); break;
-	}
-	fprintf( f, "%08X %08X %08X ", poly->context[0], poly->context[1], poly->context[2] );
-	if( poly->mod_vertex_index != -1 ) {
-	    fprintf( f, "%08X %08X\n", poly->context[3], poly->context[5] );
-	} else {
-	    fprintf( f, "\n" );
-	}
-	
-	for( j=0; j<poly->vertex_count; j++ ) {
-	    struct vertex_struct *v = &pvr2_scene.vertex_array[poly->vertex_index+j];
-	    fprintf( f, "    %.5f %.5f %.5f, (%.5f,%.5f) %08X %08X\n", v->x, v->y, v->z, v->u, v->v,
-		     v->rgba, v->offset_rgba );
-	}
-	if( poly->mod_vertex_index != -1 ) {
-	    fprintf( f, "  ---\n" );
-	    for( j=0; j<poly->vertex_count; j++ ) {
-		struct vertex_struct *v = &pvr2_scene.vertex_array[poly->mod_vertex_index+j];
-		fprintf( f, "    %.5f %.5f %.5f, (%.5f,%.5f) %08X %08X\n", v->x, v->y, v->z, v->u, v->v,
-			 v->rgba, v->offset_rgba );
-	    }
-	}
+        struct polygon_struct *poly = &pvr2_scene.poly_array[i];
+        fprintf( f, "  %08X ", ((unsigned char *)poly->context) - video_base );
+        switch( poly->vertex_count ) {
+        case 3: fprintf( f, "Tri     " ); break;
+        case 4: fprintf( f, "Quad    " ); break;
+        default: fprintf( f,"%d-Strip ", poly->vertex_count-2 ); break;
+        }
+        fprintf( f, "%08X %08X %08X ", poly->context[0], poly->context[1], poly->context[2] );
+        if( poly->mod_vertex_index != -1 ) {
+            fprintf( f, "%08X %08X\n", poly->context[3], poly->context[5] );
+        } else {
+            fprintf( f, "\n" );
+        }
+
+        for( j=0; j<poly->vertex_count; j++ ) {
+            struct vertex_struct *v = &pvr2_scene.vertex_array[poly->vertex_index+j];
+            fprintf( f, "    %.5f %.5f %.5f, (%.5f,%.5f) %08X %08X\n", v->x, v->y, v->z, v->u, v->v,
+                     v->rgba, v->offset_rgba );
+        }
+        if( poly->mod_vertex_index != -1 ) {
+            fprintf( f, "  ---\n" );
+            for( j=0; j<poly->vertex_count; j++ ) {
+                struct vertex_struct *v = &pvr2_scene.vertex_array[poly->mod_vertex_index+j];
+                fprintf( f, "    %.5f %.5f %.5f, (%.5f,%.5f) %08X %08X\n", v->x, v->y, v->z, v->u, v->v,
+                         v->rgba, v->offset_rgba );
+            }
+        }
     }
 
 }

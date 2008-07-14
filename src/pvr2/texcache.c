@@ -64,12 +64,12 @@ void texcache_init( )
 {
     int i;
     for( i=0; i<PVR2_RAM_PAGES; i++ ) {
-	texcache_page_lookup[i] = EMPTY_ENTRY;
+        texcache_page_lookup[i] = EMPTY_ENTRY;
     }
     for( i=0; i<MAX_TEXTURES; i++ ) {
-	texcache_free_list[i] = i;
-	texcache_active_list[i].texture_addr = -1;
-	texcache_active_list[i].next = EMPTY_ENTRY;
+        texcache_free_list[i] = i;
+        texcache_active_list[i].texture_addr = -1;
+        texcache_active_list[i].next = EMPTY_ENTRY;
     }
     texcache_free_ptr = 0;
     texcache_ref_counter = 0;
@@ -86,7 +86,7 @@ void texcache_gl_init( )
 
     glGenTextures( MAX_TEXTURES, texids );
     for( i=0; i<MAX_TEXTURES; i++ ) {
-	texcache_active_list[i].texture_id = texids[i];
+        texcache_active_list[i].texture_id = texids[i];
     }
 }
 
@@ -98,11 +98,11 @@ void texcache_flush( )
     int i;
     /* clear structures */
     for( i=0; i<PVR2_RAM_PAGES; i++ ) {
-	texcache_page_lookup[i] = EMPTY_ENTRY;
+        texcache_page_lookup[i] = EMPTY_ENTRY;
     }
     for( i=0; i<MAX_TEXTURES; i++ ) {
-	texcache_free_list[i] = i;
-	texcache_active_list[i].next = EMPTY_ENTRY;
+        texcache_free_list[i] = i;
+        texcache_active_list[i].next = EMPTY_ENTRY;
     }
     texcache_free_ptr = 0;
     texcache_ref_counter = 0;
@@ -118,9 +118,9 @@ void texcache_shutdown( )
     GLuint texids[MAX_TEXTURES];
     int i;
     texcache_flush();
-    
+
     for( i=0; i<MAX_TEXTURES; i++ ) {
-	texids[i] = texcache_active_list[i].texture_id;
+        texids[i] = texcache_active_list[i].texture_id;
     }
     glDeleteTextures( MAX_TEXTURES, texids );
 }
@@ -134,19 +134,19 @@ static void texcache_evict( int slot )
     texcache_active_list[slot].texture_addr = -1;
     texcache_active_list[slot].next = EMPTY_ENTRY; /* Just for safety */
     if( texcache_page_lookup[evict_page] == slot ) {
-	texcache_page_lookup[evict_page] = replace_next;
+        texcache_page_lookup[evict_page] = replace_next;
     } else {
-	texcache_entry_index idx = texcache_page_lookup[evict_page];
-	texcache_entry_index next;
-	do {
-	    next = texcache_active_list[idx].next;
-	    if( next == slot ) {
-		assert( idx != replace_next );
-		texcache_active_list[idx].next = replace_next;
-		break;
-	    }
-	    idx = next;
-	} while( next != EMPTY_ENTRY );
+        texcache_entry_index idx = texcache_page_lookup[evict_page];
+        texcache_entry_index next;
+        do {
+            next = texcache_active_list[idx].next;
+            if( next == slot ) {
+                assert( idx != replace_next );
+                texcache_active_list[idx].next = replace_next;
+                break;
+            }
+            idx = next;
+        } while( next != EMPTY_ENTRY );
     }
 }
 
@@ -161,14 +161,14 @@ static texcache_entry_index texcache_evict_lru( void )
     int lru_value = texcache_active_list[0].lru_count;
     int i;
     for( i=1; i<MAX_TEXTURES; i++ ) {
-	/* FIXME: account for rollover */
-	if( texcache_active_list[i].lru_count < lru_value ) {
-	    slot = i;
-	    lru_value = texcache_active_list[i].lru_count;
-	}
+        /* FIXME: account for rollover */
+        if( texcache_active_list[i].lru_count < lru_value ) {
+            slot = i;
+            lru_value = texcache_active_list[i].lru_count;
+        }
     }
     texcache_evict(slot);
-    
+
     return slot;
 }
 
@@ -179,16 +179,16 @@ void texcache_invalidate_page( uint32_t texture_addr ) {
     uint32_t texture_page = texture_addr >> 12;
     texcache_entry_index idx = texcache_page_lookup[texture_page];
     if( idx == EMPTY_ENTRY )
-	return;
+        return;
     assert( texcache_free_ptr >= 0 );
     do {
-	texcache_entry_t entry = &texcache_active_list[idx];
-	entry->texture_addr = -1;
-	/* release entry */
-	texcache_free_ptr--;
-	texcache_free_list[texcache_free_ptr] = idx;
-	idx = entry->next;
-	entry->next = EMPTY_ENTRY;
+        texcache_entry_t entry = &texcache_active_list[idx];
+        entry->texture_addr = -1;
+        /* release entry */
+        texcache_free_ptr--;
+        texcache_free_list[texcache_free_ptr] = idx;
+        idx = entry->next;
+        entry->next = EMPTY_ENTRY;
     } while( idx != EMPTY_ENTRY );
     texcache_page_lookup[texture_page] = EMPTY_ENTRY;
 }
@@ -203,12 +203,12 @@ void texcache_invalidate_palette( )
 {
     int i;
     for( i=0; i<MAX_TEXTURES; i++ ) {
-	if( texcache_active_list[i].texture_addr != -1 &&
-	    PVR2_TEX_IS_PALETTE(texcache_active_list[i].mode) ) {
-	    texcache_evict( i );
-	    texcache_free_ptr--;
-	    texcache_free_list[texcache_free_ptr] = i;
-	}
+        if( texcache_active_list[i].texture_addr != -1 &&
+                PVR2_TEX_IS_PALETTE(texcache_active_list[i].mode) ) {
+            texcache_evict( i );
+            texcache_free_ptr--;
+            texcache_free_list[texcache_free_ptr] = i;
+        }
     }
 }
 
@@ -216,7 +216,7 @@ static void decode_pal8_to_32( uint32_t *out, uint8_t *in, int inbytes, uint32_t
 {
     int i;
     for( i=0; i<inbytes; i++ ) {
-	*out++ = pal[*in++];
+        *out++ = pal[*in++];
     }
 }
 
@@ -224,7 +224,7 @@ static void decode_pal8_to_16( uint16_t *out, uint8_t *in, int inbytes, uint32_t
 {
     int i;
     for( i=0; i<inbytes; i++ ) {
-	*out++ = (uint16_t)pal[*in++];
+        *out++ = (uint16_t)pal[*in++];
     }
 }
 
@@ -232,9 +232,9 @@ static void decode_pal4_to_32( uint32_t *out, uint8_t *in, int inbytes, uint32_t
 {
     int i;
     for( i=0; i<inbytes; i++ ) {
-	*out++ = pal[*in & 0x0F];
-	*out++ = pal[(*in >> 4)];
-	in++;
+        *out++ = pal[*in & 0x0F];
+        *out++ = pal[(*in >> 4)];
+        in++;
     }
 }
 
@@ -243,9 +243,9 @@ static void decode_pal4_to_16( uint16_t *out, uint8_t *in, int inbytes, uint32_t
 {
     int i;
     for( i=0; i<inbytes; i++ ) {
-	*out++ = (uint16_t)pal[*in & 0x0F];
-	*out++ = (uint16_t)pal[(*in >> 4)];
-	in++;
+        *out++ = (uint16_t)pal[*in & 0x0F];
+        *out++ = (uint16_t)pal[(*in >> 4)];
+        in++;
     }
 }
 
@@ -256,32 +256,32 @@ struct vq_codebook {
 };
 
 static void vq_get_codebook( struct vq_codebook *codebook, 
-				uint16_t *input )
+                             uint16_t *input )
 {
     /* Detwiddle the codebook, for the sake of my own sanity if nothing else */
     uint16_t *p = (uint16_t *)input;
     int i;
     for( i=0; i<256; i++ ) {
-	codebook->quad[i][0] = *p++;
-	codebook->quad[i][2] = *p++;
-	codebook->quad[i][1] = *p++;
-	codebook->quad[i][3] = *p++;
+        codebook->quad[i][0] = *p++;
+        codebook->quad[i][2] = *p++;
+        codebook->quad[i][1] = *p++;
+        codebook->quad[i][3] = *p++;
     }
 }    
 
 static void vq_decode( uint16_t *output, unsigned char *input, int width, int height, 
-		       struct vq_codebook *codebook ) {
+                       struct vq_codebook *codebook ) {
     int i,j;
-    
+
     uint8_t *c = (uint8_t *)input;
     for( j=0; j<height; j+=2 ) {
-	for( i=0; i<width; i+=2 ) {
-	    uint8_t code = *c++;
-	    output[i + j*width] = codebook->quad[code][0];
-	    output[i + 1 + j*width] = codebook->quad[code][1];
-	    output[i + (j+1)*width] = codebook->quad[code][2];
-	    output[i + 1 + (j+1)*width] = codebook->quad[code][3];
-	}
+        for( i=0; i<width; i+=2 ) {
+            uint8_t code = *c++;
+            output[i + j*width] = codebook->quad[code][0];
+            output[i + 1 + j*width] = codebook->quad[code][1];
+            output[i + (j+1)*width] = codebook->quad[code][2];
+            output[i + 1 + (j+1)*width] = codebook->quad[code][3];
+        }
     }
 }
 
@@ -310,15 +310,15 @@ static void yuv_decode( uint32_t *output, uint32_t *input, int width, int height
     int x, y;
     uint32_t *p = input;
     for( y=0; y<height; y++ ) {
-	for( x=0; x<width; x+=2 ) {
-	    float u = (float)(*p & 0xFF);
-	    float y0 = (float)( (*p>>8)&0xFF );
-	    float v = (float)( (*p>>16)&0xFF );
-	    float y1 = (float)( (*p>>24)&0xFF );
-	    *output++ = yuv_to_rgb32( y0, u, v ); 
-	    *output++ = yuv_to_rgb32( y1, u, v );
-	    p++;
-	}
+        for( x=0; x<width; x+=2 ) {
+            float u = (float)(*p & 0xFF);
+            float y0 = (float)( (*p>>8)&0xFF );
+            float v = (float)( (*p>>16)&0xFF );
+            float y1 = (float)( (*p>>24)&0xFF );
+            *output++ = yuv_to_rgb32( y0, u, v ); 
+            *output++ = yuv_to_rgb32( y1, u, v );
+            p++;
+        }
     }
 }
 
@@ -327,7 +327,7 @@ static void yuv_decode( uint32_t *output, uint32_t *input, int width, int height
  * bound OpenGL texture.
  */
 static void texcache_load_texture( uint32_t texture_addr, int width, int height,
-			      int mode ) {
+                                   int mode ) {
     int bpp_shift = 1; /* bytes per (output) pixel as a power of 2 */
     GLint intFormat = GL_RGBA, format, type;
     int tex_format = mode & PVR2_TEX_FORMAT_MASK;
@@ -340,179 +340,179 @@ static void texcache_load_texture( uint32_t texture_addr, int width, int height,
     switch( tex_format ) {
     case PVR2_TEX_FORMAT_IDX4:
     case PVR2_TEX_FORMAT_IDX8:
-	/* For indexed-colour modes, we need to lookup the palette control
-	 * word to determine the de-indexed texture format.
-	 */
-	switch( MMIO_READ( PVR2, RENDER_PALETTE ) & 0x03 ) {
-	case 0: /* ARGB1555 */
-	    format = GL_BGRA;
-	    type = GL_UNSIGNED_SHORT_1_5_5_5_REV;
-	    break;
-	case 1:  /* RGB565 */
-	    intFormat = GL_RGB;
-	    format = GL_RGB;
-	    type = GL_UNSIGNED_SHORT_5_6_5;
-	    break;
-	case 2: /* ARGB4444 */
-	    format = GL_BGRA;
-	    type = GL_UNSIGNED_SHORT_4_4_4_4_REV;
-	    break;
-	case 3: /* ARGB8888 */
-	    format = GL_BGRA;
-	    type = GL_UNSIGNED_BYTE;
-	    bpp_shift = 2;
-	    break;
-	default:
-	    return; /* Can't happen, but it makes gcc stop complaining */
-	}
-	break;
-	    
-    case PVR2_TEX_FORMAT_ARGB1555:
-	format = GL_BGRA;
-	type = GL_UNSIGNED_SHORT_1_5_5_5_REV;
-	break;
-    case PVR2_TEX_FORMAT_RGB565:
-	intFormat = GL_RGB;
-	format = GL_RGB;
-	type = GL_UNSIGNED_SHORT_5_6_5;
-	break;
-    case PVR2_TEX_FORMAT_ARGB4444:
-	format = GL_BGRA;
-	type = GL_UNSIGNED_SHORT_4_4_4_4_REV;
-	break;
-    case PVR2_TEX_FORMAT_YUV422:
-	/* YUV422 isn't directly supported by most implementations, so decode
-	 * it to a (reasonably) standard ARGB32.
-	 */
-	bpp_shift = 2;
-	format = GL_BGRA;
-	type = GL_UNSIGNED_BYTE;
-	break;
-    case PVR2_TEX_FORMAT_BUMPMAP:
-	ERROR( "Bumpmap not supported" );
-	return;
-    default:
-	ERROR( "Undefined texture format" );
-	return;
+        /* For indexed-colour modes, we need to lookup the palette control
+         * word to determine the de-indexed texture format.
+         */
+        switch( MMIO_READ( PVR2, RENDER_PALETTE ) & 0x03 ) {
+        case 0: /* ARGB1555 */
+            format = GL_BGRA;
+            type = GL_UNSIGNED_SHORT_1_5_5_5_REV;
+            break;
+        case 1:  /* RGB565 */
+            intFormat = GL_RGB;
+            format = GL_RGB;
+            type = GL_UNSIGNED_SHORT_5_6_5;
+            break;
+        case 2: /* ARGB4444 */
+            format = GL_BGRA;
+            type = GL_UNSIGNED_SHORT_4_4_4_4_REV;
+            break;
+        case 3: /* ARGB8888 */
+            format = GL_BGRA;
+            type = GL_UNSIGNED_BYTE;
+            bpp_shift = 2;
+            break;
+        default:
+            return; /* Can't happen, but it makes gcc stop complaining */
+        }
+        break;
+
+        case PVR2_TEX_FORMAT_ARGB1555:
+            format = GL_BGRA;
+            type = GL_UNSIGNED_SHORT_1_5_5_5_REV;
+            break;
+        case PVR2_TEX_FORMAT_RGB565:
+            intFormat = GL_RGB;
+            format = GL_RGB;
+            type = GL_UNSIGNED_SHORT_5_6_5;
+            break;
+        case PVR2_TEX_FORMAT_ARGB4444:
+            format = GL_BGRA;
+            type = GL_UNSIGNED_SHORT_4_4_4_4_REV;
+            break;
+        case PVR2_TEX_FORMAT_YUV422:
+            /* YUV422 isn't directly supported by most implementations, so decode
+             * it to a (reasonably) standard ARGB32.
+             */
+            bpp_shift = 2;
+            format = GL_BGRA;
+            type = GL_UNSIGNED_BYTE;
+            break;
+        case PVR2_TEX_FORMAT_BUMPMAP:
+            ERROR( "Bumpmap not supported" );
+            return;
+        default:
+            ERROR( "Undefined texture format" );
+            return;
     }
-	
+
     if( PVR2_TEX_IS_STRIDE(mode) && tex_format != PVR2_TEX_FORMAT_IDX4 &&
-	tex_format != PVR2_TEX_FORMAT_IDX8 ) {
-	/* Stride textures cannot be mip-mapped, compressed, indexed or twiddled */
-	uint32_t stride = (MMIO_READ( PVR2, RENDER_TEXSIZE ) & 0x003F) << 5;
-	unsigned char data[(width*height) << bpp_shift];
-	if( tex_format == PVR2_TEX_FORMAT_YUV422 ) {
-	    unsigned char tmp[(width*height)<<1];
-	    pvr2_vram64_read_stride( tmp, width<<1, texture_addr, stride<<1, height );
-	    yuv_decode( (uint32_t *)data, (uint32_t *)tmp, width, height );
-	} else {
-	    pvr2_vram64_read_stride( data, width<<bpp_shift, texture_addr, stride<<bpp_shift, height );
-	}
-	glTexImage2D( GL_TEXTURE_2D, 0, intFormat, width, height, 0, format, type, data );
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	return;
+            tex_format != PVR2_TEX_FORMAT_IDX8 ) {
+        /* Stride textures cannot be mip-mapped, compressed, indexed or twiddled */
+        uint32_t stride = (MMIO_READ( PVR2, RENDER_TEXSIZE ) & 0x003F) << 5;
+        unsigned char data[(width*height) << bpp_shift];
+        if( tex_format == PVR2_TEX_FORMAT_YUV422 ) {
+            unsigned char tmp[(width*height)<<1];
+            pvr2_vram64_read_stride( tmp, width<<1, texture_addr, stride<<1, height );
+            yuv_decode( (uint32_t *)data, (uint32_t *)tmp, width, height );
+        } else {
+            pvr2_vram64_read_stride( data, width<<bpp_shift, texture_addr, stride<<bpp_shift, height );
+        }
+        glTexImage2D( GL_TEXTURE_2D, 0, intFormat, width, height, 0, format, type, data );
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        return;
     } 
 
     if( PVR2_TEX_IS_COMPRESSED(mode) ) {
-	uint16_t tmp[VQ_CODEBOOK_SIZE];
-	pvr2_vram64_read( (unsigned char *)tmp, texture_addr, VQ_CODEBOOK_SIZE );
-	texture_addr += VQ_CODEBOOK_SIZE;
-	vq_get_codebook( &codebook, tmp );
+        uint16_t tmp[VQ_CODEBOOK_SIZE];
+        pvr2_vram64_read( (unsigned char *)tmp, texture_addr, VQ_CODEBOOK_SIZE );
+        texture_addr += VQ_CODEBOOK_SIZE;
+        vq_get_codebook( &codebook, tmp );
     }
 
     int level=0, last_level = 0, mip_width = width, mip_height = height, src_bytes, dest_bytes;
     if( PVR2_TEX_IS_MIPMAPPED(mode) ) {
-	uint32_t src_offset = 0;
-	filter = GL_LINEAR_MIPMAP_LINEAR;
-	mip_height = height = width;
-	while( (1<<last_level) < width ) {
-	    last_level++;
-	    src_offset += ((width>>last_level)*(width>>last_level));
-	}
-	if( width != 1 ) {
-	    src_offset += 3;
-	}
-	if( PVR2_TEX_IS_COMPRESSED(mode) ) {
-	    src_offset >>= 2;
-	} else if( tex_format == PVR2_TEX_FORMAT_IDX4 ) {
-	    src_offset >>= 1;
-	} else if( tex_format == PVR2_TEX_FORMAT_YUV422 ) {
-	    src_offset <<= 1;
-	} else if( tex_format != PVR2_TEX_FORMAT_IDX8 ) {
-	    src_offset <<= bpp_shift;
-	}
-	texture_addr += src_offset;
+        uint32_t src_offset = 0;
+        filter = GL_LINEAR_MIPMAP_LINEAR;
+        mip_height = height = width;
+        while( (1<<last_level) < width ) {
+            last_level++;
+            src_offset += ((width>>last_level)*(width>>last_level));
+        }
+        if( width != 1 ) {
+            src_offset += 3;
+        }
+        if( PVR2_TEX_IS_COMPRESSED(mode) ) {
+            src_offset >>= 2;
+        } else if( tex_format == PVR2_TEX_FORMAT_IDX4 ) {
+            src_offset >>= 1;
+        } else if( tex_format == PVR2_TEX_FORMAT_YUV422 ) {
+            src_offset <<= 1;
+        } else if( tex_format != PVR2_TEX_FORMAT_IDX8 ) {
+            src_offset <<= bpp_shift;
+        }
+        texture_addr += src_offset;
     }
-    
+
 
     dest_bytes = (mip_width * mip_height) << bpp_shift;
     src_bytes = dest_bytes; // Modes will change this (below)
 
     for( level=0; level<= last_level; level++ ) {
-	unsigned char data[dest_bytes];
-	/* load data from image, detwiddling/uncompressing as required */
-	if( tex_format == PVR2_TEX_FORMAT_IDX8 ) {
-	    src_bytes = (mip_width * mip_height);
-	    int bank = (mode >> 25) &0x03;
-	    uint32_t *palette = ((uint32_t *)mmio_region_PVR2PAL.mem) + (bank<<8);
-	    unsigned char tmp[src_bytes];
-	    pvr2_vram64_read_twiddled_8( tmp, texture_addr, mip_width, mip_height );
-	    if( bpp_shift == 2 ) {
-		decode_pal8_to_32( (uint32_t *)data, tmp, src_bytes, palette );
-	    } else {
-		decode_pal8_to_16( (uint16_t *)data, tmp, src_bytes, palette );
-	    }
-	} else if( tex_format == PVR2_TEX_FORMAT_IDX4 ) {
-	    src_bytes = (mip_width * mip_height) >> 1;
-	    int bank = (mode >>21 ) & 0x3F;
-	    uint32_t *palette = ((uint32_t *)mmio_region_PVR2PAL.mem) + (bank<<4);
-	    unsigned char tmp[src_bytes];
-	    pvr2_vram64_read_twiddled_4( tmp, texture_addr, mip_width, mip_height );
-	    if( bpp_shift == 2 ) {
-		decode_pal4_to_32( (uint32_t *)data, tmp, src_bytes, palette );
-	    } else {
-		decode_pal4_to_16( (uint16_t *)data, tmp, src_bytes, palette );
-	    }
-	} else if( tex_format == PVR2_TEX_FORMAT_YUV422 ) {
-	    src_bytes = ((mip_width*mip_height)<<1);
-	    unsigned char tmp[src_bytes];
-	    if( PVR2_TEX_IS_TWIDDLED(mode) ) {
-		pvr2_vram64_read_twiddled_16( tmp, texture_addr, mip_width, mip_height );
-	    } else {
-		pvr2_vram64_read( tmp, texture_addr, src_bytes );
-	    }
-	    yuv_decode( (uint32_t *)data, (uint32_t *)tmp, mip_width, mip_height );
-	} else if( PVR2_TEX_IS_COMPRESSED(mode) ) {
-	    src_bytes = ((mip_width*mip_height) >> 2);
-	    unsigned char tmp[src_bytes];
-	    if( PVR2_TEX_IS_TWIDDLED(mode) ) {
-		pvr2_vram64_read_twiddled_8( tmp, texture_addr, mip_width>>1, mip_height>>1 );
-	    } else {
-		pvr2_vram64_read( tmp, texture_addr, src_bytes );
-	    }
-	    vq_decode( (uint16_t *)data, tmp, mip_width, mip_height, &codebook );
-	} else if( PVR2_TEX_IS_TWIDDLED(mode) ) {
-	    pvr2_vram64_read_twiddled_16( data, texture_addr, mip_width, mip_height );
-	} else {
-	    pvr2_vram64_read( data, texture_addr, src_bytes );
-	}
-	
-	/* Pass to GL */
-	if( level == last_level && level != 0 ) { /* 1x1 stored within a 2x2 */
-	    glTexImage2D( GL_TEXTURE_2D, level, intFormat, 1, 1, 0, format, type,
-			  data + (3 << bpp_shift) );
-	} else {
-	    glTexImage2D( GL_TEXTURE_2D, level, intFormat, mip_width, mip_height, 0, format, type,
-			  data );
-	    if( mip_width > 2 ) {
-		mip_width >>= 1;
-		mip_height >>= 1;
-		dest_bytes >>= 2;
-		src_bytes >>= 2;
-	    }
-	    texture_addr -= src_bytes;
-	}
+        unsigned char data[dest_bytes];
+        /* load data from image, detwiddling/uncompressing as required */
+        if( tex_format == PVR2_TEX_FORMAT_IDX8 ) {
+            src_bytes = (mip_width * mip_height);
+            int bank = (mode >> 25) &0x03;
+            uint32_t *palette = ((uint32_t *)mmio_region_PVR2PAL.mem) + (bank<<8);
+            unsigned char tmp[src_bytes];
+            pvr2_vram64_read_twiddled_8( tmp, texture_addr, mip_width, mip_height );
+            if( bpp_shift == 2 ) {
+                decode_pal8_to_32( (uint32_t *)data, tmp, src_bytes, palette );
+            } else {
+                decode_pal8_to_16( (uint16_t *)data, tmp, src_bytes, palette );
+            }
+        } else if( tex_format == PVR2_TEX_FORMAT_IDX4 ) {
+            src_bytes = (mip_width * mip_height) >> 1;
+            int bank = (mode >>21 ) & 0x3F;
+            uint32_t *palette = ((uint32_t *)mmio_region_PVR2PAL.mem) + (bank<<4);
+            unsigned char tmp[src_bytes];
+            pvr2_vram64_read_twiddled_4( tmp, texture_addr, mip_width, mip_height );
+            if( bpp_shift == 2 ) {
+                decode_pal4_to_32( (uint32_t *)data, tmp, src_bytes, palette );
+            } else {
+                decode_pal4_to_16( (uint16_t *)data, tmp, src_bytes, palette );
+            }
+        } else if( tex_format == PVR2_TEX_FORMAT_YUV422 ) {
+            src_bytes = ((mip_width*mip_height)<<1);
+            unsigned char tmp[src_bytes];
+            if( PVR2_TEX_IS_TWIDDLED(mode) ) {
+                pvr2_vram64_read_twiddled_16( tmp, texture_addr, mip_width, mip_height );
+            } else {
+                pvr2_vram64_read( tmp, texture_addr, src_bytes );
+            }
+            yuv_decode( (uint32_t *)data, (uint32_t *)tmp, mip_width, mip_height );
+        } else if( PVR2_TEX_IS_COMPRESSED(mode) ) {
+            src_bytes = ((mip_width*mip_height) >> 2);
+            unsigned char tmp[src_bytes];
+            if( PVR2_TEX_IS_TWIDDLED(mode) ) {
+                pvr2_vram64_read_twiddled_8( tmp, texture_addr, mip_width>>1, mip_height>>1 );
+            } else {
+                pvr2_vram64_read( tmp, texture_addr, src_bytes );
+            }
+            vq_decode( (uint16_t *)data, tmp, mip_width, mip_height, &codebook );
+        } else if( PVR2_TEX_IS_TWIDDLED(mode) ) {
+            pvr2_vram64_read_twiddled_16( data, texture_addr, mip_width, mip_height );
+        } else {
+            pvr2_vram64_read( data, texture_addr, src_bytes );
+        }
+
+        /* Pass to GL */
+        if( level == last_level && level != 0 ) { /* 1x1 stored within a 2x2 */
+            glTexImage2D( GL_TEXTURE_2D, level, intFormat, 1, 1, 0, format, type,
+                    data + (3 << bpp_shift) );
+        } else {
+            glTexImage2D( GL_TEXTURE_2D, level, intFormat, mip_width, mip_height, 0, format, type,
+                    data );
+            if( mip_width > 2 ) {
+                mip_width >>= 1;
+                mip_height >>= 1;
+                dest_bytes >>= 2;
+                src_bytes >>= 2;
+            }
+            texture_addr -= src_bytes;
+        }
     }
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
@@ -536,25 +536,25 @@ GLuint texcache_get_texture( uint32_t texture_word, int width, int height )
     texcache_entry_index next;
     texcache_entry_index idx = texcache_page_lookup[texture_page];
     while( idx != EMPTY_ENTRY ) {
-	texcache_entry_t entry = &texcache_active_list[idx];
-	if( entry->texture_addr == texture_addr &&
-	    entry->mode == texture_word &&
-	    entry->width == width &&
-	    entry->height == height ) {
-	    entry->lru_count = texcache_ref_counter++;
-	    return entry->texture_id;
-	}
+        texcache_entry_t entry = &texcache_active_list[idx];
+        if( entry->texture_addr == texture_addr &&
+                entry->mode == texture_word &&
+                entry->width == width &&
+                entry->height == height ) {
+            entry->lru_count = texcache_ref_counter++;
+            return entry->texture_id;
+        }
         idx = entry->next;
     }
 
-    
+
     /* Not found - check the free list */
     texcache_entry_index slot = 0;
 
     if( texcache_free_ptr < MAX_TEXTURES ) {
-	slot = texcache_free_list[texcache_free_ptr++];
+        slot = texcache_free_list[texcache_free_ptr++];
     } else {
-	slot = texcache_evict_lru();
+        slot = texcache_evict_lru();
     }
 
     /* Construct new entry */
@@ -567,14 +567,14 @@ GLuint texcache_get_texture( uint32_t texture_word, int width, int height )
     /* Add entry to the lookup table */
     next = texcache_page_lookup[texture_page];
     if( next == slot ) {
-	int i;
-	fprintf( stderr, "Active list: " );
-	for( i=0; i<MAX_TEXTURES; i++ ) {
-	    fprintf( stderr, "%d, ", texcache_active_list[i].next );
-	}
-	fprintf( stderr, "\n" );
-	assert( next != slot );
-	    
+        int i;
+        fprintf( stderr, "Active list: " );
+        for( i=0; i<MAX_TEXTURES; i++ ) {
+            fprintf( stderr, "%d, ", texcache_active_list[i].next );
+        }
+        fprintf( stderr, "\n" );
+        assert( next != slot );
+
     }
     assert( next != slot );
     texcache_active_list[slot].next = next;
@@ -597,30 +597,30 @@ void texcache_integrity_check()
 {
     int i;
     int slot_found[MAX_TEXTURES];
-    
+
     memset( slot_found, 0, sizeof(slot_found) );
 
     /* Check entries on the free list */
     for( i= texcache_free_ptr; i< MAX_TEXTURES; i++ ) {
-	int slot = texcache_free_list[i];
-	assert( slot_found[slot] == 0 );
-	assert( texcache_active_list[slot].next == EMPTY_ENTRY );
-	slot_found[slot] = 1;
+        int slot = texcache_free_list[i];
+        assert( slot_found[slot] == 0 );
+        assert( texcache_active_list[slot].next == EMPTY_ENTRY );
+        slot_found[slot] = 1;
     }
 
     /* Check entries on the active lists */
     for( i=0; i< PVR2_RAM_PAGES; i++ ) {
-	int slot = texcache_page_lookup[i];
-	while( slot != EMPTY_ENTRY ) {
-	    assert( slot_found[slot] == 0 );
-	    assert( (texcache_active_list[slot].texture_addr >> 12) == i );
-	    slot_found[slot] = 2;
-	    slot = texcache_active_list[slot].next;
-	}
+        int slot = texcache_page_lookup[i];
+        while( slot != EMPTY_ENTRY ) {
+            assert( slot_found[slot] == 0 );
+            assert( (texcache_active_list[slot].texture_addr >> 12) == i );
+            slot_found[slot] = 2;
+            slot = texcache_active_list[slot].next;
+        }
     }
 
     /* Make sure we didn't miss any entries */
     for( i=0; i<MAX_TEXTURES; i++ ) {
-	assert( slot_found[i] != 0 );
+        assert( slot_found[i] != 0 );
     }
 }

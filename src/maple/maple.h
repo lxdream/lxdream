@@ -19,6 +19,10 @@
 #ifndef lxdream_maple_H
 #define lxdream_maple_H 1
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdint.h>
 #include "config.h"
 
@@ -108,5 +112,9 @@ void maple_reattach_all( );
  * Default destroy implementation that just frees the dev memory.
  */
 void maple_default_destroy( maple_device_t dev );
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* !lxdream_maple_H */

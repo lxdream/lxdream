@@ -15,14 +15,13 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
-#ifndef dream_audio_H
-#define dream_audio_H 1
+#ifndef lxdream_audio_H
+#define lxdream_audio_H 1
 
 #include <stdint.h>
 #include <stdio.h>
 #include <glib/gtypes.h>
 #include <glib/gi18n.h>
-
 
 #ifdef __cplusplus
 extern "C" {
@@ -135,4 +134,5 @@ int audio_load_state( FILE *f );
 #ifdef __cplusplus
 }
 #endif
-#endif
+
+#endif /* !lxdream_audio_H */

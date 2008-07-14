@@ -46,7 +46,7 @@ struct dump_window_info {
 static dump_window_t dump_list_head = NULL;
 
 gboolean on_dump_window_delete_event( GtkWidget *widget, GdkEvent *event,
-                                   gpointer user_data );
+                                      gpointer user_data );
 void on_dump_window_button_view_clicked( GtkWidget *widget, gpointer user_data );
 void dump_window_set_text( dump_window_t data, unsigned char *old_data, unsigned char *new_data );
 
@@ -78,7 +78,7 @@ dump_window_t dump_window_new( const gchar *title )
     dump->toInput = gtk_entry_new ();
     gtk_entry_set_text( GTK_ENTRY(dump->toInput), "" );
     dump_view_button = gtk_button_new_with_mnemonic (_("View"));
-  
+
     gtk_box_pack_start (GTK_BOX (hbox2), gtk_label_new(_(" From ")), FALSE, FALSE, 0);
     gtk_box_pack_start (GTK_BOX (hbox2), dump->fromInput, FALSE, TRUE, 0);
     gtk_box_pack_start (GTK_BOX (hbox2), gtk_label_new(_(" To ")), FALSE, FALSE, 0);
@@ -90,7 +90,7 @@ dump_window_t dump_window_new( const gchar *title )
     dump->textArea = gtk_text_view_new ();
     dump->textBuffer = gtk_text_buffer_new(NULL);
     dump->changedTag = gtk_text_buffer_create_tag(dump->textBuffer, "changed",
-						  "foreground", "blue", NULL);
+            "foreground", "blue", NULL);
     gtk_widget_modify_font(GTK_WIDGET(dump->textArea),gui_fixed_font);
     gtk_text_view_set_editable(GTK_TEXT_VIEW(dump->textArea), FALSE);
     gtk_text_view_set_buffer(GTK_TEXT_VIEW(dump->textArea), dump->textBuffer);
@@ -98,7 +98,7 @@ dump_window_t dump_window_new( const gchar *title )
     gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolledwindow9), GTK_SHADOW_IN);
     gtk_container_add (GTK_CONTAINER (scrolledwindow9), dump->textArea);
     gtk_box_pack_start (GTK_BOX (vbox3), scrolledwindow9, TRUE, TRUE, 0);
-        
+
     g_signal_connect (dump->window, "delete_event",
                       G_CALLBACK (on_dump_window_delete_event),
                       dump);
@@ -132,7 +132,7 @@ uint32_t gtk_entry_get_hex_value( GtkEntry *entry, uint32_t defaultValue )
 }
 
 gboolean on_dump_window_delete_event( GtkWidget *widget, GdkEvent *event,
-                                   gpointer user_data )
+                                      gpointer user_data )
 {
     dump_window_t data = (dump_window_t)user_data;
     if( data->data != NULL )
@@ -158,7 +158,7 @@ void on_dump_window_button_view_clicked( GtkWidget *widget, gpointer user_data )
 
     assert( data != NULL );
     assert( data->_tag == DUMP_WINDOW_TAG );
-    
+
     startVal = gtk_entry_get_hex_value(GTK_ENTRY(data->fromInput), data->start);
     endVal = gtk_entry_get_hex_value(GTK_ENTRY(data->toInput), data->end);
     if( startVal != data->start || endVal != data->end ) {
@@ -171,7 +171,7 @@ void on_dump_window_button_view_clicked( GtkWidget *widget, gpointer user_data )
             endVal = startVal + MAX_DUMP_SIZE;
 
         gtk_entry_set_hex_value(GTK_ENTRY(data->fromInput),startVal);
-	gtk_entry_set_hex_value(GTK_ENTRY(data->toInput),endVal);
+        gtk_entry_set_hex_value(GTK_ENTRY(data->toInput),endVal);
         data->start = startVal;
         data->end = endVal;
 
@@ -218,7 +218,7 @@ void dump_window_set_text( dump_window_t data, unsigned char *old_data, unsigned
     gtk_text_buffer_get_end_iter(buf,&endIter);
     gtk_text_buffer_delete(buf,&iter,&endIter);
     gtk_text_buffer_get_start_iter(buf,&iter);
-    
+
     for( offset = 0, i=data->start; i<data->end; i+=16, offset+=16 ) {
         char text[80];
         sprintf(text, "%08X:", i );
@@ -234,7 +234,7 @@ void dump_window_set_text( dump_window_t data, unsigned char *old_data, unsigned
                     gtk_text_buffer_insert( buf, &iter, text, 3 );
                 else
                     gtk_text_buffer_insert_with_tags( buf, &iter, text, 3,
-                                                      changedTag, NULL );
+                            changedTag, NULL );
             } else {
                 gtk_text_buffer_insert( buf, &iter, "   ", 3 );
             }
@@ -250,7 +250,7 @@ void dump_window_set_text( dump_window_t data, unsigned char *old_data, unsigned
                 gtk_text_buffer_insert( buf, &iter, text, 1 );
             else
                 gtk_text_buffer_insert_with_tags( buf, &iter, text, 1,
-                                                  changedTag, NULL );
+                        changedTag, NULL );
         }
         gtk_text_buffer_insert( buf, &iter, "\n", 1 );
     }

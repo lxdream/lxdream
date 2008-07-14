@@ -16,9 +16,16 @@
  * GNU General Public License for more details.
  */
 
+#ifndef lxdream_sh4trans_H
+#define lxdream_sh4trans_H 1
+
 #include "sh4/xltcache.h"
 #include "dream.h"
 #include "mem.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /** Maximum size of a translated instruction, in bytes. Current worst case seems
  * to be a BF/S followed by one of the long FMOVs.
@@ -145,3 +152,9 @@ void sh4_translate_flush_cache( void );
  * cycle and never returns.
  */
 void sh4_translate_breakpoint_hit( sh4vma_t pc );
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* !lxdream_sh4trans_H */

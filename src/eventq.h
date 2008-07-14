@@ -19,7 +19,14 @@
  * GNU General Public License for more details.
  */
 
-#include "dream.h"
+#ifndef lxdream_eventq_H
+#define lxdream_eventq_H 1
+
+#include "lxdream.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #define NOT_SCHEDULED 0xFFFFFFFF /* Sentinel value */
 
@@ -71,3 +78,9 @@ void event_execute();
 #define EVENT_TMU0 97
 #define EVENT_TMU1 98
 #define EVENT_TMU2 99
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* !lxdream_eventq_H */
