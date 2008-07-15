@@ -58,7 +58,6 @@ src/eventq.h
 src/gdlist.c
 src/gdlist.h
 src/gdrom/cdi.c
-src/gdrom/cdi.h
 src/gdrom/ecc.h
 src/gdrom/edc_crctable.h
 src/gdrom/edc_ecc.c
@@ -109,7 +108,6 @@ src/pvr2/pvr2.c
 src/pvr2/pvr2.h
 src/pvr2/pvr2mem.c
 src/pvr2/pvr2mmio.h
-src/pvr2/rendbkg.c
 src/pvr2/rendsave.c
 src/pvr2/rendsort.c
 src/pvr2/scene.c
