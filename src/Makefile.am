@@ -1,5 +1,5 @@
 ## Process this file with automake to produce Makefile.in
-
+SVNVERSION=@SVNVERSION@
 INCLUDES = \
 	-DPACKAGE_DATA_DIR=\""$(datadir)"\" \
 	-DPACKAGE_LOCALE_DIR=\""$(prefix)/$(DATADIRNAME)/locale"\" \
@@ -11,16 +11,26 @@ bin_PROGRAMS = lxdream
 noinst_PROGRAMS = gendec genglsl
 check_PROGRAMS = test/testxlt
 
-EXTRA_DIST=drivers/genkeymap.pl
+
+EXTRA_DIST=drivers/genkeymap.pl checkver.pl
 AM_CFLAGS = -D_ISOC99_SOURCE -D_BSD_SOURCE 
+
+.PHONY: checkversion
+checkversion:
+	@$(srcdir)/checkver.pl "$(VERSION)" "$(top_srcdir)" version.c
+
+version.c: checkversion
+
 TESTS = test/testxlt
-BUILT_SOURCES = sh4/sh4core.c sh4/sh4dasm.c sh4/sh4x86.c pvr2/gl_slsrc.c drivers/mac_keymap.h
+BUILT_SOURCES = sh4/sh4core.c sh4/sh4dasm.c sh4/sh4x86.c pvr2/gl_slsrc.c drivers/mac_keymap.h version.c
+
+#all-am: checkversion
 
 gendec_SOURCES = tools/gendec.c tools/gendec.h tools/insparse.c tools/actparse.c
 genglsl_SOURCES = tools/genglsl.c
 
 lxdream_SOURCES = \
-        main.c config.c config.h lxdream.h dream.h gui.h cpu.h hook.h \
+        main.c version.c config.c config.h lxdream.h dream.h gui.h cpu.h hook.h \
         mem.c mem.h mmio.h watch.c \
         asic.c asic.h clock.h serial.h \
         syscall.c syscall.h bios.c dcload.c \

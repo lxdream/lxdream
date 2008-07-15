@@ -179,8 +179,8 @@ void about_action_callback( GtkAction *action, gpointer user_data)
 
     GtkWidget *dialog = g_object_new (GTK_TYPE_ABOUT_DIALOG,
             "name", APP_NAME, 
-            "version", APP_VERSION,
-            "copyright", "(C) 2003-2007 Nathan Keynes",
+            "version", lxdream_full_version,
+            "copyright", lxdream_copyright,
             NULL);
     gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
     gtk_dialog_run(GTK_DIALOG(dialog));
@@ -228,7 +228,7 @@ void debugger_action_callback( GtkAction *action, gpointer user_data)
 
 void debug_memory_action_callback( GtkAction *action, gpointer user_data)
 {
-    gchar *title = g_strdup_printf( APP_NAME " " APP_VERSION " :: %s", _("Memory dump") );
+    gchar *title = g_strdup_printf( "%s :: %s", lxdream_package_name, _("Memory dump") );
     dump_window_new( title );
     g_free(title);
 }

@@ -227,7 +227,7 @@ gboolean gui_init( gboolean withDebug )
         GtkWidget *gdrommenuitem = gtk_ui_manager_get_widget(global_ui_manager, "/MainMenu/FileMenu/GdromSettings");
         GtkWidget *gdrommenu = gdrom_menu_new();
         gtk_menu_item_set_submenu( GTK_MENU_ITEM(gdrommenuitem), gdrommenu );
-        main_win = main_window_new( APP_NAME " " APP_VERSION, menubar, toolbar, accel_group  );
+        main_win = main_window_new( lxdream_package_name, menubar, toolbar, accel_group  );
         main_window_set_use_grab(main_win, TRUE);
         if( withDebug ) {
             gtk_gui_show_debugger();
@@ -290,7 +290,7 @@ void gtk_gui_show_debugger()
         GtkWidget *gdrommenuitem = gtk_ui_manager_get_widget(global_ui_manager, "/DebugMenu/FileMenu/GdromSettings");
         GtkWidget *gdrommenu = gdrom_menu_new();
         gtk_menu_item_set_submenu( GTK_MENU_ITEM(gdrommenuitem), gdrommenu );
-        gchar *title = g_strdup_printf( APP_NAME " " APP_VERSION " :: %s", _("Debugger"));
+        gchar *title = g_strdup_printf( "%s :: %s", lxdream_package_name, _("Debugger"));
         debug_win = debug_window_new( title, menubar, toolbar, accel_group  );
         g_free(title);
     }
@@ -301,7 +301,7 @@ void gtk_gui_show_mmio()
     if( mmio_win ) {
         mmio_window_show(mmio_win, TRUE);
     } else {
-        gchar *title = g_strdup_printf( APP_NAME " " APP_VERSION " :: %s", _("MMIO Registers"));
+        gchar *title = g_strdup_printf( "%s :: %s", lxdream_package_name, _("MMIO Registers"));
         mmio_win = mmio_window_new( title );
         g_free(title);
     }

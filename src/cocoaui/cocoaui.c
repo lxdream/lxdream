@@ -68,7 +68,7 @@ static void cocoa_gui_create_menu(void)
     /* Add menu items */
     title = [@"About " stringByAppendingString:appName];
     [appleMenu addItemWithTitle:title action:@selector(about_action:) keyEquivalent:@""];
-
+    
     //    [appleMenu addItem:[NSMenuItem separatorItem]];
     //    [appleMenu addItemWithTitle: NS_("Preferences...") action:@selector(preferences_action:) keyEquivalent:@","];
 
@@ -151,7 +151,7 @@ static void cocoa_gui_create_menu(void)
 - (void) about_action: (id)sender
 {
     NSArray *keys = [NSArray arrayWithObjects: @"Version", @"Copyright", nil];
-    NSArray *values = [NSArray arrayWithObjects: @APP_VERSION, @"Copyright (C) 2005-2008 Nathan Keynes",  nil];
+    NSArray *values = [NSArray arrayWithObjects: NS_(lxdream_full_version), NS_(lxdream_copyright),  nil];
 
     NSDictionary *options= [NSDictionary dictionaryWithObjects: values forKeys: keys];
 

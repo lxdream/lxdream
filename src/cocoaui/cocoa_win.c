@@ -135,7 +135,7 @@ willBeInsertedIntoToolbar:(BOOL)flag
         [self setContentMinSize: contentRect.size];
         [self setAcceptsMouseMovedEvents: YES];
 
-        NSString *title = [[NSString alloc] initWithCString: (APP_NAME " " APP_VERSION) encoding: NSASCIIStringEncoding]; 
+        NSString *title = [[NSString alloc] initWithCString: lxdream_package_name encoding: NSASCIIStringEncoding]; 
         [self setTitle: title];
 
         NSToolbar *toolbar = [[NSToolbar alloc] initWithIdentifier: @"LxdreamToolbar"];
