@@ -66,13 +66,13 @@ extern uint32_t sh4_cpu_multiplier;
 
 void print_version()
 {
-    printf( "lxdream " APP_VERSION "\n" );
+    printf( "lxdream %s\n", lxdream_full_version );
 }
 
 void print_usage()
 {
     print_version();
-    printf( "Usage: lxdream [options] [disc-file] [program-file]\n\n" );
+    printf( "Usage: lxdream %s [options] [disc-file] [program-file]\n\n", lxdream_full_version );
 
     printf( "Options:\n" );
     printf( "   -a, --aica=PROGFILE    %s\n", _("Run the AICA SPU only, with the supplied program") );

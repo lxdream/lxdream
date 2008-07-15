@@ -28,8 +28,12 @@
 extern "C" {
 #endif
 
-#define APP_NAME "lxDream"
-#define APP_VERSION "0.8.3"
+#define APP_NAME PACKAGE
+extern const char lxdream_package_name[];
+extern const char lxdream_short_version[];
+extern const char lxdream_full_version[];
+extern const char lxdream_copyright[];
+
 
 #define MB *1024*1024
 #define KB *1024
