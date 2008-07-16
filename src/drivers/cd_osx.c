@@ -143,7 +143,6 @@ static gdrom_error_t cdrom_osx_read_toc( gdrom_image_t image )
         readtoc.buffer = buf;
 
         if( ioctl(fh, DKIOCCDREADTOC, &readtoc ) == -1 ) {
-            ERROR( "Failed to read TOC: %s", strerror(errno) );
             image->disc_type = IDE_DISC_NONE;
             image->track_count = 0;
             return -1;
@@ -196,7 +195,6 @@ static gdrom_error_t cdrom_osx_read_sector( gdrom_disc_t disc, uint32_t sector,
         readcd.bufferLength = *length;
         readcd.buffer = buf;
         if( ioctl( fh, DKIOCCDREAD, &readcd ) == -1 ) {
-            ERROR( "Failed to read CD: %s", strerror(errno) );
             return -1;
         } else {
             return 0;
