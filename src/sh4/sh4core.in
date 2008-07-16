@@ -40,14 +40,9 @@
 
 /********************** SH4 Module Definition ****************************/
 
-uint32_t sh4_run_slice( uint32_t nanosecs ) 
+uint32_t sh4_emulate_run_slice( uint32_t nanosecs ) 
 {
     int i;
-    sh4r.slice_cycle = 0;
-
-    if( sh4r.sh4_state != SH4_STATE_RUNNING ) {
-	sh4_sleep_run_slice(nanosecs);
-    }
 
     if( sh4_breakpoint_count == 0 ) {
 	for( ; sh4r.slice_cycle < nanosecs; sh4r.slice_cycle += sh4_cpu_period ) {
@@ -85,10 +80,7 @@ uint32_t sh4_run_slice( uint32_t nanosecs )
 		}
 	    }
 	    if( i != sh4_breakpoint_count ) {
-		dreamcast_stop();
-		if( sh4_breakpoints[i].type == BREAK_ONESHOT )
-		    sh4_clear_breakpoint( sh4r.pc, BREAK_ONESHOT );
-		break;
+	    	sh4_core_exit( CORE_EXIT_BREAKPOINT );
 	    }
 #endif	
 	}
@@ -111,7 +103,7 @@ uint32_t sh4_run_slice( uint32_t nanosecs )
 /********************** SH4 emulation core  ****************************/
 
 #define UNDEF(ir) return sh4_raise_slot_exception(EXC_ILLEGAL, EXC_SLOT_ILLEGAL)
-#define UNIMP(ir) do{ ERROR( "Halted on unimplemented instruction at %08x, opcode = %04x", sh4r.pc, ir ); dreamcast_stop(); return FALSE; }while(0)
+#define UNIMP(ir) do{ ERROR( "Halted on unimplemented instruction at %08x, opcode = %04x", sh4r.pc, ir ); sh4_core_exit(CORE_EXIT_HALT); return FALSE; }while(0)
 
 #if(SH4_CALLTRACE == 1)
 #define MAX_CALLSTACK 32
@@ -169,7 +161,7 @@ void fprint_stack_trace( FILE *f )
 #define CHECKWALIGN64(addr) if( (addr)&0x07 ) return sh4_raise_exception( EXC_DATA_ADDR_WRITE )
 
 #define CHECKFPUEN() if( !IS_FPU_ENABLED() ) { if( ir == 0xFFFD ) { UNDEF(ir); } else { return sh4_raise_slot_exception( EXC_FPU_DISABLED, EXC_SLOT_FPU_DISABLED ); } }
-#define CHECKDEST(p) if( (p) == 0 ) { ERROR( "%08X: Branch/jump to NULL, CPU halted", sh4r.pc ); dreamcast_stop(); return FALSE; }
+#define CHECKDEST(p) if( (p) == 0 ) { ERROR( "%08X: Branch/jump to NULL, CPU halted", sh4r.pc ); sh4_core_exit(CORE_EXIT_HALT); return FALSE; }
 #define CHECKSLOTILLEGAL() if(sh4r.in_delay_slot) return sh4_raise_exception(EXC_SLOT_ILLEGAL)
 
 #define MEM_READ_BYTE( addr, val ) memtmp = mmu_vma_to_phys_read(addr); if( memtmp == MMU_VMA_ERROR ) { return TRUE; } else { val = sh4_read_byte(memtmp); }
@@ -262,7 +254,7 @@ gboolean sh4_execute_instruction( void )
 	    if( !mmu_update_icache(sh4r.pc) ) {
 		// double fault - halt
 		ERROR( "Double fault - halting" );
-		dreamcast_stop();
+		sh4_core_exit(CORE_EXIT_HALT);
 		return FALSE;
 	    }
 	}

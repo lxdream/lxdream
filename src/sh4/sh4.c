@@ -19,6 +19,7 @@
 
 #define MODULE sh4_module
 #include <math.h>
+#include <setjmp.h>
 #include <assert.h>
 #include "lxdream.h"
 #include "dreamcast.h"
@@ -54,24 +55,23 @@ int sh4_breakpoint_count = 0;
 sh4ptr_t sh4_main_ram;
 gboolean sh4_starting = FALSE;
 static gboolean sh4_use_translator = FALSE;
+static jmp_buf sh4_exit_jmp_buf;
+static gboolean sh4_running = FALSE;
 struct sh4_icache_struct sh4_icache = { NULL, -1, -1, 0 };
 
-void sh4_set_use_xlat( gboolean use )
+void sh4_translate_set_enabled( gboolean use )
 {
     // No-op if the translator was not built
 #ifdef SH4_TRANSLATOR
+    xlat_cache_init();
     if( use ) {
-        xlat_cache_init();
         sh4_translate_init();
-        sh4_module.run_time_slice = sh4_xlat_run_slice;
-    } else {
-        sh4_module.run_time_slice = sh4_run_slice;
     }
     sh4_use_translator = use;
 #endif
 }
 
-gboolean sh4_is_using_xlat()
+gboolean sh4_translate_is_enabled()
 {
     return sh4_use_translator;
 }
@@ -134,6 +134,91 @@ void sh4_stop(void)
         sh4r.in_delay_slot = FALSE;
     }
 
+}
+
+/**
+ * Execute a timeslice using translated code only (ie translate/execute loop)
+ */
+uint32_t sh4_run_slice( uint32_t nanosecs ) 
+{
+    sh4r.slice_cycle = 0;
+
+    if( sh4r.sh4_state != SH4_STATE_RUNNING ) {
+        sh4_sleep_run_slice(nanosecs);
+    }
+
+    /* Setup for sudden vm exits */
+    switch( setjmp(sh4_exit_jmp_buf) ) {
+    case CORE_EXIT_BREAKPOINT:
+        sh4_clear_breakpoint( sh4r.pc, BREAK_ONESHOT );
+        /* fallthrough */
+    case CORE_EXIT_HALT:
+        if( sh4r.sh4_state != SH4_STATE_STANDBY ) {
+            TMU_run_slice( sh4r.slice_cycle );
+            SCIF_run_slice( sh4r.slice_cycle );
+            dreamcast_stop();
+            return sh4r.slice_cycle;
+        }
+    case CORE_EXIT_SYSRESET:
+        dreamcast_reset();
+        break;
+    case CORE_EXIT_SLEEP:
+        sh4_sleep_run_slice(nanosecs);
+        break;  
+    case CORE_EXIT_FLUSH_ICACHE:
+#ifdef SH4_TRANSLATOR
+        xlat_flush_cache();
+#endif
+        break;
+    }
+
+    sh4_running = TRUE;
+    
+    /* Execute the core's real slice */
+#ifdef SH4_TRANSLATOR
+    if( sh4_use_translator ) {
+        sh4_translate_run_slice(nanosecs);
+    } else {
+        sh4_emulate_run_slice(nanosecs);
+    }
+#else
+    sh4_emulate_run_slice(nanosecs);
+#endif
+    
+    /* And finish off the peripherals afterwards */
+
+    sh4_running = FALSE;
+    sh4_starting = FALSE;
+    sh4r.slice_cycle = nanosecs;
+    if( sh4r.sh4_state != SH4_STATE_STANDBY ) {
+        TMU_run_slice( nanosecs );
+        SCIF_run_slice( nanosecs );
+    }
+    return nanosecs;   
+}
+
+void sh4_core_exit( int exit_code )
+{
+    if( sh4_running ) {
+#ifdef SH4_TRANSLATOR
+        if( sh4_use_translator ) {
+            sh4_translate_exit_recover();
+        }
+#endif
+        // longjmp back into sh4_run_slice
+        sh4_running = FALSE;
+        longjmp(sh4_exit_jmp_buf, exit_code);
+    }
+}
+
+void sh4_flush_icache()
+{
+#ifdef SH4_TRANSLATOR
+    // FIXME: Special case needs to be generalized
+    if( sh4_translate_flush_cache() ) {
+        longjmp(sh4_exit_jmp_buf, CORE_EXIT_CONTINUE);
+    }
+#endif
 }
 
 void sh4_save_state( FILE *f )
@@ -271,7 +356,7 @@ uint32_t sh4_read_sr( void )
 #define RAISE( x, v ) do{			\
     if( sh4r.vbr == 0 ) { \
         ERROR( "%08X: VBR not initialized while raising exception %03X, halting", sh4r.pc, x ); \
-        dreamcast_stop(); return FALSE;	\
+        sh4_core_exit(CORE_EXIT_HALT); return FALSE;	\
     } else { \
         sh4r.spc = sh4r.pc;	\
         sh4r.ssr = sh4_read_sr(); \
@@ -380,9 +465,7 @@ void sh4_sleep(void)
             sh4r.sh4_state = SH4_STATE_SLEEP;
         }
     }
-    if( sh4_xlat_is_running() ) {
-        sh4_translate_exit( XLAT_EXIT_SLEEP );
-    }
+    sh4_core_exit( CORE_EXIT_SLEEP );
 }
 
 /**

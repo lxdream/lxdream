@@ -39,12 +39,12 @@
 #define CHECK_READ_WATCH( addr, size ) \
     if( mem_is_watched(addr,size,WATCH_READ) != NULL ) { \
         WARN( "Watch triggered at %08X by %d byte read", addr, size ); \
-        dreamcast_stop(); \
+        sh4_core_exit(CORE_EXIT_HALT); \
     }
 #define CHECK_WRITE_WATCH( addr, size, val )                  \
     if( mem_is_watched(addr,size,WATCH_WRITE) != NULL ) { \
         WARN( "Watch triggered at %08X by %d byte write <= %0*X", addr, size, size*2, val ); \
-        dreamcast_stop(); \
+        sh4_core_exit(CORE_EXIT_HALT); \
     }
 #else
 #define CHECK_READ_WATCH( addr, size )

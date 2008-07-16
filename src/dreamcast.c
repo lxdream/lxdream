@@ -20,6 +20,7 @@
 #include <errno.h>
 #include <glib.h>
 #include "lxdream.h"
+#include "dream.h"
 #include "mem.h"
 #include "dreamcast.h"
 #include "asic.h"
@@ -29,7 +30,7 @@
 #include "gdrom/ide.h"
 #include "maple/maple.h"
 #include "sh4/sh4.h"
-#include "sh4/sh4trans.h"
+#include "sh4/sh4core.h"
 
 /**
  * Current state of the DC virtual machine
@@ -145,9 +146,6 @@ void dreamcast_init( void )
 void dreamcast_reset( void )
 {
     int i;
-    if( sh4_xlat_is_running() ) {
-        sh4_translate_exit( XLAT_EXIT_SYSRESET );
-    }
     for( i=0; i<num_modules; i++ ) {
         if( modules[i]->reset != NULL )
             modules[i]->reset();
@@ -211,9 +209,7 @@ void dreamcast_run( void )
 
 void dreamcast_stop( void )
 {
-    if( sh4_xlat_is_running() ) {
-        sh4_translate_exit( XLAT_EXIT_HALT );
-    }
+    sh4_core_exit(CORE_EXIT_HALT); // returns only if not inside SH4 core
     if( dreamcast_state == STATE_RUNNING )
         dreamcast_state = STATE_STOPPING;
 }
