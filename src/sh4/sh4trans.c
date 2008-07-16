@@ -17,7 +17,6 @@
  * GNU General Public License for more details.
  */
 #include <assert.h>
-#include <setjmp.h>
 #include "eventq.h"
 #include "syscall.h"
 #include "clock.h"
@@ -27,45 +26,11 @@
 #include "sh4/xltcache.h"
 
 
-static jmp_buf xlat_jmp_buf;
-static gboolean xlat_running = FALSE;
-
-gboolean sh4_xlat_is_running()
-{
-    return xlat_running;
-}
-
 /**
  * Execute a timeslice using translated code only (ie translate/execute loop)
  */
-uint32_t sh4_xlat_run_slice( uint32_t nanosecs ) 
+uint32_t sh4_translate_run_slice( uint32_t nanosecs ) 
 {
-    sh4r.slice_cycle = 0;
-
-    if( sh4r.sh4_state != SH4_STATE_RUNNING ) {
-        sh4_sleep_run_slice(nanosecs);
-    }
-
-    switch( setjmp(xlat_jmp_buf) ) {
-    case XLAT_EXIT_BREAKPOINT:
-        sh4_clear_breakpoint( sh4r.pc, BREAK_ONESHOT );
-        /* fallthrough */
-    case XLAT_EXIT_HALT:
-        if( sh4r.sh4_state != SH4_STATE_STANDBY ) {
-            TMU_run_slice( sh4r.slice_cycle );
-            SCIF_run_slice( sh4r.slice_cycle );
-            dreamcast_stop();
-            return sh4r.slice_cycle;
-        }
-    case XLAT_EXIT_SYSRESET:
-        dreamcast_reset();
-        break;
-    case XLAT_EXIT_SLEEP:
-        sh4_sleep_run_slice(nanosecs);
-        break;	
-    }
-
-    xlat_running = TRUE;
     void * (*code)() = NULL;
     while( sh4r.slice_cycle < nanosecs ) {
         if( sh4r.event_pending <= sh4r.slice_cycle ) {
@@ -92,14 +57,6 @@ uint32_t sh4_xlat_run_slice( uint32_t nanosecs )
             }
         }
         code = code();
-    }
-
-    xlat_running = FALSE;
-    sh4_starting = FALSE;
-    sh4r.slice_cycle = nanosecs;
-    if( sh4r.sh4_state != SH4_STATE_STANDBY ) {
-        TMU_run_slice( nanosecs );
-        SCIF_run_slice( nanosecs );
     }
     return nanosecs;
 }
@@ -197,26 +154,7 @@ void sh4_translate_run_recovery( xlat_recovery_record_t recovery )
     sh4r.pc += (recovery->sh4_icount<<1);
 }
 
-void sh4_translate_unwind_stack( gboolean abort_after, unwind_thunk_t thunk )
-{
-    void *pc = xlat_get_native_pc();
-
-    assert( pc != NULL );
-    void *code = xlat_get_code( sh4r.pc );
-    xlat_recovery_record_t recover = xlat_get_recovery(code, pc, TRUE);
-    if( recover != NULL ) {
-        // Can be null if there is no recovery necessary
-        sh4_translate_run_recovery(recover);
-    }
-    if( thunk != NULL ) {
-        thunk();
-    }
-    // finally longjmp back into sh4_xlat_run_slice
-    xlat_running = FALSE;
-    longjmp(xlat_jmp_buf, XLAT_EXIT_CONTINUE);
-} 
-
-void sh4_translate_exit( int exit_code )
+void sh4_translate_exit_recover( )
 {
     void *pc = xlat_get_native_pc();
     if( pc != NULL ) {
@@ -228,9 +166,6 @@ void sh4_translate_exit( int exit_code )
             sh4_translate_run_recovery(recover);
         }
     }
-    // finally longjmp back into sh4_xlat_run_slice
-    xlat_running = FALSE;
-    longjmp(xlat_jmp_buf, exit_code);
 }
 
 void sh4_translate_breakpoint_hit(uint32_t pc)
@@ -238,7 +173,7 @@ void sh4_translate_breakpoint_hit(uint32_t pc)
     if( sh4_starting && sh4r.slice_cycle == 0 && pc == sh4r.pc ) {
         return;
     }
-    sh4_translate_exit( XLAT_EXIT_BREAKPOINT );
+    sh4_core_exit( CORE_EXIT_BREAKPOINT );
 }
 
 /**
@@ -252,7 +187,7 @@ void sh4_translate_breakpoint_hit(uint32_t pc)
  *
  * Must only be invoked (indirectly) from within translated code.
  */
-void sh4_translate_flush_cache()
+gboolean sh4_translate_flush_cache()
 {
     void *pc = xlat_get_native_pc();
     assert( pc != NULL );
@@ -263,11 +198,10 @@ void sh4_translate_flush_cache()
         // Can be null if there is no recovery necessary
         sh4_translate_run_recovery(recover);
         xlat_flush_cache();
-        xlat_running = FALSE;
-        longjmp(xlat_jmp_buf, XLAT_EXIT_CONTINUE);
+        return TRUE;
     } else {
         xlat_flush_cache();
-        return;
+        return FALSE;
     }
 }
 
@@ -289,7 +223,7 @@ void *xlat_get_code_by_vma( sh4vma_t vma )
         if( !mmu_update_icache(sh4r.pc) ) {
             // double fault - halt
             ERROR( "Double fault - halting" );
-            dreamcast_stop();
+            sh4_core_exit(CORE_EXIT_HALT);
             return NULL;
         }
     }

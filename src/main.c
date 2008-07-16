@@ -252,7 +252,7 @@ int main (int argc, char *argv[])
         }
     }
 
-    sh4_set_use_xlat( use_xlat );
+    sh4_translate_set_enabled( use_xlat );
 
     if( headless ) {
         dreamcast_run();

@@ -97,12 +97,12 @@ extern struct sh4_registers sh4r;
  *
  * @param use TRUE for translation mode, FALSE for emulation mode.
  */
-void sh4_set_use_xlat( gboolean use );
+void sh4_translate_set_enabled( gboolean use );
 
 /**
  * Test if system is currently using the translation engine.
  */
-gboolean sh4_is_using_xlat();
+gboolean sh4_translate_is_enabled();
 
 /**
  * Explicitly set the SH4 PC to the supplied value - this will be the next

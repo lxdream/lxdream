@@ -72,6 +72,42 @@ extern struct sh4_icache_struct sh4_icache;
  */
 #define GET_ICACHE_END() (sh4_icache.page_vma + (~sh4_icache.mask) + 1)
 
+
+/**
+ * SH4 vm-exit flag - exit the current block but continue (eg exception handling)
+ */
+#define CORE_EXIT_CONTINUE 1
+
+/**
+ * SH4 vm-exit flag - exit the current block and halt immediately (eg fatal error)
+ */
+#define CORE_EXIT_HALT 2
+
+/**
+ * SH4 vm-exit flag - exit the current block and halt immediately for a system
+ * breakpoint.
+ */
+#define CORE_EXIT_BREAKPOINT 3
+
+/**
+ * SH4 vm-exit flag - exit the current block and continue after performing a full
+ * system reset (dreamcast_reset())
+ */
+#define CORE_EXIT_SYSRESET 4
+
+/**
+ * SH4 vm-exit flag - exit the current block and continue after the next IRQ.
+ */
+#define CORE_EXIT_SLEEP 5
+
+/**
+ * SH4 vm-exit flag - exit the current block  and flush all instruction caches (ie
+ * if address translation has changed)
+ */
+#define CORE_EXIT_FLUSH_ICACHE 6
+
+typedef uint32_t (*sh4_run_slice_fn)(uint32_t);
+
 /* SH4 module functions */
 void sh4_init( void );
 void sh4_reset( void );
@@ -80,6 +116,25 @@ void sh4_stop( void );
 uint32_t sh4_run_slice( uint32_t nanos ); // Run single timeslice using emulator
 uint32_t sh4_xlat_run_slice( uint32_t nanos ); // Run single timeslice using translator
 uint32_t sh4_sleep_run_slice( uint32_t nanos ); // Run single timeslice while the CPU is asleep
+
+/**
+ * Immediately exit from the currently executing instruction with the given
+ * exit code. This method does not return.
+ */
+void sh4_core_exit( int exit_code );
+
+/**
+ * Exit the current block at the end of the current instruction, flush the
+ * translation cache (completely) and return control to sh4_xlat_run_slice.
+ *
+ * As a special case, if the current instruction is actually the last 
+ * instruction in the block (ie it's in a delay slot), this function 
+ * returns to allow normal completion of the translation block. Otherwise
+ * this function never returns.
+ *
+ * Must only be invoked (indirectly) from within translated code.
+ */
+void sh4_flush_icache();
 
 /* SH4 peripheral module functions */
 void CPG_reset( void );

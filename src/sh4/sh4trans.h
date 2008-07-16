@@ -42,33 +42,6 @@ extern "C" {
 #define MAX_RECOVERY_SIZE 2049
 
 /**
- * Translation flag - exit the current block but continue (eg exception handling)
- */
-#define XLAT_EXIT_CONTINUE 1
-
-/**
- * Translation flag - exit the current block and halt immediately (eg fatal error)
- */
-#define XLAT_EXIT_HALT 2
-
-/**
- * Translation flag - exit the current block and halt immediately for a system
- * breakpoint.
- */
-#define XLAT_EXIT_BREAKPOINT 3
-
-/**
- * Translation flag - exit the current block and continue after performing a full
- * system reset (dreamcast_reset())
- */
-#define XLAT_EXIT_SYSRESET 4
-
-/**
- * Translation flag - exit the current block and continue after the next IRQ.
- */
-#define XLAT_EXIT_SLEEP 5
-
-/**
  */
 uint32_t sh4_xlat_run_slice( uint32_t nanosecs );
 
@@ -134,17 +107,17 @@ typedef void (*unwind_thunk_t)(void);
 void sh4_translate_unwind_stack( gboolean is_completion, unwind_thunk_t thunk );
 
 /**
- * From within the translator, immediately exit the current translation block with
- * the specified exit code (one of the XLAT_EXIT_* values).
+ * Called when doing a break out of the translator - finalizes the system state up to
+ * the end of the current instruction.
  */
-void sh4_translate_exit( int exit_code );
+void sh4_translate_exit_recover( );
 
 /**
  * From within the translator, exit the current block at the end of the 
- * current instruction, flush the translation cache (completely) and return
- * control to sh4_xlat_run_slice.
+ * current instruction, flush the translation cache (completely) 
+ * @return TRUE to perform a vm-exit/continue after the flush
  */
-void sh4_translate_flush_cache( void );
+gboolean sh4_translate_flush_cache( void );
 
 /**
  * Support function called from the translator when a breakpoint is hit.
