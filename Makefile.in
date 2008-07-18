@@ -764,7 +764,7 @@ dist-hook:
 @GUI_COCOA_TRUE@	   catname=`basename "$$cat"`; \
 @GUI_COCOA_TRUE@	   catname=`echo $$catname|sed -e 's/$(CATOBJEXT)$$//'`; \
 @GUI_COCOA_TRUE@	   mkdir -p "$(BUNDLE)/Contents/Resources/$$catname/LC_MESSAGES"; \
-@GUI_COCOA_TRUE@	   cp "po/$$cat" "$(BUNDLE)/Contents/Resources/$$catname/LC_MESSAGES/lxdream$(CATOBJEXT)"; \
+@GUI_COCOA_TRUE@	   cp "$(top_srcdir)/po/$$cat" "$(BUNDLE)/Contents/Resources/$$catname/LC_MESSAGES/lxdream$(CATOBJEXT)"; \
 @GUI_COCOA_TRUE@	done
 @GUI_COCOA_TRUE@	@echo --- Done ---
 
