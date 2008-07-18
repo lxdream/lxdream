@@ -40,6 +40,7 @@ typedef enum { STATE_UNINIT=0, STATE_RUNNING,
     
 static volatile dreamcast_state_t dreamcast_state = STATE_UNINIT;
 static gboolean dreamcast_has_bios = FALSE;
+static gboolean dreamcast_has_flash = FALSE;
 static gboolean dreamcast_exit_on_stop = FALSE;
 static gchar *dreamcast_program_name = NULL;
 static sh4addr_t dreamcast_entry_point = 0xA0000000;
@@ -81,6 +82,7 @@ void dreamcast_configure( )
     mem_create_ram_region( 0x00200000, 0x00020000, MEM_REGION_FLASH );
     mem_load_block( lxdream_get_config_value(CONFIG_FLASH_PATH),
                     0x00200000, 0x00020000 );
+    dreamcast_has_flash = TRUE;
 
     /* Load in the rest of the core modules */
     dreamcast_register_module( &sh4_module );
@@ -102,8 +104,10 @@ void dreamcast_config_changed(void)
 
 void dreamcast_save_flash()
 {
-    const char *file = lxdream_get_config_value(CONFIG_FLASH_PATH);
-    mem_save_block( file, 0x00200000, 0x00020000 );
+    if( dreamcast_has_flash ) {
+        const char *file = lxdream_get_config_value(CONFIG_FLASH_PATH);
+        mem_save_block( file, 0x00200000, 0x00020000 );
+    }
 }
 
 /**
