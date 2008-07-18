@@ -257,6 +257,7 @@ test_ftrc_10_result:
 	.long 0x80000000
 
 test_ftrc_11: ! test undefined instruction, pr=1
+	bra test_ftrc_12
 	add #1, r12
 	mov.l test_ftrc_11_input_a, r0
 	lds r0, fpul
