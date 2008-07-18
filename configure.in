@@ -266,6 +266,7 @@ src/Makefile
 po/Makefile.in
 test/Makefile
 ])
+AS_MKDIR_P(test/sh4)
 
 dnl ------------------------- Print out a summary ----------------------
 

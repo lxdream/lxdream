@@ -38,7 +38,7 @@ RUNTESTX	= ../src/lxdream -c $(srcdir)/lxdream.rc -xpuH -A null
 	$(SH4CC) $(SH4CFLAGS) -o $@ -c $< 
 
 %.so: %.s
-	$(SH4CC) $(SH4CFLAGS) -o $@ -c $< 
+	$(SH4CC) $(SH4CFLAGS) -o $@ -c $< -Wa,-I$(srcdir)
 
 %.so: %.S
 	$(SH4CC) $(SH4CFLAGS) -o $@ -c $< 
