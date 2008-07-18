@@ -186,7 +186,7 @@ int mem_save_block( const gchar *file, uint32_t start, uint32_t length )
         total += len;
     }
     fclose( f );
-    INFO( "Loaded %d of %d bytes to %08X", total, length, start );
+    INFO( "Saved %d of %d bytes to %08X", total, length, start );
     return 0;
 }
 
