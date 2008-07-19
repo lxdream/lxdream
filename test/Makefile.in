@@ -1,6 +1,7 @@
 srcdir = @srcdir@
 top_srcdir = @top_srcdir@
 VPATH = @srcdir@
+mkdir_p = @mkdir_p@
 
 # host compiler and flags
 HOSTCC		= @CC@
@@ -141,3 +142,65 @@ clean:
 
 distclean: clean
 	rm -f Makefile
+
+install:
+
+installcheck:
+
+uninstall:
+
+DISTFILES = asic.c asic.h bin2c.c crt0.s dma.h dmac.c ide.c ide.h interrupt.s \
+        lib.c lib.h math.s pvr.c pvr.h rendload.c sh4/add.s sh4/addc.s \
+        sh4/addv.s sh4/and.s sh4/andi.s sh4/bf.s sh4/bsr.s sh4/bt.s sh4/cmp.s \
+        sh4/cmpstr.s sh4/div0.s sh4/div1.s sh4/excslot.s sh4/float.s sh4/fmov.s \
+        sh4/ftrc.s sh4/inc.s sh4/mac.s sh4/rot.s sh4/shl.s sh4/shld.s sh4/sub.s \
+        sh4/subc.s sh4/tas.s sh4/testsh4.c sh4/tlb.s sh4/trapa.s sh4/undef.s \
+        sh4/xtrct.s testdata.c testdata.h testdisp.c testide.c testmath.c \
+        testmmu.c testregs.c testrend.c testspu.c testta.c testyuv.c timer.c timer.h \
+        dc.x lib/libc.a lib/libm.a lib/newlib-1.8.2-dc.patch \
+	include/_ansi.h include/_syslist.h include/ar.h include/assert.h include/ctype.h \
+	include/dirent.h include/errno.h include/fastmath.h include/fcntl.h include/grp.h \
+	include/ieeefp.h include/locale.h include/machine/fastmath.h include/machine/ieeefp.h \
+	include/machine/setjmp-dj.h include/machine/setjmp.h include/machine/time.h \
+	include/machine/types.h include/malloc.h include/math.h include/paths.h \
+	include/process.h include/pwd.h include/reent.h include/regdef.h include/setjmp.h \
+	include/signal.h include/stdio.h include/stdlib.h include/string.h include/sys/_types.h \
+	include/sys/config.h include/sys/dirent.h include/sys/errno.h include/sys/fcntl.h \
+	include/sys/file.h include/sys/param.h include/sys/reent.h include/sys/resource.h \
+	include/sys/signal.h include/sys/stat-dj.h include/sys/stat.h include/sys/time.h \
+	include/sys/timeb.h include/sys/times.h include/sys/types.h include/sys/unistd.h \
+	include/sys/utime.h include/sys/wait.h include/termios.h include/time.h \
+	include/unctrl.h include/unistd.h include/utime.h include/utmp.h
+                        
+
+
+distdir:
+	$(mkdir_p) $(distdir)/sh4 $(distdir)/lib $(distdir)/include
+	@srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`; \
+	topsrcdirstrip=`echo "$(top_srcdir)" | sed 's|.|.|g'`; \
+	list='$(DISTFILES)'; for file in $$list; do \
+	  case $$file in \
+	    $(srcdir)/*) file=`echo "$$file" | sed "s|^$$srcdirstrip/||"`;; \
+	    $(top_srcdir)/*) file=`echo "$$file" | sed "s|^$$topsrcdirstrip/|$(top_builddir)/|"`;; \
+	  esac; \
+	  if test -f $$file || test -d $$file; then d=.; else d=$(srcdir); fi; \
+	  dir=`echo "$$file" | sed -e 's,/[^/]*$$,,'`; \
+	  if test "$$dir" != "$$file" && test "$$dir" != "."; then \
+	    dir="/$$dir"; \
+	    $(mkdir_p) "$(distdir)$$dir"; \
+	  else \
+	    dir=''; \
+	  fi; \
+	  if test -d $$d/$$file; then \
+	    if test -d $(srcdir)/$$file && test $$d != $(srcdir); then \
+	      cp -pR $(srcdir)/$$file $(distdir)$$dir || exit 1; \
+	    fi; \
+	    cp -pR $$d/$$file $(distdir)$$dir || exit 1; \
+	  else \
+	    test -f $(distdir)/$$file \
+	    || cp -p $$d/$$file $(distdir)/$$file \
+	    || exit 1; \
+	  fi; \
+	done
+
+dvi:

@@ -13,6 +13,7 @@
 # PARTICULAR PURPOSE.
 
 @SET_MAKE@
+
 srcdir = @srcdir@
 top_srcdir = @top_srcdir@
 VPATH = @srcdir@
@@ -35,11 +36,12 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-DIST_COMMON = README $(am__configure_deps) $(srcdir)/Makefile.am \
-	$(srcdir)/Makefile.in $(srcdir)/config.h.in \
-	$(top_srcdir)/configure $(top_srcdir)/test/Makefile.in AUTHORS \
-	COPYING ChangeLog INSTALL NEWS acconfig.h config.guess \
-	config.sub depcomp install-sh missing mkinstalldirs
+DIST_COMMON = README $(am__configure_deps) $(dist_sysconf_DATA) \
+	$(srcdir)/Makefile.am $(srcdir)/Makefile.in \
+	$(srcdir)/config.h.in $(top_srcdir)/configure \
+	$(top_srcdir)/test/Makefile.in AUTHORS COPYING ChangeLog \
+	INSTALL NEWS acconfig.h config.guess config.sub depcomp \
+	install-sh missing mkinstalldirs
 subdir = .
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.in
@@ -59,9 +61,17 @@ RECURSIVE_TARGETS = all-recursive check-recursive dvi-recursive \
 	pdf-recursive ps-recursive uninstall-info-recursive \
 	uninstall-recursive
 man1dir = $(mandir)/man1
-am__installdirs = "$(DESTDIR)$(man1dir)"
+am__installdirs = "$(DESTDIR)$(man1dir)" "$(DESTDIR)$(sysconfdir)"
 NROFF = nroff
 MANS = $(man_MANS)
+am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
+am__vpath_adj = case $$p in \
+    $(srcdir)/*) f=`echo "$$p" | sed "s|^$$srcdirstrip/||"`;; \
+    *) f=$$p;; \
+  esac;
+am__strip_dir = `echo $$p | sed -e 's|^.*/||'`;
+dist_sysconfDATA_INSTALL = $(INSTALL_DATA)
+DATA = $(dist_sysconf_DATA)
 ETAGS = etags
 CTAGS = ctags
 DIST_SUBDIRS = src po test
@@ -241,6 +251,7 @@ BUNDLE = lxdream.app
 @BUILD_SYSTEST_TRUE@TEST_SUBDIR = test
 SUBDIRS = src po $(TEST_SUBDIR)
 EXTRA_DIST = autogen.sh lxdream.pod bundlelibs.pl
+dist_sysconf_DATA = lxdreamrc
 man_MANS = lxdream.1
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-recursive
@@ -343,6 +354,23 @@ uninstall-man1:
 	  inst=`echo $$inst | sed '$(transform)'`.$$ext; \
 	  echo " rm -f '$(DESTDIR)$(man1dir)/$$inst'"; \
 	  rm -f "$(DESTDIR)$(man1dir)/$$inst"; \
+	done
+install-dist_sysconfDATA: $(dist_sysconf_DATA)
+	@$(NORMAL_INSTALL)
+	test -z "$(sysconfdir)" || $(mkdir_p) "$(DESTDIR)$(sysconfdir)"
+	@list='$(dist_sysconf_DATA)'; for p in $$list; do \
+	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
+	  f=$(am__strip_dir) \
+	  echo " $(dist_sysconfDATA_INSTALL) '$$d$$p' '$(DESTDIR)$(sysconfdir)/$$f'"; \
+	  $(dist_sysconfDATA_INSTALL) "$$d$$p" "$(DESTDIR)$(sysconfdir)/$$f"; \
+	done
+
+uninstall-dist_sysconfDATA:
+	@$(NORMAL_UNINSTALL)
+	@list='$(dist_sysconf_DATA)'; for p in $$list; do \
+	  f=$(am__strip_dir) \
+	  echo " rm -f '$(DESTDIR)$(sysconfdir)/$$f'"; \
+	  rm -f "$(DESTDIR)$(sysconfdir)/$$f"; \
 	done
 
 # This directory's subdirectories are mostly independent; you can cd
@@ -625,10 +653,10 @@ distcleancheck: distclean
 check-am: all-am
 check: check-recursive
 @GUI_COCOA_FALSE@all-local:
-all-am: Makefile $(MANS) config.h all-local
+all-am: Makefile $(MANS) $(DATA) config.h all-local
 installdirs: installdirs-recursive
 installdirs-am:
-	for dir in "$(DESTDIR)$(man1dir)"; do \
+	for dir in "$(DESTDIR)$(man1dir)" "$(DESTDIR)$(sysconfdir)"; do \
 	  test -z "$$dir" || $(mkdir_p) "$$dir"; \
 	done
 install: install-recursive
@@ -676,7 +704,7 @@ info-am:
 
 install-data-am: install-data-local install-man
 
-install-exec-am:
+install-exec-am: install-dist_sysconfDATA
 
 install-info: install-info-recursive
 
@@ -702,7 +730,8 @@ ps: ps-recursive
 
 ps-am:
 
-uninstall-am: uninstall-info-am uninstall-man
+uninstall-am: uninstall-dist_sysconfDATA uninstall-info-am \
+	uninstall-local uninstall-man
 
 uninstall-info: uninstall-info-recursive
 
@@ -715,14 +744,15 @@ uninstall-man: uninstall-man1
 	distclean-generic distclean-hdr distclean-recursive \
 	distclean-tags distcleancheck distdir distuninstallcheck dvi \
 	dvi-am html html-am info info-am install install-am \
-	install-data install-data-am install-data-local install-exec \
-	install-exec-am install-info install-info-am install-man \
-	install-man1 install-strip installcheck installcheck-am \
-	installdirs installdirs-am maintainer-clean \
-	maintainer-clean-generic maintainer-clean-recursive \
-	mostlyclean mostlyclean-generic mostlyclean-recursive pdf \
-	pdf-am ps ps-am tags tags-recursive uninstall uninstall-am \
-	uninstall-info-am uninstall-man uninstall-man1
+	install-data install-data-am install-data-local \
+	install-dist_sysconfDATA install-exec install-exec-am \
+	install-info install-info-am install-man install-man1 \
+	install-strip installcheck installcheck-am installdirs \
+	installdirs-am maintainer-clean maintainer-clean-generic \
+	maintainer-clean-recursive mostlyclean mostlyclean-generic \
+	mostlyclean-recursive pdf pdf-am ps ps-am tags tags-recursive \
+	uninstall uninstall-am uninstall-dist_sysconfDATA \
+	uninstall-info-am uninstall-local uninstall-man uninstall-man1
 
 
 lxdream.1: lxdream.pod
@@ -739,7 +769,10 @@ install-data-local:
 	  done \
 	fi
 	$(mkinstalldirs) $(DESTDIR)$(sysconfdir)
-	$(INSTALL_DATA) lxdreamrc $(DESTDIR)$(sysconfdir)
+
+uninstall-local:
+	@$(NORMAL_UNINSTALL) 
+	rm -rf $(DESTDIR)$(datadir)/pixmaps
 
 dist-hook:
 	if test -d $(srcdir)/pixmaps; then \

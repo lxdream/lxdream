@@ -134,7 +134,7 @@ lxdream_SOURCES += drivers/cd_none.c
 endif
 
 if JOY_LINUX
-lxdream_SOURCES += drivers/joy_linux.c
+lxdream_SOURCES += drivers/joy_linux.c drivers/joy_linux.h
 endif
 
 
