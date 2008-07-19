@@ -252,6 +252,7 @@ BUNDLE = lxdream.app
 SUBDIRS = src po $(TEST_SUBDIR)
 EXTRA_DIST = autogen.sh lxdream.pod bundlelibs.pl
 dist_sysconf_DATA = lxdreamrc
+CLEANFILES = lxdream.1
 man_MANS = lxdream.1
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-recursive
@@ -676,6 +677,7 @@ install-strip:
 mostlyclean-generic:
 
 clean-generic:
+	-test -z "$(CLEANFILES)" || rm -f $(CLEANFILES)
 
 distclean-generic:
 	-test -z "$(CONFIG_CLEAN_FILES)" || rm -f $(CONFIG_CLEAN_FILES)
@@ -685,7 +687,7 @@ maintainer-clean-generic:
 	@echo "it deletes files that may require special tools to rebuild."
 clean: clean-recursive
 
-clean-am: clean-generic mostlyclean-am
+clean-am: clean-generic clean-local mostlyclean-am
 
 distclean: distclean-recursive
 	-rm -f $(am__CONFIG_DISTCLEAN_FILES)
@@ -738,10 +740,10 @@ uninstall-info: uninstall-info-recursive
 uninstall-man: uninstall-man1
 
 .PHONY: $(RECURSIVE_TARGETS) CTAGS GTAGS all all-am all-local \
-	am--refresh check check-am clean clean-generic clean-recursive \
-	ctags ctags-recursive dist dist-all dist-bzip2 dist-gzip \
-	dist-hook dist-shar dist-tarZ dist-zip distcheck distclean \
-	distclean-generic distclean-hdr distclean-recursive \
+	am--refresh check check-am clean clean-generic clean-local \
+	clean-recursive ctags ctags-recursive dist dist-all dist-bzip2 \
+	dist-gzip dist-hook dist-shar dist-tarZ dist-zip distcheck \
+	distclean distclean-generic distclean-hdr distclean-recursive \
 	distclean-tags distcleancheck distdir distuninstallcheck dvi \
 	dvi-am html html-am info info-am install install-am \
 	install-data install-data-am install-data-local \
@@ -773,6 +775,9 @@ install-data-local:
 uninstall-local:
 	@$(NORMAL_UNINSTALL) 
 	rm -rf $(DESTDIR)$(datadir)/pixmaps
+
+clean-local:
+	rm -rf $(BUNDLE)
 
 dist-hook:
 	if test -d $(srcdir)/pixmaps; then \

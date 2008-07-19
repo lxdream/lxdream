@@ -11,7 +11,7 @@ SUBDIRS = src po $(TEST_SUBDIR)
 EXTRA_DIST = autogen.sh lxdream.pod bundlelibs.pl
 
 dist_sysconf_DATA = lxdreamrc
-
+CLEANFILES = lxdream.1
 man_MANS = lxdream.1
 
 lxdream.1: lxdream.pod
@@ -32,6 +32,9 @@ install-data-local:
 uninstall-local:
 	@$(NORMAL_UNINSTALL) 
 	rm -rf $(DESTDIR)$(datadir)/pixmaps
+
+clean-local:
+	rm -rf $(BUNDLE)
                
 dist-hook:
 	if test -d $(srcdir)/pixmaps; then \
