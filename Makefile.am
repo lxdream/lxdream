@@ -29,6 +29,10 @@ install-data-local:
 	fi
 	$(mkinstalldirs) $(DESTDIR)$(sysconfdir)
 
+uninstall-local:
+	@$(NORMAL_UNINSTALL) 
+	rm -rf $(DESTDIR)$(datadir)/pixmaps
+               
 dist-hook:
 	if test -d $(srcdir)/pixmaps; then \
 	  mkdir $(distdir)/pixmaps; \
