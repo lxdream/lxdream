@@ -138,7 +138,9 @@ testFF10: crt0.so testFF10.so lib.so
 
 .PHONY : clean
 clean:
-	rm -f *.o *.so *.ao *.ac *.bin mapleid ide readmem dumpasic
+	rm -f *.o *.so *.ao *.ac *.bin sh4/*.so mapleid ide readmem dumpasic \
+	   testsh4 testta testdisp testregs testide testmath testmmu \
+	   testrend testspu dcflash.rom
 
 distclean: clean
 	rm -f Makefile

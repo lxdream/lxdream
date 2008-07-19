@@ -22,7 +22,10 @@ checkversion:
 version.c: checkversion
 
 TESTS = test/testxlt
-BUILT_SOURCES = sh4/sh4core.c sh4/sh4dasm.c sh4/sh4x86.c pvr2/gl_slsrc.c drivers/mac_keymap.h version.c
+BUILT_SOURCES = sh4/sh4core.c sh4/sh4dasm.c sh4/sh4x86.c sh4/sh4stat.c \
+	pvr2/gl_slsrc.c drivers/mac_keymap.h version.c
+CLEANFILES = sh4/sh4core.c sh4/sh4dasm.c sh4/sh4x86.c sh4/sh4stat.c \
+	pvr2/gl_slsrc.c drivers/mac_keymap.h version.c
 
 #all-am: checkversion
 
