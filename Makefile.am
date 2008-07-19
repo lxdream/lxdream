@@ -45,6 +45,14 @@ dist-hook:
 	    fi \
 	  done \
 	fi
+	if test -d $(srcdir)/debian; then \
+	  mkdir $(distdir)/debian; \
+	  for f in $(srcdir)/debian/*; do \
+	    if test -f $$f; then \
+	      cp -p $$f $(distdir)/debian; \
+	    fi \
+	  done \
+	fi
 
 if GUI_COCOA
 # Build a Mac OS X bundle. This is meaningless anywhere else
