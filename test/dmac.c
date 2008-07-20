@@ -33,6 +33,13 @@
 #define PVR_DMA_CTL   (ASIC_BASE+0x808)
 #define PVR_DMA_REGION (ASIC_BASE+0x884)
 
+#define SORT_DMA_TABLE (ASIC_BASE+0x810)
+#define SORT_DMA_DATA  (ASIC_BASE+0x814)
+#define SORT_DMA_TABLEBITS (ASIC_BASE+0x818)
+#define SORT_DMA_DATASIZE (ASIC_BASE+0x81C)
+#define SORT_DMA_CTL   (ASIC_BASE+0x820)
+#define SORT_DMA_COUNT (ASIC_BASE+0x860)
+
 void dmac_dump_channel( FILE *f, unsigned int channel )
 {
     fprintf( f, "DMAC SAR: %08X  Count: %08X  Ctl: %08X  OR: %08X\n",
@@ -122,5 +129,31 @@ int pvr_dma_write( unsigned int target, char *buf, int len, int region )
     CHECK_IEQUALS( 0, long_read(PVR_DMA_COUNT) );
     CHECK_IEQUALS( 0, long_read(PVR_DMA_REGION) );
 
+    return result;
+}
+
+int sort_dma_write( char *sorttable, int tablelen, char *data, int datalen, int bitwidth, int datasize )
+{
+    int result;
+    uint32_t tableaddr = (uint32_t)sorttable;
+    uint32_t dataaddr = (uint32_t)data;
+    
+    long_write( SORT_DMA_CTL, 0 );
+    asic_clear();
+    
+    long_write( SORT_DMA_TABLE, tableaddr );
+    long_write( SORT_DMA_DATA, dataaddr );
+    long_write( SORT_DMA_TABLEBITS, bitwidth );
+    long_write( SORT_DMA_DATASIZE, datasize );
+    long_write( SORT_DMA_CTL, 1 );
+    result = asic_wait2(EVENT_SORT_DMA, EVENT_SORT_DMA_ERR);
+    if( result == -1 ) {
+        fprintf( stderr, "SORT DMA failed (timeout)\n" );
+        asic_dump(stderr);
+        fprintf( stderr, "Table: %08X Count: %08X Ctl: %08X\n", long_read(SORT_DMA_TABLE), long_read(SORT_DMA_COUNT),
+                 long_read(SORT_DMA_CTL) );
+        long_write( SORT_DMA_CTL, 0 );
+    }
+    CHECK_IEQUALS( 0, long_read(SORT_DMA_CTL) );
     return result;
 }

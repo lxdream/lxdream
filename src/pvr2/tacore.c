@@ -1161,7 +1161,22 @@ void pvr2_ta_process_block( unsigned char *input ) {
 
 }
 
-
+/**
+ * Find the first polygon or sprite context in the supplied buffer of TA
+ * data.
+ * @return A pointer to the context, or NULL if it cannot be found 
+ */
+uint32_t *pvr2_ta_find_polygon_context( uint32_t *buf, uint32_t length )
+{
+    uint32_t *poly;
+    for( poly = buf; poly < buf+(length>>2); poly += 8 ) {
+        if( TA_CMD(*poly) == TA_CMD_POLYGON_CONTEXT ||
+            TA_CMD(*poly) == TA_CMD_SPRITE_CONTEXT ) {
+            return poly;
+        }
+    }
+    return NULL;
+}
 
 /**
  * Write a block of data to the tile accelerator, adding the data to the 

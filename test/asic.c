@@ -43,6 +43,28 @@ int asic_wait( int event )
 }
 
 /**
+ * Wait for either of 2 ASIC events. 
+ * @return the event id if the event occurred, otherwise -1 if the wait timed out.
+ */
+int asic_wait2( int event1, int event2 )
+{
+    int n1 = event1 >> 5;
+    int n2 = event2 >> 5;
+    unsigned int mask1 = (1<< (event1&0x1f));
+    unsigned int mask2 = (1<< (event2&0x1f));
+    int i;
+    for( i=0; i<TIMEOUT; i++ ) {
+	if( long_read(ASIC_PIRQ(n1)) & mask1 ) {
+	    return event1;
+	}
+	if( long_read(ASIC_PIRQ(n2)) & mask2 ) {
+            return event2;
+        }
+    }
+    return -1; /* Timeout */
+}
+
+/**
  * Clear all asic events
  */
 void asic_clear()

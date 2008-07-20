@@ -355,9 +355,42 @@ void sort_dma_transfer( )
     sh4addr_t table_addr = MMIO_READ( ASIC, SORTDMATBL );
     sh4addr_t data_addr = MMIO_READ( ASIC, SORTDMADATA );
     int table_size = MMIO_READ( ASIC, SORTDMATSIZ );
-    int data_size = MMIO_READ( ASIC, SORTDMADSIZ );
+    int addr_shift = MMIO_READ( ASIC, SORTDMAASIZ ) ? 5 : 0;
+    int count = 1;
 
-    WARN( "Sort DMA not implemented" );
+    uint32_t *table32 = (uint32_t *)mem_get_region( table_addr );
+    uint16_t *table16 = (uint16_t *)table32;
+    uint32_t next = table_size ? (*table32++) : (uint32_t)(*table16++);
+    while(1) {
+        next &= 0x07FFFFFF;
+        if( next == 1 ) {
+            next = table_size ? (*table32++) : (uint32_t)(*table16++);
+            count++;
+            continue;
+        } else if( next == 2 ) {
+            asic_event( EVENT_SORT_DMA );
+            break;
+        } 
+        uint32_t *data = (uint32_t *)mem_get_region(data_addr + (next<<addr_shift));
+        if( data == NULL ) {
+            break;
+        }
+
+        uint32_t *poly = pvr2_ta_find_polygon_context(data, 128);
+        if( poly == NULL ) {
+            asic_event( EVENT_SORT_DMA_ERR );
+            break;
+        }
+        uint32_t size = poly[6] & 0xFF;
+        if( size == 0 ) {
+            size = 0x100;
+        }
+        next = poly[7];
+        pvr2_ta_write( (unsigned char *)data, size<<5 );
+    }
+
+    MMIO_WRITE( ASIC, SORTDMACNT, count );
+    MMIO_WRITE( ASIC, SORTDMACTL, 0 );
 }
 
 void mmio_region_ASIC_write( uint32_t reg, uint32_t val )
@@ -422,7 +455,7 @@ void mmio_region_ASIC_write( uint32_t reg, uint32_t val )
     case SORTDMATBL: case SORTDMADATA:
         MMIO_WRITE( ASIC, reg, (val & 0x0FFFFFE0) | 0x08000000 );
         break;
-    case SORTDMATSIZ: case SORTDMADSIZ:
+    case SORTDMATSIZ: case SORTDMAASIZ:
         MMIO_WRITE( ASIC, reg, (val & 1) );
         break;
     case SORTDMACTL:

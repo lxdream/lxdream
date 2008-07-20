@@ -18,6 +18,7 @@
 #define EVENT_SPU_DMA2  17
 #define EVENT_SPU_DMA3  18
 #define EVENT_PVR_DMA   19
+#define EVENT_SORT_DMA  20
 #define EVENT_PVR_PUNCHOUT_DONE 21
 
 #define EVENT_TA_ERROR  31
@@ -28,11 +29,19 @@
 #define EVENT_PVR_MATRIX_ALLOC_FAIL 67
 #define EVENT_PVR_BAD_INPUT 68
 
+#define EVENT_SORT_DMA_ERR 92
+
 /**
  * Wait for an ASIC event. 
  * @return 0 if the event occurred, otherwise -1 if the wait timed out.
  */
 int asic_wait( int event );
+
+/**
+ * Wait for either of a pair of events.
+ * @return the event ID of the event that occured, or -1 if the wait timed out
+ */
+int asic_wait2( int event1, int event2 );
 
 /**
  * Check if an ASIC event is active (does not wait)
