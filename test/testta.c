@@ -130,18 +130,33 @@ int test_ta( test_data_t test_case )
     test_data_block_t input2 = get_test_data(test_case, "input2");
     test_data_block_t output = get_test_data(test_case, "output");
     test_data_block_t error = get_test_data(test_case, "error");
+    test_data_block_t sortconf = get_test_data(test_case, "sortconf");
+    test_data_block_t sorttab = get_test_data(test_case, "sorttab");
+    
     if( input == NULL || output == NULL ) {
 	fprintf( stderr, "Skipping test case '%s': data incomplete\n", test_case->test_name );
 	return -1;
     }
 
-    if( pvr_dma_write( 0x10000000, input->data, input->length, 0 ) == -1 ) {
-	return -1;
+    if( sortconf != NULL && sorttab != NULL ) {
+        if( sortconf->length != 8 ) {
+            fprintf( stderr, "Invalid sort config length: %d - abort test %s\n", 
+                     sortconf->length, test_case->test_name );
+            return -1;
+        }
+        uint32_t *sc = (uint32_t *)sortconf->data;
+        if( sort_dma_write( sorttab->data, sorttab->length, input->data, input->length, *sc, *(sc+1) ) == -1 ){
+            return -1;
+        }
+    } else {
+        if( pvr_dma_write( 0x10000000, input->data, input->length, 0 ) == -1 ) {
+            return -1;
+        }
     }
 
     if( input2 != NULL ) {
-	ta_reinit();
-	pvr_dma_write( 0x10000000, input2->data, input2->length, 0 );
+        ta_reinit();
+        pvr_dma_write( 0x10000000, input2->data, input2->length, 0 );
     }
     
 
