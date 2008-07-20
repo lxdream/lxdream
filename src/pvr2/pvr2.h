@@ -213,6 +213,12 @@ gboolean pvr2_render_buffer_invalidate( sh4addr_t addr, gboolean isWrite );
  */
 void pvr2_ta_write( unsigned char *buf, uint32_t length );
 
+/**
+ * Find the first polygon or sprite context in the supplied buffer of TA
+ * data.
+ * @return A pointer to the context, or NULL if it cannot be found 
+ */
+uint32_t *pvr2_ta_find_polygon_context( uint32_t *buf, uint32_t length );
 
 /**
  * (Re)initialize the tile accelerator in preparation for the next scene.

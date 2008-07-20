@@ -32,12 +32,13 @@ MMIO_REGION_BEGIN( 0x005F6000, ASIC, "System ASIC" )
     LONG_PORT( 0x810, SORTDMATBL, PORT_MRW, 0, "Sort DMA Table address" )
     LONG_PORT( 0x814, SORTDMADATA, PORT_MRW, 0, "Sort DMA Data base address" )
     LONG_PORT( 0x818, SORTDMATSIZ, PORT_MRW, 0, "Sort DMA Table entry size" )
-    LONG_PORT( 0x81C, SORTDMADSIZ, PORT_MRW, 0, "Sort DMA Data size" )
+    LONG_PORT( 0x81C, SORTDMAASIZ, PORT_MRW, 0, "Sort DMA Table address size" )
     LONG_PORT( 0x820, SORTDMACTL, PORT_MRW, 0, "Sort DMA Control" )
     LONG_PORT( 0x840, ASICUNK5, PORT_MRW, 0, "ASIC <unknown5>" )
     LONG_PORT( 0x844, ASICUNK6, PORT_MRW, 0, "ASIC <unknown6>" )
     LONG_PORT( 0x848, ASICUNK7, PORT_MRW, 0, "ASIC <unknown7>" )
     LONG_PORT( 0x84C, ASICUNK8, PORT_MRW, 0, "ASIC <unknown8>" )
+    LONG_PORT( 0x860, SORTDMACNT, PORT_MR, 0, "Sort DMA Transfer count" )
     LONG_PORT( 0x884, PVRDMARGN1, PORT_MRW, 0, "PVR DMA Dest region 1" )
     LONG_PORT( 0x888, PVRDMARGN2, PORT_MRW, 0, "PVR DMA Dest region 2" )
     LONG_PORT( 0x88C, G2STATUS, PORT_MR|PORT_NOTRACE, 0x0E, "G2 Fifo status" )
@@ -189,6 +190,7 @@ MMIO_REGION_END
 #define EVENT_G2_DMA2  17
 #define EVENT_G2_DMA3  18
 #define EVENT_PVR_DMA   19
+#define EVENT_SORT_DMA  20
 #define EVENT_PVR_PUNCHOUT_DONE 21
 #define EVENT_CASCADE1  30 /* Set if something in the second word is active */
 #define EVENT_CASCADE2  31 /* Set if something in the third word is active */
@@ -199,6 +201,7 @@ MMIO_REGION_END
 #define EVENT_PVR_PRIM_ALLOC_FAIL 66
 #define EVENT_PVR_MATRIX_ALLOC_FAIL 67
 #define EVENT_PVR_BAD_INPUT 68
+#define EVENT_SORT_DMA_ERR  92
 
 #define IS_IDE_REGISTER(x) ( (x) <= IDEDMACTL2 )
 

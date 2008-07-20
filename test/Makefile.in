@@ -66,6 +66,7 @@ check: build-tests
 	$(RUNTEST) testmmu
 	$(RUNTEST) testregs
 	cat testta.data testta2.data testta3.data testta4.data testta5.data | $(RUNTEST) testta
+	cat testsort.data | $(RUNTEST) testta
 #	$(RUNTEST) testide -d ../disc/test.nrg
 
 
