@@ -1158,7 +1158,7 @@ FIPR FVm, FVn {:
 FSCA FPUL, FRn {:
     CHECKFPUEN();
     if( !IS_FPU_DOUBLEPREC() ) {
-	sh4_fsca( FPULi, &(DRF(FRn>>1)) );
+	sh4_fsca( FPULi, (float *)&(DRF(FRn>>1)) );
 	/*
         float angle = (((float)(FPULi&0xFFFF))/65536.0) * 2 * M_PI;
         FR(FRn) = sinf(angle);
@@ -1169,7 +1169,7 @@ FSCA FPUL, FRn {:
 FTRV XMTRX, FVn {:
     CHECKFPUEN();
     if( !IS_FPU_DOUBLEPREC() ) {
-	sh4_ftrv(&(DRF(FVn<<1)) );
+	sh4_ftrv((float *)&(DRF(FVn<<1)) );
     }
 :}
 UNDEF {:

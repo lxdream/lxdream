@@ -55,7 +55,7 @@ void cocoa_gdrom_menu_rebuild( NSMenu *menu )
     cocoa_gdrom_menu_build( menu );
 }
 
-void cocoa_gdrom_menu_update( gboolean list_changed, int selection, void *user_data )
+gboolean cocoa_gdrom_menu_update( gboolean list_changed, int selection, void *user_data )
 {
     // Create an auto-release pool - we may be called outside of the GUI main loop
     NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
@@ -74,6 +74,7 @@ void cocoa_gdrom_menu_update( gboolean list_changed, int selection, void *user_d
         }
     }
     [pool release];
+    return TRUE;
 }
 
 NSMenu *cocoa_gdrom_menu_new()

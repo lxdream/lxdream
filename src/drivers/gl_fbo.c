@@ -201,11 +201,13 @@ static GLint gl_fbo_attach_texture( int fbo_no, GLint tex_id ) {
 
 static render_buffer_t gl_fbo_create_render_buffer( uint32_t width, uint32_t height )
 {
+    GLuint tex;
     render_buffer_t buffer = calloc( sizeof(struct render_buffer), 1 );
     buffer->width = width;
     buffer->height = height;
-    glGenTextures( 1, &buffer->buf_id );
-    glBindTexture( GL_TEXTURE_RECTANGLE_ARB, buffer->buf_id );
+    glGenTextures( 1, &tex );
+    buffer->buf_id = tex;
+    glBindTexture( GL_TEXTURE_RECTANGLE_ARB, tex );
     glTexParameteri( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_S, GL_CLAMP );
     glTexParameteri( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_T, GL_CLAMP );
     glTexParameteri( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
@@ -217,6 +219,7 @@ static render_buffer_t gl_fbo_create_render_buffer( uint32_t width, uint32_t hei
 static void gl_fbo_destroy_render_buffer( render_buffer_t buffer )
 {
     int i,j;
+    GLuint tex = buffer->buf_id;
     for( i=0; i<MAX_FRAMEBUFFERS; i++ ) {
         for( j=0; j < MAX_TEXTURES_PER_FB; j++ ) {
             if( fbo[i].tex_ids[j] == buffer->buf_id ) {
@@ -228,7 +231,7 @@ static void gl_fbo_destroy_render_buffer( render_buffer_t buffer )
         }
     }
 
-    glDeleteTextures( 1, &buffer->buf_id );
+    glDeleteTextures( 1, &tex );
     buffer->buf_id = 0;
     free( buffer );
 }
