@@ -156,12 +156,10 @@ src/util.c
 src/watch.c
 src/x86dasm/ansidecl.h
 src/x86dasm/bfd.h
-src/x86dasm/config.h
 src/x86dasm/dis-asm.h
 src/x86dasm/dis-buf.c
 src/x86dasm/dis-init.c
 src/x86dasm/i386-dis.c
-src/x86dasm/opintl.h
 src/x86dasm/symcat.h
 src/x86dasm/sysdep.h
 src/x86dasm/x86dasm.c
