@@ -25,9 +25,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.  */
    trying to replace often did that.  If it can be dropped from this
    file (check in a non-ANSI environment!), it should be.  */
 
-#include "config.h"
+#include "lxdream.h"
 
-#include "ansidecl.h"
+#include "x86dasm/ansidecl.h"
 
 #ifdef HAVE_STDLIB_H
 #include <stdlib.h>

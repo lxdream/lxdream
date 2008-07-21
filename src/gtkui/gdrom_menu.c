@@ -18,8 +18,6 @@
 
 #include <assert.h>
 #include <libgen.h>
-#include <glib/gi18n.h>
-
 #include "dream.h"
 #include "dreamcast.h"
 #include "config.h"

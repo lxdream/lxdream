@@ -31,9 +31,9 @@
    and the small letter tells about the operand size.  Refer to
    the Intel manual for details.  */
 
-#include "dis-asm.h"
-#include "sysdep.h"
-#include "opintl.h"
+#include "x86dasm/dis-asm.h"
+#include "x86dasm/sysdep.h"
+#include "gettext.h"
 
 #define MAXLEN 20
 

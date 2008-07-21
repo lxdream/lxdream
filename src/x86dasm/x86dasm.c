@@ -19,15 +19,15 @@
 
 #include <stdarg.h>
 #include <string.h>
-#include "x86dasm.h"
-#include "bfd.h"
-#include "dis-asm.h"
+#include "x86dasm/x86dasm.h"
+#include "x86dasm/bfd.h"
+#include "x86dasm/dis-asm.h"
 #include "sh4/sh4.h"
 #include "sh4/sh4trans.h"
 
 extern const struct reg_desc_struct sh4_reg_map[];
 const struct cpu_desc_struct x86_cpu_desc = 
-    { "x86", x86_disasm_instruction, NULL, mem_has_page, 
+    { "x86", (disasm_func_t)x86_disasm_instruction, NULL, mem_has_page, 
       NULL, NULL, NULL, 1, 
       (char *)&sh4r, sizeof(sh4r), sh4_reg_map,
       &sh4r.pc };

@@ -20,7 +20,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/time.h>
-#include <glib/gi18n.h>
 #include <gtk/gtkversion.h>
 #include "lxdream.h"
 #include "dreamcast.h"
