@@ -20,6 +20,23 @@
 #include "lxdream.h"
 #include <ApplicationServices/ApplicationServices.h>
 
+@interface NSWindow (OSX10_5_and_later)
+#ifndef CGFLOAT_DEFINED
+# ifdef __LP64__
+    typedef double CGFloat;
+# else
+    typedef float CGFloat;
+# endif
+#endif
+- (void)setAutorecalculatesContentBorderThickness:(BOOL)b forEdge:(NSRectEdge)e;
+- (void)setContentBorderThickness:(CGFloat)b forEdge:(NSRectEdge)e;
+@end
+
+
+#if NSAppKitVersionNumber > NSAppKitVersionNumber10_4 
+
+#endif
+
 #define STATUSBAR_HEIGHT 25
 #define STATUS_TEXT_HEIGHT 22
 
@@ -127,8 +144,10 @@ willBeInsertedIntoToolbar:(BOOL)flag
         [[self contentView] addSubview: status];
         [self makeFirstResponder: video];
 
-        [self setAutorecalculatesContentBorderThickness: NO forEdge: NSMinYEdge ];
-        [self setContentBorderThickness: STATUSBAR_HEIGHT forEdge: NSMinYEdge];
+        if( [self respondsToSelector:@selector(setAutorecalculatesContentBorderThickness:forEdge:)] )
+            [self setAutorecalculatesContentBorderThickness: NO forEdge: NSMinYEdge ];
+        if( [self respondsToSelector:@selector(setContentBorderThickness:forEdge:)] ) 
+            [self setContentBorderThickness: STATUSBAR_HEIGHT forEdge: NSMinYEdge];
 
         // Share the app delegate for the purposes of keeping it in one place
         [self setDelegate: [NSApp delegate]];
