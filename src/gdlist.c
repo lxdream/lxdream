@@ -20,8 +20,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <glib/gstrfuncs.h>
-#include <glib/gi18n.h>
 #include <libgen.h>
+#include "gettext.h"
 #include "gdrom/gdrom.h"
 #include "gdlist.h"
 #include "lxdream.h"

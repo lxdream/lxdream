@@ -20,7 +20,8 @@
 #define lxdream_cocoaui_H
 
 #import <AppKit/AppKit.h>
-#include <glib/gi18n.h>
+#include "lxdream.h"
+#include "gettext.h"
 
 #ifdef __cplusplus
 extern "C" {

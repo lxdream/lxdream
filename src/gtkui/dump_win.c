@@ -20,7 +20,6 @@
 #include <assert.h>
 #include <string.h>
 #include <stdlib.h>
-#include <glib/gi18n.h>
 #include "mem.h"
 #include "gtkui/gtkui.h"
 

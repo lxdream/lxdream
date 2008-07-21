@@ -21,7 +21,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <glib/gtypes.h>
-#include <glib/gi18n.h>
+#include "gettext.h"
 
 #ifdef __cplusplus
 extern "C" {

@@ -21,7 +21,7 @@
 
 #include "lxdream.h"
 #include <gtk/gtk.h>
-#include <glib/gi18n.h>
+#include "gettext.h"
 #include "gui.h"
 #include "cpu.h"
 

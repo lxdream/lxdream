@@ -20,7 +20,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <getopt.h>
-#include <glib/gi18n.h>
+#include "gettext.h"
 #include "lxdream.h"
 #include "syscall.h"
 #include "mem.h"

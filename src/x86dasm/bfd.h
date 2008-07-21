@@ -35,8 +35,8 @@
 extern "C" {
 #endif
 
-#include "ansidecl.h"
-#include "symcat.h"
+#include "x86dasm/ansidecl.h"
+#include "x86dasm/symcat.h"
 #if defined (__STDC__) || defined (ALMOST_STDC) || defined (HAVE_STRINGIZE)
 #ifndef SABER
 /* This hack is to avoid a problem with some strict ANSI C preprocessors.

@@ -25,8 +25,8 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <glib.h>
-#include <glib/gi18n.h>
 #include "lxdream.h"
+#include "gettext.h"
 #ifdef APPLE_BUILD
 #include <OpenGL/gl.h>
 #include <OpenGL/glext.h>

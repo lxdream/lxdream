@@ -20,7 +20,7 @@
 #define lxdream_config_H 1
 
 #include <glib/gtypes.h>
-#include <glib/gi18n.h>
+#include "gettext.h"
 
 #ifdef __cplusplus
 extern "C" {
