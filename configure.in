@@ -256,10 +256,6 @@ dnl Add the languages which your application supports here.
 ALL_LINGUAS="de es it pt_BR"
 AM_GLIB_GNU_GETTEXT
 
-if test "x$MSGFMT" = "x"; then
-  AC_MSG_FAILURE( [gettext and/or libintl.h not found, but is required] )
-fi
-
 AC_OUTPUT([
 Makefile
 src/Makefile
