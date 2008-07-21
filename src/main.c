@@ -22,12 +22,14 @@
 #include <getopt.h>
 #include "gettext.h"
 #include "lxdream.h"
-#include "syscall.h"
 #include "mem.h"
 #include "dreamcast.h"
+#include "dream.h"
 #include "display.h"
-#include "loader.h"
 #include "gui.h"
+#include "gdlist.h"
+#include "syscall.h"
+#include "loader.h"
 #include "aica/audio.h"
 #include "gdrom/gdrom.h"
 #include "maple/maple.h"
@@ -210,7 +212,7 @@ int main (int argc, char *argv[])
     }
     mem_set_trace( trace_regions, TRUE );
 
-    audio_init_driver( audio_driver_name, 44100, AUDIO_FMT_16ST );
+    audio_init_driver( audio_driver_name );
 
     headless = display_driver_name != NULL && strcasecmp( display_driver_name, "null" ) == 0;
     if( headless ) {
