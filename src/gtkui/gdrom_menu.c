@@ -21,6 +21,7 @@
 #include "dream.h"
 #include "dreamcast.h"
 #include "config.h"
+#include "gdlist.h"
 #include "gdrom/gdrom.h"
 #include "gtkui/gtkui.h"
 
