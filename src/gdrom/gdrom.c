@@ -31,7 +31,7 @@ extern gdrom_disc_t gdrom_disc;
 
 DEFINE_HOOK( gdrom_disc_change_hook, gdrom_disc_change_hook_t )
 
-gdrom_fire_disc_changed( gdrom_disc_t disc )
+static void gdrom_fire_disc_changed( gdrom_disc_t disc )
 {
     CALL_HOOKS( gdrom_disc_change_hook, disc, disc == NULL ? NULL : disc->name );
 }

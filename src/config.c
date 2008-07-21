@@ -135,7 +135,7 @@ void lxdream_set_global_config_value( int key, const gchar *value )
     lxdream_set_config_value(&global_config[key], value);
 }
 
-const lxdream_config_entry_t lxdream_get_config_entry( int key )
+const struct lxdream_config_entry * lxdream_get_config_entry( int key )
 {
     return &global_config[key];
 }

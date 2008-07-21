@@ -59,7 +59,7 @@ extern struct lxdream_config_group lxdream_config_root[];
 
 /* Global config values */
 const gchar *lxdream_get_config_value( int key );
-const lxdream_config_entry_t lxdream_get_config_entry( int key );
+const struct lxdream_config_entry * lxdream_get_config_entry( int key );
 
 void lxdream_set_global_config_value( int key, const gchar *value );
 void lxdream_set_config_value( lxdream_config_entry_t entry, const gchar *value );

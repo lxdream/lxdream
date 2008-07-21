@@ -118,8 +118,10 @@ audio_driver_t audio_init_driver( const char *preferred_driver )
     } else if( audio_set_driver( audio_driver ) == FALSE ) {
         ERROR( "Failed to initialize audio driver '%s', using null driver", 
                 audio_driver->name );
+        audio_driver = &audio_null_driver;
         audio_set_driver( &audio_null_driver );
-    }    
+    }
+    return audio_driver;
 }
 
 /**

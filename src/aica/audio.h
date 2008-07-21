@@ -102,6 +102,11 @@ audio_driver_t get_audio_driver_by_name( const char *name );
 gboolean audio_set_driver( audio_driver_t driver );
 
 /**
+ * Initialize the audio driver, using the specified driver if available.
+ */
+audio_driver_t audio_init_driver( const char *preferred_driver );
+
+/**
  * Mark the current write buffer as full and prepare the next buffer for
  * writing. Returns the next buffer to write to.
  * If all buffers are full, returns NULL.

@@ -20,9 +20,11 @@
  */
 
 #include <glib/gmem.h>
+#include <glib/gstrfuncs.h>
 #include <sys/param.h>
 #include <paths.h>
 #include <string.h>
+#include <unistd.h>
 #include <stdio.h>
 #include <fcntl.h>
 #include <CoreFoundation/CFRunLoop.h>
@@ -261,6 +263,7 @@ static io_object_t iterator_find_cdrom( io_object_t iterator, find_drive_callbac
         IOObjectRelease(object);
     }
     IOObjectRelease(iterator);
+    return 0;
 }
 
 
@@ -341,6 +344,7 @@ gboolean osx_register_iokit_notifications()
         ERROR( "IOServiceAddMatchingNotification failed" );
     }
     osx_hid_inserted(NULL, iokit_iterators[2]);
+    return TRUE;
 }
 
 void osx_unregister_iokit_notifications()

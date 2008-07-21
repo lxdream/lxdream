@@ -161,6 +161,8 @@ void TMU_run_slice( uint32_t );
 void TMU_save_state( FILE * );
 int TMU_load_state( FILE * );
 void TMU_update_clocks( void );
+uint32_t sh4_translate_run_slice(uint32_t);
+uint32_t sh4_emulate_run_slice(uint32_t);
 
 /* SH4 instruction support methods */
 void sh4_sleep( void );
