@@ -19,14 +19,18 @@
  * GNU General Public License for more details.
  */
 
+#include <glib/gmem.h>
 #include <sys/param.h>
 #include <paths.h>
 #include <string.h>
 #include <stdio.h>
 #include <fcntl.h>
+#include <CoreFoundation/CFRunLoop.h>
 #include <IOKit/IOMessage.h>
 #include <IOKit/hid/IOHIDLib.h>
 #include "osx_iokit.h"
+
+
 
 static IONotificationPortRef notify_port = 0;
 static io_iterator_t iokit_iterators[4] = {0,0,0,0};
@@ -315,7 +319,7 @@ gboolean osx_register_iokit_notifications()
 {
     notify_port = IONotificationPortCreate( kIOMasterPortDefault );
     CFRunLoopSourceRef runloop_source = IONotificationPortGetRunLoopSource( notify_port );
-    CFRunLoopAddSource( CFRunLoopGetMain(), runloop_source, kCFRunLoopCommonModes );
+    CFRunLoopAddSource( CFRunLoopGetCurrent(), runloop_source, kCFRunLoopCommonModes );
 
     // Drive notifications
     if( IOServiceAddMatchingNotification( notify_port, kIOFirstPublishNotification,
@@ -342,7 +346,7 @@ gboolean osx_register_iokit_notifications()
 void osx_unregister_iokit_notifications()
 {
     CFRunLoopSourceRef runloop_source = IONotificationPortGetRunLoopSource( notify_port );
-    CFRunLoopRemoveSource( CFRunLoopGetMain(), runloop_source, kCFRunLoopCommonModes );
+    CFRunLoopRemoveSource( CFRunLoopGetCurrent(), runloop_source, kCFRunLoopCommonModes );
     IONotificationPortDestroy( notify_port );
     notify_port = 0;
 }
