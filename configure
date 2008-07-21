@@ -11443,14 +11443,6 @@ $as_echo "$LINGUAS" >&6; }
 	< $srcdir/po/POTFILES.in > po/POTFILES
 
 
-if test "x$MSGFMT" = "x"; then
-  { { $as_echo "$as_me:$LINENO: error: gettext and/or libintl.h not found, but is required
-See \`config.log' for more details." >&5
-$as_echo "$as_me: error: gettext and/or libintl.h not found, but is required
-See \`config.log' for more details." >&2;}
-   { (exit 1); exit 1; }; }
-fi
-
 ac_config_files="$ac_config_files Makefile src/Makefile po/Makefile.in test/Makefile"
 
 cat >confcache <<\_ACEOF
