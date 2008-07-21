@@ -17,6 +17,7 @@
  */
 
 #include <AppKit/NSOpenGL.h>
+#include <Foundation/NSAutoreleasePool.h>
 #include "drivers/video_nsgl.h"
 #include "drivers/video_gl.h"
 #include "pvr2/glutil.h"
