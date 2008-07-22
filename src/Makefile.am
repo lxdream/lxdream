@@ -83,9 +83,9 @@ endif
 
 if GUI_GTK
 lxdream_SOURCES += gtkui/gtkui.c gtkui/gtkui.h \
-	gtkui/main_win.c gtkui/gtkcb.c \
-        gtkui/mmio_win.c gtkui/debug_win.c gtkui/dump_win.c \
-        gtkui/ctrl_dlg.c gtkui/path_dlg.c gtkui/gdrom_menu.c \
+	gtkui/gtk_win.c gtkui/gtkcb.c \
+        gtkui/gtk_mmio.c gtkui/gtk_debug.c gtkui/gtk_dump.c \
+        gtkui/gtk_ctrl.c gtkui/gtk_path.c gtkui/gtk_gd.c \
         drivers/video_gtk.c
 endif
 
