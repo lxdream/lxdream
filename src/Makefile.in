@@ -49,9 +49,9 @@ check_PROGRAMS = test/testxlt$(EXEEXT) $(am__EXEEXT_1)
 
 @BUILD_SH4X86_TRUE@am__append_2 = test/testsh4x86
 @GUI_GTK_TRUE@am__append_3 = gtkui/gtkui.c gtkui/gtkui.h \
-@GUI_GTK_TRUE@	gtkui/main_win.c gtkui/gtkcb.c \
-@GUI_GTK_TRUE@        gtkui/mmio_win.c gtkui/debug_win.c gtkui/dump_win.c \
-@GUI_GTK_TRUE@        gtkui/ctrl_dlg.c gtkui/path_dlg.c gtkui/gdrom_menu.c \
+@GUI_GTK_TRUE@	gtkui/gtk_win.c gtkui/gtkcb.c \
+@GUI_GTK_TRUE@        gtkui/gtk_mmio.c gtkui/gtk_debug.c gtkui/gtk_dump.c \
+@GUI_GTK_TRUE@        gtkui/gtk_ctrl.c gtkui/gtk_path.c gtkui/gtk_gd.c \
 @GUI_GTK_TRUE@        drivers/video_gtk.c
 
 @GUI_COCOA_TRUE@am__append_4 = cocoaui/cocoaui.c cocoaui/cocoaui.h \
@@ -122,9 +122,9 @@ am__lxdream_SOURCES_DIST = main.c version.c config.c config.h \
 	x86dasm/x86dasm.h x86dasm/i386-dis.c x86dasm/dis-init.c \
 	x86dasm/dis-buf.c x86dasm/ansidecl.h x86dasm/bfd.h \
 	x86dasm/dis-asm.h x86dasm/symcat.h x86dasm/sysdep.h \
-	gtkui/gtkui.c gtkui/gtkui.h gtkui/main_win.c gtkui/gtkcb.c \
-	gtkui/mmio_win.c gtkui/debug_win.c gtkui/dump_win.c \
-	gtkui/ctrl_dlg.c gtkui/path_dlg.c gtkui/gdrom_menu.c \
+	gtkui/gtkui.c gtkui/gtkui.h gtkui/gtk_win.c gtkui/gtkcb.c \
+	gtkui/gtk_mmio.c gtkui/gtk_debug.c gtkui/gtk_dump.c \
+	gtkui/gtk_ctrl.c gtkui/gtk_path.c gtkui/gtk_gd.c \
 	drivers/video_gtk.c cocoaui/cocoaui.c cocoaui/cocoaui.h \
 	cocoaui/cocoa_win.c cocoaui/cocoa_gd.c cocoaui/cocoa_prefs.c \
 	drivers/video_osx.c drivers/mac_keymap.h \
@@ -137,11 +137,11 @@ am__lxdream_SOURCES_DIST = main.c version.c config.c config.h \
 @BUILD_SH4X86_TRUE@am__objects_1 = sh4x86.$(OBJEXT) sh4trans.$(OBJEXT) \
 @BUILD_SH4X86_TRUE@	x86dasm.$(OBJEXT) i386-dis.$(OBJEXT) \
 @BUILD_SH4X86_TRUE@	dis-init.$(OBJEXT) dis-buf.$(OBJEXT)
-@GUI_GTK_TRUE@am__objects_2 = gtkui.$(OBJEXT) main_win.$(OBJEXT) \
-@GUI_GTK_TRUE@	gtkcb.$(OBJEXT) mmio_win.$(OBJEXT) \
-@GUI_GTK_TRUE@	debug_win.$(OBJEXT) dump_win.$(OBJEXT) \
-@GUI_GTK_TRUE@	ctrl_dlg.$(OBJEXT) path_dlg.$(OBJEXT) \
-@GUI_GTK_TRUE@	gdrom_menu.$(OBJEXT) video_gtk.$(OBJEXT)
+@GUI_GTK_TRUE@am__objects_2 = gtkui.$(OBJEXT) gtk_win.$(OBJEXT) \
+@GUI_GTK_TRUE@	gtkcb.$(OBJEXT) gtk_mmio.$(OBJEXT) \
+@GUI_GTK_TRUE@	gtk_debug.$(OBJEXT) gtk_dump.$(OBJEXT) \
+@GUI_GTK_TRUE@	gtk_ctrl.$(OBJEXT) gtk_path.$(OBJEXT) \
+@GUI_GTK_TRUE@	gtk_gd.$(OBJEXT) video_gtk.$(OBJEXT)
 @GUI_COCOA_TRUE@am__objects_3 = cocoaui.$(OBJEXT) cocoa_win.$(OBJEXT) \
 @GUI_COCOA_TRUE@	cocoa_gd.$(OBJEXT) cocoa_prefs.$(OBJEXT) \
 @GUI_COCOA_TRUE@	video_osx.$(OBJEXT)
@@ -549,22 +549,18 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cocoaui.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/config.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/controller.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ctrl_dlg.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dcload.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/debug_win.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dis-buf.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dis-init.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/display.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dmac.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dreamcast.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dump_win.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/edc_ecc.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eventq.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gdi.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gdimage.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gdlist.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gdrom.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gdrom_menu.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gendec.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/genglsl.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gl_fbo.Po@am__quote@
@@ -572,6 +568,13 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gl_slsrc.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/glrender.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/glutil.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gtk_ctrl.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gtk_debug.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gtk_dump.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gtk_gd.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gtk_mmio.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gtk_path.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gtk_win.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gtkcb.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gtkui.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/i386-dis.Po@am__quote@
@@ -582,16 +585,13 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/kbd.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/loader.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main_win.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/maple.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mem.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mmc.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mmio_win.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mmu.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mouse.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nrg.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/osx_iokit.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/path_dlg.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pvr2.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pvr2mem.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rendsave.Po@am__quote@
@@ -1424,19 +1424,19 @@ gtkui.obj: gtkui/gtkui.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o gtkui.obj `if test -f 'gtkui/gtkui.c'; then $(CYGPATH_W) 'gtkui/gtkui.c'; else $(CYGPATH_W) '$(srcdir)/gtkui/gtkui.c'; fi`
 
-main_win.o: gtkui/main_win.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT main_win.o -MD -MP -MF "$(DEPDIR)/main_win.Tpo" -c -o main_win.o `test -f 'gtkui/main_win.c' || echo '$(srcdir)/'`gtkui/main_win.c; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/main_win.Tpo" "$(DEPDIR)/main_win.Po"; else rm -f "$(DEPDIR)/main_win.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gtkui/main_win.c' object='main_win.o' libtool=no @AMDEPBACKSLASH@
+gtk_win.o: gtkui/gtk_win.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT gtk_win.o -MD -MP -MF "$(DEPDIR)/gtk_win.Tpo" -c -o gtk_win.o `test -f 'gtkui/gtk_win.c' || echo '$(srcdir)/'`gtkui/gtk_win.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/gtk_win.Tpo" "$(DEPDIR)/gtk_win.Po"; else rm -f "$(DEPDIR)/gtk_win.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gtkui/gtk_win.c' object='gtk_win.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o main_win.o `test -f 'gtkui/main_win.c' || echo '$(srcdir)/'`gtkui/main_win.c
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o gtk_win.o `test -f 'gtkui/gtk_win.c' || echo '$(srcdir)/'`gtkui/gtk_win.c
 
-main_win.obj: gtkui/main_win.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT main_win.obj -MD -MP -MF "$(DEPDIR)/main_win.Tpo" -c -o main_win.obj `if test -f 'gtkui/main_win.c'; then $(CYGPATH_W) 'gtkui/main_win.c'; else $(CYGPATH_W) '$(srcdir)/gtkui/main_win.c'; fi`; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/main_win.Tpo" "$(DEPDIR)/main_win.Po"; else rm -f "$(DEPDIR)/main_win.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gtkui/main_win.c' object='main_win.obj' libtool=no @AMDEPBACKSLASH@
+gtk_win.obj: gtkui/gtk_win.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT gtk_win.obj -MD -MP -MF "$(DEPDIR)/gtk_win.Tpo" -c -o gtk_win.obj `if test -f 'gtkui/gtk_win.c'; then $(CYGPATH_W) 'gtkui/gtk_win.c'; else $(CYGPATH_W) '$(srcdir)/gtkui/gtk_win.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/gtk_win.Tpo" "$(DEPDIR)/gtk_win.Po"; else rm -f "$(DEPDIR)/gtk_win.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gtkui/gtk_win.c' object='gtk_win.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o main_win.obj `if test -f 'gtkui/main_win.c'; then $(CYGPATH_W) 'gtkui/main_win.c'; else $(CYGPATH_W) '$(srcdir)/gtkui/main_win.c'; fi`
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o gtk_win.obj `if test -f 'gtkui/gtk_win.c'; then $(CYGPATH_W) 'gtkui/gtk_win.c'; else $(CYGPATH_W) '$(srcdir)/gtkui/gtk_win.c'; fi`
 
 gtkcb.o: gtkui/gtkcb.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT gtkcb.o -MD -MP -MF "$(DEPDIR)/gtkcb.Tpo" -c -o gtkcb.o `test -f 'gtkui/gtkcb.c' || echo '$(srcdir)/'`gtkui/gtkcb.c; \
@@ -1452,89 +1452,89 @@ gtkcb.obj: gtkui/gtkcb.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o gtkcb.obj `if test -f 'gtkui/gtkcb.c'; then $(CYGPATH_W) 'gtkui/gtkcb.c'; else $(CYGPATH_W) '$(srcdir)/gtkui/gtkcb.c'; fi`
 
-mmio_win.o: gtkui/mmio_win.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT mmio_win.o -MD -MP -MF "$(DEPDIR)/mmio_win.Tpo" -c -o mmio_win.o `test -f 'gtkui/mmio_win.c' || echo '$(srcdir)/'`gtkui/mmio_win.c; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/mmio_win.Tpo" "$(DEPDIR)/mmio_win.Po"; else rm -f "$(DEPDIR)/mmio_win.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gtkui/mmio_win.c' object='mmio_win.o' libtool=no @AMDEPBACKSLASH@
+gtk_mmio.o: gtkui/gtk_mmio.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT gtk_mmio.o -MD -MP -MF "$(DEPDIR)/gtk_mmio.Tpo" -c -o gtk_mmio.o `test -f 'gtkui/gtk_mmio.c' || echo '$(srcdir)/'`gtkui/gtk_mmio.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/gtk_mmio.Tpo" "$(DEPDIR)/gtk_mmio.Po"; else rm -f "$(DEPDIR)/gtk_mmio.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gtkui/gtk_mmio.c' object='gtk_mmio.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o mmio_win.o `test -f 'gtkui/mmio_win.c' || echo '$(srcdir)/'`gtkui/mmio_win.c
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o gtk_mmio.o `test -f 'gtkui/gtk_mmio.c' || echo '$(srcdir)/'`gtkui/gtk_mmio.c
 
-mmio_win.obj: gtkui/mmio_win.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT mmio_win.obj -MD -MP -MF "$(DEPDIR)/mmio_win.Tpo" -c -o mmio_win.obj `if test -f 'gtkui/mmio_win.c'; then $(CYGPATH_W) 'gtkui/mmio_win.c'; else $(CYGPATH_W) '$(srcdir)/gtkui/mmio_win.c'; fi`; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/mmio_win.Tpo" "$(DEPDIR)/mmio_win.Po"; else rm -f "$(DEPDIR)/mmio_win.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gtkui/mmio_win.c' object='mmio_win.obj' libtool=no @AMDEPBACKSLASH@
+gtk_mmio.obj: gtkui/gtk_mmio.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT gtk_mmio.obj -MD -MP -MF "$(DEPDIR)/gtk_mmio.Tpo" -c -o gtk_mmio.obj `if test -f 'gtkui/gtk_mmio.c'; then $(CYGPATH_W) 'gtkui/gtk_mmio.c'; else $(CYGPATH_W) '$(srcdir)/gtkui/gtk_mmio.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/gtk_mmio.Tpo" "$(DEPDIR)/gtk_mmio.Po"; else rm -f "$(DEPDIR)/gtk_mmio.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gtkui/gtk_mmio.c' object='gtk_mmio.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o mmio_win.obj `if test -f 'gtkui/mmio_win.c'; then $(CYGPATH_W) 'gtkui/mmio_win.c'; else $(CYGPATH_W) '$(srcdir)/gtkui/mmio_win.c'; fi`
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o gtk_mmio.obj `if test -f 'gtkui/gtk_mmio.c'; then $(CYGPATH_W) 'gtkui/gtk_mmio.c'; else $(CYGPATH_W) '$(srcdir)/gtkui/gtk_mmio.c'; fi`
 
-debug_win.o: gtkui/debug_win.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT debug_win.o -MD -MP -MF "$(DEPDIR)/debug_win.Tpo" -c -o debug_win.o `test -f 'gtkui/debug_win.c' || echo '$(srcdir)/'`gtkui/debug_win.c; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/debug_win.Tpo" "$(DEPDIR)/debug_win.Po"; else rm -f "$(DEPDIR)/debug_win.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gtkui/debug_win.c' object='debug_win.o' libtool=no @AMDEPBACKSLASH@
+gtk_debug.o: gtkui/gtk_debug.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT gtk_debug.o -MD -MP -MF "$(DEPDIR)/gtk_debug.Tpo" -c -o gtk_debug.o `test -f 'gtkui/gtk_debug.c' || echo '$(srcdir)/'`gtkui/gtk_debug.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/gtk_debug.Tpo" "$(DEPDIR)/gtk_debug.Po"; else rm -f "$(DEPDIR)/gtk_debug.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gtkui/gtk_debug.c' object='gtk_debug.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o debug_win.o `test -f 'gtkui/debug_win.c' || echo '$(srcdir)/'`gtkui/debug_win.c
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o gtk_debug.o `test -f 'gtkui/gtk_debug.c' || echo '$(srcdir)/'`gtkui/gtk_debug.c
 
-debug_win.obj: gtkui/debug_win.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT debug_win.obj -MD -MP -MF "$(DEPDIR)/debug_win.Tpo" -c -o debug_win.obj `if test -f 'gtkui/debug_win.c'; then $(CYGPATH_W) 'gtkui/debug_win.c'; else $(CYGPATH_W) '$(srcdir)/gtkui/debug_win.c'; fi`; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/debug_win.Tpo" "$(DEPDIR)/debug_win.Po"; else rm -f "$(DEPDIR)/debug_win.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gtkui/debug_win.c' object='debug_win.obj' libtool=no @AMDEPBACKSLASH@
+gtk_debug.obj: gtkui/gtk_debug.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT gtk_debug.obj -MD -MP -MF "$(DEPDIR)/gtk_debug.Tpo" -c -o gtk_debug.obj `if test -f 'gtkui/gtk_debug.c'; then $(CYGPATH_W) 'gtkui/gtk_debug.c'; else $(CYGPATH_W) '$(srcdir)/gtkui/gtk_debug.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/gtk_debug.Tpo" "$(DEPDIR)/gtk_debug.Po"; else rm -f "$(DEPDIR)/gtk_debug.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gtkui/gtk_debug.c' object='gtk_debug.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o debug_win.obj `if test -f 'gtkui/debug_win.c'; then $(CYGPATH_W) 'gtkui/debug_win.c'; else $(CYGPATH_W) '$(srcdir)/gtkui/debug_win.c'; fi`
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o gtk_debug.obj `if test -f 'gtkui/gtk_debug.c'; then $(CYGPATH_W) 'gtkui/gtk_debug.c'; else $(CYGPATH_W) '$(srcdir)/gtkui/gtk_debug.c'; fi`
 
-dump_win.o: gtkui/dump_win.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT dump_win.o -MD -MP -MF "$(DEPDIR)/dump_win.Tpo" -c -o dump_win.o `test -f 'gtkui/dump_win.c' || echo '$(srcdir)/'`gtkui/dump_win.c; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/dump_win.Tpo" "$(DEPDIR)/dump_win.Po"; else rm -f "$(DEPDIR)/dump_win.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gtkui/dump_win.c' object='dump_win.o' libtool=no @AMDEPBACKSLASH@
+gtk_dump.o: gtkui/gtk_dump.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT gtk_dump.o -MD -MP -MF "$(DEPDIR)/gtk_dump.Tpo" -c -o gtk_dump.o `test -f 'gtkui/gtk_dump.c' || echo '$(srcdir)/'`gtkui/gtk_dump.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/gtk_dump.Tpo" "$(DEPDIR)/gtk_dump.Po"; else rm -f "$(DEPDIR)/gtk_dump.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gtkui/gtk_dump.c' object='gtk_dump.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o dump_win.o `test -f 'gtkui/dump_win.c' || echo '$(srcdir)/'`gtkui/dump_win.c
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o gtk_dump.o `test -f 'gtkui/gtk_dump.c' || echo '$(srcdir)/'`gtkui/gtk_dump.c
 
-dump_win.obj: gtkui/dump_win.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT dump_win.obj -MD -MP -MF "$(DEPDIR)/dump_win.Tpo" -c -o dump_win.obj `if test -f 'gtkui/dump_win.c'; then $(CYGPATH_W) 'gtkui/dump_win.c'; else $(CYGPATH_W) '$(srcdir)/gtkui/dump_win.c'; fi`; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/dump_win.Tpo" "$(DEPDIR)/dump_win.Po"; else rm -f "$(DEPDIR)/dump_win.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gtkui/dump_win.c' object='dump_win.obj' libtool=no @AMDEPBACKSLASH@
+gtk_dump.obj: gtkui/gtk_dump.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT gtk_dump.obj -MD -MP -MF "$(DEPDIR)/gtk_dump.Tpo" -c -o gtk_dump.obj `if test -f 'gtkui/gtk_dump.c'; then $(CYGPATH_W) 'gtkui/gtk_dump.c'; else $(CYGPATH_W) '$(srcdir)/gtkui/gtk_dump.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/gtk_dump.Tpo" "$(DEPDIR)/gtk_dump.Po"; else rm -f "$(DEPDIR)/gtk_dump.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gtkui/gtk_dump.c' object='gtk_dump.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o dump_win.obj `if test -f 'gtkui/dump_win.c'; then $(CYGPATH_W) 'gtkui/dump_win.c'; else $(CYGPATH_W) '$(srcdir)/gtkui/dump_win.c'; fi`
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o gtk_dump.obj `if test -f 'gtkui/gtk_dump.c'; then $(CYGPATH_W) 'gtkui/gtk_dump.c'; else $(CYGPATH_W) '$(srcdir)/gtkui/gtk_dump.c'; fi`
 
-ctrl_dlg.o: gtkui/ctrl_dlg.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT ctrl_dlg.o -MD -MP -MF "$(DEPDIR)/ctrl_dlg.Tpo" -c -o ctrl_dlg.o `test -f 'gtkui/ctrl_dlg.c' || echo '$(srcdir)/'`gtkui/ctrl_dlg.c; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/ctrl_dlg.Tpo" "$(DEPDIR)/ctrl_dlg.Po"; else rm -f "$(DEPDIR)/ctrl_dlg.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gtkui/ctrl_dlg.c' object='ctrl_dlg.o' libtool=no @AMDEPBACKSLASH@
+gtk_ctrl.o: gtkui/gtk_ctrl.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT gtk_ctrl.o -MD -MP -MF "$(DEPDIR)/gtk_ctrl.Tpo" -c -o gtk_ctrl.o `test -f 'gtkui/gtk_ctrl.c' || echo '$(srcdir)/'`gtkui/gtk_ctrl.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/gtk_ctrl.Tpo" "$(DEPDIR)/gtk_ctrl.Po"; else rm -f "$(DEPDIR)/gtk_ctrl.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gtkui/gtk_ctrl.c' object='gtk_ctrl.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o ctrl_dlg.o `test -f 'gtkui/ctrl_dlg.c' || echo '$(srcdir)/'`gtkui/ctrl_dlg.c
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o gtk_ctrl.o `test -f 'gtkui/gtk_ctrl.c' || echo '$(srcdir)/'`gtkui/gtk_ctrl.c
 
-ctrl_dlg.obj: gtkui/ctrl_dlg.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT ctrl_dlg.obj -MD -MP -MF "$(DEPDIR)/ctrl_dlg.Tpo" -c -o ctrl_dlg.obj `if test -f 'gtkui/ctrl_dlg.c'; then $(CYGPATH_W) 'gtkui/ctrl_dlg.c'; else $(CYGPATH_W) '$(srcdir)/gtkui/ctrl_dlg.c'; fi`; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/ctrl_dlg.Tpo" "$(DEPDIR)/ctrl_dlg.Po"; else rm -f "$(DEPDIR)/ctrl_dlg.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gtkui/ctrl_dlg.c' object='ctrl_dlg.obj' libtool=no @AMDEPBACKSLASH@
+gtk_ctrl.obj: gtkui/gtk_ctrl.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT gtk_ctrl.obj -MD -MP -MF "$(DEPDIR)/gtk_ctrl.Tpo" -c -o gtk_ctrl.obj `if test -f 'gtkui/gtk_ctrl.c'; then $(CYGPATH_W) 'gtkui/gtk_ctrl.c'; else $(CYGPATH_W) '$(srcdir)/gtkui/gtk_ctrl.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/gtk_ctrl.Tpo" "$(DEPDIR)/gtk_ctrl.Po"; else rm -f "$(DEPDIR)/gtk_ctrl.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gtkui/gtk_ctrl.c' object='gtk_ctrl.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o ctrl_dlg.obj `if test -f 'gtkui/ctrl_dlg.c'; then $(CYGPATH_W) 'gtkui/ctrl_dlg.c'; else $(CYGPATH_W) '$(srcdir)/gtkui/ctrl_dlg.c'; fi`
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o gtk_ctrl.obj `if test -f 'gtkui/gtk_ctrl.c'; then $(CYGPATH_W) 'gtkui/gtk_ctrl.c'; else $(CYGPATH_W) '$(srcdir)/gtkui/gtk_ctrl.c'; fi`
 
-path_dlg.o: gtkui/path_dlg.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT path_dlg.o -MD -MP -MF "$(DEPDIR)/path_dlg.Tpo" -c -o path_dlg.o `test -f 'gtkui/path_dlg.c' || echo '$(srcdir)/'`gtkui/path_dlg.c; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/path_dlg.Tpo" "$(DEPDIR)/path_dlg.Po"; else rm -f "$(DEPDIR)/path_dlg.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gtkui/path_dlg.c' object='path_dlg.o' libtool=no @AMDEPBACKSLASH@
+gtk_path.o: gtkui/gtk_path.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT gtk_path.o -MD -MP -MF "$(DEPDIR)/gtk_path.Tpo" -c -o gtk_path.o `test -f 'gtkui/gtk_path.c' || echo '$(srcdir)/'`gtkui/gtk_path.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/gtk_path.Tpo" "$(DEPDIR)/gtk_path.Po"; else rm -f "$(DEPDIR)/gtk_path.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gtkui/gtk_path.c' object='gtk_path.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o path_dlg.o `test -f 'gtkui/path_dlg.c' || echo '$(srcdir)/'`gtkui/path_dlg.c
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o gtk_path.o `test -f 'gtkui/gtk_path.c' || echo '$(srcdir)/'`gtkui/gtk_path.c
 
-path_dlg.obj: gtkui/path_dlg.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT path_dlg.obj -MD -MP -MF "$(DEPDIR)/path_dlg.Tpo" -c -o path_dlg.obj `if test -f 'gtkui/path_dlg.c'; then $(CYGPATH_W) 'gtkui/path_dlg.c'; else $(CYGPATH_W) '$(srcdir)/gtkui/path_dlg.c'; fi`; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/path_dlg.Tpo" "$(DEPDIR)/path_dlg.Po"; else rm -f "$(DEPDIR)/path_dlg.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gtkui/path_dlg.c' object='path_dlg.obj' libtool=no @AMDEPBACKSLASH@
+gtk_path.obj: gtkui/gtk_path.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT gtk_path.obj -MD -MP -MF "$(DEPDIR)/gtk_path.Tpo" -c -o gtk_path.obj `if test -f 'gtkui/gtk_path.c'; then $(CYGPATH_W) 'gtkui/gtk_path.c'; else $(CYGPATH_W) '$(srcdir)/gtkui/gtk_path.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/gtk_path.Tpo" "$(DEPDIR)/gtk_path.Po"; else rm -f "$(DEPDIR)/gtk_path.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gtkui/gtk_path.c' object='gtk_path.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o path_dlg.obj `if test -f 'gtkui/path_dlg.c'; then $(CYGPATH_W) 'gtkui/path_dlg.c'; else $(CYGPATH_W) '$(srcdir)/gtkui/path_dlg.c'; fi`
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o gtk_path.obj `if test -f 'gtkui/gtk_path.c'; then $(CYGPATH_W) 'gtkui/gtk_path.c'; else $(CYGPATH_W) '$(srcdir)/gtkui/gtk_path.c'; fi`
 
-gdrom_menu.o: gtkui/gdrom_menu.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT gdrom_menu.o -MD -MP -MF "$(DEPDIR)/gdrom_menu.Tpo" -c -o gdrom_menu.o `test -f 'gtkui/gdrom_menu.c' || echo '$(srcdir)/'`gtkui/gdrom_menu.c; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/gdrom_menu.Tpo" "$(DEPDIR)/gdrom_menu.Po"; else rm -f "$(DEPDIR)/gdrom_menu.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gtkui/gdrom_menu.c' object='gdrom_menu.o' libtool=no @AMDEPBACKSLASH@
+gtk_gd.o: gtkui/gtk_gd.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT gtk_gd.o -MD -MP -MF "$(DEPDIR)/gtk_gd.Tpo" -c -o gtk_gd.o `test -f 'gtkui/gtk_gd.c' || echo '$(srcdir)/'`gtkui/gtk_gd.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/gtk_gd.Tpo" "$(DEPDIR)/gtk_gd.Po"; else rm -f "$(DEPDIR)/gtk_gd.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gtkui/gtk_gd.c' object='gtk_gd.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o gdrom_menu.o `test -f 'gtkui/gdrom_menu.c' || echo '$(srcdir)/'`gtkui/gdrom_menu.c
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o gtk_gd.o `test -f 'gtkui/gtk_gd.c' || echo '$(srcdir)/'`gtkui/gtk_gd.c
 
-gdrom_menu.obj: gtkui/gdrom_menu.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT gdrom_menu.obj -MD -MP -MF "$(DEPDIR)/gdrom_menu.Tpo" -c -o gdrom_menu.obj `if test -f 'gtkui/gdrom_menu.c'; then $(CYGPATH_W) 'gtkui/gdrom_menu.c'; else $(CYGPATH_W) '$(srcdir)/gtkui/gdrom_menu.c'; fi`; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/gdrom_menu.Tpo" "$(DEPDIR)/gdrom_menu.Po"; else rm -f "$(DEPDIR)/gdrom_menu.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gtkui/gdrom_menu.c' object='gdrom_menu.obj' libtool=no @AMDEPBACKSLASH@
+gtk_gd.obj: gtkui/gtk_gd.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT gtk_gd.obj -MD -MP -MF "$(DEPDIR)/gtk_gd.Tpo" -c -o gtk_gd.obj `if test -f 'gtkui/gtk_gd.c'; then $(CYGPATH_W) 'gtkui/gtk_gd.c'; else $(CYGPATH_W) '$(srcdir)/gtkui/gtk_gd.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/gtk_gd.Tpo" "$(DEPDIR)/gtk_gd.Po"; else rm -f "$(DEPDIR)/gtk_gd.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gtkui/gtk_gd.c' object='gtk_gd.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o gdrom_menu.obj `if test -f 'gtkui/gdrom_menu.c'; then $(CYGPATH_W) 'gtkui/gdrom_menu.c'; else $(CYGPATH_W) '$(srcdir)/gtkui/gdrom_menu.c'; fi`
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o gtk_gd.obj `if test -f 'gtkui/gtk_gd.c'; then $(CYGPATH_W) 'gtkui/gtk_gd.c'; else $(CYGPATH_W) '$(srcdir)/gtkui/gtk_gd.c'; fi`
 
 video_gtk.o: drivers/video_gtk.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT video_gtk.o -MD -MP -MF "$(DEPDIR)/video_gtk.Tpo" -c -o video_gtk.o `test -f 'drivers/video_gtk.c' || echo '$(srcdir)/'`drivers/video_gtk.c; \
