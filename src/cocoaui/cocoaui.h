@@ -29,9 +29,15 @@ extern "C" {
     
 #define NS_(x) [NSString stringWithUTF8String: _(x)]
 
+/* Standard sizing */
+#define TEXT_HEIGHT 22
+#define LABEL_HEIGHT 17
+#define TEXT_GAP 10
+    
 NSWindow *cocoa_gui_create_main_window();
 NSMenu *cocoa_gdrom_menu_new();
 NSView *video_osx_create_drawable();
+void cocoa_gui_show_preferences();
 
 @interface LxdreamMainWindow : NSWindow 
 {
@@ -46,10 +52,39 @@ NSView *video_osx_create_drawable();
 - (void)setIsGrabbed:(BOOL)grab;
 @end
 
+@interface LxdreamPrefsPane : NSView
+{
+    int headerHeight;
+}
+- (id)initWithFrame: (NSRect)frameRect title:(NSString *)title;
+/**
+ * Create a text label and add it to the pane
+ */
+- (NSTextField *)addLabel: (NSString *)text withFrame: (NSRect)frame;
+- (int)contentHeight;
+@end
+
 @interface LxdreamPrefsPanel : NSPanel
 {
+    NSArray *toolbar_ids;
+    NSArray *toolbar_defaults;
+    NSDictionary *toolbar_items;
+    NSView *path_pane, *ctrl_pane;
 }
 - (id)initWithContentRect:(NSRect)contentRect;
+@end
+
+@interface LxdreamPrefsPathPane: LxdreamPrefsPane 
+{
+}
++ (LxdreamPrefsPathPane *)new;
+@end
+
+@interface LxdreamPrefsControllerPane: LxdreamPrefsPane
+{
+    struct maple_device *save_controller[4];
+}
++ (LxdreamPrefsControllerPane *)new;
 @end
 
 #ifdef __cplusplus

@@ -56,6 +56,7 @@ check_PROGRAMS = test/testxlt$(EXEEXT) $(am__EXEEXT_1)
 
 @GUI_COCOA_TRUE@am__append_4 = cocoaui/cocoaui.c cocoaui/cocoaui.h \
 @GUI_COCOA_TRUE@	cocoaui/cocoa_win.c cocoaui/cocoa_gd.c cocoaui/cocoa_prefs.c \
+@GUI_COCOA_TRUE@	cocoaui/cocoa_path.c cocoaui/cocoa_ctrl.c \
 @GUI_COCOA_TRUE@	drivers/video_osx.c drivers/mac_keymap.h drivers/mac_keymap.txt
 
 @VIDEO_OSMESA_TRUE@am__append_5 = drivers/video_gdk.c
@@ -127,13 +128,14 @@ am__lxdream_SOURCES_DIST = main.c version.c config.c config.h \
 	gtkui/gtk_ctrl.c gtkui/gtk_path.c gtkui/gtk_gd.c \
 	drivers/video_gtk.c cocoaui/cocoaui.c cocoaui/cocoaui.h \
 	cocoaui/cocoa_win.c cocoaui/cocoa_gd.c cocoaui/cocoa_prefs.c \
-	drivers/video_osx.c drivers/mac_keymap.h \
-	drivers/mac_keymap.txt drivers/video_gdk.c drivers/video_glx.c \
-	drivers/video_glx.h drivers/video_nsgl.c drivers/video_nsgl.h \
-	drivers/audio_osx.c drivers/audio_pulse.c drivers/audio_esd.c \
-	drivers/audio_alsa.c drivers/cd_linux.c drivers/cd_osx.c \
-	drivers/osx_iokit.c drivers/osx_iokit.h drivers/cd_none.c \
-	drivers/joy_linux.c drivers/joy_linux.h
+	cocoaui/cocoa_path.c cocoaui/cocoa_ctrl.c drivers/video_osx.c \
+	drivers/mac_keymap.h drivers/mac_keymap.txt \
+	drivers/video_gdk.c drivers/video_glx.c drivers/video_glx.h \
+	drivers/video_nsgl.c drivers/video_nsgl.h drivers/audio_osx.c \
+	drivers/audio_pulse.c drivers/audio_esd.c drivers/audio_alsa.c \
+	drivers/cd_linux.c drivers/cd_osx.c drivers/osx_iokit.c \
+	drivers/osx_iokit.h drivers/cd_none.c drivers/joy_linux.c \
+	drivers/joy_linux.h
 @BUILD_SH4X86_TRUE@am__objects_1 = sh4x86.$(OBJEXT) sh4trans.$(OBJEXT) \
 @BUILD_SH4X86_TRUE@	x86dasm.$(OBJEXT) i386-dis.$(OBJEXT) \
 @BUILD_SH4X86_TRUE@	dis-init.$(OBJEXT) dis-buf.$(OBJEXT)
@@ -144,6 +146,7 @@ am__lxdream_SOURCES_DIST = main.c version.c config.c config.h \
 @GUI_GTK_TRUE@	gtk_gd.$(OBJEXT) video_gtk.$(OBJEXT)
 @GUI_COCOA_TRUE@am__objects_3 = cocoaui.$(OBJEXT) cocoa_win.$(OBJEXT) \
 @GUI_COCOA_TRUE@	cocoa_gd.$(OBJEXT) cocoa_prefs.$(OBJEXT) \
+@GUI_COCOA_TRUE@	cocoa_path.$(OBJEXT) cocoa_ctrl.$(OBJEXT) \
 @GUI_COCOA_TRUE@	video_osx.$(OBJEXT)
 @VIDEO_OSMESA_TRUE@am__objects_4 = video_gdk.$(OBJEXT)
 @VIDEO_GLX_TRUE@am__objects_5 = video_glx.$(OBJEXT)
@@ -543,7 +546,9 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cd_none.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cd_osx.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cdi.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cocoa_ctrl.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cocoa_gd.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cocoa_path.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cocoa_prefs.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cocoa_win.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cocoaui.Po@am__quote@
@@ -1605,6 +1610,34 @@ cocoa_prefs.obj: cocoaui/cocoa_prefs.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='cocoaui/cocoa_prefs.c' object='cocoa_prefs.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o cocoa_prefs.obj `if test -f 'cocoaui/cocoa_prefs.c'; then $(CYGPATH_W) 'cocoaui/cocoa_prefs.c'; else $(CYGPATH_W) '$(srcdir)/cocoaui/cocoa_prefs.c'; fi`
+
+cocoa_path.o: cocoaui/cocoa_path.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT cocoa_path.o -MD -MP -MF "$(DEPDIR)/cocoa_path.Tpo" -c -o cocoa_path.o `test -f 'cocoaui/cocoa_path.c' || echo '$(srcdir)/'`cocoaui/cocoa_path.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/cocoa_path.Tpo" "$(DEPDIR)/cocoa_path.Po"; else rm -f "$(DEPDIR)/cocoa_path.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='cocoaui/cocoa_path.c' object='cocoa_path.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o cocoa_path.o `test -f 'cocoaui/cocoa_path.c' || echo '$(srcdir)/'`cocoaui/cocoa_path.c
+
+cocoa_path.obj: cocoaui/cocoa_path.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT cocoa_path.obj -MD -MP -MF "$(DEPDIR)/cocoa_path.Tpo" -c -o cocoa_path.obj `if test -f 'cocoaui/cocoa_path.c'; then $(CYGPATH_W) 'cocoaui/cocoa_path.c'; else $(CYGPATH_W) '$(srcdir)/cocoaui/cocoa_path.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/cocoa_path.Tpo" "$(DEPDIR)/cocoa_path.Po"; else rm -f "$(DEPDIR)/cocoa_path.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='cocoaui/cocoa_path.c' object='cocoa_path.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o cocoa_path.obj `if test -f 'cocoaui/cocoa_path.c'; then $(CYGPATH_W) 'cocoaui/cocoa_path.c'; else $(CYGPATH_W) '$(srcdir)/cocoaui/cocoa_path.c'; fi`
+
+cocoa_ctrl.o: cocoaui/cocoa_ctrl.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT cocoa_ctrl.o -MD -MP -MF "$(DEPDIR)/cocoa_ctrl.Tpo" -c -o cocoa_ctrl.o `test -f 'cocoaui/cocoa_ctrl.c' || echo '$(srcdir)/'`cocoaui/cocoa_ctrl.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/cocoa_ctrl.Tpo" "$(DEPDIR)/cocoa_ctrl.Po"; else rm -f "$(DEPDIR)/cocoa_ctrl.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='cocoaui/cocoa_ctrl.c' object='cocoa_ctrl.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o cocoa_ctrl.o `test -f 'cocoaui/cocoa_ctrl.c' || echo '$(srcdir)/'`cocoaui/cocoa_ctrl.c
+
+cocoa_ctrl.obj: cocoaui/cocoa_ctrl.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT cocoa_ctrl.obj -MD -MP -MF "$(DEPDIR)/cocoa_ctrl.Tpo" -c -o cocoa_ctrl.obj `if test -f 'cocoaui/cocoa_ctrl.c'; then $(CYGPATH_W) 'cocoaui/cocoa_ctrl.c'; else $(CYGPATH_W) '$(srcdir)/cocoaui/cocoa_ctrl.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/cocoa_ctrl.Tpo" "$(DEPDIR)/cocoa_ctrl.Po"; else rm -f "$(DEPDIR)/cocoa_ctrl.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='cocoaui/cocoa_ctrl.c' object='cocoa_ctrl.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o cocoa_ctrl.obj `if test -f 'cocoaui/cocoa_ctrl.c'; then $(CYGPATH_W) 'cocoaui/cocoa_ctrl.c'; else $(CYGPATH_W) '$(srcdir)/cocoaui/cocoa_ctrl.c'; fi`
 
 video_osx.o: drivers/video_osx.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT video_osx.o -MD -MP -MF "$(DEPDIR)/video_osx.Tpo" -c -o video_osx.o `test -f 'drivers/video_osx.c' || echo '$(srcdir)/'`drivers/video_osx.c; \
