@@ -279,11 +279,11 @@ GtkWidget *maple_panel_new()
     const struct maple_device_class **devices = maple_get_device_classes();
 
     for( i=0; i< MAX_DEVICES; i++ ) {
-        char buf[12];
+        char buf[16];
         GtkWidget *combo, *button;
         int active = 0;
         maple_device_t device = maple_get_device(i,0);
-        sprintf( buf, _("Slot %d."), i );
+        snprintf( buf, sizeof(buf), _("Slot %d."), i );
         gtk_table_attach_defaults( GTK_TABLE(table), gtk_label_new(buf), 0, 1, i, i+1 );
         combo = gtk_combo_box_new_text();
         gtk_combo_box_append_text( GTK_COMBO_BOX(combo), _("<empty>") );
