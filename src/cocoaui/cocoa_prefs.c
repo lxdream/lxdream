@@ -20,32 +20,123 @@
 #include "lxdream.h"
 #include "config.h"
 
-@interface LxdreamPrefsToolbarDelegate : NSObject {
-    NSArray *identifiers;
-    NSArray *defaults;
-    NSDictionary *items;
+static LxdreamPrefsPanel *prefs_panel = NULL;
+
+@implementation LxdreamPrefsPane
+- (NSTextField *)addLabel: (NSString *)text withFrame: (NSRect)frame
+{
+    NSTextField *label = [[NSTextField alloc] initWithFrame: frame];
+    [label setStringValue: text];
+    [label setBordered: NO];
+    [label setDrawsBackground: NO];
+    [label setEditable: NO];
+    [label setAutoresizingMask: (NSViewMinYMargin|NSViewMaxXMargin)];
+    [self addSubview: label];
+    return label;
 }
-- (NSToolbarItem *) createToolbarItem: (NSString *)id label: (NSString *) label 
-                              tooltip: (NSString *)tooltip icon: (NSString *)icon 
-                               action: (SEL) action; 
+- (int)contentHeight
+{
+    return [self frame].size.height - headerHeight;
+}
+
+- (id)initWithFrame: (NSRect)frameRect title:(NSString *)title
+{
+    if( [super initWithFrame: frameRect ] == nil ) {
+        return nil;
+    } else {
+        int height = frameRect.size.height - TEXT_GAP;
+        
+        NSFont *titleFont = [NSFont fontWithName: @"Helvetica-Bold" size: 16.0];
+        NSRect fontRect = [titleFont boundingRectForFont];
+        int titleHeight = fontRect.size.height + [titleFont descender];
+        NSTextField *label = [self addLabel: title withFrame: 
+            NSMakeRect( TEXT_GAP, height-titleHeight, 
+                        frameRect.size.width - (TEXT_GAP*2), titleHeight )];
+        [label setFont: titleFont];
+        height -= (titleHeight + TEXT_GAP);
+        
+        NSBox *rule = [[NSBox alloc] initWithFrame: NSMakeRect(1, height, frameRect.size.width-2, 1)];
+        [rule setAutoresizingMask: (NSViewMinYMargin|NSViewWidthSizable)];
+        [rule setBoxType: NSBoxSeparator];
+        [self addSubview: rule];
+        height -= TEXT_GAP;
+      
+        headerHeight = frameRect.size.height - height;
+        return self;
+    }
+}
 @end
 
-@implementation LxdreamPrefsToolbarDelegate
-- (id) init
+
+@interface LxdreamPrefsPanel (Private)
+- (void) initToolbar;
+- (NSToolbarItem *) createToolbarItem: (NSString *)id label: (NSString *) label 
+tooltip: (NSString *)tooltip icon: (NSString *)icon action: (SEL) action;
+@end
+
+@implementation LxdreamPrefsPanel
+
+- (NSView *)createControlsPane
 {
+    NSView *pane = [[NSView alloc] initWithFrame: NSMakeRect(0,0,600,400)];
+    return pane;
+}
+
+- (id)initWithContentRect:(NSRect)contentRect 
+{
+    if( [super initWithContentRect: contentRect
+         styleMask: ( NSTitledWindowMask | NSClosableWindowMask | 
+                 NSMiniaturizableWindowMask | NSResizableWindowMask |
+                 NSUnifiedTitleAndToolbarWindowMask )
+                 backing: NSBackingStoreBuffered defer: NO ] == nil ) {
+        return nil;
+    } else {
+        [self setTitle: NS_("Preferences")];
+        [self setDelegate: self];
+        [self initToolbar];
+        path_pane = [LxdreamPrefsPathPane new];
+        ctrl_pane = [LxdreamPrefsControllerPane new];
+        
+        [self setContentView: path_pane];
+        return self;
+    }
+}
+- (void)windowWillClose: (NSNotification *)notice
+{
+    prefs_panel = NULL;
+}
+- (void) initToolbar
+{
+    NSToolbar *toolbar = [[NSToolbar alloc] initWithIdentifier: @"LxdreamPrefsToolbar"];
+
     NSToolbarItem *paths = [self createToolbarItem: @"Paths" label: @"Paths" 
                             tooltip: @"Configure system paths" icon: @"tb-paths" 
                             action: @selector(paths_action:)];
     NSToolbarItem *ctrls = [self createToolbarItem: @"Controllers" label: @"Controllers"
                             tooltip: @"Configure controllers" icon: @"tb-ctrls"
                             action: @selector(controllers_action:)];
-    identifiers = [NSArray arrayWithObjects: @"Paths", @"Controllers", nil ];
-    defaults = [NSArray arrayWithObjects: @"Paths", @"Controllers", nil ]; 
+    toolbar_ids = [NSArray arrayWithObjects: @"Paths", @"Controllers", nil ];
+    toolbar_defaults = [NSArray arrayWithObjects: @"Paths", @"Controllers", nil ]; 
     NSArray *values = [NSArray arrayWithObjects: paths, ctrls, nil ];
-    items = [NSDictionary dictionaryWithObjects: values forKeys: identifiers];
-    return self;
+    toolbar_items = [NSDictionary dictionaryWithObjects: values forKeys: toolbar_ids];
+
+    [toolbar setDelegate: self];
+    [toolbar setDisplayMode: NSToolbarDisplayModeIconOnly];
+    [toolbar setSizeMode: NSToolbarSizeModeSmall];
+    [toolbar setSelectedItemIdentifier: @"Paths"];
+    [self setToolbar: toolbar];
 }
 
+- (void)paths_action: (id)sender
+{
+    [self setContentView: path_pane];
+}
+- (void)controllers_action: (id)sender
+{
+    [self setContentView: ctrl_pane];
+}
+
+/***************************** Toolbar methods ***************************/
 - (NSToolbarItem *) createToolbarItem: (NSString *)id label: (NSString *) label 
 tooltip: (NSString *)tooltip icon: (NSString *)icon action: (SEL) action 
 {
@@ -59,70 +150,32 @@ tooltip: (NSString *)tooltip icon: (NSString *)icon action: (SEL) action
     [item setAction: action];
     return item;
 }
-
 - (NSArray *) toolbarAllowedItemIdentifiers: (NSToolbar *)toolbar 
 {
-    return identifiers;
+    return toolbar_ids;
 }
 
 - (NSArray *) toolbarDefaultItemIdentifiers: (NSToolbar *)toolbar
 {
-    return defaults;
+    return toolbar_defaults;
 }
 
 - (NSArray *)toolbarSelectableItemIdentifiers: (NSToolbar *)toolbar
 {
-    return [NSArray arrayWithObjects: @"Paths", @"Controllers", nil];
+    return [NSArray arrayWithObjects: @"Paths", @"Controllers", nil ]; 
 }
 
 - (NSToolbarItem *) toolbar:(NSToolbar *)toolbar itemForItemIdentifier:(NSString *)itemIdentifier
 willBeInsertedIntoToolbar:(BOOL)flag 
 {
-    return [items objectForKey: itemIdentifier];
-}
-- (void)paths_action: (id)sender
-{
-}
-- (void)controllers_action: (id)sender
-{
+    return [toolbar_items objectForKey: itemIdentifier];
 }
 @end
 
-@implementation LxdreamPrefsPanel
-- (NSView *)createPathsPane
+void cocoa_gui_show_preferences() 
 {
-    NSView *pane = [NSView new];
-    int i;
-    for( i=0; i<=CONFIG_KEY_MAX; i++ ) {
-        lxdream_config_entry_t entry = lxdream_get_config_entry(i);
-        if( entry->label != NULL ) {
-        }
+    if( prefs_panel == NULL ) {
+        prefs_panel = [[LxdreamPrefsPanel alloc] initWithContentRect: NSMakeRect(0,0,600,400)];
     }
-    return pane;
+    [prefs_panel makeKeyAndOrderFront: prefs_panel];
 }
-- (id)initWithContentRect:(NSRect)contentRect 
-{
-    if( [super initWithContentRect: contentRect
-         styleMask: ( NSTitledWindowMask | NSClosableWindowMask | 
-                 NSMiniaturizableWindowMask | NSResizableWindowMask |
-                 NSUnifiedTitleAndToolbarWindowMask )
-                 backing: NSBackingStoreBuffered defer: NO ] == nil ) {
-        return nil;
-    } else {
-        [self setTitle: NS_("Preferences")];
-        [self setDelegate: self];
-        NSToolbar *toolbar = [[NSToolbar alloc] initWithIdentifier: @"LxdreamPrefsToolbar"];
-        [toolbar setDelegate: [[LxdreamPrefsToolbarDelegate alloc] init]];
-        [toolbar setDisplayMode: NSToolbarDisplayModeIconOnly];
-        [toolbar setSizeMode: NSToolbarSizeModeSmall];
-        [toolbar setSelectedItemIdentifier: @"Paths"];
-        [self setToolbar: toolbar];
-        [self setContentView: [self createPathsPane]];
-        return self;
-    }
-}
-- (void)windowWillClose: (NSNotification *)notice
-{
-    [NSApp stopModal];
-}
-@end

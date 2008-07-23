@@ -92,6 +92,7 @@ endif
 if GUI_COCOA
 lxdream_SOURCES += cocoaui/cocoaui.c cocoaui/cocoaui.h \
 	cocoaui/cocoa_win.c cocoaui/cocoa_gd.c cocoaui/cocoa_prefs.c \
+	cocoaui/cocoa_path.c cocoaui/cocoa_ctrl.c \
 	drivers/video_osx.c drivers/mac_keymap.h drivers/mac_keymap.txt
 endif
 

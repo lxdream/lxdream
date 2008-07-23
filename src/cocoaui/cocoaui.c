@@ -69,8 +69,8 @@ static void cocoa_gui_create_menu(void)
     title = [@"About " stringByAppendingString:appName];
     [appleMenu addItemWithTitle:title action:@selector(about_action:) keyEquivalent:@""];
     
-    //    [appleMenu addItem:[NSMenuItem separatorItem]];
-    //    [appleMenu addItemWithTitle: NS_("Preferences...") action:@selector(preferences_action:) keyEquivalent:@","];
+    [appleMenu addItem:[NSMenuItem separatorItem]];
+    [appleMenu addItemWithTitle: NS_("Preferences...") action:@selector(preferences_action:) keyEquivalent:@","];
 
     // Services Menu
     [appleMenu addItem:[NSMenuItem separatorItem]];
@@ -159,8 +159,7 @@ static void cocoa_gui_create_menu(void)
 }
 - (void) preferences_action: (id)sender
 {
-    LxdreamPrefsPanel *panel = [[LxdreamPrefsPanel alloc] initWithContentRect: NSMakeRect(0,0,600,400)];
-    [NSApp runModalForWindow: panel];
+    cocoa_gui_show_preferences();
 }
 - (void) load_action: (id)sender
 {
