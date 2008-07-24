@@ -149,6 +149,7 @@ void dreamcast_init( void )
 
 void dreamcast_reset( void )
 {
+    sh4_core_exit(CORE_EXIT_SYSRESET);
     int i;
     for( i=0; i<num_modules; i++ ) {
         if( modules[i]->reset != NULL )
