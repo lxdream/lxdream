@@ -30,6 +30,7 @@
 #include <png.h>
 #include "dream.h"
 #include "display.h"
+#include "dreamcast.h"
 #include "gui.h"
 #include "sh4/sh4.h"
 
@@ -320,6 +321,11 @@ void log_message( void *ptr, int level, const gchar *source, const char *msg, ..
     if( level <= EMIT_ERR ) {
         if( gui_error_dialog( text ) ) {
             g_free(text);
+            // If we're running, halt on error to avoid potentially flooding
+            // the user with error messages.
+            if( dreamcast_is_running() ) {
+                dreamcast_stop();
+            }
             return;
         }
     }
