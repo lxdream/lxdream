@@ -99,8 +99,9 @@ static gboolean linux_image_is_valid( FILE *f )
         return FALSE; /* Not a block device */
     }
 
-    if( ioctl(fileno(f), CDROMREADTOCHDR, &tochdr) == -1 ) {
-        /* Quick check that this is really a CD */
+    int caps = ioctl(fileno(f), CDROM_GET_CAPABILITY);
+    if( caps == -1 ) {
+        /* Quick check that this is really a CD device */
         return FALSE;
     }
 
@@ -117,16 +118,21 @@ static gdrom_disc_t linux_open_device( const gchar *filename, FILE *f )
         return NULL;
     }
 
-    gdrom_error_t status = linux_read_disc_toc( (gdrom_image_t)disc );
-    if( status != 0 ) {
-        gdrom_image_destroy_no_close(disc);
-        if( status == 0xFFFF ) {
-            ERROR("Unable to load disc table of contents (%s)", strerror(errno));
-        } else {
-            ERROR("Unable to load disc table of contents (sense %d,%d)",
+    int status = ioctl(fileno(f), CDROM_DRIVE_STATUS, CDSL_CURRENT);
+    if( status == CDS_DISC_OK ) {
+        status = linux_read_disc_toc( (gdrom_image_t)disc );
+        if( status != 0 ) {
+            gdrom_image_destroy_no_close(disc);
+            if( status == 0xFFFF ) {
+                ERROR("Unable to load disc table of contents (%s)", strerror(errno));
+            } else {
+                ERROR("Unable to load disc table of contents (sense %d,%d)",
                     status &0xFF, status >> 8 );
+            }
+            return NULL;
         }
-        return NULL;
+    } else {
+        ((gdrom_image_t)disc)->disc_type = IDE_DISC_NONE;
     }
     disc->read_sector = linux_read_sector;
     disc->drive_status = linux_drive_status;
