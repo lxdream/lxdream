@@ -11444,7 +11444,7 @@ $as_echo "$LINGUAS" >&6; }
 	< $srcdir/po/POTFILES.in > po/POTFILES
 
 
-ac_config_files="$ac_config_files Makefile src/Makefile po/Makefile.in test/Makefile"
+ac_config_files="$ac_config_files Makefile src/Makefile po/Makefile.in test/Makefile Info.plist"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -12195,6 +12195,7 @@ do
     "src/Makefile") CONFIG_FILES="$CONFIG_FILES src/Makefile" ;;
     "po/Makefile.in") CONFIG_FILES="$CONFIG_FILES po/Makefile.in" ;;
     "test/Makefile") CONFIG_FILES="$CONFIG_FILES test/Makefile" ;;
+    "Info.plist") CONFIG_FILES="$CONFIG_FILES Info.plist" ;;
 
   *) { { $as_echo "$as_me:$LINENO: error: invalid argument: $ac_config_target" >&5
 $as_echo "$as_me: error: invalid argument: $ac_config_target" >&2;}

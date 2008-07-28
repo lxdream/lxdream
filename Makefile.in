@@ -37,11 +37,11 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 DIST_COMMON = README $(am__configure_deps) $(dist_sysconf_DATA) \
-	$(srcdir)/Makefile.am $(srcdir)/Makefile.in \
-	$(srcdir)/config.h.in $(top_srcdir)/configure \
-	$(top_srcdir)/test/Makefile.in AUTHORS COPYING ChangeLog \
-	INSTALL NEWS acconfig.h config.guess config.sub depcomp \
-	install-sh missing mkinstalldirs
+	$(srcdir)/Info.plist.in $(srcdir)/Makefile.am \
+	$(srcdir)/Makefile.in $(srcdir)/config.h.in \
+	$(top_srcdir)/configure $(top_srcdir)/test/Makefile.in AUTHORS \
+	COPYING ChangeLog INSTALL NEWS acconfig.h config.guess \
+	config.sub depcomp install-sh missing mkinstalldirs
 subdir = .
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.in
@@ -51,7 +51,7 @@ am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
  configure.lineno configure.status.lineno
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = config.h
-CONFIG_CLEAN_FILES = test/Makefile
+CONFIG_CLEAN_FILES = test/Makefile Info.plist
 SOURCES =
 DIST_SOURCES =
 RECURSIVE_TARGETS = all-recursive check-recursive dvi-recursive \
@@ -310,6 +310,8 @@ distclean-hdr:
 	-rm -f config.h stamp-h1
 test/Makefile: $(top_builddir)/config.status $(top_srcdir)/test/Makefile.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
+Info.plist: $(top_builddir)/config.status $(srcdir)/Info.plist.in
+	cd $(top_builddir) && $(SHELL) ./config.status $@
 uninstall-info-am:
 install-man1: $(man1_MANS) $(man_MANS)
 	@$(NORMAL_INSTALL)
@@ -509,7 +511,7 @@ distclean-tags:
 distdir: $(DISTFILES)
 	$(am__remove_distdir)
 	mkdir $(distdir)
-	$(mkdir_p) $(distdir)/po $(distdir)/test
+	$(mkdir_p) $(distdir)/. $(distdir)/po $(distdir)/test
 	@srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`; \
 	topsrcdirstrip=`echo "$(top_srcdir)" | sed 's|.|.|g'`; \
 	list='$(DISTFILES)'; for file in $$list; do \
@@ -803,6 +805,7 @@ dist-hook:
 @GUI_COCOA_TRUE@	rm -rf $(BUNDLE)
 @GUI_COCOA_TRUE@	mkdir -p $(BUNDLE)/Contents/MacOS
 @GUI_COCOA_TRUE@	mkdir -p $(BUNDLE)/Contents/Resources
+@GUI_COCOA_TRUE@	cp Info.plist $(BUNDLE)/Contents
 @GUI_COCOA_TRUE@	cp src/lxdream $(BUNDLE)/Contents/MacOS
 @GUI_COCOA_TRUE@	cp -R $(srcdir)/pixmaps/* $(BUNDLE)/Contents/Resources
 @GUI_COCOA_TRUE@	$(srcdir)/bundlelibs.pl $(BUNDLE)/Contents/MacOS/lxdream $(BUNDLE)/Contents/Frameworks

@@ -262,6 +262,7 @@ Makefile
 src/Makefile
 po/Makefile.in
 test/Makefile
+Info.plist
 ])
 AS_MKDIR_P(test/sh4)
 
