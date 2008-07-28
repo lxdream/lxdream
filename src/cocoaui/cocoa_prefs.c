@@ -23,17 +23,6 @@
 static LxdreamPrefsPanel *prefs_panel = NULL;
 
 @implementation LxdreamPrefsPane
-- (NSTextField *)addLabel: (NSString *)text withFrame: (NSRect)frame
-{
-    NSTextField *label = [[NSTextField alloc] initWithFrame: frame];
-    [label setStringValue: text];
-    [label setBordered: NO];
-    [label setDrawsBackground: NO];
-    [label setEditable: NO];
-    [label setAutoresizingMask: (NSViewMinYMargin|NSViewMaxXMargin)];
-    [self addSubview: label];
-    return label;
-}
 - (int)contentHeight
 {
     return [self frame].size.height - headerHeight;
@@ -49,9 +38,9 @@ static LxdreamPrefsPanel *prefs_panel = NULL;
         NSFont *titleFont = [NSFont fontWithName: @"Helvetica-Bold" size: 16.0];
         NSRect fontRect = [titleFont boundingRectForFont];
         int titleHeight = fontRect.size.height + [titleFont descender];
-        NSTextField *label = [self addLabel: title withFrame: 
+        NSTextField *label = cocoa_gui_add_label(self, title, 
             NSMakeRect( TEXT_GAP, height-titleHeight, 
-                        frameRect.size.width - (TEXT_GAP*2), titleHeight )];
+                        frameRect.size.width - (TEXT_GAP*2), titleHeight ));
         [label setFont: titleFont];
         height -= (titleHeight + TEXT_GAP);
         
@@ -67,6 +56,7 @@ static LxdreamPrefsPanel *prefs_panel = NULL;
 }
 @end
 
+/**************************** Main preferences window ************************/
 
 @interface LxdreamPrefsPanel (Private)
 - (void) initToolbar;
@@ -93,17 +83,36 @@ tooltip: (NSString *)tooltip icon: (NSString *)icon action: (SEL) action;
     } else {
         [self setTitle: NS_("Preferences")];
         [self setDelegate: self];
+        [self setMinSize: NSMakeSize(400,300)];
         [self initToolbar];
-        path_pane = [LxdreamPrefsPathPane new];
-        ctrl_pane = [LxdreamPrefsControllerPane new];
-        
+        path_pane = cocoa_gui_create_prefs_path_pane();
+        ctrl_pane = cocoa_gui_create_prefs_controller_pane();
+        binding_editor = nil;
         [self setContentView: path_pane];
         return self;
     }
 }
+- (void)dealloc
+{
+    if( binding_editor != nil ) {
+        [binding_editor release];
+        binding_editor = nil;
+    }
+    [super dealloc];
+}
 - (void)windowWillClose: (NSNotification *)notice
 {
     prefs_panel = NULL;
+}
+- (id)windowWillReturnFieldEditor:(NSWindow *)sender toObject:(id)view
+{
+    if( [view isKindOfClass: [KeyBindingField class]] ) {
+        if( binding_editor == nil ) {
+            binding_editor = [[[KeyBindingEditor alloc] init] retain];
+        }
+        return binding_editor;
+    }
+    return nil;
 }
 - (void) initToolbar
 {

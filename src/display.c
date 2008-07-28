@@ -218,7 +218,7 @@ static struct keymap_entry **input_entry_from_keycode( input_driver_t driver, ui
     return NULL;
 }
 
-static gchar *input_keysym_for_keycode( input_driver_t driver, uint16_t keycode )
+gchar *input_keycode_to_keysym( input_driver_t driver, uint16_t keycode )
 {
     if( keycode == 0 ) {
         return NULL;
@@ -386,7 +386,7 @@ void input_event_keydown( input_driver_t driver, uint16_t keycode, uint32_t pres
         }
     }
     if( display_keysym_hook != NULL ) {
-        gchar *sym = input_keysym_for_keycode( driver, keycode );
+        gchar *sym = input_keycode_to_keysym( driver, keycode );
         if( sym != NULL ) {
             display_keysym_hook(display_keysym_hook_data, sym);
             g_free(sym);

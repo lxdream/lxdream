@@ -19,7 +19,11 @@
 #include "cocoaui.h"
 #include "config.h"
 
-
+@interface LxdreamPrefsPathPane: LxdreamPrefsPane 
+{
+}
++ (LxdreamPrefsPathPane *)new;
+@end
 
 @implementation LxdreamPrefsPathPane
 + (LxdreamPrefsPathPane *)new
@@ -39,7 +43,7 @@
             if( entry->label != NULL ) {
                 NSRect frame = NSMakeRect( TEXT_GAP, height -((TEXT_HEIGHT+TEXT_GAP)*i - 2), 
                                            150, LABEL_HEIGHT );
-                NSTextField *label = [self addLabel: NS_(entry->label) withFrame: frame];
+                NSTextField *label = cocoa_gui_add_label(self, NS_(entry->label), frame);
                 [label setAlignment: NSRightTextAlignment];
 
                 frame = NSMakeRect( 150 + (TEXT_GAP*2), 
@@ -70,3 +74,9 @@
     }
 }
 @end
+
+
+NSView *cocoa_gui_create_prefs_path_pane()
+{
+    return [LxdreamPrefsPathPane new];
+}

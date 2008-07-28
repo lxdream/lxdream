@@ -35,6 +35,7 @@ static void video_osx_shutdown();
 static void video_osx_display_blank( uint32_t colour );
 static uint16_t video_osx_resolve_keysym( const gchar *keysym );
 static uint16_t video_osx_keycode_to_dckeysym(uint16_t keycode);
+static gchar *video_osx_keycode_to_keysym(uint16_t keycode);
 
 struct display_driver display_osx_driver = { 
         "osx",
@@ -42,7 +43,7 @@ struct display_driver display_osx_driver = {
         video_osx_init, video_osx_shutdown,
         video_osx_resolve_keysym,
         video_osx_keycode_to_dckeysym,
-        NULL,
+        video_osx_keycode_to_keysym,
         NULL, NULL, NULL, NULL, NULL, 
         video_osx_display_blank, NULL };
 
@@ -250,3 +251,11 @@ static uint16_t video_osx_keycode_to_dckeysym(uint16_t keycode)
     }
 }
 
+static gchar *video_osx_keycode_to_keysym(uint16_t keycode)
+{
+    if( keycode < 1 || keycode > 128 ) {
+        return NULL;
+    } else {
+        return g_strdup(mac_keysyms_by_keycode[keycode-1]);
+    }
+}

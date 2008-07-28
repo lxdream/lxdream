@@ -378,6 +378,8 @@ void cocoa_gui_run_later( void )
      modes: [NSArray arrayWithObject: NSDefaultRunLoopMode] ];
 }
 
+/*************************** Convenience methods ***************************/
+
 NSImage *NSImage_new_from_framebuffer( frame_buffer_t buffer )
 {
     NSBitmapImageRep *rep = 
@@ -391,4 +393,19 @@ NSImage *NSImage_new_from_framebuffer( frame_buffer_t buffer )
     NSImage *image = [[NSImage alloc] initWithSize: NSMakeSize(0.0,0.0)];
     [image addRepresentation: rep];
     return image;
+}
+
+
+NSTextField *cocoa_gui_add_label( NSView *parent, NSString *text, NSRect frame )
+{
+    NSTextField *label = [[NSTextField alloc] initWithFrame: frame];
+    [label setStringValue: text];
+    [label setBordered: NO];
+    [label setDrawsBackground: NO];
+    [label setEditable: NO];
+    [label setAutoresizingMask: (NSViewMinYMargin|NSViewMaxXMargin)];
+    if( parent != NULL ) {
+        [parent addSubview: label];
+    }
+    return label;
 }

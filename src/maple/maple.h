@@ -76,6 +76,7 @@ struct maple_device {
     unsigned char ident[112];
     unsigned char version[80];
     lxdream_config_entry_t (*get_config)(struct maple_device *dev);
+    void (*set_config_value)(struct maple_device *dev, unsigned int key, const gchar *value);
     void (*attach)(struct maple_device *dev);
     void (*detach)(struct maple_device *dev);
     void (*destroy)(struct maple_device *dev);
@@ -101,6 +102,7 @@ maple_device_t maple_get_device( unsigned int port, unsigned int periph );
 const struct maple_device_class *maple_get_device_class( const gchar *name );
 const struct maple_device_class **maple_get_device_classes();
 lxdream_config_entry_t maple_get_device_config( maple_device_t dev );
+void maple_set_device_config_value( maple_device_t dev, unsigned int key, const gchar *value );
 
 void maple_handle_buffer( uint32_t buffer );
 void maple_attach_device( maple_device_t dev, unsigned int port, unsigned int periph );
