@@ -123,8 +123,9 @@ int video_height = 480;
 gboolean video_gtk_init();
 void video_gtk_shutdown();
 void video_gtk_display_blank( uint32_t colour );
-uint16_t video_gtk_resolve_keysym( const gchar *keysym );
-uint16_t video_gtk_keycode_to_dckeysym(uint16_t keycode);
+static uint16_t video_gtk_resolve_keysym( const gchar *keysym );
+static uint16_t video_gtk_keycode_to_dckeysym(uint16_t keycode);
+static gchar *video_gtk_get_keysym_for_keycode(uint16_t keycode);
 
 struct display_driver display_gtk_driver = { 
         "gtk",
@@ -133,17 +134,9 @@ struct display_driver display_gtk_driver = {
         video_gtk_shutdown,
         video_gtk_resolve_keysym,
         video_gtk_keycode_to_dckeysym,
-        NULL,
+        video_gtk_keycode_to_keysym,
         NULL, NULL, NULL, NULL, NULL, 
         video_gtk_display_blank, NULL };
-
-uint16_t video_gtk_resolve_keysym( const gchar *keysym )
-{
-    int val = gdk_keyval_from_name( keysym );
-    if( val == GDK_VoidSymbol )
-        return 0;
-    return (uint16_t)val;
-}
 
 gboolean video_gtk_expose_callback(GtkWidget *widget, GdkEventExpose *event, gpointer data )
 {
@@ -159,7 +152,20 @@ gboolean video_gtk_resize_callback(GtkWidget *widget, GdkEventConfigure *event, 
     return TRUE;
 }
 
-uint16_t video_gtk_keycode_to_dckeysym(uint16_t keycode)
+static uint16_t video_gtk_resolve_keysym( const gchar *keysym )
+{
+    int val = gdk_keyval_from_name( keysym );
+    if( val == GDK_VoidSymbol )
+        return 0;
+    return (uint16_t)val;
+}
+
+static gchar *video_gtk_get_keycode_to_keysym( uint16_t keycode )
+{
+    return g_strdup(gdk_keyval_name(keycode));
+}
+
+static uint16_t video_gtk_keycode_to_dckeysym(uint16_t keycode)
 {
     if( keycode >= 'a' && keycode <= 'z' ) {
         return (keycode - 'a') + DCKB_a;

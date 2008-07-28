@@ -314,6 +314,12 @@ void input_event_keyup( input_driver_t input, uint16_t keycode, uint32_t pressur
 
 void input_event_mouse( uint32_t buttons, int32_t x_axis, int32_t y_axis );
 
+/**
+ * Given a keycode and the originating input driver, return the corresponding 
+ * keysym. The caller is responsible for freeing the string.
+ * @return a newly allocated string, or NULL of the keycode is unresolvable.
+ */
+gchar *input_keycode_to_keysym( input_driver_t driver, uint16_t keycode );
 
 typedef void (*display_keysym_callback_t)( void *data, const gchar *keysym );
 

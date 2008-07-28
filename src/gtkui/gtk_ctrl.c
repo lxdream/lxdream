@@ -136,7 +136,7 @@ static void controller_config_done( GtkWidget *panel, gboolean isOK )
 
 static void controller_device_configure( maple_device_t device )
 {
-    lxdream_config_entry_t conf = device->get_config(device);
+    lxdream_config_entry_t conf = maple_get_device_config(device);
     int count, i;
     for( count=0; conf[count].key != NULL; count++ );
 
@@ -152,7 +152,7 @@ static void controller_device_configure( maple_device_t device )
             x = 3;
             y -= (count+1)>>1;
         }
-        gtk_table_attach( GTK_TABLE(table), gtk_label_new(conf[i].key), x, x+1, y, y+1, 
+        gtk_table_attach( GTK_TABLE(table), gtk_label_new(gettext(conf[i].label)), x, x+1, y, y+1, 
                           GTK_SHRINK, GTK_SHRINK, 0, 0 );
         text = gtk_entry_new();
         gtk_entry_set_width_chars( GTK_ENTRY(text), 11 );

@@ -38,6 +38,13 @@ NSWindow *cocoa_gui_create_main_window();
 NSMenu *cocoa_gdrom_menu_new();
 NSView *video_osx_create_drawable();
 void cocoa_gui_show_preferences();
+NSView *cocoa_gui_create_prefs_controller_pane();
+NSView *cocoa_gui_create_prefs_path_pane();
+
+/**
+ * Convenience method to create a new text label in the specified parent.
+ */
+NSTextField *cocoa_gui_add_label(NSView *parent, NSString *title, NSRect frame);
 
 @interface LxdreamMainWindow : NSWindow 
 {
@@ -57,11 +64,19 @@ void cocoa_gui_show_preferences();
     int headerHeight;
 }
 - (id)initWithFrame: (NSRect)frameRect title:(NSString *)title;
-/**
- * Create a text label and add it to the pane
- */
-- (NSTextField *)addLabel: (NSString *)text withFrame: (NSRect)frame;
 - (int)contentHeight;
+@end
+
+@interface KeyBindingEditor: NSTextView
+{
+    BOOL isPrimed;
+    NSString *lastValue;
+}
+@end
+
+@interface KeyBindingField : NSTextField
+{
+}
 @end
 
 @interface LxdreamPrefsPanel : NSPanel
@@ -70,21 +85,9 @@ void cocoa_gui_show_preferences();
     NSArray *toolbar_defaults;
     NSDictionary *toolbar_items;
     NSView *path_pane, *ctrl_pane;
+    KeyBindingEditor *binding_editor;
 }
 - (id)initWithContentRect:(NSRect)contentRect;
-@end
-
-@interface LxdreamPrefsPathPane: LxdreamPrefsPane 
-{
-}
-+ (LxdreamPrefsPathPane *)new;
-@end
-
-@interface LxdreamPrefsControllerPane: LxdreamPrefsPane
-{
-    struct maple_device *save_controller[4];
-}
-+ (LxdreamPrefsControllerPane *)new;
 @end
 
 #ifdef __cplusplus

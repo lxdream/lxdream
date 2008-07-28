@@ -332,6 +332,13 @@ void maple_reattach_all() {
     }
 }
 
+void maple_set_device_config_value( maple_device_t dev, unsigned int key, const gchar *value )
+{
+    if( dev != NULL && dev->set_config_value != NULL ) {
+        dev->set_config_value( dev, key, value );
+    }
+}
+
 void maple_default_destroy( maple_device_t mdev )
 {
     free(mdev);
