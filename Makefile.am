@@ -61,6 +61,7 @@ all-local:
 	rm -rf $(BUNDLE)
 	mkdir -p $(BUNDLE)/Contents/MacOS
 	mkdir -p $(BUNDLE)/Contents/Resources
+	cp Info.plist $(BUNDLE)/Contents
 	cp src/lxdream $(BUNDLE)/Contents/MacOS
 	cp -R $(srcdir)/pixmaps/* $(BUNDLE)/Contents/Resources
 	$(srcdir)/bundlelibs.pl $(BUNDLE)/Contents/MacOS/lxdream $(BUNDLE)/Contents/Frameworks
