@@ -15,7 +15,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
-
+ 
 #ifndef lxdream_cocoaui_H
 #define lxdream_cocoaui_H
 
@@ -46,9 +46,19 @@ NSView *cocoa_gui_create_prefs_path_pane();
  */
 NSTextField *cocoa_gui_add_label(NSView *parent, NSString *title, NSRect frame);
 
+@interface LxdreamVideoView : NSView
+{
+    BOOL isGrabbed;
+    id delegate;
+}
+- (void) setDelegate: (id)other;
+- (id)delegate;
+- (void) setIsGrabbed: (BOOL)grabbed;
+@end
+
 @interface LxdreamMainWindow : NSWindow 
 {
-    NSView *video;
+    LxdreamVideoView *video;
     NSTextField *status;
     BOOL isGrabbed;
 }

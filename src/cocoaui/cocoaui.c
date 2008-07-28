@@ -157,6 +157,15 @@ static void cocoa_gui_create_menu(void)
         cocoa_gui_run_later();
     }
 }
+- (void)windowDidBecomeKey: (NSNotification *)notice
+{
+    display_set_focused( TRUE );
+}
+- (void)windowDidResignKey: (NSNotification *)notice
+{
+    display_set_focused( FALSE );
+    [((LxdreamMainWindow *)[NSApp mainWindow]) setIsGrabbed: NO];
+}
 - (void) about_action: (id)sender
 {
     NSArray *keys = [NSArray arrayWithObjects: @"Version", @"Copyright", nil];

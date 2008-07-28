@@ -54,18 +54,29 @@ int video_height = 480;
 
 #define MAX_MASK_KEYCODE 128
 
-@interface LxdreamVideoView : NSView
+@interface LxdreamOSXView : LxdreamVideoView
 {
-    BOOL isGrabbed;
     int buttonMask;
     int flagsMask[MAX_MASK_KEYCODE];
 }
-- (BOOL)isOpaque;
-- (BOOL)isFlipped;
-- (void)drawRect: (NSRect) rect;
 @end
 
 @implementation LxdreamVideoView
+- (void)setIsGrabbed: (BOOL)grabbed
+{
+    isGrabbed = grabbed;
+}
+- (void) setDelegate: (id)other
+{
+    delegate = other;
+}
+- (id)delegate 
+{
+    return delegate;
+}
+@end
+
+@implementation LxdreamOSXView
 //--------------------------------------------------------------------
 - (id)initWithFrame: (NSRect)contentRect
 {
@@ -79,6 +90,16 @@ int video_height = 480;
         return self;
     }
     return nil;
+}
+- (void)requestGrab
+{
+    if( delegate && [delegate respondsToSelector: @selector(viewRequestedGrab:)] )
+        [delegate performSelector: @selector(viewRequestedGrab:) withObject: self];
+}
+- (void)requestUngrab
+{
+    if( delegate && [delegate respondsToSelector: @selector(viewRequestedUngrab:)] )
+        [delegate performSelector: @selector(viewRequestedUngrab:) withObject: self];
 }
 - (BOOL)isOpaque
 {
@@ -116,12 +137,8 @@ int video_height = 480;
 - (void)flagsChanged: (NSEvent *) event
 {
     int keycode = [event keyCode];
-    if ( isGrabbed && ([event modifierFlags] & NSControlKeyMask) && ([event modifierFlags] & NSAlternateKeyMask) ) {
-        // Release the display grab
-        isGrabbed = NO;
-        [NSCursor unhide];
-        CGAssociateMouseAndMouseCursorPosition(YES);
-        [((LxdreamMainWindow *)[self window]) setIsGrabbed: NO];
+    if( ([event modifierFlags] & NSControlKeyMask) && ([event modifierFlags] & NSAlternateKeyMask) ) {
+        [self requestUngrab];
     }
 
     if( flagsMask[keycode] == 0 ) {
@@ -137,11 +154,8 @@ int video_height = 480;
     if( isGrabbed ) { 
         buttonMask |= 1;
         input_event_mouse( buttonMask, 0, 0 );
-    } else { // take display grab
-        isGrabbed = YES;
-        [NSCursor hide];
-        CGAssociateMouseAndMouseCursorPosition(NO);
-        [((LxdreamMainWindow *)[self window]) setIsGrabbed: YES];
+    } else {
+        [self requestGrab];
     }
 }
 - (void)mouseUp: (NSEvent *)event
@@ -200,7 +214,7 @@ int video_height = 480;
 NSView *video_osx_create_drawable()
 {
     NSRect contentRect = {{0,0},{640,480}};
-    video_view = [[LxdreamVideoView alloc] initWithFrame: contentRect];
+    video_view = [[LxdreamOSXView alloc] initWithFrame: contentRect];
     [video_view setAutoresizingMask: (NSViewWidthSizable|NSViewHeightSizable)];
     return video_view;
 }
