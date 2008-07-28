@@ -73,6 +73,7 @@ gboolean sh4_execute_instruction( ) { }
 void sh4_accept_interrupt() {}
 void sh4_set_breakpoint( uint32_t pc, breakpoint_type_t type ) { }
 gboolean sh4_clear_breakpoint( uint32_t pc, breakpoint_type_t type ) { }
+gboolean dreamcast_is_running() { return FALSE; }
 int sh4_get_breakpoint( uint32_t pc ) { }
 void sh4_core_exit( int exit_code ){}
 void sh4_flush_icache(){}
