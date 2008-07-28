@@ -50,6 +50,7 @@ static uint32_t inline lbatomsf( uint32_t lba ) {
 static gboolean linux_image_is_valid( FILE *f );
 static gdrom_disc_t linux_open_device( const gchar *filename, FILE *f );
 static gdrom_error_t linux_read_disc_toc( gdrom_image_t disc );
+static gdrom_error_t linux_identify_drive( int fd, unsigned char *buf, int buflen );
 static gdrom_error_t linux_read_sector( gdrom_disc_t disc, uint32_t sector,
                                         int mode, unsigned char *buf, uint32_t *length );
 static gdrom_error_t linux_send_command( int fd, char *cmd, unsigned char *buffer, size_t *buflen,
@@ -74,7 +75,9 @@ GList *cdrom_get_native_devices(void)
             int caps = ioctl(fd, CDROM_GET_CAPABILITY);
             if( caps != -1 ) {
                 /* Appears to support CDROM functions */
-                list = g_list_append( list, gdrom_device_new(ent->fs_spec, ent->fs_spec));
+                char buf[32];
+                linux_identify_drive( fd, buf, sizeof(buf) );
+                list = g_list_append( list, gdrom_device_new(ent->fs_spec, buf));
             }
             close(fd);
         }
@@ -199,6 +202,36 @@ gdrom_error_t linux_stop_audio( gdrom_disc_t disc )
     uint32_t buflen = 0;
     char cmd[12] = {0x4E,0,0,0, 0,0,0,0, 0,0,0,0};
     return linux_send_command( fd, cmd, NULL, &buflen, CGC_DATA_NONE );
+}
+
+static unsigned char *trim( unsigned char *src )
+{
+    char *p = src + strlen(src)-1;
+    while( isspace(*src) ) 
+        src++;
+    while( p >= src && isspace(*p) )
+        *p-- = '\0';
+    return src;
+}
+static gdrom_error_t linux_identify_drive( int fd, unsigned char *buf, int buflen )
+{
+    unsigned char ident[256];
+    uint32_t identlen = 256;
+    char cmd[12] = {0x12,0,0,0, 0xFF,0,0,0, 0,0,0,0};
+    gdrom_error_t status = 
+        linux_send_command( fd, cmd, ident, &identlen, CGC_DATA_READ );
+    if( status == 0 ) {
+        char vendorid[9];
+        char productid[17];
+        char productrev[5];
+        memcpy( vendorid, ident+8, 8 ); vendorid[8] = 0;
+        memcpy( productid, ident+16, 16 ); productid[16] = 0;
+        memcpy( productrev, ident+32, 4 ); productrev[4] = 0;
+        
+        snprintf( buf, buflen, "%.8s %.16s %.4s", trim(vendorid), 
+                  trim(productid), trim(productrev) );
+    }
+    return status;
 }
 
 static gdrom_error_t linux_read_sector( gdrom_disc_t disc, uint32_t sector,
