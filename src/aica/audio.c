@@ -116,10 +116,17 @@ audio_driver_t audio_init_driver( const char *preferred_driver )
         ERROR( "Audio driver '%s' not found, aborting.", preferred_driver );
         exit(2);
     } else if( audio_set_driver( audio_driver ) == FALSE ) {
-        ERROR( "Failed to initialize audio driver '%s', using null driver", 
-                audio_driver->name );
-        audio_driver = &audio_null_driver;
-        audio_set_driver( &audio_null_driver );
+        int i;
+        for( i=0; audio_driver_list[i] != NULL; i++ ) {
+            if( audio_driver_list[i] != audio_driver &&
+                audio_set_driver( audio_driver_list[i] ) ) {
+                ERROR( "Failed to initialize audio driver %s, falling back to %s", 
+                       audio_driver->name, audio_driver_list[i]->name );
+                return audio_driver_list[i];
+            }
+        }
+        ERROR( "Unable to intialize any audio driver, aborting." );
+        exit(2);
     }
     return audio_driver;
 }
