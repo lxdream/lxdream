@@ -1,6 +1,6 @@
 [Global]
-bios = ../bios/dcboot.rom
-flash = ../bios/dcflash.rom
+bios =
+flash =
 default path = ../disc
 save path = ../save
 bootstrap = 
