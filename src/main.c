@@ -20,8 +20,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <getopt.h>
-#include "gettext.h"
 #include "lxdream.h"
+#include "gettext.h"
 #include "mem.h"
 #include "dreamcast.h"
 #include "dream.h"
