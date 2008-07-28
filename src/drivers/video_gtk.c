@@ -125,7 +125,7 @@ void video_gtk_shutdown();
 void video_gtk_display_blank( uint32_t colour );
 static uint16_t video_gtk_resolve_keysym( const gchar *keysym );
 static uint16_t video_gtk_keycode_to_dckeysym(uint16_t keycode);
-static gchar *video_gtk_get_keysym_for_keycode(uint16_t keycode);
+static gchar *video_gtk_keycode_to_keysym(uint16_t keycode);
 
 struct display_driver display_gtk_driver = { 
         "gtk",
@@ -160,7 +160,7 @@ static uint16_t video_gtk_resolve_keysym( const gchar *keysym )
     return (uint16_t)val;
 }
 
-static gchar *video_gtk_get_keycode_to_keysym( uint16_t keycode )
+static gchar *video_gtk_keycode_to_keysym( uint16_t keycode )
 {
     return g_strdup(gdk_keyval_name(keycode));
 }
