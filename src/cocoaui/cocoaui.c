@@ -55,6 +55,15 @@ static BOOL cocoa_gui_is_running = NO;
 - (void) setAppleMenu:(NSMenu *)aMenu;
 @end
 
+/**
+ * Produces the menu title by looking the text up in gettext, removing any
+ * underscores, and returning the result as an NSString.
+ */
+static NSString *NSMENU_( const char *text )
+{
+    return [[NSString stringWithUTF8String: gettext(text)] stringByReplacingOccurrencesOfString: @"_" withString: @""];
+}
+
 static void cocoa_gui_create_menu(void)
 {
     NSMenu *appleMenu, *services;
@@ -70,12 +79,12 @@ static void cocoa_gui_create_menu(void)
     [appleMenu addItemWithTitle:title action:@selector(about_action:) keyEquivalent:@""];
     
     [appleMenu addItem:[NSMenuItem separatorItem]];
-    [appleMenu addItemWithTitle: NS_("Preferences...") action:@selector(preferences_action:) keyEquivalent:@","];
+    [appleMenu addItemWithTitle: NSMENU_("_Preferences...") action:@selector(preferences_action:) keyEquivalent:@","];
 
     // Services Menu
     [appleMenu addItem:[NSMenuItem separatorItem]];
     services = [[[NSMenu alloc] init] autorelease];
-    [appleMenu addItemWithTitle:@"Services" action:nil keyEquivalent:@""];
+    [appleMenu addItemWithTitle: NS_("Services") action:nil keyEquivalent:@""];
     [appleMenu setSubmenu: services forItem: [appleMenu itemWithTitle: @"Services"]];
 
     // Hide AppName
@@ -104,20 +113,20 @@ static void cocoa_gui_create_menu(void)
 
     NSMenu *gdromMenu = cocoa_gdrom_menu_new();
 
-    NSMenu *fileMenu = [[NSMenu alloc] initWithTitle: NS_("File")];
-    [fileMenu addItemWithTitle: NS_("Load Binary") action: @selector(load_binary_action:) keyEquivalent: @"b"];
-    [[fileMenu addItemWithTitle: NS_("GD-Rom") action: nil keyEquivalent: @""]
+    NSMenu *fileMenu = [[NSMenu alloc] initWithTitle: NSMENU_("_File")];
+    [fileMenu addItemWithTitle: NSMENU_("Load _Binary...") action: @selector(load_binary_action:) keyEquivalent: @"b"];
+    [[fileMenu addItemWithTitle: NSMENU_("_GD-Rom") action: nil keyEquivalent: @""]
       setSubmenu: gdromMenu];
     [fileMenu addItem: [NSMenuItem separatorItem]];
-    [[fileMenu addItemWithTitle: NS_("Reset") action: @selector(reset_action:) keyEquivalent: @"r"]
+    [[fileMenu addItemWithTitle: NSMENU_("_Reset") action: @selector(reset_action:) keyEquivalent: @"r"]
       setKeyEquivalentModifierMask:(NSAlternateKeyMask|NSCommandKeyMask)];
-    [fileMenu addItemWithTitle: NS_("Pause") action: @selector(pause_action:) keyEquivalent: @"p"];
+    [fileMenu addItemWithTitle: NSMENU_("_Pause") action: @selector(pause_action:) keyEquivalent: @"p"];
     [fileMenu addItemWithTitle: NS_("Resume") action: @selector(run_action:) keyEquivalent: @"r"];
     [fileMenu addItem: [NSMenuItem separatorItem]];
-    [fileMenu addItemWithTitle: NS_("Load State") action: @selector(load_action:) keyEquivalent: @"o"];
-    [fileMenu addItemWithTitle: NS_("Save State") action: @selector(save_action:) keyEquivalent: @"s"];
+    [fileMenu addItemWithTitle: NSMENU_("_Load State...") action: @selector(load_action:) keyEquivalent: @"o"];
+    [fileMenu addItemWithTitle: NSMENU_("_Save State...") action: @selector(save_action:) keyEquivalent: @"s"];
 
-    menuItem = [[NSMenuItem alloc] initWithTitle:NS_("File") action: nil keyEquivalent: @""];
+    menuItem = [[NSMenuItem alloc] initWithTitle:NSMENU_("_File") action: nil keyEquivalent: @""];
     [menuItem setSubmenu: fileMenu];
     [menu addItem: menuItem];
 
@@ -287,7 +296,7 @@ gboolean gui_error_dialog( const char *msg, ... )
         va_list args;
         va_start(args, msg);
         error_string = [[NSString alloc] initWithFormat: [NSString stringWithCString: msg] arguments: args];
-        NSRunAlertPanel(@"Error in lxdream", error_string, nil, nil, nil);
+        NSRunAlertPanel(NS_("Error in Lxdream"), error_string, nil, nil, nil);
         va_end(args);
         return TRUE;
     } else {
