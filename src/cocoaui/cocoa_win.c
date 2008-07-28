@@ -131,8 +131,9 @@ willBeInsertedIntoToolbar:(BOOL)flag
         return nil;
     } else {
         isGrabbed = NO;
-        video = video_osx_create_drawable();
+        video = (LxdreamVideoView *)video_osx_create_drawable();
         [video setFrameOrigin: NSMakePoint(0.0,STATUSBAR_HEIGHT)];
+        [video setDelegate: self];
 
         status = 
             [[NSTextField alloc] initWithFrame: NSMakeRect(0.0,0.0,videoRect.size.width,STATUS_TEXT_HEIGHT)];
@@ -198,9 +199,25 @@ willBeInsertedIntoToolbar:(BOOL)flag
     if( grab != isGrabbed ) {
         isGrabbed = grab;
         [self setRunning: dreamcast_is_running() ? YES : NO];
+        
+        if( isGrabbed ) {
+            [NSCursor hide];
+            CGAssociateMouseAndMouseCursorPosition(NO);
+        } else {
+            [NSCursor unhide];
+            CGAssociateMouseAndMouseCursorPosition(YES);
+        }
+        [video setIsGrabbed: isGrabbed];
     }
 }
-
+- (void)viewRequestedGrab: (id)sender
+{
+    [self setIsGrabbed: YES];
+}
+- (void)viewRequestedUngrab: (id)sender
+{
+    [self setIsGrabbed: NO];
+}
 @end
 
 NSWindow *cocoa_gui_create_main_window()
