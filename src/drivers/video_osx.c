@@ -30,6 +30,9 @@
 
 #include "mac_keymap.h"
 
+#define MOUSE_X_SCALE 5
+#define MOUSE_Y_SCALE 5
+
 static gboolean video_osx_init();
 static void video_osx_shutdown();
 static void video_osx_display_blank( uint32_t colour );
@@ -187,25 +190,25 @@ int video_height = 480;
 - (void)mouseMoved: (NSEvent *) event
 {
     if( isGrabbed ) {
-        input_event_mouse( buttonMask, [event deltaX], [event deltaY] );
+        input_event_mouse( buttonMask, [event deltaX] * MOUSE_X_SCALE, [event deltaY] * MOUSE_Y_SCALE );
     }
 }
 - (void)mouseDragged: (NSEvent *) event
 {
     if( isGrabbed ) {
-        input_event_mouse( buttonMask, [event deltaX], [event deltaY] );
+        input_event_mouse( buttonMask, [event deltaX] * MOUSE_X_SCALE, [event deltaY] * MOUSE_Y_SCALE );
     }
 }
 - (void)rightMouseDragged: (NSEvent *) event
 {
     if( isGrabbed ) {
-        input_event_mouse( buttonMask, [event deltaX], [event deltaY] );
+        input_event_mouse( buttonMask, [event deltaX] * MOUSE_X_SCALE, [event deltaY] * MOUSE_Y_SCALE );
     }
 }
 - (void)otherMouseDragged: (NSEvent *) event
 {
     if( isGrabbed ) {
-        input_event_mouse( buttonMask, [event deltaX], [event deltaY] );
+        input_event_mouse( buttonMask, [event deltaX] * MOUSE_X_SCALE, [event deltaY] * MOUSE_Y_SCALE );
     }
 }
 
