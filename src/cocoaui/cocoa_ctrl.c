@@ -64,6 +64,14 @@ static void cocoa_config_keysym_hook(void *data, const gchar *keysym);
         }
     }
 }
+- (void)resignFirstResponder
+{
+    if( isPrimed ) {
+        [self setString: lastValue];
+        [self setPrimed: NO];
+    }
+    [super resignFirstResponder];
+}
 - (void)fireBindingChanged
 {
     id delegate = [self delegate];
