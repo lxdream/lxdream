@@ -131,7 +131,7 @@ void gdrom_image_destroy_no_close( gdrom_disc_t disc )
     free( disc );
 }
 
-static int gdrom_image_get_track_by_lba( gdrom_image_t image, uint32_t lba )
+int gdrom_image_get_track_by_lba( gdrom_image_t image, uint32_t lba )
 {
     int i;
     for( i=0; i<image->track_count; i++ ) {
@@ -226,6 +226,22 @@ static void gdrom_get_read_bounds( int sector_mode, int read_mode, int *start, i
         }
 
     }
+}
+
+void gdrom_extract_raw_data_sector( char *sector_data, int channels, unsigned char *buf, uint32_t *length )
+{
+    int sector_mode;
+    int start, size;
+    struct cdrom_sector_header *secthead = (struct cdrom_sector_header *)sector_data;
+    if( secthead->mode == 1 ) {
+        sector_mode = GDROM_MODE1;
+    } else {
+        sector_mode = ((secthead->subhead[2] & 0x20) == 0 ) ? GDROM_MODE2_FORM1 : GDROM_MODE2_FORM2;
+    }
+    gdrom_get_read_bounds( sector_mode, channels, &start, &size );
+    
+    memcpy( buf, sector_data+start, size );
+    *length = size;
 }
 
 /**

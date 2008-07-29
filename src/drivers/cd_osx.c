@@ -153,52 +153,78 @@ static gdrom_error_t cdrom_osx_read_toc( gdrom_image_t image )
     return 0;
 }
 
-static gdrom_error_t cdrom_osx_read_sector( gdrom_disc_t disc, uint32_t sector,
+static gdrom_error_t cdrom_osx_read_sector( gdrom_disc_t disc, uint32_t lba,
                                             int mode, unsigned char *buf, uint32_t *length ) 
 {
+    gdrom_image_t image = (gdrom_image_t)disc;
+    int real_lba = lba - 150;
+    int sector_size;
+    int direct_read = 1;
+    char data[MAX_SECTOR_SIZE];
     osx_cdrom_drive_t drive = OSX_DRIVE(disc);
+    
     int fh = osx_cdrom_get_media_handle(drive);
     if( fh == -1 ) {
         return PKT_ERR_NODISC;
     } else {
         dk_cd_read_t readcd;
-
         memset( &readcd, 0, sizeof(readcd) );
+        readcd.buffer = buf;
+
         // This is complicated by needing to know the exact read size. Gah.
         if( READ_CD_RAW(mode) ) {
-            *length = 2352;
+            sector_size = 2352;
             readcd.sectorArea = 0xF8; 
+        } else if ( READ_CD_MODE(mode) == READ_CD_MODE_ANY ) {
+            /* Sector could be anything - need to do a raw read and then parse
+             * the requested data out ourselves
+             */
+            int track_no = gdrom_image_get_track_by_lba( image, lba );
+            struct gdrom_track *track = &image->track[track_no-1];
+
+            sector_size = 2352;
+            if( track->mode == GDROM_CDDA ) {
+                readcd.sectorArea = kCDSectorAreaUser;
+            } else {
+                readcd.sectorArea = 0xF8;
+                readcd.buffer = data;
+                direct_read = 0;
+            }
         } else {
             // This is incomplete...
             if( READ_CD_DATA(mode) ) {
                 readcd.sectorArea = kCDSectorAreaUser;
                 switch( READ_CD_MODE(mode) ) {
                 case READ_CD_MODE_CDDA:
-                    *length = 2352;
+                    sector_size = 2352;
                     break;
                 case READ_CD_MODE_1:
                 case READ_CD_MODE_2_FORM_1:
-                    *length = 2048;
+                    sector_size = 2048;
                     break;
                 case READ_CD_MODE_2:
-                    *length = 2336;
+                    sector_size = 2336;
                     break;
                 case READ_CD_MODE_2_FORM_2:
-                    *length = 2324;
+                    sector_size = 2324;
                     break;
                 }
             }
         }
 
-        readcd.offset = *length * (sector - 150);
+        readcd.offset = sector_size * real_lba;
         readcd.sectorType = READ_CD_MODE(mode)>>1;
-        readcd.bufferLength = *length;
-        readcd.buffer = buf;
+        readcd.bufferLength = sector_size;
         if( ioctl( fh, DKIOCCDREAD, &readcd ) == -1 ) {
             return -1;
-        } else {
-            return 0;
         }
+        
+        if( direct_read ) {
+            *length = sector_size;
+        } else {
+            gdrom_extract_raw_data_sector( data, mode, buf, length );
+        }
+        return 0;
     }
 }
 

@@ -203,6 +203,10 @@ gdrom_disc_t gdrom_image_new( const gchar *filename, FILE *f );
  */
 void gdrom_image_destroy_no_close( gdrom_disc_t d );
 
+/**
+ * Determine the track number containing the specified sector by lba.
+ */
+int gdrom_image_get_track_by_lba( gdrom_image_t image, uint32_t lba );
 
 /**
  * Given a base filename (eg for a .cue file), generate the path for the given
@@ -216,6 +220,13 @@ gdrom_device_t gdrom_device_new( const gchar *name, const gchar *dev_name );
 void gdrom_device_destroy( gdrom_device_t dev );
 
 /************* Host-native support functions ***************/
+
+/**
+ * Given a raw (2352 byte) data sector, extract the requested components into the 
+ * target buffer. length will also be updated with the length of the copied
+ * data
+ */
+void gdrom_extract_raw_data_sector( char *sector_data, int mode, unsigned char *buf, uint32_t *length );
 
 /**
  * Parse a format 2 TOC, and write the results into the supplied disc structure.
