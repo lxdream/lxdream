@@ -97,8 +97,8 @@ static gboolean audio_osx_process_buffer( audio_buffer_t buffer )
         output_buffer = buffer;
         output_buffer->posn = 0;
         AudioDeviceStart(output_device, audio_osx_callback);
-        return FALSE;
     }
+    return FALSE;
 }
 
 void audio_osx_start()

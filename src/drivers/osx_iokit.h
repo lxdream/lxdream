@@ -77,4 +77,14 @@ void osx_cdrom_release_media_handle( osx_cdrom_drive_t drive );
  */
 void osx_cdrom_close_drive( osx_cdrom_drive_t drive );
 
+/**
+ * Install the notifications and handlers needed by the IOKit support layer.
+ * Must be called before trying to use any of the functions above.
+ */
+gboolean osx_register_iokit_notifications();
+/**
+ * Uninstall the notifications and handlers in the IOKit support layer
+ */
+void osx_unregister_iokit_notifications();
+
 #endif /* !lxdream_osx_iokit_H */
