@@ -27,6 +27,9 @@
 #include "config.h"
 #include "display.h"
 #include "gui.h"
+#include "gdrom/gdrom.h"
+#include "gdlist.h"
+#include "loader.h"
 #include "cocoaui/cocoaui.h"
 
 void cocoa_gui_update( void );
@@ -61,7 +64,19 @@ static BOOL cocoa_gui_is_running = NO;
  */
 static NSString *NSMENU_( const char *text )
 {
-    return [[NSString stringWithUTF8String: gettext(text)] stringByReplacingOccurrencesOfString: @"_" withString: @""];
+    const char *s = gettext(text);
+    char buf[strlen(s)+1];
+    char *d = buf;
+
+    while( *s != '\0' ) {
+        if( *s != '_' ) {
+            *d++ = *s;
+        }
+        s++;
+    }
+    *d = '\0';
+    
+    return [NSString stringWithUTF8String: buf];
 }
 
 static void cocoa_gui_create_menu(void)
@@ -280,6 +295,7 @@ gboolean gui_init( gboolean withDebug )
     [NSApp activateIgnoringOtherApps: YES];   
 
     [pool release];
+    return TRUE;
 }
 
 void gui_main_loop( gboolean run )
