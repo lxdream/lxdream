@@ -53,7 +53,7 @@ static gdrom_error_t linux_read_disc_toc( gdrom_image_t disc );
 static gdrom_error_t linux_identify_drive( int fd, unsigned char *buf, int buflen );
 static gdrom_error_t linux_read_sector( gdrom_disc_t disc, uint32_t sector,
                                         int mode, unsigned char *buf, uint32_t *length );
-static gdrom_error_t linux_send_command( int fd, char *cmd, unsigned char *buffer, size_t *buflen,
+static gdrom_error_t linux_send_command( int fd, char *cmd, unsigned char *buffer, uint32_t *buflen,
                                          int direction );
 static int linux_drive_status( gdrom_disc_t disc );
 
@@ -163,7 +163,7 @@ static gdrom_error_t linux_read_disc_toc( gdrom_image_t disc )
 {
     int fd = fileno(disc->file);
     unsigned char buf[MAXTOCSIZE];
-    size_t buflen = sizeof(buf);
+    uint32_t buflen = sizeof(buf);
     char cmd[12] = { 0x43, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
     cmd[7] = (sizeof(buf))>>8;
@@ -206,7 +206,7 @@ gdrom_error_t linux_stop_audio( gdrom_disc_t disc )
 
 static unsigned char *trim( unsigned char *src )
 {
-    char *p = src + strlen(src)-1;
+    unsigned char *p = src + strlen(src)-1;
     while( isspace(*src) ) 
         src++;
     while( p >= src && isspace(*p) )
@@ -258,7 +258,7 @@ static gdrom_error_t linux_read_sector( gdrom_disc_t disc, uint32_t sector,
  * @return 0 on success, -1 on an operating system error, or a sense error
  * code on a device error.
  */
-static gdrom_error_t linux_send_command( int fd, char *cmd, unsigned char *buffer, size_t *buflen,
+static gdrom_error_t linux_send_command( int fd, char *cmd, unsigned char *buffer, uint32_t *buflen,
                                          int direction )
 {
     struct request_sense sense;

@@ -300,7 +300,7 @@ static inline xlat_cache_block_t xlat_cut_block( xlat_cache_block_t block, int c
  */
 static void xlat_promote_to_old_space( xlat_cache_block_t block )
 {
-    int allocation = -sizeof(struct xlat_cache_block);
+    int allocation = (int)-sizeof(struct xlat_cache_block);
     int size = block->size;
     xlat_cache_block_t curr = xlat_old_cache_ptr;
     xlat_cache_block_t start_block = curr;
@@ -316,7 +316,7 @@ static void xlat_promote_to_old_space( xlat_cache_block_t block )
              */
             start_block->active = 0;
             start_block->size = allocation;
-            allocation = -sizeof(struct xlat_cache_block);
+            allocation = (int)-sizeof(struct xlat_cache_block);
             start_block = curr = xlat_old_cache;
         }
     } while(1);
@@ -340,7 +340,7 @@ static void xlat_promote_to_old_space( xlat_cache_block_t block )
 void xlat_promote_to_temp_space( xlat_cache_block_t block )
 {
     int size = block->size;
-    int allocation = -sizeof(struct xlat_cache_block);
+    int allocation = (int)-sizeof(struct xlat_cache_block);
     xlat_cache_block_t curr = xlat_temp_cache_ptr;
     xlat_cache_block_t start_block = curr;
     do {
@@ -361,7 +361,7 @@ void xlat_promote_to_temp_space( xlat_cache_block_t block )
              */
             start_block->active = 0;
             start_block->size = allocation;
-            allocation = -sizeof(struct xlat_cache_block);
+            allocation = (int)-sizeof(struct xlat_cache_block);
             start_block = curr = xlat_temp_cache;
         }
     } while(1);
@@ -426,7 +426,7 @@ xlat_cache_block_t xlat_extend_block( uint32_t newSize )
             int oldsize = xlat_new_create_ptr->size;
             int size = oldsize + MIN_BLOCK_SIZE; /* minimum expansion */
             void **lut_entry = xlat_new_create_ptr->lut_entry;
-            int allocation = -sizeof(struct xlat_cache_block);
+            int allocation = (int)-sizeof(struct xlat_cache_block);
             xlat_new_cache_ptr = xlat_new_cache;
             do {
                 if( xlat_new_cache_ptr->active ) {
