@@ -42,6 +42,11 @@ void video_nsgl_shutdown();
  */
 void video_nsgl_swap_buffers();
 
+/**
+ *  Update the NSGL context after a window change
+ */
+void video_nsgl_update();
+
 #ifdef __cplusplus
 }
 #endif

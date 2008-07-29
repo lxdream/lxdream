@@ -158,7 +158,7 @@ static gdrom_error_t cdrom_osx_read_sector( gdrom_disc_t disc, uint32_t lba,
 {
     gdrom_image_t image = (gdrom_image_t)disc;
     int real_lba = lba - 150;
-    int sector_size;
+    int sector_size = 2352;
     int direct_read = 1;
     char data[MAX_SECTOR_SIZE];
     osx_cdrom_drive_t drive = OSX_DRIVE(disc);

@@ -18,6 +18,7 @@
 
 #include "cocoaui/cocoaui.h"
 #include "lxdream.h"
+#include "dreamcast.h"
 #include <ApplicationServices/ApplicationServices.h>
 
 @interface NSWindow (OSX10_5_and_later)
