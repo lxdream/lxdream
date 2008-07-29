@@ -90,9 +90,6 @@ gdrom_error_t gdrom_get_toc( unsigned char *buf );
  */
 gdrom_error_t gdrom_get_info( unsigned char *buf, int session );
 
-uint8_t gdrom_get_track_no_by_lba( uint32_t lba );
-
-
 /**
  * Native CD-ROM API - provided by drivers/cd_*.c
  *
