@@ -708,15 +708,17 @@ void pvr2_scene_dump( FILE *f )
 
         for( j=0; j<poly->vertex_count; j++ ) {
             struct vertex_struct *v = &pvr2_scene.vertex_array[poly->vertex_index+j];
-            fprintf( f, "    %.5f %.5f %.5f, (%.5f,%.5f) %08X %08X\n", v->x, v->y, v->z, v->u, v->v,
-                     v->rgba, v->offset_rgba );
+            fprintf( f, "    %.5f %.5f %.5f, (%.5f,%.5f)  %.5f,%.5f,%.5f,%.5f  %.5f %.5f %.5f %.5f\n", v->x, v->y, v->z, v->u, v->v,
+                     v->rgba[0], v->rgba[1], v->rgba[2], v->rgba[3], 
+                     v->offset_rgba[0], v->offset_rgba[1], v->offset_rgba[2], v->offset_rgba[3] );
         }
         if( poly->mod_vertex_index != -1 ) {
             fprintf( f, "  ---\n" );
             for( j=0; j<poly->vertex_count; j++ ) {
                 struct vertex_struct *v = &pvr2_scene.vertex_array[poly->mod_vertex_index+j];
-                fprintf( f, "    %.5f %.5f %.5f, (%.5f,%.5f) %08X %08X\n", v->x, v->y, v->z, v->u, v->v,
-                         v->rgba, v->offset_rgba );
+                fprintf( f, "    %.5f %.5f %.5f, (%.5f,%.5f)  %.5f,%.5f,%.5f,%.5f  %.5f %.5f %.5f %.5f\n", v->x, v->y, v->z, v->u, v->v,
+                         v->rgba[0], v->rgba[1], v->rgba[2], v->rgba[3], 
+                         v->offset_rgba[0], v->offset_rgba[1], v->offset_rgba[2], v->offset_rgba[3] );
             }
         }
     }
