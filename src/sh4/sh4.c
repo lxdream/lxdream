@@ -215,8 +215,10 @@ void sh4_flush_icache()
 {
 #ifdef SH4_TRANSLATOR
     // FIXME: Special case needs to be generalized
-    if( sh4_translate_flush_cache() ) {
-        longjmp(sh4_exit_jmp_buf, CORE_EXIT_CONTINUE);
+    if( sh4_use_translator ) {
+        if( sh4_translate_flush_cache() ) {
+            longjmp(sh4_exit_jmp_buf, CORE_EXIT_CONTINUE);
+        }
     }
 #endif
 }
