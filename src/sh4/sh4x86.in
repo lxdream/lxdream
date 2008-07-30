@@ -2017,17 +2017,17 @@ FTRC FRm, FPUL {:
     JMP_TARGET(doubleprec);
     push_dr( FRm );
     JMP_TARGET( doop );
-    load_imm32( R_ECX, (uint32_t)&max_int );
+    load_ptr( R_ECX, &max_int );
     FILD_r32ind( R_ECX );
     FCOMIP_st(1);
     JNA_rel8( sat );
-    load_imm32( R_ECX, (uint32_t)&min_int );  // 5
+    load_ptr( R_ECX, &min_int );  // 5
     FILD_r32ind( R_ECX );           // 2
     FCOMIP_st(1);                   // 2
     JAE_rel8( sat2 );            // 2
-    load_imm32( R_EAX, (uint32_t)&save_fcw );
+    load_ptr( R_EAX, &save_fcw );
     FNSTCW_r32ind( R_EAX );
-    load_imm32( R_EDX, (uint32_t)&trunc_fcw );
+    load_ptr( R_EDX, &trunc_fcw );
     FLDCW_r32ind( R_EDX );
     FISTP_sh4r(R_FPUL);             // 3
     FLDCW_r32ind( R_EAX );
