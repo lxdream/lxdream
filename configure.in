@@ -47,6 +47,12 @@ AC_ARG_WITH( esd,
 AC_ARG_WITH( pulse,
    AS_HELP_STRING( [--with-pulse], [Build with support for the PulseAudio audio system]) )
 
+dnl ------------ 
+
+if test "x$GCC" = "xyes"; then
+   CFLAGS="$CFLAGS -fno-strict-aliasing"
+fi
+
 dnl ------------ Check if we're building on Darwin --------------
 
 dnl For starters, do we have a working objective-c compiler?

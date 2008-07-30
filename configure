@@ -6621,6 +6621,11 @@ fi
 
 
 
+if test "x$GCC" = "xyes"; then
+   CFLAGS="$CFLAGS -fno-strict-aliasing"
+fi
+
+
 lxdream_save_cppflags="$CPPFLAGS"
 CPPFLAGS="$CPPFLAGS -x objective-c"
 cat >conftest.$ac_ext <<_ACEOF
