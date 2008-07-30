@@ -229,7 +229,7 @@ void mmio_window_update( mmio_window_t mmio )
             }
             count++;
         }
-        memcpy( io_rgn[i]->save_mem, io_rgn[i]->mem, PAGE_SIZE );
+        memcpy( io_rgn[i]->save_mem, io_rgn[i]->mem, LXDREAM_PAGE_SIZE );
     }
 }
 

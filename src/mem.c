@@ -62,7 +62,7 @@ void *mem_alloc_pages( int n )
 
 void mem_init( void )
 {
-    page_map = mmap( NULL, sizeof(sh4ptr_t) * PAGE_TABLE_ENTRIES,
+    page_map = mmap( NULL, sizeof(sh4ptr_t) * LXDREAM_PAGE_TABLE_ENTRIES,
             PROT_READ|PROT_WRITE, MAP_ANON|MAP_PRIVATE, -1, 0 );
     if( page_map == MAP_FAILED ) {
         ERROR( "Unable to allocate page map! (%s)", strerror(errno) );
@@ -70,7 +70,7 @@ void mem_init( void )
         return;
     }
 
-    memset( page_map, 0, sizeof(sh4ptr_t) * PAGE_TABLE_ENTRIES );
+    memset( page_map, 0, sizeof(sh4ptr_t) * LXDREAM_PAGE_TABLE_ENTRIES );
 }
 
 void mem_reset( void )
@@ -237,8 +237,8 @@ struct mem_region *mem_map_region( void *mem, uint32_t base, uint32_t size,
     num_mem_rgns++;
 
     do {
-        for( i=0; i<size>>PAGE_BITS; i++ )
-            page_map[(base>>PAGE_BITS)+i] = mem + (i<<PAGE_BITS);
+        for( i=0; i<size>>LXDREAM_PAGE_BITS; i++ )
+            page_map[(base>>LXDREAM_PAGE_BITS)+i] = mem + (i<<LXDREAM_PAGE_BITS);
         base += repeat_offset;	
     } while( base <= repeat_until );
 
@@ -260,7 +260,7 @@ void *mem_create_repeating_ram_region( uint32_t base, uint32_t size, const char 
     assert( num_mem_rgns < MAX_MEM_REGIONS );
     assert( page_map != NULL );
 
-    mem = mem_alloc_pages( size>>PAGE_BITS );
+    mem = mem_alloc_pages( size>>LXDREAM_PAGE_BITS );
 
     mem_map_region( mem, base, size, name, MEM_FLAG_RAM, repeat_offset, repeat_until );
 
@@ -318,7 +318,7 @@ void register_io_region( struct mmio_region *io )
 
     assert(io);
     io->mem = mem_alloc_pages(2);
-    io->save_mem = io->mem + PAGE_SIZE;
+    io->save_mem = io->mem + LXDREAM_PAGE_SIZE;
     io->index = (struct mmio_port **)malloc(1024*sizeof(struct mmio_port *));
     io->trace_flag = 0;
     memset( io->index, 0, 1024*sizeof(struct mmio_port *) );
@@ -327,7 +327,7 @@ void register_io_region( struct mmio_region *io )
         *io->ports[i].val = io->ports[i].def_val;
         io->index[io->ports[i].offset>>2] = &io->ports[i];
     }
-    memcpy( io->save_mem, io->mem, PAGE_SIZE );
+    memcpy( io->save_mem, io->mem, LXDREAM_PAGE_SIZE );
     if( (io->base & 0xFF000000) == 0xFF000000 ) {
         /* P4 area (on-chip I/O channels */
         P4_io[(io->base&0x1FFFFFFF)>>19] = io;

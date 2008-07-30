@@ -29,9 +29,9 @@ extern "C" {
 #include <stdint.h>
 #include <stdlib.h>
 
-#define PAGE_TABLE_ENTRIES 128*1024
-#define PAGE_SIZE 4096
-#define PAGE_BITS 12
+#define LXDREAM_PAGE_TABLE_ENTRIES 128*1024
+#define LXDREAM_PAGE_SIZE 4096
+#define LXDREAM_PAGE_BITS 12
 
 #define PORT_R 1
 #define PORT_W 2
