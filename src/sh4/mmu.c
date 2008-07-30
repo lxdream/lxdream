@@ -58,8 +58,8 @@
     MMIO_WRITE(MMU, PTEH, ((MMIO_READ(MMU, PTEH) & 0x000003FF) | (vpn&0xFFFFFC00)));
 
 
-#define OCRAM_START (0x1C000000>>PAGE_BITS)
-#define OCRAM_END   (0x20000000>>PAGE_BITS)
+#define OCRAM_START (0x1C000000>>LXDREAM_PAGE_BITS)
+#define OCRAM_END   (0x20000000>>LXDREAM_PAGE_BITS)
 
 #define ITLB_ENTRY_COUNT 4
 #define UTLB_ENTRY_COUNT 64
@@ -236,11 +236,11 @@ void mmu_set_cache_mode( int mode )
     switch( mode ) {
     case MEM_OC_INDEX0: /* OIX=0 */
         for( i=OCRAM_START; i<OCRAM_END; i++ )
-            page_map[i] = cache + ((i&0x02)<<(PAGE_BITS-1));
+            page_map[i] = cache + ((i&0x02)<<(LXDREAM_PAGE_BITS-1));
         break;
     case MEM_OC_INDEX1: /* OIX=1 */
         for( i=OCRAM_START; i<OCRAM_END; i++ )
-            page_map[i] = cache + ((i&0x02000000)>>(25-PAGE_BITS));
+            page_map[i] = cache + ((i&0x02000000)>>(25-LXDREAM_PAGE_BITS));
         break;
     default: /* disabled */
         for( i=OCRAM_START; i<OCRAM_END; i++ )

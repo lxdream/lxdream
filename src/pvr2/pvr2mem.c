@@ -71,7 +71,7 @@ void pvr2_vram64_write( sh4addr_t destaddr, unsigned char *src, uint32_t length 
         length = 0x800000 - destaddr;
     }
 
-    for( i=destaddr & 0xFFFFF000; i < destaddr + length; i+= PAGE_SIZE ) {
+    for( i=destaddr & 0xFFFFF000; i < destaddr + length; i+= LXDREAM_PAGE_SIZE ) {
         texcache_invalidate_page( i );
     }
 
@@ -127,7 +127,7 @@ void pvr2_vram64_write_stride( sh4addr_t destaddr, unsigned char *src, uint32_t 
     line_gap = i >> 3;
     line_bytes >>= 2;
 
-    for( i=destaddr & 0xFFFFF000; i < destaddr + line_stride_bytes*line_count; i+= PAGE_SIZE ) {
+    for( i=destaddr & 0xFFFFF000; i < destaddr + line_stride_bytes*line_count; i+= LXDREAM_PAGE_SIZE ) {
         texcache_invalidate_page( i );
     }
 
