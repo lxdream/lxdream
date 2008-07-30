@@ -65,8 +65,8 @@ check: build-tests
 	$(RUNTESTX) testsh4
 	$(RUNTEST) testmmu
 	$(RUNTEST) testregs
-	cat testta.data testta2.data testta3.data testta4.data testta5.data | $(RUNTEST) testta
-	cat testsort.data | $(RUNTEST) testta
+	cat $(srcdir)/testta.data $(srcdir)/testta2.data $(srcdir)/testta3.data $(srcdir)/testta4.data $(srcdir)/testta5.data | $(RUNTEST) testta
+	cat $(srcdir)/testsort.data | $(RUNTEST) testta
 #	$(RUNTEST) testide -d ../disc/test.nrg
 
 
@@ -160,7 +160,8 @@ DISTFILES = asic.c asic.h bin2c.c crt0.s dma.h dmac.c ide.c ide.h interrupt.s \
         sh4/subc.s sh4/tas.s sh4/testsh4.c sh4/tlb.s sh4/trapa.s sh4/undef.s \
         sh4/xtrct.s testdata.c testdata.h testdisp.c testide.c testmath.c \
         testmmu.c testregs.c testrend.c testspu.c testta.c testyuv.c timer.c timer.h \
-        dc.x lib/libc.a lib/libm.a lib/newlib-1.8.2-dc.patch \
+        testta.data testta2.data testta3.data testta4.data testta5.data testsort.data \
+        lxdream.rc dc.x lib/libc.a lib/libm.a lib/newlib-1.8.2-dc.patch \
 	include/_ansi.h include/_syslist.h include/ar.h include/assert.h include/ctype.h \
 	include/dirent.h include/errno.h include/fastmath.h include/fcntl.h include/grp.h \
 	include/ieeefp.h include/locale.h include/machine/fastmath.h include/machine/ieeefp.h \
