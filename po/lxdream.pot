@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2008-07-28 21:34+1000\n"
+"POT-Creation-Date: 2008-07-30 12:21+1000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -16,24 +16,24 @@ msgstr ""
 "Content-Type: text/plain; charset=CHARSET\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/cocoaui/cocoa_ctrl.c:308 src/gtkui/gtk_ctrl.c:286
+#: src/cocoaui/cocoa_ctrl.c:316 src/gtkui/gtk_ctrl.c:286
 #, c-format
 msgid "Slot %d."
 msgstr ""
 
-#: src/cocoaui/cocoa_win.c:175 src/gtkui/gtk_win.c:317
+#: src/cocoaui/cocoa_win.c:176 src/gtkui/gtk_win.c:317
 msgid "(Press <ctrl><alt> to release grab)"
 msgstr ""
 
-#: src/cocoaui/cocoa_win.c:187 src/gtkui/gtk_win.c:327
+#: src/cocoaui/cocoa_win.c:188 src/gtkui/gtk_win.c:327
 msgid "Running"
 msgstr ""
 
-#: src/cocoaui/cocoa_win.c:190 src/gtkui/gtk_win.c:327
+#: src/cocoaui/cocoa_win.c:191 src/gtkui/gtk_win.c:327
 msgid "Stopped"
 msgstr ""
 
-#: src/cocoaui/cocoaui.c:362
+#: src/cocoaui/cocoaui.c:378
 #, c-format
 msgid "Running (%2.4f%%)"
 msgstr ""
