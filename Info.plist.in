@@ -4,6 +4,25 @@
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>English</string>
+	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>dst</string>
+			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>lxdst.icns</string>
+			<key>CFBundleTypeName</key>
+			<string>Lxdream Save State</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>org.lxdream.savestate</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleExecutable</key>
 	<string>lxdream</string>
 	<key>CFBundleGetInfoString</key>
@@ -28,5 +47,29 @@
 	<string>MainMenu</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
+	<key>UTExportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Lxdream Save State</string>
+			<key>UTTypeIconFile</key>
+			<string>lxdst.icns</string>
+			<key>UTTypeIdentifier</key>
+			<string>org.lxdream.savestate</string>
+			<key>UTTypeReferenceURL</key>
+			<string>http://www.lxdream.org/wiki/</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>dst</string>
+				</array>
+			</dict>
+		</dict>
+	</array>
 </dict>
 </plist>
