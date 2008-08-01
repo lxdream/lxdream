@@ -181,6 +181,18 @@ static void cocoa_gui_create_menu(void)
     display_set_focused( FALSE );
     [((LxdreamMainWindow *)[NSApp mainWindow]) setIsGrabbed: NO];
 }
+- (BOOL)application: (NSApplication *)app openFile: (NSString *)filename
+{
+    const gchar *cname = [filename UTF8String];
+    if( file_load_magic(cname) ) {
+        // Queue up a run event
+        cocoa_gui_run_later();
+        return YES;
+    } else {
+        return NO;
+    }
+    
+}
 - (void) about_action: (id)sender
 {
     NSArray *keys = [NSArray arrayWithObjects: @"Version", @"Copyright", nil];
