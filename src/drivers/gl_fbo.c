@@ -33,7 +33,7 @@
 #ifdef HAVE_OPENGL_FBO
 
 #define MAX_FRAMEBUFFERS 2
-#define MAX_TEXTURES_PER_FB 4
+#define MAX_TEXTURES_PER_FB 16
 
 static render_buffer_t gl_fbo_create_render_buffer( uint32_t width, uint32_t height );
 static void gl_fbo_destroy_render_buffer( render_buffer_t buffer );
@@ -56,10 +56,10 @@ struct gl_fbo_info {
     int width, height;
 };
 
+static GLint gl_fbo_max_attachments = 0;
 static struct gl_fbo_info fbo[MAX_FRAMEBUFFERS];
-const static int ATTACHMENT_POINTS[MAX_TEXTURES_PER_FB] = {
-        GL_COLOR_ATTACHMENT0_EXT, GL_COLOR_ATTACHMENT1_EXT, 
-        GL_COLOR_ATTACHMENT2_EXT, GL_COLOR_ATTACHMENT3_EXT };
+
+#define ATTACHMENT_POINT(n) (GL_COLOR_ATTACHMENT0_EXT+(n))
 static int last_used_fbo;
 
 gboolean gl_fbo_is_supported()
@@ -77,6 +77,7 @@ void gl_fbo_init( display_driver_t driver )
     GLuint fbids[MAX_FRAMEBUFFERS];
     GLuint rbids[MAX_FRAMEBUFFERS*2]; /* depth buffer, stencil buffer per fb */
 
+    glGetIntegerv(GL_MAX_COLOR_ATTACHMENTS_EXT, &gl_fbo_max_attachments);
     glGenFramebuffersEXT( MAX_FRAMEBUFFERS, &fbids[0] );
     glGenRenderbuffersEXT( MAX_FRAMEBUFFERS*2, &rbids[0] );
     for( i=0; i<MAX_FRAMEBUFFERS; i++ ) {
@@ -164,26 +165,25 @@ int gl_fbo_get_framebuffer( int width, int height )
  */
 static GLint gl_fbo_attach_texture( int fbo_no, GLint tex_id ) {
     int attach = -1, i;
-    for( i=0; i<MAX_TEXTURES_PER_FB; i++ ) {
+    for( i=0; i<gl_fbo_max_attachments; i++ ) {
         if( fbo[fbo_no].tex_ids[i] == tex_id ) {
-            glDrawBuffer(ATTACHMENT_POINTS[i]);
-            glReadBuffer(ATTACHMENT_POINTS[i]); 
-            return ATTACHMENT_POINTS[i]; // already attached
+            glDrawBuffer(ATTACHMENT_POINT(i));
+            glReadBuffer(ATTACHMENT_POINT(i)); 
+            return ATTACHMENT_POINT(i); // already attached
         } else if( fbo[fbo_no].tex_ids[i] == -1 && attach == -1 ) {
             attach = i;
         }
     }
     if( attach == -1 ) {
-        /* should never happen */
         attach = 0;
     }
     fbo[fbo_no].tex_ids[attach] = tex_id;
     glBindTexture( GL_TEXTURE_RECTANGLE_ARB, 0 ); // Ensure the output texture is unbound
-    glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, ATTACHMENT_POINTS[attach], 
+    glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, ATTACHMENT_POINT(attach), 
                               GL_TEXTURE_RECTANGLE_ARB, tex_id, 0 );
     /* Set draw/read buffers by default */
-    glDrawBuffer(ATTACHMENT_POINTS[attach]);
-    glReadBuffer(ATTACHMENT_POINTS[attach]); 
+    glDrawBuffer(ATTACHMENT_POINT(attach));
+    glReadBuffer(ATTACHMENT_POINT(attach)); 
 
 
     GLint status = glGetError();
@@ -196,7 +196,7 @@ static GLint gl_fbo_attach_texture( int fbo_no, GLint tex_id ) {
         exit(1);
     }
 
-    return ATTACHMENT_POINTS[attach];
+    return ATTACHMENT_POINT(attach);
 }
 
 static render_buffer_t gl_fbo_create_render_buffer( uint32_t width, uint32_t height )
@@ -224,7 +224,7 @@ static void gl_fbo_destroy_render_buffer( render_buffer_t buffer )
         for( j=0; j < MAX_TEXTURES_PER_FB; j++ ) {
             if( fbo[i].tex_ids[j] == buffer->buf_id ) {
                 glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fbo[i].fb_id);
-                glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, ATTACHMENT_POINTS[j], 
+                glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, ATTACHMENT_POINT(j), 
                                           GL_TEXTURE_RECTANGLE_ARB, GL_NONE, 0 );
                 fbo[i].tex_ids[j] = -1;
             }
