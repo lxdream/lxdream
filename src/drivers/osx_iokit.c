@@ -340,7 +340,7 @@ gboolean osx_register_iokit_notifications()
 
     if( IOServiceAddMatchingNotification( notify_port, kIOFirstPublishNotification, 
             IOServiceMatching(kIOHIDDeviceKey),
-            osx_hid_inserted, NULL, &iokit_iterators[4] ) != kIOReturnSuccess ) {
+            osx_hid_inserted, NULL, &iokit_iterators[2] ) != kIOReturnSuccess ) {
         ERROR( "IOServiceAddMatchingNotification failed" );
     }
     osx_hid_inserted(NULL, iokit_iterators[2]);
