@@ -39,15 +39,15 @@ static inline void call_func0( void *ptr )
 #define CALL_FUNC1_SIZE 14
 static inline void call_func1( void *ptr, int arg1 )
 {
-    MOV_r32_r32(arg1, R_EDI);
+    REXW(); MOV_r32_r32(arg1, R_EDI);
     call_func0(ptr);
 }
 
 #define CALL_FUNC2_SIZE 16
 static inline void call_func2( void *ptr, int arg1, int arg2 )
 {
-    MOV_r32_r32(arg1, R_EDI);
-    MOV_r32_r32(arg2, R_ESI);
+    REXW(); MOV_r32_r32(arg1, R_EDI);
+    REXW(); MOV_r32_r32(arg2, R_ESI);
     call_func0(ptr);
 }
 

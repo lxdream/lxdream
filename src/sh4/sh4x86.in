@@ -166,7 +166,7 @@ static inline void load_imm32( int x86reg, uint32_t value ) {
 /**
  * Load an immediate 64-bit quantity (note: x86-64 only)
  */
-static inline void load_imm64( int x86reg, uint32_t value ) {
+static inline void load_imm64( int x86reg, uint64_t value ) {
     /* mov #value, reg */
     REXW();
     OP(0xB8 + x86reg);
@@ -2288,7 +2288,7 @@ FSCA FPUL, FRn {:
     load_spreg( R_ECX, R_FPSCR );
     TEST_imm32_r32( FPSCR_PR, R_ECX );
     JNE_rel8(doubleprec );
-    LEA_sh4r_r32( REG_OFFSET(fr[0][FRn&0x0E]), R_ECX );
+    LEA_sh4r_rptr( REG_OFFSET(fr[0][FRn&0x0E]), R_ECX );
     load_spreg( R_EDX, R_FPUL );
     call_func2( sh4_fsca, R_EDX, R_ECX );
     JMP_TARGET(doubleprec);
@@ -2326,7 +2326,7 @@ FTRV XMTRX, FVn {:
     load_spreg( R_ECX, R_FPSCR );
     TEST_imm32_r32( FPSCR_PR, R_ECX );
     JNE_rel8( doubleprec );
-    LEA_sh4r_r32( REG_OFFSET(fr[0][FVn<<2]), R_EDX );
+    LEA_sh4r_rptr( REG_OFFSET(fr[0][FVn<<2]), R_EDX );
     call_func1( sh4_ftrv, R_EDX );  // 12
     JMP_TARGET(doubleprec);
     sh4_x86.tstate = TSTATE_NONE;

@@ -52,6 +52,7 @@ extern "C" {
 #if SIZEOF_VOID_P == 8
 #define OPPTR(x) OP64((uint64_t)(x))
 #define AND_imm8s_rptr(imm, r1)  REXW(); AND_imm8s_r32( imm, r1 )
+#define LEA_sh4r_rptr(disp, r1) REXW(); LEA_sh4r_r32(disp,r1)
 #define MOV_moffptr_EAX(offptr)  REXW(); MOV_moff32_EAX( offptr )
 #define STACK_ALIGN 16
 #define POP_r32(r1)           OP(0x58 + r1);
@@ -63,6 +64,7 @@ extern "C" {
 #else /* 32-bit system */
 #define OPPTR(x) OP32((uint32_t)(x))
 #define AND_imm8s_rptr(imm, r1) AND_imm8s_r32( imm, r1 )
+#define LEA_sh4r_rptr(disp, r1) LEA_sh4r_r32(disp,r1)
 #define MOV_moffptr_EAX(offptr) MOV_moff32_EAX( offptr )
 #define POP_realigned_r32(r1)   POP_r32(r1)
 #define PUSH_realigned_r32(r1)  PUSH_r32(r1)
