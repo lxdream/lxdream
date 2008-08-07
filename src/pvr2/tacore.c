@@ -525,22 +525,24 @@ static void ta_commit_polygon( ) {
      * as the overall polygon.
      */
 
-    for( i=0; i<ta_status.vertex_count-2; i++ ) {
+    triangle_bound[0].x1 = MIN3(tx[0],tx[1],tx[2]);
+    triangle_bound[0].x2 = MAX3(tx[0],tx[1],tx[2]);
+    triangle_bound[0].y1 = MIN3(ty[0],ty[1],ty[2]);
+    triangle_bound[0].y2 = MAX3(ty[0],ty[1],ty[2]);
+    polygon_bound.x1 = triangle_bound[0].x1;
+    polygon_bound.y1 = triangle_bound[0].y1;
+    polygon_bound.x2 = triangle_bound[0].x2;
+    polygon_bound.y2 = triangle_bound[0].y2;
+
+    for( i=1; i<ta_status.vertex_count-2; i++ ) {
         triangle_bound[i].x1 = MIN3(tx[i],tx[i+1],tx[i+2]);
         triangle_bound[i].x2 = MAX3(tx[i],tx[i+1],tx[i+2]);
         triangle_bound[i].y1 = MIN3(ty[i],ty[i+1],ty[i+2]);
         triangle_bound[i].y2 = MAX3(ty[i],ty[i+1],ty[i+2]);
-        if( i == 0 ) {
-            polygon_bound.x1 = triangle_bound[0].x1;
-            polygon_bound.y1 = triangle_bound[0].y1;
-            polygon_bound.x2 = triangle_bound[0].x2;
-            polygon_bound.y2 = triangle_bound[0].y2;
-        } else {
-            polygon_bound.x1 = MIN(polygon_bound.x1, triangle_bound[i].x1);
-            polygon_bound.x2 = MAX(polygon_bound.x2, triangle_bound[i].x2);
-            polygon_bound.y1 = MIN(polygon_bound.y1, triangle_bound[i].y1);
-            polygon_bound.y2 = MAX(polygon_bound.y2, triangle_bound[i].y2);
-        }
+        polygon_bound.x1 = MIN(polygon_bound.x1, triangle_bound[i].x1);
+        polygon_bound.x2 = MAX(polygon_bound.x2, triangle_bound[i].x2);
+        polygon_bound.y1 = MIN(polygon_bound.y1, triangle_bound[i].y1);
+        polygon_bound.y2 = MAX(polygon_bound.y2, triangle_bound[i].y2);
     }
 
     /* Clamp the polygon bounds to the frustum */
