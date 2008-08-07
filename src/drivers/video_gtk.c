@@ -135,7 +135,7 @@ struct display_driver display_gtk_driver = {
         video_gtk_resolve_keysym,
         video_gtk_keycode_to_dckeysym,
         video_gtk_keycode_to_keysym,
-        NULL, NULL, NULL, NULL, NULL, 
+        NULL, NULL, NULL, NULL, NULL, NULL, 
         video_gtk_display_blank, NULL };
 
 gboolean video_gtk_expose_callback(GtkWidget *widget, GdkEventExpose *event, gpointer data )

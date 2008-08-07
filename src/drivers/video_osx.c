@@ -47,7 +47,8 @@ struct display_driver display_osx_driver = {
         video_osx_resolve_keysym,
         video_osx_keycode_to_dckeysym,
         video_osx_keycode_to_keysym,
-        NULL, NULL, NULL, NULL, NULL, 
+        NULL, NULL, NULL, NULL, NULL,
+        NULL,
         video_osx_display_blank, NULL };
 
 

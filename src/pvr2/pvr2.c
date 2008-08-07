@@ -917,14 +917,14 @@ render_buffer_t pvr2_alloc_render_buffer( sh4addr_t render_addr, int width, int 
                     }
                     if( result->width != width || result->height != height ) {
                         display_driver->destroy_render_buffer(render_buffers[i]);
-                        result = display_driver->create_render_buffer(width,height);
+                        result = display_driver->create_render_buffer(width,height,0);
                         render_buffers[i] = result;
                     }
                     break;
                 }
             }
         } else {
-            result = display_driver->create_render_buffer(width,height);
+            result = display_driver->create_render_buffer(width,height,0);
             if( result != NULL ) { 
                 render_buffers[render_buffer_count++] = result;
             }
