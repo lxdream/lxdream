@@ -69,12 +69,12 @@ int32_t sh4_read_long( uint32_t addr )
     return *(uint32_t *)(inbuf+(addr-start_addr));
 }
 // Stubs
-gboolean sh4_execute_instruction( ) { }
+gboolean sh4_execute_instruction( ) { return TRUE; }
 void sh4_accept_interrupt() {}
 void sh4_set_breakpoint( uint32_t pc, breakpoint_type_t type ) { }
-gboolean sh4_clear_breakpoint( uint32_t pc, breakpoint_type_t type ) { }
+gboolean sh4_clear_breakpoint( uint32_t pc, breakpoint_type_t type ) { return TRUE; }
 gboolean dreamcast_is_running() { return FALSE; }
-int sh4_get_breakpoint( uint32_t pc ) { }
+int sh4_get_breakpoint( uint32_t pc ) { return 0; }
 void sh4_core_exit( int exit_code ){}
 void sh4_flush_icache(){}
 void event_execute() {}
@@ -91,17 +91,17 @@ gboolean sh4_has_page( sh4vma_t vma ) { return TRUE; }
 void syscall_invoke( uint32_t val ) { }
 void dreamcast_stop() {} 
 void dreamcast_reset() {}
-uint32_t sh4_read_sr( void ) { }
-gboolean sh4_raise_reset( int exc ) {}
-gboolean sh4_raise_exception( int exc ) {}
-gboolean sh4_raise_tlb_exception( int exc ) {}
-gboolean sh4_raise_trap( int exc ) {}
+uint32_t sh4_read_sr( void ) { return 0; }
+gboolean sh4_raise_reset( int exc ) { return TRUE; }
+gboolean sh4_raise_exception( int exc ) { return TRUE; }
+gboolean sh4_raise_tlb_exception( int exc ) { return TRUE; }
+gboolean sh4_raise_trap( int exc ) { return TRUE; }
 void sh4_sleep() { }
-uint32_t sh4_sleep_run_slice(uint32_t nanosecs) { }
+uint32_t sh4_sleep_run_slice(uint32_t nanosecs) { return nanosecs; }
 void sh4_fsca( uint32_t angle, float *fr ) { }
 void sh4_ftrv( float *fv ) { }
 void signsat48(void) { }
-gboolean gui_error_dialog( const char *fmt, ... ) { }
+gboolean gui_error_dialog( const char *fmt, ... ) { return TRUE; }
 struct sh4_icache_struct sh4_icache;
 
 void usage()
@@ -176,4 +176,5 @@ int main( int argc, char *argv[] )
 	fprintf( stdout, "%08X: %-20s %s\n", pc, op, buf );
 	pc = pc2;
     }
+    return 0;
 }
