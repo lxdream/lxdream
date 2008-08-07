@@ -44,9 +44,10 @@ static GLuint glx_pbuffer_texture = 0;
 
 /* Prototypes for pbuffer support methods */
 static void glx_pbuffer_init( display_driver_t driver );
-static render_buffer_t glx_pbuffer_create_render_buffer( uint32_t width, uint32_t height );
+static render_buffer_t glx_pbuffer_create_render_buffer( uint32_t width, uint32_t height, GLuint tex_id );
 static void glx_pbuffer_destroy_render_buffer( render_buffer_t buffer );
 static gboolean glx_pbuffer_set_render_target( render_buffer_t buffer );
+static void glx_pbuffer_finish_render( render_buffer_t buffer );
 static void glx_pbuffer_display_render_buffer( render_buffer_t buffer );
 static void glx_pbuffer_load_frame_buffer( frame_buffer_t frame, render_buffer_t buffer );
 static void glx_pbuffer_display_blank( uint32_t colour );
@@ -265,6 +266,7 @@ static void glx_pbuffer_init( display_driver_t driver )
     driver->create_render_buffer = glx_pbuffer_create_render_buffer;
     driver->destroy_render_buffer = glx_pbuffer_destroy_render_buffer;
     driver->set_render_target = glx_pbuffer_set_render_target;
+    driver->finish_render = glx_pbuffer_finish_render;
     driver->display_render_buffer = glx_pbuffer_display_render_buffer;
     driver->load_frame_buffer = glx_pbuffer_load_frame_buffer;
     driver->display_blank = glx_pbuffer_display_blank;
@@ -276,7 +278,7 @@ void glx_pbuffer_shutdown()
     glDeleteTextures( 1, &glx_pbuffer_texture );
 }
 
-static render_buffer_t glx_pbuffer_create_render_buffer( uint32_t width, uint32_t height )
+static render_buffer_t glx_pbuffer_create_render_buffer( uint32_t width, uint32_t height, GLuint tex_id )
 {
     int attribs[] = { GLX_PBUFFER_WIDTH, width, GLX_PBUFFER_HEIGHT, height,
             GLX_PRESERVED_CONTENTS, True, 0 };
@@ -289,6 +291,7 @@ static render_buffer_t glx_pbuffer_create_render_buffer( uint32_t width, uint32_
     buffer->width = width;
     buffer->height = height;
     buffer->buf_id = pb;
+    buffer->tex_id = tex_id;
     return buffer;
 }
 
@@ -311,6 +314,18 @@ static gboolean glx_pbuffer_set_render_target( render_buffer_t buffer )
 
     return TRUE;
 }
+
+static void glx_pbuffer_finish_render( render_buffer_t buffer )
+{
+    glFinish();
+    if( buffer->tex_id != 0 ) {
+        // The pbuffer should already be the current context, but just in case...
+        glXMakeContextCurrent( video_x11_display, (GLXPbuffer)buffer->buf_id, (GLXPbuffer)buffer->buf_id, glx_context );
+        glBindTexture( GL_TEXTURE_RECTANGLE_ARB, buffer->tex_id );
+        glCopyTexImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, GL_RGBA, 0, 0, buffer->width, buffer->height, 0 );
+    }
+}
+    
 
 /**
  * Render the texture holding the given buffer to the front window

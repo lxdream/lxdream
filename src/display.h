@@ -74,6 +74,8 @@ struct render_buffer {
     uint32_t size; /* Size of buffer in bytes, must be width*height*bpp */
     gboolean inverted;/* True if the buffer is upside down */
     uint32_t scale;
+    GLuint tex_id;    /* texture bound to render buffer, if any (0 = none). 
+                       * The render buffer does not own the texture */
     unsigned int buf_id; /* driver-specific buffer id, if applicable */
     gboolean flushed; /* True if the buffer has been flushed to vram */
 };
@@ -138,9 +140,12 @@ typedef struct display_driver {
     gchar *(*get_keysym_for_keycode)( uint16_t keycode );
 
     /**
-     * Create a render target with the given width and height.
+     * Create a render target with the given width and height. If a texture ID
+     * is supplied (non-zero), the render buffer writes its output to that texture.
+     * @param tex_id 0 or a valid GL texture name which must have been initialized to
+     * the correct dimensions. 
      */
-    render_buffer_t (*create_render_buffer)( uint32_t width, uint32_t height );
+    render_buffer_t (*create_render_buffer)( uint32_t width, uint32_t height, GLuint tex_id );
 
     /**
      * Destroy the specified render buffer and release any associated
@@ -153,6 +158,12 @@ typedef struct display_driver {
      */
     gboolean (*set_render_target)( render_buffer_t buffer );
 
+    /**
+     * Complete rendering and clear the current rendering target. If the 
+     * buffer has a bound texture, it will be updated if necessary.
+     */
+    void (*finish_render)( render_buffer_t buffer );
+    
     /**
      * Load the supplied frame buffer into the given render buffer.
      * Included here to allow driver-specific optimizations.

@@ -35,9 +35,10 @@
 #define MAX_FRAMEBUFFERS 2
 #define MAX_TEXTURES_PER_FB 16
 
-static render_buffer_t gl_fbo_create_render_buffer( uint32_t width, uint32_t height );
+static render_buffer_t gl_fbo_create_render_buffer( uint32_t width, uint32_t height, GLuint tex_id );
 static void gl_fbo_destroy_render_buffer( render_buffer_t buffer );
 static gboolean gl_fbo_set_render_target( render_buffer_t buffer );
+static void gl_fbo_finish_render( render_buffer_t buffer );
 static void gl_fbo_display_render_buffer( render_buffer_t buffer );
 static void gl_fbo_load_frame_buffer( frame_buffer_t frame, render_buffer_t buffer );
 static void gl_fbo_display_blank( uint32_t colour );
@@ -95,6 +96,7 @@ void gl_fbo_init( display_driver_t driver )
     driver->create_render_buffer = gl_fbo_create_render_buffer;
     driver->destroy_render_buffer = gl_fbo_destroy_render_buffer;
     driver->set_render_target = gl_fbo_set_render_target;
+    driver->finish_render = gl_fbo_finish_render;
     driver->display_render_buffer = gl_fbo_display_render_buffer;
     driver->load_frame_buffer = gl_fbo_load_frame_buffer;
     driver->display_blank = gl_fbo_display_blank;
@@ -199,40 +201,67 @@ static GLint gl_fbo_attach_texture( int fbo_no, GLint tex_id ) {
     return ATTACHMENT_POINT(attach);
 }
 
-static render_buffer_t gl_fbo_create_render_buffer( uint32_t width, uint32_t height )
+static render_buffer_t gl_fbo_create_render_buffer( uint32_t width, uint32_t height, GLuint tex_id )
 {
-    GLuint tex;
     render_buffer_t buffer = calloc( sizeof(struct render_buffer), 1 );
     buffer->width = width;
     buffer->height = height;
-    glGenTextures( 1, &tex );
-    buffer->buf_id = tex;
-    glBindTexture( GL_TEXTURE_RECTANGLE_ARB, tex );
+    buffer->tex_id = tex_id;
+    if( tex_id == 0 ) {
+        GLuint tex;
+        glGenTextures( 1, &tex );
+        buffer->buf_id = tex;
+        glBindTexture( GL_TEXTURE_RECTANGLE_ARB, tex );
+        glTexImage2D( GL_TEXTURE_RECTANGLE_ARB, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL );
+    } else {
+        buffer->buf_id = tex_id;
+        glBindTexture( GL_TEXTURE_RECTANGLE_ARB, tex_id );
+    }
     glTexParameteri( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_S, GL_CLAMP );
     glTexParameteri( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_T, GL_CLAMP );
     glTexParameteri( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
     glTexParameteri( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
-    glTexImage2D( GL_TEXTURE_RECTANGLE_ARB, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL );
     return buffer;
+}
+
+/**
+ * Ensure the texture in the given render buffer is not attached to a 
+ * framebuffer (ie, so we can safely use it as a texture during the rendering
+ * cycle, or before deletion).
+ */
+static void gl_fbo_detach_render_buffer( render_buffer_t buffer )
+{
+    int i,j;
+    for( i=0; i<MAX_FRAMEBUFFERS; i++ ) {
+        if( fbo[i].width == buffer->width && fbo[i].height == buffer->height ) {
+            for( j=0; j<gl_fbo_max_attachments; j++ ) {
+                if( fbo[i].tex_ids[j] == buffer->buf_id ) {
+                    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fbo[i].fb_id);
+                    glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, ATTACHMENT_POINT(j), 
+                                              GL_TEXTURE_RECTANGLE_ARB, GL_NONE, 0 );
+                    fbo[i].tex_ids[j] = -1;
+                    return;
+                }                    
+            }
+            break;
+        }
+    }
 }
 
 static void gl_fbo_destroy_render_buffer( render_buffer_t buffer )
 {
     int i,j;
-    GLuint tex = buffer->buf_id;
-    for( i=0; i<MAX_FRAMEBUFFERS; i++ ) {
-        for( j=0; j < MAX_TEXTURES_PER_FB; j++ ) {
-            if( fbo[i].tex_ids[j] == buffer->buf_id ) {
-                glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fbo[i].fb_id);
-                glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, ATTACHMENT_POINT(j), 
-                                          GL_TEXTURE_RECTANGLE_ARB, GL_NONE, 0 );
-                fbo[i].tex_ids[j] = -1;
-            }
-        }
-    }
 
-    glDeleteTextures( 1, &tex );
+    gl_fbo_detach_render_buffer( buffer );
+
+    if( buffer->buf_id != buffer->tex_id ) {
+        // If tex_id was set at buffer creation, we don't own the texture.
+        // Otherwise, delete it now.
+        GLuint tex = buffer->buf_id; 
+        glDeleteTextures( 1, &tex );
+    }
     buffer->buf_id = 0;
+    buffer->tex_id = 0;
     free( buffer );
 }
 
@@ -246,6 +275,13 @@ static gboolean gl_fbo_set_render_target( render_buffer_t buffer )
     glViewport( 0, 0, buffer->width, buffer->height );
 
     return TRUE;
+}
+
+static void gl_fbo_finish_render( render_buffer_t buffer )
+{
+    glFinish();
+    glGetError();
+    gl_fbo_detach_render_buffer(buffer);
 }
 
 /**

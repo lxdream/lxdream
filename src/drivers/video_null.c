@@ -18,7 +18,7 @@
 
 #include "display.h"
 
-static render_buffer_t video_null_create_render_buffer( uint32_t hres, uint32_t vres )
+static render_buffer_t video_null_create_render_buffer( uint32_t hres, uint32_t vres, GLuint tex_id )
 {
     return NULL;
 }
@@ -30,6 +30,10 @@ static void video_null_destroy_render_buffer( render_buffer_t buffer )
 static gboolean video_null_set_render_target( render_buffer_t buffer )
 {
     return TRUE;
+}
+
+static void video_null_finish_render( render_buffer_t buffer )
+{
 }
 
 static void video_null_display_render_buffer( render_buffer_t buffer )
@@ -64,6 +68,7 @@ struct display_driver display_null_driver = {
         video_null_create_render_buffer,
         video_null_destroy_render_buffer,
         video_null_set_render_target,
+        video_null_finish_render,
         video_null_load_frame_buffer,
         video_null_display_render_buffer,
         video_null_display_blank,
