@@ -19,6 +19,9 @@ AC_PATH_PROG(POD2HTML, [pod2html])
 
 dnl ---------------- enable/with flags ------------------
 
+AC_ARG_ENABLE( strict-warn,
+   AS_HELP_STRING( [--enable-strict-warn], [Enable strict compilation warnings]),
+   [CFLAGS="$CFLAGS -Werror -Wall -Wno-unused"], [])
 AC_ARG_ENABLE( translator, 
    AS_HELP_STRING( [--disable-translator], [Disable the SH4 translator (Enable by default)]),
    [true], [enable_translator=yes] )
@@ -65,6 +68,7 @@ AC_TRY_COMPILE([@interface Foo @end],, [
       APPLE_BUILD='yes'
       LIBS="$LIBS -framework AppKit"
       LIBS="$LIBS -Wl,-dylib_file,/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib:/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib -framework OpenGL"
+      CPPFLAGS="$CPPFLAGS -DMAC_OS_X_VERSION_MIN_REQUIRED=MAC_OS_X_VERSION_10_4"
       LDFLAGS="$LDFLAGS -Wl,-headerpad_max_install_names"
       AC_DEFINE(HAVE_COCOA,[1],[Have Cocoa framework])
       AC_DEFINE(APPLE_BUILD,[1],[Building on an apple platform. Things are different...])
