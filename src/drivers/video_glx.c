@@ -16,11 +16,11 @@
  * GNU General Public License for more details.
  */
 
+#include <stdlib.h>
 #include <string.h>
 #include "display.h"
 #include <X11/Xlib.h>
 #include <GL/glx.h>
-#include <string.h>
 #include "pvr2/pvr2.h"
 #include "pvr2/glutil.h"
 #include "drivers/video_glx.h"

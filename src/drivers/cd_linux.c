@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
+#include <ctype.h>
 #include <linux/cdrom.h>
 #include <sys/stat.h>
 #include <sys/ioctl.h>
@@ -50,7 +51,7 @@ static uint32_t inline lbatomsf( uint32_t lba ) {
 static gboolean linux_image_is_valid( FILE *f );
 static gdrom_disc_t linux_open_device( const gchar *filename, FILE *f );
 static gdrom_error_t linux_read_disc_toc( gdrom_image_t disc );
-static gdrom_error_t linux_identify_drive( int fd, unsigned char *buf, int buflen );
+static gdrom_error_t linux_identify_drive( int fd, char *buf, int buflen );
 static gdrom_error_t linux_read_sector( gdrom_disc_t disc, uint32_t sector,
                                         int mode, unsigned char *buf, uint32_t *length );
 static gdrom_error_t linux_send_command( int fd, char *cmd, unsigned char *buffer, uint32_t *buflen,
@@ -204,16 +205,16 @@ gdrom_error_t linux_stop_audio( gdrom_disc_t disc )
     return linux_send_command( fd, cmd, NULL, &buflen, CGC_DATA_NONE );
 }
 
-static unsigned char *trim( unsigned char *src )
+static char *trim( char *src )
 {
-    unsigned char *p = src + strlen(src)-1;
+    char *p = src + strlen(src)-1;
     while( isspace(*src) ) 
         src++;
     while( p >= src && isspace(*p) )
         *p-- = '\0';
     return src;
 }
-static gdrom_error_t linux_identify_drive( int fd, unsigned char *buf, int buflen )
+static gdrom_error_t linux_identify_drive( int fd, char *buf, int buflen )
 {
     unsigned char ident[256];
     uint32_t identlen = 256;
