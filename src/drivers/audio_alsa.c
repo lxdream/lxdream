@@ -44,7 +44,7 @@ gboolean audio_alsa_init(  )
     snd_pcm_sw_params_t *sw_params;
     snd_pcm_uframes_t frames;
     snd_pcm_uframes_t bufferSize;
-    int rate = DEFAULT_SAMPLE_RATE;
+    unsigned int rate = DEFAULT_SAMPLE_RATE;
     int format = DEFAULT_SAMPLE_FORMAT;
     int dir;
 
