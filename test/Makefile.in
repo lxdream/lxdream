@@ -79,7 +79,7 @@ testsh4: crt0.so sh4/testsh4.so timer.so interrupt.so \
 	 sh4/mac.so \
 	 sh4/rot.so sh4/shl.so sh4/shld.so sh4/sub.so sh4/subc.so \
 	 sh4/trapa.so sh4/tas.so sh4/xtrct.so \
-	 sh4/excslot.so sh4/undef.so sh4/tlb.so
+	 sh4/excslot.so sh4/undef.so sh4/tlb.so sh4/vmexit.so
 	$(SH4CC) $(SH4LDFLAGS) $^ -o $@ $(SH4LIBS)
 	$(SH4OBJCOPY) testsh4 testsh4.bin
 
@@ -157,7 +157,7 @@ DISTFILES = asic.c asic.h bin2c.c crt0.s dma.h dmac.c ide.c ide.h interrupt.s \
         sh4/addv.s sh4/and.s sh4/andi.s sh4/bf.s sh4/bsr.s sh4/bt.s sh4/cmp.s \
         sh4/cmpstr.s sh4/div0.s sh4/div1.s sh4/excslot.s sh4/float.s sh4/fmov.s \
         sh4/ftrc.s sh4/inc.s sh4/mac.s sh4/rot.s sh4/shl.s sh4/shld.s sh4/sub.s \
-        sh4/subc.s sh4/tas.s sh4/testsh4.c sh4/tlb.s sh4/trapa.s sh4/undef.s \
+        sh4/subc.s sh4/tas.s sh4/testsh4.c sh4/tlb.s sh4/vmexit.s sh4/trapa.s sh4/undef.s \
         sh4/xtrct.s testdata.c testdata.h testdisp.c testide.c testmath.c \
         testmmu.c testregs.c testrend.c testspu.c testta.c testyuv.c timer.c timer.h \
         testta.data testta2.data testta3.data testta4.data testta5.data testsort.data \
