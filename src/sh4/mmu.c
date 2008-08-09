@@ -807,7 +807,10 @@ gboolean mmu_update_icache( sh4vma_t addr )
             return TRUE;
         }
 
-        entryNo = mmu_itlb_lookup_vpn( addr );
+        if( (mmucr & MMUCR_SV) == 0 ) 
+        	entryNo = mmu_itlb_lookup_vpn_asid( addr );
+        else
+        	entryNo = mmu_itlb_lookup_vpn( addr );
     } else {
         if( addr & 0x80000000 ) {
             MMU_READ_ADDR_ERROR();
@@ -820,11 +823,8 @@ gboolean mmu_update_icache( sh4vma_t addr )
             return TRUE;
         }
 
-        if( mmucr & MMUCR_SV ) {
-            entryNo = mmu_itlb_lookup_vpn( addr );
-        } else {
-            entryNo = mmu_itlb_lookup_vpn_asid( addr );
-        }
+        entryNo = mmu_itlb_lookup_vpn_asid( addr );
+
         if( entryNo != -1 && (mmu_itlb[entryNo].flags & TLB_USERMODE) == 0 ) {
             MMU_TLB_READ_PROT_ERROR(addr);
             return FALSE;
