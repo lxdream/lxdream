@@ -102,6 +102,7 @@ int main()
     test_slot_illegal();
     test_undefined();
     test_tlb();
+    test_vmexit();
     remove_interrupt_handler();
 
     fprintf( stdout, "Total: %d/%d tests passed (%d%%)\n", total_tests-total_fails,
