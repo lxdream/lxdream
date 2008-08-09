@@ -160,7 +160,7 @@ void sh4_translate_exit_recover( )
     if( pc != NULL ) {
         // could be null if we're not actually running inside the translator
         void *code = xlat_get_code( sh4r.pc );
-        xlat_recovery_record_t recover = xlat_get_recovery(code, pc, TRUE);
+        xlat_recovery_record_t recover = xlat_get_post_recovery(code, pc, TRUE);
         if( recover != NULL ) {
             // Can be null if there is no recovery necessary
             sh4_translate_run_recovery(recover);
@@ -193,7 +193,7 @@ gboolean sh4_translate_flush_cache()
     assert( pc != NULL );
 
     void *code = xlat_get_code( sh4r.pc );
-    xlat_recovery_record_t recover = xlat_get_recovery(code, pc, TRUE);
+    xlat_recovery_record_t recover = xlat_get_post_recovery(code, pc, FALSE);
     if( recover != NULL ) {
         // Can be null if there is no recovery necessary
         sh4_translate_run_recovery(recover);
