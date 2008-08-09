@@ -686,8 +686,11 @@ sh4addr_t mmu_vma_to_phys_read( sh4vma_t addr )
         }
 
         /* finally generate the target address */
-        return (mmu_utlb[entryNo].ppn & mmu_utlb[entryNo].mask) | 
-        (addr & (~mmu_utlb[entryNo].mask));
+        sh4addr_t pma = (mmu_utlb[entryNo].ppn & mmu_utlb[entryNo].mask) | 
+        	(addr & (~mmu_utlb[entryNo].mask));
+        if( pma > 0x1C000000 ) // Remap 1Cxx .. 1Fxx region to P4 
+        	pma |= 0xE0000000;
+        return pma;
     }
 }
 
@@ -746,8 +749,11 @@ sh4addr_t mmu_vma_to_phys_write( sh4vma_t addr )
         }
 
         /* finally generate the target address */
-        return (mmu_utlb[entryNo].ppn & mmu_utlb[entryNo].mask) | 
-        (addr & (~mmu_utlb[entryNo].mask));
+        sh4addr_t pma = (mmu_utlb[entryNo].ppn & mmu_utlb[entryNo].mask) | 
+        	(addr & (~mmu_utlb[entryNo].mask));
+        if( pma > 0x1C000000 ) // Remap 1Cxx .. 1Fxx region to P4 
+        	pma |= 0xE0000000;
+        return pma;
     }
 }
 
