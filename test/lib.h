@@ -16,6 +16,8 @@ typedef volatile unsigned short vuint16_t;
 #define ASIC_IRQC2      0xA05f6938
 #define IRQB0_MASK      0x0007B000
 
+#define AICA_RESET      0xA0702C00
+
 #define float_read(A)      (*((volatile float*)(A)))
 #define float_write(A, V) ( (*((volatile float*)(A))) = (V) )
 #define long_read(A)      (*((volatile unsigned long*)(A)))
@@ -38,9 +40,8 @@ void write_asic_status(void);
 void reset_asic_status(void);
 void g2_fifo_wait( void );
 
-void spu_memload( uint32_t dst, const void *src, int length );
-void spu_memread( void *dst, uint32_t src, int length );
-void dump_spu_memory( unsigned int from, int length );
+#define aica_enable() long_write( AICA_RESET, (long_read(AICA_RESET) & 0xFFFFFFFE) )
+#define aica_disable()  long_write( AICA_RESET, (long_read(AICA_RESET) | 1) )
 
 struct spudma_struct {
     uint32_t g2_addr;

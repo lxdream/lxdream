@@ -38,7 +38,7 @@ int dma_to_spu( int chan, uint32_t target, char *data, uint32_t size )
     
     long_write( SPUDMACTL1(chan), 1 );
     long_write( SPUDMACTL2(chan), 1 );
-    if( asic_wait( EVENT_SPU_DMA0 + chan ) != 0 ) {
+    if( asic_wait( EVENT_G2_DMA0 + chan ) != 0 ) {
 	fprintf( stderr, "Timeout waiting for DMA event\n" );
 	dump_spu_regs();
 	return -1;
@@ -60,7 +60,7 @@ int dma_from_spu( int chan, char *data, uint32_t src, uint32_t size )
     
     long_write( SPUDMACTL1(chan), 1 );
     long_write( SPUDMACTL2(chan), 1 );
-    if( asic_wait( EVENT_SPU_DMA0 + chan ) != 0 ) {
+    if( asic_wait( EVENT_G2_DMA0 + chan ) != 0 ) {
 	fprintf( stderr, "Timeout waiting for DMA event\n" );
 	dump_spu_regs();
 	return -1;

@@ -13,10 +13,10 @@
 #define EVENT_MAPLE_DMA 12
 #define EVENT_MAPLE_ERR 13 /* ??? */
 #define EVENT_IDE_DMA 14
-#define EVENT_SPU_DMA0  15
-#define EVENT_SPU_DMA1  16
-#define EVENT_SPU_DMA2  17
-#define EVENT_SPU_DMA3  18
+#define EVENT_G2_DMA0  15
+#define EVENT_G2_DMA1  16
+#define EVENT_G2_DMA2  17
+#define EVENT_G2_DMA3  18
 #define EVENT_PVR_DMA   19
 #define EVENT_SORT_DMA  20
 #define EVENT_PVR_PUNCHOUT_DONE 21
