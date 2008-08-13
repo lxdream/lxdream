@@ -45,3 +45,21 @@ void dmac_prepare_channel( int channel, uint32_t source, uint32_t dest,
  * @return 0 on success, non-zero on failure.
  */
 int pvr_dma_write( unsigned int target, char *buf, int length, int region );
+
+/**
+ * Transfer TA data to the PVR via SORT-DMA.
+  *
+ * @param sorttable Start address of the sort table
+ * @param tablelen  Size of the sort table (in bytes)
+ * @param data      Start address of the TA data (polygons)
+ * @param datalen   Size of the polygon data block (in bytes)
+ * @param bitwidth  
+ * @param datasize
+ * @param region Target region for VRAM writes, 0 for 64-byte region, 1 for 32-byte region.
+ *
+ * @return 0 on success, non-zero on failure.
+ */
+int sort_dma_write( char *sorttable, int tablelen, char *data, int datalen, int bitwidth, int datasize );
+
+int aica_dma_write( uint32_t aica_addr, char *data, uint32_t size );
+int aica_dma_read( char *data, uint32_t aica_addr, uint32_t size );

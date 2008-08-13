@@ -40,6 +40,20 @@
 #define SORT_DMA_CTL   (ASIC_BASE+0x820)
 #define SORT_DMA_COUNT (ASIC_BASE+0x860)
 
+#define G2BASERAM 0x00800000
+
+#define G2DMABASE 0xA05F7800
+#define G2DMATIMEOUT (G2DMABASE+0x90)
+#define G2DMAMAGIC (G2DMABASE+0xBC)
+#define G2DMAEXT(x) (G2DMABASE+(0x20*(x)))
+#define G2DMAHOST(x) (G2DMABASE+(0x20*(x))+0x04)
+#define G2DMASIZE(x) (G2DMABASE+(0x20*(x))+0x08)
+#define G2DMADIR(x) (G2DMABASE+(0x20*(x))+0x0C)
+#define G2DMAMODE(x) (G2DMABASE+(0x20*(x))+0x10)
+#define G2DMACTL1(x) (G2DMABASE+(0x20*(x))+0x14)
+#define G2DMACTL2(x) (G2DMABASE+(0x20*(x))+0x18)
+#define G2DMASTOP(x) (G2DMABASE+(0x20*(x))+0x1C)
+
 void dmac_dump_channel( FILE *f, unsigned int channel )
 {
     fprintf( f, "DMAC SAR: %08X  Count: %08X  Ctl: %08X  OR: %08X\n",
@@ -156,4 +170,36 @@ int sort_dma_write( char *sorttable, int tablelen, char *data, int datalen, int 
     }
     CHECK_IEQUALS( 0, long_read(SORT_DMA_CTL) );
     return result;
+}
+
+int aica_dma_transfer( uint32_t aica_addr, char *data, uint32_t size, int writeFlag )
+{
+    long_write( G2DMATIMEOUT, 0 );
+    long_write( G2DMAMAGIC, 0x4659404f );
+    long_write( G2DMACTL1(0), 0 );
+    long_write( G2DMAEXT(0), aica_addr );
+    long_write( G2DMAHOST(0), ((uint32_t)data) );
+    long_write( G2DMASIZE(0), ((size+31)&0x7FFFFFE0) | 0x80000000 );
+    long_write( G2DMADIR(0), (writeFlag ? 0 : 1) );
+    long_write( G2DMAMODE(0), 0 );
+    
+    long_write( G2DMACTL1(0), 1 );
+    long_write( G2DMACTL2(0), 1 );
+    if( asic_wait( EVENT_G2_DMA0 ) != 0 ) {
+        fprintf( stderr, "Timeout waiting for G2 DMA event\n" );
+        return -1;
+    }
+    // CHECK_IEQUALS( 0, long_read( G2DMACTL1(0) ) );
+    CHECK_IEQUALS( 0, long_read( G2DMACTL2(0) ) );
+    return 0;
+}
+
+int aica_dma_write( uint32_t aica_addr, char *data, uint32_t size )
+{
+    return aica_dma_transfer( aica_addr, data, size, 1 );
+}
+
+int aica_dma_read( char *data, uint32_t aica_addr, uint32_t size )
+{
+    return aica_dma_transfer( aica_addr, data, size, 0 );
 }
