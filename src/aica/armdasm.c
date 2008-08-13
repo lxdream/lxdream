@@ -37,6 +37,7 @@
 
 #define IMM8(ir) (ir&0xFF)
 #define IMM12(ir) (ir&0xFFF)
+#define IMMSPLIT8(ir) (((ir&0xF00)>>4)|(ir&0x0F))
 #define SHIFTIMM(ir) ((ir>>7)&0x1F)
 #define IMMROT(ir) ((ir>>7)&0x1E)
 #define SHIFT(ir) ((ir>>4)&0x07)
@@ -186,6 +187,30 @@ static int arm_disasm_address_operand( uint32_t ir, char *buf, int len,  int pc 
     }
 }
 
+static int arm_disasm_address3_operand( uint32_t ir, char *buf, int len, int pc )
+{
+	char sign = UFLAG(ir) ? '+' : '-';
+	
+	switch( (ir>>21) & 0x0B) {
+    case 0: /* Rn -= Rm (post-indexed) [5.3.7 A5-48] */
+    case 1: /* UNPREDICTABLE */
+    	return snprintf( buf, len, "[R%d], R%d %c= R%d", RN(ir), RN(ir), sign, RM(ir) ) ;
+    case 2: /* Rn -= imm (post-indexed) [5.3.6 A5-46] */
+    case 3: /* UNPREDICTABLE */
+    	return snprintf( buf, len, "[R%d], R%d %c= #%04Xh", RN(ir), RN(ir), sign, IMMSPLIT8(ir) );
+    case 8: /* Rn - Rm [5.3.3 A5-38] */
+    	return snprintf( buf, len, "[R%d %c R%d]", RN(ir), sign, RM(ir) );
+    case 9: /* Rn -= Rm (pre-indexed) [5.3.5 A5-42] */
+    	return snprintf( buf, len, "[R%d %c= R%d]", RN(ir), sign, RM(ir) );
+    case 10: /* Rn - imm offset [5.3.2 A5-36] */
+    	return snprintf( buf, len, "[R%d %c #%04Xh]", RN(ir), sign, IMMSPLIT8(ir) );
+    case 11: /* Rn -= imm offset (pre-indexed) [5.3.4 A5-40] */
+    	return snprintf( buf, len, "[R%d %c= #%04Xh]", RN(ir), sign, IMMSPLIT8(ir) );
+    default:
+    	return UNIMP(ir); /* Unreachable */
+    }
+}
+
 uint32_t arm_disasm_instruction( uint32_t pc, char *buf, int len, char *opcode )
 {
     char operand[64];
@@ -278,26 +303,28 @@ uint32_t arm_disasm_instruction( uint32_t pc, char *buf, int len, char *opcode )
                 }
                 break;
                 case 1:
-                    if( LFLAG(ir) ) {
-                        /* LDRH */
-                    } else {
-                        /* STRH */
+                    arm_disasm_address3_operand( ir, operand, sizeof(operand), pc );
+                    if( LFLAG(ir) ) { /* LDRH */
+                        snprintf(buf, len, "LDR%sH    R%d, %s", cond, RD(ir), operand );
+                    } else { /* STRH */
+                        snprintf(buf, len, "STR%sH    R%d, %s", cond, RD(ir), operand );
                     }
-                    UNIMP(ir);
                     break;
                 case 2:
-                    if( LFLAG(ir) ) {
-                        /* LDRSB */
+                    if( LFLAG(ir) ) {  /* LDRSB */
+                        arm_disasm_address3_operand( ir, operand, sizeof(operand), pc );
+                        snprintf(buf, len, "LDR%sSB    R%d, %s", cond, RD(ir), operand );                       
                     } else {
+                        UNIMP(ir);
                     }
-                    UNIMP(ir);
                     break;
                 case 3:
-                    if( LFLAG(ir) ) {
-                        /* LDRSH */
+                    if( LFLAG(ir) ) { /* LDRSH */
+                        arm_disasm_address3_operand( ir, operand, sizeof(operand), pc );
+                        snprintf(buf, len, "LDR%sSH    R%d, %s", cond, RD(ir), operand );                       
                     } else {
+                        UNIMP(ir);
                     }
-                    UNIMP(ir);
                     break;
             }
         } else {
