@@ -20,6 +20,7 @@
 #include "dream.h"
 #include "mem.h"
 #include "aica.h"
+#include "armcore.h"
 
 unsigned char *arm_mem = NULL;
 unsigned char *arm_mem_scratch = NULL;
@@ -58,8 +59,8 @@ uint32_t arm_read_long( uint32_t addr ) {
             return *(int32_t *)(arm_mem_scratch + addr - 0x00803000);
         }
     }
-    ERROR( "Attempted long read to undefined page: %08X",
-           addr );
+    ERROR( "Attempted long read to undefined page: %08X at %08X",
+           addr, armr.r[15] );
     /* Undefined memory */
     return 0;
 }
@@ -119,7 +120,14 @@ uint32_t arm_combine_byte( uint32_t addr, uint32_t val, uint8_t byte )
         return val; // Can't happen, but make gcc happy
     }
 }
-
+void arm_write_word( uint32_t addr, uint32_t value )
+{
+	if( addr < 0x00200000 ) {
+        *(uint16_t *)(arm_mem + addr) = (uint16_t)value;
+	} else {
+		
+	}
+}
 void arm_write_byte( uint32_t addr, uint32_t value )
 {
     if( addr < 0x00200000 ) {

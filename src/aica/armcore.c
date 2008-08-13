@@ -401,10 +401,13 @@ void arm_set_mode( int targetMode )
 
 #define IMM8(ir) (ir&0xFF)
 #define IMM12(ir) (ir&0xFFF)
+#define IMMSPLIT8(ir) (((ir&0xF00)>>4)|(ir&0x0F))
 #define SHIFTIMM(ir) ((ir>>7)&0x1F)
 #define IMMROT(ir) ((ir>>7)&0x1E)
 #define ROTIMM12(ir) ROTATE_RIGHT_LONG(IMM8(ir),IMMROT(ir))
 #define SIGNEXT24(n) (((n)&0x00800000) ? ((n)|0xFF000000) : ((n)&0x00FFFFFF))
+#define SIGNEXT8(n) ((int32_t)((int8_t)(n)))
+#define SIGNEXT16(n) ((int32_t)((int16_t)(n)))
 #define SHIFT(ir) ((ir>>4)&0x07)
 #define DISP24(ir) ((ir&0x00FFFFFF))
 #define UNDEF(ir) do{ arm_raise_exception( EXC_UNDEFINED ); return TRUE; } while(0)
@@ -687,6 +690,72 @@ static uint32_t arm_get_address_operand( uint32_t ir )
     return addr;
 }
 
+/**
+ * Determine the address operand of a miscellaneous load/store instruction, 
+ * including applying any pre/post adjustments to the address registers.
+ * @see s5.3 Addressing Mode 3 - Miscellaneous Loads and Stores
+ * @param The instruction word.
+ * @return The calculated address
+ */
+static uint32_t arm_get_address3_operand( uint32_t ir )
+{
+    uint32_t addr=0;
+
+    /* x x P U x W */
+    switch( (ir>>21)&0x0F ) {
+    case 0: /* Rn -= Rm (post-indexed) [5.3.7 A5-48] */
+    case 1: /* UNPREDICTABLE */
+    	addr = RN(ir);
+    	LRN(ir) -= RM(ir);
+    	break;
+    case 2: /* Rn -= imm (post-indexed) [5.3.6 A5-46] */
+    case 3: /* UNPREDICTABLE */
+    	addr = RN(ir);
+    	LRN(ir) -= IMMSPLIT8(ir);
+    	break;
+    case 4: /* Rn += Rm (post-indexed) [5.3.7 A5-48] */
+    case 5: /* UNPREDICTABLE */
+    	addr = RN(ir);
+    	LRN(ir) += RM(ir);
+    	break;
+    case 6: /* Rn += imm (post-indexed) [5.3.6 A5-44] */
+    case 7: /* UNPREDICTABLE */
+    	addr = RN(ir);
+    	LRN(ir) += IMMSPLIT8(ir);
+    	break;
+    case 8: /* Rn - Rm [5.3.3 A5-38] */
+    	addr = RN(ir) - RM(ir);
+    	break;
+    case 9: /* Rn -= Rm (pre-indexed) [5.3.5 A5-42] */
+    	addr = RN(ir) - RM(ir);
+    	LRN(ir) = addr;
+    	break;
+    case 10: /* Rn - imm offset [5.3.2 A5-36] */
+    	addr = RN(ir) - IMMSPLIT8(ir);
+    	break;
+    case 11: /* Rn -= imm offset (pre-indexed) [5.3.4 A5-40] */
+    	addr = RN(ir) - IMMSPLIT8(ir);
+    	LRN(ir) = addr;
+    	break;
+    case 12: /* Rn + Rm [5.3.3 A5-38] */
+    	addr = RN(ir) + RM(ir);
+    	break;
+    case 13: /* Rn += Rm (pre-indexed) [5.3.5 A5-42] */
+    	addr = RN(ir) + RM(ir);
+    	LRN(ir) = addr;
+    	break;
+    case 14: /* Rn + imm offset [5.3.2 A5-36] */
+    	addr = RN(ir) + IMMSPLIT8(ir);
+    	break;
+    case 15: /* Rn += imm offset (pre-indexed) [5.3.4 A5-40] */
+    	addr = RN(ir) + IMMSPLIT8(ir);
+    	LRN(ir) = addr;
+    	break;
+    
+    }
+    return addr;	
+}
+
 gboolean arm_execute_instruction( void ) 
 {
     uint32_t pc;
@@ -859,26 +928,28 @@ gboolean arm_execute_instruction( void )
                     }
                     break;
                     case 1:
-                        if( LFLAG(ir) ) {
-                            /* LDRH */
-                        } else {
-                            /* STRH */
+                    	operand = arm_get_address3_operand(ir);
+                        if( LFLAG(ir) ) { /* LDRH */
+                        	LRD(ir) = MEM_READ_WORD( operand ) & 0x0000FFFF;
+                        } else { /* STRH */
+                        	MEM_WRITE_WORD( operand, RD(ir) );
                         }
-                        UNIMP(ir);
                         break;
                     case 2:
-                        if( LFLAG(ir) ) {
-                            /* LDRSB */
+                        if( LFLAG(ir) ) { /* LDRSB */
+                        	operand = arm_get_address3_operand(ir);
+                        	LRD(ir) = SIGNEXT8( MEM_READ_BYTE( operand ) );
                         } else {
+                            UNIMP(ir);
                         }
-                        UNIMP(ir);
                         break;
                     case 3:
-                        if( LFLAG(ir) ) {
-                            /* LDRSH */
+                        if( LFLAG(ir) ) { /* LDRSH */
+                        	operand = arm_get_address3_operand(ir);
+                        	LRD(ir) = SIGNEXT16( MEM_READ_WORD( operand ) );
                         } else {
+                            UNIMP(ir);
                         }
-                        UNIMP(ir);
                         break;
                 }
             } else {
