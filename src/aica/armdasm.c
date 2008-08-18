@@ -217,8 +217,7 @@ uint32_t arm_disasm_instruction( uint32_t pc, char *buf, int len, char *opcode )
     uint32_t ir = arm_read_long(pc);
     int i,j;
 
-    sprintf( opcode, "%02X %02X %02X %02X", ir&0xFF, (ir>>8) & 0xFF,
-             (ir>>16)&0xFF, (ir>>24) );
+    sprintf( opcode, "%08X", ir );
 
     if( COND(ir) == 0x0F ) {
         UNIMP(ir);
