@@ -38,7 +38,6 @@ void fwrite_diff32(FILE *f, char *expect, int exp_length, char *buf, int length)
 void *align32(char *buf );
 void write_asic_status(void);
 void reset_asic_status(void);
-void g2_fifo_wait( void );
 
 #define aica_enable() long_write( AICA_RESET, (long_read(AICA_RESET) & 0xFFFFFFFE) )
 #define aica_disable()  long_write( AICA_RESET, (long_read(AICA_RESET) | 1) )
