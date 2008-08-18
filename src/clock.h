@@ -29,7 +29,7 @@ extern "C" {
 #define MHZ
 #define KHZ
 #define SH4_BASE_RATE 200 MHZ
-#define ARM_BASE_RATE 33 MHZ
+#define ARM_BASE_RATE 2 MHZ
 #define PVR2_DOT_CLOCK 27068 KHZ
 
 extern uint32_t sh4_freq;

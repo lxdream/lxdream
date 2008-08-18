@@ -28,7 +28,6 @@
 extern "C" {
 #endif
 
-#define ARM_BASE_RATE 2 /* MHZ */
 extern uint32_t arm_cpu_freq;
 extern uint32_t arm_cpu_period;
 
