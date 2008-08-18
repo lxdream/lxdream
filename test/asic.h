@@ -60,3 +60,8 @@ void asic_clear();
 void asic_dump( FILE *f );
 
 void asic_mask_all();
+
+/**
+ * Wait until the G2 FIFO buffer is clear to write
+ */
+int g2_fifo_wait();

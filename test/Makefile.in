@@ -105,7 +105,7 @@ testta: lib/crt0.so $(SHARED_OBJECTS) testta.so pvr.so dmac.so asic.so lib.so te
 	$(SH4CC) $(SH4LDFLAGS) $^  -o $@ $(SH4LIBS)
 	$(SH4OBJCOPY) testta testta.bin
 
-testaica: lib/crt0.so $(SHARED_OBJECTS) testaica.so dmac.so asic.so lib.so
+testaica: lib/crt0.so $(SHARED_OBJECTS) testaica.so dmac.so asic.so lib.so interrupt.so
 	$(SH4CC) $(SH4LDFLAGS) $^ -o $@ $(SH4LIBS)
 	$(SH4OBJCOPY) testaica testaica.bin
 

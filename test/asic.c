@@ -23,6 +23,7 @@
 #define ASIC_IRQA(n) (ASIC_BASE + 0x910 + (n<<2))
 #define ASIC_IRQB(n) (ASIC_BASE + 0x920 + (n<<2))
 #define ASIC_IRQC(n) (ASIC_BASE + 0x930 + (n<<2))
+#define G2_FIFO  (ASIC_BASE + 0x88C)
 #define TIMEOUT 10000000
 
 /**
@@ -110,4 +111,19 @@ void asic_dump( FILE *f )
 	}
     }
     fprintf( f, "\n" );
+}
+
+/**
+ * Wait until the g2 fifo is clear to write more data.
+ */
+int g2_fifo_wait()
+{
+    int i;
+    for (i=0; i<0x1800; i++) {
+        if (!(long_read(G2_FIFO) & 0x11)) {
+            return 0;
+        }
+
+    }
+    return -1;
 }

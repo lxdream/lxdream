@@ -16,6 +16,7 @@
  * GNU General Public License for more details.
  */
 
+#include <assert.h>
 #include "dma.h"
 #include "asic.h"
 
@@ -40,7 +41,8 @@
 #define SORT_DMA_CTL   (ASIC_BASE+0x820)
 #define SORT_DMA_COUNT (ASIC_BASE+0x860)
 
-#define G2BASERAM 0x00800000
+#define AICA_RAM_BASE 0xA0800000
+#define AICA_RAM_SIZE 0x00200000
 
 #define G2DMABASE 0xA05F7800
 #define G2DMATIMEOUT (G2DMABASE+0x90)
@@ -202,4 +204,24 @@ int aica_dma_write( uint32_t aica_addr, char *data, uint32_t size )
 int aica_dma_read( char *data, uint32_t aica_addr, uint32_t size )
 {
     return aica_dma_transfer( aica_addr, data, size, 0 );
+}
+
+int memcpy_to_aica( uint32_t aica_addr, void *data, size_t size )
+{
+    assert( (aica_addr & 0x03) == 0 );
+    uint32_t *src = (uint32_t *)data;
+    uint32_t *dest = (uint32_t *)aica_addr;
+    while( size > 0 ) {
+        int i;
+        if( g2_fifo_wait() != 0 ) {
+            return -1;
+        }
+        irq_disable();
+        for( i=0; i<8 && size > 0; i++ ) {
+            *dest++ = *src++;
+            size -= 4;
+        }
+        irq_enable();
+    }
+    return 0;
 }
