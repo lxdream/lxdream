@@ -19,6 +19,7 @@
 #define MODULE aica_module
 #include "dream.h"
 #include "dreamcast.h"
+#include "clock.h"
 #include "mem.h"
 #include "aica/armcore.h"
 #include "aica/aica.h"
@@ -1230,7 +1231,7 @@ gboolean arm_execute_instruction( void )
                     switch( (ir & 0x01D00000) >> 20 ) {
                     case 0: /* STMDA */
                         if( ir & 0x8000 ) {
-                            arm_write_long( operand, armr.r[15]+4 );
+                            arm_write_long( operand, armr.r[15]+8 );
                             operand -= 4;
                         }
                         for( i=14; i>= 0; i-- ) {
@@ -1250,7 +1251,7 @@ gboolean arm_execute_instruction( void )
                         break;
                     case 4: /* STMDA (S) */
                         if( ir & 0x8000 ) {
-                            arm_write_long( operand, armr.r[15]+4 );
+                            arm_write_long( operand, armr.r[15]+8 );
                             operand -= 4;
                         }
                         for( i=14; i>= 0; i-- ) {
@@ -1286,7 +1287,7 @@ gboolean arm_execute_instruction( void )
                             }
                         }
                         if( ir & 0x8000 ) {
-                            arm_write_long( operand, armr.r[15]+4 );
+                            arm_write_long( operand, armr.r[15]+8 );
                             operand += 4;
                         }
                         break;
@@ -1306,7 +1307,7 @@ gboolean arm_execute_instruction( void )
                             }
                         }
                         if( ir & 0x8000 ) {
-                            arm_write_long( operand, armr.r[15]+4 );
+                            arm_write_long( operand, armr.r[15]+8 );
                             operand += 4;
                         }
                         break;
@@ -1331,7 +1332,7 @@ gboolean arm_execute_instruction( void )
                     case 16: /* STMDB */
                         if( ir & 0x8000 ) {
                             operand -= 4;
-                            arm_write_long( operand, armr.r[15]+4 );
+                            arm_write_long( operand, armr.r[15]+8 );
                         }
                         for( i=14; i>= 0; i-- ) {
                             if( (ir & (1<<i)) ) {
@@ -1351,7 +1352,7 @@ gboolean arm_execute_instruction( void )
                     case 20: /* STMDB (S) */
                         if( ir & 0x8000 ) {
                             operand -= 4;
-                            arm_write_long( operand, armr.r[15]+4 );
+                            arm_write_long( operand, armr.r[15]+8 );
                         }
                         for( i=14; i>= 0; i-- ) {
                             if( (ir & (1<<i)) ) {
@@ -1387,7 +1388,7 @@ gboolean arm_execute_instruction( void )
                         }
                         if( ir & 0x8000 ) {
                             operand += 4;
-                            arm_write_long( operand, armr.r[15]+4 );
+                            arm_write_long( operand, armr.r[15]+8 );
                         }
                         break;
                     case 25: /* LDMIB */
@@ -1407,7 +1408,7 @@ gboolean arm_execute_instruction( void )
                         }
                         if( ir & 0x8000 ) {
                             operand += 4;
-                            arm_write_long( operand, armr.r[15]+4 );
+                            arm_write_long( operand, armr.r[15]+8 );
                         }
                         break;
                     case 29: /* LDMIB (S) */
