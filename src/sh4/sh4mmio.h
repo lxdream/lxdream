@@ -50,6 +50,16 @@ MMIO_REGION_BEGIN( 0xFF000000, MMU, "MMU Registers" )
     LONG_PORT( 0x034, PTEA, PORT_MRW, UNDEFINED, "Page table entry assistance" )
     LONG_PORT( 0x038, QACR0,PORT_MRW, UNDEFINED, "Queue address control 0" )
     LONG_PORT( 0x03C, QACR1,PORT_MRW, UNDEFINED, "Queue address control 1" )
+    WORD_PORT( 0x084, PMCR1, PORT_MRW, 0, "Performance counter control 1" )
+    WORD_PORT( 0x088, PMCR2, PORT_MRW, 0, "Performance counter control 2" )
+MMIO_REGION_END
+
+/* Performance counter values (undocumented) */
+MMIO_REGION_BEGIN( 0xFF100000, PMM, "Performance monitoring" )
+    LONG_PORT (0x004, PMCTR1H, PORT_MR, 0, "Performance counter 1 High" )  
+    LONG_PORT (0x008, PMCTR1L, PORT_MR, 0, "Performance counter 1 Low" )  
+    LONG_PORT (0x00C, PMCTR2H, PORT_MR, 0, "Performance counter 2 High" )  
+    LONG_PORT (0x010, PMCTR2L, PORT_MR, 0, "Performance counter 2 Low" ) 
 MMIO_REGION_END
 
 /* User Break Controller (Page 717 [757] of sh7750h manual) */
@@ -182,6 +192,7 @@ MMIO_REGION_LIST_BEGIN( sh4mmio )
     MMIO_REGION( TMU )
     MMIO_REGION( SCI )
     MMIO_REGION( SCIF )
+    MMIO_REGION( PMM )
 MMIO_REGION_LIST_END
 
 /* mmucr register bits */
@@ -212,6 +223,11 @@ MMIO_REGION_LIST_END
 
 #define MEM_OC_INDEX0   (CCR_ORA|CCR_OCE)
 #define MEM_OC_INDEX1   (CCR_ORA|CCR_OIX|CCR_OCE)
+
+#define PMCR_CLKF  0x0100
+#define PMCR_PMCLR 0x2000
+#define PMCR_PMST  0x4000
+#define PMCR_PMEN  0x8000
 
 /* MMU functions */
 void mmu_init(void);
