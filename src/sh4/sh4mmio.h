@@ -209,9 +209,8 @@ MMIO_REGION_LIST_END
 #define CCR_MASK   0x000089AF
 #define CCR_RMASK  0x000081A7 /* Read mask */
 
-#define MEM_OC_DISABLED 0
-#define MEM_OC_INDEX0   CCR_ORA
-#define MEM_OC_INDEX1   CCR_ORA|CCR_OIX
+#define MEM_OC_INDEX0   (CCR_ORA|CCR_OCE)
+#define MEM_OC_INDEX1   (CCR_ORA|CCR_OIX|CCR_OCE)
 
 /* MMU functions */
 void mmu_init(void);
