@@ -27,7 +27,9 @@
 #include "sh4/sh4core.h"
 #include "sh4/sh4mmio.h"
 
+struct dreamcast_module sh4_module;
 struct mmio_region mmio_region_MMU;
+struct mmio_region mmio_region_PMM;
 struct breakpoint_struct sh4_breakpoints[MAX_BREAKPOINTS];
 int sh4_breakpoint_count = 0;
 
