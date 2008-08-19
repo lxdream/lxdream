@@ -18,6 +18,8 @@ SH4LDFLAGS      = -fno-builtin -fno-strict-aliasing  -ml -m4-single-only \
 SH4LIBS         = -Wl,--start-group -lc -lgcc -lm -Wl,--end-group
 SH4OBJCOPY      = @SHOBJCOPY@ -O binary
 
+SHARED_OBJECTS = dmac.so asic.so lib.so timer.so testdata.so interrupt.so
+
 ARMCC		= @ARMCC@
 ARMCFLAGS	= -O2 -fno-builtin -fno-strict-aliasing -mlittle-endian
 ARMLD		= @ARMLD@
@@ -86,11 +88,11 @@ testsh4: lib/crt0.so sh4/testsh4.so timer.so interrupt.so \
 	$(SH4CC) $(SH4LDFLAGS) $^ -o $@ $(SH4LIBS)
 	$(SH4OBJCOPY) testsh4 testsh4.bin
 
-testide: lib/crt0.so testide.so ide.so lib.so testdata.so
+testide: lib/crt0.so $(SHARED_OBJECTS) testide.so ide.so
 	$(SH4CC) $(SH4LDFLAGS) $^ -o $@ $(SH4LIBS)
 	$(SH4OBJCOPY) testide testide.bin
 
-testmmu: lib/crt0.so testmmu.so lib.so 
+testmmu: lib/crt0.so $(SHARED_OBJECTS) testmmu.so
 	$(SH4CC) $(SH4LDFLAGS) $^ -o $@ $(SH4LIBS)
 	$(SH4OBJCOPY) testmmu testmmu.bin
 
@@ -101,46 +103,46 @@ testregs: lib/crt0.so $(SHARED_OBJECTS) testregs.so ide.so
 	$(SH4CC) $(SH4LDFLAGS) $^  -o $@ $(SH4LIBS)
 	$(SH4OBJCOPY) testregs testregs.bin
 
-testta: lib/crt0.so $(SHARED_OBJECTS) testta.so pvr.so dmac.so asic.so lib.so testdata.so
+testta: lib/crt0.so $(SHARED_OBJECTS) testta.so pvr.so
 	$(SH4CC) $(SH4LDFLAGS) $^  -o $@ $(SH4LIBS)
 	$(SH4OBJCOPY) testta testta.bin
 
-testaica: lib/crt0.so $(SHARED_OBJECTS) testaica.so dmac.so asic.so lib.so interrupt.so
+testaica: lib/crt0.so $(SHARED_OBJECTS) testaica.so 
 	$(SH4CC) $(SH4LDFLAGS) $^ -o $@ $(SH4LIBS)
 	$(SH4OBJCOPY) testaica testaica.bin
 
-testrend: lib/crt0.so $(SHARED_OBJECTS) testrend.so pvr.so dmac.so asic.so lib.so testdata.so
+testrend: lib/crt0.so $(SHARED_OBJECTS) testrend.so pvr.so
 	$(SH4CC) $(SH4LDFLAGS) $^  -o $@ $(SH4LIBS)
 	$(SH4OBJCOPY) testrend testrend.bin
 
-testblend: lib/crt0.so $(SHARED_OBJECTS) testblend.so pvr.so dmac.so asic.so lib.so testdata.so
+testblend: lib/crt0.so $(SHARED_OBJECTS) testblend.so pvr.so
 	$(SH4CC) $(SH4LDFLAGS) $^  -o $@ $(SH4LIBS)
 	$(SH4OBJCOPY) testblend testblend.bin
 
-testdisp: lib/crt0.so $(SHARED_OBJECTS) testdisp.so pvr.so asic.so lib.so testdata.so timer.so
+testdisp: lib/crt0.so $(SHARED_OBJECTS) testdisp.so pvr.so
 	$(SH4CC) $(SH4LDFLAGS) $^  -o $@ $(SH4LIBS)
 	$(SH4OBJCOPY) testdisp testdisp.bin
 
-testyuv: lib/crt0.so $(SHARED_OBJECTS) testyuv.so pvr.so asic.so lib.so testdata.so timer.so dmac.so
+testyuv: lib/crt0.so $(SHARED_OBJECTS) testyuv.so pvr.so
 	$(SH4CC) $(SH4LDFLAGS) $^  -o $@ $(SH4LIBS)
 	$(SH4OBJCOPY) testyuv testyuv.bin
 
-testspu: lib/crt0.so $(SHARED_OBJECTS) testspu.so asic.so lib.so testdata.so timer.so dmac.so
+testspu: lib/crt0.so $(SHARED_OBJECTS) testspu.so
 	$(SH4CC) $(SH4LDFLAGS) $^  -o $@ $(SH4LIBS)
 	$(SH4OBJCOPY) testspu testspu.bin
 
-testg2: lib/crt0.so $(SHARED_OBJECTS) testg2.so asic.so lib.so testdata.so timer.so dmac.so
+testg2: lib/crt0.so $(SHARED_OBJECTS) testg2.so
 	$(SH4CC) $(SH4LDFLAGS) $^  -o $@ $(SH4LIBS)
 	$(SH4OBJCOPY) testg2 testg2.bin
 
-readdata: lib/crt0.so readdata.so
+readdata: lib/crt0.so $(SHARED_OBJECTS) readdata.so
 	$(SH4CC) $(SH4LDFLAGS) $^ -o $@ $(SH4LIBS)
 
-rend: lib/crt0.so rendload.so asic.so lib.so timer.so pvr.so
+rend: lib/crt0.so $(SHARED_OBJECTS) rendload.so pvr.so
 	$(SH4CC) $(SH4LDFLAGS) $^ -o $@ $(SH4LIBS)
 	$(SH4OBJCOPY) rend rend.bin
 
-testFF10: lib/crt0.so testFF10.so lib.so
+testFF10: lib/crt0.so $(SHARED_OBJECTS) testFF10.so
 	$(SH4CC) $(SH4LDFLAGS) $^  -o $@ $(SH4LIBS)
 	$(SH4OBJCOPY) testFF10 testFF10.bin
 
@@ -182,11 +184,12 @@ DISTFILES = asic.c asic.h bin2c.c dma.h dmac.c ide.c ide.h interrupt.s \
 	include/sys/signal.h include/sys/stat-dj.h include/sys/stat.h include/sys/time.h \
 	include/sys/timeb.h include/sys/times.h include/sys/types.h include/sys/unistd.h \
 	include/sys/utime.h include/sys/wait.h include/termios.h include/time.h \
-	include/unctrl.h include/unistd.h include/utime.h include/utmp.h
+	include/unctrl.h include/unistd.h include/utime.h include/utmp.h \
+	testsh4 testregs testmmu testta testaica 
                         
 
 
-distdir:
+distdir: $(DISTFILES)
 	$(mkdir_p) $(distdir)/sh4 $(distdir)/lib $(distdir)/include
 	@srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`; \
 	topsrcdirstrip=`echo "$(top_srcdir)" | sed 's|.|.|g'`; \
