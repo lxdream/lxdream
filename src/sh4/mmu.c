@@ -169,7 +169,8 @@ void mmio_region_MMU_write( uint32_t reg, uint32_t val )
         }
         break;
     case CCR:
-        mmu_set_cache_mode( val & (CCR_OIX|CCR_ORA) );
+        mmu_set_cache_mode( val & (CCR_OIX|CCR_ORA|CCR_OCE) );
+        val &= 0x81A7;
         break;
     default:
         break;

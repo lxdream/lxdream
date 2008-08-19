@@ -192,6 +192,7 @@ struct test test_cases[] = {
     { 0xA05F81F4, 0xFFFFFFFF, 0 },
     { 0xA05F81F8, 0xFFFFFFFF, 0 },
     { 0xA05F81FC, 0xFFFFFFFF, 0 },
+    { 0xFF00001C, 0xFFFFFFFF, 0x000081A7 },
     { 0, 0, 0 } };
     
 int main( int argc, char *argv[] )
