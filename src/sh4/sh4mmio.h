@@ -46,6 +46,7 @@ MMIO_REGION_BEGIN( 0xFF000000, MMU, "MMU Registers" )
     LONG_PORT( 0x020, TRA,  PORT_MRW, UNDEFINED, "TRAPA exception register" )
     LONG_PORT( 0x024, EXPEVT,PORT_MRW, 0, "Exception event register" )
     LONG_PORT( 0x028, INTEVT,PORT_MRW, UNDEFINED, "Interrupt event register" )
+    LONG_PORT( 0x030, SH4VER, PORT_MRW, 0x040205C1, "SH4 version register (PVR)" ) /* Renamed to avoid naming conflict */
     LONG_PORT( 0x034, PTEA, PORT_MRW, UNDEFINED, "Page table entry assistance" )
     LONG_PORT( 0x038, QACR0,PORT_MRW, UNDEFINED, "Queue address control 0" )
     LONG_PORT( 0x03C, QACR1,PORT_MRW, UNDEFINED, "Queue address control 1" )

@@ -138,6 +138,8 @@ void mmio_region_MMU_write( uint32_t reg, uint32_t val )
 {
     uint32_t tmp;
     switch(reg) {
+    case SH4VER:
+        return;
     case PTEH:
         val &= 0xFFFFFCFF;
         if( (val & 0xFF) != mmu_asid ) {
