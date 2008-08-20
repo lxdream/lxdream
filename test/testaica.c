@@ -17,10 +17,13 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <assert.h>
 
 #include "lib.h"
+#include "dma.h"
 
-#define AICA_RAM_BASE 0x00800000
+#define AICA_RAM_BASE 0xA0800000
 
 #define AICA_SYSCALL (AICA_RAM_BASE+0x30)
 #define AICA_SYSCALL_ARG1 (AICA_SYSCALL+4)
@@ -53,25 +56,33 @@ uint32_t do_syscall( uint32_t syscall, uint32_t arg1, uint32_t arg2, uint32_t ar
 {
     uint32_t fd, len;
     char *data;
+    char *tmp;
+    int rv;
+
+    printf( "Got syscall: %d\n", syscall );
     
     switch( syscall ) {
     case SYS_READ:
         fd = arg1;
         data = (char *)(AICA_RAM_BASE + (arg2 & 0x001FFFFF));
         len = arg3;
-        return read( fd, data, len );
+        tmp = malloc(len);
+        rv = read( fd, data, len );
+        if( rv >= 0 ) 
+            memcpy_to_aica( data, tmp, rv );
+        free(tmp);
+        return rv;
     case SYS_WRITE:
         fd = arg1;
         data = (char *)(AICA_RAM_BASE + (arg2 & 0x001FFFFF));
         len = arg3;
-        return write( fd, data, len );
-        break;
-    case SYS_EXIT:
-        aica_disable();
-        exit(arg1);
-    default:
-        return 0;
-    }        
+        tmp = malloc(len);
+        memcpy(tmp, data, len);
+        rv = write( fd, tmp, len );
+        free(tmp);
+        return rv;
+    }
+    return 0;
 }
     
 
@@ -80,23 +91,44 @@ int main( int argc, char *argv[] )
     char buf[65536] __attribute__((aligned(32)));
     uint32_t aica_addr = AICA_RAM_BASE;
     int len;
+    int totallen = 0;
     
     aica_disable();
     /* Load ARM program from stdin and copy to ARM memory */
     while( (len = read(0, buf, sizeof(buf))) > 0 ) {
-        aica_dma_write( aica_addr, buf, len );
+        if(memcpy_to_aica( aica_addr, buf, len ) != 0 ) {
+            printf( "Failed to load program!\n" );
+            return 1;
+        }
         aica_addr += len;
+        totallen += len;
     }
+    printf( "Program loaded (%d bytes)\n", totallen);
     
     /* Main loop waiting for IO commands */
     aica_enable();
     do {
+        g2_fifo_wait();
+        irq_disable();
         int syscall = long_read(AICA_SYSCALL);
+        irq_enable();
         if( syscall != -1 ) {
-            uint32_t result = do_syscall( syscall, long_read(AICA_SYSCALL_ARG1), 
-                    long_read(AICA_SYSCALL_ARG2), long_read(AICA_SYSCALL_ARG3) );
-            long_write( AICA_SYSCALL_RETURN, result );
-            long_write( AICA_SYSCALL, -1 );
+            if( syscall == -2 ) {
+                fprintf( stderr, "ARM aborted with general exception\n" );
+                return -2;
+            } else if( syscall == SYS_EXIT ) {
+                printf( "Exiting at ARM request\n" );
+                aica_disable();
+                return long_read(AICA_SYSCALL_ARG1);
+            } else {
+                uint32_t result = do_syscall( syscall, long_read(AICA_SYSCALL_ARG1), 
+                        long_read(AICA_SYSCALL_ARG2), long_read(AICA_SYSCALL_ARG3) );
+                g2_fifo_wait();
+                irq_disable();
+                long_write( AICA_SYSCALL_RETURN, result );
+                long_write( AICA_SYSCALL, -1 );
+                irq_enable();
+            }
         }
     } while( 1 );
 }
