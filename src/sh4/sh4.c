@@ -326,7 +326,7 @@ void sh4_write_sr( uint32_t newval )
     int newbank = (newval&SR_MDRB) == SR_MDRB;
     if( oldbank != newbank )
         sh4_switch_banks();
-    sh4r.sr = newval;
+    sh4r.sr = newval & SR_MASK;
     sh4r.t = (newval&SR_T) ? 1 : 0;
     sh4r.s = (newval&SR_S) ? 1 : 0;
     sh4r.m = (newval&SR_M) ? 1 : 0;

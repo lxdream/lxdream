@@ -85,6 +85,7 @@ int main()
     test_float();
     test_fmov();
     test_ftrc();
+    test_ldcsr();
     test_mac();
     test_rot();
     test_shl();
