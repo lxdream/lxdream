@@ -58,6 +58,8 @@ typedef unsigned int pvr64addr_t;
 #define BS_PALM 0x00000080 /* ? */
 #define BS_PALN 0x000000C0 /* ? */
 
+#define SCALER_HSCALE 0x00010000
+
 #define PVR2_RAM_BASE 0x05000000
 #define PVR2_RAM_BASE_INT 0x04000000
 #define PVR2_RAM_SIZE (8 * 1024 * 1024)
@@ -129,7 +131,7 @@ gboolean pvr2_save_next_scene( const gchar *filename );
 /****************************** Frame Buffer *****************************/
 
 /**
- * Write a block of data to an address in the DMA range (0x10000000 - 
+ * Write a block of data to an address in the DMA range (0x10000000 -
  * 0x13FFFFFF), ie TA, YUV, or texture ram.
  */
 void pvr2_dma_write( sh4addr_t dest, unsigned char *src, uint32_t length );
@@ -153,7 +155,7 @@ void pvr2_vram64_read( unsigned char *dest, sh4addr_t src, uint32_t length );
 
 /**
  * Read a twiddled image from interleaved memory address space (aka 64-bit address
- * space), writing the image to the destination buffer in detwiddled format. 
+ * space), writing the image to the destination buffer in detwiddled format.
  * Width and height must be powers of 2
  * This version reads 4-bit pixels.
  */
@@ -162,7 +164,7 @@ void pvr2_vram64_read_twiddled_4( unsigned char *dest, sh4addr_t src, uint32_t w
 
 /**
  * Read a twiddled image from interleaved memory address space (aka 64-bit address
- * space), writing the image to the destination buffer in detwiddled format. 
+ * space), writing the image to the destination buffer in detwiddled format.
  * Width and height must be powers of 2
  * This version reads 8-bit pixels.
  */
@@ -170,21 +172,21 @@ void pvr2_vram64_read_twiddled_8( unsigned char *dest, sh4addr_t src, uint32_t w
 
 /**
  * Read a twiddled image from interleaved memory address space (aka 64-bit address
- * space), writing the image to the destination buffer in detwiddled format. 
+ * space), writing the image to the destination buffer in detwiddled format.
  * Width and height must be powers of 2, and src must be 16-bit aligned.
  * This version reads 16-bit pixels.
  */
 void pvr2_vram64_read_twiddled_16( unsigned char *dest, sh4addr_t src, uint32_t width, uint32_t height );
 
 /**
- * Read an image from the interleaved memory address space (aka 64-bit address space) 
+ * Read an image from the interleaved memory address space (aka 64-bit address space)
  * where the source and destination line sizes may differ. Note that both byte
  * counts must be a multiple of 4, and the src address must be 32-bit aligned.
  */
 void pvr2_vram64_read_stride( unsigned char *dest, uint32_t dest_line_bytes, sh4addr_t srcaddr,
                               uint32_t src_line_bytes, uint32_t line_count );
 /**
- * Dump a portion of vram to a stream from the interleaved memory address 
+ * Dump a portion of vram to a stream from the interleaved memory address
  * space.
  */
 void pvr2_vram64_dump( sh4addr_t addr, uint32_t length, FILE *f );
@@ -195,7 +197,7 @@ void pvr2_vram64_dump( sh4addr_t addr, uint32_t length, FILE *f );
  *
  * @param buffer A render buffer indicating the address to store to, and the
  * format the data needs to be in.
- * @param backBuffer TRUE to flush the back buffer, FALSE for 
+ * @param backBuffer TRUE to flush the back buffer, FALSE for
  * the front buffer.
  */
 void pvr2_render_buffer_copy_to_sh4( render_buffer_t buffer );
@@ -216,7 +218,7 @@ void pvr2_ta_write( unsigned char *buf, uint32_t length );
 /**
  * Find the first polygon or sprite context in the supplied buffer of TA
  * data.
- * @return A pointer to the context, or NULL if it cannot be found 
+ * @return A pointer to the context, or NULL if it cannot be found
  */
 uint32_t *pvr2_ta_find_polygon_context( uint32_t *buf, uint32_t length );
 
@@ -298,7 +300,7 @@ void texcache_gl_init( void );
  * Flush all textures and delete. The cache will be non-functional until
  * the next call to texcache_init(). This would typically be done if
  * switching GL targets.
- */    
+ */
 void texcache_shutdown( void );
 
 /**
@@ -322,7 +324,7 @@ void texcache_invalidate_page( uint32_t texture_addr );
  * multiple interpretations). We use the texture address as the primary
  * index, but allow for multiple instances at each address. The texture
  * will be bound to the GL_TEXTURE_2D target before being returned.
- * 
+ *
  * If the texture has already been bound, return the ID to which it was
  * bound. Otherwise obtain an unused texture ID and set it up appropriately.
  */
