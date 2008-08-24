@@ -216,7 +216,7 @@ void split_and_generate( struct ruleset *rules, struct actionset *actions,
             }
         }
         if( has_empty_options ) {
-            fprintf( f, "%*cdefault:\n%*cUNDEF();\n%*cbreak;\n",
+            fprintf( f, "%*cdefault:\n%*cUNDEF(ir);\n%*cbreak;\n",
                     depth*8+4, ' ', depth*8+8, ' ', depth*8 + 8, ' ' );
         }
         fprintf( f, "%*c}\n", depth*8, ' ' );

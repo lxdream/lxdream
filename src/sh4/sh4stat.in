@@ -195,7 +195,7 @@ void sh4_stats_add( sh4_inst_id item )
 void sh4_stats_add_by_pc( uint32_t pc ) 
 {
     uint16_t ir = sh4_read_word(pc);
-#define UNDEF() sh4_stats[0]++
+#define UNDEF(ir) sh4_stats[0]++
 %%
 ADD Rm, Rn {: sh4_stats[I_ADD]++; :}
 ADD #imm, Rn {: sh4_stats[I_ADDI]++; :}
