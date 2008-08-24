@@ -1,6 +1,6 @@
 /**
  * $Id$
- * 
+ *
  * MMIO region and supporting function declarations. Private to the sh4
  * module.
  *
@@ -46,6 +46,7 @@ MMIO_REGION_BEGIN( 0xFF000000, MMU, "MMU Registers" )
     LONG_PORT( 0x020, TRA,  PORT_MRW, UNDEFINED, "TRAPA exception register" )
     LONG_PORT( 0x024, EXPEVT,PORT_MRW, 0, "Exception event register" )
     LONG_PORT( 0x028, INTEVT,PORT_MRW, UNDEFINED, "Interrupt event register" )
+    LONG_PORT( 0x02C, MMUUNK1, PORT_MRW, 0, "Unknown MMU/general register" )
     LONG_PORT( 0x030, SH4VER, PORT_MRW, 0x040205C1, "SH4 version register (PVR)" ) /* Renamed to avoid naming conflict */
     LONG_PORT( 0x034, PTEA, PORT_MRW, UNDEFINED, "Page table entry assistance" )
     LONG_PORT( 0x038, QACR0,PORT_MRW, UNDEFINED, "Queue address control 0" )
@@ -56,10 +57,10 @@ MMIO_REGION_END
 
 /* Performance counter values (undocumented) */
 MMIO_REGION_BEGIN( 0xFF100000, PMM, "Performance monitoring" )
-    LONG_PORT (0x004, PMCTR1H, PORT_MR, 0, "Performance counter 1 High" )  
-    LONG_PORT (0x008, PMCTR1L, PORT_MR, 0, "Performance counter 1 Low" )  
-    LONG_PORT (0x00C, PMCTR2H, PORT_MR, 0, "Performance counter 2 High" )  
-    LONG_PORT (0x010, PMCTR2L, PORT_MR, 0, "Performance counter 2 Low" ) 
+    LONG_PORT( 0x004, PMCTR1H, PORT_MR, 0, "Performance counter 1 High" )
+    LONG_PORT( 0x008, PMCTR1L, PORT_MR, 0, "Performance counter 1 Low" )
+    LONG_PORT( 0x00C, PMCTR2H, PORT_MR, 0, "Performance counter 2 High" )
+    LONG_PORT( 0x010, PMCTR2L, PORT_MR, 0, "Performance counter 2 Low" )
 MMIO_REGION_END
 
 /* User Break Controller (Page 717 [757] of sh7750h manual) */
@@ -173,7 +174,7 @@ MMIO_REGION_BEGIN( 0xFFE80000, SCIF, "Serial Controller (FIFO) Registers" )
     BYTE_PORT( 0x004, SCBRR2, PORT_MRW, 0xFF, "Bit rate register (FIFO)" )
     WORD_PORT( 0x008, SCSCR2, PORT_MRW, 0x0000, "Serial control register" )
     BYTE_PORT( 0x00C, SCFTDR2, PORT_W, UNDEFINED, "Transmit FIFO data register" )
-    WORD_PORT( 0x010, SCFSR2, PORT_MRW, 0x0060, "Serial status register (FIFO)") 
+    WORD_PORT( 0x010, SCFSR2, PORT_MRW, 0x0060, "Serial status register (FIFO)" )
     BYTE_PORT( 0x014, SCFRDR2, PORT_R, UNDEFINED, "Receive FIFO data register" )
     WORD_PORT( 0x018, SCFCR2, PORT_MRW, 0x0000, "FIFO control register" )
     WORD_PORT( 0x01C, SCFDR2, PORT_MR, 0x0000, "FIFO data count register" )
