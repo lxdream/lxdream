@@ -339,7 +339,7 @@ void sh4_write_fpscr( uint32_t newval )
     if( (sh4r.fpscr ^ newval) & FPSCR_FR ) {
         sh4_switch_fr_banks();
     }
-    sh4r.fpscr = newval;
+    sh4r.fpscr = newval & FPSCR_MASK;
 }
 
 uint32_t sh4_read_sr( void )

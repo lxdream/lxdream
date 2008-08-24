@@ -271,6 +271,7 @@ void sh4_accept_interrupt( void );
 #define FPSCR_ENABLE 0x00000F80
 #define FPSCR_FLAG   0x0000007C
 #define FPSCR_RM     0x00000003 /* Rounding mode (0=nearest, 1=to zero) */
+#define FPSCR_MASK   0x003FFFFF
 
 #define IS_FPU_DOUBLEPREC() (sh4r.fpscr&FPSCR_PR)
 #define IS_FPU_DOUBLESIZE() (sh4r.fpscr&FPSCR_SZ)
