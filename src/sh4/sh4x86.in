@@ -270,7 +270,7 @@ void static inline store_reg( int x86reg, int sh4reg ) {
     TEST_imm32_r32( 0x00000007, x86reg ); \
     JNE_exc(EXC_DATA_ADDR_WRITE);
 
-#define UNDEF()
+#define UNDEF(ir)
 #define MEM_RESULT(value_reg) if(value_reg != R_EAX) { MOV_r32_r32(R_EAX,value_reg); }
 #define MEM_READ_BYTE( addr_reg, value_reg ) call_func1(sh4_read_byte, addr_reg ); MEM_RESULT(value_reg)
 #define MEM_READ_WORD( addr_reg, value_reg ) call_func1(sh4_read_word, addr_reg ); MEM_RESULT(value_reg)
