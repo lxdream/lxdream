@@ -108,7 +108,7 @@ gboolean file_load_magic( const gchar *filename )
 void file_load_postload( const gchar *filename, int pc )
 {
     const gchar *bootstrap_file = lxdream_get_config_value(CONFIG_BOOTSTRAP);
-    if( bootstrap_file != NULL ) {
+    if( bootstrap_file != NULL && bootstrap_file[0] != '\0' ) {
         /* Load in a bootstrap before the binary, to initialize everything
          * correctly
          */

@@ -286,19 +286,20 @@ gboolean mem_load_rom( const gchar *file, uint32_t base, uint32_t size, uint32_t
         mprotect( mem, size, PROT_READ|PROT_WRITE );
     }
 
-    status = mem_load_block( file, base, size );
-    mprotect( mem, size, PROT_READ );
+    if( file != NULL && file[0] != '\0' ) {
+        status = mem_load_block( file, base, size );
+        mprotect( mem, size, PROT_READ );
 
-    if( status == 0 ) {
-        /* CRC check only if we loaded something */
-        calc_crc = crc32(0L, (sh4ptr_t)mem, size);
-        if( calc_crc != crc ) {
-            WARN( "Bios CRC Mismatch in %s: %08X (expected %08X)",
-                    file, calc_crc, crc);
+        if( status == 0 ) {
+            /* CRC check only if we loaded something */
+            calc_crc = crc32(0L, (sh4ptr_t)mem, size);
+            if( calc_crc != crc ) {
+                WARN( "Bios CRC Mismatch in %s: %08X (expected %08X)",
+                        file, calc_crc, crc);
+            }
+            return TRUE;
         }
-        return TRUE;
     }
-
     return FALSE;
 }
 

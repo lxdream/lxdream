@@ -67,6 +67,9 @@ struct dreamcast_module unknown_module = { "****", NULL, NULL, NULL, NULL,
  */
 void dreamcast_configure( )
 {
+    const char *bios_path = lxdream_get_config_value(CONFIG_BIOS_PATH);
+    const char *flash_path = lxdream_get_config_value(CONFIG_FLASH_PATH);
+    
     dreamcast_register_module( &eventq_module );
     /* Register the memory framework */
     dreamcast_register_module( &mem_module );
@@ -76,12 +79,11 @@ void dreamcast_configure( )
     mem_create_ram_region( 0x00800000, 2 MB, MEM_REGION_AUDIO );
     mem_create_ram_region( 0x00703000, 8 KB, MEM_REGION_AUDIO_SCRATCH );
     mem_create_ram_region( 0x05000000, 8 MB, MEM_REGION_VIDEO );
-    dreamcast_has_bios = mem_load_rom( lxdream_get_config_value(CONFIG_BIOS_PATH),
-            0x00000000, 0x00200000, 0x89f2b1a1,
-            MEM_REGION_BIOS );
+    dreamcast_has_bios = mem_load_rom( bios_path, 0x00000000, 0x00200000, 0x89f2b1a1, MEM_REGION_BIOS );
     mem_create_ram_region( 0x00200000, 0x00020000, MEM_REGION_FLASH );
-    mem_load_block( lxdream_get_config_value(CONFIG_FLASH_PATH),
-                    0x00200000, 0x00020000 );
+    if( flash_path != NULL && flash_path[0] != '\0' ) {
+        mem_load_block( flash_path, 0x00200000, 0x00020000 );
+    }
     dreamcast_has_flash = TRUE;
 
     /* Load in the rest of the core modules */
@@ -95,11 +97,12 @@ void dreamcast_configure( )
 
 void dreamcast_config_changed(void)
 {
-    dreamcast_has_bios = mem_load_rom( lxdream_get_config_value(CONFIG_BIOS_PATH),
-            0x00000000, 0x00200000, 0x89f2b1a1, 
-            MEM_REGION_BIOS );
-    mem_load_block( lxdream_get_config_value(CONFIG_FLASH_PATH),
-                    0x00200000, 0x00020000 );
+    const char *bios_path = lxdream_get_config_value(CONFIG_BIOS_PATH);
+    const char *flash_path = lxdream_get_config_value(CONFIG_FLASH_PATH);
+    dreamcast_has_bios = mem_load_rom( bios_path, 0x00000000, 0x00200000, 0x89f2b1a1, MEM_REGION_BIOS );
+    if( flash_path != NULL && flash_path[0] != '\0' ) {
+        mem_load_block( flash_path, 0x00200000, 0x00020000 );
+    }
 }
 
 void dreamcast_save_flash()
