@@ -1,7 +1,7 @@
 /**
  * $Id$
  *
- * Manage the internal vertex/polygon buffers and scene data structure. 
+ * Manage the internal vertex/polygon buffers and scene data structure.
  * Where possible this uses VBOs for the vertex + index data.
  *
  * Copyright (c) 2005 Nathan Keynes.
@@ -166,7 +166,7 @@ gboolean vertex_buffer_unmap()
 }
 
 static struct polygon_struct *scene_add_polygon( pvraddr_t poly_idx, int vertex_count,
-                                                 gboolean is_modified ) 
+                                                 gboolean is_modified )
 {
     int vert_mul = is_modified ? 2 : 1;
 
@@ -199,8 +199,8 @@ static struct polygon_struct *scene_add_polygon( pvraddr_t poly_idx, int vertex_
  * @param modify_offset Offset in 32-bit words to the tex/color data. 0 for
  *        the normal vertex, half the vertex length for the modified vertex.
  */
-static void pvr2_decode_render_vertex( struct vertex_struct *vert, uint32_t poly1, 
-                                       uint32_t poly2, uint32_t *pvr2_data, 
+static void pvr2_decode_render_vertex( struct vertex_struct *vert, uint32_t poly1,
+                                       uint32_t poly2, uint32_t *pvr2_data,
                                        int modify_offset )
 {
     gboolean force_alpha = !POLY2_ALPHA_ENABLE(poly2);
@@ -250,7 +250,7 @@ static void pvr2_decode_render_vertex( struct vertex_struct *vert, uint32_t poly
         vert->offset_rgba[0] = 0.0;
         vert->offset_rgba[1] = 0.0;
         vert->offset_rgba[2] = 0.0;
-        vert->offset_rgba[3] = 0.0;        
+        vert->offset_rgba[3] = 0.0;
     }
 
     if( force_alpha ) {
@@ -263,7 +263,7 @@ static void pvr2_decode_render_vertex( struct vertex_struct *vert, uint32_t poly
  * Compute texture, colour, and z values for 1 or more result points by interpolating from
  * a set of 3 input points. The result point(s) must define their x,y.
  */
-static void scene_compute_vertexes( struct vertex_struct *result, 
+static void scene_compute_vertexes( struct vertex_struct *result,
                                     int result_count,
                                     struct vertex_struct *input,
                                     gboolean is_solid_shaded )
@@ -276,7 +276,7 @@ static void scene_compute_vertexes( struct vertex_struct *result,
 
     float detxy = ((sy) * (tx)) - ((ty) * (sx));
     if( detxy == 0 ) {
-        // If the input points fall on a line, they don't define a usable 
+        // If the input points fall on a line, they don't define a usable
         // polygon - the PVR2 takes the last input point as the result in
         // this case.
         for( i=0; i<result_count; i++ ) {
@@ -305,7 +305,7 @@ static void scene_compute_vertexes( struct vertex_struct *result,
         if( rz > pvr2_scene.bounds[5] ) {
             pvr2_scene.bounds[5] = rz;
         } else if( rz < pvr2_scene.bounds[4] ) {
-            pvr2_scene.bounds[4] = rz; 
+            pvr2_scene.bounds[4] = rz;
         }
         result[i].z = rz;
         result[i].u = input[1].u + (t*tu) + (s*su);
@@ -360,7 +360,7 @@ static void scene_add_vertexes( pvraddr_t poly_idx, int vertex_length,
     }
 }
 
-static void scene_add_quad_vertexes( pvraddr_t poly_idx, int vertex_length, 
+static void scene_add_quad_vertexes( pvraddr_t poly_idx, int vertex_length,
                                      gboolean is_modified )
 {
     struct polygon_struct *poly = pvr2_scene.buf_to_poly_map[poly_idx];
@@ -369,7 +369,7 @@ static void scene_add_quad_vertexes( pvraddr_t poly_idx, int vertex_length,
     unsigned int i;
 
     if( poly->vertex_index == -1 ) {
-        // Construct it locally and copy to the vertex buffer, as the VBO is 
+        // Construct it locally and copy to the vertex buffer, as the VBO is
         // allowed to be horribly slow for reads (ie it could be direct-mapped
         // vram).
         struct vertex_struct quad[4];
@@ -524,7 +524,7 @@ static void scene_extract_vertexes( pvraddr_t tile_entry )
                 }
             }
         }
-    } while( 1 );    
+    } while( 1 );
 }
 
 static void scene_extract_background( void )
@@ -543,7 +543,7 @@ static void scene_extract_background( void )
         context_length = 5;
         vertex_length <<= 1;
         poly->mod_vertex_index = pvr2_scene.vertex_count + 4;
-        pvr2_scene.vertex_count += 8;        
+        pvr2_scene.vertex_count += 8;
     } else {
         poly->mod_vertex_index = -1;
         pvr2_scene.vertex_count += 4;
@@ -555,7 +555,7 @@ static void scene_extract_background( void )
     pvr2_scene.bkgnd_poly = poly;
 
     struct vertex_struct base_vertexes[3];
-    uint32_t *ptr = context + context_length; 
+    uint32_t *ptr = context + context_length;
     for( i=0; i<3; i++ ) {
         pvr2_decode_render_vertex( &base_vertexes[i], context[0], context[1],
                 ptr, 0 );
@@ -599,10 +599,10 @@ uint32_t pvr2_scene_buffer_height()
 
 /**
  * Extract the current scene into the rendering structures. We run two passes
- * - first pass extracts the polygons into pvr2_scene.poly_array (finding vertex counts), 
+ * - first pass extracts the polygons into pvr2_scene.poly_array (finding vertex counts),
  * second pass extracts the vertex data into the VBO/vertex array.
  *
- * Difficult to do in single pass as we don't generally know the size of a 
+ * Difficult to do in single pass as we don't generally know the size of a
  * polygon for certain until we've seen all tiles containing it. It also means we
  * can count the vertexes and allocate the appropriate size VBO.
  *
@@ -619,6 +619,15 @@ void pvr2_scene_read( void )
     pvr2_scene.bounds[3] = ((MMIO_READ( PVR2, RENDER_VCLIP ) >> 16) & 0x03FF) + 1;
     pvr2_scene.bounds[4] = pvr2_scene.bounds[5] = MMIO_READF( PVR2, RENDER_FARCLIP );
 
+    uint32_t scaler = MMIO_READ( PVR2, RENDER_SCALER );
+    if( scaler & SCALER_HSCALE ) {
+    	/* If the horizontal scaler is in use, we're (in principle) supposed to
+    	 * divide everything by 2. However in the interests of display quality,
+    	 * instead we want to render to the unscaled resolution and downsample
+    	 * only if/when required.
+    	 */
+    	pvr2_scene.bounds[1] *= 2;
+    }
     uint32_t *tilebuffer = (uint32_t *)(video_base + MMIO_READ( PVR2, RENDER_TILEBASE ));
     uint32_t *segment = tilebuffer;
     pvr2_scene.segment_list = (struct tile_segment *)tilebuffer;
@@ -640,7 +649,7 @@ void pvr2_scene_read( void )
         pvr2_scene.sort_mode = SORT_TILEFLAG;
     }
 
-    // Pass 1: Extract polygon list 
+    // Pass 1: Extract polygon list
     uint32_t control;
     int i;
     do {
@@ -649,7 +658,7 @@ void pvr2_scene_read( void )
         int tile_y = SEGMENT_Y(control);
         if( tile_x > max_tile_x ) {
             max_tile_x = tile_x;
-        } 
+        }
         if( tile_y > max_tile_y ) {
             max_tile_y = tile_y;
         }
@@ -709,7 +718,7 @@ void pvr2_scene_dump( FILE *f )
         for( j=0; j<poly->vertex_count; j++ ) {
             struct vertex_struct *v = &pvr2_scene.vertex_array[poly->vertex_index+j];
             fprintf( f, "    %.5f %.5f %.5f, (%.5f,%.5f)  %.5f,%.5f,%.5f,%.5f  %.5f %.5f %.5f %.5f\n", v->x, v->y, v->z, v->u, v->v,
-                     v->rgba[0], v->rgba[1], v->rgba[2], v->rgba[3], 
+                     v->rgba[0], v->rgba[1], v->rgba[2], v->rgba[3],
                      v->offset_rgba[0], v->offset_rgba[1], v->offset_rgba[2], v->offset_rgba[3] );
         }
         if( poly->mod_vertex_index != -1 ) {
@@ -717,7 +726,7 @@ void pvr2_scene_dump( FILE *f )
             for( j=0; j<poly->vertex_count; j++ ) {
                 struct vertex_struct *v = &pvr2_scene.vertex_array[poly->mod_vertex_index+j];
                 fprintf( f, "    %.5f %.5f %.5f, (%.5f,%.5f)  %.5f,%.5f,%.5f,%.5f  %.5f %.5f %.5f %.5f\n", v->x, v->y, v->z, v->u, v->v,
-                         v->rgba[0], v->rgba[1], v->rgba[2], v->rgba[3], 
+                         v->rgba[0], v->rgba[1], v->rgba[2], v->rgba[3],
                          v->offset_rgba[0], v->offset_rgba[1], v->offset_rgba[2], v->offset_rgba[3] );
             }
         }

@@ -56,7 +56,7 @@ void pvr2_dma_write( sh4addr_t destaddr, unsigned char *src, uint32_t count )
             unsigned char *dest = mem_get_region(destaddr);
             memcpy( dest, src, count );
         }
-    }	    
+    }
 }
 
 void pvr2_vram64_write( sh4addr_t destaddr, unsigned char *src, uint32_t length )
@@ -77,7 +77,7 @@ void pvr2_vram64_write( sh4addr_t destaddr, unsigned char *src, uint32_t length 
 
     banks[0] = ((uint32_t *)(video_base + ((destaddr & 0x007FFFF8) >>1)));
     banks[1] = banks[0] + 0x100000;
-    if( bank_flag ) 
+    if( bank_flag )
         banks[0]++;
 
     /* Handle non-aligned start of source */
@@ -103,7 +103,7 @@ void pvr2_vram64_write( sh4addr_t destaddr, unsigned char *src, uint32_t length 
         while( length-- > 0 ) {
             *dest++ = *src++;
         }
-    }  
+    }
 }
 
 /**
@@ -111,7 +111,7 @@ void pvr2_vram64_write( sh4addr_t destaddr, unsigned char *src, uint32_t length 
  * The destaddr must be 32-bit aligned, and both line_bytes and line_stride_bytes
  * must be multiples of 4.
  */
-void pvr2_vram64_write_stride( sh4addr_t destaddr, unsigned char *src, uint32_t line_bytes, 
+void pvr2_vram64_write_stride( sh4addr_t destaddr, unsigned char *src, uint32_t line_bytes,
                                uint32_t line_stride_bytes, uint32_t line_count )
 {
     int bank_flag = (destaddr & 0x04) >> 2;
@@ -133,7 +133,7 @@ void pvr2_vram64_write_stride( sh4addr_t destaddr, unsigned char *src, uint32_t 
 
     banks[0] = (uint32_t *)(video_base + (destaddr >>1));
     banks[1] = banks[0] + 0x100000;
-    if( bank_flag ) 
+    if( bank_flag )
         banks[0]++;
 
     dwsrc = (uint32_t *)src;
@@ -148,7 +148,7 @@ void pvr2_vram64_write_stride( sh4addr_t destaddr, unsigned char *src, uint32_t 
             banks[bank_flag]++;
             bank_flag = !bank_flag;
         }
-    }    
+    }
 }
 
 /**
@@ -200,7 +200,7 @@ void pvr2_vram64_read_stride( unsigned char *dest, uint32_t dest_line_bytes, sh4
             banks[bank_flag]++;
             bank_flag = !bank_flag;
         }
-    }    
+    }
 }
 
 
@@ -296,7 +296,7 @@ static void pvr2_vram64_detwiddle_16( uint16_t *dest, uint16_t *banks[2], int of
 }
 
 /**
- * Read an image from 64-bit vram stored as twiddled 4-bit pixels. The 
+ * Read an image from 64-bit vram stored as twiddled 4-bit pixels. The
  * image is written out to the destination in detwiddled form.
  * @param dest destination buffer, which must be at least width*height/2 in length
  * @param srcaddr source address in vram
@@ -335,11 +335,11 @@ void pvr2_vram64_read_twiddled_4( unsigned char *dest, sh4addr_t srcaddr, uint32
         *wdest = *banks[0];
     } else {
         pvr2_vram64_detwiddle_4( wdest, banks, offset_flag, 0, 0, width, stride );
-    }   
+    }
 }
 
 /**
- * Read an image from 64-bit vram stored as twiddled 8-bit pixels. The 
+ * Read an image from 64-bit vram stored as twiddled 8-bit pixels. The
  * image is written out to the destination in detwiddled form.
  * @param dest destination buffer, which must be at least width*height in length
  * @param srcaddr source address in vram
@@ -377,11 +377,11 @@ void pvr2_vram64_read_twiddled_8( unsigned char *dest, sh4addr_t srcaddr, uint32
         *wdest = *banks[0];
     } else {
         pvr2_vram64_detwiddle_8( wdest, banks, offset_flag, 0, 0, width, width );
-    }   
+    }
 }
 
 /**
- * Read an image from 64-bit vram stored as twiddled 16-bit pixels. The 
+ * Read an image from 64-bit vram stored as twiddled 16-bit pixels. The
  * image is written out to the destination in detwiddled form.
  * @param dest destination buffer, which must be at least width*height*2 in length
  * @param srcaddr source address in vram (must be 16-bit aligned)
@@ -419,7 +419,7 @@ void pvr2_vram64_read_twiddled_16( unsigned char *dest, sh4addr_t srcaddr, uint3
         *wdest = *banks[0];
     } else {
         pvr2_vram64_detwiddle_16( wdest, banks, offset_flag, 0, 0, width, width );
-    }    
+    }
 }
 
 void pvr2_vram_write_invert( sh4addr_t destaddr, unsigned char *src, uint32_t length, uint32_t line_length,
@@ -500,7 +500,7 @@ void pvr2_vram64_dump_file( sh4addr_t addr, uint32_t length, gchar *filename )
     fclose(f);
 }
 
-void pvr2_vram64_dump( sh4addr_t addr, uint32_t length, FILE *f ) 
+void pvr2_vram64_dump( sh4addr_t addr, uint32_t length, FILE *f )
 {
     unsigned char tmp[length];
     pvr2_vram64_read( tmp, addr, length );
@@ -513,9 +513,11 @@ void pvr2_vram64_dump( sh4addr_t addr, uint32_t length, FILE *f )
  * Flush the indicated render buffer back to PVR. Caller is responsible for
  * tracking whether there is actually anything in the buffer.
  *
+ * FIXME: Handle horizontal scaler
+ *
  * @param buffer A render buffer indicating the address to store to, and the
  * format the data needs to be in.
- * @param backBuffer TRUE to flush the back buffer, FALSE for 
+ * @param backBuffer TRUE to flush the back buffer, FALSE for
  * the front buffer.
  */
 void pvr2_render_buffer_copy_to_sh4( render_buffer_t buffer )
