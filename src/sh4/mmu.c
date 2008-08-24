@@ -1,6 +1,6 @@
 /**
  * $Id$
- * 
+ *
  * MMU implementation
  *
  * Copyright (c) 2005 Nathan Keynes.
@@ -153,6 +153,13 @@ void mmio_region_MMU_write( uint32_t reg, uint32_t val )
     case PTEA:
         val &= 0x0000000F;
         break;
+    case TRA:
+    	val &= 0x000003FC;
+    	break;
+    case EXPEVT:
+    case INTEVT:
+    	val &= 0x00000FFF;
+    	break;
     case MMUCR:
         if( val & MMUCR_TI ) {
             mmu_invalidate_tlb();
@@ -174,6 +181,16 @@ void mmio_region_MMU_write( uint32_t reg, uint32_t val )
         mmu_set_cache_mode( val & (CCR_OIX|CCR_ORA|CCR_OCE) );
         val &= 0x81A7;
         break;
+    case MMUUNK1:
+    	/* Note that if the high bit is set, this appears to reset the machine.
+    	 * Not emulating this behaviour yet until we know why...
+    	 */
+    	val &= 0x00010007;
+    	break;
+    case QACR0:
+    case QACR1:
+    	val &= 0x0000001C;
+    	break;
     case PMCR1:
     case PMCR2:
         if( val != 0 ) {
@@ -187,7 +204,7 @@ void mmio_region_MMU_write( uint32_t reg, uint32_t val )
 }
 
 
-void MMU_init() 
+void MMU_init()
 {
     cache = mem_alloc_pages(2);
 }
@@ -344,7 +361,7 @@ static inline int mmu_utlb_lookup_assoc( uint32_t vpn, uint32_t asid )
     unsigned int i;
     for( i = 0; i < UTLB_ENTRY_COUNT; i++ ) {
         if( (mmu_utlb[i].flags & TLB_VALID) &&
-                ((mmu_utlb[i].flags & TLB_SHARE) || asid == mmu_utlb[i].asid) && 
+                ((mmu_utlb[i].flags & TLB_SHARE) || asid == mmu_utlb[i].asid) &&
                 ((mmu_utlb[i].vpn ^ vpn) & mmu_utlb[i].mask) == 0 ) {
             if( result != -1 ) {
                 fprintf( stderr, "TLB Multi hit: %d %d\n", result, i );
@@ -366,7 +383,7 @@ static inline int mmu_itlb_lookup_assoc( uint32_t vpn, uint32_t asid )
     unsigned int i;
     for( i = 0; i < ITLB_ENTRY_COUNT; i++ ) {
         if( (mmu_itlb[i].flags & TLB_VALID) &&
-                ((mmu_itlb[i].flags & TLB_SHARE) || asid == mmu_itlb[i].asid) && 
+                ((mmu_itlb[i].flags & TLB_SHARE) || asid == mmu_itlb[i].asid) &&
                 ((mmu_itlb[i].vpn ^ vpn) & mmu_itlb[i].mask) == 0 ) {
             if( result != -1 ) {
                 return -2;
@@ -460,7 +477,7 @@ void mmu_ocache_data_write( sh4addr_t addr, uint32_t val )
 /******************************************************************************/
 
 /**
- * The translations are excessively complicated, but unfortunately it's a 
+ * The translations are excessively complicated, but unfortunately it's a
  * complicated system. TODO: make this not be painfully slow.
  */
 
@@ -485,7 +502,7 @@ static inline int mmu_utlb_lookup_vpn_asid( uint32_t vpn )
 
     for( i = 0; i < UTLB_ENTRY_COUNT; i++ ) {
         if( (mmu_utlb[i].flags & TLB_VALID) &&
-                ((mmu_utlb[i].flags & TLB_SHARE) || mmu_asid == mmu_utlb[i].asid) && 
+                ((mmu_utlb[i].flags & TLB_SHARE) || mmu_asid == mmu_utlb[i].asid) &&
                 ((mmu_utlb[i].vpn ^ vpn) & mmu_utlb[i].mask) == 0 ) {
             if( result != -1 ) {
                 return -2;
@@ -548,7 +565,7 @@ static int inline mmu_itlb_update_from_utlb( int entryNo )
     } else { // Note - gets invalid entries too
         replace = 3;
         mmu_lrui = (mmu_lrui | 0x0B);
-    } 
+    }
 
     mmu_itlb[replace].vpn = mmu_utlb[entryNo].vpn;
     mmu_itlb[replace].mask = mmu_utlb[entryNo].mask;
@@ -574,7 +591,7 @@ static inline int mmu_itlb_lookup_vpn_asid( uint32_t vpn )
 
     for( i = 0; i < ITLB_ENTRY_COUNT; i++ ) {
         if( (mmu_itlb[i].flags & TLB_VALID) &&
-                ((mmu_itlb[i].flags & TLB_SHARE) || mmu_asid == mmu_itlb[i].asid) && 
+                ((mmu_itlb[i].flags & TLB_SHARE) || mmu_asid == mmu_itlb[i].asid) &&
                 ((mmu_itlb[i].vpn ^ vpn) & mmu_itlb[i].mask) == 0 ) {
             if( result != -1 ) {
                 return -2;
@@ -695,9 +712,9 @@ sh4addr_t mmu_vma_to_phys_read( sh4vma_t addr )
         }
 
         /* finally generate the target address */
-        sh4addr_t pma = (mmu_utlb[entryNo].ppn & mmu_utlb[entryNo].mask) | 
+        sh4addr_t pma = (mmu_utlb[entryNo].ppn & mmu_utlb[entryNo].mask) |
         	(addr & (~mmu_utlb[entryNo].mask));
-        if( pma > 0x1C000000 ) // Remap 1Cxx .. 1Fxx region to P4 
+        if( pma > 0x1C000000 ) // Remap 1Cxx .. 1Fxx region to P4
         	pma |= 0xE0000000;
         return pma;
     }
@@ -758,9 +775,9 @@ sh4addr_t mmu_vma_to_phys_write( sh4vma_t addr )
         }
 
         /* finally generate the target address */
-        sh4addr_t pma = (mmu_utlb[entryNo].ppn & mmu_utlb[entryNo].mask) | 
+        sh4addr_t pma = (mmu_utlb[entryNo].ppn & mmu_utlb[entryNo].mask) |
         	(addr & (~mmu_utlb[entryNo].mask));
-        if( pma > 0x1C000000 ) // Remap 1Cxx .. 1Fxx region to P4 
+        if( pma > 0x1C000000 ) // Remap 1Cxx .. 1Fxx region to P4
         	pma |= 0xE0000000;
         return pma;
     }
@@ -822,7 +839,7 @@ gboolean mmu_update_icache( sh4vma_t addr )
             return TRUE;
         }
 
-        if( (mmucr & MMUCR_SV) == 0 ) 
+        if( (mmucr & MMUCR_SV) == 0 )
         	entryNo = mmu_itlb_lookup_vpn_asid( addr );
         else
         	entryNo = mmu_itlb_lookup_vpn( addr );
@@ -867,10 +884,10 @@ gboolean mmu_update_icache( sh4vma_t addr )
 }
 
 /**
- * Translate address for disassembly purposes (ie performs an instruction 
+ * Translate address for disassembly purposes (ie performs an instruction
  * lookup) - does not raise exceptions or modify any state, and ignores
  * protection bits. Returns the translated address, or MMU_VMA_ERROR
- * on translation failure. 
+ * on translation failure.
  */
 sh4addr_t mmu_vma_to_phys_disasm( sh4vma_t vma )
 {
@@ -896,8 +913,8 @@ sh4addr_t mmu_vma_to_phys_disasm( sh4vma_t vma )
     if( entryNo < 0 ) {
         return MMU_VMA_ERROR;
     } else {
-        return (mmu_itlb[entryNo].ppn & mmu_itlb[entryNo].mask) | 
-        (vma & (~mmu_itlb[entryNo].mask));	
+        return (mmu_itlb[entryNo].ppn & mmu_itlb[entryNo].mask) |
+        (vma & (~mmu_itlb[entryNo].mask));
     }
 }
 
@@ -936,7 +953,7 @@ gboolean sh4_flush_store_queue( sh4addr_t addr )
             }
 
             /* finally generate the target address */
-            target = ((mmu_utlb[entryNo].ppn & mmu_utlb[entryNo].mask) | 
+            target = ((mmu_utlb[entryNo].ppn & mmu_utlb[entryNo].mask) |
                     (addr & (~mmu_utlb[entryNo].mask))) & 0xFFFFFFE0;
         }
     } else {
