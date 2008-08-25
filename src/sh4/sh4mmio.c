@@ -90,7 +90,31 @@ int32_t mmio_region_BSC_read( uint32_t reg )
 
 /********************************* UBC *************************************/
 
-MMIO_REGION_STUBFNS( UBC )
+int32_t mmio_region_UBC_read( uint32_t reg )
+{
+    return MMIO_READ( UBC, reg );
+}
+
+void mmio_region_UBC_write( uint32_t reg, uint32_t val )
+{
+    switch( reg ) {
+    case BAMRA:
+    case BAMRB:
+        val &= 0x0F;
+        break;
+    case BBRA:
+    case BBRB:
+        val &= 0x07F;
+        if( val != 0 ) { 
+            WARN( "UBC not implemented" );
+        }
+        break;
+    case BRCR:
+        val &= 0xC4C9;
+        break;
+    }
+    MMIO_WRITE( UBC, reg, val );
+}
 
 
 /********************************** SCI *************************************/
