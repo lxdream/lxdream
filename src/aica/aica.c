@@ -233,6 +233,8 @@ void mmio_region_AICA2_write( uint32_t reg, uint32_t val )
     case AICA_IRQCLEAR:
         aica_clear_event();
         break;
+    case AICA_FIFOIN: /* Read-only */
+        break;
     default:
         MMIO_WRITE( AICA2, reg, val );
         break;
