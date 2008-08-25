@@ -114,7 +114,12 @@ void sh4_write_p4( sh4addr_t addr, int32_t val )
         case 0x16000000: mmu_utlb_addr_write( addr, val ); break;
         case 0x17000000: mmu_utlb_data_write( addr, val ); break;
         default:
-            WARN( "Attempted write to unknown P4 region: %08X", addr );
+            if( (addr & 0xFFFF0000 ) == 0xFF940000 ||
+                (addr & 0xFFFF0000 ) == 0xFF900000 ) {
+                // SDRAM configuration, ignore for now
+            } else {
+                WARN( "Attempted write to unknown P4 region: %08X", addr );
+            }
         }
     } else {
         TRACE_P4IO( "Long write %08X => %08X", io, (addr&0xFFF), val, addr );
