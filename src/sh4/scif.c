@@ -546,8 +546,10 @@ void mmio_region_SCIF_write( uint32_t reg, uint32_t val )
         break;
     case SCSPTR2: /* Serial Port Register */
         MMIO_WRITE( SCIF, reg, val );
-        /* NOT IMPLEMENTED */
-        WARN( "SCSPTR2 not implemented: Write %08X", val );
+        /* NOT IMPLEMENTED - 'direct' serial I/O */
+        if( val != 0 ) {
+            WARN( "SCSPTR2 not implemented: Write %08X", val );
+        }
         break;
     case SCLSR2:
         val = val & SCLSR2_ORER;
