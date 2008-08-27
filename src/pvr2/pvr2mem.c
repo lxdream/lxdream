@@ -39,7 +39,11 @@ void pvr2_dma_write( sh4addr_t destaddr, unsigned char *src, uint32_t count )
         if( region == 0 ) {
             pvr2_vram64_write( destaddr, src, count );
         } else {
-            unsigned char *dest = mem_get_region(destaddr);
+            destaddr &= PVR2_RAM_MASK;
+            unsigned char *dest = video_base + destaddr;
+            if( PVR2_RAM_SIZE - destaddr < count ) {
+                count = PVR2_RAM_SIZE - destaddr;
+            }
             memcpy( dest, src, count );
         }
         break;
@@ -53,7 +57,11 @@ void pvr2_dma_write( sh4addr_t destaddr, unsigned char *src, uint32_t count )
         if( region == 0 ) {
             pvr2_vram64_write( destaddr, src, count );
         } else {
-            unsigned char *dest = mem_get_region(destaddr);
+            destaddr &= PVR2_RAM_MASK;
+            unsigned char *dest = video_base + destaddr;
+            if( PVR2_RAM_SIZE - destaddr < count ) {
+                count = PVR2_RAM_SIZE - destaddr;
+            }
             memcpy( dest, src, count );
         }
     }
