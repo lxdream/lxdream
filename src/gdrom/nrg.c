@@ -242,7 +242,7 @@ static gdrom_disc_t nrg_image_open( const gchar *filename, FILE *f )
                     image->track[track_id-1].sector_count =
                         lba - image->track[track_id-1].lba;
                 } else {
-                    track = cue_track_id + bcd_to_uint8(cue->track) - 1;
+                    track = bcd_to_uint8(cue->track) - 1;
                     if( (cue->control & 0x01) == 0 ) { 
                         /* Pre-gap address. */
                         if( track != 0 ) {
@@ -260,9 +260,9 @@ static gdrom_disc_t nrg_image_open( const gchar *filename, FILE *f )
             dao = (struct nrg_daoi *)data;
             memcpy( image->mcn, dao->mcn, 13 );
             image->mcn[13] = '\0';
-            assert( dao->track_count * 30 + 22 == chunk.length );
-            assert( dao->track_count == cue_track_count );
-            for( i=0; i<dao->track_count; i++ ) {
+            assert( (dao->track_count - cue_track_id) * 30 + 22 == chunk.length );
+            assert( dao->track_count == track_id );
+            for( i=0; i<(dao->track_count-cue_track_id); i++ ) {
                 image->track[cue_track_id].sector_size = GUINT32_FROM_BE(dao->track[i].sector_size);
                 image->track[cue_track_id].offset = GUINT32_FROM_BE(dao->track[i].offset);
                 image->track[cue_track_id].mode = nrg_track_mode( dao->track[i].mode );
@@ -276,9 +276,9 @@ static gdrom_disc_t nrg_image_open( const gchar *filename, FILE *f )
             daox = (struct nrg_daox *)data;
             memcpy( image->mcn, daox->mcn, 13 );
             image->mcn[13] = '\0';
-            assert( daox->track_count * 42 + 22 == chunk.length );
-            assert( daox->track_count == cue_track_count );
-            for( i=0; i<daox->track_count; i++ ) {
+            assert( (daox->track_count - cue_track_id) * 42 + 22 == chunk.length );
+            assert( daox->track_count == track_id );
+            for( i=0; i<(daox->track_count-cue_track_id); i++ ) {
                 image->track[cue_track_id].sector_size = GUINT32_FROM_BE(daox->track[i].sector_size);
                 image->track[cue_track_id].offset = GUINT64_FROM_BE(daox->track[i].offset);
                 image->track[cue_track_id].mode = nrg_track_mode( daox->track[i].mode );
