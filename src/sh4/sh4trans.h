@@ -30,7 +30,7 @@ extern "C" {
 /** Maximum size of a translated instruction, in bytes. Current worst case seems
  * to be a BF/S followed by one of the long FMOVs.
  */
-#define MAX_INSTRUCTION_SIZE 384
+#define MAX_INSTRUCTION_SIZE 512
 /** Maximum size of the translation epilogue (current real size is 116 bytes, so
  * allows a little room
  */
