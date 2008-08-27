@@ -325,6 +325,7 @@ void asic_ide_dma_transfer( )
             uint32_t xfer = ide_read_data_dma( addr, length );
             MMIO_WRITE( EXTDMA, IDEDMATXSIZ, xfer );
             MMIO_WRITE( EXTDMA, IDEDMACTL2, 0 );
+            asic_event( EVENT_IDE_DMA );            
         } else { /* 0 */
             MMIO_WRITE( EXTDMA, IDEDMACTL2, 0 );
         }

@@ -345,7 +345,6 @@ uint32_t ide_read_data_dma( uint32_t addr, uint32_t length )
                 idereg.status = 0x50;
                 idereg.count = 0x03;
                 ide_raise_interrupt();
-                asic_event( EVENT_IDE_DMA );
                 break;
             }
         }
