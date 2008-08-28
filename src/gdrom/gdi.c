@@ -57,6 +57,7 @@ static gdrom_disc_t gdi_image_open( const gchar *filename, FILE *f )
     gdrom_image_t image;
     struct stat st;
     char line[512];
+    int session = 0;
     gchar *dirname;
 
     fseek(f, 0, SEEK_SET);
@@ -89,10 +90,9 @@ static gdrom_disc_t gdi_image_open( const gchar *filename, FILE *f )
         sscanf( line, "%d %d %d %d %s %d", &track_no, &start_lba, &flags, &size,
                 filename, &offset );
         if( start_lba >= 45000 ) {
-            image->track[i].session = 1;
-        } else {
-            image->track[i].session = 0;
+            session = 1;
         }
+        image->track[i].session = session;
         image->track[i].lba = start_lba + 150; // 2-second offset
         image->track[i].flags = (flags & 0x0F)<<4;
         image->track[i].sector_size = size;
