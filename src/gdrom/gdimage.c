@@ -467,39 +467,6 @@ static int gdrom_image_drive_status( gdrom_disc_t disc )
     }
 }
 
-void gdrom_image_dump_info( gdrom_disc_t d ) {
-    gdrom_image_t disc = (gdrom_image_t)d;
-    int i;
-    int last_session = disc->track[disc->track_count-1].session;
-    gboolean is_bootable = FALSE;
-
-    INFO( "Disc ID: %s, %d tracks in %d sessions", disc->mcn, disc->track_count, 
-          disc->track[disc->track_count-1].session + 1 );
-    if( last_session > 0 ) {
-        /* Boot track is the first data track of the last session, provided that it 
-         * cannot be a single-session disc.
-         */
-        int boot_track = -1;
-        for( i=disc->track_count-1; i>=0 && disc->track[i].session == last_session; i-- ) {
-            if( disc->track[i].flags & TRACK_DATA ) {
-                boot_track = i;
-            }
-        }
-        if( boot_track != -1 ) {
-            unsigned char boot_sector[MAX_SECTOR_SIZE];
-            uint32_t length = sizeof(boot_sector);
-            if( d->read_sector( d, disc->track[boot_track].lba, 0x28,
-                    boot_sector, &length ) == PKT_ERR_OK ) {
-                bootstrap_dump(boot_sector, FALSE);
-                is_bootable = TRUE;
-            }
-        }
-    }
-    if( !is_bootable ) {
-        WARN( "Disc does not appear to be bootable" );
-    }
-}
-
 gdrom_device_t gdrom_device_new( const gchar *name, const gchar *dev_name )
 {
     struct gdrom_device *dev = g_malloc0( sizeof(struct gdrom_device) );
@@ -519,4 +486,42 @@ void gdrom_device_destroy( gdrom_device_t dev )
         dev->device_name = NULL;
     }
     g_free( dev );
+}
+
+/**
+ * Check the disc for a useable DC bootstrap, and update the disc
+ * with the title accordingly.
+ * @return TRUE if we found a bootstrap, otherwise FALSE.
+ */
+gboolean gdrom_image_read_info( gdrom_disc_t d ) {
+    gdrom_image_t disc = (gdrom_image_t)d;
+    if( disc->track_count > 0 ) {
+        /* Find the first data track of the last session */
+        int last_session = disc->track[disc->track_count-1].session;
+        int i, boot_track = -1;
+        for( i=disc->track_count-1; i>=0 && disc->track[i].session == last_session; i-- ) {
+            if( disc->track[i].flags & TRACK_DATA ) {
+                boot_track = i;
+            }
+        }
+        if( boot_track != -1 ) {
+            unsigned char boot_sector[MAX_SECTOR_SIZE];
+            uint32_t length = sizeof(boot_sector);
+            if( d->read_sector( d, disc->track[boot_track].lba, 0x28,
+                    boot_sector, &length ) == PKT_ERR_OK ) {
+                if( memcmp( boot_sector, "SEGA SEGAKATANA SEGA ENTERPRISES", 32) == 0 ) {
+                    /* Got magic */
+                    memcpy( d->title, boot_sector+128, 128 );
+                    for( i=127; i>=0; i-- ) {
+                        if( !isspace(d->title[i]) ) 
+                            break;
+                    }
+                    d->title[i+1] = '\0';
+                }
+                bootstrap_dump(boot_sector, FALSE);
+                return TRUE;
+            }
+        }
+    }
+    return FALSE;
 }

@@ -195,6 +195,11 @@ gboolean gui_parse_cmdline( int *argc, char **argv[] )
     return gtk_gui_init_ok;
 }
 
+gboolean gtk_gui_disc_changed( gdrom_disc_t disc, const gchar *disc_name, void *ptr )
+{
+    main_window_update_title( main_win );
+}
+
 gboolean gui_init( gboolean withDebug )
 {
     if( gtk_gui_init_ok ) {
@@ -231,6 +236,7 @@ gboolean gui_init( gboolean withDebug )
         if( withDebug ) {
             gtk_gui_show_debugger();
         }
+        register_gdrom_disc_change_hook( gtk_gui_disc_changed, NULL );
 
         return TRUE;
     } else {

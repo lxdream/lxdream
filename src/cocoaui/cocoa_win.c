@@ -19,6 +19,7 @@
 #include "cocoaui/cocoaui.h"
 #include "lxdream.h"
 #include "dreamcast.h"
+#include "gdrom/gdrom.h"
 #include <ApplicationServices/ApplicationServices.h>
 
 @interface NSWindow (OSX10_5_and_later)
@@ -155,9 +156,7 @@ willBeInsertedIntoToolbar:(BOOL)flag
         [self setDelegate: [NSApp delegate]];
         [self setContentMinSize: contentRect.size];
         [self setAcceptsMouseMovedEvents: YES];
-
-        NSString *title = [[NSString alloc] initWithCString: lxdream_package_name encoding: NSASCIIStringEncoding]; 
-        [self setTitle: title];
+        [self updateTitle];
 
         NSToolbar *toolbar = [[NSToolbar alloc] initWithIdentifier: @"LxdreamToolbar"];
         [toolbar setDelegate: [[LxdreamToolbarDelegate alloc] init]];
@@ -168,6 +167,18 @@ willBeInsertedIntoToolbar:(BOOL)flag
         return self;
     }
 }
+
+- (void)updateTitle
+{
+    NSString *title;
+    const char *disc_title = gdrom_get_current_disc_title();
+    if( disc_title == NULL ) {
+        title = [NSString stringWithCString: lxdream_package_name];
+    } else {
+        title = [NSString stringWithFormat: @"%s - %s", lxdream_package_name, disc_title];
+    }
+    [self setTitle: title];
+}    
 
 - (void)setStatusText: (const gchar *)text
 {

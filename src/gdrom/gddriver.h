@@ -165,6 +165,7 @@ struct gdrom_disc {
      */
     void (*close)( struct gdrom_disc *disc );
     const gchar *name; /* Device name / Image filename */
+    char title[129]; /* Disc title (if any) */
 };
 
 typedef struct gdrom_image {

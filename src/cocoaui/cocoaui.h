@@ -64,6 +64,7 @@ NSTextField *cocoa_gui_add_label(NSView *parent, NSString *title, NSRect frame);
 }
 - (id)initWithContentRect:(NSRect)contentRect;
 - (void)setStatusText:(const gchar *)text;
+- (void)updateTitle;
 - (void)setRunning:(BOOL)isRunning;
 - (BOOL)isGrabbed;
 - (void)setIsGrabbed:(BOOL)grab;

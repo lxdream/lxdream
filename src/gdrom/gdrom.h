@@ -52,9 +52,9 @@ DECLARE_HOOK(gdrom_drive_list_change_hook, gdrom_drive_list_change_hook_t);
 gdrom_disc_t gdrom_image_open( const gchar *filename );
 
 /**
- * Dump image info
+ * Read image bootstrap info
  */
-void gdrom_image_dump_info( gdrom_disc_t d );
+gboolean gdrom_image_read_info( gdrom_disc_t d );
 
 
 /**
@@ -72,6 +72,8 @@ gboolean gdrom_is_mounted( void );
 gdrom_disc_t gdrom_get_current_disc();
 
 const gchar *gdrom_get_current_disc_name();
+
+const gchar *gdrom_get_current_disc_title();
 
 uint32_t gdrom_read_sectors( uint32_t sector, uint32_t sector_count,
                              int mode, unsigned char *buf, uint32_t *length );
