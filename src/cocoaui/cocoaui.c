@@ -58,6 +58,14 @@ static BOOL cocoa_gui_is_running = NO;
 - (void) setAppleMenu:(NSMenu *)aMenu;
 @end
 
+gboolean cocoa_gui_disc_changed( gdrom_disc_t disc, const gchar *disc_name, void *user_data )
+{
+    NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+    LxdreamMainWindow *window = (LxdreamMainWindow *)user_data;
+    [window updateTitle];
+    [pool release];
+}
+
 /**
  * Produces the menu title by looking the text up in gettext, removing any
  * underscores, and returning the result as an NSString.
@@ -306,6 +314,8 @@ gboolean gui_init( gboolean withDebug )
     [window makeKeyAndOrderFront: nil];
     [NSApp activateIgnoringOtherApps: YES];   
 
+    register_gdrom_disc_change_hook( cocoa_gui_disc_changed, window );
+    
     [pool release];
     return TRUE;
 }

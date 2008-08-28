@@ -125,7 +125,7 @@ void gdrom_mount_disc( gdrom_disc_t disc )
             gdrom_disc->close(gdrom_disc);
         }
         gdrom_disc = disc;
-        gdrom_image_dump_info( disc );
+        gdrom_image_read_info( disc );
         gdrom_fire_disc_changed( disc );
     }
 }
@@ -163,6 +163,15 @@ const gchar *gdrom_get_current_disc_name()
     }
 }
 
+const gchar *gdrom_get_current_disc_title()
+{
+    if( gdrom_disc == NULL || gdrom_disc->title[0] == '\0' ) {
+        return NULL;
+    } else {
+        return gdrom_disc->title;
+    }
+}
+
 gchar *gdrom_get_relative_filename( const gchar *base_name, const gchar *rel_name )
 {
     gchar *dirname = g_path_get_dirname(base_name);
@@ -170,3 +179,4 @@ gchar *gdrom_get_relative_filename( const gchar *base_name, const gchar *rel_nam
     g_free(dirname);
     return pathname;
 }
+

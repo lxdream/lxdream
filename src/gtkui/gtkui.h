@@ -49,6 +49,7 @@ void main_window_set_framerate( main_window_t win, float rate );
 void main_window_set_speed( main_window_t win, double speed );
 void main_window_set_fullscreen( main_window_t win, gboolean fullscreen );
 void main_window_set_use_grab( main_window_t win, gboolean grab );
+void main_window_update_title( main_window_t win );
 
 debug_window_t debug_window_new( const gchar *title, GtkWidget *menubar,
                                  GtkWidget *toolbar, GtkAccelGroup *accel );
