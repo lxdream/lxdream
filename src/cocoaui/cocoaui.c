@@ -64,6 +64,7 @@ gboolean cocoa_gui_disc_changed( gdrom_disc_t disc, const gchar *disc_name, void
     LxdreamMainWindow *window = (LxdreamMainWindow *)user_data;
     [window updateTitle];
     [pool release];
+    return TRUE;
 }
 
 /**
@@ -333,6 +334,11 @@ void gui_main_loop( gboolean run )
 void gui_update_state(void)
 {
     cocoa_gui_update();
+}
+
+void gui_set_use_grab( gboolean grab )
+{
+    [((LxdreamMainWindow *)[NSApp mainWindow]) setUseGrab: (grab ? YES : NO)];
 }
 
 gboolean gui_error_dialog( const char *msg, ... )

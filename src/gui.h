@@ -63,6 +63,13 @@ typedef enum { IO_IDE, IO_NETWORK } io_activity_type;
 void gui_update_state();
 
 /**
+ * Notify the GUI to enable/disable mouse grabs according to the flag value.
+ * If the parameter is FALSE and the grab is currently active, the GUI should
+ * immediately cancel the grab.
+ */
+void gui_set_use_grab( gboolean grab );
+
+/**
  * Notify the GUI of I/O activity. 
  * @param activity the type of IO activity being reported.
  * @param active TRUE if the I/O device is becoming active, FALSE if inactive.

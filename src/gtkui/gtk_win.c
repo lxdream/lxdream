@@ -33,6 +33,7 @@
 #include "lxdream.h"
 #include "dreamcast.h"
 #include "display.h"
+#include "gdrom/gdrom.h"
 #include "gtkui/gtkui.h"
 
 
@@ -50,6 +51,13 @@ struct main_window_info {
 
 
 /******************** Video window **************************/
+
+#if !(GTK_CHECK_VERSION(2,8,0))
+void gdk_display_warp_pointer (GdkDisplay *display,
+                               GdkScreen  *screen,
+                               gint        x,
+                               gint        y);
+#endif
 
 /**
  * Adjust the mouse pointer so that it appears in the center of the video
@@ -125,7 +133,7 @@ static gboolean on_video_window_mouse_motion( GtkWidget *widget, GdkEventMotion 
     if( win->is_grabbed && 
             (x != win->mouse_x || y != win->mouse_y) ) {
         uint32_t buttons = (event->state >> 8)&0x1F;
-        input_event_mouse( buttons, x - win->mouse_x, y - win->mouse_y );
+        input_event_mouse( buttons, x - win->mouse_x, y - win->mouse_y, FALSE );
         video_window_center_pointer(win);
     }
     return TRUE;
@@ -135,10 +143,12 @@ static gboolean on_video_window_mouse_pressed( GtkWidget *widget, GdkEventButton
                                                gpointer user_data )
 {
     main_window_t win = (main_window_t)user_data;
+    // Get the buttons from the event state, and add the pressed button
+    uint32_t buttons = ((event->state >> 8) & 0x1F) | (1<<(event->button-1));
     if( win->is_grabbed ) {
-        // Get the buttons from the event state, and remove the released button
-        uint32_t buttons = ((event->state >> 8) & 0x1F) | (1<<(event->button-1));
-        input_event_mouse( buttons, 0, 0 );
+        input_event_mouse( buttons, 0, 0, FALSE );
+    } else {
+        input_event_mouse( buttons, (int)event->x, (int)event->y, TRUE );
     }
     return TRUE;
 }
@@ -147,13 +157,15 @@ static gboolean on_video_window_mouse_released( GtkWidget *widget, GdkEventButto
                                                 gpointer user_data )
 {
     main_window_t win = (main_window_t)user_data;
+    // Get the buttons from the event state, and remove the released button
+    uint32_t buttons = ((event->state >> 8) & 0x1F) & (~(1<<(event->button-1)));
     if( win->is_grabbed ) {
-        // Get the buttons from the event state, and remove the released button
-        uint32_t buttons = ((event->state >> 8) & 0x1F) & (~(1<<(event->button-1)));
-        input_event_mouse( buttons, 0, 0 );
+        input_event_mouse( buttons, 0, 0, FALSE );
     } else if( win->use_grab) {
         video_window_grab_display(win);
-    }
+    } else {
+        input_event_mouse( buttons, (int)event->x, (int)event->y, TRUE );
+    }        
     return TRUE;
 }
 

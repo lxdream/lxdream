@@ -84,24 +84,26 @@ maple_device_t mouse_clone( maple_device_t srcdevice )
     return MAPLE_DEVICE(dev);
 }
 
-void mouse_input_callback( void *mdev, uint32_t buttons, int32_t x, int32_t y )
+void mouse_input_callback( void *mdev, uint32_t buttons, int32_t x, int32_t y, gboolean absolute )
 {
     mouse_device_t dev = (mouse_device_t)mdev;
-    dev->buttons = 0xFF;
-    if( buttons & 0x01 ) {
-        dev->buttons &= ~BUTTON_LEFT;
+    if( !absolute ) {
+        dev->buttons = 0xFF;
+        if( buttons & 0x01 ) {
+            dev->buttons &= ~BUTTON_LEFT;
+        }
+        if( buttons & 0x02 ) {
+            dev->buttons &= ~BUTTON_MIDDLE;
+        } 
+        if( buttons & 0x04 ) {
+            dev->buttons &= ~BUTTON_RIGHT;
+        }
+        if( buttons & 0x08 ) {
+            dev->buttons &= ~BUTTON_THUMB;
+        }
+        dev->axis[0] += x;
+        dev->axis[1] += y;
     }
-    if( buttons & 0x02 ) {
-        dev->buttons &= ~BUTTON_MIDDLE;
-    } 
-    if( buttons & 0x04 ) {
-        dev->buttons &= ~BUTTON_RIGHT;
-    }
-    if( buttons & 0x08 ) {
-        dev->buttons &= ~BUTTON_THUMB;
-    }
-    dev->axis[0] += x;
-    dev->axis[1] += y;
 }
 
 void mouse_attach( maple_device_t dev )

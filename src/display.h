@@ -224,8 +224,10 @@ typedef void (*input_key_callback_t)( void *data, uint32_t value, uint32_t press
  * (in absolute mode).
  * @param y Vertical movement since the last invocation (in relative mode) or window position
  * (in absolute mode).
+ * @param absolute If TRUE, x and y are the current window coordinates 
+ *  of the mouse cursor. Otherwise, x and y are deltas from the previous mouse position.
  */
-typedef void (*input_mouse_callback_t)( void *data, uint32_t buttons, int32_t x, int32_t y );
+typedef void (*input_mouse_callback_t)( void *data, uint32_t buttons, int32_t x, int32_t y, gboolean absolute );
 
 gboolean input_register_key( const gchar *keysym, input_key_callback_t callback,
                              void *data, uint32_t value );
@@ -323,7 +325,16 @@ void input_event_keydown( input_driver_t input, uint16_t keycode, uint32_t press
 
 void input_event_keyup( input_driver_t input, uint16_t keycode, uint32_t pressure );
 
-void input_event_mouse( uint32_t buttons, int32_t x_axis, int32_t y_axis );
+/**
+ * Receive an input mouse event. Normally these should be absolute events when
+ * the mouse is not grabbed, and relative when it is.
+ * @param buttons a bitmask of buttons currently held now (bit 0 = button 1, bit 1 = button 2, etc)
+ * @param x_axis The relative or absolute position of the mouse cursor on the X axis
+ * @param y_axis The relative or absolute position of the mouse cursor on the Y axis
+ * @param absolute If TRUE, x_axis and y_axis are the current window coordinates 
+ *  of the mouse cursor. Otherwise, x_axis and y_axis are deltas from the previous mouse position.
+ */
+void input_event_mouse( uint32_t buttons, int32_t x_axis, int32_t y_axis, gboolean absolute );
 
 /**
  * Given a keycode and the originating input driver, return the corresponding 
