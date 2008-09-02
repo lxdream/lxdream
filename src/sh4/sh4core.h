@@ -161,6 +161,11 @@ void TMU_run_slice( uint32_t );
 void TMU_save_state( FILE * );
 int TMU_load_state( FILE * );
 void TMU_update_clocks( void );
+void PMM_reset( void );
+void PMM_write_control( int, uint32_t );
+void PMM_save_state( FILE * );
+int PMM_load_state( FILE * );
+uint32_t PMM_run_slice( uint32_t );
 uint32_t sh4_translate_run_slice(uint32_t);
 uint32_t sh4_emulate_run_slice(uint32_t);
 

@@ -118,6 +118,7 @@ void sh4_reset(void)
     CPG_reset();
     INTC_reset();
     MMU_reset();
+    PMM_reset();
     TMU_reset();
     SCIF_reset();
 
@@ -156,6 +157,7 @@ uint32_t sh4_run_slice( uint32_t nanosecs )
         if( sh4r.sh4_state != SH4_STATE_STANDBY ) {
             TMU_run_slice( sh4r.slice_cycle );
             SCIF_run_slice( sh4r.slice_cycle );
+            PMM_run_slice( sh4r.slice_cycle );
             dreamcast_stop();
             return sh4r.slice_cycle;
         }
@@ -193,6 +195,7 @@ uint32_t sh4_run_slice( uint32_t nanosecs )
     if( sh4r.sh4_state != SH4_STATE_STANDBY ) {
         TMU_run_slice( nanosecs );
         SCIF_run_slice( nanosecs );
+        PMM_run_slice( sh4r.slice_cycle );
     }
     return nanosecs;   
 }
@@ -233,6 +236,7 @@ void sh4_save_state( FILE *f )
 
     fwrite( &sh4r, sizeof(sh4r), 1, f );
     MMU_save_state( f );
+    PMM_save_state( f );
     INTC_save_state( f );
     TMU_save_state( f );
     SCIF_save_state( f );
@@ -245,6 +249,7 @@ int sh4_load_state( FILE * f )
     }
     fread( &sh4r, sizeof(sh4r), 1, f );
     MMU_load_state( f );
+    PMM_load_state( f );
     INTC_load_state( f );
     TMU_load_state( f );
     return SCIF_load_state( f );
@@ -458,6 +463,7 @@ void sh4_sleep(void)
         /* Bring all running peripheral modules up to date, and then halt them. */
         TMU_run_slice( sh4r.slice_cycle );
         SCIF_run_slice( sh4r.slice_cycle );
+        PMM_run_slice( sh4r.slice_cycle );
     } else {
         if( MMIO_READ( CPG, STBCR2 ) & 0x80 ) {
             sh4r.sh4_state = SH4_STATE_DEEP_SLEEP;

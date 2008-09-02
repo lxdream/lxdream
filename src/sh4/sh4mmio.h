@@ -229,6 +229,7 @@ MMIO_REGION_LIST_END
 #define PMCR_PMCLR 0x2000
 #define PMCR_PMST  0x4000
 #define PMCR_PMEN  0x8000
+#define PMCR_RUNNING (PMCR_PMST|PMCR_PMEN)
 
 /* MMU functions */
 void mmu_init(void);
