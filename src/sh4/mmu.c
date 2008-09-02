@@ -192,10 +192,12 @@ void mmio_region_MMU_write( uint32_t reg, uint32_t val )
     	val &= 0x0000001C;
     	break;
     case PMCR1:
+        PMM_write_control(0, val);
+        val &= 0x0000C13F;
+        break;
     case PMCR2:
-        if( val != 0 ) {
-            WARN( "Performance counters not implemented" );
-        }
+        PMM_write_control(1, val);
+        val &= 0x0000C13F;
         break;
     default:
         break;
@@ -964,19 +966,3 @@ gboolean sh4_flush_store_queue( sh4addr_t addr )
     return TRUE;
 }
 
-/********************************* PMM *************************************/
-
-/**
- * Side note - this is here (rather than in sh4mmio.c) as the control registers
- * are part of the MMU block, and it seems simplest to keep it all together.
- */
-
-int32_t mmio_region_PMM_read( uint32_t reg )
-{
-    return MMIO_READ( PMM, reg );
-}
-
-void mmio_region_PMM_write( uint32_t reg, uint32_t val )
-{
-    /* Read-only */
-}
