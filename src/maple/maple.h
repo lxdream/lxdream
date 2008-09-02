@@ -56,6 +56,10 @@ extern "C" {
 #define MAPLE_FUNC_PURU_PURU  0x00010000
 #define MAPLE_FUNC_MOUSE      0x00020000
 
+#define MAPLE_GRAB_DONTCARE   0
+#define MAPLE_GRAB_YES        1
+#define MAPLE_GRAB_NO         2
+    
 #define MAPLE_DEVICE_TAG 0x4D41504C
 #define MAPLE_DEVICE(x) ((maple_device_t)x)
 
@@ -73,6 +77,7 @@ struct maple_device_class {
 struct maple_device {
     uint32_t _tag;
     maple_device_class_t device_class;
+    int grab_mode;
     unsigned char ident[112];
     unsigned char version[80];
     lxdream_config_entry_t (*get_config)(struct maple_device *dev);
@@ -109,6 +114,7 @@ void maple_attach_device( maple_device_t dev, unsigned int port, unsigned int pe
 void maple_detach_device( unsigned int port, unsigned int periph );
 void maple_detach_all( );
 void maple_reattach_all( );
+gboolean maple_should_grab();
 
 /**
  * Default destroy implementation that just frees the dev memory.
