@@ -104,7 +104,7 @@ am__lxdream_SOURCES_DIST = main.c version.c config.c config.h \
 	sh4/dmac.c sh4/mmu.c sh4/sh4core.c sh4/sh4core.h sh4/sh4dasm.c \
 	sh4/sh4dasm.h sh4/sh4mmio.c sh4/sh4mmio.h sh4/scif.c \
 	sh4/sh4stat.c sh4/sh4stat.h sh4/xltcache.c sh4/xltcache.h \
-	sh4/sh4.h sh4/dmac.h aica/armcore.c aica/armcore.h \
+	sh4/sh4.h sh4/dmac.h sh4/pmm.c aica/armcore.c aica/armcore.h \
 	aica/armdasm.c aica/armdasm.h aica/armmem.c aica/aica.c \
 	aica/aica.h aica/audio.c aica/audio.h pvr2/pvr2.c pvr2/pvr2.h \
 	pvr2/pvr2mem.c pvr2/pvr2mmio.h pvr2/tacore.c pvr2/rendsort.c \
@@ -168,21 +168,22 @@ am_lxdream_OBJECTS = main.$(OBJEXT) version.$(OBJEXT) config.$(OBJEXT) \
 	intc.$(OBJEXT) sh4mem.$(OBJEXT) timer.$(OBJEXT) dmac.$(OBJEXT) \
 	mmu.$(OBJEXT) sh4core.$(OBJEXT) sh4dasm.$(OBJEXT) \
 	sh4mmio.$(OBJEXT) scif.$(OBJEXT) sh4stat.$(OBJEXT) \
-	xltcache.$(OBJEXT) armcore.$(OBJEXT) armdasm.$(OBJEXT) \
-	armmem.$(OBJEXT) aica.$(OBJEXT) audio.$(OBJEXT) pvr2.$(OBJEXT) \
-	pvr2mem.$(OBJEXT) tacore.$(OBJEXT) rendsort.$(OBJEXT) \
-	texcache.$(OBJEXT) yuv.$(OBJEXT) rendsave.$(OBJEXT) \
-	scene.$(OBJEXT) gl_sl.$(OBJEXT) gl_slsrc.$(OBJEXT) \
-	glutil.$(OBJEXT) glrender.$(OBJEXT) maple.$(OBJEXT) \
-	controller.$(OBJEXT) kbd.$(OBJEXT) mouse.$(OBJEXT) \
-	loader.$(OBJEXT) bootstrap.$(OBJEXT) util.$(OBJEXT) \
-	gdlist.$(OBJEXT) display.$(OBJEXT) audio_null.$(OBJEXT) \
-	video_null.$(OBJEXT) video_gl.$(OBJEXT) gl_fbo.$(OBJEXT) \
-	$(am__objects_1) $(am__objects_2) $(am__objects_3) \
-	$(am__objects_4) $(am__objects_5) $(am__objects_6) \
-	$(am__objects_7) $(am__objects_8) $(am__objects_9) \
-	$(am__objects_10) $(am__objects_11) $(am__objects_12) \
-	$(am__objects_13) $(am__objects_14)
+	xltcache.$(OBJEXT) pmm.$(OBJEXT) armcore.$(OBJEXT) \
+	armdasm.$(OBJEXT) armmem.$(OBJEXT) aica.$(OBJEXT) \
+	audio.$(OBJEXT) pvr2.$(OBJEXT) pvr2mem.$(OBJEXT) \
+	tacore.$(OBJEXT) rendsort.$(OBJEXT) texcache.$(OBJEXT) \
+	yuv.$(OBJEXT) rendsave.$(OBJEXT) scene.$(OBJEXT) \
+	gl_sl.$(OBJEXT) gl_slsrc.$(OBJEXT) glutil.$(OBJEXT) \
+	glrender.$(OBJEXT) maple.$(OBJEXT) controller.$(OBJEXT) \
+	kbd.$(OBJEXT) mouse.$(OBJEXT) loader.$(OBJEXT) \
+	bootstrap.$(OBJEXT) util.$(OBJEXT) gdlist.$(OBJEXT) \
+	display.$(OBJEXT) audio_null.$(OBJEXT) video_null.$(OBJEXT) \
+	video_gl.$(OBJEXT) gl_fbo.$(OBJEXT) $(am__objects_1) \
+	$(am__objects_2) $(am__objects_3) $(am__objects_4) \
+	$(am__objects_5) $(am__objects_6) $(am__objects_7) \
+	$(am__objects_8) $(am__objects_9) $(am__objects_10) \
+	$(am__objects_11) $(am__objects_12) $(am__objects_13) \
+	$(am__objects_14)
 lxdream_OBJECTS = $(am_lxdream_OBJECTS)
 lxdream_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am__test_testsh4x86_SOURCES_DIST = test/testsh4x86.c x86dasm/x86dasm.c \
@@ -410,7 +411,7 @@ lxdream_SOURCES = main.c version.c config.c config.h lxdream.h dream.h \
 	sh4/timer.c sh4/dmac.c sh4/mmu.c sh4/sh4core.c sh4/sh4core.h \
 	sh4/sh4dasm.c sh4/sh4dasm.h sh4/sh4mmio.c sh4/sh4mmio.h \
 	sh4/scif.c sh4/sh4stat.c sh4/sh4stat.h sh4/xltcache.c \
-	sh4/xltcache.h sh4/sh4.h sh4/dmac.h aica/armcore.c \
+	sh4/xltcache.h sh4/sh4.h sh4/dmac.h sh4/pmm.c aica/armcore.c \
 	aica/armcore.h aica/armdasm.c aica/armdasm.h aica/armmem.c \
 	aica/aica.c aica/aica.h aica/audio.c aica/audio.h pvr2/pvr2.c \
 	pvr2/pvr2.h pvr2/pvr2mem.c pvr2/pvr2mmio.h pvr2/tacore.c \
@@ -597,6 +598,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mouse.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nrg.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/osx_iokit.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pmm.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pvr2.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pvr2mem.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rendsave.Po@am__quote@
@@ -980,6 +982,20 @@ xltcache.obj: sh4/xltcache.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='sh4/xltcache.c' object='xltcache.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o xltcache.obj `if test -f 'sh4/xltcache.c'; then $(CYGPATH_W) 'sh4/xltcache.c'; else $(CYGPATH_W) '$(srcdir)/sh4/xltcache.c'; fi`
+
+pmm.o: sh4/pmm.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT pmm.o -MD -MP -MF "$(DEPDIR)/pmm.Tpo" -c -o pmm.o `test -f 'sh4/pmm.c' || echo '$(srcdir)/'`sh4/pmm.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/pmm.Tpo" "$(DEPDIR)/pmm.Po"; else rm -f "$(DEPDIR)/pmm.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='sh4/pmm.c' object='pmm.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o pmm.o `test -f 'sh4/pmm.c' || echo '$(srcdir)/'`sh4/pmm.c
+
+pmm.obj: sh4/pmm.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT pmm.obj -MD -MP -MF "$(DEPDIR)/pmm.Tpo" -c -o pmm.obj `if test -f 'sh4/pmm.c'; then $(CYGPATH_W) 'sh4/pmm.c'; else $(CYGPATH_W) '$(srcdir)/sh4/pmm.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/pmm.Tpo" "$(DEPDIR)/pmm.Po"; else rm -f "$(DEPDIR)/pmm.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='sh4/pmm.c' object='pmm.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o pmm.obj `if test -f 'sh4/pmm.c'; then $(CYGPATH_W) 'sh4/pmm.c'; else $(CYGPATH_W) '$(srcdir)/sh4/pmm.c'; fi`
 
 armcore.o: aica/armcore.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT armcore.o -MD -MP -MF "$(DEPDIR)/armcore.Tpo" -c -o armcore.o `test -f 'aica/armcore.c' || echo '$(srcdir)/'`aica/armcore.c; \
