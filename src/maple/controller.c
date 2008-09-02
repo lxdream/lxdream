@@ -45,7 +45,8 @@ typedef struct controller_device {
 struct maple_device_class controller_class = { "Sega Controller", controller_new };
 
 static struct controller_device base_controller = {
-        { MAPLE_DEVICE_TAG, &controller_class, CONTROLLER_IDENT, CONTROLLER_VERSION, 
+        { MAPLE_DEVICE_TAG, &controller_class, MAPLE_GRAB_DONTCARE,
+          CONTROLLER_IDENT, CONTROLLER_VERSION, 
           controller_get_config, controller_set_config_value, 
           controller_attach, controller_detach, controller_destroy,
           controller_clone, NULL, NULL, controller_get_cond, NULL, NULL, NULL },

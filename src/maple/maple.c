@@ -317,7 +317,8 @@ void maple_detach_all() {
     }
 }
 
-void maple_reattach_all() {
+void maple_reattach_all() 
+{
     int i, j;
     for( i=0; i<4; i++ ) {
         for( j=0; j<6; j++ ) {
@@ -330,6 +331,23 @@ void maple_reattach_all() {
             }
         }
     }
+}
+
+gboolean maple_should_grab()
+{
+    int mode = MAPLE_GRAB_DONTCARE;
+    int i,j;
+    for( i=0; i<4; i++ ) {
+        for( j=0; j<6; j++ ) {
+            if( maple_devices[i][j] != NULL ) {
+                maple_device_t dev = maple_devices[i][j];
+                if( dev->grab_mode > mode ) {
+                    mode = dev->grab_mode;
+                }
+            }
+        }
+    }
+    return mode == MAPLE_GRAB_YES;
 }
 
 void maple_set_device_config_value( maple_device_t dev, unsigned int key, const gchar *value )

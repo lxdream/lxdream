@@ -54,7 +54,8 @@ typedef struct keyboard_device {
 struct maple_device_class keyboard_class = { "Sega Keyboard", keyboard_new };
 
 static struct keyboard_device base_keyboard = {
-        { MAPLE_DEVICE_TAG, &keyboard_class, KEYBOARD_IDENT, KEYBOARD_VERSION, 
+        { MAPLE_DEVICE_TAG, &keyboard_class, MAPLE_GRAB_DONTCARE,
+                KEYBOARD_IDENT, KEYBOARD_VERSION, 
                 NULL, NULL, keyboard_attach, keyboard_detach, maple_default_destroy,
                 keyboard_clone, NULL, NULL, keyboard_get_cond, NULL, NULL, NULL },
                 {0,0,0,0,0,0,0,0}, 
