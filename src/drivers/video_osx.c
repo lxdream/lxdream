@@ -95,15 +95,17 @@ int video_height = 480;
     }
     return nil;
 }
-- (void)requestGrab
+- (BOOL)requestGrab
 {
     if( delegate && [delegate respondsToSelector: @selector(viewRequestedGrab:)] )
-        [delegate performSelector: @selector(viewRequestedGrab:) withObject: self];
+        return [delegate performSelector: @selector(viewRequestedGrab:) withObject: self] != nil;
+    return NO;
 }
-- (void)requestUngrab
+- (BOOL)requestUngrab
 {
     if( delegate && [delegate respondsToSelector: @selector(viewRequestedUngrab:)] )
-        [delegate performSelector: @selector(viewRequestedUngrab:) withObject: self];
+        return [delegate performSelector: @selector(viewRequestedUngrab:) withObject: self] != nil;
+    return NO;
 }
 - (BOOL)isOpaque
 {
@@ -153,63 +155,73 @@ int video_height = 480;
         flagsMask[keycode] = 0;
     }
 }
+- (void)emitButtonEvent: (NSEvent *)event buttons: (int)buttons
+{
+    if( isGrabbed ) {
+        input_event_mouse( buttons, 0, 0, FALSE );
+    } else {
+        NSPoint pt = [event locationInWindow];
+        input_event_mouse( buttonMask, (int)pt.x, (int)pt.y, TRUE );
+    }
+}
+
 - (void)mouseDown: (NSEvent *) event
 {
-    if( isGrabbed ) { 
-        buttonMask |= 1;
-        input_event_mouse( buttonMask, 0, 0 );
-    } else {
-        [self requestGrab];
+    buttonMask |= 1;
+    // If using grab but not grabbed yet, the first click should be consumed
+    // by the grabber. In all other circumstances we process normally.
+    if( isGrabbed || ![self requestGrab] ) {
+        [self emitButtonEvent: event buttons: buttonMask];
     }
 }
 - (void)mouseUp: (NSEvent *)event
 {
     buttonMask &= ~1;
-    input_event_mouse( buttonMask, 0, 0 );
+    [self emitButtonEvent: event buttons: buttonMask];
 }
 
 - (void)rightMouseDown: (NSEvent *) event
 {
     buttonMask |= 2;
-    input_event_mouse( buttonMask, 0, 0 );
+    [self emitButtonEvent: event buttons: buttonMask];
 }
 - (void)rightMouseUp: (NSEvent *)event
 {
     buttonMask &= ~2;
-    input_event_mouse( buttonMask, 0, 0 );
+    [self emitButtonEvent: event buttons: buttonMask];
 }
 - (void)otherMouseDown: (NSEvent *) event
 {
     buttonMask |= (1<< [event buttonNumber] );
-    input_event_mouse( buttonMask, 0, 0 );
+    [self emitButtonEvent: event buttons: buttonMask];
 }
 - (void)otherMouseUp: (NSEvent *) event
 {
     buttonMask &= ~(1<< [event buttonNumber] );
-    input_event_mouse( buttonMask, 0, 0 );
+    [self emitButtonEvent: event buttons: buttonMask];
 }
 - (void)mouseMoved: (NSEvent *) event
 {
     if( isGrabbed ) {
-        input_event_mouse( buttonMask, [event deltaX] * MOUSE_X_SCALE, [event deltaY] * MOUSE_Y_SCALE );
+        input_event_mouse( buttonMask, [event deltaX] * MOUSE_X_SCALE, [event deltaY] * MOUSE_Y_SCALE, FALSE );
     }
 }
 - (void)mouseDragged: (NSEvent *) event
 {
     if( isGrabbed ) {
-        input_event_mouse( buttonMask, [event deltaX] * MOUSE_X_SCALE, [event deltaY] * MOUSE_Y_SCALE );
+        input_event_mouse( buttonMask, [event deltaX] * MOUSE_X_SCALE, [event deltaY] * MOUSE_Y_SCALE, FALSE );
     }
 }
 - (void)rightMouseDragged: (NSEvent *) event
 {
     if( isGrabbed ) {
-        input_event_mouse( buttonMask, [event deltaX] * MOUSE_X_SCALE, [event deltaY] * MOUSE_Y_SCALE );
+        input_event_mouse( buttonMask, [event deltaX] * MOUSE_X_SCALE, [event deltaY] * MOUSE_Y_SCALE, FALSE );
     }
 }
 - (void)otherMouseDragged: (NSEvent *) event
 {
     if( isGrabbed ) {
-        input_event_mouse( buttonMask, [event deltaX] * MOUSE_X_SCALE, [event deltaY] * MOUSE_Y_SCALE );
+        input_event_mouse( buttonMask, [event deltaX] * MOUSE_X_SCALE, [event deltaY] * MOUSE_Y_SCALE, FALSE );
     }
 }
 

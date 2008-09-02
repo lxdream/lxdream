@@ -132,6 +132,7 @@ willBeInsertedIntoToolbar:(BOOL)flag
                  backing: NSBackingStoreBuffered defer: NO ] == nil ) {
         return nil;
     } else {
+        useGrab = NO;
         isGrabbed = NO;
         video = (LxdreamVideoView *)video_osx_create_drawable();
         [video setFrameOrigin: NSMakePoint(0.0,STATUSBAR_HEIGHT)];
@@ -222,13 +223,27 @@ willBeInsertedIntoToolbar:(BOOL)flag
         [video setIsGrabbed: isGrabbed];
     }
 }
-- (void)viewRequestedGrab: (id)sender
+- (void)setUseGrab:(BOOL)grab
 {
-    [self setIsGrabbed: YES];
+    if( grab != useGrab ) {
+        if( !grab && isGrabbed ) {
+            [self setIsGrabbed: NO];
+        }
+        useGrab = grab;
+    }
 }
-- (void)viewRequestedUngrab: (id)sender
+
+- (id)viewRequestedGrab: (id)sender
+{
+    if( useGrab ) {
+        [self setIsGrabbed: YES];
+    }
+    return useGrab ? self : nil;
+}
+- (id)viewRequestedUngrab: (id)sender
 {
     [self setIsGrabbed: NO];
+    return useGrab ? self : nil;
 }
 @end
 

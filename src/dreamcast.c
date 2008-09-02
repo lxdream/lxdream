@@ -170,6 +170,10 @@ void dreamcast_run( void )
                 modules[i]->start();
         }
     }
+    
+    if( maple_should_grab() ) {
+        gui_set_use_grab(TRUE);
+    }
 
     dreamcast_state = STATE_RUNNING;
 
@@ -203,6 +207,8 @@ void dreamcast_run( void )
         }
     }
 
+    gui_set_use_grab(FALSE);
+    
     for( i=0; i<num_modules; i++ ) {
         if( modules[i]->stop != NULL )
             modules[i]->stop();

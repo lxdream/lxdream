@@ -198,6 +198,7 @@ gboolean gui_parse_cmdline( int *argc, char **argv[] )
 gboolean gtk_gui_disc_changed( gdrom_disc_t disc, const gchar *disc_name, void *ptr )
 {
     main_window_update_title( main_win );
+    return TRUE;
 }
 
 gboolean gui_init( gboolean withDebug )
@@ -232,7 +233,6 @@ gboolean gui_init( gboolean withDebug )
         GtkWidget *gdrommenu = gdrom_menu_new();
         gtk_menu_item_set_submenu( GTK_MENU_ITEM(gdrommenuitem), gdrommenu );
         main_win = main_window_new( lxdream_package_name, menubar, toolbar, accel_group  );
-        main_window_set_use_grab(main_win, TRUE);
         if( withDebug ) {
             gtk_gui_show_debugger();
         }
@@ -259,6 +259,11 @@ void gui_update_state(void)
 {
     gtk_gui_update();
 }
+
+void gui_set_use_grab( gboolean flag )
+{
+    main_window_set_use_grab(main_win, TRUE);
+}    
 
 gboolean gui_error_dialog( const char *msg, ... )
 {

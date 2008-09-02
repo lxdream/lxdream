@@ -61,6 +61,7 @@ NSTextField *cocoa_gui_add_label(NSView *parent, NSString *title, NSRect frame);
     LxdreamVideoView *video;
     NSTextField *status;
     BOOL isGrabbed;
+    BOOL useGrab;
 }
 - (id)initWithContentRect:(NSRect)contentRect;
 - (void)setStatusText:(const gchar *)text;
@@ -68,6 +69,7 @@ NSTextField *cocoa_gui_add_label(NSView *parent, NSString *title, NSRect frame);
 - (void)setRunning:(BOOL)isRunning;
 - (BOOL)isGrabbed;
 - (void)setIsGrabbed:(BOOL)grab;
+- (void)setUseGrab: (BOOL)grab;
 @end
 
 @interface LxdreamPrefsPane : NSView

@@ -351,11 +351,11 @@ void input_unregister_mouse_hook( input_mouse_callback_t callback, void *data )
     }
 }
 
-void input_event_mouse( uint32_t buttons, int32_t x, int32_t y )
+void input_event_mouse( uint32_t buttons, int32_t x, int32_t y, gboolean absolute )
 {
     mouse_entry_t ent = mousehooks;
     while( ent != NULL ) {
-        ent->callback(ent->data, buttons, x, y);
+        ent->callback(ent->data, buttons, x, y, absolute);
         ent = ent->next;
     }
 }
