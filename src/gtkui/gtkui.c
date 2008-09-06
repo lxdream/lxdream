@@ -262,7 +262,9 @@ void gui_update_state(void)
 
 void gui_set_use_grab( gboolean flag )
 {
-    main_window_set_use_grab(main_win, TRUE);
+    if( main_win != NULL ) {
+        main_window_set_use_grab(main_win, TRUE);
+    }
 }    
 
 gboolean gui_error_dialog( const char *msg, ... )
