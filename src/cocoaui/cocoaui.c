@@ -282,6 +282,22 @@ static void cocoa_gui_create_menu(void)
 {
     gdrom_list_set_selection( [sender tag] );
 }
+- (BOOL)validateMenuItem: (NSMenuItem *)item
+{
+    if( [item action] == @selector(run_action:) ) {
+        return dreamcast_can_run() ? YES : NO;
+    } else {
+        return YES;
+    }
+}
+- (BOOL)validateToolbarItem: (NSToolbarItem *)item
+{
+    if( [item action] == @selector(run_action:) ) {
+        return dreamcast_can_run() ? YES : NO;
+    } else {
+        return YES;
+    }
+}
 @end
 
 
