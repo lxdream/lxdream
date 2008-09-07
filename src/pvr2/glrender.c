@@ -113,6 +113,7 @@ void pvr2_setup_gl_context()
     glEnableClientState( GL_VERTEX_ARRAY );
     glEnableClientState( GL_TEXTURE_COORD_ARRAY );
     glEnableClientState( GL_SECONDARY_COLOR_ARRAY );
+    glEnableClientState( GL_FOG_COORDINATE_ARRAY_EXT );
 
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     glClearDepth(0);
@@ -181,6 +182,22 @@ void render_set_context( uint32_t *context, int render_mode )
     } else {
         glDisable( GL_TEXTURE_2D );
     }
+    
+    switch( POLY2_FOG_MODE(poly2) ) {
+    case PVR2_POLY_FOG_LOOKUP:
+        glFogfv( GL_FOG_COLOR, pvr2_scene.fog_lut_colour );
+        glEnable( GL_FOG );
+        break;
+    case PVR2_POLY_FOG_VERTEX:
+        if( POLY1_SPECULAR(poly1) ) {
+            glFogfv( GL_FOG_COLOR, pvr2_scene.fog_vert_colour );
+            glEnable( GL_FOG );
+            break;
+        } /* else fallthrough */
+    default:
+        glDisable( GL_FOG );
+    }
+        
 
     glShadeModel( POLY1_SHADE_MODEL(poly1) );
 
@@ -296,7 +313,11 @@ void pvr2_scene_render( render_buffer_t buffer )
     glColorPointer(4, GL_FLOAT, sizeof(struct vertex_struct), &pvr2_scene.vertex_array[0].rgba[0]);
     glTexCoordPointer(2, GL_FLOAT, sizeof(struct vertex_struct), &pvr2_scene.vertex_array[0].u);
     glSecondaryColorPointerEXT(3, GL_FLOAT, sizeof(struct vertex_struct), pvr2_scene.vertex_array[0].offset_rgba );
-
+    glFogCoordPointerEXT(GL_FLOAT, sizeof(struct vertex_struct), &pvr2_scene.vertex_array[0].offset_rgba[3] );
+    glFogi(GL_FOG_COORDINATE_SOURCE_EXT, GL_FOG_COORDINATE_EXT);
+    glFogi(GL_FOG_MODE, GL_LINEAR);
+    glFogf(GL_FOG_START, 0.0);
+    glFogf(GL_FOG_END, 1.0);
     /* Turn on the shaders (if available) */
     glsl_enable_shaders(TRUE);
 

@@ -89,6 +89,7 @@ MMIO_REGION_BEGIN( 0x005F8000, PVR2, "Power VR/2" )
     LONG_PORT( 0x164, TA_LISTBASE, PORT_MRW, 0, "TA Tile list start" )
     LONG_PORT( 0x1A8, PVRUNK7, PORT_MRW, 0, "PVR2 unknown register 7" )
     LONG_PORT( 0x1AC, PVRUNK8, PORT_MRW, 0, "PVR2 unknown register 8" )
+    LONG_PORT( 0x200, RENDER_FOGTABLE, PORT_MRW, 0, "Start of fog table" )
 MMIO_REGION_END
 
 MMIO_REGION_BEGIN( 0x005F9000, PVR2PAL, "Power VR/2 CLUT Palettes" )
