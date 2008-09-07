@@ -2,6 +2,7 @@
  * $Id$
  *
  * Implementation of the standard mouse device
+ * Part No. HKT-4200
  *
  * Copyright (c) 2005 Nathan Keynes.
  *
