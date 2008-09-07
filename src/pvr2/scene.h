@@ -127,6 +127,9 @@ struct pvr2_scene_struct {
     /** Specifies the translucency auto-sort mode for the scene */
     tile_sort_mode_t sort_mode;
 
+    float fog_lut_colour[4];
+    float fog_vert_colour[4];
+    
     /** Pointer to the start of the tile segment list in PVR2 VRAM (32-bit) */
     struct tile_segment *segment_list;
     /** Map from PVR2 polygon address to an element of poly_array. */

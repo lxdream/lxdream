@@ -55,8 +55,15 @@ static float halftofloat( uint16_t half )
     return temp.f;
 }
 
-
-
+static float parse_fog_density( uint32_t value )
+{
+    union {
+        uint32_t i;
+        float f;
+    } u;
+    u.i = (((value+127)&0xFF)<<23)|((value & 0xFF00)<<7);
+    return u.f;
+}
 
 
 struct pvr2_scene_struct pvr2_scene;
@@ -245,7 +252,6 @@ static void pvr2_decode_render_vertex( struct vertex_struct *vert, uint32_t poly
     unpack_bgra(*data.ival++, vert->rgba);
     if( POLY1_SPECULAR(poly1) ) {
         unpack_bgra(*data.ival++, vert->offset_rgba);
-        vert->offset_rgba[3] = 1.0;
     } else {
         vert->offset_rgba[0] = 0.0;
         vert->offset_rgba[1] = 0.0;
@@ -255,7 +261,6 @@ static void pvr2_decode_render_vertex( struct vertex_struct *vert, uint32_t poly
 
     if( force_alpha ) {
         vert->rgba[3] = 1.0;
-        vert->offset_rgba[3] = 1.0;
     }
 }
 
@@ -327,6 +332,61 @@ static void scene_compute_vertexes( struct vertex_struct *result,
             }
         }
     }
+}
+
+static float scene_compute_lut_fog_vertex( float z, float fog_density, float fog_table[][2] )
+{
+    union {
+        uint32_t i;
+        float f;
+    } v;
+    v.f = z * fog_density;
+    if( v.f < 1.0 ) v.f = 1.0;
+    else if( v.f > 255.9999 ) v.f = 255.9999;
+    
+    uint32_t index = ((v.i >> 18) & 0x0F)|((v.i>>19)&0x70);
+    return fog_table[index][0];
+}
+
+/**
+ * Compute the fog coefficients for all polygons using lookup-table fog. It's 
+ * a little more convenient to do this as a separate pass, since we don't have
+ * to worry about computed vertexes.
+ */
+static void scene_compute_lut_fog( )
+{
+    int i,j;
+
+    float fog_density = parse_fog_density(MMIO_READ( PVR2, RENDER_FOGCOEFF ));
+    float fog_table[128][2];
+    
+    /* Parse fog table out into floating-point format */
+    for( i=0; i<128; i++ ) {
+        uint32_t ent = MMIO_READ( PVR2, RENDER_FOGTABLE + (i<<2) );
+        fog_table[i][0] = ((float)(((ent&0x0000FF00)>>8) + 1)) / 256.0;
+        fog_table[i][1] = ((float)((ent&0x000000FF) + 1)) / 256.0;
+    }
+    
+    
+    for( i=0; i<pvr2_scene.poly_count; i++ ) {
+        int mode = POLY2_FOG_MODE(pvr2_scene.poly_array[i].context[1]);
+        if( mode == PVR2_POLY_FOG_LOOKUP ) {
+            uint32_t index = pvr2_scene.poly_array[i].vertex_index;
+            for( j=0; j<=pvr2_scene.poly_array[i].vertex_count; j++ ) {
+                pvr2_scene.vertex_array[index+j].offset_rgba[3] = 
+                    scene_compute_lut_fog_vertex( pvr2_scene.vertex_array[index+j].z, fog_density, fog_table );
+            }
+        } else if( mode == PVR2_POLY_FOG_LOOKUP2 ) {
+            uint32_t index = pvr2_scene.poly_array[i].vertex_index;
+            for( j=0; j<=pvr2_scene.poly_array[i].vertex_count; j++ ) {
+                pvr2_scene.vertex_array[index+j].rgba[0] = pvr2_scene.fog_lut_colour[0];
+                pvr2_scene.vertex_array[index+j].rgba[1] = pvr2_scene.fog_lut_colour[1];
+                pvr2_scene.vertex_array[index+j].rgba[2] = pvr2_scene.fog_lut_colour[2];
+                pvr2_scene.vertex_array[index+j].rgba[3] = 
+                    scene_compute_lut_fog_vertex( pvr2_scene.vertex_array[index+j].z, fog_density, fog_table );
+            }
+        }
+    }    
 }
 
 static void scene_add_vertexes( pvraddr_t poly_idx, int vertex_length,
@@ -628,6 +688,12 @@ void pvr2_scene_read( void )
     	 */
     	pvr2_scene.bounds[1] *= 2;
     }
+    
+    uint32_t fog_col = MMIO_READ( PVR2, RENDER_FOGTBLCOL );
+    unpack_bgra( fog_col, pvr2_scene.fog_lut_colour );
+    fog_col = MMIO_READ( PVR2, RENDER_FOGVRTCOL );
+    unpack_bgra( fog_col, pvr2_scene.fog_vert_colour );
+    
     uint32_t *tilebuffer = (uint32_t *)(video_base + MMIO_READ( PVR2, RENDER_TILEBASE ));
     uint32_t *segment = tilebuffer;
     pvr2_scene.segment_list = (struct tile_segment *)tilebuffer;
@@ -688,6 +754,7 @@ void pvr2_scene_read( void )
     } while( (control & SEGMENT_END) == 0 );
 
     scene_extract_background();
+    scene_compute_lut_fog();
 
     vertex_buffer_unmap();
 }
