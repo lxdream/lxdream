@@ -2,6 +2,7 @@
  * $Id$
  *
  * Implements the standard dreamcast keyboard
+ * Part No. HKT-7620
  *
  * Copyright (c) 2005 Nathan Keynes.
  *

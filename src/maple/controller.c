@@ -2,6 +2,7 @@
  * $Id$
  *
  * Implements the standard dreamcast controller
+ * Part No. HKT-7700
  *
  * Copyright (c) 2005 Nathan Keynes.
  *
