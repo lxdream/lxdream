@@ -60,7 +60,14 @@ static void config_keysym_hook( void *data, const gchar *keysym )
 static gboolean config_key_buttonpress( GtkWidget *widget, GdkEventButton *event, gpointer user_data )
 {
     gboolean keypress_mode = GPOINTER_TO_INT(g_object_get_data( G_OBJECT(widget), "keypress_mode"));
-    if( !keypress_mode ) {
+    if( keypress_mode ) {
+        gchar *keysym = input_keycode_to_keysym( &system_mouse_driver, event->button);
+        if( keysym != NULL ) {
+            config_keysym_hook( widget, keysym );
+            g_free(keysym);
+        }
+        return TRUE;
+    } else {
         gtk_entry_set_text( GTK_ENTRY(widget), _("<press key>") );
         g_object_set_data( G_OBJECT(widget), "keypress_mode", GINT_TO_POINTER(TRUE) );
         input_set_keysym_hook(config_keysym_hook, widget);

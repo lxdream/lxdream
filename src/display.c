@@ -94,7 +94,6 @@ struct colour_format colour_formats[] = {
  */
 static struct keymap_entry *root_keymap[65535];
 static struct keymap_entry *keyhooks = NULL;
-static struct mouse_entry *mousehooks = NULL;
 static gboolean display_focused = TRUE;
 static GList *input_drivers= NULL;
 static display_keysym_callback_t display_keysym_hook = NULL;
@@ -169,6 +168,7 @@ static struct keymap_entry **input_entry_from_keysym( const gchar *keysym )
             return NULL;
         }
         return &root_keymap[keycode-1];
+
     } else {
         char *id = g_strstrip(strv[0]);
         GList *ptr;
@@ -284,7 +284,7 @@ void input_unregister_key( const gchar *keysym, input_key_callback_t callback,
     g_strfreev(strv);
 }
 
-gboolean input_register_hook( input_key_callback_t callback,
+gboolean input_register_keyboard_hook( input_key_callback_t callback,
                               void *data )
 {
     keymap_entry_t key = malloc( sizeof( struct keymap_entry ) );
@@ -296,7 +296,7 @@ gboolean input_register_hook( input_key_callback_t callback,
     return TRUE;
 }
 
-void input_unregister_hook( input_key_callback_t callback,
+void input_unregister_keyboard_hook( input_key_callback_t callback,
                             void *data )
 {
     keymap_entry_t key = keyhooks;
@@ -317,6 +317,97 @@ void input_unregister_hook( input_key_callback_t callback,
         }
     }
 }
+
+gboolean input_is_key_valid( const gchar *keysym )
+{
+    keymap_entry_t *ptr = input_entry_from_keysym(keysym);
+    return ptr != NULL;
+}
+
+gboolean input_is_key_registered( const gchar *keysym )
+{
+    keymap_entry_t *ptr = input_entry_from_keysym(keysym);
+    return ptr != NULL && *ptr != NULL;
+}
+
+void input_event_keydown( input_driver_t driver, uint16_t keycode, uint32_t pressure )
+{
+    if( display_focused ) {
+        keymap_entry_t *entryp = input_entry_from_keycode(driver,keycode);
+        if( entryp != NULL && *entryp != NULL ) {
+            (*entryp)->callback( (*entryp)->data, (*entryp)->value, pressure, TRUE );
+        }
+        if( driver == NULL ) {
+            keymap_entry_t key = keyhooks;
+            while( key != NULL ) {
+                key->callback( key->data, keycode, pressure, TRUE );
+                key = key->next;
+            }
+        }
+    }
+    if( display_keysym_hook != NULL ) {
+        gchar *sym = input_keycode_to_keysym( driver, keycode );
+        if( sym != NULL ) {
+            display_keysym_hook(display_keysym_hook_data, sym);
+            g_free(sym);
+        }
+    }
+}
+
+void input_event_keyup( input_driver_t driver, uint16_t keycode, uint32_t pressure )
+{
+    if( display_focused ) {
+        keymap_entry_t *entryp = input_entry_from_keycode(driver,keycode);
+        if( entryp != NULL && *entryp != NULL ) {
+            (*entryp)->callback( (*entryp)->data, (*entryp)->value, pressure, FALSE );
+        }
+
+        if( driver == NULL ) {
+            keymap_entry_t key = keyhooks;
+            while( key != NULL ) {
+                key->callback( key->data, keycode, pressure, FALSE );
+                key = key->next;
+            }
+        }
+    }
+}
+
+uint16_t input_keycode_to_dckeysym( uint16_t keycode )
+{
+    return display_driver->convert_to_dckeysym(keycode);
+}
+
+void input_set_keysym_hook( display_keysym_callback_t hook, void *data )
+{
+    display_keysym_hook = hook;
+    display_keysym_hook_data = data;
+}
+
+/***************** System mouse driver ****************/
+
+static struct keymap_entry *mouse_keymap[MAX_MOUSE_BUTTONS];
+static struct mouse_entry *mousehooks = NULL;
+static uint32_t mouse_x = -1, mouse_y = -1, mouse_buttons = 0;
+
+uint16_t mouse_resolve_keysym( struct input_driver *driver, const gchar *keysym )
+{
+    if( strncasecmp( keysym, "Button", 6 ) == 0 ){
+        unsigned long button = strtoul( keysym+6, NULL, 10 );
+        if( button > MAX_MOUSE_BUTTONS ) {
+            return 0;
+        }
+        return (uint16_t)button;
+    }
+    return 0;
+}
+
+gchar *mouse_get_keysym( struct input_driver *driver, uint16_t keycode )
+{
+    return g_strdup_printf( "Button%d", (keycode) );
+}
+
+struct input_driver system_mouse_driver = { "Mouse", mouse_resolve_keysym, NULL, mouse_get_keysym, NULL };
+
 
 gboolean input_register_mouse_hook( gboolean relative, input_mouse_callback_t callback,
                                     void *data )
@@ -351,7 +442,7 @@ void input_unregister_mouse_hook( input_mouse_callback_t callback, void *data )
     }
 }
 
-void input_event_mouse( uint32_t buttons, int32_t x, int32_t y, gboolean absolute )
+void input_event_run_mouse_hooks( uint32_t buttons, int32_t x, int32_t y, gboolean absolute )
 {
     mouse_entry_t ent = mousehooks;
     while( ent != NULL ) {
@@ -360,60 +451,38 @@ void input_event_mouse( uint32_t buttons, int32_t x, int32_t y, gboolean absolut
     }
 }
 
-gboolean input_is_key_valid( const gchar *keysym )
+void input_event_mousedown( uint16_t button, int32_t x, int32_t y, gboolean absolute )
 {
-    keymap_entry_t *ptr = input_entry_from_keysym(keysym);
-    return ptr != NULL;
-}
-
-gboolean input_is_key_registered( const gchar *keysym )
-{
-    keymap_entry_t *ptr = input_entry_from_keysym(keysym);
-    return ptr != NULL && *ptr != NULL;
-}
-
-void input_event_keydown( input_driver_t driver, uint16_t keycode, uint32_t pressure )
-{
-    if( display_focused ) {
-        keymap_entry_t *entryp = input_entry_from_keycode(driver,keycode);
-        if( entryp != NULL && *entryp != NULL ) {
-            (*entryp)->callback( (*entryp)->data, (*entryp)->value, pressure, TRUE );
-        }
-        keymap_entry_t key = keyhooks;
-        while( key != NULL ) {
-            key->callback( key->data, keycode, pressure, TRUE );
-            key = key->next;
-        }
+    if( absolute ) {
+        mouse_x = x;
+        mouse_y = y;
     }
-    if( display_keysym_hook != NULL ) {
-        gchar *sym = input_keycode_to_keysym( driver, keycode );
-        if( sym != NULL ) {
-            display_keysym_hook(display_keysym_hook_data, sym);
-            g_free(sym);
-        }
-    }
-}
+    mouse_buttons |= (1<<button);
+    input_event_keydown( &system_mouse_driver, button+1, 1 );
+    input_event_run_mouse_hooks( mouse_buttons, x, y, absolute );
+}    
 
-void input_event_keyup( input_driver_t driver, uint16_t keycode, uint32_t pressure )
+void input_event_mouseup( uint16_t button, int32_t x, int32_t y, gboolean absolute )
 {
-    if( display_focused ) {
-        keymap_entry_t *entryp = input_entry_from_keycode(driver,keycode);
-        if( entryp != NULL && *entryp != NULL ) {
-            (*entryp)->callback( (*entryp)->data, (*entryp)->value, pressure, FALSE );
-        }
-
-        keymap_entry_t key = keyhooks;
-        while( key != NULL ) {
-            key->callback( key->data, keycode, pressure, FALSE );
-            key = key->next;
-        }
+    if( absolute ) {
+        mouse_x = x;
+        mouse_y = y;
     }
+    mouse_buttons &= ~(1<<button);
+    input_event_keyup( &system_mouse_driver, button+1, 1 );
+    input_event_run_mouse_hooks( mouse_buttons, x, y, absolute );
 }
 
-uint16_t input_keycode_to_dckeysym( uint16_t keycode )
+void input_event_mousemove( int32_t x, int32_t y, gboolean absolute )
 {
-    return display_driver->convert_to_dckeysym(keycode);
+    if( absolute ) {
+        mouse_x = x;
+        mouse_y = y;
+    }
+    input_event_run_mouse_hooks( mouse_buttons, x, y, absolute );
 }
+
+/************************ Main display driver *************************/
 
 void print_display_drivers( FILE *out )
 {
@@ -450,7 +519,9 @@ gboolean display_set_driver( display_driver_t driver )
     display_driver = driver;
     if( driver->init_driver != NULL )
         rv = driver->init_driver();
-    if( !rv ) {
+    if( rv ) {
+        input_register_device(&system_mouse_driver, MAX_MOUSE_BUTTONS);
+    } else {
         display_driver = NULL;
     }
     return rv;
@@ -459,10 +530,4 @@ gboolean display_set_driver( display_driver_t driver )
 void display_set_focused( gboolean has_focus )
 {
     display_focused = has_focus;
-}
-
-void input_set_keysym_hook( display_keysym_callback_t hook, void *data )
-{
-    display_keysym_hook = hook;
-    display_keysym_hook_data = data;
 }

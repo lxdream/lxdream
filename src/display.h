@@ -213,6 +213,8 @@ extern struct display_driver display_null_driver;
 
 /****************** Input methods **********************/
 
+#define MAX_MOUSE_BUTTONS 32
+
 typedef void (*input_key_callback_t)( void *data, uint32_t value, uint32_t pressure, gboolean isKeyDown );
 
 /**
@@ -236,10 +238,10 @@ void input_unregister_key( const gchar *keysym, input_key_callback_t callback,
                            void *data, uint32_t value );
 
 /**
- * Register a hook to receive all input events
+ * Register a hook to receive all keyboard input events
  */
-gboolean input_register_hook( input_key_callback_t callback, void *data );
-void input_unregister_hook( input_key_callback_t callback, void *data );
+gboolean input_register_keyboard_hook( input_key_callback_t callback, void *data );
+void input_unregister_keyboard_hook( input_key_callback_t callback, void *data );
 
 /**
  * Register a mouse event hook.
@@ -292,6 +294,8 @@ typedef struct input_driver {
 
 } *input_driver_t;       
 
+extern struct input_driver system_mouse_driver;
+
 /**
  * Register a new input driver (which must have a unique name)
  * @param driver the driver to register
@@ -326,15 +330,36 @@ void input_event_keydown( input_driver_t input, uint16_t keycode, uint32_t press
 void input_event_keyup( input_driver_t input, uint16_t keycode, uint32_t pressure );
 
 /**
- * Receive an input mouse event. Normally these should be absolute events when
+ * Receive an input mouse down event. Normally these should be absolute events when
  * the mouse is not grabbed, and relative when it is.
- * @param buttons a bitmask of buttons currently held now (bit 0 = button 1, bit 1 = button 2, etc)
+ * @param button the button pressed, where 0 == first button
  * @param x_axis The relative or absolute position of the mouse cursor on the X axis
  * @param y_axis The relative or absolute position of the mouse cursor on the Y axis
  * @param absolute If TRUE, x_axis and y_axis are the current window coordinates 
  *  of the mouse cursor. Otherwise, x_axis and y_axis are deltas from the previous mouse position.
  */
-void input_event_mouse( uint32_t buttons, int32_t x_axis, int32_t y_axis, gboolean absolute );
+void input_event_mousedown( uint16_t button, int32_t x_axis, int32_t y_axis, gboolean absolute );
+
+/**
+ * Receive an input mouse up event. Normally these should be absolute events when
+ * the mouse is not grabbed, and relative when it is.
+ * @param button the button released, where 0 == first button
+ * @param x_axis The relative or absolute position of the mouse cursor on the X axis
+ * @param y_axis The relative or absolute position of the mouse cursor on the Y axis
+ * @param absolute If TRUE, x_axis and y_axis are the current window coordinates 
+ *  of the mouse cursor. Otherwise, x_axis and y_axis are deltas from the previous mouse position.
+ */
+void input_event_mouseup( uint16_t button, int32_t x_axis, int32_t y_axis, gboolean absolute );
+
+/**
+ * Receive an input mouse motion event. Normally these should be absolute events when
+ * the mouse is not grabbed, and relative when it is.
+ * @param x_axis The relative or absolute position of the mouse cursor on the X axis
+ * @param y_axis The relative or absolute position of the mouse cursor on the Y axis
+ * @param absolute If TRUE, x_axis and y_axis are the current window coordinates 
+ *  of the mouse cursor. Otherwise, x_axis and y_axis are deltas from the previous mouse position.
+ */
+void input_event_mousemove( int32_t x_axis, int32_t y_axis, gboolean absolute );
 
 /**
  * Given a keycode and the originating input driver, return the corresponding 

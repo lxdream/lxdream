@@ -25,6 +25,8 @@
 
 #define MAX_DEVICES 4
 
+#define KEYBINDING_SIZE 110
+
 static void cocoa_config_keysym_hook(void *data, const gchar *keysym);
 
 @interface KeyBindingEditor (Private)
@@ -88,6 +90,14 @@ static void cocoa_config_keysym_hook(void *data, const gchar *keysym);
         [self fireBindingChanged];
     }
 }
+- (void)updateMousesym: (int)button
+{
+    gchar *keysym = input_keycode_to_keysym( &system_mouse_driver, (button+1) );
+    if( keysym != NULL ) {
+        [self updateKeysym: keysym ];
+        g_free(keysym);
+    }
+}
 - (void)keyPressed: (int)keycode
 {
     gchar *keysym = input_keycode_to_keysym(NULL, keycode);
@@ -102,8 +112,24 @@ static void cocoa_config_keysym_hook(void *data, const gchar *keysym);
 }
 - (void)mouseDown: (NSEvent *)event
 {
-    [self setPrimed: YES];
-    [super mouseDown: event];
+    if( isPrimed ) {
+        [self updateMousesym: 0];
+    } else {
+        [self setPrimed: YES];
+        [super mouseDown: event];
+    }
+}
+- (void)rightMouseDown: (NSEvent *)event
+{
+    if( isPrimed ) {
+        [self updateMousesym: 1];
+    }
+}
+- (void)otherMouseDown: (NSEvent *)event
+{
+    if( isPrimed ) {
+        [self updateMousesym: [event buttonNumber]];
+    }
 }
 - (void)keyDown: (NSEvent *) event
 {
@@ -218,7 +244,7 @@ static void cocoa_config_keysym_hook(void *data, const gchar *keysym)
 
             for( count=0; config[count].key != NULL; count++ );
             x = TEXT_GAP;
-            NSSize size = NSMakeSize(85*3+TEXT_GAP*4, count*(TEXT_HEIGHT+TEXT_GAP)+TEXT_GAP);
+            NSSize size = NSMakeSize(85+KEYBINDING_SIZE*2+TEXT_GAP*4, count*(TEXT_HEIGHT+TEXT_GAP)+TEXT_GAP);
             [self setFrameSize: size];
             [self scrollRectToVisible: NSMakeRect(0,0,1,1)]; 
             y = TEXT_GAP;
@@ -227,14 +253,14 @@ static void cocoa_config_keysym_hook(void *data, const gchar *keysym)
                 NSTextField *label = cocoa_gui_add_label(self, NS_(config[i].label), frame);
                 [label setAlignment: NSRightTextAlignment];
 
-                frame = NSMakeRect( x + 85 + TEXT_GAP, y, 85, TEXT_HEIGHT);
+                frame = NSMakeRect( x + 85 + TEXT_GAP, y, KEYBINDING_SIZE, TEXT_HEIGHT);
                 field[i][0] = [[KeyBindingField alloc] initWithFrame: frame];
                 [field[i][0] setAutoresizingMask: (NSViewMinYMargin|NSViewMaxXMargin)];
                 [field[i][0] setTag: i];
                 [field[i][0] setDelegate: self];
                 [self addSubview: field[i][0]];
                 
-                frame = NSMakeRect( x + (85*2) + (TEXT_GAP*2), y, 85, TEXT_HEIGHT);
+                frame = NSMakeRect( x + 85 + KEYBINDING_SIZE + (TEXT_GAP*2), y, KEYBINDING_SIZE, TEXT_HEIGHT);
                 field[i][1] = [[KeyBindingField alloc] initWithFrame: frame];
                 [field[i][1] setAutoresizingMask: (NSViewMinYMargin|NSViewMaxXMargin)];
                 [field[i][1] setTag: i];
