@@ -61,7 +61,7 @@ static struct mouse_device base_mouse = {
         { MAPLE_DEVICE_TAG, &mouse_class, MAPLE_GRAB_YES,
                 MOUSE_IDENT, MOUSE_VERSION, 
                 NULL, NULL, mouse_attach, mouse_detach, maple_default_destroy,
-                mouse_clone, NULL, NULL, mouse_get_cond, NULL, NULL, NULL },
+                mouse_clone, NULL, NULL, mouse_get_cond, NULL, NULL, NULL, NULL, NULL },
                 0, {0,0,0,0,0,0,0,0}, 
 };
 

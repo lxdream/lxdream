@@ -334,6 +334,13 @@ void pvr2_check_palette_changed(void);
 
 int pvr2_render_save_scene( const gchar *filename );
 
+/**
+ * Queue a gun position event to occur at the specified position. Unless
+ * cancelled, when the display reaches the position:
+ *   GUNPOS is updated with the position, and
+ *   EVENT_MAPLE_DMA is fired.
+ */
+void pvr2_queue_gun_event( int xpos, int ypos );
 
 /************************* Rendering support macros **************************/
 #define POLY1_DEPTH_MODE(poly1) ( pvr2_poly_depthmode[(poly1)>>29] )
