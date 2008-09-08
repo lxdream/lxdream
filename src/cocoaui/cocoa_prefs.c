@@ -68,7 +68,7 @@ tooltip: (NSString *)tooltip icon: (NSString *)icon action: (SEL) action;
 
 - (NSView *)createControlsPane
 {
-    NSView *pane = [[NSView alloc] initWithFrame: NSMakeRect(0,0,600,400)];
+    NSView *pane = [[NSView alloc] initWithFrame: NSMakeRect(0,0,640,400)];
     return pane;
 }
 
@@ -184,7 +184,7 @@ willBeInsertedIntoToolbar:(BOOL)flag
 void cocoa_gui_show_preferences() 
 {
     if( prefs_panel == NULL ) {
-        prefs_panel = [[LxdreamPrefsPanel alloc] initWithContentRect: NSMakeRect(0,0,600,400)];
+        prefs_panel = [[LxdreamPrefsPanel alloc] initWithContentRect: NSMakeRect(0,0,640,400)];
     }
     [prefs_panel makeKeyAndOrderFront: prefs_panel];
 }

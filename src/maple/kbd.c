@@ -140,12 +140,12 @@ void keyboard_input_hook( void *mdev, uint32_t keycode, uint32_t pressure, gbool
  */
 void keyboard_attach( maple_device_t mdev )
 {
-    input_register_hook( keyboard_input_hook, mdev );
+    input_register_keyboard_hook( keyboard_input_hook, mdev );
 }
 
 void keyboard_detach( maple_device_t mdev )
 {
-    input_unregister_hook( keyboard_input_hook, mdev );
+    input_unregister_keyboard_hook( keyboard_input_hook, mdev );
 }
 
 

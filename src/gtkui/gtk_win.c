@@ -132,9 +132,10 @@ static gboolean on_video_window_mouse_motion( GtkWidget *widget, GdkEventMotion 
     int32_t y = (int32_t)event->y;
     if( win->is_grabbed && 
             (x != win->mouse_x || y != win->mouse_y) ) {
-        uint32_t buttons = (event->state >> 8)&0x1F;
-        input_event_mouse( buttons, x - win->mouse_x, y - win->mouse_y, FALSE );
+        input_event_mousemove( x - win->mouse_x, y - win->mouse_y, FALSE );
         video_window_center_pointer(win);
+    } else {
+        input_event_mousemove( x, y, TRUE );
     }
     return TRUE;
 }
@@ -143,12 +144,10 @@ static gboolean on_video_window_mouse_pressed( GtkWidget *widget, GdkEventButton
                                                gpointer user_data )
 {
     main_window_t win = (main_window_t)user_data;
-    // Get the buttons from the event state, and add the pressed button
-    uint32_t buttons = ((event->state >> 8) & 0x1F) | (1<<(event->button-1));
     if( win->is_grabbed ) {
-        input_event_mouse( buttons, 0, 0, FALSE );
+        input_event_mousedown( event->button-1, 0, 0, FALSE );
     } else {
-        input_event_mouse( buttons, (int)event->x, (int)event->y, TRUE );
+        input_event_mousedown( event->button-1, (int32_t)event->x, (int32_t)event->y, TRUE );
     }
     return TRUE;
 }
@@ -157,14 +156,12 @@ static gboolean on_video_window_mouse_released( GtkWidget *widget, GdkEventButto
                                                 gpointer user_data )
 {
     main_window_t win = (main_window_t)user_data;
-    // Get the buttons from the event state, and remove the released button
-    uint32_t buttons = ((event->state >> 8) & 0x1F) & (~(1<<(event->button-1)));
     if( win->is_grabbed ) {
-        input_event_mouse( buttons, 0, 0, FALSE );
+        input_event_mouseup( event->button-1, 0, 0, FALSE );
     } else if( win->use_grab) {
         video_window_grab_display(win);
     } else {
-        input_event_mouse( buttons, (int)event->x, (int)event->y, TRUE );
+        input_event_mouseup( event->button-1, (int32_t)event->x, (int32_t)event->y, TRUE );
     }        
     return TRUE;
 }
