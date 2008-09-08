@@ -60,7 +60,6 @@ int video_height = 480;
 
 @interface LxdreamOSXView : LxdreamVideoView
 {
-    int buttonMask;
     int flagsMask[MAX_MASK_KEYCODE];
 }
 @end
@@ -87,7 +86,6 @@ int video_height = 480;
     if( [super initWithFrame: contentRect] != nil ) {
         int i;
         isGrabbed = NO;
-        buttonMask = 0;
         for( i=0; i<MAX_MASK_KEYCODE; i++ ) {
             flagsMask[i] = 0;
         }
@@ -155,74 +153,87 @@ int video_height = 480;
         flagsMask[keycode] = 0;
     }
 }
-- (void)emitButtonEvent: (NSEvent *)event buttons: (int)buttons
+- (void)emitMouseDownEvent: (NSEvent *)event button: (int)button
 {
     if( isGrabbed ) {
-        input_event_mouse( buttons, 0, 0, FALSE );
+        input_event_mousedown( button, 0, 0, FALSE );
     } else {
         NSPoint pt = [event locationInWindow];
-        input_event_mouse( buttonMask, (int)pt.x, (int)pt.y, TRUE );
+        input_event_mousedown( button, (int)(pt.x * DISPLAY_WIDTH) / video_width, 
+                               DISPLAY_HEIGHT - ((int)(pt.y * DISPLAY_HEIGHT) / video_height), TRUE );
+    }
+}
+- (void)emitMouseUpEvent: (NSEvent *)event button: (int)button
+{
+    if( isGrabbed ) {
+        input_event_mouseup( button, 0, 0, FALSE );
+    } else {
+        NSPoint pt = [event locationInWindow];
+        input_event_mouseup( button, (int)(pt.x * DISPLAY_WIDTH) / video_width, 
+                             DISPLAY_HEIGHT - ((int)(pt.y * DISPLAY_HEIGHT) / video_height), TRUE );
+    }
+}
+- (void)emitMouseMoveEvent: (NSEvent *)event
+{
+    if( isGrabbed ) {
+        input_event_mousemove( [event deltaX] * MOUSE_X_SCALE, [event deltaY] * MOUSE_Y_SCALE, FALSE );
+    } else {
+        NSPoint pt = [event locationInWindow];
+        input_event_mousemove( (int)(pt.x * DISPLAY_WIDTH) / video_width, 
+                               DISPLAY_HEIGHT - ((int)(pt.y * DISPLAY_HEIGHT) / video_height), TRUE );
+    }    
+}
+- (void)mouseExited: (NSEvent *)event
+{
+    if( !isGrabbed ) {
+        input_event_mousemove( -1, -1, TRUE );
     }
 }
 
 - (void)mouseDown: (NSEvent *) event
 {
-    buttonMask |= 1;
     // If using grab but not grabbed yet, the first click should be consumed
     // by the grabber. In all other circumstances we process normally.
     if( isGrabbed || ![self requestGrab] ) {
-        [self emitButtonEvent: event buttons: buttonMask];
+        [self emitMouseDownEvent: event button: 0];
     }
 }
 - (void)mouseUp: (NSEvent *)event
 {
-    buttonMask &= ~1;
-    [self emitButtonEvent: event buttons: buttonMask];
+    [self emitMouseUpEvent: event button: 0];
 }
 
 - (void)rightMouseDown: (NSEvent *) event
 {
-    buttonMask |= 2;
-    [self emitButtonEvent: event buttons: buttonMask];
+    [self emitMouseDownEvent: event button: 1];
 }
 - (void)rightMouseUp: (NSEvent *)event
 {
-    buttonMask &= ~2;
-    [self emitButtonEvent: event buttons: buttonMask];
+    [self emitMouseUpEvent: event button: 1];
 }
 - (void)otherMouseDown: (NSEvent *) event
 {
-    buttonMask |= (1<< [event buttonNumber] );
-    [self emitButtonEvent: event buttons: buttonMask];
+    [self emitMouseDownEvent: event button: [event buttonNumber]];
 }
 - (void)otherMouseUp: (NSEvent *) event
 {
-    buttonMask &= ~(1<< [event buttonNumber] );
-    [self emitButtonEvent: event buttons: buttonMask];
+    [self emitMouseUpEvent: event button: [event buttonNumber]];
 }
 - (void)mouseMoved: (NSEvent *) event
 {
-    if( isGrabbed ) {
-        input_event_mouse( buttonMask, [event deltaX] * MOUSE_X_SCALE, [event deltaY] * MOUSE_Y_SCALE, FALSE );
-    }
+    [self emitMouseMoveEvent: event];
 }
 - (void)mouseDragged: (NSEvent *) event
 {
-    if( isGrabbed ) {
-        input_event_mouse( buttonMask, [event deltaX] * MOUSE_X_SCALE, [event deltaY] * MOUSE_Y_SCALE, FALSE );
-    }
+    [self emitMouseMoveEvent: event];
 }
 - (void)rightMouseDragged: (NSEvent *) event
 {
-    if( isGrabbed ) {
-        input_event_mouse( buttonMask, [event deltaX] * MOUSE_X_SCALE, [event deltaY] * MOUSE_Y_SCALE, FALSE );
-    }
+    [self emitMouseMoveEvent: event];
 }
 - (void)otherMouseDragged: (NSEvent *) event
 {
-    if( isGrabbed ) {
-        input_event_mouse( buttonMask, [event deltaX] * MOUSE_X_SCALE, [event deltaY] * MOUSE_Y_SCALE, FALSE );
-    }
+    [self emitMouseMoveEvent: event];
 }
 
 @end

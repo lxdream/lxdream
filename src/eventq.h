@@ -78,6 +78,7 @@ void event_execute();
 #define EVENT_TMU0 97
 #define EVENT_TMU1 98
 #define EVENT_TMU2 99
+#define EVENT_GUNPOS 100
 
 #ifdef __cplusplus
 }

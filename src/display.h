@@ -54,6 +54,13 @@ extern "C" {
 #define COLFMT_BGR0888   8 /* 32-bit BGR */
 #define COLFMT_RGB888    9 /* 24-bit RGB (ie GL native) */
 
+/**
+ * The standard display size (for the purposes of mouse inputs, etc, is 640x480 -
+ * events should be adjusted accordingly if this is not the actual window size.
+ */ 
+#define DISPLAY_WIDTH 640
+#define DISPLAY_HEIGHT 480
+    
 struct colour_format {
     GLint type, format, int_format;
     int bpp;

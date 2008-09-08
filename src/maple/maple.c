@@ -30,7 +30,7 @@ struct dreamcast_module maple_module = { "Maple", maple_init, NULL, NULL, NULL,
         NULL, NULL, NULL };
 
 struct maple_device_class *maple_device_classes[] = { 
-        &controller_class, &keyboard_class, &mouse_class, NULL };
+        &controller_class, &keyboard_class, &lightgun_class, &mouse_class, NULL };
 
 void maple_init( void )
 {
@@ -115,6 +115,7 @@ void maple_handle_buffer( uint32_t address ) {
             unsigned int cmd, recv_addr, send_addr;
             uint32_t return_addr;
             unsigned char *return_buf;
+            maple_device_t dev;
 
             last = GETBYTE(3) & 0x80; /* indicates last packet */
             port = GETBYTE(2) & 0x03;
@@ -122,9 +123,19 @@ void maple_handle_buffer( uint32_t address ) {
             length = GETBYTE(0) & 0xFF;
             return_addr = GETWORD(4);
 
-            if( mode == 0x07 ) {
+            switch( mode ) {
+            case 2: /* lightgun */
+                dev = maple_devices[port][0];
+                if( dev != NULL && dev->start_gun != NULL ) {
+                    dev->start_gun(dev);
+                    return; // Pending
+                } else {
+                    asic_event( EVENT_MAPLE_DMA );
+                    return;
+                }
+            case 7: /* skip */
                 buf += 4;
-                address +=4; /* skip? */
+                address +=4; 
                 continue;
             }
             if( (return_addr & 0x1C000000) != 0x0C000000 ) {
@@ -159,7 +170,7 @@ void maple_handle_buffer( uint32_t address ) {
                 }
             }
 
-            maple_device_t dev = maple_devices[port][periph];
+            dev = maple_devices[port][periph];
             if( dev == NULL ) {
                 /* no device attached */
                 *((uint32_t *)return_buf) = -1;

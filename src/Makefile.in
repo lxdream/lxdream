@@ -113,29 +113,29 @@ am__lxdream_SOURCES_DIST = main.c version.c config.c config.h \
 	pvr2/glutil.h pvr2/glrender.c pvr2/vertex.glsl \
 	pvr2/fragment.glsl maple/maple.c maple/maple.h \
 	maple/controller.c maple/controller.h maple/kbd.c \
-	maple/mouse.c loader.c loader.h elf.h bootstrap.c bootstrap.h \
-	util.c gdlist.c gdlist.h display.c display.h dckeysyms.h \
-	drivers/audio_null.c drivers/video_null.c drivers/video_gl.c \
-	drivers/video_gl.h drivers/gl_fbo.c sh4/sh4.def sh4/sh4core.in \
-	sh4/sh4x86.in sh4/sh4dasm.in sh4/sh4stat.in sh4/sh4x86.c \
-	sh4/x86op.h sh4/ia32abi.h sh4/ia32mac.h sh4/ia64abi.h \
-	sh4/sh4trans.c sh4/sh4trans.h x86dasm/x86dasm.c \
-	x86dasm/x86dasm.h x86dasm/i386-dis.c x86dasm/dis-init.c \
-	x86dasm/dis-buf.c x86dasm/ansidecl.h x86dasm/bfd.h \
-	x86dasm/dis-asm.h x86dasm/symcat.h x86dasm/sysdep.h \
-	gtkui/gtkui.c gtkui/gtkui.h gtkui/gtk_win.c gtkui/gtkcb.c \
-	gtkui/gtk_mmio.c gtkui/gtk_debug.c gtkui/gtk_dump.c \
-	gtkui/gtk_ctrl.c gtkui/gtk_path.c gtkui/gtk_gd.c \
-	drivers/video_gtk.c cocoaui/cocoaui.c cocoaui/cocoaui.h \
-	cocoaui/cocoa_win.c cocoaui/cocoa_gd.c cocoaui/cocoa_prefs.c \
-	cocoaui/cocoa_path.c cocoaui/cocoa_ctrl.c drivers/video_osx.c \
-	drivers/mac_keymap.h drivers/mac_keymap.txt \
-	drivers/video_gdk.c drivers/video_glx.c drivers/video_glx.h \
-	drivers/video_nsgl.c drivers/video_nsgl.h drivers/audio_osx.c \
-	drivers/audio_pulse.c drivers/audio_esd.c drivers/audio_alsa.c \
-	drivers/cd_linux.c drivers/cd_osx.c drivers/osx_iokit.c \
-	drivers/osx_iokit.h drivers/cd_none.c drivers/joy_linux.c \
-	drivers/joy_linux.h
+	maple/mouse.c maple/lightgun.c loader.c loader.h elf.h \
+	bootstrap.c bootstrap.h util.c gdlist.c gdlist.h display.c \
+	display.h dckeysyms.h drivers/audio_null.c \
+	drivers/video_null.c drivers/video_gl.c drivers/video_gl.h \
+	drivers/gl_fbo.c sh4/sh4.def sh4/sh4core.in sh4/sh4x86.in \
+	sh4/sh4dasm.in sh4/sh4stat.in sh4/sh4x86.c sh4/x86op.h \
+	sh4/ia32abi.h sh4/ia32mac.h sh4/ia64abi.h sh4/sh4trans.c \
+	sh4/sh4trans.h x86dasm/x86dasm.c x86dasm/x86dasm.h \
+	x86dasm/i386-dis.c x86dasm/dis-init.c x86dasm/dis-buf.c \
+	x86dasm/ansidecl.h x86dasm/bfd.h x86dasm/dis-asm.h \
+	x86dasm/symcat.h x86dasm/sysdep.h gtkui/gtkui.c gtkui/gtkui.h \
+	gtkui/gtk_win.c gtkui/gtkcb.c gtkui/gtk_mmio.c \
+	gtkui/gtk_debug.c gtkui/gtk_dump.c gtkui/gtk_ctrl.c \
+	gtkui/gtk_path.c gtkui/gtk_gd.c drivers/video_gtk.c \
+	cocoaui/cocoaui.c cocoaui/cocoaui.h cocoaui/cocoa_win.c \
+	cocoaui/cocoa_gd.c cocoaui/cocoa_prefs.c cocoaui/cocoa_path.c \
+	cocoaui/cocoa_ctrl.c drivers/video_osx.c drivers/mac_keymap.h \
+	drivers/mac_keymap.txt drivers/video_gdk.c drivers/video_glx.c \
+	drivers/video_glx.h drivers/video_nsgl.c drivers/video_nsgl.h \
+	drivers/audio_osx.c drivers/audio_pulse.c drivers/audio_esd.c \
+	drivers/audio_alsa.c drivers/cd_linux.c drivers/cd_osx.c \
+	drivers/osx_iokit.c drivers/osx_iokit.h drivers/cd_none.c \
+	drivers/joy_linux.c drivers/joy_linux.h
 @BUILD_SH4X86_TRUE@am__objects_1 = sh4x86.$(OBJEXT) sh4trans.$(OBJEXT) \
 @BUILD_SH4X86_TRUE@	x86dasm.$(OBJEXT) i386-dis.$(OBJEXT) \
 @BUILD_SH4X86_TRUE@	dis-init.$(OBJEXT) dis-buf.$(OBJEXT)
@@ -175,15 +175,15 @@ am_lxdream_OBJECTS = main.$(OBJEXT) version.$(OBJEXT) config.$(OBJEXT) \
 	yuv.$(OBJEXT) rendsave.$(OBJEXT) scene.$(OBJEXT) \
 	gl_sl.$(OBJEXT) gl_slsrc.$(OBJEXT) glutil.$(OBJEXT) \
 	glrender.$(OBJEXT) maple.$(OBJEXT) controller.$(OBJEXT) \
-	kbd.$(OBJEXT) mouse.$(OBJEXT) loader.$(OBJEXT) \
-	bootstrap.$(OBJEXT) util.$(OBJEXT) gdlist.$(OBJEXT) \
-	display.$(OBJEXT) audio_null.$(OBJEXT) video_null.$(OBJEXT) \
-	video_gl.$(OBJEXT) gl_fbo.$(OBJEXT) $(am__objects_1) \
-	$(am__objects_2) $(am__objects_3) $(am__objects_4) \
-	$(am__objects_5) $(am__objects_6) $(am__objects_7) \
-	$(am__objects_8) $(am__objects_9) $(am__objects_10) \
-	$(am__objects_11) $(am__objects_12) $(am__objects_13) \
-	$(am__objects_14)
+	kbd.$(OBJEXT) mouse.$(OBJEXT) lightgun.$(OBJEXT) \
+	loader.$(OBJEXT) bootstrap.$(OBJEXT) util.$(OBJEXT) \
+	gdlist.$(OBJEXT) display.$(OBJEXT) audio_null.$(OBJEXT) \
+	video_null.$(OBJEXT) video_gl.$(OBJEXT) gl_fbo.$(OBJEXT) \
+	$(am__objects_1) $(am__objects_2) $(am__objects_3) \
+	$(am__objects_4) $(am__objects_5) $(am__objects_6) \
+	$(am__objects_7) $(am__objects_8) $(am__objects_9) \
+	$(am__objects_10) $(am__objects_11) $(am__objects_12) \
+	$(am__objects_13) $(am__objects_14)
 lxdream_OBJECTS = $(am_lxdream_OBJECTS)
 lxdream_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am__test_testsh4x86_SOURCES_DIST = test/testsh4x86.c x86dasm/x86dasm.c \
@@ -420,16 +420,16 @@ lxdream_SOURCES = main.c version.c config.c config.h lxdream.h dream.h \
 	pvr2/glutil.c pvr2/glutil.h pvr2/glrender.c pvr2/vertex.glsl \
 	pvr2/fragment.glsl maple/maple.c maple/maple.h \
 	maple/controller.c maple/controller.h maple/kbd.c \
-	maple/mouse.c loader.c loader.h elf.h bootstrap.c bootstrap.h \
-	util.c gdlist.c gdlist.h display.c display.h dckeysyms.h \
-	drivers/audio_null.c drivers/video_null.c drivers/video_gl.c \
-	drivers/video_gl.h drivers/gl_fbo.c sh4/sh4.def sh4/sh4core.in \
-	sh4/sh4x86.in sh4/sh4dasm.in sh4/sh4stat.in $(am__append_1) \
-	$(am__append_3) $(am__append_4) $(am__append_5) \
-	$(am__append_6) $(am__append_7) $(am__append_8) \
-	$(am__append_9) $(am__append_10) $(am__append_11) \
-	$(am__append_12) $(am__append_13) $(am__append_14) \
-	$(am__append_15)
+	maple/mouse.c maple/lightgun.c loader.c loader.h elf.h \
+	bootstrap.c bootstrap.h util.c gdlist.c gdlist.h display.c \
+	display.h dckeysyms.h drivers/audio_null.c \
+	drivers/video_null.c drivers/video_gl.c drivers/video_gl.h \
+	drivers/gl_fbo.c sh4/sh4.def sh4/sh4core.in sh4/sh4x86.in \
+	sh4/sh4dasm.in sh4/sh4stat.in $(am__append_1) $(am__append_3) \
+	$(am__append_4) $(am__append_5) $(am__append_6) \
+	$(am__append_7) $(am__append_8) $(am__append_9) \
+	$(am__append_10) $(am__append_11) $(am__append_12) \
+	$(am__append_13) $(am__append_14) $(am__append_15)
 @BUILD_SH4X86_TRUE@test_testsh4x86_LDADD = @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@
 @BUILD_SH4X86_TRUE@test_testsh4x86_SOURCES = test/testsh4x86.c x86dasm/x86dasm.c \
 @BUILD_SH4X86_TRUE@	x86dasm/x86dasm.h x86dasm/i386-dis.c x86dasm/dis-init.c \
@@ -589,6 +589,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/intc.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/joy_linux.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/kbd.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lightgun.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/loader.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/maple.Po@am__quote@
@@ -1290,6 +1291,20 @@ mouse.obj: maple/mouse.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='maple/mouse.c' object='mouse.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o mouse.obj `if test -f 'maple/mouse.c'; then $(CYGPATH_W) 'maple/mouse.c'; else $(CYGPATH_W) '$(srcdir)/maple/mouse.c'; fi`
+
+lightgun.o: maple/lightgun.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lightgun.o -MD -MP -MF "$(DEPDIR)/lightgun.Tpo" -c -o lightgun.o `test -f 'maple/lightgun.c' || echo '$(srcdir)/'`maple/lightgun.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/lightgun.Tpo" "$(DEPDIR)/lightgun.Po"; else rm -f "$(DEPDIR)/lightgun.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='maple/lightgun.c' object='lightgun.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lightgun.o `test -f 'maple/lightgun.c' || echo '$(srcdir)/'`maple/lightgun.c
+
+lightgun.obj: maple/lightgun.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lightgun.obj -MD -MP -MF "$(DEPDIR)/lightgun.Tpo" -c -o lightgun.obj `if test -f 'maple/lightgun.c'; then $(CYGPATH_W) 'maple/lightgun.c'; else $(CYGPATH_W) '$(srcdir)/maple/lightgun.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/lightgun.Tpo" "$(DEPDIR)/lightgun.Po"; else rm -f "$(DEPDIR)/lightgun.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='maple/lightgun.c' object='lightgun.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lightgun.obj `if test -f 'maple/lightgun.c'; then $(CYGPATH_W) 'maple/lightgun.c'; else $(CYGPATH_W) '$(srcdir)/maple/lightgun.c'; fi`
 
 audio_null.o: drivers/audio_null.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT audio_null.o -MD -MP -MF "$(DEPDIR)/audio_null.Tpo" -c -o audio_null.o `test -f 'drivers/audio_null.c' || echo '$(srcdir)/'`drivers/audio_null.c; \

@@ -96,10 +96,13 @@ struct maple_device {
                       int function, uint32_t block, unsigned char *outbuf, unsigned int *buflen);
     int (*write_block)(struct maple_device *dev,
                        int function, uint32_t block, unsigned char *inbuf, unsigned int buflen);
+    void (*start_gun)(struct maple_device *dev);
+    void (*stop_gun)(struct maple_device *dev);
 };
 
 extern struct maple_device_class controller_class;
 extern struct maple_device_class keyboard_class;
+extern struct maple_device_class lightgun_class;
 extern struct maple_device_class mouse_class;
 
 maple_device_t maple_new_device( const gchar *name );

@@ -97,7 +97,7 @@ static struct controller_device base_controller = {
           CONTROLLER_IDENT, CONTROLLER_VERSION, 
           controller_get_config, controller_set_config_value, 
           controller_attach, controller_detach, controller_destroy,
-          controller_clone, NULL, NULL, controller_get_cond, NULL, NULL, NULL },
+          controller_clone, NULL, NULL, controller_get_cond, NULL, NULL, NULL, NULL, NULL },
           {0x0000FFFF, 0x80808080}, 
           {{ "dpad left", N_("Dpad left"), CONFIG_TYPE_KEY },
            { "dpad right", N_("Dpad right"), CONFIG_TYPE_KEY },

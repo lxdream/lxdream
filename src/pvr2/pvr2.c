@@ -115,7 +115,8 @@ static void pvr2_hpos_callback( int eventid ) {
  * Event handler for the scanline callbacks. Fires the corresponding
  * ASIC event, and resets the timer for the next field.
  */
-static void pvr2_scanline_callback( int eventid ) {
+static void pvr2_scanline_callback( int eventid ) 
+{
     asic_event( eventid );
     pvr2_update_raster_posn(sh4r.slice_cycle);
     if( eventid == EVENT_SCANLINE1 ) {
@@ -123,6 +124,14 @@ static void pvr2_scanline_callback( int eventid ) {
     } else {
         pvr2_schedule_scanline_event( eventid, pvr2_state.irq_vpos2, 1, 0 );
     }
+}
+
+static void pvr2_gunpos_callback( int eventid ) 
+{
+    pvr2_update_raster_posn(sh4r.slice_cycle);
+    int hpos = pvr2_state.line_remainder * pvr2_state.dot_clock / 1000000;
+    MMIO_WRITE( PVR2, GUNPOS, ((pvr2_state.line_count<<16)|(hpos&0x3FF)) );
+    asic_event( EVENT_MAPLE_DMA );
 }
 
 static void pvr2_init( void )
@@ -134,6 +143,7 @@ static void pvr2_init( void )
     register_event_callback( EVENT_HPOS, pvr2_hpos_callback );
     register_event_callback( EVENT_SCANLINE1, pvr2_scanline_callback );
     register_event_callback( EVENT_SCANLINE2, pvr2_scanline_callback );
+    register_event_callback( EVENT_GUNPOS, pvr2_gunpos_callback );
     video_base = mem_get_region_by_name( MEM_REGION_VIDEO );
     texcache_init();
     pvr2_reset();
@@ -787,6 +797,13 @@ static void pvr2_schedule_scanline_event( int eventid, int line, int minimum_lin
     } else {
         event_cancel( eventid );
     }
+}
+
+void pvr2_queue_gun_event( int xpos, int ypos )
+{
+    pvr2_update_raster_posn(sh4r.slice_cycle);
+    pvr2_schedule_scanline_event( EVENT_GUNPOS, (ypos >> 1) + pvr2_state.vsync_lines, 0,  
+            (1000000 * xpos / pvr2_state.dot_clock) + pvr2_state.hsync_width_ns ); 
 }
 
 MMIO_REGION_READ_FN( PVR2, reg )

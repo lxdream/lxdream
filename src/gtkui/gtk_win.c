@@ -135,10 +135,22 @@ static gboolean on_video_window_mouse_motion( GtkWidget *widget, GdkEventMotion 
         input_event_mousemove( x - win->mouse_x, y - win->mouse_y, FALSE );
         video_window_center_pointer(win);
     } else {
-        input_event_mousemove( x, y, TRUE );
+        int width, height;
+        gdk_drawable_get_size(GDK_DRAWABLE(widget->window), &width, &height);
+        input_event_mousemove( x * DISPLAY_WIDTH /width , y * DISPLAY_HEIGHT / height, TRUE );
     }
     return TRUE;
 }
+
+static gboolean on_video_window_mouse_exited( GtkWidget *widget, GdkEventCrossing *event,
+                                              gpointer user_data )
+{
+    main_window_t win = (main_window_t)user_data;
+    if( !win->is_grabbed ) {
+        input_event_mousemove( -1, -1, TRUE );
+    }
+    return TRUE;
+}    
 
 static gboolean on_video_window_mouse_pressed( GtkWidget *widget, GdkEventButton *event,
                                                gpointer user_data )
@@ -147,7 +159,10 @@ static gboolean on_video_window_mouse_pressed( GtkWidget *widget, GdkEventButton
     if( win->is_grabbed ) {
         input_event_mousedown( event->button-1, 0, 0, FALSE );
     } else {
-        input_event_mousedown( event->button-1, (int32_t)event->x, (int32_t)event->y, TRUE );
+        int width, height;
+        gdk_drawable_get_size(GDK_DRAWABLE(widget->window), &width, &height);
+        input_event_mousedown( event->button-1, (int32_t)event->x * DISPLAY_WIDTH / width, 
+                               (int32_t)event->y * DISPLAY_HEIGHT / height, TRUE );
     }
     return TRUE;
 }
@@ -161,7 +176,10 @@ static gboolean on_video_window_mouse_released( GtkWidget *widget, GdkEventButto
     } else if( win->use_grab) {
         video_window_grab_display(win);
     } else {
-        input_event_mouseup( event->button-1, (int32_t)event->x, (int32_t)event->y, TRUE );
+        int width, height;
+        gdk_drawable_get_size(GDK_DRAWABLE(widget->window), &width, &height);
+        input_event_mouseup( event->button-1, (int32_t)event->x * DISPLAY_WIDTH / width, 
+                               (int32_t)event->y * DISPLAY_HEIGHT / height, TRUE );
     }        
     return TRUE;
 }
@@ -298,6 +316,8 @@ main_window_t main_window_new( const gchar *title, GtkWidget *menubar, GtkWidget
                       G_CALLBACK(on_video_window_key_released), win );
     g_signal_connect( win->video, "motion-notify-event",
                       G_CALLBACK(on_video_window_mouse_motion), win );
+    g_signal_connect( win->video, "leave-notify-event",
+                      G_CALLBACK(on_video_window_mouse_exited), win );
     g_signal_connect( win->video, "button-press-event",
                       G_CALLBACK(on_video_window_mouse_pressed), win );
     g_signal_connect( win->video, "button-release-event", 
@@ -310,7 +330,8 @@ main_window_t main_window_new( const gchar *title, GtkWidget *menubar, GtkWidget
     gtk_widget_add_events( win->video, 
                            GDK_KEY_PRESS_MASK | GDK_KEY_RELEASE_MASK |
                            GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK |
-                           GDK_POINTER_MOTION_MASK | GDK_FOCUS_CHANGE_MASK );
+                           GDK_POINTER_MOTION_MASK | GDK_FOCUS_CHANGE_MASK |
+                           GDK_LEAVE_NOTIFY_MASK );
 
     return win;
 }
