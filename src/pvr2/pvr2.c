@@ -74,7 +74,6 @@ struct pvr2_state {
     uint32_t irq_vpos2;
     uint32_t odd_even_field; /* 1 = odd, 0 = even */
     int32_t palette_changed; /* TRUE if palette has changed since last render */
-    uint32_t padding; /* FIXME: Remove in next DST version */
     /* timing */
     uint32_t dot_clock;
     uint32_t total_lines;

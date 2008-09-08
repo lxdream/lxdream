@@ -70,7 +70,6 @@ struct sh4_registers {
         int32_t i;
         float f;
     } fpul;
-    uint32_t pad; // FIXME: remove in next DST version
     float fr[2][16];
     uint64_t mac;
     uint32_t gbr, ssr, spc, sgr, dbr, vbr;
