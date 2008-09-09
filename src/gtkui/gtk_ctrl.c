@@ -45,6 +45,7 @@ typedef struct maple_slot_data {
 
 static struct maple_config_class maple_device_config[] = {
         { "Sega Controller", controller_device_configure },
+        { "Sega Lightgun", controller_device_configure },
         { NULL, NULL } };
 
 static struct maple_slot_data maple_data[MAX_DEVICES];
