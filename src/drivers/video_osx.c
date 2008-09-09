@@ -159,8 +159,10 @@ int video_height = 480;
         input_event_mousedown( button, 0, 0, FALSE );
     } else {
         NSPoint pt = [event locationInWindow];
-        input_event_mousedown( button, (int)(pt.x * DISPLAY_WIDTH) / video_width, 
-                               DISPLAY_HEIGHT - ((int)(pt.y * DISPLAY_HEIGHT) / video_height), TRUE );
+        int x = (int)pt.x;
+        int y = video_height - (int)pt.y;
+        gl_window_to_system_coords(&x,&y);
+        input_event_mousedown( button, x, y, TRUE ); 
     }
 }
 - (void)emitMouseUpEvent: (NSEvent *)event button: (int)button
@@ -169,8 +171,10 @@ int video_height = 480;
         input_event_mouseup( button, 0, 0, FALSE );
     } else {
         NSPoint pt = [event locationInWindow];
-        input_event_mouseup( button, (int)(pt.x * DISPLAY_WIDTH) / video_width, 
-                             DISPLAY_HEIGHT - ((int)(pt.y * DISPLAY_HEIGHT) / video_height), TRUE );
+        int x = (int)pt.x;
+        int y = video_height - (int)pt.y;
+        gl_window_to_system_coords(&x,&y);
+        input_event_mouseup( button, x, y, TRUE ); 
     }
 }
 - (void)emitMouseMoveEvent: (NSEvent *)event
@@ -179,8 +183,10 @@ int video_height = 480;
         input_event_mousemove( [event deltaX] * MOUSE_X_SCALE, [event deltaY] * MOUSE_Y_SCALE, FALSE );
     } else {
         NSPoint pt = [event locationInWindow];
-        input_event_mousemove( (int)(pt.x * DISPLAY_WIDTH) / video_width, 
-                               DISPLAY_HEIGHT - ((int)(pt.y * DISPLAY_HEIGHT) / video_height), TRUE );
+        int x = (int)pt.x;
+        int y = video_height - (int)pt.y;
+        gl_window_to_system_coords(&x,&y);
+        input_event_mousemove( x, y, TRUE ); 
     }    
 }
 - (void)mouseExited: (NSEvent *)event
