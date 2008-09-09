@@ -263,7 +263,7 @@ void gui_update_state(void)
 void gui_set_use_grab( gboolean flag )
 {
     if( main_win != NULL ) {
-        main_window_set_use_grab(main_win, TRUE);
+        main_window_set_use_grab(main_win, flag);
     }
 }    
 
