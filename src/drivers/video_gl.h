@@ -49,6 +49,13 @@ void gl_display_render_buffer( render_buffer_t buffer );
 void gl_texture_window( int width, int height, int tex_id, gboolean inverted );
 
 /**
+ * Convert window coordinates to dreamcast device coords (640x480) using the 
+ * same viewable area as gl_texture_window.
+ * If the coordinates are outside the viewable area, the result is -1,-1.
+ */ 
+void gl_window_to_system_coords( int *x, int *y );
+
+/**
  * Generic GL read_render_buffer. This function assumes that the caller
  * has already set the appropriate glReadBuffer(); in other words, unless
  * there's only one buffer this needs to be wrapped.

@@ -51,6 +51,34 @@ void gl_display_render_buffer( render_buffer_t buffer )
     gl_texture_window( buffer->width, buffer->height, buffer->buf_id, buffer->inverted );
 }
 
+/**
+ * Convert window coordinates to dreamcast device coords (640x480) using the 
+ * same viewable area as gl_texture_window.
+ * If the coordinates are outside the viewable area, the result is -1,-1.
+ */ 
+void gl_window_to_system_coords( int *x, int *y )
+{
+    int x1=0,y1=0,x2=video_width,y2=video_height;
+
+    int ah = video_width * 0.75;
+
+    if( ah > video_height ) {
+        int w = (video_height/0.75);
+        x1 = (video_width - w)/2;
+        x2 -= x1;
+    } else if( ah < video_height ) {
+        y1 = (video_height - ah)/2;
+        y2 -= y1;
+    }
+    if( *x < x1 || *x >= x2 || *y < y1 || *y >= y2 ) {
+        *x = -1;
+        *y = -1;
+    } else {
+        *x = (*x - x1) * DISPLAY_WIDTH / (x2-x1);
+        *y = (*y - y1) * DISPLAY_HEIGHT / (y2-y1);
+    }
+}
+
 void gl_texture_window( int width, int height, int tex_id, gboolean inverted )
 {
     float top, bottom;

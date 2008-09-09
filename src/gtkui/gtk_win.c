@@ -128,16 +128,16 @@ static gboolean on_video_window_mouse_motion( GtkWidget *widget, GdkEventMotion 
                                               gpointer user_data )
 {
     main_window_t win = (main_window_t)user_data;
-    int32_t x = (int32_t)event->x;
-    int32_t y = (int32_t)event->y;
+    int x = (int)event->x;
+    int y = (int)event->y;
     if( win->is_grabbed && 
             (x != win->mouse_x || y != win->mouse_y) ) {
         input_event_mousemove( x - win->mouse_x, y - win->mouse_y, FALSE );
         video_window_center_pointer(win);
     } else {
         int width, height;
-        gdk_drawable_get_size(GDK_DRAWABLE(widget->window), &width, &height);
-        input_event_mousemove( x * DISPLAY_WIDTH /width , y * DISPLAY_HEIGHT / height, TRUE );
+        gl_window_to_system_coords( &x, &y );
+        input_event_mousemove( x, y, TRUE );
     }
     return TRUE;
 }
@@ -159,10 +159,10 @@ static gboolean on_video_window_mouse_pressed( GtkWidget *widget, GdkEventButton
     if( win->is_grabbed ) {
         input_event_mousedown( event->button-1, 0, 0, FALSE );
     } else {
-        int width, height;
-        gdk_drawable_get_size(GDK_DRAWABLE(widget->window), &width, &height);
-        input_event_mousedown( event->button-1, (int32_t)event->x * DISPLAY_WIDTH / width, 
-                               (int32_t)event->y * DISPLAY_HEIGHT / height, TRUE );
+        int x = (int)event->x;
+        int y = (int)event->y;
+        gl_window_to_system_coords( &x, &y );
+        input_event_mousedown( event->button-1, x, y, TRUE ); 
     }
     return TRUE;
 }
@@ -176,10 +176,10 @@ static gboolean on_video_window_mouse_released( GtkWidget *widget, GdkEventButto
     } else if( win->use_grab) {
         video_window_grab_display(win);
     } else {
-        int width, height;
-        gdk_drawable_get_size(GDK_DRAWABLE(widget->window), &width, &height);
-        input_event_mouseup( event->button-1, (int32_t)event->x * DISPLAY_WIDTH / width, 
-                               (int32_t)event->y * DISPLAY_HEIGHT / height, TRUE );
+        int x = (int)event->x;
+        int y = (int)event->y;
+        gl_window_to_system_coords( &x, &y );
+        input_event_mouseup( event->button-1, x, y, TRUE ); 
     }        
     return TRUE;
 }
