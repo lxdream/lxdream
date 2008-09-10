@@ -351,6 +351,28 @@ void pvr_dma_transfer( )
     asic_event( EVENT_PVR_DMA );
 }
 
+void pvr_dma2_transfer()
+{
+    if( MMIO_READ( EXTDMA, PVRDMA2CTL2 ) == 1 ) {
+        if( MMIO_READ( EXTDMA, PVRDMA2CTL1 ) == 1 ) {
+            sh4addr_t extaddr = MMIO_READ( EXTDMA, PVRDMA2EXT );
+            sh4addr_t sh4addr = MMIO_READ( EXTDMA, PVRDMA2SH4 );
+            int dir = MMIO_READ( EXTDMA, PVRDMA2DIR );
+            uint32_t length = MMIO_READ( EXTDMA, PVRDMA2SIZ );
+            unsigned char buf[length];
+            if( dir == 0 ) { /* SH4 to PVR */
+                mem_copy_from_sh4( buf, sh4addr, length );
+                mem_copy_to_sh4( extaddr, buf, length );
+            } else { /* PVR to SH4 */
+                mem_copy_from_sh4( buf, extaddr, length );
+                mem_copy_to_sh4( sh4addr, buf, length );
+            }
+            MMIO_WRITE( EXTDMA, PVRDMA2CTL2, 0 );
+            asic_event( EVENT_PVR_DMA2 );
+        }
+    }
+}
+
 void sort_dma_transfer( )
 {
     sh4addr_t table_addr = MMIO_READ( ASIC, SORTDMATBL );
@@ -615,9 +637,8 @@ MMIO_REGION_WRITE_FN( EXTDMA, reg, val )
         break;
     case PVRDMA2CTL1:
     case PVRDMA2CTL2:
-        if( val != 0 ) {
-            ERROR( "Write to unimplemented DMA control register %08X", reg );
-        }
+        MMIO_WRITE( EXTDMA, reg, val & 1 );
+        pvr_dma2_transfer();
         break;
     default:
         MMIO_WRITE( EXTDMA, reg, val );
