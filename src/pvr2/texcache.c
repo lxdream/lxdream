@@ -49,6 +49,7 @@ typedef struct texcache_entry {
     uint32_t texture_addr;
     int width, height, mode;
     GLuint texture_id;
+    render_buffer_t buffer;
     texcache_entry_index next;
     uint32_t lru_count;
 } *texcache_entry_t;
@@ -69,6 +70,7 @@ void texcache_init( )
     for( i=0; i<MAX_TEXTURES; i++ ) {
         texcache_free_list[i] = i;
         texcache_active_list[i].texture_addr = -1;
+        texcache_active_list[i].buffer = NULL;
         texcache_active_list[i].next = EMPTY_ENTRY;
     }
     texcache_free_ptr = 0;
@@ -90,6 +92,13 @@ void texcache_gl_init( )
     }
 }
 
+void texcache_release_render_buffer( render_buffer_t buffer )
+{
+    if( !buffer->flushed ) 
+        pvr2_render_buffer_copy_to_sh4(buffer);
+    pvr2_destroy_render_buffer(buffer);
+}
+
 /**
  * Flush all textures from the cache, returning them to the free list.
  */
@@ -103,6 +112,10 @@ void texcache_flush( )
     for( i=0; i<MAX_TEXTURES; i++ ) {
         texcache_free_list[i] = i;
         texcache_active_list[i].next = EMPTY_ENTRY;
+        if( texcache_active_list[i].buffer != NULL ) {
+            texcache_release_render_buffer(texcache_active_list[i].buffer);
+            texcache_active_list[i].buffer = NULL;
+        }
     }
     texcache_free_ptr = 0;
     texcache_ref_counter = 0;
@@ -133,6 +146,10 @@ static void texcache_evict( int slot )
     texcache_entry_index replace_next = texcache_active_list[slot].next;
     texcache_active_list[slot].texture_addr = -1;
     texcache_active_list[slot].next = EMPTY_ENTRY; /* Just for safety */
+    if( texcache_active_list[slot].buffer != NULL ) {
+        texcache_release_render_buffer(texcache_active_list[slot].buffer);
+        texcache_active_list[slot].buffer = NULL;
+    }
     if( texcache_page_lookup[evict_page] == slot ) {
         texcache_page_lookup[evict_page] = replace_next;
     } else {
@@ -184,6 +201,10 @@ void texcache_invalidate_page( uint32_t texture_addr ) {
     do {
         texcache_entry_t entry = &texcache_active_list[idx];
         entry->texture_addr = -1;
+        if( entry->buffer != NULL ) {
+            texcache_release_render_buffer(entry->buffer);
+            entry->buffer = NULL;
+        }
         /* release entry */
         texcache_free_ptr--;
         texcache_free_list[texcache_free_ptr] = idx;
@@ -320,6 +341,16 @@ static void yuv_decode( uint32_t *output, uint32_t *input, int width, int height
             p++;
         }
     }
+}
+
+static gboolean is_npot_texture( int width )
+{
+    while( width != 0 ) {
+        if( width & 1 ) 
+            return width != 1;
+        width >>= 1;
+    }
+    return TRUE;
 }
 
 /**
@@ -519,17 +550,7 @@ static void texcache_load_texture( uint32_t texture_addr, int width, int height,
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 }
 
-/**
- * Return a texture ID for the texture specified at the supplied address
- * and given parameters (the same sequence of bytes could in theory have
- * multiple interpretations). We use the texture address as the primary
- * index, but allow for multiple instances at each address. The texture
- * will be bound to the GL_TEXTURE_2D target before being returned.
- * 
- * If the texture has already been bound, return the ID to which it was
- * bound. Otherwise obtain an unused texture ID and set it up appropriately.
- */
-GLuint texcache_get_texture( uint32_t texture_word, int width, int height )
+static int texcache_find_texture_slot( uint32_t texture_word, int width, int height )
 {
     uint32_t texture_addr = (texture_word & 0x000FFFFF)<<3;
     uint32_t texture_page = texture_addr >> 12;
@@ -542,13 +563,17 @@ GLuint texcache_get_texture( uint32_t texture_word, int width, int height )
                 entry->width == width &&
                 entry->height == height ) {
             entry->lru_count = texcache_ref_counter++;
-            return entry->texture_id;
+            return idx;
         }
         idx = entry->next;
     }
+    return -1;
+}
 
-
-    /* Not found - check the free list */
+static int texcache_alloc_texture_slot( uint32_t texture_word, int width, int height )
+{
+    uint32_t texture_addr = (texture_word & 0x000FFFFF)<<3;
+    uint32_t texture_page = texture_addr >> 12;
     texcache_entry_index slot = 0;
 
     if( texcache_free_ptr < MAX_TEXTURES ) {
@@ -565,7 +590,7 @@ GLuint texcache_get_texture( uint32_t texture_word, int width, int height )
     texcache_active_list[slot].lru_count = texcache_ref_counter++;
 
     /* Add entry to the lookup table */
-    next = texcache_page_lookup[texture_page];
+    int next = texcache_page_lookup[texture_page];
     if( next == slot ) {
         int i;
         fprintf( stderr, "Active list: " );
@@ -579,12 +604,70 @@ GLuint texcache_get_texture( uint32_t texture_word, int width, int height )
     assert( next != slot );
     texcache_active_list[slot].next = next;
     texcache_page_lookup[texture_page] = slot;
+    return slot;
+}
 
-    /* Construct the GL texture */
-    glBindTexture( GL_TEXTURE_2D, texcache_active_list[slot].texture_id );
-    texcache_load_texture( texture_addr, width, height, texture_word );
+/**
+ * Return a texture ID for the texture specified at the supplied address
+ * and given parameters (the same sequence of bytes could in theory have
+ * multiple interpretations). We use the texture address as the primary
+ * index, but allow for multiple instances at each address. The texture
+ * will be bound to the GL_TEXTURE_2D target before being returned.
+ * 
+ * If the texture has already been bound, return the ID to which it was
+ * bound. Otherwise obtain an unused texture ID and set it up appropriately.
+ */
+GLuint texcache_get_texture( uint32_t texture_word, int width, int height )
+{
+    int slot = texcache_find_texture_slot( texture_word, width, height );
+
+    if( slot == -1 ) {
+        /* Not found - check the free list */
+        slot = texcache_alloc_texture_slot( texture_word, width, height );
+        
+        /* Construct the GL texture */
+        uint32_t texture_addr = (texture_word & 0x000FFFFF)<<3;
+        glBindTexture( GL_TEXTURE_2D, texcache_active_list[slot].texture_id );
+        texcache_load_texture( texture_addr, width, height, texture_word );
+    }
 
     return texcache_active_list[slot].texture_id;
+}
+
+render_buffer_t texcache_get_render_buffer( uint32_t texture_addr, int mode, int width, int height )
+{
+    INFO( "Rendering to texture!" );
+    uint32_t texture_word = ((texture_addr >> 3) & 0x000FFFFF) | PVR2_TEX_UNTWIDDLED;
+    switch( mode ) {
+    case COLFMT_BGRA1555: texture_word |= PVR2_TEX_FORMAT_ARGB1555; break;
+    case COLFMT_RGB565:   texture_word |= PVR2_TEX_FORMAT_RGB565; break;
+    case COLFMT_BGRA4444: texture_word |= PVR2_TEX_FORMAT_ARGB4444; break;
+    default:
+        WARN( "Rendering to non-texture colour format" );
+    }
+    if( is_npot_texture(width) )
+        texture_word |= PVR2_TEX_STRIDE;
+    
+    
+    int slot = texcache_find_texture_slot( texture_word, width, height );
+    if( slot == -1 ) {
+        slot = texcache_alloc_texture_slot( texture_word, width, height );
+    }
+    
+    texcache_entry_t entry = &texcache_active_list[slot];
+    if( entry->width != width || entry->height != height ) {
+        glBindTexture(GL_TEXTURE_2D, entry->texture_id );
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+        if( entry->buffer != NULL ) {
+            texcache_release_render_buffer(entry->buffer);
+        }
+        entry->buffer = pvr2_create_render_buffer( texture_addr, width, height, entry->texture_id );
+    } else {
+        if( entry->buffer == NULL )
+            entry->buffer = pvr2_create_render_buffer( texture_addr, width, height, entry->texture_id );
+    }
+
+    return entry->buffer;
 }
 
 /**

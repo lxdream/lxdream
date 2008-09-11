@@ -41,10 +41,6 @@ int pvr2_poly_texblend[4] = {
         GL_DECAL, 
         GL_MODULATE 
 };
-int pvr2_render_colour_format[8] = {
-        COLFMT_BGRA1555, COLFMT_RGB565, COLFMT_BGRA4444, COLFMT_BGRA1555,
-        COLFMT_BGR888, COLFMT_BGRA8888, COLFMT_BGRA8888, COLFMT_BGRA4444 };
-
 
 /**
  * Clip the tile bounds to the clipping plane. 

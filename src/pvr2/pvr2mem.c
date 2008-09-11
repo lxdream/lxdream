@@ -525,8 +525,6 @@ void pvr2_vram64_dump( sh4addr_t addr, uint32_t length, FILE *f )
  *
  * @param buffer A render buffer indicating the address to store to, and the
  * format the data needs to be in.
- * @param backBuffer TRUE to flush the back buffer, FALSE for
- * the front buffer.
  */
 void pvr2_render_buffer_copy_to_sh4( render_buffer_t buffer )
 {
@@ -546,5 +544,6 @@ void pvr2_render_buffer_copy_to_sh4( render_buffer_t buffer )
             pvr2_vram_write_invert( buffer->address, target, buffer->size, line_size, line_size );
         }
     }
+    buffer->flushed = TRUE;
 }
 
