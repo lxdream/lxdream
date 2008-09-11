@@ -53,6 +53,10 @@ uint32_t pvr2_get_sync_status();
 void pvr2_display_frame( void );
 
 static int output_colour_formats[] = { COLFMT_BGRA1555, COLFMT_RGB565, COLFMT_BGR888, COLFMT_BGRA8888 };
+static int render_colour_formats[8] = {
+        COLFMT_BGRA1555, COLFMT_RGB565, COLFMT_BGRA4444, COLFMT_BGRA1555,
+        COLFMT_BGR888, COLFMT_BGRA8888, COLFMT_BGRA8888, COLFMT_BGRA4444 };
+
 
 struct dreamcast_module pvr2_module = { "PVR2", pvr2_init, pvr2_reset, NULL, 
         pvr2_run_slice, NULL,
@@ -478,6 +482,7 @@ void mmio_region_PVR2_write( uint32_t reg, uint32_t val )
         render_buffer_t buffer = pvr2_next_render_buffer();
         if( buffer != NULL ) {
             pvr2_scene_render( buffer );
+            pvr2_finish_render_buffer( buffer );
         }
         asic_event( EVENT_PVR_RENDER_DONE );
         break;
@@ -849,6 +854,28 @@ void mmio_region_PVR2TA_write( uint32_t reg, uint32_t val )
     pvr2_ta_write( (unsigned char *)&val, sizeof(uint32_t) );
 }
 
+render_buffer_t pvr2_create_render_buffer( sh4addr_t addr, int width, int height, GLuint tex_id )
+{
+    if( display_driver != NULL && display_driver->create_render_buffer != NULL ) {
+        render_buffer_t buffer = display_driver->create_render_buffer(width,height,tex_id);
+        buffer->address = addr;
+        return buffer;
+    }
+    return NULL;
+}
+
+void pvr2_destroy_render_buffer( render_buffer_t buffer )
+{
+    if( !buffer->flushed )
+        pvr2_render_buffer_copy_to_sh4( buffer );
+     display_driver->destroy_render_buffer( buffer );
+}
+
+void pvr2_finish_render_buffer( render_buffer_t buffer )
+{
+    display_driver->finish_render( buffer );
+}
+
 /**
  * Find the render buffer corresponding to the requested output frame
  * (does not consider texture renders). 
@@ -964,17 +991,18 @@ render_buffer_t pvr2_next_render_buffer()
     uint32_t render_scale = MMIO_READ( PVR2, RENDER_SCALER );
     uint32_t render_stride = MMIO_READ( PVR2, RENDER_SIZE ) << 3;
 
-    if( render_addr & 0x01000000 ) { /* vram64 */
-        render_addr = (render_addr & 0x00FFFFFF) + PVR2_RAM_BASE_INT;
-    } else { /* vram32 */
-        render_addr = (render_addr & 0x00FFFFFF) + PVR2_RAM_BASE;
-    }
-
     int width = pvr2_scene_buffer_width();
     int height = pvr2_scene_buffer_height();
-    int colour_format = pvr2_render_colour_format[render_mode&0x07];
+    int colour_format = render_colour_formats[render_mode&0x07];
 
-    result = pvr2_alloc_render_buffer( render_addr, width, height );
+    if( render_addr & 0x01000000 ) { /* vram64 */
+        render_addr = (render_addr & 0x00FFFFFF) + PVR2_RAM_BASE_INT;
+        result = texcache_get_render_buffer( render_addr, colour_format, width, height );
+    } else { /* vram32 */
+        render_addr = (render_addr & 0x00FFFFFF) + PVR2_RAM_BASE;
+        result = pvr2_alloc_render_buffer( render_addr, width, height );
+    }
+
     /* Setup the buffer */
     if( result != NULL ) {
         result->rowstride = render_stride;
@@ -1018,7 +1046,6 @@ gboolean pvr2_render_buffer_invalidate( sh4addr_t address, gboolean isWrite )
                 (bufaddr + render_buffers[i]->size) > address ) {
             if( !render_buffers[i]->flushed ) {
                 pvr2_render_buffer_copy_to_sh4( render_buffers[i] );
-                render_buffers[i]->flushed = TRUE;
             }
             if( isWrite ) {
                 render_buffers[i]->address = -1; /* Invalid */

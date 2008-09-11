@@ -273,6 +273,11 @@ void render_set_context( uint32_t *context, int render_mode );
 
 void gl_render_tilelist( pvraddr_t tile_entry );
 
+render_buffer_t pvr2_create_render_buffer( sh4addr_t addr, int width, int height, GLuint tex_id );
+
+void pvr2_destroy_render_buffer( render_buffer_t buffer );
+
+
 /**
  * Structure to hold a complete unpacked vertex (excluding modifier
  * volume parameters - generate separate vertexes in that case).
@@ -329,6 +334,8 @@ void texcache_invalidate_page( uint32_t texture_addr );
  * bound. Otherwise obtain an unused texture ID and set it up appropriately.
  */
 GLuint texcache_get_texture( uint32_t texture_word, int width, int height );
+
+render_buffer_t texcache_get_render_buffer( uint32_t texture_addr, int mode, int width, int height );
 
 void pvr2_check_palette_changed(void);
 
