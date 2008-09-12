@@ -29,6 +29,7 @@
 extern "C" {
 #endif
 
+#define GDROM_DRIVE_STATUS_LENGTH 10
 #define GDROM_SENSE_LENGTH 10
 #define GDROM_MODE_LENGTH 32
 

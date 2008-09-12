@@ -23,9 +23,9 @@
 /**
  * Valid command codes (hex):
  * 00  Test 
- * 10
- * 11  Inquiry
- * 12
+ * 10  Drive Status
+ * 11  Mode Sense
+ * 12  Mode Select
  * 13  Request Sense
  * 14  Read TOC
  * 15  Read session info
@@ -50,6 +50,7 @@
  */
 
 #define PKT_CMD_TEST_READY 0x00
+#define PKT_CMD_DRIVE_STATUS 0x10
 #define PKT_CMD_MODE_SENSE 0x11
 #define PKT_CMD_MODE_SELECT 0x12
 #define PKT_CMD_SENSE    0x13

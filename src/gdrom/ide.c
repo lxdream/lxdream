@@ -501,6 +501,34 @@ void ide_packet_command( unsigned char *cmd )
         ide_raise_interrupt();
         idereg.status = 0x50;
         break;
+    case PKT_CMD_DRIVE_STATUS:
+        lba = cmd[2];
+        if( lba >= GDROM_DRIVE_STATUS_LENGTH ) {
+            ide_set_error(PKT_ERR_BADFIELD);
+        } else {
+            uint8_t status = ide_get_drive_status();
+            /* FIXME: Refactor read_position to avoid this kind of crud */
+            char tmp[16];
+            gdrom_disc->read_position( gdrom_disc, idereg.current_lba, tmp );
+            
+            length = cmd[4];
+            if( lba+length > GDROM_DRIVE_STATUS_LENGTH )
+                length = GDROM_DRIVE_STATUS_LENGTH - lba;
+            char data[10];
+            data[0] = status & 0x0F;
+            data[1] = status & 0xF0;
+            data[2] = tmp[4];
+            data[3] = tmp[5];
+            data[4] = tmp[6];
+            data[5] = tmp[11];
+            data[6] = tmp[12];
+            data[7] = tmp[13];
+            data[8] = 0;
+            data[9] = 0;
+            memcpy( data_buffer, data + lba, length );
+            ide_start_packet_read( length, 0 );
+        }
+        break;
     case PKT_CMD_MODE_SENSE:
         lba = cmd[2];
         if( lba >= GDROM_MODE_LENGTH ) {
