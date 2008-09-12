@@ -319,6 +319,7 @@ void gl_fbo_detach()
 static gboolean gl_fbo_read_render_buffer( unsigned char *target, render_buffer_t buffer, 
                                            int rowstride, int format )
 {
+    glGetError();
     int fb = gl_fbo_get_framebuffer( buffer->width, buffer->height );
     gl_fbo_attach_texture( fb, buffer->buf_id );
     return gl_read_render_buffer( target, buffer, rowstride, format );

@@ -430,15 +430,40 @@ void pvr2_vram64_read_twiddled_16( unsigned char *dest, sh4addr_t srcaddr, uint3
     }
 }
 
-void pvr2_vram_write_invert( sh4addr_t destaddr, unsigned char *src, uint32_t length, uint32_t line_length,
+static void pvr2_vram_write_invert( sh4addr_t destaddr, unsigned char *src, uint32_t src_size, 
+                             uint32_t line_size, uint32_t dest_stride,
                              uint32_t src_stride )
 {
     unsigned char *dest = video_base + (destaddr & 0x007FFFFF);
-    unsigned char *p = src + length - src_stride;
+    unsigned char *p = src + src_size - src_stride;
     while( p >= src ) {
-        memcpy( dest, p, line_length );
+        memcpy( dest, p, line_size );
         p -= src_stride;
-        dest += line_length;
+        dest += dest_stride;
+    }
+}
+
+/**
+ * Copy a pixel buffer to vram, flipping and scaling at the same time. This
+ * is not massively efficient, but it's used pretty rarely.
+ */
+static void pvr2_vram_write_invert_hscale( sh4addr_t destaddr, unsigned char *src, uint32_t src_size, 
+                             uint32_t line_size, uint32_t dest_stride,
+                             uint32_t src_stride, int bpp )
+{
+    unsigned char *dest = video_base + (destaddr & 0x007FFFFF);
+    unsigned char *p = src + src_size - src_stride;
+    while( p >= src ) {
+        unsigned char *s = p, *d = dest;
+        int i;
+        while( s < p+line_size ) {
+            for( i=0; i<bpp; i++ ) {
+                *d++ = *s++;
+            }
+            s+= bpp;
+        }
+        p -= src_stride;
+        dest += dest_stride;
     }
 }
 
@@ -535,13 +560,21 @@ void pvr2_render_buffer_copy_to_sh4( render_buffer_t buffer )
         pvr2_vram64_write( buffer->address, target, buffer->size );
     } else {
         /* Regular buffer */
-        unsigned char target[buffer->size];
         int line_size = buffer->width * colour_formats[buffer->colour_format].bpp;
-        display_driver->read_render_buffer( target, buffer, buffer->rowstride, buffer->colour_format );
-        if( (buffer->scale & 0xFFFF) == 0x0800 ) {
-            pvr2_vram_write_invert( buffer->address, target, buffer->size, line_size, line_size << 1 );
+        int src_stride = line_size;
+        if( (buffer->scale & 0xFFFF) == 0x0800 )
+            src_stride <<= 1;
+    
+        if( buffer->scale & SCALER_HSCALE ) {
+            unsigned char target[buffer->size];
+            display_driver->read_render_buffer( target, buffer, line_size, buffer->colour_format );
+            pvr2_vram_write_invert_hscale( buffer->address, target, buffer->size, line_size, buffer->rowstride,
+                                           src_stride, colour_formats[buffer->colour_format].bpp );
         } else {
-            pvr2_vram_write_invert( buffer->address, target, buffer->size, line_size, line_size );
+            unsigned char target[buffer->size];
+            display_driver->read_render_buffer( target, buffer, line_size, buffer->colour_format );
+            pvr2_vram_write_invert( buffer->address, target, buffer->size, line_size, buffer->rowstride,
+                                    src_stride );
         }
     }
     buffer->flushed = TRUE;
