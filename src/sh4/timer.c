@@ -27,18 +27,22 @@
 #include "sh4/intc.h"
 
 /********************************* CPG *************************************/
-/* This is the base clock from which all other clocks are derived */
+/* This is the base clock from which all other clocks are derived. 
+ * Note: The real clock runs at 33Mhz, which is multiplied by the PLL to
+ * run the instruction clock at 200Mhz. For sake of simplicity/precision,
+ * we instead use 200Mhz as the base rate and divide everything down instead.
+ **/
 uint32_t sh4_input_freq = SH4_BASE_RATE;
 
 uint32_t sh4_cpu_multiplier = 2000; /* = 0.5 * frequency */
 
 uint32_t sh4_cpu_freq = SH4_BASE_RATE;
-uint32_t sh4_bus_freq = SH4_BASE_RATE;
-uint32_t sh4_peripheral_freq = SH4_BASE_RATE / 2;
+uint32_t sh4_bus_freq = SH4_BASE_RATE / 2;
+uint32_t sh4_peripheral_freq = SH4_BASE_RATE / 4;
 
 uint32_t sh4_cpu_period = 1000 / SH4_BASE_RATE; /* in nanoseconds */
-uint32_t sh4_bus_period = 1000 / SH4_BASE_RATE;
-uint32_t sh4_peripheral_period = 2000 / SH4_BASE_RATE;
+uint32_t sh4_bus_period = 2* 1000 / SH4_BASE_RATE;
+uint32_t sh4_peripheral_period = 4 * 2000 / SH4_BASE_RATE;
 
 int32_t mmio_region_CPG_read( uint32_t reg )
 {
@@ -53,16 +57,20 @@ int pfc_divider[8] = { 2, 3, 4, 6, 8, 8, 8, 8 };
 void mmio_region_CPG_write( uint32_t reg, uint32_t val )
 {
     uint32_t div;
+    uint32_t primary_clock = sh4_input_freq;
+    
     switch( reg ) {
     case FRQCR: /* Frequency control */
+        if( (val & FRQCR_PLL1EN) == 0 )
+            primary_clock /= 6;
         div = ifc_divider[(val >> 6) & 0x07];
-        sh4_cpu_freq = sh4_input_freq / div;
+        sh4_cpu_freq = primary_clock / div;
         sh4_cpu_period = sh4_cpu_multiplier * div / sh4_input_freq;
         div = ifc_divider[(val >> 3) & 0x07];
-        sh4_bus_freq = sh4_input_freq / div;
+        sh4_bus_freq = primary_clock / div;
         sh4_bus_period = 1000 * div / sh4_input_freq;
         div = pfc_divider[val & 0x07];
-        sh4_peripheral_freq = sh4_input_freq / div;
+        sh4_peripheral_freq = primary_clock / div;
         sh4_peripheral_period = 1000 * div / sh4_input_freq;
 
         /* Update everything that depends on the peripheral frequency */
