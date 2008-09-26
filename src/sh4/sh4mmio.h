@@ -117,9 +117,16 @@ MMIO_REGION_BEGIN( 0xFFA00000, DMAC, "DMA Controller" )
     LONG_PORT( 0x040, DMAOR, PORT_MRW, 0, "DMA operation register" )
 MMIO_REGION_END
 
+#define FRQCR_CKOEN    0x0800
+#define FRQCR_PLL1EN   0x0400
+#define FRQCR_PLL2EN   0x0200
+#define FRQCR_IFC_MASK 0x01C0
+#define FRQCR_BFC_MASK 0x0038
+#define FRQCR_PFC_MASK 0x0007
+
 /* Clock Pulse Generator (page 233 [273] of sh7750h manual) */
 MMIO_REGION_BEGIN( 0xFFC00000, CPG, "Clock Pulse Generator" )
-    WORD_PORT( 0x000, FRQCR, PORT_MRW, UNDEFINED, "Frequency control" )
+    WORD_PORT( 0x000, FRQCR, PORT_MRW, 0x0E0A, "Frequency control" )
     BYTE_PORT( 0x004, STBCR, PORT_MRW, 0, "Standby control" )
     BYTE_PORT( 0x008, WTCNT, PORT_MRW, 0, "Watchdog timer counter" )
     BYTE_PORT( 0x00C, WTCSR, PORT_MRW, 0, "Watchdog timer control/status" )
