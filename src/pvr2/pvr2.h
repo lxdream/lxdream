@@ -275,6 +275,8 @@ void gl_render_tilelist( pvraddr_t tile_entry );
 
 render_buffer_t pvr2_create_render_buffer( sh4addr_t addr, int width, int height, GLuint tex_id );
 
+void pvr2_finish_render_buffer( render_buffer_t buffer );
+
 void pvr2_destroy_render_buffer( render_buffer_t buffer );
 
 
