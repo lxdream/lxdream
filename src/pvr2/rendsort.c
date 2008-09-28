@@ -69,64 +69,38 @@ int sort_count_triangles( pvraddr_t tile_entry ) {
 int sort_extract_triangles( pvraddr_t tile_entry, struct sort_triangle *triangles )
 {
     uint32_t *tile_list = (uint32_t *)(video_base+tile_entry);
-    int count = 0;
+    int strip_count;
+    struct polygon_struct *poly;
+    int count = 0, i;
+
     while(1) {
         uint32_t entry = *tile_list++;
-        if( entry >> 28 == 0x0F ) {
+        switch( entry >> 28 ) {
+        case 0x0F:
+            return count; // End-of-list
+        case 0x0E:
+            tile_list = (uint32_t *)(video_base + (entry&0x007FFFFF));
             break;
-        } else if( entry >> 28 == 0x0E ) {
-            tile_list = (uint32_t *)(video_base+(entry&0x007FFFFF));
-        } else {
-            uint32_t poly_addr = entry & 0x000FFFFF;
-            int is_modified = entry & 0x01000000;
-            int vertex_length = (entry >> 21) & 0x07;
-            int context_length = 3;
-            if( is_modified && pvr2_scene.full_shadow ) {
-                context_length = 5;
-                vertex_length *= 2 ;
+        case 0x08: case 0x09: case 0x0A: case 0x0B:
+            strip_count = ((entry >> 25) & 0x0F)+1;
+            poly = pvr2_scene.buf_to_poly_map[entry&0x000FFFFF];
+            while( strip_count > 0 ) {
+                assert( poly != NULL );
+                for( i=0; i<poly->vertex_count-2; i++ ) { 
+                    triangles[count].poly = poly;
+                    triangles[count].triangle_num = i;
+                    triangles[count].maxz = MAX3( pvr2_scene.vertex_array[poly->vertex_index+i].z,
+                            pvr2_scene.vertex_array[poly->vertex_index+i+1].z,
+                            pvr2_scene.vertex_array[poly->vertex_index+i+2].z );
+                    count++;
+                }
+                poly = poly->next;
+                strip_count--;
             }
-            vertex_length += 3;
-
-            if( (entry & 0xE0000000) == 0x80000000 ) {
-                /* Triangle(s) */
-                int strip_count = ((entry >> 25) & 0x0F)+1;
-                int polygon_length = 3 * vertex_length + context_length;
-                int i;
-                for( i=0; i<strip_count; i++ ) {
-                    struct polygon_struct *poly = pvr2_scene.buf_to_poly_map[poly_addr];
-                    triangles[count].poly = poly;
-                    triangles[count].triangle_num = 0;
-                    triangles[count].maxz = MAX3( pvr2_scene.vertex_array[poly->vertex_index].z,
-                            pvr2_scene.vertex_array[poly->vertex_index+1].z,
-                            pvr2_scene.vertex_array[poly->vertex_index+2].z );
-                    poly_addr += polygon_length;
-                    count++;
-                }
-            } else if( (entry & 0xE0000000) == 0xA0000000 ) {
-                /* Quad(s) */
-                int strip_count = ((entry >> 25) & 0x0F)+1;
-                int polygon_length = 4 * vertex_length + context_length;
-                int i;
-                for( i=0; i<strip_count; i++ ) {
-                    struct polygon_struct *poly = pvr2_scene.buf_to_poly_map[poly_addr];
-                    triangles[count].poly = poly;
-                    triangles[count].triangle_num = 0;
-                    triangles[count].maxz = MAX3( pvr2_scene.vertex_array[poly->vertex_index].z,
-                            pvr2_scene.vertex_array[poly->vertex_index+1].z,
-                            pvr2_scene.vertex_array[poly->vertex_index+2].z );
-                    count++;
-                    triangles[count].poly = poly;
-                    triangles[count].triangle_num = 1;
-                    triangles[count].maxz = MAX3( pvr2_scene.vertex_array[poly->vertex_index+1].z,
-                            pvr2_scene.vertex_array[poly->vertex_index+2].z,
-                            pvr2_scene.vertex_array[poly->vertex_index+3].z );
-                    count++;
-                    poly_addr += polygon_length;
-                }
-            } else {
-                /* Polygon */
-                int i;
-                struct polygon_struct *poly = pvr2_scene.buf_to_poly_map[poly_addr];
+            break;
+        default:
+            if( entry & 0x7E000000 ) {
+                poly = pvr2_scene.buf_to_poly_map[entry&0x000FFFFF];
                 for( i=0; i<6; i++ ) {
                     if( entry & (0x40000000>>i) ) {
                         triangles[count].poly = poly;
@@ -139,8 +113,8 @@ int sort_extract_triangles( pvraddr_t tile_entry, struct sort_triangle *triangle
                 }
             }
         }
-    }
-    return count;
+    }       
+
 }
 
 void sort_render_triangles( struct sort_triangle *triangles, int num_triangles,
