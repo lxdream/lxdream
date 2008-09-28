@@ -398,6 +398,7 @@ static void texcache_load_texture( uint32_t texture_addr, int width, int height,
         }
         break;
 
+        default:
         case PVR2_TEX_FORMAT_ARGB1555:
             format = GL_BGRA;
             type = GL_UNSIGNED_SHORT_1_5_5_5_REV;
@@ -420,10 +421,7 @@ static void texcache_load_texture( uint32_t texture_addr, int width, int height,
             type = GL_UNSIGNED_BYTE;
             break;
         case PVR2_TEX_FORMAT_BUMPMAP:
-            ERROR( "Bumpmap not supported" );
-            return;
-        default:
-            ERROR( "Undefined texture format" );
+            WARN( "Bumpmap not supported" );
             return;
     }
 
