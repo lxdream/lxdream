@@ -102,6 +102,10 @@ struct frame_buffer {
     unsigned char *data;
 };
 
+struct display_capabilities {
+    int stencil_bits; /* 0 = no stencil buffer */
+};
+
 /**
  * Core video driver - exports function to setup a GL context, as well as handle
  * keyboard input and display resultant output.
@@ -201,6 +205,7 @@ typedef struct display_driver {
     gboolean (*read_render_buffer)( unsigned char *target, render_buffer_t buffer,
             int rowstride, int format );
 
+    struct display_capabilities capabilities;
 } *display_driver_t;
 
 /**

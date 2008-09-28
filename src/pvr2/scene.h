@@ -31,6 +31,9 @@ typedef enum {
     SORT_ALWAYS = 2 
 } tile_sort_mode_t;
 
+typedef enum { SHADOW_NONE=0, SHADOW_CHEAP=1, SHADOW_FULL=2 } shadow_mode_t;
+
+
 struct vertex_struct {
     float u,v;
     float x,y,z;
@@ -120,12 +123,10 @@ struct pvr2_scene_struct {
      * render the scene */
     uint32_t buffer_width, buffer_height;
 
-    /** True if modifier volumes use the two-parameter form, False if they
-     * use the cheap-shadow option.
-     */
-    gboolean full_shadow;
     /** Specifies the translucency auto-sort mode for the scene */
     tile_sort_mode_t sort_mode;
+    
+    shadow_mode_t shadow_mode;
 
     float fog_lut_colour[4];
     float fog_vert_colour[4];

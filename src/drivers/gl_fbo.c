@@ -58,6 +58,7 @@ struct gl_fbo_info {
 };
 
 static GLint gl_fbo_max_attachments = 0;
+static gboolean gl_fbo_have_packed_stencil = FALSE;
 static struct gl_fbo_info fbo[MAX_FRAMEBUFFERS];
 
 #define ATTACHMENT_POINT(n) (GL_COLOR_ATTACHMENT0_EXT+(n))
@@ -93,6 +94,15 @@ void gl_fbo_init( display_driver_t driver )
     }
     last_used_fbo = 0;
 
+    if( isGLExtensionSupported("GL_EXT_packed_depth_stencil" ) ) {
+        driver->capabilities.stencil_bits = 8;
+        gl_fbo_have_packed_stencil = TRUE;
+    } else {
+        driver->capabilities.stencil_bits = 0;
+        gl_fbo_have_packed_stencil = FALSE;
+        WARN( "Packed depth stencil not available - disabling shadow volumes" );
+    }
+
     driver->create_render_buffer = gl_fbo_create_render_buffer;
     driver->destroy_render_buffer = gl_fbo_destroy_render_buffer;
     driver->set_render_target = gl_fbo_set_render_target;
@@ -117,24 +127,31 @@ void gl_fbo_shutdown()
     }
 }
 
-void gl_fbo_setup_framebuffer( int bufno, int width, int height )
+static void gl_fbo_setup_framebuffer( int bufno, int width, int height )
 {
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fbo[bufno].fb_id);
-    glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, fbo[bufno].depth_id);
-    glRenderbufferStorageEXT(GL_RENDERBUFFER_EXT, GL_DEPTH_COMPONENT24, width, height);
-    glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT,
-                                 GL_RENDERBUFFER_EXT, fbo[bufno].depth_id);
-    /* Stencil doesn't work on ATI, and we're not using it at the moment anyway, so...
-    glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, fbo[bufno].stencil_id);
-    glRenderbufferStorageEXT(GL_RENDERBUFFER_EXT, GL_STENCIL_INDEX, width, height);
-    glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT, GL_STENCIL_ATTACHMENT_EXT,
-				 GL_RENDERBUFFER_EXT, fbo[bufno].stencil_id);
-     */
+    if( gl_fbo_have_packed_stencil ) {
+        glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, fbo[bufno].depth_id);
+        glRenderbufferStorageEXT(GL_RENDERBUFFER_EXT, GL_DEPTH24_STENCIL8_EXT, width, height);
+        glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT,
+                                     GL_RENDERBUFFER_EXT, fbo[bufno].depth_id);
+        glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT, GL_STENCIL_ATTACHMENT_EXT,
+                                     GL_RENDERBUFFER_EXT, fbo[bufno].depth_id);
+    } else {
+        glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, fbo[bufno].depth_id);
+        glRenderbufferStorageEXT(GL_RENDERBUFFER_EXT, GL_DEPTH_COMPONENT24, width, height);
+        glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT,
+                                     GL_RENDERBUFFER_EXT, fbo[bufno].depth_id);
+        /* In theory you could attach a separate stencil buffer. In practice this 
+         * isn't actually supported by any hardware I've had access to, so we're
+         * stencil-less.
+         */
+    }
     fbo[bufno].width = width;
     fbo[bufno].height = height;
 }
 
-int gl_fbo_get_framebuffer( int width, int height ) 
+static int gl_fbo_get_framebuffer( int width, int height ) 
 {
     int bufno = -1, i;
     /* find a compatible framebuffer context */

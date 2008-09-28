@@ -96,19 +96,25 @@ gboolean video_glx_init( Display *display, int screen )
     if( result != False ) {
         glx_version = (major*100) + minor;
     }
-
+#ifdef APPLE_BUILD
+    /* fbconfig is broken on at least the 10.5 GLX implementation */
+    glx_fbconfig_supported = FALSE;
+#else
     glx_fbconfig_supported = (glx_version >= 103 || 
             isServerGLXExtensionSupported(display, screen,
                     "GLX_SGIX_fbconfig") );
+#endif
     glx_pbuffer_supported = (glx_version >= 103 ||
             isServerGLXExtensionSupported(display, screen,
                     "GLX_SGIX_pbuffer") );
+//    glx_fbconfig_supported = FALSE;
     if( glx_fbconfig_supported ) {
         int nelem;
         int fb_attribs[] = { GLX_DRAWABLE_TYPE, 
                 GLX_PBUFFER_BIT|GLX_WINDOW_BIT, 
                 GLX_RENDER_TYPE, GLX_RGBA_BIT, 
-                GLX_DEPTH_SIZE, 24, 0 };
+                GLX_DEPTH_SIZE, 24, 
+                GLX_STENCIL_SIZE, 8, 0 };
         GLXFBConfig *configs = glXChooseFBConfig( display, screen, 
                 fb_attribs, &nelem );
 
@@ -133,7 +139,7 @@ gboolean video_glx_init( Display *display, int screen )
     }
 
     if( !glx_fbconfig_supported ) {
-        int attribs[] = { GLX_RGBA, GLX_DEPTH_SIZE, 24, 0 };
+        int attribs[] = { GLX_RGBA, GLX_DEPTH_SIZE, 24, GLX_STENCIL_SIZE, 8, 0 };
         glx_visual = glXChooseVisual( display, screen, attribs );
         if( glx_visual == NULL ) {
             /* Try the 16-bit fallback here too */
@@ -262,6 +268,12 @@ void video_glx_make_window_current( void )
  */
 static void glx_pbuffer_init( display_driver_t driver ) 
 {
+    GLint stencil_bits = 0;
+    
+    /* Retrieve the number of stencil bits */
+    glGetIntegerv( GL_STENCIL_BITS, &stencil_bits );
+    driver->capabilities.stencil_bits = stencil_bits;
+    
     glGenTextures( 1, &glx_pbuffer_texture );
     driver->create_render_buffer = glx_pbuffer_create_render_buffer;
     driver->destroy_render_buffer = glx_pbuffer_destroy_render_buffer;
