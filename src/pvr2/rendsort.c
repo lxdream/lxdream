@@ -126,9 +126,8 @@ void sort_render_triangles( struct sort_triangle *triangles, int num_triangles,
         if( poly->tex_id != -1 ) {
             glBindTexture(GL_TEXTURE_2D, poly->tex_id);
         }
-        render_set_context( poly->context, RENDER_NORMAL );
+        render_set_context( poly->context, GL_GEQUAL );
         glDepthMask(GL_FALSE);
-        glDepthFunc(GL_GEQUAL);
         /* Fix cull direction */
         if( triangles[i].triangle_num & 1 ) {
             glCullFace(GL_FRONT);
@@ -158,7 +157,7 @@ void render_autosort_tile( pvraddr_t tile_entry, int render_mode )
     if( num_triangles == 0 ) {
         return; /* nothing to do */
     } else if( num_triangles == 1 ) { /* Triangle can hardly overlap with itself */
-        gl_render_tilelist(tile_entry);
+        gl_render_tilelist(tile_entry, GL_LEQUAL);
     } else { /* Ooh boy here we go... */
         struct sort_triangle triangles[num_triangles+1];
         // Reserve space for num_triangles / 2 * 4 vertexes (maximum possible number of
