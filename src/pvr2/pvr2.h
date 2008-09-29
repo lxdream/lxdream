@@ -87,6 +87,10 @@ gboolean pvr2_save_next_scene( const gchar *filename );
 #define PVR2_CMD_VERTEX      0xE0
 #define PVR2_CMD_VERTEX_LAST 0xF0
 
+#define PVR2_VOLUME_NORMAL 0x00000000
+#define PVR2_VOLUME_REGION1 0x20000000
+#define PVR2_VOLUME_REGION0 0x40000000
+
 #define PVR2_POLY_TEXTURED 0x00000008
 #define PVR2_POLY_SPECULAR 0x00000004
 #define PVR2_POLY_SHADED   0x00000002
@@ -352,6 +356,7 @@ int pvr2_render_save_scene( const gchar *filename );
 void pvr2_queue_gun_event( int xpos, int ypos );
 
 /************************* Rendering support macros **************************/
+#define POLY1_VOLUME_MODE(poly1) ((poly1)&0xE0000000)
 #define POLY1_DEPTH_MODE(poly1) ( pvr2_poly_depthmode[(poly1)>>29] )
 #define POLY1_DEPTH_WRITE(poly1) (((poly1)&0x04000000) == 0 )
 #define POLY1_CULL_MODE(poly1) (((poly1)>>27)&0x03)

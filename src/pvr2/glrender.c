@@ -122,15 +122,8 @@ void pvr2_setup_gl_context()
     glClearStencil(0);
 }
 
-/**
- * Setup the basic context that's shared between normal and modified modes -
- * depth, culling, shade model, and color sum
- */
-static void render_set_base_context( uint32_t poly1 )
+static void render_set_cull( uint32_t poly1 )
 {
-    glDepthFunc( POLY1_DEPTH_MODE(poly1) );
-    glDepthMask( POLY1_DEPTH_WRITE(poly1) ? GL_TRUE : GL_FALSE );
-
     switch( POLY1_CULL_MODE(poly1) ) {
     case CULL_NONE:
     case CULL_SMALL:
@@ -144,8 +137,20 @@ static void render_set_base_context( uint32_t poly1 )
         glEnable( GL_CULL_FACE );
         glFrontFace( GL_CCW );
         break;
-    }
+    }   
+}    
 
+/**
+ * Setup the basic context that's shared between normal and modified modes -
+ * depth, culling
+ */
+static void render_set_base_context( uint32_t poly1 )
+{
+    glDepthFunc( POLY1_DEPTH_MODE(poly1) );
+    glDepthMask( POLY1_DEPTH_WRITE(poly1) ? GL_TRUE : GL_FALSE );
+
+    render_set_cull( poly1 );
+    
     glShadeModel( POLY1_SHADE_MODEL(poly1) );
 
     if( POLY1_SPECULAR(poly1) ) {
@@ -233,12 +238,14 @@ static void gl_render_poly( struct polygon_struct *poly )
         glBindTexture(GL_TEXTURE_2D, poly->tex_id);
     }
     if( poly->mod_vertex_index == -1 ) {
+        glDisable( GL_STENCIL_TEST );
         render_set_context( poly->context, RENDER_NORMAL );
         glDrawArrays(GL_TRIANGLE_STRIP, poly->vertex_index, poly->vertex_count );
-    } else {
+    }  else {
+        glEnable( GL_STENCIL_TEST );
         render_set_base_context( poly->context[0] );
         render_set_tsp_context( poly->context[0], poly->context[1], poly->context[2] );
-        glStencilFunc(GL_EQUAL, 0, 1);
+        glStencilFunc(GL_EQUAL, 0, 2);
         glDrawArrays(GL_TRIANGLE_STRIP, poly->vertex_index, poly->vertex_count );
 
         if( pvr2_scene.shadow_mode == SHADOW_FULL ) {
@@ -247,7 +254,7 @@ static void gl_render_poly( struct polygon_struct *poly )
             }
             render_set_tsp_context( poly->context[0], poly->context[3], poly->context[4] );
         }
-        glStencilFunc(GL_EQUAL, 1, 1);
+        glStencilFunc(GL_EQUAL, 2, 2);
         glDrawArrays(GL_TRIANGLE_STRIP, poly->mod_vertex_index, poly->vertex_count );
     }
 }
@@ -346,7 +353,81 @@ void gl_render_tilelist_depthonly( pvraddr_t tile_entry )
     }           
 }
 
-void gl_render_modifier_tilelist( pvraddr_t tile_entry )
+static void drawrect2d( uint32_t tile_bounds[], float z )
+{
+    glBegin( GL_QUADS );
+    glVertex3f( tile_bounds[0], tile_bounds[2], z );
+    glVertex3f( tile_bounds[1], tile_bounds[2], z );
+    glVertex3f( tile_bounds[1], tile_bounds[3], z );
+    glVertex3f( tile_bounds[0], tile_bounds[3], z );
+    glEnd();
+}
+
+void gl_render_modifier_polygon( struct polygon_struct *poly, uint32_t tile_bounds[] )
+{
+    /* A bit of explanation:
+     * In theory it works like this: generate a 1-bit stencil for each polygon
+     * volume, and then AND or OR it against the overall 1-bit tile stencil at 
+     * the end of the volume. 
+     * 
+     * The implementation here uses a 2-bit stencil buffer, where each volume
+     * is drawn using only stencil bit 0, and then a 'flush' polygon is drawn
+     * to update bit 1 accordingly and clear bit 0.
+     * 
+     * This could probably be more efficient, but at least it works correctly 
+     * now :)
+     */
+    
+    render_set_cull(poly->context[0]);
+    glDrawArrays(GL_TRIANGLE_STRIP, poly->vertex_index, poly->vertex_count );
+    
+    int poly_type = POLY1_VOLUME_MODE(poly->context[0]);
+    if( poly_type == PVR2_VOLUME_REGION0 ) {
+        /* 00 => 00
+         * 01 => 00
+         * 10 => 10
+         * 11 => 00
+         */
+        glStencilMask( 0x03 );
+        glStencilFunc(GL_EQUAL, 0x02, 0x03);
+        glStencilOp(GL_ZERO, GL_KEEP, GL_KEEP);
+        glDisable( GL_CULL_FACE );
+        glDisable( GL_DEPTH_TEST );
+
+        drawrect2d( tile_bounds, pvr2_scene.bounds[4] );
+        
+        glEnable( GL_DEPTH_TEST );
+        glStencilMask( 0x01 );
+        glStencilFunc( GL_ALWAYS, 0, 1 );
+        glStencilOp( GL_KEEP,GL_INVERT, GL_KEEP ); 
+    } else if( poly_type == PVR2_VOLUME_REGION1 ) {
+        /* This is harder with the standard stencil ops - do it in two passes
+         * 00 => 00 | 00 => 10
+         * 01 => 10 | 01 => 10
+         * 10 => 10 | 10 => 00
+         * 11 => 10 | 11 => 10
+         */
+        glStencilMask( 0x02 );
+        glStencilOp( GL_INVERT, GL_INVERT, GL_INVERT );
+        glDisable( GL_CULL_FACE );
+        glDisable( GL_DEPTH_TEST );
+        
+        drawrect2d( tile_bounds, pvr2_scene.bounds[4] );
+        
+        glStencilMask( 0x03 );
+        glStencilFunc( GL_NOTEQUAL,0x02, 0x03);
+        glStencilOp( GL_ZERO, GL_REPLACE, GL_REPLACE );
+        
+        drawrect2d( tile_bounds, pvr2_scene.bounds[4] );
+        
+        glEnable( GL_DEPTH_TEST );
+        glStencilMask( 0x01 );
+        glStencilFunc( GL_ALWAYS, 0, 1 );
+        glStencilOp( GL_KEEP,GL_INVERT, GL_KEEP );         
+    }
+}
+
+void gl_render_modifier_tilelist( pvraddr_t tile_entry, uint32_t tile_bounds[] )
 {
     uint32_t *tile_list = (uint32_t *)(video_base+tile_entry);
     int strip_count;
@@ -365,7 +446,7 @@ void gl_render_modifier_tilelist( pvraddr_t tile_entry )
     
     glStencilFunc( GL_ALWAYS, 0, 1 );
     glStencilOp( GL_KEEP,GL_INVERT, GL_KEEP ); 
-
+    glStencilMask( 0x01 );
     glDepthMask( GL_FALSE );
     
     while(1) {
@@ -382,7 +463,7 @@ void gl_render_modifier_tilelist( pvraddr_t tile_entry )
             strip_count = ((entry >> 25) & 0x0F)+1;
             poly = pvr2_scene.buf_to_poly_map[entry&0x000FFFFF];
             while( strip_count > 0 ) {
-                glDrawArrays(GL_TRIANGLE_STRIP, poly->vertex_index, poly->vertex_count );
+                gl_render_modifier_polygon( poly, tile_bounds );
                 poly = poly->next;
                 strip_count--;
             }
@@ -390,7 +471,7 @@ void gl_render_modifier_tilelist( pvraddr_t tile_entry )
         default:
             if( entry & 0x7E000000 ) {
                 poly = pvr2_scene.buf_to_poly_map[entry&0x000FFFFF];
-                glDrawArrays(GL_TRIANGLE_STRIP, poly->vertex_index, poly->vertex_count );
+                gl_render_modifier_polygon( poly, tile_bounds );
             }
         }
     }
@@ -432,6 +513,7 @@ void pvr2_scene_render( render_buffer_t buffer )
     /* Clear the buffer (FIXME: May not want always want to do this) */
     glDisable( GL_SCISSOR_TEST );
     glDepthMask( GL_TRUE );
+    glStencilMask( 0x03 );
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT );
 
     /* Setup vertex array pointers */
@@ -466,7 +548,7 @@ void pvr2_scene_render( render_buffer_t buffer )
         /* Clip to the visible part of the tile */
         glScissor( tile_bounds[0], pvr2_scene.buffer_height-tile_bounds[3], 
                    tile_bounds[1]-tile_bounds[0], tile_bounds[3] - tile_bounds[2] );
-        if( display_driver->capabilities.stencil_bits != 0 && 
+        if( display_driver->capabilities.stencil_bits >= 2 && 
                 IS_TILE_PTR(segment->opaquemod_ptr) &&
                 !IS_EMPTY_TILE_LIST(segment->opaquemod_ptr) ) {
             /* Don't do this unless there's actually some shadow polygons */
@@ -474,7 +556,7 @@ void pvr2_scene_render( render_buffer_t buffer )
             /* Use colormask instead of drawbuffer for simplicity */
             glColorMask( GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE );
             gl_render_tilelist_depthonly(segment->opaque_ptr);
-            gl_render_modifier_tilelist(segment->opaquemod_ptr);
+            gl_render_modifier_tilelist(segment->opaquemod_ptr, tile_bounds);
             glClear( GL_DEPTH_BUFFER_BIT );
             glColorMask( GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE );
         }
