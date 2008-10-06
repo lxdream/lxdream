@@ -69,14 +69,18 @@ gboolean lxdream_find_config()
         lxdream_config_save_filename = g_strdup_printf("%s/.%s", home, DEFAULT_CONFIG_FILENAME);
     }
     if( lxdream_config_load_filename == NULL ) {
+        char *sysconfig = g_strdup_printf("%s/%s", get_sysconf_path(), DEFAULT_CONFIG_FILENAME);
         if( access(lxdream_config_save_filename, R_OK) == 0 ) {
             lxdream_config_load_filename = g_strdup(lxdream_config_save_filename);
-        } else if( access( PACKAGE_CONF_DIR "/" DEFAULT_CONFIG_FILENAME, R_OK ) == 0 ) {
-            lxdream_config_load_filename = g_strdup(PACKAGE_CONF_DIR "/" DEFAULT_CONFIG_FILENAME);
+            g_free(sysconfig);
+        } else if( access( sysconfig, R_OK ) == 0 ) {
+            lxdream_config_load_filename = sysconfig;
         } else if( access( "./" DEFAULT_CONFIG_FILENAME, R_OK ) == 0 ) {
             lxdream_config_load_filename = g_strdup("./" DEFAULT_CONFIG_FILENAME);
+            g_free(sysconfig);
         } else {
             lxdream_config_load_filename = g_strdup(lxdream_config_save_filename);
+            g_free(sysconfig);
             result = FALSE;
         }	
     }

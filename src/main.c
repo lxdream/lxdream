@@ -35,9 +35,6 @@
 #include "maple/maple.h"
 #include "sh4/sh4.h"
 
-#ifdef APPLE_BUILD
-#include <AppKit/AppKit.h>
-#endif
 
 char *option_list = "a:A:c:dhHl:m:npt:T:uvV:x?";
 struct option longopts[] = {
@@ -98,19 +95,8 @@ void print_usage()
 void bind_gettext_domain()
 {
 #ifdef ENABLE_NLS
-#ifdef APPLE_BUILD
-    NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
-    NSString *resourcePath = [[NSBundle mainBundle] resourcePath];
-    bindtextdomain( PACKAGE, [resourcePath UTF8String] );
-#ifdef HAVE_BIND_TEXTDOMAIN_CODESET
-    bind_textdomain_codeset( PACKAGE, "UTF-8" );
-#endif
-    [pool release];    
-#else    
-    bindtextdomain (PACKAGE, PACKAGE_LOCALE_DIR);
-#endif
+    bindtextdomain( PACKAGE, get_locale_path() );
     textdomain(PACKAGE);
-
 #endif
 }
 

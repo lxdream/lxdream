@@ -87,7 +87,9 @@ void log_message( void *, int level, const char *source, const char *msg, ... );
 #define DEBUG( ... ) log_message( NULL, EMIT_DEBUG, MODULE_NAME, __VA_ARGS__ )
 #define TRACE( ... ) log_message( NULL, EMIT_TRACE, MODULE_NAME, __VA_ARGS__ )
 
-
+/****************** System paths ****************/
+const char *get_sysconf_path();
+const char *get_locale_path();
 
 #ifdef __cplusplus
 }

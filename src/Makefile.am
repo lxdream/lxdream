@@ -34,7 +34,7 @@ genglsl_SOURCES = tools/genglsl.c
 
 lxdream_SOURCES = \
         main.c version.c config.c config.h lxdream.h dream.h gui.h cpu.h hook.h \
-        gettext.h mem.c mem.h mmio.h watch.c \
+        gettext.h mem.c mem.h mmio.h paths.c watch.c \
         asic.c asic.h clock.h serial.h \
         syscall.c syscall.h bios.c dcload.c \
         gdrom/ide.c gdrom/ide.h gdrom/packet.h gdrom/gdimage.c \

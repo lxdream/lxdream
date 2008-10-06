@@ -6842,6 +6842,13 @@ else
   GUI_COCOA_FALSE=
 fi
 
+if test "x$HAVE_COCOA" = 'xyes' -a "x$with_gtk" = "xno"; then
+
+cat >>confdefs.h <<\_ACEOF
+#define OSX_BUNDLE 1
+_ACEOF
+
+fi
 
 
 
