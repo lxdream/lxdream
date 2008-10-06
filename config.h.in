@@ -124,6 +124,9 @@
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
 
+/* Generating a bundled application */
+#undef OSX_BUNDLE
+
 /* Name of package */
 #undef PACKAGE
 

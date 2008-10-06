@@ -79,6 +79,9 @@ AC_TRY_COMPILE([@interface Foo @end],, [
 
 ], [CPPFLAGS="$lxdream_save_cppflags"] )
 AM_CONDITIONAL(GUI_COCOA, [test "$HAVE_COCOA" = 'yes' -a "$with_gtk" = "no"])
+if test "x$HAVE_COCOA" = 'xyes' -a "x$with_gtk" = "xno"; then
+  AC_DEFINE(OSX_BUNDLE, [1], [Generating a bundled application])
+fi
 
 dnl ----------- Check for mandatory dependencies --------------
 dnl Check for libpng (required)
