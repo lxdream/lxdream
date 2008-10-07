@@ -278,12 +278,15 @@ gboolean pvr2_load_render_buffers( FILE *f )
 
     if( has_frontbuffer ) {
         displayed_render_buffer = pvr2_load_render_buffer(f);
+        if( displayed_render_buffer == NULL )
+        	return FALSE;
         display_driver->display_render_buffer( displayed_render_buffer );
         count--;
     }
 
     for( i=0; i<count; i++ ) {
-        pvr2_load_render_buffer( f );
+        if( pvr2_load_render_buffer( f ) == NULL )
+        	return FALSE;
     }
     return TRUE;
 }
