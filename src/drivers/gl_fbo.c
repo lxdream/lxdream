@@ -228,12 +228,12 @@ static render_buffer_t gl_fbo_create_render_buffer( uint32_t width, uint32_t hei
         GLuint tex;
         glGenTextures( 1, &tex );
         buffer->buf_id = tex;
-        glBindTexture( GL_TEXTURE_RECTANGLE_ARB, tex );
-        glTexImage2D( GL_TEXTURE_RECTANGLE_ARB, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL );
     } else {
         buffer->buf_id = tex_id;
         glBindTexture( GL_TEXTURE_RECTANGLE_ARB, tex_id );
     }
+    glBindTexture( GL_TEXTURE_RECTANGLE_ARB, buffer->buf_id );
+    glTexImage2D( GL_TEXTURE_RECTANGLE_ARB, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL );
     glTexParameteri( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_S, GL_CLAMP );
     glTexParameteri( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_T, GL_CLAMP );
     glTexParameteri( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
