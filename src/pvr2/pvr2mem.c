@@ -116,46 +116,34 @@ void pvr2_vram64_write( sh4addr_t destaddr, unsigned char *src, uint32_t length 
 
 /**
  * Write an image to 64-bit vram, with a line-stride different from the line-size.
- * The destaddr must be 32-bit aligned, and both line_bytes and line_stride_bytes
- * must be multiples of 4.
+ * The destaddr must be 64-bit aligned, and both line_bytes and line_stride_bytes
+ * must be multiples of 8.
  */
 void pvr2_vram64_write_stride( sh4addr_t destaddr, unsigned char *src, uint32_t line_bytes,
                                uint32_t line_stride_bytes, uint32_t line_count )
 {
-    int bank_flag = (destaddr & 0x04) >> 2;
-    uint32_t *banks[2];
-    uint32_t *dwsrc;
-    uint32_t line_gap;
-    int line_gap_flag;
     int i,j;
+    uint32_t *banks[2];
+    uint32_t *dwsrc = (uint32_t *)src;
+    uint32_t line_gap = (line_stride_bytes - line_bytes) >> 3;
 
     destaddr = destaddr & 0x7FFFF8;
-    i = line_stride_bytes - line_bytes;
-    line_gap_flag = i & 0x04;
-    line_gap = i >> 3;
-    line_bytes >>= 2;
+    line_bytes >>= 3;
 
-    for( i=destaddr & 0xFFFFF000; i < destaddr + line_stride_bytes*line_count; i+= LXDREAM_PAGE_SIZE ) {
+    for( i=destaddr; i < destaddr + line_stride_bytes*line_count; i+= LXDREAM_PAGE_SIZE ) {
         texcache_invalidate_page( i );
     }
 
     banks[0] = (uint32_t *)(video_base + (destaddr >>1));
     banks[1] = banks[0] + 0x100000;
-    if( bank_flag )
-        banks[0]++;
 
-    dwsrc = (uint32_t *)src;
     for( i=0; i<line_count; i++ ) {
         for( j=0; j<line_bytes; j++ ) {
-            *banks[bank_flag]++ = *dwsrc++;
-            bank_flag = !bank_flag;
+            *banks[0]++ = *dwsrc++;
+            *banks[1]++ = *dwsrc++;
         }
         banks[0] += line_gap;
         banks[1] += line_gap;
-        if( line_gap_flag ) {
-            banks[bank_flag]++;
-            bank_flag = !bank_flag;
-        }
     }
 }
 
@@ -443,6 +431,36 @@ static void pvr2_vram_write_invert( sh4addr_t destaddr, unsigned char *src, uint
     }
 }
 
+static void pvr2_vram64_write_invert( sh4addr_t destaddr, unsigned char *src, 
+                                      uint32_t src_size, uint32_t line_size, 
+                                      uint32_t dest_stride, uint32_t src_stride )
+{
+    int i,j;
+    uint32_t *banks[2];
+    uint32_t *dwsrc = (uint32_t *)(src + src_size - src_stride);
+    int32_t src_line_gap = ((int32_t)src_stride + line_size) >> 2; 
+    int32_t dest_line_gap = ((int32_t)dest_stride - (int32_t)line_size) >> 3;
+
+    destaddr = destaddr & 0x7FFFF8;
+
+    for( i=destaddr; i < destaddr + dest_stride*(src_size/src_stride); i+= LXDREAM_PAGE_SIZE ) {
+        texcache_invalidate_page( i );
+    }
+
+    banks[0] = (uint32_t *)(video_base + (destaddr >>1));
+    banks[1] = banks[0] + 0x100000;
+
+    while( dwsrc >= (uint32_t *)src ) { 
+        for( j=0; j<line_size; j+=8 ) {
+            *banks[0]++ = *dwsrc++;
+            *banks[1]++ = *dwsrc++;
+        }
+        banks[0] += dest_line_gap;
+        banks[1] += dest_line_gap;
+        dwsrc -= src_line_gap;
+    }    
+}
+
 /**
  * Copy a pixel buffer to vram, flipping and scaling at the same time. This
  * is not massively efficient, but it's used pretty rarely.
@@ -546,33 +564,31 @@ void pvr2_vram64_dump( sh4addr_t addr, uint32_t length, FILE *f )
  * Flush the indicated render buffer back to PVR. Caller is responsible for
  * tracking whether there is actually anything in the buffer.
  *
- * FIXME: Handle horizontal scaler
+ * FIXME: Handle horizontal scaler 
  *
  * @param buffer A render buffer indicating the address to store to, and the
  * format the data needs to be in.
  */
 void pvr2_render_buffer_copy_to_sh4( render_buffer_t buffer )
 {
+    int line_size = buffer->width * colour_formats[buffer->colour_format].bpp;
+    int src_stride = line_size;
+    unsigned char target[buffer->size];
+
+    display_driver->read_render_buffer( target, buffer, line_size, buffer->colour_format );
+
+    if( (buffer->scale & 0xFFFF) == 0x0800 )
+        src_stride <<= 1;
+
     if( (buffer->address & 0xFF000000) == 0x04000000 ) {
-        /* Interlaced buffer. Go the double copy... :( */
-        unsigned char target[buffer->size];
-        display_driver->read_render_buffer( target, buffer, buffer->rowstride, buffer->colour_format );
-        pvr2_vram64_write( buffer->address, target, buffer->size );
+        pvr2_vram64_write_invert( buffer->address, target, buffer->size, line_size, 
+                                  buffer->rowstride, src_stride );
     } else {
         /* Regular buffer */
-        int line_size = buffer->width * colour_formats[buffer->colour_format].bpp;
-        int src_stride = line_size;
-        if( (buffer->scale & 0xFFFF) == 0x0800 )
-            src_stride <<= 1;
-    
         if( buffer->scale & SCALER_HSCALE ) {
-            unsigned char target[buffer->size];
-            display_driver->read_render_buffer( target, buffer, line_size, buffer->colour_format );
             pvr2_vram_write_invert_hscale( buffer->address, target, buffer->size, line_size, buffer->rowstride,
                                            src_stride, colour_formats[buffer->colour_format].bpp );
         } else {
-            unsigned char target[buffer->size];
-            display_driver->read_render_buffer( target, buffer, line_size, buffer->colour_format );
             pvr2_vram_write_invert( buffer->address, target, buffer->size, line_size, buffer->rowstride,
                                     src_stride );
         }
