@@ -486,6 +486,12 @@ void mmio_region_PVR2_write( uint32_t reg, uint32_t val )
         if( buffer != NULL ) {
             pvr2_scene_render( buffer );
             pvr2_finish_render_buffer( buffer );
+            if( buffer->address < PVR2_RAM_BASE ) {
+                // Flush immediately - optimize this later. Otherwise this gets
+                // complicated very quickly trying to second-guess how it's
+                // going to be used as a texture.
+                pvr2_render_buffer_copy_to_sh4( buffer );
+            }
         }
         asic_event( EVENT_PVR_RENDER_DONE );
         break;
@@ -958,7 +964,7 @@ render_buffer_t pvr2_alloc_render_buffer( sh4addr_t render_addr, int width, int 
                         render_buffers[i] != displayed_render_buffer ) {
                     /* Never throw away the current "front buffer(s)" */
                     result = render_buffers[i];
-                    if( !result->flushed ) {
+                    if( !result->flushed && result->address != -1 ) {
                         pvr2_render_buffer_copy_to_sh4( result );
                     }
                     if( result->width != width || result->height != height ) {
@@ -1000,12 +1006,11 @@ render_buffer_t pvr2_next_render_buffer()
 
     if( render_addr & 0x01000000 ) { /* vram64 */
         render_addr = (render_addr & 0x00FFFFFF) + PVR2_RAM_BASE_INT;
-        result = texcache_get_render_buffer( render_addr, colour_format, width, height );
     } else { /* vram32 */
         render_addr = (render_addr & 0x00FFFFFF) + PVR2_RAM_BASE;
-        result = pvr2_alloc_render_buffer( render_addr, width, height );
     }
-
+    result = pvr2_alloc_render_buffer( render_addr, width, height );
+    
     /* Setup the buffer */
     if( result != NULL ) {
         result->rowstride = render_stride;
