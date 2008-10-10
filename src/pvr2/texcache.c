@@ -653,16 +653,12 @@ render_buffer_t texcache_get_render_buffer( uint32_t texture_addr, int mode, int
     }
     
     texcache_entry_t entry = &texcache_active_list[slot];
-    if( entry->width != width || entry->height != height ) {
-        glBindTexture(GL_TEXTURE_2D, entry->texture_id );
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-        if( entry->buffer != NULL ) {
-            texcache_release_render_buffer(entry->buffer);
-        }
+
+    if( entry->buffer == NULL ) {
         entry->buffer = pvr2_create_render_buffer( texture_addr, width, height, entry->texture_id );
-    } else {
-        if( entry->buffer == NULL )
-            entry->buffer = pvr2_create_render_buffer( texture_addr, width, height, entry->texture_id );
+    } else if( entry->buffer->width != width || entry->buffer->height != height ) {        
+        texcache_release_render_buffer(entry->buffer);
+        entry->buffer = pvr2_create_render_buffer( texture_addr, width, height, entry->texture_id );
     }
 
     return entry->buffer;
