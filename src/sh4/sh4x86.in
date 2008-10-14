@@ -232,6 +232,7 @@ void static inline store_reg( int x86reg, int sh4reg ) {
 	} else {\
 	    JE_exc( EXC_ILLEGAL );\
 	}\
+	sh4_x86.tstate = TSTATE_NONE; \
     }\
 
 #define check_fpuen( ) \
@@ -244,6 +245,7 @@ void static inline store_reg( int x86reg, int sh4reg ) {
 	} else {\
 	    JNE_exc(EXC_FPU_DISABLED);\
 	}\
+	sh4_x86.tstate = TSTATE_NONE; \
     }
 
 #define check_ralign16( x86reg ) \
@@ -326,6 +328,7 @@ void sh4_translate_emit_breakpoint( sh4vma_t pc )
 {
     load_imm32( R_EAX, pc );
     call_func1( sh4_translate_breakpoint_hit, R_EAX );
+    sh4_x86.tstate = TSTATE_NONE;
 }
 
 
@@ -2587,6 +2590,7 @@ LDS.L @Rm+, PR {:
 LDTLB {:  
     COUNT_INST(I_LDTLB);
     call_func0( MMU_ldtlb );
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 OCBI @Rn {:
     COUNT_INST(I_OCBI);
