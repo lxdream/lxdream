@@ -247,9 +247,8 @@ willBeInsertedIntoToolbar:(BOOL)flag
 }
 @end
 
-NSWindow *cocoa_gui_create_main_window()
+LxdreamMainWindow *cocoa_gui_create_main_window()
 {
     NSRect contentRect = {{0,0},{640,480}};
-    NSWindow *main_win = [[LxdreamMainWindow alloc] initWithContentRect: contentRect]; 
-    return main_win;
+    return [[LxdreamMainWindow alloc] initWithContentRect: contentRect]; 
 }
