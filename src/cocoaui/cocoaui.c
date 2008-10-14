@@ -53,6 +53,7 @@ static uint32_t cocoa_gui_ticks = 0;
 static struct timeval cocoa_gui_lasttv;
 static BOOL cocoa_gui_autorun = NO;
 static BOOL cocoa_gui_is_running = NO;
+static LxdreamMainWindow *mainWindow = NULL;
 
 @interface NSApplication (PrivateAdditions)
 - (void) setAppleMenu:(NSMenu *)aMenu;
@@ -188,7 +189,7 @@ static void cocoa_gui_create_menu(void)
 - (void)windowDidResignKey: (NSNotification *)notice
 {
     display_set_focused( FALSE );
-    [((LxdreamMainWindow *)[NSApp mainWindow]) setIsGrabbed: NO];
+    [mainWindow setIsGrabbed: NO];
 }
 - (BOOL)application: (NSApplication *)app openFile: (NSString *)filename
 {
@@ -327,11 +328,11 @@ gboolean gui_init( gboolean withDebug )
     [iconImage setName: @"NSApplicationIcon"];
     [NSApp setApplicationIconImage: iconImage];   
     cocoa_gui_create_menu();
-    NSWindow *window = cocoa_gui_create_main_window();
-    [window makeKeyAndOrderFront: nil];
+    mainWindow = cocoa_gui_create_main_window();
+    [mainWindow makeKeyAndOrderFront: nil];
     [NSApp activateIgnoringOtherApps: YES];   
 
-    register_gdrom_disc_change_hook( cocoa_gui_disc_changed, window );
+    register_gdrom_disc_change_hook( cocoa_gui_disc_changed, mainWindow );
     
     [pool release];
     return TRUE;
@@ -354,7 +355,7 @@ void gui_update_state(void)
 
 void gui_set_use_grab( gboolean grab )
 {
-    [((LxdreamMainWindow *)[NSApp mainWindow]) setUseGrab: (grab ? YES : NO)];
+    [mainWindow setUseGrab: (grab ? YES : NO)];
 }
 
 gboolean gui_error_dialog( const char *msg, ... )
@@ -420,7 +421,7 @@ uint32_t cocoa_gui_run_slice( uint32_t nanosecs )
             cocoa_gui_lasttv.tv_sec = tv.tv_sec;
             cocoa_gui_lasttv.tv_usec = tv.tv_usec;
             snprintf( buf, 32, _("Running (%2.4f%%)"), speed );
-            [((LxdreamMainWindow *)[NSApp mainWindow]) setStatusText: buf];
+            [mainWindow setStatusText: buf];
 
         }
     }
@@ -434,16 +435,14 @@ void cocoa_gui_update( void )
 
 void cocoa_gui_start( void )
 {
-    LxdreamMainWindow *win = (LxdreamMainWindow *)[NSApp mainWindow];
-    [win setRunning: YES];
+    [mainWindow setRunning: YES];
     cocoa_gui_nanos = 0;
     gettimeofday(&cocoa_gui_lasttv,NULL);
 }
 
 void cocoa_gui_stop( void )
 {
-    LxdreamMainWindow *win = (LxdreamMainWindow *)[NSApp mainWindow];
-    [win setRunning: NO];
+    [mainWindow setRunning: NO];
 }
 
 /**

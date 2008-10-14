@@ -34,13 +34,6 @@ extern "C" {
 #define LABEL_HEIGHT 17
 #define TEXT_GAP 10
     
-NSWindow *cocoa_gui_create_main_window();
-NSMenu *cocoa_gdrom_menu_new();
-NSView *video_osx_create_drawable();
-void cocoa_gui_show_preferences();
-NSView *cocoa_gui_create_prefs_controller_pane();
-NSView *cocoa_gui_create_prefs_path_pane();
-
 /**
  * Convenience method to create a new text label in the specified parent.
  */
@@ -102,6 +95,15 @@ NSTextField *cocoa_gui_add_label(NSView *parent, NSString *title, NSRect frame);
 }
 - (id)initWithContentRect:(NSRect)contentRect;
 @end
+
+
+LxdreamMainWindow *cocoa_gui_create_main_window();
+NSMenu *cocoa_gdrom_menu_new();
+NSView *video_osx_create_drawable();
+void cocoa_gui_show_preferences();
+NSView *cocoa_gui_create_prefs_controller_pane();
+NSView *cocoa_gui_create_prefs_path_pane();
+
 
 #ifdef __cplusplus
 }
