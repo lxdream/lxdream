@@ -125,13 +125,30 @@ test_bf_8_exc:
 	bf/s test_bf_8_b
 	nop
 	assert_exc_caught test_bf_str_k test_bf_8_exc
-	bra test_bf_end
+	bra test_bf_9
 	nop
 test_bf_8_b:
 test_bf_8_c:	
 	fail test_bf_str_k
 
-			
+test_bf_9: ! Regression test that sets does not affect branch  
+	add #1, r12
+	clrt
+	sets
+	bf test_bf_10
+	fail test_bf_str_k
+
+test_bf_10: ! Regression test that clrs does not affect branch
+	add #1, r12
+	sett
+	clrs
+	bf test_bf_10_a
+	bra test_bf_end
+	nop
+	
+test_bf_10_a:
+	fail test_bf_str_k
+	
 test_bf_end:
 	end_test test_bf_str_k
 

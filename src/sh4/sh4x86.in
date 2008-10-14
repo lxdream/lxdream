@@ -1780,7 +1780,7 @@ CLRS {:
     COUNT_INST(I_CLRS);
     CLC();
     SETC_sh4r(R_S);
-    sh4_x86.tstate = TSTATE_C;
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 CLRT {:  
     COUNT_INST(I_CLRT);
@@ -1792,7 +1792,7 @@ SETS {:
     COUNT_INST(I_SETS);
     STC();
     SETC_sh4r(R_S);
-    sh4_x86.tstate = TSTATE_C;
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 SETT {:  
     COUNT_INST(I_SETT);
