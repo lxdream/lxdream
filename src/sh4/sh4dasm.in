@@ -109,7 +109,7 @@ EXTU.W Rm, Rn    {: snprintf( buf, len, "EXTU.W  R%d, R%d", Rm, Rn ); :}
 FABS FRn         {: snprintf( buf, len, "FABS    FR%d", FRn ); :}
 FADD FRm, FRn    {: snprintf( buf, len, "FADD    FR%d, FR%d", FRm, FRn ); :}
 FCMP/EQ FRm, FRn {: snprintf( buf, len, "FCMP/EQ FR%d, FR%d", FRm, FRn ); :}
-FCMP/GT FRm, FRn {: snprintf( buf, len, "FCMP/QT FR%d, FR%d", FRm, FRn ); :}
+FCMP/GT FRm, FRn {: snprintf( buf, len, "FCMP/GT FR%d, FR%d", FRm, FRn ); :}
 FCNVDS FRm, FPUL {: snprintf( buf, len, "FCNVDS  FR%d, FPUL", FRm ); :}
 FCNVSD FPUL, FRn {: snprintf( buf, len, "FCNVSD  FPUL, FR%d", FRn ); :}
 FDIV FRm, FRn    {: snprintf( buf, len, "FDIV    FR%d, FR%d", FRm, FRn ); :}
