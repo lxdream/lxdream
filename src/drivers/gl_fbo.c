@@ -129,7 +129,19 @@ void gl_fbo_shutdown()
 
 static void gl_fbo_setup_framebuffer( int bufno, int width, int height )
 {
+    int i;
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fbo[bufno].fb_id);
+
+    /* Clear out any existing texture attachments */
+    for( i=0; i<gl_fbo_max_attachments; i++ ) {
+        if( fbo[bufno].tex_ids[i] != -1 ) {
+            glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, ATTACHMENT_POINT(i),
+                    GL_TEXTURE_RECTANGLE_ARB, 0, 0);
+            fbo[bufno].tex_ids[i] = -1;
+        }
+    }
+
+    /* Setup the renderbuffers */
     if( gl_fbo_have_packed_stencil ) {
         glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, fbo[bufno].depth_id);
         glRenderbufferStorageEXT(GL_RENDERBUFFER_EXT, GL_DEPTH24_STENCIL8_EXT, width, height);
@@ -165,7 +177,7 @@ static int gl_fbo_get_framebuffer( int width, int height )
     }
     if( bufno == -1 ) {
         bufno = last_used_fbo + 1;
-        if( bufno > MAX_FRAMEBUFFERS ) {
+        if( bufno >= MAX_FRAMEBUFFERS ) {
             bufno = 0;
         }
         last_used_fbo = bufno;
