@@ -140,7 +140,7 @@ gboolean audio_alsa_init(  )
     // Set the start threshold to reduce inter-buffer gaps
     snd_pcm_sw_params_alloca( &sw_params );
     snd_pcm_sw_params_current( _soundDevice, sw_params );
-    snd_pcm_sw_params_set_start_threshold( _soundDevice, sw_params, bufferSize/2 );
+    snd_pcm_sw_params_set_start_threshold( _soundDevice, sw_params, bufferSize );
     err = snd_pcm_sw_params( _soundDevice, sw_params );
     if( err < 0 ) {
         ERROR("Unable to set sw params for alsa driver: %s\n", snd_strerror(err));
