@@ -1519,11 +1519,13 @@ BF/S disp {:
 	    }
 	    sh4vma_t target = disp + pc + 4;
 	    OP(0x0F); OP(0x80+sh4_x86.tstate); uint32_t *patch = (uint32_t *)xlat_output; OP32(0); // JT rel32
+	    int save_tstate = sh4_x86.tstate;
 	    sh4_translate_instruction(pc+2);
 	    exit_block_rel( target, pc+4 );
 	    
 	    // not taken
 	    *patch = (xlat_output - ((uint8_t *)patch)) - 4;
+	    sh4_x86.tstate = save_tstate;
 	    sh4_translate_instruction(pc+2);
 	    return 4;
 	}
@@ -1652,10 +1654,12 @@ BT/S disp {:
 		sh4_x86.tstate = TSTATE_E;
 	    }
 	    OP(0x0F); OP(0x80+(sh4_x86.tstate^1)); uint32_t *patch = (uint32_t *)xlat_output; OP32(0); // JF rel32
+	    int save_tstate = sh4_x86.tstate;
 	    sh4_translate_instruction(pc+2);
 	    exit_block_rel( disp + pc + 4, pc+4 );
 	    // not taken
 	    *patch = (xlat_output - ((uint8_t *)patch)) - 4;
+	    sh4_x86.tstate = save_tstate;
 	    sh4_translate_instruction(pc+2);
 	    return 4;
 	}
