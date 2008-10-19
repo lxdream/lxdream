@@ -2278,7 +2278,7 @@ fi
 
 # Define the identity of the package.
  PACKAGE=lxdream
- VERSION=0.8.4
+ VERSION=0.9
 
 
 cat >>confdefs.h <<_ACEOF
