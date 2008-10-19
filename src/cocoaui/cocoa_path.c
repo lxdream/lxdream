@@ -71,6 +71,7 @@
     if( oldval == NULL ? str != NULL : (str == NULL || strcmp(oldval,str) != 0 ) ) {   
         lxdream_set_global_config_value(tag, str);
         lxdream_save_config();
+        dreamcast_config_changed();
     }
 }
 @end
