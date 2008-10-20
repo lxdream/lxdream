@@ -73,13 +73,17 @@
     NSToolbarItem *save = [self createToolbarItem: @"SaveState" label: @"Save State..."
                            tooltip: @"Create an lxdream save state" icon: @"tb-save"
                            action: @selector(save_action:)];
+    NSToolbarItem *prefs = [self createToolbarItem: @"Preferences" label: @"Preferences..."
+                           tooltip: @"Edit preferences" icon: @"tb-preferences"
+                           action: @selector(preferences_action:)];
     [pause setEnabled: NO];
     identifiers = 
-        [NSArray arrayWithObjects: @"GdromMount", @"Reset", @"Pause", @"Run", @"LoadState", @"SaveState", nil ];
+        [NSArray arrayWithObjects: @"GdromMount", @"Reset", @"Pause", @"Run", @"LoadState", @"SaveState", @"Preferences", nil ];
     defaults = 
         [NSArray arrayWithObjects: @"GdromMount", @"Reset", @"Pause", @"Run", 
-         NSToolbarSeparatorItemIdentifier, @"LoadState", @"SaveState", nil ];
-    NSArray *values = [NSArray arrayWithObjects: mount, reset, pause, run, load, save, nil ];
+         NSToolbarSeparatorItemIdentifier, @"LoadState", @"SaveState", 
+         NSToolbarFlexibleSpaceItemIdentifier, @"Preferences", nil ];
+    NSArray *values = [NSArray arrayWithObjects: mount, reset, pause, run, load, save, prefs, nil ];
     items = [NSDictionary dictionaryWithObjects: values forKeys: identifiers];
     return self;
 }
