@@ -57,6 +57,8 @@ typedef struct texcache_entry {
 static texcache_entry_index texcache_page_lookup[PVR2_RAM_PAGES];
 static uint32_t texcache_ref_counter;
 static struct texcache_entry texcache_active_list[MAX_TEXTURES];
+static uint32_t texcache_palette_mode;
+static uint32_t texcache_stride_width;
 
 /**
  * Initialize the texture cache.
@@ -75,6 +77,8 @@ void texcache_init( )
     }
     texcache_free_ptr = 0;
     texcache_ref_counter = 0;
+    texcache_palette_mode = 0;
+    texcache_stride_width = 0;
 }
 
 /**
@@ -112,6 +116,7 @@ void texcache_flush( )
     for( i=0; i<MAX_TEXTURES; i++ ) {
         texcache_free_list[i] = i;
         texcache_active_list[i].next = EMPTY_ENTRY;
+        texcache_active_list[i].texture_addr = -1;
         if( texcache_active_list[i].buffer != NULL ) {
             texcache_release_render_buffer(texcache_active_list[i].buffer);
             texcache_active_list[i].buffer = NULL;
@@ -231,6 +236,33 @@ void texcache_invalidate_palette( )
             texcache_free_list[texcache_free_ptr] = i;
         }
     }
+}
+/**
+ * Mark all stride textures as needing a re-read (ie when the stride width
+ * is changed).
+ */
+void texcache_invalidate_stride( )
+{
+    int i;
+    for( i=0; i<MAX_TEXTURES; i++ ) {
+        if( texcache_active_list[i].texture_addr != -1 &&
+                PVR2_TEX_IS_STRIDE(texcache_active_list[i].mode) ) {
+            texcache_evict( i );
+            texcache_free_ptr--;
+            texcache_free_list[texcache_free_ptr] = i;
+        }
+    }
+}
+
+void texcache_set_config( uint32_t palette_mode, uint32_t stride )
+{
+    if( palette_mode != texcache_palette_mode )
+        texcache_invalidate_palette();
+    if( stride != texcache_stride_width )
+        texcache_invalidate_stride();
+    
+    texcache_palette_mode = palette_mode;
+    texcache_stride_width = stride;
 }
 
 static void decode_pal8_to_32( uint32_t *out, uint8_t *in, int inbytes, uint32_t *pal )
@@ -374,7 +406,7 @@ static void texcache_load_texture( uint32_t texture_addr, int width, int height,
         /* For indexed-colour modes, we need to lookup the palette control
          * word to determine the de-indexed texture format.
          */
-        switch( MMIO_READ( PVR2, RENDER_PALETTE ) & 0x03 ) {
+        switch( texcache_palette_mode ) {
         case 0: /* ARGB1555 */
             format = GL_BGRA;
             type = GL_UNSIGNED_SHORT_1_5_5_5_REV;
@@ -428,14 +460,13 @@ static void texcache_load_texture( uint32_t texture_addr, int width, int height,
     if( PVR2_TEX_IS_STRIDE(mode) && tex_format != PVR2_TEX_FORMAT_IDX4 &&
             tex_format != PVR2_TEX_FORMAT_IDX8 ) {
         /* Stride textures cannot be mip-mapped, compressed, indexed or twiddled */
-        uint32_t stride = (MMIO_READ( PVR2, RENDER_TEXSIZE ) & 0x003F) << 5;
         unsigned char data[(width*height) << bpp_shift];
         if( tex_format == PVR2_TEX_FORMAT_YUV422 ) {
             unsigned char tmp[(width*height)<<1];
-            pvr2_vram64_read_stride( tmp, width<<1, texture_addr, stride<<1, height );
+            pvr2_vram64_read_stride( tmp, width<<1, texture_addr, texcache_stride_width<<1, height );
             yuv_decode( (uint32_t *)data, (uint32_t *)tmp, width, height );
         } else {
-            pvr2_vram64_read_stride( data, width<<bpp_shift, texture_addr, stride<<bpp_shift, height );
+            pvr2_vram64_read_stride( data, width<<bpp_shift, texture_addr, texcache_stride_width<<bpp_shift, height );
         }
         glTexImage2D( GL_TEXTURE_2D, 0, intFormat, width, height, 0, format, type, data );
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
@@ -581,6 +612,7 @@ static int texcache_alloc_texture_slot( uint32_t texture_word, int width, int he
     }
 
     /* Construct new entry */
+    assert( texcache_active_list[slot].texture_addr == -1 );
     texcache_active_list[slot].texture_addr = texture_addr;
     texcache_active_list[slot].width = width;
     texcache_active_list[slot].height = height;
@@ -599,7 +631,6 @@ static int texcache_alloc_texture_slot( uint32_t texture_word, int width, int he
         assert( next != slot );
 
     }
-    assert( next != slot );
     texcache_active_list[slot].next = next;
     texcache_page_lookup[texture_page] = slot;
     return slot;

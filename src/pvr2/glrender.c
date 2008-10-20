@@ -60,6 +60,10 @@ static gboolean clip_tile_bounds( uint32_t *tile, float *clip )
 void pvr2_scene_load_textures()
 {
     int i;
+    
+    texcache_set_config( MMIO_READ( PVR2, RENDER_PALETTE ) & 0x03,
+                         (MMIO_READ( PVR2, RENDER_TEXSIZE ) & 0x003F) << 5 );
+    
     for( i=0; i < pvr2_scene.poly_count; i++ ) {
         struct polygon_struct *poly = &pvr2_scene.poly_array[i];
         if( POLY1_TEXTURED(poly->context[0]) ) {
