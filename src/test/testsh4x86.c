@@ -81,6 +81,7 @@ void sh4_core_exit( int exit_code ){}
 void sh4_flush_icache(){}
 void event_execute() {}
 void TMU_run_slice( uint32_t nanos ) {}
+void PMM_write_control( int ctr, uint32_t val ) { }
 void SCIF_run_slice( uint32_t nanos ) {}
 void sh4_write_byte( uint32_t addr, uint32_t val ) {}
 void sh4_write_word( uint32_t addr, uint32_t val ) {}
