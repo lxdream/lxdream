@@ -259,7 +259,7 @@ void set_disassembly_region( debug_window_t data, unsigned int page )
     gtk_entry_set_text( data->page_field, addr );
 
     if( !data->cpu->is_valid_page_func( from ) ) {
-        arr[3] = _("This page is currently unmapped");
+        arr[3] = (char *)_("This page is currently unmapped");
         gtk_clist_append( data->disasm_list, arr );
         gtk_clist_set_foreground( data->disasm_list, 0, &gui_colour_error );
     } else {

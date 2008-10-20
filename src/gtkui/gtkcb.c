@@ -25,7 +25,7 @@
 #include "loader.h"
 
 
-static void add_file_pattern( GtkFileChooser *chooser, char *pattern, char *patname )
+static void add_file_pattern( GtkFileChooser *chooser, const char *pattern, const char *patname )
 {
     if( pattern != NULL ) {
         GtkFileFilter *filter = gtk_file_filter_new();
@@ -39,8 +39,8 @@ static void add_file_pattern( GtkFileChooser *chooser, char *pattern, char *patn
     }
 }
 
-void open_file_dialog( char *title, file_callback_t action, char *pattern, char *patname,
-                       gchar const *initial_dir )
+void open_file_dialog( const char *title, file_callback_t action, const char *pattern, const char *patname,
+                       const gchar *initial_dir )
 {
     GtkWidget *file;
     gchar *initial_path = get_absolute_path(initial_dir);
@@ -62,8 +62,8 @@ void open_file_dialog( char *title, file_callback_t action, char *pattern, char 
     g_free(initial_path);
 }
 
-void save_file_dialog( char *title, file_callback_t action, char *pattern, char *patname,
-                       gchar const *initial_dir )
+void save_file_dialog( const char *title, file_callback_t action, const char *pattern, const char *patname,
+                       const gchar *initial_dir )
 {
     GtkWidget *file;
     gchar *initial_path = get_absolute_path(initial_dir);
