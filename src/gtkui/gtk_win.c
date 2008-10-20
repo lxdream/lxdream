@@ -35,6 +35,7 @@
 #include "display.h"
 #include "gdrom/gdrom.h"
 #include "gtkui/gtkui.h"
+#include "drivers/video_gl.h"
 
 
 struct main_window_info {
@@ -336,7 +337,7 @@ main_window_t main_window_new( const gchar *title, GtkWidget *menubar, GtkWidget
     return win;
 }
 
-void main_window_set_status_text( main_window_t win, char *text )
+void main_window_set_status_text( main_window_t win, const char *text )
 {
     gtk_statusbar_pop( GTK_STATUSBAR(win->statusbar), 1 );
     if( win->is_grabbed ) {
@@ -354,7 +355,7 @@ void main_window_set_status_text( main_window_t win, char *text )
 
 void main_window_set_running( main_window_t win, gboolean running )
 {
-    char *text = running ? _("Running") : _("Stopped");
+    const char *text = running ? _("Running") : _("Stopped");
     gtk_gui_enable_action( "Pause", running );
     gtk_gui_enable_action( "Run", !running && dreamcast_can_run() );
     main_window_set_status_text( win, text );
