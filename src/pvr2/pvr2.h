@@ -330,6 +330,12 @@ void texcache_invalidate_palette(void);
 void texcache_invalidate_page( uint32_t texture_addr );
 
 /**
+ * Set the global texture parameters for the scene (possibly invalidating
+ * some existing textures)
+ */
+void texcache_set_config( uint32_t palette_mode, uint32_t stride_width );
+
+/**
  * Return a texture ID for the texture specified at the supplied address
  * and given parameters (the same sequence of bytes could in theory have
  * multiple interpretations). We use the texture address as the primary
