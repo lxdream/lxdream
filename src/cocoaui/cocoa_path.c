@@ -18,6 +18,7 @@
 
 #include "cocoaui.h"
 #include "config.h"
+#include "dreamcast.h"
 
 @interface LxdreamPrefsPathPane: LxdreamPrefsPane 
 {

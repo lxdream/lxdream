@@ -508,7 +508,7 @@ void ide_packet_command( unsigned char *cmd )
         } else {
             uint8_t status = ide_get_drive_status();
             /* FIXME: Refactor read_position to avoid this kind of crud */
-            char tmp[16];
+            unsigned char tmp[16];
             gdrom_disc->read_position( gdrom_disc, idereg.current_lba, tmp );
             
             length = cmd[4];
