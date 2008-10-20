@@ -357,7 +357,7 @@ void main_window_set_running( main_window_t win, gboolean running )
 {
     const char *text = running ? _("Running") : _("Stopped");
     gtk_gui_enable_action( "Pause", running );
-    gtk_gui_enable_action( "Run", !running && dreamcast_can_run() );
+    gtk_gui_enable_action( "Run", !running );
     main_window_set_status_text( win, text );
 }
 

@@ -163,7 +163,12 @@ void dreamcast_reset( void )
 void dreamcast_run( void )
 {
     int i;
-
+    
+    if( !dreamcast_can_run() ) {
+        ERROR(_("No program is loaded, and no BIOS is configured (required to boot a CD image). To continue, either load a binary program, or set the path to your BIOS file in the Path Preferences"));
+        return;
+    }
+    
     if( dreamcast_state != STATE_RUNNING ) {
         for( i=0; i<num_modules; i++ ) {
             if( modules[i]->start != NULL )

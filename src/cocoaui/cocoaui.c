@@ -273,31 +273,18 @@ static void cocoa_gui_create_menu(void)
 }
 - (void) run_action: (id)sender
 {
-    cocoa_gui_run_later();
+    if( !dreamcast_is_running() ) {
+        cocoa_gui_run_later();
+    }
 }
 - (void) run_immediate
 {
     dreamcast_run();
+    [mainWindow setRunning: NO];
 }
 - (void) gdrom_list_action: (id)sender
 {
     gdrom_list_set_selection( [sender tag] );
-}
-- (BOOL)validateMenuItem: (NSMenuItem *)item
-{
-    if( [item action] == @selector(run_action:) ) {
-        return dreamcast_can_run() ? YES : NO;
-    } else {
-        return YES;
-    }
-}
-- (BOOL)validateToolbarItem: (NSToolbarItem *)item
-{
-    if( [item action] == @selector(run_action:) ) {
-        return dreamcast_can_run() ? YES : NO;
-    } else {
-        return YES;
-    }
 }
 @end
 
