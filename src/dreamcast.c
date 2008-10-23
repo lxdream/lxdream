@@ -288,22 +288,25 @@ struct chunk_header {
  * file. 
  * @return the number of blocks following, or 0 if the file is invalid.
  */
-int dreamcast_read_save_state_header( FILE *f )
+int dreamcast_read_save_state_header( FILE *f, char *error, int errorlen )
 {
     struct save_state_header header;
     if( fread( &header, sizeof(header), 1, f ) != 1 ) {
         return 0;
     }
     if( strncmp( header.magic, DREAMCAST_SAVE_MAGIC, 16 ) != 0 ) {
-        ERROR( "Not a %s save state file", APP_NAME );
+    	if( error != NULL )
+    		snprintf( error, errorlen, _("File is not a %s save state"), APP_NAME );
         return 0;
     }
     if( header.version != DREAMCAST_SAVE_VERSION ) {
-        ERROR( "%s save state version not supported", APP_NAME );
+    	if( error != NULL )
+    		snprintf( error, errorlen, _("Unsupported %s save state version"), APP_NAME, header.version );
         return 0;
     }
     if( header.module_count > MAX_MODULES ) {
-        ERROR( "%s save state is corrupted (bad module count)", APP_NAME );
+    	if( error != NULL )
+    		snprintf( error, errorlen, _("%s save state is corrupted (bad module count)"), APP_NAME );
         return 0;
     }
     return header.module_count;
@@ -327,7 +330,7 @@ frame_buffer_t dreamcast_load_preview( const gchar *filename )
     FILE *f = fopen( filename, "r" );
     if( f == NULL ) return NULL;
 
-    int module_count = dreamcast_read_save_state_header(f);
+    int module_count = dreamcast_read_save_state_header(f, NULL, 0);
     if( module_count <= 0 ) {
         fclose(f);
         return NULL;
@@ -365,13 +368,15 @@ int dreamcast_load_state( const gchar *filename )
 {
     int i,j;
     int module_count;
+    char error[128];
     int have_read[MAX_MODULES];
 
     FILE *f = fopen( filename, "r" );
     if( f == NULL ) return errno;
 
-    module_count = dreamcast_read_save_state_header(f);
+    module_count = dreamcast_read_save_state_header(f, error, sizeof(error));
     if( module_count <= 0 ) {
+    	ERROR( error );
         fclose(f);
         return 1;
     }
