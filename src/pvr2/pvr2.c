@@ -212,12 +212,14 @@ void pvr2_save_render_buffer( FILE *f, render_buffer_t buffer )
 
 }
 
-render_buffer_t pvr2_load_render_buffer( FILE *f )
+render_buffer_t pvr2_load_render_buffer( FILE *f, gboolean *status )
 {
     frame_buffer_t frame = read_png_from_stream( f );
     if( frame == NULL ) {
+        *status = FALSE;
         return NULL;
     }
+    *status = TRUE;
 
     render_buffer_t buffer = pvr2_frame_buffer_to_render_buffer(frame);
     if( buffer != NULL ) {
@@ -263,6 +265,7 @@ void pvr2_save_render_buffers( FILE *f )
 gboolean pvr2_load_render_buffers( FILE *f )
 {
     uint32_t count, has_frontbuffer;
+    gboolean loadok;
     int i;
 
     fread( &count, sizeof(count), 1, f );
@@ -277,15 +280,17 @@ gboolean pvr2_load_render_buffers( FILE *f )
     render_buffer_count = 0;
 
     if( has_frontbuffer ) {
-        displayed_render_buffer = pvr2_load_render_buffer(f);
-        if( displayed_render_buffer == NULL )
-        	return FALSE;
-        display_driver->display_render_buffer( displayed_render_buffer );
+        displayed_render_buffer = pvr2_load_render_buffer(f, &loadok);
+        if( displayed_render_buffer != NULL )
+            display_driver->display_render_buffer( displayed_render_buffer );
+        else if( !loadok )
+            return FALSE;
         count--;
     }
 
     for( i=0; i<count; i++ ) {
-        if( pvr2_load_render_buffer( f ) == NULL )
+        pvr2_load_render_buffer( f, &loadok );
+        if( !loadok )
         	return FALSE;
     }
     return TRUE;
