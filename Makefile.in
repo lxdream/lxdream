@@ -806,7 +806,7 @@ dist-hook:
 @GUI_COCOA_TRUE@	mkdir -p $(BUNDLE)/Contents/MacOS
 @GUI_COCOA_TRUE@	mkdir -p $(BUNDLE)/Contents/Resources
 @GUI_COCOA_TRUE@	cp Info.plist $(BUNDLE)/Contents
-@GUI_COCOA_TRUE@	cp lxdreamrc $(BUNDLE)/Contents/Resources
+@GUI_COCOA_TRUE@	cp $(srcdir)/lxdreamrc $(BUNDLE)/Contents/Resources
 @GUI_COCOA_TRUE@	cp src/lxdream $(BUNDLE)/Contents/MacOS
 @GUI_COCOA_TRUE@	cp -R $(srcdir)/pixmaps/* $(BUNDLE)/Contents/Resources
 @GUI_COCOA_TRUE@	$(srcdir)/bundlelibs.pl $(BUNDLE)/Contents/MacOS/lxdream $(BUNDLE)/Contents/Frameworks

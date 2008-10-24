@@ -77,6 +77,15 @@ check: build-tests
 
 build-tests: testsh4 testmath testide testta testregs testrend testdisp testspu testmmu
 
+lib/crt0.so: lib/crt0.s
+	$(mkdir_p) lib
+	$(SH4CC) $(SH4CFLAGS) -o $@ -c $< 
+
+lib-arm/crt0.ao: lib-arm/crt0.s
+	$(mkdir_p) lib-arm
+	$(ARMCC) $(ARMCFLAGS) -o $@ -c $< 
+
+
 testsh4: lib/crt0.so sh4/testsh4.so timer.so interrupt.so \
 	 sh4/add.so sh4/addc.so sh4/addv.so sh4/and.so sh4/andi.so \
 	 sh4/bf.so sh4/bsr.so sh4/bt.so sh4/cmp.so sh4/cmpstr.so \
@@ -148,9 +157,9 @@ testFF10: lib/crt0.so $(SHARED_OBJECTS) testFF10.so
 
 .PHONY : clean
 clean:
-	rm -f *.o *.so *.ao *.ac *.bin sh4/*.so mapleid ide readmem dumpasic \
-	   testsh4 testta testdisp testregs testide testmath testmmu \
-	   testrend testspu dcflash.rom
+	rm -f *.o *.so *.ao *.ac *.bin sh4/*.so lib/*.so lib-arm/*.ao mapleid \
+	   readmem dumpasic testsh4 testta testdisp testregs testide testmath \
+	   testmmu testaica testrend testspu ide dcflash.rom
 
 distclean: clean
 	rm -f Makefile
@@ -167,7 +176,7 @@ DISTFILES = asic.c asic.h bin2c.c dma.h dmac.c ide.c ide.h interrupt.s \
         sh4/cmpstr.s sh4/div0.s sh4/div1.s sh4/excslot.s sh4/float.s sh4/fmov.s \
         sh4/ftrc.s sh4/inc.s sh4/mac.s sh4/ldc.s sh4/rot.s sh4/shl.s sh4/shld.s sh4/sub.s \
         sh4/subc.s sh4/tas.s sh4/testsh4.c sh4/tlb.s sh4/vmexit.s sh4/trapa.s sh4/undef.s \
-        sh4/xtrct.s testdata.c testdata.h testdisp.c testide.c testmath.c \
+        sh4/xtrct.s testdata.c testdata.h testdisp.c testide.c testmath.c testaica.c \
         testmmu.c testregs.c testrend.c testspu.c testta.c testyuv.c timer.c timer.h \
         testta.data testta2.data testta3.data testta4.data testta5.data testsort.data \
         lxdream.rc dc.x lib/crt0.s lib/libc.a lib/libm.a lib/newlib-1.8.2-dc.patch \
