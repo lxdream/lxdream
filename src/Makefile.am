@@ -54,8 +54,7 @@ lxdream_SOURCES = \
 	pvr2/gl_sl.c pvr2/gl_slsrc.c pvr2/glutil.c pvr2/glutil.h pvr2/glrender.c \
 	pvr2/vertex.glsl pvr2/fragment.glsl \
         maple/maple.c maple/maple.h \
-        maple/controller.c maple/controller.h maple/kbd.c maple/mouse.c \
-        maple/lightgun.c \
+        maple/controller.c maple/kbd.c maple/mouse.c maple/lightgun.c \
         loader.c loader.h elf.h bootstrap.c bootstrap.h util.c gdlist.c gdlist.h \
 	display.c display.h dckeysyms.h \
 	drivers/audio_null.c drivers/video_null.c \
