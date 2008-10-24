@@ -94,7 +94,6 @@ src/loader.h
 src/lxdream.h
 src/main.c
 src/maple/controller.c
-src/maple/controller.h
 src/maple/kbd.c
 src/maple/maple.c
 src/maple/maple.h
