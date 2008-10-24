@@ -1,14 +1,68 @@
-Release notes for lxdream 0.8.4
+Release notes for lxdream 0.9 "Shiny"
 ===================================================
 
-Please note that this is still an alpha release - many things are not yet 
-implemented, it has many bugs (especially wrt rendering), and it's
-not likely to run at 100% speed.
+Lxdream 0.9 is considerably more stable and accurate than the 0.8 series
+(thanks more to a huge number of bugfixes than anything else), and the 
+majority of software can be expected to "just work" with minimal problems. 
 
-Having said all that, some games are known to run to at least 
-some degree (aka everything we've tried), and most homebrew works 
-perfectly or nearly so - feel free to experiment and let us 
-know how it goes.
+Nevertheless this should still be considered an alpha release, with many 
+unimplemented features remaining. You're unlikely to see 'perfect' emulation,
+and we're nowhere near being bug-compatible (in other words, don't expect your
+code to work on the real hardware just because it runs correctly in lxdream).
+
+Changes since 0.8.4
+-------------------
+* Improved accuracy + compatibility (many bugfixes)
+* Shadow volumes
+* Render-to-texture support
+* Fogging
+* Light-gun support
+
+Known issues
+------------
+The following are known problems in 0.9 that will be fixed in the next major
+release - in other words, you don't need to report them - we already know :)
+
+* Graphic artifacts related to translucent triangle intersections, sorting errors 
+  and/of lack of depth precision.
+
+* MMU address translation (eg linux, wince, etc) is painfully slow to the
+  point of unusability. 
+
+* The SH4 emulation is not cycle accurate, and (by default) usually runs
+  slower than the real one. This cause some programs to have timing problems
+  or to break completely. In some cases this can be worked around by
+  adjusting the CPU scaling factor (-m command line option)
+
+* Audio quality generally ranges from poor to horrible, interrupted by the
+  occasional bit of fair-to-middling sound. 
+
+System requirements
+-------------------
+Linux:
+   GTK 2.6+
+   Current (2008 or later) ATI or NVidia binary OpenGL drivers 
+      - If anyone wants to fix the free drivers, lxdream specifically
+        requires a working implementation of either the EXT_framebuffer_object
+        or GLX_SGIX_pbuffer extensions. 
+
+OS X:
+   System 10.4 or later
+
+GCC, Make, etc.
+
+Building
+--------
+From the base directory
+~$ ./configure
+~$ make
+~$ make install            (optional, GTK only)
+
+Enjoy!
+
+
+Older History
+================
 
 Changes since 0.8.3
 -------------------
@@ -62,33 +116,4 @@ Changes since Milestone 1
 quick hack to get something running. It's done for real now.
 * Initial IO event system (not widely used yet)
 * Lots of bugfixes throughout the system
-
-Known issues
-------------
-The following are known bugs (as opposed to missing features) that will be
-fixed in the next release, but are too large to be fixed for this version:
-
-* Graphic artifacts related to triangle sorting and/of lack of depth
-  precision.
-
-System requirements
--------------------
-Linux:
-   GTK 2.6+
-   OpenGL drivers with EXT_framebuffer_object or GLX PBuffer support
-      - Currently this means either the ATI or NVidia binary drivers.
-
-OS X:
-   System 10.4 or later
-
-GCC, Make, etc.
-
-Building
---------
-From the base directory
-~$ ./configure
-~$ make
-~$ make install            (optional)
-
-Enjoy!
 
