@@ -253,7 +253,7 @@ void render_autosort_tile( pvraddr_t tile_entry, int render_mode )
     if( num_triangles == 0 ) {
         return; /* nothing to do */
     } else if( num_triangles == 1 ) { /* Triangle can hardly overlap with itself */
-        gl_render_tilelist(tile_entry, GL_LEQUAL);
+        gl_render_tilelist(tile_entry, GL_GEQUAL);
     } else { /* Ooh boy here we go... */
         int i;
         struct sort_triangle triangles[num_triangles+1];
