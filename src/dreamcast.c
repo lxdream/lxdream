@@ -301,7 +301,7 @@ int dreamcast_read_save_state_header( FILE *f, char *error, int errorlen )
     }
     if( header.version != DREAMCAST_SAVE_VERSION ) {
     	if( error != NULL )
-    		snprintf( error, errorlen, _("Unsupported %s save state version"), APP_NAME, header.version );
+    		snprintf( error, errorlen, _("Unsupported %s save state version"), APP_NAME );
         return 0;
     }
     if( header.module_count > MAX_MODULES ) {
