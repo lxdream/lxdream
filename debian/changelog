@@ -1,3 +1,11 @@
+lxdream (0.9) unstable; urgency=low
+
+ * Major upgrade to emulation accuracy and rendering functionality.
+ * Shadow volumes, render-to-texture, fog
+ * Light-gun support
+
+ -- Nathan Keynes <nkeynes@lxdream.org> Wed, 25 Oct 2008 18:25:00 +1000
+
 lxdream (0.8.4) unstable; urgency=low
 
  * Initial Release.
