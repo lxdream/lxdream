@@ -2,14 +2,12 @@ Current status
 ==============
 
 General issues
-  - No dynamic recompilation yet
-  - Slow (not performance optimized yet at all. See above).
+  - Slow 
   - No I/O timing whatsoever except for video events.
     (ie DMA, rendering, GD-Rom operations need to take > 0 ms to complete)
 
 SH4 Core
-  + Base instruction set  (Complete?)
-  - No MMU support (address translation, TLB, etc)
+  + Base instruction set
   - no FPU exceptions
   - Not remotely cycle-correct timing
 
@@ -41,6 +39,7 @@ AICA SPU
     - No cycle-correct timing
   DSP
     + Basic sound generation
+    - Really bad sound
     - No waveform support
     - No LFO support
 
@@ -52,9 +51,10 @@ PVR2 GPU
   Render
     + Basic opaque and translucent polygon support
     + Depth buffer, alpha blend, most poly modes
+    + Opaque shadow volumes
     - Basic translucent poly sorting
+    - Y-scaler
     - No modifier volumes
-    - No fogging
   Texture
     + All texture formats supported except bump maps
 
@@ -71,7 +71,7 @@ Maple
   + Maple bus complete?
   + Standard DC controllers
   - No support for VMU
-  - No support for other controller types (keyboard, mouse, gun, etc)
+  - No dynamic timing
 
 Network
   - Not implemented
