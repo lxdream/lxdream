@@ -264,6 +264,46 @@ void sh4_translate_end_block( sh4addr_t pc ) {
     }
 }
 
+/**
+ * The unwind methods only work if we compiled with DWARF2 frame information
+ * (ie -fexceptions), otherwise we have to use the direct frame scan.
+ */
+#ifdef HAVE_EXCEPTIONS
+#include <unwind.h>
+
+struct UnwindInfo {
+	int have_result;
+	void *pc;
+};
+
+_Unwind_Reason_Code xlat_check_frame( struct _Unwind_Context *context, void *arg )
+{
+    void *ebp = (void *)_Unwind_GetGR(context, 5);
+    void *expect = (((uint8_t *)&sh4r) + 128 );
+	struct UnwindInfo *info = arg;
+    if( ebp == expect ) { 
+        info->have_result = 1;
+        info->pc = (void *)_Unwind_GetIP(context);
+    } else if( info->have_result ) {
+        return _URC_NORMAL_STOP;
+    }
+
+    return _URC_NO_REASON;
+}
+
+void *xlat_get_native_pc()
+{
+    struct _Unwind_Exception exc;
+    struct UnwindInfo info;
+
+    info.have_result = 0;
+    void *result = NULL;
+    _Unwind_Backtrace( xlat_check_frame, &info );
+    if( info.have_result )
+    	return info.pc;
+    return NULL;
+}
+#else 
 void *xlat_get_native_pc()
 {
     void *result = NULL;
@@ -286,6 +326,7 @@ void *xlat_get_native_pc()
         : "eax", "ecx", "edx" );
     return result;
 }
+#endif
 
 #endif /* !lxdream_ia32abi_H */
 
