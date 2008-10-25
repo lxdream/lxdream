@@ -804,6 +804,7 @@ enable_maintainer_mode
 enable_dependency_tracking
 enable_strict_warn
 enable_translator
+enable_optimized
 enable_trace
 enable_watch
 enable_sh4stats
@@ -1469,7 +1470,9 @@ Optional Features:
   --disable-dependency-tracking  speeds up one-time build
   --enable-dependency-tracking   do not reject slow dependency extractors
   --enable-strict-warn    Enable strict compilation warnings
-  --disable-translator    Disable the SH4 translator (Enable by default)
+  --disable-translator    Disable the SH4 translator (Enabled by default)
+  --disable-optimized     Disable compile-time optimizations (Enabled by
+                          default)
   --enable-trace          Enable generation of IO traces (warning: hurts
                           performance)
   --enable-watch          Enable watchpoints in the debugger (warning: hurts
@@ -6565,6 +6568,13 @@ else
   enable_translator=yes
 fi
 
+# Check whether --enable-optimized was given.
+if test "${enable_optimized+set}" = set; then
+  enableval=$enable_optimized; true
+else
+  enable_optimized=yes
+fi
+
 # Check whether --enable-trace was given.
 if test "${enable_trace+set}" = set; then
   enableval=$enable_trace; if test "$enableval" == "yes"; then
@@ -6628,9 +6638,15 @@ fi
 
 
 
+if test "x$enable_optimized" = "xyes"; then
+   CFLAGS="-g -O2"
+else
+   CFLAGS="-g3"
+fi
 if test "x$GCC" = "xyes"; then
    CFLAGS="$CFLAGS -fno-strict-aliasing"
 fi
+
 
 
 lxdream_save_cppflags="$CPPFLAGS"
@@ -6846,6 +6862,14 @@ if test "x$HAVE_COCOA" = 'xyes' -a "x$with_gtk" = "xno"; then
 
 cat >>confdefs.h <<\_ACEOF
 #define OSX_BUNDLE 1
+_ACEOF
+
+fi
+if test "x$enable_optimized" = "xyes" -a "x$APPLE_BUILD" != "xyes"; then
+   CFLAGS="$CFLAGS -fexceptions -fomit-frame-pointer"
+
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_EXCEPTIONS 1
 _ACEOF
 
 fi

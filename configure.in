@@ -23,8 +23,11 @@ AC_ARG_ENABLE( strict-warn,
    AS_HELP_STRING( [--enable-strict-warn], [Enable strict compilation warnings]),
    [CFLAGS="$CFLAGS -Werror -Wall -Wno-unused"], [])
 AC_ARG_ENABLE( translator, 
-   AS_HELP_STRING( [--disable-translator], [Disable the SH4 translator (Enable by default)]),
+   AS_HELP_STRING( [--disable-translator], [Disable the SH4 translator (Enabled by default)]),
    [true], [enable_translator=yes] )
+AC_ARG_ENABLE( optimized,
+   AS_HELP_STRING( [--disable-optimized], [Disable compile-time optimizations (Enabled by default)]),
+   [true], [enable_optimized=yes] )
 AC_ARG_ENABLE( trace, 
    AS_HELP_STRING( [--enable-trace], [Enable generation of IO traces (warning: hurts performance)]),
    [if test "$enableval" == "yes"; then
@@ -52,9 +55,15 @@ AC_ARG_WITH( pulse,
 
 dnl ------------ 
 
+if test "x$enable_optimized" = "xyes"; then
+   CFLAGS="-g -O2"
+else
+   CFLAGS="-g3"
+fi
 if test "x$GCC" = "xyes"; then
    CFLAGS="$CFLAGS -fno-strict-aliasing"
 fi
+
 
 dnl ------------ Check if we're building on Darwin --------------
 
@@ -81,6 +90,10 @@ AC_TRY_COMPILE([@interface Foo @end],, [
 AM_CONDITIONAL(GUI_COCOA, [test "$HAVE_COCOA" = 'yes' -a "$with_gtk" = "no"])
 if test "x$HAVE_COCOA" = 'xyes' -a "x$with_gtk" = "xno"; then
   AC_DEFINE(OSX_BUNDLE, [1], [Generating a bundled application])
+fi
+if test "x$enable_optimized" = "xyes" -a "x$APPLE_BUILD" != "xyes"; then
+   CFLAGS="$CFLAGS -fexceptions -fomit-frame-pointer"
+   AC_DEFINE(HAVE_EXCEPTIONS, [1], [Have exception stack-frame information])
 fi
 
 dnl ----------- Check for mandatory dependencies --------------
