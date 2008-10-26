@@ -120,20 +120,11 @@ static inline void MEM_READ_DOUBLE( int addr, int arg2a, int arg2b )
  * Emit the 'start of block' assembly. Sets up the stack frame and save
  * SI/DI as required
  */
-void sh4_translate_begin_block( sh4addr_t pc ) 
+void enter_block( ) 
 {
     PUSH_r32(R_EBP);
     /* mov &sh4r, ebp */
     load_ptr( R_EBP, ((uint8_t *)&sh4r) + 128 );
-
-    sh4_x86.in_delay_slot = FALSE;
-    sh4_x86.priv_checked = FALSE;
-    sh4_x86.fpuen_checked = FALSE;
-    sh4_x86.branch_taken = FALSE;
-    sh4_x86.backpatch_posn = 0;
-    sh4_x86.block_start_pc = pc;
-    sh4_x86.tstate = TSTATE_NONE;
-    sh4_x86.tlb_on = IS_MMU_ENABLED();
     sh4_x86.stack_posn = 8;
 }
 
