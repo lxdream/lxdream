@@ -52,7 +52,7 @@ uint32_t sh4_translate_run_slice( uint32_t nanosecs )
             }
 
             code = xlat_get_code_by_vma( sh4r.pc );
-            if( code == NULL ) {
+            if( code == NULL || (sh4r.fpscr & (FPSCR_PR|FPSCR_SZ)) != XLAT_BLOCK_FPSCR(code) ) {
                 code = sh4_translate_basic_block( sh4r.pc );
             }
         }
@@ -138,6 +138,8 @@ void * sh4_translate_basic_block( sh4addr_t start )
     memcpy( xlat_output, xlat_recovery, recovery_size);
     xlat_current_block->recover_table_offset = xlat_output - (uint8_t *)xlat_current_block->code;
     xlat_current_block->recover_table_size = xlat_recovery_posn;
+    xlat_current_block->fpscr = sh4r.fpscr & (FPSCR_PR|FPSCR_SZ);
+    xlat_current_block->fpscr_mask = (FPSCR_PR|FPSCR_SZ);
     xlat_commit_block( finalsize, pc-start );
     return xlat_current_block->code;
 }

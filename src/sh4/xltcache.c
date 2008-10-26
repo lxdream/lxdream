@@ -38,7 +38,6 @@
 #define XLAT_LUT_ENTRY_USED  (void *)1
 
 #define NEXT(block) ( (xlat_cache_block_t)&((block)->code[(block)->size]))
-#define BLOCK_FOR_CODE(code) (((xlat_cache_block_t)code)-1)
 #define IS_ENTRY_POINT(ent) (ent > XLAT_LUT_ENTRY_USED)
 #define IS_ENTRY_USED(ent) (ent != XLAT_LUT_ENTRY_EMPTY)
 
@@ -124,7 +123,7 @@ static void xlat_flush_page_by_lut( void **page )
     int i;
     for( i=0; i<XLAT_LUT_PAGE_ENTRIES; i++ ) {
         if( IS_ENTRY_POINT(page[i]) ) {
-            BLOCK_FOR_CODE(page[i])->active = 0;
+            XLAT_BLOCK_FOR_CODE(page[i])->active = 0;
         }
         page[i] = NULL;
     }
@@ -212,7 +211,7 @@ xlat_recovery_record_t xlat_get_post_recovery( void *code, void *native_pc, gboo
 {
     if( code != NULL ) {
         uintptr_t pc_offset = ((uint8_t *)native_pc) - ((uint8_t *)code);
-        xlat_cache_block_t block = BLOCK_FOR_CODE(code);
+        xlat_cache_block_t block = XLAT_BLOCK_FOR_CODE(code);
         uint32_t count = block->recover_table_size;
         xlat_recovery_record_t records = (xlat_recovery_record_t)(&block->code[block->recover_table_offset]);
         uint32_t posn;
@@ -235,7 +234,7 @@ xlat_recovery_record_t xlat_get_pre_recovery( void *code, void *native_pc )
 {
     if( code != NULL ) {
         uintptr_t pc_offset = ((uint8_t *)native_pc) - ((uint8_t *)code);
-        xlat_cache_block_t block = BLOCK_FOR_CODE(code);
+        xlat_cache_block_t block = XLAT_BLOCK_FOR_CODE(code);
         uint32_t count = block->recover_table_size;
         xlat_recovery_record_t records = (xlat_recovery_record_t)(&block->code[block->recover_table_offset]);
         uint32_t posn;
@@ -334,6 +333,8 @@ static void xlat_promote_to_old_space( xlat_cache_block_t block )
     start_block->active = 1;
     start_block->size = allocation;
     start_block->lut_entry = block->lut_entry;
+    start_block->fpscr_mask = block->fpscr_mask;
+    start_block->fpscr = block->fpscr;
     start_block->recover_table_offset = block->recover_table_offset;
     start_block->recover_table_size = block->recover_table_size;
     *block->lut_entry = &start_block->code;
@@ -379,6 +380,8 @@ void xlat_promote_to_temp_space( xlat_cache_block_t block )
     start_block->active = 1;
     start_block->size = allocation;
     start_block->lut_entry = block->lut_entry;
+    start_block->fpscr_mask = block->fpscr_mask;
+    start_block->fpscr = block->fpscr;
     start_block->recover_table_offset = block->recover_table_offset;
     start_block->recover_table_size = block->recover_table_size;
     *block->lut_entry = &start_block->code;
@@ -416,7 +419,7 @@ xlat_cache_block_t xlat_start_block( sh4addr_t address )
     }
 
     if( IS_ENTRY_POINT(xlat_lut[XLAT_LUT_PAGE(address)][XLAT_LUT_ENTRY(address)]) ) {
-        xlat_cache_block_t oldblock = BLOCK_FOR_CODE(xlat_lut[XLAT_LUT_PAGE(address)][XLAT_LUT_ENTRY(address)]);
+        xlat_cache_block_t oldblock = XLAT_BLOCK_FOR_CODE(xlat_lut[XLAT_LUT_PAGE(address)][XLAT_LUT_ENTRY(address)]);
         oldblock->active = 0;
     }
 

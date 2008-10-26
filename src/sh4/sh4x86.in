@@ -55,6 +55,8 @@ struct sh4_x86_state {
     gboolean priv_checked; /* true if we've already checked the cpu mode. */
     gboolean fpuen_checked; /* true if we've already checked fpu enabled. */
     gboolean branch_taken; /* true if we branched unconditionally */
+    gboolean double_prec; /* true if FPU is in double-precision mode */
+    gboolean double_size; /* true if FPU is in double-size mode */ 
     uint32_t block_start_pc;
     uint32_t stack_posn;   /* Trace stack height for alignment purposes */
     int tstate;
@@ -311,12 +313,28 @@ void static inline store_reg( int x86reg, int sh4reg ) {
 #endif
 #endif
 
+void sh4_translate_begin_block( sh4addr_t pc ) 
+{
+	enter_block();
+    sh4_x86.in_delay_slot = FALSE;
+    sh4_x86.priv_checked = FALSE;
+    sh4_x86.fpuen_checked = FALSE;
+    sh4_x86.branch_taken = FALSE;
+    sh4_x86.backpatch_posn = 0;
+    sh4_x86.block_start_pc = pc;
+    sh4_x86.tlb_on = IS_MMU_ENABLED();
+    sh4_x86.tstate = TSTATE_NONE;
+    sh4_x86.double_prec = sh4r.fpscr & FPSCR_PR;
+    sh4_x86.double_size = sh4r.fpscr & FPSCR_SZ;    
+}
+
+
 uint32_t sh4_translate_end_block_size()
 {
     if( sh4_x86.backpatch_posn <= 3 ) {
-	return EPILOGUE_SIZE + (sh4_x86.backpatch_posn*12);
+        return EPILOGUE_SIZE + (sh4_x86.backpatch_posn*12);
     } else {
-	return EPILOGUE_SIZE + 48 + (sh4_x86.backpatch_posn-3)*15;
+        return EPILOGUE_SIZE + 48 + (sh4_x86.backpatch_posn-3)*15;
     }
 }
 
@@ -1812,118 +1830,92 @@ SETT {:
 FMOV FRm, FRn {:  
     COUNT_INST(I_FMOV1);
     check_fpuen();
-    load_spreg( R_ECX, R_FPSCR );
-    TEST_imm32_r32( FPSCR_SZ, R_ECX );
-    JNE_rel8(doublesize);
-    load_fr( R_EAX, FRm ); // SZ=0 branch
-    store_fr( R_EAX, FRn );
-    JMP_rel8(end);
-    JMP_TARGET(doublesize);
-    load_dr0( R_EAX, FRm );
-    load_dr1( R_ECX, FRm );
-    store_dr0( R_EAX, FRn );
-    store_dr1( R_ECX, FRn );
-    JMP_TARGET(end);
-    sh4_x86.tstate = TSTATE_NONE;
+    if( sh4_x86.double_size ) {
+        load_dr0( R_EAX, FRm );
+        load_dr1( R_ECX, FRm );
+        store_dr0( R_EAX, FRn );
+        store_dr1( R_ECX, FRn );
+    } else {
+        load_fr( R_EAX, FRm ); // SZ=0 branch
+        store_fr( R_EAX, FRn );
+    }
 :}
 FMOV FRm, @Rn {: 
     COUNT_INST(I_FMOV2);
     check_fpuen();
     load_reg( R_EAX, Rn );
-    load_spreg( R_EDX, R_FPSCR );
-    TEST_imm32_r32( FPSCR_SZ, R_EDX );
-    JNE_rel8(doublesize);
-
-    check_walign32( R_EAX );
-    MMU_TRANSLATE_WRITE( R_EAX );
-    load_fr( R_ECX, FRm );
-    MEM_WRITE_LONG( R_EAX, R_ECX ); // 12
-    JMP_rel8(end);
-
-    JMP_TARGET(doublesize);
-    check_walign64( R_EAX );
-    MMU_TRANSLATE_WRITE( R_EAX );
-    load_dr0( R_ECX, FRm );
-    load_dr1( R_EDX, FRm );
-    MEM_WRITE_DOUBLE( R_EAX, R_ECX, R_EDX );
-    JMP_TARGET(end);
+    if( sh4_x86.double_size ) {
+        check_walign64( R_EAX );
+        MMU_TRANSLATE_WRITE( R_EAX );
+        load_dr0( R_ECX, FRm );
+        load_dr1( R_EDX, FRm );
+        MEM_WRITE_DOUBLE( R_EAX, R_ECX, R_EDX );
+    } else {
+        check_walign32( R_EAX );
+        MMU_TRANSLATE_WRITE( R_EAX );
+        load_fr( R_ECX, FRm );
+        MEM_WRITE_LONG( R_EAX, R_ECX );
+    }
     sh4_x86.tstate = TSTATE_NONE;
 :}
 FMOV @Rm, FRn {:  
     COUNT_INST(I_FMOV5);
     check_fpuen();
     load_reg( R_EAX, Rm );
-    load_spreg( R_EDX, R_FPSCR );
-    TEST_imm32_r32( FPSCR_SZ, R_EDX );
-    JNE_rel8(doublesize);
-
-    check_ralign32( R_EAX );
-    MMU_TRANSLATE_READ( R_EAX );
-    MEM_READ_LONG( R_EAX, R_EAX );
-    store_fr( R_EAX, FRn );
-    JMP_rel8(end);
-
-    JMP_TARGET(doublesize);
-    check_ralign64( R_EAX );
-    MMU_TRANSLATE_READ( R_EAX );
-    MEM_READ_DOUBLE( R_EAX, R_ECX, R_EAX );
-    store_dr0( R_ECX, FRn );
-    store_dr1( R_EAX, FRn );
-    JMP_TARGET(end);
+    if( sh4_x86.double_size ) {
+        check_ralign64( R_EAX );
+        MMU_TRANSLATE_READ( R_EAX );
+        MEM_READ_DOUBLE( R_EAX, R_ECX, R_EAX );
+        store_dr0( R_ECX, FRn );
+        store_dr1( R_EAX, FRn );    
+    } else {
+        check_ralign32( R_EAX );
+        MMU_TRANSLATE_READ( R_EAX );
+        MEM_READ_LONG( R_EAX, R_EAX );
+        store_fr( R_EAX, FRn );
+    }
     sh4_x86.tstate = TSTATE_NONE;
 :}
 FMOV FRm, @-Rn {:  
     COUNT_INST(I_FMOV3);
     check_fpuen();
     load_reg( R_EAX, Rn );
-    load_spreg( R_EDX, R_FPSCR );
-    TEST_imm32_r32( FPSCR_SZ, R_EDX );
-    JNE_rel8(doublesize);
-
-    check_walign32( R_EAX );
-    ADD_imm8s_r32( -4, R_EAX );
-    MMU_TRANSLATE_WRITE( R_EAX );
-    load_fr( R_ECX, FRm );
-    ADD_imm8s_sh4r(-4,REG_OFFSET(r[Rn]));
-    MEM_WRITE_LONG( R_EAX, R_ECX );
-    JMP_rel8(end);
-
-    JMP_TARGET(doublesize);
-    check_walign64( R_EAX );
-    ADD_imm8s_r32(-8,R_EAX);
-    MMU_TRANSLATE_WRITE( R_EAX );
-    load_dr0( R_ECX, FRm );
-    load_dr1( R_EDX, FRm );
-    ADD_imm8s_sh4r(-8,REG_OFFSET(r[Rn]));
-    MEM_WRITE_DOUBLE( R_EAX, R_ECX, R_EDX );
-    JMP_TARGET(end);
-
+    if( sh4_x86.double_size ) {
+        check_walign64( R_EAX );
+        ADD_imm8s_r32(-8,R_EAX);
+        MMU_TRANSLATE_WRITE( R_EAX );
+        load_dr0( R_ECX, FRm );
+        load_dr1( R_EDX, FRm );
+        ADD_imm8s_sh4r(-8,REG_OFFSET(r[Rn]));
+        MEM_WRITE_DOUBLE( R_EAX, R_ECX, R_EDX );
+    } else {
+        check_walign32( R_EAX );
+        ADD_imm8s_r32( -4, R_EAX );
+        MMU_TRANSLATE_WRITE( R_EAX );
+        load_fr( R_ECX, FRm );
+        ADD_imm8s_sh4r(-4,REG_OFFSET(r[Rn]));
+        MEM_WRITE_LONG( R_EAX, R_ECX );
+    }
     sh4_x86.tstate = TSTATE_NONE;
 :}
 FMOV @Rm+, FRn {:
     COUNT_INST(I_FMOV6);
     check_fpuen();
     load_reg( R_EAX, Rm );
-    load_spreg( R_EDX, R_FPSCR );
-    TEST_imm32_r32( FPSCR_SZ, R_EDX );
-    JNE_rel8(doublesize);
-
-    check_ralign32( R_EAX );
-    MMU_TRANSLATE_READ( R_EAX );
-    ADD_imm8s_sh4r( 4, REG_OFFSET(r[Rm]) );
-    MEM_READ_LONG( R_EAX, R_EAX );
-    store_fr( R_EAX, FRn );
-    JMP_rel8(end);
-
-    JMP_TARGET(doublesize);
-    check_ralign64( R_EAX );
-    MMU_TRANSLATE_READ( R_EAX );
-    ADD_imm8s_sh4r( 8, REG_OFFSET(r[Rm]) );
-    MEM_READ_DOUBLE( R_EAX, R_ECX, R_EAX );
-    store_dr0( R_ECX, FRn );
-    store_dr1( R_EAX, FRn );
-    JMP_TARGET(end);
-
+    if( sh4_x86.double_size ) {
+        check_ralign64( R_EAX );
+        MMU_TRANSLATE_READ( R_EAX );
+        ADD_imm8s_sh4r( 8, REG_OFFSET(r[Rm]) );
+        MEM_READ_DOUBLE( R_EAX, R_ECX, R_EAX );
+        store_dr0( R_ECX, FRn );
+        store_dr1( R_EAX, FRn );
+    } else {
+        check_ralign32( R_EAX );
+        MMU_TRANSLATE_READ( R_EAX );
+        ADD_imm8s_sh4r( 4, REG_OFFSET(r[Rm]) );
+        MEM_READ_LONG( R_EAX, R_EAX );
+        store_fr( R_EAX, FRn );
+    }
     sh4_x86.tstate = TSTATE_NONE;
 :}
 FMOV FRm, @(R0, Rn) {:  
@@ -1931,24 +1923,18 @@ FMOV FRm, @(R0, Rn) {:
     check_fpuen();
     load_reg( R_EAX, Rn );
     ADD_sh4r_r32( REG_OFFSET(r[0]), R_EAX );
-    load_spreg( R_EDX, R_FPSCR );
-    TEST_imm32_r32( FPSCR_SZ, R_EDX );
-    JNE_rel8(doublesize);
-
-    check_walign32( R_EAX );
-    MMU_TRANSLATE_WRITE( R_EAX );
-    load_fr( R_ECX, FRm );
-    MEM_WRITE_LONG( R_EAX, R_ECX ); // 12
-    JMP_rel8(end);
-
-    JMP_TARGET(doublesize);
-    check_walign64( R_EAX );
-    MMU_TRANSLATE_WRITE( R_EAX );
-    load_dr0( R_ECX, FRm );
-    load_dr1( R_EDX, FRm );
-    MEM_WRITE_DOUBLE( R_EAX, R_ECX, R_EDX );
-    JMP_TARGET(end);
-
+    if( sh4_x86.double_size ) {
+        check_walign64( R_EAX );
+        MMU_TRANSLATE_WRITE( R_EAX );
+        load_dr0( R_ECX, FRm );
+        load_dr1( R_EDX, FRm );
+        MEM_WRITE_DOUBLE( R_EAX, R_ECX, R_EDX );
+    } else {
+        check_walign32( R_EAX );
+        MMU_TRANSLATE_WRITE( R_EAX );
+        load_fr( R_ECX, FRm );
+        MEM_WRITE_LONG( R_EAX, R_ECX ); // 12
+    }
     sh4_x86.tstate = TSTATE_NONE;
 :}
 FMOV @(R0, Rm), FRn {:  
@@ -1956,74 +1942,56 @@ FMOV @(R0, Rm), FRn {:
     check_fpuen();
     load_reg( R_EAX, Rm );
     ADD_sh4r_r32( REG_OFFSET(r[0]), R_EAX );
-    load_spreg( R_EDX, R_FPSCR );
-    TEST_imm32_r32( FPSCR_SZ, R_EDX );
-    JNE_rel8(doublesize);
-
-    check_ralign32( R_EAX );
-    MMU_TRANSLATE_READ( R_EAX );
-    MEM_READ_LONG( R_EAX, R_EAX );
-    store_fr( R_EAX, FRn );
-    JMP_rel8(end);
-
-    JMP_TARGET(doublesize);
-    check_ralign64( R_EAX );
-    MMU_TRANSLATE_READ( R_EAX );
-    MEM_READ_DOUBLE( R_EAX, R_ECX, R_EAX );
-    store_dr0( R_ECX, FRn );
-    store_dr1( R_EAX, FRn );
-    JMP_TARGET(end);
-
+    if( sh4_x86.double_size ) {
+        check_ralign64( R_EAX );
+        MMU_TRANSLATE_READ( R_EAX );
+        MEM_READ_DOUBLE( R_EAX, R_ECX, R_EAX );
+        store_dr0( R_ECX, FRn );
+        store_dr1( R_EAX, FRn );
+    } else {
+        check_ralign32( R_EAX );
+        MMU_TRANSLATE_READ( R_EAX );
+        MEM_READ_LONG( R_EAX, R_EAX );
+        store_fr( R_EAX, FRn );
+    }
     sh4_x86.tstate = TSTATE_NONE;
 :}
 FLDI0 FRn {:  /* IFF PR=0 */
     COUNT_INST(I_FLDI0);
     check_fpuen();
-    load_spreg( R_ECX, R_FPSCR );
-    TEST_imm32_r32( FPSCR_PR, R_ECX );
-    JNE_rel8(end);
-    XOR_r32_r32( R_EAX, R_EAX );
-    store_fr( R_EAX, FRn );
-    JMP_TARGET(end);
+    if( sh4_x86.double_prec == 0 ) {
+        XOR_r32_r32( R_EAX, R_EAX );
+        store_fr( R_EAX, FRn );
+    }
     sh4_x86.tstate = TSTATE_NONE;
 :}
 FLDI1 FRn {:  /* IFF PR=0 */
     COUNT_INST(I_FLDI1);
     check_fpuen();
-    load_spreg( R_ECX, R_FPSCR );
-    TEST_imm32_r32( FPSCR_PR, R_ECX );
-    JNE_rel8(end);
-    load_imm32(R_EAX, 0x3F800000);
-    store_fr( R_EAX, FRn );
-    JMP_TARGET(end);
-    sh4_x86.tstate = TSTATE_NONE;
+    if( sh4_x86.double_prec == 0 ) {
+        load_imm32(R_EAX, 0x3F800000);
+        store_fr( R_EAX, FRn );
+    }
 :}
 
 FLOAT FPUL, FRn {:  
     COUNT_INST(I_FLOAT);
     check_fpuen();
-    load_spreg( R_ECX, R_FPSCR );
     FILD_sh4r(R_FPUL);
-    TEST_imm32_r32( FPSCR_PR, R_ECX );
-    JNE_rel8(doubleprec);
-    pop_fr( FRn );
-    JMP_rel8(end);
-    JMP_TARGET(doubleprec);
-    pop_dr( FRn );
-    JMP_TARGET(end);
-    sh4_x86.tstate = TSTATE_NONE;
+    if( sh4_x86.double_prec ) {
+        pop_dr( FRn );
+    } else {
+        pop_fr( FRn );
+    }
 :}
 FTRC FRm, FPUL {:  
     COUNT_INST(I_FTRC);
     check_fpuen();
-    load_spreg( R_ECX, R_FPSCR );
-    TEST_imm32_r32( FPSCR_PR, R_ECX );
-    JNE_rel8(doubleprec);
-    push_fr( FRm );
-    JMP_rel8(doop);
-    JMP_TARGET(doubleprec);
-    push_dr( FRm );
-    JMP_TARGET( doop );
+    if( sh4_x86.double_prec ) {
+        push_dr( FRm );
+    } else {
+        push_fr( FRm );
+    }
     load_ptr( R_ECX, &max_int );
     FILD_r32ind( R_ECX );
     FCOMIP_st(1);
@@ -2053,289 +2021,232 @@ FLDS FRm, FPUL {:
     check_fpuen();
     load_fr( R_EAX, FRm );
     store_spreg( R_EAX, R_FPUL );
-    sh4_x86.tstate = TSTATE_NONE;
 :}
 FSTS FPUL, FRn {:  
     COUNT_INST(I_FSTS);
     check_fpuen();
     load_spreg( R_EAX, R_FPUL );
     store_fr( R_EAX, FRn );
-    sh4_x86.tstate = TSTATE_NONE;
 :}
 FCNVDS FRm, FPUL {:  
     COUNT_INST(I_FCNVDS);
     check_fpuen();
-    load_spreg( R_ECX, R_FPSCR );
-    TEST_imm32_r32( FPSCR_PR, R_ECX );
-    JE_rel8(end); // only when PR=1
-    push_dr( FRm );
-    pop_fpul();
-    JMP_TARGET(end);
-    sh4_x86.tstate = TSTATE_NONE;
+    if( sh4_x86.double_prec ) {
+        push_dr( FRm );
+        pop_fpul();
+    }
 :}
 FCNVSD FPUL, FRn {:  
     COUNT_INST(I_FCNVSD);
     check_fpuen();
-    load_spreg( R_ECX, R_FPSCR );
-    TEST_imm32_r32( FPSCR_PR, R_ECX );
-    JE_rel8(end); // only when PR=1
-    push_fpul();
-    pop_dr( FRn );
-    JMP_TARGET(end);
-    sh4_x86.tstate = TSTATE_NONE;
+    if( sh4_x86.double_prec ) {
+        push_fpul();
+        pop_dr( FRn );
+    }
 :}
 
 /* Floating point instructions */
 FABS FRn {:  
     COUNT_INST(I_FABS);
     check_fpuen();
-    load_spreg( R_ECX, R_FPSCR );
-    TEST_imm32_r32( FPSCR_PR, R_ECX );
-    JNE_rel8(doubleprec);
-    push_fr(FRn); // 6
-    FABS_st0(); // 2
-    pop_fr(FRn); //6
-    JMP_rel8(end); // 2
-    JMP_TARGET(doubleprec);
-    push_dr(FRn);
-    FABS_st0();
-    pop_dr(FRn);
-    JMP_TARGET(end);
-    sh4_x86.tstate = TSTATE_NONE;
+    if( sh4_x86.double_prec ) {
+        push_dr(FRn);
+        FABS_st0();
+        pop_dr(FRn);
+    } else {
+        push_fr(FRn);
+        FABS_st0();
+        pop_fr(FRn);
+    }
 :}
 FADD FRm, FRn {:  
     COUNT_INST(I_FADD);
     check_fpuen();
-    load_spreg( R_ECX, R_FPSCR );
-    TEST_imm32_r32( FPSCR_PR, R_ECX );
-    JNE_rel8(doubleprec);
-    push_fr(FRm);
-    push_fr(FRn);
-    FADDP_st(1);
-    pop_fr(FRn);
-    JMP_rel8(end);
-    JMP_TARGET(doubleprec);
-    push_dr(FRm);
-    push_dr(FRn);
-    FADDP_st(1);
-    pop_dr(FRn);
-    JMP_TARGET(end);
-    sh4_x86.tstate = TSTATE_NONE;
+    if( sh4_x86.double_prec ) {
+        push_dr(FRm);
+        push_dr(FRn);
+        FADDP_st(1);
+        pop_dr(FRn);
+    } else {
+        push_fr(FRm);
+        push_fr(FRn);
+        FADDP_st(1);
+        pop_fr(FRn);
+    }
 :}
 FDIV FRm, FRn {:  
     COUNT_INST(I_FDIV);
     check_fpuen();
-    load_spreg( R_ECX, R_FPSCR );
-    TEST_imm32_r32( FPSCR_PR, R_ECX );
-    JNE_rel8(doubleprec);
-    push_fr(FRn);
-    push_fr(FRm);
-    FDIVP_st(1);
-    pop_fr(FRn);
-    JMP_rel8(end);
-    JMP_TARGET(doubleprec);
-    push_dr(FRn);
-    push_dr(FRm);
-    FDIVP_st(1);
-    pop_dr(FRn);
-    JMP_TARGET(end);
-    sh4_x86.tstate = TSTATE_NONE;
+    if( sh4_x86.double_prec ) {
+        push_dr(FRn);
+        push_dr(FRm);
+        FDIVP_st(1);
+        pop_dr(FRn);
+    } else {
+        push_fr(FRn);
+        push_fr(FRm);
+        FDIVP_st(1);
+        pop_fr(FRn);
+    }
 :}
 FMAC FR0, FRm, FRn {:  
     COUNT_INST(I_FMAC);
     check_fpuen();
-    load_spreg( R_ECX, R_FPSCR );
-    TEST_imm32_r32( FPSCR_PR, R_ECX );
-    JNE_rel8(doubleprec);
-    push_fr( 0 );
-    push_fr( FRm );
-    FMULP_st(1);
-    push_fr( FRn );
-    FADDP_st(1);
-    pop_fr( FRn );
-    JMP_rel8(end);
-    JMP_TARGET(doubleprec);
-    push_dr( 0 );
-    push_dr( FRm );
-    FMULP_st(1);
-    push_dr( FRn );
-    FADDP_st(1);
-    pop_dr( FRn );
-    JMP_TARGET(end);
-    sh4_x86.tstate = TSTATE_NONE;
+    if( sh4_x86.double_prec ) {
+        push_dr( 0 );
+        push_dr( FRm );
+        FMULP_st(1);
+        push_dr( FRn );
+        FADDP_st(1);
+        pop_dr( FRn );
+    } else {
+        push_fr( 0 );
+        push_fr( FRm );
+        FMULP_st(1);
+        push_fr( FRn );
+        FADDP_st(1);
+        pop_fr( FRn );
+    }
 :}
 
 FMUL FRm, FRn {:  
     COUNT_INST(I_FMUL);
     check_fpuen();
-    load_spreg( R_ECX, R_FPSCR );
-    TEST_imm32_r32( FPSCR_PR, R_ECX );
-    JNE_rel8(doubleprec);
-    push_fr(FRm);
-    push_fr(FRn);
-    FMULP_st(1);
-    pop_fr(FRn);
-    JMP_rel8(end);
-    JMP_TARGET(doubleprec);
-    push_dr(FRm);
-    push_dr(FRn);
-    FMULP_st(1);
-    pop_dr(FRn);
-    JMP_TARGET(end);
-    sh4_x86.tstate = TSTATE_NONE;
+    if( sh4_x86.double_prec ) {
+        push_dr(FRm);
+        push_dr(FRn);
+        FMULP_st(1);
+        pop_dr(FRn);
+    } else {
+        push_fr(FRm);
+        push_fr(FRn);
+        FMULP_st(1);
+        pop_fr(FRn);
+    }
 :}
 FNEG FRn {:  
     COUNT_INST(I_FNEG);
     check_fpuen();
-    load_spreg( R_ECX, R_FPSCR );
-    TEST_imm32_r32( FPSCR_PR, R_ECX );
-    JNE_rel8(doubleprec);
-    push_fr(FRn);
-    FCHS_st0();
-    pop_fr(FRn);
-    JMP_rel8(end);
-    JMP_TARGET(doubleprec);
-    push_dr(FRn);
-    FCHS_st0();
-    pop_dr(FRn);
-    JMP_TARGET(end);
-    sh4_x86.tstate = TSTATE_NONE;
+    if( sh4_x86.double_prec ) {
+        push_dr(FRn);
+        FCHS_st0();
+        pop_dr(FRn);
+    } else {
+        push_fr(FRn);
+        FCHS_st0();
+        pop_fr(FRn);
+    }
 :}
 FSRRA FRn {:  
     COUNT_INST(I_FSRRA);
     check_fpuen();
-    load_spreg( R_ECX, R_FPSCR );
-    TEST_imm32_r32( FPSCR_PR, R_ECX );
-    JNE_rel8(end); // PR=0 only
-    FLD1_st0();
-    push_fr(FRn);
-    FSQRT_st0();
-    FDIVP_st(1);
-    pop_fr(FRn);
-    JMP_TARGET(end);
-    sh4_x86.tstate = TSTATE_NONE;
+    if( sh4_x86.double_prec == 0 ) {
+        FLD1_st0();
+        push_fr(FRn);
+        FSQRT_st0();
+        FDIVP_st(1);
+        pop_fr(FRn);
+    }
 :}
 FSQRT FRn {:  
     COUNT_INST(I_FSQRT);
     check_fpuen();
-    load_spreg( R_ECX, R_FPSCR );
-    TEST_imm32_r32( FPSCR_PR, R_ECX );
-    JNE_rel8(doubleprec);
-    push_fr(FRn);
-    FSQRT_st0();
-    pop_fr(FRn);
-    JMP_rel8(end);
-    JMP_TARGET(doubleprec);
-    push_dr(FRn);
-    FSQRT_st0();
-    pop_dr(FRn);
-    JMP_TARGET(end);
-    sh4_x86.tstate = TSTATE_NONE;
+    if( sh4_x86.double_prec ) {
+        push_dr(FRn);
+        FSQRT_st0();
+        pop_dr(FRn);
+    } else {
+        push_fr(FRn);
+        FSQRT_st0();
+        pop_fr(FRn);
+    }
 :}
 FSUB FRm, FRn {:  
     COUNT_INST(I_FSUB);
     check_fpuen();
-    load_spreg( R_ECX, R_FPSCR );
-    TEST_imm32_r32( FPSCR_PR, R_ECX );
-    JNE_rel8(doubleprec);
-    push_fr(FRn);
-    push_fr(FRm);
-    FSUBP_st(1);
-    pop_fr(FRn);
-    JMP_rel8(end);
-    JMP_TARGET(doubleprec);
-    push_dr(FRn);
-    push_dr(FRm);
-    FSUBP_st(1);
-    pop_dr(FRn);
-    JMP_TARGET(end);
-    sh4_x86.tstate = TSTATE_NONE;
+    if( sh4_x86.double_prec ) {
+        push_dr(FRn);
+        push_dr(FRm);
+        FSUBP_st(1);
+        pop_dr(FRn);
+    } else {
+        push_fr(FRn);
+        push_fr(FRm);
+        FSUBP_st(1);
+        pop_fr(FRn);
+    }
 :}
 
 FCMP/EQ FRm, FRn {:  
     COUNT_INST(I_FCMPEQ);
     check_fpuen();
-    load_spreg( R_ECX, R_FPSCR );
-    TEST_imm32_r32( FPSCR_PR, R_ECX );
-    JNE_rel8(doubleprec);
-    push_fr(FRm);
-    push_fr(FRn);
-    JMP_rel8(end);
-    JMP_TARGET(doubleprec);
-    push_dr(FRm);
-    push_dr(FRn);
-    JMP_TARGET(end);
+    if( sh4_x86.double_prec ) {
+        push_dr(FRm);
+        push_dr(FRn);
+    } else {
+        push_fr(FRm);
+        push_fr(FRn);
+    }
     FCOMIP_st(1);
     SETE_t();
     FPOP_st();
-    sh4_x86.tstate = TSTATE_NONE;
+    sh4_x86.tstate = TSTATE_E;
 :}
 FCMP/GT FRm, FRn {:  
     COUNT_INST(I_FCMPGT);
     check_fpuen();
-    load_spreg( R_ECX, R_FPSCR );
-    TEST_imm32_r32( FPSCR_PR, R_ECX );
-    JNE_rel8(doubleprec);
-    push_fr(FRm);
-    push_fr(FRn);
-    JMP_rel8(end);
-    JMP_TARGET(doubleprec);
-    push_dr(FRm);
-    push_dr(FRn);
-    JMP_TARGET(end);
+    if( sh4_x86.double_prec ) {
+        push_dr(FRm);
+        push_dr(FRn);
+    } else {
+        push_fr(FRm);
+        push_fr(FRn);
+    }
     FCOMIP_st(1);
     SETA_t();
     FPOP_st();
-    sh4_x86.tstate = TSTATE_NONE;
+    sh4_x86.tstate = TSTATE_A;
 :}
 
 FSCA FPUL, FRn {:  
     COUNT_INST(I_FSCA);
     check_fpuen();
-    load_spreg( R_ECX, R_FPSCR );
-    TEST_imm32_r32( FPSCR_PR, R_ECX );
-    JNE_rel8(doubleprec );
-    LEA_sh4r_rptr( REG_OFFSET(fr[0][FRn&0x0E]), R_ECX );
-    load_spreg( R_EDX, R_FPUL );
-    call_func2( sh4_fsca, R_EDX, R_ECX );
-    JMP_TARGET(doubleprec);
+    if( sh4_x86.double_prec == 0 ) {
+        LEA_sh4r_rptr( REG_OFFSET(fr[0][FRn&0x0E]), R_ECX );
+        load_spreg( R_EDX, R_FPUL );
+        call_func2( sh4_fsca, R_EDX, R_ECX );
+    }
     sh4_x86.tstate = TSTATE_NONE;
 :}
 FIPR FVm, FVn {:  
     COUNT_INST(I_FIPR);
     check_fpuen();
-    load_spreg( R_ECX, R_FPSCR );
-    TEST_imm32_r32( FPSCR_PR, R_ECX );
-    JNE_rel8( doubleprec);
-    
-    push_fr( FVm<<2 );
-    push_fr( FVn<<2 );
-    FMULP_st(1);
-    push_fr( (FVm<<2)+1);
-    push_fr( (FVn<<2)+1);
-    FMULP_st(1);
-    FADDP_st(1);
-    push_fr( (FVm<<2)+2);
-    push_fr( (FVn<<2)+2);
-    FMULP_st(1);
-    FADDP_st(1);
-    push_fr( (FVm<<2)+3);
-    push_fr( (FVn<<2)+3);
-    FMULP_st(1);
-    FADDP_st(1);
-    pop_fr( (FVn<<2)+3);
-    JMP_TARGET(doubleprec);
-    sh4_x86.tstate = TSTATE_NONE;
+    if( sh4_x86.double_prec == 0 ) {
+        push_fr( FVm<<2 );
+        push_fr( FVn<<2 );
+        FMULP_st(1);
+        push_fr( (FVm<<2)+1);
+        push_fr( (FVn<<2)+1);
+        FMULP_st(1);
+        FADDP_st(1);
+        push_fr( (FVm<<2)+2);
+        push_fr( (FVn<<2)+2);
+        FMULP_st(1);
+        FADDP_st(1);
+        push_fr( (FVm<<2)+3);
+        push_fr( (FVn<<2)+3);
+        FMULP_st(1);
+        FADDP_st(1);
+        pop_fr( (FVn<<2)+3);
+    }
 :}
 FTRV XMTRX, FVn {:  
     COUNT_INST(I_FTRV);
     check_fpuen();
-    load_spreg( R_ECX, R_FPSCR );
-    TEST_imm32_r32( FPSCR_PR, R_ECX );
-    JNE_rel8( doubleprec );
-    LEA_sh4r_rptr( REG_OFFSET(fr[0][FVn<<2]), R_EDX );
-    call_func1( sh4_ftrv, R_EDX );  // 12
-    JMP_TARGET(doubleprec);
+    if( sh4_x86.double_prec == 0 ) {
+        LEA_sh4r_rptr( REG_OFFSET(fr[0][FVn<<2]), R_EDX );
+        call_func1( sh4_ftrv, R_EDX );
+    }
     sh4_x86.tstate = TSTATE_NONE;
 :}
 
@@ -2355,6 +2266,7 @@ FSCHG {:
     XOR_imm32_r32( FPSCR_SZ, R_ECX );
     store_spreg( R_ECX, R_FPSCR );
     sh4_x86.tstate = TSTATE_NONE;
+    sh4_x86.double_size = !sh4_x86.double_size;
 :}
 
 /* Processor control instructions */
@@ -2517,6 +2429,7 @@ LDS Rm, FPSCR {:
     load_reg( R_EAX, Rm );
     call_func1( sh4_write_fpscr, R_EAX );
     sh4_x86.tstate = TSTATE_NONE;
+    return 2;
 :}
 LDS.L @Rm+, FPSCR {:  
     COUNT_INST(I_LDSFPSCRM);
@@ -2528,6 +2441,7 @@ LDS.L @Rm+, FPSCR {:
     MEM_READ_LONG( R_EAX, R_EAX );
     call_func1( sh4_write_fpscr, R_EAX );
     sh4_x86.tstate = TSTATE_NONE;
+    return 2;
 :}
 LDS Rm, FPUL {:  
     COUNT_INST(I_LDS);

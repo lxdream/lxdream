@@ -159,6 +159,7 @@ extern "C" {
 #define MOV_r32_sh4r(r1,disp) OP(0x89); MODRM_r32_sh4r(r1,disp)
 #define MOV_moff32_EAX(off)   OP(0xA1); OPPTR(off)
 #define MOV_sh4r_r32(disp, r1)  OP(0x8B); MODRM_r32_sh4r(r1,disp)
+#define MOV_r32_r32ind(r2,r1) OP(0x89); OP(0 + (r2<<3) + r1 )
 #define MOV_r32ind_r32(r1,r2) OP(0x8B); OP(0 + (r2<<3) + r1 )
 #define MOVSX_r8_r32(r1,r2)   OP(0x0F); OP(0xBE); MODRM_rm32_r32(r1,r2)
 #define MOVSX_r16_r32(r1,r2)  OP(0x0F); OP(0xBF); MODRM_rm32_r32(r1,r2)
