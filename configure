@@ -6819,7 +6819,7 @@ if test $ac_cv_header_Cocoa_Cocoa_h = yes; then
       APPLE_BUILD='yes'
       LIBS="$LIBS -framework AppKit"
       LIBS="$LIBS -Wl,-dylib_file,/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib:/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib -framework OpenGL"
-      CPPFLAGS="$CPPFLAGS -DMAC_OS_X_VERSION_MIN_REQUIRED=MAC_OS_X_VERSION_10_4"
+      CPPFLAGS="$CPPFLAGS -DMAC_OS_X_VERSION_MIN_REQUIRED=MAC_OS_X_VERSION_10_4 -mdynamic-no-pic"
       LDFLAGS="$LDFLAGS -Wl,-headerpad_max_install_names"
 
 cat >>confdefs.h <<\_ACEOF
