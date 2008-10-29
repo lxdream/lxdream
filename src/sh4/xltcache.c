@@ -129,7 +129,7 @@ static void xlat_flush_page_by_lut( void **page )
     }
 }
 
-void xlat_invalidate_word( sh4addr_t addr )
+void FASTCALL xlat_invalidate_word( sh4addr_t addr )
 {
     if( xlat_lut ) {
         void **page = xlat_lut[XLAT_LUT_PAGE(addr)];
@@ -142,7 +142,7 @@ void xlat_invalidate_word( sh4addr_t addr )
     }
 }
 
-void xlat_invalidate_long( sh4addr_t addr )
+void FASTCALL xlat_invalidate_long( sh4addr_t addr )
 {
     if( xlat_lut ) {
         void **page = xlat_lut[XLAT_LUT_PAGE(addr)];
@@ -155,7 +155,7 @@ void xlat_invalidate_long( sh4addr_t addr )
     }
 }
 
-void xlat_invalidate_block( sh4addr_t address, size_t size )
+void FASTCALL xlat_invalidate_block( sh4addr_t address, size_t size )
 {
     int i;
     int entry_count = size >> 1; // words;
@@ -189,7 +189,7 @@ void xlat_invalidate_block( sh4addr_t address, size_t size )
     }
 }
 
-void xlat_flush_page( sh4addr_t address )
+void FASTCALL xlat_flush_page( sh4addr_t address )
 {
     void **page = xlat_lut[XLAT_LUT_PAGE(address)];
     if( page != NULL ) {
@@ -197,7 +197,7 @@ void xlat_flush_page( sh4addr_t address )
     }
 }
 
-void *xlat_get_code( sh4addr_t address )
+void * FASTCALL xlat_get_code( sh4addr_t address )
 {
     void *result = NULL;
     void **page = xlat_lut[XLAT_LUT_PAGE(address)];
@@ -248,7 +248,7 @@ xlat_recovery_record_t xlat_get_pre_recovery( void *code, void *native_pc )
     return NULL;	
 }
 
-void **xlat_get_lut_entry( sh4addr_t address )
+void ** FASTCALL xlat_get_lut_entry( sh4addr_t address )
 {
     void **page = xlat_lut[XLAT_LUT_PAGE(address)];
 
@@ -265,13 +265,13 @@ void **xlat_get_lut_entry( sh4addr_t address )
 
 
 
-uint32_t xlat_get_block_size( void *block )
+uint32_t FASTCALL xlat_get_block_size( void *block )
 {
     xlat_cache_block_t xlt = (xlat_cache_block_t)(((char *)block)-sizeof(struct xlat_cache_block));
     return xlt->size;
 }
 
-uint32_t xlat_get_code_size( void *block )
+uint32_t FASTCALL xlat_get_code_size( void *block )
 {
     xlat_cache_block_t xlt = (xlat_cache_block_t)(((char *)block)-sizeof(struct xlat_cache_block));
     if( xlt->recover_table_offset == 0 ) {

@@ -32,12 +32,73 @@ static inline void call_func0( void *ptr )
 {
     int adj = (-sh4_x86.stack_posn)&0x0F;
     SUB_imm8s_r32( adj, R_ESP );
-    load_imm32(R_EAX, (uint32_t)ptr);
-    CALL_r32(R_EAX);
+    load_imm32(R_ECX, (uint32_t)ptr);
+    CALL_r32(R_ECX);
     ADD_imm8s_r32( adj, R_ESP );
 }
 
-#define CALL_FUNC1_SIZE 14
+#ifdef HAVE_FASTCALL
+static inline void call_func1( void *ptr, int arg1 )
+{
+    int adj = (-sh4_x86.stack_posn)&0x0F;
+    SUB_imm8s_r32( adj, R_ESP );
+    if( arg1 != R_EAX ) {
+        MOV_r32_r32( arg1, R_EAX );
+    }
+    load_imm32(R_ECX, (uint32_t)ptr);
+    CALL_r32(R_ECX);
+    ADD_imm8s_r32( adj, R_ESP );
+}
+
+static inline void call_func2( void *ptr, int arg1, int arg2 )
+{
+    int adj = (-sh4_x86.stack_posn)&0x0F;
+    SUB_imm8s_r32( adj, R_ESP );
+    if( arg2 != R_EDX ) {
+        MOV_r32_r32( arg2, R_EDX );
+    }
+    if( arg1 != R_EAX ) {
+        MOV_r32_r32( arg1, R_EAX );
+    }
+    load_imm32(R_ECX, (uint32_t)ptr);
+    CALL_r32(R_ECX);
+    ADD_imm8s_r32( adj, R_ESP );
+}
+
+/**
+ * Write a double (64-bit) value into memory, with the first word in arg2a, and
+ * the second in arg2b
+ */
+static inline void MEM_WRITE_DOUBLE( int addr, int arg2a, int arg2b )
+{
+    PUSH_r32(arg2b);
+    PUSH_r32(addr);
+    call_func2(sh4_write_long, addr, arg2a);
+    POP_r32(R_EAX);
+    POP_r32(R_EDX);
+    ADD_imm8s_r32(4, R_EAX);
+    call_func0(sh4_write_long);
+}
+
+/**
+ * Read a double (64-bit) value from memory, writing the first word into arg2a
+ * and the second into arg2b. The addr must not be in EAX
+ */
+static inline void MEM_READ_DOUBLE( int addr, int arg2a, int arg2b )
+{
+    PUSH_r32(addr);
+    call_func1(sh4_read_long, addr);
+    POP_r32(R_ECX);
+    PUSH_r32(R_EAX);
+    MOV_r32_r32(R_ECX, R_EAX);
+    ADD_imm8s_r32(4, R_EAX);
+    call_func0(sh4_read_long);
+    if( arg2b != R_EAX ) {
+        MOV_r32_r32(R_EAX, arg2b);
+    }
+    POP_r32(arg2a);
+}
+#else
 static inline void call_func1( void *ptr, int arg1 )
 {
     int adj = (-4-sh4_x86.stack_posn)&0x0F;
@@ -65,9 +126,7 @@ static inline void call_func2( void *ptr, int arg1, int arg2 )
 /**
  * Write a double (64-bit) value into memory, with the first word in arg2a, and
  * the second in arg2b
- * NB: 30 bytes
  */
-#define MEM_WRITE_DOUBLE_SIZE 36
 static inline void MEM_WRITE_DOUBLE( int addr, int arg2a, int arg2b )
 {
     int adj = (-8-sh4_x86.stack_posn)&0x0F;
@@ -91,9 +150,7 @@ static inline void MEM_WRITE_DOUBLE( int addr, int arg2a, int arg2b )
 /**
  * Read a double (64-bit) value from memory, writing the first word into arg2a
  * and the second into arg2b. The addr must not be in EAX
- * NB: 27 bytes
  */
-#define MEM_READ_DOUBLE_SIZE 36
 static inline void MEM_READ_DOUBLE( int addr, int arg2a, int arg2b )
 {
     int adj = (-4-sh4_x86.stack_posn)&0x0F;
@@ -115,6 +172,8 @@ static inline void MEM_READ_DOUBLE( int addr, int arg2a, int arg2b )
     ADD_imm8s_r32( adj2, R_ESP );
     sh4_x86.stack_posn -= 4;
 }
+
+#endif
 
 /**
  * Emit the 'start of block' assembly. Sets up the stack frame and save
@@ -164,9 +223,6 @@ void exit_block_newpcset( sh4addr_t pc )
 }
 
 
-#define EXIT_BLOCK_SIZE(pc)  (24 + (IS_IN_ICACHE(pc)?5:CALL_FUNC1_SIZE))
-
-
 /**
  * Exit the block to an absolute PC
  */
@@ -187,8 +243,6 @@ void exit_block( sh4addr_t pc, sh4addr_t endpc )
     POP_r32(R_EBP);
     RET();
 }
-
-#define EXIT_BLOCK_REL_SIZE(pc)  (27 + (IS_IN_ICACHE(pc)?5:CALL_FUNC1_SIZE))
 
 /**
  * Exit the block to a relative PC
@@ -280,6 +334,47 @@ void sh4_translate_end_block( sh4addr_t pc ) {
     }
 }
 
+
+/**
+ * The unwind methods only work if we compiled with DWARF2 frame information
+ * (ie -fexceptions), otherwise we have to use the direct frame scan.
+ */
+#ifdef HAVE_EXCEPTIONS
+#include <unwind.h>
+
+struct UnwindInfo {
+    int have_result;
+    void *pc;
+};
+
+_Unwind_Reason_Code xlat_check_frame( struct _Unwind_Context *context, void *arg )
+{
+    void *ebp = (void *)_Unwind_GetGR(context, 5);
+    void *expect = (((uint8_t *)&sh4r) + 128 );
+    struct UnwindInfo *info = arg;
+    if( ebp == expect ) { 
+        info->have_result = 1;
+        info->pc = (void *)_Unwind_GetIP(context);
+    } else if( info->have_result ) {
+        return _URC_NORMAL_STOP;
+    }
+
+    return _URC_NO_REASON;
+}
+
+void *xlat_get_native_pc()
+{
+    struct _Unwind_Exception exc;
+    struct UnwindInfo info;
+
+    info.have_result = 0;
+    void *result = NULL;
+    _Unwind_Backtrace( xlat_check_frame, &info );
+    if( info.have_result )
+        return info.pc;
+    return NULL;
+}
+#else 
 void *xlat_get_native_pc()
 {
     void *result = NULL;
@@ -302,7 +397,7 @@ void *xlat_get_native_pc()
         : "eax", "ecx", "edx" );
     return result;
 }
-
+#endif
 
 #endif /* !lxdream_ia32mac.h */
 

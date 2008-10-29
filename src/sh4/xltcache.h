@@ -99,7 +99,7 @@ void xlat_delete_block( xlat_cache_block_t block );
  * Retrieve the entry point for the translated code corresponding to the given
  * SH4 address, or NULL if there is no code for that address.
  */
-void *xlat_get_code( sh4addr_t address );
+void * FASTCALL xlat_get_code( sh4addr_t address );
 
 /**
  * Retrieve the post-instruction recovery record corresponding to the given
@@ -130,13 +130,13 @@ struct xlat_recovery_record *xlat_get_pre_recovery( void *code, void *native_pc 
  * If the virtual address cannot be resolved, this method will raise a TLB miss 
  * exception, and return NULL.
  */
-void *xlat_get_code_by_vma( sh4vma_t address );
+void * FASTCALL xlat_get_code_by_vma( sh4vma_t address );
 
 /**
  * Retrieve the address of the lookup table entry corresponding to the
  * given SH4 address.
  */
-void **xlat_get_lut_entry( sh4addr_t address );
+void ** FASTCALL xlat_get_lut_entry( sh4addr_t address );
 
 /**
  * Retrieve the current host address of the running translated code block.
@@ -150,7 +150,7 @@ void *xlat_get_native_pc();
  * Retrieve the size of the block starting at the specified pointer. If the
  * pointer is not a valid code block, the return value is undefined.
  */
-uint32_t xlat_get_block_size( void *ptr );
+uint32_t FASTCALL xlat_get_block_size( void *ptr );
 
 /**
  * Retrieve the size of the code in the block starting at the specified 
@@ -158,21 +158,21 @@ uint32_t xlat_get_block_size( void *ptr );
  * the recovery table. If the pointer is not a valid code block, the 
  * return value is undefined.
  */
-uint32_t xlat_get_code_size( void *ptr );
+uint32_t FASTCALL xlat_get_code_size( void *ptr );
 
 /**
  * Flush the code cache for the page containing the given address
  */
-void xlat_flush_page( sh4addr_t address );
+void FASTCALL xlat_flush_page( sh4addr_t address );
 
-void xlat_invalidate_word( sh4addr_t address );
-void xlat_invalidate_long( sh4addr_t address );
+void FASTCALL xlat_invalidate_word( sh4addr_t address );
+void FASTCALL xlat_invalidate_long( sh4addr_t address );
 
 
 /**
  * Invalidate the code cache for a memory region
  */
-void xlat_invalidate_block( sh4addr_t address, size_t bytes );
+void FASTCALL xlat_invalidate_block( sh4addr_t address, size_t bytes );
 
 /**
  * Flush the entire code cache. This isn't as cheap as one might like

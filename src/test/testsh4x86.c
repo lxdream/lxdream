@@ -58,15 +58,15 @@ struct x86_symbol local_symbols[] = {
     { "_sh4_write_long", sh4_write_long }
 };
 
-int32_t sh4_read_byte( uint32_t addr ) 
+int32_t FASTCALL sh4_read_byte( uint32_t addr ) 
 {
     return *(uint8_t *)(inbuf+(addr-start_addr));
 }
-int32_t sh4_read_word( uint32_t addr ) 
+int32_t FASTCALL sh4_read_word( uint32_t addr ) 
 {
     return *(uint16_t *)(inbuf+(addr-start_addr));
 }
-int32_t sh4_read_long( uint32_t addr ) 
+int32_t FASTCALL sh4_read_long( uint32_t addr ) 
 {
     return *(uint32_t *)(inbuf+(addr-start_addr));
 }
@@ -83,27 +83,27 @@ void event_execute() {}
 void TMU_run_slice( uint32_t nanos ) {}
 void PMM_write_control( int ctr, uint32_t val ) { }
 void SCIF_run_slice( uint32_t nanos ) {}
-void sh4_write_byte( uint32_t addr, uint32_t val ) {}
-void sh4_write_word( uint32_t addr, uint32_t val ) {}
-void sh4_write_long( uint32_t addr, uint32_t val ) {}
-void sh4_write_fpscr( uint32_t val ) { }
+void FASTCALL sh4_write_byte( uint32_t addr, uint32_t val ) {}
+void FASTCALL sh4_write_word( uint32_t addr, uint32_t val ) {}
+void FASTCALL sh4_write_long( uint32_t addr, uint32_t val ) {}
+void FASTCALL sh4_write_fpscr( uint32_t val ) { }
+void FASTCALL sh4_write_sr( uint32_t val ) { }
+uint32_t FASTCALL sh4_read_sr( void ) { return 0; }
+void FASTCALL sh4_sleep() { }
+void FASTCALL sh4_fsca( uint32_t angle, float *fr ) { }
+void FASTCALL sh4_ftrv( float *fv ) { }
+void FASTCALL signsat48(void) { }
 void sh4_switch_fr_banks() { }
 void mem_copy_to_sh4( sh4addr_t addr, sh4ptr_t src, size_t size ) { }
-void sh4_write_sr( uint32_t val ) { }
 gboolean sh4_has_page( sh4vma_t vma ) { return TRUE; }
 void syscall_invoke( uint32_t val ) { }
 void dreamcast_stop() {} 
 void dreamcast_reset() {}
-uint32_t sh4_read_sr( void ) { return 0; }
-gboolean sh4_raise_reset( int exc ) { return TRUE; }
-gboolean sh4_raise_exception( int exc ) { return TRUE; }
-gboolean sh4_raise_tlb_exception( int exc ) { return TRUE; }
-gboolean sh4_raise_trap( int exc ) { return TRUE; }
-void sh4_sleep() { }
+gboolean FASTCALL sh4_raise_reset( int exc ) { return TRUE; }
+gboolean FASTCALL sh4_raise_exception( int exc ) { return TRUE; }
+gboolean FASTCALL sh4_raise_tlb_exception( int exc ) { return TRUE; }
+gboolean FASTCALL sh4_raise_trap( int exc ) { return TRUE; }
 uint32_t sh4_sleep_run_slice(uint32_t nanosecs) { return nanosecs; }
-void sh4_fsca( uint32_t angle, float *fr ) { }
-void sh4_ftrv( float *fv ) { }
-void signsat48(void) { }
 gboolean gui_error_dialog( const char *fmt, ... ) { return TRUE; }
 struct sh4_icache_struct sh4_icache;
 

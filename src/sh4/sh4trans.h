@@ -124,7 +124,7 @@ gboolean sh4_translate_flush_cache( void );
  * Either returns immediately (to skip the breakpoint), or aborts the current
  * cycle and never returns.
  */
-void sh4_translate_breakpoint_hit( sh4vma_t pc );
+void FASTCALL sh4_translate_breakpoint_hit( sh4vma_t pc );
 
 #ifdef __cplusplus
 }

@@ -170,14 +170,14 @@ uint32_t sh4_translate_run_slice(uint32_t);
 uint32_t sh4_emulate_run_slice(uint32_t);
 
 /* SH4 instruction support methods */
-void sh4_sleep( void );
-void sh4_fsca( uint32_t angle, float *fr );
-void sh4_ftrv( float *fv );
-uint32_t sh4_read_sr(void);
-void sh4_write_sr(uint32_t val);
-void sh4_write_fpscr(uint32_t val);
-void sh4_switch_fr_banks(void);
-void signsat48(void);
+void FASTCALL sh4_sleep( void );
+void FASTCALL sh4_fsca( uint32_t angle, float *fr );
+void FASTCALL sh4_ftrv( float *fv );
+uint32_t FASTCALL sh4_read_sr(void);
+void FASTCALL sh4_write_sr(uint32_t val);
+void FASTCALL sh4_write_fpscr(uint32_t val);
+void FASTCALL sh4_switch_fr_banks(void);
+void FASTCALL signsat48(void);
 gboolean sh4_has_page( sh4vma_t vma );
 
 /* SH4 Memory */
@@ -190,7 +190,7 @@ gboolean sh4_has_page( sh4vma_t vma );
  * invalidated, but the function will still return TRUE.
  * @return FALSE if an MMU exception was raised, otherwise TRUE.
  */
-gboolean mmu_update_icache( sh4vma_t addr );
+gboolean FASTCALL mmu_update_icache( sh4vma_t addr );
 
 /**
  * Resolve a virtual address through the TLB for a read operation, returning 
@@ -199,20 +199,20 @@ gboolean mmu_update_icache( sh4vma_t addr );
  * @return An external address (0x00000000-0x1FFFFFFF), a P4 address
  * (0xE0000000 - 0xFFFFFFFF), or MMU_VMA_ERROR.
  */
-sh4addr_t mmu_vma_to_phys_read( sh4vma_t addr );
-sh4addr_t mmu_vma_to_phys_write( sh4vma_t addr );
-sh4addr_t mmu_vma_to_phys_disasm( sh4vma_t addr );
+sh4addr_t FASTCALL mmu_vma_to_phys_read( sh4vma_t addr );
+sh4addr_t FASTCALL mmu_vma_to_phys_write( sh4vma_t addr );
+sh4addr_t FASTCALL mmu_vma_to_phys_disasm( sh4vma_t addr );
 
-int64_t sh4_read_quad( sh4addr_t addr );
-int32_t sh4_read_long( sh4addr_t addr );
-int32_t sh4_read_word( sh4addr_t addr );
-int32_t sh4_read_byte( sh4addr_t addr );
-void sh4_write_quad( sh4addr_t addr, uint64_t val );
-void sh4_write_long( sh4addr_t addr, uint32_t val );
-void sh4_write_word( sh4addr_t addr, uint32_t val );
-void sh4_write_byte( sh4addr_t addr, uint32_t val );
+int64_t FASTCALL sh4_read_quad( sh4addr_t addr );
+int32_t FASTCALL sh4_read_long( sh4addr_t addr );
+int32_t FASTCALL sh4_read_word( sh4addr_t addr );
+int32_t FASTCALL sh4_read_byte( sh4addr_t addr );
+void FASTCALL sh4_write_quad( sh4addr_t addr, uint64_t val );
+void FASTCALL sh4_write_long( sh4addr_t addr, uint32_t val );
+void FASTCALL sh4_write_word( sh4addr_t addr, uint32_t val );
+void FASTCALL sh4_write_byte( sh4addr_t addr, uint32_t val );
 int32_t sh4_read_phys_word( sh4addr_t addr );
-gboolean sh4_flush_store_queue( sh4addr_t addr );
+gboolean FASTCALL sh4_flush_store_queue( sh4addr_t addr );
 
 /* SH4 Exceptions */
 #define EXC_POWER_RESET     0x000 /* reset vector */
@@ -235,12 +235,12 @@ gboolean sh4_flush_store_queue( sh4addr_t addr );
 #define EXV_TLBMISS      0x400  /* TLB-miss exception vector */
 #define EXV_INTERRUPT    0x600  /* External interrupt vector */
 
-gboolean sh4_raise_exception( int );
-gboolean sh4_raise_reset( int );
-gboolean sh4_raise_trap( int );
-gboolean sh4_raise_slot_exception( int, int );
-gboolean sh4_raise_tlb_exception( int );
-void sh4_accept_interrupt( void );
+gboolean FASTCALL sh4_raise_exception( int );
+gboolean FASTCALL sh4_raise_reset( int );
+gboolean FASTCALL sh4_raise_trap( int );
+gboolean FASTCALL sh4_raise_slot_exception( int, int );
+gboolean FASTCALL sh4_raise_tlb_exception( int );
+void FASTCALL sh4_accept_interrupt( void );
 
 #define SIGNEXT4(n) ((((int32_t)(n))<<28)>>28)
 #define SIGNEXT8(n) ((int32_t)((int8_t)(n)))

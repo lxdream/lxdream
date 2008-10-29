@@ -664,7 +664,7 @@ static inline int mmu_itlb_lookup_vpn( uint32_t vpn )
     return result;
 }
 
-sh4addr_t mmu_vma_to_phys_read( sh4vma_t addr )
+sh4addr_t FASTCALL mmu_vma_to_phys_read( sh4vma_t addr )
 {
     uint32_t mmucr = MMIO_READ(MMU,MMUCR);
     if( addr & 0x80000000 ) {
@@ -722,7 +722,7 @@ sh4addr_t mmu_vma_to_phys_read( sh4vma_t addr )
     }
 }
 
-sh4addr_t mmu_vma_to_phys_write( sh4vma_t addr )
+sh4addr_t FASTCALL mmu_vma_to_phys_write( sh4vma_t addr )
 {
     uint32_t mmucr = MMIO_READ(MMU,MMUCR);
     if( addr & 0x80000000 ) {
@@ -788,7 +788,7 @@ sh4addr_t mmu_vma_to_phys_write( sh4vma_t addr )
 /**
  * Update the icache for an untranslated address
  */
-void mmu_update_icache_phys( sh4addr_t addr )
+static inline void mmu_update_icache_phys( sh4addr_t addr )
 {
     if( (addr & 0x1C000000) == 0x0C000000 ) {
         /* Main ram */
@@ -820,7 +820,7 @@ void mmu_update_icache_phys( sh4addr_t addr )
  * @return TRUE if the update completed (successfully or otherwise), FALSE
  * if an exception was raised.
  */
-gboolean mmu_update_icache( sh4vma_t addr )
+gboolean FASTCALL mmu_update_icache( sh4vma_t addr )
 {
     int entryNo;
     if( IS_SH4_PRIVMODE()  ) {
@@ -891,7 +891,7 @@ gboolean mmu_update_icache( sh4vma_t addr )
  * protection bits. Returns the translated address, or MMU_VMA_ERROR
  * on translation failure.
  */
-sh4addr_t mmu_vma_to_phys_disasm( sh4vma_t vma )
+sh4addr_t FASTCALL mmu_vma_to_phys_disasm( sh4vma_t vma )
 {
     if( vma & 0x80000000 ) {
         if( vma < 0xC0000000 ) {
@@ -920,7 +920,7 @@ sh4addr_t mmu_vma_to_phys_disasm( sh4vma_t vma )
     }
 }
 
-gboolean sh4_flush_store_queue( sh4addr_t addr )
+gboolean FASTCALL sh4_flush_store_queue( sh4addr_t addr )
 {
     uint32_t mmucr = MMIO_READ(MMU,MMUCR);
     int queue = (addr&0x20)>>2;

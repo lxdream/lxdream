@@ -21,6 +21,7 @@
 
 #include <stdio.h>
 #include <stdint.h>
+#include "lxdream.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -67,7 +68,7 @@ typedef enum {
 
     void sh4_stats_reset( void );
     void sh4_stats_print( FILE *out );
-    void sh4_stats_add( sh4_inst_id id );
+    void FASTCALL sh4_stats_add( sh4_inst_id id );
     void sh4_stats_add_by_pc( uint32_t pc );
 
 #ifdef __cplusplus

@@ -186,7 +186,7 @@ void sh4_stats_print( FILE *out )
     fprintf( out, "Total: %lld\n", sh4_stats_total );
 }
 
-void sh4_stats_add( sh4_inst_id item )
+void FASTCALL sh4_stats_add( sh4_inst_id item )
 {
     sh4_stats[item]++;
     sh4_stats_total++;
