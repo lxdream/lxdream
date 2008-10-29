@@ -56,7 +56,8 @@ struct sh4_x86_state {
     gboolean fpuen_checked; /* true if we've already checked fpu enabled. */
     gboolean branch_taken; /* true if we branched unconditionally */
     gboolean double_prec; /* true if FPU is in double-precision mode */
-    gboolean double_size; /* true if FPU is in double-size mode */ 
+    gboolean double_size; /* true if FPU is in double-size mode */
+    gboolean sse3_enabled; /* true if host supports SSE3 instructions */
     uint32_t block_start_pc;
     uint32_t stack_posn;   /* Trace stack height for alignment purposes */
     int tstate;
@@ -103,10 +104,25 @@ static uint32_t min_int = 0x80000000;
 static uint32_t save_fcw; /* save value for fpu control word */
 static uint32_t trunc_fcw = 0x0F7F; /* fcw value for truncation mode */
 
+gboolean is_sse3_supported()
+{
+    uint32_t features;
+    
+    // Note: Include the push/pop ebx sequence in case of PIC builds. This 
+    // isn't exactly on a critical path anyway
+    __asm__ __volatile__(
+        "pushl %%ebx\n\t"
+        "mov $0x01, %%eax\n\t"
+        "cpuid\n\t"
+        "popl %%ebx" : "=c" (features) : : "eax", "edx");
+    return (features & 1) ? TRUE : FALSE;
+}
+
 void sh4_translate_init(void)
 {
     sh4_x86.backpatch_list = malloc(DEFAULT_BACKPATCH_SIZE);
     sh4_x86.backpatch_size = DEFAULT_BACKPATCH_SIZE / sizeof(struct backpatch_record);
+    sh4_x86.sse3_enabled = is_sse3_supported();
 }
 
 
@@ -325,7 +341,7 @@ void sh4_translate_begin_block( sh4addr_t pc )
     sh4_x86.tlb_on = IS_MMU_ENABLED();
     sh4_x86.tstate = TSTATE_NONE;
     sh4_x86.double_prec = sh4r.fpscr & FPSCR_PR;
-    sh4_x86.double_size = sh4r.fpscr & FPSCR_SZ;    
+    sh4_x86.double_size = sh4r.fpscr & FPSCR_SZ;
 }
 
 
@@ -2222,30 +2238,62 @@ FIPR FVm, FVn {:
     COUNT_INST(I_FIPR);
     check_fpuen();
     if( sh4_x86.double_prec == 0 ) {
-        push_fr( FVm<<2 );
-        push_fr( FVn<<2 );
-        FMULP_st(1);
-        push_fr( (FVm<<2)+1);
-        push_fr( (FVn<<2)+1);
-        FMULP_st(1);
-        FADDP_st(1);
-        push_fr( (FVm<<2)+2);
-        push_fr( (FVn<<2)+2);
-        FMULP_st(1);
-        FADDP_st(1);
-        push_fr( (FVm<<2)+3);
-        push_fr( (FVn<<2)+3);
-        FMULP_st(1);
-        FADDP_st(1);
-        pop_fr( (FVn<<2)+3);
+/*        if( sh4_x86.sse3_enabled ) {
+            MOVAPS_sh4r_xmm( REG_OFFSET(fr[0][FVm<<2]), 4 );
+            MULPS_sh4r_xmm( REG_OFFSET(fr[0][FVn<<2]), 4 );
+            HADDPS_xmm_xmm( 4, 4 ); 
+            HADDPS_xmm_xmm( 4, 4 );
+            MOVSS_xmm_sh4r( 4, REG_OFFSET(fr[0][(FVn<<2)+2]) );
+        } else {
+*/            push_fr( FVm<<2 );
+            push_fr( FVn<<2 );
+            FMULP_st(1);
+            push_fr( (FVm<<2)+1);
+            push_fr( (FVn<<2)+1);
+            FMULP_st(1);
+            FADDP_st(1);
+            push_fr( (FVm<<2)+2);
+            push_fr( (FVn<<2)+2);
+            FMULP_st(1);
+            FADDP_st(1);
+            push_fr( (FVm<<2)+3);
+            push_fr( (FVn<<2)+3);
+            FMULP_st(1);
+            FADDP_st(1);
+            pop_fr( (FVn<<2)+3);
+//        }
     }
 :}
 FTRV XMTRX, FVn {:  
     COUNT_INST(I_FTRV);
     check_fpuen();
     if( sh4_x86.double_prec == 0 ) {
-        LEA_sh4r_rptr( REG_OFFSET(fr[0][FVn<<2]), R_EDX );
-        call_func1( sh4_ftrv, R_EDX );
+        if( sh4_x86.sse3_enabled ) {
+            MOVAPS_sh4r_xmm( REG_OFFSET(fr[1][0]), 1 ); // M1  M0  M3  M2
+            MOVAPS_sh4r_xmm( REG_OFFSET(fr[1][4]), 0 ); // M5  M4  M7  M6
+            MOVAPS_sh4r_xmm( REG_OFFSET(fr[1][8]), 3 ); // M9  M8  M11 M10
+            MOVAPS_sh4r_xmm( REG_OFFSET(fr[1][12]), 2 );// M13 M12 M15 M14
+
+            MOVSLDUP_sh4r_xmm( REG_OFFSET(fr[0][FVn<<2]), 4 ); // V1 V1 V3 V3
+            MOVSHDUP_sh4r_xmm( REG_OFFSET(fr[0][FVn<<2]), 5 ); // V0 V0 V2 V2
+            MOVAPS_xmm_xmm( 4, 6 );
+            MOVAPS_xmm_xmm( 5, 7 );
+            MOVLHPS_xmm_xmm( 4, 4 );  // V1 V1 V1 V1
+            MOVHLPS_xmm_xmm( 6, 6 );  // V3 V3 V3 V3
+            MOVLHPS_xmm_xmm( 5, 5 );  // V0 V0 V0 V0
+            MOVHLPS_xmm_xmm( 7, 7 );  // V2 V2 V2 V2
+            MULPS_xmm_xmm( 0, 4 );
+            MULPS_xmm_xmm( 1, 5 );
+            MULPS_xmm_xmm( 2, 6 );
+            MULPS_xmm_xmm( 3, 7 );
+            ADDPS_xmm_xmm( 5, 4 );
+            ADDPS_xmm_xmm( 7, 6 );
+            ADDPS_xmm_xmm( 6, 4 );
+            MOVAPS_xmm_sh4r( 4, REG_OFFSET(fr[0][FVn<<2]) );
+        } else {
+            LEA_sh4r_rptr( REG_OFFSET(fr[0][FVn<<2]), R_EAX );
+            call_func1( sh4_ftrv, R_EAX );
+        }
     }
     sh4_x86.tstate = TSTATE_NONE;
 :}
