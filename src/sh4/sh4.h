@@ -70,7 +70,7 @@ struct sh4_registers {
         float f;
     } fpul;
     uint32_t t, m, q, s; /* really boolean - 0 or 1 */
-    float fr[2][16];
+    float fr[2][16]; /* Must be aligned on 16-byte boundary */
     uint32_t fpscr;
     uint32_t pad; /* Pad up to 64-bit boundaries */
     uint64_t mac;

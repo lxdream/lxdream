@@ -2238,14 +2238,14 @@ FIPR FVm, FVn {:
     COUNT_INST(I_FIPR);
     check_fpuen();
     if( sh4_x86.double_prec == 0 ) {
-/*        if( sh4_x86.sse3_enabled ) {
+        if( sh4_x86.sse3_enabled ) {
             MOVAPS_sh4r_xmm( REG_OFFSET(fr[0][FVm<<2]), 4 );
             MULPS_sh4r_xmm( REG_OFFSET(fr[0][FVn<<2]), 4 );
             HADDPS_xmm_xmm( 4, 4 ); 
             HADDPS_xmm_xmm( 4, 4 );
             MOVSS_xmm_sh4r( 4, REG_OFFSET(fr[0][(FVn<<2)+2]) );
         } else {
-*/            push_fr( FVm<<2 );
+            push_fr( FVm<<2 );
             push_fr( FVn<<2 );
             FMULP_st(1);
             push_fr( (FVm<<2)+1);
@@ -2261,7 +2261,7 @@ FIPR FVm, FVn {:
             FMULP_st(1);
             FADDP_st(1);
             pop_fr( (FVn<<2)+3);
-//        }
+        }
     }
 :}
 FTRV XMTRX, FVn {:  
