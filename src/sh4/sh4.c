@@ -315,7 +315,7 @@ static void sh4_switch_banks( )
     memcpy( sh4r.r_bank, tmp, sizeof(uint32_t)*8 );
 }
 
-void sh4_switch_fr_banks()
+void FASTCALL sh4_switch_fr_banks()
 {
     int i;
     for( i=0; i<16; i++ ) {
@@ -325,7 +325,7 @@ void sh4_switch_fr_banks()
     }
 }
 
-void sh4_write_sr( uint32_t newval )
+void FASTCALL sh4_write_sr( uint32_t newval )
 {
     int oldbank = (sh4r.sr&SR_MDRB) == SR_MDRB;
     int newbank = (newval&SR_MDRB) == SR_MDRB;
@@ -339,7 +339,7 @@ void sh4_write_sr( uint32_t newval )
     intc_mask_changed();
 }
 
-void sh4_write_fpscr( uint32_t newval )
+void FASTCALL sh4_write_fpscr( uint32_t newval )
 {
     if( (sh4r.fpscr ^ newval) & FPSCR_FR ) {
         sh4_switch_fr_banks();
@@ -347,7 +347,7 @@ void sh4_write_fpscr( uint32_t newval )
     sh4r.fpscr = newval & FPSCR_MASK;
 }
 
-uint32_t sh4_read_sr( void )
+uint32_t FASTCALL sh4_read_sr( void )
 {
     /* synchronize sh4r.sr with the various bitflags */
     sh4r.sr &= SR_MQSTMASK;
@@ -383,7 +383,7 @@ uint32_t sh4_read_sr( void )
  * Raise a general CPU exception for the specified exception code.
  * (NOT for TRAPA or TLB exceptions)
  */
-gboolean sh4_raise_exception( int code )
+gboolean FASTCALL sh4_raise_exception( int code )
 {
     RAISE( code, EXV_EXCEPTION );
 }
@@ -391,7 +391,7 @@ gboolean sh4_raise_exception( int code )
 /**
  * Raise a CPU reset exception with the specified exception code.
  */
-gboolean sh4_raise_reset( int code )
+gboolean FASTCALL sh4_raise_reset( int code )
 {
     // FIXME: reset modules as per "manual reset"
     sh4_reset();
@@ -404,13 +404,13 @@ gboolean sh4_raise_reset( int code )
     return TRUE;
 }
 
-gboolean sh4_raise_trap( int trap )
+gboolean FASTCALL sh4_raise_trap( int trap )
 {
     MMIO_WRITE( MMU, TRA, trap<<2 );
     RAISE( EXC_TRAP, EXV_EXCEPTION );
 }
 
-gboolean sh4_raise_slot_exception( int normal_code, int slot_code ) {
+gboolean FASTCALL sh4_raise_slot_exception( int normal_code, int slot_code ) {
     if( sh4r.in_delay_slot ) {
         return sh4_raise_exception(slot_code);
     } else {
@@ -418,12 +418,12 @@ gboolean sh4_raise_slot_exception( int normal_code, int slot_code ) {
     }
 }
 
-gboolean sh4_raise_tlb_exception( int code )
+gboolean FASTCALL sh4_raise_tlb_exception( int code )
 {
     RAISE( code, EXV_TLBMISS );
 }
 
-void sh4_accept_interrupt( void )
+void FASTCALL sh4_accept_interrupt( void )
 {
     uint32_t code = intc_accept_interrupt();
     sh4r.ssr = sh4_read_sr();
@@ -436,7 +436,7 @@ void sh4_accept_interrupt( void )
     //    WARN( "Accepting interrupt %03X, from %08X => %08X", code, sh4r.spc, sh4r.pc );
 }
 
-void signsat48( void )
+void FASTCALL signsat48( void )
 {
     if( ((int64_t)sh4r.mac) < (int64_t)0xFFFF800000000000LL )
         sh4r.mac = 0xFFFF800000000000LL;
@@ -444,7 +444,7 @@ void signsat48( void )
         sh4r.mac = 0x00007FFFFFFFFFFFLL;
 }
 
-void sh4_fsca( uint32_t anglei, float *fr )
+void FASTCALL sh4_fsca( uint32_t anglei, float *fr )
 {
     float angle = (((float)(anglei&0xFFFF))/65536.0) * 2 * M_PI;
     *fr++ = cosf(angle);
@@ -456,7 +456,7 @@ void sh4_fsca( uint32_t anglei, float *fr )
  * Sets sh4_state appropriately and ensures any stopping peripheral modules
  * are up to date.
  */
-void sh4_sleep(void)
+void FASTCALL sh4_sleep(void)
 {
     if( MMIO_READ( CPG, STBCR ) & 0x80 ) {
         sh4r.sh4_state = SH4_STATE_STANDBY;
@@ -523,7 +523,7 @@ uint32_t sh4_sleep_run_slice( uint32_t nanosecs )
  * Compute the matrix tranform of fv given the matrix xf.
  * Both fv and xf are word-swapped as per the sh4r.fr banks
  */
-void sh4_ftrv( float *target )
+void FASTCALL sh4_ftrv( float *target )
 {
     float fv[4] = { target[1], target[0], target[3], target[2] };
     target[1] = sh4r.fr[1][1] * fv[0] + sh4r.fr[1][5]*fv[1] +

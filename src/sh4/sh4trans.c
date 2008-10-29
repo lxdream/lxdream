@@ -170,7 +170,7 @@ void sh4_translate_exit_recover( )
     }
 }
 
-void sh4_translate_breakpoint_hit(uint32_t pc)
+void FASTCALL sh4_translate_breakpoint_hit(uint32_t pc)
 {
     if( sh4_starting && sh4r.slice_cycle == 0 && pc == sh4r.pc ) {
         return;
@@ -207,7 +207,7 @@ gboolean sh4_translate_flush_cache()
     }
 }
 
-void *xlat_get_code_by_vma( sh4vma_t vma )
+void * FASTCALL xlat_get_code_by_vma( sh4vma_t vma )
 {
     void *result = NULL;
 

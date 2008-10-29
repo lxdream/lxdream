@@ -26,14 +26,68 @@
  * Note: clobbers EAX to make the indirect call - this isn't usually
  * a problem since the callee will usually clobber it anyway.
  */
-#define CALL_FUNC0_SIZE 7
 static inline void call_func0( void *ptr )
 {
     load_imm32(R_EAX, (uint32_t)ptr);
     CALL_r32(R_EAX);
 }
 
-#define CALL_FUNC1_SIZE 11
+#ifdef HAVE_FASTCALL
+static inline void call_func1( void *ptr, int arg1 )
+{
+    if( arg1 != R_EAX ) {
+        MOV_r32_r32( arg1, R_EAX );
+    }
+    load_imm32(R_ECX, (uint32_t)ptr);
+    CALL_r32(R_ECX);
+}
+
+static inline void call_func2( void *ptr, int arg1, int arg2 )
+{
+    if( arg2 != R_EDX ) {
+        MOV_r32_r32( arg2, R_EDX );
+    }
+    if( arg1 != R_EAX ) {
+        MOV_r32_r32( arg1, R_EAX );
+    }
+    load_imm32(R_ECX, (uint32_t)ptr);
+    CALL_r32(R_ECX);
+}
+
+/**
+ * Write a double (64-bit) value into memory, with the first word in arg2a, and
+ * the second in arg2b
+ */
+static inline void MEM_WRITE_DOUBLE( int addr, int arg2a, int arg2b )
+{
+    PUSH_r32(arg2b);
+    PUSH_r32(addr);
+    call_func2(sh4_write_long, addr, arg2a);
+    POP_r32(R_EAX);
+    POP_r32(R_EDX);
+    ADD_imm8s_r32(4, R_EAX);
+    call_func0(sh4_write_long);
+}
+
+/**
+ * Read a double (64-bit) value from memory, writing the first word into arg2a
+ * and the second into arg2b. The addr must not be in EAX
+ */
+static inline void MEM_READ_DOUBLE( int addr, int arg2a, int arg2b )
+{
+    PUSH_r32(addr);
+    call_func1(sh4_read_long, addr);
+    POP_r32(R_ECX);
+    PUSH_r32(R_EAX);
+    MOV_r32_r32(R_ECX, R_EAX);
+    ADD_imm8s_r32(4, R_EAX);
+    call_func0(sh4_read_long);
+    if( arg2b != R_EAX ) {
+        MOV_r32_r32(R_EAX, arg2b);
+    }
+    POP_r32(arg2a);
+}
+#else
 static inline void call_func1( void *ptr, int arg1 )
 {
     PUSH_r32(arg1);
@@ -41,7 +95,6 @@ static inline void call_func1( void *ptr, int arg1 )
     ADD_imm8s_r32( 4, R_ESP );
 }
 
-#define CALL_FUNC2_SIZE 12
 static inline void call_func2( void *ptr, int arg1, int arg2 )
 {
     PUSH_r32(arg2);
@@ -53,9 +106,7 @@ static inline void call_func2( void *ptr, int arg1, int arg2 )
 /**
  * Write a double (64-bit) value into memory, with the first word in arg2a, and
  * the second in arg2b
- * NB: 30 bytes
  */
-#define MEM_WRITE_DOUBLE_SIZE 30
 static inline void MEM_WRITE_DOUBLE( int addr, int arg2a, int arg2b )
 {
     ADD_imm8s_r32( 4, addr );
@@ -73,9 +124,7 @@ static inline void MEM_WRITE_DOUBLE( int addr, int arg2a, int arg2b )
 /**
  * Read a double (64-bit) value from memory, writing the first word into arg2a
  * and the second into arg2b. The addr must not be in EAX
- * NB: 27 bytes
  */
-#define MEM_READ_DOUBLE_SIZE 27
 static inline void MEM_READ_DOUBLE( int addr, int arg2a, int arg2b )
 {
     PUSH_r32(addr);
@@ -89,6 +138,7 @@ static inline void MEM_READ_DOUBLE( int addr, int arg2a, int arg2b )
     MOV_r32_r32( R_EAX, arg2b );
     POP_r32(arg2a);
 }
+#endif
 
 /**
  * Emit the 'start of block' assembly. Sets up the stack frame and save

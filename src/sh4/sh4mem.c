@@ -68,7 +68,7 @@
 extern struct mem_region mem_rgn[];
 extern struct mmio_region *P4_io[];
 
-int32_t sh4_read_p4( sh4addr_t addr )
+int32_t FASTCALL sh4_read_p4( sh4addr_t addr )
 {
     struct mmio_region *io = P4_io[(addr&0x1FFFFFFF)>>19];
     if( !io ) {
@@ -96,7 +96,7 @@ int32_t sh4_read_p4( sh4addr_t addr )
     }    
 }
 
-void sh4_write_p4( sh4addr_t addr, int32_t val )
+void FASTCALL sh4_write_p4( sh4addr_t addr, int32_t val )
 {
     struct mmio_region *io = P4_io[(addr&0x1FFFFFFF)>>19];
     if( !io ) {
@@ -153,13 +153,13 @@ int32_t sh4_read_phys_word( sh4addr_t addr )
 /**
  * Convenience function to read a quad-word (implemented as two long reads).
  */
-int64_t sh4_read_quad( sh4addr_t addr )
+int64_t FASTCALL sh4_read_quad( sh4addr_t addr )
 {
     return ((int64_t)((uint32_t)sh4_read_long(addr))) |
     (((int64_t)((uint32_t)sh4_read_long(addr+4))) << 32);
 }
 
-int32_t sh4_read_long( sh4addr_t addr )
+int32_t FASTCALL sh4_read_long( sh4addr_t addr )
 {
     sh4ptr_t page;
 
@@ -191,7 +191,7 @@ int32_t sh4_read_long( sh4addr_t addr )
     }
 }
 
-int32_t sh4_read_word( sh4addr_t addr )
+int32_t FASTCALL sh4_read_word( sh4addr_t addr )
 {
     sh4ptr_t page;
 
@@ -223,7 +223,7 @@ int32_t sh4_read_word( sh4addr_t addr )
     }
 }
 
-int32_t sh4_read_byte( sh4addr_t addr )
+int32_t FASTCALL sh4_read_byte( sh4addr_t addr )
 {
     sh4ptr_t page;
 
@@ -259,13 +259,13 @@ int32_t sh4_read_byte( sh4addr_t addr )
 /**
  * Convenience function to write a quad-word (implemented as two long writes).
  */
-void sh4_write_quad( sh4addr_t addr, uint64_t val )
+void FASTCALL sh4_write_quad( sh4addr_t addr, uint64_t val )
 {
     sh4_write_long( addr, (uint32_t)val );
     sh4_write_long( addr+4, (uint32_t)(val>>32) );
 }
 
-void sh4_write_long( sh4addr_t addr, uint32_t val )
+void FASTCALL sh4_write_long( sh4addr_t addr, uint32_t val )
 {
     sh4ptr_t page;
 
@@ -311,7 +311,7 @@ void sh4_write_long( sh4addr_t addr, uint32_t val )
     }
 }
 
-void sh4_write_word( sh4addr_t addr, uint32_t val )
+void FASTCALL sh4_write_word( sh4addr_t addr, uint32_t val )
 {
     sh4ptr_t page;
 
@@ -351,7 +351,7 @@ void sh4_write_word( sh4addr_t addr, uint32_t val )
     }
 }
 
-void sh4_write_byte( sh4addr_t addr, uint32_t val )
+void FASTCALL sh4_write_byte( sh4addr_t addr, uint32_t val )
 {
     sh4ptr_t page;
 
