@@ -312,6 +312,24 @@ extern "C" {
 /* Pseudo-op Load carry from T: CMP [EBP+t], #01 ; CMC */
 #define LDC_t()     OP(0x83); MODRM_r32_sh4r(7,R_T); OP(0x01); CMC()
 
+/* SSE instructions */
+#define ADDPS_xmm_xmm(xmm1,xmm2) OP(0x0F); OP(0x58); MODRM_rm32_r32(xmm1,xmm2) 
+#define HADDPS_xmm_xmm(xmm1,xmm2) OP(0xF2); OP(0x0F); OP(0x7C); MODRM_rm32_r32(xmm1,xmm2)
+#define MOVHLPS_xmm_xmm(xmm1,xmm2) OP(0x0F); OP(0x12); MODRM_rm32_r32(xmm1,xmm2)
+#define MOVLHPS_xmm_xmm(xmm1,xmm2) OP(0x0F); OP(0x16); MODRM_rm32_r32(xmm1,xmm2)
+#define MOVSHDUP_sh4r_xmm(disp,xmm) OP(0xF3); OP(0x0F); OP(0x16); MODRM_r32_sh4r(xmm,disp)
+#define MOVSLDUP_sh4r_xmm(disp,xmm) OP(0xF3); OP(0x0F); OP(0x12); MODRM_r32_sh4r(xmm,disp)
+#define MOVAPS_sh4r_xmm(disp, xmm) OP(0x0F); OP(0x28); MODRM_r32_sh4r(xmm,disp)
+#define MOVAPS_xmm_sh4r(xmm,disp) OP(0x0F); OP(0x29); MODRM_r32_sh4r(xmm,disp)
+#define MOVAPS_xmm_xmm(xmm1,xmm2) OP(0x0F); OP(0x28); MODRM_rm32_r32(xmm1,xmm2)
+#define MOVSS_xmm_sh4r(xmm,disp) OP(0xF3); OP(0x0F); OP(0x11); MODRM_r32_sh4r(xmm,disp)
+#define MULPS_sh4r_xmm(disp, xmm) OP(0x0F); OP(0x59); MODRM_r32_sh4r(xmm,disp)
+#define MULPS_xmm_xmm(xmm1,xmm2) OP(0x0F); OP(0x59); MODRM_rm32_r32(xmm1,xmm2)
+#define SHUFPS_sh4r_xmm(disp,xmm,imm8) OP(0x0F); OP(0xC6); MODRM_r32_sh4r(xmm, disp); OP(imm8) 
+#define SHUFPS_xmm_xmm(xmm1,xmm2,imm8) OP(0x0F); OP(0xC6); MODRM_rm32_r32(xmm1,xmm2); OP(imm8)
+#define UNPCKHPS_xmm_xmm(xmm1,xmm2) OP(0x0F); OP(0x15); MODRM_rm32_r32(xmm1,xmm2)
+#define UNPCKLPS_xmm_xmm(xmm1,xmm2) OP(0x0F); OP(0x14); MODRM_rm32_r32(xmm1,xmm2)
+
 #ifdef __cplusplus
 }
 #endif

@@ -49,7 +49,7 @@ struct dreamcast_module sh4_module = { "SH4", sh4_init, sh4_reset,
         sh4_start, sh4_run_slice, sh4_stop,
         sh4_save_state, sh4_load_state };
 
-struct sh4_registers sh4r;
+struct sh4_registers sh4r __attribute__((aligned(16)));
 struct breakpoint_struct sh4_breakpoints[MAX_BREAKPOINTS];
 int sh4_breakpoint_count = 0;
 sh4ptr_t sh4_main_ram;

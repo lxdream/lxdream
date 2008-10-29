@@ -64,14 +64,15 @@ extern "C" {
  */
 struct sh4_registers {
     uint32_t r[16];
-    uint32_t sr, pr, pc, fpscr;
-    uint32_t t, m, q, s; /* really boolean - 0 or 1 */
+    uint32_t sr, pr, pc;
     union {
         int32_t i;
         float f;
     } fpul;
-    uint32_t pad; /* Pad up to 64-bit boundaries */
+    uint32_t t, m, q, s; /* really boolean - 0 or 1 */
     float fr[2][16];
+    uint32_t fpscr;
+    uint32_t pad; /* Pad up to 64-bit boundaries */
     uint64_t mac;
     uint32_t gbr, ssr, spc, sgr, dbr, vbr;
 
