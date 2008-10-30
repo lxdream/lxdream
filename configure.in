@@ -91,7 +91,7 @@ AM_CONDITIONAL(GUI_COCOA, [test "$HAVE_COCOA" = 'yes' -a "$with_gtk" = "no"])
 if test "x$HAVE_COCOA" = 'xyes' -a "x$with_gtk" = "xno"; then
   AC_DEFINE(OSX_BUNDLE, [1], [Generating a bundled application])
 fi
-if test "x$enable_optimized" = "xyes" -a "x$APPLE_BUILD" != "xyes"; then
+if test "x$enable_optimized" = "xyes"; then
    CFLAGS="$CFLAGS -fexceptions -fomit-frame-pointer"
    AC_DEFINE(HAVE_EXCEPTIONS, [1], [Have exception stack-frame information])
 fi

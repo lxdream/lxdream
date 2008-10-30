@@ -142,9 +142,11 @@ void ** FASTCALL xlat_get_lut_entry( sh4addr_t address );
  * Retrieve the current host address of the running translated code block.
  * @return the host PC, or null if there is no currently executing translated
  * block (or the stack is corrupted)
- * Note: this method is implemented in host-specific asm.
+ * Note: the implementation of this method is host (and calling-convention) specific.
+ * @param block_start start of the block the PC should be in
+ * @param block_size size of the code block in bytes.
  */
-void *xlat_get_native_pc();
+void *xlat_get_native_pc( void *block_start, uint32_t block_size );
 
 /**
  * Retrieve the size of the block starting at the specified pointer. If the

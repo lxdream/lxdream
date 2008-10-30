@@ -6865,7 +6865,7 @@ cat >>confdefs.h <<\_ACEOF
 _ACEOF
 
 fi
-if test "x$enable_optimized" = "xyes" -a "x$APPLE_BUILD" != "xyes"; then
+if test "x$enable_optimized" = "xyes"; then
    CFLAGS="$CFLAGS -fexceptions -fomit-frame-pointer"
 
 cat >>confdefs.h <<\_ACEOF

@@ -333,7 +333,7 @@ _Unwind_Reason_Code xlat_check_frame( struct _Unwind_Context *context, void *arg
     return _URC_NO_REASON;
 }
 
-void *xlat_get_native_pc()
+void *xlat_get_native_pc( void *code, uint32_t code_size )
 {
     struct _Unwind_Exception exc;
     struct UnwindInfo info;
@@ -346,7 +346,7 @@ void *xlat_get_native_pc()
     return NULL;
 }
 #else 
-void *xlat_get_native_pc()
+void *xlat_get_native_pc( void *code, uint32_t code_size )
 {
     void *result = NULL;
     asm(
