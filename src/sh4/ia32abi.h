@@ -28,8 +28,8 @@
  */
 static inline void call_func0( void *ptr )
 {
-    load_imm32(R_EAX, (uint32_t)ptr);
-    CALL_r32(R_EAX);
+    load_imm32(R_ECX, (uint32_t)ptr);
+    CALL_r32(R_ECX);
 }
 
 #ifdef HAVE_FASTCALL
@@ -257,8 +257,8 @@ void sh4_translate_end_block( sh4addr_t pc ) {
         MUL_r32( R_EDX );
         ADD_r32_sh4r( R_EAX, REG_OFFSET(slice_cycle) );
 
-        call_func0( sh4_raise_exception );
-        ADD_imm8s_r32( 4, R_ESP );
+        POP_r32( R_EAX );
+        call_func1( sh4_raise_exception, R_EAX );
         load_spreg( R_EAX, R_PC );
         if( sh4_x86.tlb_on ) {
             call_func1(xlat_get_code_by_vma,R_EAX);
