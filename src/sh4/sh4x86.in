@@ -109,13 +109,9 @@ gboolean is_sse3_supported()
 {
     uint32_t features;
     
-    // Note: Include the push/pop ebx sequence in case of PIC builds. This 
-    // isn't exactly on a critical path anyway
     __asm__ __volatile__(
-        "pushl %%ebx\n\t"
         "mov $0x01, %%eax\n\t"
-        "cpuid\n\t"
-        "popl %%ebx" : "=c" (features) : : "eax", "edx");
+        "cpuid\n\t" : "=c" (features) : : "eax", "edx", "ebx");
     return (features & 1) ? TRUE : FALSE;
 }
 
