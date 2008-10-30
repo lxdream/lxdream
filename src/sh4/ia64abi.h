@@ -97,7 +97,7 @@ void enter_block( )
     /* mov &sh4r, ebp */
     load_ptr( R_EBP, ((uint8_t *)&sh4r) + 128 );
 }
-XS
+
 /**
  * Exit the block with sh4r.pc already written
  */
@@ -260,7 +260,7 @@ _Unwind_Reason_Code xlat_check_frame( struct _Unwind_Context *context, void *arg
     return _URC_NO_REASON;
 }
 
-void *xlat_get_native_pc()
+void *xlat_get_native_pc( void *code, uint32_t size )
 {
     struct _Unwind_Exception exc;
 
