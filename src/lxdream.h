@@ -91,11 +91,6 @@ void log_message( void *, int level, const char *source, const char *msg, ... );
 const char *get_sysconf_path();
 const char *get_locale_path();
 
-/* Use fast (regparam) calling conventions for core code - for now just turn it
- * on always, but define the macro in case we need to remove it for some platforms
- */
-#define HAVE_FASTCALL 1
-
 #ifdef HAVE_FASTCALL
 #define FASTCALL __attribute__((regparm(3)))
 #else

@@ -805,6 +805,7 @@ enable_dependency_tracking
 enable_strict_warn
 enable_translator
 enable_optimized
+enable_profiled
 enable_trace
 enable_watch
 enable_sh4stats
@@ -1473,6 +1474,7 @@ Optional Features:
   --disable-translator    Disable the SH4 translator (Enabled by default)
   --disable-optimized     Disable compile-time optimizations (Enabled by
                           default)
+  --enable-profiled       Enable profiling build (implies disable-optimized)
   --enable-trace          Enable generation of IO traces (warning: hurts
                           performance)
   --enable-watch          Enable watchpoints in the debugger (warning: hurts
@@ -6575,6 +6577,13 @@ else
   enable_optimized=yes
 fi
 
+# Check whether --enable-profiled was given.
+if test "${enable_profiled+set}" = set; then
+  enableval=$enable_profiled; if test "$enableval" == "yes"; then
+      enable_profiled=yes;
+    fi
+fi
+
 # Check whether --enable-trace was given.
 if test "${enable_trace+set}" = set; then
   enableval=$enable_trace; if test "$enableval" == "yes"; then
@@ -6638,11 +6647,25 @@ fi
 
 
 
-if test "x$enable_optimized" = "xyes"; then
-   CFLAGS="-g -O2"
+if test "x$enable_profiled" = "xyes"; then
+   CFLAGS="-g -pg -fprofile-arcs"
+   LDFLAGS="$LDFLAGS -pg";
+elif test "x$enable_optimized" = "xyes"; then
+   CFLAGS="-g -O2 -fexceptions -fomit-frame-pointer"
+
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_EXCEPTIONS 1
+_ACEOF
+
+
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_FASTCALL 1
+_ACEOF
+
 else
    CFLAGS="-g3"
 fi
+
 if test "x$GCC" = "xyes"; then
    CFLAGS="$CFLAGS -fno-strict-aliasing"
 fi
@@ -6862,14 +6885,6 @@ if test "x$HAVE_COCOA" = 'xyes' -a "x$with_gtk" = "xno"; then
 
 cat >>confdefs.h <<\_ACEOF
 #define OSX_BUNDLE 1
-_ACEOF
-
-fi
-if test "x$enable_optimized" = "xyes"; then
-   CFLAGS="$CFLAGS -fexceptions -fomit-frame-pointer"
-
-cat >>confdefs.h <<\_ACEOF
-#define HAVE_EXCEPTIONS 1
 _ACEOF
 
 fi
