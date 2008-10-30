@@ -158,14 +158,17 @@ void sh4_translate_run_recovery( xlat_recovery_record_t recovery )
 
 void sh4_translate_exit_recover( )
 {
-    void *pc = xlat_get_native_pc();
-    if( pc != NULL ) {
-        // could be null if we're not actually running inside the translator
-        void *code = xlat_get_code( sh4r.pc );
-        xlat_recovery_record_t recover = xlat_get_post_recovery(code, pc, TRUE);
-        if( recover != NULL ) {
-            // Can be null if there is no recovery necessary
-            sh4_translate_run_recovery(recover);
+    void *code = xlat_get_code_by_vma( sh4r.pc );
+    if( code != NULL ) {
+        uint32_t size = xlat_get_code_size( code );
+        void *pc = xlat_get_native_pc( code, size );
+        if( pc != NULL ) {
+            // could be null if we're not actually running inside the translator
+            xlat_recovery_record_t recover = xlat_get_post_recovery(code, pc, TRUE);
+            if( recover != NULL ) {
+                // Can be null if there is no recovery necessary
+                sh4_translate_run_recovery(recover);
+            }
         }
     }
 }
@@ -191,19 +194,22 @@ void FASTCALL sh4_translate_breakpoint_hit(uint32_t pc)
  */
 gboolean sh4_translate_flush_cache()
 {
-    void *pc = xlat_get_native_pc();
-    assert( pc != NULL );
+    void *code = xlat_get_code_by_vma( sh4r.pc );
+    if( code != NULL ) {
+        uint32_t size = xlat_get_code_size( code );
+        void *pc = xlat_get_native_pc( code, size );
+        assert( pc != NULL );
 
-    void *code = xlat_get_code( sh4r.pc );
-    xlat_recovery_record_t recover = xlat_get_post_recovery(code, pc, FALSE);
-    if( recover != NULL ) {
-        // Can be null if there is no recovery necessary
-        sh4_translate_run_recovery(recover);
-        xlat_flush_cache();
-        return TRUE;
-    } else {
-        xlat_flush_cache();
-        return FALSE;
+        xlat_recovery_record_t recover = xlat_get_post_recovery(code, pc, FALSE);
+        if( recover != NULL ) {
+            // Can be null if there is no recovery necessary
+            sh4_translate_run_recovery(recover);
+            xlat_flush_cache();
+            return TRUE;
+        } else {
+            xlat_flush_cache();
+            return FALSE;
+        }
     }
 }
 
