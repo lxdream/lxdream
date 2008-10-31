@@ -1474,7 +1474,7 @@ Optional Features:
   --disable-translator    Disable the SH4 translator (Enabled by default)
   --disable-optimized     Disable compile-time optimizations (Enabled by
                           default)
-  --enable-profiled       Enable profiling build (implies disable-optimized)
+  --enable-profiled       Enable profiling build
   --enable-trace          Enable generation of IO traces (warning: hurts
                           performance)
   --enable-watch          Enable watchpoints in the debugger (warning: hurts
@@ -6647,16 +6647,16 @@ fi
 
 
 
-if test "x$enable_profiled" = "xyes"; then
-   CFLAGS="-g -pg -fprofile-arcs"
-   LDFLAGS="$LDFLAGS -pg";
-elif test "x$enable_optimized" = "xyes"; then
-   CFLAGS="-g -O2 -fexceptions -fomit-frame-pointer"
+if test "x$enable_optimized" = "xyes"; then
+   CFLAGS="-g -O2 -msse2 -mfpmath=sse"
+   if test "x$enable_profiled" != "xyes"; then
+              CFLAGS="$CFLAGS -fexceptions -fomit-frame-pointer"
 
 cat >>confdefs.h <<\_ACEOF
 #define HAVE_EXCEPTIONS 1
 _ACEOF
 
+   fi
 
 cat >>confdefs.h <<\_ACEOF
 #define HAVE_FASTCALL 1
@@ -6664,6 +6664,11 @@ _ACEOF
 
 else
    CFLAGS="-g3"
+fi
+
+if test "x$enable_profiled" = "xyes"; then
+   CFLAGS="$CFLAGS -pg"
+   LDFLAGS="$LDFLAGS -pg";
 fi
 
 if test "x$GCC" = "xyes"; then
