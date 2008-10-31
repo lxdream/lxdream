@@ -400,7 +400,7 @@ void FASTCALL sh4_write_byte( sh4addr_t addr, uint32_t val )
 /* FIXME: Handle all the many special cases when the range doesn't fall cleanly
  * into the same memory block
  */
-void mem_copy_from_sh4( sh4ptr_t dest, sh4addr_t srcaddr, size_t count ) {
+void FASTCALL mem_copy_from_sh4( sh4ptr_t dest, sh4addr_t srcaddr, size_t count ) {
     if( srcaddr >= 0x04000000 && srcaddr < 0x05000000 ) {
         pvr2_vram64_read( dest, srcaddr, count );
     } else {
@@ -413,7 +413,7 @@ void mem_copy_from_sh4( sh4ptr_t dest, sh4addr_t srcaddr, size_t count ) {
     }
 }
 
-void mem_copy_to_sh4( sh4addr_t destaddr, sh4ptr_t src, size_t count ) {
+void FASTCALL mem_copy_to_sh4( sh4addr_t destaddr, sh4ptr_t src, size_t count ) {
     if( destaddr >= 0x10000000 && destaddr < 0x14000000 ) {
         pvr2_dma_write( destaddr, src, count );
         return;
