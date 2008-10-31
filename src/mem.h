@@ -66,8 +66,8 @@ int mem_save_block( const gchar *filename, uint32_t base, uint32_t size );
 void mem_set_trace( const gchar *tracelist, int flag );
 void mem_init( void );
 void mem_reset( void );
-void mem_copy_from_sh4( sh4ptr_t dest, sh4addr_t src, size_t count );
-void mem_copy_to_sh4( sh4addr_t dest, sh4ptr_t src, size_t count );
+void FASTCALL mem_copy_from_sh4( sh4ptr_t dest, sh4addr_t src, size_t count );
+void FASTCALL mem_copy_to_sh4( sh4addr_t dest, sh4ptr_t src, size_t count );
 
 /**
  * Write a long value directly to SH4-addressable memory.

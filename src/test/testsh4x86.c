@@ -94,7 +94,7 @@ void FASTCALL sh4_fsca( uint32_t angle, float *fr ) { }
 void FASTCALL sh4_ftrv( float *fv ) { }
 void FASTCALL signsat48(void) { }
 void sh4_switch_fr_banks() { }
-void mem_copy_to_sh4( sh4addr_t addr, sh4ptr_t src, size_t size ) { }
+void FASTCALL mem_copy_to_sh4( sh4addr_t addr, sh4ptr_t src, size_t size ) { }
 gboolean sh4_has_page( sh4vma_t vma ) { return TRUE; }
 void syscall_invoke( uint32_t val ) { }
 void dreamcast_stop() {} 

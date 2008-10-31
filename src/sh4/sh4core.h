@@ -212,7 +212,8 @@ void FASTCALL sh4_write_long( sh4addr_t addr, uint32_t val );
 void FASTCALL sh4_write_word( sh4addr_t addr, uint32_t val );
 void FASTCALL sh4_write_byte( sh4addr_t addr, uint32_t val );
 int32_t sh4_read_phys_word( sh4addr_t addr );
-gboolean FASTCALL sh4_flush_store_queue( sh4addr_t addr );
+void FASTCALL sh4_flush_store_queue( sh4addr_t addr );
+gboolean FASTCALL sh4_flush_store_queue_mmu( sh4addr_t addr );
 
 /* SH4 Exceptions */
 #define EXC_POWER_RESET     0x000 /* reset vector */

@@ -920,48 +920,54 @@ sh4addr_t FASTCALL mmu_vma_to_phys_disasm( sh4vma_t vma )
     }
 }
 
-gboolean FASTCALL sh4_flush_store_queue( sh4addr_t addr )
+void FASTCALL sh4_flush_store_queue( sh4addr_t addr )
+{
+    int queue = (addr&0x20)>>2;
+    uint32_t hi = MMIO_READ( MMU, QACR0 + (queue>>1)) << 24;
+    sh4ptr_t src = (sh4ptr_t)&sh4r.store_queue[queue];
+    sh4addr_t target = (addr&0x03FFFFE0) | hi;
+    mem_copy_to_sh4( target, src, 32 );
+} 
+
+gboolean FASTCALL sh4_flush_store_queue_mmu( sh4addr_t addr )
 {
     uint32_t mmucr = MMIO_READ(MMU,MMUCR);
     int queue = (addr&0x20)>>2;
     sh4ptr_t src = (sh4ptr_t)&sh4r.store_queue[queue];
     sh4addr_t target;
     /* Store queue operation */
-    if( mmucr & MMUCR_AT ) {
-        int entryNo;
-        if( ((mmucr & MMUCR_SV) == 0) || !IS_SH4_PRIVMODE() ) {
-            entryNo = mmu_utlb_lookup_vpn_asid( addr );
-        } else {
-            entryNo = mmu_utlb_lookup_vpn( addr );
-        }
-        switch(entryNo) {
-        case -1:
-        MMU_TLB_WRITE_MISS_ERROR(addr);
-        return FALSE;
-        case -2:
-        MMU_TLB_MULTI_HIT_ERROR(addr);
-        return FALSE;
-        default:
-            if( IS_SH4_PRIVMODE() ? ((mmu_utlb[entryNo].flags & TLB_WRITABLE) == 0)
-                    : ((mmu_utlb[entryNo].flags & TLB_USERWRITABLE) != TLB_USERWRITABLE) ) {
-                /* protection violation */
-                MMU_TLB_WRITE_PROT_ERROR(addr);
-                return FALSE;
-            }
 
-            if( (mmu_utlb[entryNo].flags & TLB_DIRTY) == 0 ) {
-                MMU_TLB_INITIAL_WRITE_ERROR(addr);
-                return FALSE;
-            }
-
-            /* finally generate the target address */
-            target = ((mmu_utlb[entryNo].ppn & mmu_utlb[entryNo].mask) |
-                    (addr & (~mmu_utlb[entryNo].mask))) & 0xFFFFFFE0;
-        }
+    int entryNo;
+    if( ((mmucr & MMUCR_SV) == 0) || !IS_SH4_PRIVMODE() ) {
+    	entryNo = mmu_utlb_lookup_vpn_asid( addr );
     } else {
-        uint32_t hi = (MMIO_READ( MMU, (queue == 0 ? QACR0 : QACR1) ) & 0x1C) << 24;
-        target = (addr&0x03FFFFE0) | hi;
+    	entryNo = mmu_utlb_lookup_vpn( addr );
     }
+    switch(entryNo) {
+    case -1:
+    MMU_TLB_WRITE_MISS_ERROR(addr);
+    return FALSE;
+    case -2:
+    MMU_TLB_MULTI_HIT_ERROR(addr);
+    return FALSE;
+    default:
+    	if( IS_SH4_PRIVMODE() ? ((mmu_utlb[entryNo].flags & TLB_WRITABLE) == 0)
+    			: ((mmu_utlb[entryNo].flags & TLB_USERWRITABLE) != TLB_USERWRITABLE) ) {
+    		/* protection violation */
+    		MMU_TLB_WRITE_PROT_ERROR(addr);
+    		return FALSE;
+    	}
+
+    	if( (mmu_utlb[entryNo].flags & TLB_DIRTY) == 0 ) {
+    		MMU_TLB_INITIAL_WRITE_ERROR(addr);
+    		return FALSE;
+    	}
+
+    	/* finally generate the target address */
+    	target = ((mmu_utlb[entryNo].ppn & mmu_utlb[entryNo].mask) |
+    			(addr & (~mmu_utlb[entryNo].mask))) & 0xFFFFFFE0;
+    }
+
     mem_copy_to_sh4( target, src, 32 );
     return TRUE;
 }
