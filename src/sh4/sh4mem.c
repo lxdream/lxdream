@@ -272,7 +272,11 @@ void FASTCALL sh4_write_long( sh4addr_t addr, uint32_t val )
     CHECK_WRITE_WATCH(addr,4,val);
 
     if( addr >= 0xE0000000 ) {
-        sh4_write_p4( addr, val );
+    	if( addr < 0xE4000000 ) { // Shortcut for the extremely common case
+            SH4_WRITE_STORE_QUEUE( addr, val );
+    	} else {
+            sh4_write_p4( addr, val );
+    	}
         return;
     } else if( (addr&0x1C000000) == 0x0C000000 ) {
         *(uint32_t *)(sh4_main_ram + (addr&0x00FFFFFF)) = val;
