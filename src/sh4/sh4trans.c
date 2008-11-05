@@ -78,6 +78,7 @@ void sh4_translate_add_recovery( uint32_t icount )
  * Translate a linear basic block, ie all instructions from the start address
  * (inclusive) until the next branch/jump instruction or the end of the page
  * is reached.
+ * @param start VMA of the block start (which must already be in the icache)
  * @return the address of the translated block
  * eg due to lack of buffer space.
  */
@@ -86,7 +87,7 @@ void * sh4_translate_basic_block( sh4addr_t start )
     sh4addr_t pc = start;
     sh4addr_t lastpc = (pc&0xFFFFF000)+0x1000;
     int done, i;
-    xlat_current_block = xlat_start_block( start );
+    xlat_current_block = xlat_start_block( GET_ICACHE_PHYS(start) );
     xlat_output = (uint8_t *)xlat_current_block->code;
     xlat_recovery_posn = 0;
     uint8_t *eob = xlat_output + xlat_current_block->size;
