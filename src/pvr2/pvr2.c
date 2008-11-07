@@ -414,9 +414,9 @@ void pvr2_display_frame( void )
         int vid_ppl = ((dispsize & DISPSIZE_PPL)) + 1;
 
         fbuf.colour_format = output_colour_formats[(dispmode & DISPMODE_COLFMT) >> 2];
-        fbuf.width = vid_ppl << 2 / colour_formats[fbuf.colour_format].bpp;
+        fbuf.width = (vid_ppl << 2) / colour_formats[fbuf.colour_format].bpp;
         fbuf.height = ((dispsize & DISPSIZE_LPF) >> 10) + 1;
-        fbuf.size = vid_ppl << 2 * fbuf.height;
+        fbuf.size = (vid_ppl << 2) * fbuf.height;
         fbuf.rowstride = (vid_ppl + vid_stride) << 2;
 
         /* Determine the field to display, and deinterlace if possible */
