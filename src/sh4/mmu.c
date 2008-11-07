@@ -18,6 +18,7 @@
 #define MODULE sh4_module
 
 #include <stdio.h>
+#include <assert.h>
 #include "sh4/sh4mmio.h"
 #include "sh4/sh4core.h"
 #include "sh4/sh4trans.h"
@@ -101,6 +102,13 @@ struct utlb_entry {
     uint32_t pcmcia; // extra pcmcia data - not used
 };
 
+struct utlb_sort_entry {
+    sh4addr_t key; // Masked VPN + ASID
+    uint32_t mask; // Mask + 0x00FF
+    int entryNo;
+};
+    
+
 static struct itlb_entry mmu_itlb[ITLB_ENTRY_COUNT];
 static struct utlb_entry mmu_utlb[UTLB_ENTRY_COUNT];
 static uint32_t mmu_urc;
@@ -108,9 +116,14 @@ static uint32_t mmu_urb;
 static uint32_t mmu_lrui;
 static uint32_t mmu_asid; // current asid
 
+static struct utlb_sort_entry mmu_utlb_sorted[UTLB_ENTRY_COUNT];
+static uint32_t mmu_utlb_entries; // Number of entries in mmu_utlb_sorted. 
+
 static sh4ptr_t cache = NULL;
 
 static void mmu_invalidate_tlb();
+static void mmu_utlb_sorted_reset();
+static void mmu_utlb_sorted_reload(); 
 
 
 static uint32_t get_mask_for_flags( uint32_t flags )
@@ -169,7 +182,7 @@ void mmio_region_MMU_write( uint32_t reg, uint32_t val )
         mmu_lrui = (val >> 26) & 0x3F;
         val &= 0x00000301;
         tmp = MMIO_READ( MMU, MMUCR );
-        if( (val ^ tmp) & MMUCR_AT ) {
+        if( (val ^ tmp) & (MMUCR_AT|MMUCR_SV) ) {
             // AT flag has changed state - flush the xlt cache as all bets
             // are off now. We also need to force an immediate exit from the
             // current block
@@ -215,6 +228,7 @@ void MMU_reset()
 {
     mmio_region_MMU_write( CCR, 0 );
     mmio_region_MMU_write( MMUCR, 0 );
+    mmu_utlb_sorted_reload();
 }
 
 void MMU_save_state( FILE *f )
@@ -255,6 +269,7 @@ int MMU_load_state( FILE *f )
     if( fread( &mmu_asid, sizeof(mmu_asid), 1, f ) != 1 ) {
         return 1;
     }
+    mmu_utlb_sorted_reload();
     return 0;
 }
 
@@ -277,6 +292,120 @@ void mmu_set_cache_mode( int mode )
     }
 }
 
+/******************* Sorted TLB data structure ****************/
+/*
+ * mmu_utlb_sorted maintains a list of all active (valid) entries,
+ * sorted by masked VPN and then ASID. Multi-hit entries are resolved 
+ * ahead of time, and have -1 recorded as the corresponding PPN.
+ * 
+ * FIXME: Multi-hit detection doesn't pick up cases where two pages 
+ * overlap due to different sizes (and don't share the same base
+ * address). 
+ */ 
+static void mmu_utlb_sorted_reset() 
+{
+    mmu_utlb_entries = 0;
+}
+
+/**
+ * Find an entry in the sorted table (VPN+ASID check). 
+ */
+static inline int mmu_utlb_sorted_find( sh4addr_t vma )
+{
+    int low = 0;
+    int high = mmu_utlb_entries;
+    uint32_t lookup = (vma & 0xFFFFFC00) + mmu_asid;
+
+    mmu_urc++;
+    if( mmu_urc == mmu_urb || mmu_urc == 0x40 ) {
+        mmu_urc = 0;
+    }
+
+    while( low != high ) {
+        int posn = (high+low)>>1;
+        int masked = lookup & mmu_utlb_sorted[posn].mask;
+        if( mmu_utlb_sorted[posn].key < masked ) {
+            low = posn+1;
+        } else if( mmu_utlb_sorted[posn].key > masked ) {
+            high = posn;
+        } else {
+            return mmu_utlb_sorted[posn].entryNo;
+        }
+    }
+    return -1;
+
+}
+
+static void mmu_utlb_insert_entry( int entry )
+{
+    int low = 0;
+    int high = mmu_utlb_entries;
+    uint32_t key = (mmu_utlb[entry].vpn & mmu_utlb[entry].mask) + mmu_utlb[entry].asid;
+
+    assert( mmu_utlb_entries < UTLB_ENTRY_COUNT );
+    /* Find the insertion point */
+    while( low != high ) {
+        int posn = (high+low)>>1;
+        if( mmu_utlb_sorted[posn].key < key ) {
+            low = posn+1;
+        } else if( mmu_utlb_sorted[posn].key > key ) {
+            high = posn;
+        } else {
+            /* Exact match - multi-hit */
+            mmu_utlb_sorted[posn].entryNo = -2;
+            return;
+        }
+    } /* 0 2 4 6 */
+    memmove( &mmu_utlb_sorted[low+1], &mmu_utlb_sorted[low], 
+             (mmu_utlb_entries - low) * sizeof(struct utlb_sort_entry) );
+    mmu_utlb_sorted[low].key = key;
+    mmu_utlb_sorted[low].mask = mmu_utlb[entry].mask | 0x000000FF;
+    mmu_utlb_sorted[low].entryNo = entry;
+    mmu_utlb_entries++;
+}
+
+static void mmu_utlb_remove_entry( int entry )
+{
+    int low = 0;
+    int high = mmu_utlb_entries;
+    uint32_t key = (mmu_utlb[entry].vpn & mmu_utlb[entry].mask) + mmu_utlb[entry].asid;
+    while( low != high ) {
+        int posn = (high+low)>>1;
+        if( mmu_utlb_sorted[posn].key < key ) {
+            low = posn+1;
+        } else if( mmu_utlb_sorted[posn].key > key ) {
+            high = posn;
+        } else {
+            if( mmu_utlb_sorted[posn].entryNo == -2 ) {
+                /* Multiple-entry recorded - rebuild the whole table minus entry */
+                int i;
+                mmu_utlb_entries = 0;
+                for( i=0; i< UTLB_ENTRY_COUNT; i++ ) {
+                    if( i != entry && (mmu_utlb[i].flags & TLB_VALID)  ) {
+                        mmu_utlb_insert_entry(i);
+                    }
+                }
+            } else {
+                mmu_utlb_entries--;
+                memmove( &mmu_utlb_sorted[posn], &mmu_utlb_sorted[posn+1],
+                         (mmu_utlb_entries - posn)*sizeof(struct utlb_sort_entry) );
+            }
+            return;
+        }
+    }
+    assert( 0 && "UTLB key not found!" );
+}
+
+static void mmu_utlb_sorted_reload()
+{
+    int i;
+    mmu_utlb_entries = 0;
+    for( i=0; i<UTLB_ENTRY_COUNT; i++ ) {
+        if( mmu_utlb[i].flags & TLB_VALID ) 
+            mmu_utlb_insert_entry( i );
+    }
+}
+
 /* TLB maintanence */
 
 /**
@@ -285,12 +414,18 @@ void mmu_set_cache_mode( int mode )
  */
 void MMU_ldtlb()
 {
+    if( mmu_utlb[mmu_urc].flags & TLB_VALID )
+        mmu_utlb_remove_entry( mmu_urc );
     mmu_utlb[mmu_urc].vpn = MMIO_READ(MMU, PTEH) & 0xFFFFFC00;
     mmu_utlb[mmu_urc].asid = MMIO_READ(MMU, PTEH) & 0x000000FF;
     mmu_utlb[mmu_urc].ppn = MMIO_READ(MMU, PTEL) & 0x1FFFFC00;
     mmu_utlb[mmu_urc].flags = MMIO_READ(MMU, PTEL) & 0x00001FF;
     mmu_utlb[mmu_urc].pcmcia = MMIO_READ(MMU, PTEA);
     mmu_utlb[mmu_urc].mask = get_mask_for_flags(mmu_utlb[mmu_urc].flags);
+    if( mmu_utlb[mmu_urc].ppn >= 0x1C000000 )
+        mmu_utlb[mmu_urc].ppn |= 0xE0000000;
+    if( mmu_utlb[mmu_urc].flags & TLB_VALID )
+        mmu_utlb_insert_entry( mmu_urc );
 }
 
 static void mmu_invalidate_tlb()
@@ -302,6 +437,7 @@ static void mmu_invalidate_tlb()
     for( i=0; i<UTLB_ENTRY_COUNT; i++ ) {
         mmu_utlb[i].flags &= (~TLB_VALID);
     }
+    mmu_utlb_entries = 0;
 }
 
 #define ITLB_ENTRY(addr) ((addr>>7)&0x03)
@@ -314,7 +450,7 @@ int32_t mmu_itlb_addr_read( sh4addr_t addr )
 int32_t mmu_itlb_data_read( sh4addr_t addr )
 {
     struct itlb_entry *ent = &mmu_itlb[ITLB_ENTRY(addr)];
-    return ent->ppn | ent->flags;
+    return (ent->ppn & 0x1FFFFC00) | ent->flags;
 }
 
 void mmu_itlb_addr_write( sh4addr_t addr, uint32_t val )
@@ -331,6 +467,8 @@ void mmu_itlb_data_write( sh4addr_t addr, uint32_t val )
     ent->ppn = val & 0x1FFFFC00;
     ent->flags = val & 0x00001DA;
     ent->mask = get_mask_for_flags(val);
+    if( ent->ppn >= 0x1C000000 )
+        ent->ppn |= 0xE0000000;
 }
 
 #define UTLB_ENTRY(addr) ((addr>>8)&0x3F)
@@ -349,7 +487,7 @@ int32_t mmu_utlb_data_read( sh4addr_t addr )
     if( UTLB_DATA2(addr) ) {
         return ent->pcmcia;
     } else {
-        return ent->ppn | ent->flags;
+        return (ent->ppn&0x1FFFFC00) | ent->flags;
     }
 }
 
@@ -402,9 +540,15 @@ void mmu_utlb_addr_write( sh4addr_t addr, uint32_t val )
         int utlb = mmu_utlb_lookup_assoc( val, mmu_asid );
         if( utlb >= 0 ) {
             struct utlb_entry *ent = &mmu_utlb[utlb];
+            uint32_t old_flags = ent->flags;
             ent->flags = ent->flags & ~(TLB_DIRTY|TLB_VALID);
             ent->flags |= (val & TLB_VALID);
             ent->flags |= ((val & 0x200)>>7);
+            if( (old_flags & TLB_VALID) && !(ent->flags&TLB_VALID) ) {
+                mmu_utlb_remove_entry( utlb );
+            } else if( !(old_flags & TLB_VALID) && (ent->flags&TLB_VALID) ) {
+                mmu_utlb_insert_entry( utlb );
+            }
         }
 
         int itlb = mmu_itlb_lookup_assoc( val, mmu_asid );
@@ -419,11 +563,15 @@ void mmu_utlb_addr_write( sh4addr_t addr, uint32_t val )
         }
     } else {
         struct utlb_entry *ent = &mmu_utlb[UTLB_ENTRY(addr)];
+        if( ent->flags & TLB_VALID ) 
+            mmu_utlb_remove_entry( UTLB_ENTRY(addr) );
         ent->vpn = (val & 0xFFFFFC00);
         ent->asid = (val & 0xFF);
         ent->flags = (ent->flags & ~(TLB_DIRTY|TLB_VALID));
         ent->flags |= (val & TLB_VALID);
         ent->flags |= ((val & 0x200)>>7);
+        if( ent->flags & TLB_VALID ) 
+            mmu_utlb_insert_entry( UTLB_ENTRY(addr) );
     }
 }
 
@@ -433,9 +581,15 @@ void mmu_utlb_data_write( sh4addr_t addr, uint32_t val )
     if( UTLB_DATA2(addr) ) {
         ent->pcmcia = val & 0x0000000F;
     } else {
+        if( ent->flags & TLB_VALID ) 
+            mmu_utlb_remove_entry( UTLB_ENTRY(addr) );
         ent->ppn = (val & 0x1FFFFC00);
         ent->flags = (val & 0x000001FF);
         ent->mask = get_mask_for_flags(val);
+        if( mmu_utlb[mmu_urc].ppn >= 0x1C000000 )
+            mmu_utlb[mmu_urc].ppn |= 0xE0000000;
+        if( ent->flags & TLB_VALID ) 
+            mmu_utlb_insert_entry( UTLB_ENTRY(addr) );
     }
 }
 
@@ -603,7 +757,7 @@ static inline int mmu_itlb_lookup_vpn_asid( uint32_t vpn )
     }
 
     if( result == -1 ) {
-        int utlbEntry = mmu_utlb_lookup_vpn_asid( vpn );
+        int utlbEntry = mmu_utlb_sorted_find( vpn );
         if( utlbEntry < 0 ) {
             return utlbEntry;
         } else {
@@ -663,7 +817,7 @@ static inline int mmu_itlb_lookup_vpn( uint32_t vpn )
 
     return result;
 }
-
+ 
 sh4addr_t FASTCALL mmu_vma_to_phys_read( sh4vma_t addr )
 {
     uint32_t mmucr = MMIO_READ(MMU,MMUCR);
@@ -693,7 +847,7 @@ sh4addr_t FASTCALL mmu_vma_to_phys_read( sh4vma_t addr )
     /* If we get this far, translation is required */
     int entryNo;
     if( ((mmucr & MMUCR_SV) == 0) || !IS_SH4_PRIVMODE() ) {
-        entryNo = mmu_utlb_lookup_vpn_asid( addr );
+        entryNo = mmu_utlb_sorted_find( addr );
     } else {
         entryNo = mmu_utlb_lookup_vpn( addr );
     }
@@ -714,11 +868,8 @@ sh4addr_t FASTCALL mmu_vma_to_phys_read( sh4vma_t addr )
         }
 
         /* finally generate the target address */
-        sh4addr_t pma = (mmu_utlb[entryNo].ppn & mmu_utlb[entryNo].mask) |
+        return (mmu_utlb[entryNo].ppn & mmu_utlb[entryNo].mask) |
         	(addr & (~mmu_utlb[entryNo].mask));
-        if( pma > 0x1C000000 ) // Remap 1Cxx .. 1Fxx region to P4
-        	pma |= 0xE0000000;
-        return pma;
     }
 }
 
@@ -751,7 +902,7 @@ sh4addr_t FASTCALL mmu_vma_to_phys_write( sh4vma_t addr )
     /* If we get this far, translation is required */
     int entryNo;
     if( ((mmucr & MMUCR_SV) == 0) || !IS_SH4_PRIVMODE() ) {
-        entryNo = mmu_utlb_lookup_vpn_asid( addr );
+        entryNo = mmu_utlb_sorted_find( addr );
     } else {
         entryNo = mmu_utlb_lookup_vpn( addr );
     }
@@ -779,8 +930,6 @@ sh4addr_t FASTCALL mmu_vma_to_phys_write( sh4vma_t addr )
         /* finally generate the target address */
         sh4addr_t pma = (mmu_utlb[entryNo].ppn & mmu_utlb[entryNo].mask) |
         	(addr & (~mmu_utlb[entryNo].mask));
-        if( pma > 0x1C000000 ) // Remap 1Cxx .. 1Fxx region to P4
-        	pma |= 0xE0000000;
         return pma;
     }
 }
