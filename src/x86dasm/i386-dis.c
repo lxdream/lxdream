@@ -3106,10 +3106,13 @@ print_operand_value (char *buf, int hex, bfd_vma disp)
     }
   else
     {
+      x86_print_symbolic_operand( buf, hex, disp );
+      /*
       if (hex)
 	sprintf (buf, "0x%x", (unsigned int) disp);
       else
 	sprintf (buf, "%d", (int) disp);
+      */
     }
 }
 
