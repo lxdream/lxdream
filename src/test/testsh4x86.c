@@ -50,12 +50,27 @@ FILE *in;
 char *inbuf;
 
 struct x86_symbol local_symbols[] = {
-    { "_sh4_read_byte", sh4_read_byte },
-    { "_sh4_read_word", sh4_read_word },
-    { "_sh4_read_long", sh4_read_long },
-    { "_sh4_write_byte", sh4_write_byte },
-    { "_sh4_write_word", sh4_write_word },
-    { "_sh4_write_long", sh4_write_long }
+    { "sh4r+128", ((char *)&sh4r)+128 },
+    { "sh4_cpu_period", &sh4_cpu_period },
+    { "mmu_vma_to_phys_read", mmu_vma_to_phys_read },
+    { "mmu_vma_to_phys_write", mmu_vma_to_phys_write },
+    { "sh4_write_fpscr", sh4_write_fpscr },
+    { "sh4_write_sr", sh4_write_sr },
+    { "sh4_read_sr", sh4_read_sr },
+    { "sh4_sleep", sh4_sleep },
+    { "sh4_fsca", sh4_fsca },
+    { "sh4_ftrv", sh4_ftrv },
+    { "sh4_switch_fr_banks", sh4_switch_fr_banks },
+    { "sh4_execute_instruction", sh4_execute_instruction },
+    { "signsat48", signsat48 },
+    { "sh4_read_byte", sh4_read_byte },
+    { "sh4_read_word", sh4_read_word },
+    { "sh4_read_long", sh4_read_long },
+    { "sh4_write_byte", sh4_write_byte },
+    { "sh4_write_word", sh4_write_word },
+    { "sh4_write_long", sh4_write_long },
+    { "xlat_get_code_by_vma", xlat_get_code_by_vma },
+    { "xlat_get_code", xlat_get_code }
 };
 
 int32_t FASTCALL sh4_read_byte( uint32_t addr ) 
@@ -157,6 +172,9 @@ int main( int argc, char *argv[] )
 	exit(1);
     }
 
+    mmio_region_MMU.mem = malloc(4096);
+    memset( mmio_region_MMU.mem, 0, 4096 );
+
     in = fopen( input_file, "ro" );
     if( in == NULL ) {
 	perror( "Unable to open input file" );
@@ -165,18 +183,22 @@ int main( int argc, char *argv[] )
     fstat( fileno(in), &st );
     inbuf = malloc( st.st_size );
     fread( inbuf, st.st_size, 1, in );
+    sh4_icache.mask = 0xFFFFF000;
+    sh4_icache.page_vma = start_addr & 0xFFFFF000;
+    sh4_icache.page = (unsigned char *)(inbuf - (sh4_icache.page_vma&0xFFF));
+    sh4_icache.page_ppa = start_addr & 0xFFFFF000;
 
     xlat_cache_init();
     uint32_t pc;
     uint8_t *buf = sh4_translate_basic_block( start_addr );
-    uint32_t buflen = xlat_get_block_size(buf);
+    uint32_t buflen = xlat_get_code_size(buf);
     x86_disasm_init( buf, 0x8c010000, buflen );
-    x86_set_symtab( local_symbols, 6 );
+    x86_set_symtab( local_symbols, sizeof(local_symbols)/sizeof(struct x86_symbol) );
     for( pc = 0x8c010000; pc < 0x8c010000 + buflen;  ) {
 	char buf[256];
 	char op[256];
 	uint32_t pc2 = x86_disasm_instruction( pc, buf, sizeof(buf), op );
-	fprintf( stdout, "%08X: %-20s %s\n", pc, op, buf );
+	fprintf( stdout, "%s\n", buf );
 	pc = pc2;
     }
     return 0;
