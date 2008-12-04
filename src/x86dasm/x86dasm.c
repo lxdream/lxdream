@@ -104,6 +104,18 @@ static void x86_print_address( bfd_vma memaddr, struct disassemble_info *info )
     }
 }
 
+void x86_print_symbolic_operand( char *buf, int hex, unsigned int disp )
+{
+    const char *sym = x86_find_symbol(disp, NULL);
+    if( sym != NULL ) {
+        snprintf( buf, 50, "<%s>", sym );
+    } else if( hex ) {
+        sprintf( buf, "0x%x", disp );
+    } else {
+        sprintf( buf, "%d", (int)disp );
+    }
+}
+
 uint32_t x86_disasm_instruction( uintptr_t pc, char *buf, int len, char *opcode )
 {
     int count, i;
