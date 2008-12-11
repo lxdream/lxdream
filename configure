@@ -6657,11 +6657,6 @@ cat >>confdefs.h <<\_ACEOF
 _ACEOF
 
    fi
-
-cat >>confdefs.h <<\_ACEOF
-#define HAVE_FASTCALL 1
-_ACEOF
-
 else
    CFLAGS="-g3"
 fi
@@ -6674,6 +6669,81 @@ fi
 if test "x$GCC" = "xyes"; then
    CFLAGS="$CFLAGS -fno-strict-aliasing"
 fi
+
+
+{ $as_echo "$as_me:$LINENO: checking support for fastcall calling conventions" >&5
+$as_echo_n "checking support for fastcall calling conventions... " >&6; };
+if test "$cross_compiling" = yes; then
+  { { $as_echo "$as_me:$LINENO: error: cannot run test program while cross compiling
+See \`config.log' for more details." >&5
+$as_echo "$as_me: error: cannot run test program while cross compiling
+See \`config.log' for more details." >&2;}
+   { (exit 1); exit 1; }; }
+else
+  cat >conftest.$ac_ext <<_ACEOF
+
+  /* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+int __attribute__((regparm(3))) foo(int a, int b) { return a+b; }
+
+int main(int argc, char *argv[])
+{
+   return foo( 1, 2 ) == 3 ? 0 : 1;
+}
+_ACEOF
+rm -f conftest$ac_exeext
+if { (ac_try="$ac_link"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval ac_try_echo="\"\$as_me:$LINENO: $ac_try_echo\""
+$as_echo "$ac_try_echo") >&5
+  (eval "$ac_link") 2>&5
+  ac_status=$?
+  $as_echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && { ac_try='./conftest$ac_exeext'
+  { (case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval ac_try_echo="\"\$as_me:$LINENO: $ac_try_echo\""
+$as_echo "$ac_try_echo") >&5
+  (eval "$ac_try") 2>&5
+  ac_status=$?
+  $as_echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+
+   { $as_echo "$as_me:$LINENO: result: yes" >&5
+$as_echo "yes" >&6; }
+
+
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_FASTCALL 1
+_ACEOF
+
+
+else
+  $as_echo "$as_me: program exited with status $ac_status" >&5
+$as_echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+( exit $ac_status )
+
+   { $as_echo "$as_me:$LINENO: result: no" >&5
+$as_echo "no" >&6; }
+
+fi
+rm -rf conftest.dSYM
+rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext conftest.$ac_objext conftest.$ac_ext
+fi
+
+
+
 
 
 
@@ -7019,11 +7089,10 @@ pkg_failed=no
 { $as_echo "$as_me:$LINENO: checking for LIBPNG" >&5
 $as_echo_n "checking for LIBPNG... " >&6; }
 
-if test -n "$PKG_CONFIG"; then
-    if test -n "$LIBPNG_CFLAGS"; then
-        pkg_cv_LIBPNG_CFLAGS="$LIBPNG_CFLAGS"
-    else
-        if test -n "$PKG_CONFIG" && \
+if test -n "$LIBPNG_CFLAGS"; then
+    pkg_cv_LIBPNG_CFLAGS="$LIBPNG_CFLAGS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
     { ($as_echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"libpng \"") >&5
   ($PKG_CONFIG --exists --print-errors "libpng ") 2>&5
   ac_status=$?
@@ -7033,15 +7102,13 @@ if test -n "$PKG_CONFIG"; then
 else
   pkg_failed=yes
 fi
-    fi
-else
-	pkg_failed=untried
+ else
+    pkg_failed=untried
 fi
-if test -n "$PKG_CONFIG"; then
-    if test -n "$LIBPNG_LIBS"; then
-        pkg_cv_LIBPNG_LIBS="$LIBPNG_LIBS"
-    else
-        if test -n "$PKG_CONFIG" && \
+if test -n "$LIBPNG_LIBS"; then
+    pkg_cv_LIBPNG_LIBS="$LIBPNG_LIBS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
     { ($as_echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"libpng \"") >&5
   ($PKG_CONFIG --exists --print-errors "libpng ") 2>&5
   ac_status=$?
@@ -7051,9 +7118,8 @@ if test -n "$PKG_CONFIG"; then
 else
   pkg_failed=yes
 fi
-    fi
-else
-	pkg_failed=untried
+ else
+    pkg_failed=untried
 fi
 
 
@@ -7066,9 +7132,9 @@ else
         _pkg_short_errors_supported=no
 fi
         if test $_pkg_short_errors_supported = yes; then
-	        LIBPNG_PKG_ERRORS=`$PKG_CONFIG --short-errors --errors-to-stdout --print-errors "libpng "`
+	        LIBPNG_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors "libpng " 2>&1`
         else
-	        LIBPNG_PKG_ERRORS=`$PKG_CONFIG --errors-to-stdout --print-errors "libpng "`
+	        LIBPNG_PKG_ERRORS=`$PKG_CONFIG --print-errors "libpng " 2>&1`
         fi
 	# Put the nasty error message in config.log where it belongs
 	echo "$LIBPNG_PKG_ERRORS" >&5
@@ -7212,11 +7278,10 @@ pkg_failed=no
 { $as_echo "$as_me:$LINENO: checking for GLIB" >&5
 $as_echo_n "checking for GLIB... " >&6; }
 
-if test -n "$PKG_CONFIG"; then
-    if test -n "$GLIB_CFLAGS"; then
-        pkg_cv_GLIB_CFLAGS="$GLIB_CFLAGS"
-    else
-        if test -n "$PKG_CONFIG" && \
+if test -n "$GLIB_CFLAGS"; then
+    pkg_cv_GLIB_CFLAGS="$GLIB_CFLAGS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
     { ($as_echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"glib-2.0\"") >&5
   ($PKG_CONFIG --exists --print-errors "glib-2.0") 2>&5
   ac_status=$?
@@ -7226,15 +7291,13 @@ if test -n "$PKG_CONFIG"; then
 else
   pkg_failed=yes
 fi
-    fi
-else
-	pkg_failed=untried
+ else
+    pkg_failed=untried
 fi
-if test -n "$PKG_CONFIG"; then
-    if test -n "$GLIB_LIBS"; then
-        pkg_cv_GLIB_LIBS="$GLIB_LIBS"
-    else
-        if test -n "$PKG_CONFIG" && \
+if test -n "$GLIB_LIBS"; then
+    pkg_cv_GLIB_LIBS="$GLIB_LIBS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
     { ($as_echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"glib-2.0\"") >&5
   ($PKG_CONFIG --exists --print-errors "glib-2.0") 2>&5
   ac_status=$?
@@ -7244,9 +7307,8 @@ if test -n "$PKG_CONFIG"; then
 else
   pkg_failed=yes
 fi
-    fi
-else
-	pkg_failed=untried
+ else
+    pkg_failed=untried
 fi
 
 
@@ -7259,9 +7321,9 @@ else
         _pkg_short_errors_supported=no
 fi
         if test $_pkg_short_errors_supported = yes; then
-	        GLIB_PKG_ERRORS=`$PKG_CONFIG --short-errors --errors-to-stdout --print-errors "glib-2.0"`
+	        GLIB_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors "glib-2.0" 2>&1`
         else
-	        GLIB_PKG_ERRORS=`$PKG_CONFIG --errors-to-stdout --print-errors "glib-2.0"`
+	        GLIB_PKG_ERRORS=`$PKG_CONFIG --print-errors "glib-2.0" 2>&1`
         fi
 	# Put the nasty error message in config.log where it belongs
 	echo "$GLIB_PKG_ERRORS" >&5
@@ -7324,11 +7386,10 @@ pkg_failed=no
 { $as_echo "$as_me:$LINENO: checking for GTK" >&5
 $as_echo_n "checking for GTK... " >&6; }
 
-if test -n "$PKG_CONFIG"; then
-    if test -n "$GTK_CFLAGS"; then
-        pkg_cv_GTK_CFLAGS="$GTK_CFLAGS"
-    else
-        if test -n "$PKG_CONFIG" && \
+if test -n "$GTK_CFLAGS"; then
+    pkg_cv_GTK_CFLAGS="$GTK_CFLAGS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
     { ($as_echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"gtk+-2.0\"") >&5
   ($PKG_CONFIG --exists --print-errors "gtk+-2.0") 2>&5
   ac_status=$?
@@ -7338,15 +7399,13 @@ if test -n "$PKG_CONFIG"; then
 else
   pkg_failed=yes
 fi
-    fi
-else
-	pkg_failed=untried
+ else
+    pkg_failed=untried
 fi
-if test -n "$PKG_CONFIG"; then
-    if test -n "$GTK_LIBS"; then
-        pkg_cv_GTK_LIBS="$GTK_LIBS"
-    else
-        if test -n "$PKG_CONFIG" && \
+if test -n "$GTK_LIBS"; then
+    pkg_cv_GTK_LIBS="$GTK_LIBS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
     { ($as_echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"gtk+-2.0\"") >&5
   ($PKG_CONFIG --exists --print-errors "gtk+-2.0") 2>&5
   ac_status=$?
@@ -7356,9 +7415,8 @@ if test -n "$PKG_CONFIG"; then
 else
   pkg_failed=yes
 fi
-    fi
-else
-	pkg_failed=untried
+ else
+    pkg_failed=untried
 fi
 
 
@@ -7371,9 +7429,9 @@ else
         _pkg_short_errors_supported=no
 fi
         if test $_pkg_short_errors_supported = yes; then
-	        GTK_PKG_ERRORS=`$PKG_CONFIG --short-errors --errors-to-stdout --print-errors "gtk+-2.0"`
+	        GTK_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors "gtk+-2.0" 2>&1`
         else
-	        GTK_PKG_ERRORS=`$PKG_CONFIG --errors-to-stdout --print-errors "gtk+-2.0"`
+	        GTK_PKG_ERRORS=`$PKG_CONFIG --print-errors "gtk+-2.0" 2>&1`
         fi
 	# Put the nasty error message in config.log where it belongs
 	echo "$GTK_PKG_ERRORS" >&5
@@ -8890,11 +8948,10 @@ pkg_failed=no
 { $as_echo "$as_me:$LINENO: checking for PULSE" >&5
 $as_echo_n "checking for PULSE... " >&6; }
 
-if test -n "$PKG_CONFIG"; then
-    if test -n "$PULSE_CFLAGS"; then
-        pkg_cv_PULSE_CFLAGS="$PULSE_CFLAGS"
-    else
-        if test -n "$PKG_CONFIG" && \
+if test -n "$PULSE_CFLAGS"; then
+    pkg_cv_PULSE_CFLAGS="$PULSE_CFLAGS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
     { ($as_echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"libpulse-simple\"") >&5
   ($PKG_CONFIG --exists --print-errors "libpulse-simple") 2>&5
   ac_status=$?
@@ -8904,15 +8961,13 @@ if test -n "$PKG_CONFIG"; then
 else
   pkg_failed=yes
 fi
-    fi
-else
-	pkg_failed=untried
+ else
+    pkg_failed=untried
 fi
-if test -n "$PKG_CONFIG"; then
-    if test -n "$PULSE_LIBS"; then
-        pkg_cv_PULSE_LIBS="$PULSE_LIBS"
-    else
-        if test -n "$PKG_CONFIG" && \
+if test -n "$PULSE_LIBS"; then
+    pkg_cv_PULSE_LIBS="$PULSE_LIBS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
     { ($as_echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"libpulse-simple\"") >&5
   ($PKG_CONFIG --exists --print-errors "libpulse-simple") 2>&5
   ac_status=$?
@@ -8922,9 +8977,8 @@ if test -n "$PKG_CONFIG"; then
 else
   pkg_failed=yes
 fi
-    fi
-else
-	pkg_failed=untried
+ else
+    pkg_failed=untried
 fi
 
 
@@ -8937,9 +8991,9 @@ else
         _pkg_short_errors_supported=no
 fi
         if test $_pkg_short_errors_supported = yes; then
-	        PULSE_PKG_ERRORS=`$PKG_CONFIG --short-errors --errors-to-stdout --print-errors "libpulse-simple"`
+	        PULSE_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors "libpulse-simple" 2>&1`
         else
-	        PULSE_PKG_ERRORS=`$PKG_CONFIG --errors-to-stdout --print-errors "libpulse-simple"`
+	        PULSE_PKG_ERRORS=`$PKG_CONFIG --print-errors "libpulse-simple" 2>&1`
         fi
 	# Put the nasty error message in config.log where it belongs
 	echo "$PULSE_PKG_ERRORS" >&5
@@ -8998,11 +9052,10 @@ pkg_failed=no
 { $as_echo "$as_me:$LINENO: checking for ESOUND" >&5
 $as_echo_n "checking for ESOUND... " >&6; }
 
-if test -n "$PKG_CONFIG"; then
-    if test -n "$ESOUND_CFLAGS"; then
-        pkg_cv_ESOUND_CFLAGS="$ESOUND_CFLAGS"
-    else
-        if test -n "$PKG_CONFIG" && \
+if test -n "$ESOUND_CFLAGS"; then
+    pkg_cv_ESOUND_CFLAGS="$ESOUND_CFLAGS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
     { ($as_echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"esound\"") >&5
   ($PKG_CONFIG --exists --print-errors "esound") 2>&5
   ac_status=$?
@@ -9012,15 +9065,13 @@ if test -n "$PKG_CONFIG"; then
 else
   pkg_failed=yes
 fi
-    fi
-else
-	pkg_failed=untried
+ else
+    pkg_failed=untried
 fi
-if test -n "$PKG_CONFIG"; then
-    if test -n "$ESOUND_LIBS"; then
-        pkg_cv_ESOUND_LIBS="$ESOUND_LIBS"
-    else
-        if test -n "$PKG_CONFIG" && \
+if test -n "$ESOUND_LIBS"; then
+    pkg_cv_ESOUND_LIBS="$ESOUND_LIBS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
     { ($as_echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"esound\"") >&5
   ($PKG_CONFIG --exists --print-errors "esound") 2>&5
   ac_status=$?
@@ -9030,9 +9081,8 @@ if test -n "$PKG_CONFIG"; then
 else
   pkg_failed=yes
 fi
-    fi
-else
-	pkg_failed=untried
+ else
+    pkg_failed=untried
 fi
 
 
@@ -9045,9 +9095,9 @@ else
         _pkg_short_errors_supported=no
 fi
         if test $_pkg_short_errors_supported = yes; then
-	        ESOUND_PKG_ERRORS=`$PKG_CONFIG --short-errors --errors-to-stdout --print-errors "esound"`
+	        ESOUND_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors "esound" 2>&1`
         else
-	        ESOUND_PKG_ERRORS=`$PKG_CONFIG --errors-to-stdout --print-errors "esound"`
+	        ESOUND_PKG_ERRORS=`$PKG_CONFIG --print-errors "esound" 2>&1`
         fi
 	# Put the nasty error message in config.log where it belongs
 	echo "$ESOUND_PKG_ERRORS" >&5
@@ -9105,11 +9155,10 @@ pkg_failed=no
 { $as_echo "$as_me:$LINENO: checking for ALSA" >&5
 $as_echo_n "checking for ALSA... " >&6; }
 
-if test -n "$PKG_CONFIG"; then
-    if test -n "$ALSA_CFLAGS"; then
-        pkg_cv_ALSA_CFLAGS="$ALSA_CFLAGS"
-    else
-        if test -n "$PKG_CONFIG" && \
+if test -n "$ALSA_CFLAGS"; then
+    pkg_cv_ALSA_CFLAGS="$ALSA_CFLAGS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
     { ($as_echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"alsa\"") >&5
   ($PKG_CONFIG --exists --print-errors "alsa") 2>&5
   ac_status=$?
@@ -9119,15 +9168,13 @@ if test -n "$PKG_CONFIG"; then
 else
   pkg_failed=yes
 fi
-    fi
-else
-	pkg_failed=untried
+ else
+    pkg_failed=untried
 fi
-if test -n "$PKG_CONFIG"; then
-    if test -n "$ALSA_LIBS"; then
-        pkg_cv_ALSA_LIBS="$ALSA_LIBS"
-    else
-        if test -n "$PKG_CONFIG" && \
+if test -n "$ALSA_LIBS"; then
+    pkg_cv_ALSA_LIBS="$ALSA_LIBS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
     { ($as_echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"alsa\"") >&5
   ($PKG_CONFIG --exists --print-errors "alsa") 2>&5
   ac_status=$?
@@ -9137,9 +9184,8 @@ if test -n "$PKG_CONFIG"; then
 else
   pkg_failed=yes
 fi
-    fi
-else
-	pkg_failed=untried
+ else
+    pkg_failed=untried
 fi
 
 
@@ -9152,9 +9198,9 @@ else
         _pkg_short_errors_supported=no
 fi
         if test $_pkg_short_errors_supported = yes; then
-	        ALSA_PKG_ERRORS=`$PKG_CONFIG --short-errors --errors-to-stdout --print-errors "alsa"`
+	        ALSA_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors "alsa" 2>&1`
         else
-	        ALSA_PKG_ERRORS=`$PKG_CONFIG --errors-to-stdout --print-errors "alsa"`
+	        ALSA_PKG_ERRORS=`$PKG_CONFIG --print-errors "alsa" 2>&1`
         fi
 	# Put the nasty error message in config.log where it belongs
 	echo "$ALSA_PKG_ERRORS" >&5
@@ -10136,7 +10182,7 @@ _ACEOF
 
     fi
   fi
-         USE_NLS=yes
+     USE_NLS=yes
 
 
     gt_cv_have_gettext=no
@@ -11155,8 +11201,8 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 
 _ACEOF
-if { ($as_echo "$as_me:$LINENO: msgfmt -c -o /dev/null conftest.foo") >&5
-  (msgfmt -c -o /dev/null conftest.foo) 2>&5
+if { ($as_echo "$as_me:$LINENO: \$MSGFMT -c -o /dev/null conftest.foo") >&5
+  ($MSGFMT -c -o /dev/null conftest.foo) 2>&5
   ac_status=$?
   $as_echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); }; then
