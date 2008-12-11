@@ -31,7 +31,7 @@ extern "C" {
 
 #define DEFAULT_TIMESLICE_LENGTH 1000000 /* nanoseconds */
 
-#define XLAT_NEW_CACHE_SIZE 32 MB
+#define XLAT_NEW_CACHE_SIZE 40 MB
 #define XLAT_TEMP_CACHE_SIZE 2 MB
 #define XLAT_OLD_CACHE_SIZE 8 MB
 

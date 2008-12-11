@@ -22,8 +22,6 @@
 
 extern xlat_cache_block_t xlat_new_cache;
 extern xlat_cache_block_t xlat_new_cache_ptr;
-extern xlat_cache_block_t xlat_temp_cache;
-extern xlat_cache_block_t xlat_temp_cache_ptr;
 
 /**
  * Test initial allocations from the new cache
@@ -75,14 +73,6 @@ void test_initial()
     xlat_commit_block(6142, 432);
     addr = xlat_get_code( 0x0D009800 );
     assert( addr == &block3a->code );
-    /* check promoted block in temp cache */
-    addr = xlat_get_code( 0x0C008000 );
-    assert( addr == &xlat_temp_cache->code );
-    assert( xlat_temp_cache->active == 1 );
-    assert( xlat_temp_cache->size == 8192 );
-    for( i=0; i<8192; i++ ) {
-	assert( xlat_temp_cache->code[i] == 0xB5 );
-    }
 }
 
 int main()

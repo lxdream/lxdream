@@ -51,10 +51,14 @@
 xlat_cache_block_t xlat_new_cache;
 xlat_cache_block_t xlat_new_cache_ptr;
 xlat_cache_block_t xlat_new_create_ptr;
+
+#ifdef XLAT_GENERATIONAL_CACHE
 xlat_cache_block_t xlat_temp_cache;
 xlat_cache_block_t xlat_temp_cache_ptr;
 xlat_cache_block_t xlat_old_cache;
 xlat_cache_block_t xlat_old_cache_ptr;
+#endif
+
 static void ***xlat_lut;
 static gboolean xlat_initialized = FALSE;
 
@@ -64,26 +68,21 @@ void xlat_cache_init(void)
         xlat_initialized = TRUE;
         xlat_new_cache = mmap( NULL, XLAT_NEW_CACHE_SIZE, PROT_EXEC|PROT_READ|PROT_WRITE,
                 MAP_PRIVATE|MAP_ANON, -1, 0 );
+        xlat_new_cache_ptr = xlat_new_cache;
+        xlat_new_create_ptr = xlat_new_cache;
+#ifdef XLAT_GENERATIONAL_CACHE
         xlat_temp_cache = mmap( NULL, XLAT_TEMP_CACHE_SIZE, PROT_EXEC|PROT_READ|PROT_WRITE,
                 MAP_PRIVATE|MAP_ANON, -1, 0 );
         xlat_old_cache = mmap( NULL, XLAT_OLD_CACHE_SIZE, PROT_EXEC|PROT_READ|PROT_WRITE,
                 MAP_PRIVATE|MAP_ANON, -1, 0 );
-        xlat_new_cache_ptr = xlat_new_cache;
         xlat_temp_cache_ptr = xlat_temp_cache;
         xlat_old_cache_ptr = xlat_old_cache;
-        xlat_new_create_ptr = xlat_new_cache;
-
+#endif
         xlat_lut = mmap( NULL, XLAT_LUT_PAGES*sizeof(void *), PROT_READ|PROT_WRITE,
                 MAP_PRIVATE|MAP_ANON, -1, 0);
         memset( xlat_lut, 0, XLAT_LUT_PAGES*sizeof(void *) );
     }
     xlat_flush_cache();
-}
-
-void xlat_print_free( FILE *out )
-{
-    fprintf( out, "New space: %d\nTemp space: %d\nOld space: %d\n", 
-            xlat_new_cache_ptr->size, xlat_temp_cache_ptr->size, xlat_old_cache_ptr->size );
 }
 
 /**
@@ -99,6 +98,7 @@ void xlat_flush_cache()
     tmp = NEXT(xlat_new_cache_ptr);
     tmp->active = 1;
     tmp->size = 0;
+#ifdef XLAT_GENERATIONAL_CACHE
     xlat_temp_cache_ptr = xlat_temp_cache;
     xlat_temp_cache_ptr->active = 0;
     xlat_temp_cache_ptr->size = XLAT_TEMP_CACHE_SIZE - 2*sizeof(struct xlat_cache_block);
@@ -111,6 +111,7 @@ void xlat_flush_cache()
     tmp = NEXT(xlat_old_cache_ptr);
     tmp->active = 1;
     tmp->size = 0;
+#endif
     for( i=0; i<XLAT_LUT_PAGES; i++ ) {
         if( xlat_lut[i] != NULL ) {
             memset( xlat_lut[i], 0, XLAT_LUT_PAGE_SIZE );
@@ -303,6 +304,7 @@ static inline xlat_cache_block_t xlat_cut_block( xlat_cache_block_t block, int c
     }
 }
 
+#ifdef XLAT_GENERATIONAL_CACHE
 /**
  * Promote a block in temp space (or elsewhere for that matter) to old space.
  *
@@ -392,6 +394,12 @@ void xlat_promote_to_temp_space( xlat_cache_block_t block )
     }
 
 }
+#else 
+void xlat_promote_to_temp_space( xlat_cache_block_t block )
+{
+    *block->lut_entry = 0;
+}
+#endif
 
 /**
  * Returns the next block in the new cache list that can be written to by the
@@ -510,7 +518,9 @@ void xlat_check_cache_integrity( xlat_cache_block_t cache, xlat_cache_block_t pt
 void xlat_check_integrity( )
 {
     xlat_check_cache_integrity( xlat_new_cache, xlat_new_cache_ptr, XLAT_NEW_CACHE_SIZE );
+#ifdef XLAT_GENERATIONAL_CACHE
     xlat_check_cache_integrity( xlat_temp_cache, xlat_temp_cache_ptr, XLAT_TEMP_CACHE_SIZE );
     xlat_check_cache_integrity( xlat_old_cache, xlat_old_cache_ptr, XLAT_OLD_CACHE_SIZE );
+#endif
 }
 
