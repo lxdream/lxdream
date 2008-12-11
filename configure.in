@@ -67,7 +67,6 @@ if test "x$enable_optimized" = "xyes"; then
        CFLAGS="$CFLAGS -fexceptions -fomit-frame-pointer"
        AC_DEFINE(HAVE_EXCEPTIONS, [1], [Have exception stack-frame information])
    fi
-   AC_DEFINE(HAVE_FASTCALL, [1], [Use fast register-passing calling conventions])
 else 
    CFLAGS="-g3"
 fi
@@ -80,6 +79,10 @@ fi
 if test "x$GCC" = "xyes"; then
    CFLAGS="$CFLAGS -fno-strict-aliasing"
 fi
+
+AC_CHECK_FASTCALL([
+   AC_DEFINE(HAVE_FASTCALL, [1], [Use fast register-passing calling conventions])
+])
 
 
 dnl ------------ Check if we're building on Darwin --------------
