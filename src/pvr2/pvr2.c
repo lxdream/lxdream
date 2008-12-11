@@ -490,11 +490,11 @@ void mmio_region_PVR2_write( uint32_t reg, uint32_t val )
         render_buffer_t buffer = pvr2_next_render_buffer();
         if( buffer != NULL ) {
             pvr2_scene_render( buffer );
-            pvr2_finish_render_buffer( buffer );
             if( buffer->address < PVR2_RAM_BASE ) {
                 // Flush immediately - optimize this later. Otherwise this gets
                 // complicated very quickly trying to second-guess how it's
                 // going to be used as a texture.
+                pvr2_finish_render_buffer( buffer );
                 pvr2_render_buffer_copy_to_sh4( buffer );
             }
         }
