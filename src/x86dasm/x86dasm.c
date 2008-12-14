@@ -51,12 +51,12 @@ void xlat_disasm_block( FILE *out, void *block )
 void x86_disasm_block(FILE *out, void *start, uint32_t len)
 {
     uintptr_t start_addr = (uintptr_t)start;
-    uint32_t pc;
+    uintptr_t pc;
     x86_disasm_init( start, start_addr, len );
     for( pc = start_addr; pc < start_addr + len;  ) {
 	char buf[256];
 	char op[256];
-	uint32_t pc2 = x86_disasm_instruction( pc, buf, sizeof(buf), op );
+	uintptr_t pc2 = x86_disasm_instruction( pc, buf, sizeof(buf), op );
 	fprintf( out, "%08X: %-20s %s\n", pc, op, buf );
 	pc = pc2;
     }
@@ -66,7 +66,7 @@ void x86_disasm_init(unsigned char *buf, uintptr_t vma, int buflen)
 {
     init_disassemble_info( &x86_disasm_info, NULL, x86_disasm_output );
     x86_disasm_info.arch = bfd_arch_i386;
-#if SH4_TRANSLATOR == TARGET_X86_64
+#if SIZEOF_VOID_P == 8
     x86_disasm_info.mach =  bfd_mach_x86_64_intel_syntax;
 #else
     x86_disasm_info.mach = bfd_mach_i386_i386_intel_syntax;
@@ -116,7 +116,7 @@ void x86_print_symbolic_operand( char *buf, int hex, unsigned int disp )
     }
 }
 
-uint32_t x86_disasm_instruction( uintptr_t pc, char *buf, int len, char *opcode )
+uintptr_t x86_disasm_instruction( uintptr_t pc, char *buf, int len, char *opcode )
 {
     int count, i;
 
