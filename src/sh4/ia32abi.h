@@ -1,8 +1,10 @@
 /**
  * $Id$
  * 
- * Provides the implementation for the ia32 ABI (eg prologue, epilogue, and
- * calling conventions)
+ * Provides the implementation for the ia32 ABI variant 
+ * (eg prologue, epilogue, and calling conventions). Stack frame is
+ * aligned on 16-byte boundaries for the benefit of OS X (which 
+ * requires it).
  *
  * Copyright (c) 2007 Nathan Keynes.
  *
@@ -17,8 +19,8 @@
  * GNU General Public License for more details.
  */
 
-#ifndef lxdream_ia32abi_H
-#define lxdream_ia32abi_H 1
+#ifndef lxdream_ia32mac_H
+#define lxdream_ia32mac_H 1
 
 #define load_ptr( reg, ptr ) load_imm32( reg, (uint32_t)ptr );
 
@@ -28,8 +30,7 @@
  */
 static inline void call_func0( void *ptr )
 {
-    load_imm32(R_ECX, (uint32_t)ptr);
-    CALL_r32(R_ECX);
+    CALL_ptr(ptr);
 }
 
 #ifdef HAVE_FASTCALL
@@ -38,8 +39,7 @@ static inline void call_func1( void *ptr, int arg1 )
     if( arg1 != R_EAX ) {
         MOV_r32_r32( arg1, R_EAX );
     }
-    load_imm32(R_ECX, (uint32_t)ptr);
-    CALL_r32(R_ECX);
+    CALL_ptr(ptr);
 }
 
 static inline void call_func2( void *ptr, int arg1, int arg2 )
@@ -50,8 +50,7 @@ static inline void call_func2( void *ptr, int arg1, int arg2 )
     if( arg1 != R_EAX ) {
         MOV_r32_r32( arg1, R_EAX );
     }
-    load_imm32(R_ECX, (uint32_t)ptr);
-    CALL_r32(R_ECX);
+    CALL_ptr(ptr);
 }
 
 /**
@@ -60,11 +59,11 @@ static inline void call_func2( void *ptr, int arg1, int arg2 )
  */
 static inline void MEM_WRITE_DOUBLE( int addr, int arg2a, int arg2b )
 {
-    PUSH_r32(arg2b);
-    PUSH_r32(addr);
+    MOV_r32_esp8(addr, 0);
+    MOV_r32_esp8(arg2b, 4);
     call_func2(sh4_write_long, addr, arg2a);
-    POP_r32(R_EAX);
-    POP_r32(R_EDX);
+    MOV_esp8_r32(0, R_EAX);
+    MOV_esp8_r32(4, R_EDX);
     ADD_imm8s_r32(4, R_EAX);
     call_func0(sh4_write_long);
 }
@@ -75,32 +74,33 @@ static inline void MEM_WRITE_DOUBLE( int addr, int arg2a, int arg2b )
  */
 static inline void MEM_READ_DOUBLE( int addr, int arg2a, int arg2b )
 {
-    PUSH_r32(addr);
+    MOV_r32_esp8(addr, 0);
     call_func1(sh4_read_long, addr);
-    POP_r32(R_ECX);
-    PUSH_r32(R_EAX);
-    MOV_r32_r32(R_ECX, R_EAX);
+    MOV_r32_esp8(R_EAX, 4);
+    MOV_esp8_r32(0, R_EAX);
     ADD_imm8s_r32(4, R_EAX);
     call_func0(sh4_read_long);
     if( arg2b != R_EAX ) {
         MOV_r32_r32(R_EAX, arg2b);
     }
-    POP_r32(arg2a);
+    MOV_esp8_r32(4, arg2a);
 }
 #else
 static inline void call_func1( void *ptr, int arg1 )
 {
+    SUB_imm8s_r32( 12, R_ESP );
     PUSH_r32(arg1);
-    call_func0(ptr);
-    ADD_imm8s_r32( 4, R_ESP );
+    CALL_ptr(ptr);
+    ADD_imm8s_r32( 16, R_ESP );
 }
 
 static inline void call_func2( void *ptr, int arg1, int arg2 )
 {
+    SUB_imm8s_r32( 8, R_ESP );
     PUSH_r32(arg2);
     PUSH_r32(arg1);
-    call_func0(ptr);
-    ADD_imm8s_r32( 8, R_ESP );
+    CALL_ptr(ptr);
+    ADD_imm8s_r32( 16, R_ESP );
 }
 
 /**
@@ -109,16 +109,17 @@ static inline void call_func2( void *ptr, int arg1, int arg2 )
  */
 static inline void MEM_WRITE_DOUBLE( int addr, int arg2a, int arg2b )
 {
-    ADD_imm8s_r32( 4, addr );
+    SUB_imm8s_r32( 8, R_ESP );
     PUSH_r32(arg2b);
-    PUSH_r32(addr);
-    ADD_imm8s_r32( -4, addr );
+    LEA_r32disp8_r32( addr, 4, arg2b );
+    PUSH_r32(arg2b);
+    SUB_imm8s_r32( 8, R_ESP );
     PUSH_r32(arg2a);
     PUSH_r32(addr);
-    call_func0(sh4_write_long);
-    ADD_imm8s_r32( 8, R_ESP );
-    call_func0(sh4_write_long);
-    ADD_imm8s_r32( 8, R_ESP );
+    CALL_ptr(sh4_write_long);
+    ADD_imm8s_r32( 16, R_ESP );
+    CALL_ptr(sh4_write_long);
+    ADD_imm8s_r32( 16, R_ESP );
 }
 
 /**
@@ -127,36 +128,43 @@ static inline void MEM_WRITE_DOUBLE( int addr, int arg2a, int arg2b )
  */
 static inline void MEM_READ_DOUBLE( int addr, int arg2a, int arg2b )
 {
+    SUB_imm8s_r32( 12, R_ESP );
     PUSH_r32(addr);
-    call_func0(sh4_read_long);
-    POP_r32(R_ECX);
-    PUSH_r32(R_EAX);
-    ADD_imm8s_r32( 4, R_ECX );
-    PUSH_r32(R_ECX);
-    call_func0(sh4_read_long);
-    ADD_imm8s_r32( 4, R_ESP );
-    MOV_r32_r32( R_EAX, arg2b );
-    POP_r32(arg2a);
+    CALL_ptr(sh4_read_long);
+    MOV_r32_esp8(R_EAX, 4);
+    ADD_imm8s_esp8(4, 0);
+    CALL_ptr(sh4_read_long);
+    if( arg2b != R_EAX ) {
+        MOV_r32_r32( R_EAX, arg2b );
+    }
+    MOV_esp8_r32( 4, arg2a );
+    ADD_imm8s_r32( 16, R_ESP );
 }
+
 #endif
 
 /**
  * Emit the 'start of block' assembly. Sets up the stack frame and save
  * SI/DI as required
+ * Allocates 8 bytes for local variables, which also has the convenient
+ * side-effect of aligning the stack.
  */
 void enter_block( ) 
 {
     PUSH_r32(R_EBP);
-    /* mov &sh4r, ebp */
     load_ptr( R_EBP, ((uint8_t *)&sh4r) + 128 );
+    SUB_imm8s_r32( 8, R_ESP ); 
+}
 
-#ifdef STACK_ALIGN
-    sh4_x86.stack_posn = 8;
-#endif
+static inline void exit_block( )
+{
+    ADD_imm8s_r32( 8, R_ESP );
+    POP_r32(R_EBP);
+    RET();
 }
 
 /**
- * Exit the block with sh4r.pc already written
+ * Exit the block with sh4r.new_pc written with the target pc
  */
 void exit_block_pcset( sh4addr_t pc )
 {
@@ -167,9 +175,8 @@ void exit_block_pcset( sh4addr_t pc )
         call_func1(xlat_get_code_by_vma,R_EAX);
     } else {
         call_func1(xlat_get_code,R_EAX);
-    } 
-    POP_r32(R_EBP);
-    RET();
+    }
+    exit_block();
 }
 
 /**
@@ -185,36 +192,30 @@ void exit_block_newpcset( sh4addr_t pc )
         call_func1(xlat_get_code_by_vma,R_EAX);
     } else {
         call_func1(xlat_get_code,R_EAX);
-    } 
-    POP_r32(R_EBP);
-    RET();
+    }
+    exit_block();
 }
-
-#define EXIT_BLOCK_SIZE(pc)  (24 + (IS_IN_ICACHE(pc)?5:CALL_FUNC1_SIZE))
 
 
 /**
  * Exit the block to an absolute PC
  */
-void exit_block( sh4addr_t pc, sh4addr_t endpc )
+void exit_block_abs( sh4addr_t pc, sh4addr_t endpc )
 {
     load_imm32( R_ECX, pc );                            // 5
     store_spreg( R_ECX, REG_OFFSET(pc) );               // 3
     if( IS_IN_ICACHE(pc) ) {
         MOV_moff32_EAX( xlat_get_lut_entry(GET_ICACHE_PHYS(pc)) ); // 5
+        AND_imm8s_r32( 0xFC, R_EAX ); // 3
     } else if( sh4_x86.tlb_on ) {
         call_func1(xlat_get_code_by_vma,R_ECX);
     } else {
         call_func1(xlat_get_code,R_ECX);
     }
-    AND_imm8s_r32( 0xFC, R_EAX ); // 3
     load_imm32( R_ECX, ((endpc - sh4_x86.block_start_pc)>>1)*sh4_cpu_period ); // 5
     ADD_r32_sh4r( R_ECX, REG_OFFSET(slice_cycle) );     // 6
-    POP_r32(R_EBP);
-    RET();
+    exit_block();
 }
-
-#define EXIT_BLOCK_REL_SIZE(pc)  (27 + (IS_IN_ICACHE(pc)?5:CALL_FUNC1_SIZE))
 
 /**
  * Exit the block to a relative PC
@@ -226,16 +227,15 @@ void exit_block_rel( sh4addr_t pc, sh4addr_t endpc )
     store_spreg( R_ECX, REG_OFFSET(pc) );               // 3
     if( IS_IN_ICACHE(pc) ) {
         MOV_moff32_EAX( xlat_get_lut_entry(GET_ICACHE_PHYS(pc)) ); // 5
+        AND_imm8s_r32( 0xFC, R_EAX ); // 3
     } else if( sh4_x86.tlb_on ) {
         call_func1(xlat_get_code_by_vma,R_ECX);
     } else {
         call_func1(xlat_get_code,R_ECX);
     }
-    AND_imm8s_r32( 0xFC, R_EAX ); // 3
     load_imm32( R_ECX, ((endpc - sh4_x86.block_start_pc)>>1)*sh4_cpu_period ); // 5
     ADD_r32_sh4r( R_ECX, REG_OFFSET(slice_cycle) );     // 6
-    POP_r32(R_EBP);
-    RET();
+    exit_block();
 }
 
 /**
@@ -257,7 +257,7 @@ void sh4_translate_end_block( sh4addr_t pc ) {
         MUL_r32( R_EDX );
         ADD_r32_sh4r( R_EAX, REG_OFFSET(slice_cycle) );
 
-        POP_r32( R_EAX );
+        POP_r32(R_EAX);
         call_func1( sh4_raise_exception, R_EAX );
         load_spreg( R_EAX, R_PC );
         if( sh4_x86.tlb_on ) {
@@ -265,8 +265,7 @@ void sh4_translate_end_block( sh4addr_t pc ) {
         } else {
             call_func1(xlat_get_code,R_EAX);
         }
-        POP_r32(R_EBP);
-        RET();
+        exit_block();
 
         // Exception already raised - just cleanup
         uint8_t *preexc_ptr = xlat_output;
@@ -282,8 +281,7 @@ void sh4_translate_end_block( sh4addr_t pc ) {
         } else {
             call_func1(xlat_get_code,R_EAX);
         }
-        POP_r32(R_EBP);
-        RET();
+        exit_block();
 
         for( i=0; i< sh4_x86.backpatch_posn; i++ ) {
             uint32_t *fixup_addr = (uint32_t *)&xlat_current_block->code[sh4_x86.backpatch_list[i].fixup_offset];
@@ -306,6 +304,7 @@ void sh4_translate_end_block( sh4addr_t pc ) {
     }
 }
 
+
 /**
  * The unwind methods only work if we compiled with DWARF2 frame information
  * (ie -fexceptions), otherwise we have to use the direct frame scan.
@@ -314,19 +313,17 @@ void sh4_translate_end_block( sh4addr_t pc ) {
 #include <unwind.h>
 
 struct UnwindInfo {
-	int have_result;
-	void *pc;
+    uintptr_t block_start;
+    uintptr_t block_end;
+    void *pc;
 };
 
 _Unwind_Reason_Code xlat_check_frame( struct _Unwind_Context *context, void *arg )
 {
-    void *ebp = (void *)_Unwind_GetGR(context, 5);
-    void *expect = (((uint8_t *)&sh4r) + 128 );
-	struct UnwindInfo *info = arg;
-    if( ebp == expect ) { 
-        info->have_result = 1;
-        info->pc = (void *)_Unwind_GetIP(context);
-    } else if( info->have_result ) {
+    struct UnwindInfo *info = arg;
+    void *pc = (void *)_Unwind_GetIP(context);
+    if( ((uintptr_t)pc) >= info->block_start && ((uintptr_t)pc) < info->block_end ) {
+        info->pc = pc;
         return _URC_NORMAL_STOP;
     }
 
@@ -338,12 +335,12 @@ void *xlat_get_native_pc( void *code, uint32_t code_size )
     struct _Unwind_Exception exc;
     struct UnwindInfo info;
 
-    info.have_result = 0;
+    info.pc = NULL;
+    info.block_start = (uintptr_t)code;
+    info.block_end = info.block_start + code_size;
     void *result = NULL;
     _Unwind_Backtrace( xlat_check_frame, &info );
-    if( info.have_result )
-    	return info.pc;
-    return NULL;
+    return info.pc;
 }
 #else 
 void *xlat_get_native_pc( void *code, uint32_t code_size )
@@ -370,6 +367,6 @@ void *xlat_get_native_pc( void *code, uint32_t code_size )
 }
 #endif
 
-#endif /* !lxdream_ia32abi_H */
+#endif /* !lxdream_ia32mac.h */
 
 

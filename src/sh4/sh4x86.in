@@ -315,11 +315,7 @@ void static inline store_reg( int x86reg, int sh4reg ) {
 #if SIZEOF_VOID_P == 8
 #include "sh4/ia64abi.h"
 #else /* 32-bit system */
-#ifdef APPLE_BUILD
-#include "sh4/ia32mac.h"
-#else
 #include "sh4/ia32abi.h"
-#endif
 #endif
 
 void sh4_translate_begin_block( sh4addr_t pc ) 
@@ -390,9 +386,7 @@ void exit_block_emu( sh4vma_t endpc )
     } else {
 	call_func1(xlat_get_code,R_EAX);
     }
-    AND_imm8s_rptr( 0xFC, R_EAX );
-    POP_r32(R_EBP);
-    RET();
+    exit_block();
 } 
 
 /**
@@ -473,9 +467,9 @@ AND.B #imm, @(R0, GBR) {:
     load_spreg( R_ECX, R_GBR );
     ADD_r32_r32( R_ECX, R_EAX );
     MMU_TRANSLATE_WRITE( R_EAX );
-    PUSH_realigned_r32(R_EAX);
+    MOV_r32_esp8(R_EAX, 0);
     MEM_READ_BYTE( R_EAX, R_EDX );
-    POP_realigned_r32(R_EAX);
+    MOV_esp8_r32(0, R_EAX);
     AND_imm32_r32(imm, R_EDX );
     MEM_WRITE_BYTE( R_EAX, R_EDX );
     sh4_x86.tstate = TSTATE_NONE;
@@ -662,10 +656,10 @@ MAC.L @Rm+, @Rn+ {:
 	load_reg( R_EAX, Rm );
 	check_ralign32( R_EAX );
 	MMU_TRANSLATE_READ( R_EAX );
-	PUSH_realigned_r32( R_EAX );
+	MOV_r32_esp8(R_EAX, 0);
 	load_reg( R_EAX, Rn );
 	ADD_imm8s_r32( 4, R_EAX );
-	MMU_TRANSLATE_READ_EXC( R_EAX, -5 );
+	MMU_TRANSLATE_READ( R_EAX );
 	ADD_imm8s_sh4r( 8, REG_OFFSET(r[Rn]) );
 	// Note translate twice in case of page boundaries. Maybe worth
 	// adding a page-boundary check to skip the second translation
@@ -673,19 +667,18 @@ MAC.L @Rm+, @Rn+ {:
 	load_reg( R_EAX, Rm );
 	check_ralign32( R_EAX );
 	MMU_TRANSLATE_READ( R_EAX );
-	load_reg( R_ECX, Rn );
-	check_ralign32( R_ECX );
-	PUSH_realigned_r32( R_EAX );
-	MMU_TRANSLATE_READ_EXC( R_ECX, -5 );
-	MOV_r32_r32( R_ECX, R_EAX );
+	MOV_r32_esp8( R_EAX, 0 );
+	load_reg( R_EAX, Rn );
+	check_ralign32( R_EAX );
+	MMU_TRANSLATE_READ( R_EAX );
 	ADD_imm8s_sh4r( 4, REG_OFFSET(r[Rn]) );
 	ADD_imm8s_sh4r( 4, REG_OFFSET(r[Rm]) );
     }
     MEM_READ_LONG( R_EAX, R_EAX );
-    POP_r32( R_ECX );
-    PUSH_r32( R_EAX );
-    MEM_READ_LONG( R_ECX, R_EAX );
-    POP_realigned_r32( R_ECX );
+    MOV_r32_esp8( R_EAX, 4 );
+    MOV_esp8_r32( 0, R_EAX );
+    MEM_READ_LONG( R_EAX, R_EAX );
+    MOV_esp8_r32( 4, R_ECX );
 
     IMUL_r32( R_ECX );
     ADD_r32_sh4r( R_EAX, R_MACL );
@@ -704,10 +697,10 @@ MAC.W @Rm+, @Rn+ {:
 	load_reg( R_EAX, Rm );
 	check_ralign16( R_EAX );
 	MMU_TRANSLATE_READ( R_EAX );
-	PUSH_realigned_r32( R_EAX );
+        MOV_r32_esp8( R_EAX, 0 );
 	load_reg( R_EAX, Rn );
 	ADD_imm8s_r32( 2, R_EAX );
-	MMU_TRANSLATE_READ_EXC( R_EAX, -5 );
+	MMU_TRANSLATE_READ( R_EAX );
 	ADD_imm8s_sh4r( 4, REG_OFFSET(r[Rn]) );
 	// Note translate twice in case of page boundaries. Maybe worth
 	// adding a page-boundary check to skip the second translation
@@ -715,21 +708,20 @@ MAC.W @Rm+, @Rn+ {:
 	load_reg( R_EAX, Rm );
 	check_ralign16( R_EAX );
 	MMU_TRANSLATE_READ( R_EAX );
-	load_reg( R_ECX, Rn );
-	check_ralign16( R_ECX );
-	PUSH_realigned_r32( R_EAX );
-	MMU_TRANSLATE_READ_EXC( R_ECX, -5 );
-	MOV_r32_r32( R_ECX, R_EAX );
+        MOV_r32_esp8( R_EAX, 0 );
+	load_reg( R_EAX, Rn );
+	check_ralign16( R_EAX );
+	MMU_TRANSLATE_READ( R_EAX );
 	ADD_imm8s_sh4r( 2, REG_OFFSET(r[Rn]) );
 	ADD_imm8s_sh4r( 2, REG_OFFSET(r[Rm]) );
     }
     MEM_READ_WORD( R_EAX, R_EAX );
-    POP_r32( R_ECX );
-    PUSH_r32( R_EAX );
-    MEM_READ_WORD( R_ECX, R_EAX );
-    POP_realigned_r32( R_ECX );
-    IMUL_r32( R_ECX );
+    MOV_r32_esp8( R_EAX, 4 );
+    MOV_esp8_r32( 0, R_EAX );
+    MEM_READ_WORD( R_EAX, R_EAX );
+    MOV_esp8_r32( 4, R_ECX );
 
+    IMUL_r32( R_ECX );
     load_spreg( R_ECX, R_S );
     TEST_r32_r32( R_ECX, R_ECX );
     JE_rel8( nosat );
@@ -830,9 +822,9 @@ OR.B #imm, @(R0, GBR) {:
     load_spreg( R_ECX, R_GBR );
     ADD_r32_r32( R_ECX, R_EAX );
     MMU_TRANSLATE_WRITE( R_EAX );
-    PUSH_realigned_r32(R_EAX);
+    MOV_r32_esp8( R_EAX, 0 );
     MEM_READ_BYTE( R_EAX, R_EDX );
-    POP_realigned_r32(R_EAX);
+    MOV_esp8_r32( 0, R_EAX );
     OR_imm32_r32(imm, R_EDX );
     MEM_WRITE_BYTE( R_EAX, R_EDX );
     sh4_x86.tstate = TSTATE_NONE;
@@ -1049,12 +1041,12 @@ TAS.B @Rn {:
     COUNT_INST(I_TASB);
     load_reg( R_EAX, Rn );
     MMU_TRANSLATE_WRITE( R_EAX );
-    PUSH_realigned_r32( R_EAX );
+    MOV_r32_esp8( R_EAX, 0 );
     MEM_READ_BYTE( R_EAX, R_EDX );
     TEST_r8_r8( R_DL, R_DL );
     SETE_t();
     OR_imm8_r8( 0x80, R_DL );
-    POP_realigned_r32( R_EAX );
+    MOV_esp8_r32( 0, R_EAX );
     MEM_WRITE_BYTE( R_EAX, R_EDX );
     sh4_x86.tstate = TSTATE_NONE;
 :}
@@ -1105,9 +1097,9 @@ XOR.B #imm, @(R0, GBR) {:
     load_spreg( R_ECX, R_GBR );
     ADD_r32_r32( R_ECX, R_EAX );
     MMU_TRANSLATE_WRITE( R_EAX );
-    PUSH_realigned_r32(R_EAX);
+    MOV_r32_esp8( R_EAX, 0 );
     MEM_READ_BYTE(R_EAX, R_EDX);
-    POP_realigned_r32(R_EAX);
+    MOV_esp8_r32( 0, R_EAX );
     XOR_imm32_r32( imm, R_EDX );
     MEM_WRITE_BYTE( R_EAX, R_EDX );
     sh4_x86.tstate = TSTATE_NONE;
@@ -2636,11 +2628,12 @@ STC.L SR, @-Rn {:
     check_walign32( R_EAX );
     ADD_imm8s_r32( -4, R_EAX );
     MMU_TRANSLATE_WRITE( R_EAX );
-    PUSH_realigned_r32( R_EAX );
+    MOV_r32_esp8( R_EAX, 0 );
     call_func0( sh4_read_sr );
-    POP_realigned_r32( R_ECX );
+    MOV_r32_r32( R_EAX, R_EDX );
+    MOV_esp8_r32( 0, R_EAX );
     ADD_imm8s_sh4r( -4, REG_OFFSET(r[Rn]) );
-    MEM_WRITE_LONG( R_ECX, R_EAX );
+    MEM_WRITE_LONG( R_EAX, R_EDX );
     sh4_x86.tstate = TSTATE_NONE;
 :}
 STC.L VBR, @-Rn {:  
