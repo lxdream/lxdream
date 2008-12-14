@@ -54,31 +54,17 @@ extern "C" {
 #define AND_imm8s_rptr(imm, r1)  REXW(); AND_imm8s_r32( imm, r1 )
 #define LEA_sh4r_rptr(disp, r1) REXW(); LEA_sh4r_r32(disp,r1)
 #define MOV_moffptr_EAX(offptr)  REXW(); MOV_moff32_EAX( offptr )
-#define STACK_ALIGN 16
-#define POP_r32(r1)           OP(0x58 + r1);
-#define POP_realigned_r32(r1)   OP(0x58 + r1); REXW(); ADD_imm8s_r32(8,R_ESP)
-#define PUSH_r32(r1)          OP(0x50 + r1);
-#define PUSH_realigned_r32(r1)  REXW(); SUB_imm8s_r32(8, R_ESP); OP(0x50 + r1)
-#define PUSH_imm32(imm)       OP(0x68); OP32(imm);
-#define PUSH_imm64(imm)       REXW(); OP(0x68); OP64(imm);
 #else /* 32-bit system */
 #define OPPTR(x) OP32((uint32_t)(x))
 #define AND_imm8s_rptr(imm, r1) AND_imm8s_r32( imm, r1 )
 #define LEA_sh4r_rptr(disp, r1) LEA_sh4r_r32(disp,r1)
 #define MOV_moffptr_EAX(offptr) MOV_moff32_EAX( offptr )
-#define POP_realigned_r32(r1)   POP_r32(r1)
-#define PUSH_realigned_r32(r1)  PUSH_r32(r1)
-#ifdef APPLE_BUILD
+#endif
 #define STACK_ALIGN 16
-#define POP_r32(r1)           OP(0x58 + r1); sh4_x86.stack_posn -= 4;
-#define PUSH_r32(r1)          OP(0x50 + r1); sh4_x86.stack_posn += 4;
-#define PUSH_imm32(imm)       OP(0x68); OP32(imm); sh4_x86.stack_posn += 4;
-#else
 #define POP_r32(r1)           OP(0x58 + r1)
 #define PUSH_r32(r1)          OP(0x50 + r1)
 #define PUSH_imm32(imm)       OP(0x68); OP32(imm)
-#endif
-#endif
+#define PUSH_imm64(imm)       REXW(); OP(0x68); OP64(imm);
 
 #ifdef STACK_ALIGN
 #else
@@ -124,6 +110,9 @@ extern "C" {
 /* ebp+disp32 modrm form */
 #define MODRM_r32_ebp32(r1,disp) OP(0x85 | (r1<<3)); OP32(disp)
 
+/* esp+disp32 modrm+sib form */
+#define MODRM_r32_esp8(r1,disp) OP(0x44 | (r1<<3)); OP(0x24); OP(disp)
+
 #define MODRM_r32_sh4r(r1,disp) if(disp>127){ MODRM_r32_ebp32(r1,disp);}else{ MODRM_r32_ebp8(r1,(unsigned char)disp); }
 
 #define REXW() OP(0x48)
@@ -134,6 +123,7 @@ extern "C" {
 #define ADD_r32_r32(r1,r2) OP(0x03); MODRM_rm32_r32(r1,r2)
 #define ADD_imm8s_r32(imm,r1) OP(0x83); MODRM_rm32_r32(r1, 0); OP(imm)
 #define ADD_imm8s_sh4r(imm,disp) OP(0x83); MODRM_r32_sh4r(0,disp); OP(imm)
+#define ADD_imm8s_esp8(imm,disp) OP(0x83); MODRM_r32_esp8(0,disp); OP(imm)
 #define ADD_imm32_r32(imm32,r1) OP(0x81); MODRM_rm32_r32(r1,0); OP32(imm32)
 #define ADC_r32_r32(r1,r2)    OP(0x13); MODRM_rm32_r32(r1,r2)
 #define ADC_sh4r_r32(disp,r1) OP(0x13); MODRM_r32_sh4r(r1,disp)
@@ -143,6 +133,7 @@ extern "C" {
 #define AND_imm8s_r32(imm8,r1) OP(0x83); MODRM_rm32_r32(r1,4); OP(imm8)
 #define AND_imm32_r32(imm,r1) OP(0x81); MODRM_rm32_r32(r1,4); OP32(imm)
 #define CALL_r32(r1)          OP(0xFF); MODRM_rm32_r32(r1,2)
+#define CALL_ptr(ptr)       OP(0xE8); OP32( (((char *)ptr) - (char *)xlat_output) - 4)
 #define CLC()                 OP(0xF8)
 #define CMC()                 OP(0xF5)
 #define CMP_sh4r_r32(disp,r1)  OP(0x3B); MODRM_r32_sh4r(r1,disp)
@@ -155,12 +146,15 @@ extern "C" {
 #define INC_r32(r1)           OP(0x40+r1)
 #define JMP_rel8(label)  OP(0xEB); MARK_JMP8(label); OP(-1); 
 #define LEA_sh4r_r32(disp,r1) OP(0x8D); MODRM_r32_sh4r(r1,disp)
+#define LEA_r32disp8_r32(r1, disp, r2) OP(0x8D); OP( 0x40 + (r2<<3) + r1); OP(disp)
 #define MOV_r32_r32(r1,r2)    OP(0x89); MODRM_r32_rm32(r1,r2)
 #define MOV_r32_sh4r(r1,disp) OP(0x89); MODRM_r32_sh4r(r1,disp)
 #define MOV_moff32_EAX(off)   OP(0xA1); OPPTR(off)
 #define MOV_sh4r_r32(disp, r1)  OP(0x8B); MODRM_r32_sh4r(r1,disp)
 #define MOV_r32_r32ind(r2,r1) OP(0x89); OP(0 + (r2<<3) + r1 )
 #define MOV_r32ind_r32(r1,r2) OP(0x8B); OP(0 + (r2<<3) + r1 )
+#define MOV_r32_esp8(r1,disp) OP(0x89); MODRM_r32_esp8(r1,disp)
+#define MOV_esp8_r32(disp,r1) OP(0x8B); MODRM_r32_esp8(r1,disp)
 #define MOVSX_r8_r32(r1,r2)   OP(0x0F); OP(0xBE); MODRM_rm32_r32(r1,r2)
 #define MOVSX_r16_r32(r1,r2)  OP(0x0F); OP(0xBF); MODRM_rm32_r32(r1,r2)
 #define MOVZX_r8_r32(r1,r2)   OP(0x0F); OP(0xB6); MODRM_rm32_r32(r1,r2)

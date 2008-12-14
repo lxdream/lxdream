@@ -94,8 +94,16 @@ static inline void MEM_READ_DOUBLE( int addr, int arg2a, int arg2b )
 void enter_block( ) 
 {
     PUSH_r32(R_EBP);
-    /* mov &sh4r, ebp */
     load_ptr( R_EBP, ((uint8_t *)&sh4r) + 128 );
+    // Minimum aligned allocation is 16 bytes
+    REXW(); SUB_imm8s_r32( 16, R_ESP );
+}
+
+static inline void exit_block( )
+{
+    REXW(); ADD_imm8s_r32( 16, R_ESP );
+    POP_r32(R_EBP);
+    RET();
 }
 
 /**
@@ -111,8 +119,7 @@ void exit_block_pcset( sh4addr_t pc )
     } else {
         call_func1(xlat_get_code,R_EAX);
     }
-    POP_r32(R_EBP);
-    RET();
+    exit_block();
 }
 
 /**
@@ -129,30 +136,28 @@ void exit_block_newpcset( sh4addr_t pc )
     } else {
         call_func1(xlat_get_code,R_EAX);
     }
-    POP_r32(R_EBP);
-    RET();
+    exit_block();
 }
 
 #define EXIT_BLOCK_SIZE(pc) (25 + (IS_IN_ICACHE(pc)?10:CALL_FUNC1_SIZE))
 /**
  * Exit the block to an absolute PC
  */
-void exit_block( sh4addr_t pc, sh4addr_t endpc )
+void exit_block_abs( sh4addr_t pc, sh4addr_t endpc )
 {
     load_imm32( R_ECX, pc );                            // 5
     store_spreg( R_ECX, REG_OFFSET(pc) );               // 3
     if( IS_IN_ICACHE(pc) ) {
         REXW(); MOV_moff32_EAX( xlat_get_lut_entry(pc) );
+        REXW(); AND_imm8s_r32( 0xFC, R_EAX ); // 4
     } else if( sh4_x86.tlb_on ) {
         call_func1(xlat_get_code_by_vma, R_ECX);
     } else {
         call_func1(xlat_get_code,R_ECX);
     }
-    REXW(); AND_imm8s_r32( 0xFC, R_EAX ); // 4
     load_imm32( R_ECX, ((endpc - sh4_x86.block_start_pc)>>1)*sh4_cpu_period ); // 5
     ADD_r32_sh4r( R_ECX, REG_OFFSET(slice_cycle) );     // 6
-    POP_r32(R_EBP);
-    RET();
+    exit_block();
 }
 
 
@@ -168,16 +173,15 @@ void exit_block_rel( sh4addr_t pc, sh4addr_t endpc )
     store_spreg( R_ECX, REG_OFFSET(pc) );               // 3
     if( IS_IN_ICACHE(pc) ) {
         REXW(); MOV_moff32_EAX( xlat_get_lut_entry(GET_ICACHE_PHYS(pc)) ); // 5
+        REXW(); AND_imm8s_r32( 0xFC, R_EAX ); // 4
     } else if( sh4_x86.tlb_on ) {
         call_func1(xlat_get_code_by_vma,R_ECX);
     } else {
         call_func1(xlat_get_code,R_ECX);
     }
-    REXW(); AND_imm8s_r32( 0xFC, R_EAX ); // 4
     load_imm32( R_ECX, ((endpc - sh4_x86.block_start_pc)>>1)*sh4_cpu_period ); // 5
     ADD_r32_sh4r( R_ECX, REG_OFFSET(slice_cycle) );     // 6
-    POP_r32(R_EBP);
-    RET();
+    exit_block();
 }
 
 /**
@@ -206,9 +210,8 @@ void sh4_translate_end_block( sh4addr_t pc ) {
         } else {
             call_func1(xlat_get_code,R_EAX);
         }
-        POP_r32(R_EBP);
-        RET();
-
+        exit_block();
+        
         // Exception already raised - just cleanup
         uint8_t *preexc_ptr = xlat_output;
         MOV_r32_r32( R_EDX, R_ECX );
@@ -223,8 +226,7 @@ void sh4_translate_end_block( sh4addr_t pc ) {
         } else {
             call_func0(xlat_get_code);
         }
-        POP_r32(R_EBP);
-        RET();
+        exit_block();
 
         for( i=0; i< sh4_x86.backpatch_posn; i++ ) {
             uint32_t *fixup_addr = (uint32_t *)&xlat_current_block->code[sh4_x86.backpatch_list[i].fixup_offset];
@@ -233,7 +235,7 @@ void sh4_translate_end_block( sh4addr_t pc ) {
                 load_imm32( R_EDX, sh4_x86.backpatch_list[i].fixup_icount );
                 int stack_adj = -1 - sh4_x86.backpatch_list[i].exc_code;
                 if( stack_adj > 0 ) { 
-                    ADD_imm8s_r32( stack_adj*4, R_ESP );
+                    REXW(); ADD_imm8s_r32( stack_adj*4, R_ESP );
                 }
                 int rel = preexc_ptr - xlat_output;
                 JMP_rel(rel);
@@ -247,26 +249,35 @@ void sh4_translate_end_block( sh4addr_t pc ) {
     }
 }
 
+struct UnwindInfo {
+    uintptr_t block_start;
+    uintptr_t block_end;
+    void *pc;
+};
+
 _Unwind_Reason_Code xlat_check_frame( struct _Unwind_Context *context, void *arg )
 {
-    void *rbp = (void *)_Unwind_GetGR(context, 6);
-    void *expect = (((uint8_t *)&sh4r) + 128 );
-    if( rbp == expect ) { 
-        void **result = (void **)arg;
-        *result = (void *)_Unwind_GetIP(context);
+    struct UnwindInfo *info = arg;
+    void *pc = (void *)_Unwind_GetIP(context);
+    if( ((uintptr_t)pc) >= info->block_start && ((uintptr_t)pc) < info->block_end ) {
+        info->pc = pc;
         return _URC_NORMAL_STOP;
     }
-
+   
     return _URC_NO_REASON;
 }
 
-void *xlat_get_native_pc( void *code, uint32_t size )
+void *xlat_get_native_pc( void *code, uint32_t code_size )
 {
     struct _Unwind_Exception exc;
+    struct UnwindInfo info;
 
+    info.pc = NULL;
+    info.block_start = (uintptr_t)code;
+    info.block_end = info.block_start + code_size;
     void *result = NULL;
-    _Unwind_Backtrace( xlat_check_frame, &result );
-    return result;
+    _Unwind_Backtrace( xlat_check_frame, &info );
+    return info.pc;
 }
 
 #endif /* !lxdream_ia64abi_H */

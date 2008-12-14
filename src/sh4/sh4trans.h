@@ -34,7 +34,7 @@ extern "C" {
 /** Maximum size of the translation epilogue (current real size is 116 bytes, so
  * allows a little room
  */
-#define EPILOGUE_SIZE 128
+#define EPILOGUE_SIZE 136
 
 /** Maximum number of recovery records for a translated block (2048 based on
  * 1 record per SH4 instruction in a 4K page).
