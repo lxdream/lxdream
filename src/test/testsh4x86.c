@@ -189,15 +189,15 @@ int main( int argc, char *argv[] )
     sh4_icache.page_ppa = start_addr & 0xFFFFF000;
 
     xlat_cache_init();
-    uint32_t pc;
+    uintptr_t pc;
     uint8_t *buf = sh4_translate_basic_block( start_addr );
     uint32_t buflen = xlat_get_code_size(buf);
-    x86_disasm_init( buf, 0x8c010000, buflen );
+    x86_disasm_init( buf, buf, buflen );
     x86_set_symtab( local_symbols, sizeof(local_symbols)/sizeof(struct x86_symbol) );
-    for( pc = 0x8c010000; pc < 0x8c010000 + buflen;  ) {
+    for( pc = buf; pc < buf + buflen;  ) {
 	char buf[256];
 	char op[256];
-	uint32_t pc2 = x86_disasm_instruction( pc, buf, sizeof(buf), op );
+	uintptr_t pc2 = x86_disasm_instruction( pc, buf, sizeof(buf), op );
 	fprintf( stdout, "%s\n", buf );
 	pc = pc2;
     }
