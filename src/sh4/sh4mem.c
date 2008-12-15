@@ -432,18 +432,3 @@ void mem_copy_to_sh4( sh4addr_t destaddr, sh4ptr_t src, size_t count ) {
     }
 }
 
-sh4ptr_t sh4_get_region_by_vma( sh4addr_t vma )
-{
-    sh4addr_t addr = mmu_vma_to_phys_read(vma);
-    if( addr == MMU_VMA_ERROR ) {
-        return NULL;
-    }
-
-    sh4ptr_t page = page_map[ (addr & 0x1FFFFFFF) >> 12 ];
-    if( ((uintptr_t)page) < MAX_IO_REGIONS ) { /* IO Region */
-        return NULL;
-    } else {
-        return page+(addr&0xFFF);
-    }
-}
-

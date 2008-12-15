@@ -24,6 +24,12 @@
 #include "sh4/sh4trans.h"
 #include "mem.h"
 
+#ifdef HAVE_FRAME_ADDRESS
+#define RETURN_VIA(exc) do{ *(((void **)__builtin_frame_address(0))+1) = exc; return; } while(0)
+#else
+#define RETURN_VIA(exc) return MMU_VMA_ERROR
+#endif
+
 #define VMA_TO_EXT_ADDR(vma) ((vma)&0x1FFFFFFF)
 
 /* The MMU (practically unique in the system) is allowed to raise exceptions
@@ -817,8 +823,12 @@ static inline int mmu_itlb_lookup_vpn( uint32_t vpn )
 
     return result;
 }
- 
+
+#ifdef HAVE_FRAME_ADDRESS
+sh4addr_t FASTCALL mmu_vma_to_phys_read( sh4vma_t addr, void *exc )
+#else
 sh4addr_t FASTCALL mmu_vma_to_phys_read( sh4vma_t addr )
+#endif
 {
     uint32_t mmucr = MMIO_READ(MMU,MMUCR);
     if( addr & 0x80000000 ) {
@@ -836,7 +846,7 @@ sh4addr_t FASTCALL mmu_vma_to_phys_read( sh4vma_t addr )
                 return addr;
             }
             MMU_READ_ADDR_ERROR();
-            return MMU_VMA_ERROR;
+            RETURN_VIA(exc);
         }
     }
 
@@ -855,16 +865,16 @@ sh4addr_t FASTCALL mmu_vma_to_phys_read( sh4vma_t addr )
     switch(entryNo) {
     case -1:
     MMU_TLB_READ_MISS_ERROR(addr);
-    return MMU_VMA_ERROR;
+    RETURN_VIA(exc);
     case -2:
     MMU_TLB_MULTI_HIT_ERROR(addr);
-    return MMU_VMA_ERROR;
+    RETURN_VIA(exc);
     default:
         if( (mmu_utlb[entryNo].flags & TLB_USERMODE) == 0 &&
                 !IS_SH4_PRIVMODE() ) {
             /* protection violation */
             MMU_TLB_READ_PROT_ERROR(addr);
-            return MMU_VMA_ERROR;
+            RETURN_VIA(exc);
         }
 
         /* finally generate the target address */
@@ -873,7 +883,11 @@ sh4addr_t FASTCALL mmu_vma_to_phys_read( sh4vma_t addr )
     }
 }
 
+#ifdef HAVE_FRAME_ADDRESS
+sh4addr_t FASTCALL mmu_vma_to_phys_write( sh4vma_t addr, void *exc )
+#else
 sh4addr_t FASTCALL mmu_vma_to_phys_write( sh4vma_t addr )
+#endif
 {
     uint32_t mmucr = MMIO_READ(MMU,MMUCR);
     if( addr & 0x80000000 ) {
@@ -891,7 +905,7 @@ sh4addr_t FASTCALL mmu_vma_to_phys_write( sh4vma_t addr )
                 return addr;
             }
             MMU_WRITE_ADDR_ERROR();
-            return MMU_VMA_ERROR;
+            RETURN_VIA(exc);
         }
     }
 
@@ -910,21 +924,21 @@ sh4addr_t FASTCALL mmu_vma_to_phys_write( sh4vma_t addr )
     switch(entryNo) {
     case -1:
     MMU_TLB_WRITE_MISS_ERROR(addr);
-    return MMU_VMA_ERROR;
+    RETURN_VIA(exc);
     case -2:
     MMU_TLB_MULTI_HIT_ERROR(addr);
-    return MMU_VMA_ERROR;
+    RETURN_VIA(exc);
     default:
         if( IS_SH4_PRIVMODE() ? ((mmu_utlb[entryNo].flags & TLB_WRITABLE) == 0)
                 : ((mmu_utlb[entryNo].flags & TLB_USERWRITABLE) != TLB_USERWRITABLE) ) {
             /* protection violation */
             MMU_TLB_WRITE_PROT_ERROR(addr);
-            return MMU_VMA_ERROR;
+            RETURN_VIA(exc);
         }
 
         if( (mmu_utlb[entryNo].flags & TLB_DIRTY) == 0 ) {
             MMU_TLB_INITIAL_WRITE_ERROR(addr);
-            return MMU_VMA_ERROR;
+            RETURN_VIA(exc);
         }
 
         /* finally generate the target address */

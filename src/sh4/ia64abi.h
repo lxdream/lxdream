@@ -43,6 +43,13 @@ static inline void call_func1( void *ptr, int arg1 )
     call_func0(ptr);
 }
 
+static inline void call_func1_exc( void *ptr, int arg1, int pc )
+{
+    REXW(); MOV_r32_r32(arg1, R_EDI);
+    load_exc_backpatch(R_ESI);
+    call_func0(ptr);
+}
+
 #define CALL_FUNC2_SIZE 16
 static inline void call_func2( void *ptr, int arg1, int arg2 )
 {
@@ -230,16 +237,17 @@ void sh4_translate_end_block( sh4addr_t pc ) {
 
         for( i=0; i< sh4_x86.backpatch_posn; i++ ) {
             uint32_t *fixup_addr = (uint32_t *)&xlat_current_block->code[sh4_x86.backpatch_list[i].fixup_offset];
-            *fixup_addr = xlat_output - (uint8_t *)&xlat_current_block->code[sh4_x86.backpatch_list[i].fixup_offset] - 4;
             if( sh4_x86.backpatch_list[i].exc_code < 0 ) {
-                load_imm32( R_EDX, sh4_x86.backpatch_list[i].fixup_icount );
-                int stack_adj = -1 - sh4_x86.backpatch_list[i].exc_code;
-                if( stack_adj > 0 ) { 
-                    REXW(); ADD_imm8s_r32( stack_adj*4, R_ESP );
+                if( sh4_x86.backpatch_list[i].exc_code == -2 ) {
+                    *((uintptr_t *)fixup_addr) = (uintptr_t)xlat_output; 
+                } else {
+                    *fixup_addr = xlat_output - (uint8_t *)&xlat_current_block->code[sh4_x86.backpatch_list[i].fixup_offset] - 4;
                 }
+                load_imm32( R_EDX, sh4_x86.backpatch_list[i].fixup_icount );
                 int rel = preexc_ptr - xlat_output;
                 JMP_rel(rel);
             } else {
+                *fixup_addr = xlat_output - (uint8_t *)&xlat_current_block->code[sh4_x86.backpatch_list[i].fixup_offset] - 4;
                 load_imm32( R_EDI, sh4_x86.backpatch_list[i].exc_code );
                 load_imm32( R_EDX, sh4_x86.backpatch_list[i].fixup_icount );
                 int rel = end_ptr - xlat_output;

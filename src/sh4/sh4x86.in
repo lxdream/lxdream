@@ -296,18 +296,22 @@ void static inline store_reg( int x86reg, int sh4reg ) {
 #define MEM_WRITE_WORD( addr_reg, value_reg ) call_func2(sh4_write_word, addr_reg, value_reg)
 #define MEM_WRITE_LONG( addr_reg, value_reg ) call_func2(sh4_write_long, addr_reg, value_reg)
 
+#ifdef HAVE_FRAME_ADDRESS
 /**
  * Perform MMU translation on the address in addr_reg for a read operation, iff the TLB is turned 
  * on, otherwise do nothing. Clobbers EAX, ECX and EDX. May raise a TLB exception or address error.
  */
-#define MMU_TRANSLATE_READ( addr_reg ) if( sh4_x86.tlb_on ) { call_func1(mmu_vma_to_phys_read, addr_reg); CMP_imm32_r32(MMU_VMA_ERROR, R_EAX); JE_exc(-1); MEM_RESULT(addr_reg); }
+#define MMU_TRANSLATE_READ( addr_reg ) if( sh4_x86.tlb_on ) {  call_func1_exc(mmu_vma_to_phys_read, addr_reg, pc); MEM_RESULT(addr_reg); }
 
-#define MMU_TRANSLATE_READ_EXC( addr_reg, exc_code ) if( sh4_x86.tlb_on ) { call_func1(mmu_vma_to_phys_read, addr_reg); CMP_imm32_r32(MMU_VMA_ERROR, R_EAX); JE_exc(exc_code); MEM_RESULT(addr_reg) }
 /**
  * Perform MMU translation on the address in addr_reg for a write operation, iff the TLB is turned 
  * on, otherwise do nothing. Clobbers EAX, ECX and EDX. May raise a TLB exception or address error.
  */
+#define MMU_TRANSLATE_WRITE( addr_reg ) if( sh4_x86.tlb_on ) { call_func1_exc(mmu_vma_to_phys_write, addr_reg, pc); MEM_RESULT(addr_reg); }
+#else
+#define MMU_TRANSLATE_READ( addr_reg ) if( sh4_x86.tlb_on ) { call_func1(mmu_vma_to_phys_read, addr_reg); CMP_imm32_r32(MMU_VMA_ERROR, R_EAX); JE_exc(-1); MEM_RESULT(addr_reg); }
 #define MMU_TRANSLATE_WRITE( addr_reg ) if( sh4_x86.tlb_on ) { call_func1(mmu_vma_to_phys_write, addr_reg); CMP_imm32_r32(MMU_VMA_ERROR, R_EAX); JE_exc(-1); MEM_RESULT(addr_reg); }
+#endif
 
 #define SLOTILLEGAL() JMP_exc(EXC_SLOT_ILLEGAL); sh4_x86.in_delay_slot = DELAY_NONE; return 1;
 
@@ -320,7 +324,7 @@ void static inline store_reg( int x86reg, int sh4reg ) {
 
 void sh4_translate_begin_block( sh4addr_t pc ) 
 {
-	enter_block();
+    enter_block();
     sh4_x86.in_delay_slot = FALSE;
     sh4_x86.priv_checked = FALSE;
     sh4_x86.fpuen_checked = FALSE;
