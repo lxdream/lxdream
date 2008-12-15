@@ -83,6 +83,9 @@ fi
 AC_CHECK_FASTCALL([
    AC_DEFINE(HAVE_FASTCALL, [1], [Use fast register-passing calling conventions])
 ])
+AC_CHECK_FRAME_ADDRESS( [
+   AC_DEFINE(HAVE_FRAME_ADDRESS, [1], [Define if we have a working builtin frame_address])
+], [ AC_MSG_WARN([Memory exceptions will be slow]) ])
 
 
 dnl ------------ Check if we're building on Darwin --------------

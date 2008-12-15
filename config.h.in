@@ -49,6 +49,9 @@
 /* Use fast register-passing calling conventions */
 #undef HAVE_FASTCALL
 
+/* Define if we have a working builtin frame_address */
+#undef HAVE_FRAME_ADDRESS
+
 /* Define if the GNU gettext() function is already present or preinstalled. */
 #undef HAVE_GETTEXT
 

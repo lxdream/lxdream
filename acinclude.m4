@@ -18,3 +18,37 @@ int main(int argc, char *argv[])
    $2 ])
 ])
 
+# AC_CHECK_FRAME_ADDRESS([if-ok],[if-notok])
+# Test if the compiler will let us modify the return address on the stack
+# via __builtin_frame_address()
+# -----------------------
+AC_DEFUN([AC_CHECK_FRAME_ADDRESS], [
+AC_MSG_CHECKING([if we have a working __builtin_frame_address()]);
+AC_RUN_IFELSE([
+  AC_LANG_SOURCE([[
+void * __attribute__((noinline)) first_arg( void *x, void *y ) { return x; }
+int __attribute__((noinline)) foo( int arg, void *exc )
+{
+    if( arg < 2 ) {
+        *(((void **)__builtin_frame_address(0))+1) = exc;
+    }
+    return 0;
+}
+
+int main(int argc, char *argv[])
+{
+   goto *first_arg(&&start, &&except);
+   
+start:
+   return foo( argc, &&except ) + 1;
+
+except:
+   return 0;
+}]])], [ 
+   AC_MSG_RESULT([yes])
+   $1 ], [ 
+   AC_MSG_RESULT([no])
+   $2 ])
+])
+
+

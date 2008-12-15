@@ -53,6 +53,27 @@ static inline void call_func2( void *ptr, int arg1, int arg2 )
     CALL_ptr(ptr);
 }
 
+static inline void call_func1_exc( void *ptr, int arg1, int pc )
+{
+    if( arg1 != R_EAX ) {
+        MOV_r32_r32( arg1, R_EAX );
+    }
+    load_exc_backpatch(R_EDX);
+    CALL_ptr(ptr);
+}   
+
+static inline void call_func2_exc( void *ptr, int arg1, int arg2, int pc )
+{
+    if( arg2 != R_EDX ) {
+        MOV_r32_r32( arg2, R_EDX );
+    }
+    if( arg1 != R_EAX ) {
+        MOV_r32_r32( arg1, R_EAX );
+    }
+    load_exc_backpatch(R_ECX);
+    CALL_ptr(ptr);
+}
+
 /**
  * Write a double (64-bit) value into memory, with the first word in arg2a, and
  * the second in arg2b
@@ -285,16 +306,17 @@ void sh4_translate_end_block( sh4addr_t pc ) {
 
         for( i=0; i< sh4_x86.backpatch_posn; i++ ) {
             uint32_t *fixup_addr = (uint32_t *)&xlat_current_block->code[sh4_x86.backpatch_list[i].fixup_offset];
-            *fixup_addr = xlat_output - (uint8_t *)&xlat_current_block->code[sh4_x86.backpatch_list[i].fixup_offset] - 4;
             if( sh4_x86.backpatch_list[i].exc_code < 0 ) {
-                load_imm32( R_EDX, sh4_x86.backpatch_list[i].fixup_icount );
-                int stack_adj = -1 - sh4_x86.backpatch_list[i].exc_code;
-                if( stack_adj > 0 ) { 
-                    ADD_imm8s_r32( stack_adj, R_ESP );
+                if( sh4_x86.backpatch_list[i].exc_code == -2 ) {
+                    *fixup_addr = (uint32_t)xlat_output;
+                } else {
+                    *fixup_addr += xlat_output - (uint8_t *)&xlat_current_block->code[sh4_x86.backpatch_list[i].fixup_offset] - 4;
                 }
+                load_imm32( R_EDX, sh4_x86.backpatch_list[i].fixup_icount );
                 int rel = preexc_ptr - xlat_output;
                 JMP_rel(rel);
             } else {
+                *fixup_addr += xlat_output - (uint8_t *)&xlat_current_block->code[sh4_x86.backpatch_list[i].fixup_offset] - 4;
                 PUSH_imm32( sh4_x86.backpatch_list[i].exc_code );
                 load_imm32( R_EDX, sh4_x86.backpatch_list[i].fixup_icount );
                 int rel = end_ptr - xlat_output;

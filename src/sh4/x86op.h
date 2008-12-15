@@ -54,11 +54,13 @@ extern "C" {
 #define AND_imm8s_rptr(imm, r1)  REXW(); AND_imm8s_r32( imm, r1 )
 #define LEA_sh4r_rptr(disp, r1) REXW(); LEA_sh4r_r32(disp,r1)
 #define MOV_moffptr_EAX(offptr)  REXW(); MOV_moff32_EAX( offptr )
+#define load_exc_backpatch( x86reg )  REXW(); OP(0xB8 + x86reg); sh4_x86_add_backpatch( xlat_output, pc, -2 ); OP64( 0 )
 #else /* 32-bit system */
 #define OPPTR(x) OP32((uint32_t)(x))
 #define AND_imm8s_rptr(imm, r1) AND_imm8s_r32( imm, r1 )
 #define LEA_sh4r_rptr(disp, r1) LEA_sh4r_r32(disp,r1)
 #define MOV_moffptr_EAX(offptr) MOV_moff32_EAX( offptr )
+#define load_exc_backpatch( x86reg )  OP(0xB8 + x86reg); sh4_x86_add_backpatch( xlat_output, pc, -2 ); OP32( 0 )
 #endif
 #define STACK_ALIGN 16
 #define POP_r32(r1)           OP(0x58 + r1)

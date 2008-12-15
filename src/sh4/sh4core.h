@@ -199,8 +199,13 @@ gboolean FASTCALL mmu_update_icache( sh4vma_t addr );
  * @return An external address (0x00000000-0x1FFFFFFF), a P4 address
  * (0xE0000000 - 0xFFFFFFFF), or MMU_VMA_ERROR.
  */
+#ifdef HAVE_FRAME_ADDRESS
+sh4addr_t FASTCALL mmu_vma_to_phys_read( sh4vma_t addr, void *exc );
+sh4addr_t FASTCALL mmu_vma_to_phys_write( sh4vma_t addr, void *exc );
+#else
 sh4addr_t FASTCALL mmu_vma_to_phys_read( sh4vma_t addr );
 sh4addr_t FASTCALL mmu_vma_to_phys_write( sh4vma_t addr );
+#endif
 sh4addr_t FASTCALL mmu_vma_to_phys_disasm( sh4vma_t addr );
 
 int64_t FASTCALL sh4_read_quad( sh4addr_t addr );
