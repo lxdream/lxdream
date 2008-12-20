@@ -81,7 +81,7 @@ void mem_reset( void )
         for( j=0; io_rgn[i]->ports[j].id != NULL; j++ ) {
             if( io_rgn[i]->ports[j].def_val != UNDEFINED &&
                     io_rgn[i]->ports[j].def_val != *io_rgn[i]->ports[j].val ) {
-                io_rgn[i]->io_write( io_rgn[i]->ports[j].offset,
+                io_rgn[i]->fn.write_long( io_rgn[i]->ports[j].offset,
                         io_rgn[i]->ports[j].def_val );
             }
         }
@@ -225,7 +225,7 @@ int mem_load_block( const gchar *file, uint32_t start, uint32_t length )
 }
 
 struct mem_region *mem_map_region( void *mem, uint32_t base, uint32_t size,
-                                   const char *name, int flags, uint32_t repeat_offset,
+                                   const char *name, mem_region_fn_t fn, int flags, uint32_t repeat_offset,
                                    uint32_t repeat_until )
 {
     int i;
@@ -234,6 +234,7 @@ struct mem_region *mem_map_region( void *mem, uint32_t base, uint32_t size,
     mem_rgn[num_mem_rgns].flags = flags;
     mem_rgn[num_mem_rgns].name = name;
     mem_rgn[num_mem_rgns].mem = mem;
+    mem_rgn[num_mem_rgns].fn = fn;
     num_mem_rgns++;
 
     do {
@@ -245,12 +246,13 @@ struct mem_region *mem_map_region( void *mem, uint32_t base, uint32_t size,
     return &mem_rgn[num_mem_rgns-1];
 }
 
-void *mem_create_ram_region( uint32_t base, uint32_t size, const char *name )
+void *mem_create_ram_region( uint32_t base, uint32_t size, const char *name, mem_region_fn_t fn )
 {
-    return mem_create_repeating_ram_region( base, size, name, size, base );
+    return mem_create_repeating_ram_region( base, size, name, fn, size, base );
 }
 
 void *mem_create_repeating_ram_region( uint32_t base, uint32_t size, const char *name,
+                                       mem_region_fn_t fn,
                                        uint32_t repeat_offset, uint32_t repeat_until )
 {
     char *mem;
@@ -262,13 +264,13 @@ void *mem_create_repeating_ram_region( uint32_t base, uint32_t size, const char 
 
     mem = mem_alloc_pages( size>>LXDREAM_PAGE_BITS );
 
-    mem_map_region( mem, base, size, name, MEM_FLAG_RAM, repeat_offset, repeat_until );
+    mem_map_region( mem, base, size, name, fn, MEM_FLAG_RAM, repeat_offset, repeat_until );
 
     return mem;
 }
 
 gboolean mem_load_rom( const gchar *file, uint32_t base, uint32_t size, uint32_t crc,
-                       const gchar *region_name )
+                       const gchar *region_name, mem_region_fn_t fn )
 {
     sh4ptr_t mem;
     uint32_t calc_crc;
@@ -281,7 +283,7 @@ gboolean mem_load_rom( const gchar *file, uint32_t base, uint32_t size, uint32_t
             ERROR( "Unable to allocate ROM memory: %s (%s)", file, strerror(errno) );
             return FALSE;
         }
-        mem_map_region( mem, base, size, region_name, MEM_FLAG_ROM, size, base );
+        mem_map_region( mem, base, size, region_name, fn, MEM_FLAG_ROM, size, base );
     } else {
         mprotect( mem, size, PROT_READ|PROT_WRITE );
     }

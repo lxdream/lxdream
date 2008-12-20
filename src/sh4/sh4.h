@@ -87,6 +87,13 @@ struct sh4_registers {
      * a delay slot (certain rules apply) */
     uint32_t slice_cycle; /* Current nanosecond within the timeslice */
     int sh4_state; /* Current power-on state (one of the SH4_STATE_* values ) */
+    
+    /* lxdream cache structures below this point */
+    struct {
+        uint32_t page_vma;
+        uint32_t page_mask;
+        struct mem_region_fn *page_fn;
+    } pointer_cache[17];
 };
 
 extern struct sh4_registers sh4r;

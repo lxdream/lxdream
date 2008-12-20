@@ -18,11 +18,121 @@
 #include <string.h>
 #include <stdio.h>
 #include <errno.h>
+#include "sh4/sh4core.h"
 #include "pvr2.h"
 #include "asic.h"
 #include "dream.h"
 
 extern unsigned char *video_base;
+
+/************************* VRAM32 address space ***************************/
+
+static int32_t FASTCALL pvr2_vram32_read_long( sh4addr_t addr )
+{
+    pvr2_render_buffer_invalidate(addr, FALSE);
+    return *((int32_t *)(video_base+(addr&0x007FFFFF)));
+}
+static int32_t FASTCALL pvr2_vram32_read_word( sh4addr_t addr )
+{
+    pvr2_render_buffer_invalidate(addr, FALSE);
+    return SIGNEXT16(*((int16_t *)(video_base+(addr&0x007FFFFF))));
+}
+static int32_t FASTCALL pvr2_vram32_read_byte( sh4addr_t addr )
+{
+    pvr2_render_buffer_invalidate(addr, FALSE);
+    return SIGNEXT8(*((int8_t *)(video_base+(addr&0x007FFFFF))));
+}
+static void FASTCALL pvr2_vram32_write_long( sh4addr_t addr, uint32_t val )
+{
+    pvr2_render_buffer_invalidate(addr, TRUE);
+    *(uint32_t *)(video_base + (addr&0x007FFFFF)) = val;
+}
+static void FASTCALL pvr2_vram32_write_word( sh4addr_t addr, uint32_t val )
+{
+    pvr2_render_buffer_invalidate(addr, TRUE);
+    *(uint16_t *)(video_base + (addr&0x007FFFFF)) = (uint16_t)val;
+}
+static void FASTCALL pvr2_vram32_write_byte( sh4addr_t addr, uint32_t val )
+{
+    pvr2_render_buffer_invalidate(addr, TRUE);
+    *(uint8_t *)(video_base + (addr&0x007FFFFF)) = (uint8_t)val;
+}
+static void FASTCALL pvr2_vram32_read_burst( unsigned char *dest, sh4addr_t addr )
+{
+    // Render buffers pretty much have to be (at least) 32-byte aligned
+    pvr2_render_buffer_invalidate(addr, FALSE);
+    memcpy( dest, (video_base + (addr&0x007FFFFF)), 32 );
+}
+static void FASTCALL pvr2_vram32_write_burst( sh4addr_t addr, unsigned char *src )
+{
+    // Render buffers pretty much have to be (at least) 32-byte aligned
+    pvr2_render_buffer_invalidate(addr, TRUE);
+    memcpy( (video_base + (addr&0x007FFFFF)), src, 32 );    
+}
+
+struct mem_region_fn mem_region_vram32 = { pvr2_vram32_read_long, pvr2_vram32_write_long, 
+        pvr2_vram32_read_word, pvr2_vram32_write_word, 
+        pvr2_vram32_read_byte, pvr2_vram32_write_byte, 
+        pvr2_vram32_read_burst, pvr2_vram32_write_burst }; 
+
+/************************* VRAM64 address space ***************************/
+
+#define TRANSLATE_VIDEO_64BIT_ADDRESS(a)  ( (((a)&0x00FFFFF8)>>1)|(((a)&0x00000004)<<20)|((a)&0x03) )
+
+static int32_t FASTCALL pvr2_vram64_read_long( sh4addr_t addr )
+{
+    addr = TRANSLATE_VIDEO_64BIT_ADDRESS(addr);
+    pvr2_render_buffer_invalidate(addr, FALSE);
+    return *((int32_t *)(video_base+(addr&0x007FFFFF)));
+}
+static int32_t FASTCALL pvr2_vram64_read_word( sh4addr_t addr )
+{
+    addr = TRANSLATE_VIDEO_64BIT_ADDRESS(addr);
+    pvr2_render_buffer_invalidate(addr, FALSE);
+    return SIGNEXT16(*((int16_t *)(video_base+(addr&0x007FFFFF))));
+}
+static int32_t FASTCALL pvr2_vram64_read_byte( sh4addr_t addr )
+{
+    addr = TRANSLATE_VIDEO_64BIT_ADDRESS(addr);
+    pvr2_render_buffer_invalidate(addr, FALSE);
+    return SIGNEXT8(*((int8_t *)(video_base+(addr&0x007FFFFF))));
+}
+static void FASTCALL pvr2_vram64_write_long( sh4addr_t addr, uint32_t val )
+{
+    texcache_invalidate_page(addr& 0x007FFFFF);
+    addr = TRANSLATE_VIDEO_64BIT_ADDRESS(addr);
+    pvr2_render_buffer_invalidate(addr, TRUE);
+    *(uint32_t *)(video_base + (addr&0x007FFFFF)) = val;
+}
+static void FASTCALL pvr2_vram64_write_word( sh4addr_t addr, uint32_t val )
+{
+    texcache_invalidate_page(addr& 0x007FFFFF);
+    addr = TRANSLATE_VIDEO_64BIT_ADDRESS(addr);
+    pvr2_render_buffer_invalidate(addr, TRUE);
+    *(uint16_t *)(video_base + (addr&0x007FFFFF)) = (uint16_t)val;
+}
+static void FASTCALL pvr2_vram64_write_byte( sh4addr_t addr, uint32_t val )
+{
+    texcache_invalidate_page(addr& 0x007FFFFF);
+    addr = TRANSLATE_VIDEO_64BIT_ADDRESS(addr);
+    pvr2_render_buffer_invalidate(addr, TRUE);
+    *(uint8_t *)(video_base + (addr&0x007FFFFF)) = (uint8_t)val;
+}
+static void FASTCALL pvr2_vram64_read_burst( unsigned char *dest, sh4addr_t addr )
+{
+    pvr2_vram64_read( dest, addr, 32 );
+}
+static void FASTCALL pvr2_vram64_write_burst( sh4addr_t addr, unsigned char *src )
+{
+    pvr2_vram64_write( addr, src, 32 );
+}
+
+struct mem_region_fn mem_region_vram64 = { pvr2_vram64_read_long, pvr2_vram64_write_long, 
+        pvr2_vram64_read_word, pvr2_vram64_write_word, 
+        pvr2_vram64_read_byte, pvr2_vram64_write_byte, 
+        pvr2_vram64_read_burst, pvr2_vram64_write_burst }; 
+
+
 
 void pvr2_dma_write( sh4addr_t destaddr, unsigned char *src, uint32_t count )
 {

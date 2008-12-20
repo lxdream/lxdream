@@ -143,8 +143,9 @@ static uint32_t get_mask_for_flags( uint32_t flags )
     }
 }
 
-int32_t mmio_region_MMU_read( uint32_t reg )
+MMIO_REGION_READ_FN( MMU, reg )
 {
+    reg &= 0xFFF;
     switch( reg ) {
     case MMUCR:
         return MMIO_READ( MMU, MMUCR) | (mmu_urc<<10) | (mmu_urb<<18) | (mmu_lrui<<26);
@@ -153,9 +154,10 @@ int32_t mmio_region_MMU_read( uint32_t reg )
     }
 }
 
-void mmio_region_MMU_write( uint32_t reg, uint32_t val )
+MMIO_REGION_WRITE_FN( MMU, reg, val )
 {
     uint32_t tmp;
+    reg &= 0xFFF;
     switch(reg) {
     case SH4VER:
         return;
@@ -448,18 +450,18 @@ static void mmu_invalidate_tlb()
 
 #define ITLB_ENTRY(addr) ((addr>>7)&0x03)
 
-int32_t mmu_itlb_addr_read( sh4addr_t addr )
+int32_t FASTCALL mmu_itlb_addr_read( sh4addr_t addr )
 {
     struct itlb_entry *ent = &mmu_itlb[ITLB_ENTRY(addr)];
     return ent->vpn | ent->asid | (ent->flags & TLB_VALID);
 }
-int32_t mmu_itlb_data_read( sh4addr_t addr )
+int32_t FASTCALL mmu_itlb_data_read( sh4addr_t addr )
 {
     struct itlb_entry *ent = &mmu_itlb[ITLB_ENTRY(addr)];
     return (ent->ppn & 0x1FFFFC00) | ent->flags;
 }
 
-void mmu_itlb_addr_write( sh4addr_t addr, uint32_t val )
+void FASTCALL mmu_itlb_addr_write( sh4addr_t addr, uint32_t val )
 {
     struct itlb_entry *ent = &mmu_itlb[ITLB_ENTRY(addr)];
     ent->vpn = val & 0xFFFFFC00;
@@ -467,7 +469,7 @@ void mmu_itlb_addr_write( sh4addr_t addr, uint32_t val )
     ent->flags = (ent->flags & ~(TLB_VALID)) | (val&TLB_VALID);
 }
 
-void mmu_itlb_data_write( sh4addr_t addr, uint32_t val )
+void FASTCALL mmu_itlb_data_write( sh4addr_t addr, uint32_t val )
 {
     struct itlb_entry *ent = &mmu_itlb[ITLB_ENTRY(addr)];
     ent->ppn = val & 0x1FFFFC00;
@@ -481,13 +483,13 @@ void mmu_itlb_data_write( sh4addr_t addr, uint32_t val )
 #define UTLB_ASSOC(addr) (addr&0x80)
 #define UTLB_DATA2(addr) (addr&0x00800000)
 
-int32_t mmu_utlb_addr_read( sh4addr_t addr )
+int32_t FASTCALL mmu_utlb_addr_read( sh4addr_t addr )
 {
     struct utlb_entry *ent = &mmu_utlb[UTLB_ENTRY(addr)];
     return ent->vpn | ent->asid | (ent->flags & TLB_VALID) |
     ((ent->flags & TLB_DIRTY)<<7);
 }
-int32_t mmu_utlb_data_read( sh4addr_t addr )
+int32_t FASTCALL mmu_utlb_data_read( sh4addr_t addr )
 {
     struct utlb_entry *ent = &mmu_utlb[UTLB_ENTRY(addr)];
     if( UTLB_DATA2(addr) ) {
@@ -540,7 +542,7 @@ static inline int mmu_itlb_lookup_assoc( uint32_t vpn, uint32_t asid )
     return result;
 }
 
-void mmu_utlb_addr_write( sh4addr_t addr, uint32_t val )
+void FASTCALL mmu_utlb_addr_write( sh4addr_t addr, uint32_t val )
 {
     if( UTLB_ASSOC(addr) ) {
         int utlb = mmu_utlb_lookup_assoc( val, mmu_asid );
@@ -581,7 +583,7 @@ void mmu_utlb_addr_write( sh4addr_t addr, uint32_t val )
     }
 }
 
-void mmu_utlb_data_write( sh4addr_t addr, uint32_t val )
+void FASTCALL mmu_utlb_data_write( sh4addr_t addr, uint32_t val )
 {
     struct utlb_entry *ent = &mmu_utlb[UTLB_ENTRY(addr)];
     if( UTLB_DATA2(addr) ) {
@@ -601,36 +603,36 @@ void mmu_utlb_data_write( sh4addr_t addr, uint32_t val )
 
 /* Cache access - not implemented */
 
-int32_t mmu_icache_addr_read( sh4addr_t addr )
+int32_t FASTCALL mmu_icache_addr_read( sh4addr_t addr )
 {
     return 0; // not implemented
 }
-int32_t mmu_icache_data_read( sh4addr_t addr )
+int32_t FASTCALL mmu_icache_data_read( sh4addr_t addr )
 {
     return 0; // not implemented
 }
-int32_t mmu_ocache_addr_read( sh4addr_t addr )
+int32_t FASTCALL mmu_ocache_addr_read( sh4addr_t addr )
 {
     return 0; // not implemented
 }
-int32_t mmu_ocache_data_read( sh4addr_t addr )
+int32_t FASTCALL mmu_ocache_data_read( sh4addr_t addr )
 {
     return 0; // not implemented
 }
 
-void mmu_icache_addr_write( sh4addr_t addr, uint32_t val )
+void FASTCALL mmu_icache_addr_write( sh4addr_t addr, uint32_t val )
 {
 }
 
-void mmu_icache_data_write( sh4addr_t addr, uint32_t val )
+void FASTCALL mmu_icache_data_write( sh4addr_t addr, uint32_t val )
 {
 }
 
-void mmu_ocache_addr_write( sh4addr_t addr, uint32_t val )
+void FASTCALL mmu_ocache_addr_write( sh4addr_t addr, uint32_t val )
 {
 }
 
-void mmu_ocache_data_write( sh4addr_t addr, uint32_t val )
+void FASTCALL mmu_ocache_data_write( sh4addr_t addr, uint32_t val )
 {
 }
 

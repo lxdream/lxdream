@@ -170,6 +170,8 @@ uint32_t sh4_translate_run_slice(uint32_t);
 uint32_t sh4_emulate_run_slice(uint32_t);
 
 /* SH4 instruction support methods */
+mem_region_fn_t FASTCALL sh7750_decode_address( sh4addr_t address );
+void FASTCALL sh7750_decode_address_copy( sh4addr_t address, mem_region_fn_t result );
 void FASTCALL sh4_sleep( void );
 void FASTCALL sh4_fsca( uint32_t angle, float *fr );
 void FASTCALL sh4_ftrv( float *fv );

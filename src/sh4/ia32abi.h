@@ -42,6 +42,22 @@ static inline void call_func1( void *ptr, int arg1 )
     CALL_ptr(ptr);
 }
 
+static inline void call_func1_r32( int addr_reg, int arg1 )
+{
+    if( arg1 != R_EAX ) {
+        MOV_r32_r32( arg1, R_EAX );
+    }
+    CALL_r32(addr_reg);
+}
+
+static inline void call_func1_r32ind( int preg, uint32_t disp32, int arg1 )
+{
+    if( arg1 != R_EAX ) {
+        MOV_r32_r32( arg1, R_EAX );
+    }
+    CALL_r32ind(preg, disp32);
+}
+
 static inline void call_func2( void *ptr, int arg1, int arg2 )
 {
     if( arg2 != R_EDX ) {
@@ -52,6 +68,30 @@ static inline void call_func2( void *ptr, int arg1, int arg2 )
     }
     CALL_ptr(ptr);
 }
+
+static inline void call_func2_r32( int addr_reg, int arg1, int arg2 )
+{
+    if( arg2 != R_EDX ) {
+        MOV_r32_r32( arg2, R_EDX );
+    }
+    if( arg1 != R_EAX ) {
+        MOV_r32_r32( arg1, R_EAX );
+    }
+    CALL_r32(addr_reg);
+}
+
+static inline void call_func2_r32ind( int preg, uint32_t disp32, int arg1, int arg2 )
+{
+    if( arg2 != R_EDX ) {
+        MOV_r32_r32( arg2, R_EDX );
+    }
+    if( arg1 != R_EAX ) {
+        MOV_r32_r32( arg1, R_EAX );
+    }
+    CALL_r32ind(preg, disp32);
+}
+
+
 
 static inline void call_func1_exc( void *ptr, int arg1, int pc )
 {
@@ -174,12 +214,14 @@ void enter_block( )
 {
     PUSH_r32(R_EBP);
     load_ptr( R_EBP, ((uint8_t *)&sh4r) + 128 );
-    SUB_imm8s_r32( 8, R_ESP ); 
+    PUSH_r32(R_EBX);
+    SUB_imm8s_r32( 4, R_ESP ); 
 }
 
 static inline void exit_block( )
 {
-    ADD_imm8s_r32( 8, R_ESP );
+    ADD_imm8s_r32( 4, R_ESP );
+    POP_r32(R_EBX);
     POP_r32(R_EBP);
     RET();
 }

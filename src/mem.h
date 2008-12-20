@@ -27,12 +27,24 @@
 extern "C" {
 #endif
 
+typedef struct mem_region_fn {
+    FASTCALL int32_t (*read_long)(sh4addr_t addr);
+    FASTCALL void (*write_long)(sh4addr_t addr, uint32_t val);
+    FASTCALL int32_t (*read_word)(sh4addr_t addr);
+    FASTCALL void (*write_word)(sh4addr_t addr, uint32_t val);
+    FASTCALL int32_t (*read_byte)(sh4addr_t addr);
+    FASTCALL void (*write_byte)(sh4addr_t addr, uint32_t val);
+    FASTCALL void (*read_burst)(unsigned char *dest, sh4addr_t addr);
+    FASTCALL void (*write_burst)(sh4addr_t addr, unsigned char *src);
+} *mem_region_fn_t;
+    
 typedef struct mem_region {
     uint32_t base;
     uint32_t size;
     const char *name;
     sh4ptr_t mem;
     uint32_t flags;
+    mem_region_fn_t fn;
 } *mem_region_t;
 
 #define MAX_IO_REGIONS 24
@@ -45,8 +57,8 @@ typedef struct mem_region {
 #define MEM_REGION_AUDIO_SCRATCH "Audio Scratch RAM"
 #define MEM_REGION_FLASH "System Flash"
 
-void *mem_create_ram_region( uint32_t base, uint32_t size, const char *name );
-void *mem_create_repeating_ram_region( uint32_t base, uint32_t size, const char *name, 
+void *mem_create_ram_region( uint32_t base, uint32_t size, const char *name, mem_region_fn_t fn );
+void *mem_create_repeating_ram_region( uint32_t base, uint32_t size, const char *name, mem_region_fn_t fn,
 				       uint32_t repeat_offset, uint32_t last_repeat );
 /**
  * Load a ROM image from the specified filename. If the memory region has not
@@ -55,7 +67,7 @@ void *mem_create_repeating_ram_region( uint32_t base, uint32_t size, const char 
  * @return TRUE if the image was loaded successfully (irrespective of CRC failure).
  */
 gboolean mem_load_rom( const gchar *filename, uint32_t base, uint32_t size, 
-		       uint32_t crc, const gchar *region_name );
+		       uint32_t crc, const gchar *region_name, mem_region_fn_t fn );
 void *mem_alloc_pages( int n );
 sh4ptr_t mem_get_region( uint32_t addr );
 sh4ptr_t mem_get_region_by_name( const char *name );

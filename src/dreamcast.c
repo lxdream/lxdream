@@ -58,6 +58,13 @@ dreamcast_module_t modules[MAX_MODULES];
 struct dreamcast_module unknown_module = { "****", NULL, NULL, NULL, NULL, 
         NULL, NULL, NULL };
 
+extern struct mem_region_fn mem_region_sdram;
+extern struct mem_region_fn mem_region_vram32;
+extern struct mem_region_fn mem_region_vram64;
+extern struct mem_region_fn mem_region_audioram;
+extern struct mem_region_fn mem_region_flashram;
+extern struct mem_region_fn mem_region_bootrom;
+
 /**
  * This function is responsible for defining how all the pieces of the
  * dreamcast actually fit together. 
@@ -75,12 +82,12 @@ void dreamcast_configure( )
     dreamcast_register_module( &mem_module );
 
     /* Setup standard memory map */
-    mem_create_repeating_ram_region( 0x0C000000, 16 MB, MEM_REGION_MAIN, 0x01000000, 0x0F000000 );
-    mem_create_ram_region( 0x00800000, 2 MB, MEM_REGION_AUDIO );
-    mem_create_ram_region( 0x00703000, 8 KB, MEM_REGION_AUDIO_SCRATCH );
-    mem_create_ram_region( 0x05000000, 8 MB, MEM_REGION_VIDEO );
-    dreamcast_has_bios = mem_load_rom( bios_path, 0x00000000, 0x00200000, 0x89f2b1a1, MEM_REGION_BIOS );
-    mem_create_ram_region( 0x00200000, 0x00020000, MEM_REGION_FLASH );
+    mem_create_repeating_ram_region( 0x0C000000, 16 MB, MEM_REGION_MAIN, &mem_region_sdram, 0x01000000, 0x0F000000 );
+    mem_create_ram_region( 0x00800000, 2 MB, MEM_REGION_AUDIO, &mem_region_audioram );
+    mem_create_ram_region( 0x00703000, 8 KB, MEM_REGION_AUDIO_SCRATCH, NULL );
+    mem_create_ram_region( 0x05000000, 8 MB, MEM_REGION_VIDEO, &mem_region_vram32 );
+    dreamcast_has_bios = mem_load_rom( bios_path, 0x00000000, 0x00200000, 0x89f2b1a1, MEM_REGION_BIOS, &mem_region_bootrom );
+    mem_create_ram_region( 0x00200000, 0x00020000, MEM_REGION_FLASH, &mem_region_flashram );
     if( flash_path != NULL && flash_path[0] != '\0' ) {
         mem_load_block( flash_path, 0x00200000, 0x00020000 );
     }
@@ -99,7 +106,7 @@ void dreamcast_config_changed(void)
 {
     const char *bios_path = lxdream_get_config_value(CONFIG_BIOS_PATH);
     const char *flash_path = lxdream_get_config_value(CONFIG_FLASH_PATH);
-    dreamcast_has_bios = mem_load_rom( bios_path, 0x00000000, 0x00200000, 0x89f2b1a1, MEM_REGION_BIOS );
+    dreamcast_has_bios = mem_load_rom( bios_path, 0x00000000, 0x00200000, 0x89f2b1a1, MEM_REGION_BIOS, &mem_region_bootrom );
     if( flash_path != NULL && flash_path[0] != '\0' ) {
         mem_load_block( flash_path, 0x00200000, 0x00020000 );
     }
@@ -120,8 +127,8 @@ void dreamcast_save_flash()
 void dreamcast_configure_aica_only( )
 {
     dreamcast_register_module( &mem_module );
-    mem_create_ram_region( 0x00800000, 2 MB, MEM_REGION_AUDIO );
-    mem_create_ram_region( 0x00703000, 8 KB, MEM_REGION_AUDIO_SCRATCH );
+    mem_create_ram_region( 0x00800000, 2 MB, MEM_REGION_AUDIO, &mem_region_audioram );
+    mem_create_ram_region( 0x00703000, 8 KB, MEM_REGION_AUDIO_SCRATCH, NULL );
     dreamcast_register_module( &aica_module );
     aica_enable();
     dreamcast_state = STATE_STOPPED;
@@ -243,6 +250,7 @@ void dreamcast_shutdown()
 #ifdef ENABLE_SH4STATS
     sh4_stats_print(stdout);
 #endif
+    print_sh4mem_stats();
 }
 
 void dreamcast_program_loaded( const gchar *name, sh4addr_t entry_point )

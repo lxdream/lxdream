@@ -131,8 +131,8 @@ void PMM_write_control( int ctr, uint32_t val )
     }
 }
 
-int32_t mmio_region_PMM_read( uint32_t reg )
-{
+MMIO_REGION_READ_FN( PMM, reg )
+{   
     switch( reg & 0x1F ) {
     case 0: return 0; /* not a register */
     case PMCTR1H: 
@@ -150,7 +150,7 @@ int32_t mmio_region_PMM_read( uint32_t reg )
     }
 }
 
-void mmio_region_PMM_write( uint32_t reg, uint32_t val )
+MMIO_REGION_WRITE_FN( PMM, reg, val )
 {
     /* Read-only */
 }
