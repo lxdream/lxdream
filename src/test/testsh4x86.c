@@ -85,6 +85,14 @@ int32_t FASTCALL sh4_read_long( uint32_t addr )
 {
     return *(uint32_t *)(inbuf+(addr-start_addr));
 }
+mem_region_fn_t FASTCALL sh7750_decode_address( sh4addr_t address )
+{
+    return NULL;
+}
+void FASTCALL sh7750_decode_address_copy( sh4addr_t address, mem_region_fn_t out )
+{
+}
+
 // Stubs
 gboolean sh4_execute_instruction( ) { return TRUE; }
 void sh4_accept_interrupt() {}
@@ -175,6 +183,8 @@ int main( int argc, char *argv[] )
     mmio_region_MMU.mem = malloc(4096);
     memset( mmio_region_MMU.mem, 0, 4096 );
 
+    ((uint32_t *)mmio_region_MMU.mem)[4] = 1;
+
     in = fopen( input_file, "ro" );
     if( in == NULL ) {
 	perror( "Unable to open input file" );
@@ -198,7 +208,7 @@ int main( int argc, char *argv[] )
 	char buf[256];
 	char op[256];
 	uintptr_t pc2 = x86_disasm_instruction( pc, buf, sizeof(buf), op );
-	fprintf( stdout, "%s\n", buf );
+	fprintf( stdout, "%08x: %s\n", pc, buf );
 	pc = pc2;
     }
     return 0;

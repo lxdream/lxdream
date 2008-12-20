@@ -416,8 +416,38 @@ void sort_dma_transfer( )
     MMIO_WRITE( ASIC, SORTDMACTL, 0 );
 }
 
-void mmio_region_ASIC_write( uint32_t reg, uint32_t val )
+MMIO_REGION_READ_FN( ASIC, reg )
 {
+    int32_t val;
+    reg &= 0xFFF;
+    switch( reg ) {
+    case PIRQ0:
+    case PIRQ1:
+    case PIRQ2:
+    case IRQA0:
+    case IRQA1:
+    case IRQA2:
+    case IRQB0:
+    case IRQB1:
+    case IRQB2:
+    case IRQC0:
+    case IRQC1:
+    case IRQC2:
+    case MAPLE_STATE:
+        val = MMIO_READ(ASIC, reg);
+        return val;            
+    case G2STATUS:
+        return g2_read_status();
+    default:
+        val = MMIO_READ(ASIC, reg);
+        return val;
+    }
+
+}
+
+MMIO_REGION_WRITE_FN( ASIC, reg, val )
+{
+    reg &= 0xFFF;
     switch( reg ) {
     case PIRQ1:
         break; /* Treat this as read-only for the moment */
@@ -496,36 +526,37 @@ void mmio_region_ASIC_write( uint32_t reg, uint32_t val )
     }
 }
 
-int32_t mmio_region_ASIC_read( uint32_t reg )
+MMIO_REGION_READ_FN( EXTDMA, reg )
 {
-    int32_t val;
-    switch( reg ) {
-    case PIRQ0:
-    case PIRQ1:
-    case PIRQ2:
-    case IRQA0:
-    case IRQA1:
-    case IRQA2:
-    case IRQB0:
-    case IRQB1:
-    case IRQB2:
-    case IRQC0:
-    case IRQC1:
-    case IRQC2:
-    case MAPLE_STATE:
-        val = MMIO_READ(ASIC, reg);
-        return val;            
-    case G2STATUS:
-        return g2_read_status();
-    default:
-        val = MMIO_READ(ASIC, reg);
-        return val;
+    uint32_t val;
+    reg &= 0xFFF;
+    if( !idereg.interface_enabled && IS_IDE_REGISTER(reg) ) {
+        return 0xFFFFFFFF; /* disabled */
     }
 
+    switch( reg ) {
+    case IDEALTSTATUS: 
+        val = idereg.status;
+        return val;
+    case IDEDATA: return ide_read_data_pio( );
+    case IDEFEAT: return idereg.error;
+    case IDECOUNT:return idereg.count;
+    case IDELBA0: return ide_get_drive_status();
+    case IDELBA1: return idereg.lba1;
+    case IDELBA2: return idereg.lba2;
+    case IDEDEV: return idereg.device;
+    case IDECMD:
+        val = ide_read_status();
+        return val;
+    default:
+        val = MMIO_READ( EXTDMA, reg );
+        return val;
+    }
 }
 
 MMIO_REGION_WRITE_FN( EXTDMA, reg, val )
 {
+    reg &= 0xFFF;
     if( !idereg.interface_enabled && IS_IDE_REGISTER(reg) ) {
         return; /* disabled */
     }
@@ -642,33 +673,6 @@ MMIO_REGION_WRITE_FN( EXTDMA, reg, val )
         break;
     default:
         MMIO_WRITE( EXTDMA, reg, val );
-    }
-}
-
-MMIO_REGION_READ_FN( EXTDMA, reg )
-{
-    uint32_t val;
-    if( !idereg.interface_enabled && IS_IDE_REGISTER(reg) ) {
-        return 0xFFFFFFFF; /* disabled */
-    }
-
-    switch( reg ) {
-    case IDEALTSTATUS: 
-        val = idereg.status;
-        return val;
-    case IDEDATA: return ide_read_data_pio( );
-    case IDEFEAT: return idereg.error;
-    case IDECOUNT:return idereg.count;
-    case IDELBA0: return ide_get_drive_status();
-    case IDELBA1: return idereg.lba1;
-    case IDELBA2: return idereg.lba2;
-    case IDEDEV: return idereg.device;
-    case IDECMD:
-        val = ide_read_status();
-        return val;
-    default:
-        val = MMIO_READ( EXTDMA, reg );
-        return val;
     }
 }
 

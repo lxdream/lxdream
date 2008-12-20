@@ -243,22 +243,22 @@ void mmu_init(void);
 void mmu_set_cache_mode( int );
 void mmu_ldtlb(void);
 
-int32_t mmu_icache_addr_read( sh4addr_t addr );
-int32_t mmu_icache_data_read( sh4addr_t addr );
-int32_t mmu_itlb_addr_read( sh4addr_t addr );
-int32_t mmu_itlb_data_read( sh4addr_t addr );
-int32_t mmu_ocache_addr_read( sh4addr_t addr );
-int32_t mmu_ocache_data_read( sh4addr_t addr );
-int32_t mmu_utlb_addr_read( sh4addr_t addr );
-int32_t mmu_utlb_data_read( sh4addr_t addr );
-void mmu_icache_addr_write( sh4addr_t addr, uint32_t val );
-void mmu_icache_data_write( sh4addr_t addr, uint32_t val );
-void mmu_itlb_addr_write( sh4addr_t addr, uint32_t val );
-void mmu_itlb_data_write( sh4addr_t addr, uint32_t val );
-void mmu_ocache_addr_write( sh4addr_t addr, uint32_t val );
-void mmu_ocache_data_write( sh4addr_t addr, uint32_t val );
-void mmu_utlb_addr_write( sh4addr_t addr, uint32_t val );
-void mmu_utlb_data_write( sh4addr_t addr, uint32_t val );
+int32_t FASTCALL mmu_icache_addr_read( sh4addr_t addr );
+int32_t FASTCALL mmu_icache_data_read( sh4addr_t addr );
+int32_t FASTCALL mmu_itlb_addr_read( sh4addr_t addr );
+int32_t FASTCALL mmu_itlb_data_read( sh4addr_t addr );
+int32_t FASTCALL mmu_ocache_addr_read( sh4addr_t addr );
+int32_t FASTCALL mmu_ocache_data_read( sh4addr_t addr );
+int32_t FASTCALL mmu_utlb_addr_read( sh4addr_t addr );
+int32_t FASTCALL mmu_utlb_data_read( sh4addr_t addr );
+void FASTCALL mmu_icache_addr_write( sh4addr_t addr, uint32_t val );
+void FASTCALL mmu_icache_data_write( sh4addr_t addr, uint32_t val );
+void FASTCALL mmu_itlb_addr_write( sh4addr_t addr, uint32_t val );
+void FASTCALL mmu_itlb_data_write( sh4addr_t addr, uint32_t val );
+void FASTCALL mmu_ocache_addr_write( sh4addr_t addr, uint32_t val );
+void FASTCALL mmu_ocache_data_write( sh4addr_t addr, uint32_t val );
+void FASTCALL mmu_utlb_addr_write( sh4addr_t addr, uint32_t val );
+void FASTCALL mmu_utlb_data_write( sh4addr_t addr, uint32_t val );
 
 
 #ifdef __cplusplus

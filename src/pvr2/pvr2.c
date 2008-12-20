@@ -462,8 +462,9 @@ void pvr2_display_frame( void )
  * This has to handle every single register individually as they all get masked 
  * off differently (and its easier to do it at write time)
  */
-void mmio_region_PVR2_write( uint32_t reg, uint32_t val )
+MMIO_REGION_WRITE_FN( PVR2, reg, val )
 {
+    reg &= 0xFFF;
     if( reg >= 0x200 && reg < 0x600 ) { /* Fog table */
         MMIO_WRITE( PVR2, reg, val );
         return;
@@ -826,6 +827,7 @@ void pvr2_queue_gun_event( int xpos, int ypos )
 
 MMIO_REGION_READ_FN( PVR2, reg )
 {
+    reg &= 0xFFF;
     switch( reg ) {
     case DISP_SYNCSTAT:
         return pvr2_get_sync_status();
@@ -836,6 +838,7 @@ MMIO_REGION_READ_FN( PVR2, reg )
 
 MMIO_REGION_WRITE_FN( PVR2PAL, reg, val )
 {
+    reg &= 0xFFF;
     MMIO_WRITE( PVR2PAL, reg, val );
     pvr2_state.palette_changed = TRUE;
 }
@@ -858,12 +861,12 @@ void pvr2_set_base_address( uint32_t base )
 
 
 
-int32_t mmio_region_PVR2TA_read( uint32_t reg )
+MMIO_REGION_READ_FN( PVR2TA, reg )
 {
     return 0xFFFFFFFF;
 }
 
-void mmio_region_PVR2TA_write( uint32_t reg, uint32_t val )
+MMIO_REGION_WRITE_FN( PVR2TA, reg, val )
 {
     pvr2_ta_write( (unsigned char *)&val, sizeof(uint32_t) );
 }
