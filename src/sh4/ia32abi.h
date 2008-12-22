@@ -24,6 +24,13 @@
 
 #define load_ptr( reg, ptr ) load_imm32( reg, (uint32_t)ptr );
 
+static inline decode_address( int addr_reg )
+{
+    MOV_r32_r32( addr_reg, R_ECX ); 
+    SHR_imm8_r32( 12, R_ECX ); 
+    MOV_r32disp32x4_r32( R_ECX, (uintptr_t)sh4_address_space, R_ECX );
+}
+
 /**
  * Note: clobbers EAX to make the indirect call - this isn't usually
  * a problem since the callee will usually clobber it anyway.
@@ -50,12 +57,12 @@ static inline void call_func1_r32( int addr_reg, int arg1 )
     CALL_r32(addr_reg);
 }
 
-static inline void call_func1_r32ind( int preg, uint32_t disp32, int arg1 )
+static inline void call_func1_r32disp8( int preg, uint32_t disp8, int arg1 )
 {
     if( arg1 != R_EAX ) {
         MOV_r32_r32( arg1, R_EAX );
     }
-    CALL_r32ind(preg, disp32);
+    CALL_r32disp8(preg, disp8);
 }
 
 static inline void call_func2( void *ptr, int arg1, int arg2 )
@@ -80,7 +87,7 @@ static inline void call_func2_r32( int addr_reg, int arg1, int arg2 )
     CALL_r32(addr_reg);
 }
 
-static inline void call_func2_r32ind( int preg, uint32_t disp32, int arg1, int arg2 )
+static inline void call_func2_r32disp8( int preg, uint32_t disp8, int arg1, int arg2 )
 {
     if( arg2 != R_EDX ) {
         MOV_r32_r32( arg2, R_EDX );
@@ -88,7 +95,7 @@ static inline void call_func2_r32ind( int preg, uint32_t disp32, int arg1, int a
     if( arg1 != R_EAX ) {
         MOV_r32_r32( arg1, R_EAX );
     }
-    CALL_r32ind(preg, disp32);
+    CALL_r32disp8(preg, disp8);
 }
 
 
@@ -122,11 +129,11 @@ static inline void MEM_WRITE_DOUBLE( int addr, int arg2a, int arg2b )
 {
     MOV_r32_esp8(addr, 0);
     MOV_r32_esp8(arg2b, 4);
-    call_func2(sh4_write_long, addr, arg2a);
+    MEM_WRITE_LONG(addr, arg2a);
     MOV_esp8_r32(0, R_EAX);
     MOV_esp8_r32(4, R_EDX);
     ADD_imm8s_r32(4, R_EAX);
-    call_func0(sh4_write_long);
+    MEM_WRITE_LONG(R_EAX, R_EDX);
 }
 
 /**
@@ -136,14 +143,11 @@ static inline void MEM_WRITE_DOUBLE( int addr, int arg2a, int arg2b )
 static inline void MEM_READ_DOUBLE( int addr, int arg2a, int arg2b )
 {
     MOV_r32_esp8(addr, 0);
-    call_func1(sh4_read_long, addr);
+    MEM_READ_LONG(addr, R_EAX);
     MOV_r32_esp8(R_EAX, 4);
     MOV_esp8_r32(0, R_EAX);
     ADD_imm8s_r32(4, R_EAX);
-    call_func0(sh4_read_long);
-    if( arg2b != R_EAX ) {
-        MOV_r32_r32(R_EAX, arg2b);
-    }
+    MEM_READ_LONG(R_EAX, arg2b );
     MOV_esp8_r32(4, arg2a);
 }
 #else
@@ -214,14 +218,12 @@ void enter_block( )
 {
     PUSH_r32(R_EBP);
     load_ptr( R_EBP, ((uint8_t *)&sh4r) + 128 );
-    PUSH_r32(R_EBX);
-    SUB_imm8s_r32( 4, R_ESP ); 
+    SUB_imm8s_r32( 8, R_ESP ); 
 }
 
 static inline void exit_block( )
 {
-    ADD_imm8s_r32( 4, R_ESP );
-    POP_r32(R_EBX);
+    ADD_imm8s_r32( 8, R_ESP );
     POP_r32(R_EBP);
     RET();
 }
