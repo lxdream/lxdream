@@ -24,6 +24,14 @@
 
 #define load_ptr( reg, ptr ) load_imm64( reg, (uint64_t)ptr );
 
+static inline decode_address( int addr_reg )
+{
+    MOV_r32_r32( addr_reg, R_ECX ); 
+    SHR_imm8_r32( 12, R_ECX ); 
+    load_ptr( R_EDI, sh4_address_space );
+    REXW(); OP(0x8B); OP(0x0C); OP(0xCF);   // mov.q [%rdi + %rcx*8], %rcx
+}
+
 /**
  * Note: clobbers EAX to make the indirect call - this isn't usually
  * a problem since the callee will usually clobber it anyway.
@@ -50,6 +58,12 @@ static inline void call_func1_exc( void *ptr, int arg1, int pc )
     call_func0(ptr);
 }
 
+static inline void call_func1_r32disp8( int preg, uint32_t disp8, int arg1 )
+{
+    REXW(); MOV_r32_r32(arg1, R_EDI);
+    CALL_r32disp8(preg, disp8);    
+}
+
 #define CALL_FUNC2_SIZE 16
 static inline void call_func2( void *ptr, int arg1, int arg2 )
 {
@@ -57,6 +71,14 @@ static inline void call_func2( void *ptr, int arg1, int arg2 )
     REXW(); MOV_r32_r32(arg2, R_ESI);
     call_func0(ptr);
 }
+
+static inline void call_func2_r32disp8( int preg, uint32_t disp8, int arg1, int arg2 )
+{
+    REXW(); MOV_r32_r32(arg1, R_EDI);
+    REXW(); MOV_r32_r32(arg2, R_ESI);
+    CALL_r32disp8(preg, disp8);    
+}
+
 
 #define MEM_WRITE_DOUBLE_SIZE 35
 /**

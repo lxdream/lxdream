@@ -100,6 +100,7 @@ void dreamcast_configure( )
     dreamcast_register_module( &aica_module );
     dreamcast_register_module( &maple_module );
     dreamcast_register_module( &ide_module );
+    sh4_mem_init();
 }
 
 void dreamcast_config_changed(void)

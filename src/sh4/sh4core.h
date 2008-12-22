@@ -51,6 +51,8 @@ struct sh4_icache_struct {
 };
 extern struct sh4_icache_struct sh4_icache;
 
+extern struct mem_region_fn **sh4_address_space;
+
 /**
  * Test if a given address is contained in the current icache entry
  */

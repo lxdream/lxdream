@@ -41,7 +41,6 @@ void sh4_start( void );
 void sh4_stop( void );
 void sh4_save_state( FILE *f );
 int sh4_load_state( FILE *f );
-static void sh4_reset_pointer_cache();
 
 uint32_t sh4_run_slice( uint32_t );
 uint32_t sh4_xlat_run_slice( uint32_t );
@@ -109,7 +108,6 @@ void sh4_reset(void)
 
     /* zero everything out, for the sake of having a consistent state. */
     memset( &sh4r, 0, sizeof(sh4r) );
-    sh4_reset_pointer_cache();
 
     /* Resume running if we were halted */
     sh4r.sh4_state = SH4_STATE_RUNNING;
@@ -243,8 +241,7 @@ void sh4_save_state( FILE *f )
         sh4r.in_delay_slot = FALSE;
     }
 
-    int len = ((char *)&sh4r.pointer_cache) - ((char *)&sh4r);
-    fwrite( &sh4r, len, 1, f );
+    fwrite( &sh4r, sizeof(sh4r), 1, f );
     MMU_save_state( f );
     PMM_save_state( f );
     INTC_save_state( f );
@@ -257,25 +254,12 @@ int sh4_load_state( FILE * f )
     if(	sh4_use_translator ) {
         xlat_flush_cache();
     }
-    int len = ((char *)&sh4r.pointer_cache) - ((char *)&sh4r);
-    fread( &sh4r, len, 1, f );
-    sh4_reset_pointer_cache();
+    fread( &sh4r, sizeof(sh4r), 1, f );
     MMU_load_state( f );
     PMM_load_state( f );
     INTC_load_state( f );
     TMU_load_state( f );
     return SCIF_load_state( f );
-}
-
-static void sh4_reset_pointer_cache()
-{
-    int i;
-    for( i=0; i<16; i++ ) {
-        sh4r.pointer_cache[i].page_vma = -1;
-        sh4r.pointer_cache[i].page_mask = 0xFFFFF000;
-    }
-    sh4r.pointer_cache[16].page_vma = -1;
-    sh4r.pointer_cache[16].page_mask = 0xFFFFF000;
 }
 
 void sh4_set_breakpoint( uint32_t pc, breakpoint_type_t type )

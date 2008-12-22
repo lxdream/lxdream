@@ -36,6 +36,9 @@
 #include "dreamcast.h"
 
 sh4ptr_t *page_map = NULL;
+mem_region_fn_t *ext_address_space = NULL;
+
+extern struct mem_region_fn mem_region_unmapped; 
 
 int mem_load(FILE *f);
 void mem_save(FILE *f);
@@ -62,15 +65,24 @@ void *mem_alloc_pages( int n )
 
 void mem_init( void )
 {
+    int i;
+    mem_region_fn_t *ptr;
     page_map = mmap( NULL, sizeof(sh4ptr_t) * LXDREAM_PAGE_TABLE_ENTRIES,
             PROT_READ|PROT_WRITE, MAP_ANON|MAP_PRIVATE, -1, 0 );
     if( page_map == MAP_FAILED ) {
-        ERROR( "Unable to allocate page map! (%s)", strerror(errno) );
-        page_map = NULL;
-        return;
+        FATAL( "Unable to allocate page map! (%s)", strerror(errno) );
+    }
+    memset( page_map, 0, sizeof(sh4ptr_t) * LXDREAM_PAGE_TABLE_ENTRIES );
+    
+    ext_address_space = mmap( NULL, sizeof(mem_region_fn_t) * LXDREAM_PAGE_TABLE_ENTRIES,
+            PROT_READ|PROT_WRITE, MAP_ANON|MAP_PRIVATE, -1, 0 );
+    if( ext_address_space == MAP_FAILED ) {
+        FATAL( "Unable to allocate external memory map (%s)", strerror(errno) );
     }
 
-    memset( page_map, 0, sizeof(sh4ptr_t) * LXDREAM_PAGE_TABLE_ENTRIES );
+    for( ptr = ext_address_space, i = LXDREAM_PAGE_TABLE_ENTRIES; i > 0; ptr++, i-- ) {
+        *ptr = &mem_region_unmapped;
+    }
 }
 
 void mem_reset( void )
@@ -238,8 +250,10 @@ struct mem_region *mem_map_region( void *mem, uint32_t base, uint32_t size,
     num_mem_rgns++;
 
     do {
-        for( i=0; i<size>>LXDREAM_PAGE_BITS; i++ )
+        for( i=0; i<size>>LXDREAM_PAGE_BITS; i++ ) {
             page_map[(base>>LXDREAM_PAGE_BITS)+i] = mem + (i<<LXDREAM_PAGE_BITS);
+            ext_address_space[(base>>LXDREAM_PAGE_BITS)+i] = fn;
+        }
         base += repeat_offset;	
     } while( base <= repeat_until );
 
@@ -336,6 +350,7 @@ void register_io_region( struct mmio_region *io )
         P4_io[(io->base&0x1FFFFFFF)>>19] = io;
     } else {
         page_map[io->base>>12] = (sh4ptr_t)(uintptr_t)num_io_rgns;
+        ext_address_space[io->base>>12] = &io->fn;
     }
     io_rgn[num_io_rgns] = io;
     num_io_rgns++;

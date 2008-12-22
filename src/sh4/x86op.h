@@ -112,7 +112,7 @@ extern "C" {
 /* ebp+disp32 modrm form */
 #define MODRM_r32_ebp32(r1,disp) OP(0x85 | (r1<<3)); OP32(disp)
 
-/* esp+disp32 modrm+sib form */
+/* esp+disp8 modrm+sib form */
 #define MODRM_r32_esp8(r1,disp) OP(0x44 | (r1<<3)); OP(0x24); OP(disp)
 
 #define MODRM_r32_sh4r(r1,disp) if(disp>127){ MODRM_r32_ebp32(r1,disp);}else{ MODRM_r32_ebp8(r1,(unsigned char)disp); }
@@ -138,7 +138,7 @@ extern "C" {
 #define CALL_r32(r1)          OP(0xFF); MODRM_rm32_r32(r1,2)
 #define CALL_ptr(ptr)         OP(0xE8); OP32( (((char *)ptr) - (char *)xlat_output) - 4)
 #define CALL_sh4r(disp)       OP(0xFF); MODRM_r32_sh4r(2, disp)
-#define CALL_r32ind(r1,disp)  OP(0xFF); OP(0x50 + r1); OP(disp)
+#define CALL_r32disp8(r1,disp)  OP(0xFF); OP(0x50 + r1); OP(disp)
 #define CLC()                 OP(0xF8)
 #define CMC()                 OP(0xF5)
 #define CMP_sh4r_r32(disp,r1)  OP(0x3B); MODRM_r32_sh4r(r1,disp)
@@ -158,6 +158,10 @@ extern "C" {
 #define MOV_sh4r_r32(disp, r1)  OP(0x8B); MODRM_r32_sh4r(r1,disp)
 #define MOV_r32_r32ind(r2,r1) OP(0x89); OP(0 + (r2<<3) + r1 )
 #define MOV_r32ind_r32(r1,r2) OP(0x8B); OP(0 + (r2<<3) + r1 )
+#define MOV_r32_r32disp32(r2,r1,disp)  OP(0x89); OP(0x80 + (r2<<3) + r1); OP32(disp)
+#define MOV_r32_ebpr32disp32(r2,r1,disp)  OP(0x89); OP(0x84 + (r2<<3)); OP(0x05 + (r1<<3)); OP32(disp)
+#define MOV_r32disp32_r32(r1,disp,r2)  OP(0x8B); OP(0x80 + (r2<<3) + r1); OP32(disp)
+#define MOV_r32disp32x4_r32(r1,disp,r2) OP(0x8B); OP(0x04 + (r2<<3)); OP(0x85+(r1<<3)); OP32(disp)
 #define MOV_r32_esp8(r1,disp) OP(0x89); MODRM_r32_esp8(r1,disp)
 #define MOV_esp8_r32(disp,r1) OP(0x8B); MODRM_r32_esp8(r1,disp)
 #define MOVSX_r8_r32(r1,r2)   OP(0x0F); OP(0xBE); MODRM_rm32_r32(r1,r2)
