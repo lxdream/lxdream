@@ -62,8 +62,13 @@ extern struct mem_region_fn mem_region_sdram;
 extern struct mem_region_fn mem_region_vram32;
 extern struct mem_region_fn mem_region_vram64;
 extern struct mem_region_fn mem_region_audioram;
+extern struct mem_region_fn mem_region_audioscratch;
 extern struct mem_region_fn mem_region_flashram;
 extern struct mem_region_fn mem_region_bootrom;
+extern struct mem_region_fn mem_region_pvr2ta;
+extern struct mem_region_fn mem_region_pvr2yuv;
+extern struct mem_region_fn mem_region_pvr2vdma1;
+extern struct mem_region_fn mem_region_pvr2vdma2;
 
 /**
  * This function is responsible for defining how all the pieces of the
@@ -82,12 +87,20 @@ void dreamcast_configure( )
     dreamcast_register_module( &mem_module );
 
     /* Setup standard memory map */
-    mem_create_repeating_ram_region( 0x0C000000, 16 MB, MEM_REGION_MAIN, &mem_region_sdram, 0x01000000, 0x0F000000 );
-    mem_create_ram_region( 0x00800000, 2 MB, MEM_REGION_AUDIO, &mem_region_audioram );
-    mem_create_ram_region( 0x00703000, 8 KB, MEM_REGION_AUDIO_SCRATCH, NULL );
-    mem_create_ram_region( 0x05000000, 8 MB, MEM_REGION_VIDEO, &mem_region_vram32 );
-    dreamcast_has_bios = mem_load_rom( bios_path, 0x00000000, 0x00200000, 0x89f2b1a1, MEM_REGION_BIOS, &mem_region_bootrom );
+    dreamcast_has_bios = 
+        mem_load_rom( bios_path, 0x00000000, 2 MB, 0x89f2b1a1, MEM_REGION_BIOS, &mem_region_bootrom );
     mem_create_ram_region( 0x00200000, 0x00020000, MEM_REGION_FLASH, &mem_region_flashram );
+    mem_create_ram_region( 0x00800000, 2 MB, MEM_REGION_AUDIO, &mem_region_audioram );
+    mem_create_ram_region( 0x00703000, 8 KB, MEM_REGION_AUDIO_SCRATCH, &mem_region_audioscratch );
+    register_misc_region(  0x04000000, 8 MB, MEM_REGION_VIDEO64, &mem_region_vram64 );
+    mem_create_ram_region( 0x05000000, 8 MB, MEM_REGION_VIDEO, &mem_region_vram32 );
+    mem_create_repeating_ram_region( 0x0C000000, 16 MB, MEM_REGION_MAIN, &mem_region_sdram, 0x01000000, 0x0F000000 );
+    register_misc_region(  0x10000000, 8 MB, "PVR2 TA Command 1", &mem_region_pvr2ta );
+    register_misc_region(  0x10800000, 8 MB, "PVR2 YUV Decode 1", &mem_region_pvr2yuv );
+    register_misc_region(  0x11000000, 16 MB,"PVR2 VRAM DMA 1", &mem_region_pvr2vdma1 );
+    register_misc_region(  0x12000000, 8 MB, "PVR2 TA Command 2", &mem_region_pvr2ta );
+    register_misc_region(  0x12800000, 8 MB, "PVR2 YUV Decode 2", &mem_region_pvr2yuv );
+    register_misc_region(  0x13000000, 16 MB,"PVR2 VRAM DMA 2", &mem_region_pvr2vdma2 );
     if( flash_path != NULL && flash_path[0] != '\0' ) {
         mem_load_block( flash_path, 0x00200000, 0x00020000 );
     }
@@ -100,7 +113,6 @@ void dreamcast_configure( )
     dreamcast_register_module( &aica_module );
     dreamcast_register_module( &maple_module );
     dreamcast_register_module( &ide_module );
-    sh4_mem_init();
 }
 
 void dreamcast_config_changed(void)
@@ -129,7 +141,7 @@ void dreamcast_configure_aica_only( )
 {
     dreamcast_register_module( &mem_module );
     mem_create_ram_region( 0x00800000, 2 MB, MEM_REGION_AUDIO, &mem_region_audioram );
-    mem_create_ram_region( 0x00703000, 8 KB, MEM_REGION_AUDIO_SCRATCH, NULL );
+    mem_create_ram_region( 0x00703000, 8 KB, MEM_REGION_AUDIO_SCRATCH, &mem_region_audioscratch );
     dreamcast_register_module( &aica_module );
     aica_enable();
     dreamcast_state = STATE_STOPPED;
@@ -251,7 +263,6 @@ void dreamcast_shutdown()
 #ifdef ENABLE_SH4STATS
     sh4_stats_print(stdout);
 #endif
-    print_sh4mem_stats();
 }
 
 void dreamcast_program_loaded( const gchar *name, sh4addr_t entry_point )

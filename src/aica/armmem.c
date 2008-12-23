@@ -30,6 +30,92 @@ void arm_mem_init() {
     arm_mem_scratch = mem_get_region_by_name( MEM_REGION_AUDIO_SCRATCH );
 }
 
+/*************** ARM memory access function blocks **************/
+
+static int32_t FASTCALL ext_audioram_read_long( sh4addr_t addr )
+{
+    return *((int32_t *)(arm_mem + (addr&0x001FFFFF)));
+}
+static int32_t FASTCALL ext_audioram_read_word( sh4addr_t addr )
+{
+    return SIGNEXT16(*((int16_t *)(arm_mem + (addr&0x001FFFFF))));
+}
+static int32_t FASTCALL ext_audioram_read_byte( sh4addr_t addr )
+{
+    return SIGNEXT8(*((int16_t *)(arm_mem + (addr&0x001FFFFF))));
+}
+static void FASTCALL ext_audioram_write_long( sh4addr_t addr, uint32_t val )
+{
+    *(uint32_t *)(arm_mem + (addr&0x001FFFFF)) = val;
+    asic_g2_write_word();
+}
+static void FASTCALL ext_audioram_write_word( sh4addr_t addr, uint32_t val )
+{
+    *(uint16_t *)(arm_mem + (addr&0x001FFFFF)) = (uint16_t)val;
+    asic_g2_write_word();
+}
+static void FASTCALL ext_audioram_write_byte( sh4addr_t addr, uint32_t val )
+{
+    *(uint8_t *)(arm_mem + (addr&0x001FFFFF)) = (uint8_t)val;
+    asic_g2_write_word();
+}
+static void FASTCALL ext_audioram_read_burst( unsigned char *dest, sh4addr_t addr )
+{
+    memcpy( dest, arm_mem+(addr&0x001FFFFF), 32 );
+}
+static void FASTCALL ext_audioram_write_burst( sh4addr_t addr, unsigned char *src )
+{
+    memcpy( arm_mem+(addr&0x001FFFFF), src, 32 );
+}
+
+struct mem_region_fn mem_region_audioram = { ext_audioram_read_long, ext_audioram_write_long, 
+        ext_audioram_read_word, ext_audioram_write_word, 
+        ext_audioram_read_byte, ext_audioram_write_byte, 
+        ext_audioram_read_burst, ext_audioram_write_burst }; 
+
+
+static int32_t FASTCALL ext_audioscratch_read_long( sh4addr_t addr )
+{
+    return *((int32_t *)(arm_mem_scratch + (addr&0x00001FFF)));
+}
+static int32_t FASTCALL ext_audioscratch_read_word( sh4addr_t addr )
+{
+    return SIGNEXT16(*((int16_t *)(arm_mem_scratch + (addr&0x00001FFF))));
+}
+static int32_t FASTCALL ext_audioscratch_read_byte( sh4addr_t addr )
+{
+    return SIGNEXT8(*((int16_t *)(arm_mem_scratch + (addr&0x00001FFF))));
+}
+static void FASTCALL ext_audioscratch_write_long( sh4addr_t addr, uint32_t val )
+{
+    *(uint32_t *)(arm_mem_scratch + (addr&0x00001FFF)) = val;
+    asic_g2_write_word();
+}
+static void FASTCALL ext_audioscratch_write_word( sh4addr_t addr, uint32_t val )
+{
+    *(uint16_t *)(arm_mem_scratch + (addr&0x00001FFF)) = (uint16_t)val;
+    asic_g2_write_word();
+}
+static void FASTCALL ext_audioscratch_write_byte( sh4addr_t addr, uint32_t val )
+{
+    *(uint8_t *)(arm_mem_scratch + (addr&0x00001FFF)) = (uint8_t)val;
+    asic_g2_write_word();
+}
+static void FASTCALL ext_audioscratch_read_burst( unsigned char *dest, sh4addr_t addr )
+{
+    memcpy( dest, arm_mem_scratch+(addr&0x00001FFF), 32 );
+}
+static void FASTCALL ext_audioscratch_write_burst( sh4addr_t addr, unsigned char *src )
+{
+    memcpy( arm_mem_scratch+(addr&0x00001FFF), src, 32 );
+}
+
+struct mem_region_fn mem_region_audioscratch = { ext_audioscratch_read_long, ext_audioscratch_write_long, 
+        ext_audioscratch_read_word, ext_audioscratch_write_word, 
+        ext_audioscratch_read_byte, ext_audioscratch_write_byte, 
+        ext_audioscratch_read_burst, ext_audioscratch_write_burst }; 
+
+/************************** Local ARM support **************************/
 int arm_has_page( uint32_t addr ) {
     return ( addr < 0x00200000 ||
             (addr >= 0x00800000 && addr <= 0x00805000 ) );

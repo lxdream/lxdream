@@ -22,11 +22,16 @@
 
 #include <stdint.h>
 #include "lxdream.h"
+#include "hook.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+/**
+ * Basic memory region vtable - read/write at byte, word, long, and burst 
+ * (32-byte) sizes.
+ */
 typedef struct mem_region_fn {
     FASTCALL int32_t (*read_long)(sh4addr_t addr);
     FASTCALL void (*write_long)(sh4addr_t addr, uint32_t val);
@@ -37,7 +42,13 @@ typedef struct mem_region_fn {
     FASTCALL void (*read_burst)(unsigned char *dest, sh4addr_t addr);
     FASTCALL void (*write_burst)(sh4addr_t addr, unsigned char *src);
 } *mem_region_fn_t;
-    
+
+int32_t FASTCALL unmapped_read_long( sh4addr_t addr );
+void FASTCALL unmapped_write_long( sh4addr_t addr, uint32_t val );
+void FASTCALL unmapped_read_burst( unsigned char *dest, sh4addr_t addr );
+void FASTCALL unmapped_write_burst( sh4addr_t addr, unsigned char *src );
+extern struct mem_region_fn mem_region_unmapped;
+
 typedef struct mem_region {
     uint32_t base;
     uint32_t size;
@@ -48,18 +59,24 @@ typedef struct mem_region {
 } *mem_region_t;
 
 #define MAX_IO_REGIONS 24
-#define MAX_MEM_REGIONS 8
+#define MAX_MEM_REGIONS 16
 
 #define MEM_REGION_BIOS "Bios ROM"
 #define MEM_REGION_MAIN "System RAM"
 #define MEM_REGION_VIDEO "Video RAM"
+#define MEM_REGION_VIDEO64 "Video RAM 64-bit"
 #define MEM_REGION_AUDIO "Audio RAM"
 #define MEM_REGION_AUDIO_SCRATCH "Audio Scratch RAM"
 #define MEM_REGION_FLASH "System Flash"
 
+typedef gboolean (*mem_page_remapped_hook_t)(sh4addr_t page, mem_region_fn_t newfn, void *user_data);
+DECLARE_HOOK( mem_page_remapped_hook, mem_page_remapped_hook_t );
+
 void *mem_create_ram_region( uint32_t base, uint32_t size, const char *name, mem_region_fn_t fn );
 void *mem_create_repeating_ram_region( uint32_t base, uint32_t size, const char *name, mem_region_fn_t fn,
 				       uint32_t repeat_offset, uint32_t last_repeat );
+void register_misc_region( uint32_t base, uint32_t size, const char *name, mem_region_fn_t fn );
+
 /**
  * Load a ROM image from the specified filename. If the memory region has not
  * been allocated, it is created now, otherwise the existing region is reused.
@@ -114,6 +131,15 @@ void mem_delete_watch( watch_point_t watch );
 watch_point_t mem_is_watched( uint32_t addr, int size, int op );
 
 extern sh4ptr_t *page_map;
+extern mem_region_fn_t *ext_address_space;
+
+#define SIGNEXT4(n) ((((int32_t)(n))<<28)>>28)
+#define SIGNEXT8(n) ((int32_t)((int8_t)(n)))
+#define SIGNEXT12(n) ((((int32_t)(n))<<20)>>20)
+#define SIGNEXT16(n) ((int32_t)((int16_t)(n)))
+#define SIGNEXT32(n) ((int64_t)((int32_t)(n)))
+#define SIGNEXT48(n) ((((int64_t)(n))<<16)>>16)
+#define ZEROEXT32(n) ((int64_t)((uint64_t)((uint32_t)(n))))
 
 #ifdef __cplusplus
 }

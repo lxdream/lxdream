@@ -88,13 +88,6 @@ int32_t FASTCALL sh4_read_long( uint32_t addr )
 {
     return *(uint32_t *)(inbuf+(addr-start_addr));
 }
-mem_region_fn_t FASTCALL sh7750_decode_address( sh4addr_t address )
-{
-    return NULL;
-}
-void FASTCALL sh7750_decode_address_copy( sh4addr_t address, mem_region_fn_t out )
-{
-}
 
 // Stubs
 gboolean sh4_execute_instruction( ) { return TRUE; }
@@ -107,6 +100,7 @@ void sh4_core_exit( int exit_code ){}
 void sh4_flush_icache(){}
 void event_execute() {}
 void TMU_run_slice( uint32_t nanos ) {}
+void CCN_set_cache_control( uint32_t val ) { }
 void PMM_write_control( int ctr, uint32_t val ) { }
 void SCIF_run_slice( uint32_t nanos ) {}
 void FASTCALL sh4_write_byte( uint32_t addr, uint32_t val ) {}

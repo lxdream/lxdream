@@ -51,6 +51,35 @@ struct mmio_region *P4_io[4096];
 
 uint32_t num_io_rgns = 0, num_mem_rgns = 0;
 
+DEFINE_HOOK( mem_page_remapped_hook, mem_page_remapped_hook_t );
+static void mem_page_remapped( sh4addr_t addr, mem_region_fn_t fn )
+{
+    CALL_HOOKS( mem_page_remapped_hook, addr, fn );
+}
+
+/********************* The "unmapped" address space ********************/
+/* Always reads as 0, writes have no effect */
+int32_t FASTCALL unmapped_read_long( sh4addr_t addr )
+{
+    return 0;
+}
+void FASTCALL unmapped_write_long( sh4addr_t addr, uint32_t val )
+{
+}
+void FASTCALL unmapped_read_burst( unsigned char *dest, sh4addr_t addr )
+{
+    memset( dest, 0, 32 );
+}
+void FASTCALL unmapped_write_burst( sh4addr_t addr, unsigned char *src )
+{
+}
+
+struct mem_region_fn mem_region_unmapped = { 
+        unmapped_read_long, unmapped_write_long, 
+        unmapped_read_long, unmapped_write_long, 
+        unmapped_read_long, unmapped_write_long, 
+        unmapped_read_burst, unmapped_write_burst }; 
+
 void *mem_alloc_pages( int n )
 {
     void *mem = mmap( NULL, n * 4096,
@@ -253,11 +282,29 @@ struct mem_region *mem_map_region( void *mem, uint32_t base, uint32_t size,
         for( i=0; i<size>>LXDREAM_PAGE_BITS; i++ ) {
             page_map[(base>>LXDREAM_PAGE_BITS)+i] = mem + (i<<LXDREAM_PAGE_BITS);
             ext_address_space[(base>>LXDREAM_PAGE_BITS)+i] = fn;
+            mem_page_remapped( base + (i<<LXDREAM_PAGE_BITS), fn );
         }
         base += repeat_offset;	
     } while( base <= repeat_until );
 
     return &mem_rgn[num_mem_rgns-1];
+}
+
+void register_misc_region( uint32_t base, uint32_t size, const char *name, mem_region_fn_t fn )
+{
+    mem_rgn[num_mem_rgns].base = base;
+    mem_rgn[num_mem_rgns].size = size;
+    mem_rgn[num_mem_rgns].flags = 0;
+    mem_rgn[num_mem_rgns].name = name;
+    mem_rgn[num_mem_rgns].mem = NULL;
+    mem_rgn[num_mem_rgns].fn = fn;
+    num_mem_rgns++;
+
+    int count = size >> 12;
+    mem_region_fn_t *ptr = &ext_address_space[base>>12];
+    while( count-- > 0 ) {
+        *ptr++ = fn;
+    }
 }
 
 void *mem_create_ram_region( uint32_t base, uint32_t size, const char *name, mem_region_fn_t fn )
@@ -351,6 +398,7 @@ void register_io_region( struct mmio_region *io )
     } else {
         page_map[io->base>>12] = (sh4ptr_t)(uintptr_t)num_io_rgns;
         ext_address_space[io->base>>12] = &io->fn;
+        mem_page_remapped( io->base, &io->fn );
     }
     io_rgn[num_io_rgns] = io;
     num_io_rgns++;

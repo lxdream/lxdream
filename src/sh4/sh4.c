@@ -87,8 +87,8 @@ void sh4_init(void)
     dc_boot_rom = mem_get_region_by_name(MEM_REGION_BIOS);
     dc_flash_ram = mem_get_region_by_name(MEM_REGION_FLASH);
     dc_audio_ram = mem_get_region_by_name(MEM_REGION_AUDIO);
-    MMU_init();
     TMU_init();
+    sh4_mem_init();
     sh4_reset();
 #ifdef ENABLE_SH4STATS
     sh4_stats_reset();
@@ -243,6 +243,7 @@ void sh4_save_state( FILE *f )
 
     fwrite( &sh4r, sizeof(sh4r), 1, f );
     MMU_save_state( f );
+    CCN_save_state( f );
     PMM_save_state( f );
     INTC_save_state( f );
     TMU_save_state( f );
@@ -256,6 +257,7 @@ int sh4_load_state( FILE * f )
     }
     fread( &sh4r, sizeof(sh4r), 1, f );
     MMU_load_state( f );
+    CCN_load_state( f );
     PMM_load_state( f );
     INTC_load_state( f );
     TMU_load_state( f );

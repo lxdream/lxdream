@@ -219,6 +219,8 @@ gboolean pvr2_render_buffer_invalidate( sh4addr_t addr, gboolean isWrite );
  */
 void pvr2_ta_write( unsigned char *buf, uint32_t length );
 
+void FASTCALL pvr2_ta_write_burst( sh4addr_t addr, unsigned char *buf );
+
 /**
  * Find the first polygon or sprite context in the supplied buffer of TA
  * data.
