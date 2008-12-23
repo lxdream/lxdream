@@ -147,11 +147,12 @@ int DMAC_load_state( FILE * );
 void INTC_reset( void );
 void INTC_save_state( FILE *f );
 int INTC_load_state( FILE *f );
-void MMU_init( void );
 void MMU_reset( void );
 void MMU_save_state( FILE *f );
 int MMU_load_state( FILE *f );
 void MMU_ldtlb();
+void CCN_save_state( FILE *f );
+int CCN_load_state( FILE *f );
 void SCIF_reset( void );
 void SCIF_run_slice( uint32_t );
 void SCIF_save_state( FILE *f );
@@ -251,14 +252,6 @@ gboolean FASTCALL sh4_raise_trap( int );
 gboolean FASTCALL sh4_raise_slot_exception( int, int );
 gboolean FASTCALL sh4_raise_tlb_exception( int );
 void FASTCALL sh4_accept_interrupt( void );
-
-#define SIGNEXT4(n) ((((int32_t)(n))<<28)>>28)
-#define SIGNEXT8(n) ((int32_t)((int8_t)(n)))
-#define SIGNEXT12(n) ((((int32_t)(n))<<20)>>20)
-#define SIGNEXT16(n) ((int32_t)((int16_t)(n)))
-#define SIGNEXT32(n) ((int64_t)((int32_t)(n)))
-#define SIGNEXT48(n) ((((int64_t)(n))<<16)>>16)
-#define ZEROEXT32(n) ((int64_t)((uint64_t)((uint32_t)(n))))
 
 /* Status Register (SR) bits */
 #define SR_MD    0x40000000 /* Processor mode ( User=0, Privileged=1 ) */ 

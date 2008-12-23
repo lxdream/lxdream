@@ -142,7 +142,6 @@ static void pvr2_init( void )
     int i;
     register_io_region( &mmio_region_PVR2 );
     register_io_region( &mmio_region_PVR2PAL );
-    register_io_region( &mmio_region_PVR2TA );
     register_event_callback( EVENT_HPOS, pvr2_hpos_callback );
     register_event_callback( EVENT_SCANLINE1, pvr2_scanline_callback );
     register_event_callback( EVENT_SCANLINE2, pvr2_scanline_callback );
@@ -856,19 +855,6 @@ MMIO_REGION_READ_DEFFN( PVR2PAL );
 void pvr2_set_base_address( uint32_t base ) 
 {
     mmio_region_PVR2_write( DISP_ADDR1, base );
-}
-
-
-
-
-MMIO_REGION_READ_FN( PVR2TA, reg )
-{
-    return 0xFFFFFFFF;
-}
-
-MMIO_REGION_WRITE_FN( PVR2TA, reg, val )
-{
-    pvr2_ta_write( (unsigned char *)&val, sizeof(uint32_t) );
 }
 
 render_buffer_t pvr2_create_render_buffer( sh4addr_t addr, int width, int height, GLuint tex_id )

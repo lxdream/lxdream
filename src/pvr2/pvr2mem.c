@@ -132,6 +132,60 @@ struct mem_region_fn mem_region_vram64 = { pvr2_vram64_read_long, pvr2_vram64_wr
         pvr2_vram64_read_byte, pvr2_vram64_write_byte, 
         pvr2_vram64_read_burst, pvr2_vram64_write_burst }; 
 
+/******************************* Burst areas ******************************/
+
+static void FASTCALL pvr2_vramdma1_write_burst( sh4addr_t destaddr, unsigned char *src )
+{
+    int region = MMIO_READ( ASIC, PVRDMARGN1 );
+    if( region == 0 ) {
+        pvr2_vram64_write( destaddr, src, 32 );
+    } else {
+        destaddr &= PVR2_RAM_MASK;
+        unsigned char *dest = video_base + destaddr;
+        memcpy( dest, src, 32 );
+    }   
+}
+
+static void FASTCALL pvr2_vramdma2_write_burst( sh4addr_t destaddr, unsigned char *src )
+{
+    int region = MMIO_READ( ASIC, PVRDMARGN2 );
+    if( region == 0 ) {
+        pvr2_vram64_write( destaddr, src, 32 );
+    } else {
+        destaddr &= PVR2_RAM_MASK;
+        unsigned char *dest = video_base + destaddr;
+        memcpy( dest, src, 32 );
+    }
+}
+
+static void FASTCALL pvr2_yuv_write_burst( sh4addr_t destaddr, unsigned char *src )
+{
+    pvr2_yuv_write( src, 32 );
+}
+
+struct mem_region_fn mem_region_pvr2ta = {
+        unmapped_read_long, unmapped_write_long,
+        unmapped_read_long, unmapped_write_long,
+        unmapped_read_long, unmapped_write_long,
+        unmapped_read_burst, pvr2_ta_write_burst };
+
+struct mem_region_fn mem_region_pvr2yuv = {
+        unmapped_read_long, unmapped_write_long,
+        unmapped_read_long, unmapped_write_long,
+        unmapped_read_long, unmapped_write_long,
+        unmapped_read_burst, pvr2_yuv_write_burst };
+
+struct mem_region_fn mem_region_pvr2vdma1 = {
+        unmapped_read_long, unmapped_write_long,
+        unmapped_read_long, unmapped_write_long,
+        unmapped_read_long, unmapped_write_long,
+        unmapped_read_burst, pvr2_vramdma1_write_burst };
+
+struct mem_region_fn mem_region_pvr2vdma2 = {
+        unmapped_read_long, unmapped_write_long,
+        unmapped_read_long, unmapped_write_long,
+        unmapped_read_long, unmapped_write_long,
+        unmapped_read_burst, pvr2_vramdma2_write_burst };
 
 
 void pvr2_dma_write( sh4addr_t destaddr, unsigned char *src, uint32_t count )

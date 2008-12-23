@@ -23,14 +23,13 @@
 #include "sh4/sh4core.h"
 #include "sh4/sh4trans.h"
 #include "mem.h"
+#include "mmu.h"
 
 #ifdef HAVE_FRAME_ADDRESS
 #define RETURN_VIA(exc) do{ *(((void **)__builtin_frame_address(0))+1) = exc; return; } while(0)
 #else
 #define RETURN_VIA(exc) return MMU_VMA_ERROR
 #endif
-
-#define VMA_TO_EXT_ADDR(vma) ((vma)&0x1FFFFFFF)
 
 /* The MMU (practically unique in the system) is allowed to raise exceptions
  * directly, with a return code indicating that one was raised and the caller
@@ -68,52 +67,6 @@
 #define OCRAM_START (0x1C000000>>LXDREAM_PAGE_BITS)
 #define OCRAM_END   (0x20000000>>LXDREAM_PAGE_BITS)
 
-#define ITLB_ENTRY_COUNT 4
-#define UTLB_ENTRY_COUNT 64
-
-/* Entry address */
-#define TLB_VALID     0x00000100
-#define TLB_USERMODE  0x00000040
-#define TLB_WRITABLE  0x00000020
-#define TLB_USERWRITABLE (TLB_WRITABLE|TLB_USERMODE)
-#define TLB_SIZE_MASK 0x00000090
-#define TLB_SIZE_1K   0x00000000
-#define TLB_SIZE_4K   0x00000010
-#define TLB_SIZE_64K  0x00000080
-#define TLB_SIZE_1M   0x00000090
-#define TLB_CACHEABLE 0x00000008
-#define TLB_DIRTY     0x00000004
-#define TLB_SHARE     0x00000002
-#define TLB_WRITETHRU 0x00000001
-
-#define MASK_1K  0xFFFFFC00
-#define MASK_4K  0xFFFFF000
-#define MASK_64K 0xFFFF0000
-#define MASK_1M  0xFFF00000
-
-struct itlb_entry {
-    sh4addr_t vpn; // Virtual Page Number
-    uint32_t asid; // Process ID
-    uint32_t mask;
-    sh4addr_t ppn; // Physical Page Number
-    uint32_t flags;
-};
-
-struct utlb_entry {
-    sh4addr_t vpn; // Virtual Page Number
-    uint32_t mask; // Page size mask
-    uint32_t asid; // Process ID
-    sh4addr_t ppn; // Physical Page Number
-    uint32_t flags;
-    uint32_t pcmcia; // extra pcmcia data - not used
-};
-
-struct utlb_sort_entry {
-    sh4addr_t key; // Masked VPN + ASID
-    uint32_t mask; // Mask + 0x00FF
-    int entryNo;
-};
-    
 
 static struct itlb_entry mmu_itlb[ITLB_ENTRY_COUNT];
 static struct utlb_entry mmu_utlb[UTLB_ENTRY_COUNT];
@@ -129,8 +82,7 @@ static sh4ptr_t cache = NULL;
 
 static void mmu_invalidate_tlb();
 static void mmu_utlb_sorted_reset();
-static void mmu_utlb_sorted_reload(); 
-
+static void mmu_utlb_sorted_reload();
 
 static uint32_t get_mask_for_flags( uint32_t flags )
 {
@@ -199,7 +151,7 @@ MMIO_REGION_WRITE_FN( MMU, reg, val )
         }
         break;
     case CCR:
-        mmu_set_cache_mode( val & (CCR_OIX|CCR_ORA|CCR_OCE) );
+        CCN_set_cache_control( val );
         val &= 0x81A7;
         break;
     case MMUUNK1:
@@ -229,7 +181,6 @@ MMIO_REGION_WRITE_FN( MMU, reg, val )
 
 void MMU_init()
 {
-    cache = mem_alloc_pages(2);
 }
 
 void MMU_reset()
@@ -241,7 +192,6 @@ void MMU_reset()
 
 void MMU_save_state( FILE *f )
 {
-    fwrite( cache, 4096, 2, f );
     fwrite( &mmu_itlb, sizeof(mmu_itlb), 1, f );
     fwrite( &mmu_utlb, sizeof(mmu_utlb), 1, f );
     fwrite( &mmu_urc, sizeof(mmu_urc), 1, f );
@@ -252,13 +202,6 @@ void MMU_save_state( FILE *f )
 
 int MMU_load_state( FILE *f )
 {
-    /* Setup the cache mode according to the saved register value
-     * (mem_load runs before this point to load all MMIO data)
-     */
-    mmio_region_MMU_write( CCR, MMIO_READ(MMU, CCR) );
-    if( fread( cache, 4096, 2, f ) != 2 ) {
-        return 1;
-    }
     if( fread( &mmu_itlb, sizeof(mmu_itlb), 1, f ) != 1 ) {
         return 1;
     }
@@ -281,24 +224,6 @@ int MMU_load_state( FILE *f )
     return 0;
 }
 
-void mmu_set_cache_mode( int mode )
-{
-    uint32_t i;
-    switch( mode ) {
-    case MEM_OC_INDEX0: /* OIX=0 */
-        for( i=OCRAM_START; i<OCRAM_END; i++ )
-            page_map[i] = cache + ((i&0x02)<<(LXDREAM_PAGE_BITS-1));
-        break;
-    case MEM_OC_INDEX1: /* OIX=1 */
-        for( i=OCRAM_START; i<OCRAM_END; i++ )
-            page_map[i] = cache + ((i&0x02000000)>>(25-LXDREAM_PAGE_BITS));
-        break;
-    default: /* disabled */
-        for( i=OCRAM_START; i<OCRAM_END; i++ )
-            page_map[i] = NULL;
-        break;
-    }
-}
 
 /******************* Sorted TLB data structure ****************/
 /*
@@ -1091,7 +1016,8 @@ void FASTCALL sh4_flush_store_queue( sh4addr_t addr )
     uint32_t hi = MMIO_READ( MMU, QACR0 + (queue>>1)) << 24;
     sh4ptr_t src = (sh4ptr_t)&sh4r.store_queue[queue];
     sh4addr_t target = (addr&0x03FFFFE0) | hi;
-    mem_copy_to_sh4( target, src, 32 );
+    ext_address_space[target>>12]->write_burst( target, src );
+//    mem_copy_to_sh4( target, src, 32 );
 } 
 
 gboolean FASTCALL sh4_flush_store_queue_mmu( sh4addr_t addr )
@@ -1133,7 +1059,8 @@ gboolean FASTCALL sh4_flush_store_queue_mmu( sh4addr_t addr )
     			(addr & (~mmu_utlb[entryNo].mask))) & 0xFFFFFFE0;
     }
 
-    mem_copy_to_sh4( target, src, 32 );
+    ext_address_space[target>>12]->write_burst( target, src );
+    // mem_copy_to_sh4( target, src, 32 );
     return TRUE;
 }
 

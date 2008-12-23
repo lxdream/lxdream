@@ -1200,3 +1200,11 @@ void pvr2_ta_write( unsigned char *buf, uint32_t length )
         buf += 32;
     }
 }
+
+void FASTCALL pvr2_ta_write_burst( sh4addr_t addr, unsigned char *data )
+{
+    if( ta_status.debug_output ) {
+        fwrite_dump32( (uint32_t *)data, 32, stderr );
+    }
+    pvr2_ta_process_block( data );
+}
