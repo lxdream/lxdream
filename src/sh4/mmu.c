@@ -526,41 +526,6 @@ void FASTCALL mmu_utlb_data_write( sh4addr_t addr, uint32_t val )
     }
 }
 
-/* Cache access - not implemented */
-
-int32_t FASTCALL mmu_icache_addr_read( sh4addr_t addr )
-{
-    return 0; // not implemented
-}
-int32_t FASTCALL mmu_icache_data_read( sh4addr_t addr )
-{
-    return 0; // not implemented
-}
-int32_t FASTCALL mmu_ocache_addr_read( sh4addr_t addr )
-{
-    return 0; // not implemented
-}
-int32_t FASTCALL mmu_ocache_data_read( sh4addr_t addr )
-{
-    return 0; // not implemented
-}
-
-void FASTCALL mmu_icache_addr_write( sh4addr_t addr, uint32_t val )
-{
-}
-
-void FASTCALL mmu_icache_data_write( sh4addr_t addr, uint32_t val )
-{
-}
-
-void FASTCALL mmu_ocache_addr_write( sh4addr_t addr, uint32_t val )
-{
-}
-
-void FASTCALL mmu_ocache_data_write( sh4addr_t addr, uint32_t val )
-{
-}
-
 /******************************************************************************/
 /*                        MMU TLB address translation                         */
 /******************************************************************************/
@@ -1017,7 +982,6 @@ void FASTCALL sh4_flush_store_queue( sh4addr_t addr )
     sh4ptr_t src = (sh4ptr_t)&sh4r.store_queue[queue];
     sh4addr_t target = (addr&0x03FFFFE0) | hi;
     ext_address_space[target>>12]->write_burst( target, src );
-//    mem_copy_to_sh4( target, src, 32 );
 } 
 
 gboolean FASTCALL sh4_flush_store_queue_mmu( sh4addr_t addr )
@@ -1060,7 +1024,6 @@ gboolean FASTCALL sh4_flush_store_queue_mmu( sh4addr_t addr )
     }
 
     ext_address_space[target>>12]->write_burst( target, src );
-    // mem_copy_to_sh4( target, src, 32 );
     return TRUE;
 }
 
