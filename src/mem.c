@@ -137,12 +137,14 @@ void mem_save( FILE *f )
     /* All memory regions */
     fwrite( &num_mem_rgns, sizeof(num_mem_rgns), 1, f );
     for( i=0; i<num_mem_rgns; i++ ) {
-        fwrite_string( mem_rgn[i].name, f );
-        fwrite( &mem_rgn[i].base, sizeof(uint32_t), 1, f );
-        fwrite( &mem_rgn[i].flags, sizeof(uint32_t), 1, f );
-        fwrite( &mem_rgn[i].size, sizeof(uint32_t), 1, f );
-        if( mem_rgn[i].flags != MEM_FLAG_ROM )
-            fwrite_gzip( mem_rgn[i].mem, mem_rgn[i].size, 1, f );
+        if( mem_rgn[i].mem != NULL ) {
+            fwrite_string( mem_rgn[i].name, f );
+            fwrite( &mem_rgn[i].base, sizeof(uint32_t), 1, f );
+            fwrite( &mem_rgn[i].flags, sizeof(uint32_t), 1, f );
+            fwrite( &mem_rgn[i].size, sizeof(uint32_t), 1, f );
+            if( mem_rgn[i].flags != MEM_FLAG_ROM )
+                fwrite_gzip( mem_rgn[i].mem, mem_rgn[i].size, 1, f );
+        }
     }
 
     /* All MMIO regions */
@@ -169,19 +171,21 @@ int mem_load( FILE *f )
     if( len != num_mem_rgns )
         return -1;
     for( i=0; i<len; i++ ) {
-        fread_string( tmp, sizeof(tmp), f );
-        fread( &base, sizeof(base), 1, f );
-        fread( &flags, sizeof(flags), 1, f );
-        fread( &size, sizeof(size), 1, f );
-        if( strcmp( mem_rgn[i].name, tmp ) != 0 ||
-                base != mem_rgn[i].base ||
-                flags != mem_rgn[i].flags ||
-                size != mem_rgn[i].size ) {
-            ERROR( "Bad memory region %d %s", i, tmp );
-            return -1;
+        if( mem_rgn[i].mem != NULL ) {
+            fread_string( tmp, sizeof(tmp), f );
+            fread( &base, sizeof(base), 1, f );
+            fread( &flags, sizeof(flags), 1, f );
+            fread( &size, sizeof(size), 1, f );
+            if( strcmp( mem_rgn[i].name, tmp ) != 0 ||
+                    base != mem_rgn[i].base ||
+                    flags != mem_rgn[i].flags ||
+                    size != mem_rgn[i].size ) {
+                ERROR( "Bad memory region %d %s", i, tmp );
+                return -1;
+            }
+            if( flags != MEM_FLAG_ROM )
+                fread_gzip( mem_rgn[i].mem, size, 1, f );
         }
-        if( flags != MEM_FLAG_ROM )
-            fread_gzip( mem_rgn[i].mem, size, 1, f );
     }
 
     /* All MMIO regions */
