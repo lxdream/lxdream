@@ -163,11 +163,118 @@ struct mem_region_fn mem_region_ocram_page1 = {
         ocram_page1_read_byte, ocram_page1_write_byte,
         ocram_page1_read_burst, ocram_page1_write_burst };
 
+/************************** Cache direct access ******************************/
+
+static int32_t ccn_icache_addr_read( sh4addr_t addr )
+{
+    int entry = (addr & 0x00001FE0);
+    return ccn_icache[entry>>5].tag;
+}
+
+static void ccn_icache_addr_write( sh4addr_t addr, uint32_t val )
+{
+    int entry = (addr & 0x00003FE0);
+    struct cache_line *line = &ccn_ocache[entry>>5];
+    if( addr & 0x08 ) { // Associative
+        /* FIXME: implement this - requires ITLB lookups, with exception in case of multi-hit */
+    } else {
+        line->tag = val & 0x1FFFFC01;
+        line->key = (val & 0x1FFFFC00)|(entry & 0x000003E0);
+    }
+}
+
+struct mem_region_fn p4_region_icache_addr = {
+        ccn_icache_addr_read, ccn_icache_addr_write,
+        unmapped_read_long, unmapped_write_long,
+        unmapped_read_long, unmapped_write_long,
+        unmapped_read_burst, unmapped_write_burst };
+
+
+static int32_t ccn_icache_data_read( sh4addr_t addr )
+{
+    int entry = (addr & 0x00001FFC);
+    return *(uint32_t *)&ccn_icache_data[entry];
+}
+
+static void ccn_icache_data_write( sh4addr_t addr, uint32_t val )
+{
+    int entry = (addr & 0x00001FFC);
+    *(uint32_t *)&ccn_icache_data[entry] = val;    
+}
+
+struct mem_region_fn p4_region_icache_data = {
+        ccn_icache_data_read, ccn_icache_data_write,
+        unmapped_read_long, unmapped_write_long,
+        unmapped_read_long, unmapped_write_long,
+        unmapped_read_burst, unmapped_write_burst };
+
+
+static int32_t ccn_ocache_addr_read( sh4addr_t addr )
+{
+    int entry = (addr & 0x00003FE0);
+    return ccn_ocache[entry>>5].tag;
+}
+
+static void ccn_ocache_addr_write( sh4addr_t addr, uint32_t val )
+{
+    int entry = (addr & 0x00003FE0);
+    struct cache_line *line = &ccn_ocache[entry>>5];
+    if( addr & 0x08 ) { // Associative
+    } else {
+        if( (line->tag & (CACHE_VALID|CACHE_DIRTY)) == (CACHE_VALID|CACHE_DIRTY) ) {
+            char *cache_data = &ccn_ocache_data[entry&0x00003FE0];
+            // Cache line is dirty - writeback. 
+            ext_address_space[line->tag>>12]->write_burst(line->key, cache_data);
+        }
+        line->tag = val & 0x1FFFFC03;
+        line->key = (val & 0x1FFFFC00)|(entry & 0x000003E0);
+    }
+}
+
+struct mem_region_fn p4_region_ocache_addr = {
+        ccn_ocache_addr_read, ccn_ocache_addr_write,
+        unmapped_read_long, unmapped_write_long,
+        unmapped_read_long, unmapped_write_long,
+        unmapped_read_burst, unmapped_write_burst };
+
+
+static int32_t ccn_ocache_data_read( sh4addr_t addr )
+{
+    int entry = (addr & 0x00003FFC);
+    return *(uint32_t *)&ccn_ocache_data[entry];
+}
+
+static void ccn_ocache_data_write( sh4addr_t addr, uint32_t val )
+{
+    int entry = (addr & 0x00003FFC);
+    *(uint32_t *)&ccn_ocache_data[entry] = val;
+}
+
+struct mem_region_fn p4_region_ocache_data = {
+        ccn_ocache_data_read, ccn_ocache_data_write,
+        unmapped_read_long, unmapped_write_long,
+        unmapped_read_long, unmapped_write_long,
+        unmapped_read_burst, unmapped_write_burst };
+
+
 /****************** Cache control *********************/
 
 void CCN_set_cache_control( int reg )
 {
     uint32_t i;
+    
+    if( reg & CCR_ICI ) { /* icache invalidate */
+        for( i=0; i<ICACHE_ENTRY_COUNT; i++ ) {
+            ccn_icache[i].tag &= ~CACHE_VALID;
+        }
+    }
+    
+    if( reg & CCR_OCI ) { /* ocache invalidate */
+        for( i=0; i<OCACHE_ENTRY_COUNT; i++ ) {
+            ccn_ocache[i].tag &= ~(CACHE_VALID|CACHE_DIRTY);
+        }
+    }
+    
     switch( reg & (CCR_OIX|CCR_ORA|CCR_OCE) ) {
     case MEM_OC_INDEX0: /* OIX=0 */
         for( i=OCRAM_START; i<OCRAM_END; i+=4 ) {

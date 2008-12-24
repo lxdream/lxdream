@@ -38,15 +38,15 @@ extern struct mem_region_fn mem_region_flashram;
 extern struct mem_region_fn mem_region_bootrom;
 
 /* On-chip regions other than defined MMIO regions */
-extern struct mem_region_fn mem_region_storequeue;
-extern struct mem_region_fn mem_region_icache_addr;
-extern struct mem_region_fn mem_region_icache_data;
-extern struct mem_region_fn mem_region_ocache_addr;
-extern struct mem_region_fn mem_region_ocache_data;
-extern struct mem_region_fn mem_region_itlb_addr;
-extern struct mem_region_fn mem_region_itlb_data;
-extern struct mem_region_fn mem_region_utlb_addr;
-extern struct mem_region_fn mem_region_utlb_data;
+extern struct mem_region_fn p4_region_storequeue;
+extern struct mem_region_fn p4_region_icache_addr;
+extern struct mem_region_fn p4_region_icache_data;
+extern struct mem_region_fn p4_region_ocache_addr;
+extern struct mem_region_fn p4_region_ocache_data;
+extern struct mem_region_fn p4_region_itlb_addr;
+extern struct mem_region_fn p4_region_itlb_data;
+extern struct mem_region_fn p4_region_utlb_addr;
+extern struct mem_region_fn p4_region_utlb_data;
 
 /********************* The main ram address space **********************/
 static int32_t FASTCALL ext_sdram_read_long( sh4addr_t addr )
@@ -177,28 +177,6 @@ struct mem_region_fn p4_region_storequeue = {
         p4_storequeue_read_long, p4_storequeue_write_long,
         p4_storequeue_read_long, p4_storequeue_write_long,
         unmapped_read_burst, unmapped_write_burst }; // No burst access.
-
-/* Cache access */
-struct mem_region_fn p4_region_icache_addr = {
-        mmu_icache_addr_read, mmu_icache_addr_write,
-        mmu_icache_addr_read, mmu_icache_addr_write,
-        mmu_icache_addr_read, mmu_icache_addr_write,
-        unmapped_read_burst, unmapped_write_burst };
-struct mem_region_fn p4_region_icache_data = {
-        mmu_icache_data_read, mmu_icache_data_write,
-        mmu_icache_data_read, mmu_icache_data_write,
-        mmu_icache_data_read, mmu_icache_data_write,
-        unmapped_read_burst, unmapped_write_burst };
-struct mem_region_fn p4_region_ocache_addr = {
-        mmu_ocache_addr_read, mmu_ocache_addr_write,
-        mmu_ocache_addr_read, mmu_ocache_addr_write,
-        mmu_ocache_addr_read, mmu_ocache_addr_write,
-        unmapped_read_burst, unmapped_write_burst };
-struct mem_region_fn p4_region_ocache_data = {
-        mmu_ocache_data_read, mmu_ocache_data_write,
-        mmu_ocache_data_read, mmu_ocache_data_write,
-        mmu_ocache_data_read, mmu_ocache_data_write,
-        unmapped_read_burst, unmapped_write_burst };
 
 /* TLB access */
 struct mem_region_fn p4_region_itlb_addr = {
