@@ -68,14 +68,17 @@ typedef struct mem_region {
 #define MEM_REGION_AUDIO "Audio RAM"
 #define MEM_REGION_AUDIO_SCRATCH "Audio Scratch RAM"
 #define MEM_REGION_FLASH "System Flash"
+#define MEM_REGION_PVR2TA "PVR2 TA Command"
+#define MEM_REGION_PVR2YUV "PVR2 YUV Decode"
+#define MEM_REGION_PVR2VDMA1 "PVR2 VRAM DMA 1"
+#define MEM_REGION_PVR2VDMA2 "PVR2 VRAM DMA 2"
 
 typedef gboolean (*mem_page_remapped_hook_t)(sh4addr_t page, mem_region_fn_t newfn, void *user_data);
 DECLARE_HOOK( mem_page_remapped_hook, mem_page_remapped_hook_t );
 
-void *mem_create_ram_region( uint32_t base, uint32_t size, const char *name, mem_region_fn_t fn );
-void *mem_create_repeating_ram_region( uint32_t base, uint32_t size, const char *name, mem_region_fn_t fn,
-				       uint32_t repeat_offset, uint32_t last_repeat );
-void register_misc_region( uint32_t base, uint32_t size, const char *name, mem_region_fn_t fn );
+struct mem_region *mem_map_region( void *mem, uint32_t base, uint32_t size,
+                                   const char *name, mem_region_fn_t fn, int flags, uint32_t repeat_offset,
+                                   uint32_t repeat_until );
 
 /**
  * Load a ROM image from the specified filename. If the memory region has not
@@ -83,13 +86,11 @@ void register_misc_region( uint32_t base, uint32_t size, const char *name, mem_r
  * If the CRC check fails, a warning will be printed.
  * @return TRUE if the image was loaded successfully (irrespective of CRC failure).
  */
-gboolean mem_load_rom( const gchar *filename, uint32_t base, uint32_t size, 
-		       uint32_t crc, const gchar *region_name, mem_region_fn_t fn );
+gboolean mem_load_rom( void *output, const gchar *filename, uint32_t size, uint32_t crc ); 
 void *mem_alloc_pages( int n );
 sh4ptr_t mem_get_region( uint32_t addr );
 sh4ptr_t mem_get_region_by_name( const char *name );
-int mem_has_page( uint32_t addr );
-sh4ptr_t mem_get_page( uint32_t addr );
+gboolean mem_has_page( uint32_t addr );
 int mem_load_block( const gchar *filename, uint32_t base, uint32_t size );
 int mem_save_block( const gchar *filename, uint32_t base, uint32_t size );
 void mem_set_trace( const gchar *tracelist, int flag );
@@ -130,7 +131,6 @@ watch_point_t mem_new_watch( uint32_t start, uint32_t end, int flags );
 void mem_delete_watch( watch_point_t watch );
 watch_point_t mem_is_watched( uint32_t addr, int size, int op );
 
-extern sh4ptr_t *page_map;
 extern mem_region_fn_t *ext_address_space;
 
 #define SIGNEXT4(n) ((((int32_t)(n))<<28)>>28)

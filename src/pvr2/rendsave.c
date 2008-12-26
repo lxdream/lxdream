@@ -31,8 +31,6 @@
 #define SAVE_PAGE_SIZE 1024
 #define SAVE_PAGE_COUNT 8192
 
-extern char *video_base;
-
 /* Determine pages of memory to save. Start walking from the render tilemap
  * data and build up a page list
  */
@@ -88,7 +86,7 @@ int pvr2_render_save_scene( const gchar *filename )
             uint32_t length = (j-i) * SAVE_PAGE_SIZE;
             fwrite( &start, sizeof(uint32_t), 1, f );
             fwrite( &length, sizeof(uint32_t), 1, f );
-            fwrite( video_base + start, 1, length, f );
+            fwrite( pvr2_main_ram + start, 1, length, f );
             i = j-1;
         }
     }

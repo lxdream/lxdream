@@ -52,10 +52,6 @@ struct dreamcast_module sh4_module = { "SH4", sh4_init, sh4_reset,
 struct sh4_registers sh4r __attribute__((aligned(16)));
 struct breakpoint_struct sh4_breakpoints[MAX_BREAKPOINTS];
 int sh4_breakpoint_count = 0;
-sh4ptr_t sh4_main_ram;
-sh4ptr_t dc_boot_rom;
-sh4ptr_t dc_flash_ram;
-sh4ptr_t dc_audio_ram;
 
 gboolean sh4_starting = FALSE;
 static gboolean sh4_use_translator = FALSE;
@@ -83,10 +79,6 @@ gboolean sh4_translate_is_enabled()
 void sh4_init(void)
 {
     register_io_regions( mmio_list_sh4mmio );
-    sh4_main_ram = mem_get_region_by_name(MEM_REGION_MAIN);
-    dc_boot_rom = mem_get_region_by_name(MEM_REGION_BIOS);
-    dc_flash_ram = mem_get_region_by_name(MEM_REGION_FLASH);
-    dc_audio_ram = mem_get_region_by_name(MEM_REGION_AUDIO);
     TMU_init();
     sh4_mem_init();
     sh4_reset();

@@ -31,8 +31,6 @@
 #define MMIO_IMPL
 #include "pvr2/pvr2mmio.h"
 
-unsigned char *video_base;
-
 #define MAX_RENDER_BUFFERS 4
 
 #define HPOS_PER_FRAME 0
@@ -146,7 +144,6 @@ static void pvr2_init( void )
     register_event_callback( EVENT_SCANLINE1, pvr2_scanline_callback );
     register_event_callback( EVENT_SCANLINE2, pvr2_scanline_callback );
     register_event_callback( EVENT_GUNPOS, pvr2_gunpos_callback );
-    video_base = mem_get_region_by_name( MEM_REGION_VIDEO );
     texcache_init();
     pvr2_reset();
     pvr2_ta_reset();
@@ -444,7 +441,7 @@ void pvr2_display_frame( void )
         }
         fbuf.address = (fbuf.address & 0x00FFFFFF) + PVR2_RAM_BASE;
         fbuf.inverted = FALSE;
-        fbuf.data = video_base + (fbuf.address&0x00FFFFFF);
+        fbuf.data = pvr2_main_ram + (fbuf.address&0x00FFFFFF);
 
         render_buffer_t rbuf = pvr2_get_render_buffer( &fbuf );
         if( rbuf == NULL ) {

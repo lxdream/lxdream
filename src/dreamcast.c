@@ -29,6 +29,7 @@
 #include "aica/aica.h"
 #include "gdrom/ide.h"
 #include "maple/maple.h"
+#include "pvr2/pvr2.h"
 #include "sh4/sh4.h"
 #include "sh4/sh4core.h"
 
@@ -70,6 +71,10 @@ extern struct mem_region_fn mem_region_pvr2yuv;
 extern struct mem_region_fn mem_region_pvr2vdma1;
 extern struct mem_region_fn mem_region_pvr2vdma2;
 
+unsigned char dc_main_ram[16 MB];
+unsigned char dc_boot_rom[2 MB];
+unsigned char dc_flash_ram[128 KB];
+
 /**
  * This function is responsible for defining how all the pieces of the
  * dreamcast actually fit together. 
@@ -87,20 +92,19 @@ void dreamcast_configure( )
     dreamcast_register_module( &mem_module );
 
     /* Setup standard memory map */
-    dreamcast_has_bios = 
-        mem_load_rom( bios_path, 0x00000000, 2 MB, 0x89f2b1a1, MEM_REGION_BIOS, &mem_region_bootrom );
-    mem_create_ram_region( 0x00200000, 0x00020000, MEM_REGION_FLASH, &mem_region_flashram );
-    mem_create_ram_region( 0x00800000, 2 MB, MEM_REGION_AUDIO, &mem_region_audioram );
-    mem_create_ram_region( 0x00703000, 8 KB, MEM_REGION_AUDIO_SCRATCH, &mem_region_audioscratch );
-    register_misc_region(  0x04000000, 8 MB, MEM_REGION_VIDEO64, &mem_region_vram64 );
-    mem_create_ram_region( 0x05000000, 8 MB, MEM_REGION_VIDEO, &mem_region_vram32 );
-    mem_create_repeating_ram_region( 0x0C000000, 16 MB, MEM_REGION_MAIN, &mem_region_sdram, 0x01000000, 0x0F000000 );
-    register_misc_region(  0x10000000, 8 MB, "PVR2 TA Command 1", &mem_region_pvr2ta );
-    register_misc_region(  0x10800000, 8 MB, "PVR2 YUV Decode 1", &mem_region_pvr2yuv );
-    register_misc_region(  0x11000000, 16 MB,"PVR2 VRAM DMA 1", &mem_region_pvr2vdma1 );
-    register_misc_region(  0x12000000, 8 MB, "PVR2 TA Command 2", &mem_region_pvr2ta );
-    register_misc_region(  0x12800000, 8 MB, "PVR2 YUV Decode 2", &mem_region_pvr2yuv );
-    register_misc_region(  0x13000000, 16 MB,"PVR2 VRAM DMA 2", &mem_region_pvr2vdma2 );
+    mem_map_region( dc_boot_rom,     0x00000000, 2 MB,   MEM_REGION_BIOS,         &mem_region_bootrom, MEM_FLAG_ROM, 2 MB, 0 );
+    mem_map_region( dc_flash_ram,    0x00200000, 128 KB, MEM_REGION_FLASH,        &mem_region_flashram, MEM_FLAG_RAM, 128 KB, 0 );
+    mem_map_region( aica_main_ram,   0x00800000, 2 MB,   MEM_REGION_AUDIO,        &mem_region_audioram, MEM_FLAG_RAM, 2 MB, 0 );
+    mem_map_region( aica_scratch_ram,0x00703000, 8 KB,   MEM_REGION_AUDIO_SCRATCH,&mem_region_audioscratch, MEM_FLAG_RAM, 8 KB, 0 );
+    mem_map_region( NULL,            0x04000000, 8 MB,   MEM_REGION_VIDEO64,      &mem_region_vram64, 0, 8 MB, 0 );
+    mem_map_region( pvr2_main_ram,   0x05000000, 8 MB,   MEM_REGION_VIDEO,        &mem_region_vram32, MEM_FLAG_RAM, 8 MB, 0 ); 
+    mem_map_region( dc_main_ram,     0x0C000000, 16 MB,  MEM_REGION_MAIN,         &mem_region_sdram, MEM_FLAG_RAM, 0x01000000, 0x0F000000 );
+    mem_map_region( NULL,            0x10000000, 8 MB,   MEM_REGION_PVR2TA,       &mem_region_pvr2ta, 0, 0x02000000, 0x12000000 );
+    mem_map_region( NULL,            0x10800000, 8 MB,   MEM_REGION_PVR2YUV,      &mem_region_pvr2yuv, 0, 0x02000000, 0x12800000 );
+    mem_map_region( NULL,            0x11000000, 16 MB,  MEM_REGION_PVR2VDMA1,    &mem_region_pvr2vdma1, 0, 16 MB, 0 );
+    mem_map_region( NULL,            0x13000000, 16 MB,  MEM_REGION_PVR2VDMA2,    &mem_region_pvr2vdma2, 0, 16 MB, 0 );
+    
+    dreamcast_has_bios = mem_load_rom( dc_boot_rom, bios_path, 2 MB, 0x89f2b1a1 );
     if( flash_path != NULL && flash_path[0] != '\0' ) {
         mem_load_block( flash_path, 0x00200000, 0x00020000 );
     }
@@ -119,7 +123,7 @@ void dreamcast_config_changed(void)
 {
     const char *bios_path = lxdream_get_config_value(CONFIG_BIOS_PATH);
     const char *flash_path = lxdream_get_config_value(CONFIG_FLASH_PATH);
-    dreamcast_has_bios = mem_load_rom( bios_path, 0x00000000, 0x00200000, 0x89f2b1a1, MEM_REGION_BIOS, &mem_region_bootrom );
+    dreamcast_has_bios = mem_load_rom( dc_boot_rom, bios_path, 2 MB, 0x89f2b1a1 );
     if( flash_path != NULL && flash_path[0] != '\0' ) {
         mem_load_block( flash_path, 0x00200000, 0x00020000 );
     }
@@ -140,8 +144,8 @@ void dreamcast_save_flash()
 void dreamcast_configure_aica_only( )
 {
     dreamcast_register_module( &mem_module );
-    mem_create_ram_region( 0x00800000, 2 MB, MEM_REGION_AUDIO, &mem_region_audioram );
-    mem_create_ram_region( 0x00703000, 8 KB, MEM_REGION_AUDIO_SCRATCH, &mem_region_audioscratch );
+    mem_map_region( aica_main_ram, 0x00800000, 2 MB, MEM_REGION_AUDIO, &mem_region_audioram, MEM_FLAG_RAM, 2 MB, 0 );
+    mem_map_region( aica_scratch_ram, 0x00703000, 8 KB, MEM_REGION_AUDIO_SCRATCH, &mem_region_audioscratch, MEM_FLAG_RAM, 8 KB, 0 );
     dreamcast_register_module( &aica_module );
     aica_enable();
     dreamcast_state = STATE_STOPPED;
@@ -486,4 +490,70 @@ int dreamcast_save_state( const gchar *filename )
     INFO( "Save state written to %s", filename );
     return 0;
 }
+
+/********************* The Boot ROM address space **********************/
+static int32_t FASTCALL ext_bootrom_read_long( sh4addr_t addr )
+{
+    return *((int32_t *)(dc_boot_rom + (addr&0x001FFFFF)));
+}
+static int32_t FASTCALL ext_bootrom_read_word( sh4addr_t addr )
+{
+    return SIGNEXT16(*((int16_t *)(dc_boot_rom + (addr&0x001FFFFF))));
+}
+static int32_t FASTCALL ext_bootrom_read_byte( sh4addr_t addr )
+{
+    return SIGNEXT8(*((int16_t *)(dc_boot_rom + (addr&0x001FFFFF))));
+}
+static void FASTCALL ext_bootrom_read_burst( unsigned char *dest, sh4addr_t addr )
+{
+    memcpy( dest, dc_boot_rom +(addr&0x001FFFFF), 32 );
+}
+
+struct mem_region_fn mem_region_bootrom = { 
+        ext_bootrom_read_long, unmapped_write_long, 
+        ext_bootrom_read_word, unmapped_write_long, 
+        ext_bootrom_read_byte, unmapped_write_long, 
+        ext_bootrom_read_burst, unmapped_write_burst }; 
+
+/********************* The Flash RAM address space **********************/
+static int32_t FASTCALL ext_flashram_read_long( sh4addr_t addr )
+{
+    return *((int32_t *)(dc_flash_ram + (addr&0x0001FFFF)));
+}
+static int32_t FASTCALL ext_flashram_read_word( sh4addr_t addr )
+{
+    return SIGNEXT16(*((int16_t *)(dc_flash_ram + (addr&0x0001FFFF))));
+}
+static int32_t FASTCALL ext_flashram_read_byte( sh4addr_t addr )
+{
+    return SIGNEXT8(*((int16_t *)(dc_flash_ram + (addr&0x0001FFFF))));
+}
+static void FASTCALL ext_flashram_write_long( sh4addr_t addr, uint32_t val )
+{
+    *(uint32_t *)(dc_flash_ram + (addr&0x0001FFFF)) = val;
+    asic_g2_write_word();
+}
+static void FASTCALL ext_flashram_write_word( sh4addr_t addr, uint32_t val )
+{
+    *(uint16_t *)(dc_flash_ram + (addr&0x0001FFFF)) = (uint16_t)val;
+    asic_g2_write_word();
+}
+static void FASTCALL ext_flashram_write_byte( sh4addr_t addr, uint32_t val )
+{
+    *(uint8_t *)(dc_flash_ram + (addr&0x0001FFFF)) = (uint8_t)val;
+    asic_g2_write_word();
+}
+static void FASTCALL ext_flashram_read_burst( unsigned char *dest, sh4addr_t addr )
+{
+    memcpy( dest, dc_flash_ram+(addr&0x0001FFFF), 32 );
+}
+static void FASTCALL ext_flashram_write_burst( sh4addr_t addr, unsigned char *src )
+{
+    memcpy( dc_flash_ram+(addr&0x0001FFFF), src, 32 );
+}
+
+struct mem_region_fn mem_region_flashram = { ext_flashram_read_long, ext_flashram_write_long, 
+        ext_flashram_read_word, ext_flashram_write_word, 
+        ext_flashram_read_byte, ext_flashram_write_byte, 
+        ext_flashram_read_burst, ext_flashram_write_burst }; 
 

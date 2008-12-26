@@ -134,6 +134,8 @@ gboolean pvr2_save_next_scene( const gchar *filename );
 
 /****************************** Frame Buffer *****************************/
 
+extern unsigned char pvr2_main_ram[];
+
 /**
  * Write a block of data to an address in the DMA range (0x10000000 -
  * 0x13FFFFFF), ie TA, YUV, or texture ram.

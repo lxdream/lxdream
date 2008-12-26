@@ -51,38 +51,38 @@ extern struct mem_region_fn p4_region_utlb_data;
 /********************* The main ram address space **********************/
 static int32_t FASTCALL ext_sdram_read_long( sh4addr_t addr )
 {
-    return *((int32_t *)(sh4_main_ram + (addr&0x00FFFFFF)));
+    return *((int32_t *)(dc_main_ram + (addr&0x00FFFFFF)));
 }
 static int32_t FASTCALL ext_sdram_read_word( sh4addr_t addr )
 {
-    return SIGNEXT16(*((int16_t *)(sh4_main_ram + (addr&0x00FFFFFF))));
+    return SIGNEXT16(*((int16_t *)(dc_main_ram + (addr&0x00FFFFFF))));
 }
 static int32_t FASTCALL ext_sdram_read_byte( sh4addr_t addr )
 {
-    return SIGNEXT8(*((int16_t *)(sh4_main_ram + (addr&0x00FFFFFF))));
+    return SIGNEXT8(*((int16_t *)(dc_main_ram + (addr&0x00FFFFFF))));
 }
 static void FASTCALL ext_sdram_write_long( sh4addr_t addr, uint32_t val )
 {
-    *(uint32_t *)(sh4_main_ram + (addr&0x00FFFFFF)) = val;
+    *(uint32_t *)(dc_main_ram + (addr&0x00FFFFFF)) = val;
     xlat_invalidate_long(addr);
 }
 static void FASTCALL ext_sdram_write_word( sh4addr_t addr, uint32_t val )
 {
-    *(uint16_t *)(sh4_main_ram + (addr&0x00FFFFFF)) = (uint16_t)val;
+    *(uint16_t *)(dc_main_ram + (addr&0x00FFFFFF)) = (uint16_t)val;
     xlat_invalidate_word(addr);
 }
 static void FASTCALL ext_sdram_write_byte( sh4addr_t addr, uint32_t val )
 {
-    *(uint8_t *)(sh4_main_ram + (addr&0x00FFFFFF)) = (uint8_t)val;
+    *(uint8_t *)(dc_main_ram + (addr&0x00FFFFFF)) = (uint8_t)val;
     xlat_invalidate_word(addr);
 }
 static void FASTCALL ext_sdram_read_burst( unsigned char *dest, sh4addr_t addr )
 {
-    memcpy( dest, sh4_main_ram+(addr&0x00FFFFFF), 32 );
+    memcpy( dest, dc_main_ram+(addr&0x00FFFFFF), 32 );
 }
 static void FASTCALL ext_sdram_write_burst( sh4addr_t addr, unsigned char *src )
 {
-    memcpy( sh4_main_ram+(addr&0x00FFFFFF), src, 32 );
+    memcpy( dc_main_ram+(addr&0x00FFFFFF), src, 32 );
 }
 
 struct mem_region_fn mem_region_sdram = { ext_sdram_read_long, ext_sdram_write_long, 
@@ -90,75 +90,6 @@ struct mem_region_fn mem_region_sdram = { ext_sdram_read_long, ext_sdram_write_l
         ext_sdram_read_byte, ext_sdram_write_byte, 
         ext_sdram_read_burst, ext_sdram_write_burst }; 
 
-
-/********************* The Boot ROM address space **********************/
-extern sh4ptr_t dc_boot_rom;
-extern sh4ptr_t dc_flash_ram;
-extern sh4ptr_t dc_audio_ram;
-static int32_t FASTCALL ext_bootrom_read_long( sh4addr_t addr )
-{
-    return *((int32_t *)(dc_boot_rom + (addr&0x001FFFFF)));
-}
-static int32_t FASTCALL ext_bootrom_read_word( sh4addr_t addr )
-{
-    return SIGNEXT16(*((int16_t *)(dc_boot_rom + (addr&0x001FFFFF))));
-}
-static int32_t FASTCALL ext_bootrom_read_byte( sh4addr_t addr )
-{
-    return SIGNEXT8(*((int16_t *)(dc_boot_rom + (addr&0x001FFFFF))));
-}
-static void FASTCALL ext_bootrom_read_burst( unsigned char *dest, sh4addr_t addr )
-{
-    memcpy( dest, sh4_main_ram+(addr&0x001FFFFF), 32 );
-}
-
-struct mem_region_fn mem_region_bootrom = { 
-        ext_bootrom_read_long, unmapped_write_long, 
-        ext_bootrom_read_word, unmapped_write_long, 
-        ext_bootrom_read_byte, unmapped_write_long, 
-        ext_bootrom_read_burst, unmapped_write_burst }; 
-
-/********************* The Flash RAM address space **********************/
-static int32_t FASTCALL ext_flashram_read_long( sh4addr_t addr )
-{
-    return *((int32_t *)(dc_flash_ram + (addr&0x0001FFFF)));
-}
-static int32_t FASTCALL ext_flashram_read_word( sh4addr_t addr )
-{
-    return SIGNEXT16(*((int16_t *)(dc_flash_ram + (addr&0x0001FFFF))));
-}
-static int32_t FASTCALL ext_flashram_read_byte( sh4addr_t addr )
-{
-    return SIGNEXT8(*((int16_t *)(dc_flash_ram + (addr&0x0001FFFF))));
-}
-static void FASTCALL ext_flashram_write_long( sh4addr_t addr, uint32_t val )
-{
-    *(uint32_t *)(dc_flash_ram + (addr&0x0001FFFF)) = val;
-    asic_g2_write_word();
-}
-static void FASTCALL ext_flashram_write_word( sh4addr_t addr, uint32_t val )
-{
-    *(uint16_t *)(dc_flash_ram + (addr&0x0001FFFF)) = (uint16_t)val;
-    asic_g2_write_word();
-}
-static void FASTCALL ext_flashram_write_byte( sh4addr_t addr, uint32_t val )
-{
-    *(uint8_t *)(dc_flash_ram + (addr&0x0001FFFF)) = (uint8_t)val;
-    asic_g2_write_word();
-}
-static void FASTCALL ext_flashram_read_burst( unsigned char *dest, sh4addr_t addr )
-{
-    memcpy( dest, dc_flash_ram+(addr&0x0001FFFF), 32 );
-}
-static void FASTCALL ext_flashram_write_burst( sh4addr_t addr, unsigned char *src )
-{
-    memcpy( dc_flash_ram+(addr&0x0001FFFF), src, 32 );
-}
-
-struct mem_region_fn mem_region_flashram = { ext_flashram_read_long, ext_flashram_write_long, 
-        ext_flashram_read_word, ext_flashram_write_word, 
-        ext_flashram_read_byte, ext_flashram_write_byte, 
-        ext_flashram_read_burst, ext_flashram_write_burst }; 
 
 /***************************** P4 Regions ************************************/
 

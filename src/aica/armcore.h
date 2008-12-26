@@ -109,7 +109,6 @@ void arm_write_long_user( uint32_t addr, uint32_t val );
 void arm_write_byte_user( uint32_t addr, uint32_t val );
 int32_t arm_read_phys_word( uint32_t addr );
 int arm_has_page( uint32_t addr );
-void arm_mem_init(void);
 
 #ifdef __cplusplus
 }

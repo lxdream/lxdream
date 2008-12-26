@@ -68,8 +68,6 @@ audio_driver_t audio_driver = NULL;
 
 #define NEXT_BUFFER() ((audio.write_buffer == NUM_BUFFERS-1) ? 0 : audio.write_buffer+1)
 
-extern char *arm_mem;
-
 /**
  * Preserve audio channel state only - don't bother saving the buffers
  */
@@ -299,7 +297,7 @@ void audio_mix_samples( int num_samples )
             switch( channel->sample_format ) {
             case AUDIO_FMT_16BIT:
                 for( j=0; j<num_samples; j++ ) {
-                    sample = ((int16_t *)(arm_mem + channel->start))[channel->posn];
+                    sample = ((int16_t *)(aica_main_ram + channel->start))[channel->posn];
                     result_buf[j][0] += sample * vol_left;
                     result_buf[j][1] += sample * vol_right;
 
@@ -323,7 +321,7 @@ void audio_mix_samples( int num_samples )
                 break;
             case AUDIO_FMT_8BIT:
                 for( j=0; j<num_samples; j++ ) {
-                    sample = ((int8_t *)(arm_mem + channel->start))[channel->posn] << 8;
+                    sample = ((int8_t *)(aica_main_ram + channel->start))[channel->posn] << 8;
                     result_buf[j][0] += sample * vol_left;
                     result_buf[j][1] += sample * vol_right;
 
@@ -366,7 +364,7 @@ void audio_mix_samples( int num_samples )
                                 break;
                             }
                         }
-                        uint8_t data = ((uint8_t *)(arm_mem + channel->start))[channel->posn>>1];
+                        uint8_t data = ((uint8_t *)(aica_main_ram + channel->start))[channel->posn>>1];
                         if( channel->posn&1 ) {
                             adpcm_yamaha_decode_nibble( channel, (data >> 4) & 0x0F );
                         } else {
@@ -478,7 +476,7 @@ void audio_start_channel( int channel )
     if( audio.channels[channel].sample_format == AUDIO_FMT_ADPCM ) {
         audio.channels[channel].adpcm_step = 0;
         audio.channels[channel].adpcm_predict = 0;
-        uint8_t data = ((uint8_t *)(arm_mem + audio.channels[channel].start))[0];
+        uint8_t data = ((uint8_t *)(aica_main_ram + audio.channels[channel].start))[0];
         adpcm_yamaha_decode_nibble( &audio.channels[channel], data & 0x0F );
     }
 }
