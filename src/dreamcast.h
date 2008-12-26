@@ -78,6 +78,10 @@ frame_buffer_t dreamcast_load_preview( const gchar *filename );
 #define SCENE_SAVE_MAGIC "%!-lxDream!Scene"
 #define SCENE_SAVE_VERSION 0x00010000
 
+extern unsigned char dc_main_ram[];
+extern unsigned char dc_boot_rom[];
+extern unsigned char dc_flash_ram[];
+
 #ifdef __cplusplus
 }
 #endif

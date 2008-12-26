@@ -506,13 +506,13 @@ static void scene_add_quad_vertexes( pvraddr_t poly_idx, int vertex_length,
 
 static void scene_extract_polygons( pvraddr_t tile_entry )
 {
-    uint32_t *tile_list = (uint32_t *)(video_base+tile_entry);
+    uint32_t *tile_list = (uint32_t *)(pvr2_main_ram+tile_entry);
     do {
         uint32_t entry = *tile_list++;
         if( entry >> 28 == 0x0F ) {
             break;
         } else if( entry >> 28 == 0x0E ) {
-            tile_list = (uint32_t *)(video_base + (entry&0x007FFFFF));
+            tile_list = (uint32_t *)(pvr2_main_ram + (entry&0x007FFFFF));
         } else {
             pvraddr_t polyaddr = entry&0x000FFFFF;
             shadow_mode_t is_modified = (entry & 0x01000000) ? pvr2_scene.shadow_mode : SHADOW_NONE;
@@ -571,13 +571,13 @@ static void scene_extract_polygons( pvraddr_t tile_entry )
 
 static void scene_extract_vertexes( pvraddr_t tile_entry )
 {
-    uint32_t *tile_list = (uint32_t *)(video_base+tile_entry);
+    uint32_t *tile_list = (uint32_t *)(pvr2_main_ram+tile_entry);
     do {
         uint32_t entry = *tile_list++;
         if( entry >> 28 == 0x0F ) {
             break;
         } else if( entry >> 28 == 0x0E ) {
-            tile_list = (uint32_t *)(video_base + (entry&0x007FFFFF));
+            tile_list = (uint32_t *)(pvr2_main_ram + (entry&0x007FFFFF));
         } else {
             pvraddr_t polyaddr = entry&0x000FFFFF;
             shadow_mode_t is_modified = (entry & 0x01000000) ? pvr2_scene.shadow_mode : SHADOW_NONE;
@@ -737,11 +737,11 @@ void pvr2_scene_read( void )
     fog_col = MMIO_READ( PVR2, RENDER_FOGVRTCOL );
     unpack_bgra( fog_col, pvr2_scene.fog_vert_colour );
     
-    uint32_t *tilebuffer = (uint32_t *)(video_base + MMIO_READ( PVR2, RENDER_TILEBASE ));
+    uint32_t *tilebuffer = (uint32_t *)(pvr2_main_ram + MMIO_READ( PVR2, RENDER_TILEBASE ));
     uint32_t *segment = tilebuffer;
     uint32_t shadow = MMIO_READ(PVR2,RENDER_SHADOW);
     pvr2_scene.segment_list = (struct tile_segment *)tilebuffer;
-    pvr2_scene.pvr2_pbuf = (uint32_t *)(video_base + MMIO_READ(PVR2,RENDER_POLYBASE));
+    pvr2_scene.pvr2_pbuf = (uint32_t *)(pvr2_main_ram + MMIO_READ(PVR2,RENDER_POLYBASE));
     pvr2_scene.shadow_mode = shadow & 0x100 ? SHADOW_CHEAP : SHADOW_FULL;
     scene_shadow_intensity = U8TOFLOAT(shadow&0xFF);
 
@@ -814,7 +814,7 @@ void pvr2_scene_dump( FILE *f )
     fprintf( f, "Polygons: %d\n", pvr2_scene.poly_count );
     for( i=0; i<pvr2_scene.poly_count; i++ ) {
         struct polygon_struct *poly = &pvr2_scene.poly_array[i];
-        fprintf( f, "  %08X ", ((unsigned char *)poly->context) - video_base );
+        fprintf( f, "  %08X ", ((unsigned char *)poly->context) - pvr2_main_ram );
         switch( poly->vertex_count ) {
         case 3: fprintf( f, "Tri     " ); break;
         case 4: fprintf( f, "Quad    " ); break;

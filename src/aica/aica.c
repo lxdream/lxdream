@@ -70,7 +70,6 @@ void aica_init( void )
     register_io_regions( mmio_list_spu );
     MMIO_NOTRACE(AICA0);
     MMIO_NOTRACE(AICA1);
-    arm_mem_init();
     aica_reset();
 }
 

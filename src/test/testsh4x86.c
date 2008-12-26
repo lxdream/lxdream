@@ -46,7 +46,8 @@ char *output_file = NULL;
 gboolean sh4_starting;
 uint32_t start_addr = 0x8C010000;
 uint32_t sh4_cpu_period = 5;
-sh4ptr_t sh4_main_ram;
+unsigned char dc_main_ram[4096];
+unsigned char dc_boot_rom[4096];
 FILE *in;
 
 char *inbuf;
@@ -200,7 +201,7 @@ int main( int argc, char *argv[] )
     uintptr_t pc;
     uint8_t *buf = sh4_translate_basic_block( start_addr );
     uint32_t buflen = xlat_get_code_size(buf);
-    x86_disasm_init( buf, buf, buflen );
+    x86_disasm_init( (uintptr_t)buf, (uintptr_t)buf, buflen );
     x86_set_symtab( local_symbols, sizeof(local_symbols)/sizeof(struct x86_symbol) );
     for( pc = buf; pc < buf + buflen;  ) {
 	char buf[256];

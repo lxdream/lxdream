@@ -22,6 +22,7 @@
 #include "sh4/sh4mmio.h"
 #include "sh4/sh4core.h"
 #include "sh4/sh4trans.h"
+#include "dreamcast.h"
 #include "mem.h"
 #include "mmu.h"
 
@@ -850,13 +851,13 @@ static inline void mmu_update_icache_phys( sh4addr_t addr )
         sh4_icache.page_vma = addr & 0xFF000000;
         sh4_icache.page_ppa = 0x0C000000;
         sh4_icache.mask = 0xFF000000;
-        sh4_icache.page = sh4_main_ram;
+        sh4_icache.page = dc_main_ram;
     } else if( (addr & 0x1FE00000) == 0 ) {
         /* BIOS ROM */
         sh4_icache.page_vma = addr & 0xFFE00000;
         sh4_icache.page_ppa = 0;
         sh4_icache.mask = 0xFFE00000;
-        sh4_icache.page = mem_get_region(0);
+        sh4_icache.page = dc_boot_rom;
     } else {
         /* not supported */
         sh4_icache.page_vma = -1;
