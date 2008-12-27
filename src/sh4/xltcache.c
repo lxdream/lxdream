@@ -146,7 +146,7 @@ void FASTCALL xlat_invalidate_long( sh4addr_t addr )
     void **page = xlat_lut[XLAT_LUT_PAGE(addr)];
     if( page != NULL ) {
         int entry = XLAT_LUT_ENTRY(addr);
-        if( page[entry] != NULL || page[entry+1] != NULL ) {
+        if( *(uint64_t *)&page[entry] != 0 ) {
             xlat_flush_page_by_lut(page);
         }
     }
