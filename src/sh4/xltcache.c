@@ -59,7 +59,7 @@ xlat_cache_block_t xlat_old_cache;
 xlat_cache_block_t xlat_old_cache_ptr;
 #endif
 
-static void ***xlat_lut;
+static void **xlat_lut[XLAT_LUT_PAGES];
 static gboolean xlat_initialized = FALSE;
 
 void xlat_cache_init(void) 
@@ -78,8 +78,8 @@ void xlat_cache_init(void)
         xlat_temp_cache_ptr = xlat_temp_cache;
         xlat_old_cache_ptr = xlat_old_cache;
 #endif
-        xlat_lut = mmap( NULL, XLAT_LUT_PAGES*sizeof(void *), PROT_READ|PROT_WRITE,
-                MAP_PRIVATE|MAP_ANON, -1, 0);
+//        xlat_lut = mmap( NULL, XLAT_LUT_PAGES*sizeof(void *), PROT_READ|PROT_WRITE,
+//                MAP_PRIVATE|MAP_ANON, -1, 0);
         memset( xlat_lut, 0, XLAT_LUT_PAGES*sizeof(void *) );
     }
     xlat_flush_cache();
@@ -132,26 +132,22 @@ static void xlat_flush_page_by_lut( void **page )
 
 void FASTCALL xlat_invalidate_word( sh4addr_t addr )
 {
-    if( xlat_lut ) {
-        void **page = xlat_lut[XLAT_LUT_PAGE(addr)];
-        if( page != NULL ) {
-            int entry = XLAT_LUT_ENTRY(addr);
-            if( page[entry] != NULL ) {
-                xlat_flush_page_by_lut(page);
-            }
+    void **page = xlat_lut[XLAT_LUT_PAGE(addr)];
+    if( page != NULL ) {
+        int entry = XLAT_LUT_ENTRY(addr);
+        if( page[entry] != NULL ) {
+            xlat_flush_page_by_lut(page);
         }
     }
 }
 
 void FASTCALL xlat_invalidate_long( sh4addr_t addr )
 {
-    if( xlat_lut ) {
-        void **page = xlat_lut[XLAT_LUT_PAGE(addr)];
-        if( page != NULL ) {
-            int entry = XLAT_LUT_ENTRY(addr);
-            if( page[entry] != NULL || page[entry+1] != NULL ) {
-                xlat_flush_page_by_lut(page);
-            }
+    void **page = xlat_lut[XLAT_LUT_PAGE(addr)];
+    if( page != NULL ) {
+        int entry = XLAT_LUT_ENTRY(addr);
+        if( page[entry] != NULL || page[entry+1] != NULL ) {
+            xlat_flush_page_by_lut(page);
         }
     }
 }
@@ -162,32 +158,30 @@ void FASTCALL xlat_invalidate_block( sh4addr_t address, size_t size )
     int entry_count = size >> 1; // words;
     uint32_t page_no = XLAT_LUT_PAGE(address);
     int entry = XLAT_LUT_ENTRY(address);
-    if( xlat_lut ) {
-        do {
-            void **page = xlat_lut[page_no];
-            int page_entries = XLAT_LUT_PAGE_ENTRIES - entry;
-            if( entry_count < page_entries ) {
-                page_entries = entry_count;
-            }
-            if( page != NULL ) {
-                if( page_entries == XLAT_LUT_PAGE_ENTRIES ) {
-                    /* Overwriting the entire page anyway */
-                    xlat_flush_page_by_lut(page);
-                } else {
-                    for( i=entry; i<entry+page_entries; i++ ) {
-                        if( page[i] != NULL ) {
-                            xlat_flush_page_by_lut(page);
-                            break;
-                        }
+    do {
+        void **page = xlat_lut[page_no];
+        int page_entries = XLAT_LUT_PAGE_ENTRIES - entry;
+        if( entry_count < page_entries ) {
+            page_entries = entry_count;
+        }
+        if( page != NULL ) {
+            if( page_entries == XLAT_LUT_PAGE_ENTRIES ) {
+                /* Overwriting the entire page anyway */
+                xlat_flush_page_by_lut(page);
+            } else {
+                for( i=entry; i<entry+page_entries; i++ ) {
+                    if( page[i] != NULL ) {
+                        xlat_flush_page_by_lut(page);
+                        break;
                     }
                 }
-                entry_count -= page_entries;
             }
-            page_no ++;
             entry_count -= page_entries;
-            entry = 0;
-        } while( entry_count > 0 );
-    }
+        }
+        page_no ++;
+        entry_count -= page_entries;
+        entry = 0;
+    } while( entry_count > 0 );
 }
 
 void FASTCALL xlat_flush_page( sh4addr_t address )
