@@ -206,6 +206,7 @@ extern "C" {
 #define XOR_r32_r32(r1,r2)    OP(0x33); MODRM_rm32_r32(r1,r2)
 #define XOR_sh4r_r32(disp,r1)    OP(0x33); MODRM_r32_sh4r(r1,disp)
 #define XOR_imm32_r32(imm,r1) OP(0x81); MODRM_rm32_r32(r1,6); OP32(imm)
+#define XOR_imm32_sh4r(imm,disp) OP(0x81); MODRM_r32_sh4r(6, disp); OP32(imm)
 
 
 /* Floating point ops */
