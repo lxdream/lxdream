@@ -63,7 +63,6 @@ void sh4_translate_set_enabled( gboolean use )
 {
     // No-op if the translator was not built
 #ifdef SH4_TRANSLATOR
-    xlat_cache_init();
     if( use ) {
         sh4_translate_init();
     }
@@ -80,6 +79,7 @@ void sh4_init(void)
 {
     register_io_regions( mmio_list_sh4mmio );
     TMU_init();
+    xlat_cache_init();
     sh4_mem_init();
     sh4_reset();
 #ifdef ENABLE_SH4STATS
