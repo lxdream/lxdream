@@ -108,7 +108,7 @@ void sh4_reset(void)
     sh4r.new_pc= 0xA0000002;
     sh4r.vbr   = 0x00000000;
     sh4r.fpscr = 0x00040001;
-    sh4r.sr    = 0x700000F0;
+    sh4_write_sr(0x700000F0);
 
     /* Mem reset will do this, but if we want to reset _just_ the SH4... */
     MMIO_WRITE( MMU, EXPEVT, EXC_POWER_RESET );

@@ -53,7 +53,6 @@ struct backpatch_record {
  */
 struct sh4_x86_state {
     int in_delay_slot;
-    gboolean priv_checked; /* true if we've already checked the cpu mode. */
     gboolean fpuen_checked; /* true if we've already checked fpu enabled. */
     gboolean branch_taken; /* true if we branched unconditionally */
     gboolean double_prec; /* true if FPU is in double-precision mode */
@@ -238,17 +237,15 @@ void static inline store_reg( int x86reg, int sh4reg ) {
 /* Exception checks - Note that all exception checks will clobber EAX */
 
 #define check_priv( ) \
-    if( !sh4_x86.priv_checked ) { \
-	sh4_x86.priv_checked = TRUE;\
-	load_spreg( R_EAX, R_SR );\
-	AND_imm32_r32( SR_MD, R_EAX );\
-	if( sh4_x86.in_delay_slot ) {\
-	    JE_exc( EXC_SLOT_ILLEGAL );\
-	} else {\
-	    JE_exc( EXC_ILLEGAL );\
-	}\
-	sh4_x86.tstate = TSTATE_NONE; \
-    }\
+    if( (sh4r.xlat_sh4_mode & SR_MD) == 0 ) { \
+        if( sh4_x86.in_delay_slot ) { \
+            JMP_exc(EXC_SLOT_ILLEGAL); \
+        } else { \
+            JMP_exc(EXC_ILLEGAL ); \
+        } \
+        sh4_x86.in_delay_slot = DELAY_NONE; \
+        return 2; \
+    }
 
 #define check_fpuen( ) \
     if( !sh4_x86.fpuen_checked ) {\
@@ -314,7 +311,7 @@ void static inline store_reg( int x86reg, int sh4reg ) {
 #define MMU_TRANSLATE_WRITE( addr_reg ) if( sh4_x86.tlb_on ) { call_func1(mmu_vma_to_phys_write, addr_reg); CMP_imm32_r32(MMU_VMA_ERROR, R_EAX); JE_exc(-1); MEM_RESULT(addr_reg); }
 #endif
 
-#define SLOTILLEGAL() JMP_exc(EXC_SLOT_ILLEGAL); sh4_x86.in_delay_slot = DELAY_NONE; return 1;
+#define SLOTILLEGAL() JMP_exc(EXC_SLOT_ILLEGAL); sh4_x86.in_delay_slot = DELAY_NONE; return 2;
 
 /****** Import appropriate calling conventions ******/
 #if SIZEOF_VOID_P == 8
@@ -327,7 +324,6 @@ void sh4_translate_begin_block( sh4addr_t pc )
 {
     enter_block();
     sh4_x86.in_delay_slot = FALSE;
-    sh4_x86.priv_checked = FALSE;
     sh4_x86.fpuen_checked = FALSE;
     sh4_x86.branch_taken = FALSE;
     sh4_x86.backpatch_posn = 0;
@@ -1752,7 +1748,6 @@ RTE {:
 	load_spreg( R_EAX, R_SSR );
 	call_func1( sh4_write_sr, R_EAX );
 	sh4_x86.in_delay_slot = DELAY_PC;
-	sh4_x86.priv_checked = FALSE;
 	sh4_x86.fpuen_checked = FALSE;
 	sh4_x86.tstate = TSTATE_NONE;
 	sh4_x86.branch_taken = TRUE;
@@ -2323,9 +2318,9 @@ LDC Rm, SR {:
 	check_priv();
 	load_reg( R_EAX, Rm );
 	call_func1( sh4_write_sr, R_EAX );
-	sh4_x86.priv_checked = FALSE;
 	sh4_x86.fpuen_checked = FALSE;
 	sh4_x86.tstate = TSTATE_NONE;
+	return 2;
     }
 :}
 LDC Rm, GBR {: 
@@ -2397,9 +2392,9 @@ LDC.L @Rm+, SR {:
 	ADD_imm8s_sh4r( 4, REG_OFFSET(r[Rm]) );
 	MEM_READ_LONG( R_EAX, R_EAX );
 	call_func1( sh4_write_sr, R_EAX );
-	sh4_x86.priv_checked = FALSE;
 	sh4_x86.fpuen_checked = FALSE;
 	sh4_x86.tstate = TSTATE_NONE;
+	return 2;
     }
 :}
 LDC.L @Rm+, VBR {:  
