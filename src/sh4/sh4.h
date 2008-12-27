@@ -87,6 +87,9 @@ struct sh4_registers {
      * a delay slot (certain rules apply) */
     uint32_t slice_cycle; /* Current nanosecond within the timeslice */
     int sh4_state; /* Current power-on state (one of the SH4_STATE_* values ) */
+    
+    /* Not saved */
+    int xlat_sh4_mode; /* Collection of execution mode flags (derived) from fpscr, sr, etc */
 };
 
 extern struct sh4_registers sh4r;

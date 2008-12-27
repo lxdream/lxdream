@@ -233,7 +233,7 @@ void sh4_save_state( FILE *f )
         sh4r.in_delay_slot = FALSE;
     }
 
-    fwrite( &sh4r, sizeof(sh4r), 1, f );
+    fwrite( &sh4r, offsetof(struct sh4_registers, xlat_sh4_mode), 1, f );
     MMU_save_state( f );
     CCN_save_state( f );
     PMM_save_state( f );
@@ -247,7 +247,8 @@ int sh4_load_state( FILE * f )
     if(	sh4_use_translator ) {
         xlat_flush_cache();
     }
-    fread( &sh4r, sizeof(sh4r), 1, f );
+    fread( &sh4r, offsetof(struct sh4_registers, xlat_sh4_mode), 1, f );
+    sh4r.xlat_sh4_mode = (sh4r.sr & SR_MD) | (sh4r.fpscr & (FPSCR_SZ|FPSCR_PR));
     MMU_load_state( f );
     CCN_load_state( f );
     PMM_load_state( f );
@@ -336,6 +337,7 @@ void FASTCALL sh4_write_sr( uint32_t newval )
     sh4r.s = (newval&SR_S) ? 1 : 0;
     sh4r.m = (newval&SR_M) ? 1 : 0;
     sh4r.q = (newval&SR_Q) ? 1 : 0;
+    sh4r.xlat_sh4_mode = (sh4r.sr & SR_MD) | (sh4r.fpscr & (FPSCR_SZ|FPSCR_PR));
     intc_mask_changed();
 }
 
@@ -345,6 +347,7 @@ void FASTCALL sh4_write_fpscr( uint32_t newval )
         sh4_switch_fr_banks();
     }
     sh4r.fpscr = newval & FPSCR_MASK;
+    sh4r.xlat_sh4_mode = (sh4r.sr & SR_MD) | (sh4r.fpscr & (FPSCR_SZ|FPSCR_PR));
 }
 
 uint32_t FASTCALL sh4_read_sr( void )

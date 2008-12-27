@@ -2301,18 +2301,15 @@ FTRV XMTRX, FVn {:
 FRCHG {:  
     COUNT_INST(I_FRCHG);
     check_fpuen();
-    load_spreg( R_ECX, R_FPSCR );
-    XOR_imm32_r32( FPSCR_FR, R_ECX );
-    store_spreg( R_ECX, R_FPSCR );
+    XOR_imm32_sh4r( FPSCR_FR, R_FPSCR );
     call_func0( sh4_switch_fr_banks );
     sh4_x86.tstate = TSTATE_NONE;
 :}
 FSCHG {:  
     COUNT_INST(I_FSCHG);
     check_fpuen();
-    load_spreg( R_ECX, R_FPSCR );
-    XOR_imm32_r32( FPSCR_SZ, R_ECX );
-    store_spreg( R_ECX, R_FPSCR );
+    XOR_imm32_sh4r( FPSCR_SZ, R_FPSCR);
+    XOR_imm32_sh4r( FPSCR_SZ, REG_OFFSET(xlat_sh4_mode) );
     sh4_x86.tstate = TSTATE_NONE;
     sh4_x86.double_size = !sh4_x86.double_size;
 :}
