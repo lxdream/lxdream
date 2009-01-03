@@ -1,5 +1,5 @@
 /**
- * $Id: mmux86.c 957 2008-12-27 03:14:59Z nkeynes $
+ * $Id$
  * 
  * x86-specific MMU code - this emits simple TLB stubs for TLB indirection.
   *
