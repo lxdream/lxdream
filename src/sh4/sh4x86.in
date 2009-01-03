@@ -32,6 +32,7 @@
 #include "sh4/sh4stat.h"
 #include "sh4/sh4mmio.h"
 #include "sh4/x86op.h"
+#include "sh4/mmu.h"
 #include "clock.h"
 
 #define DEFAULT_BACKPATCH_SIZE 4096
@@ -177,6 +178,7 @@ static inline void load_imm32( int x86reg, uint32_t value ) {
     OP32(value);
 }
 
+
 /**
  * Load an immediate 64-bit quantity (note: x86-64 only)
  */
@@ -287,29 +289,22 @@ void static inline store_reg( int x86reg, int sh4reg ) {
 #define UNDEF(ir)
 #define MEM_REGION_PTR(name) offsetof( struct mem_region_fn, name )
 #define MEM_RESULT(value_reg) if(value_reg != R_EAX) { MOV_r32_r32(R_EAX,value_reg); }
-#define MEM_READ_BYTE( addr_reg, value_reg ) decode_address(addr_reg); call_func1_r32disp8(R_ECX, MEM_REGION_PTR(read_byte), addr_reg ); MEM_RESULT(value_reg)
-#define MEM_READ_WORD( addr_reg, value_reg ) decode_address(addr_reg); call_func1_r32disp8(R_ECX, MEM_REGION_PTR(read_word), addr_reg ); MEM_RESULT(value_reg)
-#define MEM_READ_LONG( addr_reg, value_reg ) decode_address(addr_reg); call_func1_r32disp8(R_ECX, MEM_REGION_PTR(read_long), addr_reg ); MEM_RESULT(value_reg)
-#define MEM_WRITE_BYTE( addr_reg, value_reg ) decode_address(addr_reg); call_func2_r32disp8(R_ECX, MEM_REGION_PTR(write_byte), addr_reg, value_reg)
-#define MEM_WRITE_WORD( addr_reg, value_reg ) decode_address(addr_reg); call_func2_r32disp8(R_ECX, MEM_REGION_PTR(write_word), addr_reg, value_reg)
-#define MEM_WRITE_LONG( addr_reg, value_reg ) decode_address(addr_reg); call_func2_r32disp8(R_ECX, MEM_REGION_PTR(write_long), addr_reg, value_reg)
-
-#ifdef HAVE_FRAME_ADDRESS
-/**
- * Perform MMU translation on the address in addr_reg for a read operation, iff the TLB is turned 
- * on, otherwise do nothing. Clobbers EAX, ECX and EDX. May raise a TLB exception or address error.
+/* Note: For SR.MD == 1 && MMUCR.AT == 0, there are no memory exceptions, so 
+ * don't waste the cycles expecting them. Otherwise we need to save the exception pointer.
  */
-#define MMU_TRANSLATE_READ( addr_reg ) if( sh4_x86.tlb_on ) {  call_func1_exc(mmu_vma_to_phys_read, addr_reg, pc); MEM_RESULT(addr_reg); }
-
-/**
- * Perform MMU translation on the address in addr_reg for a write operation, iff the TLB is turned 
- * on, otherwise do nothing. Clobbers EAX, ECX and EDX. May raise a TLB exception or address error.
- */
-#define MMU_TRANSLATE_WRITE( addr_reg ) if( sh4_x86.tlb_on ) { call_func1_exc(mmu_vma_to_phys_write, addr_reg, pc); MEM_RESULT(addr_reg); }
-#else
-#define MMU_TRANSLATE_READ( addr_reg ) if( sh4_x86.tlb_on ) { call_func1(mmu_vma_to_phys_read, addr_reg); CMP_imm32_r32(MMU_VMA_ERROR, R_EAX); JE_exc(-1); MEM_RESULT(addr_reg); }
-#define MMU_TRANSLATE_WRITE( addr_reg ) if( sh4_x86.tlb_on ) { call_func1(mmu_vma_to_phys_write, addr_reg); CMP_imm32_r32(MMU_VMA_ERROR, R_EAX); JE_exc(-1); MEM_RESULT(addr_reg); }
-#endif
+#define _CALL_READ(addr_reg, fn) if( !sh4_x86.tlb_on && (sh4r.xlat_sh4_mode & SR_MD) ) { \
+        call_func1_r32disp8(R_ECX, MEM_REGION_PTR(fn), addr_reg); } else { \
+        call_func1_r32disp8_exc(R_ECX, MEM_REGION_PTR(fn), addr_reg, pc); } 
+#define _CALL_WRITE(addr_reg, val_reg, fn) if( !sh4_x86.tlb_on && (sh4r.xlat_sh4_mode & SR_MD) ) { \
+        call_func2_r32disp8(R_ECX, MEM_REGION_PTR(fn), addr_reg, val_reg); } else { \
+        call_func2_r32disp8_exc(R_ECX, MEM_REGION_PTR(fn), addr_reg, val_reg, pc); } 
+                
+#define MEM_READ_BYTE( addr_reg, value_reg ) decode_address(addr_reg); _CALL_READ(addr_reg, read_byte); MEM_RESULT(value_reg)
+#define MEM_READ_WORD( addr_reg, value_reg ) decode_address(addr_reg); _CALL_READ(addr_reg, read_word); MEM_RESULT(value_reg)
+#define MEM_READ_LONG( addr_reg, value_reg ) decode_address(addr_reg); _CALL_READ(addr_reg, read_long); MEM_RESULT(value_reg)
+#define MEM_WRITE_BYTE( addr_reg, value_reg ) decode_address(addr_reg); _CALL_WRITE(addr_reg, value_reg, write_byte)
+#define MEM_WRITE_WORD( addr_reg, value_reg ) decode_address(addr_reg); _CALL_WRITE(addr_reg, value_reg, write_word)
+#define MEM_WRITE_LONG( addr_reg, value_reg ) decode_address(addr_reg); _CALL_WRITE(addr_reg, value_reg, write_long)
 
 #define SLOTILLEGAL() JMP_exc(EXC_SLOT_ILLEGAL); sh4_x86.in_delay_slot = DELAY_NONE; return 2;
 
@@ -328,7 +323,7 @@ void sh4_translate_begin_block( sh4addr_t pc )
     sh4_x86.branch_taken = FALSE;
     sh4_x86.backpatch_posn = 0;
     sh4_x86.block_start_pc = pc;
-    sh4_x86.tlb_on = IS_MMU_ENABLED();
+    sh4_x86.tlb_on = IS_TLB_ENABLED();
     sh4_x86.tstate = TSTATE_NONE;
     sh4_x86.double_prec = sh4r.fpscr & FPSCR_PR;
     sh4_x86.double_size = sh4r.fpscr & FPSCR_SZ;
@@ -421,9 +416,7 @@ ADD Rm, Rn {:
 :}
 ADD #imm, Rn {:  
     COUNT_INST(I_ADDI);
-    load_reg( R_EAX, Rn );
-    ADD_imm8s_r32( imm, R_EAX );
-    store_reg( R_EAX, Rn );
+    ADD_imm8s_sh4r( imm, REG_OFFSET(r[Rn]) );
     sh4_x86.tstate = TSTATE_NONE;
 :}
 ADDC Rm, Rn {:
@@ -465,9 +458,7 @@ AND #imm, R0 {:
 AND.B #imm, @(R0, GBR) {: 
     COUNT_INST(I_ANDB);
     load_reg( R_EAX, 0 );
-    load_spreg( R_ECX, R_GBR );
-    ADD_r32_r32( R_ECX, R_EAX );
-    MMU_TRANSLATE_WRITE( R_EAX );
+    ADD_sh4r_r32( R_GBR, R_EAX );
     MOV_r32_esp8(R_EAX, 0);
     MEM_READ_BYTE( R_EAX, R_EDX );
     MOV_esp8_r32(0, R_EAX);
@@ -656,32 +647,25 @@ MAC.L @Rm+, @Rn+ {:
     if( Rm == Rn ) {
 	load_reg( R_EAX, Rm );
 	check_ralign32( R_EAX );
-	MMU_TRANSLATE_READ( R_EAX );
+	MEM_READ_LONG( R_EAX, R_EAX );
 	MOV_r32_esp8(R_EAX, 0);
-	load_reg( R_EAX, Rn );
-	ADD_imm8s_r32( 4, R_EAX );
-	MMU_TRANSLATE_READ( R_EAX );
-	ADD_imm8s_sh4r( 8, REG_OFFSET(r[Rn]) );
-	// Note translate twice in case of page boundaries. Maybe worth
-	// adding a page-boundary check to skip the second translation
+	load_reg( R_EAX, Rm );
+	LEA_r32disp8_r32( R_EAX, 4, R_EAX );
+	MEM_READ_LONG( R_EAX, R_EAX );
+        ADD_imm8s_sh4r( 8, REG_OFFSET(r[Rn]) );
     } else {
 	load_reg( R_EAX, Rm );
 	check_ralign32( R_EAX );
-	MMU_TRANSLATE_READ( R_EAX );
+	MEM_READ_LONG( R_EAX, R_EAX );
 	MOV_r32_esp8( R_EAX, 0 );
 	load_reg( R_EAX, Rn );
 	check_ralign32( R_EAX );
-	MMU_TRANSLATE_READ( R_EAX );
+	MEM_READ_LONG( R_EAX, R_EAX );
 	ADD_imm8s_sh4r( 4, REG_OFFSET(r[Rn]) );
 	ADD_imm8s_sh4r( 4, REG_OFFSET(r[Rm]) );
     }
-    MEM_READ_LONG( R_EAX, R_EAX );
-    MOV_r32_esp8( R_EAX, 4 );
-    MOV_esp8_r32( 0, R_EAX );
-    MEM_READ_LONG( R_EAX, R_EAX );
-    MOV_esp8_r32( 4, R_ECX );
-
-    IMUL_r32( R_ECX );
+    
+    IMUL_esp8( 0 );
     ADD_r32_sh4r( R_EAX, R_MACL );
     ADC_r32_sh4r( R_EDX, R_MACH );
 
@@ -697,32 +681,26 @@ MAC.W @Rm+, @Rn+ {:
     if( Rm == Rn ) {
 	load_reg( R_EAX, Rm );
 	check_ralign16( R_EAX );
-	MMU_TRANSLATE_READ( R_EAX );
+	MEM_READ_WORD( R_EAX, R_EAX );
         MOV_r32_esp8( R_EAX, 0 );
-	load_reg( R_EAX, Rn );
-	ADD_imm8s_r32( 2, R_EAX );
-	MMU_TRANSLATE_READ( R_EAX );
+	load_reg( R_EAX, Rm );
+	LEA_r32disp8_r32( R_EAX, 2, R_EAX );
+	MEM_READ_WORD( R_EAX, R_EAX );
 	ADD_imm8s_sh4r( 4, REG_OFFSET(r[Rn]) );
 	// Note translate twice in case of page boundaries. Maybe worth
 	// adding a page-boundary check to skip the second translation
     } else {
 	load_reg( R_EAX, Rm );
 	check_ralign16( R_EAX );
-	MMU_TRANSLATE_READ( R_EAX );
+	MEM_READ_WORD( R_EAX, R_EAX );
         MOV_r32_esp8( R_EAX, 0 );
 	load_reg( R_EAX, Rn );
 	check_ralign16( R_EAX );
-	MMU_TRANSLATE_READ( R_EAX );
+	MEM_READ_WORD( R_EAX, R_EAX );
 	ADD_imm8s_sh4r( 2, REG_OFFSET(r[Rn]) );
 	ADD_imm8s_sh4r( 2, REG_OFFSET(r[Rm]) );
     }
-    MEM_READ_WORD( R_EAX, R_EAX );
-    MOV_r32_esp8( R_EAX, 4 );
-    MOV_esp8_r32( 0, R_EAX );
-    MEM_READ_WORD( R_EAX, R_EAX );
-    MOV_esp8_r32( 4, R_ECX );
-
-    IMUL_r32( R_ECX );
+    IMUL_esp8( 0 );
     load_spreg( R_ECX, R_S );
     TEST_r32_r32( R_ECX, R_ECX );
     JE_rel8( nosat );
@@ -820,9 +798,7 @@ OR #imm, R0 {:
 OR.B #imm, @(R0, GBR) {:  
     COUNT_INST(I_ORB);
     load_reg( R_EAX, 0 );
-    load_spreg( R_ECX, R_GBR );
-    ADD_r32_r32( R_ECX, R_EAX );
-    MMU_TRANSLATE_WRITE( R_EAX );
+    ADD_sh4r_r32( R_GBR, R_EAX );
     MOV_r32_esp8( R_EAX, 0 );
     MEM_READ_BYTE( R_EAX, R_EDX );
     MOV_esp8_r32( 0, R_EAX );
@@ -1041,7 +1017,6 @@ SWAP.W Rm, Rn {:
 TAS.B @Rn {:  
     COUNT_INST(I_TASB);
     load_reg( R_EAX, Rn );
-    MMU_TRANSLATE_WRITE( R_EAX );
     MOV_r32_esp8( R_EAX, 0 );
     MEM_READ_BYTE( R_EAX, R_EDX );
     TEST_r8_r8( R_DL, R_DL );
@@ -1069,9 +1044,7 @@ TST #imm, R0 {:
 TST.B #imm, @(R0, GBR) {:  
     COUNT_INST(I_TSTB);
     load_reg( R_EAX, 0);
-    load_reg( R_ECX, R_GBR);
-    ADD_r32_r32( R_ECX, R_EAX );
-    MMU_TRANSLATE_READ( R_EAX );
+    ADD_sh4r_r32( R_GBR, R_EAX );
     MEM_READ_BYTE( R_EAX, R_EAX );
     TEST_imm8_r8( imm, R_AL );
     SETE_t();
@@ -1095,9 +1068,7 @@ XOR #imm, R0 {:
 XOR.B #imm, @(R0, GBR) {:  
     COUNT_INST(I_XORB);
     load_reg( R_EAX, 0 );
-    load_spreg( R_ECX, R_GBR );
-    ADD_r32_r32( R_ECX, R_EAX );
-    MMU_TRANSLATE_WRITE( R_EAX );
+    ADD_sh4r_r32( R_GBR, R_EAX ); 
     MOV_r32_esp8( R_EAX, 0 );
     MEM_READ_BYTE(R_EAX, R_EDX);
     MOV_esp8_r32( 0, R_EAX );
@@ -1130,7 +1101,6 @@ MOV #imm, Rn {:
 MOV.B Rm, @Rn {:  
     COUNT_INST(I_MOVB);
     load_reg( R_EAX, Rn );
-    MMU_TRANSLATE_WRITE( R_EAX );
     load_reg( R_EDX, Rm );
     MEM_WRITE_BYTE( R_EAX, R_EDX );
     sh4_x86.tstate = TSTATE_NONE;
@@ -1138,19 +1108,16 @@ MOV.B Rm, @Rn {:
 MOV.B Rm, @-Rn {:  
     COUNT_INST(I_MOVB);
     load_reg( R_EAX, Rn );
-    ADD_imm8s_r32( -1, R_EAX );
-    MMU_TRANSLATE_WRITE( R_EAX );
+    LEA_r32disp8_r32( R_EAX, -1, R_EAX );
     load_reg( R_EDX, Rm );
-    ADD_imm8s_sh4r( -1, REG_OFFSET(r[Rn]) );
     MEM_WRITE_BYTE( R_EAX, R_EDX );
+    ADD_imm8s_sh4r( -1, REG_OFFSET(r[Rn]) );
     sh4_x86.tstate = TSTATE_NONE;
 :}
 MOV.B Rm, @(R0, Rn) {:  
     COUNT_INST(I_MOVB);
     load_reg( R_EAX, 0 );
-    load_reg( R_ECX, Rn );
-    ADD_r32_r32( R_ECX, R_EAX );
-    MMU_TRANSLATE_WRITE( R_EAX );
+    ADD_sh4r_r32( REG_OFFSET(r[Rn]), R_EAX );
     load_reg( R_EDX, Rm );
     MEM_WRITE_BYTE( R_EAX, R_EDX );
     sh4_x86.tstate = TSTATE_NONE;
@@ -1159,7 +1126,6 @@ MOV.B R0, @(disp, GBR) {:
     COUNT_INST(I_MOVB);
     load_spreg( R_EAX, R_GBR );
     ADD_imm32_r32( disp, R_EAX );
-    MMU_TRANSLATE_WRITE( R_EAX );
     load_reg( R_EDX, 0 );
     MEM_WRITE_BYTE( R_EAX, R_EDX );
     sh4_x86.tstate = TSTATE_NONE;
@@ -1168,7 +1134,6 @@ MOV.B R0, @(disp, Rn) {:
     COUNT_INST(I_MOVB);
     load_reg( R_EAX, Rn );
     ADD_imm32_r32( disp, R_EAX );
-    MMU_TRANSLATE_WRITE( R_EAX );
     load_reg( R_EDX, 0 );
     MEM_WRITE_BYTE( R_EAX, R_EDX );
     sh4_x86.tstate = TSTATE_NONE;
@@ -1176,7 +1141,6 @@ MOV.B R0, @(disp, Rn) {:
 MOV.B @Rm, Rn {:  
     COUNT_INST(I_MOVB);
     load_reg( R_EAX, Rm );
-    MMU_TRANSLATE_READ( R_EAX );
     MEM_READ_BYTE( R_EAX, R_EAX );
     store_reg( R_EAX, Rn );
     sh4_x86.tstate = TSTATE_NONE;
@@ -1184,18 +1148,17 @@ MOV.B @Rm, Rn {:
 MOV.B @Rm+, Rn {:  
     COUNT_INST(I_MOVB);
     load_reg( R_EAX, Rm );
-    MMU_TRANSLATE_READ( R_EAX );
-    ADD_imm8s_sh4r( 1, REG_OFFSET(r[Rm]) );
     MEM_READ_BYTE( R_EAX, R_EAX );
+    if( Rm != Rn ) {
+    	ADD_imm8s_sh4r( 1, REG_OFFSET(r[Rm]) );
+    }
     store_reg( R_EAX, Rn );
     sh4_x86.tstate = TSTATE_NONE;
 :}
 MOV.B @(R0, Rm), Rn {:  
     COUNT_INST(I_MOVB);
     load_reg( R_EAX, 0 );
-    load_reg( R_ECX, Rm );
-    ADD_r32_r32( R_ECX, R_EAX );
-    MMU_TRANSLATE_READ( R_EAX )
+    ADD_sh4r_r32( REG_OFFSET(r[Rm]), R_EAX );
     MEM_READ_BYTE( R_EAX, R_EAX );
     store_reg( R_EAX, Rn );
     sh4_x86.tstate = TSTATE_NONE;
@@ -1204,7 +1167,6 @@ MOV.B @(disp, GBR), R0 {:
     COUNT_INST(I_MOVB);
     load_spreg( R_EAX, R_GBR );
     ADD_imm32_r32( disp, R_EAX );
-    MMU_TRANSLATE_READ( R_EAX );
     MEM_READ_BYTE( R_EAX, R_EAX );
     store_reg( R_EAX, 0 );
     sh4_x86.tstate = TSTATE_NONE;
@@ -1213,7 +1175,6 @@ MOV.B @(disp, Rm), R0 {:
     COUNT_INST(I_MOVB);
     load_reg( R_EAX, Rm );
     ADD_imm32_r32( disp, R_EAX );
-    MMU_TRANSLATE_READ( R_EAX );
     MEM_READ_BYTE( R_EAX, R_EAX );
     store_reg( R_EAX, 0 );
     sh4_x86.tstate = TSTATE_NONE;
@@ -1231,7 +1192,6 @@ MOV.L Rm, @Rn {:
     MOV_r32_ebpr32disp32( R_EDX, R_EAX, REG_OFFSET(store_queue) );
     JMP_rel8(end);
     JMP_TARGET(notsq);
-    MMU_TRANSLATE_WRITE( R_EAX );
     load_reg( R_EDX, Rm );
     MEM_WRITE_LONG( R_EAX, R_EDX );
     JMP_TARGET(end);
@@ -1242,19 +1202,16 @@ MOV.L Rm, @-Rn {:
     load_reg( R_EAX, Rn );
     ADD_imm8s_r32( -4, R_EAX );
     check_walign32( R_EAX );
-    MMU_TRANSLATE_WRITE( R_EAX );
     load_reg( R_EDX, Rm );
-    ADD_imm8s_sh4r( -4, REG_OFFSET(r[Rn]) );
     MEM_WRITE_LONG( R_EAX, R_EDX );
+    ADD_imm8s_sh4r( -4, REG_OFFSET(r[Rn]) );
     sh4_x86.tstate = TSTATE_NONE;
 :}
 MOV.L Rm, @(R0, Rn) {:  
     COUNT_INST(I_MOVL);
     load_reg( R_EAX, 0 );
-    load_reg( R_ECX, Rn );
-    ADD_r32_r32( R_ECX, R_EAX );
+    ADD_sh4r_r32( REG_OFFSET(r[Rn]), R_EAX );
     check_walign32( R_EAX );
-    MMU_TRANSLATE_WRITE( R_EAX );
     load_reg( R_EDX, Rm );
     MEM_WRITE_LONG( R_EAX, R_EDX );
     sh4_x86.tstate = TSTATE_NONE;
@@ -1264,7 +1221,6 @@ MOV.L R0, @(disp, GBR) {:
     load_spreg( R_EAX, R_GBR );
     ADD_imm32_r32( disp, R_EAX );
     check_walign32( R_EAX );
-    MMU_TRANSLATE_WRITE( R_EAX );
     load_reg( R_EDX, 0 );
     MEM_WRITE_LONG( R_EAX, R_EDX );
     sh4_x86.tstate = TSTATE_NONE;
@@ -1283,7 +1239,6 @@ MOV.L Rm, @(disp, Rn) {:
     MOV_r32_ebpr32disp32( R_EDX, R_EAX, REG_OFFSET(store_queue) );
     JMP_rel8(end);
     JMP_TARGET(notsq);
-    MMU_TRANSLATE_WRITE( R_EAX );
     load_reg( R_EDX, Rm );
     MEM_WRITE_LONG( R_EAX, R_EDX );
     JMP_TARGET(end);
@@ -1293,7 +1248,6 @@ MOV.L @Rm, Rn {:
     COUNT_INST(I_MOVL);
     load_reg( R_EAX, Rm );
     check_ralign32( R_EAX );
-    MMU_TRANSLATE_READ( R_EAX );
     MEM_READ_LONG( R_EAX, R_EAX );
     store_reg( R_EAX, Rn );
     sh4_x86.tstate = TSTATE_NONE;
@@ -1302,19 +1256,18 @@ MOV.L @Rm+, Rn {:
     COUNT_INST(I_MOVL);
     load_reg( R_EAX, Rm );
     check_ralign32( R_EAX );
-    MMU_TRANSLATE_READ( R_EAX );
-    ADD_imm8s_sh4r( 4, REG_OFFSET(r[Rm]) );
     MEM_READ_LONG( R_EAX, R_EAX );
+    if( Rm != Rn ) {
+    	ADD_imm8s_sh4r( 4, REG_OFFSET(r[Rm]) );
+    }
     store_reg( R_EAX, Rn );
     sh4_x86.tstate = TSTATE_NONE;
 :}
 MOV.L @(R0, Rm), Rn {:  
     COUNT_INST(I_MOVL);
     load_reg( R_EAX, 0 );
-    load_reg( R_ECX, Rm );
-    ADD_r32_r32( R_ECX, R_EAX );
+    ADD_sh4r_r32( REG_OFFSET(r[Rm]), R_EAX );
     check_ralign32( R_EAX );
-    MMU_TRANSLATE_READ( R_EAX );
     MEM_READ_LONG( R_EAX, R_EAX );
     store_reg( R_EAX, Rn );
     sh4_x86.tstate = TSTATE_NONE;
@@ -1324,7 +1277,6 @@ MOV.L @(disp, GBR), R0 {:
     load_spreg( R_EAX, R_GBR );
     ADD_imm32_r32( disp, R_EAX );
     check_ralign32( R_EAX );
-    MMU_TRANSLATE_READ( R_EAX );
     MEM_READ_LONG( R_EAX, R_EAX );
     store_reg( R_EAX, 0 );
     sh4_x86.tstate = TSTATE_NONE;
@@ -1353,7 +1305,6 @@ MOV.L @(disp, PC), Rn {:
 	    // but we can safely assume that the low bits are the same.
 	    load_imm32( R_EAX, (pc-sh4_x86.block_start_pc) + disp + 4 - (pc&0x03) );
 	    ADD_sh4r_r32( R_PC, R_EAX );
-	    MMU_TRANSLATE_READ( R_EAX );
 	    MEM_READ_LONG( R_EAX, R_EAX );
 	    sh4_x86.tstate = TSTATE_NONE;
 	}
@@ -1365,7 +1316,6 @@ MOV.L @(disp, Rm), Rn {:
     load_reg( R_EAX, Rm );
     ADD_imm8s_r32( disp, R_EAX );
     check_ralign32( R_EAX );
-    MMU_TRANSLATE_READ( R_EAX );
     MEM_READ_LONG( R_EAX, R_EAX );
     store_reg( R_EAX, Rn );
     sh4_x86.tstate = TSTATE_NONE;
@@ -1374,7 +1324,6 @@ MOV.W Rm, @Rn {:
     COUNT_INST(I_MOVW);
     load_reg( R_EAX, Rn );
     check_walign16( R_EAX );
-    MMU_TRANSLATE_WRITE( R_EAX )
     load_reg( R_EDX, Rm );
     MEM_WRITE_WORD( R_EAX, R_EDX );
     sh4_x86.tstate = TSTATE_NONE;
@@ -1382,21 +1331,18 @@ MOV.W Rm, @Rn {:
 MOV.W Rm, @-Rn {:  
     COUNT_INST(I_MOVW);
     load_reg( R_EAX, Rn );
-    ADD_imm8s_r32( -2, R_EAX );
     check_walign16( R_EAX );
-    MMU_TRANSLATE_WRITE( R_EAX );
+    LEA_r32disp8_r32( R_EAX, -2, R_EAX );
     load_reg( R_EDX, Rm );
-    ADD_imm8s_sh4r( -2, REG_OFFSET(r[Rn]) );
     MEM_WRITE_WORD( R_EAX, R_EDX );
+    ADD_imm8s_sh4r( -2, REG_OFFSET(r[Rn]) );
     sh4_x86.tstate = TSTATE_NONE;
 :}
 MOV.W Rm, @(R0, Rn) {:  
     COUNT_INST(I_MOVW);
     load_reg( R_EAX, 0 );
-    load_reg( R_ECX, Rn );
-    ADD_r32_r32( R_ECX, R_EAX );
+    ADD_sh4r_r32( REG_OFFSET(r[Rn]), R_EAX );
     check_walign16( R_EAX );
-    MMU_TRANSLATE_WRITE( R_EAX );
     load_reg( R_EDX, Rm );
     MEM_WRITE_WORD( R_EAX, R_EDX );
     sh4_x86.tstate = TSTATE_NONE;
@@ -1406,7 +1352,6 @@ MOV.W R0, @(disp, GBR) {:
     load_spreg( R_EAX, R_GBR );
     ADD_imm32_r32( disp, R_EAX );
     check_walign16( R_EAX );
-    MMU_TRANSLATE_WRITE( R_EAX );
     load_reg( R_EDX, 0 );
     MEM_WRITE_WORD( R_EAX, R_EDX );
     sh4_x86.tstate = TSTATE_NONE;
@@ -1416,7 +1361,6 @@ MOV.W R0, @(disp, Rn) {:
     load_reg( R_EAX, Rn );
     ADD_imm32_r32( disp, R_EAX );
     check_walign16( R_EAX );
-    MMU_TRANSLATE_WRITE( R_EAX );
     load_reg( R_EDX, 0 );
     MEM_WRITE_WORD( R_EAX, R_EDX );
     sh4_x86.tstate = TSTATE_NONE;
@@ -1425,7 +1369,6 @@ MOV.W @Rm, Rn {:
     COUNT_INST(I_MOVW);
     load_reg( R_EAX, Rm );
     check_ralign16( R_EAX );
-    MMU_TRANSLATE_READ( R_EAX );
     MEM_READ_WORD( R_EAX, R_EAX );
     store_reg( R_EAX, Rn );
     sh4_x86.tstate = TSTATE_NONE;
@@ -1434,19 +1377,18 @@ MOV.W @Rm+, Rn {:
     COUNT_INST(I_MOVW);
     load_reg( R_EAX, Rm );
     check_ralign16( R_EAX );
-    MMU_TRANSLATE_READ( R_EAX );
-    ADD_imm8s_sh4r( 2, REG_OFFSET(r[Rm]) );
     MEM_READ_WORD( R_EAX, R_EAX );
+    if( Rm != Rn ) {
+        ADD_imm8s_sh4r( 2, REG_OFFSET(r[Rm]) );
+    }
     store_reg( R_EAX, Rn );
     sh4_x86.tstate = TSTATE_NONE;
 :}
 MOV.W @(R0, Rm), Rn {:  
     COUNT_INST(I_MOVW);
     load_reg( R_EAX, 0 );
-    load_reg( R_ECX, Rm );
-    ADD_r32_r32( R_ECX, R_EAX );
+    ADD_sh4r_r32( REG_OFFSET(r[Rm]), R_EAX );
     check_ralign16( R_EAX );
-    MMU_TRANSLATE_READ( R_EAX );
     MEM_READ_WORD( R_EAX, R_EAX );
     store_reg( R_EAX, Rn );
     sh4_x86.tstate = TSTATE_NONE;
@@ -1456,7 +1398,6 @@ MOV.W @(disp, GBR), R0 {:
     load_spreg( R_EAX, R_GBR );
     ADD_imm32_r32( disp, R_EAX );
     check_ralign16( R_EAX );
-    MMU_TRANSLATE_READ( R_EAX );
     MEM_READ_WORD( R_EAX, R_EAX );
     store_reg( R_EAX, 0 );
     sh4_x86.tstate = TSTATE_NONE;
@@ -1475,7 +1416,6 @@ MOV.W @(disp, PC), Rn {:
 	} else {
 	    load_imm32( R_EAX, (pc - sh4_x86.block_start_pc) + disp + 4 );
 	    ADD_sh4r_r32( R_PC, R_EAX );
-	    MMU_TRANSLATE_READ( R_EAX );
 	    MEM_READ_WORD( R_EAX, R_EAX );
 	    sh4_x86.tstate = TSTATE_NONE;
 	}
@@ -1487,7 +1427,6 @@ MOV.W @(disp, Rm), R0 {:
     load_reg( R_EAX, Rm );
     ADD_imm32_r32( disp, R_EAX );
     check_ralign16( R_EAX );
-    MMU_TRANSLATE_READ( R_EAX );
     MEM_READ_WORD( R_EAX, R_EAX );
     store_reg( R_EAX, 0 );
     sh4_x86.tstate = TSTATE_NONE;
@@ -1507,7 +1446,6 @@ MOVCA.L R0, @Rn {:
     COUNT_INST(I_MOVCA);
     load_reg( R_EAX, Rn );
     check_walign32( R_EAX );
-    MMU_TRANSLATE_WRITE( R_EAX );
     load_reg( R_EDX, 0 );
     MEM_WRITE_LONG( R_EAX, R_EDX );
     sh4_x86.tstate = TSTATE_NONE;
@@ -1857,13 +1795,14 @@ FMOV FRm, @Rn {:
     load_reg( R_EAX, Rn );
     if( sh4_x86.double_size ) {
         check_walign64( R_EAX );
-        MMU_TRANSLATE_WRITE( R_EAX );
         load_dr0( R_EDX, FRm );
-        load_dr1( R_ECX, FRm );
-        MEM_WRITE_DOUBLE( R_EAX, R_EDX, R_ECX );
+        MEM_WRITE_LONG( R_EAX, R_EDX );
+        load_reg( R_EAX, Rn );
+        LEA_r32disp8_r32( R_EAX, 4, R_EAX );
+        load_dr1( R_EDX, FRm );
+        MEM_WRITE_LONG( R_EAX, R_EDX );
     } else {
         check_walign32( R_EAX );
-        MMU_TRANSLATE_WRITE( R_EAX );
         load_fr( R_EDX, FRm );
         MEM_WRITE_LONG( R_EAX, R_EDX );
     }
@@ -1875,13 +1814,14 @@ FMOV @Rm, FRn {:
     load_reg( R_EAX, Rm );
     if( sh4_x86.double_size ) {
         check_ralign64( R_EAX );
-        MMU_TRANSLATE_READ( R_EAX );
-        MEM_READ_DOUBLE( R_EAX, R_EDX, R_EAX );
-        store_dr0( R_EDX, FRn );
-        store_dr1( R_EAX, FRn );    
+        MEM_READ_LONG( R_EAX, R_EAX );
+        store_dr0( R_EAX, FRn );
+        load_reg( R_EAX, Rm );
+        LEA_r32disp8_r32( R_EAX, 4, R_EAX );
+        MEM_READ_LONG( R_EAX, R_EAX );
+        store_dr1( R_EAX, FRn );
     } else {
         check_ralign32( R_EAX );
-        MMU_TRANSLATE_READ( R_EAX );
         MEM_READ_LONG( R_EAX, R_EAX );
         store_fr( R_EAX, FRn );
     }
@@ -1893,19 +1833,20 @@ FMOV FRm, @-Rn {:
     load_reg( R_EAX, Rn );
     if( sh4_x86.double_size ) {
         check_walign64( R_EAX );
-        ADD_imm8s_r32(-8,R_EAX);
-        MMU_TRANSLATE_WRITE( R_EAX );
+        LEA_r32disp8_r32( R_EAX, -8, R_EAX );
         load_dr0( R_EDX, FRm );
-        load_dr1( R_ECX, FRm );
+        MEM_WRITE_LONG( R_EAX, R_EDX );
+        load_reg( R_EAX, Rn );
+        LEA_r32disp8_r32( R_EAX, -4, R_EAX );
+        load_dr1( R_EDX, FRm );
+        MEM_WRITE_LONG( R_EAX, R_EDX );
         ADD_imm8s_sh4r(-8,REG_OFFSET(r[Rn]));
-        MEM_WRITE_DOUBLE( R_EAX, R_EDX, R_ECX );
     } else {
         check_walign32( R_EAX );
-        ADD_imm8s_r32( -4, R_EAX );
-        MMU_TRANSLATE_WRITE( R_EAX );
+        LEA_r32disp8_r32( R_EAX, -4, R_EAX );
         load_fr( R_EDX, FRm );
-        ADD_imm8s_sh4r(-4,REG_OFFSET(r[Rn]));
         MEM_WRITE_LONG( R_EAX, R_EDX );
+        ADD_imm8s_sh4r(-4,REG_OFFSET(r[Rn]));
     }
     sh4_x86.tstate = TSTATE_NONE;
 :}
@@ -1915,17 +1856,18 @@ FMOV @Rm+, FRn {:
     load_reg( R_EAX, Rm );
     if( sh4_x86.double_size ) {
         check_ralign64( R_EAX );
-        MMU_TRANSLATE_READ( R_EAX );
-        ADD_imm8s_sh4r( 8, REG_OFFSET(r[Rm]) );
-        MEM_READ_DOUBLE( R_EAX, R_EDX, R_EAX );
-        store_dr0( R_EDX, FRn );
+        MEM_READ_LONG( R_EAX, R_EAX );
+        store_dr0( R_EAX, FRn );
+        load_reg( R_EAX, Rm );
+        LEA_r32disp8_r32( R_EAX, 4, R_EAX );
+        MEM_READ_LONG( R_EAX, R_EAX );
         store_dr1( R_EAX, FRn );
+        ADD_imm8s_sh4r( 8, REG_OFFSET(r[Rm]) );
     } else {
         check_ralign32( R_EAX );
-        MMU_TRANSLATE_READ( R_EAX );
-        ADD_imm8s_sh4r( 4, REG_OFFSET(r[Rm]) );
         MEM_READ_LONG( R_EAX, R_EAX );
         store_fr( R_EAX, FRn );
+        ADD_imm8s_sh4r( 4, REG_OFFSET(r[Rm]) );
     }
     sh4_x86.tstate = TSTATE_NONE;
 :}
@@ -1936,13 +1878,15 @@ FMOV FRm, @(R0, Rn) {:
     ADD_sh4r_r32( REG_OFFSET(r[0]), R_EAX );
     if( sh4_x86.double_size ) {
         check_walign64( R_EAX );
-        MMU_TRANSLATE_WRITE( R_EAX );
         load_dr0( R_EDX, FRm );
-        load_dr1( R_ECX, FRm );
-        MEM_WRITE_DOUBLE( R_EAX, R_EDX, R_ECX );
+        MEM_WRITE_LONG( R_EAX, R_EDX );
+        load_reg( R_EAX, Rn );
+        ADD_sh4r_r32( REG_OFFSET(r[0]), R_EAX );
+        LEA_r32disp8_r32( R_EAX, 4, R_EAX );
+        load_dr1( R_EDX, FRm );
+        MEM_WRITE_LONG( R_EAX, R_EDX );
     } else {
         check_walign32( R_EAX );
-        MMU_TRANSLATE_WRITE( R_EAX );
         load_fr( R_EDX, FRm );
         MEM_WRITE_LONG( R_EAX, R_EDX ); // 12
     }
@@ -1955,13 +1899,15 @@ FMOV @(R0, Rm), FRn {:
     ADD_sh4r_r32( REG_OFFSET(r[0]), R_EAX );
     if( sh4_x86.double_size ) {
         check_ralign64( R_EAX );
-        MMU_TRANSLATE_READ( R_EAX );
-        MEM_READ_DOUBLE( R_EAX, R_ECX, R_EAX );
-        store_dr0( R_ECX, FRn );
+        MEM_READ_LONG( R_EAX, R_EAX );
+        store_dr0( R_EAX, FRn );
+        load_reg( R_EAX, Rm );
+        ADD_sh4r_r32( REG_OFFSET(r[0]), R_EAX );
+        LEA_r32disp8_r32( R_EAX, 4, R_EAX );
+        MEM_READ_LONG( R_EAX, R_EAX );
         store_dr1( R_EAX, FRn );
     } else {
         check_ralign32( R_EAX );
-        MMU_TRANSLATE_READ( R_EAX );
         MEM_READ_LONG( R_EAX, R_EAX );
         store_fr( R_EAX, FRn );
     }
@@ -2374,9 +2320,8 @@ LDC.L @Rm+, GBR {:
     COUNT_INST(I_LDCM);
     load_reg( R_EAX, Rm );
     check_ralign32( R_EAX );
-    MMU_TRANSLATE_READ( R_EAX );
-    ADD_imm8s_sh4r( 4, REG_OFFSET(r[Rm]) );
     MEM_READ_LONG( R_EAX, R_EAX );
+    ADD_imm8s_sh4r( 4, REG_OFFSET(r[Rm]) );
     store_spreg( R_EAX, R_GBR );
     sh4_x86.tstate = TSTATE_NONE;
 :}
@@ -2388,9 +2333,8 @@ LDC.L @Rm+, SR {:
 	check_priv();
 	load_reg( R_EAX, Rm );
 	check_ralign32( R_EAX );
-	MMU_TRANSLATE_READ( R_EAX );
-	ADD_imm8s_sh4r( 4, REG_OFFSET(r[Rm]) );
 	MEM_READ_LONG( R_EAX, R_EAX );
+	ADD_imm8s_sh4r( 4, REG_OFFSET(r[Rm]) );
 	call_func1( sh4_write_sr, R_EAX );
 	sh4_x86.fpuen_checked = FALSE;
 	sh4_x86.tstate = TSTATE_NONE;
@@ -2402,9 +2346,8 @@ LDC.L @Rm+, VBR {:
     check_priv();
     load_reg( R_EAX, Rm );
     check_ralign32( R_EAX );
-    MMU_TRANSLATE_READ( R_EAX );
-    ADD_imm8s_sh4r( 4, REG_OFFSET(r[Rm]) );
     MEM_READ_LONG( R_EAX, R_EAX );
+    ADD_imm8s_sh4r( 4, REG_OFFSET(r[Rm]) );
     store_spreg( R_EAX, R_VBR );
     sh4_x86.tstate = TSTATE_NONE;
 :}
@@ -2413,9 +2356,8 @@ LDC.L @Rm+, SSR {:
     check_priv();
     load_reg( R_EAX, Rm );
     check_ralign32( R_EAX );
-    MMU_TRANSLATE_READ( R_EAX );
-    ADD_imm8s_sh4r( 4, REG_OFFSET(r[Rm]) );
     MEM_READ_LONG( R_EAX, R_EAX );
+    ADD_imm8s_sh4r( 4, REG_OFFSET(r[Rm]) );
     store_spreg( R_EAX, R_SSR );
     sh4_x86.tstate = TSTATE_NONE;
 :}
@@ -2424,9 +2366,8 @@ LDC.L @Rm+, SGR {:
     check_priv();
     load_reg( R_EAX, Rm );
     check_ralign32( R_EAX );
-    MMU_TRANSLATE_READ( R_EAX );
-    ADD_imm8s_sh4r( 4, REG_OFFSET(r[Rm]) );
     MEM_READ_LONG( R_EAX, R_EAX );
+    ADD_imm8s_sh4r( 4, REG_OFFSET(r[Rm]) );
     store_spreg( R_EAX, R_SGR );
     sh4_x86.tstate = TSTATE_NONE;
 :}
@@ -2435,9 +2376,8 @@ LDC.L @Rm+, SPC {:
     check_priv();
     load_reg( R_EAX, Rm );
     check_ralign32( R_EAX );
-    MMU_TRANSLATE_READ( R_EAX );
-    ADD_imm8s_sh4r( 4, REG_OFFSET(r[Rm]) );
     MEM_READ_LONG( R_EAX, R_EAX );
+    ADD_imm8s_sh4r( 4, REG_OFFSET(r[Rm]) );
     store_spreg( R_EAX, R_SPC );
     sh4_x86.tstate = TSTATE_NONE;
 :}
@@ -2446,9 +2386,8 @@ LDC.L @Rm+, DBR {:
     check_priv();
     load_reg( R_EAX, Rm );
     check_ralign32( R_EAX );
-    MMU_TRANSLATE_READ( R_EAX );
-    ADD_imm8s_sh4r( 4, REG_OFFSET(r[Rm]) );
     MEM_READ_LONG( R_EAX, R_EAX );
+    ADD_imm8s_sh4r( 4, REG_OFFSET(r[Rm]) );
     store_spreg( R_EAX, R_DBR );
     sh4_x86.tstate = TSTATE_NONE;
 :}
@@ -2457,9 +2396,8 @@ LDC.L @Rm+, Rn_BANK {:
     check_priv();
     load_reg( R_EAX, Rm );
     check_ralign32( R_EAX );
-    MMU_TRANSLATE_READ( R_EAX );
-    ADD_imm8s_sh4r( 4, REG_OFFSET(r[Rm]) );
     MEM_READ_LONG( R_EAX, R_EAX );
+    ADD_imm8s_sh4r( 4, REG_OFFSET(r[Rm]) );
     store_spreg( R_EAX, REG_OFFSET(r_bank[Rn_BANK]) );
     sh4_x86.tstate = TSTATE_NONE;
 :}
@@ -2476,9 +2414,8 @@ LDS.L @Rm+, FPSCR {:
     check_fpuen();
     load_reg( R_EAX, Rm );
     check_ralign32( R_EAX );
-    MMU_TRANSLATE_READ( R_EAX );
-    ADD_imm8s_sh4r( 4, REG_OFFSET(r[Rm]) );
     MEM_READ_LONG( R_EAX, R_EAX );
+    ADD_imm8s_sh4r( 4, REG_OFFSET(r[Rm]) );
     call_func1( sh4_write_fpscr, R_EAX );
     sh4_x86.tstate = TSTATE_NONE;
     return 2;
@@ -2494,9 +2431,8 @@ LDS.L @Rm+, FPUL {:
     check_fpuen();
     load_reg( R_EAX, Rm );
     check_ralign32( R_EAX );
-    MMU_TRANSLATE_READ( R_EAX );
-    ADD_imm8s_sh4r( 4, REG_OFFSET(r[Rm]) );
     MEM_READ_LONG( R_EAX, R_EAX );
+    ADD_imm8s_sh4r( 4, REG_OFFSET(r[Rm]) );
     store_spreg( R_EAX, R_FPUL );
     sh4_x86.tstate = TSTATE_NONE;
 :}
@@ -2509,9 +2445,8 @@ LDS.L @Rm+, MACH {:
     COUNT_INST(I_LDSM);
     load_reg( R_EAX, Rm );
     check_ralign32( R_EAX );
-    MMU_TRANSLATE_READ( R_EAX );
-    ADD_imm8s_sh4r( 4, REG_OFFSET(r[Rm]) );
     MEM_READ_LONG( R_EAX, R_EAX );
+    ADD_imm8s_sh4r( 4, REG_OFFSET(r[Rm]) );
     store_spreg( R_EAX, R_MACH );
     sh4_x86.tstate = TSTATE_NONE;
 :}
@@ -2524,9 +2459,8 @@ LDS.L @Rm+, MACL {:
     COUNT_INST(I_LDSM);
     load_reg( R_EAX, Rm );
     check_ralign32( R_EAX );
-    MMU_TRANSLATE_READ( R_EAX );
-    ADD_imm8s_sh4r( 4, REG_OFFSET(r[Rm]) );
     MEM_READ_LONG( R_EAX, R_EAX );
+    ADD_imm8s_sh4r( 4, REG_OFFSET(r[Rm]) );
     store_spreg( R_EAX, R_MACL );
     sh4_x86.tstate = TSTATE_NONE;
 :}
@@ -2539,9 +2473,8 @@ LDS.L @Rm+, PR {:
     COUNT_INST(I_LDSM);
     load_reg( R_EAX, Rm );
     check_ralign32( R_EAX );
-    MMU_TRANSLATE_READ( R_EAX );
-    ADD_imm8s_sh4r( 4, REG_OFFSET(r[Rm]) );
     MEM_READ_LONG( R_EAX, R_EAX );
+    ADD_imm8s_sh4r( 4, REG_OFFSET(r[Rm]) );
     store_spreg( R_EAX, R_PR );
     sh4_x86.tstate = TSTATE_NONE;
 :}
@@ -2641,16 +2574,13 @@ STC Rm_BANK, Rn {:
 STC.L SR, @-Rn {:
     COUNT_INST(I_STCSRM);
     check_priv();
-    load_reg( R_EAX, Rn );
-    check_walign32( R_EAX );
-    ADD_imm8s_r32( -4, R_EAX );
-    MMU_TRANSLATE_WRITE( R_EAX );
-    MOV_r32_esp8( R_EAX, 0 );
     call_func0( sh4_read_sr );
     MOV_r32_r32( R_EAX, R_EDX );
-    MOV_esp8_r32( 0, R_EAX );
-    ADD_imm8s_sh4r( -4, REG_OFFSET(r[Rn]) );
+    load_reg( R_EAX, Rn );
+    check_walign32( R_EAX );
+    LEA_r32disp8_r32( R_EAX, -4, R_EAX );
     MEM_WRITE_LONG( R_EAX, R_EDX );
+    ADD_imm8s_sh4r( -4, REG_OFFSET(r[Rn]) );
     sh4_x86.tstate = TSTATE_NONE;
 :}
 STC.L VBR, @-Rn {:  
@@ -2659,10 +2589,9 @@ STC.L VBR, @-Rn {:
     load_reg( R_EAX, Rn );
     check_walign32( R_EAX );
     ADD_imm8s_r32( -4, R_EAX );
-    MMU_TRANSLATE_WRITE( R_EAX );
     load_spreg( R_EDX, R_VBR );
-    ADD_imm8s_sh4r( -4, REG_OFFSET(r[Rn]) );
     MEM_WRITE_LONG( R_EAX, R_EDX );
+    ADD_imm8s_sh4r( -4, REG_OFFSET(r[Rn]) );
     sh4_x86.tstate = TSTATE_NONE;
 :}
 STC.L SSR, @-Rn {:  
@@ -2671,10 +2600,9 @@ STC.L SSR, @-Rn {:
     load_reg( R_EAX, Rn );
     check_walign32( R_EAX );
     ADD_imm8s_r32( -4, R_EAX );
-    MMU_TRANSLATE_WRITE( R_EAX );
     load_spreg( R_EDX, R_SSR );
-    ADD_imm8s_sh4r( -4, REG_OFFSET(r[Rn]) );
     MEM_WRITE_LONG( R_EAX, R_EDX );
+    ADD_imm8s_sh4r( -4, REG_OFFSET(r[Rn]) );
     sh4_x86.tstate = TSTATE_NONE;
 :}
 STC.L SPC, @-Rn {:
@@ -2683,10 +2611,9 @@ STC.L SPC, @-Rn {:
     load_reg( R_EAX, Rn );
     check_walign32( R_EAX );
     ADD_imm8s_r32( -4, R_EAX );
-    MMU_TRANSLATE_WRITE( R_EAX );
     load_spreg( R_EDX, R_SPC );
-    ADD_imm8s_sh4r( -4, REG_OFFSET(r[Rn]) );
     MEM_WRITE_LONG( R_EAX, R_EDX );
+    ADD_imm8s_sh4r( -4, REG_OFFSET(r[Rn]) );
     sh4_x86.tstate = TSTATE_NONE;
 :}
 STC.L SGR, @-Rn {:  
@@ -2695,10 +2622,9 @@ STC.L SGR, @-Rn {:
     load_reg( R_EAX, Rn );
     check_walign32( R_EAX );
     ADD_imm8s_r32( -4, R_EAX );
-    MMU_TRANSLATE_WRITE( R_EAX );
     load_spreg( R_EDX, R_SGR );
-    ADD_imm8s_sh4r( -4, REG_OFFSET(r[Rn]) );
     MEM_WRITE_LONG( R_EAX, R_EDX );
+    ADD_imm8s_sh4r( -4, REG_OFFSET(r[Rn]) );
     sh4_x86.tstate = TSTATE_NONE;
 :}
 STC.L DBR, @-Rn {:  
@@ -2707,10 +2633,9 @@ STC.L DBR, @-Rn {:
     load_reg( R_EAX, Rn );
     check_walign32( R_EAX );
     ADD_imm8s_r32( -4, R_EAX );
-    MMU_TRANSLATE_WRITE( R_EAX );
     load_spreg( R_EDX, R_DBR );
-    ADD_imm8s_sh4r( -4, REG_OFFSET(r[Rn]) );
     MEM_WRITE_LONG( R_EAX, R_EDX );
+    ADD_imm8s_sh4r( -4, REG_OFFSET(r[Rn]) );
     sh4_x86.tstate = TSTATE_NONE;
 :}
 STC.L Rm_BANK, @-Rn {:  
@@ -2719,10 +2644,9 @@ STC.L Rm_BANK, @-Rn {:
     load_reg( R_EAX, Rn );
     check_walign32( R_EAX );
     ADD_imm8s_r32( -4, R_EAX );
-    MMU_TRANSLATE_WRITE( R_EAX );
     load_spreg( R_EDX, REG_OFFSET(r_bank[Rm_BANK]) );
-    ADD_imm8s_sh4r( -4, REG_OFFSET(r[Rn]) );
     MEM_WRITE_LONG( R_EAX, R_EDX );
+    ADD_imm8s_sh4r( -4, REG_OFFSET(r[Rn]) );
     sh4_x86.tstate = TSTATE_NONE;
 :}
 STC.L GBR, @-Rn {:  
@@ -2730,10 +2654,9 @@ STC.L GBR, @-Rn {:
     load_reg( R_EAX, Rn );
     check_walign32( R_EAX );
     ADD_imm8s_r32( -4, R_EAX );
-    MMU_TRANSLATE_WRITE( R_EAX );
     load_spreg( R_EDX, R_GBR );
-    ADD_imm8s_sh4r( -4, REG_OFFSET(r[Rn]) );
     MEM_WRITE_LONG( R_EAX, R_EDX );
+    ADD_imm8s_sh4r( -4, REG_OFFSET(r[Rn]) );
     sh4_x86.tstate = TSTATE_NONE;
 :}
 STS FPSCR, Rn {:  
@@ -2748,10 +2671,9 @@ STS.L FPSCR, @-Rn {:
     load_reg( R_EAX, Rn );
     check_walign32( R_EAX );
     ADD_imm8s_r32( -4, R_EAX );
-    MMU_TRANSLATE_WRITE( R_EAX );
     load_spreg( R_EDX, R_FPSCR );
-    ADD_imm8s_sh4r( -4, REG_OFFSET(r[Rn]) );
     MEM_WRITE_LONG( R_EAX, R_EDX );
+    ADD_imm8s_sh4r( -4, REG_OFFSET(r[Rn]) );
     sh4_x86.tstate = TSTATE_NONE;
 :}
 STS FPUL, Rn {:  
@@ -2766,10 +2688,9 @@ STS.L FPUL, @-Rn {:
     load_reg( R_EAX, Rn );
     check_walign32( R_EAX );
     ADD_imm8s_r32( -4, R_EAX );
-    MMU_TRANSLATE_WRITE( R_EAX );
     load_spreg( R_EDX, R_FPUL );
-    ADD_imm8s_sh4r( -4, REG_OFFSET(r[Rn]) );
     MEM_WRITE_LONG( R_EAX, R_EDX );
+    ADD_imm8s_sh4r( -4, REG_OFFSET(r[Rn]) );
     sh4_x86.tstate = TSTATE_NONE;
 :}
 STS MACH, Rn {:  
@@ -2782,10 +2703,9 @@ STS.L MACH, @-Rn {:
     load_reg( R_EAX, Rn );
     check_walign32( R_EAX );
     ADD_imm8s_r32( -4, R_EAX );
-    MMU_TRANSLATE_WRITE( R_EAX );
     load_spreg( R_EDX, R_MACH );
-    ADD_imm8s_sh4r( -4, REG_OFFSET(r[Rn]) );
     MEM_WRITE_LONG( R_EAX, R_EDX );
+    ADD_imm8s_sh4r( -4, REG_OFFSET(r[Rn]) );
     sh4_x86.tstate = TSTATE_NONE;
 :}
 STS MACL, Rn {:  
@@ -2798,10 +2718,9 @@ STS.L MACL, @-Rn {:
     load_reg( R_EAX, Rn );
     check_walign32( R_EAX );
     ADD_imm8s_r32( -4, R_EAX );
-    MMU_TRANSLATE_WRITE( R_EAX );
     load_spreg( R_EDX, R_MACL );
-    ADD_imm8s_sh4r( -4, REG_OFFSET(r[Rn]) );
     MEM_WRITE_LONG( R_EAX, R_EDX );
+    ADD_imm8s_sh4r( -4, REG_OFFSET(r[Rn]) );
     sh4_x86.tstate = TSTATE_NONE;
 :}
 STS PR, Rn {:  
@@ -2814,10 +2733,9 @@ STS.L PR, @-Rn {:
     load_reg( R_EAX, Rn );
     check_walign32( R_EAX );
     ADD_imm8s_r32( -4, R_EAX );
-    MMU_TRANSLATE_WRITE( R_EAX );
     load_spreg( R_EDX, R_PR );
-    ADD_imm8s_sh4r( -4, REG_OFFSET(r[Rn]) );
     MEM_WRITE_LONG( R_EAX, R_EDX );
+    ADD_imm8s_sh4r( -4, REG_OFFSET(r[Rn]) );
     sh4_x86.tstate = TSTATE_NONE;
 :}
 

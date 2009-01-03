@@ -55,8 +55,6 @@ char *inbuf;
 struct x86_symbol local_symbols[] = {
     { "sh4r+128", ((char *)&sh4r)+128 },
     { "sh4_cpu_period", &sh4_cpu_period },
-    { "mmu_vma_to_phys_read", mmu_vma_to_phys_read },
-    { "mmu_vma_to_phys_write", mmu_vma_to_phys_write },
     { "sh4_address_space", 0x12345432 },
     { "sh4_write_fpscr", sh4_write_fpscr },
     { "sh4_write_sr", sh4_write_sr },
@@ -124,8 +122,12 @@ gboolean FASTCALL sh4_raise_reset( int exc ) { return TRUE; }
 gboolean FASTCALL sh4_raise_exception( int exc ) { return TRUE; }
 gboolean FASTCALL sh4_raise_tlb_exception( int exc ) { return TRUE; }
 gboolean FASTCALL sh4_raise_trap( int exc ) { return TRUE; }
+void FASTCALL sh4_flush_store_queue( sh4addr_t addr ) { }
+void FASTCALL sh4_flush_store_queue_mmu( sh4addr_t addr, void *exc ) { }
 uint32_t sh4_sleep_run_slice(uint32_t nanosecs) { return nanosecs; }
 gboolean gui_error_dialog( const char *fmt, ... ) { return TRUE; }
+gboolean FASTCALL mmu_update_icache( sh4vma_t addr ) { return TRUE; }
+void MMU_ldtlb() { }
 struct sh4_icache_struct sh4_icache;
 struct mem_region_fn mem_region_unmapped;
 

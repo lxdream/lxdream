@@ -35,6 +35,10 @@
 #include "mmio.h"
 #include "dreamcast.h"
 
+#ifndef PAGE_SIZE
+#define PAGE_SIZE 4096
+#endif
+
 sh4ptr_t *page_map = NULL;
 mem_region_fn_t *ext_address_space = NULL;
 
@@ -91,6 +95,18 @@ void *mem_alloc_pages( int n )
     return mem;
 }
 
+void mem_unprotect( void *region, uint32_t size )
+{
+    /* Force page alignment */
+    uintptr_t i = (uintptr_t)region;
+    uintptr_t mask = ~(PAGE_SIZE-1);
+    void *ptr = (void *)(i & mask);
+    size_t len = i & (PAGE_SIZE-1) + size;
+    len = (len + (PAGE_SIZE-1)) & mask;
+    
+    int status = mprotect( ptr, len, PROT_READ|PROT_WRITE|PROT_EXEC );
+    assert( status == 0 );
+}
 
 void mem_init( void )
 {

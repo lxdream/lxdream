@@ -164,23 +164,30 @@ void fprint_stack_trace( FILE *f )
 #define CHECKDEST(p) if( (p) == 0 ) { ERROR( "%08X: Branch/jump to NULL, CPU halted", sh4r.pc ); sh4_core_exit(CORE_EXIT_HALT); return FALSE; }
 #define CHECKSLOTILLEGAL() if(sh4r.in_delay_slot) return sh4_raise_exception(EXC_SLOT_ILLEGAL)
 
+#define ADDRSPACE (IS_SH4_PRIVMODE() ? sh4_address_space : sh4_user_address_space)
+#define SQADDRSPACE (IS_SH4_PRIVMODE() ? storequeue_address_space : storequeue_user_address_space)
+
 #ifdef HAVE_FRAME_ADDRESS
 static FASTCALL __attribute__((noinline)) void *__first_arg(void *a, void *b) { return a; }
 #define INIT_EXCEPTIONS(label) goto *__first_arg(&&fnstart,&&label); fnstart:
-#define MMU_TRANSLATE_READ( addr ) memtmp = mmu_vma_to_phys_read(addr, &&except )
-#define MMU_TRANSLATE_WRITE( addr ) memtmp = mmu_vma_to_phys_write(addr, &&except )
+#define MEM_READ_BYTE( addr, val ) val = ((mem_read_exc_fn_t)ADDRSPACE[(addr)>>12]->read_byte)((addr), &&except)
+#define MEM_READ_WORD( addr, val ) val = ((mem_read_exc_fn_t)ADDRSPACE[(addr)>>12]->read_word)((addr), &&except)
+#define MEM_READ_LONG( addr, val ) val = ((mem_read_exc_fn_t)ADDRSPACE[(addr)>>12]->read_long)((addr), &&except)
+#define MEM_WRITE_BYTE( addr, val ) ((mem_write_exc_fn_t)ADDRSPACE[(addr)>>12]->write_byte)((addr), (val), &&except)
+#define MEM_WRITE_WORD( addr, val ) ((mem_write_exc_fn_t)ADDRSPACE[(addr)>>12]->write_word)((addr), (val), &&except)
+#define MEM_WRITE_LONG( addr, val ) ((mem_write_exc_fn_t)ADDRSPACE[(addr)>>12]->write_long)((addr), (val), &&except)
 #else
 #define INIT_EXCEPTIONS(label)
-#define MMU_TRANSLATE_READ( addr ) if( (memtmp = mmu_vma_to_phys_read(addr)) == MMU_VMA_ERROR ) { return TRUE; }
-#define MMU_TRANSLATE_WRITE( addr ) if( (memtmp = mmu_vma_to_phys_write(addr)) == MMU_VMA_ERROR ) { return TRUE; }
+#define MEM_READ_BYTE( addr, val ) val = ADDRSPACE[(addr)>>12]->read_byte(addr)
+#define MEM_READ_WORD( addr, val ) val = ADDRSPACE[(addr)>>12]->read_word(addr)
+#define MEM_READ_LONG( addr, val ) val = ADDRSPACE[(addr)>>12]->read_long(addr)
+#define MEM_WRITE_BYTE( addr, val ) ADDRSPACE[(addr)>>12]->write_byte(addr, val)
+#define MEM_WRITE_WORD( addr, val ) ADDRSPACE[(addr)>>12]->write_word(addr, val)
+#define MEM_WRITE_LONG( addr, val ) ADDRSPACE[(addr)>>12]->write_long(addr, val)
 #endif
  
-#define MEM_READ_BYTE( addr, val ) MMU_TRANSLATE_READ(addr); val = sh4_read_byte(memtmp)
-#define MEM_READ_WORD( addr, val ) MMU_TRANSLATE_READ(addr); val = sh4_read_word(memtmp)
-#define MEM_READ_LONG( addr, val ) MMU_TRANSLATE_READ(addr); val = sh4_read_long(memtmp)
-#define MEM_WRITE_BYTE( addr, val ) MMU_TRANSLATE_WRITE(addr); sh4_write_byte(memtmp, val) 
-#define MEM_WRITE_WORD( addr, val ) MMU_TRANSLATE_WRITE(addr); sh4_write_word(memtmp, val) 
-#define MEM_WRITE_LONG( addr, val ) MMU_TRANSLATE_WRITE(addr); sh4_write_long(memtmp, val)
+
+ 
 
 
 #define FP_WIDTH (IS_FPU_DOUBLESIZE() ? 8 : 4)
@@ -188,34 +195,30 @@ static FASTCALL __attribute__((noinline)) void *__first_arg(void *a, void *b) { 
 #define MEM_FP_READ( addr, reg ) \
     if( IS_FPU_DOUBLESIZE() ) { \
 	CHECKRALIGN64(addr); \
-	MMU_TRANSLATE_READ(addr); \
         if( reg & 1 ) { \
-            *((uint32_t *)&XF((reg) & 0x0E)) = sh4_read_long(memtmp); \
-            *((uint32_t *)&XF(reg)) = sh4_read_long(memtmp+4); \
+            MEM_READ_LONG( addr, *((uint32_t *)&XF((reg) & 0x0E)) ); \
+            MEM_READ_LONG( addr+4, *((uint32_t *)&XF(reg)) ); \
         } else { \
-            *((uint32_t *)&FR(reg)) = sh4_read_long(memtmp); \
-            *((uint32_t *)&FR((reg) | 0x01)) = sh4_read_long(memtmp+4); \
+            MEM_READ_LONG( addr, *((uint32_t *)&FR(reg)) ); \
+            MEM_READ_LONG( addr+4, *((uint32_t *)&FR((reg)|0x01)) ); \
 	} \
     } else { \
         CHECKRALIGN32(addr); \
-        MMU_TRANSLATE_READ(addr); \
-        *((uint32_t *)&FR(reg)) = sh4_read_long(memtmp); \
+        MEM_READ_LONG( addr, *((uint32_t *)&FR(reg)) ); \
     }
 #define MEM_FP_WRITE( addr, reg ) \
     if( IS_FPU_DOUBLESIZE() ) { \
         CHECKWALIGN64(addr); \
-        MMU_TRANSLATE_WRITE(addr); \
         if( reg & 1 ) { \
-	    sh4_write_long( memtmp, *((uint32_t *)&XF((reg)&0x0E)) ); \
-	    sh4_write_long( memtmp+4, *((uint32_t *)&XF(reg)) ); \
+	    MEM_WRITE_LONG( addr, *((uint32_t *)&XF((reg)&0x0E)) ); \
+	    MEM_WRITE_LONG( addr+4, *((uint32_t *)&XF(reg)) ); \
         } else { \
-	    sh4_write_long( memtmp, *((uint32_t *)&FR(reg)) ); \
-	    sh4_write_long( memtmp+4, *((uint32_t *)&FR((reg)|0x01)) ); \
+	    MEM_WRITE_LONG( addr, *((uint32_t *)&FR(reg)) ); \
+	    MEM_WRITE_LONG( addr+4, *((uint32_t *)&FR((reg)|0x01)) ); \
 	} \
     } else { \
     	CHECKWALIGN32(addr); \
-    	MMU_TRANSLATE_WRITE(addr); \
-        sh4_write_long( memtmp, *((uint32_t *)&FR((reg))) ); \
+        MEM_WRITE_LONG(addr, *((uint32_t *)&FR((reg))) ); \
     }
 
 gboolean sh4_execute_instruction( void )
