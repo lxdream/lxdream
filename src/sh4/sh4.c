@@ -202,7 +202,11 @@ void sh4_core_exit( int exit_code )
     if( sh4_running ) {
 #ifdef SH4_TRANSLATOR
         if( sh4_use_translator ) {
-            sh4_translate_exit_recover();
+            if( exit_code == CORE_EXIT_EXCEPTION ) {
+                sh4_translate_exception_exit_recover();
+            } else {
+                sh4_translate_exit_recover();
+            }
         }
 #endif
         // longjmp back into sh4_run_slice
