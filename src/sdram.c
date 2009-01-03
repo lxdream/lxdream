@@ -1,5 +1,5 @@
 /**
- * $Id: sdram.c 954 2008-12-26 14:25:23Z nkeynes $
+ * $Id$
  *
  * Dreamcast main SDRAM - access methods and timing controls. This is fairly
  * directly coupled to the SH4
