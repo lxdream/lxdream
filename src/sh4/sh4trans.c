@@ -158,6 +158,16 @@ void sh4_translate_run_recovery( xlat_recovery_record_t recovery )
     sh4r.pc += (recovery->sh4_icount<<1);
 }
 
+/**
+ * Same as sh4_translate_run_recovery, but is used to recover from a taken
+ * exception - that is, it fixes sh4r.spc rather than sh4r.pc
+ */
+void sh4_translate_run_exception_recovery( xlat_recovery_record_t recovery )
+{
+    sh4r.slice_cycle += (recovery->sh4_icount * sh4_cpu_period);
+    sh4r.spc += (recovery->sh4_icount<<1);
+}    
+
 void sh4_translate_exit_recover( )
 {
     void *code = xlat_get_code_by_vma( sh4r.pc );
@@ -173,6 +183,24 @@ void sh4_translate_exit_recover( )
             }
         }
     }
+}
+
+void sh4_translate_exception_exit_recover( )
+{
+    void *code = xlat_get_code_by_vma( sh4r.spc );
+    if( code != NULL ) {
+        uint32_t size = xlat_get_code_size( code );
+        void *pc = xlat_get_native_pc( code, size );
+        if( pc != NULL ) {
+            // could be null if we're not actually running inside the translator
+            xlat_recovery_record_t recover = xlat_get_pre_recovery(code, pc);
+            if( recover != NULL ) {
+                // Can be null if there is no recovery necessary
+                sh4_translate_run_exception_recovery(recover);
+            }
+        }
+    }
+    
 }
 
 void FASTCALL sh4_translate_breakpoint_hit(uint32_t pc)

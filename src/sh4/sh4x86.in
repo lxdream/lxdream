@@ -292,12 +292,18 @@ void static inline store_reg( int x86reg, int sh4reg ) {
 /* Note: For SR.MD == 1 && MMUCR.AT == 0, there are no memory exceptions, so 
  * don't waste the cycles expecting them. Otherwise we need to save the exception pointer.
  */
+ 
+#ifdef HAVE_FRAME_ADDRESS
 #define _CALL_READ(addr_reg, fn) if( !sh4_x86.tlb_on && (sh4r.xlat_sh4_mode & SR_MD) ) { \
         call_func1_r32disp8(R_ECX, MEM_REGION_PTR(fn), addr_reg); } else { \
         call_func1_r32disp8_exc(R_ECX, MEM_REGION_PTR(fn), addr_reg, pc); } 
 #define _CALL_WRITE(addr_reg, val_reg, fn) if( !sh4_x86.tlb_on && (sh4r.xlat_sh4_mode & SR_MD) ) { \
         call_func2_r32disp8(R_ECX, MEM_REGION_PTR(fn), addr_reg, val_reg); } else { \
-        call_func2_r32disp8_exc(R_ECX, MEM_REGION_PTR(fn), addr_reg, val_reg, pc); } 
+        call_func2_r32disp8_exc(R_ECX, MEM_REGION_PTR(fn), addr_reg, val_reg, pc); }
+#else 
+#define _CALL_READ(addr_reg, fn) call_func1_r32disp8(R_ECX, MEM_REGION_PTR(fn), addr_reg)
+#define _CALL_WRITE(addr_reg, val_reg, fn) call_func2_r32disp8(R_ECX, MEM_REGION_PTR(fn), addr_reg, val_reg)
+#endif
                 
 #define MEM_READ_BYTE( addr_reg, value_reg ) decode_address(addr_reg); _CALL_READ(addr_reg, read_byte); MEM_RESULT(value_reg)
 #define MEM_READ_WORD( addr_reg, value_reg ) decode_address(addr_reg); _CALL_READ(addr_reg, read_word); MEM_RESULT(value_reg)
