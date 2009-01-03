@@ -1,6 +1,6 @@
 /**
  * $Id$
- * Implements the on-chip operand cache and instruction caches
+ * Implements the on-chip operand cache, instruction cache, and store queue.
  *
  * Copyright (c) 2008 Nathan Keynes.
  *
@@ -296,3 +296,20 @@ void CCN_set_cache_control( int reg )
         break;
     }
 }
+
+
+/***** Store-queue (considered part of the cache by the SH7750 manual) ******/
+static void FASTCALL p4_storequeue_write_long( sh4addr_t addr, uint32_t val )
+{
+    sh4r.store_queue[(addr>>2)&0xF] = val;
+}
+static int32_t FASTCALL p4_storequeue_read_long( sh4addr_t addr )
+{
+    return sh4r.store_queue[(addr>>2)&0xF];
+}
+
+struct mem_region_fn p4_region_storequeue = { 
+        p4_storequeue_read_long, p4_storequeue_write_long,
+        p4_storequeue_read_long, p4_storequeue_write_long,
+        p4_storequeue_read_long, p4_storequeue_write_long,
+        unmapped_read_burst, unmapped_write_burst }; // No burst access.

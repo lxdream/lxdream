@@ -29,6 +29,20 @@ extern "C" {
 #define VMA_TO_EXT_ADDR(vma) ((vma)&0x1FFFFFFF)
 
 /************************** UTLB/ITLB Definitions ***************************/
+/* mmucr register bits */
+#define MMUCR_AT   0x00000001 /* Address Translation enabled */
+#define MMUCR_TI   0x00000004 /* TLB invalidate (always read as 0) */
+#define MMUCR_SV   0x00000100 /* Single Virtual mode=1 / multiple virtual=0 */
+#define MMUCR_SQMD 0x00000200 /* Store queue mode bit (0=user, 1=priv only) */
+#define MMUCR_URC  0x0000FC00 /* UTLB access counter */
+#define MMUCR_URB  0x00FC0000 /* UTLB entry boundary */
+#define MMUCR_LRUI 0xFC000000 /* Least recently used ITLB */
+#define MMUCR_MASK 0xFCFCFF05
+#define MMUCR_RMASK 0xFCFCFF01 /* Read mask */
+    
+#define IS_TLB_ENABLED() (MMIO_READ(MMU, MMUCR)&MMUCR_AT)
+#define IS_SV_ENABLED() (MMIO_READ(MMU,MMUCR)&MMUCR_SV)
+
 #define ITLB_ENTRY_COUNT 4
 #define UTLB_ENTRY_COUNT 64
 
@@ -66,14 +80,31 @@ struct utlb_entry {
     uint32_t asid; // Process ID
     sh4addr_t ppn; // Physical Page Number
     uint32_t flags;
-    uint32_t pcmcia; // extra pcmcia data - not used
+    uint32_t pcmcia; // extra pcmcia data - not used in this implementation
 };
 
-struct utlb_sort_entry {
-    sh4addr_t key; // Masked VPN + ASID
-    uint32_t mask; // Mask + 0x00FF
-    int entryNo;
+#define TLB_FUNC_SIZE 48
+
+struct utlb_page_entry {
+    struct mem_region_fn fn;
+    mem_region_fn_t user_fn;
+    mem_region_fn_t target;
+    unsigned char code[TLB_FUNC_SIZE*8];
 };
+
+struct utlb_1k_entry {
+    struct mem_region_fn fn;
+    struct mem_region_fn user_fn;
+    struct mem_region_fn *subpages[4];
+    struct mem_region_fn *user_subpages[4];
+    unsigned char code[TLB_FUNC_SIZE*16];
+};
+
+void mmu_utlb_init_vtable( struct utlb_entry *ent, struct utlb_page_entry *page, gboolean writable ); 
+void mmu_utlb_1k_init_vtable( struct utlb_1k_entry *ent ); 
+
+extern uint32_t mmu_urc;
+extern uint32_t mmu_urb;
     
 #ifdef __cplusplus
 }

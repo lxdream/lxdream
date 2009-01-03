@@ -78,9 +78,9 @@ gboolean sh4_translate_is_enabled()
 void sh4_init(void)
 {
     register_io_regions( mmio_list_sh4mmio );
+    MMU_init();
     TMU_init();
     xlat_cache_init();
-    sh4_mem_init();
     sh4_reset();
 #ifdef ENABLE_SH4STATS
     sh4_stats_reset();
@@ -167,9 +167,7 @@ uint32_t sh4_run_slice( uint32_t nanosecs )
         sh4_sleep_run_slice(nanosecs);
         break;  
     case CORE_EXIT_FLUSH_ICACHE:
-#ifdef SH4_TRANSLATOR
         xlat_flush_cache();
-#endif
         break;
     }
 

@@ -51,7 +51,8 @@ const struct cpu_desc_struct sh4_cpu_desc =
 uint32_t sh4_disasm_instruction( sh4vma_t pc, char *buf, int len, char *opcode )
 {
     sh4addr_t addr = mmu_vma_to_phys_disasm(pc);
-    uint16_t ir = sh4_read_word(addr);
+    uint32_t tmp;
+    uint16_t ir = ext_address_space[addr>>12]->read_word(addr);
 
 #define UNDEF(ir) snprintf( buf, len, "????    " );
 #define RN(ir) ((ir&0x0F00)>>8)
@@ -189,7 +190,10 @@ MOV.L @Rm, Rn    {: snprintf( buf, len, "MOV.L   @R%d, R%d", Rm, Rn ); :}
 MOV.L @Rm+, Rn   {: snprintf( buf, len, "MOV.L   @R%d+, R%d", Rm, Rn ); :}
 MOV.L @(R0, Rm), Rn {: snprintf( buf, len, "MOV.L   @(R0, R%d), R%d", Rm, Rn ); :}
 MOV.L @(disp, GBR), R0 {: snprintf( buf, len, "MOV.L   @(%d, GBR), R0",disp ); :}
-MOV.L @(disp, PC), Rn  {: snprintf( buf, len, "MOV.L   @($%xh), R%d ; <- #%08x", disp + (pc & 0xFFFFFFFC) + 4, Rn, sh4_read_long(disp+(addr&0xFFFFFFFC)+4) ); :}
+MOV.L @(disp, PC), Rn  {:
+    tmp = mmu_vma_to_phys_disasm(disp + (pc&0xFFFFFFFC) + 4); 
+    snprintf( buf, len, "MOV.L   @($%xh), R%d ; <- #%08x", disp + (pc&0xFFFFFFFC)+4, Rn, ext_address_space[tmp>>12]->read_long(tmp) );
+:}
 MOV.L @(disp, Rm), Rn  {: snprintf( buf, len, "MOV.L   @(%d, R%d), R%d", disp, Rm, Rn ); :}
 MOV.W Rm, @Rn    {: snprintf( buf, len, "MOV.W   R%d, @R%d", Rm, Rn ); :}
 MOV.W Rm, @-Rn   {: snprintf( buf, len, "MOV.W   R%d, @-R%d", Rm, Rn ); :}
@@ -200,7 +204,10 @@ MOV.W @Rm, Rn    {: snprintf( buf, len, "MOV.W   @R%d, R%d", Rm, Rn ); :}
 MOV.W @Rm+, Rn   {: snprintf( buf, len, "MOV.W   @R%d+, R%d", Rm, Rn ); :}
 MOV.W @(R0, Rm), Rn {: snprintf( buf, len, "MOV.W   @(R0, R%d), R%d", Rm, Rn ); :}
 MOV.W @(disp, GBR), R0 {: snprintf( buf, len, "MOV.W   @(%d, GBR), R0", disp ); :}
-MOV.W @(disp, PC), Rn  {: snprintf( buf, len, "MOV.W   @($%xh), R%d ; <- #%08x", disp + pc + 4, Rn, sh4_read_word(disp+addr+4) ); :}
+MOV.W @(disp, PC), Rn  {:
+    tmp = mmu_vma_to_phys_disasm(disp+pc+4);
+    snprintf( buf, len, "MOV.W   @($%xh), R%d ; <- #%08x", disp+pc+4, Rn, ext_address_space[tmp>>12]->read_word(tmp) );
+:}
 MOV.W @(disp, Rm), R0  {: snprintf( buf, len, "MOV.W   @(%d, R%d), R0", disp, Rm ); :}
 MOVA @(disp, PC), R0   {: snprintf( buf, len, "MOVA    @($%xh), R0", disp + (pc&0xFFFFFFFC) + 4 ); :}
 MOVCA.L R0, @Rn  {: snprintf( buf, len, "MOVCA.L R0, @R%d", Rn ); :}

@@ -65,6 +65,15 @@ static inline void call_func1_r32disp8( int preg, uint32_t disp8, int arg1 )
     CALL_r32disp8(preg, disp8);
 }
 
+static inline void call_func1_r32disp8_exc( int preg, uint32_t disp8, int arg1, int pc )
+{
+    if( arg1 != R_EAX ) {
+        MOV_r32_r32( arg1, R_EAX );
+    }
+    load_exc_backpatch(R_EDX);
+    CALL_r32disp8(preg, disp8);
+}
+
 static inline void call_func2( void *ptr, int arg1, int arg2 )
 {
     if( arg2 != R_EDX ) {
@@ -98,6 +107,18 @@ static inline void call_func2_r32disp8( int preg, uint32_t disp8, int arg1, int 
     CALL_r32disp8(preg, disp8);
 }
 
+static inline void call_func2_r32disp8_exc( int preg, uint32_t disp8, int arg1, int arg2, int pc )
+{
+    if( arg2 != R_EDX ) {
+        MOV_r32_r32( arg2, R_EDX );
+    }
+    if( arg1 != R_EAX ) {
+        MOV_r32_r32( arg1, R_EAX );
+    }
+    MOV_backpatch_esp8( 0 );
+    CALL_r32disp8(preg, disp8);
+}
+
 
 
 static inline void call_func1_exc( void *ptr, int arg1, int pc )
@@ -121,35 +142,6 @@ static inline void call_func2_exc( void *ptr, int arg1, int arg2, int pc )
     CALL_ptr(ptr);
 }
 
-/**
- * Write a double (64-bit) value into memory, with the first word in arg2a, and
- * the second in arg2b
- */
-static inline void MEM_WRITE_DOUBLE( int addr, int arg2a, int arg2b )
-{
-    MOV_r32_esp8(addr, 0);
-    MOV_r32_esp8(arg2b, 4);
-    MEM_WRITE_LONG(addr, arg2a);
-    MOV_esp8_r32(0, R_EAX);
-    MOV_esp8_r32(4, R_EDX);
-    ADD_imm8s_r32(4, R_EAX);
-    MEM_WRITE_LONG(R_EAX, R_EDX);
-}
-
-/**
- * Read a double (64-bit) value from memory, writing the first word into arg2a
- * and the second into arg2b. The addr must not be in EAX
- */
-static inline void MEM_READ_DOUBLE( int addr, int arg2a, int arg2b )
-{
-    MOV_r32_esp8(addr, 0);
-    MEM_READ_LONG(addr, R_EAX);
-    MOV_r32_esp8(R_EAX, 4);
-    MOV_esp8_r32(0, R_EAX);
-    ADD_imm8s_r32(4, R_EAX);
-    MEM_READ_LONG(R_EAX, arg2b );
-    MOV_esp8_r32(4, arg2a);
-}
 #else
 static inline void call_func1( void *ptr, int arg1 )
 {
@@ -165,44 +157,6 @@ static inline void call_func2( void *ptr, int arg1, int arg2 )
     PUSH_r32(arg2);
     PUSH_r32(arg1);
     CALL_ptr(ptr);
-    ADD_imm8s_r32( 16, R_ESP );
-}
-
-/**
- * Write a double (64-bit) value into memory, with the first word in arg2a, and
- * the second in arg2b
- */
-static inline void MEM_WRITE_DOUBLE( int addr, int arg2a, int arg2b )
-{
-    SUB_imm8s_r32( 8, R_ESP );
-    PUSH_r32(arg2b);
-    LEA_r32disp8_r32( addr, 4, arg2b );
-    PUSH_r32(arg2b);
-    SUB_imm8s_r32( 8, R_ESP );
-    PUSH_r32(arg2a);
-    PUSH_r32(addr);
-    CALL_ptr(sh4_write_long);
-    ADD_imm8s_r32( 16, R_ESP );
-    CALL_ptr(sh4_write_long);
-    ADD_imm8s_r32( 16, R_ESP );
-}
-
-/**
- * Read a double (64-bit) value from memory, writing the first word into arg2a
- * and the second into arg2b. The addr must not be in EAX
- */
-static inline void MEM_READ_DOUBLE( int addr, int arg2a, int arg2b )
-{
-    SUB_imm8s_r32( 12, R_ESP );
-    PUSH_r32(addr);
-    CALL_ptr(sh4_read_long);
-    MOV_r32_esp8(R_EAX, 4);
-    ADD_imm8s_esp8(4, 0);
-    CALL_ptr(sh4_read_long);
-    if( arg2b != R_EAX ) {
-        MOV_r32_r32( R_EAX, arg2b );
-    }
-    MOV_esp8_r32( 4, arg2a );
     ADD_imm8s_r32( 16, R_ESP );
 }
 

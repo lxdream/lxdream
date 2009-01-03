@@ -203,19 +203,6 @@ MMIO_REGION_LIST_BEGIN( sh4mmio )
     MMIO_REGION( PMM )
 MMIO_REGION_LIST_END
 
-/* mmucr register bits */
-#define MMUCR_AT   0x00000001 /* Address Translation enabled */
-#define MMUCR_TI   0x00000004 /* TLB invalidate (always read as 0) */
-#define MMUCR_SV   0x00000100 /* Single Virtual mode=1 / multiple virtual=0 */
-#define MMUCR_SQMD 0x00000200 /* Store queue mode bit (0=user, 1=priv only) */
-#define MMUCR_URC  0x0000FC00 /* UTLB access counter */
-#define MMUCR_URB  0x00FC0000 /* UTLB entry boundary */
-#define MMUCR_LRUI 0xFC000000 /* Least recently used ITLB */
-#define MMUCR_MASK 0xFCFCFF05
-#define MMUCR_RMASK 0xFCFCFF01 /* Read mask */
-
-#define IS_MMU_ENABLED() (MMIO_READ(MMU, MMUCR)&MMUCR_AT)
-
 /* ccr register bits */
 #define CCR_IIX    0x00008000 /* IC index enable */
 #define CCR_ICI    0x00000800 /* IC invalidation (always read as 0) */
@@ -242,24 +229,6 @@ MMIO_REGION_LIST_END
 void mmu_init(void);
 void mmu_set_cache_mode( int );
 void mmu_ldtlb(void);
-
-int32_t FASTCALL mmu_icache_addr_read( sh4addr_t addr );
-int32_t FASTCALL mmu_icache_data_read( sh4addr_t addr );
-int32_t FASTCALL mmu_itlb_addr_read( sh4addr_t addr );
-int32_t FASTCALL mmu_itlb_data_read( sh4addr_t addr );
-int32_t FASTCALL mmu_ocache_addr_read( sh4addr_t addr );
-int32_t FASTCALL mmu_ocache_data_read( sh4addr_t addr );
-int32_t FASTCALL mmu_utlb_addr_read( sh4addr_t addr );
-int32_t FASTCALL mmu_utlb_data_read( sh4addr_t addr );
-void FASTCALL mmu_icache_addr_write( sh4addr_t addr, uint32_t val );
-void FASTCALL mmu_icache_data_write( sh4addr_t addr, uint32_t val );
-void FASTCALL mmu_itlb_addr_write( sh4addr_t addr, uint32_t val );
-void FASTCALL mmu_itlb_data_write( sh4addr_t addr, uint32_t val );
-void FASTCALL mmu_ocache_addr_write( sh4addr_t addr, uint32_t val );
-void FASTCALL mmu_ocache_data_write( sh4addr_t addr, uint32_t val );
-void FASTCALL mmu_utlb_addr_write( sh4addr_t addr, uint32_t val );
-void FASTCALL mmu_utlb_data_write( sh4addr_t addr, uint32_t val );
-
 
 #ifdef __cplusplus
 }

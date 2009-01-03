@@ -51,6 +51,9 @@ struct sh4_icache_struct {
 extern struct sh4_icache_struct sh4_icache;
 
 extern struct mem_region_fn **sh4_address_space;
+extern struct mem_region_fn **sh4_user_address_space;
+extern struct mem_region_fn **storequeue_address_space;
+extern struct mem_region_fn **storequeue_user_address_space;
 
 /**
  * Test if a given address is contained in the current icache entry
@@ -102,10 +105,16 @@ extern struct mem_region_fn **sh4_address_space;
 #define CORE_EXIT_SLEEP 5
 
 /**
- * SH4 vm-exit flag - exit the current block  and flush all instruction caches (ie
+ * SH4 vm-exit flag - exit the current block and flush all instruction caches (ie
  * if address translation has changed)
  */
 #define CORE_EXIT_FLUSH_ICACHE 6
+
+/**
+ * SH4 vm-exit flag - exit the current block following a taken exception. sh4r.spc
+ * is fixed up by recovery rather than sh4r.pc.
+ */
+#define CORE_EXIT_EXCEPTION 7
 
 typedef uint32_t (*sh4_run_slice_fn)(uint32_t);
 
@@ -222,7 +231,7 @@ void FASTCALL sh4_write_word( sh4addr_t addr, uint32_t val );
 void FASTCALL sh4_write_byte( sh4addr_t addr, uint32_t val );
 int32_t sh4_read_phys_word( sh4addr_t addr );
 void FASTCALL sh4_flush_store_queue( sh4addr_t addr );
-gboolean FASTCALL sh4_flush_store_queue_mmu( sh4addr_t addr );
+void FASTCALL sh4_flush_store_queue_mmu( sh4addr_t addr, void *exc );
 
 /* SH4 Exceptions */
 #define EXC_POWER_RESET     0x000 /* reset vector */
@@ -293,7 +302,21 @@ void FASTCALL sh4_accept_interrupt( void );
 #define FPULf    (sh4r.fpul.f)
 #define FPULi    (sh4r.fpul.i)
 
-#define SH4_WRITE_STORE_QUEUE(addr,val) sh4r.store_queue[(addr>>2)&0xF] = val;
+/**************** SH4 internal memory regions *****************/
+extern struct mem_region_fn p4_region_storequeue; 
+extern struct mem_region_fn p4_region_itlb_addr;
+extern struct mem_region_fn p4_region_itlb_data;
+extern struct mem_region_fn p4_region_utlb_addr;
+extern struct mem_region_fn p4_region_utlb_data;
+extern struct mem_region_fn p4_region_icache_addr;
+extern struct mem_region_fn p4_region_icache_data;
+extern struct mem_region_fn p4_region_ocache_addr;
+extern struct mem_region_fn p4_region_ocache_data;
+extern struct mem_region_fn mem_region_address_error;
+extern struct mem_region_fn mem_region_tlb_miss;
+extern struct mem_region_fn mem_region_tlb_multihit;
+extern struct mem_region_fn mem_region_user_protected;
+
 
 #ifdef __cplusplus
 }

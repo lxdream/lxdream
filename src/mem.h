@@ -28,6 +28,17 @@
 extern "C" {
 #endif
 
+
+typedef FASTCALL int32_t (*mem_read_fn_t)(sh4addr_t);
+typedef FASTCALL void (*mem_write_fn_t)(sh4addr_t, uint32_t);
+typedef FASTCALL void (*mem_read_burst_fn_t)(unsigned char *,sh4addr_t);
+typedef FASTCALL void (*mem_write_burst_fn_t)(sh4addr_t,unsigned char *);
+
+typedef FASTCALL int32_t (*mem_read_exc_fn_t)(sh4addr_t, void *);
+typedef FASTCALL void (*mem_write_exc_fn_t)(sh4addr_t, uint32_t, void *);
+typedef FASTCALL void (*mem_read_burst_exc_fn_t)(unsigned char *,sh4addr_t, void *);
+typedef FASTCALL void (*mem_write_burst_exc_fn_t)(sh4addr_t,unsigned char *, void *);
+
 /**
  * Basic memory region vtable - read/write at byte, word, long, and burst 
  * (32-byte) sizes.
@@ -140,6 +151,11 @@ extern mem_region_fn_t *ext_address_space;
 #define SIGNEXT32(n) ((int64_t)((int32_t)(n)))
 #define SIGNEXT48(n) ((((int64_t)(n))<<16)>>16)
 #define ZEROEXT32(n) ((int64_t)((uint64_t)((uint32_t)(n))))
+
+/* Ensure the given region allows all of read/write/execute. If not 
+ * page-aligned, some surrounding regions will similarly be unprotected.
+ */
+void mem_unprotect( void *ptr, uint32_t size );
 
 #ifdef __cplusplus
 }
