@@ -37,6 +37,7 @@ int sh4_breakpoint_count = 0;
 
 
 struct mem_region_fn **sh4_address_space = (void *)0x12345432;
+struct mem_region_fn **sh4_user_address_space = (void *)0x12345678;
 char *option_list = "s:o:d:h";
 struct option longopts[1] = { { NULL, 0, 0, 0 } };
 
@@ -55,7 +56,8 @@ char *inbuf;
 struct x86_symbol local_symbols[] = {
     { "sh4r+128", ((char *)&sh4r)+128 },
     { "sh4_cpu_period", &sh4_cpu_period },
-    { "sh4_address_space", 0x12345432 },
+    { "sh4_address_space", (void *)0x12345432 },
+    { "sh4_user_address_space", (void *)0x12345678 },
     { "sh4_write_fpscr", sh4_write_fpscr },
     { "sh4_write_sr", sh4_write_sr },
     { "sh4_read_sr", sh4_read_sr },
@@ -65,28 +67,9 @@ struct x86_symbol local_symbols[] = {
     { "sh4_switch_fr_banks", sh4_switch_fr_banks },
     { "sh4_execute_instruction", sh4_execute_instruction },
     { "signsat48", signsat48 },
-    { "sh4_read_byte", sh4_read_byte },
-    { "sh4_read_word", sh4_read_word },
-    { "sh4_read_long", sh4_read_long },
-    { "sh4_write_byte", sh4_write_byte },
-    { "sh4_write_word", sh4_write_word },
-    { "sh4_write_long", sh4_write_long },
     { "xlat_get_code_by_vma", xlat_get_code_by_vma },
     { "xlat_get_code", xlat_get_code }
 };
-
-int32_t FASTCALL sh4_read_byte( uint32_t addr ) 
-{
-    return *(uint8_t *)(inbuf+(addr-start_addr));
-}
-int32_t FASTCALL sh4_read_word( uint32_t addr ) 
-{
-    return *(uint16_t *)(inbuf+(addr-start_addr));
-}
-int32_t FASTCALL sh4_read_long( uint32_t addr ) 
-{
-    return *(uint32_t *)(inbuf+(addr-start_addr));
-}
 
 // Stubs
 gboolean sh4_execute_instruction( ) { return TRUE; }
@@ -102,9 +85,6 @@ void TMU_run_slice( uint32_t nanos ) {}
 void CCN_set_cache_control( uint32_t val ) { }
 void PMM_write_control( int ctr, uint32_t val ) { }
 void SCIF_run_slice( uint32_t nanos ) {}
-void FASTCALL sh4_write_byte( uint32_t addr, uint32_t val ) {}
-void FASTCALL sh4_write_word( uint32_t addr, uint32_t val ) {}
-void FASTCALL sh4_write_long( uint32_t addr, uint32_t val ) {}
 void FASTCALL sh4_write_fpscr( uint32_t val ) { }
 void FASTCALL sh4_write_sr( uint32_t val ) { }
 uint32_t FASTCALL sh4_read_sr( void ) { return 0; }
