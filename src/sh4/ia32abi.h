@@ -26,9 +26,10 @@
 
 static inline decode_address( int addr_reg )
 {
+    uintptr_t base = (sh4r.xlat_sh4_mode&SR_MD) ? (uintptr_t)sh4_address_space : (uintptr_t)sh4_user_address_space;
     MOV_r32_r32( addr_reg, R_ECX ); 
     SHR_imm8_r32( 12, R_ECX ); 
-    MOV_r32disp32x4_r32( R_ECX, (uintptr_t)sh4_address_space, R_ECX );
+    MOV_r32disp32x4_r32( R_ECX, base, R_ECX );
 }
 
 /**
