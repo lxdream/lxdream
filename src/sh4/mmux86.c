@@ -40,6 +40,7 @@
 void mmu_utlb_init_vtable( struct utlb_entry *ent, struct utlb_page_entry *page, gboolean writable )
 {
     uint32_t mask = ent->mask;
+    uint32_t vpn = ent->vpn & mask;
     uint32_t ppn = ent->ppn & mask;
     int inc = writable ? 1 : 2; 
     int i;
@@ -56,8 +57,7 @@ void mmu_utlb_init_vtable( struct utlb_entry *ent, struct utlb_page_entry *page,
 #else 
         OP(0x83); MODRM_r32_disp32(0, (uintptr_t)&mmu_urc); OP(0x01); // ADD #1, mmu_urc
 #endif
-        AND_imm32_r32( ~mask, ARG1 ); // 6
-        OR_imm32_r32( ppn, ARG1 );    // 6
+        ADD_imm32_r32( ppn-vpn, ARG1 ); // 6
         if( ent->mask >= 0xFFFFF000 ) {
             // Maps to a single page, so jump directly there
             int rel = (*fn - xlat_output);
