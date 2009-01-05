@@ -79,7 +79,8 @@ static void mmu_set_tlb_enabled( int tlb_on );
 static void mmu_set_tlb_asid( uint32_t asid );
 static void mmu_set_storequeue_protected( int protected );
 static gboolean mmu_utlb_map_pages( mem_region_fn_t priv_page, mem_region_fn_t user_page, sh4addr_t start_addr, int npages );
-static gboolean mmu_utlb_unmap_pages( gboolean unmap_user, sh4addr_t start_addr, int npages );
+static void mmu_utlb_remap_pages( gboolean remap_priv, gboolean remap_user, int entryNo );
+static gboolean mmu_utlb_unmap_pages( gboolean unmap_priv, gboolean unmap_user, sh4addr_t start_addr, int npages );
 static gboolean mmu_ext_page_remapped( sh4addr_t page, mem_region_fn_t fn, void *user_data );
 static void mmu_utlb_1k_init();
 static struct utlb_1k_entry *mmu_utlb_1k_alloc();
@@ -420,13 +421,13 @@ static void mmu_set_tlb_asid( uint32_t asid )
     /* Scan for pages that need to be remapped */
     int i;
     if( IS_SV_ENABLED() ) {
-        // FIXME: Priv pages don't change - only user pages are mapped in/out 
         for( i=0; i<UTLB_ENTRY_COUNT; i++ ) {
             if( mmu_utlb[i].flags & TLB_VALID ) {
                 if( (mmu_utlb[i].flags & TLB_SHARE) == 0 ) {
                     if( mmu_utlb[i].asid == mmu_asid ) { // Matches old ASID - unmap out
-                        mmu_utlb_unmap_pages( TRUE, mmu_utlb[i].vpn&mmu_utlb[i].mask,
-                                get_tlb_size_pages(mmu_utlb[i].flags) );
+                        if( !mmu_utlb_unmap_pages( FALSE, TRUE, mmu_utlb[i].vpn&mmu_utlb[i].mask,
+                                get_tlb_size_pages(mmu_utlb[i].flags) ) )
+                            mmu_utlb_remap_pages( FALSE, TRUE, i );
                     } else if( mmu_utlb[i].asid == asid ) { // Matches new ASID - map in
                         mmu_utlb_map_pages( NULL, mmu_utlb_pages[i].user_fn, 
                                 mmu_utlb[i].vpn&mmu_utlb[i].mask, 
@@ -441,8 +442,9 @@ static void mmu_set_tlb_asid( uint32_t asid )
             if( mmu_utlb[i].flags & TLB_VALID ) {
                 if( (mmu_utlb[i].flags & TLB_SHARE) == 0 ) {
                     if( mmu_utlb[i].asid == mmu_asid ) { // Matches old ASID - unmap out
-                        mmu_utlb_unmap_pages( TRUE, mmu_utlb[i].vpn&mmu_utlb[i].mask,
-                                get_tlb_size_pages(mmu_utlb[i].flags) );
+                        if( !mmu_utlb_unmap_pages( TRUE, TRUE, mmu_utlb[i].vpn&mmu_utlb[i].mask,
+                                get_tlb_size_pages(mmu_utlb[i].flags) ) )
+                            mmu_utlb_remap_pages( TRUE, TRUE, i );
                     } else if( mmu_utlb[i].asid == asid ) { // Matches new ASID - map in
                         mmu_utlb_map_pages( &mmu_utlb_pages[i].fn, mmu_utlb_pages[i].user_fn, 
                                 mmu_utlb[i].vpn&mmu_utlb[i].mask, 
@@ -533,19 +535,31 @@ static gboolean mmu_utlb_map_pages( mem_region_fn_t priv_page, mem_region_fn_t u
         }
         
     } else {
-
-        if( user_page == NULL ) {
-            /* Privileged mapping only */
-            for( i=0; i<npages; i++ ) {
-                if( *ptr == &mem_region_tlb_miss ) {
-                    *ptr++ = priv_page;
-                } else {
-                    mapping_ok = FALSE;
-                    *ptr++ = &mem_region_tlb_multihit;
+        if( priv_page != NULL ) {
+            if( user_page != NULL ) {
+                for( i=0; i<npages; i++ ) {
+                    if( *ptr == &mem_region_tlb_miss ) {
+                        *ptr++ = priv_page;
+                        *uptr++ = user_page;
+                    } else {
+                        mapping_ok = FALSE;
+                        *ptr++ = &mem_region_tlb_multihit;
+                        *uptr++ = &mem_region_tlb_multihit;
+                    }
+                }
+            } else {
+                /* Privileged mapping only */
+                for( i=0; i<npages; i++ ) {
+                    if( *ptr == &mem_region_tlb_miss ) {
+                        *ptr++ = priv_page;
+                    } else {
+                        mapping_ok = FALSE;
+                        *ptr++ = &mem_region_tlb_multihit;
+                    }
                 }
             }
-        } else if( priv_page == NULL ) {
-            /* User mapping only (eg ASID change remap) */
+        } else if( user_page != NULL ) {
+            /* User mapping only (eg ASID change remap w/ SV=1) */
             for( i=0; i<npages; i++ ) {
                 if( *uptr == &mem_region_tlb_miss ) {
                     *uptr++ = user_page;
@@ -554,20 +568,48 @@ static gboolean mmu_utlb_map_pages( mem_region_fn_t priv_page, mem_region_fn_t u
                     *uptr++ = &mem_region_tlb_multihit;
                 }
             }        
-        } else {
-            for( i=0; i<npages; i++ ) {
-                if( *ptr == &mem_region_tlb_miss ) {
-                    *ptr++ = priv_page;
-                    *uptr++ = user_page;
-                } else {
-                    mapping_ok = FALSE;
-                    *ptr++ = &mem_region_tlb_multihit;
-                    *uptr++ = &mem_region_tlb_multihit;
-                }
-            }
         }
     }
     return mapping_ok;
+}
+
+/**
+ * Remap any pages within the region covered by entryNo, but not including 
+ * entryNo itself. This is used to reestablish pages that were previously
+ * covered by a multi-hit exception region when one of the pages is removed.
+ */
+static void mmu_utlb_remap_pages( gboolean remap_priv, gboolean remap_user, int entryNo )
+{
+    int mask = mmu_utlb[entryNo].mask;
+    uint32_t remap_addr = mmu_utlb[entryNo].vpn & mask;
+    int i;
+    
+    for( i=0; i<UTLB_ENTRY_COUNT; i++ ) {
+        if( i != entryNo && (mmu_utlb[i].vpn & mask) == remap_addr && (mmu_utlb[i].flags & TLB_VALID) ) {
+            /* Overlapping region */
+            mem_region_fn_t priv_page = (remap_priv ? &mmu_utlb_pages[i].fn : NULL);
+            mem_region_fn_t user_page = (remap_priv ? mmu_utlb_pages[i].user_fn : NULL);
+            uint32_t start_addr;
+            int npages;
+
+            if( mmu_utlb[i].mask >= mask ) {
+                /* entry is no larger than the area we're replacing - map completely */
+                start_addr = mmu_utlb[i].vpn & mmu_utlb[i].mask;
+                npages = get_tlb_size_pages( mmu_utlb[i].flags );
+            } else {
+                /* Otherwise map subset - region covered by removed page */
+                start_addr = remap_addr;
+                npages = get_tlb_size_pages( mmu_utlb[entryNo].flags );
+            }
+
+            if( (mmu_utlb[i].flags & TLB_SHARE) || mmu_utlb[i].asid == mmu_asid ) { 
+                mmu_utlb_map_pages( priv_page, user_page, start_addr, npages );
+            } else if( IS_SV_ENABLED() ) {
+                mmu_utlb_map_pages( priv_page, NULL, start_addr, npages );
+            }
+
+        }
+    }
 }
 
 /**
@@ -575,7 +617,7 @@ static gboolean mmu_utlb_map_pages( mem_region_fn_t priv_page, mem_region_fn_t u
  * @return FALSE if any pages were previously mapped to the TLB multihit page, 
  * otherwise TRUE. In either case, all pages in the region are cleared to TLB miss.
  */
-static gboolean mmu_utlb_unmap_pages( gboolean unmap_user, sh4addr_t start_addr, int npages )
+static gboolean mmu_utlb_unmap_pages( gboolean unmap_priv, gboolean unmap_user, sh4addr_t start_addr, int npages )
 {
     mem_region_fn_t *ptr = &sh4_address_space[start_addr >> 12];
     mem_region_fn_t *uptr = &sh4_user_address_space[start_addr >> 12];
@@ -599,8 +641,10 @@ static gboolean mmu_utlb_unmap_pages( gboolean unmap_user, sh4addr_t start_addr,
         if( ent->subpages[idx] == &mem_region_tlb_multihit ) {
             unmapping_ok = FALSE;
         }
-        ent->subpages[idx] = &mem_region_tlb_miss;
-        ent->user_subpages[idx] = &mem_region_tlb_miss;
+        if( unmap_priv )
+            ent->subpages[idx] = &mem_region_tlb_miss;
+        if( unmap_user )
+            ent->user_subpages[idx] = &mem_region_tlb_miss;
 
         /* If all 4 subpages have the same content, merge them together and
          * release the 1K entry
@@ -619,24 +663,35 @@ static gboolean mmu_utlb_unmap_pages( gboolean unmap_user, sh4addr_t start_addr,
             *uptr = user_page;
         }
     } else {
-        if( !unmap_user ) {
-            /* Privileged (un)mapping only */
-            for( i=0; i<npages; i++ ) {
-                if( *ptr == &mem_region_tlb_multihit ) {
-                    unmapping_ok = FALSE;
+        if( unmap_priv ) {
+            if( unmap_user ) {
+                for( i=0; i<npages; i++ ) {
+                    if( *ptr == &mem_region_tlb_multihit ) {
+                        unmapping_ok = FALSE;
+                    }
+                    *ptr++ = &mem_region_tlb_miss;
+                    *uptr++ = &mem_region_tlb_miss;
                 }
-                *ptr++ = &mem_region_tlb_miss;
+            } else {
+                /* Privileged (un)mapping only */
+                for( i=0; i<npages; i++ ) {
+                    if( *ptr == &mem_region_tlb_multihit ) {
+                        unmapping_ok = FALSE;
+                    }
+                    *ptr++ = &mem_region_tlb_miss;
+                }
             }
-        } else {
+        } else if( unmap_user ) {
+            /* User (un)mapping only */
             for( i=0; i<npages; i++ ) {
-                if( *ptr == &mem_region_tlb_multihit ) {
+                if( *uptr == &mem_region_tlb_multihit ) {
                     unmapping_ok = FALSE;
                 }
-                *ptr++ = &mem_region_tlb_miss;
                 *uptr++ = &mem_region_tlb_miss;
-            }
+            }            
         }
     }
+    
     return unmapping_ok;
 }
 
@@ -697,17 +752,10 @@ static void mmu_utlb_remove_entry( int entry )
         return; // Not mapped
     }
     
-    gboolean clean_unmap = mmu_utlb_unmap_pages( unmap_user, start_addr, npages );
+    gboolean clean_unmap = mmu_utlb_unmap_pages( TRUE, unmap_user, start_addr, npages );
     
     if( !clean_unmap ) {
-        /* If we ran into a multi-hit, we now need to rescan the UTLB for the other entries
-         * and remap them */
-        for( j=0; j<UTLB_ENTRY_COUNT; j++ ) {
-            uint32_t mask = MIN(mmu_utlb[j].mask, ent->mask);
-            if( j != entry && (start_addr & mask) == (mmu_utlb[j].vpn & mask) ) {
-                
-            }
-        }
+        mmu_utlb_remap_pages( TRUE, unmap_user, entry );
     }
 }
 
