@@ -28,39 +28,10 @@
 #include "sh4/sh4core.h"
 #include "sh4/sh4mmio.h"
 #include "sh4/xltcache.h"
+#include "sh4/mmu.h"
 #include "pvr2/pvr2.h"
 
 /************** Obsolete methods ***************/
-
-int32_t FASTCALL sh4_read_long( sh4addr_t addr )
-{
-    return sh4_address_space[addr>>12]->read_long(addr);
-}
-
-int32_t FASTCALL sh4_read_word( sh4addr_t addr )
-{
-    return sh4_address_space[addr>>12]->read_word(addr);
-}
-
-int32_t FASTCALL sh4_read_byte( sh4addr_t addr )
-{
-    return sh4_address_space[addr>>12]->read_byte(addr);
-}
-
-void FASTCALL sh4_write_long( sh4addr_t addr, uint32_t val )
-{
-    sh4_address_space[addr>>12]->write_long(addr, val);
-}
-
-void FASTCALL sh4_write_word( sh4addr_t addr, uint32_t val )
-{
-    sh4_address_space[addr>>12]->write_word(addr,val);
-}
-
-void FASTCALL sh4_write_byte( sh4addr_t addr, uint32_t val )
-{
-    sh4_address_space[addr>>12]->write_byte(addr, val);
-}
 
 /* FIXME: Handle all the many special cases when the range doesn't fall cleanly
  * into the same memory block

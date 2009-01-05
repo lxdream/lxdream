@@ -1,10 +1,9 @@
 /**
  * $Id$
  * 
- * This file defines the internal functions exported/used by the SH4 core, 
- * except for disassembly functions defined in sh4dasm.h
+ * This file defines the internal functions used by the SH4 core, 
  *
- * Copyright (c) 2005 Nathan Keynes.
+ * Copyright (c) 2005-2008 Nathan Keynes.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -49,11 +48,6 @@ struct sh4_icache_struct {
     uint32_t mask;  // page mask 
 };
 extern struct sh4_icache_struct sh4_icache;
-
-extern struct mem_region_fn **sh4_address_space;
-extern struct mem_region_fn **sh4_user_address_space;
-extern struct mem_region_fn **storequeue_address_space;
-extern struct mem_region_fn **storequeue_user_address_space;
 
 /**
  * Test if a given address is contained in the current icache entry
@@ -204,22 +198,6 @@ gboolean sh4_has_page( sh4vma_t vma );
  * @return FALSE if an MMU exception was raised, otherwise TRUE.
  */
 gboolean FASTCALL mmu_update_icache( sh4vma_t addr );
-
-/**
- * Resolve a virtual address through the TLB for a read operation, returning 
- * the resultant P4 or external address. If the resolution fails, the 
- * appropriate MMU exception is raised and the value MMU_VMA_ERROR is returned.
- * @return An external address (0x00000000-0x1FFFFFFF), a P4 address
- * (0xE0000000 - 0xFFFFFFFF), or MMU_VMA_ERROR.
- */
-#ifdef HAVE_FRAME_ADDRESS
-sh4addr_t FASTCALL mmu_vma_to_phys_read( sh4vma_t addr, void *exc );
-sh4addr_t FASTCALL mmu_vma_to_phys_write( sh4vma_t addr, void *exc );
-#else
-sh4addr_t FASTCALL mmu_vma_to_phys_read( sh4vma_t addr );
-sh4addr_t FASTCALL mmu_vma_to_phys_write( sh4vma_t addr );
-#endif
-sh4addr_t FASTCALL mmu_vma_to_phys_disasm( sh4vma_t addr );
 
 int64_t FASTCALL sh4_read_quad( sh4addr_t addr );
 int32_t FASTCALL sh4_read_long( sh4addr_t addr );

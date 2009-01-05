@@ -105,7 +105,22 @@ void mmu_utlb_1k_init_vtable( struct utlb_1k_entry *ent );
 
 extern uint32_t mmu_urc;
 extern uint32_t mmu_urb;
-    
+
+/** Primary SH4 address space (privileged and user access)
+ * Page map (4KB) of the entire 32-bit address space
+ * Note: only callable from the SH4 cores as it depends on the caller setting
+ * up an appropriate exception environment. 
+ **/
+extern struct mem_region_fn **sh4_address_space;
+extern struct mem_region_fn **sh4_user_address_space;
+
+/** Store-queue (prefetch) address space (privileged and user access)
+ * Page map (4KB) of the 0xE0000000..0xE4000000 region
+ * Same caveats apply as for the primary address space above.
+ */
+extern struct mem_region_fn **storequeue_address_space;
+extern struct mem_region_fn **storequeue_user_address_space;
+
 #ifdef __cplusplus
 }
 #endif
