@@ -38,7 +38,8 @@ static inline decode_address( int addr_reg )
  */
 static inline void call_func0( void *ptr )
 {
-    CALL_ptr(ptr);
+    load_imm32(R_ECX, (uint32_t)ptr);
+    CALL_r32(R_ECX);
 }
 
 #ifdef HAVE_FASTCALL
@@ -47,7 +48,8 @@ static inline void call_func1( void *ptr, int arg1 )
     if( arg1 != R_EAX ) {
         MOV_r32_r32( arg1, R_EAX );
     }
-    CALL_ptr(ptr);
+    load_imm32(R_ECX, (uint32_t)ptr);
+    CALL_r32(R_ECX);
 }
 
 static inline void call_func1_r32( int addr_reg, int arg1 )
@@ -83,7 +85,8 @@ static inline void call_func2( void *ptr, int arg1, int arg2 )
     if( arg1 != R_EAX ) {
         MOV_r32_r32( arg1, R_EAX );
     }
-    CALL_ptr(ptr);
+    load_imm32(R_ECX, (uint32_t)ptr);
+    CALL_r32(R_ECX);
 }
 
 static inline void call_func2_r32( int addr_reg, int arg1, int arg2 )
@@ -128,7 +131,8 @@ static inline void call_func1_exc( void *ptr, int arg1, int pc )
         MOV_r32_r32( arg1, R_EAX );
     }
     load_exc_backpatch(R_EDX);
-    CALL_ptr(ptr);
+    load_imm32(R_ECX, (uint32_t)ptr);
+    CALL_r32(R_ECX);
 }   
 
 static inline void call_func2_exc( void *ptr, int arg1, int arg2, int pc )
@@ -139,8 +143,9 @@ static inline void call_func2_exc( void *ptr, int arg1, int arg2, int pc )
     if( arg1 != R_EAX ) {
         MOV_r32_r32( arg1, R_EAX );
     }
-    load_exc_backpatch(R_ECX);
-    CALL_ptr(ptr);
+    MOV_backpatch_esp8(0);
+    load_imm32(R_ECX, (uint32_t)ptr);
+    CALL_r32(R_ECX);
 }
 
 #else
@@ -148,7 +153,8 @@ static inline void call_func1( void *ptr, int arg1 )
 {
     SUB_imm8s_r32( 12, R_ESP );
     PUSH_r32(arg1);
-    CALL_ptr(ptr);
+    load_imm32(R_ECX, (uint32_t)ptr);
+    CALL_r32(R_ECX);
     ADD_imm8s_r32( 16, R_ESP );
 }
 
@@ -157,7 +163,8 @@ static inline void call_func2( void *ptr, int arg1, int arg2 )
     SUB_imm8s_r32( 8, R_ESP );
     PUSH_r32(arg2);
     PUSH_r32(arg1);
-    CALL_ptr(ptr);
+    load_imm32(R_ECX, (uint32_t)ptr);
+    CALL_r32(R_ECX);
     ADD_imm8s_r32( 16, R_ESP );
 }
 
