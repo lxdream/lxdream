@@ -311,6 +311,7 @@ void static inline store_reg( int x86reg, int sh4reg ) {
 #define MEM_WRITE_BYTE( addr_reg, value_reg ) decode_address(addr_reg); _CALL_WRITE(addr_reg, value_reg, write_byte)
 #define MEM_WRITE_WORD( addr_reg, value_reg ) decode_address(addr_reg); _CALL_WRITE(addr_reg, value_reg, write_word)
 #define MEM_WRITE_LONG( addr_reg, value_reg ) decode_address(addr_reg); _CALL_WRITE(addr_reg, value_reg, write_long)
+#define MEM_PREFETCH( addr_reg ) decode_address(addr_reg); _CALL_READ(addr_reg, prefetch)
 
 #define SLOTILLEGAL() JMP_exc(EXC_SLOT_ILLEGAL); sh4_x86.in_delay_slot = DELAY_NONE; return 2;
 
@@ -2501,18 +2502,7 @@ OCBWB @Rn {:
 PREF @Rn {:
     COUNT_INST(I_PREF);
     load_reg( R_EAX, Rn );
-    MOV_r32_r32( R_EAX, R_ECX );
-    AND_imm32_r32( 0xFC000000, R_ECX );
-    CMP_imm32_r32( 0xE0000000, R_ECX );
-    JNE_rel8(end);
-    if( sh4_x86.tlb_on ) {
-    	call_func1( sh4_flush_store_queue_mmu, R_EAX );
-        TEST_r32_r32( R_EAX, R_EAX );
-        JE_exc(-1);
-    } else {
-    	call_func1( sh4_flush_store_queue, R_EAX );
-   	}
-    JMP_TARGET(end);
+    MEM_PREFETCH( R_EAX );
     sh4_x86.tstate = TSTATE_NONE;
 :}
 SLEEP {: 

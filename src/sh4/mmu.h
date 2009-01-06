@@ -87,9 +87,9 @@ struct utlb_entry {
 
 struct utlb_page_entry {
     struct mem_region_fn fn;
-    mem_region_fn_t user_fn;
+    struct mem_region_fn *user_fn;
     mem_region_fn_t target;
-    unsigned char code[TLB_FUNC_SIZE*8];
+    unsigned char code[TLB_FUNC_SIZE*9];
 };
 
 struct utlb_1k_entry {
@@ -97,11 +97,19 @@ struct utlb_1k_entry {
     struct mem_region_fn user_fn;
     struct mem_region_fn *subpages[4];
     struct mem_region_fn *user_subpages[4];
-    unsigned char code[TLB_FUNC_SIZE*16];
+    unsigned char code[TLB_FUNC_SIZE*18];
 };
+
+struct utlb_default_regions {
+    mem_region_fn_t tlb_miss;
+    mem_region_fn_t tlb_prot;
+    mem_region_fn_t tlb_multihit;
+};
+
 
 void mmu_utlb_init_vtable( struct utlb_entry *ent, struct utlb_page_entry *page, gboolean writable ); 
 void mmu_utlb_1k_init_vtable( struct utlb_1k_entry *ent ); 
+void mmu_utlb_init_storequeue_vtable( struct utlb_entry *ent, struct utlb_page_entry *page );
 
 extern uint32_t mmu_urc;
 extern uint32_t mmu_urb;
@@ -114,12 +122,36 @@ extern uint32_t mmu_urb;
 extern struct mem_region_fn **sh4_address_space;
 extern struct mem_region_fn **sh4_user_address_space;
 
-/** Store-queue (prefetch) address space (privileged and user access)
- * Page map (4KB) of the 0xE0000000..0xE4000000 region
- * Same caveats apply as for the primary address space above.
- */
-extern struct mem_region_fn **storequeue_address_space;
-extern struct mem_region_fn **storequeue_user_address_space;
+/************ Storequeue/cache functions ***********/
+void FASTCALL ccn_storequeue_write_long( sh4addr_t addr, uint32_t val );
+int32_t FASTCALL ccn_storequeue_read_long( sh4addr_t addr );
+
+/** Default storequeue prefetch when TLB is disabled */
+void FASTCALL ccn_storequeue_prefetch( sh4addr_t addr ); 
+
+/** TLB-enabled variant of the storequeue prefetch */
+void FASTCALL ccn_storequeue_prefetch_tlb( sh4addr_t addr );
+
+/** Non-storequeue prefetch */
+void FASTCALL ccn_prefetch( sh4addr_t addr );
+
+/** Non-cached prefetch (ie, no-op) */
+void FASTCALL ccn_uncached_prefetch( sh4addr_t addr );
+
+
+extern struct mem_region_fn mem_region_address_error;
+extern struct mem_region_fn mem_region_tlb_miss;
+extern struct mem_region_fn mem_region_tlb_multihit;
+extern struct mem_region_fn mem_region_tlb_protected;
+
+extern struct mem_region_fn p4_region_storequeue; 
+extern struct mem_region_fn p4_region_storequeue_multihit; 
+extern struct mem_region_fn p4_region_storequeue_miss; 
+extern struct mem_region_fn p4_region_storequeue_protected; 
+extern struct mem_region_fn p4_region_storequeue_sqmd; 
+extern struct mem_region_fn p4_region_storequeue_sqmd_miss; 
+extern struct mem_region_fn p4_region_storequeue_sqmd_multihit; 
+extern struct mem_region_fn p4_region_storequeue_sqmd_protected; 
 
 #ifdef __cplusplus
 }

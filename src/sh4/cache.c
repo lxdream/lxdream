@@ -24,6 +24,7 @@
 #include "sh4/sh4core.h"
 #include "sh4/sh4mmio.h"
 #include "sh4/xltcache.h"
+#include "sh4/mmu.h"
 
 #define OCRAM_START (0x7C000000>>LXDREAM_PAGE_BITS)
 #define OCRAM_MID   (0x7E000000>>LXDREAM_PAGE_BITS)
@@ -79,7 +80,6 @@ int CCN_load_state( FILE *f )
     return 0;
 }
 
-
 /************************* OCRAM memory address space ************************/
 
 #define OCRAMPAGE0 (&ccn_ocache_data[4096])  /* Lines 128-255 */
@@ -122,7 +122,8 @@ struct mem_region_fn mem_region_ocram_page0 = {
         ocram_page0_read_long, ocram_page0_write_long,
         ocram_page0_read_word, ocram_page0_write_word,
         ocram_page0_read_byte, ocram_page0_write_byte,
-        ocram_page0_read_burst, ocram_page0_write_burst };
+        ocram_page0_read_burst, ocram_page0_write_burst,
+        unmapped_prefetch };
 
 static int32_t FASTCALL ocram_page1_read_long( sh4addr_t addr )
 {
@@ -161,7 +162,8 @@ struct mem_region_fn mem_region_ocram_page1 = {
         ocram_page1_read_long, ocram_page1_write_long,
         ocram_page1_read_word, ocram_page1_write_word,
         ocram_page1_read_byte, ocram_page1_write_byte,
-        ocram_page1_read_burst, ocram_page1_write_burst };
+        ocram_page1_read_burst, ocram_page1_write_burst,
+        unmapped_prefetch };
 
 /************************** Cache direct access ******************************/
 
@@ -187,7 +189,8 @@ struct mem_region_fn p4_region_icache_addr = {
         ccn_icache_addr_read, ccn_icache_addr_write,
         unmapped_read_long, unmapped_write_long,
         unmapped_read_long, unmapped_write_long,
-        unmapped_read_burst, unmapped_write_burst };
+        unmapped_read_burst, unmapped_write_burst,
+        unmapped_prefetch };
 
 
 static int32_t ccn_icache_data_read( sh4addr_t addr )
@@ -206,7 +209,8 @@ struct mem_region_fn p4_region_icache_data = {
         ccn_icache_data_read, ccn_icache_data_write,
         unmapped_read_long, unmapped_write_long,
         unmapped_read_long, unmapped_write_long,
-        unmapped_read_burst, unmapped_write_burst };
+        unmapped_read_burst, unmapped_write_burst,
+        unmapped_prefetch };
 
 
 static int32_t ccn_ocache_addr_read( sh4addr_t addr )
@@ -235,7 +239,8 @@ struct mem_region_fn p4_region_ocache_addr = {
         ccn_ocache_addr_read, ccn_ocache_addr_write,
         unmapped_read_long, unmapped_write_long,
         unmapped_read_long, unmapped_write_long,
-        unmapped_read_burst, unmapped_write_burst };
+        unmapped_read_burst, unmapped_write_burst,
+        unmapped_prefetch };
 
 
 static int32_t ccn_ocache_data_read( sh4addr_t addr )
@@ -254,7 +259,8 @@ struct mem_region_fn p4_region_ocache_data = {
         ccn_ocache_data_read, ccn_ocache_data_write,
         unmapped_read_long, unmapped_write_long,
         unmapped_read_long, unmapped_write_long,
-        unmapped_read_burst, unmapped_write_burst };
+        unmapped_read_burst, unmapped_write_burst,
+        unmapped_prefetch };
 
 
 /****************** Cache control *********************/
@@ -297,19 +303,58 @@ void CCN_set_cache_control( int reg )
     }
 }
 
+/**
+ * Prefetch for non-storequeue regions
+ */
+void FASTCALL ccn_prefetch( sh4addr_t addr )
+{
+    
+}
 
-/***** Store-queue (considered part of the cache by the SH7750 manual) ******/
-static void FASTCALL p4_storequeue_write_long( sh4addr_t addr, uint32_t val )
+/**
+ * Prefetch for non-cached regions. Oddly enough, this does nothing whatsoever.
+ */
+void FASTCALL ccn_uncached_prefetch( sh4addr_t addr )
+{
+    
+}
+/********************************* Store-queue *******************************/
+/*
+ * The storequeue is strictly speaking part of the cache, but most of 
+ * the complexity is actually around its addressing (ie in the MMU). The
+ * methods here can assume we've already passed SQMD protection and the TLB
+ * lookups (where appropriate).
+ */  
+void FASTCALL ccn_storequeue_write_long( sh4addr_t addr, uint32_t val )
 {
     sh4r.store_queue[(addr>>2)&0xF] = val;
 }
-static int32_t FASTCALL p4_storequeue_read_long( sh4addr_t addr )
+int32_t FASTCALL ccn_storequeue_read_long( sh4addr_t addr )
 {
     return sh4r.store_queue[(addr>>2)&0xF];
 }
 
-struct mem_region_fn p4_region_storequeue = { 
-        p4_storequeue_read_long, p4_storequeue_write_long,
-        p4_storequeue_read_long, p4_storequeue_write_long,
-        p4_storequeue_read_long, p4_storequeue_write_long,
-        unmapped_read_burst, unmapped_write_burst }; // No burst access.
+/**
+ * Variant used when tlb is disabled - address will be the original prefetch
+ * address (ie 0xE0001234). Due to the way the SQ addressing is done, it can't
+ * be hardcoded on 4K page boundaries, so we manually decode it here.
+ */
+void FASTCALL ccn_storequeue_prefetch( sh4addr_t addr ) 
+{
+    int queue = (addr&0x20)>>2;
+    sh4ptr_t src = (sh4ptr_t)&sh4r.store_queue[queue];
+    uint32_t hi = MMIO_READ( MMU, QACR0 + (queue>>1)) << 24;
+    sh4addr_t target = (addr&0x03FFFFE0) | hi;
+    ext_address_space[target>>12]->write_burst( target, src );
+}
+
+/**
+ * Variant used when tlb is enabled - address in this case is already
+ * mapped to the external target address.
+ */
+void FASTCALL ccn_storequeue_prefetch_tlb( sh4addr_t addr )
+{
+    int queue = (addr&0x20)>>2;
+    sh4ptr_t src = (sh4ptr_t)&sh4r.store_queue[queue];
+    ext_address_space[addr>>12]->write_burst( (addr & 0x1FFFFFE0), src );
+}

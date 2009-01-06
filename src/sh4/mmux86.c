@@ -49,7 +49,7 @@ void mmu_utlb_init_vtable( struct utlb_entry *ent, struct utlb_page_entry *page,
     uint8_t **fn = (uint8_t **)ext_address_space[ppn>>12];
     uint8_t **out = (uint8_t **)&page->fn;
     
-    for( i=0; i<8; i+= inc, fn += inc, out += inc ) {
+    for( i=0; i<9; i+= inc, fn += inc, out += inc ) {
         *out = xlat_output;
 #if SIZEOF_VOID_P == 8
         MOV_imm64_r32((uintptr_t)&mmu_urc, R_EAX );
@@ -69,6 +69,25 @@ void mmu_utlb_init_vtable( struct utlb_entry *ent, struct utlb_page_entry *page,
             JMP_r32disp8(R_ECX, (((uintptr_t)out) - ((uintptr_t)&page->fn)) );    // 3
         }
     }
+    
+    page->fn.prefetch = unmapped_prefetch; // FIXME
+}
+
+void mmu_utlb_init_storequeue_vtable( struct utlb_entry *ent, struct utlb_page_entry *page )
+{
+    uint32_t mask = ent->mask;
+    uint32_t vpn = ent->vpn & mask;
+    uint32_t ppn = ent->ppn & mask;
+
+    xlat_output = page->code;
+
+    memcpy( page, &p4_region_storequeue, sizeof(struct mem_region_fn) );
+
+    /* TESTME: Does a PREF increment the URC counter? */
+    page->fn.prefetch = (mem_prefetch_fn_t)xlat_output;
+    ADD_imm32_r32( ppn-vpn, ARG1 );
+    int rel = ((uint8_t *)ccn_storequeue_prefetch_tlb) - xlat_output;
+    JMP_rel( rel );
 }
 
 void mmu_utlb_1k_init_vtable( struct utlb_1k_entry *entry )
@@ -77,7 +96,7 @@ void mmu_utlb_1k_init_vtable( struct utlb_1k_entry *entry )
     int i;
     uint8_t **out = (uint8_t **)&entry->fn;
     
-    for( i=0; i<8; i++, out++ ) {
+    for( i=0; i<9; i++, out++ ) {
         *out = xlat_output;
         MOV_r32_r32( ARG1, R_ECX );
         SHR_imm8_r32( 10, R_ECX );
@@ -92,7 +111,7 @@ void mmu_utlb_1k_init_vtable( struct utlb_1k_entry *entry )
     }
 
     out = (uint8_t **)&entry->user_fn;
-    for( i=0; i<8; i++, out++ ) {
+    for( i=0; i<9; i++, out++ ) {
         *out = xlat_output;
         MOV_r32_r32( ARG1, R_ECX );
         SHR_imm8_r32( 10, R_ECX );

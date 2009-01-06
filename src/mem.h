@@ -33,31 +33,38 @@ typedef FASTCALL int32_t (*mem_read_fn_t)(sh4addr_t);
 typedef FASTCALL void (*mem_write_fn_t)(sh4addr_t, uint32_t);
 typedef FASTCALL void (*mem_read_burst_fn_t)(unsigned char *,sh4addr_t);
 typedef FASTCALL void (*mem_write_burst_fn_t)(sh4addr_t,unsigned char *);
+typedef FASTCALL void (*mem_prefetch_fn_t)(sh4addr_t);
 
 typedef FASTCALL int32_t (*mem_read_exc_fn_t)(sh4addr_t, void *);
 typedef FASTCALL void (*mem_write_exc_fn_t)(sh4addr_t, uint32_t, void *);
 typedef FASTCALL void (*mem_read_burst_exc_fn_t)(unsigned char *,sh4addr_t, void *);
 typedef FASTCALL void (*mem_write_burst_exc_fn_t)(sh4addr_t,unsigned char *, void *);
+typedef FASTCALL void (*mem_prefetch_exc_fn_t)(sh4addr_t, void *);
 
 /**
  * Basic memory region vtable - read/write at byte, word, long, and burst 
  * (32-byte) sizes.
  */
 typedef struct mem_region_fn {
-    FASTCALL int32_t (*read_long)(sh4addr_t addr);
-    FASTCALL void (*write_long)(sh4addr_t addr, uint32_t val);
-    FASTCALL int32_t (*read_word)(sh4addr_t addr);
-    FASTCALL void (*write_word)(sh4addr_t addr, uint32_t val);
-    FASTCALL int32_t (*read_byte)(sh4addr_t addr);
-    FASTCALL void (*write_byte)(sh4addr_t addr, uint32_t val);
-    FASTCALL void (*read_burst)(unsigned char *dest, sh4addr_t addr);
-    FASTCALL void (*write_burst)(sh4addr_t addr, unsigned char *src);
+    mem_read_fn_t read_long;
+    mem_write_fn_t write_long;
+    mem_read_fn_t read_word;
+    mem_write_fn_t write_word;
+    mem_read_fn_t read_byte;
+    mem_write_fn_t write_byte;
+    mem_read_burst_fn_t read_burst;
+    mem_write_burst_fn_t write_burst;
+    /* Prefetch is provided as a convenience for the SH4 - external memory 
+     * spaces are automatically forced to unmapped_prefetch by mem.c
+     */
+    mem_prefetch_fn_t prefetch;
 } *mem_region_fn_t;
 
 int32_t FASTCALL unmapped_read_long( sh4addr_t addr );
 void FASTCALL unmapped_write_long( sh4addr_t addr, uint32_t val );
 void FASTCALL unmapped_read_burst( unsigned char *dest, sh4addr_t addr );
 void FASTCALL unmapped_write_burst( sh4addr_t addr, unsigned char *src );
+void FASTCALL unmapped_prefetch( sh4addr_t addr );
 extern struct mem_region_fn mem_region_unmapped;
 
 typedef struct mem_region {

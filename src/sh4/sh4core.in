@@ -176,6 +176,7 @@ static FASTCALL __attribute__((noinline)) void *__first_arg(void *a, void *b) { 
 #define MEM_WRITE_BYTE( addr, val ) ((mem_write_exc_fn_t)ADDRSPACE[(addr)>>12]->write_byte)((addr), (val), &&except)
 #define MEM_WRITE_WORD( addr, val ) ((mem_write_exc_fn_t)ADDRSPACE[(addr)>>12]->write_word)((addr), (val), &&except)
 #define MEM_WRITE_LONG( addr, val ) ((mem_write_exc_fn_t)ADDRSPACE[(addr)>>12]->write_long)((addr), (val), &&except)
+#define MEM_PREFETCH( addr ) ((mem_prefetch_exc_fn_t)ADDRSPACE[(addr)>>12]->prefetch)((addr), &&except)
 #else
 #define INIT_EXCEPTIONS(label)
 #define MEM_READ_BYTE( addr, val ) val = ADDRSPACE[(addr)>>12]->read_byte(addr)
@@ -184,6 +185,7 @@ static FASTCALL __attribute__((noinline)) void *__first_arg(void *a, void *b) { 
 #define MEM_WRITE_BYTE( addr, val ) ADDRSPACE[(addr)>>12]->write_byte(addr, val)
 #define MEM_WRITE_WORD( addr, val ) ADDRSPACE[(addr)>>12]->write_word(addr, val)
 #define MEM_WRITE_LONG( addr, val ) ADDRSPACE[(addr)>>12]->write_long(addr, val)
+#define MEM_PREFETCH( addr ) ADDRSPACE[(addr)>>12]->prefetch(addr)
 #endif
  
 
@@ -354,10 +356,7 @@ MOVT Rn {: sh4r.r[Rn] = sh4r.t; :}
 NOP {: /* NOP */ :}
 
 PREF @Rn {:
-     tmp = sh4r.r[Rn];
-     if( (tmp & 0xFC000000) == 0xE0000000 ) {
-	 sh4_flush_store_queue(tmp);
-     }
+    MEM_PREFETCH(sh4r.r[Rn]);
 :}
 OCBI @Rn {: :}
 OCBP @Rn {: :}

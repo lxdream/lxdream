@@ -78,11 +78,17 @@ void FASTCALL unmapped_write_burst( sh4addr_t addr, unsigned char *src )
 {
 }
 
+void FASTCALL unmapped_prefetch( sh4addr_t addr )
+{
+    /* No effect */
+}
+
 struct mem_region_fn mem_region_unmapped = { 
         unmapped_read_long, unmapped_write_long, 
         unmapped_read_long, unmapped_write_long, 
         unmapped_read_long, unmapped_write_long, 
-        unmapped_read_burst, unmapped_write_burst }; 
+        unmapped_read_burst, unmapped_write_burst,
+        unmapped_prefetch }; 
 
 void *mem_alloc_pages( int n )
 {
@@ -319,6 +325,7 @@ struct mem_region *mem_map_region( void *mem, uint32_t base, uint32_t size,
     mem_rgn[num_mem_rgns].name = name;
     mem_rgn[num_mem_rgns].mem = mem;
     mem_rgn[num_mem_rgns].fn = fn;
+    fn->prefetch = unmapped_prefetch;
     num_mem_rgns++;
 
     do {
