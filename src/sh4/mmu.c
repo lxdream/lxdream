@@ -47,10 +47,6 @@
 mem_region_fn_t *sh4_address_space;
 mem_region_fn_t *sh4_user_address_space;
 
-/* MMU-mapped storequeue targets. Only used with TLB on */
-mem_region_fn_t *storequeue_address_space; 
-mem_region_fn_t *storequeue_user_address_space; 
-
 /* Accessed from the UTLB accessor methods */
 uint32_t mmu_urc;
 uint32_t mmu_urb;
@@ -61,6 +57,7 @@ static struct utlb_entry mmu_utlb[UTLB_ENTRY_COUNT];
 static struct utlb_page_entry mmu_utlb_pages[UTLB_ENTRY_COUNT];
 static uint32_t mmu_lrui;
 static uint32_t mmu_asid; // current asid
+static struct utlb_default_regions *mmu_user_storequeue_regions;
 
 /* Structures for 1K page handling */
 static struct utlb_1k_entry mmu_utlb_1k_pages[UTLB_ENTRY_COUNT];
@@ -77,7 +74,7 @@ static void mmu_register_mem_region( uint32_t start, uint32_t end, mem_region_fn
 static void mmu_register_user_mem_region( uint32_t start, uint32_t end, mem_region_fn_t fn );
 static void mmu_set_tlb_enabled( int tlb_on );
 static void mmu_set_tlb_asid( uint32_t asid );
-static void mmu_set_storequeue_protected( int protected );
+static void mmu_set_storequeue_protected( int protected, int tlb_on );
 static gboolean mmu_utlb_map_pages( mem_region_fn_t priv_page, mem_region_fn_t user_page, sh4addr_t start_addr, int npages );
 static void mmu_utlb_remap_pages( gboolean remap_priv, gboolean remap_user, int entryNo );
 static gboolean mmu_utlb_unmap_pages( gboolean unmap_priv, gboolean unmap_user, sh4addr_t start_addr, int npages );
@@ -86,12 +83,23 @@ static void mmu_utlb_1k_init();
 static struct utlb_1k_entry *mmu_utlb_1k_alloc();
 static void mmu_utlb_1k_free( struct utlb_1k_entry *entry );
 
+static void FASTCALL tlb_miss_read( sh4addr_t addr, void *exc );
 static int32_t FASTCALL tlb_protected_read( sh4addr_t addr, void *exc );
 static void FASTCALL tlb_protected_write( sh4addr_t addr, uint32_t val, void *exc );
 static void FASTCALL tlb_initial_write( sh4addr_t addr, uint32_t val, void *exc );
 static uint32_t get_tlb_size_mask( uint32_t flags );
 static uint32_t get_tlb_size_pages( uint32_t flags );
 
+#define DEFAULT_REGIONS 0
+#define DEFAULT_STOREQUEUE_REGIONS 1
+#define DEFAULT_STOREQUEUE_SQMD_REGIONS 2
+
+static struct utlb_default_regions mmu_default_regions[3] = {
+        { &mem_region_tlb_miss, &mem_region_tlb_protected, &mem_region_tlb_multihit },
+        { &p4_region_storequeue_miss, &p4_region_storequeue_protected, &p4_region_storequeue_multihit },
+        { &p4_region_storequeue_sqmd_miss, &p4_region_storequeue_sqmd_protected, &p4_region_storequeue_sqmd_multihit } };
+
+#define IS_STOREQUEUE_PROTECTED() (mmu_user_storequeue_regions == &mmu_default_regions[DEFAULT_STOREQUEUE_SQMD_REGIONS])
 
 /*********************** Module public functions ****************************/
 
@@ -104,12 +112,11 @@ void MMU_init()
 {
     sh4_address_space = mem_alloc_pages( sizeof(mem_region_fn_t) * 256 );
     sh4_user_address_space = mem_alloc_pages( sizeof(mem_region_fn_t) * 256 );
-    storequeue_address_space = mem_alloc_pages( sizeof(mem_region_fn_t) * 4 );
-    storequeue_user_address_space = mem_alloc_pages( sizeof(mem_region_fn_t) * 4 );
+    mmu_user_storequeue_regions = &mmu_default_regions[DEFAULT_STOREQUEUE_REGIONS];
     
     mmu_set_tlb_enabled(0);
     mmu_register_user_mem_region( 0x80000000, 0x00000000, &mem_region_address_error );
-    mmu_register_user_mem_region( 0xE0000000, 0xE4000000, &p4_region_storequeue);
+    mmu_register_user_mem_region( 0xE0000000, 0xE4000000, &p4_region_storequeue );                                
     
     /* Setup P4 tlb/cache access regions */
     mmu_register_mem_region( 0xE0000000, 0xE4000000, &p4_region_storequeue );
@@ -186,7 +193,7 @@ int MMU_load_state( FILE *f )
 
     uint32_t mmucr = MMIO_READ(MMU,MMUCR);
     mmu_set_tlb_enabled(mmucr&MMUCR_AT);
-    mmu_set_storequeue_protected(mmucr&MMUCR_SQMD);
+    mmu_set_storequeue_protected(mmucr&MMUCR_SQMD, mmucr&MMUCR_AT);
     return 0;
 }
 
@@ -262,7 +269,7 @@ MMIO_REGION_WRITE_FN( MMU, reg, val )
         val &= 0x00000301;
         tmp = MMIO_READ( MMU, MMUCR );
         if( (val ^ tmp) & (MMUCR_SQMD) ) {
-            mmu_set_storequeue_protected( val & MMUCR_SQMD );
+            mmu_set_storequeue_protected( val & MMUCR_SQMD, val&MMUCR_AT );
         }
         if( (val ^ tmp) & (MMUCR_AT) ) {
             // AT flag has changed state - flush the xlt cache as all bets
@@ -387,15 +394,16 @@ static void mmu_set_tlb_enabled( int tlb_on )
     mem_region_fn_t *ptr, *uptr;
     int i;
     
+    /* Reset the storequeue area */
+
     if( tlb_on ) {
         mmu_register_mem_region(0x00000000, 0x80000000, &mem_region_tlb_miss );
         mmu_register_mem_region(0xC0000000, 0xE0000000, &mem_region_tlb_miss );
         mmu_register_user_mem_region(0x00000000, 0x80000000, &mem_region_tlb_miss );
-        for( i=0, ptr = storequeue_address_space, uptr = storequeue_user_address_space; 
-             i<0x04000000; i+= LXDREAM_PAGE_SIZE ) {
-            *ptr++ = &mem_region_tlb_miss;
-            *uptr++ = &mem_region_tlb_miss;
-        }
+        
+        /* Default SQ prefetch goes to TLB miss (?) */
+        mmu_register_mem_region( 0xE0000000, 0xE4000000, &p4_region_storequeue_miss );
+        mmu_register_user_mem_region( 0xE0000000, 0xE4000000, mmu_user_storequeue_regions->tlb_miss );
         mmu_utlb_register_all();
     } else {
         for( i=0, ptr = sh4_address_space; i<7; i++, ptr += LXDREAM_PAGE_TABLE_ENTRIES ) {
@@ -404,16 +412,45 @@ static void mmu_set_tlb_enabled( int tlb_on )
         for( i=0, ptr = sh4_user_address_space; i<4; i++, ptr += LXDREAM_PAGE_TABLE_ENTRIES ) {
             memcpy( ptr, ext_address_space, sizeof(mem_region_fn_t) * LXDREAM_PAGE_TABLE_ENTRIES );
         }
+
+        mmu_register_mem_region( 0xE0000000, 0xE4000000, &p4_region_storequeue );
+        if( IS_STOREQUEUE_PROTECTED() ) {
+            mmu_register_user_mem_region( 0xE0000000, 0xE4000000, &p4_region_storequeue_sqmd );
+        } else {
+            mmu_register_user_mem_region( 0xE0000000, 0xE4000000, &p4_region_storequeue );
+        }
     }
+    
 }
 
-static void mmu_set_storequeue_protected( int protected ) 
+/**
+ * Flip the SQMD switch - this is rather expensive, so will need to be changed if
+ * anything expects to do this frequently.
+ */
+static void mmu_set_storequeue_protected( int protected, int tlb_on ) 
 {
+    mem_region_fn_t nontlb_region;
+    int i;
+
     if( protected ) {
-        mmu_register_user_mem_region( 0xE0000000, 0xE4000000, &mem_region_address_error );
+        mmu_user_storequeue_regions = &mmu_default_regions[DEFAULT_STOREQUEUE_SQMD_REGIONS];
+        nontlb_region = &p4_region_storequeue_sqmd;
     } else {
-        mmu_register_user_mem_region( 0xE0000000, 0xE4000000, &p4_region_storequeue );
+        mmu_user_storequeue_regions = &mmu_default_regions[DEFAULT_STOREQUEUE_REGIONS];
+        nontlb_region = &p4_region_storequeue; 
     }
+
+    if( tlb_on ) {
+        mmu_register_user_mem_region( 0xE0000000, 0xE4000000, mmu_user_storequeue_regions->tlb_miss );
+        for( i=0; i<UTLB_ENTRY_COUNT; i++ ) {
+            if( (mmu_utlb[i].vpn & 0xFC000000) == 0xE0000000 ) {
+                mmu_utlb_insert_entry(i);
+            }
+        }
+    } else {
+        mmu_register_user_mem_region( 0xE0000000, 0xE4000000, nontlb_region ); 
+    }
+    
 }
 
 static void mmu_set_tlb_asid( uint32_t asid )
@@ -488,13 +525,16 @@ static gboolean mmu_utlb_map_pages( mem_region_fn_t priv_page, mem_region_fn_t u
 {
     mem_region_fn_t *ptr = &sh4_address_space[start_addr >> 12];
     mem_region_fn_t *uptr = &sh4_user_address_space[start_addr >> 12];
+    struct utlb_default_regions *privdefs = &mmu_default_regions[DEFAULT_REGIONS];
+    struct utlb_default_regions *userdefs = privdefs;    
+    
     gboolean mapping_ok = TRUE;
     int i;
     
     if( (start_addr & 0xFC000000) == 0xE0000000 ) {
         /* Storequeue mapping */
-        ptr = &storequeue_address_space[(start_addr-0xE0000000) >> 12];
-        uptr = &storequeue_user_address_space[(start_addr-0xE0000000) >> 12];
+        privdefs = &mmu_default_regions[DEFAULT_STOREQUEUE_REGIONS];
+        userdefs = mmu_user_storequeue_regions;
     } else if( (start_addr & 0xE0000000) == 0xC0000000 ) {
         user_page = NULL; /* No user access to P3 region */
     } else if( start_addr >= 0x80000000 ) {
@@ -518,58 +558,47 @@ static gboolean mmu_utlb_map_pages( mem_region_fn_t priv_page, mem_region_fn_t u
         }
         
         if( priv_page != NULL ) {
-            if( ent->subpages[idx] == &mem_region_tlb_miss ) {
+            if( ent->subpages[idx] == privdefs->tlb_miss ) {
                 ent->subpages[idx] = priv_page;
             } else {
                 mapping_ok = FALSE;
-                ent->subpages[idx] = &mem_region_tlb_multihit;
+                ent->subpages[idx] = privdefs->tlb_multihit;
             }
         }
         if( user_page != NULL ) {
-            if( ent->user_subpages[idx] == &mem_region_tlb_miss ) {
+            if( ent->user_subpages[idx] == userdefs->tlb_miss ) {
                 ent->user_subpages[idx] = user_page;
             } else {
                 mapping_ok = FALSE;
-                ent->user_subpages[idx] = &mem_region_tlb_multihit;
+                ent->user_subpages[idx] = userdefs->tlb_multihit;
             }
         }
         
     } else {
         if( priv_page != NULL ) {
-            if( user_page != NULL ) {
-                for( i=0; i<npages; i++ ) {
-                    if( *ptr == &mem_region_tlb_miss ) {
-                        *ptr++ = priv_page;
-                        *uptr++ = user_page;
-                    } else {
-                        mapping_ok = FALSE;
-                        *ptr++ = &mem_region_tlb_multihit;
-                        *uptr++ = &mem_region_tlb_multihit;
-                    }
-                }
-            } else {
-                /* Privileged mapping only */
-                for( i=0; i<npages; i++ ) {
-                    if( *ptr == &mem_region_tlb_miss ) {
-                        *ptr++ = priv_page;
-                    } else {
-                        mapping_ok = FALSE;
-                        *ptr++ = &mem_region_tlb_multihit;
-                    }
+            /* Privileged mapping only */
+            for( i=0; i<npages; i++ ) {
+                if( *ptr == privdefs->tlb_miss ) {
+                    *ptr++ = priv_page;
+                } else {
+                    mapping_ok = FALSE;
+                    *ptr++ = privdefs->tlb_multihit;
                 }
             }
-        } else if( user_page != NULL ) {
+        }
+        if( user_page != NULL ) {
             /* User mapping only (eg ASID change remap w/ SV=1) */
             for( i=0; i<npages; i++ ) {
-                if( *uptr == &mem_region_tlb_miss ) {
+                if( *uptr == userdefs->tlb_miss ) {
                     *uptr++ = user_page;
                 } else {
                     mapping_ok = FALSE;
-                    *uptr++ = &mem_region_tlb_multihit;
+                    *uptr++ = userdefs->tlb_multihit;
                 }
             }        
         }
     }
+
     return mapping_ok;
 }
 
@@ -621,13 +650,16 @@ static gboolean mmu_utlb_unmap_pages( gboolean unmap_priv, gboolean unmap_user, 
 {
     mem_region_fn_t *ptr = &sh4_address_space[start_addr >> 12];
     mem_region_fn_t *uptr = &sh4_user_address_space[start_addr >> 12];
+    struct utlb_default_regions *privdefs = &mmu_default_regions[DEFAULT_REGIONS];
+    struct utlb_default_regions *userdefs = privdefs;
+
     gboolean unmapping_ok = TRUE;
     int i;
     
     if( (start_addr & 0xFC000000) == 0xE0000000 ) {
         /* Storequeue mapping */
-        ptr = &storequeue_address_space[(start_addr-0xE0000000) >> 12];
-        uptr = &storequeue_user_address_space[(start_addr-0xE0000000) >> 12];
+        privdefs = &mmu_default_regions[DEFAULT_STOREQUEUE_REGIONS];
+        userdefs = mmu_user_storequeue_regions;
     } else if( (start_addr & 0xE0000000) == 0xC0000000 ) {
         unmap_user = FALSE;
     } else if( start_addr >= 0x80000000 ) {
@@ -638,13 +670,13 @@ static gboolean mmu_utlb_unmap_pages( gboolean unmap_priv, gboolean unmap_user, 
         assert( IS_1K_PAGE_ENTRY( *ptr ) );
         struct utlb_1k_entry *ent = (struct utlb_1k_entry *)*ptr;
         int i, idx = (start_addr >> 10) & 0x03, mergeable=1;
-        if( ent->subpages[idx] == &mem_region_tlb_multihit ) {
+        if( ent->subpages[idx] == privdefs->tlb_multihit ) {
             unmapping_ok = FALSE;
         }
         if( unmap_priv )
-            ent->subpages[idx] = &mem_region_tlb_miss;
+            ent->subpages[idx] = privdefs->tlb_miss;
         if( unmap_user )
-            ent->user_subpages[idx] = &mem_region_tlb_miss;
+            ent->user_subpages[idx] = userdefs->tlb_miss;
 
         /* If all 4 subpages have the same content, merge them together and
          * release the 1K entry
@@ -664,30 +696,21 @@ static gboolean mmu_utlb_unmap_pages( gboolean unmap_priv, gboolean unmap_user, 
         }
     } else {
         if( unmap_priv ) {
-            if( unmap_user ) {
-                for( i=0; i<npages; i++ ) {
-                    if( *ptr == &mem_region_tlb_multihit ) {
-                        unmapping_ok = FALSE;
-                    }
-                    *ptr++ = &mem_region_tlb_miss;
-                    *uptr++ = &mem_region_tlb_miss;
-                }
-            } else {
-                /* Privileged (un)mapping only */
-                for( i=0; i<npages; i++ ) {
-                    if( *ptr == &mem_region_tlb_multihit ) {
-                        unmapping_ok = FALSE;
-                    }
-                    *ptr++ = &mem_region_tlb_miss;
-                }
-            }
-        } else if( unmap_user ) {
-            /* User (un)mapping only */
+            /* Privileged (un)mapping */
             for( i=0; i<npages; i++ ) {
-                if( *uptr == &mem_region_tlb_multihit ) {
+                if( *ptr == privdefs->tlb_multihit ) {
                     unmapping_ok = FALSE;
                 }
-                *uptr++ = &mem_region_tlb_miss;
+                *ptr++ = privdefs->tlb_miss;
+            }
+        }
+        if( unmap_user ) {
+            /* User (un)mapping */
+            for( i=0; i<npages; i++ ) {
+                if( *uptr == userdefs->tlb_multihit ) {
+                    unmapping_ok = FALSE;
+                }
+                *uptr++ = userdefs->tlb_miss;
             }            
         }
     }
@@ -703,28 +726,47 @@ static void mmu_utlb_insert_entry( int entry )
     sh4addr_t start_addr = ent->vpn & ent->mask;
     int npages = get_tlb_size_pages(ent->flags);
 
-    if( (ent->flags & TLB_USERMODE) == 0 ) {
-        upage = &mem_region_user_protected;
-    } else {        
-        upage = page;
+    if( (start_addr & 0xFC000000) == 0xE0000000 ) {
+        /* Store queue mappings are a bit different - normal access is fixed to
+         * the store queue register block, and we only map prefetches through
+         * the TLB 
+         */
+        mmu_utlb_init_storequeue_vtable( ent, &mmu_utlb_pages[entry] );
+
+        if( (ent->flags & TLB_USERMODE) == 0 ) {
+            upage = mmu_user_storequeue_regions->tlb_prot;
+        } else if( IS_STOREQUEUE_PROTECTED() ) {
+            upage = &p4_region_storequeue_sqmd;
+        } else {
+            upage = page;
+        }
+
+    }  else {
+
+        if( (ent->flags & TLB_USERMODE) == 0 ) {
+            upage = &mem_region_tlb_protected;
+        } else {        
+            upage = page;
+        }
+
+        if( (ent->flags & TLB_WRITABLE) == 0 ) {
+            page->write_long = (mem_write_fn_t)tlb_protected_write;
+            page->write_word = (mem_write_fn_t)tlb_protected_write;
+            page->write_byte = (mem_write_fn_t)tlb_protected_write;
+            page->write_burst = (mem_write_burst_fn_t)tlb_protected_write;
+            mmu_utlb_init_vtable( ent, &mmu_utlb_pages[entry], FALSE );
+        } else if( (ent->flags & TLB_DIRTY) == 0 ) {
+            page->write_long = (mem_write_fn_t)tlb_initial_write;
+            page->write_word = (mem_write_fn_t)tlb_initial_write;
+            page->write_byte = (mem_write_fn_t)tlb_initial_write;
+            page->write_burst = (mem_write_burst_fn_t)tlb_initial_write;
+            mmu_utlb_init_vtable( ent, &mmu_utlb_pages[entry], FALSE );
+        } else {
+            mmu_utlb_init_vtable( ent, &mmu_utlb_pages[entry], TRUE );
+        }
     }
-    mmu_utlb_pages[entry].user_fn = upage;
     
-    if( (ent->flags & TLB_WRITABLE) == 0 ) {
-        page->write_long = (mem_write_fn_t)tlb_protected_write;
-        page->write_word = (mem_write_fn_t)tlb_protected_write;
-        page->write_byte = (mem_write_fn_t)tlb_protected_write;
-        page->write_burst = (mem_write_burst_fn_t)tlb_protected_write;
-        mmu_utlb_init_vtable( ent, &mmu_utlb_pages[entry], FALSE );
-    } else if( (ent->flags & TLB_DIRTY) == 0 ) {
-        page->write_long = (mem_write_fn_t)tlb_initial_write;
-        page->write_word = (mem_write_fn_t)tlb_initial_write;
-        page->write_byte = (mem_write_fn_t)tlb_initial_write;
-        page->write_burst = (mem_write_burst_fn_t)tlb_initial_write;
-        mmu_utlb_init_vtable( ent, &mmu_utlb_pages[entry], FALSE );
-    } else {
-        mmu_utlb_init_vtable( ent, &mmu_utlb_pages[entry], TRUE );
-    }
+    mmu_utlb_pages[entry].user_fn = upage;
 
     /* Is page visible? */
     if( (ent->flags & TLB_SHARE) || ent->asid == mmu_asid ) { 
@@ -1124,24 +1166,6 @@ sh4addr_t FASTCALL mmu_vma_to_phys_disasm( sh4vma_t vma )
     }
 }
 
-void FASTCALL sh4_flush_store_queue( sh4addr_t addr )
-{
-    int queue = (addr&0x20)>>2;
-    uint32_t hi = MMIO_READ( MMU, QACR0 + (queue>>1)) << 24;
-    sh4ptr_t src = (sh4ptr_t)&sh4r.store_queue[queue];
-    sh4addr_t target = (addr&0x03FFFFE0) | hi;
-    ext_address_space[target>>12]->write_burst( target, src );
-} 
-
-void FASTCALL sh4_flush_store_queue_mmu( sh4addr_t addr, void *exc )
-{
-    int queue = (addr&0x20)>>2;
-    sh4ptr_t src = (sh4ptr_t)&sh4r.store_queue[queue];
-    sh4addr_t target;
-    /* Store queue operation */
-    storequeue_address_space[(addr&0x03FFFFFE0)>>12]->write_burst( addr, src);
-}
-
 /********************** TLB Direct-Access Regions ***************************/
 #ifdef HAVE_FRAME_ADDRESS
 #define EXCEPTION_EXIT() do{ *(((void **)__builtin_frame_address(0))+1) = exc; return; } while(0)
@@ -1308,22 +1332,26 @@ struct mem_region_fn p4_region_itlb_addr = {
         mmu_itlb_addr_read, mmu_itlb_addr_write,
         mmu_itlb_addr_read, mmu_itlb_addr_write,
         mmu_itlb_addr_read, mmu_itlb_addr_write,
-        unmapped_read_burst, unmapped_write_burst };
+        unmapped_read_burst, unmapped_write_burst,
+        unmapped_prefetch };
 struct mem_region_fn p4_region_itlb_data = {
         mmu_itlb_data_read, mmu_itlb_data_write,
         mmu_itlb_data_read, mmu_itlb_data_write,
         mmu_itlb_data_read, mmu_itlb_data_write,
-        unmapped_read_burst, unmapped_write_burst };
+        unmapped_read_burst, unmapped_write_burst,
+        unmapped_prefetch };
 struct mem_region_fn p4_region_utlb_addr = {
         mmu_utlb_addr_read, (mem_write_fn_t)mmu_utlb_addr_write,
         mmu_utlb_addr_read, (mem_write_fn_t)mmu_utlb_addr_write,
         mmu_utlb_addr_read, (mem_write_fn_t)mmu_utlb_addr_write,
-        unmapped_read_burst, unmapped_write_burst };
+        unmapped_read_burst, unmapped_write_burst,
+        unmapped_prefetch };
 struct mem_region_fn p4_region_utlb_data = {
         mmu_utlb_data_read, mmu_utlb_data_write,
         mmu_utlb_data_read, mmu_utlb_data_write,
         mmu_utlb_data_read, mmu_utlb_data_write,
-        unmapped_read_burst, unmapped_write_burst };
+        unmapped_read_burst, unmapped_write_burst,
+        unmapped_prefetch };
 
 /********************** Error regions **************************/
 
@@ -1417,25 +1445,92 @@ struct mem_region_fn mem_region_address_error = {
         (mem_read_fn_t)address_error_read, (mem_write_fn_t)address_error_write,
         (mem_read_fn_t)address_error_read, (mem_write_fn_t)address_error_write,
         (mem_read_fn_t)address_error_read, (mem_write_fn_t)address_error_write,
-        (mem_read_burst_fn_t)address_error_read_burst, (mem_write_burst_fn_t)address_error_write };
+        (mem_read_burst_fn_t)address_error_read_burst, (mem_write_burst_fn_t)address_error_write,
+        unmapped_prefetch };
 
 struct mem_region_fn mem_region_tlb_miss = {
         (mem_read_fn_t)tlb_miss_read, (mem_write_fn_t)tlb_miss_write,
         (mem_read_fn_t)tlb_miss_read, (mem_write_fn_t)tlb_miss_write,
         (mem_read_fn_t)tlb_miss_read, (mem_write_fn_t)tlb_miss_write,
-        (mem_read_burst_fn_t)tlb_miss_read_burst, (mem_write_burst_fn_t)tlb_miss_write };
+        (mem_read_burst_fn_t)tlb_miss_read_burst, (mem_write_burst_fn_t)tlb_miss_write,
+        unmapped_prefetch };
 
-struct mem_region_fn mem_region_user_protected = {
+struct mem_region_fn mem_region_tlb_protected = {
         (mem_read_fn_t)tlb_protected_read, (mem_write_fn_t)tlb_protected_write,
         (mem_read_fn_t)tlb_protected_read, (mem_write_fn_t)tlb_protected_write,
         (mem_read_fn_t)tlb_protected_read, (mem_write_fn_t)tlb_protected_write,
-        (mem_read_burst_fn_t)tlb_protected_read_burst, (mem_write_burst_fn_t)tlb_protected_write };
+        (mem_read_burst_fn_t)tlb_protected_read_burst, (mem_write_burst_fn_t)tlb_protected_write,
+        unmapped_prefetch };
 
 struct mem_region_fn mem_region_tlb_multihit = {
         (mem_read_fn_t)tlb_multi_hit_read, (mem_write_fn_t)tlb_multi_hit_write,
         (mem_read_fn_t)tlb_multi_hit_read, (mem_write_fn_t)tlb_multi_hit_write,
         (mem_read_fn_t)tlb_multi_hit_read, (mem_write_fn_t)tlb_multi_hit_write,
-        (mem_read_burst_fn_t)tlb_multi_hit_read_burst, (mem_write_burst_fn_t)tlb_multi_hit_write };
+        (mem_read_burst_fn_t)tlb_multi_hit_read_burst, (mem_write_burst_fn_t)tlb_multi_hit_write,
+        (mem_prefetch_fn_t)tlb_multi_hit_read };
         
+
+/* Store-queue regions */
+/* These are a bit of a pain - the first 8 fields are controlled by SQMD, while 
+ * the final (prefetch) is controlled by the actual TLB settings (plus SQMD in
+ * some cases), in contrast to the ordinary fields above.
+ * 
+ * There is probably a simpler way to do this.
+ */
+
+struct mem_region_fn p4_region_storequeue = { 
+        ccn_storequeue_read_long, ccn_storequeue_write_long,
+        unmapped_read_long, unmapped_write_long, /* TESTME: Officially only long access is supported */
+        unmapped_read_long, unmapped_write_long,
+        unmapped_read_burst, unmapped_write_burst,
+        ccn_storequeue_prefetch }; 
+
+struct mem_region_fn p4_region_storequeue_miss = { 
+        ccn_storequeue_read_long, ccn_storequeue_write_long,
+        unmapped_read_long, unmapped_write_long, /* TESTME: Officially only long access is supported */
+        unmapped_read_long, unmapped_write_long,
+        unmapped_read_burst, unmapped_write_burst,
+        (mem_prefetch_fn_t)tlb_miss_read }; 
+
+struct mem_region_fn p4_region_storequeue_multihit = { 
+        ccn_storequeue_read_long, ccn_storequeue_write_long,
+        unmapped_read_long, unmapped_write_long, /* TESTME: Officially only long access is supported */
+        unmapped_read_long, unmapped_write_long,
+        unmapped_read_burst, unmapped_write_burst,
+        (mem_prefetch_fn_t)tlb_multi_hit_read }; 
+
+struct mem_region_fn p4_region_storequeue_protected = {
+        ccn_storequeue_read_long, ccn_storequeue_write_long,
+        unmapped_read_long, unmapped_write_long,
+        unmapped_read_long, unmapped_write_long,
+        unmapped_read_burst, unmapped_write_burst,
+        (mem_prefetch_fn_t)tlb_protected_read };
+
+struct mem_region_fn p4_region_storequeue_sqmd = {
+        (mem_read_fn_t)address_error_read, (mem_write_fn_t)address_error_write,
+        (mem_read_fn_t)address_error_read, (mem_write_fn_t)address_error_write,
+        (mem_read_fn_t)address_error_read, (mem_write_fn_t)address_error_write,
+        (mem_read_burst_fn_t)address_error_read_burst, (mem_write_burst_fn_t)address_error_write,
+        (mem_prefetch_fn_t)address_error_read };        
         
+struct mem_region_fn p4_region_storequeue_sqmd_miss = { 
+        (mem_read_fn_t)address_error_read, (mem_write_fn_t)address_error_write,
+        (mem_read_fn_t)address_error_read, (mem_write_fn_t)address_error_write,
+        (mem_read_fn_t)address_error_read, (mem_write_fn_t)address_error_write,
+        (mem_read_burst_fn_t)address_error_read_burst, (mem_write_burst_fn_t)address_error_write,
+        (mem_prefetch_fn_t)tlb_miss_read }; 
+
+struct mem_region_fn p4_region_storequeue_sqmd_multihit = {
+        (mem_read_fn_t)address_error_read, (mem_write_fn_t)address_error_write,
+        (mem_read_fn_t)address_error_read, (mem_write_fn_t)address_error_write,
+        (mem_read_fn_t)address_error_read, (mem_write_fn_t)address_error_write,
+        (mem_read_burst_fn_t)address_error_read_burst, (mem_write_burst_fn_t)address_error_write,
+        (mem_prefetch_fn_t)tlb_multi_hit_read };        
         
+struct mem_region_fn p4_region_storequeue_sqmd_protected = {
+        (mem_read_fn_t)address_error_read, (mem_write_fn_t)address_error_write,
+        (mem_read_fn_t)address_error_read, (mem_write_fn_t)address_error_write,
+        (mem_read_fn_t)address_error_read, (mem_write_fn_t)address_error_write,
+        (mem_read_burst_fn_t)address_error_read_burst, (mem_write_burst_fn_t)address_error_write,
+        (mem_prefetch_fn_t)tlb_protected_read };
+

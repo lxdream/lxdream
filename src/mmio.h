@@ -112,7 +112,7 @@ extern uint32_t num_io_rgns;
 #undef MMIO_REGION_LIST_BEGIN
 #undef MMIO_REGION
 #undef MMIO_REGION_LIST_END
-#define MMIO_REGION_BEGIN(b,id,d) struct mmio_region mmio_region_##id = { #id, d, b, {mmio_region_##id##_read, mmio_region_##id##_write,mmio_region_##id##_read, mmio_region_##id##_write,mmio_region_##id##_read, mmio_region_##id##_write,NULL, NULL}, 0, 0, {
+#define MMIO_REGION_BEGIN(b,id,d) struct mmio_region mmio_region_##id = { #id, d, b, {mmio_region_##id##_read, mmio_region_##id##_write,mmio_region_##id##_read, mmio_region_##id##_write,mmio_region_##id##_read, mmio_region_##id##_write,NULL, NULL, unmapped_prefetch}, 0, 0, {
 #define LONG_PORT( o,id,f,def,d ) { #id, d, 32, o, def, f },
 #define WORD_PORT( o,id,f,def,d ) { #id, d, 16, o, def, f },
 #define BYTE_PORT( o,id,f,def,d ) { #id, d, 8, o, def, f },

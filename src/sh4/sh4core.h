@@ -281,7 +281,6 @@ void FASTCALL sh4_accept_interrupt( void );
 #define FPULi    (sh4r.fpul.i)
 
 /**************** SH4 internal memory regions *****************/
-extern struct mem_region_fn p4_region_storequeue; 
 extern struct mem_region_fn p4_region_itlb_addr;
 extern struct mem_region_fn p4_region_itlb_data;
 extern struct mem_region_fn p4_region_utlb_addr;
@@ -290,10 +289,7 @@ extern struct mem_region_fn p4_region_icache_addr;
 extern struct mem_region_fn p4_region_icache_data;
 extern struct mem_region_fn p4_region_ocache_addr;
 extern struct mem_region_fn p4_region_ocache_data;
-extern struct mem_region_fn mem_region_address_error;
-extern struct mem_region_fn mem_region_tlb_miss;
-extern struct mem_region_fn mem_region_tlb_multihit;
-extern struct mem_region_fn mem_region_user_protected;
+
 
 
 #ifdef __cplusplus
