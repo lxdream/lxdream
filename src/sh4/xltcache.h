@@ -101,22 +101,10 @@ void xlat_delete_block( xlat_cache_block_t block );
 void * FASTCALL xlat_get_code( sh4addr_t address );
 
 /**
- * Retrieve the post-instruction recovery record corresponding to the given
- * native address, or NULL if there is no recovery code for the address.
- * @param code The code block containing the recovery table.
- * @param native_pc A pointer that must be within the currently executing 
- * @param with_terminal If false, return NULL instead of the final block record. 
- * return the first record before or equal to the given pc.
- * translation block.
- */
-struct xlat_recovery_record *xlat_get_post_recovery( void *code, void *native_pc, gboolean with_terminal );
-
-/**
  * Retrieve the pre-instruction recovery record corresponding to the given
  * native address, or NULL if there is no recovery code for the address.
  * @param code The code block containing the recovery table.
  * @param native_pc A pointer that must be within the currently executing 
- * @param with_terminal If false, return NULL instead of the final block record. 
  * return the first record before or equal to the given pc.
  * translation block.
  */
