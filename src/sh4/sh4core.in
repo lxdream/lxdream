@@ -102,9 +102,6 @@ uint32_t sh4_emulate_run_slice( uint32_t nanosecs )
 
 /********************** SH4 emulation core  ****************************/
 
-#define UNDEF(ir) return sh4_raise_slot_exception(EXC_ILLEGAL, EXC_SLOT_ILLEGAL)
-#define UNIMP(ir) do{ ERROR( "Halted on unimplemented instruction at %08x, opcode = %04x", sh4r.pc, ir ); sh4_core_exit(CORE_EXIT_HALT); return FALSE; }while(0)
-
 #if(SH4_CALLTRACE == 1)
 #define MAX_CALLSTACK 32
 static struct call_stack {
@@ -187,10 +184,6 @@ static FASTCALL __attribute__((noinline)) void *__first_arg(void *a, void *b) { 
 #define MEM_WRITE_LONG( addr, val ) ADDRSPACE[(addr)>>12]->write_long(addr, val)
 #define MEM_PREFETCH( addr ) ADDRSPACE[(addr)>>12]->prefetch(addr)
 #endif
- 
-
- 
-
 
 #define FP_WIDTH (IS_FPU_DOUBLESIZE() ? 8 : 4)
 
@@ -222,6 +215,131 @@ static FASTCALL __attribute__((noinline)) void *__first_arg(void *a, void *b) { 
     	CHECKWALIGN32(addr); \
         MEM_WRITE_LONG(addr, *((uint32_t *)&FR((reg))) ); \
     }
+
+#define UNDEF(ir)
+#define UNIMP(ir)
+
+/**
+ * Perform instruction-completion following core exit of a partially completed
+ * instruction. NOTE: This is only allowed on memory writes, operation is not
+ * guaranteed in any other case.
+ */
+void sh4_finalize_instruction( void )
+{
+    unsigned short ir;
+    uint32_t tmp;
+
+    assert( IS_IN_ICACHE(sh4r.pc) );
+    ir = *(uint16_t *)GET_ICACHE_PTR(sh4r.pc);
+    
+    /**
+     * Note - we can't take an exit on a control transfer instruction itself,
+     * which means the exit must have happened in the delay slot. So for these
+     * cases, finalize the delay slot instruction, and re-execute the control transfer.
+     *
+     * For delay slots which modify the argument used in the branch instruction,
+     * we pretty much just assume that that can't have already happened in an exit case.
+     */
+    
+%%
+BRA disp {: 
+    sh4r.pc += 2; 
+    sh4_finalize_instruction(); 
+    sh4r.pc += disp;
+    sh4r.slice_cycle += sh4_cpu_period;
+:}
+BRAF Rn {: 
+    sh4r.pc += 2; 
+    tmp = sh4r.r[Rn];
+    sh4_finalize_instruction(); 
+    sh4r.pc += tmp;
+    sh4r.slice_cycle += sh4_cpu_period;
+:}
+BSR disp {: 
+    /* Note: PR is already set */ 
+    sh4r.pc += 2;
+    sh4_finalize_instruction();
+    sh4r.pc += disp;
+    sh4r.slice_cycle += sh4_cpu_period;
+:}
+BSRF Rn {:
+    /* Note: PR is already set */ 
+    sh4r.pc += 2;
+    tmp = sh4r.r[Rn];
+    sh4_finalize_instruction();
+    sh4r.pc += tmp;
+    sh4r.slice_cycle += sh4_cpu_period;
+:}
+BF/S disp {: 
+    sh4r.pc += 2;
+    sh4_finalize_instruction();
+    if( !sh4r.t ) {
+        sh4r.pc += disp;
+    }
+    sh4r.slice_cycle += sh4_cpu_period;
+:}
+BT/S disp {: 
+    sh4r.pc += 2;
+    sh4_finalize_instruction();
+    if( sh4r.t ) {
+        sh4r.pc += disp;
+    }
+    sh4r.slice_cycle += sh4_cpu_period;
+:}
+JMP @Rn {:
+    sh4r.pc += 2;
+    tmp = sh4r.r[Rn];
+    sh4_finalize_instruction();
+    sh4r.pc = tmp;
+    sh4r.new_pc = tmp + 2;
+    sh4r.slice_cycle += 2*sh4_cpu_period;
+    return;
+:}
+JSR @Rn {: 
+    /* Note: PR is already set */ 
+    sh4r.pc += 2;
+    tmp = sh4r.r[Rn];
+    sh4_finalize_instruction();
+    sh4r.pc = tmp;
+    sh4r.new_pc = tmp + 2;
+    sh4r.slice_cycle += 2*sh4_cpu_period;
+    return;
+:}
+RTS {: 
+    sh4r.pc += 2;
+    sh4_finalize_instruction();
+    sh4r.pc = sh4r.pr;
+    sh4r.new_pc = sh4r.pr + 2;
+    sh4r.slice_cycle += 2*sh4_cpu_period;
+    return;
+:}
+RTE {: 
+    /* SR is already set */
+    sh4r.pc += 2;
+    sh4_finalize_instruction();
+    sh4r.pc = sh4r.spc;
+    sh4r.new_pc = sh4r.pr + 2;
+    sh4r.slice_cycle += 2*sh4_cpu_period;
+    return;
+:}
+MOV.B Rm, @-Rn {: sh4r.r[Rn]--; :}
+MOV.W Rm, @-Rn {: sh4r.r[Rn] -= 2; :}
+MOV.L Rm, @-Rn {: sh4r.r[Rn] -= 4; :}
+MOV.B @Rm+, Rn {: sh4r.r[Rm] ++; :}
+MOV.W @Rm+, Rn {: sh4r.r[Rm] += 2; :}
+MOV.L @Rm+, Rn {: sh4r.r[Rm] += 4; :}
+%%
+    sh4r.pc += 2;
+    sh4r.new_pc = sh4r.pc+2;
+    sh4r.slice_cycle += sh4_cpu_period;
+}
+
+#undef UNDEF(ir)
+#undef UNIMP(ir)
+
+#define UNDEF(ir) return sh4_raise_slot_exception(EXC_ILLEGAL, EXC_SLOT_ILLEGAL)
+#define UNIMP(ir) do{ ERROR( "Halted on unimplemented instruction at %08x, opcode = %04x", sh4r.pc, ir ); sh4_core_exit(CORE_EXIT_HALT); return FALSE; }while(0)
+
 
 gboolean sh4_execute_instruction( void )
 {
@@ -265,6 +383,14 @@ gboolean sh4_execute_instruction( void )
     }
     assert( IS_IN_ICACHE(pc) );
     ir = *(uint16_t *)GET_ICACHE_PTR(sh4r.pc);
+    
+    /* FIXME: This is a bit of a hack, but the PC of the delay slot should not
+     * be visible until after the instruction has executed (for exception 
+     * correctness)
+     */
+    if( sh4r.in_delay_slot ) {
+    	sh4r.pc -= 2;
+    }
 %%
 AND Rm, Rn {: sh4r.r[Rn] &= sh4r.r[Rm]; :}
 AND #imm, R0 {: R0 &= imm; :}

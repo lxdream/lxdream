@@ -161,7 +161,7 @@ void fprint_action( struct rule *rule, char *action, int depth, FILE *f )
     }
 }
 
-void split_and_generate( struct ruleset *rules, struct actionset *actions, 
+void split_and_generate( struct ruleset *rules, char **actions, 
                          int ruleidx[], int rule_count, int input_mask, 
                          int depth, FILE *f ) {
     uint32_t mask;
@@ -170,7 +170,7 @@ void split_and_generate( struct ruleset *rules, struct actionset *actions,
     if( rule_count == 0 ) {
         fprintf( f, "%*cUNDEF(ir);\n", depth*8, ' ' );
     } else if( rule_count == 1 ) {
-        fprint_action( rules->rules[ruleidx[0]], actions->actions[ruleidx[0]], depth, f );
+        fprint_action( rules->rules[ruleidx[0]], actions[ruleidx[0]], depth, f );
     } else {
 
         mask = find_mask(rules, ruleidx, rule_count, input_mask);
@@ -223,7 +223,7 @@ void split_and_generate( struct ruleset *rules, struct actionset *actions,
     }
 }
 
-int generate_decoder( struct ruleset *rules, struct actionset *actions, FILE *f )
+int generate_decoder( struct ruleset *rules, actionfile_t af, FILE *out )
 {
     int ruleidx[rules->rule_count];
     int i;
@@ -232,27 +232,42 @@ int generate_decoder( struct ruleset *rules, struct actionset *actions, FILE *f 
         ruleidx[i] = i;
     }
 
-    fputs( actions->pretext, f );
-
-    split_and_generate( rules, actions, ruleidx, rules->rule_count, 0, 1, f );
-
-    fputs( actions->posttext, f );
-
+    actiontoken_t token = action_file_next(af);
+    while( token->symbol != END ) {
+        if( token->symbol == TEXT ) {
+            fputs( token->text, out );
+        } else if( token->symbol == ERROR ) {
+            fprintf( stderr, "Error parsing action file" );
+            return -1;
+        } else {
+            split_and_generate( rules, token->actions, ruleidx, rules->rule_count, 0, 1, out );
+        }
+        token = action_file_next(af);
+    }
     return 0;
 }
 
-int generate_template( struct ruleset *rules, struct actionset *actions, FILE *f )
+int generate_template( struct ruleset *rules, actionfile_t af, FILE *out )
 {
     int i;
-    fputs( actions->pretext, f );
-    fputs( "%%\n", f );
-
-    for( i=0; i<rules->rule_count; i++ ) {
-        fprintf( f, "%s {: %s :}\n", rules->rules[i]->format, 
-                actions->actions[i] == NULL ? "" : actions->actions[i] );
+    
+    actiontoken_t token = action_file_next(af);
+    while( token->symbol != END ) {
+        if( token->symbol == TEXT ) {
+            fputs( token->text, out );
+        } else if( token->symbol == ERROR ) {
+            fprintf( stderr, "Error parsing action file" );
+            return -1;
+        } else {
+            fputs( "%%\n", out );
+            for( i=0; i<rules->rule_count; i++ ) {
+                fprintf( out, "%s {: %s :}\n", rules->rules[i]->format,
+                        token->actions[i] == NULL ? "" : token->actions[i] );
+            }
+            fputs( "%%\n", out );
+        }
+        token = action_file_next(af);
     }
-    fputs( "%%\n", f );
-    fputs( actions->posttext, f );
 
     return 0;
 }
@@ -309,26 +324,21 @@ int main( int argc, char *argv[] )
         exit(2);
     }
 
-    act_file = fopen( act_filename, "ro" );
-    if( act_file == NULL ) {
-        fprintf( stderr, "Unable to open '%s' for reading (%s)\n", act_filename, strerror(errno) );
-        exit(3);
-    }
-
     /* Parse the input */
     struct ruleset *rules = parse_ruleset_file( ins_file );
     fclose( ins_file );
     if( rules == NULL ) {
         exit(5);
     }
-
-    struct actionset *actions = parse_action_file( rules, act_file );
-    fclose( act_file );
-    if( actions == NULL ) {
-        exit(6);
+    
+    actionfile_t af = action_file_open( act_filename, rules );
+    if( af == NULL ) {
+        fprintf( stderr, "Unable to open '%s' for reading (%s)\n", act_filename, strerror(errno) );
+        exit(3);
     }
 
-    /* Finally write out the results */
+
+    /* Open the output file */
     out_file = fopen( out_filename, "wo" );
     if( out_file == NULL ) {
         fprintf( stderr, "Unable to open '%s' for writing (%s)\n", out_filename, strerror(errno) );
@@ -337,16 +347,18 @@ int main( int argc, char *argv[] )
 
     switch( gen_mode ) {
     case GEN_SOURCE:
-        if( generate_decoder( rules, actions, out_file ) != 0 ) {
+        if( generate_decoder( rules, af, out_file ) != 0 ) {
             exit(7);
         }
         break;
     case GEN_TEMPLATE:
-        if( generate_template( rules, actions, out_file ) != 0 ) {
+        if( generate_template( rules, af, out_file ) != 0 ) {
             exit(7);
         }
         break;
     }
+    
+    action_file_close(af);
     fclose( out_file );
     return 0;
 }

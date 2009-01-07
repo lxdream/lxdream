@@ -78,8 +78,8 @@ void sh4_set_breakpoint( uint32_t pc, breakpoint_type_t type ) { }
 gboolean sh4_clear_breakpoint( uint32_t pc, breakpoint_type_t type ) { return TRUE; }
 gboolean dreamcast_is_running() { return FALSE; }
 int sh4_get_breakpoint( uint32_t pc ) { return 0; }
+void sh4_finalize_instruction() { }
 void sh4_core_exit( int exit_code ){}
-void sh4_flush_icache(){}
 void event_execute() {}
 void TMU_run_slice( uint32_t nanos ) {}
 void CCN_set_cache_control( uint32_t val ) { }

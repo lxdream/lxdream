@@ -209,22 +209,13 @@ void sh4_core_exit( int exit_code )
             }
         }
 #endif
+        if( exit_code != CORE_EXIT_EXCEPTION ) {
+            sh4_finalize_instruction();
+        }
         // longjmp back into sh4_run_slice
         sh4_running = FALSE;
         longjmp(sh4_exit_jmp_buf, exit_code);
     }
-}
-
-void sh4_flush_icache()
-{
-#ifdef SH4_TRANSLATOR
-    // FIXME: Special case needs to be generalized
-    if( sh4_use_translator ) {
-        if( sh4_translate_flush_cache() ) {
-            longjmp(sh4_exit_jmp_buf, CORE_EXIT_CONTINUE);
-        }
-    }
-#endif
 }
 
 void sh4_save_state( FILE *f )
@@ -377,10 +368,7 @@ uint32_t FASTCALL sh4_read_sr( void )
         sh4r.pc = sh4r.vbr + v; \
         sh4r.new_pc = sh4r.pc + 2; \
         sh4_write_sr( sh4r.ssr |SR_MD|SR_BL|SR_RB ); \
-        if( sh4r.in_delay_slot ) { \
-            sh4r.in_delay_slot = 0; \
-            sh4r.spc -= 2; \
-        } \
+        sh4r.in_delay_slot = 0; \
     } \
     return TRUE; } while(0)
 

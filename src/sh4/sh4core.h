@@ -72,7 +72,7 @@ extern struct sh4_icache_struct sh4_icache;
 
 
 /**
- * SH4 vm-exit flag - exit the current block but continue (eg exception handling)
+ * SH4 vm-exit flag - exit the current block but continue normally
  */
 #define CORE_EXIT_CONTINUE 1
 
@@ -238,6 +238,13 @@ gboolean FASTCALL sh4_raise_trap( int );
 gboolean FASTCALL sh4_raise_slot_exception( int, int );
 gboolean FASTCALL sh4_raise_tlb_exception( int );
 void FASTCALL sh4_accept_interrupt( void );
+
+/**
+ * Complete the current instruction as part of a core exit. Prevents the 
+ * system from being left in an inconsistent state when an exit is 
+ * triggered during a memory write. 
+ */  
+void sh4_finalize_instruction( void );
 
 /* Status Register (SR) bits */
 #define SR_MD    0x40000000 /* Processor mode ( User=0, Privileged=1 ) */ 
