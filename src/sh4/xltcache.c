@@ -202,29 +202,6 @@ void * FASTCALL xlat_get_code( sh4addr_t address )
     return result;
 }
 
-xlat_recovery_record_t xlat_get_post_recovery( void *code, void *native_pc, gboolean with_terminal )
-{
-    if( code != NULL ) {
-        uintptr_t pc_offset = ((uint8_t *)native_pc) - ((uint8_t *)code);
-        xlat_cache_block_t block = XLAT_BLOCK_FOR_CODE(code);
-        uint32_t count = block->recover_table_size;
-        xlat_recovery_record_t records = (xlat_recovery_record_t)(&block->code[block->recover_table_offset]);
-        uint32_t posn;
-        if( count > 0 && !with_terminal )
-        	count--;
-        if( records[count-1].xlat_offset < pc_offset ) {
-        	return NULL;
-        }
-        for( posn=count-1; posn > 0; posn-- ) {
-        	if( records[posn-1].xlat_offset < pc_offset ) {
-        		return &records[posn];
-        	}
-        }
-        return &records[0]; // shouldn't happen
-    }
-    return NULL;
-}
-
 xlat_recovery_record_t xlat_get_pre_recovery( void *code, void *native_pc )
 {
     if( code != NULL ) {
