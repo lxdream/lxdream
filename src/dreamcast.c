@@ -277,6 +277,7 @@ void dreamcast_program_loaded( const gchar *name, sh4addr_t entry_point )
     dreamcast_program_name = g_strdup(name);
     dreamcast_entry_point = entry_point;
     sh4_set_pc(entry_point);
+    sh4_write_sr( sh4_read_sr() & (~SR_BL) ); /* Unmask interrupts */
     bios_install();
     dcload_install();
     gui_update_state();

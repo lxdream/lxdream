@@ -149,17 +149,27 @@ void fprint_stack_trace( FILE *f )
 #define TRACE_RETURN( source, dest )
 #endif
 
-#define CHECKPRIV() if( !IS_SH4_PRIVMODE() ) return sh4_raise_slot_exception( EXC_ILLEGAL, EXC_SLOT_ILLEGAL )
-#define CHECKRALIGN16(addr) if( (addr)&0x01 ) return sh4_raise_exception( EXC_DATA_ADDR_READ )
-#define CHECKRALIGN32(addr) if( (addr)&0x03 ) return sh4_raise_exception( EXC_DATA_ADDR_READ )
-#define CHECKRALIGN64(addr) if( (addr)&0x07 ) return sh4_raise_exception( EXC_DATA_ADDR_READ )
-#define CHECKWALIGN16(addr) if( (addr)&0x01 ) return sh4_raise_exception( EXC_DATA_ADDR_WRITE )
-#define CHECKWALIGN32(addr) if( (addr)&0x03 ) return sh4_raise_exception( EXC_DATA_ADDR_WRITE )
-#define CHECKWALIGN64(addr) if( (addr)&0x07 ) return sh4_raise_exception( EXC_DATA_ADDR_WRITE )
+static gboolean FASTCALL sh4_raise_slot_exception( int normal_code, int slot_code ) {
+    if( sh4r.in_delay_slot ) {
+        sh4_raise_exception(slot_code);
+    } else {
+        sh4_raise_exception(normal_code);
+    }
+    return TRUE;
+}
+
+
+#define CHECKPRIV() if( !IS_SH4_PRIVMODE() ) { return sh4_raise_slot_exception( EXC_ILLEGAL, EXC_SLOT_ILLEGAL ); }
+#define CHECKRALIGN16(addr) if( (addr)&0x01 ) { sh4_raise_exception( EXC_DATA_ADDR_READ ); return TRUE; }
+#define CHECKRALIGN32(addr) if( (addr)&0x03 ) { sh4_raise_exception( EXC_DATA_ADDR_READ ); return TRUE; }
+#define CHECKRALIGN64(addr) if( (addr)&0x07 ) { sh4_raise_exception( EXC_DATA_ADDR_READ ); return TRUE; }
+#define CHECKWALIGN16(addr) if( (addr)&0x01 ) { sh4_raise_exception( EXC_DATA_ADDR_WRITE ); return TRUE; }
+#define CHECKWALIGN32(addr) if( (addr)&0x03 ) { sh4_raise_exception( EXC_DATA_ADDR_WRITE ); return TRUE; }
+#define CHECKWALIGN64(addr) if( (addr)&0x07 ) { sh4_raise_exception( EXC_DATA_ADDR_WRITE ); return TRUE; }
 
 #define CHECKFPUEN() if( !IS_FPU_ENABLED() ) { if( ir == 0xFFFD ) { UNDEF(ir); } else { return sh4_raise_slot_exception( EXC_FPU_DISABLED, EXC_SLOT_FPU_DISABLED ); } }
 #define CHECKDEST(p) if( (p) == 0 ) { ERROR( "%08X: Branch/jump to NULL, CPU halted", sh4r.pc ); sh4_core_exit(CORE_EXIT_HALT); return FALSE; }
-#define CHECKSLOTILLEGAL() if(sh4r.in_delay_slot) return sh4_raise_exception(EXC_SLOT_ILLEGAL)
+#define CHECKSLOTILLEGAL() if(sh4r.in_delay_slot) { sh4_raise_exception(EXC_SLOT_ILLEGAL); return TRUE; }
 
 #define ADDRSPACE (IS_SH4_PRIVMODE() ? sh4_address_space : sh4_user_address_space)
 #define SQADDRSPACE (IS_SH4_PRIVMODE() ? storequeue_address_space : storequeue_user_address_space)

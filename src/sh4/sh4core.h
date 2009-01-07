@@ -232,11 +232,11 @@ void FASTCALL sh4_flush_store_queue_mmu( sh4addr_t addr, void *exc );
 #define EXV_TLBMISS      0x400  /* TLB-miss exception vector */
 #define EXV_INTERRUPT    0x600  /* External interrupt vector */
 
-gboolean FASTCALL sh4_raise_exception( int );
-gboolean FASTCALL sh4_raise_reset( int );
-gboolean FASTCALL sh4_raise_trap( int );
-gboolean FASTCALL sh4_raise_slot_exception( int, int );
-gboolean FASTCALL sh4_raise_tlb_exception( int );
+void FASTCALL sh4_raise_exception( int );
+void FASTCALL sh4_raise_reset( int );
+void FASTCALL sh4_raise_trap( int );
+void FASTCALL sh4_raise_tlb_exception( int, sh4vma_t );
+void FASTCALL sh4_raise_tlb_multihit( sh4vma_t );
 void FASTCALL sh4_accept_interrupt( void );
 
 /**
