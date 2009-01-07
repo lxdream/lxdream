@@ -98,10 +98,11 @@ gboolean sh4_has_page( sh4vma_t vma ) { return TRUE; }
 void syscall_invoke( uint32_t val ) { }
 void dreamcast_stop() {} 
 void dreamcast_reset() {}
-gboolean FASTCALL sh4_raise_reset( int exc ) { return TRUE; }
-gboolean FASTCALL sh4_raise_exception( int exc ) { return TRUE; }
-gboolean FASTCALL sh4_raise_tlb_exception( int exc ) { return TRUE; }
-gboolean FASTCALL sh4_raise_trap( int exc ) { return TRUE; }
+void FASTCALL sh4_raise_reset( int exc ) { }
+void FASTCALL sh4_raise_exception( int exc ) { }
+void FASTCALL sh4_raise_tlb_exception( int exc, sh4vma_t vma ) { }
+void FASTCALL sh4_raise_tlb_multihit( sh4vma_t vma) { }
+void FASTCALL sh4_raise_trap( int exc ) { }
 void FASTCALL sh4_flush_store_queue( sh4addr_t addr ) { }
 void FASTCALL sh4_flush_store_queue_mmu( sh4addr_t addr, void *exc ) { }
 uint32_t sh4_sleep_run_slice(uint32_t nanosecs) { return nanosecs; }

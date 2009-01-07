@@ -27,18 +27,12 @@
 #include "mem.h"
 #include "mmu.h"
 
-#define RAISE_TLB_ERROR(code, vpn) \
-    MMIO_WRITE(MMU, TEA, vpn); \
-    MMIO_WRITE(MMU, PTEH, ((MMIO_READ(MMU, PTEH) & 0x000003FF) | (vpn&0xFFFFFC00))); \
-    sh4_raise_tlb_exception(code);
+#define RAISE_TLB_ERROR(code, vpn) sh4_raise_tlb_exception(code, vpn)
 #define RAISE_MEM_ERROR(code, vpn) \
     MMIO_WRITE(MMU, TEA, vpn); \
     MMIO_WRITE(MMU, PTEH, ((MMIO_READ(MMU, PTEH) & 0x000003FF) | (vpn&0xFFFFFC00))); \
     sh4_raise_exception(code);
-#define RAISE_TLB_MULTIHIT_ERROR(vpn) \
-    sh4_raise_reset(EXC_TLB_MULTI_HIT); \
-    MMIO_WRITE(MMU, TEA, vpn); \
-    MMIO_WRITE(MMU, PTEH, ((MMIO_READ(MMU, PTEH) & 0x000003FF) | (vpn&0xFFFFFC00)));
+#define RAISE_TLB_MULTIHIT_ERROR(vpn) sh4_raise_tlb_multihit(vpn)
 
 /* An entry is a 1K entry if it's one of the mmu_utlb_1k_pages entries */
 #define IS_1K_PAGE_ENTRY(ent)  ( ((uintptr_t)(((struct utlb_1k_entry *)ent) - &mmu_utlb_1k_pages[0])) < UTLB_ENTRY_COUNT )
@@ -1418,24 +1412,18 @@ static void FASTCALL tlb_initial_write( sh4addr_t addr, uint32_t val, void *exc 
     
 static int32_t FASTCALL tlb_multi_hit_read( sh4addr_t addr, void *exc )
 {
-    MMIO_WRITE(MMU, TEA, addr);
-    MMIO_WRITE(MMU, PTEH, ((MMIO_READ(MMU, PTEH) & 0x000003FF) | (addr&0xFFFFFC00)));
-    sh4_raise_reset(EXC_TLB_MULTI_HIT);
+    sh4_raise_tlb_multihit(addr);
     EXCEPTION_EXIT();
 }
 
 static int32_t FASTCALL tlb_multi_hit_read_burst( unsigned char *dest, sh4addr_t addr, void *exc )
 {
-    MMIO_WRITE(MMU, TEA, addr);
-    MMIO_WRITE(MMU, PTEH, ((MMIO_READ(MMU, PTEH) & 0x000003FF) | (addr&0xFFFFFC00)));
-    sh4_raise_reset(EXC_TLB_MULTI_HIT);
+    sh4_raise_tlb_multihit(addr);
     EXCEPTION_EXIT();
 }
 static void FASTCALL tlb_multi_hit_write( sh4addr_t addr, uint32_t val, void *exc )
 {
-    MMIO_WRITE(MMU, TEA, addr);
-    MMIO_WRITE(MMU, PTEH, ((MMIO_READ(MMU, PTEH) & 0x000003FF) | (addr&0xFFFFFC00)));
-    sh4_raise_reset(EXC_TLB_MULTI_HIT);
+    sh4_raise_tlb_multihit(addr);
     EXCEPTION_EXIT();
 }
 

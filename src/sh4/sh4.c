@@ -36,7 +36,7 @@
 
 void sh4_init( void );
 void sh4_xlat_init( void );
-void sh4_reset( void );
+void sh4_poweron_reset( void );
 void sh4_start( void );
 void sh4_stop( void );
 void sh4_save_state( FILE *f );
@@ -45,7 +45,7 @@ int sh4_load_state( FILE *f );
 uint32_t sh4_run_slice( uint32_t );
 uint32_t sh4_xlat_run_slice( uint32_t );
 
-struct dreamcast_module sh4_module = { "SH4", sh4_init, sh4_reset, 
+struct dreamcast_module sh4_module = { "SH4", sh4_init, sh4_poweron_reset, 
         sh4_start, sh4_run_slice, sh4_stop,
         sh4_save_state, sh4_load_state };
 
@@ -81,7 +81,7 @@ void sh4_init(void)
     MMU_init();
     TMU_init();
     xlat_cache_init();
-    sh4_reset();
+    sh4_poweron_reset();
 #ifdef ENABLE_SH4STATS
     sh4_stats_reset();
 #endif
@@ -92,14 +92,13 @@ void sh4_start(void)
     sh4_starting = TRUE;
 }
 
-void sh4_reset(void)
+void sh4_poweron_reset(void)
 {
+    /* zero everything out, for the sake of having a consistent state. */
+    memset( &sh4r, 0, sizeof(sh4r) );
     if(	sh4_use_translator ) {
         xlat_flush_cache();
     }
-
-    /* zero everything out, for the sake of having a consistent state. */
-    memset( &sh4r, 0, sizeof(sh4r) );
 
     /* Resume running if we were halted */
     sh4r.sh4_state = SH4_STATE_RUNNING;
@@ -116,14 +115,10 @@ void sh4_reset(void)
     /* Peripheral modules */
     CPG_reset();
     INTC_reset();
-    MMU_reset();
     PMM_reset();
     TMU_reset();
     SCIF_reset();
-
-#ifdef ENABLE_SH4STATS
-    sh4_stats_reset();
-#endif
+    MMU_reset();
 }
 
 void sh4_stop(void)
@@ -354,79 +349,88 @@ uint32_t FASTCALL sh4_read_sr( void )
     return sh4r.sr;
 }
 
+/**
+ * Raise a CPU reset exception with the specified exception code.
+ */
+void FASTCALL sh4_raise_reset( int code )
+{
+    MMIO_WRITE(MMU,EXPEVT,code);
+    sh4r.vbr = 0x00000000;
+    sh4r.pc = 0xA0000000;
+    sh4r.new_pc = sh4r.pc + 2;
+    sh4r.in_delay_slot = 0;
+    sh4_write_sr( (sh4r.sr|SR_MD|SR_BL|SR_RB|SR_IMASK)&(~SR_FD) );
+    
+    /* Peripheral manual reset (FIXME: incomplete) */
+    INTC_reset();
+    SCIF_reset();
+    MMU_reset();
+}
 
-
-#define RAISE( x, v ) do{			\
-    if( sh4r.vbr == 0 ) { \
-        ERROR( "%08X: VBR not initialized while raising exception %03X, halting", sh4r.pc, x ); \
-        sh4_core_exit(CORE_EXIT_HALT); return FALSE;	\
-    } else { \
-        sh4r.spc = sh4r.pc;	\
-        sh4r.ssr = sh4_read_sr(); \
-        sh4r.sgr = sh4r.r[15]; \
-        MMIO_WRITE(MMU,EXPEVT,x); \
-        sh4r.pc = sh4r.vbr + v; \
-        sh4r.new_pc = sh4r.pc + 2; \
-        sh4_write_sr( sh4r.ssr |SR_MD|SR_BL|SR_RB ); \
-        sh4r.in_delay_slot = 0; \
-    } \
-    return TRUE; } while(0)
+void FASTCALL sh4_raise_tlb_multihit( sh4vma_t vpn )
+{
+    MMIO_WRITE( MMU, TEA, vpn );
+    MMIO_WRITE( MMU, PTEH, ((MMIO_READ(MMU, PTEH) & 0x000003FF) | (vpn&0xFFFFFC00)) );
+    sh4_raise_reset( EXC_TLB_MULTI_HIT );
+}
 
 /**
  * Raise a general CPU exception for the specified exception code.
  * (NOT for TRAPA or TLB exceptions)
  */
-gboolean FASTCALL sh4_raise_exception( int code )
+void FASTCALL sh4_raise_exception( int code )
 {
-    RAISE( code, EXV_EXCEPTION );
-}
-
-/**
- * Raise a CPU reset exception with the specified exception code.
- */
-gboolean FASTCALL sh4_raise_reset( int code )
-{
-    // FIXME: reset modules as per "manual reset"
-    sh4_reset();
-    MMIO_WRITE(MMU,EXPEVT,code);
-    sh4r.vbr = 0;
-    sh4r.pc = 0xA0000000;
-    sh4r.new_pc = sh4r.pc + 2;
-    sh4_write_sr( (sh4r.sr|SR_MD|SR_BL|SR_RB|SR_IMASK)
-                  &(~SR_FD) );
-    return TRUE;
-}
-
-gboolean FASTCALL sh4_raise_trap( int trap )
-{
-    MMIO_WRITE( MMU, TRA, trap<<2 );
-    RAISE( EXC_TRAP, EXV_EXCEPTION );
-}
-
-gboolean FASTCALL sh4_raise_slot_exception( int normal_code, int slot_code ) {
-    if( sh4r.in_delay_slot ) {
-        return sh4_raise_exception(slot_code);
+    if( sh4r.sr & SR_BL ) {
+        sh4_raise_reset( EXC_MANUAL_RESET );
     } else {
-        return sh4_raise_exception(normal_code);
+        sh4r.spc = sh4r.pc;
+        sh4r.ssr = sh4_read_sr();
+        sh4r.sgr = sh4r.r[15];
+        MMIO_WRITE(MMU,EXPEVT, code);
+        sh4r.pc = sh4r.vbr + EXV_EXCEPTION;
+        sh4r.new_pc = sh4r.pc + 2;
+        sh4_write_sr( sh4r.ssr |SR_MD|SR_BL|SR_RB );
+        sh4r.in_delay_slot = 0;
     }
 }
 
-gboolean FASTCALL sh4_raise_tlb_exception( int code )
+void FASTCALL sh4_raise_trap( int trap )
 {
-    RAISE( code, EXV_TLBMISS );
+    MMIO_WRITE( MMU, TRA, trap<<2 );
+    MMIO_WRITE( MMU, EXPEVT, EXC_TRAP );
+    sh4r.spc = sh4r.pc;
+    sh4r.ssr = sh4_read_sr();
+    sh4r.sgr = sh4r.r[15];
+    sh4r.pc = sh4r.vbr + EXV_EXCEPTION;
+    sh4r.new_pc = sh4r.pc + 2;
+    sh4_write_sr( sh4r.ssr |SR_MD|SR_BL|SR_RB );
+    sh4r.in_delay_slot = 0;
+}
+
+void FASTCALL sh4_raise_tlb_exception( int code, sh4vma_t vpn )
+{
+    MMIO_WRITE( MMU, TEA, vpn );
+    MMIO_WRITE( MMU, PTEH, ((MMIO_READ(MMU, PTEH) & 0x000003FF) | (vpn&0xFFFFFC00)) );
+    MMIO_WRITE( MMU, EXPEVT, code );
+    sh4r.spc = sh4r.pc;
+    sh4r.ssr = sh4_read_sr();
+    sh4r.sgr = sh4r.r[15];
+    sh4r.pc = sh4r.vbr + EXV_TLBMISS;
+    sh4r.new_pc = sh4r.pc + 2;
+    sh4_write_sr( sh4r.ssr |SR_MD|SR_BL|SR_RB );
+    sh4r.in_delay_slot = 0;
 }
 
 void FASTCALL sh4_accept_interrupt( void )
 {
     uint32_t code = intc_accept_interrupt();
+    MMIO_WRITE( MMU, INTEVT, code );
     sh4r.ssr = sh4_read_sr();
     sh4r.spc = sh4r.pc;
     sh4r.sgr = sh4r.r[15];
     sh4_write_sr( sh4r.ssr|SR_BL|SR_MD|SR_RB );
-    MMIO_WRITE( MMU, INTEVT, code );
     sh4r.pc = sh4r.vbr + 0x600;
     sh4r.new_pc = sh4r.pc + 2;
-    //    WARN( "Accepting interrupt %03X, from %08X => %08X", code, sh4r.spc, sh4r.pc );
 }
 
 void FASTCALL signsat48( void )
