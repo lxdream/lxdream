@@ -44,6 +44,7 @@ mem_region_fn_t *sh4_user_address_space;
 /* Accessed from the UTLB accessor methods */
 uint32_t mmu_urc;
 uint32_t mmu_urb;
+static gboolean mmu_urc_overflow; /* If true, urc was set >= urb */  
 
 /* Module globals */
 static struct itlb_entry mmu_itlb[ITLB_ENTRY_COUNT];
@@ -76,6 +77,7 @@ static gboolean mmu_ext_page_remapped( sh4addr_t page, mem_region_fn_t fn, void 
 static void mmu_utlb_1k_init();
 static struct utlb_1k_entry *mmu_utlb_1k_alloc();
 static void mmu_utlb_1k_free( struct utlb_1k_entry *entry );
+static void mmu_fix_urc();
 
 static void FASTCALL tlb_miss_read( sh4addr_t addr, void *exc );
 static int32_t FASTCALL tlb_protected_read( sh4addr_t addr, void *exc );
@@ -156,6 +158,7 @@ void MMU_reset()
 
 void MMU_save_state( FILE *f )
 {
+    mmu_fix_urc();   
     fwrite( &mmu_itlb, sizeof(mmu_itlb), 1, f );
     fwrite( &mmu_utlb, sizeof(mmu_utlb), 1, f );
     fwrite( &mmu_urc, sizeof(mmu_urc), 1, f );
@@ -186,6 +189,7 @@ int MMU_load_state( FILE *f )
     }
 
     uint32_t mmucr = MMIO_READ(MMU,MMUCR);
+    mmu_urc_overflow = mmu_urc >= mmu_urb;
     mmu_set_tlb_enabled(mmucr&MMUCR_AT);
     mmu_set_storequeue_protected(mmucr&MMUCR_SQMD, mmucr&MMUCR_AT);
     return 0;
@@ -197,7 +201,7 @@ int MMU_load_state( FILE *f )
  */
 void MMU_ldtlb()
 {
-    mmu_urc %= mmu_urb;
+    mmu_fix_urc();
     if( mmu_utlb[mmu_urc].flags & TLB_VALID )
         mmu_utlb_remove_entry( mmu_urc );
     mmu_utlb[mmu_urc].vpn = MMIO_READ(MMU, PTEH) & 0xFFFFFC00;
@@ -216,7 +220,7 @@ MMIO_REGION_READ_FN( MMU, reg )
     reg &= 0xFFF;
     switch( reg ) {
     case MMUCR:
-        mmu_urc %= mmu_urb;
+        mmu_fix_urc();
         return MMIO_READ( MMU, MMUCR) | (mmu_urc<<10) | ((mmu_urb&0x3F)<<18) | (mmu_lrui<<26);
     default:
         return MMIO_READ( MMU, reg );
@@ -258,6 +262,8 @@ MMIO_REGION_WRITE_FN( MMU, reg, val )
         mmu_urb = (val >> 18) & 0x3F;
         if( mmu_urb == 0 ) {
             mmu_urb = 0x40;
+        } else if( mmu_urc >= mmu_urb ) {
+            mmu_urc_overflow = TRUE;
         }
         mmu_lrui = (val >> 26) & 0x3F;
         val &= 0x00000301;
@@ -343,9 +349,17 @@ static void mmu_utlb_1k_free( struct utlb_1k_entry *ent )
 /**
  * MMU accessor functions just increment URC - fixup here if necessary
  */
-static inline void mmu_urc_fixup()
+static inline void mmu_fix_urc()
 {
-   mmu_urc %= mmu_urb; 
+    if( mmu_urc_overflow ) {
+        if( mmu_urc >= 0x40 ) {
+            mmu_urc_overflow = FALSE;
+            mmu_urc -= 0x40;
+            mmu_urc %= mmu_urb;
+        }
+    } else {
+        mmu_urc %= mmu_urb;
+    }
 }
 
 static void mmu_register_mem_region( uint32_t start, uint32_t end, mem_region_fn_t fn )
