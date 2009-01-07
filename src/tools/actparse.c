@@ -32,7 +32,7 @@ struct action *new_action() {
     return action;
 }
 
-int add_action( struct actionset *actions, struct ruleset *rules, char *operation, char *action )
+int add_action( char **actions, struct ruleset *rules, char *operation, char *action )
 {
     char *act = g_strchomp(action);
 
@@ -65,11 +65,11 @@ int add_action( struct actionset *actions, struct ruleset *rules, char *operatio
 
     for( i=0; i<rules->rule_count; i++ ) {
         if( strcasecmp(rules->rules[i]->format, operation) == 0 ) {
-            if( actions->actions[i] != NULL ) {
+            if( actions[i] != NULL ) {
                 fprintf( stderr, "Duplicate actions for operation '%s'\n", operation );
                 return -1;
             }
-            actions->actions[i] = act;
+            actions[i] = act;
             return 0;
         }
     }
@@ -77,65 +77,105 @@ int add_action( struct actionset *actions, struct ruleset *rules, char *operatio
     return -1;
 }
 
-
-struct actionset *parse_action_file( struct ruleset *rules, FILE *f ) 
-{
-    struct actionset *actions = malloc( sizeof(struct actionset ) );
-    struct stat st;
+struct actionfile {
+    FILE *f;
     char *text;
-    int i, length;
+    int length;
+    int yyposn;
+    int yyline;
+    struct ruleset *rules;
+    struct actiontoken token;
+};
 
-    memset( actions, 0, sizeof( struct actionset ) );
-    /* Read whole file in (for convenience) */
+actionfile_t action_file_open( const char *filename, struct ruleset *rules )
+{
+    struct stat st;
+    FILE *f = fopen( filename, "ro" );
+    if( f == NULL ) 
+        return NULL;
     fstat( fileno(f), &st );
-    length = st.st_size;
-    text = malloc( length+1 );
-    fread( text, length, 1, f );
-    text[length] = '\0';
-    yyline = 0;
-    actions->pretext = text;
-    for( i=0; i<length; i++ ) {
-        if( text[i] == '\n' ) {
-            yyline++;
-            if( i+3 < length && text[i+1] == '%' && text[i+2] == '%' ) {
-                text[i+1] = '\0';
-                i+=3;
-                break;
-            }
-        }
+    
+    actionfile_t af = malloc( sizeof(struct actionfile) );
+    af->f = f;
+    af->length = st.st_size+1;
+    af->text = malloc( st.st_size+1 );
+    fread( af->text, st.st_size, 1, f );
+    af->text[st.st_size] = '\0';
+    af->yyline = 0;
+    af->yyposn = 0;
+    af->rules = rules;
+    af->token.symbol = NONE;
+    
+    return af;
+}
+
+actiontoken_t action_file_next( actionfile_t af )
+{
+    if( af->token.symbol == ACTIONS ) {
+        /* Destroy previous actions */
+        memset( af->token.actions, 0, sizeof(af->token.actions) );
     }
+    
+    if( af->yyposn == af->length ) {
+        af->token.symbol = END;
+    } else if( af->token.symbol == TEXT || /* ACTIONS must follow TEXT */ 
+            (af->token.symbol == NONE && af->text[af->yyposn] == '\%' && af->text[af->yyposn+1] == '%') ) {
+        /* Begin action block */
+        af->token.symbol = ACTIONS;
 
-    char *operation = &text[i];
-    for( ; i<length; i++ ) {
-        if( text[i] == '\n' ) {
-            yyline++;
-            if( i+3 < length && text[i+1] == '%' && text[i+2] == '%' ) {
-                i+=3;
-                break;
+        char *operation = &af->text[af->yyposn];
+        while( af->yyposn < af->length ) {
+            if( af->text[af->yyposn] == '\n' ) {
+                yyline++;
+                if( af->text[af->yyposn+1] == '%' && af->text[af->yyposn+2] == '%' ) {
+                    af->yyposn += 3;
+                    break;
+                }
             }
-        }
 
-        if( text[i] == '{' && text[i+1] == ':' ) {
-            text[i] = '\0';
-            i+=2;
-            char *action = &text[i];
-            for( ;i<length; i++ ) {
-                if( text[i] == ':' && text[i+1] == '}' ) {
-                    text[i] = '\0';
-                    i++;
-                    if( add_action( actions, rules, operation, action ) != 0 ) {
-                        free(actions);
-                        free(text);
-                        return NULL;
+            if( af->text[af->yyposn] == '{' && af->text[af->yyposn+1] == ':' ) {
+                af->text[af->yyposn] = '\0';
+                af->yyposn+=2;
+                char *action = &af->text[af->yyposn];
+                while( af->yyposn < af->length ) {
+                    if( af->text[af->yyposn] == ':' && af->text[af->yyposn+1] == '}' ) {
+                        af->text[af->yyposn] = '\0';
+                        af->yyposn++;
+                        if( add_action( af->token.actions, af->rules, operation, action ) != 0 ) {
+                            af->token.symbol = ERROR;
+                            return &af->token;
+                        }
+                        operation = &af->text[af->yyposn+1];
+                        break;
                     }
-                    operation = &text[i+1];
+                    af->yyposn++;
+                }
+            }
+            af->yyposn++;
+        }
+    } else {
+        /* Text block */
+        af->token.symbol = TEXT;
+        af->token.text = &af->text[af->yyposn]; 
+        while( af->yyposn < af->length ) {
+            af->yyposn++;
+            if( af->text[af->yyposn-1] == '\n' ) {
+                af->yyline++;
+                if( af->text[af->yyposn] == '%' && af->text[af->yyposn+1] == '%' ) {
+                    af->text[af->yyposn] = '\0';
+                    af->yyposn += 2;
                     break;
                 }
             }
         }
     }
-
-    actions->posttext = &text[i];
-
-    return actions;
+    return &af->token;
 }
+
+void action_file_close( actionfile_t af )
+{
+    free( af->text );
+    fclose( af->f );
+    free( af );
+}
+

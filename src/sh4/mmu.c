@@ -277,7 +277,8 @@ MMIO_REGION_WRITE_FN( MMU, reg, val )
             // current block
             mmu_set_tlb_enabled( val & MMUCR_AT );
             MMIO_WRITE( MMU, MMUCR, val );
-            sh4_flush_icache();
+            sh4_core_exit( CORE_EXIT_FLUSH_ICACHE );
+            xlat_flush_cache(); // If we're not running, flush the cache anyway
         }
         break;
     case CCR:

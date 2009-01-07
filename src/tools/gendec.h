@@ -70,14 +70,24 @@ struct action {
 };
 
 struct actionset {
-    char *pretext;
-    char *posttext;
     char *actions[MAX_RULES];
 };
 
-struct actionset *parse_action_file( struct ruleset *rules, FILE *f );
+typedef struct actionfile *actionfile_t;
 
-int generate_decoder( struct ruleset *rules, struct actionset *actions, FILE *f );
+typedef struct actiontoken {
+    enum { NONE, TEXT, ACTIONS, END, ERROR } symbol;
+    char *text;
+    char *actions[MAX_RULES];
+} *actiontoken_t;
+
+actionfile_t action_file_open( const char *filename, struct ruleset *rules );
+
+actiontoken_t action_file_next( actionfile_t af );
+
+void action_file_close( actionfile_t af );
+
+int generate_decoder( struct ruleset *rules, actionfile_t af, FILE *f );
 
 #ifdef __cplusplus
 }
