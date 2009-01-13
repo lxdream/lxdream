@@ -24,7 +24,7 @@
 #include "pvr2/scene.h"
 #include "pvr2/glutil.h"
 
-#define IS_EMPTY_TILE_LIST(p) ((*((uint32_t *)(video_base+(p))) >> 28) == 0x0F)
+#define IS_EMPTY_TILE_LIST(p) ((*((uint32_t *)(pvr2_main_ram+(p))) >> 28) == 0x0F)
 
 int pvr2_poly_depthmode[8] = { GL_NEVER, GL_LESS, GL_EQUAL, GL_LEQUAL,
         GL_GREATER, GL_NOTEQUAL, GL_GEQUAL, 
@@ -274,7 +274,7 @@ static void gl_render_bkgnd( struct polygon_struct *poly )
 
 void gl_render_tilelist( pvraddr_t tile_entry, GLint depth_mode )
 {
-    uint32_t *tile_list = (uint32_t *)(video_base+tile_entry);
+    uint32_t *tile_list = (uint32_t *)(pvr2_main_ram+tile_entry);
     int strip_count;
     struct polygon_struct *poly;
 
@@ -287,7 +287,7 @@ void gl_render_tilelist( pvraddr_t tile_entry, GLint depth_mode )
         case 0x0F:
             return; // End-of-list
         case 0x0E:
-            tile_list = (uint32_t *)(video_base + (entry&0x007FFFFF));
+            tile_list = (uint32_t *)(pvr2_main_ram + (entry&0x007FFFFF));
             break;
         case 0x08: case 0x09: case 0x0A: case 0x0B:
             strip_count = ((entry >> 25) & 0x0F)+1;
@@ -313,7 +313,7 @@ void gl_render_tilelist( pvraddr_t tile_entry, GLint depth_mode )
  */
 void gl_render_tilelist_depthonly( pvraddr_t tile_entry )
 {
-    uint32_t *tile_list = (uint32_t *)(video_base+tile_entry);
+    uint32_t *tile_list = (uint32_t *)(pvr2_main_ram+tile_entry);
     int strip_count;
     struct polygon_struct *poly;
     
@@ -330,7 +330,7 @@ void gl_render_tilelist_depthonly( pvraddr_t tile_entry )
         case 0x0F:
             return; // End-of-list
         case 0x0E:
-            tile_list = (uint32_t *)(video_base + (entry&0x007FFFFF));
+            tile_list = (uint32_t *)(pvr2_main_ram + (entry&0x007FFFFF));
             break;
         case 0x08: case 0x09: case 0x0A: case 0x0B:
             strip_count = ((entry >> 25) & 0x0F)+1;
@@ -428,7 +428,7 @@ void gl_render_modifier_polygon( struct polygon_struct *poly, uint32_t tile_boun
 
 void gl_render_modifier_tilelist( pvraddr_t tile_entry, uint32_t tile_bounds[] )
 {
-    uint32_t *tile_list = (uint32_t *)(video_base+tile_entry);
+    uint32_t *tile_list = (uint32_t *)(pvr2_main_ram+tile_entry);
     int strip_count;
     struct polygon_struct *poly;
 
@@ -456,7 +456,7 @@ void gl_render_modifier_tilelist( pvraddr_t tile_entry, uint32_t tile_bounds[] )
             glStencilOp( GL_KEEP, GL_KEEP, GL_KEEP );
             return; // End-of-list
         case 0x0E:
-            tile_list = (uint32_t *)(video_base + (entry&0x007FFFFF));
+            tile_list = (uint32_t *)(pvr2_main_ram + (entry&0x007FFFFF));
             break;
         case 0x08: case 0x09: case 0x0A: case 0x0B:
             strip_count = ((entry >> 25) & 0x0F)+1;

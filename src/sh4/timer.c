@@ -44,9 +44,9 @@ uint32_t sh4_cpu_period = 1000 / SH4_BASE_RATE; /* in nanoseconds */
 uint32_t sh4_bus_period = 2* 1000 / SH4_BASE_RATE;
 uint32_t sh4_peripheral_period = 4 * 2000 / SH4_BASE_RATE;
 
-int32_t mmio_region_CPG_read( uint32_t reg )
+MMIO_REGION_READ_FN( CPG, reg )
 {
-    return MMIO_READ( CPG, reg );
+    return MMIO_READ( CPG, reg&0xFFF );
 }
 
 /* CPU + bus dividers (note officially only the first 6 values are valid) */
@@ -54,11 +54,11 @@ int ifc_divider[8] = { 1, 2, 3, 4, 5, 8, 8, 8 };
 /* Peripheral clock dividers (only first 5 are officially valid) */
 int pfc_divider[8] = { 2, 3, 4, 6, 8, 8, 8, 8 };
 
-void mmio_region_CPG_write( uint32_t reg, uint32_t val )
+MMIO_REGION_WRITE_FN( CPG, reg, val )
 {
     uint32_t div;
     uint32_t primary_clock = sh4_input_freq;
-    
+    reg &= 0xFFF;
     switch( reg ) {
     case FRQCR: /* Frequency control */
         if( (val & FRQCR_PLL1EN) == 0 )
@@ -98,14 +98,14 @@ void CPG_reset( )
 
 uint32_t rtc_output_period;
 
-int32_t mmio_region_RTC_read( uint32_t reg )
+MMIO_REGION_READ_FN( RTC, reg )
 {
-    return MMIO_READ( RTC, reg );
+    return MMIO_READ( RTC, reg &0xFFF );
 }
 
-void mmio_region_RTC_write( uint32_t reg, uint32_t val )
+MMIO_REGION_WRITE_FN( RTC, reg, val )
 {
-    MMIO_WRITE( RTC, reg, val );
+    MMIO_WRITE( RTC, reg &0xFFF, val );
 }
 
 /********************************** TMU *************************************/
@@ -139,22 +139,6 @@ struct TMU_timer {
 };
 
 static struct TMU_timer TMU_timers[3];
-
-int32_t mmio_region_TMU_read( uint32_t reg )
-{
-    switch( reg ) {
-    case TCNT0:
-        TMU_count( 0, sh4r.slice_cycle );
-        break;
-    case TCNT1:
-        TMU_count( 1, sh4r.slice_cycle );
-        break;
-    case TCNT2:
-        TMU_count( 2, sh4r.slice_cycle );
-        break;
-    }
-    return MMIO_READ( TMU, reg );
-}
 
 void TMU_set_timer_control( int timer,  int tcr )
 {
@@ -261,10 +245,28 @@ uint32_t TMU_count( int timer, uint32_t nanosecs )
     return value;
 }
 
-void mmio_region_TMU_write( uint32_t reg, uint32_t val )
+MMIO_REGION_READ_FN( TMU, reg )
+{
+    reg &= 0xFFF;
+    switch( reg ) {
+    case TCNT0:
+        TMU_count( 0, sh4r.slice_cycle );
+        break;
+    case TCNT1:
+        TMU_count( 1, sh4r.slice_cycle );
+        break;
+    case TCNT2:
+        TMU_count( 2, sh4r.slice_cycle );
+        break;
+    }
+    return MMIO_READ( TMU, reg );
+}
+
+MMIO_REGION_WRITE_FN( TMU, reg, val )
 {
     uint32_t oldval;
     int i;
+    reg &= 0xFFF;
     switch( reg ) {
     case TSTR:
         oldval = MMIO_READ( TMU, TSTR );

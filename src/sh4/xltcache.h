@@ -41,7 +41,7 @@ struct xlat_cache_block {
     int active;  /* 0 = deleted, 1 = normal. 2 = accessed (temp-space only) */
     uint32_t size;
     void **lut_entry; /* For deletion */
-    uint32_t fpscr_mask, fpscr; /* fpscr condition check */
+    uint32_t xlat_sh4_mode; /* comparison with sh4r.xlat_sh4_mode */
     uint32_t recover_table_offset; // Offset from code[0] of the recovery table;
     uint32_t recover_table_size;
     unsigned char code[0];
@@ -51,8 +51,7 @@ typedef struct xlat_cache_block *xlat_cache_block_t;
 
 #define XLAT_BLOCK_FOR_CODE(code) (((xlat_cache_block_t)code)-1)
 
-#define XLAT_BLOCK_FPSCR_MASK(code) (XLAT_BLOCK_FOR_CODE(code)->fpscr_mask) 
-#define XLAT_BLOCK_FPSCR(code) (XLAT_BLOCK_FOR_CODE(code)->fpscr_mask) 
+#define XLAT_BLOCK_MODE(code) (XLAT_BLOCK_FOR_CODE(code)->xlat_sh4_mode) 
 
 /**
  * Initialize the translation cache
@@ -102,22 +101,10 @@ void xlat_delete_block( xlat_cache_block_t block );
 void * FASTCALL xlat_get_code( sh4addr_t address );
 
 /**
- * Retrieve the post-instruction recovery record corresponding to the given
- * native address, or NULL if there is no recovery code for the address.
- * @param code The code block containing the recovery table.
- * @param native_pc A pointer that must be within the currently executing 
- * @param with_terminal If false, return NULL instead of the final block record. 
- * return the first record before or equal to the given pc.
- * translation block.
- */
-struct xlat_recovery_record *xlat_get_post_recovery( void *code, void *native_pc, gboolean with_terminal );
-
-/**
  * Retrieve the pre-instruction recovery record corresponding to the given
  * native address, or NULL if there is no recovery code for the address.
  * @param code The code block containing the recovery table.
  * @param native_pc A pointer that must be within the currently executing 
- * @param with_terminal If false, return NULL instead of the final block record. 
  * return the first record before or equal to the given pc.
  * translation block.
  */

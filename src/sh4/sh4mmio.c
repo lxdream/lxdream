@@ -72,9 +72,10 @@ uint32_t bsc_read_pdtrb()
 
 MMIO_REGION_WRITE_DEFFN(BSC)
 
-int32_t mmio_region_BSC_read( uint32_t reg )
+MMIO_REGION_READ_FN( BSC, reg )
 {
     int32_t val;
+    reg &= 0xFFF;
     switch( reg ) {
     case PDTRA:
         val = bsc_read_pdtra();
@@ -90,13 +91,14 @@ int32_t mmio_region_BSC_read( uint32_t reg )
 
 /********************************* UBC *************************************/
 
-int32_t mmio_region_UBC_read( uint32_t reg )
+MMIO_REGION_READ_FN( UBC, reg )
 {
-    return MMIO_READ( UBC, reg );
+    return MMIO_READ( UBC, reg & 0xFFF );
 }
 
-void mmio_region_UBC_write( uint32_t reg, uint32_t val )
+MMIO_REGION_WRITE_FN( UBC, reg, val )
 {
+    reg &= 0xFFF;
     switch( reg ) {
     case BAMRA:
     case BAMRB:

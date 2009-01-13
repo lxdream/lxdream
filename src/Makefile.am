@@ -34,7 +34,7 @@ genglsl_SOURCES = tools/genglsl.c
 
 lxdream_SOURCES = \
         main.c version.c config.c config.h lxdream.h dream.h gui.h cpu.h hook.h \
-        gettext.h mem.c mem.h mmio.h paths.c watch.c \
+        gettext.h mem.c mem.h sdram.c mmio.h paths.c watch.c \
         asic.c asic.h clock.h serial.h \
         syscall.c syscall.h bios.c dcload.c \
         gdrom/ide.c gdrom/ide.h gdrom/packet.h gdrom/gdimage.c \
@@ -46,6 +46,7 @@ lxdream_SOURCES = \
         sh4/mmu.c sh4/sh4core.c sh4/sh4core.h sh4/sh4dasm.c sh4/sh4dasm.h \
         sh4/sh4mmio.c sh4/sh4mmio.h sh4/scif.c sh4/sh4stat.c sh4/sh4stat.h \
 	sh4/xltcache.c sh4/xltcache.h sh4/sh4.h sh4/dmac.h sh4/pmm.c \
+	sh4/cache.c sh4/mmu.h \
         aica/armcore.c aica/armcore.h aica/armdasm.c aica/armdasm.h aica/armmem.c \
         aica/aica.c aica/aica.h aica/audio.c aica/audio.h \
 	pvr2/pvr2.c pvr2/pvr2.h pvr2/pvr2mem.c pvr2/pvr2mmio.h \
@@ -65,7 +66,7 @@ lxdream_SOURCES = \
 if BUILD_SH4X86
 lxdream_SOURCES += sh4/sh4x86.c sh4/x86op.h \
         sh4/ia32abi.h sh4/ia32mac.h sh4/ia64abi.h \
-        sh4/sh4trans.c sh4/sh4trans.h \
+        sh4/sh4trans.c sh4/sh4trans.h sh4/mmux86.c \
         x86dasm/x86dasm.c x86dasm/x86dasm.h \
         x86dasm/i386-dis.c x86dasm/dis-init.c x86dasm/dis-buf.c \
         x86dasm/ansidecl.h x86dasm/bfd.h x86dasm/dis-asm.h \
@@ -75,8 +76,8 @@ test_testsh4x86_LDADD = @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@
 test_testsh4x86_SOURCES = test/testsh4x86.c x86dasm/x86dasm.c \
 	x86dasm/x86dasm.h x86dasm/i386-dis.c x86dasm/dis-init.c \
 	x86dasm/dis-buf.c \
-	sh4/sh4dasm.c sh4/sh4trans.c sh4/sh4x86.c sh4/xltcache.c \
-	sh4/xltcache.h mem.c util.c sh4/mmu.c
+	sh4/sh4trans.c sh4/sh4x86.c sh4/xltcache.c \
+	sh4/xltcache.h mem.c util.c 
 
 check_PROGRAMS += test/testsh4x86
 endif

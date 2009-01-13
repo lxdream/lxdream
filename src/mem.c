@@ -35,7 +35,14 @@
 #include "mmio.h"
 #include "dreamcast.h"
 
+#ifndef PAGE_SIZE
+#define PAGE_SIZE 4096
+#endif
+
 sh4ptr_t *page_map = NULL;
+mem_region_fn_t *ext_address_space = NULL;
+
+extern struct mem_region_fn mem_region_unmapped; 
 
 int mem_load(FILE *f);
 void mem_save(FILE *f);
@@ -48,6 +55,41 @@ struct mmio_region *P4_io[4096];
 
 uint32_t num_io_rgns = 0, num_mem_rgns = 0;
 
+DEFINE_HOOK( mem_page_remapped_hook, mem_page_remapped_hook_t );
+static void mem_page_remapped( sh4addr_t addr, mem_region_fn_t fn )
+{
+    CALL_HOOKS( mem_page_remapped_hook, addr, fn );
+}
+
+/********************* The "unmapped" address space ********************/
+/* Always reads as 0, writes have no effect */
+int32_t FASTCALL unmapped_read_long( sh4addr_t addr )
+{
+    return 0;
+}
+void FASTCALL unmapped_write_long( sh4addr_t addr, uint32_t val )
+{
+}
+void FASTCALL unmapped_read_burst( unsigned char *dest, sh4addr_t addr )
+{
+    memset( dest, 0, 32 );
+}
+void FASTCALL unmapped_write_burst( sh4addr_t addr, unsigned char *src )
+{
+}
+
+void FASTCALL unmapped_prefetch( sh4addr_t addr )
+{
+    /* No effect */
+}
+
+struct mem_region_fn mem_region_unmapped = { 
+        unmapped_read_long, unmapped_write_long, 
+        unmapped_read_long, unmapped_write_long, 
+        unmapped_read_long, unmapped_write_long, 
+        unmapped_read_burst, unmapped_write_burst,
+        unmapped_prefetch }; 
+
 void *mem_alloc_pages( int n )
 {
     void *mem = mmap( NULL, n * 4096,
@@ -59,18 +101,39 @@ void *mem_alloc_pages( int n )
     return mem;
 }
 
+void mem_unprotect( void *region, uint32_t size )
+{
+    /* Force page alignment */
+    uintptr_t i = (uintptr_t)region;
+    uintptr_t mask = ~(PAGE_SIZE-1);
+    void *ptr = (void *)(i & mask);
+    size_t len = i & (PAGE_SIZE-1) + size;
+    len = (len + (PAGE_SIZE-1)) & mask;
+    
+    int status = mprotect( ptr, len, PROT_READ|PROT_WRITE|PROT_EXEC );
+    assert( status == 0 );
+}
 
 void mem_init( void )
 {
+    int i;
+    mem_region_fn_t *ptr;
     page_map = mmap( NULL, sizeof(sh4ptr_t) * LXDREAM_PAGE_TABLE_ENTRIES,
             PROT_READ|PROT_WRITE, MAP_ANON|MAP_PRIVATE, -1, 0 );
     if( page_map == MAP_FAILED ) {
-        ERROR( "Unable to allocate page map! (%s)", strerror(errno) );
-        page_map = NULL;
-        return;
+        FATAL( "Unable to allocate page map! (%s)", strerror(errno) );
+    }
+    memset( page_map, 0, sizeof(sh4ptr_t) * LXDREAM_PAGE_TABLE_ENTRIES );
+    
+    ext_address_space = mmap( NULL, sizeof(mem_region_fn_t) * LXDREAM_PAGE_TABLE_ENTRIES,
+            PROT_READ|PROT_WRITE, MAP_ANON|MAP_PRIVATE, -1, 0 );
+    if( ext_address_space == MAP_FAILED ) {
+        FATAL( "Unable to allocate external memory map (%s)", strerror(errno) );
     }
 
-    memset( page_map, 0, sizeof(sh4ptr_t) * LXDREAM_PAGE_TABLE_ENTRIES );
+    for( ptr = ext_address_space, i = LXDREAM_PAGE_TABLE_ENTRIES; i > 0; ptr++, i-- ) {
+        *ptr = &mem_region_unmapped;
+    }
 }
 
 void mem_reset( void )
@@ -81,7 +144,7 @@ void mem_reset( void )
         for( j=0; io_rgn[i]->ports[j].id != NULL; j++ ) {
             if( io_rgn[i]->ports[j].def_val != UNDEFINED &&
                     io_rgn[i]->ports[j].def_val != *io_rgn[i]->ports[j].val ) {
-                io_rgn[i]->io_write( io_rgn[i]->ports[j].offset,
+                io_rgn[i]->fn.write_long( io_rgn[i]->ports[j].offset,
                         io_rgn[i]->ports[j].def_val );
             }
         }
@@ -90,18 +153,26 @@ void mem_reset( void )
 
 void mem_save( FILE *f ) 
 {
-    int i;
+    int i, num_ram_regions = 0;
     uint32_t len;
 
-    /* All memory regions */
-    fwrite( &num_mem_rgns, sizeof(num_mem_rgns), 1, f );
+    /* All RAM regions (ROM and non-memory regions don't need to be saved)
+     * Flash is questionable - for now we save it too */
     for( i=0; i<num_mem_rgns; i++ ) {
-        fwrite_string( mem_rgn[i].name, f );
-        fwrite( &mem_rgn[i].base, sizeof(uint32_t), 1, f );
-        fwrite( &mem_rgn[i].flags, sizeof(uint32_t), 1, f );
-        fwrite( &mem_rgn[i].size, sizeof(uint32_t), 1, f );
-        if( mem_rgn[i].flags != MEM_FLAG_ROM )
+        if( mem_rgn[i].flags == MEM_FLAG_RAM ) {
+            num_ram_regions++;
+        }
+    }
+    fwrite( &num_ram_regions, sizeof(num_ram_regions), 1, f );
+    
+    for( i=0; i<num_mem_rgns; i++ ) {
+        if( mem_rgn[i].flags == MEM_FLAG_RAM ) {
+            fwrite_string( mem_rgn[i].name, f );
+            fwrite( &mem_rgn[i].base, sizeof(uint32_t), 1, f );
+            fwrite( &mem_rgn[i].flags, sizeof(uint32_t), 1, f );
+            fwrite( &mem_rgn[i].size, sizeof(uint32_t), 1, f );
             fwrite_gzip( mem_rgn[i].mem, mem_rgn[i].size, 1, f );
+        }
     }
 
     /* All MMIO regions */
@@ -121,32 +192,51 @@ int mem_load( FILE *f )
     uint32_t len;
     uint32_t base, size;
     uint32_t flags;
-    int i;
+    int i, j;
+    int mem_region_loaded[MAX_MEM_REGIONS];
 
-    /* All memory regions */
+    /* All RAM regions */
+    memset( mem_region_loaded, 0, sizeof(mem_region_loaded) );
     fread( &len, sizeof(len), 1, f );
-    if( len != num_mem_rgns )
-        return -1;
     for( i=0; i<len; i++ ) {
         fread_string( tmp, sizeof(tmp), f );
-        fread( &base, sizeof(base), 1, f );
-        fread( &flags, sizeof(flags), 1, f );
-        fread( &size, sizeof(size), 1, f );
-        if( strcmp( mem_rgn[i].name, tmp ) != 0 ||
-                base != mem_rgn[i].base ||
-                flags != mem_rgn[i].flags ||
-                size != mem_rgn[i].size ) {
-            ERROR( "Bad memory region %d %s", i, tmp );
+
+        for( j=0; j<num_mem_rgns; j++ ) {
+            if( strcasecmp( mem_rgn[j].name, tmp ) == 0 ) {
+                fread( &base, sizeof(base), 1, f );
+                fread( &flags, sizeof(flags), 1, f );
+                fread( &size, sizeof(size), 1, f );
+                if( base != mem_rgn[j].base ||
+                    flags != mem_rgn[j].flags ||
+                    size != mem_rgn[j].size ) {
+                    ERROR( "Bad memory block %d %s (not mapped to expected region)", i, tmp );
+                    return -1;
+                }
+                if( flags != MEM_FLAG_RAM ) {
+                    ERROR( "Unexpected memory block %d %s (Not a RAM region)", i, tmp );
+                    return -1;
+                }
+                fread_gzip( mem_rgn[j].mem, size, 1, f );
+                mem_region_loaded[j] = 1;
+            }
+        }
+    }
+    /* Make sure we got all the memory regions we expected */
+    for( i=0; i<num_mem_rgns; i++ ) {
+        if( mem_rgn[i].flags == MEM_FLAG_RAM &&
+            mem_region_loaded[i] == 0 ) {
+            ERROR( "Missing memory block %s (not found in save state)", mem_rgn[i].name );
             return -1;
         }
-        if( flags != MEM_FLAG_ROM )
-            fread_gzip( mem_rgn[i].mem, size, 1, f );
     }
 
     /* All MMIO regions */
     fread( &len, sizeof(len), 1, f );
-    if( len != num_io_rgns ) 
+    if( len != num_io_rgns ) {
+        ERROR( "Unexpected IO region count %d (expected %d)", len, num_io_rgns );
         return -1;
+    }
+    
     for( i=0; i<len; i++ ) {
         fread_string( tmp, sizeof(tmp), f );
         fread( &base, sizeof(base), 1, f );
@@ -225,8 +315,8 @@ int mem_load_block( const gchar *file, uint32_t start, uint32_t length )
 }
 
 struct mem_region *mem_map_region( void *mem, uint32_t base, uint32_t size,
-                                   const char *name, int flags, uint32_t repeat_offset,
-                                   uint32_t repeat_until )
+                                   const char *name, mem_region_fn_t fn, int flags, 
+                                   uint32_t repeat_offset, uint32_t repeat_until )
 {
     int i;
     mem_rgn[num_mem_rgns].base = base;
@@ -234,71 +324,57 @@ struct mem_region *mem_map_region( void *mem, uint32_t base, uint32_t size,
     mem_rgn[num_mem_rgns].flags = flags;
     mem_rgn[num_mem_rgns].name = name;
     mem_rgn[num_mem_rgns].mem = mem;
+    mem_rgn[num_mem_rgns].fn = fn;
+    fn->prefetch = unmapped_prefetch;
     num_mem_rgns++;
 
     do {
-        for( i=0; i<size>>LXDREAM_PAGE_BITS; i++ )
-            page_map[(base>>LXDREAM_PAGE_BITS)+i] = mem + (i<<LXDREAM_PAGE_BITS);
+        for( i=0; i<size>>LXDREAM_PAGE_BITS; i++ ) {
+            if( mem != NULL ) {
+                page_map[(base>>LXDREAM_PAGE_BITS)+i] = mem + (i<<LXDREAM_PAGE_BITS);
+            }
+            ext_address_space[(base>>LXDREAM_PAGE_BITS)+i] = fn;
+            mem_page_remapped( base + (i<<LXDREAM_PAGE_BITS), fn );
+        }
         base += repeat_offset;	
     } while( base <= repeat_until );
 
     return &mem_rgn[num_mem_rgns-1];
 }
 
-void *mem_create_ram_region( uint32_t base, uint32_t size, const char *name )
+gboolean mem_load_rom( void *output, const gchar *file, uint32_t size, uint32_t crc )
 {
-    return mem_create_repeating_ram_region( base, size, name, size, base );
-}
+    if( file != NULL && file[0] != '\0' ) {
+        FILE *f = fopen(file,"r");
+        struct stat st;
+        uint32_t calc_crc;
 
-void *mem_create_repeating_ram_region( uint32_t base, uint32_t size, const char *name,
-                                       uint32_t repeat_offset, uint32_t repeat_until )
-{
-    char *mem;
-
-    assert( (base&0xFFFFF000) == base ); /* must be page aligned */
-    assert( (size&0x00000FFF) == 0 );
-    assert( num_mem_rgns < MAX_MEM_REGIONS );
-    assert( page_map != NULL );
-
-    mem = mem_alloc_pages( size>>LXDREAM_PAGE_BITS );
-
-    mem_map_region( mem, base, size, name, MEM_FLAG_RAM, repeat_offset, repeat_until );
-
-    return mem;
-}
-
-gboolean mem_load_rom( const gchar *file, uint32_t base, uint32_t size, uint32_t crc,
-                       const gchar *region_name )
-{
-    sh4ptr_t mem;
-    uint32_t calc_crc;
-    int status;
-
-    mem = mem_get_region(base);
-    if( mem == NULL ) {
-        mem = mmap( NULL, size, PROT_WRITE|PROT_READ, MAP_ANON|MAP_PRIVATE, -1, 0 );
-        if( mem == MAP_FAILED ) {
-            ERROR( "Unable to allocate ROM memory: %s (%s)", file, strerror(errno) );
+        if( f == NULL ) {
+            ERROR( "Unable to load file '%s': %s", file, strerror(errno) );
             return FALSE;
         }
-        mem_map_region( mem, base, size, region_name, MEM_FLAG_ROM, size, base );
-    } else {
-        mprotect( mem, size, PROT_READ|PROT_WRITE );
-    }
 
-    if( file != NULL && file[0] != '\0' ) {
-        status = mem_load_block( file, base, size );
-        mprotect( mem, size, PROT_READ );
-
-        if( status == 0 ) {
-            /* CRC check only if we loaded something */
-            calc_crc = crc32(0L, (sh4ptr_t)mem, size);
-            if( calc_crc != crc ) {
-                WARN( "Bios CRC Mismatch in %s: %08X (expected %08X)",
-                        file, calc_crc, crc);
-            }
-            return TRUE;
+        fstat( fileno(f), &st );
+        if( st.st_size != size ) {
+            ERROR( "File '%s' is invalid, expected %d bytes but was %d bytes long.", file, size, st.st_size );
+            fclose(f);
+            return FALSE;
         }
+        
+        if( fread( output, 1, size, f ) != size ) { 
+            ERROR( "Failed to load file '%s': %s", file, strerror(errno) );
+            fclose(f);
+            return FALSE;
+        }
+
+        /* CRC check only if we loaded something */
+        calc_crc = crc32(0L, output, size);
+        if( calc_crc != crc ) {
+            WARN( "Bios CRC Mismatch in %s: %08X (expected %08X)",
+                   file, calc_crc, crc);
+        }
+        /* Even if the CRC fails, continue normally */
+        return TRUE;
     }
     return FALSE;
 }
@@ -334,6 +410,8 @@ void register_io_region( struct mmio_region *io )
         P4_io[(io->base&0x1FFFFFFF)>>19] = io;
     } else {
         page_map[io->base>>12] = (sh4ptr_t)(uintptr_t)num_io_rgns;
+        ext_address_space[io->base>>12] = &io->fn;
+        mem_page_remapped( io->base, &io->fn );
     }
     io_rgn[num_io_rgns] = io;
     num_io_rgns++;
@@ -344,16 +422,9 @@ void register_io_regions( struct mmio_region **io )
     while( *io ) register_io_region( *io++ );
 }
 
-int mem_has_page( uint32_t addr )
+gboolean mem_has_page( uint32_t addr )
 {
-    sh4ptr_t page = page_map[ (addr & 0x1FFFFFFF) >> 12 ];
-    return page != NULL;
-}
-
-sh4ptr_t mem_get_page( uint32_t addr )
-{
-    sh4ptr_t page = page_map[ (addr & 0x1FFFFFFF) >> 12 ];
-    return page;
+    return ext_address_space[ (addr&0x1FFFFFFF)>>12 ] != &mem_region_unmapped;
 }
 
 sh4ptr_t mem_get_region( uint32_t addr )
@@ -368,22 +439,7 @@ sh4ptr_t mem_get_region( uint32_t addr )
 
 void mem_write_long( sh4addr_t addr, uint32_t value )
 {
-    sh4ptr_t ptr = mem_get_region(addr);
-    assert(ptr != NULL);
-    *((uint32_t *)ptr) = value;
-}
-
-struct mmio_region *mem_get_io_region( uint32_t addr )
-{
-    if( addr > 0xFF000000 ) {
-        return P4_io[(addr&0x00FFFFFF)>>12];
-    }
-    sh4ptr_t page = page_map[(addr&0x1FFFFFFF)>>12];
-    if( ((uintptr_t)page) < MAX_IO_REGIONS ) {
-        return io_rgn[(uintptr_t)page];
-    } else {
-        return NULL;
-    }
+    ext_address_space[(addr&0x1FFFFFFF)>>12]->write_long(addr, value);
 }
 
 struct mmio_region *mem_get_io_region_by_name( const gchar *name )

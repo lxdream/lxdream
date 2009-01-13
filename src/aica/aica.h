@@ -71,6 +71,10 @@ void aica_enable( void );
 void aica_event( int event );
 void aica_write_channel( int channel, uint32_t addr, uint32_t val );
 
+extern unsigned char aica_main_ram[];
+extern unsigned char aica_scratch_ram[];
+
+
 /**
  * The AICA core runs at 44100 samples/second, regardless of what we're
  * actually outputing.

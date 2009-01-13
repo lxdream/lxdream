@@ -16,8 +16,8 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
-#ifndef dream_mmio_H
-#define dream_mmio_H 1
+#ifndef lxdream_mmio_H
+#define lxdream_mmio_H 1
 
 #ifdef __cplusplus
 extern "C" {
@@ -28,6 +28,7 @@ extern "C" {
 
 #include <stdint.h>
 #include <stdlib.h>
+#include "mem.h"
 
 #define LXDREAM_PAGE_TABLE_ENTRIES 128*1024
 #define LXDREAM_PAGE_SIZE 4096
@@ -45,8 +46,7 @@ extern "C" {
 struct mmio_region {
     char *id, *desc;
     uint32_t base;
-    int32_t (*io_read)(uint32_t addr);
-    void (*io_write)(uint32_t addr, uint32_t val);
+    struct mem_region_fn fn;
     char *mem;
     char *save_mem; /* Used to compare for gui updates */
     struct mmio_port {
@@ -112,7 +112,7 @@ extern uint32_t num_io_rgns;
 #undef MMIO_REGION_LIST_BEGIN
 #undef MMIO_REGION
 #undef MMIO_REGION_LIST_END
-#define MMIO_REGION_BEGIN(b,id,d) struct mmio_region mmio_region_##id = { #id, d, b, mmio_region_##id##_read, mmio_region_##id##_write, 0, 0, {
+#define MMIO_REGION_BEGIN(b,id,d) struct mmio_region mmio_region_##id = { #id, d, b, {mmio_region_##id##_read, mmio_region_##id##_write,mmio_region_##id##_read, mmio_region_##id##_write,mmio_region_##id##_read, mmio_region_##id##_write,NULL, NULL, unmapped_prefetch}, 0, 0, {
 #define LONG_PORT( o,id,f,def,d ) { #id, d, 32, o, def, f },
 #define WORD_PORT( o,id,f,def,d ) { #id, d, 16, o, def, f },
 #define BYTE_PORT( o,id,f,def,d ) { #id, d, 8, o, def, f },
@@ -125,14 +125,16 @@ extern uint32_t num_io_rgns;
  * actually need any direct code on read and/or write
  */
 #define MMIO_REGION_READ_STUBFN( id ) \
-int32_t mmio_region_##id##_read( uint32_t reg ) { \
+int32_t FASTCALL mmio_region_##id##_read( uint32_t reg ) { \
+    reg = reg & 0xFFF; \
     int32_t val = MMIO_READ( id, reg ); \
     WARN( "Read from unimplemented module %s (%03X => %08X) [%s: %s]",\
           #id, reg, val, MMIO_REGID(id,reg), MMIO_REGDESC(id,reg) ); \
     return val; \
 }
 #define MMIO_REGION_WRITE_STUBFN( id ) \
-void mmio_region_##id##_write( uint32_t reg, uint32_t val ) { \
+void FASTCALL mmio_region_##id##_write( uint32_t reg, uint32_t val ) { \
+    reg = reg & 0xFFF; \
     WARN( "Write to unimplemented module %s (%03X <= %08X) [%s: %s]", \
           #id, reg, val, MMIO_REGID(id,reg), MMIO_REGDESC(id,reg) ); \
     MMIO_WRITE( id, reg, val ); \
@@ -141,23 +143,17 @@ void mmio_region_##id##_write( uint32_t reg, uint32_t val ) { \
     MMIO_REGION_READ_STUBFN( id ) \
     MMIO_REGION_WRITE_STUBFN( id )
 #define MMIO_REGION_READ_DEFFN( id ) \
-int32_t mmio_region_##id##_read( uint32_t reg ) { \
-    return MMIO_READ( id, reg ); \
+int32_t FASTCALL mmio_region_##id##_read( uint32_t reg ) { \
+    return MMIO_READ( id, reg&0xFFF ); \
 }
 #define MMIO_REGION_WRITE_DEFFN( id ) \
-void mmio_region_##id##_write( uint32_t reg, uint32_t val ) { \
-    MMIO_WRITE( id, reg, val ); \
+void FASTCALL mmio_region_##id##_write( uint32_t reg, uint32_t val ) { \
+    MMIO_WRITE( id, reg&0xFFF, val ); \
 }
 #define MMIO_REGION_DEFFNS( id ) \
     MMIO_REGION_READ_DEFFN( id ) \
     MMIO_REGION_WRITE_DEFFN( id )
 #endif
-
-#define MMIO_REGION_WRITE_FN( id, reg, val ) \
-void mmio_region_##id##_write( uint32_t reg, uint32_t val )
-
-#define MMIO_REGION_READ_FN( id, reg ) \
-int32_t mmio_region_##id##_read( uint32_t reg )
 
 #else
 
@@ -165,8 +161,8 @@ int32_t mmio_region_##id##_read( uint32_t reg )
 #define MMIO_IFACE_INCLUDED
 #define MMIO_REGION_BEGIN(b,id,d) \
 extern struct mmio_region mmio_region_##id; \
-int32_t mmio_region_##id##_read(uint32_t); \
-void mmio_region_##id##_write(uint32_t, uint32_t); \
+int32_t FASTCALL mmio_region_##id##_read(uint32_t); \
+void FASTCALL mmio_region_##id##_write(uint32_t, uint32_t); \
 enum mmio_region_##id##_port_t {
 #define LONG_PORT( o,id,f,def,d ) id = o,
 #define WORD_PORT( o,id,f,def,d ) id = o,
@@ -176,6 +172,13 @@ enum mmio_region_##id##_port_t {
 #define MMIO_REGION( id )
 #define MMIO_REGION_LIST_END
 #endif
+
+#define MMIO_REGION_WRITE_FN( id, reg, val ) \
+void FASTCALL mmio_region_##id##_write( uint32_t reg, uint32_t val )
+
+#define MMIO_REGION_READ_FN( id, reg ) \
+int32_t FASTCALL mmio_region_##id##_read( uint32_t reg )
+
 
 #endif
 

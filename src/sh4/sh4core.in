@@ -29,7 +29,7 @@
 #include "sh4/sh4core.h"
 #include "sh4/sh4mmio.h"
 #include "sh4/sh4stat.h"
-#include "sh4/intc.h"
+#include "sh4/mmu.h"
 
 #define SH4_CALLTRACE 1
 
@@ -102,9 +102,6 @@ uint32_t sh4_emulate_run_slice( uint32_t nanosecs )
 
 /********************** SH4 emulation core  ****************************/
 
-#define UNDEF(ir) return sh4_raise_slot_exception(EXC_ILLEGAL, EXC_SLOT_ILLEGAL)
-#define UNIMP(ir) do{ ERROR( "Halted on unimplemented instruction at %08x, opcode = %04x", sh4r.pc, ir ); sh4_core_exit(CORE_EXIT_HALT); return FALSE; }while(0)
-
 #if(SH4_CALLTRACE == 1)
 #define MAX_CALLSTACK 32
 static struct call_stack {
@@ -152,71 +149,207 @@ void fprint_stack_trace( FILE *f )
 #define TRACE_RETURN( source, dest )
 #endif
 
-#define CHECKPRIV() if( !IS_SH4_PRIVMODE() ) return sh4_raise_slot_exception( EXC_ILLEGAL, EXC_SLOT_ILLEGAL )
-#define CHECKRALIGN16(addr) if( (addr)&0x01 ) return sh4_raise_exception( EXC_DATA_ADDR_READ )
-#define CHECKRALIGN32(addr) if( (addr)&0x03 ) return sh4_raise_exception( EXC_DATA_ADDR_READ )
-#define CHECKRALIGN64(addr) if( (addr)&0x07 ) return sh4_raise_exception( EXC_DATA_ADDR_READ )
-#define CHECKWALIGN16(addr) if( (addr)&0x01 ) return sh4_raise_exception( EXC_DATA_ADDR_WRITE )
-#define CHECKWALIGN32(addr) if( (addr)&0x03 ) return sh4_raise_exception( EXC_DATA_ADDR_WRITE )
-#define CHECKWALIGN64(addr) if( (addr)&0x07 ) return sh4_raise_exception( EXC_DATA_ADDR_WRITE )
+static gboolean FASTCALL sh4_raise_slot_exception( int normal_code, int slot_code ) {
+    if( sh4r.in_delay_slot ) {
+        sh4_raise_exception(slot_code);
+    } else {
+        sh4_raise_exception(normal_code);
+    }
+    return TRUE;
+}
+
+
+#define CHECKPRIV() if( !IS_SH4_PRIVMODE() ) { return sh4_raise_slot_exception( EXC_ILLEGAL, EXC_SLOT_ILLEGAL ); }
+#define CHECKRALIGN16(addr) if( (addr)&0x01 ) { sh4_raise_exception( EXC_DATA_ADDR_READ ); return TRUE; }
+#define CHECKRALIGN32(addr) if( (addr)&0x03 ) { sh4_raise_exception( EXC_DATA_ADDR_READ ); return TRUE; }
+#define CHECKRALIGN64(addr) if( (addr)&0x07 ) { sh4_raise_exception( EXC_DATA_ADDR_READ ); return TRUE; }
+#define CHECKWALIGN16(addr) if( (addr)&0x01 ) { sh4_raise_exception( EXC_DATA_ADDR_WRITE ); return TRUE; }
+#define CHECKWALIGN32(addr) if( (addr)&0x03 ) { sh4_raise_exception( EXC_DATA_ADDR_WRITE ); return TRUE; }
+#define CHECKWALIGN64(addr) if( (addr)&0x07 ) { sh4_raise_exception( EXC_DATA_ADDR_WRITE ); return TRUE; }
 
 #define CHECKFPUEN() if( !IS_FPU_ENABLED() ) { if( ir == 0xFFFD ) { UNDEF(ir); } else { return sh4_raise_slot_exception( EXC_FPU_DISABLED, EXC_SLOT_FPU_DISABLED ); } }
 #define CHECKDEST(p) if( (p) == 0 ) { ERROR( "%08X: Branch/jump to NULL, CPU halted", sh4r.pc ); sh4_core_exit(CORE_EXIT_HALT); return FALSE; }
-#define CHECKSLOTILLEGAL() if(sh4r.in_delay_slot) return sh4_raise_exception(EXC_SLOT_ILLEGAL)
+#define CHECKSLOTILLEGAL() if(sh4r.in_delay_slot) { sh4_raise_exception(EXC_SLOT_ILLEGAL); return TRUE; }
+
+#define ADDRSPACE (IS_SH4_PRIVMODE() ? sh4_address_space : sh4_user_address_space)
+#define SQADDRSPACE (IS_SH4_PRIVMODE() ? storequeue_address_space : storequeue_user_address_space)
 
 #ifdef HAVE_FRAME_ADDRESS
 static FASTCALL __attribute__((noinline)) void *__first_arg(void *a, void *b) { return a; }
 #define INIT_EXCEPTIONS(label) goto *__first_arg(&&fnstart,&&label); fnstart:
-#define MMU_TRANSLATE_READ( addr ) memtmp = mmu_vma_to_phys_read(addr, &&except )
-#define MMU_TRANSLATE_WRITE( addr ) memtmp = mmu_vma_to_phys_write(addr, &&except )
+#define MEM_READ_BYTE( addr, val ) val = ((mem_read_exc_fn_t)ADDRSPACE[(addr)>>12]->read_byte)((addr), &&except)
+#define MEM_READ_WORD( addr, val ) val = ((mem_read_exc_fn_t)ADDRSPACE[(addr)>>12]->read_word)((addr), &&except)
+#define MEM_READ_LONG( addr, val ) val = ((mem_read_exc_fn_t)ADDRSPACE[(addr)>>12]->read_long)((addr), &&except)
+#define MEM_WRITE_BYTE( addr, val ) ((mem_write_exc_fn_t)ADDRSPACE[(addr)>>12]->write_byte)((addr), (val), &&except)
+#define MEM_WRITE_WORD( addr, val ) ((mem_write_exc_fn_t)ADDRSPACE[(addr)>>12]->write_word)((addr), (val), &&except)
+#define MEM_WRITE_LONG( addr, val ) ((mem_write_exc_fn_t)ADDRSPACE[(addr)>>12]->write_long)((addr), (val), &&except)
+#define MEM_PREFETCH( addr ) ((mem_prefetch_exc_fn_t)ADDRSPACE[(addr)>>12]->prefetch)((addr), &&except)
 #else
 #define INIT_EXCEPTIONS(label)
-#define MMU_TRANSLATE_READ( addr ) if( (memtmp = mmu_vma_to_phys_read(addr)) == MMU_VMA_ERROR ) { return TRUE; }
-#define MMU_TRANSLATE_WRITE( addr ) if( (memtmp = mmu_vma_to_phys_write(addr)) == MMU_VMA_ERROR ) { return TRUE; }
+#define MEM_READ_BYTE( addr, val ) val = ADDRSPACE[(addr)>>12]->read_byte(addr)
+#define MEM_READ_WORD( addr, val ) val = ADDRSPACE[(addr)>>12]->read_word(addr)
+#define MEM_READ_LONG( addr, val ) val = ADDRSPACE[(addr)>>12]->read_long(addr)
+#define MEM_WRITE_BYTE( addr, val ) ADDRSPACE[(addr)>>12]->write_byte(addr, val)
+#define MEM_WRITE_WORD( addr, val ) ADDRSPACE[(addr)>>12]->write_word(addr, val)
+#define MEM_WRITE_LONG( addr, val ) ADDRSPACE[(addr)>>12]->write_long(addr, val)
+#define MEM_PREFETCH( addr ) ADDRSPACE[(addr)>>12]->prefetch(addr)
 #endif
- 
-#define MEM_READ_BYTE( addr, val ) MMU_TRANSLATE_READ(addr); val = sh4_read_byte(memtmp)
-#define MEM_READ_WORD( addr, val ) MMU_TRANSLATE_READ(addr); val = sh4_read_word(memtmp)
-#define MEM_READ_LONG( addr, val ) MMU_TRANSLATE_READ(addr); val = sh4_read_long(memtmp)
-#define MEM_WRITE_BYTE( addr, val ) MMU_TRANSLATE_WRITE(addr); sh4_write_byte(memtmp, val) 
-#define MEM_WRITE_WORD( addr, val ) MMU_TRANSLATE_WRITE(addr); sh4_write_word(memtmp, val) 
-#define MEM_WRITE_LONG( addr, val ) MMU_TRANSLATE_WRITE(addr); sh4_write_long(memtmp, val)
-
 
 #define FP_WIDTH (IS_FPU_DOUBLESIZE() ? 8 : 4)
 
 #define MEM_FP_READ( addr, reg ) \
     if( IS_FPU_DOUBLESIZE() ) { \
 	CHECKRALIGN64(addr); \
-	MMU_TRANSLATE_READ(addr); \
         if( reg & 1 ) { \
-            *((uint32_t *)&XF((reg) & 0x0E)) = sh4_read_long(memtmp); \
-            *((uint32_t *)&XF(reg)) = sh4_read_long(memtmp+4); \
+            MEM_READ_LONG( addr, *((uint32_t *)&XF((reg) & 0x0E)) ); \
+            MEM_READ_LONG( addr+4, *((uint32_t *)&XF(reg)) ); \
         } else { \
-            *((uint32_t *)&FR(reg)) = sh4_read_long(memtmp); \
-            *((uint32_t *)&FR((reg) | 0x01)) = sh4_read_long(memtmp+4); \
+            MEM_READ_LONG( addr, *((uint32_t *)&FR(reg)) ); \
+            MEM_READ_LONG( addr+4, *((uint32_t *)&FR((reg)|0x01)) ); \
 	} \
     } else { \
         CHECKRALIGN32(addr); \
-        MMU_TRANSLATE_READ(addr); \
-        *((uint32_t *)&FR(reg)) = sh4_read_long(memtmp); \
+        MEM_READ_LONG( addr, *((uint32_t *)&FR(reg)) ); \
     }
 #define MEM_FP_WRITE( addr, reg ) \
     if( IS_FPU_DOUBLESIZE() ) { \
         CHECKWALIGN64(addr); \
-        MMU_TRANSLATE_WRITE(addr); \
         if( reg & 1 ) { \
-	    sh4_write_long( memtmp, *((uint32_t *)&XF((reg)&0x0E)) ); \
-	    sh4_write_long( memtmp+4, *((uint32_t *)&XF(reg)) ); \
+	    MEM_WRITE_LONG( addr, *((uint32_t *)&XF((reg)&0x0E)) ); \
+	    MEM_WRITE_LONG( addr+4, *((uint32_t *)&XF(reg)) ); \
         } else { \
-	    sh4_write_long( memtmp, *((uint32_t *)&FR(reg)) ); \
-	    sh4_write_long( memtmp+4, *((uint32_t *)&FR((reg)|0x01)) ); \
+	    MEM_WRITE_LONG( addr, *((uint32_t *)&FR(reg)) ); \
+	    MEM_WRITE_LONG( addr+4, *((uint32_t *)&FR((reg)|0x01)) ); \
 	} \
     } else { \
     	CHECKWALIGN32(addr); \
-    	MMU_TRANSLATE_WRITE(addr); \
-        sh4_write_long( memtmp, *((uint32_t *)&FR((reg))) ); \
+        MEM_WRITE_LONG(addr, *((uint32_t *)&FR((reg))) ); \
     }
+
+#define UNDEF(ir)
+#define UNIMP(ir)
+
+/**
+ * Perform instruction-completion following core exit of a partially completed
+ * instruction. NOTE: This is only allowed on memory writes, operation is not
+ * guaranteed in any other case.
+ */
+void sh4_finalize_instruction( void )
+{
+    unsigned short ir;
+    uint32_t tmp;
+
+    assert( IS_IN_ICACHE(sh4r.pc) );
+    ir = *(uint16_t *)GET_ICACHE_PTR(sh4r.pc);
+    
+    /**
+     * Note - we can't take an exit on a control transfer instruction itself,
+     * which means the exit must have happened in the delay slot. So for these
+     * cases, finalize the delay slot instruction, and re-execute the control transfer.
+     *
+     * For delay slots which modify the argument used in the branch instruction,
+     * we pretty much just assume that that can't have already happened in an exit case.
+     */
+    
+%%
+BRA disp {: 
+    sh4r.pc += 2; 
+    sh4_finalize_instruction(); 
+    sh4r.pc += disp;
+    sh4r.slice_cycle += sh4_cpu_period;
+:}
+BRAF Rn {: 
+    sh4r.pc += 2; 
+    tmp = sh4r.r[Rn];
+    sh4_finalize_instruction(); 
+    sh4r.pc += tmp;
+    sh4r.slice_cycle += sh4_cpu_period;
+:}
+BSR disp {: 
+    /* Note: PR is already set */ 
+    sh4r.pc += 2;
+    sh4_finalize_instruction();
+    sh4r.pc += disp;
+    sh4r.slice_cycle += sh4_cpu_period;
+:}
+BSRF Rn {:
+    /* Note: PR is already set */ 
+    sh4r.pc += 2;
+    tmp = sh4r.r[Rn];
+    sh4_finalize_instruction();
+    sh4r.pc += tmp;
+    sh4r.slice_cycle += sh4_cpu_period;
+:}
+BF/S disp {: 
+    sh4r.pc += 2;
+    sh4_finalize_instruction();
+    if( !sh4r.t ) {
+        sh4r.pc += disp;
+    }
+    sh4r.slice_cycle += sh4_cpu_period;
+:}
+BT/S disp {: 
+    sh4r.pc += 2;
+    sh4_finalize_instruction();
+    if( sh4r.t ) {
+        sh4r.pc += disp;
+    }
+    sh4r.slice_cycle += sh4_cpu_period;
+:}
+JMP @Rn {:
+    sh4r.pc += 2;
+    tmp = sh4r.r[Rn];
+    sh4_finalize_instruction();
+    sh4r.pc = tmp;
+    sh4r.new_pc = tmp + 2;
+    sh4r.slice_cycle += 2*sh4_cpu_period;
+    return;
+:}
+JSR @Rn {: 
+    /* Note: PR is already set */ 
+    sh4r.pc += 2;
+    tmp = sh4r.r[Rn];
+    sh4_finalize_instruction();
+    sh4r.pc = tmp;
+    sh4r.new_pc = tmp + 2;
+    sh4r.slice_cycle += 2*sh4_cpu_period;
+    return;
+:}
+RTS {: 
+    sh4r.pc += 2;
+    sh4_finalize_instruction();
+    sh4r.pc = sh4r.pr;
+    sh4r.new_pc = sh4r.pr + 2;
+    sh4r.slice_cycle += 2*sh4_cpu_period;
+    return;
+:}
+RTE {: 
+    /* SR is already set */
+    sh4r.pc += 2;
+    sh4_finalize_instruction();
+    sh4r.pc = sh4r.spc;
+    sh4r.new_pc = sh4r.pr + 2;
+    sh4r.slice_cycle += 2*sh4_cpu_period;
+    return;
+:}
+MOV.B Rm, @-Rn {: sh4r.r[Rn]--; :}
+MOV.W Rm, @-Rn {: sh4r.r[Rn] -= 2; :}
+MOV.L Rm, @-Rn {: sh4r.r[Rn] -= 4; :}
+MOV.B @Rm+, Rn {: sh4r.r[Rm] ++; :}
+MOV.W @Rm+, Rn {: sh4r.r[Rm] += 2; :}
+MOV.L @Rm+, Rn {: sh4r.r[Rm] += 4; :}
+%%
+    sh4r.pc += 2;
+    sh4r.new_pc = sh4r.pc+2;
+    sh4r.slice_cycle += sh4_cpu_period;
+}
+
+#undef UNDEF(ir)
+#undef UNIMP(ir)
+
+#define UNDEF(ir) return sh4_raise_slot_exception(EXC_ILLEGAL, EXC_SLOT_ILLEGAL)
+#define UNIMP(ir) do{ ERROR( "Halted on unimplemented instruction at %08x, opcode = %04x", sh4r.pc, ir ); sh4_core_exit(CORE_EXIT_HALT); return FALSE; }while(0)
+
 
 gboolean sh4_execute_instruction( void )
 {
@@ -260,6 +393,14 @@ gboolean sh4_execute_instruction( void )
     }
     assert( IS_IN_ICACHE(pc) );
     ir = *(uint16_t *)GET_ICACHE_PTR(sh4r.pc);
+    
+    /* FIXME: This is a bit of a hack, but the PC of the delay slot should not
+     * be visible until after the instruction has executed (for exception 
+     * correctness)
+     */
+    if( sh4r.in_delay_slot ) {
+    	sh4r.pc -= 2;
+    }
 %%
 AND Rm, Rn {: sh4r.r[Rn] &= sh4r.r[Rm]; :}
 AND #imm, R0 {: R0 &= imm; :}
@@ -351,10 +492,7 @@ MOVT Rn {: sh4r.r[Rn] = sh4r.t; :}
 NOP {: /* NOP */ :}
 
 PREF @Rn {:
-     tmp = sh4r.r[Rn];
-     if( (tmp & 0xFC000000) == 0xE0000000 ) {
-	 sh4_flush_store_queue(tmp);
-     }
+    MEM_PREFETCH(sh4r.r[Rn]);
 :}
 OCBI @Rn {: :}
 OCBP @Rn {: :}

@@ -41,14 +41,14 @@ struct sort_triangle {
  * pvr memory address.
  */
 static int sort_count_triangles( pvraddr_t tile_entry ) {
-    uint32_t *tile_list = (uint32_t *)(video_base+tile_entry);
+    uint32_t *tile_list = (uint32_t *)(pvr2_main_ram+tile_entry);
     int count = 0;
     while(1) {
         uint32_t entry = *tile_list++;
         if( entry >> 28 == 0x0F ) {
             break;
         } else if( entry >> 28 == 0x0E ) {
-            tile_list = (uint32_t *)(video_base+(entry&0x007FFFFF));
+            tile_list = (uint32_t *)(pvr2_main_ram+(entry&0x007FFFFF));
         } else if( entry >> 29 == 0x04 ) { /* Triangle array */
             count += ((entry >> 25) & 0x0F)+1;
         } else if( entry >> 29 == 0x05 ) { /* Quad array */
@@ -100,7 +100,7 @@ static void sort_add_triangle( struct sort_triangle *triangle, struct polygon_st
  */
 int sort_extract_triangles( pvraddr_t tile_entry, struct sort_triangle *triangles )
 {
-    uint32_t *tile_list = (uint32_t *)(video_base+tile_entry);
+    uint32_t *tile_list = (uint32_t *)(pvr2_main_ram+tile_entry);
     int strip_count;
     struct polygon_struct *poly;
     int count = 0, i;
@@ -111,7 +111,7 @@ int sort_extract_triangles( pvraddr_t tile_entry, struct sort_triangle *triangle
         case 0x0F:
             return count; // End-of-list
         case 0x0E:
-            tile_list = (uint32_t *)(video_base + (entry&0x007FFFFF));
+            tile_list = (uint32_t *)(pvr2_main_ram + (entry&0x007FFFFF));
             break;
         case 0x08: case 0x09: case 0x0A: case 0x0B:
             strip_count = ((entry >> 25) & 0x0F)+1;

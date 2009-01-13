@@ -61,7 +61,7 @@ gboolean dreamcast_can_run(void);
 void dreamcast_program_loaded( const gchar *name, sh4addr_t entry_point );
 
 #define DREAMCAST_SAVE_MAGIC "%!-lxDream!Save\0"
-#define DREAMCAST_SAVE_VERSION 0x00010005
+#define DREAMCAST_SAVE_VERSION 0x00010006
 
 int dreamcast_save_state( const gchar *filename );
 int dreamcast_load_state( const gchar *filename );
@@ -77,6 +77,10 @@ frame_buffer_t dreamcast_load_preview( const gchar *filename );
 
 #define SCENE_SAVE_MAGIC "%!-lxDream!Scene"
 #define SCENE_SAVE_VERSION 0x00010000
+
+extern unsigned char dc_main_ram[];
+extern unsigned char dc_boot_rom[];
+extern unsigned char dc_flash_ram[];
 
 #ifdef __cplusplus
 }

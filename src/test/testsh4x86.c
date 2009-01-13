@@ -35,6 +35,9 @@ int sh4_breakpoint_count = 0;
 
 #define MAX_INS_SIZE 32
 
+
+struct mem_region_fn **sh4_address_space = (void *)0x12345432;
+struct mem_region_fn **sh4_user_address_space = (void *)0x12345678;
 char *option_list = "s:o:d:h";
 struct option longopts[1] = { { NULL, 0, 0, 0 } };
 
@@ -44,7 +47,8 @@ char *output_file = NULL;
 gboolean sh4_starting;
 uint32_t start_addr = 0x8C010000;
 uint32_t sh4_cpu_period = 5;
-sh4ptr_t sh4_main_ram;
+unsigned char dc_main_ram[4096];
+unsigned char dc_boot_rom[4096];
 FILE *in;
 
 char *inbuf;
@@ -52,8 +56,8 @@ char *inbuf;
 struct x86_symbol local_symbols[] = {
     { "sh4r+128", ((char *)&sh4r)+128 },
     { "sh4_cpu_period", &sh4_cpu_period },
-    { "mmu_vma_to_phys_read", mmu_vma_to_phys_read },
-    { "mmu_vma_to_phys_write", mmu_vma_to_phys_write },
+    { "sh4_address_space", (void *)0x12345432 },
+    { "sh4_user_address_space", (void *)0x12345678 },
     { "sh4_write_fpscr", sh4_write_fpscr },
     { "sh4_write_sr", sh4_write_sr },
     { "sh4_read_sr", sh4_read_sr },
@@ -63,28 +67,10 @@ struct x86_symbol local_symbols[] = {
     { "sh4_switch_fr_banks", sh4_switch_fr_banks },
     { "sh4_execute_instruction", sh4_execute_instruction },
     { "signsat48", signsat48 },
-    { "sh4_read_byte", sh4_read_byte },
-    { "sh4_read_word", sh4_read_word },
-    { "sh4_read_long", sh4_read_long },
-    { "sh4_write_byte", sh4_write_byte },
-    { "sh4_write_word", sh4_write_word },
-    { "sh4_write_long", sh4_write_long },
     { "xlat_get_code_by_vma", xlat_get_code_by_vma },
     { "xlat_get_code", xlat_get_code }
 };
 
-int32_t FASTCALL sh4_read_byte( uint32_t addr ) 
-{
-    return *(uint8_t *)(inbuf+(addr-start_addr));
-}
-int32_t FASTCALL sh4_read_word( uint32_t addr ) 
-{
-    return *(uint16_t *)(inbuf+(addr-start_addr));
-}
-int32_t FASTCALL sh4_read_long( uint32_t addr ) 
-{
-    return *(uint32_t *)(inbuf+(addr-start_addr));
-}
 // Stubs
 gboolean sh4_execute_instruction( ) { return TRUE; }
 void sh4_accept_interrupt() {}
@@ -92,15 +78,13 @@ void sh4_set_breakpoint( uint32_t pc, breakpoint_type_t type ) { }
 gboolean sh4_clear_breakpoint( uint32_t pc, breakpoint_type_t type ) { return TRUE; }
 gboolean dreamcast_is_running() { return FALSE; }
 int sh4_get_breakpoint( uint32_t pc ) { return 0; }
+void sh4_finalize_instruction() { }
 void sh4_core_exit( int exit_code ){}
-void sh4_flush_icache(){}
 void event_execute() {}
 void TMU_run_slice( uint32_t nanos ) {}
+void CCN_set_cache_control( uint32_t val ) { }
 void PMM_write_control( int ctr, uint32_t val ) { }
 void SCIF_run_slice( uint32_t nanos ) {}
-void FASTCALL sh4_write_byte( uint32_t addr, uint32_t val ) {}
-void FASTCALL sh4_write_word( uint32_t addr, uint32_t val ) {}
-void FASTCALL sh4_write_long( uint32_t addr, uint32_t val ) {}
 void FASTCALL sh4_write_fpscr( uint32_t val ) { }
 void FASTCALL sh4_write_sr( uint32_t val ) { }
 uint32_t FASTCALL sh4_read_sr( void ) { return 0; }
@@ -114,13 +98,19 @@ gboolean sh4_has_page( sh4vma_t vma ) { return TRUE; }
 void syscall_invoke( uint32_t val ) { }
 void dreamcast_stop() {} 
 void dreamcast_reset() {}
-gboolean FASTCALL sh4_raise_reset( int exc ) { return TRUE; }
-gboolean FASTCALL sh4_raise_exception( int exc ) { return TRUE; }
-gboolean FASTCALL sh4_raise_tlb_exception( int exc ) { return TRUE; }
-gboolean FASTCALL sh4_raise_trap( int exc ) { return TRUE; }
+void FASTCALL sh4_raise_reset( int exc ) { }
+void FASTCALL sh4_raise_exception( int exc ) { }
+void FASTCALL sh4_raise_tlb_exception( int exc, sh4vma_t vma ) { }
+void FASTCALL sh4_raise_tlb_multihit( sh4vma_t vma) { }
+void FASTCALL sh4_raise_trap( int exc ) { }
+void FASTCALL sh4_flush_store_queue( sh4addr_t addr ) { }
+void FASTCALL sh4_flush_store_queue_mmu( sh4addr_t addr, void *exc ) { }
 uint32_t sh4_sleep_run_slice(uint32_t nanosecs) { return nanosecs; }
 gboolean gui_error_dialog( const char *fmt, ... ) { return TRUE; }
+gboolean FASTCALL mmu_update_icache( sh4vma_t addr ) { return TRUE; }
+void MMU_ldtlb() { }
 struct sh4_icache_struct sh4_icache;
+struct mem_region_fn mem_region_unmapped;
 
 void usage()
 {
@@ -175,6 +165,8 @@ int main( int argc, char *argv[] )
     mmio_region_MMU.mem = malloc(4096);
     memset( mmio_region_MMU.mem, 0, 4096 );
 
+    ((uint32_t *)mmio_region_MMU.mem)[4] = 1;
+
     in = fopen( input_file, "ro" );
     if( in == NULL ) {
 	perror( "Unable to open input file" );
@@ -192,13 +184,13 @@ int main( int argc, char *argv[] )
     uintptr_t pc;
     uint8_t *buf = sh4_translate_basic_block( start_addr );
     uint32_t buflen = xlat_get_code_size(buf);
-    x86_disasm_init( buf, buf, buflen );
+    x86_disasm_init( (uintptr_t)buf, (uintptr_t)buf, buflen );
     x86_set_symtab( local_symbols, sizeof(local_symbols)/sizeof(struct x86_symbol) );
     for( pc = buf; pc < buf + buflen;  ) {
 	char buf[256];
 	char op[256];
 	uintptr_t pc2 = x86_disasm_instruction( pc, buf, sizeof(buf), op );
-	fprintf( stdout, "%s\n", buf );
+	fprintf( stdout, "%08x: %s\n", pc, buf );
 	pc = pc2;
     }
     return 0;

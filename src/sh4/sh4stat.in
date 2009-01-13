@@ -19,6 +19,7 @@
 #include "dream.h"
 #include "sh4/sh4stat.h"
 #include "sh4/sh4core.h"
+#include "sh4/mmu.h"
 
 static uint64_t sh4_stats[SH4_INSTRUCTION_COUNT+1];
 static uint64_t sh4_stats_total;
@@ -194,7 +195,8 @@ void FASTCALL sh4_stats_add( sh4_inst_id item )
 
 void sh4_stats_add_by_pc( uint32_t pc ) 
 {
-    uint16_t ir = sh4_read_word(pc);
+    sh4addr_t addr = mmu_vma_to_phys_disasm(pc);
+    uint16_t ir = ext_address_space[addr>>12]->read_word(addr);
 #define UNDEF(ir) sh4_stats[0]++
 %%
 ADD Rm, Rn {: sh4_stats[I_ADD]++; :}
