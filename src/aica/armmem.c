@@ -1,4 +1,4 @@
-/**
+/*`*
  * $Id$
  *
  * Implements the ARM's memory map.
@@ -22,14 +22,95 @@
 #include "aica.h"
 #include "armcore.h"
 
-unsigned char *arm_mem = NULL;
-unsigned char *arm_mem_scratch = NULL;
+unsigned char aica_main_ram[2 MB];
+unsigned char aica_scratch_ram[8 KB];
 
-void arm_mem_init() {
-    arm_mem = mem_get_region_by_name( MEM_REGION_AUDIO );
-    arm_mem_scratch = mem_get_region_by_name( MEM_REGION_AUDIO_SCRATCH );
+/*************** ARM memory access function blocks **************/
+
+static int32_t FASTCALL ext_audioram_read_long( sh4addr_t addr )
+{
+    return *((int32_t *)(aica_main_ram + (addr&0x001FFFFF)));
+}
+static int32_t FASTCALL ext_audioram_read_word( sh4addr_t addr )
+{
+    return SIGNEXT16(*((int16_t *)(aica_main_ram + (addr&0x001FFFFF))));
+}
+static int32_t FASTCALL ext_audioram_read_byte( sh4addr_t addr )
+{
+    return SIGNEXT8(*((int16_t *)(aica_main_ram + (addr&0x001FFFFF))));
+}
+static void FASTCALL ext_audioram_write_long( sh4addr_t addr, uint32_t val )
+{
+    *(uint32_t *)(aica_main_ram + (addr&0x001FFFFF)) = val;
+    asic_g2_write_word();
+}
+static void FASTCALL ext_audioram_write_word( sh4addr_t addr, uint32_t val )
+{
+    *(uint16_t *)(aica_main_ram + (addr&0x001FFFFF)) = (uint16_t)val;
+    asic_g2_write_word();
+}
+static void FASTCALL ext_audioram_write_byte( sh4addr_t addr, uint32_t val )
+{
+    *(uint8_t *)(aica_main_ram + (addr&0x001FFFFF)) = (uint8_t)val;
+    asic_g2_write_word();
+}
+static void FASTCALL ext_audioram_read_burst( unsigned char *dest, sh4addr_t addr )
+{
+    memcpy( dest, aica_main_ram+(addr&0x001FFFFF), 32 );
+}
+static void FASTCALL ext_audioram_write_burst( sh4addr_t addr, unsigned char *src )
+{
+    memcpy( aica_main_ram+(addr&0x001FFFFF), src, 32 );
 }
 
+struct mem_region_fn mem_region_audioram = { ext_audioram_read_long, ext_audioram_write_long, 
+        ext_audioram_read_word, ext_audioram_write_word, 
+        ext_audioram_read_byte, ext_audioram_write_byte, 
+        ext_audioram_read_burst, ext_audioram_write_burst }; 
+
+
+static int32_t FASTCALL ext_audioscratch_read_long( sh4addr_t addr )
+{
+    return *((int32_t *)(aica_scratch_ram + (addr&0x00001FFF)));
+}
+static int32_t FASTCALL ext_audioscratch_read_word( sh4addr_t addr )
+{
+    return SIGNEXT16(*((int16_t *)(aica_scratch_ram + (addr&0x00001FFF))));
+}
+static int32_t FASTCALL ext_audioscratch_read_byte( sh4addr_t addr )
+{
+    return SIGNEXT8(*((int16_t *)(aica_scratch_ram + (addr&0x00001FFF))));
+}
+static void FASTCALL ext_audioscratch_write_long( sh4addr_t addr, uint32_t val )
+{
+    *(uint32_t *)(aica_scratch_ram + (addr&0x00001FFF)) = val;
+    asic_g2_write_word();
+}
+static void FASTCALL ext_audioscratch_write_word( sh4addr_t addr, uint32_t val )
+{
+    *(uint16_t *)(aica_scratch_ram + (addr&0x00001FFF)) = (uint16_t)val;
+    asic_g2_write_word();
+}
+static void FASTCALL ext_audioscratch_write_byte( sh4addr_t addr, uint32_t val )
+{
+    *(uint8_t *)(aica_scratch_ram + (addr&0x00001FFF)) = (uint8_t)val;
+    asic_g2_write_word();
+}
+static void FASTCALL ext_audioscratch_read_burst( unsigned char *dest, sh4addr_t addr )
+{
+    memcpy( dest, aica_scratch_ram+(addr&0x00001FFF), 32 );
+}
+static void FASTCALL ext_audioscratch_write_burst( sh4addr_t addr, unsigned char *src )
+{
+    memcpy( aica_scratch_ram+(addr&0x00001FFF), src, 32 );
+}
+
+struct mem_region_fn mem_region_audioscratch = { ext_audioscratch_read_long, ext_audioscratch_write_long, 
+        ext_audioscratch_read_word, ext_audioscratch_write_word, 
+        ext_audioscratch_read_byte, ext_audioscratch_write_byte, 
+        ext_audioscratch_read_burst, ext_audioscratch_write_burst }; 
+
+/************************** Local ARM support **************************/
 int arm_has_page( uint32_t addr ) {
     return ( addr < 0x00200000 ||
             (addr >= 0x00800000 && addr <= 0x00805000 ) );
@@ -37,7 +118,7 @@ int arm_has_page( uint32_t addr ) {
 
 uint32_t arm_read_long( uint32_t addr ) {
     if( addr < 0x00200000 ) {
-        return *(int32_t *)(arm_mem + addr);
+        return *(int32_t *)(aica_main_ram + addr);
         /* Main sound ram */
     } else {
         uint32_t val;
@@ -56,7 +137,7 @@ uint32_t arm_read_long( uint32_t addr ) {
             return val;
         case 0x00803000:
         case 0x00804000:
-            return *(int32_t *)(arm_mem_scratch + addr - 0x00803000);
+            return *(int32_t *)(aica_scratch_ram + addr - 0x00803000);
         }
     }
     ERROR( "Attempted long read to undefined page: %08X at %08X",
@@ -77,7 +158,7 @@ void arm_write_long( uint32_t addr, uint32_t value )
 {
     if( addr < 0x00200000 ) {
         /* Main sound ram */
-        *(uint32_t *)(arm_mem + addr) = value;
+        *(uint32_t *)(aica_main_ram + addr) = value;
     } else {
         switch( addr & 0xFFFFF000 ) {
         case 0x00800000:
@@ -94,7 +175,7 @@ void arm_write_long( uint32_t addr, uint32_t value )
             break;
         case 0x00803000:
         case 0x00804000:
-            *(uint32_t *)(arm_mem_scratch + addr - 0x00803000) = value;
+            *(uint32_t *)(aica_scratch_ram + addr - 0x00803000) = value;
             break;
         default:
             ERROR( "Attempted long write to undefined address: %08X",
@@ -123,7 +204,7 @@ uint32_t arm_combine_byte( uint32_t addr, uint32_t val, uint8_t byte )
 void arm_write_word( uint32_t addr, uint32_t value )
 {
 	if( addr < 0x00200000 ) {
-        *(uint16_t *)(arm_mem + addr) = (uint16_t)value;
+        *(uint16_t *)(aica_main_ram + addr) = (uint16_t)value;
 	} else {
 		
 	}
@@ -132,7 +213,7 @@ void arm_write_byte( uint32_t addr, uint32_t value )
 {
     if( addr < 0x00200000 ) {
         /* Main sound ram */
-        *(uint8_t *)(arm_mem + addr) = (uint8_t)value;
+        *(uint8_t *)(aica_main_ram + addr) = (uint8_t)value;
     } else {
         uint32_t tmp;
         switch( addr & 0xFFFFF000 ) {
@@ -153,7 +234,7 @@ void arm_write_byte( uint32_t addr, uint32_t value )
             break;
         case 0x00803000:
         case 0x00804000:
-            *(uint8_t *)(arm_mem_scratch + addr - 0x00803000) = (uint8_t)value;
+            *(uint8_t *)(aica_scratch_ram + addr - 0x00803000) = (uint8_t)value;
             break;
         default:
             ERROR( "Attempted byte write to undefined address: %08X",

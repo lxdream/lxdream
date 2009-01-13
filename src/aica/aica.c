@@ -70,7 +70,6 @@ void aica_init( void )
     register_io_regions( mmio_list_spu );
     MMIO_NOTRACE(AICA0);
     MMIO_NOTRACE(AICA1);
-    arm_mem_init();
     aica_reset();
 }
 
@@ -194,16 +193,18 @@ void aica_enable( void )
  */
 
 /* Write to channels 0-31 */
-void mmio_region_AICA0_write( uint32_t reg, uint32_t val )
+MMIO_REGION_WRITE_FN( AICA0, reg, val )
 {
+    reg &= 0xFFF;
     MMIO_WRITE( AICA0, reg, val );
     aica_write_channel( reg >> 7, reg % 128, val );
     //    DEBUG( "AICA0 Write %08X => %08X", val, reg );
 }
 
 /* Write to channels 32-64 */
-void mmio_region_AICA1_write( uint32_t reg, uint32_t val )
+MMIO_REGION_WRITE_FN( AICA1, reg, val )
 {
+    reg &= 0xFFF;
     MMIO_WRITE( AICA1, reg, val );
     aica_write_channel( (reg >> 7) + 32, reg % 128, val );
     // DEBUG( "AICA1 Write %08X => %08X", val, reg );
@@ -212,10 +213,11 @@ void mmio_region_AICA1_write( uint32_t reg, uint32_t val )
 /**
  * AICA control registers 
  */
-void mmio_region_AICA2_write( uint32_t reg, uint32_t val )
+MMIO_REGION_WRITE_FN( AICA2, reg, val )
 {
     uint32_t tmp;
-
+    reg &= 0xFFF;
+    
     switch( reg ) {
     case AICA_RESET:
         tmp = MMIO_READ( AICA2, AICA_RESET );
@@ -241,11 +243,12 @@ void mmio_region_AICA2_write( uint32_t reg, uint32_t val )
     }
 }
 
-int32_t mmio_region_AICA2_read( uint32_t reg )
+MMIO_REGION_READ_FN( AICA2, reg )
 {
     audio_channel_t channel;
     uint32_t channo;
     int32_t val;
+    reg &= 0xFFF;
     switch( reg ) {
     case AICA_CHANSTATE:
         channo = (MMIO_READ( AICA2, AICA_CHANSEL ) >> 8) & 0x3F;
@@ -266,9 +269,10 @@ int32_t mmio_region_AICA2_read( uint32_t reg )
     }
 }
 
-int32_t mmio_region_AICARTC_read( uint32_t reg )
+MMIO_REGION_READ_FN( AICARTC, reg )
 {
     int32_t rv = 0;
+    reg &= 0xFFF;
     switch( reg ) {
     case AICA_RTCHI:
         rv = (aica_state.time_of_day >> 16) & 0xFFFF;
@@ -281,9 +285,9 @@ int32_t mmio_region_AICARTC_read( uint32_t reg )
     return rv;
 }
 
-
-void mmio_region_AICARTC_write( uint32_t reg, uint32_t val )
+MMIO_REGION_WRITE_FN( AICARTC, reg, val )
 {
+    reg &= 0xFFF;
     switch( reg ) {
     case AICA_RTCEN:
         MMIO_WRITE( AICARTC, reg, val&0x01 );

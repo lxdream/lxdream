@@ -92,7 +92,7 @@ const char *get_sysconf_path();
 const char *get_locale_path();
 
 #ifdef HAVE_FASTCALL
-#define FASTCALL __attribute__((regparm(3)))
+#define FASTCALL __attribute__((regparm(2)))
 #else
 #define FASTCALL
 #endif

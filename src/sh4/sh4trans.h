@@ -113,6 +113,12 @@ void sh4_translate_unwind_stack( gboolean is_completion, unwind_thunk_t thunk );
 void sh4_translate_exit_recover( );
 
 /**
+ * Called when doing a break out of the translator following a taken exception - 
+ * finalizes the system state up to the start of the current instruction.
+ */
+void sh4_translate_exception_exit_recover( );
+
+/**
  * From within the translator, exit the current block at the end of the 
  * current instruction, flush the translation cache (completely) 
  * @return TRUE to perform a vm-exit/continue after the flush

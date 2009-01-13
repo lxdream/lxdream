@@ -41,7 +41,7 @@ noinst_PROGRAMS = gendec$(EXEEXT) genglsl$(EXEEXT)
 check_PROGRAMS = test/testxlt$(EXEEXT) $(am__EXEEXT_1)
 @BUILD_SH4X86_TRUE@am__append_1 = sh4/sh4x86.c sh4/x86op.h \
 @BUILD_SH4X86_TRUE@        sh4/ia32abi.h sh4/ia32mac.h sh4/ia64abi.h \
-@BUILD_SH4X86_TRUE@        sh4/sh4trans.c sh4/sh4trans.h \
+@BUILD_SH4X86_TRUE@        sh4/sh4trans.c sh4/sh4trans.h sh4/mmux86.c \
 @BUILD_SH4X86_TRUE@        x86dasm/x86dasm.c x86dasm/x86dasm.h \
 @BUILD_SH4X86_TRUE@        x86dasm/i386-dis.c x86dasm/dis-init.c x86dasm/dis-buf.c \
 @BUILD_SH4X86_TRUE@        x86dasm/ansidecl.h x86dasm/bfd.h x86dasm/dis-asm.h \
@@ -73,7 +73,8 @@ check_PROGRAMS = test/testxlt$(EXEEXT) $(am__EXEEXT_1)
 subdir = src
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
-am__aclocal_m4_deps = $(top_srcdir)/configure.in
+am__aclocal_m4_deps = $(top_srcdir)/acinclude.m4 \
+	$(top_srcdir)/configure.in
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
@@ -93,7 +94,7 @@ genglsl_OBJECTS = $(am_genglsl_OBJECTS)
 genglsl_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am__lxdream_SOURCES_DIST = main.c version.c config.c config.h \
 	lxdream.h dream.h gui.h cpu.h hook.h gettext.h mem.c mem.h \
-	mmio.h paths.c watch.c asic.c asic.h clock.h serial.h \
+	sdram.c mmio.h paths.c watch.c asic.c asic.h clock.h serial.h \
 	syscall.c syscall.h bios.c dcload.c gdrom/ide.c gdrom/ide.h \
 	gdrom/packet.h gdrom/gdimage.c gdrom/gdrom.c gdrom/gdrom.h \
 	gdrom/nrg.c gdrom/cdi.c gdrom/gdi.c gdrom/edc_ecc.c \
@@ -104,22 +105,23 @@ am__lxdream_SOURCES_DIST = main.c version.c config.c config.h \
 	sh4/dmac.c sh4/mmu.c sh4/sh4core.c sh4/sh4core.h sh4/sh4dasm.c \
 	sh4/sh4dasm.h sh4/sh4mmio.c sh4/sh4mmio.h sh4/scif.c \
 	sh4/sh4stat.c sh4/sh4stat.h sh4/xltcache.c sh4/xltcache.h \
-	sh4/sh4.h sh4/dmac.h sh4/pmm.c aica/armcore.c aica/armcore.h \
-	aica/armdasm.c aica/armdasm.h aica/armmem.c aica/aica.c \
-	aica/aica.h aica/audio.c aica/audio.h pvr2/pvr2.c pvr2/pvr2.h \
-	pvr2/pvr2mem.c pvr2/pvr2mmio.h pvr2/tacore.c pvr2/rendsort.c \
-	pvr2/texcache.c pvr2/yuv.c pvr2/rendsave.c pvr2/scene.c \
-	pvr2/scene.h pvr2/gl_sl.c pvr2/gl_slsrc.c pvr2/glutil.c \
-	pvr2/glutil.h pvr2/glrender.c pvr2/vertex.glsl \
-	pvr2/fragment.glsl maple/maple.c maple/maple.h \
-	maple/controller.c maple/kbd.c maple/mouse.c maple/lightgun.c \
-	loader.c loader.h elf.h bootstrap.c bootstrap.h util.c \
-	gdlist.c gdlist.h display.c display.h dckeysyms.h \
-	drivers/audio_null.c drivers/video_null.c drivers/video_gl.c \
-	drivers/video_gl.h drivers/gl_fbo.c sh4/sh4.def sh4/sh4core.in \
-	sh4/sh4x86.in sh4/sh4dasm.in sh4/sh4stat.in sh4/sh4x86.c \
-	sh4/x86op.h sh4/ia32abi.h sh4/ia32mac.h sh4/ia64abi.h \
-	sh4/sh4trans.c sh4/sh4trans.h x86dasm/x86dasm.c \
+	sh4/sh4.h sh4/dmac.h sh4/pmm.c sh4/cache.c sh4/mmu.h \
+	aica/armcore.c aica/armcore.h aica/armdasm.c aica/armdasm.h \
+	aica/armmem.c aica/aica.c aica/aica.h aica/audio.c \
+	aica/audio.h pvr2/pvr2.c pvr2/pvr2.h pvr2/pvr2mem.c \
+	pvr2/pvr2mmio.h pvr2/tacore.c pvr2/rendsort.c pvr2/texcache.c \
+	pvr2/yuv.c pvr2/rendsave.c pvr2/scene.c pvr2/scene.h \
+	pvr2/gl_sl.c pvr2/gl_slsrc.c pvr2/glutil.c pvr2/glutil.h \
+	pvr2/glrender.c pvr2/vertex.glsl pvr2/fragment.glsl \
+	maple/maple.c maple/maple.h maple/controller.c maple/kbd.c \
+	maple/mouse.c maple/lightgun.c loader.c loader.h elf.h \
+	bootstrap.c bootstrap.h util.c gdlist.c gdlist.h display.c \
+	display.h dckeysyms.h drivers/audio_null.c \
+	drivers/video_null.c drivers/video_gl.c drivers/video_gl.h \
+	drivers/gl_fbo.c sh4/sh4.def sh4/sh4core.in sh4/sh4x86.in \
+	sh4/sh4dasm.in sh4/sh4stat.in sh4/sh4x86.c sh4/x86op.h \
+	sh4/ia32abi.h sh4/ia32mac.h sh4/ia64abi.h sh4/sh4trans.c \
+	sh4/sh4trans.h sh4/mmux86.c x86dasm/x86dasm.c \
 	x86dasm/x86dasm.h x86dasm/i386-dis.c x86dasm/dis-init.c \
 	x86dasm/dis-buf.c x86dasm/ansidecl.h x86dasm/bfd.h \
 	x86dasm/dis-asm.h x86dasm/symcat.h x86dasm/sysdep.h \
@@ -137,8 +139,9 @@ am__lxdream_SOURCES_DIST = main.c version.c config.c config.h \
 	drivers/osx_iokit.h drivers/cd_none.c drivers/joy_linux.c \
 	drivers/joy_linux.h
 @BUILD_SH4X86_TRUE@am__objects_1 = sh4x86.$(OBJEXT) sh4trans.$(OBJEXT) \
-@BUILD_SH4X86_TRUE@	x86dasm.$(OBJEXT) i386-dis.$(OBJEXT) \
-@BUILD_SH4X86_TRUE@	dis-init.$(OBJEXT) dis-buf.$(OBJEXT)
+@BUILD_SH4X86_TRUE@	mmux86.$(OBJEXT) x86dasm.$(OBJEXT) \
+@BUILD_SH4X86_TRUE@	i386-dis.$(OBJEXT) dis-init.$(OBJEXT) \
+@BUILD_SH4X86_TRUE@	dis-buf.$(OBJEXT)
 @GUI_GTK_TRUE@am__objects_2 = gtkui.$(OBJEXT) gtk_win.$(OBJEXT) \
 @GUI_GTK_TRUE@	gtkcb.$(OBJEXT) gtk_mmio.$(OBJEXT) \
 @GUI_GTK_TRUE@	gtk_debug.$(OBJEXT) gtk_dump.$(OBJEXT) \
@@ -160,42 +163,42 @@ am__lxdream_SOURCES_DIST = main.c version.c config.c config.h \
 @CDROM_NONE_TRUE@am__objects_13 = cd_none.$(OBJEXT)
 @JOY_LINUX_TRUE@am__objects_14 = joy_linux.$(OBJEXT)
 am_lxdream_OBJECTS = main.$(OBJEXT) version.$(OBJEXT) config.$(OBJEXT) \
-	mem.$(OBJEXT) paths.$(OBJEXT) watch.$(OBJEXT) asic.$(OBJEXT) \
-	syscall.$(OBJEXT) bios.$(OBJEXT) dcload.$(OBJEXT) \
-	ide.$(OBJEXT) gdimage.$(OBJEXT) gdrom.$(OBJEXT) nrg.$(OBJEXT) \
-	cdi.$(OBJEXT) gdi.$(OBJEXT) edc_ecc.$(OBJEXT) mmc.$(OBJEXT) \
-	dreamcast.$(OBJEXT) eventq.$(OBJEXT) sh4.$(OBJEXT) \
-	intc.$(OBJEXT) sh4mem.$(OBJEXT) timer.$(OBJEXT) dmac.$(OBJEXT) \
-	mmu.$(OBJEXT) sh4core.$(OBJEXT) sh4dasm.$(OBJEXT) \
-	sh4mmio.$(OBJEXT) scif.$(OBJEXT) sh4stat.$(OBJEXT) \
-	xltcache.$(OBJEXT) pmm.$(OBJEXT) armcore.$(OBJEXT) \
-	armdasm.$(OBJEXT) armmem.$(OBJEXT) aica.$(OBJEXT) \
-	audio.$(OBJEXT) pvr2.$(OBJEXT) pvr2mem.$(OBJEXT) \
-	tacore.$(OBJEXT) rendsort.$(OBJEXT) texcache.$(OBJEXT) \
-	yuv.$(OBJEXT) rendsave.$(OBJEXT) scene.$(OBJEXT) \
-	gl_sl.$(OBJEXT) gl_slsrc.$(OBJEXT) glutil.$(OBJEXT) \
-	glrender.$(OBJEXT) maple.$(OBJEXT) controller.$(OBJEXT) \
-	kbd.$(OBJEXT) mouse.$(OBJEXT) lightgun.$(OBJEXT) \
-	loader.$(OBJEXT) bootstrap.$(OBJEXT) util.$(OBJEXT) \
-	gdlist.$(OBJEXT) display.$(OBJEXT) audio_null.$(OBJEXT) \
-	video_null.$(OBJEXT) video_gl.$(OBJEXT) gl_fbo.$(OBJEXT) \
-	$(am__objects_1) $(am__objects_2) $(am__objects_3) \
-	$(am__objects_4) $(am__objects_5) $(am__objects_6) \
-	$(am__objects_7) $(am__objects_8) $(am__objects_9) \
-	$(am__objects_10) $(am__objects_11) $(am__objects_12) \
-	$(am__objects_13) $(am__objects_14)
+	mem.$(OBJEXT) sdram.$(OBJEXT) paths.$(OBJEXT) watch.$(OBJEXT) \
+	asic.$(OBJEXT) syscall.$(OBJEXT) bios.$(OBJEXT) \
+	dcload.$(OBJEXT) ide.$(OBJEXT) gdimage.$(OBJEXT) \
+	gdrom.$(OBJEXT) nrg.$(OBJEXT) cdi.$(OBJEXT) gdi.$(OBJEXT) \
+	edc_ecc.$(OBJEXT) mmc.$(OBJEXT) dreamcast.$(OBJEXT) \
+	eventq.$(OBJEXT) sh4.$(OBJEXT) intc.$(OBJEXT) sh4mem.$(OBJEXT) \
+	timer.$(OBJEXT) dmac.$(OBJEXT) mmu.$(OBJEXT) sh4core.$(OBJEXT) \
+	sh4dasm.$(OBJEXT) sh4mmio.$(OBJEXT) scif.$(OBJEXT) \
+	sh4stat.$(OBJEXT) xltcache.$(OBJEXT) pmm.$(OBJEXT) \
+	cache.$(OBJEXT) armcore.$(OBJEXT) armdasm.$(OBJEXT) \
+	armmem.$(OBJEXT) aica.$(OBJEXT) audio.$(OBJEXT) pvr2.$(OBJEXT) \
+	pvr2mem.$(OBJEXT) tacore.$(OBJEXT) rendsort.$(OBJEXT) \
+	texcache.$(OBJEXT) yuv.$(OBJEXT) rendsave.$(OBJEXT) \
+	scene.$(OBJEXT) gl_sl.$(OBJEXT) gl_slsrc.$(OBJEXT) \
+	glutil.$(OBJEXT) glrender.$(OBJEXT) maple.$(OBJEXT) \
+	controller.$(OBJEXT) kbd.$(OBJEXT) mouse.$(OBJEXT) \
+	lightgun.$(OBJEXT) loader.$(OBJEXT) bootstrap.$(OBJEXT) \
+	util.$(OBJEXT) gdlist.$(OBJEXT) display.$(OBJEXT) \
+	audio_null.$(OBJEXT) video_null.$(OBJEXT) video_gl.$(OBJEXT) \
+	gl_fbo.$(OBJEXT) $(am__objects_1) $(am__objects_2) \
+	$(am__objects_3) $(am__objects_4) $(am__objects_5) \
+	$(am__objects_6) $(am__objects_7) $(am__objects_8) \
+	$(am__objects_9) $(am__objects_10) $(am__objects_11) \
+	$(am__objects_12) $(am__objects_13) $(am__objects_14)
 lxdream_OBJECTS = $(am_lxdream_OBJECTS)
 lxdream_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am__test_testsh4x86_SOURCES_DIST = test/testsh4x86.c x86dasm/x86dasm.c \
 	x86dasm/x86dasm.h x86dasm/i386-dis.c x86dasm/dis-init.c \
-	x86dasm/dis-buf.c sh4/sh4dasm.c sh4/sh4trans.c sh4/sh4x86.c \
-	sh4/xltcache.c sh4/xltcache.h mem.c util.c sh4/mmu.c
+	x86dasm/dis-buf.c sh4/sh4trans.c sh4/sh4x86.c sh4/xltcache.c \
+	sh4/xltcache.h mem.c util.c
 @BUILD_SH4X86_TRUE@am_test_testsh4x86_OBJECTS = testsh4x86.$(OBJEXT) \
 @BUILD_SH4X86_TRUE@	x86dasm.$(OBJEXT) i386-dis.$(OBJEXT) \
 @BUILD_SH4X86_TRUE@	dis-init.$(OBJEXT) dis-buf.$(OBJEXT) \
-@BUILD_SH4X86_TRUE@	sh4dasm.$(OBJEXT) sh4trans.$(OBJEXT) \
-@BUILD_SH4X86_TRUE@	sh4x86.$(OBJEXT) xltcache.$(OBJEXT) \
-@BUILD_SH4X86_TRUE@	mem.$(OBJEXT) util.$(OBJEXT) mmu.$(OBJEXT)
+@BUILD_SH4X86_TRUE@	sh4trans.$(OBJEXT) sh4x86.$(OBJEXT) \
+@BUILD_SH4X86_TRUE@	xltcache.$(OBJEXT) mem.$(OBJEXT) \
+@BUILD_SH4X86_TRUE@	util.$(OBJEXT)
 test_testsh4x86_OBJECTS = $(am_test_testsh4x86_OBJECTS)
 test_testsh4x86_DEPENDENCIES =
 am__dirstamp = $(am__leading_dot)dirstamp
@@ -400,18 +403,19 @@ CLEANFILES = sh4/sh4core.c sh4/sh4dasm.c sh4/sh4x86.c sh4/sh4stat.c \
 gendec_SOURCES = tools/gendec.c tools/gendec.h tools/insparse.c tools/actparse.c
 genglsl_SOURCES = tools/genglsl.c
 lxdream_SOURCES = main.c version.c config.c config.h lxdream.h dream.h \
-	gui.h cpu.h hook.h gettext.h mem.c mem.h mmio.h paths.c \
-	watch.c asic.c asic.h clock.h serial.h syscall.c syscall.h \
-	bios.c dcload.c gdrom/ide.c gdrom/ide.h gdrom/packet.h \
-	gdrom/gdimage.c gdrom/gdrom.c gdrom/gdrom.h gdrom/nrg.c \
-	gdrom/cdi.c gdrom/gdi.c gdrom/edc_ecc.c gdrom/ecc.h \
-	gdrom/edc_crctable.h gdrom/edc_encoder.h gdrom/edc_l2sq.h \
-	gdrom/edc_scramble.h gdrom/mmc.c gdrom/gddriver.h dreamcast.c \
-	dreamcast.h eventq.c eventq.h sh4/sh4.c sh4/intc.c sh4/intc.h \
-	sh4/sh4mem.c sh4/timer.c sh4/dmac.c sh4/mmu.c sh4/sh4core.c \
-	sh4/sh4core.h sh4/sh4dasm.c sh4/sh4dasm.h sh4/sh4mmio.c \
-	sh4/sh4mmio.h sh4/scif.c sh4/sh4stat.c sh4/sh4stat.h \
-	sh4/xltcache.c sh4/xltcache.h sh4/sh4.h sh4/dmac.h sh4/pmm.c \
+	gui.h cpu.h hook.h gettext.h mem.c mem.h sdram.c mmio.h \
+	paths.c watch.c asic.c asic.h clock.h serial.h syscall.c \
+	syscall.h bios.c dcload.c gdrom/ide.c gdrom/ide.h \
+	gdrom/packet.h gdrom/gdimage.c gdrom/gdrom.c gdrom/gdrom.h \
+	gdrom/nrg.c gdrom/cdi.c gdrom/gdi.c gdrom/edc_ecc.c \
+	gdrom/ecc.h gdrom/edc_crctable.h gdrom/edc_encoder.h \
+	gdrom/edc_l2sq.h gdrom/edc_scramble.h gdrom/mmc.c \
+	gdrom/gddriver.h dreamcast.c dreamcast.h eventq.c eventq.h \
+	sh4/sh4.c sh4/intc.c sh4/intc.h sh4/sh4mem.c sh4/timer.c \
+	sh4/dmac.c sh4/mmu.c sh4/sh4core.c sh4/sh4core.h sh4/sh4dasm.c \
+	sh4/sh4dasm.h sh4/sh4mmio.c sh4/sh4mmio.h sh4/scif.c \
+	sh4/sh4stat.c sh4/sh4stat.h sh4/xltcache.c sh4/xltcache.h \
+	sh4/sh4.h sh4/dmac.h sh4/pmm.c sh4/cache.c sh4/mmu.h \
 	aica/armcore.c aica/armcore.h aica/armdasm.c aica/armdasm.h \
 	aica/armmem.c aica/aica.c aica/aica.h aica/audio.c \
 	aica/audio.h pvr2/pvr2.c pvr2/pvr2.h pvr2/pvr2mem.c \
@@ -434,8 +438,8 @@ lxdream_SOURCES = main.c version.c config.c config.h lxdream.h dream.h \
 @BUILD_SH4X86_TRUE@test_testsh4x86_SOURCES = test/testsh4x86.c x86dasm/x86dasm.c \
 @BUILD_SH4X86_TRUE@	x86dasm/x86dasm.h x86dasm/i386-dis.c x86dasm/dis-init.c \
 @BUILD_SH4X86_TRUE@	x86dasm/dis-buf.c \
-@BUILD_SH4X86_TRUE@	sh4/sh4dasm.c sh4/sh4trans.c sh4/sh4x86.c sh4/xltcache.c \
-@BUILD_SH4X86_TRUE@	sh4/xltcache.h mem.c util.c sh4/mmu.c
+@BUILD_SH4X86_TRUE@	sh4/sh4trans.c sh4/sh4x86.c sh4/xltcache.c \
+@BUILD_SH4X86_TRUE@	sh4/xltcache.h mem.c util.c 
 
 lxdream_LDADD = @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@ @PULSE_LIBS@ @ESOUND_LIBS@ @ALSA_LIBS@ $(INTLLIBS)
 gendec_LDADD = @GLIB_LIBS@ @GTK_LIBS@ $(INTLLIBS)
@@ -543,6 +547,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/audio_pulse.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bios.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bootstrap.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cache.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cd_linux.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cd_none.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cd_osx.Po@am__quote@
@@ -596,6 +601,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mem.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mmc.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mmu.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mmux86.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mouse.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nrg.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/osx_iokit.Po@am__quote@
@@ -607,6 +613,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rendsort.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/scene.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/scif.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sdram.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sh4.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sh4core.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sh4dasm.Po@am__quote@
@@ -999,6 +1006,20 @@ pmm.obj: sh4/pmm.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o pmm.obj `if test -f 'sh4/pmm.c'; then $(CYGPATH_W) 'sh4/pmm.c'; else $(CYGPATH_W) '$(srcdir)/sh4/pmm.c'; fi`
 
+cache.o: sh4/cache.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT cache.o -MD -MP -MF "$(DEPDIR)/cache.Tpo" -c -o cache.o `test -f 'sh4/cache.c' || echo '$(srcdir)/'`sh4/cache.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/cache.Tpo" "$(DEPDIR)/cache.Po"; else rm -f "$(DEPDIR)/cache.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='sh4/cache.c' object='cache.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o cache.o `test -f 'sh4/cache.c' || echo '$(srcdir)/'`sh4/cache.c
+
+cache.obj: sh4/cache.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT cache.obj -MD -MP -MF "$(DEPDIR)/cache.Tpo" -c -o cache.obj `if test -f 'sh4/cache.c'; then $(CYGPATH_W) 'sh4/cache.c'; else $(CYGPATH_W) '$(srcdir)/sh4/cache.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/cache.Tpo" "$(DEPDIR)/cache.Po"; else rm -f "$(DEPDIR)/cache.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='sh4/cache.c' object='cache.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o cache.obj `if test -f 'sh4/cache.c'; then $(CYGPATH_W) 'sh4/cache.c'; else $(CYGPATH_W) '$(srcdir)/sh4/cache.c'; fi`
+
 armcore.o: aica/armcore.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT armcore.o -MD -MP -MF "$(DEPDIR)/armcore.Tpo" -c -o armcore.o `test -f 'aica/armcore.c' || echo '$(srcdir)/'`aica/armcore.c; \
 @am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/armcore.Tpo" "$(DEPDIR)/armcore.Po"; else rm -f "$(DEPDIR)/armcore.Tpo"; exit 1; fi
@@ -1390,6 +1411,20 @@ sh4trans.obj: sh4/sh4trans.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='sh4/sh4trans.c' object='sh4trans.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sh4trans.obj `if test -f 'sh4/sh4trans.c'; then $(CYGPATH_W) 'sh4/sh4trans.c'; else $(CYGPATH_W) '$(srcdir)/sh4/sh4trans.c'; fi`
+
+mmux86.o: sh4/mmux86.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT mmux86.o -MD -MP -MF "$(DEPDIR)/mmux86.Tpo" -c -o mmux86.o `test -f 'sh4/mmux86.c' || echo '$(srcdir)/'`sh4/mmux86.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/mmux86.Tpo" "$(DEPDIR)/mmux86.Po"; else rm -f "$(DEPDIR)/mmux86.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='sh4/mmux86.c' object='mmux86.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o mmux86.o `test -f 'sh4/mmux86.c' || echo '$(srcdir)/'`sh4/mmux86.c
+
+mmux86.obj: sh4/mmux86.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT mmux86.obj -MD -MP -MF "$(DEPDIR)/mmux86.Tpo" -c -o mmux86.obj `if test -f 'sh4/mmux86.c'; then $(CYGPATH_W) 'sh4/mmux86.c'; else $(CYGPATH_W) '$(srcdir)/sh4/mmux86.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/mmux86.Tpo" "$(DEPDIR)/mmux86.Po"; else rm -f "$(DEPDIR)/mmux86.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='sh4/mmux86.c' object='mmux86.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o mmux86.obj `if test -f 'sh4/mmux86.c'; then $(CYGPATH_W) 'sh4/mmux86.c'; else $(CYGPATH_W) '$(srcdir)/sh4/mmux86.c'; fi`
 
 x86dasm.o: x86dasm/x86dasm.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT x86dasm.o -MD -MP -MF "$(DEPDIR)/x86dasm.Tpo" -c -o x86dasm.o `test -f 'x86dasm/x86dasm.c' || echo '$(srcdir)/'`x86dasm/x86dasm.c; \

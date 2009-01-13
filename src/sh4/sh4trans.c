@@ -52,9 +52,11 @@ uint32_t sh4_translate_run_slice( uint32_t nanosecs )
             }
 
             code = xlat_get_code_by_vma( sh4r.pc );
-            if( code == NULL || (sh4r.fpscr & (FPSCR_PR|FPSCR_SZ)) != XLAT_BLOCK_FPSCR(code) ) {
+            if( code == NULL || sh4r.xlat_sh4_mode != XLAT_BLOCK_MODE(code) ) {
                 code = sh4_translate_basic_block( sh4r.pc );
             }
+        } else if( sh4r.xlat_sh4_mode != XLAT_BLOCK_MODE(code) ) {
+            code = sh4_translate_basic_block( sh4r.pc );
         }
         code = code();
     }
@@ -139,8 +141,7 @@ void * sh4_translate_basic_block( sh4addr_t start )
     memcpy( xlat_output, xlat_recovery, recovery_size);
     xlat_current_block->recover_table_offset = xlat_output - (uint8_t *)xlat_current_block->code;
     xlat_current_block->recover_table_size = xlat_recovery_posn;
-    xlat_current_block->fpscr = sh4r.fpscr & (FPSCR_PR|FPSCR_SZ);
-    xlat_current_block->fpscr_mask = (FPSCR_PR|FPSCR_SZ);
+    xlat_current_block->xlat_sh4_mode = sh4r.xlat_sh4_mode;
     xlat_commit_block( finalsize, pc-start );
     return xlat_current_block->code;
 }
@@ -157,6 +158,16 @@ void sh4_translate_run_recovery( xlat_recovery_record_t recovery )
     sh4r.pc += (recovery->sh4_icount<<1);
 }
 
+/**
+ * Same as sh4_translate_run_recovery, but is used to recover from a taken
+ * exception - that is, it fixes sh4r.spc rather than sh4r.pc
+ */
+void sh4_translate_run_exception_recovery( xlat_recovery_record_t recovery )
+{
+    sh4r.slice_cycle += (recovery->sh4_icount * sh4_cpu_period);
+    sh4r.spc += (recovery->sh4_icount<<1);
+}    
+
 void sh4_translate_exit_recover( )
 {
     void *code = xlat_get_code_by_vma( sh4r.pc );
@@ -165,7 +176,7 @@ void sh4_translate_exit_recover( )
         void *pc = xlat_get_native_pc( code, size );
         if( pc != NULL ) {
             // could be null if we're not actually running inside the translator
-            xlat_recovery_record_t recover = xlat_get_post_recovery(code, pc, TRUE);
+            xlat_recovery_record_t recover = xlat_get_pre_recovery(code, pc);
             if( recover != NULL ) {
                 // Can be null if there is no recovery necessary
                 sh4_translate_run_recovery(recover);
@@ -174,44 +185,30 @@ void sh4_translate_exit_recover( )
     }
 }
 
+void sh4_translate_exception_exit_recover( )
+{
+    void *code = xlat_get_code_by_vma( sh4r.spc );
+    if( code != NULL ) {
+        uint32_t size = xlat_get_code_size( code );
+        void *pc = xlat_get_native_pc( code, size );
+        if( pc != NULL ) {
+            // could be null if we're not actually running inside the translator
+            xlat_recovery_record_t recover = xlat_get_pre_recovery(code, pc);
+            if( recover != NULL ) {
+                // Can be null if there is no recovery necessary
+                sh4_translate_run_exception_recovery(recover);
+            }
+        }
+    }
+    
+}
+
 void FASTCALL sh4_translate_breakpoint_hit(uint32_t pc)
 {
     if( sh4_starting && sh4r.slice_cycle == 0 && pc == sh4r.pc ) {
         return;
     }
     sh4_core_exit( CORE_EXIT_BREAKPOINT );
-}
-
-/**
- * Exit the current block at the end of the current instruction, flush the
- * translation cache (completely) and return control to sh4_xlat_run_slice.
- *
- * As a special case, if the current instruction is actually the last 
- * instruction in the block (ie it's in a delay slot), this function 
- * returns to allow normal completion of the translation block. Otherwise
- * this function never returns.
- *
- * Must only be invoked (indirectly) from within translated code.
- */
-gboolean sh4_translate_flush_cache()
-{
-    void *code = xlat_get_code_by_vma( sh4r.pc );
-    if( code != NULL ) {
-        uint32_t size = xlat_get_code_size( code );
-        void *pc = xlat_get_native_pc( code, size );
-        assert( pc != NULL );
-
-        xlat_recovery_record_t recover = xlat_get_post_recovery(code, pc, FALSE);
-        if( recover != NULL ) {
-            // Can be null if there is no recovery necessary
-            sh4_translate_run_recovery(recover);
-            xlat_flush_cache();
-            return TRUE;
-        } else {
-            xlat_flush_cache();
-            return FALSE;
-        }
-    }
 }
 
 void * FASTCALL xlat_get_code_by_vma( sh4vma_t vma )

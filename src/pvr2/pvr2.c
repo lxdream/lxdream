@@ -31,8 +31,6 @@
 #define MMIO_IMPL
 #include "pvr2/pvr2mmio.h"
 
-unsigned char *video_base;
-
 #define MAX_RENDER_BUFFERS 4
 
 #define HPOS_PER_FRAME 0
@@ -142,12 +140,10 @@ static void pvr2_init( void )
     int i;
     register_io_region( &mmio_region_PVR2 );
     register_io_region( &mmio_region_PVR2PAL );
-    register_io_region( &mmio_region_PVR2TA );
     register_event_callback( EVENT_HPOS, pvr2_hpos_callback );
     register_event_callback( EVENT_SCANLINE1, pvr2_scanline_callback );
     register_event_callback( EVENT_SCANLINE2, pvr2_scanline_callback );
     register_event_callback( EVENT_GUNPOS, pvr2_gunpos_callback );
-    video_base = mem_get_region_by_name( MEM_REGION_VIDEO );
     texcache_init();
     pvr2_reset();
     pvr2_ta_reset();
@@ -445,7 +441,7 @@ void pvr2_display_frame( void )
         }
         fbuf.address = (fbuf.address & 0x00FFFFFF) + PVR2_RAM_BASE;
         fbuf.inverted = FALSE;
-        fbuf.data = video_base + (fbuf.address&0x00FFFFFF);
+        fbuf.data = pvr2_main_ram + (fbuf.address&0x00FFFFFF);
 
         render_buffer_t rbuf = pvr2_get_render_buffer( &fbuf );
         if( rbuf == NULL ) {
@@ -462,8 +458,9 @@ void pvr2_display_frame( void )
  * This has to handle every single register individually as they all get masked 
  * off differently (and its easier to do it at write time)
  */
-void mmio_region_PVR2_write( uint32_t reg, uint32_t val )
+MMIO_REGION_WRITE_FN( PVR2, reg, val )
 {
+    reg &= 0xFFF;
     if( reg >= 0x200 && reg < 0x600 ) { /* Fog table */
         MMIO_WRITE( PVR2, reg, val );
         return;
@@ -826,6 +823,7 @@ void pvr2_queue_gun_event( int xpos, int ypos )
 
 MMIO_REGION_READ_FN( PVR2, reg )
 {
+    reg &= 0xFFF;
     switch( reg ) {
     case DISP_SYNCSTAT:
         return pvr2_get_sync_status();
@@ -836,6 +834,7 @@ MMIO_REGION_READ_FN( PVR2, reg )
 
 MMIO_REGION_WRITE_FN( PVR2PAL, reg, val )
 {
+    reg &= 0xFFF;
     MMIO_WRITE( PVR2PAL, reg, val );
     pvr2_state.palette_changed = TRUE;
 }
@@ -853,19 +852,6 @@ MMIO_REGION_READ_DEFFN( PVR2PAL );
 void pvr2_set_base_address( uint32_t base ) 
 {
     mmio_region_PVR2_write( DISP_ADDR1, base );
-}
-
-
-
-
-int32_t mmio_region_PVR2TA_read( uint32_t reg )
-{
-    return 0xFFFFFFFF;
-}
-
-void mmio_region_PVR2TA_write( uint32_t reg, uint32_t val )
-{
-    pvr2_ta_write( (unsigned char *)&val, sizeof(uint32_t) );
 }
 
 render_buffer_t pvr2_create_render_buffer( sh4addr_t addr, int width, int height, GLuint tex_id )

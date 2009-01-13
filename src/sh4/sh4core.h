@@ -1,10 +1,9 @@
 /**
  * $Id$
  * 
- * This file defines the internal functions exported/used by the SH4 core, 
- * except for disassembly functions defined in sh4dasm.h
+ * This file defines the internal functions used by the SH4 core, 
  *
- * Copyright (c) 2005 Nathan Keynes.
+ * Copyright (c) 2005-2008 Nathan Keynes.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,7 +32,6 @@ extern "C" {
 /* Breakpoint data structure */
 extern struct breakpoint_struct sh4_breakpoints[MAX_BREAKPOINTS];
 extern int sh4_breakpoint_count;
-extern sh4ptr_t sh4_main_ram;
 extern gboolean sh4_starting;
 
 /**
@@ -74,7 +72,7 @@ extern struct sh4_icache_struct sh4_icache;
 
 
 /**
- * SH4 vm-exit flag - exit the current block but continue (eg exception handling)
+ * SH4 vm-exit flag - exit the current block but continue normally
  */
 #define CORE_EXIT_CONTINUE 1
 
@@ -101,10 +99,16 @@ extern struct sh4_icache_struct sh4_icache;
 #define CORE_EXIT_SLEEP 5
 
 /**
- * SH4 vm-exit flag - exit the current block  and flush all instruction caches (ie
+ * SH4 vm-exit flag - exit the current block and flush all instruction caches (ie
  * if address translation has changed)
  */
 #define CORE_EXIT_FLUSH_ICACHE 6
+
+/**
+ * SH4 vm-exit flag - exit the current block following a taken exception. sh4r.spc
+ * is fixed up by recovery rather than sh4r.pc.
+ */
+#define CORE_EXIT_EXCEPTION 7
 
 typedef uint32_t (*sh4_run_slice_fn)(uint32_t);
 
@@ -145,11 +149,12 @@ int DMAC_load_state( FILE * );
 void INTC_reset( void );
 void INTC_save_state( FILE *f );
 int INTC_load_state( FILE *f );
-void MMU_init( void );
 void MMU_reset( void );
 void MMU_save_state( FILE *f );
 int MMU_load_state( FILE *f );
 void MMU_ldtlb();
+void CCN_save_state( FILE *f );
+int CCN_load_state( FILE *f );
 void SCIF_reset( void );
 void SCIF_run_slice( uint32_t );
 void SCIF_save_state( FILE *f );
@@ -170,6 +175,8 @@ uint32_t sh4_translate_run_slice(uint32_t);
 uint32_t sh4_emulate_run_slice(uint32_t);
 
 /* SH4 instruction support methods */
+mem_region_fn_t FASTCALL sh7750_decode_address( sh4addr_t address );
+void FASTCALL sh7750_decode_address_copy( sh4addr_t address, mem_region_fn_t result );
 void FASTCALL sh4_sleep( void );
 void FASTCALL sh4_fsca( uint32_t angle, float *fr );
 void FASTCALL sh4_ftrv( float *fv );
@@ -192,22 +199,6 @@ gboolean sh4_has_page( sh4vma_t vma );
  */
 gboolean FASTCALL mmu_update_icache( sh4vma_t addr );
 
-/**
- * Resolve a virtual address through the TLB for a read operation, returning 
- * the resultant P4 or external address. If the resolution fails, the 
- * appropriate MMU exception is raised and the value MMU_VMA_ERROR is returned.
- * @return An external address (0x00000000-0x1FFFFFFF), a P4 address
- * (0xE0000000 - 0xFFFFFFFF), or MMU_VMA_ERROR.
- */
-#ifdef HAVE_FRAME_ADDRESS
-sh4addr_t FASTCALL mmu_vma_to_phys_read( sh4vma_t addr, void *exc );
-sh4addr_t FASTCALL mmu_vma_to_phys_write( sh4vma_t addr, void *exc );
-#else
-sh4addr_t FASTCALL mmu_vma_to_phys_read( sh4vma_t addr );
-sh4addr_t FASTCALL mmu_vma_to_phys_write( sh4vma_t addr );
-#endif
-sh4addr_t FASTCALL mmu_vma_to_phys_disasm( sh4vma_t addr );
-
 int64_t FASTCALL sh4_read_quad( sh4addr_t addr );
 int32_t FASTCALL sh4_read_long( sh4addr_t addr );
 int32_t FASTCALL sh4_read_word( sh4addr_t addr );
@@ -218,7 +209,7 @@ void FASTCALL sh4_write_word( sh4addr_t addr, uint32_t val );
 void FASTCALL sh4_write_byte( sh4addr_t addr, uint32_t val );
 int32_t sh4_read_phys_word( sh4addr_t addr );
 void FASTCALL sh4_flush_store_queue( sh4addr_t addr );
-gboolean FASTCALL sh4_flush_store_queue_mmu( sh4addr_t addr );
+void FASTCALL sh4_flush_store_queue_mmu( sh4addr_t addr, void *exc );
 
 /* SH4 Exceptions */
 #define EXC_POWER_RESET     0x000 /* reset vector */
@@ -241,20 +232,19 @@ gboolean FASTCALL sh4_flush_store_queue_mmu( sh4addr_t addr );
 #define EXV_TLBMISS      0x400  /* TLB-miss exception vector */
 #define EXV_INTERRUPT    0x600  /* External interrupt vector */
 
-gboolean FASTCALL sh4_raise_exception( int );
-gboolean FASTCALL sh4_raise_reset( int );
-gboolean FASTCALL sh4_raise_trap( int );
-gboolean FASTCALL sh4_raise_slot_exception( int, int );
-gboolean FASTCALL sh4_raise_tlb_exception( int );
+void FASTCALL sh4_raise_exception( int );
+void FASTCALL sh4_raise_reset( int );
+void FASTCALL sh4_raise_trap( int );
+void FASTCALL sh4_raise_tlb_exception( int, sh4vma_t );
+void FASTCALL sh4_raise_tlb_multihit( sh4vma_t );
 void FASTCALL sh4_accept_interrupt( void );
 
-#define SIGNEXT4(n) ((((int32_t)(n))<<28)>>28)
-#define SIGNEXT8(n) ((int32_t)((int8_t)(n)))
-#define SIGNEXT12(n) ((((int32_t)(n))<<20)>>20)
-#define SIGNEXT16(n) ((int32_t)((int16_t)(n)))
-#define SIGNEXT32(n) ((int64_t)((int32_t)(n)))
-#define SIGNEXT48(n) ((((int64_t)(n))<<16)>>16)
-#define ZEROEXT32(n) ((int64_t)((uint64_t)((uint32_t)(n))))
+/**
+ * Complete the current instruction as part of a core exit. Prevents the 
+ * system from being left in an inconsistent state when an exit is 
+ * triggered during a memory write. 
+ */  
+void sh4_finalize_instruction( void );
 
 /* Status Register (SR) bits */
 #define SR_MD    0x40000000 /* Processor mode ( User=0, Privileged=1 ) */ 
@@ -297,7 +287,17 @@ void FASTCALL sh4_accept_interrupt( void );
 #define FPULf    (sh4r.fpul.f)
 #define FPULi    (sh4r.fpul.i)
 
-#define SH4_WRITE_STORE_QUEUE(addr,val) sh4r.store_queue[(addr>>2)&0xF] = val;
+/**************** SH4 internal memory regions *****************/
+extern struct mem_region_fn p4_region_itlb_addr;
+extern struct mem_region_fn p4_region_itlb_data;
+extern struct mem_region_fn p4_region_utlb_addr;
+extern struct mem_region_fn p4_region_utlb_data;
+extern struct mem_region_fn p4_region_icache_addr;
+extern struct mem_region_fn p4_region_icache_data;
+extern struct mem_region_fn p4_region_ocache_addr;
+extern struct mem_region_fn p4_region_ocache_data;
+
+
 
 #ifdef __cplusplus
 }

@@ -455,8 +455,9 @@ void SCIF_update_line_speed( void )
     }
 }
 
-int32_t mmio_region_SCIF_read( uint32_t reg )
+MMIO_REGION_READ_FN( SCIF, reg )
 {
+    reg &= 0xFFF;
     switch( reg ) {
     case SCFRDR2: /* Receive data */
         return SCIF_recvq_dequeue(FALSE);
@@ -465,9 +466,10 @@ int32_t mmio_region_SCIF_read( uint32_t reg )
     }
 }
 
-void mmio_region_SCIF_write( uint32_t reg, uint32_t val ) 
+MMIO_REGION_WRITE_FN( SCIF, reg, val )
 {
     uint32_t tmp;
+    reg &= 0xFFF;
     switch( reg ) {
     case SCSMR2: /* Serial mode register */
         /* Bit 6 => 0 = 8-bit, 1 = 7-bit

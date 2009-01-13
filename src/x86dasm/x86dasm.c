@@ -25,11 +25,10 @@
 #include "sh4/sh4.h"
 #include "sh4/sh4trans.h"
 
-extern const struct reg_desc_struct sh4_reg_map[];
 const struct cpu_desc_struct x86_cpu_desc = 
     { "x86", (disasm_func_t)x86_disasm_instruction, NULL, mem_has_page, 
       NULL, NULL, NULL, 1, 
-      (char *)&sh4r, sizeof(sh4r), sh4_reg_map,
+      NULL, 0, NULL, 
       &sh4r.pc };
 
 static int x86_disasm_output( void *data, const char *format, ... );

@@ -53,8 +53,9 @@ static struct intc_state {
     int priority[INT_NUM_SOURCES];
 } intc_state;
 
-void mmio_region_INTC_write( uint32_t reg, uint32_t val )
+MMIO_REGION_WRITE_FN( INTC, reg, val )
 {
+    reg &= 0xFFF;
     /* Well it saves having to use an intermediate table... */
     switch( reg ) {
     case ICR: /* care about this later */
@@ -95,9 +96,9 @@ void mmio_region_INTC_write( uint32_t reg, uint32_t val )
     MMIO_WRITE( INTC, reg, val );
 }
 
-int32_t mmio_region_INTC_read( uint32_t reg )
+MMIO_REGION_READ_FN( INTC, reg )
 {
-    return MMIO_READ( INTC, reg );
+    return MMIO_READ( INTC, reg & 0xFFF );
 }
 
 void INTC_reset()

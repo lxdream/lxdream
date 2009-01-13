@@ -134,6 +134,8 @@ gboolean pvr2_save_next_scene( const gchar *filename );
 
 /****************************** Frame Buffer *****************************/
 
+extern unsigned char pvr2_main_ram[];
+
 /**
  * Write a block of data to an address in the DMA range (0x10000000 -
  * 0x13FFFFFF), ie TA, YUV, or texture ram.
@@ -218,6 +220,8 @@ gboolean pvr2_render_buffer_invalidate( sh4addr_t addr, gboolean isWrite );
  * Any excess bytes are held pending until a complete list is sent
  */
 void pvr2_ta_write( unsigned char *buf, uint32_t length );
+
+void FASTCALL pvr2_ta_write_burst( sh4addr_t addr, unsigned char *buf );
 
 /**
  * Find the first polygon or sprite context in the supplied buffer of TA

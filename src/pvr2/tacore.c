@@ -119,8 +119,7 @@ static int strip_lengths[4] = {3,4,6,8}; /* in vertexes */
 
 #define TILESLOT( x, y ) (ta_status.current_tile_matrix + (ta_status.current_tile_size * (y * ta_status.width+ x) << 2))
 
-extern char *video_base;
-#define PVRRAM(addr) (*(uint32_t *)(video_base + ((addr)&PVR2_RAM_MASK)))
+#define PVRRAM(addr) (*(uint32_t *)(pvr2_main_ram + ((addr)&PVR2_RAM_MASK)))
 
 struct pvr2_ta_vertex {
     float x,y,z;
@@ -296,7 +295,7 @@ static void ta_init_list( unsigned int listtype ) {
 
         /* Initialize each tile to 0xF0000000 */
         if( ta_status.current_tile_size != 0 ) {
-            p = (uint32_t *)(video_base + ta_status.current_tile_matrix);
+            p = (uint32_t *)(pvr2_main_ram + ta_status.current_tile_matrix);
             for( i=0; i< ta_status.width * ta_status.height; i++ ) {
                 *p = 0xF0000000;
                 p += ta_status.current_tile_size;
@@ -346,7 +345,7 @@ static int ta_write_polygon_buffer( uint32_t *data, int length )
     int rv;
     int posn = MMIO_READ( PVR2, TA_POLYPOS );
     int end = MMIO_READ( PVR2, TA_POLYEND );
-    uint32_t *target = (uint32_t *)(video_base + posn);
+    uint32_t *target = (uint32_t *)(pvr2_main_ram + posn);
     for( rv=0; rv < length; rv++ ) {
         if( posn == end ) {
             asic_event( EVENT_PVR_PRIM_ALLOC_FAIL );
@@ -1199,4 +1198,12 @@ void pvr2_ta_write( unsigned char *buf, uint32_t length )
         pvr2_ta_process_block( buf );
         buf += 32;
     }
+}
+
+void FASTCALL pvr2_ta_write_burst( sh4addr_t addr, unsigned char *data )
+{
+    if( ta_status.debug_output ) {
+        fwrite_dump32( (uint32_t *)data, 32, stderr );
+    }
+    pvr2_ta_process_block( data );
 }

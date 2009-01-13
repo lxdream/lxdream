@@ -24,6 +24,15 @@
 
 #define load_ptr( reg, ptr ) load_imm64( reg, (uint64_t)ptr );
 
+static inline decode_address( int addr_reg )
+{
+    uintptr_t base = (sh4r.xlat_sh4_mode&SR_MD) ? (uintptr_t)sh4_address_space : (uintptr_t)sh4_user_address_space;
+    MOV_r32_r32( addr_reg, R_ECX ); 
+    SHR_imm8_r32( 12, R_ECX ); 
+    load_ptr( R_EDI, base );
+    REXW(); OP(0x8B); OP(0x0C); OP(0xCF);   // mov.q [%rdi + %rcx*8], %rcx
+}
+
 /**
  * Note: clobbers EAX to make the indirect call - this isn't usually
  * a problem since the callee will usually clobber it anyway.
@@ -50,6 +59,19 @@ static inline void call_func1_exc( void *ptr, int arg1, int pc )
     call_func0(ptr);
 }
 
+static inline void call_func1_r32disp8( int preg, uint32_t disp8, int arg1 )
+{
+    REXW(); MOV_r32_r32(arg1, R_EDI);
+    CALL_r32disp8(preg, disp8);    
+}
+
+static inline void call_func1_r32disp8_exc( int preg, uint32_t disp8, int arg1, int pc )
+{
+    REXW(); MOV_r32_r32(arg1, R_EDI);
+    load_exc_backpatch(R_ESI);
+    CALL_r32disp8(preg, disp8);
+}
+
 #define CALL_FUNC2_SIZE 16
 static inline void call_func2( void *ptr, int arg1, int arg2 )
 {
@@ -58,40 +80,21 @@ static inline void call_func2( void *ptr, int arg1, int arg2 )
     call_func0(ptr);
 }
 
-#define MEM_WRITE_DOUBLE_SIZE 35
-/**
- * Write a double (64-bit) value into memory, with the first word in arg2a, and
- * the second in arg2b
- */
-static inline void MEM_WRITE_DOUBLE( int addr, int arg2a, int arg2b )
+static inline void call_func2_r32disp8( int preg, uint32_t disp8, int arg1, int arg2 )
 {
-    PUSH_r32(arg2b);
-    PUSH_r32(addr);
-    call_func2(sh4_write_long, addr, arg2a);
-    POP_r32(R_EDI);
-    POP_r32(R_ESI);
-    ADD_imm8s_r32(4, R_EDI);
-    call_func0(sh4_write_long);
+    REXW(); MOV_r32_r32(arg1, R_EDI);
+    REXW(); MOV_r32_r32(arg2, R_ESI);
+    CALL_r32disp8(preg, disp8);    
 }
 
-#define MEM_READ_DOUBLE_SIZE 43
-/**
- * Read a double (64-bit) value from memory, writing the first word into arg2a
- * and the second into arg2b. The addr must not be in EAX
- */
-static inline void MEM_READ_DOUBLE( int addr, int arg2a, int arg2b )
+static inline void call_func2_r32disp8_exc( int preg, uint32_t disp8, int arg1, int arg2, int pc )
 {
-    REXW(); SUB_imm8s_r32( 8, R_ESP );
-    PUSH_r32(addr);
-    call_func1(sh4_read_long, addr);
-    POP_r32(R_EDI);
-    PUSH_r32(R_EAX);
-    ADD_imm8s_r32(4, R_EDI);
-    call_func0(sh4_read_long);
-    MOV_r32_r32(R_EAX, arg2b);
-    POP_r32(arg2a);
-    REXW(); ADD_imm8s_r32( 8, R_ESP );
+    REXW(); MOV_r32_r32(arg1, R_EDI);
+    REXW(); MOV_r32_r32(arg2, R_ESI);
+    load_exc_backpatch(R_EDX);
+    CALL_r32disp8(preg, disp8);
 }
+
 
 
 /**
