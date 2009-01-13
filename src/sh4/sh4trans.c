@@ -56,6 +56,13 @@ uint32_t sh4_translate_run_slice( uint32_t nanosecs )
                 code = sh4_translate_basic_block( sh4r.pc );
             }
         } else if( sh4r.xlat_sh4_mode != XLAT_BLOCK_MODE(code) ) {
+            if( !IS_IN_ICACHE(sh4r.pc) ) {
+                /* If TLB is off, we may have gotten here without updating
+                 * the icache, so do it now. This should never fail, so...
+                 */
+                mmu_update_icache(sh4r.pc);
+                assert( IS_IN_ICACHE(sh4r.pc) ); 
+            }
             code = sh4_translate_basic_block( sh4r.pc );
         }
         code = code();
