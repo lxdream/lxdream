@@ -77,7 +77,7 @@ static gboolean mmu_ext_page_remapped( sh4addr_t page, mem_region_fn_t fn, void 
 static void mmu_utlb_1k_init();
 static struct utlb_1k_entry *mmu_utlb_1k_alloc();
 static void mmu_utlb_1k_free( struct utlb_1k_entry *entry );
-static void mmu_fix_urc();
+static int mmu_read_urc();
 
 static void FASTCALL tlb_miss_read( sh4addr_t addr, void *exc );
 static int32_t FASTCALL tlb_protected_read( sh4addr_t addr, void *exc );
@@ -158,7 +158,7 @@ void MMU_reset()
 
 void MMU_save_state( FILE *f )
 {
-    mmu_fix_urc();   
+    mmu_read_urc();   
     fwrite( &mmu_itlb, sizeof(mmu_itlb), 1, f );
     fwrite( &mmu_utlb, sizeof(mmu_utlb), 1, f );
     fwrite( &mmu_urc, sizeof(mmu_urc), 1, f );
@@ -201,17 +201,17 @@ int MMU_load_state( FILE *f )
  */
 void MMU_ldtlb()
 {
-    mmu_fix_urc();
-    if( mmu_utlb[mmu_urc].flags & TLB_VALID )
-        mmu_utlb_remove_entry( mmu_urc );
-    mmu_utlb[mmu_urc].vpn = MMIO_READ(MMU, PTEH) & 0xFFFFFC00;
-    mmu_utlb[mmu_urc].asid = MMIO_READ(MMU, PTEH) & 0x000000FF;
-    mmu_utlb[mmu_urc].ppn = MMIO_READ(MMU, PTEL) & 0x1FFFFC00;
-    mmu_utlb[mmu_urc].flags = MMIO_READ(MMU, PTEL) & 0x00001FF;
-    mmu_utlb[mmu_urc].pcmcia = MMIO_READ(MMU, PTEA);
-    mmu_utlb[mmu_urc].mask = get_tlb_size_mask(mmu_utlb[mmu_urc].flags);
-    if( mmu_utlb[mmu_urc].flags & TLB_VALID )
-        mmu_utlb_insert_entry( mmu_urc );
+    int urc = mmu_read_urc();
+    if( mmu_utlb[urc].flags & TLB_VALID )
+        mmu_utlb_remove_entry( urc );
+    mmu_utlb[urc].vpn = MMIO_READ(MMU, PTEH) & 0xFFFFFC00;
+    mmu_utlb[urc].asid = MMIO_READ(MMU, PTEH) & 0x000000FF;
+    mmu_utlb[urc].ppn = MMIO_READ(MMU, PTEL) & 0x1FFFFC00;
+    mmu_utlb[urc].flags = MMIO_READ(MMU, PTEL) & 0x00001FF;
+    mmu_utlb[urc].pcmcia = MMIO_READ(MMU, PTEA);
+    mmu_utlb[urc].mask = get_tlb_size_mask(mmu_utlb[urc].flags);
+    if( mmu_utlb[urc].flags & TLB_VALID )
+        mmu_utlb_insert_entry( urc );
 }
 
 
@@ -220,8 +220,7 @@ MMIO_REGION_READ_FN( MMU, reg )
     reg &= 0xFFF;
     switch( reg ) {
     case MMUCR:
-        mmu_fix_urc();
-        return MMIO_READ( MMU, MMUCR) | (mmu_urc<<10) | ((mmu_urb&0x3F)<<18) | (mmu_lrui<<26);
+        return MMIO_READ( MMU, MMUCR) | (mmu_read_urc()<<10) | ((mmu_urb&0x3F)<<18) | (mmu_lrui<<26);
     default:
         return MMIO_READ( MMU, reg );
     }
@@ -349,7 +348,7 @@ static void mmu_utlb_1k_free( struct utlb_1k_entry *ent )
 /**
  * MMU accessor functions just increment URC - fixup here if necessary
  */
-static inline void mmu_fix_urc()
+static int mmu_read_urc()
 {
     if( mmu_urc_overflow ) {
         if( mmu_urc >= 0x40 ) {
@@ -360,6 +359,7 @@ static inline void mmu_fix_urc()
     } else {
         mmu_urc %= mmu_urb;
     }
+    return mmu_urc;
 }
 
 static void mmu_register_mem_region( uint32_t start, uint32_t end, mem_region_fn_t fn )
