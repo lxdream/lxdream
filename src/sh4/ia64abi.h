@@ -195,6 +195,29 @@ void exit_block_rel( sh4addr_t pc, sh4addr_t endpc )
 }
 
 /**
+ * Exit unconditionally with a general exception
+ */
+void exit_block_exc( int code, sh4addr_t pc )
+{
+    load_imm32( R_ECX, pc - sh4_x86.block_start_pc );   // 5
+    ADD_r32_sh4r( R_ECX, R_PC );
+    load_imm32( R_ECX, ((pc - sh4_x86.block_start_pc)>>1)*sh4_cpu_period ); // 5
+    ADD_r32_sh4r( R_ECX, REG_OFFSET(slice_cycle) );     // 6
+    load_imm32( R_EAX, code );
+    call_func1( sh4_raise_exception, R_EAX );
+    
+    load_spreg( R_EAX, R_PC );
+    if( sh4_x86.tlb_on ) {
+        call_func1(xlat_get_code_by_vma,R_EAX);
+    } else {
+        call_func1(xlat_get_code,R_EAX);
+    }
+
+    exit_block();
+}    
+
+
+/**
  * Write the block trailer (exception handling block)
  */
 void sh4_translate_end_block( sh4addr_t pc ) {
