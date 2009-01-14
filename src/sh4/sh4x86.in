@@ -241,10 +241,11 @@ void static inline store_reg( int x86reg, int sh4reg ) {
 #define check_priv( ) \
     if( (sh4r.xlat_sh4_mode & SR_MD) == 0 ) { \
         if( sh4_x86.in_delay_slot ) { \
-            JMP_exc(EXC_SLOT_ILLEGAL); \
+            exit_block_exc(EXC_SLOT_ILLEGAL, (pc-2) ); \
         } else { \
-            JMP_exc(EXC_ILLEGAL ); \
+            exit_block_exc(EXC_ILLEGAL, pc); \
         } \
+        sh4_x86.branch_taken = TRUE; \
         sh4_x86.in_delay_slot = DELAY_NONE; \
         return 2; \
     }
@@ -313,7 +314,7 @@ void static inline store_reg( int x86reg, int sh4reg ) {
 #define MEM_WRITE_LONG( addr_reg, value_reg ) decode_address(addr_reg); _CALL_WRITE(addr_reg, value_reg, write_long)
 #define MEM_PREFETCH( addr_reg ) decode_address(addr_reg); _CALL_READ(addr_reg, prefetch)
 
-#define SLOTILLEGAL() JMP_exc(EXC_SLOT_ILLEGAL); sh4_x86.in_delay_slot = DELAY_NONE; return 2;
+#define SLOTILLEGAL() exit_block_exc(EXC_SLOT_ILLEGAL, pc-2); sh4_x86.in_delay_slot = DELAY_NONE; return 2;
 
 /****** Import appropriate calling conventions ******/
 #if SIZEOF_VOID_P == 8
@@ -1743,9 +1744,9 @@ TRAPA #imm {:
 UNDEF {:  
     COUNT_INST(I_UNDEF);
     if( sh4_x86.in_delay_slot ) {
-	SLOTILLEGAL();
+	exit_block_exc(EXC_SLOT_ILLEGAL, pc-2);    
     } else {
-	JMP_exc(EXC_ILLEGAL);
+	exit_block_exc(EXC_ILLEGAL, pc);    
 	return 2;
     }
 :}
