@@ -218,6 +218,7 @@ int mem_load( FILE *f )
                 }
                 fread_gzip( mem_rgn[j].mem, size, 1, f );
                 mem_region_loaded[j] = 1;
+                break;
             }
         }
     }
