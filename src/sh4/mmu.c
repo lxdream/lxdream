@@ -145,9 +145,13 @@ void MMU_init()
     register_mem_page_remapped_hook( mmu_ext_page_remapped, NULL );
     mmu_utlb_1k_init();
     
-    /* Ensure the code regions are executable */
+    /* Ensure the code regions are executable (64-bit only). Although it might
+     * be more portable to mmap these at runtime rather than using static decls
+     */
+#if SIZEOF_VOID_P == 8
     mem_unprotect( mmu_utlb_pages, sizeof(mmu_utlb_pages) );
     mem_unprotect( mmu_utlb_1k_pages, sizeof(mmu_utlb_1k_pages) );
+#endif
 }
 
 void MMU_reset()
