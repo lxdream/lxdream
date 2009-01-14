@@ -86,6 +86,7 @@ struct sh4_registers {
     int in_delay_slot; /* flag to indicate the current instruction is in
      * a delay slot (certain rules apply) */
     uint32_t slice_cycle; /* Current nanosecond within the timeslice */
+    uint32_t bus_cycle; /* Nanosecond within the timeslice that the bus will be free */
     int sh4_state; /* Current power-on state (one of the SH4_STATE_* values ) */
     
     /* Not saved */
