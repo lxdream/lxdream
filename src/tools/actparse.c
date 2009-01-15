@@ -35,8 +35,7 @@ struct action *new_action() {
 int add_action( char **actions, struct ruleset *rules, char *operation, char *action )
 {
     char *act = g_strchomp(action);
-
-    char opclean[strlen(operation)];
+    char opclean[strlen(operation)+1];
     char *p = operation, *q = opclean;
     int i;
 
@@ -61,6 +60,7 @@ int add_action( char **actions, struct ruleset *rules, char *operation, char *ac
         }
     }
     *q = '\0';
+ 
     strcpy( operation, g_strstrip(opclean) );
 
     for( i=0; i<rules->rule_count; i++ ) {
@@ -119,7 +119,7 @@ actiontoken_t action_file_next( actionfile_t af )
     if( af->yyposn == af->length ) {
         af->token.symbol = END;
     } else if( af->token.symbol == TEXT || /* ACTIONS must follow TEXT */ 
-            (af->token.symbol == NONE && af->text[af->yyposn] == '\%' && af->text[af->yyposn+1] == '%') ) {
+            (af->token.symbol == NONE && af->text[af->yyposn] == '%' && af->text[af->yyposn+1] == '%') ) {
         /* Begin action block */
         af->token.symbol = ACTIONS;
 
