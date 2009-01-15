@@ -8,11 +8,15 @@ AM_CONFIG_HEADER(config.h)
 AC_ISC_POSIX
 AC_PROG_CC
 AM_PROG_CC_STDC
+AC_PROG_OBJC
+AC_PROG_SED
 AM_PROG_AS
 AC_CHECK_SIZEOF([void *])
 AC_HEADER_STDC
 AC_CANONICAL_BUILD
 AC_CANONICAL_HOST
+
+_AM_DEPENDENCIES([OBJC])
 
 AC_PATH_PROG(POD2MAN, [pod2man])
 AC_PATH_PROG(POD2HTML, [pod2html])
@@ -58,26 +62,35 @@ AC_ARG_WITH( esd,
 AC_ARG_WITH( pulse,
    AS_HELP_STRING( [--with-pulse], [Build with support for the PulseAudio audio system]) )
 
-dnl ------------ 
+dnl ------------------ Compiler flags -----------------------
+CFLAGS="-g -fexceptions"
+OBJCFLAGS="-g -fexceptions"
+AC_DEFINE(HAVE_EXCEPTIONS, [1], [Have exception stack-frame information])
+
+AC_CC_VERSION([ CCOPT="-O2 -msse2 -mfpmath=sse" 
+                CFLAGS="$CFLAGS -fno-strict-aliasing" ],
+              [ CCOPT="$CFLAGS -fast" ],
+              [ CCOPT="$CFLAGS -O2" ])
+AC_OBJC_VERSION([ OBJCOPT="-O2 -msse2 -mfpmath=sse"
+                  OBJCFLAGS="$OBJCFLAGS -fno-strict-aliasing" ],
+                [ OBJCOPT="-O2" ], [] )
 
 if test "x$enable_optimized" = "xyes"; then
-   CFLAGS="-g -O2 -msse2 -mfpmath=sse"
+   CFLAGS="$CFLAGS $CCOPT"
+   OBJCFLAGS="$OBJCFLAGS $CCOPT"
    if test "x$enable_profiled" != "xyes"; then
        dnl -fomit-frame-pointer can't be used with -pg
-       CFLAGS="$CFLAGS -fexceptions -fomit-frame-pointer"
-       AC_DEFINE(HAVE_EXCEPTIONS, [1], [Have exception stack-frame information])
+       CFLAGS="$CFLAGS -fomit-frame-pointer"
    fi
-else 
-   CFLAGS="-g3"
+else
+   CFLAGS="$CFLAGS -g3"
+   OBJCFLAGS="$OBJCFLAGS -g3"
 fi
 
 if test "x$enable_profiled" = "xyes"; then
    CFLAGS="$CFLAGS -pg"
    LDFLAGS="$LDFLAGS -pg";
-fi
-
-if test "x$GCC" = "xyes"; then
-   CFLAGS="$CFLAGS -fno-strict-aliasing"
+   OBJCFLAGS="$OBJCFLAGS -pg";
 fi
 
 AC_CHECK_FASTCALL([
@@ -91,11 +104,9 @@ AC_CHECK_FRAME_ADDRESS( [
 dnl ------------ Check if we're building on Darwin --------------
 
 dnl For starters, do we have a working objective-c compiler?
-lxdream_save_cppflags="$CPPFLAGS"
-CPPFLAGS="$CPPFLAGS -x objective-c"
-AC_TRY_COMPILE([@interface Foo @end],, [
+AC_LANG_OBJC
 
-   AC_CHECK_HEADER([Cocoa/Cocoa.h], [
+AC_CHECK_HEADER([Cocoa/Cocoa.h], [
       HAVE_COCOA='yes'
       APPLE_BUILD='yes'
       LIBS="$LIBS -framework AppKit"
@@ -107,13 +118,14 @@ AC_TRY_COMPILE([@interface Foo @end],, [
       if test "x$with_gtk" = "xx11"; then
         with_gtk=no
       fi
-   ])
+])
 
-], [CPPFLAGS="$lxdream_save_cppflags"] )
 AM_CONDITIONAL(GUI_COCOA, [test "$HAVE_COCOA" = 'yes' -a "$with_gtk" = "no"])
 if test "x$HAVE_COCOA" = 'xyes' -a "x$with_gtk" = "xno"; then
   AC_DEFINE(OSX_BUNDLE, [1], [Generating a bundled application])
 fi
+
+AC_LANG_C
 
 dnl ----------- Check for mandatory dependencies --------------
 dnl Check for libpng (required)

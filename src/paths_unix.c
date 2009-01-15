@@ -20,39 +20,6 @@
 
 #include "lxdream.h"
 
-/* Bundle builds need to use different paths from ordinary builds, since
- * the message catalogs, default config, etc are all bundle-relative.
- * Otherwise paths use the standard unix install paths
- */
-#ifdef OSX_BUNDLE
-
-#include <AppKit/AppKit.h>
-
-static char *bundle_resource_path = NULL;
-
-static char *get_bundle_resource_path()
-{
-    if( bundle_resource_path == NULL ) {
-        NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
-        NSString *resourcePath = [[NSBundle mainBundle] resourcePath];
-        bundle_resource_path = strdup([resourcePath UTF8String]);
-        [pool release];
-    }
-    return bundle_resource_path;    
-}
-
-const char *get_sysconf_path()
-{
-    return get_bundle_resource_path();
-}
-
-const char *get_locale_path()
-{
-    return get_bundle_resource_path();
-}
-
-#else
-
 const char *get_sysconf_path()
 {
     return PACKAGE_CONF_DIR;
@@ -63,4 +30,3 @@ const char *get_locale_path()
     return PACKAGE_LOCALE_DIR;
 }
 
-#endif
