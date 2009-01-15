@@ -31,10 +31,10 @@ CLEANFILES = sh4/sh4core.c sh4/sh4dasm.c sh4/sh4x86.c sh4/sh4stat.c \
 
 gendec_SOURCES = tools/gendec.c tools/gendec.h tools/insparse.c tools/actparse.c
 genglsl_SOURCES = tools/genglsl.c
-
+lxdream_LINK = $(CCLD)
 lxdream_SOURCES = \
         main.c version.c config.c config.h lxdream.h dream.h gui.h cpu.h hook.h \
-        gettext.h mem.c mem.h sdram.c mmio.h paths.c watch.c \
+        gettext.h mem.c mem.h sdram.c mmio.h watch.c \
         asic.c asic.h clock.h serial.h \
         syscall.c syscall.h bios.c dcload.c \
         gdrom/ide.c gdrom/ide.h gdrom/packet.h gdrom/gdimage.c \
@@ -91,10 +91,12 @@ lxdream_SOURCES += gtkui/gtkui.c gtkui/gtkui.h \
 endif
 
 if GUI_COCOA
-lxdream_SOURCES += cocoaui/cocoaui.c cocoaui/cocoaui.h \
-	cocoaui/cocoa_win.c cocoaui/cocoa_gd.c cocoaui/cocoa_prefs.c \
-	cocoaui/cocoa_path.c cocoaui/cocoa_ctrl.c \
-	drivers/video_osx.c drivers/mac_keymap.h drivers/mac_keymap.txt
+lxdream_SOURCES += cocoaui/cocoaui.m cocoaui/cocoaui.h \
+	cocoaui/cocoa_win.m cocoaui/cocoa_gd.m cocoaui/cocoa_prefs.m \
+	cocoaui/cocoa_path.m cocoaui/cocoa_ctrl.m cocoaui/paths_osx.m \
+	drivers/video_osx.m drivers/mac_keymap.h drivers/mac_keymap.txt
+else
+lxdream_SOURCES += paths_unix.c
 endif
 
 if VIDEO_OSMESA
@@ -106,11 +108,11 @@ lxdream_SOURCES += drivers/video_glx.c drivers/video_glx.h
 endif
 
 if VIDEO_NSGL
-lxdream_SOURCES += drivers/video_nsgl.c drivers/video_nsgl.h
+lxdream_SOURCES += drivers/video_nsgl.m drivers/video_nsgl.h
 endif
 
 if AUDIO_OSX
-lxdream_SOURCES += drivers/audio_osx.c
+lxdream_SOURCES += drivers/audio_osx.m
 endif
 
 if AUDIO_PULSE
@@ -131,7 +133,7 @@ lxdream_SOURCES += drivers/cd_linux.c
 endif
 
 if CDROM_OSX
-lxdream_SOURCES += drivers/cd_osx.c drivers/osx_iokit.c drivers/osx_iokit.h
+lxdream_SOURCES += drivers/cd_osx.c drivers/osx_iokit.m drivers/osx_iokit.h
 endif
 
 if CDROM_NONE

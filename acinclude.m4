@@ -51,4 +51,41 @@ except:
    $2 ])
 ])
 
+# AC_CC_VERSION([if-gcc], [if-icc],[if-other])
+# Check which C compiler we're using and branch accordingly, eg to set
+# different optimization flags. Currently recognizes gcc and icc
+# ---------------
+AC_DEFUN([AC_CC_VERSION], [
+_GCC_VERSION=`$CC --version | $SED -ne '/(GCC)/p'`
+_ICC_VERSION=`$CC --version | $SED -ne '/(ICC)/p'`
+AC_MSG_CHECKING([CC version])
+if test -n "$_GCC_VERSION"; then
+   AC_MSG_RESULT([GCC])
+   [ $1 ]
+elif test -n "$_ICC_VERSION"; then
+   AC_MSG_RESULT([ICC])
+   [ $2 ] 
+else 
+   AC_MSG_RESULT([Unknown])
+   [ $3 ]
+fi
+]);
 
+# AC_OBJC_VERSION([if-gcc],[if-other], [if-none])
+# Check which objective C compiler we're using and branch accordingly.
+AC_DEFUN([AC_OBJC_VERSION], [
+AC_MSG_CHECKING([OBJC version])
+if test -n "$OBJC"; then
+  _GOBJC_VERSION=`$OBJC --version | $SED -ne '/(GCC)/p'`
+  if test -n "$_GOBJC_VERSION"; then
+    AC_MSG_RESULT([GCC])
+    [ $1 ]
+  else 
+    AC_MSG_RESULT([Unknown])
+    [ $2 ]
+  fi
+else
+  AC_MSG_RESULT([None])
+  [ $3 ]
+fi
+]);
