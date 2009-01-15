@@ -7126,7 +7126,9 @@ fi
 
 # Check whether --enable-strict-warn was given.
 if test "${enable_strict_warn+set}" = set; then
-  enableval=$enable_strict_warn; CFLAGS="$CFLAGS -Werror -Wall -Wno-unused"
+  enableval=$enable_strict_warn; if test "$enableval" == "yes"; then
+      enable_strictwarn=yes
+    fi
 fi
 
 # Check whether --enable-translator was given.
@@ -7264,9 +7266,10 @@ fi
 
 if test "x$enable_optimized" = "xyes"; then
    CFLAGS="$CFLAGS $CCOPT"
-   OBJCFLAGS="$OBJCFLAGS $CCOPT"
+   OBJCFLAGS="$OBJCFLAGS $OBJCOPT"
    if test "x$enable_profiled" != "xyes"; then
               CFLAGS="$CFLAGS -fomit-frame-pointer"
+       OBJCFLAGS="$OBJCFLAGS -fomit-frame-pointer"
    fi
 else
    CFLAGS="$CFLAGS -g3"
@@ -7277,6 +7280,11 @@ if test "x$enable_profiled" = "xyes"; then
    CFLAGS="$CFLAGS -pg"
    LDFLAGS="$LDFLAGS -pg";
    OBJCFLAGS="$OBJCFLAGS -pg";
+fi
+
+if test "x$enable_strictwarn" = "xyes"; then
+   CFLAGS="$CFLAGS -Wall -Werror -Wno-unused"
+   OBJCFLAGS="$OBJCFLAGS -Wall -Werror -Wno-unused"
 fi
 
 
