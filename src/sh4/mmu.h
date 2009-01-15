@@ -106,6 +106,7 @@ struct utlb_default_regions {
     mem_region_fn_t tlb_multihit;
 };
 
+sh4addr_t FASTCALL mmu_vma_to_phys_disasm( sh4vma_t vma );
 
 void mmu_utlb_init_vtable( struct utlb_entry *ent, struct utlb_page_entry *page, gboolean writable ); 
 void mmu_utlb_1k_init_vtable( struct utlb_1k_entry *ent ); 

@@ -400,6 +400,7 @@ static gboolean mmu_ext_page_remapped( sh4addr_t page, mem_region_fn_t fn, void 
             sh4_user_address_space[(page|i)>>12] = fn;
         }
     }
+    return TRUE;
 }
 
 static void mmu_set_tlb_enabled( int tlb_on )
