@@ -418,7 +418,7 @@ CLEANFILES = sh4/sh4core.c sh4/sh4dasm.c sh4/sh4x86.c sh4/sh4stat.c \
 #all-am: checkversion
 gendec_SOURCES = tools/gendec.c tools/gendec.h tools/insparse.c tools/actparse.c
 genglsl_SOURCES = tools/genglsl.c
-lxdream_LINK = $(CCLD)
+lxdream_LINK = $(LINK)
 lxdream_SOURCES = main.c version.c config.c config.h lxdream.h dream.h \
 	gui.h cpu.h hook.h gettext.h mem.c mem.h sdram.c mmio.h \
 	watch.c asic.c asic.h clock.h serial.h syscall.c syscall.h \
