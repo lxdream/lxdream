@@ -42,7 +42,7 @@
  */
 #define DECLARE_HOOK( name, fn_type ) \
     void register_##name( fn_type fn, void *user_data ); \
-    void unregister_##name( fn_type fn, void *user_data );
+    void unregister_##name( fn_type fn, void *user_data )
 
 #define FOREACH_HOOK( h, name ) struct name##_hook_struct *h; for( h = name##_hook_list; h != NULL; h = h->next )
 

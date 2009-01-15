@@ -167,13 +167,13 @@ struct mem_region_fn mem_region_ocram_page1 = {
 
 /************************** Cache direct access ******************************/
 
-static int32_t ccn_icache_addr_read( sh4addr_t addr )
+static int32_t FASTCALL ccn_icache_addr_read( sh4addr_t addr )
 {
     int entry = (addr & 0x00001FE0);
     return ccn_icache[entry>>5].tag;
 }
 
-static void ccn_icache_addr_write( sh4addr_t addr, uint32_t val )
+static void FASTCALL ccn_icache_addr_write( sh4addr_t addr, uint32_t val )
 {
     int entry = (addr & 0x00003FE0);
     struct cache_line *line = &ccn_ocache[entry>>5];
@@ -193,13 +193,13 @@ struct mem_region_fn p4_region_icache_addr = {
         unmapped_prefetch };
 
 
-static int32_t ccn_icache_data_read( sh4addr_t addr )
+static int32_t FASTCALL ccn_icache_data_read( sh4addr_t addr )
 {
     int entry = (addr & 0x00001FFC);
     return *(uint32_t *)&ccn_icache_data[entry];
 }
 
-static void ccn_icache_data_write( sh4addr_t addr, uint32_t val )
+static void FASTCALL ccn_icache_data_write( sh4addr_t addr, uint32_t val )
 {
     int entry = (addr & 0x00001FFC);
     *(uint32_t *)&ccn_icache_data[entry] = val;    
@@ -213,20 +213,20 @@ struct mem_region_fn p4_region_icache_data = {
         unmapped_prefetch };
 
 
-static int32_t ccn_ocache_addr_read( sh4addr_t addr )
+static int32_t FASTCALL ccn_ocache_addr_read( sh4addr_t addr )
 {
     int entry = (addr & 0x00003FE0);
     return ccn_ocache[entry>>5].tag;
 }
 
-static void ccn_ocache_addr_write( sh4addr_t addr, uint32_t val )
+static void FASTCALL ccn_ocache_addr_write( sh4addr_t addr, uint32_t val )
 {
     int entry = (addr & 0x00003FE0);
     struct cache_line *line = &ccn_ocache[entry>>5];
     if( addr & 0x08 ) { // Associative
     } else {
         if( (line->tag & (CACHE_VALID|CACHE_DIRTY)) == (CACHE_VALID|CACHE_DIRTY) ) {
-            char *cache_data = &ccn_ocache_data[entry&0x00003FE0];
+            unsigned char *cache_data = &ccn_ocache_data[entry&0x00003FE0];
             // Cache line is dirty - writeback. 
             ext_address_space[line->tag>>12]->write_burst(line->key, cache_data);
         }
@@ -243,13 +243,13 @@ struct mem_region_fn p4_region_ocache_addr = {
         unmapped_prefetch };
 
 
-static int32_t ccn_ocache_data_read( sh4addr_t addr )
+static int32_t FASTCALL ccn_ocache_data_read( sh4addr_t addr )
 {
     int entry = (addr & 0x00003FFC);
     return *(uint32_t *)&ccn_ocache_data[entry];
 }
 
-static void ccn_ocache_data_write( sh4addr_t addr, uint32_t val )
+static void FASTCALL ccn_ocache_data_write( sh4addr_t addr, uint32_t val )
 {
     int entry = (addr & 0x00003FFC);
     *(uint32_t *)&ccn_ocache_data[entry] = val;

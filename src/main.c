@@ -63,12 +63,12 @@ gboolean use_xlat = TRUE;
 gboolean show_debugger = FALSE;
 extern uint32_t sh4_cpu_multiplier;
 
-void print_version()
+static void print_version()
 {
     printf( "lxdream %s\n", lxdream_full_version );
 }
 
-void print_usage()
+static void print_usage()
 {
     print_version();
     printf( "Usage: lxdream %s [options] [disc-file] [program-file]\n\n", lxdream_full_version );
@@ -92,7 +92,7 @@ void print_usage()
     printf( "   -x                     %s\n", _("Disable the SH4 translator") );
 }
 
-void bind_gettext_domain()
+static void bind_gettext_domain()
 {
 #ifdef ENABLE_NLS
     bindtextdomain( PACKAGE, get_locale_path() );

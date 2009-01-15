@@ -56,7 +56,7 @@ void x86_disasm_block(FILE *out, void *start, uint32_t len)
 	char buf[256];
 	char op[256];
 	uintptr_t pc2 = x86_disasm_instruction( pc, buf, sizeof(buf), op );
-	fprintf( out, "%08X: %-20s %s\n", pc, op, buf );
+	fprintf( out, "%08X: %-20s %s\n", (unsigned int)pc, op, buf );
 	pc = pc2;
     }
 }

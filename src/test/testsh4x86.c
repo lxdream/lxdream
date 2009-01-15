@@ -83,7 +83,7 @@ void sh4_finalize_instruction() { }
 void sh4_core_exit( int exit_code ){}
 void event_execute() {}
 void TMU_run_slice( uint32_t nanos ) {}
-void CCN_set_cache_control( uint32_t val ) { }
+void CCN_set_cache_control( int val ) { }
 void PMM_write_control( int ctr, uint32_t val ) { }
 void SCIF_run_slice( uint32_t nanos ) {}
 void FASTCALL sh4_write_fpscr( uint32_t val ) { }
@@ -185,9 +185,9 @@ int main( int argc, char *argv[] )
     uintptr_t pc;
     uint8_t *buf = sh4_translate_basic_block( start_addr );
     uint32_t buflen = xlat_get_code_size(buf);
-    x86_disasm_init( (uintptr_t)buf, (uintptr_t)buf, buflen );
+    x86_disasm_init( buf, (uintptr_t)buf, buflen );
     x86_set_symtab( local_symbols, sizeof(local_symbols)/sizeof(struct x86_symbol) );
-    for( pc = buf; pc < buf + buflen;  ) {
+    for( pc = (uintptr_t)buf; pc < ((uintptr_t)buf) + buflen;  ) {
 	char buf[256];
 	char op[256];
 	uintptr_t pc2 = x86_disasm_instruction( pc, buf, sizeof(buf), op );

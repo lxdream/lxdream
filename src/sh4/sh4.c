@@ -28,6 +28,7 @@
 #include "eventq.h"
 #include "syscall.h"
 #include "sh4/intc.h"
+#include "sh4/mmu.h"
 #include "sh4/sh4core.h"
 #include "sh4/sh4mmio.h"
 #include "sh4/sh4stat.h"
