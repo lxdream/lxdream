@@ -44,8 +44,8 @@ mem_region_fn_t *ext_address_space = NULL;
 
 extern struct mem_region_fn mem_region_unmapped; 
 
-int mem_load(FILE *f);
-void mem_save(FILE *f);
+static int mem_load(FILE *f);
+static void mem_save(FILE *f);
 struct dreamcast_module mem_module =
 { "MEM", mem_init, mem_reset, NULL, NULL, NULL, mem_save, mem_load };
 
@@ -107,7 +107,7 @@ void mem_unprotect( void *region, uint32_t size )
     uintptr_t i = (uintptr_t)region;
     uintptr_t mask = ~(PAGE_SIZE-1);
     void *ptr = (void *)(i & mask);
-    size_t len = i & (PAGE_SIZE-1) + size;
+    size_t len = (i & (PAGE_SIZE-1)) + size;
     len = (len + (PAGE_SIZE-1)) & mask;
     
     int status = mprotect( ptr, len, PROT_READ|PROT_WRITE|PROT_EXEC );
@@ -151,7 +151,7 @@ void mem_reset( void )
     }
 }
 
-void mem_save( FILE *f ) 
+static void mem_save( FILE *f ) 
 {
     int i, num_ram_regions = 0;
     uint32_t len;
@@ -186,7 +186,7 @@ void mem_save( FILE *f )
     }
 }
 
-int mem_load( FILE *f )
+static int mem_load( FILE *f )
 {
     char tmp[64];
     uint32_t len;
@@ -332,7 +332,7 @@ struct mem_region *mem_map_region( void *mem, uint32_t base, uint32_t size,
     do {
         for( i=0; i<size>>LXDREAM_PAGE_BITS; i++ ) {
             if( mem != NULL ) {
-                page_map[(base>>LXDREAM_PAGE_BITS)+i] = mem + (i<<LXDREAM_PAGE_BITS);
+                page_map[(base>>LXDREAM_PAGE_BITS)+i] = ((unsigned char *)mem) + (i<<LXDREAM_PAGE_BITS);
             }
             ext_address_space[(base>>LXDREAM_PAGE_BITS)+i] = fn;
             mem_page_remapped( base + (i<<LXDREAM_PAGE_BITS), fn );
@@ -443,7 +443,7 @@ void mem_write_long( sh4addr_t addr, uint32_t value )
     ext_address_space[(addr&0x1FFFFFFF)>>12]->write_long(addr, value);
 }
 
-struct mmio_region *mem_get_io_region_by_name( const gchar *name )
+static struct mmio_region *mem_get_io_region_by_name( const gchar *name )
 {
     int i;
     for( i=0; i<num_io_rgns; i++ ) {

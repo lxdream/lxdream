@@ -23,7 +23,7 @@
 /**
  * Copy input to output, quoting " characters as we go.
  */
-void writeShader( FILE *out, FILE *in )
+static void writeShader( FILE *out, FILE *in )
 {
     int ch;
 

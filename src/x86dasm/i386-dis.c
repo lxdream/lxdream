@@ -33,6 +33,7 @@
 
 #include "x86dasm/dis-asm.h"
 #include "x86dasm/sysdep.h"
+#include "x86dasm/x86dasm.h"
 #include "gettext.h"
 
 #define MAXLEN 20

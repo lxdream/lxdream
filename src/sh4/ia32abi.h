@@ -24,7 +24,7 @@
 
 #define load_ptr( reg, ptr ) load_imm32( reg, (uint32_t)ptr );
 
-static inline decode_address( int addr_reg )
+static inline void decode_address( int addr_reg )
 {
     uintptr_t base = (sh4r.xlat_sh4_mode&SR_MD) ? (uintptr_t)sh4_address_space : (uintptr_t)sh4_user_address_space;
     MOV_r32_r32( addr_reg, R_ECX ); 

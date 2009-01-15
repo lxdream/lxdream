@@ -1182,7 +1182,7 @@ sh4addr_t FASTCALL mmu_vma_to_phys_disasm( sh4vma_t vma )
 
 /********************** TLB Direct-Access Regions ***************************/
 #ifdef HAVE_FRAME_ADDRESS
-#define EXCEPTION_EXIT() do{ *(((void **)__builtin_frame_address(0))+1) = exc; return; } while(0)
+#define EXCEPTION_EXIT() do{ *(((void **)__builtin_frame_address(0))+1) = exc; } while(0)
 #else
 #define EXCEPTION_EXIT() sh4_core_exit(CORE_EXIT_EXCEPTION)
 #endif
@@ -1409,12 +1409,14 @@ static int32_t FASTCALL tlb_protected_read( sh4addr_t addr, void *exc )
 {
     RAISE_MEM_ERROR(EXC_TLB_PROT_READ, addr);
     EXCEPTION_EXIT();
+    return 0; 
 }
 
 static int32_t FASTCALL tlb_protected_read_burst( unsigned char *dest, sh4addr_t addr, void *exc )
 {
     RAISE_MEM_ERROR(EXC_TLB_PROT_READ, addr);
     EXCEPTION_EXIT();
+    return 0;
 }
 
 static void FASTCALL tlb_protected_write( sh4addr_t addr, uint32_t val, void *exc )
@@ -1433,12 +1435,14 @@ static int32_t FASTCALL tlb_multi_hit_read( sh4addr_t addr, void *exc )
 {
     sh4_raise_tlb_multihit(addr);
     EXCEPTION_EXIT();
+    return 0; 
 }
 
 static int32_t FASTCALL tlb_multi_hit_read_burst( unsigned char *dest, sh4addr_t addr, void *exc )
 {
     sh4_raise_tlb_multihit(addr);
     EXCEPTION_EXIT();
+    return 0; 
 }
 static void FASTCALL tlb_multi_hit_write( sh4addr_t addr, uint32_t val, void *exc )
 {

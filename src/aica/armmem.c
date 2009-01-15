@@ -20,6 +20,7 @@
 #include "dream.h"
 #include "mem.h"
 #include "aica.h"
+#include "asic.h"
 #include "armcore.h"
 
 unsigned char aica_main_ram[2 MB];
