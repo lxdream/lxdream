@@ -26,6 +26,7 @@
 #include "sh4/sh4trans.h"
 #include "sh4/sh4core.h"
 #include "sh4/sh4mmio.h"
+#include "sh4/mmu.h"
 
 struct dreamcast_module sh4_module;
 struct mmio_region mmio_region_MMU;
