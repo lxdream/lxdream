@@ -335,9 +335,9 @@ RTE {:
 MOV.B Rm, @-Rn {: sh4r.r[Rn]--; :}
 MOV.W Rm, @-Rn {: sh4r.r[Rn] -= 2; :}
 MOV.L Rm, @-Rn {: sh4r.r[Rn] -= 4; :}
-MOV.B @Rm+, Rn {: sh4r.r[Rm] ++; :}
-MOV.W @Rm+, Rn {: sh4r.r[Rm] += 2; :}
-MOV.L @Rm+, Rn {: sh4r.r[Rm] += 4; :}
+MOV.B @Rm+, Rn {: if( Rm != Rn ) { sh4r.r[Rm] ++;  } :}
+MOV.W @Rm+, Rn {: if( Rm != Rn ) { sh4r.r[Rm] += 2; } :}
+MOV.L @Rm+, Rn {: if( Rm != Rn ) { sh4r.r[Rm] += 4; } :}
 %%
     sh4r.pc += 2;
     sh4r.new_pc = sh4r.pc+2;
@@ -538,9 +538,9 @@ MOV.B @Rm, Rn {: MEM_READ_BYTE( sh4r.r[Rm], sh4r.r[Rn] ); :}
  MOV.W @Rm, Rn {: CHECKRALIGN16( sh4r.r[Rm] ); MEM_READ_WORD( sh4r.r[Rm], sh4r.r[Rn] ); :}
  MOV.L @Rm, Rn {: CHECKRALIGN32( sh4r.r[Rm] ); MEM_READ_LONG( sh4r.r[Rm], sh4r.r[Rn] ); :}
 MOV Rm, Rn {: sh4r.r[Rn] = sh4r.r[Rm]; :}
- MOV.B @Rm+, Rn {: MEM_READ_BYTE( sh4r.r[Rm], sh4r.r[Rn] ); sh4r.r[Rm] ++; :}
- MOV.W @Rm+, Rn {: CHECKRALIGN16( sh4r.r[Rm] ); MEM_READ_WORD( sh4r.r[Rm], sh4r.r[Rn] ); sh4r.r[Rm] += 2; :}
- MOV.L @Rm+, Rn {: CHECKRALIGN32( sh4r.r[Rm] ); MEM_READ_LONG( sh4r.r[Rm], sh4r.r[Rn] ); sh4r.r[Rm] += 4; :}
+ MOV.B @Rm+, Rn {: MEM_READ_BYTE( sh4r.r[Rm], sh4r.r[Rn] ); if( Rm != Rn ) { sh4r.r[Rm] ++; } :}
+ MOV.W @Rm+, Rn {: CHECKRALIGN16( sh4r.r[Rm] ); MEM_READ_WORD( sh4r.r[Rm], sh4r.r[Rn] ); if( Rm != Rn ) { sh4r.r[Rm] += 2; } :}
+ MOV.L @Rm+, Rn {: CHECKRALIGN32( sh4r.r[Rm] ); MEM_READ_LONG( sh4r.r[Rm], sh4r.r[Rn] ); if( Rm != Rn ) { sh4r.r[Rm] += 4; } :}
 MOV.L @(disp, PC), Rn {:
     CHECKSLOTILLEGAL();
     tmp = (pc&0xFFFFFFFC) + disp + 4;
