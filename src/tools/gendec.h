@@ -87,8 +87,6 @@ actiontoken_t action_file_next( actionfile_t af );
 
 void action_file_close( actionfile_t af );
 
-int generate_decoder( struct ruleset *rules, actionfile_t af, FILE *f );
-
 #ifdef __cplusplus
 }
 #endif
