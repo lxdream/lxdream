@@ -334,7 +334,7 @@ static void mmu_utlb_1k_init()
 static struct utlb_1k_entry *mmu_utlb_1k_alloc()
 {
     assert( mmu_utlb_1k_free_index < UTLB_ENTRY_COUNT );
-    struct utlb_1k_entry *entry = &mmu_utlb_1k_pages[mmu_utlb_1k_free_index++];
+    struct utlb_1k_entry *entry = &mmu_utlb_1k_pages[mmu_utlb_1k_free_list[mmu_utlb_1k_free_index++]];
     return entry;
 }    
 
@@ -473,35 +473,39 @@ static void mmu_set_tlb_asid( uint32_t asid )
     int i;
     if( IS_SV_ENABLED() ) {
         for( i=0; i<UTLB_ENTRY_COUNT; i++ ) {
-            if( mmu_utlb[i].flags & TLB_VALID ) {
-                if( (mmu_utlb[i].flags & TLB_SHARE) == 0 ) {
-                    if( mmu_utlb[i].asid == mmu_asid ) { // Matches old ASID - unmap out
-                        if( !mmu_utlb_unmap_pages( FALSE, TRUE, mmu_utlb[i].vpn&mmu_utlb[i].mask,
-                                get_tlb_size_pages(mmu_utlb[i].flags) ) )
-                            mmu_utlb_remap_pages( FALSE, TRUE, i );
-                    } else if( mmu_utlb[i].asid == asid ) { // Matches new ASID - map in
-                        mmu_utlb_map_pages( NULL, mmu_utlb_pages[i].user_fn, 
-                                mmu_utlb[i].vpn&mmu_utlb[i].mask, 
-                                get_tlb_size_pages(mmu_utlb[i].flags) );  
-                    }
-                }
+            if( mmu_utlb[i].asid == mmu_asid && 
+                (mmu_utlb[i].flags & (TLB_VALID|TLB_SHARE)) == (TLB_VALID) ) {
+                // Matches old ASID - unmap out
+                if( !mmu_utlb_unmap_pages( FALSE, TRUE, mmu_utlb[i].vpn&mmu_utlb[i].mask,
+                        get_tlb_size_pages(mmu_utlb[i].flags) ) )
+                    mmu_utlb_remap_pages( FALSE, TRUE, i );
+            }
+        }
+        for( i=0; i<UTLB_ENTRY_COUNT; i++ ) {
+            if( mmu_utlb[i].asid == asid && 
+                (mmu_utlb[i].flags & (TLB_VALID|TLB_SHARE)) == (TLB_VALID) ) {
+                // Matches new ASID - map in
+                mmu_utlb_map_pages( NULL, mmu_utlb_pages[i].user_fn, 
+                        mmu_utlb[i].vpn&mmu_utlb[i].mask, 
+                        get_tlb_size_pages(mmu_utlb[i].flags) );
             }
         }
     } else {
         // Remap both Priv+user pages
         for( i=0; i<UTLB_ENTRY_COUNT; i++ ) {
-            if( mmu_utlb[i].flags & TLB_VALID ) {
-                if( (mmu_utlb[i].flags & TLB_SHARE) == 0 ) {
-                    if( mmu_utlb[i].asid == mmu_asid ) { // Matches old ASID - unmap out
-                        if( !mmu_utlb_unmap_pages( TRUE, TRUE, mmu_utlb[i].vpn&mmu_utlb[i].mask,
-                                get_tlb_size_pages(mmu_utlb[i].flags) ) )
-                            mmu_utlb_remap_pages( TRUE, TRUE, i );
-                    } else if( mmu_utlb[i].asid == asid ) { // Matches new ASID - map in
-                        mmu_utlb_map_pages( &mmu_utlb_pages[i].fn, mmu_utlb_pages[i].user_fn, 
-                                mmu_utlb[i].vpn&mmu_utlb[i].mask, 
-                                get_tlb_size_pages(mmu_utlb[i].flags) );  
-                    }
-                }
+            if( mmu_utlb[i].asid == mmu_asid &&
+                (mmu_utlb[i].flags & (TLB_VALID|TLB_SHARE)) == (TLB_VALID) ) {
+                if( !mmu_utlb_unmap_pages( TRUE, TRUE, mmu_utlb[i].vpn&mmu_utlb[i].mask,
+                        get_tlb_size_pages(mmu_utlb[i].flags) ) )
+                    mmu_utlb_remap_pages( TRUE, TRUE, i );
+            }
+        }
+        for( i=0; i<UTLB_ENTRY_COUNT; i++ ) {
+            if( mmu_utlb[i].asid == asid &&
+                (mmu_utlb[i].flags & (TLB_VALID|TLB_SHARE)) == (TLB_VALID) ) {
+                mmu_utlb_map_pages( &mmu_utlb_pages[i].fn, mmu_utlb_pages[i].user_fn, 
+                        mmu_utlb[i].vpn&mmu_utlb[i].mask, 
+                        get_tlb_size_pages(mmu_utlb[i].flags) );  
             }
         }
     }
