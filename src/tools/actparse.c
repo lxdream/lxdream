@@ -32,7 +32,7 @@ struct action *new_action() {
     return action;
 }
 
-int add_action( char **actions, struct ruleset *rules, char *operation, char *action )
+static int add_action( char **actions, struct ruleset *rules, char *operation, char *action )
 {
     char *act = g_strchomp(action);
     char opclean[strlen(operation)+1];

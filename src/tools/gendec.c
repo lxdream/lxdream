@@ -42,14 +42,14 @@ char *option_list = "tmho:";
 int gen_mode = GEN_SOURCE;
 struct option longopts[1] = { { NULL, 0, 0, 0 } };
 
-void usage() {
+static void usage() {
     printf( "gendec <instruction-file> <action-file> [ -o <output-file> ]\n" );
 }
 
 /**
  * Find a mask that can be used to split up the given rules
  */
-uint32_t find_mask( struct ruleset *rules, int ruleidx[], int rule_count, 
+static uint32_t find_mask( struct ruleset *rules, int ruleidx[], int rule_count, 
                     uint32_t input_mask )
 {
     int i;
@@ -64,7 +64,7 @@ uint32_t find_mask( struct ruleset *rules, int ruleidx[], int rule_count,
     return mask & (~input_mask); /* but we don't want to see the input mask again */
 }
 
-int get_option_count_for_mask( uint32_t mask ) {
+static int get_option_count_for_mask( uint32_t mask ) {
     int count = 0;
 
     while( mask ) {
@@ -84,7 +84,7 @@ int get_bitshift_for_mask( uint32_t mask ) {
     return shift;
 }
 
-void get_option_values_for_mask( uint32_t *options, 
+static void get_option_values_for_mask( uint32_t *options, 
                                  uint32_t mask ) 
 {
     /* This could be a lot smarter. But it's not */
@@ -98,7 +98,7 @@ void get_option_values_for_mask( uint32_t *options,
     }
 }
 
-void fprint_indent( char *action, int depth, FILE *f )
+static void fprint_indent( char *action, int depth, FILE *f )
 {
     int spaces = 0, needed = depth*8, i;
     char *text = action;
@@ -126,7 +126,7 @@ void fprint_indent( char *action, int depth, FILE *f )
     }
 }
 
-void fprint_action( struct rule *rule, char *action, int depth, FILE *f ) 
+static void fprint_action( struct rule *rule, char *action, int depth, FILE *f ) 
 {
     int i;
     if( action == NULL ) {
@@ -161,7 +161,7 @@ void fprint_action( struct rule *rule, char *action, int depth, FILE *f )
     }
 }
 
-void split_and_generate( struct ruleset *rules, char **actions, 
+static void split_and_generate( struct ruleset *rules, char **actions, 
                          int ruleidx[], int rule_count, int input_mask, 
                          int depth, FILE *f ) {
     uint32_t mask;
@@ -223,7 +223,7 @@ void split_and_generate( struct ruleset *rules, char **actions,
     }
 }
 
-int generate_decoder( struct ruleset *rules, actionfile_t af, FILE *out )
+static int generate_decoder( struct ruleset *rules, actionfile_t af, FILE *out )
 {
     int ruleidx[rules->rule_count];
     int i;
@@ -247,7 +247,7 @@ int generate_decoder( struct ruleset *rules, actionfile_t af, FILE *out )
     return 0;
 }
 
-int generate_template( struct ruleset *rules, actionfile_t af, FILE *out )
+static int generate_template( struct ruleset *rules, actionfile_t af, FILE *out )
 {
     int i;
     
