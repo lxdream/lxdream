@@ -256,21 +256,18 @@ BRA disp {:
     sh4r.pc += 2; 
     sh4_finalize_instruction(); 
     sh4r.pc += disp;
-    sh4r.slice_cycle += sh4_cpu_period;
 :}
 BRAF Rn {: 
     sh4r.pc += 2; 
     tmp = sh4r.r[Rn];
     sh4_finalize_instruction(); 
     sh4r.pc += tmp;
-    sh4r.slice_cycle += sh4_cpu_period;
 :}
 BSR disp {: 
     /* Note: PR is already set */ 
     sh4r.pc += 2;
     sh4_finalize_instruction();
     sh4r.pc += disp;
-    sh4r.slice_cycle += sh4_cpu_period;
 :}
 BSRF Rn {:
     /* Note: PR is already set */ 
@@ -278,7 +275,6 @@ BSRF Rn {:
     tmp = sh4r.r[Rn];
     sh4_finalize_instruction();
     sh4r.pc += tmp;
-    sh4r.slice_cycle += sh4_cpu_period;
 :}
 BF/S disp {: 
     sh4r.pc += 2;
@@ -286,7 +282,6 @@ BF/S disp {:
     if( !sh4r.t ) {
         sh4r.pc += disp;
     }
-    sh4r.slice_cycle += sh4_cpu_period;
 :}
 BT/S disp {: 
     sh4r.pc += 2;
@@ -294,7 +289,6 @@ BT/S disp {:
     if( sh4r.t ) {
         sh4r.pc += disp;
     }
-    sh4r.slice_cycle += sh4_cpu_period;
 :}
 JMP @Rn {:
     sh4r.pc += 2;
@@ -302,7 +296,7 @@ JMP @Rn {:
     sh4_finalize_instruction();
     sh4r.pc = tmp;
     sh4r.new_pc = tmp + 2;
-    sh4r.slice_cycle += 2*sh4_cpu_period;
+    sh4r.slice_cycle += sh4_cpu_period;
     return;
 :}
 JSR @Rn {: 
@@ -312,7 +306,7 @@ JSR @Rn {:
     sh4_finalize_instruction();
     sh4r.pc = tmp;
     sh4r.new_pc = tmp + 2;
-    sh4r.slice_cycle += 2*sh4_cpu_period;
+    sh4r.slice_cycle += sh4_cpu_period;
     return;
 :}
 RTS {: 
@@ -320,7 +314,7 @@ RTS {:
     sh4_finalize_instruction();
     sh4r.pc = sh4r.pr;
     sh4r.new_pc = sh4r.pr + 2;
-    sh4r.slice_cycle += 2*sh4_cpu_period;
+    sh4r.slice_cycle += sh4_cpu_period;
     return;
 :}
 RTE {: 
@@ -329,7 +323,7 @@ RTE {:
     sh4_finalize_instruction();
     sh4r.pc = sh4r.spc;
     sh4r.new_pc = sh4r.pr + 2;
-    sh4r.slice_cycle += 2*sh4_cpu_period;
+    sh4r.slice_cycle += sh4_cpu_period;
     return;
 :}
 MOV.B Rm, @-Rn {: sh4r.r[Rn]--; :}
@@ -339,6 +333,7 @@ MOV.B @Rm+, Rn {: if( Rm != Rn ) { sh4r.r[Rm] ++;  } :}
 MOV.W @Rm+, Rn {: if( Rm != Rn ) { sh4r.r[Rm] += 2; } :}
 MOV.L @Rm+, Rn {: if( Rm != Rn ) { sh4r.r[Rm] += 4; } :}
 %%
+    sh4r.in_delay_slot = 0;
     sh4r.pc += 2;
     sh4r.new_pc = sh4r.pc+2;
     sh4r.slice_cycle += sh4_cpu_period;
@@ -380,7 +375,11 @@ gboolean sh4_execute_instruction( void )
 
     /* Read instruction */
     if( !IS_IN_ICACHE(pc) ) {
+        gboolean delay_slot = sh4r.in_delay_slot;
 	if( !mmu_update_icache(pc) ) {
+	    if( delay_slot ) {
+	        sh4r.spc -= 2;
+	    }
 	    // Fault - look for the fault handler
 	    if( !mmu_update_icache(sh4r.pc) ) {
 		// double fault - halt
