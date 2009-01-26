@@ -1544,7 +1544,7 @@ BRAF Rn {:
 	    return 2;
 	} else {
 	    sh4_translate_instruction( pc + 2 );
-	    exit_block_newpcset(pc+2);
+	    exit_block_newpcset(pc+4);
 	    return 4;
 	}
     }
@@ -1591,7 +1591,7 @@ BSRF Rn {:
 	    return 2;
 	} else {
 	    sh4_translate_instruction( pc + 2 );
-	    exit_block_newpcset(pc+2);
+	    exit_block_newpcset(pc+4);
 	    return 4;
 	}
     }
@@ -1655,7 +1655,7 @@ JMP @Rn {:
 	    return 2;
 	} else {
 	    sh4_translate_instruction(pc+2);
-	    exit_block_newpcset(pc+2);
+	    exit_block_newpcset(pc+4);
 	    return 4;
 	}
     }
@@ -1678,7 +1678,7 @@ JSR @Rn {:
 	    return 2;
 	} else {
 	    sh4_translate_instruction(pc+2);
-	    exit_block_newpcset(pc+2);
+	    exit_block_newpcset(pc+4);
 	    return 4;
 	}
     }
@@ -1702,7 +1702,7 @@ RTE {:
 	    return 2;
 	} else {
 	    sh4_translate_instruction(pc+2);
-	    exit_block_newpcset(pc+2);
+	    exit_block_newpcset(pc+4);
 	    return 4;
 	}
     }
@@ -1721,7 +1721,7 @@ RTS {:
 	    return 2;
 	} else {
 	    sh4_translate_instruction(pc+2);
-	    exit_block_newpcset(pc+2);
+	    exit_block_newpcset(pc+4);
 	    return 4;
 	}
     }
@@ -1736,7 +1736,7 @@ TRAPA #imm {:
 	load_imm32( R_EAX, imm );
 	call_func1( sh4_raise_trap, R_EAX );
 	sh4_x86.tstate = TSTATE_NONE;
-	exit_block_pcset(pc);
+	exit_block_pcset(pc+2);
 	sh4_x86.branch_taken = TRUE;
 	return 2;
     }
