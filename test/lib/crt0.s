@@ -47,6 +47,9 @@ start_l:
 	lds r3,fpscr
 #endif /*  defined (__SH3E__) || defined(__SH4_SINGLE__) || defined(__SH4__) || defined(__SH4_SINGLE_ONLY__) */
 
+	mov.l sr_data, r1
+	ldc r1, sr
+
 	! call the mainline	
 	mov.l	main_k,r0
 	jsr	@r0
@@ -103,6 +106,8 @@ start_2_k:
 	.long	start_2	
 p2_mask:
 	.long	0xa0000000
+sr_data:
+	.long   0x400000f0
 ccr_addr:
 	.long	0xff00001c
 ccr_data:

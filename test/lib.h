@@ -61,4 +61,23 @@ int is_start_pressed();
 #define CHECK_IEQUALS( a, b ) if( a != b ) { fprintf(stderr, "Assertion failed at %s:%d: expected %08X, but was %08X\n", __FILE__, __LINE__, a, b ); return -1; }
 #define DMA_ALIGN(x)   ((void *)((((unsigned int)(x))+0x1F)&0xFFFFFFE0))
 
+
+/* SH4 Exceptions */
+#define POWERON      0x000 /* reset vector */
+#define MANRESET     0x020 /* reset vector */
+#define OTLBMULTIHIT 0x140 /* reset vector */
+#define RTLBMISS     0x040 /* TLB vector */
+#define WTLBMISS     0x060 /* TLB vector */
+#define FIRSTWRITE   0x080
+#define READPROT     0x0A0
+#define WRITEPROT    0x0C0
+#define RADDERR      0x0E0
+#define WADDERR      0x100
+#define FPUEXC       0x120
+#define ILLSLOT      0x1A0
+#define RESINST      0x180
+#define TRAP         0x160
+#define FPUDIS       0x800
+#define SLOTFPUDIS   0x820
+
 #endif

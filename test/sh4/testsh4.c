@@ -14,6 +14,9 @@ int test_print_result( char *testname, int failed, int total )
 
 void test_print_failure( char *testname, int number, char *message )
 {
+    fprintf( stderr, "Fail" );
+    fprintf( stderr, testname );
+    
     if( message == NULL ) {
 	fprintf( stderr, "%s: Test %d failed!\n", testname, number );
     } else {
