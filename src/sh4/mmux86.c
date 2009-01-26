@@ -28,13 +28,13 @@
 #define ARG1 R_EDI
 #define ARG2 R_ESI
 #define DECODE() \
-    MOV_imm64_r32((uintptr_t)ext_address_space, R_EAX);     /* movq ptr, %rax */ \
+    MOV_imm64_r32((uintptr_t)addr_space, R_EAX);     /* movq ptr, %rax */ \
     REXW(); OP(0x8B); OP(0x0C); OP(0xC8)                    /* movq [%rax + %rcx*8], %rcx */
 #else
 #define ARG1 R_EAX
 #define ARG2 R_EDX
 #define DECODE() \
-    MOV_r32disp32x4_r32( R_ECX, (uintptr_t)ext_address_space, R_ECX );
+    MOV_r32disp32x4_r32( R_ECX, (uintptr_t)addr_space, R_ECX );
 #endif
 
 void mmu_utlb_init_vtable( struct utlb_entry *ent, struct utlb_page_entry *page, gboolean writable )
@@ -42,12 +42,21 @@ void mmu_utlb_init_vtable( struct utlb_entry *ent, struct utlb_page_entry *page,
     uint32_t mask = ent->mask;
     uint32_t vpn = ent->vpn & mask;
     uint32_t ppn = ent->ppn & mask;
+    struct mem_region_fn **addr_space;
+    uint8_t **out = (uint8_t **)&page->fn;
+    uint8_t **fn;
     int inc = writable ? 1 : 2; 
     int i;
     
     xlat_output = page->code;
-    uint8_t **fn = (uint8_t **)ext_address_space[ppn>>12];
-    uint8_t **out = (uint8_t **)&page->fn;
+    if( (ppn & 0x1FFFFFFF) >= 0x1C000000 ) {
+        /* SH4 control region */
+        ppn |= 0xE0000000;
+        addr_space = sh4_address_space;
+    } else {
+        addr_space = ext_address_space;
+    }
+    fn = (uint8_t **)addr_space[ppn>>12];
     
     for( i=0; i<9; i+= inc, fn += inc, out += inc ) {
         *out = xlat_output;
