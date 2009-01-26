@@ -75,7 +75,7 @@ check: build-tests
 #	$(RUNTEST) testide -d ../disc/test.nrg
 
 
-build-tests: testsh4 testmath testide testta testregs testrend testdisp testspu testmmu
+build-tests: testsh4 testmmu testmath testide testta testregs testrend testdisp testspu testmmu
 
 lib/crt0.so: lib/crt0.s
 	$(mkdir_p) lib
@@ -97,13 +97,14 @@ testsh4: lib/crt0.so sh4/testsh4.so timer.so interrupt.so \
 	$(SH4CC) $(SH4LDFLAGS) $^ -o $@ $(SH4LIBS)
 	$(SH4OBJCOPY) testsh4 testsh4.bin
 
+testmmu: lib/crt0.so sh4/testmmu.so sh4/utlb.so sh4/testutlb.so sh4/mmummio.so
+	$(SH4CC) $(SH4LDFLAGS) $^ -o $@ $(SH4LIBS)
+	$(SH4OBJCOPY) testmmu testmmu.bin
+
+
 testide: lib/crt0.so $(SHARED_OBJECTS) testide.so ide.so
 	$(SH4CC) $(SH4LDFLAGS) $^ -o $@ $(SH4LIBS)
 	$(SH4OBJCOPY) testide testide.bin
-
-testmmu: lib/crt0.so $(SHARED_OBJECTS) testmmu.so
-	$(SH4CC) $(SH4LDFLAGS) $^ -o $@ $(SH4LIBS)
-	$(SH4OBJCOPY) testmmu testmmu.bin
 
 testmath: lib/crt0.so $(SHARED_OBJECTS) testmath.so math.so
 	$(SH4CC) $(SH4LDFLAGS) $^  -o $@ $(SH4LIBS)

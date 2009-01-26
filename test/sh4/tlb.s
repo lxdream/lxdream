@@ -104,6 +104,8 @@ test_tlb5_exc:
 	bt test_tlb_6
 test_tlb5_fail:
 	fail test_tlb_str_k
+        bra test_tlb_6
+        nop
 
 test_tlb5_addr:
 	.long 0xF6000000
