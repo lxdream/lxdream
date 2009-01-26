@@ -58,6 +58,8 @@ typedef struct mem_region_fn {
      * spaces are automatically forced to unmapped_prefetch by mem.c
      */
     mem_prefetch_fn_t prefetch;
+    /* Convenience for SH4 byte read/modify/write instructions */
+    mem_read_fn_t read_byte_for_write;
 } *mem_region_fn_t;
 
 int32_t FASTCALL unmapped_read_long( sh4addr_t addr );

@@ -352,17 +352,6 @@ uint32_t FASTCALL sh4_read_sr( void )
     return sh4r.sr;
 }
 
-void sh4_update_exception_readtowrite( void )
-{
-    int exc = MMIO_READ( MMU, EXPEVT );
-    if( exc == EXC_TLB_MISS_READ ) {
-        MMIO_WRITE( MMU, EXPEVT, EXC_TLB_MISS_WRITE );
-    } else if( exc == EXC_DATA_ADDR_READ ) {
-        MMIO_WRITE( MMU, EXPEVT, EXC_DATA_ADDR_WRITE );
-    }
-}
-
-
 /**
  * Raise a CPU reset exception with the specified exception code.
  */
@@ -445,6 +434,7 @@ void FASTCALL sh4_accept_interrupt( void )
     sh4_write_sr( sh4r.ssr|SR_BL|SR_MD|SR_RB );
     sh4r.pc = sh4r.vbr + 0x600;
     sh4r.new_pc = sh4r.pc + 2;
+    sh4r.in_delay_slot = 0;
 }
 
 void FASTCALL signsat48( void )

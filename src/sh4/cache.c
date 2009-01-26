@@ -133,7 +133,7 @@ struct mem_region_fn mem_region_ocram_page0 = {
         ocram_page0_read_word, ocram_page0_write_word,
         ocram_page0_read_byte, ocram_page0_write_byte,
         ocram_page0_read_burst, ocram_page0_write_burst,
-        unmapped_prefetch };
+        unmapped_prefetch, ocram_page0_read_byte };
 
 static int32_t FASTCALL ocram_page1_read_long( sh4addr_t addr )
 {
@@ -173,7 +173,7 @@ struct mem_region_fn mem_region_ocram_page1 = {
         ocram_page1_read_word, ocram_page1_write_word,
         ocram_page1_read_byte, ocram_page1_write_byte,
         ocram_page1_read_burst, ocram_page1_write_burst,
-        unmapped_prefetch };
+        unmapped_prefetch, ocram_page1_read_byte };
 
 /**************************** Cache functions ********************************/
 char ccn_cache_map[16 MB]; // 24 bits of address space
@@ -307,7 +307,7 @@ struct mem_region_fn ccn_ocache_cb_region = {
     ccn_ocache_read_word, ccn_ocache_write_word_copyback,
     ccn_ocache_read_byte, ccn_ocache_write_byte_copyback,
     unmapped_read_burst, unmapped_write_burst,
-    ccn_ocache_prefetch };
+    ccn_ocache_prefetch, ccn_ocache_read_byte };
 
 
 /************************** Cache direct access ******************************/
@@ -335,7 +335,7 @@ struct mem_region_fn p4_region_icache_addr = {
         unmapped_read_long, unmapped_write_long,
         unmapped_read_long, unmapped_write_long,
         unmapped_read_burst, unmapped_write_burst,
-        unmapped_prefetch };
+        unmapped_prefetch, unmapped_read_long };
 
 
 static int32_t FASTCALL ccn_icache_data_read( sh4addr_t addr )
@@ -355,7 +355,7 @@ struct mem_region_fn p4_region_icache_data = {
         unmapped_read_long, unmapped_write_long,
         unmapped_read_long, unmapped_write_long,
         unmapped_read_burst, unmapped_write_burst,
-        unmapped_prefetch };
+        unmapped_prefetch, unmapped_read_long };
 
 static int32_t FASTCALL ccn_ocache_addr_read( sh4addr_t addr )
 {
@@ -386,7 +386,7 @@ struct mem_region_fn p4_region_ocache_addr = {
         unmapped_read_long, unmapped_write_long,
         unmapped_read_long, unmapped_write_long,
         unmapped_read_burst, unmapped_write_burst,
-        unmapped_prefetch };
+        unmapped_prefetch, unmapped_read_long };
 
 
 static int32_t FASTCALL ccn_ocache_data_read( sh4addr_t addr )
@@ -406,7 +406,7 @@ struct mem_region_fn p4_region_ocache_data = {
         unmapped_read_long, unmapped_write_long,
         unmapped_read_long, unmapped_write_long,
         unmapped_read_burst, unmapped_write_burst,
-        unmapped_prefetch };
+        unmapped_prefetch, unmapped_read_long };
 
 
 /****************** Cache control *********************/
@@ -505,7 +505,7 @@ struct mem_region_fn ccn_uncached_region = {
         ccn_uncached_read_word, ccn_uncached_write_word,
         ccn_uncached_read_byte, ccn_uncached_write_byte,
         unmapped_read_burst, unmapped_write_burst,
-        ccn_uncached_prefetch };
+        ccn_uncached_prefetch, ccn_uncached_read_byte };
 
 
 /********************************* Store-queue *******************************/

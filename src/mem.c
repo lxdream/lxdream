@@ -88,7 +88,7 @@ struct mem_region_fn mem_region_unmapped = {
         unmapped_read_long, unmapped_write_long, 
         unmapped_read_long, unmapped_write_long, 
         unmapped_read_burst, unmapped_write_burst,
-        unmapped_prefetch }; 
+        unmapped_prefetch, unmapped_read_long }; 
 
 void *mem_alloc_pages( int n )
 {
@@ -327,6 +327,7 @@ struct mem_region *mem_map_region( void *mem, uint32_t base, uint32_t size,
     mem_rgn[num_mem_rgns].mem = mem;
     mem_rgn[num_mem_rgns].fn = fn;
     fn->prefetch = unmapped_prefetch;
+    fn->read_byte_for_write = fn->read_byte;
     num_mem_rgns++;
 
     do {

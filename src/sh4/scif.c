@@ -465,6 +465,8 @@ MMIO_REGION_READ_FN( SCIF, reg )
         return MMIO_READ( SCIF, reg );
     }
 }
+MMIO_REGION_READ_DEFSUBFNS(SCIF)
+
 
 MMIO_REGION_WRITE_FN( SCIF, reg, val )
 {

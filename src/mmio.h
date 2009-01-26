@@ -112,7 +112,7 @@ extern uint32_t num_io_rgns;
 #undef MMIO_REGION_LIST_BEGIN
 #undef MMIO_REGION
 #undef MMIO_REGION_LIST_END
-#define MMIO_REGION_BEGIN(b,id,d) struct mmio_region mmio_region_##id = { #id, d, b, {mmio_region_##id##_read, mmio_region_##id##_write,mmio_region_##id##_read, mmio_region_##id##_write,mmio_region_##id##_read, mmio_region_##id##_write,NULL, NULL, unmapped_prefetch}, 0, 0, {
+#define MMIO_REGION_BEGIN(b,id,d) struct mmio_region mmio_region_##id = { #id, d, b, {mmio_region_##id##_read, mmio_region_##id##_write,mmio_region_##id##_read_word, mmio_region_##id##_write,mmio_region_##id##_read_byte, mmio_region_##id##_write,NULL, NULL, unmapped_prefetch, mmio_region_##id##_read_byte}, 0, 0, {
 #define LONG_PORT( o,id,f,def,d ) { #id, d, 32, o, def, f },
 #define WORD_PORT( o,id,f,def,d ) { #id, d, 16, o, def, f },
 #define BYTE_PORT( o,id,f,def,d ) { #id, d, 8, o, def, f },
@@ -153,6 +153,7 @@ void FASTCALL mmio_region_##id##_write( uint32_t reg, uint32_t val ) { \
 #define MMIO_REGION_DEFFNS( id ) \
     MMIO_REGION_READ_DEFFN( id ) \
     MMIO_REGION_WRITE_DEFFN( id )
+
 #endif
 
 #else
@@ -162,6 +163,8 @@ void FASTCALL mmio_region_##id##_write( uint32_t reg, uint32_t val ) { \
 #define MMIO_REGION_BEGIN(b,id,d) \
 extern struct mmio_region mmio_region_##id; \
 int32_t FASTCALL mmio_region_##id##_read(uint32_t); \
+int32_t FASTCALL mmio_region_##id##_read_word(uint32_t); \
+int32_t FASTCALL mmio_region_##id##_read_byte(uint32_t); \
 void FASTCALL mmio_region_##id##_write(uint32_t, uint32_t); \
 enum mmio_region_##id##_port_t {
 #define LONG_PORT( o,id,f,def,d ) id = o,
@@ -178,6 +181,10 @@ void FASTCALL mmio_region_##id##_write( uint32_t reg, uint32_t val )
 
 #define MMIO_REGION_READ_FN( id, reg ) \
 int32_t FASTCALL mmio_region_##id##_read( uint32_t reg )
+
+#define MMIO_REGION_READ_DEFSUBFNS( id ) \
+int32_t FASTCALL mmio_region_##id##_read_word( uint32_t reg ) { return SIGNEXT16(mmio_region_##id##_read(reg)); } \
+int32_t FASTCALL mmio_region_##id##_read_byte( uint32_t reg ) { return SIGNEXT8(mmio_region_##id##_read(reg)); }
 
 
 #endif
