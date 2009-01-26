@@ -89,6 +89,8 @@ MMIO_REGION_READ_FN( BSC, reg )
     return val;
 }
 
+MMIO_REGION_READ_DEFSUBFNS(BSC)
+
 /********************************* UBC *************************************/
 
 MMIO_REGION_READ_FN( UBC, reg )
@@ -118,8 +120,10 @@ MMIO_REGION_WRITE_FN( UBC, reg, val )
     MMIO_WRITE( UBC, reg, val );
 }
 
+MMIO_REGION_READ_DEFSUBFNS(UBC)
 
 /********************************** SCI *************************************/
 
 MMIO_REGION_STUBFNS( SCI )
 
+MMIO_REGION_READ_DEFSUBFNS(SCI)

@@ -58,14 +58,16 @@ void mmu_utlb_init_vtable( struct utlb_entry *ent, struct utlb_page_entry *page,
     }
     fn = (uint8_t **)addr_space[ppn>>12];
     
-    for( i=0; i<9; i+= inc, fn += inc, out += inc ) {
+    for( i=0; i<10; i+= inc, fn += inc, out += inc ) {
         *out = xlat_output;
+        if( i != 9 ) { /* read_byte_for_write doesn't increment mmu_urc, everything else does */
 #if SIZEOF_VOID_P == 8
-        MOV_imm64_r32((uintptr_t)&mmu_urc, R_EAX );
-        OP(0x83); OP(0x00); OP(0x01); // ADD #1, [RAX]
+            MOV_imm64_r32((uintptr_t)&mmu_urc, R_EAX );
+            OP(0x83); OP(0x00); OP(0x01); // ADD #1, [RAX]
 #else 
-        OP(0x83); MODRM_r32_disp32(0, (uintptr_t)&mmu_urc); OP(0x01); // ADD #1, mmu_urc
+            OP(0x83); MODRM_r32_disp32(0, (uintptr_t)&mmu_urc); OP(0x01); // ADD #1, mmu_urc
 #endif
+        }
         ADD_imm32_r32( ppn-vpn, ARG1 ); // 6
         if( ent->mask >= 0xFFFFF000 ) {
             // Maps to a single page, so jump directly there
@@ -92,8 +94,13 @@ void mmu_utlb_init_storequeue_vtable( struct utlb_entry *ent, struct utlb_page_e
 
     memcpy( page, &p4_region_storequeue, sizeof(struct mem_region_fn) );
 
-    /* TESTME: Does a PREF increment the URC counter? */
     page->fn.prefetch = (mem_prefetch_fn_t)xlat_output;
+#if SIZEOF_VOID_P == 8
+    MOV_imm64_r32((uintptr_t)&mmu_urc, R_EAX );
+    OP(0x83); OP(0x00); OP(0x01); // ADD #1, [RAX]
+#else 
+    OP(0x83); MODRM_r32_disp32(0, (uintptr_t)&mmu_urc); OP(0x01); // ADD #1, mmu_urc
+#endif
     ADD_imm32_r32( ppn-vpn, ARG1 );
     int rel = ((uint8_t *)ccn_storequeue_prefetch_tlb) - xlat_output;
     JMP_rel( rel );

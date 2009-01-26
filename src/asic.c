@@ -445,6 +445,8 @@ MMIO_REGION_READ_FN( ASIC, reg )
 
 }
 
+MMIO_REGION_READ_DEFSUBFNS(ASIC)
+
 MMIO_REGION_WRITE_FN( ASIC, reg, val )
 {
     reg &= 0xFFF;
@@ -553,6 +555,8 @@ MMIO_REGION_READ_FN( EXTDMA, reg )
         return val;
     }
 }
+MMIO_REGION_READ_DEFSUBFNS(EXTDMA)
+
 
 MMIO_REGION_WRITE_FN( EXTDMA, reg, val )
 {

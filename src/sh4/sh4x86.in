@@ -307,6 +307,7 @@ void static inline store_reg( int x86reg, int sh4reg ) {
 #endif
                 
 #define MEM_READ_BYTE( addr_reg, value_reg ) decode_address(addr_reg); _CALL_READ(addr_reg, read_byte); MEM_RESULT(value_reg)
+#define MEM_READ_BYTE_FOR_WRITE( addr_reg, value_reg ) decode_address(addr_reg); _CALL_READ(addr_reg, read_byte_for_write); MEM_RESULT(value_reg)
 #define MEM_READ_WORD( addr_reg, value_reg ) decode_address(addr_reg); _CALL_READ(addr_reg, read_word); MEM_RESULT(value_reg)
 #define MEM_READ_LONG( addr_reg, value_reg ) decode_address(addr_reg); _CALL_READ(addr_reg, read_long); MEM_RESULT(value_reg)
 #define MEM_WRITE_BYTE( addr_reg, value_reg ) decode_address(addr_reg); _CALL_WRITE(addr_reg, value_reg, write_byte)
@@ -468,7 +469,7 @@ AND.B #imm, @(R0, GBR) {:
     load_reg( R_EAX, 0 );
     ADD_sh4r_r32( R_GBR, R_EAX );
     MOV_r32_esp8(R_EAX, 0);
-    MEM_READ_BYTE( R_EAX, R_EDX );
+    MEM_READ_BYTE_FOR_WRITE( R_EAX, R_EDX );
     MOV_esp8_r32(0, R_EAX);
     AND_imm32_r32(imm, R_EDX );
     MEM_WRITE_BYTE( R_EAX, R_EDX );
@@ -808,7 +809,7 @@ OR.B #imm, @(R0, GBR) {:
     load_reg( R_EAX, 0 );
     ADD_sh4r_r32( R_GBR, R_EAX );
     MOV_r32_esp8( R_EAX, 0 );
-    MEM_READ_BYTE( R_EAX, R_EDX );
+    MEM_READ_BYTE_FOR_WRITE( R_EAX, R_EDX );
     MOV_esp8_r32( 0, R_EAX );
     OR_imm32_r32(imm, R_EDX );
     MEM_WRITE_BYTE( R_EAX, R_EDX );
@@ -1026,7 +1027,7 @@ TAS.B @Rn {:
     COUNT_INST(I_TASB);
     load_reg( R_EAX, Rn );
     MOV_r32_esp8( R_EAX, 0 );
-    MEM_READ_BYTE( R_EAX, R_EDX );
+    MEM_READ_BYTE_FOR_WRITE( R_EAX, R_EDX );
     TEST_r8_r8( R_DL, R_DL );
     SETE_t();
     OR_imm8_r8( 0x80, R_DL );
@@ -1078,7 +1079,7 @@ XOR.B #imm, @(R0, GBR) {:
     load_reg( R_EAX, 0 );
     ADD_sh4r_r32( R_GBR, R_EAX ); 
     MOV_r32_esp8( R_EAX, 0 );
-    MEM_READ_BYTE(R_EAX, R_EDX);
+    MEM_READ_BYTE_FOR_WRITE(R_EAX, R_EDX);
     MOV_esp8_r32( 0, R_EAX );
     XOR_imm32_r32( imm, R_EDX );
     MEM_WRITE_BYTE( R_EAX, R_EDX );

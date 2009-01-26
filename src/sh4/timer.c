@@ -48,6 +48,7 @@ MMIO_REGION_READ_FN( CPG, reg )
 {
     return MMIO_READ( CPG, reg&0xFFF );
 }
+MMIO_REGION_READ_DEFSUBFNS(CPG)
 
 /* CPU + bus dividers (note officially only the first 6 values are valid) */
 int ifc_divider[8] = { 1, 2, 3, 4, 5, 8, 8, 8 };
@@ -102,6 +103,7 @@ MMIO_REGION_READ_FN( RTC, reg )
 {
     return MMIO_READ( RTC, reg &0xFFF );
 }
+MMIO_REGION_READ_DEFSUBFNS(RTC)
 
 MMIO_REGION_WRITE_FN( RTC, reg, val )
 {
@@ -261,6 +263,8 @@ MMIO_REGION_READ_FN( TMU, reg )
     }
     return MMIO_READ( TMU, reg );
 }
+MMIO_REGION_READ_DEFSUBFNS(TMU)
+
 
 MMIO_REGION_WRITE_FN( TMU, reg, val )
 {

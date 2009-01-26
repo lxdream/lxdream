@@ -242,13 +242,6 @@ void FASTCALL sh4_raise_tlb_multihit( sh4vma_t );
 void FASTCALL sh4_accept_interrupt( void );
 
 /**
- * Convert a TLB miss or data addr read exception to a write exception
- * by updating EXPEVT. (used for instructions like AND.B that are
- * documented to raise write exceptions if the target isn't readable)
- */
-void sh4_update_exception_readtowrite( void );
-
-/**
  * Complete the current instruction as part of a core exit. Prevents the 
  * system from being left in an inconsistent state when an exit is 
  * triggered during a memory write. 

@@ -101,6 +101,8 @@ MMIO_REGION_READ_FN( INTC, reg )
     return MMIO_READ( INTC, reg & 0xFFF );
 }
 
+MMIO_REGION_READ_DEFSUBFNS(INTC)
+
 void INTC_reset()
 {
     int i;

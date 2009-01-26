@@ -154,3 +154,5 @@ MMIO_REGION_WRITE_FN( PMM, reg, val )
 {
     /* Read-only */
 }
+
+MMIO_REGION_READ_DEFSUBFNS(PMM)

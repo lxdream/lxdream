@@ -82,7 +82,9 @@ static int mmu_read_urc();
 static void FASTCALL tlb_miss_read( sh4addr_t addr, void *exc );
 static int32_t FASTCALL tlb_protected_read( sh4addr_t addr, void *exc );
 static void FASTCALL tlb_protected_write( sh4addr_t addr, uint32_t val, void *exc );
+static int32_t FASTCALL tlb_protected_read_for_write( sh4addr_t addr, void *exc );
 static void FASTCALL tlb_initial_write( sh4addr_t addr, uint32_t val, void *exc );
+static int32_t FASTCALL tlb_initial_read_for_write( sh4addr_t addr, void *exc );
 static uint32_t get_tlb_size_mask( uint32_t flags );
 static uint32_t get_tlb_size_pages( uint32_t flags );
 
@@ -229,6 +231,8 @@ MMIO_REGION_READ_FN( MMU, reg )
         return MMIO_READ( MMU, reg );
     }
 }
+
+MMIO_REGION_READ_DEFSUBFNS(MMU)
 
 MMIO_REGION_WRITE_FN( MMU, reg, val )
 {
@@ -772,12 +776,14 @@ static void mmu_utlb_insert_entry( int entry )
             page->write_word = (mem_write_fn_t)tlb_protected_write;
             page->write_byte = (mem_write_fn_t)tlb_protected_write;
             page->write_burst = (mem_write_burst_fn_t)tlb_protected_write;
+            page->read_byte_for_write = (mem_read_fn_t)tlb_protected_read_for_write;
             mmu_utlb_init_vtable( ent, &mmu_utlb_pages[entry], FALSE );
         } else if( (ent->flags & TLB_DIRTY) == 0 ) {
             page->write_long = (mem_write_fn_t)tlb_initial_write;
             page->write_word = (mem_write_fn_t)tlb_initial_write;
             page->write_byte = (mem_write_fn_t)tlb_initial_write;
             page->write_burst = (mem_write_burst_fn_t)tlb_initial_write;
+            page->read_byte_for_write = (mem_read_fn_t)tlb_initial_read_for_write;
             mmu_utlb_init_vtable( ent, &mmu_utlb_pages[entry], FALSE );
         } else {
             mmu_utlb_init_vtable( ent, &mmu_utlb_pages[entry], TRUE );
@@ -1358,31 +1364,37 @@ struct mem_region_fn p4_region_itlb_addr = {
         mmu_itlb_addr_read, mmu_itlb_addr_write,
         mmu_itlb_addr_read, mmu_itlb_addr_write,
         unmapped_read_burst, unmapped_write_burst,
-        unmapped_prefetch };
+        unmapped_prefetch, mmu_itlb_addr_read };
 struct mem_region_fn p4_region_itlb_data = {
         mmu_itlb_data_read, mmu_itlb_data_write,
         mmu_itlb_data_read, mmu_itlb_data_write,
         mmu_itlb_data_read, mmu_itlb_data_write,
         unmapped_read_burst, unmapped_write_burst,
-        unmapped_prefetch };
+        unmapped_prefetch, mmu_itlb_data_read };
 struct mem_region_fn p4_region_utlb_addr = {
         mmu_utlb_addr_read, (mem_write_fn_t)mmu_utlb_addr_write,
         mmu_utlb_addr_read, (mem_write_fn_t)mmu_utlb_addr_write,
         mmu_utlb_addr_read, (mem_write_fn_t)mmu_utlb_addr_write,
         unmapped_read_burst, unmapped_write_burst,
-        unmapped_prefetch };
+        unmapped_prefetch, mmu_utlb_addr_read };
 struct mem_region_fn p4_region_utlb_data = {
         mmu_utlb_data_read, mmu_utlb_data_write,
         mmu_utlb_data_read, mmu_utlb_data_write,
         mmu_utlb_data_read, mmu_utlb_data_write,
         unmapped_read_burst, unmapped_write_burst,
-        unmapped_prefetch };
+        unmapped_prefetch, mmu_utlb_data_read };
 
 /********************** Error regions **************************/
 
 static void FASTCALL address_error_read( sh4addr_t addr, void *exc ) 
 {
     RAISE_MEM_ERROR(EXC_DATA_ADDR_READ, addr);
+    EXCEPTION_EXIT();
+}
+
+static void FASTCALL address_error_read_for_write( sh4addr_t addr, void *exc ) 
+{
+    RAISE_MEM_ERROR(EXC_DATA_ADDR_WRITE, addr);
     EXCEPTION_EXIT();
 }
 
@@ -1405,6 +1417,13 @@ static void FASTCALL tlb_miss_read( sh4addr_t addr, void *exc )
     EXCEPTION_EXIT();
 }
 
+static void FASTCALL tlb_miss_read_for_write( sh4addr_t addr, void *exc )
+{
+    mmu_urc++;
+    RAISE_TLB_ERROR(EXC_TLB_MISS_WRITE, addr);
+    EXCEPTION_EXIT();
+}
+
 static void FASTCALL tlb_miss_read_burst( unsigned char *dest, sh4addr_t addr, void *exc )
 {
     mmu_urc++;
@@ -1417,7 +1436,7 @@ static void FASTCALL tlb_miss_write( sh4addr_t addr, uint32_t val, void *exc )
     mmu_urc++;
     RAISE_TLB_ERROR(EXC_TLB_MISS_WRITE, addr);
     EXCEPTION_EXIT();
-}    
+}
 
 static int32_t FASTCALL tlb_protected_read( sh4addr_t addr, void *exc )
 {
@@ -1425,6 +1444,14 @@ static int32_t FASTCALL tlb_protected_read( sh4addr_t addr, void *exc )
     RAISE_MEM_ERROR(EXC_TLB_PROT_READ, addr);
     EXCEPTION_EXIT();
     return 0; 
+}
+
+static int32_t FASTCALL tlb_protected_read_for_write( sh4addr_t addr, void *exc )
+{
+    mmu_urc++;
+    RAISE_MEM_ERROR(EXC_TLB_PROT_WRITE, addr);
+    EXCEPTION_EXIT();
+    return 0;
 }
 
 static int32_t FASTCALL tlb_protected_read_burst( unsigned char *dest, sh4addr_t addr, void *exc )
@@ -1448,6 +1475,14 @@ static void FASTCALL tlb_initial_write( sh4addr_t addr, uint32_t val, void *exc 
     RAISE_MEM_ERROR(EXC_INIT_PAGE_WRITE, addr);
     EXCEPTION_EXIT();
 }
+
+static int32_t FASTCALL tlb_initial_read_for_write( sh4addr_t addr, void *exc )
+{
+    mmu_urc++;
+    RAISE_MEM_ERROR(EXC_INIT_PAGE_WRITE, addr);
+    EXCEPTION_EXIT();
+    return 0;
+}    
     
 static int32_t FASTCALL tlb_multi_hit_read( sh4addr_t addr, void *exc )
 {
@@ -1476,28 +1511,28 @@ struct mem_region_fn mem_region_address_error = {
         (mem_read_fn_t)address_error_read, (mem_write_fn_t)address_error_write,
         (mem_read_fn_t)address_error_read, (mem_write_fn_t)address_error_write,
         (mem_read_burst_fn_t)address_error_read_burst, (mem_write_burst_fn_t)address_error_write,
-        unmapped_prefetch };
+        unmapped_prefetch, (mem_read_fn_t)address_error_read_for_write };
 
 struct mem_region_fn mem_region_tlb_miss = {
         (mem_read_fn_t)tlb_miss_read, (mem_write_fn_t)tlb_miss_write,
         (mem_read_fn_t)tlb_miss_read, (mem_write_fn_t)tlb_miss_write,
         (mem_read_fn_t)tlb_miss_read, (mem_write_fn_t)tlb_miss_write,
         (mem_read_burst_fn_t)tlb_miss_read_burst, (mem_write_burst_fn_t)tlb_miss_write,
-        unmapped_prefetch };
+        unmapped_prefetch, (mem_read_fn_t)tlb_miss_read_for_write };
 
 struct mem_region_fn mem_region_tlb_protected = {
         (mem_read_fn_t)tlb_protected_read, (mem_write_fn_t)tlb_protected_write,
         (mem_read_fn_t)tlb_protected_read, (mem_write_fn_t)tlb_protected_write,
         (mem_read_fn_t)tlb_protected_read, (mem_write_fn_t)tlb_protected_write,
         (mem_read_burst_fn_t)tlb_protected_read_burst, (mem_write_burst_fn_t)tlb_protected_write,
-        unmapped_prefetch };
+        unmapped_prefetch, (mem_read_fn_t)tlb_protected_read_for_write };
 
 struct mem_region_fn mem_region_tlb_multihit = {
         (mem_read_fn_t)tlb_multi_hit_read, (mem_write_fn_t)tlb_multi_hit_write,
         (mem_read_fn_t)tlb_multi_hit_read, (mem_write_fn_t)tlb_multi_hit_write,
         (mem_read_fn_t)tlb_multi_hit_read, (mem_write_fn_t)tlb_multi_hit_write,
         (mem_read_burst_fn_t)tlb_multi_hit_read_burst, (mem_write_burst_fn_t)tlb_multi_hit_write,
-        (mem_prefetch_fn_t)tlb_multi_hit_read };
+        (mem_prefetch_fn_t)tlb_multi_hit_read, (mem_read_fn_t)tlb_multi_hit_read };
         
 
 /* Store-queue regions */
@@ -1513,54 +1548,54 @@ struct mem_region_fn p4_region_storequeue = {
         unmapped_read_long, unmapped_write_long, /* TESTME: Officially only long access is supported */
         unmapped_read_long, unmapped_write_long,
         unmapped_read_burst, unmapped_write_burst,
-        ccn_storequeue_prefetch }; 
+        ccn_storequeue_prefetch, unmapped_read_long }; 
 
 struct mem_region_fn p4_region_storequeue_miss = { 
         ccn_storequeue_read_long, ccn_storequeue_write_long,
         unmapped_read_long, unmapped_write_long, /* TESTME: Officially only long access is supported */
         unmapped_read_long, unmapped_write_long,
         unmapped_read_burst, unmapped_write_burst,
-        (mem_prefetch_fn_t)tlb_miss_read }; 
+        (mem_prefetch_fn_t)tlb_miss_read, unmapped_read_long }; 
 
 struct mem_region_fn p4_region_storequeue_multihit = { 
         ccn_storequeue_read_long, ccn_storequeue_write_long,
         unmapped_read_long, unmapped_write_long, /* TESTME: Officially only long access is supported */
         unmapped_read_long, unmapped_write_long,
         unmapped_read_burst, unmapped_write_burst,
-        (mem_prefetch_fn_t)tlb_multi_hit_read }; 
+        (mem_prefetch_fn_t)tlb_multi_hit_read, unmapped_read_long }; 
 
 struct mem_region_fn p4_region_storequeue_protected = {
         ccn_storequeue_read_long, ccn_storequeue_write_long,
         unmapped_read_long, unmapped_write_long,
         unmapped_read_long, unmapped_write_long,
         unmapped_read_burst, unmapped_write_burst,
-        (mem_prefetch_fn_t)tlb_protected_read };
+        (mem_prefetch_fn_t)tlb_protected_read, unmapped_read_long };
 
 struct mem_region_fn p4_region_storequeue_sqmd = {
         (mem_read_fn_t)address_error_read, (mem_write_fn_t)address_error_write,
         (mem_read_fn_t)address_error_read, (mem_write_fn_t)address_error_write,
         (mem_read_fn_t)address_error_read, (mem_write_fn_t)address_error_write,
         (mem_read_burst_fn_t)address_error_read_burst, (mem_write_burst_fn_t)address_error_write,
-        (mem_prefetch_fn_t)address_error_read };        
+        (mem_prefetch_fn_t)address_error_read, (mem_read_fn_t)address_error_read_for_write };
         
 struct mem_region_fn p4_region_storequeue_sqmd_miss = { 
         (mem_read_fn_t)address_error_read, (mem_write_fn_t)address_error_write,
         (mem_read_fn_t)address_error_read, (mem_write_fn_t)address_error_write,
         (mem_read_fn_t)address_error_read, (mem_write_fn_t)address_error_write,
         (mem_read_burst_fn_t)address_error_read_burst, (mem_write_burst_fn_t)address_error_write,
-        (mem_prefetch_fn_t)tlb_miss_read }; 
+        (mem_prefetch_fn_t)tlb_miss_read, (mem_read_fn_t)address_error_read_for_write }; 
 
 struct mem_region_fn p4_region_storequeue_sqmd_multihit = {
         (mem_read_fn_t)address_error_read, (mem_write_fn_t)address_error_write,
         (mem_read_fn_t)address_error_read, (mem_write_fn_t)address_error_write,
         (mem_read_fn_t)address_error_read, (mem_write_fn_t)address_error_write,
         (mem_read_burst_fn_t)address_error_read_burst, (mem_write_burst_fn_t)address_error_write,
-        (mem_prefetch_fn_t)tlb_multi_hit_read };        
+        (mem_prefetch_fn_t)tlb_multi_hit_read, (mem_read_fn_t)address_error_read_for_write };
         
 struct mem_region_fn p4_region_storequeue_sqmd_protected = {
         (mem_read_fn_t)address_error_read, (mem_write_fn_t)address_error_write,
         (mem_read_fn_t)address_error_read, (mem_write_fn_t)address_error_write,
         (mem_read_fn_t)address_error_read, (mem_write_fn_t)address_error_write,
         (mem_read_burst_fn_t)address_error_read_burst, (mem_write_burst_fn_t)address_error_write,
-        (mem_prefetch_fn_t)tlb_protected_read };
+        (mem_prefetch_fn_t)tlb_protected_read, (mem_read_fn_t)address_error_read_for_write };
 
