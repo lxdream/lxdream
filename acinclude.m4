@@ -89,3 +89,17 @@ else
   [ $3 ]
 fi
 ]);
+
+# AC_HAVE_OBJC([if-present],[if-not-present])
+# Check if we have a working Objective-C compiler
+AC_DEFUN([AC_HAVE_OBJC], [
+AC_PROG_OBJC
+AC_MSG_CHECKING([for a working Objective-C compiler])
+AC_LANG_PUSH([Objective C])dnl
+_AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[@interface Foo @end]], [])],
+   [AC_MSG_RESULT([yes])
+    $1 ],
+   [AC_MSG_RESULT([No])
+    $2 ]);
+AC_LANG_POP([Objective C])
+]);
