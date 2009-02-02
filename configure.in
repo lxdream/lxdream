@@ -64,7 +64,35 @@ AC_ARG_WITH( esd,
 AC_ARG_WITH( pulse,
    AS_HELP_STRING( [--with-pulse], [Build with support for the PulseAudio audio system]) )
 
-dnl ------------------ Compiler flags -----------------------
+dnl ------------ Check if we're building on Darwin --------------
+
+dnl For starters, do we have a working objective-c compiler?
+AC_HAVE_OBJC([
+   AC_CHECK_HEADER([Cocoa/Cocoa.h], [
+      HAVE_COCOA='yes'
+      APPLE_BUILD='yes'
+      LIBS="$LIBS -framework AppKit"
+      LIBS="$LIBS -Wl,-dylib_file,/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib:/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib -framework OpenGL"
+      CPPFLAGS="$CPPFLAGS -DMAC_OS_X_VERSION_MIN_REQUIRED=MAC_OS_X_VERSION_10_4 -mdynamic-no-pic"
+      LDFLAGS="$LDFLAGS -Wl,-headerpad_max_install_names"
+      AC_DEFINE(HAVE_COCOA,[1],[Have Cocoa framework])
+      AC_DEFINE(APPLE_BUILD,[1],[Building on an apple platform. Things are different...])
+      if test "x$with_gtk" = "xx11"; then
+        with_gtk=no
+      fi
+   ], [], [AC_INCLUDES_DEFAULT])
+
+   AC_OBJC_VERSION([ OBJCOPT="-O2 -msse2 -mfpmath=sse"
+                     OBJCFLAGS="$OBJCFLAGS -fno-strict-aliasing" ],
+                   [ OBJCOPT="-O2" ], [] )
+])
+
+AM_CONDITIONAL(GUI_COCOA, [test "$HAVE_COCOA" = 'yes' -a "$with_gtk" = "no"])
+if test "x$HAVE_COCOA" = 'xyes' -a "x$with_gtk" = "xno"; then
+  AC_DEFINE(OSX_BUNDLE, [1], [Generating a bundled application])
+fi
+
+dnl ------------------ C Compiler flags -----------------------
 CFLAGS="-g -fexceptions"
 OBJCFLAGS="-g -fexceptions"
 AC_DEFINE(HAVE_EXCEPTIONS, [1], [Have exception stack-frame information])
@@ -73,9 +101,6 @@ AC_CC_VERSION([ CCOPT="-O2 -msse2 -mfpmath=sse"
                 CFLAGS="$CFLAGS -fno-strict-aliasing" ],
               [ CCOPT="$CFLAGS -fast" ],
               [ CCOPT="$CFLAGS -O2" ])
-AC_OBJC_VERSION([ OBJCOPT="-O2 -msse2 -mfpmath=sse"
-                  OBJCFLAGS="$OBJCFLAGS -fno-strict-aliasing" ],
-                [ OBJCOPT="-O2" ], [] )
 
 if test "x$enable_optimized" = "xyes"; then
    CFLAGS="$CFLAGS $CCOPT"
@@ -109,31 +134,6 @@ AC_CHECK_FRAME_ADDRESS( [
 ], [ AC_MSG_WARN([Memory exceptions will be slow]) ])
 
 
-dnl ------------ Check if we're building on Darwin --------------
-
-dnl For starters, do we have a working objective-c compiler?
-AC_LANG_OBJC
-
-AC_CHECK_HEADER([Cocoa/Cocoa.h], [
-      HAVE_COCOA='yes'
-      APPLE_BUILD='yes'
-      LIBS="$LIBS -framework AppKit"
-      LIBS="$LIBS -Wl,-dylib_file,/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib:/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib -framework OpenGL"
-      CPPFLAGS="$CPPFLAGS -DMAC_OS_X_VERSION_MIN_REQUIRED=MAC_OS_X_VERSION_10_4 -mdynamic-no-pic"
-      LDFLAGS="$LDFLAGS -Wl,-headerpad_max_install_names"
-      AC_DEFINE(HAVE_COCOA,[1],[Have Cocoa framework])
-      AC_DEFINE(APPLE_BUILD,[1],[Building on an apple platform. Things are different...])
-      if test "x$with_gtk" = "xx11"; then
-        with_gtk=no
-      fi
-])
-
-AM_CONDITIONAL(GUI_COCOA, [test "$HAVE_COCOA" = 'yes' -a "$with_gtk" = "no"])
-if test "x$HAVE_COCOA" = 'xyes' -a "x$with_gtk" = "xno"; then
-  AC_DEFINE(OSX_BUNDLE, [1], [Generating a bundled application])
-fi
-
-AC_LANG_C
 
 dnl ----------- Check for mandatory dependencies --------------
 dnl Check for libpng (required)
