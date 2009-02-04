@@ -27,18 +27,6 @@
 #include "sh4/sh4mmio.h"
 #include "sh4/mmu.h"
 
-unsigned long block_count = 0;
-
-static void dump_state()
-{
-    int i;
-    printf( "%08x: [%08x] ", sh4r.pc, mmu_urc % mmu_urb );
-    for( i=0; i<16; i++ ) {
-        printf( " %08x", sh4r.r[i] );
-    }
-    printf( "\n" );
-}
-
 /**
  * Execute a timeslice using translated code only (ie translate/execute loop)
  */
@@ -78,12 +66,6 @@ uint32_t sh4_translate_run_slice( uint32_t nanosecs )
             }
             code = sh4_translate_basic_block( sh4r.pc );
         }
-//        if( IS_TLB_ENABLED() ) {
-//            block_count++;
-//            if( block_count == 52048225 ) {
-//                dump_state();
-//            }
-//        }
         code = code();
     }
     return nanosecs;
