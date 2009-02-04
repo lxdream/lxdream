@@ -65,20 +65,19 @@ void dump_ruleset( struct ruleset *rules, FILE *f );
 void dump_rulesubset( struct ruleset *rules, int ruleidx[], int rule_count, FILE *f );
 
 struct action {
-    char operand_names[MAX_OPERANDS][MAX_OPERAND_NAME+1];
-    char *body;
-};
-
-struct actionset {
-    char *actions[MAX_RULES];
+    const char *filename;
+    int lineno;
+    const char *text;
 };
 
 typedef struct actionfile *actionfile_t;
 
 typedef struct actiontoken {
     enum { NONE, TEXT, ACTIONS, END, ERROR } symbol;
+    const char *filename;
+    int lineno;
     char *text;
-    char *actions[MAX_RULES];
+    struct action actions[MAX_RULES];
 } *actiontoken_t;
 
 actionfile_t action_file_open( const char *filename, struct ruleset *rules );

@@ -98,10 +98,10 @@ static void get_option_values_for_mask( uint32_t *options,
     }
 }
 
-static void fprint_indent( char *action, int depth, FILE *f )
+static void fprint_indent( const char *action, int depth, FILE *f )
 {
     int spaces = 0, needed = depth*8, i;
-    char *text = action;
+    const char *text = action;
 
     /* Determine number of spaces in first line of input */
     for( i=0; isspace(action[i]); i++ ) {
@@ -126,7 +126,7 @@ static void fprint_indent( char *action, int depth, FILE *f )
     }
 }
 
-static void fprint_action( struct rule *rule, char *action, int depth, FILE *f ) 
+static void fprint_action( struct rule *rule, const struct action *action, int depth, FILE *f ) 
 {
     int i;
     if( action == NULL ) {
@@ -154,14 +154,15 @@ static void fprint_action( struct rule *rule, char *action, int depth, FILE *f )
             }
         }
         fputs( "\n", f );
-        if( action[0] != '\0' ) {
-            fprint_indent( action, depth, f );
+        if( action->text && action->text[0] != '\0' ) {
+            fprintf( f, "#line %d \"%s\"\n", action->lineno, action->filename );
+            fprint_indent( action->text, depth, f );
         }
         fprintf( f, "%*c}\n", depth*8, ' ' );
     }
 }
 
-static void split_and_generate( struct ruleset *rules, char **actions, 
+static void split_and_generate( struct ruleset *rules, const struct action *actions, 
                          int ruleidx[], int rule_count, int input_mask, 
                          int depth, FILE *f ) {
     uint32_t mask;
@@ -170,7 +171,7 @@ static void split_and_generate( struct ruleset *rules, char **actions,
     if( rule_count == 0 ) {
         fprintf( f, "%*cUNDEF(ir);\n", depth*8, ' ' );
     } else if( rule_count == 1 ) {
-        fprint_action( rules->rules[ruleidx[0]], actions[ruleidx[0]], depth, f );
+        fprint_action( rules->rules[ruleidx[0]], &actions[ruleidx[0]], depth, f );
     } else {
 
         mask = find_mask(rules, ruleidx, rule_count, input_mask);
@@ -235,6 +236,7 @@ static int generate_decoder( struct ruleset *rules, actionfile_t af, FILE *out )
     actiontoken_t token = action_file_next(af);
     while( token->symbol != END ) {
         if( token->symbol == TEXT ) {
+            fprintf( out, "#line %d \"%s\"\n", token->lineno, token->filename );
             fputs( token->text, out );
         } else if( token->symbol == ERROR ) {
             fprintf( stderr, "Error parsing action file" );
@@ -262,7 +264,7 @@ static int generate_template( struct ruleset *rules, actionfile_t af, FILE *out 
             fputs( "%%\n", out );
             for( i=0; i<rules->rule_count; i++ ) {
                 fprintf( out, "%s {: %s :}\n", rules->rules[i]->format,
-                        token->actions[i] == NULL ? "" : token->actions[i] );
+                        token->actions[i].text == NULL ? "" : token->actions[i].text );
             }
             fputs( "%%\n", out );
         }
