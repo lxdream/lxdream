@@ -24,7 +24,6 @@
 #include "clock.h"
 #include "sh4/sh4core.h"
 #include "sh4/sh4mmio.h"
-#include "sh4/xltcache.h"
 #include "sh4/mmu.h"
 
 #define OCRAM_START (0x7C000000>>LXDREAM_PAGE_BITS)
@@ -186,7 +185,7 @@ sh4addr_t FASTCALL ccn_ocache_load_line( sh4addr_t addr )
 {
     int entry = addr & 0x00003FE0;
     struct cache_line *line = &ccn_ocache[entry>>5];
-    char *cache_data = &ccn_ocache_data[entry];
+    unsigned char *cache_data = &ccn_ocache_data[entry];
     sh4addr_t old_addr = line->tag;
     line->tag = addr & 0x1FFFFFE0;
     char oldstate = ccn_cache_map[old_addr>>5];
@@ -287,7 +286,7 @@ void FASTCALL ccn_ocache_purge( sh4addr_t addr )
     int oldflags = ccn_cache_map[addr>>5]; 
     ccn_cache_map[addr>>5] &= ~CACHE_VALID;
     if( oldflags == (CACHE_VALID|CACHE_DIRTY) ) {
-        char *cache_data = &ccn_ocache_data[addr & 0x3FE0];
+        unsigned char *cache_data = &ccn_ocache_data[addr & 0x3FE0];
         ext_address_space[addr>>12]->write_burst(addr, cache_data);
     }
 }
@@ -297,7 +296,7 @@ void FASTCALL ccn_ocache_writeback( sh4addr_t addr )
     addr &= 0x1FFFFFE0;
     if( ccn_cache_map[addr>>5] == (CACHE_VALID|CACHE_DIRTY) ) {
         ccn_cache_map[addr>>5] &= ~CACHE_DIRTY;
-        char *cache_data = &ccn_ocache_data[addr & 0x3FE0];
+        unsigned char *cache_data = &ccn_ocache_data[addr & 0x3FE0];
         ext_address_space[addr>>12]->write_burst(addr, cache_data);
     }
 }

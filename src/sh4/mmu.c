@@ -389,7 +389,7 @@ static void mmu_register_user_mem_region( uint32_t start, uint32_t end, mem_regi
 
 static gboolean mmu_ext_page_remapped( sh4addr_t page, mem_region_fn_t fn, void *user_data )
 {
-    int i;
+    unsigned int i;
     if( (MMIO_READ(MMU,MMUCR)) & MMUCR_AT ) {
         /* TLB on */
         sh4_address_space[(page|0x80000000)>>12] = fn; /* Direct map to P1 and P2 */
@@ -873,7 +873,8 @@ int mmu_utlb_entry_for_vpn( uint32_t vpn )
         if( fn >= &mmu_utlb_pages[0].fn && fn < &mmu_utlb_pages[UTLB_ENTRY_COUNT].fn ) {
             return ((struct utlb_page_entry *)fn) - &mmu_utlb_pages[0];
         }            
-    } else if( fn == &mem_region_tlb_multihit ) {
+    } 
+    if( fn == &mem_region_tlb_multihit ) {
         return -2;
     } else {
         return -1;
