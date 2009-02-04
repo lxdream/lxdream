@@ -24,15 +24,7 @@
 #include <glib/gstrfuncs.h>
 #include "tools/gendec.h"
 
-static int yyline;
-
-struct action *new_action() {
-    struct action *action = malloc( sizeof( struct action ) );
-    memset( action, 0, sizeof( struct action ) );
-    return action;
-}
-
-static int add_action( char **actions, struct ruleset *rules, char *operation, char *action )
+static int add_action( struct action *actions, struct ruleset *rules, char *operation, const char *file, int line, char *action )
 {
     char *act = g_strchomp(action);
     char opclean[strlen(operation)+1];
@@ -60,16 +52,27 @@ static int add_action( char **actions, struct ruleset *rules, char *operation, c
         }
     }
     *q = '\0';
- 
+
+    /* Drop any leading blank lines from the start of the action (and add them
+     * to the line number ) */ 
+    for( p=act; isspace(*p); p++ ) {
+        if( *p == '\n' ) {
+            act = p+1;
+            line++;
+        }
+    }
+    
     strcpy( operation, g_strstrip(opclean) );
 
     for( i=0; i<rules->rule_count; i++ ) {
         if( strcasecmp(rules->rules[i]->format, operation) == 0 ) {
-            if( actions[i] != NULL ) {
+            if( actions[i].text != NULL ) {
                 fprintf( stderr, "Duplicate actions for operation '%s'\n", operation );
                 return -1;
             }
-            actions[i] = act;
+            actions[i].filename = file;
+            actions[i].lineno = line;
+            actions[i].text = act;
             return 0;
         }
     }
@@ -79,6 +82,7 @@ static int add_action( char **actions, struct ruleset *rules, char *operation, c
 
 struct actionfile {
     FILE *f;
+    const char *filename;
     char *text;
     int length;
     int yyposn;
@@ -97,14 +101,17 @@ actionfile_t action_file_open( const char *filename, struct ruleset *rules )
     
     actionfile_t af = malloc( sizeof(struct actionfile) );
     af->f = f;
+    af->filename = filename;
     af->length = st.st_size+1;
     af->text = malloc( st.st_size+1 );
     fread( af->text, st.st_size, 1, f );
     af->text[st.st_size] = '\0';
-    af->yyline = 0;
+    af->yyline = 1;
     af->yyposn = 0;
     af->rules = rules;
     af->token.symbol = NONE;
+    af->token.lineno = 1;
+    af->token.filename = filename;
     
     return af;
 }
@@ -115,7 +122,7 @@ actiontoken_t action_file_next( actionfile_t af )
         /* Destroy previous actions */
         memset( af->token.actions, 0, sizeof(af->token.actions) );
     }
-    
+    af->token.lineno = af->yyline;
     if( af->yyposn == af->length ) {
         af->token.symbol = END;
     } else if( af->token.symbol == TEXT || /* ACTIONS must follow TEXT */ 
@@ -126,7 +133,7 @@ actiontoken_t action_file_next( actionfile_t af )
         char *operation = &af->text[af->yyposn];
         while( af->yyposn < af->length ) {
             if( af->text[af->yyposn] == '\n' ) {
-                yyline++;
+                af->yyline++;
                 if( af->text[af->yyposn+1] == '%' && af->text[af->yyposn+2] == '%' ) {
                     af->yyposn += 3;
                     break;
@@ -135,18 +142,21 @@ actiontoken_t action_file_next( actionfile_t af )
 
             if( af->text[af->yyposn] == '{' && af->text[af->yyposn+1] == ':' ) {
                 af->text[af->yyposn] = '\0';
+                int line = af->yyline;
                 af->yyposn+=2;
                 char *action = &af->text[af->yyposn];
                 while( af->yyposn < af->length ) {
                     if( af->text[af->yyposn] == ':' && af->text[af->yyposn+1] == '}' ) {
                         af->text[af->yyposn] = '\0';
                         af->yyposn++;
-                        if( add_action( af->token.actions, af->rules, operation, action ) != 0 ) {
+                        if( add_action( af->token.actions, af->rules, operation, af->filename, line, action ) != 0 ) {
                             af->token.symbol = ERROR;
                             return &af->token;
                         }
                         operation = &af->text[af->yyposn+1];
                         break;
+                    } else if( af->text[af->yyposn] == '\n' ) {
+                        af->yyline++;
                     }
                     af->yyposn++;
                 }
