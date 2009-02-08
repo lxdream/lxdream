@@ -67,7 +67,8 @@ static int add_action( struct action *actions, struct ruleset *rules, char *oper
     for( i=0; i<rules->rule_count; i++ ) {
         if( strcasecmp(rules->rules[i]->format, operation) == 0 ) {
             if( actions[i].text != NULL ) {
-                fprintf( stderr, "Duplicate actions for operation '%s'\n", operation );
+                fprintf( stderr, "gendec:%d: Duplicate actions for operation '%s' (previous action on line %d)\n", line, operation,
+                         actions[i].lineno );
                 return -1;
             }
             actions[i].filename = file;
@@ -76,7 +77,7 @@ static int add_action( struct action *actions, struct ruleset *rules, char *oper
             return 0;
         }
     }
-    fprintf(stderr, "No operation found matching '%s'\n", operation );
+    fprintf(stderr, "gendec:%d: No operation found matching '%s'\n", line, operation );
     return -1;
 }
 
@@ -118,10 +119,6 @@ actionfile_t action_file_open( const char *filename, struct ruleset *rules )
 
 actiontoken_t action_file_next( actionfile_t af )
 {
-    if( af->token.symbol == ACTIONS ) {
-        /* Destroy previous actions */
-        memset( af->token.actions, 0, sizeof(af->token.actions) );
-    }
     af->token.lineno = af->yyline;
     if( af->yyposn == af->length ) {
         af->token.symbol = END;
@@ -129,6 +126,7 @@ actiontoken_t action_file_next( actionfile_t af )
             (af->token.symbol == NONE && af->text[af->yyposn] == '%' && af->text[af->yyposn+1] == '%') ) {
         /* Begin action block */
         af->token.symbol = ACTIONS;
+        memset( af->token.actions, 0, sizeof(af->token.actions) );
 
         char *operation = &af->text[af->yyposn];
         while( af->yyposn < af->length ) {
