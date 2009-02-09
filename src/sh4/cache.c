@@ -423,7 +423,7 @@ void CCN_set_cache_control( int reg )
     
     if( reg & CCR_OCI ) { /* ocache invalidate */
         for( i=0; i<OCACHE_ENTRY_COUNT; i++ ) {
-            ccn_icache[i].key = -1;
+            ccn_ocache[i].key = -1;
             ccn_ocache[i].tag &= ~(CACHE_VALID|CACHE_DIRTY);
         }
     }
