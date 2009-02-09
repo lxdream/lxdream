@@ -87,15 +87,21 @@ gboolean isServerGLXExtensionSupported( Display *display, int screen,
 gboolean video_glx_init( Display *display, int screen )
 {
     int major, minor;
+    int glx_major, glx_minor, glx_error;
 
     if( glx_is_initialized ) {
         return TRUE;
     }
 
-    Bool result = glXQueryVersion( display, &major, &minor );
-    if( result != False ) {
-        glx_version = (major*100) + minor;
+    Bool result = XQueryExtension( display, "GLX", &glx_major, &glx_minor, &glx_error ) &&
+                  glXQueryVersion( display, &major, &minor );
+    if( result == False ) {
+        ERROR( "GLX not supported on display" );
+        return FALSE;
     }
+    
+    glx_version = (major*100) + minor;
+
 #ifdef APPLE_BUILD
     /* fbconfig is broken on at least the 10.5 GLX implementation */
     glx_fbconfig_supported = FALSE;
