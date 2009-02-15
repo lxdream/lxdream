@@ -35,6 +35,10 @@
 #include "sh4/sh4trans.h"
 #include "sh4/xltcache.h"
 
+#ifndef M_PI
+#define M_PI        3.14159265358979323846264338327950288
+#endif
+
 void sh4_init( void );
 void sh4_xlat_init( void );
 void sh4_poweron_reset( void );
