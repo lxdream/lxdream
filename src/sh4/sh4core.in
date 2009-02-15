@@ -1294,11 +1294,6 @@ FSCA FPUL, FRn {:
     CHECKFPUEN();
     if( !IS_FPU_DOUBLEPREC() ) {
 	sh4_fsca( FPULi, (float *)&(DRF(FRn>>1)) );
-	/*
-        float angle = (((float)(FPULi&0xFFFF))/65536.0) * 2 * M_PI;
-        FR(FRn) = sinf(angle);
-        FR((FRn)+1) = cosf(angle);
-	*/
     }
 :}
 FTRV XMTRX, FVn {:
