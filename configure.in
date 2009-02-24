@@ -98,9 +98,9 @@ OBJCFLAGS="-g -fexceptions"
 AC_DEFINE(HAVE_EXCEPTIONS, [1], [Have exception stack-frame information])
 
 AC_CC_VERSION([ CCOPT="-O2 -msse2 -mfpmath=sse" 
-                CFLAGS="$CFLAGS -fno-strict-aliasing -std=c99 -D_GNU_SOURCE" ],
+                CFLAGS="$CFLAGS -fno-strict-aliasing -std=c99" ],
               [ CCOPT="$CFLAGS -fast"
-                CFLAGS="$CFLAGS -fno-strict-aliasing -std=c99 -D_GNU_SOURCE" ],
+                CFLAGS="$CFLAGS -fno-strict-aliasing -std=c99" ],
               [ CCOPT="$CFLAGS -O2" ])
 
 if test "x$enable_optimized" = "xyes"; then
