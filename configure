@@ -7765,20 +7765,20 @@ _ACEOF
 
 
 
-_GCC_VERSION=`$CC --version | $SED -ne '/(GCC)/p'`
+_GCC_VERSION=`$CC --version | $SED -ne '/gcc/p'`
 _ICC_VERSION=`$CC --version | $SED -ne '/(ICC)/p'`
 { $as_echo "$as_me:$LINENO: checking CC version" >&5
 $as_echo_n "checking CC version... " >&6; }
-if test -n "$_GCC_VERSION"; then
-   { $as_echo "$as_me:$LINENO: result: GCC" >&5
-$as_echo "GCC" >&6; }
-     CCOPT="-O2 -msse2 -mfpmath=sse"
-                CFLAGS="$CFLAGS -fno-strict-aliasing -std=c99 -D_GNU_SOURCE"
-elif test -n "$_ICC_VERSION"; then
+if test -n "$_ICC_VERSION"; then
    { $as_echo "$as_me:$LINENO: result: ICC" >&5
 $as_echo "ICC" >&6; }
      CCOPT="$CFLAGS -fast"
-                CFLAGS="$CFLAGS -fno-strict-aliasing -std=c99 -D_GNU_SOURCE"
+                CFLAGS="$CFLAGS -fno-strict-aliasing -std=c99"
+elif test -n "$_GCC_VERSION"; then
+   { $as_echo "$as_me:$LINENO: result: GCC" >&5
+$as_echo "GCC" >&6; }
+     CCOPT="-O2 -msse2 -mfpmath=sse"
+                CFLAGS="$CFLAGS -fno-strict-aliasing -std=c99"
 else
    { $as_echo "$as_me:$LINENO: result: Unknown" >&5
 $as_echo "Unknown" >&6; }

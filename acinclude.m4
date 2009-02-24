@@ -56,15 +56,15 @@ except:
 # different optimization flags. Currently recognizes gcc and icc
 # ---------------
 AC_DEFUN([AC_CC_VERSION], [
-_GCC_VERSION=`$CC --version | $SED -ne '/(GCC)/p'`
+_GCC_VERSION=`$CC --version | $SED -ne '/gcc/p'`
 _ICC_VERSION=`$CC --version | $SED -ne '/(ICC)/p'`
 AC_MSG_CHECKING([CC version])
-if test -n "$_GCC_VERSION"; then
-   AC_MSG_RESULT([GCC])
-   [ $1 ]
-elif test -n "$_ICC_VERSION"; then
+if test -n "$_ICC_VERSION"; then
    AC_MSG_RESULT([ICC])
-   [ $2 ] 
+   [ $2 ]
+elif test -n "$_GCC_VERSION"; then
+   AC_MSG_RESULT([GCC])
+   [ $1 ] 
 else 
    AC_MSG_RESULT([Unknown])
    [ $3 ]
