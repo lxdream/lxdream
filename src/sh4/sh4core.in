@@ -339,8 +339,8 @@ MOV.L @Rm+, Rn {: if( Rm != Rn ) { sh4r.r[Rm] += 4; } :}
     sh4r.slice_cycle += sh4_cpu_period;
 }
 
-#undef UNDEF(ir)
-#undef UNIMP(ir)
+#undef UNDEF
+#undef UNIMP
 
 #define UNDEF(ir) return sh4_raise_slot_exception(EXC_ILLEGAL, EXC_SLOT_ILLEGAL)
 #define UNIMP(ir) do{ ERROR( "Halted on unimplemented instruction at %08x, opcode = %04x", sh4r.pc, ir ); sh4_core_exit(CORE_EXIT_HALT); return FALSE; }while(0)

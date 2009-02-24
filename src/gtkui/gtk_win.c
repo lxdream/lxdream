@@ -25,10 +25,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <X11/Xlib.h>
+#include <X11/Xutil.h>
 #include <gtk/gtk.h>
 #include <gdk/gdk.h>
 #include <gdk/gdkkeysyms.h>
-#include <X11/Xutil.h>
 
 #include "lxdream.h"
 #include "dreamcast.h"

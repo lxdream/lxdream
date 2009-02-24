@@ -66,7 +66,7 @@ void xlat_cache_init(void)
 {
     if( !xlat_initialized ) {
         xlat_initialized = TRUE;
-        xlat_new_cache = mmap( NULL, XLAT_NEW_CACHE_SIZE, PROT_EXEC|PROT_READ|PROT_WRITE,
+        xlat_new_cache = (xlat_cache_block_t)mmap( NULL, XLAT_NEW_CACHE_SIZE, PROT_EXEC|PROT_READ|PROT_WRITE,
                 MAP_PRIVATE|MAP_ANON, -1, 0 );
         xlat_new_cache_ptr = xlat_new_cache;
         xlat_new_create_ptr = xlat_new_cache;
@@ -227,7 +227,7 @@ void ** FASTCALL xlat_get_lut_entry( sh4addr_t address )
     /* Add the LUT entry for the block */
     if( page == NULL ) {
         xlat_lut[XLAT_LUT_PAGE(address)] = page =
-            mmap( NULL, XLAT_LUT_PAGE_SIZE, PROT_READ|PROT_WRITE,
+            (void **)mmap( NULL, XLAT_LUT_PAGE_SIZE, PROT_READ|PROT_WRITE,
                     MAP_PRIVATE|MAP_ANON, -1, 0 );
         memset( page, 0, XLAT_LUT_PAGE_SIZE );
     }
@@ -392,7 +392,7 @@ xlat_cache_block_t xlat_start_block( sh4addr_t address )
     /* Add the LUT entry for the block */
     if( xlat_lut[XLAT_LUT_PAGE(address)] == NULL ) {
         xlat_lut[XLAT_LUT_PAGE(address)] =
-            mmap( NULL, XLAT_LUT_PAGE_SIZE, PROT_READ|PROT_WRITE,
+            (void **)mmap( NULL, XLAT_LUT_PAGE_SIZE, PROT_READ|PROT_WRITE,
                     MAP_PRIVATE|MAP_ANON, -1, 0 );
         memset( xlat_lut[XLAT_LUT_PAGE(address)], 0, XLAT_LUT_PAGE_SIZE );
     }
