@@ -154,6 +154,7 @@ void MMU_reset( void );
 void MMU_save_state( FILE *f );
 int MMU_load_state( FILE *f );
 void MMU_ldtlb();
+void CCN_reset();
 void CCN_set_cache_control( int reg );
 void CCN_save_state( FILE *f );
 int CCN_load_state( FILE *f );

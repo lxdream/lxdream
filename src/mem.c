@@ -118,14 +118,14 @@ void mem_init( void )
 {
     int i;
     mem_region_fn_t *ptr;
-    page_map = mmap( NULL, sizeof(sh4ptr_t) * LXDREAM_PAGE_TABLE_ENTRIES,
+    page_map = (sh4ptr_t *)mmap( NULL, sizeof(sh4ptr_t) * LXDREAM_PAGE_TABLE_ENTRIES,
             PROT_READ|PROT_WRITE, MAP_ANON|MAP_PRIVATE, -1, 0 );
     if( page_map == MAP_FAILED ) {
         FATAL( "Unable to allocate page map! (%s)", strerror(errno) );
     }
     memset( page_map, 0, sizeof(sh4ptr_t) * LXDREAM_PAGE_TABLE_ENTRIES );
     
-    ext_address_space = mmap( NULL, sizeof(mem_region_fn_t) * LXDREAM_PAGE_TABLE_ENTRIES,
+    ext_address_space = (mem_region_fn_t *) mmap( NULL, sizeof(mem_region_fn_t) * LXDREAM_PAGE_TABLE_ENTRIES,
             PROT_READ|PROT_WRITE, MAP_ANON|MAP_PRIVATE, -1, 0 );
     if( ext_address_space == MAP_FAILED ) {
         FATAL( "Unable to allocate external memory map (%s)", strerror(errno) );
