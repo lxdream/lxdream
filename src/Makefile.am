@@ -13,7 +13,7 @@ check_PROGRAMS = test/testxlt
 
 
 EXTRA_DIST=drivers/genkeymap.pl checkver.pl
-AM_CFLAGS = -D__EXTENSIONS__ -U__STRICT_ANSI__
+AM_CFLAGS = -D__EXTENSIONS__
 
 .PHONY: checkversion
 checkversion:
