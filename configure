@@ -7764,6 +7764,7 @@ cat >>confdefs.h <<\_ACEOF
 _ACEOF
 
 
+STDCFLAG="-std=c99"
 
 _GCC_VERSION=`$CC --version | $SED -ne '/gcc/p'`
 _ICC_VERSION=`$CC --version | $SED -ne '/(ICC)/p'`
@@ -7773,12 +7774,12 @@ if test -n "$_ICC_VERSION"; then
    { $as_echo "$as_me:$LINENO: result: ICC" >&5
 $as_echo "ICC" >&6; }
      CCOPT="$CFLAGS -fast"
-                CFLAGS="$CFLAGS -fno-strict-aliasing -std=c99"
+                CFLAGS="$CFLAGS -fno-strict-aliasing"
 elif test -n "$_GCC_VERSION"; then
    { $as_echo "$as_me:$LINENO: result: GCC" >&5
 $as_echo "GCC" >&6; }
      CCOPT="-O2 -msse2 -mfpmath=sse"
-                CFLAGS="$CFLAGS -fno-strict-aliasing -std=c99"
+                CFLAGS="$CFLAGS -fno-strict-aliasing"
 else
    { $as_echo "$as_me:$LINENO: result: Unknown" >&5
 $as_echo "Unknown" >&6; }
@@ -10374,7 +10375,60 @@ $as_echo "$ac_cv_header_linux_cdrom_h" >&6; }
 
 fi
 if test $ac_cv_header_linux_cdrom_h = yes; then
-  CDROM_DRIVER=linux
+
+     CDROM_DRIVER=linux
+          { $as_echo "$as_me:$LINENO: checking C99 compliant kernel headers" >&5
+$as_echo_n "checking C99 compliant kernel headers... " >&6; }
+     old_CFLAGS="$CFLAGS"
+     CFLAGS="$CFLAGS $STDCFLAG"
+     cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+#include <linux/cdrom.h>
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext
+if { (ac_try="$ac_compile"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval ac_try_echo="\"\$as_me:$LINENO: $ac_try_echo\""
+$as_echo "$ac_try_echo") >&5
+  (eval "$ac_compile") 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  $as_echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && {
+	 test -z "$ac_c_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest.$ac_objext; then
+  { $as_echo "$as_me:$LINENO: result: Yes" >&5
+$as_echo "Yes" >&6; }
+else
+  $as_echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+
+        { $as_echo "$as_me:$LINENO: result: No" >&5
+$as_echo "No" >&6; }
+        STDCFLAG="-std=gnu99"
+fi
+
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+     CFLAGS="$old_CFLAGS"
+
 else
   true
 fi
@@ -10972,6 +11026,7 @@ else
 fi
 
 
+CFLAGS="$CFLAGS $STDCFLAG"
 
 GETTEXT_PACKAGE=lxdream
 
