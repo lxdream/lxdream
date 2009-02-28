@@ -63,6 +63,9 @@ AC_ARG_WITH( esd,
    AS_HELP_STRING( [--with-esd], [Build with support for the ESounD audio system]) )
 AC_ARG_WITH( pulse,
    AS_HELP_STRING( [--with-pulse], [Build with support for the PulseAudio audio system]) )
+AC_ARG_WITH( sdl,
+   AS_HELP_STRING( [--with-sdl], [Build with support for SDL audio]) )
+
 
 dnl ------------ Check if we're building on Darwin --------------
 
@@ -239,6 +242,20 @@ AC_CHECK_HEADER([CoreAudio/CoreAudio.h], [
      AUDIO_DRIVERS="$AUDIO_DRIVERS osx"
      AC_DEFINE([HAVE_CORE_AUDIO], 1, [Have Apple CoreAudio support]) ],[true ])
 AM_CONDITIONAL( AUDIO_OSX, [test "$HAVE_CORE_AUDIO" = 'yes'] )
+
+dnl Check for SDL (only used for audio at the moment)
+if test "x$with_sdl" != "xno"; then
+   PKG_CHECK_MODULES(SDL, [sdl], [
+       HAVE_SDL='yes'
+       AUDIO_DRIVERS="$AUDIO_DRIVERS sdl"
+       AC_DEFINE([HAVE_SDL],1,[Have SDL support])
+   ], [
+      if test "x$with_sdl" = "xyes"; then
+         AC_MSG_FAILURE( ["SDL libraries could not be found (but were required)] )
+      fi
+   ])
+fi
+AM_CONDITIONAL( AUDIO_SDL, [test "$HAVE_SDL" = 'yes'] )
 
 dnl Check for pulseaudio
 if test "x$with_pulse" != "xno"; then

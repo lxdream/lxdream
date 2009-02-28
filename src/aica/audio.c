@@ -30,10 +30,14 @@ extern struct audio_driver audio_osx_driver;
 extern struct audio_driver audio_pulse_driver;
 extern struct audio_driver audio_esd_driver;
 extern struct audio_driver audio_alsa_driver;
+extern struct audio_driver audio_sdl_driver;
 
 audio_driver_t audio_driver_list[] = {
 #ifdef HAVE_CORE_AUDIO
         &audio_osx_driver,
+#endif
+#ifdef HAVE_SDL
+        &audio_sdl_driver,
 #endif
 #ifdef HAVE_PULSE
         &audio_pulse_driver,

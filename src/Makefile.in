@@ -64,13 +64,14 @@ check_PROGRAMS = test/testxlt$(EXEEXT) $(am__EXEEXT_1)
 @VIDEO_GLX_TRUE@am__append_7 = drivers/video_glx.c drivers/video_glx.h
 @VIDEO_NSGL_TRUE@am__append_8 = drivers/video_nsgl.m drivers/video_nsgl.h
 @AUDIO_OSX_TRUE@am__append_9 = drivers/audio_osx.m
-@AUDIO_PULSE_TRUE@am__append_10 = drivers/audio_pulse.c
-@AUDIO_ESOUND_TRUE@am__append_11 = drivers/audio_esd.c
-@AUDIO_ALSA_TRUE@am__append_12 = drivers/audio_alsa.c
-@CDROM_LINUX_TRUE@am__append_13 = drivers/cd_linux.c
-@CDROM_OSX_TRUE@am__append_14 = drivers/cd_osx.c drivers/osx_iokit.m drivers/osx_iokit.h
-@CDROM_NONE_TRUE@am__append_15 = drivers/cd_none.c
-@JOY_LINUX_TRUE@am__append_16 = drivers/joy_linux.c drivers/joy_linux.h
+@AUDIO_SDL_TRUE@am__append_10 = drivers/audio_sdl.c
+@AUDIO_PULSE_TRUE@am__append_11 = drivers/audio_pulse.c
+@AUDIO_ESOUND_TRUE@am__append_12 = drivers/audio_esd.c
+@AUDIO_ALSA_TRUE@am__append_13 = drivers/audio_alsa.c
+@CDROM_LINUX_TRUE@am__append_14 = drivers/cd_linux.c
+@CDROM_OSX_TRUE@am__append_15 = drivers/cd_osx.c drivers/osx_iokit.m drivers/osx_iokit.h
+@CDROM_NONE_TRUE@am__append_16 = drivers/cd_none.c
+@JOY_LINUX_TRUE@am__append_17 = drivers/joy_linux.c drivers/joy_linux.h
 subdir = src
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -135,10 +136,11 @@ am__lxdream_SOURCES_DIST = main.c version.c config.c config.h \
 	drivers/video_osx.m drivers/mac_keymap.h \
 	drivers/mac_keymap.txt paths_unix.c drivers/video_gdk.c \
 	drivers/video_glx.c drivers/video_glx.h drivers/video_nsgl.m \
-	drivers/video_nsgl.h drivers/audio_osx.m drivers/audio_pulse.c \
-	drivers/audio_esd.c drivers/audio_alsa.c drivers/cd_linux.c \
-	drivers/cd_osx.c drivers/osx_iokit.m drivers/osx_iokit.h \
-	drivers/cd_none.c drivers/joy_linux.c drivers/joy_linux.h
+	drivers/video_nsgl.h drivers/audio_osx.m drivers/audio_sdl.c \
+	drivers/audio_pulse.c drivers/audio_esd.c drivers/audio_alsa.c \
+	drivers/cd_linux.c drivers/cd_osx.c drivers/osx_iokit.m \
+	drivers/osx_iokit.h drivers/cd_none.c drivers/joy_linux.c \
+	drivers/joy_linux.h
 @BUILD_SH4X86_TRUE@am__objects_1 = sh4x86.$(OBJEXT) sh4trans.$(OBJEXT) \
 @BUILD_SH4X86_TRUE@	mmux86.$(OBJEXT) x86dasm.$(OBJEXT) \
 @BUILD_SH4X86_TRUE@	i386-dis.$(OBJEXT) dis-init.$(OBJEXT) \
@@ -157,13 +159,14 @@ am__lxdream_SOURCES_DIST = main.c version.c config.c config.h \
 @VIDEO_GLX_TRUE@am__objects_6 = video_glx.$(OBJEXT)
 @VIDEO_NSGL_TRUE@am__objects_7 = video_nsgl.$(OBJEXT)
 @AUDIO_OSX_TRUE@am__objects_8 = audio_osx.$(OBJEXT)
-@AUDIO_PULSE_TRUE@am__objects_9 = audio_pulse.$(OBJEXT)
-@AUDIO_ESOUND_TRUE@am__objects_10 = audio_esd.$(OBJEXT)
-@AUDIO_ALSA_TRUE@am__objects_11 = audio_alsa.$(OBJEXT)
-@CDROM_LINUX_TRUE@am__objects_12 = cd_linux.$(OBJEXT)
-@CDROM_OSX_TRUE@am__objects_13 = cd_osx.$(OBJEXT) osx_iokit.$(OBJEXT)
-@CDROM_NONE_TRUE@am__objects_14 = cd_none.$(OBJEXT)
-@JOY_LINUX_TRUE@am__objects_15 = joy_linux.$(OBJEXT)
+@AUDIO_SDL_TRUE@am__objects_9 = audio_sdl.$(OBJEXT)
+@AUDIO_PULSE_TRUE@am__objects_10 = audio_pulse.$(OBJEXT)
+@AUDIO_ESOUND_TRUE@am__objects_11 = audio_esd.$(OBJEXT)
+@AUDIO_ALSA_TRUE@am__objects_12 = audio_alsa.$(OBJEXT)
+@CDROM_LINUX_TRUE@am__objects_13 = cd_linux.$(OBJEXT)
+@CDROM_OSX_TRUE@am__objects_14 = cd_osx.$(OBJEXT) osx_iokit.$(OBJEXT)
+@CDROM_NONE_TRUE@am__objects_15 = cd_none.$(OBJEXT)
+@JOY_LINUX_TRUE@am__objects_16 = joy_linux.$(OBJEXT)
 am_lxdream_OBJECTS = main.$(OBJEXT) version.$(OBJEXT) config.$(OBJEXT) \
 	mem.$(OBJEXT) sdram.$(OBJEXT) watch.$(OBJEXT) asic.$(OBJEXT) \
 	syscall.$(OBJEXT) bios.$(OBJEXT) dcload.$(OBJEXT) \
@@ -189,7 +192,7 @@ am_lxdream_OBJECTS = main.$(OBJEXT) version.$(OBJEXT) config.$(OBJEXT) \
 	$(am__objects_6) $(am__objects_7) $(am__objects_8) \
 	$(am__objects_9) $(am__objects_10) $(am__objects_11) \
 	$(am__objects_12) $(am__objects_13) $(am__objects_14) \
-	$(am__objects_15)
+	$(am__objects_15) $(am__objects_16)
 lxdream_OBJECTS = $(am_lxdream_OBJECTS)
 lxdream_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am__test_testsh4x86_SOURCES_DIST = test/testsh4x86.c x86dasm/x86dasm.c \
@@ -245,6 +248,8 @@ AUDIO_OSX_FALSE = @AUDIO_OSX_FALSE@
 AUDIO_OSX_TRUE = @AUDIO_OSX_TRUE@
 AUDIO_PULSE_FALSE = @AUDIO_PULSE_FALSE@
 AUDIO_PULSE_TRUE = @AUDIO_PULSE_TRUE@
+AUDIO_SDL_FALSE = @AUDIO_SDL_FALSE@
+AUDIO_SDL_TRUE = @AUDIO_SDL_TRUE@
 AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
 AUTOMAKE = @AUTOMAKE@
@@ -334,6 +339,8 @@ PO_IN_DATADIR_FALSE = @PO_IN_DATADIR_FALSE@
 PO_IN_DATADIR_TRUE = @PO_IN_DATADIR_TRUE@
 PULSE_CFLAGS = @PULSE_CFLAGS@
 PULSE_LIBS = @PULSE_LIBS@
+SDL_CFLAGS = @SDL_CFLAGS@
+SDL_LIBS = @SDL_LIBS@
 SED = @SED@
 SET_MAKE = @SET_MAKE@
 SHCC = @SHCC@
@@ -402,7 +409,7 @@ INCLUDES = \
 	-DPACKAGE_LOCALE_DIR=\""$(prefix)/$(DATADIRNAME)/locale"\" \
 	-DPACKAGE_CONF_DIR=\""$(sysconfdir)"\" \
         -Ish4 \
-	@GLIB_CFLAGS@ @GTK_CFLAGS@ @LIBPNG_CFLAGS@ @PULSE_CFLAGS@ @ESOUND_CFLAGS@ @ALSA_CFLAGS@
+	@GLIB_CFLAGS@ @GTK_CFLAGS@ @LIBPNG_CFLAGS@ @PULSE_CFLAGS@ @ESOUND_CFLAGS@ @ALSA_CFLAGS@ @SDL_CFLAGS@
 
 EXTRA_DIST = drivers/genkeymap.pl checkver.pl
 AM_CFLAGS = -D__EXTENSIONS__ -D_BSD_SOURCE -D_GNU_SOURCE
@@ -449,7 +456,7 @@ lxdream_SOURCES = main.c version.c config.c config.h lxdream.h dream.h \
 	$(am__append_6) $(am__append_7) $(am__append_8) \
 	$(am__append_9) $(am__append_10) $(am__append_11) \
 	$(am__append_12) $(am__append_13) $(am__append_14) \
-	$(am__append_15) $(am__append_16)
+	$(am__append_15) $(am__append_16) $(am__append_17)
 @BUILD_SH4X86_TRUE@test_testsh4x86_LDADD = @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@
 @BUILD_SH4X86_TRUE@test_testsh4x86_SOURCES = test/testsh4x86.c x86dasm/x86dasm.c \
 @BUILD_SH4X86_TRUE@	x86dasm/x86dasm.h x86dasm/i386-dis.c x86dasm/dis-init.c \
@@ -457,7 +464,7 @@ lxdream_SOURCES = main.c version.c config.c config.h lxdream.h dream.h \
 @BUILD_SH4X86_TRUE@	sh4/sh4trans.c sh4/sh4x86.c sh4/xltcache.c \
 @BUILD_SH4X86_TRUE@	sh4/xltcache.h mem.c util.c 
 
-lxdream_LDADD = @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@ @PULSE_LIBS@ @ESOUND_LIBS@ @ALSA_LIBS@ $(INTLLIBS)
+lxdream_LDADD = @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@ @PULSE_LIBS@ @ESOUND_LIBS@ @ALSA_LIBS@ @SDL_LIBS@ $(INTLLIBS)
 gendec_LDADD = @GLIB_LIBS@ @GTK_LIBS@ $(INTLLIBS)
 genglsl_LDADD = @GLIB_LIBS@ @GTK_LIBS@ $(INTLLIBS)
 test_testxlt_SOURCES = test/testxlt.c sh4/xltcache.c sh4/xltcache.h
@@ -561,6 +568,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/audio_null.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/audio_osx.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/audio_pulse.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/audio_sdl.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bios.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/bootstrap.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cache.Po@am__quote@
@@ -1666,6 +1674,20 @@ video_glx.obj: drivers/video_glx.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/video_glx.c' object='video_glx.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o video_glx.obj `if test -f 'drivers/video_glx.c'; then $(CYGPATH_W) 'drivers/video_glx.c'; else $(CYGPATH_W) '$(srcdir)/drivers/video_glx.c'; fi`
+
+audio_sdl.o: drivers/audio_sdl.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT audio_sdl.o -MD -MP -MF "$(DEPDIR)/audio_sdl.Tpo" -c -o audio_sdl.o `test -f 'drivers/audio_sdl.c' || echo '$(srcdir)/'`drivers/audio_sdl.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/audio_sdl.Tpo" "$(DEPDIR)/audio_sdl.Po"; else rm -f "$(DEPDIR)/audio_sdl.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/audio_sdl.c' object='audio_sdl.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o audio_sdl.o `test -f 'drivers/audio_sdl.c' || echo '$(srcdir)/'`drivers/audio_sdl.c
+
+audio_sdl.obj: drivers/audio_sdl.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT audio_sdl.obj -MD -MP -MF "$(DEPDIR)/audio_sdl.Tpo" -c -o audio_sdl.obj `if test -f 'drivers/audio_sdl.c'; then $(CYGPATH_W) 'drivers/audio_sdl.c'; else $(CYGPATH_W) '$(srcdir)/drivers/audio_sdl.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/audio_sdl.Tpo" "$(DEPDIR)/audio_sdl.Po"; else rm -f "$(DEPDIR)/audio_sdl.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/audio_sdl.c' object='audio_sdl.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o audio_sdl.obj `if test -f 'drivers/audio_sdl.c'; then $(CYGPATH_W) 'drivers/audio_sdl.c'; else $(CYGPATH_W) '$(srcdir)/drivers/audio_sdl.c'; fi`
 
 audio_pulse.o: drivers/audio_pulse.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT audio_pulse.o -MD -MP -MF "$(DEPDIR)/audio_pulse.Tpo" -c -o audio_pulse.o `test -f 'drivers/audio_pulse.c' || echo '$(srcdir)/'`drivers/audio_pulse.c; \
