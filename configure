@@ -755,6 +755,10 @@ BUILD_SH4X86_TRUE
 BUILD_SH4X86_FALSE
 AUDIO_OSX_TRUE
 AUDIO_OSX_FALSE
+SDL_CFLAGS
+SDL_LIBS
+AUDIO_SDL_TRUE
+AUDIO_SDL_FALSE
 PULSE_CFLAGS
 PULSE_LIBS
 AUDIO_PULSE_TRUE
@@ -820,6 +824,7 @@ with_osmesa
 with_gtk
 with_esd
 with_pulse
+with_sdl
 '
       ac_precious_vars='build_alias
 host_alias
@@ -841,6 +846,8 @@ GLIB_CFLAGS
 GLIB_LIBS
 GTK_CFLAGS
 GTK_LIBS
+SDL_CFLAGS
+SDL_LIBS
 PULSE_CFLAGS
 PULSE_LIBS
 ESOUND_CFLAGS
@@ -1498,6 +1505,7 @@ Optional Packages:
   --with-gtk              Build with the GTK UI. Default on X11 systems
   --with-esd              Build with support for the ESounD audio system
   --with-pulse            Build with support for the PulseAudio audio system
+  --with-sdl              Build with support for SDL audio
 
 Some influential environment variables:
   CC          C compiler command
@@ -1520,6 +1528,8 @@ Some influential environment variables:
   GLIB_LIBS   linker flags for GLIB, overriding pkg-config
   GTK_CFLAGS  C compiler flags for GTK, overriding pkg-config
   GTK_LIBS    linker flags for GTK, overriding pkg-config
+  SDL_CFLAGS  C compiler flags for SDL, overriding pkg-config
+  SDL_LIBS    linker flags for SDL, overriding pkg-config
   PULSE_CFLAGS
               C compiler flags for PULSE, overriding pkg-config
   PULSE_LIBS  linker flags for PULSE, overriding pkg-config
@@ -7211,6 +7221,13 @@ if test "${with_pulse+set}" = set; then
 fi
 
 
+# Check whether --with-sdl was given.
+if test "${with_sdl+set}" = set; then
+  withval=$with_sdl;
+fi
+
+
+
 
 
 
@@ -9950,6 +9967,110 @@ if test "$HAVE_CORE_AUDIO" = 'yes' ; then
 else
   AUDIO_OSX_TRUE='#'
   AUDIO_OSX_FALSE=
+fi
+
+
+if test "x$with_sdl" != "xno"; then
+
+pkg_failed=no
+{ $as_echo "$as_me:$LINENO: checking for SDL" >&5
+$as_echo_n "checking for SDL... " >&6; }
+
+if test -n "$SDL_CFLAGS"; then
+    pkg_cv_SDL_CFLAGS="$SDL_CFLAGS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
+    { ($as_echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"sdl\"") >&5
+  ($PKG_CONFIG --exists --print-errors "sdl") 2>&5
+  ac_status=$?
+  $as_echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; then
+  pkg_cv_SDL_CFLAGS=`$PKG_CONFIG --cflags "sdl" 2>/dev/null`
+else
+  pkg_failed=yes
+fi
+ else
+    pkg_failed=untried
+fi
+if test -n "$SDL_LIBS"; then
+    pkg_cv_SDL_LIBS="$SDL_LIBS"
+ elif test -n "$PKG_CONFIG"; then
+    if test -n "$PKG_CONFIG" && \
+    { ($as_echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"sdl\"") >&5
+  ($PKG_CONFIG --exists --print-errors "sdl") 2>&5
+  ac_status=$?
+  $as_echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; then
+  pkg_cv_SDL_LIBS=`$PKG_CONFIG --libs "sdl" 2>/dev/null`
+else
+  pkg_failed=yes
+fi
+ else
+    pkg_failed=untried
+fi
+
+
+
+if test $pkg_failed = yes; then
+
+if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
+        _pkg_short_errors_supported=yes
+else
+        _pkg_short_errors_supported=no
+fi
+        if test $_pkg_short_errors_supported = yes; then
+	        SDL_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors "sdl" 2>&1`
+        else
+	        SDL_PKG_ERRORS=`$PKG_CONFIG --print-errors "sdl" 2>&1`
+        fi
+	# Put the nasty error message in config.log where it belongs
+	echo "$SDL_PKG_ERRORS" >&5
+
+	{ $as_echo "$as_me:$LINENO: result: no" >&5
+$as_echo "no" >&6; }
+
+      if test "x$with_sdl" = "xyes"; then
+         { { $as_echo "$as_me:$LINENO: error: \"SDL libraries could not be found (but were required)
+See \`config.log' for more details." >&5
+$as_echo "$as_me: error: \"SDL libraries could not be found (but were required)
+See \`config.log' for more details." >&2;}
+   { (exit 1); exit 1; }; }
+      fi
+
+elif test $pkg_failed = untried; then
+
+      if test "x$with_sdl" = "xyes"; then
+         { { $as_echo "$as_me:$LINENO: error: \"SDL libraries could not be found (but were required)
+See \`config.log' for more details." >&5
+$as_echo "$as_me: error: \"SDL libraries could not be found (but were required)
+See \`config.log' for more details." >&2;}
+   { (exit 1); exit 1; }; }
+      fi
+
+else
+	SDL_CFLAGS=$pkg_cv_SDL_CFLAGS
+	SDL_LIBS=$pkg_cv_SDL_LIBS
+        { $as_echo "$as_me:$LINENO: result: yes" >&5
+$as_echo "yes" >&6; }
+
+       HAVE_SDL='yes'
+       AUDIO_DRIVERS="$AUDIO_DRIVERS sdl"
+
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_SDL 1
+_ACEOF
+
+
+fi
+fi
+
+
+if test "$HAVE_SDL" = 'yes' ; then
+  AUDIO_SDL_TRUE=
+  AUDIO_SDL_FALSE='#'
+else
+  AUDIO_SDL_TRUE='#'
+  AUDIO_SDL_FALSE=
 fi
 
 
@@ -12806,6 +12927,13 @@ if test -z "${AUDIO_OSX_TRUE}" && test -z "${AUDIO_OSX_FALSE}"; then
   { { $as_echo "$as_me:$LINENO: error: conditional \"AUDIO_OSX\" was never defined.
 Usually this means the macro was only invoked conditionally." >&5
 $as_echo "$as_me: error: conditional \"AUDIO_OSX\" was never defined.
+Usually this means the macro was only invoked conditionally." >&2;}
+   { (exit 1); exit 1; }; }
+fi
+if test -z "${AUDIO_SDL_TRUE}" && test -z "${AUDIO_SDL_FALSE}"; then
+  { { $as_echo "$as_me:$LINENO: error: conditional \"AUDIO_SDL\" was never defined.
+Usually this means the macro was only invoked conditionally." >&5
+$as_echo "$as_me: error: conditional \"AUDIO_SDL\" was never defined.
 Usually this means the macro was only invoked conditionally." >&2;}
    { (exit 1); exit 1; }; }
 fi

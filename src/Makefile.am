@@ -5,7 +5,7 @@ INCLUDES = \
 	-DPACKAGE_LOCALE_DIR=\""$(prefix)/$(DATADIRNAME)/locale"\" \
 	-DPACKAGE_CONF_DIR=\""$(sysconfdir)"\" \
         -Ish4 \
-	@GLIB_CFLAGS@ @GTK_CFLAGS@ @LIBPNG_CFLAGS@ @PULSE_CFLAGS@ @ESOUND_CFLAGS@ @ALSA_CFLAGS@
+	@GLIB_CFLAGS@ @GTK_CFLAGS@ @LIBPNG_CFLAGS@ @PULSE_CFLAGS@ @ESOUND_CFLAGS@ @ALSA_CFLAGS@ @SDL_CFLAGS@
 
 bin_PROGRAMS = lxdream
 noinst_PROGRAMS = gendec genglsl
@@ -115,6 +115,10 @@ if AUDIO_OSX
 lxdream_SOURCES += drivers/audio_osx.m
 endif
 
+if AUDIO_SDL
+lxdream_SOURCES += drivers/audio_sdl.c
+endif
+
 if AUDIO_PULSE
 lxdream_SOURCES += drivers/audio_pulse.c
 endif
@@ -145,7 +149,7 @@ lxdream_SOURCES += drivers/joy_linux.c drivers/joy_linux.h
 endif
 
 
-lxdream_LDADD = @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@ @PULSE_LIBS@ @ESOUND_LIBS@ @ALSA_LIBS@ $(INTLLIBS)
+lxdream_LDADD = @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@ @PULSE_LIBS@ @ESOUND_LIBS@ @ALSA_LIBS@ @SDL_LIBS@ $(INTLLIBS)
 
 gendec_LDADD = @GLIB_LIBS@ @GTK_LIBS@ $(INTLLIBS)
 genglsl_LDADD = @GLIB_LIBS@ @GTK_LIBS@ $(INTLLIBS)

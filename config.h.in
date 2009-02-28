@@ -112,6 +112,9 @@
 /* Have pulseaudio support */
 #undef HAVE_PULSE
 
+/* Have SDL support */
+#undef HAVE_SDL
+
 /* Define to 1 if you have the <stdint.h> header file. */
 #undef HAVE_STDINT_H
 
