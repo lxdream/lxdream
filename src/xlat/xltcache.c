@@ -22,7 +22,7 @@
 
 #include "dreamcast.h"
 #include "sh4/sh4core.h"
-#include "sh4/xltcache.h"
+#include "xlat/xltcache.h"
 #include "x86dasm/x86dasm.h"
 
 #define XLAT_LUT_PAGE_BITS 12

@@ -39,7 +39,7 @@ host_triplet = @host@
 bin_PROGRAMS = lxdream$(EXEEXT)
 noinst_PROGRAMS = gendec$(EXEEXT) genglsl$(EXEEXT)
 check_PROGRAMS = test/testxlt$(EXEEXT) $(am__EXEEXT_1)
-@BUILD_SH4X86_TRUE@am__append_1 = sh4/sh4x86.c sh4/x86op.h \
+@BUILD_SH4X86_TRUE@am__append_1 = sh4/sh4x86.c xlat/x86/x86op.h \
 @BUILD_SH4X86_TRUE@        sh4/ia32abi.h sh4/ia32mac.h sh4/ia64abi.h \
 @BUILD_SH4X86_TRUE@        sh4/sh4trans.c sh4/sh4trans.h sh4/mmux86.c \
 @BUILD_SH4X86_TRUE@        x86dasm/x86dasm.c x86dasm/x86dasm.h \
@@ -106,7 +106,7 @@ am__lxdream_SOURCES_DIST = main.c version.c config.c config.h \
 	sh4/sh4.c sh4/intc.c sh4/intc.h sh4/sh4mem.c sh4/timer.c \
 	sh4/dmac.c sh4/mmu.c sh4/sh4core.c sh4/sh4core.h sh4/sh4dasm.c \
 	sh4/sh4dasm.h sh4/sh4mmio.c sh4/sh4mmio.h sh4/scif.c \
-	sh4/sh4stat.c sh4/sh4stat.h sh4/xltcache.c sh4/xltcache.h \
+	sh4/sh4stat.c sh4/sh4stat.h xlat/xltcache.c xlat/xltcache.h \
 	sh4/sh4.h sh4/dmac.h sh4/pmm.c sh4/cache.c sh4/mmu.h \
 	aica/armcore.c aica/armcore.h aica/armdasm.c aica/armdasm.h \
 	aica/armmem.c aica/aica.c aica/aica.h aica/audio.c \
@@ -121,7 +121,7 @@ am__lxdream_SOURCES_DIST = main.c version.c config.c config.h \
 	display.h dckeysyms.h drivers/audio_null.c \
 	drivers/video_null.c drivers/video_gl.c drivers/video_gl.h \
 	drivers/gl_fbo.c sh4/sh4.def sh4/sh4core.in sh4/sh4x86.in \
-	sh4/sh4dasm.in sh4/sh4stat.in sh4/sh4x86.c sh4/x86op.h \
+	sh4/sh4dasm.in sh4/sh4stat.in sh4/sh4x86.c xlat/x86/x86op.h \
 	sh4/ia32abi.h sh4/ia32mac.h sh4/ia64abi.h sh4/sh4trans.c \
 	sh4/sh4trans.h sh4/mmux86.c x86dasm/x86dasm.c \
 	x86dasm/x86dasm.h x86dasm/i386-dis.c x86dasm/dis-init.c \
@@ -197,8 +197,8 @@ lxdream_OBJECTS = $(am_lxdream_OBJECTS)
 lxdream_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am__test_testsh4x86_SOURCES_DIST = test/testsh4x86.c x86dasm/x86dasm.c \
 	x86dasm/x86dasm.h x86dasm/i386-dis.c x86dasm/dis-init.c \
-	x86dasm/dis-buf.c sh4/sh4trans.c sh4/sh4x86.c sh4/xltcache.c \
-	sh4/xltcache.h mem.c util.c
+	x86dasm/dis-buf.c sh4/sh4trans.c sh4/sh4x86.c xlat/xltcache.c \
+	xlat/xltcache.h mem.c util.c
 @BUILD_SH4X86_TRUE@am_test_testsh4x86_OBJECTS = testsh4x86.$(OBJEXT) \
 @BUILD_SH4X86_TRUE@	x86dasm.$(OBJEXT) i386-dis.$(OBJEXT) \
 @BUILD_SH4X86_TRUE@	dis-init.$(OBJEXT) dis-buf.$(OBJEXT) \
@@ -437,7 +437,7 @@ lxdream_SOURCES = main.c version.c config.c config.h lxdream.h dream.h \
 	sh4/sh4mem.c sh4/timer.c sh4/dmac.c sh4/mmu.c sh4/sh4core.c \
 	sh4/sh4core.h sh4/sh4dasm.c sh4/sh4dasm.h sh4/sh4mmio.c \
 	sh4/sh4mmio.h sh4/scif.c sh4/sh4stat.c sh4/sh4stat.h \
-	sh4/xltcache.c sh4/xltcache.h sh4/sh4.h sh4/dmac.h sh4/pmm.c \
+	xlat/xltcache.c xlat/xltcache.h sh4/sh4.h sh4/dmac.h sh4/pmm.c \
 	sh4/cache.c sh4/mmu.h aica/armcore.c aica/armcore.h \
 	aica/armdasm.c aica/armdasm.h aica/armmem.c aica/aica.c \
 	aica/aica.h aica/audio.c aica/audio.h pvr2/pvr2.c pvr2/pvr2.h \
@@ -461,13 +461,13 @@ lxdream_SOURCES = main.c version.c config.c config.h lxdream.h dream.h \
 @BUILD_SH4X86_TRUE@test_testsh4x86_SOURCES = test/testsh4x86.c x86dasm/x86dasm.c \
 @BUILD_SH4X86_TRUE@	x86dasm/x86dasm.h x86dasm/i386-dis.c x86dasm/dis-init.c \
 @BUILD_SH4X86_TRUE@	x86dasm/dis-buf.c \
-@BUILD_SH4X86_TRUE@	sh4/sh4trans.c sh4/sh4x86.c sh4/xltcache.c \
-@BUILD_SH4X86_TRUE@	sh4/xltcache.h mem.c util.c 
+@BUILD_SH4X86_TRUE@	sh4/sh4trans.c sh4/sh4x86.c xlat/xltcache.c \
+@BUILD_SH4X86_TRUE@	xlat/xltcache.h mem.c util.c 
 
 lxdream_LDADD = @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@ @PULSE_LIBS@ @ESOUND_LIBS@ @ALSA_LIBS@ @SDL_LIBS@ $(INTLLIBS)
 gendec_LDADD = @GLIB_LIBS@ @GTK_LIBS@ $(INTLLIBS)
 genglsl_LDADD = @GLIB_LIBS@ @GTK_LIBS@ $(INTLLIBS)
-test_testxlt_SOURCES = test/testxlt.c sh4/xltcache.c sh4/xltcache.h
+test_testxlt_SOURCES = test/testxlt.c xlat/xltcache.c xlat/xltcache.h
 all: $(BUILT_SOURCES)
 	$(MAKE) $(AM_MAKEFLAGS) all-am
 
@@ -1003,19 +1003,19 @@ sh4stat.obj: sh4/sh4stat.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sh4stat.obj `if test -f 'sh4/sh4stat.c'; then $(CYGPATH_W) 'sh4/sh4stat.c'; else $(CYGPATH_W) '$(srcdir)/sh4/sh4stat.c'; fi`
 
-xltcache.o: sh4/xltcache.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT xltcache.o -MD -MP -MF "$(DEPDIR)/xltcache.Tpo" -c -o xltcache.o `test -f 'sh4/xltcache.c' || echo '$(srcdir)/'`sh4/xltcache.c; \
+xltcache.o: xlat/xltcache.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT xltcache.o -MD -MP -MF "$(DEPDIR)/xltcache.Tpo" -c -o xltcache.o `test -f 'xlat/xltcache.c' || echo '$(srcdir)/'`xlat/xltcache.c; \
 @am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/xltcache.Tpo" "$(DEPDIR)/xltcache.Po"; else rm -f "$(DEPDIR)/xltcache.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='sh4/xltcache.c' object='xltcache.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='xlat/xltcache.c' object='xltcache.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o xltcache.o `test -f 'sh4/xltcache.c' || echo '$(srcdir)/'`sh4/xltcache.c
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o xltcache.o `test -f 'xlat/xltcache.c' || echo '$(srcdir)/'`xlat/xltcache.c
 
-xltcache.obj: sh4/xltcache.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT xltcache.obj -MD -MP -MF "$(DEPDIR)/xltcache.Tpo" -c -o xltcache.obj `if test -f 'sh4/xltcache.c'; then $(CYGPATH_W) 'sh4/xltcache.c'; else $(CYGPATH_W) '$(srcdir)/sh4/xltcache.c'; fi`; \
+xltcache.obj: xlat/xltcache.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT xltcache.obj -MD -MP -MF "$(DEPDIR)/xltcache.Tpo" -c -o xltcache.obj `if test -f 'xlat/xltcache.c'; then $(CYGPATH_W) 'xlat/xltcache.c'; else $(CYGPATH_W) '$(srcdir)/xlat/xltcache.c'; fi`; \
 @am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/xltcache.Tpo" "$(DEPDIR)/xltcache.Po"; else rm -f "$(DEPDIR)/xltcache.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='sh4/xltcache.c' object='xltcache.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='xlat/xltcache.c' object='xltcache.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o xltcache.obj `if test -f 'sh4/xltcache.c'; then $(CYGPATH_W) 'sh4/xltcache.c'; else $(CYGPATH_W) '$(srcdir)/sh4/xltcache.c'; fi`
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o xltcache.obj `if test -f 'xlat/xltcache.c'; then $(CYGPATH_W) 'xlat/xltcache.c'; else $(CYGPATH_W) '$(srcdir)/xlat/xltcache.c'; fi`
 
 pmm.o: sh4/pmm.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT pmm.o -MD -MP -MF "$(DEPDIR)/pmm.Tpo" -c -o pmm.o `test -f 'sh4/pmm.c' || echo '$(srcdir)/'`sh4/pmm.c; \
