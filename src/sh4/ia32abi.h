@@ -27,9 +27,9 @@
 static inline void decode_address( int addr_reg )
 {
     uintptr_t base = (sh4r.xlat_sh4_mode&SR_MD) ? (uintptr_t)sh4_address_space : (uintptr_t)sh4_user_address_space;
-    MOV_r32_r32( addr_reg, R_ECX ); 
-    SHR_imm8_r32( 12, R_ECX ); 
-    MOV_r32disp32x4_r32( R_ECX, base, R_ECX );
+    MOVL_r32_r32( addr_reg, REG_ECX ); 
+    SHRL_imm_r32( 12, REG_ECX ); 
+    MOVP_sib_rptr( 2, REG_ECX, -1, base, REG_ECX );
 }
 
 /**
@@ -38,134 +38,138 @@ static inline void decode_address( int addr_reg )
  */
 static inline void call_func0( void *ptr )
 {
-    load_imm32(R_ECX, (uint32_t)ptr);
-    CALL_r32(R_ECX);
+    load_imm32(REG_ECX, (uint32_t)ptr);
+    CALL_r32(REG_ECX);
 }
 
 #ifdef HAVE_FASTCALL
 static inline void call_func1( void *ptr, int arg1 )
 {
-    if( arg1 != R_EAX ) {
-        MOV_r32_r32( arg1, R_EAX );
+    if( arg1 != REG_EAX ) {
+        MOVL_r32_r32( arg1, REG_EAX );
     }
-    load_imm32(R_ECX, (uint32_t)ptr);
-    CALL_r32(R_ECX);
+    MOVP_immptr_rptr((uintptr_t)ptr, REG_ECX);
+    CALL_r32(REG_ECX);
 }
 
 static inline void call_func1_r32( int addr_reg, int arg1 )
 {
-    if( arg1 != R_EAX ) {
-        MOV_r32_r32( arg1, R_EAX );
+    if( arg1 != REG_EAX ) {
+        MOVL_r32_r32( arg1, REG_EAX );
     }
     CALL_r32(addr_reg);
 }
 
 static inline void call_func1_r32disp8( int preg, uint32_t disp8, int arg1 )
 {
-    if( arg1 != R_EAX ) {
-        MOV_r32_r32( arg1, R_EAX );
+    if( arg1 != REG_EAX ) {
+        MOVL_r32_r32( arg1, REG_EAX );
     }
-    CALL_r32disp8(preg, disp8);
+    CALL_r32disp(preg, disp8);
 }
 
 static inline void call_func1_r32disp8_exc( int preg, uint32_t disp8, int arg1, int pc )
 {
-    if( arg1 != R_EAX ) {
-        MOV_r32_r32( arg1, R_EAX );
+    if( arg1 != REG_EAX ) {
+        MOVL_r32_r32( arg1, REG_EAX );
     }
-    load_exc_backpatch(R_EDX);
-    CALL_r32disp8(preg, disp8);
+    MOVP_immptr_rptr(0,REG_EDX);
+    sh4_x86_add_backpatch(xlat_output, pc, -2);
+    CALL_r32disp(preg, disp8);
 }
 
 static inline void call_func2( void *ptr, int arg1, int arg2 )
 {
-    if( arg2 != R_EDX ) {
-        MOV_r32_r32( arg2, R_EDX );
+    if( arg2 != REG_EDX ) {
+        MOVL_r32_r32( arg2, REG_EDX );
     }
-    if( arg1 != R_EAX ) {
-        MOV_r32_r32( arg1, R_EAX );
+    if( arg1 != REG_EAX ) {
+        MOVL_r32_r32( arg1, REG_EAX );
     }
-    load_imm32(R_ECX, (uint32_t)ptr);
-    CALL_r32(R_ECX);
+    MOVP_immptr_rptr((uint32_t)ptr, REG_ECX);
+    CALL_r32(REG_ECX);
 }
 
 static inline void call_func2_r32( int addr_reg, int arg1, int arg2 )
 {
-    if( arg2 != R_EDX ) {
-        MOV_r32_r32( arg2, R_EDX );
+    if( arg2 != REG_EDX ) {
+        MOVL_r32_r32( arg2, REG_EDX );
     }
-    if( arg1 != R_EAX ) {
-        MOV_r32_r32( arg1, R_EAX );
+    if( arg1 != REG_EAX ) {
+        MOVL_r32_r32( arg1, REG_EAX );
     }
     CALL_r32(addr_reg);
 }
 
 static inline void call_func2_r32disp8( int preg, uint32_t disp8, int arg1, int arg2 )
 {
-    if( arg2 != R_EDX ) {
-        MOV_r32_r32( arg2, R_EDX );
+    if( arg2 != REG_EDX ) {
+        MOVL_r32_r32( arg2, REG_EDX );
     }
-    if( arg1 != R_EAX ) {
-        MOV_r32_r32( arg1, R_EAX );
+    if( arg1 != REG_EAX ) {
+        MOVL_r32_r32( arg1, REG_EAX );
     }
-    CALL_r32disp8(preg, disp8);
+    CALL_r32disp(preg, disp8);
 }
 
 static inline void call_func2_r32disp8_exc( int preg, uint32_t disp8, int arg1, int arg2, int pc )
 {
-    if( arg2 != R_EDX ) {
-        MOV_r32_r32( arg2, R_EDX );
+    if( arg2 != REG_EDX ) {
+        MOVL_r32_r32( arg2, REG_EDX );
     }
-    if( arg1 != R_EAX ) {
-        MOV_r32_r32( arg1, R_EAX );
+    if( arg1 != REG_EAX ) {
+        MOVL_r32_r32( arg1, REG_EAX );
     }
-    MOV_backpatch_esp8( 0 );
-    CALL_r32disp8(preg, disp8);
+    MOVL_imm32_rspdisp(0,0);
+    sh4_x86_add_backpatch(xlat_output, pc, -2);
+    CALL_r32disp(preg, disp8);
 }
 
 
 
 static inline void call_func1_exc( void *ptr, int arg1, int pc )
 {
-    if( arg1 != R_EAX ) {
-        MOV_r32_r32( arg1, R_EAX );
+    if( arg1 != REG_EAX ) {
+        MOVL_r32_r32( arg1, REG_EAX );
     }
-    load_exc_backpatch(R_EDX);
-    load_imm32(R_ECX, (uint32_t)ptr);
-    CALL_r32(R_ECX);
+    MOVP_immptr_rptr(0,REG_EDX);
+    sh4_x86_add_backpatch(xlat_output, pc, -2);
+    MOVP_immptr_rptr((uint32_t)ptr, REG_ECX);
+    CALL_r32(REG_ECX);
 }   
 
 static inline void call_func2_exc( void *ptr, int arg1, int arg2, int pc )
 {
-    if( arg2 != R_EDX ) {
-        MOV_r32_r32( arg2, R_EDX );
+    if( arg2 != REG_EDX ) {
+        MOVL_r32_r32( arg2, REG_EDX );
     }
-    if( arg1 != R_EAX ) {
-        MOV_r32_r32( arg1, R_EAX );
+    if( arg1 != REG_EAX ) {
+        MOVL_r32_r32( arg1, REG_EAX );
     }
-    MOV_backpatch_esp8(0);
-    load_imm32(R_ECX, (uint32_t)ptr);
-    CALL_r32(R_ECX);
+    MOVL_imm32_rspdisp(0,0);
+    sh4_x86_add_backpatch(xlat_output, pc, -2);
+    MOVP_immptr_rptr((uint32_t)ptr, REG_ECX);
+    CALL_r32(REG_ECX);
 }
 
 #else
 static inline void call_func1( void *ptr, int arg1 )
 {
-    SUB_imm8s_r32( 12, R_ESP );
+    SUBL_imms_r32( 12, REG_ESP );
     PUSH_r32(arg1);
-    load_imm32(R_ECX, (uint32_t)ptr);
-    CALL_r32(R_ECX);
-    ADD_imm8s_r32( 16, R_ESP );
+    MOVP_immptr_rptr((uint32_t)ptr, REG_ECX);
+    CALL_r32(REG_ECX);
+    ADDL_imms_r32( 16, REG_ESP );
 }
 
 static inline void call_func2( void *ptr, int arg1, int arg2 )
 {
-    SUB_imm8s_r32( 8, R_ESP );
+    SUBL_imms_r32( 8, REG_ESP );
     PUSH_r32(arg2);
     PUSH_r32(arg1);
-    load_imm32(R_ECX, (uint32_t)ptr);
-    CALL_r32(R_ECX);
-    ADD_imm8s_r32( 16, R_ESP );
+    MOVP_immptr_rptr((uint32_t)ptr, REG_ECX);
+    CALL_r32(REG_ECX);
+    ADDL_imms_r32( 16, REG_ESP );
 }
 
 #endif
@@ -178,15 +182,15 @@ static inline void call_func2( void *ptr, int arg1, int arg2 )
  */
 void enter_block( ) 
 {
-    PUSH_r32(R_EBP);
-    load_ptr( R_EBP, ((uint8_t *)&sh4r) + 128 );
-    SUB_imm8s_r32( 8, R_ESP ); 
+    PUSH_r32(REG_EBP);
+    load_ptr( REG_EBP, ((uint8_t *)&sh4r) + 128 );
+    SUBL_imms_r32( 8, REG_ESP ); 
 }
 
 static inline void exit_block( )
 {
-    ADD_imm8s_r32( 8, R_ESP );
-    POP_r32(R_EBP);
+    ADDL_imms_r32( 8, REG_ESP );
+    POP_r32(REG_EBP);
     RET();
 }
 
@@ -195,13 +199,13 @@ static inline void exit_block( )
  */
 void exit_block_pcset( sh4addr_t pc )
 {
-    load_imm32( R_ECX, ((pc - sh4_x86.block_start_pc)>>1)*sh4_cpu_period ); // 5
-    ADD_r32_sh4r( R_ECX, REG_OFFSET(slice_cycle) );    // 6
-    load_spreg( R_EAX, R_PC );
+    load_imm32( REG_ECX, ((pc - sh4_x86.block_start_pc)>>1)*sh4_cpu_period ); // 5
+    ADDL_r32_rbpdisp( REG_ECX, REG_OFFSET(slice_cycle) );    // 6
+    load_spreg( REG_EAX, R_PC );
     if( sh4_x86.tlb_on ) {
-        call_func1(xlat_get_code_by_vma,R_EAX);
+        call_func1(xlat_get_code_by_vma,REG_EAX);
     } else {
-        call_func1(xlat_get_code,R_EAX);
+        call_func1(xlat_get_code,REG_EAX);
     }
     exit_block();
 }
@@ -211,14 +215,14 @@ void exit_block_pcset( sh4addr_t pc )
  */
 void exit_block_newpcset( sh4addr_t pc )
 {
-    load_imm32( R_ECX, ((pc - sh4_x86.block_start_pc)>>1)*sh4_cpu_period ); // 5
-    ADD_r32_sh4r( R_ECX, REG_OFFSET(slice_cycle) );    // 6
-    load_spreg( R_EAX, R_NEW_PC );
-    store_spreg( R_EAX, R_PC );
+    load_imm32( REG_ECX, ((pc - sh4_x86.block_start_pc)>>1)*sh4_cpu_period ); // 5
+    ADDL_r32_rbpdisp( REG_ECX, REG_OFFSET(slice_cycle) );    // 6
+    load_spreg( REG_EAX, R_NEW_PC );
+    store_spreg( REG_EAX, R_PC );
     if( sh4_x86.tlb_on ) {
-        call_func1(xlat_get_code_by_vma,R_EAX);
+        call_func1(xlat_get_code_by_vma,REG_EAX);
     } else {
-        call_func1(xlat_get_code,R_EAX);
+        call_func1(xlat_get_code,REG_EAX);
     }
     exit_block();
 }
@@ -229,18 +233,18 @@ void exit_block_newpcset( sh4addr_t pc )
  */
 void exit_block_abs( sh4addr_t pc, sh4addr_t endpc )
 {
-    load_imm32( R_ECX, pc );                            // 5
-    store_spreg( R_ECX, REG_OFFSET(pc) );               // 3
+    load_imm32( REG_ECX, pc );                            // 5
+    store_spreg( REG_ECX, REG_OFFSET(pc) );               // 3
     if( IS_IN_ICACHE(pc) ) {
-        MOV_moff32_EAX( xlat_get_lut_entry(GET_ICACHE_PHYS(pc)) ); // 5
-        AND_imm8s_r32( 0xFC, R_EAX ); // 3
+        MOVP_moffptr_rax( xlat_get_lut_entry(GET_ICACHE_PHYS(pc)) ); // 5
+        ANDL_imms_r32( 0xFFFFFFFC, REG_EAX ); // 3
     } else if( sh4_x86.tlb_on ) {
-        call_func1(xlat_get_code_by_vma,R_ECX);
+        call_func1(xlat_get_code_by_vma,REG_ECX);
     } else {
-        call_func1(xlat_get_code,R_ECX);
+        call_func1(xlat_get_code,REG_ECX);
     }
-    load_imm32( R_ECX, ((endpc - sh4_x86.block_start_pc)>>1)*sh4_cpu_period ); // 5
-    ADD_r32_sh4r( R_ECX, REG_OFFSET(slice_cycle) );     // 6
+    load_imm32( REG_ECX, ((endpc - sh4_x86.block_start_pc)>>1)*sh4_cpu_period ); // 5
+    ADDL_r32_rbpdisp( REG_ECX, REG_OFFSET(slice_cycle) );     // 6
     exit_block();
 }
 
@@ -249,19 +253,19 @@ void exit_block_abs( sh4addr_t pc, sh4addr_t endpc )
  */
 void exit_block_rel( sh4addr_t pc, sh4addr_t endpc )
 {
-    load_imm32( R_ECX, pc - sh4_x86.block_start_pc );   // 5
-    ADD_sh4r_r32( R_PC, R_ECX );
-    store_spreg( R_ECX, REG_OFFSET(pc) );               // 3
+    load_imm32( REG_ECX, pc - sh4_x86.block_start_pc );   // 5
+    ADDL_rbpdisp_r32( R_PC, REG_ECX );
+    store_spreg( REG_ECX, R_PC );               // 3
     if( IS_IN_ICACHE(pc) ) {
-        MOV_moff32_EAX( xlat_get_lut_entry(GET_ICACHE_PHYS(pc)) ); // 5
-        AND_imm8s_r32( 0xFC, R_EAX ); // 3
+        MOVP_moffptr_rax( xlat_get_lut_entry(GET_ICACHE_PHYS(pc)) ); // 5
+        ANDL_imms_r32( 0xFFFFFFFC, REG_EAX ); // 3
     } else if( sh4_x86.tlb_on ) {
-        call_func1(xlat_get_code_by_vma,R_ECX);
+        call_func1(xlat_get_code_by_vma,REG_ECX);
     } else {
-        call_func1(xlat_get_code,R_ECX);
+        call_func1(xlat_get_code,REG_ECX);
     }
-    load_imm32( R_ECX, ((endpc - sh4_x86.block_start_pc)>>1)*sh4_cpu_period ); // 5
-    ADD_r32_sh4r( R_ECX, REG_OFFSET(slice_cycle) );     // 6
+    load_imm32( REG_ECX, ((endpc - sh4_x86.block_start_pc)>>1)*sh4_cpu_period ); // 5
+    ADDL_r32_rbpdisp( REG_ECX, REG_OFFSET(slice_cycle) );     // 6
     exit_block();
 }
 
@@ -270,18 +274,18 @@ void exit_block_rel( sh4addr_t pc, sh4addr_t endpc )
  */
 void exit_block_exc( int code, sh4addr_t pc )
 {
-    load_imm32( R_ECX, pc - sh4_x86.block_start_pc );   // 5
-    ADD_r32_sh4r( R_ECX, R_PC );
-    load_imm32( R_ECX, ((pc - sh4_x86.block_start_pc)>>1)*sh4_cpu_period ); // 5
-    ADD_r32_sh4r( R_ECX, REG_OFFSET(slice_cycle) );     // 6
-    load_imm32( R_EAX, code );
-    call_func1( sh4_raise_exception, R_EAX );
+    load_imm32( REG_ECX, pc - sh4_x86.block_start_pc );   // 5
+    ADDL_r32_rbpdisp( REG_ECX, R_PC );
+    load_imm32( REG_ECX, ((pc - sh4_x86.block_start_pc)>>1)*sh4_cpu_period ); // 5
+    ADDL_r32_rbpdisp( REG_ECX, REG_OFFSET(slice_cycle) );     // 6
+    load_imm32( REG_EAX, code );
+    call_func1( sh4_raise_exception, REG_EAX );
     
-    load_spreg( R_EAX, R_PC );
+    load_spreg( REG_EAX, R_PC );
     if( sh4_x86.tlb_on ) {
-        call_func1(xlat_get_code_by_vma,R_EAX);
+        call_func1(xlat_get_code_by_vma,REG_EAX);
     } else {
-        call_func1(xlat_get_code,R_EAX);
+        call_func1(xlat_get_code,REG_EAX);
     }
 
     exit_block();
@@ -299,36 +303,36 @@ void sh4_translate_end_block( sh4addr_t pc ) {
         unsigned int i;
         // Raise exception
         uint8_t *end_ptr = xlat_output;
-        MOV_r32_r32( R_EDX, R_ECX );
-        ADD_r32_r32( R_EDX, R_ECX );
-        ADD_r32_sh4r( R_ECX, R_PC );
-        MOV_moff32_EAX( &sh4_cpu_period );
-        MUL_r32( R_EDX );
-        ADD_r32_sh4r( R_EAX, REG_OFFSET(slice_cycle) );
+        MOVL_r32_r32( REG_EDX, REG_ECX );
+        ADDL_r32_r32( REG_EDX, REG_ECX );
+        ADDL_r32_rbpdisp( REG_ECX, R_PC );
+        MOVL_moffptr_eax( &sh4_cpu_period );
+        MULL_r32( REG_EDX );
+        ADDL_r32_rbpdisp( REG_EAX, REG_OFFSET(slice_cycle) );
 
-        POP_r32(R_EAX);
-        call_func1( sh4_raise_exception, R_EAX );
-        load_spreg( R_EAX, R_PC );
+        POP_r32(REG_EAX);
+        call_func1( sh4_raise_exception, REG_EAX );
+        load_spreg( REG_EAX, R_PC );
         if( sh4_x86.tlb_on ) {
-            call_func1(xlat_get_code_by_vma,R_EAX);
+            call_func1(xlat_get_code_by_vma,REG_EAX);
         } else {
-            call_func1(xlat_get_code,R_EAX);
+            call_func1(xlat_get_code,REG_EAX);
         }
         exit_block();
 
         // Exception already raised - just cleanup
         uint8_t *preexc_ptr = xlat_output;
-        MOV_r32_r32( R_EDX, R_ECX );
-        ADD_r32_r32( R_EDX, R_ECX );
-        ADD_r32_sh4r( R_ECX, R_SPC );
-        MOV_moff32_EAX( &sh4_cpu_period );
-        MUL_r32( R_EDX );
-        ADD_r32_sh4r( R_EAX, REG_OFFSET(slice_cycle) );
-        load_spreg( R_EAX, R_PC );
+        MOVL_r32_r32( REG_EDX, REG_ECX );
+        ADDL_r32_r32( REG_EDX, REG_ECX );
+        ADDL_r32_rbpdisp( REG_ECX, R_SPC );
+        MOVL_moffptr_eax( &sh4_cpu_period );
+        MULL_r32( REG_EDX );
+        ADDL_r32_rbpdisp( REG_EAX, REG_OFFSET(slice_cycle) );
+        load_spreg( REG_EAX, R_PC );
         if( sh4_x86.tlb_on ) {
-            call_func1(xlat_get_code_by_vma,R_EAX);
+            call_func1(xlat_get_code_by_vma,REG_EAX);
         } else {
-            call_func1(xlat_get_code,R_EAX);
+            call_func1(xlat_get_code,REG_EAX);
         }
         exit_block();
 
@@ -340,15 +344,15 @@ void sh4_translate_end_block( sh4addr_t pc ) {
                 } else {
                     *fixup_addr += xlat_output - (uint8_t *)&xlat_current_block->code[sh4_x86.backpatch_list[i].fixup_offset] - 4;
                 }
-                load_imm32( R_EDX, sh4_x86.backpatch_list[i].fixup_icount );
+                load_imm32( REG_EDX, sh4_x86.backpatch_list[i].fixup_icount );
                 int rel = preexc_ptr - xlat_output;
-                JMP_rel(rel);
+                JMP_prerel(rel);
             } else {
                 *fixup_addr += xlat_output - (uint8_t *)&xlat_current_block->code[sh4_x86.backpatch_list[i].fixup_offset] - 4;
                 PUSH_imm32( sh4_x86.backpatch_list[i].exc_code );
-                load_imm32( R_EDX, sh4_x86.backpatch_list[i].fixup_icount );
+                load_imm32( REG_EDX, sh4_x86.backpatch_list[i].fixup_icount );
                 int rel = end_ptr - xlat_output;
-                JMP_rel(rel);
+                JMP_prerel(rel);
             }
         }
     }

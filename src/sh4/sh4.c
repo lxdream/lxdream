@@ -33,7 +33,7 @@
 #include "sh4/sh4mmio.h"
 #include "sh4/sh4stat.h"
 #include "sh4/sh4trans.h"
-#include "sh4/xltcache.h"
+#include "xlat/xltcache.h"
 
 #ifndef M_PI
 #define M_PI        3.14159265358979323846264338327950288

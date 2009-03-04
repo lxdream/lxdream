@@ -23,9 +23,9 @@
 #include "dreamcast.h"
 #include "sh4/sh4core.h"
 #include "sh4/sh4trans.h"
-#include "sh4/xltcache.h"
 #include "sh4/sh4mmio.h"
 #include "sh4/mmu.h"
+#include "xlat/xltcache.h"
 
 /**
  * Execute a timeslice using translated code only (ie translate/execute loop)

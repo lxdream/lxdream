@@ -45,7 +45,7 @@ lxdream_SOURCES = \
         sh4/sh4.c sh4/intc.c sh4/intc.h sh4/sh4mem.c sh4/timer.c sh4/dmac.c \
         sh4/mmu.c sh4/sh4core.c sh4/sh4core.h sh4/sh4dasm.c sh4/sh4dasm.h \
         sh4/sh4mmio.c sh4/sh4mmio.h sh4/scif.c sh4/sh4stat.c sh4/sh4stat.h \
-	sh4/xltcache.c sh4/xltcache.h sh4/sh4.h sh4/dmac.h sh4/pmm.c \
+	xlat/xltcache.c xlat/xltcache.h sh4/sh4.h sh4/dmac.h sh4/pmm.c \
 	sh4/cache.c sh4/mmu.h \
         aica/armcore.c aica/armcore.h aica/armdasm.c aica/armdasm.h aica/armmem.c \
         aica/aica.c aica/aica.h aica/audio.c aica/audio.h \
@@ -64,7 +64,7 @@ lxdream_SOURCES = \
 	
 
 if BUILD_SH4X86
-lxdream_SOURCES += sh4/sh4x86.c sh4/x86op.h \
+lxdream_SOURCES += sh4/sh4x86.c xlat/x86/x86op.h \
         sh4/ia32abi.h sh4/ia32mac.h sh4/ia64abi.h \
         sh4/sh4trans.c sh4/sh4trans.h sh4/mmux86.c \
         x86dasm/x86dasm.c x86dasm/x86dasm.h \
@@ -76,8 +76,8 @@ test_testsh4x86_LDADD = @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@
 test_testsh4x86_SOURCES = test/testsh4x86.c x86dasm/x86dasm.c \
 	x86dasm/x86dasm.h x86dasm/i386-dis.c x86dasm/dis-init.c \
 	x86dasm/dis-buf.c \
-	sh4/sh4trans.c sh4/sh4x86.c sh4/xltcache.c \
-	sh4/xltcache.h mem.c util.c 
+	sh4/sh4trans.c sh4/sh4x86.c xlat/xltcache.c \
+	xlat/xltcache.h mem.c util.c 
 
 check_PROGRAMS += test/testsh4x86
 endif
@@ -155,7 +155,7 @@ gendec_LDADD = @GLIB_LIBS@ @GTK_LIBS@ $(INTLLIBS)
 genglsl_LDADD = @GLIB_LIBS@ @GTK_LIBS@ $(INTLLIBS)
 
 
-test_testxlt_SOURCES = test/testxlt.c sh4/xltcache.c sh4/xltcache.h
+test_testxlt_SOURCES = test/testxlt.c xlat/xltcache.c xlat/xltcache.h
 
 sh4/sh4core.c: gendec sh4/sh4.def sh4/sh4core.in
 	mkdir -p `dirname $@`

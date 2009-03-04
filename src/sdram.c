@@ -20,7 +20,7 @@
 #include "lxdream.h"
 #include "mem.h"
 #include "dreamcast.h"
-#include "sh4/xltcache.h"
+#include "xlat/xltcache.h"
 #include <string.h>
 
 

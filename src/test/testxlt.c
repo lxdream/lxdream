@@ -17,7 +17,7 @@
  */
 
 #include <assert.h>
-#include "sh4/xltcache.h"
+#include "xlat/xltcache.h"
 #include "dreamcast.h"
 
 extern xlat_cache_block_t xlat_new_cache;

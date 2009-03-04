@@ -27,9 +27,9 @@
 #include "dreamcast.h"
 #include "sh4/sh4core.h"
 #include "sh4/sh4mmio.h"
-#include "sh4/xltcache.h"
 #include "sh4/mmu.h"
 #include "pvr2/pvr2.h"
+#include "xlat/xltcache.h"
 
 /************** Obsolete methods ***************/
 

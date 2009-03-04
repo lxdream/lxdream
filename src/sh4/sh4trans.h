@@ -19,7 +19,7 @@
 #ifndef lxdream_sh4trans_H
 #define lxdream_sh4trans_H 1
 
-#include "sh4/xltcache.h"
+#include "xlat/xltcache.h"
 #include "dream.h"
 #include "mem.h"
 
