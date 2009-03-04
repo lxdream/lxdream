@@ -40,7 +40,7 @@ bin_PROGRAMS = lxdream$(EXEEXT)
 noinst_PROGRAMS = gendec$(EXEEXT) genglsl$(EXEEXT)
 check_PROGRAMS = test/testxlt$(EXEEXT) $(am__EXEEXT_1)
 @BUILD_SH4X86_TRUE@am__append_1 = sh4/sh4x86.c xlat/x86/x86op.h \
-@BUILD_SH4X86_TRUE@        sh4/ia32abi.h sh4/ia32mac.h sh4/ia64abi.h \
+@BUILD_SH4X86_TRUE@        xlat/x86/ia32abi.h xlat/x86/amd64abi.h \
 @BUILD_SH4X86_TRUE@        sh4/sh4trans.c sh4/sh4trans.h sh4/mmux86.c \
 @BUILD_SH4X86_TRUE@        x86dasm/x86dasm.c x86dasm/x86dasm.h \
 @BUILD_SH4X86_TRUE@        x86dasm/i386-dis.c x86dasm/dis-init.c x86dasm/dis-buf.c \
@@ -122,7 +122,7 @@ am__lxdream_SOURCES_DIST = main.c version.c config.c config.h \
 	drivers/video_null.c drivers/video_gl.c drivers/video_gl.h \
 	drivers/gl_fbo.c sh4/sh4.def sh4/sh4core.in sh4/sh4x86.in \
 	sh4/sh4dasm.in sh4/sh4stat.in sh4/sh4x86.c xlat/x86/x86op.h \
-	sh4/ia32abi.h sh4/ia32mac.h sh4/ia64abi.h sh4/sh4trans.c \
+	xlat/x86/ia32abi.h xlat/x86/amd64abi.h sh4/sh4trans.c \
 	sh4/sh4trans.h sh4/mmux86.c x86dasm/x86dasm.c \
 	x86dasm/x86dasm.h x86dasm/i386-dis.c x86dasm/dis-init.c \
 	x86dasm/dis-buf.c x86dasm/ansidecl.h x86dasm/bfd.h \
