@@ -22,6 +22,8 @@
 #include <stdarg.h>
 #include <getopt.h>
 #include <sys/stat.h>
+#include <string.h>
+
 #include "x86dasm/x86dasm.h"
 #include "sh4/sh4trans.h"
 #include "sh4/sh4core.h"
@@ -191,7 +193,7 @@ int main( int argc, char *argv[] )
 	char buf[256];
 	char op[256];
 	uintptr_t pc2 = x86_disasm_instruction( pc, buf, sizeof(buf), op );
-	fprintf( stdout, "%08x: %s\n", pc, buf );
+	fprintf( stdout, "%p: %s\n", (void *)pc, buf );
 	pc = pc2;
     }
     return 0;
