@@ -322,9 +322,9 @@ static void sh4_x86_add_backpatch( uint8_t *fixup_addr, uint32_t fixup_pc, uint3
 
 /****** Import appropriate calling conventions ******/
 #if SIZEOF_VOID_P == 8
-#include "sh4/ia64abi.h"
+#include "xlat/x86/amd64abi.h"
 #else /* 32-bit system */
-#include "sh4/ia32abi.h"
+#include "xlat/x86/ia32abi.h"
 #endif
 
 void sh4_translate_begin_block( sh4addr_t pc ) 
