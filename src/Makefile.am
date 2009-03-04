@@ -65,7 +65,7 @@ lxdream_SOURCES = \
 
 if BUILD_SH4X86
 lxdream_SOURCES += sh4/sh4x86.c xlat/x86/x86op.h \
-        sh4/ia32abi.h sh4/ia32mac.h sh4/ia64abi.h \
+        xlat/x86/ia32abi.h xlat/x86/amd64abi.h \
         sh4/sh4trans.c sh4/sh4trans.h sh4/mmux86.c \
         x86dasm/x86dasm.c x86dasm/x86dasm.h \
         x86dasm/i386-dis.c x86dasm/dis-init.c x86dasm/dis-buf.c \
