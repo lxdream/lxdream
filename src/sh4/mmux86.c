@@ -25,8 +25,6 @@
 #include "xlat/x86/x86op.h"
 
 #if SIZEOF_VOID_P == 8
-#define ARG1 REG_RDI
-#define ARG2 REG_RSI
 #define XLAT(addr_space, reg) \
     MOVQ_imm64_r64( (uintptr_t)addr_space, REG_RAX ); \
     MOVP_sib_rptr( 3, reg, REG_RAX, 0, reg );
@@ -34,8 +32,6 @@
     MOVQ_imm64_r64((uintptr_t)p, REG_EAX ); \
     ADDL_imms_r32disp(imm, REG_EAX, 0);
 #else
-#define ARG1 REG_EAX
-#define ARG2 R_EDX
 #define XLAT(addr_space, reg) \
     MOVP_sib_rptr( 2, reg, -1, (uintptr_t)addr_space, reg ); 
 #define ADDP_imms_ptr(imm,p) \
@@ -68,13 +64,13 @@ void mmu_utlb_init_vtable( struct utlb_entry *ent, struct utlb_page_entry *page,
         if( i != 9 ) { /* read_byte_for_write doesn't increment mmu_urc, everything else does */
             ADDP_imms_ptr(1, &mmu_urc);
         }
-        ADDL_imms_r32( ppn-vpn, ARG1 ); // 6
+        ADDL_imms_r32( ppn-vpn, REG_ARG1 ); // 6
         if( ent->mask >= 0xFFFFF000 ) {
             // Maps to a single page, so jump directly there
             int rel = (*fn - xlat_output);
             JMP_prerel( rel ); // 5
         } else {
-            MOVL_r32_r32( ARG1, REG_ECX ); // 2
+            MOVL_r32_r32( REG_ARG1, REG_ECX ); // 2
             SHRL_imm_r32( 12, REG_ECX );  // 3
             XLAT(addr_space, REG_ECX);                   // 14
             JMP_r32disp(REG_ECX, (((uintptr_t)out) - ((uintptr_t)&page->fn)) );    // 3
@@ -96,7 +92,7 @@ void mmu_utlb_init_storequeue_vtable( struct utlb_entry *ent, struct utlb_page_e
 
     page->fn.prefetch = (mem_prefetch_fn_t)xlat_output;
     ADDP_imms_ptr(1, &mmu_urc);
-    ADDL_imms_r32( ppn-vpn, ARG1 );
+    ADDL_imms_r32( ppn-vpn, REG_ARG1 );
     int rel = ((uint8_t *)ccn_storequeue_prefetch_tlb) - xlat_output;
     JMP_prerel( rel );
 }
@@ -109,7 +105,7 @@ void mmu_utlb_1k_init_vtable( struct utlb_1k_entry *entry )
     
     for( i=0; i<9; i++, out++ ) {
         *out = xlat_output;
-        MOVL_r32_r32( ARG1, REG_ECX );
+        MOVL_r32_r32( REG_ARG1, REG_ECX );
         SHRL_imm_r32( 10, REG_ECX );
         ANDL_imms_r32( 0x3, REG_ECX );
         XLAT( (uintptr_t)&entry->subpages[0], REG_ECX );
@@ -119,7 +115,7 @@ void mmu_utlb_1k_init_vtable( struct utlb_1k_entry *entry )
     out = (uint8_t **)&entry->user_fn;
     for( i=0; i<9; i++, out++ ) {
         *out = xlat_output;
-        MOVL_r32_r32( ARG1, REG_ECX );
+        MOVL_r32_r32( REG_ARG1, REG_ECX );
         SHRL_imm_r32( 10, REG_ECX );
         ANDL_imms_r32( 0x3, REG_ECX );
         XLAT( (uintptr_t)&entry->user_subpages[0], REG_ECX );

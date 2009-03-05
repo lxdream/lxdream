@@ -1,7 +1,7 @@
 /**
  * $Id$
  * 
- * x86/x86-64 Instruction generation macros
+ * x86/x86-64 Instruction generator
  *
  * Copyright (c) 2009 Nathan Keynes.
  *
@@ -15,6 +15,10 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
+
+#ifndef lxdream_x86op_H
+#define lxdream_x86op_H
+
 #include <stdint.h>
 #include <assert.h>
 
@@ -129,6 +133,9 @@
 #define PREF_REXX 0x42
 #define PREF_REXR 0x44
 #define PREF_REXW 0x48
+
+/* PREF_REXW if required for pointer operations, otherwise 0 */
+#define PREF_PTR     ((sizeof(void *) == 8) ? PREF_REXW : 0) 
 
 extern unsigned char *xlat_output;
 
@@ -309,7 +316,7 @@ static void x86_encode_modrm_rip(int rexw, uint32_t opcode, int rr, int32_t disp
 #define x86_encode_r64_rm64(opcode,rr,rb) x86_encode_reg_rm(PREF_REXW,opcode,rr,rb)
 #define x86_encode_r32_mem32(opcode,rr,rb,rx,ss,disp32) x86_encode_modrm(0,opcode,rr,rb,rx,ss,disp32)
 #define x86_encode_r64_mem64(opcode,rr,rb,rx,ss,disp32) x86_encode_modrm(PREF_REXW,opcode,rr,rb,rx,ss,disp32)
-#define x86_encode_rptr_memptr(opcode,rr,rb,rx,ss,disp32) x86_encode_modrm( (sizeof(void *)==8) ? PREF_REXW : 0,opcode,rr,rb,rx,ss,disp32)
+#define x86_encode_rptr_memptr(opcode,rr,rb,rx,ss,disp32) x86_encode_modrm(PREF_PTR,opcode,rr,rb,rx,ss,disp32)
 #define x86_encode_r32_mem32disp32(opcode,rr,rb,disp32) x86_encode_modrm(0,opcode,rr,rb,-1,0,disp32)
 #define x86_encode_r64_mem64disp64(opcode,rr,rb,disp32) x86_encode_modrm(PREF_REXW,opcode,rr,rb,-1,0,disp32)
 #define x86_encode_r32_ripdisp32(opcode,rr,disp32) x86_encode_modrm_rip(0,opcode,rr,disp32)
@@ -328,6 +335,9 @@ static void x86_encode_modrm_rip(int rexw, uint32_t opcode, int rr, int32_t disp
 #define x86_encode_imms_rm64(opcode8,opcode32,reg,imm,rb) \
     if( IS_INT8(((int32_t)imm)) ) { x86_encode_r64_rm64(opcode8,reg,rb); OP((int8_t)imm); \
                 } else { x86_encode_r64_rm64(opcode32,reg,rb); OP32(imm); }
+#define x86_encode_imms_rmptr(opcode8,opcode32,reg,imm,rb) \
+    if( IS_INT8(((int32_t)imm)) ) { x86_encode_reg_rm( PREF_PTR, opcode8,reg,rb); OP((int8_t)imm); \
+                } else { x86_encode_reg_rm( PREF_PTR, opcode32,reg,rb); OP32(imm); }
 #define x86_encode_imms_rbpdisp32(opcode8,opcode32,reg,imm,disp) \
     if( IS_INT8(((int32_t)imm)) ) { x86_encode_r32_rbpdisp32(opcode8,reg,disp); OP((int8_t)imm); \
                 } else { x86_encode_r32_rbpdisp32(opcode32,reg,disp); OP32(imm); }
@@ -374,6 +384,7 @@ static void x86_encode_modrm_rip(int rexw, uint32_t opcode, int rr, int32_t disp
 #define ANDL_rbpdisp_r32(disp,r1)    x86_encode_r32_rbpdisp32(0x23, r1, disp)
 #define ANDQ_r64_r64(r1,r2)          x86_encode_r64_rm64(0x21, r1, r2)
 #define ANDQ_imms_r64(imm,r1)        x86_encode_imms_rm64(0x83, 0x81, 4, imm, r1)
+#define ANDP_imms_rptr(imm,r1)       x86_encode_imms_rmptr(0x83, 0x81, 4, imm, r1)       
 
 #define CLC()                        OP(0xF8)
 #define CLD()                        OP(0xFC)
@@ -437,8 +448,9 @@ static void x86_encode_modrm_rip(int rexw, uint32_t opcode, int rr, int32_t disp
 #define MOVQ_r64_rspdisp(r1,disp)    x86_encode_r64_rspdisp64(0x89, r1, disp)
 #define MOVQ_rbpdisp_r64(disp,r1)    x86_encode_r64_rbpdisp64(0x8B, r1, disp)
 #define MOVQ_rspdisp_r64(disp,r1)    x86_encode_r64_rspdisp64(0x8B, r1, disp)
-#define MOVP_immptr_rptr(p,r1)       x86_encode_opcodereg( (sizeof(void*)==8 ? PREF_REXW : 0), 0xB8, r1); OPPTR(p)
+#define MOVP_immptr_rptr(p,r1)       x86_encode_opcodereg( PREF_PTR, 0xB8, r1); OPPTR(p)
 #define MOVP_moffptr_rax(p)          if( sizeof(void*)==8 ) { OP(PREF_REXW); } OP(0xA1); OPPTR(p)
+#define MOVP_rptr_rptr(r1,r2)        x86_encode_reg_rm(PREF_PTR, 0x89, r1, r2)
 #define MOVP_sib_rptr(ss,ii,bb,d,r1) x86_encode_rptr_memptr(0x8B, r1, bb, ii, ss, d)
 
 #define MOVSXL_r8_r32(r1,r2)         x86_encode_r32_rm32(0x0FBE, r2, r1)
@@ -766,3 +778,12 @@ static void x86_encode_modrm_rip(int rexw, uint32_t opcode, int rr, int32_t disp
 #define MOVSHDUP_xmm_xmm(r1,r2)      OP(0xF3); x86_encode_r32_rm32(0x0F16, r2, r1)
 #define MOVSLDUP_rbpdisp_xmm(dsp,r1) OP(0xF3); x86_encode_r32_rbpdisp32(0x0F12, r1, dsp)
 #define MOVSLDUP_xmm_xmm(r1,r2)      OP(0xF3); x86_encode_r32_rm32(0x0F12, r2, r1)
+
+/************************ Import calling conventions *************************/
+#if SIZEOF_VOID_P == 8
+#include "xlat/x86/amd64abi.h"
+#else /* 32-bit system */
+#include "xlat/x86/ia32abi.h"
+#endif
+
+#endif /* !lxdream_x86op_H */
