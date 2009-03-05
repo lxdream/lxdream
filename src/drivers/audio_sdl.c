@@ -32,6 +32,7 @@ char *audio_buffer;
 int buffer_pos;
 
 void mix_audio(void *userdata, Uint8 *stream, int len);
+void audio_sdl_start();
 
 gboolean audio_sdl_init( )
 {
