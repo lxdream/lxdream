@@ -347,7 +347,7 @@ static void call_read_func(int addr_reg, int value_reg, int offset, int pc)
     }
 }     
 
-static void call_write_func(int addr_reg, int value_reg, int value_reg, int pc)
+static void call_write_func(int addr_reg, int value_reg, int offset, int pc)
 {
     decode_address(addr_reg);
     CALL2_r32disp_r32_r32(REG_ECX, offset, addr_reg, value_reg);
