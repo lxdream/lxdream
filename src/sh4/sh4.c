@@ -23,6 +23,7 @@
 #include <assert.h>
 #include "lxdream.h"
 #include "dreamcast.h"
+#include "cpu.h"
 #include "mem.h"
 #include "clock.h"
 #include "eventq.h"
@@ -30,6 +31,7 @@
 #include "sh4/intc.h"
 #include "sh4/mmu.h"
 #include "sh4/sh4core.h"
+#include "sh4/sh4dasm.h"
 #include "sh4/sh4mmio.h"
 #include "sh4/sh4stat.h"
 #include "sh4/sh4trans.h"
@@ -46,9 +48,98 @@ void sh4_start( void );
 void sh4_stop( void );
 void sh4_save_state( FILE *f );
 int sh4_load_state( FILE *f );
+size_t sh4_debug_read_phys( unsigned char *buf, uint32_t addr, size_t length );
+size_t sh4_debug_write_phys( uint32_t addr, unsigned char *buf, size_t length );
+size_t sh4_debug_read_vma( unsigned char *buf, uint32_t addr, size_t length );
+size_t sh4_debug_write_vma( uint32_t addr, unsigned char *buf, size_t length );
 
 uint32_t sh4_run_slice( uint32_t );
 uint32_t sh4_xlat_run_slice( uint32_t );
+
+/* Note: this must match GDB's ordering */
+const struct reg_desc_struct sh4_reg_map[] = 
+  { {"R0", REG_INT, &sh4r.r[0]}, {"R1", REG_INT, &sh4r.r[1]},
+    {"R2", REG_INT, &sh4r.r[2]}, {"R3", REG_INT, &sh4r.r[3]},
+    {"R4", REG_INT, &sh4r.r[4]}, {"R5", REG_INT, &sh4r.r[5]},
+    {"R6", REG_INT, &sh4r.r[6]}, {"R7", REG_INT, &sh4r.r[7]},
+    {"R8", REG_INT, &sh4r.r[8]}, {"R9", REG_INT, &sh4r.r[9]},
+    {"R10",REG_INT, &sh4r.r[10]}, {"R11",REG_INT, &sh4r.r[11]},
+    {"R12",REG_INT, &sh4r.r[12]}, {"R13",REG_INT, &sh4r.r[13]},
+    {"R14",REG_INT, &sh4r.r[14]}, {"R15",REG_INT, &sh4r.r[15]},
+    {"PC", REG_INT, &sh4r.pc}, {"PR", REG_INT, &sh4r.pr},
+    {"GBR", REG_INT, &sh4r.gbr}, {"VBR",REG_INT, &sh4r.vbr}, 
+    {"MACH",REG_INT, ((uint32_t *)&sh4r.mac)+1}, {"MACL",REG_INT, &sh4r.mac},
+    {"SR", REG_INT, &sh4r.sr},
+    {"FPUL", REG_INT, &sh4r.fpul.i}, {"FPSCR", REG_INT, &sh4r.fpscr},
+    
+    {"FR0", REG_FLOAT, &sh4r.fr[0][1] },{"FR1", REG_FLOAT, &sh4r.fr[0][0]},
+    {"FR2", REG_FLOAT, &sh4r.fr[0][3] },{"FR3", REG_FLOAT, &sh4r.fr[0][2]},
+    {"FR4", REG_FLOAT, &sh4r.fr[0][5] },{"FR5", REG_FLOAT, &sh4r.fr[0][4]},
+    {"FR6", REG_FLOAT, &sh4r.fr[0][7] },{"FR7", REG_FLOAT, &sh4r.fr[0][6]},
+    {"FR8", REG_FLOAT, &sh4r.fr[0][9] },{"FR9", REG_FLOAT, &sh4r.fr[0][8]},
+    {"FR10", REG_FLOAT, &sh4r.fr[0][11] },{"FR11", REG_FLOAT, &sh4r.fr[0][10]},
+    {"FR12", REG_FLOAT, &sh4r.fr[0][13] },{"FR13", REG_FLOAT, &sh4r.fr[0][12]},
+    {"FR14", REG_FLOAT, &sh4r.fr[0][15] },{"FR15", REG_FLOAT, &sh4r.fr[0][14]},
+
+    {"SSR",REG_INT, &sh4r.ssr}, {"SPC", REG_INT, &sh4r.spc},
+    
+    {"R0B0", REG_INT, NULL}, {"R1B0", REG_INT, NULL},
+    {"R2B0", REG_INT, NULL}, {"R3B0", REG_INT, NULL},
+    {"R4B0", REG_INT, NULL}, {"R5B0", REG_INT, NULL},
+    {"R6B0", REG_INT, NULL}, {"R7B0", REG_INT, NULL},
+    {"R0B1", REG_INT, NULL}, {"R1B1", REG_INT, NULL},
+    {"R2B1", REG_INT, NULL}, {"R3B1", REG_INT, NULL},
+    {"R4B1", REG_INT, NULL}, {"R5B1", REG_INT, NULL},
+    {"R6B1", REG_INT, NULL}, {"R7B1", REG_INT, NULL},
+    
+    {"SGR",REG_INT, &sh4r.sgr}, {"DBR", REG_INT, &sh4r.dbr},
+
+    {"XF0", REG_FLOAT, &sh4r.fr[1][1] },{"XF1", REG_FLOAT, &sh4r.fr[1][0]},
+    {"XF2", REG_FLOAT, &sh4r.fr[1][3] },{"XF3", REG_FLOAT, &sh4r.fr[1][2]},
+    {"XF4", REG_FLOAT, &sh4r.fr[1][5] },{"XF5", REG_FLOAT, &sh4r.fr[1][4]},
+    {"XF6", REG_FLOAT, &sh4r.fr[1][7] },{"XF7", REG_FLOAT, &sh4r.fr[1][6]},
+    {"XF8", REG_FLOAT, &sh4r.fr[1][9] },{"XF9", REG_FLOAT, &sh4r.fr[1][8]},
+    {"XF10", REG_FLOAT, &sh4r.fr[1][11] },{"XF11", REG_FLOAT, &sh4r.fr[1][10]},
+    {"XF12", REG_FLOAT, &sh4r.fr[1][13] },{"XF13", REG_FLOAT, &sh4r.fr[1][12]},
+    {"XF14", REG_FLOAT, &sh4r.fr[1][15] },{"XF15", REG_FLOAT, &sh4r.fr[1][14]},
+    
+    {NULL, 0, NULL} };
+
+void *sh4_get_register( int reg )
+{
+    if( reg < 0 || reg >= 94 ) {
+        return NULL;
+    } else if( reg < 43 ) {
+        return sh4_reg_map[reg].value;
+    } else if( reg < 51 ) {
+        /* r0b0..r7b0 */
+        if( (sh4r.sr & SR_MDRB) == SR_MDRB ) {
+            /* bank 1 is primary */
+            return &sh4r.r_bank[reg-43];
+        } else {
+            return &sh4r.r[reg-43];
+        }
+    } else if( reg < 59 ) {
+        /* r0b1..r7b1 */
+        if( (sh4r.sr & SR_MDRB) == SR_MDRB ) {
+            /* bank 1 is primary */
+            return &sh4r.r[reg-43];
+        } else {
+            return &sh4r.r_bank[reg-43];
+        }
+    } else {
+        return NULL; /* not supported at the moment */
+    }
+}
+
+
+const struct cpu_desc_struct sh4_cpu_desc = 
+    { "SH4", sh4_disasm_instruction, sh4_get_register, sh4_has_page,
+            sh4_debug_read_phys, sh4_debug_write_phys, sh4_debug_read_vma, sh4_debug_write_vma,
+            sh4_execute_instruction, 
+      sh4_set_breakpoint, sh4_clear_breakpoint, sh4_get_breakpoint, 2,
+      (char *)&sh4r, sizeof(sh4r), sh4_reg_map, 23, 59,
+      &sh4r.pc };
 
 struct dreamcast_module sh4_module = { "SH4", sh4_init, sh4_poweron_reset, 
         sh4_start, sh4_run_slice, sh4_stop,
@@ -545,4 +636,78 @@ gboolean sh4_has_page( sh4vma_t vma )
 {
     sh4addr_t addr = mmu_vma_to_phys_disasm(vma);
     return addr != MMU_VMA_ERROR && mem_has_page(addr);
+}
+
+/**
+ * Go through ext_address_space page by page
+ */
+size_t sh4_debug_read_phys( unsigned char *buf, uint32_t addr, size_t length )
+{
+    /* Quick and very dirty */
+    unsigned char *region = mem_get_region(addr);
+    if( region == NULL ) {
+        memset( buf, 0, length );
+    } else {
+        memcpy( buf, region, length );
+    }
+    return length;
+}
+
+size_t sh4_debug_write_phys( uint32_t addr, unsigned char *buf, size_t length )
+{
+    unsigned char *region = mem_get_region(addr);
+    if( region != NULL ) {
+        memcpy( region, buf, length );
+    }
+    return length;
+}
+
+/**
+ * Read virtual memory - for now just go 1K at a time 
+ */
+size_t sh4_debug_read_vma( unsigned char *buf, uint32_t addr, size_t length )
+{
+    if( IS_TLB_ENABLED() ) {
+        size_t read_len = 0;
+        while( length > 0 ) {
+            sh4addr_t phys = mmu_vma_to_phys_disasm(addr);
+            if( phys == MMU_VMA_ERROR )
+                break;
+            int next_len = 1024 - (phys&0x000003FF);
+            if( next_len >= length ) {
+                next_len = length;
+            }
+            sh4_debug_read_phys( buf, phys, length );
+            buf += next_len;
+            addr += next_len;
+            read_len += next_len; 
+            length -= next_len;
+        }
+        return read_len;
+    } else {
+        return sh4_debug_read_phys( buf, addr, length );
+    }
+}
+
+size_t sh4_debug_write_vma( uint32_t addr, unsigned char *buf, size_t length )
+{
+    if( IS_TLB_ENABLED() ) {
+        size_t read_len = 0;
+        while( length > 0 ) {
+            sh4addr_t phys = mmu_vma_to_phys_disasm(addr);
+            if( phys == MMU_VMA_ERROR )
+                break;
+            int next_len = 1024 - (phys&0x000003FF);
+            if( next_len >= length ) {
+                next_len = length;
+            }
+            sh4_debug_write_phys( phys, buf, length );
+            buf += next_len;
+            addr += next_len;
+            read_len += next_len; 
+            length -= next_len;
+        }
+    } else {
+        return sh4_debug_write_phys( addr, buf, length );
+    }
 }

@@ -264,3 +264,27 @@ void arm_write_byte_user( uint32_t addr, uint32_t val )
 {
     arm_write_byte( addr, val );
 }
+
+size_t arm_read_phys( unsigned char *buf, uint32_t addr, size_t length ) {
+    if( addr < sizeof(aica_main_ram) ) {
+        if( addr+length > sizeof(aica_main_ram) ) {
+            length = sizeof(aica_main_ram) - addr;
+        }
+        memcpy( buf, &aica_main_ram[addr], length );
+        return length;
+    } else {
+        return 0;
+    }
+}
+
+size_t arm_write_phys( uint32_t addr, unsigned char *buf, size_t length ) {
+    if( addr < sizeof(aica_main_ram) ) {
+        if( addr+length > sizeof(aica_main_ram) ) {
+            length = sizeof(aica_main_ram) - addr;
+        }
+        memcpy( &aica_main_ram[addr], buf, length );
+        return length;
+    } else {
+        return 0;
+    }
+}

@@ -30,8 +30,6 @@ extern "C" {
 uint32_t sh4_disasm_instruction( uint32_t pc, char *buf, int len, char * );
 void sh4_disasm_region( FILE *f, int from, int to );
 
-extern const struct cpu_desc_struct sh4_cpu_desc;
-
 #ifdef __cplusplus
 }
 #endif
