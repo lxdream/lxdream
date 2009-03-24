@@ -99,7 +99,7 @@ gdrom_disc_t cdi_image_open( const gchar *filename, FILE *f )
     }
 
     if( trail.cdi_version == CDI_V35_ID ) {
-        fseek( f, -trail.header_offset, SEEK_END );
+        fseek( f, -(long)trail.header_offset, SEEK_END );
     } else {
         fseek( f, trail.header_offset, SEEK_SET );
     }
