@@ -3,6 +3,7 @@ SVNVERSION=@SVNVERSION@
 INCLUDES = \
 	-DPACKAGE_DATA_DIR=\""$(datadir)"\" \
 	-DPACKAGE_LOCALE_DIR=\""$(prefix)/$(DATADIRNAME)/locale"\" \
+	-DPACKAGE_PLUGIN_DIR=\""$(pkglibdir)"\" \
 	-DPACKAGE_CONF_DIR=\""$(sysconfdir)"\" \
         -Ish4 \
 	@GLIB_CFLAGS@ @GTK_CFLAGS@ @LIBPNG_CFLAGS@ @PULSE_CFLAGS@ @ESOUND_CFLAGS@ @ALSA_CFLAGS@ @SDL_CFLAGS@
@@ -36,7 +37,8 @@ lxdream_SOURCES = \
         main.c version.c config.c config.h lxdream.h dream.h gui.h cpu.h hook.h \
         gettext.h mem.c mem.h sdram.c mmio.h watch.c \
         asic.c asic.h clock.h serial.h \
-        syscall.c syscall.h bios.c dcload.c \
+        syscall.c syscall.h bios.c dcload.c gdbserver.c \
+        netutil.c netutil.h \
         gdrom/ide.c gdrom/ide.h gdrom/packet.h gdrom/gdimage.c \
 	gdrom/gdrom.c gdrom/gdrom.h gdrom/nrg.c gdrom/cdi.c gdrom/gdi.c \
 	gdrom/edc_ecc.c gdrom/ecc.h gdrom/edc_crctable.h gdrom/edc_encoder.h \
@@ -87,14 +89,15 @@ lxdream_SOURCES += gtkui/gtkui.c gtkui/gtkui.h \
 	gtkui/gtk_win.c gtkui/gtkcb.c \
         gtkui/gtk_mmio.c gtkui/gtk_debug.c gtkui/gtk_dump.c \
         gtkui/gtk_ctrl.c gtkui/gtk_path.c gtkui/gtk_gd.c \
-        drivers/video_gtk.c
+        drivers/net_glib.c drivers/video_gtk.c
 endif
 
 if GUI_COCOA
 lxdream_SOURCES += cocoaui/cocoaui.m cocoaui/cocoaui.h \
 	cocoaui/cocoa_win.m cocoaui/cocoa_gd.m cocoaui/cocoa_prefs.m \
 	cocoaui/cocoa_path.m cocoaui/cocoa_ctrl.m cocoaui/paths_osx.m \
-	drivers/video_osx.m drivers/mac_keymap.h drivers/mac_keymap.txt
+	drivers/net_osx.m drivers/video_osx.m \
+	drivers/mac_keymap.h drivers/mac_keymap.txt
 else
 lxdream_SOURCES += paths_unix.c
 endif

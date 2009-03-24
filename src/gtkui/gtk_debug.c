@@ -200,11 +200,16 @@ void init_register_list( debug_window_t data )
     arr[1] = buf;
     for( i=0; data->cpu->regs_info[i].name != NULL; i++ ) {
         arr[0] = data->cpu->regs_info[i].name;
-        if( data->cpu->regs_info->type == REG_INT )
-            sprintf( buf, "%08X", *((uint32_t *)data->cpu->regs_info[i].value) );
-        else
-            sprintf( buf, "%f", *((float *)data->cpu->regs_info[i].value) );
-        gtk_clist_append( data->regs_list, arr );
+        void *value = data->cpu->get_register(i);
+        if( value != NULL ) {
+            if( data->cpu->regs_info->type == REG_INT ) {
+                sprintf( buf, "%08X", *((uint32_t *)value) );
+                gtk_clist_append( data->regs_list, arr );
+            } else if( data->cpu->regs_info->type == REG_FLOAT ) {
+                sprintf( buf, "%f", *((float *)value) );
+                gtk_clist_append( data->regs_list, arr );
+            }
+        }
     }
 }
 
@@ -214,27 +219,33 @@ void init_register_list( debug_window_t data )
 void debug_window_update( debug_window_t data )
 {
     int i;
+    int posn = 0;
     for( i=0; data->cpu->regs_info[i].name != NULL; i++ ) {
-        if( data->cpu->regs_info[i].type == REG_INT ) {
-            /* Yes this _is_ probably fairly evil */
-            if( *((uint32_t *)data->cpu->regs_info[i].value) !=
-                *((uint32_t *)((char *)data->saved_regs + ((char *)data->cpu->regs_info[i].value - (char *)data->cpu->regs))) ) {
-                char buf[20];
-                sprintf( buf, "%08X", *((uint32_t *)data->cpu->regs_info[i].value) );
-                gtk_clist_set_text( data->regs_list, i, 1, buf );
-                gtk_clist_set_foreground( data->regs_list, i, &gui_colour_changed );
+        void *value = data->cpu->get_register(i);
+        if( value != NULL ) {
+            if( data->cpu->regs_info[i].type == REG_INT ) {
+                /* Yes this _is_ probably fairly evil */
+                if( *((uint32_t *)value) !=
+                    *((uint32_t *)((char *)data->saved_regs + ((char *)value - (char *)data->cpu->regs))) ) {
+                    char buf[20];
+                    sprintf( buf, "%08X", *((uint32_t *)value) );
+                    gtk_clist_set_text( data->regs_list, posn, 1, buf );
+                    gtk_clist_set_foreground( data->regs_list, posn, &gui_colour_changed );
+                } else {
+                    gtk_clist_set_foreground( data->regs_list, posn, &gui_colour_normal );
+                }
+                posn++;
             } else {
-                gtk_clist_set_foreground( data->regs_list, i, &gui_colour_normal );
-            }
-        } else {
-            if( *((float *)data->cpu->regs_info[i].value) !=
-                *((float *)((char *)data->saved_regs + ((char *)data->cpu->regs_info[i].value - (char *)data->cpu->regs))) ) {
-                char buf[20];
-                sprintf( buf, "%f", *((float *)data->cpu->regs_info[i].value) );
-                gtk_clist_set_text( data->regs_list, i, 1, buf );
-                gtk_clist_set_foreground( data->regs_list, i, &gui_colour_changed );
-            } else {
-                gtk_clist_set_foreground( data->regs_list, i, &gui_colour_normal );
+                if( *((float *)value) !=
+                    *((float *)((char *)data->saved_regs + ((char *)value - (char *)data->cpu->regs))) ) {
+                    char buf[20];
+                    sprintf( buf, "%f", *((float *)value) );
+                    gtk_clist_set_text( data->regs_list, i, posn, buf );
+                    gtk_clist_set_foreground( data->regs_list, posn, &gui_colour_changed );
+                } else {
+                    gtk_clist_set_foreground( data->regs_list, posn, &gui_colour_normal );
+                }
+                posn++;
             }
         }
     }

@@ -34,14 +34,16 @@
 #include "gdrom/gdrom.h"
 #include "maple/maple.h"
 #include "sh4/sh4.h"
+#include "aica/armdasm.h"
 
-
-char *option_list = "a:A:c:dhHl:m:npt:T:uvV:x?";
+char *option_list = "a:A:c:dg:G:hHl:m:npt:T:uvV:x?";
 struct option longopts[] = {
         { "aica", required_argument, NULL, 'a' },
         { "audio", required_argument, NULL, 'A' },
         { "config", required_argument, NULL, 'c' },
         { "debugger", no_argument, NULL, 'D' },
+        { "gdb-sh4", required_argument, NULL, 'g' },  
+        { "gdb-arm", required_argument, NULL, 'G' },  
         { "help", no_argument, NULL, 'h' },
         { "headless", no_argument, NULL, 'H' },
         { "log", required_argument, NULL,'l' }, 
@@ -56,6 +58,8 @@ char *aica_program = NULL;
 char *display_driver_name = NULL;
 char *audio_driver_name = NULL;
 char *trace_regions = NULL;
+char *sh4_gdb_port = NULL;
+char *arm_gdb_port = NULL;
 gboolean start_immediately = FALSE;
 gboolean no_start = FALSE;
 gboolean headless = FALSE;
@@ -78,6 +82,8 @@ static void print_usage()
     printf( "   -A, --audio=DRIVER     %s\n", _("Use the specified audio driver (? to list)") );
     printf( "   -c, --config=CONFFILE  %s\n", _("Load configuration from CONFFILE") );
     printf( "   -d, --debugger         %s\n", _("Start in debugger mode") );
+    printf( "   -g, --gdb-sh4=PORT     %s\n", _("Start GDB remote server on PORT for SH4") );
+    printf( "   -G, --gdb-arm=PORT     %s\n", _("Start GDB remote server on PORT for ARM") );
     printf( "   -h, --help             %s\n", _("Display this usage information") );
     printf( "   -H, --headless         %s\n", _("Run in headless (no video) mode") );
     printf( "   -l, --log=LEVEL        %s\n", _("Set the output log level") );
@@ -129,6 +135,12 @@ int main (int argc, char *argv[])
             break;
         case 'd': /* Launch w/ debugger */
             show_debugger = TRUE;
+            break;
+        case 'g':
+            sh4_gdb_port = optarg;
+            break;
+        case 'G':
+            arm_gdb_port = optarg;
             break;
         case 'h': /* help */
         case '?':
@@ -242,6 +254,16 @@ int main (int argc, char *argv[])
 
     sh4_translate_set_enabled( use_xlat );
 
+    /* If requested, start the gdb server immediately before we go into the main
+     * loop.
+     */
+    if( sh4_gdb_port != NULL ) {
+        gdb_init_server( NULL, strtol(sh4_gdb_port,NULL,0), &sh4_cpu_desc, TRUE );
+    }
+    if( arm_gdb_port != NULL ) {
+        gdb_init_server( NULL, strtol(arm_gdb_port,NULL,0), &arm_cpu_desc, TRUE );
+    }
+    
     if( headless ) {
         dreamcast_run();
     } else {

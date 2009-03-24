@@ -52,12 +52,13 @@ check_PROGRAMS = test/testxlt$(EXEEXT) $(am__EXEEXT_1)
 @GUI_GTK_TRUE@	gtkui/gtk_win.c gtkui/gtkcb.c \
 @GUI_GTK_TRUE@        gtkui/gtk_mmio.c gtkui/gtk_debug.c gtkui/gtk_dump.c \
 @GUI_GTK_TRUE@        gtkui/gtk_ctrl.c gtkui/gtk_path.c gtkui/gtk_gd.c \
-@GUI_GTK_TRUE@        drivers/video_gtk.c
+@GUI_GTK_TRUE@        drivers/net_glib.c drivers/video_gtk.c
 
 @GUI_COCOA_TRUE@am__append_4 = cocoaui/cocoaui.m cocoaui/cocoaui.h \
 @GUI_COCOA_TRUE@	cocoaui/cocoa_win.m cocoaui/cocoa_gd.m cocoaui/cocoa_prefs.m \
 @GUI_COCOA_TRUE@	cocoaui/cocoa_path.m cocoaui/cocoa_ctrl.m cocoaui/paths_osx.m \
-@GUI_COCOA_TRUE@	drivers/video_osx.m drivers/mac_keymap.h drivers/mac_keymap.txt
+@GUI_COCOA_TRUE@	drivers/net_osx.m drivers/video_osx.m \
+@GUI_COCOA_TRUE@	drivers/mac_keymap.h drivers/mac_keymap.txt
 
 @GUI_COCOA_FALSE@am__append_5 = paths_unix.c
 @VIDEO_OSMESA_TRUE@am__append_6 = drivers/video_gdk.c
@@ -97,42 +98,43 @@ genglsl_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am__lxdream_SOURCES_DIST = main.c version.c config.c config.h \
 	lxdream.h dream.h gui.h cpu.h hook.h gettext.h mem.c mem.h \
 	sdram.c mmio.h watch.c asic.c asic.h clock.h serial.h \
-	syscall.c syscall.h bios.c dcload.c gdrom/ide.c gdrom/ide.h \
-	gdrom/packet.h gdrom/gdimage.c gdrom/gdrom.c gdrom/gdrom.h \
-	gdrom/nrg.c gdrom/cdi.c gdrom/gdi.c gdrom/edc_ecc.c \
-	gdrom/ecc.h gdrom/edc_crctable.h gdrom/edc_encoder.h \
-	gdrom/edc_l2sq.h gdrom/edc_scramble.h gdrom/mmc.c \
-	gdrom/gddriver.h dreamcast.c dreamcast.h eventq.c eventq.h \
-	sh4/sh4.c sh4/intc.c sh4/intc.h sh4/sh4mem.c sh4/timer.c \
-	sh4/dmac.c sh4/mmu.c sh4/sh4core.c sh4/sh4core.h sh4/sh4dasm.c \
-	sh4/sh4dasm.h sh4/sh4mmio.c sh4/sh4mmio.h sh4/scif.c \
-	sh4/sh4stat.c sh4/sh4stat.h xlat/xltcache.c xlat/xltcache.h \
-	sh4/sh4.h sh4/dmac.h sh4/pmm.c sh4/cache.c sh4/mmu.h \
-	aica/armcore.c aica/armcore.h aica/armdasm.c aica/armdasm.h \
-	aica/armmem.c aica/aica.c aica/aica.h aica/audio.c \
-	aica/audio.h pvr2/pvr2.c pvr2/pvr2.h pvr2/pvr2mem.c \
-	pvr2/pvr2mmio.h pvr2/tacore.c pvr2/rendsort.c pvr2/texcache.c \
-	pvr2/yuv.c pvr2/rendsave.c pvr2/scene.c pvr2/scene.h \
-	pvr2/gl_sl.c pvr2/gl_slsrc.c pvr2/glutil.c pvr2/glutil.h \
-	pvr2/glrender.c pvr2/vertex.glsl pvr2/fragment.glsl \
-	maple/maple.c maple/maple.h maple/controller.c maple/kbd.c \
-	maple/mouse.c maple/lightgun.c loader.c loader.h elf.h \
-	bootstrap.c bootstrap.h util.c gdlist.c gdlist.h display.c \
-	display.h dckeysyms.h drivers/audio_null.c \
-	drivers/video_null.c drivers/video_gl.c drivers/video_gl.h \
-	drivers/gl_fbo.c sh4/sh4.def sh4/sh4core.in sh4/sh4x86.in \
-	sh4/sh4dasm.in sh4/sh4stat.in sh4/sh4x86.c xlat/x86/x86op.h \
-	xlat/x86/ia32abi.h xlat/x86/amd64abi.h sh4/sh4trans.c \
-	sh4/sh4trans.h sh4/mmux86.c x86dasm/x86dasm.c \
+	syscall.c syscall.h bios.c dcload.c gdbserver.c netutil.c \
+	netutil.h gdrom/ide.c gdrom/ide.h gdrom/packet.h \
+	gdrom/gdimage.c gdrom/gdrom.c gdrom/gdrom.h gdrom/nrg.c \
+	gdrom/cdi.c gdrom/gdi.c gdrom/edc_ecc.c gdrom/ecc.h \
+	gdrom/edc_crctable.h gdrom/edc_encoder.h gdrom/edc_l2sq.h \
+	gdrom/edc_scramble.h gdrom/mmc.c gdrom/gddriver.h dreamcast.c \
+	dreamcast.h eventq.c eventq.h sh4/sh4.c sh4/intc.c sh4/intc.h \
+	sh4/sh4mem.c sh4/timer.c sh4/dmac.c sh4/mmu.c sh4/sh4core.c \
+	sh4/sh4core.h sh4/sh4dasm.c sh4/sh4dasm.h sh4/sh4mmio.c \
+	sh4/sh4mmio.h sh4/scif.c sh4/sh4stat.c sh4/sh4stat.h \
+	xlat/xltcache.c xlat/xltcache.h sh4/sh4.h sh4/dmac.h sh4/pmm.c \
+	sh4/cache.c sh4/mmu.h aica/armcore.c aica/armcore.h \
+	aica/armdasm.c aica/armdasm.h aica/armmem.c aica/aica.c \
+	aica/aica.h aica/audio.c aica/audio.h pvr2/pvr2.c pvr2/pvr2.h \
+	pvr2/pvr2mem.c pvr2/pvr2mmio.h pvr2/tacore.c pvr2/rendsort.c \
+	pvr2/texcache.c pvr2/yuv.c pvr2/rendsave.c pvr2/scene.c \
+	pvr2/scene.h pvr2/gl_sl.c pvr2/gl_slsrc.c pvr2/glutil.c \
+	pvr2/glutil.h pvr2/glrender.c pvr2/vertex.glsl \
+	pvr2/fragment.glsl maple/maple.c maple/maple.h \
+	maple/controller.c maple/kbd.c maple/mouse.c maple/lightgun.c \
+	loader.c loader.h elf.h bootstrap.c bootstrap.h util.c \
+	gdlist.c gdlist.h display.c display.h dckeysyms.h \
+	drivers/audio_null.c drivers/video_null.c drivers/video_gl.c \
+	drivers/video_gl.h drivers/gl_fbo.c sh4/sh4.def sh4/sh4core.in \
+	sh4/sh4x86.in sh4/sh4dasm.in sh4/sh4stat.in sh4/sh4x86.c \
+	xlat/x86/x86op.h xlat/x86/ia32abi.h xlat/x86/amd64abi.h \
+	sh4/sh4trans.c sh4/sh4trans.h sh4/mmux86.c x86dasm/x86dasm.c \
 	x86dasm/x86dasm.h x86dasm/i386-dis.c x86dasm/dis-init.c \
 	x86dasm/dis-buf.c x86dasm/ansidecl.h x86dasm/bfd.h \
 	x86dasm/dis-asm.h x86dasm/symcat.h x86dasm/sysdep.h \
 	gtkui/gtkui.c gtkui/gtkui.h gtkui/gtk_win.c gtkui/gtkcb.c \
 	gtkui/gtk_mmio.c gtkui/gtk_debug.c gtkui/gtk_dump.c \
 	gtkui/gtk_ctrl.c gtkui/gtk_path.c gtkui/gtk_gd.c \
-	drivers/video_gtk.c cocoaui/cocoaui.m cocoaui/cocoaui.h \
-	cocoaui/cocoa_win.m cocoaui/cocoa_gd.m cocoaui/cocoa_prefs.m \
-	cocoaui/cocoa_path.m cocoaui/cocoa_ctrl.m cocoaui/paths_osx.m \
+	drivers/net_glib.c drivers/video_gtk.c cocoaui/cocoaui.m \
+	cocoaui/cocoaui.h cocoaui/cocoa_win.m cocoaui/cocoa_gd.m \
+	cocoaui/cocoa_prefs.m cocoaui/cocoa_path.m \
+	cocoaui/cocoa_ctrl.m cocoaui/paths_osx.m drivers/net_osx.m \
 	drivers/video_osx.m drivers/mac_keymap.h \
 	drivers/mac_keymap.txt paths_unix.c drivers/video_gdk.c \
 	drivers/video_glx.c drivers/video_glx.h drivers/video_nsgl.m \
@@ -149,11 +151,13 @@ am__lxdream_SOURCES_DIST = main.c version.c config.c config.h \
 @GUI_GTK_TRUE@	gtkcb.$(OBJEXT) gtk_mmio.$(OBJEXT) \
 @GUI_GTK_TRUE@	gtk_debug.$(OBJEXT) gtk_dump.$(OBJEXT) \
 @GUI_GTK_TRUE@	gtk_ctrl.$(OBJEXT) gtk_path.$(OBJEXT) \
-@GUI_GTK_TRUE@	gtk_gd.$(OBJEXT) video_gtk.$(OBJEXT)
+@GUI_GTK_TRUE@	gtk_gd.$(OBJEXT) net_glib.$(OBJEXT) \
+@GUI_GTK_TRUE@	video_gtk.$(OBJEXT)
 @GUI_COCOA_TRUE@am__objects_3 = cocoaui.$(OBJEXT) cocoa_win.$(OBJEXT) \
 @GUI_COCOA_TRUE@	cocoa_gd.$(OBJEXT) cocoa_prefs.$(OBJEXT) \
 @GUI_COCOA_TRUE@	cocoa_path.$(OBJEXT) cocoa_ctrl.$(OBJEXT) \
-@GUI_COCOA_TRUE@	paths_osx.$(OBJEXT) video_osx.$(OBJEXT)
+@GUI_COCOA_TRUE@	paths_osx.$(OBJEXT) net_osx.$(OBJEXT) \
+@GUI_COCOA_TRUE@	video_osx.$(OBJEXT)
 @GUI_COCOA_FALSE@am__objects_4 = paths_unix.$(OBJEXT)
 @VIDEO_OSMESA_TRUE@am__objects_5 = video_gdk.$(OBJEXT)
 @VIDEO_GLX_TRUE@am__objects_6 = video_glx.$(OBJEXT)
@@ -170,8 +174,9 @@ am__lxdream_SOURCES_DIST = main.c version.c config.c config.h \
 am_lxdream_OBJECTS = main.$(OBJEXT) version.$(OBJEXT) config.$(OBJEXT) \
 	mem.$(OBJEXT) sdram.$(OBJEXT) watch.$(OBJEXT) asic.$(OBJEXT) \
 	syscall.$(OBJEXT) bios.$(OBJEXT) dcload.$(OBJEXT) \
-	ide.$(OBJEXT) gdimage.$(OBJEXT) gdrom.$(OBJEXT) nrg.$(OBJEXT) \
-	cdi.$(OBJEXT) gdi.$(OBJEXT) edc_ecc.$(OBJEXT) mmc.$(OBJEXT) \
+	gdbserver.$(OBJEXT) netutil.$(OBJEXT) ide.$(OBJEXT) \
+	gdimage.$(OBJEXT) gdrom.$(OBJEXT) nrg.$(OBJEXT) cdi.$(OBJEXT) \
+	gdi.$(OBJEXT) edc_ecc.$(OBJEXT) mmc.$(OBJEXT) \
 	dreamcast.$(OBJEXT) eventq.$(OBJEXT) sh4.$(OBJEXT) \
 	intc.$(OBJEXT) sh4mem.$(OBJEXT) timer.$(OBJEXT) dmac.$(OBJEXT) \
 	mmu.$(OBJEXT) sh4core.$(OBJEXT) sh4dasm.$(OBJEXT) \
@@ -407,6 +412,7 @@ SVNVERSION = @SVNVERSION@
 INCLUDES = \
 	-DPACKAGE_DATA_DIR=\""$(datadir)"\" \
 	-DPACKAGE_LOCALE_DIR=\""$(prefix)/$(DATADIRNAME)/locale"\" \
+	-DPACKAGE_PLUGIN_DIR=\""$(pkglibdir)"\" \
 	-DPACKAGE_CONF_DIR=\""$(sysconfdir)"\" \
         -Ish4 \
 	@GLIB_CFLAGS@ @GTK_CFLAGS@ @LIBPNG_CFLAGS@ @PULSE_CFLAGS@ @ESOUND_CFLAGS@ @ALSA_CFLAGS@ @SDL_CFLAGS@
@@ -428,19 +434,20 @@ lxdream_LINK = $(LINK)
 lxdream_SOURCES = main.c version.c config.c config.h lxdream.h dream.h \
 	gui.h cpu.h hook.h gettext.h mem.c mem.h sdram.c mmio.h \
 	watch.c asic.c asic.h clock.h serial.h syscall.c syscall.h \
-	bios.c dcload.c gdrom/ide.c gdrom/ide.h gdrom/packet.h \
-	gdrom/gdimage.c gdrom/gdrom.c gdrom/gdrom.h gdrom/nrg.c \
-	gdrom/cdi.c gdrom/gdi.c gdrom/edc_ecc.c gdrom/ecc.h \
-	gdrom/edc_crctable.h gdrom/edc_encoder.h gdrom/edc_l2sq.h \
-	gdrom/edc_scramble.h gdrom/mmc.c gdrom/gddriver.h dreamcast.c \
-	dreamcast.h eventq.c eventq.h sh4/sh4.c sh4/intc.c sh4/intc.h \
-	sh4/sh4mem.c sh4/timer.c sh4/dmac.c sh4/mmu.c sh4/sh4core.c \
-	sh4/sh4core.h sh4/sh4dasm.c sh4/sh4dasm.h sh4/sh4mmio.c \
-	sh4/sh4mmio.h sh4/scif.c sh4/sh4stat.c sh4/sh4stat.h \
-	xlat/xltcache.c xlat/xltcache.h sh4/sh4.h sh4/dmac.h sh4/pmm.c \
-	sh4/cache.c sh4/mmu.h aica/armcore.c aica/armcore.h \
-	aica/armdasm.c aica/armdasm.h aica/armmem.c aica/aica.c \
-	aica/aica.h aica/audio.c aica/audio.h pvr2/pvr2.c pvr2/pvr2.h \
+	bios.c dcload.c gdbserver.c netutil.c netutil.h gdrom/ide.c \
+	gdrom/ide.h gdrom/packet.h gdrom/gdimage.c gdrom/gdrom.c \
+	gdrom/gdrom.h gdrom/nrg.c gdrom/cdi.c gdrom/gdi.c \
+	gdrom/edc_ecc.c gdrom/ecc.h gdrom/edc_crctable.h \
+	gdrom/edc_encoder.h gdrom/edc_l2sq.h gdrom/edc_scramble.h \
+	gdrom/mmc.c gdrom/gddriver.h dreamcast.c dreamcast.h eventq.c \
+	eventq.h sh4/sh4.c sh4/intc.c sh4/intc.h sh4/sh4mem.c \
+	sh4/timer.c sh4/dmac.c sh4/mmu.c sh4/sh4core.c sh4/sh4core.h \
+	sh4/sh4dasm.c sh4/sh4dasm.h sh4/sh4mmio.c sh4/sh4mmio.h \
+	sh4/scif.c sh4/sh4stat.c sh4/sh4stat.h xlat/xltcache.c \
+	xlat/xltcache.h sh4/sh4.h sh4/dmac.h sh4/pmm.c sh4/cache.c \
+	sh4/mmu.h aica/armcore.c aica/armcore.h aica/armdasm.c \
+	aica/armdasm.h aica/armmem.c aica/aica.c aica/aica.h \
+	aica/audio.c aica/audio.h pvr2/pvr2.c pvr2/pvr2.h \
 	pvr2/pvr2mem.c pvr2/pvr2mmio.h pvr2/tacore.c pvr2/rendsort.c \
 	pvr2/texcache.c pvr2/yuv.c pvr2/rendsave.c pvr2/scene.c \
 	pvr2/scene.h pvr2/gl_sl.c pvr2/gl_slsrc.c pvr2/glutil.c \
@@ -592,6 +599,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dreamcast.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/edc_ecc.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eventq.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gdbserver.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gdi.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gdimage.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gdlist.Po@am__quote@
@@ -627,6 +635,9 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mmu.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mmux86.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mouse.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/net_glib.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/net_osx.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/netutil.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/nrg.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/osx_iokit.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/paths_osx.Po@am__quote@
@@ -1633,6 +1644,20 @@ gtk_gd.obj: gtkui/gtk_gd.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o gtk_gd.obj `if test -f 'gtkui/gtk_gd.c'; then $(CYGPATH_W) 'gtkui/gtk_gd.c'; else $(CYGPATH_W) '$(srcdir)/gtkui/gtk_gd.c'; fi`
 
+net_glib.o: drivers/net_glib.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT net_glib.o -MD -MP -MF "$(DEPDIR)/net_glib.Tpo" -c -o net_glib.o `test -f 'drivers/net_glib.c' || echo '$(srcdir)/'`drivers/net_glib.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/net_glib.Tpo" "$(DEPDIR)/net_glib.Po"; else rm -f "$(DEPDIR)/net_glib.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/net_glib.c' object='net_glib.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o net_glib.o `test -f 'drivers/net_glib.c' || echo '$(srcdir)/'`drivers/net_glib.c
+
+net_glib.obj: drivers/net_glib.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT net_glib.obj -MD -MP -MF "$(DEPDIR)/net_glib.Tpo" -c -o net_glib.obj `if test -f 'drivers/net_glib.c'; then $(CYGPATH_W) 'drivers/net_glib.c'; else $(CYGPATH_W) '$(srcdir)/drivers/net_glib.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/net_glib.Tpo" "$(DEPDIR)/net_glib.Po"; else rm -f "$(DEPDIR)/net_glib.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/net_glib.c' object='net_glib.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o net_glib.obj `if test -f 'drivers/net_glib.c'; then $(CYGPATH_W) 'drivers/net_glib.c'; else $(CYGPATH_W) '$(srcdir)/drivers/net_glib.c'; fi`
+
 video_gtk.o: drivers/video_gtk.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT video_gtk.o -MD -MP -MF "$(DEPDIR)/video_gtk.Tpo" -c -o video_gtk.o `test -f 'drivers/video_gtk.c' || echo '$(srcdir)/'`drivers/video_gtk.c; \
 @am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/video_gtk.Tpo" "$(DEPDIR)/video_gtk.Po"; else rm -f "$(DEPDIR)/video_gtk.Tpo"; exit 1; fi
@@ -1926,6 +1951,20 @@ paths_osx.obj: cocoaui/paths_osx.m
 @AMDEP_TRUE@@am__fastdepOBJC_FALSE@	source='cocoaui/paths_osx.m' object='paths_osx.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepOBJC_FALSE@	DEPDIR=$(DEPDIR) $(OBJCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepOBJC_FALSE@	$(OBJC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_OBJCFLAGS) $(OBJCFLAGS) -c -o paths_osx.obj `if test -f 'cocoaui/paths_osx.m'; then $(CYGPATH_W) 'cocoaui/paths_osx.m'; else $(CYGPATH_W) '$(srcdir)/cocoaui/paths_osx.m'; fi`
+
+net_osx.o: drivers/net_osx.m
+@am__fastdepOBJC_TRUE@	if $(OBJC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_OBJCFLAGS) $(OBJCFLAGS) -MT net_osx.o -MD -MP -MF "$(DEPDIR)/net_osx.Tpo" -c -o net_osx.o `test -f 'drivers/net_osx.m' || echo '$(srcdir)/'`drivers/net_osx.m; \
+@am__fastdepOBJC_TRUE@	then mv -f "$(DEPDIR)/net_osx.Tpo" "$(DEPDIR)/net_osx.Po"; else rm -f "$(DEPDIR)/net_osx.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepOBJC_FALSE@	source='drivers/net_osx.m' object='net_osx.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepOBJC_FALSE@	DEPDIR=$(DEPDIR) $(OBJCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepOBJC_FALSE@	$(OBJC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_OBJCFLAGS) $(OBJCFLAGS) -c -o net_osx.o `test -f 'drivers/net_osx.m' || echo '$(srcdir)/'`drivers/net_osx.m
+
+net_osx.obj: drivers/net_osx.m
+@am__fastdepOBJC_TRUE@	if $(OBJC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_OBJCFLAGS) $(OBJCFLAGS) -MT net_osx.obj -MD -MP -MF "$(DEPDIR)/net_osx.Tpo" -c -o net_osx.obj `if test -f 'drivers/net_osx.m'; then $(CYGPATH_W) 'drivers/net_osx.m'; else $(CYGPATH_W) '$(srcdir)/drivers/net_osx.m'; fi`; \
+@am__fastdepOBJC_TRUE@	then mv -f "$(DEPDIR)/net_osx.Tpo" "$(DEPDIR)/net_osx.Po"; else rm -f "$(DEPDIR)/net_osx.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepOBJC_FALSE@	source='drivers/net_osx.m' object='net_osx.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepOBJC_FALSE@	DEPDIR=$(DEPDIR) $(OBJCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepOBJC_FALSE@	$(OBJC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_OBJCFLAGS) $(OBJCFLAGS) -c -o net_osx.obj `if test -f 'drivers/net_osx.m'; then $(CYGPATH_W) 'drivers/net_osx.m'; else $(CYGPATH_W) '$(srcdir)/drivers/net_osx.m'; fi`
 
 video_osx.o: drivers/video_osx.m
 @am__fastdepOBJC_TRUE@	if $(OBJC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_OBJCFLAGS) $(OBJCFLAGS) -MT video_osx.o -MD -MP -MF "$(DEPDIR)/video_osx.Tpo" -c -o video_osx.o `test -f 'drivers/video_osx.m' || echo '$(srcdir)/'`drivers/video_osx.m; \

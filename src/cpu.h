@@ -37,8 +37,9 @@ extern "C" {
 typedef uint32_t (*disasm_func_t)(uint32_t pc, char *buffer, int buflen, char *opcode );
 
 #define REG_INT 0
-#define REG_FLT 1
-#define REG_SPECIAL 2
+#define REG_FLOAT 1
+#define REG_DOUBLE 2
+#define REG_NONE 3 /* Used for empty/separator field */
 
 /**
  * Structure that defines a single register in a CPU for display purposes.
@@ -50,13 +51,32 @@ typedef struct reg_desc_struct {
 } reg_desc_t;
 
 /**
- * CPU definition structure - basic information and support functions.
+ * CPU definition structure - basic information and support functions. Most
+ * of this is for debugger use.
  */
 typedef struct cpu_desc_struct {
     char *name; /* CPU Name */
-    disasm_func_t disasm_func; /* Disassembly function */
+    /**
+     * Single instruction disassembly 
+     **/
+    disasm_func_t disasm_func;
+    
+    /**
+     * Return a pointer to a register (indexed per the reg_desc table)
+     */
+    void * (*get_register)( int reg );
+    gboolean (*is_valid_page_func)(uint32_t); /* Test for valid memory page */
+    /* Access to memory addressed by the CPU - physical and virtual versions.
+     * Virtual access should account for the current CPU mode, privilege level,
+     * etc.
+     * All functions return the number of bytes copied, which may be 0 if the
+     * address is unmapped.
+     */
+    size_t (*read_mem_phys)(unsigned char *buf, uint32_t addr, size_t length);
+    size_t (*write_mem_phys)(uint32_t addr, unsigned char *buf, size_t length);
+    size_t (*read_mem_vma)(unsigned char *buf, uint32_t addr, size_t length);
+    size_t (*write_mem_vma)(uint32_t addr, unsigned char *buf, size_t length);
     gboolean (*step_func)(); /* Single step function */
-    int (*is_valid_page_func)(uint32_t); /* Test for valid memory page */
     void (*set_breakpoint)(uint32_t, breakpoint_type_t);
     gboolean (*clear_breakpoint)(uint32_t, breakpoint_type_t);
     int (*get_breakpoint)(uint32_t);
@@ -64,11 +84,15 @@ typedef struct cpu_desc_struct {
     char *regs; /* Pointer to start of registers */
     size_t regs_size; /* Size of register structure in bytes */
     const struct reg_desc_struct *regs_info; /* Description of all registers */
+    unsigned int num_gpr_regs; /* Number of general purpose registers */
+    unsigned int num_gdb_regs; /* Total number of registers visible to gdb */
     uint32_t *pc; /* Pointer to PC register */
 } const *cpu_desc_t;
 
 #ifdef __cplusplus
 }
 #endif
+
+gboolean gdb_init_server( const char *interface, int port, cpu_desc_t cpu, gboolean mmu );
 
 #endif /* !lxdream_cpu_H */

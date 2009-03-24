@@ -23,32 +23,6 @@
 
 #define UNIMP(ir) snprintf( buf, len, "???     " )
 
-
-const struct reg_desc_struct sh4_reg_map[] = 
-  { {"R0", REG_INT, &sh4r.r[0]}, {"R1", REG_INT, &sh4r.r[1]},
-    {"R2", REG_INT, &sh4r.r[2]}, {"R3", REG_INT, &sh4r.r[3]},
-    {"R4", REG_INT, &sh4r.r[4]}, {"R5", REG_INT, &sh4r.r[5]},
-    {"R6", REG_INT, &sh4r.r[6]}, {"R7", REG_INT, &sh4r.r[7]},
-    {"R8", REG_INT, &sh4r.r[8]}, {"R9", REG_INT, &sh4r.r[9]},
-    {"R10",REG_INT, &sh4r.r[10]}, {"R11",REG_INT, &sh4r.r[11]},
-    {"R12",REG_INT, &sh4r.r[12]}, {"R13",REG_INT, &sh4r.r[13]},
-    {"R14",REG_INT, &sh4r.r[14]}, {"R15",REG_INT, &sh4r.r[15]},
-    {"SR", REG_INT, &sh4r.sr}, {"GBR", REG_INT, &sh4r.gbr},
-    {"SSR",REG_INT, &sh4r.ssr}, {"SPC", REG_INT, &sh4r.spc},
-    {"SGR",REG_INT, &sh4r.sgr}, {"DBR", REG_INT, &sh4r.dbr},
-    {"VBR",REG_INT, &sh4r.vbr},
-    {"PC", REG_INT, &sh4r.pc}, {"PR", REG_INT, &sh4r.pr},
-    {"MACL",REG_INT, &sh4r.mac},{"MACH",REG_INT, ((uint32_t *)&sh4r.mac)+1},
-    {"FPUL", REG_INT, &sh4r.fpul.i}, {"FPSCR", REG_INT, &sh4r.fpscr},
-    {NULL, 0, NULL} };
-
-
-const struct cpu_desc_struct sh4_cpu_desc = 
-    { "SH4", sh4_disasm_instruction, sh4_execute_instruction, sh4_has_page, 
-      sh4_set_breakpoint, sh4_clear_breakpoint, sh4_get_breakpoint, 2,
-      (char *)&sh4r, sizeof(sh4r), sh4_reg_map,
-      &sh4r.pc };
-
 uint32_t sh4_disasm_instruction( sh4vma_t pc, char *buf, int len, char *opcode )
 {
     sh4addr_t addr = mmu_vma_to_phys_disasm(pc);

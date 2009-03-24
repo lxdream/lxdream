@@ -95,6 +95,8 @@ struct sh4_registers {
 
 extern struct sh4_registers sh4r;
 
+extern const struct cpu_desc_struct sh4_cpu_desc;
+
 /**
  * Switch between translation and emulation execution modes. Note that this
  * should only be used while the system is stopped. If the system was built

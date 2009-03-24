@@ -109,6 +109,8 @@ void arm_write_long_user( uint32_t addr, uint32_t val );
 void arm_write_byte_user( uint32_t addr, uint32_t val );
 int32_t arm_read_phys_word( uint32_t addr );
 int arm_has_page( uint32_t addr );
+size_t arm_read_phys( unsigned char *buf, uint32_t addr, size_t len );
+size_t arm_write_phys( uint32_t addr, unsigned char *buf, size_t len );
 
 #ifdef __cplusplus
 }

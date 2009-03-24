@@ -57,19 +57,40 @@ const struct reg_desc_struct arm_reg_map[] =
         {"R10",REG_INT, &armr.r[10]}, {"R11",REG_INT, &armr.r[11]},
         {"R12",REG_INT, &armr.r[12]}, {"R13",REG_INT, &armr.r[13]},
         {"R14",REG_INT, &armr.r[14]}, {"R15",REG_INT, &armr.r[15]},
+        
+        /* Block of FPA registers (arm-elf-gdb seems to expect these).
+         * Oddly enough the ARM7TDMI doesn't have them */
+        {"F0",REG_NONE, NULL}, {"F1",REG_NONE, NULL},
+        {"F2",REG_NONE, NULL}, {"F3",REG_NONE, NULL},
+        {"F4",REG_NONE, NULL}, {"F5",REG_NONE, NULL},
+        {"F6",REG_NONE, NULL}, {"F7",REG_NONE, NULL},
+        {"FPS",REG_NONE, NULL},
+        
+        /* System registers */
         {"CPSR", REG_INT, &armr.cpsr}, {"SPSR", REG_INT, &armr.spsr},
         {NULL, 0, NULL} };
 
+/* Implementation of get_register - ARM has no pseudo registers so this
+ * is pretty simple
+ */
+void *arm_get_register( int reg )
+{
+    if( reg < 0 || reg >= 27 )
+        return NULL;
+    return arm_reg_map[reg].value;
+}
 
 const struct cpu_desc_struct arm_cpu_desc = 
-{ "ARM7", arm_disasm_instruction, arm_execute_instruction, arm_has_page,
-        arm_set_breakpoint, arm_clear_breakpoint, arm_get_breakpoint, 4,
-        (char *)&armr, sizeof(armr), arm_reg_map,
+{ "ARM7", arm_disasm_instruction, arm_get_register, arm_has_page,
+        arm_read_phys, arm_write_phys, arm_read_phys, arm_write_phys,
+        arm_execute_instruction, arm_set_breakpoint, arm_clear_breakpoint, 
+        arm_get_breakpoint, 4, (char *)&armr, sizeof(armr), arm_reg_map, 26, 26,
         &armr.r[15] };
 const struct cpu_desc_struct armt_cpu_desc = 
-{ "ARM7T", armt_disasm_instruction, arm_execute_instruction, arm_has_page,
-        arm_set_breakpoint, arm_clear_breakpoint, arm_get_breakpoint, 2,
-        (char*)&armr, sizeof(armr), arm_reg_map,
+{ "ARM7T", armt_disasm_instruction, arm_get_register, arm_has_page, 
+        arm_read_phys, arm_write_phys, arm_read_phys, arm_write_phys,
+        arm_execute_instruction,  arm_set_breakpoint, arm_clear_breakpoint, 
+        arm_get_breakpoint, 2, (char*)&armr, sizeof(armr), arm_reg_map, 26, 26,
         &armr.r[15] };
 
 
