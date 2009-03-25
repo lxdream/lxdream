@@ -175,7 +175,7 @@ gboolean video_glx_init_context( Display *display, Window window )
             return FALSE;
         }
 
-        if( glXMakeContextCurrent( display, window, window, 
+        if( glXMakeCurrent( display, window,
                 glx_context ) == False ) {
             ERROR( "Unable to prepare GLX context for drawing" );
             glXDestroyContext( display, glx_context );
