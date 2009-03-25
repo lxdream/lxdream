@@ -24,7 +24,7 @@
 #include "cpu.h"
 #include "dreamcast.h"
 #include "gtkui/gtkui.h"
-#include "sh4/sh4dasm.h"
+#include "sh4/sh4.h"
 #include "aica/armdasm.h"
 
 GdkColor *msg_colors[] = { &gui_colour_error, &gui_colour_error, &gui_colour_warn, 
