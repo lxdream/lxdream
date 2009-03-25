@@ -138,7 +138,8 @@ AC_CHECK_FRAME_ADDRESS( [
    AC_DEFINE(HAVE_FRAME_ADDRESS, [1], [Define if we have a working builtin frame_address])
 ], [ AC_MSG_WARN([Memory exceptions will be slow]) ])
 
-
+AC_SEARCH_LIBS(listen, [socket])
+AC_SEARCH_LIBS(inet_ntoa,[nsl])
 
 dnl ----------- Check for mandatory dependencies --------------
 dnl Check for libpng (required)
