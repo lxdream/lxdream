@@ -109,13 +109,6 @@ void * sh4_translate_basic_block( sh4addr_t start )
     sh4_translate_begin_block(pc);
 
     do {
-        /* check for breakpoints at this pc */
-        for( i=0; i<sh4_breakpoint_count; i++ ) {
-            if( sh4_breakpoints[i].address == pc ) {
-                sh4_translate_emit_breakpoint(pc);
-                break;
-            }
-        }
         if( eob - xlat_output < MAX_INSTRUCTION_SIZE ) {
             uint8_t *oldstart = xlat_current_block->code;
             xlat_current_block = xlat_extend_block( xlat_output - oldstart + MAX_INSTRUCTION_SIZE );
