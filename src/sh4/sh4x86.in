@@ -600,6 +600,14 @@ uint32_t sh4_translate_instruction( sh4vma_t pc )
     if( !sh4_x86.in_delay_slot ) {
 	sh4_translate_add_recovery( (pc - sh4_x86.block_start_pc)>>1 );
     }
+    
+    /* check for breakpoints at this pc */
+    for( int i=0; i<sh4_breakpoint_count; i++ ) {
+        if( sh4_breakpoints[i].address == pc ) {
+            sh4_translate_emit_breakpoint(pc);
+            break;
+        }
+    }
 %%
 /* ALU operations */
 ADD Rm, Rn {:
