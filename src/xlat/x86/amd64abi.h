@@ -23,9 +23,8 @@
 #define REG_RESULT1 REG_RAX
 #define MAX_REG_ARG 3  /* There's more, but we don't use more than 3 here anyway */
 
-static inline void decode_address( int addr_reg )
+static inline void decode_address( uintptr_t base, int addr_reg )
 {
-    uintptr_t base = (sh4r.xlat_sh4_mode&SR_MD) ? (uintptr_t)sh4_address_space : (uintptr_t)sh4_user_address_space;
     MOVL_r32_r32( addr_reg, REG_ECX );
     SHRL_imm_r32( 12, REG_ECX ); 
     MOVP_immptr_rptr( base, REG_RDI );
@@ -102,7 +101,6 @@ static inline void CALL3_r32disp_r32_r32_r32( int preg, uint32_t disp, int arg1,
 static inline void enter_block( ) 
 {
     PUSH_r32(REG_RBP);
-    MOVP_immptr_rptr( ((uint8_t *)&sh4r) + 128, REG_EBP );
     SUBQ_imms_r64( 16, REG_RSP ); 
 }
 
