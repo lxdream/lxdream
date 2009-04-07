@@ -160,9 +160,6 @@ static void sh4_x86_add_backpatch( uint8_t *fixup_addr, uint32_t fixup_pc, uint3
 #define TSTATE_A    X86_COND_A
 #define TSTATE_AE   X86_COND_AE
 
-#define MARK_JMP8(x) uint8_t *_mark_jmp_##x = (xlat_output-1)
-#define JMP_TARGET(x) *_mark_jmp_##x += (xlat_output - _mark_jmp_##x)
-
 /* Convenience instructions */
 #define LDC_t()          CMPB_imms_rbpdisp(1,R_T); CMC()
 #define SETE_t()         SETCCB_cc_rbpdisp(X86_COND_E,R_T)
@@ -174,25 +171,17 @@ static void sh4_x86_add_backpatch( uint8_t *fixup_addr, uint32_t fixup_pc, uint3
 #define SETO_t()         SETCCB_cc_rbpdisp(X86_COND_O,R_T)
 #define SETNE_t()        SETCCB_cc_rbpdisp(X86_COND_NE,R_T)
 #define SETC_r8(r1)      SETCCB_cc_r8(X86_COND_C, r1)
-#define JAE_label(label) JCC_cc_rel8(X86_COND_AE,-1); MARK_JMP8(label)
-#define JE_label(label)  JCC_cc_rel8(X86_COND_E,-1); MARK_JMP8(label)
-#define JGE_label(label) JCC_cc_rel8(X86_COND_GE,-1); MARK_JMP8(label)
-#define JNA_label(label) JCC_cc_rel8(X86_COND_NA,-1); MARK_JMP8(label)
-#define JNE_label(label) JCC_cc_rel8(X86_COND_NE,-1); MARK_JMP8(label)
-#define JNO_label(label) JCC_cc_rel8(X86_COND_NO,-1); MARK_JMP8(label)
-#define JS_label(label)  JCC_cc_rel8(X86_COND_S,-1); MARK_JMP8(label)
-#define JMP_label(label) JMP_rel8(-1); MARK_JMP8(label)
 #define JNE_exc(exc)     JCC_cc_rel32(X86_COND_NE,0); sh4_x86_add_backpatch(xlat_output, pc, exc)
 
 /** Branch if T is set (either in the current cflags, or in sh4r.t) */
 #define JT_label(label) if( sh4_x86.tstate == TSTATE_NONE ) { \
 	CMPL_imms_rbpdisp( 1, R_T ); sh4_x86.tstate = TSTATE_E; } \
-    JCC_cc_rel8(sh4_x86.tstate,-1); MARK_JMP8(label)
+    JCC_cc_rel8(sh4_x86.tstate,-1); _MARK_JMP8(label)
 
 /** Branch if T is clear (either in the current cflags or in sh4r.t) */
 #define JF_label(label) if( sh4_x86.tstate == TSTATE_NONE ) { \
 	CMPL_imms_rbpdisp( 1, R_T ); sh4_x86.tstate = TSTATE_E; } \
-    JCC_cc_rel8(sh4_x86.tstate^1, -1); MARK_JMP8(label)
+    JCC_cc_rel8(sh4_x86.tstate^1, -1); _MARK_JMP8(label)
 
 
 #define load_reg(x86reg,sh4reg)     MOVL_rbpdisp_r32( REG_OFFSET(r[sh4reg]), x86reg )
