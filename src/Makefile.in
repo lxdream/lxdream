@@ -47,7 +47,7 @@ check_PROGRAMS = test/testxlt$(EXEEXT) $(am__EXEEXT_1)
 @BUILD_SH4X86_TRUE@        x86dasm/ansidecl.h x86dasm/bfd.h x86dasm/dis-asm.h \
 @BUILD_SH4X86_TRUE@        x86dasm/symcat.h x86dasm/sysdep.h
 
-@BUILD_SH4X86_TRUE@am__append_2 = test/testsh4x86
+@BUILD_SH4X86_TRUE@am__append_2 = test/testsh4x86 test/testsh4xir test/testxir
 @GUI_GTK_TRUE@am__append_3 = gtkui/gtkui.c gtkui/gtkui.h \
 @GUI_GTK_TRUE@	gtkui/gtk_win.c gtkui/gtkcb.c \
 @GUI_GTK_TRUE@        gtkui/gtk_mmio.c gtkui/gtk_debug.c gtkui/gtk_dump.c \
@@ -85,7 +85,9 @@ CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 binPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
-@BUILD_SH4X86_TRUE@am__EXEEXT_1 = test/testsh4x86$(EXEEXT)
+@BUILD_SH4X86_TRUE@am__EXEEXT_1 = test/testsh4x86$(EXEEXT) \
+@BUILD_SH4X86_TRUE@	test/testsh4xir$(EXEEXT) \
+@BUILD_SH4X86_TRUE@	test/testxir$(EXEEXT)
 PROGRAMS = $(bin_PROGRAMS) $(noinst_PROGRAMS)
 am_gendec_OBJECTS = gendec.$(OBJEXT) insparse.$(OBJEXT) \
 	actparse.$(OBJEXT)
@@ -213,6 +215,20 @@ am__test_testsh4x86_SOURCES_DIST = test/testsh4x86.c x86dasm/x86dasm.c \
 test_testsh4x86_OBJECTS = $(am_test_testsh4x86_OBJECTS)
 test_testsh4x86_DEPENDENCIES =
 am__dirstamp = $(am__leading_dot)dirstamp
+am__test_testsh4xir_SOURCES_DIST = test/testsh4xir.c xlat/xir.c \
+	xlat/xir.h sh4/sh4xir.c xlat/x86/x86target.c xlat/x86/x86gen.c
+@BUILD_SH4X86_TRUE@am_test_testsh4xir_OBJECTS = testsh4xir.$(OBJEXT) \
+@BUILD_SH4X86_TRUE@	xir.$(OBJEXT) sh4xir.$(OBJEXT) \
+@BUILD_SH4X86_TRUE@	x86target.$(OBJEXT) x86gen.$(OBJEXT)
+test_testsh4xir_OBJECTS = $(am_test_testsh4xir_OBJECTS)
+test_testsh4xir_DEPENDENCIES =
+am__test_testxir_SOURCES_DIST = test/testxir.c xlat/xir.c xlat/xir.h \
+	xlat/xirsup.c xlat/xiropt.c xlat/xiropt.h
+@BUILD_SH4X86_TRUE@am_test_testxir_OBJECTS = testxir.$(OBJEXT) \
+@BUILD_SH4X86_TRUE@	xir.$(OBJEXT) xirsup.$(OBJEXT) \
+@BUILD_SH4X86_TRUE@	xiropt.$(OBJEXT)
+test_testxir_OBJECTS = $(am_test_testxir_OBJECTS)
+test_testxir_DEPENDENCIES =
 am_test_testxlt_OBJECTS = testxlt.$(OBJEXT) xltcache.$(OBJEXT)
 test_testxlt_OBJECTS = $(am_test_testxlt_OBJECTS)
 test_testxlt_LDADD = $(LDADD)
@@ -229,10 +245,13 @@ OBJCLD = $(OBJC)
 OBJCLINK = $(OBJCLD) $(AM_OBJCFLAGS) $(OBJCFLAGS) $(AM_LDFLAGS) \
 	$(LDFLAGS) -o $@
 SOURCES = $(gendec_SOURCES) $(genglsl_SOURCES) $(lxdream_SOURCES) \
-	$(test_testsh4x86_SOURCES) $(test_testxlt_SOURCES)
+	$(test_testsh4x86_SOURCES) $(test_testsh4xir_SOURCES) \
+	$(test_testxir_SOURCES) $(test_testxlt_SOURCES)
 DIST_SOURCES = $(gendec_SOURCES) $(genglsl_SOURCES) \
 	$(am__lxdream_SOURCES_DIST) \
-	$(am__test_testsh4x86_SOURCES_DIST) $(test_testxlt_SOURCES)
+	$(am__test_testsh4x86_SOURCES_DIST) \
+	$(am__test_testsh4xir_SOURCES_DIST) \
+	$(am__test_testxir_SOURCES_DIST) $(test_testxlt_SOURCES)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -471,6 +490,10 @@ lxdream_SOURCES = main.c version.c config.c config.h lxdream.h dream.h \
 @BUILD_SH4X86_TRUE@	sh4/sh4trans.c sh4/sh4x86.c xlat/xltcache.c \
 @BUILD_SH4X86_TRUE@	xlat/xltcache.h mem.c util.c 
 
+@BUILD_SH4X86_TRUE@test_testsh4xir_LDADD = @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@
+@BUILD_SH4X86_TRUE@test_testsh4xir_SOURCES = test/testsh4xir.c xlat/xir.c xlat/xir.h sh4/sh4xir.c xlat/x86/x86target.c xlat/x86/x86gen.c
+@BUILD_SH4X86_TRUE@test_testxir_LDADD = @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@
+@BUILD_SH4X86_TRUE@test_testxir_SOURCES = test/testxir.c xlat/xir.c xlat/xir.h xlat/xirsup.c xlat/xiropt.c xlat/xiropt.h
 lxdream_LDADD = @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@ @PULSE_LIBS@ @ESOUND_LIBS@ @ALSA_LIBS@ @SDL_LIBS@ $(INTLLIBS)
 gendec_LDADD = @GLIB_LIBS@ @GTK_LIBS@ $(INTLLIBS)
 genglsl_LDADD = @GLIB_LIBS@ @GTK_LIBS@ $(INTLLIBS)
@@ -553,6 +576,12 @@ test/$(am__dirstamp):
 test/testsh4x86$(EXEEXT): $(test_testsh4x86_OBJECTS) $(test_testsh4x86_DEPENDENCIES) test/$(am__dirstamp)
 	@rm -f test/testsh4x86$(EXEEXT)
 	$(LINK) $(test_testsh4x86_LDFLAGS) $(test_testsh4x86_OBJECTS) $(test_testsh4x86_LDADD) $(LIBS)
+test/testsh4xir$(EXEEXT): $(test_testsh4xir_OBJECTS) $(test_testsh4xir_DEPENDENCIES) test/$(am__dirstamp)
+	@rm -f test/testsh4xir$(EXEEXT)
+	$(LINK) $(test_testsh4xir_LDFLAGS) $(test_testsh4xir_OBJECTS) $(test_testsh4xir_LDADD) $(LIBS)
+test/testxir$(EXEEXT): $(test_testxir_OBJECTS) $(test_testxir_DEPENDENCIES) test/$(am__dirstamp)
+	@rm -f test/testxir$(EXEEXT)
+	$(LINK) $(test_testxir_LDFLAGS) $(test_testxir_OBJECTS) $(test_testxir_LDADD) $(LIBS)
 test/testxlt$(EXEEXT): $(test_testxlt_OBJECTS) $(test_testxlt_DEPENDENCIES) test/$(am__dirstamp)
 	@rm -f test/testxlt$(EXEEXT)
 	$(LINK) $(test_testxlt_LDFLAGS) $(test_testxlt_OBJECTS) $(test_testxlt_LDADD) $(LIBS)
@@ -658,9 +687,12 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sh4stat.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sh4trans.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sh4x86.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sh4xir.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/syscall.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tacore.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testsh4x86.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testsh4xir.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testxir.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testxlt.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/texcache.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/timer.Po@am__quote@
@@ -675,6 +707,11 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/video_osx.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/watch.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/x86dasm.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/x86gen.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/x86target.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xir.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xiropt.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xirsup.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xltcache.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/yuv.Po@am__quote@
 
@@ -1826,6 +1863,118 @@ testsh4x86.obj: test/testsh4x86.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o testsh4x86.obj `if test -f 'test/testsh4x86.c'; then $(CYGPATH_W) 'test/testsh4x86.c'; else $(CYGPATH_W) '$(srcdir)/test/testsh4x86.c'; fi`
 
+testsh4xir.o: test/testsh4xir.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT testsh4xir.o -MD -MP -MF "$(DEPDIR)/testsh4xir.Tpo" -c -o testsh4xir.o `test -f 'test/testsh4xir.c' || echo '$(srcdir)/'`test/testsh4xir.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/testsh4xir.Tpo" "$(DEPDIR)/testsh4xir.Po"; else rm -f "$(DEPDIR)/testsh4xir.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='test/testsh4xir.c' object='testsh4xir.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o testsh4xir.o `test -f 'test/testsh4xir.c' || echo '$(srcdir)/'`test/testsh4xir.c
+
+testsh4xir.obj: test/testsh4xir.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT testsh4xir.obj -MD -MP -MF "$(DEPDIR)/testsh4xir.Tpo" -c -o testsh4xir.obj `if test -f 'test/testsh4xir.c'; then $(CYGPATH_W) 'test/testsh4xir.c'; else $(CYGPATH_W) '$(srcdir)/test/testsh4xir.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/testsh4xir.Tpo" "$(DEPDIR)/testsh4xir.Po"; else rm -f "$(DEPDIR)/testsh4xir.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='test/testsh4xir.c' object='testsh4xir.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o testsh4xir.obj `if test -f 'test/testsh4xir.c'; then $(CYGPATH_W) 'test/testsh4xir.c'; else $(CYGPATH_W) '$(srcdir)/test/testsh4xir.c'; fi`
+
+xir.o: xlat/xir.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT xir.o -MD -MP -MF "$(DEPDIR)/xir.Tpo" -c -o xir.o `test -f 'xlat/xir.c' || echo '$(srcdir)/'`xlat/xir.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/xir.Tpo" "$(DEPDIR)/xir.Po"; else rm -f "$(DEPDIR)/xir.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='xlat/xir.c' object='xir.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o xir.o `test -f 'xlat/xir.c' || echo '$(srcdir)/'`xlat/xir.c
+
+xir.obj: xlat/xir.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT xir.obj -MD -MP -MF "$(DEPDIR)/xir.Tpo" -c -o xir.obj `if test -f 'xlat/xir.c'; then $(CYGPATH_W) 'xlat/xir.c'; else $(CYGPATH_W) '$(srcdir)/xlat/xir.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/xir.Tpo" "$(DEPDIR)/xir.Po"; else rm -f "$(DEPDIR)/xir.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='xlat/xir.c' object='xir.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o xir.obj `if test -f 'xlat/xir.c'; then $(CYGPATH_W) 'xlat/xir.c'; else $(CYGPATH_W) '$(srcdir)/xlat/xir.c'; fi`
+
+sh4xir.o: sh4/sh4xir.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sh4xir.o -MD -MP -MF "$(DEPDIR)/sh4xir.Tpo" -c -o sh4xir.o `test -f 'sh4/sh4xir.c' || echo '$(srcdir)/'`sh4/sh4xir.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/sh4xir.Tpo" "$(DEPDIR)/sh4xir.Po"; else rm -f "$(DEPDIR)/sh4xir.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='sh4/sh4xir.c' object='sh4xir.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sh4xir.o `test -f 'sh4/sh4xir.c' || echo '$(srcdir)/'`sh4/sh4xir.c
+
+sh4xir.obj: sh4/sh4xir.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT sh4xir.obj -MD -MP -MF "$(DEPDIR)/sh4xir.Tpo" -c -o sh4xir.obj `if test -f 'sh4/sh4xir.c'; then $(CYGPATH_W) 'sh4/sh4xir.c'; else $(CYGPATH_W) '$(srcdir)/sh4/sh4xir.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/sh4xir.Tpo" "$(DEPDIR)/sh4xir.Po"; else rm -f "$(DEPDIR)/sh4xir.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='sh4/sh4xir.c' object='sh4xir.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o sh4xir.obj `if test -f 'sh4/sh4xir.c'; then $(CYGPATH_W) 'sh4/sh4xir.c'; else $(CYGPATH_W) '$(srcdir)/sh4/sh4xir.c'; fi`
+
+x86target.o: xlat/x86/x86target.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT x86target.o -MD -MP -MF "$(DEPDIR)/x86target.Tpo" -c -o x86target.o `test -f 'xlat/x86/x86target.c' || echo '$(srcdir)/'`xlat/x86/x86target.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/x86target.Tpo" "$(DEPDIR)/x86target.Po"; else rm -f "$(DEPDIR)/x86target.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='xlat/x86/x86target.c' object='x86target.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o x86target.o `test -f 'xlat/x86/x86target.c' || echo '$(srcdir)/'`xlat/x86/x86target.c
+
+x86target.obj: xlat/x86/x86target.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT x86target.obj -MD -MP -MF "$(DEPDIR)/x86target.Tpo" -c -o x86target.obj `if test -f 'xlat/x86/x86target.c'; then $(CYGPATH_W) 'xlat/x86/x86target.c'; else $(CYGPATH_W) '$(srcdir)/xlat/x86/x86target.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/x86target.Tpo" "$(DEPDIR)/x86target.Po"; else rm -f "$(DEPDIR)/x86target.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='xlat/x86/x86target.c' object='x86target.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o x86target.obj `if test -f 'xlat/x86/x86target.c'; then $(CYGPATH_W) 'xlat/x86/x86target.c'; else $(CYGPATH_W) '$(srcdir)/xlat/x86/x86target.c'; fi`
+
+x86gen.o: xlat/x86/x86gen.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT x86gen.o -MD -MP -MF "$(DEPDIR)/x86gen.Tpo" -c -o x86gen.o `test -f 'xlat/x86/x86gen.c' || echo '$(srcdir)/'`xlat/x86/x86gen.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/x86gen.Tpo" "$(DEPDIR)/x86gen.Po"; else rm -f "$(DEPDIR)/x86gen.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='xlat/x86/x86gen.c' object='x86gen.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o x86gen.o `test -f 'xlat/x86/x86gen.c' || echo '$(srcdir)/'`xlat/x86/x86gen.c
+
+x86gen.obj: xlat/x86/x86gen.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT x86gen.obj -MD -MP -MF "$(DEPDIR)/x86gen.Tpo" -c -o x86gen.obj `if test -f 'xlat/x86/x86gen.c'; then $(CYGPATH_W) 'xlat/x86/x86gen.c'; else $(CYGPATH_W) '$(srcdir)/xlat/x86/x86gen.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/x86gen.Tpo" "$(DEPDIR)/x86gen.Po"; else rm -f "$(DEPDIR)/x86gen.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='xlat/x86/x86gen.c' object='x86gen.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o x86gen.obj `if test -f 'xlat/x86/x86gen.c'; then $(CYGPATH_W) 'xlat/x86/x86gen.c'; else $(CYGPATH_W) '$(srcdir)/xlat/x86/x86gen.c'; fi`
+
+testxir.o: test/testxir.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT testxir.o -MD -MP -MF "$(DEPDIR)/testxir.Tpo" -c -o testxir.o `test -f 'test/testxir.c' || echo '$(srcdir)/'`test/testxir.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/testxir.Tpo" "$(DEPDIR)/testxir.Po"; else rm -f "$(DEPDIR)/testxir.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='test/testxir.c' object='testxir.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o testxir.o `test -f 'test/testxir.c' || echo '$(srcdir)/'`test/testxir.c
+
+testxir.obj: test/testxir.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT testxir.obj -MD -MP -MF "$(DEPDIR)/testxir.Tpo" -c -o testxir.obj `if test -f 'test/testxir.c'; then $(CYGPATH_W) 'test/testxir.c'; else $(CYGPATH_W) '$(srcdir)/test/testxir.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/testxir.Tpo" "$(DEPDIR)/testxir.Po"; else rm -f "$(DEPDIR)/testxir.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='test/testxir.c' object='testxir.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o testxir.obj `if test -f 'test/testxir.c'; then $(CYGPATH_W) 'test/testxir.c'; else $(CYGPATH_W) '$(srcdir)/test/testxir.c'; fi`
+
+xirsup.o: xlat/xirsup.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT xirsup.o -MD -MP -MF "$(DEPDIR)/xirsup.Tpo" -c -o xirsup.o `test -f 'xlat/xirsup.c' || echo '$(srcdir)/'`xlat/xirsup.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/xirsup.Tpo" "$(DEPDIR)/xirsup.Po"; else rm -f "$(DEPDIR)/xirsup.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='xlat/xirsup.c' object='xirsup.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o xirsup.o `test -f 'xlat/xirsup.c' || echo '$(srcdir)/'`xlat/xirsup.c
+
+xirsup.obj: xlat/xirsup.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT xirsup.obj -MD -MP -MF "$(DEPDIR)/xirsup.Tpo" -c -o xirsup.obj `if test -f 'xlat/xirsup.c'; then $(CYGPATH_W) 'xlat/xirsup.c'; else $(CYGPATH_W) '$(srcdir)/xlat/xirsup.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/xirsup.Tpo" "$(DEPDIR)/xirsup.Po"; else rm -f "$(DEPDIR)/xirsup.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='xlat/xirsup.c' object='xirsup.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o xirsup.obj `if test -f 'xlat/xirsup.c'; then $(CYGPATH_W) 'xlat/xirsup.c'; else $(CYGPATH_W) '$(srcdir)/xlat/xirsup.c'; fi`
+
+xiropt.o: xlat/xiropt.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT xiropt.o -MD -MP -MF "$(DEPDIR)/xiropt.Tpo" -c -o xiropt.o `test -f 'xlat/xiropt.c' || echo '$(srcdir)/'`xlat/xiropt.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/xiropt.Tpo" "$(DEPDIR)/xiropt.Po"; else rm -f "$(DEPDIR)/xiropt.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='xlat/xiropt.c' object='xiropt.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o xiropt.o `test -f 'xlat/xiropt.c' || echo '$(srcdir)/'`xlat/xiropt.c
+
+xiropt.obj: xlat/xiropt.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT xiropt.obj -MD -MP -MF "$(DEPDIR)/xiropt.Tpo" -c -o xiropt.obj `if test -f 'xlat/xiropt.c'; then $(CYGPATH_W) 'xlat/xiropt.c'; else $(CYGPATH_W) '$(srcdir)/xlat/xiropt.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/xiropt.Tpo" "$(DEPDIR)/xiropt.Po"; else rm -f "$(DEPDIR)/xiropt.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='xlat/xiropt.c' object='xiropt.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o xiropt.obj `if test -f 'xlat/xiropt.c'; then $(CYGPATH_W) 'xlat/xiropt.c'; else $(CYGPATH_W) '$(srcdir)/xlat/xiropt.c'; fi`
+
 testxlt.o: test/testxlt.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT testxlt.o -MD -MP -MF "$(DEPDIR)/testxlt.Tpo" -c -o testxlt.o `test -f 'test/testxlt.c' || echo '$(srcdir)/'`test/testxlt.c; \
 @am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/testxlt.Tpo" "$(DEPDIR)/testxlt.Po"; else rm -f "$(DEPDIR)/testxlt.Tpo"; exit 1; fi
@@ -2288,6 +2437,9 @@ sh4/sh4dasm.c: gendec sh4/sh4.def sh4/sh4dasm.in
 sh4/sh4x86.c: gendec sh4/sh4.def sh4/sh4x86.in
 	mkdir -p `dirname $@`
 	./gendec $(srcdir)/sh4/sh4.def $(srcdir)/sh4/sh4x86.in -o $@
+sh4/sh4xir.c: gendec sh4/sh4.def sh4/sh4xir.in
+	mkdir -p `dirname $@`
+	./gendec $(srcdir)/sh4/sh4.def $(srcdir)/sh4/sh4xir.in -o $@
 sh4/sh4stat.c: gendec sh4/sh4.def sh4/sh4stat.in
 	mkdir -p `dirname $@`
 	./gendec $(srcdir)/sh4/sh4.def $(srcdir)/sh4/sh4stat.in -o $@

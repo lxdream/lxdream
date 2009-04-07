@@ -13,6 +13,7 @@ noinst_PROGRAMS = gendec genglsl
 check_PROGRAMS = test/testxlt
 
 
+
 EXTRA_DIST=drivers/genkeymap.pl checkver.pl
 AM_CFLAGS = -D__EXTENSIONS__ -D_BSD_SOURCE -D_GNU_SOURCE
 
@@ -81,7 +82,13 @@ test_testsh4x86_SOURCES = test/testsh4x86.c x86dasm/x86dasm.c \
 	sh4/sh4trans.c sh4/sh4x86.c xlat/xltcache.c \
 	xlat/xltcache.h mem.c util.c 
 
-check_PROGRAMS += test/testsh4x86
+test_testsh4xir_LDADD = @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@
+test_testsh4xir_SOURCES = test/testsh4xir.c xlat/xir.c xlat/xir.h sh4/sh4xir.c xlat/x86/x86target.c xlat/x86/x86gen.c
+
+test_testxir_LDADD = @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@
+test_testxir_SOURCES = test/testxir.c xlat/xir.c xlat/xir.h xlat/xirsup.c xlat/xiropt.c xlat/xiropt.h
+	
+check_PROGRAMS += test/testsh4x86 test/testsh4xir test/testxir
 endif
 
 if GUI_GTK
@@ -169,6 +176,9 @@ sh4/sh4dasm.c: gendec sh4/sh4.def sh4/sh4dasm.in
 sh4/sh4x86.c: gendec sh4/sh4.def sh4/sh4x86.in
 	mkdir -p `dirname $@`
 	./gendec $(srcdir)/sh4/sh4.def $(srcdir)/sh4/sh4x86.in -o $@
+sh4/sh4xir.c: gendec sh4/sh4.def sh4/sh4xir.in
+	mkdir -p `dirname $@`
+	./gendec $(srcdir)/sh4/sh4.def $(srcdir)/sh4/sh4xir.in -o $@
 sh4/sh4stat.c: gendec sh4/sh4.def sh4/sh4stat.in
 	mkdir -p `dirname $@`
 	./gendec $(srcdir)/sh4/sh4.def $(srcdir)/sh4/sh4stat.in -o $@

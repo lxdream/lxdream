@@ -386,6 +386,9 @@ static void x86_encode_modrm_rip(int rexw, uint32_t opcode, int rr, int32_t disp
 #define ANDQ_imms_r64(imm,r1)        x86_encode_imms_rm64(0x83, 0x81, 4, imm, r1)
 #define ANDP_imms_rptr(imm,r1)       x86_encode_imms_rmptr(0x83, 0x81, 4, imm, r1)       
 
+#define BSWAPL_r32(r1)                x86_encode_opcode32(0x0FC8, r1)
+#define BSWAPQ_r64(r2)                x86_encode_opcode64(0x0FC8, r1)
+
 #define CLC()                        OP(0xF8)
 #define CLD()                        OP(0xFC)
 #define CMC()                        OP(0xF5)
@@ -404,6 +407,14 @@ static void x86_encode_modrm_rip(int rexw, uint32_t opcode, int rr, int32_t disp
 #define CMPQ_imms_r64(imm,r1)        x86_encode_imms_rm64(0x83, 0x81, 7, imm, r1)
 #define CMPQ_r64_r64(r1,r2)          x86_encode_r64_rm64(0x39, r1, r2)
 
+#define CDQL()                       OP(0x99)
+#define CDOQ()                       OP(PREF_REXW); OP(0x99)
+
+#define DECL_r32(r1)                 x86_encode_r32_rm32(0xFF,1,r1) /* NB single-op form unavailable in 64-bit mode */
+#define DECL_rbpdisp(disp)           x86_encode_r32_rbpdisp32(0xFF,1,disp)
+#define DECQ_r64(r1)                 x86_encode_r64_rm64(0xFF,1,r1)
+#define DECQ_rbpdisp(disp)           x86_encode_r64_rbpdisp64(0xFF,1,disp)
+
 #define IDIVL_r32(r1)                x86_encode_r32_rm32(0xF7, 7, r1)
 #define IDIVL_rbpdisp(disp)          x86_encode_r32_rbpdisp32(0xF7, 7, disp)
 #define IDIVQ_r64(r1)                x86_encode_r64_rm64(0xF7, 7, r1)
@@ -417,6 +428,12 @@ static void x86_encode_modrm_rip(int rexw, uint32_t opcode, int rr, int32_t disp
 #define IMULL_rspdisp_r32(disp,r1)   x86_encode_r32_rspdisp32(0x0FAF, r1, disp)
 #define IMULQ_imms_r64(imm,r1)       x86_encode_imms_rm64(0x6B,0x69, r1, imm, r1)
 #define IMULQ_r64_r64(r1,r2)         x86_encode_r64_rm64(0x0FAF, r2, r1)
+#define IMULQ_rbpdisp_r64(disp,r1)   x86_encode_r64_rbpdisp64(0x0FAF, r1, disp)
+
+#define INCL_r32(r1)                 x86_encode_r32_rm32(0xFF,0,r1) /* NB single-op form unavailable in 64-bit mode */
+#define INCL_rbpdisp(disp)           x86_encode_r32_rbpdisp32(0xFF,0,disp)
+#define INCQ_r64(r1)                 x86_encode_r64_rm64(0xFF,0,r1)
+#define INCQ_rbpdisp(disp)           x86_encode_r64_rbpdisp64(0xFF,0,disp)
 
 #define LEAL_r32disp_r32(r1,disp,r2) x86_encode_r32_mem32(0x8D, r2, r1, -1, 0, disp)
 #define LEAL_rbpdisp_r32(disp,r1)    x86_encode_r32_rbpdisp32(0x8D, r1, disp)
@@ -474,12 +491,12 @@ static void x86_encode_modrm_rip(int rexw, uint32_t opcode, int rr, int32_t disp
 
 #define NEGB_r8(r1)                  x86_encode_r32_rm32(0xF6, 3, r1)
 #define NEGL_r32(r1)                 x86_encode_r32_rm32(0xF7, 3, r1)
-#define NEGL_rbpdisp(r1)             x86_encode_r32_rbspdisp32(0xF7, 3, disp)
+#define NEGL_rbpdisp(disp)           x86_encode_r32_rbpdisp32(0xF7, 3, disp)
 #define NEGQ_r64(r1)                 x86_encode_r64_rm64(0xF7, 3, r1)
 
 #define NOTB_r8(r1)                  x86_encode_r32_rm32(0xF6, 2, r1)
 #define NOTL_r32(r1)                 x86_encode_r32_rm32(0xF7, 2, r1)
-#define NOTL_rbpdisp(r1)             x86_encode_r32_rbspdisp32(0xF7, 2, disp)
+#define NOTL_rbpdisp(disp)           x86_encode_r32_rbpdisp32(0xF7, 2, disp)
 #define NOTQ_r64(r1)                 x86_encode_r64_rm64(0xF7, 2, r1)
 
 #define ORB_imms_r8(imm,r1)          x86_encode_r32_rm32(0x80, 1, r1); OP(imm)
@@ -498,34 +515,85 @@ static void x86_encode_modrm_rip(int rexw, uint32_t opcode, int rr, int32_t disp
 #define PUSH_r32(r1)                 x86_encode_opcode32(0x50, r1)
 
 #define RCLL_cl_r32(r1)              x86_encode_r32_rm32(0xD3,2,r1)
+#define RCLL_cl_rbpdisp(disp)        x86_encode_r32_rbpdisp32(0xD3,2,disp)
 #define RCLL_imm_r32(imm,r1)         if( imm == 1 ) { x86_encode_r32_rm32(0xD1,2,r1); } else { x86_encode_r32_rm32(0xC1,2,r1); OP(imm); }
+#define RCLL_imm_rbpdisp(imm,disp)   if( imm == 1 ) { x86_encode_r32_rbpdisp32(0xD1,2,disp); } else { x86_encode_r32_rbpdisp32(0xC1,2,disp); OP(imm); }
 #define RCLQ_cl_r64(r1)              x86_encode_r64_rm64(0xD3,2,r1)
+#define RCLQ_cl_rbpdisp(disp)        x86_encode_r64_rbpdisp64(0xD3,2,disp)
 #define RCLQ_imm_r64(imm,r1)         if( imm == 1 ) { x86_encode_r64_rm64(0xD1,2,r1); } else { x86_encode_r64_rm64(0xC1,2,r1); OP(imm); }
+#define RCLQ_imm_rbpdisp(imm,disp)   if( imm == 1 ) { x86_encode_r64_rbpdisp64(0xD1,2,disp); } else { x86_encode_r64_rbpdisp64(0xC1,2,disp); OP(imm); }
+
 #define RCRL_cl_r32(r1)              x86_encode_r32_rm32(0xD3,3,r1)
+#define RCRL_cl_rbpdisp(disp)        x86_encode_r32_rbpdisp32(0xD3,3,disp)
 #define RCRL_imm_r32(imm,r1)         if( imm == 1 ) { x86_encode_r32_rm32(0xD1,3,r1); } else { x86_encode_r32_rm32(0xC1,3,r1); OP(imm); }
+#define RCRL_imm_rbpdisp(imm,disp)   if( imm == 1 ) { x86_encode_r32_rbpdisp32(0xD1,3,disp); } else { x86_encode_r32_rbpdisp32(0xC1,3,disp); OP(imm); }
 #define RCRQ_cl_r64(r1)              x86_encode_r64_rm64(0xD3,3,r1)
+#define RCRQ_cl_rbpdisp(disp)        x86_encode_r64_rbpdisp64(0xD3,3,disp)
 #define RCRQ_imm_r64(imm,r1)         if( imm == 1 ) { x86_encode_r64_rm64(0xD1,3,r1); } else { x86_encode_r64_rm64(0xC1,3,r1); OP(imm); }
+#define RCRQ_imm_rbpdisp(imm,disp)   if( imm == 1 ) { x86_encode_r64_rbpdisp64(0xD1,3,disp); } else { x86_encode_r64_rbpdisp64(0xC1,3,disp); OP(imm); }
+
 #define ROLL_cl_r32(r1)              x86_encode_r32_rm32(0xD3,0,r1)
+#define ROLL_cl_rbpdisp(disp)        x86_encode_r32_rbpdisp32(0xD3,0,disp)
 #define ROLL_imm_r32(imm,r1)         if( imm == 1 ) { x86_encode_r32_rm32(0xD1,0,r1); } else { x86_encode_r32_rm32(0xC1,0,r1); OP(imm); }
+#define ROLL_imm_rbpdisp(imm,disp)   if( imm == 1 ) { x86_encode_r32_rbpdisp32(0xD1,0,disp); } else { x86_encode_r32_rbpdisp32(0xC1,0,disp); OP(imm); }
 #define ROLQ_cl_r64(r1)              x86_encode_r64_rm64(0xD3,0,r1)
+#define ROLQ_cl_rbpdisp(disp)        x86_encode_r64_rbpdisp64(0xD3,0,disp)
 #define ROLQ_imm_r64(imm,r1)         if( imm == 1 ) { x86_encode_r64_rm64(0xD1,0,r1); } else { x86_encode_r64_rm64(0xC1,0,r1); OP(imm); }
+#define ROLQ_imm_rbpdisp(imm,disp)   if( imm == 1 ) { x86_encode_r64_rbpdisp64(0xD1,0,disp); } else { x86_encode_r64_rbpdisp64(0xC1,0,disp); OP(imm); }
+
 #define RORL_cl_r32(r1)              x86_encode_r32_rm32(0xD3,1,r1)
+#define RORL_cl_rbpdisp(disp)        x86_encode_r32_rbpdisp32(0xD3,1,disp)
 #define RORL_imm_r32(imm,r1)         if( imm == 1 ) { x86_encode_r32_rm32(0xD1,1,r1); } else { x86_encode_r32_rm32(0xC1,1,r1); OP(imm); }
+#define RORL_imm_rbpdisp(imm,disp)   if( imm == 1 ) { x86_encode_r32_rbpdisp32(0xD1,1,disp); } else { x86_encode_r32_rbpdisp32(0xC1,1,disp); OP(imm); }
 #define RORQ_cl_r64(r1)              x86_encode_r64_rm64(0xD3,1,r1)
+#define RORQ_cl_rbpdisp(disp)        x86_encode_r64_rbpdisp64(0xD3,1,disp)
 #define RORQ_imm_r64(imm,r1)         if( imm == 1 ) { x86_encode_r64_rm64(0xD1,1,r1); } else { x86_encode_r64_rm64(0xC1,1,r1); OP(imm); }
+#define RORQ_imm_rbpdisp(imm,disp)   if( imm == 1 ) { x86_encode_r64_rbpdisp64(0xD1,1,disp); } else { x86_encode_r64_rbpdisp64(0xC1,1,disp); OP(imm); }
 
 #define SARL_cl_r32(r1)              x86_encode_r32_rm32(0xD3,7,r1)
+#define SARL_cl_rbpdisp(disp)        x86_encode_r32_rbpdisp32(0xD3,7,disp)
 #define SARL_imm_r32(imm,r1)         if( imm == 1 ) { x86_encode_r32_rm32(0xD1,7,r1); } else { x86_encode_r32_rm32(0xC1,7,r1); OP(imm); }
+#define SARL_imm_rbpdisp(imm,disp)   if( imm == 1 ) { x86_encode_r32_rbpdisp32(0xD1,7,disp); } else { x86_encode_r32_rbpdisp32(0xC1,7,disp); OP(imm); }
 #define SARQ_cl_r64(r1)              x86_encode_r64_rm64(0xD3,7,r1)
+#define SARQ_cl_rbpdisp(disp)        x86_encode_r64_rbpdisp64(0xD3,7,disp)
 #define SARQ_imm_r64(imm,r1)         if( imm == 1 ) { x86_encode_r64_rm64(0xD1,7,r1); } else { x86_encode_r64_rm64(0xC1,7,r1); OP(imm); }
+#define SARQ_imm_rbpdisp(imm,disp)   if( imm == 1 ) { x86_encode_r64_rbpdisp64(0xD1,7,disp); } else { x86_encode_r64_rbpdisp64(0xC1,7,disp); OP(imm); }
+
 #define SHLL_cl_r32(r1)              x86_encode_r32_rm32(0xD3,4,r1)
+#define SHLL_cl_rbpdisp(disp)        x86_encode_r32_rbpdisp32(0xD3,4,disp)
 #define SHLL_imm_r32(imm,r1)         if( imm == 1 ) { x86_encode_r32_rm32(0xD1,4,r1); } else { x86_encode_r32_rm32(0xC1,4,r1); OP(imm); }
+#define SHLL_imm_rbpdisp(imm,disp)   if( imm == 1 ) { x86_encode_r32_rbpdisp32(0xD1,4,disp); } else { x86_encode_r32_rbpdisp32(0xC1,4,disp); OP(imm); }
 #define SHLQ_cl_r64(r1)              x86_encode_r64_rm64(0xD3,4,r1)
+#define SHLQ_cl_rbpdisp(disp)        x86_encode_r64_rbpdisp64(0xD3,4,disp)
 #define SHLQ_imm_r64(imm,r1)         if( imm == 1 ) { x86_encode_r64_rm64(0xD1,4,r1); } else { x86_encode_r64_rm64(0xC1,4,r1); OP(imm); }
+#define SHLQ_imm_rbpdisp(imm,disp)   if( imm == 1 ) { x86_encode_r64_rbpdisp64(0xD1,4,disp); } else { x86_encode_r64_rbpdisp64(0xC1,4,disp); OP(imm); }
+
+#define SHLDL_cl_r32_r32(r1,r2)      x86_encode_r32_rm32(0x0FA5,r1,r2)
+#define SHLDL_cl_r32_rbpdisp(r1,d)   x86_encode_r32_rbpdisp32(0x0FA5,r1,d)
+#define SHLDL_imm_r32_r32(imm,r1,r2) x86_encode_r32_rm32(0x0FA4,r1,r2); OP(imm)
+#define SHLDL_imm_r32_rbpdisp(i,r,d) x86_encode_r32_rbpdisp32(0x0FA4,r,d); OP(imm) 
+#define SHLDQ_cl_r64_r64(r1,r2)      x86_encode_r64_rm64(0x0FA5,r1,r2)
+#define SHLDQ_cl_r64_rbpdisp(r1,d)   x86_encode_r64_rbpdisp64(0x0FA5,r1,d)
+#define SHLDQ_imm_r64_r64(imm,r1,r2) x86_encode_r64_rm64(0x0FA4,r1,r2); OP(imm)
+#define SHLDQ_imm_r64_rbpdisp(i,r,d) x86_encode_r64_rbpdisp64(0x0FA4,r,d); OP(imm) 
+
 #define SHRL_cl_r32(r1)              x86_encode_r32_rm32(0xD3,5,r1)
+#define SHRL_cl_rbpdisp(disp)        x86_encode_r32_rbpdisp32(0xD3,5,disp)
 #define SHRL_imm_r32(imm,r1)         if( imm == 1 ) { x86_encode_r32_rm32(0xD1,5,r1); } else { x86_encode_r32_rm32(0xC1,5,r1); OP(imm); }
+#define SHRL_imm_rbpdisp(imm,disp)   if( imm == 1 ) { x86_encode_r32_rbpdisp32(0xD1,5,disp); } else { x86_encode_r32_rbpdisp32(0xC1,5,disp); OP(imm); }
 #define SHRQ_cl_r64(r1)              x86_encode_r64_rm64(0xD3,5,r1)
+#define SHRQ_cl_rbpdisp(disp)        x86_encode_r64_rbpdisp64(0xD3,5,disp)
 #define SHRQ_imm_r64(imm,r1)         if( imm == 1 ) { x86_encode_r64_rm64(0xD1,5,r1); } else { x86_encode_r64_rm64(0xC1,5,r1); OP(imm); }
+#define SHRQ_imm_rbpdisp(imm,disp)   if( imm == 1 ) { x86_encode_r64_rbpdisp64(0xD1,5,disp); } else { x86_encode_r64_rbpdisp64(0xC1,5,disp); OP(imm); }
+
+#define SHRDL_cl_r32_r32(r1,r2)      x86_encode_r32_rm32(0x0FAD,r1,r2)
+#define SHRDL_cl_r32_rbpdisp(r1,d)   x86_encode_r32_rbpdisp32(0x0FAD,r1,d)
+#define SHRDL_imm_r32_r32(imm,r1,r2) x86_encode_r32_rm32(0x0FAC,r1,r2); OP(imm)
+#define SHRDL_imm_r32_rbpdisp(i,r,d) x86_encode_r32_rbpdisp32(0x0FAC,r,d); OP(imm) 
+#define SHRDQ_cl_r64_r64(r1,r2)      x86_encode_r64_rm64(0x0FAD,r1,r2)
+#define SHRDQ_cl_r64_rbpdisp(r1,d)   x86_encode_r64_rbpdisp64(0x0FAD,r1,d)
+#define SHRDQ_imm_r64_r64(imm,r1,r2) x86_encode_r64_rm64(0x0FAC,r1,r2); OP(imm)
+#define SHRDQ_imm_r64_rbpdisp(i,r,d) x86_encode_r64_rbpdisp64(0x0FAC,r,d); OP(imm) 
 
 #define SBBB_imms_r8(imm,r1)         x86_encode_r32_rm32(0x80, 3, r1); OP(imm)
 #define SBBB_r8_r8(r1,r2)            x86_encode_r32_rm32(0x18, r1, r2)
@@ -582,6 +650,7 @@ static void x86_encode_modrm_rip(int rexw, uint32_t opcode, int rr, int32_t disp
 #define CALL_imm32(ptr)              x86_encode_r32_mem32disp32(0xFF, 2, -1, ptr)
 #define CALL_r32(r1)                 x86_encode_r32_rm32(0xFF, 2, r1)
 #define CALL_r32disp(r1,disp)        x86_encode_r32_mem32disp32(0xFF, 2, r1, disp)
+#define CALL_sib(ss,ii,bb,disp)      x86_encode_r32_mem32(0xFF, 2, bb, ii, ss, disp)
 
 #define JCC_cc_rel8(cc,rel)          OP(0x70+(cc)); OP(rel)
 #define JCC_cc_rel32(cc,rel)         OP(0x0F); OP(0x80+(cc)); OP32(rel)
@@ -596,6 +665,20 @@ static void x86_encode_modrm_rip(int rexw, uint32_t opcode, int rr, int32_t disp
 #define RET()                        OP(0xC3)
 #define RET_imm(imm)                 OP(0xC2); OP16(imm)
 
+/* Labeled jumps for automated backpatching of forward jumps (rel8 only) */
+#define _MARK_JMP8(x) uint8_t *_mark_jmp_##x = (xlat_output-1)
+#define JMP_TARGET(x) *_mark_jmp_##x += (xlat_output - _mark_jmp_##x)
+#define JCC_cc_label(cc,label) JCC_cc_rel8(cc,-1); _MARK_JMP8(label)
+#define JMP_label(label) JMP_rel8(-1); _MARK_JMP8(label)
+#define JAE_label(label) JCC_cc_label(X86_COND_AE,label)
+#define JE_label(label)  JCC_cc_label(X86_COND_E,label)
+#define JG_label(label)  JCC_cc_label(X86_COND_G,label)
+#define JGE_label(label) JCC_cc_label(X86_COND_GE,label)
+#define JNA_label(label) JCC_cc_label(X86_COND_NA,label)
+#define JNE_label(label) JCC_cc_label(X86_COND_NE,label)
+#define JNGE_label(label) JCC_cc_label(X86_COND_NGE,label)
+#define JNO_label(label) JCC_cc_label(X86_COND_NO,label)
+#define JS_label(label)  JCC_cc_label(X86_COND_S,label)
 
 /* x87 Floating point instructions */
 #define FABS_st0()                   OP(0xD9); OP(0xE1)
@@ -620,6 +703,12 @@ static void x86_encode_modrm_rip(int rexw, uint32_t opcode, int rr, int32_t disp
 #define FSTPF_rbpdisp(disp)          x86_encode_r32_rbpdisp32(0xD9, 3, disp)
 #define FSTPD_rbpdisp(disp)          x86_encode_r32_rbpdisp32(0xDD, 3, disp)
 
+
+/* SSE Integer instructions */
+#define MOVL_r32_xmm(r1,r2)          OP(0x66); x86_encode_r32_rm32(0x0F6E, r2, r1)
+#define MOVL_xmm_r32(r1,r2)          OP(0x66); x86_encode_r32_rm32(0x0F7E, r1, r2)
+#define MOVQ_r64_xmm(r1,r2)          OP(0x66); x86_encode_r64_rm64(0x0F6E, r2, r1)
+#define MOVQ_xmm_r64(r1,r2)          OP(0x66); x86_encode_r64_rm64(0x0F7E, r1, r2)
 
 /* SSE Packed floating point instructions */
 #define ADDPS_rbpdisp_xmm(disp,r1)   x86_encode_r32_rbpdisp32(0x0F58, r1, disp)
@@ -675,6 +764,18 @@ static void x86_encode_modrm_rip(int rexw, uint32_t opcode, int rr, int32_t disp
 #define CMPSS_cc_xmm_xmm(cc,r1,r2)   OP(0xF3); x86_encode_r32_rm32(0x0FC2, r2, r1); OP(cc)
 #define COMISS_rbpdisp_xmm(disp,r1)  x86_encode_r32_rbpdisp32(0x0F2F, r1, disp)
 #define COMISS_xmm_xmm(r1,r2)        x86_encode_r32_rm32(0x0F2F, r2, r1)
+#define CVTSI2SSL_r32_xmm(r1,r2)     OP(0xF3); x86_encode_r32_rm32(0x0F2A, r2, r1)
+#define CVTSI2SSL_rbpdisp_xmm(d,r1)  OP(0xF3); x86_encode_r32_rbpdisp32(0x0F2A, r1, d)
+#define CVTSI2SSQ_r64_xmm(r1,r2)     OP(0xF3); x86_encode_r64_rm64(0x0F2A, r2, r1)
+#define CVTSI2SSQ_rbpdisp_xmm(d,r1)  OP(0xF3); x86_encode_r64_rbpdisp64(0x0F2A, r1, d)
+#define CVTSS2SIL_xmm_r32(r1,r2)     OP(0xF3); x86_encode_r32_rm32(0x0F2D, r2, r1)
+#define CVTSS2SIL_rbpdisp_r32(d,r1)  OP(0xF3); x86_encode_r32_rbpdisp32(0x0F2D, r1, d)
+#define CVTSS2SIQ_xmm_r64(r1,r2)     OP(0xF3); x86_encode_r64_rm64(0x0F2D, r2, r1)
+#define CVTSS2SIQ_rbpdisp_r64(d,r1)  OP(0xF3); x86_encode_r64_rbpdisp64(0x0F2D, r1, d)
+#define CVTTSS2SIL_xmm_r32(r1,r2)    OP(0xF3); x86_encode_r32_rm32(0x0F2C, r2, r1)
+#define CVTTSS2SIL_rbpdisp_r32(d,r1) OP(0xF3); x86_encode_r32_rbpdisp32(0x0F2C, r1, d)
+#define CVTTSS2SIQ_xmm_r64(r1,r2)    OP(0xF3); x86_encode_r64_rm64(0x0F2C, r2, r1)
+#define CVTTSS2SIQ_rbpdisp_r64(d,r1) OP(0xF3); x86_encode_r64_rbpdisp64(0x0F2C, r1, d)
 #define DIVSS_rbpdisp_xmm(disp,r1)   OP(0xF3); x86_encode_r32_rbpdisp32(0x0F5E, r1, disp)
 #define DIVSS_xmm_xmm(r1,r2)         OP(0xF3); x86_encode_r32_rm32(0x0F5E, r2, r1)
 #define MAXSS_rbpdisp_xmm(disp,r1)   OP(0xF3); x86_encode_r32_rbpdisp32(0x0F5F, r1, disp)
@@ -706,9 +807,9 @@ static void x86_encode_modrm_rip(int rexw, uint32_t opcode, int rr, int32_t disp
 #define ANDNPD_xmm_xmm(r1,r2)        OP(0x66); x86_encode_r32_rm32(0x0F55, r2, r1)
 #define CMPPD_cc_rbpdisp_xmm(cc,d,r) OP(0x66); x86_encode_r32_rbpdisp32(0x0FC2, r, d); OP(cc)
 #define CMPPD_cc_xmm_xmm(cc,r1,r2)   OP(0x66); x86_encode_r32_rm32(0x0FC2, r2, r1); OP(cc)
-#define CVTPD2PS_rbpdisp_xmm(dsp,r1) OP(0x66); x86_encode_r32_rbpdisp32(0x0F5A, r1, disp)
+#define CVTPD2PS_rbpdisp_xmm(dsp,r1) OP(0x66); x86_encode_r32_rbpdisp32(0x0F5A, r1, dsp)
 #define CVTPD2PS_xmm_xmm(r1,r2)      OP(0x66); x86_encode_r32_rm32(0x0F5A, r2, r1)
-#define CVTPS2PD_rbpdisp_xmm(dsp,r1) x86_encode_r32_rbpdisp32(0x0F5A, r1, disp)
+#define CVTPS2PD_rbpdisp_xmm(dsp,r1) x86_encode_r32_rbpdisp32(0x0F5A, r1, dsp)
 #define CVTPS2PD_xmm_xmm(r1,r2)      x86_encode_r32_rm32(0x0F5A, r2, r1)
 #define DIVPD_rbpdisp_xmm(disp,r1)   OP(0x66); x86_encode_r32_rbpdisp32(0x0F5E, r1, disp)
 #define DIVPD_xmm_xmm(r1,r2)         OP(0x66); x86_encode_r32_rm32(0x0F5E, r2, r1)
@@ -741,6 +842,23 @@ static void x86_encode_modrm_rip(int rexw, uint32_t opcode, int rr, int32_t disp
 #define ADDSD_xmm_xmm(r1,r2)         OP(0xF2); x86_encode_r32_rm32(0x0F58, r2, r1)
 #define CMPSD_cc_rbpdisp_xmm(cc,d,r) OP(0xF2); x86_encode_r32_rbpdisp32(0x0FC2, r, d); OP(cc)
 #define CMPSD_cc_xmm_xmm(cc,r1,r2)   OP(0xF2); x86_encode_r32_rm32(0x0FC2, r2, r1); OP(cc)
+#define CVTSI2SDL_r32_xmm(r1,r2)     OP(0xF2); x86_encode_r32_rm32(0x0F2A, r2, r1)
+#define CVTSI2SDL_rbpdisp_xmm(d,r1)  OP(0xF2); x86_encode_r32_rbpdisp32(0x0F2A, r1, d)
+#define CVTSI2SDQ_r64_xmm(r1,r2)     OP(0xF2); x86_encode_r64_rm64(0x0F2A, r2, r1)
+#define CVTSI2SDQ_rbpdisp_xmm(d,r1)  OP(0xF2); x86_encode_r64_rbpdisp64(0x0F2A, r1, d)
+#define CVTSD2SIL_xmm_r32(r1,r2)     OP(0xF2); x86_encode_r32_rm32(0x0F2D, r2, r1)
+#define CVTSD2SIL_rbpdisp_r32(d,r1)  OP(0xF2); x86_encode_r32_rbpdisp32(0x0F2D, r1, d)
+#define CVTSD2SIQ_xmm_r64(r1,r2)     OP(0xF2); x86_encode_r64_rm64(0x0F2D, r2, r1)
+#define CVTSD2SIQ_rbpdisp_r64(d,r1)  OP(0xF2); x86_encode_r64_rbpdisp64(0x0F2D, r1, d)
+#define CVTSD2SS_rbpdisp_xmm(dsp,r1) OP(0xF2); x86_encode_r32_rbpdisp32(0x0F5A, r1, dsp)
+#define CVTSD2SS_xmm_xmm(r1,r2)      OP(0xF2); x86_encode_r32_rm32(0x0F5A, r2, r1)
+#define CVTSS2SD_rbpdisp_xmm(dsp,r1) OP(0xF3); x86_encode_r32_rbpdisp32(0x0F5A, r1, dsp)
+#define CVTSS2SD_xmm_xmm(r1,r2)      OP(0xF3); x86_encode_r32_rm32(0x0F5A, r2, r1)
+#define CVTTSD2SIL_xmm_r32(r1,r2)    OP(0xF2); x86_encode_r32_rm32(0x0F2C, r2, r1)
+#define CVTTSD2SIL_rbpdisp_r32(d,r1) OP(0xF2); x86_encode_r32_rbpdisp32(0x0F2C, r1, d)
+#define CVTTSD2SIQ_xmm_r64(r1,r2)    OP(0xF2); x86_encode_r64_rm64(0x0F2C, r2, r1)
+#define CVTTSD2SIQ_rbpdisp_r64(d,r1) OP(0xF2); x86_encode_r64_rbpdisp64(0x0F2C, r1, d)
+
 #define COMISD_rbpdisp_xmm(disp,r1)  OP(0x66); x86_encode_r32_rbpdisp32(0x0F2F, r1, disp)
 #define COMISD_xmm_xmm(r1,r2)        OP(0x66); x86_encode_r32_rm32(0x0F2F, r2, r1)
 #define DIVSD_rbpdisp_xmm(disp,r1)   OP(0xF2); x86_encode_r32_rbpdisp32(0x0F5E, r1, disp)

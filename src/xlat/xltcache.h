@@ -23,6 +23,21 @@
 #define lxdream_xltcache_H 1
 
 /**
+ * Exception table record - this is filled out by the codegen used by the codegen (to backpatch)
+ * and linker (for longjmp recover)
+ */;
+typedef struct xlat_exception_record {
+    uint32_t xlat_pc_offset;  // Native PC exception source (relative to start of code block)
+    uint32_t xlat_exc_offset; // Exception entry point (relative to start of code block)
+} *xlat_exception_record_t;
+
+typedef struct xlat_exception_table {
+    xlat_exception_record_t exc;
+    size_t next_record;
+    size_t table_size;
+} *xlat_exception_table_t;
+
+/**
  * For now, recovery is purely a matter of mapping native pc => sh4 pc,
  * and updating sh4r.pc & sh4r.slice_cycles accordingly. In future more
  * detailed recovery may be required if the translator optimizes more
