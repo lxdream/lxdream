@@ -8,103 +8,108 @@ msgstr ""
 "Project-Id-Version: lxdream 0.8.3\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2008-07-30 12:21+1000\n"
-"PO-Revision-Date: 2007-11-10 12:45-0300\n"
-"Last-Translator: Gabriel Tillmann <gabriel_at@hotmail.com>\n"
+"PO-Revision-Date: 2009-04-03 11:05-0300\n"
+"Last-Translator: Gabriel Tillmann <gtillmann@gmail.com>\n"
 "Language-Team: PT <trans-pt@lxdream.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/cocoaui/cocoa_ctrl.c:316 src/gtkui/gtk_ctrl.c:286
+#: src/cocoaui/cocoa_ctrl.c:316
+#: src/gtkui/gtk_ctrl.c:286
 #, c-format
 msgid "Slot %d."
 msgstr "Slot %d."
 
-#: src/cocoaui/cocoa_win.c:176 src/gtkui/gtk_win.c:317
+#: src/cocoaui/cocoa_win.c:176
+#: src/gtkui/gtk_win.c:317
 msgid "(Press <ctrl><alt> to release grab)"
-msgstr ""
+msgstr "(Pressione <Ctrl><alt> para desprender)"
 
-#: src/cocoaui/cocoa_win.c:188 src/gtkui/gtk_win.c:327
+#: src/cocoaui/cocoa_win.c:188
+#: src/gtkui/gtk_win.c:327
 msgid "Running"
-msgstr ""
+msgstr "Rodando"
 
-#: src/cocoaui/cocoa_win.c:191 src/gtkui/gtk_win.c:327
+#: src/cocoaui/cocoa_win.c:191
+#: src/gtkui/gtk_win.c:327
 msgid "Stopped"
-msgstr ""
+msgstr "Parado"
 
 #: src/cocoaui/cocoaui.c:378
 #, c-format
 msgid "Running (%2.4f%%)"
-msgstr ""
+msgstr "Rodando (%2.4f%%)"
 
 #: src/config.c:39
-#, fuzzy
 msgid "Bios ROM"
-msgstr "Bios rom"
+msgstr "ROM da Bios"
 
 #: src/config.c:40
-#, fuzzy
 msgid "Flash ROM"
-msgstr "Flash rom"
+msgstr "ROM da Flash"
 
-#: src/config.c:41 src/gtkui/gtk_path.c:28
+#: src/config.c:41
+#: src/gtkui/gtk_path.c:28
 msgid "Default disc path"
 msgstr "Diretório padrão do disco"
 
 #: src/config.c:42
-#, fuzzy
 msgid "Save-state path"
-msgstr "diretório do estado salvo"
+msgstr "Diretório de Estados Salvos"
 
-#: src/config.c:43 src/gtkui/gtk_path.c:29
+#: src/config.c:43
+#: src/gtkui/gtk_path.c:29
 msgid "Bootstrap IP.BIN"
 msgstr "Bootstrap IP.BIN"
 
 #: src/config.c:49
 msgid "Serial device"
-msgstr ""
+msgstr "Dispositivo Serial"
 
 #: src/drivers/audio_alsa.c:35
 msgid "Audio output device"
-msgstr ""
+msgstr "Dispositivo de Saída de Audio"
 
 #: src/drivers/audio_alsa.c:187
 msgid "Linux ALSA system driver"
-msgstr ""
+msgstr "Driver do Sistema Linux ALSA"
 
 #: src/drivers/audio_esd.c:74
 msgid "Enlightened Sound Daemon driver"
-msgstr ""
+msgstr "Daemon do Driver de Som Enlightened "
 
 #: src/drivers/audio_null.c:38
 msgid "Null (no audio) driver"
-msgstr ""
+msgstr "Driver (sem audio) Nulo"
 
 #: src/drivers/audio_osx.c:119
 msgid "OS X CoreAudio system driver"
-msgstr ""
+msgstr "Driver do sistema CoreAudio OS X "
 
 #: src/drivers/audio_pulse.c:79
 msgid "PulseAudio sound server driver"
-msgstr ""
+msgstr "Driver do Servidor de Som PulseAudio"
 
 #: src/drivers/video_gtk.c:132
 msgid "GTK-based OpenGL driver"
-msgstr ""
+msgstr "Driver OpenGL Baseado em GTK"
 
 #: src/drivers/video_null.c:58
 msgid "Null (no video) driver"
-msgstr ""
+msgstr "Driver (Sem Vídeo) Nullo"
 
 #: src/drivers/video_osx.c:45
 msgid "OS X Cocoa GUI-based OpenGL driver"
-msgstr ""
+msgstr "Driver GUI OS X Cocoa baseado em OpenGL  "
 
-#: src/gdlist.c:206 src/gdlist.c:229
+#: src/gdlist.c:206
+#: src/gdlist.c:229
 msgid "Empty"
 msgstr "Vazio"
 
-#: src/gtkui/gtk_ctrl.c:64 src/gtkui/gtk_ctrl.c:93
+#: src/gtkui/gtk_ctrl.c:64
+#: src/gtkui/gtk_ctrl.c:93
 msgid "<press key>"
 msgstr "<Precione tecla>"
 
@@ -152,7 +157,8 @@ msgstr "ARM7T"
 msgid "This page is currently unmapped"
 msgstr "Esta página encontra-se não mapeada"
 
-#: src/gtkui/gtk_dump.c:69 src/gtkui/gtkcb.c:231
+#: src/gtkui/gtk_dump.c:69
+#: src/gtkui/gtkcb.c:231
 msgid "Memory dump"
 msgstr "Dump de memória"
 
@@ -224,7 +230,8 @@ msgstr "Flash rom"
 msgid "Save state path"
 msgstr "diretório do estado salvo"
 
-#: src/gtkui/gtk_path.c:44 src/gtkui/gtk_path.c:65
+#: src/gtkui/gtk_path.c:44
+#: src/gtkui/gtk_path.c:65
 msgid "Select file"
 msgstr "Selecionar arquivo"
 
@@ -234,7 +241,7 @@ msgstr "Configurações de diretórios"
 
 #: src/gtkui/gtk_win.c:315
 msgid "(Press <command> to release grab)"
-msgstr ""
+msgstr "(Pressione <Comando> Para desprender)"
 
 #: src/gtkui/gtkcb.c:36
 msgid "All files"
@@ -244,7 +251,8 @@ msgstr "Todos os Arquivos"
 msgid "Load state..."
 msgstr "Carregar stado..."
 
-#: src/gtkui/gtkcb.c:144 src/gtkui/gtkcb.c:175
+#: src/gtkui/gtkcb.c:144
+#: src/gtkui/gtkcb.c:175
 msgid "lxDream Save State (*.dst)"
 msgstr "lxDream Save State (*.dst)"
 
@@ -273,13 +281,12 @@ msgid "_Help"
 msgstr "_Ajuda"
 
 #: src/gtkui/gtkui.c:73
-#, fuzzy
 msgid "Load _Binary..."
-msgstr "Carregar stado..."
+msgstr "Carregar_Binário..."
 
 #: src/gtkui/gtkui.c:73
 msgid "Load and run a program binary"
-msgstr ""
+msgstr "Carregar e Correr Um programa Binário"
 
 #: src/gtkui/gtkui.c:74
 msgid "_Reset"
@@ -302,18 +309,16 @@ msgid "Resume"
 msgstr "Continuar"
 
 #: src/gtkui/gtkui.c:77
-#, fuzzy
 msgid "_Load State..."
-msgstr "_Carregar estado..."
+msgstr "_Carregar Estado..."
 
 #: src/gtkui/gtkui.c:77
 msgid "Load an lxdream save state"
 msgstr "Carregar estado do lxdream"
 
 #: src/gtkui/gtkui.c:78
-#, fuzzy
 msgid "_Save State..."
-msgstr "_Salvar estado..."
+msgstr "_Salvar Estado..."
 
 #: src/gtkui/gtkui.c:78
 msgid "Create an lxdream save state"
@@ -328,9 +333,8 @@ msgid "Exit lxdream"
 msgstr "Sair do lxdream"
 
 #: src/gtkui/gtkui.c:80
-#, fuzzy
 msgid "_GD-Rom"
-msgstr "_GD-Rom..."
+msgstr "_GD-Rom"
 
 #: src/gtkui/gtkui.c:81
 msgid "_Empty"
@@ -462,139 +466,140 @@ msgstr "Registros de MMIO"
 
 #: src/main.c:80
 msgid "Run the AICA SPU only, with the supplied program"
-msgstr ""
+msgstr "Correr Apenas o Spu AICA, com o programa dado"
 
 #: src/main.c:81
 msgid "Use the specified audio driver (? to list)"
-msgstr ""
+msgstr "Usar Driver de audio específico (? para listar)"
 
 #: src/main.c:82
 msgid "Load configuration from CONFFILE"
-msgstr ""
+msgstr "Carregar configurações de uma CONFFILE"
 
 #: src/main.c:83
 msgid "Start in debugger mode"
-msgstr ""
+msgstr "Iniciar no modo debbugador"
 
 #: src/main.c:84
 msgid "Display this usage information"
-msgstr ""
+msgstr "Mostrar informações de uso"
 
 #: src/main.c:85
 msgid "Run in headless (no video) mode"
-msgstr ""
+msgstr "Rodar no Modo (sem vídeo) sem cabeça"
 
 #: src/main.c:86
 msgid "Set the output log level"
-msgstr ""
+msgstr "Definir o nível de saída do Log"
 
 #: src/main.c:87
 msgid "Set the SH4 multiplier (1.0 = fullspeed)"
-msgstr ""
+msgstr "Definir Multiplicador do SH4 (1.0 = Velocidade total)"
 
 #: src/main.c:88
 msgid "Don't start running immediately"
-msgstr ""
+msgstr "Não Correr Imediatamente"
 
 #: src/main.c:89
 msgid "Start running immediately on startup"
-msgstr ""
+msgstr "Correr Imediatamente "
 
 #: src/main.c:90
 msgid "Run for the specified number of seconds"
-msgstr ""
+msgstr "Correr por um número específico de segundos"
 
 #: src/main.c:91
 msgid "Output trace information for the named regions"
-msgstr ""
+msgstr "Traçar informação de saída para regiões nomeadas"
 
 #: src/main.c:92
 msgid "Allow unsafe dcload syscalls"
-msgstr ""
+msgstr "Permitir chamadas de sistema não seguras do dcload"
 
 #: src/main.c:93
 msgid "Print the lxdream version string"
-msgstr ""
+msgstr "Mostrar a String de versão do lxdream"
 
 #: src/main.c:94
 msgid "Use the specified video driver (? to list)"
-msgstr ""
+msgstr "Usar driver de vídeo específico (? para listar)"
 
 #: src/main.c:95
 msgid "Disable the SH4 translator"
-msgstr ""
+msgstr "Desabilitar o tradutor de SH4"
 
 #: src/maple/controller.c:53
 msgid "Dpad left"
-msgstr ""
+msgstr "Dpad Esquerda"
 
 #: src/maple/controller.c:54
 msgid "Dpad right"
-msgstr ""
+msgstr "Dpad Direita"
 
 #: src/maple/controller.c:55
 msgid "Dpad up"
-msgstr ""
+msgstr "Dpad Cima"
 
 #: src/maple/controller.c:56
 msgid "Dpad down"
-msgstr ""
+msgstr "Dpad Baixo"
 
 #: src/maple/controller.c:57
 msgid "Analog left"
-msgstr ""
+msgstr "Analógico Esquerda"
 
 #: src/maple/controller.c:58
 msgid "Analog right"
-msgstr ""
+msgstr "Analógico Direita"
 
 #: src/maple/controller.c:59
 msgid "Analog up"
-msgstr ""
+msgstr "Analógico Cima"
 
 #: src/maple/controller.c:60
 msgid "Analog down"
-msgstr ""
+msgstr "Analógico Baixo"
 
 #: src/maple/controller.c:61
 msgid "Button X"
-msgstr ""
+msgstr "Botão X"
 
 #: src/maple/controller.c:62
 msgid "Button Y"
-msgstr ""
+msgstr "Botão Y"
 
 #: src/maple/controller.c:63
 msgid "Button A"
-msgstr ""
+msgstr "Botão A"
 
 #: src/maple/controller.c:64
 msgid "Button B"
-msgstr ""
+msgstr "Botão B"
 
 #: src/maple/controller.c:65
 msgid "Trigger left"
-msgstr ""
+msgstr "Gatilho Esquerda"
 
 #: src/maple/controller.c:66
 msgid "Trigger right"
-msgstr ""
+msgstr "Gatilho Direita"
 
 #: src/maple/controller.c:67
 msgid "Start button"
-msgstr ""
+msgstr "Botão Start"
 
 #. Can't happen.
 #: src/x86dasm/dis-buf.c:57
 #, c-format
 msgid "Unknown error %d\n"
-msgstr ""
+msgstr "Erro desconhecido %d\n"
 
 #: src/x86dasm/dis-buf.c:66
 #, c-format
 msgid "Address 0x%s is out of bounds.\n"
-msgstr ""
+msgstr "O endereço 0x%s está fora dos limites. \n"
 
 #: src/x86dasm/i386-dis.c:1733
 msgid "<internal disassembler error>"
-msgstr ""
+msgstr "<erro interno no Disassembler>"
+
