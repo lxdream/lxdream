@@ -387,9 +387,9 @@ void sh4_translate_begin_block( sh4addr_t pc )
 uint32_t sh4_translate_end_block_size()
 {
     if( sh4_x86.backpatch_posn <= 3 ) {
-        return EPILOGUE_SIZE + (sh4_x86.backpatch_posn*12);
+        return EPILOGUE_SIZE + (sh4_x86.backpatch_posn*24);
     } else {
-        return EPILOGUE_SIZE + 48 + (sh4_x86.backpatch_posn-3)*15;
+        return EPILOGUE_SIZE + 72 + (sh4_x86.backpatch_posn-3)*27;
     }
 }
 
