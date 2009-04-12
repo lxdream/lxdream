@@ -216,17 +216,18 @@ test_testsh4x86_OBJECTS = $(am_test_testsh4x86_OBJECTS)
 test_testsh4x86_DEPENDENCIES =
 am__dirstamp = $(am__leading_dot)dirstamp
 am__test_testsh4xir_SOURCES_DIST = test/testsh4xir.c xlat/xir.c \
-	xlat/xir.h sh4/sh4xir.c xlat/x86/x86target.c xlat/x86/x86gen.c
+	xlat/xir.h sh4/sh4xir.c xlat/x86/x86target.c xlat/x86/x86gen.c \
+	xlat/regalloc.c
 @BUILD_SH4X86_TRUE@am_test_testsh4xir_OBJECTS = testsh4xir.$(OBJEXT) \
 @BUILD_SH4X86_TRUE@	xir.$(OBJEXT) sh4xir.$(OBJEXT) \
-@BUILD_SH4X86_TRUE@	x86target.$(OBJEXT) x86gen.$(OBJEXT)
+@BUILD_SH4X86_TRUE@	x86target.$(OBJEXT) x86gen.$(OBJEXT) \
+@BUILD_SH4X86_TRUE@	regalloc.$(OBJEXT)
 test_testsh4xir_OBJECTS = $(am_test_testsh4xir_OBJECTS)
 test_testsh4xir_DEPENDENCIES =
 am__test_testxir_SOURCES_DIST = test/testxir.c xlat/xir.c xlat/xir.h \
-	xlat/xirsup.c xlat/xiropt.c xlat/xiropt.h
+	xlat/xirsup.c xlat/xiropt.h
 @BUILD_SH4X86_TRUE@am_test_testxir_OBJECTS = testxir.$(OBJEXT) \
-@BUILD_SH4X86_TRUE@	xir.$(OBJEXT) xirsup.$(OBJEXT) \
-@BUILD_SH4X86_TRUE@	xiropt.$(OBJEXT)
+@BUILD_SH4X86_TRUE@	xir.$(OBJEXT) xirsup.$(OBJEXT)
 test_testxir_OBJECTS = $(am_test_testxir_OBJECTS)
 test_testxir_DEPENDENCIES =
 am_test_testxlt_OBJECTS = testxlt.$(OBJEXT) xltcache.$(OBJEXT)
@@ -491,9 +492,9 @@ lxdream_SOURCES = main.c version.c config.c config.h lxdream.h dream.h \
 @BUILD_SH4X86_TRUE@	xlat/xltcache.h mem.c util.c 
 
 @BUILD_SH4X86_TRUE@test_testsh4xir_LDADD = @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@
-@BUILD_SH4X86_TRUE@test_testsh4xir_SOURCES = test/testsh4xir.c xlat/xir.c xlat/xir.h sh4/sh4xir.c xlat/x86/x86target.c xlat/x86/x86gen.c
+@BUILD_SH4X86_TRUE@test_testsh4xir_SOURCES = test/testsh4xir.c xlat/xir.c xlat/xir.h sh4/sh4xir.c xlat/x86/x86target.c xlat/x86/x86gen.c xlat/regalloc.c
 @BUILD_SH4X86_TRUE@test_testxir_LDADD = @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@
-@BUILD_SH4X86_TRUE@test_testxir_SOURCES = test/testxir.c xlat/xir.c xlat/xir.h xlat/xirsup.c xlat/xiropt.c xlat/xiropt.h
+@BUILD_SH4X86_TRUE@test_testxir_SOURCES = test/testxir.c xlat/xir.c xlat/xir.h xlat/xirsup.c xlat/xiropt.h
 lxdream_LDADD = @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@ @PULSE_LIBS@ @ESOUND_LIBS@ @ALSA_LIBS@ @SDL_LIBS@ $(INTLLIBS)
 gendec_LDADD = @GLIB_LIBS@ @GTK_LIBS@ $(INTLLIBS)
 genglsl_LDADD = @GLIB_LIBS@ @GTK_LIBS@ $(INTLLIBS)
@@ -674,6 +675,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pmm.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pvr2.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pvr2mem.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/regalloc.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rendsave.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rendsort.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/scene.Po@am__quote@
@@ -710,7 +712,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/x86gen.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/x86target.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xir.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xiropt.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xirsup.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/xltcache.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/yuv.Po@am__quote@
@@ -1933,6 +1934,20 @@ x86gen.obj: xlat/x86/x86gen.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o x86gen.obj `if test -f 'xlat/x86/x86gen.c'; then $(CYGPATH_W) 'xlat/x86/x86gen.c'; else $(CYGPATH_W) '$(srcdir)/xlat/x86/x86gen.c'; fi`
 
+regalloc.o: xlat/regalloc.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT regalloc.o -MD -MP -MF "$(DEPDIR)/regalloc.Tpo" -c -o regalloc.o `test -f 'xlat/regalloc.c' || echo '$(srcdir)/'`xlat/regalloc.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/regalloc.Tpo" "$(DEPDIR)/regalloc.Po"; else rm -f "$(DEPDIR)/regalloc.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='xlat/regalloc.c' object='regalloc.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o regalloc.o `test -f 'xlat/regalloc.c' || echo '$(srcdir)/'`xlat/regalloc.c
+
+regalloc.obj: xlat/regalloc.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT regalloc.obj -MD -MP -MF "$(DEPDIR)/regalloc.Tpo" -c -o regalloc.obj `if test -f 'xlat/regalloc.c'; then $(CYGPATH_W) 'xlat/regalloc.c'; else $(CYGPATH_W) '$(srcdir)/xlat/regalloc.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/regalloc.Tpo" "$(DEPDIR)/regalloc.Po"; else rm -f "$(DEPDIR)/regalloc.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='xlat/regalloc.c' object='regalloc.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o regalloc.obj `if test -f 'xlat/regalloc.c'; then $(CYGPATH_W) 'xlat/regalloc.c'; else $(CYGPATH_W) '$(srcdir)/xlat/regalloc.c'; fi`
+
 testxir.o: test/testxir.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT testxir.o -MD -MP -MF "$(DEPDIR)/testxir.Tpo" -c -o testxir.o `test -f 'test/testxir.c' || echo '$(srcdir)/'`test/testxir.c; \
 @am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/testxir.Tpo" "$(DEPDIR)/testxir.Po"; else rm -f "$(DEPDIR)/testxir.Tpo"; exit 1; fi
@@ -1960,20 +1975,6 @@ xirsup.obj: xlat/xirsup.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='xlat/xirsup.c' object='xirsup.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o xirsup.obj `if test -f 'xlat/xirsup.c'; then $(CYGPATH_W) 'xlat/xirsup.c'; else $(CYGPATH_W) '$(srcdir)/xlat/xirsup.c'; fi`
-
-xiropt.o: xlat/xiropt.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT xiropt.o -MD -MP -MF "$(DEPDIR)/xiropt.Tpo" -c -o xiropt.o `test -f 'xlat/xiropt.c' || echo '$(srcdir)/'`xlat/xiropt.c; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/xiropt.Tpo" "$(DEPDIR)/xiropt.Po"; else rm -f "$(DEPDIR)/xiropt.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='xlat/xiropt.c' object='xiropt.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o xiropt.o `test -f 'xlat/xiropt.c' || echo '$(srcdir)/'`xlat/xiropt.c
-
-xiropt.obj: xlat/xiropt.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT xiropt.obj -MD -MP -MF "$(DEPDIR)/xiropt.Tpo" -c -o xiropt.obj `if test -f 'xlat/xiropt.c'; then $(CYGPATH_W) 'xlat/xiropt.c'; else $(CYGPATH_W) '$(srcdir)/xlat/xiropt.c'; fi`; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/xiropt.Tpo" "$(DEPDIR)/xiropt.Po"; else rm -f "$(DEPDIR)/xiropt.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='xlat/xiropt.c' object='xiropt.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o xiropt.obj `if test -f 'xlat/xiropt.c'; then $(CYGPATH_W) 'xlat/xiropt.c'; else $(CYGPATH_W) '$(srcdir)/xlat/xiropt.c'; fi`
 
 testxlt.o: test/testxlt.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT testxlt.o -MD -MP -MF "$(DEPDIR)/testxlt.Tpo" -c -o testxlt.o `test -f 'test/testxlt.c' || echo '$(srcdir)/'`test/testxlt.c; \

@@ -127,8 +127,8 @@ xir_op_t xir_shuffle_lower( xir_basic_block_t xbb, xir_op_t it, int tmp1, int tm
 
     if( arg == 0x1234 ) { /* Identity - NOP */
         it->opcode = OP_NOP;
-        it->operand[0].type = NO_OPERAND;
-        it->operand[1].type = NO_OPERAND;
+        it->operand[0].form = NO_OPERAND;
+        it->operand[1].form = NO_OPERAND;
         return it;
     }
     
@@ -149,33 +149,33 @@ xir_op_t xir_shuffle_lower( xir_basic_block_t xbb, xir_op_t it, int tmp1, int tm
         arg >>= 4;
     }
 
-    int shiftertype = it->operand[1].type, shifterval = it->operand[1].value.i;
+    int shifterform = it->operand[1].form, shifterval = it->operand[1].value.i;
     xir_op_t seq = xbb->ir_ptr;
 
     for( i=first; i<=last; i++ ) {
         if( mask_for_shift[i+3] != 0 ) {
             uint32_t maxmask = 0xFFFFFFFF;
             if( first != i ) {
-                shiftertype = SOURCE_REGISTER_OPERAND;
+                shifterform = TEMP_OPERAND;
                 if( last == i ) {
                     shifterval = tmp1;
                 } else {
                     shifterval = tmp2;
-                    xir_append_op2( xbb, OP_MOV, SOURCE_REGISTER_OPERAND, tmp1, shiftertype, shifterval );
+                    xir_append_op2( xbb, OP_MOV, TEMP_OPERAND, tmp1, shifterform, shifterval );
                 }
             }
             if( i < 0 ) {
-                xir_append_op2( xbb, OP_SLR, INT_IMM_OPERAND, (-i)<<3, shiftertype, shifterval );
+                xir_append_op2( xbb, OP_SLR, IMMEDIATE_OPERAND, (-i)<<3, shifterform, shifterval );
                 maxmask >>= ((-i)<<3);
             } else if( i > 0 ) {
-                xir_append_op2( xbb, OP_SLL, INT_IMM_OPERAND, i<<3, shiftertype, shifterval );
+                xir_append_op2( xbb, OP_SLL, IMMEDIATE_OPERAND, i<<3, shifterform, shifterval );
                 maxmask <<= (i<<3);
             }
             if( mask_for_shift[i+3] != maxmask ) {
-                xir_append_op2( xbb, OP_AND, INT_IMM_OPERAND, mask_for_shift[i+3], shiftertype, shifterval );
+                xir_append_op2( xbb, OP_AND, IMMEDIATE_OPERAND, mask_for_shift[i+3], shifterform, shifterval );
             }
             if( first != i ) {
-                xir_append_op2( xbb, OP_OR, shiftertype, shifterval, it->operand[1].type, it->operand[1].value.i );
+                xir_append_op2( xbb, OP_OR, shifterform, shifterval, it->operand[1].form, it->operand[1].value.i );
             }
         }
     }
@@ -183,14 +183,14 @@ xir_op_t xir_shuffle_lower( xir_basic_block_t xbb, xir_op_t it, int tmp1, int tm
     /* Replace original shuffle with either a temp move or a nop */
     if( first != last ) {
         it->opcode = OP_MOV;
-        it->operand[0].type = it->operand[1].type;
+        it->operand[0].form = it->operand[1].form;
         it->operand[0].value.i = it->operand[1].value.i;
-        it->operand[1].type = SOURCE_REGISTER_OPERAND;
+        it->operand[1].form = TEMP_OPERAND;
         it->operand[1].value.i = tmp1;
     } else {
         it->opcode = OP_NOP;
-        it->operand[0].type = NO_OPERAND;
-        it->operand[1].type = NO_OPERAND;
+        it->operand[0].form = NO_OPERAND;
+        it->operand[1].form = NO_OPERAND;
     }
 
     /* Finally insert the new sequence after the original op */

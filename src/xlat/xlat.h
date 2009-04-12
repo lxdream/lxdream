@@ -30,7 +30,6 @@ typedef struct target_data *target_data_t;
 struct xlat_source_machine {
     const char *name;
     void *state_data;   /* Pointer to source machine state structure */
-    const char **reg_names; /* Register names, indexed by offset/4 */
     uint32_t pc_offset; /* Offset of source PC, relative to state_data */
     uint32_t delayed_pc_offset; /* Offset of source delayed PC offset, relative to state_data */
     uint32_t t_offset; /* Offset of source T reg, relative to state_data */
@@ -38,6 +37,12 @@ struct xlat_source_machine {
     uint32_t q_offset;
     uint32_t s_offset;
   
+    /**
+     * Return the name of the register with the given type,
+     * or NULL if no such register exists
+     */
+    const char * (*get_register_name)( uint32_t reg, xir_type_t type );
+    
     /**
      * Decode a basic block of instructions from start, stopping after a
      * control transfer or before the given end instruction.
@@ -51,17 +56,21 @@ struct xlat_source_machine {
 /* Target machine description (no these are not meant to be symmetrical) */
 struct xlat_target_machine {
     const char *name;
-    /* Register information */
-    const char **reg_names;
 
     /* Required functions */
     
+    /**
+     * Return the name of the register with the given type,
+     * or NULL if no such register exists
+     */
+    const char * (*get_register_name)( uint32_t reg, xir_type_t type );
+
     /**
      * Test if the given operands are legal for the opcode. Note that it is assumed that
      * target register operands are always legal. This is used by the register allocator
      * to determine when it can fuse load/stores with another operation.
      */
-    gboolean (*is_legal)( xir_opcode_t op, xir_operand_type_t arg0, xir_operand_type_t arg1 );
+    gboolean (*is_legal)( xir_opcode_t op, xir_operand_form_t arg0, xir_operand_form_t arg1 );
 
     /**
      * Lower IR closer to the machine, handling machine-specific issues that can't
