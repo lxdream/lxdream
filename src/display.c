@@ -354,18 +354,18 @@ void input_event_keydown( input_driver_t driver, uint16_t keycode, uint32_t pres
     }
 }
 
-void input_event_keyup( input_driver_t driver, uint16_t keycode, uint32_t pressure )
+void input_event_keyup( input_driver_t driver, uint16_t keycode )
 {
     if( display_focused ) {
         keymap_entry_t *entryp = input_entry_from_keycode(driver,keycode);
         if( entryp != NULL && *entryp != NULL ) {
-            (*entryp)->callback( (*entryp)->data, (*entryp)->value, pressure, FALSE );
+            (*entryp)->callback( (*entryp)->data, (*entryp)->value, 0, FALSE );
         }
 
         if( driver == NULL ) {
             keymap_entry_t key = keyhooks;
             while( key != NULL ) {
-                key->callback( key->data, keycode, pressure, FALSE );
+                key->callback( key->data, keycode, 0, FALSE );
                 key = key->next;
             }
         }
@@ -458,7 +458,7 @@ void input_event_mousedown( uint16_t button, int32_t x, int32_t y, gboolean abso
         mouse_y = y;
     }
     mouse_buttons |= (1<<button);
-    input_event_keydown( &system_mouse_driver, button+1, 1 );
+    input_event_keydown( &system_mouse_driver, button+1, MAX_PRESSURE );
     input_event_run_mouse_hooks( mouse_buttons, x, y, absolute );
 }    
 
@@ -469,7 +469,7 @@ void input_event_mouseup( uint16_t button, int32_t x, int32_t y, gboolean absolu
         mouse_y = y;
     }
     mouse_buttons &= ~(1<<button);
-    input_event_keyup( &system_mouse_driver, button+1, 1 );
+    input_event_keyup( &system_mouse_driver, button+1 );
     input_event_run_mouse_hooks( mouse_buttons, x, y, absolute );
 }
 
