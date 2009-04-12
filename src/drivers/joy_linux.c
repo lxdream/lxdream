@@ -52,6 +52,11 @@ typedef struct linux_joystick {
 
 } *linux_joystick_t;
 
+/* Linux joysticks return data in the range -32767 to 32767 - rescale this to 
+ * -127 .. 127
+ */
+#define SCALE_PRESSURE(x) ((x)>>8)
+
 static gboolean linux_joystick_callback( GIOChannel *source, GIOCondition condition, 
                                          gpointer data );
 static int linux_joystick_scan();
@@ -146,21 +151,21 @@ static gboolean linux_joystick_callback( GIOChannel *source, GIOCondition condit
             if( event.type == JS_EVENT_BUTTON ) {
                 int keycode = event.number+1;
                 if( event.value == 0 ) {
-                    input_event_keyup( (input_driver_t)joy, keycode, 0 );
+                    input_event_keyup( (input_driver_t)joy, keycode );
                 } else {
-                    input_event_keydown( (input_driver_t)joy, keycode, event.value );
+                    input_event_keydown( (input_driver_t)joy, keycode, MAX_PRESSURE );
                 }
             } else if( event.type == JS_EVENT_AXIS ) {
                 int keycode = (event.number*2) + joy->button_count + 1;
                 if( event.value == 0 ) {
-                    input_event_keyup( (input_driver_t)joy, keycode, 0 );
-                    input_event_keyup( (input_driver_t)joy, keycode+1, 0 );
+                    input_event_keyup( (input_driver_t)joy, keycode );
+                    input_event_keyup( (input_driver_t)joy, keycode+1 );
                 } else if( event.value < 0 ) {
-                    input_event_keydown( (input_driver_t)joy, keycode+1, -event.value );
-                    input_event_keyup( (input_driver_t)joy, keycode, 0 );
+                    input_event_keyup( (input_driver_t)joy, keycode );
+                    input_event_keydown( (input_driver_t)joy, keycode+1, SCALE_PRESSURE(-event.value) );
                 } else {
-                    input_event_keydown( (input_driver_t)joy, keycode, event.value );
-                    input_event_keyup( (input_driver_t)joy, keycode+1, 0 );
+                    input_event_keyup( (input_driver_t)joy, keycode+1 );
+                    input_event_keydown( (input_driver_t)joy, keycode, SCALE_PRESSURE(event.value) );
                 }
             }
         }

@@ -131,12 +131,12 @@ int video_height = 480;
 - (void)keyDown: (NSEvent *) event
 {
     if( ![event isARepeat] ) {
-        input_event_keydown( NULL, [event keyCode]+1, 1 );
+        input_event_keydown( NULL, [event keyCode]+1, MAX_PRESSURE );
     }
 }
 - (void)keyUp: (NSEvent *) event
 {
-    input_event_keyup( NULL, [event keyCode]+1, 1 );
+    input_event_keyup( NULL, [event keyCode]+1 );
 }
 - (void)flagsChanged: (NSEvent *) event
 {
@@ -146,10 +146,10 @@ int video_height = 480;
     }
 
     if( flagsMask[keycode] == 0 ) {
-        input_event_keydown( NULL, keycode+1, 1 );
+        input_event_keydown( NULL, keycode+1, MAX_PRESSURE );
         flagsMask[keycode] = 1;
     } else {
-        input_event_keyup( NULL, keycode+1, 1 );
+        input_event_keyup( NULL, keycode+1 );
         flagsMask[keycode] = 0;
     }
 }

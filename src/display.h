@@ -227,6 +227,9 @@ extern struct display_driver display_null_driver;
 
 #define MAX_MOUSE_BUTTONS 32
 
+/* Pressure is 0..127  (allowing a joystick to be defined as two half-axes of 7- bits each) */
+#define MAX_PRESSURE 0x7F
+
 typedef void (*input_key_callback_t)( void *data, uint32_t value, uint32_t pressure, gboolean isKeyDown );
 
 /**
@@ -337,9 +340,18 @@ void input_unregister_device( input_driver_t driver );
  */
 void display_set_focused( gboolean has_focus );
 
+/**
+ * Fire a keydown event on the specified device
+ * @param input The input device source generating the event, or NULL for the 
+ *        default GUI device
+ * @param keycode The device-specific keycode
+ * @param pressure The pressure of the key (0 to 127), where 0 is unpressed and
+ *        127 is maximum pressure. Devices without pressure sensitivity should 
+ *        always use MAX_PRESSURE (127) 
+ */
 void input_event_keydown( input_driver_t input, uint16_t keycode, uint32_t pressure );
 
-void input_event_keyup( input_driver_t input, uint16_t keycode, uint32_t pressure );
+void input_event_keyup( input_driver_t input, uint16_t keycode );
 
 /**
  * Receive an input mouse down event. Normally these should be absolute events when

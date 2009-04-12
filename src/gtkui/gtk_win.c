@@ -216,14 +216,14 @@ static gboolean on_video_window_key_pressed( GtkWidget *widget, GdkEventKey *eve
         }
 #endif
     }
-    input_event_keydown( NULL, gtk_get_unmodified_keyval(event), 1 );
+    input_event_keydown( NULL, gtk_get_unmodified_keyval(event), MAX_PRESSURE );
     return TRUE;
 }
 
 static gboolean on_video_window_key_released( GtkWidget *widget, GdkEventKey *event,
                                               gpointer user_data )
 {
-    input_event_keyup( NULL, gtk_get_unmodified_keyval(event), 0 );
+    input_event_keyup( NULL, gtk_get_unmodified_keyval(event) );
     return TRUE;
 }
 

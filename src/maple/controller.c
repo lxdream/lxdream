@@ -41,12 +41,15 @@
 #define BUTTON_RIGHT_TRIGGER 0x00FF0000 /* Bitmask */
 
 /* Second word of controller condition (bitmasks) */
-#define JOY_X_AXIS          0x000000FF
-#define JOY_Y_AXIS          0x0000FF00
+#define JOY_X_AXIS_MASK     0x000000FF
+#define JOY_Y_AXIS_MASK     0x0000FF00
 #define JOY_X_AXIS_CENTER   0x00000080
 #define JOY_Y_AXIS_CENTER   0x00008000
-#define JOY2_X_AXIS         0x00FF0000 /* not on standard controller */
-#define JOY2_Y_AXIS         0xFF000000 /* not on standard controller */
+#define JOY2_X_AXIS_MASK    0x00FF0000 /* not on standard controller */
+#define JOY2_Y_AXIS_MASK    0xFF000000 /* not on standard controller */
+
+#define JOY_X_AXIS(x)       ((x)&0xFF)
+#define JOY_Y_AXIS(y)       (((y)&0xFF)<<8)
 
 /* The following bits are used by the emulator for flags but don't actually
  * appear in the hardware
@@ -148,16 +151,20 @@ static void controller_key_callback( void *mdev, uint32_t value, uint32_t pressu
     if( isKeyDown ) {
         switch( value ) {
         case JOY_LEFT:
-            dev->condition[1] &= ~JOY_X_AXIS;
+            dev->condition[1] &= ~JOY_X_AXIS_MASK;
+            dev->condition[1] |= JOY_X_AXIS(0x7F - pressure);
             break;
         case JOY_RIGHT:
-            dev->condition[1] |= JOY_X_AXIS;
+            dev->condition[1] &= ~JOY_X_AXIS_MASK;
+            dev->condition[1] |= JOY_X_AXIS(0x80 + pressure);
             break;
         case JOY_UP:
-            dev->condition[1] &= ~JOY_Y_AXIS;
+            dev->condition[1] &= ~JOY_Y_AXIS_MASK;
+            dev->condition[1] |= JOY_Y_AXIS(0x7F - pressure);
             break;
         case JOY_DOWN:
-            dev->condition[1] |= JOY_Y_AXIS;
+            dev->condition[1] &= ~JOY_Y_AXIS_MASK;
+            dev->condition[1] |= JOY_Y_AXIS(0x80 + pressure);
             break;
         case BUTTON_LEFT_TRIGGER:
         case BUTTON_RIGHT_TRIGGER:
@@ -170,11 +177,11 @@ static void controller_key_callback( void *mdev, uint32_t value, uint32_t pressu
         switch(value ) {
         case JOY_LEFT:
         case JOY_RIGHT:
-            dev->condition[1] = (dev->condition[1] & ~JOY_X_AXIS)| JOY_X_AXIS_CENTER;
+            dev->condition[1] = (dev->condition[1] & ~JOY_X_AXIS_MASK)| JOY_X_AXIS_CENTER;
             break;
         case JOY_UP:
         case JOY_DOWN:
-            dev->condition[1] = (dev->condition[1] & ~JOY_Y_AXIS)| JOY_Y_AXIS_CENTER;
+            dev->condition[1] = (dev->condition[1] & ~JOY_Y_AXIS_MASK)| JOY_Y_AXIS_CENTER;
             break;
         case BUTTON_LEFT_TRIGGER:
         case BUTTON_RIGHT_TRIGGER:
