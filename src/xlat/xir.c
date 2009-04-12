@@ -20,15 +20,17 @@
 #include <string.h>
 #include <assert.h>
 #include "xlat/xir.h"
+#include "xlat/xlat.h" 
 
-static const char **xir_source_register_names = NULL;
-static const char **xir_target_register_names = NULL;
 static const struct xir_symbol_entry *xir_symbol_table = NULL;
 
 static const char *XIR_CC_NAMES[] = {
         "ov", "no", "uge", "ult", "ule", "ugt", "eq", "ne",
         "neg", "pos", "sge", "slt", "sle", "sgt" };
-static const int XIR_OPERAND_SIZE[] = { 4, 8, 4, 8, 16, 64, 0, 0 };
+static const char XIR_TYPE_CODES[] = { 'l', 'q', 'f', 'd', 'v', 'm' };
+
+const int XIR_OPERAND_SIZE[] = { 4, 8, 4, 8, 16, 64, (sizeof(void *)), 0 };
+
 
 const struct xir_opcode_entry XIR_OPCODE_TABLE[] = { 
         { "NOP", OPM_NO },
@@ -99,7 +101,6 @@ const struct xir_opcode_entry XIR_OPCODE_TABLE[] = {
         { "TST", OPM_R_R_TW },
         { "XOR", OPM_R_RW },
         { "XORS", OPM_R_RW_TW },        
-        { "XLAT", OPM_R_RW },
         
         { "ABSD", OPM_DR_DW },
         { "ABSF", OPM_FR_FW },
@@ -163,9 +164,13 @@ const struct xir_opcode_entry XIR_OPCODE_TABLE[] = {
         { "RAISE/ME", OPM_R_R | OPM_EXC },
         { "RAISE/MNE", OPM_R_R | OPM_EXC },
         
+        /* Native/pointer operations */
         { "CALL/LUT", OPM_R_R | OPM_EXC },
         { "CALL1", OPM_R_R | OPM_CLB },
         { "CALLR", OPM_R_W | OPM_CLB },
+        { "LOADPTRL", OPM_R_W | 0x060 },
+        { "LOADPTRQ", OPM_R_W | 0x160 },
+        { "XLAT", OPM_R_RW | 0x600 }, /* Xlat Rm, Rn - Read native [Rm+Rn] and store in Rn */ 
         
         { "ADDQSAT32", OPM_R_R | OPM_CLBT|OPM_Q_Q },
         { "ADDQSAT48", OPM_R_R | OPM_CLBT|OPM_Q_Q },
@@ -176,10 +181,23 @@ const struct xir_opcode_entry XIR_OPCODE_TABLE[] = {
                
 };
 
-void xir_set_register_names( const char **source_regs, const char **target_regs )
+void xir_clear_basic_block( xir_basic_block_t xbb )
 {
-    xir_source_register_names = source_regs;
-    xir_target_register_names = target_regs;
+    xbb->next_temp_reg = 0;
+    xir_alloc_temp_reg( xbb, XTY_LONG, -1 );
+    xir_alloc_temp_reg( xbb, XTY_LONG, -1 );
+    xir_alloc_temp_reg( xbb, XTY_LONG, -1 );
+    xir_alloc_temp_reg( xbb, XTY_QUAD, -1 );
+    xir_alloc_temp_reg( xbb, XTY_QUAD, -1 );
+}
+
+uint32_t xir_alloc_temp_reg( xir_basic_block_t xbb, xir_type_t type, int home )
+{
+    assert( xbb->next_temp_reg <= MAX_TEMP_REGISTER );
+    int reg = xbb->next_temp_reg++;
+    xbb->temp_regs[reg].type = type;
+    xbb->temp_regs[reg].home_register = home;
+    return reg;
 }
 
 void xir_set_symbol_table( const struct xir_symbol_entry *symtab )
@@ -200,54 +218,75 @@ const char *xir_lookup_symbol( const void *ptr )
     return NULL;
 }   
 
-int xir_snprint_operand( char *buf, int buflen, xir_operand_t op )
+static int xir_snprint_operand( char *buf, int buflen, xir_basic_block_t xbb, xir_operand_t op, xir_type_t ty )
 {
     const char *name;
-    switch( op->type ) {
-    case INT_IMM_OPERAND:
-        return snprintf( buf, buflen, "$0x%x", op->value.i );
-    case FLOAT_IMM_OPERAND:
-        return snprintf( buf, buflen, "%f", op->value.f );
-    case DOUBLE_IMM_OPERAND:
-        return snprintf( buf, buflen, "%f", op->value.f );
-    case POINTER_OPERAND:
-        name = xir_lookup_symbol( op->value.p );
-        if( name != NULL ) {
-            return snprintf( buf, buflen, "*%s", name );
-        } else {
-            return snprintf( buf, buflen, "*%p", op->value.p );
-        }
-    case SOURCE_REGISTER_OPERAND:
-        if( op->value.i >= MIN_SOURCE_REGISTER && op->value.i <= MAX_SOURCE_REGISTER ) {
-            if( xir_source_register_names ) {
-                return snprintf( buf, buflen, "%%%s", xir_source_register_names[(op->value.i-MIN_SOURCE_REGISTER)>>2] );
+    xir_temp_register_t tmp;
+    
+    switch( op->form ) {
+    case IMMEDIATE_OPERAND:
+        switch( ty ) {
+        case XTY_LONG:
+            return snprintf( buf, buflen, "$0x%x", op->value.i );
+        case XTY_QUAD:
+            return snprintf( buf, buflen, "$0x%lld", op->value.q );
+        case XTY_FLOAT:
+            return snprintf( buf, buflen, "%f", op->value.f );
+        case XTY_DOUBLE:
+            return snprintf( buf, buflen, "%f", op->value.f );
+        case XTY_PTR:
+            name = xir_lookup_symbol( op->value.p );
+            if( name != NULL ) {
+                return snprintf( buf, buflen, "*%s", name );
             } else {
-                return snprintf( buf, buflen, "%%src%d", op->value.i-MIN_SOURCE_REGISTER );
+                return snprintf( buf, buflen, "*%p", op->value.p );
             }
-        } else {
-            return snprintf( buf, buflen, "%%tmp%d", op->value.i-MIN_TEMP_REGISTER );
+        default:
+            return snprintf( buf, buflen, "ILLOP" );
         }
-    case TARGET_REGISTER_OPERAND:
-        if( xir_target_register_names ) {
-            return snprintf( buf, buflen, "%%%s", xir_target_register_names[op->value.i-MIN_TARGET_REGISTER] );
+        break;
+    case SOURCE_OPERAND:
+        name = xbb->source->get_register_name(op->value.i, ty);
+        if( name != NULL ) {
+            return snprintf( buf, buflen, "%%%s", name );
         } else {
-            return snprintf( buf, buflen, "%%dst%d", op->value.i-MIN_TARGET_REGISTER );
+            return snprintf( buf, buflen, "%%src%d", op->value.i );
+        }
+        break;
+    case TEMP_OPERAND:
+        tmp = &xbb->temp_regs[op->value.i];
+        if( tmp->home_register != -1 && 
+            (name = xbb->source->get_register_name(tmp->home_register,ty)) != NULL ) {
+            return snprintf( buf, buflen, "%%%s.%c%d", name,
+                    XIR_TYPE_CODES[tmp->type], op->value.i );
+        } else {
+            return snprintf( buf, buflen, "%%tmp%c%d", 
+                    XIR_TYPE_CODES[tmp->type], op->value.i );
+        }
+    case DEST_OPERAND:
+        name = xbb->target->get_register_name(op->value.i, ty);
+        if( name != NULL ) {
+            return snprintf( buf, buflen, "%%%s", name );
+        } else {
+            return snprintf( buf, buflen, "%%dst%d", op->value.i );
         }
     default:
         return snprintf( buf, buflen, "ILLOP" );
     }
 }
 
-void xir_print_instruction( FILE *out, xir_op_t i )
+static void xir_print_instruction( FILE *out, xir_basic_block_t xbb, xir_op_t i )
 {
     char operands[64] = "";
     
-    if( i->operand[0].type != NO_OPERAND ) {
-        int pos = xir_snprint_operand( operands, sizeof(operands), &i->operand[0] );
-        if( i->operand[1].type != NO_OPERAND ) {
+    if( i->operand[0].form != NO_OPERAND ) {
+        int pos = xir_snprint_operand( operands, sizeof(operands), xbb, &i->operand[0],
+                XOP_OPTYPE(i,0));
+        if( i->operand[1].form != NO_OPERAND ) {
             strncat( operands, ", ", sizeof(operands)-pos );
             pos += 2;
-            xir_snprint_operand( operands+pos, sizeof(operands)-pos, &i->operand[1] );
+            xir_snprint_operand( operands+pos, sizeof(operands)-pos, xbb, &i->operand[1],
+                                 XOP_OPTYPE(i,1) );
         }
     }
     if( i->cond == CC_TRUE ) {
@@ -263,7 +302,7 @@ void xir_print_instruction( FILE *out, xir_op_t i )
  * Sanity check a block of IR to make sure that
  * operands match up with the expected values etc
  */
-void xir_verify_block( xir_op_t start, xir_op_t end )
+void xir_verify_block( xir_basic_block_t xbb, xir_op_t start, xir_op_t end )
 {
     xir_op_t it;
     int flags_written = 0;
@@ -271,30 +310,43 @@ void xir_verify_block( xir_op_t start, xir_op_t end )
         assert( it != NULL && "Unexpected end of block" );
         assert( it->cond >= CC_TRUE && it->cond <= CC_SGT && "Invalid condition code" );
         if( XOP_HAS_0_OPERANDS(it) ) {
-            assert( it->operand[0].type == NO_OPERAND && it->operand[1].type == NO_OPERAND );
+            assert( it->operand[0].form == NO_OPERAND && it->operand[1].form == NO_OPERAND );
         } else if( XOP_HAS_1_OPERAND(it) ) {
-            assert( it->operand[0].type != NO_OPERAND && it->operand[1].type == NO_OPERAND );
+            assert( it->operand[0].form != NO_OPERAND && it->operand[1].form == NO_OPERAND );
         } else if( XOP_HAS_2_OPERANDS(it) ) {
-            assert( it->operand[0].type != NO_OPERAND && it->operand[1].type != NO_OPERAND );
+            assert( it->operand[0].form != NO_OPERAND && it->operand[1].form != NO_OPERAND );
         }
         
         if( it->opcode == OP_ENTER ) {
             assert( it->prev == NULL && "Enter instruction must have no predecessors" );
             assert( it == start && "Enter instruction must occur at the start of the block" );
-            assert( it->operand[0].type == INT_IMM_OPERAND && "Enter instruction must have an immediate operand" );
+            assert( it->operand[0].form == IMMEDIATE_OPERAND && "Enter instruction must have an immediate operand" );
         } else if( it->opcode == OP_ST || it->opcode == OP_LD ) {
             assert( it->cond != CC_TRUE && "Opcode not permitted with True condition code" );
         }
         
         if( XOP_WRITES_OP1(it) ) {
-            assert( (it->operand[0].type == SOURCE_REGISTER_OPERAND ||
-                     it->operand[0].type == TARGET_REGISTER_OPERAND) && "Writable operand 1 requires a register" );
+            assert( XOP_IS_REG(it,0) &&  "Writable operand 1 requires a register" );
         }
         if( XOP_WRITES_OP2(it) ) {
-            assert( (it->operand[1].type == SOURCE_REGISTER_OPERAND ||
-                     it->operand[1].type == TARGET_REGISTER_OPERAND) && "Writable operand 2 requires a register" );
+            assert( XOP_IS_REG(it,1) && "Writable operand 2 requires a register" );
         }
-        
+
+        if( XOP_IS_SRC(it,0) ) {
+            assert( XOP_REG(it,0) <= MAX_SOURCE_REGISTER && "Undefined source register" );
+        } else if( XOP_IS_TMP(it,0) ) {
+            assert( XOP_REG(it,0) < xbb->next_temp_reg && "Undefined temporary register" );
+        } else if( XOP_IS_DST(it,0) ) {
+            assert( XOP_REG(it,0) <= MAX_DEST_REGISTER && "Undefined target register" );
+        }
+        if( XOP_IS_SRC(it,1) ) {
+            assert( XOP_REG(it,1) <= MAX_SOURCE_REGISTER && "Undefined source register" );
+        } else if( XOP_IS_TMP(it,1) ) {
+            assert( XOP_REG(it,1) < xbb->next_temp_reg && "Undefined temporary register" );
+        } else if( XOP_IS_DST(it,1) ) {
+            assert( XOP_REG(it,1) <= MAX_DEST_REGISTER && "Undefined target register" );
+        }
+
         if( XOP_READS_FLAGS(it) ) {
             assert( flags_written && "Flags used without prior definition in block" );
         }
@@ -305,7 +357,7 @@ void xir_verify_block( xir_op_t start, xir_op_t end )
         if( XOP_HAS_EXCEPTION(it) ) {
             assert( it->exc != NULL && "Missing exception block" );
             assert( it->exc->prev == it && "Exception back-link broken" );
-            xir_verify_block( it->exc, NULL ); // Verify exception sub-block
+            xir_verify_block( xbb, it->exc, NULL ); // Verify exception sub-block
         } else {
             assert( it->exc == NULL && "Unexpected exception block" );
         }
@@ -320,13 +372,13 @@ void xir_verify_block( xir_op_t start, xir_op_t end )
     }
 }
 
-xir_op_t xir_append_op2( xir_basic_block_t xbb, int op, int arg0type, uint32_t arg0, int arg1type, uint32_t arg1 )
+xir_op_t xir_append_op2( xir_basic_block_t xbb, int op, int arg0form, uint32_t arg0, int arg1form, uint32_t arg1 )
 {
     xbb->ir_ptr->opcode = op;
     xbb->ir_ptr->cond = CC_TRUE;
-    xbb->ir_ptr->operand[0].type = arg0type;
+    xbb->ir_ptr->operand[0].form = arg0form;
     xbb->ir_ptr->operand[0].value.i = arg0;
-    xbb->ir_ptr->operand[1].type = arg1type;
+    xbb->ir_ptr->operand[1].form = arg1form;
     xbb->ir_ptr->operand[1].value.i = arg1;
     xbb->ir_ptr->exc = NULL;
     xbb->ir_ptr->next = xbb->ir_ptr+1;
@@ -334,13 +386,13 @@ xir_op_t xir_append_op2( xir_basic_block_t xbb, int op, int arg0type, uint32_t a
     return xbb->ir_ptr++;
 }
 
-xir_op_t xir_append_op2cc( xir_basic_block_t xbb, int op, xir_cc_t cc, int arg0type, uint32_t arg0, int arg1type, uint32_t arg1 )
+xir_op_t xir_append_op2cc( xir_basic_block_t xbb, int op, xir_cc_t cc, int arg0form, uint32_t arg0, int arg1form, uint32_t arg1 )
 {
     xbb->ir_ptr->opcode = op;
     xbb->ir_ptr->cond = cc;
-    xbb->ir_ptr->operand[0].type = arg0type;
+    xbb->ir_ptr->operand[0].form = arg0form;
     xbb->ir_ptr->operand[0].value.i = arg0;
-    xbb->ir_ptr->operand[1].type = arg1type;
+    xbb->ir_ptr->operand[1].form = arg1form;
     xbb->ir_ptr->operand[1].value.i = arg1;
     xbb->ir_ptr->exc = NULL;
     xbb->ir_ptr->next = xbb->ir_ptr+1;
@@ -348,13 +400,13 @@ xir_op_t xir_append_op2cc( xir_basic_block_t xbb, int op, xir_cc_t cc, int arg0t
     return xbb->ir_ptr++;
 }
 
-xir_op_t xir_append_float_op2( xir_basic_block_t xbb, int op, float imm1, int arg1type, uint32_t arg1 )
+xir_op_t xir_append_float_op2( xir_basic_block_t xbb, int op, float imm1, int arg1form, uint32_t arg1 )
 {
     xbb->ir_ptr->opcode = op;
     xbb->ir_ptr->cond = CC_TRUE;
-    xbb->ir_ptr->operand[0].type = FLOAT_IMM_OPERAND;
+    xbb->ir_ptr->operand[0].form = IMMEDIATE_OPERAND;
     xbb->ir_ptr->operand[0].value.i = imm1;
-    xbb->ir_ptr->operand[1].type = arg1type;
+    xbb->ir_ptr->operand[1].form = arg1form;
     xbb->ir_ptr->operand[1].value.i = arg1;
     xbb->ir_ptr->exc = NULL;
     xbb->ir_ptr->next = xbb->ir_ptr+1;
@@ -362,13 +414,13 @@ xir_op_t xir_append_float_op2( xir_basic_block_t xbb, int op, float imm1, int ar
     return xbb->ir_ptr++;
 }
 
-xir_op_t xir_append_ptr_op2( xir_basic_block_t xbb, int op, void *arg0, int arg1type, uint32_t arg1 )
+xir_op_t xir_append_ptr_op2( xir_basic_block_t xbb, int op, void *arg0, int arg1form, uint32_t arg1 )
 {
     xbb->ir_ptr->opcode = op;
     xbb->ir_ptr->cond = CC_TRUE;
-    xbb->ir_ptr->operand[0].type = POINTER_OPERAND;
+    xbb->ir_ptr->operand[0].form = IMMEDIATE_OPERAND;
     xbb->ir_ptr->operand[0].value.p = arg0;
-    xbb->ir_ptr->operand[1].type = arg1type;
+    xbb->ir_ptr->operand[1].form = arg1form;
     xbb->ir_ptr->operand[1].value.i = arg1;
     xbb->ir_ptr->exc = NULL;
     xbb->ir_ptr->next = xbb->ir_ptr+1;
@@ -407,19 +459,7 @@ void xir_remove_op( xir_op_t op )
     }
 }
 
-int xir_get_operand_size( xir_op_t op, int operand )
-{
-    int mode = XIR_OPCODE_TABLE[op->opcode].mode;
-    if( operand == 0 ) {
-        mode >>= 4;
-    } else {
-        mode >>= 8;
-    }
-    mode &= 0x07;
-    return XIR_OPERAND_SIZE[mode];
-}
-
-void xir_print_block( FILE *out, xir_op_t start, xir_op_t end )
+void xir_print_block( FILE *out, xir_basic_block_t xbb, xir_op_t start, xir_op_t end )
 {
     xir_op_t it = start;
     xir_op_t exc = NULL;
@@ -428,20 +468,20 @@ void xir_print_block( FILE *out, xir_op_t start, xir_op_t end )
         if( it->exc ) {
             while( exc ) {
                 fprintf( out, "%40c   ", ' ' );
-                xir_print_instruction( out, exc );
+                xir_print_instruction( out, xbb, exc );
                 fprintf( out, "\n" );
                 exc = exc->next;
             }
             exc = it->exc;
         }
-        xir_print_instruction( out, it );
+        xir_print_instruction( out, xbb, it );
         if( exc ) {
             if( it->exc ) {
                 fprintf( out, "=> " );
             } else {
                 fprintf( out, "   " );
             }
-            xir_print_instruction( out, exc );
+            xir_print_instruction( out, xbb, exc );
             exc = exc->next;
         }
         fprintf( out, "\n" );
@@ -451,8 +491,7 @@ void xir_print_block( FILE *out, xir_op_t start, xir_op_t end )
     }
 }
 
-void xir_dump_block( xir_op_t start, xir_op_t end )
+void xir_dump_block( xir_basic_block_t xbb )
 {
-    xir_print_block( stdout, start, end );
-    xir_verify_block( start, end );
+    xir_print_block( stdout, xbb, xbb->ir_begin, xbb->ir_end );
 }

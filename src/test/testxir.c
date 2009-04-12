@@ -22,19 +22,23 @@
 
 void test_shuffle()
 {
+    int tmp1, tmp2;
     struct xir_op op[64];
     struct xir_basic_block bb;
     xir_basic_block_t xbb = &bb;
     bb.ir_alloc_begin = bb.ir_begin = bb.ir_end = bb.ir_ptr = &op[0];
     bb.ir_alloc_end = &op[64];
+    xir_clear_basic_block( xbb );
+    tmp1 = xir_alloc_temp_reg( xbb, XTY_LONG, -1 );
+    tmp2 = xir_alloc_temp_reg( xbb, XTY_LONG, -1 );
     
-    XOP2I( OP_SHUFFLE, 0x1243, REG_TMP1 );
-    XOP2I( OP_SHUFFLE, 0x3412, REG_TMP1 );
-    XOP2I( OP_SHUFFLE, 0x1243, REG_TMP1 );
-    XOP2I( OP_SHUFFLE, 0x3412, REG_TMP1 );
-    XOP2I( OP_SHUFFLE, 0x1234, REG_TMP1 );
-    XOP2I( OP_SHUFFLE, 0x1111, REG_TMP2 );
-    XOP2I( OP_SHUFFLE, 0x0123, REG_TMP1 );
+    XOP2IT( OP_SHUFFLE, 0x1243, REG_TMP1 );
+    XOP2IT( OP_SHUFFLE, 0x3412, REG_TMP1 );
+    XOP2IT( OP_SHUFFLE, 0x1243, REG_TMP1 );
+    XOP2IT( OP_SHUFFLE, 0x3412, REG_TMP1 );
+    XOP2IT( OP_SHUFFLE, 0x1234, REG_TMP1 );
+    XOP2IT( OP_SHUFFLE, 0x1111, REG_TMP2 );
+    XOP2IT( OP_SHUFFLE, 0x0123, REG_TMP1 );
     XOP1I( OP_BR, 0x8C001000 );
     (bb.ir_ptr-1)->next = NULL;
     bb.ir_end = bb.ir_ptr-1;
@@ -54,13 +58,14 @@ void test_shuffle()
     assert( xir_shuffle_lower_size( &op[4] ) == 0);
     assert( xir_shuffle_lower_size( &op[5] ) == 12);
     assert( xir_shuffle_lower_size( &op[6] ) == 1);
-    xir_shuffle_lower( xbb, &op[0], REG_TMP3, REG_TMP4 ); 
-    xir_shuffle_lower( xbb, &op[1], REG_TMP3, REG_TMP4 );
-    xir_shuffle_lower( xbb, &op[3], REG_TMP3, REG_TMP4 );
-    xir_shuffle_lower( xbb, &op[4], REG_TMP3, REG_TMP4 );
-    xir_shuffle_lower( xbb, &op[5], REG_TMP3, REG_TMP4 );
-    xir_shuffle_lower( xbb, &op[6], REG_TMP3, REG_TMP4 );
-    xir_dump_block( &op[0], NULL );
+    xir_shuffle_lower( xbb, &op[0], tmp1, tmp2 ); 
+    xir_shuffle_lower( xbb, &op[1], tmp1, tmp2 );
+    xir_shuffle_lower( xbb, &op[3], tmp1, tmp2 );
+    xir_shuffle_lower( xbb, &op[4], tmp1, tmp2 );
+    xir_shuffle_lower( xbb, &op[5], tmp1, tmp2 );
+    xir_shuffle_lower( xbb, &op[6], tmp1, tmp2 );
+    xir_dump_block( xbb );
+    xir_verify_block( xbb, xbb->ir_begin, xbb->ir_end );
 }
 
 

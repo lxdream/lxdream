@@ -2379,11 +2379,11 @@ FIPR FVm, FVn {:
     check_fpuen();
     if( sh4_x86.double_prec == 0 ) {
         if( sh4_x86.sse3_enabled ) {
-            MOVAPS_rbpdisp_xmm( REG_OFFSET(fr[0][FVm<<2]), 4 );
-            MULPS_rbpdisp_xmm( REG_OFFSET(fr[0][FVn<<2]), 4 );
+            MOVAPS_r32disp_xmm( REG_RBP, REG_OFFSET(fr[0][FVm<<2]), 4 );
+            MULPS_r32disp_xmm( REG_RBP, REG_OFFSET(fr[0][FVn<<2]), 4 );
             HADDPS_xmm_xmm( 4, 4 ); 
             HADDPS_xmm_xmm( 4, 4 );
-            MOVSS_xmm_rbpdisp( 4, REG_OFFSET(fr[0][(FVn<<2)+2]) );
+            MOVSS_xmm_r32disp( 4, REG_RBP, REG_OFFSET(fr[0][(FVn<<2)+2]) );
         } else {
             push_fr( FVm<<2 );
             push_fr( FVn<<2 );
@@ -2409,13 +2409,13 @@ FTRV XMTRX, FVn {:
     check_fpuen();
     if( sh4_x86.double_prec == 0 ) {
         if( sh4_x86.sse3_enabled ) {
-            MOVAPS_rbpdisp_xmm( REG_OFFSET(fr[1][0]), 1 ); // M1  M0  M3  M2
-            MOVAPS_rbpdisp_xmm( REG_OFFSET(fr[1][4]), 0 ); // M5  M4  M7  M6
-            MOVAPS_rbpdisp_xmm( REG_OFFSET(fr[1][8]), 3 ); // M9  M8  M11 M10
-            MOVAPS_rbpdisp_xmm( REG_OFFSET(fr[1][12]), 2 );// M13 M12 M15 M14
+            MOVAPS_r32disp_xmm( REG_RBP, REG_OFFSET(fr[1][0]), 1 ); // M1  M0  M3  M2
+            MOVAPS_r32disp_xmm( REG_RBP, REG_OFFSET(fr[1][4]), 0 ); // M5  M4  M7  M6
+            MOVAPS_r32disp_xmm( REG_RBP, REG_OFFSET(fr[1][8]), 3 ); // M9  M8  M11 M10
+            MOVAPS_r32disp_xmm( REG_RBP, REG_OFFSET(fr[1][12]), 2 );// M13 M12 M15 M14
 
-            MOVSLDUP_rbpdisp_xmm( REG_OFFSET(fr[0][FVn<<2]), 4 ); // V1 V1 V3 V3
-            MOVSHDUP_rbpdisp_xmm( REG_OFFSET(fr[0][FVn<<2]), 5 ); // V0 V0 V2 V2
+            MOVSLDUP_r32disp_xmm( REG_RBP, REG_OFFSET(fr[0][FVn<<2]), 4 ); // V1 V1 V3 V3
+            MOVSHDUP_r32disp_xmm( REG_RBP, REG_OFFSET(fr[0][FVn<<2]), 5 ); // V0 V0 V2 V2
             MOV_xmm_xmm( 4, 6 );
             MOV_xmm_xmm( 5, 7 );
             MOVLHPS_xmm_xmm( 4, 4 );  // V1 V1 V1 V1
@@ -2429,7 +2429,7 @@ FTRV XMTRX, FVn {:
             ADDPS_xmm_xmm( 5, 4 );
             ADDPS_xmm_xmm( 7, 6 );
             ADDPS_xmm_xmm( 6, 4 );
-            MOVAPS_xmm_rbpdisp( 4, REG_OFFSET(fr[0][FVn<<2]) );
+            MOVAPS_xmm_r32disp( 4, REG_RBP, REG_OFFSET(fr[0][FVn<<2]) );
         } else {
             LEAP_rbpdisp_rptr( REG_OFFSET(fr[0][FVn<<2]), REG_EAX );
             CALL1_ptr_r32( sh4_ftrv, REG_EAX );

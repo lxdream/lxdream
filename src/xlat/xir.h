@@ -48,26 +48,17 @@
  * somehow.
  ****************************************************************************/
 
-/* Registers 0..127 belong to the source machine, all higher numbers are temporaries */
-#define MIN_SOURCE_REGISTER 0
 #define MAX_SOURCE_REGISTER 1023
-#define MIN_TEMP_REGISTER 1024
-#define MAX_TEMP_REGISTER 1535
+#define MAX_TEMP_REGISTER 511
+#define MAX_DEST_REGISTER 127
 
-/* Target registers have a separate 'address' space. */
-#define MIN_TARGET_REGISTER 0
-#define MAX_TARGET_REGISTER 127
+/* Preallocated temporaries for convenience */
+#define REG_TMP0 0
+#define REG_TMP1 1
+#define REG_TMP2 2
+#define REG_TMPQ0 3
+#define REG_TMPQ1 4
 
-/* Convenience defines */
-#define REG_TMP0 (MIN_TEMP_REGISTER)
-#define REG_TMP1 (MIN_TEMP_REGISTER+1)
-#define REG_TMP2 (MIN_TEMP_REGISTER+2)
-#define REG_TMP3 (MIN_TEMP_REGISTER+3)
-#define REG_TMP4 (MIN_TEMP_REGISTER+4)
-#define REG_TMP5 (MIN_TEMP_REGISTER+5)
-
-#define REG_TMPQ0 (MIN_TEMP_REGISTER+128)
-#define REG_TMPQ1 (MIN_TEMP_REGISTER+129)
 
 /**
  * Operands are either integer, float, or double, and are either immediate or
@@ -77,17 +68,14 @@
  */
 typedef enum {
     NO_OPERAND = 0,
-    SOURCE_REGISTER_OPERAND =1, // Source (or temp) register
-    TARGET_REGISTER_OPERAND =2,
-    INT_IMM_OPERAND = 3,
-    QUAD_IMM_OPERAND = 4,
-    FLOAT_IMM_OPERAND = 5,
-    DOUBLE_IMM_OPERAND = 6,
-    POINTER_OPERAND = 7, // Native target pointer, eg direct memory access
-} xir_operand_type_t;
+    SOURCE_OPERAND =1, // Source (or temp) register
+    DEST_OPERAND =2,
+    TEMP_OPERAND=3,
+    IMMEDIATE_OPERAND=4
+} xir_operand_form_t;
 
 typedef struct xir_operand {
-    xir_operand_type_t type;
+    xir_operand_form_t form;
     union {
         uint32_t i;
         uint64_t q;
@@ -96,6 +84,16 @@ typedef struct xir_operand {
         void *p;
     } value;
 } *xir_operand_t;
+
+typedef enum {
+    XTY_LONG = 0,  /* 32-bit integer */
+    XTY_QUAD = 1,  /* 64-bit integer */
+    XTY_FLOAT = 2, /* 32-bit float */
+    XTY_DOUBLE = 3,/* 64-bit float */
+    XTY_VEC4F  = 4,/* 4x 32-bit floats (16 bytes) */
+    XTY_MAT16F = 5,/* 4x4x 32-bit floats (64 bytes) */
+    XTY_PTR = 6,   /* Native pointer (of appropriate size) */
+} xir_type_t;
 
 /* Condition codes */
 typedef enum {
@@ -193,7 +191,6 @@ typedef enum {
     OP_TST,
     OP_XOR,
     OP_XORS,
-    OP_XLAT,
     
     /* FPU */
     OP_ABSD,
@@ -250,10 +247,13 @@ typedef enum {
     OP_RAISEMNE, // imm mask in, reg in - branch to exception if (reg & mask) != 0
 
 
-    // Native calls (not source machine calls)
+    // Native operations
     OP_CALLLUT, // Call indirect through base pointer (reg) + displacement
     OP_CALL1,  // Call function with single argument and no return value
     OP_CALLR,  // Call function with no arguments and a single return value
+    OP_LOADPTRL,
+    OP_LOADPTRQ, 
+    OP_XLAT,
 
     /********************** SH4-specific macro operations *************************/
     /* TODO: These need to be broken down into smaller operations eventually, 
@@ -380,6 +380,11 @@ typedef struct xir_op {
 typedef struct xlat_source_machine *xlat_source_machine_t;
 typedef struct xlat_target_machine *xlat_target_machine_t;
 
+typedef struct xir_temp_register {
+    xir_type_t type;
+    uint32_t home_register; /* corresponding source register, or -1 for none */
+} *xir_temp_register_t;
+
 /**
  * Source data structure. This mainly exists to manage memory for XIR operations
  */
@@ -391,7 +396,10 @@ typedef struct xir_basic_block {
     xir_op_t ir_alloc_end; /* End of allocation */
     uint32_t pc_begin; /* first instruction */
     uint32_t pc_end;   /* next instruction after end */ 
+    struct xir_temp_register temp_regs[MAX_TEMP_REGISTER+1]; /* temporary register table */
+    uint32_t next_temp_reg;
     xlat_source_machine_t source;
+    xlat_target_machine_t target;
     struct mem_region_fn **address_space; /* source machine memory access table */
 } *xir_basic_block_t;
 
@@ -462,17 +470,8 @@ struct xir_symbol_entry {
     void *ptr;
 };
 
-extern const struct xir_opcode_entry XIR_OPCODE_TABLE[]; 
-#define XOP_IS_SRCREG(op,n) (op->operand[n].type == SOURCE_REGISTER_OPERAND)
-#define XOP_IS_TGTREG(op,n) (op->operand[n].type == TARGET_REGISTER_OPERAND)
-#define XOP_IS_INTIMM(op,n) (op->operand[n].type == INT_IMM_OPERAND)
-#define XOP_IS_FLOATIMM(op,n) (op->operand[n].type == FLOAT_IMM_OPERAND)
-#define XOP_IS_DOUBLEIMM(op,n) (op->operand[n].type == DOUBLE_IMM_OPERAND)
-#define XOP_IS_QUADIMM(op,n) (op->operand[n].type == QUAD_IMM_OPERAND)
-#define XOP_IS_PTRIMM(op,n) (op->operand[n].type == POINTER_OPERAND)
-#define XOP_IS_IMM(op,n) (op->operand[n].type > TARGET_REGISTER_OPERAND)
-#define XOP_IS_REG(op,n) (XOP_IS_SRCREG(op,n)||XOP_IS_TGTREG(op,n)
-#define XOP_IS_FORM(op,t1,t2) (op->operand[0].type == t1 && op->operand[1].type == t2)
+extern const struct xir_opcode_entry XIR_OPCODE_TABLE[];
+extern const int XIR_OPERAND_SIZE[];
 
 #define XOP_REG(op,n) (op->operand[n].value.i)
 #define XOP_REG1(op) XOP_REG(op,0)
@@ -501,33 +500,69 @@ extern const struct xir_opcode_entry XIR_OPCODE_TABLE[];
 #define XOP_READS_REG2(op) (XOP_READS_OP2(op) && XOP_IS_REG(op,1))
 #define XOP_WRITES_REG2(op) (XOP_WRITES_OP2(op) && XOP_IS_REG(op,1))
 
-#define XOP_TYPE1(op) (op->operand[0].type)
-#define XOP_TYPE2(op) (op->operand[1].type)
+#define XOP_TYPE1(op) ((XIR_OPCODE_TABLE[op->opcode].mode >> 4) & 0x0F)
+#define XOP_TYPE2(op) ((XIR_OPCODE_TABLE[op->opcode].mode >> 8) & 0x0F)
+#define XOP_FORM1(op) (op->operand[0].form)
+#define XOP_FORM2(op) (op->operand[1].form)
 #define XOP_OPERAND(op,i) (&op->operand[i])
+#define XOP_OPTYPE(op,n) (n == 0 ? XOP_TYPE1(op) : XOP_TYPE2(op))
+#define XOP_OPSIZE(op,n) (XIR_OPERAND_SIZE[XOP_OPTYPE(op,n)])
 
-/******************************* OP Constructors ******************************/
+#define XOP_IS_SRC(op,n) (op->operand[n].form == SOURCE_OPERAND)
+#define XOP_IS_DST(op,n) (op->operand[n].form == DEST_OPERAND)
+#define XOP_IS_TMP(op,n) (op->operand[n].form == TEMP_OPERAND)
+#define XOP_IS_IMM(op,n) (op->operand[n].form == IMMEDIATE_OPERAND)
+#define XOP_IS_IMMF(op,n) (XOP_IS_IMM(op,n) && XOP_OPTYPE(op,n) == XTY_FLOAT)
+#define XOP_IS_IMMD(op,n) (XOP_IS_IMM(op,n) && XOP_OPTYPE(op,n) == XTY_DOUBLE)
+#define XOP_IS_IMML(op,n) (XOP_IS_IMM(op,n) && XOP_OPTYPE(op,n) == XTY_LONG)
+#define XOP_IS_IMMQ(op,n) (XOP_IS_IMM(op,n) && XOP_OPTYPE(op,n) == XTY_QUAD)
+#define XOP_IS_IMMP(op,n) (XOP_IS_IMM(op,n) && XOP_OPTYPE(op,n) == XTY_PTR)
+#define XOP_IS_REG(op,n) (op->operand[n].form >= SOURCE_OPERAND && op->operand[n].form <= TEMP_OPERAND)
+#define XOP_IS_FORM(op,t1,t2) (op->operand[0].form == t1 && op->operand[1].form == t2)
 
-xir_op_t xir_append_op2( xir_basic_block_t xbb, int op, int arg0type, uint32_t arg0, int arg1type, uint32_t arg1 );
-xir_op_t xir_append_op2cc( xir_basic_block_t xbb, int op, int cc, int arg0type, uint32_t arg0, int arg1type, uint32_t arg1 );
-xir_op_t xir_append_float_op2( xir_basic_block_t xbb, int op, float imm1, int arg1type, uint32_t arg1 );
-xir_op_t xir_append_ptr_op2( xir_basic_block_t xbb, int op, void *arg0, int arg1type, uint32_t arg1 );
+/******************************* IR Construction ******************************/
+
+/**
+ * Clear out a basic block structure, ready for reuse
+ */
+void xir_clear_basic_block( xir_basic_block_t xbb );
+
+/**
+ * Allocate a temporary register of the given type, with given home position
+ * (-1 for a pure temporary)
+ */
+uint32_t xir_alloc_temp_reg( xir_basic_block_t xbb, xir_type_t type, int home );
+
+xir_op_t xir_append_op2( xir_basic_block_t xbb, int op, int arg0form, uint32_t arg0, int arg1form, uint32_t arg1 );
+xir_op_t xir_append_op2cc( xir_basic_block_t xbb, int op, int cc, int arg0form, uint32_t arg0, int arg1form, uint32_t arg1 );
+xir_op_t xir_append_float_op2( xir_basic_block_t xbb, int op, float imm1, int arg1form, uint32_t arg1 );
+xir_op_t xir_append_ptr_op2( xir_basic_block_t xbb, int op, void *arg0, int arg1form, uint32_t arg1 );
 
 
-#define XOP1( op, arg0 )       xir_append_op2(xbb, op, SOURCE_REGISTER_OPERAND, arg0, NO_OPERAND, 0)
-#define XOP1CC( op, cc, arg0 ) xir_append_op2cc(xbb, op, cc, SOURCE_REGISTER_OPERAND, arg0, NO_OPERAND, 0)
-#define XOP1I( op, arg0 )      xir_append_op2(xbb, op, INT_IMM_OPERAND, arg0, NO_OPERAND, 0)
-#define XOP2I( op, arg0, arg1 ) xir_append_op2(xbb, op, INT_IMM_OPERAND, arg0, SOURCE_REGISTER_OPERAND, arg1)
-#define XOP2II( op, arg0, arg1 ) xir_append_op2(xbb, op, INT_IMM_OPERAND, arg0, INT_IMM_OPERAND, arg1)
-#define XOP2IICC( op, cc, arg0, arg1 ) xir_append_op2cc(xbb, op, cc, INT_IMM_OPERAND, arg0, INT_IMM_OPERAND, arg1)
-#define XOP2( op, arg0, arg1 ) xir_append_op2(xbb, op, SOURCE_REGISTER_OPERAND, arg0, SOURCE_REGISTER_OPERAND, arg1)
-#define XOP2CC( op, cc, arg0, arg1 ) xir_append_op2cc(xbb, op, cc, SOURCE_REGISTER_OPERAND, arg0, SOURCE_REGISTER_OPERAND, arg1)
-#define XOP2F( op, arg0, arg1 ) xir_append_float_op2(xbb, op, arg0, SOURCE_REGISTER_OPERAND, arg1) 
-#define XOP2P( op, arg0, arg1 ) xir_append_ptr_op2(xbb, op, arg0, SOURCE_REGISTER_OPERAND, arg1) 
+#define XOP1I( op, arg0 )      xir_append_op2(xbb, op, IMMEDIATE_OPERAND, arg0, NO_OPERAND, 0)
+#define XOP1S( op, arg0 )       xir_append_op2(xbb, op, SOURCE_OPERAND, arg0, NO_OPERAND, 0)
+#define XOP1SCC( op, cc, arg0 ) xir_append_op2cc(xbb, op, cc, SOURCE_OPERAND, arg0, NO_OPERAND, 0)
+#define XOP1T( op, arg0 )       xir_append_op2(xbb, op, TEMP_OPERAND, arg0, NO_OPERAND, 0)
+#define XOP1TCC( op, cc, arg0 ) xir_append_op2cc(xbb, op, cc, TEMP_OPERAND, arg0, NO_OPERAND, 0)
+#define XOP2IS( op, arg0, arg1 ) xir_append_op2(xbb, op, IMMEDIATE_OPERAND, arg0, SOURCE_OPERAND, arg1)
+#define XOP2IT( op, arg0, arg1 ) xir_append_op2(xbb, op, IMMEDIATE_OPERAND, arg0, TEMP_OPERAND, arg1)
+#define XOP2II( op, arg0, arg1 ) xir_append_op2(xbb, op, IMMEDIATE_OPERAND, arg0, IMMEDIATE_OPERAND, arg1)
+#define XOP2IICC( op, cc, arg0, arg1 ) xir_append_op2cc(xbb, op, cc, IMMEDIATE_OPERAND, arg0, IMMEDIATE_OPERAND, arg1)
+#define XOP2SS( op, arg0, arg1 ) xir_append_op2(xbb, op, SOURCE_OPERAND, arg0, SOURCE_OPERAND, arg1)
+#define XOP2ST( op, arg0, arg1 ) xir_append_op2(xbb, op, SOURCE_OPERAND, arg0, TEMP_OPERAND, arg1)
+#define XOP2TS( op, arg0, arg1 ) xir_append_op2(xbb, op, TEMP_OPERAND, arg0, SOURCE_OPERAND, arg1)
+#define XOP2TT( op, arg0, arg1 ) xir_append_op2(xbb, op, TEMP_OPERAND, arg0, TEMP_OPERAND, arg1)
+#define XOP2CC( op, cc, arg0, arg1 ) xir_append_op2cc(xbb, op, cc, SOURCE_OPERAND, arg0, SOURCE_OPERAND, arg1)
+#define XOP2FS( op, arg0, arg1 ) xir_append_float_op2(xbb, op, arg0, SOURCE_OPERAND, arg1) 
+#define XOP2PS( op, arg0, arg1 ) xir_append_ptr_op2(xbb, op, arg0, SOURCE_OPERAND, arg1) 
+#define XOP2PT( op, arg0, arg1 ) xir_append_ptr_op2(xbb, op, arg0, TEMP_OPERAND, arg1) 
 #define XOP0( op )             xir_append_op2(xbb, op, NO_OPERAND, 0, NO_OPERAND, 0)
 #define XOPCALL0( arg0 )   xir_append_ptr_op2(xbb, OP_CALL0, arg0, NO_OPERAND, 0) 
-#define XOPCALL1( arg0, arg1 ) xir_append_ptr_op2(xbb, OP_CALL1, arg0, SOURCE_REGISTER_OPERAND, arg1) 
-#define XOPCALL1I( arg0, arg1 ) xir_append_ptr_op2(xbb, OP_CALL1, arg0, INT_IMM_OPERAND, arg1)
-#define XOPCALLR( arg0, arg1 ) xir_append_ptr_op2(xbb, OP_CALLR, arg0, SOURCE_REGISTER_OPERAND, arg1)
+#define XOPCALL1I( arg0, arg1 ) xir_append_ptr_op2(xbb, OP_CALL1, arg0, IMMEDIATE_OPERAND, arg1)
+#define XOPCALL1S( arg0, arg1 ) xir_append_ptr_op2(xbb, OP_CALL1, arg0, SOURCE_OPERAND, arg1) 
+#define XOPCALL1T( arg0, arg1 ) xir_append_ptr_op2(xbb, OP_CALL1, arg0, TEMP_OPERAND, arg1) 
+#define XOPCALLRS( arg0, arg1 ) xir_append_ptr_op2(xbb, OP_CALLR, arg0, SOURCE_OPERAND, arg1)
+#define XOPCALLRT( arg0, arg1 ) xir_append_ptr_op2(xbb, OP_CALLR, arg0, TEMP_OPERAND, arg1)
 
 /**************************** IR Modification ******************************/
 
@@ -584,13 +619,7 @@ xir_op_t xir_shuffle_lower( xir_basic_block_t xbb, xir_op_t it, int tmp1, int tm
  * Verify the integrity of an IR block - abort with assertion failure on any
  * errors.
  */
-void xir_verify_block( xir_op_t start, xir_op_t end );
-
-/**
- * Set the register name mappings for source and target registers - only really
- * used for debug output
- */
-void xir_set_register_names( const char **source_regs, const char **target_regs );
+void xir_verify_block( xir_basic_block_t xbb, xir_op_t begin, xir_op_t end );
 
 /**
  * Set the symbol table mappings for target points - also only really for
@@ -601,7 +630,7 @@ void xir_set_symbol_table( const struct xir_symbol_entry *symtab );
 /**
  * Dump the specified block of IR to stdout
  */
-void xir_dump_block( xir_op_t start, xir_op_t end );
+void xir_dump_block( xir_basic_block_t xbb );
 
 
 #endif /* !lxdream_xir_H */

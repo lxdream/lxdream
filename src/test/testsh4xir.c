@@ -135,16 +135,19 @@ int main( int argc, char *argv[] )
 
     struct xir_basic_block xbb;
     xbb.source = &sh4_source_machine;
+    xbb.target = &x86_target_machine;
     xbb.ir_alloc_begin = &xir[0];
     xbb.ir_alloc_end = &xir[MAX_XIR_OPS];
     xbb.ir_begin = xbb.ir_ptr = xbb.ir_end = xbb.ir_alloc_begin;
     xbb.pc_begin = start_addr;
     xbb.pc_end = start_addr+4096;
+    xir_clear_basic_block(&xbb);
     xbb.source->decode_basic_block( &xbb );
     
-    x86_target_machine.lower( &xbb, xbb.ir_begin, xbb.ir_end );
-    xir_set_register_names( sh4_source_machine.reg_names, x86_target_machine.reg_names );
+    //x86_target_machine.lower( &xbb, xbb.ir_begin, xbb.ir_end );
+    xir_promote_source_registers( &xbb, xbb.ir_begin, xbb.ir_end );
     xir_set_symbol_table( debug_symbols );
-    xir_dump_block( &xir[0], NULL );
+    xir_dump_block( &xbb );
+    xir_verify_block( &xbb, xbb.ir_begin, xbb.ir_end );
     return 0;
 }

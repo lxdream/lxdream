@@ -105,69 +105,81 @@ void x86_target_init()
 #define IS_X86_64() (sizeof(void *)==8)
 #define IS_XMM_REG(op,n) (XOP_REG(op,n) >= MIN_XMM_REGISTER && XOP_REG(op,n) <= MAX_AMD64_XMM_REGISTER)
 
-#define RBP_OFFSET (-128)
-
 #define NONE NO_OPERAND
-#define SRC SOURCE_REGISTER_OPERAND
-#define TGT TARGET_REGISTER_OPERAND
-#define IMM INT_IMM_OPERAND
-#define FLT FLOAT_IMM_OPERAND
-#define DBL DOUBLE_IMM_OPERAND
+#define SRC SOURCE_OPERAND
+#define DST DEST_OPERAND
+#define TMP TEMP_OPERAND
+#define IMM IMMEDIATE_OPERAND
 
-#define MAX_X86_GENERAL_REGISTER  (MIN_TARGET_REGISTER+7)
-#define MAX_AMD64_GENERAL_REGISTER (MIN_TARGET_REGISTER+15)
-#define MIN_XMM_REGISTER (MIN_TARGET_REGISTER+16)
-#define MAX_X86_XMM_REGISTER (MIN_TARGET_REGISTER+23)
-#define MAX_AMD64_XMM_REGISTER (MIN_TARGET_REGISTER+31)
+#define MAX_X86_GENERAL_REGISTER  7
+#define MAX_AMD64_GENERAL_REGISTER 15
+#define MIN_XMM_REGISTER 16
+#define MAX_X86_XMM_REGISTER 23
+#define MAX_AMD64_XMM_REGISTER 31
 
-#define ILLOP(op) FATAL("Illegal x86 opcode %s %d %d\n", XIR_OPCODE_TABLE[op->opcode], op->operand[0].type, op->operand[1].type) 
+#define SRCADDR(op,n) (XOP_REG(op,n) - 128)
+#define TMPADDR(op,n) (XOP_REG(op,n))  /* FIXME */
+
+#define ILLOP(op) FATAL("Illegal x86 opcode %s %d %d\n", XIR_OPCODE_TABLE[op->opcode], op->operand[0].form, op->operand[1].form) 
 
 // Convenience macros
 #define X86L_IMMS_REG(opname, op) \
-    if( XOP_IS_FORM(op,IMM,TGT) ) { opname##_imms_r32(XOP_INT(op,0),XOP_REG(op,1)); } \
-    else if( XOP_IS_FORM(op,IMM,SRC) ) { opname##_imms_rbpdisp(XOP_INT(op,0),XOP_REG(op,1)+RBP_OFFSET); } \
+    if( XOP_IS_FORM(op,IMM,DST) ) { opname##_imms_r32(XOP_INT(op,0),XOP_REG(op,1)); } \
+    else if( XOP_IS_FORM(op,IMM,SRC) ) { opname##_imms_r32disp(XOP_INT(op,0),REG_RBP,SRCADDR(op,1)); } \
+    else if( XOP_IS_FORM(op,IMM,TMP) ) { opname##_imms_r32disp(XOP_INT(op,0),REG_RSP,TMPADDR(op,1)); } \
     else { ILLOP(op); }
 
-#define X86L_REG_TGT(opname,op) \
-    if( XOP_IS_FORM(op,TGT,TGT) ) { opname##_r32_r32(XOP_REG(op,0),XOP_REG(op,1)); } \
-    else if( XOP_IS_FORM(op,SRC,TGT) ) { opname##_rbpdisp_r32(XOP_REG(op,0)+RBP_OFFSET,XOP_REG(op,1)); } \
+#define X86L_REG_DST(opname,op) \
+    if( XOP_IS_FORM(op,DST,DST) ) { opname##_r32_r32(XOP_REG(op,0),XOP_REG(op,1)); } \
+    else if( XOP_IS_FORM(op,SRC,DST) ) { opname##_r32disp_r32(REG_RBP, SRCADDR(op,0),XOP_REG(op,1)); } \
+    else if( XOP_IS_FORM(op,TMP,DST) ) { opname##_r32disp_r32(REG_RSP, TMPADDR(op,0),XOP_REG(op,1)); } \
     else { ILLOP(op); }
 
-#define X86F_REG_TGT(opname,op ) \
-    if( XOP_IS_FORM(op,TGT,TGT) ) { opname##_xmm_xmm(XOP_REG(op,0),XOP_REG(op,1)); } \
-    else if( XOP_IS_FORM(op,SRC,TGT) ) { opname##_rbpdisp_xmm(XOP_REG(op,0)+RBP_OFFSET,XOP_REG(op,1)); } \
+#define X86F_REG_DST(opname,op ) \
+    if( XOP_IS_FORM(op,DST,DST) ) { opname##_xmm_xmm(XOP_REG(op,0),XOP_REG(op,1)); } \
+    else if( XOP_IS_FORM(op,SRC,DST) ) { opname##_r32disp_xmm(REG_RBP, SRCADDR(op,0),XOP_REG(op,1)); } \
+    else if( XOP_IS_FORM(op,TMP,DST) ) { opname##_r32disp_xmm(REG_RSP, TMPADDR(op,0),XOP_REG(op,1)); } \
     else { ILLOP(op); }
     
 #define X86L_REG_REG(opname,op) \
-    if( XOP_IS_FORM(op,TGT,TGT) ) { opname##_r32_r32(XOP_REG(op,0),XOP_REG(op,1)); } \
-    else if( XOP_IS_FORM(op,SRC,TGT) ) { opname##_rbpdisp_r32(XOP_REG(op,0)+RBP_OFFSET,XOP_REG(op,1)); } \
-    else if( XOP_IS_FORM(op,TGT,SRC) ) { opname##_r32_rbpdisp(XOP_REG(op,0),XOP_REG(op,1)+RBP_OFFSET); } \
+    if( XOP_IS_FORM(op,DST,DST) ) { opname##_r32_r32(XOP_REG(op,0),XOP_REG(op,1)); } \
+    else if( XOP_IS_FORM(op,SRC,DST) ) { opname##_r32disp_r32(REG_RBP, SRCADDR(op,0),XOP_REG(op,1)); } \
+    else if( XOP_IS_FORM(op,DST,SRC) ) { opname##_r32_r32disp(XOP_REG(op,0),REG_RBP, SRCADDR(op,1)); } \
+    else if( XOP_IS_FORM(op,TMP,DST) ) { opname##_r32disp_r32(REG_RSP, TMPADDR(op,0),XOP_REG(op,1)); } \
+    else if( XOP_IS_FORM(op,DST,TMP) ) { opname##_r32_r32disp(XOP_REG(op,0),REG_RSP, TMPADDR(op,1)); } \
     else { ILLOP(op); }
 
 #define X86L_REG(opname,op) \
-    if( XOP_IS_TGTREG(op,0) ) { opname##_r32(XOP_REG(op,0)); } \
-    else if( XOP_IS_SRCREG(op,0) ) { opname##_rbpdisp(XOP_REG(op,0)+RBP_OFFSET); } \
+    if( XOP_IS_DST(op,0) ) { opname##_r32(XOP_REG(op,0)); } \
+    else if( XOP_IS_SRC(op,0) ) { opname##_r32disp(REG_RBP,SRCADDR(op,0)); } \
+    else if( XOP_IS_TMP(op,0) ) { opname##_r32disp(REG_RSP,TMPADDR(op,0)); } \
     else { ILLOP(op); }
 
 #define X86L_CL_REG(opname,op) \
-    if( XOP_IS_FORM(op,TGT,TGT) && XOP_REG(op,0) == REG_CL ) { opname##_cl_r32(XOP_REG(op,1)); } \
-    else if( XOP_IS_FORM(op,TGT,SRC) && XOP_REG(op,0) == REG_CL ) { opname##_cl_rbpdisp(XOP_REG(op,1)+RBP_OFFSET); } \
+    if( XOP_IS_FORM(op,DST,DST) && XOP_REG(op,0) == REG_CL ) { opname##_cl_r32(XOP_REG(op,1)); } \
+    else if( XOP_IS_FORM(op,DST,SRC) && XOP_REG(op,0) == REG_CL ) { opname##_cl_r32disp(REG_RBP, SRCADDR(op,1)); } \
+    else if( XOP_IS_FORM(op,DST,TMP) && XOP_REG(op,0) == REG_CL ) { opname##_cl_r32disp(REG_RSP, TMPADDR(op,1)); } \
     else { ILLOP(op); }
 
 #define X86L_IMMCL_REG(opname,op) \
-    if( XOP_IS_FORM(op,IMM,TGT) ) { opname##_imm_r32(XOP_INT(op,0),XOP_REG(op,1)); } \
-    else if( XOP_IS_FORM(op,IMM,SRC) ) { opname##_imm_rbpdisp(XOP_INT(op,0),XOP_REG(op,1)+RBP_OFFSET); } \
-    else if( XOP_IS_FORM(op,TGT,TGT) && XOP_REG(op,0) == REG_CL ) { opname##_cl_r32(XOP_REG(op,1)); } \
-    else if( XOP_IS_FORM(op,TGT,SRC) && XOP_REG(op,0) == REG_CL ) { opname##_cl_rbpdisp(XOP_REG(op,1)+RBP_OFFSET); } \
+    if( XOP_IS_FORM(op,IMM,DST) ) { opname##_imm_r32(XOP_INT(op,0),XOP_REG(op,1)); } \
+    else if( XOP_IS_FORM(op,IMM,SRC) ) { opname##_imm_r32disp(XOP_INT(op,0),REG_RBP, SRCADDR(op,1)); } \
+    else if( XOP_IS_FORM(op,IMM,TMP) ) { opname##_imm_r32disp(XOP_INT(op,0),REG_RSP, TMPADDR(op,1)); } \
+    else if( XOP_IS_FORM(op,DST,DST) && XOP_REG(op,0) == REG_CL ) { opname##_cl_r32(XOP_REG(op,1)); } \
+    else if( XOP_IS_FORM(op,DST,SRC) && XOP_REG(op,0) == REG_CL ) { opname##_cl_r32disp(REG_RBP, SRCADDR(op,1)); } \
+    else if( XOP_IS_FORM(op,DST,TMP) && XOP_REG(op,0) == REG_CL ) { opname##_cl_r32disp(REG_RSP, TMPADDR(op,1)); } \
     else { ILLOP(op); }
 
 // Standard ALU forms - imms,reg or reg,reg
 #define X86L_ALU_REG(opname,op) \
-    if( XOP_IS_FORM(op,IMM,TGT) ) { opname##_imms_r32(XOP_INT(op,0),XOP_REG(op,1)); } \
-    else if( XOP_IS_FORM(op,IMM,SRC) ) { opname##_imms_rbpdisp(XOP_INT(op,0),XOP_REG(op,1)+RBP_OFFSET); } \
-    else if( XOP_IS_FORM(op,TGT,TGT) ) { opname##_r32_r32(XOP_REG(op,0),XOP_REG(op,1)); } \
-    else if( XOP_IS_FORM(op,SRC,TGT) ) { opname##_rbpdisp_r32(XOP_REG(op,0)+RBP_OFFSET,XOP_REG(op,1)); } \
-    else if( XOP_IS_FORM(op,TGT,SRC) ) { opname##_r32_rbpdisp(XOP_REG(op,0),XOP_REG(op,1)+RBP_OFFSET); } \
+    if( XOP_IS_FORM(op,IMM,DST) ) { opname##_imms_r32(XOP_INT(op,0),XOP_REG(op,1)); } \
+    else if( XOP_IS_FORM(op,IMM,SRC) ) { opname##_imms_r32disp(XOP_INT(op,0),REG_RBP, SRCADDR(op,1)); } \
+    else if( XOP_IS_FORM(op,IMM,TMP) ) { opname##_imms_r32disp(XOP_INT(op,0),REG_RSP, TMPADDR(op,1)); } \
+    else if( XOP_IS_FORM(op,DST,DST) ) { opname##_r32_r32(XOP_REG(op,0),XOP_REG(op,1)); } \
+    else if( XOP_IS_FORM(op,SRC,DST) ) { opname##_r32disp_r32(REG_RBP, SRCADDR(op,0),XOP_REG(op,1)); } \
+    else if( XOP_IS_FORM(op,DST,SRC) ) { opname##_r32_r32disp(XOP_REG(op,0),REG_RBP, SRCADDR(op,1)); } \
+    else if( XOP_IS_FORM(op,TMP,DST) ) { opname##_r32disp_r32(REG_RSP, TMPADDR(op,0),XOP_REG(op,1)); } \
+    else if( XOP_IS_FORM(op,DST,TMP) ) { opname##_r32_r32disp(XOP_REG(op,0),REG_RSP, TMPADDR(op,1)); } \
     else { ILLOP(op); }
 
 uint32_t x86_target_get_code_size( xir_op_t begin, xir_op_t end )
@@ -194,17 +206,19 @@ uint32_t x86_target_codegen( target_data_t td, xir_op_t begin, xir_op_t end )
             /* No code to generate */
             break;
         case OP_MOV:
-            if( XOP_IS_FORM(it, IMM, SRC) ) {
-                MOVL_imm32_rbpdisp( XOP_INT(it,0), XOP_REG2(it)+RBP_OFFSET );
-            } else if( XOP_IS_FORM(it, IMM, TGT) ) {
+            if( XOP_IS_FORM(it, IMM, DST) ) {
                 MOVL_imm32_r32( XOP_INT(it,0), XOP_REG2(it) );
-            } else if( XOP_IS_FORM(it, TGT, SRC) ) {
+            } else if( XOP_IS_FORM(it, IMM, SRC) ) {
+                MOVL_imm32_r32disp( XOP_INT(it,0), REG_RBP, SRCADDR(it,1) );
+            } else if( XOP_IS_FORM(it, IMM, TMP) ) {
+                MOVL_imm32_r32disp( XOP_INT(it,0), REG_RSP, TMPADDR(it,1) );
+            } else if( XOP_IS_FORM(it, DST, SRC) ) {
                 if( IS_XMM_REG(it,0) ) {
-                    MOVSS_xmm_rbpdisp( XOP_REG1(it), XOP_REG2(it)+RBP_OFFSET );
+                    MOVSS_xmm_r32disp( XOP_REG1(it), REG_RBP, SRCADDR(it,1) );
                 } else {
-                    MOVL_r32_rbpdisp( XOP_REG1(it), XOP_REG2(it)+RBP_OFFSET );
+                    MOVL_r32_r32disp( XOP_REG1(it), REG_RBP, SRCADDR(it,1) );
                 }
-            } else if( XOP_IS_FORM(it, TGT, TGT) ) {
+            } else if( XOP_IS_FORM(it, DST, DST) ) {
                 if( IS_XMM_REG(it,0) ) {
                     if( IS_XMM_REG(it,1) ) {
                         MOVSS_xmm_xmm( XOP_REG1(it), XOP_REG2(it) );
@@ -216,11 +230,11 @@ uint32_t x86_target_codegen( target_data_t td, xir_op_t begin, xir_op_t end )
                 } else {
                     MOVL_r32_r32( XOP_REG1(it), XOP_REG2(it) );
                 }
-            } else if( XOP_IS_FORM(it, SRC, TGT) ) {
+            } else if( XOP_IS_FORM(it, SRC, DST) ) {
                 if( IS_XMM_REG(it,1) ) {
-                    MOVSS_rbpdisp_xmm( XOP_REG1(it)+RBP_OFFSET, XOP_REG2(it) );
+                    MOVSS_r32disp_xmm( REG_RBP, SRCADDR(it,0), XOP_REG2(it) );
                 } else {
-                    MOVL_rbpdisp_r32( XOP_REG1(it)+RBP_OFFSET, XOP_REG2(it) );
+                    MOVL_r32disp_r32( REG_RBP, SRCADDR(it,0), XOP_REG2(it) );
                 }
             } else {
                 ILLOP(it);
@@ -229,7 +243,7 @@ uint32_t x86_target_codegen( target_data_t td, xir_op_t begin, xir_op_t end )
         case OP_MOVQ:
             if( XOP_IS_FORM(it, IMM, SRC) ) {
                 ILLOP(it);
-            } else if( XOP_IS_FORM(it, IMM, TGT) ) {
+            } else if( XOP_IS_FORM(it, IMM, DST) ) {
                 if( IS_XMM_REG(it,0) ) {
                     if( XOP_INT(it,0) == 0 ) {
                         XORPD_xmm_xmm( XOP_REG2(it), XOP_REG2(it) );
@@ -237,13 +251,13 @@ uint32_t x86_target_codegen( target_data_t td, xir_op_t begin, xir_op_t end )
                 } else {
                     MOVQ_imm64_r64( XOP_INT(it,0), XOP_REG2(it) );
                 }
-            } else if( XOP_IS_FORM(it, TGT, SRC) ) {
+            } else if( XOP_IS_FORM(it, DST, SRC) ) {
                 if( IS_XMM_REG(it,0) ) {
-                    MOVSD_xmm_rbpdisp( XOP_REG1(it), XOP_REG2(it)+RBP_OFFSET );
+                    MOVSD_xmm_r32disp( XOP_REG1(it), REG_RBP, SRCADDR(it,1) );
                 } else {
-                    MOVQ_r64_rbpdisp( XOP_REG1(it), XOP_REG2(it)+RBP_OFFSET );
+                    MOVQ_r64_r64disp( XOP_REG1(it), REG_RBP, SRCADDR(it,1) );
                 }
-            } else if( XOP_IS_FORM(it, TGT, TGT) ) {
+            } else if( XOP_IS_FORM(it, DST, DST) ) {
                 if( IS_XMM_REG(it,0) ) {
                     if( IS_XMM_REG(it,1) ) {
                         MOVSD_xmm_xmm( XOP_REG1(it), XOP_REG2(it) );
@@ -255,48 +269,48 @@ uint32_t x86_target_codegen( target_data_t td, xir_op_t begin, xir_op_t end )
                 } else {
                     MOVQ_r64_r64( XOP_REG1(it), XOP_REG2(it) );
                 }
-            } else if( XOP_IS_FORM(it, SRC, TGT) ) {
+            } else if( XOP_IS_FORM(it, SRC, DST) ) {
                 if( IS_XMM_REG(it,1) ) {
-                    MOVSD_rbpdisp_xmm( XOP_REG1(it)+RBP_OFFSET, XOP_REG2(it) );
+                    MOVSD_r32disp_xmm( REG_RBP, SRCADDR(it,0), XOP_REG2(it) );
                 } else {
-                    MOVQ_rbpdisp_r64( XOP_REG1(it)+RBP_OFFSET, XOP_REG2(it) );
+                    MOVQ_r64disp_r64( REG_RBP, SRCADDR(it,0), XOP_REG2(it) );
                 }
             } else {
                 ILLOP(it);
             }
             break;
         case OP_MOVSX8:
-            if( XOP_IS_FORM(it, TGT, TGT) ) {
+            if( XOP_IS_FORM(it, DST, DST) ) {
                 MOVSXL_r8_r32( XOP_REG1(it), XOP_REG2(it) );
-            } else if( XOP_IS_FORM(it, SRC, TGT) ) {
-                MOVSXL_rbpdisp8_r32( XOP_REG1(it)+RBP_OFFSET, XOP_REG2(it) );
+            } else if( XOP_IS_FORM(it, SRC, DST) ) {
+                MOVSXL_r32disp8_r32( REG_RBP, SRCADDR(it,0), XOP_REG2(it) );
             } else {
                 ILLOP(it);
             }
             break;
         case OP_MOVSX16:
-            if( XOP_IS_FORM(it, TGT, TGT) ) {
+            if( XOP_IS_FORM(it, DST, DST) ) {
                 MOVSXL_r16_r32( XOP_REG1(it), XOP_REG2(it) );
-            } else if( XOP_IS_FORM(it, SRC, TGT) ) {
-                MOVSXL_rbpdisp16_r32( XOP_REG1(it)+RBP_OFFSET, XOP_REG2(it) );
+            } else if( XOP_IS_FORM(it, SRC, DST) ) {
+                MOVSXL_r32disp16_r32( REG_RBP, SRCADDR(it,0), XOP_REG2(it) );
             } else {
                 ILLOP(it);
             }
             break;
         case OP_MOVZX8:
-            if( XOP_IS_FORM(it, TGT, TGT) ) {
+            if( XOP_IS_FORM(it, DST, DST) ) {
                 MOVZXL_r8_r32( XOP_REG1(it), XOP_REG2(it) );
-            } else if( XOP_IS_FORM(it, SRC, TGT) ) {
-                MOVZXL_rbpdisp8_r32( XOP_REG1(it)+RBP_OFFSET, XOP_REG2(it) );
+            } else if( XOP_IS_FORM(it, SRC, DST) ) {
+                MOVZXL_r32disp8_r32( REG_RBP, SRCADDR(it,0), XOP_REG2(it) );
             } else {
                 ILLOP(it);
             }
             break;
         case OP_MOVZX16:
-            if( XOP_IS_FORM(it, TGT, TGT) ) {
+            if( XOP_IS_FORM(it, DST, DST) ) {
                 MOVZXL_r16_r32( XOP_REG1(it), XOP_REG2(it) );
-            } else if( XOP_IS_FORM(it, SRC, TGT) ) {
-                MOVZXL_rbpdisp16_r32( XOP_REG1(it)+RBP_OFFSET, XOP_REG2(it) );
+            } else if( XOP_IS_FORM(it, SRC, DST) ) {
+                MOVZXL_r32disp16_r32( REG_RBP, SRCADDR(it,0), XOP_REG2(it) );
             } else {
                 ILLOP(it);
             }
@@ -308,16 +322,16 @@ uint32_t x86_target_codegen( target_data_t td, xir_op_t begin, xir_op_t end )
         case OP_CMP:
             X86L_ALU_REG(CMPL,it); break;
         case OP_DEC:
-            if( XOP_IS_FORM(it,TGT,NONE) ) {
+            if( XOP_IS_FORM(it,DST,NONE) ) {
                 DECL_r32(XOP_REG(it,0));
             } else if( XOP_IS_FORM(it,SRC,NONE) ) {
-                DECL_rbpdisp(XOP_REG(it,0)+RBP_OFFSET);
+                DECL_r32disp( REG_RBP, SRCADDR(it,0) );
             } else {
                 ILLOP(it);
             }
             break;
         case OP_MUL: 
-            X86L_REG_TGT(IMULL,it); 
+            X86L_REG_DST(IMULL,it); 
             break;
         case OP_NEG:  X86L_REG(NEGL,it); break;
         case OP_NOT:  X86L_REG(NOTL,it); break;
@@ -336,7 +350,7 @@ uint32_t x86_target_codegen( target_data_t td, xir_op_t begin, xir_op_t end )
         case OP_SUB: 
         case OP_SUBS: X86L_ALU_REG(SUBL,it); break;
         case OP_SHUFFLE:
-            if( XOP_IS_FORM(it,IMM,TGT) ) {
+            if( XOP_IS_FORM(it,IMM,DST) ) {
                 if( XOP_INT(it,0) == 0x4321 ) {
                     BSWAPL_r32( XOP_REG(it,1) );
                 } else if( it->operand[1].value.i == 0x1243 ) {
@@ -353,63 +367,63 @@ uint32_t x86_target_codegen( target_data_t td, xir_op_t begin, xir_op_t end )
         case OP_ABSD:
             // Why is there no SSE FP ABS instruction?
             break;
-        case OP_ADDF: X86F_REG_TGT(ADDSS,it); break;
-        case OP_ADDD: X86F_REG_TGT(ADDSD,it); break;
+        case OP_ADDF: X86F_REG_DST(ADDSS,it); break;
+        case OP_ADDD: X86F_REG_DST(ADDSD,it); break;
         case OP_CMPF:
             break;
         case OP_CMPD: // UCOMISD
             break;
-        case OP_DIVF: X86F_REG_TGT(DIVSS,it); break;
-        case OP_DIVD: X86F_REG_TGT(DIVSD,it); break;
-        case OP_MULF: X86F_REG_TGT(MULSS,it); break;
-        case OP_MULD: X86F_REG_TGT(MULSD,it); break;
-        case OP_RSQRTF:X86F_REG_TGT(RSQRTSS,it); break;
-        case OP_SQRTF: X86F_REG_TGT(SQRTSS,it); break;
-        case OP_SQRTD: X86F_REG_TGT(SQRTSD,it); break;
-        case OP_SUBF:  X86F_REG_TGT(SUBSS,it); break;
-        case OP_SUBD:  X86F_REG_TGT(SUBSD,it); break;
+        case OP_DIVF: X86F_REG_DST(DIVSS,it); break;
+        case OP_DIVD: X86F_REG_DST(DIVSD,it); break;
+        case OP_MULF: X86F_REG_DST(MULSS,it); break;
+        case OP_MULD: X86F_REG_DST(MULSD,it); break;
+        case OP_RSQRTF:X86F_REG_DST(RSQRTSS,it); break;
+        case OP_SQRTF: X86F_REG_DST(SQRTSS,it); break;
+        case OP_SQRTD: X86F_REG_DST(SQRTSD,it); break;
+        case OP_SUBF:  X86F_REG_DST(SUBSS,it); break;
+        case OP_SUBD:  X86F_REG_DST(SUBSD,it); break;
 
         case OP_DOTPRODV:
-            MULPS_rbpdisp_xmm( XOP_REG1(it), 4 );
+            MULPS_r32disp_xmm( REG_RBP, SRCADDR(it,0), 4 );
             HADDPS_xmm_xmm( 4, 4 ); 
             HADDPS_xmm_xmm( 4, 4 );
-            MOVSS_xmm_rbpdisp( 4, XOP_REG1(it) );
+            MOVSS_xmm_r32disp( 4, REG_RBP, SRCADDR(it,0) );
             break;
         case OP_SINCOSF:
         case OP_MATMULV:
             break;
         case OP_FTOD:
-            if( XOP_IS_FORM(it,TGT,TGT) ) {
+            if( XOP_IS_FORM(it,DST,DST) ) {
                 CVTSS2SD_xmm_xmm( XOP_REG(it,0), XOP_REG(it,1) );
-            } else if( XOP_IS_FORM(it,SRC,TGT) ) {
-                CVTSS2SD_rbpdisp_xmm( XOP_REG(it,0)+RBP_OFFSET, XOP_REG(it,1) );
+            } else if( XOP_IS_FORM(it,SRC,DST) ) {
+                CVTSS2SD_r32disp_xmm( REG_RBP, SRCADDR(it,0), XOP_REG(it,1) );
             } else {
                 ILLOP(it);
             }
             break;
         case OP_DTOF:
-            if( XOP_IS_FORM(it,TGT,TGT) ) {
+            if( XOP_IS_FORM(it,DST,DST) ) {
                 CVTSS2SD_xmm_xmm( XOP_REG(it,0), XOP_REG(it,1) );
-            } else if( XOP_IS_FORM(it, SRC,TGT) ) {
-                CVTSS2SD_rbpdisp_xmm( XOP_REG(it,0)+RBP_OFFSET, XOP_REG(it,1) );
+            } else if( XOP_IS_FORM(it, SRC,DST) ) {
+                CVTSS2SD_r32disp_xmm( REG_RBP, SRCADDR(it,0), XOP_REG(it,1) );
             } else {
                 ILLOP(it);
             }
             break;
         case OP_ITOD:
-            if( XOP_IS_FORM(it,TGT,TGT) ) {
+            if( XOP_IS_FORM(it,DST,DST) ) {
                 CVTSI2SDL_r32_xmm( XOP_REG(it,0), XOP_REG(it,1) );
-            } else if( XOP_IS_FORM(it,SRC,TGT) ) {
-                CVTSI2SDL_rbpdisp_xmm( XOP_REG(it,0)+RBP_OFFSET, XOP_REG(it,1) );
+            } else if( XOP_IS_FORM(it,SRC,DST) ) {
+                CVTSI2SDL_r32disp_xmm( REG_RBP, SRCADDR(it,0), XOP_REG(it,1) );
             } else {
                 ILLOP(it);
             }
             break;
         case OP_DTOI:
-            if( XOP_IS_FORM(it,TGT,TGT) ) {
+            if( XOP_IS_FORM(it,DST,DST) ) {
                 CVTSD2SIL_xmm_r32( XOP_REG(it,0), XOP_REG(it,1) );
-            } else if( XOP_IS_FORM(it,SRC,TGT) ) {
-                CVTSD2SIL_rbpdisp_r32( XOP_REG(it,0)+RBP_OFFSET, XOP_REG(it,1) );
+            } else if( XOP_IS_FORM(it,SRC,DST) ) {
+                CVTSD2SIL_r32disp_r32( REG_RBP, SRCADDR(it,0), XOP_REG(it,1) );
             } else {
                 ILLOP(it);
             }
@@ -423,9 +437,9 @@ uint32_t x86_target_codegen( target_data_t td, xir_op_t begin, xir_op_t end )
         case OP_BRCONDDEL:
 
         case OP_CALL0: 
-            if( XOP_IS_INTIMM(it,0) ) { 
+            if( XOP_IS_IMM(it,0) ) { 
                 CALL_imm32( XOP_INT(it,0) );
-            } else if( XOP_IS_SRCREG(it,0) ) {
+            } else if( XOP_IS_SRC(it,0) ) {
                 CALL_r32( XOP_INT(it,0) );
             } else {
                 ILLOP(it);
@@ -437,20 +451,20 @@ uint32_t x86_target_codegen( target_data_t td, xir_op_t begin, xir_op_t end )
             } else {
                 ss = 2;
             }
-            if( XOP_IS_FORM(it,IMM,TGT) ) {
+            if( XOP_IS_FORM(it,IMM,DST) ) {
                 MOVP_sib_rptr(ss, XOP_REG(it,1), -1, XOP_INT(it,0), XOP_REG(it,1));
-            } else if( XOP_IS_FORM(it,TGT,TGT) ) {
+            } else if( XOP_IS_FORM(it,DST,DST) ) {
                 MOVP_sib_rptr(ss, XOP_REG(it,1), XOP_REG(it,0), 0, XOP_REG(it,1));
             } else {
                 ILLOP(it);
             }
             break;
         case OP_CALLLUT:
-            if( XOP_IS_FORM(it,TGT,IMM) ) {
+            if( XOP_IS_FORM(it,DST,IMM) ) {
                 CALL_r32disp(XOP_REG(it,0),XOP_INT(it,1));
-            } else if( XOP_IS_FORM(it,TGT,TGT) ) {
+            } else if( XOP_IS_FORM(it,DST,DST) ) {
                 CALL_sib(0,XOP_REG(it,0),XOP_REG(it,1),0);
-            } else if( XOP_IS_FORM(it,IMM,TGT) ) {
+            } else if( XOP_IS_FORM(it,IMM,DST) ) {
                 CALL_r32disp(XOP_REG(it,1),XOP_INT(it,0));
             } else {
                 ILLOP(it);
@@ -467,14 +481,14 @@ uint32_t x86_target_codegen( target_data_t td, xir_op_t begin, xir_op_t end )
         case OP_DIV1: 
             break;
         case OP_SHAD:
-            assert( it->operand[0].type == TGT && XOP_REG(it,0) == REG_ECX );
+            assert( it->operand[0].form == DST && XOP_REG(it,0) == REG_ECX );
             CMPL_imms_r32(0,REG_ECX);
             JNGE_label(shad_shr);
             X86L_CL_REG(SHLL,it);
             JMP_label(shad_end);
 
             JMP_TARGET(shad_shr);
-            if( IS_X86_64() && it->operand[1].type == TGT ) {
+            if( IS_X86_64() && it->operand[1].form == DST ) {
                 /* We can do this a little more simply with a 64-bit shift */
                 ORL_imms_r32(0xFFFFFFE0,REG_ECX);
                 NEGL_r32(REG_ECX);
@@ -488,10 +502,12 @@ uint32_t x86_target_codegen( target_data_t td, xir_op_t begin, xir_op_t end )
                 JMP_label(shad_end2);
 
                 JMP_TARGET(emptyshr);
-                if( it->operand[1].type == TGT ) {
+                if( it->operand[1].form == DST ) {
                     SARL_imm_r32( 31, XOP_REG(it,1) );
+                } else if( it->operand[1].form == SRC ) {
+                    SARL_imm_r32disp( 32, REG_RBP, SRCADDR(it,1) );
                 } else {
-                    SARL_imm_rbpdisp( 32, XOP_REG(it,1)+RBP_OFFSET );
+                    SARL_imm_r32disp( 32, REG_RSP, TMPADDR(it,1) );
                 }
                 JMP_TARGET(shad_end2);
             }
@@ -499,14 +515,14 @@ uint32_t x86_target_codegen( target_data_t td, xir_op_t begin, xir_op_t end )
             break;
 
         case OP_SHLD:
-            assert( it->operand[0].type == TGT && XOP_REG(it,0) == REG_ECX );
+            assert( it->operand[0].form == DST && XOP_REG(it,0) == REG_ECX );
             CMPL_imms_r32(0,REG_ECX);
             JNGE_label(shld_shr);
             X86L_CL_REG(SHLL,it);
             JMP_label(shld_end);
 
             JMP_TARGET(shld_shr);
-            if( IS_X86_64() && it->operand[1].type == TGT ) {
+            if( IS_X86_64() && it->operand[1].form == DST ) {
                 /* We can do this a little more simply with a 64-bit shift */
                 ORL_imms_r32(0xFFFFFFE0,REG_ECX);
                 NEGL_r32(REG_ECX);

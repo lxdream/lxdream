@@ -37,11 +37,11 @@
 #define R_Q   REG_OFFSET(q)
 #define R_S   REG_OFFSET(s)
 #define R_FR(frn) REG_OFFSET(fr[0][(frn)^1])
-#define R_DR(frn) REG_OFFSET(fr[0][frn])
+#define R_DR(frn) REG_OFFSET(fr[0][(frn)&0x0E])
 #define R_DRL(f) REG_OFFSET(fr[(f)&1][(f)|0x01])
 #define R_DRH(f) REG_OFFSET(fr[(f)&1][(f)&0x0E])
 #define R_XF(frn) REG_OFFSET(fr[1][(frn)^1])
-#define R_XD(frn) REG_OFFSET(fr[1][frn^1])
+#define R_XD(frn) REG_OFFSET(fr[1][(frn)&0x0E])
 #define R_FV(fvn) REG_OFFSET(fr[0][fvn<<2])
 #define R_XMTRX R_XD(0)
 #define R_FPSCR REG_OFFSET(fpscr)
@@ -72,8 +72,46 @@ static const char *sh4_register_names[] =
      "store_queue", 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,
      "new_pc", "event_pending", "event_type", "delay_slot", "slice_cycle", "bus_cycle", "state", "xlat_mode" }; 
 
-struct xlat_source_machine sh4_source_machine = { "sH4", &sh4r, 
-    sh4_register_names, R_PC, R_NEW_PC, R_T, R_M, R_Q, R_S, 
+static const char *sh4_quad_register_names[] = /* From FR1 to MACH */ 
+    {"dr0", "dr2", "dr4", "dr6", "dr8", "dr10", "dr12", "dr14",
+     "xd0", "xd2", "xd4", "xd6", "xd8", "xd10", "xd12", "xd14",
+     NULL, "mac" };
+static const char *sh4_vec4_register_names[] = /* From FR1 to XF14 */
+    {"fv0", "fv4", "fv8", "fv12", "xfv0", "xfv4", "xfv8", "xfv12" };
+
+static const char *sh4_get_register_name( uint32_t reg, xir_type_t ty )
+{
+    switch( ty ) {
+    case XTY_LONG:
+    case XTY_FLOAT:
+        if( reg <= R_SH4_MODE ) {
+            return sh4_register_names[reg>>2];
+        }
+        break;
+    case XTY_QUAD:
+    case XTY_DOUBLE:
+        if( reg >= R_DR(0) && reg <= R_MACH ) {
+            return sh4_quad_register_names[(reg-R_DR(0))>>3];
+        }
+        break;
+    case XTY_VEC4F:
+        if( reg >= R_DR(0) && reg <= R_XD(14) ) {
+            return sh4_vec4_register_names[(reg-R_DR(0))>>4];
+        }
+        break;
+    case XTY_MAT16F:         
+	if( reg = R_XMTRX ) {
+	    return "xmtrx";
+	} else if( reg == R_DR(0) ) {
+	    return "mtrx";
+	}
+    }
+    return NULL;
+}
+
+struct xlat_source_machine sh4_source_machine = { "SH4", &sh4r, 
+    R_PC, R_NEW_PC, R_T, R_M, R_Q, R_S,
+    sh4_get_register_name, 
     sh4_decode_basic_block  };   
 
  /** 
@@ -89,21 +127,55 @@ struct sh4_xir_state {
 
 static struct sh4_xir_state sh4_xir;
 
-#define XOP1E( op, arg0 ) do{ \
-	xir_op_t ins = xir_append_op2(xbb, op, SOURCE_REGISTER_OPERAND, arg0, NO_OPERAND, 0); \
-	ins->exc = write_postexc(xbb, (in_delay_slot ? pc-2 : pc) ); \
-	ins->next = xbb->ir_ptr; \
-	xbb->ir_ptr->prev = ins; \
-    } while(0) 
-#define XOP2E( op, arg0, arg1 ) do{ \
-	xir_op_t ins = xir_append_op2(xbb, op, SOURCE_REGISTER_OPERAND, arg0, SOURCE_REGISTER_OPERAND, arg1); \
-	ins->exc = write_postexc(xbb, (in_delay_slot ? pc-2 : pc) ); \
-	ins->exc->prev = ins; \
-	ins->next = xbb->ir_ptr; \
-	xbb->ir_ptr->prev = ins; \
-    } while(0) 
+/**
+ * Create a standard exception-taking stub sub-block - updates SPC, slice_cycle, and exits
+ * @return the first xir_op_t of the exception block. 
+ */ 
+static inline xir_op_t write_exc( xir_basic_block_t xbb, sh4addr_t pc, int exc_code )
+{
+	xir_op_t start = xbb->ir_ptr;
+	XOPCALL1I( sh4_raise_exception, exc_code );
+	if( pc != xbb->pc_begin ) {
+	    XOP2IS( OP_ADD, pc - xbb->pc_begin, R_SPC );
+	}
+	XOP2IS( OP_ADD, (pc+2 - xbb->pc_begin) * sh4_cpu_period, R_SLICE_CYCLE );
+	XOP1S( OP_BR, R_SPC )->next = NULL;
+	start->prev = NULL;
+	return start;
+}
+
+/**
+ * Create an instruction with a standard post-exception stub sub-block (ie 
+ * sh4_raise_exception or similar has already been called - update SPC + 
+ * slice_cycle and exit).
+ * @return the first xir_op_t of the exception block. 
+ */ 
+static xir_op_t xir_append_op2_exc( xir_basic_block_t xbb, int op, int arg0form, uint32_t arg0, int arg1form, uint32_t arg1, sh4addr_t pc )
+{
+    xir_op_t ins = xir_append_op2( xbb, op, arg0form, arg0, arg1form, arg1 );
+    ins->exc = xbb->ir_ptr;
+    ins->exc->prev = ins;
+    
+    if( pc != xbb->pc_begin ) {
+        XOP2IS( OP_ADD, pc - xbb->pc_begin, R_SPC );
+    }
+    XOP2IS( OP_ADD, (pc+2 - xbb->pc_begin) * sh4_cpu_period, R_SLICE_CYCLE );
+    XOP1S( OP_BR, R_SPC )->next = NULL;
+
+    ins->next = xbb->ir_ptr;
+    xbb->ir_ptr->prev = ins;
+    return ins;
+}
+
+#define XOP1SE( op, arg0 ) xir_append_op2_exc( xbb, op, SOURCE_OPERAND, arg0, NO_OPERAND, 0, (in_delay_slot ? pc-2 : pc))
+#define XOP1TE( op, arg0 ) xir_append_op2_exc( xbb, op, TEMP_OPERAND, arg0, NO_OPERAND, 0, (in_delay_slot ? pc-2 : pc))
+#define XOP2SSE( op, arg0, arg1 ) xir_append_op2_exc( xbb, op, SOURCE_OPERAND, arg0, SOURCE_OPERAND, arg1, (in_delay_slot ? pc-2 : pc))
+#define XOP2STE( op, arg0, arg1 ) xir_append_op2_exc( xbb, op, SOURCE_OPERAND, arg0, TEMP_OPERAND, arg1, (in_delay_slot ? pc-2 : pc))
+#define XOP2TSE( op, arg0, arg1 ) xir_append_op2_exc( xbb, op, TEMP_OPERAND, arg0, SOURCE_OPERAND, arg1, (in_delay_slot ? pc-2 : pc))
+#define XOP2TTE( op, arg0, arg1 ) xir_append_op2_exc( xbb, op, TEMP_OPERAND, arg0, TEMP_OPERAND, arg1, (in_delay_slot ? pc-2 : pc))
+
 #define ALIGN(m,r,code) do { \
-	xir_op_t ins = xir_append_op2(xbb, OP_RAISEMNE, INT_IMM_OPERAND, m, SOURCE_REGISTER_OPERAND, r); \
+	xir_op_t ins = xir_append_op2(xbb, OP_RAISEMNE, IMMEDIATE_OPERAND, m, SOURCE_OPERAND, r); \
 	ins->exc = write_exc(xbb, (in_delay_slot ? pc-2 : pc), code); \
 	ins->exc->prev = ins; \
 	ins->next = xbb->ir_ptr; \
@@ -115,7 +187,7 @@ static struct sh4_xir_state sh4_xir;
 
 #define UNDEF(ir) if( in_delay_slot ) { SLOTILLEGAL(); return 2; } else { ILLEGAL(); return 2; } 
 #define CHECKFPUEN() if( !sh4_xir.fpuen_checked ) { \
-	xir_op_t ins = XOP2I( OP_RAISEMNE, SR_FD, R_SR ); \
+	xir_op_t ins = XOP2IS( OP_RAISEMNE, SR_FD, R_SR ); \
 	if( in_delay_slot ) { \
 	    ins->exc = write_exc(xbb, pc-2, EXC_SLOT_FPU_DISABLED); \
 	} else { \
@@ -138,47 +210,13 @@ static struct sh4_xir_state sh4_xir;
 #define UNTRANSLATABLE(pc) !IS_IN_ICACHE(pc)
 
 #define EMU_DELAY_SLOT() do { \
-    	XOP2I( OP_ADD, (pc+2 - xbb->pc_begin), R_PC ); \
-	XOP2I( OP_MOV, 1, R_DELAY_SLOT ); \
+    	XOP2IS( OP_ADD, (pc+2 - xbb->pc_begin), R_PC ); \
+	XOP2IS( OP_MOV, 1, R_DELAY_SLOT ); \
 	XOP0( OP_BARRIER ); \
 	XOPCALL0( sh4_execute_instruction ); \
-	XOP1( OP_BR, R_PC ); \
+	XOP1S( OP_BR, R_PC ); \
     } while(0)
 	
-
-/**
- * Create a standard post-exception stub sub-block (ie sh4_raise_exception or similar has
- * already been called - update SPC + slice_cycle and exit). 
- * @return the first xir_op_t of the exception block. 
- */ 
-static inline xir_op_t write_postexc( xir_basic_block_t xbb, sh4addr_t pc )
-{
-	xir_op_t start = xbb->ir_ptr;
-	if( pc != xbb->pc_begin ) {
-	    XOP2I( OP_ADD, pc - xbb->pc_begin, R_SPC );
-	}
-	XOP2I( OP_ADD, (pc+2 - xbb->pc_begin) * sh4_cpu_period, R_SLICE_CYCLE );
-	XOP1( OP_BR, R_SPC )->next = NULL;
-	start->prev = NULL;
-	return start;
-}
-
-/**
- * Create a standard exception-taking stub sub-block - updates SPC, slice_cycle, and exits
- * @return the first xir_op_t of the exception block. 
- */ 
-static inline xir_op_t write_exc( xir_basic_block_t xbb, sh4addr_t pc, int exc_code )
-{
-	xir_op_t start = xbb->ir_ptr;
-	XOPCALL1I( sh4_raise_exception, exc_code );
-	if( pc != xbb->pc_begin ) {
-	    XOP2I( OP_ADD, pc - xbb->pc_begin, R_SPC );
-	}
-	XOP2I( OP_ADD, (pc+2 - xbb->pc_begin) * sh4_cpu_period, R_SLICE_CYCLE );
-	XOP1( OP_BR, R_SPC )->next = NULL;
-	start->prev = NULL;
-	return start;
-}
 
 static sh4addr_t sh4_decode_instruction( xir_basic_block_t xbb, sh4addr_t pc, gboolean in_delay_slot )
 {
@@ -186,322 +224,322 @@ static sh4addr_t sh4_decode_instruction( xir_basic_block_t xbb, sh4addr_t pc, gb
     uint16_t ir = *(uint16_t *)GET_ICACHE_PTR(pc);
 
 %%
-ADD Rm, Rn   {: XOP2( OP_ADD, R_R(Rm), R_R(Rn) ); :} 
-ADD #imm, Rn {: XOP2I( OP_ADD, imm, R_R(Rn) ); :}
+ADD Rm, Rn   {: XOP2SS( OP_ADD, R_R(Rm), R_R(Rn) ); :} 
+ADD #imm, Rn {: XOP2IS( OP_ADD, imm, R_R(Rn) ); :}
 ADDC Rm, Rn  {:
-	XOP1CC( OP_LD, CC_C, R_T ); 
-	XOP2( OP_ADDCS, R_R(Rm), R_R(Rn) ); 
-	XOP1CC( OP_ST, CC_C, R_T ); 
+	XOP1SCC( OP_LD, CC_C, R_T ); 
+	XOP2SS( OP_ADDCS, R_R(Rm), R_R(Rn) ); 
+	XOP1SCC( OP_ST, CC_C, R_T ); 
 :} 
-ADDV Rm, Rn  {: XOP2( OP_ADDS, R_R(Rm), R_R(Rn) ); XOP1CC( OP_ST, CC_OV, R_T ); :}
-AND Rm, Rn   {: XOP2( OP_AND, R_R(Rm), R_R(Rn) ); :}
-AND #imm, R0 {: XOP2I( OP_AND, imm, R_R0 ); :}
-CMP/EQ Rm, Rn   {: XOP2( OP_CMP, Rm, R_R(Rn) ); XOP1CC( OP_ST, CC_EQ, R_T ); :}
-CMP/EQ #imm, R0 {: XOP2I( OP_CMP, imm, R_R0 ); XOP1CC( OP_ST, CC_EQ, R_T ); :}
-CMP/GE Rm, Rn   {: XOP2( OP_CMP, R_R(Rm), R_R(Rn) ); XOP1CC( OP_ST, CC_SGE, R_T ); :}
-CMP/GT Rm, Rn   {: XOP2( OP_CMP, R_R(Rm), R_R(Rn) ); XOP1CC( OP_ST, CC_SGT, R_T ); :}
-CMP/HI Rm, Rn   {: XOP2( OP_CMP, R_R(Rm), R_R(Rn) ); XOP1CC( OP_ST, CC_UGT, R_T ); :}
-CMP/HS Rm, Rn   {: XOP2( OP_CMP, R_R(Rm), R_R(Rn) ); XOP1CC( OP_ST, CC_UGE, R_T ); :}
-CMP/PL Rn       {: XOP2I( OP_CMP, 0, R_R(Rn) ); XOP1CC( OP_ST, CC_SGT, R_T ); :}
-CMP/PZ Rn       {: XOP2I( OP_CMP, 0, R_R(Rn) ); XOP1CC( OP_ST, CC_SGE, R_T ); :}
-CMP/STR Rm, Rn  {: XOP2( OP_CMPSTR, R_R(Rm), R_R(Rn) ); :}
+ADDV Rm, Rn  {: XOP2SS( OP_ADDS, R_R(Rm), R_R(Rn) ); XOP1SCC( OP_ST, CC_OV, R_T ); :}
+AND Rm, Rn   {: XOP2SS( OP_AND, R_R(Rm), R_R(Rn) ); :}
+AND #imm, R0 {: XOP2IS( OP_AND, imm, R_R0 ); :}
+CMP/EQ Rm, Rn   {: XOP2SS( OP_CMP, Rm, R_R(Rn) ); XOP1SCC( OP_ST, CC_EQ, R_T ); :}
+CMP/EQ #imm, R0 {: XOP2IS( OP_CMP, imm, R_R0 ); XOP1SCC( OP_ST, CC_EQ, R_T ); :}
+CMP/GE Rm, Rn   {: XOP2SS( OP_CMP, R_R(Rm), R_R(Rn) ); XOP1SCC( OP_ST, CC_SGE, R_T ); :}
+CMP/GT Rm, Rn   {: XOP2SS( OP_CMP, R_R(Rm), R_R(Rn) ); XOP1SCC( OP_ST, CC_SGT, R_T ); :}
+CMP/HI Rm, Rn   {: XOP2SS( OP_CMP, R_R(Rm), R_R(Rn) ); XOP1SCC( OP_ST, CC_UGT, R_T ); :}
+CMP/HS Rm, Rn   {: XOP2SS( OP_CMP, R_R(Rm), R_R(Rn) ); XOP1SCC( OP_ST, CC_UGE, R_T ); :}
+CMP/PL Rn       {: XOP2IS( OP_CMP, 0, R_R(Rn) ); XOP1SCC( OP_ST, CC_SGT, R_T ); :}
+CMP/PZ Rn       {: XOP2IS( OP_CMP, 0, R_R(Rn) ); XOP1SCC( OP_ST, CC_SGE, R_T ); :}
+CMP/STR Rm, Rn  {: XOP2SS( OP_CMPSTR, R_R(Rm), R_R(Rn) ); :}
 DIV0S Rm, Rn    {:
-        XOP2( OP_MOV, R_R(Rm), R_M );
-        XOP2I( OP_SLR, 31, R_M );
-        XOP2( OP_MOV, R_R(Rn), R_Q );
-        XOP2I( OP_SLR, 31, R_Q );
-        XOP2( OP_CMP, R_M, R_Q );
-        XOP1CC( OP_ST, CC_NE, R_T ); 
+        XOP2SS( OP_MOV, R_R(Rm), R_M );
+        XOP2IS( OP_SLR, 31, R_M );
+        XOP2SS( OP_MOV, R_R(Rn), R_Q );
+        XOP2IS( OP_SLR, 31, R_Q );
+        XOP2SS( OP_CMP, R_M, R_Q );
+        XOP1SCC( OP_ST, CC_NE, R_T ); 
 :}
 DIV0U           {:
-	XOP2I( OP_MOV, 0, R_M );
-	XOP2I( OP_MOV, 0, R_Q );
-	XOP2I( OP_MOV, 0, R_T );
+	XOP2IS( OP_MOV, 0, R_M );
+	XOP2IS( OP_MOV, 0, R_Q );
+	XOP2IS( OP_MOV, 0, R_T );
 :}
-DIV1 Rm, Rn     {: XOP2( OP_DIV1, R_R(Rm), R_R(Rn) ); :}
+DIV1 Rm, Rn     {: XOP2SS( OP_DIV1, R_R(Rm), R_R(Rn) ); :}
 DMULS.L Rm, Rn  {:
-	XOP2( OP_MOVSX32, R_R(Rm), R_MAC );
-	XOP2( OP_MOVSX32, R_R(Rn), REG_TMP0 );
-	XOP2( OP_MULQ, REG_TMPQ0, R_MAC );
+	XOP2SS( OP_MOVSX32, R_R(Rm), R_MAC );
+	XOP2ST( OP_MOVSX32, R_R(Rn), REG_TMP0 );
+	XOP2TS( OP_MULQ, REG_TMPQ0, R_MAC );
 :}
 DMULU.L Rm, Rn  {:
-	XOP2( OP_MOVZX32, R_R(Rm), R_MAC );
-	XOP2( OP_MOVZX32, R_R(Rn), REG_TMP0 ) ;
-	XOP2( OP_MULQ, REG_TMP0, R_MAC ); 
+	XOP2SS( OP_MOVZX32, R_R(Rm), R_MAC );
+	XOP2ST( OP_MOVZX32, R_R(Rn), REG_TMP0 ) ;
+	XOP2TS( OP_MULQ, REG_TMP0, R_MAC ); 
 :}
-DT Rn {: XOP1( OP_DEC, R_R(Rn) ); :}
-EXTS.B Rm, Rn   {: XOP2( OP_MOVSX8, R_R(Rm), R_R(Rn)); :}
-EXTS.W Rm, Rn   {: XOP2( OP_MOVSX16, R_R(Rm), R_R(Rn)); :}
-EXTU.B Rm, Rn   {: XOP2( OP_MOVZX8, R_R(Rm), R_R(Rn)); :}
-EXTU.W Rm, Rn   {: XOP2( OP_MOVZX16, R_R(Rm), R_R(Rn)); :}
+DT Rn {: XOP1S( OP_DEC, R_R(Rn) ); :}
+EXTS.B Rm, Rn   {: XOP2SS( OP_MOVSX8, R_R(Rm), R_R(Rn)); :}
+EXTS.W Rm, Rn   {: XOP2SS( OP_MOVSX16, R_R(Rm), R_R(Rn)); :}
+EXTU.B Rm, Rn   {: XOP2SS( OP_MOVZX8, R_R(Rm), R_R(Rn)); :}
+EXTU.W Rm, Rn   {: XOP2SS( OP_MOVZX16, R_R(Rm), R_R(Rn)); :}
 MAC.L @Rm+, @Rn+ {:
 	RALIGN32(R_R(Rm));
 	if( Rm == Rn ) {
-	    XOP2E( OP_LOADL, R_R(Rm), REG_TMP0 );
-	    XOP2( OP_MOV, R_R(Rm), REG_TMP1 );
-	    XOP2I( OP_ADD, 4, REG_TMP1 );
-	    XOP2E( OP_LOADL, REG_TMP1, REG_TMP1 );
-	    XOP2I( OP_ADD, 8, R_R(Rm) );
+	    XOP2STE( OP_LOADL, R_R(Rm), REG_TMP0 );
+	    XOP2ST( OP_MOV, R_R(Rm), REG_TMP1 );
+	    XOP2IT( OP_ADD, 4, REG_TMP1 );
+	    XOP2TTE( OP_LOADL, REG_TMP1, REG_TMP1 );
+	    XOP2IS( OP_ADD, 8, R_R(Rm) );
 	} else {
 	    RALIGN32(R_R(Rn));
-	    XOP2E( OP_LOADL, R_R(Rm), REG_TMP0 );
-	    XOP2E( OP_LOADL, R_R(Rn), REG_TMP1 );
-	    XOP2I( OP_ADD, 4, R_R(Rm) );
-	    XOP2I( OP_ADD, 4, R_R(Rn) );
+	    XOP2STE( OP_LOADL, R_R(Rm), REG_TMP0 );
+	    XOP2STE( OP_LOADL, R_R(Rn), REG_TMP1 );
+	    XOP2IS( OP_ADD, 4, R_R(Rm) );
+	    XOP2IS( OP_ADD, 4, R_R(Rn) );
 	}
-	XOP2( OP_MOVSX32, REG_TMP0, REG_TMPQ0 );
-	XOP2( OP_MOVSX32, REG_TMP1, REG_TMPQ1 );
-	XOP2( OP_MULQ, REG_TMPQ0, REG_TMPQ1 );
-	XOP2( OP_ADDQSAT48, REG_TMPQ1, R_MAC );
+	XOP2TT( OP_MOVSX32, REG_TMP0, REG_TMPQ0 );
+	XOP2TT( OP_MOVSX32, REG_TMP1, REG_TMPQ1 );
+	XOP2TT( OP_MULQ, REG_TMPQ0, REG_TMPQ1 );
+	XOP2TS( OP_ADDQSAT48, REG_TMPQ1, R_MAC );
 :}
 MAC.W @Rm+, @Rn+ {:
 	RALIGN32(R_R(Rm)); 
 	if( Rm == Rn ) {
-	    XOP2E( OP_LOADW, R_R(Rm), REG_TMP0 );
-	    XOP2( OP_MOV, R_R(Rm), REG_TMP1 );
-	    XOP2I( OP_ADD, 2, REG_TMP1 );
-	    XOP2E( OP_LOADW, REG_TMP1, REG_TMP1 );
-	    XOP2I( OP_ADD, 4, R_R(Rm) );
+	    XOP2STE( OP_LOADW, R_R(Rm), REG_TMP0 );
+	    XOP2ST( OP_MOV, R_R(Rm), REG_TMP1 );
+	    XOP2IT( OP_ADD, 2, REG_TMP1 );
+	    XOP2TTE( OP_LOADW, REG_TMP1, REG_TMP1 );
+	    XOP2IS( OP_ADD, 4, R_R(Rm) );
 	} else {
 	    RALIGN32(Rn);
-	    XOP2E( OP_LOADW, R_R(Rm), REG_TMP0 );
-	    XOP2E( OP_LOADW, R_R(Rn), REG_TMP1 );
-	    XOP2I( OP_ADD, 2, R_R(Rm) );
-	    XOP2I( OP_ADD, 2, R_R(Rn) );
+	    XOP2STE( OP_LOADW, R_R(Rm), REG_TMP0 );
+	    XOP2STE( OP_LOADW, R_R(Rn), REG_TMP1 );
+	    XOP2IS( OP_ADD, 2, R_R(Rm) );
+	    XOP2IS( OP_ADD, 2, R_R(Rn) );
 	}
-	XOP2( OP_MOVSX32, REG_TMP0, REG_TMPQ0 );
-	XOP2( OP_MOVSX32, REG_TMP1, REG_TMPQ1 );
-	XOP2( OP_MULQ, REG_TMPQ0, REG_TMPQ1 );
-	XOP2( OP_ADDQSAT32, REG_TMPQ1, R_MAC );
+	XOP2TT( OP_MOVSX32, REG_TMP0, REG_TMPQ0 );
+	XOP2TT( OP_MOVSX32, REG_TMP1, REG_TMPQ1 );
+	XOP2TT( OP_MULQ, REG_TMPQ0, REG_TMPQ1 );
+	XOP2TS( OP_ADDQSAT32, REG_TMPQ1, R_MAC );
 :}
-MOVT Rn         {: XOP2( OP_MOV, R_R(Rn), R_T ); :}
+MOVT Rn         {: XOP2SS( OP_MOV, R_R(Rn), R_T ); :}
 MUL.L Rm, Rn    {:  
-	XOP2( OP_MOV, R_R(Rm), R_MACL );
-	XOP2( OP_MUL, R_R(Rn), R_MACL );
+	XOP2SS( OP_MOV, R_R(Rm), R_MACL );
+	XOP2SS( OP_MUL, R_R(Rn), R_MACL );
 :}
 MULS.W Rm, Rn   {: 
-	XOP2( OP_MOVSX16, R_R(Rm), REG_TMP0 );
-	XOP2( OP_MOVSX16, R_R(Rn), R_MACL );
-	XOP2( OP_MUL, REG_TMP0, R_MACL );
+	XOP2ST( OP_MOVSX16, R_R(Rm), REG_TMP0 );
+	XOP2SS( OP_MOVSX16, R_R(Rn), R_MACL );
+	XOP2TS( OP_MUL, REG_TMP0, R_MACL );
 :}
 MULU.W Rm, Rn   {:
-	XOP2( OP_MOVZX16, R_R(Rm), REG_TMP0 );
-	XOP2( OP_MOVZX16, R_R(Rn), R_MACL );
-	XOP2( OP_MUL, REG_TMP0, R_MACL );
+	XOP2ST( OP_MOVZX16, R_R(Rm), REG_TMP0 );
+	XOP2SS( OP_MOVZX16, R_R(Rn), R_MACL );
+	XOP2TS( OP_MUL, REG_TMP0, R_MACL );
 :}
 NEG Rm, Rn      {: 
-	XOP2( OP_NEG, R_R(Rm), R_R(Rn) );
+	XOP2SS( OP_NEG, R_R(Rm), R_R(Rn) );
 :}
 NEGC Rm, Rn     {:
-	XOP1CC( OP_LD, CC_C, R_T );
+	XOP1SCC( OP_LD, CC_C, R_T );
 	if( Rm == Rn ) {
-	    XOP2( OP_MOV, R_R(Rn), REG_TMP0 );
-	    XOP2I(OP_MOV, 0, R_R(Rn) );
-	    XOP2( OP_SUBBS, REG_TMP0, R_R(Rn) );
+	    XOP2ST( OP_MOV, R_R(Rn), REG_TMP0 );
+	    XOP2IS(OP_MOV, 0, R_R(Rn) );
+	    XOP2TS( OP_SUBBS, REG_TMP0, R_R(Rn) );
 	} else {
-	    XOP2I(OP_MOV, 0, R_R(Rn) );
-	    XOP2( OP_SUBBS, R_R(Rm), R_R(Rn) );
+	    XOP2IS(OP_MOV, 0, R_R(Rn) );
+	    XOP2SS( OP_SUBBS, R_R(Rm), R_R(Rn) );
 	}
-	XOP1CC( OP_ST, CC_C, R_T );
+	XOP1SCC( OP_ST, CC_C, R_T );
 :}
 NOT Rm, Rn      {:
-	XOP2( OP_NOT, R_R(Rm), R_R(Rn) );
+	XOP2SS( OP_NOT, R_R(Rm), R_R(Rn) );
 :}
-OR Rm, Rn       {: XOP2( OP_OR, R_R(Rm), R_R(Rn) ); :}  
-OR #imm, R0     {: XOP2I( OP_OR, imm, R_R0 ); :}
-ROTCL Rn        {: XOP1CC( OP_LD, CC_C, R_T ); XOP2I( OP_RCL, 1, R_R(Rn) ); XOP1CC( OP_ST, CC_C, R_T); :}
-ROTCR Rn        {: XOP1CC( OP_LD, CC_C, R_T ); XOP2I( OP_RCR, 1, R_R(Rn) ); XOP1CC( OP_ST, CC_C, R_T); :}  
-ROTL Rn         {: XOP2I( OP_ROL, 1, R_R(Rn) ); :}
-ROTR Rn         {: XOP2I( OP_ROR, 1, R_R(Rn) ); :}
-SHAD Rm, Rn     {: XOP2( OP_SHAD, R_R(Rm), R_R(Rn) ); :}
-SHLD Rm, Rn     {: XOP2( OP_SHLD, R_R(Rm), R_R(Rn) ); :}  
-SHAL Rn         {: XOP2I( OP_SLLS, 1, R_R(Rn) ); XOP1CC( OP_ST, CC_C, R_T); :} 
-SHAR Rn         {: XOP2I( OP_SARS, 1, R_R(Rn) ); XOP1CC( OP_ST, CC_C, R_T); :}
-SHLL Rn         {: XOP2I( OP_SLLS, 1, R_R(Rn) ); XOP1CC( OP_ST, CC_C, R_T); :}
-SHLL2 Rn        {: XOP2I( OP_SLL, 2, R_R(Rn) ); :}
-SHLL8 Rn        {: XOP2I( OP_SLL, 8, R_R(Rn) ); :}
-SHLL16 Rn       {: XOP2I( OP_SLL, 16, R_R(Rn) ); :}
-SHLR Rn         {: XOP2I( OP_SLRS, 1, R_R(Rn) ); XOP1CC( OP_ST, CC_C, R_T); :}
-SHLR2 Rn        {: XOP2I( OP_SLR, 2, R_R(Rn) ); :}
-SHLR8 Rn        {: XOP2I( OP_SLR, 8, R_R(Rn) ); :}
-SHLR16 Rn       {: XOP2I( OP_SLR, 16, R_R(Rn) ); :}
+OR Rm, Rn       {: XOP2SS( OP_OR, R_R(Rm), R_R(Rn) ); :}  
+OR #imm, R0     {: XOP2IS( OP_OR, imm, R_R0 ); :}
+ROTCL Rn        {: XOP1SCC( OP_LD, CC_C, R_T ); XOP2IS( OP_RCL, 1, R_R(Rn) ); XOP1SCC( OP_ST, CC_C, R_T); :}
+ROTCR Rn        {: XOP1SCC( OP_LD, CC_C, R_T ); XOP2IS( OP_RCR, 1, R_R(Rn) ); XOP1SCC( OP_ST, CC_C, R_T); :}  
+ROTL Rn         {: XOP2IS( OP_ROL, 1, R_R(Rn) ); :}
+ROTR Rn         {: XOP2IS( OP_ROR, 1, R_R(Rn) ); :}
+SHAD Rm, Rn     {: XOP2SS( OP_SHAD, R_R(Rm), R_R(Rn) ); :}
+SHLD Rm, Rn     {: XOP2SS( OP_SHLD, R_R(Rm), R_R(Rn) ); :}  
+SHAL Rn         {: XOP2IS( OP_SLLS, 1, R_R(Rn) ); XOP1SCC( OP_ST, CC_C, R_T); :} 
+SHAR Rn         {: XOP2IS( OP_SARS, 1, R_R(Rn) ); XOP1SCC( OP_ST, CC_C, R_T); :}
+SHLL Rn         {: XOP2IS( OP_SLLS, 1, R_R(Rn) ); XOP1SCC( OP_ST, CC_C, R_T); :}
+SHLL2 Rn        {: XOP2IS( OP_SLL, 2, R_R(Rn) ); :}
+SHLL8 Rn        {: XOP2IS( OP_SLL, 8, R_R(Rn) ); :}
+SHLL16 Rn       {: XOP2IS( OP_SLL, 16, R_R(Rn) ); :}
+SHLR Rn         {: XOP2IS( OP_SLRS, 1, R_R(Rn) ); XOP1SCC( OP_ST, CC_C, R_T); :}
+SHLR2 Rn        {: XOP2IS( OP_SLR, 2, R_R(Rn) ); :}
+SHLR8 Rn        {: XOP2IS( OP_SLR, 8, R_R(Rn) ); :}
+SHLR16 Rn       {: XOP2IS( OP_SLR, 16, R_R(Rn) ); :}
 SUB Rm, Rn      {:
 	if( Rm == Rn ) {
 	    /* Break false dependence */
-	    XOP2I( OP_MOV, 0, R_R(Rn) );
+	    XOP2IS( OP_MOV, 0, R_R(Rn) );
 	} else {
-	    XOP2( OP_SUB, R_R(Rm), R_R(Rn) );
+	    XOP2SS( OP_SUB, R_R(Rm), R_R(Rn) );
 	} 
 :}
-SUBC Rm, Rn     {: XOP1CC( OP_LD, CC_C, R_T ); XOP2( OP_SUBBS, R_R(Rm), R_R(Rn) ); XOP1CC( OP_ST, CC_C, R_T ); :}
-SUBV Rm, Rn     {: XOP2( OP_SUB, R_R(Rm), R_R(Rn) ); XOP1CC( OP_ST, CC_OV, R_T ); :}
+SUBC Rm, Rn     {: XOP1SCC( OP_LD, CC_C, R_T ); XOP2SS( OP_SUBBS, R_R(Rm), R_R(Rn) ); XOP1SCC( OP_ST, CC_C, R_T ); :}
+SUBV Rm, Rn     {: XOP2SS( OP_SUB, R_R(Rm), R_R(Rn) ); XOP1SCC( OP_ST, CC_OV, R_T ); :}
 SWAP.B Rm, Rn   {:
 	if( Rm != Rn ) {
-	    XOP2( OP_MOV, R_R(Rm), R_R(Rn) );
+	    XOP2SS( OP_MOV, R_R(Rm), R_R(Rn) );
 	}
-	XOP2I( OP_SHUFFLE, 0x1243, R_R(Rn) );  
+	XOP2IS( OP_SHUFFLE, 0x1243, R_R(Rn) );  
 :}  
 SWAP.W Rm, Rn   {:
 	if( Rm != Rn ) { 
-	    XOP2( OP_MOV, R_R(Rm), R_R(Rn) );
+	    XOP2SS( OP_MOV, R_R(Rm), R_R(Rn) );
 	}
-	XOP2I( OP_SHUFFLE, 0x3412, R_R(Rn) );
+	XOP2IS( OP_SHUFFLE, 0x3412, R_R(Rn) );
 :}
-TST Rm, Rn      {: XOP2( OP_TST, R_R(Rm), R_R(Rn) ); XOP1CC( OP_ST, CC_EQ, R_T ); :}  
-TST #imm, R0    {: XOP2I( OP_TST, imm, R_R0 ); XOP1CC( OP_ST, CC_EQ, R_T ); :}  
+TST Rm, Rn      {: XOP2SS( OP_TST, R_R(Rm), R_R(Rn) ); XOP1SCC( OP_ST, CC_EQ, R_T ); :}  
+TST #imm, R0    {: XOP2IS( OP_TST, imm, R_R0 ); XOP1SCC( OP_ST, CC_EQ, R_T ); :}  
 XOR Rm, Rn      {: 
 	if( Rm == Rn ) {
 	    /* Break false dependence */
-	    XOP2I( OP_MOV, 0, R_R(Rn) );
+	    XOP2IS( OP_MOV, 0, R_R(Rn) );
 	} else {
-	    XOP2( OP_XOR, R_R(Rm), R_R(Rn) );
+	    XOP2SS( OP_XOR, R_R(Rm), R_R(Rn) );
 	} 
 :}
-XOR #imm, R0    {: XOP2I( OP_XOR, imm, R_R0 ); :}
+XOR #imm, R0    {: XOP2IS( OP_XOR, imm, R_R0 ); :}
 XTRCT Rm, Rn    {: 
-	XOP2( OP_MOV, R_R(Rm), REG_TMP0 );
-	XOP2I( OP_SLL, 16, REG_TMP0 );
-	XOP2I( OP_SLR, 16, R_R(Rn) );
-	XOP2( OP_OR, REG_TMP0, R_R(Rn) );
+	XOP2ST( OP_MOV, R_R(Rm), REG_TMP0 );
+	XOP2IT( OP_SLL, 16, REG_TMP0 );
+	XOP2IS( OP_SLR, 16, R_R(Rn) );
+	XOP2TS( OP_OR, REG_TMP0, R_R(Rn) );
 :}
-MOV Rm, Rn      {: XOP2( OP_MOV, R_R(Rm), R_R(Rn) ); :}  
-MOV #imm, Rn    {: XOP2I( OP_MOV, imm, R_R(Rn) ); :}  
+MOV Rm, Rn      {: XOP2SS( OP_MOV, R_R(Rm), R_R(Rn) ); :}  
+MOV #imm, Rn    {: XOP2IS( OP_MOV, imm, R_R(Rn) ); :}  
 
 AND.B #imm, @(R0, GBR) {:
-	XOP2( OP_MOV, R_R0, REG_TMP0 );
-	XOP2( OP_ADD, R_GBR, REG_TMP0 );
-	XOP2E( OP_LOADBFW, REG_TMP0, REG_TMP1 );
-	XOP2I( OP_AND, imm, REG_TMP1 );
-	XOP2E( OP_STOREB, REG_TMP0, REG_TMP1 );
+	XOP2ST( OP_MOV, R_R0, REG_TMP0 );
+	XOP2ST( OP_ADD, R_GBR, REG_TMP0 );
+	XOP2TTE( OP_LOADBFW, REG_TMP0, REG_TMP1 );
+	XOP2IT( OP_AND, imm, REG_TMP1 );
+	XOP2TTE( OP_STOREB, REG_TMP0, REG_TMP1 );
 :}
 OR.B #imm, @(R0, GBR) {: 
-	XOP2( OP_MOV, R_R0, REG_TMP0 );
-	XOP2( OP_ADD, R_GBR, REG_TMP0 );
-	XOP2E( OP_LOADBFW, REG_TMP0, REG_TMP1 );
-	XOP2I( OP_OR, imm, REG_TMP1 );
-	XOP2E( OP_STOREB, REG_TMP0, REG_TMP1 );
+	XOP2ST( OP_MOV, R_R0, REG_TMP0 );
+	XOP2ST( OP_ADD, R_GBR, REG_TMP0 );
+	XOP2TTE( OP_LOADBFW, REG_TMP0, REG_TMP1 );
+	XOP2IT( OP_OR, imm, REG_TMP1 );
+	XOP2TTE( OP_STOREB, REG_TMP0, REG_TMP1 );
 :}
 TAS.B @Rn {:  
-	XOP1( OP_OCBP, R_R(Rn) );
-	XOP2E( OP_LOADBFW, R_R(Rn), REG_TMP0 );
-	XOP2I( OP_CMP, 0, REG_TMP0 );
-	XOP1CC(OP_ST, CC_EQ, R_T );  
-	XOP2I( OP_OR, 0x80, REG_TMP0 );
-	XOP2E( OP_STOREB, R_R(Rn), REG_TMP0 );
+	XOP1S( OP_OCBP, R_R(Rn) );
+	XOP2STE( OP_LOADBFW, R_R(Rn), REG_TMP0 );
+	XOP2IT( OP_CMP, 0, REG_TMP0 );
+	XOP1SCC(OP_ST, CC_EQ, R_T );  
+	XOP2IT( OP_OR, 0x80, REG_TMP0 );
+	XOP2STE( OP_STOREB, R_R(Rn), REG_TMP0 );
 :}
 TST.B #imm, @(R0, GBR) {:  
-	XOP2( OP_MOV, R_R0, REG_TMP0 );
-	XOP2( OP_ADD, R_GBR, REG_TMP0 );
-	XOP2E( OP_LOADB, REG_TMP0, REG_TMP0 );
-	XOP2I( OP_TST, imm, REG_TMP0 );
+	XOP2ST( OP_MOV, R_R0, REG_TMP0 );
+	XOP2ST( OP_ADD, R_GBR, REG_TMP0 );
+	XOP2TTE( OP_LOADB, REG_TMP0, REG_TMP0 );
+	XOP2IT( OP_TST, imm, REG_TMP0 );
 :}
 XOR.B #imm, @(R0, GBR) {:  
-	XOP2( OP_MOV, R_R0, REG_TMP0 );
-	XOP2( OP_ADD, R_GBR, REG_TMP0 );
-	XOP2E( OP_LOADBFW, REG_TMP0, REG_TMP1 );
-	XOP2I( OP_XOR, imm, REG_TMP1 );
-	XOP2E( OP_STOREB, REG_TMP0, REG_TMP1 );
+	XOP2ST( OP_MOV, R_R0, REG_TMP0 );
+	XOP2ST( OP_ADD, R_GBR, REG_TMP0 );
+	XOP2TTE( OP_LOADBFW, REG_TMP0, REG_TMP1 );
+	XOP2IT( OP_XOR, imm, REG_TMP1 );
+	XOP2TTE( OP_STOREB, REG_TMP0, REG_TMP1 );
 :}
 
 MOV.B Rm, @Rn {:  
-	XOP2E( OP_STOREB, R_R(Rn), R_R(Rm) );
+	XOP2SSE( OP_STOREB, R_R(Rn), R_R(Rm) );
 :}
 MOV.B Rm, @-Rn {:
-	XOP2( OP_MOV, R_R(Rn), REG_TMP0 );
-	XOP2I( OP_ADD, -1, REG_TMP0 );
-	XOP2E( OP_STOREB, REG_TMP0, R_R(Rm) );
-	XOP2I( OP_ADD, -1, R_R(Rn) );
+	XOP2ST( OP_MOV, R_R(Rn), REG_TMP0 );
+	XOP2IT( OP_ADD, -1, REG_TMP0 );
+	XOP2TSE( OP_STOREB, REG_TMP0, R_R(Rm) );
+	XOP2IS( OP_ADD, -1, R_R(Rn) );
 :}
 MOV.B Rm, @(R0, Rn) {:
-	XOP2( OP_MOV, R_R(Rn), REG_TMP0 );
-	XOP2( OP_ADD, R_R0, REG_TMP0 );
-	XOP2E( OP_STOREB, REG_TMP0, R_R(Rm) );
+	XOP2ST( OP_MOV, R_R(Rn), REG_TMP0 );
+	XOP2ST( OP_ADD, R_R0, REG_TMP0 );
+	XOP2TSE( OP_STOREB, REG_TMP0, R_R(Rm) );
 :}
 MOV.B R0, @(disp, GBR) {:
-	XOP2( OP_MOV, R_GBR, REG_TMP0 );
-	XOP2I( OP_ADD, disp, REG_TMP0 );
-	XOP2E( OP_STOREB, REG_TMP0, R_R0 );
+	XOP2ST( OP_MOV, R_GBR, REG_TMP0 );
+	XOP2IT( OP_ADD, disp, REG_TMP0 );
+	XOP2TSE( OP_STOREB, REG_TMP0, R_R0 );
 :}
 MOV.B R0, @(disp, Rn) {:
-	XOP2( OP_MOV, R_R(Rn), REG_TMP0 );
-	XOP2I( OP_ADD, disp, REG_TMP0 );
-	XOP2E( OP_STOREB, REG_TMP0, R_R0 );
+	XOP2ST( OP_MOV, R_R(Rn), REG_TMP0 );
+	XOP2IT( OP_ADD, disp, REG_TMP0 );
+	XOP2TSE( OP_STOREB, REG_TMP0, R_R0 );
 :}
 MOV.B @Rm, Rn {:
-	XOP2E( OP_LOADB, R_R(Rm), R_R(Rn) );
+	XOP2SSE( OP_LOADB, R_R(Rm), R_R(Rn) );
 :}
 MOV.B @Rm+, Rn {:
-	XOP2E( OP_LOADB, R_R(Rm), R_R(Rn) );
+	XOP2SSE( OP_LOADB, R_R(Rm), R_R(Rn) );
 	if( Rm != Rn ) {
-	    XOP2I( OP_ADD, 1, R_R(Rm) );
+	    XOP2IS( OP_ADD, 1, R_R(Rm) );
 	}
 :}
 MOV.B @(R0, Rm), Rn {:
-	XOP2( OP_MOV, R_R(Rm), REG_TMP0 );
-	XOP2( OP_ADD, R_R0, REG_TMP0 );
-	XOP2E(OP_LOADB, REG_TMP0, R_R(Rn) );  
+	XOP2ST( OP_MOV, R_R(Rm), REG_TMP0 );
+	XOP2ST( OP_ADD, R_R0, REG_TMP0 );
+	XOP2TSE(OP_LOADB, REG_TMP0, R_R(Rn) );  
 :}
 MOV.B @(disp, GBR), R0 {:
-	XOP2( OP_MOV, R_GBR, REG_TMP0 );
-	XOP2I(OP_ADD, disp, REG_TMP0 );
-	XOP2E(OP_LOADB, REG_TMP0, R_R0 );
+	XOP2ST( OP_MOV, R_GBR, REG_TMP0 );
+	XOP2IT(OP_ADD, disp, REG_TMP0 );
+	XOP2TSE(OP_LOADB, REG_TMP0, R_R0 );
 :}
 MOV.B @(disp, Rm), R0 {:  
-	XOP2( OP_MOV, R_R(Rm), REG_TMP0 );
-	XOP2I(OP_ADD, disp, REG_TMP0 );
-	XOP2E(OP_LOADB, REG_TMP0, R_R0 );
+	XOP2ST( OP_MOV, R_R(Rm), REG_TMP0 );
+	XOP2IT(OP_ADD, disp, REG_TMP0 );
+	XOP2TSE(OP_LOADB, REG_TMP0, R_R0 );
 :}
 MOV.L Rm, @Rn {:
 	WALIGN32( R_R(Rn) );
-	XOP2E( OP_STOREL, R_R(Rn), R_R(Rm) );
+	XOP2SSE( OP_STOREL, R_R(Rn), R_R(Rm) );
 :}
 MOV.L Rm, @-Rn {:
 	WALIGN32( R_R(Rn) );
-	XOP2( OP_MOV, R_R(Rn), REG_TMP0 );
-	XOP2I(OP_ADD, -4, REG_TMP0 );
-	XOP2( OP_STOREL, REG_TMP0, R_R(Rm) );
-	XOP2I(OP_ADD, -4, R_R(Rn) );
+	XOP2ST( OP_MOV, R_R(Rn), REG_TMP0 );
+	XOP2IT(OP_ADD, -4, REG_TMP0 );
+	XOP2TS( OP_STOREL, REG_TMP0, R_R(Rm) );
+	XOP2IS(OP_ADD, -4, R_R(Rn) );
 :}
 MOV.L Rm, @(R0, Rn) {:  
-	XOP2( OP_MOV, R_R(Rn), REG_TMP0 );
-	XOP2( OP_ADD, R_R0, REG_TMP0 );
+	XOP2ST( OP_MOV, R_R(Rn), REG_TMP0 );
+	XOP2ST( OP_ADD, R_R0, REG_TMP0 );
 	WALIGN32( REG_TMP0 );
-	XOP2E(OP_STOREL, REG_TMP0, R_R(Rm) );
+	XOP2TSE(OP_STOREL, REG_TMP0, R_R(Rm) );
 :}
 MOV.L R0, @(disp, GBR) {:  
-	XOP2( OP_MOV, R_GBR, REG_TMP0 );
-	XOP2I(OP_ADD, disp, REG_TMP0 );
+	XOP2ST( OP_MOV, R_GBR, REG_TMP0 );
+	XOP2IT(OP_ADD, disp, REG_TMP0 );
 	WALIGN32( REG_TMP0 );
-	XOP2E(OP_STOREL, REG_TMP0, R_R0 );
+	XOP2TSE(OP_STOREL, REG_TMP0, R_R0 );
 :}
 MOV.L Rm, @(disp, Rn) {:  
-	XOP2( OP_MOV, R_R(Rn), REG_TMP0 );
-	XOP2I(OP_ADD, disp, REG_TMP0 );
+	XOP2ST( OP_MOV, R_R(Rn), REG_TMP0 );
+	XOP2IT(OP_ADD, disp, REG_TMP0 );
 	WALIGN32( REG_TMP0 );
-	XOP2E(OP_STOREL, REG_TMP0, R_R(Rm) );
+	XOP2TSE(OP_STOREL, REG_TMP0, R_R(Rm) );
 :}
 MOV.L @Rm, Rn {: 
 	RALIGN32( R_R(Rm) );
-	XOP2E(OP_LOADL, R_R(Rm), R_R(Rn) ); 
+	XOP2SSE(OP_LOADL, R_R(Rm), R_R(Rn) ); 
 :}
 MOV.L @Rm+, Rn {:
         RALIGN32( R_R(Rm) );
-	XOP2E( OP_LOADL, R_R(Rm), R_R(Rn) );
+	XOP2SSE( OP_LOADL, R_R(Rm), R_R(Rn) );
 	if( R_R(Rm) != R_R(Rn) ) {
-	    XOP2I( OP_ADD, 4, R_R(Rm) );
+	    XOP2IS( OP_ADD, 4, R_R(Rm) );
 	} 
 :}
 MOV.L @(R0, Rm), Rn {:
-	XOP2( OP_MOV, R_R0, REG_TMP0 );
-	XOP2( OP_ADD, R_R(Rm), REG_TMP0 );
+	XOP2ST( OP_MOV, R_R0, REG_TMP0 );
+	XOP2ST( OP_ADD, R_R(Rm), REG_TMP0 );
 	RALIGN32( REG_TMP0 );
-	XOP2E(OP_LOADL, REG_TMP0, R_R(Rn) );	  
+	XOP2TSE(OP_LOADL, REG_TMP0, R_R(Rn) );	  
 :}
 MOV.L @(disp, GBR), R0 {:
-	XOP2( OP_MOV, R_GBR, REG_TMP0 );
-	XOP2I(OP_ADD, disp, REG_TMP0 );
+	XOP2ST( OP_MOV, R_GBR, REG_TMP0 );
+	XOP2IT(OP_ADD, disp, REG_TMP0 );
 	RALIGN32( REG_TMP0 );
-	XOP2E(OP_LOADL, REG_TMP0, R_R0 );
+	XOP2TSE(OP_LOADL, REG_TMP0, R_R0 );
 :}
 MOV.L @(disp, PC), Rn {:
 	if( in_delay_slot ) {
@@ -520,74 +558,74 @@ MOV.L @(disp, PC), Rn {:
 	    // behaviour to confirm) Unlikely to be anyone depending on this
 	    // behaviour though.
 	        sh4ptr_t ptr = GET_ICACHE_PTR(target);
-	        XOP2P( OP_MOV, ptr, R_R(Rn) );
+	        XOP2PS( OP_LOADPTRL, ptr, R_R(Rn) );
 	    } else {
 	    // Note: we use sh4r.pc for the calc as we could be running at a
 	    // different virtual address than the translation was done with,
 	    // but we can safely assume that the low bits are the same.
-	        XOP2( OP_MOV, R_PC, REG_TMP0 );
-	        XOP2( OP_ADD, (pc-xbb->pc_begin) + disp + 4 - (pc&0x03), REG_TMP0 );
-	        XOP2E(OP_LOADL, REG_TMP0, R_R(Rn) );
+	        XOP2ST( OP_MOV, R_PC, REG_TMP0 );
+	        XOP2IT( OP_ADD, (pc-xbb->pc_begin) + disp + 4 - (pc&0x03), REG_TMP0 );
+	        XOP2TSE(OP_LOADL, REG_TMP0, R_R(Rn) );
 	    }
 	}
 :}
 MOV.L @(disp, Rm), Rn {:  
-	XOP2( OP_MOV, R_R(Rm), REG_TMP0 );
-	XOP2I(OP_ADD, disp, REG_TMP0 );
+	XOP2ST( OP_MOV, R_R(Rm), REG_TMP0 );
+	XOP2IT(OP_ADD, disp, REG_TMP0 );
 	RALIGN32( REG_TMP0 );
-	XOP2E(OP_LOADL, REG_TMP0, R_R(Rn) );
+	XOP2TSE(OP_LOADL, REG_TMP0, R_R(Rn) );
 :}
 MOV.W Rm, @Rn {:  
 	WALIGN16( R_R(Rn) );
-	XOP2E(OP_STOREW, R_R(Rn), R_R(Rm) );
+	XOP2SSE(OP_STOREW, R_R(Rn), R_R(Rm) );
 :}
 MOV.W Rm, @-Rn {: 
 	WALIGN16( R_R(Rn) );
-	XOP2( OP_MOV, R_R(Rn), REG_TMP0 );
-	XOP2I(OP_ADD, -2, REG_TMP0 );
-	XOP2E(OP_STOREW, REG_TMP0, R_R(Rm) );
-	XOP2I(OP_ADD, -2, R_R(Rn) );
+	XOP2ST( OP_MOV, R_R(Rn), REG_TMP0 );
+	XOP2IT(OP_ADD, -2, REG_TMP0 );
+	XOP2TSE(OP_STOREW, REG_TMP0, R_R(Rm) );
+	XOP2IS(OP_ADD, -2, R_R(Rn) );
 :}
 MOV.W Rm, @(R0, Rn) {: 
-	XOP2( OP_MOV, R_R0, REG_TMP0 );
-	XOP2( OP_ADD, R_R(Rn), REG_TMP0 );
+	XOP2ST( OP_MOV, R_R0, REG_TMP0 );
+	XOP2ST( OP_ADD, R_R(Rn), REG_TMP0 );
 	WALIGN16( REG_TMP0 );
-	XOP2E(OP_STOREW, REG_TMP0, R_R(Rm) );
+	XOP2TSE(OP_STOREW, REG_TMP0, R_R(Rm) );
 :}
 MOV.W R0, @(disp, GBR) {:  
-	XOP2( OP_MOV, R_GBR, REG_TMP0 );
-	XOP2I(OP_ADD, disp, REG_TMP0 );
+	XOP2ST( OP_MOV, R_GBR, REG_TMP0 );
+	XOP2IT(OP_ADD, disp, REG_TMP0 );
 	WALIGN16( REG_TMP0 );
-	XOP2( OP_STOREW, REG_TMP0, R_R0 );
+	XOP2TS( OP_STOREW, REG_TMP0, R_R0 );
 :}
 MOV.W R0, @(disp, Rn) {:  
-	XOP2( OP_MOV, R_R(Rn), REG_TMP0 );
-	XOP2I(OP_ADD, disp, REG_TMP0 );
+	XOP2ST( OP_MOV, R_R(Rn), REG_TMP0 );
+	XOP2IT(OP_ADD, disp, REG_TMP0 );
 	WALIGN16( REG_TMP0 );
-	XOP2E(OP_STOREW, REG_TMP0, R_R0 );
+	XOP2TSE(OP_STOREW, REG_TMP0, R_R0 );
 :}
 MOV.W @Rm, Rn {: 
 	RALIGN16( R_R(Rm) );
-	XOP2E(OP_LOADW, R_R(Rm), R_R(Rn) );
+	XOP2SSE(OP_LOADW, R_R(Rm), R_R(Rn) );
 :}
 MOV.W @Rm+, Rn {: 
 	RALIGN16( R_R(Rm) );
-	XOP2E(OP_LOADW, R_R(Rm), R_R(Rn) );
+	XOP2SSE(OP_LOADW, R_R(Rm), R_R(Rn) );
 	if( Rm != Rn ) {
-	    XOP2I( OP_ADD, 2, R_R(Rm) );
+	    XOP2IS( OP_ADD, 2, R_R(Rm) );
 	}
 :}
 MOV.W @(R0, Rm), Rn {:  
-	XOP2( OP_MOV, R_R0, REG_TMP0 );
-	XOP2( OP_ADD, R_R(Rm), REG_TMP0 );
+	XOP2ST( OP_MOV, R_R0, REG_TMP0 );
+	XOP2ST( OP_ADD, R_R(Rm), REG_TMP0 );
 	RALIGN16( REG_TMP0 );
-	XOP2E(OP_LOADW, REG_TMP0, R_R(Rn) );
+	XOP2TSE(OP_LOADW, REG_TMP0, R_R(Rn) );
 :}
 MOV.W @(disp, GBR), R0 {:  
-	XOP2( OP_MOV, R_GBR, REG_TMP0 );
-	XOP2I(OP_ADD, disp, REG_TMP0 );
+	XOP2ST( OP_MOV, R_GBR, REG_TMP0 );
+	XOP2IT(OP_ADD, disp, REG_TMP0 );
 	RALIGN16( REG_TMP0 );
-	XOP2E(OP_LOADW, REG_TMP0, R_R0 );
+	XOP2TSE(OP_LOADW, REG_TMP0, R_R0 );
 :}
 MOV.W @(disp, PC), Rn {:  
 	if( in_delay_slot ) {
@@ -606,296 +644,296 @@ MOV.W @(disp, PC), Rn {:
 	    // behaviour to confirm) Unlikely to be anyone depending on this
 	    // behaviour though.
 	        sh4ptr_t ptr = GET_ICACHE_PTR(target);
-	        XOP2P( OP_MOV, ptr, REG_TMP0 );
-	        XOP2( OP_MOVSX16, REG_TMP0, R_R(Rn) );
+	        XOP2PT( OP_LOADPTRL, ptr, REG_TMP0 );
+	        XOP2TS( OP_MOVSX16, REG_TMP0, R_R(Rn) );
 	    } else {
 	    // Note: we use sh4r.pc for the calc as we could be running at a
 	    // different virtual address than the translation was done with,
 	    // but we can safely assume that the low bits are the same.
-	        XOP2( OP_MOV, R_PC, REG_TMP0 );
-	        XOP2( OP_ADD, (pc - xbb->pc_begin) + disp + 4, REG_TMP0 );
-	        XOP2E(OP_LOADW, REG_TMP0, R_R(Rn) );
+	        XOP2ST( OP_MOV, R_PC, REG_TMP0 );
+	        XOP2IT( OP_ADD, (pc - xbb->pc_begin) + disp + 4, REG_TMP0 );
+	        XOP2TSE(OP_LOADW, REG_TMP0, R_R(Rn) );
 	    }
 	}
 :}
 MOV.W @(disp, Rm), R0 {:  
-	XOP2( OP_MOV, R_R(Rm), REG_TMP0 );
-	XOP2I(OP_ADD, disp, REG_TMP0 );
+	XOP2ST( OP_MOV, R_R(Rm), REG_TMP0 );
+	XOP2IT(OP_ADD, disp, REG_TMP0 );
 	RALIGN16( REG_TMP0 );
-	XOP2E(OP_LOADW, REG_TMP0, R_R0 );
+	XOP2TSE(OP_LOADW, REG_TMP0, R_R0 );
 :}
 MOVA @(disp, PC), R0 {: 
 	if( in_delay_slot ) {
 	    SLOTILLEGAL();
 	    return 2;
 	} else {
-	    XOP2(  OP_MOV, R_PC, R_R0 );
-	    XOP2I( OP_ADD, (pc - xbb->pc_begin) + disp + 4 - (pc&0x03), R_R0 );
+	    XOP2SS(  OP_MOV, R_PC, R_R0 );
+	    XOP2IS( OP_ADD, (pc - xbb->pc_begin) + disp + 4 - (pc&0x03), R_R0 );
 	}
 :}
 MOVCA.L R0, @Rn {:
-	XOP2E(OP_STORELCA, R_R(Rn), R_R0 );   
+	XOP2SSE(OP_STORELCA, R_R(Rn), R_R0 );   
 :}
 LDTLB {:
 	CHECKPRIV();
 	XOPCALL0( MMU_ldtlb );
 :}
-OCBI @Rn  {: XOP1E( OP_OCBI, R_R(Rn) ); :}
-OCBP @Rn  {: XOP1E( OP_OCBP, R_R(Rn) ); :}
-OCBWB @Rn {: XOP1E( OP_OCBWB, R_R(Rn) ); :}
-PREF @Rn  {: XOP1E( OP_PREF, R_R(Rn) ); :}
+OCBI @Rn  {: XOP1SE( OP_OCBI, R_R(Rn) ); :}
+OCBP @Rn  {: XOP1SE( OP_OCBP, R_R(Rn) ); :}
+OCBWB @Rn {: XOP1SE( OP_OCBWB, R_R(Rn) ); :}
+PREF @Rn  {: XOP1SE( OP_PREF, R_R(Rn) ); :}
 
 CLRMAC {: 
-	XOP2I( OP_MOV, 0, R_MACL );
-	XOP2I( OP_MOV, 0, R_MACH );
+	XOP2IS( OP_MOV, 0, R_MACL );
+	XOP2IS( OP_MOV, 0, R_MACH );
 :}
-CLRS {: XOP2I( OP_MOV, 0, R_S ); :}
-CLRT {: XOP2I( OP_MOV, 0, R_T ); :}
-SETS {: XOP2I( OP_MOV, 1, R_S ); :}
-SETT {: XOP2I( OP_MOV, 1, R_T ); :}
+CLRS {: XOP2IS( OP_MOV, 0, R_S ); :}
+CLRT {: XOP2IS( OP_MOV, 0, R_T ); :}
+SETS {: XOP2IS( OP_MOV, 1, R_S ); :}
+SETT {: XOP2IS( OP_MOV, 1, R_T ); :}
 FMOV FRm, FRn {:
 	CHECKFPUEN();  
 	if( sh4_xir.double_size ) {
-	    XOP2( OP_MOVQ, (FRm&1) ? R_XD(FRm) : R_DR(FRm), (FRn&1) ? R_XD(FRn) : R_DR(FRn) );
+	    XOP2SS( OP_MOVQ, (FRm&1) ? R_XD(FRm) : R_DR(FRm), (FRn&1) ? R_XD(FRn) : R_DR(FRn) );
 	} else { 
-	    XOP2( OP_MOV, R_FR(FRm), R_FR(FRn) );
+	    XOP2SS( OP_MOV, R_FR(FRm), R_FR(FRn) );
 	}	
 :}
 FMOV FRm, @Rn {:
 	CHECKFPUEN();  
 	if( sh4_xir.double_size ) {
 	    WALIGN64( R_R(Rn) );
-	    XOP2E( OP_STOREQ, R_R(Rn), (FRm&1) ? R_XD(FRm) : R_DR(FRm) );
+	    XOP2SSE( OP_STOREQ, R_R(Rn), (FRm&1) ? R_XD(FRm) : R_DR(FRm) );
 	} else {
 	    WALIGN32( R_R(Rn) );
-	    XOP2E( OP_STOREL, R_R(Rn), R_FR(FRm) );
+	    XOP2SSE( OP_STOREL, R_R(Rn), R_FR(FRm) );
 	} 
 :}
 FMOV @Rm, FRn {:
 	CHECKFPUEN();  
 	if( sh4_xir.double_size ) {
 	    RALIGN64( R_R(Rm) );
-	    XOP2E( OP_LOADQ, R_R(Rm), (FRn&1) ? R_XD(FRn) : R_DR(FRn) );
+	    XOP2SSE( OP_LOADQ, R_R(Rm), (FRn&1) ? R_XD(FRn) : R_DR(FRn) );
 	} else {
 	    RALIGN32( R_R(Rm) );
-	    XOP2E( OP_LOADL, R_R(Rm), R_FR(FRn) );
+	    XOP2SSE( OP_LOADL, R_R(Rm), R_FR(FRn) );
 	}
 :}
 FMOV FRm, @-Rn {:
 	CHECKFPUEN();  
 	if( sh4_xir.double_size ) {
 	    WALIGN64( R_R(Rn) );
-	    XOP2( OP_MOV, R_R(Rn), REG_TMP0 );
-	    XOP2I(OP_ADD, -8, REG_TMP0 );
-	    XOP2E(OP_STOREQ, REG_TMP0, (FRm&1) ? R_XD(FRm) : R_DR(FRm) );
-	    XOP2I(OP_ADD, -8, R_R(Rn) );
+	    XOP2ST( OP_MOV, R_R(Rn), REG_TMP0 );
+	    XOP2IT(OP_ADD, -8, REG_TMP0 );
+	    XOP2TSE(OP_STOREQ, REG_TMP0, (FRm&1) ? R_XD(FRm) : R_DR(FRm) );
+	    XOP2IS(OP_ADD, -8, R_R(Rn) );
 	} else {
 	    WALIGN32( R_R(Rn) );
-	    XOP2( OP_MOV, R_R(Rn), REG_TMP0 );
-	    XOP2I(OP_ADD, -4, REG_TMP0 );
-	    XOP2E(OP_STOREL, REG_TMP0, R_FR(FRm) );
-	    XOP2I(OP_ADD, -4, R_R(Rn) );
+	    XOP2ST( OP_MOV, R_R(Rn), REG_TMP0 );
+	    XOP2IT(OP_ADD, -4, REG_TMP0 );
+	    XOP2TSE(OP_STOREL, REG_TMP0, R_FR(FRm) );
+	    XOP2IS(OP_ADD, -4, R_R(Rn) );
 	}
 :}
 FMOV @Rm+, FRn {:
 	CHECKFPUEN();  
 	if( sh4_xir.double_size ) {
 	    RALIGN64( R_R(Rm) );
-	    XOP2(  OP_LOADQ, R_R(Rm), (FRn&1) ? R_XD(FRn) : R_DR(FRn) );
-	    XOP2I( OP_ADD, 8, R_R(Rm) );
+	    XOP2SSE(  OP_LOADQ, R_R(Rm), (FRn&1) ? R_XD(FRn) : R_DR(FRn) );
+	    XOP2IS( OP_ADD, 8, R_R(Rm) );
 	} else {
 	    RALIGN32( R_R(Rm) );
-	    XOP2(  OP_LOADL, R_R(Rm), R_FR(FRn) );
-	    XOP2I( OP_ADD, 4, R_R(Rm) );
+	    XOP2SSE(  OP_LOADL, R_R(Rm), R_FR(FRn) );
+	    XOP2IS( OP_ADD, 4, R_R(Rm) );
 	}
 :}
 FMOV FRm, @(R0, Rn) {: 
 	CHECKFPUEN();
-	XOP2( OP_MOV, R_R0, REG_TMP0 );
-	XOP2( OP_ADD, R_R(Rn), REG_TMP0 );
+	XOP2ST( OP_MOV, R_R0, REG_TMP0 );
+	XOP2ST( OP_ADD, R_R(Rn), REG_TMP0 );
 	if( sh4_xir.double_size ) {
 	    WALIGN64( REG_TMP0 );
-	    XOP2E( OP_STOREQ, REG_TMP0, (FRm&1) ? R_XD(FRm) : R_DR(FRm) );
+	    XOP2TSE( OP_STOREQ, REG_TMP0, (FRm&1) ? R_XD(FRm) : R_DR(FRm) );
 	} else {
 	    WALIGN32( REG_TMP0 );
-	    XOP2E( OP_STOREL, REG_TMP0, R_FR(FRm) );
+	    XOP2TSE( OP_STOREL, REG_TMP0, R_FR(FRm) );
 	}
 :}
 FMOV @(R0, Rm), FRn {:  
 	CHECKFPUEN();
-	XOP2( OP_MOV, R_R0, REG_TMP0 );
-	XOP2( OP_ADD, R_R(Rm), REG_TMP0 );
+	XOP2ST( OP_MOV, R_R0, REG_TMP0 );
+	XOP2ST( OP_ADD, R_R(Rm), REG_TMP0 );
 	if( sh4_xir.double_size ) {
 	    RALIGN64( REG_TMP0 );
-	    XOP2E( OP_LOADQ, REG_TMP0, (FRn&1) ? R_XD(FRn) : R_DR(FRn) );
+	    XOP2TSE( OP_LOADQ, REG_TMP0, (FRn&1) ? R_XD(FRn) : R_DR(FRn) );
 	} else {
 	    RALIGN32( REG_TMP0 );
-	    XOP2E( OP_LOADL, REG_TMP0, R_FR(FRn) );
+	    XOP2TSE( OP_LOADL, REG_TMP0, R_FR(FRn) );
 	}
 :}
 FLDI0 FRn {:  /* IFF PR=0 */
 	CHECKFPUEN();
 	if( sh4_xir.double_prec == 0 ) {
-	    XOP2F( OP_MOV, 0.0, R_FR(FRn) );
+	    XOP2FS( OP_MOV, 0.0, R_FR(FRn) );
 	} 
 :}
 FLDI1 FRn {:  /* IFF PR=0 */
 	CHECKFPUEN();
 	if( sh4_xir.double_prec == 0 ) {
-	    XOP2F( OP_MOV, 1.0, R_FR(FRn) );
+	    XOP2FS( OP_MOV, 1.0, R_FR(FRn) );
 	}
 :}
 FLOAT FPUL, FRn {:
 	CHECKFPUEN();
 	if( sh4_xir.double_prec ) {
-	    XOP2( OP_ITOD, R_FPUL, R_DR(FRn) );
+	    XOP2SS( OP_ITOD, R_FPUL, R_DR(FRn) );
 	} else {
-	    XOP2( OP_ITOF, R_FPUL, R_FR(FRn) );
+	    XOP2SS( OP_ITOF, R_FPUL, R_FR(FRn) );
 	}  
 :}
 FTRC FRm, FPUL {: 
 	CHECKFPUEN();
 	if( sh4_xir.double_prec ) {
-	    XOP2( OP_DTOI, R_DR(FRm), R_FPUL );
+	    XOP2SS( OP_DTOI, R_DR(FRm), R_FPUL );
 	} else {
-	    XOP2( OP_FTOI, R_FR(FRm), R_FPUL );
+	    XOP2SS( OP_FTOI, R_FR(FRm), R_FPUL );
 	}
 :}
 FLDS FRm, FPUL {:
 	CHECKFPUEN();
-	XOP2( OP_MOV, R_FR(FRm), R_FPUL );  
+	XOP2SS( OP_MOV, R_FR(FRm), R_FPUL );  
 :}
 FSTS FPUL, FRn {:  
 	CHECKFPUEN();
-	XOP2( OP_MOV, R_FPUL, R_FR(FRn) );
+	XOP2SS( OP_MOV, R_FPUL, R_FR(FRn) );
 :}
 FCNVDS FRm, FPUL {:  
 	CHECKFPUEN();
 	if( sh4_xir.double_prec && !sh4_xir.double_size ) {
-	    XOP2( OP_DTOF, R_DR(FRm), R_FPUL );
+	    XOP2SS( OP_DTOF, R_DR(FRm), R_FPUL );
 	}
 :}
 FCNVSD FPUL, FRn {:  
 	CHECKFPUEN();
 	if( sh4_xir.double_prec && !sh4_xir.double_size ) {
-	    XOP2( OP_FTOD, R_FPUL, R_DR(FRn) );
+	    XOP2SS( OP_FTOD, R_FPUL, R_DR(FRn) );
 	}
 :}
 FABS FRn {: 
 	CHECKFPUEN();
 	if( sh4_xir.double_prec ) {
-	    XOP1( OP_ABSD, R_DR(FRn) );
+	    XOP2SS( OP_ABSD, R_DR(FRn), R_DR(FRn) );
 	} else {
-	    XOP1( OP_ABSF, R_FR(FRn) );
+	    XOP2SS( OP_ABSF, R_FR(FRn), R_FR(FRn) );
 	} 
 :}
 FADD FRm, FRn {: 
 	CHECKFPUEN();
 	if( sh4_xir.double_prec ) {
-	    XOP2( OP_ADDD, R_DR(FRm), R_DR(FRn) );
+	    XOP2SS( OP_ADDD, R_DR(FRm), R_DR(FRn) );
 	} else {
-	    XOP2( OP_ADDF, R_FR(FRm), R_FR(FRn) );
+	    XOP2SS( OP_ADDF, R_FR(FRm), R_FR(FRn) );
 	} 
 :}
 FDIV FRm, FRn {:
 	CHECKFPUEN();
 	if( sh4_xir.double_prec ) {
-	    XOP2( OP_DIVD, R_DR(FRm), R_DR(FRn) );
+	    XOP2SS( OP_DIVD, R_DR(FRm), R_DR(FRn) );
 	} else {
-	    XOP2( OP_DIVF, R_FR(FRm), R_FR(FRn) );
+	    XOP2SS( OP_DIVF, R_FR(FRm), R_FR(FRn) );
 	}  
 :}
 FMAC FR0, FRm, FRn {:  
 	CHECKFPUEN();
 	if( sh4_xir.double_prec == 0 ) {
-	    XOP2( OP_MOV, R_FR(0), REG_TMP0 );
-	    XOP2( OP_MULF, R_FR(FRm), REG_TMP0 );
-	    XOP2( OP_ADDF, REG_TMP0, R_FR(FRn) );
+	    XOP2ST( OP_MOV, R_FR(0), REG_TMP0 );
+	    XOP2ST( OP_MULF, R_FR(FRm), REG_TMP0 );
+	    XOP2TS( OP_ADDF, REG_TMP0, R_FR(FRn) );
 	}
 :}
 FMUL FRm, FRn {:
 	CHECKFPUEN();
 	if( sh4_xir.double_prec ) {
-	    XOP2( OP_MULD, R_DR(FRm), R_DR(FRn) );
+	    XOP2SS( OP_MULD, R_DR(FRm), R_DR(FRn) );
 	} else {
-	    XOP2( OP_MULF, R_FR(FRm), R_FR(FRn) );
+	    XOP2SS( OP_MULF, R_FR(FRm), R_FR(FRn) );
 	}  
 :}
 FNEG FRn {: 
 	CHECKFPUEN();
 	if( sh4_xir.double_prec ) {
-	    XOP1( OP_NEGD, R_DR(FRn) );
+	    XOP2SS( OP_NEGD, R_DR(FRn), R_DR(FRn) );
 	} else {
-	    XOP1( OP_NEGF, R_FR(FRn) );
+	    XOP2SS( OP_NEGF, R_FR(FRn), R_FR(FRn) );
 	}
 :}
 FSRRA FRn {:
 	CHECKFPUEN();  
 	if( sh4_xir.double_prec == 0 ) {
-	    XOP1( OP_RSQRTF, R_FR(FRn) );
+	    XOP2SS( OP_RSQRTF, R_FR(FRn), R_FR(FRn) );
 	}
 :}
 FSQRT FRn {:  
 	CHECKFPUEN();
 	if( sh4_xir.double_prec ) {
-	    XOP1( OP_SQRTD, R_DR(FRn) );
+	    XOP2SS( OP_SQRTD, R_DR(FRn), R_DR(FRn) );
 	} else {
-	    XOP1( OP_SQRTF, R_FR(FRn) );
+	    XOP2SS( OP_SQRTF, R_FR(FRn), R_FR(FRn) );
 	}
 :}
 FSUB FRm, FRn {:
  	CHECKFPUEN();
  	if( sh4_xir.double_prec ) {
- 	    XOP2( OP_SUBD, R_DR(FRm), R_DR(FRn) );
+ 	    XOP2SS( OP_SUBD, R_DR(FRm), R_DR(FRn) );
  	} else {
- 	    XOP2( OP_SUBF, R_FR(FRm), R_FR(FRn) );
+ 	    XOP2SS( OP_SUBF, R_FR(FRm), R_FR(FRn) );
  	}
 :}
 FCMP/EQ FRm, FRn {:
 	CHECKFPUEN();
 	if( sh4_xir.double_prec ) {
-	    XOP2( OP_CMPD, R_DR(FRm), R_DR(FRn) ); 
+	    XOP2SS( OP_CMPD, R_DR(FRm), R_DR(FRn) ); 
 	} else {
-	    XOP2( OP_CMPF, R_FR(FRm), R_FR(FRn) );
+	    XOP2SS( OP_CMPF, R_FR(FRm), R_FR(FRn) );
 	}   
-	XOP1CC( OP_ST, CC_EQ, R_T );
+	XOP1SCC( OP_ST, CC_EQ, R_T );
 :}
 FCMP/GT FRm, FRn {:
 	CHECKFPUEN();
 	if( sh4_xir.double_prec ) {
-	    XOP2( OP_CMPD, R_DR(FRm), R_DR(FRn) );
+	    XOP2SS( OP_CMPD, R_DR(FRm), R_DR(FRn) );
 	} else {
-	    XOP2( OP_CMPF, R_FR(FRm), R_FR(FRn) );
+	    XOP2SS( OP_CMPF, R_FR(FRm), R_FR(FRn) );
 	}	      
-	XOP1CC( OP_ST, CC_SGT, R_T );
+	XOP1SCC( OP_ST, CC_SGT, R_T );
 :}
 FSCA FPUL, FRn {:  
 	CHECKFPUEN();
 	if( sh4_xir.double_prec == 0 ) {
-	    XOP2( OP_SINCOSF, R_FPUL, R_DR(FRn) );
+	    XOP2SS( OP_SINCOSF, R_FPUL, R_DR(FRn) );
 	}
 :}
 FIPR FVm, FVn {:
 	CHECKFPUEN();
 	if( sh4_xir.double_prec == 0 ) {
-	    XOP2( OP_DOTPRODV, R_FV(FVm), R_FV(FVn) );
+	    XOP2SS( OP_DOTPRODV, R_FV(FVm), R_FV(FVn) );
 	}
 :}
 FTRV XMTRX, FVn {: 
 	CHECKFPUEN();
 	if( sh4_xir.double_prec == 0 ) {
-	    XOP2( OP_MATMULV, R_XMTRX, R_FV(FVn) );
+	    XOP2SS( OP_MATMULV, R_XMTRX, R_FV(FVn) );
 	}
 :}
 FRCHG {: 
 	CHECKFPUEN();
-	XOP2I( OP_XOR, FPSCR_FR, R_FPSCR );
+	XOP2IS( OP_XOR, FPSCR_FR, R_FPSCR );
 	XOPCALL0( sh4_switch_fr_banks );
 :}
 FSCHG {: 
 	CHECKFPUEN();
-	XOP2I( OP_XOR, FPSCR_SZ, R_FPSCR );
-	XOP2I( OP_XOR, FPSCR_SZ, R_SH4_MODE ); 
+	XOP2IS( OP_XOR, FPSCR_SZ, R_FPSCR );
+	XOP2IS( OP_XOR, FPSCR_SZ, R_SH4_MODE ); 
 	sh4_xir.double_size = !sh4_xir.double_size;
 :}
 LDC Rm, SR {:
@@ -903,20 +941,20 @@ LDC Rm, SR {:
 	    SLOTILLEGAL();
 	} else {
 	    CHECKPRIV();
-	    XOPCALL1( sh4_write_sr, R_R(Rm) );
+	    XOPCALL1S( sh4_write_sr, R_R(Rm) );
 	}
 	return 2; 
 :}
-LDC Rm, GBR {: XOP2( OP_MOV, R_R(Rm), R_GBR ); :}
-LDC Rm, VBR {: CHECKPRIV(); XOP2( OP_MOV, R_R(Rm), R_VBR ); :}
-LDC Rm, SSR {: CHECKPRIV(); XOP2( OP_MOV, R_R(Rm), R_SSR ); :}
-LDC Rm, SGR {: CHECKPRIV(); XOP2( OP_MOV, R_R(Rm), R_SGR ); :}
-LDC Rm, SPC {: CHECKPRIV(); XOP2( OP_MOV, R_R(Rm), R_SPC ); :}
-LDC Rm, DBR {: CHECKPRIV(); XOP2( OP_MOV, R_R(Rm), R_DBR ); :}
-LDC Rm, Rn_BANK {: CHECKPRIV(); XOP2( OP_MOV, R_R(Rm), R_BANK(Rn_BANK) ); :}
+LDC Rm, GBR {: XOP2SS( OP_MOV, R_R(Rm), R_GBR ); :}
+LDC Rm, VBR {: CHECKPRIV(); XOP2SS( OP_MOV, R_R(Rm), R_VBR ); :}
+LDC Rm, SSR {: CHECKPRIV(); XOP2SS( OP_MOV, R_R(Rm), R_SSR ); :}
+LDC Rm, SGR {: CHECKPRIV(); XOP2SS( OP_MOV, R_R(Rm), R_SGR ); :}
+LDC Rm, SPC {: CHECKPRIV(); XOP2SS( OP_MOV, R_R(Rm), R_SPC ); :}
+LDC Rm, DBR {: CHECKPRIV(); XOP2SS( OP_MOV, R_R(Rm), R_DBR ); :}
+LDC Rm, Rn_BANK {: CHECKPRIV(); XOP2SS( OP_MOV, R_R(Rm), R_BANK(Rn_BANK) ); :}
 LDC.L @Rm+, GBR {: 
-	XOP2E( OP_LOADL, R_R(Rm), R_GBR );
-	XOP2I( OP_ADD, 4, R_R(Rm) );
+	XOP2SSE( OP_LOADL, R_R(Rm), R_GBR );
+	XOP2IS( OP_ADD, 4, R_R(Rm) );
 :}
 LDC.L @Rm+, SR {:
 	if( in_delay_slot ) {
@@ -924,225 +962,225 @@ LDC.L @Rm+, SR {:
 	} else {
 	    CHECKPRIV();
 	    RALIGN32( R_R(Rm) );
-	    XOP2E( OP_LOADL, R_R(Rm), REG_TMP0 );
-	    XOP2I( OP_ADD, 4, R_R(Rm) );
-	    XOPCALL1( sh4_write_sr, REG_TMP0 );
+	    XOP2STE( OP_LOADL, R_R(Rm), REG_TMP0 );
+	    XOP2IS( OP_ADD, 4, R_R(Rm) );
+	    XOPCALL1T( sh4_write_sr, REG_TMP0 );
 	}
 	return 2;
 :}
 LDC.L @Rm+, VBR {:  
 	CHECKPRIV();
 	RALIGN32( R_R(Rm) );
-	XOP2E( OP_LOADL, R_R(Rm), R_VBR );
-	XOP2I( OP_ADD, 4, R_R(Rm) );
+	XOP2SSE( OP_LOADL, R_R(Rm), R_VBR );
+	XOP2IS( OP_ADD, 4, R_R(Rm) );
 :}
 LDC.L @Rm+, SSR {:
 	CHECKPRIV();
 	RALIGN32( R_R(Rm) );
-	XOP2E( OP_LOADL, R_R(Rm), R_SSR );
-	XOP2I( OP_ADD, 4, R_R(Rm) );
+	XOP2SSE( OP_LOADL, R_R(Rm), R_SSR );
+	XOP2IS( OP_ADD, 4, R_R(Rm) );
 :}
 LDC.L @Rm+, SGR {:  
 	CHECKPRIV();
 	RALIGN32( R_R(Rm) );
-	XOP2E( OP_LOADL, R_R(Rm), R_SGR );
-	XOP2I( OP_ADD, 4, R_R(Rm) );
+	XOP2SSE( OP_LOADL, R_R(Rm), R_SGR );
+	XOP2IS( OP_ADD, 4, R_R(Rm) );
 :}
 LDC.L @Rm+, SPC {:  
 	CHECKPRIV();
 	RALIGN32( R_R(Rm) );
-	XOP2E( OP_LOADL, R_R(Rm), R_SPC );
-	XOP2I( OP_ADD, 4, R_R(Rm) );
+	XOP2SSE( OP_LOADL, R_R(Rm), R_SPC );
+	XOP2IS( OP_ADD, 4, R_R(Rm) );
 :}
 LDC.L @Rm+, DBR {:  
 	CHECKPRIV();
 	RALIGN32( R_R(Rm) );
-	XOP2E( OP_LOADL, R_R(Rm), R_DBR );
-	XOP2I( OP_ADD, 4, R_R(Rm) );
+	XOP2SSE( OP_LOADL, R_R(Rm), R_DBR );
+	XOP2IS( OP_ADD, 4, R_R(Rm) );
 :}
 LDC.L @Rm+, Rn_BANK {:  
 	CHECKPRIV();
 	RALIGN32( R_R(Rm) );
-	XOP2E( OP_LOADL, R_R(Rm), R_BANK(Rn_BANK) );
-	XOP2I( OP_ADD, 4, R_R(Rm) );
+	XOP2SSE( OP_LOADL, R_R(Rm), R_BANK(Rn_BANK) );
+	XOP2IS( OP_ADD, 4, R_R(Rm) );
 :}
 LDS Rm, FPSCR {:
 	CHECKFPUEN();
-	XOPCALL1( sh4_write_fpscr, R_R(Rm) );
+	XOPCALL1S( sh4_write_fpscr, R_R(Rm) );
 	return 2;
 :}
 LDS Rm, FPUL  {:
 	CHECKFPUEN(); 
-	XOP2( OP_MOV, R_R(Rm), R_FPUL ); 
+	XOP2SS( OP_MOV, R_R(Rm), R_FPUL ); 
 :}
-LDS Rm, MACH  {: XOP2( OP_MOV, R_R(Rm), R_MACH ); :}
-LDS Rm, MACL  {: XOP2( OP_MOV, R_R(Rm), R_MACL ); :}
-LDS Rm, PR    {: XOP2( OP_MOV, R_R(Rm), R_PR ); :}
+LDS Rm, MACH  {: XOP2SS( OP_MOV, R_R(Rm), R_MACH ); :}
+LDS Rm, MACL  {: XOP2SS( OP_MOV, R_R(Rm), R_MACL ); :}
+LDS Rm, PR    {: XOP2SS( OP_MOV, R_R(Rm), R_PR ); :}
 LDS.L @Rm+, FPSCR {:
 	CHECKFPUEN();
 	RALIGN32( R_R(Rm) );
-	XOP2E( OP_LOADL, R_R(Rm), REG_TMP0 );
-	XOP2I( OP_ADD, 4, R_R(Rm) );
-	XOPCALL1( sh4_write_fpscr, REG_TMP0 );
+	XOP2STE( OP_LOADL, R_R(Rm), REG_TMP0 );
+	XOP2IS( OP_ADD, 4, R_R(Rm) );
+	XOPCALL1T( sh4_write_fpscr, REG_TMP0 );
 	return 2;
 :}
 LDS.L @Rm+, FPUL {:
 	CHECKFPUEN();
 	RALIGN32( R_R(Rm) );
-	XOP2E( OP_LOADL, R_R(Rm), R_FPUL );
-	XOP2I( OP_ADD, 4, R_R(Rm) );  
+	XOP2SSE( OP_LOADL, R_R(Rm), R_FPUL );
+	XOP2IS( OP_ADD, 4, R_R(Rm) );  
 :}
 LDS.L @Rm+, MACH {:  
 	RALIGN32( R_R(Rm) );
-	XOP2E( OP_LOADL, R_R(Rm), R_MACH );
-	XOP2I( OP_ADD, 4, R_R(Rm) );  
+	XOP2SSE( OP_LOADL, R_R(Rm), R_MACH );
+	XOP2IS( OP_ADD, 4, R_R(Rm) );  
 :}
 LDS.L @Rm+, MACL {:  
 	RALIGN32( R_R(Rm) );
-	XOP2E( OP_LOADL, R_R(Rm), R_MACL );
-	XOP2I( OP_ADD, 4, R_R(Rm) );  
+	XOP2SSE( OP_LOADL, R_R(Rm), R_MACL );
+	XOP2IS( OP_ADD, 4, R_R(Rm) );  
 :}
 LDS.L @Rm+, PR {:  
 	RALIGN32( R_R(Rm) );
-	XOP2E( OP_LOADL, R_R(Rm), R_PR );
-	XOP2I( OP_ADD, 4, R_R(Rm) );  
+	XOP2SSE( OP_LOADL, R_R(Rm), R_PR );
+	XOP2IS( OP_ADD, 4, R_R(Rm) );  
 :}
 STC SR, Rn {:
 	CHECKPRIV();
-	XOPCALLR( sh4_read_sr, R_R(Rn) );
+	XOPCALLRS( sh4_read_sr, R_R(Rn) );
 :}
-STC GBR, Rn {: XOP2( OP_MOV, R_GBR, R_R(Rn) ); :}
-STC VBR, Rn {: CHECKPRIV(); XOP2( OP_MOV, R_VBR, R_R(Rn) ); :}  
-STC SSR, Rn {: CHECKPRIV(); XOP2( OP_MOV, R_SSR, R_R(Rn) ); :}
-STC SPC, Rn {: CHECKPRIV(); XOP2( OP_MOV, R_SPC, R_R(Rn) ); :}
-STC SGR, Rn {: CHECKPRIV(); XOP2( OP_MOV, R_SGR, R_R(Rn) ); :}
-STC DBR, Rn {: CHECKPRIV(); XOP2( OP_MOV, R_DBR, R_R(Rn) ); :}
-STC Rm_BANK, Rn {: CHECKPRIV(); XOP2( OP_MOV, R_BANK(Rm_BANK), R_R(Rn) ); :}
+STC GBR, Rn {: XOP2SS( OP_MOV, R_GBR, R_R(Rn) ); :}
+STC VBR, Rn {: CHECKPRIV(); XOP2SS( OP_MOV, R_VBR, R_R(Rn) ); :}  
+STC SSR, Rn {: CHECKPRIV(); XOP2SS( OP_MOV, R_SSR, R_R(Rn) ); :}
+STC SPC, Rn {: CHECKPRIV(); XOP2SS( OP_MOV, R_SPC, R_R(Rn) ); :}
+STC SGR, Rn {: CHECKPRIV(); XOP2SS( OP_MOV, R_SGR, R_R(Rn) ); :}
+STC DBR, Rn {: CHECKPRIV(); XOP2SS( OP_MOV, R_DBR, R_R(Rn) ); :}
+STC Rm_BANK, Rn {: CHECKPRIV(); XOP2SS( OP_MOV, R_BANK(Rm_BANK), R_R(Rn) ); :}
 STC.L SR, @-Rn {:
 	CHECKPRIV();
-	XOPCALLR( sh4_read_sr, REG_TMP1 );
+	XOPCALLRT( sh4_read_sr, REG_TMP1 );
 	WALIGN32( R_R(Rn) );
-	XOP2( OP_MOV, R_R(Rn), REG_TMP0 );
-	XOP2I(OP_ADD, -4, REG_TMP0 );
-	XOP2E(OP_STOREL, REG_TMP0, REG_TMP1 );
-	XOP2I(OP_ADD, -4, R_R(Rn) );
+	XOP2ST( OP_MOV, R_R(Rn), REG_TMP0 );
+	XOP2IT(OP_ADD, -4, REG_TMP0 );
+	XOP2TTE(OP_STOREL, REG_TMP0, REG_TMP1 );
+	XOP2IS(OP_ADD, -4, R_R(Rn) );
 :}
 STC.L VBR, @-Rn {:
 	CHECKPRIV();
 	WALIGN32( R_R(Rn) );
-	XOP2( OP_MOV, R_R(Rn), REG_TMP0 );
-	XOP2I(OP_ADD, -4, REG_TMP0 );
-	XOP2E(OP_STOREL, REG_TMP0, R_VBR ); 
-	XOP2I(OP_ADD, -4, R_R(Rn) );
+	XOP2ST( OP_MOV, R_R(Rn), REG_TMP0 );
+	XOP2IT(OP_ADD, -4, REG_TMP0 );
+	XOP2TSE(OP_STOREL, REG_TMP0, R_VBR ); 
+	XOP2IS(OP_ADD, -4, R_R(Rn) );
 :}
 STC.L SSR, @-Rn {:  
 	CHECKPRIV();
 	WALIGN32( R_R(Rn) );
-	XOP2( OP_MOV, R_R(Rn), REG_TMP0 );
-	XOP2I(OP_ADD, -4, REG_TMP0 );
-	XOP2E(OP_STOREL, REG_TMP0, R_SSR ); 
-	XOP2I(OP_ADD, -4, R_R(Rn) );
+	XOP2ST( OP_MOV, R_R(Rn), REG_TMP0 );
+	XOP2IT(OP_ADD, -4, REG_TMP0 );
+	XOP2TSE(OP_STOREL, REG_TMP0, R_SSR ); 
+	XOP2IS(OP_ADD, -4, R_R(Rn) );
 :}
 STC.L SPC, @-Rn {:
 	CHECKPRIV();
 	WALIGN32( R_R(Rn) );
-	XOP2( OP_MOV, R_R(Rn), REG_TMP0 );
-	XOP2I(OP_ADD, -4, REG_TMP0 );
-	XOP2E(OP_STOREL, REG_TMP0, R_SPC ); 
-	XOP2I(OP_ADD, -4, R_R(Rn) );
+	XOP2ST( OP_MOV, R_R(Rn), REG_TMP0 );
+	XOP2IT(OP_ADD, -4, REG_TMP0 );
+	XOP2TSE(OP_STOREL, REG_TMP0, R_SPC ); 
+	XOP2IS(OP_ADD, -4, R_R(Rn) );
 :}
 STC.L SGR, @-Rn {:  
 	CHECKPRIV();
 	WALIGN32( R_R(Rn) );
-	XOP2( OP_MOV, R_R(Rn), REG_TMP0 );
-	XOP2I(OP_ADD, -4, REG_TMP0 );
-	XOP2E(OP_STOREL, REG_TMP0, R_SGR ); 
-	XOP2I(OP_ADD, -4, R_R(Rn) );
+	XOP2ST( OP_MOV, R_R(Rn), REG_TMP0 );
+	XOP2IT(OP_ADD, -4, REG_TMP0 );
+	XOP2TSE(OP_STOREL, REG_TMP0, R_SGR ); 
+	XOP2IS(OP_ADD, -4, R_R(Rn) );
 :}
 STC.L DBR, @-Rn {:  
 	CHECKPRIV();
 	WALIGN32( R_R(Rn) );
-	XOP2( OP_MOV, R_R(Rn), REG_TMP0 );
-	XOP2I(OP_ADD, -4, REG_TMP0 );
-	XOP2E(OP_STOREL, REG_TMP0, R_DBR ); 
-	XOP2I(OP_ADD, -4, R_R(Rn) );
+	XOP2ST( OP_MOV, R_R(Rn), REG_TMP0 );
+	XOP2IT(OP_ADD, -4, REG_TMP0 );
+	XOP2TSE(OP_STOREL, REG_TMP0, R_DBR ); 
+	XOP2IS(OP_ADD, -4, R_R(Rn) );
 :}
 STC.L Rm_BANK, @-Rn {:  
 	CHECKPRIV();
 	WALIGN32( R_R(Rn) );
-	XOP2( OP_MOV, R_R(Rn), REG_TMP0 );
-	XOP2I(OP_ADD, -4, REG_TMP0 );
-	XOP2E(OP_STOREL, REG_TMP0, R_BANK(Rm_BANK) ); 
-	XOP2I(OP_ADD, -4, R_R(Rn) );
+	XOP2ST( OP_MOV, R_R(Rn), REG_TMP0 );
+	XOP2IT(OP_ADD, -4, REG_TMP0 );
+	XOP2TSE(OP_STOREL, REG_TMP0, R_BANK(Rm_BANK) ); 
+	XOP2IS(OP_ADD, -4, R_R(Rn) );
 :}
 STC.L GBR, @-Rn {:
 	WALIGN32( R_R(Rn) );
-	XOP2( OP_MOV, R_R(Rn), REG_TMP0 );
-	XOP2I(OP_ADD, -4, REG_TMP0 );
-	XOP2E(OP_STOREL, REG_TMP0, R_GBR ); 
-	XOP2I(OP_ADD, -4, R_R(Rn) );
+	XOP2ST( OP_MOV, R_R(Rn), REG_TMP0 );
+	XOP2IT(OP_ADD, -4, REG_TMP0 );
+	XOP2TSE(OP_STOREL, REG_TMP0, R_GBR ); 
+	XOP2IS(OP_ADD, -4, R_R(Rn) );
 :}
 STS FPSCR, Rn {: 
 	CHECKFPUEN();
-	XOP2( OP_MOV, R_FPSCR, R_R(Rn) );
+	XOP2SS( OP_MOV, R_FPSCR, R_R(Rn) );
 :}
 STS FPUL, Rn {:  
 	CHECKFPUEN();
-	XOP2( OP_MOV, R_FPUL, R_R(Rn) );
+	XOP2SS( OP_MOV, R_FPUL, R_R(Rn) );
 :}
 STS MACH, Rn {:  
-	XOP2( OP_MOV, R_MACH, R_R(Rn) );
+	XOP2SS( OP_MOV, R_MACH, R_R(Rn) );
 :}
 STS MACL, Rn {:  
-	XOP2( OP_MOV, R_MACL, R_R(Rn) );
+	XOP2SS( OP_MOV, R_MACL, R_R(Rn) );
 :}
 STS PR, Rn {:  
-	XOP2( OP_MOV, R_PR, R_R(Rn) );
+	XOP2SS( OP_MOV, R_PR, R_R(Rn) );
 :}
 STS.L FPSCR, @-Rn {:  
 	CHECKFPUEN();
 	WALIGN32( R_R(Rn) );
-	XOP2( OP_MOV, R_R(Rn), REG_TMP0 );
-	XOP2I(OP_ADD, -4, REG_TMP0 );
-	XOP2E(OP_STOREL, REG_TMP0, R_FPSCR );
-	XOP2I(OP_ADD, -4, R_R(Rn) );
+	XOP2ST( OP_MOV, R_R(Rn), REG_TMP0 );
+	XOP2IT(OP_ADD, -4, REG_TMP0 );
+	XOP2TSE(OP_STOREL, REG_TMP0, R_FPSCR );
+	XOP2IS(OP_ADD, -4, R_R(Rn) );
 :}
 STS.L FPUL, @-Rn {:  
 	CHECKFPUEN();
 	WALIGN32( R_R(Rn) );
-	XOP2( OP_MOV, R_R(Rn), REG_TMP0 );
-	XOP2I(OP_ADD, -4, REG_TMP0 );
-	XOP2E(OP_STOREL, REG_TMP0, R_FPUL );
-	XOP2I(OP_ADD, -4, R_R(Rn) );
+	XOP2ST( OP_MOV, R_R(Rn), REG_TMP0 );
+	XOP2IT(OP_ADD, -4, REG_TMP0 );
+	XOP2TSE(OP_STOREL, REG_TMP0, R_FPUL );
+	XOP2IS(OP_ADD, -4, R_R(Rn) );
 :}
 STS.L MACH, @-Rn {:  
 	WALIGN32( R_R(Rn) );
-	XOP2( OP_MOV, R_R(Rn), REG_TMP0 );
-	XOP2I(OP_ADD, -4, REG_TMP0 );
-	XOP2E(OP_STOREL, REG_TMP0, R_MACH );
-	XOP2I(OP_ADD, -4, R_R(Rn) );
+	XOP2ST( OP_MOV, R_R(Rn), REG_TMP0 );
+	XOP2IT(OP_ADD, -4, REG_TMP0 );
+	XOP2TSE(OP_STOREL, REG_TMP0, R_MACH );
+	XOP2IS(OP_ADD, -4, R_R(Rn) );
 :}
 STS.L MACL, @-Rn {:  
 	WALIGN32( R_R(Rn) );
-	XOP2( OP_MOV, R_R(Rn), REG_TMP0 );
-	XOP2I(OP_ADD, -4, REG_TMP0 );
-	XOP2E(OP_STOREL, REG_TMP0, R_MACL );
-	XOP2I(OP_ADD, -4, R_R(Rn) );
+	XOP2ST( OP_MOV, R_R(Rn), REG_TMP0 );
+	XOP2IT(OP_ADD, -4, REG_TMP0 );
+	XOP2TSE(OP_STOREL, REG_TMP0, R_MACL );
+	XOP2IS(OP_ADD, -4, R_R(Rn) );
 :}
 STS.L PR, @-Rn {:  
 	WALIGN32( R_R(Rn) );
-	XOP2( OP_MOV, R_R(Rn), REG_TMP0 );
-	XOP2I(OP_ADD, -4, REG_TMP0 );
-	XOP2E(OP_STOREL, REG_TMP0, R_PR );
-	XOP2I(OP_ADD, -4, R_R(Rn) );
+	XOP2ST( OP_MOV, R_R(Rn), REG_TMP0 );
+	XOP2IT(OP_ADD, -4, REG_TMP0 );
+	XOP2TSE(OP_STOREL, REG_TMP0, R_PR );
+	XOP2IS(OP_ADD, -4, R_R(Rn) );
 :}
 
 BF disp {:
 	if( in_delay_slot ) {
 	    SLOTILLEGAL();
 	} else {
-	    XOP2I( OP_ADD, (pc+2 - xbb->pc_begin) * sh4_cpu_period, R_SLICE_CYCLE );
-	    XOP2I( OP_CMP, 0, R_T );
+	    XOP2IS( OP_ADD, (pc+2 - xbb->pc_begin) * sh4_cpu_period, R_SLICE_CYCLE );
+	    XOP2IS( OP_CMP, 0, R_T );
 	    XOP2IICC( OP_BRCOND, CC_EQ, disp+pc+4-xbb->pc_begin, pc+2-xbb->pc_begin );
 	}
 	return 2;
@@ -1153,16 +1191,16 @@ BF/S disp {:
 	    return 2;
 	} else {
 	    if( UNTRANSLATABLE(pc+2 ) ) {
-	        XOP2I( OP_CMP, 0, R_T );
+	        XOP2IS( OP_CMP, 0, R_T );
                 XOP2IICC( OP_BRCONDDEL, CC_EQ, disp+pc+4-xbb->pc_begin, pc+4-xbb->pc_begin );
 	    	EMU_DELAY_SLOT();
 	    	return 2;
 	    } else {
-	    	XOP2( OP_MOV, R_T, REG_TMP2 );
+	    	XOP2ST( OP_MOV, R_T, REG_TMP2 );
 	        sh4_decode_instruction( xbb, pc+2, TRUE );
 	        if( !XOP_IS_TERMINATOR( xbb->ir_ptr->prev ) ) {	        
-	            XOP2I( OP_ADD, (pc+4 - xbb->pc_begin) * sh4_cpu_period, R_SLICE_CYCLE );
-	            XOP2I( OP_CMP, 0, REG_TMP2 );
+	            XOP2IS( OP_ADD, (pc+4 - xbb->pc_begin) * sh4_cpu_period, R_SLICE_CYCLE );
+	            XOP2IT( OP_CMP, 0, REG_TMP2 );
 	            XOP2IICC( OP_BRCOND, CC_EQ, disp+pc+4-xbb->pc_begin, pc+4-xbb->pc_begin );
 	        }
 	        return 4;
@@ -1173,8 +1211,8 @@ BT disp {:
 	if( in_delay_slot ) {
 	    SLOTILLEGAL();
 	} else {
-	    XOP2I( OP_ADD, (pc+2 - xbb->pc_begin) * sh4_cpu_period, R_SLICE_CYCLE );
-	    XOP2I( OP_CMP, 1, R_T );
+	    XOP2IS( OP_ADD, (pc+2 - xbb->pc_begin) * sh4_cpu_period, R_SLICE_CYCLE );
+	    XOP2IS( OP_CMP, 1, R_T );
 	    XOP2IICC( OP_BRCOND, CC_EQ, disp+pc+4-xbb->pc_begin, pc+2-xbb->pc_begin );
 	}
 	return 2;
@@ -1185,16 +1223,16 @@ BT/S disp {:
 	    return 2;
 	} else {
 	    if( UNTRANSLATABLE(pc+2 ) ) {
-	        XOP2I( OP_CMP, 1, R_T );
+	        XOP2IS( OP_CMP, 1, R_T );
 	        XOP2IICC( OP_BRCONDDEL, CC_EQ, disp+pc+4-xbb->pc_begin, pc+2-xbb->pc_begin );
 	    	EMU_DELAY_SLOT();
 	    	return 2;
 	    } else {
-	    	XOP2( OP_MOV, R_T, REG_TMP2 );
+	    	XOP2ST( OP_MOV, R_T, REG_TMP2 );
 	        sh4_decode_instruction( xbb, pc+2, TRUE );
 	        if( !XOP_IS_TERMINATOR( xbb->ir_ptr->prev ) ) {	        
-	            XOP2I( OP_ADD, (pc+4 - xbb->pc_begin) * sh4_cpu_period, R_SLICE_CYCLE );
-	            XOP2I( OP_CMP, 1, REG_TMP2 );
+	            XOP2IS( OP_ADD, (pc+4 - xbb->pc_begin) * sh4_cpu_period, R_SLICE_CYCLE );
+	            XOP2IT( OP_CMP, 1, REG_TMP2 );
 	            XOP2IICC( OP_BRCOND, CC_EQ, disp+pc+4-xbb->pc_begin, pc+4-xbb->pc_begin );
 	        }
 	        return 4;
@@ -1207,14 +1245,14 @@ BRA disp {:
 	    return 2;
 	} else {
 	    if( UNTRANSLATABLE(pc+2) ) {
-	        XOP2( OP_MOV, R_PC, R_NEW_PC );
-	        XOP2I( OP_ADD, pc+disp+4-xbb->pc_begin, R_NEW_PC );
+	        XOP2SS( OP_MOV, R_PC, R_NEW_PC );
+	        XOP2IS( OP_ADD, pc+disp+4-xbb->pc_begin, R_NEW_PC );
 	        EMU_DELAY_SLOT();
 	        return 2;
 	    } else {
 	        sh4_decode_instruction( xbb, pc+2, TRUE );
 	        if( xbb->ir_ptr->prev == NULL || !XOP_IS_TERMINATOR( xbb->ir_ptr->prev ) ) {
-		    XOP2I( OP_ADD, (pc+4 - xbb->pc_begin) * sh4_cpu_period, R_SLICE_CYCLE );
+		    XOP2IS( OP_ADD, (pc+4 - xbb->pc_begin) * sh4_cpu_period, R_SLICE_CYCLE );
 	            XOP1I( OP_BRREL, pc+disp+4-xbb->pc_begin );
 	        }
 	        return 4;
@@ -1226,18 +1264,18 @@ BRAF Rn {:
 	    SLOTILLEGAL();
 	    return 2;
 	} else {
-	    XOP2( OP_MOV, R_R(Rn), REG_TMP2 );
-	    XOP2( OP_ADD, R_PC, REG_TMP2 );
-	    XOP2I( OP_ADD, pc - xbb->pc_begin + 4, REG_TMP2 );
+	    XOP2ST( OP_MOV, R_R(Rn), REG_TMP2 );
+	    XOP2ST( OP_ADD, R_PC, REG_TMP2 );
+	    XOP2IT( OP_ADD, pc - xbb->pc_begin + 4, REG_TMP2 );
 	    if( UNTRANSLATABLE(pc+2) ) {
-	        XOP2( OP_MOV, REG_TMP2, R_NEW_PC );
+	        XOP2TS( OP_MOV, REG_TMP2, R_NEW_PC );
 	        EMU_DELAY_SLOT();
 	        return 2;
 	    } else {
 	        sh4_decode_instruction( xbb, pc + 2, TRUE );
 	        if( !XOP_IS_TERMINATOR( xbb->ir_ptr->prev ) ) {	        
-		    XOP2I( OP_ADD, (pc+4 - xbb->pc_begin) * sh4_cpu_period, R_SLICE_CYCLE );
-	            XOP1( OP_BR, REG_TMP2 );
+		    XOP2IS( OP_ADD, (pc+4 - xbb->pc_begin) * sh4_cpu_period, R_SLICE_CYCLE );
+	            XOP1T( OP_BR, REG_TMP2 );
 	        }
 	        return 4;
 	    }
@@ -1248,17 +1286,17 @@ BSR disp {:
 	    SLOTILLEGAL();
 	    return 2;
 	} else {
-	    XOP2( OP_MOV, R_PC, R_PR );
-	    XOP2I( OP_ADD, pc - xbb->pc_begin + 4, R_PR );
+	    XOP2SS( OP_MOV, R_PC, R_PR );
+	    XOP2IS( OP_ADD, pc - xbb->pc_begin + 4, R_PR );
 	    if( UNTRANSLATABLE(pc+2) ) {
-	        XOP2( OP_MOV, R_PC, R_NEW_PC );
-	        XOP2I( OP_ADD, pc+disp+4-xbb->pc_begin, R_NEW_PC );
+	        XOP2SS( OP_MOV, R_PC, R_NEW_PC );
+	        XOP2IS( OP_ADD, pc+disp+4-xbb->pc_begin, R_NEW_PC );
 	        EMU_DELAY_SLOT();
 	        return 2;
 	    } else {
 	        sh4_decode_instruction( xbb, pc+2, TRUE );
 	        if( !XOP_IS_TERMINATOR( xbb->ir_ptr->prev ) ) {
-		    XOP2I( OP_ADD, (pc+4 - xbb->pc_begin) * sh4_cpu_period, R_SLICE_CYCLE );
+		    XOP2IS( OP_ADD, (pc+4 - xbb->pc_begin) * sh4_cpu_period, R_SLICE_CYCLE );
 	            XOP1I( OP_BRREL, pc+disp+4-xbb->pc_begin );
 	        }
 	        return 4;
@@ -1270,20 +1308,20 @@ BSRF Rn {:
 	    SLOTILLEGAL();
 	    return 2;
 	} else {
-	    XOP2( OP_MOV, R_PC, R_PR );
-	    XOP2I( OP_ADD, pc - xbb->pc_begin + 4, R_PR );
-	    XOP2( OP_MOV, R_R(Rn), REG_TMP2 );
-	    XOP2( OP_ADD, R_PC, REG_TMP2 );
-	    XOP2I( OP_ADD, pc - xbb->pc_begin + 4, REG_TMP2 );
+	    XOP2SS( OP_MOV, R_PC, R_PR );
+	    XOP2IS( OP_ADD, pc - xbb->pc_begin + 4, R_PR );
+	    XOP2ST( OP_MOV, R_R(Rn), REG_TMP2 );
+	    XOP2ST( OP_ADD, R_PC, REG_TMP2 );
+	    XOP2IT( OP_ADD, pc - xbb->pc_begin + 4, REG_TMP2 );
 	    if( UNTRANSLATABLE(pc+2) ) {
-	        XOP2( OP_MOV, REG_TMP2, R_NEW_PC );
+	        XOP2TS( OP_MOV, REG_TMP2, R_NEW_PC );
 	        EMU_DELAY_SLOT();
 	        return 2;
 	    } else {
 	        sh4_decode_instruction( xbb, pc+2, TRUE );
 	        if( !XOP_IS_TERMINATOR( xbb->ir_ptr->prev ) ) {
-		    XOP2I( OP_ADD, (pc+4 - xbb->pc_begin) * sh4_cpu_period, R_SLICE_CYCLE );
-	            XOP1( OP_BR, REG_TMP2 );
+		    XOP2IS( OP_ADD, (pc+4 - xbb->pc_begin) * sh4_cpu_period, R_SLICE_CYCLE );
+	            XOP1T( OP_BR, REG_TMP2 );
 	        }
 	        return 4;
 	    }
@@ -1295,15 +1333,15 @@ JMP @Rn {:
 	    return 2;
 	} else {
 	    if( UNTRANSLATABLE(pc+2) ) {
-	        XOP2( OP_MOV, R_R(Rn), R_NEW_PC );
+	        XOP2SS( OP_MOV, R_R(Rn), R_NEW_PC );
 	        EMU_DELAY_SLOT();
 	        return 2;
 	    } else {
-	        XOP2( OP_MOV, R_R(Rn), REG_TMP2 );
+	        XOP2ST( OP_MOV, R_R(Rn), REG_TMP2 );
 	        sh4_decode_instruction( xbb, pc+2, TRUE );
 	        if( !XOP_IS_TERMINATOR( xbb->ir_ptr->prev ) ) {
-		    XOP2I( OP_ADD, (pc+4 - xbb->pc_begin) * sh4_cpu_period, R_SLICE_CYCLE );
-	            XOP1( OP_BR, REG_TMP2 );
+		    XOP2IS( OP_ADD, (pc+4 - xbb->pc_begin) * sh4_cpu_period, R_SLICE_CYCLE );
+	            XOP1T( OP_BR, REG_TMP2 );
 	        }
 	        return 4;
 	    }
@@ -1314,18 +1352,18 @@ JSR @Rn {:
 	    SLOTILLEGAL();
 	    return 2;
 	} else {
-	    XOP2( OP_MOV, R_PC, R_PR );
-	    XOP2I( OP_ADD, pc - xbb->pc_begin + 4, R_PR );
+	    XOP2SS( OP_MOV, R_PC, R_PR );
+	    XOP2IS( OP_ADD, pc - xbb->pc_begin + 4, R_PR );
 	    if( UNTRANSLATABLE(pc+2) ) {
-	        XOP2( OP_MOV, R_R(Rn), R_NEW_PC );
+	        XOP2SS( OP_MOV, R_R(Rn), R_NEW_PC );
 	        EMU_DELAY_SLOT();
 	        return 2;
 	    } else { 
-	        XOP2( OP_MOV, R_R(Rn), REG_TMP2 );
+	        XOP2ST( OP_MOV, R_R(Rn), REG_TMP2 );
 	        sh4_decode_instruction( xbb, pc+2, TRUE );
 	        if( !XOP_IS_TERMINATOR( xbb->ir_ptr->prev ) ) {
-		    XOP2I( OP_ADD, (pc+4 - xbb->pc_begin) * sh4_cpu_period, R_SLICE_CYCLE );
-	            XOP1( OP_BR, REG_TMP2 );
+		    XOP2IS( OP_ADD, (pc+4 - xbb->pc_begin) * sh4_cpu_period, R_SLICE_CYCLE );
+	            XOP1T( OP_BR, REG_TMP2 );
 	        }
 	        return 4;
 	    }
@@ -1338,16 +1376,16 @@ RTE {:
 	    return 2;
 	} else {
 	    if( UNTRANSLATABLE(pc+2) ) {
-	        XOP2( OP_MOV, R_SPC, R_NEW_PC );
+	        XOP2SS( OP_MOV, R_SPC, R_NEW_PC );
 	        EMU_DELAY_SLOT();
 	        return 2;
 	    } else {
-	        XOP2( OP_MOV, R_SPC, REG_TMP2 );
-	        XOPCALL1( sh4_write_sr, R_SSR );
+	        XOP2ST( OP_MOV, R_SPC, REG_TMP2 );
+	        XOPCALL1S( sh4_write_sr, R_SSR );
 	        sh4_decode_instruction( xbb, pc+2, TRUE );
 	        if( !XOP_IS_TERMINATOR( xbb->ir_ptr->prev ) ) {
-		    XOP2I( OP_ADD, (pc+4 - xbb->pc_begin) * sh4_cpu_period, R_SLICE_CYCLE );
-	            XOP1( OP_BR, REG_TMP2 );
+		    XOP2IS( OP_ADD, (pc+4 - xbb->pc_begin) * sh4_cpu_period, R_SLICE_CYCLE );
+	            XOP1T( OP_BR, REG_TMP2 );
 	        }
 	        return 4;
 	    }
@@ -1359,15 +1397,15 @@ RTS {:
 	    return 2;
 	} else {
 	    if( UNTRANSLATABLE(pc+2) ) {
-	        XOP2( OP_MOV, R_PR, R_NEW_PC );
+	        XOP2SS( OP_MOV, R_PR, R_NEW_PC );
 	        EMU_DELAY_SLOT();
 	        return 2;
 	    } else {
-	        XOP2( OP_MOV, R_PR, REG_TMP2 );
+	        XOP2ST( OP_MOV, R_PR, REG_TMP2 );
 	        sh4_decode_instruction( xbb, pc+2, TRUE );
 	        if( !XOP_IS_TERMINATOR( xbb->ir_ptr->prev ) ) {
-		    XOP2I( OP_ADD, (pc+4 - xbb->pc_begin) * sh4_cpu_period, R_SLICE_CYCLE );
-	            XOP1( OP_BR, REG_TMP2 );
+		    XOP2IS( OP_ADD, (pc+4 - xbb->pc_begin) * sh4_cpu_period, R_SLICE_CYCLE );
+	            XOP1T( OP_BR, REG_TMP2 );
 	        }
 	        return 4;
 	    }

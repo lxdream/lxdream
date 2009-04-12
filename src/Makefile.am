@@ -83,10 +83,10 @@ test_testsh4x86_SOURCES = test/testsh4x86.c x86dasm/x86dasm.c \
 	xlat/xltcache.h mem.c util.c 
 
 test_testsh4xir_LDADD = @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@
-test_testsh4xir_SOURCES = test/testsh4xir.c xlat/xir.c xlat/xir.h sh4/sh4xir.c xlat/x86/x86target.c xlat/x86/x86gen.c
+test_testsh4xir_SOURCES = test/testsh4xir.c xlat/xir.c xlat/xir.h sh4/sh4xir.c xlat/x86/x86target.c xlat/x86/x86gen.c xlat/regalloc.c
 
 test_testxir_LDADD = @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@
-test_testxir_SOURCES = test/testxir.c xlat/xir.c xlat/xir.h xlat/xirsup.c xlat/xiropt.c xlat/xiropt.h
+test_testxir_SOURCES = test/testxir.c xlat/xir.c xlat/xir.h xlat/xirsup.c xlat/xiropt.h
 	
 check_PROGRAMS += test/testsh4x86 test/testsh4xir test/testxir
 endif
