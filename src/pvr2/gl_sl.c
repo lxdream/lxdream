@@ -31,7 +31,7 @@ gboolean glsl_is_supported()
     isGLExtensionSupported("GL_ARB_shading_language_100");
 }
 
-#ifdef GL_ARB_shader_objects
+#ifdef HAVE_OPENGL_SHADER_ARB
 static GLhandleARB glsl_program = 0, glsl_vert_shader = 0, glsl_frag_shader = 0;
 
 void glsl_print_error( char *msg, GLhandleARB obj )
