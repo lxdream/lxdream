@@ -39,7 +39,7 @@ void test_shuffle()
     XOP2IT( OP_SHUFFLE, 0x1234, REG_TMP1 );
     XOP2IT( OP_SHUFFLE, 0x1111, REG_TMP2 );
     XOP2IT( OP_SHUFFLE, 0x0123, REG_TMP1 );
-    XOP1I( OP_BR, 0x8C001000 );
+    XOP0( OP_EXIT );
     (bb.ir_ptr-1)->next = NULL;
     bb.ir_end = bb.ir_ptr-1;
     
