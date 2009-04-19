@@ -52,17 +52,58 @@ struct xlat_target_machine x86_target_machine = { "x86", x86_get_register_name,
 static gboolean x86_target_is_legal( xir_opcode_t op, xir_operand_form_t arg0, xir_operand_form_t arg1 )
 {
     switch( op ) {
-    case OP_DEC: case OP_ST: case OP_LD:  
-    case OP_SHUFFLE:
-        return arg0 == IMMEDIATE_OPERAND && arg1 == DEST_OPERAND;
-    }
-    if( arg0 == DEST_OPERAND ) {
-        if( arg1 == DEST_OPERAND ) {
-            return TRUE;
-        } else if( arg1 == SOURCE_OPERAND || arg1 == TEMP_OPERAND ) {
-        }
-    }
+    case OP_DEC: case OP_ST: case OP_LD: case OP_RESTFLAGS: case OP_SAVEFLAGS:
+        return arg0 == DEST_OPERAND;
+        
+    /* XLAT, LOADPTR* need real registers  */
+    case OP_LOADPTRL: case OP_LOADPTRQ:
+    case OP_XLAT: case OP_CALLLUT:
+        return (arg0 == IMMEDIATE_OPERAND || arg0 == DEST_OPERAND) &&
+               arg1 == DEST_OPERAND;
+        
+    /* Most SSE instructions plus MOVSX, MUL, and a few others must have a 
+     * register target operand
+     */
+    case OP_MOVSX8: case OP_MOVSX16: case OP_MOVSX32: case OP_MOVZX8:
+    case OP_MOVZX16: case OP_MOVZX32: case OP_MUL: case OP_MULS: case OP_MULQ:
+    case OP_MULQS: case OP_SHUFFLE:
+    case OP_ABSD: case OP_ABSF: case OP_ABSV: case OP_ADDD: case OP_ADDF: 
+    case OP_ADDV: case OP_CMPD: case OP_DIVD: case OP_DIVF: case OP_DIVV:
+    case OP_MULD: case OP_MULF: case OP_MULV: case OP_NEGD: case OP_NEGF:
+    case OP_NEGV: case OP_SQRTD: case OP_SQRTF: case OP_SQRTV: 
+    case OP_RSQRTD: case OP_RSQRTF: case OP_RSQRTV: case OP_SUBD: case OP_SUBF:
+    case OP_SUBV: case OP_DTOF: case OP_DTOI: case OP_FTOD: case OP_FTOI:
+    case OP_ITOD: case OP_ITOF: case OP_SINCOSF: 
+        return arg1 == DEST_OPERAND;
+        
+    /* MOV and most ALU ops - there can be at most one memory operand, but
+     * otherwise anything goes
+     */
+    case OP_MOV: case OP_MOVQ: case OP_MOVV: case OP_MOVM:
+    case OP_ADD: case OP_ADDS: case OP_ADDC: case OP_ADDCS:
+    case OP_AND: case OP_ANDS: case OP_CMP: case OP_DIV: case OP_DIVS:
+    case OP_NEG: case OP_NEGS: case OP_NOT: case OP_NOTS: case OP_OR:
+    case OP_ORS: case OP_RCL: case OP_RCR: case OP_ROL: case OP_ROLS:
+    case OP_ROR: case OP_RORS: case OP_SAR: case OP_SARS: case OP_SDIV:
+    case OP_SDIVS: case OP_SLL: case OP_SLLS: case OP_SLR: case OP_SLRS:
+    case OP_SUB: case OP_SUBS: case OP_SUBB: case OP_SUBBS: case OP_TST:
+    case OP_XOR: case OP_XORS: case OP_RAISEME: case OP_RAISEMNE:
+        return arg0 == IMMEDIATE_OPERAND || arg0 == DEST_OPERAND ||
+               arg1 == DEST_OPERAND;
     
+    /* Finally operations we're going to lower anyway can have arbitrary args */
+    case OP_DOTPRODV: case OP_MATMULV:
+    case OP_LOADB: case OP_LOADBFW: case OP_LOADW: case OP_LOADL: 
+    case OP_LOADQ: case OP_STOREB: case OP_STOREW: case OP_STOREL:
+    case OP_STOREQ: case OP_STORELCA: case OP_CALL1: case OP_CALLR:
+    case OP_CALL0: case OP_ADDQSAT32: case OP_ADDQSAT48: case OP_CMPSTR:
+    case OP_DIV1: case OP_SHAD: case OP_SHLD: case OP_OCBI: case OP_OCBP:
+    case OP_OCBWB: case OP_PREF: case OP_ENTER: case OP_EXIT: 
+    case OP_BARRIER: case OP_NOP:
+        return TRUE;
+    default:
+        return FALSE;
+    }
 }
 
 

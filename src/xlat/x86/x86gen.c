@@ -431,11 +431,6 @@ uint32_t x86_target_codegen( target_data_t td, xir_op_t begin, xir_op_t end )
         case OP_ITOF:
         case OP_FTOI:
             
-        case OP_BRCOND:
-        case OP_BRREL:
-        case OP_BR:
-        case OP_BRCONDDEL:
-
         case OP_CALL0: 
             if( XOP_IS_IMM(it,0) ) { 
                 CALL_imm32( XOP_INT(it,0) );

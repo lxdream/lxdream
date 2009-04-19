@@ -34,6 +34,7 @@ const int XIR_OPERAND_SIZE[] = { 4, 8, 4, 8, 16, 64, (sizeof(void *)), 0 };
 
 const struct xir_opcode_entry XIR_OPCODE_TABLE[] = { 
         { "NOP", OPM_NO },
+        { "EXIT", OPM_NO | OPM_TERM },
         { "BARRIER", OPM_NO | OPM_CLB },
         { "DEC", OPM_RW_TW },
         { "LD", OPM_R | OPM_TW },
@@ -41,8 +42,6 @@ const struct xir_opcode_entry XIR_OPCODE_TABLE[] = {
         { "RESTFLAGS", OPM_R | OPM_TW },
         { "SAVEFLAGS", OPM_W | OPM_TR },
         { "ENTER", OPM_R },
-        { "BRREL", OPM_R | OPM_TERM },
-        { "BR", OPM_R | OPM_TERM },
         { "CALL0", OPM_R | OPM_CLB },
         { "OCBI", OPM_R_EXC },
         { "OCBP", OPM_R_EXC },
@@ -69,6 +68,10 @@ const struct xir_opcode_entry XIR_OPCODE_TABLE[] = {
         { "CMP", OPM_R_R_TW },
         { "DIV", OPM_R_RW },
         { "DIVS", OPM_R_RW_TW },
+        { "MAX", OPM_R_RW },
+        { "MAXQ", OPM_R_RW },
+        { "MIN", OPM_R_RW },
+        { "MINQ", OPM_R_RW },
         { "MUL", OPM_R_RW },
         { "MULS", OPM_R_RW_TW },
         { "MULQ", OPM_R_RW|OPM_Q_Q },
@@ -113,6 +116,12 @@ const struct xir_opcode_entry XIR_OPCODE_TABLE[] = {
         { "DIVD", OPM_DR_DRW },
         { "DIVF", OPM_FR_FRW },
         { "DIVV", OPM_VR_VRW },
+        { "MAXD", OPM_DR_DRW },
+        { "MAXF", OPM_FR_FRW },
+        { "MAXV", OPM_VR_VRW },
+        { "MIND", OPM_DR_DRW },
+        { "MINF", OPM_FR_FRW },
+        { "MINV", OPM_VR_VRW },
         { "MULD", OPM_DR_DRW },
         { "MULF", OPM_FR_FRW },
         { "MULV", OPM_VR_VRW },
@@ -159,8 +168,6 @@ const struct xir_opcode_entry XIR_OPCODE_TABLE[] = {
         { "STORE.Q", OPM_R_R_EXC|OPM_I_Q },
         { "STORE.LCA", OPM_R_R_EXC },
 
-        { "BRCOND", OPM_R_R|OPM_TR | OPM_TERM },
-        { "BRCONDDEL", OPM_R_R|OPM_TR },
         { "RAISE/ME", OPM_R_R | OPM_EXC },
         { "RAISE/MNE", OPM_R_R | OPM_EXC },
         
@@ -168,6 +175,7 @@ const struct xir_opcode_entry XIR_OPCODE_TABLE[] = {
         { "CALL/LUT", OPM_R_R | OPM_EXC },
         { "CALL1", OPM_R_R | OPM_CLB },
         { "CALLR", OPM_R_W | OPM_CLB },
+        { "LOADPTRW", OPM_R_W | 0x060 },
         { "LOADPTRL", OPM_R_W | 0x060 },
         { "LOADPTRQ", OPM_R_W | 0x160 },
         { "XLAT", OPM_R_RW | 0x600 }, /* Xlat Rm, Rn - Read native [Rm+Rn] and store in Rn */ 
@@ -189,6 +197,8 @@ void xir_clear_basic_block( xir_basic_block_t xbb )
     xir_alloc_temp_reg( xbb, XTY_LONG, -1 );
     xir_alloc_temp_reg( xbb, XTY_QUAD, -1 );
     xir_alloc_temp_reg( xbb, XTY_QUAD, -1 );
+    xir_alloc_temp_reg( xbb, XTY_FLOAT, -1 );
+    xir_alloc_temp_reg( xbb, XTY_DOUBLE, -1 );
 }
 
 uint32_t xir_alloc_temp_reg( xir_basic_block_t xbb, xir_type_t type, int home )
