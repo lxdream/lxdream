@@ -58,6 +58,8 @@
 #define REG_TMP2 2
 #define REG_TMPQ0 3
 #define REG_TMPQ1 4
+#define REG_TMPF0 5
+#define REG_TMPD0 6
 
 
 /**
@@ -120,6 +122,7 @@ typedef enum {
 typedef enum {
     // No operands
     OP_NOP     = 0,
+    OP_EXIT,
     OP_BARRIER, // Direction to register allocator - Ensure all state is committed
 
     // One operand
@@ -129,8 +132,6 @@ typedef enum {
     OP_RESTFLAGS,    /* Restore flags from register */
     OP_SAVEFLAGS,    /* Save flags into register */
     OP_ENTER,     // Block start - immediate operand is a bitmask of target registers used
-    OP_BRREL,
-    OP_BR,
     OP_CALL0,  // Call function with no arguments or return value
     OP_OCBI,
     OP_OCBP,
@@ -159,6 +160,10 @@ typedef enum {
     OP_CMP,
     OP_DIV,    /* Unsigned division */
     OP_DIVS,   /* Unsigned divison and update flags */
+    OP_MAX,
+    OP_MAXQ,
+    OP_MIN,
+    OP_MINQ,
     OP_MUL,
     OP_MULS,
     OP_MULQ,
@@ -204,6 +209,12 @@ typedef enum {
     OP_DIVD,
     OP_DIVF,
     OP_DIVV,
+    OP_MAXD,
+    OP_MAXF,
+    OP_MAXV,
+    OP_MIND,
+    OP_MINF,
+    OP_MINV,
     OP_MULD,
     OP_MULF,
     OP_MULV,
@@ -241,8 +252,6 @@ typedef enum {
     OP_STOREQ,
     OP_STORELCA,
     
-    OP_BRCOND,
-    OP_BRCONDDEL, // Delayed branch - sets newpc rather than pc (and is not a terminator)
     OP_RAISEME, // imm mask in, reg in - branch to exception if (reg & mask) == 0
     OP_RAISEMNE, // imm mask in, reg in - branch to exception if (reg & mask) != 0
 
@@ -251,6 +260,7 @@ typedef enum {
     OP_CALLLUT, // Call indirect through base pointer (reg) + displacement
     OP_CALL1,  // Call function with single argument and no return value
     OP_CALLR,  // Call function with no arguments and a single return value
+    OP_LOADPTRW, // Load 16-bit word from pointer and sign extend to 32-bits
     OP_LOADPTRL,
     OP_LOADPTRQ, 
     OP_XLAT,
@@ -278,14 +288,13 @@ typedef enum {
      * ADDSAT48 Rm, Rn - 64-bit Add Rm to Rn, saturating to 48-bits if S==1 (per SH4 MAC.L)
      * 
      * if R_S == 0 ->
-     *     Rn += Rm
+     *     ADDQ Rm, Rn
      * else ->
-     *     if( Rm + Rn > 0x00007FFFFFFFFFFF ) ->
-     *          Rn = 0x00007FFFFFFFFFFF
-     *     else if( Rm + Rn < 0x0000800000000000 ) ->
-     *          Rn = 0x0000800000000000
+     *     ADDQ Rm, Rn
+     *     if overflow ->
      *     else ->
-     *          Rn += Rm
+     *         MINQ 0x00007FFFFFFFFFFF, Rn 
+     *         MAXQ 0xFFFF800000000000, Rn
      */
     OP_ADDQSAT48,
     
@@ -545,6 +554,7 @@ xir_op_t xir_append_ptr_op2( xir_basic_block_t xbb, int op, void *arg0, int arg1
 #define XOP1T( op, arg0 )       xir_append_op2(xbb, op, TEMP_OPERAND, arg0, NO_OPERAND, 0)
 #define XOP1TCC( op, cc, arg0 ) xir_append_op2cc(xbb, op, cc, TEMP_OPERAND, arg0, NO_OPERAND, 0)
 #define XOP2IS( op, arg0, arg1 ) xir_append_op2(xbb, op, IMMEDIATE_OPERAND, arg0, SOURCE_OPERAND, arg1)
+#define XOP2ISCC( op, cc, arg0, arg1 ) xir_append_op2cc(xbb, op, cc, IMMEDIATE_OPERAND, arg0, SOURCE_OPERAND, arg1)
 #define XOP2IT( op, arg0, arg1 ) xir_append_op2(xbb, op, IMMEDIATE_OPERAND, arg0, TEMP_OPERAND, arg1)
 #define XOP2II( op, arg0, arg1 ) xir_append_op2(xbb, op, IMMEDIATE_OPERAND, arg0, IMMEDIATE_OPERAND, arg1)
 #define XOP2IICC( op, cc, arg0, arg1 ) xir_append_op2cc(xbb, op, cc, IMMEDIATE_OPERAND, arg0, IMMEDIATE_OPERAND, arg1)

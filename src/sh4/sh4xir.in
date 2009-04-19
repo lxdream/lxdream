@@ -139,7 +139,7 @@ static inline xir_op_t write_exc( xir_basic_block_t xbb, sh4addr_t pc, int exc_c
 	    XOP2IS( OP_ADD, pc - xbb->pc_begin, R_SPC );
 	}
 	XOP2IS( OP_ADD, (pc+2 - xbb->pc_begin) * sh4_cpu_period, R_SLICE_CYCLE );
-	XOP1S( OP_BR, R_SPC )->next = NULL;
+	XOP0( OP_EXIT )->next = NULL;
 	start->prev = NULL;
 	return start;
 }
@@ -160,7 +160,7 @@ static xir_op_t xir_append_op2_exc( xir_basic_block_t xbb, int op, int arg0form,
         XOP2IS( OP_ADD, pc - xbb->pc_begin, R_SPC );
     }
     XOP2IS( OP_ADD, (pc+2 - xbb->pc_begin) * sh4_cpu_period, R_SLICE_CYCLE );
-    XOP1S( OP_BR, R_SPC )->next = NULL;
+    XOP0( OP_EXIT )->next = NULL;
 
     ins->next = xbb->ir_ptr;
     xbb->ir_ptr->prev = ins;
@@ -214,7 +214,7 @@ static xir_op_t xir_append_op2_exc( xir_basic_block_t xbb, int op, int arg0form,
 	XOP2IS( OP_MOV, 1, R_DELAY_SLOT ); \
 	XOP0( OP_BARRIER ); \
 	XOPCALL0( sh4_execute_instruction ); \
-	XOP1S( OP_BR, R_PC ); \
+	XOP0( OP_EXIT ); \
     } while(0)
 	
 
@@ -644,8 +644,7 @@ MOV.W @(disp, PC), Rn {:
 	    // behaviour to confirm) Unlikely to be anyone depending on this
 	    // behaviour though.
 	        sh4ptr_t ptr = GET_ICACHE_PTR(target);
-	        XOP2PT( OP_LOADPTRL, ptr, REG_TMP0 );
-	        XOP2TS( OP_MOVSX16, REG_TMP0, R_R(Rn) );
+	        XOP2PT( OP_LOADPTRW, ptr, REG_TMP0 );
 	    } else {
 	    // Note: we use sh4r.pc for the calc as we could be running at a
 	    // different virtual address than the translation was done with,
@@ -794,9 +793,15 @@ FLOAT FPUL, FRn {:
 FTRC FRm, FPUL {: 
 	CHECKFPUEN();
 	if( sh4_xir.double_prec ) {
-	    XOP2SS( OP_DTOI, R_DR(FRm), R_FPUL );
+	    XOP2SS( OP_MOVQ, R_DR(FRm), REG_TMPD0 );
+	    XOP2FS( OP_MAXD, (double)0x8000000000000000, REG_TMPD0 ); 
+	    XOP2FS( OP_MIND, (double)0x7FFFFFFFFFFFFFFF, REG_TMPD0 ); 
+	    XOP2SS( OP_DTOI, REG_TMPD0, R_FPUL );
 	} else {
-	    XOP2SS( OP_FTOI, R_FR(FRm), R_FPUL );
+	    XOP2SS( OP_MOV, R_FR(FRm), REG_TMPF0 );
+	    XOP2FS( OP_MAXF, (double)0x80000000, REG_TMPF0 ); 
+	    XOP2FS( OP_MINF, (double)0x7FFFFFFF, REG_TMPF0 ); 
+	    XOP2SS( OP_FTOI, REG_TMPF0, R_FPUL );
 	}
 :}
 FLDS FRm, FPUL {:
@@ -1181,7 +1186,9 @@ BF disp {:
 	} else {
 	    XOP2IS( OP_ADD, (pc+2 - xbb->pc_begin) * sh4_cpu_period, R_SLICE_CYCLE );
 	    XOP2IS( OP_CMP, 0, R_T );
-	    XOP2IICC( OP_BRCOND, CC_EQ, disp+pc+4-xbb->pc_begin, pc+2-xbb->pc_begin );
+            XOP2ISCC( OP_ADD, CC_EQ, disp+pc+4-xbb->pc_begin, R_PC );
+            XOP2ISCC( OP_ADD, CC_NE, pc+2-xbb->pc_begin, R_PC );
+            XOP0( OP_EXIT );
 	}
 	return 2;
 :}
@@ -1191,8 +1198,11 @@ BF/S disp {:
 	    return 2;
 	} else {
 	    if( UNTRANSLATABLE(pc+2 ) ) {
+	        XOP2IS( OP_ADD, (pc+2 - xbb->pc_begin) * sh4_cpu_period, R_SLICE_CYCLE );
+	        XOP2SS( OP_MOV, R_PC, R_NEW_PC );
 	        XOP2IS( OP_CMP, 0, R_T );
-                XOP2IICC( OP_BRCONDDEL, CC_EQ, disp+pc+4-xbb->pc_begin, pc+4-xbb->pc_begin );
+	        XOP2ISCC( OP_ADD, CC_EQ, disp+pc+4-xbb->pc_begin, R_NEW_PC );
+	        XOP2ISCC( OP_ADD, CC_NE, pc+4-xbb->pc_begin, R_NEW_PC );
 	    	EMU_DELAY_SLOT();
 	    	return 2;
 	    } else {
@@ -1201,7 +1211,9 @@ BF/S disp {:
 	        if( !XOP_IS_TERMINATOR( xbb->ir_ptr->prev ) ) {	        
 	            XOP2IS( OP_ADD, (pc+4 - xbb->pc_begin) * sh4_cpu_period, R_SLICE_CYCLE );
 	            XOP2IT( OP_CMP, 0, REG_TMP2 );
-	            XOP2IICC( OP_BRCOND, CC_EQ, disp+pc+4-xbb->pc_begin, pc+4-xbb->pc_begin );
+	            XOP2ISCC( OP_ADD, CC_EQ, disp+pc+4-xbb->pc_begin, R_PC );
+	            XOP2ISCC( OP_ADD, CC_NE, pc+4-xbb->pc_begin, R_PC );
+	            XOP0( OP_EXIT );
 	        }
 	        return 4;
 	    }	
@@ -1213,7 +1225,9 @@ BT disp {:
 	} else {
 	    XOP2IS( OP_ADD, (pc+2 - xbb->pc_begin) * sh4_cpu_period, R_SLICE_CYCLE );
 	    XOP2IS( OP_CMP, 1, R_T );
-	    XOP2IICC( OP_BRCOND, CC_EQ, disp+pc+4-xbb->pc_begin, pc+2-xbb->pc_begin );
+	    XOP2ISCC( OP_ADD, CC_EQ, disp+pc+4-xbb->pc_begin, R_PC );
+	    XOP2ISCC( OP_ADD, CC_NE, pc+2-xbb->pc_begin, R_PC );
+	    XOP0( OP_EXIT );
 	}
 	return 2;
 :}
@@ -1223,8 +1237,11 @@ BT/S disp {:
 	    return 2;
 	} else {
 	    if( UNTRANSLATABLE(pc+2 ) ) {
+	        XOP2IS( OP_ADD, (pc+2 - xbb->pc_begin) * sh4_cpu_period, R_SLICE_CYCLE );
+	        XOP2SS( OP_MOV, R_PC, R_NEW_PC );
 	        XOP2IS( OP_CMP, 1, R_T );
-	        XOP2IICC( OP_BRCONDDEL, CC_EQ, disp+pc+4-xbb->pc_begin, pc+2-xbb->pc_begin );
+	        XOP2ISCC( OP_ADD, CC_EQ, disp+pc+4-xbb->pc_begin, R_NEW_PC );
+	        XOP2ISCC( OP_ADD, CC_NE, pc+4-xbb->pc_begin, R_NEW_PC );
 	    	EMU_DELAY_SLOT();
 	    	return 2;
 	    } else {
@@ -1233,7 +1250,9 @@ BT/S disp {:
 	        if( !XOP_IS_TERMINATOR( xbb->ir_ptr->prev ) ) {	        
 	            XOP2IS( OP_ADD, (pc+4 - xbb->pc_begin) * sh4_cpu_period, R_SLICE_CYCLE );
 	            XOP2IT( OP_CMP, 1, REG_TMP2 );
-	            XOP2IICC( OP_BRCOND, CC_EQ, disp+pc+4-xbb->pc_begin, pc+4-xbb->pc_begin );
+	            XOP2ISCC( OP_ADD, CC_EQ, disp+pc+4-xbb->pc_begin, R_PC );
+	            XOP2ISCC( OP_ADD, CC_NE, pc+4-xbb->pc_begin, R_PC );
+	            XOP0( OP_EXIT );
 	        }
 	        return 4;
 	    }
@@ -1253,7 +1272,8 @@ BRA disp {:
 	        sh4_decode_instruction( xbb, pc+2, TRUE );
 	        if( xbb->ir_ptr->prev == NULL || !XOP_IS_TERMINATOR( xbb->ir_ptr->prev ) ) {
 		    XOP2IS( OP_ADD, (pc+4 - xbb->pc_begin) * sh4_cpu_period, R_SLICE_CYCLE );
-	            XOP1I( OP_BRREL, pc+disp+4-xbb->pc_begin );
+	            XOP2IS( OP_ADD, pc+disp+4-xbb->pc_begin, R_PC );
+	            XOP0( OP_EXIT );
 	        }
 	        return 4;
 	    }   
@@ -1264,9 +1284,9 @@ BRAF Rn {:
 	    SLOTILLEGAL();
 	    return 2;
 	} else {
-	    XOP2ST( OP_MOV, R_R(Rn), REG_TMP2 );
-	    XOP2ST( OP_ADD, R_PC, REG_TMP2 );
+	    XOP2ST( OP_MOV, R_PC, REG_TMP2 );
 	    XOP2IT( OP_ADD, pc - xbb->pc_begin + 4, REG_TMP2 );
+	    XOP2ST( OP_ADD, R_R(Rn), REG_TMP2 );
 	    if( UNTRANSLATABLE(pc+2) ) {
 	        XOP2TS( OP_MOV, REG_TMP2, R_NEW_PC );
 	        EMU_DELAY_SLOT();
@@ -1275,7 +1295,8 @@ BRAF Rn {:
 	        sh4_decode_instruction( xbb, pc + 2, TRUE );
 	        if( !XOP_IS_TERMINATOR( xbb->ir_ptr->prev ) ) {	        
 		    XOP2IS( OP_ADD, (pc+4 - xbb->pc_begin) * sh4_cpu_period, R_SLICE_CYCLE );
-	            XOP1T( OP_BR, REG_TMP2 );
+	            XOP2TS( OP_MOV, REG_TMP2, R_PC );
+	            XOP0( OP_EXIT );
 	        }
 	        return 4;
 	    }
@@ -1297,7 +1318,8 @@ BSR disp {:
 	        sh4_decode_instruction( xbb, pc+2, TRUE );
 	        if( !XOP_IS_TERMINATOR( xbb->ir_ptr->prev ) ) {
 		    XOP2IS( OP_ADD, (pc+4 - xbb->pc_begin) * sh4_cpu_period, R_SLICE_CYCLE );
-	            XOP1I( OP_BRREL, pc+disp+4-xbb->pc_begin );
+	            XOP2IS( OP_ADD, pc+disp+4-xbb->pc_begin, R_PC );
+	            XOP0( OP_EXIT );
 	        }
 	        return 4;
 	    }   
@@ -1321,7 +1343,8 @@ BSRF Rn {:
 	        sh4_decode_instruction( xbb, pc+2, TRUE );
 	        if( !XOP_IS_TERMINATOR( xbb->ir_ptr->prev ) ) {
 		    XOP2IS( OP_ADD, (pc+4 - xbb->pc_begin) * sh4_cpu_period, R_SLICE_CYCLE );
-	            XOP1T( OP_BR, REG_TMP2 );
+	            XOP2TS( OP_ADD, REG_TMP2, R_PC );
+	            XOP0( OP_EXIT );
 	        }
 	        return 4;
 	    }
@@ -1341,7 +1364,8 @@ JMP @Rn {:
 	        sh4_decode_instruction( xbb, pc+2, TRUE );
 	        if( !XOP_IS_TERMINATOR( xbb->ir_ptr->prev ) ) {
 		    XOP2IS( OP_ADD, (pc+4 - xbb->pc_begin) * sh4_cpu_period, R_SLICE_CYCLE );
-	            XOP1T( OP_BR, REG_TMP2 );
+	            XOP2TS( OP_MOV, REG_TMP2, R_PC );
+	            XOP0( OP_EXIT );
 	        }
 	        return 4;
 	    }
@@ -1363,7 +1387,8 @@ JSR @Rn {:
 	        sh4_decode_instruction( xbb, pc+2, TRUE );
 	        if( !XOP_IS_TERMINATOR( xbb->ir_ptr->prev ) ) {
 		    XOP2IS( OP_ADD, (pc+4 - xbb->pc_begin) * sh4_cpu_period, R_SLICE_CYCLE );
-	            XOP1T( OP_BR, REG_TMP2 );
+	            XOP2TS( OP_MOV, REG_TMP2, R_PC );
+	            XOP0( OP_EXIT );
 	        }
 	        return 4;
 	    }
@@ -1385,7 +1410,8 @@ RTE {:
 	        sh4_decode_instruction( xbb, pc+2, TRUE );
 	        if( !XOP_IS_TERMINATOR( xbb->ir_ptr->prev ) ) {
 		    XOP2IS( OP_ADD, (pc+4 - xbb->pc_begin) * sh4_cpu_period, R_SLICE_CYCLE );
-	            XOP1T( OP_BR, REG_TMP2 );
+	            XOP2TS( OP_MOV, REG_TMP2, R_PC );
+	            XOP0( OP_EXIT );
 	        }
 	        return 4;
 	    }
@@ -1405,14 +1431,25 @@ RTS {:
 	        sh4_decode_instruction( xbb, pc+2, TRUE );
 	        if( !XOP_IS_TERMINATOR( xbb->ir_ptr->prev ) ) {
 		    XOP2IS( OP_ADD, (pc+4 - xbb->pc_begin) * sh4_cpu_period, R_SLICE_CYCLE );
-	            XOP1T( OP_BR, REG_TMP2 );
+	            XOP2TS( OP_MOV, REG_TMP2, R_PC );
+	            XOP0( OP_EXIT );
 	        }
 	        return 4;
 	    }
 	}
 :}
-TRAPA #imm {: XOPCALL1I( sh4_raise_trap, imm ); return pc+2; :} 
-SLEEP      {: XOPCALL0( sh4_sleep ); return pc+2; :} 
+TRAPA #imm {:
+	XOP2IS( OP_ADD, (pc+4 - xbb->pc_begin) * sh4_cpu_period, R_SLICE_CYCLE );
+        XOP2IS( OP_ADD, pc+4-xbb->pc_begin, R_PC );
+	XOPCALL1I( sh4_raise_trap, imm ); 
+	XOP0( OP_EXIT ); 
+	return 2; 
+:} 
+SLEEP      {: 
+	XOPCALL0( sh4_sleep ); 
+	XOP0( OP_EXIT); 
+	return 2; 
+:} 
 UNDEF      {: UNDEF(ir); :}
 NOP        {: /* Do nothing */ :}
 
