@@ -239,6 +239,9 @@ void sh4_finalize_instruction( void )
     unsigned short ir;
     uint32_t tmp;
 
+    if( IS_SYSCALL(sh4r.pc) ) {
+        return;
+    }
     assert( IS_IN_ICACHE(sh4r.pc) );
     ir = *(uint16_t *)GET_ICACHE_PTR(sh4r.pc);
     

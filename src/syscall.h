@@ -71,6 +71,8 @@ void dcload_install( void );
  */
 void dcload_set_allow_unsafe( gboolean allow );
 
+#define IS_SYSCALL(pc)  (((uint32_t)pc)>=0xFFFFFF00)
+
 #ifdef __cplusplus
 }
 #endif
