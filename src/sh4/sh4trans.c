@@ -46,7 +46,7 @@ uint32_t sh4_translate_run_slice( uint32_t nanosecs )
         }
 
         if( code == NULL ) {
-            if( sh4r.pc > 0xFFFFFF00 ) {
+            if( IS_SYSCALL(sh4r.pc) ) {
                 syscall_invoke( sh4r.pc );
                 sh4r.in_delay_slot = 0;
                 sh4r.pc = sh4r.pr;
@@ -220,7 +220,7 @@ void * FASTCALL xlat_get_code_by_vma( sh4vma_t vma )
         return xlat_get_code( GET_ICACHE_PHYS(vma) );
     }
 
-    if( vma > 0xFFFFFF00 ) {
+    if( IS_SYSCALL(vma) ) {
         // lxdream hook
         return NULL;
     }
