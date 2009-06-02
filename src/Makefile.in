@@ -52,7 +52,7 @@ check_PROGRAMS = test/testxlt$(EXEEXT) $(am__EXEEXT_1)
 @GUI_GTK_TRUE@	gtkui/gtk_win.c gtkui/gtkcb.c \
 @GUI_GTK_TRUE@        gtkui/gtk_mmio.c gtkui/gtk_debug.c gtkui/gtk_dump.c \
 @GUI_GTK_TRUE@        gtkui/gtk_ctrl.c gtkui/gtk_path.c gtkui/gtk_gd.c \
-@GUI_GTK_TRUE@        drivers/net_glib.c drivers/video_gtk.c
+@GUI_GTK_TRUE@        gtkui/gtk_hotkeys.c drivers/net_glib.c drivers/video_gtk.c
 
 @GUI_COCOA_TRUE@am__append_4 = cocoaui/cocoaui.m cocoaui/cocoaui.h \
 @GUI_COCOA_TRUE@	cocoaui/cocoa_win.m cocoaui/cocoa_gd.m cocoaui/cocoa_prefs.m \
@@ -73,6 +73,7 @@ check_PROGRAMS = test/testxlt$(EXEEXT) $(am__EXEEXT_1)
 @CDROM_OSX_TRUE@am__append_15 = drivers/cd_osx.c drivers/osx_iokit.m drivers/osx_iokit.h
 @CDROM_NONE_TRUE@am__append_16 = drivers/cd_none.c
 @JOY_LINUX_TRUE@am__append_17 = drivers/joy_linux.c drivers/joy_linux.h
+@INPUT_LIRC_TRUE@am__append_18 = drivers/input_lirc.c drivers/input_lirc.h
 subdir = src
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -122,27 +123,27 @@ am__lxdream_SOURCES_DIST = main.c version.c config.c config.h \
 	gdlist.c gdlist.h display.c display.h dckeysyms.h \
 	drivers/audio_null.c drivers/video_null.c drivers/video_gl.c \
 	drivers/video_gl.h drivers/gl_fbo.c sh4/sh4.def sh4/sh4core.in \
-	sh4/sh4x86.in sh4/sh4dasm.in sh4/sh4stat.in sh4/sh4x86.c \
-	xlat/x86/x86op.h xlat/x86/ia32abi.h xlat/x86/amd64abi.h \
-	sh4/sh4trans.c sh4/sh4trans.h sh4/mmux86.c x86dasm/x86dasm.c \
-	x86dasm/x86dasm.h x86dasm/i386-dis.c x86dasm/dis-init.c \
-	x86dasm/dis-buf.c x86dasm/ansidecl.h x86dasm/bfd.h \
-	x86dasm/dis-asm.h x86dasm/symcat.h x86dasm/sysdep.h \
-	gtkui/gtkui.c gtkui/gtkui.h gtkui/gtk_win.c gtkui/gtkcb.c \
-	gtkui/gtk_mmio.c gtkui/gtk_debug.c gtkui/gtk_dump.c \
-	gtkui/gtk_ctrl.c gtkui/gtk_path.c gtkui/gtk_gd.c \
-	drivers/net_glib.c drivers/video_gtk.c cocoaui/cocoaui.m \
-	cocoaui/cocoaui.h cocoaui/cocoa_win.m cocoaui/cocoa_gd.m \
-	cocoaui/cocoa_prefs.m cocoaui/cocoa_path.m \
-	cocoaui/cocoa_ctrl.m cocoaui/paths_osx.m drivers/net_osx.m \
-	drivers/video_osx.m drivers/mac_keymap.h \
+	sh4/sh4x86.in sh4/sh4dasm.in sh4/sh4stat.in hotkeys.c \
+	hotkeys.h sh4/sh4x86.c xlat/x86/x86op.h xlat/x86/ia32abi.h \
+	xlat/x86/amd64abi.h sh4/sh4trans.c sh4/sh4trans.h sh4/mmux86.c \
+	x86dasm/x86dasm.c x86dasm/x86dasm.h x86dasm/i386-dis.c \
+	x86dasm/dis-init.c x86dasm/dis-buf.c x86dasm/ansidecl.h \
+	x86dasm/bfd.h x86dasm/dis-asm.h x86dasm/symcat.h \
+	x86dasm/sysdep.h gtkui/gtkui.c gtkui/gtkui.h gtkui/gtk_win.c \
+	gtkui/gtkcb.c gtkui/gtk_mmio.c gtkui/gtk_debug.c \
+	gtkui/gtk_dump.c gtkui/gtk_ctrl.c gtkui/gtk_path.c \
+	gtkui/gtk_gd.c gtkui/gtk_hotkeys.c drivers/net_glib.c \
+	drivers/video_gtk.c cocoaui/cocoaui.m cocoaui/cocoaui.h \
+	cocoaui/cocoa_win.m cocoaui/cocoa_gd.m cocoaui/cocoa_prefs.m \
+	cocoaui/cocoa_path.m cocoaui/cocoa_ctrl.m cocoaui/paths_osx.m \
+	drivers/net_osx.m drivers/video_osx.m drivers/mac_keymap.h \
 	drivers/mac_keymap.txt paths_unix.c drivers/video_gdk.c \
 	drivers/video_glx.c drivers/video_glx.h drivers/video_nsgl.m \
 	drivers/video_nsgl.h drivers/audio_osx.m drivers/audio_sdl.c \
 	drivers/audio_pulse.c drivers/audio_esd.c drivers/audio_alsa.c \
 	drivers/cd_linux.c drivers/cd_osx.c drivers/osx_iokit.m \
 	drivers/osx_iokit.h drivers/cd_none.c drivers/joy_linux.c \
-	drivers/joy_linux.h
+	drivers/joy_linux.h drivers/input_lirc.c drivers/input_lirc.h
 @BUILD_SH4X86_TRUE@am__objects_1 = sh4x86.$(OBJEXT) sh4trans.$(OBJEXT) \
 @BUILD_SH4X86_TRUE@	mmux86.$(OBJEXT) x86dasm.$(OBJEXT) \
 @BUILD_SH4X86_TRUE@	i386-dis.$(OBJEXT) dis-init.$(OBJEXT) \
@@ -151,8 +152,8 @@ am__lxdream_SOURCES_DIST = main.c version.c config.c config.h \
 @GUI_GTK_TRUE@	gtkcb.$(OBJEXT) gtk_mmio.$(OBJEXT) \
 @GUI_GTK_TRUE@	gtk_debug.$(OBJEXT) gtk_dump.$(OBJEXT) \
 @GUI_GTK_TRUE@	gtk_ctrl.$(OBJEXT) gtk_path.$(OBJEXT) \
-@GUI_GTK_TRUE@	gtk_gd.$(OBJEXT) net_glib.$(OBJEXT) \
-@GUI_GTK_TRUE@	video_gtk.$(OBJEXT)
+@GUI_GTK_TRUE@	gtk_gd.$(OBJEXT) gtk_hotkeys.$(OBJEXT) \
+@GUI_GTK_TRUE@	net_glib.$(OBJEXT) video_gtk.$(OBJEXT)
 @GUI_COCOA_TRUE@am__objects_3 = cocoaui.$(OBJEXT) cocoa_win.$(OBJEXT) \
 @GUI_COCOA_TRUE@	cocoa_gd.$(OBJEXT) cocoa_prefs.$(OBJEXT) \
 @GUI_COCOA_TRUE@	cocoa_path.$(OBJEXT) cocoa_ctrl.$(OBJEXT) \
@@ -171,6 +172,7 @@ am__lxdream_SOURCES_DIST = main.c version.c config.c config.h \
 @CDROM_OSX_TRUE@am__objects_14 = cd_osx.$(OBJEXT) osx_iokit.$(OBJEXT)
 @CDROM_NONE_TRUE@am__objects_15 = cd_none.$(OBJEXT)
 @JOY_LINUX_TRUE@am__objects_16 = joy_linux.$(OBJEXT)
+@INPUT_LIRC_TRUE@am__objects_17 = input_lirc.$(OBJEXT)
 am_lxdream_OBJECTS = main.$(OBJEXT) version.$(OBJEXT) config.$(OBJEXT) \
 	mem.$(OBJEXT) sdram.$(OBJEXT) watch.$(OBJEXT) asic.$(OBJEXT) \
 	syscall.$(OBJEXT) bios.$(OBJEXT) dcload.$(OBJEXT) \
@@ -192,14 +194,15 @@ am_lxdream_OBJECTS = main.$(OBJEXT) version.$(OBJEXT) config.$(OBJEXT) \
 	lightgun.$(OBJEXT) loader.$(OBJEXT) bootstrap.$(OBJEXT) \
 	util.$(OBJEXT) gdlist.$(OBJEXT) display.$(OBJEXT) \
 	audio_null.$(OBJEXT) video_null.$(OBJEXT) video_gl.$(OBJEXT) \
-	gl_fbo.$(OBJEXT) $(am__objects_1) $(am__objects_2) \
-	$(am__objects_3) $(am__objects_4) $(am__objects_5) \
-	$(am__objects_6) $(am__objects_7) $(am__objects_8) \
-	$(am__objects_9) $(am__objects_10) $(am__objects_11) \
-	$(am__objects_12) $(am__objects_13) $(am__objects_14) \
-	$(am__objects_15) $(am__objects_16)
+	gl_fbo.$(OBJEXT) hotkeys.$(OBJEXT) $(am__objects_1) \
+	$(am__objects_2) $(am__objects_3) $(am__objects_4) \
+	$(am__objects_5) $(am__objects_6) $(am__objects_7) \
+	$(am__objects_8) $(am__objects_9) $(am__objects_10) \
+	$(am__objects_11) $(am__objects_12) $(am__objects_13) \
+	$(am__objects_14) $(am__objects_15) $(am__objects_16) \
+	$(am__objects_17)
 lxdream_OBJECTS = $(am_lxdream_OBJECTS)
-lxdream_DEPENDENCIES = $(am__DEPENDENCIES_1)
+lxdream_DEPENDENCIES = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
 am__test_testsh4x86_SOURCES_DIST = test/testsh4x86.c x86dasm/x86dasm.c \
 	x86dasm/x86dasm.h x86dasm/i386-dis.c x86dasm/dis-init.c \
 	x86dasm/dis-buf.c sh4/sh4trans.c sh4/sh4x86.c xlat/xltcache.c \
@@ -303,6 +306,8 @@ GUI_COCOA_FALSE = @GUI_COCOA_FALSE@
 GUI_COCOA_TRUE = @GUI_COCOA_TRUE@
 GUI_GTK_FALSE = @GUI_GTK_FALSE@
 GUI_GTK_TRUE = @GUI_GTK_TRUE@
+INPUT_LIRC_FALSE = @INPUT_LIRC_FALSE@
+INPUT_LIRC_TRUE = @INPUT_LIRC_TRUE@
 INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_SCRIPT = @INSTALL_SCRIPT@
@@ -458,12 +463,13 @@ lxdream_SOURCES = main.c version.c config.c config.h lxdream.h dream.h \
 	gdlist.c gdlist.h display.c display.h dckeysyms.h \
 	drivers/audio_null.c drivers/video_null.c drivers/video_gl.c \
 	drivers/video_gl.h drivers/gl_fbo.c sh4/sh4.def sh4/sh4core.in \
-	sh4/sh4x86.in sh4/sh4dasm.in sh4/sh4stat.in $(am__append_1) \
-	$(am__append_3) $(am__append_4) $(am__append_5) \
-	$(am__append_6) $(am__append_7) $(am__append_8) \
-	$(am__append_9) $(am__append_10) $(am__append_11) \
-	$(am__append_12) $(am__append_13) $(am__append_14) \
-	$(am__append_15) $(am__append_16) $(am__append_17)
+	sh4/sh4x86.in sh4/sh4dasm.in sh4/sh4stat.in hotkeys.c \
+	hotkeys.h $(am__append_1) $(am__append_3) $(am__append_4) \
+	$(am__append_5) $(am__append_6) $(am__append_7) \
+	$(am__append_8) $(am__append_9) $(am__append_10) \
+	$(am__append_11) $(am__append_12) $(am__append_13) \
+	$(am__append_14) $(am__append_15) $(am__append_16) \
+	$(am__append_17) $(am__append_18)
 @BUILD_SH4X86_TRUE@test_testsh4x86_LDADD = @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@
 @BUILD_SH4X86_TRUE@test_testsh4x86_SOURCES = test/testsh4x86.c x86dasm/x86dasm.c \
 @BUILD_SH4X86_TRUE@	x86dasm/x86dasm.h x86dasm/i386-dis.c x86dasm/dis-init.c \
@@ -471,7 +477,8 @@ lxdream_SOURCES = main.c version.c config.c config.h lxdream.h dream.h \
 @BUILD_SH4X86_TRUE@	sh4/sh4trans.c sh4/sh4x86.c xlat/xltcache.c \
 @BUILD_SH4X86_TRUE@	xlat/xltcache.h mem.c util.c 
 
-lxdream_LDADD = @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@ @PULSE_LIBS@ @ESOUND_LIBS@ @ALSA_LIBS@ @SDL_LIBS@ $(INTLLIBS)
+@INPUT_LIRC_TRUE@LIRC_LIBS = -llirc_client
+lxdream_LDADD = @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@ @PULSE_LIBS@ @ESOUND_LIBS@ @ALSA_LIBS@ @SDL_LIBS@ $(INTLLIBS) $(LIRC_LIBS)
 gendec_LDADD = @GLIB_LIBS@ @GTK_LIBS@ $(INTLLIBS)
 genglsl_LDADD = @GLIB_LIBS@ @GTK_LIBS@ $(INTLLIBS)
 test_testxlt_SOURCES = test/testxlt.c xlat/xltcache.c xlat/xltcache.h
@@ -615,13 +622,16 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gtk_debug.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gtk_dump.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gtk_gd.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gtk_hotkeys.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gtk_mmio.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gtk_path.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gtk_win.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gtkcb.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gtkui.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/hotkeys.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/i386-dis.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ide.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/input_lirc.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/insparse.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/intc.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/joy_linux.Po@am__quote@
@@ -1644,6 +1654,20 @@ gtk_gd.obj: gtkui/gtk_gd.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o gtk_gd.obj `if test -f 'gtkui/gtk_gd.c'; then $(CYGPATH_W) 'gtkui/gtk_gd.c'; else $(CYGPATH_W) '$(srcdir)/gtkui/gtk_gd.c'; fi`
 
+gtk_hotkeys.o: gtkui/gtk_hotkeys.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT gtk_hotkeys.o -MD -MP -MF "$(DEPDIR)/gtk_hotkeys.Tpo" -c -o gtk_hotkeys.o `test -f 'gtkui/gtk_hotkeys.c' || echo '$(srcdir)/'`gtkui/gtk_hotkeys.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/gtk_hotkeys.Tpo" "$(DEPDIR)/gtk_hotkeys.Po"; else rm -f "$(DEPDIR)/gtk_hotkeys.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gtkui/gtk_hotkeys.c' object='gtk_hotkeys.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o gtk_hotkeys.o `test -f 'gtkui/gtk_hotkeys.c' || echo '$(srcdir)/'`gtkui/gtk_hotkeys.c
+
+gtk_hotkeys.obj: gtkui/gtk_hotkeys.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT gtk_hotkeys.obj -MD -MP -MF "$(DEPDIR)/gtk_hotkeys.Tpo" -c -o gtk_hotkeys.obj `if test -f 'gtkui/gtk_hotkeys.c'; then $(CYGPATH_W) 'gtkui/gtk_hotkeys.c'; else $(CYGPATH_W) '$(srcdir)/gtkui/gtk_hotkeys.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/gtk_hotkeys.Tpo" "$(DEPDIR)/gtk_hotkeys.Po"; else rm -f "$(DEPDIR)/gtk_hotkeys.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gtkui/gtk_hotkeys.c' object='gtk_hotkeys.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o gtk_hotkeys.obj `if test -f 'gtkui/gtk_hotkeys.c'; then $(CYGPATH_W) 'gtkui/gtk_hotkeys.c'; else $(CYGPATH_W) '$(srcdir)/gtkui/gtk_hotkeys.c'; fi`
+
 net_glib.o: drivers/net_glib.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT net_glib.o -MD -MP -MF "$(DEPDIR)/net_glib.Tpo" -c -o net_glib.o `test -f 'drivers/net_glib.c' || echo '$(srcdir)/'`drivers/net_glib.c; \
 @am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/net_glib.Tpo" "$(DEPDIR)/net_glib.Po"; else rm -f "$(DEPDIR)/net_glib.Tpo"; exit 1; fi
@@ -1811,6 +1835,20 @@ joy_linux.obj: drivers/joy_linux.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/joy_linux.c' object='joy_linux.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o joy_linux.obj `if test -f 'drivers/joy_linux.c'; then $(CYGPATH_W) 'drivers/joy_linux.c'; else $(CYGPATH_W) '$(srcdir)/drivers/joy_linux.c'; fi`
+
+input_lirc.o: drivers/input_lirc.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT input_lirc.o -MD -MP -MF "$(DEPDIR)/input_lirc.Tpo" -c -o input_lirc.o `test -f 'drivers/input_lirc.c' || echo '$(srcdir)/'`drivers/input_lirc.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/input_lirc.Tpo" "$(DEPDIR)/input_lirc.Po"; else rm -f "$(DEPDIR)/input_lirc.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/input_lirc.c' object='input_lirc.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o input_lirc.o `test -f 'drivers/input_lirc.c' || echo '$(srcdir)/'`drivers/input_lirc.c
+
+input_lirc.obj: drivers/input_lirc.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT input_lirc.obj -MD -MP -MF "$(DEPDIR)/input_lirc.Tpo" -c -o input_lirc.obj `if test -f 'drivers/input_lirc.c'; then $(CYGPATH_W) 'drivers/input_lirc.c'; else $(CYGPATH_W) '$(srcdir)/drivers/input_lirc.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/input_lirc.Tpo" "$(DEPDIR)/input_lirc.Po"; else rm -f "$(DEPDIR)/input_lirc.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/input_lirc.c' object='input_lirc.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o input_lirc.obj `if test -f 'drivers/input_lirc.c'; then $(CYGPATH_W) 'drivers/input_lirc.c'; else $(CYGPATH_W) '$(srcdir)/drivers/input_lirc.c'; fi`
 
 testsh4x86.o: test/testsh4x86.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT testsh4x86.o -MD -MP -MF "$(DEPDIR)/testsh4x86.Tpo" -c -o testsh4x86.o `test -f 'test/testsh4x86.c' || echo '$(srcdir)/'`test/testsh4x86.c; \

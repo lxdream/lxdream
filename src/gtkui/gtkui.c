@@ -85,6 +85,7 @@ static const GtkActionEntry ui_actions[] = {
         { "ControllerSettings", NULL, N_("_Controllers..."), NULL, N_("Configure controllers"), G_CALLBACK(maple_settings_callback) },
         { "NetworkSettings", NULL, N_("_Network..."), NULL, N_("Configure network settings"), G_CALLBACK(network_settings_callback) },
         { "VideoSettings", NULL, N_("_Video..."), NULL,N_( "Configure video output"), G_CALLBACK(video_settings_callback) },
+        { "HotkeySettings", NULL, N_("_Hotkeys..."), NULL,N_( "Configure hotkeys"), G_CALLBACK(hotkey_settings_callback) },
         { "About", GTK_STOCK_ABOUT, N_("_About..."), NULL, N_("About lxdream"), G_CALLBACK(about_action_callback) },
         { "DebugMenu", NULL, N_("_Debug") },
         { "Debugger", NULL, N_("_Debugger"), NULL, N_("Open debugger window"), G_CALLBACK(debugger_action_callback) },
@@ -123,6 +124,7 @@ static const char *ui_description =
     "   <menuitem action='ControllerSettings'/>"
     "   <menuitem action='NetworkSettings'/>"
     "   <menuitem action='VideoSettings'/>"
+    "   <menuitem action='HotkeySettings'/>"
     "   <separator/>"
     "   <menuitem action='FullScreen'/>"
     "  </menu>"
@@ -167,6 +169,7 @@ static const char *ui_description =
     "   <menuitem action='ControllerSettings'/>"
     "   <menuitem action='NetworkSettings'/>"
     "   <menuitem action='VideoSettings'/>"
+    "   <menuitem action='HotkeySettings'/>"
     "   <separator/>"
     "   <menuitem action='FullScreen'/>"
     "  </menu>"
@@ -201,7 +204,7 @@ gboolean gtk_gui_disc_changed( gdrom_disc_t disc, const gchar *disc_name, void *
     return TRUE;
 }
 
-gboolean gui_init( gboolean withDebug )
+gboolean gui_init( gboolean withDebug, gboolean withFullscreen )
 {
     if( gtk_gui_init_ok ) {
         GError *error = NULL;
@@ -236,6 +239,13 @@ gboolean gui_init( gboolean withDebug )
         if( withDebug ) {
             gtk_gui_show_debugger();
         }
+        
+        if (withFullscreen) {
+            main_window_set_fullscreen(main_win, TRUE);
+            //manually call full-screen state code for non-compliant window managers
+            main_window_show_gui(main_win, TRUE);
+        }
+        
         register_gdrom_disc_change_hook( gtk_gui_disc_changed, NULL );
 
         return TRUE;
@@ -265,7 +275,7 @@ void gui_set_use_grab( gboolean flag )
     if( main_win != NULL ) {
         main_window_set_use_grab(main_win, flag);
     }
-}    
+}
 
 gboolean gui_error_dialog( const char *msg, ... )
 {
@@ -289,6 +299,17 @@ gboolean gui_error_dialog( const char *msg, ... )
 void gui_update_io_activity( io_activity_type io, gboolean active )
 {
 
+}
+
+static gboolean gtk_run_later_callback( gpointer unused )
+{
+    dreamcast_run();
+    return FALSE;
+}
+
+void gui_run_later(void)
+{
+    g_timeout_add_seconds(0, gtk_run_later_callback, NULL);
 }
 
 void gtk_gui_show_debugger()

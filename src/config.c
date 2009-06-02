@@ -29,6 +29,7 @@
 
 
 extern struct lxdream_config_entry alsa_config[];
+extern struct lxdream_config_entry hotkeys_config[];
 
 gboolean lxdream_load_config_file( const gchar *filename );
 gboolean lxdream_save_config_file( const gchar *filename );
@@ -52,6 +53,7 @@ static struct lxdream_config_entry serial_config[] =
 struct lxdream_config_group lxdream_config_root[] = 
        {{ "global", global_config },
         { "controllers", NULL },
+        { "hotkeys", hotkeys_config },
         { "serial", serial_config },
 #ifdef HAVE_ALSA
         { "alsa", alsa_config },

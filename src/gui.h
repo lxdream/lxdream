@@ -42,8 +42,9 @@ gboolean gui_parse_cmdline( int *argc, char **argv[] );
  * GUI has one).
  *
  * @param debug TRUE if the system should start in debugging mode.
+ * @param fullscreen TRUE if the system should start in fullscreen mode.
  */
-gboolean gui_init( gboolean debug );
+gboolean gui_init( gboolean debug, gboolean fullscreen );
 
 /**
  * Enter the GUI main loop. If this method ever returns, the system will
@@ -75,6 +76,12 @@ void gui_set_use_grab( gboolean grab );
  * @param active TRUE if the I/O device is becoming active, FALSE if inactive.
  */
 void gui_update_io_activity( io_activity_type activity, gboolean active );
+
+/**
+ * Queue an event to call dreamcast_run() at the next opportunity (used to
+ * avoid invoking dreamcast_run() directly from the middle of things. 
+ */
+void gui_run_later(void);
 
 #ifdef __cplusplus
 }

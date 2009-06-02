@@ -35,13 +35,15 @@
 #include "maple/maple.h"
 #include "sh4/sh4.h"
 #include "aica/armdasm.h"
+#include "hotkeys.h"
 
-char *option_list = "a:A:c:dg:G:hHl:m:npt:T:uvV:x?";
+char *option_list = "a:A:c:dfg:G:hHl:m:npt:T:uvV:x?";
 struct option longopts[] = {
         { "aica", required_argument, NULL, 'a' },
         { "audio", required_argument, NULL, 'A' },
         { "config", required_argument, NULL, 'c' },
         { "debugger", no_argument, NULL, 'D' },
+        { "fullscreen", no_argument, NULL, 'f' },
         { "gdb-sh4", required_argument, NULL, 'g' },  
         { "gdb-arm", required_argument, NULL, 'G' },  
         { "help", no_argument, NULL, 'h' },
@@ -65,6 +67,7 @@ gboolean no_start = FALSE;
 gboolean headless = FALSE;
 gboolean use_xlat = TRUE;
 gboolean show_debugger = FALSE;
+gboolean show_fullscreen = FALSE;
 extern uint32_t sh4_cpu_multiplier;
 
 static void print_version()
@@ -82,6 +85,7 @@ static void print_usage()
     printf( "   -A, --audio=DRIVER     %s\n", _("Use the specified audio driver (? to list)") );
     printf( "   -c, --config=CONFFILE  %s\n", _("Load configuration from CONFFILE") );
     printf( "   -d, --debugger         %s\n", _("Start in debugger mode") );
+    printf( "   -f, --fullscreen       %s\n", _("Start in fullscreen mode") );
     printf( "   -g, --gdb-sh4=PORT     %s\n", _("Start GDB remote server on PORT for SH4") );
     printf( "   -G, --gdb-arm=PORT     %s\n", _("Start GDB remote server on PORT for ARM") );
     printf( "   -h, --help             %s\n", _("Display this usage information") );
@@ -135,6 +139,9 @@ int main (int argc, char *argv[])
             break;
         case 'd': /* Launch w/ debugger */
             show_debugger = TRUE;
+            break;
+        case 'f':
+            show_fullscreen = TRUE;
             break;
         case 'g':
             sh4_gdb_port = optarg;
@@ -216,7 +223,7 @@ int main (int argc, char *argv[])
     if( headless ) {
         display_set_driver( &display_null_driver );
     } else {
-        gui_init(show_debugger);
+        gui_init(show_debugger, show_fullscreen);
 
         display_driver_t display_driver = get_display_driver_by_name(display_driver_name);
         if( display_driver == NULL ) {
@@ -228,6 +235,8 @@ int main (int argc, char *argv[])
             exit(2);
         }
     }
+    
+    hotkeys_init();
 
     maple_reattach_all();
     INFO( "%s! ready...", APP_NAME );
