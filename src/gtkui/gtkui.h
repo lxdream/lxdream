@@ -50,6 +50,7 @@ void main_window_set_speed( main_window_t win, double speed );
 void main_window_set_fullscreen( main_window_t win, gboolean fullscreen );
 void main_window_set_use_grab( main_window_t win, gboolean grab );
 void main_window_update_title( main_window_t win );
+void main_window_show_gui( main_window_t win, gboolean fullscreen );
 
 debug_window_t debug_window_new( const gchar *title, GtkWidget *menubar,
                                  GtkWidget *toolbar, GtkAccelGroup *accel );
@@ -70,6 +71,7 @@ void dump_window_update_all();
 
 void maple_dialog_run();
 void path_dialog_run();
+void hotkeys_dialog_run();
 
 void gtk_gui_update( void );
 main_window_t gtk_gui_get_main();
@@ -141,6 +143,7 @@ void audio_settings_callback( GtkAction *action, gpointer user_data);
 void maple_settings_callback( GtkAction *action, gpointer user_data);
 void network_settings_callback( GtkAction *action, gpointer user_data);
 void video_settings_callback( GtkAction *action, gpointer user_data);
+void hotkey_settings_callback( GtkAction *action, gpointer user_data);
 void fullscreen_toggle_callback( GtkToggleAction *action, gpointer user_data);
 
 void debugger_action_callback( GtkAction *action, gpointer user_data);

@@ -179,7 +179,7 @@ static void cocoa_gui_create_menu(void)
 {
     if( cocoa_gui_autorun ) {
         cocoa_gui_autorun = NO;
-        cocoa_gui_run_later();
+        gui_run_later();
     }
 }
 - (void)windowDidBecomeKey: (NSNotification *)notice
@@ -196,7 +196,7 @@ static void cocoa_gui_create_menu(void)
     const gchar *cname = [filename UTF8String];
     if( file_load_magic(cname) ) {
         // Queue up a run event
-        cocoa_gui_run_later();
+        gui_run_later();
         return YES;
     } else {
         return NO;
@@ -274,7 +274,7 @@ static void cocoa_gui_create_menu(void)
 - (void) run_action: (id)sender
 {
     if( !dreamcast_is_running() ) {
-        cocoa_gui_run_later();
+        gui_run_later();
     }
 }
 - (void) run_immediate
@@ -301,7 +301,7 @@ gboolean gui_parse_cmdline( int *argc, char **argv[] )
     return TRUE;
 }
 
-gboolean gui_init( gboolean withDebug )
+gboolean gui_init( gboolean withDebug, gboolean withFullscreen )
 {
     dreamcast_register_module( &cocoa_gui_module );
 
@@ -435,7 +435,7 @@ void cocoa_gui_stop( void )
 /**
  * Queue a dreamcast_run() to execute after the currently event(s)
  */
-void cocoa_gui_run_later( void )
+void gui_run_later( void )
 {
     [[NSRunLoop currentRunLoop] performSelector: @selector(run_immediate) 
      target: [NSApp delegate] argument: nil order: 1 

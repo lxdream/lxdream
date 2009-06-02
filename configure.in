@@ -319,6 +319,15 @@ AC_CHECK_HEADER([linux/joystick.h], [
   [ echo "Linux Joystick support not found, building without it."] )
 AM_CONDITIONAL(JOY_LINUX, [test "$HAVE_LINUX_JOYSTICK_H" = "yes"])
 
+dnl Check for LIRC
+if test "x$with_lirc" != "xno"; then
+    AC_CHECK_HEADER([lirc/lirc_client.h], [
+        HAVE_LIRC_CLIENT_H=yes
+        AC_DEFINE([HAVE_LIRC],1,[Have LIRC support]) ],
+      [ echo "LIRC support not found, building without it." ] )
+fi
+AM_CONDITIONAL(INPUT_LIRC, [test "$HAVE_LIRC_CLIENT_H" = "yes"])
+
 dnl Check for cross-compiler availability - needed for system tests
 AC_PATH_PROG(SHCC, [sh-elf-gcc])
 AC_PATH_PROG(SHLD, [sh-elf-ld])
@@ -399,5 +408,11 @@ fi
 if test "x$CDROM_DRIVER" = "x"; then
    echo "  CD-ROM driver: none (no supported cd-rom devices found)"
 else
-   echo "  CD-ROM driver: $CDROM_DRIVER"
+   echo "  CD-ROM driver:  $CDROM_DRIVER"
+fi
+
+if test "x$HAVE_LIRC_CLIENT_H" = "x"; then
+   echo "  LIRC support:   no"
+else
+   echo "  LIRC support:   yes"
 fi

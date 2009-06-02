@@ -216,6 +216,11 @@ void video_settings_callback( GtkAction *action, gpointer user_data)
 {
 }
 
+void hotkey_settings_callback( GtkAction *action, gpointer user_data)
+{
+    hotkeys_dialog_run();
+}
+
 void fullscreen_toggle_callback( GtkToggleAction *action, gpointer user_data)
 {
     main_window_set_fullscreen(gtk_gui_get_main(), gtk_toggle_action_get_active(action));

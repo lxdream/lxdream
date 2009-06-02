@@ -62,7 +62,8 @@ lxdream_SOURCES = \
 	display.c display.h dckeysyms.h \
 	drivers/audio_null.c drivers/video_null.c \
 	drivers/video_gl.c drivers/video_gl.h drivers/gl_fbo.c \
-	sh4/sh4.def sh4/sh4core.in sh4/sh4x86.in sh4/sh4dasm.in sh4/sh4stat.in
+	sh4/sh4.def sh4/sh4core.in sh4/sh4x86.in sh4/sh4dasm.in sh4/sh4stat.in \
+	hotkeys.c hotkeys.h
 	
 
 if BUILD_SH4X86
@@ -89,7 +90,7 @@ lxdream_SOURCES += gtkui/gtkui.c gtkui/gtkui.h \
 	gtkui/gtk_win.c gtkui/gtkcb.c \
         gtkui/gtk_mmio.c gtkui/gtk_debug.c gtkui/gtk_dump.c \
         gtkui/gtk_ctrl.c gtkui/gtk_path.c gtkui/gtk_gd.c \
-        drivers/net_glib.c drivers/video_gtk.c
+        gtkui/gtk_hotkeys.c drivers/net_glib.c drivers/video_gtk.c
 endif
 
 if GUI_COCOA
@@ -151,8 +152,12 @@ if JOY_LINUX
 lxdream_SOURCES += drivers/joy_linux.c drivers/joy_linux.h
 endif
 
+if INPUT_LIRC
+lxdream_SOURCES += drivers/input_lirc.c drivers/input_lirc.h
+LIRC_LIBS = -llirc_client
+endif
 
-lxdream_LDADD = @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@ @PULSE_LIBS@ @ESOUND_LIBS@ @ALSA_LIBS@ @SDL_LIBS@ $(INTLLIBS)
+lxdream_LDADD = @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@ @PULSE_LIBS@ @ESOUND_LIBS@ @ALSA_LIBS@ @SDL_LIBS@ $(INTLLIBS) $(LIRC_LIBS)
 
 gendec_LDADD = @GLIB_LIBS@ @GTK_LIBS@ $(INTLLIBS)
 genglsl_LDADD = @GLIB_LIBS@ @GTK_LIBS@ $(INTLLIBS)
