@@ -1,5 +1,5 @@
 /**
- * $Id: cocoaui.c 863 2008-09-06 05:21:57Z nkeynes $
+ * $Id$
  *
  * Wrappers for system-dependent functions (mainly path differences)
  *

@@ -1,5 +1,5 @@
 /**
- * $Id: audio_pulse.c 754 2008-07-14 07:44:42Z nkeynes $
+ * $Id$
  * 
  * The SDL sound driver
  *

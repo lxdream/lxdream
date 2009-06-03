@@ -1,5 +1,5 @@
 /**
- * $Id: net_osx.m 1018 2009-03-19 12:29:06Z nkeynes $
+ * $Id$
  *
  * OS X networking support functions. Currently this is just for activity callbacks.
  *

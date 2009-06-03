@@ -1,5 +1,5 @@
 /**
- * $Id: sh4.h 577 2008-01-01 05:08:38Z nkeynes $
+ * $Id$
  * 
  * This file defines the public functions and definitions exported by the SH4
  * modules.
