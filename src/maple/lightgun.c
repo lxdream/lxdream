@@ -1,5 +1,5 @@
 /**
- * $Id: lightgun.c 858 2008-09-02 03:34:00Z nkeynes $
+ * $Id$
  *
  * Implementation of the SEGA lightgun device
  * Part No. HKT-7800

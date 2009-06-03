@@ -1,5 +1,5 @@
 /**
- * $Id: netutil.c 1018 2009-03-19 12:29:06Z nkeynes $
+ * $Id$
  * 
  * Network support functions
  *

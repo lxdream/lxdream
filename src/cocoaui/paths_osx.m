@@ -1,5 +1,5 @@
 /**
- * $Id: cocoaui.c 863 2008-09-06 05:21:57Z nkeynes $
+ * $Id$
  *
  * Cocoa builds need to use different paths from ordinary builds, since
  * the message catalogs, default config, etc are all bundle-relative.

@@ -1,5 +1,5 @@
 /**
- * $Id: hook.h 662 2008-03-02 11:38:08Z nkeynes $
+ * $Id$
  *
  * This file defines some useful generic macros for hooks
  *
