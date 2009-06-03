@@ -1,5 +1,5 @@
 /**
- * $Id: testdata.c 602 2008-01-15 20:50:23Z nkeynes $
+ * $Id$
  * 
  * AICA test loader
  *
