@@ -31,6 +31,9 @@ ARMOBJCOPY	= @ARMOBJCOPY@ -O binary
 RUNTEST		= ../src/lxdream -c $(srcdir)/lxdream.rc -puH -A null
 RUNTESTX	= ../src/lxdream -c $(srcdir)/lxdream.rc -xpuH -A null
 
+BUILD_SYSTEST_FALSE = @BUILD_SYSTEST_FALSE@
+BUILD_SYSTEST_TRUE = @BUILD_SYSTEST_TRUE@
+
 %.ao: %.c
 	$(ARMCC) $(ARMCFLAGS) -o $@ -c $< 
 
@@ -65,13 +68,13 @@ RUNTESTX	= ../src/lxdream -c $(srcdir)/lxdream.rc -xpuH -A null
 
 all:
 
-check: build-tests
-	$(RUNTEST) testsh4
-	$(RUNTESTX) testsh4
-	$(RUNTEST) testmmu
-	$(RUNTEST) testregs
-	cat $(srcdir)/testta.data $(srcdir)/testta2.data $(srcdir)/testta3.data $(srcdir)/testta4.data $(srcdir)/testta5.data | $(RUNTEST) testta
-	cat $(srcdir)/testsort.data | $(RUNTEST) testta
+@BUILD_SYSTEST_TRUE@check: build-tests
+@BUILD_SYSTEST_TRUE@	$(RUNTEST) testsh4
+@BUILD_SYSTEST_TRUE@	$(RUNTESTX) testsh4
+@BUILD_SYSTEST_TRUE@	$(RUNTEST) testmmu
+@BUILD_SYSTEST_TRUE@	$(RUNTEST) testregs
+@BUILD_SYSTEST_TRUE@	cat $(srcdir)/testta.data $(srcdir)/testta2.data $(srcdir)/testta3.data $(srcdir)/testta4.data $(srcdir)/testta5.data | $(RUNTEST) testta
+@BUILD_SYSTEST_TRUE@	cat $(srcdir)/testsort.data | $(RUNTEST) testta
 #	$(RUNTEST) testide -d ../disc/test.nrg
 
 
@@ -195,7 +198,7 @@ DISTFILES = asic.c asic.h bin2c.c dma.h dmac.c ide.c ide.h interrupt.s \
 	include/sys/timeb.h include/sys/times.h include/sys/types.h include/sys/unistd.h \
 	include/sys/utime.h include/sys/wait.h include/termios.h include/time.h \
 	include/unctrl.h include/unistd.h include/utime.h include/utmp.h \
-	testsh4 testregs testmmu testta testaica 
+@BUILD_SYSTEST_TRUE@	testsh4 testregs testmmu testta testaica 
                         
 
 
