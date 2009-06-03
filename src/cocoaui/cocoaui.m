@@ -35,7 +35,6 @@
 void cocoa_gui_update( void );
 void cocoa_gui_start( void );
 void cocoa_gui_stop( void );
-void cocoa_gui_run_later( void );
 uint32_t cocoa_gui_run_slice( uint32_t nanosecs );
 
 struct dreamcast_module cocoa_gui_module = { "gui", NULL,
@@ -179,7 +178,7 @@ static void cocoa_gui_create_menu(void)
 {
     if( cocoa_gui_autorun ) {
         cocoa_gui_autorun = NO;
-        gui_run_later();
+        gui_do_later(dreamcast_run);
     }
 }
 - (void)windowDidBecomeKey: (NSNotification *)notice
@@ -196,7 +195,7 @@ static void cocoa_gui_create_menu(void)
     const gchar *cname = [filename UTF8String];
     if( file_load_magic(cname) ) {
         // Queue up a run event
-        gui_run_later();
+        gui_do_later(dreamcast_run);
         return YES;
     } else {
         return NO;
@@ -274,13 +273,8 @@ static void cocoa_gui_create_menu(void)
 - (void) run_action: (id)sender
 {
     if( !dreamcast_is_running() ) {
-        gui_run_later();
+        gui_do_later(dreamcast_run);
     }
-}
-- (void) run_immediate
-{
-    dreamcast_run();
-    [mainWindow setRunning: NO];
 }
 - (void) gdrom_list_action: (id)sender
 {
@@ -432,13 +426,33 @@ void cocoa_gui_stop( void )
     [mainWindow setRunning: NO];
 }
 
+@interface DoLaterStub : NSObject
+{
+    do_later_callback_t func;
+}
+@end    
+
+@implementation DoLaterStub
+- (id) init: (do_later_callback_t)f
+{
+    [super init];
+    func = f;
+    return self;
+}
+- (void) do
+{
+    func();
+}
+@end
+
 /**
  * Queue a dreamcast_run() to execute after the currently event(s)
  */
-void gui_run_later( void )
+void gui_do_later( do_later_callback_t func )
 {
-    [[NSRunLoop currentRunLoop] performSelector: @selector(run_immediate) 
-     target: [NSApp delegate] argument: nil order: 1 
+    DoLaterStub *stub = [[[DoLaterStub alloc] init: func] autorelease]; 
+    [[NSRunLoop currentRunLoop] performSelector: @selector(do) 
+     target: stub argument: nil order: 1 
      modes: [NSArray arrayWithObject: NSDefaultRunLoopMode] ];
 }
 

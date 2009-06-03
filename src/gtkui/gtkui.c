@@ -301,15 +301,16 @@ void gui_update_io_activity( io_activity_type io, gboolean active )
 
 }
 
-static gboolean gtk_run_later_callback( gpointer unused )
+static gboolean gtk_do_later_callback( gpointer ptr )
 {
-    dreamcast_run();
+    do_later_callback_t func = (do_later_callback_t)ptr;
+    func();
     return FALSE;
 }
 
-void gui_run_later(void)
+void gui_do_later( do_later_callback_t func )
 {
-    g_timeout_add_seconds(0, gtk_run_later_callback, NULL);
+    g_timeout_add_seconds(0, gtk_do_later_callback, func);
 }
 
 void gtk_gui_show_debugger()

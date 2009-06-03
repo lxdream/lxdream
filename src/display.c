@@ -251,10 +251,12 @@ gboolean input_register_key( const gchar *keysym, input_key_callback_t callback,
     while( *s != NULL ) {
         keymap_entry_t *entryp = input_entry_from_keysym(*s);
         if( entryp != NULL ) {
-            *entryp = g_malloc0(sizeof(struct keymap_entry));
-            (*entryp)->callback = callback;
-            (*entryp)->data = data;
-            (*entryp)->value = value;
+            keymap_entry_t newentry = g_malloc0(sizeof(struct keymap_entry));
+            newentry->next = *entryp;
+            newentry->callback = callback;
+            newentry->data = data;
+            newentry->value = value;
+            *entryp = newentry;
             keys++;
         }
         s++;
@@ -274,10 +276,17 @@ void input_unregister_key( const gchar *keysym, input_key_callback_t callback,
     gchar **s = strv;
     while( *s != NULL ) {
         keymap_entry_t *entryp = input_entry_from_keysym(*s);
-        if( entryp != NULL && *entryp != NULL && (*entryp)->callback == callback &&
-                (*entryp)->data == data && (*entryp)->value == value ) {
-            g_free( *entryp );
-            *entryp = NULL;
+        if( entryp != NULL ) {
+            while( *entryp != NULL ) {
+                if( (*entryp)->callback == callback &&
+                    (*entryp)->data == data && (*entryp)->value == value ) {
+                    keymap_entry_t next = (*entryp)->next;
+                    g_free( *entryp );
+                    *entryp = next;
+                    break;
+                }
+                entryp = &(*entryp)->next; // Yes, really
+            }
         }
         s++;
     }
@@ -334,8 +343,12 @@ void input_event_keydown( input_driver_t driver, uint16_t keycode, uint32_t pres
 {
     if( display_focused ) {
         keymap_entry_t *entryp = input_entry_from_keycode(driver,keycode);
-        if( entryp != NULL && *entryp != NULL ) {
-            (*entryp)->callback( (*entryp)->data, (*entryp)->value, pressure, TRUE );
+        if( entryp != NULL ) {
+            keymap_entry_t key = *entryp;
+            while( key != NULL ) {
+                key->callback( key->data, key->value, pressure, TRUE );
+                key = key->next;
+            }
         }
         if( driver == NULL ) {
             keymap_entry_t key = keyhooks;
@@ -358,8 +371,12 @@ void input_event_keyup( input_driver_t driver, uint16_t keycode )
 {
     if( display_focused ) {
         keymap_entry_t *entryp = input_entry_from_keycode(driver,keycode);
-        if( entryp != NULL && *entryp != NULL ) {
-            (*entryp)->callback( (*entryp)->data, (*entryp)->value, 0, FALSE );
+        if( entryp != NULL ) {
+            keymap_entry_t key = *entryp;
+            while( key != NULL ) {
+                key->callback( key->data, key->value, 0, FALSE );
+                key = key->next;
+            }
         }
 
         if( driver == NULL ) {

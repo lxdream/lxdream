@@ -77,11 +77,12 @@ void gui_set_use_grab( gboolean grab );
  */
 void gui_update_io_activity( io_activity_type activity, gboolean active );
 
+typedef void (*do_later_callback_t)(void);
 /**
- * Queue an event to call dreamcast_run() at the next opportunity (used to
- * avoid invoking dreamcast_run() directly from the middle of things. 
+ * Queue an event to call a function at the next opportunity (used to
+ * avoid invoking eg dreamcast_run directly from the middle of other processing). 
  */
-void gui_run_later(void);
+void gui_do_later( do_later_callback_t func );
 
 #ifdef __cplusplus
 }

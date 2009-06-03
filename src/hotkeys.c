@@ -112,14 +112,14 @@ lxdream_config_entry_t hotkeys_get_config()
 static void hotkey_resume_callback( void *mdev, uint32_t value, uint32_t pressure, gboolean isKeyDown )
 {
     if (isKeyDown && !dreamcast_is_running() ) {
-        gui_run_later();
+        gui_do_later(dreamcast_run);
     }
 }
 
 static void hotkey_stop_callback( void *mdev, uint32_t value, uint32_t pressure, gboolean isKeyDown )
 {
     if (isKeyDown && dreamcast_is_running() ) {
-        dreamcast_stop();
+        gui_do_later(dreamcast_stop);
     }
 }
 
