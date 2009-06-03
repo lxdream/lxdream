@@ -310,7 +310,7 @@ gboolean gui_init( gboolean withDebug, gboolean withFullscreen )
 
     LxdreamDelegate *delegate = [[LxdreamDelegate alloc] init];
     [NSApp setDelegate: delegate];
-    NSString *iconFile = [[NSBundle mainBundle] pathForResource:@"dcemu" ofType:@"gif"];
+    NSString *iconFile = [[NSBundle mainBundle] pathForResource:@"lxdream" ofType:@"png"];
     NSImage *iconImage = [[NSImage alloc] initWithContentsOfFile: iconFile];
     [iconImage setName: @"NSApplicationIcon"];
     [NSApp setApplicationIconImage: iconImage];   

@@ -181,6 +181,7 @@ void about_action_callback( GtkAction *action, gpointer user_data)
             "name", APP_NAME, 
             "version", lxdream_full_version,
             "copyright", lxdream_copyright,
+            "logo-icon-name", "lxdream",
             NULL);
     gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
     gtk_dialog_run(GTK_DIALOG(dialog));
