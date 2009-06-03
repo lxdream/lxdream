@@ -289,6 +289,8 @@ main_window_t main_window_new( const gchar *title, GtkWidget *menubar, GtkWidget
     win->is_grabbed = FALSE;
     gtk_window_set_title( GTK_WINDOW(win->window), title );
     gtk_window_add_accel_group (GTK_WINDOW (win->window), accel_group);
+    gtk_window_set_icon_from_file( GTK_WINDOW(win->window), 
+                                   PACKAGE_DATA_DIR "/pixmaps/lxdream.png", NULL );
 
     gtk_toolbar_set_style( GTK_TOOLBAR(toolbar), GTK_TOOLBAR_ICONS );
 

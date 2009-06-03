@@ -8,7 +8,7 @@ if BUILD_SYSTEST
 endif
 SUBDIRS = src po $(TEST_SUBDIR)
 
-EXTRA_DIST = autogen.sh lxdream.pod bundlelibs.pl
+EXTRA_DIST = autogen.sh lxdream.pod lxdream.desktop bundlelibs.pl
 
 dist_sysconf_DATA = lxdreamrc
 CLEANFILES = lxdream.1
@@ -27,11 +27,15 @@ install-data-local:
 	    fi \
 	  done \
 	fi
+	$(INSTALL_DATA) $(srcdir)/lxdream.desktop $(DESTDIR)$(datadir)/applications
+	$(INSTALL_DATA) $(srcdir)/pixmaps/lxdream.png $(DESTDIR)$(datadir)/pixmaps
 	$(mkinstalldirs) $(DESTDIR)$(sysconfdir)
 
 uninstall-local:
 	@$(NORMAL_UNINSTALL) 
-	rm -rf $(DESTDIR)$(datadir)/pixmaps
+	rm -rf $(DESTDIR)$(datadir)/pixmaps/$(PACKAGE)
+	rm -f $(DESTDIR)$(datadir)/pixmaps/lxdream.png
+	rm -f $(DESTDIR)$(datadir)/applications/lxdream.desktop
 
 clean-local:
 	rm -rf $(BUNDLE)
