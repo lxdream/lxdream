@@ -1,5 +1,5 @@
 /**
- * $Id: gdbserver.c 1018 2009-03-19 12:29:06Z nkeynes $
+ * $Id$
  * 
  * GDB RDP server stub - SH4 + ARM
  *
@@ -173,8 +173,13 @@ void gdb_set_registers( struct gdb_server *server, char *buf, int firstreg, int 
     char *p = buf;
     for( i=firstreg; i < firstreg + regcount; i++ ) {
         uint8_t *val = server->cpu->get_register(i);
+        unsigned int a,b,c,d;
         if( val != NULL ) {
-            sscanf( p, "%02x%02x%02x%02x", val, val+1, val+2, val+3 );
+            sscanf( p, "%02x%02x%02x%02x", &a, &b, &c, &d );
+            val[0] = (uint8_t)a;
+            val[1] = (uint8_t)b;
+            val[2] = (uint8_t)c;
+            val[3] = (uint8_t)d;
         }
         p += 8;
     }
