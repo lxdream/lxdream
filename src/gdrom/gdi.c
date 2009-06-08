@@ -54,7 +54,6 @@ static gdrom_disc_t gdi_image_open( const gchar *filename, FILE *f )
     int i;
     uint32_t track_count;
     gdrom_disc_t disc;
-    gdrom_image_t image;
     struct stat st;
     char line[512];
     int session = 0;
@@ -76,15 +75,14 @@ static gdrom_disc_t gdi_image_open( const gchar *filename, FILE *f )
         return NULL;
     }
     dirname = g_path_get_dirname(filename);
-    image = (gdrom_image_t)disc;
-    image->disc_type = IDE_DISC_GDROM;
-    image->track_count = track_count;
+    disc->disc_type = IDE_DISC_GDROM;
+    disc->track_count = track_count;
     for( i=0; i<track_count; i++ ) {
         int track_no, start_lba, flags, size, offset;
         char filename[256];
 
         if( fgets( line, sizeof(line), f ) == NULL ) {
-            gdrom_image_destroy_no_close(disc);
+            disc->destroy(disc,FALSE);
             return NULL;
         }
         sscanf( line, "%d %d %d %d %s %d", &track_no, &start_lba, &flags, &size,
@@ -92,47 +90,47 @@ static gdrom_disc_t gdi_image_open( const gchar *filename, FILE *f )
         if( start_lba >= 45000 ) {
             session = 1;
         }
-        image->track[i].session = session;
-        image->track[i].lba = start_lba + 150; // 2-second offset
-        image->track[i].flags = (flags & 0x0F)<<4;
-        image->track[i].sector_size = size;
+        disc->track[i].session = session;
+        disc->track[i].lba = start_lba + 150; // 2-second offset
+        disc->track[i].flags = (flags & 0x0F)<<4;
+        disc->track[i].sector_size = size;
         if( strcasecmp( filename, "none" ) == 0 ) {
-            image->track[i].file = NULL;
-            image->track[i].sector_count = 0;
-            image->track[i].mode = GDROM_MODE1;
+            disc->track[i].file = NULL;
+            disc->track[i].sector_count = 0;
+            disc->track[i].mode = GDROM_MODE1;
         } else {
             gchar *pathname = g_strdup_printf( "%s%c%s", dirname, G_DIR_SEPARATOR, filename );
-            image->track[i].file = fopen( pathname, "ro" );
+            disc->track[i].file = fopen( pathname, "ro" );
             g_free(pathname);
-            if( image->track[i].file == NULL ) {
-                gdrom_image_destroy_no_close(disc);
+            if( disc->track[i].file == NULL ) {
+                disc->destroy(disc,FALSE);
                 g_free(dirname);
                 return NULL;
             }
-            fstat( fileno(image->track[i].file), &st );
-            image->track[i].sector_count = st.st_size / size;
-            if( image->track[i].flags & TRACK_DATA ) {
+            fstat( fileno(disc->track[i].file), &st );
+            disc->track[i].sector_count = st.st_size / size;
+            if( disc->track[i].flags & TRACK_DATA ) {
                 /* Data track */
                 switch(size) {
-                case 2048: image->track[i].mode = GDROM_MODE1; break;
-                case 2336: image->track[i].mode = GDROM_SEMIRAW_MODE2; break;
-                case 2352: image->track[i].mode = GDROM_RAW_XA; break;
+                case 2048: disc->track[i].mode = GDROM_MODE1; break;
+                case 2336: disc->track[i].mode = GDROM_SEMIRAW_MODE2; break;
+                case 2352: disc->track[i].mode = GDROM_RAW_XA; break;
                 default:
-                    gdrom_image_destroy_no_close(disc);
+                    disc->destroy(disc,FALSE);
                     g_free(dirname);
                     return NULL;
                 }
             } else {
                 /* Audio track */
-                image->track[i].mode = GDROM_CDDA;
+                disc->track[i].mode = GDROM_CDDA;
                 if( size != 2352 ) {
-                    gdrom_image_destroy_no_close(disc);
+                    disc->destroy(disc,FALSE);
                     g_free(dirname);
                     return NULL;
                 }
             }
         }
-        image->track[i].offset = offset;
+        disc->track[i].offset = offset;
     }
     g_free(dirname);
     return disc;

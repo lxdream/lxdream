@@ -35,30 +35,32 @@
 
 static gboolean cdrom_osx_image_is_valid( FILE *f );
 static gdrom_disc_t cdrom_osx_open_device( const gchar *filename, FILE *f );
-static gdrom_error_t cdrom_osx_read_toc( gdrom_image_t disc );
+static gdrom_error_t cdrom_osx_read_toc( gdrom_disc_t disc );
 static gdrom_error_t cdrom_osx_read_sector( gdrom_disc_t disc, uint32_t sector,
                                             int mode, unsigned char *buf, uint32_t *length );
 
 struct gdrom_image_class cdrom_device_class = { "osx", NULL,
         cdrom_osx_image_is_valid, cdrom_osx_open_device };
 
-#define OSX_DRIVE(disc) ( (osx_cdrom_drive_t)(((gdrom_image_t)disc)->private) )
+#define OSX_DRIVE(disc) ( (osx_cdrom_drive_t)(((gdrom_disc_t)disc)->impl_data) )
 
-static void cdrom_osx_destroy( gdrom_disc_t disc )
+static void cdrom_osx_destroy( gdrom_disc_t disc, gboolean close_fh )
 {
-    osx_cdrom_close_drive( OSX_DRIVE(disc) );
-    gdrom_image_destroy_no_close( disc );
+    if( close_fh ) {
+        osx_cdrom_close_drive( OSX_DRIVE(disc) );
+    }
+    gdrom_disc_destroy( disc, FALSE ); /* chain to the main destroy */
 }
 
 static void cdrom_osx_media_changed( osx_cdrom_drive_t drive, gboolean present,
                                      void *user_data )
 {
-    gdrom_image_t image = (gdrom_image_t)user_data;
+    gdrom_disc_t disc = (gdrom_disc_t)user_data;
     if( present ) {
-        cdrom_osx_read_toc( image );
+        cdrom_osx_read_toc( disc );
     } else {
-        image->disc_type = IDE_DISC_NONE;
-        image->track_count = 0;        
+        disc->disc_type = IDE_DISC_NONE;
+        disc->track_count = 0;        
     }
 }
 
@@ -67,14 +69,14 @@ static gdrom_disc_t cdrom_osx_new( const char *name, osx_cdrom_drive_t drive )
 {
     char tmp[strlen(name)+7];
     sprintf( tmp, "dvd://%s", name );
-    gdrom_image_t image = (gdrom_image_t)gdrom_image_new(tmp, NULL);
-    image->private = drive;
+    gdrom_disc_t disc = gdrom_disc_new(tmp, NULL);
+    disc->impl_data = drive;
 
-    image->disc.read_sector = cdrom_osx_read_sector;
-    image->disc.close = cdrom_osx_destroy;
-    cdrom_osx_read_toc(image);
-    osx_cdrom_set_media_changed_callback( drive, cdrom_osx_media_changed, image );
-    return (gdrom_disc_t)image;
+    disc->read_sector = cdrom_osx_read_sector;
+    disc->destroy = cdrom_osx_destroy;
+    cdrom_osx_read_toc(disc);
+    osx_cdrom_set_media_changed_callback( drive, cdrom_osx_media_changed, disc );
+    return (gdrom_disc_t)disc;
 }
 
 gdrom_disc_t cdrom_open_device( const gchar *method, const gchar *path )
@@ -123,14 +125,14 @@ static gdrom_disc_t cdrom_osx_open_device( const gchar *filename, FILE *f )
     return NULL;
 }
 
-static gdrom_error_t cdrom_osx_read_toc( gdrom_image_t image )
+static gdrom_error_t cdrom_osx_read_toc( gdrom_disc_t disc )
 {
-    osx_cdrom_drive_t drive = OSX_DRIVE(image);
+    osx_cdrom_drive_t drive = OSX_DRIVE(disc);
 
     int fh = osx_cdrom_get_media_handle(drive);
     if( fh == -1 ) {
-        image->disc_type = IDE_DISC_NONE;
-        image->track_count = 0;
+        disc->disc_type = IDE_DISC_NONE;
+        disc->track_count = 0;
         return -1;
     } else {
         unsigned char buf[MAXTOCSIZE];
@@ -143,11 +145,12 @@ static gdrom_error_t cdrom_osx_read_toc( gdrom_image_t image )
         readtoc.buffer = buf;
 
         if( ioctl(fh, DKIOCCDREADTOC, &readtoc ) == -1 ) {
-            image->disc_type = IDE_DISC_NONE;
-            image->track_count = 0;
+            WARN( "Failed to read TOC (%s)", strerror(errno) );
+            disc->disc_type = IDE_DISC_NONE;
+            disc->track_count = 0;
             return -1;
         } else {
-            mmc_parse_toc2( image, buf );
+            mmc_parse_toc2( disc, buf );
         }
     }
     return 0;
@@ -156,7 +159,6 @@ static gdrom_error_t cdrom_osx_read_toc( gdrom_image_t image )
 static gdrom_error_t cdrom_osx_read_sector( gdrom_disc_t disc, uint32_t lba,
                                             int mode, unsigned char *buf, uint32_t *length ) 
 {
-    gdrom_image_t image = (gdrom_image_t)disc;
     int real_lba = lba - 150;
     int sector_size = 2352;
     int direct_read = 1;
@@ -179,8 +181,8 @@ static gdrom_error_t cdrom_osx_read_sector( gdrom_disc_t disc, uint32_t lba,
             /* Sector could be anything - need to do a raw read and then parse
              * the requested data out ourselves
              */
-            int track_no = gdrom_image_get_track_by_lba( image, lba );
-            struct gdrom_track *track = &image->track[track_no-1];
+            int track_no = gdrom_disc_get_track_by_lba( disc, lba );
+            struct gdrom_track *track = &disc->track[track_no-1];
 
             sector_size = 2352;
             if( track->mode == GDROM_CDDA ) {

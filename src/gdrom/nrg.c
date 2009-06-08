@@ -186,7 +186,6 @@ static gdrom_disc_t nrg_image_open( const gchar *filename, FILE *f )
     struct nrg_etnf *etnf;
     struct nrg_etn2 *etn2;
     gdrom_disc_t disc;
-    gdrom_image_t image;
     gboolean end = FALSE;
     uint32_t chunk_id;
     int session_id = 0;
@@ -213,7 +212,6 @@ static gdrom_disc_t nrg_image_open( const gchar *filename, FILE *f )
         ERROR("Unable to allocate memory!");
         return NULL;
     }
-    image = (gdrom_image_t)disc;
 
     do {
         fread( &chunk, sizeof(chunk), 1, f );
@@ -239,34 +237,34 @@ static gdrom_disc_t nrg_image_open( const gchar *filename, FILE *f )
                 if( cue->track == 0 )
                     continue; /* Track 0. Leadin? always 0? */
                 if( cue->track == 0xAA ) { /* end of disc */
-                    image->track[track_id-1].sector_count =
-                        lba - image->track[track_id-1].lba;
+                    disc->track[track_id-1].sector_count =
+                        lba - disc->track[track_id-1].lba;
                 } else {
                     track = bcd_to_uint8(cue->track) - 1;
                     if( (cue->control & 0x01) == 0 ) { 
                         /* Pre-gap address. */
                         if( track != 0 ) {
-                            image->track[track-1].sector_count = 
-                                lba - image->track[track-1].lba;
+                            disc->track[track-1].sector_count = 
+                                lba - disc->track[track-1].lba;
                         }
                     } else { /* Track-start address */
-                        image->track[track].lba = lba;
-                        image->track[track].flags = cue->type;
+                        disc->track[track].lba = lba;
+                        disc->track[track].flags = cue->type;
                     }
                 }
             }
             break;
         case DAOI_ID:
             dao = (struct nrg_daoi *)data;
-            memcpy( image->mcn, dao->mcn, 13 );
-            image->mcn[13] = '\0';
+            memcpy( disc->mcn, dao->mcn, 13 );
+            disc->mcn[13] = '\0';
             assert( (dao->track_count - cue_track_id) * 30 + 22 == chunk.length );
             assert( dao->track_count == track_id );
             for( i=0; i<(dao->track_count-cue_track_id); i++ ) {
-                image->track[cue_track_id].sector_size = GUINT32_FROM_BE(dao->track[i].sector_size);
-                image->track[cue_track_id].offset = GUINT32_FROM_BE(dao->track[i].offset);
-                image->track[cue_track_id].mode = nrg_track_mode( dao->track[i].mode );
-                image->track[cue_track_id].sector_count =
+                disc->track[cue_track_id].sector_size = GUINT32_FROM_BE(dao->track[i].sector_size);
+                disc->track[cue_track_id].offset = GUINT32_FROM_BE(dao->track[i].offset);
+                disc->track[cue_track_id].mode = nrg_track_mode( dao->track[i].mode );
+                disc->track[cue_track_id].sector_count =
                     (GUINT32_FROM_BE(dao->track[i].end) - GUINT32_FROM_BE(dao->track[i].offset))/
                     GUINT32_FROM_BE(dao->track[i].sector_size);
                 cue_track_id++;
@@ -274,15 +272,15 @@ static gdrom_disc_t nrg_image_open( const gchar *filename, FILE *f )
             break;
         case DAOX_ID:
             daox = (struct nrg_daox *)data;
-            memcpy( image->mcn, daox->mcn, 13 );
-            image->mcn[13] = '\0';
+            memcpy( disc->mcn, daox->mcn, 13 );
+            disc->mcn[13] = '\0';
             assert( (daox->track_count - cue_track_id) * 42 + 22 == chunk.length );
             assert( daox->track_count == track_id );
             for( i=0; i<(daox->track_count-cue_track_id); i++ ) {
-                image->track[cue_track_id].sector_size = GUINT32_FROM_BE(daox->track[i].sector_size);
-                image->track[cue_track_id].offset = GUINT64_FROM_BE(daox->track[i].offset);
-                image->track[cue_track_id].mode = nrg_track_mode( daox->track[i].mode );
-                image->track[cue_track_id].sector_count =
+                disc->track[cue_track_id].sector_size = GUINT32_FROM_BE(daox->track[i].sector_size);
+                disc->track[cue_track_id].offset = GUINT64_FROM_BE(daox->track[i].offset);
+                disc->track[cue_track_id].mode = nrg_track_mode( daox->track[i].mode );
+                disc->track[cue_track_id].sector_count =
                     (GUINT64_FROM_BE(daox->track[i].end) - GUINT64_FROM_BE(daox->track[i].offset))/
                     GUINT32_FROM_BE(daox->track[i].sector_size);
                 cue_track_id++;
@@ -293,27 +291,27 @@ static gdrom_disc_t nrg_image_open( const gchar *filename, FILE *f )
             /* Data is a single 32-bit number representing number of tracks in session */
             i = GUINT32_FROM_BE( *(uint32_t *)data );
             while( i-- > 0 )
-                image->track[session_track_id++].session = session_id;
+                disc->track[session_track_id++].session = session_id;
             session_id++;
             break;
         case ETNF_ID:
             etnf = (struct nrg_etnf *)data;
             count = chunk.length / sizeof(struct nrg_etnf);
             for( i=0; i < count; i++, etnf++ ) {
-                image->track[track_id].offset = GUINT32_FROM_BE(etnf->offset);
-                image->track[track_id].lba = GUINT32_FROM_BE(etnf->lba) + (i+1)*GDROM_PREGAP;
-                image->track[track_id].mode = nrg_track_mode( GUINT32_FROM_BE(etnf->mode) );
-                if( image->track[track_id].mode == -1 ) {
-                    gdrom_image_destroy_no_close(disc);
+                disc->track[track_id].offset = GUINT32_FROM_BE(etnf->offset);
+                disc->track[track_id].lba = GUINT32_FROM_BE(etnf->lba) + (i+1)*GDROM_PREGAP;
+                disc->track[track_id].mode = nrg_track_mode( GUINT32_FROM_BE(etnf->mode) );
+                if( disc->track[track_id].mode == -1 ) {
+                    disc->destroy(disc,FALSE);
                     return NULL;
                 }
-                if( image->track[track_id].mode == GDROM_CDDA )
-                    image->track[track_id].flags = 0x01;
+                if( disc->track[track_id].mode == GDROM_CDDA )
+                    disc->track[track_id].flags = 0x01;
                 else
-                    image->track[track_id].flags = 0x01 | TRACK_DATA;
-                image->track[track_id].sector_size = GDROM_SECTOR_SIZE(image->track[track_id].mode);
-                image->track[track_id].sector_count = GUINT32_FROM_BE(etnf->length) / 
-                image->track[track_id].sector_size;
+                    disc->track[track_id].flags = 0x01 | TRACK_DATA;
+                disc->track[track_id].sector_size = GDROM_SECTOR_SIZE(disc->track[track_id].mode);
+                disc->track[track_id].sector_count = GUINT32_FROM_BE(etnf->length) / 
+                disc->track[track_id].sector_size;
                 track_id++;
             }
             break;
@@ -321,20 +319,20 @@ static gdrom_disc_t nrg_image_open( const gchar *filename, FILE *f )
             etn2 = (struct nrg_etn2 *)data;
             count = chunk.length / sizeof(struct nrg_etn2);
             for( i=0; i < count; i++, etn2++ ) {
-                image->track[track_id].offset = (uint32_t)GUINT64_FROM_BE(etn2->offset);
-                image->track[track_id].lba = GUINT32_FROM_BE(etn2->lba) + (i+1)*GDROM_PREGAP;
-                image->track[track_id].mode = nrg_track_mode( GUINT32_FROM_BE(etn2->mode) );
-                if( image->track[track_id].mode == -1 ) {
-                    gdrom_image_destroy_no_close(disc);
+                disc->track[track_id].offset = (uint32_t)GUINT64_FROM_BE(etn2->offset);
+                disc->track[track_id].lba = GUINT32_FROM_BE(etn2->lba) + (i+1)*GDROM_PREGAP;
+                disc->track[track_id].mode = nrg_track_mode( GUINT32_FROM_BE(etn2->mode) );
+                if( disc->track[track_id].mode == -1 ) {
+                    disc->destroy(disc,FALSE);
                     return NULL;
                 }
-                if( image->track[track_id].mode == GDROM_CDDA )
-                    image->track[track_id].flags = 0x01;
+                if( disc->track[track_id].mode == GDROM_CDDA )
+                    disc->track[track_id].flags = 0x01;
                 else
-                    image->track[track_id].flags = 0x01 | TRACK_DATA;
-                image->track[track_id].sector_size = GDROM_SECTOR_SIZE(image->track[track_id].mode);
-                image->track[track_id].sector_count = (uint32_t)(GUINT64_FROM_BE(etn2->length) / 
-                        image->track[track_id].sector_size);
+                    disc->track[track_id].flags = 0x01 | TRACK_DATA;
+                disc->track[track_id].sector_size = GDROM_SECTOR_SIZE(disc->track[track_id].mode);
+                disc->track[track_id].sector_count = (uint32_t)(GUINT64_FROM_BE(etn2->length) / 
+                        disc->track[track_id].sector_size);
                 track_id++;
             }
             break;
@@ -344,7 +342,7 @@ static gdrom_disc_t nrg_image_open( const gchar *filename, FILE *f )
             break;
         }
     } while( !end );
-    image->track_count = track_id;
+    disc->track_count = track_id;
     return disc;
 }
 

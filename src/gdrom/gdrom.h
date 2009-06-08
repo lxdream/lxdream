@@ -28,6 +28,10 @@
 extern "C" {
 #endif
 
+#define GDROM_TOC_SIZE (102*4) /* Size of GDROM TOC structure */
+#define GDROM_SESSION_INFO_SIZE 6 /* Size of GDROM session info structure */
+#define GDROM_SHORT_STATUS_SIZE 14 /* Size of GDROM short status structure */
+
 typedef uint16_t gdrom_error_t;
 
 
@@ -75,22 +79,54 @@ const gchar *gdrom_get_current_disc_name();
 
 const gchar *gdrom_get_current_disc_title();
 
-uint32_t gdrom_read_sectors( uint32_t sector, uint32_t sector_count,
-                             int mode, unsigned char *buf, uint32_t *length );
 
+/**
+ * Find the track (numbered from 1) containing the sector specified by LBA.
+ * Note: this function does not check for media change.
+ * @return The track number, or -1 if no track contains the sector.
+ */
+int gdrom_disc_get_track_by_lba( gdrom_disc_t disc, uint32_t lba );
+
+/** 
+ * Check if the disc contains valid media.
+ * @return PKT_ERR_OK if disc is present, otherwise PKT_ERR_NODISC
+ */
+gdrom_error_t gdrom_disc_check_media( gdrom_disc_t disc ); 
 
 /**
  * Retrieve the disc table of contents, and write it into the buffer in the 
  * format expected by the DC.
- * @return 0 on success, error code on failure (eg no disc mounted)
+ * @param disc The disc to read
+ * @param buf Buffer to receive the TOC data, which must be at least
+ * GDROM_TOC_SIZE bytes long.
+ * @return 0 on success, error code on failure (eg no disc)
  */
-gdrom_error_t gdrom_get_toc( unsigned char *buf );
+gdrom_error_t gdrom_disc_get_toc( gdrom_disc_t disc, unsigned char *buf );
 
 /**
  * Retrieve the short (6-byte) session info, and write it into the buffer.
+ * @param disc The disc to read
+ * @param session The session to read (numbered from 1), or 0 
+ * @param buf Buffer to receive the session data, which must be at least
+ * GDROM_SESSION_INFO_SIZE bytes long.
  * @return 0 on success, error code on failure.
  */
-gdrom_error_t gdrom_get_info( unsigned char *buf, int session );
+gdrom_error_t gdrom_disc_get_session_info( gdrom_disc_t disc, int session, unsigned char *buf );
+
+/**
+ * Generate the position data as returned from a STATUS(1) packet. 
+ * @param disc The disc to read
+ * @param lba The current head position
+ * @param buf The buffer to receive the position data, which must be at least
+ * GDROM_SHORT_STATUS_SIZE bytes long.
+ * @return 0 on success, error code on failure.
+ */
+gdrom_error_t gdrom_disc_get_short_status( gdrom_disc_t disc, uint32_t lba, unsigned char *buf );
+
+/**
+ * Return the 1-byte status code for the disc (combination of IDE_DISC_* flags)
+ */
+int gdrom_disc_get_drive_status( gdrom_disc_t disc );
 
 /**
  * Native CD-ROM API - provided by drivers/cd_*.c

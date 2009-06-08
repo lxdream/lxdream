@@ -174,8 +174,10 @@ static void ide_save_state( FILE *f )
 
 static int ide_load_state( FILE *f )
 {
-    fread( &idereg, sizeof(idereg), 1, f );
-    fread( data_buffer, MAX_SECTOR_SIZE, 1, f );
+    if( fread( &idereg, sizeof(idereg), 1, f ) != 1 ||
+        fread( data_buffer, MAX_SECTOR_SIZE, 1, f ) != 1 ) {
+        return -1;
+    }
     return 0;
 }
 
@@ -441,14 +443,10 @@ void ide_write_command( uint8_t val ) {
 
 uint8_t ide_get_drive_status( void )
 {
-    if( gdrom_disc == NULL ) {
-        return IDE_DISC_NONE;
-    } else {
-        return gdrom_disc->drive_status(gdrom_disc);
-    }
+    return gdrom_disc_get_drive_status(gdrom_disc);
 }
 
-#define REQUIRE_DISC() if( gdrom_disc == NULL ) { ide_set_packet_result( PKT_ERR_NODISC ); return; }
+#define REQUIRE_DISC() if( gdrom_disc == NULL || gdrom_disc->disc_type == IDE_DISC_NONE  ) { ide_set_packet_result( PKT_ERR_NODISC ); return; }
 
 /**
  * Read the next sector from the active read, if any
@@ -509,7 +507,7 @@ void ide_packet_command( unsigned char *cmd )
             uint8_t status = ide_get_drive_status();
             /* FIXME: Refactor read_position to avoid this kind of crud */
             unsigned char tmp[16];
-            gdrom_disc->read_position( gdrom_disc, idereg.current_lba, tmp );
+            gdrom_disc_get_short_status( gdrom_disc, idereg.current_lba, tmp );
             
             length = cmd[4];
             if( lba+length > GDROM_DRIVE_STATUS_LENGTH )
@@ -563,10 +561,10 @@ void ide_packet_command( unsigned char *cmd )
     case PKT_CMD_READ_TOC:
         REQUIRE_DISC();
         length = (cmd[3]<<8) | cmd[4];
-        if( length > sizeof(struct gdrom_toc) )
-            length = sizeof(struct gdrom_toc);
+        if( length > GDROM_TOC_SIZE )
+            length = GDROM_TOC_SIZE;
 
-        status = gdrom_disc->read_toc( gdrom_disc, data_buffer );
+        status = gdrom_disc_get_toc( gdrom_disc, data_buffer );
         if( status != PKT_ERR_OK ) {
             ide_set_packet_result( status );
         } else {
@@ -578,7 +576,7 @@ void ide_packet_command( unsigned char *cmd )
         length = cmd[4];
         if( length > 6 )
             length = 6;
-        status = gdrom_disc->read_session( gdrom_disc, cmd[2], data_buffer );
+        status = gdrom_disc_get_session_info( gdrom_disc, cmd[2], data_buffer );
         if( status != PKT_ERR_OK ) {
             ide_set_packet_result( status );
         } else {
@@ -619,11 +617,7 @@ void ide_packet_command( unsigned char *cmd )
             if( length > 14 ) {
                 length = 14;
             }
-            gdrom_disc->read_position( gdrom_disc, idereg.current_lba, data_buffer );
-            data_buffer[0] = 0x00;
-            data_buffer[1] = 0x15; /* audio status ? */
-            data_buffer[2] = 0x00;
-            data_buffer[3] = 0x0E;
+            gdrom_disc_get_short_status( gdrom_disc, idereg.current_lba, data_buffer );
             ide_start_packet_read( length, 0 );
             break;
         }
