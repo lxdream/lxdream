@@ -50,6 +50,7 @@ struct osx_cdrom_drive {
 };
 
 static gboolean get_bsdname_for_iomedia( io_object_t iomedia, char *buf, int buflen );
+static gboolean get_boolean_property( io_object_t io, CFStringRef key, gboolean def );
 
 /***************** IOKit Callbacks ******************/
 
@@ -91,7 +92,8 @@ static void osx_cdrom_media_inserted( void *ref, io_iterator_t iterator )
         io_string_t iopath = "";
         IORegistryEntryGetPath( object, kIOServicePlane, iopath );
         if( drive != NULL && g_str_has_prefix(iopath, drive->ioservice_path ) &&
-                get_bsdname_for_iomedia(object, drive->media_path, sizeof(drive->media_path)) ) {
+            get_boolean_property(object, CFSTR("Whole"), TRUE) &&
+            get_bsdname_for_iomedia(object, drive->media_path, sizeof(drive->media_path)) ) {
             // A disc was inserted within the drive of interest
             if( drive->media_fh != -1 ) {
                 close(drive->media_fh);
@@ -142,6 +144,21 @@ static gboolean get_bsdname_for_iomedia( io_object_t iomedia, char *buf, int buf
     }
     return result;
 }
+
+/**
+ * Retrieve a boolean property from the io object, and return as a gboolean. If
+ * the key is not present, return def instead.
+ */
+static gboolean get_boolean_property( io_object_t io, CFStringRef key, gboolean def )
+{
+    gboolean result = def;
+    CFTypeRef ref = IORegistryEntryCreateCFProperty(io, key, kCFAllocatorDefault, 0 );
+    if( ref ) {
+    	result = CFBooleanGetValue(ref);
+        CFRelease(ref);
+    }
+    return result;
+ }
 
 static gboolean osx_cdrom_drive_get_name( io_object_t object, char *vendor, int vendor_len,
                                           char *product, int product_len )

@@ -21,20 +21,17 @@
 #include <string.h>
 #include <ctype.h>
 #include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include <netinet/in.h>
 
 #include "gdrom/gddriver.h"
 #include "gdrom/packet.h"
 #include "ecc.h"
-#include "bootstrap.h"
 
-static void gdrom_image_destroy( gdrom_disc_t disc );
+static gboolean gdrom_null_check_status( gdrom_disc_t disc );
 static gdrom_error_t gdrom_image_read_sector( gdrom_disc_t disc, uint32_t lba, int mode, 
                                               unsigned char *buf, uint32_t *readlength );
-static gdrom_error_t gdrom_image_read_toc( gdrom_disc_t disc, unsigned char *buf );
-static gdrom_error_t gdrom_image_read_session( gdrom_disc_t disc, int session, unsigned char *buf );
-static gdrom_error_t gdrom_image_read_position( gdrom_disc_t disc, uint32_t lba, unsigned char *buf );
-static int gdrom_image_drive_status( gdrom_disc_t disc );
 
 static uint8_t gdrom_default_sync[12] = { 0, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 0 };
 
@@ -44,7 +41,11 @@ static uint8_t gdrom_default_sync[12] = { 0, 255, 255, 255, 255, 255, 255, 255, 
 /* Data offset (from start of raw sector) by sector mode */
 static int gdrom_data_offset[] = { 16, 16, 16, 24, 24, 0, 8, 0, 0 };
 
-
+gdrom_image_class_t gdrom_image_classes[] = { &cdrom_device_class, 
+        &nrg_image_class, 
+        &cdi_image_class, 
+        &gdi_image_class, 
+        NULL };
 
 struct cdrom_sector_header {
     uint8_t sync[12];
@@ -53,96 +54,139 @@ struct cdrom_sector_header {
     uint8_t subhead[8]; // Mode-2 XA sectors only
 };
 
-/**
- * Initialize a gdrom_disc structure with the gdrom_image_* methods
- */
-void gdrom_image_init( gdrom_disc_t disc )
+gdrom_disc_t gdrom_disc_new( const gchar *filename, FILE *f )
 {
-    memset( disc, 0, sizeof(struct gdrom_disc) ); /* safety */
-    disc->read_sector = gdrom_image_read_sector;
-    disc->read_toc = gdrom_image_read_toc;
-    disc->read_session = gdrom_image_read_session;
-    disc->read_position = gdrom_image_read_position;
-    disc->drive_status = gdrom_image_drive_status;
-    disc->play_audio = NULL; /* not supported yet */
-    disc->run_time_slice = NULL; /* not needed */
-    disc->close = gdrom_image_destroy;
-}
-
-gdrom_disc_t gdrom_image_new( const gchar *filename, FILE *f )
-{
-    gdrom_image_t image = (gdrom_image_t)g_malloc0(sizeof(struct gdrom_image));
-    if( image == NULL ) {
+    gdrom_disc_t disc = (gdrom_disc_t)g_malloc0(sizeof(struct gdrom_disc));
+    if( disc == NULL ) {
         return NULL;
     }
-    image->disc_type = IDE_DISC_CDROMXA;
-    image->file = f;
-    gdrom_disc_t disc = (gdrom_disc_t)image;
-    gdrom_image_init(disc);
+    disc->disc_type = IDE_DISC_NONE;
+    disc->file = f;
     if( filename == NULL ) {
         disc->name = NULL;
     } else {
         disc->name = g_strdup(filename);
     }
 
+	disc->check_status = gdrom_null_check_status;
+	disc->destroy = gdrom_disc_destroy;
     return disc;
 }
 
-static void gdrom_image_destroy( gdrom_disc_t disc )
+void gdrom_disc_destroy( gdrom_disc_t disc, gboolean close_fh )
 {
     int i;
     FILE *lastfile = NULL;
-    gdrom_image_t img = (gdrom_image_t)disc;
-    if( img->file != NULL ) {
-        fclose(img->file);
-        img->file = NULL;
+    if( disc->file != NULL ) {
+    	if( close_fh ) {
+        	fclose(disc->file);
+    	}
+        disc->file = NULL;
     }
-    for( i=0; i<img->track_count; i++ ) {
-        if( img->track[i].file != NULL && img->track[i].file != lastfile ) {
-            lastfile = img->track[i].file;
+    for( i=0; i<disc->track_count; i++ ) {
+        if( disc->track[i].file != NULL && disc->track[i].file != lastfile ) {
+            lastfile = disc->track[i].file;
+            /* Track files (if any) are closed regardless of the value of close_fh */
             fclose(lastfile);
-            img->track[i].file = NULL;
+            disc->track[i].file = NULL;
         }
     }
     if( disc->name != NULL ) {
         g_free( (gpointer)disc->name );
         disc->name = NULL;
     }
-    free( disc );
-}
-
-void gdrom_image_destroy_no_close( gdrom_disc_t disc )
-{
-    int i;
-    FILE *lastfile = NULL;
-    gdrom_image_t img = (gdrom_image_t)disc;
-    if( img->file != NULL ) {
-        img->file = NULL;
-    }
-    for( i=0; i<img->track_count; i++ ) {
-        if( img->track[i].file != NULL && img->track[i].file != lastfile ) {
-            lastfile = img->track[i].file;
-            fclose(lastfile);
-            img->track[i].file = NULL;
-        }
-    }
-    if( disc->name != NULL ) {
-        g_free( (gpointer)disc->name );
-        disc->name = NULL;
+    if( disc->display_name != NULL ) {
+    	g_free( (gpointer)disc->name );
+    	disc->display_name = NULL;
     }
     free( disc );
 }
 
-int gdrom_image_get_track_by_lba( gdrom_image_t image, uint32_t lba )
+/**
+ * Construct a new gdrom_disc_t and initalize the vtable to the gdrom image
+ * default functions.
+ */
+gdrom_disc_t gdrom_image_new( const gchar *filename, FILE *f )
 {
+	gdrom_disc_t disc = gdrom_disc_new( filename, f );
+	if( disc != NULL ) {
+	    disc->read_sector = gdrom_image_read_sector;
+	    disc->play_audio = NULL; /* not supported yet */
+	    disc->run_time_slice = NULL; /* not needed */
+	}
+}
+
+
+gdrom_disc_t gdrom_image_open( const gchar *inFilename )
+{
+    const gchar *filename = inFilename;
+    const gchar *ext = strrchr(filename, '.');
+    gdrom_disc_t disc = NULL;
+    int fd;
+    FILE *f;
     int i;
-    for( i=0; i<image->track_count; i++ ) {
-        if( image->track[i].lba <= lba && 
-                lba < (image->track[i].lba + image->track[i].sector_count) ) {
-            return i+1;
+    gdrom_image_class_t extclz = NULL;
+
+    // Check for a url-style filename.
+    char *lizard_lips = strstr( filename, "://" );
+    if( lizard_lips != NULL ) {
+        gchar *path = lizard_lips + 3;
+        int method_len = (lizard_lips-filename);
+        gchar method[method_len + 1];
+        memcpy( method, filename, method_len );
+        method[method_len] = '\0';
+
+        if( strcasecmp( method, "file" ) == 0 ) {
+            filename = path;
+        } else if( strcasecmp( method, "dvd" ) == 0 ||
+                strcasecmp( method, "cd" ) == 0 ||
+                strcasecmp( method, "cdrom" ) ) {
+            return cdrom_open_device( method, path );
+        } else {
+            ERROR( "Unrecognized URL method '%s' in filename '%s'", method, filename );
+            return NULL;
         }
     }
-    return -1;
+
+    fd = open( filename, O_RDONLY | O_NONBLOCK );
+    if( fd == -1 ) {
+        return NULL;
+    }
+
+    f = fdopen(fd, "ro");
+
+
+    /* try extensions */
+    if( ext != NULL ) {
+        ext++; /* Skip the '.' */
+        for( i=0; gdrom_image_classes[i] != NULL; i++ ) {
+            if( gdrom_image_classes[i]->extension != NULL &&
+                    strcasecmp( gdrom_image_classes[i]->extension, ext ) == 0 ) {
+                extclz = gdrom_image_classes[i];
+                if( extclz->is_valid_file(f) ) {
+                    disc = extclz->open_image_file(filename, f);
+                    if( disc != NULL )
+                        return disc;
+                }
+                break;
+            }
+        }
+    }
+
+    /* Okay, fall back to magic */
+    gboolean recognized = FALSE;
+    for( i=0; gdrom_image_classes[i] != NULL; i++ ) {
+        if( gdrom_image_classes[i] != extclz &&
+                gdrom_image_classes[i]->is_valid_file(f) ) {
+            recognized = TRUE;
+            disc = gdrom_image_classes[i]->open_image_file(filename, f);
+            if( disc != NULL )
+                return disc;
+        }
+    }
+
+    fclose(f);
+    return NULL;
 }
 
 /**
@@ -247,6 +291,15 @@ void gdrom_extract_raw_data_sector( char *sector_data, int channels, unsigned ch
 }
 
 /**
+ * Default check media status that does nothing and always returns
+ * false (unchanged).
+ */
+static gboolean gdrom_null_check_status( gdrom_disc_t disc )
+{
+	return FALSE;
+}
+
+/**
  * Read a single sector from a disc image. If you thought this would be simple, 
  * I have just one thing to say to you: Bwahahahahahahahah.
  *
@@ -264,23 +317,22 @@ void gdrom_extract_raw_data_sector( char *sector_data, int channels, unsigned ch
 static gdrom_error_t gdrom_image_read_sector( gdrom_disc_t disc, uint32_t lba,
                                               int mode, unsigned char *buf, uint32_t *length )
 {
-    gdrom_image_t image = (gdrom_image_t)disc;
     struct cdrom_sector_header secthead;
     int file_offset, read_len, track_no;
 
     FILE *f;
 
-    track_no = gdrom_image_get_track_by_lba( image, lba );
+    track_no = gdrom_disc_get_track_by_lba( disc, lba );
     if( track_no == -1 ) {
         return PKT_ERR_BADREAD;
     }
-    struct gdrom_track *track = &image->track[track_no-1];
+    struct gdrom_track *track = &disc->track[track_no-1];
     file_offset = track->offset + track->sector_size * (lba - track->lba);
     read_len = track->sector_size;
     if( track->file != NULL ) {
         f = track->file;
     } else {
-        f = image->file;
+        f = disc->file;
     }
 
     /* First figure out what the real sector mode is for raw/semiraw sectors */
@@ -387,142 +439,3 @@ static gdrom_error_t gdrom_image_read_sector( gdrom_disc_t disc, uint32_t lba,
     return PKT_ERR_OK;
 }
 
-static gdrom_error_t gdrom_image_read_toc( gdrom_disc_t disc, unsigned char *buf ) 
-{
-    gdrom_image_t image = (gdrom_image_t)disc;
-    struct gdrom_toc *toc = (struct gdrom_toc *)buf;
-    int i;
-
-    for( i=0; i<image->track_count; i++ ) {
-        toc->track[i] = htonl( image->track[i].lba ) | image->track[i].flags;
-    }
-    toc->first = 0x0100 | image->track[0].flags;
-    toc->last = (image->track_count<<8) | image->track[i-1].flags;
-    toc->leadout = htonl(image->track[i-1].lba + image->track[i-1].sector_count) |
-    image->track[i-1].flags;
-    for( ;i<99; i++ )
-        toc->track[i] = 0xFFFFFFFF;
-    return PKT_ERR_OK;
-}
-
-static gdrom_error_t gdrom_image_read_session( gdrom_disc_t disc, int session, unsigned char *buf )
-{
-    gdrom_image_t image = (gdrom_image_t)disc;
-    struct gdrom_track *last_track = &image->track[image->track_count-1];
-    unsigned int end_of_disc = last_track->lba + last_track->sector_count;
-    int i;
-    buf[0] = 0x01; /* Disc status? */
-    buf[1] = 0;
-
-    if( session == 0 ) {
-        buf[2] = last_track->session+1; /* last session */
-        buf[3] = (end_of_disc >> 16) & 0xFF;
-        buf[4] = (end_of_disc >> 8) & 0xFF;
-        buf[5] = end_of_disc & 0xFF;
-        return PKT_ERR_OK;
-    } else {
-        session--;
-        for( i=0; i<image->track_count; i++ ) {
-            if( image->track[i].session == session ) {
-                buf[2] = i+1; /* first track of session */
-                buf[3] = (image->track[i].lba >> 16) & 0xFF;
-                buf[4] = (image->track[i].lba >> 8) & 0xFF;
-                buf[5] = image->track[i].lba & 0xFF;
-                return PKT_ERR_OK;
-            }
-        }
-        return PKT_ERR_BADFIELD; /* No such session */
-    }
-}
-
-static gdrom_error_t gdrom_image_read_position( gdrom_disc_t disc, uint32_t lba, unsigned char *buf )
-{
-    gdrom_image_t image = (gdrom_image_t)disc;
-    int track_no = gdrom_image_get_track_by_lba( image, lba );
-    if( track_no == -1 ) {
-        track_no = 1;
-        lba = 150;
-    }
-    struct gdrom_track *track = &image->track[track_no-1];
-    uint32_t offset = lba - track->lba;
-    buf[4] = track->flags;
-    buf[5] = track_no;
-    buf[6] = 0x01; /* ?? */
-    buf[7] = (offset >> 16) & 0xFF;
-    buf[8] = (offset >> 8) & 0xFF;
-    buf[9] = offset & 0xFF;
-    buf[10] = 0;
-    buf[11] = (lba >> 16) & 0xFF;
-    buf[12] = (lba >> 8) & 0xFF;
-    buf[13] = lba & 0xFF;
-    return PKT_ERR_OK;
-}
-
-static int gdrom_image_drive_status( gdrom_disc_t disc ) 
-{
-    gdrom_image_t image = (gdrom_image_t)disc;
-    if( image->disc_type == IDE_DISC_NONE ) {
-        return IDE_DISC_NONE;
-    } else {
-        return image->disc_type | IDE_DISC_READY;
-    }
-}
-
-gdrom_device_t gdrom_device_new( const gchar *name, const gchar *dev_name )
-{
-    struct gdrom_device *dev = g_malloc0( sizeof(struct gdrom_device) );
-    dev->name = g_strdup(name);
-    dev->device_name = g_strdup(dev_name);
-    return dev;
-}
-
-void gdrom_device_destroy( gdrom_device_t dev )
-{
-    if( dev->name != NULL ) {
-        g_free( dev->name );
-        dev->name = NULL;
-    }
-    if( dev->device_name != NULL ) {
-        g_free( dev->device_name );
-        dev->device_name = NULL;
-    }
-    g_free( dev );
-}
-
-/**
- * Check the disc for a useable DC bootstrap, and update the disc
- * with the title accordingly.
- * @return TRUE if we found a bootstrap, otherwise FALSE.
- */
-gboolean gdrom_image_read_info( gdrom_disc_t d ) {
-    gdrom_image_t disc = (gdrom_image_t)d;
-    if( disc->track_count > 0 ) {
-        /* Find the first data track of the last session */
-        int last_session = disc->track[disc->track_count-1].session;
-        int i, boot_track = -1;
-        for( i=disc->track_count-1; i>=0 && disc->track[i].session == last_session; i-- ) {
-            if( disc->track[i].flags & TRACK_DATA ) {
-                boot_track = i;
-            }
-        }
-        if( boot_track != -1 ) {
-            unsigned char boot_sector[MAX_SECTOR_SIZE];
-            uint32_t length = sizeof(boot_sector);
-            if( d->read_sector( d, disc->track[boot_track].lba, 0x28,
-                    boot_sector, &length ) == PKT_ERR_OK ) {
-                if( memcmp( boot_sector, "SEGA SEGAKATANA SEGA ENTERPRISES", 32) == 0 ) {
-                    /* Got magic */
-                    memcpy( d->title, boot_sector+128, 128 );
-                    for( i=127; i>=0; i-- ) {
-                        if( !isspace(d->title[i]) ) 
-                            break;
-                    }
-                    d->title[i+1] = '\0';
-                }
-                bootstrap_dump(boot_sector, FALSE);
-                return TRUE;
-            }
-        }
-    }
-    return FALSE;
-}

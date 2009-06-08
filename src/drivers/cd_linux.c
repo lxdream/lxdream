@@ -1,7 +1,7 @@
 /**
  * $Id$
  *
- * Linux cd-rom device driver. 
+ * Linux cd-rom device driver. Implemented using the SCSI transport.
  *
  * Copyright (c) 2005 Nathan Keynes.
  *
@@ -31,35 +31,31 @@
 #include "gdrom/packet.h"
 #include "dream.h"
 
-#define MAXTOCENTRIES 600  /* This is a fairly generous overestimate really */
-#define MAXTOCSIZE 4 + (MAXTOCENTRIES*11)
-#define MAX_SECTORS_PER_CALL 1
-
-static uint32_t inline lbatomsf( uint32_t lba ) {
-    union cdrom_addr addr;
-    lba = lba + CD_MSF_OFFSET;
-    addr.msf.frame = lba % CD_FRAMES;
-    int seconds = lba / CD_FRAMES;
-    addr.msf.second = seconds % CD_SECS;
-    addr.msf.minute = seconds / CD_SECS;
-    return addr.lba;
-}
-
-#define LBATOMSF( lba ) lbatomsf(lba)
-
-
-static gboolean linux_image_is_valid( FILE *f );
+static gboolean linux_is_cdrom_device( FILE *f );
 static gdrom_disc_t linux_open_device( const gchar *filename, FILE *f );
-static gdrom_error_t linux_read_disc_toc( gdrom_image_t disc );
-static gdrom_error_t linux_identify_drive( int fd, char *buf, int buflen );
-static gdrom_error_t linux_read_sector( gdrom_disc_t disc, uint32_t sector,
-                                        int mode, unsigned char *buf, uint32_t *length );
-static gdrom_error_t linux_send_command( int fd, char *cmd, unsigned char *buffer, uint32_t *buflen,
-                                         int direction );
-static int linux_drive_status( gdrom_disc_t disc );
+static gdrom_error_t linux_packet_read( gdrom_disc_t disc, unsigned char *cmd, 
+                                        unsigned char *buf, uint32_t *buflen );
+static gdrom_error_t linux_packet_cmd( gdrom_disc_t disc, unsigned char *cmd ); 
+static gboolean linux_media_changed( gdrom_disc_t disc );
+
 
 struct gdrom_image_class cdrom_device_class = { "Linux", NULL,
-        linux_image_is_valid, linux_open_device };
+        linux_is_cdrom_device, linux_open_device };
+        
+static struct gdrom_scsi_transport linux_scsi_transport = {
+	linux_packet_read, linux_packet_cmd, linux_media_changed };
+        
+static gboolean linux_is_cdrom_device( FILE *f )
+{
+    int caps = ioctl(fileno(f), CDROM_GET_CAPABILITY);
+    if( caps == -1 ) {
+        /* Quick check that this is really a CD device */
+        return FALSE;
+    } else {
+    	return TRUE;
+    }
+}		
+
 GList *cdrom_get_native_devices(void)
 {
     GList *list = NULL;
@@ -76,11 +72,17 @@ GList *cdrom_get_native_devices(void)
             int caps = ioctl(fd, CDROM_GET_CAPABILITY);
             if( caps != -1 ) {
                 /* Appears to support CDROM functions */
-                char buf[32];
-                linux_identify_drive( fd, buf, sizeof(buf) );
-                list = g_list_append( list, gdrom_device_new(ent->fs_spec, buf));
+                FILE *f = fdopen(fd,"r");
+                gdrom_disc_t disc = gdrom_scsi_disc_new(ent->fs_spec, f, &linux_scsi_transport);
+                if( disc != NULL ) {
+                	list = g_list_append( list, gdrom_device_new(disc->name, disc->display_name) );
+                	disc->destroy(disc,TRUE);
+                }  else {
+			close(fd);
+                }
+            } else {
+            	close(fd);
             }
-            close(fd);
         }
     }
     return list;
@@ -91,167 +93,25 @@ gdrom_disc_t cdrom_open_device( const gchar *method, const gchar *path )
     return NULL;
 }
 
-static gboolean linux_image_is_valid( FILE *f )
-{
-    struct stat st;
-    struct cdrom_tochdr tochdr;
-
-    if( fstat(fileno(f), &st) == -1 ) {
-        return FALSE; /* can't stat device? */
-    }
-    if( !S_ISBLK(st.st_mode) ) {
-        return FALSE; /* Not a block device */
-    }
-
-    int caps = ioctl(fileno(f), CDROM_GET_CAPABILITY);
-    if( caps == -1 ) {
-        /* Quick check that this is really a CD device */
-        return FALSE;
-    }
-
-    return TRUE;
-}
-
 static gdrom_disc_t linux_open_device( const gchar *filename, FILE *f ) 
 {
-    gdrom_disc_t disc;
+	if( !linux_is_cdrom_device(f) ) {
+		return NULL;
+	}
 
-    disc = gdrom_image_new(filename, f);
-    if( disc == NULL ) {
-        ERROR("Unable to allocate memory!");
-        return NULL;
-    }
-
-    int status = ioctl(fileno(f), CDROM_DRIVE_STATUS, CDSL_CURRENT);
-    if( status == CDS_DISC_OK ) {
-        status = linux_read_disc_toc( (gdrom_image_t)disc );
-        if( status != 0 ) {
-            gdrom_image_destroy_no_close(disc);
-            if( status == 0xFFFF ) {
-                ERROR("Unable to load disc table of contents (%s)", strerror(errno));
-            } else {
-                ERROR("Unable to load disc table of contents (sense %d,%d)",
-                    status &0xFF, status >> 8 );
-            }
-            return NULL;
-        }
-    } else {
-        ((gdrom_image_t)disc)->disc_type = IDE_DISC_NONE;
-    }
-    disc->read_sector = linux_read_sector;
-    disc->drive_status = linux_drive_status;
-    return disc;
+    return gdrom_scsi_disc_new(filename, f, &linux_scsi_transport);
 }
 
-static int linux_drive_status( gdrom_disc_t disc )
+static gboolean linux_media_changed( gdrom_disc_t disc )
 {
-    int fd = fileno(((gdrom_image_t)disc)->file);
+    int fd = fileno(disc->file);
     int status = ioctl(fd, CDROM_DRIVE_STATUS, CDSL_CURRENT);
     if( status == CDS_DISC_OK ) {
         status = ioctl(fd, CDROM_MEDIA_CHANGED, CDSL_CURRENT);
-        if( status != 0 ) {
-            linux_read_disc_toc( (gdrom_image_t)disc);
-        }
-        return ((gdrom_image_t)disc)->disc_type | IDE_DISC_READY;
+        return status == 0 ? FALSE : TRUE;
     } else {
-        return IDE_DISC_NONE;
+    	return disc->disc_type == IDE_DISC_NONE ? FALSE : TRUE;
     }
-}
-/**
- * Read the full table of contents into the disc from the device.
- */
-static gdrom_error_t linux_read_disc_toc( gdrom_image_t disc )
-{
-    int fd = fileno(disc->file);
-    unsigned char buf[MAXTOCSIZE];
-    uint32_t buflen = sizeof(buf);
-    char cmd[12] = { 0x43, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-
-    cmd[7] = (sizeof(buf))>>8;
-    cmd[8] = (sizeof(buf))&0xFF;
-    memset( buf, 0, sizeof(buf) );
-    gdrom_error_t status = linux_send_command( fd, cmd, buf, &buflen, CGC_DATA_READ );
-    if( status != 0 ) {
-        return status;
-    }
-    mmc_parse_toc2( disc, buf );
-    return 0;
-}
-
-gdrom_error_t linux_play_audio( gdrom_disc_t disc, uint32_t lba, uint32_t endlba )
-{
-    int fd = fileno( ((gdrom_image_t)disc)->file );
-    uint32_t real_sector = lba - CD_MSF_OFFSET;
-    uint32_t length = endlba - lba;
-    uint32_t buflen = 0;
-    char cmd[12] = { 0xA5, 0,0,0, 0,0,0,0, 0,0,0,0 };
-    cmd[2] = (real_sector >> 24) & 0xFF;
-    cmd[3] = (real_sector >> 16) & 0xFF;
-    cmd[4] = (real_sector >> 8) & 0xFF;
-    cmd[5] = real_sector & 0xFF;
-    cmd[6] = (length >> 24) & 0xFF;
-    cmd[7] = (length >> 16) & 0xFF;
-    cmd[8] = (length >> 8) & 0xFF;
-    cmd[9] = length & 0xFF;
-
-    return linux_send_command( fd, cmd, NULL, &buflen, CGC_DATA_NONE );
-}
-
-gdrom_error_t linux_stop_audio( gdrom_disc_t disc )
-{
-    int fd = fileno( ((gdrom_image_t)disc)->file );
-    uint32_t buflen = 0;
-    char cmd[12] = {0x4E,0,0,0, 0,0,0,0, 0,0,0,0};
-    return linux_send_command( fd, cmd, NULL, &buflen, CGC_DATA_NONE );
-}
-
-static char *trim( char *src )
-{
-    char *p = src + strlen(src)-1;
-    while( isspace(*src) ) 
-        src++;
-    while( p >= src && isspace(*p) )
-        *p-- = '\0';
-    return src;
-}
-static gdrom_error_t linux_identify_drive( int fd, char *buf, int buflen )
-{
-    unsigned char ident[256];
-    uint32_t identlen = 256;
-    char cmd[12] = {0x12,0,0,0, 0xFF,0,0,0, 0,0,0,0};
-    gdrom_error_t status = 
-        linux_send_command( fd, cmd, ident, &identlen, CGC_DATA_READ );
-    if( status == 0 ) {
-        char vendorid[9];
-        char productid[17];
-        char productrev[5];
-        memcpy( vendorid, ident+8, 8 ); vendorid[8] = 0;
-        memcpy( productid, ident+16, 16 ); productid[16] = 0;
-        memcpy( productrev, ident+32, 4 ); productrev[4] = 0;
-        
-        snprintf( buf, buflen, "%.8s %.16s %.4s", trim(vendorid), 
-                  trim(productid), trim(productrev) );
-    }
-    return status;
-}
-
-static gdrom_error_t linux_read_sector( gdrom_disc_t disc, uint32_t sector,
-                                        int mode, unsigned char *buf, uint32_t *length )
-{
-    gdrom_image_t image = (gdrom_image_t)disc;
-    int fd = fileno(image->file);
-    uint32_t real_sector = sector - CD_MSF_OFFSET;
-    uint32_t sector_size = MAX_SECTOR_SIZE;
-    char cmd[12];
-
-    mmc_make_read_cd_cmd( cmd, real_sector, mode );
-
-    gdrom_error_t status = linux_send_command( fd, cmd, buf, &sector_size, CGC_DATA_READ );
-    if( status != 0 ) {
-        return status;
-    }
-    *length = 2048;
-    return 0;
 }
 
 /**
@@ -259,9 +119,10 @@ static gdrom_error_t linux_read_sector( gdrom_disc_t disc, uint32_t sector,
  * @return 0 on success, -1 on an operating system error, or a sense error
  * code on a device error.
  */
-static gdrom_error_t linux_send_command( int fd, char *cmd, unsigned char *buffer, uint32_t *buflen,
-                                         int direction )
+static gdrom_error_t linux_packet_read( gdrom_disc_t disc, unsigned char *cmd, 
+                                        unsigned char *buffer, uint32_t *buflen )
 {
+    int fd = fileno(disc->file);
     struct request_sense sense;
     struct cdrom_generic_command cgc;
 
@@ -271,7 +132,7 @@ static gdrom_error_t linux_send_command( int fd, char *cmd, unsigned char *buffe
     cgc.buffer = buffer;
     cgc.buflen = *buflen;
     cgc.sense = &sense;
-    cgc.data_direction = direction;
+    cgc.data_direction = CGC_DATA_READ;
 
     if( ioctl(fd, CDROM_SEND_PACKET, &cgc) < 0 ) {
         if( sense.sense_key == 0 ) {
@@ -282,6 +143,32 @@ static gdrom_error_t linux_send_command( int fd, char *cmd, unsigned char *buffe
         }
     } else {
         *buflen = cgc.buflen;
+        return 0;
+    }
+}
+
+static gdrom_error_t linux_packet_cmd( gdrom_disc_t disc, unsigned char *cmd )
+{
+    int fd = fileno(disc->file);
+    struct request_sense sense;
+    struct cdrom_generic_command cgc;
+
+    memset( &cgc, 0, sizeof(cgc) );
+    memset( &sense, 0, sizeof(sense) );
+    memcpy( cgc.cmd, cmd, 12 );
+    cgc.buffer = 0;
+    cgc.buflen = 0;
+    cgc.sense = &sense;
+    cgc.data_direction = CGC_DATA_NONE;
+
+    if( ioctl(fd, CDROM_SEND_PACKET, &cgc) < 0 ) {
+        if( sense.sense_key == 0 ) {
+            return -1; 
+        } else {
+            /* TODO: Map newer codes back to the ones used by the gd-rom. */
+            return sense.sense_key | (sense.asc<<8);
+        }
+    } else {
         return 0;
     }
 }

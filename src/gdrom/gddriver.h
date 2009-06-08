@@ -32,14 +32,10 @@ extern "C" {
 
 #define MAX_SECTOR_SIZE 2352
 
+#define CD_MSF_START 150 /* MSF numbering starts after the initial pregap */
 #define CD_FRAMES_PER_SECOND 75
 #define CD_SECONDS_PER_MINUTE 60
 #define CD_FRAMES_PER_MINUTE (CD_FRAMES_PER_SECOND*CD_SECONDS_PER_MINUTE)
-
-struct gdrom_toc {
-    uint32_t track[99];
-    uint32_t first, last, leadout;
-};
 
 #define GDROM_PREGAP 150  /* Sectors */
 
@@ -75,8 +71,8 @@ typedef enum {
  */
 #define IDE_DISC_READY 0x01 /* ored with above */
 #define IDE_DISC_IDLE  0x02 /* ie spun-down */
-#define IDE_DISC_NONE  0x06
 
+#define IDE_DISC_NONE    0x06
 #define IDE_DISC_AUDIO   0x00
 #define IDE_DISC_CDROM   0x10
 #define IDE_DISC_CDROMXA 0x20
@@ -94,11 +90,30 @@ typedef struct gdrom_track {
     uint32_t lba;         /* start sector address */
     uint32_t sector_size; /* For convenience, determined by mode */
     uint32_t sector_count;
-    uint32_t offset; /* File offset of start of track - image files only */
-    FILE *file;
+    uint32_t offset;      /* File offset of start of track (image files only) */
+    FILE *file;           /* Per-track file handle (if any) */
 } *gdrom_track_t;
 
 struct gdrom_disc {
+    int disc_type;     /* One of the IDE_DISC_* flags */
+    const gchar *name; /* Device name / Image filename (owned) */
+    const gchar *display_name; /* User-friendly device name, if any (owned) */
+    gchar mcn[14]; /* Media catalogue number */
+    char title[129]; /* Disc title (if any) from bootstrap */
+    int track_count;
+    struct gdrom_track track[99];
+    FILE *file;       /* Image file / device handle */
+    void *impl_data; /* Implementation private data */
+
+	/* Check for media change. If the media cannot change (ie image file)
+	 * or is notified asynchonously, this should be a no-op. In the event of
+	 * a change, this function should update the structure according to the
+	 * new media (including TOC), and return TRUE.
+	 * @return TRUE if the media has changed since the last check, otherwise
+	 * FALSE.
+	 */
+	gboolean (*check_status)( struct gdrom_disc *disc );
+
     /**
      * Read a single sector from the disc at the specified logical address.
      * @param disc pointer to the disc structure
@@ -113,45 +128,14 @@ struct gdrom_disc {
             unsigned char *buf, uint32_t *length );
 
     /**
-     * Read the TOC from the disc and write it into the specified buffer.
-     * The method is responsible for returning the data in gd-rom
-     * format.
-     * @param disc pointer to the disc structure
-     * @param buf buffer to receive data (0x198 bytes long)
-     */
-    gdrom_error_t (*read_toc)(struct gdrom_disc *disc, unsigned char *buf);
-
-    /**
-     * Read the information for the specified sector and return it in the
-     * supplied buffer. 
-     * @param disc pointer to the disc structure
-     * @param session of interest. If 0, return end of disc information.
-     * @param buf buffer to receive data (6 bytes)
-     */
-    gdrom_error_t (*read_session)(struct gdrom_disc *disc, int session, unsigned char *buf);
-
-    /**
-     * Read the position information (subchannel) for the specified sector
-     * and return it in the supplied buffer. This method does not need to
-     * write the first 4 bytes of the buffer.
-     * @param disc pointer to the disc structure
-     * @param lba sector to get position information for
-     * @param buf buffer to receive data (14 bytes)
-     */
-    gdrom_error_t (*read_position)(struct gdrom_disc *disc, uint32_t lba, unsigned char *buf);
-
-    /**
-     * Return the current disc status, expressed as a combination of the 
-     * IDE_DISC_* flags above.
-     * @param disc pointer to the disc structure
-     * @return an integer status value.
-     */
-    int (*drive_status)(struct gdrom_disc *disc);
-
-    /**
      * Begin playing audio from the given lba address on the disc.
      */
     gdrom_error_t (*play_audio)(struct gdrom_disc *disc, uint32_t lba, uint32_t endlba);
+
+	/**
+	 * Stop audio playback
+	 */
+	gdrom_error_t (*stop_audio)(struct gdrom_disc *disc);
 
     /**
      * Executed once per time slice to perform house-keeping operations 
@@ -159,24 +143,70 @@ struct gdrom_disc {
      */
     uint32_t (*run_time_slice)( struct gdrom_disc *disc, uint32_t nanosecs );
 
-    /**
-     * Close the disc and release any storage or resources allocated including
-     * the disc structure itself.
-     */
-    void (*close)( struct gdrom_disc *disc );
-    const gchar *name; /* Device name / Image filename */
-    char title[129]; /* Disc title (if any) */
+	/**
+	 * Release all memory and system resources, including the gdrom_disc itself.
+	 * (implicitly calls close() if not already closed. 
+	 * @param disc The disc to destroy
+	 * @param close_fh if TRUE, close the main file/device, otherwise leave open.
+	 * This is mainly used when the handle will be immediately reused.
+	 */
+    void (*destroy)( struct gdrom_disc *disc, gboolean close_fh );
 };
 
-typedef struct gdrom_image {
-    struct gdrom_disc disc;
-    int disc_type;
-    int track_count;
-    struct gdrom_track track[99];
-    gchar mcn[14]; /* Media catalogue number */
-    FILE *file; /* Open file stream */
-    void *private; /* image private data */
-} *gdrom_image_t;
+/**
+ * Low-level SCSI transport provided to the main SCSI/MMC driver. When used
+ * this will be set as the disc->impl_data field.
+ * Note: For symmetry there should be a packet_write variant, but we don't
+ * currently need it for anything. YAGNI, etc.
+ */
+typedef struct gdrom_scsi_transport {
+	/* Execute a read command (ie a command that returns a block of data in
+	 * response, not necessarily a CD read). 
+	 * @param scsi The disc to execute the command
+	 * @param cmd  The 12-byte command packet
+	 * @param buf  The buffer to receive the read results
+	 * @param length On entry, the size of buf. Modified on exit to the number
+	 *        of bytes actually read.
+	 * @return PKT_ERR_OK on success, otherwise the host error code.
+	 */
+	gdrom_error_t (*packet_read)( struct gdrom_disc *disc,
+	                              unsigned char *cmd, unsigned char *buf,
+	                              unsigned int *length );
+	                              
+	/* Execute a generic command that does not write or return any data.
+	 * (eg play audio).
+	 * @param scsi The disc to execute the command
+	 * @param cmd  The 12-byte command packet
+	 * @return PKT_ERR_OK on success, otherwise the host error code.
+	 */
+	gdrom_error_t (*packet_cmd)( struct gdrom_disc *disc,
+	                             unsigned char *cmd );
+	
+	/* Return TRUE if the media has changed since the last call, otherwise
+	 * FALSE. This method is used to implement the disc-level check_status
+	 * and should have no side-effects.
+	 */
+	gboolean (*media_changed)( struct gdrom_disc *disc );
+} *gdrom_scsi_transport_t;
+
+/**
+ * Allocate a new gdrom_disc_t and initialize the filename and file fields.
+ * The disc is otherwise uninitialized - this is an internal method for use 
+ * by the concrete implementations.
+ */
+gdrom_disc_t gdrom_disc_new(const gchar *filename, FILE *f);
+
+/**
+ * Construct a new SCSI/MMC disc using the supplied transport implementation.
+ */
+gdrom_disc_t gdrom_scsi_disc_new(const gchar *filename, FILE *f, gdrom_scsi_transport_t transport);
+
+/**
+ * Construct a new image file using the default methods.
+ */
+gdrom_disc_t gdrom_image_new( const gchar *filename, FILE *f );
+
+#define SCSI_TRANSPORT(disc)  ((gdrom_scsi_transport_t)disc->impl_data)
 
 /**
  *
@@ -194,27 +224,14 @@ extern struct gdrom_image_class gdi_image_class;
 extern struct gdrom_image_class cdrom_device_class;
 
 /**
- * Construct a new image file using the default methods.
- */
-gdrom_disc_t gdrom_image_new( const gchar *filename, FILE *f );
-
-/**
- * Destroy an image data structure without closing the file
- * (Intended for use from image loaders only)
- */
-void gdrom_image_destroy_no_close( gdrom_disc_t d );
-
-/**
  * Determine the track number containing the specified sector by lba.
  */
-int gdrom_image_get_track_by_lba( gdrom_image_t image, uint32_t lba );
+int gdrom_disc_get_track_by_lba( gdrom_disc_t image, uint32_t lba );
 
 /**
- * Given a base filename (eg for a .cue file), generate the path for the given
- * find_name relative to the original file. 
- * @return a newly allocated string.
+ * Default disc destroy method, for chaining from subclasses
  */
-gchar *gdrom_get_relative_filename( const gchar *base_name, const gchar *find_name );
+void gdrom_disc_destroy( gdrom_disc_t disc, gboolean close_fh );
 
 gdrom_device_t gdrom_device_new( const gchar *name, const gchar *dev_name );
 
@@ -230,13 +247,10 @@ void gdrom_device_destroy( gdrom_device_t dev );
 void gdrom_extract_raw_data_sector( char *sector_data, int mode, unsigned char *buf, uint32_t *length );
 
 /**
- * Parse a format 2 TOC, and write the results into the supplied disc structure.
+ * Check the disc for a useable DC bootstrap, and update the disc
+ * with the title accordingly.
+ * @return TRUE if we found a bootstrap, otherwise FALSE.
  */
-void mmc_parse_toc2( gdrom_image_t disc, unsigned char *buf );
-
-/**
- * Construct a Read CD command for the given sector + mode
- */
-void mmc_make_read_cd_cmd( char *cmd, uint32_t sector, int mode );
+gboolean gdrom_disc_read_title( gdrom_disc_t disc ); 
 
 #endif /* !lxdream_gddriver_H */
