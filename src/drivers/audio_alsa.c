@@ -31,13 +31,13 @@ static snd_pcm_t *_soundDevice = NULL;
 static int frame_bytes;
 
 
-struct lxdream_config_entry alsa_config[] = {
+static struct lxdream_config_entry alsa_config[] = {
         {"device", N_("Audio output device"), CONFIG_TYPE_FILE, "default"},
         {NULL, CONFIG_TYPE_NONE}
 };
 
 
-gboolean audio_alsa_init(  )
+static gboolean audio_alsa_init(  )
 {
     int err;
     snd_pcm_hw_params_t *hw_params;
@@ -156,7 +156,7 @@ gboolean audio_alsa_init(  )
     return TRUE;
 }
 
-gboolean audio_alsa_process_buffer( audio_buffer_t buffer )
+static gboolean audio_alsa_process_buffer( audio_buffer_t buffer )
 {
     int err;
     int length;
@@ -175,16 +175,17 @@ gboolean audio_alsa_process_buffer( audio_buffer_t buffer )
 }
 
 
-gboolean audio_alsa_shutdown(  )
+static gboolean audio_alsa_shutdown(  )
 {
     return TRUE;
 }
 
 
 
-struct audio_driver audio_alsa_driver = { 
+static struct audio_driver audio_alsa_driver = { 
         "alsa",
         N_("Linux ALSA system driver"),
+        40,
         DEFAULT_SAMPLE_RATE,
         DEFAULT_SAMPLE_FORMAT,
         audio_alsa_init,
@@ -193,3 +194,12 @@ struct audio_driver audio_alsa_driver = {
         NULL,
         audio_alsa_shutdown
 };
+
+static gboolean audio_alsa_static_init( void )
+{
+    lxdream_register_config_group( "alsa", alsa_config );
+    audio_register_driver( &audio_alsa_driver );
+    return TRUE;
+}
+
+DEFINE_PLUGIN( PLUGIN_AUDIO_DRIVER, "alsa", audio_alsa_static_init );

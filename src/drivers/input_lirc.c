@@ -16,9 +16,6 @@
  * GNU General Public License for more details.
  */
 
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE
-#endif
 #include <sys/types.h>
 #include <sys/ioctl.h>
 #include <errno.h>
@@ -37,9 +34,9 @@
 #include <lirc/lirc_client.h>
 
 #include "lxdream.h"
+#include "plugin.h"
 #include "display.h"
 #include "maple/maple.h"
-#include "drivers/input_lirc.h"
 
 typedef struct input_lirc {
     struct input_driver driver;
@@ -57,7 +54,7 @@ static gboolean input_lirc_callback( GIOChannel *source, GIOCondition condition,
 
 input_driver_t system_lirc_driver;
 
-void input_lirc_create()
+static gboolean input_lirc_init()
 {
     input_lirc_t system_lirc_driver = g_malloc0(sizeof(struct input_lirc));
     strcpy(system_lirc_driver->name, "LIRC");
@@ -69,7 +66,7 @@ void input_lirc_create()
     system_lirc_driver->fd = lirc_init("lxdream", 1);
     if (system_lirc_driver->fd == -1) {
         WARN("Could not initialize LIRC.  LIRC hotkeys will be disabled.");
-        return;
+        return FALSE;
     }
     
     system_lirc_driver->channel = g_io_channel_unix_new(system_lirc_driver->fd);
@@ -77,7 +74,7 @@ void input_lirc_create()
     g_io_add_watch(system_lirc_driver->channel, G_IO_IN|G_IO_ERR|G_IO_HUP, input_lirc_callback, system_lirc_driver);
     memset(keysyms, 0, MAX_KEYSYMS);
     input_register_device((input_driver_t)system_lirc_driver, MAX_KEYSYMS - 1);
-    INFO("LIRC initialized");
+    return TRUE;
 }
 
 void input_lirc_shutdown(void)
@@ -124,7 +121,7 @@ static gchar *input_lirc_keysym_for_keycode( input_driver_t dev, uint16_t keycod
         return NULL;
 }
 
-gboolean input_lirc_callback( GIOChannel *source, GIOCondition condition, gpointer data )
+static gboolean input_lirc_callback( GIOChannel *source, GIOCondition condition, gpointer data )
 {
     int ret;
     char *code, *c;
@@ -154,3 +151,4 @@ gboolean input_lirc_callback( GIOChannel *source, GIOCondition condition, gpoint
     return TRUE;
 }
 
+DEFINE_PLUGIN( PLUGIN_INPUT_DRIVER, "lirc", input_lirc_init );

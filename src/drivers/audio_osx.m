@@ -27,7 +27,7 @@ static AudioDeviceID output_device;
 static volatile audio_buffer_t output_buffer = NULL;
 static uint32_t buffer_size;
 
-OSStatus audio_osx_callback( AudioDeviceID inDevice,
+static OSStatus audio_osx_callback( AudioDeviceID inDevice,
                              const AudioTimeStamp *inNow,
                              const AudioBufferList *inInputData,
                              const AudioTimeStamp *inInputTime,
@@ -101,22 +101,23 @@ static gboolean audio_osx_process_buffer( audio_buffer_t buffer )
     return FALSE;
 }
 
-void audio_osx_start()
+static void audio_osx_start()
 {
     if( output_buffer != NULL ) {
         AudioDeviceStart(output_device, audio_osx_callback);
     }
 }
 
-void audio_osx_stop()
+static void audio_osx_stop()
 {
     AudioDeviceStop( output_device, audio_osx_callback );
 }
 
 
-struct audio_driver audio_osx_driver = { 
+static struct audio_driver audio_osx_driver = { 
         "osx",
         N_("OS X CoreAudio system driver"), 
+        1, // Preferred on OS X
         DEFAULT_SAMPLE_RATE,
         AUDIO_FMT_FLOATST,
         audio_osx_init,
@@ -125,3 +126,4 @@ struct audio_driver audio_osx_driver = {
         audio_osx_stop,
         audio_osx_shutdown};
 
+AUDIO_DRIVER( "osx", audio_osx_driver );

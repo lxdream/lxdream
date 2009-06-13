@@ -36,6 +36,7 @@
 #include "sh4/sh4.h"
 #include "aica/armdasm.h"
 #include "hotkeys.h"
+#include "plugin.h"
 
 char *option_list = "a:A:c:dfg:G:hHl:m:npt:T:uvV:x?";
 struct option longopts[] = {
@@ -128,11 +129,6 @@ int main (int argc, char *argv[])
             break;
         case 'A': /* Audio driver */
             audio_driver_name = optarg;
-            if( strcmp(audio_driver_name, "?") == 0 ) {
-                print_version();
-                print_audio_drivers(stdout);
-                exit(0);
-            }
             break;
         case 'c': /* Config file */
             lxdream_set_config_filename(optarg);
@@ -194,11 +190,6 @@ int main (int argc, char *argv[])
             break;
         case 'V': /* Video driver */
             display_driver_name = optarg;
-            if( strcmp(display_driver_name,"?") == 0 ) {
-                print_version();
-                print_display_drivers(stdout);
-                exit(0);
-            }
             break;
         case 'x': /* Disable translator */
             use_xlat = FALSE;
@@ -206,7 +197,24 @@ int main (int argc, char *argv[])
         }
     }
 
+#ifdef ENABLE_SHARED
+    plugin_init(get_plugin_path());
+#endif
+
     lxdream_load_config( );
+
+    if( audio_driver_name != NULL && strcmp(audio_driver_name, "?") == 0 ) {
+        print_version();
+        print_audio_drivers(stdout);
+        exit(0);
+    }
+
+    if( display_driver_name != NULL && strcmp(display_driver_name,"?") == 0 ) {
+        print_version();
+        print_display_drivers(stdout);
+        exit(0);
+    }
+
     gdrom_list_init();
 
     if( aica_program == NULL ) {

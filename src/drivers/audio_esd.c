@@ -21,11 +21,11 @@
 #include "aica/audio.h"
 #include "dream.h"
 
-int esd_handle = -1;
-int esd_sample_size = 1;
+static int esd_handle = -1;
+static int esd_sample_size = 1;
 
 
-gboolean audio_esd_init()
+static gboolean audio_esd_init()
 {
     int format = DEFAULT_SAMPLE_FORMAT;
     int rate = DEFAULT_SAMPLE_RATE;
@@ -51,7 +51,7 @@ gboolean audio_esd_init()
     return TRUE;
 }
 
-gboolean audio_esd_process_buffer( audio_buffer_t buffer )
+static gboolean audio_esd_process_buffer( audio_buffer_t buffer )
 {
     if( esd_handle != -1 ) {
         write( esd_handle, buffer->data, buffer->length );
@@ -62,16 +62,17 @@ gboolean audio_esd_process_buffer( audio_buffer_t buffer )
     }
 }
 
-gboolean audio_esd_shutdown()
+static gboolean audio_esd_shutdown()
 {
     close(esd_handle);
     esd_handle = -1;
     return TRUE;
 }
 
-struct audio_driver audio_esd_driver = { 
+static struct audio_driver audio_esd_driver = { 
         "esd",
         N_("Enlightened Sound Daemon driver"),
+        30,
         DEFAULT_SAMPLE_RATE,
         DEFAULT_SAMPLE_FORMAT,
         audio_esd_init,
@@ -80,3 +81,4 @@ struct audio_driver audio_esd_driver = {
         NULL,
         audio_esd_shutdown};
 
+AUDIO_DRIVER( "esd", audio_esd_driver );

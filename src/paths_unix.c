@@ -30,3 +30,7 @@ const char *get_locale_path()
     return PACKAGE_LOCALE_DIR;
 }
 
+const char *get_plugin_path()
+{
+    return PACKAGE_PLUGIN_DIR;
+}
