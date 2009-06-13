@@ -33,9 +33,9 @@
 
 static gboolean linux_is_cdrom_device( FILE *f );
 static gdrom_disc_t linux_open_device( const gchar *filename, FILE *f );
-static gdrom_error_t linux_packet_read( gdrom_disc_t disc, unsigned char *cmd, 
+static gdrom_error_t linux_packet_read( gdrom_disc_t disc, char *cmd, 
                                         unsigned char *buf, uint32_t *buflen );
-static gdrom_error_t linux_packet_cmd( gdrom_disc_t disc, unsigned char *cmd ); 
+static gdrom_error_t linux_packet_cmd( gdrom_disc_t disc, char *cmd ); 
 static gboolean linux_media_changed( gdrom_disc_t disc );
 
 
@@ -119,7 +119,7 @@ static gboolean linux_media_changed( gdrom_disc_t disc )
  * @return 0 on success, -1 on an operating system error, or a sense error
  * code on a device error.
  */
-static gdrom_error_t linux_packet_read( gdrom_disc_t disc, unsigned char *cmd, 
+static gdrom_error_t linux_packet_read( gdrom_disc_t disc, char *cmd, 
                                         unsigned char *buffer, uint32_t *buflen )
 {
     int fd = fileno(disc->file);
@@ -147,7 +147,7 @@ static gdrom_error_t linux_packet_read( gdrom_disc_t disc, unsigned char *cmd,
     }
 }
 
-static gdrom_error_t linux_packet_cmd( gdrom_disc_t disc, unsigned char *cmd )
+static gdrom_error_t linux_packet_cmd( gdrom_disc_t disc, char *cmd )
 {
     int fd = fileno(disc->file);
     struct request_sense sense;
