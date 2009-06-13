@@ -64,7 +64,7 @@ struct plugin_struct {
 
 #endif /* ENABLE_SHARED */
 
-gboolean plugin_init(const gchar *path);
+gboolean plugin_init();
 
 #ifdef __cplusplus
 }

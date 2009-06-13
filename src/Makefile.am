@@ -16,7 +16,7 @@ noinst_PROGRAMS = gendec genglsl
 check_PROGRAMS = test/testxlt
 
 pkglib_PROGRAMS=
-EXTRA_DIST=drivers/genkeymap.pl checkver.pl
+EXTRA_DIST=drivers/genkeymap.pl checkver.pl drivers/dummy.c
 AM_CFLAGS = -D__EXTENSIONS__ -D_BSD_SOURCE -D_GNU_SOURCE
 
 .PHONY: checkversion
@@ -30,7 +30,8 @@ BUILT_SOURCES = sh4/sh4core.c sh4/sh4dasm.c sh4/sh4x86.c sh4/sh4stat.c \
 	pvr2/gl_slsrc.c drivers/mac_keymap.h version.c
 CLEANFILES = sh4/sh4core.c sh4/sh4dasm.c sh4/sh4x86.c sh4/sh4stat.c \
 	pvr2/gl_slsrc.c drivers/mac_keymap.h version.c  \
-	audio_alsa.lo audio_sdl.lo audio_esd.lo audio_pulse.lo input_lirc.lo
+	audio_alsa.lo audio_sdl.lo audio_esd.lo audio_pulse.lo input_lirc.lo \
+	lxdream_dummy.lo
 
 #all-am: checkversion
 
@@ -129,6 +130,14 @@ lxdream_SOURCES += drivers/audio_osx.m
 endif
 
 if BUILD_SHARED
+
+pkglib_PROGRAMS += lxdream_dummy.@SOEXT@
+lxdream_dummy_@SOEXT@_SOURCES =
+lxdream_dummy_@SOEXT@_LDADD = lxdream_dummy.lo @SDL_LIBS@
+lxdream_dummy_@SOEXT@_LDFLAGS = $(PLUGINLDFLAGS)
+lxdream_dummy.lo: drivers/dummy.c
+	$(COMPILE) -DPLUGIN $(PLUGINCFLAGS) -c $< -o $@
+
 if AUDIO_SDL
 pkglib_PROGRAMS += audio_sdl.@SOEXT@
 audio_sdl_@SOEXT@_SOURCES =
