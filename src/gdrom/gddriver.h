@@ -170,7 +170,7 @@ typedef struct gdrom_scsi_transport {
 	 * @return PKT_ERR_OK on success, otherwise the host error code.
 	 */
 	gdrom_error_t (*packet_read)( struct gdrom_disc *disc,
-	                              unsigned char *cmd, unsigned char *buf,
+	                              char *cmd, unsigned char *buf,
 	                              unsigned int *length );
 	                              
 	/* Execute a generic command that does not write or return any data.
@@ -180,7 +180,7 @@ typedef struct gdrom_scsi_transport {
 	 * @return PKT_ERR_OK on success, otherwise the host error code.
 	 */
 	gdrom_error_t (*packet_cmd)( struct gdrom_disc *disc,
-	                             unsigned char *cmd );
+	                             char *cmd );
 	
 	/* Return TRUE if the media has changed since the last call, otherwise
 	 * FALSE. This method is used to implement the disc-level check_status
@@ -252,5 +252,10 @@ void gdrom_extract_raw_data_sector( char *sector_data, int mode, unsigned char *
  * @return TRUE if we found a bootstrap, otherwise FALSE.
  */
 gboolean gdrom_disc_read_title( gdrom_disc_t disc ); 
+
+/** 
+ * Parse a TOC mode-2 result buffer into the gdrom_disc_t data structure
+ */
+void mmc_parse_toc2( gdrom_disc_t disc, unsigned char *buf );
 
 #endif /* !lxdream_gddriver_H */

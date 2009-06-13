@@ -104,7 +104,7 @@ void gdb_send_hex_data( struct gdb_server *server, char *prefix, unsigned char *
 /**
  * Parse bulk hex data - buffer should be at least datalen/2 bytes long
  */
-size_t gdb_read_hex_data( struct gdb_server *server, unsigned char *buf, unsigned char *data, int datalen )
+size_t gdb_read_hex_data( struct gdb_server *server, unsigned char *buf, char *data, int datalen )
 {
     char *p = data;
     for( int i=0; i<datalen/2; i++ ) {
@@ -120,7 +120,7 @@ size_t gdb_read_hex_data( struct gdb_server *server, unsigned char *buf, unsigne
  * Parse bulk binary-encoded data - $, #, 0x7D are encoded as 0x7d, char ^ 0x20. 
  * Buffer should be at least datalen bytes longs.
  */
-size_t gdb_read_binary_data( struct gdb_server *server, unsigned char *buf, unsigned char *data, int datalen )
+size_t gdb_read_binary_data( struct gdb_server *server, unsigned char *buf, char *data, int datalen )
 {
     unsigned char *q = buf;
     for( int i=0, j=0; i<datalen; i++ ) {
@@ -245,7 +245,7 @@ void gdb_server_handle_frame( struct gdb_server *server, int command, char *data
             gdb_send_error( server, GDB_ERROR_FORMAT );
         } else {
             size_t datalen;
-            char mem[tmp2];
+            unsigned char mem[tmp2];
             if( server->mmu ) {
                 datalen = server->cpu->read_mem_vma(mem, tmp, tmp2);
             } else {
@@ -264,7 +264,7 @@ void gdb_server_handle_frame( struct gdb_server *server, int command, char *data
             gdb_send_error( server, GDB_ERROR_FORMAT );
         } else {
             size_t len;
-            char mem[tmp2];
+            unsigned char mem[tmp2];
             len = gdb_read_hex_data( server, mem, data+tmp3, length-tmp3 );
             if( len != tmp2 ) {
                 gdb_send_error( server, GDB_ERROR_FORMAT );
@@ -347,7 +347,7 @@ void gdb_server_handle_frame( struct gdb_server *server, int command, char *data
         if( sscanf( data, "%x,%x:%n", &tmp, &tmp2, &tmp3 ) != 2 ) {
             gdb_send_error( server, GDB_ERROR_FORMAT );
         } else {
-            char mem[length - tmp3];
+            unsigned char mem[length - tmp3];
             size_t len = gdb_read_binary_data( server, mem, data + tmp3, length-tmp3 );
             if( len != tmp2 ) {
                 gdb_send_error( server, GDB_ERROR_FORMAT );
