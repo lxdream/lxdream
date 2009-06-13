@@ -27,8 +27,8 @@
 
 const struct cpu_desc_struct x86_cpu_desc = 
     { "x86", (disasm_func_t)x86_disasm_instruction, NULL, mem_has_page, 
-      NULL, NULL, NULL, 1, 
-      NULL, 0, NULL, 
+      NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1, 
+      NULL, 0, NULL, 0, 0,  
       &sh4r.pc };
 
 static int x86_disasm_output( void *data, const char *format, ... );
