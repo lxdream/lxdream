@@ -18,17 +18,17 @@
  */
 #include "aica/audio.h"
 
-gboolean audio_null_init()
+static gboolean audio_null_init()
 {
     return TRUE;
 }
 
-gboolean audio_null_process_buffer( audio_buffer_t buffer )
+static gboolean audio_null_process_buffer( audio_buffer_t buffer )
 {
     return TRUE;
 }
 
-gboolean audio_null_shutdown()
+static gboolean audio_null_shutdown()
 {
     return TRUE;
 }
@@ -36,6 +36,7 @@ gboolean audio_null_shutdown()
 struct audio_driver audio_null_driver = { 
         "null",
         N_("Null (no audio) driver"),
+        65536, // Always last
         DEFAULT_SAMPLE_RATE,
         DEFAULT_SAMPLE_FORMAT,
         audio_null_init,
@@ -43,3 +44,5 @@ struct audio_driver audio_null_driver = {
         audio_null_process_buffer,
         NULL,
         audio_null_shutdown};
+
+AUDIO_DRIVER( "null", audio_null_driver );

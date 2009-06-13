@@ -25,6 +25,7 @@
 #include <AppKit/AppKit.h>
 
 static char *bundle_resource_path = NULL;
+static char *bundle_plugin_path = NULL;
 
 static char *get_bundle_resource_path()
 {
@@ -47,3 +48,13 @@ const char *get_locale_path()
     return get_bundle_resource_path();
 }
 
+const char *get_plugin_path()
+{
+    if( bundle_plugin_path == NULL ) {
+        NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+        NSString *pluginPath = [[NSBundle mainBundle] builtInPlugInsPath];
+        bundle_plugin_path = strdup([pluginPath UTF8String]);
+        [pool release];
+    }
+    return bundle_plugin_path;    
+}

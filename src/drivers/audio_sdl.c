@@ -28,13 +28,12 @@
 #define BUFFER_MIN_SIZE SDL_SAMPLES * BYTES_PER_SAMPLE * 4
 #define BUFFER_MAX_SIZE SDL_SAMPLES * BYTES_PER_SAMPLE * 16
 
-char *audio_buffer;
-int buffer_pos;
+static char *audio_buffer;
+static int buffer_pos;
 
-void mix_audio(void *userdata, Uint8 *stream, int len);
-void audio_sdl_start();
+static void mix_audio(void *userdata, Uint8 *stream, int len);
 
-gboolean audio_sdl_init( )
+static gboolean audio_sdl_init( )
 {
     int rate = DEFAULT_SAMPLE_RATE;
     int format = DEFAULT_SAMPLE_FORMAT;
@@ -67,9 +66,6 @@ gboolean audio_sdl_init( )
         return FALSE;
     }
     
-    //hmm, this doesn't seem to get called externally...
-    audio_sdl_start();
-    
     return TRUE;
 }
 
@@ -90,7 +86,7 @@ gboolean audio_sdl_process_buffer( audio_buffer_t buffer )
     return TRUE;    
 }
 
-void mix_audio(void *userdata, Uint8 *stream, int len)
+static void mix_audio(void *userdata, Uint8 *stream, int len)
 {
     if (len < buffer_pos)
     {
@@ -107,26 +103,27 @@ void mix_audio(void *userdata, Uint8 *stream, int len)
     }
 }
 
-gboolean audio_sdl_shutdown()
+static gboolean audio_sdl_shutdown()
 {
     SDL_CloseAudio();
     free(audio_buffer);
     return TRUE;
 }
 
-void audio_sdl_start()
+static void audio_sdl_start()
 {
     SDL_PauseAudio(0);
 }
 
-void audio_sdl_stop()
+static void audio_sdl_stop()
 {
     SDL_PauseAudio(1);
 }
 
-struct audio_driver audio_sdl_driver = { 
+static struct audio_driver audio_sdl_driver = { 
     "sdl",
     N_("SDL sound driver"),
+    20,
     DEFAULT_SAMPLE_RATE,
     DEFAULT_SAMPLE_FORMAT,
     audio_sdl_init,
@@ -136,3 +133,4 @@ struct audio_driver audio_sdl_driver = {
     audio_sdl_shutdown
 };
 
+AUDIO_DRIVER( "sdl", audio_sdl_driver );

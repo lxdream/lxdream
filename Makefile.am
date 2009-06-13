@@ -65,9 +65,11 @@ all-local:
 	rm -rf $(BUNDLE)
 	mkdir -p $(BUNDLE)/Contents/MacOS
 	mkdir -p $(BUNDLE)/Contents/Resources
+	mkdir -p $(BUNDLE)/Contents/Plugins
 	cp Info.plist $(BUNDLE)/Contents
 	cp $(srcdir)/lxdreamrc $(BUNDLE)/Contents/Resources
 	cp src/lxdream $(BUNDLE)/Contents/MacOS
+	cp -R src/*.dylib $(BUNDLE)/Contents/Plugins
 	cp -R $(srcdir)/pixmaps/* $(BUNDLE)/Contents/Resources
 	$(srcdir)/bundlelibs.pl $(BUNDLE)/Contents/MacOS/lxdream $(BUNDLE)/Contents/Frameworks
 	for cat in $(CATALOGS); do \

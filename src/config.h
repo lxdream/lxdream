@@ -60,7 +60,7 @@ extern struct lxdream_config_group lxdream_config_root[];
 /* Global config values */
 const gchar *lxdream_get_config_value( int key );
 const struct lxdream_config_entry * lxdream_get_config_entry( int key );
-
+void lxdream_register_config_group( const gchar *key, lxdream_config_entry_t group ); 
 void lxdream_set_global_config_value( int key, const gchar *value );
 void lxdream_set_config_value( lxdream_config_entry_t entry, const gchar *value );
 gboolean lxdream_set_group_value( lxdream_config_group_t group, const gchar *key, const gchar *value );

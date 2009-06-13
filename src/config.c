@@ -27,6 +27,7 @@
 #include "config.h"
 #include "maple/maple.h"
 
+#define MAX_ROOT_GROUPS 16
 
 extern struct lxdream_config_entry alsa_config[];
 extern struct lxdream_config_entry hotkeys_config[];
@@ -50,18 +51,30 @@ static struct lxdream_config_entry serial_config[] =
        {{ "device", N_("Serial device"), CONFIG_TYPE_FILE, "/dev/ttyS1" },
         { NULL, CONFIG_TYPE_NONE }};
 
-struct lxdream_config_group lxdream_config_root[] = 
+struct lxdream_config_group lxdream_config_root[MAX_ROOT_GROUPS+1] = 
        {{ "global", global_config },
         { "controllers", NULL },
         { "hotkeys", hotkeys_config },
         { "serial", serial_config },
-#ifdef HAVE_ALSA
-        { "alsa", alsa_config },
-#endif
         { NULL, CONFIG_TYPE_NONE }};
 
 static gchar *lxdream_config_load_filename = NULL;
 static gchar *lxdream_config_save_filename = NULL;
+
+void lxdream_register_config_group( const gchar *key, lxdream_config_entry_t group )
+{
+    int i;
+    for( i=0; i<MAX_ROOT_GROUPS; i++ ) {
+        if( lxdream_config_root[i].key == NULL ) {
+            lxdream_config_root[i].key = key;
+            lxdream_config_root[i].params = group;
+            lxdream_config_root[i+1].key = NULL;
+            lxdream_config_root[i+1].params = CONFIG_TYPE_NONE;
+            return;
+        }
+    }
+    ERROR( "Unable to register config group '%s': Too many configuration groups", key );
+}
 
 gboolean lxdream_find_config()
 {

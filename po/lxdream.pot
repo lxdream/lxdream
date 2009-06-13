@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2008-07-30 12:21+1000\n"
+"POT-Creation-Date: 2009-06-12 19:52+1000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -16,50 +16,72 @@ msgstr ""
 "Content-Type: text/plain; charset=CHARSET\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/cocoaui/cocoa_ctrl.c:316 src/gtkui/gtk_ctrl.c:286
+#: src/cocoaui/cocoa_ctrl.m:342 src/gtkui/gtk_ctrl.c:294
 #, c-format
 msgid "Slot %d."
 msgstr ""
 
-#: src/cocoaui/cocoa_win.c:176 src/gtkui/gtk_win.c:317
-msgid "(Press <ctrl><alt> to release grab)"
-msgstr ""
-
-#: src/cocoaui/cocoa_win.c:188 src/gtkui/gtk_win.c:327
-msgid "Running"
-msgstr ""
-
-#: src/cocoaui/cocoa_win.c:191 src/gtkui/gtk_win.c:327
-msgid "Stopped"
-msgstr ""
-
-#: src/cocoaui/cocoaui.c:378
+#: src/cocoaui/cocoaui.m:404
 #, c-format
 msgid "Running (%2.4f%%)"
 msgstr ""
 
-#: src/config.c:39
+#: src/cocoaui/cocoa_win.m:192 src/gtkui/gtk_win.c:356
+msgid "(Press <ctrl><alt> to release grab)"
+msgstr ""
+
+#: src/cocoaui/cocoa_win.m:204 src/gtkui/gtk_win.c:366
+msgid "Running"
+msgstr ""
+
+#: src/cocoaui/cocoa_win.m:207 src/gtkui/gtk_win.c:366
+msgid "Stopped"
+msgstr ""
+
+#: src/config.c:41
 msgid "Bios ROM"
 msgstr ""
 
-#: src/config.c:40
+#: src/config.c:42
 msgid "Flash ROM"
 msgstr ""
 
-#: src/config.c:41 src/gtkui/gtk_path.c:28
+#: src/config.c:43 src/gtkui/gtk_path.c:28
 msgid "Default disc path"
 msgstr ""
 
-#: src/config.c:42
+#: src/config.c:44
 msgid "Save-state path"
 msgstr ""
 
-#: src/config.c:43 src/gtkui/gtk_path.c:29
+#: src/config.c:45 src/gtkui/gtk_path.c:29
 msgid "Bootstrap IP.BIN"
 msgstr ""
 
-#: src/config.c:49
+#: src/config.c:51
 msgid "Serial device"
+msgstr ""
+
+#: src/dreamcast.c:192
+msgid ""
+"No program is loaded, and no BIOS is configured (required to boot a CD "
+"image). To continue, either load a binary program, or set the path to your "
+"BIOS file in the Path Preferences"
+msgstr ""
+
+#: src/dreamcast.c:324
+#, c-format
+msgid "File is not a %s save state"
+msgstr ""
+
+#: src/dreamcast.c:329
+#, c-format
+msgid "Unsupported %s save state version"
+msgstr ""
+
+#: src/dreamcast.c:334
+#, c-format
+msgid "%s save state is corrupted (bad module count)"
 msgstr ""
 
 #: src/drivers/audio_alsa.c:35
@@ -78,7 +100,7 @@ msgstr ""
 msgid "Null (no audio) driver"
 msgstr ""
 
-#: src/drivers/audio_osx.c:119
+#: src/drivers/audio_osx.m:119
 msgid "OS X CoreAudio system driver"
 msgstr ""
 
@@ -86,15 +108,27 @@ msgstr ""
 msgid "PulseAudio sound server driver"
 msgstr ""
 
+#: src/drivers/audio_sdl.c:125
+msgid "SDL sound driver"
+msgstr ""
+
+#. Sense key 2 == Not Ready (ie temporary failure). Just ignore and
+#. * consider the drive empty for now, but warn about any other errors
+#. * we get.
+#: src/drivers/cd_mmc.c:182
+#, c-format
+msgid "Unable to read disc table of contents (error %04x)"
+msgstr ""
+
 #: src/drivers/video_gtk.c:132
 msgid "GTK-based OpenGL driver"
 msgstr ""
 
-#: src/drivers/video_null.c:58
+#: src/drivers/video_null.c:62
 msgid "Null (no video) driver"
 msgstr ""
 
-#: src/drivers/video_osx.c:45
+#: src/drivers/video_osx.m:45
 msgid "OS X Cocoa GUI-based OpenGL driver"
 msgstr ""
 
@@ -102,23 +136,52 @@ msgstr ""
 msgid "Empty"
 msgstr ""
 
-#: src/gtkui/gtk_ctrl.c:64 src/gtkui/gtk_ctrl.c:93
+#: src/gtkui/gtkcb.c:36
+msgid "All files"
+msgstr ""
+
+#: src/gtkui/gtkcb.c:139
+msgid "Load state..."
+msgstr ""
+
+#: src/gtkui/gtkcb.c:144 src/gtkui/gtkcb.c:175
+msgid "lxDream Save State (*.dst)"
+msgstr ""
+
+#: src/gtkui/gtkcb.c:237 src/gtkui/gtk_dump.c:69
+msgid "Memory dump"
+msgstr ""
+
+#: src/gtkui/gtkcb.c:250
+msgid "Save next scene..."
+msgstr ""
+
+#: src/gtkui/gtkcb.c:250
+msgid "lxdream scene file (*.dsc)"
+msgstr ""
+
+#: src/gtkui/gtkcb.c:265
+msgid "No address selected, so can't run to it"
+msgstr ""
+
+#: src/gtkui/gtk_ctrl.c:72 src/gtkui/gtk_ctrl.c:101 src/gtkui/gtk_hotkeys.c:50
+#: src/gtkui/gtk_hotkeys.c:79
 msgid "<press key>"
 msgstr ""
 
-#: src/gtkui/gtk_ctrl.c:193
+#: src/gtkui/gtk_ctrl.c:201
 msgid "Controller Configuration"
 msgstr ""
 
-#: src/gtkui/gtk_ctrl.c:212
+#: src/gtkui/gtk_ctrl.c:220
 msgid "No configuration page available for device type"
 msgstr ""
 
-#: src/gtkui/gtk_ctrl.c:289
+#: src/gtkui/gtk_ctrl.c:297
 msgid "<empty>"
 msgstr ""
 
-#: src/gtkui/gtk_ctrl.c:317
+#: src/gtkui/gtk_ctrl.c:325
 msgid "Controller Settings"
 msgstr ""
 
@@ -146,12 +209,8 @@ msgstr ""
 msgid "ARM7T"
 msgstr ""
 
-#: src/gtkui/gtk_debug.c:262
+#: src/gtkui/gtk_debug.c:273
 msgid "This page is currently unmapped"
-msgstr ""
-
-#: src/gtkui/gtk_dump.c:69 src/gtkui/gtkcb.c:231
-msgid "Memory dump"
 msgstr ""
 
 #: src/gtkui/gtk_dump.c:79
@@ -180,6 +239,10 @@ msgstr ""
 
 #: src/gtkui/gtk_gd.c:103
 msgid "GD-Rom Settings"
+msgstr ""
+
+#: src/gtkui/gtk_hotkeys.c:186
+msgid "Hotkey Settings"
 msgstr ""
 
 #: src/gtkui/gtk_mmio.c:109
@@ -228,34 +291,6 @@ msgstr ""
 
 #: src/gtkui/gtk_path.c:128
 msgid "Path Settings"
-msgstr ""
-
-#: src/gtkui/gtk_win.c:315
-msgid "(Press <command> to release grab)"
-msgstr ""
-
-#: src/gtkui/gtkcb.c:36
-msgid "All files"
-msgstr ""
-
-#: src/gtkui/gtkcb.c:139
-msgid "Load state..."
-msgstr ""
-
-#: src/gtkui/gtkcb.c:144 src/gtkui/gtkcb.c:175
-msgid "lxDream Save State (*.dst)"
-msgstr ""
-
-#: src/gtkui/gtkcb.c:244
-msgid "Save next scene..."
-msgstr ""
-
-#: src/gtkui/gtkcb.c:244
-msgid "lxdream scene file (*.dsc)"
-msgstr ""
-
-#: src/gtkui/gtkcb.c:259
-msgid "No address selected, so can't run to it"
 msgstr ""
 
 #: src/gtkui/gtkui.c:70
@@ -379,202 +414,286 @@ msgid "Configure video output"
 msgstr ""
 
 #: src/gtkui/gtkui.c:88
-msgid "_About..."
+msgid "_Hotkeys..."
 msgstr ""
 
 #: src/gtkui/gtkui.c:88
-msgid "About lxdream"
+msgid "Configure hotkeys"
 msgstr ""
 
 #: src/gtkui/gtkui.c:89
+msgid "_About..."
+msgstr ""
+
+#: src/gtkui/gtkui.c:89
+msgid "About lxdream"
+msgstr ""
+
+#: src/gtkui/gtkui.c:90
 msgid "_Debug"
 msgstr ""
 
-#: src/gtkui/gtkui.c:90
+#: src/gtkui/gtkui.c:91
 msgid "_Debugger"
 msgstr ""
 
-#: src/gtkui/gtkui.c:90
+#: src/gtkui/gtkui.c:91
 msgid "Open debugger window"
 msgstr ""
 
-#: src/gtkui/gtkui.c:91
+#: src/gtkui/gtkui.c:92
 msgid "View _Memory"
 msgstr ""
 
-#: src/gtkui/gtkui.c:91
+#: src/gtkui/gtkui.c:92
 msgid "View memory dump"
 msgstr ""
 
-#: src/gtkui/gtkui.c:92
+#: src/gtkui/gtkui.c:93
 msgid "View IO _Registers"
 msgstr ""
 
-#: src/gtkui/gtkui.c:92
+#: src/gtkui/gtkui.c:93
 msgid "View MMIO Registers"
 msgstr ""
 
-#: src/gtkui/gtkui.c:93
+#: src/gtkui/gtkui.c:94
 msgid "_Save Scene"
 msgstr ""
 
-#: src/gtkui/gtkui.c:93
+#: src/gtkui/gtkui.c:94
 msgid "Save next rendered scene"
 msgstr ""
 
-#: src/gtkui/gtkui.c:94
+#: src/gtkui/gtkui.c:95
 msgid "_Single Step"
 msgstr ""
 
-#: src/gtkui/gtkui.c:94
+#: src/gtkui/gtkui.c:95
 msgid "Single step"
 msgstr ""
 
-#: src/gtkui/gtkui.c:95
+#: src/gtkui/gtkui.c:96
 msgid "Run _To"
 msgstr ""
 
-#: src/gtkui/gtkui.c:95
+#: src/gtkui/gtkui.c:96
 msgid "Run to"
 msgstr ""
 
-#: src/gtkui/gtkui.c:96
+#: src/gtkui/gtkui.c:97
 msgid "_Breakpoint"
 msgstr ""
 
-#: src/gtkui/gtkui.c:96
+#: src/gtkui/gtkui.c:97
 msgid "Toggle breakpoint"
 msgstr ""
 
-#: src/gtkui/gtkui.c:292
+#: src/gtkui/gtkui.c:327
 msgid "Debugger"
 msgstr ""
 
-#: src/gtkui/gtkui.c:303
+#: src/gtkui/gtkui.c:338
 msgid "MMIO Registers"
 msgstr ""
 
-#: src/main.c:80
-msgid "Run the AICA SPU only, with the supplied program"
+#: src/gtkui/gtk_win.c:354
+msgid "(Press <command> to release grab)"
 msgstr ""
 
-#: src/main.c:81
-msgid "Use the specified audio driver (? to list)"
+#: src/hotkeys.c:43
+msgid "Resume emulation"
 msgstr ""
 
-#: src/main.c:82
-msgid "Load configuration from CONFFILE"
+#: src/hotkeys.c:44
+msgid "Stop emulation"
 msgstr ""
 
-#: src/main.c:83
-msgid "Start in debugger mode"
+#: src/hotkeys.c:45
+msgid "Reset emulator"
 msgstr ""
 
-#: src/main.c:84
-msgid "Display this usage information"
+#: src/hotkeys.c:46
+msgid "Exit emulator"
+msgstr ""
+
+#: src/hotkeys.c:47
+msgid "Save current quick save"
+msgstr ""
+
+#: src/hotkeys.c:48
+msgid "Load current quick save"
+msgstr ""
+
+#: src/hotkeys.c:49
+msgid "Select quick save state 1"
+msgstr ""
+
+#: src/hotkeys.c:50
+msgid "Select quick save state 2"
+msgstr ""
+
+#: src/hotkeys.c:51
+msgid "Select quick save state 3"
+msgstr ""
+
+#: src/hotkeys.c:52
+msgid "Select quick save state 4"
+msgstr ""
+
+#: src/hotkeys.c:53
+msgid "Select quick save state 5"
+msgstr ""
+
+#: src/hotkeys.c:54
+msgid "Select quick save state 6"
+msgstr ""
+
+#: src/hotkeys.c:55
+msgid "Select quick save state 7"
+msgstr ""
+
+#: src/hotkeys.c:56
+msgid "Select quick save state 8"
+msgstr ""
+
+#: src/hotkeys.c:57
+msgid "Select quick save state 9"
 msgstr ""
 
 #: src/main.c:85
-msgid "Run in headless (no video) mode"
+msgid "Run the AICA SPU only, with the supplied program"
 msgstr ""
 
 #: src/main.c:86
-msgid "Set the output log level"
+msgid "Use the specified audio driver (? to list)"
 msgstr ""
 
 #: src/main.c:87
-msgid "Set the SH4 multiplier (1.0 = fullspeed)"
+msgid "Load configuration from CONFFILE"
 msgstr ""
 
 #: src/main.c:88
-msgid "Don't start running immediately"
+msgid "Start in debugger mode"
 msgstr ""
 
 #: src/main.c:89
-msgid "Start running immediately on startup"
+msgid "Start in fullscreen mode"
 msgstr ""
 
 #: src/main.c:90
-msgid "Run for the specified number of seconds"
+msgid "Start GDB remote server on PORT for SH4"
 msgstr ""
 
 #: src/main.c:91
-msgid "Output trace information for the named regions"
+msgid "Start GDB remote server on PORT for ARM"
 msgstr ""
 
 #: src/main.c:92
-msgid "Allow unsafe dcload syscalls"
+msgid "Display this usage information"
 msgstr ""
 
 #: src/main.c:93
-msgid "Print the lxdream version string"
+msgid "Run in headless (no video) mode"
 msgstr ""
 
 #: src/main.c:94
-msgid "Use the specified video driver (? to list)"
+msgid "Set the output log level"
 msgstr ""
 
 #: src/main.c:95
+msgid "Set the SH4 multiplier (1.0 = fullspeed)"
+msgstr ""
+
+#: src/main.c:96
+msgid "Don't start running immediately"
+msgstr ""
+
+#: src/main.c:97
+msgid "Start running immediately on startup"
+msgstr ""
+
+#: src/main.c:98
+msgid "Run for the specified number of seconds"
+msgstr ""
+
+#: src/main.c:99
+msgid "Output trace information for the named regions"
+msgstr ""
+
+#: src/main.c:100
+msgid "Allow unsafe dcload syscalls"
+msgstr ""
+
+#: src/main.c:101
+msgid "Print the lxdream version string"
+msgstr ""
+
+#: src/main.c:102
+msgid "Use the specified video driver (? to list)"
+msgstr ""
+
+#: src/main.c:103
 msgid "Disable the SH4 translator"
 msgstr ""
 
-#: src/maple/controller.c:53
+#: src/maple/controller.c:105 src/maple/lightgun.c:85
 msgid "Dpad left"
 msgstr ""
 
-#: src/maple/controller.c:54
+#: src/maple/controller.c:106 src/maple/lightgun.c:86
 msgid "Dpad right"
 msgstr ""
 
-#: src/maple/controller.c:55
+#: src/maple/controller.c:107 src/maple/lightgun.c:87
 msgid "Dpad up"
 msgstr ""
 
-#: src/maple/controller.c:56
+#: src/maple/controller.c:108 src/maple/lightgun.c:88
 msgid "Dpad down"
 msgstr ""
 
-#: src/maple/controller.c:57
+#: src/maple/controller.c:109
 msgid "Analog left"
 msgstr ""
 
-#: src/maple/controller.c:58
+#: src/maple/controller.c:110
 msgid "Analog right"
 msgstr ""
 
-#: src/maple/controller.c:59
+#: src/maple/controller.c:111
 msgid "Analog up"
 msgstr ""
 
-#: src/maple/controller.c:60
+#: src/maple/controller.c:112
 msgid "Analog down"
 msgstr ""
 
-#: src/maple/controller.c:61
+#: src/maple/controller.c:113
 msgid "Button X"
 msgstr ""
 
-#: src/maple/controller.c:62
+#: src/maple/controller.c:114
 msgid "Button Y"
 msgstr ""
 
-#: src/maple/controller.c:63
+#: src/maple/controller.c:115 src/maple/lightgun.c:89
 msgid "Button A"
 msgstr ""
 
-#: src/maple/controller.c:64
+#: src/maple/controller.c:116 src/maple/lightgun.c:90
 msgid "Button B"
 msgstr ""
 
-#: src/maple/controller.c:65
+#: src/maple/controller.c:117
 msgid "Trigger left"
 msgstr ""
 
-#: src/maple/controller.c:66
+#: src/maple/controller.c:118
 msgid "Trigger right"
 msgstr ""
 
-#: src/maple/controller.c:67
+#: src/maple/controller.c:119 src/maple/lightgun.c:91
 msgid "Start button"
 msgstr ""
 
@@ -589,6 +708,6 @@ msgstr ""
 msgid "Address 0x%s is out of bounds.\n"
 msgstr ""
 
-#: src/x86dasm/i386-dis.c:1733
+#: src/x86dasm/i386-dis.c:1734
 msgid "<internal disassembler error>"
 msgstr ""

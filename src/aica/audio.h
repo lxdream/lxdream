@@ -22,6 +22,7 @@
 #include <stdio.h>
 #include <glib/gtypes.h>
 #include "gettext.h"
+#include "plugin.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -75,8 +76,9 @@ typedef struct audio_buffer {
 } *audio_buffer_t;
 
 typedef struct audio_driver {
-    char *name;
-    char *description;
+    const char *name;
+    const char *description;
+    int priority; /* Lower == higher priority */
     uint32_t sample_rate;
     uint32_t sample_format;
     gboolean (*init)( );
@@ -105,6 +107,21 @@ gboolean audio_set_driver( audio_driver_t driver );
  * Initialize the audio driver, using the specified driver if available.
  */
 audio_driver_t audio_init_driver( const char *preferred_driver );
+
+/**
+ * Add a new audio driver to the available drivers list
+ */
+gboolean audio_register_driver( audio_driver_t driver );
+
+/**
+ * Signal the audio driver that playback is beginning
+ */
+void audio_start_driver();
+
+/**
+ * Signal the audio driver that playback is stopping
+ */
+void audio_stop_driver();
 
 /**
  * Mark the current write buffer as full and prepare the next buffer for

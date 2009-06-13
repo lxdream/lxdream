@@ -25,7 +25,6 @@
 #include "display.h"
 #include "hotkeys.h"
 #include "gui.h"
-#include "drivers/input_lirc.h"
 #include "config.h"
 
 static void hotkey_resume_callback( void *mdev, uint32_t value, uint32_t pressure, gboolean isKeyDown );
@@ -60,10 +59,6 @@ struct lxdream_config_entry hotkeys_config[] = {
 };
 
 void hotkeys_init() {
-
-#ifdef HAVE_LIRC
-    input_lirc_create();
-#endif
 
     char *home = getenv("HOME");
     char *save_path = g_strdup_printf("%s/.lxdream", home);

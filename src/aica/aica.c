@@ -90,7 +90,7 @@ void aica_reset( void )
 
 void aica_start( void )
 {
-
+    audio_start_driver();
 }
 
 uint32_t aica_run_slice( uint32_t nanosecs )
@@ -115,7 +115,7 @@ uint32_t aica_run_slice( uint32_t nanosecs )
 
 void aica_stop( void )
 {
-
+    audio_stop_driver();
 }
 
 void aica_save_state( FILE *f )

@@ -24,7 +24,7 @@
 #include <assert.h>
 #include <string.h>
 
-
+#define MAX_AUDIO_DRIVERS 16
 extern struct audio_driver audio_null_driver;
 extern struct audio_driver audio_osx_driver;
 extern struct audio_driver audio_pulse_driver;
@@ -32,24 +32,8 @@ extern struct audio_driver audio_esd_driver;
 extern struct audio_driver audio_alsa_driver;
 extern struct audio_driver audio_sdl_driver;
 
-audio_driver_t audio_driver_list[] = {
-#ifdef HAVE_CORE_AUDIO
-        &audio_osx_driver,
-#endif
-#ifdef HAVE_SDL
-        &audio_sdl_driver,
-#endif
-#ifdef HAVE_PULSE
-        &audio_pulse_driver,
-#endif
-#ifdef HAVE_ESOUND
-        &audio_esd_driver,
-#endif
-#ifdef HAVE_ALSA
-        &audio_alsa_driver,
-#endif
-        &audio_null_driver,
-        NULL };
+static int audio_driver_count = 0;
+static audio_driver_t audio_driver_list[MAX_AUDIO_DRIVERS] = {};
 
 #define NUM_BUFFERS 3
 #define MS_PER_BUFFER 100
@@ -86,13 +70,39 @@ int audio_load_state( FILE *f )
     return (read == AUDIO_CHANNEL_COUNT ? 0 : -1 );
 }
 
+static int audio_driver_priority_compare(const void *a, const void *b)
+{
+    audio_driver_t ada = *(audio_driver_t *)a;
+    audio_driver_t adb = *(audio_driver_t *)b;
+    return ada->priority - adb->priority;
+}
+
+static int audio_driver_name_compare(const void *a, const void *b)
+{
+    audio_driver_t ada = *(audio_driver_t *)a;
+    audio_driver_t adb = *(audio_driver_t *)b;
+    return strcasecmp( ada->name, adb->name );
+}
+
+
+
+gboolean audio_register_driver( audio_driver_t driver )
+{
+    if( audio_driver_count >= MAX_AUDIO_DRIVERS ) {
+        return FALSE;
+    }
+    audio_driver_list[audio_driver_count++] = driver;
+    qsort( audio_driver_list, audio_driver_count, sizeof( audio_driver_t ), audio_driver_priority_compare );
+    return TRUE;
+}
+
 audio_driver_t get_audio_driver_by_name( const char *name )
 {
     int i;
     if( name == NULL ) {
         return audio_driver_list[0];
     }
-    for( i=0; audio_driver_list[i] != NULL; i++ ) {
+    for( i=0; i < audio_driver_count; i++ ) {
         if( strcasecmp( audio_driver_list[i]->name, name ) == 0 ) {
             return audio_driver_list[i];
         }
@@ -104,10 +114,13 @@ audio_driver_t get_audio_driver_by_name( const char *name )
 void print_audio_drivers( FILE * out )
 {
     int i;
+    audio_driver_t temp_list[MAX_AUDIO_DRIVERS];
+    memcpy( temp_list, audio_driver_list, audio_driver_count*sizeof(audio_driver_t) );
+    qsort( temp_list, audio_driver_count, sizeof(audio_driver_t), audio_driver_name_compare );
     fprintf( out, "Available audio drivers:\n" );
-    for( i=0; audio_driver_list[i] != NULL; i++ ) {
-        fprintf( out, "  %-8s %s\n", audio_driver_list[i]->name,
-                gettext(audio_driver_list[i]->description) );
+    for( i=0; i < audio_driver_count; i++ ) {
+        fprintf( out, "  %-8s %s\n", temp_list[i]->name,
+                gettext(temp_list[i]->description) );
     }
 }
 
@@ -119,7 +132,7 @@ audio_driver_t audio_init_driver( const char *preferred_driver )
         exit(2);
     } else if( audio_set_driver( audio_driver ) == FALSE ) {
         int i;
-        for( i=0; audio_driver_list[i] != NULL; i++ ) {
+        for( i=0; i < audio_driver_count; i++ ) {
             if( audio_driver_list[i] != audio_driver &&
                 audio_set_driver( audio_driver_list[i] ) ) {
                 ERROR( "Failed to initialize audio driver %s, falling back to %s", 
@@ -131,6 +144,20 @@ audio_driver_t audio_init_driver( const char *preferred_driver )
         exit(2);
     }
     return audio_driver;
+}
+
+void audio_start_driver(void)
+{
+    if( audio_driver != NULL && audio_driver->start != NULL ) {
+        audio_driver->start();
+    }
+}
+
+void audio_stop_driver(void)
+{
+    if( audio_driver != NULL && audio_driver->stop != NULL ) {
+        audio_driver->stop();
+    }
 }
 
 /**

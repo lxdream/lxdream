@@ -40,8 +40,8 @@ DIST_COMMON = README $(am__configure_deps) $(dist_sysconf_DATA) \
 	$(srcdir)/Info.plist.in $(srcdir)/Makefile.am \
 	$(srcdir)/Makefile.in $(srcdir)/config.h.in \
 	$(top_srcdir)/configure $(top_srcdir)/test/Makefile.in AUTHORS \
-	COPYING ChangeLog INSTALL NEWS acconfig.h config.guess \
-	config.sub depcomp install-sh missing mkinstalldirs
+	COPYING ChangeLog INSTALL NEWS acconfig.h compile config.guess \
+	config.sub depcomp install-sh ltmain.sh missing mkinstalldirs
 subdir = .
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/acinclude.m4 \
@@ -114,6 +114,8 @@ BUILD_ARMTEST_FALSE = @BUILD_ARMTEST_FALSE@
 BUILD_ARMTEST_TRUE = @BUILD_ARMTEST_TRUE@
 BUILD_SH4X86_FALSE = @BUILD_SH4X86_FALSE@
 BUILD_SH4X86_TRUE = @BUILD_SH4X86_TRUE@
+BUILD_SHARED_FALSE = @BUILD_SHARED_FALSE@
+BUILD_SHARED_TRUE = @BUILD_SHARED_TRUE@
 BUILD_SYSTEST_FALSE = @BUILD_SYSTEST_FALSE@
 BUILD_SYSTEST_TRUE = @BUILD_SYSTEST_TRUE@
 CATALOGS = @CATALOGS@
@@ -170,6 +172,8 @@ LIBPNG_CFLAGS = @LIBPNG_CFLAGS@
 LIBPNG_LIBS = @LIBPNG_LIBS@
 LIBS = @LIBS@
 LTLIBOBJS = @LTLIBOBJS@
+LXDREAMCPPFLAGS = @LXDREAMCPPFLAGS@
+LXDREAMLDFLAGS = @LXDREAMLDFLAGS@
 MAINT = @MAINT@
 MAINTAINER_MODE_FALSE = @MAINTAINER_MODE_FALSE@
 MAINTAINER_MODE_TRUE = @MAINTAINER_MODE_TRUE@
@@ -189,6 +193,8 @@ PACKAGE_TARNAME = @PACKAGE_TARNAME@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 PATH_SEPARATOR = @PATH_SEPARATOR@
 PKG_CONFIG = @PKG_CONFIG@
+PLUGINCFLAGS = @PLUGINCFLAGS@
+PLUGINLDFLAGS = @PLUGINLDFLAGS@
 POD2HTML = @POD2HTML@
 POD2MAN = @POD2MAN@
 POFILES = @POFILES@
@@ -205,6 +211,7 @@ SHCC = @SHCC@
 SHELL = @SHELL@
 SHLD = @SHLD@
 SHOBJCOPY = @SHOBJCOPY@
+SOEXT = @SOEXT@
 STRIP = @STRIP@
 USE_NLS = @USE_NLS@
 VERSION = @VERSION@
@@ -823,9 +830,11 @@ dist-hook:
 @GUI_COCOA_TRUE@	rm -rf $(BUNDLE)
 @GUI_COCOA_TRUE@	mkdir -p $(BUNDLE)/Contents/MacOS
 @GUI_COCOA_TRUE@	mkdir -p $(BUNDLE)/Contents/Resources
+@GUI_COCOA_TRUE@	mkdir -p $(BUNDLE)/Contents/Plugins
 @GUI_COCOA_TRUE@	cp Info.plist $(BUNDLE)/Contents
 @GUI_COCOA_TRUE@	cp $(srcdir)/lxdreamrc $(BUNDLE)/Contents/Resources
 @GUI_COCOA_TRUE@	cp src/lxdream $(BUNDLE)/Contents/MacOS
+@GUI_COCOA_TRUE@	cp -R src/*.dylib $(BUNDLE)/Contents/Plugins
 @GUI_COCOA_TRUE@	cp -R $(srcdir)/pixmaps/* $(BUNDLE)/Contents/Resources
 @GUI_COCOA_TRUE@	$(srcdir)/bundlelibs.pl $(BUNDLE)/Contents/MacOS/lxdream $(BUNDLE)/Contents/Frameworks
 @GUI_COCOA_TRUE@	for cat in $(CATALOGS); do \

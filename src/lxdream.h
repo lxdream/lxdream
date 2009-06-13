@@ -90,6 +90,7 @@ void log_message( void *, int level, const char *source, const char *msg, ... );
 /****************** System paths ****************/
 const char *get_sysconf_path();
 const char *get_locale_path();
+const char *get_plugin_path();
 
 #ifdef HAVE_FASTCALL
 #define FASTCALL __attribute__((regparm(2)))

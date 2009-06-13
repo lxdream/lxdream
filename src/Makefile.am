@@ -8,11 +8,14 @@ INCLUDES = \
         -Ish4 \
 	@GLIB_CFLAGS@ @GTK_CFLAGS@ @LIBPNG_CFLAGS@ @PULSE_CFLAGS@ @ESOUND_CFLAGS@ @ALSA_CFLAGS@ @SDL_CFLAGS@
 
+SOEXT=@SOEXT@
+PLUGINCFLAGS = @PLUGINCFLAGS@ 
+PLUGINLDFLAGS = @PLUGINLDFLAGS@
 bin_PROGRAMS = lxdream
 noinst_PROGRAMS = gendec genglsl
 check_PROGRAMS = test/testxlt
 
-
+pkglib_PROGRAMS=
 EXTRA_DIST=drivers/genkeymap.pl checkver.pl
 AM_CFLAGS = -D__EXTENSIONS__ -D_BSD_SOURCE -D_GNU_SOURCE
 
@@ -26,13 +29,15 @@ TESTS = test/testxlt
 BUILT_SOURCES = sh4/sh4core.c sh4/sh4dasm.c sh4/sh4x86.c sh4/sh4stat.c \
 	pvr2/gl_slsrc.c drivers/mac_keymap.h version.c
 CLEANFILES = sh4/sh4core.c sh4/sh4dasm.c sh4/sh4x86.c sh4/sh4stat.c \
-	pvr2/gl_slsrc.c drivers/mac_keymap.h version.c
+	pvr2/gl_slsrc.c drivers/mac_keymap.h version.c  \
+	audio_alsa.lo audio_sdl.lo audio_esd.lo audio_pulse.lo input_lirc.lo
 
 #all-am: checkversion
 
 gendec_SOURCES = tools/gendec.c tools/gendec.h tools/insparse.c tools/actparse.c
 genglsl_SOURCES = tools/genglsl.c
-lxdream_LINK = $(LINK)
+lxdream_LINK = $(LINK) @LXDREAMLDFLAGS@
+lxdream_LDADD = @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@ $(INTLLIBS)
 lxdream_SOURCES = \
         main.c version.c config.c config.h lxdream.h dream.h gui.h cpu.h hook.h \
         gettext.h mem.c mem.h sdram.c mmio.h watch.c \
@@ -64,7 +69,10 @@ lxdream_SOURCES = \
 	drivers/video_gl.c drivers/video_gl.h drivers/gl_fbo.c \
 	sh4/sh4.def sh4/sh4core.in sh4/sh4x86.in sh4/sh4dasm.in sh4/sh4stat.in \
 	hotkeys.c hotkeys.h
-	
+lxdream_CPPFLAGS = @LXDREAMCPPFLAGS@
+if BUILD_SHARED
+lxdream_SOURCES += plugin.c plugin.h
+endif	
 
 if BUILD_SH4X86
 lxdream_SOURCES += sh4/sh4x86.c xlat/x86/x86op.h \
@@ -76,6 +84,7 @@ lxdream_SOURCES += sh4/sh4x86.c xlat/x86/x86op.h \
         x86dasm/symcat.h x86dasm/sysdep.h
 
 test_testsh4x86_LDADD = @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@
+test_testsh4x86_CPPFLAGS = @LXDREAMCPPFLAGS@
 test_testsh4x86_SOURCES = test/testsh4x86.c x86dasm/x86dasm.c \
 	x86dasm/x86dasm.h x86dasm/i386-dis.c x86dasm/dis-init.c \
 	x86dasm/dis-buf.c \
@@ -119,22 +128,78 @@ if AUDIO_OSX
 lxdream_SOURCES += drivers/audio_osx.m
 endif
 
+if BUILD_SHARED
+if AUDIO_SDL
+pkglib_PROGRAMS += audio_sdl.@SOEXT@
+audio_sdl_@SOEXT@_SOURCES =
+audio_sdl_@SOEXT@_LDADD = audio_sdl.lo @SDL_LIBS@
+audio_sdl_@SOEXT@_LDFLAGS = $(PLUGINLDFLAGS)
+audio_sdl.lo: drivers/audio_sdl.c
+	$(COMPILE) -DPLUGIN $(PLUGINCFLAGS) -c $< -o $@
+endif
+
+if AUDIO_PULSE
+pkglib_PROGRAMS += audio_pulse.@SOEXT@
+audio_pulse_@SOEXT@_SOURCES =
+audio_pulse_@SOEXT@_LDADD = audio_pulse.lo @PULSE_LIBS@
+audio_pulse_@SOEXT@_LDFLAGS = $(PLUGINLDFLAGS)
+audio_pulse.lo: drivers/audio_pulse.c
+	$(COMPILE) -DPLUGIN $(PLUGINCFLAGS) -c $< -o $@
+endif
+
+if AUDIO_ESOUND
+pkglib_PROGRAMS += audio_esd.@SOEXT@
+audio_esd_@SOEXT@_SOURCES =
+audio_esd_@SOEXT@_LDADD = audio_esd.lo @ESOUND_LIBS@
+audio_esd_@SOEXT@_LDFLAGS = $(PLUGINLDFLAGS)
+audio_esd.lo: drivers/audio_esd.c
+	$(COMPILE) -DPLUGIN $(PLUGINCFLAGS) -c $< -o $@
+endif
+
+if AUDIO_ALSA
+pkglib_PROGRAMS += audio_alsa.@SOEXT@
+audio_alsa_@SOEXT@_SOURCES =
+audio_alsa_@SOEXT@_LDADD = audio_alsa.lo @ALSA_LIBS@
+audio_alsa_@SOEXT@_LDFLAGS = $(PLUGINLDFLAGS)
+audio_alsa.lo: drivers/audio_alsa.c
+	$(COMPILE) -DPLUGIN $(PLUGINCFLAGS) -c $< -o $@
+endif
+
+if INPUT_LIRC
+pkglib_PROGRAMS += input_lirc.@SOEXT@
+input_lirc_@SOEXT@_SOURCES =
+input_lirc_@SOEXT@_LDADD = input_lirc.lo	 -llirc_client
+input_lirc_@SOEXT@_LDFLAGS = $(PLUGINLDFLAGS)
+input_lirc.lo: drivers/input_lirc.c
+	$(COMPILE) -DPLUGIN $(PLUGINCFLAGS) -c $< -o $@
+endif
+
+else # build statically
 if AUDIO_SDL
 lxdream_SOURCES += drivers/audio_sdl.c
+lxdream_LDADD += @SDL_LIBS@
 endif
 
 if AUDIO_PULSE
 lxdream_SOURCES += drivers/audio_pulse.c
+lxdream_LDADD += @PULSE_LIBS@
 endif
 
 if AUDIO_ESOUND
 lxdream_SOURCES += drivers/audio_esd.c
+lxdream_LDADD += @ESOUND_LIBS@
 endif
 
 if AUDIO_ALSA
 lxdream_SOURCES += drivers/audio_alsa.c
+lxdream_LDADD += @ALSA_LIBS@
 endif
 
+if INPUT_LIRC
+lxdream_SOURCES += drivers/input_lirc.c
+lxdream_LDADD += -llirc_client
+endif
+endif # end shared/static control
 
 if CDROM_LINUX
 lxdream_SOURCES += drivers/cd_linux.c
@@ -152,12 +217,7 @@ if JOY_LINUX
 lxdream_SOURCES += drivers/joy_linux.c drivers/joy_linux.h
 endif
 
-if INPUT_LIRC
-lxdream_SOURCES += drivers/input_lirc.c drivers/input_lirc.h
-LIRC_LIBS = -llirc_client
-endif
 
-lxdream_LDADD = @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@ @PULSE_LIBS@ @ESOUND_LIBS@ @ALSA_LIBS@ @SDL_LIBS@ $(INTLLIBS) $(LIRC_LIBS)
 
 gendec_LDADD = @GLIB_LIBS@ @GTK_LIBS@ $(INTLLIBS)
 genglsl_LDADD = @GLIB_LIBS@ @GTK_LIBS@ $(INTLLIBS)
