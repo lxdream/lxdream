@@ -16,6 +16,7 @@
  * GNU General Public License for more details.
  */
 
+#include <sys/stat.h>
 #include <dirent.h>
 #include <dlfcn.h>
 #include <string.h>
@@ -30,9 +31,40 @@
 #define SOEXT ".so"
 #endif
 
-const char *plugin_type_string[] = { "Undefined", "Audio driver", "Input driver" };
+/** Dummy plugin used as a plugin directory marker */
+#define DUMMY_PLUGIN ("lxdream_dummy" SOEXT) 
 
-gboolean plugin_load( const gchar *plugin_path )
+const char *plugin_type_string[] = { "undefined", "audio driver", "input driver" };
+
+int main(int argc, char *argv[]);
+static const char *exec_path = NULL;
+
+/**
+ * Return the full path to the main binary
+ */
+static const char *get_exec_path()
+{
+    if( exec_path == NULL ) {
+        Dl_info dli;
+
+        /* Use dladdr for this, since it should be available for any platform
+         * that we can support plugins on at all.
+         */
+        if( dladdr( main, &dli) ) {
+            gchar *path = g_strdup( dli.dli_fname );
+            char *i = strrchr( path, '/' );
+            if( i > path ) {
+                *i = '\0';
+                exec_path = path;
+            } else {
+                g_free(path);
+            }
+        }
+    }
+    return exec_path;
+}
+    
+static gboolean plugin_load( const gchar *plugin_path )
 {
     void *so = dlopen(plugin_path, RTLD_NOW|RTLD_LOCAL);
     if( so == NULL ) {
@@ -53,6 +85,12 @@ gboolean plugin_load( const gchar *plugin_path )
         return FALSE;
     }
 
+    if( plugin->type == PLUGIN_NONE ) {
+        /* 'dummy' plugin - we don't actually want to load it */
+        dlclose(so);
+        return FALSE;
+    }
+    
     if( plugin->type < PLUGIN_MIN_TYPE || plugin->type > PLUGIN_MAX_TYPE ) {
         WARN("Failed to load plugin: '%s': Unrecognized plugin type (%d)", plugin_path, plugin->type );
         dlclose(so);
@@ -64,17 +102,30 @@ gboolean plugin_load( const gchar *plugin_path )
         dlclose(so);
         return FALSE;
     }
-    INFO("Loaded %s plugin '%s'", plugin_type_string[plugin->type], plugin->name);
+    INFO("Loaded %s '%s'", plugin_type_string[plugin->type], plugin->name);
     return TRUE;
+}
+
+static gboolean has_plugins( const gchar *path )
+{
+    struct stat st;
+    
+    gchar *dummy_name = g_strdup_printf( "%s/%s", path, DUMMY_PLUGIN );
+    if( stat( dummy_name, &st ) == 0 ) {
+        return TRUE;
+    } else {
+        return FALSE;
+    }
 }
 
 /**
  * Scan the plugin dir and load all valid plugins.
  */
-int plugin_init( const gchar *plugin_dir )
+static int plugin_load_all( const gchar *plugin_dir )
 {
     int plugin_count;
     struct dirent *ent;
+    
     DIR *dir = opendir(plugin_dir);
     if( dir == NULL ) {
         WARN( "Unable to open plugin directory '%s'", plugin_dir );
@@ -92,4 +143,15 @@ int plugin_init( const gchar *plugin_dir )
         }
     }
     return plugin_count;
+}
+
+int plugin_init()
+{
+    const char *path = get_exec_path();
+    if( path == NULL || !has_plugins(path) ) {
+        path = get_plugin_path();
+    }
+    
+    INFO( "Plugin directory: %s", path );
+    return plugin_load_all( path );
 }

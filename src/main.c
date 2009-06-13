@@ -198,7 +198,7 @@ int main (int argc, char *argv[])
     }
 
 #ifdef ENABLE_SHARED
-    plugin_init(get_plugin_path());
+    plugin_init();
 #endif
 
     lxdream_load_config( );
