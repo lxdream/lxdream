@@ -55,6 +55,8 @@ NSTextField *cocoa_gui_add_label(NSView *parent, NSString *title, NSRect frame);
     NSTextField *status;
     BOOL isGrabbed;
     BOOL useGrab;
+    BOOL isFullscreen;
+    NSRect savedFrame;
 }
 - (id)initWithContentRect:(NSRect)contentRect;
 - (void)setStatusText:(const gchar *)text;
@@ -63,6 +65,8 @@ NSTextField *cocoa_gui_add_label(NSView *parent, NSString *title, NSRect frame);
 - (BOOL)isGrabbed;
 - (void)setIsGrabbed:(BOOL)grab;
 - (void)setUseGrab: (BOOL)grab;
+- (BOOL)isFullscreen;
+- (void)setFullscreen: (BOOL)fs;
 @end
 
 @interface LxdreamPrefsPane : NSView
