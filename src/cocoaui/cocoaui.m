@@ -149,6 +149,8 @@ static void cocoa_gui_create_menu(void)
     [fileMenu addItem: [NSMenuItem separatorItem]];
     [fileMenu addItemWithTitle: NSMENU_("_Load State...") action: @selector(load_action:) keyEquivalent: @"o"];
     [fileMenu addItemWithTitle: NSMENU_("_Save State...") action: @selector(save_action:) keyEquivalent: @"s"];
+    [fileMenu addItem: [NSMenuItem separatorItem]];
+    [fileMenu addItemWithTitle: NSMENU_("_Full Screen...") action: @selector(fullscreen_action:) keyEquivalent: @"\r"];
 
     menuItem = [[NSMenuItem alloc] initWithTitle:NSMENU_("_File") action: nil keyEquivalent: @""];
     [menuItem setSubmenu: fileMenu];
@@ -280,6 +282,10 @@ static void cocoa_gui_create_menu(void)
 {
     gdrom_list_set_selection( [sender tag] );
 }
+- (void) fullscreen_action: (id)sender
+{
+    [mainWindow setFullscreen: ![mainWindow isFullscreen]]; 
+}
 @end
 
 
@@ -314,7 +320,9 @@ gboolean gui_init( gboolean withDebug, gboolean withFullscreen )
     [NSApp activateIgnoringOtherApps: YES];   
 
     register_gdrom_disc_change_hook( cocoa_gui_disc_changed, mainWindow );
-    
+    if( withFullscreen ) {
+    	[mainWindow setFullscreen: YES];
+    }
     [pool release];
     return TRUE;
 }

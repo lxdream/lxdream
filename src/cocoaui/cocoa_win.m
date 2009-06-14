@@ -21,6 +21,7 @@
 #include "dreamcast.h"
 #include "gdrom/gdrom.h"
 #include <ApplicationServices/ApplicationServices.h>
+#include <Carbon/Carbon.h>
 
 @interface NSWindow (OSX10_5_and_later)
 #ifndef CGFLOAT_DEFINED
@@ -207,6 +208,29 @@ willBeInsertedIntoToolbar:(BOOL)flag
         [self setStatusText: _("Stopped")];
     }            
 }
+- (BOOL)isFullscreen
+{
+    return isFullscreen;
+}
+- (void)setFullscreen:(BOOL)full
+{
+    if( full != isFullscreen ) {
+        isFullscreen = full;
+    
+        if( full ) {
+            savedFrame = [self frame];
+            SetSystemUIMode( kUIModeAllHidden, 0 );
+            NSRect screenRect = [[NSScreen mainScreen] frame];
+            screenRect.size.height += STATUSBAR_HEIGHT;
+            screenRect.origin.y -= STATUSBAR_HEIGHT;
+            NSRect targetRect = [self frameRectForContentRect: screenRect];
+            [self setFrame: targetRect display: YES];
+        } else {
+            SetSystemUIMode( kUIModeNormal, 0 );
+            [self setFrame: savedFrame display: YES];
+        }
+    }
+}
 - (BOOL)isGrabbed
 {
     return isGrabbed;
@@ -248,6 +272,10 @@ willBeInsertedIntoToolbar:(BOOL)flag
 {
     [self setIsGrabbed: NO];
     return useGrab ? self : nil;
+}
+- (NSRect)constrainFrameRect:(NSRect)frameRect toScreen:(NSScreen *)aScreen
+{
+    return frameRect;
 }
 @end
 
