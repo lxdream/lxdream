@@ -15095,7 +15095,7 @@ else
 fi
 
 if test "x$INPUT_DRIVERS" = "x"; then
-   echo "  Input drivers: none (no supported output devices found)"
+   echo "  Input drivers: none (no supported input devices found)"
 else
    echo "  Input drivers: $INPUT_DRIVERS"
 fi
