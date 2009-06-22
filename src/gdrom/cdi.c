@@ -203,5 +203,6 @@ gdrom_disc_t cdi_image_open( const gchar *filename, FILE *f )
         fseek( f, 12, SEEK_CUR );
     }
     disc->track_count = total_tracks;
+    gdrom_set_disc_type(disc);
     return disc;
 }

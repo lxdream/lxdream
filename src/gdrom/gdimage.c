@@ -243,6 +243,24 @@ static gboolean gdrom_is_compatible_read_mode( int track_mode, int read_mode )
     }
 }
 
+void gdrom_set_disc_type( gdrom_disc_t disc ) 
+{
+    int type = IDE_DISC_NONE, i;
+    for( i=0; i<disc->track_count; i++ ) {
+        if( disc->track[i].mode == GDROM_CDDA ) {
+            if( type == IDE_DISC_NONE )
+                type = IDE_DISC_AUDIO;
+        } else if( disc->track[i].mode == GDROM_MODE1 || disc->track[i].mode == GDROM_RAW_NONXA ) {
+            if( type != IDE_DISC_CDROMXA )
+                type = IDE_DISC_CDROM;
+        } else {
+            type = IDE_DISC_CDROMXA;
+            break;
+        }
+    }
+    disc->disc_type = type;
+}
+
 /**
  * Determine the start position in a raw sector, and the amount of data to read
  * in bytes, for a given combination of sector mode and read mode.
