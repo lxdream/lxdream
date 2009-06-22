@@ -343,6 +343,7 @@ static gdrom_disc_t nrg_image_open( const gchar *filename, FILE *f )
         }
     } while( !end );
     disc->track_count = track_id;
+    gdrom_set_disc_type(disc);
     return disc;
 }
 

@@ -258,4 +258,9 @@ gboolean gdrom_disc_read_title( gdrom_disc_t disc );
  */
 void mmc_parse_toc2( gdrom_disc_t disc, unsigned char *buf );
 
+/**
+ * Set the disc type flag based on the track contents
+ */
+void gdrom_set_disc_type( gdrom_disc_t disc );
+
 #endif /* !lxdream_gddriver_H */
