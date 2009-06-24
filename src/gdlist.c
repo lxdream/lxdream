@@ -65,18 +65,7 @@ gint gdrom_list_find( const gchar *name )
  */
 void gdrom_list_update_config()
 {
-    GList *ptr;
-    int size = 0;
-    for( ptr = gdrom_recent_list; ptr != NULL; ptr = g_list_next(ptr) ) {
-        size += strlen( (gchar *)ptr->data ) + 1;
-    }
-    char buf[size];
-    strcpy( buf, (gchar *)gdrom_recent_list->data );
-    for( ptr = g_list_next(gdrom_recent_list); ptr != NULL; ptr = g_list_next(ptr) ) {
-        strcat( buf, ":" );
-        strcat( buf, (gchar *)ptr->data );
-    }
-    lxdream_set_global_config_value( CONFIG_RECENT, buf );
+    lxdream_set_global_config_list_value( CONFIG_RECENT, gdrom_recent_list ); 
 }
 
 
@@ -146,17 +135,9 @@ void gdrom_list_drives_changed( GList *device_list )
 
 void gdrom_list_init()
 {
-    const gchar *recent = lxdream_get_config_value( CONFIG_RECENT );
+    gdrom_recent_list = lxdream_get_global_config_list_value( CONFIG_RECENT );
     register_gdrom_disc_change_hook( gdrom_list_disc_changed, NULL );
     gdrom_device_list = cdrom_get_native_devices();
-    if( recent != NULL ) {
-        gchar **list = g_strsplit(recent, ":", MAX_RECENT_ITEMS);
-        int i;
-        for( i=0; list[i] != NULL; i++ ) {
-            gdrom_recent_list = g_list_append( gdrom_recent_list, g_strdup(list[i]) );
-        }
-        g_strfreev(list);
-    }
     gdrom_device_count = g_list_length(gdrom_device_list);
     gdrom_recent_count = g_list_length(gdrom_recent_list);
 

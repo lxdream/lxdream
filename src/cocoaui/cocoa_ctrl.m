@@ -20,14 +20,20 @@
 #include "config.h"
 #include "display.h"
 #include "maple/maple.h"
+#include "vmu/vmulist.h"
 
 #include <glib/gstrfuncs.h>
 
-#define MAX_DEVICES 4
+#define FIRST_SECONDARY_DEVICE MAPLE_PORTS
+
+#define FIRST_VMU_TAG 0x1000
+#define LOAD_VMU_TAG -1
+#define CREATE_VMU_TAG -2
 
 #define KEYBINDING_SIZE 110
 
 static void cocoa_config_keysym_hook(void *data, const gchar *keysym);
+static gboolean cocoa_config_vmulist_hook(vmulist_change_type_t type, int idx, void *data);
 
 @interface KeyBindingEditor (Private)
 - (void)updateKeysym: (const gchar *)sym;
@@ -188,7 +194,7 @@ static void cocoa_config_keysym_hook(void *data, const gchar *keysym)
 @interface ControllerKeyBindingView : NSView
 {
     maple_device_t device;
-    KeyBindingField *field[MAX_KEY_BINDINGS][2];
+    NSTextField *field[MAX_KEY_BINDINGS][2];
 }
 - (id)initWithFrame: (NSRect)frameRect;
 - (void)setDevice: (maple_device_t)device;
@@ -214,21 +220,25 @@ static void cocoa_config_keysym_hook(void *data, const gchar *keysym)
 }
 - (void)controlTextDidChange: (NSNotification *)notify
 {
+    const gchar *p = NULL;
     int binding = [[notify object] tag];
     NSString *val1 = [field[binding][0] stringValue];
-    NSString *val2 = [field[binding][1] stringValue];
-    char buf[ [val1 length] + [val2 length] + 2 ];
-    const gchar *p = NULL;
-    
-    if( [val1 length] == 0 ) {
-        if( [val2 length] != 0 ) {
-            p = [val2 UTF8String];
-        }
-    } else if( [val2 length] == 0 ) {
+    if( field[binding][1] == NULL ) {
         p = [val1 UTF8String];
     } else {
-        sprintf( buf, "%s,%s", [val1 UTF8String], [val2 UTF8String] );
-        p = buf;
+        NSString *val2 = [field[binding][1] stringValue];
+        char buf[ [val1 length] + [val2 length] + 2 ];
+
+        if( [val1 length] == 0 ) {
+            if( [val2 length] != 0 ) {
+                p = [val2 UTF8String];
+            }
+        } else if( [val2 length] == 0 ) {
+            p = [val1 UTF8String];
+        } else {
+            sprintf( buf, "%s,%s", [val1 UTF8String], [val2 UTF8String] );
+            p = buf;
+        }
     }
     maple_set_device_config_value( device, binding, p ); 
     lxdream_save_config();
@@ -237,7 +247,7 @@ static void cocoa_config_keysym_hook(void *data, const gchar *keysym)
 {
     device = newDevice;
     [self removeSubviews];
-    if( device != NULL ) {
+    if( device != NULL && !MAPLE_IS_VMU(device) ) {
         lxdream_config_entry_t config = maple_get_device_config(device);
         if( config != NULL ) {
             int count, i, y, x;
@@ -249,35 +259,51 @@ static void cocoa_config_keysym_hook(void *data, const gchar *keysym)
             [self scrollRectToVisible: NSMakeRect(0,0,1,1)]; 
             y = TEXT_GAP;
             for( i=0; config[i].key != NULL; i++ ) {
+                /* Add label */
                 NSRect frame = NSMakeRect(x, y + 2, 85, LABEL_HEIGHT);
                 NSTextField *label = cocoa_gui_add_label(self, NS_(config[i].label), frame);
                 [label setAlignment: NSRightTextAlignment];
-
-                frame = NSMakeRect( x + 85 + TEXT_GAP, y, KEYBINDING_SIZE, TEXT_HEIGHT);
-                field[i][0] = [[KeyBindingField alloc] initWithFrame: frame];
-                [field[i][0] setAutoresizingMask: (NSViewMinYMargin|NSViewMaxXMargin)];
-                [field[i][0] setTag: i];
-                [field[i][0] setDelegate: self];
-                [self addSubview: field[i][0]];
                 
-                frame = NSMakeRect( x + 85 + KEYBINDING_SIZE + (TEXT_GAP*2), y, KEYBINDING_SIZE, TEXT_HEIGHT);
-                field[i][1] = [[KeyBindingField alloc] initWithFrame: frame];
-                [field[i][1] setAutoresizingMask: (NSViewMinYMargin|NSViewMaxXMargin)];
-                [field[i][1] setTag: i];
-                [field[i][1] setDelegate: self];
-                [self addSubview: field[i][1]];
+                switch(config[i].type) {
+                case CONFIG_TYPE_KEY:
+                    frame = NSMakeRect( x + 85 + TEXT_GAP, y, KEYBINDING_SIZE, TEXT_HEIGHT);
+                    field[i][0] = [[KeyBindingField alloc] initWithFrame: frame];
+                    [field[i][0] setAutoresizingMask: (NSViewMinYMargin|NSViewMaxXMargin)];
+                    [field[i][0] setTag: i];
+                    [field[i][0] setDelegate: self];
+                    [self addSubview: field[i][0]];
 
-                if( config[i].value != NULL ) {
-                    gchar **parts = g_strsplit(config[i].value,",",3);
-                    if( parts[0] != NULL ) {
-                        [field[i][0] setStringValue: [NSString stringWithCString: parts[0]]];
-                        if( parts[1] != NULL ) {
-                            [field[i][1] setStringValue: [NSString stringWithCString: parts[1]]];
+                    frame = NSMakeRect( x + 85 + KEYBINDING_SIZE + (TEXT_GAP*2), y, KEYBINDING_SIZE, TEXT_HEIGHT);
+                    field[i][1] = [[KeyBindingField alloc] initWithFrame: frame];
+                    [field[i][1] setAutoresizingMask: (NSViewMinYMargin|NSViewMaxXMargin)];
+                    [field[i][1] setTag: i];
+                    [field[i][1] setDelegate: self];
+                    [self addSubview: field[i][1]];
+
+                    if( config[i].value != NULL ) {
+                        gchar **parts = g_strsplit(config[i].value,",",3);
+                        if( parts[0] != NULL ) {
+                            [field[i][0] setStringValue: [NSString stringWithCString: parts[0]]];
+                            if( parts[1] != NULL ) {
+                                [field[i][1] setStringValue: [NSString stringWithCString: parts[1]]];
+                            }
                         }
+                        g_strfreev(parts);
                     }
-                    g_strfreev(parts);
-                }
-                
+                    break;
+                case CONFIG_TYPE_FILE:
+                case CONFIG_TYPE_PATH:
+                    frame = NSMakeRect( x + 85 + TEXT_GAP, y, KEYBINDING_SIZE*2+TEXT_GAP, TEXT_HEIGHT);
+                    field[i][0] = [[NSTextField alloc] initWithFrame: frame];
+                    [field[i][0] setAutoresizingMask: (NSViewMinYMargin|NSViewMaxXMargin)];
+                    [field[i][0] setTag: i];
+                    [field[i][0] setDelegate: self];
+                    [self addSubview: field[i][0]];
+                    if( config[i].value != NULL ) {
+                        [field[i][0] setStringValue: [NSString stringWithCString: config[i].value]];
+                    }
+                    field[i][1] = NULL;
+                } 
                 y += (TEXT_HEIGHT + TEXT_GAP);
             }
         } else {
@@ -290,15 +316,175 @@ static void cocoa_config_keysym_hook(void *data, const gchar *keysym)
 @end
 
 /*************************** Top-level controller pane ***********************/
+static NSButton *addRadioButton( int port, int sub, int x, int y, id parent )
+{
+    char buf[16];
+    
+    if( sub == 0 ) {
+        snprintf( buf, sizeof(buf), _("Port %c."), 'A'+port );
+    } else {
+        snprintf( buf, sizeof(buf), _("VMU %d."), sub );
+    }
+
+    NSButton *radio = [[NSButton alloc] initWithFrame: NSMakeRect( x, y, 60, TEXT_HEIGHT )];
+    [radio setTitle: [NSString stringWithUTF8String: buf]];
+    [radio setTag: MAPLE_DEVID(port,sub) ];
+    [radio setButtonType: NSRadioButton];
+    [radio setAlignment: NSRightTextAlignment];
+    [radio setTarget: parent];
+    [radio setAction: @selector(radioChanged:)];
+    [radio setAutoresizingMask: (NSViewMinYMargin|NSViewMaxXMargin)];
+    [parent addSubview: radio];
+    return radio;
+}
+
+static void setDevicePopupSelection( NSPopUpButton *popup, maple_device_t device )
+{
+    if( device == NULL ) {
+        [popup selectItemAtIndex: 0];
+    } else if( MAPLE_IS_VMU(device) ) {
+        int idx = vmulist_get_index_by_filename( MAPLE_VMU_NAME(device) );
+        if( idx == -1 ) {
+            [popup selectItemAtIndex: 0];
+        } else {
+            [popup selectItemWithTag: FIRST_VMU_TAG + idx];
+        }
+    } else {
+        const struct maple_device_class **devices = maple_get_device_classes();
+        int i;
+        for( i=0; devices[i] != NULL; i++ ) {
+            if( devices[i] == device->device_class ) {
+                [popup selectItemWithTag: i+1];
+                return;
+            }
+        }
+        // Should never get here, but if so...
+        [popup selectItemAtIndex: 0];
+    }
+}
+
+static void buildDevicePopupMenu( NSPopUpButton *popup, maple_device_t device, BOOL primary )
+{
+    int j;
+    const struct maple_device_class **devices = maple_get_device_classes();
+
+    [popup removeAllItems];
+    [popup addItemWithTitle: NS_("<empty>")];
+    [[popup itemAtIndex: 0] setTag: 0];
+    for( j=0; devices[j] != NULL; j++ ) {
+        int isPrimaryDevice = devices[j]->flags & MAPLE_TYPE_PRIMARY;
+        if( primary ? isPrimaryDevice : (!isPrimaryDevice && !MAPLE_IS_VMU_CLASS(devices[j])) ) {
+            [popup addItemWithTitle: [NSString stringWithUTF8String: devices[j]->name]];
+            if( device != NULL && device->device_class == devices[j] ) {
+                [popup selectItemAtIndex: ([popup numberOfItems]-1)];
+            }
+            [[popup itemAtIndex: ([popup numberOfItems]-1)] setTag: (j+1)];
+        }
+    }
+    
+    if( !primary ) {
+        BOOL vmu_selected = NO;
+        const char *vmu_name;
+        if( device != NULL && MAPLE_IS_VMU(device) ) {
+            vmu_selected = YES;
+            vmu_name = MAPLE_VMU_NAME(device);
+        }
+        if( [popup numberOfItems] > 0 ) {
+            [[popup menu] addItem: [NSMenuItem separatorItem]];
+        }
+        
+        unsigned int vmu_count = vmulist_get_size();
+        for( j=0; j<vmu_count; j++ ) {
+            const char *name = vmulist_get_name(j);
+            [popup addItemWithTitle: [NSString stringWithUTF8String: name]];
+            if( vmu_selected && strcmp(vmu_name, vmulist_get_filename(j)) == 0 ) {
+                [popup selectItemAtIndex: ([popup numberOfItems]-1)];
+            }
+            [[popup itemAtIndex: ([popup numberOfItems]-1)] setTag: FIRST_VMU_TAG + j];
+        }
+        
+        [popup addItemWithTitle: NS_("Load VMU...")];
+        [[popup itemAtIndex: ([popup numberOfItems]-1)] setTag: LOAD_VMU_TAG];
+        [popup addItemWithTitle: NS_("Create VMU...")];
+        [[popup itemAtIndex: ([popup numberOfItems]-1)] setTag: CREATE_VMU_TAG];
+    }
+    
+}
+
+static NSPopUpButton *addDevicePopup( int port, int sub, int x, int y, maple_device_t device, BOOL primary, id parent )
+{
+    NSPopUpButton *popup = [[NSPopUpButton alloc] initWithFrame: NSMakeRect(x,y,150,TEXT_HEIGHT) 
+                                                  pullsDown: NO];
+    [popup setAutoresizingMask: (NSViewMinYMargin|NSViewMaxXMargin)];
+    buildDevicePopupMenu(popup,device,primary);
+
+    [popup setTarget: parent];
+    [popup setAction: @selector(deviceChanged:)];
+    [popup setTag: MAPLE_DEVID(port,sub) ];
+    [parent addSubview: popup];    
+    return popup;
+}
+
+@interface VMULoadValidator : NSObject
+{
+}
+- (BOOL)panel:(id) sender isValidFilename: (NSString *)filename;
+@end
+
+@implementation VMULoadValidator 
+- (BOOL)panel:(id) sender isValidFilename: (NSString *)filename
+{
+    const char *c_fn = [filename UTF8String];
+    vmu_volume_t vol = vmu_volume_load( c_fn );
+    if( vol != NULL ) {
+        vmulist_add_vmu(c_fn, vol);
+        return YES;
+    } else {
+        ERROR( "Unable to load VMU file (not a valid VMU)" );
+        return NO;
+    }
+}
+
+@end
+
+@interface VMUCreateValidator : NSObject
+{
+}
+- (BOOL)panel:(id) sender isValidFilename: (NSString *)filename;
+@end
+
+@implementation VMUCreateValidator 
+- (BOOL)panel:(id) sender isValidFilename: (NSString *)filename
+{
+    const char *vmu_filename = [filename UTF8String];
+    int idx = vmulist_create_vmu(vmu_filename, FALSE);
+    if( idx == -1 ) {
+        ERROR( "Unable to create file: %s\n", strerror(errno) );
+        return NO;
+    } else {
+        return YES;
+    }
+}
+@end
+
 
 @interface LxdreamPrefsControllerPane: LxdreamPrefsPane
 {
-    struct maple_device *save_controller[4];
-    NSButton *radio[4];
+    struct maple_device *save_controller[MAPLE_MAX_DEVICES];
+    NSButton *radio[MAPLE_MAX_DEVICES];
+    NSPopUpButton *popup[MAPLE_MAX_DEVICES];
     ControllerKeyBindingView *key_bindings;
 }
 + (LxdreamPrefsControllerPane *)new;
+- (void)vmulistChanged: (id)sender;
 @end
+
+static gboolean cocoa_config_vmulist_hook(vmulist_change_type_t type, int idx, void *data)
+{
+    LxdreamPrefsControllerPane *pane = (LxdreamPrefsControllerPane *)data;
+    [pane vmulistChanged: nil];
+    return TRUE;
+}
 
 @implementation LxdreamPrefsControllerPane
 + (LxdreamPrefsControllerPane *)new
@@ -310,11 +496,11 @@ static void cocoa_config_keysym_hook(void *data, const gchar *keysym)
     if( [super initWithFrame: frameRect title: NS_("Controllers")] == nil ) {
         return nil;
     } else {
-        const struct maple_device_class **devices = maple_get_device_classes();
-        char buf[16];
         int i,j;
         int y = [self contentHeight] - TEXT_HEIGHT - TEXT_GAP;
 
+        memset( radio, 0, sizeof(radio) );
+        memset( save_controller, 0, sizeof(save_controller) );
         NSBox *rule = [[NSBox alloc] initWithFrame: 
                 NSMakeRect(210+(TEXT_GAP*3), 1, 1, [self contentHeight] + TEXT_GAP - 2)];
         [rule setAutoresizingMask: (NSViewMaxXMargin|NSViewHeightSizable)];
@@ -334,96 +520,158 @@ static void cocoa_config_keysym_hook(void *data, const gchar *keysym)
         [self addSubview: scrollView];
         [key_bindings setDevice: maple_get_device(0,0)];
         
-        for( i=0; i<MAX_DEVICES; i++ ) {
-            int x = TEXT_GAP;
-            save_controller[i] = NULL;
+        for( i=0; i<MAPLE_PORTS; i++ ) {
             maple_device_t device = maple_get_device(i,0);
 
-            snprintf( buf, sizeof(buf), _("Slot %d."), i );
-            radio[i] = [[NSButton alloc] initWithFrame: NSMakeRect( x, y, 60, TEXT_HEIGHT )];
-            [radio[i] setTitle: [NSString stringWithUTF8String: buf]];
-            [radio[i] setTag: i];
-            [radio[i] setButtonType: NSRadioButton];
-            [radio[i] setAlignment: NSRightTextAlignment];
-            [radio[i] setTarget: self];
-            [radio[i] setAction: @selector(radioChanged:)];
-            [radio[i] setAutoresizingMask: (NSViewMinYMargin|NSViewMaxXMargin)];
-            [self addSubview: radio[i]];
-            x += 60 + TEXT_GAP;
-
-            NSPopUpButton *popup = [[NSPopUpButton alloc] initWithFrame: NSMakeRect(x,y,150,TEXT_HEIGHT) 
-                                                          pullsDown: NO];
-            [popup addItemWithTitle: NS_("<empty>")];
-            [popup setAutoresizingMask: (NSViewMinYMargin|NSViewMaxXMargin)];
-            [[popup itemAtIndex: 0] setTag: 0];
-            for( j=0; devices[j] != NULL; j++ ) {
-                [popup addItemWithTitle: [NSString stringWithUTF8String: devices[j]->name]];
-                if( device != NULL && device->device_class == devices[j] ) {
-                    [popup selectItemAtIndex: (j+1)];
-                }
-                [[popup itemAtIndex: (j+1)] setTag: (j+1)];
-            }
-            [popup setTarget: self];
-            [popup setAction: @selector(deviceChanged:)];
-            [popup setTag: i];
-            [self addSubview: popup];
+            radio[i] = addRadioButton(i,0,TEXT_GAP,y,self);
+            popup[i] = addDevicePopup(i,0,60 + (TEXT_GAP*2),y,device, YES,self);
             y -= (TEXT_HEIGHT+TEXT_GAP);
+            
+            int j,max = device == NULL ? 0 : MAPLE_SLOTS(device->device_class);
+            for( j=1; j<=MAPLE_USER_SLOTS; j++ ) {
+                radio[MAPLE_DEVID(i,j)] = addRadioButton(i, j, TEXT_GAP*2, y, self);
+                popup[MAPLE_DEVID(i,j)] = addDevicePopup(i, j, 60 + TEXT_GAP*2, y, maple_get_device(i,j), NO, self);
+                y -= (TEXT_HEIGHT+TEXT_GAP);
+                if( j > max ) {
+                    [radio[MAPLE_DEVID(i,j)] setEnabled: NO];
+                    [popup[MAPLE_DEVID(i,j)] setEnabled: NO];
+                }
+            }
         }
         
         [radio[0] setState: NSOnState];
+        
+        register_vmulist_change_hook(cocoa_config_vmulist_hook, self);
         return self;
+    }
+}
+- (void)dealloc
+{
+    unregister_vmulist_change_hook(cocoa_config_vmulist_hook,self);
+    [super dealloc];
+}
+- (void)vmulistChanged: (id)sender
+{
+    int i;
+    for( i=FIRST_SECONDARY_DEVICE; i<MAPLE_MAX_DEVICES; i++ ) {
+        if( popup[i] != NULL ) {
+            buildDevicePopupMenu(popup[i], maple_get_device(MAPLE_DEVID_PORT(i), MAPLE_DEVID_SLOT(i)), NO );
+        }
     }
 }
 - (void)radioChanged: (id)sender
 {
-    int slot = [sender tag];
+    int tag = [sender tag];
     int i;
-    for( i=0; i<MAX_DEVICES; i++ ) {
-        if( i != slot ) {
+    for( i=0; i<MAPLE_MAX_DEVICES; i++ ) {
+        if( i != tag && radio[i] != NULL ) {
             [radio[i] setState: NSOffState];
         }
     }
-    [key_bindings setDevice: maple_get_device(slot,0)];
+    [key_bindings setDevice: maple_get_device(MAPLE_DEVID_PORT(tag),MAPLE_DEVID_SLOT(tag))];
 }
 - (void)deviceChanged: (id)sender
 {
-    int slot = [sender tag];
-    int new_device_idx = [sender indexOfSelectedItem] - 1, i; 
+    int tag = [sender tag];
+    int port = MAPLE_DEVID_PORT(tag);
+    int slot = MAPLE_DEVID_SLOT(tag);
+    int new_device_idx = [[sender selectedItem] tag], i; 
     maple_device_class_t new_device_class = NULL;
+    const gchar *vmu_filename = NULL;
     
-    for( i=0; i<MAX_DEVICES; i++ ) {
-        if( i == slot ) {
-            [radio[i] setState: NSOnState];
-        } else {
-            [radio[i] setState: NSOffState];
+    for( i=0; i<MAPLE_MAX_DEVICES; i++ ) {
+        if( radio[i] != NULL ) {
+            if( i == tag ) {
+                [radio[i] setState: NSOnState];
+            } else {
+                [radio[i] setState: NSOffState];
+            }
         }
     }
     
-    maple_device_t current = maple_get_device(slot,0);
+    maple_device_t current = maple_get_device(port,slot);
     maple_device_t new_device = NULL;
-    if( new_device_idx != -1 ) {
-        new_device_class = maple_get_device_classes()[new_device_idx];
+    if( new_device_idx == LOAD_VMU_TAG ) {
+        NSArray *array = [NSArray arrayWithObjects: @"vmu", nil];
+        NSOpenPanel *panel = [NSOpenPanel openPanel];
+        VMULoadValidator *valid = [[VMULoadValidator alloc] autorelease];
+        [panel setDelegate: valid];
+        NSInteger result = [panel runModalForDirectory: [NSString stringWithUTF8String: lxdream_get_config_value(CONFIG_VMU_PATH)]
+               file: nil types: array];
+        if( result == NSOKButton ) {
+            vmu_filename = [[panel filename] UTF8String];
+            int idx = vmulist_get_index_by_filename(vmu_filename);
+            [sender selectItemWithTag: (FIRST_VMU_TAG+idx)];
+            new_device_class = &vmu_class;
+        } else {
+            /* Cancelled - restore previous value */
+            setDevicePopupSelection( sender, current );
+            return;
+        }
+    } else if( new_device_idx == CREATE_VMU_TAG ) {
+        NSSavePanel *panel = [NSSavePanel savePanel];
+        [panel setTitle: NS_("Create VMU")];
+        [panel setCanCreateDirectories: YES];
+        [panel setRequiredFileType: @"vmu"];
+        VMUCreateValidator *valid = [[VMUCreateValidator alloc] autorelease];
+        [panel setDelegate: valid];
+        NSInteger result = [panel runModalForDirectory: [NSString stringWithUTF8String: lxdream_get_config_value(CONFIG_VMU_PATH)]
+               file: nil];
+        if( result == NSFileHandlingPanelOKButton ) {
+            /* Validator has already created the file by now */
+            vmu_filename = [[panel filename] UTF8String];
+            int idx = vmulist_get_index_by_filename(vmu_filename);
+            [sender selectItemWithTag: (FIRST_VMU_TAG+idx)];
+            new_device_class = &vmu_class;
+        } else {
+            setDevicePopupSelection( sender, current );
+            return;
+        }
+    } else if( new_device_idx >= FIRST_VMU_TAG ) {
+        vmu_filename = vmulist_get_filename( new_device_idx - FIRST_VMU_TAG );
+        new_device_class = &vmu_class;
+    } else if( new_device_idx > 0) {
+        new_device_class = maple_get_device_classes()[new_device_idx-1];
     }
-    if( current == NULL ? new_device_class == NULL : current->device_class == new_device_class ) {
+    
+    if( current == NULL ? new_device_class == NULL : 
+        (current->device_class == new_device_class && 
+                (!MAPLE_IS_VMU(current) || MAPLE_VMU_HAS_NAME(current, vmu_filename))) ) {
         // No change
         [key_bindings setDevice: current];
         return;
     }
     if( current != NULL && current->device_class == &controller_class ) {
-        save_controller[slot] = current->clone(current);
+        save_controller[tag] = current->clone(current);
     }
     if( new_device_class == NULL ) {
-        maple_detach_device(slot,0);
+        maple_detach_device(port,slot);
     } else {
-        if( new_device_class == &controller_class && save_controller[slot] != NULL ) {
-            new_device = save_controller[slot];
-            save_controller[slot] = NULL;
+        if( new_device_class == &controller_class && save_controller[tag] != NULL ) {
+            new_device = save_controller[tag];
+            save_controller[tag] = NULL;
         } else {
             new_device = maple_new_device( new_device_class->name );
         }
-        maple_attach_device(new_device,slot,0);
+        if( MAPLE_IS_VMU(new_device) ) {
+            MAPLE_SET_VMU_NAME(new_device,vmu_filename);
+        }
+        maple_attach_device(new_device,port,slot);
     }
-    [key_bindings setDevice: maple_get_device(slot,0)];
+    [key_bindings setDevice: maple_get_device(port,slot)];
+    
+    if( slot == 0 ) { /* Change primary */
+        int max = new_device_class == NULL ? 0 : MAPLE_SLOTS(new_device_class);
+        for( i=1; i<=MAPLE_USER_SLOTS; i++ ) {
+            if( i <= max ) {
+                [radio[MAPLE_DEVID(port,i)] setEnabled: YES];
+                [popup[MAPLE_DEVID(port,i)] setEnabled: YES];
+            } else {
+                [radio[MAPLE_DEVID(port,i)] setEnabled: NO];
+                [popup[MAPLE_DEVID(port,i)] setEnabled: NO];
+            }                
+        }
+    }
     lxdream_save_config();
 }
 @end

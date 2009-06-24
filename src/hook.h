@@ -22,7 +22,7 @@
 #include <assert.h>
 
 /**
- * Hook functions are generally useful, so we'd let to limit the overhead (and 
+ * Hook functions are generally useful, so we'd like to limit the overhead (and 
  * opportunity for stupid bugs) by minimizing the amount of code involved. Glib
  * has GHook (and of course signals), but they don't actually simplify anything
  * at this level.
@@ -46,6 +46,7 @@
 
 #define FOREACH_HOOK( h, name ) struct name##_hook_struct *h; for( h = name##_hook_list; h != NULL; h = h->next )
 
+#define CALL_HOOKS0( name ) FOREACH_HOOK(h,name) { h->fn(h->user_data); }
 #define CALL_HOOKS( name, args... ) FOREACH_HOOK(h, name) { h->fn(args, h->user_data); } 
     
 #define DEFINE_HOOK( name, fn_type ) \

@@ -55,13 +55,13 @@ typedef struct mouse_device {
     int32_t axis[8];
 } *mouse_device_t; 
 
-struct maple_device_class mouse_class = { "Sega Mouse", mouse_new };
+struct maple_device_class mouse_class = { "Sega Mouse", MAPLE_GRAB_YES|MAPLE_TYPE_PRIMARY, mouse_new };
 
 static struct mouse_device base_mouse = {
-        { MAPLE_DEVICE_TAG, &mouse_class, MAPLE_GRAB_YES,
+        { MAPLE_DEVICE_TAG, &mouse_class,
                 MOUSE_IDENT, MOUSE_VERSION, 
                 NULL, NULL, mouse_attach, mouse_detach, maple_default_destroy,
-                mouse_clone, NULL, NULL, mouse_get_cond, NULL, NULL, NULL, NULL, NULL },
+                mouse_clone, NULL, NULL, mouse_get_cond, NULL, NULL, NULL, NULL, NULL, NULL },
                 0, {0,0,0,0,0,0,0,0}, 
 };
 

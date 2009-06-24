@@ -32,6 +32,7 @@
 #include "pvr2/pvr2.h"
 #include "sh4/sh4.h"
 #include "sh4/sh4core.h"
+#include "vmu/vmulist.h"
 
 /**
  * Current state of the DC virtual machine
@@ -242,6 +243,8 @@ void dreamcast_run( void )
         if( modules[i]->stop != NULL )
             modules[i]->stop();
     }
+    
+    vmulist_save_all();
     dreamcast_state = STATE_STOPPED;
 
     if( dreamcast_exit_on_stop ) {
@@ -264,6 +267,7 @@ void dreamcast_shutdown()
     if( dreamcast_state == STATE_RUNNING )
         dreamcast_state = STATE_STOPPING;
     dreamcast_save_flash();
+    vmulist_save_all();
 #ifdef ENABLE_SH4STATS
     sh4_stats_print(stdout);
 #endif

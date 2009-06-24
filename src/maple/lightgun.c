@@ -72,14 +72,15 @@ typedef struct lightgun_device {
     struct lxdream_config_entry config[LIGHTGUN_CONFIG_ENTRIES+1];
 } *lightgun_device_t;
 
-struct maple_device_class lightgun_class = { "Sega Lightgun", lightgun_new };
+struct maple_device_class lightgun_class = { "Sega Lightgun", 
+        MAPLE_TYPE_PRIMARY|MAPLE_GRAB_NO|MAPLE_SLOTS_2, lightgun_new };
 
 static struct lightgun_device base_lightgun = {
-        { MAPLE_DEVICE_TAG, &lightgun_class, MAPLE_GRAB_NO,
+        { MAPLE_DEVICE_TAG, &lightgun_class,
           LIGHTGUN_IDENT, LIGHTGUN_VERSION, 
           lightgun_get_config, lightgun_set_config_value, 
           lightgun_attach, lightgun_detach, lightgun_destroy,
-          lightgun_clone, NULL, NULL, lightgun_get_cond, NULL, NULL, NULL,
+          lightgun_clone, NULL, NULL, lightgun_get_cond, NULL, NULL, NULL, NULL,
           lightgun_start_gun, lightgun_stop_gun},
           {0x0000FFFF, 0x80808080}, 0, -1, -1, 
           {{ "dpad left", N_("Dpad left"), CONFIG_TYPE_KEY },

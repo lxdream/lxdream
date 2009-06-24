@@ -93,14 +93,15 @@ typedef struct controller_device {
     struct lxdream_config_entry config[CONTROLLER_CONFIG_ENTRIES+1];
 } *controller_device_t;
 
-struct maple_device_class controller_class = { "Sega Controller", controller_new };
+struct maple_device_class controller_class = { "Sega Controller",
+        MAPLE_TYPE_PRIMARY|MAPLE_GRAB_DONTCARE|MAPLE_SLOTS_2,  controller_new };
 
 static struct controller_device base_controller = {
-        { MAPLE_DEVICE_TAG, &controller_class, MAPLE_GRAB_DONTCARE,
+        { MAPLE_DEVICE_TAG, &controller_class,
           CONTROLLER_IDENT, CONTROLLER_VERSION, 
           controller_get_config, controller_set_config_value, 
           controller_attach, controller_detach, controller_destroy,
-          controller_clone, NULL, NULL, controller_get_cond, NULL, NULL, NULL, NULL, NULL },
+          controller_clone, NULL, NULL, controller_get_cond, NULL, NULL, NULL, NULL, NULL, NULL },
           {0x0000FFFF, 0x80808080}, 
           {{ "dpad left", N_("Dpad left"), CONFIG_TYPE_KEY },
            { "dpad right", N_("Dpad right"), CONFIG_TYPE_KEY },

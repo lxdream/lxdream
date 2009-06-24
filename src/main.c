@@ -35,6 +35,7 @@
 #include "maple/maple.h"
 #include "sh4/sh4.h"
 #include "aica/armdasm.h"
+#include "vmu/vmulist.h"
 #include "hotkeys.h"
 #include "plugin.h"
 
@@ -216,6 +217,7 @@ int main (int argc, char *argv[])
     }
 
     gdrom_list_init();
+    vmulist_init();
 
     if( aica_program == NULL ) {
         dreamcast_init();

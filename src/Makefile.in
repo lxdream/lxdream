@@ -161,8 +161,9 @@ am__lxdream_SOURCES_DIST = main.c version.c config.c config.h \
 	pvr2/glutil.h pvr2/glrender.c pvr2/vertex.glsl \
 	pvr2/fragment.glsl maple/maple.c maple/maple.h \
 	maple/controller.c maple/kbd.c maple/mouse.c maple/lightgun.c \
-	loader.c loader.h elf.h bootstrap.c bootstrap.h util.c \
-	gdlist.c gdlist.h display.c display.h dckeysyms.h \
+	maple/vmu.c loader.c loader.h elf.h bootstrap.c bootstrap.h \
+	util.c gdlist.c gdlist.h vmu/vmuvol.c vmu/vmuvol.h \
+	vmu/vmulist.c vmu/vmulist.h display.c display.h dckeysyms.h \
 	drivers/audio_null.c drivers/video_null.c drivers/cd_mmc.c \
 	drivers/video_gl.c drivers/video_gl.h drivers/gl_fbo.c \
 	sh4/sh4.def sh4/sh4core.in sh4/sh4x86.in sh4/sh4dasm.in \
@@ -259,18 +260,20 @@ am_lxdream_OBJECTS = lxdream-main.$(OBJEXT) lxdream-version.$(OBJEXT) \
 	lxdream-glutil.$(OBJEXT) lxdream-glrender.$(OBJEXT) \
 	lxdream-maple.$(OBJEXT) lxdream-controller.$(OBJEXT) \
 	lxdream-kbd.$(OBJEXT) lxdream-mouse.$(OBJEXT) \
-	lxdream-lightgun.$(OBJEXT) lxdream-loader.$(OBJEXT) \
-	lxdream-bootstrap.$(OBJEXT) lxdream-util.$(OBJEXT) \
-	lxdream-gdlist.$(OBJEXT) lxdream-display.$(OBJEXT) \
-	lxdream-audio_null.$(OBJEXT) lxdream-video_null.$(OBJEXT) \
-	lxdream-cd_mmc.$(OBJEXT) lxdream-video_gl.$(OBJEXT) \
-	lxdream-gl_fbo.$(OBJEXT) lxdream-hotkeys.$(OBJEXT) \
-	$(am__objects_1) $(am__objects_2) $(am__objects_3) \
-	$(am__objects_4) $(am__objects_5) $(am__objects_6) \
-	$(am__objects_7) $(am__objects_8) $(am__objects_9) \
-	$(am__objects_10) $(am__objects_11) $(am__objects_12) \
-	$(am__objects_13) $(am__objects_14) $(am__objects_15) \
-	$(am__objects_16) $(am__objects_17) $(am__objects_18)
+	lxdream-lightgun.$(OBJEXT) lxdream-vmu.$(OBJEXT) \
+	lxdream-loader.$(OBJEXT) lxdream-bootstrap.$(OBJEXT) \
+	lxdream-util.$(OBJEXT) lxdream-gdlist.$(OBJEXT) \
+	lxdream-vmuvol.$(OBJEXT) lxdream-vmulist.$(OBJEXT) \
+	lxdream-display.$(OBJEXT) lxdream-audio_null.$(OBJEXT) \
+	lxdream-video_null.$(OBJEXT) lxdream-cd_mmc.$(OBJEXT) \
+	lxdream-video_gl.$(OBJEXT) lxdream-gl_fbo.$(OBJEXT) \
+	lxdream-hotkeys.$(OBJEXT) $(am__objects_1) $(am__objects_2) \
+	$(am__objects_3) $(am__objects_4) $(am__objects_5) \
+	$(am__objects_6) $(am__objects_7) $(am__objects_8) \
+	$(am__objects_9) $(am__objects_10) $(am__objects_11) \
+	$(am__objects_12) $(am__objects_13) $(am__objects_14) \
+	$(am__objects_15) $(am__objects_16) $(am__objects_17) \
+	$(am__objects_18)
 lxdream_OBJECTS = $(am_lxdream_OBJECTS)
 lxdream_DEPENDENCIES = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
@@ -558,9 +561,10 @@ lxdream_SOURCES = main.c version.c config.c config.h lxdream.h dream.h \
 	pvr2/gl_sl.c pvr2/gl_slsrc.c pvr2/glutil.c pvr2/glutil.h \
 	pvr2/glrender.c pvr2/vertex.glsl pvr2/fragment.glsl \
 	maple/maple.c maple/maple.h maple/controller.c maple/kbd.c \
-	maple/mouse.c maple/lightgun.c loader.c loader.h elf.h \
-	bootstrap.c bootstrap.h util.c gdlist.c gdlist.h display.c \
-	display.h dckeysyms.h drivers/audio_null.c \
+	maple/mouse.c maple/lightgun.c maple/vmu.c loader.c loader.h \
+	elf.h bootstrap.c bootstrap.h util.c gdlist.c gdlist.h \
+	vmu/vmuvol.c vmu/vmuvol.h vmu/vmulist.c vmu/vmulist.h \
+	display.c display.h dckeysyms.h drivers/audio_null.c \
 	drivers/video_null.c drivers/cd_mmc.c drivers/video_gl.c \
 	drivers/video_gl.h drivers/gl_fbo.c sh4/sh4.def sh4/sh4core.in \
 	sh4/sh4x86.in sh4/sh4dasm.in sh4/sh4stat.in hotkeys.c \
@@ -841,6 +845,9 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-video_nsgl.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-video_null.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-video_osx.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-vmu.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-vmulist.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-vmuvol.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-watch.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-x86dasm.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-xltcache.Po@am__quote@
@@ -1726,6 +1733,20 @@ lxdream-lightgun.obj: maple/lightgun.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-lightgun.obj `if test -f 'maple/lightgun.c'; then $(CYGPATH_W) 'maple/lightgun.c'; else $(CYGPATH_W) '$(srcdir)/maple/lightgun.c'; fi`
 
+lxdream-vmu.o: maple/vmu.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-vmu.o -MD -MP -MF "$(DEPDIR)/lxdream-vmu.Tpo" -c -o lxdream-vmu.o `test -f 'maple/vmu.c' || echo '$(srcdir)/'`maple/vmu.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/lxdream-vmu.Tpo" "$(DEPDIR)/lxdream-vmu.Po"; else rm -f "$(DEPDIR)/lxdream-vmu.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='maple/vmu.c' object='lxdream-vmu.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-vmu.o `test -f 'maple/vmu.c' || echo '$(srcdir)/'`maple/vmu.c
+
+lxdream-vmu.obj: maple/vmu.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-vmu.obj -MD -MP -MF "$(DEPDIR)/lxdream-vmu.Tpo" -c -o lxdream-vmu.obj `if test -f 'maple/vmu.c'; then $(CYGPATH_W) 'maple/vmu.c'; else $(CYGPATH_W) '$(srcdir)/maple/vmu.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/lxdream-vmu.Tpo" "$(DEPDIR)/lxdream-vmu.Po"; else rm -f "$(DEPDIR)/lxdream-vmu.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='maple/vmu.c' object='lxdream-vmu.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-vmu.obj `if test -f 'maple/vmu.c'; then $(CYGPATH_W) 'maple/vmu.c'; else $(CYGPATH_W) '$(srcdir)/maple/vmu.c'; fi`
+
 lxdream-loader.o: loader.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-loader.o -MD -MP -MF "$(DEPDIR)/lxdream-loader.Tpo" -c -o lxdream-loader.o `test -f 'loader.c' || echo '$(srcdir)/'`loader.c; \
 @am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/lxdream-loader.Tpo" "$(DEPDIR)/lxdream-loader.Po"; else rm -f "$(DEPDIR)/lxdream-loader.Tpo"; exit 1; fi
@@ -1781,6 +1802,34 @@ lxdream-gdlist.obj: gdlist.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gdlist.c' object='lxdream-gdlist.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-gdlist.obj `if test -f 'gdlist.c'; then $(CYGPATH_W) 'gdlist.c'; else $(CYGPATH_W) '$(srcdir)/gdlist.c'; fi`
+
+lxdream-vmuvol.o: vmu/vmuvol.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-vmuvol.o -MD -MP -MF "$(DEPDIR)/lxdream-vmuvol.Tpo" -c -o lxdream-vmuvol.o `test -f 'vmu/vmuvol.c' || echo '$(srcdir)/'`vmu/vmuvol.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/lxdream-vmuvol.Tpo" "$(DEPDIR)/lxdream-vmuvol.Po"; else rm -f "$(DEPDIR)/lxdream-vmuvol.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='vmu/vmuvol.c' object='lxdream-vmuvol.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-vmuvol.o `test -f 'vmu/vmuvol.c' || echo '$(srcdir)/'`vmu/vmuvol.c
+
+lxdream-vmuvol.obj: vmu/vmuvol.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-vmuvol.obj -MD -MP -MF "$(DEPDIR)/lxdream-vmuvol.Tpo" -c -o lxdream-vmuvol.obj `if test -f 'vmu/vmuvol.c'; then $(CYGPATH_W) 'vmu/vmuvol.c'; else $(CYGPATH_W) '$(srcdir)/vmu/vmuvol.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/lxdream-vmuvol.Tpo" "$(DEPDIR)/lxdream-vmuvol.Po"; else rm -f "$(DEPDIR)/lxdream-vmuvol.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='vmu/vmuvol.c' object='lxdream-vmuvol.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-vmuvol.obj `if test -f 'vmu/vmuvol.c'; then $(CYGPATH_W) 'vmu/vmuvol.c'; else $(CYGPATH_W) '$(srcdir)/vmu/vmuvol.c'; fi`
+
+lxdream-vmulist.o: vmu/vmulist.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-vmulist.o -MD -MP -MF "$(DEPDIR)/lxdream-vmulist.Tpo" -c -o lxdream-vmulist.o `test -f 'vmu/vmulist.c' || echo '$(srcdir)/'`vmu/vmulist.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/lxdream-vmulist.Tpo" "$(DEPDIR)/lxdream-vmulist.Po"; else rm -f "$(DEPDIR)/lxdream-vmulist.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='vmu/vmulist.c' object='lxdream-vmulist.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-vmulist.o `test -f 'vmu/vmulist.c' || echo '$(srcdir)/'`vmu/vmulist.c
+
+lxdream-vmulist.obj: vmu/vmulist.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-vmulist.obj -MD -MP -MF "$(DEPDIR)/lxdream-vmulist.Tpo" -c -o lxdream-vmulist.obj `if test -f 'vmu/vmulist.c'; then $(CYGPATH_W) 'vmu/vmulist.c'; else $(CYGPATH_W) '$(srcdir)/vmu/vmulist.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/lxdream-vmulist.Tpo" "$(DEPDIR)/lxdream-vmulist.Po"; else rm -f "$(DEPDIR)/lxdream-vmulist.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='vmu/vmulist.c' object='lxdream-vmulist.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-vmulist.obj `if test -f 'vmu/vmulist.c'; then $(CYGPATH_W) 'vmu/vmulist.c'; else $(CYGPATH_W) '$(srcdir)/vmu/vmulist.c'; fi`
 
 lxdream-display.o: display.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-display.o -MD -MP -MF "$(DEPDIR)/lxdream-display.Tpo" -c -o lxdream-display.o `test -f 'display.c' || echo '$(srcdir)/'`display.c; \

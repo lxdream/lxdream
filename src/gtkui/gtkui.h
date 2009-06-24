@@ -88,8 +88,14 @@ gint gtk_gui_run_property_dialog( const gchar *title, GtkWidget *panel, gtk_dial
 
 
 typedef gboolean (*file_callback_t)( const gchar *filename );
-void open_file_dialog( const char *title, file_callback_t action, const char *pattern, const char *patname,
+gchar *open_file_dialog( const char *title, const char *pattern, const char *patname,
                        const gchar *initial_dir );
+gchar *save_file_dialog( const char *title, const char *pattern, const char *patname,
+                       const gchar *initial_dir );
+void open_file_dialog_cb( const char *title, file_callback_t action, const char *pattern, const char *patname,
+                          const gchar *initial_dir );
+void save_file_dialog_cb( const char *title, file_callback_t action, const char *pattern, const char *patname,
+                          const gchar *initial_dir );
 /**
  * Extract the keyval of the key event if no modifier keys were pressed -
  * in other words get the keyval of the key by itself. The other way around
