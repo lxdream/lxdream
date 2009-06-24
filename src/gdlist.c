@@ -116,7 +116,7 @@ gboolean gdrom_list_disc_changed( gdrom_disc_t disc, const gchar *disc_name, voi
         }
     }
 
-    lxdream_set_global_config_value( CONFIG_GDROM, disc_name );
+    lxdream_set_global_config_path_value( CONFIG_GDROM, disc_name );
     lxdream_save_config();   
 
     CALL_HOOKS( gdrom_list_change_hook, list_changed, posn );

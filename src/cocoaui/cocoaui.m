@@ -220,47 +220,47 @@ static void cocoa_gui_create_menu(void)
 - (void) load_action: (id)sender
 {
     NSOpenPanel *panel = [NSOpenPanel openPanel];
-    const gchar *dir = lxdream_get_config_value(CONFIG_SAVE_PATH);
-    NSString *path = (dir == NULL ? NSHomeDirectory() : [NSString stringWithCString: dir]);
+    NSString *path = [NSString stringWithCString: gui_get_configurable_path(CONFIG_SAVE_PATH)];
     NSArray *fileTypes = [NSArray arrayWithObject: @"dst"];
     int result = [panel runModalForDirectory: path file: nil types: fileTypes];
     if( result == NSOKButton && [[panel filenames] count] > 0 ) {
         NSString *filename = [[panel filenames] objectAtIndex: 0];
         dreamcast_load_state( [filename UTF8String] );
+        gui_set_configurable_path(CONFIG_SAVE_PATH, [[panel directory] UTF8String]);
     }
 }
 - (void) save_action: (id)sender
 {
     NSSavePanel *panel = [NSSavePanel savePanel];
-    const gchar *dir = lxdream_get_config_value(CONFIG_SAVE_PATH);
-    NSString *path = (dir == NULL ? NSHomeDirectory() : [NSString stringWithCString: dir]);
+    NSString *path = [NSString stringWithCString: gui_get_configurable_path(CONFIG_SAVE_PATH)];
     [panel setRequiredFileType: @"dst"];
     int result = [panel runModalForDirectory: path file:@""];
     if( result == NSOKButton ) {
         NSString *filename = [panel filename];
         dreamcast_save_state( [filename UTF8String] );
+        gui_set_configurable_path(CONFIG_SAVE_PATH, [[panel directory] UTF8String]);
     }
 }
 - (void) load_binary_action: (id)sender
 {
     NSOpenPanel *panel = [NSOpenPanel openPanel];
-    const gchar *dir = lxdream_get_config_value(CONFIG_DEFAULT_PATH);
-    NSString *path = (dir == NULL ? NSHomeDirectory() : [NSString stringWithCString: dir]);
+    NSString *path = [NSString stringWithCString: gui_get_configurable_path(CONFIG_DEFAULT_PATH)];
     int result = [panel runModalForDirectory: path file: nil types: nil];
     if( result == NSOKButton && [[panel filenames] count] > 0 ) {
         NSString *filename = [[panel filenames] objectAtIndex: 0];
         file_load_magic( [filename UTF8String] );
+        gui_set_configurable_path(CONFIG_DEFAULT_PATH, [[panel directory] UTF8String]);
     }
 }
 - (void) mount_action: (id)sender
 {
     NSOpenPanel *panel = [NSOpenPanel openPanel];
-    const gchar *dir = lxdream_get_config_value(CONFIG_DEFAULT_PATH);
-    NSString *path = (dir == NULL ? NSHomeDirectory() : [NSString stringWithCString: dir]);
+    NSString *path = [NSString stringWithCString: gui_get_configurable_path(CONFIG_DEFAULT_PATH)];
     int result = [panel runModalForDirectory: path file: nil types: nil];
     if( result == NSOKButton && [[panel filenames] count] > 0 ) {
         NSString *filename = [[panel filenames] objectAtIndex: 0];
         gdrom_mount_image( [filename UTF8String] );
+        gui_set_configurable_path(CONFIG_DEFAULT_PATH, [[panel directory] UTF8String]);
     }
 }
 - (void) pause_action: (id)sender

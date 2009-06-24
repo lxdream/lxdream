@@ -40,58 +40,74 @@ static void add_file_pattern( GtkFileChooser *chooser, const char *pattern, cons
 }
 
 gchar *open_file_dialog( const char *title, const char *pattern, const char *patname,
-                         const gchar *initial_dir )
+                         int initial_dir_key )
 {
     GtkWidget *file;
     gchar *filename = NULL;
-    gchar *initial_path = get_absolute_path(initial_dir);
+
     file = gtk_file_chooser_dialog_new( title, NULL,
             GTK_FILE_CHOOSER_ACTION_OPEN,
             GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
             GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT,
             NULL );
     add_file_pattern( GTK_FILE_CHOOSER(file), pattern, patname );
-    gtk_file_chooser_set_current_folder( GTK_FILE_CHOOSER(file), initial_path );
+    if( initial_dir_key != -1 ) {
+        gchar *initial_path = get_absolute_path(gui_get_configurable_path(initial_dir_key));
+        gtk_file_chooser_set_current_folder( GTK_FILE_CHOOSER(file), initial_path );
+        g_free(initial_path);
+    }
     gtk_window_set_modal( GTK_WINDOW(file), TRUE );
     gtk_dialog_set_default_response( GTK_DIALOG(file), GTK_RESPONSE_ACCEPT );
     int result = gtk_dialog_run( GTK_DIALOG(file) );
     if( result == GTK_RESPONSE_ACCEPT ) {
         filename = gtk_file_chooser_get_filename( GTK_FILE_CHOOSER(file) );
+        if( initial_dir_key != -1 ) {
+            gchar *end_path = gtk_file_chooser_get_current_folder( GTK_FILE_CHOOSER(file) );
+            gui_set_configurable_path(initial_dir_key,end_path);
+            g_free(end_path);
+        }
     }
     gtk_widget_destroy(file);
-    g_free(initial_path);
 
     return filename;
 }
 
 gchar *save_file_dialog( const char *title, const char *pattern, const char *patname,
-                       const gchar *initial_dir )
+                         int initial_dir_key )
 {
     GtkWidget *file;
     gchar *filename;
-    gchar *initial_path = get_absolute_path(initial_dir);
+    
     file = gtk_file_chooser_dialog_new( title, NULL,
             GTK_FILE_CHOOSER_ACTION_SAVE,
             GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
             GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT,
             NULL );
     add_file_pattern( GTK_FILE_CHOOSER(file), pattern, patname );
-    gtk_file_chooser_set_current_folder( GTK_FILE_CHOOSER(file), initial_path );
+    if( initial_dir_key != -1 ) {
+        gchar *initial_path = get_absolute_path(gui_get_configurable_path(initial_dir_key));
+        gtk_file_chooser_set_current_folder( GTK_FILE_CHOOSER(file), initial_path );
+        g_free(initial_path);
+    }
     gtk_window_set_modal( GTK_WINDOW(file), TRUE );
     gtk_dialog_set_default_response( GTK_DIALOG(file), GTK_RESPONSE_ACCEPT );
     int result = gtk_dialog_run( GTK_DIALOG(file) );
     if( result == GTK_RESPONSE_ACCEPT ) {
         filename = gtk_file_chooser_get_filename( GTK_FILE_CHOOSER(file) );
+        if( initial_dir_key != -1 ) {
+            gchar *end_path = gtk_file_chooser_get_current_folder( GTK_FILE_CHOOSER(file) );
+            gui_set_configurable_path(initial_dir_key,end_path);
+            g_free(end_path);
+        }
     }
     gtk_widget_destroy(file);
-    g_free(initial_path);
     return filename;
 }
 
 void open_file_dialog_cb( const char *title, file_callback_t action, const char *pattern, const char *patname,
-                       const gchar *initial_dir )
+                          int initial_dir_key )
 {
-    gchar *filename = open_file_dialog( title, pattern, patname, initial_dir ); 
+    gchar *filename = open_file_dialog( title, pattern, patname, initial_dir_key ); 
     if( filename != NULL ) {
         action( filename );
         g_free(filename);
@@ -99,9 +115,9 @@ void open_file_dialog_cb( const char *title, file_callback_t action, const char 
 }
 
 void save_file_dialog_cb( const char *title, file_callback_t action, const char *pattern, const char *patname,
-                          const gchar *initial_dir )
+                          int initial_dir_key )
 {
-    gchar *filename = save_file_dialog( title, pattern, patname, initial_dir );
+    gchar *filename = save_file_dialog( title, pattern, patname, initial_dir_key );
     if( filename != NULL ) {
         action(filename);
         g_free(filename);
@@ -110,8 +126,7 @@ void save_file_dialog_cb( const char *title, file_callback_t action, const char 
 
 void mount_action_callback( GtkAction *action, gpointer user_data)
 {
-    const gchar *dir = lxdream_get_config_value(CONFIG_DEFAULT_PATH);
-    open_file_dialog_cb( "Open...", gdrom_mount_image, NULL, NULL, dir );
+    open_file_dialog_cb( "Open...", gdrom_mount_image, NULL, NULL, CONFIG_DEFAULT_PATH );
 }
 void reset_action_callback( GtkAction *action, gpointer user_data)
 {
@@ -130,8 +145,7 @@ void resume_action_callback( GtkAction *action, gpointer user_data)
 
 void load_binary_action_callback( GtkAction *action, gpointer user_data)
 {
-    const gchar *dir = lxdream_get_config_value(CONFIG_DEFAULT_PATH);
-    open_file_dialog_cb( "Open Binary...", file_load_magic, NULL, NULL, dir );
+    open_file_dialog_cb( "Open Binary...", file_load_magic, NULL, NULL, CONFIG_DEFAULT_PATH );
 }
 
 void load_state_preview_callback( GtkFileChooser *chooser, gpointer user_data )
@@ -157,7 +171,7 @@ void load_state_action_callback( GtkAction *action, gpointer user_data)
 {
     GtkWidget *file, *preview, *frame, *align;
     GtkRequisition size;
-    const gchar *dir = lxdream_get_config_value(CONFIG_SAVE_PATH);
+    const gchar *dir = gui_get_configurable_path(CONFIG_SAVE_PATH);
     gchar *path = get_absolute_path(dir);
     file = gtk_file_chooser_dialog_new( _("Load state..."), NULL,
             GTK_FILE_CHOOSER_ACTION_OPEN,
@@ -186,6 +200,9 @@ void load_state_action_callback( GtkAction *action, gpointer user_data)
     int result = gtk_dialog_run( GTK_DIALOG(file) );
     if( result == GTK_RESPONSE_ACCEPT ) {
         gchar *filename = gtk_file_chooser_get_filename( GTK_FILE_CHOOSER(file) );
+        gchar *end_path = gtk_file_chooser_get_current_folder( GTK_FILE_CHOOSER(file) );
+        gui_set_configurable_path(CONFIG_SAVE_PATH,end_path);
+        g_free(end_path);
         dreamcast_load_state( filename );
     }
     gtk_widget_destroy(file);
@@ -194,8 +211,7 @@ void load_state_action_callback( GtkAction *action, gpointer user_data)
 
 void save_state_action_callback( GtkAction *action, gpointer user_data)
 {
-    const gchar *dir = lxdream_get_config_value(CONFIG_SAVE_PATH);
-    save_file_dialog_cb( "Save state...", dreamcast_save_state, "*.dst", _("lxDream Save State (*.dst)"), dir );
+    save_file_dialog_cb( "Save state...", dreamcast_save_state, "*.dst", _("lxDream Save State (*.dst)"), CONFIG_SAVE_PATH );
 }
 void about_action_callback( GtkAction *action, gpointer user_data)
 {
@@ -269,8 +285,7 @@ void debug_mmio_action_callback( GtkAction *action, gpointer user_data)
 
 void save_scene_action_callback( GtkAction *action, gpointer user_data)
 {
-    const gchar *dir = lxdream_get_config_value(CONFIG_SAVE_PATH);
-    save_file_dialog_cb( _("Save next scene..."), pvr2_save_next_scene, "*.dsc", _("lxdream scene file (*.dsc)"), dir );
+    save_file_dialog_cb( _("Save next scene..."), pvr2_save_next_scene, "*.dsc", _("lxdream scene file (*.dsc)"), CONFIG_SAVE_PATH );
 }
 
 int debug_window_get_selected_row( debug_window_t data );

@@ -249,8 +249,8 @@ static gboolean maple_device_changed( GtkComboBox *combo, gpointer user_data )
         
         if( devclz == LOAD_VMU_TAG ) {
             devclz = NULL;
-            vmu_filename = open_file_dialog( _("Load VMU"), "*.vmu", "VMU Files", 
-                    lxdream_get_config_value(CONFIG_VMU_PATH) );
+            vmu_filename = open_file_dialog( _("Load VMU"), "*.vmu", "VMU Files",
+                    CONFIG_VMU_PATH );
             if( vmu_filename != NULL ) {
                 vmu_volume_t vol = vmu_volume_load( vmu_filename );
                 if( vol != NULL ) {
@@ -264,7 +264,7 @@ static gboolean maple_device_changed( GtkComboBox *combo, gpointer user_data )
         } else if( devclz == CREATE_VMU_TAG ) {
             devclz = NULL;
             vmu_filename = save_file_dialog( _("Create VMU"), "*.vmu", "VMU Files",
-                    lxdream_get_config_value(CONFIG_VMU_PATH) );
+                    CONFIG_VMU_PATH );
             if( vmu_filename != NULL ) {
                 devclz = &vmu_class;
                 set_selection = TRUE;

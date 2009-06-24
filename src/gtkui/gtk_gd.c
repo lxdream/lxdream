@@ -30,8 +30,7 @@ static gboolean gdrom_menu_adjusting = FALSE;
 static void gdrom_menu_open_image_callback( GtkWidget *widget, gpointer user_data )
 {
     if( !gdrom_menu_adjusting ) {
-        const gchar *dir = lxdream_get_config_value(CONFIG_DEFAULT_PATH);
-        open_file_dialog_cb( _("Open..."), gdrom_mount_image, NULL, NULL, dir );
+        open_file_dialog_cb( _("Open..."), gdrom_mount_image, NULL, NULL, CONFIG_DEFAULT_PATH );
     }
 }
 

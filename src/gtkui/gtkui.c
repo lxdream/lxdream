@@ -544,17 +544,4 @@ uint16_t gtk_get_unmodified_keyval( GdkEventKey *event )
     return keyval;
 }
 
-gchar *get_absolute_path( const gchar *in_path )
-{
-    char tmp[PATH_MAX];
-    if( in_path == NULL ) {
-        return NULL;
-    }
-    if( in_path[0] == '/' || in_path[0] == 0 ) {
-        return g_strdup(in_path);
-    } else {
-        getcwd(tmp, sizeof(tmp));
-        return g_strdup_printf("%s%c%s", tmp, G_DIR_SEPARATOR, in_path);
-    }
-}
 

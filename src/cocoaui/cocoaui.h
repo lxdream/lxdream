@@ -21,6 +21,7 @@
 
 #import <AppKit/AppKit.h>
 #include "lxdream.h"
+#include "gui.h"
 #include "gettext.h"
 
 #ifdef __cplusplus

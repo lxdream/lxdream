@@ -85,8 +85,8 @@ unsigned char dc_flash_ram[128 KB];
  */
 void dreamcast_configure( )
 {
-    const char *bios_path = lxdream_get_config_value(CONFIG_BIOS_PATH);
-    const char *flash_path = lxdream_get_config_value(CONFIG_FLASH_PATH);
+    char *bios_path = lxdream_get_global_config_path_value(CONFIG_BIOS_PATH);
+    char *flash_path = lxdream_get_global_config_path_value(CONFIG_FLASH_PATH);
     
     dreamcast_register_module( &eventq_module );
     /* Register the memory framework */
@@ -118,23 +118,29 @@ void dreamcast_configure( )
     dreamcast_register_module( &aica_module );
     dreamcast_register_module( &maple_module );
     dreamcast_register_module( &ide_module );
+    
+    g_free(bios_path);
+    g_free(flash_path);
 }
 
 void dreamcast_config_changed(void)
 {
-    const char *bios_path = lxdream_get_config_value(CONFIG_BIOS_PATH);
-    const char *flash_path = lxdream_get_config_value(CONFIG_FLASH_PATH);
+    char *bios_path = lxdream_get_global_config_path_value(CONFIG_BIOS_PATH);
+    char *flash_path = lxdream_get_global_config_path_value(CONFIG_FLASH_PATH);
     dreamcast_has_bios = mem_load_rom( dc_boot_rom, bios_path, 2 MB, 0x89f2b1a1 );
     if( flash_path != NULL && flash_path[0] != '\0' ) {
         mem_load_block( flash_path, 0x00200000, 0x00020000 );
     }
+    g_free(bios_path);
+    g_free(flash_path);
 }
 
 void dreamcast_save_flash()
 {
     if( dreamcast_has_flash ) {
-        const char *file = lxdream_get_config_value(CONFIG_FLASH_PATH);
+        char *file = lxdream_get_global_config_path_value(CONFIG_FLASH_PATH);
         mem_save_block( file, 0x00200000, 0x00020000 );
+        g_free(file);
     }
 }
 

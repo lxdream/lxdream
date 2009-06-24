@@ -142,7 +142,7 @@ am__lxdream_SOURCES_DIST = main.c version.c config.c config.h \
 	lxdream.h dream.h gui.h cpu.h hook.h gettext.h mem.c mem.h \
 	sdram.c mmio.h watch.c asic.c asic.h clock.h serial.h \
 	syscall.c syscall.h bios.c dcload.c gdbserver.c netutil.c \
-	netutil.h gdrom/ide.c gdrom/ide.h gdrom/packet.h \
+	netutil.h guiutil.c gdrom/ide.c gdrom/ide.h gdrom/packet.h \
 	gdrom/gdimage.c gdrom/gdrom.c gdrom/gdrom.h gdrom/nrg.c \
 	gdrom/cdi.c gdrom/gdi.c gdrom/edc_ecc.c gdrom/ecc.h \
 	gdrom/edc_crctable.h gdrom/edc_encoder.h gdrom/edc_l2sq.h \
@@ -238,42 +238,42 @@ am_lxdream_OBJECTS = lxdream-main.$(OBJEXT) lxdream-version.$(OBJEXT) \
 	lxdream-asic.$(OBJEXT) lxdream-syscall.$(OBJEXT) \
 	lxdream-bios.$(OBJEXT) lxdream-dcload.$(OBJEXT) \
 	lxdream-gdbserver.$(OBJEXT) lxdream-netutil.$(OBJEXT) \
-	lxdream-ide.$(OBJEXT) lxdream-gdimage.$(OBJEXT) \
-	lxdream-gdrom.$(OBJEXT) lxdream-nrg.$(OBJEXT) \
-	lxdream-cdi.$(OBJEXT) lxdream-gdi.$(OBJEXT) \
-	lxdream-edc_ecc.$(OBJEXT) lxdream-dreamcast.$(OBJEXT) \
-	lxdream-eventq.$(OBJEXT) lxdream-sh4.$(OBJEXT) \
-	lxdream-intc.$(OBJEXT) lxdream-sh4mem.$(OBJEXT) \
-	lxdream-timer.$(OBJEXT) lxdream-dmac.$(OBJEXT) \
-	lxdream-mmu.$(OBJEXT) lxdream-sh4core.$(OBJEXT) \
-	lxdream-sh4dasm.$(OBJEXT) lxdream-sh4mmio.$(OBJEXT) \
-	lxdream-scif.$(OBJEXT) lxdream-sh4stat.$(OBJEXT) \
-	lxdream-xltcache.$(OBJEXT) lxdream-pmm.$(OBJEXT) \
-	lxdream-cache.$(OBJEXT) lxdream-armcore.$(OBJEXT) \
-	lxdream-armdasm.$(OBJEXT) lxdream-armmem.$(OBJEXT) \
-	lxdream-aica.$(OBJEXT) lxdream-audio.$(OBJEXT) \
-	lxdream-pvr2.$(OBJEXT) lxdream-pvr2mem.$(OBJEXT) \
-	lxdream-tacore.$(OBJEXT) lxdream-rendsort.$(OBJEXT) \
-	lxdream-texcache.$(OBJEXT) lxdream-yuv.$(OBJEXT) \
-	lxdream-rendsave.$(OBJEXT) lxdream-scene.$(OBJEXT) \
-	lxdream-gl_sl.$(OBJEXT) lxdream-gl_slsrc.$(OBJEXT) \
-	lxdream-glutil.$(OBJEXT) lxdream-glrender.$(OBJEXT) \
-	lxdream-maple.$(OBJEXT) lxdream-controller.$(OBJEXT) \
-	lxdream-kbd.$(OBJEXT) lxdream-mouse.$(OBJEXT) \
-	lxdream-lightgun.$(OBJEXT) lxdream-vmu.$(OBJEXT) \
-	lxdream-loader.$(OBJEXT) lxdream-bootstrap.$(OBJEXT) \
-	lxdream-util.$(OBJEXT) lxdream-gdlist.$(OBJEXT) \
-	lxdream-vmuvol.$(OBJEXT) lxdream-vmulist.$(OBJEXT) \
-	lxdream-display.$(OBJEXT) lxdream-audio_null.$(OBJEXT) \
-	lxdream-video_null.$(OBJEXT) lxdream-cd_mmc.$(OBJEXT) \
-	lxdream-video_gl.$(OBJEXT) lxdream-gl_fbo.$(OBJEXT) \
-	lxdream-hotkeys.$(OBJEXT) $(am__objects_1) $(am__objects_2) \
-	$(am__objects_3) $(am__objects_4) $(am__objects_5) \
-	$(am__objects_6) $(am__objects_7) $(am__objects_8) \
-	$(am__objects_9) $(am__objects_10) $(am__objects_11) \
-	$(am__objects_12) $(am__objects_13) $(am__objects_14) \
-	$(am__objects_15) $(am__objects_16) $(am__objects_17) \
-	$(am__objects_18)
+	lxdream-guiutil.$(OBJEXT) lxdream-ide.$(OBJEXT) \
+	lxdream-gdimage.$(OBJEXT) lxdream-gdrom.$(OBJEXT) \
+	lxdream-nrg.$(OBJEXT) lxdream-cdi.$(OBJEXT) \
+	lxdream-gdi.$(OBJEXT) lxdream-edc_ecc.$(OBJEXT) \
+	lxdream-dreamcast.$(OBJEXT) lxdream-eventq.$(OBJEXT) \
+	lxdream-sh4.$(OBJEXT) lxdream-intc.$(OBJEXT) \
+	lxdream-sh4mem.$(OBJEXT) lxdream-timer.$(OBJEXT) \
+	lxdream-dmac.$(OBJEXT) lxdream-mmu.$(OBJEXT) \
+	lxdream-sh4core.$(OBJEXT) lxdream-sh4dasm.$(OBJEXT) \
+	lxdream-sh4mmio.$(OBJEXT) lxdream-scif.$(OBJEXT) \
+	lxdream-sh4stat.$(OBJEXT) lxdream-xltcache.$(OBJEXT) \
+	lxdream-pmm.$(OBJEXT) lxdream-cache.$(OBJEXT) \
+	lxdream-armcore.$(OBJEXT) lxdream-armdasm.$(OBJEXT) \
+	lxdream-armmem.$(OBJEXT) lxdream-aica.$(OBJEXT) \
+	lxdream-audio.$(OBJEXT) lxdream-pvr2.$(OBJEXT) \
+	lxdream-pvr2mem.$(OBJEXT) lxdream-tacore.$(OBJEXT) \
+	lxdream-rendsort.$(OBJEXT) lxdream-texcache.$(OBJEXT) \
+	lxdream-yuv.$(OBJEXT) lxdream-rendsave.$(OBJEXT) \
+	lxdream-scene.$(OBJEXT) lxdream-gl_sl.$(OBJEXT) \
+	lxdream-gl_slsrc.$(OBJEXT) lxdream-glutil.$(OBJEXT) \
+	lxdream-glrender.$(OBJEXT) lxdream-maple.$(OBJEXT) \
+	lxdream-controller.$(OBJEXT) lxdream-kbd.$(OBJEXT) \
+	lxdream-mouse.$(OBJEXT) lxdream-lightgun.$(OBJEXT) \
+	lxdream-vmu.$(OBJEXT) lxdream-loader.$(OBJEXT) \
+	lxdream-bootstrap.$(OBJEXT) lxdream-util.$(OBJEXT) \
+	lxdream-gdlist.$(OBJEXT) lxdream-vmuvol.$(OBJEXT) \
+	lxdream-vmulist.$(OBJEXT) lxdream-display.$(OBJEXT) \
+	lxdream-audio_null.$(OBJEXT) lxdream-video_null.$(OBJEXT) \
+	lxdream-cd_mmc.$(OBJEXT) lxdream-video_gl.$(OBJEXT) \
+	lxdream-gl_fbo.$(OBJEXT) lxdream-hotkeys.$(OBJEXT) \
+	$(am__objects_1) $(am__objects_2) $(am__objects_3) \
+	$(am__objects_4) $(am__objects_5) $(am__objects_6) \
+	$(am__objects_7) $(am__objects_8) $(am__objects_9) \
+	$(am__objects_10) $(am__objects_11) $(am__objects_12) \
+	$(am__objects_13) $(am__objects_14) $(am__objects_15) \
+	$(am__objects_16) $(am__objects_17) $(am__objects_18)
 lxdream_OBJECTS = $(am_lxdream_OBJECTS)
 lxdream_DEPENDENCIES = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
@@ -542,10 +542,10 @@ lxdream_LDADD = @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@ $(INTLLIBS) \
 lxdream_SOURCES = main.c version.c config.c config.h lxdream.h dream.h \
 	gui.h cpu.h hook.h gettext.h mem.c mem.h sdram.c mmio.h \
 	watch.c asic.c asic.h clock.h serial.h syscall.c syscall.h \
-	bios.c dcload.c gdbserver.c netutil.c netutil.h gdrom/ide.c \
-	gdrom/ide.h gdrom/packet.h gdrom/gdimage.c gdrom/gdrom.c \
-	gdrom/gdrom.h gdrom/nrg.c gdrom/cdi.c gdrom/gdi.c \
-	gdrom/edc_ecc.c gdrom/ecc.h gdrom/edc_crctable.h \
+	bios.c dcload.c gdbserver.c netutil.c netutil.h guiutil.c \
+	gdrom/ide.c gdrom/ide.h gdrom/packet.h gdrom/gdimage.c \
+	gdrom/gdrom.c gdrom/gdrom.h gdrom/nrg.c gdrom/cdi.c \
+	gdrom/gdi.c gdrom/edc_ecc.c gdrom/ecc.h gdrom/edc_crctable.h \
 	gdrom/edc_encoder.h gdrom/edc_l2sq.h gdrom/edc_scramble.h \
 	gdrom/gddriver.h dreamcast.c dreamcast.h eventq.c eventq.h \
 	sh4/sh4.c sh4/intc.c sh4/intc.h sh4/sh4mem.c sh4/timer.c \
@@ -793,6 +793,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-gtk_win.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-gtkcb.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-gtkui.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-guiutil.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-hotkeys.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-i386-dis.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-ide.Po@am__quote@
@@ -1102,6 +1103,20 @@ lxdream-netutil.obj: netutil.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='netutil.c' object='lxdream-netutil.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-netutil.obj `if test -f 'netutil.c'; then $(CYGPATH_W) 'netutil.c'; else $(CYGPATH_W) '$(srcdir)/netutil.c'; fi`
+
+lxdream-guiutil.o: guiutil.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-guiutil.o -MD -MP -MF "$(DEPDIR)/lxdream-guiutil.Tpo" -c -o lxdream-guiutil.o `test -f 'guiutil.c' || echo '$(srcdir)/'`guiutil.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/lxdream-guiutil.Tpo" "$(DEPDIR)/lxdream-guiutil.Po"; else rm -f "$(DEPDIR)/lxdream-guiutil.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='guiutil.c' object='lxdream-guiutil.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-guiutil.o `test -f 'guiutil.c' || echo '$(srcdir)/'`guiutil.c
+
+lxdream-guiutil.obj: guiutil.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-guiutil.obj -MD -MP -MF "$(DEPDIR)/lxdream-guiutil.Tpo" -c -o lxdream-guiutil.obj `if test -f 'guiutil.c'; then $(CYGPATH_W) 'guiutil.c'; else $(CYGPATH_W) '$(srcdir)/guiutil.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/lxdream-guiutil.Tpo" "$(DEPDIR)/lxdream-guiutil.Po"; else rm -f "$(DEPDIR)/lxdream-guiutil.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='guiutil.c' object='lxdream-guiutil.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-guiutil.obj `if test -f 'guiutil.c'; then $(CYGPATH_W) 'guiutil.c'; else $(CYGPATH_W) '$(srcdir)/guiutil.c'; fi`
 
 lxdream-ide.o: gdrom/ide.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-ide.o -MD -MP -MF "$(DEPDIR)/lxdream-ide.Tpo" -c -o lxdream-ide.o `test -f 'gdrom/ide.c' || echo '$(srcdir)/'`gdrom/ide.c; \
