@@ -1,5 +1,5 @@
 /**
- * $Id: vmu.c 858 2008-09-02 03:34:00Z nkeynes $
+ * $Id$
  *
  * Implementation of the SEGA VMU device
  * Part No. HKT-7000
