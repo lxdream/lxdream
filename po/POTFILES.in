@@ -108,6 +108,7 @@ src/maple/lightgun.c
 src/maple/maple.c
 src/maple/maple.h
 src/maple/mouse.c
+src/maple/vmu.c
 src/mem.c
 src/mem.h
 src/mmio.h
@@ -170,6 +171,10 @@ src/tools/genglsl.c
 src/tools/insparse.c
 src/util.c
 src/version.c
+src/vmu/vmulist.c
+src/vmu/vmulist.h
+src/vmu/vmuvol.c
+src/vmu/vmuvol.h
 src/watch.c
 src/x86dasm/ansidecl.h
 src/x86dasm/bfd.h

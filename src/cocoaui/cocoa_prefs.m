@@ -184,7 +184,7 @@ willBeInsertedIntoToolbar:(BOOL)flag
 void cocoa_gui_show_preferences() 
 {
     if( prefs_panel == NULL ) {
-        prefs_panel = [[LxdreamPrefsPanel alloc] initWithContentRect: NSMakeRect(0,0,640,400)];
+        prefs_panel = [[LxdreamPrefsPanel alloc] initWithContentRect: NSMakeRect(0,0,640,540)];
     }
     [prefs_panel makeKeyAndOrderFront: prefs_panel];
 }

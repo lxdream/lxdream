@@ -42,9 +42,11 @@ static struct lxdream_config_entry global_config[] =
         { "flash", N_("Flash ROM"), CONFIG_TYPE_FILE, "dcflash.rom" },
         { "default path", N_("Default disc path"), CONFIG_TYPE_PATH, "." },
         { "save path", N_("Save-state path"), CONFIG_TYPE_PATH, "save" },
+        { "vmu path", N_("VMU path"), CONFIG_TYPE_PATH, "vmu" },
         { "bootstrap", N_("Bootstrap IP.BIN"), CONFIG_TYPE_FILE, "IP.BIN" },
         { "gdrom", NULL, CONFIG_TYPE_FILE, NULL },
-        { "recent", NULL, CONFIG_TYPE_FILE, NULL },
+        { "recent", NULL, CONFIG_TYPE_FILELIST, NULL },
+        { "vmu", NULL, CONFIG_TYPE_FILELIST, NULL },
         { NULL, CONFIG_TYPE_NONE }};
 
 static struct lxdream_config_entry serial_config[] =
@@ -137,6 +139,42 @@ void lxdream_set_default_config( )
 const gchar *lxdream_get_config_value( int key )
 {
     return global_config[key].value;
+}
+
+GList *lxdream_get_global_config_list_value( int key )
+{
+    GList *result = NULL;
+    const gchar *str = lxdream_get_config_value( key );
+    if( str != NULL ) {
+        gchar **strv = g_strsplit(str, ":",0);
+        int i;
+        for( i=0; strv[i] != NULL; i++ ) {
+            result = g_list_append( result, g_strdup(strv[i]) );
+        }
+        g_strfreev(strv);
+    }
+    return result;
+}
+
+void lxdream_set_global_config_list_value( int key, const GList *list )
+{
+    if( list == NULL ) {
+        lxdream_set_global_config_value( key, NULL );
+    } else {
+        GList *ptr;
+        int size = 0;
+        
+        for( ptr = list; ptr != NULL; ptr = g_list_next(ptr) ) {
+            size += strlen( (gchar *)ptr->data ) + 1;
+        }
+        char buf[size];
+        strcpy( buf, (gchar *)list->data );
+        for( ptr = g_list_next(list); ptr != NULL; ptr = g_list_next(ptr) ) {
+            strcat( buf, ":" );
+            strcat( buf, (gchar *)ptr->data );
+        }
+        lxdream_set_global_config_value( key, buf );
+    }
 }
 
 void lxdream_set_config_value( lxdream_config_entry_t param, const gchar *value )

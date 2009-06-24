@@ -30,7 +30,7 @@ struct dreamcast_module maple_module = { "Maple", maple_init, NULL, NULL, NULL,
         NULL, NULL, NULL };
 
 struct maple_device_class *maple_device_classes[] = { 
-        &controller_class, &keyboard_class, &lightgun_class, &mouse_class, NULL };
+        &controller_class, &keyboard_class, &lightgun_class, &mouse_class, &vmu_class, NULL };
 
 void maple_init( void )
 {
@@ -175,13 +175,26 @@ void maple_handle_buffer( uint32_t address ) {
                 /* no device attached */
                 *((uint32_t *)return_buf) = -1;
             } else {
-                int status, func, block;
+                int status, func;
+                unsigned int pt, phase, block;
                 out_length = 0;
                 switch( cmd ) {
                 case MAPLE_CMD_INFO:
                     status = MAPLE_RESP_INFO;
                     memcpy( return_buf+4, dev->ident, 112 );
                     out_length = 0x1C;
+                    if( periph == 0 ) {
+                        /* Identify command on the primary device also sets the
+                         * bits in the address in the response according to the
+                         * sub-peripherals present.
+                         */
+                        recv_addr &= 0xE0;
+                        for( i=0; i<5; i++ ) {
+                            if( maple_devices[port][i+1] != NULL ) {
+                                recv_addr |= (1<<i);
+                            }
+                        }
+                    }
                     break;
                 case MAPLE_CMD_EXT_INFO:
                     status = MAPLE_RESP_EXT_INFO;
@@ -217,16 +230,29 @@ void maple_handle_buffer( uint32_t address ) {
                         status = MAPLE_ERR_CMD_UNKNOWN;
                     else status = dev->set_condition(dev, func,
                             buf+16,
-                            length);
+                            length-1);
                     if( status == 0 )
                         status = MAPLE_RESP_ACK;
                     break;
+                case MAPLE_CMD_MEM_INFO:
+                    func = GETWORD(12);
+                    pt = GETWORD(16);
+                    if( dev->get_memory_info == NULL ) 
+                        status = MAPLE_ERR_CMD_UNKNOWN;
+                    else status = dev->get_memory_info(dev,func, pt, return_buf+8, &out_length);
+                    if( status == 0 ) {
+                        status = MAPLE_RESP_DATA;
+                        PUTWORD(4,func);
+                    }
+                    break;
                 case MAPLE_CMD_READ_BLOCK:
                     func = GETWORD(12);
-                    block = GETWORD(16);
+                    pt = GETBYTE(16);
+                    phase = GETBYTE(17);
+                    block = (GETBYTE(18)<<8) | GETBYTE(19);
                     if( dev->read_block == NULL )
                         status = MAPLE_ERR_CMD_UNKNOWN;
-                    else status = dev->read_block(dev, func, block,
+                    else status = dev->read_block(dev, func, pt, block, phase,
                             return_buf+12,
                             &out_length );
                     if( status == 0 ) {
@@ -237,15 +263,25 @@ void maple_handle_buffer( uint32_t address ) {
                     break;
                 case MAPLE_CMD_WRITE_BLOCK:
                     func = GETWORD(12);
-                    block = GETWORD(16);
+                    pt = GETBYTE(16);
+                    phase = GETBYTE(17);
+                    block = (GETBYTE(18)<<8) | GETBYTE(19);
                     if( dev->write_block == NULL )
                         status = MAPLE_ERR_CMD_UNKNOWN;
                     else {
-                        status = dev->write_block(dev, func, block, 
-                                buf+20, length);
+                        status = dev->write_block(dev, func, pt, block, phase, 
+                                buf+20, length-2);
                         if( status == 0 )
                             status = MAPLE_RESP_ACK;
                     }
+                    break;
+                case MAPLE_CMD_SYNC_BLOCK:
+                    func = GETWORD(12);
+                    pt = GETBYTE(16);
+                    phase = GETBYTE(17);
+                    block = (GETBYTE(18)<<8) | GETBYTE(19);
+                    /* TODO: something? */
+                    status = MAPLE_RESP_ACK;
                     break;
                 default:
                     status = MAPLE_ERR_CMD_UNKNOWN;
@@ -352,8 +388,8 @@ gboolean maple_should_grab()
         for( j=0; j<6; j++ ) {
             if( maple_devices[i][j] != NULL ) {
                 maple_device_t dev = maple_devices[i][j];
-                if( dev->grab_mode > mode ) {
-                    mode = dev->grab_mode;
+                if( (dev->device_class->flags&MAPLE_GRAB_MASK) > mode ) {
+                    mode = dev->device_class->flags & MAPLE_GRAB_MASK;
                 }
             }
         }
