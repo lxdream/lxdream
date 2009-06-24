@@ -265,9 +265,10 @@ int main (int argc, char *argv[])
     }
 
     if( gdrom_get_current_disc() == NULL ) {
-        const gchar *disc_file = lxdream_get_config_value( CONFIG_GDROM );
+        gchar *disc_file = lxdream_get_global_config_path_value( CONFIG_GDROM );
         if( disc_file != NULL ) {
             gdrom_mount_image( disc_file );
+            g_free(disc_file);
         }
     }
 

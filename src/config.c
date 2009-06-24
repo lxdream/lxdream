@@ -18,9 +18,11 @@
 
 #include <unistd.h>
 #include <stdio.h>
+#include <ctype.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
+#include <wordexp.h>
 #include <glib/gmem.h>
 #include <glib/gstrfuncs.h>
 #include "dream.h"
@@ -136,7 +138,7 @@ void lxdream_set_default_config( )
     maple_detach_all();
 }
 
-const gchar *lxdream_get_config_value( int key )
+const gchar *lxdream_get_global_config_value( int key )
 {
     return global_config[key].value;
 }
@@ -144,7 +146,7 @@ const gchar *lxdream_get_config_value( int key )
 GList *lxdream_get_global_config_list_value( int key )
 {
     GList *result = NULL;
-    const gchar *str = lxdream_get_config_value( key );
+    const gchar *str = lxdream_get_global_config_value( key );
     if( str != NULL ) {
         gchar **strv = g_strsplit(str, ":",0);
         int i;
@@ -161,7 +163,7 @@ void lxdream_set_global_config_list_value( int key, const GList *list )
     if( list == NULL ) {
         lxdream_set_global_config_value( key, NULL );
     } else {
-        GList *ptr;
+        const GList *ptr;
         int size = 0;
         
         for( ptr = list; ptr != NULL; ptr = g_list_next(ptr) ) {
@@ -175,6 +177,100 @@ void lxdream_set_global_config_list_value( int key, const GList *list )
         }
         lxdream_set_global_config_value( key, buf );
     }
+}
+
+gchar *get_expanded_path( const gchar *input )
+{
+    wordexp_t we;
+    if( input == NULL ) {
+        return NULL;
+    }
+    memset(&we,0,sizeof(we));
+    int result = wordexp(input, &we, WRDE_NOCMD);
+    if( result != 0 || we.we_wordc == 0 ) {
+        /* On failure, return the original input unchanged */
+        return g_strdup(input);
+    } else {
+        /* On success, concatenate all 'words' together into a single 
+         * space-separated string
+         */
+        int length = we.we_wordc, i;
+        gchar *result, *p;
+        
+        for( i=0; i<we.we_wordc; i++ ) {
+            length += strlen(we.we_wordv[i]);
+        }
+        p = result = g_malloc(length);
+        for( i=0; i<we.we_wordc; i++ ) {
+            if( i != 0 )
+                *p++ = ' ';
+            strcpy( p, we.we_wordv[i] );
+            p += strlen(p);
+        }
+        wordfree(&we);
+        return result;
+    }        
+}
+
+/**
+ * Test if we need to escape a path to prevent substitution mangling. 
+ * @return TRUE if the input value contains any character that doesn't
+ * match [a-zA-Z0-9._@%/] (this will escape slightly more than it needs to,
+ * but is safe)
+ */
+gboolean path_needs_escaping( const gchar *value )
+{
+   const gchar *p = value;
+   while( *p ) {
+       if( !isalnum(*p) && *p != '.' && *p != '_' &&
+               *p != '@' && *p != '%' && *p != '/' ) {
+           return TRUE;
+       }
+       p++;
+   }
+   return FALSE;
+}
+
+gchar *get_escaped_path( const gchar *value )
+{
+    if( value != NULL && path_needs_escaping(value) ) {
+        /* Escape with "", and backslash the remaining characters:
+         *   \ " $ `
+         */
+        char buf[strlen(value)*2+3];  
+        const char *s = value;
+        char *p = buf;
+        *p++ = '\"';
+        while( *s ) {
+            if( *s == '\\' || *s == '"' || *s == '$' || *s == '`' ) {
+                *p++ = '\\';
+            }
+            *p++ = *s++;
+        }
+        *p++ = '\"';
+        *p = '\0';
+        return g_strdup(buf);
+    } else {
+        return g_strdup(value);
+    }
+}
+
+gchar *lxdream_get_global_config_path_value( int key )
+{
+    const gchar *str = lxdream_get_global_config_value(key);
+    if( str == NULL ) {
+        return NULL;
+    } else {
+        return get_expanded_path(str);
+    }
+}
+
+const gchar *lxdream_set_global_config_path_value( int key, const gchar *value )
+{
+    gchar *temp = get_escaped_path(value);
+    lxdream_set_global_config_value(key,temp);
+    g_free(temp);
+    return lxdream_get_global_config_value(key);
 }
 
 void lxdream_set_config_value( lxdream_config_entry_t param, const gchar *value )
@@ -192,7 +288,7 @@ void lxdream_set_global_config_value( int key, const gchar *value )
     lxdream_set_config_value(&global_config[key], value);
 }
 
-const struct lxdream_config_entry * lxdream_get_config_entry( int key )
+const struct lxdream_config_entry * lxdream_get_global_config_entry( int key )
 {
     return &global_config[key];
 }

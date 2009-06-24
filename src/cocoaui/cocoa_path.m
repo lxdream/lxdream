@@ -40,7 +40,7 @@
         int height = [self contentHeight] - TEXT_HEIGHT - TEXT_GAP;
         
         for( i=0; i<=CONFIG_KEY_MAX; i++ ) {
-            const struct lxdream_config_entry *entry = lxdream_get_config_entry(i);
+            const struct lxdream_config_entry *entry = lxdream_get_global_config_entry(i);
             if( entry->label != NULL ) {
                 NSRect frame = NSMakeRect( TEXT_GAP, height -((TEXT_HEIGHT+TEXT_GAP)*i - 2), 
                                            150, LABEL_HEIGHT );
@@ -66,7 +66,7 @@
 {
     int tag = [[notify object] tag];
     const char *str = [[[notify object] stringValue] UTF8String];
-    const char *oldval = lxdream_get_config_value(tag);
+    const char *oldval = lxdream_get_global_config_value(tag);
     if( str[0] == '\0' )
         str = NULL;
     if( oldval == NULL ? str != NULL : (str == NULL || strcmp(oldval,str) != 0 ) ) {   

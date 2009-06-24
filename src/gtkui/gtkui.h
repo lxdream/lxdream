@@ -89,13 +89,13 @@ gint gtk_gui_run_property_dialog( const gchar *title, GtkWidget *panel, gtk_dial
 
 typedef gboolean (*file_callback_t)( const gchar *filename );
 gchar *open_file_dialog( const char *title, const char *pattern, const char *patname,
-                       const gchar *initial_dir );
+                         int initial_dir_key );
 gchar *save_file_dialog( const char *title, const char *pattern, const char *patname,
-                       const gchar *initial_dir );
+                         int initial_dir_key );
 void open_file_dialog_cb( const char *title, file_callback_t action, const char *pattern, const char *patname,
-                          const gchar *initial_dir );
+                          int initial_dir_key );
 void save_file_dialog_cb( const char *title, file_callback_t action, const char *pattern, const char *patname,
-                          const gchar *initial_dir );
+                          int initial_dir_key );
 /**
  * Extract the keyval of the key event if no modifier keys were pressed -
  * in other words get the keyval of the key by itself. The other way around
@@ -112,13 +112,6 @@ uint16_t gtk_get_unmodified_keyval( GdkEventKey *event );
  * is not recognized as a modifier key.
  */
 guint gdk_keycode_to_modifier( GdkDisplay *display, guint keycode );
-
-/**
- * Return an absolute path for the given input path, as a newly allocated
- * string. If the input path is already absolute, the returned string will
- * be identical to the input string.
- */
-gchar *get_absolute_path( const gchar *path );
 
 /**
  * Construct a new pixbuf that takes ownership of the frame buffer
