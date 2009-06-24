@@ -1,5 +1,5 @@
 /**
- * $Id: vmuvol.h 869 2008-09-08 07:56:33Z nkeynes $
+ * $Id$
  *
  * VMU volume (ie block device) declarations
  *

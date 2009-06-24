@@ -1,5 +1,5 @@
 /**
- * $Id: vmulist.h 869 2008-09-08 07:56:33Z nkeynes $
+ * $Id$
  *
  * VMU management - maintains a list of all known VMUs
  *
