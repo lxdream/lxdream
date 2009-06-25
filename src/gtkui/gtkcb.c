@@ -213,6 +213,24 @@ void save_state_action_callback( GtkAction *action, gpointer user_data)
 {
     save_file_dialog_cb( "Save state...", dreamcast_save_state, "*.dst", _("lxDream Save State (*.dst)"), CONFIG_SAVE_PATH );
 }
+
+void quick_state_action_callback( GtkRadioAction *action, GtkRadioAction *current, gpointer user_data)
+{
+    gint val = gtk_radio_action_get_current_value(action);
+    dreamcast_set_quick_state(val);
+}
+
+void quick_load_action_callback( GtkAction *action, gpointer user_data)
+{
+    dreamcast_quick_load();
+}
+
+void quick_save_action_callback( GtkAction *action, gpointer user_data)
+{
+    dreamcast_quick_save();
+}
+
+
 void about_action_callback( GtkAction *action, gpointer user_data)
 {
 

@@ -68,7 +68,7 @@ int dreamcast_load_state( const gchar *filename );
 
 /* Quick saves */
 #define MAX_QUICK_STATE 9
-#define QUICK_STATE_FILENAME "quicksave%d.dst"
+#define QUICK_STATE_FILENAME "%s/quicksave%d.dst"
 
 void dreamcast_quick_save();
 void dreamcast_quick_load();
