@@ -90,6 +90,7 @@ static NSString *NSMENU_( const char *text )
 
 static void cocoa_gui_create_menu(void)
 {
+    int i;
     NSMenu *appleMenu, *services;
     NSMenuItem *menuItem;
     NSString *title;
@@ -137,6 +138,19 @@ static void cocoa_gui_create_menu(void)
 
     NSMenu *gdromMenu = cocoa_gdrom_menu_new();
 
+    NSMenu *quickStateMenu = [[NSMenu alloc] initWithTitle:NSMENU_("_Quick State")];
+    int quickState = dreamcast_get_quick_state();
+    for( i=0; i<=MAX_QUICK_STATE; i++ ) {
+    	NSString *label = [NSString stringWithFormat: NSMENU_("State _%d"), i];
+    	NSString *keyEquiv = [NSString stringWithFormat: @"%d", i];
+    	menuItem = [[NSMenuItem alloc] initWithTitle: label action: @selector(quick_state_action:) keyEquivalent: keyEquiv];
+    	[menuItem setTag: i];
+    	if( i == quickState ) {
+    	    [menuItem setState:NSOnState];
+    	}
+    	[quickStateMenu addItem: menuItem];
+    }
+
     NSMenu *fileMenu = [[NSMenu alloc] initWithTitle: NSMENU_("_File")];
     [fileMenu addItemWithTitle: NSMENU_("Load _Binary...") action: @selector(load_binary_action:) keyEquivalent: @"b"];
     [[fileMenu addItemWithTitle: NSMENU_("_GD-Rom") action: nil keyEquivalent: @""]
@@ -147,8 +161,14 @@ static void cocoa_gui_create_menu(void)
     [fileMenu addItemWithTitle: NSMENU_("_Pause") action: @selector(pause_action:) keyEquivalent: @"p"];
     [fileMenu addItemWithTitle: NS_("Resume") action: @selector(run_action:) keyEquivalent: @"r"];
     [fileMenu addItem: [NSMenuItem separatorItem]];
-    [fileMenu addItemWithTitle: NSMENU_("_Load State...") action: @selector(load_action:) keyEquivalent: @"o"];
-    [fileMenu addItemWithTitle: NSMENU_("_Save State...") action: @selector(save_action:) keyEquivalent: @"s"];
+    [fileMenu addItemWithTitle: NSMENU_("L_oad State...") action: @selector(load_action:) keyEquivalent: @"o"];
+    [fileMenu addItemWithTitle: NSMENU_("S_ave State...") action: @selector(save_action:) keyEquivalent: @"a"];
+    menuItem = [[NSMenuItem alloc] initWithTitle:NSMENU_("Select _Quick State") action: nil keyEquivalent: @""];
+    [fileMenu addItem: [NSMenuItem separatorItem]];
+    [fileMenu addItemWithTitle: NSMENU_("_Load Quick State") action: @selector(quick_load_action:) keyEquivalent: @"l"]; 
+    [fileMenu addItemWithTitle: NSMENU_("_Save Quick State") action: @selector(quick_save_action:) keyEquivalent: @"s"];
+    [menuItem setSubmenu: quickStateMenu];
+    [fileMenu addItem: menuItem];
     [fileMenu addItem: [NSMenuItem separatorItem]];
     [fileMenu addItemWithTitle: NSMENU_("_Full Screen...") action: @selector(fullscreen_action:) keyEquivalent: @"\r"];
 
@@ -285,6 +305,20 @@ static void cocoa_gui_create_menu(void)
 - (void) fullscreen_action: (id)sender
 {
     [mainWindow setFullscreen: ![mainWindow isFullscreen]]; 
+}
+- (void) quick_state_action: (id)sender
+{
+    [[[sender menu] itemWithTag: dreamcast_get_quick_state()] setState: NSOffState ];
+    [sender setState: NSOnState ];
+    dreamcast_set_quick_state( [sender tag] );
+}
+- (void) quick_save_action: (id)sender
+{
+    dreamcast_quick_save();
+}
+- (void) quick_load_action: (id)sender
+{
+    dreamcast_quick_load();
 }
 @end
 

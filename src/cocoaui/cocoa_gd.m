@@ -36,8 +36,12 @@ void cocoa_gdrom_menu_build( NSMenu *menu )
         if( entry[0] == '\0' ) {
             [menu addItem: [NSMenuItem separatorItem]];
         } else {
+            NSString *keyEquiv = @"";
+            if( i == 0 ) {
+                keyEquiv = @"e";
+            }
             [[menu addItemWithTitle: [NSString stringWithCString: entry] 
-                                      action: @selector(gdrom_list_action:) keyEquivalent: @""]
+                                      action: @selector(gdrom_list_action:) keyEquivalent: keyEquiv]
                                       setTag: i];
         }
     }

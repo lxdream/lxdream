@@ -134,6 +134,9 @@ void pause_action_callback( GtkAction *action, gpointer user_data);
 void resume_action_callback( GtkAction *action, gpointer user_data);
 void load_state_action_callback( GtkAction *action, gpointer user_data);
 void save_state_action_callback( GtkAction *action, gpointer user_data);
+void quick_load_action_callback( GtkAction *action, gpointer user_data);
+void quick_save_action_callback( GtkAction *action, gpointer user_data);
+void quick_state_action_callback( GtkRadioAction *action, GtkRadioAction *current, gpointer user_data);
 void about_action_callback( GtkAction *action, gpointer user_data);
 void exit_action_callback( GtkAction *action, gpointer user_data);
 

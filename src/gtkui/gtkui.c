@@ -74,8 +74,11 @@ static const GtkActionEntry ui_actions[] = {
         { "Reset", GTK_STOCK_REFRESH, N_("_Reset"), "<control>R", N_("Reset dreamcast"), G_CALLBACK(reset_action_callback) },
         { "Pause", GTK_STOCK_MEDIA_PAUSE, N_("_Pause"), NULL, N_("Pause dreamcast"), G_CALLBACK(pause_action_callback) },
         { "Run", GTK_STOCK_MEDIA_PLAY, N_("Resume"), NULL, N_("Resume"), G_CALLBACK(resume_action_callback) },
-        { "LoadState", GTK_STOCK_REVERT_TO_SAVED, N_("_Load State..."), "F4", N_("Load an lxdream save state"), G_CALLBACK(load_state_action_callback) },
-        { "SaveState", GTK_STOCK_SAVE_AS, N_("_Save State..."), "F3", N_("Create an lxdream save state"), G_CALLBACK(save_state_action_callback) },
+        { "LoadState", GTK_STOCK_REVERT_TO_SAVED, N_("L_oad State..."), "F4", N_("Load an lxdream save state"), G_CALLBACK(load_state_action_callback) },
+        { "SaveState", GTK_STOCK_SAVE_AS, N_("S_ave State..."), "F3", N_("Create an lxdream save state"), G_CALLBACK(save_state_action_callback) },
+        { "QuickLoad", NULL, N_("_Load Quick State"), "F6", N_("Load the current quick save state"), G_CALLBACK(quick_load_action_callback) },
+        { "QuickSave", NULL, N_("_Save Quick State..."), "F5", N_("Save to the current quick save state"), G_CALLBACK(quick_save_action_callback) },
+        { "QuickStateMenu", NULL, N_("Select _Quick State"), NULL, N_("Set quick save state") },
         { "Exit", GTK_STOCK_QUIT, N_("E_xit"), NULL, N_("Exit lxdream"), G_CALLBACK(exit_action_callback) },
         { "GdromSettings", NULL, N_("_GD-Rom") },
         { "GdromUnmount", NULL, N_("_Empty") },
@@ -99,6 +102,7 @@ static const GtkActionEntry ui_actions[] = {
 static const GtkToggleActionEntry ui_toggle_actions[] = {
         { "FullScreen", NULL, "_Full Screen", "<alt>Return", "Toggle full screen video", G_CALLBACK(fullscreen_toggle_callback), 0 },
 };
+static GtkRadioActionEntry ui_radio_actions[MAX_QUICK_STATE+1];
 
 // Menus and toolbars
 static const char *ui_description =
@@ -115,6 +119,21 @@ static const char *ui_description =
     "   <separator/>"
     "   <menuitem action='LoadState'/>"
     "   <menuitem action='SaveState'/>"
+    "   <separator/>"
+    "   <menuitem action='QuickLoad'/>"
+    "   <menuitem action='QuickSave'/>"
+    "   <menu action='QuickStateMenu'>"
+    "    <menuitem action='QuickState0'/>"
+    "    <menuitem action='QuickState1'/>"
+    "    <menuitem action='QuickState2'/>"
+    "    <menuitem action='QuickState3'/>"
+    "    <menuitem action='QuickState4'/>"
+    "    <menuitem action='QuickState5'/>"
+    "    <menuitem action='QuickState6'/>"
+    "    <menuitem action='QuickState7'/>"
+    "    <menuitem action='QuickState8'/>"
+    "    <menuitem action='QuickState9'/>"
+    "   </menu>"
     "   <separator/>"
     "   <menuitem action='Exit'/>"
     "  </menu>"
@@ -149,6 +168,21 @@ static const char *ui_description =
     "   <separator/>"
     "   <menuitem action='LoadState'/>"
     "   <menuitem action='SaveState'/>"
+    "   <separator/>"
+    "   <menuitem action='QuickLoad'/>"
+    "   <menuitem action='QuickSave'/>"
+    "   <menu action='QuickStateMenu'>"
+    "    <menuitem action='QuickState0'/>"
+    "    <menuitem action='QuickState1'/>"
+    "    <menuitem action='QuickState2'/>"
+    "    <menuitem action='QuickState3'/>"
+    "    <menuitem action='QuickState4'/>"
+    "    <menuitem action='QuickState5'/>"
+    "    <menuitem action='QuickState6'/>"
+    "    <menuitem action='QuickState7'/>"
+    "    <menuitem action='QuickState8'/>"
+    "    <menuitem action='QuickState9'/>"
+    "   </menu>"
     "   <separator/>"
     "   <menuitem action='Exit'/>"
     "  </menu>"
@@ -207,6 +241,7 @@ gboolean gtk_gui_disc_changed( gdrom_disc_t disc, const gchar *disc_name, void *
 gboolean gui_init( gboolean withDebug, gboolean withFullscreen )
 {
     if( gtk_gui_init_ok ) {
+        int i;
         GError *error = NULL;
         dreamcast_register_module( &gtk_gui_module );
         gtk_gui_alloc_resources();
@@ -215,6 +250,17 @@ gboolean gui_init( gboolean withDebug, gboolean withFullscreen )
         gtk_action_group_set_translation_domain( global_action_group, NULL );
         gtk_action_group_add_actions( global_action_group, ui_actions, G_N_ELEMENTS(ui_actions), NULL );
         gtk_action_group_add_toggle_actions( global_action_group, ui_toggle_actions, G_N_ELEMENTS(ui_toggle_actions), NULL );
+
+        for( i=0; i<=MAX_QUICK_STATE; i++ ) {
+            ui_radio_actions[i].name = g_strdup_printf("QuickState%d", i);
+            ui_radio_actions[i].stock_id = NULL;
+            ui_radio_actions[i].label = g_strdup_printf(_("State _%d"), i );
+            ui_radio_actions[i].accelerator = NULL;
+            ui_radio_actions[i].tooltip = g_strdup_printf(_("Use quick save state %d"),i);
+            ui_radio_actions[i].value = i;
+        }
+        gtk_action_group_add_radio_actions( global_action_group, ui_radio_actions, G_N_ELEMENTS(ui_radio_actions), 
+                                            dreamcast_get_quick_state(), G_CALLBACK(quick_state_action_callback), NULL );
         gtk_gui_enable_action("AudioSettings", FALSE);
         gtk_gui_enable_action("NetworkSettings", FALSE);
         gtk_gui_enable_action("VideoSettings", FALSE);
