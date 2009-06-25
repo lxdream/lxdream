@@ -22,6 +22,7 @@
 
 @interface LxdreamPrefsPathPane: LxdreamPrefsPane 
 {
+    NSTextField *fields[CONFIG_KEY_MAX];
 }
 + (LxdreamPrefsPathPane *)new;
 @end
@@ -38,25 +39,41 @@
     } else {
         int i;
         int height = [self contentHeight] - TEXT_HEIGHT - TEXT_GAP;
+        int y = height;
         
         for( i=0; i<=CONFIG_KEY_MAX; i++ ) {
             const struct lxdream_config_entry *entry = lxdream_get_global_config_entry(i);
             if( entry->label != NULL ) {
-                NSRect frame = NSMakeRect( TEXT_GAP, height -((TEXT_HEIGHT+TEXT_GAP)*i - 2), 
-                                           150, LABEL_HEIGHT );
+                NSRect frame = NSMakeRect( TEXT_GAP, y - 2, 150, LABEL_HEIGHT );
                 NSTextField *label = cocoa_gui_add_label(self, NS_(entry->label), frame);
                 [label setAlignment: NSRightTextAlignment];
 
-                frame = NSMakeRect( 150 + (TEXT_GAP*2), 
-                                    height -((TEXT_HEIGHT+TEXT_GAP)*i), 
-                                    360, TEXT_HEIGHT ); 
+                frame = NSMakeRect( 150 + (TEXT_GAP*2), y, 360, TEXT_HEIGHT ); 
                 NSTextField *field = [[NSTextField alloc] initWithFrame: frame];
                 [field setTag: i];
                 [field setStringValue: [NSString stringWithCString: entry->value]]; 
                 [field setDelegate: self];
                 [field setAutoresizingMask: (NSViewMinYMargin|NSViewWidthSizable)];
+                
+                frame = NSMakeRect( 510 + (TEXT_GAP*3), y,  TEXT_HEIGHT, TEXT_HEIGHT );
+                NSButton *button = [[NSButton alloc] initWithFrame: frame];
+                [button setTag: i];
+                [button setTitle: @""];
+                [button setButtonType: NSMomentaryPushInButton];
+                [button setBezelStyle: NSRoundedDisclosureBezelStyle];
+                [button setAutoresizingMask: (NSViewMinYMargin|NSViewMinXMargin)];
+                [button setTarget: self];
+                if( entry->type == CONFIG_TYPE_FILE ) {
+                    [button setAction: @selector(openFileDialog:)];
+                } else {
+                    [button setAction: @selector(openDirDialog:)];
+                }
+                
                 [self addSubview: label];
                 [self addSubview: field];
+                [self addSubview: button];
+                fields[i] = field;
+                y -= (TEXT_HEIGHT + TEXT_GAP);
             }
         }
     }
@@ -75,6 +92,39 @@
         dreamcast_config_changed();
     }
 }
+- (void)openFileDialog: (id)sender
+{
+    int tag = [sender tag];
+    NSString *text = [fields[tag] stringValue]; 
+    NSOpenPanel *panel = [NSOpenPanel openPanel];
+    int result = [panel runModalForDirectory: nil file: nil types: nil];
+    if( result == NSOKButton && [[panel filenames] count] > 0 ) {
+        NSString *filename = [[panel filenames] objectAtIndex: 0];
+        gchar *str = get_escaped_path( [filename UTF8String] );
+        [fields[tag] setStringValue: [NSString stringWithUTF8String: str]];
+        lxdream_set_global_config_value(tag,str);
+        lxdream_save_config();
+        dreamcast_config_changed();
+    }
+}
+- (void)openDirDialog: (id)sender
+{
+    int tag = [sender tag];
+    NSString *text = [fields[tag] stringValue]; 
+    NSOpenPanel *panel = [NSOpenPanel openPanel];
+    [panel setCanChooseDirectories: YES];
+    [panel setCanCreateDirectories: YES];
+    int result = [panel runModalForDirectory: nil file: nil types: nil];
+    if( result == NSOKButton && [[panel filenames] count] > 0 ) {
+        NSString *filename = [[panel filenames] objectAtIndex: 0];
+        gchar *str = get_escaped_path( [filename UTF8String] );
+        [fields[tag] setStringValue: [NSString stringWithUTF8String: str]];
+        lxdream_set_global_config_value(tag,str);
+        lxdream_save_config();
+        dreamcast_config_changed();
+    }
+}
+
 @end
 
 
