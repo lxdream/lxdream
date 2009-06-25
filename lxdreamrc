@@ -1,9 +1,4 @@
 [Global]
-bios = bios/dcboot.rom
-flash = bios/dcflash.rom
-default path = disc
-save path = save
-bootstrap = bios/IP.BIN
 
 [Controllers]
 Device 0 = Sega Controller
