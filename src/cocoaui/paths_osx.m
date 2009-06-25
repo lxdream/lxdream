@@ -26,6 +26,7 @@
 
 static char *bundle_resource_path = NULL;
 static char *bundle_plugin_path = NULL;
+static char *user_data_path = NULL;
 
 static char *get_bundle_resource_path()
 {
@@ -57,4 +58,14 @@ const char *get_plugin_path()
         [pool release];
     }
     return bundle_plugin_path;    
+}
+
+
+const char *get_user_data_path()
+{
+    if( user_data_path == NULL ) {
+        char *home = getenv("HOME");
+        user_data_path = g_strdup_printf( "%s/Library/Application Support/Lxdream", home );
+    }
+    return user_data_path;
 }

@@ -32,6 +32,7 @@ extern "C" {
 #define CONFIG_TYPE_PATH 2
 #define CONFIG_TYPE_KEY 3
 #define CONFIG_TYPE_FILELIST 4
+#define CONFIG_TYPE_INTEGER 5
 
 #define DEFAULT_CONFIG_FILENAME "lxdreamrc"
 
@@ -57,7 +58,8 @@ typedef struct lxdream_config_group {
 #define CONFIG_GDROM 6
 #define CONFIG_RECENT 7
 #define CONFIG_VMU 8
-#define CONFIG_KEY_MAX CONFIG_VMU
+#define CONFIG_QUICK_STATE 9
+#define CONFIG_KEY_MAX CONFIG_QUICK_STATE
 
 extern struct lxdream_config_group lxdream_config_root[];
 
@@ -122,6 +124,11 @@ gboolean lxdream_load_config( );
  * Update the configuration
  */
 gboolean lxdream_save_config( );
+
+/**
+ * Make the user configuration directories if they don't already exist.
+ */ 
+void lxdream_make_config_dir( );
 
 /**
  * Escape a pathname if needed to prevent shell substitution.

@@ -16,6 +16,7 @@
  * GNU General Public License for more details.
  */
 
+#include <unistd.h>
 #include <glib/gstrfuncs.h>
 #include <glib/gutils.h>
 
