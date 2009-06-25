@@ -202,6 +202,7 @@ int main (int argc, char *argv[])
     plugin_init();
 #endif
 
+    lxdream_make_config_dir( );
     lxdream_load_config( );
 
     if( audio_driver_name != NULL && strcmp(audio_driver_name, "?") == 0 ) {

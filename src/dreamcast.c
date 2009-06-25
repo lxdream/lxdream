@@ -19,6 +19,7 @@
 
 #include <errno.h>
 #include <glib.h>
+#include <unistd.h>
 #include "lxdream.h"
 #include "dream.h"
 #include "mem.h"
@@ -48,6 +49,7 @@ static gchar *dreamcast_program_name = NULL;
 static sh4addr_t dreamcast_entry_point = 0xA0000000;
 static uint32_t timeslice_length = DEFAULT_TIMESLICE_LENGTH;
 static uint64_t run_time_nanosecs = 0;
+static unsigned int quick_save_state = -1;
 
 #define MAX_MODULES 32
 static int num_modules = 0;
@@ -118,7 +120,7 @@ void dreamcast_configure( )
     dreamcast_register_module( &aica_module );
     dreamcast_register_module( &maple_module );
     dreamcast_register_module( &ide_module );
-    
+
     g_free(bios_path);
     g_free(flash_path);
 }
@@ -500,6 +502,77 @@ int dreamcast_save_state( const gchar *filename )
     fclose( f );
     INFO( "Save state written to %s", filename );
     return 0;
+}
+
+/********************** Quick save state support ***********************/
+/* This section doesn't necessarily belong here, but it probably makes the
+ * most sense here next to the regular save/load functions
+ */
+
+static gchar *get_quick_state_filename( int state )
+{
+    gchar *path = lxdream_get_global_config_path_value(CONFIG_SAVE_PATH);
+    gchar *str = g_strdup_printf( QUICK_STATE_FILENAME, path, state );
+    g_free( path );
+    return str;
+}
+
+
+static void dreamcast_quick_state_init()
+{
+    const char *state = lxdream_get_global_config_value(CONFIG_QUICK_STATE);
+    if( state != NULL ) {
+        quick_save_state = atoi(state);
+        if( quick_save_state > MAX_QUICK_STATE ) {
+            quick_save_state = 0;
+        }
+    } else {
+        quick_save_state = 0;
+    }
+}
+
+void dreamcast_quick_save()
+{
+    if( quick_save_state == -1 ) 
+        dreamcast_quick_state_init();
+    gchar *str = get_quick_state_filename(quick_save_state);
+    dreamcast_save_state(str);
+    g_free(str);
+}
+
+void dreamcast_quick_load()
+{
+    if( quick_save_state == -1 ) 
+        dreamcast_quick_state_init();
+    gchar *str = get_quick_state_filename(quick_save_state);
+    dreamcast_load_state(str);
+    g_free(str);
+}
+
+unsigned int dreamcast_get_quick_state( )
+{
+    if( quick_save_state == -1 ) 
+        dreamcast_quick_state_init();
+    return quick_save_state;
+}
+
+void dreamcast_set_quick_state( unsigned int state )
+{
+    if( state <= MAX_QUICK_STATE && state != quick_save_state ) {
+        quick_save_state = state;
+        char buf[3];
+        sprintf( buf, "%d", quick_save_state );
+        lxdream_set_global_config_value(CONFIG_QUICK_STATE, buf);
+        lxdream_save_config();
+    }
+}
+
+gboolean dreamcast_has_quick_state( unsigned int state )
+{
+    gchar *str = get_quick_state_filename(state);
+    int result = access(str, R_OK);
+    g_free(str);
+    return result == 0 ? TRUE : FALSE;
 }
 
 /********************* The Boot ROM address space **********************/

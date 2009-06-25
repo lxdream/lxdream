@@ -35,9 +35,6 @@ static void hotkey_state_select_callback( void *mdev, uint32_t value, uint32_t p
 static void hotkey_state_save_callback( void *mdev, uint32_t value, uint32_t pressure, gboolean isKeyDown );
 static void hotkey_state_load_callback( void *mdev, uint32_t value, uint32_t pressure, gboolean isKeyDown );
 
-static char *set_current_state_filename(int filenum);
-
-static char *current_save_state;
 
 struct lxdream_config_entry hotkeys_config[] = {
         {"resume", N_("Resume emulation"), CONFIG_TYPE_KEY},
@@ -46,6 +43,7 @@ struct lxdream_config_entry hotkeys_config[] = {
         {"exit", N_("Exit emulator"), CONFIG_TYPE_KEY},
         {"save", N_("Save current quick save"), CONFIG_TYPE_KEY},
         {"load", N_("Load current quick save"), CONFIG_TYPE_KEY},
+        {"state0", N_("Select quick save state 0"), CONFIG_TYPE_KEY},
         {"state1", N_("Select quick save state 1"), CONFIG_TYPE_KEY},
         {"state2", N_("Select quick save state 2"), CONFIG_TYPE_KEY},
         {"state3", N_("Select quick save state 3"), CONFIG_TYPE_KEY},
@@ -58,15 +56,8 @@ struct lxdream_config_entry hotkeys_config[] = {
         {NULL, CONFIG_TYPE_NONE}
 };
 
-void hotkeys_init() {
-
-    char *home = getenv("HOME");
-    char *save_path = g_strdup_printf("%s/.lxdream", home);
-    mkdir(save_path, S_IRWXU);
-    g_free(save_path);
-
-    set_current_state_filename(1);
-
+void hotkeys_init() 
+{
     hotkeys_register_keys();
 }
 
@@ -78,7 +69,7 @@ void hotkeys_register_keys()
     input_register_key(hotkeys_config[3].value, &hotkey_exit_callback, NULL, 0);
     input_register_key(hotkeys_config[4].value, &hotkey_state_save_callback, NULL, 0);
     input_register_key(hotkeys_config[5].value, &hotkey_state_load_callback, NULL, 0);
-    for (int i = 0; i < 9; i++)
+    for (int i = 0; i < 10; i++)
     {
         input_register_key(hotkeys_config[6 + i].value, &hotkey_state_select_callback, NULL, i);
     }
@@ -92,7 +83,7 @@ void hotkeys_unregister_keys()
     input_unregister_key(hotkeys_config[3].value, &hotkey_exit_callback, NULL, 0);
     input_unregister_key(hotkeys_config[4].value, &hotkey_state_save_callback, NULL, 0);
     input_unregister_key(hotkeys_config[5].value, &hotkey_state_load_callback, NULL, 0);
-    for (int i = 0; i < 9; i++)
+    for (int i = 0; i < 10; i++)
     {
         input_unregister_key(hotkeys_config[6 + i].value, &hotkey_state_select_callback, NULL, i);
     }
@@ -136,33 +127,22 @@ static void hotkey_exit_callback( void *mdev, uint32_t value, uint32_t pressure,
 static void hotkey_state_select_callback( void *mdev, uint32_t value, uint32_t pressure, gboolean isKeyDown )
 {
     if (isKeyDown) {
-        INFO("state select callback called (%d)", value);
-        assert(value > 0 && value <= 9);
-        set_current_state_filename(value);
+        dreamcast_set_quick_state(value);
     }
 }
 
 static void hotkey_state_save_callback( void *mdev, uint32_t value, uint32_t pressure, gboolean isKeyDown )
 {
     if (isKeyDown) {
-        if (current_save_state != NULL)
-            dreamcast_save_state(current_save_state);
+        dreamcast_quick_save();
     }
 }
 
 static void hotkey_state_load_callback( void *mdev, uint32_t value, uint32_t pressure, gboolean isKeyDown )
 {
     if (isKeyDown) {
-        if (current_save_state != NULL)
-            dreamcast_load_state(current_save_state);
+        dreamcast_quick_load();
     }
 }
 
-static char *set_current_state_filename(int filenum)
-{
-    char *home = getenv("HOME");
-    if (current_save_state != NULL)
-        g_free(current_save_state);
-    current_save_state = g_strdup_printf("%s/.lxdream/quicksave%d.dst", home, filenum);
-}
 

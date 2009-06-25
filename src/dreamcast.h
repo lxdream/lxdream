@@ -66,6 +66,16 @@ void dreamcast_program_loaded( const gchar *name, sh4addr_t entry_point );
 int dreamcast_save_state( const gchar *filename );
 int dreamcast_load_state( const gchar *filename );
 
+/* Quick saves */
+#define MAX_QUICK_STATE 9
+#define QUICK_STATE_FILENAME "quicksave%d.dst"
+
+void dreamcast_quick_save();
+void dreamcast_quick_load();
+unsigned int dreamcast_get_quick_state();
+void dreamcast_set_quick_state( unsigned int state );
+gboolean dreamcast_has_quick_state( unsigned int state );
+
 /**
  * Load the front-buffer image from the specified file.
  * If the file is not a valid save state, returns NULL. Otherwise,

@@ -17,8 +17,11 @@
  */
 
 #include <string.h>
+#include <stdlib.h>
+#include <glib/gstrfuncs.h>
 
 #include "lxdream.h"
+#include "config.h"
 
 const char *get_sysconf_path()
 {
@@ -33,4 +36,15 @@ const char *get_locale_path()
 const char *get_plugin_path()
 {
     return PACKAGE_PLUGIN_DIR;
+}
+
+static char *user_data_path = NULL;
+
+const char *get_user_data_path()
+{
+    if( user_data_path == NULL ) {
+        char *home = getenv("HOME");
+        user_data_path = g_strdup_printf( "%s/.lxdream", home );
+    }
+    return user_data_path;
 }

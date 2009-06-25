@@ -25,6 +25,8 @@
 #include <wordexp.h>
 #include <glib/gmem.h>
 #include <glib/gstrfuncs.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include "dream.h"
 #include "config.h"
 #include "maple/maple.h"
@@ -40,15 +42,16 @@ gboolean lxdream_load_config_stream( FILE *f );
 gboolean lxdream_save_config_stream( FILE *f );
 
 static struct lxdream_config_entry global_config[] =
-       {{ "bios", N_("Bios ROM"), CONFIG_TYPE_FILE, "dcboot.rom" },
-        { "flash", N_("Flash ROM"), CONFIG_TYPE_FILE, "dcflash.rom" },
+       {{ "bios", N_("Bios ROM"), CONFIG_TYPE_FILE, NULL },
+        { "flash", N_("Flash ROM"), CONFIG_TYPE_FILE, NULL },
         { "default path", N_("Default disc path"), CONFIG_TYPE_PATH, "." },
-        { "save path", N_("Save-state path"), CONFIG_TYPE_PATH, "save" },
-        { "vmu path", N_("VMU path"), CONFIG_TYPE_PATH, "vmu" },
-        { "bootstrap", N_("Bootstrap IP.BIN"), CONFIG_TYPE_FILE, "IP.BIN" },
+        { "save path", N_("Save-state path"), CONFIG_TYPE_PATH, NULL },
+        { "vmu path", N_("VMU path"), CONFIG_TYPE_PATH, NULL },
+        { "bootstrap", N_("Bootstrap IP.BIN"), CONFIG_TYPE_FILE, NULL },
         { "gdrom", NULL, CONFIG_TYPE_FILE, NULL },
         { "recent", NULL, CONFIG_TYPE_FILELIST, NULL },
         { "vmu", NULL, CONFIG_TYPE_FILELIST, NULL },
+        { "quick state", NULL, CONFIG_TYPE_INTEGER, "0" },
         { NULL, CONFIG_TYPE_NONE }};
 
 static struct lxdream_config_entry serial_config[] =
@@ -85,7 +88,15 @@ gboolean lxdream_find_config()
     gboolean result = TRUE;
     char *home = getenv("HOME");
     if( lxdream_config_save_filename == NULL ) {
+        /* For compatibility, look for the old ~/.lxdreamrc first. Use it if 
+         * found, otherwise use the new ~/.lxdream/lxdreamrc.
+         */
         lxdream_config_save_filename = g_strdup_printf("%s/.%s", home, DEFAULT_CONFIG_FILENAME);
+        if( access(lxdream_config_save_filename, R_OK) != 0 ) {
+            g_free(lxdream_config_save_filename);
+            const char *user_path = get_user_data_path();
+            lxdream_config_save_filename = g_strdup_printf("%s/%s", user_path, DEFAULT_CONFIG_FILENAME);
+        }
     }
     if( lxdream_config_load_filename == NULL ) {
         char *sysconfig = g_strdup_printf("%s/%s", get_sysconf_path(), DEFAULT_CONFIG_FILENAME);
@@ -94,9 +105,6 @@ gboolean lxdream_find_config()
             g_free(sysconfig);
         } else if( access( sysconfig, R_OK ) == 0 ) {
             lxdream_config_load_filename = sysconfig;
-        } else if( access( "./" DEFAULT_CONFIG_FILENAME, R_OK ) == 0 ) {
-            lxdream_config_load_filename = g_strdup("./" DEFAULT_CONFIG_FILENAME);
-            g_free(sysconfig);
         } else {
             lxdream_config_load_filename = g_strdup(lxdream_config_save_filename);
             g_free(sysconfig);
@@ -120,6 +128,15 @@ void lxdream_set_config_filename( const gchar *filename )
 
 void lxdream_set_default_config( )
 {
+    /* Construct platform dependent defaults */
+    const gchar *user_path = get_user_data_path();
+    global_config[CONFIG_BIOS_PATH].default_value = g_strdup_printf( "%s/dcboot.rom", user_path ); 
+    global_config[CONFIG_FLASH_PATH].default_value = g_strdup_printf( "%s/dcflash.rom", user_path ); 
+    global_config[CONFIG_SAVE_PATH].default_value = g_strdup_printf( "%s/save", user_path ); 
+    global_config[CONFIG_VMU_PATH].default_value = g_strdup_printf( "%s/vmu", user_path ); 
+    global_config[CONFIG_BOOTSTRAP].default_value = g_strdup_printf( "%s/IP.BIN", user_path ); 
+    
+    /* Copy defaults into main values */
     struct lxdream_config_group *group = lxdream_config_root;
     while( group->key != NULL ) {
         struct lxdream_config_entry *param = group->params;
@@ -492,4 +509,29 @@ gboolean lxdream_save_config_stream( FILE *f )
         group++;
     }
     return TRUE;
+}
+
+void lxdream_make_config_dir( )
+{
+    const char *user_path = get_user_data_path();
+    struct stat st;
+
+    if( access( user_path, R_OK|X_OK ) == 0 && lstat( user_path, &st ) == 0 &&
+            (st.st_mode & S_IFDIR) != 0 ) {
+        /* All good */
+        return;
+    }
+    
+    if( mkdir( user_path, 0777 ) != 0 ) {
+        ERROR( "Unable to create user configuration directory %s: %s", user_path, strerror(errno) );
+        return;
+    }
+
+    char *vmupath = g_strdup_printf( "%s/vmu", user_path );
+    mkdir( vmupath, 0777 );
+    g_free( vmupath );
+    
+    char *savepath = g_strdup_printf( "%s/save", user_path );
+    mkdir( savepath, 0777 );
+    g_free( vmupath );
 }
