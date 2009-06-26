@@ -16,8 +16,11 @@
  * GNU General Public License for more details.
  */
 
-#include "dream.h"
+#include <stdlib.h>
+
+#include "lxdream.h"
 #include "config.h"
+#include "lxpaths.h"
 #include "dreamcast.h"
 #include "gdrom/gdrom.h"
 #include "gtkui/gtkui.h"
@@ -52,7 +55,7 @@ gchar *open_file_dialog( const char *title, const char *pattern, const char *pat
             NULL );
     add_file_pattern( GTK_FILE_CHOOSER(file), pattern, patname );
     if( initial_dir_key != -1 ) {
-        gchar *initial_path = get_absolute_path(gui_get_configurable_path(initial_dir_key));
+        gchar *initial_path = get_absolute_path(get_gui_path(initial_dir_key));
         gtk_file_chooser_set_current_folder( GTK_FILE_CHOOSER(file), initial_path );
         g_free(initial_path);
     }
@@ -63,7 +66,7 @@ gchar *open_file_dialog( const char *title, const char *pattern, const char *pat
         filename = gtk_file_chooser_get_filename( GTK_FILE_CHOOSER(file) );
         if( initial_dir_key != -1 ) {
             gchar *end_path = gtk_file_chooser_get_current_folder( GTK_FILE_CHOOSER(file) );
-            gui_set_configurable_path(initial_dir_key,end_path);
+            set_gui_path(initial_dir_key,end_path);
             g_free(end_path);
         }
     }
@@ -85,7 +88,7 @@ gchar *save_file_dialog( const char *title, const char *pattern, const char *pat
             NULL );
     add_file_pattern( GTK_FILE_CHOOSER(file), pattern, patname );
     if( initial_dir_key != -1 ) {
-        gchar *initial_path = get_absolute_path(gui_get_configurable_path(initial_dir_key));
+        gchar *initial_path = get_absolute_path(get_gui_path(initial_dir_key));
         gtk_file_chooser_set_current_folder( GTK_FILE_CHOOSER(file), initial_path );
         g_free(initial_path);
     }
@@ -96,7 +99,7 @@ gchar *save_file_dialog( const char *title, const char *pattern, const char *pat
         filename = gtk_file_chooser_get_filename( GTK_FILE_CHOOSER(file) );
         if( initial_dir_key != -1 ) {
             gchar *end_path = gtk_file_chooser_get_current_folder( GTK_FILE_CHOOSER(file) );
-            gui_set_configurable_path(initial_dir_key,end_path);
+            set_gui_path(initial_dir_key,end_path);
             g_free(end_path);
         }
     }
@@ -171,7 +174,7 @@ void load_state_action_callback( GtkAction *action, gpointer user_data)
 {
     GtkWidget *file, *preview, *frame, *align;
     GtkRequisition size;
-    const gchar *dir = gui_get_configurable_path(CONFIG_SAVE_PATH);
+    const gchar *dir = get_gui_path(CONFIG_SAVE_PATH);
     gchar *path = get_absolute_path(dir);
     file = gtk_file_chooser_dialog_new( _("Load state..."), NULL,
             GTK_FILE_CHOOSER_ACTION_OPEN,
@@ -201,7 +204,7 @@ void load_state_action_callback( GtkAction *action, gpointer user_data)
     if( result == GTK_RESPONSE_ACCEPT ) {
         gchar *filename = gtk_file_chooser_get_filename( GTK_FILE_CHOOSER(file) );
         gchar *end_path = gtk_file_chooser_get_current_folder( GTK_FILE_CHOOSER(file) );
-        gui_set_configurable_path(CONFIG_SAVE_PATH,end_path);
+        set_gui_path(CONFIG_SAVE_PATH,end_path);
         g_free(end_path);
         dreamcast_load_state( filename );
     }

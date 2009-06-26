@@ -142,23 +142,23 @@ am__lxdream_SOURCES_DIST = main.c version.c config.c config.h \
 	lxdream.h dream.h gui.h cpu.h hook.h gettext.h mem.c mem.h \
 	sdram.c mmio.h watch.c asic.c asic.h clock.h serial.h \
 	syscall.c syscall.h bios.c dcload.c gdbserver.c netutil.c \
-	netutil.h guiutil.c gdrom/ide.c gdrom/ide.h gdrom/packet.h \
-	gdrom/gdimage.c gdrom/gdrom.c gdrom/gdrom.h gdrom/nrg.c \
-	gdrom/cdi.c gdrom/gdi.c gdrom/edc_ecc.c gdrom/ecc.h \
-	gdrom/edc_crctable.h gdrom/edc_encoder.h gdrom/edc_l2sq.h \
-	gdrom/edc_scramble.h gdrom/gddriver.h dreamcast.c dreamcast.h \
-	eventq.c eventq.h sh4/sh4.c sh4/intc.c sh4/intc.h sh4/sh4mem.c \
-	sh4/timer.c sh4/dmac.c sh4/mmu.c sh4/sh4core.c sh4/sh4core.h \
-	sh4/sh4dasm.c sh4/sh4dasm.h sh4/sh4mmio.c sh4/sh4mmio.h \
-	sh4/scif.c sh4/sh4stat.c sh4/sh4stat.h xlat/xltcache.c \
-	xlat/xltcache.h sh4/sh4.h sh4/dmac.h sh4/pmm.c sh4/cache.c \
-	sh4/mmu.h aica/armcore.c aica/armcore.h aica/armdasm.c \
-	aica/armdasm.h aica/armmem.c aica/aica.c aica/aica.h \
-	aica/audio.c aica/audio.h pvr2/pvr2.c pvr2/pvr2.h \
-	pvr2/pvr2mem.c pvr2/pvr2mmio.h pvr2/tacore.c pvr2/rendsort.c \
-	pvr2/texcache.c pvr2/yuv.c pvr2/rendsave.c pvr2/scene.c \
-	pvr2/scene.h pvr2/gl_sl.c pvr2/gl_slsrc.c pvr2/glutil.c \
-	pvr2/glutil.h pvr2/glrender.c pvr2/vertex.glsl \
+	netutil.h lxpaths.c lxpaths.h gdrom/ide.c gdrom/ide.h \
+	gdrom/packet.h gdrom/gdimage.c gdrom/gdrom.c gdrom/gdrom.h \
+	gdrom/nrg.c gdrom/cdi.c gdrom/gdi.c gdrom/edc_ecc.c \
+	gdrom/ecc.h gdrom/edc_crctable.h gdrom/edc_encoder.h \
+	gdrom/edc_l2sq.h gdrom/edc_scramble.h gdrom/gddriver.h \
+	dreamcast.c dreamcast.h eventq.c eventq.h sh4/sh4.c sh4/intc.c \
+	sh4/intc.h sh4/sh4mem.c sh4/timer.c sh4/dmac.c sh4/mmu.c \
+	sh4/sh4core.c sh4/sh4core.h sh4/sh4dasm.c sh4/sh4dasm.h \
+	sh4/sh4mmio.c sh4/sh4mmio.h sh4/scif.c sh4/sh4stat.c \
+	sh4/sh4stat.h xlat/xltcache.c xlat/xltcache.h sh4/sh4.h \
+	sh4/dmac.h sh4/pmm.c sh4/cache.c sh4/mmu.h aica/armcore.c \
+	aica/armcore.h aica/armdasm.c aica/armdasm.h aica/armmem.c \
+	aica/aica.c aica/aica.h aica/audio.c aica/audio.h pvr2/pvr2.c \
+	pvr2/pvr2.h pvr2/pvr2mem.c pvr2/pvr2mmio.h pvr2/tacore.c \
+	pvr2/rendsort.c pvr2/texcache.c pvr2/yuv.c pvr2/rendsave.c \
+	pvr2/scene.c pvr2/scene.h pvr2/gl_sl.c pvr2/gl_slsrc.c \
+	pvr2/glutil.c pvr2/glutil.h pvr2/glrender.c pvr2/vertex.glsl \
 	pvr2/fragment.glsl maple/maple.c maple/maple.h \
 	maple/controller.c maple/kbd.c maple/mouse.c maple/lightgun.c \
 	maple/vmu.c loader.c loader.h elf.h bootstrap.c bootstrap.h \
@@ -238,7 +238,7 @@ am_lxdream_OBJECTS = lxdream-main.$(OBJEXT) lxdream-version.$(OBJEXT) \
 	lxdream-asic.$(OBJEXT) lxdream-syscall.$(OBJEXT) \
 	lxdream-bios.$(OBJEXT) lxdream-dcload.$(OBJEXT) \
 	lxdream-gdbserver.$(OBJEXT) lxdream-netutil.$(OBJEXT) \
-	lxdream-guiutil.$(OBJEXT) lxdream-ide.$(OBJEXT) \
+	lxdream-lxpaths.$(OBJEXT) lxdream-ide.$(OBJEXT) \
 	lxdream-gdimage.$(OBJEXT) lxdream-gdrom.$(OBJEXT) \
 	lxdream-nrg.$(OBJEXT) lxdream-cdi.$(OBJEXT) \
 	lxdream-gdi.$(OBJEXT) lxdream-edc_ecc.$(OBJEXT) \
@@ -542,38 +542,39 @@ lxdream_LDADD = @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@ $(INTLLIBS) \
 lxdream_SOURCES = main.c version.c config.c config.h lxdream.h dream.h \
 	gui.h cpu.h hook.h gettext.h mem.c mem.h sdram.c mmio.h \
 	watch.c asic.c asic.h clock.h serial.h syscall.c syscall.h \
-	bios.c dcload.c gdbserver.c netutil.c netutil.h guiutil.c \
-	gdrom/ide.c gdrom/ide.h gdrom/packet.h gdrom/gdimage.c \
-	gdrom/gdrom.c gdrom/gdrom.h gdrom/nrg.c gdrom/cdi.c \
-	gdrom/gdi.c gdrom/edc_ecc.c gdrom/ecc.h gdrom/edc_crctable.h \
-	gdrom/edc_encoder.h gdrom/edc_l2sq.h gdrom/edc_scramble.h \
-	gdrom/gddriver.h dreamcast.c dreamcast.h eventq.c eventq.h \
-	sh4/sh4.c sh4/intc.c sh4/intc.h sh4/sh4mem.c sh4/timer.c \
-	sh4/dmac.c sh4/mmu.c sh4/sh4core.c sh4/sh4core.h sh4/sh4dasm.c \
-	sh4/sh4dasm.h sh4/sh4mmio.c sh4/sh4mmio.h sh4/scif.c \
-	sh4/sh4stat.c sh4/sh4stat.h xlat/xltcache.c xlat/xltcache.h \
-	sh4/sh4.h sh4/dmac.h sh4/pmm.c sh4/cache.c sh4/mmu.h \
-	aica/armcore.c aica/armcore.h aica/armdasm.c aica/armdasm.h \
-	aica/armmem.c aica/aica.c aica/aica.h aica/audio.c \
-	aica/audio.h pvr2/pvr2.c pvr2/pvr2.h pvr2/pvr2mem.c \
-	pvr2/pvr2mmio.h pvr2/tacore.c pvr2/rendsort.c pvr2/texcache.c \
-	pvr2/yuv.c pvr2/rendsave.c pvr2/scene.c pvr2/scene.h \
-	pvr2/gl_sl.c pvr2/gl_slsrc.c pvr2/glutil.c pvr2/glutil.h \
-	pvr2/glrender.c pvr2/vertex.glsl pvr2/fragment.glsl \
-	maple/maple.c maple/maple.h maple/controller.c maple/kbd.c \
-	maple/mouse.c maple/lightgun.c maple/vmu.c loader.c loader.h \
-	elf.h bootstrap.c bootstrap.h util.c gdlist.c gdlist.h \
-	vmu/vmuvol.c vmu/vmuvol.h vmu/vmulist.c vmu/vmulist.h \
-	display.c display.h dckeysyms.h drivers/audio_null.c \
-	drivers/video_null.c drivers/cd_mmc.c drivers/video_gl.c \
-	drivers/video_gl.h drivers/gl_fbo.c sh4/sh4.def sh4/sh4core.in \
-	sh4/sh4x86.in sh4/sh4dasm.in sh4/sh4stat.in hotkeys.c \
-	hotkeys.h $(am__append_1) $(am__append_2) $(am__append_4) \
-	$(am__append_5) $(am__append_6) $(am__append_7) \
-	$(am__append_8) $(am__append_9) $(am__append_10) \
-	$(am__append_17) $(am__append_19) $(am__append_21) \
-	$(am__append_23) $(am__append_25) $(am__append_27) \
-	$(am__append_28) $(am__append_29) $(am__append_30)
+	bios.c dcload.c gdbserver.c netutil.c netutil.h lxpaths.c \
+	lxpaths.h gdrom/ide.c gdrom/ide.h gdrom/packet.h \
+	gdrom/gdimage.c gdrom/gdrom.c gdrom/gdrom.h gdrom/nrg.c \
+	gdrom/cdi.c gdrom/gdi.c gdrom/edc_ecc.c gdrom/ecc.h \
+	gdrom/edc_crctable.h gdrom/edc_encoder.h gdrom/edc_l2sq.h \
+	gdrom/edc_scramble.h gdrom/gddriver.h dreamcast.c dreamcast.h \
+	eventq.c eventq.h sh4/sh4.c sh4/intc.c sh4/intc.h sh4/sh4mem.c \
+	sh4/timer.c sh4/dmac.c sh4/mmu.c sh4/sh4core.c sh4/sh4core.h \
+	sh4/sh4dasm.c sh4/sh4dasm.h sh4/sh4mmio.c sh4/sh4mmio.h \
+	sh4/scif.c sh4/sh4stat.c sh4/sh4stat.h xlat/xltcache.c \
+	xlat/xltcache.h sh4/sh4.h sh4/dmac.h sh4/pmm.c sh4/cache.c \
+	sh4/mmu.h aica/armcore.c aica/armcore.h aica/armdasm.c \
+	aica/armdasm.h aica/armmem.c aica/aica.c aica/aica.h \
+	aica/audio.c aica/audio.h pvr2/pvr2.c pvr2/pvr2.h \
+	pvr2/pvr2mem.c pvr2/pvr2mmio.h pvr2/tacore.c pvr2/rendsort.c \
+	pvr2/texcache.c pvr2/yuv.c pvr2/rendsave.c pvr2/scene.c \
+	pvr2/scene.h pvr2/gl_sl.c pvr2/gl_slsrc.c pvr2/glutil.c \
+	pvr2/glutil.h pvr2/glrender.c pvr2/vertex.glsl \
+	pvr2/fragment.glsl maple/maple.c maple/maple.h \
+	maple/controller.c maple/kbd.c maple/mouse.c maple/lightgun.c \
+	maple/vmu.c loader.c loader.h elf.h bootstrap.c bootstrap.h \
+	util.c gdlist.c gdlist.h vmu/vmuvol.c vmu/vmuvol.h \
+	vmu/vmulist.c vmu/vmulist.h display.c display.h dckeysyms.h \
+	drivers/audio_null.c drivers/video_null.c drivers/cd_mmc.c \
+	drivers/video_gl.c drivers/video_gl.h drivers/gl_fbo.c \
+	sh4/sh4.def sh4/sh4core.in sh4/sh4x86.in sh4/sh4dasm.in \
+	sh4/sh4stat.in hotkeys.c hotkeys.h $(am__append_1) \
+	$(am__append_2) $(am__append_4) $(am__append_5) \
+	$(am__append_6) $(am__append_7) $(am__append_8) \
+	$(am__append_9) $(am__append_10) $(am__append_17) \
+	$(am__append_19) $(am__append_21) $(am__append_23) \
+	$(am__append_25) $(am__append_27) $(am__append_28) \
+	$(am__append_29) $(am__append_30)
 lxdream_CPPFLAGS = @LXDREAMCPPFLAGS@
 @BUILD_SH4X86_TRUE@test_testsh4x86_LDADD = @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@
 @BUILD_SH4X86_TRUE@test_testsh4x86_CPPFLAGS = @LXDREAMCPPFLAGS@
@@ -793,7 +794,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-gtk_win.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-gtkcb.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-gtkui.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-guiutil.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-hotkeys.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-i386-dis.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-ide.Po@am__quote@
@@ -803,6 +803,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-kbd.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-lightgun.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-loader.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-lxpaths.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-main.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-maple.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-mem.Po@am__quote@
@@ -1104,19 +1105,19 @@ lxdream-netutil.obj: netutil.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-netutil.obj `if test -f 'netutil.c'; then $(CYGPATH_W) 'netutil.c'; else $(CYGPATH_W) '$(srcdir)/netutil.c'; fi`
 
-lxdream-guiutil.o: guiutil.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-guiutil.o -MD -MP -MF "$(DEPDIR)/lxdream-guiutil.Tpo" -c -o lxdream-guiutil.o `test -f 'guiutil.c' || echo '$(srcdir)/'`guiutil.c; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/lxdream-guiutil.Tpo" "$(DEPDIR)/lxdream-guiutil.Po"; else rm -f "$(DEPDIR)/lxdream-guiutil.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='guiutil.c' object='lxdream-guiutil.o' libtool=no @AMDEPBACKSLASH@
+lxdream-lxpaths.o: lxpaths.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-lxpaths.o -MD -MP -MF "$(DEPDIR)/lxdream-lxpaths.Tpo" -c -o lxdream-lxpaths.o `test -f 'lxpaths.c' || echo '$(srcdir)/'`lxpaths.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/lxdream-lxpaths.Tpo" "$(DEPDIR)/lxdream-lxpaths.Po"; else rm -f "$(DEPDIR)/lxdream-lxpaths.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='lxpaths.c' object='lxdream-lxpaths.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-guiutil.o `test -f 'guiutil.c' || echo '$(srcdir)/'`guiutil.c
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-lxpaths.o `test -f 'lxpaths.c' || echo '$(srcdir)/'`lxpaths.c
 
-lxdream-guiutil.obj: guiutil.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-guiutil.obj -MD -MP -MF "$(DEPDIR)/lxdream-guiutil.Tpo" -c -o lxdream-guiutil.obj `if test -f 'guiutil.c'; then $(CYGPATH_W) 'guiutil.c'; else $(CYGPATH_W) '$(srcdir)/guiutil.c'; fi`; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/lxdream-guiutil.Tpo" "$(DEPDIR)/lxdream-guiutil.Po"; else rm -f "$(DEPDIR)/lxdream-guiutil.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='guiutil.c' object='lxdream-guiutil.obj' libtool=no @AMDEPBACKSLASH@
+lxdream-lxpaths.obj: lxpaths.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-lxpaths.obj -MD -MP -MF "$(DEPDIR)/lxdream-lxpaths.Tpo" -c -o lxdream-lxpaths.obj `if test -f 'lxpaths.c'; then $(CYGPATH_W) 'lxpaths.c'; else $(CYGPATH_W) '$(srcdir)/lxpaths.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/lxdream-lxpaths.Tpo" "$(DEPDIR)/lxdream-lxpaths.Po"; else rm -f "$(DEPDIR)/lxdream-lxpaths.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='lxpaths.c' object='lxdream-lxpaths.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-guiutil.obj `if test -f 'guiutil.c'; then $(CYGPATH_W) 'guiutil.c'; else $(CYGPATH_W) '$(srcdir)/guiutil.c'; fi`
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-lxpaths.obj `if test -f 'lxpaths.c'; then $(CYGPATH_W) 'lxpaths.c'; else $(CYGPATH_W) '$(srcdir)/lxpaths.c'; fi`
 
 lxdream-ide.o: gdrom/ide.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-ide.o -MD -MP -MF "$(DEPDIR)/lxdream-ide.Tpo" -c -o lxdream-ide.o `test -f 'gdrom/ide.c' || echo '$(srcdir)/'`gdrom/ide.c; \

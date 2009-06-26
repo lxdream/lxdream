@@ -130,19 +130,6 @@ gboolean lxdream_save_config( );
  */ 
 void lxdream_make_config_dir( );
 
-/**
- * Escape a pathname if needed to prevent shell substitution.
- * @return a newly allocated string (or NULL if the input is NULL)
- */
-gchar *get_escaped_path( const gchar *name );
-
-/**
- * Expand a pathname according to standard shell substitution rules
- * (excluding command substitutions).
- * @return a newly allocated string (or NULL if the input is NULL)
- */
-gchar *get_expanded_path( const gchar *name );
-
 #ifdef __cplusplus
 }
 #endif

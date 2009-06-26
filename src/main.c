@@ -21,6 +21,7 @@
 #include <unistd.h>
 #include <getopt.h>
 #include "lxdream.h"
+#include "lxpaths.h"
 #include "gettext.h"
 #include "mem.h"
 #include "dreamcast.h"

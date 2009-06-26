@@ -23,6 +23,7 @@
 #include "lxdream.h"
 #include "dreamcast.h"
 #include "config.h"
+#include "lxpaths.h"
 #include "gtkui/gtkui.h"
 
 static GtkWidget *path_entry[CONFIG_KEY_MAX];
@@ -119,7 +120,6 @@ void path_panel_done( GtkWidget *panel, gboolean isOK )
 
         lxdream_save_config();
         dreamcast_config_changed();
-        gui_config_paths_changed();
         gtk_gui_update();
     }
 }
