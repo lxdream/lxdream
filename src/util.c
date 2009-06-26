@@ -82,7 +82,7 @@ int fread_string( char *s, int maxlen, FILE *f )
     return len;
 }
 
-void fwrite_gzip( void *p, size_t sz, size_t count, FILE *f )
+int fwrite_gzip( void *p, size_t sz, size_t count, FILE *f )
 {
     uLongf size = sz*count;
     uLongf csize = ((int)(size*1.001))+13;
@@ -91,8 +91,15 @@ void fwrite_gzip( void *p, size_t sz, size_t count, FILE *f )
     assert( status == Z_OK );
     uint32_t wsize = (uint32_t)csize;
     fwrite( &wsize, sizeof(wsize), 1, f );
-    fwrite( tmp, csize, 1, f );
+    int written = fwrite( tmp, csize, 1, f );
     g_free(tmp);
+    
+    /* Could be finer-grained, but this is enough to know it succeeded/failed */
+    if( written == 1 ) {
+        return count;
+    } else {
+        return 0;
+    }
 }
 
 int fread_gzip( void *p, size_t sz, size_t count, FILE *f )

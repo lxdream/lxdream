@@ -19,12 +19,14 @@
 #include <glib/gmem.h>
 #include <glib/gstrfuncs.h>
 #include <string.h>
+#include <unistd.h>
 #include <stdio.h>
 #include <fcntl.h>
 #include <errno.h>
 
 #include "vmu/vmuvol.h"
 #include "dream.h"
+#include "lxpaths.h"
 
 #define VMU_MAX_PARTITIONS 256
 #define VMU_MAX_BLOCKS 65536 /* Actually slightly less than this, but it'll do */
@@ -187,17 +189,21 @@ struct vmu_chunk_header {
 };
 
 
-
 gboolean vmu_volume_save( const gchar *filename, vmu_volume_t vol, gboolean create_only )
 {
     struct vmu_file_header head;
     struct vmu_chunk_header chunk;
     int i;
-    
-    FILE *f = fopen( filename, (create_only ? "wx" : "w") ); /* Portable? */
-    if( f == NULL ) {
+
+    gchar *tempfile = get_filename_at(filename, ".XXXXXXXX.vmu");
+    int fd = mkstemps( tempfile, 4 );
+    if( fd == -1 ) {
+        g_free(tempfile);
         return FALSE;
     }
+    
+    FILE *f = fdopen( fd, "w+" );
+    
     
     /* File header */
     memcpy( head.magic, VMU_FILE_MAGIC, 16 );
@@ -222,19 +228,31 @@ gboolean vmu_volume_save( const gchar *filename, vmu_volume_t vol, gboolean crea
     for( i=0; i< vol->part_count; i++ ) {
         memcpy( chunk.name, "DATA", 4 );
         chunk.length = 0;
-        fwrite( &chunk, sizeof(chunk), 1, f );
+        if( fwrite( &chunk, sizeof(chunk), 1, f ) != 1 ) goto cleanup;
         long posn = ftell(f);
-        fwrite( &vol->part[i].block_count, sizeof(vol->part[i].block_count), 1, f );
+        if( fwrite( &vol->part[i].block_count, sizeof(vol->part[i].block_count), 1, f ) != 1 ) goto cleanup;
         fwrite_gzip( vol->part[i].blocks, vol->part[i].block_count, VMU_BLOCK_SIZE, f );
         long end = ftell(f);
         fseek( f, posn - sizeof(chunk.length), SEEK_SET );
         chunk.length = end-posn;
-        fwrite( &chunk.length, sizeof(chunk.length), 1, f );
+        if( fwrite( &chunk.length, sizeof(chunk.length), 1, f ) != 1 ) goto cleanup;
         fseek( f, end, SEEK_SET );
     }
     fclose(f);
+    
+    if( rename(tempfile, filename) != 0 )
+        goto cleanup;
+    
+    /* All good */
     vol->dirty = FALSE;
+    g_free(tempfile);
     return TRUE;
+    
+cleanup:
+    fclose(f);
+    unlink(tempfile);
+    g_free(tempfile);
+    return FALSE;
 }
 
 vmu_volume_t vmu_volume_load( const gchar *filename )
