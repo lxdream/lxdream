@@ -89,7 +89,7 @@ extern struct dreamcast_module unknown_module;
 
 void fwrite_string( const char *s, FILE *f );
 int fread_string( char *s, int maxlen, FILE *f );
-void fwrite_gzip( void *p, size_t size, size_t num, FILE *f );
+int fwrite_gzip( void *p, size_t size, size_t num, FILE *f );
 int fread_gzip( void *p, size_t size, size_t num, FILE *f );
 void fwrite_dump( unsigned char *buf, unsigned int length, FILE *f );
 void fwrite_dump32( unsigned int *buf, unsigned int length, FILE *f );

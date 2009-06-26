@@ -84,29 +84,6 @@ typedef void (*do_later_callback_t)(void);
  */
 void gui_do_later( do_later_callback_t func );
 
-
-/******************* GUI helper functions *****************/
-/* The following functions effectively track the current path for each of the
- * 3 main categories (save, vmu, and disc/binary loading) independently. They
- * default to the config values, but can be updated continuously without 
- * writing back to the config.
- */
-const gchar *gui_get_configurable_path(int key);
-void gui_set_configurable_path( int key, const gchar *path );
-
-/**
- * Notify the helper functions that the config paths have changed, in which
- * event they will revert to the config-specified versions.
- */
-void gui_config_paths_changed();
-
-/**
- * Return an absolute path for the given input path, as a newly allocated
- * string. If the input path is already absolute, the returned string will
- * be identical to the input string.
- */
-gchar *get_absolute_path( const gchar *path );
-
 #ifdef __cplusplus
 }
 #endif

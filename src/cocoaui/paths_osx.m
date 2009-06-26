@@ -19,8 +19,10 @@
  */
 
 #include <string.h>
+#include <glib/gstrfuncs.h>
 
 #include "lxdream.h"
+#include "lxpaths.h"
 
 #include <AppKit/AppKit.h>
 

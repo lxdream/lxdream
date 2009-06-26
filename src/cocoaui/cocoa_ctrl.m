@@ -18,6 +18,7 @@
 
 #include "cocoaui.h"
 #include "config.h"
+#include "lxpaths.h"
 #include "display.h"
 #include "maple/maple.h"
 #include "vmu/vmulist.h"
@@ -596,14 +597,14 @@ static gboolean cocoa_config_vmulist_hook(vmulist_change_type_t type, int idx, v
         NSOpenPanel *panel = [NSOpenPanel openPanel];
         VMULoadValidator *valid = [[VMULoadValidator alloc] autorelease];
         [panel setDelegate: valid];
-        NSInteger result = [panel runModalForDirectory: [NSString stringWithUTF8String: gui_get_configurable_path(CONFIG_VMU_PATH)]
+        NSInteger result = [panel runModalForDirectory: [NSString stringWithUTF8String: get_gui_path(CONFIG_VMU_PATH)]
                file: nil types: array];
         if( result == NSOKButton ) {
             vmu_filename = [[panel filename] UTF8String];
             int idx = vmulist_get_index_by_filename(vmu_filename);
             [sender selectItemWithTag: (FIRST_VMU_TAG+idx)];
             new_device_class = &vmu_class;
-            gui_set_configurable_path(CONFIG_VMU_PATH, [[panel directory] UTF8String]);
+            set_gui_path(CONFIG_VMU_PATH, [[panel directory] UTF8String]);
         } else {
             /* Cancelled - restore previous value */
             setDevicePopupSelection( sender, current );
@@ -616,7 +617,7 @@ static gboolean cocoa_config_vmulist_hook(vmulist_change_type_t type, int idx, v
         [panel setRequiredFileType: @"vmu"];
         VMUCreateValidator *valid = [[VMUCreateValidator alloc] autorelease];
         [panel setDelegate: valid];
-        NSInteger result = [panel runModalForDirectory: [NSString stringWithUTF8String: gui_get_configurable_path(CONFIG_VMU_PATH)]
+        NSInteger result = [panel runModalForDirectory: [NSString stringWithUTF8String: get_gui_path(CONFIG_VMU_PATH)]
                file: nil];
         if( result == NSFileHandlingPanelOKButton ) {
             /* Validator has already created the file by now */
@@ -624,7 +625,7 @@ static gboolean cocoa_config_vmulist_hook(vmulist_change_type_t type, int idx, v
             int idx = vmulist_get_index_by_filename(vmu_filename);
             [sender selectItemWithTag: (FIRST_VMU_TAG+idx)];
             new_device_class = &vmu_class;
-            gui_set_configurable_path(CONFIG_VMU_PATH, [[panel directory] UTF8String]);
+            set_gui_path(CONFIG_VMU_PATH, [[panel directory] UTF8String]);
         } else {
             setDevicePopupSelection( sender, current );
             return;

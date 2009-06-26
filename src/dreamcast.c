@@ -21,6 +21,7 @@
 #include <glib.h>
 #include <unistd.h>
 #include "lxdream.h"
+#include "lxpaths.h"
 #include "dream.h"
 #include "mem.h"
 #include "dreamcast.h"
@@ -135,6 +136,7 @@ void dreamcast_config_changed(void)
     }
     g_free(bios_path);
     g_free(flash_path);
+    reset_gui_paths();
 }
 
 void dreamcast_save_flash()

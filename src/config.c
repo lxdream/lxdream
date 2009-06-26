@@ -18,17 +18,16 @@
 
 #include <unistd.h>
 #include <stdio.h>
-#include <ctype.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
-#include <wordexp.h>
 #include <glib/gmem.h>
 #include <glib/gstrfuncs.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include "dream.h"
 #include "config.h"
+#include "lxpaths.h"
 #include "maple/maple.h"
 
 #define MAX_ROOT_GROUPS 16
@@ -193,82 +192,6 @@ void lxdream_set_global_config_list_value( int key, const GList *list )
             strcat( buf, (gchar *)ptr->data );
         }
         lxdream_set_global_config_value( key, buf );
-    }
-}
-
-gchar *get_expanded_path( const gchar *input )
-{
-    wordexp_t we;
-    if( input == NULL ) {
-        return NULL;
-    }
-    memset(&we,0,sizeof(we));
-    int result = wordexp(input, &we, WRDE_NOCMD);
-    if( result != 0 || we.we_wordc == 0 ) {
-        /* On failure, return the original input unchanged */
-        return g_strdup(input);
-    } else {
-        /* On success, concatenate all 'words' together into a single 
-         * space-separated string
-         */
-        int length = we.we_wordc, i;
-        gchar *result, *p;
-        
-        for( i=0; i<we.we_wordc; i++ ) {
-            length += strlen(we.we_wordv[i]);
-        }
-        p = result = g_malloc(length);
-        for( i=0; i<we.we_wordc; i++ ) {
-            if( i != 0 )
-                *p++ = ' ';
-            strcpy( p, we.we_wordv[i] );
-            p += strlen(p);
-        }
-        wordfree(&we);
-        return result;
-    }        
-}
-
-/**
- * Test if we need to escape a path to prevent substitution mangling. 
- * @return TRUE if the input value contains any character that doesn't
- * match [a-zA-Z0-9._@%/] (this will escape slightly more than it needs to,
- * but is safe)
- */
-gboolean path_needs_escaping( const gchar *value )
-{
-   const gchar *p = value;
-   while( *p ) {
-       if( !isalnum(*p) && *p != '.' && *p != '_' &&
-               *p != '@' && *p != '%' && *p != '/' ) {
-           return TRUE;
-       }
-       p++;
-   }
-   return FALSE;
-}
-
-gchar *get_escaped_path( const gchar *value )
-{
-    if( value != NULL && path_needs_escaping(value) ) {
-        /* Escape with "", and backslash the remaining characters:
-         *   \ " $ `
-         */
-        char buf[strlen(value)*2+3];  
-        const char *s = value;
-        char *p = buf;
-        *p++ = '\"';
-        while( *s ) {
-            if( *s == '\\' || *s == '"' || *s == '$' || *s == '`' ) {
-                *p++ = '\\';
-            }
-            *p++ = *s++;
-        }
-        *p++ = '\"';
-        *p = '\0';
-        return g_strdup(buf);
-    } else {
-        return g_strdup(value);
     }
 }
 

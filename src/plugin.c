@@ -23,7 +23,7 @@
 #include <glib/gmem.h>
 #include <glib/gstrfuncs.h>
 #include "plugin.h"
-
+#include "lxpaths.h"
 
 #ifdef APPLE_BUILD
 #define SOEXT ".dylib"
