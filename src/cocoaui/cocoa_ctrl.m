@@ -649,6 +649,12 @@ static gboolean cocoa_config_vmulist_hook(vmulist_change_type_t type, int idx, v
     }
     if( new_device_class == NULL ) {
         maple_detach_device(port,slot);
+        if( slot == 0 ) {
+            /* If we detached the top-level dev, any children are automatically detached */
+            for( i=1; i<=MAPLE_USER_SLOTS; i++ ) {
+                [popup[MAPLE_DEVID(port,i)] selectItemWithTag: 0];
+            }
+        }
     } else {
         if( new_device_class == &controller_class && save_controller[tag] != NULL ) {
             new_device = save_controller[tag];
@@ -657,6 +663,14 @@ static gboolean cocoa_config_vmulist_hook(vmulist_change_type_t type, int idx, v
             new_device = maple_new_device( new_device_class->name );
         }
         if( MAPLE_IS_VMU(new_device) ) {
+            /* Remove the VMU from any other attachment point */
+            for( i=0; i<MAPLE_MAX_DEVICES; i++ ) {
+                maple_device_t dev = maple_get_device(MAPLE_DEVID_PORT(i),MAPLE_DEVID_SLOT(i));
+                if( dev != NULL && MAPLE_IS_VMU(dev) && MAPLE_VMU_HAS_NAME(dev,vmu_filename) ) {
+                    maple_detach_device(MAPLE_DEVID_PORT(i),MAPLE_DEVID_SLOT(i));
+                    [popup[i] selectItemWithTag: 0];
+                }
+            }
             MAPLE_SET_VMU_NAME(new_device,vmu_filename);
         }
         maple_attach_device(new_device,port,slot);
