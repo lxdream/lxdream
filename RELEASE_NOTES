@@ -1,22 +1,26 @@
-Release notes for lxdream 0.9 "Shiny"
+Release notes for lxdream 0.9.1 "Turtle"
 ===================================================
 
-Lxdream 0.9 is considerably more stable and accurate than the 0.8 series
-(thanks more to a huge number of bugfixes than anything else), and the 
-majority of software can be expected to "just work" with minimal problems. 
+Lxdream 0.9.1 is mostly a performance release (core emulation is a good
+33-50% faster, although rendering performance is still bad), with a few new
+features like VMU and LIRC support. As for 0.9, the majority of software can
+be expected to "just work" with minimal problems.
 
 Nevertheless this should still be considered an alpha release, with many 
 unimplemented features remaining. You're unlikely to see 'perfect' emulation,
 and we're nowhere near being bug-compatible (in other words, don't expect your
 code to work on the real hardware just because it runs correctly in lxdream).
 
-Changes since 0.8.4
--------------------
-* Improved accuracy + compatibility (many bugfixes)
-* Shadow volumes
-* Render-to-texture support
-* Fogging
-* Light-gun support
+Changes since 0.9
+-----------------
+* Lots of core performance improvements, especially with the MMU turned on
+* VMU support (memory card only)
+* GDB remote debugging support
+* Quick-save states
+* LIRC driver
+* Now uses the ~/.lxdream directory (by default) to store runtime data
+* Audio + input drivers are now built as plugins
+* OSX: fullscreen support, minor UI improvements
 
 Known issues
 ------------
@@ -26,8 +30,7 @@ release - in other words, you don't need to report them - we already know :)
 * Graphic artifacts related to translucent triangle intersections, sorting errors 
   and/of lack of depth precision.
 
-* MMU address translation (eg linux, wince, etc) is painfully slow to the
-  point of unusability. 
+* Rendering performance ranges from barely acceptable to abominable.
 
 * The SH4 emulation is not cycle accurate, and (by default) usually runs
   slower than the real one. This cause some programs to have timing problems
@@ -63,6 +66,14 @@ Enjoy!
 
 Older History
 ================
+
+Changes since 0.8.4
+-------------------
+* Improved accuracy + compatibility (many bugfixes)
+* Shadow volumes
+* Render-to-texture support
+* Fogging
+* Light-gun support
 
 Changes since 0.8.3
 -------------------
