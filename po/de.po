@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: lxdream 0.8.3\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2009-06-24 12:36+1000\n"
+"POT-Creation-Date: 2009-06-27 20:19+1000\n"
 "PO-Revision-Date: 2007-11-10 18:53+0100\n"
 "Last-Translator: Thomas Kowaliczek (LinuxDonald) LinuxDonald@LinuxDonald.de\n"
 "Language-Team: DE <trans-de@lxdream.org>\n"
@@ -15,17 +15,17 @@ msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/cocoaui/cocoa_ctrl.m:324 src/gtkui/gtk_ctrl.c:486
+#: src/cocoaui/cocoa_ctrl.m:325 src/gtkui/gtk_ctrl.c:494
 #, fuzzy, c-format
 msgid "Port %c."
 msgstr "Slot %d."
 
-#: src/cocoaui/cocoa_ctrl.m:326 src/gtkui/gtk_ctrl.c:515
+#: src/cocoaui/cocoa_ctrl.m:327 src/gtkui/gtk_ctrl.c:523
 #, c-format
 msgid "VMU %d."
 msgstr ""
 
-#: src/cocoaui/cocoaui.m:412
+#: src/cocoaui/cocoaui.m:447
 #, c-format
 msgid "Running (%2.4f%%)"
 msgstr ""
@@ -42,55 +42,55 @@ msgstr ""
 msgid "Stopped"
 msgstr ""
 
-#: src/config.c:41
+#: src/config.c:44
 #, fuzzy
 msgid "Bios ROM"
 msgstr "Bios rom"
 
-#: src/config.c:42
+#: src/config.c:45
 #, fuzzy
 msgid "Flash ROM"
 msgstr "Flash rom"
 
-#: src/config.c:43 src/gtkui/gtk_path.c:28
+#: src/config.c:46
 msgid "Default disc path"
 msgstr "Standart CD pfad"
 
-#: src/config.c:44
+#: src/config.c:47
 #, fuzzy
 msgid "Save-state path"
 msgstr "Speicherstand pfad"
 
-#: src/config.c:45
+#: src/config.c:48
 msgid "VMU path"
 msgstr ""
 
-#: src/config.c:46 src/gtkui/gtk_path.c:29
+#: src/config.c:49
 msgid "Bootstrap IP.BIN"
 msgstr "Bootstrap IP.BIN"
 
-#: src/config.c:53
+#: src/config.c:57
 msgid "Serial device"
 msgstr ""
 
-#: src/dreamcast.c:193
+#: src/dreamcast.c:203
 msgid ""
 "No program is loaded, and no BIOS is configured (required to boot a CD "
 "image). To continue, either load a binary program, or set the path to your "
 "BIOS file in the Path Preferences"
 msgstr ""
 
-#: src/dreamcast.c:328
+#: src/dreamcast.c:338
 #, c-format
 msgid "File is not a %s save state"
 msgstr ""
 
-#: src/dreamcast.c:333
+#: src/dreamcast.c:343
 #, c-format
 msgid "Unsupported %s save state version"
 msgstr ""
 
-#: src/dreamcast.c:338
+#: src/dreamcast.c:348
 #, c-format
 msgid "%s save state is corrupted (bad module count)"
 msgstr ""
@@ -147,31 +147,31 @@ msgstr ""
 msgid "Empty"
 msgstr "Leer"
 
-#: src/gtkui/gtkcb.c:36
+#: src/gtkui/gtkcb.c:39
 msgid "All files"
 msgstr "Alle Dateien"
 
-#: src/gtkui/gtkcb.c:162
+#: src/gtkui/gtkcb.c:179
 msgid "Load state..."
 msgstr "Speicherpunkt laden..."
 
-#: src/gtkui/gtkcb.c:167 src/gtkui/gtkcb.c:198
+#: src/gtkui/gtkcb.c:184 src/gtkui/gtkcb.c:217
 msgid "lxDream Save State (*.dst)"
 msgstr "lxDream Speicherpunt (*.dst)"
 
-#: src/gtkui/gtkcb.c:260 src/gtkui/gtk_dump.c:69
+#: src/gtkui/gtkcb.c:297 src/gtkui/gtk_dump.c:69
 msgid "Memory dump"
 msgstr "Speicher dump"
 
-#: src/gtkui/gtkcb.c:273
+#: src/gtkui/gtkcb.c:309
 msgid "Save next scene..."
 msgstr "Nächste Szene speichern"
 
-#: src/gtkui/gtkcb.c:273
+#: src/gtkui/gtkcb.c:309
 msgid "lxdream scene file (*.dsc)"
 msgstr "lxdream szene Datei (*.dsc)"
 
-#: src/gtkui/gtkcb.c:288
+#: src/gtkui/gtkcb.c:324
 msgid "No address selected, so can't run to it"
 msgstr "Keine Adresse ausgewählt, also kann es nicht laufen"
 
@@ -196,20 +196,20 @@ msgstr ""
 msgid "Create VMU"
 msgstr ""
 
-#: src/gtkui/gtk_ctrl.c:329 src/gtkui/gtk_ctrl.c:347
+#: src/gtkui/gtk_ctrl.c:337 src/gtkui/gtk_ctrl.c:355
 msgid "<empty>"
 msgstr "<leer>"
 
-#: src/gtkui/gtk_ctrl.c:356
+#: src/gtkui/gtk_ctrl.c:364
 #, fuzzy
 msgid "Load VMU..."
 msgstr "Speicherpunkt laden..."
 
-#: src/gtkui/gtk_ctrl.c:357
+#: src/gtkui/gtk_ctrl.c:365
 msgid "Create VMU..."
 msgstr ""
 
-#: src/gtkui/gtk_ctrl.c:551
+#: src/gtkui/gtk_ctrl.c:559
 msgid "Controller Settings"
 msgstr "Kontroller einstellungen"
 
@@ -257,15 +257,15 @@ msgstr " zu"
 msgid "   "
 msgstr ""
 
-#: src/gtkui/gtk_gd.c:34
+#: src/gtkui/gtk_gd.c:33
 msgid "Open..."
 msgstr "Öffnen..."
 
-#: src/gtkui/gtk_gd.c:64
+#: src/gtkui/gtk_gd.c:63
 msgid "Open image file..."
 msgstr "Image Datei öffnen"
 
-#: src/gtkui/gtk_gd.c:103
+#: src/gtkui/gtk_gd.c:102
 msgid "GD-Rom Settings"
 msgstr "GD-Rom Einstellungen"
 
@@ -302,23 +302,11 @@ msgstr "Trace Zugang"
 msgid "Close"
 msgstr "Schließen"
 
-#: src/gtkui/gtk_path.c:28
-msgid "Bios rom"
-msgstr "Bios rom"
-
-#: src/gtkui/gtk_path.c:28
-msgid "Flash rom"
-msgstr "Flash rom"
-
-#: src/gtkui/gtk_path.c:29
-msgid "Save state path"
-msgstr "Speicherstand pfad"
-
-#: src/gtkui/gtk_path.c:44 src/gtkui/gtk_path.c:65
+#: src/gtkui/gtk_path.c:34 src/gtkui/gtk_path.c:57
 msgid "Select file"
 msgstr "Datei auswählen"
 
-#: src/gtkui/gtk_path.c:128
+#: src/gtkui/gtk_path.c:129
 msgid "Path Settings"
 msgstr "Pfad einstellungen"
 
@@ -365,7 +353,7 @@ msgstr "Weiter"
 
 #: src/gtkui/gtkui.c:77
 #, fuzzy
-msgid "_Load State..."
+msgid "L_oad State..."
 msgstr "_Speicherstand laden"
 
 #: src/gtkui/gtkui.c:77
@@ -374,7 +362,7 @@ msgstr "Einen lxdream speicherstand laden"
 
 #: src/gtkui/gtkui.c:78
 #, fuzzy
-msgid "_Save State..."
+msgid "S_ave State..."
 msgstr "_Speicherstand speichern"
 
 #: src/gtkui/gtkui.c:78
@@ -382,153 +370,190 @@ msgid "Create an lxdream save state"
 msgstr "Einen lxdream speicherstand erstellen"
 
 #: src/gtkui/gtkui.c:79
+#, fuzzy
+msgid "_Load Quick State"
+msgstr "_Speicherstand laden"
+
+#: src/gtkui/gtkui.c:79
+#, fuzzy
+msgid "Load the current quick save state"
+msgstr "Einen lxdream speicherstand laden"
+
+#: src/gtkui/gtkui.c:80
+#, fuzzy
+msgid "_Save Quick State..."
+msgstr "_Speicherstand speichern"
+
+#: src/gtkui/gtkui.c:80
+msgid "Save to the current quick save state"
+msgstr ""
+
+#: src/gtkui/gtkui.c:81
+msgid "Select _Quick State"
+msgstr ""
+
+#: src/gtkui/gtkui.c:81
+msgid "Set quick save state"
+msgstr ""
+
+#: src/gtkui/gtkui.c:82
 msgid "E_xit"
 msgstr "E_xit"
 
-#: src/gtkui/gtkui.c:79
+#: src/gtkui/gtkui.c:82
 msgid "Exit lxdream"
 msgstr "Exit lxdream"
 
-#: src/gtkui/gtkui.c:80
+#: src/gtkui/gtkui.c:83
 #, fuzzy
 msgid "_GD-Rom"
 msgstr "_GD-Rom"
 
-#: src/gtkui/gtkui.c:81
+#: src/gtkui/gtkui.c:84
 msgid "_Empty"
 msgstr "_Leer"
 
-#: src/gtkui/gtkui.c:82
+#: src/gtkui/gtkui.c:85
 msgid "_Open Image..."
 msgstr "_Image öffnen"
 
-#: src/gtkui/gtkui.c:82
+#: src/gtkui/gtkui.c:85
 msgid "Mount a cdrom disc"
 msgstr "Eine CD-Rom mounten"
 
-#: src/gtkui/gtkui.c:83
+#: src/gtkui/gtkui.c:86
 msgid "_Paths..."
 msgstr "_Pfade..."
 
-#: src/gtkui/gtkui.c:83
+#: src/gtkui/gtkui.c:86
 msgid "Configure files and paths"
 msgstr "Pfade und Dateien einstellen"
 
-#: src/gtkui/gtkui.c:84
+#: src/gtkui/gtkui.c:87
 msgid "_Audio..."
 msgstr "_Audio..."
 
-#: src/gtkui/gtkui.c:84
+#: src/gtkui/gtkui.c:87
 msgid "Configure audio output"
 msgstr "Audioausgabe einstellen"
 
-#: src/gtkui/gtkui.c:85
+#: src/gtkui/gtkui.c:88
 msgid "_Controllers..."
 msgstr "_Kontroller..."
 
-#: src/gtkui/gtkui.c:85
+#: src/gtkui/gtkui.c:88
 msgid "Configure controllers"
 msgstr "Kontroller einstellen"
 
-#: src/gtkui/gtkui.c:86
+#: src/gtkui/gtkui.c:89
 msgid "_Network..."
 msgstr "_Netzwerk..."
 
-#: src/gtkui/gtkui.c:86
+#: src/gtkui/gtkui.c:89
 msgid "Configure network settings"
 msgstr "Netzwerk einstellungen einstellen"
 
-#: src/gtkui/gtkui.c:87
+#: src/gtkui/gtkui.c:90
 msgid "_Video..."
 msgstr "_Video..."
 
-#: src/gtkui/gtkui.c:87
+#: src/gtkui/gtkui.c:90
 msgid "Configure video output"
 msgstr "Video ausgang einstellen"
 
-#: src/gtkui/gtkui.c:88
+#: src/gtkui/gtkui.c:91
 #, fuzzy
 msgid "_Hotkeys..."
 msgstr "_Kontroller..."
 
-#: src/gtkui/gtkui.c:88
+#: src/gtkui/gtkui.c:91
 #, fuzzy
 msgid "Configure hotkeys"
 msgstr "Kontroller einstellen"
 
-#: src/gtkui/gtkui.c:89
+#: src/gtkui/gtkui.c:92
 msgid "_About..."
 msgstr "_Über..."
 
-#: src/gtkui/gtkui.c:89
+#: src/gtkui/gtkui.c:92
 msgid "About lxdream"
 msgstr "Über lxdream"
 
-#: src/gtkui/gtkui.c:90
+#: src/gtkui/gtkui.c:93
 msgid "_Debug"
 msgstr "_Debug"
 
-#: src/gtkui/gtkui.c:91
+#: src/gtkui/gtkui.c:94
 msgid "_Debugger"
 msgstr "_Debugger"
 
-#: src/gtkui/gtkui.c:91
+#: src/gtkui/gtkui.c:94
 msgid "Open debugger window"
 msgstr "Debugger fenster öffnen"
 
-#: src/gtkui/gtkui.c:92
+#: src/gtkui/gtkui.c:95
 msgid "View _Memory"
 msgstr "Speicher anschauen"
 
-#: src/gtkui/gtkui.c:92
+#: src/gtkui/gtkui.c:95
 msgid "View memory dump"
 msgstr "Speicher dump anschauen"
 
-#: src/gtkui/gtkui.c:93
+#: src/gtkui/gtkui.c:96
 msgid "View IO _Registers"
 msgstr "IO Register anschauen"
 
-#: src/gtkui/gtkui.c:93
+#: src/gtkui/gtkui.c:96
 msgid "View MMIO Registers"
 msgstr "MMIO Register anschauen"
 
-#: src/gtkui/gtkui.c:94
+#: src/gtkui/gtkui.c:97
 msgid "_Save Scene"
 msgstr "_Szene speichern"
 
-#: src/gtkui/gtkui.c:94
+#: src/gtkui/gtkui.c:97
 msgid "Save next rendered scene"
 msgstr "Speichern nächsten gerenderten Szene"
 
-#: src/gtkui/gtkui.c:95
+#: src/gtkui/gtkui.c:98
 msgid "_Single Step"
 msgstr "_Einzelnen Schritt"
 
-#: src/gtkui/gtkui.c:95
+#: src/gtkui/gtkui.c:98
 msgid "Single step"
 msgstr "Einzelnen Schritt"
 
-#: src/gtkui/gtkui.c:96
+#: src/gtkui/gtkui.c:99
 msgid "Run _To"
 msgstr "Gehe zu"
 
-#: src/gtkui/gtkui.c:96
+#: src/gtkui/gtkui.c:99
 msgid "Run to"
 msgstr "Gehe zu"
 
-#: src/gtkui/gtkui.c:97
+#: src/gtkui/gtkui.c:100
 msgid "_Breakpoint"
 msgstr "_Unterbrechungspunkt"
 
-#: src/gtkui/gtkui.c:97
+#: src/gtkui/gtkui.c:100
 msgid "Toggle breakpoint"
 msgstr "Unterbrechungspunkt umschalten"
 
-#: src/gtkui/gtkui.c:327
+#: src/gtkui/gtkui.c:257
+#, c-format
+msgid "State _%d"
+msgstr ""
+
+#: src/gtkui/gtkui.c:259
+#, c-format
+msgid "Use quick save state %d"
+msgstr ""
+
+#: src/gtkui/gtkui.c:373
 msgid "Debugger"
 msgstr "Debugger"
 
-#: src/gtkui/gtkui.c:338
+#: src/gtkui/gtkui.c:384
 msgid "MMIO Registers"
 msgstr "MMIO Register"
 
@@ -536,140 +561,144 @@ msgstr "MMIO Register"
 msgid "(Press <command> to release grab)"
 msgstr ""
 
-#: src/hotkeys.c:43
+#: src/hotkeys.c:40
 msgid "Resume emulation"
 msgstr ""
 
-#: src/hotkeys.c:44
+#: src/hotkeys.c:41
 msgid "Stop emulation"
 msgstr ""
 
-#: src/hotkeys.c:45
+#: src/hotkeys.c:42
 #, fuzzy
 msgid "Reset emulator"
 msgstr "Dreamcast neustarten"
 
-#: src/hotkeys.c:46
+#: src/hotkeys.c:43
 msgid "Exit emulator"
 msgstr ""
 
-#: src/hotkeys.c:47
+#: src/hotkeys.c:44
 msgid "Save current quick save"
 msgstr ""
 
-#: src/hotkeys.c:48
+#: src/hotkeys.c:45
 msgid "Load current quick save"
 msgstr ""
 
-#: src/hotkeys.c:49
+#: src/hotkeys.c:46
+msgid "Select quick save state 0"
+msgstr ""
+
+#: src/hotkeys.c:47
 msgid "Select quick save state 1"
 msgstr ""
 
-#: src/hotkeys.c:50
+#: src/hotkeys.c:48
 msgid "Select quick save state 2"
 msgstr ""
 
-#: src/hotkeys.c:51
+#: src/hotkeys.c:49
 msgid "Select quick save state 3"
 msgstr ""
 
-#: src/hotkeys.c:52
+#: src/hotkeys.c:50
 msgid "Select quick save state 4"
 msgstr ""
 
-#: src/hotkeys.c:53
+#: src/hotkeys.c:51
 msgid "Select quick save state 5"
 msgstr ""
 
-#: src/hotkeys.c:54
+#: src/hotkeys.c:52
 msgid "Select quick save state 6"
 msgstr ""
 
-#: src/hotkeys.c:55
+#: src/hotkeys.c:53
 msgid "Select quick save state 7"
 msgstr ""
 
-#: src/hotkeys.c:56
+#: src/hotkeys.c:54
 msgid "Select quick save state 8"
 msgstr ""
 
-#: src/hotkeys.c:57
+#: src/hotkeys.c:55
 msgid "Select quick save state 9"
 msgstr ""
 
-#: src/main.c:86
+#: src/main.c:87
 msgid "Run the AICA SPU only, with the supplied program"
 msgstr ""
 
-#: src/main.c:87
+#: src/main.c:88
 msgid "Use the specified audio driver (? to list)"
 msgstr ""
 
-#: src/main.c:88
+#: src/main.c:89
 msgid "Load configuration from CONFFILE"
 msgstr ""
 
-#: src/main.c:89
+#: src/main.c:90
 msgid "Start in debugger mode"
 msgstr ""
 
-#: src/main.c:90
+#: src/main.c:91
 msgid "Start in fullscreen mode"
 msgstr ""
 
-#: src/main.c:91
+#: src/main.c:92
 msgid "Start GDB remote server on PORT for SH4"
 msgstr ""
 
-#: src/main.c:92
+#: src/main.c:93
 msgid "Start GDB remote server on PORT for ARM"
 msgstr ""
 
-#: src/main.c:93
+#: src/main.c:94
 msgid "Display this usage information"
 msgstr ""
 
-#: src/main.c:94
+#: src/main.c:95
 msgid "Run in headless (no video) mode"
 msgstr ""
 
-#: src/main.c:95
+#: src/main.c:96
 msgid "Set the output log level"
 msgstr ""
 
-#: src/main.c:96
+#: src/main.c:97
 msgid "Set the SH4 multiplier (1.0 = fullspeed)"
 msgstr ""
 
-#: src/main.c:97
+#: src/main.c:98
 msgid "Don't start running immediately"
 msgstr ""
 
-#: src/main.c:98
+#: src/main.c:99
 msgid "Start running immediately on startup"
 msgstr ""
 
-#: src/main.c:99
+#: src/main.c:100
 msgid "Run for the specified number of seconds"
 msgstr ""
 
-#: src/main.c:100
+#: src/main.c:101
 msgid "Output trace information for the named regions"
 msgstr ""
 
-#: src/main.c:101
+#: src/main.c:102
 msgid "Allow unsafe dcload syscalls"
 msgstr ""
 
-#: src/main.c:102
+#: src/main.c:103
 msgid "Print the lxdream version string"
 msgstr ""
 
-#: src/main.c:103
+#: src/main.c:104
 msgid "Use the specified video driver (? to list)"
 msgstr ""
 
-#: src/main.c:104
+#: src/main.c:105
 msgid "Disable the SH4 translator"
 msgstr ""
 
@@ -733,6 +762,11 @@ msgstr ""
 msgid "Start button"
 msgstr ""
 
+#: src/maple/vmu.c:92
+#, fuzzy
+msgid "Volume"
+msgstr "Wert"
+
 #. Can't happen.
 #: src/x86dasm/dis-buf.c:57
 #, c-format
@@ -747,3 +781,12 @@ msgstr ""
 #: src/x86dasm/i386-dis.c:1734
 msgid "<internal disassembler error>"
 msgstr ""
+
+#~ msgid "Bios rom"
+#~ msgstr "Bios rom"
+
+#~ msgid "Flash rom"
+#~ msgstr "Flash rom"
+
+#~ msgid "Save state path"
+#~ msgstr "Speicherstand pfad"
