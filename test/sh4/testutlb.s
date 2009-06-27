@@ -649,8 +649,8 @@ _run_utlb_user_test:
 	jmp @r0
 	nop
 
-user_entry_point:
 	nop
+user_entry_point:
 	ldc r2, sr 	 
 
 	/* In user mode */
