@@ -195,8 +195,8 @@ gboolean vmu_volume_save( const gchar *filename, vmu_volume_t vol, gboolean crea
     struct vmu_chunk_header chunk;
     int i;
 
-    gchar *tempfile = get_filename_at(filename, ".XXXXXXXX.vmu");
-    int fd = mkstemps( tempfile, 4 );
+    gchar *tempfile = get_filename_at(filename, ".XXXXXXX");
+    int fd = mkstemp( tempfile );
     if( fd == -1 ) {
         g_free(tempfile);
         return FALSE;
