@@ -292,9 +292,17 @@ static gboolean maple_device_changed( GtkComboBox *combo, gpointer user_data )
         } else {
             data->new_device = devclz->new_device();
         }
-        has_config = data->new_device != NULL && data->new_device->get_config != NULL;
+        has_config = data->new_device != NULL && data->new_device->get_config != NULL && !MAPLE_IS_VMU(data->new_device);
         has_slots = data->new_device == NULL ? 0 : MAPLE_SLOTS(devclz);
         if( MAPLE_IS_VMU(data->new_device) ) {
+            for( i=0; i<MAPLE_MAX_DEVICES; i++ ) {
+                if( maple_data[i].new_device != NULL && MAPLE_IS_VMU(maple_data[i].new_device) &&
+                        MAPLE_VMU_HAS_NAME(maple_data[i].new_device, vmu_filename) ) {
+                    maple_data[i].new_device->destroy(maple_data[i].new_device);
+                    maple_data[i].new_device = NULL;
+                    gtk_combo_box_set_active(maple_data[i].combo,0);
+                }
+            }
             MAPLE_SET_VMU_NAME(data->new_device,vmu_filename);
         }
         
@@ -314,7 +322,7 @@ static gboolean maple_device_changed( GtkComboBox *combo, gpointer user_data )
             /* This is a little morally dubious... */
             maple_slot_data_t subdata = data + MAPLE_DEVID(0,(i+1));
             gtk_widget_set_sensitive(subdata->combo, i < has_slots );
-            gtk_widget_set_sensitive(subdata->button, i < has_slots && subdata->new_device != NULL && subdata->new_device->get_config != NULL );
+            gtk_widget_set_sensitive(subdata->button, i < has_slots && subdata->new_device != NULL && subdata->new_device->get_config != NULL && !MAPLE_IS_VMU(subdata->new_device) );
         }
     }
     return TRUE;
