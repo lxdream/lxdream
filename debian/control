@@ -7,6 +7,8 @@ Standards-Version: 3.7.2
 
 Package: lxdream
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: libatk1.0-0 (>= 1.20.0), libc6 (>= 2.3), libcairo2 (>= 1.2.4), libfontconfig1 (>= 2.4.0), libfreetype6 (>= 2.3.5), libgcc1 (>= 1:4.1.1), libgl1-mesa-glx | libgl1, libglib2.0-0 (>= 2.16.0), libgtk2.0-0 (>= 2.8.0), libpango1.0-0 (>= 1.14.0), libpng12-0 (>= 1.2.13-4), libx11-6, zlib1g (>= 1:1.1.4)
+Recommends: libasound2 (>> 1.0.18), libaudiofile0 (>= 0.2.3-4), libesd0 (>= 0.2.35) | libesd-alsa0 (>= 0.2.35), libpulse0 (>= 0.9.15~test5)
+Suggests: liblircclient0
 Description: Emulator for the Sega Dreamcast (TM) system
  <insert long description, indented with spaces>
