@@ -120,12 +120,12 @@ gchar *get_absolute_path( const gchar *in_path )
 gchar *get_filename_at( const gchar *at, const gchar *filename )
 {
     char tmp[PATH_MAX];
-    char *p = strrchr( filename, '/' );
+    char *p = strrchr( at, '/' );
     if( p == NULL ) {
         /* No path at all, so just return filename */
         return g_strdup(filename);
     } else {
-        int off = p-filename;
+        int off = p-at;
         return g_strdup_printf("%.*s%c%s", off, at, G_DIR_SEPARATOR, filename );
     }
 }
