@@ -597,7 +597,7 @@ static gboolean cocoa_config_vmulist_hook(vmulist_change_type_t type, int idx, v
         NSOpenPanel *panel = [NSOpenPanel openPanel];
         VMULoadValidator *valid = [[VMULoadValidator alloc] autorelease];
         [panel setDelegate: valid];
-        NSInteger result = [panel runModalForDirectory: [NSString stringWithUTF8String: get_gui_path(CONFIG_VMU_PATH)]
+        int result = [panel runModalForDirectory: [NSString stringWithUTF8String: get_gui_path(CONFIG_VMU_PATH)]
                file: nil types: array];
         if( result == NSOKButton ) {
             vmu_filename = [[panel filename] UTF8String];
@@ -617,7 +617,7 @@ static gboolean cocoa_config_vmulist_hook(vmulist_change_type_t type, int idx, v
         [panel setRequiredFileType: @"vmu"];
         VMUCreateValidator *valid = [[VMUCreateValidator alloc] autorelease];
         [panel setDelegate: valid];
-        NSInteger result = [panel runModalForDirectory: [NSString stringWithUTF8String: get_gui_path(CONFIG_VMU_PATH)]
+        int result = [panel runModalForDirectory: [NSString stringWithUTF8String: get_gui_path(CONFIG_VMU_PATH)]
                file: nil];
         if( result == NSFileHandlingPanelOKButton ) {
             /* Validator has already created the file by now */
