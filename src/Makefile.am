@@ -85,7 +85,7 @@ lxdream_SOURCES += sh4/sh4x86.c xlat/x86/x86op.h \
         x86dasm/ansidecl.h x86dasm/bfd.h x86dasm/dis-asm.h \
         x86dasm/symcat.h x86dasm/sysdep.h
 
-test_testsh4x86_LDADD = @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@
+test_testsh4x86_LDADD = @LXDREAM_LIBS@ @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@
 test_testsh4x86_CPPFLAGS = @LXDREAMCPPFLAGS@
 test_testsh4x86_SOURCES = test/testsh4x86.c x86dasm/x86dasm.c \
 	x86dasm/x86dasm.h x86dasm/i386-dis.c x86dasm/dis-init.c \
