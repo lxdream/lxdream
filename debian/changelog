@@ -1,3 +1,13 @@
+lxdream (0.9.1) unstable; urgency=low
+
+ * Core performance improvements, especially wrt the MMU
+ * VMU support (memory card only)
+ * GDB remote debugging support
+ * Quick-save states
+ * LIRC driver
+
+ -- Nathan Keynes <nkeynes@lxdream.org> Sun, 28 Jun 2009 18:25:00 +1000
+
 lxdream (0.9) unstable; urgency=low
 
  * Major upgrade to emulation accuracy and rendering functionality.
