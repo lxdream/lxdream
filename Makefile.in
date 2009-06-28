@@ -793,6 +793,7 @@ install-data-local:
 	    fi \
 	  done \
 	fi
+	$(mkinstalldirs) $(DESTDIR)$(datadir)/applications
 	$(INSTALL_DATA) $(srcdir)/lxdream.desktop $(DESTDIR)$(datadir)/applications
 	$(INSTALL_DATA) $(srcdir)/pixmaps/lxdream.png $(DESTDIR)$(datadir)/pixmaps
 	$(mkinstalldirs) $(DESTDIR)$(sysconfdir)
