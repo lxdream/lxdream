@@ -58,6 +58,12 @@ static struct maple_config_class maple_device_config[] = {
 
 static struct maple_slot_data maple_data[MAPLE_MAX_DEVICES];
 
+/**
+ * Flag set when changing the selection on one of the combo boxes manually -
+ * avoids the followup changed event.
+ */
+static gboolean maple_device_adjusting = FALSE;
+
 static void config_keysym_hook( void *data, const gchar *keysym )
 {
     GtkWidget *widget = (GtkWidget *)data;
@@ -233,6 +239,10 @@ static gboolean maple_properties_activated( GtkButton *button, gpointer user_dat
 
 static gboolean maple_device_changed( GtkComboBox *combo, gpointer user_data )
 {
+    if( maple_device_adjusting ) {
+        return TRUE;
+    }
+    
     maple_slot_data_t data = (maple_slot_data_t)user_data;
     int active = gtk_combo_box_get_active(combo), i;
     gboolean has_config = FALSE;
@@ -378,8 +388,9 @@ static gboolean maple_vmulist_changed( vmulist_change_type_t type, int idx, void
     gboolean valid = gtk_tree_model_get_iter_first(GTK_TREE_MODEL(list), &iter);
     while( valid ) {
         gchar *vmu_filename;
-        gtk_tree_model_get(GTK_TREE_MODEL(list), &iter, 2, &vmu_filename, -1 );
-        if( vmu_filename != NULL )
+        gpointer devclz;
+        gtk_tree_model_get(GTK_TREE_MODEL(list), &iter, 1, &devclz, 2, &vmu_filename, -1 );
+        if( vmu_filename != NULL || devclz == LOAD_VMU_TAG || devclz == CREATE_VMU_TAG )
             break;
         valid = gtk_tree_model_iter_next(GTK_TREE_MODEL(list), &iter);
     }
@@ -409,30 +420,33 @@ static void maple_set_device_selection( GtkWidget *combo, maple_device_t device 
     GtkTreeModel *model = gtk_combo_box_get_model(GTK_COMBO_BOX(combo));
     GtkTreeIter iter;
 
+    maple_device_adjusting = TRUE;
     if( device == NULL ) {
         gtk_combo_box_set_active( GTK_COMBO_BOX(combo), 0 );
-        return;
-    }
-    
-    gboolean valid = gtk_tree_model_get_iter_first(model, &iter);
-    while( valid ) {
-        const struct maple_device_class *clz;
-        const gchar *vmu_filename;
-        
-        gtk_tree_model_get(model, &iter, 1, &clz, 2, &vmu_filename, -1 );
-        
-        if( device->device_class == clz ) {
-            gtk_combo_box_set_active_iter( GTK_COMBO_BOX(combo), &iter );
-            return;
-        } else if( vmu_filename != NULL && MAPLE_IS_VMU(device) && 
-                MAPLE_VMU_HAS_NAME(device, vmu_filename) ) {
-            gtk_combo_box_set_active_iter( GTK_COMBO_BOX(combo), &iter );
-            return;
+    } else {
+        gboolean valid = gtk_tree_model_get_iter_first(model, &iter);
+        while( valid ) {
+            const struct maple_device_class *clz;
+            const gchar *vmu_filename;
+
+            gtk_tree_model_get(model, &iter, 1, &clz, 2, &vmu_filename, -1 );
+
+            if( device->device_class == clz ) {
+                gtk_combo_box_set_active_iter( GTK_COMBO_BOX(combo), &iter );
+                break;
+            } else if( vmu_filename != NULL && MAPLE_IS_VMU(device) && 
+                    MAPLE_VMU_HAS_NAME(device, vmu_filename) ) {
+                gtk_combo_box_set_active_iter( GTK_COMBO_BOX(combo), &iter );
+                break;
+            }
+
+            valid = gtk_tree_model_iter_next(model, &iter);
         }
-        
-        valid = gtk_tree_model_iter_next(model, &iter);
+        if( !valid ) {
+            gtk_combo_box_set_active(GTK_COMBO_BOX(combo), 0);
+        }
     }
-    gtk_combo_box_set_active(GTK_COMBO_BOX(combo), 0);
+    maple_device_adjusting = FALSE;
 }
 
 static void maple_dialog_done( GtkWidget *panel, gboolean isOK )
@@ -470,9 +484,10 @@ static GtkWidget *maple_panel_new()
     GtkWidget *table = gtk_table_new( MAPLE_PORTS * (MAPLE_USER_SLOTS+1), 3, TRUE);
     int i,j,k;
     const struct maple_device_class **devices = maple_get_device_classes();
-
+    
     gtk_table_set_row_spacings(GTK_TABLE(table), 3);
     gtk_table_set_col_spacings(GTK_TABLE(table), 5);
+    maple_device_adjusting = FALSE;
     
     /* Device models */
     GtkListStore *dev_model = gtk_list_store_new(3, G_TYPE_STRING, G_TYPE_POINTER, G_TYPE_STRING);
@@ -487,7 +502,7 @@ static GtkWidget *maple_panel_new()
     for( i=0; i< MAPLE_PORTS; i++ ) {
         char buf[16];
         GtkWidget *combo, *button;
-        int active = 0, length = 1;
+        int length = 1;
         maple_device_t device = maple_get_device(i,0);
         int has_slots = device == NULL ? 0 : MAPLE_SLOTS(device->device_class);
 
@@ -502,7 +517,7 @@ static GtkWidget *maple_panel_new()
         gtk_table_attach_defaults( GTK_TABLE(table), combo, 1, 2, y, y+1 );
 
         button = gtk_button_new_from_stock( GTK_STOCK_PROPERTIES );
-        gtk_widget_set_sensitive(button, active != 0 && device->get_config != NULL);
+        gtk_widget_set_sensitive(button, device != NULL && device->get_config != NULL);
         gtk_table_attach_defaults( GTK_TABLE(table), button, 2, 3, y, y+1 );
 
         maple_data[MAPLE_DEVID(i,0)].old_device = device;
@@ -519,7 +534,6 @@ static GtkWidget *maple_panel_new()
         for( k=0; k< MAPLE_USER_SLOTS; k++ ) {
             char tmp[32] = "        ";
             device = maple_get_device(i,k+1);
-            active = 0;
             snprintf( tmp+8, sizeof(tmp)-8, _("VMU %d."), (k+1) );
             gtk_table_attach_defaults( GTK_TABLE(table), gtk_label_new(tmp), 0, 1, y, y+1 );
             combo = gtk_combo_box_new_with_model(GTK_TREE_MODEL(subdev_model));
