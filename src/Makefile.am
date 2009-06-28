@@ -38,7 +38,7 @@ CLEANFILES = sh4/sh4core.c sh4/sh4dasm.c sh4/sh4x86.c sh4/sh4stat.c \
 gendec_SOURCES = tools/gendec.c tools/gendec.h tools/insparse.c tools/actparse.c
 genglsl_SOURCES = tools/genglsl.c
 lxdream_LINK = $(LINK) @LXDREAMLDFLAGS@
-lxdream_LDADD = @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@ $(INTLLIBS)
+lxdream_LDADD = @LXDREAM_LIBS@ @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@ $(INTLLIBS)
 lxdream_SOURCES = \
         main.c version.c config.c config.h lxdream.h dream.h gui.h cpu.h hook.h \
         gettext.h mem.c mem.h sdram.c mmio.h watch.c \

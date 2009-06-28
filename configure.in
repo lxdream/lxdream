@@ -403,6 +403,9 @@ CFLAGS="$CFLAGS $STDCFLAG"
 
 dnl ----------------------- All done, finish up -----------------------
 GETTEXT_PACKAGE=lxdream
+LXDREAM_LIBS="$LIBS"
+LIBS=""
+AC_SUBST(LXDREAM_LIBS)
 AC_SUBST(GETTEXT_PACKAGE)
 AC_DEFINE_UNQUOTED(GETTEXT_PACKAGE,"$GETTEXT_PACKAGE",[translation domain])
 
