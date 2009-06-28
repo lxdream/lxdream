@@ -1,6 +1,6 @@
 /**
  * $Id$
- * 
+ *
  * The SDL sound driver
  *
  * Copyright (c) 2009 wahrhaft
@@ -37,10 +37,10 @@ static gboolean audio_sdl_init( )
 {
     int rate = DEFAULT_SAMPLE_RATE;
     int format = DEFAULT_SAMPLE_FORMAT;
-    
+
     SDL_AudioSpec fmt;
     fmt.freq = rate;
-    if (format & AUDIO_FMT_16BIT) 
+    if (format & AUDIO_FMT_16BIT)
         fmt.format = AUDIO_S16;
     else
         fmt.format = AUDIO_U8;
@@ -48,11 +48,11 @@ static gboolean audio_sdl_init( )
         fmt.channels = 2;
     else
         fmt.channels = 1;
-    
+
     fmt.samples = SDL_SAMPLES;
     fmt.callback = mix_audio;
     fmt.userdata = NULL;
-    
+
     if (SDL_OpenAudio(&fmt, NULL) < 0)
     {
         ERROR("Unable to open audio output (SDL)");
@@ -65,7 +65,7 @@ static gboolean audio_sdl_init( )
         ERROR("Could not allocate audio buffer (SDL)");
         return FALSE;
     }
-    
+
     return TRUE;
 }
 
@@ -74,7 +74,7 @@ gboolean audio_sdl_process_buffer( audio_buffer_t buffer )
     SDL_LockAudio();
     if (buffer_pos + buffer->length >= BUFFER_MAX_SIZE)
     {
-        printf("Audio buffer full, dropping a chunk\n");
+        DEBUG("Audio buffer full, dropping a chunk\n");
     }
     else
     {
@@ -83,7 +83,7 @@ gboolean audio_sdl_process_buffer( audio_buffer_t buffer )
     }
     SDL_UnlockAudio();
 
-    return TRUE;    
+    return TRUE;
 }
 
 static void mix_audio(void *userdata, Uint8 *stream, int len)
@@ -99,7 +99,7 @@ static void mix_audio(void *userdata, Uint8 *stream, int len)
     }
     else
     {
-        //printf("Audio buffer low, repeating a chunk\n");
+        DEBUG("Audio buffer low, repeating a chunk\n");
     }
 }
 
@@ -120,7 +120,7 @@ static void audio_sdl_stop()
     SDL_PauseAudio(1);
 }
 
-static struct audio_driver audio_sdl_driver = { 
+static struct audio_driver audio_sdl_driver = {
     "sdl",
     N_("SDL sound driver"),
     20,
