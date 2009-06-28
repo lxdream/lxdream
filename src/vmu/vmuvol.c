@@ -239,6 +239,7 @@ gboolean vmu_volume_save( const gchar *filename, vmu_volume_t vol, gboolean crea
         fseek( f, end, SEEK_SET );
     }
     fclose(f);
+    f = NULL;
     
     if( rename(tempfile, filename) != 0 )
         goto cleanup;
@@ -249,7 +250,8 @@ gboolean vmu_volume_save( const gchar *filename, vmu_volume_t vol, gboolean crea
     return TRUE;
     
 cleanup:
-    fclose(f);
+    if( f != NULL )
+        fclose(f);
     unlink(tempfile);
     g_free(tempfile);
     return FALSE;
