@@ -2,6 +2,8 @@
 
 POD2MAN=@POD2MAN@
 BUNDLE=lxdream.app
+DMGFILE=lxdream-$(VERSION)-$(host_cpu).dmg
+DMGLABEL=Lxdream-$(VERSION)-$(host_cpu)
 
 if BUILD_SYSTEST
   TEST_SUBDIR = test
@@ -81,5 +83,18 @@ all-local:
 	done
 	@echo --- Done ---
 endif
+
+# Build a Mac DMG disk image.
+dmg: $(BUNDLE)
+	@echo --- Building DMG image ---
+	hdiutil create -fs HFS+ -size 5m -volname $(DMGLABEL) $(DMGFILE)
+	hdiutil attach -mountpoint tmp.mount $(DMGFILE)
+	cp -Rdp $(BUNDLE) tmp.mount/
+	cp dmg.layout tmp.mount/.DS_Store
+	ln -s /Applications tmp.mount/Applications
+	hdiutil unmount tmp.mount
+	zip -9 $(DMGFILE).zip $(DMGFILE)
+	rm $(DMGFILE)
+	@echo --- Done ---
 
 bundle: all

@@ -270,6 +270,8 @@ sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
 BUNDLE = lxdream.app
+DMGFILE = lxdream-$(VERSION)-$(host_cpu).dmg
+DMGLABEL = Lxdream-$(VERSION)-$(host_cpu)
 @BUILD_SYSTEST_TRUE@TEST_SUBDIR = test
 SUBDIRS = src po $(TEST_SUBDIR)
 EXTRA_DIST = autogen.sh lxdream.pod lxdream.desktop bundlelibs.pl
@@ -846,6 +848,19 @@ dist-hook:
 @GUI_COCOA_TRUE@	   cp "$(top_srcdir)/po/$$cat" "$(BUNDLE)/Contents/Resources/$$catname/LC_MESSAGES/lxdream$(INSTOBJEXT)"; \
 @GUI_COCOA_TRUE@	done
 @GUI_COCOA_TRUE@	@echo --- Done ---
+
+# Build a Mac DMG disk image.
+dmg: $(BUNDLE)
+	@echo --- Building DMG image ---
+	hdiutil create -fs HFS+ -size 5m -volname $(DMGLABEL) $(DMGFILE)
+	hdiutil attach -mountpoint tmp.mount $(DMGFILE)
+	cp -Rdp $(BUNDLE) tmp.mount/
+	cp dmg.layout tmp.mount/.DS_Store
+	ln -s /Applications tmp.mount/Applications
+	hdiutil unmount tmp.mount
+	zip -9 $(DMGFILE).zip $(DMGFILE)
+	rm $(DMGFILE)
+	@echo --- Done ---
 
 bundle: all
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
