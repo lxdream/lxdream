@@ -4,6 +4,8 @@
 .*\.Po
 .*\.dylib
 .*\~
+.*\.gmo
+.*\.mo
 Makefile
 config.h
 config.status
@@ -11,6 +13,8 @@ lxdream.1
 lxdream.app
 Info.plist
 stamp-h1
+lxdream-.*.tar.gz
+lxdream-.*.zip
 src/drivers/mac_keymap.h
 src/gendec
 src/genglsl
