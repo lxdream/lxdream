@@ -45,7 +45,7 @@
         for( i=0; i<=CONFIG_KEY_MAX; i++ ) {
             const struct lxdream_config_entry *entry = lxdream_get_global_config_entry(i);
             if( entry->label != NULL ) {
-                NSRect frame = NSMakeRect( TEXT_GAP, y - 2, 150, LABEL_HEIGHT );
+                NSRect frame = NSMakeRect( TEXT_GAP, y+2, 150, LABEL_HEIGHT );
                 NSTextField *label = cocoa_gui_add_label(self, NS_(entry->label), frame);
                 [label setAlignment: NSRightTextAlignment];
 
