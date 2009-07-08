@@ -73,13 +73,13 @@ static gboolean cocoa_config_vmulist_hook(vmulist_change_type_t type, int idx, v
         }
     }
 }
-- (void)resignFirstResponder
+- (BOOL)resignFirstResponder
 {
     if( isPrimed ) {
         [self setString: lastValue];
         [self setPrimed: NO];
     }
-    [super resignFirstResponder];
+    return [super resignFirstResponder];
 }
 - (void)fireBindingChanged
 {
