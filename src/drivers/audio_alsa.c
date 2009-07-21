@@ -31,10 +31,10 @@ static snd_pcm_t *_soundDevice = NULL;
 static int frame_bytes;
 
 
-static struct lxdream_config_entry alsa_config[] = {
-        {"device", N_("Audio output device"), CONFIG_TYPE_FILE, "default"},
-        {NULL, CONFIG_TYPE_NONE}
-};
+static struct lxdream_config_group alsa_config = {
+        "alsa", NULL, NULL, NULL,
+        {{"device", N_("Audio output device"), CONFIG_TYPE_FILE, "default"},
+        {NULL, CONFIG_TYPE_NONE}}  };
 
 
 static gboolean audio_alsa_init(  )
@@ -50,13 +50,13 @@ static gboolean audio_alsa_init(  )
 
 
     // Open the device we were told to open.
-    err = snd_pcm_open( &_soundDevice, alsa_config[0].value,
+    err = snd_pcm_open( &_soundDevice, alsa_config.params[0].value,
             SND_PCM_STREAM_PLAYBACK, 0 );
 
     // Check for error on open.
     if ( err < 0 ) {
         ERROR( "Init: cannot open audio device %s (%s)\n",
-                alsa_config[0].value, snd_strerror( err ) );
+                alsa_config.params[0].value, snd_strerror( err ) );
         return FALSE;
     } else {
         DEBUG( "Audio device opened successfully." );
@@ -197,7 +197,7 @@ static struct audio_driver audio_alsa_driver = {
 
 static gboolean audio_alsa_static_init( void )
 {
-    lxdream_register_config_group( "alsa", alsa_config );
+    lxdream_register_config_group( "alsa", &alsa_config );
     audio_register_driver( &audio_alsa_driver );
     return TRUE;
 }
