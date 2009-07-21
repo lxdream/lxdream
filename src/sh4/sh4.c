@@ -707,6 +707,7 @@ size_t sh4_debug_write_vma( uint32_t addr, unsigned char *buf, size_t length )
             read_len += next_len; 
             length -= next_len;
         }
+        return read_len;
     } else {
         return sh4_debug_write_phys( addr, buf, length );
     }

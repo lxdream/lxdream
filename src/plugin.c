@@ -123,7 +123,7 @@ static gboolean has_plugins( const gchar *path )
  */
 static int plugin_load_all( const gchar *plugin_dir )
 {
-    int plugin_count;
+    int plugin_count = 0;
     struct dirent *ent;
     
     DIR *dir = opendir(plugin_dir);

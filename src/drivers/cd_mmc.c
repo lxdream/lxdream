@@ -175,7 +175,7 @@ static gdrom_error_t gdrom_scsi_read_toc( gdrom_disc_t disc )
     if( status == PKT_ERR_OK ) {
 	    mmc_parse_toc2( disc, buf );	
     } else {
-    	if( status & 0xFF != 0x02 ) {
+    	if( (status & 0xFF) != 0x02 ) {
     	    /* Sense key 2 == Not Ready (ie temporary failure). Just ignore and
     	     * consider the drive empty for now, but warn about any other errors
     	     * we get. */
