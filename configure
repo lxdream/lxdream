@@ -8084,7 +8084,7 @@ $as_echo_n "checking if linker accepts -rdynamic... " >&6; }
    old_LDFLAGS="$LDFLAGS"
    LDFLAGS="$LDFLAGS -rdynamic"
    cat >conftest.$ac_ext <<_ACEOF
-int main(){}
+int main(){ return 0; }
 _ACEOF
 rm -f conftest.$ac_objext conftest$ac_exeext
 if { (ac_try="$ac_link"

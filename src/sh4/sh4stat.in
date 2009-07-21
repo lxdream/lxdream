@@ -184,7 +184,7 @@ void sh4_stats_print( FILE *out )
     for( i=0; i<= I_UNDEF; i++ ) {
 	fprintf( out, "%-20s\t%d\t%.2f%%\n", sh4_stats_names[i], (uint32_t)sh4_stats[i], ((double)sh4_stats[i])*100.0/(double)sh4_stats_total );
     }
-    fprintf( out, "Total: %lld\n", sh4_stats_total );
+    fprintf( out, "Total: %lld\n", (long long int)sh4_stats_total );
 }
 
 void FASTCALL sh4_stats_add( sh4_inst_id item )
