@@ -160,7 +160,7 @@ dnl Check if linker accepts -rdynamic
    AC_MSG_CHECKING([if linker accepts -rdynamic])
    old_LDFLAGS="$LDFLAGS"
    LDFLAGS="$LDFLAGS -rdynamic"
-   AC_LINK_IFELSE( [int main(){}], [
+   AC_LINK_IFELSE( [int main(){ return 0; }], [
      LXDREAMLDFLAGS="-rdynamic"
      AC_MSG_RESULT([yes]) 
    ], [

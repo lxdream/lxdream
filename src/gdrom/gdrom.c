@@ -21,6 +21,7 @@
 #include <errno.h>
 #include <ctype.h>
 #include <glib/gutils.h>
+#include <netinet/in.h>
 #include "gdrom/ide.h"
 #include "gdrom/gdrom.h"
 #include "gdrom/gddriver.h"

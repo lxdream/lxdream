@@ -814,7 +814,7 @@ void pvr2_scene_dump( FILE *f )
     fprintf( f, "Polygons: %d\n", pvr2_scene.poly_count );
     for( i=0; i<pvr2_scene.poly_count; i++ ) {
         struct polygon_struct *poly = &pvr2_scene.poly_array[i];
-        fprintf( f, "  %08X ", ((unsigned char *)poly->context) - pvr2_main_ram );
+        fprintf( f, "  %08X ", (uint32_t)(((unsigned char *)poly->context) - pvr2_main_ram) );
         switch( poly->vertex_count ) {
         case 3: fprintf( f, "Tri     " ); break;
         case 4: fprintf( f, "Quad    " ); break;
