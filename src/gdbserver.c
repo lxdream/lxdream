@@ -523,6 +523,7 @@ gboolean gdb_init_server( const char *interface, int port, cpu_desc_t cpu, gbool
     server->cpu = cpu;
     server->mmu = mmu;
     server->fd = fd;
-    net_register_tcp_listener( fd, gdb_server_connect_callback, server, gdb_server_free );
-    INFO( "%s GDB server running on port %d", cpu->name, port ); 
+    gboolean result = net_register_tcp_listener( fd, gdb_server_connect_callback, server, gdb_server_free );
+    INFO( "%s GDB server running on port %d", cpu->name, port );
+    return result;
 }

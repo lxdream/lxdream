@@ -73,4 +73,6 @@ gboolean net_register_tcp_listener( int fd, net_callback_t callback, void *data,
             net_osx_callback, &socketContext );
     cbinfo->sourceRef = CFSocketCreateRunLoopSource( kCFAllocatorDefault, cbinfo->sockRef, 0 );
     CFRunLoopAddSource( CFRunLoopGetCurrent(), cbinfo->sourceRef, kCFRunLoopCommonModes );
+
+    return TRUE;
 }

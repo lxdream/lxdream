@@ -131,6 +131,9 @@ static vmulist_entry_t vmulist_add_entry( const gchar *filename, vmu_volume_t vo
         entry->filename = g_strdup(filename);
         entry->vol = vol;
         vmu_list = g_list_insert_sorted(vmu_list, entry, vmulist_display_name_compare );
+        vmulist_update_config();
+
+        CALL_HOOKS( vmulist_change_hook, VMU_ADDED, g_list_index(vmu_list,entry) );
     } else {
         if( entry->vol != vol && entry->vol != NULL )
             vmu_volume_destroy( entry->vol );
@@ -141,8 +144,6 @@ static vmulist_entry_t vmulist_add_entry( const gchar *filename, vmu_volume_t vo
     }
     entry->attach_count = 0;
     
-    vmulist_update_config();
-    CALL_HOOKS( vmulist_change_hook, VMU_ADDED, g_list_index(vmu_list,entry) );
     return entry;
 }
 

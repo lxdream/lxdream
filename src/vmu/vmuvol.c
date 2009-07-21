@@ -82,7 +82,7 @@ struct vmu_direntry {
 #define FAT_EMPTY 0xFFFC
 #define FAT_EOF   0xFFFA
 
-static const struct vmu_volume_metadata default_metadata = { 255, 255, 254, 1, 253, 13, 0, 200, 31, 0, 128 };
+static const struct vmu_volume_metadata default_metadata = { 255, 255, 254, 1, 253, 13, 0, 200, {31, 0, 128} };
 
 vmu_volume_t vmu_volume_new_default( const gchar *display_name )
 {
@@ -374,6 +374,7 @@ gboolean vmu_volume_write_block( vmu_volume_t vol, vmu_partnum_t pt, unsigned in
     }
     memcpy( VMU_BLOCK(vol,pt,block), in, VMU_BLOCK_SIZE );
     vol->dirty = TRUE;
+    return TRUE;
 }
 
 gboolean vmu_volume_write_phase( vmu_volume_t vol, vmu_partnum_t pt, unsigned int block, unsigned int phase, unsigned char *in )
@@ -383,6 +384,7 @@ gboolean vmu_volume_write_phase( vmu_volume_t vol, vmu_partnum_t pt, unsigned in
     }
     memcpy( VMU_BLOCK(vol,pt,block) + (phase*128), in, VMU_BLOCK_SIZE/4 );
     vol->dirty = TRUE;
+    return TRUE;
 }
 
 const struct vmu_volume_metadata *vmu_volume_get_metadata( vmu_volume_t vol, vmu_partnum_t partition )

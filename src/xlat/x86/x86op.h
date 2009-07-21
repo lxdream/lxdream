@@ -146,7 +146,7 @@ extern unsigned char *xlat_output;
 #define OPPTR(x) *((void **)xlat_output) = ((void *)x); xlat_output+=(sizeof(void*))
 
 /* Primary opcode emitter, eg OPCODE(0x0FBE) for MOVSX */
-#define OPCODE(x) if( (x) > 0xFFFF ) { OP(x>>16); OP((x>>8)&0xFF); OP(x&0xFF); } else if( (x) > 0xFF ) { OP(x>>8); OP(x&0xFF); } else { OP(x); }
+#define OPCODE(x) if( (x) > 0xFFFF ) { OP((x)>>16); OP(((x)>>8)&0xFF); OP((x)&0xFF); } else if( (x) > 0xFF ) { OP((x)>>8); OP((x)&0xFF); } else { OP(x); }
 
 /* Test if immediate value is representable as a signed 8-bit integer */
 #define IS_INT8(imm) ((imm) >= INT8_MIN && (imm) <= INT8_MAX)
@@ -174,7 +174,7 @@ static void x86_encode_opcodereg( int rexw, uint32_t opcode, int reg )
  * @param rr reg field 
  * @param rb r/m field
  */
-static int x86_encode_reg_rm( int rexw, uint32_t opcode, int rr, int rb )
+static void x86_encode_reg_rm( int rexw, uint32_t opcode, int rr, int rb )
 {
     int rex = rexw;
     rr &= 0x0F;

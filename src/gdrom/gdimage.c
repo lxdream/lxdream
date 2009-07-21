@@ -114,6 +114,7 @@ gdrom_disc_t gdrom_image_new( const gchar *filename, FILE *f )
 	    disc->play_audio = NULL; /* not supported yet */
 	    disc->run_time_slice = NULL; /* not needed */
 	}
+	return disc;
 }
 
 
