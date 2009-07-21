@@ -21,11 +21,14 @@
 
 #include <glib/gtypes.h>
 #include <glib/glist.h>
+#include "lxdream.h"
 #include "gettext.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#define CONFIG_MAX_KEYS 24
 
 #define CONFIG_TYPE_NONE 0
 #define CONFIG_TYPE_FILE 1
@@ -39,14 +42,32 @@ extern "C" {
 typedef struct lxdream_config_entry {
     const gchar *key;
     const gchar *label; // i18n 
-    const int type;
+    int type;
     const gchar *default_value;
+    uint32_t tag;
     gchar *value;
 } *lxdream_config_entry_t;
 
+struct lxdream_config_group;
+
+/**
+ * Callback invoked for key presses (key-up/key-down).
+ */
+typedef void (*key_binding_t)( void *data, uint32_t value, uint32_t pressure, gboolean isKeyDown );
+
+/**
+ * Callback invoked immediately before updating a configuration item.
+ * @return FALSE to abort the change (ie invalid value), or TRUE to proceed normally. 
+ */
+typedef gboolean (*config_change_callback_t)( void *data, struct lxdream_config_group *group, unsigned item,
+                                   const gchar *oldval, const gchar *newval );
+
 typedef struct lxdream_config_group {
     const gchar *key;
-    struct lxdream_config_entry *params;
+    config_change_callback_t on_change;
+    key_binding_t key_binding;
+    void *data;
+    struct lxdream_config_entry params[CONFIG_MAX_KEYS];
 } *lxdream_config_group_t;
 
 #define CONFIG_BIOS_PATH 0
@@ -61,17 +82,20 @@ typedef struct lxdream_config_group {
 #define CONFIG_QUICK_STATE 9
 #define CONFIG_KEY_MAX CONFIG_QUICK_STATE
 
-extern struct lxdream_config_group lxdream_config_root[];
+#define CONFIG_GROUP_GLOBAL 0
+#define CONFIG_GROUP_HOTKEYS 2
+#define CONFIG_GROUP_SERIAL 3
+
 
 /* Global config values */
 const gchar *lxdream_get_global_config_value( int key );
-const struct lxdream_config_entry * lxdream_get_global_config_entry( int key );
+struct lxdream_config_group * lxdream_get_config_group( int group );
 void lxdream_set_global_config_value( int key, const gchar *value );
 
-void lxdream_register_config_group( const gchar *key, lxdream_config_entry_t group ); 
-void lxdream_set_config_value( lxdream_config_entry_t entry, const gchar *value );
-gboolean lxdream_set_group_value( lxdream_config_group_t group, const gchar *key, const gchar *value );
-void lxdream_copy_config_list( lxdream_config_entry_t dest, lxdream_config_entry_t src );
+void lxdream_register_config_group( const gchar *key, lxdream_config_group_t group ); 
+gboolean lxdream_set_config_value( lxdream_config_group_t group, int key, const gchar *value );
+void lxdream_copy_config_group( lxdream_config_group_t dest, lxdream_config_group_t src );
+void lxdream_clone_config_group( lxdream_config_group_t dest, lxdream_config_group_t src );
 
 /**
  * Return a fully expanded path value for a key - this performs substitutions

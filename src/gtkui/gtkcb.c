@@ -79,7 +79,7 @@ gchar *save_file_dialog( const char *title, const char *pattern, const char *pat
                          int initial_dir_key )
 {
     GtkWidget *file;
-    gchar *filename;
+    gchar *filename = NULL;
     
     file = gtk_file_chooser_dialog_new( title, NULL,
             GTK_FILE_CHOOSER_ACTION_SAVE,
@@ -257,7 +257,7 @@ void exit_action_callback( GtkAction *action, gpointer user_data)
 
 void path_settings_callback( GtkAction *action, gpointer user_data)
 {
-    path_dialog_run();
+    gtk_configuration_panel_run( _("Path Settings"), lxdream_get_config_group(CONFIG_GROUP_GLOBAL) );
 }
 
 void audio_settings_callback( GtkAction *action, gpointer user_data)
@@ -279,7 +279,7 @@ void video_settings_callback( GtkAction *action, gpointer user_data)
 
 void hotkey_settings_callback( GtkAction *action, gpointer user_data)
 {
-    hotkeys_dialog_run();
+    gtk_configuration_panel_run( _("Hotkey Settings"), lxdream_get_config_group(CONFIG_GROUP_HOTKEYS) );
 }
 
 void fullscreen_toggle_callback( GtkToggleAction *action, gpointer user_data)

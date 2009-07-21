@@ -98,16 +98,16 @@ endif
 
 if GUI_GTK
 lxdream_SOURCES += gtkui/gtkui.c gtkui/gtkui.h \
-	gtkui/gtk_win.c gtkui/gtkcb.c \
+	gtkui/gtk_win.c gtkui/gtkcb.c gtkui/gtk_cfg.c \
         gtkui/gtk_mmio.c gtkui/gtk_debug.c gtkui/gtk_dump.c \
-        gtkui/gtk_ctrl.c gtkui/gtk_path.c gtkui/gtk_gd.c \
-        gtkui/gtk_hotkeys.c drivers/net_glib.c drivers/video_gtk.c
+        gtkui/gtk_ctrl.c gtkui/gtk_gd.c \
+        drivers/net_glib.c drivers/video_gtk.c
 endif
 
 if GUI_COCOA
-lxdream_SOURCES += cocoaui/cocoaui.m cocoaui/cocoaui.h \
+lxdream_SOURCES += cocoaui/cocoaui.m cocoaui/cocoaui.h cocoaui/cocoa_cfg.m \
 	cocoaui/cocoa_win.m cocoaui/cocoa_gd.m cocoaui/cocoa_prefs.m \
-	cocoaui/cocoa_path.m cocoaui/cocoa_ctrl.m cocoaui/paths_osx.m \
+	cocoaui/cocoa_ctrl.m cocoaui/paths_osx.m \
 	drivers/net_osx.m drivers/video_osx.m \
 	drivers/mac_keymap.h drivers/mac_keymap.txt
 else

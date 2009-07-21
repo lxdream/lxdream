@@ -54,6 +54,29 @@ static LxdreamPrefsPanel *prefs_panel = NULL;
         return self;
     }
 }
+
+- (id)initWithFrame: (NSRect)frameRect title:(NSString *)title configGroup: (lxdream_config_group_t)group scrollable: (BOOL)scroll
+{
+    if( [self initWithFrame: frameRect title: title] == nil ) {
+        return nil;
+    }
+    ConfigurationView *view = [[ConfigurationView alloc] initWithFrame: frameRect
+                                                         configGroup: group ];
+    [view setAutoresizingMask: (NSViewWidthSizable|NSViewMinYMargin)];
+    if( scroll ) {
+        NSScrollView *scrollView = [[NSScrollView alloc] initWithFrame: NSMakeRect(0,0,frameRect.size.width,[self contentHeight]+TEXT_GAP)];
+        [scrollView setAutoresizingMask: (NSViewWidthSizable|NSViewHeightSizable)];
+        [scrollView setDocumentView: view];
+        [scrollView setDrawsBackground: NO];
+        [scrollView setHasVerticalScroller: YES];
+        [scrollView setAutohidesScrollers: YES];
+        [self addSubview: scrollView];
+//        [view scrollRectToVisible: NSMakeRect(0,0,1,1)];
+    } else {
+        [self addSubview: view];
+    }
+    return self;
+}
 @end
 
 /**************************** Main preferences window ************************/
@@ -85,10 +108,18 @@ tooltip: (NSString *)tooltip icon: (NSString *)icon action: (SEL) action;
         [self setDelegate: self];
         [self setMinSize: NSMakeSize(400,300)];
         [self initToolbar];
-        path_pane = cocoa_gui_create_prefs_path_pane();
-        ctrl_pane = cocoa_gui_create_prefs_controller_pane();
+        config_panes[0] = [[LxdreamPrefsPane alloc] initWithFrame: NSMakeRect(0,0,600,400)
+                             title: NS_("Paths")
+                             configGroup: lxdream_get_config_group(CONFIG_GROUP_GLOBAL)
+                             scrollable: YES];
+        config_panes[1] = cocoa_gui_create_prefs_controller_pane();
+        config_panes[2] = [[LxdreamPrefsPane alloc] initWithFrame: NSMakeRect(0,0,600,400)
+                             title: NS_("Hotkeys")
+                             configGroup: lxdream_get_config_group(CONFIG_GROUP_HOTKEYS)
+                             scrollable: YES];
+
         binding_editor = nil;
-        [self setContentView: path_pane];
+        [self setContentView: config_panes[0]];
         return self;
     }
 }
@@ -124,9 +155,12 @@ tooltip: (NSString *)tooltip icon: (NSString *)icon action: (SEL) action;
     NSToolbarItem *ctrls = [self createToolbarItem: @"Controllers" label: @"Controllers"
                             tooltip: @"Configure controllers" icon: @"tb-ctrls"
                             action: @selector(controllers_action:)];
-    toolbar_ids = [NSArray arrayWithObjects: @"Paths", @"Controllers", nil ];
-    toolbar_defaults = [NSArray arrayWithObjects: @"Paths", @"Controllers", nil ]; 
-    NSArray *values = [NSArray arrayWithObjects: paths, ctrls, nil ];
+    NSToolbarItem *hotkeys=[self createToolbarItem: @"Hotkeys" label: @"Hotkeys"
+                            tooltip: @"Configure hotkeys" icon: @"tb-ctrls"
+                            action: @selector(hotkeys_action:)];
+    toolbar_ids = [NSArray arrayWithObjects: @"Paths", @"Controllers", @"Hotkeys", nil ];
+    toolbar_defaults = [NSArray arrayWithObjects: @"Paths", @"Controllers", @"Hotkeys", nil ];
+    NSArray *values = [NSArray arrayWithObjects: paths, ctrls, hotkeys, nil ];
     toolbar_items = [NSDictionary dictionaryWithObjects: values forKeys: toolbar_ids];
 
     [toolbar setDelegate: self];
@@ -138,11 +172,15 @@ tooltip: (NSString *)tooltip icon: (NSString *)icon action: (SEL) action;
 
 - (void)paths_action: (id)sender
 {
-    [self setContentView: path_pane];
+    [self setContentView: config_panes[0]];
 }
 - (void)controllers_action: (id)sender
 {
-    [self setContentView: ctrl_pane];
+    [self setContentView: config_panes[1]];
+}
+- (void)hotkeys_action: (id)sender
+{
+    [self setContentView: config_panes[2]];
 }
 
 /***************************** Toolbar methods ***************************/
@@ -171,7 +209,7 @@ tooltip: (NSString *)tooltip icon: (NSString *)icon action: (SEL) action
 
 - (NSArray *)toolbarSelectableItemIdentifiers: (NSToolbar *)toolbar
 {
-    return [NSArray arrayWithObjects: @"Paths", @"Controllers", nil ]; 
+    return [NSArray arrayWithObjects: @"Paths", @"Controllers", @"Hotkeys", nil ];
 }
 
 - (NSToolbarItem *) toolbar:(NSToolbar *)toolbar itemForItemIdentifier:(NSString *)itemIdentifier
@@ -188,3 +226,6 @@ void cocoa_gui_show_preferences()
     }
     [prefs_panel makeKeyAndOrderFront: prefs_panel];
 }
+
+/**************************** Simple config panels ***************************/
+

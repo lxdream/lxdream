@@ -126,17 +126,39 @@ void dreamcast_configure( )
     g_free(flash_path);
 }
 
-void dreamcast_config_changed(void)
+gboolean dreamcast_load_bios( const gchar *filename )
 {
-    char *bios_path = lxdream_get_global_config_path_value(CONFIG_BIOS_PATH);
-    char *flash_path = lxdream_get_global_config_path_value(CONFIG_FLASH_PATH);
-    dreamcast_has_bios = mem_load_rom( dc_boot_rom, bios_path, 2 MB, 0x89f2b1a1 );
-    if( flash_path != NULL && flash_path[0] != '\0' ) {
-        mem_load_block( flash_path, 0x00200000, 0x00020000 );
+    dreamcast_has_bios = mem_load_rom( dc_boot_rom, filename, 2 MB, 0x89f2b1a1 );
+    return dreamcast_has_bios;
+}
+
+gboolean dreamcast_load_flash( const gchar *filename )
+{
+    if( filename != NULL && filename[0] != '\0' ) {
+        return mem_load_block( filename, 0x00200000, 0x00020000 ) == 0;
     }
-    g_free(bios_path);
-    g_free(flash_path);
+    return FALSE;
+}
+
+
+gboolean dreamcast_config_changed(void *data, struct lxdream_config_group *group, unsigned item,
+                                       const gchar *oldval, const gchar *newval)
+{
+    gchar *tmp;
+    switch(item) {
+    case CONFIG_BIOS_PATH:
+        tmp = get_expanded_path(newval);
+        dreamcast_load_bios(tmp);
+        g_free(tmp);
+        break;
+    case CONFIG_FLASH_PATH:
+        tmp = get_expanded_path(newval);
+        dreamcast_load_flash(tmp);
+        g_free(tmp);
+        break;
+    }
     reset_gui_paths();
+    return TRUE;
 }
 
 void dreamcast_save_flash()

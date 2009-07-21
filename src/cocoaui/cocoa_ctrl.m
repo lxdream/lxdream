@@ -31,291 +31,10 @@
 #define LOAD_VMU_TAG -1
 #define CREATE_VMU_TAG -2
 
-#define KEYBINDING_SIZE 110
+#define LABEL_WIDTH 85
 
-static void cocoa_config_keysym_hook(void *data, const gchar *keysym);
+
 static gboolean cocoa_config_vmulist_hook(vmulist_change_type_t type, int idx, void *data);
-
-@interface KeyBindingEditor (Private)
-- (void)updateKeysym: (const gchar *)sym;
-@end
-
-@implementation KeyBindingEditor
-- (id)init
-{
-    self = [super init];
-    isPrimed = NO;
-    lastValue = nil;
-    [self setFieldEditor: YES];
-    [self setEditable: FALSE];
-    return self;
-}
-- (void)dealloc
-{
-    if( lastValue != nil ) {
-        [lastValue release];
-        lastValue = nil;
-    }
-    [super dealloc];
-}
-- (void)setPrimed: (BOOL)primed
-{
-    if( primed != isPrimed ) {
-        isPrimed = primed;
-        if( primed ) {
-            lastValue = [[NSString stringWithString: [self string]] retain];
-            [self setString: @"<press key>"];
-            input_set_keysym_hook(cocoa_config_keysym_hook, self);            
-        } else {
-            [lastValue release];
-            lastValue = nil;
-            input_set_keysym_hook(NULL,NULL);
-        }
-    }
-}
-- (BOOL)resignFirstResponder
-{
-    if( isPrimed ) {
-        [self setString: lastValue];
-        [self setPrimed: NO];
-    }
-    return [super resignFirstResponder];
-}
-- (void)fireBindingChanged
-{
-    id delegate = [self delegate];
-    if( delegate != nil && [delegate respondsToSelector:@selector(textDidChange:)] ) {
-        [delegate textDidChange: [NSNotification notificationWithName: NSTextDidChangeNotification object: self]];
-    }
-}
-        
-- (void)updateKeysym: (const gchar *)sym
-{
-    if( sym != NULL ) {
-        [self setString: [NSString stringWithCString: sym]];
-        [self setPrimed: NO];
-        [self fireBindingChanged];
-    }
-}
-- (void)updateMousesym: (int)button
-{
-    gchar *keysym = input_keycode_to_keysym( &system_mouse_driver, (button+1) );
-    if( keysym != NULL ) {
-        [self updateKeysym: keysym ];
-        g_free(keysym);
-    }
-}
-- (void)keyPressed: (int)keycode
-{
-    gchar *keysym = input_keycode_to_keysym(NULL, keycode);
-    if( keysym != NULL ) {
-        [self updateKeysym: keysym];
-        g_free(keysym);
-    }
-}
-- (void)insertText:(id)string
-{
-    // Do nothing
-}
-- (void)mouseDown: (NSEvent *)event
-{
-    if( isPrimed ) {
-        [self updateMousesym: 0];
-    } else {
-        [self setPrimed: YES];
-        [super mouseDown: event];
-    }
-}
-- (void)rightMouseDown: (NSEvent *)event
-{
-    if( isPrimed ) {
-        [self updateMousesym: 1];
-    }
-}
-- (void)otherMouseDown: (NSEvent *)event
-{
-    if( isPrimed ) {
-        [self updateMousesym: [event buttonNumber]];
-    }
-}
-- (void)keyDown: (NSEvent *) event
-{
-    NSString *chars = [event characters];
-    if( isPrimed ) {
-        if( chars != NULL && [chars length] == 1 && [chars characterAtIndex: 0] == 27 ) {
-            // Escape char = abort change
-            [self setString: lastValue];
-            [self setPrimed: NO];
-        } else {
-            [self keyPressed: ([event keyCode]+1)];
-        }
-    } else {
-        if( chars != NULL && [chars length] == 1 ) {
-            int ch = [chars characterAtIndex: 0];
-            switch( ch ) {
-            case 0x7F:
-                [self setString: @""]; 
-                [self fireBindingChanged];
-                break;
-            case '\r':
-                [self setPrimed: YES];
-                break;
-            default:
-                [super keyDown: event];
-                break;
-            }
-        } else {
-            [super keyDown: event];
-        }
-    }
-}
-- (void)flagsChanged: (NSEvent *) event
-{
-    if( isPrimed ) {
-        [self keyPressed: ([event keyCode]+1)];
-    }
-    [super flagsChanged: event];
-}
-@end
-
-static void cocoa_config_keysym_hook(void *data, const gchar *keysym)
-{
-    KeyBindingEditor *editor = (KeyBindingEditor *)data;
-    [editor updateKeysym: keysym];
-}
-
-
-@implementation KeyBindingField
-@end
-
-/*************************** Key-binding sub-view ***********************/
-
-#define MAX_KEY_BINDINGS 32
-
-@interface ControllerKeyBindingView : NSView
-{
-    maple_device_t device;
-    NSTextField *field[MAX_KEY_BINDINGS][2];
-}
-- (id)initWithFrame: (NSRect)frameRect;
-- (void)setDevice: (maple_device_t)device;
-@end
-
-@implementation ControllerKeyBindingView
-- (id)initWithFrame: (NSRect)frameRect
-{
-    if( [super initWithFrame: frameRect] == nil ) {
-        return nil;
-    } else {
-        device = NULL;
-        return self;
-    }
-}
-- (BOOL)isFlipped
-{
-    return YES;
-}
-- (void)removeSubviews
-{
-    [[self subviews] makeObjectsPerformSelector: @selector(removeFromSuperview)];
-}
-- (void)controlTextDidChange: (NSNotification *)notify
-{
-    const gchar *p = NULL;
-    int binding = [[notify object] tag];
-    NSString *val1 = [field[binding][0] stringValue];
-    if( field[binding][1] == NULL ) {
-        p = [val1 UTF8String];
-    } else {
-        NSString *val2 = [field[binding][1] stringValue];
-        char buf[ [val1 length] + [val2 length] + 2 ];
-
-        if( [val1 length] == 0 ) {
-            if( [val2 length] != 0 ) {
-                p = [val2 UTF8String];
-            }
-        } else if( [val2 length] == 0 ) {
-            p = [val1 UTF8String];
-        } else {
-            sprintf( buf, "%s,%s", [val1 UTF8String], [val2 UTF8String] );
-            p = buf;
-        }
-    }
-    maple_set_device_config_value( device, binding, p ); 
-    lxdream_save_config();
-}
-- (void)setDevice: (maple_device_t)newDevice
-{
-    device = newDevice;
-    [self removeSubviews];
-    if( device != NULL && !MAPLE_IS_VMU(device) ) {
-        lxdream_config_entry_t config = maple_get_device_config(device);
-        if( config != NULL ) {
-            int count, i, y, x;
-
-            for( count=0; config[count].key != NULL; count++ );
-            x = TEXT_GAP;
-            NSSize size = NSMakeSize(85+KEYBINDING_SIZE*2+TEXT_GAP*4, count*(TEXT_HEIGHT+TEXT_GAP)+TEXT_GAP);
-            [self setFrameSize: size];
-            [self scrollRectToVisible: NSMakeRect(0,0,1,1)]; 
-            y = TEXT_GAP;
-            for( i=0; config[i].key != NULL; i++ ) {
-                /* Add label */
-                NSRect frame = NSMakeRect(x, y + 2, 85, LABEL_HEIGHT);
-                NSTextField *label = cocoa_gui_add_label(self, NS_(config[i].label), frame);
-                [label setAlignment: NSRightTextAlignment];
-                
-                switch(config[i].type) {
-                case CONFIG_TYPE_KEY:
-                    frame = NSMakeRect( x + 85 + TEXT_GAP, y, KEYBINDING_SIZE, TEXT_HEIGHT);
-                    field[i][0] = [[KeyBindingField alloc] initWithFrame: frame];
-                    [field[i][0] setAutoresizingMask: (NSViewMinYMargin|NSViewMaxXMargin)];
-                    [field[i][0] setTag: i];
-                    [field[i][0] setDelegate: self];
-                    [self addSubview: field[i][0]];
-
-                    frame = NSMakeRect( x + 85 + KEYBINDING_SIZE + (TEXT_GAP*2), y, KEYBINDING_SIZE, TEXT_HEIGHT);
-                    field[i][1] = [[KeyBindingField alloc] initWithFrame: frame];
-                    [field[i][1] setAutoresizingMask: (NSViewMinYMargin|NSViewMaxXMargin)];
-                    [field[i][1] setTag: i];
-                    [field[i][1] setDelegate: self];
-                    [self addSubview: field[i][1]];
-
-                    if( config[i].value != NULL ) {
-                        gchar **parts = g_strsplit(config[i].value,",",3);
-                        if( parts[0] != NULL ) {
-                            [field[i][0] setStringValue: [NSString stringWithCString: parts[0]]];
-                            if( parts[1] != NULL ) {
-                                [field[i][1] setStringValue: [NSString stringWithCString: parts[1]]];
-                            }
-                        }
-                        g_strfreev(parts);
-                    }
-                    break;
-                case CONFIG_TYPE_FILE:
-                case CONFIG_TYPE_PATH:
-                    frame = NSMakeRect( x + 85 + TEXT_GAP, y, KEYBINDING_SIZE*2+TEXT_GAP, TEXT_HEIGHT);
-                    field[i][0] = [[NSTextField alloc] initWithFrame: frame];
-                    [field[i][0] setAutoresizingMask: (NSViewMinYMargin|NSViewMaxXMargin)];
-                    [field[i][0] setTag: i];
-                    [field[i][0] setDelegate: self];
-                    [self addSubview: field[i][0]];
-                    if( config[i].value != NULL ) {
-                        [field[i][0] setStringValue: [NSString stringWithCString: config[i].value]];
-                    }
-                    field[i][1] = NULL;
-                } 
-                y += (TEXT_HEIGHT + TEXT_GAP);
-            }
-        } else {
-            [self setFrameSize: NSMakeSize(100,TEXT_HEIGHT+TEXT_GAP) ];
-        }
-    } else {
-        [self setFrameSize: NSMakeSize(100,TEXT_HEIGHT+TEXT_GAP) ];
-    }
-}
-@end
-
 /*************************** Top-level controller pane ***********************/
 static NSButton *addRadioButton( int port, int sub, int x, int y, id parent )
 {
@@ -385,10 +104,14 @@ static void buildDevicePopupMenu( NSPopUpButton *popup, maple_device_t device, B
     
     if( !primary ) {
         BOOL vmu_selected = NO;
-        const char *vmu_name;
+        const char *vmu_name = NULL;
         if( device != NULL && MAPLE_IS_VMU(device) ) {
-            vmu_selected = YES;
             vmu_name = MAPLE_VMU_NAME(device);
+            if( vmu_name == NULL ) {
+                device = NULL;
+            } else {
+                vmu_selected = YES;
+            }
         }
         if( [popup numberOfItems] > 0 ) {
             [[popup menu] addItem: [NSMenuItem separatorItem]];
@@ -474,7 +197,7 @@ static NSPopUpButton *addDevicePopup( int port, int sub, int x, int y, maple_dev
     struct maple_device *save_controller[MAPLE_MAX_DEVICES];
     NSButton *radio[MAPLE_MAX_DEVICES];
     NSPopUpButton *popup[MAPLE_MAX_DEVICES];
-    ControllerKeyBindingView *key_bindings;
+    ConfigurationView *key_bindings;
 }
 + (LxdreamPrefsControllerPane *)new;
 - (void)vmulistChanged: (id)sender;
@@ -511,7 +234,8 @@ static gboolean cocoa_config_vmulist_hook(vmulist_change_type_t type, int idx, v
         NSRect bindingFrame = NSMakeRect(210+(TEXT_GAP*4), 0,
                    frameRect.size.width - (210+(TEXT_GAP*4)), [self contentHeight] + TEXT_GAP );
         NSScrollView *scrollView = [[NSScrollView alloc] initWithFrame: bindingFrame];
-        key_bindings = [[ControllerKeyBindingView alloc] initWithFrame: bindingFrame ];
+        key_bindings = [[ConfigurationView alloc] initWithFrame: bindingFrame ];
+        [key_bindings setLabelWidth: LABEL_WIDTH];
         [scrollView setAutoresizingMask: (NSViewWidthSizable|NSViewHeightSizable)];
         [scrollView setDocumentView: key_bindings];
         [scrollView setDrawsBackground: NO];

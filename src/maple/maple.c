@@ -61,7 +61,7 @@ const struct maple_device_class **maple_get_device_classes()
     return (const struct maple_device_class **)maple_device_classes;
 }
 
-lxdream_config_entry_t maple_get_device_config( maple_device_t dev )
+lxdream_config_group_t maple_get_device_config( maple_device_t dev )
 {
     if( dev->get_config == NULL )
         return NULL;
@@ -395,13 +395,6 @@ gboolean maple_should_grab()
         }
     }
     return mode == MAPLE_GRAB_YES;
-}
-
-void maple_set_device_config_value( maple_device_t dev, unsigned int key, const gchar *value )
-{
-    if( dev != NULL && dev->set_config_value != NULL ) {
-        dev->set_config_value( dev, key, value );
-    }
 }
 
 void maple_default_destroy( maple_device_t mdev )

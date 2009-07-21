@@ -13,9 +13,9 @@ src/bios.c
 src/bootstrap.c
 src/bootstrap.h
 src/clock.h
+src/cocoaui/cocoa_cfg.m
 src/cocoaui/cocoa_ctrl.m
 src/cocoaui/cocoa_gd.m
-src/cocoaui/cocoa_path.m
 src/cocoaui/cocoa_prefs.m
 src/cocoaui/cocoaui.h
 src/cocoaui/cocoaui.m
@@ -84,13 +84,12 @@ src/gdrom/nrg.c
 src/gdrom/packet.h
 src/gettext.h
 src/gtkui/gtkcb.c
+src/gtkui/gtk_cfg.c
 src/gtkui/gtk_ctrl.c
 src/gtkui/gtk_debug.c
 src/gtkui/gtk_dump.c
 src/gtkui/gtk_gd.c
-src/gtkui/gtk_hotkeys.c
 src/gtkui/gtk_mmio.c
-src/gtkui/gtk_path.c
 src/gtkui/gtkui.c
 src/gtkui/gtkui.h
 src/gtkui/gtk_win.c

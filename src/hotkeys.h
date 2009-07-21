@@ -1,5 +1,5 @@
 /**
- * $Id:  $
+ * $Id$
  *
  * Handles hotkeys for pause/continue, save states, quit, etc
  *
@@ -26,7 +26,7 @@ extern "C" {
 #endif
 
         void hotkeys_init();
-        lxdream_config_entry_t hotkeys_get_config();
+        lxdream_config_group_t hotkeys_get_config();
         void hotkeys_register_keys();
         void hotkeys_unregister_keys();
 

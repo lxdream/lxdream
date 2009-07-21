@@ -56,6 +56,7 @@ typedef struct keymap_entry {
     input_key_callback_t callback;
     void *data;
     uint32_t value;
+    lxdream_config_group_t group;
     struct keymap_entry *next; // allow chaining
 } *keymap_entry_t;
 
@@ -63,6 +64,7 @@ typedef struct mouse_entry {
     gboolean relative;
     input_mouse_callback_t callback;
     void *data;
+    const lxdream_config_group_t group;
     struct mouse_entry *next;
 } *mouse_entry_t;
 
@@ -291,6 +293,38 @@ void input_unregister_key( const gchar *keysym, input_key_callback_t callback,
         s++;
     }
     g_strfreev(strv);
+}
+
+int input_register_keygroup( lxdream_config_group_t group)
+{
+    int i;
+    int result = 0;
+    for( i=0; group->params[i].key != NULL; i++ ) {
+        if( group->params[i].type == CONFIG_TYPE_KEY ) {
+            if( input_register_key( group->params[i].value, group->key_binding, group->data, group->params[i].tag ) ) {
+                result++;
+            }
+        }
+    }
+    return result;
+}
+
+void input_unregister_keygroup( lxdream_config_group_t group )
+{
+    int i;
+    for( i=0; group->params[i].key != NULL; i++ ) {
+        if( group->params[i].type == CONFIG_TYPE_KEY ) {
+            input_unregister_key( group->params[i].value, group->key_binding, group->data, group->params[i].tag );
+        }
+    }
+}
+
+gboolean input_keygroup_changed( void *data, lxdream_config_group_t group, unsigned key,
+                                 const gchar *oldval, const gchar *newval )
+{
+    input_unregister_key( oldval, group->key_binding, group->data, group->params[key].tag );
+    input_register_key( newval, group->key_binding, group->data, group->params[key].tag );
+    return TRUE;
 }
 
 gboolean input_register_keyboard_hook( input_key_callback_t callback,

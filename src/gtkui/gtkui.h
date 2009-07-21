@@ -36,6 +36,8 @@ typedef struct debug_window_info *debug_window_t;
 typedef struct mmio_window_info *mmio_window_t;
 typedef struct dump_window_info *dump_window_t;
 
+struct lxdream_config_group; /* Forward declaration */
+
 /**
  * Construct and show the main window, returning an 
  * opaque pointer to the window.
@@ -85,7 +87,7 @@ void gtk_gui_show_debugger();
 typedef void (*gtk_dialog_done_fn)(GtkWidget *panel, gboolean isOK);
 void gtk_gui_enable_action( const gchar *action, gboolean enabled );
 gint gtk_gui_run_property_dialog( const gchar *title, GtkWidget *panel, gtk_dialog_done_fn fn );
-
+int gtk_configuration_panel_run( const gchar *title, struct lxdream_config_group *group );
 
 typedef gboolean (*file_callback_t)( const gchar *filename );
 gchar *open_file_dialog( const char *title, const char *pattern, const char *patname,

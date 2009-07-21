@@ -21,6 +21,7 @@
 
 #import <AppKit/AppKit.h>
 #include "lxdream.h"
+#include "config.h"
 #include "gui.h"
 #include "gettext.h"
 
@@ -75,6 +76,7 @@ NSTextField *cocoa_gui_add_label(NSView *parent, NSString *title, NSRect frame);
     int headerHeight;
 }
 - (id)initWithFrame: (NSRect)frameRect title:(NSString *)title;
+- (id)initWithFrame: (NSRect)frameRect title:(NSString *)title configGroup: (lxdream_config_group_t)group scrollable: (BOOL)scroll;
 - (int)contentHeight;
 @end
 
@@ -90,12 +92,27 @@ NSTextField *cocoa_gui_add_label(NSView *parent, NSString *title, NSRect frame);
 }
 @end
 
+
+@interface ConfigurationView : NSView
+{
+    lxdream_config_group_t group;
+    int labelWidth;
+    NSTextField *fields[CONFIG_MAX_KEYS][2];
+}
+- (id)initWithFrame: (NSRect)frameRect;
+- (id)initWithFrame: (NSRect)frameRect configGroup: (lxdream_config_group_t)group;
+- (void)setLabelWidth: (int)width;
+- (void)setConfigGroup: (lxdream_config_group_t)group;
+- (void)setDevice: (struct maple_device *)device;
+@end
+
+
 @interface LxdreamPrefsPanel : NSPanel
 {
     NSArray *toolbar_ids;
     NSArray *toolbar_defaults;
+    NSView *config_panes[3];
     NSDictionary *toolbar_items;
-    NSView *path_pane, *ctrl_pane;
     KeyBindingEditor *binding_editor;
 }
 - (id)initWithContentRect:(NSRect)contentRect;
@@ -107,7 +124,6 @@ NSMenu *cocoa_gdrom_menu_new();
 NSView *video_osx_create_drawable();
 void cocoa_gui_show_preferences();
 NSView *cocoa_gui_create_prefs_controller_pane();
-NSView *cocoa_gui_create_prefs_path_pane();
 
 
 #ifdef __cplusplus
