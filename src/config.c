@@ -25,22 +25,22 @@
 #include <glib/gstrfuncs.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include "dream.h"
+#include "dreamcast.h"
 #include "config.h"
 #include "lxpaths.h"
 #include "maple/maple.h"
 
 #define MAX_ROOT_GROUPS 16
 
-extern struct lxdream_config_entry alsa_config[];
-extern struct lxdream_config_entry hotkeys_config[];
+extern struct lxdream_config_group hotkeys_group;
 
 gboolean lxdream_load_config_file( const gchar *filename );
 gboolean lxdream_save_config_file( const gchar *filename );
 gboolean lxdream_load_config_stream( FILE *f );
 gboolean lxdream_save_config_stream( FILE *f );
 
-static struct lxdream_config_entry global_config[] =
+static struct lxdream_config_group global_group =
+    { "global", dreamcast_config_changed, NULL, NULL,
        {{ "bios", N_("Bios ROM"), CONFIG_TYPE_FILE, NULL },
         { "flash", N_("Flash ROM"), CONFIG_TYPE_FILE, NULL },
         { "default path", N_("Default disc path"), CONFIG_TYPE_PATH, "." },
@@ -51,31 +51,32 @@ static struct lxdream_config_entry global_config[] =
         { "recent", NULL, CONFIG_TYPE_FILELIST, NULL },
         { "vmu", NULL, CONFIG_TYPE_FILELIST, NULL },
         { "quick state", NULL, CONFIG_TYPE_INTEGER, "0" },
-        { NULL, CONFIG_TYPE_NONE }};
+        { NULL, CONFIG_TYPE_NONE }} };
 
-static struct lxdream_config_entry serial_config[] =
+static struct lxdream_config_group serial_group =
+    { "serial", NULL, NULL, NULL,
        {{ "device", N_("Serial device"), CONFIG_TYPE_FILE, "/dev/ttyS1" },
-        { NULL, CONFIG_TYPE_NONE }};
+        { NULL, CONFIG_TYPE_NONE }} };
 
-struct lxdream_config_group lxdream_config_root[MAX_ROOT_GROUPS+1] = 
-       {{ "global", global_config },
-        { "controllers", NULL },
-        { "hotkeys", hotkeys_config },
-        { "serial", serial_config },
-        { NULL, CONFIG_TYPE_NONE }};
+/**
+ * Dummy group for controllers (handled specially)
+ */
+static struct lxdream_config_group controllers_group =
+    { "controllers", NULL, NULL, NULL, {{NULL, CONFIG_TYPE_NONE}} };
+
+struct lxdream_config_group *lxdream_config_root[MAX_ROOT_GROUPS+1] = 
+       { &global_group, &controllers_group, &hotkeys_group, &serial_group, NULL };
 
 static gchar *lxdream_config_load_filename = NULL;
 static gchar *lxdream_config_save_filename = NULL;
 
-void lxdream_register_config_group( const gchar *key, lxdream_config_entry_t group )
+void lxdream_register_config_group( const gchar *key, lxdream_config_group_t group )
 {
     int i;
     for( i=0; i<MAX_ROOT_GROUPS; i++ ) {
-        if( lxdream_config_root[i].key == NULL ) {
-            lxdream_config_root[i].key = key;
-            lxdream_config_root[i].params = group;
-            lxdream_config_root[i+1].key = NULL;
-            lxdream_config_root[i+1].params = CONFIG_TYPE_NONE;
+        if( lxdream_config_root[i] == NULL ) {
+            lxdream_config_root[i] = group;
+            lxdream_config_root[i+1] = NULL;
             return;
         }
     }
@@ -129,16 +130,15 @@ void lxdream_set_default_config( )
 {
     /* Construct platform dependent defaults */
     const gchar *user_path = get_user_data_path();
-    global_config[CONFIG_BIOS_PATH].default_value = g_strdup_printf( "%s/dcboot.rom", user_path ); 
-    global_config[CONFIG_FLASH_PATH].default_value = g_strdup_printf( "%s/dcflash.rom", user_path ); 
-    global_config[CONFIG_SAVE_PATH].default_value = g_strdup_printf( "%s/save", user_path ); 
-    global_config[CONFIG_VMU_PATH].default_value = g_strdup_printf( "%s/vmu", user_path ); 
-    global_config[CONFIG_BOOTSTRAP].default_value = g_strdup_printf( "%s/IP.BIN", user_path ); 
+    global_group.params[CONFIG_BIOS_PATH].default_value = g_strdup_printf( "%s/dcboot.rom", user_path ); 
+    global_group.params[CONFIG_FLASH_PATH].default_value = g_strdup_printf( "%s/dcflash.rom", user_path ); 
+    global_group.params[CONFIG_SAVE_PATH].default_value = g_strdup_printf( "%s/save", user_path ); 
+    global_group.params[CONFIG_VMU_PATH].default_value = g_strdup_printf( "%s/vmu", user_path ); 
+    global_group.params[CONFIG_BOOTSTRAP].default_value = g_strdup_printf( "%s/IP.BIN", user_path ); 
     
     /* Copy defaults into main values */
-    struct lxdream_config_group *group = lxdream_config_root;
-    while( group->key != NULL ) {
-        struct lxdream_config_entry *param = group->params;
+    for( int i=0; lxdream_config_root[i] != NULL; i++ ) {
+        struct lxdream_config_entry *param = lxdream_config_root[i]->params;
         if( param != NULL ) {
             while( param->key != NULL ) {
                 if( param->value != param->default_value ) {
@@ -149,14 +149,53 @@ void lxdream_set_default_config( )
                 param++;
             }
         }
-        group++;
     }
     maple_detach_all();
 }
 
+const gchar *lxdream_get_config_value( lxdream_config_group_t group, int key )
+{
+    return group->params[key].value;
+}
+
+
+gboolean lxdream_set_config_value( lxdream_config_group_t group, int key, const gchar *value )
+{
+    lxdream_config_entry_t param = &group->params[key];
+    if( param->value != value &&
+        (param->value == NULL || value == NULL || strcmp(param->value,value) != 0)  ) {
+
+        gchar *new_value = g_strdup(value);
+
+        /* If the group defines an on_change handler, it can block the change
+         * (ie due to an invalid setting).
+         */
+        if( group->on_change == NULL ||
+            group->on_change(group->data, group,key, param->value, new_value) ) {
+
+            /* Don't free the default value, but otherwise need to release the
+             * old value.
+             */
+            if( param->value != param->default_value && param->value != NULL ) {
+                free( param->value );
+            }
+            param->value = new_value;
+        } else { /* on_change handler said no. */
+            g_free(new_value);
+            return FALSE;
+        }
+    }
+    return TRUE;
+}
+
 const gchar *lxdream_get_global_config_value( int key )
 {
-    return global_config[key].value;
+    return global_group.params[key].value;
+}
+
+void lxdream_set_global_config_value( int key, const gchar *value )
+{
+    lxdream_set_config_value(&global_group, key, value);
 }
 
 GList *lxdream_get_global_config_list_value( int key )
@@ -213,44 +252,38 @@ const gchar *lxdream_set_global_config_path_value( int key, const gchar *value )
     return lxdream_get_global_config_value(key);
 }
 
-void lxdream_set_config_value( lxdream_config_entry_t param, const gchar *value )
+struct lxdream_config_group * lxdream_get_config_group( int group )
 {
-    if( param->value != value ) {
-        if( param->value != param->default_value && param->value != NULL ) {
-            free( param->value );
-        }
-        param->value = g_strdup(value);
-    }
+    return lxdream_config_root[group];
 }
 
-void lxdream_set_global_config_value( int key, const gchar *value )
-{
-    lxdream_set_config_value(&global_config[key], value);
-}
-
-const struct lxdream_config_entry * lxdream_get_global_config_entry( int key )
-{
-    return &global_config[key];
-}
-
-gboolean lxdream_set_group_value( lxdream_config_group_t group, const gchar *key, const gchar *value )
+void lxdream_copy_config_group( lxdream_config_group_t dest, lxdream_config_group_t src )
 {
     int i;
-    for( i=0; group->params[i].key != NULL; i++ ) {
-        if( strcasecmp( group->params[i].key, key ) == 0 ) {
-            lxdream_set_config_value( &group->params[i], value );
-            return TRUE;
-        }
+    for( i=0; src->params[i].key != NULL; i++ ) {
+        lxdream_set_config_value( dest, i, src->params[i].value );
     }
-    return FALSE;
 }
 
-void lxdream_copy_config_list( lxdream_config_entry_t dest, lxdream_config_entry_t src )
+void lxdream_clone_config_group( lxdream_config_group_t dest, lxdream_config_group_t src )
 {
     int i;
-    for( i=0; src[i].key != NULL; i++ ) {
-        lxdream_set_config_value( &dest[i], src[i].value );
+
+    dest->key = src->key;
+    dest->on_change = NULL;
+    dest->key_binding = NULL;
+    dest->data = NULL;
+    for( i=0; src->params[i].key != NULL; i++ ) {
+        dest->params[i].key = src->params[i].key;
+        dest->params[i].label = src->params[i].label;
+        dest->params[i].type = src->params[i].type;
+        dest->params[i].tag = src->params[i].tag;
+        dest->params[i].default_value = src->params[i].default_value;
+        dest->params[i].value = NULL;
+        lxdream_set_config_value( dest, i, src->params[i].value );
     }
+    dest->params[i].key = NULL;
+    dest->params[i].label = NULL;
 }
 
 gboolean lxdream_load_config( )
@@ -296,9 +329,9 @@ gboolean lxdream_load_config_stream( FILE *f )
 {
 
     char buf[512];
-    int maple_device = -1, maple_subdevice = -1;
-    struct lxdream_config_group devgroup;
+    int maple_device = -1, maple_subdevice = -1, i;
     struct lxdream_config_group *group = NULL;
+    struct lxdream_config_group *top_group = NULL;
     maple_device_t device = NULL;
     lxdream_set_default_config();
 
@@ -309,17 +342,14 @@ gboolean lxdream_load_config_stream( FILE *f )
         if( *buf == '[' ) {
             char *p = strchr(buf, ']');
             if( p != NULL ) {
-                struct lxdream_config_group *tmp_group;
                 maple_device = maple_subdevice = -1;
                 *p = '\0';
                 g_strstrip(buf+1);
-                tmp_group = &lxdream_config_root[0];
-                while( tmp_group->key != NULL ) {
-                    if( strcasecmp(tmp_group->key, buf+1) == 0 ) {
-                        group = tmp_group;
+                for( i=0; lxdream_config_root[i] != NULL; i++ ) {
+                    if( strcasecmp(lxdream_config_root[i]->key, buf+1) == 0 ) {
+                        top_group = group = lxdream_config_root[i];
                         break;
                     }
-                    tmp_group++;
                 }
             }
         } else if( group != NULL ) {
@@ -330,7 +360,7 @@ gboolean lxdream_load_config_stream( FILE *f )
                 value++;
                 g_strstrip(buf);
                 g_strstrip(value);
-                if( strcmp(group->key,"controllers") == 0  ) {
+                if( top_group == &controllers_group ) {
                     if( g_strncasecmp( buf, "device ", 7 ) == 0 ) {
                         maple_device = strtoul( buf+7, NULL, 0 );
                         if( maple_device < 0 || maple_device > 3 ) {
@@ -342,10 +372,8 @@ gboolean lxdream_load_config_stream( FILE *f )
                         if( device == NULL ) {
                             ERROR( "Unrecognized device '%s'", value );
                         } else {
-                            devgroup.key = "controllers";
-                            devgroup.params = maple_get_device_config(device);
+                            group = maple_get_device_config(device);
                             maple_attach_device( device, maple_device, maple_subdevice );
-                            group = &devgroup;
                         }
                         continue;
                     } else if( g_strncasecmp( buf, "subdevice ", 10 ) == 0 ) {
@@ -357,10 +385,8 @@ gboolean lxdream_load_config_stream( FILE *f )
                         } else if( (device = maple_new_device(value)) == NULL ) {
                             ERROR( "Unrecognized subdevice '%s'", value );
                         } else {
-                            devgroup.key = "controllers";
-                            devgroup.params = maple_get_device_config(device);
+                            group = maple_get_device_config(device);
                             maple_attach_device( device, maple_device, maple_subdevice );
-                            group = &devgroup;
                         }
                         continue;
                     }
@@ -393,20 +419,11 @@ gboolean lxdream_save_config_file( const gchar *filename )
 
 gboolean lxdream_save_config_stream( FILE *f )
 {
-    struct lxdream_config_group *group = &lxdream_config_root[0];
+    int i;
+    for( i=0; lxdream_config_root[i] != NULL; i++ ) {
+        fprintf( f, "[%s]\n", lxdream_config_root[i]->key );
 
-    while( group->key != NULL ) {
-        struct lxdream_config_entry *entry = group->params;
-        fprintf( f, "[%s]\n", group->key );
-
-        if( entry != NULL ) {
-            while( entry->key != NULL ) {
-                if( entry->value != NULL ) {
-                    fprintf( f, "%s = %s\n", entry->key, entry->value );
-                }
-                entry++;
-            }
-        } else if( strcmp(group->key, "controllers") == 0 ) {
+        if( lxdream_config_root[i] == &controllers_group ) {
             int i,j;
             for( i=0; i<4; i++ ) {
                 for( j=0; j<6; j++ ) {
@@ -416,7 +433,9 @@ gboolean lxdream_save_config_stream( FILE *f )
                             fprintf( f, "Device %d = %s\n", i, dev->device_class->name );
                         else 
                             fprintf( f, "Subdevice %d = %s\n", j, dev->device_class->name );
-                        if( dev->get_config != NULL && ((entry = dev->get_config(dev)) != NULL) ) {
+                        lxdream_config_group_t group = maple_get_device_config(dev);
+                        if( group != NULL ) {
+                            lxdream_config_entry_t entry = group->params;
                             while( entry->key != NULL ) {
                                 if( entry->value != NULL ) {
                                     fprintf( f, "%*c%s = %s\n", j==0?4:8, ' ',entry->key, entry->value );
@@ -427,9 +446,16 @@ gboolean lxdream_save_config_stream( FILE *f )
                     }
                 }
             }
+        } else {
+            struct lxdream_config_entry *entry = lxdream_config_root[i]->params;
+            while( entry->key != NULL ) {
+                if( entry->value != NULL ) {
+                    fprintf( f, "%s = %s\n", entry->key, entry->value );
+                }
+                entry++;
+            }
         }
         fprintf( f, "\n" );
-        group++;
     }
     return TRUE;
 }

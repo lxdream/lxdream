@@ -57,8 +57,9 @@
 static void vmu_destroy( maple_device_t dev );
 static maple_device_t vmu_clone( maple_device_t dev );
 static maple_device_t vmu_new();
-static lxdream_config_entry_t vmu_get_config( maple_device_t dev );
-static void vmu_set_config_value( maple_device_t dev, unsigned int key, const gchar *value );
+static lxdream_config_group_t vmu_get_config( maple_device_t dev );
+static gboolean vmu_set_config_value( void *data, lxdream_config_group_t group, unsigned int key,
+                                      const gchar *oldvalue, const gchar *value );
 static int vmu_get_condition( maple_device_t dev, int function, unsigned char *outbuf,
                               unsigned int *outlen );
 static int vmu_get_meminfo( maple_device_t dev, int function, unsigned int pt, 
@@ -76,25 +77,31 @@ typedef struct vmu_device {
     struct maple_device dev;
     vmu_volume_t vol;
     char lcd_bitmap[VMU_LCD_SIZE]; /* 48x32 bitmap */
-    struct lxdream_config_entry config[VMU_CONFIG_ENTRIES+1];
+    struct lxdream_config_group config;
 } *vmu_device_t;
+
+#define DEV_FROM_CONFIG_GROUP(grp)  ((vmu_device_t)(((char *)grp) - offsetof( struct vmu_device, config )))
 
 struct maple_device_class vmu_class = { "Sega VMU", MAPLE_GRAB_DONTCARE, vmu_new };
 
 static struct vmu_device base_vmu = {
         { MAPLE_DEVICE_TAG, &vmu_class,
           VMU_IDENT, VMU_VERSION, 
-          vmu_get_config, vmu_set_config_value, 
+          vmu_get_config,
           vmu_attach, vmu_detach, vmu_destroy,
           vmu_clone, NULL, NULL, vmu_get_condition, NULL,
           vmu_get_meminfo, vmu_read_block, vmu_write_block, NULL, NULL },
-          NULL, {0}, 
+          NULL, {0},
+          {"Sega VMU", vmu_set_config_value, NULL, NULL,
           {{ "volume", N_("Volume"), CONFIG_TYPE_FILE },
-           { NULL, CONFIG_TYPE_NONE }} };
+           { NULL, CONFIG_TYPE_NONE }}} };
+
+
 
 static maple_device_t vmu_new( )
 {
     vmu_device_t dev = malloc( sizeof(struct vmu_device) );
+    dev->config.data = dev;
     memcpy( dev, &base_vmu, sizeof(base_vmu) );
     return MAPLE_DEVICE(dev);
 }
@@ -103,41 +110,38 @@ static maple_device_t vmu_clone( maple_device_t srcdevice )
 {
     vmu_device_t src = (vmu_device_t)srcdevice;
     vmu_device_t dev = (vmu_device_t)vmu_new();
-    lxdream_copy_config_list( dev->config, src->config );
+    lxdream_copy_config_group( &dev->config, &src->config );
+    dev->config.data = dev;
     return MAPLE_DEVICE(dev);
 }
 
-static lxdream_config_entry_t vmu_get_config( maple_device_t mdev )
+static lxdream_config_group_t vmu_get_config( maple_device_t mdev )
 {
     vmu_device_t dev = (vmu_device_t)mdev;
-    return dev->config;
+    return &dev->config;
 }
 
-static void vmu_set_config_value( maple_device_t dev, unsigned int key, const gchar *value )
+static gboolean vmu_set_config_value( void *data, lxdream_config_group_t group, unsigned int key,
+                                      const gchar *oldvalue, const gchar *value )
 {
-    vmu_device_t vmu = (vmu_device_t)dev;
+    vmu_device_t vmu = (vmu_device_t)data;
     assert( key < VMU_CONFIG_ENTRIES );
     
-    if( value == vmu->config[key].value ||
-        value != NULL && vmu->config[key].value != NULL && strcmp(vmu->config[key].value, value) == 0 ) {
-        return; /* Unchanged */
-    }
-
     if( vmu->vol != NULL ) {
         vmulist_detach_vmu(vmu->vol);
     }
-    lxdream_set_config_value( &vmu->config[key], value );
     vmu->vol = vmulist_get_vmu_by_filename( value );
     if( vmu->vol != NULL ) {
         vmulist_attach_vmu(vmu->vol, "MAPLE");
     }
+    return TRUE;
 }
 
 void vmu_attach(struct maple_device *dev)
 {
     vmu_device_t vmu = (vmu_device_t)dev;
-    if( vmu->config[0].value != NULL ) {
-        vmu->vol = vmulist_get_vmu_by_filename(vmu->config[0].value);
+    if( vmu->config.params[0].value != NULL ) {
+        vmu->vol = vmulist_get_vmu_by_filename(vmu->config.params[0].value);
         if( vmu->vol != NULL ) {
             vmulist_attach_vmu(vmu->vol, "MAPLE");
         }
@@ -162,6 +166,7 @@ static void vmu_destroy( maple_device_t dev )
 static int vmu_get_condition(struct maple_device *dev, int function, 
                       unsigned char *outbuf, unsigned int *buflen)
 {
+    return 0;
 }
 static int vmu_set_condition(struct maple_device *dev, int function, 
                       unsigned char *inbuf, unsigned int buflen)

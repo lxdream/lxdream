@@ -86,8 +86,8 @@ extern "C" {
 /* Some convenience methods for VMU handling */
 #define MAPLE_IS_VMU(dev)  ((dev)->device_class == &vmu_class)
 #define MAPLE_IS_VMU_CLASS(clz)  ((clz) == &vmu_class)
-#define MAPLE_VMU_NAME(dev) (((dev)->get_config(dev))[0].value)
-#define MAPLE_SET_VMU_NAME(dev,name) ((dev)->set_config_value((dev),0,(name)))
+#define MAPLE_VMU_NAME(dev) (((dev)->get_config(dev))->params[0].value)
+#define MAPLE_SET_VMU_NAME(dev,name) lxdream_set_config_value( (dev)->get_config(dev), 0 ,(name) )
 #define MAPLE_VMU_HAS_NAME(d1,name) (MAPLE_VMU_NAME(d1) == NULL ? name == NULL : \
     name != NULL && strcmp(MAPLE_VMU_NAME(d1),name) == 0)
 #define MAPLE_IS_SAME_VMU(d1,d2) (MAPLE_VMU_NAME(d1) == NULL ? MAPLE_VMU_NAME(d2) == NULL : \
@@ -99,6 +99,7 @@ typedef struct maple_device *maple_device_t;
 struct maple_device_class {
     const char *name;
     int flags;
+
     maple_device_t (*new_device)();
 };
 
@@ -110,8 +111,7 @@ struct maple_device {
     maple_device_class_t device_class;
     unsigned char ident[112];
     unsigned char version[80];
-    lxdream_config_entry_t (*get_config)(struct maple_device *dev);
-    void (*set_config_value)(struct maple_device *dev, unsigned int key, const gchar *value);
+    lxdream_config_group_t (*get_config)(struct maple_device *dev);
     void (*attach)(struct maple_device *dev);
     void (*detach)(struct maple_device *dev);
     void (*destroy)(struct maple_device *dev);
@@ -142,8 +142,7 @@ maple_device_t maple_new_device( const gchar *name );
 maple_device_t maple_get_device( unsigned int port, unsigned int periph );
 const struct maple_device_class *maple_get_device_class( const gchar *name );
 const struct maple_device_class **maple_get_device_classes();
-lxdream_config_entry_t maple_get_device_config( maple_device_t dev );
-void maple_set_device_config_value( maple_device_t dev, unsigned int key, const gchar *value );
+lxdream_config_group_t maple_get_device_config( maple_device_t dev );
 
 void maple_handle_buffer( uint32_t buffer );
 void maple_attach_device( maple_device_t dev, unsigned int port, unsigned int periph );
@@ -151,6 +150,7 @@ void maple_detach_device( unsigned int port, unsigned int periph );
 void maple_detach_all( );
 void maple_reattach_all( );
 gboolean maple_should_grab();
+
 
 /**
  * Default destroy implementation that just frees the dev memory.

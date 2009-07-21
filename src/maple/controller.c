@@ -79,18 +79,17 @@
 
 static void controller_attach( maple_device_t dev );
 static void controller_detach( maple_device_t dev );
-static void controller_destroy( maple_device_t dev );
+static void controller_key_callback( void *mdev, uint32_t value, uint32_t pressure, gboolean isKeyDown );
 static maple_device_t controller_clone( maple_device_t dev );
 static maple_device_t controller_new();
-static lxdream_config_entry_t controller_get_config( maple_device_t dev );
-static void controller_set_config_value( maple_device_t dev, unsigned int key, const gchar *value );
+static lxdream_config_group_t controller_get_config( maple_device_t dev );
 static int controller_get_cond( maple_device_t dev, int function, unsigned char *outbuf,
                          unsigned int *outlen );
 
 typedef struct controller_device {
     struct maple_device dev;
     uint32_t condition[2];
-    struct lxdream_config_entry config[CONTROLLER_CONFIG_ENTRIES+1];
+    struct lxdream_config_group config;
 } *controller_device_t;
 
 struct maple_device_class controller_class = { "Sega Controller",
@@ -99,26 +98,30 @@ struct maple_device_class controller_class = { "Sega Controller",
 static struct controller_device base_controller = {
         { MAPLE_DEVICE_TAG, &controller_class,
           CONTROLLER_IDENT, CONTROLLER_VERSION, 
-          controller_get_config, controller_set_config_value, 
-          controller_attach, controller_detach, controller_destroy,
+          controller_get_config,
+          controller_attach, controller_detach, maple_default_destroy,
           controller_clone, NULL, NULL, controller_get_cond, NULL, NULL, NULL, NULL, NULL, NULL },
-          {0x0000FFFF, 0x80808080}, 
-          {{ "dpad left", N_("Dpad left"), CONFIG_TYPE_KEY },
-           { "dpad right", N_("Dpad right"), CONFIG_TYPE_KEY },
-           { "dpad up", N_("Dpad up"), CONFIG_TYPE_KEY },
-           { "dpad down", N_("Dpad down"), CONFIG_TYPE_KEY },
-           { "analog left", N_("Analog left"), CONFIG_TYPE_KEY },
-           { "analog right", N_("Analog right"), CONFIG_TYPE_KEY },
-           { "analog up", N_("Analog up"), CONFIG_TYPE_KEY },
-           { "analog down", N_("Analog down"), CONFIG_TYPE_KEY },
-           { "button X", N_("Button X"), CONFIG_TYPE_KEY },
-           { "button Y", N_("Button Y"), CONFIG_TYPE_KEY },
-           { "button A", N_("Button A"), CONFIG_TYPE_KEY },
-           { "button B", N_("Button B"), CONFIG_TYPE_KEY },
-           { "trigger left", N_("Trigger left"), CONFIG_TYPE_KEY },
-           { "trigger right", N_("Trigger right"), CONFIG_TYPE_KEY },
-           { "start", N_("Start button"), CONFIG_TYPE_KEY },
-           { NULL, CONFIG_TYPE_NONE }} };
+          {0x0000FFFF, 0x80808080},
+          {"Sega Controller", NULL, controller_key_callback, NULL,
+           {{ "dpad left", N_("Dpad left"), CONFIG_TYPE_KEY, NULL, BUTTON_DPAD_LEFT },
+            { "dpad right", N_("Dpad right"), CONFIG_TYPE_KEY, NULL, BUTTON_DPAD_RIGHT },
+            { "dpad up", N_("Dpad up"), CONFIG_TYPE_KEY, NULL, BUTTON_DPAD_UP },
+            { "dpad down", N_("Dpad down"), CONFIG_TYPE_KEY, NULL, BUTTON_DPAD_DOWN },
+            { "analog left", N_("Analog left"), CONFIG_TYPE_KEY, NULL, JOY_LEFT },
+            { "analog right", N_("Analog right"), CONFIG_TYPE_KEY, NULL, JOY_RIGHT },
+            { "analog up", N_("Analog up"), CONFIG_TYPE_KEY, NULL, JOY_UP },
+            { "analog down", N_("Analog down"), CONFIG_TYPE_KEY, NULL, JOY_DOWN },
+            { "button X", N_("Button X"), CONFIG_TYPE_KEY, NULL, BUTTON_X },
+            { "button Y", N_("Button Y"), CONFIG_TYPE_KEY, NULL, BUTTON_Y },
+            { "button A", N_("Button A"), CONFIG_TYPE_KEY, NULL, BUTTON_A },
+            { "button B", N_("Button B"), CONFIG_TYPE_KEY, NULL, BUTTON_B },
+            { "trigger left", N_("Trigger left"), CONFIG_TYPE_KEY, NULL, BUTTON_LEFT_TRIGGER },
+            { "trigger right", N_("Trigger right"), CONFIG_TYPE_KEY, NULL, BUTTON_RIGHT_TRIGGER },
+            { "start", N_("Start button"), CONFIG_TYPE_KEY, NULL, BUTTON_START },
+            { NULL, CONFIG_TYPE_NONE }}}  };
+
+/* Get the controller_device * from a lxdream_config_group_t */
+#define DEV_FROM_CONFIG_GROUP(grp)  ((controller_device_t)(((char *)grp) - offsetof( struct controller_device, config )))
 
 static int config_button_map[] = { 
         BUTTON_DPAD_LEFT, BUTTON_DPAD_RIGHT, BUTTON_DPAD_UP, BUTTON_DPAD_DOWN,
@@ -129,8 +132,9 @@ static int config_button_map[] = {
 
 static maple_device_t controller_new( )
 {
-    controller_device_t dev = malloc( sizeof(struct controller_device) );
+    controller_device_t dev = malloc( sizeof(base_controller) );
     memcpy( dev, &base_controller, sizeof(base_controller) );
+    dev->config.data = dev;
     return MAPLE_DEVICE(dev);
 }
 
@@ -138,7 +142,7 @@ static maple_device_t controller_clone( maple_device_t srcdevice )
 {
     controller_device_t src = (controller_device_t)srcdevice;
     controller_device_t dev = (controller_device_t)controller_new();
-    lxdream_copy_config_list( dev->config, src->config );
+    lxdream_copy_config_group( &dev->config, &src->config );
     memcpy( dev->condition, src->condition, sizeof(src->condition) );
     return MAPLE_DEVICE(dev);
 }
@@ -194,25 +198,10 @@ static void controller_key_callback( void *mdev, uint32_t value, uint32_t pressu
     }
 }
 
-static lxdream_config_entry_t controller_get_config( maple_device_t mdev )
+static lxdream_config_group_t controller_get_config( maple_device_t mdev )
 {
     controller_device_t dev = (controller_device_t)mdev;
-    return dev->config;
-}
-
-static void controller_set_config_value( maple_device_t mdev, unsigned int key, const gchar *value )
-{
-    controller_device_t dev = (controller_device_t)mdev;
-    assert( key < CONTROLLER_CONFIG_ENTRIES );
-    
-    input_unregister_key( dev->config[key].value, controller_key_callback, dev, config_button_map[key] );
-    lxdream_set_config_value( &dev->config[key], value );
-    input_register_key( dev->config[key].value, controller_key_callback, dev, config_button_map[key] );
-}
-
-static void controller_destroy( maple_device_t mdev )
-{
-    free( mdev );
+    return &dev->config;
 }
 
 /**
@@ -222,20 +211,15 @@ static void controller_destroy( maple_device_t mdev )
 static void controller_attach( maple_device_t mdev )
 {
     controller_device_t dev = (controller_device_t)mdev;
-    int i;
-    for( i=0; i<CONTROLLER_CONFIG_ENTRIES; i++ ) {
-        input_register_key( dev->config[i].value, controller_key_callback, dev, config_button_map[i] );
-    }
+    dev->config.on_change = input_keygroup_changed;
+    input_register_keygroup( &dev->config );
 }
 
 static void controller_detach( maple_device_t mdev )
 {
     controller_device_t dev = (controller_device_t)mdev;
-    int i;
-    for( i=0; i<CONTROLLER_CONFIG_ENTRIES; i++ ) {
-        input_unregister_key( dev->config[i].value, controller_key_callback, dev, config_button_map[i] );
-    }
-
+    input_unregister_keygroup( &dev->config );
+    dev->config.on_change = NULL;
 }
 
 

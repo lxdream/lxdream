@@ -57,19 +57,22 @@ static void lightgun_detach( maple_device_t dev );
 static void lightgun_destroy( maple_device_t dev );
 static maple_device_t lightgun_clone( maple_device_t dev );
 static maple_device_t lightgun_new();
-static lxdream_config_entry_t lightgun_get_config( maple_device_t dev );
-static void lightgun_set_config_value( maple_device_t dev, unsigned int key, const gchar *value );
+static void lightgun_key_callback( void *mdev, uint32_t value, uint32_t pressure, gboolean isKeyDown );
+static lxdream_config_group_t lightgun_get_config( maple_device_t dev );
 static int lightgun_get_cond( maple_device_t dev, int function, unsigned char *outbuf,
                          unsigned int *outlen );
 static void lightgun_start_gun( maple_device_t dev );
 static void lightgun_stop_gun( maple_device_t dev );
+
+static gboolean lightgun_set_config_value( lxdream_config_group_t group, unsigned int key,
+                                           const gchar *oldvalue, const gchar *value );
 
 typedef struct lightgun_device {
     struct maple_device dev;
     uint32_t condition[2];
     int gun_active;
     int mouse_x, mouse_y;
-    struct lxdream_config_entry config[LIGHTGUN_CONFIG_ENTRIES+1];
+    struct lxdream_config_group config;
 } *lightgun_device_t;
 
 struct maple_device_class lightgun_class = { "Sega Lightgun", 
@@ -78,30 +81,29 @@ struct maple_device_class lightgun_class = { "Sega Lightgun",
 static struct lightgun_device base_lightgun = {
         { MAPLE_DEVICE_TAG, &lightgun_class,
           LIGHTGUN_IDENT, LIGHTGUN_VERSION, 
-          lightgun_get_config, lightgun_set_config_value, 
+          lightgun_get_config,
           lightgun_attach, lightgun_detach, lightgun_destroy,
           lightgun_clone, NULL, NULL, lightgun_get_cond, NULL, NULL, NULL, NULL,
           lightgun_start_gun, lightgun_stop_gun},
-          {0x0000FFFF, 0x80808080}, 0, -1, -1, 
-          {{ "dpad left", N_("Dpad left"), CONFIG_TYPE_KEY },
-           { "dpad right", N_("Dpad right"), CONFIG_TYPE_KEY },
-           { "dpad up", N_("Dpad up"), CONFIG_TYPE_KEY },
-           { "dpad down", N_("Dpad down"), CONFIG_TYPE_KEY },
-           { "button A", N_("Button A"), CONFIG_TYPE_KEY },
-           { "button B", N_("Button B"), CONFIG_TYPE_KEY },
-           { "start", N_("Start button"), CONFIG_TYPE_KEY },
-           { NULL, CONFIG_TYPE_NONE }} };
+          {0x0000FFFF, 0x80808080}, 0, -1, -1,
+          {"Sega Lightgun", NULL, lightgun_key_callback, NULL,
+           {{ "dpad left", N_("Dpad left"), CONFIG_TYPE_KEY, NULL, BUTTON_DPAD_LEFT },
+            { "dpad right", N_("Dpad right"), CONFIG_TYPE_KEY, NULL, BUTTON_DPAD_RIGHT },
+            { "dpad up", N_("Dpad up"), CONFIG_TYPE_KEY, NULL, BUTTON_DPAD_UP },
+            { "dpad down", N_("Dpad down"), CONFIG_TYPE_KEY, NULL, BUTTON_DPAD_DOWN },
+            { "button A", N_("Button A"), CONFIG_TYPE_KEY, NULL, BUTTON_A },
+            { "button B", N_("Button B"), CONFIG_TYPE_KEY, NULL, BUTTON_B },
+            { "start", N_("Start button"), CONFIG_TYPE_KEY, NULL, BUTTON_START },
+            { NULL, CONFIG_TYPE_NONE }}}  };
 
-static int config_button_map[] = { 
-        BUTTON_DPAD_LEFT, BUTTON_DPAD_RIGHT, BUTTON_DPAD_UP, BUTTON_DPAD_DOWN,
-        BUTTON_A, BUTTON_B, BUTTON_START };
-        
+
 #define lightgun(x) ((lightgun_device_t)(x))
 
 static maple_device_t lightgun_new( )
 {
     lightgun_device_t dev = malloc( sizeof(struct lightgun_device) );
     memcpy( dev, &base_lightgun, sizeof(base_lightgun) );
+    dev->config.data = dev;
     return MAPLE_DEVICE(dev);
 }
 
@@ -109,9 +111,20 @@ static maple_device_t lightgun_clone( maple_device_t srcdevice )
 {
     lightgun_device_t src = (lightgun_device_t)srcdevice;
     lightgun_device_t dev = (lightgun_device_t)lightgun_new();
-    lxdream_copy_config_list( dev->config, src->config );
+    lxdream_copy_config_group( &dev->config, &src->config );
     memcpy( dev->condition, src->condition, sizeof(src->condition) );
     return MAPLE_DEVICE(dev);
+}
+
+static lxdream_config_group_t lightgun_get_config( maple_device_t mdev )
+{
+    lightgun_device_t dev = (lightgun_device_t)mdev;
+    return &dev->config;
+}
+
+static void lightgun_destroy( maple_device_t mdev )
+{
+    free( mdev );
 }
 
 /**
@@ -126,28 +139,6 @@ static void lightgun_key_callback( void *mdev, uint32_t value, uint32_t pressure
         dev->condition[0] |= value;
     }
 }
-
-static lxdream_config_entry_t lightgun_get_config( maple_device_t mdev )
-{
-    lightgun_device_t dev = (lightgun_device_t)mdev;
-    return dev->config;
-}
-
-static void lightgun_set_config_value( maple_device_t mdev, unsigned int key, const gchar *value )
-{
-    lightgun_device_t dev = (lightgun_device_t)mdev;
-    assert( key < LIGHTGUN_CONFIG_ENTRIES );
-    
-    input_unregister_key( dev->config[key].value, lightgun_key_callback, dev, config_button_map[key] );
-    lxdream_set_config_value( &dev->config[key], value );
-    input_register_key( dev->config[key].value, lightgun_key_callback, dev, config_button_map[key] );
-}
-
-static void lightgun_destroy( maple_device_t mdev )
-{
-    free( mdev );
-}
-
 
 static void lightgun_mouse_callback( void *mdev, uint32_t buttons, int32_t x, int32_t y, gboolean absolute )
 {
@@ -169,21 +160,16 @@ static void lightgun_mouse_callback( void *mdev, uint32_t buttons, int32_t x, in
 static void lightgun_attach( maple_device_t mdev )
 {
     lightgun_device_t dev = (lightgun_device_t)mdev;
-    int i;
-    for( i=0; i<LIGHTGUN_CONFIG_ENTRIES; i++ ) {
-        input_register_key( dev->config[i].value, lightgun_key_callback, dev, config_button_map[i] );
-    }
+    dev->config.on_change = input_keygroup_changed;
+    input_register_keygroup( &dev->config );
     input_register_mouse_hook( TRUE, lightgun_mouse_callback, dev );
-    
 }
 
 static void lightgun_detach( maple_device_t mdev )
 {
     lightgun_device_t dev = (lightgun_device_t)mdev;
-    int i;
-    for( i=0; i<LIGHTGUN_CONFIG_ENTRIES; i++ ) {
-        input_unregister_key( dev->config[i].value, lightgun_key_callback, dev, config_button_map[i] );
-    }
+    input_unregister_keygroup( &dev->config );
+    dev->config.on_change = NULL;
     input_unregister_mouse_hook( lightgun_mouse_callback, dev );
 
 }

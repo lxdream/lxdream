@@ -60,7 +60,7 @@ struct maple_device_class mouse_class = { "Sega Mouse", MAPLE_GRAB_YES|MAPLE_TYP
 static struct mouse_device base_mouse = {
         { MAPLE_DEVICE_TAG, &mouse_class,
                 MOUSE_IDENT, MOUSE_VERSION, 
-                NULL, NULL, mouse_attach, mouse_detach, maple_default_destroy,
+                NULL, mouse_attach, mouse_detach, maple_default_destroy,
                 mouse_clone, NULL, NULL, mouse_get_cond, NULL, NULL, NULL, NULL, NULL, NULL },
                 0, {0,0,0,0,0,0,0,0}, 
 };

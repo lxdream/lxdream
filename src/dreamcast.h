@@ -35,6 +35,8 @@ extern "C" {
 #define XLAT_TEMP_CACHE_SIZE 2 MB
 #define XLAT_OLD_CACHE_SIZE 8 MB
 
+struct lxdream_config_group; // Forward declaration
+
 void dreamcast_configure(void);
 void dreamcast_configure_aica_only(void);
 void dreamcast_init(void);
@@ -44,9 +46,9 @@ void dreamcast_set_run_time( unsigned int seconds, unsigned int nanosecs );
 void dreamcast_set_exit_on_stop( gboolean flag );
 void dreamcast_stop(void);
 void dreamcast_shutdown(void);
-void dreamcast_config_changed(void);
 gboolean dreamcast_is_running(void);
-
+gboolean dreamcast_config_changed(void *data, struct lxdream_config_group *group, unsigned item,
+                                       const gchar *oldval, const gchar *newval);
 /**
  * Return if it's possible to start the VM - currently this requires 
  * a) A configured system

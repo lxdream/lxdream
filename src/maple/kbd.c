@@ -57,7 +57,7 @@ struct maple_device_class keyboard_class = { "Sega Keyboard", MAPLE_GRAB_DONTCAR
 static struct keyboard_device base_keyboard = {
         { MAPLE_DEVICE_TAG, &keyboard_class,
                 KEYBOARD_IDENT, KEYBOARD_VERSION, 
-                NULL, NULL, keyboard_attach, keyboard_detach, maple_default_destroy,
+                NULL, keyboard_attach, keyboard_detach, maple_default_destroy,
                 keyboard_clone, NULL, NULL, keyboard_get_cond, NULL, NULL, NULL,
                 NULL, NULL, NULL},
                 {0,0,0,0,0,0,0,0}, 

@@ -27,6 +27,7 @@
 #include <glib.h>
 #include "lxdream.h"
 #include "gettext.h"
+#include "config.h"
 #ifdef APPLE_BUILD
 #include <OpenGL/gl.h>
 #include <OpenGL/glext.h>
@@ -230,7 +231,7 @@ extern struct display_driver display_null_driver;
 /* Pressure is 0..127  (allowing a joystick to be defined as two half-axes of 7- bits each) */
 #define MAX_PRESSURE 0x7F
 
-typedef void (*input_key_callback_t)( void *data, uint32_t value, uint32_t pressure, gboolean isKeyDown );
+typedef key_binding_t input_key_callback_t;
 
 /**
  * Callback to receive mouse input events
@@ -251,6 +252,11 @@ gboolean input_register_key( const gchar *keysym, input_key_callback_t callback,
 
 void input_unregister_key( const gchar *keysym, input_key_callback_t callback,
                            void *data, uint32_t value );
+
+gboolean input_register_keygroup( lxdream_config_group_t group );
+void input_unregister_keygroup( lxdream_config_group_t group );
+gboolean input_keygroup_changed( void *data, lxdream_config_group_t group, unsigned key,
+                             const gchar *oldval, const gchar *newval );
 
 /**
  * Register a hook to receive all keyboard input events

@@ -52,14 +52,14 @@ pkglib_PROGRAMS = $(am__EXEEXT_2) $(am__EXEEXT_3) $(am__EXEEXT_4) \
 
 @BUILD_SH4X86_TRUE@am__append_3 = test/testsh4x86
 @GUI_GTK_TRUE@am__append_4 = gtkui/gtkui.c gtkui/gtkui.h \
-@GUI_GTK_TRUE@	gtkui/gtk_win.c gtkui/gtkcb.c \
+@GUI_GTK_TRUE@	gtkui/gtk_win.c gtkui/gtkcb.c gtkui/gtk_cfg.c \
 @GUI_GTK_TRUE@        gtkui/gtk_mmio.c gtkui/gtk_debug.c gtkui/gtk_dump.c \
-@GUI_GTK_TRUE@        gtkui/gtk_ctrl.c gtkui/gtk_path.c gtkui/gtk_gd.c \
-@GUI_GTK_TRUE@        gtkui/gtk_hotkeys.c drivers/net_glib.c drivers/video_gtk.c
+@GUI_GTK_TRUE@        gtkui/gtk_ctrl.c gtkui/gtk_gd.c \
+@GUI_GTK_TRUE@        drivers/net_glib.c drivers/video_gtk.c
 
-@GUI_COCOA_TRUE@am__append_5 = cocoaui/cocoaui.m cocoaui/cocoaui.h \
+@GUI_COCOA_TRUE@am__append_5 = cocoaui/cocoaui.m cocoaui/cocoaui.h cocoaui/cocoa_cfg.m \
 @GUI_COCOA_TRUE@	cocoaui/cocoa_win.m cocoaui/cocoa_gd.m cocoaui/cocoa_prefs.m \
-@GUI_COCOA_TRUE@	cocoaui/cocoa_path.m cocoaui/cocoa_ctrl.m cocoaui/paths_osx.m \
+@GUI_COCOA_TRUE@	cocoaui/cocoa_ctrl.m cocoaui/paths_osx.m \
 @GUI_COCOA_TRUE@	drivers/net_osx.m drivers/video_osx.m \
 @GUI_COCOA_TRUE@	drivers/mac_keymap.h drivers/mac_keymap.txt
 
@@ -174,13 +174,13 @@ am__lxdream_SOURCES_DIST = main.c version.c config.c config.h \
 	x86dasm/dis-init.c x86dasm/dis-buf.c x86dasm/ansidecl.h \
 	x86dasm/bfd.h x86dasm/dis-asm.h x86dasm/symcat.h \
 	x86dasm/sysdep.h gtkui/gtkui.c gtkui/gtkui.h gtkui/gtk_win.c \
-	gtkui/gtkcb.c gtkui/gtk_mmio.c gtkui/gtk_debug.c \
-	gtkui/gtk_dump.c gtkui/gtk_ctrl.c gtkui/gtk_path.c \
-	gtkui/gtk_gd.c gtkui/gtk_hotkeys.c drivers/net_glib.c \
-	drivers/video_gtk.c cocoaui/cocoaui.m cocoaui/cocoaui.h \
+	gtkui/gtkcb.c gtkui/gtk_cfg.c gtkui/gtk_mmio.c \
+	gtkui/gtk_debug.c gtkui/gtk_dump.c gtkui/gtk_ctrl.c \
+	gtkui/gtk_gd.c drivers/net_glib.c drivers/video_gtk.c \
+	cocoaui/cocoaui.m cocoaui/cocoaui.h cocoaui/cocoa_cfg.m \
 	cocoaui/cocoa_win.m cocoaui/cocoa_gd.m cocoaui/cocoa_prefs.m \
-	cocoaui/cocoa_path.m cocoaui/cocoa_ctrl.m cocoaui/paths_osx.m \
-	drivers/net_osx.m drivers/video_osx.m drivers/mac_keymap.h \
+	cocoaui/cocoa_ctrl.m cocoaui/paths_osx.m drivers/net_osx.m \
+	drivers/video_osx.m drivers/mac_keymap.h \
 	drivers/mac_keymap.txt paths_unix.c drivers/video_gdk.c \
 	drivers/video_glx.c drivers/video_glx.h drivers/video_nsgl.m \
 	drivers/video_nsgl.h drivers/audio_osx.m drivers/audio_sdl.c \
@@ -199,20 +199,19 @@ am__lxdream_SOURCES_DIST = main.c version.c config.c config.h \
 @GUI_GTK_TRUE@am__objects_3 = lxdream-gtkui.$(OBJEXT) \
 @GUI_GTK_TRUE@	lxdream-gtk_win.$(OBJEXT) \
 @GUI_GTK_TRUE@	lxdream-gtkcb.$(OBJEXT) \
+@GUI_GTK_TRUE@	lxdream-gtk_cfg.$(OBJEXT) \
 @GUI_GTK_TRUE@	lxdream-gtk_mmio.$(OBJEXT) \
 @GUI_GTK_TRUE@	lxdream-gtk_debug.$(OBJEXT) \
 @GUI_GTK_TRUE@	lxdream-gtk_dump.$(OBJEXT) \
 @GUI_GTK_TRUE@	lxdream-gtk_ctrl.$(OBJEXT) \
-@GUI_GTK_TRUE@	lxdream-gtk_path.$(OBJEXT) \
 @GUI_GTK_TRUE@	lxdream-gtk_gd.$(OBJEXT) \
-@GUI_GTK_TRUE@	lxdream-gtk_hotkeys.$(OBJEXT) \
 @GUI_GTK_TRUE@	lxdream-net_glib.$(OBJEXT) \
 @GUI_GTK_TRUE@	lxdream-video_gtk.$(OBJEXT)
 @GUI_COCOA_TRUE@am__objects_4 = lxdream-cocoaui.$(OBJEXT) \
+@GUI_COCOA_TRUE@	lxdream-cocoa_cfg.$(OBJEXT) \
 @GUI_COCOA_TRUE@	lxdream-cocoa_win.$(OBJEXT) \
 @GUI_COCOA_TRUE@	lxdream-cocoa_gd.$(OBJEXT) \
 @GUI_COCOA_TRUE@	lxdream-cocoa_prefs.$(OBJEXT) \
-@GUI_COCOA_TRUE@	lxdream-cocoa_path.$(OBJEXT) \
 @GUI_COCOA_TRUE@	lxdream-cocoa_ctrl.$(OBJEXT) \
 @GUI_COCOA_TRUE@	lxdream-paths_osx.$(OBJEXT) \
 @GUI_COCOA_TRUE@	lxdream-net_osx.$(OBJEXT) \
@@ -759,9 +758,9 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-cd_none.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-cd_osx.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-cdi.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-cocoa_cfg.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-cocoa_ctrl.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-cocoa_gd.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-cocoa_path.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-cocoa_prefs.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-cocoa_win.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-cocoaui.Po@am__quote@
@@ -785,13 +784,12 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-gl_slsrc.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-glrender.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-glutil.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-gtk_cfg.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-gtk_ctrl.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-gtk_debug.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-gtk_dump.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-gtk_gd.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-gtk_hotkeys.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-gtk_mmio.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-gtk_path.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-gtk_win.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-gtkcb.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-gtkui.Po@am__quote@
@@ -2100,6 +2098,20 @@ lxdream-gtkcb.obj: gtkui/gtkcb.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-gtkcb.obj `if test -f 'gtkui/gtkcb.c'; then $(CYGPATH_W) 'gtkui/gtkcb.c'; else $(CYGPATH_W) '$(srcdir)/gtkui/gtkcb.c'; fi`
 
+lxdream-gtk_cfg.o: gtkui/gtk_cfg.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-gtk_cfg.o -MD -MP -MF "$(DEPDIR)/lxdream-gtk_cfg.Tpo" -c -o lxdream-gtk_cfg.o `test -f 'gtkui/gtk_cfg.c' || echo '$(srcdir)/'`gtkui/gtk_cfg.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/lxdream-gtk_cfg.Tpo" "$(DEPDIR)/lxdream-gtk_cfg.Po"; else rm -f "$(DEPDIR)/lxdream-gtk_cfg.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gtkui/gtk_cfg.c' object='lxdream-gtk_cfg.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-gtk_cfg.o `test -f 'gtkui/gtk_cfg.c' || echo '$(srcdir)/'`gtkui/gtk_cfg.c
+
+lxdream-gtk_cfg.obj: gtkui/gtk_cfg.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-gtk_cfg.obj -MD -MP -MF "$(DEPDIR)/lxdream-gtk_cfg.Tpo" -c -o lxdream-gtk_cfg.obj `if test -f 'gtkui/gtk_cfg.c'; then $(CYGPATH_W) 'gtkui/gtk_cfg.c'; else $(CYGPATH_W) '$(srcdir)/gtkui/gtk_cfg.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/lxdream-gtk_cfg.Tpo" "$(DEPDIR)/lxdream-gtk_cfg.Po"; else rm -f "$(DEPDIR)/lxdream-gtk_cfg.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gtkui/gtk_cfg.c' object='lxdream-gtk_cfg.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-gtk_cfg.obj `if test -f 'gtkui/gtk_cfg.c'; then $(CYGPATH_W) 'gtkui/gtk_cfg.c'; else $(CYGPATH_W) '$(srcdir)/gtkui/gtk_cfg.c'; fi`
+
 lxdream-gtk_mmio.o: gtkui/gtk_mmio.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-gtk_mmio.o -MD -MP -MF "$(DEPDIR)/lxdream-gtk_mmio.Tpo" -c -o lxdream-gtk_mmio.o `test -f 'gtkui/gtk_mmio.c' || echo '$(srcdir)/'`gtkui/gtk_mmio.c; \
 @am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/lxdream-gtk_mmio.Tpo" "$(DEPDIR)/lxdream-gtk_mmio.Po"; else rm -f "$(DEPDIR)/lxdream-gtk_mmio.Tpo"; exit 1; fi
@@ -2156,20 +2168,6 @@ lxdream-gtk_ctrl.obj: gtkui/gtk_ctrl.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-gtk_ctrl.obj `if test -f 'gtkui/gtk_ctrl.c'; then $(CYGPATH_W) 'gtkui/gtk_ctrl.c'; else $(CYGPATH_W) '$(srcdir)/gtkui/gtk_ctrl.c'; fi`
 
-lxdream-gtk_path.o: gtkui/gtk_path.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-gtk_path.o -MD -MP -MF "$(DEPDIR)/lxdream-gtk_path.Tpo" -c -o lxdream-gtk_path.o `test -f 'gtkui/gtk_path.c' || echo '$(srcdir)/'`gtkui/gtk_path.c; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/lxdream-gtk_path.Tpo" "$(DEPDIR)/lxdream-gtk_path.Po"; else rm -f "$(DEPDIR)/lxdream-gtk_path.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gtkui/gtk_path.c' object='lxdream-gtk_path.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-gtk_path.o `test -f 'gtkui/gtk_path.c' || echo '$(srcdir)/'`gtkui/gtk_path.c
-
-lxdream-gtk_path.obj: gtkui/gtk_path.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-gtk_path.obj -MD -MP -MF "$(DEPDIR)/lxdream-gtk_path.Tpo" -c -o lxdream-gtk_path.obj `if test -f 'gtkui/gtk_path.c'; then $(CYGPATH_W) 'gtkui/gtk_path.c'; else $(CYGPATH_W) '$(srcdir)/gtkui/gtk_path.c'; fi`; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/lxdream-gtk_path.Tpo" "$(DEPDIR)/lxdream-gtk_path.Po"; else rm -f "$(DEPDIR)/lxdream-gtk_path.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gtkui/gtk_path.c' object='lxdream-gtk_path.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-gtk_path.obj `if test -f 'gtkui/gtk_path.c'; then $(CYGPATH_W) 'gtkui/gtk_path.c'; else $(CYGPATH_W) '$(srcdir)/gtkui/gtk_path.c'; fi`
-
 lxdream-gtk_gd.o: gtkui/gtk_gd.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-gtk_gd.o -MD -MP -MF "$(DEPDIR)/lxdream-gtk_gd.Tpo" -c -o lxdream-gtk_gd.o `test -f 'gtkui/gtk_gd.c' || echo '$(srcdir)/'`gtkui/gtk_gd.c; \
 @am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/lxdream-gtk_gd.Tpo" "$(DEPDIR)/lxdream-gtk_gd.Po"; else rm -f "$(DEPDIR)/lxdream-gtk_gd.Tpo"; exit 1; fi
@@ -2183,20 +2181,6 @@ lxdream-gtk_gd.obj: gtkui/gtk_gd.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gtkui/gtk_gd.c' object='lxdream-gtk_gd.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-gtk_gd.obj `if test -f 'gtkui/gtk_gd.c'; then $(CYGPATH_W) 'gtkui/gtk_gd.c'; else $(CYGPATH_W) '$(srcdir)/gtkui/gtk_gd.c'; fi`
-
-lxdream-gtk_hotkeys.o: gtkui/gtk_hotkeys.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-gtk_hotkeys.o -MD -MP -MF "$(DEPDIR)/lxdream-gtk_hotkeys.Tpo" -c -o lxdream-gtk_hotkeys.o `test -f 'gtkui/gtk_hotkeys.c' || echo '$(srcdir)/'`gtkui/gtk_hotkeys.c; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/lxdream-gtk_hotkeys.Tpo" "$(DEPDIR)/lxdream-gtk_hotkeys.Po"; else rm -f "$(DEPDIR)/lxdream-gtk_hotkeys.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gtkui/gtk_hotkeys.c' object='lxdream-gtk_hotkeys.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-gtk_hotkeys.o `test -f 'gtkui/gtk_hotkeys.c' || echo '$(srcdir)/'`gtkui/gtk_hotkeys.c
-
-lxdream-gtk_hotkeys.obj: gtkui/gtk_hotkeys.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-gtk_hotkeys.obj -MD -MP -MF "$(DEPDIR)/lxdream-gtk_hotkeys.Tpo" -c -o lxdream-gtk_hotkeys.obj `if test -f 'gtkui/gtk_hotkeys.c'; then $(CYGPATH_W) 'gtkui/gtk_hotkeys.c'; else $(CYGPATH_W) '$(srcdir)/gtkui/gtk_hotkeys.c'; fi`; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/lxdream-gtk_hotkeys.Tpo" "$(DEPDIR)/lxdream-gtk_hotkeys.Po"; else rm -f "$(DEPDIR)/lxdream-gtk_hotkeys.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gtkui/gtk_hotkeys.c' object='lxdream-gtk_hotkeys.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-gtk_hotkeys.obj `if test -f 'gtkui/gtk_hotkeys.c'; then $(CYGPATH_W) 'gtkui/gtk_hotkeys.c'; else $(CYGPATH_W) '$(srcdir)/gtkui/gtk_hotkeys.c'; fi`
 
 lxdream-net_glib.o: drivers/net_glib.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-net_glib.o -MD -MP -MF "$(DEPDIR)/lxdream-net_glib.Tpo" -c -o lxdream-net_glib.o `test -f 'drivers/net_glib.c' || echo '$(srcdir)/'`drivers/net_glib.c; \
@@ -2590,6 +2574,20 @@ lxdream-cocoaui.obj: cocoaui/cocoaui.m
 @AMDEP_TRUE@@am__fastdepOBJC_FALSE@	DEPDIR=$(DEPDIR) $(OBJCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepOBJC_FALSE@	$(OBJC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_OBJCFLAGS) $(OBJCFLAGS) -c -o lxdream-cocoaui.obj `if test -f 'cocoaui/cocoaui.m'; then $(CYGPATH_W) 'cocoaui/cocoaui.m'; else $(CYGPATH_W) '$(srcdir)/cocoaui/cocoaui.m'; fi`
 
+lxdream-cocoa_cfg.o: cocoaui/cocoa_cfg.m
+@am__fastdepOBJC_TRUE@	if $(OBJC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_OBJCFLAGS) $(OBJCFLAGS) -MT lxdream-cocoa_cfg.o -MD -MP -MF "$(DEPDIR)/lxdream-cocoa_cfg.Tpo" -c -o lxdream-cocoa_cfg.o `test -f 'cocoaui/cocoa_cfg.m' || echo '$(srcdir)/'`cocoaui/cocoa_cfg.m; \
+@am__fastdepOBJC_TRUE@	then mv -f "$(DEPDIR)/lxdream-cocoa_cfg.Tpo" "$(DEPDIR)/lxdream-cocoa_cfg.Po"; else rm -f "$(DEPDIR)/lxdream-cocoa_cfg.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepOBJC_FALSE@	source='cocoaui/cocoa_cfg.m' object='lxdream-cocoa_cfg.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepOBJC_FALSE@	DEPDIR=$(DEPDIR) $(OBJCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepOBJC_FALSE@	$(OBJC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_OBJCFLAGS) $(OBJCFLAGS) -c -o lxdream-cocoa_cfg.o `test -f 'cocoaui/cocoa_cfg.m' || echo '$(srcdir)/'`cocoaui/cocoa_cfg.m
+
+lxdream-cocoa_cfg.obj: cocoaui/cocoa_cfg.m
+@am__fastdepOBJC_TRUE@	if $(OBJC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_OBJCFLAGS) $(OBJCFLAGS) -MT lxdream-cocoa_cfg.obj -MD -MP -MF "$(DEPDIR)/lxdream-cocoa_cfg.Tpo" -c -o lxdream-cocoa_cfg.obj `if test -f 'cocoaui/cocoa_cfg.m'; then $(CYGPATH_W) 'cocoaui/cocoa_cfg.m'; else $(CYGPATH_W) '$(srcdir)/cocoaui/cocoa_cfg.m'; fi`; \
+@am__fastdepOBJC_TRUE@	then mv -f "$(DEPDIR)/lxdream-cocoa_cfg.Tpo" "$(DEPDIR)/lxdream-cocoa_cfg.Po"; else rm -f "$(DEPDIR)/lxdream-cocoa_cfg.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepOBJC_FALSE@	source='cocoaui/cocoa_cfg.m' object='lxdream-cocoa_cfg.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepOBJC_FALSE@	DEPDIR=$(DEPDIR) $(OBJCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepOBJC_FALSE@	$(OBJC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_OBJCFLAGS) $(OBJCFLAGS) -c -o lxdream-cocoa_cfg.obj `if test -f 'cocoaui/cocoa_cfg.m'; then $(CYGPATH_W) 'cocoaui/cocoa_cfg.m'; else $(CYGPATH_W) '$(srcdir)/cocoaui/cocoa_cfg.m'; fi`
+
 lxdream-cocoa_win.o: cocoaui/cocoa_win.m
 @am__fastdepOBJC_TRUE@	if $(OBJC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_OBJCFLAGS) $(OBJCFLAGS) -MT lxdream-cocoa_win.o -MD -MP -MF "$(DEPDIR)/lxdream-cocoa_win.Tpo" -c -o lxdream-cocoa_win.o `test -f 'cocoaui/cocoa_win.m' || echo '$(srcdir)/'`cocoaui/cocoa_win.m; \
 @am__fastdepOBJC_TRUE@	then mv -f "$(DEPDIR)/lxdream-cocoa_win.Tpo" "$(DEPDIR)/lxdream-cocoa_win.Po"; else rm -f "$(DEPDIR)/lxdream-cocoa_win.Tpo"; exit 1; fi
@@ -2631,20 +2629,6 @@ lxdream-cocoa_prefs.obj: cocoaui/cocoa_prefs.m
 @AMDEP_TRUE@@am__fastdepOBJC_FALSE@	source='cocoaui/cocoa_prefs.m' object='lxdream-cocoa_prefs.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepOBJC_FALSE@	DEPDIR=$(DEPDIR) $(OBJCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepOBJC_FALSE@	$(OBJC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_OBJCFLAGS) $(OBJCFLAGS) -c -o lxdream-cocoa_prefs.obj `if test -f 'cocoaui/cocoa_prefs.m'; then $(CYGPATH_W) 'cocoaui/cocoa_prefs.m'; else $(CYGPATH_W) '$(srcdir)/cocoaui/cocoa_prefs.m'; fi`
-
-lxdream-cocoa_path.o: cocoaui/cocoa_path.m
-@am__fastdepOBJC_TRUE@	if $(OBJC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_OBJCFLAGS) $(OBJCFLAGS) -MT lxdream-cocoa_path.o -MD -MP -MF "$(DEPDIR)/lxdream-cocoa_path.Tpo" -c -o lxdream-cocoa_path.o `test -f 'cocoaui/cocoa_path.m' || echo '$(srcdir)/'`cocoaui/cocoa_path.m; \
-@am__fastdepOBJC_TRUE@	then mv -f "$(DEPDIR)/lxdream-cocoa_path.Tpo" "$(DEPDIR)/lxdream-cocoa_path.Po"; else rm -f "$(DEPDIR)/lxdream-cocoa_path.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepOBJC_FALSE@	source='cocoaui/cocoa_path.m' object='lxdream-cocoa_path.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepOBJC_FALSE@	DEPDIR=$(DEPDIR) $(OBJCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepOBJC_FALSE@	$(OBJC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_OBJCFLAGS) $(OBJCFLAGS) -c -o lxdream-cocoa_path.o `test -f 'cocoaui/cocoa_path.m' || echo '$(srcdir)/'`cocoaui/cocoa_path.m
-
-lxdream-cocoa_path.obj: cocoaui/cocoa_path.m
-@am__fastdepOBJC_TRUE@	if $(OBJC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_OBJCFLAGS) $(OBJCFLAGS) -MT lxdream-cocoa_path.obj -MD -MP -MF "$(DEPDIR)/lxdream-cocoa_path.Tpo" -c -o lxdream-cocoa_path.obj `if test -f 'cocoaui/cocoa_path.m'; then $(CYGPATH_W) 'cocoaui/cocoa_path.m'; else $(CYGPATH_W) '$(srcdir)/cocoaui/cocoa_path.m'; fi`; \
-@am__fastdepOBJC_TRUE@	then mv -f "$(DEPDIR)/lxdream-cocoa_path.Tpo" "$(DEPDIR)/lxdream-cocoa_path.Po"; else rm -f "$(DEPDIR)/lxdream-cocoa_path.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepOBJC_FALSE@	source='cocoaui/cocoa_path.m' object='lxdream-cocoa_path.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepOBJC_FALSE@	DEPDIR=$(DEPDIR) $(OBJCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepOBJC_FALSE@	$(OBJC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_OBJCFLAGS) $(OBJCFLAGS) -c -o lxdream-cocoa_path.obj `if test -f 'cocoaui/cocoa_path.m'; then $(CYGPATH_W) 'cocoaui/cocoa_path.m'; else $(CYGPATH_W) '$(srcdir)/cocoaui/cocoa_path.m'; fi`
 
 lxdream-cocoa_ctrl.o: cocoaui/cocoa_ctrl.m
 @am__fastdepOBJC_TRUE@	if $(OBJC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_OBJCFLAGS) $(OBJCFLAGS) -MT lxdream-cocoa_ctrl.o -MD -MP -MF "$(DEPDIR)/lxdream-cocoa_ctrl.Tpo" -c -o lxdream-cocoa_ctrl.o `test -f 'cocoaui/cocoa_ctrl.m' || echo '$(srcdir)/'`cocoaui/cocoa_ctrl.m; \
