@@ -1,5 +1,5 @@
 /**
- * $Id:  $
+ * $Id$
  *
  * LIRC input device support
  *
@@ -142,7 +142,6 @@ static gboolean input_lirc_callback( GIOChannel *source, GIOCondition condition,
         //loop through all queued commands
         while ((ret = lirc_nextcode(&code)) == 0 && code != NULL)
         {
-            INFO("LIRC code (%s)", code);
             //code contains id, repeat count, and keysym separated by spaces
             gchar **code_split = g_strsplit(code, " ", 4);
 

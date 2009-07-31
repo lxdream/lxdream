@@ -102,7 +102,7 @@ static gboolean plugin_load( const gchar *plugin_path )
         dlclose(so);
         return FALSE;
     }
-    INFO("Loaded %s '%s'", plugin_type_string[plugin->type], plugin->name);
+    DEBUG("Loaded %s '%s'", plugin_type_string[plugin->type], plugin->name);
     return TRUE;
 }
 
@@ -152,6 +152,6 @@ int plugin_init()
         path = get_plugin_path();
     }
     
-    INFO( "Plugin directory: %s", path );
+    DEBUG( "Plugin directory: %s", path );
     return plugin_load_all( path );
 }

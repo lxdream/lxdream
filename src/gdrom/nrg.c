@@ -197,10 +197,8 @@ static gdrom_disc_t nrg_image_open( const gchar *filename, FILE *f )
     fseek( f, -12, SEEK_END );
     fread( &footer, sizeof(footer), 1, f );
     if( GUINT32_FROM_BE(footer.v50.id) == NERO_V50_ID ) {
-        INFO( "Loading Nero 5.0 image" );
         fseek( f, GUINT32_FROM_BE(footer.v50.offset), SEEK_SET );
     } else if( GUINT32_FROM_BE(footer.v55.id) == NERO_V55_ID ) {
-        INFO( "Loading Nero 5.5+ image" );
         fseek( f, (uint32_t)GUINT64_FROM_BE(footer.v55.offset), SEEK_SET );
     } else {
         /* Not a (recognized) Nero image */

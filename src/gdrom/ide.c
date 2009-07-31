@@ -411,24 +411,24 @@ void ide_write_command( uint8_t val ) {
         case IDE_FEAT_SET_TRANSFER_MODE:
             switch( idereg.count & 0xF8 ) {
             case IDE_XFER_PIO:
-                INFO( "Set PIO default mode: %d", idereg.count&0x07 );
+                DEBUG( "Set PIO default mode: %d", idereg.count&0x07 );
                 break;
             case IDE_XFER_PIO_FLOW:
-                INFO( "Set PIO Flow-control mode: %d", idereg.count&0x07 );
+                DEBUG( "Set PIO Flow-control mode: %d", idereg.count&0x07 );
                 break;
             case IDE_XFER_MULTI_DMA:
-                INFO( "Set Multiword DMA mode: %d", idereg.count&0x07 );
+                DEBUG( "Set Multiword DMA mode: %d", idereg.count&0x07 );
                 break;
             case IDE_XFER_ULTRA_DMA:
-                INFO( "Set Ultra DMA mode: %d", idereg.count&0x07 );
+                DEBUG( "Set Ultra DMA mode: %d", idereg.count&0x07 );
                 break;
             default:
-                INFO( "Setting unknown transfer mode: %02X", idereg.count );
+                DEBUG( "Setting unknown transfer mode: %02X", idereg.count );
                 break;
             }
             break;
             default:
-                WARN( "IDE: unimplemented feature: %02X", idereg.feature );
+                DEBUG( "IDE: unimplemented feature: %02X", idereg.feature );
         }
         idereg.status = 0x50;
         idereg.error = 0x00;
@@ -437,7 +437,7 @@ void ide_write_command( uint8_t val ) {
         ide_raise_interrupt();
         break;
         default:
-            WARN( "IDE: Unimplemented command: %02X", val );
+            DEBUG( "IDE: Unimplemented command: %02X", val );
     }
 }
 
@@ -482,7 +482,7 @@ void ide_packet_command( unsigned char *cmd )
     uint32_t lba, status;
 
     /* Okay we have the packet in the command buffer */
-    INFO( "ATAPI packet: %02X %02X %02X %02X  %02X %02X %02X %02X  %02X %02X %02X %02X", 
+    DEBUG( "ATAPI packet: %02X %02X %02X %02X  %02X %02X %02X %02X  %02X %02X %02X %02X", 
           cmd[0], cmd[1], cmd[2], cmd[3], cmd[4], cmd[5], cmd[6], cmd[7],
           cmd[8], cmd[9], cmd[10], cmd[11] );
 

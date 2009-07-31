@@ -665,7 +665,6 @@ GLuint texcache_get_texture( uint32_t texture_word, int width, int height )
 
 render_buffer_t texcache_get_render_buffer( uint32_t texture_addr, int mode, int width, int height )
 {
-    INFO( "Rendering to texture!" );
     uint32_t texture_word = ((texture_addr >> 3) & 0x000FFFFF) | PVR2_TEX_UNTWIDDLED;
     switch( mode ) {
     case COLFMT_BGRA1555: texture_word |= PVR2_TEX_FORMAT_ARGB1555; break;

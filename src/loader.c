@@ -82,8 +82,7 @@ gboolean file_load_magic( const gchar *filename )
             read( fd, buf, 8 );
             if( memcmp( buf, iso_magic, 6 ) == 0 ) {
                 /* Alright, got it */
-                INFO( "Loading ISO9660 filesystem from '%s'",
-                        filename );
+                WARN( "ISO images not supported yet" );
             }
         }
     } else if( memcmp( buf, "PK\x03\x04", 4 ) == 0 ) {
