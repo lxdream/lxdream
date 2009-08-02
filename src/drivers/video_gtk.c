@@ -136,11 +136,11 @@ struct display_driver display_gtk_driver = {
         video_gtk_keycode_to_dckeysym,
         video_gtk_keycode_to_keysym,
         NULL, NULL, NULL, NULL, NULL, NULL, 
-        video_gtk_display_blank, NULL };
+        video_gtk_display_blank, NULL, NULL };
 
 gboolean video_gtk_expose_callback(GtkWidget *widget, GdkEventExpose *event, gpointer data )
 {
-    pvr2_redraw_display();
+    pvr2_draw_frame();
     return TRUE;
 }
 
@@ -148,7 +148,7 @@ gboolean video_gtk_resize_callback(GtkWidget *widget, GdkEventConfigure *event, 
 {
     video_width = event->width;
     video_height = event->height;
-    pvr2_redraw_display();
+    pvr2_draw_frame();
     return TRUE;
 }
 

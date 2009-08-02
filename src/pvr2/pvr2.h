@@ -71,10 +71,17 @@ typedef unsigned int pvr64addr_t;
 #define RENDER_CHEAPMOD 2   /* Render cheap-modified polygons */
 #define RENDER_FULLMOD 3    /* Render the fully-modified version of the polygons */
 
+/**
+ * Advance to the next frame
+ */
 void pvr2_next_frame( void );
+
+/**
+ * Draw the current frame on the output window.
+ */
+void pvr2_draw_frame();
 void pvr2_set_base_address( uint32_t );
 int pvr2_get_frame_count( void );
-void pvr2_redraw_display();
 gboolean pvr2_save_next_scene( const gchar *filename );
 
 #define PVR2_CMD_END_OF_LIST 0x00

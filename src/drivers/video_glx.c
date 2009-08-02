@@ -42,6 +42,8 @@ static gboolean glx_fbconfig_supported = FALSE;
 static gboolean glx_pbuffer_supported = FALSE;
 static GLuint glx_pbuffer_texture = 0; 
 
+static void video_glx_swap_buffers( void );
+
 /* Prototypes for pbuffer support methods */
 static void glx_pbuffer_init( display_driver_t driver );
 static render_buffer_t glx_pbuffer_create_render_buffer( uint32_t width, uint32_t height, GLuint tex_id );
@@ -207,6 +209,7 @@ gboolean video_glx_init_context( Display *display, Window window )
 
 gboolean video_glx_init_driver( display_driver_t driver )
 {
+    driver->swap_buffers = video_glx_swap_buffers;
     if( gl_fbo_is_supported() ) { // First preference
         gl_fbo_init(driver);
     } else if( glx_pbuffer_supported ) {
@@ -255,7 +258,7 @@ int video_glx_load_font( const gchar *font_name )
 }
 
 
-void video_glx_swap_buffers( void )
+static void video_glx_swap_buffers( void )
 {
     glXSwapBuffers( video_x11_display, video_x11_window );
 }
@@ -353,7 +356,6 @@ static void glx_pbuffer_display_render_buffer( render_buffer_t buffer )
 {
     glFinish();
     glReadBuffer( GL_FRONT );
-    glDrawBuffer( GL_FRONT );
     glXMakeContextCurrent( video_x11_display, (GLXPbuffer)buffer->buf_id, (GLXPbuffer)buffer->buf_id, glx_context );
     glBindTexture( GL_TEXTURE_RECTANGLE_ARB, glx_pbuffer_texture );
     glCopyTexImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, GL_RGBA, 0, 0, buffer->width, buffer->height, 0 );

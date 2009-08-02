@@ -43,7 +43,6 @@ void gl_reset_state()
     glDisable( GL_DEPTH_TEST );
     glDisable( GL_SCISSOR_TEST );
     glDisable( GL_CULL_FACE );
-    glDrawBuffer( GL_FRONT );
 }
 
 void gl_display_render_buffer( render_buffer_t buffer )

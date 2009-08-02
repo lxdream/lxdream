@@ -126,7 +126,7 @@ int video_height = 480;
         video_height = size.height;
         video_nsgl_update();
     }
-    pvr2_redraw_display();
+    pvr2_draw_frame();
 }
 - (void)keyDown: (NSEvent *) event
 {

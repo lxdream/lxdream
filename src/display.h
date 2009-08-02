@@ -194,6 +194,11 @@ typedef struct display_driver {
     void (*display_blank)( uint32_t rgb );
 
     /**
+     * Swap front/back window buffers
+     */
+    void (*swap_buffers)();
+
+    /**
      * Copy the image data from the GL buffer to the target memory buffer,
      * using the format etc from the buffer. This may force a glFinish()
      * but does not invalidate the buffer.

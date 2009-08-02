@@ -47,9 +47,7 @@ static render_buffer_t pvr2_get_render_buffer( frame_buffer_t frame );
 static render_buffer_t pvr2_next_render_buffer( );
 static render_buffer_t pvr2_frame_buffer_to_render_buffer( frame_buffer_t frame );
 uint32_t pvr2_get_sync_status();
-
-void pvr2_display_frame( void );
-
+static gboolean force_vsync = FALSE;
 static int output_colour_formats[] = { COLFMT_BGRA1555, COLFMT_RGB565, COLFMT_BGR888, COLFMT_BGRA8888 };
 static int render_colour_formats[8] = {
         COLFMT_BGRA1555, COLFMT_RGB565, COLFMT_BGRA4444, COLFMT_BGRA1555,
@@ -341,7 +339,8 @@ static void pvr2_update_raster_posn( uint32_t nanosecs )
             (old_line_count < pvr2_state.retrace_end_line ||
                     old_line_count > pvr2_state.line_count) ) {
         pvr2_state.frame_count++;
-        pvr2_display_frame();
+        pvr2_next_frame();
+        pvr2_draw_frame();
     }
 }
 
@@ -357,13 +356,28 @@ int pvr2_get_frame_count()
     return pvr2_state.frame_count;
 }
 
-void pvr2_redraw_display()
+/**
+ * Draw the base (emulated) frame only.
+ */
+static void pvr2_draw_base_frame()
+{
+    if( displayed_render_buffer == NULL ) {
+        display_driver->display_blank(displayed_border_colour);
+    } else {
+        display_driver->display_render_buffer(displayed_render_buffer);
+    }
+}
+
+void pvr2_draw_frame()
 {
     if( display_driver != NULL ) {
-        if( displayed_render_buffer == NULL ) {
-            display_driver->display_blank(displayed_border_colour);
+        if( force_vsync ) {
+            glDrawBuffer( GL_BACK );
+            pvr2_draw_base_frame();
+            display_driver->swap_buffers();
         } else {
-            display_driver->display_render_buffer(displayed_render_buffer);
+            glDrawBuffer( GL_FRONT );
+            pvr2_draw_base_frame();
         }
     }
 }
@@ -380,28 +394,24 @@ gboolean pvr2_save_next_scene( const gchar *filename )
 
 
 /**
- * Display the next frame, copying the current contents of video ram to
+ * Advance to the next frame, copying the current contents of video ram to
  * the window. If the video configuration has changed, first recompute the
  * new frame size/depth.
  */
-void pvr2_display_frame( void )
+void pvr2_next_frame( void )
 {
     int dispmode = MMIO_READ( PVR2, DISP_MODE );
     int vidcfg = MMIO_READ( PVR2, DISP_SYNCCFG );
     gboolean bEnabled = (dispmode & DISPMODE_ENABLE) && (vidcfg & DISPCFG_VO ) ? TRUE : FALSE;
 
-    if( display_driver == NULL ) {
-        return; /* can't really do anything much */
-    } else if( !bEnabled ) {
+    if( !bEnabled ) {
         /* Output disabled == black */
         displayed_render_buffer = NULL;
         displayed_border_colour = 0;
-        display_driver->display_blank( 0 ); 
     } else if( MMIO_READ( PVR2, DISP_CFG2 ) & 0x08 ) { 
         /* Enabled but blanked - border colour */
         displayed_border_colour = MMIO_READ( PVR2, DISP_BORDER );
         displayed_render_buffer = NULL;
-        display_driver->display_blank( displayed_border_colour );
     } else {
         /* Real output - determine dimensions etc */
         struct frame_buffer fbuf;
@@ -448,9 +458,6 @@ void pvr2_display_frame( void )
             rbuf = pvr2_frame_buffer_to_render_buffer( &fbuf );
         }
         displayed_render_buffer = rbuf;
-        if( rbuf != NULL ) {
-            display_driver->display_render_buffer( rbuf );
-        }
     }
 }
 
