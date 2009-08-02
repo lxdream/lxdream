@@ -113,8 +113,6 @@ void gl_fbo_init( display_driver_t driver )
     driver->read_render_buffer = gl_fbo_read_render_buffer;
 
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
-    glDrawBuffer(GL_FRONT);
-    glReadBuffer(GL_FRONT);
 }
 
 void gl_fbo_shutdown()
@@ -341,6 +339,7 @@ static void gl_fbo_display_blank( uint32_t colour )
 void gl_fbo_detach()
 {
     glBindFramebufferEXT( GL_FRAMEBUFFER_EXT, 0 );
+    /* Make sure texture attachment is not a current draw/read buffer */
     glDrawBuffer( GL_FRONT );
     glReadBuffer( GL_FRONT );
 }    
