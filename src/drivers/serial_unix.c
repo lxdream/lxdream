@@ -49,7 +49,7 @@ static gboolean serial_config_changed(void *data, struct lxdream_config_group *g
 
 struct lxdream_config_group serial_group =
     { "serial", serial_config_changed, NULL, NULL,
-       {{ "device", N_("Serial device"), CONFIG_TYPE_FILE, "/dev/console" },
+       {{ "device", N_("Serial device"), CONFIG_TYPE_FILE, "/dev/tty" },
         { NULL, CONFIG_TYPE_NONE }} };
 
 void serial_init()
