@@ -28,7 +28,7 @@
 #include "serial.h"
 
 void SCIF_set_break(void);
-
+void SCIF_run_to(uint32_t nanosecs);
 /************************* External serial interface ************************/
 
 /**
@@ -55,17 +55,41 @@ typedef struct serial_data_block {
 serial_data_block_t serial_recvq_head = NULL, serial_recvq_tail = NULL;
 serial_device_t serial_device = NULL;
 
-void serial_attach_device( serial_device_t dev ) 
+serial_device_t serial_get_device( )
 {
+    return serial_device;
+}
+
+serial_device_t serial_attach_device( serial_device_t dev ) 
+{
+    serial_device_t olddev = serial_device;
     if( serial_device != NULL )
         serial_detach_device();
     serial_device = dev;
+    if( serial_device != NULL && serial_device->attach != NULL )
+        serial_device->attach(serial_device);
+    return olddev;
 }
 
 
-void serial_detach_device( void )
+serial_device_t serial_detach_device( void )
 {
+    serial_device_t dev = serial_device;
+    if( serial_device != NULL && serial_device->detach != NULL ) {
+        serial_device->detach(serial_device);
+    }
     serial_device = NULL;
+    return dev;
+}
+
+void serial_destroy_device( serial_device_t dev )
+{
+    if( dev != NULL ) {
+        if( serial_device == dev )
+            serial_detach_device();
+        if( dev->destroy )
+            dev->destroy(dev);
+    }
 }
 
 /**
@@ -174,6 +198,7 @@ gboolean SCIF_rcvd_last_tick = FALSE;
 
 uint32_t SCIF_tick_period = 0;
 uint32_t SCIF_tick_remainder = 0;
+uint32_t SCIF_slice_cycle = 0;
 
 void SCIF_save_state( FILE *f ) 
 {
@@ -445,7 +470,7 @@ void SCIF_update_line_speed( void )
         int baudrate = sh4_peripheral_freq / (32 * mult * (bbr+1) );
 
         if( serial_device != NULL && serial_device->set_line_speed != NULL )
-            serial_device->set_line_speed( baudrate );
+            serial_device->set_line_speed( serial_device, baudrate );
 
         SCIF_tick_period = sh4_peripheral_period * (32 * mult * (bbr+1));
 
@@ -457,6 +482,7 @@ void SCIF_update_line_speed( void )
 
 MMIO_REGION_READ_FN( SCIF, reg )
 {
+    SCIF_run_to(sh4r.slice_cycle);
     reg &= 0xFFF;
     switch( reg ) {
     case SCFRDR2: /* Receive data */
@@ -470,6 +496,7 @@ MMIO_REGION_READ_DEFSUBFNS(SCIF)
 
 MMIO_REGION_WRITE_FN( SCIF, reg, val )
 {
+    SCIF_run_to(sh4r.slice_cycle);
     uint32_t tmp;
     reg &= 0xFFF;
     switch( reg ) {
@@ -482,7 +509,7 @@ MMIO_REGION_WRITE_FN( SCIF, reg, val )
          */
         val &= 0x007B;
         if( serial_device != NULL ) {
-            serial_device->set_line_params( val );
+            serial_device->set_line_params( serial_device, val );
         }
         tmp = MMIO_READ( SCIF, SCSMR2 );
         if( (tmp & 0x03) != (val & 0x03) ) {
@@ -597,7 +624,7 @@ void SCIF_clock_tick( void )
             int val = SCIF_sendq_dequeue();
             if( val != -1 && serial_device != NULL && 
                     serial_device->receive_data != NULL ) {
-                serial_device->receive_data( val );
+                serial_device->receive_data( serial_device, val );
             }
         }
 
@@ -632,11 +659,17 @@ void SCIF_reset( void )
     SCIF_update_line_speed();
 }
 
-void SCIF_run_slice( uint32_t nanosecs ) 
+void SCIF_run_to( uint32_t nanosecs )
 {
-    SCIF_tick_remainder += nanosecs;
+    SCIF_tick_remainder += nanosecs - SCIF_slice_cycle;
     while( SCIF_tick_remainder >= SCIF_tick_period ) {
         SCIF_tick_remainder -= SCIF_tick_period;
         SCIF_clock_tick();
     }
+}
+
+void SCIF_run_slice( uint32_t nanosecs )
+{
+    SCIF_run_to(nanosecs);
+    SCIF_slice_cycle = 0;
 }

@@ -22,9 +22,9 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <errno.h>
-#include "netutil.h"
+#include "ioutil.h"
 
-int net_create_server_socket(const char *interface, int port )
+int io_create_server_socket(const char *interface, int port )
 {
     struct sockaddr_in sin;
     int fd = socket(AF_INET, SOCK_STREAM, 0);

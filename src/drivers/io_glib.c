@@ -19,23 +19,24 @@
 #include <assert.h>
 #include <glib.h>
 #include <stdlib.h>
-#include "netutil.h"
+#include "ioutil.h"
 
-struct net_glib_cbinfo {
-    net_callback_t callback;
+struct io_glib_cbinfo {
+    io_callback_t callback;
+    guint sourceid;
     void * cbdata;
     void (*cbdealloc)(void *);
 };
 
-static gboolean net_glib_callback( GIOChannel *source, GIOCondition cond, gpointer data )
+static gboolean io_glib_callback( GIOChannel *source, GIOCondition cond, gpointer data )
 {
-    struct net_glib_cbinfo *cbinfo = (struct net_glib_cbinfo *)data;
+    struct io_glib_cbinfo *cbinfo = (struct io_glib_cbinfo *)data;
     return cbinfo->callback( g_io_channel_unix_get_fd(source), cbinfo->cbdata);
 }
 
-static void net_glib_release( void *data )
+static void io_glib_release( void *data )
 {
-    struct net_glib_cbinfo *cbinfo = (struct net_glib_cbinfo *)data;
+    struct io_glib_cbinfo *cbinfo = (struct io_glib_cbinfo *)data;
     if( cbinfo->cbdealloc ) {
         cbinfo->cbdealloc( cbinfo->cbdata );
     }
@@ -49,9 +50,14 @@ static void net_glib_release( void *data )
  * 
  * Defined in netutil.h
  */ 
-gboolean net_register_tcp_listener( int fd, net_callback_t callback, void *data, void (*dealloc)(void*) )
+io_listener_t io_register_tcp_listener( int fd, io_callback_t callback, void *data, void (*dealloc)(void*) )
 {
-    struct net_glib_cbinfo *cbinfo = malloc( sizeof(struct net_glib_cbinfo) );
+    return io_register_listener( fd, callback, data, dealloc );
+}
+
+io_listener_t io_register_listener( int fd, io_callback_t callback, void *data, void (*dealloc)(void *) )
+{
+    struct io_glib_cbinfo *cbinfo = malloc( sizeof(struct io_glib_cbinfo) );
     assert(cbinfo != NULL);
     
     cbinfo->callback = callback;
@@ -66,7 +72,14 @@ gboolean net_register_tcp_listener( int fd, net_callback_t callback, void *data,
     GIOChannel *chan = g_io_channel_unix_new(fd);
     g_io_channel_set_encoding( chan, NULL, NULL );
     g_io_channel_set_buffered(chan, FALSE);
-    g_io_add_watch_full( chan, 0, G_IO_IN, net_glib_callback, cbinfo, net_glib_release );
+    cbinfo->sourceid = g_io_add_watch_full( chan, 0, G_IO_IN, io_glib_callback, cbinfo, io_glib_release );
     g_io_channel_unref( chan );
-    return TRUE;
+    return cbinfo;
+}
+
+
+void io_unregister_listener( io_listener_t data )
+{
+    struct io_glib_cbinfo *cbinfo = (struct io_glib_cbinfo *)data;
+    g_source_remove(cbinfo->sourceid);
 }

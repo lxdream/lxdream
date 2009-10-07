@@ -44,7 +44,7 @@ lxdream_SOURCES = \
         gettext.h mem.c mem.h sdram.c mmio.h watch.c \
         asic.c asic.h clock.h serial.h \
         syscall.c syscall.h bios.c dcload.c gdbserver.c \
-        netutil.c netutil.h lxpaths.c lxpaths.h \
+        ioutil.c ioutil.h lxpaths.c lxpaths.h \
         gdrom/ide.c gdrom/ide.h gdrom/packet.h gdrom/gdimage.c \
 	gdrom/gdrom.c gdrom/gdrom.h gdrom/nrg.c gdrom/cdi.c gdrom/gdi.c \
 	gdrom/edc_ecc.c gdrom/ecc.h gdrom/edc_crctable.h gdrom/edc_encoder.h \
@@ -69,6 +69,7 @@ lxdream_SOURCES = \
 	display.c display.h dckeysyms.h \
 	drivers/audio_null.c drivers/video_null.c drivers/cd_mmc.c \
 	drivers/video_gl.c drivers/video_gl.h drivers/gl_fbo.c \
+	drivers/serial_unix.c \
 	sh4/sh4.def sh4/sh4core.in sh4/sh4x86.in sh4/sh4dasm.in sh4/sh4stat.in \
 	hotkeys.c hotkeys.h
 lxdream_CPPFLAGS = @LXDREAMCPPFLAGS@
@@ -101,14 +102,14 @@ lxdream_SOURCES += gtkui/gtkui.c gtkui/gtkui.h \
 	gtkui/gtk_win.c gtkui/gtkcb.c gtkui/gtk_cfg.c \
         gtkui/gtk_mmio.c gtkui/gtk_debug.c gtkui/gtk_dump.c \
         gtkui/gtk_ctrl.c gtkui/gtk_gd.c \
-        drivers/net_glib.c drivers/video_gtk.c
+        drivers/io_glib.c drivers/video_gtk.c
 endif
 
 if GUI_COCOA
 lxdream_SOURCES += cocoaui/cocoaui.m cocoaui/cocoaui.h cocoaui/cocoa_cfg.m \
 	cocoaui/cocoa_win.m cocoaui/cocoa_gd.m cocoaui/cocoa_prefs.m \
 	cocoaui/cocoa_ctrl.m cocoaui/paths_osx.m \
-	drivers/net_osx.m drivers/video_osx.m \
+	drivers/io_osx.m drivers/video_osx.m \
 	drivers/mac_keymap.h drivers/mac_keymap.txt
 else
 lxdream_SOURCES += paths_unix.c
