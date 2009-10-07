@@ -249,6 +249,7 @@ int main (int argc, char *argv[])
     }
     
     hotkeys_init();
+    serial_init();
 
     maple_reattach_all();
     INFO( "%s! ready...", APP_NAME );

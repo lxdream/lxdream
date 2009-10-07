@@ -20,6 +20,8 @@
 
 #include <stdint.h>
 
+#include "lxdream.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -33,16 +35,43 @@ extern "C" {
 #define SERIAL_2STOPBITS   0x08
 
 typedef struct serial_device {
-    void (*set_line_speed)(uint32_t bps);
-    void (*set_line_params)(int flags);
-    void (*receive_data)(uint8_t value);
+    void (*attach)(struct serial_device *dev);
+    void (*detach)(struct serial_device *dev);
+    void (*destroy)(struct serial_device *dev);
+    void (*set_line_speed)(struct serial_device *dev, uint32_t bps);
+    void (*set_line_params)(struct serial_device *dev, int flags);
+    void (*receive_data)(struct serial_device *dev, uint8_t value);
 } *serial_device_t;
 
-void serial_attach_device( serial_device_t dev );
-void serial_detach_device( );
+serial_device_t serial_attach_device( serial_device_t dev );
+serial_device_t serial_detach_device( );
+serial_device_t serial_get_device( );
+
+/**
+ * Destroy a serial device.
+ */
+void serial_destroy_device( serial_device_t dev );
+
 
 void serial_transmit_data( char *data, int length );
 void serial_transmit_break( void );
+
+/**
+ * Create a serial device on a host device identified by the given
+ * file (ie /dev/tty). If filename identifies a regular file, it is opened
+ * for output only.
+ */
+serial_device_t serial_fd_device_new_filename( const gchar *filename );
+
+/**
+ * Create a serial device on the host console (stdin/stdout).
+ */
+serial_device_t serial_fd_device_new_console();
+
+/**
+ * Create a serial device on a pair of file streams (in and out)
+ */
+serial_device_t serial_fd_device_new_file( FILE *in, FILE *out, gboolean closeOnDestroy );
 
 #ifdef __cplusplus
 }

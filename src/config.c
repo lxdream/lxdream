@@ -33,6 +33,7 @@
 #define MAX_ROOT_GROUPS 16
 
 extern struct lxdream_config_group hotkeys_group;
+extern struct lxdream_config_group serial_group;
 
 gboolean lxdream_load_config_file( const gchar *filename );
 gboolean lxdream_save_config_file( const gchar *filename );
@@ -51,11 +52,6 @@ static struct lxdream_config_group global_group =
         { "recent", NULL, CONFIG_TYPE_FILELIST, NULL },
         { "vmu", NULL, CONFIG_TYPE_FILELIST, NULL },
         { "quick state", NULL, CONFIG_TYPE_INTEGER, "0" },
-        { NULL, CONFIG_TYPE_NONE }} };
-
-static struct lxdream_config_group serial_group =
-    { "serial", NULL, NULL, NULL,
-       {{ "device", N_("Serial device"), CONFIG_TYPE_FILE, "/dev/ttyS1" },
         { NULL, CONFIG_TYPE_NONE }} };
 
 /**

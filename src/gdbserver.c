@@ -27,7 +27,7 @@
 #include <arpa/inet.h>
 #include "lxdream.h"
 #include "dreamcast.h"
-#include "netutil.h"
+#include "ioutil.h"
 #include "cpu.h"
 
 #define DEFAULT_BUFFER_SIZE 1024
@@ -495,7 +495,7 @@ gboolean gdb_server_connect_callback( int fd, gpointer data )
         chan_serv->buf = malloc(1024);
         chan_serv->buf_size = 1024;
         chan_serv->buf_posn = 0;
-        net_register_tcp_listener( conn_fd, gdb_server_data_callback, chan_serv, gdb_server_free );
+        io_register_tcp_listener( conn_fd, gdb_server_data_callback, chan_serv, gdb_server_free );
         INFO( "GDB connected from %s", chan_serv->peer_name );
     }
     return TRUE;
@@ -514,7 +514,7 @@ gboolean gdb_server_connect_callback( int fd, gpointer data )
  */
 gboolean gdb_init_server( const char *interface, int port, cpu_desc_t cpu, gboolean mmu )
 {
-    int fd = net_create_server_socket( interface, port );
+    int fd = io_create_server_socket( interface, port );
     if( fd == -1 ) {
         return FALSE;
     }
@@ -523,7 +523,7 @@ gboolean gdb_init_server( const char *interface, int port, cpu_desc_t cpu, gbool
     server->cpu = cpu;
     server->mmu = mmu;
     server->fd = fd;
-    gboolean result = net_register_tcp_listener( fd, gdb_server_connect_callback, server, gdb_server_free );
+    gboolean result = io_register_tcp_listener( fd, gdb_server_connect_callback, server, gdb_server_free );
     INFO( "%s GDB server running on port %d", cpu->name, port );
     return result;
 }
