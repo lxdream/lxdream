@@ -436,6 +436,7 @@ void SCIF_update_status( uint32_t mask )
                 (MMIO_READ( SCIF, SCLSR2 ) & SCLSR2_ORER) == 0 )
             intc_clear_interrupt( INT_SCIF_ERI );
     }
+    MMIO_WRITE( SCIF, SCFSR2, result );
 }
 
 /**
@@ -467,12 +468,12 @@ void SCIF_update_line_speed( void )
         /* Then process the bitrate register */
         int bbr = MMIO_READ( SCIF, SCBRR2 ) & 0xFF;
 
-        int baudrate = sh4_peripheral_freq / (32 * mult * (bbr+1) );
+        SCIF_tick_period = sh4_peripheral_period * (32 * mult * (bbr+1));
+        int baudrate = 1000000000 / SCIF_tick_period;
 
         if( serial_device != NULL && serial_device->set_line_speed != NULL )
             serial_device->set_line_speed( serial_device, baudrate );
 
-        SCIF_tick_period = sh4_peripheral_period * (32 * mult * (bbr+1));
 
         /*
 	  clock_set_tick_rate( CLOCK_SCIF, baudrate / 10 );
@@ -666,6 +667,7 @@ void SCIF_run_to( uint32_t nanosecs )
         SCIF_tick_remainder -= SCIF_tick_period;
         SCIF_clock_tick();
     }
+    SCIF_slice_cycle = nanosecs;
 }
 
 void SCIF_run_slice( uint32_t nanosecs )
