@@ -370,7 +370,7 @@ static void pvr2_draw_base_frame()
 
 void pvr2_draw_frame()
 {
-    if( display_driver != NULL ) {
+    if( display_driver != NULL && display_driver != &display_null_driver ) {
         if( force_vsync ) {
             glDrawBuffer( GL_BACK );
             pvr2_draw_base_frame();
