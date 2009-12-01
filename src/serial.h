@@ -47,6 +47,8 @@ serial_device_t serial_attach_device( serial_device_t dev );
 serial_device_t serial_detach_device( );
 serial_device_t serial_get_device( );
 
+void serial_init();
+
 /**
  * Destroy a serial device.
  */
