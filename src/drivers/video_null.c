@@ -56,6 +56,9 @@ static void video_null_display_blank( uint32_t colour )
 {
 }
 
+static void video_null_swap_buffers(void)
+{
+}
 
 struct display_driver display_null_driver = { 
         "null",
@@ -72,4 +75,5 @@ struct display_driver display_null_driver = {
         video_null_load_frame_buffer,
         video_null_display_render_buffer,
         video_null_display_blank,
+        video_null_swap_buffers,
         video_null_read_render_buffer };

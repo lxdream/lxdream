@@ -37,6 +37,7 @@
 #include "sh4/sh4.h"
 #include "aica/armdasm.h"
 #include "vmu/vmulist.h"
+#include "serial.h"
 #include "hotkeys.h"
 #include "plugin.h"
 

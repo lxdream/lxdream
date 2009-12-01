@@ -73,6 +73,7 @@ static gboolean serial_config_changed(void *data, struct lxdream_config_group *g
             serial_attach_device( dev );
         }
     }
+    return TRUE;
 }
 
 
