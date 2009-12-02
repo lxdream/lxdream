@@ -179,9 +179,9 @@ uninstall:
 DISTFILES = asic.c asic.h bin2c.c dma.h dmac.c ide.c ide.h interrupt.s \
         lib.c lib.h math.s pvr.c pvr.h rendload.c sh4/add.s sh4/addc.s \
         sh4/addv.s sh4/and.s sh4/andi.s sh4/bf.s sh4/bsr.s sh4/bt.s sh4/cmp.s \
-        sh4/cmpstr.s sh4/div0.s sh4/div1.s sh4/excslot.s sh4/float.s sh4/fmov.s \
-        sh4/ftrc.s sh4/inc.s sh4/mac.s sh4/ldc.s sh4/rot.s sh4/shl.s sh4/shld.s sh4/sub.s \
-        sh4/subc.s sh4/tas.s sh4/testsh4.c sh4/tlb.s sh4/vmexit.s sh4/trapa.s sh4/undef.s \
+        sh4/cmpstr.s sh4/div0.s sh4/div1.s sh4/excslot.s sh4/float.s sh4/fmov.s sh4/ftrc.s \
+        sh4/inc.s sh4/mac.s sh4/ldc.s sh4/rot.s sh4/shl.s sh4/shld.s sh4/sub.s sh4/subc.s \
+        sh4/subv.s sh4/tas.s sh4/testsh4.c sh4/tlb.s sh4/vmexit.s sh4/trapa.s sh4/undef.s \
         sh4/xtrct.s sh4/utlb.c sh4/utlb.h sh4/testutlb.s testdata.c testdata.h testdisp.c \
         testide.c testmath.c testaica.c sh4/testmmu.c sh4/mmummio.c testregs.c testrend.c \
         testspu.c testta.c testyuv.c timer.c timer.h \
