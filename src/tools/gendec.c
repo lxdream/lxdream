@@ -38,12 +38,59 @@ const char *out_filename = NULL;
 
 FILE *ins_file, *act_file, *out_file;
 
-char *option_list = "tmho:";
+char *option_list = "tmho:w";
 int gen_mode = GEN_SOURCE;
-struct option longopts[1] = { { NULL, 0, 0, 0 } };
+int emit_warnings = 0;
+
+struct option longopts[] = { 
+    { "help", no_argument, NULL, 'h' },
+    { "output", required_argument, NULL, 'o' },
+    { "template", no_argument, NULL, 't' },
+    { "warnings", no_argument, NULL, 'w' },
+    { NULL, 0, 0, 0 } };
 
 static void usage() {
-    printf( "gendec <instruction-file> <action-file> [ -o <output-file> ]\n" );
+    printf( "Usage: gendec [options] <instruction-file> <action-file> [ -o <output-file> ]\n" );
+    printf( "Options:\n" );
+    printf( "  -h, --help         Print this help message\n" );
+    printf( "  -o, --output=FILE  Generate output to the given file\n" );
+    printf( "  -t, --template     Generate a template skeleton instead of an instruction matcher\n" );
+    printf( "  -w, --warnings     Emit warnings when unmatched instructions are found\n" );
+}
+
+/**
+ * Check that rules are provided for all actions
+ */
+static void check_actions( struct ruleset *rules, const actiontoken_t token )
+{
+    int i;
+    int warnings = 0;
+    for( i=0; i<rules->rule_count; i++ ) {
+        if( token->actions[i].text == NULL ) {
+            if( warnings == 0 ) {
+                fprintf( stderr, "In action block starting at line %d of file %s:\n",
+                         token->lineno, token->filename );
+            }
+            fprintf( stderr, "Warning: No action matches rule %d %s\n", i, rules->rules[i]->format );
+            warnings++;
+        } else {
+            const char *s = token->actions[i].text;
+            while( *s ) {
+                if( !isspace(*s) )
+                    break;
+                s++;
+            }
+            if( !*s ) {
+                if( warnings == 0 ) {
+                    fprintf( stderr, "In action block starting at line %d of file %s:\n",
+                         token->lineno, token->filename );
+                }
+                fprintf( stderr, "Warning: Empty action for rule %d %s at line %d\n", i, rules->rules[i]->format,
+                    token->actions[i].lineno );
+                warnings++;
+            }
+        }
+    }
 }
 
 /**
@@ -242,6 +289,9 @@ static int generate_decoder( struct ruleset *rules, actionfile_t af, FILE *out )
             fprintf( stderr, "Error parsing action file" );
             return -1;
         } else {
+            if( emit_warnings ) {
+                check_actions( rules, token );
+            }
             split_and_generate( rules, token->actions, ruleidx, rules->rule_count, 0, 1, out );
         }
         token = action_file_next(af);
@@ -287,6 +337,9 @@ int main( int argc, char *argv[] )
             break;
         case 'o':
             out_filename = optarg;
+            break;
+        case 'w':
+            emit_warnings = 1;
             break;
         case 'h':
             usage();
