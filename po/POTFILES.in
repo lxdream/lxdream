@@ -43,13 +43,14 @@ src/drivers/cd_none.c
 src/drivers/cd_osx.c
 src/drivers/gl_fbo.c
 src/drivers/input_lirc.c
+src/drivers/io_glib.c
+src/drivers/io_osx.m
 src/drivers/joy_linux.c
 src/drivers/joy_linux.h
 src/drivers/mac_keymap.h
-src/drivers/net_glib.c
-src/drivers/net_osx.m
 src/drivers/osx_iokit.h
 src/drivers/osx_iokit.m
+src/drivers/serial_unix.c
 src/drivers/video_gdk.c
 src/drivers/video_gl.c
 src/drivers/video_gl.h
@@ -97,6 +98,8 @@ src/gui.h
 src/hook.h
 src/hotkeys.c
 src/hotkeys.h
+src/ioutil.c
+src/ioutil.h
 src/loader.c
 src/loader.h
 src/lxdream.h
@@ -111,8 +114,6 @@ src/maple/vmu.c
 src/mem.c
 src/mem.h
 src/mmio.h
-src/netutil.c
-src/netutil.h
 src/paths_unix.c
 src/plugin.c
 src/plugin.h
