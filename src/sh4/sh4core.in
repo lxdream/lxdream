@@ -747,7 +747,11 @@ SUBC Rm, Rn {:
     sh4r.r[Rn] = sh4r.r[Rn] - sh4r.r[Rm] - sh4r.t;
     sh4r.t = (sh4r.r[Rn] > tmp || (sh4r.r[Rn] == tmp && sh4r.t == 1));
 :}
-
+SUBV Rm, Rn {:
+    tmp = sh4r.r[Rn] - sh4r.r[Rm];
+    sh4r.t = ( (sh4r.r[Rn]>>31) != (sh4r.r[Rm]>>31) && ((sh4r.r[Rn]>>31) != (tmp>>31)) );
+    sh4r.r[Rn] = tmp;
+:}
 BRAF Rn {:
      CHECKSLOTILLEGAL();
      CHECKDEST( pc + 4 + sh4r.r[Rn] );
