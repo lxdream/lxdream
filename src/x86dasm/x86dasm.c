@@ -39,6 +39,10 @@ static struct disassemble_info x86_disasm_info;
 static x86_symbol *x86_symtab;
 static int x86_num_symbols = 0;   
 
+void xlat_dump_block( void *block )
+{
+    xlat_disasm_block( stderr, block );
+}
 
 void xlat_disasm_block( FILE *out, void *block )
 {
