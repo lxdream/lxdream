@@ -28,7 +28,7 @@
 #include "pvr2/pvr2.h"
 #import <AppKit/AppKit.h>
 
-#include "mac_keymap.h"
+#include "drivers/mac_keymap.h"
 
 #define MOUSE_X_SCALE 5
 #define MOUSE_Y_SCALE 5
