@@ -237,20 +237,21 @@ genglsl_LDADD = @GLIB_LIBS@ @GTK_LIBS@ $(INTLLIBS)
 test_testxlt_SOURCES = test/testxlt.c xlat/xltcache.c xlat/xltcache.h
 
 sh4/sh4core.c: gendec sh4/sh4.def sh4/sh4core.in
-	mkdir -p `dirname $@`
+	$(mkdir_p) `dirname $@`
 	./gendec $(srcdir)/sh4/sh4.def $(srcdir)/sh4/sh4core.in -o $@
 sh4/sh4dasm.c: gendec sh4/sh4.def sh4/sh4dasm.in
-	mkdir -p `dirname $@`
+	$(mkdir_p) `dirname $@`
 	./gendec $(srcdir)/sh4/sh4.def $(srcdir)/sh4/sh4dasm.in -o $@
 sh4/sh4x86.c: gendec sh4/sh4.def sh4/sh4x86.in
-	mkdir -p `dirname $@`
+	$(mkdir_p) `dirname $@`
 	./gendec $(srcdir)/sh4/sh4.def $(srcdir)/sh4/sh4x86.in -o $@
 sh4/sh4stat.c: gendec sh4/sh4.def sh4/sh4stat.in
-	mkdir -p `dirname $@`
+	$(mkdir_p) `dirname $@`
 	./gendec $(srcdir)/sh4/sh4.def $(srcdir)/sh4/sh4stat.in -o $@
 pvr2/gl_slsrc.c: genglsl pvr2/vertex.glsl pvr2/fragment.glsl
-	mkdir -p `dirname $@`
+	$(mkdir_p) `dirname $@`
 	./genglsl $(srcdir)/pvr2/vertex.glsl $(srcdir)/pvr2/fragment.glsl $@
 drivers/mac_keymap.h: drivers/mac_keymap.txt drivers/genkeymap.pl
+	$(mkdir_p) `dirname $@`
 	$(srcdir)/drivers/genkeymap.pl mac $(srcdir)/drivers/mac_keymap.txt > $@
 	
