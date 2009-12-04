@@ -101,8 +101,8 @@ static struct vmu_device base_vmu = {
 static maple_device_t vmu_new( )
 {
     vmu_device_t dev = malloc( sizeof(struct vmu_device) );
-    dev->config.data = dev;
     memcpy( dev, &base_vmu, sizeof(base_vmu) );
+    dev->config.data = dev;
     return MAPLE_DEVICE(dev);
 }
 
