@@ -245,7 +245,6 @@ MMIO_REGION_WRITE_FN( MMU, reg, val )
         val &= 0xFFFFFCFF;
         if( (val & 0xFF) != mmu_asid ) {
             mmu_set_tlb_asid( val&0xFF );
-            sh4_icache.page_vma = -1; // invalidate icache as asid has changed
         }
         break;
     case PTEL:
@@ -473,47 +472,49 @@ static void mmu_set_storequeue_protected( int protected, int tlb_on )
 
 static void mmu_set_tlb_asid( uint32_t asid )
 {
-    /* Scan for pages that need to be remapped */
-    int i;
-    if( IS_SV_ENABLED() ) {
-        for( i=0; i<UTLB_ENTRY_COUNT; i++ ) {
-            if( mmu_utlb[i].asid == mmu_asid && 
-                (mmu_utlb[i].flags & (TLB_VALID|TLB_SHARE)) == (TLB_VALID) ) {
-                // Matches old ASID - unmap out
-                if( !mmu_utlb_unmap_pages( FALSE, TRUE, mmu_utlb[i].vpn&mmu_utlb[i].mask,
-                        get_tlb_size_pages(mmu_utlb[i].flags) ) )
-                    mmu_utlb_remap_pages( FALSE, TRUE, i );
+    if( IS_TLB_ENABLED() ) {
+        /* Scan for pages that need to be remapped */
+        int i;
+        if( IS_SV_ENABLED() ) {
+            for( i=0; i<UTLB_ENTRY_COUNT; i++ ) {
+                if( mmu_utlb[i].asid == mmu_asid &&
+                        (mmu_utlb[i].flags & (TLB_VALID|TLB_SHARE)) == (TLB_VALID) ) {
+                    // Matches old ASID - unmap out
+                    if( !mmu_utlb_unmap_pages( FALSE, TRUE, mmu_utlb[i].vpn&mmu_utlb[i].mask,
+                            get_tlb_size_pages(mmu_utlb[i].flags) ) )
+                        mmu_utlb_remap_pages( FALSE, TRUE, i );
+                }
+            }
+            for( i=0; i<UTLB_ENTRY_COUNT; i++ ) {
+                if( mmu_utlb[i].asid == asid &&
+                        (mmu_utlb[i].flags & (TLB_VALID|TLB_SHARE)) == (TLB_VALID) ) {
+                    // Matches new ASID - map in
+                    mmu_utlb_map_pages( NULL, mmu_utlb_pages[i].user_fn,
+                            mmu_utlb[i].vpn&mmu_utlb[i].mask,
+                            get_tlb_size_pages(mmu_utlb[i].flags) );
+                }
+            }
+        } else {
+            // Remap both Priv+user pages
+            for( i=0; i<UTLB_ENTRY_COUNT; i++ ) {
+                if( mmu_utlb[i].asid == mmu_asid &&
+                        (mmu_utlb[i].flags & (TLB_VALID|TLB_SHARE)) == (TLB_VALID) ) {
+                    if( !mmu_utlb_unmap_pages( TRUE, TRUE, mmu_utlb[i].vpn&mmu_utlb[i].mask,
+                            get_tlb_size_pages(mmu_utlb[i].flags) ) )
+                        mmu_utlb_remap_pages( TRUE, TRUE, i );
+                }
+            }
+            for( i=0; i<UTLB_ENTRY_COUNT; i++ ) {
+                if( mmu_utlb[i].asid == asid &&
+                        (mmu_utlb[i].flags & (TLB_VALID|TLB_SHARE)) == (TLB_VALID) ) {
+                    mmu_utlb_map_pages( &mmu_utlb_pages[i].fn, mmu_utlb_pages[i].user_fn,
+                            mmu_utlb[i].vpn&mmu_utlb[i].mask,
+                            get_tlb_size_pages(mmu_utlb[i].flags) );
+                }
             }
         }
-        for( i=0; i<UTLB_ENTRY_COUNT; i++ ) {
-            if( mmu_utlb[i].asid == asid && 
-                (mmu_utlb[i].flags & (TLB_VALID|TLB_SHARE)) == (TLB_VALID) ) {
-                // Matches new ASID - map in
-                mmu_utlb_map_pages( NULL, mmu_utlb_pages[i].user_fn, 
-                        mmu_utlb[i].vpn&mmu_utlb[i].mask, 
-                        get_tlb_size_pages(mmu_utlb[i].flags) );
-            }
-        }
-    } else {
-        // Remap both Priv+user pages
-        for( i=0; i<UTLB_ENTRY_COUNT; i++ ) {
-            if( mmu_utlb[i].asid == mmu_asid &&
-                (mmu_utlb[i].flags & (TLB_VALID|TLB_SHARE)) == (TLB_VALID) ) {
-                if( !mmu_utlb_unmap_pages( TRUE, TRUE, mmu_utlb[i].vpn&mmu_utlb[i].mask,
-                        get_tlb_size_pages(mmu_utlb[i].flags) ) )
-                    mmu_utlb_remap_pages( TRUE, TRUE, i );
-            }
-        }
-        for( i=0; i<UTLB_ENTRY_COUNT; i++ ) {
-            if( mmu_utlb[i].asid == asid &&
-                (mmu_utlb[i].flags & (TLB_VALID|TLB_SHARE)) == (TLB_VALID) ) {
-                mmu_utlb_map_pages( &mmu_utlb_pages[i].fn, mmu_utlb_pages[i].user_fn, 
-                        mmu_utlb[i].vpn&mmu_utlb[i].mask, 
-                        get_tlb_size_pages(mmu_utlb[i].flags) );  
-            }
-        }
+        sh4_icache.page_vma = -1; // invalidate icache as asid has changed
     }
-    
     mmu_asid = asid;
 }
 
