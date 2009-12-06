@@ -328,7 +328,7 @@ void audio_mix_samples( int num_samples )
             switch( channel->sample_format ) {
             case AUDIO_FMT_16BIT:
                 for( j=0; j<num_samples; j++ ) {
-                    sample = ((int16_t *)(aica_main_ram + channel->start))[channel->posn];
+                    sample = *(int16_t *)(aica_main_ram + ((channel->start + channel->posn*2)&AUDIO_MEM_MASK));
                     result_buf[j][0] += sample * vol_left;
                     result_buf[j][1] += sample * vol_right;
 
@@ -352,7 +352,7 @@ void audio_mix_samples( int num_samples )
                 break;
             case AUDIO_FMT_8BIT:
                 for( j=0; j<num_samples; j++ ) {
-                    sample = ((int8_t *)(aica_main_ram + channel->start))[channel->posn] << 8;
+                    sample = (*(int8_t *)(aica_main_ram + ((channel->start + channel->posn)&AUDIO_MEM_MASK))) << 8;
                     result_buf[j][0] += sample * vol_left;
                     result_buf[j][1] += sample * vol_right;
 
@@ -395,7 +395,7 @@ void audio_mix_samples( int num_samples )
                                 break;
                             }
                         }
-                        uint8_t data = ((uint8_t *)(aica_main_ram + channel->start))[channel->posn>>1];
+                        uint8_t data = *(uint8_t *)(aica_main_ram + ((channel->start + (channel->posn>>1))&AUDIO_MEM_MASK));
                         if( channel->posn&1 ) {
                             adpcm_yamaha_decode_nibble( channel, (data >> 4) & 0x0F );
                         } else {
