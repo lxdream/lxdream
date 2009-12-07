@@ -68,9 +68,14 @@ int main()
 {
     /* Non-TLB behaviour tests */
     
-    
-    /* TLB tests */
     install_utlb_test_handler();
+    
+    /* TLB off tests (make sure the MMU _stays_ off) */
+    LOAD( 62, 0, 0x0C000000, 0x0CFFFC00, TLB_VALID|TLB_USERMODE|TLB_WRITABLE|TLB_SIZE_1K|TLB_CACHEABLE|TLB_DIRTY );
+    TEST( "TLB OFF", 0, 0x0C000018, 0x0C000018, OK, OK, OK, OK );
+    TEST( "TLB OFF", 1, 0x0C000018, 0x0C000018, OK, OK, OK, OK );
+
+    /* TLB tests */
     invalidate_tlb();
     /* Permanently map the first and last MB of RAM into userspace - without 
      * this it's a bit hard to actually run any user-mode tests.

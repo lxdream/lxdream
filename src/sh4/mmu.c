@@ -208,7 +208,7 @@ int MMU_load_state( FILE *f )
 void MMU_ldtlb()
 {
     int urc = mmu_read_urc();
-    if( mmu_utlb[urc].flags & TLB_VALID )
+    if( IS_TLB_ENABLED() && mmu_utlb[urc].flags & TLB_VALID )
         mmu_utlb_remove_entry( urc );
     mmu_utlb[urc].vpn = MMIO_READ(MMU, PTEH) & 0xFFFFFC00;
     mmu_utlb[urc].asid = MMIO_READ(MMU, PTEH) & 0x000000FF;
@@ -216,7 +216,7 @@ void MMU_ldtlb()
     mmu_utlb[urc].flags = MMIO_READ(MMU, PTEL) & 0x00001FF;
     mmu_utlb[urc].pcmcia = MMIO_READ(MMU, PTEA);
     mmu_utlb[urc].mask = get_tlb_size_mask(mmu_utlb[urc].flags);
-    if( mmu_utlb[urc].flags & TLB_VALID )
+    if( IS_TLB_ENABLED() && mmu_utlb[urc].flags & TLB_VALID )
         mmu_utlb_insert_entry( urc );
 }
 
@@ -1312,7 +1312,7 @@ void FASTCALL mmu_utlb_addr_write( sh4addr_t addr, uint32_t val, void *exc )
             ent->flags = ent->flags & ~(TLB_DIRTY|TLB_VALID);
             ent->flags |= (val & TLB_VALID);
             ent->flags |= ((val & 0x200)>>7);
-            if( ((old_flags^ent->flags) & (TLB_VALID|TLB_DIRTY)) != 0 ) {
+            if( IS_TLB_ENABLED() && ((old_flags^ent->flags) & (TLB_VALID|TLB_DIRTY)) != 0 ) {
                 if( old_flags & TLB_VALID )
                     mmu_utlb_remove_entry( utlb );
                 if( ent->flags & TLB_VALID )
@@ -1327,20 +1327,20 @@ void FASTCALL mmu_utlb_addr_write( sh4addr_t addr, uint32_t val, void *exc )
         }
 
         if( itlb == -2 || utlb == -2 ) {
-            RAISE_TLB_MULTIHIT_ERROR(addr);
+            RAISE_TLB_MULTIHIT_ERROR(addr); /* FIXME: should this only be raised if TLB is enabled? */
             EXCEPTION_EXIT();
             return;
         }
     } else {
         struct utlb_entry *ent = &mmu_utlb[UTLB_ENTRY(addr)];
-        if( ent->flags & TLB_VALID ) 
+        if( IS_TLB_ENABLED() && ent->flags & TLB_VALID )
             mmu_utlb_remove_entry( UTLB_ENTRY(addr) );
         ent->vpn = (val & 0xFFFFFC00);
         ent->asid = (val & 0xFF);
         ent->flags = (ent->flags & ~(TLB_DIRTY|TLB_VALID));
         ent->flags |= (val & TLB_VALID);
         ent->flags |= ((val & 0x200)>>7);
-        if( ent->flags & TLB_VALID ) 
+        if( IS_TLB_ENABLED() && ent->flags & TLB_VALID )
             mmu_utlb_insert_entry( UTLB_ENTRY(addr) );
     }
 }
@@ -1351,12 +1351,12 @@ void FASTCALL mmu_utlb_data_write( sh4addr_t addr, uint32_t val )
     if( UTLB_DATA2(addr) ) {
         ent->pcmcia = val & 0x0000000F;
     } else {
-        if( ent->flags & TLB_VALID ) 
+        if( IS_TLB_ENABLED() && ent->flags & TLB_VALID )
             mmu_utlb_remove_entry( UTLB_ENTRY(addr) );
         ent->ppn = (val & 0x1FFFFC00);
         ent->flags = (val & 0x000001FF);
         ent->mask = get_tlb_size_mask(val);
-        if( ent->flags & TLB_VALID ) 
+        if( IS_TLB_ENABLED() && ent->flags & TLB_VALID )
             mmu_utlb_insert_entry( UTLB_ENTRY(addr) );
     }
 }
