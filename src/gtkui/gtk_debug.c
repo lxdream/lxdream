@@ -202,10 +202,10 @@ void init_register_list( debug_window_t data )
         arr[0] = data->cpu->regs_info[i].name;
         void *value = data->cpu->get_register(i);
         if( value != NULL ) {
-            if( data->cpu->regs_info->type == REG_INT ) {
+            if( data->cpu->regs_info->type == REG_TYPE_INT ) {
                 sprintf( buf, "%08X", *((uint32_t *)value) );
                 gtk_clist_append( data->regs_list, arr );
-            } else if( data->cpu->regs_info->type == REG_FLOAT ) {
+            } else if( data->cpu->regs_info->type == REG_TYPE_FLOAT ) {
                 sprintf( buf, "%f", *((float *)value) );
                 gtk_clist_append( data->regs_list, arr );
             }
@@ -223,7 +223,7 @@ void debug_window_update( debug_window_t data )
     for( i=0; data->cpu->regs_info[i].name != NULL; i++ ) {
         void *value = data->cpu->get_register(i);
         if( value != NULL ) {
-            if( data->cpu->regs_info[i].type == REG_INT ) {
+            if( data->cpu->regs_info[i].type == REG_TYPE_INT ) {
                 /* Yes this _is_ probably fairly evil */
                 if( *((uint32_t *)value) !=
                     *((uint32_t *)((char *)data->saved_regs + ((char *)value - (char *)data->cpu->regs))) ) {

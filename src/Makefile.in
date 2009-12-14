@@ -139,8 +139,8 @@ input_lirc_@SOEXT@_OBJECTS = $(am_input_lirc_@SOEXT@_OBJECTS)
 @BUILD_SHARED_TRUE@@INPUT_LIRC_TRUE@input_lirc_@SOEXT@_DEPENDENCIES =  \
 @BUILD_SHARED_TRUE@@INPUT_LIRC_TRUE@	input_lirc.lo
 am__lxdream_SOURCES_DIST = main.c version.c config.c config.h \
-	lxdream.h dream.h gui.h cpu.h hook.h gettext.h mem.c mem.h \
-	sdram.c mmio.h watch.c asic.c asic.h clock.h serial.h \
+	lxdream.h dream.h gui.h cpu.c cpu.h hook.h gettext.h mem.c \
+	mem.h sdram.c mmio.h watch.c asic.c asic.h clock.h serial.h \
 	syscall.c syscall.h bios.c dcload.c gdbserver.c ioutil.c \
 	ioutil.h lxpaths.c lxpaths.h gdrom/ide.c gdrom/ide.h \
 	gdrom/packet.h gdrom/gdimage.c gdrom/gdrom.c gdrom/gdrom.h \
@@ -232,48 +232,48 @@ am__lxdream_SOURCES_DIST = main.c version.c config.c config.h \
 @CDROM_NONE_TRUE@am__objects_17 = lxdream-cd_none.$(OBJEXT)
 @JOY_LINUX_TRUE@am__objects_18 = lxdream-joy_linux.$(OBJEXT)
 am_lxdream_OBJECTS = lxdream-main.$(OBJEXT) lxdream-version.$(OBJEXT) \
-	lxdream-config.$(OBJEXT) lxdream-mem.$(OBJEXT) \
-	lxdream-sdram.$(OBJEXT) lxdream-watch.$(OBJEXT) \
-	lxdream-asic.$(OBJEXT) lxdream-syscall.$(OBJEXT) \
-	lxdream-bios.$(OBJEXT) lxdream-dcload.$(OBJEXT) \
-	lxdream-gdbserver.$(OBJEXT) lxdream-ioutil.$(OBJEXT) \
-	lxdream-lxpaths.$(OBJEXT) lxdream-ide.$(OBJEXT) \
-	lxdream-gdimage.$(OBJEXT) lxdream-gdrom.$(OBJEXT) \
-	lxdream-nrg.$(OBJEXT) lxdream-cdi.$(OBJEXT) \
-	lxdream-gdi.$(OBJEXT) lxdream-edc_ecc.$(OBJEXT) \
-	lxdream-dreamcast.$(OBJEXT) lxdream-eventq.$(OBJEXT) \
-	lxdream-sh4.$(OBJEXT) lxdream-intc.$(OBJEXT) \
-	lxdream-sh4mem.$(OBJEXT) lxdream-timer.$(OBJEXT) \
-	lxdream-dmac.$(OBJEXT) lxdream-mmu.$(OBJEXT) \
-	lxdream-sh4core.$(OBJEXT) lxdream-sh4dasm.$(OBJEXT) \
-	lxdream-sh4mmio.$(OBJEXT) lxdream-scif.$(OBJEXT) \
-	lxdream-sh4stat.$(OBJEXT) lxdream-xltcache.$(OBJEXT) \
-	lxdream-pmm.$(OBJEXT) lxdream-cache.$(OBJEXT) \
-	lxdream-armcore.$(OBJEXT) lxdream-armdasm.$(OBJEXT) \
-	lxdream-armmem.$(OBJEXT) lxdream-aica.$(OBJEXT) \
-	lxdream-audio.$(OBJEXT) lxdream-pvr2.$(OBJEXT) \
-	lxdream-pvr2mem.$(OBJEXT) lxdream-tacore.$(OBJEXT) \
-	lxdream-rendsort.$(OBJEXT) lxdream-texcache.$(OBJEXT) \
-	lxdream-yuv.$(OBJEXT) lxdream-rendsave.$(OBJEXT) \
-	lxdream-scene.$(OBJEXT) lxdream-gl_sl.$(OBJEXT) \
-	lxdream-gl_slsrc.$(OBJEXT) lxdream-glutil.$(OBJEXT) \
-	lxdream-glrender.$(OBJEXT) lxdream-maple.$(OBJEXT) \
-	lxdream-controller.$(OBJEXT) lxdream-kbd.$(OBJEXT) \
-	lxdream-mouse.$(OBJEXT) lxdream-lightgun.$(OBJEXT) \
-	lxdream-vmu.$(OBJEXT) lxdream-loader.$(OBJEXT) \
-	lxdream-bootstrap.$(OBJEXT) lxdream-util.$(OBJEXT) \
-	lxdream-gdlist.$(OBJEXT) lxdream-vmuvol.$(OBJEXT) \
-	lxdream-vmulist.$(OBJEXT) lxdream-display.$(OBJEXT) \
-	lxdream-audio_null.$(OBJEXT) lxdream-video_null.$(OBJEXT) \
-	lxdream-cd_mmc.$(OBJEXT) lxdream-video_gl.$(OBJEXT) \
-	lxdream-gl_fbo.$(OBJEXT) lxdream-serial_unix.$(OBJEXT) \
-	lxdream-hotkeys.$(OBJEXT) $(am__objects_1) $(am__objects_2) \
-	$(am__objects_3) $(am__objects_4) $(am__objects_5) \
-	$(am__objects_6) $(am__objects_7) $(am__objects_8) \
-	$(am__objects_9) $(am__objects_10) $(am__objects_11) \
-	$(am__objects_12) $(am__objects_13) $(am__objects_14) \
-	$(am__objects_15) $(am__objects_16) $(am__objects_17) \
-	$(am__objects_18)
+	lxdream-config.$(OBJEXT) lxdream-cpu.$(OBJEXT) \
+	lxdream-mem.$(OBJEXT) lxdream-sdram.$(OBJEXT) \
+	lxdream-watch.$(OBJEXT) lxdream-asic.$(OBJEXT) \
+	lxdream-syscall.$(OBJEXT) lxdream-bios.$(OBJEXT) \
+	lxdream-dcload.$(OBJEXT) lxdream-gdbserver.$(OBJEXT) \
+	lxdream-ioutil.$(OBJEXT) lxdream-lxpaths.$(OBJEXT) \
+	lxdream-ide.$(OBJEXT) lxdream-gdimage.$(OBJEXT) \
+	lxdream-gdrom.$(OBJEXT) lxdream-nrg.$(OBJEXT) \
+	lxdream-cdi.$(OBJEXT) lxdream-gdi.$(OBJEXT) \
+	lxdream-edc_ecc.$(OBJEXT) lxdream-dreamcast.$(OBJEXT) \
+	lxdream-eventq.$(OBJEXT) lxdream-sh4.$(OBJEXT) \
+	lxdream-intc.$(OBJEXT) lxdream-sh4mem.$(OBJEXT) \
+	lxdream-timer.$(OBJEXT) lxdream-dmac.$(OBJEXT) \
+	lxdream-mmu.$(OBJEXT) lxdream-sh4core.$(OBJEXT) \
+	lxdream-sh4dasm.$(OBJEXT) lxdream-sh4mmio.$(OBJEXT) \
+	lxdream-scif.$(OBJEXT) lxdream-sh4stat.$(OBJEXT) \
+	lxdream-xltcache.$(OBJEXT) lxdream-pmm.$(OBJEXT) \
+	lxdream-cache.$(OBJEXT) lxdream-armcore.$(OBJEXT) \
+	lxdream-armdasm.$(OBJEXT) lxdream-armmem.$(OBJEXT) \
+	lxdream-aica.$(OBJEXT) lxdream-audio.$(OBJEXT) \
+	lxdream-pvr2.$(OBJEXT) lxdream-pvr2mem.$(OBJEXT) \
+	lxdream-tacore.$(OBJEXT) lxdream-rendsort.$(OBJEXT) \
+	lxdream-texcache.$(OBJEXT) lxdream-yuv.$(OBJEXT) \
+	lxdream-rendsave.$(OBJEXT) lxdream-scene.$(OBJEXT) \
+	lxdream-gl_sl.$(OBJEXT) lxdream-gl_slsrc.$(OBJEXT) \
+	lxdream-glutil.$(OBJEXT) lxdream-glrender.$(OBJEXT) \
+	lxdream-maple.$(OBJEXT) lxdream-controller.$(OBJEXT) \
+	lxdream-kbd.$(OBJEXT) lxdream-mouse.$(OBJEXT) \
+	lxdream-lightgun.$(OBJEXT) lxdream-vmu.$(OBJEXT) \
+	lxdream-loader.$(OBJEXT) lxdream-bootstrap.$(OBJEXT) \
+	lxdream-util.$(OBJEXT) lxdream-gdlist.$(OBJEXT) \
+	lxdream-vmuvol.$(OBJEXT) lxdream-vmulist.$(OBJEXT) \
+	lxdream-display.$(OBJEXT) lxdream-audio_null.$(OBJEXT) \
+	lxdream-video_null.$(OBJEXT) lxdream-cd_mmc.$(OBJEXT) \
+	lxdream-video_gl.$(OBJEXT) lxdream-gl_fbo.$(OBJEXT) \
+	lxdream-serial_unix.$(OBJEXT) lxdream-hotkeys.$(OBJEXT) \
+	$(am__objects_1) $(am__objects_2) $(am__objects_3) \
+	$(am__objects_4) $(am__objects_5) $(am__objects_6) \
+	$(am__objects_7) $(am__objects_8) $(am__objects_9) \
+	$(am__objects_10) $(am__objects_11) $(am__objects_12) \
+	$(am__objects_13) $(am__objects_14) $(am__objects_15) \
+	$(am__objects_16) $(am__objects_17) $(am__objects_18)
 lxdream_OBJECTS = $(am_lxdream_OBJECTS)
 lxdream_DEPENDENCIES = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
@@ -285,7 +285,7 @@ lxdream_dummy_@SOEXT@_OBJECTS = $(am_lxdream_dummy_@SOEXT@_OBJECTS)
 am__test_testsh4x86_SOURCES_DIST = test/testsh4x86.c x86dasm/x86dasm.c \
 	x86dasm/x86dasm.h x86dasm/i386-dis.c x86dasm/dis-init.c \
 	x86dasm/dis-buf.c sh4/sh4trans.c sh4/sh4x86.c xlat/xltcache.c \
-	xlat/xltcache.h mem.c util.c
+	sh4/sh4dasm.c xlat/xltcache.h mem.c util.c cpu.c
 @BUILD_SH4X86_TRUE@am_test_testsh4x86_OBJECTS =  \
 @BUILD_SH4X86_TRUE@	test_testsh4x86-testsh4x86.$(OBJEXT) \
 @BUILD_SH4X86_TRUE@	test_testsh4x86-x86dasm.$(OBJEXT) \
@@ -295,8 +295,10 @@ am__test_testsh4x86_SOURCES_DIST = test/testsh4x86.c x86dasm/x86dasm.c \
 @BUILD_SH4X86_TRUE@	test_testsh4x86-sh4trans.$(OBJEXT) \
 @BUILD_SH4X86_TRUE@	test_testsh4x86-sh4x86.$(OBJEXT) \
 @BUILD_SH4X86_TRUE@	test_testsh4x86-xltcache.$(OBJEXT) \
+@BUILD_SH4X86_TRUE@	test_testsh4x86-sh4dasm.$(OBJEXT) \
 @BUILD_SH4X86_TRUE@	test_testsh4x86-mem.$(OBJEXT) \
-@BUILD_SH4X86_TRUE@	test_testsh4x86-util.$(OBJEXT)
+@BUILD_SH4X86_TRUE@	test_testsh4x86-util.$(OBJEXT) \
+@BUILD_SH4X86_TRUE@	test_testsh4x86-cpu.$(OBJEXT)
 test_testsh4x86_OBJECTS = $(am_test_testsh4x86_OBJECTS)
 test_testsh4x86_DEPENDENCIES =
 am__dirstamp = $(am__leading_dot)dirstamp
@@ -541,7 +543,7 @@ lxdream_LDADD = @LXDREAM_LIBS@ @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@ \
 	$(INTLLIBS) $(am__append_18) $(am__append_20) $(am__append_22) \
 	$(am__append_24) $(am__append_26)
 lxdream_SOURCES = main.c version.c config.c config.h lxdream.h dream.h \
-	gui.h cpu.h hook.h gettext.h mem.c mem.h sdram.c mmio.h \
+	gui.h cpu.c cpu.h hook.h gettext.h mem.c mem.h sdram.c mmio.h \
 	watch.c asic.c asic.h clock.h serial.h syscall.c syscall.h \
 	bios.c dcload.c gdbserver.c ioutil.c ioutil.h lxpaths.c \
 	lxpaths.h gdrom/ide.c gdrom/ide.h gdrom/packet.h \
@@ -582,8 +584,8 @@ lxdream_CPPFLAGS = @LXDREAMCPPFLAGS@
 @BUILD_SH4X86_TRUE@test_testsh4x86_SOURCES = test/testsh4x86.c x86dasm/x86dasm.c \
 @BUILD_SH4X86_TRUE@	x86dasm/x86dasm.h x86dasm/i386-dis.c x86dasm/dis-init.c \
 @BUILD_SH4X86_TRUE@	x86dasm/dis-buf.c \
-@BUILD_SH4X86_TRUE@	sh4/sh4trans.c sh4/sh4x86.c xlat/xltcache.c \
-@BUILD_SH4X86_TRUE@	xlat/xltcache.h mem.c util.c 
+@BUILD_SH4X86_TRUE@	sh4/sh4trans.c sh4/sh4x86.c xlat/xltcache.c sh4/sh4dasm.c \
+@BUILD_SH4X86_TRUE@	xlat/xltcache.h mem.c util.c cpu.c
 
 @BUILD_SHARED_TRUE@lxdream_dummy_@SOEXT@_SOURCES = 
 @BUILD_SHARED_TRUE@lxdream_dummy_@SOEXT@_LDADD = lxdream_dummy.lo @SDL_LIBS@
@@ -767,6 +769,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-cocoaui.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-config.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-controller.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-cpu.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-dcload.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-dis-buf.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-dis-init.Po@am__quote@
@@ -855,10 +858,12 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-x86dasm.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-xltcache.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-yuv.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_testsh4x86-cpu.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_testsh4x86-dis-buf.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_testsh4x86-dis-init.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_testsh4x86-i386-dis.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_testsh4x86-mem.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_testsh4x86-sh4dasm.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_testsh4x86-sh4trans.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_testsh4x86-sh4x86.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_testsh4x86-testsh4x86.Po@am__quote@
@@ -979,6 +984,20 @@ lxdream-config.obj: config.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='config.c' object='lxdream-config.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-config.obj `if test -f 'config.c'; then $(CYGPATH_W) 'config.c'; else $(CYGPATH_W) '$(srcdir)/config.c'; fi`
+
+lxdream-cpu.o: cpu.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-cpu.o -MD -MP -MF "$(DEPDIR)/lxdream-cpu.Tpo" -c -o lxdream-cpu.o `test -f 'cpu.c' || echo '$(srcdir)/'`cpu.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/lxdream-cpu.Tpo" "$(DEPDIR)/lxdream-cpu.Po"; else rm -f "$(DEPDIR)/lxdream-cpu.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='cpu.c' object='lxdream-cpu.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-cpu.o `test -f 'cpu.c' || echo '$(srcdir)/'`cpu.c
+
+lxdream-cpu.obj: cpu.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-cpu.obj -MD -MP -MF "$(DEPDIR)/lxdream-cpu.Tpo" -c -o lxdream-cpu.obj `if test -f 'cpu.c'; then $(CYGPATH_W) 'cpu.c'; else $(CYGPATH_W) '$(srcdir)/cpu.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/lxdream-cpu.Tpo" "$(DEPDIR)/lxdream-cpu.Po"; else rm -f "$(DEPDIR)/lxdream-cpu.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='cpu.c' object='lxdream-cpu.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-cpu.obj `if test -f 'cpu.c'; then $(CYGPATH_W) 'cpu.c'; else $(CYGPATH_W) '$(srcdir)/cpu.c'; fi`
 
 lxdream-mem.o: mem.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-mem.o -MD -MP -MF "$(DEPDIR)/lxdream-mem.Tpo" -c -o lxdream-mem.o `test -f 'mem.c' || echo '$(srcdir)/'`mem.c; \
@@ -2506,6 +2525,20 @@ test_testsh4x86-xltcache.obj: xlat/xltcache.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_testsh4x86_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o test_testsh4x86-xltcache.obj `if test -f 'xlat/xltcache.c'; then $(CYGPATH_W) 'xlat/xltcache.c'; else $(CYGPATH_W) '$(srcdir)/xlat/xltcache.c'; fi`
 
+test_testsh4x86-sh4dasm.o: sh4/sh4dasm.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_testsh4x86_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT test_testsh4x86-sh4dasm.o -MD -MP -MF "$(DEPDIR)/test_testsh4x86-sh4dasm.Tpo" -c -o test_testsh4x86-sh4dasm.o `test -f 'sh4/sh4dasm.c' || echo '$(srcdir)/'`sh4/sh4dasm.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/test_testsh4x86-sh4dasm.Tpo" "$(DEPDIR)/test_testsh4x86-sh4dasm.Po"; else rm -f "$(DEPDIR)/test_testsh4x86-sh4dasm.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='sh4/sh4dasm.c' object='test_testsh4x86-sh4dasm.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_testsh4x86_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o test_testsh4x86-sh4dasm.o `test -f 'sh4/sh4dasm.c' || echo '$(srcdir)/'`sh4/sh4dasm.c
+
+test_testsh4x86-sh4dasm.obj: sh4/sh4dasm.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_testsh4x86_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT test_testsh4x86-sh4dasm.obj -MD -MP -MF "$(DEPDIR)/test_testsh4x86-sh4dasm.Tpo" -c -o test_testsh4x86-sh4dasm.obj `if test -f 'sh4/sh4dasm.c'; then $(CYGPATH_W) 'sh4/sh4dasm.c'; else $(CYGPATH_W) '$(srcdir)/sh4/sh4dasm.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/test_testsh4x86-sh4dasm.Tpo" "$(DEPDIR)/test_testsh4x86-sh4dasm.Po"; else rm -f "$(DEPDIR)/test_testsh4x86-sh4dasm.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='sh4/sh4dasm.c' object='test_testsh4x86-sh4dasm.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_testsh4x86_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o test_testsh4x86-sh4dasm.obj `if test -f 'sh4/sh4dasm.c'; then $(CYGPATH_W) 'sh4/sh4dasm.c'; else $(CYGPATH_W) '$(srcdir)/sh4/sh4dasm.c'; fi`
+
 test_testsh4x86-mem.o: mem.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_testsh4x86_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT test_testsh4x86-mem.o -MD -MP -MF "$(DEPDIR)/test_testsh4x86-mem.Tpo" -c -o test_testsh4x86-mem.o `test -f 'mem.c' || echo '$(srcdir)/'`mem.c; \
 @am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/test_testsh4x86-mem.Tpo" "$(DEPDIR)/test_testsh4x86-mem.Po"; else rm -f "$(DEPDIR)/test_testsh4x86-mem.Tpo"; exit 1; fi
@@ -2533,6 +2566,20 @@ test_testsh4x86-util.obj: util.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='util.c' object='test_testsh4x86-util.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_testsh4x86_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o test_testsh4x86-util.obj `if test -f 'util.c'; then $(CYGPATH_W) 'util.c'; else $(CYGPATH_W) '$(srcdir)/util.c'; fi`
+
+test_testsh4x86-cpu.o: cpu.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_testsh4x86_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT test_testsh4x86-cpu.o -MD -MP -MF "$(DEPDIR)/test_testsh4x86-cpu.Tpo" -c -o test_testsh4x86-cpu.o `test -f 'cpu.c' || echo '$(srcdir)/'`cpu.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/test_testsh4x86-cpu.Tpo" "$(DEPDIR)/test_testsh4x86-cpu.Po"; else rm -f "$(DEPDIR)/test_testsh4x86-cpu.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='cpu.c' object='test_testsh4x86-cpu.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_testsh4x86_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o test_testsh4x86-cpu.o `test -f 'cpu.c' || echo '$(srcdir)/'`cpu.c
+
+test_testsh4x86-cpu.obj: cpu.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_testsh4x86_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT test_testsh4x86-cpu.obj -MD -MP -MF "$(DEPDIR)/test_testsh4x86-cpu.Tpo" -c -o test_testsh4x86-cpu.obj `if test -f 'cpu.c'; then $(CYGPATH_W) 'cpu.c'; else $(CYGPATH_W) '$(srcdir)/cpu.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/test_testsh4x86-cpu.Tpo" "$(DEPDIR)/test_testsh4x86-cpu.Po"; else rm -f "$(DEPDIR)/test_testsh4x86-cpu.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='cpu.c' object='test_testsh4x86-cpu.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(test_testsh4x86_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o test_testsh4x86-cpu.obj `if test -f 'cpu.c'; then $(CYGPATH_W) 'cpu.c'; else $(CYGPATH_W) '$(srcdir)/cpu.c'; fi`
 
 testxlt.o: test/testxlt.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT testxlt.o -MD -MP -MF "$(DEPDIR)/testxlt.Tpo" -c -o testxlt.o `test -f 'test/testxlt.c' || echo '$(srcdir)/'`test/testxlt.c; \

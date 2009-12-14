@@ -240,3 +240,37 @@ void * FASTCALL xlat_get_code_by_vma( sh4vma_t vma )
     return result;
 }
 
+/**
+ * Crashdump translation information.
+ *
+ * Print out the currently executing block (if any), in source and target
+ * assembly.
+ *
+ * Note: we want to be _really_ careful not to cause a second-level crash
+ * at this point (e.g. if the lookup tables are corrupted...)
+ */
+void sh4_translate_crashdump()
+{
+    if( !IS_IN_ICACHE(sh4r.pc) ) {
+        /** If we're crashing due to an icache lookup failure, we'll probably
+         * hit this case - just complain and return.
+         */
+        fprintf( stderr, "** SH4 PC not in current instruction region **\n" );
+        return;
+    }
+    uint32_t pma = GET_ICACHE_PHYS(sh4r.pc);
+    void *code = xlat_get_code( pma );
+    if( code == NULL ) {
+        fprintf( stderr, "** No translated block for current SH4 PC **\n" );
+        return;
+    }
+
+    /* Sanity check on the code pointer */
+    if( !xlat_is_code_pointer(code) ) {
+        fprintf( stderr, "** Possibly corrupt translation cache **\n" );
+        return;
+    }
+
+    void *native_pc = xlat_get_native_pc( code, xlat_get_code_size(code) );
+    sh4_translate_disasm_block( stderr, code, sh4r.pc, native_pc );
+}

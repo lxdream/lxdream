@@ -49,25 +49,25 @@
 
 
 const struct reg_desc_struct arm_reg_map[] = 
-{ {"R0", REG_INT, &armr.r[0]}, {"R1", REG_INT, &armr.r[1]},
-        {"R2", REG_INT, &armr.r[2]}, {"R3", REG_INT, &armr.r[3]},
-        {"R4", REG_INT, &armr.r[4]}, {"R5", REG_INT, &armr.r[5]},
-        {"R6", REG_INT, &armr.r[6]}, {"R7", REG_INT, &armr.r[7]},
-        {"R8", REG_INT, &armr.r[8]}, {"R9", REG_INT, &armr.r[9]},
-        {"R10",REG_INT, &armr.r[10]}, {"R11",REG_INT, &armr.r[11]},
-        {"R12",REG_INT, &armr.r[12]}, {"R13",REG_INT, &armr.r[13]},
-        {"R14",REG_INT, &armr.r[14]}, {"R15",REG_INT, &armr.r[15]},
+{ {"R0", REG_TYPE_INT, &armr.r[0]}, {"R1", REG_TYPE_INT, &armr.r[1]},
+        {"R2", REG_TYPE_INT, &armr.r[2]}, {"R3", REG_TYPE_INT, &armr.r[3]},
+        {"R4", REG_TYPE_INT, &armr.r[4]}, {"R5", REG_TYPE_INT, &armr.r[5]},
+        {"R6", REG_TYPE_INT, &armr.r[6]}, {"R7", REG_TYPE_INT, &armr.r[7]},
+        {"R8", REG_TYPE_INT, &armr.r[8]}, {"R9", REG_TYPE_INT, &armr.r[9]},
+        {"R10",REG_TYPE_INT, &armr.r[10]}, {"R11",REG_TYPE_INT, &armr.r[11]},
+        {"R12",REG_TYPE_INT, &armr.r[12]}, {"R13",REG_TYPE_INT, &armr.r[13]},
+        {"R14",REG_TYPE_INT, &armr.r[14]}, {"R15",REG_TYPE_INT, &armr.r[15]},
         
         /* Block of FPA registers (arm-elf-gdb seems to expect these).
          * Oddly enough the ARM7TDMI doesn't have them */
-        {"F0",REG_NONE, NULL}, {"F1",REG_NONE, NULL},
-        {"F2",REG_NONE, NULL}, {"F3",REG_NONE, NULL},
-        {"F4",REG_NONE, NULL}, {"F5",REG_NONE, NULL},
-        {"F6",REG_NONE, NULL}, {"F7",REG_NONE, NULL},
-        {"FPS",REG_NONE, NULL},
+        {"F0",REG_TYPE_NONE, NULL}, {"F1",REG_TYPE_NONE, NULL},
+        {"F2",REG_TYPE_NONE, NULL}, {"F3",REG_TYPE_NONE, NULL},
+        {"F4",REG_TYPE_NONE, NULL}, {"F5",REG_TYPE_NONE, NULL},
+        {"F6",REG_TYPE_NONE, NULL}, {"F7",REG_TYPE_NONE, NULL},
+        {"FPS",REG_TYPE_NONE, NULL},
         
         /* System registers */
-        {"CPSR", REG_INT, &armr.cpsr}, {"SPSR", REG_INT, &armr.spsr},
+        {"CPSR", REG_TYPE_INT, &armr.cpsr}, {"SPSR", REG_TYPE_INT, &armr.spsr},
         {NULL, 0, NULL} };
 
 /* Implementation of get_register - ARM has no pseudo registers so this

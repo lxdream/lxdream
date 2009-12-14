@@ -83,6 +83,7 @@ gboolean dreamcast_is_running() { return FALSE; }
 int sh4_get_breakpoint( uint32_t pc ) { return 0; }
 void sh4_finalize_instruction() { }
 void sh4_core_exit( int exit_code ){}
+void sh4_crashdump() {}
 void event_execute() {}
 void TMU_run_slice( uint32_t nanos ) {}
 void CCN_set_cache_control( int val ) { }
@@ -114,6 +115,8 @@ gboolean FASTCALL mmu_update_icache( sh4vma_t addr ) { return TRUE; }
 void MMU_ldtlb() { }
 struct sh4_icache_struct sh4_icache;
 struct mem_region_fn mem_region_unmapped;
+const struct cpu_desc_struct sh4_cpu_desc;
+sh4addr_t FASTCALL mmu_vma_to_phys_disasm( sh4vma_t vma ) { return vma; }
 
 void usage()
 {

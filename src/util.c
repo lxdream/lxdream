@@ -42,6 +42,7 @@ static void report_crash( int signo, siginfo_t *info, void *ptr )
     char buf[128];
 
     fprintf( stderr, "--- Aborting with signal %d ---\n", signo );
+    sh4_crashdump();
     // Get gdb to print a nice backtrace for us
     snprintf( buf, 128, "gdb -batch -f --quiet --pid=%d -ex bt", getpid() );
     system(buf);

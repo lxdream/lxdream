@@ -40,7 +40,7 @@ genglsl_SOURCES = tools/genglsl.c
 lxdream_LINK = $(LINK) @LXDREAMLDFLAGS@
 lxdream_LDADD = @LXDREAM_LIBS@ @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@ $(INTLLIBS)
 lxdream_SOURCES = \
-        main.c version.c config.c config.h lxdream.h dream.h gui.h cpu.h hook.h \
+        main.c version.c config.c config.h lxdream.h dream.h gui.h cpu.c cpu.h hook.h \
         gettext.h mem.c mem.h sdram.c mmio.h watch.c \
         asic.c asic.h clock.h serial.h \
         syscall.c syscall.h bios.c dcload.c gdbserver.c \
@@ -91,8 +91,8 @@ test_testsh4x86_CPPFLAGS = @LXDREAMCPPFLAGS@
 test_testsh4x86_SOURCES = test/testsh4x86.c x86dasm/x86dasm.c \
 	x86dasm/x86dasm.h x86dasm/i386-dis.c x86dasm/dis-init.c \
 	x86dasm/dis-buf.c \
-	sh4/sh4trans.c sh4/sh4x86.c xlat/xltcache.c \
-	xlat/xltcache.h mem.c util.c 
+	sh4/sh4trans.c sh4/sh4x86.c xlat/xltcache.c sh4/sh4dasm.c \
+	xlat/xltcache.h mem.c util.c cpu.c
 
 check_PROGRAMS += test/testsh4x86
 endif
