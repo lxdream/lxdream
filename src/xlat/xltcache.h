@@ -51,7 +51,8 @@ typedef struct xlat_cache_block *xlat_cache_block_t;
 
 #define XLAT_BLOCK_FOR_CODE(code) (((xlat_cache_block_t)code)-1)
 
-#define XLAT_BLOCK_MODE(code) (XLAT_BLOCK_FOR_CODE(code)->xlat_sh4_mode) 
+#define XLAT_BLOCK_MODE(code) (XLAT_BLOCK_FOR_CODE(code)->xlat_sh4_mode)
+#define XLAT_RECOVERY_TABLE(code) ((xlat_recovery_record_t)(((char *)code) + XLAT_BLOCK_FOR_CODE(code)->recover_table_offset))
 
 /**
  * Initialize the translation cache
@@ -167,6 +168,12 @@ void FASTCALL xlat_invalidate_block( sh4addr_t address, size_t bytes );
  * Flush the entire code cache. This isn't as cheap as one might like
  */
 void xlat_flush_cache();
+
+/**
+ * Test if the given pointer is within the translation cache, and (is likely)
+ * the start of a code block
+ */
+gboolean xlat_is_code_pointer( void *p );
 
 /**
  * Check the internal integrity of the cache

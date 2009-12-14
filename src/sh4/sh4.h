@@ -128,6 +128,9 @@ void sh4_set_breakpoint( uint32_t pc, breakpoint_type_t type );
 gboolean sh4_clear_breakpoint( uint32_t pc, breakpoint_type_t type );
 int sh4_get_breakpoint( uint32_t pc );
 
+/** Dump current SH4 core state (for crashdump purposes) */
+void sh4_crashdump();
+
 #ifdef __cplusplus
 }
 #endif

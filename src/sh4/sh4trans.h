@@ -43,18 +43,13 @@ extern "C" {
 
 /**
  */
-uint32_t sh4_xlat_run_slice( uint32_t nanosecs );
-
-/**
- * Return true if translated code is currently running
- */
-gboolean sh4_xlat_is_running();
+uint32_t sh4_translate_run_slice( uint32_t nanosecs );
 
 /**
  * Initialize the translation engine (if required). Note xlat cache
  * must already be initialized.
  */
-void sh4_xlat_init();
+void sh4_translate_init( void);
 
 /**
  * Translate the specified block of code starting from the specified start
@@ -80,19 +75,19 @@ extern uint32_t xlat_recovery_posn;
 
 #define TARGET_X86 1
 
-void sh4_translate_init( void );
 void sh4_translate_begin_block( sh4addr_t pc );
 uint32_t sh4_translate_instruction( sh4addr_t pc );
 void sh4_translate_end_block( sh4addr_t pc );
 uint32_t sh4_translate_end_block_size();
 void sh4_translate_emit_breakpoint( sh4vma_t pc );
+void sh4_translate_crashdump();
 
 typedef void (*unwind_thunk_t)(void);
 
 /**
  * From within the translator, (typically called from MMU exception handling routines)
  * immediately exit the current translation block (performing cleanup as necessary) and
- * return to sh4_xlat_run_slice(). Effectively a fast longjmp w/ xlat recovery.
+ * return to sh4_translate_run_slice(). Effectively a fast longjmp w/ xlat recovery.
  *
  * Note: The correct working of this method depends on the translator anticipating the
  * exception and generating the appropriate recovery block(s) - currently this means 
@@ -131,6 +126,12 @@ gboolean sh4_translate_flush_cache( void );
  * cycle and never returns.
  */
 void FASTCALL sh4_translate_breakpoint_hit( sh4vma_t pc );
+
+/**
+ * Disassemble the given translated code block, and it's source SH4 code block
+ * side-by-side. The current native pc will be marked if non-null.
+ */
+void sh4_translate_disasm_block( FILE *out, void *code, sh4addr_t source_start, void *native_pc );
 
 #ifdef __cplusplus
 }

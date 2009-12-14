@@ -486,6 +486,44 @@ void xlat_check_cache_integrity( xlat_cache_block_t cache, xlat_cache_block_t pt
     assert( foundptr == 1 || tail == ptr );
 }
 
+/**
+ * Sanity check that the given pointer is at least contained in one of cache
+ * regions, and has a sane-ish size. We don't do a full region walk atm.
+ */
+gboolean xlat_is_code_pointer( void *p )
+{
+    char *region;
+    uintptr_t region_size;
+
+    xlat_cache_block_t block = XLAT_BLOCK_FOR_CODE(p);
+    if( (((char *)block) - (char *)xlat_new_cache) < XLAT_NEW_CACHE_SIZE ) {
+         /* Pointer is in new cache */
+        region = (char *)xlat_new_cache;
+        region_size = XLAT_NEW_CACHE_SIZE;
+    }
+#ifdef XLAT_GENERATIONAL_CACHE
+    else if( (((char *)block) - (char *)xlat_temp_cache) < XLAT_TEMP_CACHE_SIZE ) {
+         /* Pointer is in temp cache */
+        region = (char *)xlat_temp_cache;
+        region_size = XLAT_TEMP_CACHE_SIZE;
+    } else if( (((char *)block) - (char *)xlat_odl_cache) < XLAT_OLD_CACHE_SIZE ) {
+        /* Pointer is in old cache */
+        region = (char *)xlat_old_cache;
+        region_size = XLAT_OLD_CACHE_SIZE;
+    }
+#endif
+    else {
+        /* Not a valid cache pointer */
+        return FALSE;
+    }
+
+    /* Make sure the whole block is in the region */
+    if( (((char *)p) - region) >= region_size ||
+        (((char *)(NEXT(block))) - region) >= region_size )
+        return FALSE;
+    return TRUE;
+}
+
 void xlat_check_integrity( )
 {
     xlat_check_cache_integrity( xlat_new_cache, xlat_new_cache_ptr, XLAT_NEW_CACHE_SIZE );

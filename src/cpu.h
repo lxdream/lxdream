@@ -19,6 +19,8 @@
 #ifndef lxdream_cpu_H
 #define lxdream_cpu_H 1
 
+#include <stdio.h>
+
 #include "lxdream.h"
 #include "mem.h"
 
@@ -36,10 +38,10 @@ extern "C" {
  */
 typedef uint32_t (*disasm_func_t)(uint32_t pc, char *buffer, int buflen, char *opcode );
 
-#define REG_INT 0
-#define REG_FLOAT 1
-#define REG_DOUBLE 2
-#define REG_NONE 3 /* Used for empty/separator field */
+#define REG_TYPE_INT 0
+#define REG_TYPE_FLOAT 1
+#define REG_TYPE_DOUBLE 2
+#define REG_TYPE_NONE 3 /* Used for empty/separator field */
 
 /**
  * Structure that defines a single register in a CPU for display purposes.
@@ -94,5 +96,6 @@ typedef struct cpu_desc_struct {
 #endif
 
 gboolean gdb_init_server( const char *interface, int port, cpu_desc_t cpu, gboolean mmu );
+void cpu_print_registers( FILE *out, cpu_desc_t cpu );
 
 #endif /* !lxdream_cpu_H */

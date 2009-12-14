@@ -65,7 +65,7 @@ void x86_disasm_block(FILE *out, void *start, uint32_t len)
     }
 }
 
-void x86_disasm_init(unsigned char *buf, uintptr_t vma, int buflen)
+void x86_disasm_init()
 {
     init_disassemble_info( &x86_disasm_info, NULL, x86_disasm_output );
     x86_disasm_info.arch = bfd_arch_i386;
@@ -75,9 +75,9 @@ void x86_disasm_init(unsigned char *buf, uintptr_t vma, int buflen)
     x86_disasm_info.mach = bfd_mach_i386_i386_intel_syntax;
 #endif
     x86_disasm_info.endian = BFD_ENDIAN_LITTLE;
-    x86_disasm_info.buffer = buf;
-    x86_disasm_info.buffer_vma = vma;
-    x86_disasm_info.buffer_length = buflen;
+    x86_disasm_info.buffer = 0;
+    x86_disasm_info.buffer_vma = 0;
+    x86_disasm_info.buffer_length = -1;
     x86_disasm_info.print_address_func = x86_print_address;
 }
 

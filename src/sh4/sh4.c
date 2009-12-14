@@ -42,7 +42,6 @@
 #endif
 
 void sh4_init( void );
-void sh4_xlat_init( void );
 void sh4_poweron_reset( void );
 void sh4_start( void );
 void sh4_stop( void );
@@ -54,54 +53,53 @@ size_t sh4_debug_read_vma( unsigned char *buf, uint32_t addr, size_t length );
 size_t sh4_debug_write_vma( uint32_t addr, unsigned char *buf, size_t length );
 
 uint32_t sh4_run_slice( uint32_t );
-uint32_t sh4_xlat_run_slice( uint32_t );
 
 /* Note: this must match GDB's ordering */
 const struct reg_desc_struct sh4_reg_map[] = 
-  { {"R0", REG_INT, &sh4r.r[0]}, {"R1", REG_INT, &sh4r.r[1]},
-    {"R2", REG_INT, &sh4r.r[2]}, {"R3", REG_INT, &sh4r.r[3]},
-    {"R4", REG_INT, &sh4r.r[4]}, {"R5", REG_INT, &sh4r.r[5]},
-    {"R6", REG_INT, &sh4r.r[6]}, {"R7", REG_INT, &sh4r.r[7]},
-    {"R8", REG_INT, &sh4r.r[8]}, {"R9", REG_INT, &sh4r.r[9]},
-    {"R10",REG_INT, &sh4r.r[10]}, {"R11",REG_INT, &sh4r.r[11]},
-    {"R12",REG_INT, &sh4r.r[12]}, {"R13",REG_INT, &sh4r.r[13]},
-    {"R14",REG_INT, &sh4r.r[14]}, {"R15",REG_INT, &sh4r.r[15]},
-    {"PC", REG_INT, &sh4r.pc}, {"PR", REG_INT, &sh4r.pr},
-    {"GBR", REG_INT, &sh4r.gbr}, {"VBR",REG_INT, &sh4r.vbr}, 
-    {"MACH",REG_INT, ((uint32_t *)&sh4r.mac)+1}, {"MACL",REG_INT, &sh4r.mac},
-    {"SR", REG_INT, &sh4r.sr},
-    {"FPUL", REG_INT, &sh4r.fpul.i}, {"FPSCR", REG_INT, &sh4r.fpscr},
+  { {"R0", REG_TYPE_INT, &sh4r.r[0]}, {"R1", REG_TYPE_INT, &sh4r.r[1]},
+    {"R2", REG_TYPE_INT, &sh4r.r[2]}, {"R3", REG_TYPE_INT, &sh4r.r[3]},
+    {"R4", REG_TYPE_INT, &sh4r.r[4]}, {"R5", REG_TYPE_INT, &sh4r.r[5]},
+    {"R6", REG_TYPE_INT, &sh4r.r[6]}, {"R7", REG_TYPE_INT, &sh4r.r[7]},
+    {"R8", REG_TYPE_INT, &sh4r.r[8]}, {"R9", REG_TYPE_INT, &sh4r.r[9]},
+    {"R10",REG_TYPE_INT, &sh4r.r[10]}, {"R11",REG_TYPE_INT, &sh4r.r[11]},
+    {"R12",REG_TYPE_INT, &sh4r.r[12]}, {"R13",REG_TYPE_INT, &sh4r.r[13]},
+    {"R14",REG_TYPE_INT, &sh4r.r[14]}, {"R15",REG_TYPE_INT, &sh4r.r[15]},
+    {"PC", REG_TYPE_INT, &sh4r.pc}, {"PR", REG_TYPE_INT, &sh4r.pr},
+    {"GBR", REG_TYPE_INT, &sh4r.gbr}, {"VBR",REG_TYPE_INT, &sh4r.vbr}, 
+    {"MACH",REG_TYPE_INT, ((uint32_t *)&sh4r.mac)+1}, {"MACL",REG_TYPE_INT, &sh4r.mac},
+    {"SR", REG_TYPE_INT, &sh4r.sr},
+    {"FPUL", REG_TYPE_INT, &sh4r.fpul.i}, {"FPSCR", REG_TYPE_INT, &sh4r.fpscr},
     
-    {"FR0", REG_FLOAT, &sh4r.fr[0][1] },{"FR1", REG_FLOAT, &sh4r.fr[0][0]},
-    {"FR2", REG_FLOAT, &sh4r.fr[0][3] },{"FR3", REG_FLOAT, &sh4r.fr[0][2]},
-    {"FR4", REG_FLOAT, &sh4r.fr[0][5] },{"FR5", REG_FLOAT, &sh4r.fr[0][4]},
-    {"FR6", REG_FLOAT, &sh4r.fr[0][7] },{"FR7", REG_FLOAT, &sh4r.fr[0][6]},
-    {"FR8", REG_FLOAT, &sh4r.fr[0][9] },{"FR9", REG_FLOAT, &sh4r.fr[0][8]},
-    {"FR10", REG_FLOAT, &sh4r.fr[0][11] },{"FR11", REG_FLOAT, &sh4r.fr[0][10]},
-    {"FR12", REG_FLOAT, &sh4r.fr[0][13] },{"FR13", REG_FLOAT, &sh4r.fr[0][12]},
-    {"FR14", REG_FLOAT, &sh4r.fr[0][15] },{"FR15", REG_FLOAT, &sh4r.fr[0][14]},
+    {"FR0", REG_TYPE_FLOAT, &sh4r.fr[0][1] },{"FR1", REG_TYPE_FLOAT, &sh4r.fr[0][0]},
+    {"FR2", REG_TYPE_FLOAT, &sh4r.fr[0][3] },{"FR3", REG_TYPE_FLOAT, &sh4r.fr[0][2]},
+    {"FR4", REG_TYPE_FLOAT, &sh4r.fr[0][5] },{"FR5", REG_TYPE_FLOAT, &sh4r.fr[0][4]},
+    {"FR6", REG_TYPE_FLOAT, &sh4r.fr[0][7] },{"FR7", REG_TYPE_FLOAT, &sh4r.fr[0][6]},
+    {"FR8", REG_TYPE_FLOAT, &sh4r.fr[0][9] },{"FR9", REG_TYPE_FLOAT, &sh4r.fr[0][8]},
+    {"FR10", REG_TYPE_FLOAT, &sh4r.fr[0][11] },{"FR11", REG_TYPE_FLOAT, &sh4r.fr[0][10]},
+    {"FR12", REG_TYPE_FLOAT, &sh4r.fr[0][13] },{"FR13", REG_TYPE_FLOAT, &sh4r.fr[0][12]},
+    {"FR14", REG_TYPE_FLOAT, &sh4r.fr[0][15] },{"FR15", REG_TYPE_FLOAT, &sh4r.fr[0][14]},
 
-    {"SSR",REG_INT, &sh4r.ssr}, {"SPC", REG_INT, &sh4r.spc},
+    {"SSR",REG_TYPE_INT, &sh4r.ssr}, {"SPC", REG_TYPE_INT, &sh4r.spc},
     
-    {"R0B0", REG_INT, NULL}, {"R1B0", REG_INT, NULL},
-    {"R2B0", REG_INT, NULL}, {"R3B0", REG_INT, NULL},
-    {"R4B0", REG_INT, NULL}, {"R5B0", REG_INT, NULL},
-    {"R6B0", REG_INT, NULL}, {"R7B0", REG_INT, NULL},
-    {"R0B1", REG_INT, NULL}, {"R1B1", REG_INT, NULL},
-    {"R2B1", REG_INT, NULL}, {"R3B1", REG_INT, NULL},
-    {"R4B1", REG_INT, NULL}, {"R5B1", REG_INT, NULL},
-    {"R6B1", REG_INT, NULL}, {"R7B1", REG_INT, NULL},
+    {"R0B0", REG_TYPE_INT, NULL}, {"R1B0", REG_TYPE_INT, NULL},
+    {"R2B0", REG_TYPE_INT, NULL}, {"R3B0", REG_TYPE_INT, NULL},
+    {"R4B0", REG_TYPE_INT, NULL}, {"R5B0", REG_TYPE_INT, NULL},
+    {"R6B0", REG_TYPE_INT, NULL}, {"R7B0", REG_TYPE_INT, NULL},
+    {"R0B1", REG_TYPE_INT, NULL}, {"R1B1", REG_TYPE_INT, NULL},
+    {"R2B1", REG_TYPE_INT, NULL}, {"R3B1", REG_TYPE_INT, NULL},
+    {"R4B1", REG_TYPE_INT, NULL}, {"R5B1", REG_TYPE_INT, NULL},
+    {"R6B1", REG_TYPE_INT, NULL}, {"R7B1", REG_TYPE_INT, NULL},
     
-    {"SGR",REG_INT, &sh4r.sgr}, {"DBR", REG_INT, &sh4r.dbr},
+    {"SGR",REG_TYPE_INT, &sh4r.sgr}, {"DBR", REG_TYPE_INT, &sh4r.dbr},
 
-    {"XF0", REG_FLOAT, &sh4r.fr[1][1] },{"XF1", REG_FLOAT, &sh4r.fr[1][0]},
-    {"XF2", REG_FLOAT, &sh4r.fr[1][3] },{"XF3", REG_FLOAT, &sh4r.fr[1][2]},
-    {"XF4", REG_FLOAT, &sh4r.fr[1][5] },{"XF5", REG_FLOAT, &sh4r.fr[1][4]},
-    {"XF6", REG_FLOAT, &sh4r.fr[1][7] },{"XF7", REG_FLOAT, &sh4r.fr[1][6]},
-    {"XF8", REG_FLOAT, &sh4r.fr[1][9] },{"XF9", REG_FLOAT, &sh4r.fr[1][8]},
-    {"XF10", REG_FLOAT, &sh4r.fr[1][11] },{"XF11", REG_FLOAT, &sh4r.fr[1][10]},
-    {"XF12", REG_FLOAT, &sh4r.fr[1][13] },{"XF13", REG_FLOAT, &sh4r.fr[1][12]},
-    {"XF14", REG_FLOAT, &sh4r.fr[1][15] },{"XF15", REG_FLOAT, &sh4r.fr[1][14]},
+    {"XF0", REG_TYPE_FLOAT, &sh4r.fr[1][1] },{"XF1", REG_TYPE_FLOAT, &sh4r.fr[1][0]},
+    {"XF2", REG_TYPE_FLOAT, &sh4r.fr[1][3] },{"XF3", REG_TYPE_FLOAT, &sh4r.fr[1][2]},
+    {"XF4", REG_TYPE_FLOAT, &sh4r.fr[1][5] },{"XF5", REG_TYPE_FLOAT, &sh4r.fr[1][4]},
+    {"XF6", REG_TYPE_FLOAT, &sh4r.fr[1][7] },{"XF7", REG_TYPE_FLOAT, &sh4r.fr[1][6]},
+    {"XF8", REG_TYPE_FLOAT, &sh4r.fr[1][9] },{"XF9", REG_TYPE_FLOAT, &sh4r.fr[1][8]},
+    {"XF10", REG_TYPE_FLOAT, &sh4r.fr[1][11] },{"XF11", REG_TYPE_FLOAT, &sh4r.fr[1][10]},
+    {"XF12", REG_TYPE_FLOAT, &sh4r.fr[1][13] },{"XF13", REG_TYPE_FLOAT, &sh4r.fr[1][12]},
+    {"XF14", REG_TYPE_FLOAT, &sh4r.fr[1][15] },{"XF15", REG_TYPE_FLOAT, &sh4r.fr[1][14]},
     
     {NULL, 0, NULL} };
 
@@ -388,6 +386,19 @@ void sh4_set_pc( int pc )
 {
     sh4r.pc = pc;
     sh4r.new_pc = pc+2;
+}
+
+/**
+ * Dump all SH4 core information for crash-dump purposes
+ */
+void sh4_crashdump()
+{
+    cpu_print_registers( stderr, &sh4_cpu_desc );
+#ifdef SH4_TRANSLATOR
+    if( sh4_use_translator ) {
+        sh4_translate_crashdump();
+    } /* Nothing really to print for emu core */
+#endif
 }
 
 
