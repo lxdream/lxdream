@@ -57,7 +57,6 @@ static int putop (const char *, int);
 static void oappend (const char *);
 static void append_seg (void);
 static void OP_indirE (int, int);
-static void print_operand_value (char *, int, bfd_vma);
 static void OP_E (int, int);
 static void OP_G (int, int);
 static bfd_vma get64 (void);
@@ -3058,66 +3057,6 @@ OP_indirE (int bytemode, int sizeflag)
 }
 
 static void
-print_operand_value (char *buf, int hex, bfd_vma disp)
-{
-  if (mode_64bit)
-    {
-      if (hex)
-	{
-	  char tmp[30];
-	  int i;
-	  buf[0] = '0';
-	  buf[1] = 'x';
-	  sprintf_vma (tmp, disp);
-	  for (i = 0; tmp[i] == '0' && tmp[i + 1]; i++);
-	  strcpy (buf + 2, tmp + i);
-	}
-      else
-	{
-	  bfd_signed_vma v = disp;
-	  char tmp[30];
-	  int i;
-	  if (v < 0)
-	    {
-	      *(buf++) = '-';
-	      v = -disp;
-	      /* Check for possible overflow on 0x8000000000000000.  */
-	      if (v < 0)
-		{
-		  strcpy (buf, "9223372036854775808");
-		  return;
-		}
-	    }
-	  if (!v)
-	    {
-	      strcpy (buf, "0");
-	      return;
-	    }
-
-	  i = 0;
-	  tmp[29] = 0;
-	  while (v)
-	    {
-	      tmp[28 - i] = (v % 10) + '0';
-	      v /= 10;
-	      i++;
-	    }
-	  strcpy (buf, tmp + 29 - i);
-	}
-    }
-  else
-    {
-      x86_print_symbolic_operand( buf, hex, disp );
-      /*
-      if (hex)
-	sprintf (buf, "0x%x", (unsigned int) disp);
-      else
-	sprintf (buf, "%d", (int) disp);
-      */
-    }
-}
-
-static void
 OP_E (int bytemode, int sizeflag)
 {
   bfd_vma disp;
@@ -3236,7 +3175,7 @@ OP_E (int bytemode, int sizeflag)
       if (!intel_syntax)
 	if (mod != 0 || (base & 7) == 5)
 	  {
-	    print_operand_value (scratchbuf, !riprel, disp);
+	    x86_print_symbolic_operand (scratchbuf, !riprel, disp);
 	    oappend (scratchbuf);
 	    if (riprel)
 	      {
@@ -3342,7 +3281,7 @@ OP_E (int bytemode, int sizeflag)
 			*obufp = '\0';
 		      }
 
-		    print_operand_value (scratchbuf, 0, disp);
+		    x86_print_symbolic_operand (scratchbuf, 0, disp);
 		    oappend (scratchbuf);
 		  }
 	      }
@@ -3362,7 +3301,7 @@ OP_E (int bytemode, int sizeflag)
 		  oappend (names_seg[ds_reg - es_reg]);
 		  oappend (":");
 		}
-	      print_operand_value (scratchbuf, 1, disp);
+	      x86_print_symbolic_operand (scratchbuf, 1, disp);
 	      oappend (scratchbuf);
 	    }
 	}
@@ -3395,7 +3334,7 @@ OP_E (int bytemode, int sizeflag)
       if (!intel_syntax)
 	if (mod != 0 || (rm & 7) == 6)
 	  {
-	    print_operand_value (scratchbuf, 0, disp);
+	    x86_print_symbolic_operand (scratchbuf, 0, disp);
 	    oappend (scratchbuf);
 	  }
 
@@ -3693,7 +3632,7 @@ OP_I (int bytemode, int sizeflag)
 
   op &= mask;
   scratchbuf[0] = '$';
-  print_operand_value (scratchbuf + 1, 1, op);
+  x86_print_symbolic_operand (scratchbuf + 1, 1, op);
   oappend (scratchbuf + intel_syntax);
   scratchbuf[0] = '\0';
 }
@@ -3744,7 +3683,7 @@ OP_I64 (int bytemode, int sizeflag)
 
   op &= mask;
   scratchbuf[0] = '$';
-  print_operand_value (scratchbuf + 1, 1, op);
+  x86_print_symbolic_operand (scratchbuf + 1, 1, op);
   oappend (scratchbuf + intel_syntax);
   scratchbuf[0] = '\0';
 }
@@ -3794,7 +3733,7 @@ OP_sI (int bytemode, int sizeflag)
     }
 
   scratchbuf[0] = '$';
-  print_operand_value (scratchbuf + 1, 1, op);
+  x86_print_symbolic_operand (scratchbuf + 1, 1, op);
   oappend (scratchbuf + intel_syntax);
 }
 
@@ -3830,7 +3769,7 @@ OP_J (int bytemode, int sizeflag)
     }
   disp = (start_pc + codep - start_codep + disp) & mask;
   set_op (disp, 0);
-  print_operand_value (scratchbuf, 1, disp);
+  x86_print_symbolic_operand (scratchbuf, 1, disp);
   oappend (scratchbuf);
 }
 
@@ -3884,7 +3823,7 @@ OP_OFF (int bytemode ATTRIBUTE_UNUSED, int sizeflag)
 	  oappend (":");
 	}
     }
-  print_operand_value (scratchbuf, 1, off);
+  x86_print_symbolic_operand (scratchbuf, 1, off);
   oappend (scratchbuf);
 }
 
@@ -3912,7 +3851,7 @@ OP_OFF64 (int bytemode ATTRIBUTE_UNUSED, int sizeflag ATTRIBUTE_UNUSED)
 	  oappend (":");
 	}
     }
-  print_operand_value (scratchbuf, 1, off);
+  x86_print_symbolic_operand (scratchbuf, 1, off);
   oappend (scratchbuf);
 }
 
