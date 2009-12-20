@@ -47,4 +47,7 @@ void cpu_print_registers( FILE *f, cpu_desc_t cpu )
             column = 0;
         }
     }
+    if( column != 0 ) {
+        fprintf( f, "\n" );
+    }
 }
