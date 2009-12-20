@@ -58,6 +58,8 @@ void install_crash_handler(void)
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = SA_RESETHAND|SA_SIGINFO;
     sigaction( SIGSEGV, &sa, NULL );
+    sigaction( SIGILL, &sa, NULL );
+    sigaction( SIGBUS, &sa, NULL );
 }
 
 
