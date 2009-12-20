@@ -105,7 +105,7 @@ static void x86_print_address( bfd_vma memaddr, struct disassemble_info *info )
     }
 }
 
-void x86_print_symbolic_operand( char *buf, int hex, unsigned int disp )
+void x86_print_symbolic_operand( char *buf, int hex, uintptr_t disp )
 {
     const char *sym = x86_find_symbol(disp, NULL);
     if( sym != NULL ) {

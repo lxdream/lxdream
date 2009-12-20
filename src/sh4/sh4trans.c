@@ -274,3 +274,24 @@ void sh4_translate_crashdump()
     void *native_pc = xlat_get_native_pc( code, xlat_get_code_size(code) );
     sh4_translate_disasm_block( stderr, code, sh4r.pc, native_pc );
 }
+
+/**
+ * Dual-dump the translated block and original SH4 code for the basic block
+ * starting at sh4_pc. If there is no translated block, this prints an error
+ * and returns.
+ */
+void sh4_translate_dump_block( uint32_t sh4_pc )
+{
+    if( !IS_IN_ICACHE(sh4_pc) ) {
+        fprintf( stderr, "** Address %08x not in current instruction region **\n", sh4_pc );
+        return;
+    }
+    uint32_t pma = GET_ICACHE_PHYS(sh4_pc);
+    void *code = xlat_get_code( pma );
+    if( code == NULL ) {
+        fprintf( stderr, "** No translated block for address %08x **\n", sh4_pc );
+        return;
+    }
+    sh4_translate_disasm_block( stderr, code, sh4_pc, NULL );
+}
+

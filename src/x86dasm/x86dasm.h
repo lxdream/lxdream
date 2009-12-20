@@ -31,4 +31,4 @@ void x86_disasm_block( FILE *out, void *block, uint32_t len );
 void x86_set_symtab( x86_symbol *symtab, int num_symbols );
 void x86_disasm_init();
 uintptr_t x86_disasm_instruction( uintptr_t pc, char *buf, int len, char *opcode );
-void x86_print_symbolic_operand( char *buf, int hex, unsigned int disp );
+void x86_print_symbolic_operand( char *buf, int hex, uintptr_t disp );

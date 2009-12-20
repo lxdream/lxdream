@@ -131,6 +131,9 @@ int sh4_get_breakpoint( uint32_t pc );
 /** Dump current SH4 core state (for crashdump purposes) */
 void sh4_crashdump();
 
+/** Dump a translated block with SH4 and target assembly side by side. */
+void sh4_translate_dump_block( uint32_t pc );
+
 #ifdef __cplusplus
 }
 #endif
