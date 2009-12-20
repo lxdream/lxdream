@@ -31,14 +31,8 @@ buffer_read_memory (memaddr, myaddr, length, info)
      struct disassemble_info *info;
 {
   unsigned int opb = info->octets_per_byte;
-  unsigned int end_addr_offset = length / opb;
-  unsigned int max_addr_offset = info->buffer_length / opb; 
-  unsigned int octets = (memaddr - info->buffer_vma) * opb;
+  uintptr_t octets = memaddr * opb;
 
-  if (memaddr < info->buffer_vma
-      || memaddr - info->buffer_vma + end_addr_offset > max_addr_offset)
-    /* Out of bounds.  Use EIO because GDB uses it.  */
-    return EIO;
   memcpy (myaddr, info->buffer + octets, length);
 
   return 0;

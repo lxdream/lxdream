@@ -76,8 +76,6 @@ void x86_disasm_init()
 #endif
     x86_disasm_info.endian = BFD_ENDIAN_LITTLE;
     x86_disasm_info.buffer = 0;
-    x86_disasm_info.buffer_vma = 0;
-    x86_disasm_info.buffer_length = -1;
     x86_disasm_info.print_address_func = x86_print_address;
 }
 

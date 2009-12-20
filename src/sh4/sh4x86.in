@@ -163,13 +163,17 @@ void sh4_translate_disasm_block( FILE *out, void *code, sh4addr_t source_start, 
     uint32_t source_pc = source_start;
     uint32_t source_end = source_pc;
     xlat_recovery_record_t source_recov_table = XLAT_RECOVERY_TABLE(code);
-    xlat_recovery_record_t source_recov_end = source_recov_table + XLAT_BLOCK_FOR_CODE(code)->recover_table_size;
+    xlat_recovery_record_t source_recov_end = source_recov_table + XLAT_BLOCK_FOR_CODE(code)->recover_table_size - 1;
 
     for( target_pc = target_start; target_pc < target_end;  ) {
         uintptr_t pc2 = x86_disasm_instruction( target_pc, buf, sizeof(buf), op );
-        fprintf( out, "%c%08X: %-20s %-40s", (target_pc == (uintptr_t)native_pc ? '*' : ' '),
-                      (unsigned int)target_pc, op, buf );
-        
+#if SIZEOF_VOID_P == 8
+        fprintf( out, "%c%016lx: %-30s %-40s", (target_pc == (uintptr_t)native_pc ? '*' : ' '),
+                      target_pc, op, buf );
+#else
+        fprintf( out, "%c%08x: %-30s %-40s", (target_pc == (uintptr_t)native_pc ? '*' : ' '),
+                      target_pc, op, buf );
+#endif        
         if( source_recov_table < source_recov_end && 
             target_pc >= (target_start + source_recov_table->xlat_offset) ) {
             source_recov_table++;
