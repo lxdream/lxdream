@@ -232,7 +232,7 @@ gboolean gui_parse_cmdline( int *argc, char **argv[] )
     return gtk_gui_init_ok;
 }
 
-gboolean gtk_gui_disc_changed( gdrom_disc_t disc, const gchar *disc_name, void *ptr )
+gboolean gtk_gui_disc_changed( cdrom_disc_t disc, const gchar *disc_name, void *ptr )
 {
     main_window_update_title( main_win );
     return TRUE;
