@@ -28,7 +28,7 @@
 #include "mem.h"
 #include "asic.h"
 #include "gdrom/ide.h"
-#include "gdrom/gddriver.h"
+#include "gdrom/gdrom.h"
 #include "gdrom/packet.h"
 
 #define MAX_WRITE_BUF 4096
@@ -49,7 +49,6 @@ struct dreamcast_module ide_module = { "IDE", ide_init, ide_reset, NULL, ide_run
         NULL, ide_save_state, ide_load_state };
 
 struct ide_registers idereg;
-gdrom_disc_t gdrom_disc = NULL;
 
 unsigned char data_buffer[MAX_SECTOR_SIZE];
 
@@ -160,9 +159,7 @@ static void ide_reset( void )
 
 static uint32_t ide_run_slice( uint32_t nanosecs )
 {
-    if( gdrom_disc != NULL && gdrom_disc->run_time_slice != NULL ) {
-        gdrom_disc->run_time_slice(gdrom_disc, nanosecs);
-    }
+    gdrom_run_slice(nanosecs);
     return nanosecs;
 }
 
@@ -443,21 +440,18 @@ void ide_write_command( uint8_t val ) {
 
 uint8_t ide_get_drive_status( void )
 {
-    return gdrom_disc_get_drive_status(gdrom_disc);
+    return gdrom_get_drive_status();
 }
 
-#define REQUIRE_DISC() if( gdrom_disc == NULL || gdrom_disc->disc_type == IDE_DISC_NONE  ) { ide_set_packet_result( PKT_ERR_NODISC ); return; }
+#define REQUIRE_DISC() if( gdrom_get_drive_status() == IDE_DISC_NONE ) { ide_set_packet_result( PKT_ERR_NODISC ); return; }
 
 /**
  * Read the next sector from the active read, if any
  */
 static void ide_read_next_sector( void )
 {
-    uint32_t sector_size;
-    REQUIRE_DISC();
-    gdrom_error_t status = 
-        gdrom_disc->read_sector( gdrom_disc, idereg.current_lba, idereg.current_mode, 
-                data_buffer, &sector_size );
+    size_t sector_size;
+    cdrom_error_t status = gdrom_read_cd( idereg.current_lba, 1, idereg.current_mode, data_buffer, &sector_size );
     if( status != PKT_ERR_OK ) {
         ide_set_packet_result( status );
         idereg.gdrom_sense[5] = (idereg.current_lba >> 16) & 0xFF;
@@ -507,7 +501,7 @@ void ide_packet_command( unsigned char *cmd )
             uint8_t status = ide_get_drive_status();
             /* FIXME: Refactor read_position to avoid this kind of crud */
             unsigned char tmp[16];
-            gdrom_disc_get_short_status( gdrom_disc, idereg.current_lba, tmp );
+            gdrom_read_short_status( idereg.current_lba, tmp );
             
             length = cmd[4];
             if( lba+length > GDROM_DRIVE_STATUS_LENGTH )
@@ -559,12 +553,11 @@ void ide_packet_command( unsigned char *cmd )
         ide_start_packet_read( length, 0 );
         break;
     case PKT_CMD_READ_TOC:
-        REQUIRE_DISC();
         length = (cmd[3]<<8) | cmd[4];
         if( length > GDROM_TOC_SIZE )
             length = GDROM_TOC_SIZE;
 
-        status = gdrom_disc_get_toc( gdrom_disc, data_buffer );
+        status = gdrom_read_toc( data_buffer );
         if( status != PKT_ERR_OK ) {
             ide_set_packet_result( status );
         } else {
@@ -572,11 +565,10 @@ void ide_packet_command( unsigned char *cmd )
         }
         break;
     case PKT_CMD_SESSION_INFO:
-        REQUIRE_DISC();
         length = cmd[4];
         if( length > 6 )
             length = 6;
-        status = gdrom_disc_get_session_info( gdrom_disc, cmd[2], data_buffer );
+        status = gdrom_read_session( cmd[2], data_buffer );
         if( status != PKT_ERR_OK ) {
             ide_set_packet_result( status );
         } else {
@@ -584,8 +576,10 @@ void ide_packet_command( unsigned char *cmd )
         }
         break;
     case PKT_CMD_PLAY_AUDIO:
-        REQUIRE_DISC();
-        ide_set_packet_result( 0 );
+        lba = (cmd[2] << 16) | (cmd[3]<<8) | cmd[4];
+        length = ((cmd[8]<<16) | (cmd[9]<<8) | cmd[10]) - lba;
+        status = gdrom_play_audio( lba, length );
+        ide_set_packet_result( status );
         ide_raise_interrupt();
         idereg.status = 0x50;
         break;
@@ -617,7 +611,7 @@ void ide_packet_command( unsigned char *cmd )
             if( length > 14 ) {
                 length = 14;
             }
-            gdrom_disc_get_short_status( gdrom_disc, idereg.current_lba, data_buffer );
+            gdrom_read_short_status( idereg.current_lba, data_buffer );
             ide_start_packet_read( length, 0 );
             break;
         }

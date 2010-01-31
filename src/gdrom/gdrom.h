@@ -22,6 +22,7 @@
 
 #include "lxdream.h"
 #include "hook.h"
+#include "drivers/cdrom/defs.h"
 #include <glib/glist.h>
 
 #ifdef __cplusplus
@@ -32,19 +33,7 @@ extern "C" {
 #define GDROM_SESSION_INFO_SIZE 6 /* Size of GDROM session info structure */
 #define GDROM_SHORT_STATUS_SIZE 14 /* Size of GDROM short status structure */
 
-typedef uint16_t gdrom_error_t;
-
-
-struct gdrom_device {
-    char *name;  // internal name
-    char *device_name; // Human-readable device name
-};
-
-typedef struct gdrom_device *gdrom_device_t;
-
-typedef struct gdrom_disc *gdrom_disc_t;
-
-typedef gboolean (*gdrom_disc_change_hook_t)( gdrom_disc_t new_disc, const gchar *new_disc_name, void *user_data );
+typedef gboolean (*gdrom_disc_change_hook_t)( cdrom_disc_t new_disc, const gchar *new_disc_name, void *user_data );
 DECLARE_HOOK(gdrom_disc_change_hook, gdrom_disc_change_hook_t);
 
 typedef gboolean (*gdrom_drive_list_change_hook_t)( GList *drive_list, void *user_data );
@@ -53,13 +42,7 @@ DECLARE_HOOK(gdrom_drive_list_change_hook, gdrom_drive_list_change_hook_t);
 /**
  * Open an image file
  */
-gdrom_disc_t gdrom_image_open( const gchar *filename );
-
-/**
- * Read image bootstrap info
- */
-gboolean gdrom_image_read_info( gdrom_disc_t d );
-
+cdrom_disc_t gdrom_image_open( const gchar *filename );
 
 /**
  * Shortcut to open and mount an image file
@@ -67,51 +50,49 @@ gboolean gdrom_image_read_info( gdrom_disc_t d );
  */
 gboolean gdrom_mount_image( const gchar *filename );
 
-void gdrom_mount_disc( gdrom_disc_t disc );
+void gdrom_mount_disc( cdrom_disc_t disc );
 
 void gdrom_unmount_disc( void );
 
 gboolean gdrom_is_mounted( void );
 
-gdrom_disc_t gdrom_get_current_disc();
+cdrom_disc_t gdrom_get_current_disc();
 
 const gchar *gdrom_get_current_disc_name();
 
 const gchar *gdrom_get_current_disc_title();
 
-
 /**
- * Find the track (numbered from 1) containing the sector specified by LBA.
- * Note: this function does not check for media change.
- * @return The track number, or -1 if no track contains the sector.
+ * Find the track which should be checked for the
+ * dreamcast bootstrap - this is the first data track on the last
+ * session (where there are at least 2 sessions). If a boot track
+ * cannot be found, returns NULL.
  */
-int gdrom_disc_get_track_by_lba( gdrom_disc_t disc, uint32_t lba );
+cdrom_track_t gdrom_disc_get_boot_track( cdrom_disc_t disc );
 
 /** 
  * Check if the disc contains valid media.
- * @return PKT_ERR_OK if disc is present, otherwise PKT_ERR_NODISC
+ * @return CDROM_ERROR_OK if disc is present, otherwise CDROM_ERROR_NODISC
  */
-gdrom_error_t gdrom_disc_check_media( gdrom_disc_t disc ); 
+cdrom_error_t gdrom_check_media( );
 
 /**
  * Retrieve the disc table of contents, and write it into the buffer in the 
  * format expected by the DC.
- * @param disc The disc to read
  * @param buf Buffer to receive the TOC data, which must be at least
  * GDROM_TOC_SIZE bytes long.
  * @return 0 on success, error code on failure (eg no disc)
  */
-gdrom_error_t gdrom_disc_get_toc( gdrom_disc_t disc, unsigned char *buf );
+cdrom_error_t gdrom_read_toc( unsigned char *buf );
 
 /**
  * Retrieve the short (6-byte) session info, and write it into the buffer.
- * @param disc The disc to read
  * @param session The session to read (numbered from 1), or 0 
  * @param buf Buffer to receive the session data, which must be at least
  * GDROM_SESSION_INFO_SIZE bytes long.
  * @return 0 on success, error code on failure.
  */
-gdrom_error_t gdrom_disc_get_session_info( gdrom_disc_t disc, int session, unsigned char *buf );
+cdrom_error_t gdrom_read_session( int session, unsigned char *buf );
 
 /**
  * Generate the position data as returned from a STATUS(1) packet. 
@@ -121,33 +102,31 @@ gdrom_error_t gdrom_disc_get_session_info( gdrom_disc_t disc, int session, unsig
  * GDROM_SHORT_STATUS_SIZE bytes long.
  * @return 0 on success, error code on failure.
  */
-gdrom_error_t gdrom_disc_get_short_status( gdrom_disc_t disc, uint32_t lba, unsigned char *buf );
+cdrom_error_t gdrom_read_short_status( uint32_t lba, unsigned char *buf );
+
+/**
+ * Read sectors from the current disc.
+ * @param lba Address of first sector to read
+ * @param count Number of sectors to read
+ * @param read_mode GDROM format read-mode
+ * @param buf Buffer to receive read sectors
+ * @param length If not null, will be written with the number of bytes read.
+ * @return 0 on success, otherwise error code.
+ */
+cdrom_error_t gdrom_read_cd( cdrom_lba_t lba, cdrom_count_t count,
+                             unsigned read_mode, unsigned char *buf, size_t *length );
+
+cdrom_error_t gdrom_play_audio( cdrom_lba_t lba, cdrom_count_t count );
 
 /**
  * Return the 1-byte status code for the disc (combination of IDE_DISC_* flags)
  */
-int gdrom_disc_get_drive_status( gdrom_disc_t disc );
+int gdrom_get_drive_status( );
 
 /**
- * Native CD-ROM API - provided by drivers/cd_*.c
- *
- * A device name is either a system special file (most unixes) or a url of the
- * form dvd://<identifier> or cd://<identifier>, where <identifier> is a system
- * defined string that uniquely identifies a particular device.
+ * Run GDROM time slice (if any)
  */
-
-/**
- * Return a list of gdrom_device_t defining all CD/DVD drives in the host system.
- */
-GList *cdrom_get_native_devices();
-
-/**
- * Open a native device given a device name and url method. Eg, for the url dvd://1
- * this function will be invoked with method = "dvd" and name = "1"
- * 
- * @return NULL on failure, otherwise a valid gdrom_disc_t that can be mounted.
- */
-gdrom_disc_t cdrom_open_device( const gchar *method, const gchar *name );
+void gdrom_run_slice( uint32_t nanosecs );
 
 #ifdef __cplusplus
 }

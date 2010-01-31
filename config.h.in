@@ -16,7 +16,7 @@
 /* Enable SH4 statistics */
 #undef ENABLE_SH4STATS
 
-/* Enable shared library support */
+/* Enable shared-library plugins */
 #undef ENABLE_SHARED
 
 /* Enable IO tracing */
@@ -84,6 +84,9 @@
 
 /* Define to 1 if you have the `z' library (-lz). */
 #undef HAVE_LIBZ
+
+/* Using the linux native CDROM driver */
+#undef HAVE_LINUX_CDROM
 
 /* Have linux joystick support */
 #undef HAVE_LINUX_JOYSTICK

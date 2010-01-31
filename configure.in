@@ -357,6 +357,9 @@ AC_CHECK_HEADER([IOKit/IOKitLib.h], [
 AM_CONDITIONAL(CDROM_LINUX, [test "x$CDROM_DRIVER" = "xlinux"])
 AM_CONDITIONAL(CDROM_OSX, [test "x$CDROM_DRIVER" = "xosx"])
 AM_CONDITIONAL(CDROM_NONE, [test "x$CDROM_DRIVER" = "x"])
+if test "x$CDROM_DRIVER" = "xlinux"; then
+   AC_DEFINE([HAVE_LINUX_CDROM],1,[Using the linux native CDROM driver])
+fi
 
 AC_CHECK_HEADER([linux/joystick.h], [
     HAVE_LINUX_JOYSTICK_H=yes

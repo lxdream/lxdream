@@ -68,6 +68,7 @@
 #define PKT_ERR_BADFIELD  0x2405
 #define PKT_ERR_BADREAD   0x3002
 #define PKT_ERR_BADREADMODE 0x6405  /* Illegal mode for this track */
+#define PKT_ERR_READERROR 0x1103    /* Read failed due to uncorrectable error */
 #define PKT_ERR_RESET     0x2906
 
 /* Parse CD read */

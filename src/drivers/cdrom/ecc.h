@@ -64,11 +64,11 @@ int do_encode_L1(unsigned char in[L1_RAW*FRAMES_PER_SECTOR],
 #define L2_P   (43*2*2)
 
 /* known sector types */
-#define MODE_0	GDROM_MODE0
-#define MODE_1	GDROM_MODE1
-#define MODE_2	GDROM_MODE2_FORMLESS
-#define MODE_2_FORM_1	GDROM_MODE2_FORM1
-#define MODE_2_FORM_2	GDROM_MODE2_FORM2
+#define MODE_0	SECTOR_UNKNOWN
+#define MODE_1	SECTOR_MODE1
+#define MODE_2	SECTOR_MODE2_FORMLESS
+#define MODE_2_FORM_1	SECTOR_MODE2_FORM1
+#define MODE_2_FORM_2	SECTOR_MODE2_FORM2
 
 /* set one of the MODE_* constants for subsequent data sector formatting */
 int set_sector_type(int st);

@@ -45,10 +45,7 @@ lxdream_SOURCES = \
         asic.c asic.h clock.h serial.h \
         syscall.c syscall.h bios.c dcload.c gdbserver.c \
         ioutil.c ioutil.h lxpaths.c lxpaths.h \
-        gdrom/ide.c gdrom/ide.h gdrom/packet.h gdrom/gdimage.c \
-	gdrom/gdrom.c gdrom/gdrom.h gdrom/nrg.c gdrom/cdi.c gdrom/gdi.c \
-	gdrom/edc_ecc.c gdrom/ecc.h gdrom/edc_crctable.h gdrom/edc_encoder.h \
-	gdrom/edc_l2sq.h gdrom/edc_scramble.h gdrom/gddriver.h \
+        gdrom/ide.c gdrom/ide.h gdrom/packet.h gdrom/gdrom.c gdrom/gdrom.h \
         dreamcast.c dreamcast.h eventq.c eventq.h \
         sh4/sh4.c sh4/intc.c sh4/intc.h sh4/sh4mem.c sh4/timer.c sh4/dmac.c \
         sh4/mmu.c sh4/sh4core.c sh4/sh4core.h sh4/sh4dasm.c sh4/sh4dasm.h \
@@ -67,9 +64,15 @@ lxdream_SOURCES = \
         loader.c loader.h elf.h bootstrap.c bootstrap.h util.c gdlist.c gdlist.h \
         vmu/vmuvol.c vmu/vmuvol.h vmu/vmulist.c vmu/vmulist.h \
 	display.c display.h dckeysyms.h \
-	drivers/audio_null.c drivers/video_null.c drivers/cd_mmc.c \
+	drivers/audio_null.c drivers/video_null.c \
 	drivers/video_gl.c drivers/video_gl.h drivers/gl_fbo.c \
 	drivers/serial_unix.c \
+	drivers/cdrom/cdrom.h drivers/cdrom/cdrom.c drivers/cdrom/drive.h \
+	drivers/cdrom/sector.h drivers/cdrom/sector.c drivers/cdrom/defs.h \
+        drivers/cdrom/cd_nrg.c drivers/cdrom/cd_cdi.c drivers/cdrom/cd_gdi.c \
+        drivers/cdrom/edc_ecc.c drivers/cdrom/ecc.h drivers/cdrom/drive.c \
+        drivers/cdrom/edc_crctable.h drivers/cdrom/edc_encoder.h \
+	drivers/cdrom/edc_l2sq.h drivers/cdrom/edc_scramble.h drivers/cdrom/cd_mmc.c \
 	sh4/sh4.def sh4/sh4core.in sh4/sh4x86.in sh4/sh4dasm.in sh4/sh4stat.in \
 	hotkeys.c hotkeys.h
 lxdream_CPPFLAGS = @LXDREAMCPPFLAGS@
@@ -213,15 +216,15 @@ endif
 endif # end shared/static control
 
 if CDROM_LINUX
-lxdream_SOURCES += drivers/cd_linux.c
+lxdream_SOURCES += drivers/cdrom/cd_linux.c
 endif
 
 if CDROM_OSX
-lxdream_SOURCES += drivers/cd_osx.c drivers/osx_iokit.m drivers/osx_iokit.h
+lxdream_SOURCES += drivers/cdrom/cd_osx.c drivers/osx_iokit.m drivers/osx_iokit.h
 endif
 
 if CDROM_NONE
-lxdream_SOURCES += drivers/cd_none.c
+lxdream_SOURCES += drivers/cdrom/cd_none.c
 endif
 
 if JOY_LINUX

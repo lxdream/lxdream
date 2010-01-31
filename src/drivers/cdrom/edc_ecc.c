@@ -43,8 +43,8 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-#include "gdrom/gddriver.h"
-#include "ecc.h"
+#include "drivers/cdrom/defs.h"
+#include "drivers/cdrom/ecc.h"
 
 #define xaligned(a, s)          ((((uintptr_t)(a)) & (s)) == 0 )
 

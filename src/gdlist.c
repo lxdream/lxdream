@@ -23,6 +23,7 @@
 #include <libgen.h>
 #include "gettext.h"
 #include "gdrom/gdrom.h"
+#include "drivers/cdrom/drive.h"
 #include "gdlist.h"
 #include "lxdream.h"
 #include "config.h"
@@ -43,7 +44,7 @@ gint gdrom_list_find( const gchar *name )
     GList *ptr;
 
     for( ptr = gdrom_device_list; ptr != NULL; ptr = g_list_next(ptr) ) {
-        gdrom_device_t device = (gdrom_device_t)ptr->data;
+        cdrom_drive_t device = (cdrom_drive_t)ptr->data;
         posn++;
         if( strcmp(device->name, name) == 0 ) {
             return posn;
@@ -99,7 +100,7 @@ void gdrom_list_move_to_front( const gchar *name )
 /**
  * Disc-changed callback from the GD-Rom driver. Updates the list accordingly.
  */
-gboolean gdrom_list_disc_changed( gdrom_disc_t disc, const gchar *disc_name, void *user_data )
+gboolean gdrom_list_disc_changed( cdrom_disc_t disc, const gchar *disc_name, void *user_data )
 {
     gboolean list_changed = FALSE;
     int posn = 0;
@@ -137,7 +138,8 @@ void gdrom_list_init()
 {
     gdrom_recent_list = lxdream_get_global_config_list_value( CONFIG_RECENT );
     register_gdrom_disc_change_hook( gdrom_list_disc_changed, NULL );
-    gdrom_device_list = cdrom_get_native_devices();
+    cdrom_drive_scan();
+    gdrom_device_list = cdrom_drive_get_list();
     gdrom_device_count = g_list_length(gdrom_device_list);
     gdrom_recent_count = g_list_length(gdrom_recent_list);
 
@@ -153,7 +155,7 @@ gboolean gdrom_list_set_selection( int posn )
     }
 
     if( posn <= gdrom_device_count ) {
-        gdrom_device_t device = g_list_nth_data(gdrom_device_list, posn-1);
+        cdrom_drive_t device = g_list_nth_data(gdrom_device_list, posn-1);
         return gdrom_mount_image(device->name);
     }
 
@@ -188,8 +190,8 @@ const gchar *gdrom_list_get_display_name( int posn )
     }
 
     if( posn <= gdrom_device_count ) {
-        gdrom_device_t device = g_list_nth_data(gdrom_device_list, posn-1);
-        return device->device_name;
+        cdrom_drive_t device = g_list_nth_data(gdrom_device_list, posn-1);
+        return device->display_name;
     }
 
     if( posn == gdrom_device_count + 1) {
@@ -211,7 +213,7 @@ const gchar *gdrom_list_get_filename( int posn )
     }
 
     if( posn <= gdrom_device_count ) {
-        gdrom_device_t device = g_list_nth_data(gdrom_device_list, posn-1);
+        cdrom_drive_t device = g_list_nth_data(gdrom_device_list, posn-1);
         return device->name;
     }
 

@@ -33,6 +33,10 @@ extern "C" {
 #define GDROM_SENSE_LENGTH 10
 #define GDROM_MODE_LENGTH 32
 
+#define IDE_DISC_READY 0x01 /* ored with above */
+#define IDE_DISC_IDLE  0x02 /* ie spun-down */
+#define IDE_DISC_NONE  0x06 /* No media in drive */
+
 struct ide_registers {
     /* IDE interface registers */
     uint8_t status;  /* A05F709C + A05F7018 Read-only */
