@@ -38,11 +38,6 @@ char *file_loader_extensions[][2] = {
         { "bin", "SH4 Bin file" },
         { NULL, NULL } };
 
-#define BOOTSTRAP_LOAD_ADDR 0x8C008000
-#define BOOTSTRAP_SIZE 32768
-
-#define BINARY_LOAD_ADDR 0x8C010000
-
 #define CDI_V2 0x80000004
 #define CDI_V3 0x80000005
 
