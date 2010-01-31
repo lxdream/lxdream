@@ -84,9 +84,9 @@ pkglib_PROGRAMS = $(am__EXEEXT_2) $(am__EXEEXT_3) $(am__EXEEXT_4) \
 @AUDIO_ALSA_TRUE@@BUILD_SHARED_FALSE@am__append_24 = @ALSA_LIBS@
 @BUILD_SHARED_FALSE@@INPUT_LIRC_TRUE@am__append_25 = drivers/input_lirc.c
 @BUILD_SHARED_FALSE@@INPUT_LIRC_TRUE@am__append_26 = -llirc_client
-@CDROM_LINUX_TRUE@am__append_27 = drivers/cd_linux.c
-@CDROM_OSX_TRUE@am__append_28 = drivers/cd_osx.c drivers/osx_iokit.m drivers/osx_iokit.h
-@CDROM_NONE_TRUE@am__append_29 = drivers/cd_none.c
+@CDROM_LINUX_TRUE@am__append_27 = drivers/cdrom/cd_linux.c
+@CDROM_OSX_TRUE@am__append_28 = drivers/cdrom/cd_osx.c drivers/osx_iokit.m drivers/osx_iokit.h
+@CDROM_NONE_TRUE@am__append_29 = drivers/cdrom/cd_none.c
 @JOY_LINUX_TRUE@am__append_30 = drivers/joy_linux.c drivers/joy_linux.h
 subdir = src
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
@@ -143,51 +143,58 @@ am__lxdream_SOURCES_DIST = main.c version.c config.c config.h \
 	mem.h sdram.c mmio.h watch.c asic.c asic.h clock.h serial.h \
 	syscall.c syscall.h bios.c dcload.c gdbserver.c ioutil.c \
 	ioutil.h lxpaths.c lxpaths.h gdrom/ide.c gdrom/ide.h \
-	gdrom/packet.h gdrom/gdimage.c gdrom/gdrom.c gdrom/gdrom.h \
-	gdrom/nrg.c gdrom/cdi.c gdrom/gdi.c gdrom/edc_ecc.c \
-	gdrom/ecc.h gdrom/edc_crctable.h gdrom/edc_encoder.h \
-	gdrom/edc_l2sq.h gdrom/edc_scramble.h gdrom/gddriver.h \
-	dreamcast.c dreamcast.h eventq.c eventq.h sh4/sh4.c sh4/intc.c \
-	sh4/intc.h sh4/sh4mem.c sh4/timer.c sh4/dmac.c sh4/mmu.c \
-	sh4/sh4core.c sh4/sh4core.h sh4/sh4dasm.c sh4/sh4dasm.h \
-	sh4/sh4mmio.c sh4/sh4mmio.h sh4/scif.c sh4/sh4stat.c \
-	sh4/sh4stat.h xlat/xltcache.c xlat/xltcache.h sh4/sh4.h \
-	sh4/dmac.h sh4/pmm.c sh4/cache.c sh4/mmu.h aica/armcore.c \
-	aica/armcore.h aica/armdasm.c aica/armdasm.h aica/armmem.c \
-	aica/aica.c aica/aica.h aica/audio.c aica/audio.h pvr2/pvr2.c \
-	pvr2/pvr2.h pvr2/pvr2mem.c pvr2/pvr2mmio.h pvr2/tacore.c \
-	pvr2/rendsort.c pvr2/texcache.c pvr2/yuv.c pvr2/rendsave.c \
-	pvr2/scene.c pvr2/scene.h pvr2/gl_sl.c pvr2/gl_slsrc.c \
-	pvr2/glutil.c pvr2/glutil.h pvr2/glrender.c pvr2/vertex.glsl \
+	gdrom/packet.h gdrom/gdrom.c gdrom/gdrom.h dreamcast.c \
+	dreamcast.h eventq.c eventq.h sh4/sh4.c sh4/intc.c sh4/intc.h \
+	sh4/sh4mem.c sh4/timer.c sh4/dmac.c sh4/mmu.c sh4/sh4core.c \
+	sh4/sh4core.h sh4/sh4dasm.c sh4/sh4dasm.h sh4/sh4mmio.c \
+	sh4/sh4mmio.h sh4/scif.c sh4/sh4stat.c sh4/sh4stat.h \
+	xlat/xltcache.c xlat/xltcache.h sh4/sh4.h sh4/dmac.h sh4/pmm.c \
+	sh4/cache.c sh4/mmu.h aica/armcore.c aica/armcore.h \
+	aica/armdasm.c aica/armdasm.h aica/armmem.c aica/aica.c \
+	aica/aica.h aica/audio.c aica/audio.h pvr2/pvr2.c pvr2/pvr2.h \
+	pvr2/pvr2mem.c pvr2/pvr2mmio.h pvr2/tacore.c pvr2/rendsort.c \
+	pvr2/texcache.c pvr2/yuv.c pvr2/rendsave.c pvr2/scene.c \
+	pvr2/scene.h pvr2/gl_sl.c pvr2/gl_slsrc.c pvr2/glutil.c \
+	pvr2/glutil.h pvr2/glrender.c pvr2/vertex.glsl \
 	pvr2/fragment.glsl maple/maple.c maple/maple.h \
 	maple/controller.c maple/kbd.c maple/mouse.c maple/lightgun.c \
 	maple/vmu.c loader.c loader.h elf.h bootstrap.c bootstrap.h \
 	util.c gdlist.c gdlist.h vmu/vmuvol.c vmu/vmuvol.h \
 	vmu/vmulist.c vmu/vmulist.h display.c display.h dckeysyms.h \
-	drivers/audio_null.c drivers/video_null.c drivers/cd_mmc.c \
-	drivers/video_gl.c drivers/video_gl.h drivers/gl_fbo.c \
-	drivers/serial_unix.c sh4/sh4.def sh4/sh4core.in sh4/sh4x86.in \
-	sh4/sh4dasm.in sh4/sh4stat.in hotkeys.c hotkeys.h plugin.c \
-	plugin.h sh4/sh4x86.c xlat/x86/x86op.h xlat/x86/ia32abi.h \
-	xlat/x86/amd64abi.h sh4/sh4trans.c sh4/sh4trans.h sh4/mmux86.c \
-	x86dasm/x86dasm.c x86dasm/x86dasm.h x86dasm/i386-dis.c \
-	x86dasm/dis-init.c x86dasm/dis-buf.c x86dasm/ansidecl.h \
-	x86dasm/bfd.h x86dasm/dis-asm.h x86dasm/symcat.h \
-	x86dasm/sysdep.h gtkui/gtkui.c gtkui/gtkui.h gtkui/gtk_win.c \
-	gtkui/gtkcb.c gtkui/gtk_cfg.c gtkui/gtk_mmio.c \
-	gtkui/gtk_debug.c gtkui/gtk_dump.c gtkui/gtk_ctrl.c \
-	gtkui/gtk_gd.c drivers/io_glib.c drivers/video_gtk.c \
-	cocoaui/cocoaui.m cocoaui/cocoaui.h cocoaui/cocoa_cfg.m \
-	cocoaui/cocoa_win.m cocoaui/cocoa_gd.m cocoaui/cocoa_prefs.m \
-	cocoaui/cocoa_ctrl.m cocoaui/paths_osx.m drivers/io_osx.m \
-	drivers/video_osx.m drivers/mac_keymap.h \
-	drivers/mac_keymap.txt paths_unix.c drivers/video_gdk.c \
-	drivers/video_glx.c drivers/video_glx.h drivers/video_nsgl.m \
-	drivers/video_nsgl.h drivers/audio_osx.m drivers/audio_sdl.c \
-	drivers/audio_pulse.c drivers/audio_esd.c drivers/audio_alsa.c \
-	drivers/input_lirc.c drivers/cd_linux.c drivers/cd_osx.c \
-	drivers/osx_iokit.m drivers/osx_iokit.h drivers/cd_none.c \
-	drivers/joy_linux.c drivers/joy_linux.h
+	drivers/audio_null.c drivers/video_null.c drivers/video_gl.c \
+	drivers/video_gl.h drivers/gl_fbo.c drivers/serial_unix.c \
+	drivers/cdrom/cdrom.h drivers/cdrom/cdrom.c \
+	drivers/cdrom/drive.h drivers/cdrom/sector.h \
+	drivers/cdrom/sector.c drivers/cdrom/defs.h \
+	drivers/cdrom/cd_nrg.c drivers/cdrom/cd_cdi.c \
+	drivers/cdrom/cd_gdi.c drivers/cdrom/edc_ecc.c \
+	drivers/cdrom/ecc.h drivers/cdrom/drive.c \
+	drivers/cdrom/edc_crctable.h drivers/cdrom/edc_encoder.h \
+	drivers/cdrom/edc_l2sq.h drivers/cdrom/edc_scramble.h \
+	drivers/cdrom/cd_mmc.c sh4/sh4.def sh4/sh4core.in \
+	sh4/sh4x86.in sh4/sh4dasm.in sh4/sh4stat.in hotkeys.c \
+	hotkeys.h plugin.c plugin.h sh4/sh4x86.c xlat/x86/x86op.h \
+	xlat/x86/ia32abi.h xlat/x86/amd64abi.h sh4/sh4trans.c \
+	sh4/sh4trans.h sh4/mmux86.c x86dasm/x86dasm.c \
+	x86dasm/x86dasm.h x86dasm/i386-dis.c x86dasm/dis-init.c \
+	x86dasm/dis-buf.c x86dasm/ansidecl.h x86dasm/bfd.h \
+	x86dasm/dis-asm.h x86dasm/symcat.h x86dasm/sysdep.h \
+	gtkui/gtkui.c gtkui/gtkui.h gtkui/gtk_win.c gtkui/gtkcb.c \
+	gtkui/gtk_cfg.c gtkui/gtk_mmio.c gtkui/gtk_debug.c \
+	gtkui/gtk_dump.c gtkui/gtk_ctrl.c gtkui/gtk_gd.c \
+	drivers/io_glib.c drivers/video_gtk.c cocoaui/cocoaui.m \
+	cocoaui/cocoaui.h cocoaui/cocoa_cfg.m cocoaui/cocoa_win.m \
+	cocoaui/cocoa_gd.m cocoaui/cocoa_prefs.m cocoaui/cocoa_ctrl.m \
+	cocoaui/paths_osx.m drivers/io_osx.m drivers/video_osx.m \
+	drivers/mac_keymap.h drivers/mac_keymap.txt paths_unix.c \
+	drivers/video_gdk.c drivers/video_glx.c drivers/video_glx.h \
+	drivers/video_nsgl.m drivers/video_nsgl.h drivers/audio_osx.m \
+	drivers/audio_sdl.c drivers/audio_pulse.c drivers/audio_esd.c \
+	drivers/audio_alsa.c drivers/input_lirc.c \
+	drivers/cdrom/cd_linux.c drivers/cdrom/cd_osx.c \
+	drivers/osx_iokit.m drivers/osx_iokit.h \
+	drivers/cdrom/cd_none.c drivers/joy_linux.c \
+	drivers/joy_linux.h
 @BUILD_SHARED_TRUE@am__objects_1 = lxdream-plugin.$(OBJEXT)
 @BUILD_SH4X86_TRUE@am__objects_2 = lxdream-sh4x86.$(OBJEXT) \
 @BUILD_SH4X86_TRUE@	lxdream-sh4trans.$(OBJEXT) \
@@ -238,36 +245,37 @@ am_lxdream_OBJECTS = lxdream-main.$(OBJEXT) lxdream-version.$(OBJEXT) \
 	lxdream-syscall.$(OBJEXT) lxdream-bios.$(OBJEXT) \
 	lxdream-dcload.$(OBJEXT) lxdream-gdbserver.$(OBJEXT) \
 	lxdream-ioutil.$(OBJEXT) lxdream-lxpaths.$(OBJEXT) \
-	lxdream-ide.$(OBJEXT) lxdream-gdimage.$(OBJEXT) \
-	lxdream-gdrom.$(OBJEXT) lxdream-nrg.$(OBJEXT) \
-	lxdream-cdi.$(OBJEXT) lxdream-gdi.$(OBJEXT) \
-	lxdream-edc_ecc.$(OBJEXT) lxdream-dreamcast.$(OBJEXT) \
-	lxdream-eventq.$(OBJEXT) lxdream-sh4.$(OBJEXT) \
-	lxdream-intc.$(OBJEXT) lxdream-sh4mem.$(OBJEXT) \
-	lxdream-timer.$(OBJEXT) lxdream-dmac.$(OBJEXT) \
-	lxdream-mmu.$(OBJEXT) lxdream-sh4core.$(OBJEXT) \
-	lxdream-sh4dasm.$(OBJEXT) lxdream-sh4mmio.$(OBJEXT) \
-	lxdream-scif.$(OBJEXT) lxdream-sh4stat.$(OBJEXT) \
-	lxdream-xltcache.$(OBJEXT) lxdream-pmm.$(OBJEXT) \
-	lxdream-cache.$(OBJEXT) lxdream-armcore.$(OBJEXT) \
-	lxdream-armdasm.$(OBJEXT) lxdream-armmem.$(OBJEXT) \
-	lxdream-aica.$(OBJEXT) lxdream-audio.$(OBJEXT) \
-	lxdream-pvr2.$(OBJEXT) lxdream-pvr2mem.$(OBJEXT) \
-	lxdream-tacore.$(OBJEXT) lxdream-rendsort.$(OBJEXT) \
-	lxdream-texcache.$(OBJEXT) lxdream-yuv.$(OBJEXT) \
-	lxdream-rendsave.$(OBJEXT) lxdream-scene.$(OBJEXT) \
-	lxdream-gl_sl.$(OBJEXT) lxdream-gl_slsrc.$(OBJEXT) \
-	lxdream-glutil.$(OBJEXT) lxdream-glrender.$(OBJEXT) \
-	lxdream-maple.$(OBJEXT) lxdream-controller.$(OBJEXT) \
-	lxdream-kbd.$(OBJEXT) lxdream-mouse.$(OBJEXT) \
-	lxdream-lightgun.$(OBJEXT) lxdream-vmu.$(OBJEXT) \
-	lxdream-loader.$(OBJEXT) lxdream-bootstrap.$(OBJEXT) \
-	lxdream-util.$(OBJEXT) lxdream-gdlist.$(OBJEXT) \
-	lxdream-vmuvol.$(OBJEXT) lxdream-vmulist.$(OBJEXT) \
-	lxdream-display.$(OBJEXT) lxdream-audio_null.$(OBJEXT) \
-	lxdream-video_null.$(OBJEXT) lxdream-cd_mmc.$(OBJEXT) \
+	lxdream-ide.$(OBJEXT) lxdream-gdrom.$(OBJEXT) \
+	lxdream-dreamcast.$(OBJEXT) lxdream-eventq.$(OBJEXT) \
+	lxdream-sh4.$(OBJEXT) lxdream-intc.$(OBJEXT) \
+	lxdream-sh4mem.$(OBJEXT) lxdream-timer.$(OBJEXT) \
+	lxdream-dmac.$(OBJEXT) lxdream-mmu.$(OBJEXT) \
+	lxdream-sh4core.$(OBJEXT) lxdream-sh4dasm.$(OBJEXT) \
+	lxdream-sh4mmio.$(OBJEXT) lxdream-scif.$(OBJEXT) \
+	lxdream-sh4stat.$(OBJEXT) lxdream-xltcache.$(OBJEXT) \
+	lxdream-pmm.$(OBJEXT) lxdream-cache.$(OBJEXT) \
+	lxdream-armcore.$(OBJEXT) lxdream-armdasm.$(OBJEXT) \
+	lxdream-armmem.$(OBJEXT) lxdream-aica.$(OBJEXT) \
+	lxdream-audio.$(OBJEXT) lxdream-pvr2.$(OBJEXT) \
+	lxdream-pvr2mem.$(OBJEXT) lxdream-tacore.$(OBJEXT) \
+	lxdream-rendsort.$(OBJEXT) lxdream-texcache.$(OBJEXT) \
+	lxdream-yuv.$(OBJEXT) lxdream-rendsave.$(OBJEXT) \
+	lxdream-scene.$(OBJEXT) lxdream-gl_sl.$(OBJEXT) \
+	lxdream-gl_slsrc.$(OBJEXT) lxdream-glutil.$(OBJEXT) \
+	lxdream-glrender.$(OBJEXT) lxdream-maple.$(OBJEXT) \
+	lxdream-controller.$(OBJEXT) lxdream-kbd.$(OBJEXT) \
+	lxdream-mouse.$(OBJEXT) lxdream-lightgun.$(OBJEXT) \
+	lxdream-vmu.$(OBJEXT) lxdream-loader.$(OBJEXT) \
+	lxdream-bootstrap.$(OBJEXT) lxdream-util.$(OBJEXT) \
+	lxdream-gdlist.$(OBJEXT) lxdream-vmuvol.$(OBJEXT) \
+	lxdream-vmulist.$(OBJEXT) lxdream-display.$(OBJEXT) \
+	lxdream-audio_null.$(OBJEXT) lxdream-video_null.$(OBJEXT) \
 	lxdream-video_gl.$(OBJEXT) lxdream-gl_fbo.$(OBJEXT) \
-	lxdream-serial_unix.$(OBJEXT) lxdream-hotkeys.$(OBJEXT) \
+	lxdream-serial_unix.$(OBJEXT) lxdream-cdrom.$(OBJEXT) \
+	lxdream-sector.$(OBJEXT) lxdream-cd_nrg.$(OBJEXT) \
+	lxdream-cd_cdi.$(OBJEXT) lxdream-cd_gdi.$(OBJEXT) \
+	lxdream-edc_ecc.$(OBJEXT) lxdream-drive.$(OBJEXT) \
+	lxdream-cd_mmc.$(OBJEXT) lxdream-hotkeys.$(OBJEXT) \
 	$(am__objects_1) $(am__objects_2) $(am__objects_3) \
 	$(am__objects_4) $(am__objects_5) $(am__objects_6) \
 	$(am__objects_7) $(am__objects_8) $(am__objects_9) \
@@ -546,38 +554,43 @@ lxdream_SOURCES = main.c version.c config.c config.h lxdream.h dream.h \
 	gui.h cpu.c cpu.h hook.h gettext.h mem.c mem.h sdram.c mmio.h \
 	watch.c asic.c asic.h clock.h serial.h syscall.c syscall.h \
 	bios.c dcload.c gdbserver.c ioutil.c ioutil.h lxpaths.c \
-	lxpaths.h gdrom/ide.c gdrom/ide.h gdrom/packet.h \
-	gdrom/gdimage.c gdrom/gdrom.c gdrom/gdrom.h gdrom/nrg.c \
-	gdrom/cdi.c gdrom/gdi.c gdrom/edc_ecc.c gdrom/ecc.h \
-	gdrom/edc_crctable.h gdrom/edc_encoder.h gdrom/edc_l2sq.h \
-	gdrom/edc_scramble.h gdrom/gddriver.h dreamcast.c dreamcast.h \
-	eventq.c eventq.h sh4/sh4.c sh4/intc.c sh4/intc.h sh4/sh4mem.c \
-	sh4/timer.c sh4/dmac.c sh4/mmu.c sh4/sh4core.c sh4/sh4core.h \
-	sh4/sh4dasm.c sh4/sh4dasm.h sh4/sh4mmio.c sh4/sh4mmio.h \
-	sh4/scif.c sh4/sh4stat.c sh4/sh4stat.h xlat/xltcache.c \
-	xlat/xltcache.h sh4/sh4.h sh4/dmac.h sh4/pmm.c sh4/cache.c \
-	sh4/mmu.h aica/armcore.c aica/armcore.h aica/armdasm.c \
-	aica/armdasm.h aica/armmem.c aica/aica.c aica/aica.h \
-	aica/audio.c aica/audio.h pvr2/pvr2.c pvr2/pvr2.h \
-	pvr2/pvr2mem.c pvr2/pvr2mmio.h pvr2/tacore.c pvr2/rendsort.c \
-	pvr2/texcache.c pvr2/yuv.c pvr2/rendsave.c pvr2/scene.c \
-	pvr2/scene.h pvr2/gl_sl.c pvr2/gl_slsrc.c pvr2/glutil.c \
-	pvr2/glutil.h pvr2/glrender.c pvr2/vertex.glsl \
-	pvr2/fragment.glsl maple/maple.c maple/maple.h \
-	maple/controller.c maple/kbd.c maple/mouse.c maple/lightgun.c \
-	maple/vmu.c loader.c loader.h elf.h bootstrap.c bootstrap.h \
-	util.c gdlist.c gdlist.h vmu/vmuvol.c vmu/vmuvol.h \
-	vmu/vmulist.c vmu/vmulist.h display.c display.h dckeysyms.h \
-	drivers/audio_null.c drivers/video_null.c drivers/cd_mmc.c \
-	drivers/video_gl.c drivers/video_gl.h drivers/gl_fbo.c \
-	drivers/serial_unix.c sh4/sh4.def sh4/sh4core.in sh4/sh4x86.in \
-	sh4/sh4dasm.in sh4/sh4stat.in hotkeys.c hotkeys.h \
-	$(am__append_1) $(am__append_2) $(am__append_4) \
-	$(am__append_5) $(am__append_6) $(am__append_7) \
-	$(am__append_8) $(am__append_9) $(am__append_10) \
-	$(am__append_17) $(am__append_19) $(am__append_21) \
-	$(am__append_23) $(am__append_25) $(am__append_27) \
-	$(am__append_28) $(am__append_29) $(am__append_30)
+	lxpaths.h gdrom/ide.c gdrom/ide.h gdrom/packet.h gdrom/gdrom.c \
+	gdrom/gdrom.h dreamcast.c dreamcast.h eventq.c eventq.h \
+	sh4/sh4.c sh4/intc.c sh4/intc.h sh4/sh4mem.c sh4/timer.c \
+	sh4/dmac.c sh4/mmu.c sh4/sh4core.c sh4/sh4core.h sh4/sh4dasm.c \
+	sh4/sh4dasm.h sh4/sh4mmio.c sh4/sh4mmio.h sh4/scif.c \
+	sh4/sh4stat.c sh4/sh4stat.h xlat/xltcache.c xlat/xltcache.h \
+	sh4/sh4.h sh4/dmac.h sh4/pmm.c sh4/cache.c sh4/mmu.h \
+	aica/armcore.c aica/armcore.h aica/armdasm.c aica/armdasm.h \
+	aica/armmem.c aica/aica.c aica/aica.h aica/audio.c \
+	aica/audio.h pvr2/pvr2.c pvr2/pvr2.h pvr2/pvr2mem.c \
+	pvr2/pvr2mmio.h pvr2/tacore.c pvr2/rendsort.c pvr2/texcache.c \
+	pvr2/yuv.c pvr2/rendsave.c pvr2/scene.c pvr2/scene.h \
+	pvr2/gl_sl.c pvr2/gl_slsrc.c pvr2/glutil.c pvr2/glutil.h \
+	pvr2/glrender.c pvr2/vertex.glsl pvr2/fragment.glsl \
+	maple/maple.c maple/maple.h maple/controller.c maple/kbd.c \
+	maple/mouse.c maple/lightgun.c maple/vmu.c loader.c loader.h \
+	elf.h bootstrap.c bootstrap.h util.c gdlist.c gdlist.h \
+	vmu/vmuvol.c vmu/vmuvol.h vmu/vmulist.c vmu/vmulist.h \
+	display.c display.h dckeysyms.h drivers/audio_null.c \
+	drivers/video_null.c drivers/video_gl.c drivers/video_gl.h \
+	drivers/gl_fbo.c drivers/serial_unix.c drivers/cdrom/cdrom.h \
+	drivers/cdrom/cdrom.c drivers/cdrom/drive.h \
+	drivers/cdrom/sector.h drivers/cdrom/sector.c \
+	drivers/cdrom/defs.h drivers/cdrom/cd_nrg.c \
+	drivers/cdrom/cd_cdi.c drivers/cdrom/cd_gdi.c \
+	drivers/cdrom/edc_ecc.c drivers/cdrom/ecc.h \
+	drivers/cdrom/drive.c drivers/cdrom/edc_crctable.h \
+	drivers/cdrom/edc_encoder.h drivers/cdrom/edc_l2sq.h \
+	drivers/cdrom/edc_scramble.h drivers/cdrom/cd_mmc.c \
+	sh4/sh4.def sh4/sh4core.in sh4/sh4x86.in sh4/sh4dasm.in \
+	sh4/sh4stat.in hotkeys.c hotkeys.h $(am__append_1) \
+	$(am__append_2) $(am__append_4) $(am__append_5) \
+	$(am__append_6) $(am__append_7) $(am__append_8) \
+	$(am__append_9) $(am__append_10) $(am__append_17) \
+	$(am__append_19) $(am__append_21) $(am__append_23) \
+	$(am__append_25) $(am__append_27) $(am__append_28) \
+	$(am__append_29) $(am__append_30)
 lxdream_CPPFLAGS = @LXDREAMCPPFLAGS@
 @BUILD_SH4X86_TRUE@test_testsh4x86_LDADD = @LXDREAM_LIBS@ @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@
 @BUILD_SH4X86_TRUE@test_testsh4x86_CPPFLAGS = @LXDREAMCPPFLAGS@
@@ -756,11 +769,14 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-bios.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-bootstrap.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-cache.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-cd_cdi.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-cd_gdi.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-cd_linux.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-cd_mmc.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-cd_none.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-cd_nrg.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-cd_osx.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-cdi.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-cdrom.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-cocoa_cfg.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-cocoa_ctrl.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-cocoa_gd.Po@am__quote@
@@ -776,11 +792,10 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-display.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-dmac.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-dreamcast.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-drive.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-edc_ecc.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-eventq.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-gdbserver.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-gdi.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-gdimage.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-gdlist.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-gdrom.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-gl_fbo.Po@am__quote@
@@ -816,7 +831,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-mmu.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-mmux86.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-mouse.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-nrg.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-osx_iokit.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-paths_osx.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-paths_unix.Po@am__quote@
@@ -829,6 +843,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-scene.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-scif.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-sdram.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-sector.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-serial_unix.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-sh4.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-sh4core.Po@am__quote@
@@ -1153,20 +1168,6 @@ lxdream-ide.obj: gdrom/ide.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-ide.obj `if test -f 'gdrom/ide.c'; then $(CYGPATH_W) 'gdrom/ide.c'; else $(CYGPATH_W) '$(srcdir)/gdrom/ide.c'; fi`
 
-lxdream-gdimage.o: gdrom/gdimage.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-gdimage.o -MD -MP -MF "$(DEPDIR)/lxdream-gdimage.Tpo" -c -o lxdream-gdimage.o `test -f 'gdrom/gdimage.c' || echo '$(srcdir)/'`gdrom/gdimage.c; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/lxdream-gdimage.Tpo" "$(DEPDIR)/lxdream-gdimage.Po"; else rm -f "$(DEPDIR)/lxdream-gdimage.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gdrom/gdimage.c' object='lxdream-gdimage.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-gdimage.o `test -f 'gdrom/gdimage.c' || echo '$(srcdir)/'`gdrom/gdimage.c
-
-lxdream-gdimage.obj: gdrom/gdimage.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-gdimage.obj -MD -MP -MF "$(DEPDIR)/lxdream-gdimage.Tpo" -c -o lxdream-gdimage.obj `if test -f 'gdrom/gdimage.c'; then $(CYGPATH_W) 'gdrom/gdimage.c'; else $(CYGPATH_W) '$(srcdir)/gdrom/gdimage.c'; fi`; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/lxdream-gdimage.Tpo" "$(DEPDIR)/lxdream-gdimage.Po"; else rm -f "$(DEPDIR)/lxdream-gdimage.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gdrom/gdimage.c' object='lxdream-gdimage.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-gdimage.obj `if test -f 'gdrom/gdimage.c'; then $(CYGPATH_W) 'gdrom/gdimage.c'; else $(CYGPATH_W) '$(srcdir)/gdrom/gdimage.c'; fi`
-
 lxdream-gdrom.o: gdrom/gdrom.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-gdrom.o -MD -MP -MF "$(DEPDIR)/lxdream-gdrom.Tpo" -c -o lxdream-gdrom.o `test -f 'gdrom/gdrom.c' || echo '$(srcdir)/'`gdrom/gdrom.c; \
 @am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/lxdream-gdrom.Tpo" "$(DEPDIR)/lxdream-gdrom.Po"; else rm -f "$(DEPDIR)/lxdream-gdrom.Tpo"; exit 1; fi
@@ -1180,62 +1181,6 @@ lxdream-gdrom.obj: gdrom/gdrom.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gdrom/gdrom.c' object='lxdream-gdrom.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-gdrom.obj `if test -f 'gdrom/gdrom.c'; then $(CYGPATH_W) 'gdrom/gdrom.c'; else $(CYGPATH_W) '$(srcdir)/gdrom/gdrom.c'; fi`
-
-lxdream-nrg.o: gdrom/nrg.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-nrg.o -MD -MP -MF "$(DEPDIR)/lxdream-nrg.Tpo" -c -o lxdream-nrg.o `test -f 'gdrom/nrg.c' || echo '$(srcdir)/'`gdrom/nrg.c; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/lxdream-nrg.Tpo" "$(DEPDIR)/lxdream-nrg.Po"; else rm -f "$(DEPDIR)/lxdream-nrg.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gdrom/nrg.c' object='lxdream-nrg.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-nrg.o `test -f 'gdrom/nrg.c' || echo '$(srcdir)/'`gdrom/nrg.c
-
-lxdream-nrg.obj: gdrom/nrg.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-nrg.obj -MD -MP -MF "$(DEPDIR)/lxdream-nrg.Tpo" -c -o lxdream-nrg.obj `if test -f 'gdrom/nrg.c'; then $(CYGPATH_W) 'gdrom/nrg.c'; else $(CYGPATH_W) '$(srcdir)/gdrom/nrg.c'; fi`; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/lxdream-nrg.Tpo" "$(DEPDIR)/lxdream-nrg.Po"; else rm -f "$(DEPDIR)/lxdream-nrg.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gdrom/nrg.c' object='lxdream-nrg.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-nrg.obj `if test -f 'gdrom/nrg.c'; then $(CYGPATH_W) 'gdrom/nrg.c'; else $(CYGPATH_W) '$(srcdir)/gdrom/nrg.c'; fi`
-
-lxdream-cdi.o: gdrom/cdi.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-cdi.o -MD -MP -MF "$(DEPDIR)/lxdream-cdi.Tpo" -c -o lxdream-cdi.o `test -f 'gdrom/cdi.c' || echo '$(srcdir)/'`gdrom/cdi.c; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/lxdream-cdi.Tpo" "$(DEPDIR)/lxdream-cdi.Po"; else rm -f "$(DEPDIR)/lxdream-cdi.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gdrom/cdi.c' object='lxdream-cdi.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-cdi.o `test -f 'gdrom/cdi.c' || echo '$(srcdir)/'`gdrom/cdi.c
-
-lxdream-cdi.obj: gdrom/cdi.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-cdi.obj -MD -MP -MF "$(DEPDIR)/lxdream-cdi.Tpo" -c -o lxdream-cdi.obj `if test -f 'gdrom/cdi.c'; then $(CYGPATH_W) 'gdrom/cdi.c'; else $(CYGPATH_W) '$(srcdir)/gdrom/cdi.c'; fi`; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/lxdream-cdi.Tpo" "$(DEPDIR)/lxdream-cdi.Po"; else rm -f "$(DEPDIR)/lxdream-cdi.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gdrom/cdi.c' object='lxdream-cdi.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-cdi.obj `if test -f 'gdrom/cdi.c'; then $(CYGPATH_W) 'gdrom/cdi.c'; else $(CYGPATH_W) '$(srcdir)/gdrom/cdi.c'; fi`
-
-lxdream-gdi.o: gdrom/gdi.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-gdi.o -MD -MP -MF "$(DEPDIR)/lxdream-gdi.Tpo" -c -o lxdream-gdi.o `test -f 'gdrom/gdi.c' || echo '$(srcdir)/'`gdrom/gdi.c; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/lxdream-gdi.Tpo" "$(DEPDIR)/lxdream-gdi.Po"; else rm -f "$(DEPDIR)/lxdream-gdi.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gdrom/gdi.c' object='lxdream-gdi.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-gdi.o `test -f 'gdrom/gdi.c' || echo '$(srcdir)/'`gdrom/gdi.c
-
-lxdream-gdi.obj: gdrom/gdi.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-gdi.obj -MD -MP -MF "$(DEPDIR)/lxdream-gdi.Tpo" -c -o lxdream-gdi.obj `if test -f 'gdrom/gdi.c'; then $(CYGPATH_W) 'gdrom/gdi.c'; else $(CYGPATH_W) '$(srcdir)/gdrom/gdi.c'; fi`; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/lxdream-gdi.Tpo" "$(DEPDIR)/lxdream-gdi.Po"; else rm -f "$(DEPDIR)/lxdream-gdi.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gdrom/gdi.c' object='lxdream-gdi.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-gdi.obj `if test -f 'gdrom/gdi.c'; then $(CYGPATH_W) 'gdrom/gdi.c'; else $(CYGPATH_W) '$(srcdir)/gdrom/gdi.c'; fi`
-
-lxdream-edc_ecc.o: gdrom/edc_ecc.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-edc_ecc.o -MD -MP -MF "$(DEPDIR)/lxdream-edc_ecc.Tpo" -c -o lxdream-edc_ecc.o `test -f 'gdrom/edc_ecc.c' || echo '$(srcdir)/'`gdrom/edc_ecc.c; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/lxdream-edc_ecc.Tpo" "$(DEPDIR)/lxdream-edc_ecc.Po"; else rm -f "$(DEPDIR)/lxdream-edc_ecc.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gdrom/edc_ecc.c' object='lxdream-edc_ecc.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-edc_ecc.o `test -f 'gdrom/edc_ecc.c' || echo '$(srcdir)/'`gdrom/edc_ecc.c
-
-lxdream-edc_ecc.obj: gdrom/edc_ecc.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-edc_ecc.obj -MD -MP -MF "$(DEPDIR)/lxdream-edc_ecc.Tpo" -c -o lxdream-edc_ecc.obj `if test -f 'gdrom/edc_ecc.c'; then $(CYGPATH_W) 'gdrom/edc_ecc.c'; else $(CYGPATH_W) '$(srcdir)/gdrom/edc_ecc.c'; fi`; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/lxdream-edc_ecc.Tpo" "$(DEPDIR)/lxdream-edc_ecc.Po"; else rm -f "$(DEPDIR)/lxdream-edc_ecc.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='gdrom/edc_ecc.c' object='lxdream-edc_ecc.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-edc_ecc.obj `if test -f 'gdrom/edc_ecc.c'; then $(CYGPATH_W) 'gdrom/edc_ecc.c'; else $(CYGPATH_W) '$(srcdir)/gdrom/edc_ecc.c'; fi`
 
 lxdream-dreamcast.o: dreamcast.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-dreamcast.o -MD -MP -MF "$(DEPDIR)/lxdream-dreamcast.Tpo" -c -o lxdream-dreamcast.o `test -f 'dreamcast.c' || echo '$(srcdir)/'`dreamcast.c; \
@@ -1909,20 +1854,6 @@ lxdream-video_null.obj: drivers/video_null.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-video_null.obj `if test -f 'drivers/video_null.c'; then $(CYGPATH_W) 'drivers/video_null.c'; else $(CYGPATH_W) '$(srcdir)/drivers/video_null.c'; fi`
 
-lxdream-cd_mmc.o: drivers/cd_mmc.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-cd_mmc.o -MD -MP -MF "$(DEPDIR)/lxdream-cd_mmc.Tpo" -c -o lxdream-cd_mmc.o `test -f 'drivers/cd_mmc.c' || echo '$(srcdir)/'`drivers/cd_mmc.c; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/lxdream-cd_mmc.Tpo" "$(DEPDIR)/lxdream-cd_mmc.Po"; else rm -f "$(DEPDIR)/lxdream-cd_mmc.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/cd_mmc.c' object='lxdream-cd_mmc.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-cd_mmc.o `test -f 'drivers/cd_mmc.c' || echo '$(srcdir)/'`drivers/cd_mmc.c
-
-lxdream-cd_mmc.obj: drivers/cd_mmc.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-cd_mmc.obj -MD -MP -MF "$(DEPDIR)/lxdream-cd_mmc.Tpo" -c -o lxdream-cd_mmc.obj `if test -f 'drivers/cd_mmc.c'; then $(CYGPATH_W) 'drivers/cd_mmc.c'; else $(CYGPATH_W) '$(srcdir)/drivers/cd_mmc.c'; fi`; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/lxdream-cd_mmc.Tpo" "$(DEPDIR)/lxdream-cd_mmc.Po"; else rm -f "$(DEPDIR)/lxdream-cd_mmc.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/cd_mmc.c' object='lxdream-cd_mmc.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-cd_mmc.obj `if test -f 'drivers/cd_mmc.c'; then $(CYGPATH_W) 'drivers/cd_mmc.c'; else $(CYGPATH_W) '$(srcdir)/drivers/cd_mmc.c'; fi`
-
 lxdream-video_gl.o: drivers/video_gl.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-video_gl.o -MD -MP -MF "$(DEPDIR)/lxdream-video_gl.Tpo" -c -o lxdream-video_gl.o `test -f 'drivers/video_gl.c' || echo '$(srcdir)/'`drivers/video_gl.c; \
 @am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/lxdream-video_gl.Tpo" "$(DEPDIR)/lxdream-video_gl.Po"; else rm -f "$(DEPDIR)/lxdream-video_gl.Tpo"; exit 1; fi
@@ -1964,6 +1895,118 @@ lxdream-serial_unix.obj: drivers/serial_unix.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/serial_unix.c' object='lxdream-serial_unix.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-serial_unix.obj `if test -f 'drivers/serial_unix.c'; then $(CYGPATH_W) 'drivers/serial_unix.c'; else $(CYGPATH_W) '$(srcdir)/drivers/serial_unix.c'; fi`
+
+lxdream-cdrom.o: drivers/cdrom/cdrom.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-cdrom.o -MD -MP -MF "$(DEPDIR)/lxdream-cdrom.Tpo" -c -o lxdream-cdrom.o `test -f 'drivers/cdrom/cdrom.c' || echo '$(srcdir)/'`drivers/cdrom/cdrom.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/lxdream-cdrom.Tpo" "$(DEPDIR)/lxdream-cdrom.Po"; else rm -f "$(DEPDIR)/lxdream-cdrom.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/cdrom/cdrom.c' object='lxdream-cdrom.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-cdrom.o `test -f 'drivers/cdrom/cdrom.c' || echo '$(srcdir)/'`drivers/cdrom/cdrom.c
+
+lxdream-cdrom.obj: drivers/cdrom/cdrom.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-cdrom.obj -MD -MP -MF "$(DEPDIR)/lxdream-cdrom.Tpo" -c -o lxdream-cdrom.obj `if test -f 'drivers/cdrom/cdrom.c'; then $(CYGPATH_W) 'drivers/cdrom/cdrom.c'; else $(CYGPATH_W) '$(srcdir)/drivers/cdrom/cdrom.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/lxdream-cdrom.Tpo" "$(DEPDIR)/lxdream-cdrom.Po"; else rm -f "$(DEPDIR)/lxdream-cdrom.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/cdrom/cdrom.c' object='lxdream-cdrom.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-cdrom.obj `if test -f 'drivers/cdrom/cdrom.c'; then $(CYGPATH_W) 'drivers/cdrom/cdrom.c'; else $(CYGPATH_W) '$(srcdir)/drivers/cdrom/cdrom.c'; fi`
+
+lxdream-sector.o: drivers/cdrom/sector.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-sector.o -MD -MP -MF "$(DEPDIR)/lxdream-sector.Tpo" -c -o lxdream-sector.o `test -f 'drivers/cdrom/sector.c' || echo '$(srcdir)/'`drivers/cdrom/sector.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/lxdream-sector.Tpo" "$(DEPDIR)/lxdream-sector.Po"; else rm -f "$(DEPDIR)/lxdream-sector.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/cdrom/sector.c' object='lxdream-sector.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-sector.o `test -f 'drivers/cdrom/sector.c' || echo '$(srcdir)/'`drivers/cdrom/sector.c
+
+lxdream-sector.obj: drivers/cdrom/sector.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-sector.obj -MD -MP -MF "$(DEPDIR)/lxdream-sector.Tpo" -c -o lxdream-sector.obj `if test -f 'drivers/cdrom/sector.c'; then $(CYGPATH_W) 'drivers/cdrom/sector.c'; else $(CYGPATH_W) '$(srcdir)/drivers/cdrom/sector.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/lxdream-sector.Tpo" "$(DEPDIR)/lxdream-sector.Po"; else rm -f "$(DEPDIR)/lxdream-sector.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/cdrom/sector.c' object='lxdream-sector.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-sector.obj `if test -f 'drivers/cdrom/sector.c'; then $(CYGPATH_W) 'drivers/cdrom/sector.c'; else $(CYGPATH_W) '$(srcdir)/drivers/cdrom/sector.c'; fi`
+
+lxdream-cd_nrg.o: drivers/cdrom/cd_nrg.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-cd_nrg.o -MD -MP -MF "$(DEPDIR)/lxdream-cd_nrg.Tpo" -c -o lxdream-cd_nrg.o `test -f 'drivers/cdrom/cd_nrg.c' || echo '$(srcdir)/'`drivers/cdrom/cd_nrg.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/lxdream-cd_nrg.Tpo" "$(DEPDIR)/lxdream-cd_nrg.Po"; else rm -f "$(DEPDIR)/lxdream-cd_nrg.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/cdrom/cd_nrg.c' object='lxdream-cd_nrg.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-cd_nrg.o `test -f 'drivers/cdrom/cd_nrg.c' || echo '$(srcdir)/'`drivers/cdrom/cd_nrg.c
+
+lxdream-cd_nrg.obj: drivers/cdrom/cd_nrg.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-cd_nrg.obj -MD -MP -MF "$(DEPDIR)/lxdream-cd_nrg.Tpo" -c -o lxdream-cd_nrg.obj `if test -f 'drivers/cdrom/cd_nrg.c'; then $(CYGPATH_W) 'drivers/cdrom/cd_nrg.c'; else $(CYGPATH_W) '$(srcdir)/drivers/cdrom/cd_nrg.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/lxdream-cd_nrg.Tpo" "$(DEPDIR)/lxdream-cd_nrg.Po"; else rm -f "$(DEPDIR)/lxdream-cd_nrg.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/cdrom/cd_nrg.c' object='lxdream-cd_nrg.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-cd_nrg.obj `if test -f 'drivers/cdrom/cd_nrg.c'; then $(CYGPATH_W) 'drivers/cdrom/cd_nrg.c'; else $(CYGPATH_W) '$(srcdir)/drivers/cdrom/cd_nrg.c'; fi`
+
+lxdream-cd_cdi.o: drivers/cdrom/cd_cdi.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-cd_cdi.o -MD -MP -MF "$(DEPDIR)/lxdream-cd_cdi.Tpo" -c -o lxdream-cd_cdi.o `test -f 'drivers/cdrom/cd_cdi.c' || echo '$(srcdir)/'`drivers/cdrom/cd_cdi.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/lxdream-cd_cdi.Tpo" "$(DEPDIR)/lxdream-cd_cdi.Po"; else rm -f "$(DEPDIR)/lxdream-cd_cdi.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/cdrom/cd_cdi.c' object='lxdream-cd_cdi.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-cd_cdi.o `test -f 'drivers/cdrom/cd_cdi.c' || echo '$(srcdir)/'`drivers/cdrom/cd_cdi.c
+
+lxdream-cd_cdi.obj: drivers/cdrom/cd_cdi.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-cd_cdi.obj -MD -MP -MF "$(DEPDIR)/lxdream-cd_cdi.Tpo" -c -o lxdream-cd_cdi.obj `if test -f 'drivers/cdrom/cd_cdi.c'; then $(CYGPATH_W) 'drivers/cdrom/cd_cdi.c'; else $(CYGPATH_W) '$(srcdir)/drivers/cdrom/cd_cdi.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/lxdream-cd_cdi.Tpo" "$(DEPDIR)/lxdream-cd_cdi.Po"; else rm -f "$(DEPDIR)/lxdream-cd_cdi.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/cdrom/cd_cdi.c' object='lxdream-cd_cdi.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-cd_cdi.obj `if test -f 'drivers/cdrom/cd_cdi.c'; then $(CYGPATH_W) 'drivers/cdrom/cd_cdi.c'; else $(CYGPATH_W) '$(srcdir)/drivers/cdrom/cd_cdi.c'; fi`
+
+lxdream-cd_gdi.o: drivers/cdrom/cd_gdi.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-cd_gdi.o -MD -MP -MF "$(DEPDIR)/lxdream-cd_gdi.Tpo" -c -o lxdream-cd_gdi.o `test -f 'drivers/cdrom/cd_gdi.c' || echo '$(srcdir)/'`drivers/cdrom/cd_gdi.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/lxdream-cd_gdi.Tpo" "$(DEPDIR)/lxdream-cd_gdi.Po"; else rm -f "$(DEPDIR)/lxdream-cd_gdi.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/cdrom/cd_gdi.c' object='lxdream-cd_gdi.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-cd_gdi.o `test -f 'drivers/cdrom/cd_gdi.c' || echo '$(srcdir)/'`drivers/cdrom/cd_gdi.c
+
+lxdream-cd_gdi.obj: drivers/cdrom/cd_gdi.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-cd_gdi.obj -MD -MP -MF "$(DEPDIR)/lxdream-cd_gdi.Tpo" -c -o lxdream-cd_gdi.obj `if test -f 'drivers/cdrom/cd_gdi.c'; then $(CYGPATH_W) 'drivers/cdrom/cd_gdi.c'; else $(CYGPATH_W) '$(srcdir)/drivers/cdrom/cd_gdi.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/lxdream-cd_gdi.Tpo" "$(DEPDIR)/lxdream-cd_gdi.Po"; else rm -f "$(DEPDIR)/lxdream-cd_gdi.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/cdrom/cd_gdi.c' object='lxdream-cd_gdi.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-cd_gdi.obj `if test -f 'drivers/cdrom/cd_gdi.c'; then $(CYGPATH_W) 'drivers/cdrom/cd_gdi.c'; else $(CYGPATH_W) '$(srcdir)/drivers/cdrom/cd_gdi.c'; fi`
+
+lxdream-edc_ecc.o: drivers/cdrom/edc_ecc.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-edc_ecc.o -MD -MP -MF "$(DEPDIR)/lxdream-edc_ecc.Tpo" -c -o lxdream-edc_ecc.o `test -f 'drivers/cdrom/edc_ecc.c' || echo '$(srcdir)/'`drivers/cdrom/edc_ecc.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/lxdream-edc_ecc.Tpo" "$(DEPDIR)/lxdream-edc_ecc.Po"; else rm -f "$(DEPDIR)/lxdream-edc_ecc.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/cdrom/edc_ecc.c' object='lxdream-edc_ecc.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-edc_ecc.o `test -f 'drivers/cdrom/edc_ecc.c' || echo '$(srcdir)/'`drivers/cdrom/edc_ecc.c
+
+lxdream-edc_ecc.obj: drivers/cdrom/edc_ecc.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-edc_ecc.obj -MD -MP -MF "$(DEPDIR)/lxdream-edc_ecc.Tpo" -c -o lxdream-edc_ecc.obj `if test -f 'drivers/cdrom/edc_ecc.c'; then $(CYGPATH_W) 'drivers/cdrom/edc_ecc.c'; else $(CYGPATH_W) '$(srcdir)/drivers/cdrom/edc_ecc.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/lxdream-edc_ecc.Tpo" "$(DEPDIR)/lxdream-edc_ecc.Po"; else rm -f "$(DEPDIR)/lxdream-edc_ecc.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/cdrom/edc_ecc.c' object='lxdream-edc_ecc.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-edc_ecc.obj `if test -f 'drivers/cdrom/edc_ecc.c'; then $(CYGPATH_W) 'drivers/cdrom/edc_ecc.c'; else $(CYGPATH_W) '$(srcdir)/drivers/cdrom/edc_ecc.c'; fi`
+
+lxdream-drive.o: drivers/cdrom/drive.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-drive.o -MD -MP -MF "$(DEPDIR)/lxdream-drive.Tpo" -c -o lxdream-drive.o `test -f 'drivers/cdrom/drive.c' || echo '$(srcdir)/'`drivers/cdrom/drive.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/lxdream-drive.Tpo" "$(DEPDIR)/lxdream-drive.Po"; else rm -f "$(DEPDIR)/lxdream-drive.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/cdrom/drive.c' object='lxdream-drive.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-drive.o `test -f 'drivers/cdrom/drive.c' || echo '$(srcdir)/'`drivers/cdrom/drive.c
+
+lxdream-drive.obj: drivers/cdrom/drive.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-drive.obj -MD -MP -MF "$(DEPDIR)/lxdream-drive.Tpo" -c -o lxdream-drive.obj `if test -f 'drivers/cdrom/drive.c'; then $(CYGPATH_W) 'drivers/cdrom/drive.c'; else $(CYGPATH_W) '$(srcdir)/drivers/cdrom/drive.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/lxdream-drive.Tpo" "$(DEPDIR)/lxdream-drive.Po"; else rm -f "$(DEPDIR)/lxdream-drive.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/cdrom/drive.c' object='lxdream-drive.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-drive.obj `if test -f 'drivers/cdrom/drive.c'; then $(CYGPATH_W) 'drivers/cdrom/drive.c'; else $(CYGPATH_W) '$(srcdir)/drivers/cdrom/drive.c'; fi`
+
+lxdream-cd_mmc.o: drivers/cdrom/cd_mmc.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-cd_mmc.o -MD -MP -MF "$(DEPDIR)/lxdream-cd_mmc.Tpo" -c -o lxdream-cd_mmc.o `test -f 'drivers/cdrom/cd_mmc.c' || echo '$(srcdir)/'`drivers/cdrom/cd_mmc.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/lxdream-cd_mmc.Tpo" "$(DEPDIR)/lxdream-cd_mmc.Po"; else rm -f "$(DEPDIR)/lxdream-cd_mmc.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/cdrom/cd_mmc.c' object='lxdream-cd_mmc.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-cd_mmc.o `test -f 'drivers/cdrom/cd_mmc.c' || echo '$(srcdir)/'`drivers/cdrom/cd_mmc.c
+
+lxdream-cd_mmc.obj: drivers/cdrom/cd_mmc.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-cd_mmc.obj -MD -MP -MF "$(DEPDIR)/lxdream-cd_mmc.Tpo" -c -o lxdream-cd_mmc.obj `if test -f 'drivers/cdrom/cd_mmc.c'; then $(CYGPATH_W) 'drivers/cdrom/cd_mmc.c'; else $(CYGPATH_W) '$(srcdir)/drivers/cdrom/cd_mmc.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/lxdream-cd_mmc.Tpo" "$(DEPDIR)/lxdream-cd_mmc.Po"; else rm -f "$(DEPDIR)/lxdream-cd_mmc.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/cdrom/cd_mmc.c' object='lxdream-cd_mmc.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-cd_mmc.obj `if test -f 'drivers/cdrom/cd_mmc.c'; then $(CYGPATH_W) 'drivers/cdrom/cd_mmc.c'; else $(CYGPATH_W) '$(srcdir)/drivers/cdrom/cd_mmc.c'; fi`
 
 lxdream-hotkeys.o: hotkeys.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-hotkeys.o -MD -MP -MF "$(DEPDIR)/lxdream-hotkeys.Tpo" -c -o lxdream-hotkeys.o `test -f 'hotkeys.c' || echo '$(srcdir)/'`hotkeys.c; \
@@ -2357,47 +2400,47 @@ lxdream-input_lirc.obj: drivers/input_lirc.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-input_lirc.obj `if test -f 'drivers/input_lirc.c'; then $(CYGPATH_W) 'drivers/input_lirc.c'; else $(CYGPATH_W) '$(srcdir)/drivers/input_lirc.c'; fi`
 
-lxdream-cd_linux.o: drivers/cd_linux.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-cd_linux.o -MD -MP -MF "$(DEPDIR)/lxdream-cd_linux.Tpo" -c -o lxdream-cd_linux.o `test -f 'drivers/cd_linux.c' || echo '$(srcdir)/'`drivers/cd_linux.c; \
+lxdream-cd_linux.o: drivers/cdrom/cd_linux.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-cd_linux.o -MD -MP -MF "$(DEPDIR)/lxdream-cd_linux.Tpo" -c -o lxdream-cd_linux.o `test -f 'drivers/cdrom/cd_linux.c' || echo '$(srcdir)/'`drivers/cdrom/cd_linux.c; \
 @am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/lxdream-cd_linux.Tpo" "$(DEPDIR)/lxdream-cd_linux.Po"; else rm -f "$(DEPDIR)/lxdream-cd_linux.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/cd_linux.c' object='lxdream-cd_linux.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/cdrom/cd_linux.c' object='lxdream-cd_linux.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-cd_linux.o `test -f 'drivers/cd_linux.c' || echo '$(srcdir)/'`drivers/cd_linux.c
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-cd_linux.o `test -f 'drivers/cdrom/cd_linux.c' || echo '$(srcdir)/'`drivers/cdrom/cd_linux.c
 
-lxdream-cd_linux.obj: drivers/cd_linux.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-cd_linux.obj -MD -MP -MF "$(DEPDIR)/lxdream-cd_linux.Tpo" -c -o lxdream-cd_linux.obj `if test -f 'drivers/cd_linux.c'; then $(CYGPATH_W) 'drivers/cd_linux.c'; else $(CYGPATH_W) '$(srcdir)/drivers/cd_linux.c'; fi`; \
+lxdream-cd_linux.obj: drivers/cdrom/cd_linux.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-cd_linux.obj -MD -MP -MF "$(DEPDIR)/lxdream-cd_linux.Tpo" -c -o lxdream-cd_linux.obj `if test -f 'drivers/cdrom/cd_linux.c'; then $(CYGPATH_W) 'drivers/cdrom/cd_linux.c'; else $(CYGPATH_W) '$(srcdir)/drivers/cdrom/cd_linux.c'; fi`; \
 @am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/lxdream-cd_linux.Tpo" "$(DEPDIR)/lxdream-cd_linux.Po"; else rm -f "$(DEPDIR)/lxdream-cd_linux.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/cd_linux.c' object='lxdream-cd_linux.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/cdrom/cd_linux.c' object='lxdream-cd_linux.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-cd_linux.obj `if test -f 'drivers/cd_linux.c'; then $(CYGPATH_W) 'drivers/cd_linux.c'; else $(CYGPATH_W) '$(srcdir)/drivers/cd_linux.c'; fi`
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-cd_linux.obj `if test -f 'drivers/cdrom/cd_linux.c'; then $(CYGPATH_W) 'drivers/cdrom/cd_linux.c'; else $(CYGPATH_W) '$(srcdir)/drivers/cdrom/cd_linux.c'; fi`
 
-lxdream-cd_osx.o: drivers/cd_osx.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-cd_osx.o -MD -MP -MF "$(DEPDIR)/lxdream-cd_osx.Tpo" -c -o lxdream-cd_osx.o `test -f 'drivers/cd_osx.c' || echo '$(srcdir)/'`drivers/cd_osx.c; \
+lxdream-cd_osx.o: drivers/cdrom/cd_osx.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-cd_osx.o -MD -MP -MF "$(DEPDIR)/lxdream-cd_osx.Tpo" -c -o lxdream-cd_osx.o `test -f 'drivers/cdrom/cd_osx.c' || echo '$(srcdir)/'`drivers/cdrom/cd_osx.c; \
 @am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/lxdream-cd_osx.Tpo" "$(DEPDIR)/lxdream-cd_osx.Po"; else rm -f "$(DEPDIR)/lxdream-cd_osx.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/cd_osx.c' object='lxdream-cd_osx.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/cdrom/cd_osx.c' object='lxdream-cd_osx.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-cd_osx.o `test -f 'drivers/cd_osx.c' || echo '$(srcdir)/'`drivers/cd_osx.c
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-cd_osx.o `test -f 'drivers/cdrom/cd_osx.c' || echo '$(srcdir)/'`drivers/cdrom/cd_osx.c
 
-lxdream-cd_osx.obj: drivers/cd_osx.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-cd_osx.obj -MD -MP -MF "$(DEPDIR)/lxdream-cd_osx.Tpo" -c -o lxdream-cd_osx.obj `if test -f 'drivers/cd_osx.c'; then $(CYGPATH_W) 'drivers/cd_osx.c'; else $(CYGPATH_W) '$(srcdir)/drivers/cd_osx.c'; fi`; \
+lxdream-cd_osx.obj: drivers/cdrom/cd_osx.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-cd_osx.obj -MD -MP -MF "$(DEPDIR)/lxdream-cd_osx.Tpo" -c -o lxdream-cd_osx.obj `if test -f 'drivers/cdrom/cd_osx.c'; then $(CYGPATH_W) 'drivers/cdrom/cd_osx.c'; else $(CYGPATH_W) '$(srcdir)/drivers/cdrom/cd_osx.c'; fi`; \
 @am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/lxdream-cd_osx.Tpo" "$(DEPDIR)/lxdream-cd_osx.Po"; else rm -f "$(DEPDIR)/lxdream-cd_osx.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/cd_osx.c' object='lxdream-cd_osx.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/cdrom/cd_osx.c' object='lxdream-cd_osx.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-cd_osx.obj `if test -f 'drivers/cd_osx.c'; then $(CYGPATH_W) 'drivers/cd_osx.c'; else $(CYGPATH_W) '$(srcdir)/drivers/cd_osx.c'; fi`
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-cd_osx.obj `if test -f 'drivers/cdrom/cd_osx.c'; then $(CYGPATH_W) 'drivers/cdrom/cd_osx.c'; else $(CYGPATH_W) '$(srcdir)/drivers/cdrom/cd_osx.c'; fi`
 
-lxdream-cd_none.o: drivers/cd_none.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-cd_none.o -MD -MP -MF "$(DEPDIR)/lxdream-cd_none.Tpo" -c -o lxdream-cd_none.o `test -f 'drivers/cd_none.c' || echo '$(srcdir)/'`drivers/cd_none.c; \
+lxdream-cd_none.o: drivers/cdrom/cd_none.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-cd_none.o -MD -MP -MF "$(DEPDIR)/lxdream-cd_none.Tpo" -c -o lxdream-cd_none.o `test -f 'drivers/cdrom/cd_none.c' || echo '$(srcdir)/'`drivers/cdrom/cd_none.c; \
 @am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/lxdream-cd_none.Tpo" "$(DEPDIR)/lxdream-cd_none.Po"; else rm -f "$(DEPDIR)/lxdream-cd_none.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/cd_none.c' object='lxdream-cd_none.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/cdrom/cd_none.c' object='lxdream-cd_none.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-cd_none.o `test -f 'drivers/cd_none.c' || echo '$(srcdir)/'`drivers/cd_none.c
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-cd_none.o `test -f 'drivers/cdrom/cd_none.c' || echo '$(srcdir)/'`drivers/cdrom/cd_none.c
 
-lxdream-cd_none.obj: drivers/cd_none.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-cd_none.obj -MD -MP -MF "$(DEPDIR)/lxdream-cd_none.Tpo" -c -o lxdream-cd_none.obj `if test -f 'drivers/cd_none.c'; then $(CYGPATH_W) 'drivers/cd_none.c'; else $(CYGPATH_W) '$(srcdir)/drivers/cd_none.c'; fi`; \
+lxdream-cd_none.obj: drivers/cdrom/cd_none.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-cd_none.obj -MD -MP -MF "$(DEPDIR)/lxdream-cd_none.Tpo" -c -o lxdream-cd_none.obj `if test -f 'drivers/cdrom/cd_none.c'; then $(CYGPATH_W) 'drivers/cdrom/cd_none.c'; else $(CYGPATH_W) '$(srcdir)/drivers/cdrom/cd_none.c'; fi`; \
 @am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/lxdream-cd_none.Tpo" "$(DEPDIR)/lxdream-cd_none.Po"; else rm -f "$(DEPDIR)/lxdream-cd_none.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/cd_none.c' object='lxdream-cd_none.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/cdrom/cd_none.c' object='lxdream-cd_none.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-cd_none.obj `if test -f 'drivers/cd_none.c'; then $(CYGPATH_W) 'drivers/cd_none.c'; else $(CYGPATH_W) '$(srcdir)/drivers/cd_none.c'; fi`
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-cd_none.obj `if test -f 'drivers/cdrom/cd_none.c'; then $(CYGPATH_W) 'drivers/cdrom/cd_none.c'; else $(CYGPATH_W) '$(srcdir)/drivers/cdrom/cd_none.c'; fi`
 
 lxdream-joy_linux.o: drivers/joy_linux.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-joy_linux.o -MD -MP -MF "$(DEPDIR)/lxdream-joy_linux.Tpo" -c -o lxdream-joy_linux.o `test -f 'drivers/joy_linux.c' || echo '$(srcdir)/'`drivers/joy_linux.c; \

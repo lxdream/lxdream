@@ -23,7 +23,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <sys/stat.h>
-#include "gdrom/gddriver.h"
+#include "drivers/cdrom/cdimpl.h"
 
 #define CDI_V2_ID 0x80000004
 #define CDI_V3_ID 0x80000005
@@ -31,10 +31,10 @@
 
 
 static gboolean cdi_image_is_valid( FILE *f );
-static gdrom_disc_t cdi_image_open( const gchar *filename, FILE *f );
+static gboolean cdi_image_read_toc( cdrom_disc_t disc, ERROR *err );
 
-struct gdrom_image_class cdi_image_class = { "DiscJuggler", "cdi", 
-        cdi_image_is_valid, cdi_image_open };
+struct cdrom_disc_factory cdi_disc_factory = { "DiscJuggler", "cdi",
+        cdi_image_is_valid, NULL, cdi_image_read_toc };
 
 static const char TRACK_START_MARKER[20] = { 0,0,1,0,0,0,255,255,255,255,
         0,0,1,0,0,0,255,255,255,255 };
@@ -73,9 +73,10 @@ gboolean cdi_image_is_valid( FILE *f )
     trail.cdi_version == CDI_V35_ID;
 }
 
-gdrom_disc_t cdi_image_open( const gchar *filename, FILE *f )
+#define RETURN_PARSE_ERROR( ... ) do { SET_ERROR(err, EINVAL, __VA_ARGS__); return FALSE; } while(0)
+
+static gboolean cdi_image_read_toc( cdrom_disc_t disc, ERROR *err )
 {
-    gdrom_disc_t disc = NULL;
     int i,j;
     uint16_t session_count;
     uint16_t track_count;
@@ -85,16 +86,18 @@ gdrom_disc_t cdi_image_open( const gchar *filename, FILE *f )
     struct cdi_trailer trail;
     char marker[20];
 
+    FILE *f = cdrom_disc_get_base_file(disc);
     fseek( f, -8, SEEK_END );
     len = ftell(f)+8;
     fread( &trail, sizeof(trail), 1, f );
     if( trail.header_offset >= len ||
-            trail.header_offset == 0 )
-        return NULL;
+            trail.header_offset == 0 ) {
+        RETURN_PARSE_ERROR( "Invalid CDI image" );
+    }
 
     if( trail.cdi_version != CDI_V2_ID && trail.cdi_version != CDI_V3_ID &&
             trail.cdi_version != CDI_V35_ID ) {
-        return NULL;
+        RETURN_PARSE_ERROR( "Invalid CDI image" );
     }
 
     if( trail.cdi_version == CDI_V35_ID ) {
@@ -104,18 +107,10 @@ gdrom_disc_t cdi_image_open( const gchar *filename, FILE *f )
     }
     fread( &session_count, sizeof(session_count), 1, f );
 
-    disc = gdrom_image_new(filename, f);
-    if( disc == NULL ) {
-        ERROR("Unable to allocate memory!");
-        return NULL;
-    }
-
     for( i=0; i< session_count; i++ ) {        
         fread( &track_count, sizeof(track_count), 1, f );
         if( track_count + total_tracks > 99 ) {
-            ERROR( "Invalid number of tracks, bad cdi image\n" );
-            disc->destroy(disc,FALSE);
-            return NULL;
+            RETURN_PARSE_ERROR("Invalid number of tracks, bad cdi image" );
         }
         for( j=0; j<track_count; j++ ) {
             struct cdi_track_data trk;
@@ -127,9 +122,7 @@ gdrom_disc_t cdi_image_open( const gchar *filename, FILE *f )
             }
             fread( marker, 20, 1, f );
             if( memcmp( marker, TRACK_START_MARKER, 20) != 0 ) {
-                ERROR( "Track start marker not found, error reading cdi image\n" );
-                disc->destroy(disc,FALSE);
-                return NULL;
+                RETURN_PARSE_ERROR( "Track start marker not found, error reading cdi image" );
             }
             fseek( f, 4, SEEK_CUR );
             fread( &fnamelen, 1, 1, f );
@@ -142,56 +135,46 @@ gdrom_disc_t cdi_image_open( const gchar *filename, FILE *f )
                 fseek( f, 2, SEEK_CUR );
             }
             fread( &trk, sizeof(trk), 1, f );
-            disc->track[total_tracks].session = i;
-            disc->track[total_tracks].lba = trk.start_lba + 150;
-            disc->track[total_tracks].sector_count = trk.length;
+            disc->track[total_tracks].sessionno = i+1;
+            disc->track[total_tracks].lba = trk.start_lba;
+            cdrom_count_t sector_count = trk.length;
+            sector_mode_t mode;
             switch( trk.mode ) {
             case 0:
-                disc->track[total_tracks].mode = GDROM_CDDA;
-                disc->track[total_tracks].sector_size = 2352;
+                mode = SECTOR_CDDA;
                 disc->track[total_tracks].flags = 0x01;
                 if( trk.sector_size != 2 ) {
-                    ERROR( "Invalid combination of mode %d with size %d", trk.mode, trk.sector_size );
-                    disc->destroy(disc,FALSE);
-                    return NULL;
+                    RETURN_PARSE_ERROR( "Invalid combination of mode %d with size %d", trk.mode, trk.sector_size );
                 }
                 break;
             case 1:
-                disc->track[total_tracks].mode = GDROM_MODE1;
-                disc->track[total_tracks].sector_size = 2048;
+                mode = SECTOR_MODE1;
                 disc->track[total_tracks].flags = 0x41;
                 if( trk.sector_size != 0 ) {
-                    ERROR( "Invalid combination of mode %d with size %d", trk.mode, trk.sector_size );
-                    disc->destroy(disc,FALSE);
-                    return NULL;
+                    RETURN_PARSE_ERROR( "Invalid combination of mode %d with size %d", trk.mode, trk.sector_size );
                 }
                 break;
             case 2:
                 disc->track[total_tracks].flags = 0x41;
                 switch( trk.sector_size ) {
                 case 0:
-                    disc->track[total_tracks].mode = GDROM_MODE2_FORM1;
-                    disc->track[total_tracks].sector_size = 2048;
+                    mode = SECTOR_MODE2_FORM1;
                     break;
                 case 1:
-                    disc->track[total_tracks].mode = GDROM_SEMIRAW_MODE2;
-                    disc->track[total_tracks].sector_size = 2336;
+                    mode = SECTOR_SEMIRAW_MODE2;
                     break;
                 case 2:
                 default:
-                    ERROR( "Invalid combination of mode %d with size %d", trk.mode, trk.sector_size );
-                    disc->destroy(disc,FALSE);
-                    return NULL;
+                    RETURN_PARSE_ERROR( "Invalid combination of mode %d with size %d", trk.mode, trk.sector_size );
                 }
                 break;
-                default:
-                    ERROR( "Unsupported track mode %d", trk.mode );
-                    disc->destroy(disc,FALSE);
-                    return NULL;
+            default:
+                RETURN_PARSE_ERROR( "Unsupported track mode %d", trk.mode );
             }
-            disc->track[total_tracks].offset = posn + 
-            trk.pregap_length * disc->track[total_tracks].sector_size ;
-            posn += trk.total_length * disc->track[total_tracks].sector_size;
+            uint32_t offset = posn +
+                    trk.pregap_length * CDROM_SECTOR_SIZE(mode);
+            disc->track[total_tracks].source = file_sector_source_new_source( disc->base_source, mode, offset, sector_count );
+            posn += trk.total_length * CDROM_SECTOR_SIZE(mode);
             total_tracks++;
             fread( marker, 1, 9, f );
             if( memcmp( marker, EXT_MARKER, 9 ) == 0 ) {
@@ -202,7 +185,8 @@ gdrom_disc_t cdi_image_open( const gchar *filename, FILE *f )
         }
         fseek( f, 12, SEEK_CUR );
     }
+
     disc->track_count = total_tracks;
-    gdrom_set_disc_type(disc);
-    return disc;
+    disc->session_count = session_count;
+    return TRUE;
 }

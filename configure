@@ -11237,6 +11237,13 @@ else
   CDROM_NONE_FALSE=
 fi
 
+if test "x$CDROM_DRIVER" = "xlinux"; then
+
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_LINUX_CDROM 1
+_ACEOF
+
+fi
 
 if test "${ac_cv_header_linux_joystick_h+set}" = set; then
   { $as_echo "$as_me:$LINENO: checking for linux/joystick.h" >&5
