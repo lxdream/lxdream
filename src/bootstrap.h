@@ -28,6 +28,31 @@
 extern "C" {
 #endif
 
+#define BOOTSTRAP_LOAD_ADDR 0x8C008000
+#define BOOTSTRAP_SIZE 32768
+#define BOOTSTRAP_MAGIC "SEGA SEGAKATANA SEGA ENTERPRISES"
+
+#define BINARY_LOAD_ADDR 0x8C010000
+
+/**
+ * Bootstrap header structure
+ */
+typedef struct dc_bootstrap_head {
+    char magic[32];
+    char crc[4];
+    char padding;         /* normally ascii space */
+    char gdrom_id[6];
+    char disc_no[5];
+    char regions[8];
+    char peripherals[8];
+    char product_id[10];
+    char product_ver[6];
+    char product_date[16];
+    char boot_file[16];
+    char vendor_id[16];
+    char product_name[128];
+} *dc_bootstrap_head_t;
+
 /**
  * Dump the bootstrap info to the output log for infomational/debugging
  * purposes.

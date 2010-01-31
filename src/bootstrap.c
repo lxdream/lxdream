@@ -19,26 +19,6 @@
 #include "dream.h"
 #include "bootstrap.h"
 
-/**
- * Bootstrap header structure
- */
-typedef struct dc_bootstrap_head {
-    char hardware_id[16]; /* must be "SEGA SEGAKATANA " */ 
-    char maker_id[16];    /* ditto,  "SEGA ENTERPRISES" */
-    char crc[4];
-    char padding;         /* normally ascii space */
-    char gdrom_id[6];
-    char disc_no[5];
-    char regions[8];
-    char peripherals[8];
-    char product_id[10];
-    char product_ver[6];
-    char product_date[16];
-    char boot_file[16];
-    char vendor_id[16];
-    char product_name[128];
-} *dc_bootstrap_head_t;
-
 static uint32_t compute_crc16( dc_bootstrap_head_t h )
 {
     /* Note: Algorithm taken from http://mc.pp.se/dc/ip0000.bin.html */
