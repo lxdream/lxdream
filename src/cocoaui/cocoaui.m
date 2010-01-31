@@ -59,7 +59,7 @@ static LxdreamMainWindow *mainWindow = NULL;
 - (void) setAppleMenu:(NSMenu *)aMenu;
 @end
 
-gboolean cocoa_gui_disc_changed( gdrom_disc_t disc, const gchar *disc_name, void *user_data )
+gboolean cocoa_gui_disc_changed( cdrom_disc_t disc, const gchar *disc_name, void *user_data )
 {
     NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
     LxdreamMainWindow *window = (LxdreamMainWindow *)user_data;

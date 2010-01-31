@@ -422,12 +422,12 @@ void main_window_set_use_grab( main_window_t win, gboolean use_grab )
 void main_window_update_title( main_window_t win )
 {
     const char *disc = gdrom_get_current_disc_title();
+    char buf[256];
     
     if( disc == NULL ) {
-        gtk_window_set_title( GTK_WINDOW(win->window), lxdream_package_name );
+        snprintf( buf, sizeof(buf), "%s - <%s>", lxdream_package_name, _("no disc") );
     } else {
-        char buf[256];
         snprintf( buf, sizeof(buf), "%s - %s", lxdream_package_name, disc );
-        gtk_window_set_title( GTK_WINDOW(win->window), buf );
     }
+    gtk_window_set_title( GTK_WINDOW(win->window), buf );
 }

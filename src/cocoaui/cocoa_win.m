@@ -179,7 +179,7 @@ willBeInsertedIntoToolbar:(BOOL)flag
     NSString *title;
     const char *disc_title = gdrom_get_current_disc_title();
     if( disc_title == NULL ) {
-        title = [NSString stringWithCString: lxdream_package_name];
+        title = [NSString stringWithFormat: @"%s - <no disc>", lxdream_package_name];
     } else {
         title = [NSString stringWithFormat: @"%s - %s", lxdream_package_name, disc_title];
     }
