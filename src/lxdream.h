@@ -87,6 +87,16 @@ void log_message( void *, int level, const char *source, const char *msg, ... );
 #define DEBUG( ... ) log_message( NULL, EMIT_DEBUG, MODULE_NAME, __VA_ARGS__ )
 #define TRACE( ... ) log_message( NULL, EMIT_TRACE, MODULE_NAME, __VA_ARGS__ )
 
+/* Error reporting */
+#define MAX_ERROR_MSG_SIZE 512
+typedef struct error_struct {
+    unsigned int code;
+    char msg[MAX_ERROR_MSG_SIZE];
+} ERROR;
+
+#define SET_ERROR(err, n, ...) if( (err) != NULL ) { (err)->code = n; snprintf( (err)->msg, sizeof((err)->msg), __VA_ARGS__ ); }
+#define CLEAR_ERROR(err) do { err.code = 0; err.msg[0] = 0; } while(0)
+
 
 #ifdef HAVE_FASTCALL
 #define FASTCALL __attribute__((regparm(2)))
