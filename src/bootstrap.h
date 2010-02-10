@@ -31,6 +31,7 @@ extern "C" {
 #define BOOTSTRAP_LOAD_ADDR 0x8C008000
 #define BOOTSTRAP_SIZE 32768
 #define BOOTSTRAP_MAGIC "SEGA SEGAKATANA SEGA ENTERPRISES"
+#define BOOTSTRAP_MAGIC_SIZE 32
 
 #define BINARY_LOAD_ADDR 0x8C010000
 
@@ -59,6 +60,8 @@ typedef struct dc_bootstrap_head {
  */
 void bootstrap_dump(void *data, gboolean detail);
 
+void bootprogram_scramble( unsigned char *dest, unsigned char *src, size_t length );
+void bootprogram_unscramble( unsigned char *dest, unsigned char *src, size_t length );
 #ifdef __cplusplus
 }
 #endif

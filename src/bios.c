@@ -20,7 +20,11 @@
 #include "mem.h"
 #include "syscall.h"
 #include "dreamcast.h"
+#include "bootstrap.h"
 #include "sh4/sh4.h"
+#include "drivers/cdrom/cdrom.h"
+#include "drivers/cdrom/isoread.h"
+#include "gdrom/gdrom.h"
 
 #define COMMAND_QUEUE_LENGTH 16
 
@@ -203,6 +207,13 @@ void bios_syscall( uint32_t syscallid )
     }
 }
 
+void bios_boot( uint32_t syscallid )
+{
+    /* Initialize hardware */
+    /* Boot disc if present */
+    bios_boot_gdrom_disc();
+}
+
 void bios_install( void ) 
 {
     bios_gdrom_init();
@@ -211,4 +222,97 @@ void bios_install( void )
     syscall_add_hook_vector( 0xB8, 0x8C0000B8, bios_syscall );
     syscall_add_hook_vector( 0xBC, 0x8C0000BC, bios_syscall );
     syscall_add_hook_vector( 0xE0, 0x8C0000E0, bios_syscall );
+}
+
+#define MIN_ISO_SECTORS 32
+
+gboolean bios_boot_gdrom_disc( void )
+{
+    cdrom_disc_t disc = gdrom_get_current_disc();
+
+    int status = gdrom_get_drive_status();
+    if( status == CDROM_DISC_NONE ) {
+        ERROR( "No disc in drive" );
+        return FALSE;
+    }
+
+    /* Find the bootable data track (if present) */
+    cdrom_track_t track = gdrom_disc_get_boot_track(disc);
+    if( track == NULL ) {
+        ERROR( "Disc is not bootable" );
+        return FALSE;
+    }
+    uint32_t lba = track->lba;
+    uint32_t sectors = cdrom_disc_get_track_size(disc,track);
+    if( sectors < MIN_ISO_SECTORS ) {
+        ERROR( "Disc is not bootable" );
+        return FALSE;
+    }
+    /* Load the initial bootstrap into DC ram at 8c008000 */
+    size_t length = BOOTSTRAP_SIZE;
+    unsigned char *bootstrap = mem_get_region(BOOTSTRAP_LOAD_ADDR);
+    if( cdrom_disc_read_sectors( disc, track->lba, BOOTSTRAP_SIZE/2048,
+            CDROM_READ_DATA|CDROM_READ_MODE2_FORM1, bootstrap, &length ) !=
+            CDROM_ERROR_OK ) {
+        ERROR( "Disc is not bootable" );
+        return FALSE;
+    }
+
+    /* Check the magic just to be sure */
+    dc_bootstrap_head_t metadata = (dc_bootstrap_head_t)bootstrap;
+    if( memcmp( metadata->magic, BOOTSTRAP_MAGIC, BOOTSTRAP_MAGIC_SIZE ) != 0 ) {
+        ERROR( "Disc is not bootable (missing dreamcast bootstrap)" );
+        return FALSE;
+    }
+
+    /* Get the initial program from the bootstrap (usually 1ST_READ.BIN) */
+    char program_name[17];
+    memcpy(program_name, metadata->boot_file, 16);
+    program_name[16] = '\0';
+    for( int i=15; i >= 0 && program_name[i] == ' '; i-- ) {
+        program_name[i] = '\0';
+    }
+
+    /* Bootstrap is good. Now find the program in the actual filesystem... */
+    isofs_reader_t iso = isofs_reader_new_from_track( disc, track, NULL );
+    if( iso == NULL ) {
+        ERROR( "Disc is not bootable" );
+        return FALSE;
+    }
+    isofs_reader_dirent_t ent = isofs_reader_get_file( iso, program_name );
+    if( ent == NULL ) {
+        ERROR( "Disc is not bootable (initial program '%s' not found)", program_name );
+        isofs_reader_destroy(iso);
+        return FALSE;
+    }
+
+    if( ent->size > (0x8D000000 - BINARY_LOAD_ADDR) ) {
+        /* Bootstrap isn't going to fit in memory. Complain and abort */
+        ERROR( "Disc is not bootable (initial program too large)" );
+        isofs_reader_destroy(iso);
+        return FALSE;
+    }
+    unsigned char *program = mem_get_region(BINARY_LOAD_ADDR);
+    int program_sectors = (ent->size+2047)/2048;
+    if( disc->disc_type == CDROM_DISC_GDROM ) {
+        /* Load the binary directly into RAM */
+        if( isofs_reader_read_file( iso, ent, 0, ent->size, program ) !=
+                CDROM_ERROR_OK ) {
+            ERROR( "Disc is not bootable (failed to read initial program)\n" );
+            isofs_reader_destroy(iso);
+            return FALSE;
+        }
+    } else {
+        /* Load the binary into a temp buffer */
+        unsigned char tmp[program_sectors*2048];
+        if( isofs_reader_read_file( iso, ent, 0, ent->size, tmp ) !=
+                CDROM_ERROR_OK ) {
+            ERROR( "Disc is not bootable (failed to read initial program)\n" );
+            isofs_reader_destroy(iso);
+            return FALSE;
+        }
+        bootprogram_unscramble(program, tmp, ent->size);
+    }
+    isofs_reader_destroy(iso);
+    dreamcast_program_loaded( "", BOOTSTRAP_LOAD_ADDR );
 }

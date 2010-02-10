@@ -74,7 +74,8 @@ cdrom_error_t default_image_read_sectors( sector_source_t source, cdrom_lba_t lb
         len += tmplen;
         current += sub_count;
     }
-    *length = len;
+    if( length != NULL )
+        *length = len;
     return CDROM_ERROR_OK;
 }
 
@@ -310,6 +311,15 @@ cdrom_track_t cdrom_disc_get_last_track( cdrom_disc_t disc )
     return &disc->track[disc->track_count-1];
 }
 
+cdrom_track_t cdrom_disc_get_last_data_track( cdrom_disc_t disc )
+{
+    for( unsigned i=disc->track_count; i>0; i-- ) {
+        if( disc->track[i-1].flags & TRACK_FLAG_DATA ) {
+            return &disc->track[i-1];
+        }
+    }
+    return NULL;
+}
 cdrom_track_t cdrom_disc_prev_track( cdrom_disc_t disc, cdrom_track_t track )
 {
     if( track->trackno <= 1 )
@@ -383,4 +393,3 @@ void cdrom_disc_dump_toc( cdrom_disc_t disc )
 {
     cdrom_disc_print_toc( stderr, disc );
 }
-

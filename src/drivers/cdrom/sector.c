@@ -32,7 +32,7 @@
 #define CHECK_READ(dev,lba,count) \
     if( !IS_SECTOR_SOURCE(dev) ) { \
         return CDROM_ERROR_NODISC; \
-    } else if( (lba) >= (dev)->size || (lba+block_count) > (dev)->size ) { \
+    } else if( (dev)->size != 0 && ((lba) >= (dev)->size || (lba+block_count) > (dev)->size) ) { \
         return CDROM_ERROR_BADREAD; \
     }
 
@@ -340,11 +340,13 @@ cdrom_error_t default_sector_source_read_sectors( sector_source_t device,
         if( err != CDROM_ERROR_OK )
             return err;
         if( read_sector_fields == 0 ) { /* Read nothing */
-            *length = 0;
+            if( length != NULL )
+                *length = 0;
             return CDROM_ERROR_OK;
         } else if( read_sector_fields == CDROM_READ_DATA ) {
             /* Data-only */
-            *length = block_count * CDROM_SECTOR_SIZE(device->mode);
+            if( length != NULL )
+                *length = block_count * CDROM_SECTOR_SIZE(device->mode);
             return device->read_blocks( device, lba, block_count, buf );
         } else if( read_sector_fields == CDROM_READ_RAW ) {
             for( i=0; i<block_count; i++ ) {
@@ -366,7 +368,8 @@ cdrom_error_t default_sector_source_read_sectors( sector_source_t device,
             }
         }
     }
-    *length = len;
+    if( length != NULL )
+        *length = len;
     return CDROM_ERROR_OK;
 
 }
