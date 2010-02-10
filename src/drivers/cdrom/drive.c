@@ -17,6 +17,7 @@
  */
 
 #include <stdlib.h>
+#include <string.h>
 #include <glib/gstrfuncs.h>
 #include <glib/gmem.h>
 #include "drivers/cdrom/drive.h"

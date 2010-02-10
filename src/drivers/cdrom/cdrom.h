@@ -110,6 +110,11 @@ cdrom_track_t cdrom_disc_get_session( cdrom_disc_t disc, cdrom_sessionno_t sessi
 
 cdrom_track_t cdrom_disc_get_last_track( cdrom_disc_t disc );
 
+/**
+ * Get the track information for the last data track  on the disc
+ */
+cdrom_track_t cdrom_disc_get_last_data_track( cdrom_disc_t disc );
+
 cdrom_track_t cdrom_disc_prev_track( cdrom_disc_t disc, cdrom_track_t track );
 cdrom_track_t cdrom_disc_next_track( cdrom_disc_t disc, cdrom_track_t track );
 

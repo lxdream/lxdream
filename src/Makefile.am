@@ -13,7 +13,7 @@ PLUGINCFLAGS = @PLUGINCFLAGS@
 PLUGINLDFLAGS = @PLUGINLDFLAGS@
 bin_PROGRAMS = lxdream
 noinst_PROGRAMS = gendec genglsl
-check_PROGRAMS = test/testxlt
+check_PROGRAMS = test/testxlt test/testisoread
 
 pkglib_PROGRAMS=
 EXTRA_DIST=drivers/genkeymap.pl checkver.pl drivers/dummy.c
@@ -73,6 +73,7 @@ lxdream_SOURCES = \
         drivers/cdrom/edc_ecc.c drivers/cdrom/ecc.h drivers/cdrom/drive.c \
         drivers/cdrom/edc_crctable.h drivers/cdrom/edc_encoder.h \
 	drivers/cdrom/edc_l2sq.h drivers/cdrom/edc_scramble.h drivers/cdrom/cd_mmc.c \
+	drivers/cdrom/isoread.h drivers/cdrom/isoread.c drivers/cdrom/iso_impl.h \
 	sh4/sh4.def sh4/sh4core.in sh4/sh4x86.in sh4/sh4dasm.in sh4/sh4stat.in \
 	hotkeys.c hotkeys.h
 lxdream_CPPFLAGS = @LXDREAMCPPFLAGS@
@@ -238,6 +239,15 @@ genglsl_LDADD = @GLIB_LIBS@ @GTK_LIBS@ $(INTLLIBS)
 
 
 test_testxlt_SOURCES = test/testxlt.c xlat/xltcache.c xlat/xltcache.h
+test_testisoread_SOURCES = test/testisoread.c drivers/cdrom/isoread.c \
+	drivers/cdrom/isoread.h drivers/cdrom/isofs_impl.h drivers/cdrom/ecc.h \
+	drivers/cdrom/cdrom.c drivers/cdrom/cdrom.h drivers/cdrom/sector.h \
+	drivers/cdrom/sector.c drivers/cdrom/cdimpl.h drivers/cdrom/edc_ecc.c \
+	drivers/cdrom/edc_crctable.h drivers/cdrom/edc_encoder.h \
+	drivers/cdrom/edc_l2sq.h drivers/cdrom/edc_scramble.h \
+	drivers/cdrom/defs.h drivers/cdrom/drive.h drivers/cdrom/drive.c \
+	drivers/cdrom/cd_nrg.c drivers/cdrom/cd_cdi.c drivers/cdrom/cd_gdi.c
+test_testisoread_LDADD = @GLIB_LIBS@ $(INTLLIBS)
 
 sh4/sh4core.c: gendec sh4/sh4.def sh4/sh4core.in
 	$(mkdir_p) `dirname $@`

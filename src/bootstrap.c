@@ -135,3 +135,71 @@ void bootstrap_dump( void *data, gboolean detail )
         INFO( buf, NULL );
     }
 }
+
+/* Scramble/unscramble, based on Marcus Comstedt's algorithm. */
+
+typedef uint16_t randseed;
+
+#define MAXBLOCK (2048*1024)
+#define CHUNKSIZE 32
+#define NEXT(seed)  (((seed = (seed*2109+9273)&0x7fff) + 0xC000) & 0xFFFF)
+
+void bootprogram_scramble( unsigned char *dest, unsigned char *src, size_t length )
+{
+    randseed seed = length & 0xFFFF;
+    unsigned table[MAXBLOCK/32];
+    unsigned char *s = src;
+    unsigned char *d = dest;
+
+    for( unsigned blocksize = MAXBLOCK; blocksize >= CHUNKSIZE; blocksize >>= 1 ) {
+        while( length >= blocksize ) {
+            unsigned nchunks = blocksize/CHUNKSIZE;
+            for( unsigned i=0; i<nchunks; i++ ) {
+                table[i] = i; // Identity
+            }
+            for( unsigned i = nchunks-1; i != (unsigned)-1; --i ) {
+                unsigned j = (NEXT(seed) * i)>>16;
+                unsigned tmp = table[i];
+                table[i] = table[j];
+                table[j] = tmp;
+                memcpy( d, s + CHUNKSIZE*table[i], CHUNKSIZE );
+                d+= CHUNKSIZE;
+            }
+            length -= blocksize;
+            s += blocksize;
+        }
+    }
+    if( length ) {
+        memcpy( d, s, length );
+    }
+}
+
+void bootprogram_unscramble( unsigned char *dest, unsigned char *src, size_t length )
+{
+    randseed seed = length & 0xFFFF;
+    unsigned table[MAXBLOCK/32];
+    unsigned char *s = src;
+    unsigned char *d = dest;
+
+    for( unsigned blocksize = MAXBLOCK; blocksize >= CHUNKSIZE; blocksize >>= 1 ) {
+        while( length >= blocksize ) {
+            unsigned nchunks = blocksize/CHUNKSIZE;
+            for( unsigned i=0; i<nchunks; i++ ) {
+                table[i] = i; // Identity
+            }
+            for( unsigned i = nchunks-1; i != (unsigned)-1; --i ) {
+                unsigned j = (NEXT(seed) * i)>>16;
+                unsigned tmp = table[i];
+                table[i] = table[j];
+                table[j] = tmp;
+                memcpy( d + CHUNKSIZE*table[i], s, CHUNKSIZE );
+                s+= CHUNKSIZE;
+            }
+            length -= blocksize;
+            d += blocksize;
+        }
+    }
+    if( length ) {
+        memcpy( d, s, length );
+    }
+}
