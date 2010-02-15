@@ -107,7 +107,7 @@ void file_load_postload( const gchar *filename, int pc )
          * correctly
          */
         if( mem_load_block( bootstrap_file, BOOTSTRAP_LOAD_ADDR, BOOTSTRAP_SIZE ) == 0 ) {
-            dreamcast_program_loaded( filename, BOOTSTRAP_LOAD_ADDR+0x300 );
+            dreamcast_program_loaded( filename, BOOTSTRAP_ENTRY_ADDR );
             g_free(bootstrap_file);
             return;
         }

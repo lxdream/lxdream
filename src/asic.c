@@ -416,6 +416,13 @@ void sort_dma_transfer( )
     MMIO_WRITE( ASIC, SORTDMACTL, 0 );
 }
 
+gboolean asic_enable_ide_interface( gboolean enable )
+{
+    gboolean oldval = idereg.interface_enabled;
+    idereg.interface_enabled = enable;
+    return oldval;
+}
+
 MMIO_REGION_READ_FN( ASIC, reg )
 {
     int32_t val;

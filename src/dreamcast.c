@@ -43,6 +43,7 @@ typedef enum { STATE_UNINIT=0, STATE_RUNNING,
                STATE_STOPPING, STATE_STOPPED } dreamcast_state_t;
     
 static volatile dreamcast_state_t dreamcast_state = STATE_UNINIT;
+static gboolean dreamcast_use_bios = TRUE;
 static gboolean dreamcast_has_bios = FALSE;
 static gboolean dreamcast_has_flash = FALSE;
 static gboolean dreamcast_exit_on_stop = FALSE;
@@ -86,7 +87,7 @@ unsigned char dc_flash_ram[128 KB];
  * Note currently the locations of the various MMIO pages are hard coded in
  * the MMIO definitions - they should probably be moved here.
  */
-void dreamcast_configure( )
+void dreamcast_configure( gboolean use_bootrom )
 {
     char *bios_path = lxdream_get_global_config_path_value(CONFIG_BIOS_PATH);
     char *flash_path = lxdream_get_global_config_path_value(CONFIG_FLASH_PATH);
@@ -108,7 +109,12 @@ void dreamcast_configure( )
     mem_map_region( NULL,            0x11000000, 16 MB,  MEM_REGION_PVR2VDMA1,    &mem_region_pvr2vdma1, 0, 16 MB, 0 );
     mem_map_region( NULL,            0x13000000, 16 MB,  MEM_REGION_PVR2VDMA2,    &mem_region_pvr2vdma2, 0, 16 MB, 0 );
     
-    dreamcast_has_bios = mem_load_rom( dc_boot_rom, bios_path, 2 MB, 0x89f2b1a1 );
+    dreamcast_use_bios = use_bootrom;
+    dreamcast_has_bios = dreamcast_load_bios( bios_path );
+    if( !dreamcast_has_bios ) {
+        dreamcast_load_fakebios();
+    }
+
     if( flash_path != NULL && flash_path[0] != '\0' ) {
         mem_load_block( flash_path, 0x00200000, 0x00020000 );
     }
@@ -128,8 +134,26 @@ void dreamcast_configure( )
 
 gboolean dreamcast_load_bios( const gchar *filename )
 {
-    dreamcast_has_bios = mem_load_rom( dc_boot_rom, filename, 2 MB, 0x89f2b1a1 );
+    if( dreamcast_use_bios ) {
+        dreamcast_has_bios = mem_load_rom( dc_boot_rom, filename, 2 MB, 0x89f2b1a1 );
+    } else {
+        dreamcast_has_bios = FALSE;
+    }
     return dreamcast_has_bios;
+}
+
+static const char fakebios[] = {
+        0x00, 0xd1, /* movl $+4, r1 */
+        0x2b, 0x41, /* jmp @r1 */
+        0xa0, 0xff, /* .long 0xffffffa0 */
+        0xff, 0xff };
+gboolean dreamcast_load_fakebios( )
+{
+    memset( dc_boot_rom, 0, 2 MB );
+    memcpy( dc_boot_rom, fakebios, sizeof(fakebios) );
+    syscall_add_hook( 0xA0, bios_boot );
+    dreamcast_has_bios = TRUE;
+    return TRUE;
 }
 
 gboolean dreamcast_load_flash( const gchar *filename )
@@ -201,9 +225,9 @@ void dreamcast_set_exit_on_stop( gboolean flag )
     dreamcast_exit_on_stop = flag;
 }
 
-void dreamcast_init( void )
+void dreamcast_init( gboolean use_bootrom )
 {
-    dreamcast_configure();
+    dreamcast_configure( use_bootrom );
     dreamcast_state = STATE_STOPPED;
 }
 
@@ -326,8 +350,7 @@ gboolean dreamcast_is_running( void )
 
 gboolean dreamcast_can_run(void)
 {
-    return dreamcast_state != STATE_UNINIT &&
-    (dreamcast_has_bios || dreamcast_program_name != NULL);
+    return dreamcast_state != STATE_UNINIT;
 }
 
 /********************************* Save States *****************************/

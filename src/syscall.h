@@ -60,6 +60,8 @@ void syscall_repatch_vectors( );
  */
 void bios_install( void );
 
+void bios_boot( uint32_t syscallid );
+
 /**
  * Install the DCLoad syscall hack
  */

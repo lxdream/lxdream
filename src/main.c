@@ -41,10 +41,11 @@
 #include "hotkeys.h"
 #include "plugin.h"
 
-char *option_list = "a:A:c:dfg:G:hHl:m:npt:T:uvV:x?";
+char *option_list = "a:A:bc:dfg:G:hHl:m:npt:T:uvV:x?";
 struct option longopts[] = {
         { "aica", required_argument, NULL, 'a' },
         { "audio", required_argument, NULL, 'A' },
+        { "biosless", no_argument, NULL, 'b' },
         { "config", required_argument, NULL, 'c' },
         { "debugger", no_argument, NULL, 'D' },
         { "fullscreen", no_argument, NULL, 'f' },
@@ -72,6 +73,7 @@ gboolean headless = FALSE;
 gboolean use_xlat = TRUE;
 gboolean show_debugger = FALSE;
 gboolean show_fullscreen = FALSE;
+gboolean use_bootrom = TRUE;
 extern uint32_t sh4_cpu_multiplier;
 
 static void print_version()
@@ -87,6 +89,7 @@ static void print_usage()
     printf( "Options:\n" );
     printf( "   -a, --aica=PROGFILE    %s\n", _("Run the AICA SPU only, with the supplied program") );
     printf( "   -A, --audio=DRIVER     %s\n", _("Use the specified audio driver (? to list)") );
+    printf( "   -b, --biosless         %s\n", _("Run without the BIOS boot rom even if available") );
     printf( "   -c, --config=CONFFILE  %s\n", _("Load configuration from CONFFILE") );
     printf( "   -d, --debugger         %s\n", _("Start in debugger mode") );
     printf( "   -f, --fullscreen       %s\n", _("Start in fullscreen mode") );
@@ -133,6 +136,8 @@ int main (int argc, char *argv[])
         case 'A': /* Audio driver */
             audio_driver_name = optarg;
             break;
+        case 'b': /* No Boot rom */
+            use_bootrom = FALSE;
         case 'c': /* Config file */
             lxdream_set_config_filename(optarg);
             break;
@@ -223,7 +228,7 @@ int main (int argc, char *argv[])
     vmulist_init();
 
     if( aica_program == NULL ) {
-        dreamcast_init();
+        dreamcast_init(use_bootrom);
     } else {
         dreamcast_configure_aica_only();
         mem_load_block( aica_program, 0x00800000, 2048*1024 );

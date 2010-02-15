@@ -3,7 +3,7 @@
  * 
  * "Fake" BIOS functions, for operation without the actual BIOS.
  *
- * Copyright (c) 2005 Nathan Keynes.
+ * Copyright (c) 2005-2010 Nathan Keynes.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,6 +19,7 @@
 #include "dream.h"
 #include "mem.h"
 #include "syscall.h"
+#include "asic.h"
 #include "dreamcast.h"
 #include "bootstrap.h"
 #include "sh4/sh4.h"
@@ -26,51 +27,73 @@
 #include "drivers/cdrom/isoread.h"
 #include "gdrom/gdrom.h"
 
+/* Definitions from KOS */
 #define COMMAND_QUEUE_LENGTH 16
 
-/* TODO: Check if these are the real ATAPI command codes or not */
-#define GD_CMD_PIOREAD     16
-#define GD_CMD_DMAREAD     17
+#define GD_CMD_PIOREAD     16  /* readcd */
+#define GD_CMD_DMAREAD     17  /* readcd */
 #define GD_CMD_GETTOC      18
-#define GD_CMD_GETTOC2     19
-#define GD_CMD_PLAY        20
-#define GD_CMD_PLAY2       21
-#define GD_CMD_PAUSE       22
-#define GD_CMD_RELEASE     23
-#define GD_CMD_INIT        24
+#define GD_CMD_GETTOC2     19  /* toc2 */
+#define GD_CMD_PLAY        20  /* playcd */
+#define GD_CMD_PLAY2       21  /* playcd */
+#define GD_CMD_PAUSE       22  /* No params */
+#define GD_CMD_RELEASE     23  /* No params */
+#define GD_CMD_INIT        24  /* No params */
 #define GD_CMD_SEEK        27
 #define GD_CMD_READ        28
-#define GD_CMD_STOP        33
+#define GD_CMD_STOP        33  /* No params */
 #define GD_CMD_GETSCD      34
 #define GD_CMD_GETSES      35
 
-#define GD_CMD_STATUS_NONE 0
+#define GD_CMD_STATUS_NONE   0
 #define GD_CMD_STATUS_ACTIVE 1
-#define GD_CMD_STATUS_DONE 2
-#define GD_CMD_STATUS_ABORT 3
-#define GD_CMD_STATUS_ERROR 4
+#define GD_CMD_STATUS_DONE   2
+#define GD_CMD_STATUS_ABORT  3
+#define GD_CMD_STATUS_ERROR  4
 
 #define GD_ERROR_OK          0
 #define GD_ERROR_NO_DISC     2
 #define GD_ERROR_DISC_CHANGE 6
 #define GD_ERROR_SYSTEM      1
 
+typedef union gdrom_cmd_params {
+    struct gdrom_toc2_params {
+        uint32_t session;
+        sh4addr_t buffer;
+    } toc2;
 
-typedef struct gdrom_command {
+    struct gdrom_readcd_params {
+        cdrom_lba_t sector;
+        cdrom_count_t count;
+        sh4addr_t buffer;
+        uint32_t unknown;
+    } readcd;
+
+    struct gdrom_playcd_params {
+        cdrom_lba_t start;
+        cdrom_lba_t end;
+        uint32_t repeat;
+    } playcd;
+} *gdrom_cmd_params_t;
+
+
+
+
+typedef struct gdrom_queue_entry {
     int status;
     uint32_t cmd_code;
     sh4ptr_t data;
     uint32_t result[4];
-} *gdrom_command_t;
+} *gdrom_queue_entry_t;
 
-static struct gdrom_command gdrom_cmd_queue[COMMAND_QUEUE_LENGTH];
+static struct gdrom_queue_entry gdrom_cmd_queue[COMMAND_QUEUE_LENGTH];
 
 static struct bios_gdrom_status {
     uint32_t status;
     uint32_t disk_type;
 } bios_gdrom_status;
 
-void bios_gdrom_run_command( gdrom_command_t cmd )
+void bios_gdrom_run_command( gdrom_queue_entry_t cmd )
 {
     DEBUG( "BIOS GD command %d", cmd->cmd_code );
     switch( cmd->cmd_code ) {
@@ -114,7 +137,7 @@ void bios_gdrom_run_queue( void )
     }
 }
 
-gdrom_command_t bios_gdrom_get_command( uint32_t id )
+gdrom_queue_entry_t bios_gdrom_get_command( uint32_t id )
 {
     if( id >= COMMAND_QUEUE_LENGTH ||
             gdrom_cmd_queue[id].status == GD_CMD_STATUS_NONE )
@@ -128,7 +151,7 @@ gdrom_command_t bios_gdrom_get_command( uint32_t id )
 
 void bios_syscall( uint32_t syscallid )
 {
-    gdrom_command_t cmd;
+    gdrom_queue_entry_t cmd;
 
     switch( syscallid ) {
     case 0xB0: /* sysinfo */
@@ -211,7 +234,11 @@ void bios_boot( uint32_t syscallid )
 {
     /* Initialize hardware */
     /* Boot disc if present */
-    bios_boot_gdrom_disc();
+    if( bios_boot_gdrom_disc() ) {
+        sh4r.pr = sh4r.pc; /* Set the syscall return address to the bootstrap entry */
+    } else {
+        dreamcast_stop();
+    }
 }
 
 void bios_install( void ) 
@@ -302,6 +329,7 @@ gboolean bios_boot_gdrom_disc( void )
             isofs_reader_destroy(iso);
             return FALSE;
         }
+        asic_enable_ide_interface(TRUE);
     } else {
         /* Load the binary into a temp buffer */
         unsigned char tmp[program_sectors*2048];
@@ -312,7 +340,9 @@ gboolean bios_boot_gdrom_disc( void )
             return FALSE;
         }
         bootprogram_unscramble(program, tmp, ent->size);
+        asic_enable_ide_interface(FALSE);
     }
     isofs_reader_destroy(iso);
-    dreamcast_program_loaded( "", BOOTSTRAP_LOAD_ADDR );
+    dreamcast_program_loaded( "", BOOTSTRAP_ENTRY_ADDR );
+    return TRUE;
 }
