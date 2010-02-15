@@ -29,6 +29,11 @@
 extern "C" {
 #endif
 
+struct gdrom_toc {
+    uint32_t track[99];
+    uint32_t first, last, leadout;
+};
+
 #define GDROM_TOC_SIZE (102*4) /* Size of GDROM TOC structure */
 #define GDROM_SESSION_INFO_SIZE 6 /* Size of GDROM session info structure */
 #define GDROM_SHORT_STATUS_SIZE 14 /* Size of GDROM short status structure */

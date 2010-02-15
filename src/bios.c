@@ -56,24 +56,28 @@
 #define GD_ERROR_DISC_CHANGE 6
 #define GD_ERROR_SYSTEM      1
 
+struct gdrom_toc2_params {
+    uint32_t session;
+    sh4addr_t buffer;
+};
+
+struct gdrom_readcd_params {
+    cdrom_lba_t lba;
+    cdrom_count_t count;
+    sh4addr_t buffer;
+    uint32_t unknown;
+};
+
+struct gdrom_playcd_params {
+    cdrom_lba_t start;
+    cdrom_lba_t end;
+    uint32_t repeat;
+};
+
 typedef union gdrom_cmd_params {
-    struct gdrom_toc2_params {
-        uint32_t session;
-        sh4addr_t buffer;
-    } toc2;
-
-    struct gdrom_readcd_params {
-        cdrom_lba_t sector;
-        cdrom_count_t count;
-        sh4addr_t buffer;
-        uint32_t unknown;
-    } readcd;
-
-    struct gdrom_playcd_params {
-        cdrom_lba_t start;
-        cdrom_lba_t end;
-        uint32_t repeat;
-    } playcd;
+    struct gdrom_toc2_params toc2;
+    struct gdrom_readcd_params readcd;
+    struct gdrom_playcd_params playcd;
 } *gdrom_cmd_params_t;
 
 
@@ -82,7 +86,7 @@ typedef union gdrom_cmd_params {
 typedef struct gdrom_queue_entry {
     int status;
     uint32_t cmd_code;
-    sh4ptr_t data;
+    union gdrom_cmd_params params;
     uint32_t result[4];
 } *gdrom_queue_entry_t;
 
@@ -93,34 +97,83 @@ static struct bios_gdrom_status {
     uint32_t disk_type;
 } bios_gdrom_status;
 
-void bios_gdrom_run_command( gdrom_queue_entry_t cmd )
-{
-    DEBUG( "BIOS GD command %d", cmd->cmd_code );
-    switch( cmd->cmd_code ) {
-    case GD_CMD_INIT:
-        /* *shrug* */
-        cmd->status = GD_CMD_STATUS_DONE;
-        break;
-    default:
-        cmd->status = GD_CMD_STATUS_ERROR;
-        cmd->result[0] = GD_ERROR_SYSTEM;
-        break;
-    }
-}
-
 void bios_gdrom_init( void )
 {
     memset( &gdrom_cmd_queue, 0, sizeof(gdrom_cmd_queue) );
 }
 
-uint32_t bios_gdrom_enqueue( uint32_t cmd, sh4ptr_t ptr )
+void bios_gdrom_run_command( gdrom_queue_entry_t cmd )
+{
+    DEBUG( "BIOS GD command %d", cmd->cmd_code );
+    cdrom_error_t status = CDROM_ERROR_OK;
+    sh4ptr_t ptr;
+    switch( cmd->cmd_code ) {
+    case GD_CMD_INIT:
+        /* *shrug* */
+        cmd->status = GD_CMD_STATUS_DONE;
+        break;
+    case GD_CMD_GETTOC2:
+        ptr = mem_get_region( cmd->params.toc2.buffer );
+        status = gdrom_read_toc( ptr );
+        if( status == CDROM_ERROR_OK ) {
+            /* Convert data to little-endian */
+            struct gdrom_toc *toc = (struct gdrom_toc *)ptr;
+            for( unsigned i=0; i<99; i++ ) {
+                toc->track[i] = ntohl(toc->track[i]);
+            }
+            toc->first = ntohl(toc->first);
+            toc->last = ntohl(toc->last);
+            toc->leadout = ntohl(toc->leadout);
+        }
+        break;
+    case GD_CMD_PIOREAD:
+    case GD_CMD_DMAREAD:
+        ptr = mem_get_region( cmd->params.readcd.buffer );
+        status = gdrom_read_cd( cmd->params.readcd.lba,
+                cmd->params.readcd.count, 0x28, ptr, NULL );
+        break;
+    default:
+        WARN( "Unknown BIOS GD command %d\n", cmd->cmd_code );
+        cmd->status = GD_CMD_STATUS_ERROR;
+        cmd->result[0] = GD_ERROR_SYSTEM;
+        return;
+    }
+
+    switch( status ) {
+    case CDROM_ERROR_OK:
+        cmd->status = GD_CMD_STATUS_DONE;
+        cmd->result[0] = GD_ERROR_OK;
+        break;
+    case CDROM_ERROR_NODISC:
+        cmd->status = GD_CMD_STATUS_ERROR;
+        cmd->result[0] = GD_ERROR_NO_DISC;
+        break;
+    default:
+        cmd->status = GD_CMD_STATUS_ERROR;
+        cmd->result[0] = GD_ERROR_SYSTEM;
+    }
+}
+
+uint32_t bios_gdrom_enqueue( uint32_t cmd, sh4addr_t data )
 {
     int i;
     for( i=0; i<COMMAND_QUEUE_LENGTH; i++ ) {
         if( gdrom_cmd_queue[i].status != GD_CMD_STATUS_ACTIVE ) {
             gdrom_cmd_queue[i].status = GD_CMD_STATUS_ACTIVE;
             gdrom_cmd_queue[i].cmd_code = cmd;
-            gdrom_cmd_queue[i].data = ptr;
+            switch( cmd ) {
+            case GD_CMD_PIOREAD:
+            case GD_CMD_DMAREAD:
+                mem_copy_from_sh4( (unsigned char *)&gdrom_cmd_queue[i].params.readcd, data, sizeof(struct gdrom_readcd_params) );
+                break;
+            case GD_CMD_GETTOC2:
+                mem_copy_from_sh4( (unsigned char *)&gdrom_cmd_queue[i].params.toc2, data, sizeof(struct gdrom_toc2_params) );
+                break;
+            case GD_CMD_PLAY:
+            case GD_CMD_PLAY2:
+                mem_copy_from_sh4( (unsigned char *)&gdrom_cmd_queue[i].params.playcd, data, sizeof(struct gdrom_playcd_params) );
+                break;
+            }
             return i;
         }
     }
@@ -165,10 +218,7 @@ void bios_syscall( uint32_t syscallid )
         case 0: /* GD-Rom */
             switch( sh4r.r[7] ) {
             case 0: /* Send command */
-                if( sh4r.r[5] == 0 )
-                    sh4r.r[0] = bios_gdrom_enqueue( sh4r.r[4], NULL );
-                else
-                    sh4r.r[0] = bios_gdrom_enqueue( sh4r.r[4], mem_get_region(sh4r.r[5]) );
+                sh4r.r[0] = bios_gdrom_enqueue( sh4r.r[4], sh4r.r[5] );
                 break;
             case 1:  /* Check command */
                 cmd = bios_gdrom_get_command( sh4r.r[4] );

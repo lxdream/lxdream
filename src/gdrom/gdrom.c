@@ -112,11 +112,6 @@ cdrom_error_t gdrom_check_media( )
 
 cdrom_error_t gdrom_read_toc( unsigned char *buf )
 {
-	struct gdrom_toc {
-	    uint32_t track[99];
-	    uint32_t first, last, leadout;
-	};
-	
     struct gdrom_toc *toc = (struct gdrom_toc *)buf;
     int i;
     
