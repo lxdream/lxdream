@@ -37,9 +37,9 @@ extern "C" {
 
 struct lxdream_config_group; // Forward declaration
 
-void dreamcast_configure(void);
+void dreamcast_configure(gboolean use_bootrom);
 void dreamcast_configure_aica_only(void);
-void dreamcast_init(void);
+void dreamcast_init(gboolean use_bootrom);
 void dreamcast_reset(void);
 void dreamcast_run(void);
 void dreamcast_set_run_time( unsigned int seconds, unsigned int nanosecs );
@@ -86,6 +86,7 @@ gboolean dreamcast_has_quick_state( unsigned int state );
  * allocation and does not need to be freed separately)
  */
 frame_buffer_t dreamcast_load_preview( const gchar *filename );
+gboolean dreamcast_load_fakebios();
 
 #define SCENE_SAVE_MAGIC "%!-lxDream!Scene"
 #define SCENE_SAVE_VERSION 0x00010000

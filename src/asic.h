@@ -218,3 +218,5 @@ void asic_event( int event );
 void asic_clear_event( int event );
 
 void asic_g2_write_word( );
+
+gboolean asic_enable_ide_interface( gboolean enable );
