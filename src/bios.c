@@ -199,84 +199,168 @@ gdrom_queue_entry_t bios_gdrom_get_command( uint32_t id )
 }
 
 /**
- * Syscall list courtesy of Marcus Comstedt
+ * Address of the system information block (in the flash rom). Also repeats
+ * at FLASH_SYSINFO_SEGMENT+0xA0
  */
+#define FLASH_SYSINFO_SEGMENT 0x0021a000
+#define FLASH_CONFIG_SEGMENT  0x0021c000
+#define FLASH_CONFIG_LENGTH   0x00004000
+#define FLASH_PARTITION_MAGIC "KATANA_FLASH____"
 
-void bios_syscall( uint32_t syscallid )
+/**
+ * Locate the active config block. FIXME: This isn't completely correct, but it works
+ * under at least some circumstances. 
+ */
+static char *bios_find_flash_config( sh4addr_t segment, uint32_t length )
+{
+    char *start = mem_get_region(segment);
+    char *p = start + 0x80;
+    char *end = p + length;
+    char *result = NULL;
+
+    if( memcmp( start, FLASH_PARTITION_MAGIC, 16 ) != 0 )
+        return NULL; /* Missing magic */
+    while( p < end ) {
+        if( p[0] == 0x05 && p[1] == 0 ) {
+            result = p;
+        }
+        p += 0x40;
+    }
+    return result;
+}
+
+/**
+ * Syscall information courtesy of Marcus Comstedt
+ */
+static void bios_sysinfo_vector( uint32_t syscallid )
+{
+    char *flash_segment, *flash_config;
+    char *dest;
+    DEBUG( "BIOS SYSINFO: r4 = %08X, r5 = %08X, r6 = %08x, r7= %08X", sh4r.r[4], sh4r.r[5], sh4r.r[6], sh4r.r[7] );
+
+    switch( sh4r.r[7] ) {
+    case 0: /* SYSINFO_INIT */
+        /* Initialize the region 8c000068 .. 8c00007f from the flash rom
+         *   uint64_t system_id;
+         *   char [5] system_props;
+         *   char [3] zero_pad (?)
+         *   char [8] settings;
+         **/
+        flash_segment = mem_get_region(FLASH_SYSINFO_SEGMENT);
+        flash_config = bios_find_flash_config(FLASH_CONFIG_SEGMENT,FLASH_CONFIG_LENGTH);
+        dest = mem_get_region( 0x8c000068 );
+        memset( dest, 0, 24 );
+        memcpy( dest, flash_segment + 0x56, 8 );
+        memcpy( dest + 8, flash_segment, 5 );
+        if( flash_config != NULL ) {
+            memcpy( dest+16, flash_config+2, 8 );
+        }
+        break;
+    case 2: /* SYSINFO_ICON */
+        /* Not supported yet */
+        break;
+    case 3: /* SYSINFO_ID */
+        sh4r.r[0] = 0x8c000068;
+        break;
+    }
+}
+
+static void bios_flashrom_vector( uint32_t syscallid )
+{
+    char *dest;
+    DEBUG( "BIOS FLASHROM: r4 = %08X, r5 = %08X, r6 = %08x, r7= %08X", sh4r.r[4], sh4r.r[5], sh4r.r[6], sh4r.r[7] );
+
+    switch( sh4r.r[7] ) {
+    case 0: /* FLASHROM_INFO */
+        break;
+    case 1: /* FLASHROM_READ */
+
+        break;
+    case 2: /* FLASHROM_WRITE */
+        break;
+    case 3: /* FLASHROM_DELETE */
+        break;
+    }
+}
+
+static void bios_romfont_vector( uint32_t syscallid )
+{
+    DEBUG( "BIOS ROMFONT: r4 = %08X, r5 = %08X, r6 = %08x, r7= %08X", sh4r.r[4], sh4r.r[5], sh4r.r[6], sh4r.r[7] );
+    /* Not implemented */
+}
+
+static void bios_gdrom_vector( uint32_t syscallid )
 {
     gdrom_queue_entry_t cmd;
 
-    switch( syscallid ) {
-    case 0xB0: /* sysinfo */
-        break;
-    case 0xB4: /* Font */
-        break;
-    case 0xB8: /* Flash */
-        break;
-    case 0xBC: /* Misc/GD-Rom */
-        switch( sh4r.r[6] ) {
-        case 0: /* GD-Rom */
-            switch( sh4r.r[7] ) {
-            case 0: /* Send command */
-                sh4r.r[0] = bios_gdrom_enqueue( sh4r.r[4], sh4r.r[5] );
-                break;
-            case 1:  /* Check command */
-                cmd = bios_gdrom_get_command( sh4r.r[4] );
-                if( cmd == NULL ) {
-                    sh4r.r[0] = GD_CMD_STATUS_NONE;
-                } else {
-                    sh4r.r[0] = cmd->status;
-                    if( cmd->status == GD_CMD_STATUS_ERROR &&
-                            sh4r.r[5] != 0 ) {
-                        mem_copy_to_sh4( sh4r.r[5], (sh4ptr_t)&cmd->result, sizeof(cmd->result) );
-                    }
+    DEBUG( "BIOS GDROM: r4 = %08X, r5 = %08X, r6 = %08x, r7= %08X", sh4r.r[4], sh4r.r[5], sh4r.r[6], sh4r.r[7] );
+
+    switch( sh4r.r[6] ) {
+    case 0: /* GD-Rom */
+        switch( sh4r.r[7] ) {
+        case 0: /* Send command */
+            sh4r.r[0] = bios_gdrom_enqueue( sh4r.r[4], sh4r.r[5] );
+            break;
+        case 1:  /* Check command */
+            cmd = bios_gdrom_get_command( sh4r.r[4] );
+            if( cmd == NULL ) {
+                sh4r.r[0] = GD_CMD_STATUS_NONE;
+            } else {
+                sh4r.r[0] = cmd->status;
+                if( cmd->status == GD_CMD_STATUS_ERROR &&
+                        sh4r.r[5] != 0 ) {
+                    mem_copy_to_sh4( sh4r.r[5], (sh4ptr_t)&cmd->result, sizeof(cmd->result) );
                 }
-                break;
-            case 2: /* Mainloop */
-                bios_gdrom_run_queue();
-                break;
-            case 3: /* Init */
-                bios_gdrom_init();
-                break;
-            case 4: /* Drive status */
-                if( sh4r.r[4] != 0 ) {
-                    mem_copy_to_sh4( sh4r.r[4], (sh4ptr_t)&bios_gdrom_status, 
-                            sizeof(bios_gdrom_status) );
-                }
-                sh4r.r[0] = 0;
-                break;
-            case 8: /* Abort command */
-                cmd = bios_gdrom_get_command( sh4r.r[4] );
-                if( cmd == NULL || cmd->status != GD_CMD_STATUS_ACTIVE ) {
-                    sh4r.r[0] = -1;
-                } else {
-                    cmd->status = GD_CMD_STATUS_ABORT;
-                    sh4r.r[0] = 0;
-                }
-                break;
-            case 9: /* Reset */
-                break;
-            case 10: /* Set mode */
-                sh4r.r[0] = 0;
-                break;
             }
             break;
-            case -1: /* Misc */
+        case 2: /* Mainloop */
+            bios_gdrom_run_queue();
             break;
-            default: /* ??? */
-                break;
+        case 3: /* Init */
+            bios_gdrom_init();
+            break;
+        case 4: /* Drive status */
+            if( sh4r.r[4] != 0 ) {
+                mem_copy_to_sh4( sh4r.r[4], (sh4ptr_t)&bios_gdrom_status,
+                        sizeof(bios_gdrom_status) );
+            }
+            sh4r.r[0] = 0;
+            break;
+        case 8: /* Abort command */
+            cmd = bios_gdrom_get_command( sh4r.r[4] );
+            if( cmd == NULL || cmd->status != GD_CMD_STATUS_ACTIVE ) {
+                sh4r.r[0] = -1;
+            } else {
+                cmd->status = GD_CMD_STATUS_ABORT;
+                sh4r.r[0] = 0;
+            }
+            break;
+        case 9: /* Reset */
+            break;
+        case 10: /* Set mode */
+            sh4r.r[0] = 0;
+            break;
         }
         break;
-        case 0xE0: /* Menu */
-            switch( sh4r.r[7] ) {
-            case 0:
-                WARN( "Entering main program" );
-                break;
-            case 1:
-                WARN( "Program aborted to DC menu");
-                dreamcast_stop();
-                break;
-            }
+        case -1: /* Misc */
+        break;
+        default: /* ??? */
+            break;
+    }
+}
+
+static void bios_menu_vector( uint32_t syscallid )
+{
+    DEBUG( "BIOS MENU: r4 = %08X, r5 = %08X, r6 = %08x, r7= %08X", sh4r.r[4], sh4r.r[5], sh4r.r[6], sh4r.r[7] );
+
+    switch( sh4r.r[4] ) {
+    case 0:
+        WARN( "Entering main program" );
+        break;
+    case 1:
+        WARN( "Program aborted to DC menu");
+        dreamcast_stop();
+        break;
     }
 }
 
@@ -294,11 +378,11 @@ void bios_boot( uint32_t syscallid )
 void bios_install( void ) 
 {
     bios_gdrom_init();
-    syscall_add_hook_vector( 0xB0, 0x8C0000B0, bios_syscall );
-    syscall_add_hook_vector( 0xB4, 0x8C0000B4, bios_syscall );
-    syscall_add_hook_vector( 0xB8, 0x8C0000B8, bios_syscall );
-    syscall_add_hook_vector( 0xBC, 0x8C0000BC, bios_syscall );
-    syscall_add_hook_vector( 0xE0, 0x8C0000E0, bios_syscall );
+    syscall_add_hook_vector( 0xB0, 0x8C0000B0, bios_sysinfo_vector );
+    syscall_add_hook_vector( 0xB4, 0x8C0000B4, bios_romfont_vector );
+    syscall_add_hook_vector( 0xB8, 0x8C0000B8, bios_flashrom_vector );
+    syscall_add_hook_vector( 0xBC, 0x8C0000BC, bios_gdrom_vector );
+    syscall_add_hook_vector( 0xE0, 0x8C0000E0, bios_menu_vector );
 }
 
 #define MIN_ISO_SECTORS 32
