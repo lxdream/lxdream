@@ -27,6 +27,8 @@
 #include "drivers/cdrom/isoread.h"
 #include "gdrom/gdrom.h"
 
+gboolean bios_boot_gdrom_disc( void );
+
 /* Definitions from KOS */
 #define COMMAND_QUEUE_LENGTH 16
 
@@ -368,9 +370,7 @@ void bios_boot( uint32_t syscallid )
 {
     /* Initialize hardware */
     /* Boot disc if present */
-    if( bios_boot_gdrom_disc() ) {
-        sh4r.pr = sh4r.pc; /* Set the syscall return address to the bootstrap entry */
-    } else {
+    if( !bios_boot_gdrom_disc() ) {
         dreamcast_stop();
     }
 }
