@@ -47,9 +47,10 @@ uint32_t sh4_translate_run_slice( uint32_t nanosecs )
 
         if( code == NULL ) {
             if( IS_SYSCALL(sh4r.pc) ) {
-                syscall_invoke( sh4r.pc );
-                sh4r.in_delay_slot = 0;
+                uint32_t pc = sh4r.pc;
                 sh4r.pc = sh4r.pr;
+                sh4r.in_delay_slot = 0;
+                syscall_invoke( pc );
             }
 
             code = xlat_get_code_by_vma( sh4r.pc );

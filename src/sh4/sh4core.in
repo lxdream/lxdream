@@ -364,10 +364,10 @@ gboolean sh4_execute_instruction( void )
     pc = sh4r.pc;
     if( pc > 0xFFFFFF00 ) {
 	/* SYSCALL Magic */
+        sh4r.in_delay_slot = 0;
+        sh4r.pc = sh4r.pr;
+        sh4r.new_pc = sh4r.pc + 2;
 	syscall_invoke( pc );
-	sh4r.in_delay_slot = 0;
-	pc = sh4r.pc = sh4r.pr;
-	sh4r.new_pc = sh4r.pc + 2;
         return TRUE;
     }
     CHECKRALIGN16(pc);
