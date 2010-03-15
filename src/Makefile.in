@@ -37,7 +37,7 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 bin_PROGRAMS = lxdream$(EXEEXT)
-noinst_PROGRAMS = gendec$(EXEEXT) genglsl$(EXEEXT)
+noinst_PROGRAMS = gendec$(EXEEXT) genglsl$(EXEEXT) genmach$(EXEEXT)
 check_PROGRAMS = test/testxlt$(EXEEXT) test/testisoread$(EXEEXT) \
 	$(am__EXEEXT_1)
 pkglib_PROGRAMS = $(am__EXEEXT_2) $(am__EXEEXT_3) $(am__EXEEXT_4) \
@@ -135,6 +135,9 @@ gendec_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am_genglsl_OBJECTS = genglsl.$(OBJEXT)
 genglsl_OBJECTS = $(am_genglsl_OBJECTS)
 genglsl_DEPENDENCIES = $(am__DEPENDENCIES_1)
+am_genmach_OBJECTS = genmach.$(OBJEXT) mdparse.$(OBJEXT)
+genmach_OBJECTS = $(am_genmach_OBJECTS)
+genmach_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am_input_lirc_@SOEXT@_OBJECTS =
 input_lirc_@SOEXT@_OBJECTS = $(am_input_lirc_@SOEXT@_OBJECTS)
 @BUILD_SHARED_TRUE@@INPUT_LIRC_TRUE@input_lirc_@SOEXT@_DEPENDENCIES =  \
@@ -336,16 +339,16 @@ OBJCLINK = $(OBJCLD) $(AM_OBJCFLAGS) $(OBJCFLAGS) $(AM_LDFLAGS) \
 	$(LDFLAGS) -o $@
 SOURCES = $(audio_alsa_@SOEXT@_SOURCES) $(audio_esd_@SOEXT@_SOURCES) \
 	$(audio_pulse_@SOEXT@_SOURCES) $(audio_sdl_@SOEXT@_SOURCES) \
-	$(gendec_SOURCES) $(genglsl_SOURCES) \
+	$(gendec_SOURCES) $(genglsl_SOURCES) $(genmach_SOURCES) \
 	$(input_lirc_@SOEXT@_SOURCES) $(lxdream_SOURCES) \
 	$(lxdream_dummy_@SOEXT@_SOURCES) $(test_testisoread_SOURCES) \
 	$(test_testsh4x86_SOURCES) $(test_testxlt_SOURCES)
 DIST_SOURCES = $(audio_alsa_@SOEXT@_SOURCES) \
 	$(audio_esd_@SOEXT@_SOURCES) $(audio_pulse_@SOEXT@_SOURCES) \
 	$(audio_sdl_@SOEXT@_SOURCES) $(gendec_SOURCES) \
-	$(genglsl_SOURCES) $(input_lirc_@SOEXT@_SOURCES) \
-	$(am__lxdream_SOURCES_DIST) $(lxdream_dummy_@SOEXT@_SOURCES) \
-	$(test_testisoread_SOURCES) \
+	$(genglsl_SOURCES) $(genmach_SOURCES) \
+	$(input_lirc_@SOEXT@_SOURCES) $(am__lxdream_SOURCES_DIST) \
+	$(lxdream_dummy_@SOEXT@_SOURCES) $(test_testisoread_SOURCES) \
 	$(am__test_testsh4x86_SOURCES_DIST) $(test_testxlt_SOURCES)
 ETAGS = etags
 CTAGS = ctags
@@ -555,6 +558,7 @@ CLEANFILES = sh4/sh4core.c sh4/sh4dasm.c sh4/sh4x86.c sh4/sh4stat.c \
 
 #all-am: checkversion
 gendec_SOURCES = tools/gendec.c tools/gendec.h tools/insparse.c tools/actparse.c
+genmach_SOURCES = tools/genmach.c tools/genmach.h tools/mdparse.c
 genglsl_SOURCES = tools/genglsl.c
 lxdream_LINK = $(LINK) @LXDREAMLDFLAGS@
 lxdream_LDADD = @LXDREAM_LIBS@ @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@ \
@@ -631,6 +635,7 @@ lxdream_CPPFLAGS = @LXDREAMCPPFLAGS@
 @BUILD_SHARED_TRUE@@INPUT_LIRC_TRUE@input_lirc_@SOEXT@_LDFLAGS = $(PLUGINLDFLAGS)
 gendec_LDADD = @GLIB_LIBS@ @GTK_LIBS@ $(INTLLIBS)
 genglsl_LDADD = @GLIB_LIBS@ @GTK_LIBS@ $(INTLLIBS)
+genmach_LDADD = @GLIB_LIBS@ @GTK_LIBS@ $(INTLLIBS)
 test_testxlt_SOURCES = test/testxlt.c xlat/xltcache.c xlat/xltcache.h
 test_testisoread_SOURCES = test/testisoread.c drivers/cdrom/isoread.c \
 	drivers/cdrom/isoread.h drivers/cdrom/isofs_impl.h drivers/cdrom/ecc.h \
@@ -746,6 +751,9 @@ gendec$(EXEEXT): $(gendec_OBJECTS) $(gendec_DEPENDENCIES)
 genglsl$(EXEEXT): $(genglsl_OBJECTS) $(genglsl_DEPENDENCIES) 
 	@rm -f genglsl$(EXEEXT)
 	$(LINK) $(genglsl_LDFLAGS) $(genglsl_OBJECTS) $(genglsl_LDADD) $(LIBS)
+genmach$(EXEEXT): $(genmach_OBJECTS) $(genmach_DEPENDENCIES) 
+	@rm -f genmach$(EXEEXT)
+	$(LINK) $(genmach_LDFLAGS) $(genmach_OBJECTS) $(genmach_LDADD) $(LIBS)
 input_lirc.@SOEXT@$(EXEEXT): $(input_lirc_@SOEXT@_OBJECTS) $(input_lirc_@SOEXT@_DEPENDENCIES) 
 	@rm -f input_lirc.@SOEXT@$(EXEEXT)
 	$(LINK) $(input_lirc_@SOEXT@_LDFLAGS) $(input_lirc_@SOEXT@_OBJECTS) $(input_lirc_@SOEXT@_LDADD) $(LIBS)
@@ -783,6 +791,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/edc_ecc.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gendec.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/genglsl.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/genmach.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/insparse.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/isoread.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-aica.Po@am__quote@
@@ -905,6 +914,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-x86dasm.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-xltcache.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-yuv.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mdparse.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sector.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_testsh4x86-cpu.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_testsh4x86-dis-buf.Po@am__quote@
@@ -991,6 +1001,34 @@ genglsl.obj: tools/genglsl.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='tools/genglsl.c' object='genglsl.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o genglsl.obj `if test -f 'tools/genglsl.c'; then $(CYGPATH_W) 'tools/genglsl.c'; else $(CYGPATH_W) '$(srcdir)/tools/genglsl.c'; fi`
+
+genmach.o: tools/genmach.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT genmach.o -MD -MP -MF "$(DEPDIR)/genmach.Tpo" -c -o genmach.o `test -f 'tools/genmach.c' || echo '$(srcdir)/'`tools/genmach.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/genmach.Tpo" "$(DEPDIR)/genmach.Po"; else rm -f "$(DEPDIR)/genmach.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='tools/genmach.c' object='genmach.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o genmach.o `test -f 'tools/genmach.c' || echo '$(srcdir)/'`tools/genmach.c
+
+genmach.obj: tools/genmach.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT genmach.obj -MD -MP -MF "$(DEPDIR)/genmach.Tpo" -c -o genmach.obj `if test -f 'tools/genmach.c'; then $(CYGPATH_W) 'tools/genmach.c'; else $(CYGPATH_W) '$(srcdir)/tools/genmach.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/genmach.Tpo" "$(DEPDIR)/genmach.Po"; else rm -f "$(DEPDIR)/genmach.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='tools/genmach.c' object='genmach.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o genmach.obj `if test -f 'tools/genmach.c'; then $(CYGPATH_W) 'tools/genmach.c'; else $(CYGPATH_W) '$(srcdir)/tools/genmach.c'; fi`
+
+mdparse.o: tools/mdparse.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT mdparse.o -MD -MP -MF "$(DEPDIR)/mdparse.Tpo" -c -o mdparse.o `test -f 'tools/mdparse.c' || echo '$(srcdir)/'`tools/mdparse.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/mdparse.Tpo" "$(DEPDIR)/mdparse.Po"; else rm -f "$(DEPDIR)/mdparse.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='tools/mdparse.c' object='mdparse.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o mdparse.o `test -f 'tools/mdparse.c' || echo '$(srcdir)/'`tools/mdparse.c
+
+mdparse.obj: tools/mdparse.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT mdparse.obj -MD -MP -MF "$(DEPDIR)/mdparse.Tpo" -c -o mdparse.obj `if test -f 'tools/mdparse.c'; then $(CYGPATH_W) 'tools/mdparse.c'; else $(CYGPATH_W) '$(srcdir)/tools/mdparse.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/mdparse.Tpo" "$(DEPDIR)/mdparse.Po"; else rm -f "$(DEPDIR)/mdparse.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='tools/mdparse.c' object='mdparse.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o mdparse.obj `if test -f 'tools/mdparse.c'; then $(CYGPATH_W) 'tools/mdparse.c'; else $(CYGPATH_W) '$(srcdir)/tools/mdparse.c'; fi`
 
 lxdream-main.o: main.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-main.o -MD -MP -MF "$(DEPDIR)/lxdream-main.Tpo" -c -o lxdream-main.o `test -f 'main.c' || echo '$(srcdir)/'`main.c; \
