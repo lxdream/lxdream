@@ -113,15 +113,20 @@ typedef struct token_data {
     int slen;
 } token_data;
 
-static char *yybuffer;
-static char *yyposn, *yylineposn;
-static char *yyend;
-static int yyline;
+struct yystate {
+    char *yybuffer;
+    char *yyfilename;
+    char *yyposn, *yylineposn, *yyend;
+    int yylineno;
+};
+
+static GList *yyfile_stack = NULL;
+static struct yystate yystate;
 static struct token_data yytok;
 
 #define YYPARSE_ERROR( msg, ... ) \
     do { \
-        fprintf( stderr, "Parse error at %d:%d: " msg "\n", yytok.yyline, yytok.yycol, __VA_ARGS__ ); \
+        fprintf( stderr, "Parse error in %s:%d:%d: " msg "\n", yystate.yyfilename, yytok.yyline, yytok.yycol, __VA_ARGS__ ); \
         exit(2); \
     } while(0)
 
@@ -135,6 +140,8 @@ static struct token_data yytok;
 static int iolex( int expectToken );
 static int iolex_open( const char *filename );
 static void iolex_close();
+static int iolex_push( const char *filename );
+static int iolex_pop( );
 
 static inline char *yystrdup()
 {
@@ -426,13 +433,21 @@ GList *ioparse( const char *filename, GList *list )
         return blocks;
 
     int tok;
-    do {
+    while(1) {
         tok = iolex(TOK_REGISTERS);
         if( tok == TOK_EOF ) {
-            return blocks;
+            int result = iolex_pop();
+            if( result == -1 )
+                break;
         } else if( tok == TOK_INCLUDE) {
             READ(TOK_STRING);
-
+            char *tmp = yystrdup();
+            READ(TOK_SEMI);
+            int result = iolex_push( tmp );
+            if( result == -1 ) {
+                YYPARSE_ERROR("Unable to include file '%s'", tmp);
+            }
+            free(tmp);
         } else if( tok == TOK_SPACE ) {
         } else if( tok == TOK_REGISTERS ) {
             struct regblock *block = ioparse_regblock(block);
@@ -441,17 +456,35 @@ GList *ioparse( const char *filename, GList *list )
         } else {
             YYPARSE_ERROR("Expected REGISTERS but got %s\n", TOKEN_NAMES[tok] );
         }
-    } while( tok != TOK_EOF );
-
-    iolex_close();
-    if( count == 0 ) {
-        fprintf( stderr, "Warning: input file '%s' did not contain any register definitions\n" );
     }
-
     return blocks;
 }
 
 /**************************** Lexical analyser ***************************/
+
+static int iolex_push( const char *filename )
+{
+    struct yystate *save = g_malloc(sizeof(struct yystate));
+    memcpy( save, &yystate, sizeof(struct yystate) );
+
+    int result = iolex_open(filename);
+    if( result == 0 ) {
+        yyfile_stack = g_list_prepend(yyfile_stack, save);
+    }
+    return result;
+}
+
+static int iolex_pop( )
+{
+    iolex_close();
+    if( yyfile_stack == NULL )
+        return -1;
+    struct yystate *top = (struct yystate *)yyfile_stack->data;
+    yyfile_stack = g_list_remove(yyfile_stack, top);
+    memcpy( &yystate, top, sizeof(struct yystate) );
+    g_free( top );
+    return 0;
+}
 
 static int iolex_open( const char *filename )
 {
@@ -477,21 +510,23 @@ static int iolex_open( const char *filename )
     close(fd);
     data[st.st_size] = 0;
 
-    yybuffer = yyposn = data;
-    yyend = data + st.st_size;
-    yyline = 1;
-    yylineposn = yyposn;
+    yystate.yybuffer = yystate.yyposn = data;
+    yystate.yyend = data + st.st_size;
+    yystate.yylineno = 1;
+    yystate.yylineposn = yystate.yyposn;
+    yystate.yyfilename = strdup(filename);
     return 0;
 }
 
 static void iolex_close()
 {
-    g_free(yybuffer);
-    yybuffer = yyend = NULL;
+    g_free(yystate.yybuffer);
+    free(yystate.yyfilename);
+    memset(&yystate, 0, sizeof(struct yystate));
 }
 
 #define YYRETURN(x) do{ \
-    yytok.yylength = yyposn - yystart; \
+    yytok.yylength = yystate.yyposn - yystart; \
     return (x); \
 } while(0)
 
@@ -584,32 +619,32 @@ static char *iolex_getcstring( char *start, char *end, int *len )
 int iolex( int expectToken )
 {
     int count = 0;
-    while( yyposn < yyend ) {
-        char *yystart = yytok.yytext = yyposn;
+    while( yystate.yyposn < yystate.yyend ) {
+        char *yystart = yytok.yytext = yystate.yyposn;
         yytok.yylength = 1;
-        yytok.yyline = yyline;
-        yytok.yycol = yyposn - yylineposn+1;
-        int ch = *yyposn++;
+        yytok.yyline = yystate.yylineno;
+        yytok.yycol = yystate.yyposn - yystate.yylineposn+1;
+        int ch = *yystate.yyposn++;
         if( isdigit(ch) ) {
             /* INTEGER */
             if( ch == '0' ) {
-                if( *yyposn == 'x' ) {
-                    while( yyposn < yyend && isxdigit(*++yyposn) ) ;
+                if( *yystate.yyposn == 'x' ) {
+                    while( yystate.yyposn < yystate.yyend && isxdigit(*++yystate.yyposn) ) ;
                 } else {
-                    while( yyposn < yyend && *yyposn >= '0' && *yyposn <= '7' )
-                        yyposn++;
+                    while( yystate.yyposn < yystate.yyend && *yystate.yyposn >= '0' && *yystate.yyposn <= '7' )
+                        yystate.yyposn++;
                 }
             } else {
-                while( yyposn < yyend && isdigit(*yyposn) )
-                    yyposn++;
+                while( yystate.yyposn < yystate.yyend && isdigit(*yystate.yyposn) )
+                    yystate.yyposn++;
             }
             yytok.v.i = strtol( yystart, NULL, 0 );
             YYRETURN(TOK_INTEGER);
         } else if( isalpha(ch) || ch == '_' ) {
             /* IDENTIFIER */
-            while( yyposn < yyend && (isalnum(*yyposn) || *yyposn == '_') )
-                yyposn++;
-            yytok.yylength = yyposn - yystart;
+            while( yystate.yyposn < yystate.yyend && (isalnum(*yystate.yyposn) || *yystate.yyposn == '_') )
+                yystate.yyposn++;
+            yytok.yylength = yystate.yyposn - yystart;
             if( expectToken == TOK_IDENTIFIER ) {
                 YYRETURN(TOK_IDENTIFIER);
             }
@@ -623,15 +658,15 @@ int iolex( int expectToken )
             YYRETURN(TOK_IDENTIFIER);
         } else if( isspace(ch) ) {
             if( ch == '\n' ) {
-                yyline++;
-                yylineposn = yyposn;
+                yystate.yylineno++;
+                yystate.yylineposn = yystate.yyposn;
             }
-            while( isspace(*yyposn) ) {
-                if( *yyposn == '\n' ) {
-                    yyline++;
-                    yylineposn = yyposn+1;
+            while( isspace(*yystate.yyposn) ) {
+                if( *yystate.yyposn == '\n' ) {
+                    yystate.yylineno++;
+                    yystate.yylineposn = yystate.yyposn+1;
                 }
-                yyposn++;
+                yystate.yyposn++;
             }
         } else {
             switch( ch ) {
@@ -644,48 +679,48 @@ int iolex( int expectToken )
             case ';': YYRETURN(TOK_SEMI);
             case '=': YYRETURN(TOK_EQUALS);
             case '/':
-                if( *yyposn == '/' ) { /* Line comment */
-                    while( yyposn < yyend && *++yyposn != '\n' ) ;
-                } else if( *yyposn == '*' ) { /* C comment */
-                    while( yyposn < yyend && (*++yyposn != '*' || *++yyposn != '/' ) ) {
-                        if( *yyposn == '\n' ) {
-                            yyline++;
-                            yylineposn = yyposn+1;
+                if( *yystate.yyposn == '/' ) { /* Line comment */
+                    while( yystate.yyposn < yystate.yyend && *++yystate.yyposn != '\n' ) ;
+                } else if( *yystate.yyposn == '*' ) { /* C comment */
+                    while( yystate.yyposn < yystate.yyend && (*++yystate.yyposn != '*' || *++yystate.yyposn != '/' ) ) {
+                        if( *yystate.yyposn == '\n' ) {
+                            yystate.yylineno++;
+                            yystate.yylineposn = yystate.yyposn+1;
                         }
                     }
                 }
                 break;
             case '\'': /* STRING */
-                while( *yyposn != '\'' ) {
-                    if( *yyposn == '\n' ) {
+                while( *yystate.yyposn != '\'' ) {
+                    if( *yystate.yyposn == '\n' ) {
                         fprintf( stderr, "Unexpected newline in string constant!\n" );
                         YYRETURN(TOK_ERROR);
-                    } else if( yyposn >= yyend ) {
+                    } else if( yystate.yyposn >= yystate.yyend ) {
                         fprintf( stderr, "Unexpected EOF in string constant!\n" );
                         YYRETURN(TOK_ERROR);
-                    } else if( *yyposn == '\\' && yyposn[1] == '\'' ) {
-                        yyposn++;
+                    } else if( *yystate.yyposn == '\\' && yystate.yyposn[1] == '\'' ) {
+                        yystate.yyposn++;
                     }
-                    yyposn++;
+                    yystate.yyposn++;
                 }
-                yyposn++;
-                yytok.v.s = iolex_getcstring(yystart+1, yyposn-1, &yytok.slen);
+                yystate.yyposn++;
+                yytok.v.s = iolex_getcstring(yystart+1, yystate.yyposn-1, &yytok.slen);
                 YYRETURN(TOK_STRING);
             case '\"': /* STRING */
-                while( *yyposn != '\"' ) {
-                    if( *yyposn == '\n' ) {
+                while( *yystate.yyposn != '\"' ) {
+                    if( *yystate.yyposn == '\n' ) {
                         fprintf( stderr, "Unexpected newline in string constant!\n" );
                         YYRETURN(TOK_ERROR);
-                    } else if( yyposn >= yyend ) {
+                    } else if( yystate.yyposn >= yystate.yyend ) {
                         fprintf( stderr, "Unexpected EOF in string constant!\n" );
                         YYRETURN(TOK_ERROR);
-                    } else if( *yyposn == '\\' && yyposn[1] == '\"' ) {
-                        yyposn++;
+                    } else if( *yystate.yyposn == '\\' && yystate.yyposn[1] == '\"' ) {
+                        yystate.yyposn++;
                     }
-                    yyposn++;
+                    yystate.yyposn++;
                 }
-                yyposn++;
-                yytok.v.s = iolex_getcstring(yystart+1, yyposn-1, &yytok.slen);
+                yystate.yyposn++;
+                yytok.v.s = iolex_getcstring(yystart+1, yystate.yyposn-1, &yytok.slen);
                 YYRETURN(TOK_STRING);
             case '}':
                 YYRETURN(TOK_RBRACE);
@@ -694,18 +729,18 @@ int iolex( int expectToken )
                     YYRETURN(TOK_LBRACE);
                 } else {
                     count++;
-                    while( count > 0 && yyposn < yyend ) {
-                        if( *yyposn == '{' )
+                    while( count > 0 && yystate.yyposn < yystate.yyend ) {
+                        if( *yystate.yyposn == '{' )
                             count++;
-                        if( *yyposn == '}' )
+                        if( *yystate.yyposn == '}' )
                             count--;
-                        yyposn++;
+                        yystate.yyposn++;
                     }
                     YYRETURN(TOK_ACTION);
                 }
             case '.':
-                if( *yyposn == '.' ) {
-                    yyposn++;
+                if( *yystate.yyposn == '.' ) {
+                    yystate.yyposn++;
                     YYRETURN(TOK_RANGE);
                 } else {
                     YYRETURN(TOK_PERIOD);
