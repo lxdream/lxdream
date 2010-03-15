@@ -12,7 +12,7 @@ SOEXT=@SOEXT@
 PLUGINCFLAGS = @PLUGINCFLAGS@ 
 PLUGINLDFLAGS = @PLUGINLDFLAGS@
 bin_PROGRAMS = lxdream
-noinst_PROGRAMS = gendec genglsl
+noinst_PROGRAMS = gendec genglsl genmach
 check_PROGRAMS = test/testxlt test/testisoread
 
 pkglib_PROGRAMS=
@@ -36,6 +36,7 @@ CLEANFILES = sh4/sh4core.c sh4/sh4dasm.c sh4/sh4x86.c sh4/sh4stat.c \
 #all-am: checkversion
 
 gendec_SOURCES = tools/gendec.c tools/gendec.h tools/insparse.c tools/actparse.c
+genmach_SOURCES = tools/genmach.c tools/genmach.h tools/mdparse.c
 genglsl_SOURCES = tools/genglsl.c
 lxdream_LINK = $(LINK) @LXDREAMLDFLAGS@
 lxdream_LDADD = @LXDREAM_LIBS@ @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@ $(INTLLIBS)
@@ -236,6 +237,7 @@ endif
 
 gendec_LDADD = @GLIB_LIBS@ @GTK_LIBS@ $(INTLLIBS)
 genglsl_LDADD = @GLIB_LIBS@ @GTK_LIBS@ $(INTLLIBS)
+genmach_LDADD = @GLIB_LIBS@ @GTK_LIBS@ $(INTLLIBS)
 
 
 test_testxlt_SOURCES = test/testxlt.c xlat/xltcache.c xlat/xltcache.h
