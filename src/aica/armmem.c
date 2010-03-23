@@ -141,7 +141,7 @@ uint32_t arm_read_long( uint32_t addr ) {
             return *(int32_t *)(aica_scratch_ram + addr - 0x00803000);
         }
     }
-    ERROR( "Attempted long read to undefined page: %08X at %08X",
+    WARN( "Attempted long read to undefined page: %08X at %08X",
            addr, armr.r[15] );
     /* Undefined memory */
     return 0;
@@ -179,7 +179,7 @@ void arm_write_long( uint32_t addr, uint32_t value )
             *(uint32_t *)(aica_scratch_ram + addr - 0x00803000) = value;
             break;
         default:
-            ERROR( "Attempted long write to undefined address: %08X",
+            WARN( "Attempted long write to undefined address: %08X",
                     addr );
             /* Undefined memory */
         } 
@@ -238,7 +238,7 @@ void arm_write_byte( uint32_t addr, uint32_t value )
             *(uint8_t *)(aica_scratch_ram + addr - 0x00803000) = (uint8_t)value;
             break;
         default:
-            ERROR( "Attempted byte write to undefined address: %08X",
+            WARN( "Attempted byte write to undefined address: %08X",
                     addr );
             /* Undefined memory */
         } 
