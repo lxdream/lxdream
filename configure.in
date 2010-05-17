@@ -217,6 +217,12 @@ fi
 
 AM_CONDITIONAL(GUI_GTK, [test "$HAVE_GTK" = 'yes'])
 
+AC_CHECK_HEADER([libisofs/libisofs.h], [
+   AC_CHECK_LIB(isofs, [iso_data_source_new_from_file], [
+      LIBS="$LIBS -lisofs"
+   ], [ AC_MSG_FAILURE( ["Libisofs library not found, but is required"]) ])], 
+      [ AC_MSG_FAILURE( ["Libisofs headers not found, but is required"]) ])
+
 dnl ------------------ Video driver support -------------------
 AS_IF([test "x$with_osmesa" != xno], [ 
 

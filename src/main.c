@@ -20,6 +20,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <getopt.h>
+#include <libisofs/libisofs.h>
 #include "lxdream.h"
 #include "lxpaths.h"
 #include "gettext.h"
@@ -224,6 +225,7 @@ int main (int argc, char *argv[])
         exit(0);
     }
 
+    iso_init();
     gdrom_list_init();
     vmulist_init();
 

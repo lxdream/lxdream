@@ -33,6 +33,7 @@ typedef struct sector_source *sector_source_t;
 typedef enum {
     NULL_SECTOR_SOURCE,
     FILE_SECTOR_SOURCE,
+    MEM_SECTOR_SOURCE,
     DISC_SECTOR_SOURCE,
     TRACK_SECTOR_SOURCE
 } sector_source_type_t;
@@ -56,7 +57,7 @@ struct sector_source {
     sector_source_type_t type;
 
     sector_mode_t mode; /* Implies sector size. */
-    uint32_t size; /* Block count */
+    cdrom_count_t size; /* Block count */
 
     /**
      * Read blocks from the device using the native block size.
@@ -98,6 +99,12 @@ sector_source_t file_sector_source_new( FILE *f, sector_mode_t mode, uint32_t of
 sector_source_t file_sector_source_new_full( FILE *f, sector_mode_t mode, gboolean closeOnDestroy );
 
 /**
+ * Temp-file creator - initially empty. Creates a file in the system temp dir,
+ * unlinked on destruction or program exit.
+ */
+sector_source_t tmpfile_sector_source_new(  sector_mode_t mode );
+
+/**
  * Construct a file source that shares its file descriptor with another
  * file source.
  */
@@ -118,6 +125,25 @@ FILE *file_sector_source_get_file( sector_source_t ref );
  * Retrieve the source's underlying file descriptor
  */
 int file_sector_source_get_fd( sector_source_t ref );
+
+/** Construct a memory source with the given mode and size */
+sector_source_t mem_sector_source_new( sector_mode_t mode, cdrom_count_t size );
+
+/**
+ * Construct a memory source using the supplied buffer for data.
+ * @param buffer The buffer to read from, which must be at least size * sector_size in length
+ * @param mode The sector mode of the data in the buffer, which cannot be SECTOR_UNKNOWN
+ * @param size Number of sectors in the buffer
+ * @param freeOnDestroy If true, the source owns the buffer and will release it when the
+ *   source is destroyed.
+ */
+sector_source_t mem_sector_source_new_buffer( unsigned char *buffer, sector_mode_t mode, cdrom_count_t size,
+                                       gboolean freeOnDestroy );
+
+/**
+ * Retrieve the underlying buffer for a memory source
+ */
+unsigned char *mem_sector_source_get_buffer( sector_source_t source );
 
 /**
  * Increment the reference count for a block device.
