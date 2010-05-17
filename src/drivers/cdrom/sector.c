@@ -25,6 +25,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 
+#include "lxpaths.h"
 #include "drivers/cdrom/sector.h"
 #include "drivers/cdrom/cdrom.h"
 #include "drivers/cdrom/ecc.h"
@@ -533,6 +534,139 @@ void file_sector_source_set_close_on_destroy( sector_source_t ref, gboolean clos
     file_sector_source_t fref = (file_sector_source_t)ref;
     fref->closeOnDestroy = closeOnDestroy;
 }
+
+/********************** Temporary file implementation ************************/
+/**
+ * The tmpfile source behaves exactly like a regular file source, except that
+ * it creates a new temporary file, which is deleted on destruction or program
+ * exit. The file is initially empty, so the user will need to get the fd and
+ * write something to it before use.
+ */
+
+typedef struct tmpfile_sector_source {
+    struct file_sector_source file;
+    const char *filename;
+} *tmpfile_sector_source_t;
+
+static GList *tmpfile_open_list = NULL;
+static gboolean tmpfile_atexit_installed = 0; /* TRUE to indicate atexit hook is registered */
+
+/**
+ * atexit hook to destroy any open tmpfiles - make sure they're deleted.
+ */
+static void tmpfile_atexit_hook(void)
+{
+    GList *ptr;
+    while( tmpfile_open_list != NULL ) {
+        sector_source_t source = (sector_source_t)tmpfile_open_list->data;
+        source->destroy(source);
+        assert( tmpfile_open_list == NULL || tmpfile_open_list->data != source );
+    }
+}
+
+
+static void tmpfile_sector_source_destroy( sector_source_t dev )
+{
+    assert( IS_SECTOR_SOURCE_TYPE(dev,FILE_SECTOR_SOURCE) );
+    tmpfile_sector_source_t fdev = (tmpfile_sector_source_t)dev;
+
+    fclose( fdev->file.file );
+    fdev->file.file = NULL;
+    unlink(fdev->filename);
+    g_free((char *)fdev->filename);
+    tmpfile_open_list = g_list_remove(tmpfile_open_list, fdev);
+    default_sector_source_destroy(dev);
+}
+
+sector_source_t tmpfile_sector_source_new( sector_mode_t mode )
+{
+    if( !tmpfile_atexit_installed ) {
+        atexit(tmpfile_atexit_hook);
+    }
+
+    gchar *tmpdir = getenv("TMPDIR");
+    if( tmpdir == NULL ) {
+        tmpdir = "/tmp";
+    }
+    gchar *tempfile = get_filename_at(tmpdir, "cd.XXXXXXX");
+    int fd = mkstemp( tempfile );
+    if( fd == -1 ) {
+        g_free(tempfile);
+        return FALSE;
+    }
+
+    FILE *f = fdopen( fd, "w+" );
+    if( f == NULL ) {
+        close(fd);
+        unlink(tempfile);
+        g_free(tempfile);
+        return NULL;
+    }
+
+    tmpfile_sector_source_t dev = g_malloc0(sizeof(struct tmpfile_sector_source));
+    dev->file.file = f;
+    dev->filename = tempfile;
+    sector_source_t source = sector_source_init( &dev->file.dev, FILE_SECTOR_SOURCE, mode, 0, file_sector_source_read, tmpfile_sector_source_destroy );
+    tmpfile_open_list = g_list_append(tmpfile_open_list, source);
+}
+
+/************************ Memory device implementation *************************/
+typedef struct mem_sector_source {
+    struct sector_source dev;
+    unsigned char *buffer;
+    gboolean freeOnDestroy;
+} *mem_sector_source_t;
+
+static void mem_sector_source_destroy( sector_source_t dev )
+{
+    assert( IS_SECTOR_SOURCE_TYPE(dev,MEM_SECTOR_SOURCE) );
+    mem_sector_source_t mdev = (mem_sector_source_t)dev;
+
+    if( mdev->freeOnDestroy ) {
+        free(mdev->buffer);
+    }
+    mdev->buffer = NULL;
+    default_sector_source_destroy(dev);
+}
+
+static cdrom_error_t mem_sector_source_read( sector_source_t dev, cdrom_lba_t lba, cdrom_count_t block_count, unsigned char *buf )
+{
+    assert( IS_SECTOR_SOURCE_TYPE(dev,MEM_SECTOR_SOURCE) );
+    mem_sector_source_t mdev = (mem_sector_source_t)dev;
+
+    if( (lba + block_count) >= dev->size )
+        return CDROM_ERROR_BADREAD;
+    uint32_t off = lba * CDROM_SECTOR_SIZE(dev->mode);
+    uint32_t size = block_count * CDROM_SECTOR_SIZE(dev->mode);
+
+    memcpy( buf, mdev->buffer + off, size );
+    return CDROM_ERROR_OK;
+}
+
+sector_source_t mem_sector_source_new_buffer( unsigned char *buffer, sector_mode_t mode,
+                                       cdrom_count_t sector_count, gboolean freeOnDestroy )
+{
+    assert( mode != SECTOR_UNKNOWN );
+    assert( buffer != NULL );
+    mem_sector_source_t dev = g_malloc(sizeof(struct mem_sector_source));
+    dev->buffer = buffer;
+    dev->freeOnDestroy = freeOnDestroy;
+    return sector_source_init( &dev->dev, MEM_SECTOR_SOURCE, mode, sector_count, mem_sector_source_read, mem_sector_source_destroy );
+}
+
+sector_source_t mem_sector_source_new( sector_mode_t mode, cdrom_count_t sector_count )
+{
+    return mem_sector_source_new_buffer( g_malloc( sector_count * CDROM_SECTOR_SIZE(mode) ), mode,
+                                         sector_count, TRUE );
+}
+
+unsigned char *mem_sector_source_get_buffer( sector_source_t dev )
+{
+    assert( IS_SECTOR_SOURCE_TYPE(dev,MEM_SECTOR_SOURCE) );
+    mem_sector_source_t mdev = (mem_sector_source_t)dev;
+    return mdev->buffer;
+}
+
 
 /************************ Track device implementation *************************/
 typedef struct track_sector_source {

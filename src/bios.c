@@ -24,7 +24,7 @@
 #include "bootstrap.h"
 #include "sh4/sh4.h"
 #include "drivers/cdrom/cdrom.h"
-#include "drivers/cdrom/isoread.h"
+#include "drivers/cdrom/isofs.h"
 #include "gdrom/gdrom.h"
 
 gboolean bios_boot_gdrom_disc( void );
@@ -387,6 +387,56 @@ void bios_install( void )
 
 #define MIN_ISO_SECTORS 32
 
+static gboolean bios_load_ipl( cdrom_disc_t disc, cdrom_track_t track, const char *program_name,
+                               unsigned char *buffer, gboolean unscramble )
+{
+    gboolean rv = TRUE;
+
+    IsoImageFilesystem *iso = iso_filesystem_new_from_track( disc, track, NULL );
+    if( iso == NULL ) {
+        ERROR( "Disc is not bootable (invalid ISO9660 filesystem)" );
+        return FALSE;
+    }
+    IsoFileSource *file = NULL;
+    int status = iso->get_by_path(iso, program_name, &file );
+    if( status != 1 ) {
+        ERROR( "Disc is not bootable (initial program '%s' not found)", program_name );
+        iso_filesystem_unref(iso);
+        return FALSE;
+    }
+
+    struct stat st;
+    if( iso_file_source_stat(file, &st) == 1 ) {
+        if( st.st_size > (0x8D000000 - BINARY_LOAD_ADDR) ) {
+            ERROR( "Disc is not bootable (Initial program is too large to fit into memory)" );
+            rv = FALSE;
+        } else if( iso_file_source_open(file) == 1 ) {
+            size_t len;
+            if( unscramble ) {
+                char *tmp = g_malloc(st.st_size);
+                len = iso_file_source_read(file, tmp, st.st_size);
+                bootprogram_unscramble(buffer, tmp, st.st_size);
+                g_free(tmp);
+            } else {
+                len = iso_file_source_read(file, buffer, st.st_size);
+            }
+
+            if( len != st.st_size ) {
+                ERROR( "Disc is not bootable (Unable to read initial program '%s')", program_name );
+                rv = FALSE;
+            }
+            iso_file_source_close(file);
+        }
+    } else {
+        ERROR( "Disc is not bootable (Unable to get size of initial program '%s')", program_name );
+        rv = FALSE;
+    }
+
+    iso_file_source_unref(file);
+    iso_filesystem_unref(iso);
+    return rv;
+}
+
 gboolean bios_boot_gdrom_disc( void )
 {
     cdrom_disc_t disc = gdrom_get_current_disc();
@@ -427,56 +477,19 @@ gboolean bios_boot_gdrom_disc( void )
     }
 
     /* Get the initial program from the bootstrap (usually 1ST_READ.BIN) */
-    char program_name[17];
-    memcpy(program_name, metadata->boot_file, 16);
-    program_name[16] = '\0';
-    for( int i=15; i >= 0 && program_name[i] == ' '; i-- ) {
+    char program_name[18] = "/";
+    memcpy(program_name+1, metadata->boot_file, 16);
+    program_name[17] = '\0';
+    for( int i=16; i >= 0 && program_name[i] == ' '; i-- ) {
         program_name[i] = '\0';
     }
 
     /* Bootstrap is good. Now find the program in the actual filesystem... */
-    isofs_reader_t iso = isofs_reader_new_from_track( disc, track, NULL );
-    if( iso == NULL ) {
-        ERROR( "Disc is not bootable" );
-        return FALSE;
-    }
-    isofs_reader_dirent_t ent = isofs_reader_get_file( iso, program_name );
-    if( ent == NULL ) {
-        ERROR( "Disc is not bootable (initial program '%s' not found)", program_name );
-        isofs_reader_destroy(iso);
-        return FALSE;
-    }
-
-    if( ent->size > (0x8D000000 - BINARY_LOAD_ADDR) ) {
-        /* Bootstrap isn't going to fit in memory. Complain and abort */
-        ERROR( "Disc is not bootable (initial program too large)" );
-        isofs_reader_destroy(iso);
-        return FALSE;
-    }
     unsigned char *program = mem_get_region(BINARY_LOAD_ADDR);
-    int program_sectors = (ent->size+2047)/2048;
-    if( disc->disc_type == CDROM_DISC_GDROM ) {
-        /* Load the binary directly into RAM */
-        if( isofs_reader_read_file( iso, ent, 0, ent->size, program ) !=
-                CDROM_ERROR_OK ) {
-            ERROR( "Disc is not bootable (failed to read initial program)\n" );
-            isofs_reader_destroy(iso);
-            return FALSE;
-        }
-        asic_enable_ide_interface(TRUE);
-    } else {
-        /* Load the binary into a temp buffer */
-        unsigned char tmp[program_sectors*2048];
-        if( isofs_reader_read_file( iso, ent, 0, ent->size, tmp ) !=
-                CDROM_ERROR_OK ) {
-            ERROR( "Disc is not bootable (failed to read initial program)\n" );
-            isofs_reader_destroy(iso);
-            return FALSE;
-        }
-        bootprogram_unscramble(program, tmp, ent->size);
-        asic_enable_ide_interface(FALSE);
-    }
-    isofs_reader_destroy(iso);
+    gboolean isGDROM = (disc->disc_type == CDROM_DISC_GDROM );
+    if( !bios_load_ipl( disc, track, program_name, program, !isGDROM ) )
+        return FALSE;
+    asic_enable_ide_interface(isGDROM);
     dreamcast_program_loaded( "", BOOTSTRAP_ENTRY_ADDR );
     return TRUE;
 }
