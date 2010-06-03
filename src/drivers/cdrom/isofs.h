@@ -55,4 +55,8 @@ IsoImage *iso_image_new_from_track( cdrom_disc_t disc, cdrom_track_t track, ERRO
 sector_source_t iso_sector_source_new( IsoImage *image, sector_mode_t mode, cdrom_lba_t start_sector,
                                        const char *bootstrap, ERROR *err );
 
+
+/** Prototypes for "Internal" Libisofs functions */
+int iso_memory_stream_new(unsigned char *buf, size_t size, IsoStream **stream);
+
 #endif /* !cdrom_isofs_H */

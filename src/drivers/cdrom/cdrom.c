@@ -24,6 +24,7 @@
 #include "lxdream.h"
 #include "drivers/cdrom/cdrom.h"
 #include "drivers/cdrom/cdimpl.h"
+#include "drivers/cdrom/isofs.h"
 
 extern struct cdrom_disc_factory linux_cdrom_drive_factory;
 extern struct cdrom_disc_factory nrg_disc_factory;
@@ -193,20 +194,24 @@ void cdrom_disc_clear_toc( cdrom_disc_t disc )
 
 gboolean cdrom_disc_read_toc( cdrom_disc_t disc, ERROR *err )
 {
-    /* First set the defaults for an empty disc */
-    cdrom_disc_clear_toc(disc);
-
-    if( disc->read_toc(disc, err ) ) {
-        /* Success - update disc type and leadout if the TOC read didn't set them */
-        if( disc->disc_type == CDROM_DISC_NONE )
-            cdrom_disc_set_default_disc_type(disc);
-        cdrom_disc_compute_leadout(disc);
-        return TRUE;
-    } else {
-        /* Reset to an empty disc in case the reader left things in an
-         * inconsistent state */
+    if( disc->read_toc != NULL ) {
+        /* First set the defaults for an empty disc */
         cdrom_disc_clear_toc(disc);
-        return FALSE;
+
+        if( disc->read_toc(disc, err ) ) {
+            /* Success - update disc type and leadout if the TOC read didn't set them */
+            if( disc->disc_type == CDROM_DISC_NONE )
+                cdrom_disc_set_default_disc_type(disc);
+            cdrom_disc_compute_leadout(disc);
+            return TRUE;
+        } else {
+            /* Reset to an empty disc in case the reader left things in an
+             * inconsistent state */
+            cdrom_disc_clear_toc(disc);
+            return FALSE;
+        }
+    } else {
+        return TRUE;
     }
 }
 
@@ -270,6 +275,64 @@ cdrom_disc_t cdrom_disc_open( const char *inFilename, ERROR *err )
         SET_ERROR( err, EINVAL, "File '%s' could not be recognized as any known image file or device type" );
         return NULL;
     }
+}
+
+/**
+ * Construct a disc around a source track.
+ * @param type Disc type, which must be compatible with the track mode
+ * @param track The source of data for the main track
+ * @param lba The position on disc of the main track. If non-zero,
+ * a filler track is added before it, in 2 separate sessions.
+ */
+cdrom_disc_t cdrom_disc_new_from_track( cdrom_disc_type_t type, sector_source_t track, cdrom_lba_t lba )
+{
+    cdrom_disc_t disc = cdrom_disc_new( NULL, NULL );
+    if( disc != NULL ) {
+        disc->disc_type = type;
+        int trackno = 0;
+        if( lba != 0 ) {
+            cdrom_count_t size = lba - 150;
+            if( lba < 150 )
+                size = lba;
+            disc->track[0].trackno = 1;
+            disc->track[0].sessionno = 1;
+            disc->track[0].lba = 0;
+            disc->track[0].flags = 0;
+            disc->track[0].source = null_sector_source_new( SECTOR_CDDA, size );
+            sector_source_ref( disc->track[0].source );
+            trackno++;
+        }
+        disc->track[trackno].trackno = trackno+1;
+        disc->track[trackno].sessionno = trackno+1;
+        disc->track[trackno].lba = lba;
+        disc->track[trackno].flags = (track->mode == SECTOR_CDDA ? 0 : TRACK_FLAG_DATA);
+        disc->track[trackno].source = track;
+        sector_source_ref(track);
+
+        disc->track_count = trackno+1;
+        disc->session_count = trackno+1;
+        cdrom_disc_compute_leadout(disc);
+    }
+    return disc;
+}
+
+/**
+ * Construct a disc around an IsoImage track (convenience function)
+ */
+cdrom_disc_t cdrom_disc_new_from_iso_image( cdrom_disc_type_t type, IsoImage *iso, cdrom_lba_t lba,
+                                            const char *bootstrap, ERROR *err )
+{
+    sector_mode_t mode = (type == CDROM_DISC_NONXA ? SECTOR_MODE1 : SECTOR_MODE2_FORM1 );
+    sector_source_t source = iso_sector_source_new( iso, mode, lba, bootstrap, err );
+    if( source != NULL ) {
+        cdrom_disc_t disc = cdrom_disc_new_from_track(type, source, lba);
+        if( disc == NULL ) {
+            sector_source_unref( source );
+        } else {
+            return disc;
+        }
+    }
+    return NULL;
 }
 
 /**

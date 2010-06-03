@@ -42,13 +42,13 @@
 #include "hotkeys.h"
 #include "plugin.h"
 
-char *option_list = "a:A:bc:dfg:G:hHl:m:npt:T:uvV:x?";
+char *option_list = "a:A:bc:dfg:G:hHl:m:npt:T:uvV:w:x?";
 struct option longopts[] = {
         { "aica", required_argument, NULL, 'a' },
         { "audio", required_argument, NULL, 'A' },
         { "biosless", no_argument, NULL, 'b' },
         { "config", required_argument, NULL, 'c' },
-        { "debugger", no_argument, NULL, 'D' },
+        { "debugger", no_argument, NULL, 'd' },
         { "fullscreen", no_argument, NULL, 'f' },
         { "gdb-sh4", required_argument, NULL, 'g' },  
         { "gdb-arm", required_argument, NULL, 'G' },  
@@ -61,6 +61,7 @@ struct option longopts[] = {
         { "unsafe", no_argument, NULL, 'u' },
         { "video", no_argument, NULL, 'V' },
         { "version", no_argument, NULL, 'v' }, 
+        { "wrap", required_argument, NULL, 'w' },
         { NULL, 0, 0, 0 } };
 char *aica_program = NULL;
 char *display_driver_name = NULL;
@@ -107,6 +108,7 @@ static void print_usage()
     printf( "   -u, --unsafe           %s\n", _("Allow unsafe dcload syscalls") );
     printf( "   -v, --version          %s\n", _("Print the lxdream version string") );
     printf( "   -V, --video=DRIVER     %s\n", _("Use the specified video driver (? to list)") );
+    printf( "   -w, --wrap=FILENAME    %s\n", _("Wrap the specified binary file in a disc image") );
     printf( "   -x                     %s\n", _("Disable the SH4 translator") );
 }
 
@@ -124,6 +126,7 @@ int main (int argc, char *argv[])
     double t;
     gboolean display_ok;
     uint32_t time_secs, time_nanos;
+    const char *wrap_name = NULL;
 
     install_crash_handler();
     bind_gettext_domain();
@@ -200,6 +203,9 @@ int main (int argc, char *argv[])
         case 'V': /* Video driver */
             display_driver_name = optarg;
             break;
+        case 'w': /* Wrap image file */
+            wrap_name = optarg;
+            break;
         case 'x': /* Disable translator */
             use_xlat = FALSE;
             break;
@@ -261,6 +267,19 @@ int main (int argc, char *argv[])
 
     maple_reattach_all();
     INFO( "%s! ready...", APP_NAME );
+
+    if( wrap_name != NULL ) {
+        ERROR err;
+        cdrom_disc_t disc = cdrom_wrap_magic( CDROM_DISC_XA, wrap_name, &err );
+        if( disc == NULL )
+            ERROR(err.msg);
+        else {
+            gdrom_mount_disc(disc);
+            if( !no_start ) {
+                start_immediately = TRUE;
+            }
+        }
+    }
 
     for( ; optind < argc; optind++ ) {
         gboolean ok = gdrom_mount_image(argv[optind]);

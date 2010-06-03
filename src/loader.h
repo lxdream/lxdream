@@ -22,6 +22,8 @@
 #include <stdio.h>
 #include <glib/gtypes.h>
 
+#include "drivers/cdrom/cdrom.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -63,6 +65,8 @@ gboolean file_load_elf( const gchar *filename );
  * which is actually applicable
  */
 gboolean file_load_magic( const gchar *filename );
+
+cdrom_disc_t cdrom_wrap_magic( cdrom_disc_type_t type, const gchar *filename, ERROR *err );
 
 #ifdef __cplusplus
 }

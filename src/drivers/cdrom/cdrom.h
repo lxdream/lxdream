@@ -97,6 +97,15 @@ struct cdrom_disc {
 cdrom_disc_t cdrom_disc_open( const char *filename, ERROR *err );
 
 /**
+ * Construct a disc around a source track.
+ * @param type Disc type, which must be compatible with the track mode
+ * @param track The source of data for the main track
+ * @param lba The position on disc of the main track. If non-zero,
+ * a filler track is added before it, in 2 separate sessions.
+ */
+cdrom_disc_t cdrom_disc_new_from_track( cdrom_disc_type_t type, sector_source_t track, cdrom_lba_t lba );
+
+/**
  * Get the track information for the given track. If there is no such track,
  * return NULL;
  */
