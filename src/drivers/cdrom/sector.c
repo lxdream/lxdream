@@ -608,6 +608,7 @@ sector_source_t tmpfile_sector_source_new( sector_mode_t mode )
     dev->filename = tempfile;
     sector_source_t source = sector_source_init( &dev->file.dev, FILE_SECTOR_SOURCE, mode, 0, file_sector_source_read, tmpfile_sector_source_destroy );
     tmpfile_open_list = g_list_append(tmpfile_open_list, source);
+    return source;
 }
 
 /************************ Memory device implementation *************************/

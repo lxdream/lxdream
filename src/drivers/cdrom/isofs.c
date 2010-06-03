@@ -17,6 +17,8 @@
  */
 
 #include <assert.h>
+#include <stdio.h>
+#include <unistd.h>
 #include <glib/gmem.h>
 
 #define LIBISOFS_WITHOUT_LIBBURN 1
@@ -169,8 +171,15 @@ sector_source_t iso_sector_source_new( IsoImage *image, sector_mode_t mode, cdro
     char buf[2048];
     cdrom_count_t expect = size/2048;
     cdrom_count_t count = 0;
+    int fd = file_sector_source_get_fd(source);
+    source->size = expect;
+    lseek( fd, 0, SEEK_SET );
     for( cdrom_count_t count = 0; count < expect; count++ ) {
-        status = burn->read(burn, buf, 2048);
+        if( burn->read == NULL ) {
+            status = burn->read_xt(burn, buf, 2048);
+        } else {
+            status = burn->read(burn, buf, 2048);
+        }
         if( status == 0 ) {
             /* EOF */
             break;
@@ -180,6 +189,7 @@ sector_source_t iso_sector_source_new( IsoImage *image, sector_mode_t mode, cdro
             source = NULL;
             break;
         }
+        write( fd, buf, 2048 );
     }
     burn->free_data(burn);
     free(burn);
