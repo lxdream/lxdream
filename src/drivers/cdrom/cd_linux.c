@@ -103,12 +103,12 @@ cdrom_disc_t linux_cdrom_drive_open( cdrom_drive_t drive, ERROR *err )
     
     int fd = open(drive->name, O_RDONLY|O_NONBLOCK);
     if( fd == -1 ) {
-        SET_ERROR(err, errno, "Unable to open device '%s': %s", drive->name, strerror(errno) );
+        SET_ERROR(err, LX_ERR_FILE_NOOPEN, "Unable to open device '%s': %s", drive->name, strerror(errno) );
         return NULL;
     } else {
         FILE *f = fdopen(fd,"ro");
         if( !linux_is_cdrom_device(f) ) {
-            SET_ERROR(err, EINVAL, "Device '%s' is not a CDROM drive", drive->name );
+            SET_ERROR(err, LX_ERR_FILE_UNKNOWN, "Device '%s' is not a CDROM drive", drive->name );
             return NULL;
         }
         return cdrom_disc_scsi_new_file(f, drive->name, &linux_scsi_transport, err);

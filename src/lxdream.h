@@ -94,8 +94,19 @@ typedef struct error_struct {
     char msg[MAX_ERROR_MSG_SIZE];
 } ERROR;
 
+#define LX_ERR_NONE          0
+#define LX_ERR_NOMEM         1  /* Out-of-memory */
+#define LX_ERR_CONFIG        2  /* Configuration problem */
+#define LX_ERR_UNHANDLED     3  /* A lower-level error occurred which we don't understand */
+#define LX_ERR_BUG           4
+#define LX_ERR_FILE_NOOPEN   9  /* File could not be opened (ENOENT or EACCESS usually) */
+#define LX_ERR_FILE_IOERROR 10  /* I/O error encountered in file */
+#define LX_ERR_FILE_INVALID 11  /* File contents are invalid for its type */
+#define LX_ERR_FILE_UNKNOWN 12  /* File type is unrecognized */
+#define LX_ERR_FILE_UNSUP   13  /* File type is unsupported */
+
 #define SET_ERROR(err, n, ...) if( (err) != NULL ) { (err)->code = n; snprintf( (err)->msg, sizeof((err)->msg), __VA_ARGS__ ); }
-#define CLEAR_ERROR(err) do { err.code = 0; err.msg[0] = 0; } while(0)
+#define CLEAR_ERROR(err) do { (err)->code = 0; (err)->msg[0] = 0; } while(0)
 
 
 #ifdef HAVE_FASTCALL

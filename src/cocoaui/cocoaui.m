@@ -216,7 +216,8 @@ static void cocoa_gui_create_menu(void)
 - (BOOL)application: (NSApplication *)app openFile: (NSString *)filename
 {
     const gchar *cname = [filename UTF8String];
-    if( file_load_magic(cname) ) {
+    ERROR err;
+    if( file_load_magic(cname, FALSE, &err) != FILE_ERROR ) {
         // Queue up a run event
         gui_do_later(dreamcast_run);
         return YES;
@@ -269,8 +270,12 @@ static void cocoa_gui_create_menu(void)
     int result = [panel runModalForDirectory: path file: nil types: nil];
     if( result == NSOKButton && [[panel filenames] count] > 0 ) {
         NSString *filename = [[panel filenames] objectAtIndex: 0];
-        file_load_magic( [filename UTF8String] );
+        ERROR err;
+        gboolean ok = file_load_exec( [filename UTF8String], &err );
         set_gui_path(CONFIG_DEFAULT_PATH, [[panel directory] UTF8String]);
+        if( !ok ) {
+            ERROR( err.msg );
+        }
     }
 }
 - (void) mount_action: (id)sender
@@ -279,8 +284,12 @@ static void cocoa_gui_create_menu(void)
     NSString *path = [NSString stringWithCString: get_gui_path(CONFIG_DEFAULT_PATH)];
     int result = [panel runModalForDirectory: path file: nil types: nil];
     if( result == NSOKButton && [[panel filenames] count] > 0 ) {
+        ERROR err;
         NSString *filename = [[panel filenames] objectAtIndex: 0];
-        gdrom_mount_image( [filename UTF8String] );
+        gboolean ok = gdrom_mount_image( [filename UTF8String], &err );
+        if( !ok ) {
+            ERROR(err.msg);
+        }
         set_gui_path(CONFIG_DEFAULT_PATH, [[panel directory] UTF8String]);
     }
 }
@@ -301,7 +310,11 @@ static void cocoa_gui_create_menu(void)
 }
 - (void) gdrom_list_action: (id)sender
 {
-    gdrom_list_set_selection( [sender tag] );
+    ERROR err;
+    gboolean ok = gdrom_list_set_selection( [sender tag], &err );
+    if( !ok ) {
+        ERROR( err.msg );
+    }
 }
 - (void) fullscreen_action: (id)sender
 {

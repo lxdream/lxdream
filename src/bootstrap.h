@@ -35,6 +35,7 @@ extern "C" {
 #define BOOTSTRAP_MAGIC_SIZE 32
 
 #define BINARY_LOAD_ADDR 0x8C010000
+#define BINARY_MAX_SIZE (0x8D000000 - BINARY_LOAD_ADDR)
 
 /**
  * Bootstrap header structure

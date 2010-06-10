@@ -27,17 +27,31 @@
 
 static gboolean gdrom_menu_adjusting = FALSE;
 
+gboolean gtk_gui_gdrom_mount_image( const char *filename )
+{
+    ERROR err;
+    gboolean ok = gdrom_mount_image( filename, &err );
+    if( !ok ) {
+        ERROR( err.msg );
+    }
+    return ok;
+}
+
 static void gdrom_menu_open_image_callback( GtkWidget *widget, gpointer user_data )
 {
     if( !gdrom_menu_adjusting ) {
-        open_file_dialog_cb( _("Open..."), gdrom_mount_image, NULL, NULL, CONFIG_DEFAULT_PATH );
+        open_file_dialog_cb( _("Open..."), gtk_gui_gdrom_mount_image, NULL, NULL, CONFIG_DEFAULT_PATH );
     }
 }
 
 void gdrom_menu_item_callback( GtkWidget *widget, gpointer user_data )
 {
     if( !gdrom_menu_adjusting ) {
-        gdrom_list_set_selection( GPOINTER_TO_INT(user_data) );
+        ERROR err;
+        gboolean ok = gdrom_list_set_selection( GPOINTER_TO_INT(user_data), &err );
+        if( !ok ) {
+            ERROR( err.msg );
+        }
     }
 }
 

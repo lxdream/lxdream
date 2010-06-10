@@ -34,37 +34,37 @@ extern "C" {
  */
 extern char *file_loader_extensions[][2];
 
-/**
- * Load the CD bootstrap, aka IP.BIN. Identified by "SEGA SEGAKATANA" at
- * start of file. IP.BIN is loaded as-is at 8C008000.
- * This is mainly for testing as it's unlikely anyone would want to do this
- * for any other reason.
- * @return TRUE on success, otherwise FALSE and errno 
- */
-gboolean file_load_bootstrap( const gchar *filename );
+typedef enum {
+    FILE_ERROR,
+    FILE_BINARY,
+    FILE_ELF,
+    FILE_ISO,
+    FILE_DISC,
+    FILE_ZIP,
+    FILE_SAVE_STATE,
+    FILE_UNKNOWN,
+} lxdream_file_type_t;
 
 /**
- * Load a miscellaneous .bin file, as commonly used in demos. No magic
- * applies, file is loaded as is at 8C010000
+ * Attempt to identify the given file as one of the above file types
  */
-gboolean file_load_binary( const gchar *filename );
+lxdream_file_type_t file_identify( const gchar *filename, int fd, ERROR *err );
 
 /**
- * Load a "Self Boot Inducer" .sbi file, also commonly used to package
- * demos. (Actually a ZIP file with a predefined structure
+ * Load any supported file, and return the type of file loaded.
+ * If the file is a disc, the disc is mounted. 
+ * 
+ * @param filename The file to load
+ * @param wrap_exec If true, load executables as disc images. Otherwise load 
+ *    directly into RAM
+ * @param err Updated with error message on failure.
  */
-gboolean file_load_sbi( const gchar *filename );
+lxdream_file_type_t file_load_magic( const gchar *filename, gboolean wrap_exec, ERROR *err );
 
 /**
- * Load an ELF executable binary file. Origin is file-dependent.
+ * Load an ELF or .bin executable file based on magic.
  */
-gboolean file_load_elf( const gchar *filename );
-
-/**
- * Load any of the above file types, using the appropriate magic to determine
- * which is actually applicable
- */
-gboolean file_load_magic( const gchar *filename );
+gboolean file_load_exec( const gchar *filename, ERROR *err );
 
 cdrom_disc_t cdrom_wrap_magic( cdrom_disc_type_t type, const gchar *filename, ERROR *err );
 

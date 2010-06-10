@@ -150,7 +150,7 @@ static gboolean nrg_image_is_valid( FILE *f )
     }
 }
 
-#define RETURN_PARSE_ERROR( ... ) do { SET_ERROR(err, EINVAL, __VA_ARGS__); return FALSE; } while(0)
+#define RETURN_PARSE_ERROR( ... ) do { SET_ERROR(err, LX_ERR_FILE_INVALID, __VA_ARGS__); return FALSE; } while(0)
 
 static gboolean nrg_image_read_toc( cdrom_disc_t disc, ERROR *err )
 {

@@ -42,13 +42,14 @@
 #include "hotkeys.h"
 #include "plugin.h"
 
-char *option_list = "a:A:bc:dfg:G:hHl:m:npt:T:uvV:w:x?";
+char *option_list = "a:A:bc:e:dfg:G:hHl:m:npt:T:uvV:x?";
 struct option longopts[] = {
         { "aica", required_argument, NULL, 'a' },
         { "audio", required_argument, NULL, 'A' },
         { "biosless", no_argument, NULL, 'b' },
         { "config", required_argument, NULL, 'c' },
         { "debugger", no_argument, NULL, 'd' },
+        { "execute", required_argument, NULL, 'e' },
         { "fullscreen", no_argument, NULL, 'f' },
         { "gdb-sh4", required_argument, NULL, 'g' },  
         { "gdb-arm", required_argument, NULL, 'G' },  
@@ -61,7 +62,6 @@ struct option longopts[] = {
         { "unsafe", no_argument, NULL, 'u' },
         { "video", no_argument, NULL, 'V' },
         { "version", no_argument, NULL, 'v' }, 
-        { "wrap", required_argument, NULL, 'w' },
         { NULL, 0, 0, 0 } };
 char *aica_program = NULL;
 char *display_driver_name = NULL;
@@ -86,13 +86,14 @@ static void print_version()
 static void print_usage()
 {
     print_version();
-    printf( "Usage: lxdream %s [options] [disc-file] [program-file]\n\n", lxdream_full_version );
+    printf( "Usage: lxdream %s [options] [disc-file] [save-state]\n\n", lxdream_full_version );
 
     printf( "Options:\n" );
     printf( "   -a, --aica=PROGFILE    %s\n", _("Run the AICA SPU only, with the supplied program") );
     printf( "   -A, --audio=DRIVER     %s\n", _("Use the specified audio driver (? to list)") );
     printf( "   -b, --biosless         %s\n", _("Run without the BIOS boot rom even if available") );
     printf( "   -c, --config=CONFFILE  %s\n", _("Load configuration from CONFFILE") );
+    printf( "   -e, --execute=PROGRAM  %s\n", _("Load and execute the given SH4 program") );
     printf( "   -d, --debugger         %s\n", _("Start in debugger mode") );
     printf( "   -f, --fullscreen       %s\n", _("Start in fullscreen mode") );
     printf( "   -g, --gdb-sh4=PORT     %s\n", _("Start GDB remote server on PORT for SH4") );
@@ -108,7 +109,6 @@ static void print_usage()
     printf( "   -u, --unsafe           %s\n", _("Allow unsafe dcload syscalls") );
     printf( "   -v, --version          %s\n", _("Print the lxdream version string") );
     printf( "   -V, --video=DRIVER     %s\n", _("Use the specified video driver (? to list)") );
-    printf( "   -w, --wrap=FILENAME    %s\n", _("Wrap the specified binary file in a disc image") );
     printf( "   -x                     %s\n", _("Disable the SH4 translator") );
 }
 
@@ -124,9 +124,9 @@ int main (int argc, char *argv[])
 {
     int opt;
     double t;
-    gboolean display_ok;
+    gboolean display_ok, have_disc = FALSE, have_save = FALSE, have_exec = FALSE;
     uint32_t time_secs, time_nanos;
-    const char *wrap_name = NULL;
+    const char *exec_name = NULL;
 
     install_crash_handler();
     bind_gettext_domain();
@@ -147,6 +147,9 @@ int main (int argc, char *argv[])
             break;
         case 'd': /* Launch w/ debugger */
             show_debugger = TRUE;
+            break;
+        case 'e':
+            exec_name = optarg;
             break;
         case 'f':
             show_fullscreen = TRUE;
@@ -202,9 +205,6 @@ int main (int argc, char *argv[])
             break;
         case 'V': /* Video driver */
             display_driver_name = optarg;
-            break;
-        case 'w': /* Wrap image file */
-            wrap_name = optarg;
             break;
         case 'x': /* Disable translator */
             use_xlat = FALSE;
@@ -268,37 +268,52 @@ int main (int argc, char *argv[])
     maple_reattach_all();
     INFO( "%s! ready...", APP_NAME );
 
-    if( wrap_name != NULL ) {
+    for( ; optind < argc; optind++ ) {
         ERROR err;
-        cdrom_disc_t disc = cdrom_wrap_magic( CDROM_DISC_XA, wrap_name, &err );
-        if( disc == NULL )
-            ERROR(err.msg);
-        else {
-            gdrom_mount_disc(disc);
-            if( !no_start ) {
-                start_immediately = TRUE;
+        lxdream_file_type_t type = file_identify(argv[optind], -1, &err);
+        if( type == FILE_SAVE_STATE ) {
+            if( have_save ) {
+                ERROR( "Multiple save states given on command-line, ignoring %s", argv[optind] );
+            } else {
+                have_save = dreamcast_load_state(argv[optind]);
+                if( !have_save )
+                    no_start = TRUE;
+            }
+        } else {
+            if( have_disc ) {
+                ERROR( "Multiple GD-ROM discs given on command-line, ignoring %s", argv[optind] );
+            } else {
+                have_disc = gdrom_mount_image(argv[optind], &err);
+                if( !have_disc )
+                    no_start = TRUE;
             }
         }
     }
 
-    for( ; optind < argc; optind++ ) {
-        gboolean ok = gdrom_mount_image(argv[optind]);
-        if( !ok ) {
-            ok = file_load_magic( argv[optind] );
-        }
-        if( !ok ) {
-            ERROR( "Unrecognized file '%s'", argv[optind] );
-        }
-        if( !no_start ) {
-            start_immediately = ok;
+    if( exec_name != NULL ) {
+        ERROR err;
+        if( have_save ) {
+            ERROR( "Both a save state and an executable were specified, ignoring %s", exec_name );
+        } else {
+            have_exec = file_load_exec( exec_name, &err );
+            if( !have_exec )
+                no_start = TRUE;
         }
     }
 
+    if( !no_start && (have_exec || have_disc || have_save) ) {
+        start_immediately = TRUE;
+    }
+
     if( gdrom_get_current_disc() == NULL ) {
+        ERROR err;
         gchar *disc_file = lxdream_get_global_config_path_value( CONFIG_GDROM );
         if( disc_file != NULL ) {
-            gdrom_mount_image( disc_file );
+            gboolean ok = gdrom_mount_image( disc_file, &err );
             g_free(disc_file);
+            if( !ok ) {
+                WARN( err.msg );
+            }
         }
     }
 
