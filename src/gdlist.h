@@ -20,6 +20,7 @@
 #ifndef lxdream_gdlist_H
 #define lxdream_gdlist_H 1
 
+#include <stdio.h>
 #include "hook.h"
 
 #ifdef __cplusplus
@@ -64,9 +65,10 @@ const gchar *gdrom_list_get_filename(int index);
 /**
  * Change the current gdrom selection to the selected index. This will mount the
  * appropriate drive/image where necessary.
+ * @param err Updated if there was an error loading the selected gdrom
  * @return TRUE if the selection was updated, FALSE if the position was invalid. 
  */
-gboolean gdrom_list_set_selection(int posn);
+gboolean gdrom_list_set_selection(int posn, ERROR *err);
 
 #ifdef __cplusplus
 }

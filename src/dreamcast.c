@@ -448,7 +448,7 @@ frame_buffer_t dreamcast_load_preview( const gchar *filename )
     return NULL;
 }
 
-int dreamcast_load_state( const gchar *filename )
+gboolean dreamcast_load_state( const gchar *filename )
 {
     int i,j;
     int module_count;
@@ -456,13 +456,13 @@ int dreamcast_load_state( const gchar *filename )
     int have_read[MAX_MODULES];
 
     FILE *f = fopen( filename, "r" );
-    if( f == NULL ) return errno;
+    if( f == NULL ) return FALSE;
 
     module_count = dreamcast_read_save_state_header(f, error, sizeof(error));
     if( module_count <= 0 ) {
     	ERROR( error );
         fclose(f);
-        return 1;
+        return FALSE;
     }
 
     for( i=0; i<MAX_MODULES; i++ ) {
@@ -475,7 +475,7 @@ int dreamcast_load_state( const gchar *filename )
         if( strncmp(chunk.marker, "BLCK", 4) != 0 ) {
             ERROR( "%s save state is corrupted (missing block header %d)", APP_NAME, i );
             fclose(f);
-            return 2;
+            return FALSE;
         }
 
         /* Find the matching module by name */
@@ -485,11 +485,11 @@ int dreamcast_load_state( const gchar *filename )
                 if( modules[j]->load == NULL ) {
                     ERROR( "%s save state is corrupted (no loader for %s)", APP_NAME, modules[j]->name );
                     fclose(f);
-                    return 2;
+                    return FALSE;
                 } else if( modules[j]->load(f) != 0 ) {
                     ERROR( "%s save state is corrupted (%s failed)", APP_NAME, modules[j]->name );
                     fclose(f);
-                    return 2;
+                    return FALSE;
                 }
                 break;
             }
@@ -497,7 +497,7 @@ int dreamcast_load_state( const gchar *filename )
         if( j == num_modules ) {
             fclose(f);
             ERROR( "%s save state contains unrecognized section", APP_NAME );
-            return 2;
+            return FALSE;
         }
     }
 
@@ -512,7 +512,7 @@ int dreamcast_load_state( const gchar *filename )
     }
     fclose(f);
     INFO( "Save state read from %s", filename );
-    return 0;
+    return TRUE;
 }
 
 int dreamcast_save_state( const gchar *filename )

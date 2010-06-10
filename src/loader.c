@@ -33,6 +33,7 @@
 #include "loader.h"
 #include "drivers/cdrom/cdrom.h"
 #include "drivers/cdrom/isofs.h"
+#include "gdrom/gdrom.h"
 
 const char bootstrap_magic[32] = "SEGA SEGAKATANA SEGA ENTERPRISES";
 const char iso_magic[6] = "\001CD001";
@@ -41,101 +42,171 @@ char *file_loader_extensions[][2] = {
         { "bin", "SH4 Bin file" },
         { NULL, NULL } };
 
-gboolean file_load_elf_fd( const gchar *filename, int fd );
+static cdrom_disc_t cdrom_wrap_elf( cdrom_disc_type_t type, const gchar *filename, int fd, ERROR *err );
+static cdrom_disc_t cdrom_wrap_binary( cdrom_disc_type_t type, const gchar *filename, int fd, ERROR *err );
+static gboolean file_load_binary( const gchar *filename, int fd, ERROR *err );
+static gboolean file_load_elf( const gchar *filename, int fd, ERROR *err );
 
-typedef enum {
-    FILE_ERROR,
-    FILE_BINARY,
-    FILE_ELF,
-    FILE_ISO,
-    FILE_DISC,
-    FILE_ZIP,
-    FILE_SAVE_STATE,
-} lxdream_file_type_t;
 
-static lxdream_file_type_t file_magic( const gchar *filename, int fd, ERROR *err )
+
+lxdream_file_type_t file_identify( const gchar *filename, int fd, ERROR *err )
 {
     char buf[32];
+    lxdream_file_type_t result = FILE_UNKNOWN;
+    gboolean mustClose = FALSE;
+    off_t posn;
 
-    /* begin magic */
-    if( read( fd, buf, 32 ) != 32 ) {
-        SET_ERROR( err, errno, "Unable to read from file '%s'", filename );
-        return FILE_ERROR;
-
+    if( fd == -1 ) {
+        fd = open( filename, O_RDONLY );
+        if( fd == -1 ) {
+            SET_ERROR( err, LX_ERR_FILE_NOOPEN, "Unable to open file '%s' (%s)" ,filename, strerror(errno) );
+            return FILE_ERROR;
+        }
+        mustClose = TRUE;
+    } else {
+        /* Save current file position */
+        posn = lseek(fd, 0, SEEK_CUR);
+        if( posn == -1 ) {
+            SET_ERROR( err, LX_ERR_FILE_IOERROR, "Unable to read from file '%s' (%s)", filename, strerror(errno) );
+            return FILE_ERROR;
+        }
     }
 
-    lseek( fd, 0, SEEK_SET );
-    if( buf[0] == 0x7F && buf[1] == 'E' &&
+    int status = read(fd, buf, 32);
+    if( status == -1 ) {
+        SET_ERROR( err, LX_ERR_FILE_IOERROR, "Unable to read from file '%s' (%s)", filename, strerror(errno) );
+        result = FILE_ERROR;
+    } else if( status != 32 ) {
+        result = FILE_UNKNOWN;
+    } else if( buf[0] == 0x7F && buf[1] == 'E' &&
             buf[2] == 'L' && buf[3] == 'F' ) {
-        return FILE_ELF;
+        result = FILE_ELF;
     } else if( memcmp( buf, "PK\x03\x04", 4 ) == 0 ) {
-        return FILE_ZIP;
+        result = FILE_ZIP;
     } else if( memcmp( buf, DREAMCAST_SAVE_MAGIC, 16 ) == 0 ) {
-        return FILE_SAVE_STATE;
+        result = FILE_SAVE_STATE;
     } else if( lseek( fd, 32768, SEEK_SET ) == 32768 &&
             read( fd, buf, 8 ) == 8 &&
             memcmp( buf, iso_magic, 6) == 0 ) {
-        lseek( fd, 0, SEEK_SET );
-        return FILE_ISO;
+        result = FILE_ISO;
+    } else {
+        /* Check the file extension - .bin = sh4 binary */
+        int len = strlen(filename);
+        struct stat st;
+
+        if( len > 4 && strcasecmp(filename + (len-4), ".bin") == 0 &&
+            fstat(fd, &st) != -1 && st.st_size <= BINARY_MAX_SIZE ) {
+            result = FILE_BINARY;
+        }
     }
-    lseek( fd, 0, SEEK_SET );
-    return FILE_BINARY;
+
+    if( mustClose ) {
+        close(fd);
+    } else {
+        lseek( fd, posn, SEEK_SET );
+    }
+    return result;
 }
 
 
-gboolean file_load_magic( const gchar *filename )
+gboolean file_load_exec( const gchar *filename, ERROR *err )
 {
-    char buf[32];
-    struct stat st;
     gboolean result = TRUE;
 
     int fd = open( filename, O_RDONLY );
     if( fd == -1 ) {
+        SET_ERROR( err, LX_ERR_FILE_NOOPEN, "Unable to open file '%s' (%s)" ,filename, strerror(errno) );
         return FALSE;
     }
 
-    fstat( fd, &st );
+    lxdream_file_type_t type = file_identify(filename, fd, err);
+    switch( type ) {
+    case FILE_ERROR:
+        result = FALSE;
+        break;
+    case FILE_ELF:
+        result = file_load_elf( filename, fd, err );
+        break;
+    case FILE_BINARY:
+        result = file_load_binary( filename, fd, err );
+        break;
+    default:
+        SET_ERROR( err, LX_ERR_FILE_UNKNOWN, "File '%s' could not be recognized as an executable binary", filename );
+        result = FALSE;
+        break;
+    }
 
-    /* begin magic */
-    if( read( fd, buf, 32 ) != 32 ) {
-        ERROR( "Unable to read from file '%s'", filename );
-        close(fd);
-        return FALSE;
-    }
-    if( memcmp( buf, bootstrap_magic, 32 ) == 0 ) {
-        /* we have a DC bootstrap */
-        if( st.st_size == BOOTSTRAP_SIZE ) {
-            sh4ptr_t load = mem_get_region( BOOTSTRAP_LOAD_ADDR );
-            lseek( fd, 0, SEEK_SET );
-            read( fd, load, BOOTSTRAP_SIZE );
-            bootstrap_dump( load, TRUE );
-            dreamcast_program_loaded( filename, BOOTSTRAP_LOAD_ADDR + 0x300 );
-        } else {
-            /* look for a valid ISO9660 header */
-            lseek( fd, 32768, SEEK_SET );
-            read( fd, buf, 8 );
-            if( memcmp( buf, iso_magic, 6 ) == 0 ) {
-                /* Alright, got it */
-                WARN( "ISO images not supported yet" );
-            }
-        }
-    } else if( memcmp( buf, "PK\x03\x04", 4 ) == 0 ) {
-        /* ZIP file, aka SBI file */
-        WARN( "SBI files not supported yet" );
-        result = FALSE;
-    } else if( memcmp( buf, DREAMCAST_SAVE_MAGIC, 16 ) == 0 ) {
-        /* Save state */
-        result = (dreamcast_load_state( filename )==0);
-    } else if( buf[0] == 0x7F && buf[1] == 'E' && 
-            buf[2] == 'L' && buf[3] == 'F' ) {
-        /* ELF binary */
-        lseek( fd, 0, SEEK_SET );
-        result = file_load_elf_fd( filename, fd );
-    } else {
-        result = FALSE;
-    }
     close(fd);
     return result;
+}
+
+lxdream_file_type_t file_load_magic( const gchar *filename, gboolean wrap_exec, ERROR *err )
+{
+    gboolean result;
+    /* Try disc types first */
+    cdrom_disc_t disc = cdrom_disc_open( filename, err );
+    if( disc != NULL ) {
+        gdrom_mount_disc(disc);
+        return FILE_DISC;
+    } else if( err != LX_ERR_FILE_UNKNOWN ) {
+        return FILE_ERROR;
+    }
+
+    int fd = open( filename, O_RDONLY );
+    if( fd == -1 ) {
+        SET_ERROR( err, LX_ERR_FILE_NOOPEN, "Unable to open file '%s' (%s)" ,filename, strerror(errno) );
+        return FILE_ERROR;
+    }
+
+    lxdream_file_type_t type = file_identify(filename, fd, err);
+    switch( type ) {
+    case FILE_ERROR:
+        result = FALSE;
+        break;
+    case FILE_ELF:
+        if( wrap_exec ) {
+            disc = cdrom_wrap_elf( CDROM_DISC_XA, filename, fd, err );
+            result = disc != NULL;
+            if( disc != NULL ) {
+                gdrom_mount_disc(disc);
+            }
+        } else {
+            result = file_load_elf( filename, fd, err );
+        }
+        break;
+    case FILE_BINARY:
+        if( wrap_exec ) {
+            disc = cdrom_wrap_binary( CDROM_DISC_XA, filename, fd, err );
+            result = disc != NULL;
+            if( disc != NULL ) {
+                gdrom_mount_disc(disc);
+            }
+        } else {
+            result = file_load_binary( filename, fd, err );
+        }
+        break;
+    case FILE_SAVE_STATE:
+        result = dreamcast_load_state( filename );
+        break;
+    case FILE_ZIP:
+        SET_ERROR( err, LX_ERR_FILE_UNSUP, "ZIP/SBI not currently supported" );
+        result = FALSE;
+        break;
+    case FILE_ISO:
+        SET_ERROR( err, LX_ERR_FILE_UNSUP, "ISO files are not currently supported" );
+        result = FALSE;
+        break;
+    default:
+        SET_ERROR( err, LX_ERR_FILE_UNKNOWN, "File '%s' could not be recognized", filename );
+        result = FALSE;
+        break;
+    }
+    close(fd);
+    if( result ) {
+        CLEAR_ERROR(err);
+        return type;
+    }
+    return FILE_ERROR;
 }
 
 void file_load_postload( const gchar *filename, int pc )
@@ -156,18 +227,7 @@ void file_load_postload( const gchar *filename, int pc )
 }    
 
 
-gboolean file_load_binary( const gchar *filename )
-{
-    /* Load the binary itself */
-    if(  mem_load_block( filename, BINARY_LOAD_ADDR, -1 ) == 0 ) {
-        file_load_postload( filename, BINARY_LOAD_ADDR );
-        return TRUE;
-    } else {
-        return FALSE;
-    }
-}
-
-gboolean is_sh4_elf( Elf32_Ehdr *head )
+static gboolean is_sh4_elf( Elf32_Ehdr *head )
 {
     return ( head->e_ident[EI_CLASS] == ELFCLASS32 &&
             head->e_ident[EI_DATA] == ELFDATA2LSB &&
@@ -177,7 +237,7 @@ gboolean is_sh4_elf( Elf32_Ehdr *head )
             head->e_version == 1 );
 }
 
-gboolean is_arm_elf( Elf32_Ehdr *head )
+static gboolean is_arm_elf( Elf32_Ehdr *head )
 {
     return ( head->e_ident[EI_CLASS] == ELFCLASS32 &&
             head->e_ident[EI_DATA] == ELFDATA2LSB &&
@@ -187,7 +247,7 @@ gboolean is_arm_elf( Elf32_Ehdr *head )
             head->e_version == 1 );
 }
 
-gboolean file_load_elf_fd( const gchar *filename, int fd ) 
+static gboolean file_load_elf( const gchar *filename, int fd, ERROR *err )
 {
     Elf32_Ehdr head;
     Elf32_Phdr phdr;
@@ -196,7 +256,7 @@ gboolean file_load_elf_fd( const gchar *filename, int fd )
     if( read( fd, &head, sizeof(head) ) != sizeof(head) )
         return FALSE;
     if( !is_sh4_elf(&head) ) {
-        ERROR( "File is not an SH4 ELF executable file" );
+        SET_ERROR( err, LX_ERR_FILE_INVALID, "File is not an SH4 ELF executable file" );
         return FALSE;
     }
 
@@ -211,11 +271,34 @@ gboolean file_load_elf_fd( const gchar *filename, int fd )
             if( phdr.p_memsz > phdr.p_filesz ) {
                 memset( target + phdr.p_filesz, 0, phdr.p_memsz - phdr.p_filesz );
             }
-            INFO( "Loaded %d bytes to %08X", phdr.p_filesz, phdr.p_vaddr );
         }
     }
 
     file_load_postload( filename, head.e_entry );
+    return TRUE;
+}
+
+static gboolean file_load_binary( const gchar *filename, int fd, ERROR *err )
+{
+    struct stat st;
+
+    if( fstat( fd, &st ) == -1 ) {
+        SET_ERROR( err, LX_ERR_FILE_IOERROR, "Error reading binary file '%s' (%s)", filename, strerror(errno) );
+        return FALSE;
+    }
+
+    if( st.st_size > BINARY_MAX_SIZE ) {
+        SET_ERROR( err, LX_ERR_FILE_INVALID, "Binary file '%s' is too large to fit in memory", filename );
+        return FALSE;
+    }
+
+    sh4ptr_t target = mem_get_region( BINARY_LOAD_ADDR );
+    if( read( fd, target, st.st_size ) != st.st_size ) {
+        SET_ERROR( err, LX_ERR_FILE_IOERROR, "Error reading binary file '%s' (%s)", filename, strerror(errno) );
+        return FALSE;
+    }
+
+    file_load_postload( filename, BINARY_LOAD_ADDR );
     return TRUE;
 }
 
@@ -233,25 +316,25 @@ cdrom_disc_t cdrom_disc_new_wrapped_binary( cdrom_disc_type_t type, const gchar 
     cdrom_lba_t start_lba = 45000; /* GDROM_START */
     char bootstrap[32768];
 
-    /* 1. Load in the bootstrap */
+    /* 1. Load in the bootstrap: Note failures here are considered configuration errors */
     gchar *bootstrap_file = lxdream_get_global_config_path_value(CONFIG_BOOTSTRAP);
     if( bootstrap_file == NULL || bootstrap_file[0] == '\0' ) {
         g_free(data);
-        SET_ERROR( err, ENOENT, "Unable to create CD image: bootstrap file is not configured" );
+        SET_ERROR( err, LX_ERR_CONFIG, "Unable to create CD image: bootstrap file is not configured" );
         return NULL;
     }
 
     FILE *f = fopen( bootstrap_file, "ro" );
     if( f == NULL ) {
         g_free(data);
-        SET_ERROR( err, errno, "Unable to create CD image: bootstrap file '%s' could not be opened", bootstrap_file );
+        SET_ERROR( err, LX_ERR_CONFIG, "Unable to create CD image: bootstrap file '%s' could not be opened", bootstrap_file );
         return FALSE;
     }
     size_t len = fread( bootstrap, 1, 32768, f );
     fclose(f);
     if( len != 32768 ) {
         g_free(data);
-        SET_ERROR( err, EINVAL, "Unable to create CD image: bootstrap file '%s' is invalid", bootstrap_file );
+        SET_ERROR( err, LX_ERR_CONFIG, "Unable to create CD image: bootstrap file '%s' is invalid", bootstrap_file );
         return FALSE;
     }
 
@@ -280,6 +363,7 @@ cdrom_disc_t cdrom_disc_new_wrapped_binary( cdrom_disc_type_t type, const gchar 
     int status = iso_image_new("autocd", &iso);
     if( status != 1 ) {
         g_free(data);
+        SET_ERROR( err, LX_ERR_NOMEM, "Unable to create CD image: out of memory" );
         return NULL;
     }
 
@@ -287,6 +371,7 @@ cdrom_disc_t cdrom_disc_new_wrapped_binary( cdrom_disc_type_t type, const gchar 
     if( iso_memory_stream_new(data, bin_size, &stream) != 1 ) {
         g_free(data);
         iso_image_unref(iso);
+        SET_ERROR( err, LX_ERR_NOMEM, "Unable to create CD image: out of memory" );
         return NULL;
     }
     iso_tree_add_new_file(iso_image_get_root(iso), "1ST_READ.BIN", stream, NULL);
@@ -297,15 +382,15 @@ cdrom_disc_t cdrom_disc_new_wrapped_binary( cdrom_disc_type_t type, const gchar 
         return NULL;
     }
 
-    cdrom_disc_t disc = cdrom_disc_new_from_track( type, track, start_lba );
+    cdrom_disc_t disc = cdrom_disc_new_from_track( type, track, start_lba, err );
     iso_image_unref(iso);
     if( disc != NULL ) {
         disc->name = g_strdup(filename);
-    }
+    } 
     return disc;
 }
 
-cdrom_disc_t cdrom_wrap_elf_fd( cdrom_disc_type_t type, const gchar *filename, int fd, ERROR *err )
+static cdrom_disc_t cdrom_wrap_elf( cdrom_disc_type_t type, const gchar *filename, int fd, ERROR *err )
 {
     Elf32_Ehdr head;
     int i;
@@ -313,12 +398,13 @@ cdrom_disc_t cdrom_wrap_elf_fd( cdrom_disc_type_t type, const gchar *filename, i
     /* Check the file header is actually an SH4 binary */
     if( read( fd, &head, sizeof(head) ) != sizeof(head) )
         return FALSE;
+
     if( !is_sh4_elf(&head) ) {
-        SET_ERROR( err, EINVAL, "File is not an SH4 ELF executable file" );
+        SET_ERROR( err, LX_ERR_FILE_INVALID, "File is not an SH4 ELF executable file" );
         return FALSE;
     }
     if( head.e_entry != BINARY_LOAD_ADDR ) {
-        SET_ERROR( err, EINVAL, "SH4 Binary has incorrect entry point (should be %08X but is %08X)", BINARY_LOAD_ADDR, head.e_entry );
+        SET_ERROR( err, LX_ERR_FILE_INVALID, "SH4 Binary has incorrect entry point (should be %08X but is %08X)", BINARY_LOAD_ADDR, head.e_entry );
         return FALSE;
     }
 
@@ -326,7 +412,7 @@ cdrom_disc_t cdrom_wrap_elf_fd( cdrom_disc_type_t type, const gchar *filename, i
     Elf32_Phdr phdr[head.e_phnum];
     lseek( fd, head.e_phoff, SEEK_SET );
     if( read( fd, phdr, sizeof(phdr) ) != sizeof(phdr) ) {
-        SET_ERROR( err, EINVAL, "File is not a valid executable file" );
+        SET_ERROR( err, LX_ERR_FILE_INVALID, "File is not a valid executable file" );
         return FALSE;
     }
 
@@ -342,11 +428,11 @@ cdrom_disc_t cdrom_wrap_elf_fd( cdrom_disc_type_t type, const gchar *filename, i
     }
 
     if( start != BINARY_LOAD_ADDR ) {
-        SET_ERROR( err, EINVAL, "SH4 Binary has incorrect load address (should be %08X but is %08X)", BINARY_LOAD_ADDR, start );
+        SET_ERROR( err, LX_ERR_FILE_INVALID, "SH4 Binary has incorrect load address (should be %08X but is %08X)", BINARY_LOAD_ADDR, start );
         return FALSE;
     }
     if( end >= 0x8D000000 ) {
-        SET_ERROR( err, EINVAL, "SH4 binary is too large to fit in memory (end address is %08X)", end );
+        SET_ERROR( err, LX_ERR_FILE_INVALID, "SH4 binary is too large to fit in memory (end address is %08X)", end );
         return FALSE;
     }
 
@@ -356,7 +442,12 @@ cdrom_disc_t cdrom_wrap_elf_fd( cdrom_disc_type_t type, const gchar *filename, i
         if( phdr[i].p_type == PT_LOAD ) {
             lseek( fd, phdr[i].p_offset, SEEK_SET );
             uint32_t size = MIN( phdr[i].p_filesz, phdr[i].p_memsz);
-            read( fd, program + phdr[i].p_vaddr, size );
+            int status = read( fd, program + phdr[i].p_vaddr, size );
+            if( status == -1 ) {
+                SET_ERROR( err, LX_ERR_FILE_IOERROR, "I/O error reading SH4 binary %s (%s)", filename, strerror(errno) );
+            } else if( status != size ) {
+                SET_ERROR( err, LX_ERR_FILE_IOERROR, "SH4 binary %s is corrupt", filename );
+            }            
         }
     }
 
@@ -364,39 +455,52 @@ cdrom_disc_t cdrom_wrap_elf_fd( cdrom_disc_type_t type, const gchar *filename, i
     return cdrom_disc_new_wrapped_binary(type, filename, program, end-start, err );
 }
 
+static cdrom_disc_t cdrom_wrap_binary( cdrom_disc_type_t type, const gchar *filename, int fd, ERROR *err )
+{
+    struct stat st;
+    char *data;
+    size_t len;
+
+    if( fstat(fd, &st) == -1 ) {
+        SET_ERROR( err, LX_ERR_FILE_IOERROR, "Error reading binary file '%s' (%s)", filename, strerror(errno) );
+        return NULL;
+    }
+
+    data = g_malloc(st.st_size);
+    len = read( fd, data, st.st_size );
+    if( len != st.st_size ) {
+        SET_ERROR( err, LX_ERR_FILE_IOERROR, "Error reading binary file '%s' (%s)", filename, strerror(errno) );
+        free(data);
+        return NULL;
+    }
+
+    return cdrom_disc_new_wrapped_binary( type, filename, data, st.st_size, err );
+}
+
 cdrom_disc_t cdrom_wrap_magic( cdrom_disc_type_t type, const gchar *filename, ERROR *err )
 {
-    cdrom_disc_t disc;
-    char *data;
-    int len;
-    struct stat st;
+    cdrom_disc_t disc = NULL;
+
     int fd = open( filename, O_RDONLY );
     if( fd == -1 ) {
-        SET_ERROR( err, errno, "Unable to open file '%s'", filename );
+        SET_ERROR( err, LX_ERR_FILE_NOOPEN, "Unable to open file '%s'", filename );
         return NULL;
     }
 
-
-    lxdream_file_type_t filetype = file_magic( filename, fd, err );
+    lxdream_file_type_t filetype = file_identify( filename, fd, err );
     switch( filetype ) {
-    case FILE_BINARY:
-        fstat( fd, &st );
-        data = g_malloc(st.st_size);
-        len = read( fd, data, st.st_size );
-        close(fd);
-        if( len != st.st_size ) {
-            SET_ERROR( err, errno, "Error reading binary file '%s'", filename );
-            return NULL;
-        }
-        return cdrom_disc_new_wrapped_binary( type, filename, data, st.st_size, err );
     case FILE_ELF:
-        disc = cdrom_wrap_elf_fd(type, filename, fd, err);
-        close(fd);
-        return disc;
+        disc = cdrom_wrap_elf(type, filename, fd, err);
+        break;
+    case FILE_BINARY:
+        disc = cdrom_wrap_binary(type, filename, fd, err);
+        break;
     default:
-        close(fd);
-        SET_ERROR( err, EINVAL, "File '%s' cannot be wrapped (not a binary)", filename );
-        return NULL;
+        SET_ERROR( err, LX_ERR_FILE_UNKNOWN, "File '%s' cannot be wrapped (not a recognized binary)", filename );
+        break;
     }
+
+    close(fd);
+    return disc;
 
 }

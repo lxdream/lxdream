@@ -28,6 +28,7 @@
 #include "gdrom/gdrom.h"
 #include "gdrom/packet.h"
 #include "bootstrap.h"
+#include "loader.h"
 #include "drivers/cdrom/cdrom.h"
 
 #define GDROM_LBA_OFFSET 150
@@ -58,9 +59,12 @@ void gdrom_mount_disc( cdrom_disc_t disc )
     }
 }
 
-gboolean gdrom_mount_image( const gchar *filename )
+gboolean gdrom_mount_image( const gchar *filename,  ERROR *err )
 {
-    cdrom_disc_t disc = cdrom_disc_open(filename, NULL);
+    cdrom_disc_t disc = cdrom_disc_open(filename, err);
+    if( disc == NULL && err->code == LX_ERR_FILE_UNKNOWN ) {
+        disc = cdrom_wrap_magic( CDROM_DISC_XA, filename, err );
+    } 
     if( disc != NULL ) {         
         gdrom_mount_disc( disc );
         return TRUE;

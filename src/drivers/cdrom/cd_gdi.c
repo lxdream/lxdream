@@ -64,12 +64,12 @@ static gboolean gdi_image_read_toc( cdrom_disc_t disc, ERROR *err )
     fseek(f, 0, SEEK_SET);
 
     if( fgets( line, sizeof(line), f ) == NULL ) {
-        SET_ERROR( err, EINVAL, "Invalid GDI image" );
+        SET_ERROR( err, LX_ERR_FILE_INVALID, "Invalid GDI image" );
         return FALSE;
     }
     track_count = strtoul(line, NULL, 0);
     if( track_count == 0 || track_count > 99 ) {
-        SET_ERROR( err, EINVAL, "Invalid GDI image" );
+        SET_ERROR( err, LX_ERR_FILE_INVALID, "Invalid GDI image" );
         return FALSE;
     }
 
@@ -83,7 +83,7 @@ static gboolean gdi_image_read_toc( cdrom_disc_t disc, ERROR *err )
 
         if( fgets( line, sizeof(line), f ) == NULL ) {
             cdrom_disc_unref(disc);
-            SET_ERROR( err, EINVAL, "Invalid GDI image - unexpected end of file" );
+            SET_ERROR( err, LX_ERR_FILE_INVALID, "Invalid GDI image - unexpected end of file" );
             return FALSE;
         }
         sscanf( line, "%d %d %d %d %s %d", &track_no, &start_lba, &flags, &size,
@@ -105,7 +105,7 @@ static gboolean gdi_image_read_toc( cdrom_disc_t disc, ERROR *err )
             case 2336: mode = SECTOR_SEMIRAW_MODE2; break;
             case 2352: mode = SECTOR_RAW_XA; break;
             default:
-                SET_ERROR( err, EINVAL, "Invalid sector size '%d' in GDI track %d", size, (i+1) );
+                SET_ERROR( err, LX_ERR_FILE_INVALID, "Invalid sector size '%d' in GDI track %d", size, (i+1) );
                 g_free(dirname);
                 return FALSE;
             }
@@ -115,7 +115,7 @@ static gboolean gdi_image_read_toc( cdrom_disc_t disc, ERROR *err )
             if( size == 0 )
                 size = 2352;
             else if( size != 2352 ) {
-                SET_ERROR( err, EINVAL, "Invalid sector size '%d' for audio track %d", size, (i+1) );
+                SET_ERROR( err, LX_ERR_FILE_INVALID, "Invalid sector size '%d' for audio track %d", size, (i+1) );
                 g_free(dirname);
                 return FALSE;
             }
@@ -128,7 +128,8 @@ static gboolean gdi_image_read_toc( cdrom_disc_t disc, ERROR *err )
                     offset, FILE_SECTOR_FULL_FILE );
             g_free(pathname);
             if( disc->track[i].source == NULL ) {
-                SET_ERROR( err, ENOENT, "GDI track file '%s' could not be opened (%s)", filename, strerror(errno) );
+                /* Note: status is invalid because it's a failure of the GDI file */
+                SET_ERROR( err, LX_ERR_FILE_INVALID, "GDI track file '%s' could not be opened (%s)", filename, strerror(errno) );
                 g_free(dirname);
                 return FALSE;
             }

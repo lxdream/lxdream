@@ -30,8 +30,8 @@ ARMLDFLAGS      = -Wl,-T$(srcdir)/aica.x -nostartfiles -mlittle-endian \
 ARMLIBS         = -Wl,--start-group -lc -lgcc -lm -Wl,--end-group
 ARMOBJCOPY	= @ARMOBJCOPY@ -O binary
 
-RUNTEST		= ../src/lxdream -c $(srcdir)/lxdream.rc -puH -A null
-RUNTESTX	= ../src/lxdream -c $(srcdir)/lxdream.rc -xpuH -A null
+RUNTEST		= ../src/lxdream -c $(srcdir)/lxdream.rc -puH -A null -e
+RUNTESTX	= ../src/lxdream -c $(srcdir)/lxdream.rc -xpuH -A null -e
 
 BUILD_SYSTEST_FALSE = @BUILD_SYSTEST_FALSE@
 BUILD_SYSTEST_TRUE = @BUILD_SYSTEST_TRUE@

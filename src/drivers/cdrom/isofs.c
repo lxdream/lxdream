@@ -60,6 +60,24 @@ static IsoDataSource *iso_data_source_new( sector_source_t source )
     return src;
 }
 
+static void iso_error_convert( int status, ERROR *err )
+{
+    switch( status ) {
+    case ISO_SUCCESS:
+        err->code = LX_ERR_NONE;
+        break;
+    case ISO_OUT_OF_MEM:
+        SET_ERROR( err, LX_ERR_NOMEM, "Unable to allocate memory for ISO filesystem" );
+        break;
+    case ISO_FILE_READ_ERROR:
+        SET_ERROR( err, LX_ERR_FILE_IOERROR, "Read error" );
+        break;
+    default:
+        SET_ERROR( err, LX_ERR_UNHANDLED, "Unknown error in ISO filesystem" );
+        break;
+    }
+}
+
 /**
  * Construct an isofs image from an existing sector source.
  */
@@ -110,6 +128,7 @@ IsoImageFilesystem *iso_filesystem_new_from_source( sector_source_t source, cdro
 
     int status = iso_read_opts_new(&opts,0);
     if( status != 1 ) {
+        iso_error_convert(status, err);
         return NULL;
     }
 
@@ -119,6 +138,7 @@ IsoImageFilesystem *iso_filesystem_new_from_source( sector_source_t source, cdro
     iso_data_source_unref(src);
     iso_read_opts_free(opts);
     if( status != 1 ) {
+        iso_error_convert(status, err);
         return NULL;
     }
     return iso;
@@ -148,8 +168,10 @@ sector_source_t iso_sector_source_new( IsoImage *image, sector_mode_t mode, cdro
     struct burn_source *burn;
 
     int status = iso_write_opts_new(&opts, 0);
-    if( status != 1 )
+    if( status != 1 ) {
+        iso_error_convert(status, err);
         return NULL;
+    }
     iso_write_opts_set_appendable(opts,0);
     iso_write_opts_set_ms_block(opts, start_sector);
     iso_write_opts_set_system_area(opts, (char *)bootstrap, 0, 0);
@@ -157,6 +179,7 @@ sector_source_t iso_sector_source_new( IsoImage *image, sector_mode_t mode, cdro
     status = iso_image_create_burn_source(image, opts, &burn);
     iso_write_opts_free(opts);
     if( status != 1 ) {
+        iso_error_convert(status, err);
         return NULL;
     }
 

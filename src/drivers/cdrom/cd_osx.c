@@ -81,7 +81,7 @@ static cdrom_disc_t cdrom_osx_open( cdrom_drive_t drive, ERROR *err )
 
     osx_cdrom_drive_t osx_drive = osx_cdrom_open_drive(drive->name);
     if( osx_drive == NULL ) {
-        SET_ERROR( err, ENOENT, "Unable to open CDROM drive" );
+        SET_ERROR( err, LX_ERR_FILE_NOOPEN, "Unable to open CDROM drive" );
         return NULL;
     } else {
         return cdrom_osx_new( drive->name, osx_drive, err );

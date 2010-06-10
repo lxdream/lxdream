@@ -103,7 +103,7 @@ cdrom_disc_t cdrom_disc_open( const char *filename, ERROR *err );
  * @param lba The position on disc of the main track. If non-zero,
  * a filler track is added before it, in 2 separate sessions.
  */
-cdrom_disc_t cdrom_disc_new_from_track( cdrom_disc_type_t type, sector_source_t track, cdrom_lba_t lba );
+cdrom_disc_t cdrom_disc_new_from_track( cdrom_disc_type_t type, sector_source_t track, cdrom_lba_t lba, ERROR *err );
 
 /**
  * Get the track information for the given track. If there is no such track,

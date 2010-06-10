@@ -98,6 +98,7 @@ void open_file_dialog_cb( const char *title, file_callback_t action, const char 
                           int initial_dir_key );
 void save_file_dialog_cb( const char *title, file_callback_t action, const char *pattern, const char *patname,
                           int initial_dir_key );
+gboolean gtk_gui_gdrom_mount_image( const char *filename );
 /**
  * Extract the keyval of the key event if no modifier keys were pressed -
  * in other words get the keyval of the key by itself. The other way around

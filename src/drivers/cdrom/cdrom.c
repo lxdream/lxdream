@@ -116,7 +116,7 @@ cdrom_disc_t cdrom_disc_new( const char *name, ERROR *err )
     if( disc != NULL ) {
         cdrom_disc_init( disc, name );
     } else {
-        SET_ERROR(err, ENOMEM, "Unable to allocate memory for cdrom disc");
+        SET_ERROR(err, LX_ERR_NOMEM, "Unable to allocate memory for cdrom disc");
     }
     return disc;
 }
@@ -131,7 +131,7 @@ static cdrom_disc_t cdrom_disc_image_new( const char *filename, ERROR *err )
     if( disc != NULL && filename != NULL ) {
         disc->base_source = file_sector_source_new_filename( filename, SECTOR_UNKNOWN, 0, FILE_SECTOR_FULL_FILE );
         if( disc->base_source == NULL ) {
-            SET_ERROR( err, errno, "Unable to open cdrom file '%s': %s", filename, strerror(errno) );
+            SET_ERROR( err, LX_ERR_FILE_NOOPEN, "Unable to open cdrom file '%s': %s", filename, strerror(errno) );
             cdrom_disc_unref(disc);
             disc = NULL;
         } else {
@@ -272,7 +272,7 @@ cdrom_disc_t cdrom_disc_open( const char *inFilename, ERROR *err )
     } else {
         /* No handler found for file */
         cdrom_disc_unref( disc );
-        SET_ERROR( err, EINVAL, "File '%s' could not be recognized as any known image file or device type" );
+        SET_ERROR( err, LX_ERR_FILE_UNKNOWN, "File '%s' could not be recognized as any known image file or device type", filename );
         return NULL;
     }
 }
@@ -284,7 +284,7 @@ cdrom_disc_t cdrom_disc_open( const char *inFilename, ERROR *err )
  * @param lba The position on disc of the main track. If non-zero,
  * a filler track is added before it, in 2 separate sessions.
  */
-cdrom_disc_t cdrom_disc_new_from_track( cdrom_disc_type_t type, sector_source_t track, cdrom_lba_t lba )
+cdrom_disc_t cdrom_disc_new_from_track( cdrom_disc_type_t type, sector_source_t track, cdrom_lba_t lba, ERROR *err )
 {
     cdrom_disc_t disc = cdrom_disc_new( NULL, NULL );
     if( disc != NULL ) {
@@ -312,6 +312,8 @@ cdrom_disc_t cdrom_disc_new_from_track( cdrom_disc_type_t type, sector_source_t 
         disc->track_count = trackno+1;
         disc->session_count = trackno+1;
         cdrom_disc_compute_leadout(disc);
+    } else {
+        SET_ERROR(err, LX_ERR_NOMEM, "Unable to allocate memory for cdrom disc");
     }
     return disc;
 }
@@ -325,7 +327,7 @@ cdrom_disc_t cdrom_disc_new_from_iso_image( cdrom_disc_type_t type, IsoImage *is
     sector_mode_t mode = (type == CDROM_DISC_NONXA ? SECTOR_MODE1 : SECTOR_MODE2_FORM1 );
     sector_source_t source = iso_sector_source_new( iso, mode, lba, bootstrap, err );
     if( source != NULL ) {
-        cdrom_disc_t disc = cdrom_disc_new_from_track(type, source, lba);
+        cdrom_disc_t disc = cdrom_disc_new_from_track(type, source, lba, err);
         if( disc == NULL ) {
             sector_source_unref( source );
         } else {

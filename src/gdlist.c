@@ -147,7 +147,7 @@ void gdrom_list_init()
     CALL_HOOKS( gdrom_list_change_hook, TRUE, gdrom_list_get_selection() );
 }
 
-gboolean gdrom_list_set_selection( int posn )
+gboolean gdrom_list_set_selection( int posn, ERROR *err )
 {
     if( posn == 0 ) { // Always 'Empty'
         gdrom_unmount_disc();
@@ -156,15 +156,17 @@ gboolean gdrom_list_set_selection( int posn )
 
     if( posn <= gdrom_device_count ) {
         cdrom_drive_t device = g_list_nth_data(gdrom_device_list, posn-1);
-        return gdrom_mount_image(device->name);
+        return gdrom_mount_image(device->name, err);
     }
 
     posn -= FIRST_RECENT_INDEX;
     if( posn >= 0 && posn < gdrom_recent_count ) {
         gchar *entry = g_list_nth_data(gdrom_recent_list, posn);
-        return gdrom_mount_image(entry);
+        return gdrom_mount_image(entry, err);
     }
 
+    /* Should never happen */
+    SET_ERROR( err, LX_ERR_BUG, "Invalid selection: This is probably a bug" );
     return FALSE;
 }
 

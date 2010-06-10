@@ -129,7 +129,7 @@ void save_file_dialog_cb( const char *title, file_callback_t action, const char 
 
 void mount_action_callback( GtkAction *action, gpointer user_data)
 {
-    open_file_dialog_cb( "Open...", gdrom_mount_image, NULL, NULL, CONFIG_DEFAULT_PATH );
+    open_file_dialog_cb( "Open...", gtk_gui_gdrom_mount_image, NULL, NULL, CONFIG_DEFAULT_PATH );
 }
 void reset_action_callback( GtkAction *action, gpointer user_data)
 {
@@ -146,9 +146,19 @@ void resume_action_callback( GtkAction *action, gpointer user_data)
     dreamcast_run();
 }
 
+gboolean gtk_gui_load_exec( const gchar *filename )
+{
+    ERROR err;
+    gboolean ok = file_load_exec(filename, &err);
+    if( !ok ) {
+        ERROR(err.msg);
+    }
+    return ok;
+}
+
 void load_binary_action_callback( GtkAction *action, gpointer user_data)
 {
-    open_file_dialog_cb( "Open Binary...", file_load_magic, NULL, NULL, CONFIG_DEFAULT_PATH );
+    open_file_dialog_cb( "Open Binary...", gtk_gui_load_exec, NULL, NULL, CONFIG_DEFAULT_PATH );
 }
 
 void load_state_preview_callback( GtkFileChooser *chooser, gpointer user_data )

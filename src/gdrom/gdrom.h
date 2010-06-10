@@ -53,7 +53,7 @@ cdrom_disc_t gdrom_image_open( const gchar *filename );
  * Shortcut to open and mount an image file
  * @return true on success
  */
-gboolean gdrom_mount_image( const gchar *filename );
+gboolean gdrom_mount_image( const gchar *filename, ERROR *err );
 
 void gdrom_mount_disc( cdrom_disc_t disc );
 
