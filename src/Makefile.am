@@ -6,7 +6,7 @@ INCLUDES = \
 	-DPACKAGE_PLUGIN_DIR=\""$(pkglibdir)"\" \
 	-DPACKAGE_CONF_DIR=\""$(sysconfdir)"\" \
         -Ish4 \
-	@GLIB_CFLAGS@ @GTK_CFLAGS@ @LIBPNG_CFLAGS@ @PULSE_CFLAGS@ @ESOUND_CFLAGS@ @ALSA_CFLAGS@ @SDL_CFLAGS@
+	@GLIB_CFLAGS@ @GTK_CFLAGS@ @LIBPNG_CFLAGS@ @PULSE_CFLAGS@ @ESOUND_CFLAGS@ @ALSA_CFLAGS@ @SDL_CFLAGS@ @LIBGL_CFLAGS@ @LIBISOFS_CFLAGS@
 
 SOEXT=@SOEXT@
 PLUGINCFLAGS = @PLUGINCFLAGS@ 
@@ -39,7 +39,7 @@ gendec_SOURCES = tools/gendec.c tools/gendec.h tools/insparse.c tools/actparse.c
 genmach_SOURCES = tools/genmach.c tools/genmach.h tools/mdparse.c
 genglsl_SOURCES = tools/genglsl.c
 lxdream_LINK = $(LINK) @LXDREAMLDFLAGS@
-lxdream_LDADD = @LXDREAM_LIBS@ @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@ $(INTLLIBS)
+lxdream_LDADD = @LXDREAM_LIBS@ @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@ @LIBGL_LIBS@ @LIBISOFS_LIBS@ $(INTLLIBS)
 lxdream_SOURCES = \
         main.c version.c config.c config.h lxdream.h dream.h gui.h cpu.c cpu.h hook.h \
         gettext.h mem.c mem.h sdram.c mmio.h watch.c \

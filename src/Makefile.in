@@ -425,6 +425,10 @@ INTLLIBS = @INTLLIBS@
 JOY_LINUX_FALSE = @JOY_LINUX_FALSE@
 JOY_LINUX_TRUE = @JOY_LINUX_TRUE@
 LDFLAGS = @LDFLAGS@
+LIBGL_CFLAGS = @LIBGL_CFLAGS@
+LIBGL_LIBS = @LIBGL_LIBS@
+LIBISOFS_CFLAGS = @LIBISOFS_CFLAGS@
+LIBISOFS_LIBS = @LIBISOFS_LIBS@
 LIBOBJS = @LIBOBJS@
 LIBPNG_CFLAGS = @LIBPNG_CFLAGS@
 LIBPNG_LIBS = @LIBPNG_LIBS@
@@ -534,7 +538,7 @@ INCLUDES = \
 	-DPACKAGE_PLUGIN_DIR=\""$(pkglibdir)"\" \
 	-DPACKAGE_CONF_DIR=\""$(sysconfdir)"\" \
         -Ish4 \
-	@GLIB_CFLAGS@ @GTK_CFLAGS@ @LIBPNG_CFLAGS@ @PULSE_CFLAGS@ @ESOUND_CFLAGS@ @ALSA_CFLAGS@ @SDL_CFLAGS@
+	@GLIB_CFLAGS@ @GTK_CFLAGS@ @LIBPNG_CFLAGS@ @PULSE_CFLAGS@ @ESOUND_CFLAGS@ @ALSA_CFLAGS@ @SDL_CFLAGS@ @LIBGL_CFLAGS@ @LIBISOFS_CFLAGS@
 
 EXTRA_DIST = drivers/genkeymap.pl checkver.pl drivers/dummy.c
 AM_CFLAGS = -D__EXTENSIONS__ -D_BSD_SOURCE -D_GNU_SOURCE
@@ -554,8 +558,9 @@ genmach_SOURCES = tools/genmach.c tools/genmach.h tools/mdparse.c
 genglsl_SOURCES = tools/genglsl.c
 lxdream_LINK = $(LINK) @LXDREAMLDFLAGS@
 lxdream_LDADD = @LXDREAM_LIBS@ @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@ \
-	$(INTLLIBS) $(am__append_18) $(am__append_20) $(am__append_22) \
-	$(am__append_24) $(am__append_26)
+	@LIBGL_LIBS@ @LIBISOFS_LIBS@ $(INTLLIBS) $(am__append_18) \
+	$(am__append_20) $(am__append_22) $(am__append_24) \
+	$(am__append_26)
 lxdream_SOURCES = main.c version.c config.c config.h lxdream.h dream.h \
 	gui.h cpu.c cpu.h hook.h gettext.h mem.c mem.h sdram.c mmio.h \
 	watch.c asic.c asic.h clock.h serial.h syscall.c syscall.h \
