@@ -217,11 +217,12 @@ fi
 
 AM_CONDITIONAL(GUI_GTK, [test "$HAVE_GTK" = 'yes'])
 
-AC_CHECK_HEADER([libisofs/libisofs.h], [
-   AC_CHECK_LIB(isofs, [iso_data_source_new_from_file], [
-      LIBS="$LIBS -lisofs"
-   ], [ AC_MSG_FAILURE( ["Libisofs library not found, but is required"]) ])], 
-      [ AC_MSG_FAILURE( ["Libisofs headers not found, but is required"]) ])
+PKG_CHECK_MODULES(LIBISOFS, [libisofs-1] )
+dnl AC_CHECK_HEADER([libisofs/libisofs.h], [
+   dnl AC_CHECK_LIB(isofs, [iso_data_source_new_from_file], [
+      dnl LIBS="$LIBS -lisofs"
+   dnl ], [ AC_MSG_FAILURE( ["Libisofs library not found, but is required"]) ])], 
+      dnl [ AC_MSG_FAILURE( ["Libisofs headers not found, but is required"]) ])
 
 dnl ------------------ Video driver support -------------------
 AS_IF([test "x$with_osmesa" != xno], [ 
@@ -238,10 +239,11 @@ dnl User requested OSMesa (ie pure software rendering)
 dnl Otherwise we want a real GL library (unless we're on darwin, in which case it's already
 dnl taken care of above).
    if test "x$APPLE_BUILD" != 'xyes'; then
-      AC_CHECK_LIB(GL, glVertex3f, [], [
-          AC_MSG_FAILURE( ["The OpenGL library (libGL.so) could not be found, but is required."])])
-      AC_CHECK_HEADER([GL/gl.h], [], [
-          AC_MSG_FAILURE( ["The OpenGL header files (eg GL/gl.h) could not be found, but are required."])])
+      PKG_CHECK_MODULES(LIBGL, [gl] )
+      dnl AC_CHECK_LIB(GL, glVertex3f, [], [
+          dnl AC_MSG_FAILURE( ["The OpenGL library (libGL.so) could not be found, but is required."])])
+      dnl AC_CHECK_HEADER([GL/gl.h], [], [
+          dnl AC_MSG_FAILURE( ["The OpenGL header files (eg GL/gl.h) could not be found, but are required."])])
    else
       AC_CHECK_FUNC(NSOpenGLGetVersion, [
          HAVE_NSGL='yes'
