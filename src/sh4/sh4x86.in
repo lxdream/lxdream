@@ -71,6 +71,8 @@
 #define DELAY_PC 1
 #define DELAY_PC_PR 2
 
+#define SH4_MODE_UNKNOWN -1
+
 struct backpatch_record {
     uint32_t fixup_offset;
     uint32_t fixup_icount;
@@ -84,6 +86,7 @@ struct backpatch_record {
  */
 struct sh4_x86_state {
     int in_delay_slot;
+    uint8_t *code;
     gboolean fpuen_checked; /* true if we've already checked fpu enabled. */
     gboolean branch_taken; /* true if we branched unconditionally */
     gboolean double_prec; /* true if FPU is in double-precision mode */
@@ -91,6 +94,7 @@ struct sh4_x86_state {
     gboolean sse3_enabled; /* true if host supports SSE3 instructions */
     uint32_t block_start_pc;
     uint32_t stack_posn;   /* Trace stack height for alignment purposes */
+    uint32_t sh4_mode;     /* Mirror of sh4r.xlat_sh4_mode */
     int tstate;
 
     /* mode flags */
@@ -171,7 +175,7 @@ void sh4_translate_disasm_block( FILE *out, void *code, sh4addr_t source_start, 
         fprintf( out, "%c%016lx: %-30s %-40s", (target_pc == (uintptr_t)native_pc ? '*' : ' '),
                       target_pc, op, buf );
 #else
-        fprintf( out, "%c%08x: %-30s %-40s", (target_pc == (uintptr_t)native_pc ? '*' : ' '),
+        fprintf( out, "%c%08lx: %-30s %-40s", (target_pc == (uintptr_t)native_pc ? '*' : ' '),
                       target_pc, op, buf );
 #endif        
         if( source_recov_table < source_recov_end && 
@@ -249,6 +253,7 @@ static void sh4_x86_add_backpatch( uint8_t *fixup_addr, uint32_t fixup_pc, uint3
 #define SETNE_t()        SETCCB_cc_rbpdisp(X86_COND_NE,R_T)
 #define SETC_r8(r1)      SETCCB_cc_r8(X86_COND_C, r1)
 #define JAE_label(label) JCC_cc_rel8(X86_COND_AE,-1); MARK_JMP8(label)
+#define JBE_label(label) JCC_cc_rel8(X86_COND_BE,-1); MARK_JMP8(label)
 #define JE_label(label)  JCC_cc_rel8(X86_COND_E,-1); MARK_JMP8(label)
 #define JGE_label(label) JCC_cc_rel8(X86_COND_GE,-1); MARK_JMP8(label)
 #define JNA_label(label) JCC_cc_rel8(X86_COND_NA,-1); MARK_JMP8(label)
@@ -317,7 +322,7 @@ static void sh4_x86_add_backpatch( uint8_t *fixup_addr, uint32_t fixup_pc, uint3
 /* Exception checks - Note that all exception checks will clobber EAX */
 
 #define check_priv( ) \
-    if( (sh4r.xlat_sh4_mode & SR_MD) == 0 ) { \
+    if( (sh4_x86.sh4_mode & SR_MD) == 0 ) { \
         if( sh4_x86.in_delay_slot ) { \
             exit_block_exc(EXC_SLOT_ILLEGAL, (pc-2) ); \
         } else { \
@@ -365,7 +370,7 @@ static void sh4_x86_add_backpatch( uint8_t *fixup_addr, uint32_t fixup_pc, uint3
     TESTL_imms_r32( 0x00000007, x86reg ); \
     JNE_exc(EXC_DATA_ADDR_WRITE);
 
-#define address_space() ((sh4r.xlat_sh4_mode&SR_MD) ? (uintptr_t)sh4_address_space : (uintptr_t)sh4_user_address_space)
+#define address_space() ((sh4_x86.sh4_mode&SR_MD) ? (uintptr_t)sh4_address_space : (uintptr_t)sh4_user_address_space)
 
 #define UNDEF(ir)
 /* Note: For SR.MD == 1 && MMUCR.AT == 0, there are no memory exceptions, so 
@@ -375,7 +380,7 @@ static void sh4_x86_add_backpatch( uint8_t *fixup_addr, uint32_t fixup_pc, uint3
 static void call_read_func(int addr_reg, int value_reg, int offset, int pc)
 {
     decode_address(address_space(), addr_reg);
-    if( !sh4_x86.tlb_on && (sh4r.xlat_sh4_mode & SR_MD) ) { 
+    if( !sh4_x86.tlb_on && (sh4_x86.sh4_mode & SR_MD) ) { 
         CALL1_r32disp_r32(REG_ECX, offset, addr_reg);
     } else {
         if( addr_reg != REG_ARG1 ) {
@@ -393,7 +398,7 @@ static void call_read_func(int addr_reg, int value_reg, int offset, int pc)
 static void call_write_func(int addr_reg, int value_reg, int offset, int pc)
 {
     decode_address(address_space(), addr_reg);
-    if( !sh4_x86.tlb_on && (sh4r.xlat_sh4_mode & SR_MD) ) { 
+    if( !sh4_x86.tlb_on && (sh4_x86.sh4_mode & SR_MD) ) { 
         CALL2_r32disp_r32_r32(REG_ECX, offset, addr_reg, value_reg);
     } else {
         if( value_reg != REG_ARG2 ) {
@@ -444,8 +449,7 @@ static void call_write_func(int addr_reg, int value_reg, int offset, int pc)
 
 void sh4_translate_begin_block( sh4addr_t pc ) 
 {
-    enter_block();
-    MOVP_immptr_rptr( ((uint8_t *)&sh4r) + 128, REG_EBP );
+	sh4_x86.code = xlat_output;
     sh4_x86.in_delay_slot = FALSE;
     sh4_x86.fpuen_checked = FALSE;
     sh4_x86.branch_taken = FALSE;
@@ -455,6 +459,8 @@ void sh4_translate_begin_block( sh4addr_t pc )
     sh4_x86.tstate = TSTATE_NONE;
     sh4_x86.double_prec = sh4r.fpscr & FPSCR_PR;
     sh4_x86.double_size = sh4r.fpscr & FPSCR_SZ;
+    sh4_x86.sh4_mode = sh4r.xlat_sh4_mode;
+    enter_block();
 }
 
 
@@ -481,19 +487,49 @@ void sh4_translate_emit_breakpoint( sh4vma_t pc )
 
 #define UNTRANSLATABLE(pc) !IS_IN_ICACHE(pc)
 
+/** Offset of xlat_sh4_mode field relative to the code pointer */ 
+#define XLAT_SH4_MODE_CODE_OFFSET  (uint32_t)(offsetof(struct xlat_cache_block, xlat_sh4_mode) - offsetof(struct xlat_cache_block,code) )
+
+/**
+ * Test if the loaded target code pointer in %eax is valid, and if so jump
+ * directly into it, bypassing the normal exit.
+ */
+static void jump_next_block()
+{
+	TESTP_rptr_rptr(REG_EAX, REG_EAX);
+	JE_label(nocode);
+	if( sh4_x86.sh4_mode == SH4_MODE_UNKNOWN ) {
+	    /* sr/fpscr was changed, possibly updated xlat_sh4_mode, so reload it */
+	    MOVL_rbpdisp_r32( REG_OFFSET(xlat_sh4_mode), REG_ECX );
+	    CMPL_r32_r32disp( REG_ECX, REG_EAX, XLAT_SH4_MODE_CODE_OFFSET );
+	} else {
+	    CMPL_imms_r32disp( sh4_x86.sh4_mode, REG_EAX, XLAT_SH4_MODE_CODE_OFFSET );
+	}
+	JNE_label(wrongmode);
+	LEAP_rptrdisp_rptr(REG_EAX, PROLOGUE_SIZE,REG_EAX);
+	JMP_rptr(REG_EAX);
+	JMP_TARGET(nocode); JMP_TARGET(wrongmode);
+}
+
 /**
  * Exit the block with sh4r.pc already written
  */
 void exit_block_pcset( sh4addr_t pc )
 {
     MOVL_imm32_r32( ((pc - sh4_x86.block_start_pc)>>1)*sh4_cpu_period, REG_ECX );
-    ADDL_r32_rbpdisp( REG_ECX, REG_OFFSET(slice_cycle) );
+    ADDL_rbpdisp_r32( REG_OFFSET(slice_cycle), REG_ECX );
+    MOVL_r32_rbpdisp( REG_ECX, REG_OFFSET(slice_cycle) );
+    CMPL_r32_rbpdisp( REG_ECX, REG_OFFSET(event_pending) );
+    JBE_label(exitloop);
     MOVL_rbpdisp_r32( R_PC, REG_ARG1 );
     if( sh4_x86.tlb_on ) {
         CALL1_ptr_r32(xlat_get_code_by_vma,REG_ARG1);
     } else {
         CALL1_ptr_r32(xlat_get_code,REG_ARG1);
     }
+    
+    jump_next_block();
+    JMP_TARGET(exitloop);
     exit_block();
 }
 
@@ -503,14 +539,20 @@ void exit_block_pcset( sh4addr_t pc )
 void exit_block_newpcset( sh4addr_t pc )
 {
     MOVL_imm32_r32( ((pc - sh4_x86.block_start_pc)>>1)*sh4_cpu_period, REG_ECX );
-    ADDL_r32_rbpdisp( REG_ECX, REG_OFFSET(slice_cycle) );
+    ADDL_rbpdisp_r32( REG_OFFSET(slice_cycle), REG_ECX );
+    MOVL_r32_rbpdisp( REG_ECX, REG_OFFSET(slice_cycle) );
     MOVL_rbpdisp_r32( R_NEW_PC, REG_ARG1 );
     MOVL_r32_rbpdisp( REG_ARG1, R_PC );
+    CMPL_r32_rbpdisp( REG_ECX, REG_OFFSET(event_pending) );
+    JBE_label(exitloop);
     if( sh4_x86.tlb_on ) {
         CALL1_ptr_r32(xlat_get_code_by_vma,REG_ARG1);
     } else {
         CALL1_ptr_r32(xlat_get_code,REG_ARG1);
     }
+	
+	jump_next_block();
+    JMP_TARGET(exitloop);
     exit_block();
 }
 
@@ -520,18 +562,25 @@ void exit_block_newpcset( sh4addr_t pc )
  */
 void exit_block_abs( sh4addr_t pc, sh4addr_t endpc )
 {
-    MOVL_imm32_r32( pc, REG_ECX );
-    MOVL_r32_rbpdisp( REG_ECX, R_PC );
+    MOVL_imm32_r32( ((endpc - sh4_x86.block_start_pc)>>1)*sh4_cpu_period, REG_ECX );
+    ADDL_rbpdisp_r32( REG_OFFSET(slice_cycle), REG_ECX );
+    MOVL_r32_rbpdisp( REG_ECX, REG_OFFSET(slice_cycle) );
+
+    MOVL_imm32_r32( pc, REG_ARG1 );
+    MOVL_r32_rbpdisp( REG_ARG1, R_PC );
+    CMPL_r32_rbpdisp( REG_ECX, REG_OFFSET(event_pending) );
+    JBE_label(exitloop);
+
     if( IS_IN_ICACHE(pc) ) {
         MOVP_moffptr_rax( xlat_get_lut_entry(GET_ICACHE_PHYS(pc)) );
         ANDP_imms_rptr( -4, REG_EAX );
     } else if( sh4_x86.tlb_on ) {
-        CALL1_ptr_r32(xlat_get_code_by_vma, REG_ECX);
+        CALL1_ptr_r32(xlat_get_code_by_vma, REG_ARG1);
     } else {
-        CALL1_ptr_r32(xlat_get_code, REG_ECX);
+        CALL1_ptr_r32(xlat_get_code, REG_ARG1);
     }
-    MOVL_imm32_r32( ((endpc - sh4_x86.block_start_pc)>>1)*sh4_cpu_period, REG_ECX );
-    ADDL_r32_rbpdisp( REG_ECX, REG_OFFSET(slice_cycle) );
+    jump_next_block();
+    JMP_TARGET(exitloop);
     exit_block();
 }
 
@@ -540,19 +589,36 @@ void exit_block_abs( sh4addr_t pc, sh4addr_t endpc )
  */
 void exit_block_rel( sh4addr_t pc, sh4addr_t endpc )
 {
-    MOVL_imm32_r32( pc - sh4_x86.block_start_pc, REG_ECX );
-    ADDL_rbpdisp_r32( R_PC, REG_ECX );
-    MOVL_r32_rbpdisp( REG_ECX, R_PC );
-    if( IS_IN_ICACHE(pc) ) {
-        MOVP_moffptr_rax( xlat_get_lut_entry(GET_ICACHE_PHYS(pc)) );
-        ANDP_imms_rptr( -4, REG_EAX );
-    } else if( sh4_x86.tlb_on ) {
-        CALL1_ptr_r32(xlat_get_code_by_vma, REG_ECX);
-    } else {
-        CALL1_ptr_r32(xlat_get_code, REG_ECX);
-    }
     MOVL_imm32_r32( ((endpc - sh4_x86.block_start_pc)>>1)*sh4_cpu_period, REG_ECX );
-    ADDL_r32_rbpdisp( REG_ECX, REG_OFFSET(slice_cycle) );
+    ADDL_rbpdisp_r32( REG_OFFSET(slice_cycle), REG_ECX );
+    MOVL_r32_rbpdisp( REG_ECX, REG_OFFSET(slice_cycle) );
+
+	if( pc == sh4_x86.block_start_pc && sh4_x86.sh4_mode == sh4r.xlat_sh4_mode ) {
+	    /* Special case for tight loops - the PC doesn't change, and
+	     * we already know the target address. Just check events pending before
+	     * looping.
+	     */
+        CMPL_r32_rbpdisp( REG_ECX, REG_OFFSET(event_pending) );
+        uint32_t backdisp = ((uintptr_t)(sh4_x86.code - xlat_output)) + PROLOGUE_SIZE;
+        JCC_cc_prerel(X86_COND_A, backdisp);
+	} else {
+        MOVL_imm32_r32( pc - sh4_x86.block_start_pc, REG_ARG1 );
+        ADDL_rbpdisp_r32( R_PC, REG_ARG1 );
+        MOVL_r32_rbpdisp( REG_ARG1, R_PC );
+        CMPL_r32_rbpdisp( REG_ECX, REG_OFFSET(event_pending) );
+        JBE_label(exitloop2);
+
+        if( IS_IN_ICACHE(pc) ) {
+            MOVP_moffptr_rax( xlat_get_lut_entry(GET_ICACHE_PHYS(pc)) );
+            ANDP_imms_rptr( -4, REG_EAX );
+        } else if( sh4_x86.tlb_on ) {
+            CALL1_ptr_r32(xlat_get_code_by_vma, REG_ARG1);
+        } else {
+            CALL1_ptr_r32(xlat_get_code, REG_ARG1);
+        }
+        jump_next_block();
+        JMP_TARGET(exitloop2);
+    }
     exit_block();
 }
 
@@ -567,13 +633,6 @@ void exit_block_exc( int code, sh4addr_t pc )
     ADDL_r32_rbpdisp( REG_ECX, REG_OFFSET(slice_cycle) );
     MOVL_imm32_r32( code, REG_ARG1 );
     CALL1_ptr_r32( sh4_raise_exception, REG_ARG1 );
-    MOVL_rbpdisp_r32( R_PC, REG_ARG1 );
-    if( sh4_x86.tlb_on ) {
-        CALL1_ptr_r32(xlat_get_code_by_vma,REG_ARG1);
-    } else {
-        CALL1_ptr_r32(xlat_get_code,REG_ARG1);
-    }
-
     exit_block();
 }    
 
@@ -599,13 +658,7 @@ void exit_block_emu( sh4vma_t endpc )
     MOVL_imm32_r32( sh4_x86.in_delay_slot ? 1 : 0, REG_ECX );
     MOVL_r32_rbpdisp( REG_ECX, REG_OFFSET(in_delay_slot) );
 
-    CALL_ptr( sh4_execute_instruction );    
-    MOVL_rbpdisp_r32( R_PC, REG_EAX );
-    if( sh4_x86.tlb_on ) {
-	CALL1_ptr_r32(xlat_get_code_by_vma,REG_EAX);
-    } else {
-	CALL1_ptr_r32(xlat_get_code,REG_EAX);
-    }
+    CALL_ptr( sh4_execute_instruction );
     exit_block();
 } 
 
@@ -627,12 +680,6 @@ void sh4_translate_end_block( sh4addr_t pc ) {
         MOVL_moffptr_eax( &sh4_cpu_period );
         MULL_r32( REG_EDX );
         ADDL_r32_rbpdisp( REG_EAX, REG_OFFSET(slice_cycle) );
-        MOVL_rbpdisp_r32( R_PC, REG_ARG1 );
-        if( sh4_x86.tlb_on ) {
-            CALL1_ptr_r32(xlat_get_code_by_vma, REG_ARG1);
-        } else {
-            CALL1_ptr_r32(xlat_get_code, REG_ARG1);
-        }
         exit_block();
 
         for( i=0; i< sh4_x86.backpatch_posn; i++ ) {
@@ -1975,6 +2022,7 @@ RTE {:
 	sh4_x86.fpuen_checked = FALSE;
 	sh4_x86.tstate = TSTATE_NONE;
 	sh4_x86.branch_taken = TRUE;
+    sh4_x86.sh4_mode = SH4_MODE_UNKNOWN;
 	if( UNTRANSLATABLE(pc+2) ) {
 	    exit_block_emu(pc+2);
 	    return 2;
@@ -2539,6 +2587,7 @@ FSCHG {:
     XORL_imms_rbpdisp( FPSCR_SZ, REG_OFFSET(xlat_sh4_mode) );
     sh4_x86.tstate = TSTATE_NONE;
     sh4_x86.double_size = !sh4_x86.double_size;
+    sh4_x86.sh4_mode = sh4_x86.sh4_mode ^ FPSCR_SZ;
 :}
 
 /* Processor control instructions */
@@ -2552,6 +2601,7 @@ LDC Rm, SR {:
 	CALL1_ptr_r32( sh4_write_sr, REG_EAX );
 	sh4_x86.fpuen_checked = FALSE;
 	sh4_x86.tstate = TSTATE_NONE;
+    sh4_x86.sh4_mode = SH4_MODE_UNKNOWN;
 	return 2;
     }
 :}
@@ -2624,6 +2674,7 @@ LDC.L @Rm+, SR {:
 	CALL1_ptr_r32( sh4_write_sr, REG_EAX );
 	sh4_x86.fpuen_checked = FALSE;
 	sh4_x86.tstate = TSTATE_NONE;
+    sh4_x86.sh4_mode = SH4_MODE_UNKNOWN;
 	return 2;
     }
 :}
@@ -2693,6 +2744,7 @@ LDS Rm, FPSCR {:
     load_reg( REG_EAX, Rm );
     CALL1_ptr_r32( sh4_write_fpscr, REG_EAX );
     sh4_x86.tstate = TSTATE_NONE;
+    sh4_x86.sh4_mode = SH4_MODE_UNKNOWN;
     return 2;
 :}
 LDS.L @Rm+, FPSCR {:  
@@ -2704,6 +2756,7 @@ LDS.L @Rm+, FPSCR {:
     ADDL_imms_rbpdisp( 4, REG_OFFSET(r[Rm]) );
     CALL1_ptr_r32( sh4_write_fpscr, REG_EAX );
     sh4_x86.tstate = TSTATE_NONE;
+    sh4_x86.sh4_mode = SH4_MODE_UNKNOWN;
     return 2;
 :}
 LDS Rm, FPUL {:  

@@ -33,7 +33,8 @@
 uint32_t sh4_translate_run_slice( uint32_t nanosecs ) 
 {
     void * (*code)() = NULL;
-    while( sh4r.slice_cycle < nanosecs ) {
+    event_schedule( EVENT_ENDTIMESLICE, nanosecs );
+    for(;;) {
         if( sh4r.event_pending <= sh4r.slice_cycle ) {
             if( sh4r.event_types & PENDING_EVENT ) {
                 event_execute();
@@ -43,33 +44,23 @@ uint32_t sh4_translate_run_slice( uint32_t nanosecs )
                 sh4_accept_interrupt();
                 code = NULL;
             }
+            if( sh4r.slice_cycle >= nanosecs )
+                return nanosecs;
         }
 
-        if( code == NULL ) {
-            if( IS_SYSCALL(sh4r.pc) ) {
-                uint32_t pc = sh4r.pc;
-                sh4r.pc = sh4r.pr;
-                sh4r.in_delay_slot = 0;
-                syscall_invoke( pc );
-            }
+        if( IS_SYSCALL(sh4r.pc) ) {
+            uint32_t pc = sh4r.pc;
+            sh4r.pc = sh4r.pr;
+            sh4r.in_delay_slot = 0;
+            syscall_invoke( pc );
+        }
 
-            code = xlat_get_code_by_vma( sh4r.pc );
-            if( code == NULL || sh4r.xlat_sh4_mode != XLAT_BLOCK_MODE(code) ) {
-                code = sh4_translate_basic_block( sh4r.pc );
-            }
-        } else if( sh4r.xlat_sh4_mode != XLAT_BLOCK_MODE(code) ) {
-            if( !IS_IN_ICACHE(sh4r.pc) ) {
-                /* If TLB is off, we may have gotten here without updating
-                 * the icache, so do it now. This should never fail, so...
-                 */
-                mmu_update_icache(sh4r.pc);
-                assert( IS_IN_ICACHE(sh4r.pc) ); 
-            }
+        code = xlat_get_code_by_vma( sh4r.pc );
+        if( code == NULL || sh4r.xlat_sh4_mode != XLAT_BLOCK_MODE(code) ) {
             code = sh4_translate_basic_block( sh4r.pc );
         }
-        code = code();
+        code();
     }
-    return nanosecs;
 }
 
 uint8_t *xlat_output;

@@ -314,6 +314,7 @@ static void x86_encode_modrm_rip(int rexw, uint32_t opcode, int rr, int32_t disp
 #define x86_encode_opcode32(opcode,reg) x86_encode_opcodereg(0,opcode,reg)
 #define x86_encode_r32_rm32(opcode,rr,rb) x86_encode_reg_rm(0,opcode,rr,rb)
 #define x86_encode_r64_rm64(opcode,rr,rb) x86_encode_reg_rm(PREF_REXW,opcode,rr,rb)
+#define x86_encode_rptr_rmptr(opcode,rr,rb) x86_encode_reg_rm(PREF_PTR,opcode,rr,rb)
 #define x86_encode_r32_mem32(opcode,rr,rb,rx,ss,disp32) x86_encode_modrm(0,opcode,rr,rb,rx,ss,disp32)
 #define x86_encode_r64_mem64(opcode,rr,rb,rx,ss,disp32) x86_encode_modrm(PREF_REXW,opcode,rr,rb,rx,ss,disp32)
 #define x86_encode_rptr_memptr(opcode,rr,rb,rx,ss,disp32) x86_encode_modrm(PREF_PTR,opcode,rr,rb,rx,ss,disp32)
@@ -397,8 +398,10 @@ static void x86_encode_modrm_rip(int rexw, uint32_t opcode, int rr, int32_t disp
 #define CMPB_imms_rbpdisp(imm,disp)  x86_encode_r32_rbpdisp32(0x80, 7, disp); OP(imm)
 #define CMPB_r8_r8(r1,r2)            x86_encode_r32_rm32(0x38, r1, r2)
 #define CMPL_imms_r32(imm,r1)        x86_encode_imms_rm32(0x83, 0x81, 7, imm, r1)
+#define CMPL_imms_r32disp(imm,rb,d)  x86_encode_imms_r32disp32(0x83, 0x81, 7, imm, rb, d)
 #define CMPL_imms_rbpdisp(imm,disp)  x86_encode_imms_rbpdisp32(0x83, 0x81, 7, imm, disp)
 #define CMPL_r32_r32(r1,r2)          x86_encode_r32_rm32(0x39, r1, r2)
+#define CMPL_r32_r32disp(r1,r2,dsp)  x86_encode_r32_mem32disp32(0x39, r1, r2, dsp)
 #define CMPL_r32_rbpdisp(r1,disp)    x86_encode_r32_rbpdisp32(0x39, r1, disp)
 #define CMPL_rbpdisp_r32(disp,r1)    x86_encode_r32_rbpdisp32(0x3B, r1, disp)
 #define CMPQ_imms_r64(imm,r1)        x86_encode_imms_rm64(0x83, 0x81, 7, imm, r1)
@@ -423,7 +426,7 @@ static void x86_encode_modrm_rip(int rexw, uint32_t opcode, int rr, int32_t disp
 #define LEAL_sib_r32(ss,ii,bb,d,r1)  x86_encode_r32_mem32(0x8D, r1, bb, ii, ss, d)
 #define LEAQ_r64disp_r64(r1,disp,r2) x86_encode_r64_mem64(0x8D, r2, r1, -1, 0, disp)
 #define LEAQ_rbpdisp_r64(disp,r1)    x86_encode_r64_rbpdisp64(0x8D, r1, disp)
-#define LEAP_rptrdisp_rptr(r1,d,r2)  x86_encode_rptr_memptr(0x8D, r2, r1, -1, 0, disp)
+#define LEAP_rptrdisp_rptr(r1,d,r2)  x86_encode_rptr_memptr(0x8D, r2, r1, -1, 0, d)
 #define LEAP_rbpdisp_rptr(disp,r1)   x86_encode_rptr_memptr(0x8D, r1, REG_RBP, -1, 0, disp)
 #define LEAP_sib_rptr(ss,ii,bb,d,r1) x86_encode_rptr_memptr(0x8D, r1, bb, ii, ss, d)
 
@@ -562,6 +565,7 @@ static void x86_encode_modrm_rip(int rexw, uint32_t opcode, int rr, int32_t disp
 #define TESTL_rbpdisp_r32(disp,r1)   x86_encode_r32_rbpdisp32(0x85, r1, disp) /* Same OP */
 #define TESTQ_imms_r64(imm,r1)       x86_encode_r64_rm64(0xF7, 0, r1); OP32(imm)
 #define TESTQ_r64_r64(r1,r2)         x86_encode_r64_rm64(0x85, r1, r2)
+#define TESTP_rptr_rptr(r1,r2)       x86_encode_rptr_rmptr(0x85, r1, r2)
 
 #define XCHGB_r8_r8(r1,r2)           x86_encode_r32_rm32(0x86, r1, r2)
 #define XCHGL_r32_r32(r1,r2)         x86_encode_r32_rm32(0x87, r1, r2)
@@ -586,12 +590,13 @@ static void x86_encode_modrm_rip(int rexw, uint32_t opcode, int rr, int32_t disp
 #define JCC_cc_rel8(cc,rel)          OP(0x70+(cc)); OP(rel)
 #define JCC_cc_rel32(cc,rel)         OP(0x0F); OP(0x80+(cc)); OP32(rel)
 #define JCC_cc_rel(cc,rel)           if( IS_INT8(rel) ) { JCC_cc_rel8(cc,(int8_t)rel); } else { JCC_cc_rel32(cc,rel); }
+#define JCC_cc_prerel(cc,rel)        if( IS_INT8(rel) ) { JCC_cc_rel8(cc,(int8_t)((rel)-2)); } else { JCC_cc_rel32(cc,((rel)-6)); }
 
 #define JMP_rel8(rel)                OP(0xEB); OP(rel)
 #define JMP_rel32(rel)               OP(0xE9); OP32(rel)
 #define JMP_rel(rel)                 if( IS_INT8(rel) ) { JMP_rel8((int8_t)rel); } else { JMP_rel32(rel); }
 #define JMP_prerel(rel)              if( IS_INT8(((int32_t)rel)-2) ) { JMP_rel8(((int8_t)rel)-2); } else { JMP_rel32(((int32_t)rel)-5); }
-#define JMP_r32(r1,disp)             x86_encode_r32_rm32(0xFF, 4, r1)
+#define JMP_rptr(r1)                 x86_encode_r32_rm32(0xFF, 4, r1)
 #define JMP_r32disp(r1,disp)         x86_encode_r32_mem32disp32(0xFF, 4, r1, disp)
 #define RET()                        OP(0xC3)
 #define RET_imm(imm)                 OP(0xC2); OP16(imm)

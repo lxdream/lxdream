@@ -113,6 +113,7 @@ uint32_t sh4_sleep_run_slice(uint32_t nanosecs) { return nanosecs; }
 gboolean gui_error_dialog( const char *fmt, ... ) { return TRUE; }
 gboolean FASTCALL mmu_update_icache( sh4vma_t addr ) { return TRUE; }
 void MMU_ldtlb() { }
+void event_schedule(int event, uint32_t nanos) { }
 struct sh4_icache_struct sh4_icache;
 struct mem_region_fn mem_region_unmapped;
 const struct cpu_desc_struct sh4_cpu_desc;
