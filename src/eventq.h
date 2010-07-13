@@ -80,6 +80,7 @@ void event_execute();
 #define EVENT_TMU2 99
 #define EVENT_GUNPOS 100
 
+#define EVENT_ENDTIMESLICE 127
 #ifdef __cplusplus
 }
 #endif

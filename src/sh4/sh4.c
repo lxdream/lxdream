@@ -153,6 +153,13 @@ static jmp_buf sh4_exit_jmp_buf;
 static gboolean sh4_running = FALSE;
 struct sh4_icache_struct sh4_icache = { NULL, -1, -1, 0 };
 
+/* At the moment this is a dummy event to mark the end of the
+ * timeslice
+ */
+void sh4_dummy_event(int eventid)
+{
+}
+
 void sh4_translate_set_enabled( gboolean use )
 {
     // No-op if the translator was not built
@@ -172,6 +179,7 @@ gboolean sh4_translate_is_enabled()
 void sh4_init(void)
 {
     register_io_regions( mmio_list_sh4mmio );
+    register_event_callback( EVENT_ENDTIMESLICE, sh4_dummy_event );
     MMU_init();
     TMU_init();
     xlat_cache_init();
