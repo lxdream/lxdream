@@ -244,6 +244,8 @@ dnl taken care of above).
           dnl AC_MSG_FAILURE( ["The OpenGL library (libGL.so) could not be found, but is required."])])
       dnl AC_CHECK_HEADER([GL/gl.h], [], [
           dnl AC_MSG_FAILURE( ["The OpenGL header files (eg GL/gl.h) could not be found, but are required."])])
+      LIBS="$LIBS $LIBGL_LIBS";
+      CPPFLAGS="$CPPFLAGS $LIBGL_CFLAGS";
    else
       AC_CHECK_FUNC(NSOpenGLGetVersion, [
          HAVE_NSGL='yes'

@@ -9543,7 +9543,9 @@ else
 echo "${ECHO_T}yes" >&6; }
 	:
 fi
-                                   else
+                                      LIBS="$LIBS $LIBGL_LIBS";
+      CPPFLAGS="$CPPFLAGS $LIBGL_CFLAGS";
+   else
       { echo "$as_me:$LINENO: checking for NSOpenGLGetVersion" >&5
 echo $ECHO_N "checking for NSOpenGLGetVersion... $ECHO_C" >&6; }
 if test "${ac_cv_func_NSOpenGLGetVersion+set}" = set; then
