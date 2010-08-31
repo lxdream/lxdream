@@ -174,7 +174,6 @@ sector_source_t iso_sector_source_new( IsoImage *image, sector_mode_t mode, cdro
     }
     iso_write_opts_set_appendable(opts,0);
     iso_write_opts_set_ms_block(opts, start_sector);
-    iso_write_opts_set_system_area(opts, (char *)bootstrap, 0, 0);
 
     status = iso_image_create_burn_source(image, opts, &burn);
     iso_write_opts_free(opts);
@@ -197,6 +196,7 @@ sector_source_t iso_sector_source_new( IsoImage *image, sector_mode_t mode, cdro
     int fd = file_sector_source_get_fd(source);
     source->size = expect;
     lseek( fd, 0, SEEK_SET );
+    write( fd, bootstrap, 32768 );
     for( cdrom_count_t count = 0; count < expect; count++ ) {
         if( burn->read == NULL ) {
             status = burn->read_xt(burn, buf, 2048);
@@ -212,7 +212,9 @@ sector_source_t iso_sector_source_new( IsoImage *image, sector_mode_t mode, cdro
             source = NULL;
             break;
         }
-        write( fd, buf, 2048 );
+        /* Discard first 16 sectors, replaced with the bootstrap */
+        if( count >= (32768/2048) )
+            write( fd, buf, 2048 );
     }
     burn->free_data(burn);
     free(burn);
