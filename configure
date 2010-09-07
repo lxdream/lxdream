@@ -8997,6 +8997,8 @@ _ACEOF
 
 fi
 
+            GTK_LIBS="$GTK_LIBS -lX11"
+      LIBS="$LIBS -lX11"
    { echo "$as_me:$LINENO: checking for gdk_quartz_window_get_nsview" >&5
 echo $ECHO_N "checking for gdk_quartz_window_get_nsview... $ECHO_C" >&6; }
 if test "${ac_cv_func_gdk_quartz_window_get_nsview+set}" = set; then
@@ -9088,6 +9090,13 @@ _ACEOF
 
 fi
 
+   if test "x$HAVE_GTK_X11$HAVE_GTK_OSX" = "x"; then
+      { { echo "$as_me:$LINENO: error: Unable to identify GTK platform
+See \`config.log' for more details." >&5
+echo "$as_me: error: Unable to identify GTK platform
+See \`config.log' for more details." >&2;}
+   { (exit 1); exit 1; }; }
+   fi
 fi
 
 
