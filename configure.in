@@ -210,9 +210,15 @@ else
    AC_CHECK_FUNC(gdk_x11_display_get_xdisplay, [ 
       HAVE_GTK_X11='yes'
       AC_DEFINE([HAVE_GTK_X11],1,[Building with GTK+X11]) ], [])
+      dnl Add -lX11 explicitly as some pkg-configs get it wrong
+      GTK_LIBS="$GTK_LIBS -lX11"
+      LIBS="$LIBS -lX11"
    AC_CHECK_FUNC(gdk_quartz_window_get_nsview, [ 
       HAVE_GTK_OSX='yes'
       AC_DEFINE([HAVE_GTK_OSX],1,[Building with GTK+Cocoa]) ], [])
+   if test "x$HAVE_GTK_X11$HAVE_GTK_OSX" = "x"; then
+      AC_MSG_FAILURE( [Unable to identify GTK platform] )
+   fi
 fi
 
 AM_CONDITIONAL(GUI_GTK, [test "$HAVE_GTK" = 'yes'])
