@@ -284,8 +284,10 @@ int main (int argc, char *argv[])
                 ERROR( "Multiple GD-ROM discs given on command-line, ignoring %s", argv[optind] );
             } else {
                 have_disc = gdrom_mount_image(argv[optind], &err);
-                if( !have_disc )
+                if( !have_disc ) {
+                    ERROR( err.msg );
                     no_start = TRUE;
+                }
             }
         }
     }
@@ -296,8 +298,10 @@ int main (int argc, char *argv[])
             ERROR( "Both a save state and an executable were specified, ignoring %s", exec_name );
         } else {
             have_exec = file_load_exec( exec_name, &err );
-            if( !have_exec )
+            if( !have_exec ) {
+                ERROR( err.msg );
                 no_start = TRUE;
+            }
         }
     }
 
