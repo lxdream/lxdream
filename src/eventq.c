@@ -180,7 +180,7 @@ void event_schedule_long( int eventid, uint32_t seconds, uint32_t nanosecs ) {
 
         event->id = eventid;
         event->seconds = seconds;
-        event->nanosecs = nanosecs;
+        event->nanosecs = nanosecs + sh4r.slice_cycle + (LONG_SCAN_PERIOD - long_scan_time_remaining);
         event->next = long_event_head;
         long_event_head = event;
     }
