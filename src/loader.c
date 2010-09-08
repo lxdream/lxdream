@@ -442,7 +442,7 @@ static cdrom_disc_t cdrom_wrap_elf( cdrom_disc_type_t type, const gchar *filenam
         if( phdr[i].p_type == PT_LOAD ) {
             lseek( fd, phdr[i].p_offset, SEEK_SET );
             uint32_t size = MIN( phdr[i].p_filesz, phdr[i].p_memsz);
-            int status = read( fd, program + phdr[i].p_vaddr, size );
+            int status = read( fd, program + phdr[i].p_vaddr - start, size );
             if( status == -1 ) {
                 SET_ERROR( err, LX_ERR_FILE_IOERROR, "I/O error reading SH4 binary %s (%s)", filename, strerror(errno) );
             } else if( status != size ) {
