@@ -91,8 +91,10 @@ void dreamcast_configure( gboolean use_bootrom )
 {
     char *bios_path = lxdream_get_global_config_path_value(CONFIG_BIOS_PATH);
     char *flash_path = lxdream_get_global_config_path_value(CONFIG_FLASH_PATH);
+
+    /* Initialize the event queue first */
+    event_init();
     
-    dreamcast_register_module( &eventq_module );
     /* Register the memory framework */
     dreamcast_register_module( &mem_module );
 
@@ -127,6 +129,7 @@ void dreamcast_configure( gboolean use_bootrom )
     dreamcast_register_module( &aica_module );
     dreamcast_register_module( &maple_module );
     dreamcast_register_module( &ide_module );
+    dreamcast_register_module( &eventq_module );
 
     g_free(bios_path);
     g_free(flash_path);

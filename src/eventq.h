@@ -71,6 +71,11 @@ uint32_t event_get_next_time();
  */
 void event_execute();
 
+/**
+ * Initialize the event queue.
+ */
+void event_init();
+
 #define MAX_EVENT_ID 128
 
 /* Events 1..96 are defined as the corresponding ASIC events. */
