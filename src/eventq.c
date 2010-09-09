@@ -53,7 +53,7 @@ uint32_t event_run_slice( uint32_t nanosecs );
 void event_save_state( FILE *f );
 int event_load_state( FILE * f );
 
-struct dreamcast_module eventq_module = { "EVENTQ", event_init, event_reset, NULL, event_run_slice,
+struct dreamcast_module eventq_module = { "EVENTQ", NULL, event_reset, NULL, event_run_slice,
         NULL, event_save_state, event_load_state };
 
 static void event_update_pending( ) 
