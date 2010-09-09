@@ -117,6 +117,7 @@ static struct x86_symbol x86_symbol_table[] = {
     { "sh4r+128", ((char *)&sh4r)+128 },
     { "sh4_cpu_period", &sh4_cpu_period },
     { "sh4_address_space", NULL },
+    { "sh4_translate_breakpoint_hit", sh4_translate_breakpoint_hit },
     { "sh4_user_address_space", NULL },
     { "sh4_write_fpscr", sh4_write_fpscr },
     { "sh4_write_sr", sh4_write_sr },
@@ -3118,7 +3119,7 @@ void *xlat_get_native_pc( void *code, uint32_t code_size )
 void *xlat_get_native_pc( void *code, uint32_t code_size )
 {
     void *result = NULL;
-    asm(
+    __asm__(
         "mov %%ebp, %%eax\n\t"
         "mov $0x8, %%ecx\n\t"
         "mov %1, %%edx\n"
