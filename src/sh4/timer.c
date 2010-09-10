@@ -42,7 +42,7 @@ uint32_t sh4_peripheral_freq = SH4_BASE_RATE / 4;
 
 uint32_t sh4_cpu_period = 1000 / SH4_BASE_RATE; /* in nanoseconds */
 uint32_t sh4_bus_period = 2* 1000 / SH4_BASE_RATE;
-uint32_t sh4_peripheral_period = 4 * 2000 / SH4_BASE_RATE;
+uint32_t sh4_peripheral_period = 4 * 1000 / SH4_BASE_RATE;
 
 MMIO_REGION_READ_FN( CPG, reg )
 {
@@ -112,13 +112,29 @@ MMIO_REGION_WRITE_FN( RTC, reg, val )
 
 /********************************** TMU *************************************/
 
+#define TCR_ICPF 0x0200
+#define TCR_UNF  0x0100
+#define TCR_UNIE 0x0020
+
+#define TCR_IRQ_ACTIVE (TCR_UNF|TCR_UNIE)
+
 #define TMU_IS_RUNNING(timer)  (MMIO_READ(TMU,TSTR) & (1<<timer))
 
+struct TMU_timer {
+    uint32_t timer_period;
+    uint32_t timer_remainder; /* left-over cycles from last count */
+    uint32_t timer_run; /* cycles already run from this slice */
+};
+
+static struct TMU_timer TMU_timers[3];
+
 uint32_t TMU_count( int timer, uint32_t nanosecs );
+void TMU_schedule_timer( int timer );
 
 void TMU_event_callback( int eventid )
 {
     TMU_count( eventid - EVENT_TMU0, sh4r.slice_cycle );
+    assert( MMIO_READ( TMU, TCR0 + (eventid - EVENT_TMU0)*12 ) & 0x100 );
 }
 
 void TMU_init(void)
@@ -128,19 +144,16 @@ void TMU_init(void)
     register_event_callback( EVENT_TMU2, TMU_event_callback );
 }    
 
-#define TCR_ICPF 0x0200
-#define TCR_UNF  0x0100
-#define TCR_UNIE 0x0020
+void TMU_dump(unsigned timer)
+{
+    fprintf(stderr, "Timer %d: %s %08x/%08x %dns run: %08X - %08X\n",
+            timer, TMU_IS_RUNNING(timer) ? "running" : "stopped",
+            MMIO_READ(TMU, TCNT0 + (timer*12)), MMIO_READ(TMU, TCOR0 + (timer*12)),
+            TMU_timers[timer].timer_period,
+            TMU_timers[timer].timer_run,
+            TMU_timers[timer].timer_remainder );
+}
 
-#define TCR_IRQ_ACTIVE (TCR_UNF|TCR_UNIE)
-
-struct TMU_timer {
-    uint32_t timer_period;
-    uint32_t timer_remainder; /* left-over cycles from last count */
-    uint32_t timer_run; /* cycles already run from this slice */
-};
-
-static struct TMU_timer TMU_timers[3];
 
 void TMU_set_timer_control( int timer,  int tcr )
 {
@@ -188,17 +201,31 @@ void TMU_set_timer_control( int timer,  int tcr )
         period = sh4_peripheral_period; /* I dunno... */
         break;
     }
-    TMU_timers[timer].timer_period = period;
+
+    if( period != TMU_timers[timer].timer_period ) {
+        if( TMU_IS_RUNNING(timer) ) {
+            /* If we're changing clock speed while counting, sync up and reschedule */
+            TMU_count(timer, sh4r.slice_cycle);
+            TMU_timers[timer].timer_period = period;
+            TMU_schedule_timer(timer);
+        } else {
+            TMU_timers[timer].timer_period = period;
+        }
+    }
 
     MMIO_WRITE( TMU, TCR0 + (12*timer), tcr );
 }
 
 void TMU_schedule_timer( int timer )
 {
-    uint64_t duration = (uint64_t)((uint32_t)(MMIO_READ( TMU, TCNT0 + 12*timer )+1)) * 
+    uint64_t duration = ((uint64_t)((uint32_t)(MMIO_READ( TMU, TCNT0 + 12*timer )))+1) * 
     (uint64_t)TMU_timers[timer].timer_period - TMU_timers[timer].timer_remainder;
     event_schedule_long( EVENT_TMU0+timer, (uint32_t)(duration / 1000000000), 
                          (uint32_t)(duration % 1000000000) );
+//    if( timer == 2 ) {
+//        WARN( "Schedule timer %d: %lldns", timer, duration );
+//        TMU_dump(timer);
+//    }
 }
 
 void TMU_start( int timer )
@@ -230,6 +257,8 @@ uint32_t TMU_count( int timer, uint32_t nanosecs )
     uint32_t count = run_ns / TMU_timers[timer].timer_period;
     uint32_t value = MMIO_READ( TMU, TCNT0 + 12*timer );
     uint32_t reset = MMIO_READ( TMU, TCOR0 + 12*timer );
+//    if( timer == 2 )
+//        WARN( "Counting timer %d: %d ns, %d ticks", timer, run_ns, count );
     if( count > value ) {
         uint32_t tcr = MMIO_READ( TMU, TCR0 + 12*timer );
         tcr |= TCR_UNF;
@@ -239,6 +268,8 @@ uint32_t TMU_count( int timer, uint32_t nanosecs )
         if( tcr & TCR_UNIE ) 
             intc_raise_interrupt( INT_TMU_TUNI0 + timer );
         MMIO_WRITE( TMU, TCNT0 + 12*timer, value );
+//        if( timer == 2 )
+//            WARN( "Underflowed timer %d", timer );
         TMU_schedule_timer(timer);
     } else {
         value -= count;

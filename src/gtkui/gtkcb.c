@@ -76,7 +76,7 @@ gchar *open_file_dialog( const char *title, const char *pattern, const char *pat
 }
 
 gchar *save_file_dialog( const char *title, const char *pattern, const char *patname,
-                         int initial_dir_key )
+                         const char *mandatory_ext, int initial_dir_key )
 {
     GtkWidget *file;
     gchar *filename = NULL;
@@ -97,6 +97,15 @@ gchar *save_file_dialog( const char *title, const char *pattern, const char *pat
     int result = gtk_dialog_run( GTK_DIALOG(file) );
     if( result == GTK_RESPONSE_ACCEPT ) {
         filename = gtk_file_chooser_get_filename( GTK_FILE_CHOOSER(file) );
+        if( mandatory_ext ) {
+            int extlen = strlen(mandatory_ext);
+            int fnlen = strlen(filename);
+            if( fnlen < extlen || strcmp(filename + (fnlen - extlen), mandatory_ext) != 0 ) {
+                gchar *f2 = g_strdup_printf("%s%s",filename, mandatory_ext);
+                g_free(filename);
+                filename = f2;
+            }
+        }
         if( initial_dir_key != -1 ) {
             gchar *end_path = gtk_file_chooser_get_current_folder( GTK_FILE_CHOOSER(file) );
             set_gui_path(initial_dir_key,end_path);
@@ -118,9 +127,9 @@ void open_file_dialog_cb( const char *title, file_callback_t action, const char 
 }
 
 void save_file_dialog_cb( const char *title, file_callback_t action, const char *pattern, const char *patname,
-                          int initial_dir_key )
+                          const char *mandatory_ext, int initial_dir_key )
 {
-    gchar *filename = save_file_dialog( title, pattern, patname, initial_dir_key );
+    gchar *filename = save_file_dialog( title, pattern, patname, mandatory_ext, initial_dir_key );
     if( filename != NULL ) {
         action(filename);
         g_free(filename);
@@ -224,7 +233,7 @@ void load_state_action_callback( GtkAction *action, gpointer user_data)
 
 void save_state_action_callback( GtkAction *action, gpointer user_data)
 {
-    save_file_dialog_cb( "Save state...", dreamcast_save_state, "*.dst", _("lxDream Save State (*.dst)"), CONFIG_SAVE_PATH );
+    save_file_dialog_cb( "Save state...", dreamcast_save_state, "*.dst", _("lxDream Save State (*.dst)"), ".dst", CONFIG_SAVE_PATH );
 }
 
 void quick_state_action_callback( GtkRadioAction *action, GtkRadioAction *current, gpointer user_data)
@@ -316,7 +325,7 @@ void debug_mmio_action_callback( GtkAction *action, gpointer user_data)
 
 void save_scene_action_callback( GtkAction *action, gpointer user_data)
 {
-    save_file_dialog_cb( _("Save next scene..."), pvr2_save_next_scene, "*.dsc", _("lxdream scene file (*.dsc)"), CONFIG_SAVE_PATH );
+    save_file_dialog_cb( _("Save next scene..."), pvr2_save_next_scene, "*.dsc", _("lxdream scene file (*.dsc)"), ".dsc", CONFIG_SAVE_PATH );
 }
 
 int debug_window_get_selected_row( debug_window_t data );

@@ -73,6 +73,7 @@ all:
 @BUILD_SYSTEST_TRUE@check: build-tests
 @BUILD_SYSTEST_TRUE@	$(RUNTEST) testsh4
 @BUILD_SYSTEST_TRUE@	$(RUNTESTX) testsh4
+@BUILD_SYSTEST_TRUE@	$(RUNTEST) randmath < $(srcdir)/random.dat > randmath.out && diff -u randmath.out randmath.expect
 @BUILD_SYSTEST_TRUE@	$(RUNTEST) testmmu
 @BUILD_SYSTEST_TRUE@	$(RUNTEST) testregs
 @BUILD_SYSTEST_TRUE@	cat $(srcdir)/testta.data $(srcdir)/testta2.data $(srcdir)/testta3.data $(srcdir)/testta4.data $(srcdir)/testta5.data | $(RUNTEST) testta
@@ -80,7 +81,7 @@ all:
 #	$(RUNTEST) testide -d ../disc/test.nrg
 
 
-build-tests: testsh4 testmmu testmath testide testta testregs testrend testdisp testspu testmmu
+build-tests: testsh4 testmmu testmath testide testta testregs testrend testdisp testspu testmmu randmath randmath.expect
 
 lib/crt0.so: lib/crt0.s
 	$(mkdir_p) lib
@@ -161,6 +162,14 @@ testFF10: lib/crt0.so $(SHARED_OBJECTS) testFF10.so
 	$(SH4CC) $(SH4LDFLAGS) $^  -o $@ $(SH4LIBS)
 	$(SH4OBJCOPY) testFF10 testFF10.bin
 
+randmath: lib/crt0.so $(SHARED_OBJECTS) randmath.so
+	$(SH4CC) $(SH4LDFLAGS) $^ -o $@ $(SH4LIBS)
+	$(SH4OBJCOPY) randmath randmath.bin
+
+randmath.expect: randmath.c
+	$(HOSTCC) $^ -o randmath.native
+	./randmath.native < $(srcdir)/random.dat > $@
+
 .PHONY : clean
 clean:
 	rm -f *.o *.so *.ao *.ac *.bin sh4/*.so lib/*.so lib-arm/*.ao mapleid \
@@ -184,10 +193,10 @@ DISTFILES = asic.c asic.h bin2c.c dma.h dmac.c ide.c ide.h interrupt.s \
         sh4/subv.s sh4/tas.s sh4/testsh4.c sh4/tlb.s sh4/vmexit.s sh4/trapa.s sh4/undef.s \
         sh4/xtrct.s sh4/utlb.c sh4/utlb.h sh4/testutlb.s testdata.c testdata.h testdisp.c \
         testide.c testmath.c testaica.c sh4/testmmu.c sh4/mmummio.c testregs.c testrend.c \
-        testspu.c testta.c testyuv.c timer.c timer.h \
+        testspu.c testta.c testyuv.c timer.c timer.h randmath.c \
         testta.data testta2.data testta3.data testta4.data testta5.data testsort.data \
         lxdream.rc dc.x lib/crt0.s lib/libc.a lib/libm.a lib/newlib-1.8.2-dc.patch \
-        aica.x lib-arm/libc.a lib-arm/libm.a lib-arm/crt0.s \
+        aica.x lib-arm/libc.a lib-arm/libm.a lib-arm/crt0.s random.dat \
 	include/_ansi.h include/_syslist.h include/ar.h include/assert.h include/ctype.h \
 	include/dirent.h include/errno.h include/fastmath.h include/fcntl.h include/grp.h \
 	include/ieeefp.h include/locale.h include/machine/fastmath.h include/machine/ieeefp.h \

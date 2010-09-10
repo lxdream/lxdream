@@ -113,7 +113,7 @@ static gboolean maple_device_changed( GtkComboBox *combo, gpointer user_data )
             }
         } else if( devclz == CREATE_VMU_TAG ) {
             devclz = NULL;
-            vmu_filename = save_file_dialog( _("Create VMU"), "*.vmu", "VMU Files",
+            vmu_filename = save_file_dialog( _("Create VMU"), "*.vmu", "VMU Files", ".vmu",
                     CONFIG_VMU_PATH );
             if( vmu_filename != NULL ) {
                 devclz = &vmu_class;
