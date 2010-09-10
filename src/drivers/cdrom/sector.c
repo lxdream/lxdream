@@ -551,30 +551,40 @@ typedef struct tmpfile_sector_source {
 static GList *tmpfile_open_list = NULL;
 static gboolean tmpfile_atexit_installed = 0; /* TRUE to indicate atexit hook is registered */
 
+static void tmpfile_sector_close( sector_source_t dev )
+{
+    assert( IS_SECTOR_SOURCE_TYPE(dev,FILE_SECTOR_SOURCE) );
+    tmpfile_sector_source_t fdev = (tmpfile_sector_source_t)dev;
+
+    if( fdev->file.file != NULL ) {
+        fclose( fdev->file.file );
+        fdev->file.file = NULL;
+    }
+    if( fdev->filename != NULL ) {
+        unlink(fdev->filename);
+        g_free((char *)fdev->filename);
+        fdev->filename = NULL;
+    }
+}
+
+
 /**
- * atexit hook to destroy any open tmpfiles - make sure they're deleted.
+ * atexit hook to close any open tmpfiles - make sure they're deleted.
  */
 static void tmpfile_atexit_hook(void)
 {
     GList *ptr;
-    while( tmpfile_open_list != NULL ) {
-        sector_source_t source = (sector_source_t)tmpfile_open_list->data;
-        source->destroy(source);
-        assert( tmpfile_open_list == NULL || tmpfile_open_list->data != source );
+    for( ptr = tmpfile_open_list; ptr != NULL; ptr = ptr->next ) {
+        sector_source_t source = (sector_source_t)ptr->data;
+        tmpfile_sector_close(source);
     }
 }
 
 
 static void tmpfile_sector_source_destroy( sector_source_t dev )
 {
-    assert( IS_SECTOR_SOURCE_TYPE(dev,FILE_SECTOR_SOURCE) );
-    tmpfile_sector_source_t fdev = (tmpfile_sector_source_t)dev;
-
-    fclose( fdev->file.file );
-    fdev->file.file = NULL;
-    unlink(fdev->filename);
-    g_free((char *)fdev->filename);
-    tmpfile_open_list = g_list_remove(tmpfile_open_list, fdev);
+    tmpfile_sector_close(dev);
+    tmpfile_open_list = g_list_remove(tmpfile_open_list, dev);
     default_sector_source_destroy(dev);
 }
 
