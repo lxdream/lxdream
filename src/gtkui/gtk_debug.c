@@ -79,7 +79,7 @@ debug_window_t debug_window_new( const gchar *title, GtkWidget *menubar,
     data->statusbar = gtk_statusbar_new();
 
     GtkWidget *hpaned = gtk_hpaned_new ();
-    gtk_paned_set_position (GTK_PANED (hpaned), 500);
+    gtk_paned_set_position (GTK_PANED (hpaned), 520);
 
     GtkWidget *disasm_box = gtk_vbox_new(FALSE,0);
     gtk_paned_pack1 (GTK_PANED (hpaned), disasm_box, TRUE, TRUE);
@@ -126,8 +126,8 @@ debug_window_t debug_window_new( const gchar *title, GtkWidget *menubar,
 
     data->regs_list = GTK_CLIST(gtk_clist_new (2));
     gtk_container_add (GTK_CONTAINER (reg_scroll), GTK_WIDGET(data->regs_list));
-    gtk_clist_set_column_width (GTK_CLIST (data->regs_list), 0, 80);
-    gtk_clist_set_column_width (GTK_CLIST (data->regs_list), 1, 80);
+    gtk_clist_set_column_width (GTK_CLIST (data->regs_list), 0, 60);
+    gtk_clist_set_column_width (GTK_CLIST (data->regs_list), 1, 70);
     gtk_clist_column_titles_hide (GTK_CLIST (data->regs_list));
     gtk_widget_modify_font( GTK_WIDGET(data->regs_list), gui_fixed_font );
 
