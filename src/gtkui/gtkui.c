@@ -139,10 +139,10 @@ static const char *ui_description =
     "  </menu>"
     "  <menu action='SettingsMenu'>"
     "   <menuitem action='PathSettings'/>"
-    "   <menuitem action='AudioSettings'/>"
+/*    "   <menuitem action='AudioSettings'/>" */
     "   <menuitem action='ControllerSettings'/>"
-    "   <menuitem action='NetworkSettings'/>"
-    "   <menuitem action='VideoSettings'/>"
+/*    "   <menuitem action='NetworkSettings'/>" */
+/*    "   <menuitem action='VideoSettings'/>" */
     "   <menuitem action='HotkeySettings'/>"
     "   <separator/>"
     "   <menuitem action='FullScreen'/>"
@@ -199,10 +199,10 @@ static const char *ui_description =
     "  </menu>"
     "  <menu action='SettingsMenu'>"
     "   <menuitem action='PathSettings'/>"
-    "   <menuitem action='AudioSettings'/>"
+/*    "   <menuitem action='AudioSettings'/>" */
     "   <menuitem action='ControllerSettings'/>"
-    "   <menuitem action='NetworkSettings'/>"
-    "   <menuitem action='VideoSettings'/>"
+/*    "   <menuitem action='NetworkSettings'/>" */
+/*    "   <menuitem action='VideoSettings'/>" */
     "   <menuitem action='HotkeySettings'/>"
     "   <separator/>"
     "   <menuitem action='FullScreen'/>"
