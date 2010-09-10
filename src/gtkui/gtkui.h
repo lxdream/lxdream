@@ -93,11 +93,11 @@ typedef gboolean (*file_callback_t)( const gchar *filename );
 gchar *open_file_dialog( const char *title, const char *pattern, const char *patname,
                          int initial_dir_key );
 gchar *save_file_dialog( const char *title, const char *pattern, const char *patname,
-                         int initial_dir_key );
+                         const char *mandatory_ext, int initial_dir_key );
 void open_file_dialog_cb( const char *title, file_callback_t action, const char *pattern, const char *patname,
                           int initial_dir_key );
 void save_file_dialog_cb( const char *title, file_callback_t action, const char *pattern, const char *patname,
-                          int initial_dir_key );
+                          const char *mandatory_ext, int initial_dir_key );
 gboolean gtk_gui_gdrom_mount_image( const char *filename );
 /**
  * Extract the keyval of the key event if no modifier keys were pressed -
