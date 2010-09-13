@@ -41,6 +41,9 @@ extern "C" {
  */
 #define MAX_RECOVERY_SIZE 2049
 
+typedef void (*xlat_block_begin_callback_t)();
+typedef void (*xlat_block_end_callback_t)();
+
 /**
  */
 uint32_t sh4_translate_run_slice( uint32_t nanosecs );
@@ -63,6 +66,11 @@ void *sh4_translate_basic_block( sh4addr_t start );
  */
 void sh4_translate_add_recovery( uint32_t icount );
 
+/**
+ * Initialize shadow execution mode
+ */
+void sh4_shadow_init( void );
+
 extern uint8_t *xlat_output;
 extern struct xlat_recovery_record xlat_recovery[MAX_RECOVERY_SIZE];
 extern xlat_cache_block_t xlat_current_block;
@@ -83,6 +91,21 @@ void sh4_translate_emit_breakpoint( sh4vma_t pc );
 void sh4_translate_crashdump();
 
 typedef void (*unwind_thunk_t)(void);
+
+/**
+ * Set instrumentation callbacks
+ */
+void sh4_translate_set_callbacks( xlat_block_begin_callback_t begin, xlat_block_end_callback_t end );
+
+/**
+ * Enable/disable memory optimizations that bypass the mmu
+ */
+void sh4_translate_set_fastmem( gboolean flag );
+
+/**
+ * Set the address spaces for the translated code.
+ */
+void sh4_translate_set_address_space( struct mem_region_fn **priv, struct mem_region_fn **user );
 
 /**
  * From within the translator, (typically called from MMU exception handling routines)

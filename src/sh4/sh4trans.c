@@ -27,6 +27,8 @@
 #include "sh4/mmu.h"
 #include "xlat/xltcache.h"
 
+//#define SINGLESTEP 1
+
 /**
  * Execute a timeslice using translated code only (ie translate/execute loop)
  */
@@ -113,6 +115,9 @@ void * sh4_translate_basic_block( sh4addr_t start )
         if ( pc >= lastpc ) {
             done = 2;
         }
+#ifdef SINGLESTEP
+        if( !done ) done = 2;
+#endif
     } while( !done );
     pc += (done - 2);
 

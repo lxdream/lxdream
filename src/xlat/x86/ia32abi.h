@@ -140,16 +140,16 @@ static inline void CALL3_r32disp_r32_r32_r32( int preg, uint32_t disp, int arg1,
  * Allocates 8 bytes for local variables, which also has the convenient
  * side-effect of aligning the stack.
  */
-static inline void enter_block( ) 
+static inline void emit_prologue( )
 {
     PUSH_r32(REG_EBP);
     SUBL_imms_r32( 8, REG_ESP ); 
     MOVP_immptr_rptr( ((uint8_t *)&sh4r) + 128, REG_EBP );
 }
 
-static inline void exit_block( )
+static inline void emit_epilogue( )
 {
     ADDL_imms_r32( 8, REG_ESP );
     POP_r32(REG_EBP);
-    RET();
 }
+
