@@ -449,7 +449,7 @@ xlat_cache_block_t xlat_extend_block( uint32_t newSize )
 void xlat_commit_block( uint32_t destsize, uint32_t srcsize )
 {
     void **ptr = xlat_new_create_ptr->lut_entry;
-    void **endptr = ptr + (srcsize>>2);
+    void **endptr = ptr + (srcsize>>1);
     while( ptr < endptr ) {
         if( *ptr == NULL ) {
             *ptr = XLAT_LUT_ENTRY_USED;
