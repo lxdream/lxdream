@@ -160,14 +160,19 @@ void sh4_dummy_event(int eventid)
 {
 }
 
-void sh4_translate_set_enabled( gboolean use )
+void sh4_set_core( sh4core_t core )
 {
     // No-op if the translator was not built
 #ifdef SH4_TRANSLATOR
-    if( use ) {
+    if( core != SH4_INTERPRET ) {
         sh4_translate_init();
+        sh4_use_translator = TRUE;
+        if( core == SH4_SHADOW ) {
+            sh4_shadow_init();
+        }
+    } else {
+        sh4_use_translator = FALSE;
     }
-    sh4_use_translator = use;
 #endif
 }
 

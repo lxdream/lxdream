@@ -178,6 +178,7 @@ static gboolean FASTCALL sh4_raise_slot_exception( int normal_code, int slot_cod
 static FASTCALL __attribute__((noinline)) void *__first_arg(void *a, void *b) { return a; }
 #define INIT_EXCEPTIONS(label) goto *__first_arg(&&fnstart,&&label); fnstart:
 #define MEM_READ_BYTE( addr, val ) val = ((mem_read_exc_fn_t)ADDRSPACE[(addr)>>12]->read_byte)((addr), &&except)
+#define MEM_READ_BYTE_FOR_WRITE( addr, val ) val = ((mem_read_exc_fn_t)ADDRSPACE[(addr)>>12]->read_byte_for_write)((addr), &&except)
 #define MEM_READ_WORD( addr, val ) val = ((mem_read_exc_fn_t)ADDRSPACE[(addr)>>12]->read_word)((addr), &&except)
 #define MEM_READ_LONG( addr, val ) val = ((mem_read_exc_fn_t)ADDRSPACE[(addr)>>12]->read_long)((addr), &&except)
 #define MEM_WRITE_BYTE( addr, val ) ((mem_write_exc_fn_t)ADDRSPACE[(addr)>>12]->write_byte)((addr), (val), &&except)
@@ -187,6 +188,7 @@ static FASTCALL __attribute__((noinline)) void *__first_arg(void *a, void *b) { 
 #else
 #define INIT_EXCEPTIONS(label)
 #define MEM_READ_BYTE( addr, val ) val = ADDRSPACE[(addr)>>12]->read_byte(addr)
+#define MEM_READ_BYTE_FOR_WRITE( addr, val ) val = ADDRSPACE[(addr)>>12]->read_byte_for_write(addr)
 #define MEM_READ_WORD( addr, val ) val = ADDRSPACE[(addr)>>12]->read_word(addr)
 #define MEM_READ_LONG( addr, val ) val = ADDRSPACE[(addr)>>12]->read_long(addr)
 #define MEM_WRITE_BYTE( addr, val ) ADDRSPACE[(addr)>>12]->write_byte(addr, val)
@@ -406,13 +408,13 @@ gboolean sh4_execute_instruction( void )
 %%
 AND Rm, Rn {: sh4r.r[Rn] &= sh4r.r[Rm]; :}
 AND #imm, R0 {: R0 &= imm; :}
- AND.B #imm, @(R0, GBR) {: MEM_READ_BYTE(R0+sh4r.gbr, tmp); MEM_WRITE_BYTE( R0 + sh4r.gbr, imm & tmp ); :}
+ AND.B #imm, @(R0, GBR) {: MEM_READ_BYTE_FOR_WRITE(R0+sh4r.gbr, tmp); MEM_WRITE_BYTE( R0 + sh4r.gbr, imm & tmp ); :}
 NOT Rm, Rn {: sh4r.r[Rn] = ~sh4r.r[Rm]; :}
 OR Rm, Rn {: sh4r.r[Rn] |= sh4r.r[Rm]; :}
 OR #imm, R0  {: R0 |= imm; :}
- OR.B #imm, @(R0, GBR) {: MEM_READ_BYTE(R0+sh4r.gbr, tmp); MEM_WRITE_BYTE( R0 + sh4r.gbr, imm | tmp ); :}
+ OR.B #imm, @(R0, GBR) {: MEM_READ_BYTE_FOR_WRITE(R0+sh4r.gbr, tmp); MEM_WRITE_BYTE( R0 + sh4r.gbr, imm | tmp ); :}
 TAS.B @Rn {:
-    MEM_READ_BYTE( sh4r.r[Rn], tmp );
+    MEM_READ_BYTE_FOR_WRITE( sh4r.r[Rn], tmp );
     sh4r.t = ( tmp == 0 ? 1 : 0 );
     MEM_WRITE_BYTE( sh4r.r[Rn], tmp | 0x80 );
 :}
@@ -421,7 +423,7 @@ TST #imm, R0 {: sh4r.t = (R0 & imm ? 0 : 1); :}
  TST.B #imm, @(R0, GBR) {: MEM_READ_BYTE(R0+sh4r.gbr, tmp); sh4r.t = ( tmp & imm ? 0 : 1 ); :}
 XOR Rm, Rn {: sh4r.r[Rn] ^= sh4r.r[Rm]; :}
 XOR #imm, R0 {: R0 ^= imm; :}
- XOR.B #imm, @(R0, GBR) {: MEM_READ_BYTE(R0+sh4r.gbr, tmp); MEM_WRITE_BYTE( R0 + sh4r.gbr, imm ^ tmp ); :}
+ XOR.B #imm, @(R0, GBR) {: MEM_READ_BYTE_FOR_WRITE(R0+sh4r.gbr, tmp); MEM_WRITE_BYTE( R0 + sh4r.gbr, imm ^ tmp ); :}
 XTRCT Rm, Rn {: sh4r.r[Rn] = (sh4r.r[Rn]>>16) | (sh4r.r[Rm]<<16); :}
 
 ROTL Rn {:

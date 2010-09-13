@@ -97,9 +97,16 @@ struct sh4_x86_state {
     uint32_t sh4_mode;     /* Mirror of sh4r.xlat_sh4_mode */
     int tstate;
 
-    /* mode flags */
+    /* mode settings */
     gboolean tlb_on; /* True if tlb translation is active */
+    struct mem_region_fn **priv_address_space;
+    struct mem_region_fn **user_address_space;
 
+    /* Instrumentation */
+    xlat_block_begin_callback_t begin_callback;
+    xlat_block_end_callback_t end_callback;
+    gboolean fastmem;
+    
     /* Allocated memory for the (block-wide) back-patch list */
     struct backpatch_record *backpatch_list;
     uint32_t backpatch_posn;
@@ -117,8 +124,8 @@ static struct x86_symbol x86_symbol_table[] = {
     { "sh4r+128", ((char *)&sh4r)+128 },
     { "sh4_cpu_period", &sh4_cpu_period },
     { "sh4_address_space", NULL },
-    { "sh4_translate_breakpoint_hit", sh4_translate_breakpoint_hit },
     { "sh4_user_address_space", NULL },
+    { "sh4_translate_breakpoint_hit", sh4_translate_breakpoint_hit },
     { "sh4_write_fpscr", sh4_write_fpscr },
     { "sh4_write_sr", sh4_write_sr },
     { "sh4_read_sr", sh4_read_sr },
@@ -143,15 +150,36 @@ gboolean is_sse3_supported()
     return (features & 1) ? TRUE : FALSE;
 }
 
+void sh4_translate_set_address_space( struct mem_region_fn **priv, struct mem_region_fn **user )
+{
+    sh4_x86.priv_address_space = priv;
+    sh4_x86.user_address_space = user;
+    x86_symbol_table[2].ptr = priv;
+    x86_symbol_table[3].ptr = user;
+}
+
 void sh4_translate_init(void)
 {
     sh4_x86.backpatch_list = malloc(DEFAULT_BACKPATCH_SIZE);
     sh4_x86.backpatch_size = DEFAULT_BACKPATCH_SIZE / sizeof(struct backpatch_record);
+    sh4_x86.begin_callback = NULL;
+    sh4_x86.end_callback = NULL;
+    sh4_translate_set_address_space( sh4_address_space, sh4_user_address_space );
+    sh4_x86.fastmem = TRUE;
     sh4_x86.sse3_enabled = is_sse3_supported();
-    x86_symbol_table[2].ptr = sh4_address_space;
-    x86_symbol_table[3].ptr = sh4_user_address_space;    
     x86_disasm_init();
     x86_set_symtab( x86_symbol_table, sizeof(x86_symbol_table)/sizeof(struct x86_symbol) );
+}
+
+void sh4_translate_set_callbacks( xlat_block_begin_callback_t begin, xlat_block_end_callback_t end )
+{
+    sh4_x86.begin_callback = begin;
+    sh4_x86.end_callback = end;
+}
+
+void sh4_translate_set_fastmem( gboolean flag )
+{
+    sh4_x86.fastmem = flag;
 }
 
 /**
@@ -371,7 +399,7 @@ static void sh4_x86_add_backpatch( uint8_t *fixup_addr, uint32_t fixup_pc, uint3
     TESTL_imms_r32( 0x00000007, x86reg ); \
     JNE_exc(EXC_DATA_ADDR_WRITE);
 
-#define address_space() ((sh4_x86.sh4_mode&SR_MD) ? (uintptr_t)sh4_address_space : (uintptr_t)sh4_user_address_space)
+#define address_space() ((sh4_x86.sh4_mode&SR_MD) ? (uintptr_t)sh4_x86.priv_address_space : (uintptr_t)sh4_x86.user_address_space)
 
 #define UNDEF(ir)
 /* Note: For SR.MD == 1 && MMUCR.AT == 0, there are no memory exceptions, so 
@@ -461,7 +489,10 @@ void sh4_translate_begin_block( sh4addr_t pc )
     sh4_x86.double_prec = sh4r.fpscr & FPSCR_PR;
     sh4_x86.double_size = sh4r.fpscr & FPSCR_SZ;
     sh4_x86.sh4_mode = sh4r.xlat_sh4_mode;
-    enter_block();
+    emit_prologue();
+    if( sh4_x86.begin_callback ) {
+        CALL_ptr( sh4_x86.begin_callback );
+    }
 }
 
 
@@ -508,8 +539,28 @@ static void jump_next_block()
 	}
 	JNE_label(wrongmode);
 	LEAP_rptrdisp_rptr(REG_EAX, PROLOGUE_SIZE,REG_EAX);
-	JMP_rptr(REG_EAX);
+	if( sh4_x86.end_callback ) {
+	    /* Note this does leave the stack out of alignment, but doesn't matter
+	     * for what we're currently using it for.
+	     */
+	    PUSH_r32(REG_EAX);
+	    MOVP_immptr_rptr(sh4_x86.end_callback, REG_ECX);
+	    JMP_rptr(REG_ECX);
+	} else {
+	    JMP_rptr(REG_EAX);
+	}
 	JMP_TARGET(nocode); JMP_TARGET(wrongmode);
+}
+
+static void exit_block()
+{
+	emit_epilogue();
+	if( sh4_x86.end_callback ) {
+	    MOVP_immptr_rptr(sh4_x86.end_callback, REG_ECX);
+	    JMP_rptr(REG_ECX);
+	} else {
+	    RET();
+	}
 }
 
 /**
@@ -1616,7 +1667,7 @@ MOV.L @(disp, PC), Rn {:
 	SLOTILLEGAL();
     } else {
 	uint32_t target = (pc & 0xFFFFFFFC) + disp + 4;
-	if( IS_IN_ICACHE(target) ) {
+	if( sh4_x86.fastmem && IS_IN_ICACHE(target) ) {
 	    // If the target address is in the same page as the code, it's
 	    // pretty safe to just ref it directly and circumvent the whole
 	    // memory subsystem. (this is a big performance win)
@@ -1738,7 +1789,7 @@ MOV.W @(disp, PC), Rn {:
     } else {
 	// See comments for MOV.L @(disp, PC), Rn
 	uint32_t target = pc + disp + 4;
-	if( IS_IN_ICACHE(target) ) {
+	if( sh4_x86.fastmem && IS_IN_ICACHE(target) ) {
 	    sh4ptr_t ptr = GET_ICACHE_PTR(target);
 	    MOVL_moffptr_eax( ptr );
 	    MOVSXL_r16_r32( REG_EAX, REG_EAX );

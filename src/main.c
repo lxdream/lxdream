@@ -42,7 +42,7 @@
 #include "hotkeys.h"
 #include "plugin.h"
 
-char *option_list = "a:A:bc:e:dfg:G:hHl:m:npt:T:uvV:x?";
+char *option_list = "a:A:bc:e:dfg:G:hHl:m:npt:T:uvV:xX?";
 struct option longopts[] = {
         { "aica", required_argument, NULL, 'a' },
         { "audio", required_argument, NULL, 'A' },
@@ -58,6 +58,7 @@ struct option longopts[] = {
         { "log", required_argument, NULL,'l' }, 
         { "multiplier", required_argument, NULL, 'm' },
         { "run-time", required_argument, NULL, 't' },
+        { "shadow", no_argument, NULL, 'X' },
         { "trace", required_argument, NULL, 'T' },
         { "unsafe", no_argument, NULL, 'u' },
         { "video", no_argument, NULL, 'V' },
@@ -72,7 +73,7 @@ char *arm_gdb_port = NULL;
 gboolean start_immediately = FALSE;
 gboolean no_start = FALSE;
 gboolean headless = FALSE;
-gboolean use_xlat = TRUE;
+sh4core_t sh4_core = SH4_TRANSLATE;
 gboolean show_debugger = FALSE;
 gboolean show_fullscreen = FALSE;
 gboolean use_bootrom = TRUE;
@@ -110,6 +111,7 @@ static void print_usage()
     printf( "   -v, --version          %s\n", _("Print the lxdream version string") );
     printf( "   -V, --video=DRIVER     %s\n", _("Use the specified video driver (? to list)") );
     printf( "   -x                     %s\n", _("Disable the SH4 translator") );
+    printf( "   -X                     %s\n", _("Run both SH4 interpreter and translator") );
 }
 
 static void bind_gettext_domain()
@@ -207,7 +209,10 @@ int main (int argc, char *argv[])
             display_driver_name = optarg;
             break;
         case 'x': /* Disable translator */
-            use_xlat = FALSE;
+            sh4_core = SH4_INTERPRET;
+            break;
+        case 'X': /* Shadow translator */
+            sh4_core = SH4_SHADOW;
             break;
         }
     }
@@ -321,7 +326,7 @@ int main (int argc, char *argv[])
         }
     }
 
-    sh4_translate_set_enabled( use_xlat );
+    sh4_set_core( sh4_core );
 
     /* If requested, start the gdb server immediately before we go into the main
      * loop.

@@ -97,6 +97,12 @@ extern struct sh4_registers sh4r;
 
 extern const struct cpu_desc_struct sh4_cpu_desc;
 
+typedef enum {
+    SH4_INTERPRET,
+    SH4_TRANSLATE,
+    SH4_SHADOW
+} sh4core_t;
+
 /**
  * Switch between translation and emulation execution modes. Note that this
  * should only be used while the system is stopped. If the system was built
@@ -104,7 +110,7 @@ extern const struct cpu_desc_struct sh4_cpu_desc;
  *
  * @param use TRUE for translation mode, FALSE for emulation mode.
  */
-void sh4_translate_set_enabled( gboolean use );
+void sh4_set_core( sh4core_t core );
 
 /**
  * Test if system is currently using the translation engine.

@@ -100,16 +100,15 @@ static inline void CALL3_r32disp_r32_r32_r32( int preg, uint32_t disp, int arg1,
  * Emit the 'start of block' assembly. Sets up the stack frame and save
  * SI/DI as required
  */
-static inline void enter_block( ) 
+static inline void emit_prologue( )
 {
     PUSH_r32(REG_RBP);
     SUBQ_imms_r64( 16, REG_RSP ); 
     MOVP_immptr_rptr( ((uint8_t *)&sh4r) + 128, REG_EBP );
 }
 
-static inline void exit_block( )
+static inline void emit_epilogue( )
 {
     ADDQ_imms_r64( 16, REG_RSP );
     POP_r32(REG_RBP);
-    RET();
 }
