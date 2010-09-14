@@ -283,13 +283,16 @@ MMIO_REGION_READ_FN( TMU, reg )
     reg &= 0xFFF;
     switch( reg ) {
     case TCNT0:
-        TMU_count( 0, sh4r.slice_cycle );
+        if( TMU_IS_RUNNING(0) )
+            TMU_count( 0, sh4r.slice_cycle );
         break;
     case TCNT1:
-        TMU_count( 1, sh4r.slice_cycle );
+        if( TMU_IS_RUNNING(1) )
+            TMU_count( 1, sh4r.slice_cycle );
         break;
     case TCNT2:
-        TMU_count( 2, sh4r.slice_cycle );
+        if( TMU_IS_RUNNING(2) )
+            TMU_count( 2, sh4r.slice_cycle );
         break;
     }
     return MMIO_READ( TMU, reg );
