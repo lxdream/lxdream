@@ -17,6 +17,7 @@
  */
 
 #include <string.h>
+#include <stdlib.h>
 #include <glib/gstrfuncs.h>
 #include "pvr2/glutil.h"
 
@@ -78,11 +79,22 @@ gboolean isGLExtensionSupported( const char *extension )
     return FALSE;
 }
 
+int compare_charp( const void *a, const void *b )
+{
+    const char **ca = (const char **)a;
+    const char **cb = (const char **)b;
+    return strcmp(*ca, *cb);
+}
+
 void glPrintInfo( FILE *out )
 {
     const gchar *extensions = (const gchar *)glGetString(GL_EXTENSIONS);
     gchar **ext_split = g_strsplit(extensions, " ", 0);
-    unsigned int i;
+    unsigned int i, count;
+
+    for( count = 0; ext_split[count] != NULL; count++ );
+
+    qsort(ext_split, count, sizeof(gchar *), compare_charp);
 
     fprintf( out, "GL Vendor: %s\n", glGetString(GL_VENDOR) );
     fprintf( out, "GL Renderer: %s\n", glGetString(GL_RENDERER) );
