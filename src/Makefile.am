@@ -27,9 +27,9 @@ version.c: checkversion
 
 TESTS = test/testxlt
 BUILT_SOURCES = sh4/sh4core.c sh4/sh4dasm.c sh4/sh4x86.c sh4/sh4stat.c \
-	pvr2/gl_slsrc.c drivers/mac_keymap.h version.c
+	pvr2/shaders.def pvr2/shaders.h drivers/mac_keymap.h version.c
 CLEANFILES = sh4/sh4core.c sh4/sh4dasm.c sh4/sh4x86.c sh4/sh4stat.c \
-	pvr2/gl_slsrc.c drivers/mac_keymap.h version.c  \
+	pvr2/shaders.def pvr2/shaders.h drivers/mac_keymap.h version.c  \
 	audio_alsa.lo audio_sdl.lo audio_esd.lo audio_pulse.lo input_lirc.lo \
 	lxdream_dummy.lo
 
@@ -58,7 +58,7 @@ lxdream_SOURCES = \
 	pvr2/pvr2.c pvr2/pvr2.h pvr2/pvr2mem.c pvr2/pvr2mmio.h \
 	pvr2/tacore.c pvr2/rendsort.c \
 	pvr2/texcache.c pvr2/yuv.c pvr2/rendsave.c pvr2/scene.c pvr2/scene.h \
-	pvr2/gl_sl.c pvr2/gl_slsrc.c pvr2/glutil.c pvr2/glutil.h pvr2/glrender.c \
+	pvr2/gl_sl.c pvr2/shaders.h pvr2/shaders.def pvr2/glutil.c pvr2/glutil.h pvr2/glrender.c \
 	pvr2/vertex.glsl pvr2/fragment.glsl \
         maple/maple.c maple/maple.h \
         maple/controller.c maple/kbd.c maple/mouse.c maple/lightgun.c maple/vmu.c \
@@ -254,9 +254,10 @@ sh4/sh4x86.c: gendec sh4/sh4.def sh4/sh4x86.in
 sh4/sh4stat.c: gendec sh4/sh4.def sh4/sh4stat.in
 	$(mkdir_p) `dirname $@`
 	./gendec $(srcdir)/sh4/sh4.def $(srcdir)/sh4/sh4stat.in -o $@
-pvr2/gl_slsrc.c: genglsl pvr2/vertex.glsl pvr2/fragment.glsl
+pvr2/shaders.def: genglsl pvr2/shaders.glsl
 	$(mkdir_p) `dirname $@`
-	./genglsl $(srcdir)/pvr2/vertex.glsl $(srcdir)/pvr2/fragment.glsl $@
+	./genglsl $(srcdir)/pvr2/shaders.glsl $@
+pvr2/shaders.h: pvr2/shaders.def
 drivers/mac_keymap.h: drivers/mac_keymap.txt drivers/genkeymap.pl
 	$(mkdir_p) `dirname $@`
 	$(srcdir)/drivers/genkeymap.pl mac $(srcdir)/drivers/mac_keymap.txt > $@
