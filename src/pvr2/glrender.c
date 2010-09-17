@@ -95,7 +95,7 @@ void pvr2_setup_gl_context()
 {
 
     if( glsl_is_supported() ) {
-        if( !glsl_load_shaders( glsl_vertex_shader_src, NULL ) ) {
+        if( !glsl_load_shaders( ) ) {
             WARN( "Unable to load GL shaders" );
         }
     }
@@ -526,7 +526,7 @@ void pvr2_scene_render( render_buffer_t buffer )
     glFogf(GL_FOG_START, 0.0);
     glFogf(GL_FOG_END, 1.0);
     /* Turn on the shaders (if available) */
-    glsl_enable_shaders(TRUE);
+    glsl_set_shader(DEFAULT_PROGRAM);
 
     /* Render the background */
     gl_render_bkgnd( pvr2_scene.bkgnd_poly );
@@ -580,7 +580,7 @@ void pvr2_scene_render( render_buffer_t buffer )
     } while( !IS_LAST_SEGMENT(segment++) );
     glDisable( GL_SCISSOR_TEST );
 
-    glsl_enable_shaders(FALSE);
+    glsl_clear_shader();
 
     gettimeofday( &end_tv, NULL );
     ms = (end_tv.tv_sec - tex_tv.tv_sec) * 1000 +

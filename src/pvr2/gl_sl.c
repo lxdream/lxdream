@@ -1,11 +1,9 @@
 /**
  * $Id$
  *
- * GLSL shader loader/unloader. Current version assumes there's exactly
- * 1 shader program that's used globally. This may turn out not to be the
- * most efficient approach.
- *
- * Copyright (c) 2007 Nathan Keynes.
+ * GLSL wrapper code to hide the differences between the different gl/sl APIs.
+  *
+ * Copyright (c) 2007-2010 Nathan Keynes.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,11 +16,33 @@
  * GNU General Public License for more details.
  */
 
+#include <assert.h>
+
 #include "lxdream.h"
 #include "display.h"
 #include "pvr2/glutil.h"
 
 #define MAX_ERROR_BUF 4096
+#define INVALID_SHADER 0
+#define INVALID_PROGRAM 0
+
+#ifdef HAVE_OPENGL_SHADER_ARB
+typedef GLhandleARB gl_program_t;
+typedef GLhandleARB gl_shader_t;
+#else
+typedef GLuint gl_program_t;
+typedef GLuint gl_shader_t;
+#endif
+
+gboolean glsl_is_supported();
+gl_shader_t glsl_create_vertex_shader( const char *source );
+gl_shader_t glsl_create_fragment_shader( const char *source );
+gl_program_t glsl_create_program( gl_shader_t *shaderv );
+void glsl_use_program(gl_program_t program);
+void glsl_destroy_shader(gl_shader_t shader);
+void glsl_destroy_program(gl_program_t program);
+
+#ifdef HAVE_OPENGL_SHADER_ARB
 
 gboolean glsl_is_supported()
 {
@@ -30,9 +50,6 @@ gboolean glsl_is_supported()
     isGLExtensionSupported("GL_ARB_vertex_shader") &&
     isGLExtensionSupported("GL_ARB_shading_language_100");
 }
-
-#ifdef HAVE_OPENGL_SHADER_ARB
-static GLhandleARB glsl_program = 0, glsl_vert_shader = 0, glsl_frag_shader = 0;
 
 void glsl_print_error( char *msg, GLhandleARB obj )
 {
@@ -62,73 +79,82 @@ gboolean glsl_check_program_error( char *msg, GLhandleARB obj )
     return TRUE;
 }
 
-
-gboolean glsl_load_shaders( const char *vertex_src, const char *fragment_src )
+gl_shader_t glsl_create_vertex_shader( const char *source )
 {
-    gboolean vsok = TRUE, fsok = TRUE, pok = FALSE;
+    gboolean ok;
+    gl_shader_t shader = glCreateShaderObjectARB(GL_VERTEX_SHADER_ARB);
 
-    if( vertex_src == NULL && fragment_src == NULL ) {
-        return TRUE; // nothing to do
-    }
-
-    glsl_program = glCreateProgramObjectARB();
-
-    if( vertex_src != NULL ) {
-        glsl_vert_shader = glCreateShaderObjectARB(GL_VERTEX_SHADER_ARB);
-        glShaderSourceARB( glsl_vert_shader, 1, &vertex_src, NULL );
-        glCompileShaderARB(glsl_vert_shader);
-        vsok = glsl_check_shader_error("Failed to compile vertex shader", glsl_vert_shader);
-    }
-    if( fragment_src != NULL ) {
-        glsl_frag_shader = glCreateShaderObjectARB(GL_FRAGMENT_SHADER_ARB);
-        glShaderSourceARB( glsl_frag_shader, 1, &fragment_src, NULL );
-        glCompileShaderARB(glsl_frag_shader);
-        fsok = glsl_check_shader_error("Failed to compile fragment shader", glsl_frag_shader);
-    }
-
-    if( vsok && fsok ) {
-        if( vertex_src != NULL ) {
-            glAttachObjectARB(glsl_program, glsl_vert_shader);
-        }
-        if( fragment_src != NULL ) {
-            glAttachObjectARB(glsl_program, glsl_frag_shader);
-        }
-        glLinkProgramARB(glsl_program);
-        pok = glsl_check_program_error( "Failed to link shader program", glsl_program );
-    }
-    if( pok ) {
-        glUseProgramObjectARB(glsl_program);
-        pok = glsl_check_program_error( "Failed to apply shader program", glsl_program );
-        glsl_enable_shaders(FALSE); // initially disabled
+    glShaderSourceARB( shader, 1, &source, NULL );
+    glCompileShaderARB(shader);
+    ok = glsl_check_shader_error("Failed to compile vertex shader", shader);
+    if( !ok ) {
+        glDeleteObjectARB(shader);
+        return INVALID_SHADER;
     } else {
-        glsl_unload_shaders();
-    }
-    return pok;
-}
-
-void glsl_enable_shaders(gboolean en)
-{
-    if( glsl_program != 0 ) {
-        if( en ) {
-            glUseProgramObjectARB(glsl_program);
-        } else {
-            glUseProgramObjectARB(0);
-        }
+        return shader;
     }
 }
 
-void glsl_unload_shaders(void)
+gl_shader_t glsl_create_fragment_shader( const char *source )
 {
-    glUseProgramObjectARB(0);
-    glDetachObjectARB(glsl_program, glsl_vert_shader);
-    glDetachObjectARB(glsl_program, glsl_frag_shader);
-    glDeleteObjectARB(glsl_program);
-    glDeleteObjectARB(glsl_vert_shader);
-    glDeleteObjectARB(glsl_frag_shader);
+    gboolean ok;
+    gl_shader_t shader = glCreateShaderObjectARB(GL_FRAGMENT_SHADER_ARB);
+
+    glShaderSourceARB( shader, 1, &source, NULL );
+    glCompileShaderARB(shader);
+    ok = glsl_check_shader_error("Failed to compile fragment shader", shader);
+    if( !ok ) {
+        glDeleteObjectARB(shader);
+        return INVALID_SHADER;
+    } else {
+        return shader;
+    }
+}
+
+gl_program_t glsl_create_program( gl_shader_t *shaderv )
+{
+    gboolean ok;
+    unsigned i;
+    gl_program_t program = glCreateProgramObjectARB();
+
+    for( i=0; shaderv[i] != INVALID_SHADER; i++ ) {
+        glAttachObjectARB(program, shaderv[i]);
+    }
+
+    glLinkProgramARB(program);
+    ok = glsl_check_program_error( "Failed to link shader program", program );
+    if( !ok ) {
+        glDeleteObjectARB(program);
+        return INVALID_PROGRAM;
+    } else {
+        return program;
+    }
+}
+
+void glsl_use_program(gl_program_t program)
+{
+    glUseProgramObjectARB(program);
+    glsl_check_program_error( "Failed to activate shader program", program );
+}
+
+void glsl_destroy_shader(gl_shader_t shader)
+{
+    glDeleteObjectARB(shader);
+}
+
+void glsl_destroy_program(gl_program_t program)
+{
+    glDeleteObjectARB(program);
 }
 
 #elif HAVE_OPENGL_SHADER
-static GLuint glsl_program = 0, glsl_vert_shader = 0, glsl_frag_shader = 0;
+
+gboolean glsl_is_supported()
+{
+    return isGLExtensionSupported("GL_ARB_fragment_shader") &&
+    isGLExtensionSupported("GL_ARB_vertex_shader") &&
+    isGLExtensionSupported("GL_ARB_shading_language_100");
+}
 
 gboolean glsl_check_shader_error( char *msg, GLuint shader )
 {
@@ -144,6 +170,7 @@ gboolean glsl_check_shader_error( char *msg, GLuint shader )
     }
     return TRUE;
 }
+
 gboolean glsl_check_program_error( char *msg, GLuint program )
 {
     if( glGetError() != GL_NO_ERROR ) {
@@ -156,83 +183,203 @@ gboolean glsl_check_program_error( char *msg, GLuint program )
     return TRUE;
 }
 
-gboolean glsl_load_shaders( const char *vertex_src, const char *fragment_src )
+gl_shader_t glsl_create_vertex_shader( const char *source )
 {
-    gboolean vsok = TRUE, fsok = TRUE, pok = FALSE;
+    gboolean ok;
+    gl_shader_t shader = glCreateShader(GL_VERTEX_SHADER);
 
-    if( vertex_src == NULL && fragment_src == NULL ) {
-        return TRUE;
-    }
-
-    glsl_program = glCreateProgram();
-
-    if( vertex_src != NULL ) {
-        glsl_vert_shader = glCreateShader(GL_VERTEX_SHADER);
-        glShaderSource( glsl_vert_shader, 1, &vertex_src, NULL );
-        glCompileShader(glsl_vert_shader);
-        vsok = glsl_check_shader_error( "Failed to compile vertex shader", glsl_vert_shader );
-    }
-    if( fragment_src != NULL ) {
-        glsl_frag_shader = glCreateShader(GL_FRAGMENT_SHADER);
-        glShaderSource( glsl_frag_shader, 1, &fragment_src, NULL );
-        glCompileShader(glsl_frag_shader);
-        fsok = glsl_check_shader_error( "Failed to compile fragment shader", glsl_frag_shader );
-    }
-
-    if( vsok && fsok ) {
-        if( vertex_src != NULL ) {
-            glAttachShader(glsl_program, glsl_vert_shader);
-        }
-        if( fragment_src != NULL ) {
-            glAttachShader(glsl_program, glsl_frag_shader);
-        }
-        glLinkProgram(glsl_program);
-        pok = glsl_check_program_error( "Failed to link shader program", glsl_program );
-    }
-
-    if( pok ) {
-        glUseProgram(glsl_program);
-        pok = glsl_check_program_error( "Failed to apply shader program", glsl_program );
-        glsl_enable_shaders(FALSE); // initially disabled
+    glShaderSource( shader, 1, &source, NULL );
+    glCompileShader(shader);
+    ok = glsl_check_shader_error( "Failed to compile vertex shader", glsl_vert_shader );
+    if( !ok ) {
+        glDeleteShader(shader);
+        return INVALID_SHADER;
     } else {
-        glsl_unload_shaders();
+        return shader;
     }
-    return pok;
+
 }
 
-
-void glsl_enable_shaders(gboolean en)
+gl_shader_t glsl_create_fragment_shader( const char *source )
 {
-    if( glsl_program != 0 ) {
-        if( en ) {
-            glUseProgram(glsl_program);
-        } else {
-            glUseProgram(0);
-        }
+    gboolean ok;
+    gl_shader_t shader = glCreateShader(GL_FRAGMENT_SHADER);
+
+    glShaderSource( shader, 1, &source, NULL );
+    glCompileShader(shader);
+    ok = glsl_check_shader_error( "Failed to compile fragment shader", glsl_frag_shader );
+    if( !ok ) {
+        glDeleteShader(shader);
+        return INVALID_SHADER;
+    } else {
+        return shader;
     }
 }
 
-void glsl_unload_shaders(void)
+gl_program_t glsl_create_program( gl_shader_t *shaderv )
 {
-    glUseProgram(0);
-    glDetachShader(glsl_program, glsl_vert_shader);
-    glDetachShader(glsl_program, glsl_frag_shader);
-    glDeleteProgram(glsl_program);
-    glDeleteShader(glsl_vert_shader);
-    glDeleteShader(glsl_frag_shader);
+    gboolean ok;
+    unsigned i;
+    gl_program_t program = glCreateProgram();
+
+    for( i=0; shaderv[i] != INVALID_SHADER; i++ ) {
+        glAttachShader(program, shaderv[i]);
+    }
+    glLinkProgram(program);
+    ok = glsl_check_program_error( "Failed to link shader program", program );
+    if( !ok ) {
+        glDeleteProgram(program);
+        return INVALID_PROGRAM;
+    } else {
+        return program;
+    }
+}
+
+void glsl_use_program(gl_program_t program)
+{
+    glUseProgram(program);
+}
+
+void glsl_destroy_shader(gl_shader_t shader)
+{
+    glDeleteShader(shader);
+}
+
+void glsl_destroy_program(gl_program_t program)
+{
+    glDeleteProgram(program);
 }
 
 #else
-gboolean glsl_load_shaders( const char *vertex_src, const char *fragment_src )
+gboolean glsl_is_supported()
 {
     return FALSE;
 }
 
-void glsl_unload_shaders()
+gl_shader_t glsl_create_vertex_shader( const char *source )
+{
+    return 0;
+}
+
+gl_shader_t glsl_create_fragment_shader( const char *source )
+{
+    return 0;
+}
+
+gl_program_t glsl_create_program( gl_shader_t vertex, gl_shader_t fragment )
+{
+    return 0;
+}
+
+void glsl_use_program(gl_program_t program)
 {
 }
 
-void glsl_enable_shaders( gboolean enable )
+void glsl_destroy_shader(gl_shader_t shader)
+{
+}
+
+void glsl_destroy_program(gl_program_t program)
 {
 }
 #endif
+
+/****************************************************************************/
+
+/* Pull in the auto-generated shader definitions */
+
+#include "pvr2/shaders.def"
+
+static gl_program_t program_array[GLSL_NUM_PROGRAMS];
+
+gboolean glsl_load_shaders()
+{
+    gl_shader_t shader_array[GLSL_NUM_SHADERS];
+    gboolean ok = TRUE;
+    unsigned i, j;
+    for( i=0; i<GLSL_NUM_SHADERS; i++ )
+        shader_array[i] = INVALID_SHADER;
+    for( i=0; i<GLSL_NUM_PROGRAMS; i++ )
+        program_array[i] = INVALID_PROGRAM;
+
+    /* Compile the shader fragments */
+    for( i=0; shader_source[i].type != GLSL_NO_SHADER; i++ ) {
+        gl_shader_t shader = INVALID_SHADER;
+        switch(shader_source[i].type) {
+        case GLSL_VERTEX_SHADER:
+            shader = glsl_create_vertex_shader(shader_source[i].source);
+            break;
+        case GLSL_FRAGMENT_SHADER:
+            shader = glsl_create_fragment_shader(shader_source[i].source);
+            break;
+        }
+        if( shader == INVALID_SHADER ) {
+            ok = FALSE;
+            break;
+        } else {
+            shader_array[i] = shader;
+        }
+    }
+
+    /* Link the programs */
+    if(ok) for( i=0; program_list[i][0] != GLSL_NO_SHADER; i++ ) {
+        gl_shader_t shaderv[GLSL_NUM_SHADERS+1];
+        for( j=0; program_list[i][j] != GLSL_NO_SHADER; j++ ) {
+            shaderv[j] = shader_array[program_list[i][j]];
+        }
+        shaderv[j] = INVALID_SHADER;
+        gl_program_t program = glsl_create_program(shaderv);
+        if( program == INVALID_PROGRAM ) {
+            ok = FALSE;
+            break;
+        } else {
+            program_array[i] = program;
+        }
+    }
+
+    /**
+     * Destroy the compiled fragments (the linked programs don't need them
+     * anymore)
+     */
+    for( i=0; i<GLSL_NUM_SHADERS; i++ ) {
+        if( shader_array[i] != INVALID_SHADER )
+            glsl_destroy_shader(shader_array[i]);
+    }
+
+    /**
+     * If we errored, delete the programs. It's all or nothing.
+     */
+    if( !ok ) {
+        glsl_unload_shaders();
+        return FALSE;
+    }
+    return TRUE;
+}
+
+void glsl_unload_shaders()
+{
+    unsigned i;
+    for( i=0; i<GLSL_NUM_PROGRAMS; i++ ) {
+        if( program_array[i] != INVALID_PROGRAM ) {
+            glsl_destroy_program(program_array[i]);
+            program_array[i] = INVALID_PROGRAM;
+        }
+    }
+}
+
+gboolean glsl_set_shader(unsigned i)
+{
+    assert( i >= 0 && i <= GLSL_LAST_PROGRAM );
+
+    if( program_array[i] != INVALID_PROGRAM ) {
+        glsl_use_program(program_array[i]);
+        return TRUE;
+    } else {
+        return FALSE;
+    }
+}
+
+void glsl_clear_shader()
+{
+    glsl_use_program(0);
+}

@@ -157,45 +157,46 @@ am__lxdream_SOURCES_DIST = main.c version.c config.c config.h \
 	aica/aica.c aica/aica.h aica/audio.c aica/audio.h pvr2/pvr2.c \
 	pvr2/pvr2.h pvr2/pvr2mem.c pvr2/pvr2mmio.h pvr2/tacore.c \
 	pvr2/rendsort.c pvr2/texcache.c pvr2/yuv.c pvr2/rendsave.c \
-	pvr2/scene.c pvr2/scene.h pvr2/gl_sl.c pvr2/gl_slsrc.c \
-	pvr2/glutil.c pvr2/glutil.h pvr2/glrender.c pvr2/vertex.glsl \
-	pvr2/fragment.glsl maple/maple.c maple/maple.h \
-	maple/controller.c maple/kbd.c maple/mouse.c maple/lightgun.c \
-	maple/vmu.c loader.c loader.h elf.h bootstrap.c bootstrap.h \
-	util.c gdlist.c gdlist.h vmu/vmuvol.c vmu/vmuvol.h \
-	vmu/vmulist.c vmu/vmulist.h display.c display.h dckeysyms.h \
-	drivers/audio_null.c drivers/video_null.c drivers/video_gl.c \
-	drivers/video_gl.h drivers/gl_fbo.c drivers/serial_unix.c \
-	drivers/cdrom/cdrom.h drivers/cdrom/cdrom.c \
-	drivers/cdrom/drive.h drivers/cdrom/sector.h \
-	drivers/cdrom/sector.c drivers/cdrom/defs.h \
-	drivers/cdrom/cd_nrg.c drivers/cdrom/cd_cdi.c \
-	drivers/cdrom/cd_gdi.c drivers/cdrom/edc_ecc.c \
-	drivers/cdrom/ecc.h drivers/cdrom/drive.c \
-	drivers/cdrom/edc_crctable.h drivers/cdrom/edc_encoder.h \
-	drivers/cdrom/edc_l2sq.h drivers/cdrom/edc_scramble.h \
-	drivers/cdrom/cd_mmc.c drivers/cdrom/isofs.h \
-	drivers/cdrom/isofs.c sh4/sh4.def sh4/sh4core.in sh4/sh4x86.in \
-	sh4/sh4dasm.in sh4/sh4stat.in hotkeys.c hotkeys.h plugin.c \
-	plugin.h sh4/sh4x86.c xlat/x86/x86op.h xlat/x86/ia32abi.h \
-	xlat/x86/amd64abi.h sh4/sh4trans.c sh4/sh4trans.h sh4/mmux86.c \
-	x86dasm/x86dasm.c x86dasm/x86dasm.h x86dasm/i386-dis.c \
-	x86dasm/dis-init.c x86dasm/dis-buf.c x86dasm/ansidecl.h \
-	x86dasm/bfd.h x86dasm/dis-asm.h x86dasm/symcat.h \
-	x86dasm/sysdep.h gtkui/gtkui.c gtkui/gtkui.h gtkui/gtk_win.c \
-	gtkui/gtkcb.c gtkui/gtk_cfg.c gtkui/gtk_mmio.c \
-	gtkui/gtk_debug.c gtkui/gtk_dump.c gtkui/gtk_ctrl.c \
-	gtkui/gtk_gd.c drivers/io_glib.c drivers/video_gtk.c \
-	cocoaui/cocoaui.m cocoaui/cocoaui.h cocoaui/cocoa_cfg.m \
-	cocoaui/cocoa_win.m cocoaui/cocoa_gd.m cocoaui/cocoa_prefs.m \
-	cocoaui/cocoa_ctrl.m cocoaui/paths_osx.m drivers/io_osx.m \
-	drivers/video_osx.m drivers/mac_keymap.h \
-	drivers/mac_keymap.txt paths_unix.c drivers/video_gdk.c \
-	drivers/video_glx.c drivers/video_glx.h drivers/video_nsgl.m \
-	drivers/video_nsgl.h drivers/audio_osx.m drivers/audio_sdl.c \
-	drivers/audio_pulse.c drivers/audio_esd.c drivers/audio_alsa.c \
-	drivers/input_lirc.c drivers/cdrom/cd_linux.c \
-	drivers/cdrom/cd_osx.c drivers/osx_iokit.m drivers/osx_iokit.h \
+	pvr2/scene.c pvr2/scene.h pvr2/gl_sl.c pvr2/shaders.h \
+	pvr2/shaders.def pvr2/glutil.c pvr2/glutil.h pvr2/glrender.c \
+	pvr2/vertex.glsl pvr2/fragment.glsl maple/maple.c \
+	maple/maple.h maple/controller.c maple/kbd.c maple/mouse.c \
+	maple/lightgun.c maple/vmu.c loader.c loader.h elf.h \
+	bootstrap.c bootstrap.h util.c gdlist.c gdlist.h vmu/vmuvol.c \
+	vmu/vmuvol.h vmu/vmulist.c vmu/vmulist.h display.c display.h \
+	dckeysyms.h drivers/audio_null.c drivers/video_null.c \
+	drivers/video_gl.c drivers/video_gl.h drivers/gl_fbo.c \
+	drivers/serial_unix.c drivers/cdrom/cdrom.h \
+	drivers/cdrom/cdrom.c drivers/cdrom/drive.h \
+	drivers/cdrom/sector.h drivers/cdrom/sector.c \
+	drivers/cdrom/defs.h drivers/cdrom/cd_nrg.c \
+	drivers/cdrom/cd_cdi.c drivers/cdrom/cd_gdi.c \
+	drivers/cdrom/edc_ecc.c drivers/cdrom/ecc.h \
+	drivers/cdrom/drive.c drivers/cdrom/edc_crctable.h \
+	drivers/cdrom/edc_encoder.h drivers/cdrom/edc_l2sq.h \
+	drivers/cdrom/edc_scramble.h drivers/cdrom/cd_mmc.c \
+	drivers/cdrom/isofs.h drivers/cdrom/isofs.c sh4/sh4.def \
+	sh4/sh4core.in sh4/sh4x86.in sh4/sh4dasm.in sh4/sh4stat.in \
+	hotkeys.c hotkeys.h plugin.c plugin.h sh4/sh4x86.c \
+	xlat/x86/x86op.h xlat/x86/ia32abi.h xlat/x86/amd64abi.h \
+	sh4/sh4trans.c sh4/sh4trans.h sh4/mmux86.c x86dasm/x86dasm.c \
+	x86dasm/x86dasm.h x86dasm/i386-dis.c x86dasm/dis-init.c \
+	x86dasm/dis-buf.c x86dasm/ansidecl.h x86dasm/bfd.h \
+	x86dasm/dis-asm.h x86dasm/symcat.h x86dasm/sysdep.h \
+	gtkui/gtkui.c gtkui/gtkui.h gtkui/gtk_win.c gtkui/gtkcb.c \
+	gtkui/gtk_cfg.c gtkui/gtk_mmio.c gtkui/gtk_debug.c \
+	gtkui/gtk_dump.c gtkui/gtk_ctrl.c gtkui/gtk_gd.c \
+	drivers/io_glib.c drivers/video_gtk.c cocoaui/cocoaui.m \
+	cocoaui/cocoaui.h cocoaui/cocoa_cfg.m cocoaui/cocoa_win.m \
+	cocoaui/cocoa_gd.m cocoaui/cocoa_prefs.m cocoaui/cocoa_ctrl.m \
+	cocoaui/paths_osx.m drivers/io_osx.m drivers/video_osx.m \
+	drivers/mac_keymap.h drivers/mac_keymap.txt paths_unix.c \
+	drivers/video_gdk.c drivers/video_glx.c drivers/video_glx.h \
+	drivers/video_nsgl.m drivers/video_nsgl.h drivers/audio_osx.m \
+	drivers/audio_sdl.c drivers/audio_pulse.c drivers/audio_esd.c \
+	drivers/audio_alsa.c drivers/input_lirc.c \
+	drivers/cdrom/cd_linux.c drivers/cdrom/cd_osx.c \
+	drivers/osx_iokit.m drivers/osx_iokit.h \
 	drivers/cdrom/cd_none.c drivers/joy_linux.c \
 	drivers/joy_linux.h
 @BUILD_SHARED_TRUE@am__objects_1 = lxdream-plugin.$(OBJEXT)
@@ -264,28 +265,28 @@ am_lxdream_OBJECTS = lxdream-main.$(OBJEXT) lxdream-version.$(OBJEXT) \
 	lxdream-tacore.$(OBJEXT) lxdream-rendsort.$(OBJEXT) \
 	lxdream-texcache.$(OBJEXT) lxdream-yuv.$(OBJEXT) \
 	lxdream-rendsave.$(OBJEXT) lxdream-scene.$(OBJEXT) \
-	lxdream-gl_sl.$(OBJEXT) lxdream-gl_slsrc.$(OBJEXT) \
-	lxdream-glutil.$(OBJEXT) lxdream-glrender.$(OBJEXT) \
-	lxdream-maple.$(OBJEXT) lxdream-controller.$(OBJEXT) \
-	lxdream-kbd.$(OBJEXT) lxdream-mouse.$(OBJEXT) \
-	lxdream-lightgun.$(OBJEXT) lxdream-vmu.$(OBJEXT) \
-	lxdream-loader.$(OBJEXT) lxdream-bootstrap.$(OBJEXT) \
-	lxdream-util.$(OBJEXT) lxdream-gdlist.$(OBJEXT) \
-	lxdream-vmuvol.$(OBJEXT) lxdream-vmulist.$(OBJEXT) \
-	lxdream-display.$(OBJEXT) lxdream-audio_null.$(OBJEXT) \
-	lxdream-video_null.$(OBJEXT) lxdream-video_gl.$(OBJEXT) \
-	lxdream-gl_fbo.$(OBJEXT) lxdream-serial_unix.$(OBJEXT) \
-	lxdream-cdrom.$(OBJEXT) lxdream-sector.$(OBJEXT) \
-	lxdream-cd_nrg.$(OBJEXT) lxdream-cd_cdi.$(OBJEXT) \
-	lxdream-cd_gdi.$(OBJEXT) lxdream-edc_ecc.$(OBJEXT) \
-	lxdream-drive.$(OBJEXT) lxdream-cd_mmc.$(OBJEXT) \
-	lxdream-isofs.$(OBJEXT) lxdream-hotkeys.$(OBJEXT) \
-	$(am__objects_1) $(am__objects_2) $(am__objects_3) \
-	$(am__objects_4) $(am__objects_5) $(am__objects_6) \
-	$(am__objects_7) $(am__objects_8) $(am__objects_9) \
-	$(am__objects_10) $(am__objects_11) $(am__objects_12) \
-	$(am__objects_13) $(am__objects_14) $(am__objects_15) \
-	$(am__objects_16) $(am__objects_17) $(am__objects_18)
+	lxdream-gl_sl.$(OBJEXT) lxdream-glutil.$(OBJEXT) \
+	lxdream-glrender.$(OBJEXT) lxdream-maple.$(OBJEXT) \
+	lxdream-controller.$(OBJEXT) lxdream-kbd.$(OBJEXT) \
+	lxdream-mouse.$(OBJEXT) lxdream-lightgun.$(OBJEXT) \
+	lxdream-vmu.$(OBJEXT) lxdream-loader.$(OBJEXT) \
+	lxdream-bootstrap.$(OBJEXT) lxdream-util.$(OBJEXT) \
+	lxdream-gdlist.$(OBJEXT) lxdream-vmuvol.$(OBJEXT) \
+	lxdream-vmulist.$(OBJEXT) lxdream-display.$(OBJEXT) \
+	lxdream-audio_null.$(OBJEXT) lxdream-video_null.$(OBJEXT) \
+	lxdream-video_gl.$(OBJEXT) lxdream-gl_fbo.$(OBJEXT) \
+	lxdream-serial_unix.$(OBJEXT) lxdream-cdrom.$(OBJEXT) \
+	lxdream-sector.$(OBJEXT) lxdream-cd_nrg.$(OBJEXT) \
+	lxdream-cd_cdi.$(OBJEXT) lxdream-cd_gdi.$(OBJEXT) \
+	lxdream-edc_ecc.$(OBJEXT) lxdream-drive.$(OBJEXT) \
+	lxdream-cd_mmc.$(OBJEXT) lxdream-isofs.$(OBJEXT) \
+	lxdream-hotkeys.$(OBJEXT) $(am__objects_1) $(am__objects_2) \
+	$(am__objects_3) $(am__objects_4) $(am__objects_5) \
+	$(am__objects_6) $(am__objects_7) $(am__objects_8) \
+	$(am__objects_9) $(am__objects_10) $(am__objects_11) \
+	$(am__objects_12) $(am__objects_13) $(am__objects_14) \
+	$(am__objects_15) $(am__objects_16) $(am__objects_17) \
+	$(am__objects_18)
 lxdream_OBJECTS = $(am_lxdream_OBJECTS)
 lxdream_DEPENDENCIES = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
@@ -544,10 +545,10 @@ EXTRA_DIST = drivers/genkeymap.pl checkver.pl drivers/dummy.c
 AM_CFLAGS = -D__EXTENSIONS__ -D_BSD_SOURCE -D_GNU_SOURCE
 TESTS = test/testxlt
 BUILT_SOURCES = sh4/sh4core.c sh4/sh4dasm.c sh4/sh4x86.c sh4/sh4stat.c \
-	pvr2/gl_slsrc.c drivers/mac_keymap.h version.c
+	pvr2/shaders.def pvr2/shaders.h drivers/mac_keymap.h version.c
 
 CLEANFILES = sh4/sh4core.c sh4/sh4dasm.c sh4/sh4x86.c sh4/sh4stat.c \
-	pvr2/gl_slsrc.c drivers/mac_keymap.h version.c  \
+	pvr2/shaders.def pvr2/shaders.h drivers/mac_keymap.h version.c  \
 	audio_alsa.lo audio_sdl.lo audio_esd.lo audio_pulse.lo input_lirc.lo \
 	lxdream_dummy.lo
 
@@ -576,8 +577,8 @@ lxdream_SOURCES = main.c version.c config.c config.h lxdream.h dream.h \
 	aica/audio.c aica/audio.h pvr2/pvr2.c pvr2/pvr2.h \
 	pvr2/pvr2mem.c pvr2/pvr2mmio.h pvr2/tacore.c pvr2/rendsort.c \
 	pvr2/texcache.c pvr2/yuv.c pvr2/rendsave.c pvr2/scene.c \
-	pvr2/scene.h pvr2/gl_sl.c pvr2/gl_slsrc.c pvr2/glutil.c \
-	pvr2/glutil.h pvr2/glrender.c pvr2/vertex.glsl \
+	pvr2/scene.h pvr2/gl_sl.c pvr2/shaders.h pvr2/shaders.def \
+	pvr2/glutil.c pvr2/glutil.h pvr2/glrender.c pvr2/vertex.glsl \
 	pvr2/fragment.glsl maple/maple.c maple/maple.h \
 	maple/controller.c maple/kbd.c maple/mouse.c maple/lightgun.c \
 	maple/vmu.c loader.c loader.h elf.h bootstrap.c bootstrap.h \
@@ -816,7 +817,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-gdrom.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-gl_fbo.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-gl_sl.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-gl_slsrc.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-glrender.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-glutil.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-gtk_cfg.Po@am__quote@
@@ -1662,20 +1662,6 @@ lxdream-gl_sl.obj: pvr2/gl_sl.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='pvr2/gl_sl.c' object='lxdream-gl_sl.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-gl_sl.obj `if test -f 'pvr2/gl_sl.c'; then $(CYGPATH_W) 'pvr2/gl_sl.c'; else $(CYGPATH_W) '$(srcdir)/pvr2/gl_sl.c'; fi`
-
-lxdream-gl_slsrc.o: pvr2/gl_slsrc.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-gl_slsrc.o -MD -MP -MF "$(DEPDIR)/lxdream-gl_slsrc.Tpo" -c -o lxdream-gl_slsrc.o `test -f 'pvr2/gl_slsrc.c' || echo '$(srcdir)/'`pvr2/gl_slsrc.c; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/lxdream-gl_slsrc.Tpo" "$(DEPDIR)/lxdream-gl_slsrc.Po"; else rm -f "$(DEPDIR)/lxdream-gl_slsrc.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='pvr2/gl_slsrc.c' object='lxdream-gl_slsrc.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-gl_slsrc.o `test -f 'pvr2/gl_slsrc.c' || echo '$(srcdir)/'`pvr2/gl_slsrc.c
-
-lxdream-gl_slsrc.obj: pvr2/gl_slsrc.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-gl_slsrc.obj -MD -MP -MF "$(DEPDIR)/lxdream-gl_slsrc.Tpo" -c -o lxdream-gl_slsrc.obj `if test -f 'pvr2/gl_slsrc.c'; then $(CYGPATH_W) 'pvr2/gl_slsrc.c'; else $(CYGPATH_W) '$(srcdir)/pvr2/gl_slsrc.c'; fi`; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/lxdream-gl_slsrc.Tpo" "$(DEPDIR)/lxdream-gl_slsrc.Po"; else rm -f "$(DEPDIR)/lxdream-gl_slsrc.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='pvr2/gl_slsrc.c' object='lxdream-gl_slsrc.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-gl_slsrc.obj `if test -f 'pvr2/gl_slsrc.c'; then $(CYGPATH_W) 'pvr2/gl_slsrc.c'; else $(CYGPATH_W) '$(srcdir)/pvr2/gl_slsrc.c'; fi`
 
 lxdream-glutil.o: pvr2/glutil.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-glutil.o -MD -MP -MF "$(DEPDIR)/lxdream-glutil.Tpo" -c -o lxdream-glutil.o `test -f 'pvr2/glutil.c' || echo '$(srcdir)/'`pvr2/glutil.c; \
@@ -3193,9 +3179,10 @@ sh4/sh4x86.c: gendec sh4/sh4.def sh4/sh4x86.in
 sh4/sh4stat.c: gendec sh4/sh4.def sh4/sh4stat.in
 	$(mkdir_p) `dirname $@`
 	./gendec $(srcdir)/sh4/sh4.def $(srcdir)/sh4/sh4stat.in -o $@
-pvr2/gl_slsrc.c: genglsl pvr2/vertex.glsl pvr2/fragment.glsl
+pvr2/shaders.def: genglsl pvr2/shaders.glsl
 	$(mkdir_p) `dirname $@`
-	./genglsl $(srcdir)/pvr2/vertex.glsl $(srcdir)/pvr2/fragment.glsl $@
+	./genglsl $(srcdir)/pvr2/shaders.glsl $@
+pvr2/shaders.h: pvr2/shaders.def
 drivers/mac_keymap.h: drivers/mac_keymap.txt drivers/genkeymap.pl
 	$(mkdir_p) `dirname $@`
 	$(srcdir)/drivers/genkeymap.pl mac $(srcdir)/drivers/mac_keymap.txt > $@

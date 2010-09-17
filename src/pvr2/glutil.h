@@ -21,6 +21,7 @@
 
 #include <stdio.h>
 #include "display.h"
+#include "pvr2/shaders.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -49,12 +50,10 @@ gboolean isGLMirroredTextureSupported();
 
 /****** Shader handling (gl_sl.c) *****/
 gboolean glsl_is_supported(void);
-gboolean glsl_load_shaders( const char *vert_shader, const char *frag_shader );
+gboolean glsl_load_shaders( );
 void glsl_unload_shaders(void);
-void glsl_enable_shaders( gboolean enable );
-
-extern const char *glsl_vertex_shader_src;
-extern const char *glsl_fragment_shader_src;
+gboolean glsl_set_shader( unsigned program_id );
+void glsl_clear_shader();
 
 #ifdef __cplusplus
 }
