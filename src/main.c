@@ -24,23 +24,26 @@
 #include "lxdream.h"
 #include "lxpaths.h"
 #include "gettext.h"
-#include "mem.h"
-#include "dreamcast.h"
 #include "dream.h"
+#include "dreamcast.h"
 #include "display.h"
 #include "gui.h"
 #include "gdlist.h"
-#include "syscall.h"
+#include "hotkeys.h"
 #include "loader.h"
+#include "mem.h"
+#include "plugin.h"
+#include "serial.h"
+#include "syscall.h"
 #include "aica/audio.h"
+#include "aica/armdasm.h"
 #include "gdrom/gdrom.h"
 #include "maple/maple.h"
+#include "pvr2/glutil.h"
 #include "sh4/sh4.h"
-#include "aica/armdasm.h"
 #include "vmu/vmulist.h"
-#include "serial.h"
-#include "hotkeys.h"
-#include "plugin.h"
+
+#define GL_INFO_OPT 1
 
 char *option_list = "a:A:bc:e:dfg:G:hHl:m:npt:T:uvV:xX?";
 struct option longopts[] = {
@@ -52,7 +55,8 @@ struct option longopts[] = {
         { "execute", required_argument, NULL, 'e' },
         { "fullscreen", no_argument, NULL, 'f' },
         { "gdb-sh4", required_argument, NULL, 'g' },  
-        { "gdb-arm", required_argument, NULL, 'G' },  
+        { "gdb-arm", required_argument, NULL, 'G' },
+        { "gl-info", no_argument, NULL, GL_INFO_OPT },
         { "help", no_argument, NULL, 'h' },
         { "headless", no_argument, NULL, 'H' },
         { "log", required_argument, NULL,'l' }, 
@@ -127,6 +131,7 @@ int main (int argc, char *argv[])
     int opt;
     double t;
     gboolean display_ok, have_disc = FALSE, have_save = FALSE, have_exec = FALSE;
+    gboolean print_glinfo = FALSE;
     uint32_t time_secs, time_nanos;
     const char *exec_name = NULL;
 
@@ -214,6 +219,9 @@ int main (int argc, char *argv[])
         case 'X': /* Shadow translator */
             sh4_core = SH4_SHADOW;
             break;
+        case GL_INFO_OPT:
+            print_glinfo = TRUE;
+            break;
         }
     }
 
@@ -235,6 +243,23 @@ int main (int argc, char *argv[])
         print_display_drivers(stdout);
         exit(0);
     }
+
+    if( print_glinfo ) {
+        gui_init(FALSE, FALSE);
+        display_driver_t display_driver = get_display_driver_by_name(display_driver_name);
+        if( display_driver == NULL ) {
+            ERROR( "Video driver '%s' not found, aborting.", display_driver_name );
+            exit(2);
+        } else if( display_set_driver( display_driver ) == FALSE ) {
+            ERROR( "Video driver '%s' failed to initialize (could not connect to display?)",
+                    display_driver->name );
+            exit(2);
+        }
+        glPrintInfo(stdout);
+        exit(0);
+
+    }
+
 
     iso_init();
     gdrom_list_init();
