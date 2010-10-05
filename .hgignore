@@ -6,6 +6,7 @@
 .*\~
 .*\.gmo
 .*\.mo
+autom4te.cache
 Makefile
 config.h
 config.status
@@ -18,7 +19,9 @@ lxdream-.*.zip
 src/drivers/mac_keymap.h
 src/gendec
 src/genglsl
-src/pvr2/gl_slsrc.c
+src/genmach
+src/pvr2/shaders.h
+src/pvr2/shaders.def
 src/sh4/sh4dasm.c
 src/sh4/sh4stat.c
 src/sh4/sh4core.c
@@ -49,3 +52,6 @@ test/testta
 test/testta.bin
 test/testaica
 test/testaica.bin
+test/randmath
+test/randmath.bin
+test/randmath.native
