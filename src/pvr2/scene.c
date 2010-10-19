@@ -372,20 +372,24 @@ static void scene_compute_lut_fog( )
     
     for( i=0; i<pvr2_scene.poly_count; i++ ) {
         int mode = POLY2_FOG_MODE(pvr2_scene.poly_array[i].context[1]);
+        uint32_t index = pvr2_scene.poly_array[i].vertex_index;
         if( mode == PVR2_POLY_FOG_LOOKUP ) {
-            uint32_t index = pvr2_scene.poly_array[i].vertex_index;
-            for( j=0; j<=pvr2_scene.poly_array[i].vertex_count; j++ ) {
+            for( j=0; j<pvr2_scene.poly_array[i].vertex_count; j++ ) {
                 pvr2_scene.vertex_array[index+j].offset_rgba[3] = 
                     scene_compute_lut_fog_vertex( pvr2_scene.vertex_array[index+j].z, fog_density, fog_table );
             }
         } else if( mode == PVR2_POLY_FOG_LOOKUP2 ) {
-            uint32_t index = pvr2_scene.poly_array[i].vertex_index;
-            for( j=0; j<=pvr2_scene.poly_array[i].vertex_count; j++ ) {
+            for( j=0; j<pvr2_scene.poly_array[i].vertex_count; j++ ) {
                 pvr2_scene.vertex_array[index+j].rgba[0] = pvr2_scene.fog_lut_colour[0];
                 pvr2_scene.vertex_array[index+j].rgba[1] = pvr2_scene.fog_lut_colour[1];
                 pvr2_scene.vertex_array[index+j].rgba[2] = pvr2_scene.fog_lut_colour[2];
                 pvr2_scene.vertex_array[index+j].rgba[3] = 
                     scene_compute_lut_fog_vertex( pvr2_scene.vertex_array[index+j].z, fog_density, fog_table );
+                pvr2_scene.vertex_array[index+j].offset_rgba[3] = 0;
+            }
+        } else if( mode == PVR2_POLY_FOG_DISABLED ) {
+            for( j=0; j<pvr2_scene.poly_array[i].vertex_count; j++ ) {
+                pvr2_scene.vertex_array[index+j].offset_rgba[3] = 0;
             }
         }
     }    
