@@ -124,6 +124,11 @@ void pvr2_setup_gl_context()
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     glClearDepth(0);
     glClearStencil(0);
+
+    glFogi(GL_FOG_COORDINATE_SOURCE_EXT, GL_FOG_COORDINATE_EXT);
+    glFogi(GL_FOG_MODE, GL_LINEAR);
+    glFogf(GL_FOG_START, 0.0);
+    glFogf(GL_FOG_END, 1.0);
 }
 
 static void render_set_cull( uint32_t poly1 )
@@ -166,16 +171,10 @@ static void render_set_base_context( uint32_t poly1, GLint depth_mode )
 static void render_set_tsp_context( uint32_t poly1, uint32_t poly2, uint32_t texture )
 {
     glShadeModel( POLY1_SHADE_MODEL(poly1) );
-
-    if( POLY1_SPECULAR(poly1) ) {
-        glEnable(GL_COLOR_SUM);
-    } else {
-        glDisable(GL_COLOR_SUM);
-    }
-
     if( POLY1_TEXTURED(poly1) ) {
          glEnable(GL_TEXTURE_2D);
          glTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, pvr2_poly_texblend[POLY2_TEX_BLEND(poly2)] );
+
          if( POLY2_TEX_CLAMP_U(poly2) ) {
              glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP );
          } else if( POLY2_TEX_MIRROR_U(poly2) ) {
@@ -193,20 +192,14 @@ static void render_set_tsp_context( uint32_t poly1, uint32_t poly2, uint32_t tex
      } else {
          glDisable( GL_TEXTURE_2D );
      }
-     
+
      switch( POLY2_FOG_MODE(poly2) ) {
      case PVR2_POLY_FOG_LOOKUP:
          glFogfv( GL_FOG_COLOR, pvr2_scene.fog_lut_colour );
-         glEnable( GL_FOG );
          break;
      case PVR2_POLY_FOG_VERTEX:
-         if( POLY1_SPECULAR(poly1) ) {
-             glFogfv( GL_FOG_COLOR, pvr2_scene.fog_vert_colour );
-             glEnable( GL_FOG );
-             break;
-         } /* else fallthrough */
-     default:
-         glDisable( GL_FOG );
+         glFogfv( GL_FOG_COLOR, pvr2_scene.fog_vert_colour );
+         break;
      }
 
      int srcblend = POLY2_SRC_BLEND(poly2);
@@ -321,8 +314,6 @@ void gl_render_tilelist_depthonly( pvraddr_t tile_entry )
         return;
 
     glDisable( GL_TEXTURE_2D );
-    glDisable( GL_FOG );
-    glDisable( GL_COLOR_SUM );
     
     while(1) {
         uint32_t entry = *tile_list++;
@@ -436,8 +427,6 @@ void gl_render_modifier_tilelist( pvraddr_t tile_entry, uint32_t tile_bounds[] )
         return;
 
     glDisable( GL_TEXTURE_2D );
-    glDisable( GL_FOG );
-    glDisable( GL_COLOR_SUM );
     glDisable( GL_CULL_FACE );
     glEnable( GL_STENCIL_TEST );
     glEnable( GL_DEPTH_TEST );
@@ -521,10 +510,6 @@ void pvr2_scene_render( render_buffer_t buffer )
     glTexCoordPointer(2, GL_FLOAT, sizeof(struct vertex_struct), &pvr2_scene.vertex_array[0].u);
     glSecondaryColorPointerEXT(3, GL_FLOAT, sizeof(struct vertex_struct), pvr2_scene.vertex_array[0].offset_rgba );
     glFogCoordPointerEXT(GL_FLOAT, sizeof(struct vertex_struct), &pvr2_scene.vertex_array[0].offset_rgba[3] );
-    glFogi(GL_FOG_COORDINATE_SOURCE_EXT, GL_FOG_COORDINATE_EXT);
-    glFogi(GL_FOG_MODE, GL_LINEAR);
-    glFogf(GL_FOG_START, 0.0);
-    glFogf(GL_FOG_END, 1.0);
     /* Turn on the shaders (if available) */
     glsl_set_shader(DEFAULT_PROGRAM);
 
@@ -532,6 +517,8 @@ void pvr2_scene_render( render_buffer_t buffer )
     gl_render_bkgnd( pvr2_scene.bkgnd_poly );
 
     glEnable( GL_SCISSOR_TEST );
+    glEnable( GL_COLOR_SUM );
+    glEnable( GL_FOG );
 
     /* Process the segment list */
     struct tile_segment *segment = pvr2_scene.segment_list;
@@ -579,7 +566,8 @@ void pvr2_scene_render( render_buffer_t buffer )
         }
     } while( !IS_LAST_SEGMENT(segment++) );
     glDisable( GL_SCISSOR_TEST );
-
+    glDisable( GL_COLOR_SUM );
+    glDisable( GL_FOG );
     glsl_clear_shader();
 
     gettimeofday( &end_tv, NULL );
