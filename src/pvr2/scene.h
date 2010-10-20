@@ -49,6 +49,7 @@ struct polygon_struct {
     uint32_t mod_tex_id;
     int32_t mod_vertex_index; // index of first modified vertex in vertex buffer
     struct polygon_struct *next; // chain for tri/quad arrays
+    struct polygon_struct *sub_next; // chain for internal sub-polygons
 };
 
 void pvr2_scene_init(void);
@@ -74,10 +75,11 @@ extern unsigned char *video_base;
 
 /**
  * Maximum polygons - smallest is 1 polygon in 48 bytes, giving
- * 87381, plus 1 for the background
+ * 87381, plus 1 for the background. Allow the same amount again
+ * for split polygons (worst case)
  * 
  */
-#define MAX_POLYGONS 87382
+#define MAX_POLYGONS (87382*2)
 #define MAX_POLY_BUFFER_SIZE (MAX_POLYGONS*sizeof(struct polygon_struct))
 #define BUF_POLY_MAP_SIZE (4 MB)
 
