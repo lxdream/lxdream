@@ -38,7 +38,8 @@ struct sort_triangle {
 
 /**
  * Count the number of triangles in the list starting at the given 
- * pvr memory address.
+ * pvr memory address. This is an upper bound as it includes
+ * triangles that have been culled out.
  */
 static int sort_count_triangles( pvraddr_t tile_entry ) {
     uint32_t *tile_list = (uint32_t *)(pvr2_main_ram+tile_entry);
@@ -54,11 +55,11 @@ static int sort_count_triangles( pvraddr_t tile_entry ) {
         } else if( entry >> 29 == 0x05 ) { /* Quad array */
             count += ((((entry >> 25) & 0x0F)+1)<<1);
         } else { /* Polygon */
-            int i;
-            for( i=0; i<6; i++ ) {
-                if( entry & (0x40000000>>i) ) {
-                    count++;
-                }
+            struct polygon_struct *poly = pvr2_scene.buf_to_poly_map[entry&0x000FFFFF];
+            while( poly != NULL ) {
+                if( poly->vertex_count != 0 )
+                    count += poly->vertex_count-2;
+                poly = poly->sub_next;
             }
         }
     }
@@ -94,6 +95,8 @@ static void sort_add_triangle( struct sort_triangle *triangle, struct polygon_st
                   vertexes[0].z*triangle->mz;
 }
 
+
+
 /**
  * Extract a triangle list from the tile (basically indexes into the polygon list, plus
  * computing maxz while we go through it
@@ -118,7 +121,8 @@ int sort_extract_triangles( pvraddr_t tile_entry, struct sort_triangle *triangle
             poly = pvr2_scene.buf_to_poly_map[entry&0x000FFFFF];
             while( strip_count > 0 ) {
                 assert( poly != NULL );
-                for( i=0; i<poly->vertex_count-2; i++ ) {
+                for( i=0; i+2<poly->vertex_count; i++ ) {
+                    /* Note: tris + quads can't have sub-polys */
                     sort_add_triangle( &triangles[count], poly, i );
                     count++;
                 }
@@ -129,11 +133,17 @@ int sort_extract_triangles( pvraddr_t tile_entry, struct sort_triangle *triangle
         default:
             if( entry & 0x7E000000 ) {
                 poly = pvr2_scene.buf_to_poly_map[entry&0x000FFFFF];
-                for( i=0; i<6; i++ ) {
-                    if( entry & (0x40000000>>i) ) {
+                /* FIXME: This could end up including a triangle that was
+                 * excluded from the tile, if it is part of a strip that
+                 * still has some other triangles in the tile.
+                 * (This couldn't happen with TA output though).
+                 */
+                while( poly != NULL ) {
+                    for( i=0; i+2<poly->vertex_count; i++ ) {
                         sort_add_triangle( &triangles[count], poly, i );
                         count++;
                     }
+                    poly = poly->sub_next;
                 }
             }
         }
@@ -151,13 +161,6 @@ void sort_render_triangles( struct sort_triangle **triangles, int num_triangles 
         }
         render_set_context( poly->context, GL_GEQUAL );
         glDepthMask(GL_FALSE);
-        /* Fix cull direction */
-        if( triangles[i]->triangle_num & 1 ) {
-            glCullFace(GL_FRONT);
-        } else {
-            glCullFace(GL_BACK);
-        }
-
         glDrawArrays(GL_TRIANGLE_STRIP, poly->vertex_index + triangles[i]->triangle_num, 3 );
     }
 }
@@ -263,9 +266,9 @@ void render_autosort_tile( pvraddr_t tile_entry, int render_mode )
             triangle_order[i] = &triangles[i];
         }
         int extracted_triangles = sort_extract_triangles(tile_entry, triangles);
-        assert( extracted_triangles == num_triangles );
-        sort_triangles( triangle_order, num_triangles, triangle_order );
-        sort_render_triangles(triangle_order, num_triangles);
+        assert( extracted_triangles <= num_triangles );
+        sort_triangles( triangle_order, extracted_triangles, triangle_order );
+        sort_render_triangles(triangle_order, extracted_triangles);
         glCullFace(GL_BACK);
         assert( triangles[num_triangles].poly == (void *)SENTINEL );
     }

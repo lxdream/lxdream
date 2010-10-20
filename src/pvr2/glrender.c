@@ -101,7 +101,7 @@ void pvr2_setup_gl_context()
     }
 
     texcache_gl_init(); // Allocate texture IDs
-    glCullFace( GL_BACK );
+    glDisable( GL_CULL_FACE );
     glEnable( GL_BLEND );
     glEnable( GL_DEPTH_TEST );
     glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
@@ -131,24 +131,6 @@ void pvr2_setup_gl_context()
     glFogf(GL_FOG_END, 1.0);
 }
 
-static void render_set_cull( uint32_t poly1 )
-{
-    switch( POLY1_CULL_MODE(poly1) ) {
-    case CULL_NONE:
-    case CULL_SMALL:
-        glDisable( GL_CULL_FACE );
-        break;
-    case CULL_CCW:
-        glEnable( GL_CULL_FACE );
-        glFrontFace( GL_CW );
-        break;
-    case CULL_CW:
-        glEnable( GL_CULL_FACE );
-        glFrontFace( GL_CCW );
-        break;
-    }   
-}    
-
 /**
  * Setup the basic context that's shared between normal and modified modes -
  * depth, culling
@@ -162,7 +144,6 @@ static void render_set_base_context( uint32_t poly1, GLint depth_mode )
     }
 
     glDepthMask( POLY1_DEPTH_WRITE(poly1) ? GL_TRUE : GL_FALSE );
-    render_set_cull( poly1 );
 }
 
 /**
@@ -223,22 +204,40 @@ void render_set_context( uint32_t *context, GLint depth_mode )
     render_set_tsp_context(context[0],context[1],context[2]);
 }
 
+static inline void gl_draw_vertexes( struct polygon_struct *poly )
+{
+    do {
+        glDrawArrays(GL_TRIANGLE_STRIP, poly->vertex_index, poly->vertex_count);
+        poly = poly->sub_next;
+    } while( poly != NULL );
+}
+
+static inline void gl_draw_mod_vertexes( struct polygon_struct *poly )
+{
+    do {
+        glDrawArrays(GL_TRIANGLE_STRIP, poly->mod_vertex_index, poly->vertex_count);
+        poly = poly->sub_next;
+    } while( poly != NULL );
+}
 
 static void gl_render_poly( struct polygon_struct *poly, GLint depth_mode )
 {
+    if( poly->vertex_count == 0 )
+        return; /* Culled */
+
     if( poly->tex_id != -1 ) {
         glBindTexture(GL_TEXTURE_2D, poly->tex_id);
     }
     if( poly->mod_vertex_index == -1 ) {
         glDisable( GL_STENCIL_TEST );
         render_set_context( poly->context, depth_mode );
-        glDrawArrays(GL_TRIANGLE_STRIP, poly->vertex_index, poly->vertex_count );
+        gl_draw_vertexes(poly);
     }  else {
         glEnable( GL_STENCIL_TEST );
         render_set_base_context( poly->context[0], depth_mode );
         render_set_tsp_context( poly->context[0], poly->context[1], poly->context[2] );
         glStencilFunc(GL_EQUAL, 0, 2);
-        glDrawArrays(GL_TRIANGLE_STRIP, poly->vertex_index, poly->vertex_count );
+        gl_draw_vertexes(poly);
 
         if( pvr2_scene.shadow_mode == SHADOW_FULL ) {
             if( poly->mod_tex_id != -1 ) {
@@ -247,7 +246,7 @@ static void gl_render_poly( struct polygon_struct *poly, GLint depth_mode )
             render_set_tsp_context( poly->context[0], poly->context[3], poly->context[4] );
         }
         glStencilFunc(GL_EQUAL, 2, 2);
-        glDrawArrays(GL_TRIANGLE_STRIP, poly->mod_vertex_index, poly->vertex_count );
+        gl_draw_mod_vertexes(poly);
     }
 }
 
@@ -258,10 +257,8 @@ static void gl_render_bkgnd( struct polygon_struct *poly )
     }
     render_set_context( poly->context, 0 );
     glDisable( GL_DEPTH_TEST );
-    glDisable( GL_CULL_FACE );
     glBlendFunc( GL_ONE, GL_ZERO );
-    glDrawArrays(GL_TRIANGLE_STRIP, poly->vertex_index, poly->vertex_count );
-    glEnable( GL_CULL_FACE );
+    gl_draw_vertexes(poly);
     glEnable( GL_DEPTH_TEST );
 }
 
@@ -327,8 +324,10 @@ void gl_render_tilelist_depthonly( pvraddr_t tile_entry )
             strip_count = ((entry >> 25) & 0x0F)+1;
             poly = pvr2_scene.buf_to_poly_map[entry&0x000FFFFF];
             while( strip_count > 0 ) {
-                render_set_base_context(poly->context[0],0);
-                glDrawArrays(GL_TRIANGLE_STRIP, poly->vertex_index, poly->vertex_count );
+                if( poly->vertex_count != 0 ) {
+                    render_set_base_context(poly->context[0],0);
+                    gl_draw_vertexes(poly);
+                }
                 poly = poly->next;
                 strip_count--;
             }
@@ -336,8 +335,10 @@ void gl_render_tilelist_depthonly( pvraddr_t tile_entry )
         default:
             if( entry & 0x7E000000 ) {
                 poly = pvr2_scene.buf_to_poly_map[entry&0x000FFFFF];
-                render_set_base_context(poly->context[0],0);
-                glDrawArrays(GL_TRIANGLE_STRIP, poly->vertex_index, poly->vertex_count );
+                if( poly->vertex_count != 0 ) {
+                    render_set_base_context(poly->context[0],0);
+                    gl_draw_vertexes(poly);
+                }
             }
         }
     }           
@@ -368,8 +369,12 @@ void gl_render_modifier_polygon( struct polygon_struct *poly, uint32_t tile_boun
      * now :)
      */
     
-    render_set_cull(poly->context[0]);
-    glDrawArrays(GL_TRIANGLE_STRIP, poly->vertex_index, poly->vertex_count );
+    if( poly->vertex_count == 0 )
+        return; /* Culled */
+
+    gl_draw_vertexes(poly);
+
+
     
     int poly_type = POLY1_VOLUME_MODE(poly->context[0]);
     if( poly_type == PVR2_VOLUME_REGION0 ) {
@@ -381,7 +386,6 @@ void gl_render_modifier_polygon( struct polygon_struct *poly, uint32_t tile_boun
         glStencilMask( 0x03 );
         glStencilFunc(GL_EQUAL, 0x02, 0x03);
         glStencilOp(GL_ZERO, GL_KEEP, GL_KEEP);
-        glDisable( GL_CULL_FACE );
         glDisable( GL_DEPTH_TEST );
 
         drawrect2d( tile_bounds, pvr2_scene.bounds[4] );
@@ -399,7 +403,6 @@ void gl_render_modifier_polygon( struct polygon_struct *poly, uint32_t tile_boun
          */
         glStencilMask( 0x02 );
         glStencilOp( GL_INVERT, GL_INVERT, GL_INVERT );
-        glDisable( GL_CULL_FACE );
         glDisable( GL_DEPTH_TEST );
         
         drawrect2d( tile_bounds, pvr2_scene.bounds[4] );
@@ -427,7 +430,6 @@ void gl_render_modifier_tilelist( pvraddr_t tile_entry, uint32_t tile_bounds[] )
         return;
 
     glDisable( GL_TEXTURE_2D );
-    glDisable( GL_CULL_FACE );
     glEnable( GL_STENCIL_TEST );
     glEnable( GL_DEPTH_TEST );
     glDepthFunc( GL_LEQUAL );
@@ -552,10 +554,7 @@ void pvr2_scene_render( render_buffer_t buffer )
             gl_render_tilelist(segment->punchout_ptr, GL_GEQUAL );
             glDisable(GL_ALPHA_TEST );
         }
-        glDisable( GL_STENCIL_TEST );
-        glStencilMask(0x03);
-        glClear( GL_STENCIL_BUFFER_BIT );
-        
+
         if( IS_TILE_PTR(segment->trans_ptr) ) {
             if( pvr2_scene.sort_mode == SORT_NEVER || 
                     (pvr2_scene.sort_mode == SORT_TILEFLAG && (segment->control&SEGMENT_SORT_TRANS))) {

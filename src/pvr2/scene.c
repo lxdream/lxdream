@@ -192,10 +192,38 @@ static struct polygon_struct *scene_add_polygon( pvraddr_t poly_idx, int vertex_
         poly->vertex_index = -1;
         poly->mod_vertex_index = -1;
         poly->next = NULL;
+        poly->sub_next = NULL;
         pvr2_scene.buf_to_poly_map[poly_idx] = poly;
         pvr2_scene.vertex_count += (vertex_count * vert_mul);
         return poly;
     }
+}
+
+/**
+ * Given a starting polygon, break it at the specified triangle so that the
+ * preceding triangles are retained, and the remainder are contained in a
+ * new sub-polygon. Does not preserve winding.
+ */
+static struct polygon_struct *scene_split_subpolygon( struct polygon_struct *parent, int split_offset )
+{
+    assert( split_offset > 0 && split_offset < (parent->vertex_count-2) );
+    assert( pvr2_scene.poly_count < MAX_POLYGONS );
+    struct polygon_struct *poly = &pvr2_scene.poly_array[pvr2_scene.poly_count++];
+    poly->vertex_count = parent->vertex_count - split_offset;
+    poly->vertex_index = parent->vertex_index + split_offset;
+    if( parent->mod_vertex_index == -1 ) {
+        poly->mod_vertex_index = -1;
+    } else {
+        poly->mod_vertex_index = parent->mod_vertex_index + split_offset;
+    }
+    poly->context = parent->context;
+    poly->next = NULL;
+    poly->sub_next = parent->sub_next;
+
+    parent->sub_next = poly;
+    parent->vertex_count = split_offset + 2;
+
+    return poly;
 }
 
 /**
@@ -393,6 +421,64 @@ static void scene_compute_lut_fog( )
             }
         }
     }    
+}
+
+/**
+ * Manually cull back-facing polygons where we can - this actually saves
+ * us a lot of time vs passing everything to GL to do it.
+ */
+static void scene_backface_cull()
+{
+    unsigned poly_idx;
+    unsigned poly_count = pvr2_scene.poly_count; /* Note: we don't want to process any sub-polygons created here */
+    for( poly_idx = 0; poly_idx<poly_count; poly_idx++ ) {
+        uint32_t poly1 = pvr2_scene.poly_array[poly_idx].context[0];
+        if( POLY1_CULL_ENABLE(poly1) ) {
+            struct polygon_struct *poly = &pvr2_scene.poly_array[poly_idx];
+            unsigned vert_idx = poly->vertex_index;
+            unsigned tri_count = poly->vertex_count-2;
+            struct vertex_struct *vert = &pvr2_scene.vertex_array[vert_idx];
+            unsigned i;
+            gboolean ccw = (POLY1_CULL_MODE(poly1) == CULL_CCW);
+            int first_visible = -1, last_visible = -1;
+            for( i=0; i<tri_count; i++ ) {
+                float ux = vert[i+1].x - vert[i].x;
+                float uy = vert[i+1].y - vert[i].y;
+                float vx = vert[i+2].x - vert[i].x;
+                float vy = vert[i+2].y - vert[i].y;
+                float nz = (ux*vy) - (uy*vx);
+                if( ccw ? nz > 0 : nz < 0 ) {
+                    /* Surface is visible */
+                    if( first_visible == -1 ) {
+                        first_visible = i;
+                        /* Elide the initial hidden triangles (note we don't
+                         * need to care about winding anymore here) */
+                        poly->vertex_index += i;
+                        poly->vertex_count -= i;
+                        if( poly->mod_vertex_index != -1 )
+                            poly->mod_vertex_index += i;
+                    } else if( last_visible != i-1 ) {
+                        /* And... here we have to split the polygon. Allocate a new
+                         * sub-polygon to hold the vertex references */
+                        struct polygon_struct *sub = scene_split_subpolygon(poly, (i-first_visible));
+                        poly->vertex_count -= (i-first_visible-1) - last_visible;
+                        first_visible = i;
+                        poly = sub;
+                    }
+                    last_visible = i;
+                } /* Else culled */
+                /* Invert ccw flag for triangle strip processing */
+                ccw = !ccw;
+            }
+            if( last_visible == -1 ) {
+                /* No visible surfaces, so we can mark the whole polygon as being vertex-less */
+                poly->vertex_count = 0;
+            } else if( last_visible != tri_count-1 ) {
+                /* Remove final hidden tris */
+                poly->vertex_count -= (tri_count - 1 - last_visible);
+            }
+        }
+    }
 }
 
 static void scene_add_cheap_shadow_vertexes( struct vertex_struct *src, struct vertex_struct *dest, int count )
@@ -655,6 +741,7 @@ static void scene_extract_background( void )
     context_length += (bgplane & 0x07) * vertex_length;
 
     poly->next = NULL;
+    poly->sub_next = NULL;
     pvr2_scene.bkgnd_poly = poly;
 
     struct vertex_struct base_vertexes[3];
@@ -804,6 +891,7 @@ void pvr2_scene_read( void )
 
     scene_extract_background();
     scene_compute_lut_fog();
+    scene_backface_cull();
 
     vertex_buffer_unmap();
 }
