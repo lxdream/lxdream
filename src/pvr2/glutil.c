@@ -41,6 +41,12 @@ gboolean isGLMirroredTextureSupported()
     return isGLExtensionSupported("GL_ARB_texture_mirrored_repeat");
 }
 
+gboolean isGLVertexRangeSupported()
+{
+    return isGLExtensionSupported("GL_APPLE_vertex_array_range") ||
+            isGLExtensionSupported("GL_NV_vertex_array_range");
+}
+
 /**
  * Test if a specific extension is supported. From opengl.org
  * @param extension extension name to check for
@@ -86,23 +92,66 @@ int compare_charp( const void *a, const void *b )
     return strcmp(*ca, *cb);
 }
 
-void glPrintInfo( FILE *out )
-{
-    const gchar *extensions = (const gchar *)glGetString(GL_EXTENSIONS);
-    gchar **ext_split = g_strsplit(extensions, " ", 0);
-    unsigned int i, count;
+#define DEFAULT_TERMINAL_COLUMNS 80
+#define DEFAULT_COLUMN_WIDTH 34
 
-    for( count = 0; ext_split[count] != NULL; count++ );
+/**
+ * Format a GL extension list (or other space-separated string) nicely, and
+ * print to the given output stream.
+ */
+
+void fprint_extensions( FILE *out, const char *extensions )
+{
+    unsigned int i, j, count, maxlen = DEFAULT_COLUMN_WIDTH, columns, per_column, terminal_columns;
+    const char *terminal_columns_str = getenv("COLUMNS");
+    if( terminal_columns_str == NULL || (terminal_columns = strtol(terminal_columns_str,0,10)) == 0 )
+        terminal_columns = DEFAULT_TERMINAL_COLUMNS;
+
+    if( extensions == NULL || extensions[0] == '\0' )
+        return;
+
+    gchar *ext_dup = g_strdup(extensions);
+    gchar **ext_split = g_strsplit(g_strstrip(extensions), " ", 0);
+    for( count = 0; ext_split[count] != NULL; count++ ) {
+        unsigned len = strlen(ext_split[count]);
+        if( len > maxlen )
+            maxlen = len;
+    }
+
+    columns = terminal_columns / (maxlen+2);
+    if( columns == 0 )
+        columns = 1;
+    per_column = (count+columns-1) / columns;
 
     qsort(ext_split, count, sizeof(gchar *), compare_charp);
 
+    for( i=0; i<per_column; i++ ) {
+        for( j=0; j<columns; j++ ) {
+            unsigned idx = i + (j*per_column);
+            if( idx < count )
+                fprintf( out, "  %-*s", maxlen, ext_split[idx] );
+        }
+        fprintf( out, "\n" );
+    }
+    g_strfreev(ext_split);
+    g_free(ext_dup);
+}
+
+void glPrintInfo( FILE *out )
+{
     fprintf( out, "GL Vendor: %s\n", glGetString(GL_VENDOR) );
     fprintf( out, "GL Renderer: %s\n", glGetString(GL_RENDERER) );
     fprintf( out, "GL Version: %s\n", glGetString(GL_VERSION) );
-
-    fprintf( out, "Supported GL Extensions:\n" );
-    for( i=0; ext_split[i] != NULL; i++ ) {
-        fprintf( out, "  %s\n", ext_split[i] );
+    if( glsl_is_supported() ) {
+         const char * version = glsl_get_version();
+         fprintf( out, "SL Version: %s\n", version );
     }
-    g_strfreev(ext_split);
+
+    fprintf( out, "GL Extensions:\n" );
+
+    fprint_extensions( out, (const gchar *)glGetString(GL_EXTENSIONS) );
+    if( display_driver && display_driver->print_info ) {
+        fprintf( out, "\n");
+        display_driver->print_info(out);
+    }
 }

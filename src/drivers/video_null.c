@@ -76,4 +76,5 @@ struct display_driver display_null_driver = {
         video_null_display_render_buffer,
         video_null_display_blank,
         video_null_swap_buffers,
-        video_null_read_render_buffer };
+        video_null_read_render_buffer,
+        NULL };

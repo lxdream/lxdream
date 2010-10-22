@@ -51,6 +51,11 @@ gboolean glsl_is_supported()
     isGLExtensionSupported("GL_ARB_shading_language_100");
 }
 
+const char *glsl_get_version()
+{
+    return glGetString(GL_SHADING_LANGUAGE_VERSION_ARB);
+}
+
 void glsl_print_error( char *msg, GLhandleARB obj )
 {
     char buf[MAX_ERROR_BUF];
@@ -156,6 +161,11 @@ gboolean glsl_is_supported()
     isGLExtensionSupported("GL_ARB_shading_language_100");
 }
 
+const char *glsl_get_version()
+{
+    return glGetString(GL_SHADING_LANGUAGE_VERSION);
+}
+
 gboolean glsl_check_shader_error( char *msg, GLuint shader )
 {
     GLint value;
@@ -254,6 +264,11 @@ void glsl_destroy_program(gl_program_t program)
 gboolean glsl_is_supported()
 {
     return FALSE;
+}
+
+int glsl_get_version()
+{
+    return 0;
 }
 
 gl_shader_t glsl_create_vertex_shader( const char *source )

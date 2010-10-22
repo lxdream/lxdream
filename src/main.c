@@ -254,6 +254,9 @@ int main (int argc, char *argv[])
             ERROR( "Video driver '%s' failed to initialize (could not connect to display?)",
                     display_driver->name );
             exit(2);
+        } else if( display_driver->capabilities.has_gl == FALSE ) {
+            ERROR( "Video driver '%s' has no GL capabilities.", display_driver_name );
+            exit(2);
         }
         glPrintInfo(stdout);
         exit(0);

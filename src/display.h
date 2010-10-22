@@ -104,6 +104,7 @@ struct frame_buffer {
 };
 
 struct display_capabilities {
+    gboolean has_gl;
     int stencil_bits; /* 0 = no stencil buffer */
 };
 
@@ -210,6 +211,11 @@ typedef struct display_driver {
      */
     gboolean (*read_render_buffer)( unsigned char *target, render_buffer_t buffer,
             int rowstride, int format );
+
+    /**
+     * Dump driver-specific information about the implementation to the given stream
+     */
+    void (*print_info)( FILE *out );
 
     struct display_capabilities capabilities;
 } *display_driver_t;

@@ -41,6 +41,7 @@ gboolean video_nsgl_init_driver( NSView *view, display_driver_t driver )
     [nsgl_context makeCurrentContext];
     [pool release];
     driver->swap_buffers = video_nsgl_swap_buffers;
+    driver->capabilities.has_gl = TRUE;
     if( gl_fbo_is_supported() ) {
         gl_fbo_init(driver);
     } else {
