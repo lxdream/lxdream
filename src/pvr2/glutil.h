@@ -45,15 +45,20 @@ void glPrintInfo( FILE *out );
 gboolean isGLSecondaryColorSupported();
 
 gboolean isGLVertexBufferSupported();
+gboolean isGLVertexRangeSupported();
 gboolean isGLPixelBufferSupported();
 gboolean isGLMirroredTextureSupported();
 
 /****** Shader handling (gl_sl.c) *****/
 gboolean glsl_is_supported(void);
+const char *glsl_get_version(void);
 gboolean glsl_load_shaders( );
 void glsl_unload_shaders(void);
 gboolean glsl_set_shader( unsigned program_id );
 void glsl_clear_shader();
+
+/* Convenience formatting function for driver use */
+void fprint_extensions( FILE *out, const char *extensions );
 
 #ifdef __cplusplus
 }

@@ -43,6 +43,7 @@ static gboolean glx_pbuffer_supported = FALSE;
 static GLuint glx_pbuffer_texture = 0; 
 
 static void video_glx_swap_buffers( void );
+static void video_glx_print_info( FILE *out );
 
 /* Prototypes for pbuffer support methods */
 static void glx_pbuffer_init( display_driver_t driver );
@@ -167,6 +168,27 @@ gboolean video_glx_init( Display *display, int screen )
     return TRUE;
 }
 
+static void video_glx_print_info( FILE *out )
+{
+    XWindowAttributes attr;
+
+    if( !XGetWindowAttributes(video_x11_display, video_x11_window, &attr) )
+        return; /* Failed */
+    int screen = XScreenNumberOfScreen(attr.screen);
+
+    fprintf( out, "GLX Server: %s %s\n", glXQueryServerString(video_x11_display, screen, GLX_VENDOR),
+            glXQueryServerString(video_x11_display, screen, GLX_VERSION) );
+    fprintf( out, "GLX Client: %s %s\n", glXGetClientString(video_x11_display, GLX_VENDOR),
+            glXGetClientString(video_x11_display, GLX_VERSION) );
+    fprintf( out, "GLX Server Extensions:\n" );
+    fprint_extensions( out, glXQueryServerString(video_x11_display, screen, GLX_EXTENSIONS) );
+    fprintf( out, "GLX Client Extensions:\n" );
+    fprint_extensions( out, glXGetClientString(video_x11_display, GLX_EXTENSIONS) );
+    fprintf( out, "GLX Extensions:\n" );
+    fprint_extensions( out, glXQueryExtensionsString(video_x11_display, screen) );
+
+}
+
 gboolean video_glx_init_context( Display *display, Window window )
 {
     if( glx_fbconfig_supported ) {
@@ -210,6 +232,8 @@ gboolean video_glx_init_context( Display *display, Window window )
 gboolean video_glx_init_driver( display_driver_t driver )
 {
     driver->swap_buffers = video_glx_swap_buffers;
+    driver->print_info = video_glx_print_info;
+    driver->capabilities.has_gl = TRUE;
     if( gl_fbo_is_supported() ) { // First preference
         gl_fbo_init(driver);
     } else if( glx_pbuffer_supported ) {
