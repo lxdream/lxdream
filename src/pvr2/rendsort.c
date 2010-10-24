@@ -159,8 +159,7 @@ void sort_render_triangles( struct sort_triangle **triangles, int num_triangles 
         if( poly->tex_id != -1 ) {
             glBindTexture(GL_TEXTURE_2D, poly->tex_id);
         }
-        render_set_context( poly->context, GL_GEQUAL );
-        glDepthMask(GL_FALSE);
+        render_set_tsp_context( poly->context[0], poly->context[1] );
         glDrawArrays(GL_TRIANGLE_STRIP, poly->vertex_index + triangles[i]->triangle_num, 3 );
     }
 }
@@ -256,7 +255,9 @@ void render_autosort_tile( pvraddr_t tile_entry, int render_mode )
     if( num_triangles == 0 ) {
         return; /* nothing to do */
     } else if( num_triangles == 1 ) { /* Triangle can hardly overlap with itself */
-        gl_render_tilelist(tile_entry, GL_GEQUAL);
+        glDepthMask(GL_FALSE);
+        glDepthFunc(GL_GEQUAL);
+        gl_render_tilelist(tile_entry, FALSE);
     } else { /* Ooh boy here we go... */
         int i;
         struct sort_triangle triangles[num_triangles+1];
@@ -268,8 +269,9 @@ void render_autosort_tile( pvraddr_t tile_entry, int render_mode )
         int extracted_triangles = sort_extract_triangles(tile_entry, triangles);
         assert( extracted_triangles <= num_triangles );
         sort_triangles( triangle_order, extracted_triangles, triangle_order );
+        glDepthMask(GL_FALSE);
+        glDepthFunc(GL_GEQUAL);
         sort_render_triangles(triangle_order, extracted_triangles);
-        glCullFace(GL_BACK);
         assert( triangles[num_triangles].poly == (void *)SENTINEL );
     }
 }

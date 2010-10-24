@@ -284,9 +284,10 @@ void render_backplane( uint32_t *polygon, uint32_t width, uint32_t height, uint3
 
 void render_autosort_tile( pvraddr_t tile_entry, int render_mode );
 
-void render_set_context( uint32_t *context, GLint depth_mode );
+void render_set_context( uint32_t *context, gboolean set_depth );
+void render_set_tsp_context( uint32_t poly1, uint32_t poly2 );
 
-void gl_render_tilelist( pvraddr_t tile_entry, GLint depth_mode );
+void gl_render_tilelist( pvraddr_t tile_entry, gboolean set_depth );
 
 render_buffer_t pvr2_create_render_buffer( sh4addr_t addr, int width, int height, GLuint tex_id );
 

@@ -131,12 +131,10 @@ void pvr2_setup_gl_context()
  * Setup the basic context that's shared between normal and modified modes -
  * depth, culling
  */
-static void render_set_base_context( uint32_t poly1, GLint depth_mode )
+static void render_set_base_context( uint32_t poly1, gboolean set_depth )
 {
-    if( depth_mode == 0 ) {
+    if( set_depth ) {
         glDepthFunc( POLY1_DEPTH_MODE(poly1) );
-    } else {
-        glDepthFunc(depth_mode);
     }
 
     glDepthMask( POLY1_DEPTH_WRITE(poly1) ? GL_TRUE : GL_FALSE );
@@ -145,7 +143,7 @@ static void render_set_base_context( uint32_t poly1, GLint depth_mode )
 /**
  * Setup the texture/shading settings (TSP) which vary between mod/unmod modes.
  */
-static void render_set_tsp_context( uint32_t poly1, uint32_t poly2, uint32_t texture )
+void render_set_tsp_context( uint32_t poly1, uint32_t poly2 )
 {
     glShadeModel( POLY1_SHADE_MODEL(poly1) );
     if( POLY1_TEXTURED(poly1) ) {
@@ -179,10 +177,10 @@ static void render_set_tsp_context( uint32_t poly1, uint32_t poly2, uint32_t tex
  * @param depth_mode force depth mode, or 0 to use the polygon's
  * depth mode.
  */
-void render_set_context( uint32_t *context, GLint depth_mode )
+void render_set_context( uint32_t *context, gboolean set_depth )
 {
-    render_set_base_context(context[0], depth_mode);
-    render_set_tsp_context(context[0],context[1],context[2]);
+    render_set_base_context(context[0], set_depth);
+    render_set_tsp_context(context[0],context[1]);
 }
 
 static inline void gl_draw_vertexes( struct polygon_struct *poly )
@@ -201,7 +199,7 @@ static inline void gl_draw_mod_vertexes( struct polygon_struct *poly )
     } while( poly != NULL );
 }
 
-static void gl_render_poly( struct polygon_struct *poly, GLint depth_mode )
+static void gl_render_poly( struct polygon_struct *poly, gboolean set_depth)
 {
     if( poly->vertex_count == 0 )
         return; /* Culled */
@@ -210,12 +208,12 @@ static void gl_render_poly( struct polygon_struct *poly, GLint depth_mode )
         glBindTexture(GL_TEXTURE_2D, poly->tex_id);
     }
     if( poly->mod_vertex_index == -1 ) {
-        render_set_context( poly->context, depth_mode );
+        render_set_context( poly->context, set_depth );
         gl_draw_vertexes(poly);
     }  else {
         glEnable( GL_STENCIL_TEST );
-        render_set_base_context( poly->context[0], depth_mode );
-        render_set_tsp_context( poly->context[0], poly->context[1], poly->context[2] );
+        render_set_base_context( poly->context[0], set_depth );
+        render_set_tsp_context( poly->context[0], poly->context[1] );
         glStencilFunc(GL_EQUAL, 0, 2);
         gl_draw_vertexes(poly);
 
@@ -223,7 +221,7 @@ static void gl_render_poly( struct polygon_struct *poly, GLint depth_mode )
             if( poly->mod_tex_id != -1 ) {
                 glBindTexture(GL_TEXTURE_2D, poly->mod_tex_id);
             }
-            render_set_tsp_context( poly->context[0], poly->context[3], poly->context[4] );
+            render_set_tsp_context( poly->context[0], poly->context[3] );
         }
         glStencilFunc(GL_EQUAL, 2, 2);
         gl_draw_mod_vertexes(poly);
@@ -236,14 +234,14 @@ static void gl_render_bkgnd( struct polygon_struct *poly )
     if( poly->tex_id != -1 ) {
         glBindTexture(GL_TEXTURE_2D, poly->tex_id);
     }
-    render_set_context( poly->context, 0 );
+    render_set_tsp_context( poly->context[0], poly->context[1] );
     glDisable( GL_DEPTH_TEST );
     glBlendFunc( GL_ONE, GL_ZERO );
     gl_draw_vertexes(poly);
     glEnable( GL_DEPTH_TEST );
 }
 
-void gl_render_tilelist( pvraddr_t tile_entry, GLint depth_mode )
+void gl_render_tilelist( pvraddr_t tile_entry, gboolean set_depth )
 {
     uint32_t *tile_list = (uint32_t *)(pvr2_main_ram+tile_entry);
     int strip_count;
@@ -265,7 +263,7 @@ void gl_render_tilelist( pvraddr_t tile_entry, GLint depth_mode )
             poly = pvr2_scene.buf_to_poly_map[entry&0x000FFFFF];
             while( strip_count > 0 ) {
                 assert( poly != NULL );
-                gl_render_poly( poly, depth_mode );
+                gl_render_poly( poly, set_depth );
                 poly = poly->next;
                 strip_count--;
             }
@@ -273,7 +271,7 @@ void gl_render_tilelist( pvraddr_t tile_entry, GLint depth_mode )
         default:
             if( entry & 0x7E000000 ) {
                 poly = pvr2_scene.buf_to_poly_map[entry&0x000FFFFF];
-                gl_render_poly( poly, depth_mode );
+                gl_render_poly( poly, set_depth );
             }
         }
     }       
@@ -306,7 +304,7 @@ void gl_render_tilelist_depthonly( pvraddr_t tile_entry )
             poly = pvr2_scene.buf_to_poly_map[entry&0x000FFFFF];
             while( strip_count > 0 ) {
                 if( poly->vertex_count != 0 ) {
-                    render_set_base_context(poly->context[0],0);
+                    render_set_base_context(poly->context[0],TRUE);
                     gl_draw_vertexes(poly);
                 }
                 poly = poly->next;
@@ -317,7 +315,7 @@ void gl_render_tilelist_depthonly( pvraddr_t tile_entry )
             if( entry & 0x7E000000 ) {
                 poly = pvr2_scene.buf_to_poly_map[entry&0x000FFFFF];
                 if( poly->vertex_count != 0 ) {
-                    render_set_base_context(poly->context[0],0);
+                    render_set_base_context(poly->context[0],TRUE);
                     gl_draw_vertexes(poly);
                 }
             }
@@ -530,17 +528,18 @@ void pvr2_scene_render( render_buffer_t buffer )
             glClear( GL_DEPTH_BUFFER_BIT );
             glColorMask( GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE );
         }
-        gl_render_tilelist(segment->opaque_ptr,0);
+        gl_render_tilelist(segment->opaque_ptr,TRUE);
         if( IS_TILE_PTR(segment->punchout_ptr) ) {
             glEnable(GL_ALPHA_TEST );
-            gl_render_tilelist(segment->punchout_ptr, GL_GEQUAL );
+            glDepthFunc(GL_GEQUAL);
+            gl_render_tilelist(segment->punchout_ptr, FALSE );
             glDisable(GL_ALPHA_TEST );
         }
 
         if( IS_TILE_PTR(segment->trans_ptr) ) {
             if( pvr2_scene.sort_mode == SORT_NEVER || 
                     (pvr2_scene.sort_mode == SORT_TILEFLAG && (segment->control&SEGMENT_SORT_TRANS))) {
-                gl_render_tilelist(segment->trans_ptr, 0);
+                gl_render_tilelist(segment->trans_ptr, TRUE);
             } else {
                 render_autosort_tile(segment->trans_ptr, RENDER_NORMAL );
             }
