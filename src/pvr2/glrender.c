@@ -210,7 +210,6 @@ static void gl_render_poly( struct polygon_struct *poly, GLint depth_mode )
         glBindTexture(GL_TEXTURE_2D, poly->tex_id);
     }
     if( poly->mod_vertex_index == -1 ) {
-        glDisable( GL_STENCIL_TEST );
         render_set_context( poly->context, depth_mode );
         gl_draw_vertexes(poly);
     }  else {
@@ -228,6 +227,7 @@ static void gl_render_poly( struct polygon_struct *poly, GLint depth_mode )
         }
         glStencilFunc(GL_EQUAL, 2, 2);
         gl_draw_mod_vertexes(poly);
+        glDisable( GL_STENCIL_TEST );
     }
 }
 
@@ -426,6 +426,7 @@ void gl_render_modifier_tilelist( pvraddr_t tile_entry, uint32_t tile_bounds[] )
         case 0x0F:
             glDepthMask( GL_TRUE );
             glStencilOp( GL_KEEP, GL_KEEP, GL_KEEP );
+            glDisable( GL_STENCIL_TEST );
             return; // End-of-list
         case 0x0E:
             tile_list = (uint32_t *)(pvr2_main_ram + (entry&0x007FFFFF));
