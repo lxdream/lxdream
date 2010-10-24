@@ -47,7 +47,7 @@ static GLuint texcache_free_list[MAX_TEXTURES];
 
 typedef struct texcache_entry {
     uint32_t texture_addr;
-    int width, height, mode;
+    uint32_t poly2_mode, tex_mode;
     GLuint texture_id;
     render_buffer_t buffer;
     texcache_entry_index next;
@@ -230,7 +230,7 @@ void texcache_invalidate_palette( )
     int i;
     for( i=0; i<MAX_TEXTURES; i++ ) {
         if( texcache_active_list[i].texture_addr != -1 &&
-                PVR2_TEX_IS_PALETTE(texcache_active_list[i].mode) ) {
+                PVR2_TEX_IS_PALETTE(texcache_active_list[i].tex_mode) ) {
             texcache_evict( i );
             texcache_free_ptr--;
             texcache_free_list[texcache_free_ptr] = i;
@@ -246,7 +246,7 @@ void texcache_invalidate_stride( )
     int i;
     for( i=0; i<MAX_TEXTURES; i++ ) {
         if( texcache_active_list[i].texture_addr != -1 &&
-                PVR2_TEX_IS_STRIDE(texcache_active_list[i].mode) ) {
+                PVR2_TEX_IS_STRIDE(texcache_active_list[i].tex_mode) ) {
             texcache_evict( i );
             texcache_free_ptr--;
             texcache_free_list[texcache_free_ptr] = i;
@@ -254,7 +254,7 @@ void texcache_invalidate_stride( )
     }
 }
 
-void texcache_set_config( uint32_t palette_mode, uint32_t stride )
+void texcache_begin_scene( uint32_t palette_mode, uint32_t stride )
 {
     if( palette_mode != texcache_palette_mode )
         texcache_invalidate_palette();
@@ -579,7 +579,7 @@ static void texcache_load_texture( uint32_t texture_addr, int width, int height,
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 }
 
-static int texcache_find_texture_slot( uint32_t texture_word, int width, int height )
+static int texcache_find_texture_slot( uint32_t poly2_masked_word, uint32_t texture_word )
 {
     uint32_t texture_addr = (texture_word & 0x000FFFFF)<<3;
     uint32_t texture_page = texture_addr >> 12;
@@ -587,10 +587,8 @@ static int texcache_find_texture_slot( uint32_t texture_word, int width, int hei
     texcache_entry_index idx = texcache_page_lookup[texture_page];
     while( idx != EMPTY_ENTRY ) {
         texcache_entry_t entry = &texcache_active_list[idx];
-        if( entry->texture_addr == texture_addr &&
-                entry->mode == texture_word &&
-                entry->width == width &&
-                entry->height == height ) {
+        if( entry->tex_mode == texture_word &&
+                entry->poly2_mode == poly2_masked_word ) {
             entry->lru_count = texcache_ref_counter++;
             return idx;
         }
@@ -599,7 +597,7 @@ static int texcache_find_texture_slot( uint32_t texture_word, int width, int hei
     return -1;
 }
 
-static int texcache_alloc_texture_slot( uint32_t texture_word, int width, int height )
+static int texcache_alloc_texture_slot( uint32_t poly2_word, uint32_t texture_word )
 {
     uint32_t texture_addr = (texture_word & 0x000FFFFF)<<3;
     uint32_t texture_page = texture_addr >> 12;
@@ -614,9 +612,8 @@ static int texcache_alloc_texture_slot( uint32_t texture_word, int width, int he
     /* Construct new entry */
     assert( texcache_active_list[slot].texture_addr == -1 );
     texcache_active_list[slot].texture_addr = texture_addr;
-    texcache_active_list[slot].width = width;
-    texcache_active_list[slot].height = height;
-    texcache_active_list[slot].mode = texture_word;
+    texcache_active_list[slot].tex_mode = texture_word;
+    texcache_active_list[slot].poly2_mode = poly2_word;
     texcache_active_list[slot].lru_count = texcache_ref_counter++;
 
     /* Add entry to the lookup table */
@@ -640,29 +637,50 @@ static int texcache_alloc_texture_slot( uint32_t texture_word, int width, int he
  * Return a texture ID for the texture specified at the supplied address
  * and given parameters (the same sequence of bytes could in theory have
  * multiple interpretations). We use the texture address as the primary
- * index, but allow for multiple instances at each address. The texture
- * will be bound to the GL_TEXTURE_2D target before being returned.
+ * index, but allow for multiple instances at each address.
  * 
  * If the texture has already been bound, return the ID to which it was
  * bound. Otherwise obtain an unused texture ID and set it up appropriately.
+ * The current GL_TEXTURE_2D binding will be changed in this case.
  */
-GLuint texcache_get_texture( uint32_t texture_word, int width, int height )
+GLuint texcache_get_texture( uint32_t poly2_word, uint32_t texture_word )
 {
-    int slot = texcache_find_texture_slot( texture_word, width, height );
+    poly2_word &= 0x000F803F; /* Get just the texture-relevant bits */
+    int slot = texcache_find_texture_slot( poly2_word, texture_word );
 
     if( slot == -1 ) {
         /* Not found - check the free list */
-        slot = texcache_alloc_texture_slot( texture_word, width, height );
+        slot = texcache_alloc_texture_slot( poly2_word, texture_word );
         
         /* Construct the GL texture */
         uint32_t texture_addr = (texture_word & 0x000FFFFF)<<3;
+        unsigned width = POLY2_TEX_WIDTH(poly2_word);
+        unsigned height = POLY2_TEX_HEIGHT(poly2_word);
+
         glBindTexture( GL_TEXTURE_2D, texcache_active_list[slot].texture_id );
         texcache_load_texture( texture_addr, width, height, texture_word );
+
+        /* Set texture parameters from the poly2 word */
+        if( POLY2_TEX_CLAMP_U(poly2_word) ) {
+            glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP );
+        } else if( POLY2_TEX_MIRROR_U(poly2_word) ) {
+            glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT_ARB );
+        } else {
+            glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
+        }
+        if( POLY2_TEX_CLAMP_V(poly2_word) ) {
+            glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP );
+        } else if( POLY2_TEX_MIRROR_V(poly2_word) ) {
+            glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT_ARB );
+        } else {
+            glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
+        }
     }
 
     return texcache_active_list[slot].texture_id;
 }
 
+#if 0
 render_buffer_t texcache_get_render_buffer( uint32_t texture_addr, int mode, int width, int height )
 {
     uint32_t texture_word = ((texture_addr >> 3) & 0x000FFFFF) | PVR2_TEX_UNTWIDDLED;
@@ -693,6 +711,7 @@ render_buffer_t texcache_get_render_buffer( uint32_t texture_addr, int mode, int
 
     return entry->buffer;
 }
+#endif
 
 /**
  * Check the integrity of the texcache. Verifies that every cache slot

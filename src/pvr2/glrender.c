@@ -61,20 +61,16 @@ void pvr2_scene_load_textures()
 {
     int i;
     
-    texcache_set_config( MMIO_READ( PVR2, RENDER_PALETTE ) & 0x03,
+    texcache_begin_scene( MMIO_READ( PVR2, RENDER_PALETTE ) & 0x03,
                          (MMIO_READ( PVR2, RENDER_TEXSIZE ) & 0x003F) << 5 );
     
     for( i=0; i < pvr2_scene.poly_count; i++ ) {
         struct polygon_struct *poly = &pvr2_scene.poly_array[i];
         if( POLY1_TEXTURED(poly->context[0]) ) {
-            poly->tex_id = texcache_get_texture( poly->context[2],
-                    POLY2_TEX_WIDTH(poly->context[1]),
-                    POLY2_TEX_HEIGHT(poly->context[1]) );
+            poly->tex_id = texcache_get_texture( poly->context[1], poly->context[2] );
             if( poly->mod_vertex_index != -1 ) {
                 if( pvr2_scene.shadow_mode == SHADOW_FULL ) {
-                    poly->mod_tex_id = texcache_get_texture( poly->context[4],
-                            POLY2_TEX_WIDTH(poly->context[3]),
-                            POLY2_TEX_HEIGHT(poly->context[3]) );
+                    poly->mod_tex_id = texcache_get_texture( poly->context[3], poly->context[4] );
                 } else {
                     poly->mod_tex_id = poly->tex_id;
                 }
@@ -155,21 +151,6 @@ static void render_set_tsp_context( uint32_t poly1, uint32_t poly2, uint32_t tex
     if( POLY1_TEXTURED(poly1) ) {
          glEnable(GL_TEXTURE_2D);
          glTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, pvr2_poly_texblend[POLY2_TEX_BLEND(poly2)] );
-
-         if( POLY2_TEX_CLAMP_U(poly2) ) {
-             glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP );
-         } else if( POLY2_TEX_MIRROR_U(poly2) ) {
-             glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT_ARB );
-         } else {
-             glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
-         }       
-         if( POLY2_TEX_CLAMP_V(poly2) ) {
-             glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP );
-         } else if( POLY2_TEX_MIRROR_V(poly2) ) {
-             glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT_ARB );
-         } else {
-             glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
-         }
      } else {
          glDisable( GL_TEXTURE_2D );
      }

@@ -344,7 +344,7 @@ void texcache_invalidate_page( uint32_t texture_addr );
  * Set the global texture parameters for the scene (possibly invalidating
  * some existing textures)
  */
-void texcache_set_config( uint32_t palette_mode, uint32_t stride_width );
+void texcache_begin_scene( uint32_t palette_mode, uint32_t stride_width );
 
 /**
  * Return a texture ID for the texture specified at the supplied address
@@ -356,7 +356,7 @@ void texcache_set_config( uint32_t palette_mode, uint32_t stride_width );
  * If the texture has already been bound, return the ID to which it was
  * bound. Otherwise obtain an unused texture ID and set it up appropriately.
  */
-GLuint texcache_get_texture( uint32_t texture_word, int width, int height );
+GLuint texcache_get_texture( uint32_t poly2_word, uint32_t texture_word );
 
 render_buffer_t texcache_get_render_buffer( uint32_t texture_addr, int mode, int width, int height );
 
