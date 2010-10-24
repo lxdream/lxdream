@@ -275,11 +275,23 @@ static void pvr2_decode_render_vertex( struct vertex_struct *vert, uint32_t poly
             vert->u = *data.fval++;
             vert->v = *data.fval++;
         }
-        if( POLY2_TEX_BLEND(poly2) == 1 ) {
+
+        switch( POLY2_TEX_BLEND(poly2) ) {
+        case 0:/* Convert replace => modulate by setting colour values to 1.0 */
+            vert->rgba[0] = vert->rgba[1] = vert->rgba[2] = vert->rgba[3] = 1.0;
+            data.ival++; /* Skip the colour word */
+            break;
+        case 1:
             force_alpha = TRUE;
+            /* fall-through */
+        default: /* Can't handle decal this way */
+            unpack_bgra(*data.ival++, vert->rgba);
+            break;
         }
+    } else {
+        unpack_bgra(*data.ival++, vert->rgba);
     }
-    unpack_bgra(*data.ival++, vert->rgba);
+
     if( POLY1_SPECULAR(poly1) ) {
         unpack_bgra(*data.ival++, vert->offset_rgba);
     } else {

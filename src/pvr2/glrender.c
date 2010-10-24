@@ -147,7 +147,10 @@ void render_set_tsp_context( uint32_t poly1, uint32_t poly2 )
 {
     glShadeModel( POLY1_SHADE_MODEL(poly1) );
     if( POLY1_TEXTURED(poly1) ) {
-         glTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, pvr2_poly_texblend[POLY2_TEX_BLEND(poly2)] );
+        if( POLY2_TEX_BLEND(poly2) == 2 )
+            glTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL );
+        else
+            glTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE );
      }
 
      switch( POLY2_FOG_MODE(poly2) ) {
