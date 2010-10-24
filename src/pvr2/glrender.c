@@ -76,8 +76,8 @@ void pvr2_scene_load_textures()
                 }
             }
         } else {
-            poly->tex_id = -1;
-            poly->mod_tex_id = -1;
+            poly->tex_id = 0;
+            poly->mod_tex_id = 0;
         }
     }
 }
@@ -147,10 +147,7 @@ void render_set_tsp_context( uint32_t poly1, uint32_t poly2 )
 {
     glShadeModel( POLY1_SHADE_MODEL(poly1) );
     if( POLY1_TEXTURED(poly1) ) {
-         glEnable(GL_TEXTURE_2D);
          glTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, pvr2_poly_texblend[POLY2_TEX_BLEND(poly2)] );
-     } else {
-         glDisable( GL_TEXTURE_2D );
      }
 
      switch( POLY2_FOG_MODE(poly2) ) {
@@ -204,9 +201,7 @@ static void gl_render_poly( struct polygon_struct *poly, gboolean set_depth)
     if( poly->vertex_count == 0 )
         return; /* Culled */
 
-    if( poly->tex_id != -1 ) {
-        glBindTexture(GL_TEXTURE_2D, poly->tex_id);
-    }
+    glBindTexture(GL_TEXTURE_2D, poly->tex_id);
     if( poly->mod_vertex_index == -1 ) {
         render_set_context( poly->context, set_depth );
         gl_draw_vertexes(poly);
@@ -218,7 +213,7 @@ static void gl_render_poly( struct polygon_struct *poly, gboolean set_depth)
         gl_draw_vertexes(poly);
 
         if( pvr2_scene.shadow_mode == SHADOW_FULL ) {
-            if( poly->mod_tex_id != -1 ) {
+            if( poly->mod_tex_id != poly->tex_id ) {
                 glBindTexture(GL_TEXTURE_2D, poly->mod_tex_id);
             }
             render_set_tsp_context( poly->context[0], poly->context[3] );
@@ -231,9 +226,7 @@ static void gl_render_poly( struct polygon_struct *poly, gboolean set_depth)
 
 static void gl_render_bkgnd( struct polygon_struct *poly )
 {
-    if( poly->tex_id != -1 ) {
-        glBindTexture(GL_TEXTURE_2D, poly->tex_id);
-    }
+    glBindTexture(GL_TEXTURE_2D, poly->tex_id);
     render_set_tsp_context( poly->context[0], poly->context[1] );
     glDisable( GL_DEPTH_TEST );
     glBlendFunc( GL_ONE, GL_ZERO );
@@ -289,8 +282,6 @@ void gl_render_tilelist_depthonly( pvraddr_t tile_entry )
     if( !IS_TILE_PTR(tile_entry) )
         return;
 
-    glDisable( GL_TEXTURE_2D );
-    
     while(1) {
         uint32_t entry = *tile_list++;
         switch( entry >> 28 ) {
@@ -408,7 +399,6 @@ void gl_render_modifier_tilelist( pvraddr_t tile_entry, uint32_t tile_bounds[] )
     if( !IS_TILE_PTR(tile_entry) )
         return;
 
-    glDisable( GL_TEXTURE_2D );
     glEnable( GL_STENCIL_TEST );
     glEnable( GL_DEPTH_TEST );
     glDepthFunc( GL_LEQUAL );
@@ -501,6 +491,7 @@ void pvr2_scene_render( render_buffer_t buffer )
     glEnable( GL_SCISSOR_TEST );
     glEnable( GL_COLOR_SUM );
     glEnable( GL_FOG );
+    glEnable( GL_TEXTURE_2D );
 
     /* Process the segment list */
     struct tile_segment *segment = pvr2_scene.segment_list;
