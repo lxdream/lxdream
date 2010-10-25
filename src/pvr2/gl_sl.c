@@ -152,6 +152,16 @@ void glsl_destroy_program(gl_program_t program)
     glDeleteObjectARB(program);
 }
 
+static inline GLint glsl_get_uniform_location_prim(gl_program_t program, const char *name)
+{
+    return glGetUniformLocationARB(program, name);
+}
+
+static inline void glsl_set_uniform_int_prim(GLint location, GLint value)
+{
+    glUniform1iARB(location,value);
+}
+
 #elif HAVE_OPENGL_SHADER
 
 gboolean glsl_is_supported()
@@ -260,6 +270,15 @@ void glsl_destroy_program(gl_program_t program)
     glDeleteProgram(program);
 }
 
+static inline GLint glsl_get_uniform_location_prim(gl_program_t program, const char *name)
+{
+    return glGetUniformLocation(program, name);
+}
+static inline void glsl_set_uniform_int_prim(GLint location, GLint value)
+{
+    glUniform1i(location, value);
+}
+
 #else
 gboolean glsl_is_supported()
 {
@@ -295,6 +314,15 @@ void glsl_destroy_shader(gl_shader_t shader)
 }
 
 void glsl_destroy_program(gl_program_t program)
+{
+}
+
+static inline GLint glsl_get_uniform_location_prim(gl_program_t program, const char *name)
+{
+    return 0;
+}
+
+static inline void glsl_set_uniform_int_prim(GLint location, GLint value)
 {
 }
 #endif
@@ -392,6 +420,20 @@ gboolean glsl_set_shader(unsigned i)
     } else {
         return FALSE;
     }
+}
+
+GLint glsl_get_uniform_location( unsigned program, const char *name )
+{
+    assert( program >= 0 && program <= GLSL_LAST_PROGRAM );
+
+    return glsl_get_uniform_location_prim(program_array[program], name);
+}
+
+void glsl_set_uniform_int( unsigned program, const char *name, GLint value )
+{
+    assert( program >= 0 && program <= GLSL_LAST_PROGRAM );
+    GLint location = glsl_get_uniform_location_prim(program_array[program], name);
+    glsl_set_uniform_int_prim(location, value);
 }
 
 void glsl_clear_shader()

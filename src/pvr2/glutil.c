@@ -41,6 +41,18 @@ gboolean isGLMirroredTextureSupported()
     return isGLExtensionSupported("GL_ARB_texture_mirrored_repeat");
 }
 
+/**
+ * Check if there's at least 2 texture units
+ */
+gboolean isGLMultitextureSupported()
+{
+    if( !isGLExtensionSupported("GL_ARB_multitexture") )
+        return FALSE;
+    int units = 0;
+    glGetIntegerv(GL_MAX_TEXTURE_UNITS_ARB, &units);
+    return units >= 2;
+}
+
 gboolean isGLVertexRangeSupported()
 {
     return isGLExtensionSupported("GL_APPLE_vertex_array_range") ||

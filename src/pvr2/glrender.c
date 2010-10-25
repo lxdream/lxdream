@@ -44,6 +44,8 @@ int pvr2_poly_texblend[4] = {
         GL_MODULATE 
 };
 
+static gboolean have_shaders = FALSE;
+
 /**
  * Clip the tile bounds to the clipping plane. 
  * @return TRUE if the tile was not clipped completely.
@@ -83,16 +85,17 @@ void pvr2_scene_load_textures()
 }
 
 
-
 /**
  * Once-off call to setup the OpenGL context.
  */
 void pvr2_setup_gl_context()
 {
 
-    if( glsl_is_supported() ) {
+    if( glsl_is_supported() && isGLMultitextureSupported() ) {
         if( !glsl_load_shaders( ) ) {
             WARN( "Unable to load GL shaders" );
+        } else {
+            have_shaders = TRUE;
         }
     }
 
@@ -125,6 +128,13 @@ void pvr2_setup_gl_context()
     glFogi(GL_FOG_MODE, GL_LINEAR);
     glFogf(GL_FOG_START, 0.0);
     glFogf(GL_FOG_END, 1.0);
+
+    if( have_shaders ) {
+        glsl_set_shader(DEFAULT_PROGRAM);
+        glsl_set_uniform_int(DEFAULT_PROGRAM, "primary_texture", 0);
+        glsl_set_uniform_int(DEFAULT_PROGRAM, "palette_texture", 1);
+        glsl_clear_shader();
+    }
 }
 
 /**
@@ -146,11 +156,13 @@ static void render_set_base_context( uint32_t poly1, gboolean set_depth )
 void render_set_tsp_context( uint32_t poly1, uint32_t poly2 )
 {
     glShadeModel( POLY1_SHADE_MODEL(poly1) );
-    if( POLY1_TEXTURED(poly1) ) {
+
+    if( POLY1_TEXTURED(poly1) && !have_shaders ) {
         if( POLY2_TEX_BLEND(poly2) == 2 )
             glTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL );
         else
             glTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE );
+
      }
 
      switch( POLY2_FOG_MODE(poly2) ) {
@@ -482,7 +494,7 @@ void pvr2_scene_render( render_buffer_t buffer )
     /* Setup vertex array pointers */
     glVertexPointer(3, GL_FLOAT, sizeof(struct vertex_struct), &pvr2_scene.vertex_array[0].x);
     glColorPointer(4, GL_FLOAT, sizeof(struct vertex_struct), &pvr2_scene.vertex_array[0].rgba[0]);
-    glTexCoordPointer(2, GL_FLOAT, sizeof(struct vertex_struct), &pvr2_scene.vertex_array[0].u);
+    glTexCoordPointer(4, GL_FLOAT, sizeof(struct vertex_struct), &pvr2_scene.vertex_array[0].u);
     glSecondaryColorPointerEXT(3, GL_FLOAT, sizeof(struct vertex_struct), pvr2_scene.vertex_array[0].offset_rgba );
     glFogCoordPointerEXT(GL_FLOAT, sizeof(struct vertex_struct), &pvr2_scene.vertex_array[0].offset_rgba[3] );
     /* Turn on the shaders (if available) */

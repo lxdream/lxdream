@@ -19,6 +19,52 @@
  * GNU General Public License for more details.
  */
 
+/**
+ * Quick reference for predefined variables
+ 
+ * Vertex shader input variables:
+ *   vec4 gl_Color;
+ *   vec4 gl_SecondaryColor;
+ *   vec3 gl_Normal;
+ *   vec4 gl_Vertex;
+ *   vec4 gl_MultiTexCoord0;
+ *   vec4 gl_MultiTexCoord1; 
+ *   vec4 gl_MultiTexCoord2;
+ *   vec4 gl_MultiTexCoord3; 
+ *   vec4 gl_MultiTexCoord4;
+ *   vec4 gl_MultiTexCoord5;
+ *   vec4 gl_MultiTexCoord6;
+ *   vec4 gl_MultiTexCoord7;
+ *   float gl_FogCoord;
+ *
+ * Vertex shader output variables:
+ *   vec4 gl_Position;    // must be written to
+ *   float gl_PointSize;  // may be written to
+ *   vec4 gl_ClipVertex;  // may be written to
+ *   varying vec4 gl_FrontColor; 
+ *   varying vec4 gl_BackColor; 
+ *   varying vec4 gl_FrontSecondaryColor; 
+ *   varying vec4 gl_BackSecondaryColor; 
+ *   varying vec4 gl_TexCoord[]; // at most will be gl_MaxTextureCoords
+ *   varying float gl_FogFragCoord;
+ *
+ * Fragment shader input variables:
+ *   varying vec4 gl_Color; 
+ *   varying vec4 gl_SecondaryColor; 
+ *   varying vec4 gl_TexCoord[]; // at most will be gl_MaxTextureCoords
+ *   varying float gl_FogFragCoord;
+ *   varying vec2 gl_PointCoord;
+ *
+ * Fragme shader output variables:
+ *   vec4 gl_FragCoord; 
+ *   bool gl_FrontFacing; 
+ *   vec4 gl_FragColor; 
+ *   vec4 gl_FragData[gl_MaxDrawBuffers]; 
+ *   float gl_FragDepth;
+
+ */
+
+
 #vertex DEFAULT_VERTEX_SHADER
 void main()
 {
@@ -32,11 +78,32 @@ void main()
 }
 
 #fragment DEFAULT_FRAGMENT_SHADER
+
+uniform sampler2D primary_texture;
+uniform sampler1D palette_texture;
+
 void main()
 {
-	gl_FragColor = gl_Color;
+	vec4 tex = texture2D( primary_texture, gl_TexCoord[0].xy );
+	if( gl_TexCoord[0].z >= 0.0 ) {
+	    tex = texture1D( palette_texture, gl_TexCoord[0].z + (tex.a*0.249023) );
+	}
+	/* HACK: unfortunately we have to maintain compatibility with GLSL 1.20,
+	 * which only supports varying float. So since we're propagating texcoord
+	 * anyway, overload the last component to indicate texture mode. 
+	 */
+	if( gl_TexCoord[0].w == 0.0 ) {
+	    gl_FragColor.rgb = mix( gl_Color.rgb * tex.rgb + gl_SecondaryColor.rgb, gl_Fog.color.rgb, gl_FogFragCoord );
+	    gl_FragColor.a = gl_Color.a * tex.a;
+	} else if( gl_TexCoord[0].w >= 1.5 ) {
+	    gl_FragColor.rgb = mix( gl_Color.rgb, gl_Fog.color.rgb, gl_FogFragCoord );
+	    gl_FragColor.a = gl_Color.a;
+	} else {
+	    gl_FragColor.rgb = mix( mix(gl_Color.rgb,tex.rgb,tex.a) + gl_SecondaryColor.rgb, gl_Fog.color.rgb, gl_FogFragCoord);
+	    gl_FragColor.a = gl_Color.a;
+	}
 	gl_FragDepth = gl_FragCoord.z;
 }
 
-#program DEFAULT_PROGRAM = DEFAULT_VERTEX_SHADER
+#program DEFAULT_PROGRAM = DEFAULT_VERTEX_SHADER DEFAULT_FRAGMENT_SHADER
 
