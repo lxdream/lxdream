@@ -226,6 +226,18 @@ static struct polygon_struct *scene_split_subpolygon( struct polygon_struct *par
     return poly;
 }
 
+static float scene_get_palette_offset( uint32_t tex )
+{
+    uint32_t fmt = (tex & PVR2_TEX_FORMAT_MASK);
+    if( fmt == PVR2_TEX_FORMAT_IDX4 ) {
+        return ((float)((tex & 0x07E00000) >> 17))/1024.0 + 0.0002;
+    } else if( fmt == PVR2_TEX_FORMAT_IDX8 ) {
+        return ((float)((tex & 0x06000000) >> 17))/1024.0 + 0.0002;
+    } else {
+        return -1.0;
+    }
+}
+
 /**
  * Decode a single PVR2 renderable vertex (opaque/trans/punch-out, but not shadow
  * volume)
@@ -237,7 +249,7 @@ static struct polygon_struct *scene_split_subpolygon( struct polygon_struct *par
  *        the normal vertex, half the vertex length for the modified vertex.
  */
 static void pvr2_decode_render_vertex( struct vertex_struct *vert, uint32_t poly1,
-                                       uint32_t poly2, uint32_t *pvr2_data,
+                                       uint32_t poly2, uint32_t tex, uint32_t *pvr2_data,
                                        int modify_offset )
 {
     gboolean force_alpha = !POLY2_ALPHA_ENABLE(poly2);
@@ -279,16 +291,25 @@ static void pvr2_decode_render_vertex( struct vertex_struct *vert, uint32_t poly
         switch( POLY2_TEX_BLEND(poly2) ) {
         case 0:/* Convert replace => modulate by setting colour values to 1.0 */
             vert->rgba[0] = vert->rgba[1] = vert->rgba[2] = vert->rgba[3] = 1.0;
+            vert->tex_mode = 0.0;
             data.ival++; /* Skip the colour word */
+            break;
+        case 2: /* Decal */
+            vert->tex_mode = 1.0;
+            unpack_bgra(*data.ival++, vert->rgba);
             break;
         case 1:
             force_alpha = TRUE;
             /* fall-through */
-        default: /* Can't handle decal this way */
+        default:
+            vert->tex_mode = 0.0;
             unpack_bgra(*data.ival++, vert->rgba);
             break;
         }
+        vert->r = scene_get_palette_offset(tex);
     } else {
+        vert->tex_mode = 2.0;
+        vert->r = -1.0;
         unpack_bgra(*data.ival++, vert->rgba);
     }
 
@@ -357,6 +378,8 @@ static void scene_compute_vertexes( struct vertex_struct *result,
         result[i].z = rz;
         result[i].u = input[1].u + (t*tu) + (s*su);
         result[i].v = input[1].v + (t*tv) + (s*sv);
+        result[i].r = input[1].r; /* Last two components are flat */
+        result[i].tex_mode = input[1].tex_mode;
 
         if( is_solid_shaded ) {
             memcpy( result->rgba, input[2].rgba, sizeof(result->rgba) );
@@ -503,6 +526,8 @@ static void scene_add_cheap_shadow_vertexes( struct vertex_struct *src, struct v
         dest->z = src->z;
         dest->u = src->u;
         dest->v = src->v;
+        dest->r = src->r;
+        dest->tex_mode = src->tex_mode;
         dest->rgba[0] = src->rgba[0] * scene_shadow_intensity;
         dest->rgba[1] = src->rgba[1] * scene_shadow_intensity;
         dest->rgba[2] = src->rgba[2] * scene_shadow_intensity;
@@ -531,7 +556,7 @@ static void scene_add_vertexes( pvraddr_t poly_idx, int vertex_length,
         assert( poly != NULL );
         assert( pvr2_scene.vertex_index + poly->vertex_count <= pvr2_scene.vertex_count );
         for( i=0; i<poly->vertex_count; i++ ) {
-            pvr2_decode_render_vertex( &pvr2_scene.vertex_array[pvr2_scene.vertex_index++], context[0], context[1], ptr, 0 );
+            pvr2_decode_render_vertex( &pvr2_scene.vertex_array[pvr2_scene.vertex_index++], context[0], context[1], context[2], ptr, 0 );
             ptr += vertex_length;
         }
         if( is_modified ) {
@@ -541,7 +566,7 @@ static void scene_add_vertexes( pvraddr_t poly_idx, int vertex_length,
                 int mod_offset = (vertex_length - 3)>>1;
                 ptr = &pvr2_scene.pvr2_pbuf[poly_idx] + 5;
                 for( i=0; i<poly->vertex_count; i++ ) {
-                    pvr2_decode_render_vertex( &pvr2_scene.vertex_array[pvr2_scene.vertex_index++], context[0], context[3], ptr, mod_offset );
+                    pvr2_decode_render_vertex( &pvr2_scene.vertex_array[pvr2_scene.vertex_index++], context[0], context[3], context[4], ptr, mod_offset );
                     ptr += vertex_length;
                 }
             } else {
@@ -572,7 +597,7 @@ static void scene_add_quad_vertexes( pvraddr_t poly_idx, int vertex_length,
         ptr += (is_modified == SHADOW_FULL ? 5 : 3 );
         poly->vertex_index = pvr2_scene.vertex_index;
         for( i=0; i<4; i++ ) {
-            pvr2_decode_render_vertex( &quad[i], context[0], context[1], ptr, 0 );
+            pvr2_decode_render_vertex( &quad[i], context[0], context[1], context[2], ptr, 0 );
             ptr += vertex_length;
         }
         scene_compute_vertexes( &quad[3], 1, &quad[0], !POLY1_GOURAUD_SHADED(context[0]) );
@@ -589,7 +614,7 @@ static void scene_add_quad_vertexes( pvraddr_t poly_idx, int vertex_length,
                 int mod_offset = (vertex_length - 3)>>1;
                 ptr = &pvr2_scene.pvr2_pbuf[poly_idx] + 5;
                 for( i=0; i<4; i++ ) {
-                    pvr2_decode_render_vertex( &quad[4], context[0], context[3], ptr, mod_offset );
+                    pvr2_decode_render_vertex( &quad[4], context[0], context[3], context[4], ptr, mod_offset );
                     ptr += vertex_length;
                 }
                 scene_compute_vertexes( &quad[3], 1, &quad[0], !POLY1_GOURAUD_SHADED(context[0]) );
@@ -759,7 +784,7 @@ static void scene_extract_background( void )
     struct vertex_struct base_vertexes[3];
     uint32_t *ptr = context + context_length;
     for( i=0; i<3; i++ ) {
-        pvr2_decode_render_vertex( &base_vertexes[i], context[0], context[1],
+        pvr2_decode_render_vertex( &base_vertexes[i], context[0], context[1], context[2],
                 ptr, 0 );
         ptr += vertex_length;
     }
@@ -774,7 +799,7 @@ static void scene_extract_background( void )
         int mod_offset = (vertex_length - 3)>>1;
         ptr = context + context_length;
         for( i=0; i<3; i++ ) {
-            pvr2_decode_render_vertex( &base_vertexes[i], context[0], context[3],
+            pvr2_decode_render_vertex( &base_vertexes[i], context[0], context[3], context[4],
                     ptr, mod_offset );
             ptr += vertex_length;
         }

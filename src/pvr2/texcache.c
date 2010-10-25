@@ -22,6 +22,7 @@
 #include <string.h>
 #include "pvr2/pvr2.h"
 #include "pvr2/pvr2mmio.h"
+#include "pvr2/glutil.h"
 
 /** Specifies the maximum number of OpenGL
  * textures we're willing to have open at a time. If more are
@@ -59,6 +60,9 @@ static uint32_t texcache_ref_counter;
 static struct texcache_entry texcache_active_list[MAX_TEXTURES];
 static uint32_t texcache_palette_mode;
 static uint32_t texcache_stride_width;
+static gboolean texcache_have_palette_shader;
+static gboolean texcache_palette_valid;
+static GLuint texcache_palette_texid;
 
 /**
  * Initialize the texture cache.
@@ -77,7 +81,7 @@ void texcache_init( )
     }
     texcache_free_ptr = 0;
     texcache_ref_counter = 0;
-    texcache_palette_mode = 0;
+    texcache_palette_mode = -1;
     texcache_stride_width = 0;
 }
 
@@ -89,6 +93,23 @@ void texcache_gl_init( )
 {
     int i;
     GLuint texids[MAX_TEXTURES];
+
+    if( glsl_is_supported() && isGLMultitextureSupported ) {
+        texcache_have_palette_shader = TRUE;
+        texcache_palette_valid = FALSE;
+        glGenTextures(1, &texcache_palette_texid );
+
+        /* Bind the texture and set the params */
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_1D, texcache_palette_texid);
+        glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri( GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_CLAMP );
+        glActiveTexture(GL_TEXTURE0);
+
+    } else {
+        texcache_have_palette_shader = FALSE;
+    }
 
     glGenTextures( MAX_TEXTURES, texids );
     for( i=0; i<MAX_TEXTURES; i++ ) {
@@ -136,6 +157,9 @@ void texcache_shutdown( )
     GLuint texids[MAX_TEXTURES];
     int i;
     texcache_flush();
+
+    if( texcache_have_palette_shader )
+        glDeleteTextures( 1, &texcache_palette_texid );
 
     for( i=0; i<MAX_TEXTURES; i++ ) {
         texids[i] = texcache_active_list[i].texture_id;
@@ -220,20 +244,83 @@ void texcache_invalidate_page( uint32_t texture_addr ) {
 }
 
 /**
- * Mark all textures that use the palette table as needing a re-read (ie 
- * for when the palette is changed. We could track exactly which ones are 
- * affected, but it's not clear that the extra maintanence overhead is 
- * worthwhile.
+ * Load the palette into 4 textures of 256 entries each. This mirrors the
+ * banking done by the PVR2 for 8-bit textures, and also ensures that we
+ * can use 8-bit paletted textures ourselves.
+ */
+static void texcache_load_palette_texture( gboolean format_changed )
+{
+    GLint format, type, intFormat = GL_RGBA;
+    unsigned i;
+    int bpp = 2;
+    uint32_t *palette = (uint32_t *)mmio_region_PVR2PAL.mem;
+    uint16_t packed_palette[1024];
+    char *data = (char *)palette;
+
+    switch( texcache_palette_mode ) {
+    case 0: /* ARGB1555 */
+        format = GL_BGRA;
+        type = GL_UNSIGNED_SHORT_1_5_5_5_REV;
+        break;
+    case 1:  /* RGB565 */
+        intFormat = GL_RGB;
+        format = GL_RGB;
+        type = GL_UNSIGNED_SHORT_5_6_5;
+        break;
+    case 2: /* ARGB4444 */
+        format = GL_BGRA;
+        type = GL_UNSIGNED_SHORT_4_4_4_4_REV;
+        break;
+    case 3: /* ARGB8888 */
+        format = GL_BGRA;
+        type = GL_UNSIGNED_BYTE;
+        bpp = 4;
+        break;
+    default:
+        break; /* Can't happen */
+    }
+
+
+    if( bpp == 2 ) {
+        for( i=0; i<1024; i++ ) {
+            packed_palette[i] = (uint16_t)palette[i];
+        }
+        data = (char *)packed_palette;
+
+    }
+
+    glActiveTexture(GL_TEXTURE1);
+//    glBindTexture(GL_TEXTURE_1D, texcache_palette_texid);
+    if( format_changed )
+        glTexImage1D(GL_TEXTURE_1D, 0, intFormat, 1024, 0, format, type, data );
+    else
+        glTexSubImage1D(GL_TEXTURE_1D, 0, 0, 1024, format, type, data);
+//    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+//    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+//    glTexParameteri( GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_CLAMP );
+    glActiveTexture(GL_TEXTURE0);
+    texcache_palette_valid = TRUE;
+}
+
+
+/**
+ * Mark the palette as having changed. If we have palette support (via shaders)
+ * we just flag the palette, otherwise we have to invalidate all palette
+ * textures.
  */
 void texcache_invalidate_palette( )
 {
-    int i;
-    for( i=0; i<MAX_TEXTURES; i++ ) {
-        if( texcache_active_list[i].texture_addr != -1 &&
-                PVR2_TEX_IS_PALETTE(texcache_active_list[i].tex_mode) ) {
-            texcache_evict( i );
-            texcache_free_ptr--;
-            texcache_free_list[texcache_free_ptr] = i;
+    if( texcache_have_palette_shader ) {
+        texcache_palette_valid = FALSE;
+    } else {
+        int i;
+        for( i=0; i<MAX_TEXTURES; i++ ) {
+            if( texcache_active_list[i].texture_addr != -1 &&
+                    PVR2_TEX_IS_PALETTE(texcache_active_list[i].tex_mode) ) {
+                texcache_evict( i );
+                texcache_free_ptr--;
+                texcache_free_list[texcache_free_ptr] = i;
+            }
         }
     }
 }
@@ -256,13 +343,19 @@ void texcache_invalidate_stride( )
 
 void texcache_begin_scene( uint32_t palette_mode, uint32_t stride )
 {
-    if( palette_mode != texcache_palette_mode )
+    gboolean format_changed = FALSE;
+    if( palette_mode != texcache_palette_mode ) {
         texcache_invalidate_palette();
+        format_changed = TRUE;
+    }
     if( stride != texcache_stride_width )
         texcache_invalidate_stride();
     
     texcache_palette_mode = palette_mode;
     texcache_stride_width = stride;
+
+    if( !texcache_palette_valid && texcache_have_palette_shader )
+        texcache_load_palette_texture(format_changed);
 }
 
 static void decode_pal8_to_32( uint32_t *out, uint8_t *in, int inbytes, uint32_t *pal )
@@ -290,6 +383,17 @@ static void decode_pal4_to_32( uint32_t *out, uint8_t *in, int inbytes, uint32_t
         in++;
     }
 }
+
+static void decode_pal4_to_pal8( uint8_t *out, uint8_t *in, int inbytes )
+{
+    int i;
+    for( i=0; i<inbytes; i++ ) {
+        *out++ = (uint8_t)(*in & 0x0F);
+        *out++ = (uint8_t)(*in >> 4);
+        in++;
+    }
+}
+
 
 
 static void decode_pal4_to_16( uint16_t *out, uint8_t *in, int inbytes, uint32_t *pal )
@@ -395,7 +499,9 @@ static void texcache_load_texture( uint32_t texture_addr, int width, int height,
     GLint intFormat = GL_RGBA, format, type;
     int tex_format = mode & PVR2_TEX_FORMAT_MASK;
     struct vq_codebook codebook;
-    GLint filter = GL_LINEAR;
+    GLint min_filter = GL_LINEAR;
+    GLint max_filter = GL_LINEAR;
+    GLint mipmapfilter = GL_LINEAR_MIPMAP_LINEAR;
 
     glPixelStorei( GL_UNPACK_ROW_LENGTH, 0 );
 
@@ -403,30 +509,39 @@ static void texcache_load_texture( uint32_t texture_addr, int width, int height,
     switch( tex_format ) {
     case PVR2_TEX_FORMAT_IDX4:
     case PVR2_TEX_FORMAT_IDX8:
-        /* For indexed-colour modes, we need to lookup the palette control
-         * word to determine the de-indexed texture format.
-         */
-        switch( texcache_palette_mode ) {
-        case 0: /* ARGB1555 */
-            format = GL_BGRA;
-            type = GL_UNSIGNED_SHORT_1_5_5_5_REV;
-            break;
-        case 1:  /* RGB565 */
-            intFormat = GL_RGB;
-            format = GL_RGB;
-            type = GL_UNSIGNED_SHORT_5_6_5;
-            break;
-        case 2: /* ARGB4444 */
-            format = GL_BGRA;
-            type = GL_UNSIGNED_SHORT_4_4_4_4_REV;
-            break;
-        case 3: /* ARGB8888 */
-            format = GL_BGRA;
+        if( texcache_have_palette_shader ) {
+            intFormat = GL_ALPHA8;
+            format = GL_ALPHA;
             type = GL_UNSIGNED_BYTE;
-            bpp_shift = 2;
-            break;
-        default:
-            return; /* Can't happen, but it makes gcc stop complaining */
+            bpp_shift = 0;
+            min_filter = max_filter = GL_NEAREST;
+            mipmapfilter = GL_NEAREST_MIPMAP_NEAREST;
+        } else {
+            /* For indexed-colour modes, we need to lookup the palette control
+             * word to determine the de-indexed texture format.
+             */
+            switch( texcache_palette_mode ) {
+            case 0: /* ARGB1555 */
+                format = GL_BGRA;
+                type = GL_UNSIGNED_SHORT_1_5_5_5_REV;
+                break;
+            case 1:  /* RGB565 */
+                intFormat = GL_RGB;
+                format = GL_RGB;
+                type = GL_UNSIGNED_SHORT_5_6_5;
+                break;
+            case 2: /* ARGB4444 */
+                format = GL_BGRA;
+                type = GL_UNSIGNED_SHORT_4_4_4_4_REV;
+                break;
+            case 3: /* ARGB8888 */
+                format = GL_BGRA;
+                type = GL_UNSIGNED_BYTE;
+                bpp_shift = 2;
+                break;
+            default:
+                return; /* Can't happen, but it makes gcc stop complaining */
+            }
         }
         break;
 
@@ -469,8 +584,8 @@ static void texcache_load_texture( uint32_t texture_addr, int width, int height,
             pvr2_vram64_read_stride( data, width<<bpp_shift, texture_addr, texcache_stride_width<<bpp_shift, height );
         }
         glTexImage2D( GL_TEXTURE_2D, 0, intFormat, width, height, 0, format, type, data );
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, min_filter);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, max_filter);
         return;
     } 
 
@@ -484,7 +599,7 @@ static void texcache_load_texture( uint32_t texture_addr, int width, int height,
     int level=0, last_level = 0, mip_width = width, mip_height = height, src_bytes, dest_bytes;
     if( PVR2_TEX_IS_MIPMAPPED(mode) ) {
         uint32_t src_offset = 0;
-        filter = GL_LINEAR_MIPMAP_LINEAR;
+        min_filter = mipmapfilter;
         mip_height = height = width;
         while( (1<<last_level) < width ) {
             last_level++;
@@ -513,26 +628,35 @@ static void texcache_load_texture( uint32_t texture_addr, int width, int height,
         unsigned char data[dest_bytes];
         /* load data from image, detwiddling/uncompressing as required */
         if( tex_format == PVR2_TEX_FORMAT_IDX8 ) {
-            src_bytes = (mip_width * mip_height);
-            int bank = (mode >> 25) &0x03;
-            uint32_t *palette = ((uint32_t *)mmio_region_PVR2PAL.mem) + (bank<<8);
-            unsigned char tmp[src_bytes];
-            pvr2_vram64_read_twiddled_8( tmp, texture_addr, mip_width, mip_height );
-            if( bpp_shift == 2 ) {
-                decode_pal8_to_32( (uint32_t *)data, tmp, src_bytes, palette );
+            if( texcache_have_palette_shader ) {
+                pvr2_vram64_read_twiddled_8( data, texture_addr, mip_width, mip_height );
             } else {
-                decode_pal8_to_16( (uint16_t *)data, tmp, src_bytes, palette );
+                src_bytes = (mip_width * mip_height);
+                int bank = (mode >> 25) &0x03;
+                uint32_t *palette = ((uint32_t *)mmio_region_PVR2PAL.mem) + (bank<<8);
+                unsigned char tmp[src_bytes];
+                pvr2_vram64_read_twiddled_8( tmp, texture_addr, mip_width, mip_height );
+                if( bpp_shift == 2 ) {
+                    decode_pal8_to_32( (uint32_t *)data, tmp, src_bytes, palette );
+                } else {
+                    decode_pal8_to_16( (uint16_t *)data, tmp, src_bytes, palette );
+                }
             }
         } else if( tex_format == PVR2_TEX_FORMAT_IDX4 ) {
             src_bytes = (mip_width * mip_height) >> 1;
-            int bank = (mode >>21 ) & 0x3F;
-            uint32_t *palette = ((uint32_t *)mmio_region_PVR2PAL.mem) + (bank<<4);
             unsigned char tmp[src_bytes];
-            pvr2_vram64_read_twiddled_4( tmp, texture_addr, mip_width, mip_height );
-            if( bpp_shift == 2 ) {
-                decode_pal4_to_32( (uint32_t *)data, tmp, src_bytes, palette );
+            if( texcache_have_palette_shader ) {
+                pvr2_vram64_read_twiddled_4( tmp, texture_addr, mip_width, mip_height );
+                decode_pal4_to_pal8( data, tmp, src_bytes );
             } else {
-                decode_pal4_to_16( (uint16_t *)data, tmp, src_bytes, palette );
+                int bank = (mode >>21 ) & 0x3F;
+                uint32_t *palette = ((uint32_t *)mmio_region_PVR2PAL.mem) + (bank<<4);
+                pvr2_vram64_read_twiddled_4( tmp, texture_addr, mip_width, mip_height );
+                if( bpp_shift == 2 ) {
+                    decode_pal4_to_32( (uint32_t *)data, tmp, src_bytes, palette );
+                } else {
+                    decode_pal4_to_16( (uint16_t *)data, tmp, src_bytes, palette );
+                }
             }
         } else if( tex_format == PVR2_TEX_FORMAT_YUV422 ) {
             src_bytes = ((mip_width*mip_height)<<1);
@@ -575,8 +699,8 @@ static void texcache_load_texture( uint32_t texture_addr, int width, int height,
         }
     }
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, min_filter);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, max_filter);
 }
 
 static int texcache_find_texture_slot( uint32_t poly2_masked_word, uint32_t texture_word )
@@ -646,11 +770,15 @@ static int texcache_alloc_texture_slot( uint32_t poly2_word, uint32_t texture_wo
 GLuint texcache_get_texture( uint32_t poly2_word, uint32_t texture_word )
 {
     poly2_word &= 0x000F803F; /* Get just the texture-relevant bits */
-    int slot = texcache_find_texture_slot( poly2_word, texture_word );
+    uint32_t texture_lookup = texture_word;
+    if( PVR2_TEX_IS_PALETTE(texture_lookup) ) {
+        texture_lookup &= 0xF81FFFFF; /* Mask out the bank bits */
+    }
+    int slot = texcache_find_texture_slot( poly2_word, texture_lookup );
 
     if( slot == -1 ) {
         /* Not found - check the free list */
-        slot = texcache_alloc_texture_slot( poly2_word, texture_word );
+        slot = texcache_alloc_texture_slot( poly2_word, texture_lookup );
         
         /* Construct the GL texture */
         uint32_t texture_addr = (texture_word & 0x000FFFFF)<<3;
@@ -748,5 +876,25 @@ void texcache_integrity_check()
     /* Make sure we didn't miss any entries */
     for( i=0; i<MAX_TEXTURES; i++ ) {
         assert( slot_found[i] != 0 );
+    }
+}
+
+/**
+ * Dump the contents of the texture cache
+ */
+void texcache_dump()
+{
+    unsigned i;
+    for( i=0; i< PVR2_RAM_PAGES; i++ ) {
+        int slot = texcache_page_lookup[i];
+        while( slot != EMPTY_ENTRY ) {
+            fprintf( stderr, "%-3d: %08X %dx%d (%08X %08X)\n", slot,
+                    texcache_active_list[slot].texture_addr,
+                    POLY2_TEX_WIDTH(texcache_active_list[slot].poly2_mode),
+                    POLY2_TEX_HEIGHT(texcache_active_list[slot].poly2_mode),
+                    texcache_active_list[slot].poly2_mode,
+                    texcache_active_list[slot].tex_mode );
+            slot = texcache_active_list[slot].next;
+        }
     }
 }

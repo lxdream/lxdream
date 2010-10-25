@@ -47,6 +47,7 @@ gboolean isGLSecondaryColorSupported();
 gboolean isGLVertexBufferSupported();
 gboolean isGLVertexRangeSupported();
 gboolean isGLPixelBufferSupported();
+gboolean isGLMultitextureSupported();
 gboolean isGLMirroredTextureSupported();
 
 /****** Shader handling (gl_sl.c) *****/
@@ -56,6 +57,8 @@ gboolean glsl_load_shaders( );
 void glsl_unload_shaders(void);
 gboolean glsl_set_shader( unsigned program_id );
 void glsl_clear_shader();
+GLint glsl_get_uniform_location( unsigned program, const char *name );
+void glsl_set_uniform_int( unsigned program, const char *name, GLint value );
 
 /* Convenience formatting function for driver use */
 void fprint_extensions( FILE *out, const char *extensions );

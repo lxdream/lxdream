@@ -35,7 +35,7 @@ typedef enum { SHADOW_NONE=0, SHADOW_CHEAP=1, SHADOW_FULL=2 } shadow_mode_t;
 
 
 struct vertex_struct {
-    float u,v;
+    float u,v,r,tex_mode; /* tex-coord quad */
     float x,y,z;
     float rgba[4];
     float offset_rgba[4];
