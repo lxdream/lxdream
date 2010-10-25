@@ -294,7 +294,6 @@ static void gl_fbo_destroy_render_buffer( render_buffer_t buffer )
 
 static gboolean gl_fbo_set_render_target( render_buffer_t buffer )
 {
-    glFinish();
     glGetError();
     int fb = gl_fbo_get_framebuffer( buffer->width, buffer->height );
     gl_fbo_attach_texture( fb, buffer->buf_id );
@@ -317,21 +316,18 @@ static void gl_fbo_finish_render( render_buffer_t buffer )
  */
 static void gl_fbo_display_render_buffer( render_buffer_t buffer )
 {
-    glFinish();
     gl_fbo_detach();
     gl_display_render_buffer( buffer );
 }
 
 static void gl_fbo_load_frame_buffer( frame_buffer_t frame, render_buffer_t buffer )
 {
-    glFinish();
     gl_fbo_detach();
     gl_load_frame_buffer( frame, buffer->buf_id );
 }
 
 static void gl_fbo_display_blank( uint32_t colour )
 {
-    glFinish();
     gl_fbo_detach();
     gl_display_blank( colour );
 }
