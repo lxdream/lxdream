@@ -94,7 +94,7 @@ void texcache_gl_init( )
     int i;
     GLuint texids[MAX_TEXTURES];
 
-    if( glsl_is_supported() && isGLMultitextureSupported ) {
+    if( glsl_is_supported() && isGLMultitextureSupported() ) {
         texcache_have_palette_shader = TRUE;
         texcache_palette_valid = FALSE;
         glGenTextures(1, &texcache_palette_texid );
@@ -896,5 +896,21 @@ void texcache_dump()
                     texcache_active_list[slot].tex_mode );
             slot = texcache_active_list[slot].next;
         }
+    }
+}
+
+void texcache_print_idx4( uint32_t texture_addr, int width )
+{
+    unsigned x,y;
+    int src_bytes = (width*width>>1);
+    char tmp[src_bytes];
+    char data[width*width];
+    pvr2_vram64_read_twiddled_4( tmp, texture_addr, width, width );
+    decode_pal4_to_pal8( data, tmp, src_bytes );
+    for( y=0; y<width; y++ ) {
+        for( x=0; x<width; x++ ) {
+            printf( "%1x", data[y*width+x] );
+        }
+        printf( "\n" );
     }
 }
