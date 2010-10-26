@@ -936,7 +936,7 @@ void pvr2_scene_read( void )
 /**
  * Dump the current scene to file in a (mostly) human readable form
  */
-void pvr2_scene_dump( FILE *f )
+void pvr2_scene_print( FILE *f )
 {
     int i,j;
 
@@ -973,4 +973,9 @@ void pvr2_scene_dump( FILE *f )
         }
     }
 
+}
+
+void pvr2_scene_dump()
+{
+    pvr2_scene_print(stdout);
 }
