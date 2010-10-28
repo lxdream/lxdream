@@ -116,13 +116,29 @@ int sort_extract_triangles( pvraddr_t tile_entry, struct sort_triangle *triangle
         case 0x0E:
             tile_list = (uint32_t *)(pvr2_main_ram + (entry&0x007FFFFF));
             break;
-        case 0x08: case 0x09: case 0x0A: case 0x0B:
+        case 0x08: case 0x09:
             strip_count = ((entry >> 25) & 0x0F)+1;
             poly = pvr2_scene.buf_to_poly_map[entry&0x000FFFFF];
             while( strip_count > 0 ) {
                 assert( poly != NULL );
-                for( i=0; i+2<poly->vertex_count; i++ ) {
-                    /* Note: tris + quads can't have sub-polys */
+                if( poly->vertex_count != 0 ) {
+                    /* Triangle could point to a strip, but we only want
+                     * the first one in this case
+                     */
+                    sort_add_triangle( &triangles[count], poly, 0 );
+                    count++;
+                }
+                poly = poly->next;
+                strip_count--;
+            }
+            break;
+        case 0x0A: case 0x0B:
+            strip_count = ((entry >> 25) & 0x0F)+1;
+            poly = pvr2_scene.buf_to_poly_map[entry&0x000FFFFF];
+            while( strip_count > 0 ) {
+                assert( poly != NULL );
+                for( i=0; i+2<poly->vertex_count && i < 2; i++ ) {
+                    /* Note: quads can't have sub-polys */
                     sort_add_triangle( &triangles[count], poly, i );
                     count++;
                 }
