@@ -154,6 +154,21 @@ const gchar *lxdream_get_config_value( lxdream_config_group_t group, int key )
     return group->params[key].value;
 }
 
+gboolean lxdream_get_config_boolean_value( lxdream_config_group_t group, int key )
+{
+    const gchar *value = lxdream_get_config_value(group, key);
+    if( strcasecmp(value, "on") == 0 || strcasecmp(value, "true") == 0 ||
+        strcasecmp(value, "yes") == 0 || strcasecmp(value, "1") == 0 ) {
+        return TRUE;
+    } else {
+        return FALSE;
+    }
+}
+
+gboolean lxdream_set_config_boolean_value( lxdream_config_group_t group, int key, gboolean value )
+{
+    return lxdream_set_config_value(group, key, value ? "on" : "off");
+}
 
 gboolean lxdream_set_config_value( lxdream_config_group_t group, int key, const gchar *value )
 {

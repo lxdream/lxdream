@@ -36,6 +36,7 @@ extern "C" {
 #define CONFIG_TYPE_KEY 3
 #define CONFIG_TYPE_FILELIST 4
 #define CONFIG_TYPE_INTEGER 5
+#define CONFIG_TYPE_BOOLEAN 6
 
 #define DEFAULT_CONFIG_FILENAME "lxdreamrc"
 
@@ -96,6 +97,9 @@ void lxdream_register_config_group( const gchar *key, lxdream_config_group_t gro
 gboolean lxdream_set_config_value( lxdream_config_group_t group, int key, const gchar *value );
 void lxdream_copy_config_group( lxdream_config_group_t dest, lxdream_config_group_t src );
 void lxdream_clone_config_group( lxdream_config_group_t dest, lxdream_config_group_t src );
+
+gboolean lxdream_get_config_boolean_value( lxdream_config_group_t group, int key );
+gboolean lxdream_set_config_boolean_value( lxdream_config_group_t group, int key, gboolean value );
 
 /**
  * Return a fully expanded path value for a key - this performs substitutions
