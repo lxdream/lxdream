@@ -44,6 +44,8 @@ static inline void CALL_ptr( void *ptr )
 }
 
 #ifdef HAVE_FASTCALL
+#define CALL1_PTR_MIN_SIZE 7
+
 static inline void CALL1_ptr_r32( void *ptr, int arg1 )
 {
     if( arg1 != REG_ARG1 ) {
@@ -85,7 +87,10 @@ static inline void CALL2_r32disp_r32_r32( int preg, uint32_t disp, int arg1, int
 #define CALL3_r32disp_r32_r32_r32(preg,disp,arg1,arg2,arg3) CALL2_r32disp_r32_r32(preg,disp,arg1,arg2)
 
 #else
-static inline void CALL1_ptr( void *ptr, int arg1 )
+
+#define CALL1_PTR_MIN_SIZE (3+1+7+3)
+
+static inline void CALL1_ptr_r32( void *ptr, int arg1 )
 {
     SUBL_imms_r32( 12, REG_ESP );
     PUSH_r32(arg1);
@@ -125,7 +130,7 @@ static inline void CALL3_r32disp_r32_r32_r32( int preg, uint32_t disp, int arg1,
     PUSH_r32(arg2);
     PUSH_r32(arg1);
     MOVL_rspdisp_r32( 16, REG_EAX );
-    MOVL_r32_rspdisp( R_EAX, 8 );
+    MOVL_r32_rspdisp( REG_EAX, 8 );
     CALL_r32disp(preg,disp);
     ADDL_imms_r32( 16, REG_ESP );
 }
