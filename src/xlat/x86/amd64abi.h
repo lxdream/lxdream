@@ -42,6 +42,7 @@ static inline void CALL_ptr( void *ptr )
     CALL_r32(REG_ECX);
 }
 
+#define CALL1_PTR_MIN_SIZE 12
 static inline void CALL1_ptr_r32( void *ptr, int arg1 )
 {
     if( arg1 != REG_ARG1 ) {
