@@ -21,7 +21,6 @@
 
 #include <stdio.h>
 #include "lxdream.h"
-#include "mem.h"
 #include "display.h"
 
 #ifdef __cplusplus
@@ -429,6 +428,11 @@ struct tile_segment {
     pvraddr_t trans_ptr;
     pvraddr_t transmod_ptr;
     pvraddr_t punchout_ptr;
+};
+
+
+struct tile_bounds {
+    int32_t x1, y1, x2, y2;
 };
 
 #ifdef __cplusplus

@@ -126,10 +126,6 @@ struct pvr2_ta_vertex {
     uint32_t detail[8]; /* 0-8 detail words */
 };
 
-struct tile_bounds {
-    int32_t x1, y1, x2, y2;
-};
-
 struct pvr2_ta_status {
     int32_t state;
     int32_t width, height; /* Tile resolution, ie 20x15 */
