@@ -25,6 +25,9 @@
 /* Enable watchpoints */
 #undef ENABLE_WATCH
 
+/* Forcibly inline code */
+#undef FORCEINLINE
+
 /* translation domain */
 #undef GETTEXT_PACKAGE
 
@@ -75,9 +78,6 @@
 
 /* Define if your <locale.h> file defines LC_MESSAGES. */
 #undef HAVE_LC_MESSAGES
-
-/* Define to 1 if you have the `GL' library (-lGL). */
-#undef HAVE_LIBGL
 
 /* Define to 1 if you have the `OSMesa' library (-lOSMesa). */
 #undef HAVE_LIBOSMESA

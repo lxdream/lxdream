@@ -18,6 +18,27 @@ int main(int argc, char *argv[])
    $2 ])
 ])
 
+# AC_CHECK_FORCEINLINE([if-ok],[if-notok])
+# Test if the compiler recognizes __attribute__((always_inline))
+# -----------------------
+AC_DEFUN([AC_CHECK_FORCEINLINE], [
+AC_MSG_CHECKING([support for force inlining]);
+AC_COMPILE_IFELSE([
+  AC_LANG_SOURCE([[
+static int __attribute__((always_inline)) foo(int a, int b) { return a+b; }
+
+int main(int argc, char *argv[])
+{
+   return foo( 1, 2 ) == 3 ? 0 : 1;
+}]])], [ 
+   FORCEINLINE="__attribute__((always_inline))"
+   AC_MSG_RESULT([$FORCEINLINE])
+   $1 ], [ 
+   FORCEINLINE=""
+   AC_MSG_RESULT([no])
+   $2 ])
+])
+
 # AC_CHECK_FRAME_ADDRESS([if-ok],[if-notok])
 # Test if the compiler will let us modify the return address on the stack
 # via __builtin_frame_address()
