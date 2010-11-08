@@ -154,7 +154,7 @@ extern unsigned char *xlat_output;
 /**
  * Encode opcode+reg with no mod/rm (eg MOV imm64, r32)
  */
-static void x86_encode_opcodereg( int rexw, uint32_t opcode, int reg )
+static inline void x86_encode_opcodereg( int rexw, uint32_t opcode, int reg )
 {
     int rex = rexw;
     reg &= 0x0F;
@@ -174,7 +174,7 @@ static void x86_encode_opcodereg( int rexw, uint32_t opcode, int reg )
  * @param rr reg field 
  * @param rb r/m field
  */
-static void x86_encode_reg_rm( int rexw, uint32_t opcode, int rr, int rb )
+static inline void x86_encode_reg_rm( int rexw, uint32_t opcode, int rr, int rb )
 {
     int rex = rexw;
     rr &= 0x0F;
@@ -203,7 +203,7 @@ static void x86_encode_reg_rm( int rexw, uint32_t opcode, int rr, int rb )
  * @param ss Scale shift (0..3) applied to index register (ignored if no index register)
  * @param disp32 Signed displacement (0 for none)
  */ 
-static void x86_encode_modrm( int rexw, uint32_t opcode, int rr, int rb, int rx, int ss, int32_t disp32 )
+static inline void FORCEINLINE x86_encode_modrm( int rexw, uint32_t opcode, int rr, int rb, int rx, int ss, int32_t disp32 )
 {
     /* Construct the rex prefix where necessary */
     int rex = rexw;
@@ -290,7 +290,7 @@ static void x86_encode_modrm( int rexw, uint32_t opcode, int rr, int rb, int rx,
  * @param rr mod/rm reg field
  * @param disp32 RIP-relative displacement
  */
-static void x86_encode_modrm_rip(int rexw, uint32_t opcode, int rr, int32_t disp32)
+static inline void x86_encode_modrm_rip(int rexw, uint32_t opcode, int rr, int32_t disp32)
 {
     int rex = rexw;
     rr &= 0x0F;
