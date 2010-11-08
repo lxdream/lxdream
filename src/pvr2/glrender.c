@@ -21,8 +21,9 @@
 #include "display.h"
 #include "pvr2/pvr2.h"
 #include "pvr2/pvr2mmio.h"
-#include "pvr2/scene.h"
 #include "pvr2/glutil.h"
+#include "pvr2/scene.h"
+#include "pvr2/tileiter.h"
 
 #define IS_EMPTY_TILE_LIST(p) ((*((uint32_t *)(pvr2_main_ram+(p))) >> 28) == 0x0F)
 
@@ -57,6 +58,16 @@ static gboolean clip_tile_bounds( uint32_t *tile, float *clip )
     if( tile[2] < clip[2] ) tile[2] = clip[2];
     if( tile[3] > clip[3] ) tile[3] = clip[3];
     return tile[0] < tile[1] && tile[2] < tile[3];
+}
+
+static void drawrect2d( uint32_t tile_bounds[], float z )
+{
+    glBegin( GL_QUADS );
+    glVertex3f( tile_bounds[0], tile_bounds[2], z );
+    glVertex3f( tile_bounds[1], tile_bounds[2], z );
+    glVertex3f( tile_bounds[1], tile_bounds[3], z );
+    glVertex3f( tile_bounds[0], tile_bounds[3], z );
+    glEnd();
 }
 
 void pvr2_scene_load_textures()
@@ -239,107 +250,8 @@ static void gl_render_poly( struct polygon_struct *poly, gboolean set_depth)
     }
 }
 
-static void gl_render_bkgnd( struct polygon_struct *poly )
-{
-    glBindTexture(GL_TEXTURE_2D, poly->tex_id);
-    render_set_tsp_context( poly->context[0], poly->context[1] );
-    glDisable( GL_DEPTH_TEST );
-    glBlendFunc( GL_ONE, GL_ZERO );
-    gl_draw_vertexes(poly);
-    glEnable( GL_DEPTH_TEST );
-}
 
-void gl_render_tilelist( pvraddr_t tile_entry, gboolean set_depth )
-{
-    uint32_t *tile_list = (uint32_t *)(pvr2_main_ram+tile_entry);
-    int strip_count;
-    struct polygon_struct *poly;
-
-    if( !IS_TILE_PTR(tile_entry) )
-        return;
-
-    while(1) {
-        uint32_t entry = *tile_list++;
-        switch( entry >> 28 ) {
-        case 0x0F:
-            return; // End-of-list
-        case 0x0E:
-            tile_list = (uint32_t *)(pvr2_main_ram + (entry&0x007FFFFF));
-            break;
-        case 0x08: case 0x09: case 0x0A: case 0x0B:
-            strip_count = ((entry >> 25) & 0x0F)+1;
-            poly = pvr2_scene.buf_to_poly_map[entry&0x000FFFFF];
-            while( strip_count > 0 ) {
-                assert( poly != NULL );
-                gl_render_poly( poly, set_depth );
-                poly = poly->next;
-                strip_count--;
-            }
-            break;
-        default:
-            if( entry & 0x7E000000 ) {
-                poly = pvr2_scene.buf_to_poly_map[entry&0x000FFFFF];
-                gl_render_poly( poly, set_depth );
-            }
-        }
-    }       
-}
-
-/**
- * Render the tilelist with depthbuffer updates only. 
- */
-void gl_render_tilelist_depthonly( pvraddr_t tile_entry )
-{
-    uint32_t *tile_list = (uint32_t *)(pvr2_main_ram+tile_entry);
-    int strip_count;
-    struct polygon_struct *poly;
-    
-    if( !IS_TILE_PTR(tile_entry) )
-        return;
-
-    while(1) {
-        uint32_t entry = *tile_list++;
-        switch( entry >> 28 ) {
-        case 0x0F:
-            return; // End-of-list
-        case 0x0E:
-            tile_list = (uint32_t *)(pvr2_main_ram + (entry&0x007FFFFF));
-            break;
-        case 0x08: case 0x09: case 0x0A: case 0x0B:
-            strip_count = ((entry >> 25) & 0x0F)+1;
-            poly = pvr2_scene.buf_to_poly_map[entry&0x000FFFFF];
-            while( strip_count > 0 ) {
-                if( poly->vertex_count != 0 ) {
-                    render_set_base_context(poly->context[0],TRUE);
-                    gl_draw_vertexes(poly);
-                }
-                poly = poly->next;
-                strip_count--;
-            }
-            break;
-        default:
-            if( entry & 0x7E000000 ) {
-                poly = pvr2_scene.buf_to_poly_map[entry&0x000FFFFF];
-                if( poly->vertex_count != 0 ) {
-                    render_set_base_context(poly->context[0],TRUE);
-                    gl_draw_vertexes(poly);
-                }
-            }
-        }
-    }           
-}
-
-static void drawrect2d( uint32_t tile_bounds[], float z )
-{
-    glBegin( GL_QUADS );
-    glVertex3f( tile_bounds[0], tile_bounds[2], z );
-    glVertex3f( tile_bounds[1], tile_bounds[2], z );
-    glVertex3f( tile_bounds[1], tile_bounds[3], z );
-    glVertex3f( tile_bounds[0], tile_bounds[3], z );
-    glEnd();
-}
-
-void gl_render_modifier_polygon( struct polygon_struct *poly, uint32_t tile_bounds[] )
+static void gl_render_modifier_polygon( struct polygon_struct *poly, uint32_t tile_bounds[] )
 {
     /* A bit of explanation:
      * In theory it works like this: generate a 1-bit stencil for each polygon
@@ -405,54 +317,78 @@ void gl_render_modifier_polygon( struct polygon_struct *poly, uint32_t tile_boun
     }
 }
 
-void gl_render_modifier_tilelist( pvraddr_t tile_entry, uint32_t tile_bounds[] )
+static void gl_render_bkgnd( struct polygon_struct *poly )
 {
-    uint32_t *tile_list = (uint32_t *)(pvr2_main_ram+tile_entry);
-    int strip_count;
-    struct polygon_struct *poly;
+    glBindTexture(GL_TEXTURE_2D, poly->tex_id);
+    render_set_tsp_context( poly->context[0], poly->context[1] );
+    glDisable( GL_DEPTH_TEST );
+    glBlendFunc( GL_ONE, GL_ZERO );
+    gl_draw_vertexes(poly);
+    glEnable( GL_DEPTH_TEST );
+}
+
+void gl_render_tilelist( pvraddr_t tile_entry, gboolean set_depth )
+{
+    tileentryiter list;
+
+    FOREACH_TILEENTRY(list, tile_entry) {
+        struct polygon_struct *poly = pvr2_scene.buf_to_poly_map[TILEENTRYITER_POLYADDR(list)];
+        if( poly != NULL ) {
+            do {
+                gl_render_poly(poly, set_depth);
+                poly = poly->next;
+            } while( list.strip_count-- > 0 );
+        }
+    }
+}
+
+/**
+ * Render the tilelist with depthbuffer updates only.
+ */
+static void gl_render_tilelist_depthonly( pvraddr_t tile_entry )
+{
+    tileentryiter list;
+
+    FOREACH_TILEENTRY(list, tile_entry) {
+        struct polygon_struct *poly = pvr2_scene.buf_to_poly_map[TILEENTRYITER_POLYADDR(list)];
+        if( poly != NULL ) {
+            do {
+                render_set_base_context(poly->context[0],TRUE);
+                gl_draw_vertexes(poly);
+                poly = poly->next;
+            } while( list.strip_count-- > 0 );
+        }
+    }
+}
+
+static void gl_render_modifier_tilelist( pvraddr_t tile_entry, uint32_t tile_bounds[] )
+{
+    tileentryiter list;
 
     if( !IS_TILE_PTR(tile_entry) )
         return;
 
     glEnable( GL_STENCIL_TEST );
     glEnable( GL_DEPTH_TEST );
-    glDepthFunc( GL_LEQUAL );
-    
     glStencilFunc( GL_ALWAYS, 0, 1 );
     glStencilOp( GL_KEEP,GL_INVERT, GL_KEEP ); 
     glStencilMask( 0x01 );
+    glDepthFunc( GL_LEQUAL );
     glDepthMask( GL_FALSE );
     
-    while(1) {
-        uint32_t entry = *tile_list++;
-        switch( entry >> 28 ) {
-        case 0x0F:
-            glDepthMask( GL_TRUE );
-            glStencilOp( GL_KEEP, GL_KEEP, GL_KEEP );
-            glDisable( GL_STENCIL_TEST );
-            return; // End-of-list
-        case 0x0E:
-            tile_list = (uint32_t *)(pvr2_main_ram + (entry&0x007FFFFF));
-            break;
-        case 0x08: case 0x09: case 0x0A: case 0x0B:
-            strip_count = ((entry >> 25) & 0x0F)+1;
-            poly = pvr2_scene.buf_to_poly_map[entry&0x000FFFFF];
-            while( strip_count > 0 ) {
+    FOREACH_TILEENTRY(list, tile_entry ) {
+        struct polygon_struct *poly = pvr2_scene.buf_to_poly_map[TILEENTRYITER_POLYADDR(list)];
+        if( poly != NULL ) {
+            do {
                 gl_render_modifier_polygon( poly, tile_bounds );
                 poly = poly->next;
-                strip_count--;
-            }
-            break;
-        default:
-            if( entry & 0x7E000000 ) {
-                poly = pvr2_scene.buf_to_poly_map[entry&0x000FFFFF];
-                gl_render_modifier_polygon( poly, tile_bounds );
-            }
+            } while( list.strip_count-- > 0 );
         }
     }
-    
+    glDepthMask( GL_TRUE );
+    glStencilOp( GL_KEEP, GL_KEEP, GL_KEEP );
+    glDisable( GL_STENCIL_TEST );
 }
-
 
 /**
  * Render the currently defined scene in pvr2_scene
