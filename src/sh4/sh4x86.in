@@ -521,6 +521,7 @@ void sh4_translate_emit_breakpoint( sh4vma_t pc )
 
 /** Offset of xlat_sh4_mode field relative to the code pointer */ 
 #define XLAT_SH4_MODE_CODE_OFFSET  (uint32_t)(offsetof(struct xlat_cache_block, xlat_sh4_mode) - offsetof(struct xlat_cache_block,code) )
+#define XLAT_CHAIN_CODE_OFFSET (uint32_t)(offsetof(struct xlat_cache_block, chain) - offsetof(struct xlat_cache_block,code) )
 
 /**
  * Test if the loaded target code pointer in %eax is valid, and if so jump
@@ -528,6 +529,7 @@ void sh4_translate_emit_breakpoint( sh4vma_t pc )
  */
 static void jump_next_block()
 {
+	uint8_t *ptr = xlat_output;
 	TESTP_rptr_rptr(REG_EAX, REG_EAX);
 	JE_label(nocode);
 	if( sh4_x86.sh4_mode == SH4_MODE_UNKNOWN ) {
@@ -549,7 +551,11 @@ static void jump_next_block()
 	} else {
 	    JMP_rptr(REG_EAX);
 	}
-	JMP_TARGET(nocode); JMP_TARGET(wrongmode);
+	JMP_TARGET(wrongmode);
+	MOVL_r32disp_r32( REG_EAX, XLAT_CHAIN_CODE_OFFSET, REG_EAX );
+	int rel = ptr - xlat_output;
+    JMP_prerel(rel);
+	JMP_TARGET(nocode); 
 }
 
 static void exit_block()

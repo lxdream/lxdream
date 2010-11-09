@@ -58,7 +58,15 @@ uint32_t sh4_translate_run_slice( uint32_t nanosecs )
         }
 
         code = xlat_get_code_by_vma( sh4r.pc );
-        if( code == NULL || sh4r.xlat_sh4_mode != XLAT_BLOCK_MODE(code) ) {
+        if( code != NULL ) {
+            while( sh4r.xlat_sh4_mode != XLAT_BLOCK_MODE(code) ) {
+                code = XLAT_BLOCK_CHAIN(code);
+                if( code == NULL ) {
+                    code = sh4_translate_basic_block( sh4r.pc );
+                    break;
+                }
+            }
+        } else {
             code = sh4_translate_basic_block( sh4r.pc );
         }
         code();

@@ -124,7 +124,12 @@ static void xlat_flush_page_by_lut( void **page )
     int i;
     for( i=0; i<XLAT_LUT_PAGE_ENTRIES; i++ ) {
         if( IS_ENTRY_POINT(page[i]) ) {
-            XLAT_BLOCK_FOR_CODE(page[i])->active = 0;
+            void *p = page[i];
+            do {
+                xlat_cache_block_t block = XLAT_BLOCK_FOR_CODE(p);
+                block->active = 0;
+                p = block->chain;
+            } while( p != NULL );
         }
         page[i] = NULL;
     }
@@ -306,6 +311,7 @@ static void xlat_promote_to_old_space( xlat_cache_block_t block )
     start_block->active = 1;
     start_block->size = allocation;
     start_block->lut_entry = block->lut_entry;
+    start_block->chain = block->chain;
     start_block->fpscr_mask = block->fpscr_mask;
     start_block->fpscr = block->fpscr;
     start_block->recover_table_offset = block->recover_table_offset;
@@ -353,6 +359,7 @@ void xlat_promote_to_temp_space( xlat_cache_block_t block )
     start_block->active = 1;
     start_block->size = allocation;
     start_block->lut_entry = block->lut_entry;
+    start_block->chain = block->chain;
     start_block->fpscr_mask = block->fpscr_mask;
     start_block->fpscr = block->fpscr;
     start_block->recover_table_offset = block->recover_table_offset;
@@ -398,8 +405,12 @@ xlat_cache_block_t xlat_start_block( sh4addr_t address )
     }
 
     if( IS_ENTRY_POINT(xlat_lut[XLAT_LUT_PAGE(address)][XLAT_LUT_ENTRY(address)]) ) {
-        xlat_cache_block_t oldblock = XLAT_BLOCK_FOR_CODE(xlat_lut[XLAT_LUT_PAGE(address)][XLAT_LUT_ENTRY(address)]);
-        oldblock->active = 0;
+        void *p = xlat_lut[XLAT_LUT_PAGE(address)][XLAT_LUT_ENTRY(address)];
+        xlat_cache_block_t oldblock = XLAT_BLOCK_FOR_CODE(p);
+        assert( oldblock->active );
+        xlat_new_create_ptr->chain = p;
+    } else {
+        xlat_new_create_ptr->chain = NULL;
     }
 
     xlat_lut[XLAT_LUT_PAGE(address)][XLAT_LUT_ENTRY(address)] = 
@@ -419,6 +430,7 @@ xlat_cache_block_t xlat_extend_block( uint32_t newSize )
             int oldsize = xlat_new_create_ptr->size;
             int size = oldsize + MIN_BLOCK_SIZE; /* minimum expansion */
             void **lut_entry = xlat_new_create_ptr->lut_entry;
+            void *chain = xlat_new_create_ptr->chain;
             int allocation = (int)-sizeof(struct xlat_cache_block);
             xlat_new_cache_ptr = xlat_new_cache;
             do {
@@ -432,6 +444,7 @@ xlat_cache_block_t xlat_extend_block( uint32_t newSize )
             xlat_new_create_ptr->active = 1;
             xlat_new_create_ptr->size = allocation;
             xlat_new_create_ptr->lut_entry = lut_entry;
+            xlat_new_create_ptr->chain = chain;
             *lut_entry = &xlat_new_create_ptr->code;
             memmove( xlat_new_create_ptr->code, olddata, oldsize );
         } else {
