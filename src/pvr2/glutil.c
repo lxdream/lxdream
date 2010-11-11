@@ -167,3 +167,27 @@ void glPrintInfo( FILE *out )
         display_driver->print_info(out);
     }
 }
+
+gboolean gl_check_error(const char *context)
+{
+    GLint err = glGetError();
+    if( err != 0 ) {
+        const char *s;
+        switch( err ) {
+        case GL_INVALID_ENUM: s = "Invalid enum"; break;
+        case GL_INVALID_VALUE: s = "Invalid value"; break;
+        case GL_INVALID_OPERATION: s = "Invalid operation"; break;
+        case GL_STACK_OVERFLOW: s = "Stack overflow"; break;
+        case GL_STACK_UNDERFLOW: s = "Stack underflow"; break;
+        case GL_OUT_OF_MEMORY:   s = "Out of memory"; break;
+        default: s = "Unknown error"; break;
+        }
+        if( context ) {
+            WARN( "%s: GL error: %x (%s)\n", context, err, s );
+        } else {
+            WARN( "GL error: %x (%s)\n", err, s );
+        }
+        return TRUE;
+    }
+    return FALSE;
+}
