@@ -40,6 +40,12 @@ gboolean isGLExtensionSupported( const char *extension );
 void glPrintInfo( FILE *out );
 
 /**
+ * Check for a GL error and print a message if there is one
+ * @param context If not null, a string to be printed along side an error message
+ * @return TRUE if there was an error, otherwise FALSE
+ */
+gboolean gl_check_error( const char *context );
+/**
  * Test if secondary color (GL_COLOR_SUM) is supported.
  */
 gboolean isGLSecondaryColorSupported();
