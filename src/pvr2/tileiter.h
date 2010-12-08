@@ -84,34 +84,36 @@ static void tileiter_read( tileiter *it )
     for(;;){
         uint32_t entry = *it->ptr;
         uint32_t tag = entry >> 29;
-        if( tag == 0x07 ) {
-            if( tag & 0x10000000 ) {
-                it->ptr = NULL;
+        if( tag < 6 ) {
+            if( tag & 0x04 ) {
+                int vertex_count = tag-1; /* 4 == tri, 5 == quad */
+                int vertex_length = (entry >> 21) & 0x07;
+                if( (entry & 0x01000000) && (pvr2_scene.shadow_mode == SHADOW_FULL) ) {
+                    it->poly_size = 5 + (vertex_length<<1) * vertex_count;
+                } else {
+                    it->poly_size = 3 + vertex_length * vertex_count;
+                }
+                it->strip_count = ((entry >> 25) & 0x0F);
+                it->poly_addr = entry & 0x001FFFFF;
                 return;
             } else {
-                it->ptr = (uint32_t *)(pvr2_main_ram + (entry&0x007FFFFF));
-                it->poly_addr = -1;
-                entry = *it->ptr;
+                /* Other polygon */
+                it->strip_count = 0;
+                it->poly_addr = entry & 0x001FFFFF;
+                return;
             }
-        } else if( tag == 6 ) {
-            /* Illegal? Skip */
-            it->ptr++;
-        } else if( tag & 0x04 ) {
-            int vertex_count = tag-1; /* 4 == tri, 5 == quad */
-            int vertex_length = (entry >> 21) & 0x07;
-            if( (entry & 0x01000000) && (pvr2_scene.shadow_mode == SHADOW_FULL) ) {
-                it->poly_size = 5 + (vertex_length<<1) * vertex_count;
-            } else {
-                it->poly_size = 3 + vertex_length * vertex_count;
-            }
-            it->strip_count = ((entry >> 25) & 0x0F);
-            it->poly_addr = entry & 0x001FFFFF;
-            return;
         } else {
-            /* Other polygon */
-            it->strip_count = 0;
-            it->poly_addr = entry & 0x001FFFFF;
-            return;
+            if( tag == 0x07 ) {
+                if( entry & 0x10000000 ) {
+                    it->ptr = NULL;
+                    return;
+                } else {
+                    it->ptr = (uint32_t *)(pvr2_main_ram + (entry&0x007FFFFF));
+                }
+            } else if( tag == 6 ) {
+                /* Illegal? Skip */
+                it->ptr++;
+            }
         }
     }
 }
