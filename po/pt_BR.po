@@ -8,37 +8,42 @@ msgstr ""
 "Project-Id-Version: lxdream 0.8.3\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2009-06-27 20:19+1000\n"
-"PO-Revision-Date: 2009-04-03 11:05-0300\n"
+"PO-Revision-Date: 2010-11-30 10:17-0300\n"
 "Last-Translator: Gabriel Tillmann <gtillmann@gmail.com>\n"
 "Language-Team: PT <trans-pt@lxdream.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/cocoaui/cocoa_ctrl.m:325 src/gtkui/gtk_ctrl.c:494
-#, fuzzy, c-format
+#: src/cocoaui/cocoa_ctrl.m:325
+#: src/gtkui/gtk_ctrl.c:494
+#, c-format
 msgid "Port %c."
-msgstr "Slot %d."
+msgstr "Porta %c."
 
-#: src/cocoaui/cocoa_ctrl.m:327 src/gtkui/gtk_ctrl.c:523
+#: src/cocoaui/cocoa_ctrl.m:327
+#: src/gtkui/gtk_ctrl.c:523
 #, c-format
 msgid "VMU %d."
-msgstr ""
+msgstr "VMU %d."
 
 #: src/cocoaui/cocoaui.m:447
 #, c-format
 msgid "Running (%2.4f%%)"
 msgstr "Rodando (%2.4f%%)"
 
-#: src/cocoaui/cocoa_win.m:193 src/gtkui/gtk_win.c:356
+#: src/cocoaui/cocoa_win.m:193
+#: src/gtkui/gtk_win.c:356
 msgid "(Press <ctrl><alt> to release grab)"
 msgstr "(Pressione <Ctrl><alt> para desprender)"
 
-#: src/cocoaui/cocoa_win.m:205 src/gtkui/gtk_win.c:366
+#: src/cocoaui/cocoa_win.m:205
+#: src/gtkui/gtk_win.c:366
 msgid "Running"
 msgstr "Rodando"
 
-#: src/cocoaui/cocoa_win.m:208 src/gtkui/gtk_win.c:366
+#: src/cocoaui/cocoa_win.m:208
+#: src/gtkui/gtk_win.c:366
 msgid "Stopped"
 msgstr "Parado"
 
@@ -60,7 +65,7 @@ msgstr "Diretório de Estados Salvos"
 
 #: src/config.c:48
 msgid "VMU path"
-msgstr ""
+msgstr "Caminho do VMU"
 
 #: src/config.c:49
 msgid "Bootstrap IP.BIN"
@@ -71,26 +76,23 @@ msgid "Serial device"
 msgstr "Dispositivo Serial"
 
 #: src/dreamcast.c:203
-msgid ""
-"No program is loaded, and no BIOS is configured (required to boot a CD "
-"image). To continue, either load a binary program, or set the path to your "
-"BIOS file in the Path Preferences"
-msgstr ""
+msgid "No program is loaded, and no BIOS is configured (required to boot a CD image). To continue, either load a binary program, or set the path to your BIOS file in the Path Preferences"
+msgstr "Nenhum programa foi carregado, e a BIOS não está configurada (requisito para arrancar uma imagem de CD). Para continuar, ou carregue um programa binário, ou configure o Caminho do seu arquivo de BIOS nas Preferências"
 
 #: src/dreamcast.c:338
 #, c-format
 msgid "File is not a %s save state"
-msgstr ""
+msgstr "O arquivo %s não é um estado salvo"
 
 #: src/dreamcast.c:343
 #, c-format
 msgid "Unsupported %s save state version"
-msgstr ""
+msgstr "Versão de estado salvo %s não suportada"
 
 #: src/dreamcast.c:348
 #, c-format
 msgid "%s save state is corrupted (bad module count)"
-msgstr ""
+msgstr "O estado salvo %s está corrompido (Má contagem de módulo)"
 
 #: src/drivers/audio_alsa.c:35
 msgid "Audio output device"
@@ -118,7 +120,7 @@ msgstr "Driver do Servidor de Som PulseAudio"
 
 #: src/drivers/audio_sdl.c:125
 msgid "SDL sound driver"
-msgstr ""
+msgstr "Driver de Som SDL"
 
 #. Sense key 2 == Not Ready (ie temporary failure). Just ignore and
 #. * consider the drive empty for now, but warn about any other errors
@@ -126,7 +128,7 @@ msgstr ""
 #: src/drivers/cd_mmc.c:182
 #, c-format
 msgid "Unable to read disc table of contents (error %04x)"
-msgstr ""
+msgstr "Impossível ler a tabela de conteúdo do disco (erro %04x) "
 
 #: src/drivers/video_gtk.c:132
 msgid "GTK-based OpenGL driver"
@@ -140,7 +142,8 @@ msgstr "Driver (Sem Vídeo) Nullo"
 msgid "OS X Cocoa GUI-based OpenGL driver"
 msgstr "Driver GUI OS X Cocoa baseado em OpenGL  "
 
-#: src/gdlist.c:187 src/gdlist.c:210
+#: src/gdlist.c:187
+#: src/gdlist.c:210
 msgid "Empty"
 msgstr "Vazio"
 
@@ -152,11 +155,13 @@ msgstr "Todos os Arquivos"
 msgid "Load state..."
 msgstr "Carregar stado..."
 
-#: src/gtkui/gtkcb.c:184 src/gtkui/gtkcb.c:217
+#: src/gtkui/gtkcb.c:184
+#: src/gtkui/gtkcb.c:217
 msgid "lxDream Save State (*.dst)"
 msgstr "lxDream Save State (*.dst)"
 
-#: src/gtkui/gtkcb.c:297 src/gtkui/gtk_dump.c:69
+#: src/gtkui/gtkcb.c:297
+#: src/gtkui/gtk_dump.c:69
 msgid "Memory dump"
 msgstr "Dump de memória"
 
@@ -172,10 +177,12 @@ msgstr "lxdream scene file (*.dsc)"
 msgid "No address selected, so can't run to it"
 msgstr "Sem endereço selecionado, então impossível correr a ele"
 
-#: src/gtkui/gtk_ctrl.c:80 src/gtkui/gtk_ctrl.c:109 src/gtkui/gtk_hotkeys.c:50
+#: src/gtkui/gtk_ctrl.c:80
+#: src/gtkui/gtk_ctrl.c:109
+#: src/gtkui/gtk_hotkeys.c:50
 #: src/gtkui/gtk_hotkeys.c:79
 msgid "<press key>"
-msgstr "<Precione tecla>"
+msgstr "<Pressione tecla>"
 
 #: src/gtkui/gtk_ctrl.c:209
 msgid "Controller Configuration"
@@ -187,24 +194,24 @@ msgstr "Não há página de configuração disponível para este tipo de disposi
 
 #: src/gtkui/gtk_ctrl.c:252
 msgid "Load VMU"
-msgstr ""
+msgstr "Carregar VMU"
 
 #: src/gtkui/gtk_ctrl.c:266
 msgid "Create VMU"
-msgstr ""
+msgstr "Criar VMU"
 
-#: src/gtkui/gtk_ctrl.c:337 src/gtkui/gtk_ctrl.c:355
+#: src/gtkui/gtk_ctrl.c:337
+#: src/gtkui/gtk_ctrl.c:355
 msgid "<empty>"
 msgstr "<Vazio>"
 
 #: src/gtkui/gtk_ctrl.c:364
-#, fuzzy
 msgid "Load VMU..."
-msgstr "Carregar stado..."
+msgstr "Carregar VMU..."
 
 #: src/gtkui/gtk_ctrl.c:365
 msgid "Create VMU..."
-msgstr ""
+msgstr "Criar VMU..."
 
 #: src/gtkui/gtk_ctrl.c:559
 msgid "Controller Settings"
@@ -267,9 +274,8 @@ msgid "GD-Rom Settings"
 msgstr "Configurações de GD-Rom"
 
 #: src/gtkui/gtk_hotkeys.c:186
-#, fuzzy
 msgid "Hotkey Settings"
-msgstr "Configurações de diretórios"
+msgstr "Configurações de Hotkeys"
 
 #: src/gtkui/gtk_mmio.c:109
 msgid "Address"
@@ -299,7 +305,8 @@ msgstr "Acesso ao vestígio"
 msgid "Close"
 msgstr "Fechar"
 
-#: src/gtkui/gtk_path.c:34 src/gtkui/gtk_path.c:57
+#: src/gtkui/gtk_path.c:34
+#: src/gtkui/gtk_path.c:57
 msgid "Select file"
 msgstr "Selecionar arquivo"
 
@@ -325,7 +332,7 @@ msgstr "Carregar_Binário..."
 
 #: src/gtkui/gtkui.c:73
 msgid "Load and run a program binary"
-msgstr "Carregar e Correr Um programa Binário"
+msgstr "Carregar e Rodar Um programa Binário"
 
 #: src/gtkui/gtkui.c:74
 msgid "_Reset"
@@ -348,49 +355,44 @@ msgid "Resume"
 msgstr "Continuar"
 
 #: src/gtkui/gtkui.c:77
-#, fuzzy
 msgid "L_oad State..."
-msgstr "_Carregar Estado..."
+msgstr "C_arregar Estado..."
 
 #: src/gtkui/gtkui.c:77
 msgid "Load an lxdream save state"
 msgstr "Carregar estado do lxdream"
 
 #: src/gtkui/gtkui.c:78
-#, fuzzy
 msgid "S_ave State..."
-msgstr "_Salvar Estado..."
+msgstr "S_alvar Estado..."
 
 #: src/gtkui/gtkui.c:78
 msgid "Create an lxdream save state"
 msgstr "Criar estado do lxdream"
 
 #: src/gtkui/gtkui.c:79
-#, fuzzy
 msgid "_Load Quick State"
-msgstr "_Carregar Estado..."
+msgstr "_Carregar Estado Rápido..."
 
 #: src/gtkui/gtkui.c:79
-#, fuzzy
 msgid "Load the current quick save state"
-msgstr "Carregar estado do lxdream"
+msgstr "Carregar estado Rápido atual."
 
 #: src/gtkui/gtkui.c:80
-#, fuzzy
 msgid "_Save Quick State..."
-msgstr "_Salvar Estado..."
+msgstr "_Salvar Estado Rápido..."
 
 #: src/gtkui/gtkui.c:80
 msgid "Save to the current quick save state"
-msgstr ""
+msgstr "Salvar para o atual estado salvo rápido"
 
 #: src/gtkui/gtkui.c:81
 msgid "Select _Quick State"
-msgstr ""
+msgstr "Selecionar _Estado Rápido"
 
 #: src/gtkui/gtkui.c:81
 msgid "Set quick save state"
-msgstr ""
+msgstr "Escolher estado salvo rápido"
 
 #: src/gtkui/gtkui.c:82
 msgid "E_xit"
@@ -457,14 +459,12 @@ msgid "Configure video output"
 msgstr "Configurar saída de vídeo"
 
 #: src/gtkui/gtkui.c:91
-#, fuzzy
 msgid "_Hotkeys..."
-msgstr "_Controles..."
+msgstr "_Hotkeys..."
 
 #: src/gtkui/gtkui.c:91
-#, fuzzy
 msgid "Configure hotkeys"
-msgstr "Configurar Controles"
+msgstr "Configurar hotkeys"
 
 #: src/gtkui/gtkui.c:92
 msgid "_About..."
@@ -537,12 +537,12 @@ msgstr "Pinar Ponto de quebra"
 #: src/gtkui/gtkui.c:257
 #, c-format
 msgid "State _%d"
-msgstr ""
+msgstr "Estado_%d"
 
 #: src/gtkui/gtkui.c:259
 #, c-format
 msgid "Use quick save state %d"
-msgstr ""
+msgstr "Usar estado salvo rápido %d"
 
 #: src/gtkui/gtkui.c:373
 msgid "Debugger"
@@ -558,68 +558,67 @@ msgstr "(Pressione <Comando> Para desprender)"
 
 #: src/hotkeys.c:40
 msgid "Resume emulation"
-msgstr ""
+msgstr "Continuar emulação"
 
 #: src/hotkeys.c:41
 msgid "Stop emulation"
-msgstr ""
+msgstr "Parar emulação"
 
 #: src/hotkeys.c:42
-#, fuzzy
 msgid "Reset emulator"
-msgstr "Reiniciar dreamcast"
+msgstr "Reiniciar o emulador"
 
 #: src/hotkeys.c:43
 msgid "Exit emulator"
-msgstr ""
+msgstr "Sair do emulador"
 
 #: src/hotkeys.c:44
 msgid "Save current quick save"
-msgstr ""
+msgstr "Salvar atual estado rápido"
 
 #: src/hotkeys.c:45
 msgid "Load current quick save"
-msgstr ""
+msgstr "Carregar atual estado rápido"
 
 #: src/hotkeys.c:46
 msgid "Select quick save state 0"
-msgstr ""
+msgstr "Selecionar estado salvo rápido 0"
 
 #: src/hotkeys.c:47
 msgid "Select quick save state 1"
-msgstr ""
+msgstr "Selecionar estado salvo rápido 1"
 
 #: src/hotkeys.c:48
 msgid "Select quick save state 2"
-msgstr ""
+msgstr "Selecionar estado salvo rápido 2"
 
 #: src/hotkeys.c:49
 msgid "Select quick save state 3"
-msgstr ""
+msgstr "Selecionar estado salvo rápido 3"
 
 #: src/hotkeys.c:50
 msgid "Select quick save state 4"
-msgstr ""
+msgstr "Selecionar estado salvo rápido 4"
 
 #: src/hotkeys.c:51
 msgid "Select quick save state 5"
-msgstr ""
+msgstr "Selecionar estado salvo rápido 5"
 
 #: src/hotkeys.c:52
 msgid "Select quick save state 6"
-msgstr ""
+msgstr "Selecionar estado salvo rápido 6"
 
 #: src/hotkeys.c:53
 msgid "Select quick save state 7"
-msgstr ""
+msgstr "Selecionar estado salvo rápido 7"
 
 #: src/hotkeys.c:54
 msgid "Select quick save state 8"
-msgstr ""
+msgstr "Selecionar estado salvo rápido 8"
 
 #: src/hotkeys.c:55
 msgid "Select quick save state 9"
-msgstr ""
+msgstr "Selecionar estado salvo rápido 9"
 
 #: src/main.c:87
 msgid "Run the AICA SPU only, with the supplied program"
@@ -638,17 +637,16 @@ msgid "Start in debugger mode"
 msgstr "Iniciar no modo debbugador"
 
 #: src/main.c:91
-#, fuzzy
 msgid "Start in fullscreen mode"
-msgstr "Iniciar no modo debbugador"
+msgstr "Iniciar no modo Tela cheia"
 
 #: src/main.c:92
 msgid "Start GDB remote server on PORT for SH4"
-msgstr ""
+msgstr "Iniciar Servidor remoto do GDB em PORT para SH4"
 
 #: src/main.c:93
 msgid "Start GDB remote server on PORT for ARM"
-msgstr ""
+msgstr "Iniciar Servidor remoto do GDB em PORT para ARM"
 
 #: src/main.c:94
 msgid "Display this usage information"
@@ -698,19 +696,23 @@ msgstr "Usar driver de vídeo específico (? para listar)"
 msgid "Disable the SH4 translator"
 msgstr "Desabilitar o tradutor de SH4"
 
-#: src/maple/controller.c:106 src/maple/lightgun.c:86
+#: src/maple/controller.c:106
+#: src/maple/lightgun.c:86
 msgid "Dpad left"
 msgstr "Dpad Esquerda"
 
-#: src/maple/controller.c:107 src/maple/lightgun.c:87
+#: src/maple/controller.c:107
+#: src/maple/lightgun.c:87
 msgid "Dpad right"
 msgstr "Dpad Direita"
 
-#: src/maple/controller.c:108 src/maple/lightgun.c:88
+#: src/maple/controller.c:108
+#: src/maple/lightgun.c:88
 msgid "Dpad up"
 msgstr "Dpad Cima"
 
-#: src/maple/controller.c:109 src/maple/lightgun.c:89
+#: src/maple/controller.c:109
+#: src/maple/lightgun.c:89
 msgid "Dpad down"
 msgstr "Dpad Baixo"
 
@@ -738,11 +740,13 @@ msgstr "Botão X"
 msgid "Button Y"
 msgstr "Botão Y"
 
-#: src/maple/controller.c:116 src/maple/lightgun.c:90
+#: src/maple/controller.c:116
+#: src/maple/lightgun.c:90
 msgid "Button A"
 msgstr "Botão A"
 
-#: src/maple/controller.c:117 src/maple/lightgun.c:91
+#: src/maple/controller.c:117
+#: src/maple/lightgun.c:91
 msgid "Button B"
 msgstr "Botão B"
 
@@ -754,14 +758,14 @@ msgstr "Gatilho Esquerda"
 msgid "Trigger right"
 msgstr "Gatilho Direita"
 
-#: src/maple/controller.c:120 src/maple/lightgun.c:92
+#: src/maple/controller.c:120
+#: src/maple/lightgun.c:92
 msgid "Start button"
 msgstr "Botão Start"
 
 #: src/maple/vmu.c:92
-#, fuzzy
 msgid "Volume"
-msgstr "Valor"
+msgstr "Volume"
 
 #. Can't happen.
 #: src/x86dasm/dis-buf.c:57
@@ -780,9 +784,8 @@ msgstr "<erro interno no Disassembler>"
 
 #~ msgid "Bios rom"
 #~ msgstr "Bios rom"
-
 #~ msgid "Flash rom"
 #~ msgstr "Flash rom"
-
 #~ msgid "Save state path"
 #~ msgstr "diretório do estado salvo"
+

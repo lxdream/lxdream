@@ -55,7 +55,7 @@ lxdream_SOURCES = \
 	sh4/cache.c sh4/mmu.h sh4/shadow.c \
         aica/armcore.c aica/armcore.h aica/armdasm.c aica/armdasm.h aica/armmem.c \
         aica/aica.c aica/aica.h aica/audio.c aica/audio.h \
-	pvr2/pvr2.c pvr2/pvr2.h pvr2/pvr2mem.c pvr2/pvr2mmio.h \
+	pvr2/pvr2.c pvr2/pvr2.h pvr2/pvr2mem.c pvr2/pvr2mmio.h pvr2/untile.c \
 	pvr2/tacore.c pvr2/rendsort.c pvr2/tileiter.h pvr2/shaders.glsl \
 	pvr2/texcache.c pvr2/yuv.c pvr2/rendsave.c pvr2/scene.c pvr2/scene.h \
 	pvr2/gl_sl.c pvr2/shaders.h pvr2/shaders.def pvr2/glutil.c pvr2/glutil.h pvr2/glrender.c \
