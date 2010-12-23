@@ -42,7 +42,6 @@
 #define RENDER_ADDR2    (PVR_BASE+0x064)
 #define RENDER_HCLIP    (PVR_BASE+0x068)
 #define RENDER_VCLIP    (PVR_BASE+0x06C)
-#define RENDER_SHADOW   (PVR_BASE+0x074)
 #define RENDER_NEARCLIP (PVR_BASE+0x078)
 #define RENDER_FARCLIP  (PVR_BASE+0x088)
 #define RENDER_BGPLANE  (PVR_BASE+0x08C)
@@ -253,7 +252,6 @@ void render_start( struct render_config *config )
     long_write( RENDER_POLYBASE, config->polybuf );
     long_write( RENDER_TILEBASE, config->tilemap );
     long_write( RENDER_ADDR1, config->render_addr );
-    long_write( RENDER_SHADOW, 0x140 );
     long_write( RENDER_SIZE, modulo >> 3 ); 
     long_write( RENDER_ADDR2, config->render_addr + modulo ); /* Not used? */
     long_write( RENDER_HCLIP, (config->width - 1) << 16 );

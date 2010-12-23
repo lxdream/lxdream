@@ -155,18 +155,18 @@ am__lxdream_SOURCES_DIST = main.c version.c config.c config.h \
 	sh4/cache.c sh4/mmu.h sh4/shadow.c aica/armcore.c \
 	aica/armcore.h aica/armdasm.c aica/armdasm.h aica/armmem.c \
 	aica/aica.c aica/aica.h aica/audio.c aica/audio.h pvr2/pvr2.c \
-	pvr2/pvr2.h pvr2/pvr2mem.c pvr2/pvr2mmio.h pvr2/untile.c \
-	pvr2/tacore.c pvr2/rendsort.c pvr2/tileiter.h \
-	pvr2/shaders.glsl pvr2/texcache.c pvr2/yuv.c pvr2/rendsave.c \
-	pvr2/scene.c pvr2/scene.h pvr2/gl_sl.c pvr2/shaders.h \
-	pvr2/shaders.def pvr2/glutil.c pvr2/glutil.h pvr2/glrender.c \
-	maple/maple.c maple/maple.h maple/controller.c maple/kbd.c \
-	maple/mouse.c maple/lightgun.c maple/vmu.c loader.c loader.h \
-	elf.h bootstrap.c bootstrap.h util.c gdlist.c gdlist.h \
-	vmu/vmuvol.c vmu/vmuvol.h vmu/vmulist.c vmu/vmulist.h \
-	display.c display.h dckeysyms.h drivers/audio_null.c \
-	drivers/video_null.c drivers/video_gl.c drivers/video_gl.h \
-	drivers/gl_fbo.c drivers/serial_unix.c drivers/cdrom/cdrom.h \
+	pvr2/pvr2.h pvr2/pvr2mem.c pvr2/pvr2mmio.h pvr2/tacore.c \
+	pvr2/rendsort.c pvr2/tileiter.h pvr2/shaders.glsl \
+	pvr2/texcache.c pvr2/yuv.c pvr2/rendsave.c pvr2/scene.c \
+	pvr2/scene.h pvr2/gl_sl.c pvr2/shaders.h pvr2/shaders.def \
+	pvr2/glutil.c pvr2/glutil.h pvr2/glrender.c maple/maple.c \
+	maple/maple.h maple/controller.c maple/kbd.c maple/mouse.c \
+	maple/lightgun.c maple/vmu.c loader.c loader.h elf.h \
+	bootstrap.c bootstrap.h util.c gdlist.c gdlist.h vmu/vmuvol.c \
+	vmu/vmuvol.h vmu/vmulist.c vmu/vmulist.h display.c display.h \
+	dckeysyms.h drivers/audio_null.c drivers/video_null.c \
+	drivers/video_gl.c drivers/video_gl.h drivers/gl_fbo.c \
+	drivers/serial_unix.c drivers/cdrom/cdrom.h \
 	drivers/cdrom/cdrom.c drivers/cdrom/drive.h \
 	drivers/cdrom/sector.h drivers/cdrom/sector.c \
 	drivers/cdrom/defs.h drivers/cdrom/cd_nrg.c \
@@ -263,32 +263,31 @@ am_lxdream_OBJECTS = lxdream-main.$(OBJEXT) lxdream-version.$(OBJEXT) \
 	lxdream-armdasm.$(OBJEXT) lxdream-armmem.$(OBJEXT) \
 	lxdream-aica.$(OBJEXT) lxdream-audio.$(OBJEXT) \
 	lxdream-pvr2.$(OBJEXT) lxdream-pvr2mem.$(OBJEXT) \
-	lxdream-untile.$(OBJEXT) lxdream-tacore.$(OBJEXT) \
-	lxdream-rendsort.$(OBJEXT) lxdream-texcache.$(OBJEXT) \
-	lxdream-yuv.$(OBJEXT) lxdream-rendsave.$(OBJEXT) \
-	lxdream-scene.$(OBJEXT) lxdream-gl_sl.$(OBJEXT) \
-	lxdream-glutil.$(OBJEXT) lxdream-glrender.$(OBJEXT) \
-	lxdream-maple.$(OBJEXT) lxdream-controller.$(OBJEXT) \
-	lxdream-kbd.$(OBJEXT) lxdream-mouse.$(OBJEXT) \
-	lxdream-lightgun.$(OBJEXT) lxdream-vmu.$(OBJEXT) \
-	lxdream-loader.$(OBJEXT) lxdream-bootstrap.$(OBJEXT) \
-	lxdream-util.$(OBJEXT) lxdream-gdlist.$(OBJEXT) \
-	lxdream-vmuvol.$(OBJEXT) lxdream-vmulist.$(OBJEXT) \
-	lxdream-display.$(OBJEXT) lxdream-audio_null.$(OBJEXT) \
-	lxdream-video_null.$(OBJEXT) lxdream-video_gl.$(OBJEXT) \
-	lxdream-gl_fbo.$(OBJEXT) lxdream-serial_unix.$(OBJEXT) \
-	lxdream-cdrom.$(OBJEXT) lxdream-sector.$(OBJEXT) \
-	lxdream-cd_nrg.$(OBJEXT) lxdream-cd_cdi.$(OBJEXT) \
-	lxdream-cd_gdi.$(OBJEXT) lxdream-edc_ecc.$(OBJEXT) \
-	lxdream-drive.$(OBJEXT) lxdream-cd_mmc.$(OBJEXT) \
-	lxdream-isofs.$(OBJEXT) lxdream-isomem.$(OBJEXT) \
-	lxdream-hotkeys.$(OBJEXT) $(am__objects_1) $(am__objects_2) \
-	$(am__objects_3) $(am__objects_4) $(am__objects_5) \
-	$(am__objects_6) $(am__objects_7) $(am__objects_8) \
-	$(am__objects_9) $(am__objects_10) $(am__objects_11) \
-	$(am__objects_12) $(am__objects_13) $(am__objects_14) \
-	$(am__objects_15) $(am__objects_16) $(am__objects_17) \
-	$(am__objects_18)
+	lxdream-tacore.$(OBJEXT) lxdream-rendsort.$(OBJEXT) \
+	lxdream-texcache.$(OBJEXT) lxdream-yuv.$(OBJEXT) \
+	lxdream-rendsave.$(OBJEXT) lxdream-scene.$(OBJEXT) \
+	lxdream-gl_sl.$(OBJEXT) lxdream-glutil.$(OBJEXT) \
+	lxdream-glrender.$(OBJEXT) lxdream-maple.$(OBJEXT) \
+	lxdream-controller.$(OBJEXT) lxdream-kbd.$(OBJEXT) \
+	lxdream-mouse.$(OBJEXT) lxdream-lightgun.$(OBJEXT) \
+	lxdream-vmu.$(OBJEXT) lxdream-loader.$(OBJEXT) \
+	lxdream-bootstrap.$(OBJEXT) lxdream-util.$(OBJEXT) \
+	lxdream-gdlist.$(OBJEXT) lxdream-vmuvol.$(OBJEXT) \
+	lxdream-vmulist.$(OBJEXT) lxdream-display.$(OBJEXT) \
+	lxdream-audio_null.$(OBJEXT) lxdream-video_null.$(OBJEXT) \
+	lxdream-video_gl.$(OBJEXT) lxdream-gl_fbo.$(OBJEXT) \
+	lxdream-serial_unix.$(OBJEXT) lxdream-cdrom.$(OBJEXT) \
+	lxdream-sector.$(OBJEXT) lxdream-cd_nrg.$(OBJEXT) \
+	lxdream-cd_cdi.$(OBJEXT) lxdream-cd_gdi.$(OBJEXT) \
+	lxdream-edc_ecc.$(OBJEXT) lxdream-drive.$(OBJEXT) \
+	lxdream-cd_mmc.$(OBJEXT) lxdream-isofs.$(OBJEXT) \
+	lxdream-isomem.$(OBJEXT) lxdream-hotkeys.$(OBJEXT) \
+	$(am__objects_1) $(am__objects_2) $(am__objects_3) \
+	$(am__objects_4) $(am__objects_5) $(am__objects_6) \
+	$(am__objects_7) $(am__objects_8) $(am__objects_9) \
+	$(am__objects_10) $(am__objects_11) $(am__objects_12) \
+	$(am__objects_13) $(am__objects_14) $(am__objects_15) \
+	$(am__objects_16) $(am__objects_17) $(am__objects_18)
 lxdream_OBJECTS = $(am_lxdream_OBJECTS)
 lxdream_DEPENDENCIES = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
@@ -577,35 +576,35 @@ lxdream_SOURCES = main.c version.c config.c config.h lxdream.h dream.h \
 	sh4/shadow.c aica/armcore.c aica/armcore.h aica/armdasm.c \
 	aica/armdasm.h aica/armmem.c aica/aica.c aica/aica.h \
 	aica/audio.c aica/audio.h pvr2/pvr2.c pvr2/pvr2.h \
-	pvr2/pvr2mem.c pvr2/pvr2mmio.h pvr2/untile.c pvr2/tacore.c \
-	pvr2/rendsort.c pvr2/tileiter.h pvr2/shaders.glsl \
-	pvr2/texcache.c pvr2/yuv.c pvr2/rendsave.c pvr2/scene.c \
-	pvr2/scene.h pvr2/gl_sl.c pvr2/shaders.h pvr2/shaders.def \
-	pvr2/glutil.c pvr2/glutil.h pvr2/glrender.c maple/maple.c \
-	maple/maple.h maple/controller.c maple/kbd.c maple/mouse.c \
-	maple/lightgun.c maple/vmu.c loader.c loader.h elf.h \
-	bootstrap.c bootstrap.h util.c gdlist.c gdlist.h vmu/vmuvol.c \
-	vmu/vmuvol.h vmu/vmulist.c vmu/vmulist.h display.c display.h \
-	dckeysyms.h drivers/audio_null.c drivers/video_null.c \
-	drivers/video_gl.c drivers/video_gl.h drivers/gl_fbo.c \
-	drivers/serial_unix.c drivers/cdrom/cdrom.h \
-	drivers/cdrom/cdrom.c drivers/cdrom/drive.h \
-	drivers/cdrom/sector.h drivers/cdrom/sector.c \
-	drivers/cdrom/defs.h drivers/cdrom/cd_nrg.c \
-	drivers/cdrom/cd_cdi.c drivers/cdrom/cd_gdi.c \
-	drivers/cdrom/edc_ecc.c drivers/cdrom/ecc.h \
-	drivers/cdrom/drive.c drivers/cdrom/edc_crctable.h \
-	drivers/cdrom/edc_encoder.h drivers/cdrom/edc_l2sq.h \
-	drivers/cdrom/edc_scramble.h drivers/cdrom/cd_mmc.c \
-	drivers/cdrom/isofs.h drivers/cdrom/isofs.c \
-	drivers/cdrom/isomem.c sh4/sh4.def sh4/sh4core.in \
-	sh4/sh4x86.in sh4/sh4dasm.in sh4/sh4stat.in hotkeys.c \
-	hotkeys.h $(am__append_1) $(am__append_2) $(am__append_4) \
-	$(am__append_5) $(am__append_6) $(am__append_7) \
-	$(am__append_8) $(am__append_9) $(am__append_10) \
-	$(am__append_17) $(am__append_19) $(am__append_21) \
-	$(am__append_23) $(am__append_25) $(am__append_27) \
-	$(am__append_28) $(am__append_29) $(am__append_30)
+	pvr2/pvr2mem.c pvr2/pvr2mmio.h pvr2/tacore.c pvr2/rendsort.c \
+	pvr2/tileiter.h pvr2/shaders.glsl pvr2/texcache.c pvr2/yuv.c \
+	pvr2/rendsave.c pvr2/scene.c pvr2/scene.h pvr2/gl_sl.c \
+	pvr2/shaders.h pvr2/shaders.def pvr2/glutil.c pvr2/glutil.h \
+	pvr2/glrender.c maple/maple.c maple/maple.h maple/controller.c \
+	maple/kbd.c maple/mouse.c maple/lightgun.c maple/vmu.c \
+	loader.c loader.h elf.h bootstrap.c bootstrap.h util.c \
+	gdlist.c gdlist.h vmu/vmuvol.c vmu/vmuvol.h vmu/vmulist.c \
+	vmu/vmulist.h display.c display.h dckeysyms.h \
+	drivers/audio_null.c drivers/video_null.c drivers/video_gl.c \
+	drivers/video_gl.h drivers/gl_fbo.c drivers/serial_unix.c \
+	drivers/cdrom/cdrom.h drivers/cdrom/cdrom.c \
+	drivers/cdrom/drive.h drivers/cdrom/sector.h \
+	drivers/cdrom/sector.c drivers/cdrom/defs.h \
+	drivers/cdrom/cd_nrg.c drivers/cdrom/cd_cdi.c \
+	drivers/cdrom/cd_gdi.c drivers/cdrom/edc_ecc.c \
+	drivers/cdrom/ecc.h drivers/cdrom/drive.c \
+	drivers/cdrom/edc_crctable.h drivers/cdrom/edc_encoder.h \
+	drivers/cdrom/edc_l2sq.h drivers/cdrom/edc_scramble.h \
+	drivers/cdrom/cd_mmc.c drivers/cdrom/isofs.h \
+	drivers/cdrom/isofs.c drivers/cdrom/isomem.c sh4/sh4.def \
+	sh4/sh4core.in sh4/sh4x86.in sh4/sh4dasm.in sh4/sh4stat.in \
+	hotkeys.c hotkeys.h $(am__append_1) $(am__append_2) \
+	$(am__append_4) $(am__append_5) $(am__append_6) \
+	$(am__append_7) $(am__append_8) $(am__append_9) \
+	$(am__append_10) $(am__append_17) $(am__append_19) \
+	$(am__append_21) $(am__append_23) $(am__append_25) \
+	$(am__append_27) $(am__append_28) $(am__append_29) \
+	$(am__append_30)
 lxdream_CPPFLAGS = @LXDREAMCPPFLAGS@
 @BUILD_SH4X86_TRUE@test_testsh4x86_LDADD = @LXDREAM_LIBS@ @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@
 @BUILD_SH4X86_TRUE@test_testsh4x86_CPPFLAGS = @LXDREAMCPPFLAGS@
@@ -879,7 +878,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-tacore.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-texcache.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-timer.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-untile.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-util.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-version.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-video_gdk.Po@am__quote@
@@ -1569,20 +1567,6 @@ lxdream-pvr2mem.obj: pvr2/pvr2mem.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='pvr2/pvr2mem.c' object='lxdream-pvr2mem.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-pvr2mem.obj `if test -f 'pvr2/pvr2mem.c'; then $(CYGPATH_W) 'pvr2/pvr2mem.c'; else $(CYGPATH_W) '$(srcdir)/pvr2/pvr2mem.c'; fi`
-
-lxdream-untile.o: pvr2/untile.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-untile.o -MD -MP -MF "$(DEPDIR)/lxdream-untile.Tpo" -c -o lxdream-untile.o `test -f 'pvr2/untile.c' || echo '$(srcdir)/'`pvr2/untile.c; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/lxdream-untile.Tpo" "$(DEPDIR)/lxdream-untile.Po"; else rm -f "$(DEPDIR)/lxdream-untile.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='pvr2/untile.c' object='lxdream-untile.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-untile.o `test -f 'pvr2/untile.c' || echo '$(srcdir)/'`pvr2/untile.c
-
-lxdream-untile.obj: pvr2/untile.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-untile.obj -MD -MP -MF "$(DEPDIR)/lxdream-untile.Tpo" -c -o lxdream-untile.obj `if test -f 'pvr2/untile.c'; then $(CYGPATH_W) 'pvr2/untile.c'; else $(CYGPATH_W) '$(srcdir)/pvr2/untile.c'; fi`; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/lxdream-untile.Tpo" "$(DEPDIR)/lxdream-untile.Po"; else rm -f "$(DEPDIR)/lxdream-untile.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='pvr2/untile.c' object='lxdream-untile.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o lxdream-untile.obj `if test -f 'pvr2/untile.c'; then $(CYGPATH_W) 'pvr2/untile.c'; else $(CYGPATH_W) '$(srcdir)/pvr2/untile.c'; fi`
 
 lxdream-tacore.o: pvr2/tacore.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-tacore.o -MD -MP -MF "$(DEPDIR)/lxdream-tacore.Tpo" -c -o lxdream-tacore.o `test -f 'pvr2/tacore.c' || echo '$(srcdir)/'`pvr2/tacore.c; \

@@ -222,7 +222,7 @@ static inline void gl_draw_mod_vertexes( struct polygon_struct *poly )
     } while( poly != NULL );
 }
 
-void gl_render_poly( struct polygon_struct *poly, gboolean set_depth)
+static void gl_render_poly( struct polygon_struct *poly, gboolean set_depth)
 {
     if( poly->vertex_count == 0 )
         return; /* Culled */
@@ -390,35 +390,6 @@ static void gl_render_modifier_tilelist( pvraddr_t tile_entry, uint32_t tile_bou
     glDisable( GL_STENCIL_TEST );
 }
 
-static void gl_render_stencil( )
-{
-    struct tile_segment *segment = pvr2_scene.segment_list;
-    if( display_driver->capabilities.stencil_bits >= 2 ) {
-        glColorMask( GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE );
-        do {
-            int tilex = SEGMENT_X(segment->control);
-            int tiley = SEGMENT_Y(segment->control);
-
-            uint32_t tile_bounds[4] = { tilex << 5, (tilex+1)<<5, tiley<<5, (tiley+1)<<5 };
-            if( !clip_tile_bounds(tile_bounds, pvr2_scene.bounds) ) {
-                continue; // fully clipped, skip tile
-            }
-
-            /* Clip to the visible part of the tile */
-            glScissor( tile_bounds[0], pvr2_scene.buffer_height-tile_bounds[3],
-                    tile_bounds[1]-tile_bounds[0], tile_bounds[3] - tile_bounds[2] );
-            if( IS_TILE_PTR(segment->opaquemod_ptr) &&
-                    !IS_EMPTY_TILE_LIST(segment->opaquemod_ptr) ) {
-                gl_render_tilelist_depthonly(segment->opaque_ptr);
-                gl_render_modifier_tilelist(segment->opaquemod_ptr, tile_bounds);
-            }
-        } while( !IS_LAST_SEGMENT(segment++) );
-        glClear( GL_DEPTH_BUFFER_BIT );
-        glColorMask( GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE );
-    }
-}
-
-
 /**
  * Render the currently defined scene in pvr2_scene
  */
@@ -473,12 +444,6 @@ void pvr2_scene_render( render_buffer_t buffer )
     glEnable( GL_FOG );
     glEnable( GL_TEXTURE_2D );
 
-    gl_render_stencil();
-
-    glDisable( GL_SCISSOR_TEST );
-    untile_list(pvr2_scene.segment_list, 0, 0);
-    glEnable( GL_SCISSOR_TEST );
-
     /* Process the segment list */
     struct tile_segment *segment = pvr2_scene.segment_list;
     do {
@@ -493,6 +458,19 @@ void pvr2_scene_render( render_buffer_t buffer )
         /* Clip to the visible part of the tile */
         glScissor( tile_bounds[0], pvr2_scene.buffer_height-tile_bounds[3], 
                    tile_bounds[1]-tile_bounds[0], tile_bounds[3] - tile_bounds[2] );
+        if( display_driver->capabilities.stencil_bits >= 2 && 
+                IS_TILE_PTR(segment->opaquemod_ptr) &&
+                !IS_EMPTY_TILE_LIST(segment->opaquemod_ptr) ) {
+            /* Don't do this unless there's actually some shadow polygons */
+
+            /* Use colormask instead of drawbuffer for simplicity */
+            glColorMask( GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE );
+            gl_render_tilelist_depthonly(segment->opaque_ptr);
+            gl_render_modifier_tilelist(segment->opaquemod_ptr, tile_bounds);
+            glClear( GL_DEPTH_BUFFER_BIT );
+            glColorMask( GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE );
+        }
+        gl_render_tilelist(segment->opaque_ptr,TRUE);
         if( IS_TILE_PTR(segment->punchout_ptr) ) {
             glEnable(GL_ALPHA_TEST );
             glDepthFunc(GL_GEQUAL);

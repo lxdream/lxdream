@@ -82,7 +82,6 @@ extern unsigned char *video_base;
 #define MAX_POLYGONS (87382*2)
 #define MAX_POLY_BUFFER_SIZE (MAX_POLYGONS*sizeof(struct polygon_struct))
 #define BUF_POLY_MAP_SIZE (4 MB)
-#define POLY_NO(poly) (poly - pvr2_scene.poly_array)
 
 /*************************************************************************/
 
