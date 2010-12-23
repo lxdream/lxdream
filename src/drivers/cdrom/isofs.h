@@ -57,6 +57,6 @@ sector_source_t iso_sector_source_new( IsoImage *image, sector_mode_t mode, cdro
 
 
 /** Prototypes for "Internal" Libisofs functions */
-int iso_memory_stream_new(unsigned char *buf, size_t size, IsoStream **stream);
+int iso_mem_stream_new(unsigned char *buf, size_t size, IsoStream **stream);
 
 #endif /* !cdrom_isofs_H */

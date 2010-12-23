@@ -368,7 +368,7 @@ cdrom_disc_t cdrom_disc_new_wrapped_binary( cdrom_disc_type_t type, const gchar 
     }
 
     IsoStream *stream;
-    if( iso_memory_stream_new(data, bin_size, &stream) != 1 ) {
+    if( iso_mem_stream_new(data, bin_size, &stream) != 1 ) {
         g_free(data);
         iso_image_unref(iso);
         SET_ERROR( err, LX_ERR_NOMEM, "Unable to create CD image: out of memory" );
