@@ -172,9 +172,7 @@ void sort_render_triangles( struct sort_triangle **triangles, int num_triangles 
     int i;
     for( i=0; i<num_triangles; i++ ) {
         struct polygon_struct *poly = triangles[i]->poly;
-        glBindTexture(GL_TEXTURE_2D, poly->tex_id);
-        render_set_tsp_context( poly->context[0], poly->context[1] );
-        glDrawArrays(GL_TRIANGLE_STRIP, poly->vertex_index + triangles[i]->triangle_num, 3 );
+        gl_render_triangle(triangles[i]->poly, triangles[i]->triangle_num);
     }
 }
 

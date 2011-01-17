@@ -46,6 +46,15 @@ int pvr2_poly_texblend[4] = {
 };
 
 static gboolean have_shaders = FALSE;
+static int currentTexId = -1;
+
+static inline void bind_texture(int texid)
+{
+    if( currentTexId != texid ) {
+        currentTexId = texid;
+        glBindTexture(GL_TEXTURE_2D, texid);
+    }
+}
 
 /**
  * Clip the tile bounds to the clipping plane. 
@@ -70,7 +79,7 @@ static void drawrect2d( uint32_t tile_bounds[], float z )
     glEnd();
 }
 
-void pvr2_scene_load_textures()
+static void pvr2_scene_load_textures()
 {
     int i;
     
@@ -164,7 +173,7 @@ static void render_set_base_context( uint32_t poly1, gboolean set_depth )
 /**
  * Setup the texture/shading settings (TSP) which vary between mod/unmod modes.
  */
-void render_set_tsp_context( uint32_t poly1, uint32_t poly2 )
+static void render_set_tsp_context( uint32_t poly1, uint32_t poly2 )
 {
     glShadeModel( POLY1_SHADE_MODEL(poly1) );
 
@@ -200,7 +209,7 @@ void render_set_tsp_context( uint32_t poly1, uint32_t poly2 )
  * @param depth_mode force depth mode, or 0 to use the polygon's
  * depth mode.
  */
-void render_set_context( uint32_t *context, gboolean set_depth )
+static void render_set_context( uint32_t *context, gboolean set_depth )
 {
     render_set_base_context(context[0], set_depth);
     render_set_tsp_context(context[0],context[1]);
@@ -227,7 +236,7 @@ static void gl_render_poly( struct polygon_struct *poly, gboolean set_depth)
     if( poly->vertex_count == 0 )
         return; /* Culled */
 
-    glBindTexture(GL_TEXTURE_2D, poly->tex_id);
+    bind_texture(poly->tex_id);
     if( poly->mod_vertex_index == -1 ) {
         render_set_context( poly->context, set_depth );
         gl_draw_vertexes(poly);
@@ -239,9 +248,7 @@ static void gl_render_poly( struct polygon_struct *poly, gboolean set_depth)
         gl_draw_vertexes(poly);
 
         if( pvr2_scene.shadow_mode == SHADOW_FULL ) {
-            if( poly->mod_tex_id != poly->tex_id ) {
-                glBindTexture(GL_TEXTURE_2D, poly->mod_tex_id);
-            }
+            bind_texture(poly->mod_tex_id);
             render_set_tsp_context( poly->context[0], poly->context[3] );
         }
         glStencilFunc(GL_EQUAL, 2, 2);
@@ -319,12 +326,20 @@ static void gl_render_modifier_polygon( struct polygon_struct *poly, uint32_t ti
 
 static void gl_render_bkgnd( struct polygon_struct *poly )
 {
-    glBindTexture(GL_TEXTURE_2D, poly->tex_id);
+    bind_texture(poly->tex_id);
     render_set_tsp_context( poly->context[0], poly->context[1] );
     glDisable( GL_DEPTH_TEST );
     glBlendFunc( GL_ONE, GL_ZERO );
     gl_draw_vertexes(poly);
     glEnable( GL_DEPTH_TEST );
+}
+
+void gl_render_triangle( struct polygon_struct *poly, int index )
+{
+    bind_texture(poly->tex_id);
+    render_set_tsp_context( poly->context[0], poly->context[1] );
+    glDrawArrays(GL_TRIANGLE_STRIP, poly->vertex_index + index, 3 );
+
 }
 
 void gl_render_tilelist( pvraddr_t tile_entry, gboolean set_depth )
@@ -402,6 +417,7 @@ void pvr2_scene_render( render_buffer_t buffer )
     display_driver->set_render_target(buffer);
     pvr2_check_palette_changed();
     pvr2_scene_load_textures();
+    currentTexId = -1;
 
     gettimeofday( &tex_tv, NULL );
     uint32_t ms = (tex_tv.tv_sec - start_tv.tv_sec) * 1000 +
