@@ -28,6 +28,7 @@
 #include "pvr2/scene.h"
 
 #define U8TOFLOAT(n)  (((float)((n)+1))/256.0)
+#define POLY_IDX(addr) ( ((uint32_t *)addr) - ((uint32_t *)pvr2_scene.pvr2_pbuf))
 
 static void unpack_bgra(uint32_t bgra, float *rgba)
 {
@@ -103,9 +104,12 @@ void pvr2_scene_init()
  */
 void pvr2_scene_reset()
 {
+    /* Faster to just clear the active entries */
+    for( int i=0; i<pvr2_scene.poly_count; i++ ) {
+        pvr2_scene.buf_to_poly_map[POLY_IDX(pvr2_scene.poly_array[i].context)] = 0;
+    }
     pvr2_scene.poly_count = 0;
     pvr2_scene.vertex_count = 0;
-    memset( pvr2_scene.buf_to_poly_map, 0, BUF_POLY_MAP_SIZE );
 }
 
 void pvr2_scene_shutdown()
