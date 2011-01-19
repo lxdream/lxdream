@@ -61,6 +61,7 @@ typedef unsigned char *sh4ptr_t;
 
 typedef struct render_buffer *render_buffer_t;
 typedef struct frame_buffer *frame_buffer_t;
+typedef struct vertex_buffer *vertex_buffer_t;
 
 /*************************** Logging ****************************/
 

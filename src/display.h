@@ -108,6 +108,43 @@ struct display_capabilities {
     int stencil_bits; /* 0 = no stencil buffer */
 };
 
+struct vertex_buffer {
+    /**
+     * Map the buffer into the host address space (if necessary) in preparation
+     * for filling the buffer. This also implies a fence operation.
+     * @param buf previously allocated buffer
+     * @param size number of bytes of the buffer actually to be used. The buffer
+     * will be resized if necessary.
+     * @return a pointer to the start of the buffer.
+     */
+    void *(*map)(vertex_buffer_t buf, uint32_t size);
+
+    /**
+     * Unmap the buffer, after the vertex data is written.
+     * @return the buffer base to use for gl*Pointer calls
+     */
+    void *(*unmap)(vertex_buffer_t buf);
+
+    /**
+     * Mark the buffer as finished, indicating that the vertex data is no
+     * longer required (ie rendering is complete).
+     */
+    void (*finished)(vertex_buffer_t buf);
+
+    /**
+     * Delete the buffer and all associated resources.
+     */
+    void (*destroy)(vertex_buffer_t buf);
+
+    /* Private data */
+    void *data;
+    GLuint id;
+    uint32_t capacity;
+    uint32_t mapped_size;
+    GLuint fence;
+};
+
+
 /**
  * Core video driver - exports function to setup a GL context, as well as handle
  * keyboard input and display resultant output.
@@ -213,11 +250,17 @@ typedef struct display_driver {
             int rowstride, int format );
 
     /**
+     * Create a new vertex buffer
+     */
+    vertex_buffer_t (*create_vertex_buffer)( );
+
+    /**
      * Dump driver-specific information about the implementation to the given stream
      */
     void (*print_info)( FILE *out );
 
     struct display_capabilities capabilities;
+
 } *display_driver_t;
 
 /**

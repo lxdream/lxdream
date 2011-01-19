@@ -518,6 +518,8 @@ void pvr2_scene_render( render_buffer_t buffer )
     glDisable( GL_FOG );
     glsl_clear_shader();
 
+    pvr2_scene_finished();
+
     gettimeofday( &end_tv, NULL );
     ms = (end_tv.tv_sec - tex_tv.tv_sec) * 1000 +
     (end_tv.tv_usec - tex_tv.tv_usec)/1000;

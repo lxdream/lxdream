@@ -42,7 +42,7 @@ void glPrintInfo( FILE *out );
 /**
  * Check for a GL error and print a message if there is one
  * @param context If not null, a string to be printed along side an error message
- * @return TRUE if there was an error, otherwise FALSE
+ * @return FALSE if there was an error, otherwise TRUE
  */
 gboolean gl_check_error( const char *context );
 /**

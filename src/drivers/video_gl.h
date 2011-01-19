@@ -70,6 +70,12 @@ void gl_fbo_shutdown();
 void gl_fbo_init( display_driver_t driver );
 void gl_fbo_detach();
 
+/** VBO/VAR handling (gl_vbo.c) ******/
+void gl_vbo_init( display_driver_t driver );
+
+/* Set the fallback vertex buffer handling, for drivers with no GL */
+void gl_vbo_fallback_init( display_driver_t driver );
+
 #ifdef __cplusplus
 }
 #endif
