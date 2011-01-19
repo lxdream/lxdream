@@ -47,7 +47,6 @@ static render_buffer_t pvr2_get_render_buffer( frame_buffer_t frame );
 static render_buffer_t pvr2_next_render_buffer( );
 static render_buffer_t pvr2_frame_buffer_to_render_buffer( frame_buffer_t frame );
 uint32_t pvr2_get_sync_status();
-static gboolean force_vsync = FALSE;
 static int output_colour_formats[] = { COLFMT_BGRA1555, COLFMT_RGB565, COLFMT_BGR888, COLFMT_BGRA8888 };
 static int render_colour_formats[8] = {
         COLFMT_BGRA1555, COLFMT_RGB565, COLFMT_BGRA4444, COLFMT_BGRA1555,
@@ -356,28 +355,13 @@ int pvr2_get_frame_count()
     return pvr2_state.frame_count;
 }
 
-/**
- * Draw the base (emulated) frame only.
- */
-static void pvr2_draw_base_frame()
-{
-    if( displayed_render_buffer == NULL ) {
-        display_driver->display_blank(displayed_border_colour);
-    } else {
-        display_driver->display_render_buffer(displayed_render_buffer);
-    }
-}
-
 void pvr2_draw_frame()
 {
     if( display_driver != NULL && display_driver != &display_null_driver ) {
-        if( force_vsync ) {
-            glDrawBuffer( GL_BACK );
-            pvr2_draw_base_frame();
-            display_driver->swap_buffers();
+        if( displayed_render_buffer == NULL ) {
+            display_driver->display_blank(displayed_border_colour);
         } else {
-            glDrawBuffer( GL_FRONT );
-            pvr2_draw_base_frame();
+            display_driver->display_render_buffer(displayed_render_buffer);
         }
     }
 }
