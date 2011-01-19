@@ -17,6 +17,9 @@
  */
 
 #include "display.h"
+#include "drivers/video_gl.h"
+
+static gboolean video_null_init( void );
 
 static render_buffer_t video_null_create_render_buffer( uint32_t hres, uint32_t vres, GLuint tex_id )
 {
@@ -63,7 +66,7 @@ static void video_null_swap_buffers(void)
 struct display_driver display_null_driver = { 
         "null",
         N_("Null (no video) driver"),
-        NULL,
+        video_null_init,
         NULL,
         NULL,
         NULL, 
@@ -78,3 +81,9 @@ struct display_driver display_null_driver = {
         video_null_swap_buffers,
         video_null_read_render_buffer,
         NULL };
+
+static gboolean video_null_init( void )
+{
+    gl_vbo_fallback_init(&display_null_driver);
+    return TRUE;
+}

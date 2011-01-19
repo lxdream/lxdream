@@ -36,7 +36,7 @@ typedef enum { SHADOW_NONE=0, SHADOW_CHEAP=1, SHADOW_FULL=2 } shadow_mode_t;
 
 struct vertex_struct {
     float u,v,r,tex_mode; /* tex-coord quad */
-    float x,y,z;
+    float x,y,z,w;
     float rgba[4];
     float offset_rgba[4];
 };
@@ -54,6 +54,7 @@ struct polygon_struct {
 
 void pvr2_scene_init(void);
 void pvr2_scene_read(void);
+void pvr2_scene_finished(void);
 void pvr2_scene_shutdown();
 
 uint32_t pvr2_scene_buffer_width();
@@ -72,6 +73,7 @@ extern unsigned char *video_base;
  */
 #define MAX_VERTEXES 262144
 #define MAX_VERTEX_BUFFER_SIZE (MAX_VERTEXES*sizeof(struct vertex_struct))
+#define MIN_VERTEX_BUFFER_SIZE (2024*1024)
 
 /**
  * Maximum polygons - smallest is 1 polygon in 48 bytes, giving

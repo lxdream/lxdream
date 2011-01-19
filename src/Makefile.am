@@ -65,7 +65,7 @@ lxdream_SOURCES = \
         vmu/vmuvol.c vmu/vmuvol.h vmu/vmulist.c vmu/vmulist.h \
 	display.c display.h dckeysyms.h \
 	drivers/audio_null.c drivers/video_null.c \
-	drivers/video_gl.c drivers/video_gl.h drivers/gl_fbo.c \
+	drivers/video_gl.c drivers/video_gl.h drivers/gl_fbo.c drivers/gl_vbo.c \
 	drivers/serial_unix.c \
 	drivers/cdrom/cdrom.h drivers/cdrom/cdrom.c drivers/cdrom/drive.h \
 	drivers/cdrom/sector.h drivers/cdrom/sector.c drivers/cdrom/defs.h \

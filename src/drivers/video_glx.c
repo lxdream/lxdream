@@ -243,6 +243,7 @@ gboolean video_glx_init_driver( display_driver_t driver )
         video_glx_shutdown();
         return FALSE;
     }
+    gl_vbo_init(driver);
     return TRUE;
 }
 

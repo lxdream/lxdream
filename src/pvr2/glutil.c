@@ -187,7 +187,7 @@ gboolean gl_check_error(const char *context)
         } else {
             WARN( "GL error: %x (%s)\n", err, s );
         }
-        return TRUE;
+        return FALSE;
     }
-    return FALSE;
+    return TRUE;
 }
