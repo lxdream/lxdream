@@ -23,7 +23,7 @@
 
 #define ISO_MEM_FS_ID 4
 
-ino_t mem_serial_id = (ino_t)1;
+static ino_t mem_serial_id = (ino_t)1;
 
 typedef struct
 {
