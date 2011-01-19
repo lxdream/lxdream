@@ -25,6 +25,13 @@
 #include "pvr2/scene.h"
 #include "pvr2/tileiter.h"
 
+#ifdef APPLE_BUILD
+#include "OpenGL/CGLCurrent.h"
+#include "OpenGL/CGLMacro.h"
+
+static CGLContextObj CGL_MACRO_CONTEXT;
+#endif
+
 #define IS_EMPTY_TILE_LIST(p) ((*((uint32_t *)(pvr2_main_ram+(p))) >> 28) == 0x0F)
 
 int pvr2_poly_depthmode[8] = { GL_NEVER, GL_LESS, GL_EQUAL, GL_LEQUAL,
@@ -119,6 +126,9 @@ void pvr2_setup_gl_context()
         }
     }
 
+#ifdef APPLE_BUILD
+    CGL_MACRO_CONTEXT = CGLGetCurrentContext();
+#endif
     texcache_gl_init(); // Allocate texture IDs
     glDisable( GL_CULL_FACE );
     glEnable( GL_BLEND );
