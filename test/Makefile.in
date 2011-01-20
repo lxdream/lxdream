@@ -174,7 +174,8 @@ randmath.expect: randmath.c
 clean:
 	rm -f *.o *.so *.ao *.ac *.bin sh4/*.so lib/*.so lib-arm/*.ao mapleid \
 	   readmem dumpasic testsh4 testta testdisp testregs testide testmath \
-	   testmmu testaica testrend testspu ide dcflash.rom
+	   testmmu testaica testrend testspu ide dcflash.rom \
+	   randmath randmath.expect randmath.native randmath.out
 
 distclean: clean
 	rm -f Makefile

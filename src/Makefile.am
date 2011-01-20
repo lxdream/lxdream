@@ -71,7 +71,7 @@ lxdream_SOURCES = \
 	drivers/cdrom/sector.h drivers/cdrom/sector.c drivers/cdrom/defs.h \
         drivers/cdrom/cd_nrg.c drivers/cdrom/cd_cdi.c drivers/cdrom/cd_gdi.c \
         drivers/cdrom/edc_ecc.c drivers/cdrom/ecc.h drivers/cdrom/drive.c \
-        drivers/cdrom/edc_crctable.h drivers/cdrom/edc_encoder.h \
+        drivers/cdrom/edc_crctable.h drivers/cdrom/edc_encoder.h drivers/cdrom/cdimpl.h \
 	drivers/cdrom/edc_l2sq.h drivers/cdrom/edc_scramble.h drivers/cdrom/cd_mmc.c \
 	drivers/cdrom/isofs.h drivers/cdrom/isofs.c drivers/cdrom/isomem.c \
 	sh4/sh4.def sh4/sh4core.in sh4/sh4x86.in sh4/sh4dasm.in sh4/sh4stat.in \
