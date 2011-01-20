@@ -1,36 +1,43 @@
-Release notes for lxdream 0.9.1 "Turtle"
+Release notes for lxdream 0.9.2 "Slippery Turtle"
 ===================================================
 
-Lxdream 0.9.1 is mostly a performance release (core emulation is a good
-33-50% faster, although rendering performance is still bad), with a few new
-features like VMU and LIRC support. As for 0.9, the majority of software can
-be expected to "just work" with minimal problems.
+Lxdream 0.9.2 primarily focuses on improving rendering performance, which is
+up to 3x faster than 0.9.1 (depending on hardware and scene details). The
+CD-ROM device layer has also been rewritten to provide more flexibility and
+introduce some new features. 
 
 Nevertheless this should still be considered an alpha release, with many 
 unimplemented features remaining. You're unlikely to see 'perfect' emulation,
 and we're nowhere near being bug-compatible (in other words, don't expect your
 code to work on the real hardware just because it runs correctly in lxdream).
 
-Changes since 0.9
+Note that command-line options for running binary executables have been changed in this
+release:
+
+   lxdream -e homebrew.bin
+
+will load and execute the binary directly, while
+
+   lxdream homebrew.bin
+
+will now embed the binary into a bootable disc image, and then boot into the 
+disc.
+
+Changes since 0.9.1
 -----------------
-* Lots of core performance improvements, especially with the MMU turned on
-* VMU support (memory card only)
-* GDB remote debugging support
-* Quick-save states
-* LIRC driver
-* Now uses the ~/.lxdream directory (by default) to store runtime data
-* Audio + input drivers are now built as plugins
-* OSX: fullscreen support, minor UI improvements
+* Lots of tuning of rendering performance.
+* Can now boot and run homebrew discs without requiring the BIOS rom image.
+* Automagic wrapping of executable files in disc images.
+* New dependency on libisofs
+* Minor bugfixes
 
 Known issues
 ------------
-The following are known problems in 0.9 that will be fixed in the next major
-release - in other words, you don't need to report them - we already know :)
+The following are known problems in 0.9 that will be fixed before 1.0 - 
+in other words, you don't need to report them - we already know :)
 
 * Graphic artifacts related to translucent triangle intersections, sorting errors 
   and/of lack of depth precision.
-
-* Rendering performance ranges from barely acceptable to abominable.
 
 * The SH4 emulation is not cycle accurate, and (by default) usually runs
   slower than the real one. This cause some programs to have timing problems
@@ -50,7 +57,7 @@ Linux:
         or GLX_SGIX_pbuffer extensions. 
 
 OS X:
-   System 10.4 or later
+   System 10.5 or later
 
 GCC, Make, etc.
 
@@ -66,6 +73,18 @@ Enjoy!
 
 Older History
 ================
+
+Changes since 0.9
+-----------------
+* Lots of core performance improvements, especially with the MMU turned on
+* VMU support (memory card only)
+* GDB remote debugging support
+* Quick-save states
+* LIRC driver
+* Now uses the ~/.lxdream directory (by default) to store runtime data
+* Audio + input drivers are now built as plugins
+* OSX: fullscreen support, minor UI improvements
+
 
 Changes since 0.8.4
 -------------------
