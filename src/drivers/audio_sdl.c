@@ -17,8 +17,8 @@
  */
 #include <stdio.h>
 #include <unistd.h>
-#include <SDL/SDL.h>
-#include <SDL/SDL_audio.h>
+#include <SDL.h>
+#include <SDL_audio.h>
 #include "aica/audio.h"
 #include "lxdream.h"
 
