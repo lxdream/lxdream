@@ -132,12 +132,20 @@ static vertex_buffer_t apple_create_buffer( uint32_t size )
 {
     vertex_buffer_t buf = vertex_buffer_new( &apple_vtable );
     glGenFencesAPPLE(1, &buf->fence);
+    glSetFenceAPPLE(buf->fence);    
     return buf;
 }
 
 #endif
 
 #ifdef GL_VERTEX_ARRAY_RANGE_NV
+
+#pragma weak glVertexArrayRangeNV
+#pragma weak glFlushVertexArrayRangeNV
+#pragma weak glFinishFenceNV
+#pragma weak glSetFenceNV
+#pragma weak glGenFencesNV
+#pragma weak glDeleteFencesNV
 
 static void *nv_map( vertex_buffer_t buf, uint32_t size )
 {
@@ -172,6 +180,7 @@ static vertex_buffer_t nv_create_buffer( uint32_t size )
 {
     vertex_buffer_t buf = vertex_buffer_new( &nv_vtable );
     glGenFencesNV(1, &buf->fence);
+    glSetFenceNV(buf->fence, GL_ALL_COMPLETED_NV);
     return buf;
 }
 
