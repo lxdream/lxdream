@@ -885,15 +885,17 @@ void texcache_integrity_check()
 void texcache_dump()
 {
     unsigned i;
+    GLboolean boolresult;
     for( i=0; i< PVR2_RAM_PAGES; i++ ) {
         int slot = texcache_page_lookup[i];
         while( slot != EMPTY_ENTRY ) {
-            fprintf( stderr, "%-3d: %08X %dx%d (%08X %08X)\n", slot,
+            fprintf( stderr, "%-3d: %08X %dx%d (%08X %08X) %s\n", slot,
                     texcache_active_list[slot].texture_addr,
                     POLY2_TEX_WIDTH(texcache_active_list[slot].poly2_mode),
                     POLY2_TEX_HEIGHT(texcache_active_list[slot].poly2_mode),
                     texcache_active_list[slot].poly2_mode,
-                    texcache_active_list[slot].tex_mode );
+                    texcache_active_list[slot].tex_mode,
+                    (glAreTexturesResident(1, &texcache_active_list[slot].texture_id, &boolresult) ? "[RESIDENT]" : "[NOT RESIDENT]") );
             slot = texcache_active_list[slot].next;
         }
     }
