@@ -42,6 +42,7 @@ static void gl_fbo_finish_render( render_buffer_t buffer );
 static void gl_fbo_display_render_buffer( render_buffer_t buffer );
 static void gl_fbo_load_frame_buffer( frame_buffer_t frame, render_buffer_t buffer );
 static void gl_fbo_display_blank( uint32_t colour );
+static gboolean gl_fbo_test_framebuffer( );
 static gboolean gl_fbo_read_render_buffer( unsigned char *target, render_buffer_t buffer, int rowstride, int format );
 
 extern uint32_t video_width, video_height;
@@ -112,6 +113,7 @@ void gl_fbo_init( display_driver_t driver )
     driver->display_blank = gl_fbo_display_blank;
     driver->read_render_buffer = gl_fbo_read_render_buffer;
 
+    gl_fbo_test_framebuffer();
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
 }
 
@@ -214,18 +216,27 @@ static GLint gl_fbo_attach_texture( int fbo_no, GLint tex_id ) {
     glDrawBuffer(ATTACHMENT_POINT(attach));
     glReadBuffer(ATTACHMENT_POINT(attach)); 
 
+    return ATTACHMENT_POINT(attach);
+}
 
-    GLint status = glGetError();
-    if( status != GL_NO_ERROR ) {
-        ERROR( "GL error setting render target (%x)!", status );
-    }
-    status = glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT);
+static gboolean gl_fbo_test_framebuffer( )
+{
+    gboolean result = TRUE;
+    glGetError(); /* Clear error state just in case */
+    render_buffer_t buffer = gl_fbo_create_render_buffer( 640, 480, 0 );
+    gl_fbo_set_render_target(buffer);
+
+    GLint status = glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT);
     if( status != GL_FRAMEBUFFER_COMPLETE_EXT ) {
         ERROR( "Framebuffer failure: %x", status );
-        exit(1);
+        result = FALSE;
+    }
+    if( result ) {
+        result = gl_check_error( "Setting up framebuffer" );
     }
 
-    return ATTACHMENT_POINT(attach);
+    gl_fbo_destroy_render_buffer( buffer );
+    return result;
 }
 
 static render_buffer_t gl_fbo_create_render_buffer( uint32_t width, uint32_t height, GLuint tex_id )
@@ -294,7 +305,6 @@ static void gl_fbo_destroy_render_buffer( render_buffer_t buffer )
 
 static gboolean gl_fbo_set_render_target( render_buffer_t buffer )
 {
-    glGetError();
     int fb = gl_fbo_get_framebuffer( buffer->width, buffer->height );
     gl_fbo_attach_texture( fb, buffer->buf_id );
     /* setup the gl context */
@@ -306,7 +316,6 @@ static gboolean gl_fbo_set_render_target( render_buffer_t buffer )
 static void gl_fbo_finish_render( render_buffer_t buffer )
 {
     glFinish();
-    glGetError();
     gl_fbo_detach_render_buffer(buffer);
 }
 
@@ -338,12 +347,12 @@ void gl_fbo_detach()
     /* Make sure texture attachment is not a current draw/read buffer */
     glDrawBuffer( GL_FRONT );
     glReadBuffer( GL_FRONT );
+    display_driver->swap_buffers();
 }    
 
 static gboolean gl_fbo_read_render_buffer( unsigned char *target, render_buffer_t buffer, 
                                            int rowstride, int format )
 {
-    glGetError();
     int fb = gl_fbo_get_framebuffer( buffer->width, buffer->height );
     gl_fbo_attach_texture( fb, buffer->buf_id );
     return gl_read_render_buffer( target, buffer, rowstride, format );

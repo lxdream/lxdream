@@ -139,7 +139,6 @@ gl_program_t glsl_create_program( gl_shader_t *shaderv )
 void glsl_use_program(gl_program_t program)
 {
     glUseProgramObjectARB(program);
-    glsl_check_program_error( "Failed to activate shader program", program );
 }
 
 void glsl_destroy_shader(gl_shader_t shader)
@@ -376,6 +375,11 @@ gboolean glsl_load_shaders()
             ok = FALSE;
             break;
         } else {
+            /* Check that we can actually use the program (can this really fail?) */
+            glsl_use_program(program);
+            if( !glsl_check_program_error( "Failed to activate shader program", program ) ) {
+                ok = FALSE;
+            }
             program_array[i] = program;
         }
     }
@@ -396,6 +400,8 @@ gboolean glsl_load_shaders()
         glsl_unload_shaders();
         return FALSE;
     }
+    
+    glsl_use_program(0);
     return TRUE;
 }
 
