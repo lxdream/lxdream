@@ -83,6 +83,30 @@ void FASTCALL unmapped_prefetch( sh4addr_t addr )
     /* No effect */
 }
 
+void FASTCALL default_write_burst( sh4addr_t addr, unsigned char *src )
+{
+    mem_write_fn_t writefn = ext_address_space[(addr&0x1FFFFFFF)>>12]->write_long;
+    uint32_t *p = (uint32_t *)src;
+    sh4addr_t end = addr + 32;
+    while( addr < end ) {
+        writefn(addr, *p);
+        addr += 4;
+        p += 4;
+    }
+}
+
+void FASTCALL default_read_burst( unsigned char *dest, sh4addr_t addr )
+{
+    mem_read_fn_t readfn = ext_address_space[(addr&0x1FFFFFFF)>>12]->read_long;
+    uint32_t *p = (uint32_t *)dest;
+    sh4addr_t end = addr + 32;
+    while( addr < end ) {
+        *p = readfn(addr);
+        addr += 4;
+        p += 4;
+    }
+}
+
 struct mem_region_fn mem_region_unmapped = { 
         unmapped_read_long, unmapped_write_long, 
         unmapped_read_long, unmapped_write_long, 
@@ -400,6 +424,10 @@ void register_io_region( struct mmio_region *io )
     io->save_mem = io->mem + LXDREAM_PAGE_SIZE;
     io->index = (struct mmio_port **)malloc(1024*sizeof(struct mmio_port *));
     io->trace_flag = 0;
+    if( io->fn.write_burst == NULL )
+        io->fn.write_burst = default_write_burst;
+    if( io->fn.read_burst == NULL )
+        io->fn.read_burst = default_read_burst;
     memset( io->index, 0, 1024*sizeof(struct mmio_port *) );
     for( i=0; io->ports[i].id != NULL; i++ ) {
         io->ports[i].val = (uint32_t *)(io->mem + io->ports[i].offset);
