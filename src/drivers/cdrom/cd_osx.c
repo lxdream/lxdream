@@ -162,7 +162,7 @@ static cdrom_error_t cdrom_osx_read_sectors( sector_source_t source, cdrom_lba_t
         dk_cd_read_t readcd;
         memset( &readcd, 0, sizeof(readcd) );
         readcd.buffer = buf;
-        readcd.sectorType = CDROM_READ_TYPE(mode);
+        readcd.sectorType = CDROM_READ_TYPE(mode) >> 2;
 
         cdrom_track_t track = cdrom_disc_get_track_by_lba(disc,lba);
         if( track == NULL ) {
