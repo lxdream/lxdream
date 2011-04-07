@@ -17,7 +17,7 @@ CLEANFILES = lxdream.1
 man_MANS = lxdream.1
 
 lxdream.1: lxdream.pod
-	$(POD2MAN) $< $@
+	$(POD2MAN) -c "Lxdream: A Dreamcast emulator" $< $@
 
 install-data-local:
 	@$(NORMAL_INSTALL)
