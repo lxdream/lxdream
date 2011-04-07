@@ -16,6 +16,7 @@
  * GNU General Public License for more details.
  */
 
+#include <errno.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -105,7 +106,12 @@ actionfile_t action_file_open( const char *filename, struct ruleset *rules )
     af->filename = filename;
     af->length = st.st_size+1;
     af->text = malloc( st.st_size+1 );
-    fread( af->text, st.st_size, 1, f );
+    if( fread( af->text, st.st_size, 1, f ) != 1 ) {
+        fprintf( stderr, "Error: unable to read from file '%s' (%s)\n", filename, strerror(errno));
+        free(af);
+        fclose(f);
+        return NULL;
+    }
     af->text[st.st_size] = '\0';
     af->yyline = 1;
     af->yyposn = 0;
@@ -113,7 +119,6 @@ actionfile_t action_file_open( const char *filename, struct ruleset *rules )
     af->token.symbol = NONE;
     af->token.lineno = 1;
     af->token.filename = filename;
-    
     return af;
 }
 

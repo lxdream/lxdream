@@ -1,25 +1,25 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-typedef unsigned char uint8_t;
-typedef signed char int8_t;
-typedef unsigned short uint16_t;
-typedef signed short int16_t;
-typedef unsigned int uint32_t;
-typedef signed int int32_t;
-typedef unsigned long long uint64_t;
-typedef signed long long int64_t;
+typedef unsigned char u8;
+typedef signed char i8;
+typedef unsigned short u16;
+typedef signed short i16;
+typedef unsigned int u32;
+typedef signed int i32;
+typedef unsigned long long u64;
+typedef signed long long i64;
 
 #define TEST_REPS 64
 
-void printuint8_t(uint8_t a) { printf( "%08X ", (unsigned int)a ); }
-void printint8_t(int8_t a) { printf( "%08X ", (unsigned int)(uint8_t)a ); }
-void printuint16_t(uint16_t a) { printf( "%08X ", (unsigned int)a ); }
-void printint16_t(int16_t a) { printf( "%08X ", (unsigned int)(uint16_t)a ); }
-void printuint32_t(uint32_t a) { printf( "%08X ", (unsigned int)a ); }
-void printint32_t(int32_t a) { printf( "%08X ", (unsigned int)a ); }
-void printuint64_t(uint64_t a) { printf( "%08X%08X ", (unsigned int)(a>>32),(unsigned int)a ); }
-void printint64_t(int64_t a) { printf( "%08X%08X ", (unsigned int)(a>>32),(unsigned int)a ); }
+void printu8(u8 a) { printf( "%08X ", (unsigned int)a ); }
+void printi8(i8 a) { printf( "%08X ", (unsigned int)(u8)a ); }
+void printu16(u16 a) { printf( "%08X ", (unsigned int)a ); }
+void printi16(i16 a) { printf( "%08X ", (unsigned int)(u16)a ); }
+void printu32(u32 a) { printf( "%08X ", (unsigned int)a ); }
+void printi32(i32 a) { printf( "%08X ", (unsigned int)a ); }
+void printu64(u64 a) { printf( "%08X%08X ", (unsigned int)(a>>32),(unsigned int)a ); }
+void printi64(i64 a) { printf( "%08X%08X ", (unsigned int)(a>>32),(unsigned int)a ); }
 
 #define TEST_TYPE(T) \
 void test##T() { \
@@ -27,34 +27,34 @@ void test##T() { \
     read(0,&a,sizeof(a)); read(0,&b,sizeof(b)); read(0,&c,sizeof(c)); read(0,&d,sizeof(d)); \
     e = a * b - c * d;\
     if( b != 0 && c != 0 ) { f = a / b + 1/c;  }\
-    T g = e - f / 2  + (uint32_t)b;\
+    T g = e - f / 2  + (u32)b;\
     T h = b * c / d; T i = a / -d; \
-    printf( "%d| ", sizeof(a) ); \
+    printf( "%d| ", (int)sizeof(a) ); \
     print##T(a); print##T(b); print##T(c); print##T(d); \
     printf( ": " ); print##T(e); print##T(f); print##T(g); \
     print##T(h); print##T(i); \
     printf( "\n" ); \
 }
 
-TEST_TYPE(uint8_t);
-TEST_TYPE(int8_t);
-TEST_TYPE(uint16_t);
-TEST_TYPE(int16_t);
-TEST_TYPE(uint32_t);
-TEST_TYPE(int32_t);
-TEST_TYPE(uint64_t);
-TEST_TYPE(int64_t);
+TEST_TYPE(u8);
+TEST_TYPE(i8);
+TEST_TYPE(u16);
+TEST_TYPE(i16);
+TEST_TYPE(u32);
+TEST_TYPE(i32);
+TEST_TYPE(u64);
+TEST_TYPE(i64);
 
 int main(int argc, char *argv[]) {
   unsigned i;
   
-  for(i=0;i<TEST_REPS;i++ ) { testuint64_t(); }
-  for(i=0;i<TEST_REPS;i++ ) { testint64_t(); }
-  for(i=0;i<TEST_REPS;i++ ) { testuint32_t(); }
-  for(i=0;i<TEST_REPS;i++ ) { testint32_t(); }
-  for(i=0;i<TEST_REPS;i++ ) { testuint16_t(); }
-  for(i=0;i<TEST_REPS;i++ ) { testint16_t(); }
-  for(i=0;i<TEST_REPS;i++ ) { testuint8_t(); }
-  for(i=0;i<TEST_REPS;i++ ) { testint8_t(); }
+  for(i=0;i<TEST_REPS;i++ ) { testu64(); }
+  for(i=0;i<TEST_REPS;i++ ) { testi64(); }
+  for(i=0;i<TEST_REPS;i++ ) { testu32(); }
+  for(i=0;i<TEST_REPS;i++ ) { testi32(); }
+  for(i=0;i<TEST_REPS;i++ ) { testu16(); }
+  for(i=0;i<TEST_REPS;i++ ) { testi16(); }
+  for(i=0;i<TEST_REPS;i++ ) { testu8(); }
+  for(i=0;i<TEST_REPS;i++ ) { testi8(); }
   return 0;
 }
