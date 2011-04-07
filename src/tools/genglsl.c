@@ -254,7 +254,7 @@ const char *makeExtension(const char *basename, const char *ext)
     if( oldext == NULL ) {
         return g_strdup_printf("%s%s", basename, ext);
     } else {
-        return g_strdup_printf("%.*s%s", oldext-basename, basename, ext);
+        return g_strdup_printf("%.*s%s", (int)(oldext-basename), basename, ext);
     }
 }
 

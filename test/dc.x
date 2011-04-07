@@ -165,6 +165,7 @@ SECTIONS
     *(.sdata.*)
     *(.gnu.linkonce.s.*)
   }
+  . = ALIGN(32 / 8);
   _edata = .;
   PROVIDE (edata = .);
   __bss_start = .;
