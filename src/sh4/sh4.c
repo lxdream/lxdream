@@ -246,10 +246,6 @@ uint32_t sh4_run_slice( uint32_t nanosecs )
 {
     sh4r.slice_cycle = 0;
 
-    if( sh4r.sh4_state != SH4_STATE_RUNNING ) {
-        sh4_sleep_run_slice(nanosecs);
-    }
-
     /* Setup for sudden vm exits */
     switch( setjmp(sh4_exit_jmp_buf) ) {
     case CORE_EXIT_BREAKPOINT:
@@ -267,25 +263,28 @@ uint32_t sh4_run_slice( uint32_t nanosecs )
         dreamcast_reset();
         break;
     case CORE_EXIT_SLEEP:
-        sh4_sleep_run_slice(nanosecs);
         break;  
     case CORE_EXIT_FLUSH_ICACHE:
         xlat_flush_cache();
         break;
     }
 
-    sh4_running = TRUE;
-    
-    /* Execute the core's real slice */
-#ifdef SH4_TRANSLATOR
-    if( sh4_use_translator ) {
-        sh4_translate_run_slice(nanosecs);
+    if( sh4r.sh4_state != SH4_STATE_RUNNING ) {
+        sh4_sleep_run_slice(nanosecs);
     } else {
-        sh4_emulate_run_slice(nanosecs);
-    }
+        sh4_running = TRUE;
+
+        /* Execute the core's real slice */
+#ifdef SH4_TRANSLATOR
+        if( sh4_use_translator ) {
+            sh4_translate_run_slice(nanosecs);
+        } else {
+            sh4_emulate_run_slice(nanosecs);
+        }
 #else
-    sh4_emulate_run_slice(nanosecs);
+        sh4_emulate_run_slice(nanosecs);
 #endif
+    }
     
     /* And finish off the peripherals afterwards */
 
@@ -621,8 +620,7 @@ void sh4_wakeup(void)
  */
 uint32_t sh4_sleep_run_slice( uint32_t nanosecs )
 {
-    int sleep_state = sh4r.sh4_state;
-    assert( sleep_state != SH4_STATE_RUNNING );
+    assert( sh4r.sh4_state != SH4_STATE_RUNNING );
 
     while( sh4r.event_pending < nanosecs ) {
         sh4r.slice_cycle = sh4r.event_pending;
@@ -634,7 +632,8 @@ uint32_t sh4_sleep_run_slice( uint32_t nanosecs )
             return sh4r.slice_cycle;
         }
     }
-    sh4r.slice_cycle = nanosecs;
+    if( sh4r.slice_cycle < nanosecs )
+        sh4r.slice_cycle = nanosecs;
     return sh4r.slice_cycle;
 }
 
