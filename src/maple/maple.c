@@ -176,7 +176,7 @@ void maple_handle_buffer( uint32_t address ) {
                 *((uint32_t *)return_buf) = -1;
             } else {
                 int status, func;
-                unsigned int pt, phase, block;
+                unsigned int pt, phase, block, blkid;
                 out_length = 0;
                 switch( cmd ) {
                 case MAPLE_CMD_INFO:
@@ -241,6 +241,7 @@ void maple_handle_buffer( uint32_t address ) {
                         status = MAPLE_ERR_CMD_UNKNOWN;
                     else status = dev->get_memory_info(dev,func, pt, return_buf+8, &out_length);
                     if( status == 0 ) {
+                        out_length++;
                         status = MAPLE_RESP_DATA;
                         PUTWORD(4,func);
                     }
@@ -250,6 +251,7 @@ void maple_handle_buffer( uint32_t address ) {
                     pt = GETBYTE(16);
                     phase = GETBYTE(17);
                     block = (GETBYTE(18)<<8) | GETBYTE(19);
+                    blkid = GETWORD(16);
                     if( dev->read_block == NULL )
                         status = MAPLE_ERR_CMD_UNKNOWN;
                     else status = dev->read_block(dev, func, pt, block, phase,
@@ -257,8 +259,9 @@ void maple_handle_buffer( uint32_t address ) {
                             &out_length );
                     if( status == 0 ) {
                         status = MAPLE_RESP_DATA;
+                        out_length += 2;
                         PUTWORD(4,func);
-                        PUTWORD(8,block);
+                        PUTWORD(8,blkid);
                     }
                     break;
                 case MAPLE_CMD_WRITE_BLOCK:

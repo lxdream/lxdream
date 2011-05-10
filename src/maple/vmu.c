@@ -209,7 +209,9 @@ static int vmu_read_block(struct maple_device *dev, int function, unsigned int p
         break;
     case MAPLE_FUNC_MEMORY:
         if( vmu->vol != NULL ) {
-            vmu_volume_read_block( vmu->vol, pt, block, outbuf );
+            if( vmu_volume_read_block( vmu->vol, pt, block, outbuf ) ) {
+                *buflen = VMU_BLOCK_SIZE/4;
+            }
             return 0;
         }
         // Else fallthrough for now
