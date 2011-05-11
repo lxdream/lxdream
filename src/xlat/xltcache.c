@@ -500,6 +500,35 @@ void xlat_check_cache_integrity( xlat_cache_block_t cache, xlat_cache_block_t pt
 }
 
 /**
+ * Perform a reverse lookup to determine the SH4 address corresponding to
+ * the start of the code block containing ptr. This is _slow_ - it does a
+ * linear scan of the lookup table to find this.
+ *
+ * If the pointer cannot be found in any live block, returns -1 (as this
+ * is not a legal PC)
+ */
+sh4addr_t xlat_get_address( unsigned char *ptr )
+{
+    int i,j;
+    for( i=0; i<XLAT_LUT_PAGES; i++ ) {
+        void **page = xlat_lut[i];
+        if( page != NULL ) {
+            for( j=0; j<XLAT_LUT_PAGE_ENTRIES; j++ ) {
+                void *entry = page[j];
+                if( ((uintptr_t)entry) > XLAT_LUT_ENTRY_USED ) {
+                    xlat_cache_block_t block = XLAT_BLOCK_FOR_CODE(entry);
+                    if( ptr >= block->code && ptr < block->code + block->size) {
+                        /* Found it */
+                        return (i<<13) | (j<<1);
+                    }
+                }
+            }
+        }
+    }
+    return -1;
+}
+
+/**
  * Sanity check that the given pointer is at least contained in one of cache
  * regions, and has a sane-ish size. We don't do a full region walk atm.
  */
