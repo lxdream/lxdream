@@ -552,7 +552,7 @@ static void jump_next_block()
 	    JMP_rptr(REG_EAX);
 	}
 	JMP_TARGET(wrongmode);
-	MOVL_r32disp_r32( REG_EAX, XLAT_CHAIN_CODE_OFFSET, REG_EAX );
+	MOVP_rptrdisp_rptr( REG_EAX, XLAT_CHAIN_CODE_OFFSET, REG_EAX );
 	int rel = ptr - xlat_output;
     JMP_prerel(rel);
 	JMP_TARGET(nocode); 

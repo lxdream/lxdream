@@ -320,6 +320,7 @@ static inline void x86_encode_modrm_rip(int rexw, uint32_t opcode, int rr, int32
 #define x86_encode_rptr_memptr(opcode,rr,rb,rx,ss,disp32) x86_encode_modrm(PREF_PTR,opcode,rr,rb,rx,ss,disp32)
 #define x86_encode_r32_mem32disp32(opcode,rr,rb,disp32) x86_encode_modrm(0,opcode,rr,rb,-1,0,disp32)
 #define x86_encode_r64_mem64disp64(opcode,rr,rb,disp32) x86_encode_modrm(PREF_REXW,opcode,rr,rb,-1,0,disp32)
+#define x86_encode_rptr_memptrdisp(opcode,rr,rb,disp32) x86_encode_modrm(PREF_PTR,opcode,rr,rb,-1,0,disp32)
 #define x86_encode_r32_ripdisp32(opcode,rr,disp32) x86_encode_modrm_rip(0,opcode,rr,disp32)
 #define x86_encode_r64_ripdisp64(opcode,rr,disp32) x86_encode_modrm_rip(PREF_REXW,opcode,rr,disp32)
 
@@ -455,6 +456,7 @@ static inline void x86_encode_modrm_rip(int rexw, uint32_t opcode, int rr, int32
 #define MOVP_moffptr_rax(p)          if( sizeof(void*)==8 ) { OP(PREF_REXW); } OP(0xA1); OPPTR(p)
 #define MOVP_rptr_rptr(r1,r2)        x86_encode_reg_rm(PREF_PTR, 0x89, r1, r2)
 #define MOVP_sib_rptr(ss,ii,bb,d,r1) x86_encode_rptr_memptr(0x8B, r1, bb, ii, ss, d)
+#define MOVP_rptrdisp_rptr(r1,dsp,r2) x86_encode_rptr_memptrdisp(0x8B, r2, r1, dsp)
 
 #define MOVSXL_r8_r32(r1,r2)         x86_encode_r32_rm32(0x0FBE, r2, r1)
 #define MOVSXL_r16_r32(r1,r2)        x86_encode_r32_rm32(0x0FBF, r2, r1)
