@@ -19,6 +19,7 @@
 #ifndef cdrom_isofs_H
 #define cdrom_isofs_H 1
 
+#include <stdint.h>
 #include <libisofs.h>
 #include "drivers/cdrom/sector.h"
 

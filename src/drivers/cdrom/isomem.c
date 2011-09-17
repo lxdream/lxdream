@@ -10,12 +10,14 @@
  * Memory stream extracted for use in lxdream by Nathan Keynes 2010.
  */
 
-#include <libisofs.h>
 
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
 #include <stdio.h>
+#include <stdint.h>
+#include <libisofs.h>
+
 
 #ifndef MIN
 #define MIN(a,b) ((a)<=(b) ? (a) : (b))
