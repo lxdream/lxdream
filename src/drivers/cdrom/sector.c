@@ -43,13 +43,14 @@ const uint32_t cdrom_sector_read_mode[] = { 0,
         CDROM_READ_MODE2|CDROM_READ_DATA, CDROM_READ_MODE2_FORM1|CDROM_READ_DATA,
         CDROM_READ_MODE2_FORM1|CDROM_READ_DATA,
         CDROM_READ_MODE2|CDROM_READ_DATA|CDROM_READ_SUBHEADER|CDROM_READ_ECC,
-        CDROM_READ_RAW, CDROM_READ_RAW };
+        CDROM_READ_RAW, CDROM_READ_RAW,
+        CDROM_READ_CDDA|CDROM_READ_DATA};
 
 /* Block size for each sector mode */
-const uint32_t cdrom_sector_size[] = { 0, 2352, 2048, 2336, 2048, 2324, 2336, 2352, 2352 };
+const uint32_t cdrom_sector_size[] = { 0, 2352, 2048, 2336, 2048, 2324, 2336, 2352, 2352, 2448 };
 
 const char *cdrom_sector_mode_names[] = { "Unknown", "Audio", "Mode 1", "Mode 2", "Mode 2 Form 1", "Mode 2 Form 2",
-        "Mode 2 semiraw", "XA Raw", "Non-XA Raw" };
+        "Mode 2 semiraw", "XA Raw", "Non-XA Raw", "CDDA+Subchan" };
 
 
 /********************* Public functions *************************/
@@ -152,7 +153,7 @@ static cdrom_error_t is_legal_read( sector_mode_t sector_mode, cdrom_read_mode_t
     switch( read_sector_type ) {
     case CDROM_READ_ANY: break;
     case CDROM_READ_CDDA:
-        if( sector_mode != SECTOR_CDDA )
+        if( sector_mode != SECTOR_CDDA && sector_mode != SECTOR_CDDA_SUBCHANNEL )
             return CDROM_ERROR_BADREADMODE;
         break;
     case CDROM_READ_MODE1:
@@ -175,6 +176,7 @@ static cdrom_error_t is_legal_read( sector_mode_t sector_mode, cdrom_read_mode_t
     /* Check the fields requested are sane per MMC (non-contiguous regions prohibited) */
     switch( sector_mode ) {
     case SECTOR_CDDA:
+    case SECTOR_CDDA_SUBCHANNEL:
         return CDROM_ERROR_OK; /* Everything is OK */
     case SECTOR_MODE2_FORM1:
     case SECTOR_MODE2_FORM2:
@@ -301,7 +303,7 @@ cdrom_error_t default_sector_source_read_sectors( sector_source_t device,
         cdrom_lba_t lba, cdrom_count_t block_count, cdrom_read_mode_t mode,
         unsigned char *buf, size_t *length )
 {
-    unsigned char tmp[CDROM_MAX_SECTOR_SIZE];
+    unsigned char tmp[2448];
     int read_sector_type = CDROM_READ_TYPE(mode);
     int read_sector_fields = CDROM_READ_FIELDS(mode);
     int i;
@@ -317,6 +319,17 @@ cdrom_error_t default_sector_source_read_sectors( sector_source_t device,
         if( read_sector_fields != 0 ) {
             len = block_count * CDROM_MAX_SECTOR_SIZE;
             device->read_blocks( device, lba, block_count, buf );
+        }
+        break;
+    case SECTOR_CDDA_SUBCHANNEL:
+        if( read_sector_type != CDROM_READ_ANY && read_sector_type != CDROM_READ_CDDA )
+            return CDROM_ERROR_BADREADMODE;
+        if( read_sector_fields != 0 ) {
+            len = block_count * 2352;
+            for( i=0; i<block_count; i++ ) {
+                device->read_blocks( device, lba+i, 1, tmp );
+                memcpy( &buf[2352*i], tmp, 2352 );
+            }
         }
         break;
     case SECTOR_RAW_XA:

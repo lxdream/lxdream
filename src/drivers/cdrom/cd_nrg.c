@@ -58,7 +58,7 @@ union nrg_footer {
     struct nrg_footer_v55 {
         uint32_t id;
         uint64_t offset;
-    } v55;
+    } __attribute__((packed)) v55;
 };
 
 struct nrg_chunk {
@@ -132,6 +132,7 @@ sector_mode_t static nrg_track_mode( uint8_t mode )
     case 2: return SECTOR_MODE2_FORM1;
     case 3: return SECTOR_SEMIRAW_MODE2;
     case 7: return SECTOR_CDDA;
+    case 16: return SECTOR_CDDA_SUBCHANNEL;
     default: return -1;
     }
 }
@@ -172,13 +173,17 @@ static gboolean nrg_image_read_toc( cdrom_disc_t disc, ERROR *err )
 
     fseek( f, -12, SEEK_END );
     fread( &footer, sizeof(footer), 1, f );
+    uint32_t start = 0;
     if( GUINT32_FROM_BE(footer.v50.id) == NERO_V50_ID ) {
-        fseek( f, GUINT32_FROM_BE(footer.v50.offset), SEEK_SET );
+        start = GUINT32_FROM_BE(footer.v50.offset);
     } else if( GUINT32_FROM_BE(footer.v55.id) == NERO_V55_ID ) {
-        fseek( f, (uint32_t)GUINT64_FROM_BE(footer.v55.offset), SEEK_SET );
+        start = (uint32_t)GUINT64_FROM_BE(footer.v55.offset);
     } else {
         /* Not a (recognized) Nero image (should never happen) */
         RETURN_PARSE_ERROR("File is not an NRG image" );
+    }
+    if( fseek( f, start, SEEK_SET) != 0 ) {
+        RETURN_PARSE_ERROR("File is not a valid NRG image" );
     }
 
     do {

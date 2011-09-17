@@ -74,6 +74,8 @@ typedef enum {
     SECTOR_RAW_XA,
     /* 2352-byte raw data sector in a non-XA session */
     SECTOR_RAW_NONXA,
+    /* CDDA + subchannel data */
+    SECTOR_CDDA_SUBCHANNEL
 } sector_mode_t;
 
 
