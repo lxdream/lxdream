@@ -266,14 +266,18 @@ cdrom_disc_t cdrom_disc_open( const char *inFilename, ERROR *err )
         }
     }
 
-    if( disc->read_toc != NULL && cdrom_disc_read_toc( disc, err ) ) {
-        /* All good */
-        return disc;
-    } else {
+    if( disc->read_toc == NULL ) {
         /* No handler found for file */
         cdrom_disc_unref( disc );
         SET_ERROR( err, LX_ERR_FILE_UNKNOWN, "File '%s' could not be recognized as any known image file or device type", filename );
         return NULL;
+    } else if( !cdrom_disc_read_toc( disc, err ) ) {
+        cdrom_disc_unref( disc );
+        assert( err == NULL || err->code != LX_ERR_NONE ); /* Read-toc should have set an error code in this case */
+        return NULL;
+    } else {
+        /* All good */
+        return disc;
     }
 }
 
