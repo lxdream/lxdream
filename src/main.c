@@ -20,8 +20,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <getopt.h>
-#include <libisofs.h>
 #include "lxdream.h"
+#include <libisofs.h>
 #include "lxpaths.h"
 #include "gettext.h"
 #include "dream.h"
