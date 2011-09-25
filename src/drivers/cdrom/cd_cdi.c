@@ -109,8 +109,11 @@ static gboolean cdi_image_read_toc( cdrom_disc_t disc, ERROR *err )
 
     for( i=0; i< session_count; i++ ) {        
         fread( &track_count, sizeof(track_count), 1, f );
+        if( (i != session_count-1 && track_count < 1) || track_count > 99 ) {
+            RETURN_PARSE_ERROR("Invalid number of tracks (%d), bad cdi image", track_count);
+        }
         if( track_count + total_tracks > 99 ) {
-            RETURN_PARSE_ERROR("Invalid number of tracks, bad cdi image" );
+            RETURN_PARSE_ERROR("Invalid number of tracks in disc, bad cdi image" );
         }
         for( j=0; j<track_count; j++ ) {
             struct cdi_track_data trk;
@@ -176,14 +179,19 @@ static gboolean cdi_image_read_toc( cdrom_disc_t disc, ERROR *err )
             disc->track[total_tracks].source = file_sector_source_new_source( disc->base_source, mode, offset, sector_count );
             posn += trk.total_length * CDROM_SECTOR_SIZE(mode);
             total_tracks++;
-            fread( marker, 1, 9, f );
-            if( memcmp( marker, EXT_MARKER, 9 ) == 0 ) {
-                fseek( f, 79, SEEK_CUR );
-            } else {
-                fseek( f, -9, SEEK_CUR );
+            if( trail.cdi_version != CDI_V2_ID ) {
+                uint32_t extmarker;
+                fseek( f, 5, SEEK_CUR );
+                fread( &extmarker, sizeof(extmarker), 1, f);
+                if( extmarker == 0xFFFFFFFF )  {
+                    fseek( f, 78, SEEK_CUR );
+                }
             }
         }
         fseek( f, 12, SEEK_CUR );
+        if( trail.cdi_version != CDI_V2_ID ) {
+            fseek( f, 1, SEEK_CUR );
+        }
     }
 
     disc->track_count = total_tracks;
