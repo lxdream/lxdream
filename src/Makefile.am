@@ -241,19 +241,19 @@ genmach_LDADD = @GLIB_LIBS@ @GTK_LIBS@ $(INTLLIBS)
 
 test_testxlt_SOURCES = test/testxlt.c xlat/xltcache.c xlat/xltcache.h
 
-sh4/sh4core.c: gendec sh4/sh4.def sh4/sh4core.in
+sh4/sh4core.c: gendec$(EXEEXT) sh4/sh4.def sh4/sh4core.in
 	$(mkdir_p) `dirname $@`
 	./gendec $(srcdir)/sh4/sh4.def $(srcdir)/sh4/sh4core.in -o $@
-sh4/sh4dasm.c: gendec sh4/sh4.def sh4/sh4dasm.in
+sh4/sh4dasm.c: gendec$(EXEEXT) sh4/sh4.def sh4/sh4dasm.in
 	$(mkdir_p) `dirname $@`
 	./gendec $(srcdir)/sh4/sh4.def $(srcdir)/sh4/sh4dasm.in -o $@
-sh4/sh4x86.c: gendec sh4/sh4.def sh4/sh4x86.in
+sh4/sh4x86.c: gendec$(EXEEXT) sh4/sh4.def sh4/sh4x86.in
 	$(mkdir_p) `dirname $@`
 	./gendec $(srcdir)/sh4/sh4.def $(srcdir)/sh4/sh4x86.in -o $@
-sh4/sh4stat.c: gendec sh4/sh4.def sh4/sh4stat.in
+sh4/sh4stat.c: gendec$(EXEEXT) sh4/sh4.def sh4/sh4stat.in
 	$(mkdir_p) `dirname $@`
 	./gendec $(srcdir)/sh4/sh4.def $(srcdir)/sh4/sh4stat.in -o $@
-pvr2/shaders.def: genglsl pvr2/shaders.glsl
+pvr2/shaders.def: genglsl$(EXEEXT) pvr2/shaders.glsl
 	$(mkdir_p) `dirname $@`
 	./genglsl $(srcdir)/pvr2/shaders.glsl $@
 pvr2/shaders.h: pvr2/shaders.def

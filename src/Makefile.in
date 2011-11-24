@@ -456,7 +456,6 @@ PACKAGE_BUGREPORT = @PACKAGE_BUGREPORT@
 PACKAGE_NAME = @PACKAGE_NAME@
 PACKAGE_STRING = @PACKAGE_STRING@
 PACKAGE_TARNAME = @PACKAGE_TARNAME@
-PACKAGE_URL = @PACKAGE_URL@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 PATH_SEPARATOR = @PATH_SEPARATOR@
 PKG_CONFIG = @PKG_CONFIG@
@@ -3202,19 +3201,19 @@ version.c: checkversion
 @BUILD_SHARED_TRUE@@INPUT_LIRC_TRUE@input_lirc.lo: drivers/input_lirc.c
 @BUILD_SHARED_TRUE@@INPUT_LIRC_TRUE@	$(COMPILE) -DPLUGIN $(PLUGINCFLAGS) -c $< -o $@
 
-sh4/sh4core.c: gendec sh4/sh4.def sh4/sh4core.in
+sh4/sh4core.c: gendec$(EXEEXT) sh4/sh4.def sh4/sh4core.in
 	$(mkdir_p) `dirname $@`
 	./gendec $(srcdir)/sh4/sh4.def $(srcdir)/sh4/sh4core.in -o $@
-sh4/sh4dasm.c: gendec sh4/sh4.def sh4/sh4dasm.in
+sh4/sh4dasm.c: gendec$(EXEEXT) sh4/sh4.def sh4/sh4dasm.in
 	$(mkdir_p) `dirname $@`
 	./gendec $(srcdir)/sh4/sh4.def $(srcdir)/sh4/sh4dasm.in -o $@
-sh4/sh4x86.c: gendec sh4/sh4.def sh4/sh4x86.in
+sh4/sh4x86.c: gendec$(EXEEXT) sh4/sh4.def sh4/sh4x86.in
 	$(mkdir_p) `dirname $@`
 	./gendec $(srcdir)/sh4/sh4.def $(srcdir)/sh4/sh4x86.in -o $@
-sh4/sh4stat.c: gendec sh4/sh4.def sh4/sh4stat.in
+sh4/sh4stat.c: gendec$(EXEEXT) sh4/sh4.def sh4/sh4stat.in
 	$(mkdir_p) `dirname $@`
 	./gendec $(srcdir)/sh4/sh4.def $(srcdir)/sh4/sh4stat.in -o $@
-pvr2/shaders.def: genglsl pvr2/shaders.glsl
+pvr2/shaders.def: genglsl$(EXEEXT) pvr2/shaders.glsl
 	$(mkdir_p) `dirname $@`
 	./genglsl $(srcdir)/pvr2/shaders.glsl $@
 pvr2/shaders.h: pvr2/shaders.def
