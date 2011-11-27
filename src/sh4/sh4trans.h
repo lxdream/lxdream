@@ -103,6 +103,16 @@ void sh4_translate_set_callbacks( xlat_block_begin_callback_t begin, xlat_block_
 void sh4_translate_set_fastmem( gboolean flag );
 
 /**
+ * Enable/disable basic block profiling
+ */
+void sh4_translate_set_profile_blocks( gboolean flag );
+
+/**
+ * Get the boolean flag indicating whether block profiling is on.
+ */
+gboolean sh4_translate_get_profile_blocks();
+
+/**
  * Set the address spaces for the translated code.
  */
 void sh4_translate_set_address_space( struct mem_region_fn **priv, struct mem_region_fn **user );
