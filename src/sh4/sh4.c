@@ -235,6 +235,9 @@ void sh4_stop(void)
         /* If we were running with the translator, update new_pc and in_delay_slot */
         sh4r.new_pc = sh4r.pc+2;
         sh4r.in_delay_slot = FALSE;
+        if( sh4_translate_get_profile_blocks() ) {
+            xlat_dump_cache_by_activity(30);
+        }
     }
 
 }

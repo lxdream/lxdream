@@ -106,6 +106,7 @@ struct sh4_x86_state {
     xlat_block_begin_callback_t begin_callback;
     xlat_block_end_callback_t end_callback;
     gboolean fastmem;
+    gboolean profile_blocks;
     
     /* Allocated memory for the (block-wide) back-patch list */
     struct backpatch_record *backpatch_list;
@@ -166,6 +167,7 @@ void sh4_translate_init(void)
     sh4_x86.end_callback = NULL;
     sh4_translate_set_address_space( sh4_address_space, sh4_user_address_space );
     sh4_x86.fastmem = TRUE;
+    sh4_x86.profile_blocks = FALSE;
     sh4_x86.sse3_enabled = is_sse3_supported();
     x86_disasm_init();
     x86_set_symtab( x86_symbol_table, sizeof(x86_symbol_table)/sizeof(struct x86_symbol) );
@@ -180,6 +182,16 @@ void sh4_translate_set_callbacks( xlat_block_begin_callback_t begin, xlat_block_
 void sh4_translate_set_fastmem( gboolean flag )
 {
     sh4_x86.fastmem = flag;
+}
+
+void sh4_translate_set_profile_blocks( gboolean flag )
+{
+    sh4_x86.profile_blocks = flag;
+}
+
+gboolean sh4_translate_get_profile_blocks()
+{
+    return sh4_x86.profile_blocks;
 }
 
 /**
@@ -476,6 +488,11 @@ static void call_write_func(int addr_reg, int value_reg, int offset, int pc)
 
 #define SLOTILLEGAL() exit_block_exc(EXC_SLOT_ILLEGAL, pc-2); sh4_x86.in_delay_slot = DELAY_NONE; return 2;
 
+/** Offset of xlat_sh4_mode field relative to the code pointer */ 
+#define XLAT_SH4_MODE_CODE_OFFSET  (uint32_t)(offsetof(struct xlat_cache_block, xlat_sh4_mode) - offsetof(struct xlat_cache_block,code) )
+#define XLAT_CHAIN_CODE_OFFSET (uint32_t)(offsetof(struct xlat_cache_block, chain) - offsetof(struct xlat_cache_block,code) )
+#define XLAT_ACTIVE_CODE_OFFSET (uint32_t)(offsetof(struct xlat_cache_block, active) - offsetof(struct xlat_cache_block,code) )
+
 void sh4_translate_begin_block( sh4addr_t pc ) 
 {
 	sh4_x86.code = xlat_output;
@@ -493,6 +510,10 @@ void sh4_translate_begin_block( sh4addr_t pc )
     if( sh4_x86.begin_callback ) {
         CALL_ptr( sh4_x86.begin_callback );
     }
+    if( sh4_x86.profile_blocks ) {
+    	MOVP_immptr_rptr( ((uintptr_t)sh4_x86.code) + XLAT_ACTIVE_CODE_OFFSET, REG_EAX );
+    	ADDL_imms_r32disp( 1, REG_EAX, 0 );
+    }  
 }
 
 
@@ -518,10 +539,6 @@ void sh4_translate_emit_breakpoint( sh4vma_t pc )
 
 
 #define UNTRANSLATABLE(pc) !IS_IN_ICACHE(pc)
-
-/** Offset of xlat_sh4_mode field relative to the code pointer */ 
-#define XLAT_SH4_MODE_CODE_OFFSET  (uint32_t)(offsetof(struct xlat_cache_block, xlat_sh4_mode) - offsetof(struct xlat_cache_block,code) )
-#define XLAT_CHAIN_CODE_OFFSET (uint32_t)(offsetof(struct xlat_cache_block, chain) - offsetof(struct xlat_cache_block,code) )
 
 /**
  * Test if the loaded target code pointer in %eax is valid, and if so jump

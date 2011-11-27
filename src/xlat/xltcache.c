@@ -37,6 +37,8 @@
 #define XLAT_LUT_ENTRY_EMPTY (void *)0
 #define XLAT_LUT_ENTRY_USED  (void *)1
 
+#define XLAT_ADDR_FROM_ENTRY(pagenum,entrynum) ((((pagenum)&0xFFFF)<<13)|(((entrynum)<<1)&0x1FFE))
+
 #define NEXT(block) ( (xlat_cache_block_t)&((block)->code[(block)->size]))
 #define IS_ENTRY_POINT(ent) (ent > XLAT_LUT_ENTRY_USED)
 #define IS_ENTRY_USED(ent) (ent != XLAT_LUT_ENTRY_EMPTY)
@@ -575,3 +577,92 @@ void xlat_check_integrity( )
 #endif
 }
 
+typedef struct {
+    xlat_cache_block_t block;
+    sh4addr_t sh4_pc;
+} block_sh4_entry;
+
+unsigned int xlat_get_active_block_count()
+{
+    unsigned int count = 0;
+    xlat_cache_block_t ptr = xlat_new_cache;
+    while( ptr->size != 0 ) {
+        if( ptr->active != 0 ) {
+            count++;
+        }
+        ptr = NEXT(ptr);
+    }
+    return count;
+}
+
+unsigned int xlat_get_active_blocks( block_sh4_entry *blocks, unsigned int size )
+{
+    unsigned int count = 0;
+    xlat_cache_block_t ptr = xlat_new_cache;
+    while( ptr->size != 0 ) {
+        if( ptr->active != 0 ) {
+            blocks[count].block = ptr;
+            blocks[count].sh4_pc = 0;
+            count++;
+        }
+        if( count >= size )
+            break;
+        ptr = NEXT(ptr);
+    }
+    return count;
+}
+
+void xlat_get_block_sh4addrs( block_sh4_entry *blocks, unsigned int size )
+{
+    unsigned i;
+    for( i=0; i<XLAT_LUT_PAGES;i ++ ) {
+        void **page = xlat_lut[i];
+        if( page != NULL ) {
+            for( unsigned j=0; j < XLAT_LUT_PAGE_ENTRIES; j++ ) {
+                void *code = (void *)(((uintptr_t)(page[j])) & (~((uintptr_t)0x03)));
+                if( code != NULL ) {
+                    xlat_cache_block_t ptr = XLAT_BLOCK_FOR_CODE(code);
+                    sh4addr_t pc = XLAT_ADDR_FROM_ENTRY(i,j);
+                    for( unsigned k=0; k<size; k++ ) {
+                        if( blocks[k].block == ptr ) {
+                            blocks[k].sh4_pc = pc;
+                            ptr = ptr->chain;
+                            if( ptr == NULL )
+                                break;
+                            else {
+                                ptr = XLAT_BLOCK_FOR_CODE(ptr);
+                                k = 0;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+static int xlat_compare_active_field( const void *a, const void *b )
+{
+    const block_sh4_entry *ptra = (const block_sh4_entry *)a;
+    const block_sh4_entry *ptrb = (const block_sh4_entry *)b;
+    return ptrb->block->active - ptra->block->active;
+}
+
+void xlat_dump_cache_by_activity( unsigned int topN )
+{
+    int i=0;
+    int count = xlat_get_active_block_count();
+
+    block_sh4_entry blocks[count];
+    xlat_get_active_blocks(blocks, count);
+    xlat_get_block_sh4addrs(blocks,count);
+    qsort(blocks, count, sizeof(block_sh4_entry), xlat_compare_active_field);
+
+    if( topN == 0 || topN > count )
+        topN = count;
+    for( unsigned int i=0; i<topN; i++ ) {
+        fprintf(stderr, "0x%08X (%p): %d\n", blocks[i].sh4_pc, blocks[i].block->code, blocks[i].block->active);
+        sh4_translate_disasm_block( stderr, blocks[i].block->code, blocks[i].sh4_pc, NULL );
+        fprintf(stderr, "\n");
+    }
+}
