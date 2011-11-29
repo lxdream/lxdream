@@ -257,7 +257,7 @@ pvr2/shaders.def: genglsl$(EXEEXT) pvr2/shaders.glsl
 	$(mkdir_p) `dirname $@`
 	./genglsl $(srcdir)/pvr2/shaders.glsl $@
 pvr2/shaders.h: pvr2/shaders.def
-drivers/mac_keymap.h: drivers/mac_keymap.txt drivers/genkeymap.pl
+drivers/mac_keymap.h: dckeysyms.h drivers/mac_keymap.txt drivers/genkeymap.pl
 	$(mkdir_p) `dirname $@`
-	$(srcdir)/drivers/genkeymap.pl mac $(srcdir)/drivers/mac_keymap.txt > $@
+	$(srcdir)/drivers/genkeymap.pl mac $(srcdir)/dckeysyms.h $(srcdir)/drivers/mac_keymap.txt $@
 	
