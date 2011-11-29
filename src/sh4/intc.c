@@ -110,7 +110,7 @@ void INTC_reset()
     intc_state.num_pending = 0;
     for( i=0; i<INT_NUM_SOURCES; i++ )
         intc_state.priority[i] = intc_default_priority[i];
-    sh4r.event_pending = event_get_next_time();
+    sh4_set_event_pending( event_get_next_time() );
     sh4r.event_types &= (~PENDING_IRQ);
 }
 
@@ -154,7 +154,7 @@ void intc_raise_interrupt( int which )
     intc_state.pending[i] = which;
 
     if( i == intc_state.num_pending && (sh4r.sr&SR_BL)==0 && SH4_INTMASK() < pri ) {
-        sh4r.event_pending = 0;
+        sh4_set_event_pending(0);
         sh4r.event_types |= PENDING_IRQ;
     }
 
@@ -189,11 +189,11 @@ void intc_mask_changed( void )
 {   
     if( intc_state.num_pending > 0 && (sh4r.sr&SR_BL)==0 &&
             SH4_INTMASK() < PRIORITY(intc_state.pending[intc_state.num_pending-1]) ) {
-        sh4r.event_pending = 0;
+        sh4_set_event_pending(0);
         sh4r.event_types |= PENDING_IRQ ;
     }
     else {
-        sh4r.event_pending = event_get_next_time();
+        sh4_set_event_pending(event_get_next_time());
         sh4r.event_types &= (~PENDING_IRQ);
     }
 }

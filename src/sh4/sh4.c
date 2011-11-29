@@ -403,6 +403,11 @@ void sh4_set_pc( int pc )
     sh4r.new_pc = pc+2;
 }
 
+void sh4_set_event_pending( uint32_t cycles )
+{
+    sh4r.event_pending = cycles;
+}
+
 /**
  * Dump all SH4 core information for crash-dump purposes
  */
@@ -662,6 +667,16 @@ gboolean sh4_has_page( sh4vma_t vma )
 {
     sh4addr_t addr = mmu_vma_to_phys_disasm(vma);
     return addr != MMU_VMA_ERROR && mem_has_page(addr);
+}
+
+void sh4_handle_pending_events() {
+    if( sh4r.event_types & PENDING_EVENT ) {
+        event_execute();
+    }
+    /* Eventq execute may (quite likely) deliver an immediate IRQ */
+    if( sh4r.event_types & PENDING_IRQ ) {
+        sh4_accept_interrupt();
+    }
 }
 
 /**

@@ -60,12 +60,12 @@ static void event_update_pending( )
 {
     if( event_head == NULL ) {
         if( !(sh4r.event_types & PENDING_IRQ) ) {
-            sh4r.event_pending = NOT_SCHEDULED;
+            sh4_set_event_pending(NOT_SCHEDULED);
         }
         sh4r.event_types &= (~PENDING_EVENT);
     } else {
         if( !(sh4r.event_types & PENDING_IRQ) ) {
-            sh4r.event_pending = event_head->nanosecs;
+            sh4_set_event_pending(event_head->nanosecs);
         }
         sh4r.event_types |= PENDING_EVENT;
     }

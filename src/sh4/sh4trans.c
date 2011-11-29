@@ -34,18 +34,10 @@
  */
 uint32_t sh4_translate_run_slice( uint32_t nanosecs ) 
 {
-    void * (*code)() = NULL;
     event_schedule( EVENT_ENDTIMESLICE, nanosecs );
     for(;;) {
         if( sh4r.event_pending <= sh4r.slice_cycle ) {
-            if( sh4r.event_types & PENDING_EVENT ) {
-                event_execute();
-            }
-            /* Eventq execute may (quite likely) deliver an immediate IRQ */
-            if( sh4r.event_types & PENDING_IRQ ) {
-                sh4_accept_interrupt();
-                code = NULL;
-            }
+            sh4_handle_pending_events();
             if( sh4r.slice_cycle >= nanosecs )
                 return nanosecs;
         }
@@ -57,7 +49,7 @@ uint32_t sh4_translate_run_slice( uint32_t nanosecs )
             syscall_invoke( pc );
         }
 
-        code = xlat_get_code_by_vma( sh4r.pc );
+        void * (*code)() = xlat_get_code_by_vma( sh4r.pc );
         if( code != NULL ) {
             while( sh4r.xlat_sh4_mode != XLAT_BLOCK_MODE(code) ) {
                 code = XLAT_BLOCK_CHAIN(code);
