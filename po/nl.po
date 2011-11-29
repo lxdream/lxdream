@@ -540,7 +540,7 @@ msgstr "Slaa _%d op"
 #: src/gtkui/gtkui.c:259
 #, c-format
 msgid "Use quick save state %d"
-msgstr "Gebruik snelgeheugentoestand"
+msgstr "Gebruik snelgeheugentoestand %d"
 
 #: src/gtkui/gtkui.c:373
 msgid "Debugger"
@@ -786,7 +786,7 @@ msgstr ""
 #: src/x86dasm/dis-buf.c:51
 #, c-format
 msgid "Unknown error %d\n"
-msgstr "Onbekende fout"
+msgstr "Onbekende fout %d\n"
 
 #: src/x86dasm/dis-buf.c:60
 #, c-format
