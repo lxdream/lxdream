@@ -154,6 +154,11 @@ void sh4_translate_exception_exit_recover( );
 gboolean sh4_translate_flush_cache( void );
 
 /**
+ * Given a block's use_list, remove all direct links to the block.
+ */
+void sh4_translate_unlink_block( void *use_list );
+
+/**
  * Support function called from the translator when a breakpoint is hit.
  * Either returns immediately (to skip the breakpoint), or aborts the current
  * cycle and never returns.

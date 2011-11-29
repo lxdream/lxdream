@@ -489,9 +489,9 @@ static void call_write_func(int addr_reg, int value_reg, int offset, int pc)
 #define SLOTILLEGAL() exit_block_exc(EXC_SLOT_ILLEGAL, pc-2); sh4_x86.in_delay_slot = DELAY_NONE; return 2;
 
 /** Offset of xlat_sh4_mode field relative to the code pointer */ 
-#define XLAT_SH4_MODE_CODE_OFFSET  (uint32_t)(offsetof(struct xlat_cache_block, xlat_sh4_mode) - offsetof(struct xlat_cache_block,code) )
-#define XLAT_CHAIN_CODE_OFFSET (uint32_t)(offsetof(struct xlat_cache_block, chain) - offsetof(struct xlat_cache_block,code) )
-#define XLAT_ACTIVE_CODE_OFFSET (uint32_t)(offsetof(struct xlat_cache_block, active) - offsetof(struct xlat_cache_block,code) )
+#define XLAT_SH4_MODE_CODE_OFFSET  (int32_t)(offsetof(struct xlat_cache_block, xlat_sh4_mode) - offsetof(struct xlat_cache_block,code) )
+#define XLAT_CHAIN_CODE_OFFSET (int32_t)(offsetof(struct xlat_cache_block, chain) - offsetof(struct xlat_cache_block,code) )
+#define XLAT_ACTIVE_CODE_OFFSET (int32_t)(offsetof(struct xlat_cache_block, active) - offsetof(struct xlat_cache_block,code) )
 
 void sh4_translate_begin_block( sh4addr_t pc ) 
 {
@@ -511,7 +511,7 @@ void sh4_translate_begin_block( sh4addr_t pc )
         CALL_ptr( sh4_x86.begin_callback );
     }
     if( sh4_x86.profile_blocks ) {
-    	MOVP_immptr_rptr( ((uintptr_t)sh4_x86.code) + XLAT_ACTIVE_CODE_OFFSET, REG_EAX );
+    	MOVP_immptr_rptr( sh4_x86.code + XLAT_ACTIVE_CODE_OFFSET, REG_EAX );
     	ADDL_imms_r32disp( 1, REG_EAX, 0 );
     }  
 }
@@ -574,6 +574,86 @@ static void jump_next_block()
     JMP_prerel(rel);
 	JMP_TARGET(nocode); 
 }
+
+/**
+ * 
+ */
+static void FASTCALL sh4_translate_get_code_and_backpatch( uint32_t pc )
+{
+    uint8_t *target = (uint8_t *)xlat_get_code_by_vma(pc);
+    while( target != NULL && sh4r.xlat_sh4_mode != XLAT_BLOCK_MODE(target) ) {
+        target = XLAT_BLOCK_CHAIN(target);
+	}
+    if( target == NULL ) {
+        target = sh4_translate_basic_block( pc );
+    }
+    uint8_t *backpatch = ((uint8_t *)__builtin_return_address(0)) - (CALL1_PTR_MIN_SIZE);
+    *backpatch = 0xE9;
+    *(uint32_t *)(backpatch+1) = (uint32_t)(target-backpatch)+PROLOGUE_SIZE-5;
+    *(void **)(backpatch+5) = XLAT_BLOCK_FOR_CODE(target)->use_list;
+    XLAT_BLOCK_FOR_CODE(target)->use_list = backpatch; 
+
+    uint8_t **retptr = ((uint8_t **)__builtin_frame_address(0))+1;
+    assert( *retptr == ((uint8_t *)__builtin_return_address(0)) );
+	*retptr = backpatch;
+}
+
+static void emit_translate_and_backpatch()
+{
+    /* NB: this is either 7 bytes (i386) or 12 bytes (x86-64) */
+    CALL1_ptr_r32(sh4_translate_get_code_and_backpatch, REG_ARG1);
+
+    /* When patched, the jmp instruction will be 5 bytes (either platform) -
+     * we need to reserve sizeof(void*) bytes for the use-list
+	 * pointer
+	 */ 
+    if( sizeof(void*) == 8 ) {
+        NOP();
+    } else {
+        NOP2();
+    }
+}
+
+/**
+ * If we're jumping to a fixed address (or at least fixed relative to the
+ * current PC, then we can do a direct branch. REG_ARG1 should contain
+ * the PC at this point.
+ */
+static void jump_next_block_fixed_pc( sh4addr_t pc )
+{
+	if( IS_IN_ICACHE(pc) ) {
+	    if( sh4_x86.sh4_mode != SH4_MODE_UNKNOWN ) {
+	        /* Fixed address, in cache, and fixed SH4 mode - generate a call to the
+	         * fetch-and-backpatch routine, which will replace the call with a branch */
+           emit_translate_and_backpatch();	         
+           return;
+		} else {
+            MOVP_moffptr_rax( xlat_get_lut_entry(GET_ICACHE_PHYS(pc)) );
+            ANDP_imms_rptr( -4, REG_EAX );
+        }
+	} else if( sh4_x86.tlb_on ) {
+        CALL1_ptr_r32(xlat_get_code_by_vma, REG_ARG1);
+    } else {
+        CALL1_ptr_r32(xlat_get_code, REG_ARG1);
+    }
+    jump_next_block();
+
+
+}
+
+void sh4_translate_unlink_block( void *use_list )
+{
+	uint8_t *tmp = xlat_output; /* In case something is active, which should never happen */
+	void *next = use_list;
+	while( next != NULL ) {
+    	xlat_output = (uint8_t *)next;
+ 	    next = *(void **)(xlat_output+5);
+ 		emit_translate_and_backpatch();
+ 	}
+ 	xlat_output = tmp;
+}
+
+
 
 static void exit_block()
 {
@@ -645,16 +725,7 @@ void exit_block_abs( sh4addr_t pc, sh4addr_t endpc )
     MOVL_r32_rbpdisp( REG_ARG1, R_PC );
     CMPL_r32_rbpdisp( REG_ECX, REG_OFFSET(event_pending) );
     JBE_label(exitloop);
-
-    if( IS_IN_ICACHE(pc) ) {
-        MOVP_moffptr_rax( xlat_get_lut_entry(GET_ICACHE_PHYS(pc)) );
-        ANDP_imms_rptr( -4, REG_EAX );
-    } else if( sh4_x86.tlb_on ) {
-        CALL1_ptr_r32(xlat_get_code_by_vma, REG_ARG1);
-    } else {
-        CALL1_ptr_r32(xlat_get_code, REG_ARG1);
-    }
-    jump_next_block();
+    jump_next_block_fixed_pc(pc);    
     JMP_TARGET(exitloop);
     exit_block();
 }
@@ -682,16 +753,8 @@ void exit_block_rel( sh4addr_t pc, sh4addr_t endpc )
         MOVL_r32_rbpdisp( REG_ARG1, R_PC );
         CMPL_r32_rbpdisp( REG_ECX, REG_OFFSET(event_pending) );
         JBE_label(exitloop2);
-
-        if( IS_IN_ICACHE(pc) ) {
-            MOVP_moffptr_rax( xlat_get_lut_entry(GET_ICACHE_PHYS(pc)) );
-            ANDP_imms_rptr( -4, REG_EAX );
-        } else if( sh4_x86.tlb_on ) {
-            CALL1_ptr_r32(xlat_get_code_by_vma, REG_ARG1);
-        } else {
-            CALL1_ptr_r32(xlat_get_code, REG_ARG1);
-        }
-        jump_next_block();
+        
+        jump_next_block_fixed_pc(pc);
         JMP_TARGET(exitloop2);
     }
     exit_block();
