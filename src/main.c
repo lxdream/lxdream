@@ -45,7 +45,7 @@
 
 #define GL_INFO_OPT 1
 
-char *option_list = "a:A:bc:e:dfg:G:hHl:m:npt:T:uvV:xX?";
+char *option_list = "a:A:bc:e:dfg:G:hHl:m:npPt:T:uvV:xX?";
 struct option longopts[] = {
         { "aica", required_argument, NULL, 'a' },
         { "audio", required_argument, NULL, 'A' },
@@ -67,6 +67,7 @@ struct option longopts[] = {
         { "unsafe", no_argument, NULL, 'u' },
         { "video", no_argument, NULL, 'V' },
         { "version", no_argument, NULL, 'v' }, 
+        { "sh4-profile-blocks", no_argument, NULL, 'P' },
         { NULL, 0, 0, 0 } };
 char *aica_program = NULL;
 char *display_driver_name = NULL;
@@ -131,7 +132,7 @@ int main (int argc, char *argv[])
     int opt;
     double t;
     gboolean display_ok, have_disc = FALSE, have_save = FALSE, have_exec = FALSE;
-    gboolean print_glinfo = FALSE;
+    gboolean print_glinfo = FALSE, sh4_profile_blocks = FALSE;
     uint32_t time_secs, time_nanos;
     const char *exec_name = NULL;
 
@@ -191,6 +192,9 @@ int main (int argc, char *argv[])
         case 'p': /* Start immediately */
             start_immediately = TRUE;
             no_start = FALSE;
+            break;
+        case 'P':
+            sh4_profile_blocks = TRUE;
             break;
         case 't': /* Time limit + auto quit */
             t = strtod(optarg, NULL);
@@ -355,6 +359,9 @@ int main (int argc, char *argv[])
     }
 
     sh4_set_core( sh4_core );
+    if( sh4_core == SH4_TRANSLATE ) {
+        sh4_translate_set_profile_blocks( sh4_profile_blocks );
+    }
 
     /* If requested, start the gdb server immediately before we go into the main
      * loop.
