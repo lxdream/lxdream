@@ -22,6 +22,7 @@
 
 #include "dreamcast.h"
 #include "sh4/sh4core.h"
+#include "sh4/sh4trans.h"
 #include "xlat/xltcache.h"
 #include "x86dasm/x86dasm.h"
 
@@ -121,6 +122,13 @@ void xlat_flush_cache()
     }
 }
 
+void xlat_delete_block( xlat_cache_block_t block )
+{
+    block->active = 0;
+    *block->lut_entry = block->chain;
+    sh4_translate_unlink_block( block->use_list );
+}
+
 static void xlat_flush_page_by_lut( void **page )
 {
     int i;
@@ -129,7 +137,7 @@ static void xlat_flush_page_by_lut( void **page )
             void *p = page[i];
             do {
                 xlat_cache_block_t block = XLAT_BLOCK_FOR_CODE(p);
-                block->active = 0;
+                xlat_delete_block(block);
                 p = block->chain;
             } while( p != NULL );
         }
@@ -377,7 +385,8 @@ void xlat_promote_to_temp_space( xlat_cache_block_t block )
 #else 
 void xlat_promote_to_temp_space( xlat_cache_block_t block )
 {
-    *block->lut_entry = 0;
+    *block->lut_entry = block->chain;
+    xlat_delete_block(block);
 }
 #endif
 
@@ -414,6 +423,7 @@ xlat_cache_block_t xlat_start_block( sh4addr_t address )
     } else {
         xlat_new_create_ptr->chain = NULL;
     }
+    xlat_new_create_ptr->use_list = NULL;
 
     xlat_lut[XLAT_LUT_PAGE(address)][XLAT_LUT_ENTRY(address)] = 
         &xlat_new_create_ptr->code;
@@ -424,6 +434,7 @@ xlat_cache_block_t xlat_start_block( sh4addr_t address )
 
 xlat_cache_block_t xlat_extend_block( uint32_t newSize )
 {
+    assert( xlat_new_create_ptr->use_list == NULL );
     while( xlat_new_create_ptr->size < newSize ) {
         if( xlat_new_cache_ptr->size == 0 ) {
             /* Migrate to the front of the cache to keep it contiguous */
@@ -447,6 +458,7 @@ xlat_cache_block_t xlat_extend_block( uint32_t newSize )
             xlat_new_create_ptr->size = allocation;
             xlat_new_create_ptr->lut_entry = lut_entry;
             xlat_new_create_ptr->chain = chain;
+            xlat_new_create_ptr->use_list = NULL;
             *lut_entry = &xlat_new_create_ptr->code;
             memmove( xlat_new_create_ptr->code, olddata, oldsize );
         } else {
@@ -473,12 +485,6 @@ void xlat_commit_block( uint32_t destsize, uint32_t srcsize )
     }
 
     xlat_new_cache_ptr = xlat_cut_block( xlat_new_create_ptr, destsize );
-}
-
-void xlat_delete_block( xlat_cache_block_t block ) 
-{
-    block->active = 0;
-    *block->lut_entry = NULL;
 }
 
 void xlat_check_cache_integrity( xlat_cache_block_t cache, xlat_cache_block_t ptr, int size )
@@ -517,7 +523,7 @@ sh4addr_t xlat_get_address( unsigned char *ptr )
         if( page != NULL ) {
             for( j=0; j<XLAT_LUT_PAGE_ENTRIES; j++ ) {
                 void *entry = page[j];
-                if( ((uintptr_t)entry) > XLAT_LUT_ENTRY_USED ) {
+                if( ((uintptr_t)entry) > (uintptr_t)XLAT_LUT_ENTRY_USED ) {
                     xlat_cache_block_t block = XLAT_BLOCK_FOR_CODE(entry);
                     if( ptr >= block->code && ptr < block->code + block->size) {
                         /* Found it */

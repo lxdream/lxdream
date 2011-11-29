@@ -42,6 +42,7 @@ struct xlat_cache_block {
     uint32_t size;
     void **lut_entry; /* For deletion */
     void *chain;
+    void *use_list;
     uint32_t xlat_sh4_mode; /* comparison with sh4r.xlat_sh4_mode */
     uint32_t recover_table_offset; // Offset from code[0] of the recovery table;
     uint32_t recover_table_size;

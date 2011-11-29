@@ -482,6 +482,9 @@ static inline void x86_encode_modrm_rip(int rexw, uint32_t opcode, int rr, int32
 #define NEGL_rbpdisp(r1)             x86_encode_r32_rbspdisp32(0xF7, 3, disp)
 #define NEGQ_r64(r1)                 x86_encode_r64_rm64(0xF7, 3, r1)
 
+#define NOP()                        OP(0x90)
+#define NOP2()                       OP(0x66); OP(0x90)
+
 #define NOTB_r8(r1)                  x86_encode_r32_rm32(0xF6, 2, r1)
 #define NOTL_r32(r1)                 x86_encode_r32_rm32(0xF7, 2, r1)
 #define NOTL_rbpdisp(r1)             x86_encode_r32_rbspdisp32(0xF7, 2, disp)
