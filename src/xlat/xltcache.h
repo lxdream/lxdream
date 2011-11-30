@@ -183,10 +183,21 @@ gboolean xlat_is_code_pointer( void *p );
 void xlat_check_integrity();
 
 /**
- * Dump out the top N translated blocks by number of executions (requires block
- * profiling to be turned on in order to give meaningful results).
- * @param topN Number of blocks to print. If 0, print all blocks in the cache
+ * Short record with block + pc, used for activity dumps
  */
+typedef struct xlat_block_ref {
+    xlat_cache_block_t block;
+    uint32_t pc;
+} *xlat_block_ref_t;
+
+/**
+ * Fetch the top numRecords translated blocks by number of executions (requires block
+ * profiling to be turned on in order to give meaningful results).
+ * @param topN Number of blocks to print.
+ * @return the number of records retrieved
+ */
+unsigned int xlat_get_cache_blocks_by_activity( xlat_block_ref_t records, size_t numRecords );
+
 void xlat_dump_cache_by_activity( unsigned int topN );
 
 #endif /* lxdream_xltcache_H */
