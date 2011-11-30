@@ -132,7 +132,7 @@ void sh4_set_event_pending( uint32_t cycles );
  * Handle an event that's due (note caller is responsible for ensuring that the
  * event is in fact due).
  */
-void sh4_handle_pending_event();
+void sh4_handle_pending_events();
 
 /**
  * Execute (using the emulator) a single instruction (in other words, perform a

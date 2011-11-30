@@ -613,7 +613,7 @@ unsigned int xlat_get_active_blocks( struct xlat_block_ref *blocks, unsigned int
     return count;
 }
 
-void xlat_get_block_sh4addrs( struct xlat_block_ref *blocks, unsigned int size )
+static void xlat_get_block_pcs( struct xlat_block_ref *blocks, unsigned int size )
 {
     unsigned i;
     for( i=0; i<XLAT_LUT_PAGES;i ++ ) {
@@ -656,7 +656,7 @@ unsigned int xlat_get_cache_blocks_by_activity( xlat_block_ref_t outblocks, size
 
     struct xlat_block_ref blocks[count];
     xlat_get_active_blocks(blocks, count);
-    xlat_get_block_sh4addrs(blocks,count);
+    xlat_get_block_pcs(blocks,count);
     qsort(blocks, count, sizeof(struct xlat_block_ref), xlat_compare_active_field);
 
     if( topN > count )

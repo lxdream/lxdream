@@ -23,6 +23,10 @@
 extern xlat_cache_block_t xlat_new_cache;
 extern xlat_cache_block_t xlat_new_cache_ptr;
 
+void sh4_translate_unlink_block( void *use_list )
+{
+}
+
 /**
  * Test initial allocations from the new cache
  */
