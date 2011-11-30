@@ -292,3 +292,14 @@ void sh4_translate_dump_block( uint32_t sh4_pc )
     sh4_translate_disasm_block( stderr, code, sh4_pc, NULL );
 }
 
+void sh4_translate_dump_cache_by_activity( unsigned int topN )
+{
+    struct xlat_block_ref blocks[topN];
+    topN = xlat_get_cache_blocks_by_activity(blocks, topN);
+    unsigned int i;
+    for( i=0; i<topN; i++ ) {
+        fprintf( stderr, "0x%08X (%p): %d \n", blocks[i].pc, blocks[i].block->code, blocks[i].block->active);
+        sh4_translate_disasm_block( stderr, blocks[i].block->code, blocks[i].pc, NULL );
+        fprintf( stderr, "\n" );
+    }
+}

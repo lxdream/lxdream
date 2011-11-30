@@ -171,6 +171,11 @@ void FASTCALL sh4_translate_breakpoint_hit( sh4vma_t pc );
  */
 void sh4_translate_disasm_block( FILE *out, void *code, sh4addr_t source_start, void *native_pc );
 
+/**
+ * Dump the top N blocks in the SH4 translation cache
+ */
+void sh4_translate_dump_cache_by_activity( unsigned int topN );
+
 #ifdef __cplusplus
 }
 #endif

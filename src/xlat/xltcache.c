@@ -583,11 +583,6 @@ void xlat_check_integrity( )
 #endif
 }
 
-typedef struct {
-    xlat_cache_block_t block;
-    sh4addr_t sh4_pc;
-} block_sh4_entry;
-
 unsigned int xlat_get_active_block_count()
 {
     unsigned int count = 0;
@@ -601,14 +596,14 @@ unsigned int xlat_get_active_block_count()
     return count;
 }
 
-unsigned int xlat_get_active_blocks( block_sh4_entry *blocks, unsigned int size )
+unsigned int xlat_get_active_blocks( struct xlat_block_ref *blocks, unsigned int size )
 {
     unsigned int count = 0;
     xlat_cache_block_t ptr = xlat_new_cache;
     while( ptr->size != 0 ) {
         if( ptr->active != 0 ) {
             blocks[count].block = ptr;
-            blocks[count].sh4_pc = 0;
+            blocks[count].pc = 0;
             count++;
         }
         if( count >= size )
@@ -618,7 +613,7 @@ unsigned int xlat_get_active_blocks( block_sh4_entry *blocks, unsigned int size 
     return count;
 }
 
-void xlat_get_block_sh4addrs( block_sh4_entry *blocks, unsigned int size )
+void xlat_get_block_sh4addrs( struct xlat_block_ref *blocks, unsigned int size )
 {
     unsigned i;
     for( i=0; i<XLAT_LUT_PAGES;i ++ ) {
@@ -631,7 +626,7 @@ void xlat_get_block_sh4addrs( block_sh4_entry *blocks, unsigned int size )
                     sh4addr_t pc = XLAT_ADDR_FROM_ENTRY(i,j);
                     for( unsigned k=0; k<size; k++ ) {
                         if( blocks[k].block == ptr ) {
-                            blocks[k].sh4_pc = pc;
+                            blocks[k].pc = pc;
                             ptr = ptr->chain;
                             if( ptr == NULL )
                                 break;
@@ -649,26 +644,23 @@ void xlat_get_block_sh4addrs( block_sh4_entry *blocks, unsigned int size )
 
 static int xlat_compare_active_field( const void *a, const void *b )
 {
-    const block_sh4_entry *ptra = (const block_sh4_entry *)a;
-    const block_sh4_entry *ptrb = (const block_sh4_entry *)b;
+    const struct xlat_block_ref *ptra = (const struct xlat_block_ref *)a;
+    const struct xlat_block_ref *ptrb = (const struct xlat_block_ref *)b;
     return ptrb->block->active - ptra->block->active;
 }
 
-void xlat_dump_cache_by_activity( unsigned int topN )
+unsigned int xlat_get_cache_blocks_by_activity( xlat_block_ref_t outblocks, size_t topN )
 {
     int i=0;
     int count = xlat_get_active_block_count();
 
-    block_sh4_entry blocks[count];
+    struct xlat_block_ref blocks[count];
     xlat_get_active_blocks(blocks, count);
     xlat_get_block_sh4addrs(blocks,count);
-    qsort(blocks, count, sizeof(block_sh4_entry), xlat_compare_active_field);
+    qsort(blocks, count, sizeof(struct xlat_block_ref), xlat_compare_active_field);
 
-    if( topN == 0 || topN > count )
+    if( topN > count )
         topN = count;
-    for( unsigned int i=0; i<topN; i++ ) {
-        fprintf(stderr, "0x%08X (%p): %d\n", blocks[i].sh4_pc, blocks[i].block->code, blocks[i].block->active);
-        sh4_translate_disasm_block( stderr, blocks[i].block->code, blocks[i].sh4_pc, NULL );
-        fprintf(stderr, "\n");
-    }
+    memcpy(outblocks, blocks, topN*sizeof(struct xlat_block_ref));
+    return topN;
 }
