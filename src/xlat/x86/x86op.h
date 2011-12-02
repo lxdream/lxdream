@@ -422,6 +422,8 @@ static inline void x86_encode_modrm_rip(int rexw, uint32_t opcode, int rr, int32
 #define IMULQ_imms_r64(imm,r1)       x86_encode_imms_rm64(0x6B,0x69, r1, imm, r1)
 #define IMULQ_r64_r64(r1,r2)         x86_encode_r64_rm64(0x0FAF, r2, r1)
 
+#define INC_r32(r1)                  x86_encode_r32_rm32(0xFF, 0, r1)
+
 #define LEAL_r32disp_r32(r1,disp,r2) x86_encode_r32_mem32(0x8D, r2, r1, -1, 0, disp)
 #define LEAL_rbpdisp_r32(disp,r1)    x86_encode_r32_rbpdisp32(0x8D, r1, disp)
 #define LEAL_sib_r32(ss,ii,bb,d,r1)  x86_encode_r32_mem32(0x8D, r1, bb, ii, ss, d)
