@@ -129,15 +129,23 @@ static gboolean check_registers( struct sh4_registers *xsh4r, struct sh4_registe
         }
     }
     for( unsigned i=0; i<16; i++ ) {
-        if( xsh4r->fr[0][i] != esh4r->fr[0][i] ) {
+        if( *((uint32_t *)&xsh4r->fr[0][i]) != *((uint32_t *)&esh4r->fr[0][i]) ) {
             isgood = FALSE;
-            fprintf( stderr, "FR%d  Xlt = %f, Emu = %f\n", i, xsh4r->fr[0][i], esh4r->fr[0][i] );
+            fprintf( stderr, "FR%d  Xlt = %f (0x%08X), Emu = %f (0x%08X)\n", i, xsh4r->fr[0][i],
+                    *((uint32_t *)&xsh4r->fr[0][i]),
+                    esh4r->fr[0][i],
+                    *((uint32_t *)&esh4r->fr[0][i])
+                    );
         }
     }
     for( unsigned i=0; i<16; i++ ) {
-        if( xsh4r->fr[1][i] != esh4r->fr[1][i] ) {
+        if( *((uint32_t *)&xsh4r->fr[1][i]) != *((uint32_t *)&esh4r->fr[1][i]) ) {
             isgood = FALSE;
-            fprintf( stderr, "XF%d  Xlt = %f, Emu = %f\n", i, xsh4r->fr[1][i], esh4r->fr[1][i] );
+            fprintf( stderr, "XF%d  Xlt = %f (0x%08X), Emu = %f (0x%08X)\n", i, xsh4r->fr[1][i],
+                    *((uint32_t *)&xsh4r->fr[1][i]),
+                    esh4r->fr[1][i],
+                    *((uint32_t *)&esh4r->fr[1][i])
+                    );
         }
     }
 
@@ -306,6 +314,8 @@ void sh4_shadow_block_end()
 
     if( !check_registers( &temp_sh4r, &sh4r ) ) {
         fprintf( stderr, "After executing block at %08X\n", shadow_sh4r.pc );
+        fprintf( stderr, "Translated block was:\n" );
+        sh4_translate_dump_block(shadow_sh4r.pc);
         abort();
     }
     if( mem_check_posn < mem_log_posn ) {

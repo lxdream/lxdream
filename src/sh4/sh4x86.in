@@ -130,6 +130,7 @@ static struct x86_symbol x86_symbol_table[] = {
     { "sh4_write_fpscr", sh4_write_fpscr },
     { "sh4_write_sr", sh4_write_sr },
     { "sh4_read_sr", sh4_read_sr },
+    { "sh4_raise_exception", sh4_raise_exception },
     { "sh4_sleep", sh4_sleep },
     { "sh4_fsca", sh4_fsca },
     { "sh4_ftrv", sh4_ftrv },
@@ -365,9 +366,9 @@ static void sh4_x86_add_backpatch( uint8_t *fixup_addr, uint32_t fixup_pc, uint3
 #define check_priv( ) \
     if( (sh4_x86.sh4_mode & SR_MD) == 0 ) { \
         if( sh4_x86.in_delay_slot ) { \
-            exit_block_exc(EXC_SLOT_ILLEGAL, (pc-2) ); \
+            exit_block_exc(EXC_SLOT_ILLEGAL, (pc-2), 4 ); \
         } else { \
-            exit_block_exc(EXC_ILLEGAL, pc); \
+            exit_block_exc(EXC_ILLEGAL, pc, 2); \
         } \
         sh4_x86.branch_taken = TRUE; \
         sh4_x86.in_delay_slot = DELAY_NONE; \
@@ -486,7 +487,7 @@ static void call_write_func(int addr_reg, int value_reg, int offset, int pc)
 #define MEM_WRITE_LONG( addr_reg, value_reg ) call_write_func(addr_reg, value_reg, MEM_REGION_PTR(write_long), pc)
 #define MEM_PREFETCH( addr_reg ) call_read_func(addr_reg, REG_RESULT1, MEM_REGION_PTR(prefetch), pc)
 
-#define SLOTILLEGAL() exit_block_exc(EXC_SLOT_ILLEGAL, pc-2); sh4_x86.in_delay_slot = DELAY_NONE; return 2;
+#define SLOTILLEGAL() exit_block_exc(EXC_SLOT_ILLEGAL, pc-2, 4); sh4_x86.in_delay_slot = DELAY_NONE; return 2;
 
 /** Offset of xlat_sh4_mode field relative to the code pointer */ 
 #define XLAT_SH4_MODE_CODE_OFFSET  (int32_t)(offsetof(struct xlat_cache_block, xlat_sh4_mode) - offsetof(struct xlat_cache_block,code) )
@@ -763,11 +764,11 @@ void exit_block_rel( sh4addr_t pc, sh4addr_t endpc )
 /**
  * Exit unconditionally with a general exception
  */
-void exit_block_exc( int code, sh4addr_t pc )
+void exit_block_exc( int code, sh4addr_t pc, int inst_adjust )
 {
     MOVL_imm32_r32( pc - sh4_x86.block_start_pc, REG_ECX );
     ADDL_r32_rbpdisp( REG_ECX, R_PC );
-    MOVL_imm32_r32( ((pc - sh4_x86.block_start_pc)>>1)*sh4_cpu_period, REG_ECX );
+    MOVL_imm32_r32( ((pc - sh4_x86.block_start_pc + inst_adjust)>>1)*sh4_cpu_period, REG_ECX );
     ADDL_r32_rbpdisp( REG_ECX, REG_OFFSET(slice_cycle) );
     MOVL_imm32_r32( code, REG_ARG1 );
     CALL1_ptr_r32( sh4_raise_exception, REG_ARG1 );
@@ -816,6 +817,7 @@ void sh4_translate_end_block( sh4addr_t pc ) {
         ADDL_r32_r32( REG_EDX, REG_ECX );
         ADDL_r32_rbpdisp( REG_ECX, R_SPC );
         MOVL_moffptr_eax( &sh4_cpu_period );
+        INC_r32( REG_EDX );  /* Add 1 for the aborting instruction itself */ 
         MULL_r32( REG_EDX );
         ADDL_r32_rbpdisp( REG_EAX, REG_OFFSET(slice_cycle) );
         exit_block();
@@ -2208,9 +2210,9 @@ TRAPA #imm {:
 UNDEF {:  
     COUNT_INST(I_UNDEF);
     if( sh4_x86.in_delay_slot ) {
-	exit_block_exc(EXC_SLOT_ILLEGAL, pc-2);    
+	exit_block_exc(EXC_SLOT_ILLEGAL, pc-2, 4);    
     } else {
-	exit_block_exc(EXC_ILLEGAL, pc);    
+	exit_block_exc(EXC_ILLEGAL, pc, 2);    
 	return 2;
     }
 :}
