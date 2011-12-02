@@ -27,6 +27,13 @@ uint32_t sh4_disasm_instruction( sh4vma_t pc, char *buf, int len, char *opcode )
 {
     sh4addr_t addr = mmu_vma_to_phys_disasm(pc);
     uint32_t tmp;
+    
+    if( addr == MMU_VMA_ERROR ) {
+        sprintf( opcode, "?? ??" );
+        snprintf( buf, len, "???" );
+        return pc+2;
+    }
+    
     uint16_t ir = ext_address_space[addr>>12]->read_word(addr);
 
 #define UNDEF(ir) snprintf( buf, len, "????    " );
