@@ -1273,7 +1273,7 @@ FCNVDS FRm, FPUL {:
 FSRRA FRn {:
     CHECKFPUEN();
     if( !IS_FPU_DOUBLEPREC() ) {
-	FR(FRn) = 1.0/sqrtf(FR(FRn));
+	FR(FRn) = 1.0/sqrt(FR(FRn));
     }
 :}
 FIPR FVm, FVn {:
