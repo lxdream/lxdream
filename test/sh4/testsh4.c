@@ -4,6 +4,11 @@
 int total_tests = 0;
 int total_fails = 0;
 
+void test_print_float_error( int expect, int actual )
+{
+    fprintf( stderr, "Error: expected 0x%08x but was 0x%08x\n", expect, actual );
+}
+
 int test_print_result( char *testname, int failed, int total )
 {
     fprintf( stdout, "%s: %d/%d tests passed\n", testname, total-failed, total );
@@ -83,6 +88,7 @@ int main()
     test_div0();
     test_div1();
     test_float();
+    test_fsrra();
     test_fmov();
     test_ftrc();
     test_ldc();
