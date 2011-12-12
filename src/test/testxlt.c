@@ -37,7 +37,7 @@ void test_initial()
     assert( block->active == 1 );
     assert( block->size == XLAT_NEW_CACHE_SIZE - (2*sizeof(struct xlat_cache_block)) );
     memset( block->code, 0xB5, 8192 );
-    xlat_commit_block( 8192, 100 );
+    xlat_commit_block( 8192, 0x0C008000, 0x0C008100 );
     assert( block->active == 1 );
     assert( block->size == 8192 );
     
@@ -46,7 +46,7 @@ void test_initial()
     assert( block2->active == 1 );
     assert( block2->size == XLAT_NEW_CACHE_SIZE - (3*sizeof(struct xlat_cache_block)) - 8192 );
     memset( block2->code, 0x6D, size );
-    xlat_commit_block( size, 200 );
+    xlat_commit_block( size, 0x0C009000, 0x0C009200 );
     assert( block2->active == 1 );
     assert( block2->size == size );
     
@@ -74,7 +74,7 @@ void test_initial()
     for( i=4096; i<8192; i++ ) {
 	assert( block3a->code[i] == 0xB5 );
     }
-    xlat_commit_block(6142, 432);
+    xlat_commit_block(6142, 0x0D009800, 0x0D009C32);
     addr = xlat_get_code( 0x0D009800 );
     assert( addr == &block3a->code );
 }

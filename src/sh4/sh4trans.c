@@ -112,7 +112,7 @@ void * sh4_translate_basic_block( sh4addr_t start )
         done = sh4_translate_instruction( pc ); 
         assert( xlat_output <= eob );
         pc += 2;
-        if ( pc >= lastpc ) {
+        if ( pc >= lastpc && done == 0 ) {
             done = 2;
         }
 #ifdef SINGLESTEP
@@ -140,7 +140,7 @@ void * sh4_translate_basic_block( sh4addr_t start )
     xlat_current_block->recover_table_offset = xlat_output - (uint8_t *)xlat_current_block->code;
     xlat_current_block->recover_table_size = xlat_recovery_posn;
     xlat_current_block->xlat_sh4_mode = sh4r.xlat_sh4_mode;
-    xlat_commit_block( finalsize, pc-start );
+    xlat_commit_block( finalsize, start, pc );
     return xlat_current_block->code;
 }
 

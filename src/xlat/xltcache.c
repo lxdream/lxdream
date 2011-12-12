@@ -43,6 +43,11 @@
 #define NEXT(block) ( (xlat_cache_block_t)&((block)->code[(block)->size]))
 #define IS_ENTRY_POINT(ent) (ent > XLAT_LUT_ENTRY_USED)
 #define IS_ENTRY_USED(ent) (ent != XLAT_LUT_ENTRY_EMPTY)
+#define IS_ENTRY_CONTINUATION(ent) (((uintptr_t)ent) & ((uintptr_t)XLAT_LUT_ENTRY_USED))
+#define IS_FIRST_ENTRY_IN_PAGE(addr) (((addr)&0x1FFE) == 0)
+#define XLAT_CODE_ADDR(ent) ((void *)(((uintptr_t)ent) & (~((uintptr_t)0x03))))
+#define XLAT_BLOCK_FOR_LUT_ENTRY(ent) XLAT_BLOCK_FOR_CODE(XLAT_CODE_ADDR(ent))
+
 
 #define MIN_BLOCK_SIZE 32
 #define MIN_TOTAL_SIZE (sizeof(struct xlat_cache_block)+MIN_BLOCK_SIZE)
@@ -134,7 +139,7 @@ static void xlat_flush_page_by_lut( void **page )
     int i;
     for( i=0; i<XLAT_LUT_PAGE_ENTRIES; i++ ) {
         if( IS_ENTRY_POINT(page[i]) ) {
-            void *p = page[i];
+            void *p = XLAT_CODE_ADDR(page[i]);
             do {
                 xlat_cache_block_t block = XLAT_BLOCK_FOR_CODE(p);
                 xlat_delete_block(block);
@@ -150,6 +155,10 @@ void FASTCALL xlat_invalidate_word( sh4addr_t addr )
     void **page = xlat_lut[XLAT_LUT_PAGE(addr)];
     if( page != NULL ) {
         int entry = XLAT_LUT_ENTRY(addr);
+        if( entry == 0 && IS_ENTRY_CONTINUATION(page[entry]) ) {
+            /* First entry may be a delay-slot for the previous page */
+            xlat_flush_page_by_lut(xlat_lut[XLAT_LUT_PAGE(addr-2)]);
+        }
         if( page[entry] != NULL ) {
             xlat_flush_page_by_lut(page);
         }
@@ -161,6 +170,10 @@ void FASTCALL xlat_invalidate_long( sh4addr_t addr )
     void **page = xlat_lut[XLAT_LUT_PAGE(addr)];
     if( page != NULL ) {
         int entry = XLAT_LUT_ENTRY(addr);
+        if( entry == 0 && IS_ENTRY_CONTINUATION(page[entry]) ) {
+            /* First entry may be a delay-slot for the previous page */
+            xlat_flush_page_by_lut(xlat_lut[XLAT_LUT_PAGE(addr-2)]);
+        }
         if( *(uint64_t *)&page[entry] != 0 ) {
             xlat_flush_page_by_lut(page);
         }
@@ -173,6 +186,11 @@ void FASTCALL xlat_invalidate_block( sh4addr_t address, size_t size )
     int entry_count = size >> 1; // words;
     uint32_t page_no = XLAT_LUT_PAGE(address);
     int entry = XLAT_LUT_ENTRY(address);
+
+    if( entry == 0 && xlat_lut[page_no] != NULL && IS_ENTRY_CONTINUATION(xlat_lut[page_no][entry])) {
+        /* First entry may be a delay-slot for the previous page */
+        xlat_flush_page_by_lut(xlat_lut[XLAT_LUT_PAGE(address-2)]);
+    }
     do {
         void **page = xlat_lut[page_no];
         int page_entries = XLAT_LUT_PAGE_ENTRIES - entry;
@@ -212,7 +230,7 @@ void * FASTCALL xlat_get_code( sh4addr_t address )
     void *result = NULL;
     void **page = xlat_lut[XLAT_LUT_PAGE(address)];
     if( page != NULL ) {
-        result = (void *)(((uintptr_t)(page[XLAT_LUT_ENTRY(address)])) & (~((uintptr_t)0x03)));
+        result = XLAT_CODE_ADDR(page[XLAT_LUT_ENTRY(address)]);
     }
     return result;
 }
@@ -235,18 +253,24 @@ xlat_recovery_record_t xlat_get_pre_recovery( void *code, void *native_pc )
     return NULL;	
 }
 
-void ** FASTCALL xlat_get_lut_entry( sh4addr_t address )
+static void **xlat_get_lut_page( sh4addr_t address )
 {
     void **page = xlat_lut[XLAT_LUT_PAGE(address)];
 
-    /* Add the LUT entry for the block */
-    if( page == NULL ) {
-        xlat_lut[XLAT_LUT_PAGE(address)] = page =
-            (void **)mmap( NULL, XLAT_LUT_PAGE_SIZE, PROT_READ|PROT_WRITE,
-                    MAP_PRIVATE|MAP_ANON, -1, 0 );
-        memset( page, 0, XLAT_LUT_PAGE_SIZE );
-    }
+     /* Add the LUT entry for the block */
+     if( page == NULL ) {
+         xlat_lut[XLAT_LUT_PAGE(address)] = page =
+             (void **)mmap( NULL, XLAT_LUT_PAGE_SIZE, PROT_READ|PROT_WRITE,
+                     MAP_PRIVATE|MAP_ANON, -1, 0 );
+         memset( page, 0, XLAT_LUT_PAGE_SIZE );
+     }
 
+     return page;
+}
+
+void ** FASTCALL xlat_get_lut_entry( sh4addr_t address )
+{
+    void **page = xlat_get_lut_page(address);
     return &page[XLAT_LUT_ENTRY(address)];
 }
 
@@ -408,26 +432,22 @@ xlat_cache_block_t xlat_start_block( sh4addr_t address )
     xlat_new_cache_ptr = NEXT(xlat_new_cache_ptr);
 
     /* Add the LUT entry for the block */
-    if( xlat_lut[XLAT_LUT_PAGE(address)] == NULL ) {
-        xlat_lut[XLAT_LUT_PAGE(address)] =
-            (void **)mmap( NULL, XLAT_LUT_PAGE_SIZE, PROT_READ|PROT_WRITE,
-                    MAP_PRIVATE|MAP_ANON, -1, 0 );
-        memset( xlat_lut[XLAT_LUT_PAGE(address)], 0, XLAT_LUT_PAGE_SIZE );
-    }
-
-    if( IS_ENTRY_POINT(xlat_lut[XLAT_LUT_PAGE(address)][XLAT_LUT_ENTRY(address)]) ) {
-        void *p = xlat_lut[XLAT_LUT_PAGE(address)][XLAT_LUT_ENTRY(address)];
-        xlat_cache_block_t oldblock = XLAT_BLOCK_FOR_CODE(p);
+    void **p = xlat_get_lut_entry(address);
+    void *entry = *p;
+    if( IS_ENTRY_POINT(entry) ) {
+        xlat_cache_block_t oldblock = XLAT_BLOCK_FOR_LUT_ENTRY(entry);
         assert( oldblock->active );
-        xlat_new_create_ptr->chain = p;
+        xlat_new_create_ptr->chain = XLAT_CODE_ADDR(entry);
     } else {
         xlat_new_create_ptr->chain = NULL;
     }
     xlat_new_create_ptr->use_list = NULL;
 
-    xlat_lut[XLAT_LUT_PAGE(address)][XLAT_LUT_ENTRY(address)] = 
-        &xlat_new_create_ptr->code;
-    xlat_new_create_ptr->lut_entry = xlat_lut[XLAT_LUT_PAGE(address)] + XLAT_LUT_ENTRY(address);
+    *p = &xlat_new_create_ptr->code;
+    if( IS_ENTRY_CONTINUATION(entry) ) {
+        *((uintptr_t *)p) |= (uintptr_t)XLAT_LUT_ENTRY_USED;
+    }
+    xlat_new_create_ptr->lut_entry = p;
 
     return xlat_new_create_ptr;
 }
@@ -473,15 +493,16 @@ xlat_cache_block_t xlat_extend_block( uint32_t newSize )
 
 }
 
-void xlat_commit_block( uint32_t destsize, uint32_t srcsize )
+void xlat_commit_block( uint32_t destsize, sh4addr_t startpc, sh4addr_t endpc )
 {
-    void **ptr = xlat_new_create_ptr->lut_entry;
-    void **endptr = ptr + (srcsize>>1);
-    while( ptr < endptr ) {
-        if( *ptr == NULL ) {
-            *ptr = XLAT_LUT_ENTRY_USED;
-        }
-        ptr++;
+    void **entry = xlat_get_lut_entry(startpc+2);
+    /* assume main entry has already been set at this point */
+
+    for( sh4addr_t pc = startpc+2; pc < endpc; pc += 2 ) {
+        if( XLAT_LUT_ENTRY(pc) == 0 )
+            entry = xlat_get_lut_entry(pc);
+        *((uintptr_t *)entry) |= (uintptr_t)XLAT_LUT_ENTRY_USED;
+        entry++;
     }
 
     xlat_new_cache_ptr = xlat_cut_block( xlat_new_create_ptr, destsize );
@@ -524,7 +545,7 @@ sh4addr_t xlat_get_address( unsigned char *ptr )
             for( j=0; j<XLAT_LUT_PAGE_ENTRIES; j++ ) {
                 void *entry = page[j];
                 if( ((uintptr_t)entry) > (uintptr_t)XLAT_LUT_ENTRY_USED ) {
-                    xlat_cache_block_t block = XLAT_BLOCK_FOR_CODE(entry);
+                    xlat_cache_block_t block = XLAT_BLOCK_FOR_LUT_ENTRY(entry);
                     if( ptr >= block->code && ptr < block->code + block->size) {
                         /* Found it */
                         return (i<<13) | (j<<1);
@@ -620,7 +641,7 @@ static void xlat_get_block_pcs( struct xlat_block_ref *blocks, unsigned int size
         void **page = xlat_lut[i];
         if( page != NULL ) {
             for( unsigned j=0; j < XLAT_LUT_PAGE_ENTRIES; j++ ) {
-                void *code = (void *)(((uintptr_t)(page[j])) & (~((uintptr_t)0x03)));
+                void *code = XLAT_CODE_ADDR(page[j]);
                 if( code != NULL ) {
                     xlat_cache_block_t ptr = XLAT_BLOCK_FOR_CODE(code);
                     sh4addr_t pc = XLAT_ADDR_FROM_ENTRY(i,j);
