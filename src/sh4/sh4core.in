@@ -665,9 +665,9 @@ MAC.W @Rm+, @Rn+ {:
 	sh4r.r[Rn] += 4;
     } else {
 	CHECKRALIGN16( sh4r.r[Rn] );
-	CHECKRALIGN16( sh4r.r[Rm] );
 	MEM_READ_WORD(sh4r.r[Rn], tmp);
 	stmp = SIGNEXT16(tmp);
+	CHECKRALIGN16( sh4r.r[Rm] );
 	MEM_READ_WORD(sh4r.r[Rm], tmp);
 	stmp = stmp * SIGNEXT16(tmp);
 	sh4r.r[Rn] += 2;
