@@ -1158,11 +1158,11 @@ MAC.W @Rm+, @Rn+ {:
 	// Note translate twice in case of page boundaries. Maybe worth
 	// adding a page-boundary check to skip the second translation
     } else {
-	load_reg( REG_EAX, Rm );
+	load_reg( REG_EAX, Rn );
 	check_ralign16( REG_EAX );
 	MEM_READ_WORD( REG_EAX, REG_EAX );
         MOVL_r32_rspdisp( REG_EAX, 0 );
-	load_reg( REG_EAX, Rn );
+	load_reg( REG_EAX, Rm );
 	check_ralign16( REG_EAX );
 	MEM_READ_WORD( REG_EAX, REG_EAX );
 	ADDL_imms_rbpdisp( 2, REG_OFFSET(r[Rn]) );
