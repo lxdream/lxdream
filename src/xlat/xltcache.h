@@ -78,9 +78,11 @@ xlat_cache_block_t xlat_extend_block( uint32_t newSize );
 /**
  * Commit the current translation block
  * @param destsize final size of the translation in bytes.
- * @param srcsize size of the original data that was translated in bytes
+ * @param startpc PC at the start of the translation block.
+ * @param endpc PC at the end of the translation block (i.e. the address of the
+ *  next instruction after the block).
  */
-void xlat_commit_block( uint32_t destsize, uint32_t srcsize );
+void xlat_commit_block( uint32_t destsize, sh4addr_t startpc, sh4addr_t endpc );
 
 /**
  * Dump the disassembly of the specified code block to a stream
