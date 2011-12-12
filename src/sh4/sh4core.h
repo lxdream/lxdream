@@ -243,6 +243,11 @@ void FASTCALL sh4_raise_tlb_multihit( sh4vma_t );
 void FASTCALL sh4_accept_interrupt( void );
 
 /**
+ * Helper method to update the SH4 registers for an exception, without
+ * touching the MMU registers. Mainly for use in shadow mode.
+ */
+void FASTCALL sh4_reraise_exception( sh4addr_t exception_pc );
+/**
  * Complete the current instruction as part of a core exit. Prevents the 
  * system from being left in an inconsistent state when an exit is 
  * triggered during a memory write. 

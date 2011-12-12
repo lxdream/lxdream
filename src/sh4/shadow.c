@@ -24,8 +24,18 @@
 #include "clock.h"
 #include "mem.h"
 #include "sh4/sh4.h"
+#include "sh4/sh4core.h"
 #include "sh4/sh4trans.h"
 #include "sh4/mmu.h"
+
+#ifdef HAVE_FRAME_ADDRESS
+static FASTCALL __attribute__((noinline)) void *__first_arg(void *a, void *b) { return a; }
+#define INIT_EXCEPTIONS(label) goto *__first_arg(&&fnstart,&&label); fnstart:
+#define EXCEPTION_EXIT(exc) do{ *(((void **)__builtin_frame_address(0))+1) = exc; } while(0)
+#else
+#define INIT_EXCEPTIONS(label)
+#define EXCEPTION_EXIT() sh4_core_exit(CORE_EXIT_EXCEPTION)
+#endif
 
 typedef enum {
     READ_LONG,
@@ -45,6 +55,7 @@ struct mem_log_entry {
     MemOp op;
     sh4addr_t addr;
     uint32_t value;
+    sh4addr_t exception_pc;
 };
 
 static struct sh4_registers shadow_sh4r;
@@ -59,7 +70,7 @@ static uint32_t mem_check_posn;
 
 #define IS_STORE_QUEUE(X) (((X)&0xFC000000) == 0xE0000000)
 
-static void log_mem_op( MemOp op, sh4addr_t addr, uint32_t value )
+static void log_mem_op( MemOp op, sh4addr_t addr, uint32_t value, int exception )
 {
     if( mem_log_posn == mem_log_size ) {
         struct mem_log_entry *tmp = realloc(mem_log, mem_log_size * sizeof(struct mem_log_entry) * 2);
@@ -70,6 +81,11 @@ static void log_mem_op( MemOp op, sh4addr_t addr, uint32_t value )
     mem_log[mem_log_posn].op = op;
     mem_log[mem_log_posn].addr = addr;
     mem_log[mem_log_posn].value = value;
+    if( exception ) {
+        mem_log[mem_log_posn].exception_pc = sh4r.pc;
+    } else {
+        mem_log[mem_log_posn].exception_pc = -1;
+    }
     mem_log_posn++;
 }
 
@@ -89,7 +105,7 @@ static void dump_mem_ops()
     }
 }
 
-static int32_t check_mem_op( MemOp op, sh4addr_t addr, uint32_t value )
+static int32_t check_mem_op( MemOp op, sh4addr_t addr, uint32_t value, int *exception )
 {
     if( mem_check_posn >= mem_log_posn ) {
         fprintf( stderr, "Unexpected interpreter memory operation: " );
@@ -107,6 +123,14 @@ static int32_t check_mem_op( MemOp op, sh4addr_t addr, uint32_t value )
         print_mem_op(stderr, op, addr, value );
         abort();
     }
+
+    if( mem_log[mem_check_posn].exception_pc != -1 ) {
+        sh4_reraise_exception(mem_log[mem_check_posn].exception_pc);
+        *exception = 1;
+    } else {
+        *exception = 0;
+    }
+
     return mem_log[mem_check_posn++].value;
 }
 
@@ -172,120 +196,206 @@ static gboolean check_registers( struct sh4_registers *xsh4r, struct sh4_registe
     if( memcmp( xsh4r->store_queue, esh4r->store_queue, sizeof(xsh4r->store_queue) ) != 0 ) {
         isgood = FALSE;
         fprintf( stderr, "Store queue  Xlt =\n" );
-        fwrite_dump( xsh4r->store_queue, sizeof(xsh4r->store_queue), stderr );
+        fwrite_dump( (unsigned char *)xsh4r->store_queue, sizeof(xsh4r->store_queue), stderr );
         fprintf( stderr, "             Emu =\n" );
-        fwrite_dump( esh4r->store_queue, sizeof(esh4r->store_queue), stderr );
+        fwrite_dump( (unsigned char *)esh4r->store_queue, sizeof(esh4r->store_queue), stderr );
     }
     return isgood;
 }
 
-static FASTCALL int32_t log_read_long( sh4addr_t addr )
+static FASTCALL int32_t log_read_long( sh4addr_t addr, void *exc )
 {
-    int32_t rv = real_address_space[addr>>12]->read_long(addr);
-    log_mem_op( READ_LONG, addr, rv );
+    INIT_EXCEPTIONS(except);
+    int32_t rv = ((mem_read_exc_fn_t)real_address_space[addr>>12]->read_long)(addr, &&except);
+    log_mem_op( READ_LONG, addr, rv, 0 );
     return rv;
+except:
+    log_mem_op( READ_LONG, addr, rv, 1 );
+    EXCEPTION_EXIT(exc);
 }
 
-static FASTCALL int32_t log_read_word( sh4addr_t addr )
+static FASTCALL int32_t log_read_word( sh4addr_t addr, void *exc )
 {
-    int32_t rv = real_address_space[addr>>12]->read_word(addr);
-    log_mem_op( READ_WORD, addr, rv );
+    INIT_EXCEPTIONS(except);
+    int32_t rv = ((mem_read_exc_fn_t)real_address_space[addr>>12]->read_word)(addr, &&except);
+    log_mem_op( READ_WORD, addr, rv, 0 );
     return rv;
+except:
+    log_mem_op( READ_WORD, addr, rv, 1 );
+    EXCEPTION_EXIT(exc);
 }
 
-static FASTCALL int32_t log_read_byte( sh4addr_t addr )
+static FASTCALL int32_t log_read_byte( sh4addr_t addr, void *exc )
 {
-    int32_t rv = real_address_space[addr>>12]->read_byte(addr);
-    log_mem_op( READ_BYTE, addr, rv );
+    INIT_EXCEPTIONS(except);
+    int32_t rv = ((mem_read_exc_fn_t)real_address_space[addr>>12]->read_byte)(addr, &&except);
+    log_mem_op( READ_BYTE, addr, rv, 0 );
     return rv;
+except:
+    log_mem_op( READ_BYTE, addr, rv, 1 );
+    EXCEPTION_EXIT(exc);
 }
 
-static FASTCALL int32_t log_read_byte_for_write( sh4addr_t addr )
+static FASTCALL int32_t log_read_byte_for_write( sh4addr_t addr, void *exc )
 {
-    int32_t rv = real_address_space[addr>>12]->read_byte_for_write(addr);
-    log_mem_op( READ_BYTE_FOR_WRITE, addr, rv );
+    INIT_EXCEPTIONS(except);
+    int32_t rv = ((mem_read_exc_fn_t)real_address_space[addr>>12]->read_byte_for_write)(addr, &&except);
+    log_mem_op( READ_BYTE_FOR_WRITE, addr, rv, 0 );
     return rv;
+except:
+    log_mem_op( READ_BYTE_FOR_WRITE, addr, rv, 1 );
+    EXCEPTION_EXIT(exc);
 }
 
-static FASTCALL void log_write_long( sh4addr_t addr, uint32_t val )
+static FASTCALL void log_write_long( sh4addr_t addr, uint32_t val, void *exc )
 {
+    INIT_EXCEPTIONS(except);
+    ((mem_write_exc_fn_t)real_address_space[addr>>12]->write_long)(addr, val, &&except);
     if( !IS_STORE_QUEUE(addr) )
-        log_mem_op( WRITE_LONG, addr, val );
-    real_address_space[addr>>12]->write_long(addr, val);
-}
-
-static FASTCALL void log_write_word( sh4addr_t addr, uint32_t val )
-{
+        log_mem_op( WRITE_LONG, addr, val, 0 );
+    return;
+except:
     if( !IS_STORE_QUEUE(addr) )
-        log_mem_op( WRITE_WORD, addr, val );
-    real_address_space[addr>>12]->write_word(addr, val);
+        log_mem_op( WRITE_LONG, addr, val, 1 );
+    EXCEPTION_EXIT(exc);
 }
 
-static FASTCALL void log_write_byte( sh4addr_t addr, uint32_t val )
+static FASTCALL void log_write_word( sh4addr_t addr, uint32_t val, void *exc )
 {
+    INIT_EXCEPTIONS(except);
+    ((mem_write_exc_fn_t)real_address_space[addr>>12]->write_word)(addr, val, &&except);
     if( !IS_STORE_QUEUE(addr) )
-        log_mem_op( WRITE_BYTE, addr, val );
-    real_address_space[addr>>12]->write_byte(addr, val);
-}
-
-static FASTCALL void log_prefetch( sh4addr_t addr )
-{
-    log_mem_op( PREFETCH, addr, 0 );
-    real_address_space[addr>>12]->prefetch(addr);
-}
-
-static FASTCALL int32_t check_read_long( sh4addr_t addr )
-{
-    return check_mem_op( READ_LONG, addr, 0 );
-}
-
-static FASTCALL int32_t check_read_word( sh4addr_t addr )
-{
-    return check_mem_op( READ_WORD, addr, 0 );
-}
-
-static FASTCALL int32_t check_read_byte( sh4addr_t addr )
-{
-    return check_mem_op( READ_BYTE, addr, 0 );
-}
-
-static FASTCALL int32_t check_read_byte_for_write( sh4addr_t addr )
-{
-    return check_mem_op( READ_BYTE_FOR_WRITE, addr, 0 );
-}
-
-static FASTCALL void check_write_long( sh4addr_t addr, uint32_t value )
-{
+        log_mem_op( WRITE_WORD, addr, val, 0 );
+    return;
+except:
     if( !IS_STORE_QUEUE(addr) )
-        check_mem_op( WRITE_LONG, addr, value );
+        log_mem_op( WRITE_WORD, addr, val, 1 );
+    EXCEPTION_EXIT(exc);
 }
 
-static FASTCALL void check_write_word( sh4addr_t addr, uint32_t value )
+static FASTCALL void log_write_byte( sh4addr_t addr, uint32_t val, void *exc )
 {
+    INIT_EXCEPTIONS(except);
+    ((mem_write_exc_fn_t)real_address_space[addr>>12]->write_byte)(addr, val, &&except);
     if( !IS_STORE_QUEUE(addr) )
-        check_mem_op( WRITE_WORD, addr, value );
-}
-
-static FASTCALL void check_write_byte( sh4addr_t addr, uint32_t value )
-{
+        log_mem_op( WRITE_BYTE, addr, val, 0 );
+    return;
+except:
     if( !IS_STORE_QUEUE(addr) )
-        check_mem_op( WRITE_BYTE, addr, value );
+        log_mem_op( WRITE_BYTE, addr, val, 1 );
+    EXCEPTION_EXIT(exc);
 }
 
-static FASTCALL void check_prefetch( sh4addr_t addr )
+static FASTCALL void log_prefetch( sh4addr_t addr, void *exc )
 {
-    check_mem_op( PREFETCH, addr, 0 );
+    INIT_EXCEPTIONS(except);
+    ((mem_prefetch_exc_fn_t)real_address_space[addr>>12]->prefetch)(addr, &&except);
+    log_mem_op( PREFETCH, addr, 0, 0 );
+    return;
+except:
+    log_mem_op( PREFETCH, addr, 0, 1 );
+    EXCEPTION_EXIT(exc);
 }
 
-struct mem_region_fn log_fns = { log_read_long, log_write_long,
-        log_read_word, log_write_word,
-        log_read_byte, log_write_byte,
-        NULL, NULL, log_prefetch, log_read_byte_for_write };
+static FASTCALL int32_t check_read_long( sh4addr_t addr, void *exc )
+{
+    int except;
+    int32_t value = check_mem_op( READ_LONG, addr, 0, &except );
+    if( except ) {
+        EXCEPTION_EXIT(exc);
+    }
+    return value;
+}
 
-struct mem_region_fn check_fns = { check_read_long, check_write_long,
-        check_read_word, check_write_word,
-        check_read_byte, check_write_byte,
-        NULL, NULL, check_prefetch, check_read_byte_for_write };
+static FASTCALL int32_t check_read_word( sh4addr_t addr, void *exc )
+{
+    int except;
+    int32_t value = check_mem_op( READ_WORD, addr, 0, &except );
+    if( except ) {
+        EXCEPTION_EXIT(exc);
+    }
+    return value;
+}
+
+static FASTCALL int32_t check_read_byte( sh4addr_t addr, void *exc )
+{
+    int except;
+    int32_t value = check_mem_op( READ_BYTE, addr, 0, &except );
+    if( except ) {
+        EXCEPTION_EXIT(exc);
+    }
+    return value;
+}
+
+static FASTCALL int32_t check_read_byte_for_write( sh4addr_t addr, void *exc )
+{
+    int except;
+    int32_t value = check_mem_op( READ_BYTE_FOR_WRITE, addr, 0, &except );
+    if( except ) {
+        EXCEPTION_EXIT(exc);
+    }
+    return value;
+}
+
+static FASTCALL void check_write_long( sh4addr_t addr, uint32_t value, void *exc )
+{
+    if( !IS_STORE_QUEUE(addr) ) {
+        int except;
+        check_mem_op( WRITE_LONG, addr, value, &except );
+        if( except ) {
+            EXCEPTION_EXIT(exc);
+        }
+    } else {
+        real_address_space[addr>>12]->write_long(addr, value);
+    }
+}
+
+static FASTCALL void check_write_word( sh4addr_t addr, uint32_t value, void *exc )
+{
+    if( !IS_STORE_QUEUE(addr) ) {
+        int except;
+        check_mem_op( WRITE_WORD, addr, value, &except );
+        if( except ) {
+            EXCEPTION_EXIT(exc);
+        }
+    } else {
+        real_address_space[addr>>12]->write_word(addr, value);
+    }
+}
+
+static FASTCALL void check_write_byte( sh4addr_t addr, uint32_t value, void *exc )
+{
+    if( !IS_STORE_QUEUE(addr) ){
+        int except;
+        check_mem_op( WRITE_BYTE, addr, value, &except );
+        if( except ) {
+            EXCEPTION_EXIT(exc);
+        }
+    } else {
+        real_address_space[addr>>12]->write_byte(addr, value);
+    }
+}
+
+static FASTCALL void check_prefetch( sh4addr_t addr, void *exc )
+{
+    int except;
+    check_mem_op( PREFETCH, addr, 0, &except );
+    if( except ) {
+        EXCEPTION_EXIT(exc);
+    }
+}
+
+struct mem_region_fn log_fns = {
+        (mem_read_fn_t)log_read_long, (mem_write_fn_t)log_write_long,
+        (mem_read_fn_t)log_read_word, (mem_write_fn_t)log_write_word,
+        (mem_read_fn_t)log_read_byte, (mem_write_fn_t)log_write_byte,
+        NULL, NULL, (mem_prefetch_fn_t)log_prefetch, (mem_read_fn_t)log_read_byte_for_write };
+
+struct mem_region_fn check_fns = {
+        (mem_read_fn_t)check_read_long, (mem_write_fn_t)check_write_long,
+        (mem_read_fn_t)check_read_word, (mem_write_fn_t)check_write_word,
+        (mem_read_fn_t)check_read_byte, (mem_write_fn_t)check_write_byte,
+        NULL, NULL, (mem_prefetch_fn_t)check_prefetch, (mem_read_fn_t)check_read_byte_for_write };
 
 
 

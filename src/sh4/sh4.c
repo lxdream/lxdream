@@ -550,6 +550,17 @@ void FASTCALL sh4_raise_tlb_exception( int code, sh4vma_t vpn )
     sh4r.in_delay_slot = 0;
 }
 
+void FASTCALL sh4_reraise_exception( sh4addr_t exception_pc )
+{
+    sh4r.spc = sh4r.pc;
+    sh4r.ssr = sh4_read_sr();
+    sh4r.sgr = sh4r.r[15];
+    sh4r.pc = exception_pc;
+    sh4r.new_pc = sh4r.pc + 2;
+    sh4_write_sr( sh4r.ssr |SR_MD|SR_BL|SR_RB );
+    sh4r.in_delay_slot = 0;
+}
+
 void FASTCALL sh4_accept_interrupt( void )
 {
     uint32_t code = intc_accept_interrupt();

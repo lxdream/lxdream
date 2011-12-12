@@ -623,7 +623,7 @@ static void emit_translate_and_backpatch()
 static void jump_next_block_fixed_pc( sh4addr_t pc )
 {
 	if( IS_IN_ICACHE(pc) ) {
-	    if( sh4_x86.sh4_mode != SH4_MODE_UNKNOWN ) {
+	    if( sh4_x86.sh4_mode != SH4_MODE_UNKNOWN && sh4_x86.end_callback == NULL ) {
 	        /* Fixed address, in cache, and fixed SH4 mode - generate a call to the
 	         * fetch-and-backpatch routine, which will replace the call with a branch */
            emit_translate_and_backpatch();	         
@@ -2683,7 +2683,11 @@ FTRV XMTRX, FVn {:
     COUNT_INST(I_FTRV);
     check_fpuen();
     if( sh4_x86.double_prec == 0 ) {
-        if( sh4_x86.sse3_enabled ) {
+        if( sh4_x86.sse3_enabled && sh4_x86.begin_callback == NULL ) {
+        	/* FIXME: For now, disable this inlining when we're running in shadow mode -
+        	 * it gives slightly different results from the emu core. Need to
+        	 * fix the precision so both give the right results.
+        	 */
             MOVAPS_rbpdisp_xmm( REG_OFFSET(fr[1][0]), 1 ); // M1  M0  M3  M2
             MOVAPS_rbpdisp_xmm( REG_OFFSET(fr[1][4]), 0 ); // M5  M4  M7  M6
             MOVAPS_rbpdisp_xmm( REG_OFFSET(fr[1][8]), 3 ); // M9  M8  M11 M10
