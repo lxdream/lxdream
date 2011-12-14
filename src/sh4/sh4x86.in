@@ -121,12 +121,15 @@ static uint32_t min_int = 0x80000000;
 static uint32_t save_fcw; /* save value for fpu control word */
 static uint32_t trunc_fcw = 0x0F7F; /* fcw value for truncation mode */
 
+static void FASTCALL sh4_translate_get_code_and_backpatch( uint32_t pc );
+
 static struct x86_symbol x86_symbol_table[] = {
     { "sh4r+128", ((char *)&sh4r)+128 },
     { "sh4_cpu_period", &sh4_cpu_period },
     { "sh4_address_space", NULL },
     { "sh4_user_address_space", NULL },
     { "sh4_translate_breakpoint_hit", sh4_translate_breakpoint_hit },
+    { "sh4_translate_get_code_and_backpatch", sh4_translate_get_code_and_backpatch },
     { "sh4_write_fpscr", sh4_write_fpscr },
     { "sh4_write_sr", sh4_write_sr },
     { "sh4_read_sr", sh4_read_sr },
@@ -520,11 +523,16 @@ void sh4_translate_begin_block( sh4addr_t pc )
 
 uint32_t sh4_translate_end_block_size()
 {
+	uint32_t epilogue_size = EPILOGUE_SIZE;
+	if( sh4_x86.end_callback ) {
+	    epilogue_size += (CALL1_PTR_MIN_SIZE - 1);
+	}
     if( sh4_x86.backpatch_posn <= 3 ) {
-        return EPILOGUE_SIZE + (sh4_x86.backpatch_posn*(12+CALL1_PTR_MIN_SIZE));
+        epilogue_size += (sh4_x86.backpatch_posn*(12+CALL1_PTR_MIN_SIZE));
     } else {
-        return EPILOGUE_SIZE + (3*(12+CALL1_PTR_MIN_SIZE)) + (sh4_x86.backpatch_posn-3)*(15+CALL1_PTR_MIN_SIZE);
+        epilogue_size += (3*(12+CALL1_PTR_MIN_SIZE)) + (sh4_x86.backpatch_posn-3)*(15+CALL1_PTR_MIN_SIZE);
     }
+    return epilogue_size;
 }
 
 
