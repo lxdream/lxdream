@@ -304,18 +304,20 @@ static void sh4_x86_add_backpatch( uint8_t *fixup_addr, uint32_t fixup_pc, uint3
 #define JNA_label(label) JCC_cc_rel8(X86_COND_NA,-1); MARK_JMP8(label)
 #define JNE_label(label) JCC_cc_rel8(X86_COND_NE,-1); MARK_JMP8(label)
 #define JNO_label(label) JCC_cc_rel8(X86_COND_NO,-1); MARK_JMP8(label)
+#define JP_label(label)  JCC_cc_rel8(X86_COND_P,-1); MARK_JMP8(label)
 #define JS_label(label)  JCC_cc_rel8(X86_COND_S,-1); MARK_JMP8(label)
 #define JMP_label(label) JMP_rel8(-1); MARK_JMP8(label)
 #define JNE_exc(exc)     JCC_cc_rel32(X86_COND_NE,0); sh4_x86_add_backpatch(xlat_output, pc, exc)
 
+#define LOAD_t() if( sh4_x86.tstate == TSTATE_NONE ) { \
+	CMPL_imms_rbpdisp( 1, R_T ); sh4_x86.tstate = TSTATE_E; }     
+
 /** Branch if T is set (either in the current cflags, or in sh4r.t) */
-#define JT_label(label) if( sh4_x86.tstate == TSTATE_NONE ) { \
-	CMPL_imms_rbpdisp( 1, R_T ); sh4_x86.tstate = TSTATE_E; } \
+#define JT_label(label) LOAD_t() \
     JCC_cc_rel8(sh4_x86.tstate,-1); MARK_JMP8(label)
 
 /** Branch if T is clear (either in the current cflags or in sh4r.t) */
-#define JF_label(label) if( sh4_x86.tstate == TSTATE_NONE ) { \
-	CMPL_imms_rbpdisp( 1, R_T ); sh4_x86.tstate = TSTATE_E; } \
+#define JF_label(label) LOAD_t() \
     JCC_cc_rel8(sh4_x86.tstate^1, -1); MARK_JMP8(label)
 
 
@@ -1957,10 +1959,7 @@ BF/S disp {:
 	    sh4_x86.branch_taken = TRUE;
 	    return 2;
 	} else {
-	    if( sh4_x86.tstate == TSTATE_NONE ) {
-		CMPL_imms_rbpdisp( 1, R_T );
-		sh4_x86.tstate = TSTATE_E;
-	    }
+	    LOAD_t();
 	    sh4vma_t target = disp + pc + 4;
 	    JCC_cc_rel32(sh4_x86.tstate,0);
 	    uint32_t *patch = ((uint32_t *)xlat_output)-1;
@@ -2095,10 +2094,7 @@ BT/S disp {:
 	    sh4_x86.branch_taken = TRUE;
 	    return 2;
 	} else {
-	    if( sh4_x86.tstate == TSTATE_NONE ) {
-		CMPL_imms_rbpdisp( 1, R_T );
-		sh4_x86.tstate = TSTATE_E;
-	    }
+		LOAD_t();
 	    JCC_cc_rel32(sh4_x86.tstate^1,0);
 	    uint32_t *patch = ((uint32_t *)xlat_output)-1;
 
@@ -2431,14 +2427,15 @@ FTRC FRm, FPUL {:
     } else {
         push_fr( FRm );
     }
-    MOVP_immptr_rptr( &max_int, REG_ECX );
-    FILD_r32disp( REG_ECX, 0 );
-    FCOMIP_st(1);
-    JNA_label( sat );
     MOVP_immptr_rptr( &min_int, REG_ECX );
     FILD_r32disp( REG_ECX, 0 );
     FCOMIP_st(1);              
-    JAE_label( sat2 );            
+    JAE_label( sat );     
+    JP_label( sat2 );       
+    MOVP_immptr_rptr( &max_int, REG_ECX );
+    FILD_r32disp( REG_ECX, 0 );
+    FCOMIP_st(1);
+    JNA_label( sat3 );
     MOVP_immptr_rptr( &save_fcw, REG_EAX );
     FNSTCW_r32disp( REG_EAX, 0 );
     MOVP_immptr_rptr( &trunc_fcw, REG_EDX );
@@ -2449,6 +2446,7 @@ FTRC FRm, FPUL {:
 
     JMP_TARGET(sat);
     JMP_TARGET(sat2);
+    JMP_TARGET(sat3);
     MOVL_r32disp_r32( REG_ECX, 0, REG_ECX ); // 2
     MOVL_r32_rbpdisp( REG_ECX, R_FPUL );
     FPOP_st();
@@ -2626,10 +2624,14 @@ FCMP/EQ FRm, FRn {:
         push_fr(FRm);
         push_fr(FRn);
     }
+    XORL_r32_r32(REG_EAX, REG_EAX);
+    XORL_r32_r32(REG_EDX, REG_EDX);
     FCOMIP_st(1);
-    SETE_t();
+    SETCCB_cc_r8(X86_COND_NP, REG_DL);
+    CMOVCCL_cc_r32_r32(X86_COND_E, REG_EDX, REG_EAX);
+    MOVL_r32_rbpdisp(REG_EAX, R_T);
     FPOP_st();
-    sh4_x86.tstate = TSTATE_E;
+    sh4_x86.tstate = TSTATE_NONE;
 :}
 FCMP/GT FRm, FRn {:  
     COUNT_INST(I_FCMPGT);
