@@ -604,7 +604,7 @@ static void FASTCALL sh4_translate_get_code_and_backpatch( uint32_t pc )
     *(void **)(backpatch+5) = XLAT_BLOCK_FOR_CODE(target)->use_list;
     XLAT_BLOCK_FOR_CODE(target)->use_list = backpatch; 
 
-    uint8_t **retptr = ((uint8_t **)__builtin_frame_address(0))+1;
+    uint8_t * volatile *retptr = ((uint8_t * volatile *)__builtin_frame_address(0))+1;
     assert( *retptr == ((uint8_t *)__builtin_return_address(0)) );
 	*retptr = backpatch;
 }

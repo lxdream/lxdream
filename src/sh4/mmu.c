@@ -1199,7 +1199,7 @@ sh4addr_t FASTCALL mmu_vma_to_phys_disasm( sh4vma_t vma )
 
 /********************** TLB Direct-Access Regions ***************************/
 #ifdef HAVE_FRAME_ADDRESS
-#define EXCEPTION_EXIT() do{ *(((void **)__builtin_frame_address(0))+1) = exc; } while(0)
+#define EXCEPTION_EXIT() do{ *(((void * volatile *)__builtin_frame_address(0))+1) = exc; } while(0)
 #else
 #define EXCEPTION_EXIT() sh4_core_exit(CORE_EXIT_EXCEPTION)
 #endif

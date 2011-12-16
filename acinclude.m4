@@ -51,7 +51,7 @@ void * __attribute__((noinline)) first_arg( void *x, void *y ) { return x; }
 int __attribute__((noinline)) foo( int arg, void *exc )
 {
     if( arg < 2 ) {
-        *(((void **)__builtin_frame_address(0))+1) = exc;
+        *(((void * volatile *)__builtin_frame_address(0))+1) = exc;
     }
     return 0;
 }

@@ -31,7 +31,7 @@
 #ifdef HAVE_FRAME_ADDRESS
 static FASTCALL __attribute__((noinline)) void *__first_arg(void *a, void *b) { return a; }
 #define INIT_EXCEPTIONS(label) goto *__first_arg(&&fnstart,&&label); fnstart:
-#define EXCEPTION_EXIT(exc) do{ *(((void **)__builtin_frame_address(0))+1) = exc; } while(0)
+#define EXCEPTION_EXIT(exc) do{ *(((void * volatile *)__builtin_frame_address(0))+1) = exc; } while(0)
 #else
 #define INIT_EXCEPTIONS(label)
 #define EXCEPTION_EXIT() sh4_core_exit(CORE_EXIT_EXCEPTION)
