@@ -88,9 +88,11 @@ AC_HAVE_OBJC([
       fi
    ], [], [AC_INCLUDES_DEFAULT])
 
-   AC_OBJC_VERSION([ OBJCOPT="-O2 -msse2 -mfpmath=sse"
+   AC_OBJC_VERSION([ OBJCOPT="-O2"
                      OBJCFLAGS="$OBJCFLAGS -fno-strict-aliasing" ],
                    [ OBJCOPT="-O2" ], [] )
+   AC_CHECK_OBJCFLAG([-msse2])
+   AC_CHECK_OBJCFLAG([-mfpmath=sse])
 ])
 
 AM_CONDITIONAL(GUI_COCOA, [test "$HAVE_COCOA" = 'yes' -a "$with_gtk" = "no"])
@@ -104,11 +106,13 @@ OBJCFLAGS="-g -fexceptions"
 AC_DEFINE(HAVE_EXCEPTIONS, [1], [Have exception stack-frame information])
 
 STDCFLAG="-std=c99"
-AC_CC_VERSION([ CCOPT="-O2 -msse2 -mfpmath=sse" 
+AC_CC_VERSION([ CCOPT="-O2" 
                 CFLAGS="$CFLAGS -fno-strict-aliasing" ],
               [ CCOPT="$CFLAGS -fast"
                 CFLAGS="$CFLAGS -fno-strict-aliasing" ],
               [ CCOPT="$CFLAGS -O2" ])
+AC_CHECK_CFLAG([-msse2])
+AC_CHECK_CFLAG([-mfpmath=sse])
 
 if test "x$enable_optimized" = "xyes"; then
    CFLAGS="$CFLAGS $CCOPT"
@@ -160,7 +164,7 @@ dnl Check if linker accepts -rdynamic
    AC_MSG_CHECKING([if linker accepts -rdynamic])
    old_LDFLAGS="$LDFLAGS"
    LDFLAGS="$LDFLAGS -rdynamic"
-   AC_LINK_IFELSE( [int main(){ return 0; }], [
+   AC_LINK_IFELSE( [AC_LANG_SOURCE([int main() { return 0; }])], [
      LXDREAMLDFLAGS="-rdynamic"
      AC_MSG_RESULT([yes]) 
    ], [
