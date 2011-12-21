@@ -15,6 +15,8 @@ int main(int argc, char *argv[])
    AC_MSG_RESULT([yes])
    $1 ], [ 
    AC_MSG_RESULT([no])
+   $2 ], [
+      AC_MSG_RESULT([no])
    $2 ])
 ])
 
@@ -69,7 +71,9 @@ except:
    AC_MSG_RESULT([yes])
    $1 ], [ 
    AC_MSG_RESULT([no])
-   $2 ])
+   $2 ], [
+   AC_MSG_RESULT([no])
+   $2 ] )
 ])
 
 # AC_CC_VERSION([if-gcc], [if-icc],[if-other])
@@ -110,6 +114,40 @@ else
   [ $3 ]
 fi
 ]);
+
+# Check if the given C compiler flag is supported, and if so add it to CFLAGS
+AC_DEFUN([AC_CHECK_CFLAG], [
+AC_LANG_PUSH([C])
+AC_MSG_CHECKING([if $CC supports $1])
+save_CFLAGS="$CFLAGS"
+CFLAGS="$1 $CFLAGS"
+AC_COMPILE_IFELSE([
+  AC_LANG_SOURCE([int main() { return 0; }])], [
+   AC_MSG_RESULT([yes])
+   $2 ], [ 
+   CFLAGS="$save_CFLAGS"
+   AC_MSG_RESULT([no])
+   $3 ])
+AC_LANG_POP([C])
+])
+
+# Check if the given OBJC compiler flag is supported, and if so add it to OBJCFLAGS
+AC_DEFUN([AC_CHECK_OBJCFLAG], [
+AC_LANG_PUSH([Objective C])
+AC_MSG_CHECKING([if $OBJC supports $1])
+save_OBJCFLAGS="$OBJCFLAGS"
+OBJCFLAGS="$1 $OBJCFLAGS"
+AC_COMPILE_IFELSE([
+  AC_LANG_SOURCE([int main() { return 0; }])], [
+   AC_MSG_RESULT([yes])
+   $2 ], [ 
+   OBJCFLAGS="$save_OBJCFLAGS"
+   AC_MSG_RESULT([no])
+   $3 ])
+AC_LANG_POP([Objective C])
+])
+
+
 
 # AC_HAVE_OBJC([if-present],[if-not-present])
 # Check if we have a working Objective-C compiler
