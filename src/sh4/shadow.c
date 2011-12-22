@@ -31,10 +31,8 @@
 #ifdef HAVE_FRAME_ADDRESS
 static FASTCALL __attribute__((noinline)) void *__first_arg(void *a, void *b) { return a; }
 #define INIT_EXCEPTIONS(label) goto *__first_arg(&&fnstart,&&label); fnstart:
-#define EXCEPTION_EXIT(exc) do{ *(((void * volatile *)__builtin_frame_address(0))+1) = exc; } while(0)
 #else
 #define INIT_EXCEPTIONS(label)
-#define EXCEPTION_EXIT(exc) sh4_core_exit(CORE_EXIT_EXCEPTION)
 #endif
 
 typedef enum {
@@ -211,7 +209,7 @@ static FASTCALL int32_t log_read_long( sh4addr_t addr, void *exc )
     return rv;
 except:
     log_mem_op( READ_LONG, addr, rv, 1 );
-    EXCEPTION_EXIT(exc);
+    SH4_EXCEPTION_EXIT();
 }
 
 static FASTCALL int32_t log_read_word( sh4addr_t addr, void *exc )
@@ -222,7 +220,7 @@ static FASTCALL int32_t log_read_word( sh4addr_t addr, void *exc )
     return rv;
 except:
     log_mem_op( READ_WORD, addr, rv, 1 );
-    EXCEPTION_EXIT(exc);
+    SH4_EXCEPTION_EXIT();
 }
 
 static FASTCALL int32_t log_read_byte( sh4addr_t addr, void *exc )
@@ -233,7 +231,7 @@ static FASTCALL int32_t log_read_byte( sh4addr_t addr, void *exc )
     return rv;
 except:
     log_mem_op( READ_BYTE, addr, rv, 1 );
-    EXCEPTION_EXIT(exc);
+    SH4_EXCEPTION_EXIT();
 }
 
 static FASTCALL int32_t log_read_byte_for_write( sh4addr_t addr, void *exc )
@@ -244,7 +242,7 @@ static FASTCALL int32_t log_read_byte_for_write( sh4addr_t addr, void *exc )
     return rv;
 except:
     log_mem_op( READ_BYTE_FOR_WRITE, addr, rv, 1 );
-    EXCEPTION_EXIT(exc);
+    SH4_EXCEPTION_EXIT();
 }
 
 static FASTCALL void log_write_long( sh4addr_t addr, uint32_t val, void *exc )
@@ -257,7 +255,7 @@ static FASTCALL void log_write_long( sh4addr_t addr, uint32_t val, void *exc )
 except:
     if( !IS_STORE_QUEUE(addr) )
         log_mem_op( WRITE_LONG, addr, val, 1 );
-    EXCEPTION_EXIT(exc);
+    SH4_EXCEPTION_EXIT();
 }
 
 static FASTCALL void log_write_word( sh4addr_t addr, uint32_t val, void *exc )
@@ -270,7 +268,7 @@ static FASTCALL void log_write_word( sh4addr_t addr, uint32_t val, void *exc )
 except:
     if( !IS_STORE_QUEUE(addr) )
         log_mem_op( WRITE_WORD, addr, val, 1 );
-    EXCEPTION_EXIT(exc);
+    SH4_EXCEPTION_EXIT();
 }
 
 static FASTCALL void log_write_byte( sh4addr_t addr, uint32_t val, void *exc )
@@ -283,7 +281,7 @@ static FASTCALL void log_write_byte( sh4addr_t addr, uint32_t val, void *exc )
 except:
     if( !IS_STORE_QUEUE(addr) )
         log_mem_op( WRITE_BYTE, addr, val, 1 );
-    EXCEPTION_EXIT(exc);
+    SH4_EXCEPTION_EXIT();
 }
 
 static FASTCALL void log_prefetch( sh4addr_t addr, void *exc )
@@ -294,7 +292,7 @@ static FASTCALL void log_prefetch( sh4addr_t addr, void *exc )
     return;
 except:
     log_mem_op( PREFETCH, addr, 0, 1 );
-    EXCEPTION_EXIT(exc);
+    SH4_EXCEPTION_EXIT();
 }
 
 static FASTCALL int32_t check_read_long( sh4addr_t addr, void *exc )
@@ -302,7 +300,7 @@ static FASTCALL int32_t check_read_long( sh4addr_t addr, void *exc )
     int except;
     int32_t value = check_mem_op( READ_LONG, addr, 0, &except );
     if( except ) {
-        EXCEPTION_EXIT(exc);
+        SH4_EXCEPTION_EXIT();
     }
     return value;
 }
@@ -312,7 +310,7 @@ static FASTCALL int32_t check_read_word( sh4addr_t addr, void *exc )
     int except;
     int32_t value = check_mem_op( READ_WORD, addr, 0, &except );
     if( except ) {
-        EXCEPTION_EXIT(exc);
+        SH4_EXCEPTION_EXIT();
     }
     return value;
 }
@@ -322,7 +320,7 @@ static FASTCALL int32_t check_read_byte( sh4addr_t addr, void *exc )
     int except;
     int32_t value = check_mem_op( READ_BYTE, addr, 0, &except );
     if( except ) {
-        EXCEPTION_EXIT(exc);
+        SH4_EXCEPTION_EXIT();
     }
     return value;
 }
@@ -332,7 +330,7 @@ static FASTCALL int32_t check_read_byte_for_write( sh4addr_t addr, void *exc )
     int except;
     int32_t value = check_mem_op( READ_BYTE_FOR_WRITE, addr, 0, &except );
     if( except ) {
-        EXCEPTION_EXIT(exc);
+        SH4_EXCEPTION_EXIT();
     }
     return value;
 }
@@ -343,7 +341,7 @@ static FASTCALL void check_write_long( sh4addr_t addr, uint32_t value, void *exc
         int except;
         check_mem_op( WRITE_LONG, addr, value, &except );
         if( except ) {
-            EXCEPTION_EXIT(exc);
+            SH4_EXCEPTION_EXIT();
         }
     } else {
         real_address_space[addr>>12]->write_long(addr, value);
@@ -356,7 +354,7 @@ static FASTCALL void check_write_word( sh4addr_t addr, uint32_t value, void *exc
         int except;
         check_mem_op( WRITE_WORD, addr, value, &except );
         if( except ) {
-            EXCEPTION_EXIT(exc);
+            SH4_EXCEPTION_EXIT();
         }
     } else {
         real_address_space[addr>>12]->write_word(addr, value);
@@ -369,7 +367,7 @@ static FASTCALL void check_write_byte( sh4addr_t addr, uint32_t value, void *exc
         int except;
         check_mem_op( WRITE_BYTE, addr, value, &except );
         if( except ) {
-            EXCEPTION_EXIT(exc);
+            SH4_EXCEPTION_EXIT();
         }
     } else {
         real_address_space[addr>>12]->write_byte(addr, value);
@@ -381,7 +379,7 @@ static FASTCALL void check_prefetch( sh4addr_t addr, void *exc )
     int except;
     check_mem_op( PREFETCH, addr, 0, &except );
     if( except ) {
-        EXCEPTION_EXIT(exc);
+        SH4_EXCEPTION_EXIT();
     }
 }
 

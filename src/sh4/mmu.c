@@ -27,13 +27,6 @@
 #include "mem.h"
 #include "mmu.h"
 
-#define RAISE_TLB_ERROR(code, vpn) sh4_raise_tlb_exception(code, vpn)
-#define RAISE_MEM_ERROR(code, vpn) \
-    MMIO_WRITE(MMU, TEA, vpn); \
-    MMIO_WRITE(MMU, PTEH, ((MMIO_READ(MMU, PTEH) & 0x000003FF) | (vpn&0xFFFFFC00))); \
-    sh4_raise_exception(code);
-#define RAISE_TLB_MULTIHIT_ERROR(vpn) sh4_raise_tlb_multihit(vpn)
-
 /* An entry is a 1K entry if it's one of the mmu_utlb_1k_pages entries */
 #define IS_1K_PAGE_ENTRY(ent)  ( ((uintptr_t)(((struct utlb_1k_entry *)ent) - &mmu_utlb_1k_pages[0])) < UTLB_ENTRY_COUNT )
 
@@ -1198,13 +1191,6 @@ sh4addr_t FASTCALL mmu_vma_to_phys_disasm( sh4vma_t vma )
 }
 
 /********************** TLB Direct-Access Regions ***************************/
-#ifdef HAVE_FRAME_ADDRESS
-#define EXCEPTION_EXIT() do{ *(((void * volatile *)__builtin_frame_address(0))+1) = exc; } while(0)
-#else
-#define EXCEPTION_EXIT() sh4_core_exit(CORE_EXIT_EXCEPTION)
-#endif
-
-
 #define ITLB_ENTRY(addr) ((addr>>7)&0x03)
 
 int32_t FASTCALL mmu_itlb_addr_read( sh4addr_t addr )
@@ -1326,7 +1312,7 @@ void FASTCALL mmu_utlb_addr_write( sh4addr_t addr, uint32_t val, void *exc )
 
         if( itlb == -2 || utlb == -2 ) {
             RAISE_TLB_MULTIHIT_ERROR(addr); /* FIXME: should this only be raised if TLB is enabled? */
-            EXCEPTION_EXIT();
+            SH4_EXCEPTION_EXIT();
             return;
         }
     } else {
@@ -1389,60 +1375,60 @@ struct mem_region_fn p4_region_utlb_data = {
 static void FASTCALL address_error_read( sh4addr_t addr, void *exc ) 
 {
     RAISE_MEM_ERROR(EXC_DATA_ADDR_READ, addr);
-    EXCEPTION_EXIT();
+    SH4_EXCEPTION_EXIT();
 }
 
 static void FASTCALL address_error_read_for_write( sh4addr_t addr, void *exc ) 
 {
     RAISE_MEM_ERROR(EXC_DATA_ADDR_WRITE, addr);
-    EXCEPTION_EXIT();
+    SH4_EXCEPTION_EXIT();
 }
 
 static void FASTCALL address_error_read_burst( unsigned char *dest, sh4addr_t addr, void *exc ) 
 {
     RAISE_MEM_ERROR(EXC_DATA_ADDR_READ, addr);
-    EXCEPTION_EXIT();
+    SH4_EXCEPTION_EXIT();
 }
 
 static void FASTCALL address_error_write( sh4addr_t addr, uint32_t val, void *exc )
 {
     RAISE_MEM_ERROR(EXC_DATA_ADDR_WRITE, addr);
-    EXCEPTION_EXIT();
+    SH4_EXCEPTION_EXIT();
 }
 
 static void FASTCALL tlb_miss_read( sh4addr_t addr, void *exc )
 {
     mmu_urc++;
     RAISE_TLB_ERROR(EXC_TLB_MISS_READ, addr);
-    EXCEPTION_EXIT();
+    SH4_EXCEPTION_EXIT();
 }
 
 static void FASTCALL tlb_miss_read_for_write( sh4addr_t addr, void *exc )
 {
     mmu_urc++;
     RAISE_TLB_ERROR(EXC_TLB_MISS_WRITE, addr);
-    EXCEPTION_EXIT();
+    SH4_EXCEPTION_EXIT();
 }
 
 static void FASTCALL tlb_miss_read_burst( unsigned char *dest, sh4addr_t addr, void *exc )
 {
     mmu_urc++;
     RAISE_TLB_ERROR(EXC_TLB_MISS_READ, addr);
-    EXCEPTION_EXIT();
+    SH4_EXCEPTION_EXIT();
 }
 
 static void FASTCALL tlb_miss_write( sh4addr_t addr, uint32_t val, void *exc )
 {
     mmu_urc++;
     RAISE_TLB_ERROR(EXC_TLB_MISS_WRITE, addr);
-    EXCEPTION_EXIT();
+    SH4_EXCEPTION_EXIT();
 }
 
 static int32_t FASTCALL tlb_protected_read( sh4addr_t addr, void *exc )
 {
     mmu_urc++;
     RAISE_MEM_ERROR(EXC_TLB_PROT_READ, addr);
-    EXCEPTION_EXIT();
+    SH4_EXCEPTION_EXIT();
     return 0; 
 }
 
@@ -1450,7 +1436,7 @@ static int32_t FASTCALL tlb_protected_read_for_write( sh4addr_t addr, void *exc 
 {
     mmu_urc++;
     RAISE_MEM_ERROR(EXC_TLB_PROT_WRITE, addr);
-    EXCEPTION_EXIT();
+    SH4_EXCEPTION_EXIT();
     return 0;
 }
 
@@ -1458,7 +1444,7 @@ static int32_t FASTCALL tlb_protected_read_burst( unsigned char *dest, sh4addr_t
 {
     mmu_urc++;
     RAISE_MEM_ERROR(EXC_TLB_PROT_READ, addr);
-    EXCEPTION_EXIT();
+    SH4_EXCEPTION_EXIT();
     return 0;
 }
 
@@ -1466,41 +1452,41 @@ static void FASTCALL tlb_protected_write( sh4addr_t addr, uint32_t val, void *ex
 {
     mmu_urc++;
     RAISE_MEM_ERROR(EXC_TLB_PROT_WRITE, addr);
-    EXCEPTION_EXIT();
+    SH4_EXCEPTION_EXIT();
 }
 
 static void FASTCALL tlb_initial_write( sh4addr_t addr, uint32_t val, void *exc )
 {
     mmu_urc++;
     RAISE_MEM_ERROR(EXC_INIT_PAGE_WRITE, addr);
-    EXCEPTION_EXIT();
+    SH4_EXCEPTION_EXIT();
 }
 
 static int32_t FASTCALL tlb_initial_read_for_write( sh4addr_t addr, void *exc )
 {
     mmu_urc++;
     RAISE_MEM_ERROR(EXC_INIT_PAGE_WRITE, addr);
-    EXCEPTION_EXIT();
+    SH4_EXCEPTION_EXIT();
     return 0;
 }    
     
 static int32_t FASTCALL tlb_multi_hit_read( sh4addr_t addr, void *exc )
 {
     sh4_raise_tlb_multihit(addr);
-    EXCEPTION_EXIT();
+    SH4_EXCEPTION_EXIT();
     return 0; 
 }
 
 static int32_t FASTCALL tlb_multi_hit_read_burst( unsigned char *dest, sh4addr_t addr, void *exc )
 {
     sh4_raise_tlb_multihit(addr);
-    EXCEPTION_EXIT();
+    SH4_EXCEPTION_EXIT();
     return 0; 
 }
 static void FASTCALL tlb_multi_hit_write( sh4addr_t addr, uint32_t val, void *exc )
 {
     sh4_raise_tlb_multihit(addr);
-    EXCEPTION_EXIT();
+    SH4_EXCEPTION_EXIT();
 }
 
 /**
