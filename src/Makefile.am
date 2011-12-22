@@ -52,7 +52,7 @@ lxdream_SOURCES = \
         sh4/mmu.c sh4/sh4core.c sh4/sh4core.h sh4/sh4dasm.c sh4/sh4dasm.h \
         sh4/sh4mmio.c sh4/sh4mmio.h sh4/scif.c sh4/sh4stat.c sh4/sh4stat.h \
 	xlat/xltcache.c xlat/xltcache.h sh4/sh4.h sh4/dmac.h sh4/pmm.c \
-	sh4/cache.c sh4/mmu.h sh4/shadow.c \
+	sh4/cache.c sh4/mmu.h \
         aica/armcore.c aica/armcore.h aica/armdasm.c aica/armdasm.h aica/armmem.c \
         aica/aica.c aica/aica.h aica/audio.c aica/audio.h \
 	pvr2/pvr2.c pvr2/pvr2.h pvr2/pvr2mem.c pvr2/pvr2mmio.h \
@@ -84,7 +84,7 @@ endif
 if BUILD_SH4X86
 lxdream_SOURCES += sh4/sh4x86.c xlat/x86/x86op.h \
         xlat/x86/ia32abi.h xlat/x86/amd64abi.h \
-        sh4/sh4trans.c sh4/sh4trans.h sh4/mmux86.c \
+        sh4/sh4trans.c sh4/sh4trans.h sh4/mmux86.c sh4/shadow.c \
         x86dasm/x86dasm.c x86dasm/x86dasm.h \
         x86dasm/i386-dis.c x86dasm/dis-init.c x86dasm/dis-buf.c \
         x86dasm/ansidecl.h x86dasm/bfd.h x86dasm/dis-asm.h \
