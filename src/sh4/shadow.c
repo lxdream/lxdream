@@ -34,7 +34,7 @@ static FASTCALL __attribute__((noinline)) void *__first_arg(void *a, void *b) { 
 #define EXCEPTION_EXIT(exc) do{ *(((void * volatile *)__builtin_frame_address(0))+1) = exc; } while(0)
 #else
 #define INIT_EXCEPTIONS(label)
-#define EXCEPTION_EXIT() sh4_core_exit(CORE_EXIT_EXCEPTION)
+#define EXCEPTION_EXIT(exc) sh4_core_exit(CORE_EXIT_EXCEPTION)
 #endif
 
 typedef enum {

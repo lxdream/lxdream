@@ -359,9 +359,12 @@ int main (int argc, char *argv[])
     }
 
     sh4_set_core( sh4_core );
+
+#ifdef SH4_TRANSLATOR
     if( sh4_core == SH4_TRANSLATE ) {
         sh4_translate_set_profile_blocks( sh4_profile_blocks );
     }
+#endif
 
     /* If requested, start the gdb server immediately before we go into the main
      * loop.
