@@ -242,6 +242,19 @@ void FASTCALL sh4_raise_tlb_exception( int, sh4vma_t );
 void FASTCALL sh4_raise_tlb_multihit( sh4vma_t );
 void FASTCALL sh4_accept_interrupt( void );
 
+#define RAISE_TLB_ERROR(code, vpn) sh4_raise_tlb_exception(code, vpn)
+#define RAISE_MEM_ERROR(code, vpn) \
+    MMIO_WRITE(MMU, TEA, vpn); \
+    MMIO_WRITE(MMU, PTEH, ((MMIO_READ(MMU, PTEH) & 0x000003FF) | (vpn&0xFFFFFC00))); \
+    sh4_raise_exception(code);
+#define RAISE_TLB_MULTIHIT_ERROR(vpn) sh4_raise_tlb_multihit(vpn)
+
+#ifdef HAVE_FRAME_ADDRESS
+#define SH4_EXCEPTION_EXIT() do{ *(((void * volatile *)__builtin_frame_address(0))+1) = exc; } while(0)
+#else
+#define SH4_EXCEPTION_EXIT() sh4_core_exit(CORE_EXIT_EXCEPTION)
+#endif
+
 /**
  * Helper method to update the SH4 registers for an exception, without
  * touching the MMU registers. Mainly for use in shadow mode.
