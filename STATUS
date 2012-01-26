@@ -1,0 +1,76 @@
+Current status
+==============
+
+General issues
+  - Slow 
+  - No I/O timing whatsoever except for video events.
+    (ie DMA, rendering, GD-Rom operations need to take > 0 ms to complete)
+
+SH4 Core
+  + Base instruction set
+  - no FPU exceptions
+  - Not remotely cycle-correct timing
+
+SH4 On-chip peripherals 
+  BSC
+    * Not implemented except for PCTRA/PDTRA, and that part is quite dodgy.
+  CPG
+    * Complete?
+  DMAC
+    * Implemented to extent needed by ASIC DMA, not fully complete
+  INTC
+    * Complete?
+  RTC
+    * Not implemented
+  SCI
+    * Not implemented (not even hooked up in the hardware?)
+  SCIF
+    * Complete? (not heavily tested)
+  TMU
+    * Complete?
+  UBC
+    * Not implemented
+
+AICA SPU
+  ARM core
+    + Base instruction set (Complete?)
+    - No thumb support
+    - No system coprocessor support
+    - No cycle-correct timing
+  DSP
+    + Basic sound generation
+    - Really bad sound
+    - No waveform support
+    - No LFO support
+
+PVR2 GPU
+  TA
+    - Functionally complete
+    - Some bugs/error behaviour not implemented
+    - No timing support
+  Render
+    + Basic opaque and translucent polygon support
+    + Depth buffer, alpha blend, most poly modes
+    + Opaque shadow volumes
+    - Basic translucent poly sorting
+    - Y-scaler
+    - No modifier volumes
+  Texture
+    + All texture formats supported except bump maps
+
+GD-Rom
+  IDE interface
+    + Supports Ident, Set feature, and Packet (and no other IDE commands)
+    + Supports PIO and DMA modes
+  GD-Rom interface
+    + Supports Test ready, Ident, Read TOC, Read Session info, Sense request, and Read CD
+      commands
+    - other 20-odd commands not supported
+
+Maple
+  + Maple bus complete?
+  + Standard DC controllers
+  - No dynamic timing
+
+Network
+  - Not implemented

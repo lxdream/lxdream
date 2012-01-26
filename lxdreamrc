@@ -1,0 +1,19 @@
+[Global]
+
+[Controllers]
+Device 0 = Sega Controller
+  dpad left = Left
+  dpad right = Right
+  dpad up = Up
+  dpad down = Down
+  Start = KP_Enter, Return
+  analog left = KP_Left
+  analog right = KP_Right
+  analog up = KP_Up
+  analog down = KP_Down
+  button X = a
+  button Y = s
+  button A = z
+  button B = x
+  trigger left = d
+  trigger right = c

@@ -1,0 +1,15 @@
+
+The test cases in this directory require an sh4 tool chain, as well as an
+arm tool chain if you want to build the AICA tests. The default Makefile
+assumes these are sh-elf and arm-elf targets respectively. A modified copy of
+newlib 1.8.2 prebuilt for SH4 with dc-load support is included as well,
+to save having to set up that part of the environment. The necessary patch
+is in the lib directory if you wish to build from source (newlib is included
+under the terms of the GPL)
+
+crt0.s is included from the dcload distribution, and is assumed to be
+redistributable under the terms of the GPL.
+
+There is currently no configure/automake for this directory - you'll need to
+modify the Makefile directly if needed. This should probably be changed
+eventually

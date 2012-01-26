@@ -1,0 +1,1312 @@
+/**
+ * $Id$
+ * 
+ * SH4 emulation core, and parent module for all the SH4 peripheral
+ * modules.
+ *
+ * Copyright (c) 2005 Nathan Keynes.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
+#define MODULE sh4_module
+#include <assert.h>
+#include <math.h>
+#include "dream.h"
+#include "dreamcast.h"
+#include "eventq.h"
+#include "mem.h"
+#include "clock.h"
+#include "syscall.h"
+#include "sh4/sh4core.h"
+#include "sh4/sh4mmio.h"
+#include "sh4/sh4stat.h"
+#include "sh4/mmu.h"
+
+#define SH4_CALLTRACE 1
+
+#define MAX_INT 0x7FFFFFFF
+#define MIN_INT 0x80000000
+#define MAX_INTF 2147483647.0
+#define MIN_INTF -2147483648.0
+
+/********************** SH4 Module Definition ****************************/
+
+uint32_t sh4_emulate_run_slice( uint32_t nanosecs ) 
+{
+    int i;
+
+    if( sh4_breakpoint_count == 0 ) {
+	for( ; sh4r.slice_cycle < nanosecs; sh4r.slice_cycle += sh4_cpu_period ) {
+	    if( SH4_EVENT_PENDING() ) {
+	        sh4_handle_pending_events();
+	    }
+	    if( !sh4_execute_instruction() ) {
+		break;
+	    }
+	}
+    } else {
+	for( ;sh4r.slice_cycle < nanosecs; sh4r.slice_cycle += sh4_cpu_period ) {
+	    if( SH4_EVENT_PENDING() ) {
+	        sh4_handle_pending_events();
+	    }
+                 
+	    if( !sh4_execute_instruction() )
+		break;
+#ifdef ENABLE_DEBUG_MODE
+	    for( i=0; i<sh4_breakpoint_count; i++ ) {
+		if( sh4_breakpoints[i].address == sh4r.pc ) {
+		    break;
+		}
+	    }
+	    if( i != sh4_breakpoint_count ) {
+	    	sh4_core_exit( CORE_EXIT_BREAKPOINT );
+	    }
+#endif	
+	}
+    }
+
+    /* If we aborted early, but the cpu is still technically running,
+     * we're doing a hard abort - cut the timeslice back to what we
+     * actually executed
+     */
+    if( sh4r.slice_cycle != nanosecs && sh4r.sh4_state == SH4_STATE_RUNNING ) {
+	nanosecs = sh4r.slice_cycle;
+    }
+    if( sh4r.sh4_state != SH4_STATE_STANDBY ) {
+	TMU_run_slice( nanosecs );
+	SCIF_run_slice( nanosecs );
+    }
+    return nanosecs;
+}
+
+/********************** SH4 emulation core  ****************************/
+
+#if(SH4_CALLTRACE == 1)
+#define MAX_CALLSTACK 32
+static struct call_stack {
+    sh4addr_t call_addr;
+    sh4addr_t target_addr;
+    sh4addr_t stack_pointer;
+} call_stack[MAX_CALLSTACK];
+
+static int call_stack_depth = 0;
+int sh4_call_trace_on = 0;
+
+static inline void trace_call( sh4addr_t source, sh4addr_t dest ) 
+{
+    if( call_stack_depth < MAX_CALLSTACK ) {
+	call_stack[call_stack_depth].call_addr = source;
+	call_stack[call_stack_depth].target_addr = dest;
+	call_stack[call_stack_depth].stack_pointer = sh4r.r[15];
+    }
+    call_stack_depth++;
+}
+
+static inline void trace_return( sh4addr_t source, sh4addr_t dest )
+{
+    if( call_stack_depth > 0 ) {
+	call_stack_depth--;
+    }
+}
+
+void fprint_stack_trace( FILE *f )
+{
+    int i = call_stack_depth -1;
+    if( i >= MAX_CALLSTACK )
+	i = MAX_CALLSTACK - 1;
+    for( ; i >= 0; i-- ) {
+	fprintf( f, "%d. Call from %08X => %08X, SP=%08X\n", 
+		 (call_stack_depth - i), call_stack[i].call_addr,
+		 call_stack[i].target_addr, call_stack[i].stack_pointer );
+    }
+}
+
+#define TRACE_CALL( source, dest ) trace_call(source, dest)
+#define TRACE_RETURN( source, dest ) trace_return(source, dest)
+#else
+#define TRACE_CALL( dest, rts ) 
+#define TRACE_RETURN( source, dest )
+#endif
+
+static gboolean FASTCALL sh4_raise_slot_exception( int normal_code, int slot_code ) {
+    if( sh4r.in_delay_slot ) {
+        sh4_raise_exception(slot_code);
+    } else {
+        sh4_raise_exception(normal_code);
+    }
+    return TRUE;
+}
+
+
+#define CHECKPRIV() if( !IS_SH4_PRIVMODE() ) { return sh4_raise_slot_exception( EXC_ILLEGAL, EXC_SLOT_ILLEGAL ); }
+#define CHECKRALIGN16(addr) if( (addr)&0x01 ) { sh4_raise_exception( EXC_DATA_ADDR_READ ); return TRUE; }
+#define CHECKRALIGN32(addr) if( (addr)&0x03 ) { sh4_raise_exception( EXC_DATA_ADDR_READ ); return TRUE; }
+#define CHECKRALIGN64(addr) if( (addr)&0x07 ) { sh4_raise_exception( EXC_DATA_ADDR_READ ); return TRUE; }
+#define CHECKWALIGN16(addr) if( (addr)&0x01 ) { sh4_raise_exception( EXC_DATA_ADDR_WRITE ); return TRUE; }
+#define CHECKWALIGN32(addr) if( (addr)&0x03 ) { sh4_raise_exception( EXC_DATA_ADDR_WRITE ); return TRUE; }
+#define CHECKWALIGN64(addr) if( (addr)&0x07 ) { sh4_raise_exception( EXC_DATA_ADDR_WRITE ); return TRUE; }
+
+#define CHECKFPUEN() if( !IS_FPU_ENABLED() ) { if( ir == 0xFFFD ) { UNDEF(ir); } else { return sh4_raise_slot_exception( EXC_FPU_DISABLED, EXC_SLOT_FPU_DISABLED ); } }
+#define CHECKDEST(p) if( (p) == 0 ) { ERROR( "%08X: Branch/jump to NULL, CPU halted", sh4r.pc ); sh4_core_exit(CORE_EXIT_HALT); return FALSE; }
+#define CHECKSLOTILLEGAL() if(sh4r.in_delay_slot) { sh4_raise_exception(EXC_SLOT_ILLEGAL); return TRUE; }
+
+#define ADDRSPACE (IS_SH4_PRIVMODE() ? sh4_address_space : sh4_user_address_space)
+#define SQADDRSPACE (IS_SH4_PRIVMODE() ? storequeue_address_space : storequeue_user_address_space)
+
+#ifdef HAVE_FRAME_ADDRESS
+static FASTCALL __attribute__((noinline)) void *__first_arg(void *a, void *b) { return a; }
+#define INIT_EXCEPTIONS(label) goto *__first_arg(&&fnstart,&&label); fnstart:
+#define MEM_READ_BYTE( addr, val ) val = ((mem_read_exc_fn_t)ADDRSPACE[(addr)>>12]->read_byte)((addr), &&except)
+#define MEM_READ_BYTE_FOR_WRITE( addr, val ) val = ((mem_read_exc_fn_t)ADDRSPACE[(addr)>>12]->read_byte_for_write)((addr), &&except)
+#define MEM_READ_WORD( addr, val ) val = ((mem_read_exc_fn_t)ADDRSPACE[(addr)>>12]->read_word)((addr), &&except)
+#define MEM_READ_LONG( addr, val ) val = ((mem_read_exc_fn_t)ADDRSPACE[(addr)>>12]->read_long)((addr), &&except)
+#define MEM_WRITE_BYTE( addr, val ) ((mem_write_exc_fn_t)ADDRSPACE[(addr)>>12]->write_byte)((addr), (val), &&except)
+#define MEM_WRITE_WORD( addr, val ) ((mem_write_exc_fn_t)ADDRSPACE[(addr)>>12]->write_word)((addr), (val), &&except)
+#define MEM_WRITE_LONG( addr, val ) ((mem_write_exc_fn_t)ADDRSPACE[(addr)>>12]->write_long)((addr), (val), &&except)
+#define MEM_PREFETCH( addr ) ((mem_prefetch_exc_fn_t)ADDRSPACE[(addr)>>12]->prefetch)((addr), &&except)
+#else
+#define INIT_EXCEPTIONS(label)
+#define MEM_READ_BYTE( addr, val ) val = ADDRSPACE[(addr)>>12]->read_byte(addr)
+#define MEM_READ_BYTE_FOR_WRITE( addr, val ) val = ADDRSPACE[(addr)>>12]->read_byte_for_write(addr)
+#define MEM_READ_WORD( addr, val ) val = ADDRSPACE[(addr)>>12]->read_word(addr)
+#define MEM_READ_LONG( addr, val ) val = ADDRSPACE[(addr)>>12]->read_long(addr)
+#define MEM_WRITE_BYTE( addr, val ) ADDRSPACE[(addr)>>12]->write_byte(addr, val)
+#define MEM_WRITE_WORD( addr, val ) ADDRSPACE[(addr)>>12]->write_word(addr, val)
+#define MEM_WRITE_LONG( addr, val ) ADDRSPACE[(addr)>>12]->write_long(addr, val)
+#define MEM_PREFETCH( addr ) ADDRSPACE[(addr)>>12]->prefetch(addr)
+#endif
+
+#define FP_WIDTH (IS_FPU_DOUBLESIZE() ? 8 : 4)
+
+#define MEM_FP_READ( addr, reg ) \
+    if( IS_FPU_DOUBLESIZE() ) { \
+	CHECKRALIGN64(addr); \
+        if( reg & 1 ) { \
+            MEM_READ_LONG( addr, *((uint32_t *)&XF((reg) & 0x0E)) ); \
+            MEM_READ_LONG( addr+4, *((uint32_t *)&XF(reg)) ); \
+        } else { \
+            MEM_READ_LONG( addr, *((uint32_t *)&FR(reg)) ); \
+            MEM_READ_LONG( addr+4, *((uint32_t *)&FR((reg)|0x01)) ); \
+	} \
+    } else { \
+        CHECKRALIGN32(addr); \
+        MEM_READ_LONG( addr, *((uint32_t *)&FR(reg)) ); \
+    }
+#define MEM_FP_WRITE( addr, reg ) \
+    if( IS_FPU_DOUBLESIZE() ) { \
+        CHECKWALIGN64(addr); \
+        if( reg & 1 ) { \
+	    MEM_WRITE_LONG( addr, *((uint32_t *)&XF((reg)&0x0E)) ); \
+	    MEM_WRITE_LONG( addr+4, *((uint32_t *)&XF(reg)) ); \
+        } else { \
+	    MEM_WRITE_LONG( addr, *((uint32_t *)&FR(reg)) ); \
+	    MEM_WRITE_LONG( addr+4, *((uint32_t *)&FR((reg)|0x01)) ); \
+	} \
+    } else { \
+    	CHECKWALIGN32(addr); \
+        MEM_WRITE_LONG(addr, *((uint32_t *)&FR((reg))) ); \
+    }
+
+#define UNDEF(ir)
+#define UNIMP(ir)
+
+/**
+ * Perform instruction-completion following core exit of a partially completed
+ * instruction. NOTE: This is only allowed on memory writes, operation is not
+ * guaranteed in any other case.
+ */
+void sh4_finalize_instruction( void )
+{
+    unsigned short ir;
+    uint32_t tmp;
+
+    if( IS_SYSCALL(sh4r.pc) ) {
+        return;
+    }
+    assert( IS_IN_ICACHE(sh4r.pc) );
+    ir = *(uint16_t *)GET_ICACHE_PTR(sh4r.pc);
+    
+    /**
+     * Note - we can't take an exit on a control transfer instruction itself,
+     * which means the exit must have happened in the delay slot. So for these
+     * cases, finalize the delay slot instruction, and re-execute the control transfer.
+     *
+     * For delay slots which modify the argument used in the branch instruction,
+     * we pretty much just assume that that can't have already happened in an exit case.
+     */
+    
+%%
+BRA disp {: 
+    sh4r.pc += 2; 
+    sh4_finalize_instruction(); 
+    sh4r.pc += disp;
+:}
+BRAF Rn {: 
+    sh4r.pc += 2; 
+    tmp = sh4r.r[Rn];
+    sh4_finalize_instruction(); 
+    sh4r.pc += tmp;
+:}
+BSR disp {: 
+    /* Note: PR is already set */ 
+    sh4r.pc += 2;
+    sh4_finalize_instruction();
+    sh4r.pc += disp;
+:}
+BSRF Rn {:
+    /* Note: PR is already set */ 
+    sh4r.pc += 2;
+    tmp = sh4r.r[Rn];
+    sh4_finalize_instruction();
+    sh4r.pc += tmp;
+:}
+BF/S disp {: 
+    sh4r.pc += 2;
+    sh4_finalize_instruction();
+    if( !sh4r.t ) {
+        sh4r.pc += disp;
+    }
+:}
+BT/S disp {: 
+    sh4r.pc += 2;
+    sh4_finalize_instruction();
+    if( sh4r.t ) {
+        sh4r.pc += disp;
+    }
+:}
+JMP @Rn {:
+    sh4r.pc += 2;
+    tmp = sh4r.r[Rn];
+    sh4_finalize_instruction();
+    sh4r.pc = tmp;
+    sh4r.new_pc = tmp + 2;
+    sh4r.slice_cycle += sh4_cpu_period;
+    return;
+:}
+JSR @Rn {: 
+    /* Note: PR is already set */ 
+    sh4r.pc += 2;
+    tmp = sh4r.r[Rn];
+    sh4_finalize_instruction();
+    sh4r.pc = tmp;
+    sh4r.new_pc = tmp + 2;
+    sh4r.slice_cycle += sh4_cpu_period;
+    return;
+:}
+RTS {: 
+    sh4r.pc += 2;
+    sh4_finalize_instruction();
+    sh4r.pc = sh4r.pr;
+    sh4r.new_pc = sh4r.pr + 2;
+    sh4r.slice_cycle += sh4_cpu_period;
+    return;
+:}
+RTE {: 
+    /* SR is already set */
+    sh4r.pc += 2;
+    sh4_finalize_instruction();
+    sh4r.pc = sh4r.spc;
+    sh4r.new_pc = sh4r.pr + 2;
+    sh4r.slice_cycle += sh4_cpu_period;
+    return;
+:}
+MOV.B Rm, @-Rn {: sh4r.r[Rn]--; :}
+MOV.W Rm, @-Rn {: sh4r.r[Rn] -= 2; :}
+MOV.L Rm, @-Rn {: sh4r.r[Rn] -= 4; :}
+MOV.B @Rm+, Rn {: if( Rm != Rn ) { sh4r.r[Rm] ++;  } :}
+MOV.W @Rm+, Rn {: if( Rm != Rn ) { sh4r.r[Rm] += 2; } :}
+MOV.L @Rm+, Rn {: if( Rm != Rn ) { sh4r.r[Rm] += 4; } :}
+%%
+    sh4r.in_delay_slot = 0;
+    sh4r.pc += 2;
+    sh4r.new_pc = sh4r.pc+2;
+    sh4r.slice_cycle += sh4_cpu_period;
+}
+
+#undef UNDEF
+#undef UNIMP
+
+#define UNDEF(ir) return sh4_raise_slot_exception(EXC_ILLEGAL, EXC_SLOT_ILLEGAL)
+#define UNIMP(ir) do{ ERROR( "Halted on unimplemented instruction at %08x, opcode = %04x", sh4r.pc, ir ); sh4_core_exit(CORE_EXIT_HALT); return FALSE; }while(0)
+
+
+gboolean sh4_execute_instruction( void )
+{
+    uint32_t pc;
+    unsigned short ir;
+    uint32_t tmp;
+    float ftmp;
+    double dtmp;
+    int64_t memtmp; // temporary holder for memory reads
+
+    INIT_EXCEPTIONS(except)
+    
+#define R0 sh4r.r[0]
+    pc = sh4r.pc;
+    if( pc > 0xFFFFFF00 ) {
+	/* SYSCALL Magic */
+        sh4r.in_delay_slot = 0;
+        sh4r.pc = sh4r.pr;
+        sh4r.new_pc = sh4r.pc + 2;
+	syscall_invoke( pc );
+        return TRUE;
+    }
+    CHECKRALIGN16(pc);
+
+#ifdef ENABLE_SH4STATS
+    sh4_stats_add_by_pc(sh4r.pc);
+#endif
+
+    /* Read instruction */
+    if( !IS_IN_ICACHE(pc) ) {
+        gboolean delay_slot = sh4r.in_delay_slot;
+	if( !mmu_update_icache(pc) ) {
+	    if( delay_slot ) {
+	        sh4r.spc -= 2;
+	    }
+	    // Fault - look for the fault handler
+	    if( !mmu_update_icache(sh4r.pc) ) {
+		// double fault - halt
+		ERROR( "Double fault - halting" );
+		sh4_core_exit(CORE_EXIT_HALT);
+		return FALSE;
+	    }
+	}
+	pc = sh4r.pc;
+    }
+    assert( IS_IN_ICACHE(pc) );
+    ir = *(uint16_t *)GET_ICACHE_PTR(sh4r.pc);
+    
+    /* FIXME: This is a bit of a hack, but the PC of the delay slot should not
+     * be visible until after the instruction has executed (for exception 
+     * correctness)
+     */
+    if( sh4r.in_delay_slot ) {
+    	sh4r.pc -= 2;
+    }
+%%
+AND Rm, Rn {: sh4r.r[Rn] &= sh4r.r[Rm]; :}
+AND #imm, R0 {: R0 &= imm; :}
+ AND.B #imm, @(R0, GBR) {: MEM_READ_BYTE_FOR_WRITE(R0+sh4r.gbr, tmp); MEM_WRITE_BYTE( R0 + sh4r.gbr, imm & tmp ); :}
+NOT Rm, Rn {: sh4r.r[Rn] = ~sh4r.r[Rm]; :}
+OR Rm, Rn {: sh4r.r[Rn] |= sh4r.r[Rm]; :}
+OR #imm, R0  {: R0 |= imm; :}
+ OR.B #imm, @(R0, GBR) {: MEM_READ_BYTE_FOR_WRITE(R0+sh4r.gbr, tmp); MEM_WRITE_BYTE( R0 + sh4r.gbr, imm | tmp ); :}
+TAS.B @Rn {:
+    MEM_READ_BYTE_FOR_WRITE( sh4r.r[Rn], tmp );
+    sh4r.t = ( tmp == 0 ? 1 : 0 );
+    MEM_WRITE_BYTE( sh4r.r[Rn], tmp | 0x80 );
+:}
+TST Rm, Rn {: sh4r.t = (sh4r.r[Rn]&sh4r.r[Rm] ? 0 : 1); :}
+TST #imm, R0 {: sh4r.t = (R0 & imm ? 0 : 1); :}
+ TST.B #imm, @(R0, GBR) {: MEM_READ_BYTE(R0+sh4r.gbr, tmp); sh4r.t = ( tmp & imm ? 0 : 1 ); :}
+XOR Rm, Rn {: sh4r.r[Rn] ^= sh4r.r[Rm]; :}
+XOR #imm, R0 {: R0 ^= imm; :}
+ XOR.B #imm, @(R0, GBR) {: MEM_READ_BYTE_FOR_WRITE(R0+sh4r.gbr, tmp); MEM_WRITE_BYTE( R0 + sh4r.gbr, imm ^ tmp ); :}
+XTRCT Rm, Rn {: sh4r.r[Rn] = (sh4r.r[Rn]>>16) | (sh4r.r[Rm]<<16); :}
+
+ROTL Rn {:
+    sh4r.t = sh4r.r[Rn] >> 31;
+    sh4r.r[Rn] <<= 1;
+    sh4r.r[Rn] |= sh4r.t;
+:}
+ROTR Rn {:
+    sh4r.t = sh4r.r[Rn] & 0x00000001;
+    sh4r.r[Rn] >>= 1;
+    sh4r.r[Rn] |= (sh4r.t << 31);
+:}
+ROTCL Rn {:
+    tmp = sh4r.r[Rn] >> 31;
+    sh4r.r[Rn] <<= 1;
+    sh4r.r[Rn] |= sh4r.t;
+    sh4r.t = tmp;
+:}
+ROTCR Rn {:
+    tmp = sh4r.r[Rn] & 0x00000001;
+    sh4r.r[Rn] >>= 1;
+    sh4r.r[Rn] |= (sh4r.t << 31 );
+    sh4r.t = tmp;
+:}
+SHAD Rm, Rn {:
+    tmp = sh4r.r[Rm];
+    if( (tmp & 0x80000000) == 0 ) sh4r.r[Rn] <<= (tmp&0x1f);
+    else if( (tmp & 0x1F) == 0 )  
+        sh4r.r[Rn] = ((int32_t)sh4r.r[Rn]) >> 31;
+    else 
+	sh4r.r[Rn] = ((int32_t)sh4r.r[Rn]) >> (((~sh4r.r[Rm]) & 0x1F)+1);
+:}
+SHLD Rm, Rn {:
+    tmp = sh4r.r[Rm];
+    if( (tmp & 0x80000000) == 0 ) sh4r.r[Rn] <<= (tmp&0x1f);
+    else if( (tmp & 0x1F) == 0 ) sh4r.r[Rn] = 0;
+    else sh4r.r[Rn] >>= (((~tmp) & 0x1F)+1);
+:}
+SHAL Rn {:
+    sh4r.t = sh4r.r[Rn] >> 31;
+    sh4r.r[Rn] <<= 1;
+:}
+SHAR Rn {:
+    sh4r.t = sh4r.r[Rn] & 0x00000001;
+    sh4r.r[Rn] = ((int32_t)sh4r.r[Rn]) >> 1;
+:}
+SHLL Rn {: sh4r.t = sh4r.r[Rn] >> 31; sh4r.r[Rn] <<= 1; :}
+SHLR Rn {: sh4r.t = sh4r.r[Rn] & 0x00000001; sh4r.r[Rn] >>= 1; :}
+SHLL2 Rn {: sh4r.r[Rn] <<= 2; :}
+SHLR2 Rn {: sh4r.r[Rn] >>= 2; :}
+SHLL8 Rn {: sh4r.r[Rn] <<= 8; :}
+SHLR8 Rn {: sh4r.r[Rn] >>= 8; :}
+SHLL16 Rn {: sh4r.r[Rn] <<= 16; :}
+SHLR16 Rn {: sh4r.r[Rn] >>= 16; :}
+
+EXTU.B Rm, Rn {: sh4r.r[Rn] = sh4r.r[Rm]&0x000000FF; :}
+EXTU.W Rm, Rn {: sh4r.r[Rn] = sh4r.r[Rm]&0x0000FFFF; :}
+EXTS.B Rm, Rn {: sh4r.r[Rn] = SIGNEXT8( sh4r.r[Rm]&0x000000FF ); :}
+EXTS.W Rm, Rn {: sh4r.r[Rn] = SIGNEXT16( sh4r.r[Rm]&0x0000FFFF ); :}
+SWAP.B Rm, Rn {: sh4r.r[Rn] = (sh4r.r[Rm]&0xFFFF0000) | ((sh4r.r[Rm]&0x0000FF00)>>8) | ((sh4r.r[Rm]&0x000000FF)<<8); :}
+SWAP.W Rm, Rn {: sh4r.r[Rn] = (sh4r.r[Rm]>>16) | (sh4r.r[Rm]<<16); :}
+
+CLRT {: sh4r.t = 0; :}
+SETT {: sh4r.t = 1; :}
+CLRMAC {: sh4r.mac = 0; :}
+LDTLB {: MMU_ldtlb(); :}
+CLRS {: sh4r.s = 0; :}
+SETS {: sh4r.s = 1; :}
+MOVT Rn {: sh4r.r[Rn] = sh4r.t; :}
+NOP {: /* NOP */ :}
+
+PREF @Rn {:
+    MEM_PREFETCH(sh4r.r[Rn]);
+:}
+OCBI @Rn {: :}
+OCBP @Rn {: :}
+OCBWB @Rn {: :}
+MOVCA.L R0, @Rn {:
+    tmp = sh4r.r[Rn];
+    CHECKWALIGN32(tmp);
+    MEM_WRITE_LONG( tmp, R0 );
+:}
+MOV.B Rm, @(R0, Rn) {: MEM_WRITE_BYTE( R0 + sh4r.r[Rn], sh4r.r[Rm] ); :}
+MOV.W Rm, @(R0, Rn) {: 
+    CHECKWALIGN16( R0 + sh4r.r[Rn] );
+    MEM_WRITE_WORD( R0 + sh4r.r[Rn], sh4r.r[Rm] );
+:}
+MOV.L Rm, @(R0, Rn) {:
+    CHECKWALIGN32( R0 + sh4r.r[Rn] );
+    MEM_WRITE_LONG( R0 + sh4r.r[Rn], sh4r.r[Rm] );
+:}
+MOV.B @(R0, Rm), Rn {: MEM_READ_BYTE( R0 + sh4r.r[Rm], sh4r.r[Rn] ); :}
+MOV.W @(R0, Rm), Rn {: CHECKRALIGN16( R0 + sh4r.r[Rm] );
+    MEM_READ_WORD( R0 + sh4r.r[Rm], sh4r.r[Rn] );
+:}
+MOV.L @(R0, Rm), Rn {: CHECKRALIGN32( R0 + sh4r.r[Rm] );
+    MEM_READ_LONG( R0 + sh4r.r[Rm], sh4r.r[Rn] );
+:}
+MOV.L Rm, @(disp, Rn) {:
+    tmp = sh4r.r[Rn] + disp;
+    CHECKWALIGN32( tmp );
+    MEM_WRITE_LONG( tmp, sh4r.r[Rm] );
+:}
+MOV.B Rm, @Rn {: MEM_WRITE_BYTE( sh4r.r[Rn], sh4r.r[Rm] ); :}
+MOV.W Rm, @Rn {: CHECKWALIGN16( sh4r.r[Rn] ); MEM_WRITE_WORD( sh4r.r[Rn], sh4r.r[Rm] ); :}
+MOV.L Rm, @Rn {: CHECKWALIGN32( sh4r.r[Rn] ); MEM_WRITE_LONG( sh4r.r[Rn], sh4r.r[Rm] ); :}
+ MOV.B Rm, @-Rn {: MEM_WRITE_BYTE( sh4r.r[Rn]-1, sh4r.r[Rm] ); sh4r.r[Rn]--; :}
+ MOV.W Rm, @-Rn {: CHECKWALIGN16( sh4r.r[Rn] ); MEM_WRITE_WORD( sh4r.r[Rn]-2, sh4r.r[Rm] ); sh4r.r[Rn] -= 2; :}
+ MOV.L Rm, @-Rn {: CHECKWALIGN32( sh4r.r[Rn] ); MEM_WRITE_LONG( sh4r.r[Rn]-4, sh4r.r[Rm] ); sh4r.r[Rn] -= 4; :}
+MOV.L @(disp, Rm), Rn {:
+    tmp = sh4r.r[Rm] + disp;
+    CHECKRALIGN32( tmp );
+    MEM_READ_LONG( tmp, sh4r.r[Rn] );
+:}
+MOV.B @Rm, Rn {: MEM_READ_BYTE( sh4r.r[Rm], sh4r.r[Rn] ); :}
+ MOV.W @Rm, Rn {: CHECKRALIGN16( sh4r.r[Rm] ); MEM_READ_WORD( sh4r.r[Rm], sh4r.r[Rn] ); :}
+ MOV.L @Rm, Rn {: CHECKRALIGN32( sh4r.r[Rm] ); MEM_READ_LONG( sh4r.r[Rm], sh4r.r[Rn] ); :}
+MOV Rm, Rn {: sh4r.r[Rn] = sh4r.r[Rm]; :}
+ MOV.B @Rm+, Rn {: MEM_READ_BYTE( sh4r.r[Rm], sh4r.r[Rn] ); if( Rm != Rn ) { sh4r.r[Rm] ++; } :}
+ MOV.W @Rm+, Rn {: CHECKRALIGN16( sh4r.r[Rm] ); MEM_READ_WORD( sh4r.r[Rm], sh4r.r[Rn] ); if( Rm != Rn ) { sh4r.r[Rm] += 2; } :}
+ MOV.L @Rm+, Rn {: CHECKRALIGN32( sh4r.r[Rm] ); MEM_READ_LONG( sh4r.r[Rm], sh4r.r[Rn] ); if( Rm != Rn ) { sh4r.r[Rm] += 4; } :}
+MOV.L @(disp, PC), Rn {:
+    CHECKSLOTILLEGAL();
+    tmp = (pc&0xFFFFFFFC) + disp + 4;
+    MEM_READ_LONG( tmp, sh4r.r[Rn] );
+:}
+MOV.B R0, @(disp, GBR) {: MEM_WRITE_BYTE( sh4r.gbr + disp, R0 ); :}
+MOV.W R0, @(disp, GBR) {:
+    tmp = sh4r.gbr + disp;
+    CHECKWALIGN16( tmp );
+    MEM_WRITE_WORD( tmp, R0 );
+:}
+MOV.L R0, @(disp, GBR) {:
+    tmp = sh4r.gbr + disp;
+    CHECKWALIGN32( tmp );
+    MEM_WRITE_LONG( tmp, R0 );
+:}
+ MOV.B @(disp, GBR), R0 {: MEM_READ_BYTE( sh4r.gbr + disp, R0 ); :}
+MOV.W @(disp, GBR), R0 {: 
+    tmp = sh4r.gbr + disp;
+    CHECKRALIGN16( tmp );
+    MEM_READ_WORD( tmp, R0 );
+:}
+MOV.L @(disp, GBR), R0 {:
+    tmp = sh4r.gbr + disp;
+    CHECKRALIGN32( tmp );
+    MEM_READ_LONG( tmp, R0 );
+:}
+MOV.B R0, @(disp, Rn) {: MEM_WRITE_BYTE( sh4r.r[Rn] + disp, R0 ); :}
+MOV.W R0, @(disp, Rn) {: 
+    tmp = sh4r.r[Rn] + disp;
+    CHECKWALIGN16( tmp );
+    MEM_WRITE_WORD( tmp, R0 );
+:}
+ MOV.B @(disp, Rm), R0 {: MEM_READ_BYTE( sh4r.r[Rm] + disp, R0 ); :}
+MOV.W @(disp, Rm), R0 {: 
+    tmp = sh4r.r[Rm] + disp;
+    CHECKRALIGN16( tmp );
+    MEM_READ_WORD( tmp, R0 );
+:}
+MOV.W @(disp, PC), Rn {:
+    CHECKSLOTILLEGAL();
+    tmp = pc + 4 + disp;
+    MEM_READ_WORD( tmp, sh4r.r[Rn] );
+:}
+MOVA @(disp, PC), R0 {:
+    CHECKSLOTILLEGAL();
+    R0 = (pc&0xFFFFFFFC) + disp + 4;
+:}
+MOV #imm, Rn {:  sh4r.r[Rn] = imm; :}
+
+FMOV @(R0, Rm), FRn {: MEM_FP_READ( sh4r.r[Rm] + R0, FRn ); :}
+FMOV FRm, @(R0, Rn) {: MEM_FP_WRITE( sh4r.r[Rn] + R0, FRm ); :}
+FMOV @Rm, FRn {: MEM_FP_READ( sh4r.r[Rm], FRn ); :}
+FMOV @Rm+, FRn {: MEM_FP_READ( sh4r.r[Rm], FRn ); sh4r.r[Rm] += FP_WIDTH; :}
+FMOV FRm, @Rn {: MEM_FP_WRITE( sh4r.r[Rn], FRm ); :}
+ FMOV FRm, @-Rn {: MEM_FP_WRITE( sh4r.r[Rn] - FP_WIDTH, FRm ); sh4r.r[Rn] -= FP_WIDTH; :}
+FMOV FRm, FRn {: 
+    if( IS_FPU_DOUBLESIZE() )
+	DR(FRn) = DR(FRm);
+    else
+	FR(FRn) = FR(FRm);
+:}
+
+CMP/EQ #imm, R0 {: sh4r.t = ( R0 == imm ? 1 : 0 ); :}
+CMP/EQ Rm, Rn {: sh4r.t = ( sh4r.r[Rm] == sh4r.r[Rn] ? 1 : 0 ); :}
+CMP/GE Rm, Rn {: sh4r.t = ( ((int32_t)sh4r.r[Rn]) >= ((int32_t)sh4r.r[Rm]) ? 1 : 0 ); :}
+CMP/GT Rm, Rn {: sh4r.t = ( ((int32_t)sh4r.r[Rn]) > ((int32_t)sh4r.r[Rm]) ? 1 : 0 ); :}
+CMP/HI Rm, Rn {: sh4r.t = ( sh4r.r[Rn] > sh4r.r[Rm] ? 1 : 0 ); :}
+CMP/HS Rm, Rn {: sh4r.t = ( sh4r.r[Rn] >= sh4r.r[Rm] ? 1 : 0 ); :}
+CMP/PL Rn {: sh4r.t = ( ((int32_t)sh4r.r[Rn]) > 0 ? 1 : 0 ); :}
+CMP/PZ Rn {: sh4r.t = ( ((int32_t)sh4r.r[Rn]) >= 0 ? 1 : 0 ); :}
+CMP/STR Rm, Rn {: 
+    /* set T = 1 if any byte in RM & RN is the same */
+    tmp = sh4r.r[Rm] ^ sh4r.r[Rn];
+    sh4r.t = ((tmp&0x000000FF)==0 || (tmp&0x0000FF00)==0 ||
+             (tmp&0x00FF0000)==0 || (tmp&0xFF000000)==0)?1:0;
+:}
+
+ADD Rm, Rn {: sh4r.r[Rn] += sh4r.r[Rm]; :}
+ADD #imm, Rn {: sh4r.r[Rn] += imm; :}
+ADDC Rm, Rn {:
+    tmp = sh4r.r[Rn];
+    sh4r.r[Rn] += sh4r.r[Rm] + sh4r.t;
+    sh4r.t = ( sh4r.r[Rn] < tmp || (sh4r.r[Rn] == tmp && sh4r.t != 0) ? 1 : 0 );
+:}
+ADDV Rm, Rn {:
+    tmp = sh4r.r[Rn] + sh4r.r[Rm];
+    sh4r.t = ( (sh4r.r[Rn]>>31) == (sh4r.r[Rm]>>31) && ((sh4r.r[Rn]>>31) != (tmp>>31)) );
+    sh4r.r[Rn] = tmp;
+:}
+DIV0U {: sh4r.m = sh4r.q = sh4r.t = 0; :}
+DIV0S Rm, Rn {: 
+    sh4r.q = sh4r.r[Rn]>>31;
+    sh4r.m = sh4r.r[Rm]>>31;
+    sh4r.t = sh4r.q ^ sh4r.m;
+:}
+DIV1 Rm, Rn {:
+    /* This is derived from the sh4 manual with some simplifications */
+    uint32_t tmp0, tmp1, tmp2, dir;
+
+    dir = sh4r.q ^ sh4r.m;
+    sh4r.q = (sh4r.r[Rn] >> 31);
+    tmp2 = sh4r.r[Rm];
+    sh4r.r[Rn] = (sh4r.r[Rn] << 1) | sh4r.t;
+    tmp0 = sh4r.r[Rn];
+    if( dir ) {
+         sh4r.r[Rn] += tmp2;
+         tmp1 = (sh4r.r[Rn]<tmp0 ? 1 : 0 );
+    } else {
+         sh4r.r[Rn] -= tmp2;
+         tmp1 = (sh4r.r[Rn]>tmp0 ? 1 : 0 );
+    }
+    sh4r.q ^= sh4r.m ^ tmp1;
+    sh4r.t = ( sh4r.q == sh4r.m ? 1 : 0 );
+:}
+DMULS.L Rm, Rn {: sh4r.mac = SIGNEXT32(sh4r.r[Rm]) * SIGNEXT32(sh4r.r[Rn]); :}
+DMULU.L Rm, Rn {: sh4r.mac = ((uint64_t)sh4r.r[Rm]) * ((uint64_t)sh4r.r[Rn]); :}
+DT Rn {:
+    sh4r.r[Rn] --;
+    sh4r.t = ( sh4r.r[Rn] == 0 ? 1 : 0 );
+:}
+MAC.W @Rm+, @Rn+ {:
+    int32_t stmp;
+    if( Rm == Rn ) {
+	CHECKRALIGN16(sh4r.r[Rn]);
+	MEM_READ_WORD( sh4r.r[Rn], tmp );
+	stmp = SIGNEXT16(tmp);
+	MEM_READ_WORD( sh4r.r[Rn]+2, tmp );
+	stmp *= SIGNEXT16(tmp);
+	sh4r.r[Rn] += 4;
+    } else {
+	CHECKRALIGN16( sh4r.r[Rn] );
+	MEM_READ_WORD(sh4r.r[Rn], tmp);
+	stmp = SIGNEXT16(tmp);
+	CHECKRALIGN16( sh4r.r[Rm] );
+	MEM_READ_WORD(sh4r.r[Rm], tmp);
+	stmp = stmp * SIGNEXT16(tmp);
+	sh4r.r[Rn] += 2;
+	sh4r.r[Rm] += 2;
+    }
+    if( sh4r.s ) {
+	int64_t tmpl = (int64_t)((int32_t)sh4r.mac) + (int64_t)stmp;
+	if( tmpl > (int64_t)0x000000007FFFFFFFLL ) {
+	    sh4r.mac = 0x000000017FFFFFFFLL;
+	} else if( tmpl < (int64_t)0xFFFFFFFF80000000LL ) {
+	    sh4r.mac = 0x0000000180000000LL;
+	} else {
+	    sh4r.mac = (sh4r.mac & 0xFFFFFFFF00000000LL) |
+		((uint32_t)(sh4r.mac + stmp));
+	}
+    } else {
+	sh4r.mac += SIGNEXT32(stmp);
+    }
+:}
+MAC.L @Rm+, @Rn+ {:
+    int64_t tmpl;
+    if( Rm == Rn ) {
+	CHECKRALIGN32( sh4r.r[Rn] );
+	MEM_READ_LONG(sh4r.r[Rn], tmp);
+	tmpl = SIGNEXT32(tmp);
+	MEM_READ_LONG(sh4r.r[Rn]+4, tmp);
+	tmpl = tmpl * SIGNEXT32(tmp) + sh4r.mac;
+	sh4r.r[Rn] += 8;
+    } else {
+	CHECKRALIGN32( sh4r.r[Rm] );
+	CHECKRALIGN32( sh4r.r[Rn] );
+	MEM_READ_LONG(sh4r.r[Rn], tmp);
+	tmpl = SIGNEXT32(tmp);
+	MEM_READ_LONG(sh4r.r[Rm], tmp);
+	tmpl = tmpl * SIGNEXT32(tmp) + sh4r.mac;
+	sh4r.r[Rn] += 4;
+	sh4r.r[Rm] += 4;
+    }
+    if( sh4r.s ) {
+        /* 48-bit Saturation. Yuch */
+        if( tmpl < (int64_t)0xFFFF800000000000LL )
+            tmpl = 0xFFFF800000000000LL;
+        else if( tmpl > (int64_t)0x00007FFFFFFFFFFFLL )
+            tmpl = 0x00007FFFFFFFFFFFLL;
+    }
+    sh4r.mac = tmpl;
+:}
+MUL.L Rm, Rn {: sh4r.mac = (sh4r.mac&0xFFFFFFFF00000000LL) |
+                        (sh4r.r[Rm] * sh4r.r[Rn]); :}
+MULU.W Rm, Rn {:
+    sh4r.mac = (sh4r.mac&0xFFFFFFFF00000000LL) |
+               (uint32_t)((sh4r.r[Rm]&0xFFFF) * (sh4r.r[Rn]&0xFFFF));
+:}
+MULS.W Rm, Rn {:
+    sh4r.mac = (sh4r.mac&0xFFFFFFFF00000000LL) |
+               (uint32_t)(SIGNEXT32(sh4r.r[Rm]&0xFFFF) * SIGNEXT32(sh4r.r[Rn]&0xFFFF));
+:}
+NEGC Rm, Rn {:
+    tmp = 0 - sh4r.r[Rm];
+    sh4r.r[Rn] = tmp - sh4r.t;
+    sh4r.t = ( 0<tmp || tmp<sh4r.r[Rn] ? 1 : 0 );
+:}
+NEG Rm, Rn {: sh4r.r[Rn] = 0 - sh4r.r[Rm]; :}
+SUB Rm, Rn {: sh4r.r[Rn] -= sh4r.r[Rm]; :}
+SUBC Rm, Rn {: 
+    tmp = sh4r.r[Rn];
+    sh4r.r[Rn] = sh4r.r[Rn] - sh4r.r[Rm] - sh4r.t;
+    sh4r.t = (sh4r.r[Rn] > tmp || (sh4r.r[Rn] == tmp && sh4r.t == 1));
+:}
+SUBV Rm, Rn {:
+    tmp = sh4r.r[Rn] - sh4r.r[Rm];
+    sh4r.t = ( (sh4r.r[Rn]>>31) != (sh4r.r[Rm]>>31) && ((sh4r.r[Rn]>>31) != (tmp>>31)) );
+    sh4r.r[Rn] = tmp;
+:}
+BRAF Rn {:
+     CHECKSLOTILLEGAL();
+     CHECKDEST( pc + 4 + sh4r.r[Rn] );
+     sh4r.in_delay_slot = 1;
+     sh4r.pc = sh4r.new_pc;
+     sh4r.new_pc = pc + 4 + sh4r.r[Rn];
+     return TRUE;
+:}
+BSRF Rn {:
+     CHECKSLOTILLEGAL();
+     CHECKDEST( pc + 4 + sh4r.r[Rn] );
+     sh4r.in_delay_slot = 1;
+     sh4r.pr = sh4r.pc + 4;
+     sh4r.pc = sh4r.new_pc;
+     sh4r.new_pc = pc + 4 + sh4r.r[Rn];
+     TRACE_CALL( pc, sh4r.new_pc );
+     return TRUE;
+:}
+BT disp {:
+    CHECKSLOTILLEGAL();
+    if( sh4r.t ) {
+        CHECKDEST( sh4r.pc + disp + 4 )
+        sh4r.pc += disp + 4;
+        sh4r.new_pc = sh4r.pc + 2;
+        return TRUE;
+    }
+:}
+BF disp {:
+    CHECKSLOTILLEGAL();
+    if( !sh4r.t ) {
+        CHECKDEST( sh4r.pc + disp + 4 )
+        sh4r.pc += disp + 4;
+        sh4r.new_pc = sh4r.pc + 2;
+        return TRUE;
+    }
+:}
+BT/S disp {:
+    CHECKSLOTILLEGAL();
+    if( sh4r.t ) {
+        CHECKDEST( sh4r.pc + disp + 4 )
+        sh4r.in_delay_slot = 1;
+        sh4r.pc = sh4r.new_pc;
+        sh4r.new_pc = pc + disp + 4;
+        sh4r.in_delay_slot = 1;
+        return TRUE;
+    }
+:}
+BF/S disp {:
+    CHECKSLOTILLEGAL();
+    if( !sh4r.t ) {
+        CHECKDEST( sh4r.pc + disp + 4 )
+        sh4r.in_delay_slot = 1;
+        sh4r.pc = sh4r.new_pc;
+        sh4r.new_pc = pc + disp + 4;
+        return TRUE;
+    }
+:}
+BRA disp {:
+    CHECKSLOTILLEGAL();
+    CHECKDEST( sh4r.pc + disp + 4 );
+    sh4r.in_delay_slot = 1;
+    sh4r.pc = sh4r.new_pc;
+    sh4r.new_pc = pc + 4 + disp;
+    return TRUE;
+:}
+BSR disp {:
+    CHECKDEST( sh4r.pc + disp + 4 );
+    CHECKSLOTILLEGAL();
+    sh4r.in_delay_slot = 1;
+    sh4r.pr = pc + 4;
+    sh4r.pc = sh4r.new_pc;
+    sh4r.new_pc = pc + 4 + disp;
+    TRACE_CALL( pc, sh4r.new_pc );
+    return TRUE;
+:}
+TRAPA #imm {:
+    CHECKSLOTILLEGAL();
+    sh4r.pc += 2;
+    sh4_raise_trap( imm );
+    return TRUE;
+:}
+RTS {: 
+    CHECKSLOTILLEGAL();
+    CHECKDEST( sh4r.pr );
+    sh4r.in_delay_slot = 1;
+    sh4r.pc = sh4r.new_pc;
+    sh4r.new_pc = sh4r.pr;
+    TRACE_RETURN( pc, sh4r.new_pc );
+    return TRUE;
+:}
+SLEEP {:
+    if( MMIO_READ( CPG, STBCR ) & 0x80 ) {
+	sh4r.sh4_state = SH4_STATE_STANDBY;
+    } else {
+	sh4r.sh4_state = SH4_STATE_SLEEP;
+    }
+    return FALSE; /* Halt CPU */
+:}
+RTE {:
+    CHECKPRIV();
+    CHECKDEST( sh4r.spc );
+    CHECKSLOTILLEGAL();
+    sh4r.in_delay_slot = 1;
+    sh4r.pc = sh4r.new_pc;
+    sh4r.new_pc = sh4r.spc;
+    sh4_write_sr( sh4r.ssr );
+    return TRUE;
+:}
+JMP @Rn {:
+    CHECKDEST( sh4r.r[Rn] );
+    CHECKSLOTILLEGAL();
+    sh4r.in_delay_slot = 1;
+    sh4r.pc = sh4r.new_pc;
+    sh4r.new_pc = sh4r.r[Rn];
+    return TRUE;
+:}
+JSR @Rn {:
+    CHECKDEST( sh4r.r[Rn] );
+    CHECKSLOTILLEGAL();
+    sh4r.in_delay_slot = 1;
+    sh4r.pc = sh4r.new_pc;
+    sh4r.new_pc = sh4r.r[Rn];
+    sh4r.pr = pc + 4;
+    TRACE_CALL( pc, sh4r.new_pc );
+    return TRUE;
+:}
+STS MACH, Rn {: sh4r.r[Rn] = (sh4r.mac>>32); :}
+STS.L MACH, @-Rn {:
+    CHECKWALIGN32( sh4r.r[Rn] );
+    MEM_WRITE_LONG( sh4r.r[Rn]-4, (sh4r.mac>>32) );
+    sh4r.r[Rn] -= 4;
+:}
+STC.L SR, @-Rn {:
+    CHECKPRIV();
+    CHECKWALIGN32( sh4r.r[Rn] );
+    MEM_WRITE_LONG( sh4r.r[Rn]-4, sh4_read_sr() );
+    sh4r.r[Rn] -= 4;
+:}
+LDS.L @Rm+, MACH {:
+    CHECKRALIGN32( sh4r.r[Rm] );
+    MEM_READ_LONG(sh4r.r[Rm], tmp);
+    sh4r.mac = (sh4r.mac & 0x00000000FFFFFFFF) |
+	(((uint64_t)tmp)<<32);
+    sh4r.r[Rm] += 4;
+:}
+LDC.L @Rm+, SR {:
+    CHECKSLOTILLEGAL();
+    CHECKPRIV();
+    CHECKWALIGN32( sh4r.r[Rm] );
+    MEM_READ_LONG(sh4r.r[Rm], tmp);
+    sh4_write_sr( tmp );
+    sh4r.r[Rm] +=4;
+:}
+LDS Rm, MACH {:
+    sh4r.mac = (sh4r.mac & 0x00000000FFFFFFFF) |
+               (((uint64_t)sh4r.r[Rm])<<32);
+:}
+LDC Rm, SR {:
+    CHECKSLOTILLEGAL();
+    CHECKPRIV();
+    sh4_write_sr( sh4r.r[Rm] );
+:}
+LDC Rm, SGR {:
+    CHECKPRIV();
+    sh4r.sgr = sh4r.r[Rm];
+:}
+LDC.L @Rm+, SGR {:
+    CHECKPRIV();
+    CHECKRALIGN32( sh4r.r[Rm] );
+    MEM_READ_LONG(sh4r.r[Rm], sh4r.sgr);
+    sh4r.r[Rm] +=4;
+:}
+STS MACL, Rn {: sh4r.r[Rn] = (uint32_t)sh4r.mac; :}
+STS.L MACL, @-Rn {:
+    CHECKWALIGN32( sh4r.r[Rn] );
+    MEM_WRITE_LONG( sh4r.r[Rn]-4, (uint32_t)sh4r.mac );
+    sh4r.r[Rn] -= 4;
+:}
+STC.L GBR, @-Rn {:
+    CHECKWALIGN32( sh4r.r[Rn] );
+    MEM_WRITE_LONG( sh4r.r[Rn]-4, sh4r.gbr );
+    sh4r.r[Rn] -= 4;
+:}
+LDS.L @Rm+, MACL {:
+    CHECKRALIGN32( sh4r.r[Rm] );
+    MEM_READ_LONG(sh4r.r[Rm], tmp);
+    sh4r.mac = (sh4r.mac & 0xFFFFFFFF00000000LL) |
+               (uint64_t)((uint32_t)tmp);
+    sh4r.r[Rm] += 4;
+:}
+LDC.L @Rm+, GBR {:
+    CHECKRALIGN32( sh4r.r[Rm] );
+    MEM_READ_LONG(sh4r.r[Rm], sh4r.gbr);
+    sh4r.r[Rm] +=4;
+:}
+LDS Rm, MACL {:
+    sh4r.mac = (sh4r.mac & 0xFFFFFFFF00000000LL) |
+               (uint64_t)((uint32_t)(sh4r.r[Rm]));
+:}
+LDC Rm, GBR {: sh4r.gbr = sh4r.r[Rm]; :}
+STS PR, Rn {: sh4r.r[Rn] = sh4r.pr; :}
+STS.L PR, @-Rn {:
+    CHECKWALIGN32( sh4r.r[Rn] );
+    MEM_WRITE_LONG( sh4r.r[Rn]-4, sh4r.pr );
+    sh4r.r[Rn] -= 4;
+:}
+STC.L VBR, @-Rn {:
+    CHECKPRIV();
+    CHECKWALIGN32( sh4r.r[Rn] );
+    MEM_WRITE_LONG( sh4r.r[Rn]-4, sh4r.vbr );
+    sh4r.r[Rn] -= 4;
+:}
+LDS.L @Rm+, PR {:
+    CHECKRALIGN32( sh4r.r[Rm] );
+    MEM_READ_LONG( sh4r.r[Rm], sh4r.pr );
+    sh4r.r[Rm] += 4;
+:}
+LDC.L @Rm+, VBR {:
+    CHECKPRIV();
+    CHECKRALIGN32( sh4r.r[Rm] );
+    MEM_READ_LONG(sh4r.r[Rm], sh4r.vbr);
+    sh4r.r[Rm] +=4;
+:}
+LDS Rm, PR {: sh4r.pr = sh4r.r[Rm]; :}
+LDC Rm, VBR {:
+    CHECKPRIV();
+    sh4r.vbr = sh4r.r[Rm];
+:}
+STC SGR, Rn {:
+    CHECKPRIV();
+    sh4r.r[Rn] = sh4r.sgr;
+:}
+STC.L SGR, @-Rn {:
+    CHECKPRIV();
+    CHECKWALIGN32( sh4r.r[Rn] );
+    MEM_WRITE_LONG( sh4r.r[Rn]-4, sh4r.sgr );
+    sh4r.r[Rn] -= 4;
+:}
+STC.L SSR, @-Rn {:
+    CHECKPRIV();
+    CHECKWALIGN32( sh4r.r[Rn] );
+    MEM_WRITE_LONG( sh4r.r[Rn]-4, sh4r.ssr );
+    sh4r.r[Rn] -= 4;
+:}
+LDC.L @Rm+, SSR {:
+    CHECKPRIV();
+    CHECKRALIGN32( sh4r.r[Rm] );
+    MEM_READ_LONG(sh4r.r[Rm], sh4r.ssr);
+    sh4r.r[Rm] +=4;
+:}
+LDC Rm, SSR {:
+    CHECKPRIV();
+    sh4r.ssr = sh4r.r[Rm];
+:}
+STC.L SPC, @-Rn {:
+    CHECKPRIV();
+    CHECKWALIGN32( sh4r.r[Rn] );
+    MEM_WRITE_LONG( sh4r.r[Rn]-4, sh4r.spc );
+    sh4r.r[Rn] -= 4;
+:}
+LDC.L @Rm+, SPC {:
+    CHECKPRIV();
+    CHECKRALIGN32( sh4r.r[Rm] );
+    MEM_READ_LONG(sh4r.r[Rm], sh4r.spc);
+    sh4r.r[Rm] +=4;
+:}
+LDC Rm, SPC {:
+    CHECKPRIV();
+    sh4r.spc = sh4r.r[Rm];
+:}
+STS FPUL, Rn {: 
+    CHECKFPUEN();
+    sh4r.r[Rn] = FPULi; 
+:}
+STS.L FPUL, @-Rn {:
+    CHECKFPUEN();
+    CHECKWALIGN32( sh4r.r[Rn] );
+    MEM_WRITE_LONG( sh4r.r[Rn]-4, FPULi );
+    sh4r.r[Rn] -= 4;
+:}
+LDS.L @Rm+, FPUL {:
+    CHECKFPUEN();
+    CHECKRALIGN32( sh4r.r[Rm] );
+    MEM_READ_LONG(sh4r.r[Rm], FPULi);
+    sh4r.r[Rm] +=4;
+:}
+LDS Rm, FPUL {:
+    CHECKFPUEN();
+    FPULi = sh4r.r[Rm]; 
+:}
+STS FPSCR, Rn {: 
+    CHECKFPUEN();
+    sh4r.r[Rn] = sh4r.fpscr; 
+:}
+STS.L FPSCR, @-Rn {:
+    CHECKFPUEN();
+    CHECKWALIGN32( sh4r.r[Rn] );
+    MEM_WRITE_LONG( sh4r.r[Rn]-4, sh4r.fpscr );
+    sh4r.r[Rn] -= 4;
+:}
+LDS.L @Rm+, FPSCR {:
+    CHECKFPUEN();
+    CHECKRALIGN32( sh4r.r[Rm] );
+    MEM_READ_LONG(sh4r.r[Rm], tmp);
+    sh4r.r[Rm] +=4;
+    sh4_write_fpscr( tmp );
+:}
+LDS Rm, FPSCR {: 
+    CHECKFPUEN();
+    sh4_write_fpscr( sh4r.r[Rm] );
+:}
+STC DBR, Rn {: CHECKPRIV(); sh4r.r[Rn] = sh4r.dbr; :}
+STC.L DBR, @-Rn {:
+    CHECKPRIV();
+    CHECKWALIGN32( sh4r.r[Rn] );
+    MEM_WRITE_LONG( sh4r.r[Rn]-4, sh4r.dbr );
+    sh4r.r[Rn] -= 4;
+:}
+LDC.L @Rm+, DBR {:
+    CHECKPRIV();
+    CHECKRALIGN32( sh4r.r[Rm] );
+    MEM_READ_LONG(sh4r.r[Rm], sh4r.dbr);
+    sh4r.r[Rm] +=4;
+:}
+LDC Rm, DBR {:
+    CHECKPRIV();
+    sh4r.dbr = sh4r.r[Rm];
+:}
+STC.L Rm_BANK, @-Rn {:
+    CHECKPRIV();
+    CHECKWALIGN32( sh4r.r[Rn] );
+    MEM_WRITE_LONG( sh4r.r[Rn]-4, sh4r.r_bank[Rm_BANK] );
+    sh4r.r[Rn] -= 4;
+:}
+LDC.L @Rm+, Rn_BANK {:
+    CHECKPRIV();
+    CHECKRALIGN32( sh4r.r[Rm] );
+    MEM_READ_LONG( sh4r.r[Rm], sh4r.r_bank[Rn_BANK] );
+    sh4r.r[Rm] += 4;
+:}
+LDC Rm, Rn_BANK {:
+    CHECKPRIV();
+    sh4r.r_bank[Rn_BANK] = sh4r.r[Rm];
+:}
+STC SR, Rn {: 
+    CHECKPRIV();
+    sh4r.r[Rn] = sh4_read_sr();
+:}
+STC GBR, Rn {:
+    sh4r.r[Rn] = sh4r.gbr;
+:}
+STC VBR, Rn {:
+    CHECKPRIV();
+    sh4r.r[Rn] = sh4r.vbr;
+:}
+STC SSR, Rn {:
+    CHECKPRIV();
+    sh4r.r[Rn] = sh4r.ssr;
+:}
+STC SPC, Rn {:
+    CHECKPRIV();
+    sh4r.r[Rn] = sh4r.spc;
+:}
+STC Rm_BANK, Rn {:
+    CHECKPRIV();
+    sh4r.r[Rn] = sh4r.r_bank[Rm_BANK];
+:}
+
+FADD FRm, FRn {:
+    CHECKFPUEN();
+    if( IS_FPU_DOUBLEPREC() ) {
+	DR(FRn) += DR(FRm);
+    } else {
+	FR(FRn) += FR(FRm);
+    }
+:}
+FSUB FRm, FRn {:
+    CHECKFPUEN();
+    if( IS_FPU_DOUBLEPREC() ) {
+	DR(FRn) -= DR(FRm);
+    } else {
+	FR(FRn) -= FR(FRm);
+    }
+:}
+
+FMUL FRm, FRn {:
+    CHECKFPUEN();
+    if( IS_FPU_DOUBLEPREC() ) {
+	DR(FRn) *= DR(FRm);
+    } else {
+	FR(FRn) *= FR(FRm);
+    }
+:}
+
+FDIV FRm, FRn {:
+    CHECKFPUEN();
+    if( IS_FPU_DOUBLEPREC() ) {
+	DR(FRn) /= DR(FRm);
+    } else {
+	FR(FRn) /= FR(FRm);
+    }
+:}
+
+FCMP/EQ FRm, FRn {:
+    CHECKFPUEN();
+    if( IS_FPU_DOUBLEPREC() ) {
+	sh4r.t = ( DR(FRn) == DR(FRm) ? 1 : 0 );
+    } else {
+	sh4r.t = ( FR(FRn) == FR(FRm) ? 1 : 0 );
+    }
+:}
+
+FCMP/GT FRm, FRn {:
+    CHECKFPUEN();
+    if( IS_FPU_DOUBLEPREC() ) {
+	sh4r.t = ( DR(FRn) > DR(FRm) ? 1 : 0 );
+    } else {
+	sh4r.t = ( FR(FRn) > FR(FRm) ? 1 : 0 );
+    }
+:}
+
+FSTS FPUL, FRn {: CHECKFPUEN(); FR(FRn) = FPULf; :}
+FLDS FRm, FPUL {: CHECKFPUEN(); FPULf = FR(FRm); :}
+FLOAT FPUL, FRn {: 
+    CHECKFPUEN();
+    if( IS_FPU_DOUBLEPREC() ) {
+	if( FRn&1 ) { // No, really...
+	    dtmp = (double)FPULi;
+	    FR(FRn) = *(((float *)&dtmp)+1);
+	} else {
+	    DRF(FRn>>1) = (double)FPULi;
+	}
+    } else {
+	FR(FRn) = (float)FPULi;
+    }
+:}
+FTRC FRm, FPUL {:
+    CHECKFPUEN();
+    if( IS_FPU_DOUBLEPREC() ) {
+	if( FRm&1 ) {
+	    dtmp = 0;
+	    *(((float *)&dtmp)+1) = FR(FRm);
+	} else {
+	    dtmp = DRF(FRm>>1);
+	}
+        if( dtmp >= MAX_INTF )
+            FPULi = MAX_INT;
+        else if( dtmp <= MIN_INTF )
+            FPULi = MIN_INT;
+        else 
+            FPULi = (int32_t)dtmp;
+    } else {
+	ftmp = FR(FRm);
+	if( ftmp >= MAX_INTF )
+	    FPULi = MAX_INT;
+	else if( ftmp <= MIN_INTF )
+	    FPULi = MIN_INT;
+	else
+	    FPULi = (int32_t)ftmp;
+    }
+:}
+FNEG FRn {:
+    CHECKFPUEN();
+    if( IS_FPU_DOUBLEPREC() ) {
+	DR(FRn) = -DR(FRn);
+    } else {
+        FR(FRn) = -FR(FRn);
+    }
+:}
+FABS FRn {:
+    CHECKFPUEN();
+    if( IS_FPU_DOUBLEPREC() ) {
+	DR(FRn) = fabs(DR(FRn));
+    } else {
+        FR(FRn) = fabsf(FR(FRn));
+    }
+:}
+FSQRT FRn {:
+    CHECKFPUEN();
+    if( IS_FPU_DOUBLEPREC() ) {
+	DR(FRn) = sqrt(DR(FRn));
+    } else {
+        FR(FRn) = sqrtf(FR(FRn));
+    }
+:}
+FLDI0 FRn {:
+    CHECKFPUEN();
+    if( IS_FPU_DOUBLEPREC() ) {
+	DR(FRn) = 0.0;
+    } else {
+        FR(FRn) = 0.0;
+    }
+:}
+FLDI1 FRn {:
+    CHECKFPUEN();
+    if( IS_FPU_DOUBLEPREC() ) {
+	DR(FRn) = 1.0;
+    } else {
+        FR(FRn) = 1.0;
+    }
+:}
+FMAC FR0, FRm, FRn {:
+    CHECKFPUEN();
+    if( IS_FPU_DOUBLEPREC() ) {
+        DR(FRn) += DR(FRm)*DR(0);
+    } else {
+	FR(FRn) += FR(FRm)*FR(0);
+    }
+:}
+FRCHG {: 
+    CHECKFPUEN(); 
+    sh4r.fpscr ^= FPSCR_FR; 
+    sh4_switch_fr_banks();
+:}
+FSCHG {: CHECKFPUEN(); sh4r.fpscr ^= FPSCR_SZ; :}
+FCNVSD FPUL, FRn {:
+    CHECKFPUEN();
+    if( IS_FPU_DOUBLEPREC() && !IS_FPU_DOUBLESIZE() ) {
+	DR(FRn) = (double)FPULf;
+    }
+:}
+FCNVDS FRm, FPUL {:
+    CHECKFPUEN();
+    if( IS_FPU_DOUBLEPREC() && !IS_FPU_DOUBLESIZE() ) {
+	FPULf = (float)DR(FRm);
+    }
+:}
+
+FSRRA FRn {:
+    CHECKFPUEN();
+    if( !IS_FPU_DOUBLEPREC() ) {
+	FR(FRn) = 1.0/sqrt(FR(FRn));
+    }
+:}
+FIPR FVm, FVn {:
+    CHECKFPUEN();
+    if( !IS_FPU_DOUBLEPREC() ) {
+        int tmp2 = FVn<<2;
+        tmp = FVm<<2;
+        FR(tmp2+3) = FR(tmp)*FR(tmp2) +
+            FR(tmp+1)*FR(tmp2+1) +
+            FR(tmp+2)*FR(tmp2+2) +
+            FR(tmp+3)*FR(tmp2+3);
+    }
+:}
+FSCA FPUL, FRn {:
+    CHECKFPUEN();
+    if( !IS_FPU_DOUBLEPREC() ) {
+	sh4_fsca( FPULi, (float *)&(DRF(FRn>>1)) );
+    }
+:}
+FTRV XMTRX, FVn {:
+    CHECKFPUEN();
+    if( !IS_FPU_DOUBLEPREC() ) {
+	sh4_ftrv((float *)&(DRF(FVn<<1)) );
+    }
+:}
+UNDEF {:
+    UNDEF(ir);
+:}
+%%
+    sh4r.pc = sh4r.new_pc;
+    sh4r.new_pc += 2;
+
+except:
+    sh4r.in_delay_slot = 0;
+    return TRUE;
+}

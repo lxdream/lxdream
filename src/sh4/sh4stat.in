@@ -1,0 +1,417 @@
+/**
+ * $Id$
+ * 
+ * Support module for collecting instruction stats
+ *
+ * Copyright (c) 2005 Nathan Keynes.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
+#include "dream.h"
+#include "sh4/sh4stat.h"
+#include "sh4/sh4core.h"
+#include "sh4/mmu.h"
+
+static uint64_t sh4_stats[SH4_INSTRUCTION_COUNT+1];
+static uint64_t sh4_stats_total;
+static const char *sh4_stats_names[] = {
+    "???",
+"ADD Rm, Rn",
+"ADD #imm, Rn",
+"ADDC Rm, Rn",
+"ADDV Rm, Rn",
+"AND Rm, Rn",
+"AND #imm, R0",
+"AND.B #imm, @(R0, GBR)",
+"BF disp",
+"BF/S disp",
+"BRA disp",
+"BRAF Rn",
+"BSR disp",
+"BSRF Rn",
+"BT disp",
+"BT/S disp",
+"CLRMAC",
+"CLRS",
+"CLRT",
+"CMP/EQ Rm, Rn",
+"CMP/EQ #imm, R0",
+"CMP/GE Rm, Rn",
+"CMP/GT Rm, Rn",
+"CMP/HI Rm, Rn",
+"CMP/HS Rm, Rn",
+"CMP/PL Rn",
+"CMP/PZ Rn",
+"CMP/STR Rm, Rn",
+"DIV0S Rm, Rn",
+"DIV0U",
+"DIV1 Rm, Rn",
+"DMULS.L Rm, Rn",
+"DMULU.L Rm, Rn",
+"DT Rn",
+"EXTS.B Rm, Rn",
+"EXTS.W Rm, Rn",
+"EXTU.B Rm, Rn",
+"EXTU.W Rm, Rn",
+"FABS FRn",
+"FADD FRm, FRn",
+"FCMP/EQ FRm, FRn",
+"FCMP/GT FRm, FRn",
+"FCNVDS FRm, FPUL",
+"FCNVSD FPUL, FRn",
+"FDIV FRm, FRn",
+"FIPR FVm, FVn",
+"FLDS FRm, FPUL",
+"FLDI0 FRn",
+"FLDI1 FRn",
+"FLOAT FPUL, FRn",
+"FMAC FR0, FRm, FRn",
+"FMOV FRm, FRn",
+"FMOV FRm, @Rn",
+"FMOV FRm, @-Rn",
+"FMOV FRm, @(R0, Rn)",
+"FMOV @Rm, FRn",
+"FMOV @Rm+, FRn",
+"FMOV @(R0, Rm), FRn",
+"FMUL FRm, FRn",
+"FNEG FRn",
+"FRCHG",
+"FSCA FPUL, FRn",
+"FSCHG",
+"FSQRT FRn",
+"FSRRA FRn",
+"FSTS FPUL, FRn",
+"FSUB FRm, FRn",
+"FTRC FRm, FPUL",
+"FTRV XMTRX, FVn",
+"JMP @Rn",
+"JSR @Rn",
+"LDC Rm, SR",
+"LDC Rm, *",
+"LDC.L @Rm+, SR",
+"LDC.L @Rm+, *",
+"LDS Rm, FPSCR",
+"LDS Rm, *",
+"LDS.L @Rm+, FPSCR",
+"LDS.L @Rm+, *",
+"LDTLB",
+"MAC.L @Rm+, @Rn+",
+"MAC.W @Rm+, @Rn+",
+"MOV Rm, Rn",
+"MOV #imm, Rn",
+"MOV.B ...",
+"MOV.L ...",
+"MOV.L @(disp, PC)",
+"MOV.W ...",
+"MOVA @(disp, PC), R0",
+"MOVCA.L R0, @Rn",
+"MOVT Rn",
+"MUL.L Rm, Rn",
+"MULS.W Rm, Rn",
+"MULU.W Rm, Rn",
+"NEG Rm, Rn",
+"NEGC Rm, Rn",
+"NOP",
+"NOT Rm, Rn",
+"OCBI @Rn",
+"OCBP @Rn",
+"OCBWB @Rn",
+"OR Rm, Rn",
+"OR #imm, R0",
+"OR.B #imm, @(R0, GBR)",
+"PREF @Rn",
+"ROTCL Rn",
+"ROTCR Rn",
+"ROTL Rn",
+"ROTR Rn",
+"RTE",
+"RTS",
+"SETS",
+"SETT",
+"SHAD Rm, Rn",
+"SHAL Rn",
+"SHAR Rn",
+"SHLD Rm, Rn",
+"SHLL* Rn",
+"SHLR* Rn",
+"SLEEP",
+"STC SR, Rn",
+"STC *, Rn",
+"STC.L SR, @-Rn",
+"STC.L *, @-Rn",
+"STS FPSCR, Rn",
+"STS *, Rn",
+"STS.L FPSCR, @-Rn",
+"STS.L *, @-Rn",
+"SUB Rm, Rn",
+"SUBC Rm, Rn",
+"SUBV Rm, Rn",
+"SWAP.B Rm, Rn",
+"SWAP.W Rm, Rn",
+"TAS.B @Rn",
+"TRAPA #imm",
+"TST Rm, Rn",
+"TST #imm, R0",
+"TST.B #imm, @(R0, GBR)",
+"XOR Rm, Rn",
+"XOR #imm, R0",
+"XOR.B #imm, @(R0, GBR)",
+"XTRCT Rm, Rn",
+"UNDEF"
+};
+
+void sh4_stats_reset( void )
+{
+    int i;
+    for( i=0; i<= I_UNDEF; i++ ) {
+	sh4_stats[i] = 0;
+    }
+    sh4_stats_total = 0;
+}
+
+void sh4_stats_print( FILE *out )
+{
+    int i;
+    for( i=0; i<= I_UNDEF; i++ ) {
+	fprintf( out, "%-20s\t%d\t%.2f%%\n", sh4_stats_names[i], (uint32_t)sh4_stats[i], ((double)sh4_stats[i])*100.0/(double)sh4_stats_total );
+    }
+    fprintf( out, "Total: %lld\n", (long long int)sh4_stats_total );
+}
+
+void FASTCALL sh4_stats_add( sh4_inst_id item )
+{
+    sh4_stats[item]++;
+    sh4_stats_total++;
+}
+
+void sh4_stats_add_by_pc( uint32_t pc ) 
+{
+    sh4addr_t addr = mmu_vma_to_phys_disasm(pc);
+    uint16_t ir = ext_address_space[addr>>12]->read_word(addr);
+#define UNDEF(ir) sh4_stats[0]++
+%%
+ADD Rm, Rn {: sh4_stats[I_ADD]++; :}
+ADD #imm, Rn {: sh4_stats[I_ADDI]++; :}
+ADDC Rm, Rn {: sh4_stats[I_ADDC]++; :}
+ADDV Rm, Rn {: sh4_stats[I_ADDV]++; :}
+AND Rm, Rn {: sh4_stats[I_AND]++; :}
+AND #imm, R0 {: sh4_stats[I_ANDI]++; :}
+AND.B #imm, @(R0, GBR) {: sh4_stats[I_ANDB]++; :}
+BF disp {: sh4_stats[I_BF]++; :}
+BF/S disp {: sh4_stats[I_BFS]++; :}
+BRA disp {: sh4_stats[I_BRA]++; :}
+BRAF Rn {: sh4_stats[I_BRAF]++; :}
+BSR disp {: sh4_stats[I_BSR]++; :}
+BSRF Rn {: sh4_stats[I_BSRF]++; :}
+BT disp {: sh4_stats[I_BT]++; :}
+BT/S disp {: sh4_stats[I_BTS]++; :}
+CLRMAC {: sh4_stats[I_CLRMAC]++; :}
+CLRS {: sh4_stats[I_CLRS]++; :}
+CLRT {: sh4_stats[I_CLRT]++; :}
+CMP/EQ Rm, Rn {: sh4_stats[I_CMPEQ]++; :}
+CMP/EQ #imm, R0 {: sh4_stats[I_CMPEQI]++; :}
+CMP/GE Rm, Rn {: sh4_stats[I_CMPGE]++; :}
+CMP/GT Rm, Rn {: sh4_stats[I_CMPGT]++; :}
+CMP/HI Rm, Rn {: sh4_stats[I_CMPHI]++; :}
+CMP/HS Rm, Rn {: sh4_stats[I_CMPHS]++; :}
+CMP/PL Rn {: sh4_stats[I_CMPPL]++; :}
+CMP/PZ Rn {: sh4_stats[I_CMPPZ]++; :}
+CMP/STR Rm, Rn {: sh4_stats[I_CMPSTR]++; :}
+DIV0S Rm, Rn {: sh4_stats[I_DIV0S]++; :}
+DIV0U {: sh4_stats[I_DIV0U]++; :}
+DIV1 Rm, Rn {: sh4_stats[I_DIV1]++; :}
+DMULS.L Rm, Rn {: sh4_stats[I_DMULS]++; :}
+DMULU.L Rm, Rn {: sh4_stats[I_DMULU]++; :}
+DT Rn {: sh4_stats[I_DT]++; :}
+EXTS.B Rm, Rn {: sh4_stats[I_EXTSB]++; :}
+EXTS.W Rm, Rn {: sh4_stats[I_EXTSW]++; :}
+EXTU.B Rm, Rn {: sh4_stats[I_EXTUB]++; :}
+EXTU.W Rm, Rn {: sh4_stats[I_EXTUW]++; :}
+FABS FRn {: sh4_stats[I_FABS]++; :}
+FADD FRm, FRn {: sh4_stats[I_FADD]++; :}
+FCMP/EQ FRm, FRn {: sh4_stats[I_FCMPEQ]++; :}
+FCMP/GT FRm, FRn {: sh4_stats[I_FCMPGT]++; :}
+FCNVDS FRm, FPUL {: sh4_stats[I_FCNVDS]++; :}
+FCNVSD FPUL, FRn {: sh4_stats[I_FCNVSD]++; :}
+FDIV FRm, FRn {: sh4_stats[I_FDIV]++; :}
+FIPR FVm, FVn {: sh4_stats[I_FIPR]++; :}
+FLDS FRm, FPUL {: sh4_stats[I_FLDS]++; :}
+FLDI0 FRn {: sh4_stats[I_FLDI0]++; :}
+FLDI1 FRn {: sh4_stats[I_FLDI1]++; :}
+FLOAT FPUL, FRn {: sh4_stats[I_FLOAT]++; :}
+FMAC FR0, FRm, FRn {: sh4_stats[I_FMAC]++; :}
+FMOV FRm, FRn {: sh4_stats[I_FMOV1]++; :}
+FMOV FRm, @Rn {: sh4_stats[I_FMOV2]++; :}
+FMOV FRm, @-Rn {: sh4_stats[I_FMOV3]++; :}
+FMOV FRm, @(R0, Rn) {: sh4_stats[I_FMOV4]++; :}
+FMOV @Rm, FRn {: sh4_stats[I_FMOV5]++; :}
+FMOV @Rm+, FRn {: sh4_stats[I_FMOV6]++; :}
+FMOV @(R0, Rm), FRn {: sh4_stats[I_FMOV7]++; :}
+FMUL FRm, FRn {: sh4_stats[I_FMUL]++; :}
+FNEG FRn {: sh4_stats[I_FNEG]++; :}
+FRCHG {: sh4_stats[I_FRCHG]++; :}
+FSCA FPUL, FRn {: sh4_stats[I_FSCA]++; :}
+FSCHG {: sh4_stats[I_FSCHG]++; :}
+FSQRT FRn {: sh4_stats[I_FSQRT]++; :}
+FSRRA FRn {: sh4_stats[I_FSRRA]++; :}
+FSTS FPUL, FRn {: sh4_stats[I_FSTS]++; :}
+FSUB FRm, FRn {: sh4_stats[I_FSUB]++; :}
+FTRC FRm, FPUL {: sh4_stats[I_FTRC]++; :}
+FTRV XMTRX, FVn {: sh4_stats[I_FTRV]++; :}
+JMP @Rn {: sh4_stats[I_JMP]++; :}
+JSR @Rn {: sh4_stats[I_JSR]++; :}
+LDC Rm, GBR {: sh4_stats[I_LDC]++; :}
+LDC Rm, SR {: sh4_stats[I_LDCSR]++; :}
+LDC Rm, VBR {: sh4_stats[I_LDC]++; :}
+LDC Rm, SSR {: sh4_stats[I_LDC]++; :}
+LDC Rm, SGR {: sh4_stats[I_LDC]++; :}
+LDC Rm, SPC {: sh4_stats[I_LDC]++; :}
+LDC Rm, DBR {: sh4_stats[I_LDC]++; :}
+LDC Rm, Rn_BANK {: sh4_stats[I_LDC]++; :}
+LDC.L @Rm+, GBR {: sh4_stats[I_LDCM]++; :}
+LDC.L @Rm+, SR {: sh4_stats[I_LDCSRM]++; :}
+LDC.L @Rm+, VBR {: sh4_stats[I_LDCM]++; :}
+LDC.L @Rm+, SSR {: sh4_stats[I_LDCM]++; :}
+LDC.L @Rm+, SGR {: sh4_stats[I_LDCM]++; :}
+LDC.L @Rm+, SPC {: sh4_stats[I_LDCM]++; :}
+LDC.L @Rm+, DBR {: sh4_stats[I_LDCM]++; :}
+LDC.L @Rm+, Rn_BANK {: sh4_stats[I_LDCM]++; :}
+LDS Rm, FPSCR {: sh4_stats[I_LDSFPSCR]++; :}
+LDS.L @Rm+, FPSCR {: sh4_stats[I_LDSFPSCRM]++; :}
+LDS Rm, FPUL {: sh4_stats[I_LDS]++; :}
+LDS.L @Rm+, FPUL {: sh4_stats[I_LDSM]++; :}
+LDS Rm, MACH {: sh4_stats[I_LDS]++; :}
+LDS.L @Rm+, MACH {: sh4_stats[I_LDSM]++; :}
+LDS Rm, MACL {: sh4_stats[I_LDS]++; :}
+LDS.L @Rm+, MACL {: sh4_stats[I_LDSM]++; :}
+LDS Rm, PR {: sh4_stats[I_LDS]++; :}
+LDS.L @Rm+, PR {: sh4_stats[I_LDSM]++; :}
+LDTLB {: sh4_stats[I_LDTLB]++; :}
+MAC.L @Rm+, @Rn+ {: sh4_stats[I_MACL]++; :}
+MAC.W @Rm+, @Rn+ {: sh4_stats[I_MACW]++; :}
+MOV Rm, Rn {: sh4_stats[I_MOV]++; :}
+MOV #imm, Rn {: sh4_stats[I_MOVI]++; :}
+MOV.B Rm, @Rn {: sh4_stats[I_MOVB]++; :}
+MOV.B Rm, @-Rn {: sh4_stats[I_MOVB]++; :}
+MOV.B Rm, @(R0, Rn) {: sh4_stats[I_MOVB]++; :}
+MOV.B R0, @(disp, GBR) {: sh4_stats[I_MOVB]++; :}
+MOV.B R0, @(disp, Rn) {: sh4_stats[I_MOVB]++; :}
+MOV.B @Rm, Rn {: sh4_stats[I_MOVB]++; :}
+MOV.B @Rm+, Rn {: sh4_stats[I_MOVB]++; :}
+MOV.B @(R0, Rm), Rn {: sh4_stats[I_MOVB]++; :}
+MOV.B @(disp, GBR), R0 {: sh4_stats[I_MOVB]++; :}
+MOV.B @(disp, Rm), R0 {: sh4_stats[I_MOVB]++; :}
+MOV.L Rm, @Rn {: sh4_stats[I_MOVL]++; :}
+MOV.L Rm, @-Rn {: sh4_stats[I_MOVL]++; :}
+MOV.L Rm, @(R0, Rn) {: sh4_stats[I_MOVL]++; :}
+MOV.L R0, @(disp, GBR) {: sh4_stats[I_MOVL]++; :}
+MOV.L Rm, @(disp, Rn) {: sh4_stats[I_MOVL]++; :}
+MOV.L @Rm, Rn {: sh4_stats[I_MOVL]++; :}
+MOV.L @Rm+, Rn {: sh4_stats[I_MOVL]++; :}
+MOV.L @(R0, Rm), Rn {: sh4_stats[I_MOVL]++; :}
+MOV.L @(disp, GBR), R0 {: sh4_stats[I_MOVL]++; :}
+MOV.L @(disp, PC), Rn {: sh4_stats[I_MOVLPC]++; :}
+MOV.L @(disp, Rm), Rn {: sh4_stats[I_MOVL]++; :}
+MOV.W Rm, @Rn {: sh4_stats[I_MOVW]++; :}
+MOV.W Rm, @-Rn {: sh4_stats[I_MOVW]++; :}
+MOV.W Rm, @(R0, Rn) {: sh4_stats[I_MOVW]++; :}
+MOV.W R0, @(disp, GBR) {: sh4_stats[I_MOVW]++; :}
+MOV.W R0, @(disp, Rn) {: sh4_stats[I_MOVW]++; :}
+MOV.W @Rm, Rn {: sh4_stats[I_MOVW]++; :}
+MOV.W @Rm+, Rn {: sh4_stats[I_MOVW]++; :}
+MOV.W @(R0, Rm), Rn {: sh4_stats[I_MOVW]++; :}
+MOV.W @(disp, GBR), R0 {: sh4_stats[I_MOVW]++; :}
+MOV.W @(disp, PC), Rn {: sh4_stats[I_MOVW]++; :}
+MOV.W @(disp, Rm), R0 {: sh4_stats[I_MOVW]++; :}
+MOVA @(disp, PC), R0 {: sh4_stats[I_MOVA]++; :}
+MOVCA.L R0, @Rn {: sh4_stats[I_MOVCA]++; :}
+MOVT Rn {: sh4_stats[I_MOVT]++; :}
+MUL.L Rm, Rn {: sh4_stats[I_MULL]++; :}
+MULS.W Rm, Rn {: sh4_stats[I_MULSW]++; :}
+MULU.W Rm, Rn {: sh4_stats[I_MULUW]++; :}
+NEG Rm, Rn {: sh4_stats[I_NEG]++; :}
+NEGC Rm, Rn {: sh4_stats[I_NEGC]++; :}
+NOP {: sh4_stats[I_NOP]++; :}
+NOT Rm, Rn {: sh4_stats[I_NOT]++; :}
+OCBI @Rn {: sh4_stats[I_OCBI]++; :}
+OCBP @Rn {: sh4_stats[I_OCBP]++; :}
+OCBWB @Rn {: sh4_stats[I_OCBWB]++; :}
+OR Rm, Rn {: sh4_stats[I_OR]++; :}
+OR #imm, R0 {: sh4_stats[I_ORI]++; :}
+OR.B #imm, @(R0, GBR) {: sh4_stats[I_ORB]++; :}
+PREF @Rn {: sh4_stats[I_PREF]++; :}
+ROTCL Rn {: sh4_stats[I_ROTCL]++; :}
+ROTCR Rn {: sh4_stats[I_ROTCR]++; :}
+ROTL Rn {: sh4_stats[I_ROTL]++; :}
+ROTR Rn {: sh4_stats[I_ROTR]++; :}
+RTE {: sh4_stats[I_RTE]++; :}
+RTS {: sh4_stats[I_RTS]++; :}
+SETS {: sh4_stats[I_SETS]++; :}
+SETT {: sh4_stats[I_SETT]++; :}
+SHAD Rm, Rn {: sh4_stats[I_SHAD]++; :}
+SHAL Rn {: sh4_stats[I_SHAL]++; :}
+SHAR Rn {: sh4_stats[I_SHAR]++; :}
+SHLD Rm, Rn {: sh4_stats[I_SHLD]++; :}
+SHLL Rn {: sh4_stats[I_SHLL]++; :}
+SHLL2 Rn {: sh4_stats[I_SHLL]++; :}
+SHLL8 Rn {: sh4_stats[I_SHLL]++; :}
+SHLL16 Rn {: sh4_stats[I_SHLL]++; :}
+SHLR Rn {: sh4_stats[I_SHLR]++; :}
+SHLR2 Rn {: sh4_stats[I_SHLR]++; :}
+SHLR8 Rn {: sh4_stats[I_SHLR]++; :}
+SHLR16 Rn {: sh4_stats[I_SHLR]++; :}
+SLEEP {: sh4_stats[I_SLEEP]++; :}
+STC SR, Rn {: sh4_stats[I_STCSR]++; :}
+STC GBR, Rn {: sh4_stats[I_STC]++; :}
+STC VBR, Rn {: sh4_stats[I_STC]++; :}
+STC SSR, Rn {: sh4_stats[I_STC]++; :}
+STC SPC, Rn {: sh4_stats[I_STC]++; :}
+STC SGR, Rn {: sh4_stats[I_STC]++; :}
+STC DBR, Rn {: sh4_stats[I_STC]++; :}
+STC Rm_BANK, Rn {: sh4_stats[I_STC]++; :}
+STC.L SR, @-Rn {: sh4_stats[I_STCSRM]++; :}
+STC.L VBR, @-Rn {: sh4_stats[I_STCM]++; :}
+STC.L SSR, @-Rn {: sh4_stats[I_STCM]++; :}
+STC.L SPC, @-Rn {: sh4_stats[I_STCM]++; :}
+STC.L SGR, @-Rn {: sh4_stats[I_STCM]++; :}
+STC.L DBR, @-Rn {: sh4_stats[I_STCM]++; :}
+STC.L Rm_BANK, @-Rn {: sh4_stats[I_STCM]++; :}
+STC.L GBR, @-Rn {: sh4_stats[I_STCM]++; :}
+STS FPSCR, Rn {: sh4_stats[I_STSFPSCR]++; :}
+STS.L FPSCR, @-Rn {: sh4_stats[I_STSFPSCRM]++; :}
+STS FPUL, Rn {: sh4_stats[I_STS]++; :}
+STS.L FPUL, @-Rn {: sh4_stats[I_STSM]++; :}
+STS MACH, Rn {: sh4_stats[I_STS]++; :}
+STS.L MACH, @-Rn {: sh4_stats[I_STSM]++; :}
+STS MACL, Rn {: sh4_stats[I_STS]++; :}
+STS.L MACL, @-Rn {: sh4_stats[I_STSM]++; :}
+STS PR, Rn {: sh4_stats[I_STS]++; :}
+STS.L PR, @-Rn {: sh4_stats[I_STSM]++; :}
+SUB Rm, Rn {: sh4_stats[I_SUB]++; :}
+SUBC Rm, Rn {: sh4_stats[I_SUBC]++; :}
+SUBV Rm, Rn {: sh4_stats[I_SUBV]++; :}
+SWAP.B Rm, Rn {: sh4_stats[I_SWAPB]++; :}
+SWAP.W Rm, Rn {: sh4_stats[I_SWAPW]++; :}
+TAS.B @Rn {: sh4_stats[I_TASB]++; :}
+TRAPA #imm {: sh4_stats[I_TRAPA]++; :}
+TST Rm, Rn {: sh4_stats[I_TST]++; :}
+TST #imm, R0 {: sh4_stats[I_TSTI]++; :}
+TST.B #imm, @(R0, GBR) {: sh4_stats[I_TSTB]++; :}
+XOR Rm, Rn {: sh4_stats[I_XOR]++; :}
+XOR #imm, R0 {: sh4_stats[I_XORI]++; :}
+XOR.B #imm, @(R0, GBR) {: sh4_stats[I_XORB]++; :}
+XTRCT Rm, Rn {: sh4_stats[I_XTRCT]++; :}
+UNDEF {: sh4_stats[I_UNDEF]++; :}
+%%
+
+sh4_stats_total++;
+}

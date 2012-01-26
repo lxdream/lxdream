@@ -1,0 +1,3786 @@
+diff -urN newlib-1.8.2/config.sub newlib-1.8.2-aica/config.sub
+--- newlib-1.8.2/config.sub	2008-08-15 12:02:09.000000000 +1000
++++ newlib-1.8.2-aica/config.sub	2008-08-13 11:59:17.000000000 +1000
+@@ -956,7 +956,7 @@
+ 	      | -cygwin* | -pe* | -psos* | -moss* | -proelf* | -rtems* \
+ 	      | -mingw32* | -linux-gnu* | -uxpv* | -beos* | -mpeix* | -udk* \
+ 	      | -interix* | -uwin* | -rhapsody* | -openstep* | -oskit* \
+-		  | -dreamcast* )
++		  | -dreamcast* | -aica* )
+ 	# Remember, each alternative MUST END IN *, to match a version number.
+ 		;;
+ 	-sim | -es1800* | -hms* | -xray | -os68k* | -none* | -v88r* \
+diff -urN newlib-1.8.2/configure.in newlib-1.8.2-aica/configure.in
+--- newlib-1.8.2/configure.in	2008-08-15 12:02:09.000000000 +1000
++++ newlib-1.8.2-aica/configure.in	2008-08-13 11:58:57.000000000 +1000
+@@ -606,6 +606,9 @@
+ 	   target_configdirs="${target_configdirs} target-bsp target-cygmon"
+     fi
+     ;;
++  arm-*-aica*)
++    noconfigdirs="$noconfigdirs target-libgloss"
++    ;;
+   arm-*-oabi*)
+     noconfigdirs="$noconfigdirs target-libgloss"
+     ;;
+diff -urN newlib-1.8.2/newlib/configure.host newlib-1.8.2-aica/newlib/configure.host
+--- newlib-1.8.2/newlib/configure.host	2008-08-15 12:02:09.000000000 +1000
++++ newlib-1.8.2-aica/newlib/configure.host	2008-08-13 20:01:25.000000000 +1000
+@@ -194,6 +194,10 @@
+   *-*-dc* | *-*-dreamcast*)
+ 	sys_dir=dreamcast
+ 	;;
++  *-*-aica*)
++	sys_dir=aica
++	newlib_cflags="${newlib_cflags} -mcpu=arm7tdmi"
++	;;
+   *-*-netware*)
+ 	signal_dir=
+ 	sys_dir=netware
+diff -urN newlib-1.8.2/newlib/libc/sys/aica/Makefile.am newlib-1.8.2-aica/newlib/libc/sys/aica/Makefile.am
+--- newlib-1.8.2/newlib/libc/sys/aica/Makefile.am	1970-01-01 10:00:00.000000000 +1000
++++ newlib-1.8.2-aica/newlib/libc/sys/aica/Makefile.am	2008-08-13 11:54:44.000000000 +1000
+@@ -0,0 +1,17 @@
++## Process this file with automake to generate Makefile.in
++
++AUTOMAKE_OPTIONS = cygnus
++
++INCLUDES = $(NEWLIB_CFLAGS) $(CROSS_CFLAGS) $(TARGET_CFLAGS)
++
++noinst_LIBRARIES = lib.a
++
++lib_a_SOURCES = absolute_vfs.c chdir.c chmod.c close.c creat.c dcload_vfs.c dcload.S \
++  exit.c fcntl.c fstat.c getpid.c gettimeofday.c ioctl.c isatty.c kill.c \
++  link.c lseek.c mkdir.c open.c read.c rmdir.c sbrk.c scif.c stat.c \
++  stdio_vfs.c times.c unlink.c vfs.c write.c dup.c
++
++all: crt0.o
++
++ACLOCAL_AMFLAGS = -I ../../..
++CONFIG_STATUS_DEPENDENCIES = $(newlib_basedir)/configure.host
+diff -urN newlib-1.8.2/newlib/libc/sys/aica/Makefile.in newlib-1.8.2-aica/newlib/libc/sys/aica/Makefile.in
+--- newlib-1.8.2/newlib/libc/sys/aica/Makefile.in	1970-01-01 10:00:00.000000000 +1000
++++ newlib-1.8.2-aica/newlib/libc/sys/aica/Makefile.in	2008-08-13 11:54:44.000000000 +1000
+@@ -0,0 +1,322 @@
++# Makefile.in generated automatically by automake 1.4 from Makefile.am
++
++# Copyright (C) 1994, 1995-8, 1999 Free Software Foundation, Inc.
++# This Makefile.in is free software; the Free Software Foundation
++# gives unlimited permission to copy and/or distribute it,
++# with or without modifications, as long as this notice is preserved.
++
++# This program is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY, to the extent permitted by law; without
++# even the implied warranty of MERCHANTABILITY or FITNESS FOR A
++# PARTICULAR PURPOSE.
++
++
++SHELL = @SHELL@
++
++srcdir = @srcdir@
++top_srcdir = @top_srcdir@
++VPATH = @srcdir@
++prefix = @prefix@
++exec_prefix = @exec_prefix@
++
++bindir = @bindir@
++sbindir = @sbindir@
++libexecdir = @libexecdir@
++datadir = @datadir@
++sysconfdir = @sysconfdir@
++sharedstatedir = @sharedstatedir@
++localstatedir = @localstatedir@
++libdir = @libdir@
++infodir = @infodir@
++mandir = @mandir@
++includedir = @includedir@
++oldincludedir = /usr/include
++
++DESTDIR =
++
++pkgdatadir = $(datadir)/@PACKAGE@
++pkglibdir = $(libdir)/@PACKAGE@
++pkgincludedir = $(includedir)/@PACKAGE@
++
++top_builddir = .
++
++ACLOCAL = @ACLOCAL@
++AUTOCONF = @AUTOCONF@
++AUTOMAKE = @AUTOMAKE@
++AUTOHEADER = @AUTOHEADER@
++
++INSTALL = @INSTALL@
++INSTALL_PROGRAM = @INSTALL_PROGRAM@ $(AM_INSTALL_PROGRAM_FLAGS)
++INSTALL_DATA = @INSTALL_DATA@
++INSTALL_SCRIPT = @INSTALL_SCRIPT@
++transform = @program_transform_name@
++
++NORMAL_INSTALL = :
++PRE_INSTALL = :
++POST_INSTALL = :
++NORMAL_UNINSTALL = :
++PRE_UNINSTALL = :
++POST_UNINSTALL = :
++host_alias = @host_alias@
++host_triplet = @host@
++AR = @AR@
++AS = @AS@
++CC = @CC@
++CPP = @CPP@
++EXEEXT = @EXEEXT@
++MAKEINFO = @MAKEINFO@
++NEWLIB_CFLAGS = @NEWLIB_CFLAGS@
++PACKAGE = @PACKAGE@
++RANLIB = @RANLIB@
++VERSION = @VERSION@
++machine_dir = @machine_dir@
++newlib_basedir = @newlib_basedir@
++sys_dir = @sys_dir@
++
++AUTOMAKE_OPTIONS = cygnus
++
++INCLUDES = $(NEWLIB_CFLAGS) $(CROSS_CFLAGS) $(TARGET_CFLAGS)
++
++noinst_LIBRARIES = lib.a
++
++lib_a_SOURCES = absolute_vfs.c chdir.c chmod.c close.c creat.c dcload_vfs.c dcload.S   exit.c fcntl.c fstat.c getpid.c gettimeofday.c ioctl.c isatty.c kill.c   link.c lseek.c mkdir.c open.c read.c rmdir.c sbrk.c scif.c stat.c   stdio_vfs.c times.c unlink.c vfs.c write.c dup.c
++
++
++ACLOCAL_AMFLAGS = -I ../../..
++CONFIG_STATUS_DEPENDENCIES = $(newlib_basedir)/configure.host
++ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
++mkinstalldirs = $(SHELL) $(top_srcdir)/../../../../mkinstalldirs
++CONFIG_CLEAN_FILES = 
++LIBRARIES =  $(noinst_LIBRARIES)
++
++
++DEFS = @DEFS@ -I. -I$(srcdir) 
++CPPFLAGS = @CPPFLAGS@
++LDFLAGS = @LDFLAGS@
++LIBS = @LIBS@
++lib_a_LIBADD = 
++lib_a_OBJECTS =  absolute_vfs.o chdir.o chmod.o close.o creat.o \
++dcload_vfs.o dcload.o exit.o fcntl.o fstat.o getpid.o gettimeofday.o ioctl.o \
++isatty.o kill.o link.o lseek.o mkdir.o open.o read.o rmdir.o sbrk.o \
++scif.o stat.o stdio_vfs.o times.o unlink.o vfs.o write.o dup.o
++CFLAGS = @CFLAGS@
++COMPILE = $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
++CCLD = $(CC)
++LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(LDFLAGS) -o $@
++DIST_COMMON =  Makefile.am Makefile.in aclocal.m4 configure configure.in
++
++
++DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) $(TEXINFOS) $(EXTRA_DIST)
++
++TAR = tar
++GZIP_ENV = --best
++SOURCES = $(lib_a_SOURCES)
++OBJECTS = $(lib_a_OBJECTS)
++
++all: all-redirect
++.SUFFIXES:
++.SUFFIXES: .S .c .o .s
++$(srcdir)/Makefile.in: Makefile.am $(top_srcdir)/configure.in $(ACLOCAL_M4) 
++	cd $(top_srcdir) && $(AUTOMAKE) --cygnus Makefile
++
++Makefile: $(srcdir)/Makefile.in  $(top_builddir)/config.status
++	cd $(top_builddir) \
++	  && CONFIG_FILES=$@ CONFIG_HEADERS= $(SHELL) ./config.status
++
++$(ACLOCAL_M4):  configure.in  ../../../acinclude.m4 ../../../aclocal.m4
++	cd $(srcdir) && $(ACLOCAL) $(ACLOCAL_AMFLAGS)
++
++config.status: $(srcdir)/configure $(CONFIG_STATUS_DEPENDENCIES)
++	$(SHELL) ./config.status --recheck
++$(srcdir)/configure: $(srcdir)/configure.in $(ACLOCAL_M4) $(CONFIGURE_DEPENDENCIES)
++	cd $(srcdir) && $(AUTOCONF)
++
++mostlyclean-noinstLIBRARIES:
++
++clean-noinstLIBRARIES:
++	-test -z "$(noinst_LIBRARIES)" || rm -f $(noinst_LIBRARIES)
++
++distclean-noinstLIBRARIES:
++
++maintainer-clean-noinstLIBRARIES:
++
++.c.o:
++	$(COMPILE) -c $<
++
++.s.o:
++	$(COMPILE) -c $<
++
++.S.o:
++	$(COMPILE) -c $<
++
++mostlyclean-compile:
++	-rm -f *.o core *.core
++
++clean-compile:
++
++distclean-compile:
++	-rm -f *.tab.c
++
++maintainer-clean-compile:
++
++lib.a: $(lib_a_OBJECTS) $(lib_a_DEPENDENCIES)
++	-rm -f lib.a
++	$(AR) cru lib.a $(lib_a_OBJECTS) $(lib_a_LIBADD)
++	$(RANLIB) lib.a
++
++tags: TAGS
++
++ID: $(HEADERS) $(SOURCES) $(LISP)
++	list='$(SOURCES) $(HEADERS)'; \
++	unique=`for i in $$list; do echo $$i; done | \
++	  awk '    { files[$$0] = 1; } \
++	       END { for (i in files) print i; }'`; \
++	here=`pwd` && cd $(srcdir) \
++	  && mkid -f$$here/ID $$unique $(LISP)
++
++TAGS:  $(HEADERS) $(SOURCES)  $(TAGS_DEPENDENCIES) $(LISP)
++	tags=; \
++	here=`pwd`; \
++	list='$(SOURCES) $(HEADERS)'; \
++	unique=`for i in $$list; do echo $$i; done | \
++	  awk '    { files[$$0] = 1; } \
++	       END { for (i in files) print i; }'`; \
++	test -z "$(ETAGS_ARGS)$$unique$(LISP)$$tags" \
++	  || (cd $(srcdir) && etags $(ETAGS_ARGS) $$tags  $$unique $(LISP) -o $$here/TAGS)
++
++mostlyclean-tags:
++
++clean-tags:
++
++distclean-tags:
++	-rm -f TAGS ID
++
++maintainer-clean-tags:
++
++distdir = $(PACKAGE)-$(VERSION)
++top_distdir = $(distdir)
++
++# This target untars the dist file and tries a VPATH configuration.  Then
++# it guarantees that the distribution is self-contained by making another
++# tarfile.
++distcheck: dist
++	-rm -rf $(distdir)
++	GZIP=$(GZIP_ENV) $(TAR) zxf $(distdir).tar.gz
++	mkdir $(distdir)/=build
++	mkdir $(distdir)/=inst
++	dc_install_base=`cd $(distdir)/=inst && pwd`; \
++	cd $(distdir)/=build \
++	  && ../configure --srcdir=.. --prefix=$$dc_install_base \
++	  && $(MAKE) $(AM_MAKEFLAGS) \
++	  && $(MAKE) $(AM_MAKEFLAGS) dvi \
++	  && $(MAKE) $(AM_MAKEFLAGS) check \
++	  && $(MAKE) $(AM_MAKEFLAGS) install \
++	  && $(MAKE) $(AM_MAKEFLAGS) installcheck \
++	  && $(MAKE) $(AM_MAKEFLAGS) dist
++	-rm -rf $(distdir)
++	@banner="$(distdir).tar.gz is ready for distribution"; \
++	dashes=`echo "$$banner" | sed s/./=/g`; \
++	echo "$$dashes"; \
++	echo "$$banner"; \
++	echo "$$dashes"
++dist: distdir
++	-chmod -R a+r $(distdir)
++	GZIP=$(GZIP_ENV) $(TAR) chozf $(distdir).tar.gz $(distdir)
++	-rm -rf $(distdir)
++dist-all: distdir
++	-chmod -R a+r $(distdir)
++	GZIP=$(GZIP_ENV) $(TAR) chozf $(distdir).tar.gz $(distdir)
++	-rm -rf $(distdir)
++distdir: $(DISTFILES)
++	-rm -rf $(distdir)
++	mkdir $(distdir)
++	-chmod 777 $(distdir)
++	@for file in $(DISTFILES); do \
++	  if test -f $$file; then d=.; else d=$(srcdir); fi; \
++	  if test -d $$d/$$file; then \
++	    cp -pr $$d/$$file $(distdir)/$$file; \
++	  else \
++	    test -f $(distdir)/$$file \
++	    || ln $$d/$$file $(distdir)/$$file 2> /dev/null \
++	    || cp -p $$d/$$file $(distdir)/$$file || :; \
++	  fi; \
++	done
++info-am:
++info: info-am
++dvi-am:
++dvi: dvi-am
++check-am:
++check: check-am
++installcheck-am:
++installcheck: installcheck-am
++install-info-am: 
++install-info: install-info-am
++install-exec-am:
++install-exec: install-exec-am
++
++install-data-am:
++install-data: install-data-am
++
++install-am: all-am
++	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
++install: install-am
++uninstall-am:
++uninstall: uninstall-am
++all-am: Makefile $(LIBRARIES)
++all-redirect: all-am
++install-strip:
++	$(MAKE) $(AM_MAKEFLAGS) AM_INSTALL_PROGRAM_FLAGS=-s install
++installdirs:
++
++
++mostlyclean-generic:
++
++clean-generic:
++
++distclean-generic:
++	-rm -f Makefile $(CONFIG_CLEAN_FILES)
++	-rm -f config.cache config.log stamp-h stamp-h[0-9]*
++
++maintainer-clean-generic:
++mostlyclean-am:  mostlyclean-noinstLIBRARIES mostlyclean-compile \
++		mostlyclean-tags mostlyclean-generic
++
++mostlyclean: mostlyclean-am
++
++clean-am:  clean-noinstLIBRARIES clean-compile clean-tags clean-generic \
++		mostlyclean-am
++
++clean: clean-am
++
++distclean-am:  distclean-noinstLIBRARIES distclean-compile \
++		distclean-tags distclean-generic clean-am
++
++distclean: distclean-am
++	-rm -f config.status
++
++maintainer-clean-am:  maintainer-clean-noinstLIBRARIES \
++		maintainer-clean-compile maintainer-clean-tags \
++		maintainer-clean-generic distclean-am
++	@echo "This command is intended for maintainers to use;"
++	@echo "it deletes files that may require special tools to rebuild."
++
++maintainer-clean: maintainer-clean-am
++	-rm -f config.status
++
++.PHONY: mostlyclean-noinstLIBRARIES distclean-noinstLIBRARIES \
++clean-noinstLIBRARIES maintainer-clean-noinstLIBRARIES \
++mostlyclean-compile distclean-compile clean-compile \
++maintainer-clean-compile tags mostlyclean-tags distclean-tags \
++clean-tags maintainer-clean-tags distdir info-am info dvi-am dvi check \
++check-am installcheck-am installcheck install-info-am install-info \
++install-exec-am install-exec install-data-am install-data install-am \
++install uninstall-am uninstall all-redirect all-am all installdirs \
++mostlyclean-generic distclean-generic clean-generic \
++maintainer-clean-generic clean mostlyclean distclean maintainer-clean
++
++
++all: crt0.o
++
++# Tell versions [3.59,3.63) of GNU make to not export all variables.
++# Otherwise a system limit (for SysV at least) may be exceeded.
++.NOEXPORT:
+diff -urN newlib-1.8.2/newlib/libc/sys/aica/absolute_vfs.c newlib-1.8.2-aica/newlib/libc/sys/aica/absolute_vfs.c
+--- newlib-1.8.2/newlib/libc/sys/aica/absolute_vfs.c	1970-01-01 10:00:00.000000000 +1000
++++ newlib-1.8.2-aica/newlib/libc/sys/aica/absolute_vfs.c	2008-08-13 11:54:44.000000000 +1000
+@@ -0,0 +1,11 @@
++#include "vfs.h"
++
++int _newlib_vfs_is_absolute (void)
++{
++  return 0;
++}
++
++void _newlib_vfs_absolute_load (void)
++{
++  _newlib_vfs_initialized = VFS_LOADER_ABSOLUTE;
++}
+diff -urN newlib-1.8.2/newlib/libc/sys/aica/aclocal.m4 newlib-1.8.2-aica/newlib/libc/sys/aica/aclocal.m4
+--- newlib-1.8.2/newlib/libc/sys/aica/aclocal.m4	1970-01-01 10:00:00.000000000 +1000
++++ newlib-1.8.2-aica/newlib/libc/sys/aica/aclocal.m4	2008-08-13 11:54:44.000000000 +1000
+@@ -0,0 +1,345 @@
++dnl aclocal.m4 generated automatically by aclocal 1.3b
++
++dnl Copyright (C) 1994, 1995, 1996, 1997, 1998 Free Software Foundation, Inc.
++dnl This file is free software; the Free Software Foundation
++dnl gives unlimited permission to copy and/or distribute it,
++dnl with or without modifications, as long as this notice is preserved.
++
++dnl This program is distributed in the hope that it will be useful,
++dnl but WITHOUT ANY WARRANTY, to the extent permitted by law; without
++dnl even the implied warranty of MERCHANTABILITY or FITNESS FOR A
++dnl PARTICULAR PURPOSE.
++
++dnl This provides configure definitions used by all the newlib
++dnl configure.in files.
++
++dnl Basic newlib configury.  This calls basic introductory stuff,
++dnl including AM_INIT_AUTOMAKE and AC_CANONICAL_HOST.  It also runs
++dnl configure.host.  The only argument is the relative path to the top
++dnl newlib directory.
++
++AC_DEFUN(NEWLIB_CONFIGURE,
++[
++dnl Default to --enable-multilib
++AC_ARG_ENABLE(multilib,
++[  --enable-multilib         build many library versions (default)],
++[case "${enableval}" in
++  yes) multilib=yes ;;
++  no)  multilib=no ;;
++  *)   AC_MSG_ERROR(bad value ${enableval} for multilib option) ;;
++ esac], [multilib=yes])dnl
++
++dnl Support --enable-target-optspace
++AC_ARG_ENABLE(target-optspace,
++[  --enable-target-optspace  optimize for space],
++[case "${enableval}" in
++  yes) target_optspace=yes ;;
++  no)  target_optspace=no ;;
++  *)   AC_MSG_ERROR(bad value ${enableval} for target-optspace option) ;;
++ esac], [target_optspace=])dnl
++
++dnl Support --enable-newlib-mb
++AC_ARG_ENABLE(newlib-mb,
++[  --enable-newlib-mb        enable multibyte support],
++[case "${enableval}" in
++  yes) newlib_mb=yes ;;
++  no)  newlib_mb=no ;;
++  *)   AC_MSG_ERROR(bad value ${enableval} for newlib-mb option) ;;
++ esac], [newlib_mb=no])dnl
++
++dnl We may get other options which we don't document:
++dnl --with-target-subdir, --with-multisrctop, --with-multisubdir
++
++test -z "[$]{with_target_subdir}" && with_target_subdir=.
++
++if test "[$]{srcdir}" = "."; then
++  if test "[$]{with_target_subdir}" != "."; then
++    newlib_basedir="[$]{srcdir}/[$]{with_multisrctop}../$1"
++  else
++    newlib_basedir="[$]{srcdir}/[$]{with_multisrctop}$1"
++  fi
++else
++  newlib_basedir="[$]{srcdir}/$1"
++fi
++AC_SUBST(newlib_basedir)
++
++AC_CANONICAL_HOST
++
++AM_INIT_AUTOMAKE(newlib, 1.8.1)
++
++# FIXME: We temporarily define our own version of AC_PROG_CC.  This is
++# copied from autoconf 2.12, but does not call AC_PROG_CC_WORKS.  We
++# are probably using a cross compiler, which will not be able to fully
++# link an executable.  This should really be fixed in autoconf
++# itself.
++
++AC_DEFUN(LIB_AC_PROG_CC,
++[AC_BEFORE([$0], [AC_PROG_CPP])dnl
++AC_CHECK_PROG(CC, gcc, gcc)
++if test -z "$CC"; then
++  AC_CHECK_PROG(CC, cc, cc, , , /usr/ucb/cc)
++  test -z "$CC" && AC_MSG_ERROR([no acceptable cc found in \$PATH])
++fi
++
++AC_PROG_CC_GNU
++
++if test $ac_cv_prog_gcc = yes; then
++  GCC=yes
++dnl Check whether -g works, even if CFLAGS is set, in case the package
++dnl plays around with CFLAGS (such as to build both debugging and
++dnl normal versions of a library), tasteless as that idea is.
++  ac_test_CFLAGS="${CFLAGS+set}"
++  ac_save_CFLAGS="$CFLAGS"
++  CFLAGS=
++  AC_PROG_CC_G
++  if test "$ac_test_CFLAGS" = set; then
++    CFLAGS="$ac_save_CFLAGS"
++  elif test $ac_cv_prog_cc_g = yes; then
++    CFLAGS="-g -O2"
++  else
++    CFLAGS="-O2"
++  fi
++else
++  GCC=
++  test "${CFLAGS+set}" = set || CFLAGS="-g"
++fi
++])
++
++LIB_AC_PROG_CC
++
++# AC_CHECK_TOOL does AC_REQUIRE (AC_CANONICAL_BUILD).  If we don't
++# run it explicitly here, it will be run implicitly before
++# NEWLIB_CONFIGURE, which doesn't work because that means that it will
++# be run before AC_CANONICAL_HOST.
++AC_CANONICAL_BUILD
++
++AC_CHECK_TOOL(AS, as)
++AC_CHECK_TOOL(AR, ar)
++AC_CHECK_TOOL(RANLIB, ranlib, :)
++
++AM_PROG_INSTALL
++
++#AM_MAINTAINER_MODE
++
++# We need AM_EXEEXT to keep automake happy in cygnus mode.  However,
++# at least currently, we never actually build a program, so we never
++# need to use $(EXEEXT).  Moreover, the test for EXEEXT normally
++# fails, because we are probably configuring with a cross compiler
++# which can't create executables.  So we include AM_EXEEXT to keep
++# automake happy, but we don't execute it, since we don't care about
++# the result.
++if false; then
++  AM_EXEEXT
++fi
++
++. [$]{newlib_basedir}/configure.host
++
++case [$]{newlib_basedir} in
++/* | [A-Za-z]:[/\\]*) newlib_flagbasedir=[$]{newlib_basedir} ;;
++*) newlib_flagbasedir='[$](top_builddir)/'[$]{newlib_basedir} ;;
++esac
++
++newlib_cflags="[$]{newlib_cflags} -I"'[$](top_builddir)'"/$1/targ-include -I[$]{newlib_flagbasedir}/libc/include"
++case "${host}" in
++  *-*-cygwin32*)
++    newlib_cflags="[$]{newlib_cflags} -I[$]{newlib_flagbasedir}/../winsup/include"
++    ;;
++esac
++
++newlib_cflags="[$]{newlib_cflags} -fno-builtin"
++
++NEWLIB_CFLAGS=${newlib_cflags}
++AC_SUBST(NEWLIB_CFLAGS)
++
++AC_SUBST(machine_dir)
++AC_SUBST(sys_dir)
++])
++
++# Do all the work for Automake.  This macro actually does too much --
++# some checks are only needed if your package does certain things.
++# But this isn't really a big deal.
++
++# serial 1
++
++dnl Usage:
++dnl AM_INIT_AUTOMAKE(package,version, [no-define])
++
++AC_DEFUN(AM_INIT_AUTOMAKE,
++[AC_REQUIRE([AM_PROG_INSTALL])
++PACKAGE=[$1]
++AC_SUBST(PACKAGE)
++VERSION=[$2]
++AC_SUBST(VERSION)
++dnl test to see if srcdir already configured
++if test "`cd $srcdir && pwd`" != "`pwd`" && test -f $srcdir/config.status; then
++  AC_MSG_ERROR([source directory already configured; run "make distclean" there first])
++fi
++ifelse([$3],,
++AC_DEFINE_UNQUOTED(PACKAGE, "$PACKAGE")
++AC_DEFINE_UNQUOTED(VERSION, "$VERSION"))
++AC_REQUIRE([AM_SANITY_CHECK])
++AC_REQUIRE([AC_ARG_PROGRAM])
++dnl FIXME This is truly gross.
++missing_dir=`cd $ac_aux_dir && pwd`
++AM_MISSING_PROG(ACLOCAL, aclocal, $missing_dir)
++AM_MISSING_PROG(AUTOCONF, autoconf, $missing_dir)
++AM_MISSING_PROG(AUTOMAKE, automake, $missing_dir)
++AM_MISSING_PROG(AUTOHEADER, autoheader, $missing_dir)
++AM_MISSING_PROG(MAKEINFO, makeinfo, $missing_dir)
++AC_REQUIRE([AC_PROG_MAKE_SET])])
++
++
++# serial 1
++
++AC_DEFUN(AM_PROG_INSTALL,
++[AC_REQUIRE([AC_PROG_INSTALL])
++test -z "$INSTALL_SCRIPT" && INSTALL_SCRIPT='${INSTALL_PROGRAM}'
++AC_SUBST(INSTALL_SCRIPT)dnl
++])
++
++#
++# Check to make sure that the build environment is sane.
++#
++
++AC_DEFUN(AM_SANITY_CHECK,
++[AC_MSG_CHECKING([whether build environment is sane])
++# Just in case
++sleep 1
++echo timestamp > conftestfile
++# Do `set' in a subshell so we don't clobber the current shell's
++# arguments.  Must try -L first in case configure is actually a
++# symlink; some systems play weird games with the mod time of symlinks
++# (eg FreeBSD returns the mod time of the symlink's containing
++# directory).
++if (
++   set X `ls -Lt $srcdir/configure conftestfile 2> /dev/null`
++   if test "[$]*" = "X"; then
++      # -L didn't work.
++      set X `ls -t $srcdir/configure conftestfile`
++   fi
++   if test "[$]*" != "X $srcdir/configure conftestfile" \
++      && test "[$]*" != "X conftestfile $srcdir/configure"; then
++
++      # If neither matched, then we have a broken ls.  This can happen
++      # if, for instance, CONFIG_SHELL is bash and it inherits a
++      # broken ls alias from the environment.  This has actually
++      # happened.  Such a system could not be considered "sane".
++      AC_MSG_ERROR([ls -t appears to fail.  Make sure there is not a broken
++alias in your environment])
++   fi
++
++   test "[$]2" = conftestfile
++   )
++then
++   # Ok.
++   :
++else
++   AC_MSG_ERROR([newly created file is older than distributed files!
++Check your system clock])
++fi
++rm -f conftest*
++AC_MSG_RESULT(yes)])
++
++dnl AM_MISSING_PROG(NAME, PROGRAM, DIRECTORY)
++dnl The program must properly implement --version.
++AC_DEFUN(AM_MISSING_PROG,
++[AC_MSG_CHECKING(for working $2)
++# Run test in a subshell; some versions of sh will print an error if
++# an executable is not found, even if stderr is redirected.
++# Redirect stdin to placate older versions of autoconf.  Sigh.
++if ($2 --version) < /dev/null > /dev/null 2>&1; then
++   $1=$2
++   AC_MSG_RESULT(found)
++else
++   $1="$3/missing $2"
++   AC_MSG_RESULT(missing)
++fi
++AC_SUBST($1)])
++
++# Add --enable-maintainer-mode option to configure.
++# From Jim Meyering
++
++# serial 1
++
++AC_DEFUN(AM_MAINTAINER_MODE,
++[AC_MSG_CHECKING([whether to enable maintainer-specific portions of Makefiles])
++  dnl maintainer-mode is disabled by default
++  AC_ARG_ENABLE(maintainer-mode,
++[  --enable-maintainer-mode enable make rules and dependencies not useful
++                          (and sometimes confusing) to the casual installer],
++      USE_MAINTAINER_MODE=$enableval,
++      USE_MAINTAINER_MODE=no)
++  AC_MSG_RESULT($USE_MAINTAINER_MODE)
++  if test $USE_MAINTAINER_MODE = yes; then
++    MAINT=
++  else
++    MAINT='#M#'
++  fi
++#  AC_SUBST(MAINT)dnl
++]
++)
++
++# Check to see if we're running under Win32, without using
++# AC_CANONICAL_*.  If so, set output variable EXEEXT to ".exe".
++# Otherwise set it to "".
++
++dnl AM_EXEEXT()
++dnl This knows we add .exe if we're building in the Cygwin32
++dnl environment. But if we're not, then it compiles a test program
++dnl to see if there is a suffix for executables.
++AC_DEFUN(AM_EXEEXT,
++[AC_REQUIRE([AM_CYGWIN32])
++AC_REQUIRE([AM_MINGW32])
++AC_MSG_CHECKING([for executable suffix])
++AC_CACHE_VAL(am_cv_exeext,
++[if test "$CYGWIN32" = yes || test "$MINGW32" = yes; then
++am_cv_exeext=.exe
++else
++cat > am_c_test.c << 'EOF'
++int main() {
++/* Nothing needed here */
++}
++EOF
++${CC-cc} -o am_c_test $CFLAGS $CPPFLAGS $LDFLAGS am_c_test.c $LIBS 1>&5
++am_cv_exeext=
++for file in am_c_test.*; do
++   case $file in
++    *.c) ;;
++    *.o) ;;
++    *) am_cv_exeext=`echo $file | sed -e s/am_c_test//` ;;
++   esac
++done
++rm -f am_c_test*])
++test x"${am_cv_exeext}" = x && am_cv_exeext=no
++fi
++EXEEXT=""
++test x"${am_cv_exeext}" != xno && EXEEXT=${am_cv_exeext}
++AC_MSG_RESULT(${am_cv_exeext})
++AC_SUBST(EXEEXT)])
++
++# Check to see if we're running under Cygwin32, without using
++# AC_CANONICAL_*.  If so, set output variable CYGWIN32 to "yes".
++# Otherwise set it to "no".
++
++dnl AM_CYGWIN32()
++AC_DEFUN(AM_CYGWIN32,
++[AC_CACHE_CHECK(for Cygwin32 environment, am_cv_cygwin32,
++[AC_TRY_COMPILE(,[return __CYGWIN32__;],
++am_cv_cygwin32=yes, am_cv_cygwin32=no)
++rm -f conftest*])
++CYGWIN32=
++test "$am_cv_cygwin32" = yes && CYGWIN32=yes])
++
++# Check to see if we're running under Mingw, without using
++# AC_CANONICAL_*.  If so, set output variable MINGW32 to "yes".
++# Otherwise set it to "no".
++
++dnl AM_MINGW32()
++AC_DEFUN(AM_MINGW32,
++[AC_CACHE_CHECK(for Mingw32 environment, am_cv_mingw32,
++[AC_TRY_COMPILE(,[return __MINGW32__;],
++am_cv_mingw32=yes, am_cv_mingw32=no)
++rm -f conftest*])
++MINGW32=
++test "$am_cv_mingw32" = yes && MINGW32=yes])
++
+diff -urN newlib-1.8.2/newlib/libc/sys/aica/chdir.c newlib-1.8.2-aica/newlib/libc/sys/aica/chdir.c
+--- newlib-1.8.2/newlib/libc/sys/aica/chdir.c	1970-01-01 10:00:00.000000000 +1000
++++ newlib-1.8.2-aica/newlib/libc/sys/aica/chdir.c	2008-08-13 11:54:44.000000000 +1000
+@@ -0,0 +1,14 @@
++#include "vfs.h"
++
++int
++chdir (const char *path)
++{
++  char *obj = _newlib_vfs_new_string (path);
++
++  struct media_ops *mops = _newlib_vfs_get_media_ops (path);
++  int res = mops->chdir (obj);
++
++  _newlib_vfs_delete_string (obj);
++
++  return res;
++}
+diff -urN newlib-1.8.2/newlib/libc/sys/aica/chmod.c newlib-1.8.2-aica/newlib/libc/sys/aica/chmod.c
+--- newlib-1.8.2/newlib/libc/sys/aica/chmod.c	1970-01-01 10:00:00.000000000 +1000
++++ newlib-1.8.2-aica/newlib/libc/sys/aica/chmod.c	2008-08-13 11:54:44.000000000 +1000
+@@ -0,0 +1,16 @@
++#include <sys/types.h>
++
++#include "vfs.h"
++
++int
++chmod (const char *path, mode_t mode)
++{
++  char *obj = _newlib_vfs_new_string (path);
++
++  struct media_ops *mops = _newlib_vfs_get_media_ops (path);
++  int res = mops->chmod (obj, mode);
++
++  _newlib_vfs_delete_string (obj);
++
++  return res;
++}
+diff -urN newlib-1.8.2/newlib/libc/sys/aica/close.c newlib-1.8.2-aica/newlib/libc/sys/aica/close.c
+--- newlib-1.8.2/newlib/libc/sys/aica/close.c	1970-01-01 10:00:00.000000000 +1000
++++ newlib-1.8.2-aica/newlib/libc/sys/aica/close.c	2008-08-13 11:54:44.000000000 +1000
+@@ -0,0 +1,15 @@
++#include "vfs.h"
++
++int
++_close (int fd)
++{
++  struct file *pf = _newlib_vfs_get_file (fd);
++  int res = pf->fops->close (pf);
++
++  if (res >= 0)
++  {
++    return _newlib_vfs_remove_file (pf);
++  }
++
++  return res;
++}
+diff -urN newlib-1.8.2/newlib/libc/sys/aica/configure newlib-1.8.2-aica/newlib/libc/sys/aica/configure
+--- newlib-1.8.2/newlib/libc/sys/aica/configure	1970-01-01 10:00:00.000000000 +1000
++++ newlib-1.8.2-aica/newlib/libc/sys/aica/configure	2008-08-13 11:54:44.000000000 +1000
+@@ -0,0 +1,1586 @@
++#! /bin/sh
++
++# Guess values for system-dependent variables and create Makefiles.
++# Generated automatically using autoconf version 2.13 
++# Copyright (C) 1992, 93, 94, 95, 96 Free Software Foundation, Inc.
++#
++# This configure script is free software; the Free Software Foundation
++# gives unlimited permission to copy, distribute and modify it.
++
++# Defaults:
++ac_help=
++ac_default_prefix=/usr/local
++# Any additions from configure.in:
++ac_help="$ac_help
++  --enable-multilib         build many library versions (default)"
++ac_help="$ac_help
++  --enable-target-optspace  optimize for space"
++ac_help="$ac_help
++  --enable-newlib-mb        enable multibyte support"
++
++# Initialize some variables set by options.
++# The variables have the same names as the options, with
++# dashes changed to underlines.
++build=NONE
++cache_file=./config.cache
++exec_prefix=NONE
++host=NONE
++no_create=
++nonopt=NONE
++no_recursion=
++prefix=NONE
++program_prefix=NONE
++program_suffix=NONE
++program_transform_name=s,x,x,
++silent=
++site=
++srcdir=
++target=NONE
++verbose=
++x_includes=NONE
++x_libraries=NONE
++bindir='${exec_prefix}/bin'
++sbindir='${exec_prefix}/sbin'
++libexecdir='${exec_prefix}/libexec'
++datadir='${prefix}/share'
++sysconfdir='${prefix}/etc'
++sharedstatedir='${prefix}/com'
++localstatedir='${prefix}/var'
++libdir='${exec_prefix}/lib'
++includedir='${prefix}/include'
++oldincludedir='/usr/include'
++infodir='${prefix}/info'
++mandir='${prefix}/man'
++
++# Initialize some other variables.
++subdirs=
++MFLAGS= MAKEFLAGS=
++SHELL=${CONFIG_SHELL-/bin/sh}
++# Maximum number of lines to put in a shell here document.
++ac_max_here_lines=12
++
++ac_prev=
++for ac_option
++do
++
++  # If the previous option needs an argument, assign it.
++  if test -n "$ac_prev"; then
++    eval "$ac_prev=\$ac_option"
++    ac_prev=
++    continue
++  fi
++
++  case "$ac_option" in
++  -*=*) ac_optarg=`echo "$ac_option" | sed 's/[-_a-zA-Z0-9]*=//'` ;;
++  *) ac_optarg= ;;
++  esac
++
++  # Accept the important Cygnus configure options, so we can diagnose typos.
++
++  case "$ac_option" in
++
++  -bindir | --bindir | --bindi | --bind | --bin | --bi)
++    ac_prev=bindir ;;
++  -bindir=* | --bindir=* | --bindi=* | --bind=* | --bin=* | --bi=*)
++    bindir="$ac_optarg" ;;
++
++  -build | --build | --buil | --bui | --bu)
++    ac_prev=build ;;
++  -build=* | --build=* | --buil=* | --bui=* | --bu=*)
++    build="$ac_optarg" ;;
++
++  -cache-file | --cache-file | --cache-fil | --cache-fi \
++  | --cache-f | --cache- | --cache | --cach | --cac | --ca | --c)
++    ac_prev=cache_file ;;
++  -cache-file=* | --cache-file=* | --cache-fil=* | --cache-fi=* \
++  | --cache-f=* | --cache-=* | --cache=* | --cach=* | --cac=* | --ca=* | --c=*)
++    cache_file="$ac_optarg" ;;
++
++  -datadir | --datadir | --datadi | --datad | --data | --dat | --da)
++    ac_prev=datadir ;;
++  -datadir=* | --datadir=* | --datadi=* | --datad=* | --data=* | --dat=* \
++  | --da=*)
++    datadir="$ac_optarg" ;;
++
++  -disable-* | --disable-*)
++    ac_feature=`echo $ac_option|sed -e 's/-*disable-//'`
++    # Reject names that are not valid shell variable names.
++    if test -n "`echo $ac_feature| sed 's/[-a-zA-Z0-9_]//g'`"; then
++      { echo "configure: error: $ac_feature: invalid feature name" 1>&2; exit 1; }
++    fi
++    ac_feature=`echo $ac_feature| sed 's/-/_/g'`
++    eval "enable_${ac_feature}=no" ;;
++
++  -enable-* | --enable-*)
++    ac_feature=`echo $ac_option|sed -e 's/-*enable-//' -e 's/=.*//'`
++    # Reject names that are not valid shell variable names.
++    if test -n "`echo $ac_feature| sed 's/[-_a-zA-Z0-9]//g'`"; then
++      { echo "configure: error: $ac_feature: invalid feature name" 1>&2; exit 1; }
++    fi
++    ac_feature=`echo $ac_feature| sed 's/-/_/g'`
++    case "$ac_option" in
++      *=*) ;;
++      *) ac_optarg=yes ;;
++    esac
++    eval "enable_${ac_feature}='$ac_optarg'" ;;
++
++  -exec-prefix | --exec_prefix | --exec-prefix | --exec-prefi \
++  | --exec-pref | --exec-pre | --exec-pr | --exec-p | --exec- \
++  | --exec | --exe | --ex)
++    ac_prev=exec_prefix ;;
++  -exec-prefix=* | --exec_prefix=* | --exec-prefix=* | --exec-prefi=* \
++  | --exec-pref=* | --exec-pre=* | --exec-pr=* | --exec-p=* | --exec-=* \
++  | --exec=* | --exe=* | --ex=*)
++    exec_prefix="$ac_optarg" ;;
++
++  -gas | --gas | --ga | --g)
++    # Obsolete; use --with-gas.
++    with_gas=yes ;;
++
++  -help | --help | --hel | --he)
++    # Omit some internal or obsolete options to make the list less imposing.
++    # This message is too long to be a string in the A/UX 3.1 sh.
++    cat << EOF
++Usage: configure [options] [host]
++Options: [defaults in brackets after descriptions]
++Configuration:
++  --cache-file=FILE       cache test results in FILE
++  --help                  print this message
++  --no-create             do not create output files
++  --quiet, --silent       do not print \`checking...' messages
++  --version               print the version of autoconf that created configure
++Directory and file names:
++  --prefix=PREFIX         install architecture-independent files in PREFIX
++                          [$ac_default_prefix]
++  --exec-prefix=EPREFIX   install architecture-dependent files in EPREFIX
++                          [same as prefix]
++  --bindir=DIR            user executables in DIR [EPREFIX/bin]
++  --sbindir=DIR           system admin executables in DIR [EPREFIX/sbin]
++  --libexecdir=DIR        program executables in DIR [EPREFIX/libexec]
++  --datadir=DIR           read-only architecture-independent data in DIR
++                          [PREFIX/share]
++  --sysconfdir=DIR        read-only single-machine data in DIR [PREFIX/etc]
++  --sharedstatedir=DIR    modifiable architecture-independent data in DIR
++                          [PREFIX/com]
++  --localstatedir=DIR     modifiable single-machine data in DIR [PREFIX/var]
++  --libdir=DIR            object code libraries in DIR [EPREFIX/lib]
++  --includedir=DIR        C header files in DIR [PREFIX/include]
++  --oldincludedir=DIR     C header files for non-gcc in DIR [/usr/include]
++  --infodir=DIR           info documentation in DIR [PREFIX/info]
++  --mandir=DIR            man documentation in DIR [PREFIX/man]
++  --srcdir=DIR            find the sources in DIR [configure dir or ..]
++  --program-prefix=PREFIX prepend PREFIX to installed program names
++  --program-suffix=SUFFIX append SUFFIX to installed program names
++  --program-transform-name=PROGRAM
++                          run sed PROGRAM on installed program names
++EOF
++    cat << EOF
++Host type:
++  --build=BUILD           configure for building on BUILD [BUILD=HOST]
++  --host=HOST             configure for HOST [guessed]
++  --target=TARGET         configure for TARGET [TARGET=HOST]
++Features and packages:
++  --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
++  --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
++  --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
++  --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
++  --x-includes=DIR        X include files are in DIR
++  --x-libraries=DIR       X library files are in DIR
++EOF
++    if test -n "$ac_help"; then
++      echo "--enable and --with options recognized:$ac_help"
++    fi
++    exit 0 ;;
++
++  -host | --host | --hos | --ho)
++    ac_prev=host ;;
++  -host=* | --host=* | --hos=* | --ho=*)
++    host="$ac_optarg" ;;
++
++  -includedir | --includedir | --includedi | --included | --include \
++  | --includ | --inclu | --incl | --inc)
++    ac_prev=includedir ;;
++  -includedir=* | --includedir=* | --includedi=* | --included=* | --include=* \
++  | --includ=* | --inclu=* | --incl=* | --inc=*)
++    includedir="$ac_optarg" ;;
++
++  -infodir | --infodir | --infodi | --infod | --info | --inf)
++    ac_prev=infodir ;;
++  -infodir=* | --infodir=* | --infodi=* | --infod=* | --info=* | --inf=*)
++    infodir="$ac_optarg" ;;
++
++  -libdir | --libdir | --libdi | --libd)
++    ac_prev=libdir ;;
++  -libdir=* | --libdir=* | --libdi=* | --libd=*)
++    libdir="$ac_optarg" ;;
++
++  -libexecdir | --libexecdir | --libexecdi | --libexecd | --libexec \
++  | --libexe | --libex | --libe)
++    ac_prev=libexecdir ;;
++  -libexecdir=* | --libexecdir=* | --libexecdi=* | --libexecd=* | --libexec=* \
++  | --libexe=* | --libex=* | --libe=*)
++    libexecdir="$ac_optarg" ;;
++
++  -localstatedir | --localstatedir | --localstatedi | --localstated \
++  | --localstate | --localstat | --localsta | --localst \
++  | --locals | --local | --loca | --loc | --lo)
++    ac_prev=localstatedir ;;
++  -localstatedir=* | --localstatedir=* | --localstatedi=* | --localstated=* \
++  | --localstate=* | --localstat=* | --localsta=* | --localst=* \
++  | --locals=* | --local=* | --loca=* | --loc=* | --lo=*)
++    localstatedir="$ac_optarg" ;;
++
++  -mandir | --mandir | --mandi | --mand | --man | --ma | --m)
++    ac_prev=mandir ;;
++  -mandir=* | --mandir=* | --mandi=* | --mand=* | --man=* | --ma=* | --m=*)
++    mandir="$ac_optarg" ;;
++
++  -nfp | --nfp | --nf)
++    # Obsolete; use --without-fp.
++    with_fp=no ;;
++
++  -no-create | --no-create | --no-creat | --no-crea | --no-cre \
++  | --no-cr | --no-c)
++    no_create=yes ;;
++
++  -no-recursion | --no-recursion | --no-recursio | --no-recursi \
++  | --no-recurs | --no-recur | --no-recu | --no-rec | --no-re | --no-r)
++    no_recursion=yes ;;
++
++  -oldincludedir | --oldincludedir | --oldincludedi | --oldincluded \
++  | --oldinclude | --oldinclud | --oldinclu | --oldincl | --oldinc \
++  | --oldin | --oldi | --old | --ol | --o)
++    ac_prev=oldincludedir ;;
++  -oldincludedir=* | --oldincludedir=* | --oldincludedi=* | --oldincluded=* \
++  | --oldinclude=* | --oldinclud=* | --oldinclu=* | --oldincl=* | --oldinc=* \
++  | --oldin=* | --oldi=* | --old=* | --ol=* | --o=*)
++    oldincludedir="$ac_optarg" ;;
++
++  -prefix | --prefix | --prefi | --pref | --pre | --pr | --p)
++    ac_prev=prefix ;;
++  -prefix=* | --prefix=* | --prefi=* | --pref=* | --pre=* | --pr=* | --p=*)
++    prefix="$ac_optarg" ;;
++
++  -program-prefix | --program-prefix | --program-prefi | --program-pref \
++  | --program-pre | --program-pr | --program-p)
++    ac_prev=program_prefix ;;
++  -program-prefix=* | --program-prefix=* | --program-prefi=* \
++  | --program-pref=* | --program-pre=* | --program-pr=* | --program-p=*)
++    program_prefix="$ac_optarg" ;;
++
++  -program-suffix | --program-suffix | --program-suffi | --program-suff \
++  | --program-suf | --program-su | --program-s)
++    ac_prev=program_suffix ;;
++  -program-suffix=* | --program-suffix=* | --program-suffi=* \
++  | --program-suff=* | --program-suf=* | --program-su=* | --program-s=*)
++    program_suffix="$ac_optarg" ;;
++
++  -program-transform-name | --program-transform-name \
++  | --program-transform-nam | --program-transform-na \
++  | --program-transform-n | --program-transform- \
++  | --program-transform | --program-transfor \
++  | --program-transfo | --program-transf \
++  | --program-trans | --program-tran \
++  | --progr-tra | --program-tr | --program-t)
++    ac_prev=program_transform_name ;;
++  -program-transform-name=* | --program-transform-name=* \
++  | --program-transform-nam=* | --program-transform-na=* \
++  | --program-transform-n=* | --program-transform-=* \
++  | --program-transform=* | --program-transfor=* \
++  | --program-transfo=* | --program-transf=* \
++  | --program-trans=* | --program-tran=* \
++  | --progr-tra=* | --program-tr=* | --program-t=*)
++    program_transform_name="$ac_optarg" ;;
++
++  -q | -quiet | --quiet | --quie | --qui | --qu | --q \
++  | -silent | --silent | --silen | --sile | --sil)
++    silent=yes ;;
++
++  -sbindir | --sbindir | --sbindi | --sbind | --sbin | --sbi | --sb)
++    ac_prev=sbindir ;;
++  -sbindir=* | --sbindir=* | --sbindi=* | --sbind=* | --sbin=* \
++  | --sbi=* | --sb=*)
++    sbindir="$ac_optarg" ;;
++
++  -sharedstatedir | --sharedstatedir | --sharedstatedi \
++  | --sharedstated | --sharedstate | --sharedstat | --sharedsta \
++  | --sharedst | --shareds | --shared | --share | --shar \
++  | --sha | --sh)
++    ac_prev=sharedstatedir ;;
++  -sharedstatedir=* | --sharedstatedir=* | --sharedstatedi=* \
++  | --sharedstated=* | --sharedstate=* | --sharedstat=* | --sharedsta=* \
++  | --sharedst=* | --shareds=* | --shared=* | --share=* | --shar=* \
++  | --sha=* | --sh=*)
++    sharedstatedir="$ac_optarg" ;;
++
++  -site | --site | --sit)
++    ac_prev=site ;;
++  -site=* | --site=* | --sit=*)
++    site="$ac_optarg" ;;
++
++  -srcdir | --srcdir | --srcdi | --srcd | --src | --sr)
++    ac_prev=srcdir ;;
++  -srcdir=* | --srcdir=* | --srcdi=* | --srcd=* | --src=* | --sr=*)
++    srcdir="$ac_optarg" ;;
++
++  -sysconfdir | --sysconfdir | --sysconfdi | --sysconfd | --sysconf \
++  | --syscon | --sysco | --sysc | --sys | --sy)
++    ac_prev=sysconfdir ;;
++  -sysconfdir=* | --sysconfdir=* | --sysconfdi=* | --sysconfd=* | --sysconf=* \
++  | --syscon=* | --sysco=* | --sysc=* | --sys=* | --sy=*)
++    sysconfdir="$ac_optarg" ;;
++
++  -target | --target | --targe | --targ | --tar | --ta | --t)
++    ac_prev=target ;;
++  -target=* | --target=* | --targe=* | --targ=* | --tar=* | --ta=* | --t=*)
++    target="$ac_optarg" ;;
++
++  -v | -verbose | --verbose | --verbos | --verbo | --verb)
++    verbose=yes ;;
++
++  -version | --version | --versio | --versi | --vers)
++    echo "configure generated by autoconf version 2.13"
++    exit 0 ;;
++
++  -with-* | --with-*)
++    ac_package=`echo $ac_option|sed -e 's/-*with-//' -e 's/=.*//'`
++    # Reject names that are not valid shell variable names.
++    if test -n "`echo $ac_package| sed 's/[-_a-zA-Z0-9]//g'`"; then
++      { echo "configure: error: $ac_package: invalid package name" 1>&2; exit 1; }
++    fi
++    ac_package=`echo $ac_package| sed 's/-/_/g'`
++    case "$ac_option" in
++      *=*) ;;
++      *) ac_optarg=yes ;;
++    esac
++    eval "with_${ac_package}='$ac_optarg'" ;;
++
++  -without-* | --without-*)
++    ac_package=`echo $ac_option|sed -e 's/-*without-//'`
++    # Reject names that are not valid shell variable names.
++    if test -n "`echo $ac_package| sed 's/[-a-zA-Z0-9_]//g'`"; then
++      { echo "configure: error: $ac_package: invalid package name" 1>&2; exit 1; }
++    fi
++    ac_package=`echo $ac_package| sed 's/-/_/g'`
++    eval "with_${ac_package}=no" ;;
++
++  --x)
++    # Obsolete; use --with-x.
++    with_x=yes ;;
++
++  -x-includes | --x-includes | --x-include | --x-includ | --x-inclu \
++  | --x-incl | --x-inc | --x-in | --x-i)
++    ac_prev=x_includes ;;
++  -x-includes=* | --x-includes=* | --x-include=* | --x-includ=* | --x-inclu=* \
++  | --x-incl=* | --x-inc=* | --x-in=* | --x-i=*)
++    x_includes="$ac_optarg" ;;
++
++  -x-libraries | --x-libraries | --x-librarie | --x-librari \
++  | --x-librar | --x-libra | --x-libr | --x-lib | --x-li | --x-l)
++    ac_prev=x_libraries ;;
++  -x-libraries=* | --x-libraries=* | --x-librarie=* | --x-librari=* \
++  | --x-librar=* | --x-libra=* | --x-libr=* | --x-lib=* | --x-li=* | --x-l=*)
++    x_libraries="$ac_optarg" ;;
++
++  -*) { echo "configure: error: $ac_option: invalid option; use --help to show usage" 1>&2; exit 1; }
++    ;;
++
++  *)
++    if test -n "`echo $ac_option| sed 's/[-a-z0-9.]//g'`"; then
++      echo "configure: warning: $ac_option: invalid host type" 1>&2
++    fi
++    if test "x$nonopt" != xNONE; then
++      { echo "configure: error: can only configure for one host and one target at a time" 1>&2; exit 1; }
++    fi
++    nonopt="$ac_option"
++    ;;
++
++  esac
++done
++
++if test -n "$ac_prev"; then
++  { echo "configure: error: missing argument to --`echo $ac_prev | sed 's/_/-/g'`" 1>&2; exit 1; }
++fi
++
++trap 'rm -fr conftest* confdefs* core core.* *.core $ac_clean_files; exit 1' 1 2 15
++
++# File descriptor usage:
++# 0 standard input
++# 1 file creation
++# 2 errors and warnings
++# 3 some systems may open it to /dev/tty
++# 4 used on the Kubota Titan
++# 6 checking for... messages and results
++# 5 compiler messages saved in config.log
++if test "$silent" = yes; then
++  exec 6>/dev/null
++else
++  exec 6>&1
++fi
++exec 5>./config.log
++
++echo "\
++This file contains any messages produced by compilers while
++running configure, to aid debugging if configure makes a mistake.
++" 1>&5
++
++# Strip out --no-create and --no-recursion so they do not pile up.
++# Also quote any args containing shell metacharacters.
++ac_configure_args=
++for ac_arg
++do
++  case "$ac_arg" in
++  -no-create | --no-create | --no-creat | --no-crea | --no-cre \
++  | --no-cr | --no-c) ;;
++  -no-recursion | --no-recursion | --no-recursio | --no-recursi \
++  | --no-recurs | --no-recur | --no-recu | --no-rec | --no-re | --no-r) ;;
++  *" "*|*"	"*|*[\[\]\~\#\$\^\&\*\(\)\{\}\\\|\;\<\>\?]*)
++  ac_configure_args="$ac_configure_args '$ac_arg'" ;;
++  *) ac_configure_args="$ac_configure_args $ac_arg" ;;
++  esac
++done
++
++# NLS nuisances.
++# Only set these to C if already set.  These must not be set unconditionally
++# because not all systems understand e.g. LANG=C (notably SCO).
++# Fixing LC_MESSAGES prevents Solaris sh from translating var values in `set'!
++# Non-C LC_CTYPE values break the ctype check.
++if test "${LANG+set}"   = set; then LANG=C;   export LANG;   fi
++if test "${LC_ALL+set}" = set; then LC_ALL=C; export LC_ALL; fi
++if test "${LC_MESSAGES+set}" = set; then LC_MESSAGES=C; export LC_MESSAGES; fi
++if test "${LC_CTYPE+set}"    = set; then LC_CTYPE=C;    export LC_CTYPE;    fi
++
++# confdefs.h avoids OS command line length limits that DEFS can exceed.
++rm -rf conftest* confdefs.h
++# AIX cpp loses on an empty file, so make sure it contains at least a newline.
++echo > confdefs.h
++
++# A filename unique to this package, relative to the directory that
++# configure is in, which we can look for to find out if srcdir is correct.
++ac_unique_file=sbrk.c
++
++# Find the source files, if location was not specified.
++if test -z "$srcdir"; then
++  ac_srcdir_defaulted=yes
++  # Try the directory containing this script, then its parent.
++  ac_prog=$0
++  ac_confdir=`echo $ac_prog|sed 's%/[^/][^/]*$%%'`
++  test "x$ac_confdir" = "x$ac_prog" && ac_confdir=.
++  srcdir=$ac_confdir
++  if test ! -r $srcdir/$ac_unique_file; then
++    srcdir=..
++  fi
++else
++  ac_srcdir_defaulted=no
++fi
++if test ! -r $srcdir/$ac_unique_file; then
++  if test "$ac_srcdir_defaulted" = yes; then
++    { echo "configure: error: can not find sources in $ac_confdir or .." 1>&2; exit 1; }
++  else
++    { echo "configure: error: can not find sources in $srcdir" 1>&2; exit 1; }
++  fi
++fi
++srcdir=`echo "${srcdir}" | sed 's%\([^/]\)/*$%\1%'`
++
++# Prefer explicitly selected file to automatically selected ones.
++if test -z "$CONFIG_SITE"; then
++  if test "x$prefix" != xNONE; then
++    CONFIG_SITE="$prefix/share/config.site $prefix/etc/config.site"
++  else
++    CONFIG_SITE="$ac_default_prefix/share/config.site $ac_default_prefix/etc/config.site"
++  fi
++fi
++for ac_site_file in $CONFIG_SITE; do
++  if test -r "$ac_site_file"; then
++    echo "loading site script $ac_site_file"
++    . "$ac_site_file"
++  fi
++done
++
++if test -r "$cache_file"; then
++  echo "loading cache $cache_file"
++  . $cache_file
++else
++  echo "creating cache $cache_file"
++  > $cache_file
++fi
++
++ac_ext=c
++# CFLAGS is not in ac_cpp because -g, -O, etc. are not valid cpp options.
++ac_cpp='$CPP $CPPFLAGS'
++ac_compile='${CC-cc} -c $CFLAGS $CPPFLAGS conftest.$ac_ext 1>&5'
++ac_link='${CC-cc} -o conftest${ac_exeext} $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS 1>&5'
++cross_compiling=$ac_cv_prog_cc_cross
++
++ac_exeext=
++ac_objext=o
++if (echo "testing\c"; echo 1,2,3) | grep c >/dev/null; then
++  # Stardent Vistra SVR4 grep lacks -e, says ghazi@caip.rutgers.edu.
++  if (echo -n testing; echo 1,2,3) | sed s/-n/xn/ | grep xn >/dev/null; then
++    ac_n= ac_c='
++' ac_t='	'
++  else
++    ac_n=-n ac_c= ac_t=
++  fi
++else
++  ac_n= ac_c='\c' ac_t=
++fi
++
++
++
++ac_aux_dir=
++for ac_dir in ../../../.. $srcdir/../../../..; do
++  if test -f $ac_dir/install-sh; then
++    ac_aux_dir=$ac_dir
++    ac_install_sh="$ac_aux_dir/install-sh -c"
++    break
++  elif test -f $ac_dir/install.sh; then
++    ac_aux_dir=$ac_dir
++    ac_install_sh="$ac_aux_dir/install.sh -c"
++    break
++  fi
++done
++if test -z "$ac_aux_dir"; then
++  { echo "configure: error: can not find install-sh or install.sh in ../../../.. $srcdir/../../../.." 1>&2; exit 1; }
++fi
++ac_config_guess=$ac_aux_dir/config.guess
++ac_config_sub=$ac_aux_dir/config.sub
++ac_configure=$ac_aux_dir/configure # This should be Cygnus configure.
++
++
++# Find a good install program.  We prefer a C program (faster),
++# so one script is as good as another.  But avoid the broken or
++# incompatible versions:
++# SysV /etc/install, /usr/sbin/install
++# SunOS /usr/etc/install
++# IRIX /sbin/install
++# AIX /bin/install
++# AIX 4 /usr/bin/installbsd, which doesn't work without a -g flag
++# AFS /usr/afsws/bin/install, which mishandles nonexistent args
++# SVR4 /usr/ucb/install, which tries to use the nonexistent group "staff"
++# ./install, which can be erroneously created by make from ./install.sh.
++echo $ac_n "checking for a BSD compatible install""... $ac_c" 1>&6
++echo "configure:564: checking for a BSD compatible install" >&5
++if test -z "$INSTALL"; then
++if eval "test \"`echo '$''{'ac_cv_path_install'+set}'`\" = set"; then
++  echo $ac_n "(cached) $ac_c" 1>&6
++else
++    IFS="${IFS= 	}"; ac_save_IFS="$IFS"; IFS=":"
++  for ac_dir in $PATH; do
++    # Account for people who put trailing slashes in PATH elements.
++    case "$ac_dir/" in
++    /|./|.//|/etc/*|/usr/sbin/*|/usr/etc/*|/sbin/*|/usr/afsws/bin/*|/usr/ucb/*) ;;
++    *)
++      # OSF1 and SCO ODT 3.0 have their own names for install.
++      # Don't use installbsd from OSF since it installs stuff as root
++      # by default.
++      for ac_prog in ginstall scoinst install; do
++        if test -f $ac_dir/$ac_prog; then
++	  if test $ac_prog = install &&
++            grep dspmsg $ac_dir/$ac_prog >/dev/null 2>&1; then
++	    # AIX install.  It has an incompatible calling convention.
++	    :
++	  else
++	    ac_cv_path_install="$ac_dir/$ac_prog -c"
++	    break 2
++	  fi
++	fi
++      done
++      ;;
++    esac
++  done
++  IFS="$ac_save_IFS"
++
++fi
++  if test "${ac_cv_path_install+set}" = set; then
++    INSTALL="$ac_cv_path_install"
++  else
++    # As a last resort, use the slow shell script.  We don't cache a
++    # path for INSTALL within a source directory, because that will
++    # break other packages using the cache if that directory is
++    # removed, or if the path is relative.
++    INSTALL="$ac_install_sh"
++  fi
++fi
++echo "$ac_t""$INSTALL" 1>&6
++
++# Use test -z because SunOS4 sh mishandles braces in ${var-val}.
++# It thinks the first close brace ends the variable substitution.
++test -z "$INSTALL_PROGRAM" && INSTALL_PROGRAM='${INSTALL}'
++
++test -z "$INSTALL_SCRIPT" && INSTALL_SCRIPT='${INSTALL_PROGRAM}'
++
++test -z "$INSTALL_DATA" && INSTALL_DATA='${INSTALL} -m 644'
++
++
++test -z "$INSTALL_SCRIPT" && INSTALL_SCRIPT='${INSTALL_PROGRAM}'
++
++echo $ac_n "checking whether build environment is sane""... $ac_c" 1>&6
++echo "configure:620: checking whether build environment is sane" >&5
++# Just in case
++sleep 1
++echo timestamp > conftestfile
++# Do `set' in a subshell so we don't clobber the current shell's
++# arguments.  Must try -L first in case configure is actually a
++# symlink; some systems play weird games with the mod time of symlinks
++# (eg FreeBSD returns the mod time of the symlink's containing
++# directory).
++if (
++   set X `ls -Lt $srcdir/configure conftestfile 2> /dev/null`
++   if test "$*" = "X"; then
++      # -L didn't work.
++      set X `ls -t $srcdir/configure conftestfile`
++   fi
++   if test "$*" != "X $srcdir/configure conftestfile" \
++      && test "$*" != "X conftestfile $srcdir/configure"; then
++
++      # If neither matched, then we have a broken ls.  This can happen
++      # if, for instance, CONFIG_SHELL is bash and it inherits a
++      # broken ls alias from the environment.  This has actually
++      # happened.  Such a system could not be considered "sane".
++      { echo "configure: error: ls -t appears to fail.  Make sure there is not a broken
++alias in your environment" 1>&2; exit 1; }
++   fi
++
++   test "$2" = conftestfile
++   )
++then
++   # Ok.
++   :
++else
++   { echo "configure: error: newly created file is older than distributed files!
++Check your system clock" 1>&2; exit 1; }
++fi
++rm -f conftest*
++echo "$ac_t""yes" 1>&6
++if test "$program_transform_name" = s,x,x,; then
++  program_transform_name=
++else
++  # Double any \ or $.  echo might interpret backslashes.
++  cat <<\EOF_SED > conftestsed
++s,\\,\\\\,g; s,\$,$$,g
++EOF_SED
++  program_transform_name="`echo $program_transform_name|sed -f conftestsed`"
++  rm -f conftestsed
++fi
++test "$program_prefix" != NONE &&
++  program_transform_name="s,^,${program_prefix},; $program_transform_name"
++# Use a double $ so make ignores it.
++test "$program_suffix" != NONE &&
++  program_transform_name="s,\$\$,${program_suffix},; $program_transform_name"
++
++# sed with no file args requires a program.
++test "$program_transform_name" = "" && program_transform_name="s,x,x,"
++
++echo $ac_n "checking whether ${MAKE-make} sets \${MAKE}""... $ac_c" 1>&6
++echo "configure:677: checking whether ${MAKE-make} sets \${MAKE}" >&5
++set dummy ${MAKE-make}; ac_make=`echo "$2" | sed 'y%./+-%__p_%'`
++if eval "test \"`echo '$''{'ac_cv_prog_make_${ac_make}_set'+set}'`\" = set"; then
++  echo $ac_n "(cached) $ac_c" 1>&6
++else
++  cat > conftestmake <<\EOF
++all:
++	@echo 'ac_maketemp="${MAKE}"'
++EOF
++# GNU make sometimes prints "make[1]: Entering...", which would confuse us.
++eval `${MAKE-make} -f conftestmake 2>/dev/null | grep temp=`
++if test -n "$ac_maketemp"; then
++  eval ac_cv_prog_make_${ac_make}_set=yes
++else
++  eval ac_cv_prog_make_${ac_make}_set=no
++fi
++rm -f conftestmake
++fi
++if eval "test \"`echo '$ac_cv_prog_make_'${ac_make}_set`\" = yes"; then
++  echo "$ac_t""yes" 1>&6
++  SET_MAKE=
++else
++  echo "$ac_t""no" 1>&6
++  SET_MAKE="MAKE=${MAKE-make}"
++fi
++
++if test $host != $build; then
++  ac_tool_prefix=${host_alias}-
++else
++  ac_tool_prefix=
++fi
++
++echo $ac_n "checking for Cygwin32 environment""... $ac_c" 1>&6
++echo "configure:710: checking for Cygwin32 environment" >&5
++if eval "test \"`echo '$''{'am_cv_cygwin32'+set}'`\" = set"; then
++  echo $ac_n "(cached) $ac_c" 1>&6
++else
++  cat > conftest.$ac_ext <<EOF
++#line 715 "configure"
++#include "confdefs.h"
++
++int main() {
++return __CYGWIN32__;
++; return 0; }
++EOF
++if { (eval echo configure:722: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
++  rm -rf conftest*
++  am_cv_cygwin32=yes
++else
++  echo "configure: failed program was:" >&5
++  cat conftest.$ac_ext >&5
++  rm -rf conftest*
++  am_cv_cygwin32=no
++fi
++rm -f conftest*
++rm -f conftest*
++fi
++
++echo "$ac_t""$am_cv_cygwin32" 1>&6
++CYGWIN32=
++test "$am_cv_cygwin32" = yes && CYGWIN32=yes
++echo $ac_n "checking for Mingw32 environment""... $ac_c" 1>&6
++echo "configure:739: checking for Mingw32 environment" >&5
++if eval "test \"`echo '$''{'am_cv_mingw32'+set}'`\" = set"; then
++  echo $ac_n "(cached) $ac_c" 1>&6
++else
++  cat > conftest.$ac_ext <<EOF
++#line 744 "configure"
++#include "confdefs.h"
++
++int main() {
++return __MINGW32__;
++; return 0; }
++EOF
++if { (eval echo configure:751: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
++  rm -rf conftest*
++  am_cv_mingw32=yes
++else
++  echo "configure: failed program was:" >&5
++  cat conftest.$ac_ext >&5
++  rm -rf conftest*
++  am_cv_mingw32=no
++fi
++rm -f conftest*
++rm -f conftest*
++fi
++
++echo "$ac_t""$am_cv_mingw32" 1>&6
++MINGW32=
++test "$am_cv_mingw32" = yes && MINGW32=yes
++
++# Check whether --enable-multilib or --disable-multilib was given.
++if test "${enable_multilib+set}" = set; then
++  enableval="$enable_multilib"
++  case "${enableval}" in
++  yes) multilib=yes ;;
++  no)  multilib=no ;;
++  *)   { echo "configure: error: bad value ${enableval} for multilib option" 1>&2; exit 1; } ;;
++ esac
++else
++  multilib=yes
++fi
++
++# Check whether --enable-target-optspace or --disable-target-optspace was given.
++if test "${enable_target_optspace+set}" = set; then
++  enableval="$enable_target_optspace"
++  case "${enableval}" in
++  yes) target_optspace=yes ;;
++  no)  target_optspace=no ;;
++  *)   { echo "configure: error: bad value ${enableval} for target-optspace option" 1>&2; exit 1; } ;;
++ esac
++else
++  target_optspace=
++fi
++
++# Check whether --enable-newlib-mb or --disable-newlib-mb was given.
++if test "${enable_newlib_mb+set}" = set; then
++  enableval="$enable_newlib_mb"
++  case "${enableval}" in
++  yes) newlib_mb=yes ;;
++  no)  newlib_mb=no ;;
++  *)   { echo "configure: error: bad value ${enableval} for newlib-mb option" 1>&2; exit 1; } ;;
++ esac
++else
++  newlib_mb=no
++fi
++
++
++test -z "${with_target_subdir}" && with_target_subdir=.
++
++if test "${srcdir}" = "."; then
++  if test "${with_target_subdir}" != "."; then
++    newlib_basedir="${srcdir}/${with_multisrctop}../../../.."
++  else
++    newlib_basedir="${srcdir}/${with_multisrctop}../../.."
++  fi
++else
++  newlib_basedir="${srcdir}/../../.."
++fi
++
++
++
++# Make sure we can run config.sub.
++if ${CONFIG_SHELL-/bin/sh} $ac_config_sub sun4 >/dev/null 2>&1; then :
++else { echo "configure: error: can not run $ac_config_sub" 1>&2; exit 1; }
++fi
++
++echo $ac_n "checking host system type""... $ac_c" 1>&6
++echo "configure:825: checking host system type" >&5
++
++host_alias=$host
++case "$host_alias" in
++NONE)
++  case $nonopt in
++  NONE)
++    if host_alias=`${CONFIG_SHELL-/bin/sh} $ac_config_guess`; then :
++    else { echo "configure: error: can not guess host type; you must specify one" 1>&2; exit 1; }
++    fi ;;
++  *) host_alias=$nonopt ;;
++  esac ;;
++esac
++
++host=`${CONFIG_SHELL-/bin/sh} $ac_config_sub $host_alias`
++host_cpu=`echo $host | sed 's/^\([^-]*\)-\([^-]*\)-\(.*\)$/\1/'`
++host_vendor=`echo $host | sed 's/^\([^-]*\)-\([^-]*\)-\(.*\)$/\2/'`
++host_os=`echo $host | sed 's/^\([^-]*\)-\([^-]*\)-\(.*\)$/\3/'`
++echo "$ac_t""$host" 1>&6
++
++
++
++PACKAGE=newlib
++
++VERSION=1.8.1
++
++if test "`cd $srcdir && pwd`" != "`pwd`" && test -f $srcdir/config.status; then
++  { echo "configure: error: source directory already configured; run "make distclean" there first" 1>&2; exit 1; }
++fi
++cat >> confdefs.h <<EOF
++#define PACKAGE "$PACKAGE"
++EOF
++
++cat >> confdefs.h <<EOF
++#define VERSION "$VERSION"
++EOF
++
++
++
++missing_dir=`cd $ac_aux_dir && pwd`
++echo $ac_n "checking for working aclocal""... $ac_c" 1>&6
++echo "configure:866: checking for working aclocal" >&5
++# Run test in a subshell; some versions of sh will print an error if
++# an executable is not found, even if stderr is redirected.
++# Redirect stdin to placate older versions of autoconf.  Sigh.
++if (aclocal --version) < /dev/null > /dev/null 2>&1; then
++   ACLOCAL=aclocal
++   echo "$ac_t""found" 1>&6
++else
++   ACLOCAL="$missing_dir/missing aclocal"
++   echo "$ac_t""missing" 1>&6
++fi
++
++echo $ac_n "checking for working autoconf""... $ac_c" 1>&6
++echo "configure:879: checking for working autoconf" >&5
++# Run test in a subshell; some versions of sh will print an error if
++# an executable is not found, even if stderr is redirected.
++# Redirect stdin to placate older versions of autoconf.  Sigh.
++if (autoconf --version) < /dev/null > /dev/null 2>&1; then
++   AUTOCONF=autoconf
++   echo "$ac_t""found" 1>&6
++else
++   AUTOCONF="$missing_dir/missing autoconf"
++   echo "$ac_t""missing" 1>&6
++fi
++
++echo $ac_n "checking for working automake""... $ac_c" 1>&6
++echo "configure:892: checking for working automake" >&5
++# Run test in a subshell; some versions of sh will print an error if
++# an executable is not found, even if stderr is redirected.
++# Redirect stdin to placate older versions of autoconf.  Sigh.
++if (automake --version) < /dev/null > /dev/null 2>&1; then
++   AUTOMAKE=automake
++   echo "$ac_t""found" 1>&6
++else
++   AUTOMAKE="$missing_dir/missing automake"
++   echo "$ac_t""missing" 1>&6
++fi
++
++echo $ac_n "checking for working autoheader""... $ac_c" 1>&6
++echo "configure:905: checking for working autoheader" >&5
++# Run test in a subshell; some versions of sh will print an error if
++# an executable is not found, even if stderr is redirected.
++# Redirect stdin to placate older versions of autoconf.  Sigh.
++if (autoheader --version) < /dev/null > /dev/null 2>&1; then
++   AUTOHEADER=autoheader
++   echo "$ac_t""found" 1>&6
++else
++   AUTOHEADER="$missing_dir/missing autoheader"
++   echo "$ac_t""missing" 1>&6
++fi
++
++echo $ac_n "checking for working makeinfo""... $ac_c" 1>&6
++echo "configure:918: checking for working makeinfo" >&5
++# Run test in a subshell; some versions of sh will print an error if
++# an executable is not found, even if stderr is redirected.
++# Redirect stdin to placate older versions of autoconf.  Sigh.
++if (makeinfo --version) < /dev/null > /dev/null 2>&1; then
++   MAKEINFO=makeinfo
++   echo "$ac_t""found" 1>&6
++else
++   MAKEINFO="$missing_dir/missing makeinfo"
++   echo "$ac_t""missing" 1>&6
++fi
++
++
++
++# FIXME: We temporarily define our own version of AC_PROG_CC.  This is
++# copied from autoconf 2.12, but does not call AC_PROG_CC_WORKS.  We
++# are probably using a cross compiler, which will not be able to fully
++# link an executable.  This should really be fixed in autoconf
++# itself.
++
++
++
++# Extract the first word of "gcc", so it can be a program name with args.
++set dummy gcc; ac_word=$2
++echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
++echo "configure:943: checking for $ac_word" >&5
++if eval "test \"`echo '$''{'ac_cv_prog_CC'+set}'`\" = set"; then
++  echo $ac_n "(cached) $ac_c" 1>&6
++else
++  if test -n "$CC"; then
++  ac_cv_prog_CC="$CC" # Let the user override the test.
++else
++  IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS=":"
++  ac_dummy="$PATH"
++  for ac_dir in $ac_dummy; do
++    test -z "$ac_dir" && ac_dir=.
++    if test -f $ac_dir/$ac_word; then
++      ac_cv_prog_CC="gcc"
++      break
++    fi
++  done
++  IFS="$ac_save_ifs"
++fi
++fi
++CC="$ac_cv_prog_CC"
++if test -n "$CC"; then
++  echo "$ac_t""$CC" 1>&6
++else
++  echo "$ac_t""no" 1>&6
++fi
++
++if test -z "$CC"; then
++  # Extract the first word of "cc", so it can be a program name with args.
++set dummy cc; ac_word=$2
++echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
++echo "configure:973: checking for $ac_word" >&5
++if eval "test \"`echo '$''{'ac_cv_prog_CC'+set}'`\" = set"; then
++  echo $ac_n "(cached) $ac_c" 1>&6
++else
++  if test -n "$CC"; then
++  ac_cv_prog_CC="$CC" # Let the user override the test.
++else
++  IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS=":"
++  ac_prog_rejected=no
++  ac_dummy="$PATH"
++  for ac_dir in $ac_dummy; do
++    test -z "$ac_dir" && ac_dir=.
++    if test -f $ac_dir/$ac_word; then
++      if test "$ac_dir/$ac_word" = "/usr/ucb/cc"; then
++        ac_prog_rejected=yes
++	continue
++      fi
++      ac_cv_prog_CC="cc"
++      break
++    fi
++  done
++  IFS="$ac_save_ifs"
++if test $ac_prog_rejected = yes; then
++  # We found a bogon in the path, so make sure we never use it.
++  set dummy $ac_cv_prog_CC
++  shift
++  if test $# -gt 0; then
++    # We chose a different compiler from the bogus one.
++    # However, it has the same basename, so the bogon will be chosen
++    # first if we set CC to just the basename; use the full file name.
++    shift
++    set dummy "$ac_dir/$ac_word" "$@"
++    shift
++    ac_cv_prog_CC="$@"
++  fi
++fi
++fi
++fi
++CC="$ac_cv_prog_CC"
++if test -n "$CC"; then
++  echo "$ac_t""$CC" 1>&6
++else
++  echo "$ac_t""no" 1>&6
++fi
++
++  test -z "$CC" && { echo "configure: error: no acceptable cc found in \$PATH" 1>&2; exit 1; }
++fi
++
++echo $ac_n "checking whether we are using GNU C""... $ac_c" 1>&6
++echo "configure:1022: checking whether we are using GNU C" >&5
++if eval "test \"`echo '$''{'ac_cv_prog_gcc'+set}'`\" = set"; then
++  echo $ac_n "(cached) $ac_c" 1>&6
++else
++  cat > conftest.c <<EOF
++#ifdef __GNUC__
++  yes;
++#endif
++EOF
++if { ac_try='${CC-cc} -E conftest.c'; { (eval echo configure:1031: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }; } | egrep yes >/dev/null 2>&1; then
++  ac_cv_prog_gcc=yes
++else
++  ac_cv_prog_gcc=no
++fi
++fi
++
++echo "$ac_t""$ac_cv_prog_gcc" 1>&6
++
++if test $ac_cv_prog_gcc = yes; then
++  GCC=yes
++  ac_test_CFLAGS="${CFLAGS+set}"
++  ac_save_CFLAGS="$CFLAGS"
++  CFLAGS=
++  echo $ac_n "checking whether ${CC-cc} accepts -g""... $ac_c" 1>&6
++echo "configure:1046: checking whether ${CC-cc} accepts -g" >&5
++if eval "test \"`echo '$''{'ac_cv_prog_cc_g'+set}'`\" = set"; then
++  echo $ac_n "(cached) $ac_c" 1>&6
++else
++  echo 'void f(){}' > conftest.c
++if test -z "`${CC-cc} -g -c conftest.c 2>&1`"; then
++  ac_cv_prog_cc_g=yes
++else
++  ac_cv_prog_cc_g=no
++fi
++rm -f conftest*
++
++fi
++
++echo "$ac_t""$ac_cv_prog_cc_g" 1>&6
++  if test "$ac_test_CFLAGS" = set; then
++    CFLAGS="$ac_save_CFLAGS"
++  elif test $ac_cv_prog_cc_g = yes; then
++    CFLAGS="-g -O2"
++  else
++    CFLAGS="-O2"
++  fi
++else
++  GCC=
++  test "${CFLAGS+set}" = set || CFLAGS="-g"
++fi
++
++
++# AC_CHECK_TOOL does AC_REQUIRE (AC_CANONICAL_BUILD).  If we don't
++# run it explicitly here, it will be run implicitly before
++# NEWLIB_CONFIGURE, which doesn't work because that means that it will
++# be run before AC_CANONICAL_HOST.
++echo $ac_n "checking build system type""... $ac_c" 1>&6
++echo "configure:1079: checking build system type" >&5
++
++build_alias=$build
++case "$build_alias" in
++NONE)
++  case $nonopt in
++  NONE) build_alias=$host_alias ;;
++  *) build_alias=$nonopt ;;
++  esac ;;
++esac
++
++build=`${CONFIG_SHELL-/bin/sh} $ac_config_sub $build_alias`
++build_cpu=`echo $build | sed 's/^\([^-]*\)-\([^-]*\)-\(.*\)$/\1/'`
++build_vendor=`echo $build | sed 's/^\([^-]*\)-\([^-]*\)-\(.*\)$/\2/'`
++build_os=`echo $build | sed 's/^\([^-]*\)-\([^-]*\)-\(.*\)$/\3/'`
++echo "$ac_t""$build" 1>&6
++
++
++# Extract the first word of "${ac_tool_prefix}as", so it can be a program name with args.
++set dummy ${ac_tool_prefix}as; ac_word=$2
++echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
++echo "configure:1100: checking for $ac_word" >&5
++if eval "test \"`echo '$''{'ac_cv_prog_AS'+set}'`\" = set"; then
++  echo $ac_n "(cached) $ac_c" 1>&6
++else
++  if test -n "$AS"; then
++  ac_cv_prog_AS="$AS" # Let the user override the test.
++else
++  IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS=":"
++  ac_dummy="$PATH"
++  for ac_dir in $ac_dummy; do
++    test -z "$ac_dir" && ac_dir=.
++    if test -f $ac_dir/$ac_word; then
++      ac_cv_prog_AS="${ac_tool_prefix}as"
++      break
++    fi
++  done
++  IFS="$ac_save_ifs"
++  test -z "$ac_cv_prog_AS" && ac_cv_prog_AS="as"
++fi
++fi
++AS="$ac_cv_prog_AS"
++if test -n "$AS"; then
++  echo "$ac_t""$AS" 1>&6
++else
++  echo "$ac_t""no" 1>&6
++fi
++
++
++
++# Extract the first word of "${ac_tool_prefix}ar", so it can be a program name with args.
++set dummy ${ac_tool_prefix}ar; ac_word=$2
++echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
++echo "configure:1132: checking for $ac_word" >&5
++if eval "test \"`echo '$''{'ac_cv_prog_AR'+set}'`\" = set"; then
++  echo $ac_n "(cached) $ac_c" 1>&6
++else
++  if test -n "$AR"; then
++  ac_cv_prog_AR="$AR" # Let the user override the test.
++else
++  IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS=":"
++  ac_dummy="$PATH"
++  for ac_dir in $ac_dummy; do
++    test -z "$ac_dir" && ac_dir=.
++    if test -f $ac_dir/$ac_word; then
++      ac_cv_prog_AR="${ac_tool_prefix}ar"
++      break
++    fi
++  done
++  IFS="$ac_save_ifs"
++  test -z "$ac_cv_prog_AR" && ac_cv_prog_AR="ar"
++fi
++fi
++AR="$ac_cv_prog_AR"
++if test -n "$AR"; then
++  echo "$ac_t""$AR" 1>&6
++else
++  echo "$ac_t""no" 1>&6
++fi
++
++
++
++# Extract the first word of "${ac_tool_prefix}ranlib", so it can be a program name with args.
++set dummy ${ac_tool_prefix}ranlib; ac_word=$2
++echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
++echo "configure:1164: checking for $ac_word" >&5
++if eval "test \"`echo '$''{'ac_cv_prog_RANLIB'+set}'`\" = set"; then
++  echo $ac_n "(cached) $ac_c" 1>&6
++else
++  if test -n "$RANLIB"; then
++  ac_cv_prog_RANLIB="$RANLIB" # Let the user override the test.
++else
++  IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS=":"
++  ac_dummy="$PATH"
++  for ac_dir in $ac_dummy; do
++    test -z "$ac_dir" && ac_dir=.
++    if test -f $ac_dir/$ac_word; then
++      ac_cv_prog_RANLIB="${ac_tool_prefix}ranlib"
++      break
++    fi
++  done
++  IFS="$ac_save_ifs"
++fi
++fi
++RANLIB="$ac_cv_prog_RANLIB"
++if test -n "$RANLIB"; then
++  echo "$ac_t""$RANLIB" 1>&6
++else
++  echo "$ac_t""no" 1>&6
++fi
++
++
++if test -z "$ac_cv_prog_RANLIB"; then
++if test -n "$ac_tool_prefix"; then
++  # Extract the first word of "ranlib", so it can be a program name with args.
++set dummy ranlib; ac_word=$2
++echo $ac_n "checking for $ac_word""... $ac_c" 1>&6
++echo "configure:1196: checking for $ac_word" >&5
++if eval "test \"`echo '$''{'ac_cv_prog_RANLIB'+set}'`\" = set"; then
++  echo $ac_n "(cached) $ac_c" 1>&6
++else
++  if test -n "$RANLIB"; then
++  ac_cv_prog_RANLIB="$RANLIB" # Let the user override the test.
++else
++  IFS="${IFS= 	}"; ac_save_ifs="$IFS"; IFS=":"
++  ac_dummy="$PATH"
++  for ac_dir in $ac_dummy; do
++    test -z "$ac_dir" && ac_dir=.
++    if test -f $ac_dir/$ac_word; then
++      ac_cv_prog_RANLIB="ranlib"
++      break
++    fi
++  done
++  IFS="$ac_save_ifs"
++  test -z "$ac_cv_prog_RANLIB" && ac_cv_prog_RANLIB=":"
++fi
++fi
++RANLIB="$ac_cv_prog_RANLIB"
++if test -n "$RANLIB"; then
++  echo "$ac_t""$RANLIB" 1>&6
++else
++  echo "$ac_t""no" 1>&6
++fi
++
++else
++  RANLIB=":"
++fi
++fi
++
++
++
++test -z "$INSTALL_SCRIPT" && INSTALL_SCRIPT='${INSTALL_PROGRAM}'
++
++
++#AM_MAINTAINER_MODE
++
++# We need AM_EXEEXT to keep automake happy in cygnus mode.  However,
++# at least currently, we never actually build a program, so we never
++# need to use $(EXEEXT).  Moreover, the test for EXEEXT normally
++# fails, because we are probably configuring with a cross compiler
++# which can't create executables.  So we include AM_EXEEXT to keep
++# automake happy, but we don't execute it, since we don't care about
++# the result.
++if false; then
++  
++
++echo $ac_n "checking for executable suffix""... $ac_c" 1>&6
++echo "configure:1246: checking for executable suffix" >&5
++if eval "test \"`echo '$''{'am_cv_exeext'+set}'`\" = set"; then
++  echo $ac_n "(cached) $ac_c" 1>&6
++else
++  if test "$CYGWIN32" = yes || test "$MINGW32" = yes; then
++am_cv_exeext=.exe
++else
++cat > am_c_test.c << 'EOF'
++int main() {
++/* Nothing needed here */
++}
++EOF
++${CC-cc} -o am_c_test $CFLAGS $CPPFLAGS $LDFLAGS am_c_test.c $LIBS 1>&5
++am_cv_exeext=
++for file in am_c_test.*; do
++   case $file in
++    *.c) ;;
++    *.o) ;;
++    *) am_cv_exeext=`echo $file | sed -e s/am_c_test//` ;;
++   esac
++done
++rm -f am_c_test*
++fi
++
++test x"${am_cv_exeext}" = x && am_cv_exeext=no
++fi
++EXEEXT=""
++test x"${am_cv_exeext}" != xno && EXEEXT=${am_cv_exeext}
++echo "$ac_t""${am_cv_exeext}" 1>&6
++
++fi
++
++. ${newlib_basedir}/configure.host
++
++case ${newlib_basedir} in
++/* | A-Za-z:/\\*) newlib_flagbasedir=${newlib_basedir} ;;
++*) newlib_flagbasedir='$(top_builddir)/'${newlib_basedir} ;;
++esac
++
++newlib_cflags="${newlib_cflags} -I"'$(top_builddir)'"/../../../targ-include -I${newlib_flagbasedir}/libc/include"
++case "${host}" in
++  *-*-cygwin32*)
++    newlib_cflags="${newlib_cflags} -I${newlib_flagbasedir}/../winsup/include"
++    ;;
++esac
++
++newlib_cflags="${newlib_cflags} -fno-builtin"
++
++NEWLIB_CFLAGS=${newlib_cflags}
++
++
++
++
++
++
++trap '' 1 2 15
++cat > confcache <<\EOF
++# This file is a shell script that caches the results of configure
++# tests run on this system so they can be shared between configure
++# scripts and configure runs.  It is not useful on other systems.
++# If it contains results you don't want to keep, you may remove or edit it.
++#
++# By default, configure uses ./config.cache as the cache file,
++# creating it if it does not exist already.  You can give configure
++# the --cache-file=FILE option to use a different cache file; that is
++# what configure does when it calls configure scripts in
++# subdirectories, so they share the cache.
++# Giving --cache-file=/dev/null disables caching, for debugging configure.
++# config.status only pays attention to the cache file if you give it the
++# --recheck option to rerun configure.
++#
++EOF
++# The following way of writing the cache mishandles newlines in values,
++# but we know of no workaround that is simple, portable, and efficient.
++# So, don't put newlines in cache variables' values.
++# Ultrix sh set writes to stderr and can't be redirected directly,
++# and sets the high bit in the cache file unless we assign to the vars.
++(set) 2>&1 |
++  case `(ac_space=' '; set | grep ac_space) 2>&1` in
++  *ac_space=\ *)
++    # `set' does not quote correctly, so add quotes (double-quote substitution
++    # turns \\\\ into \\, and sed turns \\ into \).
++    sed -n \
++      -e "s/'/'\\\\''/g" \
++      -e "s/^\\([a-zA-Z0-9_]*_cv_[a-zA-Z0-9_]*\\)=\\(.*\\)/\\1=\${\\1='\\2'}/p"
++    ;;
++  *)
++    # `set' quotes correctly as required by POSIX, so do not add quotes.
++    sed -n -e 's/^\([a-zA-Z0-9_]*_cv_[a-zA-Z0-9_]*\)=\(.*\)/\1=${\1=\2}/p'
++    ;;
++  esac >> confcache
++if cmp -s $cache_file confcache; then
++  :
++else
++  if test -w $cache_file; then
++    echo "updating cache $cache_file"
++    cat confcache > $cache_file
++  else
++    echo "not updating unwritable cache $cache_file"
++  fi
++fi
++rm -f confcache
++
++trap 'rm -fr conftest* confdefs* core core.* *.core $ac_clean_files; exit 1' 1 2 15
++
++test "x$prefix" = xNONE && prefix=$ac_default_prefix
++# Let make expand exec_prefix.
++test "x$exec_prefix" = xNONE && exec_prefix='${prefix}'
++
++# Any assignment to VPATH causes Sun make to only execute
++# the first set of double-colon rules, so remove it if not needed.
++# If there is a colon in the path, we need to keep it.
++if test "x$srcdir" = x.; then
++  ac_vpsub='/^[ 	]*VPATH[ 	]*=[^:]*$/d'
++fi
++
++trap 'rm -f $CONFIG_STATUS conftest*; exit 1' 1 2 15
++
++# Transform confdefs.h into DEFS.
++# Protect against shell expansion while executing Makefile rules.
++# Protect against Makefile macro expansion.
++cat > conftest.defs <<\EOF
++s%#define \([A-Za-z_][A-Za-z0-9_]*\) *\(.*\)%-D\1=\2%g
++s%[ 	`~#$^&*(){}\\|;'"<>?]%\\&%g
++s%\[%\\&%g
++s%\]%\\&%g
++s%\$%$$%g
++EOF
++DEFS=`sed -f conftest.defs confdefs.h | tr '\012' ' '`
++rm -f conftest.defs
++
++
++# Without the "./", some shells look in PATH for config.status.
++: ${CONFIG_STATUS=./config.status}
++
++echo creating $CONFIG_STATUS
++rm -f $CONFIG_STATUS
++cat > $CONFIG_STATUS <<EOF
++#! /bin/sh
++# Generated automatically by configure.
++# Run this file to recreate the current configuration.
++# This directory was configured as follows,
++# on host `(hostname || uname -n) 2>/dev/null | sed 1q`:
++#
++# $0 $ac_configure_args
++#
++# Compiler output produced by configure, useful for debugging
++# configure, is in ./config.log if it exists.
++
++ac_cs_usage="Usage: $CONFIG_STATUS [--recheck] [--version] [--help]"
++for ac_option
++do
++  case "\$ac_option" in
++  -recheck | --recheck | --rechec | --reche | --rech | --rec | --re | --r)
++    echo "running \${CONFIG_SHELL-/bin/sh} $0 $ac_configure_args --no-create --no-recursion"
++    exec \${CONFIG_SHELL-/bin/sh} $0 $ac_configure_args --no-create --no-recursion ;;
++  -version | --version | --versio | --versi | --vers | --ver | --ve | --v)
++    echo "$CONFIG_STATUS generated by autoconf version 2.13"
++    exit 0 ;;
++  -help | --help | --hel | --he | --h)
++    echo "\$ac_cs_usage"; exit 0 ;;
++  *) echo "\$ac_cs_usage"; exit 1 ;;
++  esac
++done
++
++ac_given_srcdir=$srcdir
++ac_given_INSTALL="$INSTALL"
++
++trap 'rm -fr `echo "Makefile" | sed "s/:[^ ]*//g"` conftest*; exit 1' 1 2 15
++EOF
++cat >> $CONFIG_STATUS <<EOF
++
++# Protect against being on the right side of a sed subst in config.status.
++sed 's/%@/@@/; s/@%/@@/; s/%g\$/@g/; /@g\$/s/[\\\\&%]/\\\\&/g;
++ s/@@/%@/; s/@@/@%/; s/@g\$/%g/' > conftest.subs <<\\CEOF
++$ac_vpsub
++$extrasub
++s%@SHELL@%$SHELL%g
++s%@CFLAGS@%$CFLAGS%g
++s%@CPPFLAGS@%$CPPFLAGS%g
++s%@CXXFLAGS@%$CXXFLAGS%g
++s%@FFLAGS@%$FFLAGS%g
++s%@DEFS@%$DEFS%g
++s%@LDFLAGS@%$LDFLAGS%g
++s%@LIBS@%$LIBS%g
++s%@exec_prefix@%$exec_prefix%g
++s%@prefix@%$prefix%g
++s%@program_transform_name@%$program_transform_name%g
++s%@bindir@%$bindir%g
++s%@sbindir@%$sbindir%g
++s%@libexecdir@%$libexecdir%g
++s%@datadir@%$datadir%g
++s%@sysconfdir@%$sysconfdir%g
++s%@sharedstatedir@%$sharedstatedir%g
++s%@localstatedir@%$localstatedir%g
++s%@libdir@%$libdir%g
++s%@includedir@%$includedir%g
++s%@oldincludedir@%$oldincludedir%g
++s%@infodir@%$infodir%g
++s%@mandir@%$mandir%g
++s%@newlib_basedir@%$newlib_basedir%g
++s%@host@%$host%g
++s%@host_alias@%$host_alias%g
++s%@host_cpu@%$host_cpu%g
++s%@host_vendor@%$host_vendor%g
++s%@host_os@%$host_os%g
++s%@INSTALL_PROGRAM@%$INSTALL_PROGRAM%g
++s%@INSTALL_SCRIPT@%$INSTALL_SCRIPT%g
++s%@INSTALL_DATA@%$INSTALL_DATA%g
++s%@PACKAGE@%$PACKAGE%g
++s%@VERSION@%$VERSION%g
++s%@ACLOCAL@%$ACLOCAL%g
++s%@AUTOCONF@%$AUTOCONF%g
++s%@AUTOMAKE@%$AUTOMAKE%g
++s%@AUTOHEADER@%$AUTOHEADER%g
++s%@MAKEINFO@%$MAKEINFO%g
++s%@SET_MAKE@%$SET_MAKE%g
++s%@CC@%$CC%g
++s%@build@%$build%g
++s%@build_alias@%$build_alias%g
++s%@build_cpu@%$build_cpu%g
++s%@build_vendor@%$build_vendor%g
++s%@build_os@%$build_os%g
++s%@AS@%$AS%g
++s%@AR@%$AR%g
++s%@RANLIB@%$RANLIB%g
++s%@EXEEXT@%$EXEEXT%g
++s%@NEWLIB_CFLAGS@%$NEWLIB_CFLAGS%g
++s%@machine_dir@%$machine_dir%g
++s%@sys_dir@%$sys_dir%g
++
++CEOF
++EOF
++
++cat >> $CONFIG_STATUS <<\EOF
++
++# Split the substitutions into bite-sized pieces for seds with
++# small command number limits, like on Digital OSF/1 and HP-UX.
++ac_max_sed_cmds=90 # Maximum number of lines to put in a sed script.
++ac_file=1 # Number of current file.
++ac_beg=1 # First line for current file.
++ac_end=$ac_max_sed_cmds # Line after last line for current file.
++ac_more_lines=:
++ac_sed_cmds=""
++while $ac_more_lines; do
++  if test $ac_beg -gt 1; then
++    sed "1,${ac_beg}d; ${ac_end}q" conftest.subs > conftest.s$ac_file
++  else
++    sed "${ac_end}q" conftest.subs > conftest.s$ac_file
++  fi
++  if test ! -s conftest.s$ac_file; then
++    ac_more_lines=false
++    rm -f conftest.s$ac_file
++  else
++    if test -z "$ac_sed_cmds"; then
++      ac_sed_cmds="sed -f conftest.s$ac_file"
++    else
++      ac_sed_cmds="$ac_sed_cmds | sed -f conftest.s$ac_file"
++    fi
++    ac_file=`expr $ac_file + 1`
++    ac_beg=$ac_end
++    ac_end=`expr $ac_end + $ac_max_sed_cmds`
++  fi
++done
++if test -z "$ac_sed_cmds"; then
++  ac_sed_cmds=cat
++fi
++EOF
++
++cat >> $CONFIG_STATUS <<EOF
++
++CONFIG_FILES=\${CONFIG_FILES-"Makefile"}
++EOF
++cat >> $CONFIG_STATUS <<\EOF
++for ac_file in .. $CONFIG_FILES; do if test "x$ac_file" != x..; then
++  # Support "outfile[:infile[:infile...]]", defaulting infile="outfile.in".
++  case "$ac_file" in
++  *:*) ac_file_in=`echo "$ac_file"|sed 's%[^:]*:%%'`
++       ac_file=`echo "$ac_file"|sed 's%:.*%%'` ;;
++  *) ac_file_in="${ac_file}.in" ;;
++  esac
++
++  # Adjust a relative srcdir, top_srcdir, and INSTALL for subdirectories.
++
++  # Remove last slash and all that follows it.  Not all systems have dirname.
++  ac_dir=`echo $ac_file|sed 's%/[^/][^/]*$%%'`
++  if test "$ac_dir" != "$ac_file" && test "$ac_dir" != .; then
++    # The file is in a subdirectory.
++    test ! -d "$ac_dir" && mkdir "$ac_dir"
++    ac_dir_suffix="/`echo $ac_dir|sed 's%^\./%%'`"
++    # A "../" for each directory in $ac_dir_suffix.
++    ac_dots=`echo $ac_dir_suffix|sed 's%/[^/]*%../%g'`
++  else
++    ac_dir_suffix= ac_dots=
++  fi
++
++  case "$ac_given_srcdir" in
++  .)  srcdir=.
++      if test -z "$ac_dots"; then top_srcdir=.
++      else top_srcdir=`echo $ac_dots|sed 's%/$%%'`; fi ;;
++  /*) srcdir="$ac_given_srcdir$ac_dir_suffix"; top_srcdir="$ac_given_srcdir" ;;
++  *) # Relative path.
++    srcdir="$ac_dots$ac_given_srcdir$ac_dir_suffix"
++    top_srcdir="$ac_dots$ac_given_srcdir" ;;
++  esac
++
++  case "$ac_given_INSTALL" in
++  [/$]*) INSTALL="$ac_given_INSTALL" ;;
++  *) INSTALL="$ac_dots$ac_given_INSTALL" ;;
++  esac
++
++  echo creating "$ac_file"
++  rm -f "$ac_file"
++  configure_input="Generated automatically from `echo $ac_file_in|sed 's%.*/%%'` by configure."
++  case "$ac_file" in
++  *Makefile*) ac_comsub="1i\\
++# $configure_input" ;;
++  *) ac_comsub= ;;
++  esac
++
++  ac_file_inputs=`echo $ac_file_in|sed -e "s%^%$ac_given_srcdir/%" -e "s%:% $ac_given_srcdir/%g"`
++  sed -e "$ac_comsub
++s%@configure_input@%$configure_input%g
++s%@srcdir@%$srcdir%g
++s%@top_srcdir@%$top_srcdir%g
++s%@INSTALL@%$INSTALL%g
++" $ac_file_inputs | (eval "$ac_sed_cmds") > $ac_file
++fi; done
++rm -f conftest.s*
++
++EOF
++cat >> $CONFIG_STATUS <<EOF
++
++EOF
++cat >> $CONFIG_STATUS <<\EOF
++
++exit 0
++EOF
++chmod +x $CONFIG_STATUS
++rm -fr confdefs* $ac_clean_files
++test "$no_create" = yes || ${CONFIG_SHELL-/bin/sh} $CONFIG_STATUS || exit 1
++
+diff -urN newlib-1.8.2/newlib/libc/sys/aica/configure.in newlib-1.8.2-aica/newlib/libc/sys/aica/configure.in
+--- newlib-1.8.2/newlib/libc/sys/aica/configure.in	1970-01-01 10:00:00.000000000 +1000
++++ newlib-1.8.2-aica/newlib/libc/sys/aica/configure.in	2008-08-13 11:54:44.000000000 +1000
+@@ -0,0 +1,12 @@
++dnl This is the newlib/libc/sys/sh configure.in file.
++dnl Process this file with autoconf to produce a configure script.
++
++AC_PREREQ(2.5)
++AC_INIT(sbrk.c)
++
++dnl Can't be done in NEWLIB_CONFIGURE because that confuses automake. 
++AC_CONFIG_AUX_DIR(../../../..)
++
++NEWLIB_CONFIGURE(../../..)
++
++AC_OUTPUT(Makefile)
+diff -urN newlib-1.8.2/newlib/libc/sys/aica/creat.c newlib-1.8.2-aica/newlib/libc/sys/aica/creat.c
+--- newlib-1.8.2/newlib/libc/sys/aica/creat.c	1970-01-01 10:00:00.000000000 +1000
++++ newlib-1.8.2-aica/newlib/libc/sys/aica/creat.c	2008-08-13 11:54:44.000000000 +1000
+@@ -0,0 +1,22 @@
++#include <sys/types.h>
++#include <sys/fcntl.h>
++
++#include "vfs.h"
++
++int
++creat (const char *path, mode_t mode)
++{
++  char *obj = _newlib_vfs_new_string (path);
++  
++  struct media_ops *mops = _newlib_vfs_get_media_ops (path);
++  struct file *pf = mops->creat (obj, mode);
++
++  _newlib_vfs_delete_string (obj);
++  
++  if (pf != NULL)
++  {
++    return _newlib_vfs_insert_file (pf);
++  }
++
++  return -1;
++}
+diff -urN newlib-1.8.2/newlib/libc/sys/aica/crt0.S newlib-1.8.2-aica/newlib/libc/sys/aica/crt0.S
+--- newlib-1.8.2/newlib/libc/sys/aica/crt0.S	1970-01-01 10:00:00.000000000 +1000
++++ newlib-1.8.2-aica/newlib/libc/sys/aica/crt0.S	2008-08-13 13:08:13.000000000 +1000
+@@ -0,0 +1,165 @@
++.section .text
++.code 32
++.align 	0
++.global	start
++.global ___exit
++.global _atexit
++start:
++
++/* Start by setting up a stack */
++	/*  Set up the stack pointer to a fixed value */
++	ldr	r3, .LC0
++	mov 	sp, r3
++	/* Setup a default stack-limit in-case the code has been
++	   compiled with "-mapcs-stack-check".  Hard-wiring this value
++	   is not ideal, since there is currently no support for
++	   checking that the heap and stack have not collided, or that
++	   this default 64k is enough for the program being executed.
++	   However, it ensures that this simple crt0 world will not
++	   immediately cause an overflow event:  */
++	sub	sl, sp, #64 << 10	/* Still assumes 256bytes below sl */
++
++	mov 	a2, #0			/* Second arg: fill value */
++	mov	fp, a2			/* Null frame pointer */
++	mov	r7, a2			/* Null frame pointer for Thumb */
++	
++	ldr	a1, .LC1		/* First arg: start of memory block */
++	ldr	a3, .LC2	
++	sub	a3, a3, a1		/* Third arg: length of block */
++	
++
++#ifdef __thumb__		/* Enter Thumb mode.... */
++
++	add	a4, pc, #1	/* Get the address of the Thumb block */
++	bx	a4		/* Go there and start Thumb decoding  */
++
++	.code 16
++	.global __change_mode
++	.thumb_func
++__change_mode:	
++#endif
++	
++	bl	memset
++	mov	r0, #0		/*  no arguments  */
++	mov	r1, #0		/*  no argv either */
++
++	/*  Parse string at r1 */
++	mov	r0, #0		/*  count of arguments so far */
++.LC10:
++/*  Skip leading blanks */
++#ifdef __thumb__
++	ldrb	r3, [r1]
++	add	r1, #1
++#else
++	ldrb	r3, [r1], #1
++#endif
++	cmp	r3, #0
++	beq	.LC12
++	cmp	r3, #' '
++	beq	.LC10
++
++/*  See whether we are scanning a string */
++	cmp	r3, #'"'
++#ifdef __thumb__
++	beq	.LC20
++	cmp	r3, #'\''
++	bne	.LC21
++.LC20:
++	mov	r2, r3
++	b	.LC22
++
++.LC21:
++	mov	r2, #' '	/*  terminator type */
++	sub	r1, r1, #1	/*  adjust back to point at start char */
++.LC22:
++#else
++	cmpne	r3, #'\''
++	moveq	r2, r3
++	movne	r2, #' '	/*  terminator type */
++	subne	r1, r1, #1	/*  adjust back to point at start char */
++#endif
++
++/*  Stack a pointer to the current argument */
++#ifdef __thumb__
++	push	{r1}
++#else
++	stmfd	sp!, {r1}
++#endif
++	add	r0, r0, #1
++.LC11:
++#ifdef __thumb__
++	ldrb	r3, [r1]
++	add	r1, #1
++#else
++	ldrb	r3, [r1], #1
++#endif
++	cmp	r3, #0
++	beq	.LC12
++	cmp	r2, r3		/*  reached terminator? */
++	bne	.LC11
++	mov	r2, #0
++	sub	r3, r1, #1
++	strb	r2, [r3]	/*  terminate the arg string */
++	b	.LC10
++
++.LC12:
++	mov	r1, sp		/*  point at stacked arg pointers */
++	/* We've now got the stacked args in order reverse the */
++#ifdef __thumb__
++	mov	r2, r0
++	lsl	r2, #2
++	add	r2, sp
++	mov	r3, sp
++.LC15:	cmp	r2, r3
++	bls	.LC14
++	sub	r2, #4
++	ldr	r4, [r2]
++	ldr	r5, [r3]
++	str	r5, [r2]
++	str	r4, [r3]
++	add	r3, #4
++	b	.LC15
++.LC14:	
++#else
++	add	r2, sp, r0, LSL #2	/* End of args */
++	mov	r3, sp			/* Start of args */
++.LC13:	cmp	r2, r3
++	ldrhi	r4,[r2, #-4]		/* Reverse ends of list */
++	ldrhi	r5, [r3]
++	strhi	r5, [r2, #-4]!
++	strhi	r4, [r3], #4
++	bhi	.LC13
++#endif
++
++	bl	main
++
++	bl	exit		/* Should not return */
++
++#ifdef __thumb__
++	/* Come out of Thumb mode... This code should be redundant...   */
++
++	mov	a4, pc
++	bx	a4
++
++	.code 32
++	.global change_back
++change_back:
++	/* Halt the execution.  This code should never be executed.  */
++	/*
++	** With no debug monitor, this probably aborts (eventually).
++	** With a Demon debug monitor, this halts cleanly.
++	** With an Angel debug monitor, this will report 'Unknown SWI'.
++	*/
++	swi	0
++#endif
++	
++	/* For Thumb, constants must be after the code since only 
++	positive offsets are supported for PC relative addresses. */
++	
++	.align 0
++.LC0:
++.LC1:
++	.word	__bss_start__
++.LC2:
++	.word	__bss_end__
++
+diff -urN newlib-1.8.2/newlib/libc/sys/aica/dcload.S newlib-1.8.2-aica/newlib/libc/sys/aica/dcload.S
+--- newlib-1.8.2/newlib/libc/sys/aica/dcload.S	1970-01-01 10:00:00.000000000 +1000
++++ newlib-1.8.2-aica/newlib/libc/sys/aica/dcload.S	2008-08-13 13:57:28.000000000 +1000
+@@ -0,0 +1,21 @@
++.text
++.align	2
++.global	dcloadsyscall
++.type	dcloadsyscall, %function
++dcloadsyscall:
++	@ args = 0, pretend = 0, frame = 0
++	@ frame_needed = 0, uses_anonymous_args = 0
++	@ link register save eliminated.
++	mov	ip, #48
++	str	r1, [ip, #4]
++	str	r2, [ip, #8]
++	str	r3, [ip, #12]
++	str	r0, [ip, #0]
++	@ lr needed for prologue
++.L2:
++	ldr	r3, [ip, #0]
++	cmn	r3, #1
++	bne	.L2
++	ldr	r0, [ip, #4]
++	mov	pc, lr
++	.size	dcloadsyscall, .-dcloadsyscall
+diff -urN newlib-1.8.2/newlib/libc/sys/aica/dcload.c newlib-1.8.2-aica/newlib/libc/sys/aica/dcload.c
+--- newlib-1.8.2/newlib/libc/sys/aica/dcload.c	1970-01-01 10:00:00.000000000 +1000
++++ newlib-1.8.2-aica/newlib/libc/sys/aica/dcload.c	2008-08-13 12:10:51.000000000 +1000
+@@ -0,0 +1,17 @@
++#define SYSCALL_BASE 0x00000030
++
++struct syscall_struct {
++   unsigned int syscall;
++   unsigned int arg1, arg2, arg3;
++};
++
++unsigned int dcloadsyscall(unsigned int syscall, unsigned int arg1, unsigned int arg2, unsigned int arg3)
++{
++    volatile struct syscall_struct *p = (struct syscall_struct *)(SYSCALL_BASE);
++    p->arg1 = arg1;
++    p->arg2 = arg2;
++    p->arg3 = arg3;
++    p->syscall = syscall;
++    while( p->syscall != 0xFFFFFFFF );
++    return p->arg1;
++}
+diff -urN newlib-1.8.2/newlib/libc/sys/aica/dcload_vfs.c newlib-1.8.2-aica/newlib/libc/sys/aica/dcload_vfs.c
+--- newlib-1.8.2/newlib/libc/sys/aica/dcload_vfs.c	1970-01-01 10:00:00.000000000 +1000
++++ newlib-1.8.2-aica/newlib/libc/sys/aica/dcload_vfs.c	2008-08-13 18:19:05.000000000 +1000
+@@ -0,0 +1,225 @@
++/* Support routines for host access via Andrew K's dcload.  dcload offers
++ full host file-system access along with a few POSIX-like functions. */
++
++/* FIXME: If the host is returning negative values (error codes), then
++ we need to assign the proper value to errno and return -1 as per newlib's
++ conventions. */
++
++/* FIXME: Split some of this off into a separate file, dcload.c.  This will
++ contain public functions that coincide with the prototypes in
++ include/dcload.h */
++
++#include <sys/types.h>
++#include <sys/stat.h>
++#include <errno.h>
++#include <stdlib.h>
++
++#include "vfs.h"
++
++static struct media_ops dcload_host_media_ops;
++static struct file_ops dcload_host_file_ops;
++
++/* True if we have console/file-system access on the host */
++static int host_enabled = 1;
++
++/* Determine whether we're loaded under dcload and if so, whether or not
++ the console/file-server is enabled.  If the console/file-server isn't
++ enabled, then we won't have anything meaningful to do in the host access
++ routines, so they'll be replaced with invalid media/file ops in our init
++ routine. */
++
++int _newlib_vfs_is_dcload (void)
++{
++    return 1;
++}
++
++void _newlib_vfs_dcload_init (void)
++{
++  _newlib_vfs_initialized = VFS_LOADER_DCLOAD_NOHOST;
++
++  if (host_enabled)
++  {
++    /* FIXME: Rework this... */
++    struct file * stdin_file  = _newlib_vfs_first_file;
++    struct file * stdout_file = stdin_file->next;
++    struct file * stderr_file = stdout_file->next;
++
++    _newlib_vfs_initialized = VFS_LOADER_DCLOAD_HOST;
++	  _newlib_vfs_host_media_ops = &dcload_host_media_ops;
++
++    /* Reroute stdin, stdout, and stderr through dcload's host console. */
++    stdin_file->fops  = &dcload_host_file_ops;
++    stdout_file->fops = &dcload_host_file_ops;
++    stderr_file->fops = &dcload_host_file_ops;
++  }
++
++  /* All media ops are initially set to invalid so our work is done. */
++}
++
++extern int dcloadsyscall (int func, ...);
++
++/* dcload host media operations */
++
++/* Perform the open/creat syscall and allocate space for a new file if
++ we get a valid fd.  Otherwise return the errno and NULL on errror. */
++static struct file *do_open_media_op (int func, const char *obj, int arg, ...)
++{
++  struct file *pf;
++  int res = dcloadsyscall (func, obj, arg);
++  if (res >= 0)
++  {
++    pf = (struct file *) malloc (sizeof (struct file));
++
++    if (pf)
++    {
++      /* The library fd is set in _newlib_vfs_insert_file */
++      pf->next = NULL;
++			pf->fd = 0;
++      pf->media_fd = res;
++      pf->fops = &dcload_host_file_ops;
++      pf->specifics = NULL;
++      return pf;
++    }
++  }
++
++  return NULL;
++}
++
++#define OPEN_NR 2
++static struct file *dcload_open_media_op (const char *obj, int flags,
++                                          mode_t mode)
++{
++  return do_open_media_op (OPEN_NR, obj, flags, mode);
++}
++
++#define CREAT_NR 4
++static struct file *dcload_creat_media_op (const char *obj, mode_t mode)
++{
++  return do_open_media_op (CREAT_NR, obj, mode);
++}
++
++#define LINK_NR 5
++static int dcload_link_media_op (const char *old_obj, const char *new_obj)
++{
++  return dcloadsyscall (LINK_NR, old_obj, new_obj);
++}
++
++#define UNLINK_NR 6
++static int dcload_unlink_media_op (const char *obj)
++{
++  return dcloadsyscall (UNLINK_NR, obj);
++}
++
++#define STAT_NR 12
++static int dcload_stat_media_op (const char *obj, struct stat *pstat)
++{
++  return dcloadsyscall (STAT_NR, obj, pstat);
++}
++
++#define CHMOD_NR 8
++static int dcload_chmod_media_op (const char *obj, mode_t mode)
++{
++  return dcloadsyscall (CHMOD_NR, obj, mode);
++}
++
++#define CHDIR_NR 7
++static int dcload_chdir_media_op (const char *obj)
++{
++  return dcloadsyscall (CHDIR_NR, obj);
++}
++
++/* dcload host file operations */
++
++static size_t do_rw_file_op (int func, struct file *pf, void *buf, size_t cnt)
++{
++  return dcloadsyscall (func, pf->media_fd, buf, cnt);
++}
++
++#define READ_NR 0
++static size_t dcload_read_file_op (struct file *pf, void *buf, size_t cnt)
++{
++  return do_rw_file_op (READ_NR, pf, buf, cnt);
++}
++
++#define WRITE_NR 1
++static size_t dcload_write_file_op (struct file *pf, void *buf, size_t cnt)
++{
++  return do_rw_file_op (WRITE_NR, pf, buf, cnt);
++}
++
++#define LSEEK_NR 9
++static off_t dcload_lseek_file_op (struct file *pf, off_t pos, int whence)
++{
++  return dcloadsyscall (LSEEK_NR, pf->media_fd, pos, whence);
++}
++
++#define CLOSE_NR 3
++static int dcload_close_file_op (struct file *pf)
++{
++  return dcloadsyscall (CLOSE_NR, pf->media_fd);
++}
++
++#define FSTAT_NR 10
++static int dcload_fstat_file_op (struct file *pf, struct stat *pstat)
++{
++  return dcloadsyscall (FSTAT_NR, pf->media_fd, pstat);
++}
++
++#define EXIT_NR 15
++void _newlib_vfs_dcload_exit (int n)
++{
++  dcloadsyscall (EXIT_NR, n);
++}
++
++#define ASSIGN_WRKMEM_NR 14
++void dcload_assign_wrkmem (void *buf)
++{
++  dcloadsyscall (ASSIGN_WRKMEM_NR, buf);
++}
++
++/* media_ops for host file-system access */
++
++int dcload_mkdir_media_op( const char *c, mode_t mode )
++{
++  errno = ENOSYS;
++  return -1;
++}
++
++int dcload_rmdir_media_op( const char *c )
++{
++  errno = ENOSYS;
++  return -1;
++}
++
++int dcload_ioctl_file_op( )
++{
++  errno = ENOSYS;
++  return -1;
++}
++
++static struct media_ops dcload_host_media_ops =
++{
++  open:                dcload_open_media_op,
++  creat:               dcload_creat_media_op,
++  link:                dcload_link_media_op,
++  unlink:              dcload_unlink_media_op,
++  stat:                dcload_stat_media_op,
++  chmod:               dcload_chmod_media_op,
++  mkdir:               dcload_mkdir_media_op,
++  rmdir:               dcload_rmdir_media_op,
++  chdir:               dcload_chdir_media_op
++};
++
++/* file_ops for a host file */
++
++static struct file_ops dcload_host_file_ops =
++{
++  lseek:               dcload_lseek_file_op,
++  close:               dcload_close_file_op,
++  read:                dcload_read_file_op,
++  write:               dcload_write_file_op,
++  ioctl:               dcload_ioctl_file_op,
++  fstat:               dcload_fstat_file_op
++};
++
++
+diff -urN newlib-1.8.2/newlib/libc/sys/aica/dup.c newlib-1.8.2-aica/newlib/libc/sys/aica/dup.c
+--- newlib-1.8.2/newlib/libc/sys/aica/dup.c	1970-01-01 10:00:00.000000000 +1000
++++ newlib-1.8.2-aica/newlib/libc/sys/aica/dup.c	2008-08-13 11:54:44.000000000 +1000
+@@ -0,0 +1,2 @@
++/* This hack is required for libstdc++ to work properly */
++int dup(int fd) { return fd; }
+diff -urN newlib-1.8.2/newlib/libc/sys/aica/exit.c newlib-1.8.2-aica/newlib/libc/sys/aica/exit.c
+--- newlib-1.8.2/newlib/libc/sys/aica/exit.c	1970-01-01 10:00:00.000000000 +1000
++++ newlib-1.8.2-aica/newlib/libc/sys/aica/exit.c	2008-08-13 11:54:44.000000000 +1000
+@@ -0,0 +1,18 @@
++/* TODO: Do different things depending on the loader present, e.g. dcload
++ has an exit() call, gdbstubs can tell gdb "W00", etc. */
++
++#include "vfs.h"
++
++void _exit(int n);
++
++void exit (int n) { _exit (n); }
++
++extern void _newlib_vfs_dcload_exit (int);
++
++void
++_exit (int n)
++{
++  if( _newlib_vfs_is_dcload() ) {
++    _newlib_vfs_dcload_exit (n);
++  }
++}
+diff -urN newlib-1.8.2/newlib/libc/sys/aica/fcntl.c newlib-1.8.2-aica/newlib/libc/sys/aica/fcntl.c
+--- newlib-1.8.2/newlib/libc/sys/aica/fcntl.c	1970-01-01 10:00:00.000000000 +1000
++++ newlib-1.8.2-aica/newlib/libc/sys/aica/fcntl.c	2008-08-13 11:54:44.000000000 +1000
+@@ -0,0 +1,21 @@
++#include <sys/fcntl.h>
++
++/* Minimal fcntl support is necessary for C++ console streams cin, cout, and
++   cerr. */
++int
++_fcntl (int fd, int flag, ...)
++{
++  switch (flag) {
++     case F_GETFL:
++        switch (fd) {
++           case 0: return O_RDONLY;
++           case 1: return O_WRONLY;
++           case 2: return O_WRONLY;
++           default: return -1;
++        }
++     default:
++        return -1;
++  }
++
++  return -1;
++}
+diff -urN newlib-1.8.2/newlib/libc/sys/aica/fstat.c newlib-1.8.2-aica/newlib/libc/sys/aica/fstat.c
+--- newlib-1.8.2/newlib/libc/sys/aica/fstat.c	1970-01-01 10:00:00.000000000 +1000
++++ newlib-1.8.2-aica/newlib/libc/sys/aica/fstat.c	2008-08-13 11:54:44.000000000 +1000
+@@ -0,0 +1,12 @@
++#include <sys/types.h>
++#include <sys/stat.h>
++
++#include "vfs.h"
++
++int
++_fstat (int fd, struct stat *pstat)
++{
++  struct file *pf = _newlib_vfs_get_file (fd);
++
++  return pf->fops->fstat (pf, pstat);
++}
+diff -urN newlib-1.8.2/newlib/libc/sys/aica/getpid.c newlib-1.8.2-aica/newlib/libc/sys/aica/getpid.c
+--- newlib-1.8.2/newlib/libc/sys/aica/getpid.c	1970-01-01 10:00:00.000000000 +1000
++++ newlib-1.8.2-aica/newlib/libc/sys/aica/getpid.c	2008-08-13 11:54:44.000000000 +1000
+@@ -0,0 +1,5 @@
++int
++_getpid ()
++{
++  return 1;
++}
+diff -urN newlib-1.8.2/newlib/libc/sys/aica/gettimeofday.c newlib-1.8.2-aica/newlib/libc/sys/aica/gettimeofday.c
+--- newlib-1.8.2/newlib/libc/sys/aica/gettimeofday.c	1970-01-01 10:00:00.000000000 +1000
++++ newlib-1.8.2-aica/newlib/libc/sys/aica/gettimeofday.c	2008-08-13 11:54:44.000000000 +1000
+@@ -0,0 +1,30 @@
++#include <time.h>
++#include <sys/time.h>
++
++/* Returns the number of seconds elapsed from the Unix epoch, January 1st,
++ 1970.  Note that the Dreamcast counts time from January 1st, 1950, so we
++ need to subtract 20 years (and 5 leap days) from the Dreamcast RTC to
++ get valid values for libc's time functions. */
++
++#define TWENTY_YEARS ((20 * 365LU + 5) * 86400)
++
++int
++_gettimeofday (struct timeval *tp, struct timezone *tzp)
++{
++  if (tp)
++  {
++    unsigned long rtc_h = *(volatile unsigned long*)0x00810000;
++    unsigned long rtc_l = *(volatile unsigned long*)0x00810004;
++    unsigned long secs = ((rtc_h & 0xffff) << 16) | (rtc_l & 0xffff);
++
++    tp->tv_sec = secs - TWENTY_YEARS;
++    tp->tv_usec = 0;
++  }
++  if (tzp)
++  {
++    tzp->tz_minuteswest = 0;
++    tzp->tz_dsttime = 0;
++  }
++
++  return 0;
++}
+diff -urN newlib-1.8.2/newlib/libc/sys/aica/ioctl.c newlib-1.8.2-aica/newlib/libc/sys/aica/ioctl.c
+--- newlib-1.8.2/newlib/libc/sys/aica/ioctl.c	1970-01-01 10:00:00.000000000 +1000
++++ newlib-1.8.2-aica/newlib/libc/sys/aica/ioctl.c	2008-08-13 11:54:44.000000000 +1000
+@@ -0,0 +1,9 @@
++#include "vfs.h"
++
++int
++ioctl (int fd, int func, long arg)
++{
++  struct file *pf = _newlib_vfs_get_file (fd);
++
++  return pf->fops->ioctl (pf, func, arg);
++}
+diff -urN newlib-1.8.2/newlib/libc/sys/aica/isatty.c newlib-1.8.2-aica/newlib/libc/sys/aica/isatty.c
+--- newlib-1.8.2/newlib/libc/sys/aica/isatty.c	1970-01-01 10:00:00.000000000 +1000
++++ newlib-1.8.2-aica/newlib/libc/sys/aica/isatty.c	2008-08-13 11:54:44.000000000 +1000
+@@ -0,0 +1,10 @@
++/* Since file descriptors 0, 1, and 2 are always mapped to stdin, stdout,
++ and stderr, we assume these are the only fds that permit interactive I/O. */
++
++int
++isatty (int fd)
++{
++  if (fd >= 0 && fd < 3)
++    return 1;
++  return 0;
++}
+diff -urN newlib-1.8.2/newlib/libc/sys/aica/kill.c newlib-1.8.2-aica/newlib/libc/sys/aica/kill.c
+--- newlib-1.8.2/newlib/libc/sys/aica/kill.c	1970-01-01 10:00:00.000000000 +1000
++++ newlib-1.8.2-aica/newlib/libc/sys/aica/kill.c	2008-08-13 11:54:44.000000000 +1000
+@@ -0,0 +1,8 @@
++#include <stdlib.h>
++
++int
++_kill ()
++{
++  abort ();
++  return 0;
++}
+diff -urN newlib-1.8.2/newlib/libc/sys/aica/link.c newlib-1.8.2-aica/newlib/libc/sys/aica/link.c
+--- newlib-1.8.2/newlib/libc/sys/aica/link.c	1970-01-01 10:00:00.000000000 +1000
++++ newlib-1.8.2-aica/newlib/libc/sys/aica/link.c	2008-08-13 11:54:44.000000000 +1000
+@@ -0,0 +1,16 @@
++#include "vfs.h"
++
++int
++_link (const char *old_path, const char *new_path)
++{
++  char *old_obj = _newlib_vfs_new_string (old_path);
++  char *new_obj = _newlib_vfs_new_string (new_path);
++  
++  struct media_ops *mops = _newlib_vfs_get_media_ops (old_path);
++  int res = mops->link (old_obj, new_obj);
++
++  _newlib_vfs_delete_string (old_obj);
++  _newlib_vfs_delete_string (new_obj);
++
++  return res;
++}
+diff -urN newlib-1.8.2/newlib/libc/sys/aica/lseek.c newlib-1.8.2-aica/newlib/libc/sys/aica/lseek.c
+--- newlib-1.8.2/newlib/libc/sys/aica/lseek.c	1970-01-01 10:00:00.000000000 +1000
++++ newlib-1.8.2-aica/newlib/libc/sys/aica/lseek.c	2008-08-13 11:54:44.000000000 +1000
+@@ -0,0 +1,11 @@
++#include <sys/types.h>
++
++#include "vfs.h"
++
++off_t
++_lseek (int fd, off_t pos, int whence)
++{
++  struct file *pf = _newlib_vfs_get_file (fd);
++
++  return pf->fops->lseek (pf, pos, whence);
++}
+diff -urN newlib-1.8.2/newlib/libc/sys/aica/mkdir.c newlib-1.8.2-aica/newlib/libc/sys/aica/mkdir.c
+--- newlib-1.8.2/newlib/libc/sys/aica/mkdir.c	1970-01-01 10:00:00.000000000 +1000
++++ newlib-1.8.2-aica/newlib/libc/sys/aica/mkdir.c	2008-08-13 11:54:44.000000000 +1000
+@@ -0,0 +1,16 @@
++#include <sys/types.h>
++
++#include "vfs.h"
++
++int
++mkdir (const char *path, mode_t mode)
++{
++  char *obj = _newlib_vfs_new_string (path);
++
++  struct media_ops *mops = _newlib_vfs_get_media_ops (path);
++  int res = mops->mkdir (obj, mode);
++
++  _newlib_vfs_delete_string (obj);
++
++  return res;
++}
+diff -urN newlib-1.8.2/newlib/libc/sys/aica/open.c newlib-1.8.2-aica/newlib/libc/sys/aica/open.c
+--- newlib-1.8.2/newlib/libc/sys/aica/open.c	1970-01-01 10:00:00.000000000 +1000
++++ newlib-1.8.2-aica/newlib/libc/sys/aica/open.c	2008-08-13 11:54:44.000000000 +1000
+@@ -0,0 +1,23 @@
++#include <sys/types.h>
++
++#include <stdio.h>
++
++#include "vfs.h"
++
++int
++_open (const char *path, int flags, mode_t mode)
++{
++  char *obj = _newlib_vfs_new_string (path);
++
++  struct media_ops *mops = _newlib_vfs_get_media_ops (path);
++  struct file *pf = mops->open (obj, flags, mode);
++
++  _newlib_vfs_delete_string (obj);
++
++  if (pf != NULL)
++  {
++    return _newlib_vfs_insert_file (pf);
++  }
++
++  return -1;
++}
+diff -urN newlib-1.8.2/newlib/libc/sys/aica/read.c newlib-1.8.2-aica/newlib/libc/sys/aica/read.c
+--- newlib-1.8.2/newlib/libc/sys/aica/read.c	1970-01-01 10:00:00.000000000 +1000
++++ newlib-1.8.2-aica/newlib/libc/sys/aica/read.c	2008-08-13 11:54:44.000000000 +1000
+@@ -0,0 +1,11 @@
++#include <sys/types.h>
++
++#include "vfs.h"
++
++size_t
++_read (int fd, void *buf, size_t cnt)
++{
++  struct file *pf = _newlib_vfs_get_file (fd);
++
++  return pf->fops->read (pf, buf, cnt);
++}
+diff -urN newlib-1.8.2/newlib/libc/sys/aica/rmdir.c newlib-1.8.2-aica/newlib/libc/sys/aica/rmdir.c
+--- newlib-1.8.2/newlib/libc/sys/aica/rmdir.c	1970-01-01 10:00:00.000000000 +1000
++++ newlib-1.8.2-aica/newlib/libc/sys/aica/rmdir.c	2008-08-13 11:54:44.000000000 +1000
+@@ -0,0 +1,14 @@
++#include "vfs.h"
++
++int
++rmdir (const char *path)
++{
++  char *obj = _newlib_vfs_new_string (path);
++
++  struct media_ops *mops = _newlib_vfs_get_media_ops (path);
++  int res = mops->rmdir (obj);
++
++  _newlib_vfs_delete_string (obj);
++
++  return res;
++}
+diff -urN newlib-1.8.2/newlib/libc/sys/aica/sbrk.c newlib-1.8.2-aica/newlib/libc/sys/aica/sbrk.c
+--- newlib-1.8.2/newlib/libc/sys/aica/sbrk.c	1970-01-01 10:00:00.000000000 +1000
++++ newlib-1.8.2-aica/newlib/libc/sys/aica/sbrk.c	2008-08-13 11:54:44.000000000 +1000
+@@ -0,0 +1,27 @@
++#include <_ansi.h>
++#include <errno.h>
++#include <sys/types.h>
++
++extern char end;		/* The end of the program (BSS section). */
++
++register char *stack_ptr asm ("r15");
++
++caddr_t
++_sbrk (int incr)
++{
++  static char *heap_end;
++  char *prev_heap_end;
++
++  if (!heap_end)
++    heap_end = &end;
++
++  prev_heap_end = heap_end;
++  if (heap_end + incr > stack_ptr)
++  {
++    errno = ENOMEM;
++	return (caddr_t)-1;
++  }
++
++  heap_end += incr;
++  return (caddr_t) prev_heap_end;
++}
+diff -urN newlib-1.8.2/newlib/libc/sys/aica/scif.c newlib-1.8.2-aica/newlib/libc/sys/aica/scif.c
+--- newlib-1.8.2/newlib/libc/sys/aica/scif.c	1970-01-01 10:00:00.000000000 +1000
++++ newlib-1.8.2-aica/newlib/libc/sys/aica/scif.c	2008-08-13 11:54:44.000000000 +1000
+@@ -0,0 +1,46 @@
++/* Blatantly stolen from libdream, others...
++ * Please fix this :) */
++#include <sys/types.h>
++
++/*#include "scif.h"*/
++
++#define ACK  (volatile unsigned short *)0xffe80010
++#define WR_FIFO (volatile unsigned char *)0xffe8000c
++#define RD_FIFO (volatile unsigned char *)0xffe80014
++#define STATUS  (volatile unsigned short *)0xffe8001c
++
++static void scif_flush ()
++{
++  *ACK &= 0xbf;
++
++  while (!(*ACK & 0x40)) ;
++
++  *ACK &= 0xbf;
++}
++
++size_t _newlib_vfs_scif_write (void *buf, size_t cnt)
++{
++  while (cnt-- > 0)
++  {
++    while (!(*ACK & 0x20)) ;
++
++    *WR_FIFO = *(unsigned char *)buf++;
++
++    *ACK &= 0x9f;
++  }
++  scif_flush ();
++  return cnt;
++}
++
++size_t _newlib_vfs_scif_read (void *buf, size_t cnt)
++{
++  while (cnt -- > 0)
++  {
++    while (*STATUS & 0x1f) ;
++
++    *(unsigned char *)buf++ = *RD_FIFO;
++
++    *ACK &= 0x6d;
++  }
++  return cnt;
++}
+diff -urN newlib-1.8.2/newlib/libc/sys/aica/stat.c newlib-1.8.2-aica/newlib/libc/sys/aica/stat.c
+--- newlib-1.8.2/newlib/libc/sys/aica/stat.c	1970-01-01 10:00:00.000000000 +1000
++++ newlib-1.8.2-aica/newlib/libc/sys/aica/stat.c	2008-08-13 11:54:44.000000000 +1000
+@@ -0,0 +1,26 @@
++#include <sys/types.h>
++#include <sys/stat.h>
++
++#include "vfs.h"
++
++/* Clunky, but remember we're "namespace clean" and library routines also
++ use _stat as a syscall... */
++
++int
++stat (const char *path, struct stat *pstat)
++{
++  return _stat (path, pstat);
++}
++
++int
++_stat (const char *path, struct stat *pstat)
++{
++  char *obj = _newlib_vfs_new_string (path);
++  
++  struct media_ops *mops = _newlib_vfs_get_media_ops (path);
++  int res = mops->stat (obj, pstat);
++
++  _newlib_vfs_delete_string (obj);
++
++  return res;
++}
+diff -urN newlib-1.8.2/newlib/libc/sys/aica/stdio_vfs.c newlib-1.8.2-aica/newlib/libc/sys/aica/stdio_vfs.c
+--- newlib-1.8.2/newlib/libc/sys/aica/stdio_vfs.c	1970-01-01 10:00:00.000000000 +1000
++++ newlib-1.8.2-aica/newlib/libc/sys/aica/stdio_vfs.c	2008-08-13 18:19:58.000000000 +1000
+@@ -0,0 +1,96 @@
++/* Support for Marcus Comstedt's serial slave and gdbstubs, e.g. generic
++ serial console I/O. */
++
++#include "vfs.h"
++
++/* Only read and write are supported for stdio_file_ops, so these are
++ used for stdin, stdout, and stderr which are already "open" when the
++ program is started. */
++
++static size_t stdio_read_file_op (struct file *, void *, size_t);
++static size_t stdio_write_file_op (struct file *, void *, size_t);
++
++static struct file_ops stdio_file_ops =
++{
++  lseek:       _newlib_vfs_invalid_file_op,
++  close:       _newlib_vfs_invalid_file_op,
++  read:        stdio_read_file_op,
++  write:       stdio_write_file_op,
++  ioctl:       _newlib_vfs_invalid_file_op,
++  fstat:       _newlib_vfs_invalid_file_op
++};
++
++/* dcload or absolute may override these to go through their own console
++ output routines. */
++
++static struct file stdout_file;
++static struct file stderr_file;
++
++static struct file stdin_file =
++{
++  &stdout_file,
++  0, 0,
++  &stdio_file_ops,
++  NULL,
++};
++
++static struct file stdout_file =
++{
++  &stderr_file,
++  1, 1,
++  &stdio_file_ops,
++  NULL,
++};
++
++static struct file stderr_file =
++{
++  NULL,
++  2, 2,
++  &stdio_file_ops,
++  NULL,
++};
++
++struct file * _newlib_vfs_first_file = &stdin_file;
++struct file * _newlib_vfs_last_file  = &stderr_file;
++
++int _newlib_vfs_is_sslave (void)
++{
++    return 0;
++}
++
++void _newlib_vfs_sslave_init (void)
++{
++  /* Initialize serial console to a known state.  We already assume that
++   we connected to the host, we just make sure the SCIF is setup the way
++   we need it. */
++  _newlib_vfs_initialized = VFS_LOADER_SERIAL_SLAVE;
++}
++
++
++/* Detect gdbstubs.  gdbstubs sets the border color to green to indicate that
++ it's active.  While this can't reliably be used to detect it, we also look
++ for gdbstubs start code at two separate addresses (gdbstub can load itself
++ at either address). */
++
++int _newlib_vfs_is_gdbstubs (void)
++{
++  return 0;
++}
++
++void _newlib_vfs_gdbstubs_init (void)
++{
++  _newlib_vfs_initialized = VFS_LOADER_GDBSTUBS;
++}
++
++extern size_t _newlib_vfs_scif_write (void *, size_t);
++extern size_t _newlib_vfs_scif_read (void *, size_t);
++
++static size_t stdio_read_file_op (struct file *pf, void *buf, size_t cnt)
++{
++  return _newlib_vfs_scif_read (buf, cnt);
++}
++
++static size_t stdio_write_file_op (struct file *pf, void *buf, size_t cnt)
++{
++  return _newlib_vfs_scif_write (buf, cnt);
++}
+diff -urN newlib-1.8.2/newlib/libc/sys/aica/times.c newlib-1.8.2-aica/newlib/libc/sys/aica/times.c
+--- newlib-1.8.2/newlib/libc/sys/aica/times.c	1970-01-01 10:00:00.000000000 +1000
++++ newlib-1.8.2-aica/newlib/libc/sys/aica/times.c	2008-08-13 11:54:44.000000000 +1000
+@@ -0,0 +1,35 @@
++#include <time.h>
++#include <sys/times.h>
++
++/* crt.S stores program startup time (Dreamcast-relative, epoch at 1/1/1950)
++ in the global variable _newlib_dreamcast_utime.  We can use this variable to
++ determine the total amount of time that the program has been running. */
++
++/* This is raw seconds of program usage, we don't need to worry about
++ converting epochs or anything like that... */
++
++extern unsigned long _newlib_dreamcast_utime;
++
++clock_t
++_times (struct tms *buf)
++{
++  if (_newlib_dreamcast_utime)
++  {
++    unsigned long rtc_h = *(volatile unsigned long*)0x00810000;
++    unsigned long rtc_l = *(volatile unsigned long*)0x00810004;
++    unsigned long secs = ((rtc_h & 0xffff) << 16) | (rtc_l & 0xffff);
++
++    clock_t utime = secs - _newlib_dreamcast_utime;
++
++    if (buf) {
++      buf->tms_utime = utime;
++      buf->tms_stime = 0;
++      buf->tms_cutime = 0;
++      buf->tms_cstime = 0;
++     }
++
++     return utime;
++  }
++
++  return (clock_t)-1;
++}
+diff -urN newlib-1.8.2/newlib/libc/sys/aica/unlink.c newlib-1.8.2-aica/newlib/libc/sys/aica/unlink.c
+--- newlib-1.8.2/newlib/libc/sys/aica/unlink.c	1970-01-01 10:00:00.000000000 +1000
++++ newlib-1.8.2-aica/newlib/libc/sys/aica/unlink.c	2008-08-13 11:54:44.000000000 +1000
+@@ -0,0 +1,14 @@
++#include "vfs.h"
++
++int
++_unlink (const char *path)
++{
++  char *obj = _newlib_vfs_new_string (path);
++
++  struct media_ops *mops = _newlib_vfs_get_media_ops (path);
++  int res = mops->unlink (obj);
++
++  _newlib_vfs_delete_string (obj);
++
++  return res;
++}
+diff -urN newlib-1.8.2/newlib/libc/sys/aica/vfs.c newlib-1.8.2-aica/newlib/libc/sys/aica/vfs.c
+--- newlib-1.8.2/newlib/libc/sys/aica/vfs.c	1970-01-01 10:00:00.000000000 +1000
++++ newlib-1.8.2-aica/newlib/libc/sys/aica/vfs.c	2008-08-13 11:54:44.000000000 +1000
+@@ -0,0 +1,246 @@
++#include <sys/types.h>
++#include <errno.h>
++#include <stdlib.h>
++#include <string.h>
++
++#include "vfs.h"
++
++static struct file * invalid_open_media_op (void);
++
++static struct media_ops invalid_media_ops =
++{
++  open:                invalid_open_media_op,
++  creat:               invalid_open_media_op,
++  link:                _newlib_vfs_invalid_media_op,
++  unlink:              _newlib_vfs_invalid_media_op,
++  stat:                _newlib_vfs_invalid_media_op,
++  chmod:               _newlib_vfs_invalid_media_op,
++  mkdir:               _newlib_vfs_invalid_media_op,
++  rmdir:               _newlib_vfs_invalid_media_op,
++  chdir:               _newlib_vfs_invalid_media_op
++};
++
++struct media_ops * _newlib_vfs_host_media_ops = &invalid_media_ops;
++struct media_ops * _newlib_vfs_cd_media_ops   = &invalid_media_ops;
++struct media_ops * _newlib_vfs_vmu_media_ops  = &invalid_media_ops;
++
++/* This is where we detect the loader and initialize the relevant *_ops
++ variables. */
++
++enum _newlib_vfs_loader _newlib_vfs_initialized = VFS_LOADER_NONE;
++
++extern int _newlib_vfs_is_sslave (void);
++extern void _newlib_vfs_sslave_init (void);
++
++extern int _newlib_vfs_is_gdbstubs (void);
++extern void _newlib_vfs_gdbstubs_init (void);
++
++extern int _newlib_vfs_is_dcload (void);
++extern void _newlib_vfs_dcload_init (void);
++
++extern int _newlib_vfs_is_absolute (void);
++extern void _newlib_vfs_absolute_load (void);
++
++static void vfs_init (void)
++{
++  _newlib_vfs_initialized = VFS_LOADER_UNKNOWN;
++
++  if (_newlib_vfs_is_sslave ())  /* Marcus Comstedt's serial slave */
++  {
++    _newlib_vfs_sslave_init ();
++  }
++  else if (_newlib_vfs_is_gdbstubs ())  /* Benoit Miller's port of gdbstubs */
++  {
++    _newlib_vfs_gdbstubs_init ();
++  }
++  else if (_newlib_vfs_is_dcload ())  /* Andrew K's dcload */
++  {
++    _newlib_vfs_dcload_init ();
++  }
++  else if (_newlib_vfs_is_absolute ())  /* my own absolute */
++  {
++    _newlib_vfs_absolute_load ();
++  }
++}
++
++#define VFS_INIT { if (!_newlib_vfs_initialized) vfs_init (); }
++
++/* Each prefix, "/pc/", "/cd", and "/vmu" in little-endian. */
++#define PREFIX_HOST 0x2f63702f
++#define PREFIX_CD   0x2f64632f
++#define PREFIX_VMU  0x756d762f
++
++char *_newlib_vfs_new_string (const char *s)
++{
++  VFS_INIT;
++
++  {
++    char *obj = NULL;
++    unsigned long prefix = *(unsigned long *)s;
++		int len;
++
++    if (prefix == PREFIX_HOST || prefix == PREFIX_CD ||
++        prefix == PREFIX_VMU)
++    {
++      /* We snatch the prefix, accounting for the null byte (since we're
++       using memcpy; this could be changed to a simple copy loop... */
++      len = strlen (s) - 3;
++      obj = malloc (len);
++			if (!obj) return obj;
++
++      memcpy (obj, s + 4, len);
++    }
++    else /* Just return a copy of the string if no path given */
++    {
++      len = strlen (s) + 1;
++      obj = malloc (len);
++      if (!obj) return obj;
++
++      memcpy (obj, s, len);
++    }
++    return obj;
++  }
++}
++
++void _newlib_vfs_delete_string (char *s)
++{
++  if (s) free (s);
++}
++
++/* When each media op calls this, it's already got a copy of the stripped
++ path so we just do simple comparisons on the path prefix here. */
++struct media_ops *_newlib_vfs_get_media_ops (const char *path)
++{
++	unsigned long prefix = *(unsigned long *)path;
++	
++  if (prefix == PREFIX_HOST)
++  {
++    return _newlib_vfs_host_media_ops;
++  }
++  else if (prefix == PREFIX_CD)
++  {
++    return _newlib_vfs_cd_media_ops;
++  }
++  else if (prefix == PREFIX_VMU)
++  {
++    return _newlib_vfs_vmu_media_ops;
++  }
++
++  return _newlib_vfs_host_media_ops;
++}
++
++static struct file_ops invalid_file_ops =
++{
++  lseek:       _newlib_vfs_invalid_file_op,
++  close:       _newlib_vfs_invalid_file_op,
++  read:        _newlib_vfs_invalid_file_op,
++  write:       _newlib_vfs_invalid_file_op,
++  ioctl:       _newlib_vfs_invalid_file_op,
++  fstat:       _newlib_vfs_invalid_file_op
++};
++
++static struct file invalid_file =
++{
++  NULL,
++  -1, -1,
++  &invalid_file_ops,
++  NULL
++};
++
++/* FIXME: A lookup for each fd could get expensive...find a better way to
++ "cache" frequently used fds */
++
++static struct file *cached_file = NULL;
++
++/* Find the file matching fd and return a pointer to its contents.  If the
++ file isn't found, return a pointer to invalid_file, which represents a
++ non-existent file (all operations on it will fail). */
++struct file *_newlib_vfs_get_file (int fd)
++{
++  VFS_INIT;
++
++  {
++    struct file *next_file = _newlib_vfs_first_file;
++
++    if ((cached_file != NULL) && (cached_file->fd == fd))
++    {
++      return cached_file;
++    }
++
++    while (next_file)
++    {
++      if (next_file->fd == fd)
++      {
++        cached_file = next_file;
++        return next_file;
++      }
++      next_file = next_file->next;
++    }
++    return &invalid_file;
++  }
++}
++
++static int last_fd = -1;
++
++/* Just insert the file at the end of the list, as it's already been
++ allocated by open/creat.  Increase the library's fd by using the last
++ file's fd. */
++int _newlib_vfs_insert_file (struct file *pf)
++{
++  if (last_fd < 0)
++  {
++    last_fd = _newlib_vfs_last_file->fd;
++  }
++/*	++last_fd; */
++  pf->fd = ++last_fd;
++  _newlib_vfs_last_file->next = pf;
++  _newlib_vfs_last_file = pf;
++  return last_fd;
++}
++
++int _newlib_vfs_remove_file (struct file *pf)
++{
++  if (pf)
++  {
++    struct file *prev_file = _newlib_vfs_first_file;
++		struct file *next_file = NULL;
++
++    while (prev_file)
++    {
++      if (prev_file->next == pf)
++      {
++        prev_file->next = pf->next;
++				next_file = prev_file->next;
++				while (next_file)
++				{
++					prev_file = next_file;
++					next_file = next_file->next;
++				}
++				_newlib_vfs_last_file = prev_file;
++        free (pf);
++        return 0;
++      }
++			prev_file = prev_file->next;
++    }
++  }
++  errno = ENOSYS;
++	return -1;
++}
++
++int _newlib_vfs_invalid_file_op (void)
++{
++  errno = ENOSYS;
++  return -1;
++}
++
++static struct file *invalid_open_media_op (void)
++{
++  errno = ENOSYS;
++  return NULL;
++}
++
++int _newlib_vfs_invalid_media_op (void)
++{
++  errno = ENOSYS;
++  return -1;
++}
+diff -urN newlib-1.8.2/newlib/libc/sys/aica/vfs.h newlib-1.8.2-aica/newlib/libc/sys/aica/vfs.h
+--- newlib-1.8.2/newlib/libc/sys/aica/vfs.h	1970-01-01 10:00:00.000000000 +1000
++++ newlib-1.8.2-aica/newlib/libc/sys/aica/vfs.h	2008-08-13 11:54:44.000000000 +1000
+@@ -0,0 +1,100 @@
++#ifndef __VFS_H__
++#define __VFS_H__
++
++#include <sys/types.h>
++#include <sys/stat.h>
++
++/* Defines all of the operations that can be performed on a particular media
++ type.  These are independent of file access routines. */
++
++struct media_ops {
++  struct file * (*open) (const char *, int, mode_t);
++  struct file * (*creat) (const char *, mode_t);
++  int (*link) (const char *, const char *);
++  int (*unlink) (const char *);
++  int (*stat) (const char *, struct stat *);
++  int (*chmod) (const char *, mode_t);
++  int (*mkdir) (const char*, mode_t);
++  int (*rmdir) (const char *);
++  int (*chdir) (const char *);
++};
++
++/* These are the operations that can be done to a file.  Each media and stub
++ has it's own combination of routines (e.g. Absolute + VMU, dcload + host). */
++
++struct file_ops {
++  off_t (*lseek) (struct file *, off_t, int);
++  int (*close) (struct file *);
++  size_t (*read) (struct file *, void *, size_t);
++  size_t (*write) (struct file *, void *, size_t);
++  /* Hmm, what to do with this one? */
++  int (*ioctl) (struct file *, int, long);
++  int (*fstat) (struct file *, struct stat *);
++};
++
++/* We maintain a linked list of files so that we can remove and add files
++ to/from the list easier.  Each file contains an fd, the "real" fd of whatever
++ media it resides upon, a pointer to the file_ops for the file, and a pointer
++ to media/stub specific data. */
++
++struct file {
++  struct file *next;
++  int fd;
++  int media_fd;
++  struct file_ops *fops;
++  void *specifics;
++};
++  
++
++/* Each load initializes the media_ops for each type based on the media it
++ supports.  If a media type isn't supported, then it's ops points to
++ _newlib_vfs_invalid_media_ops. */
++extern struct media_ops * _newlib_vfs_host_media_ops;
++extern struct media_ops * _newlib_vfs_cd_media_ops;
++extern struct media_ops * _newlib_vfs_vmu_media_ops;
++
++/* Pointers to the first and last file in the list */
++extern struct file * _newlib_vfs_first_file;
++extern struct file * _newlib_vfs_last_file;
++
++/* Each loader initializer gives this a distinct value so that programs
++ can determine which loader they're being loaded under. */
++enum _newlib_vfs_loader
++{
++  VFS_LOADER_NONE,
++  VFS_LOADER_UNKNOWN,
++  VFS_LOADER_SERIAL_SLAVE,
++  VFS_LOADER_GDBSTUBS,
++  VFS_LOADER_DCLOAD_HOST,
++  VFS_LOADER_DCLOAD_NOHOST,
++  VFS_LOADER_ABSOLUTE
++};
++
++extern enum _newlib_vfs_loader _newlib_vfs_initialized;
++
++/* Generic media/file_ops that return ENOSYS */
++int _newlib_vfs_invalid_media_op (void);
++int _newlib_vfs_invalid_file_op (void);
++
++/* Using the path prefix, return the media_ops that handles it */
++struct media_ops *_newlib_vfs_get_media_ops (const char *path);
++
++/* Returns the file that matches the given fd */
++struct file *_newlib_vfs_get_file (int fd);
++
++/* Insert a new file into the list.  Returns -1 and sets errno if the file
++ can't be inserted, otherewise returns 0 */
++int _newlib_vfs_insert_file (struct file *);
++
++/* Removes a file from the list.  Returns -1 and sets errno if there was
++ a problem (e.g. invalid fd passed to close, etc.) */
++int _newlib_vfs_remove_file (struct file *);
++
++/* Copy the given string into a new buffer, while stripping the vfs prefix
++ at the same time. */
++char *_newlib_vfs_new_string (const char *s);
++
++/* Free the buffer previously allocated with *_new_string */
++void _newlib_vfs_delete_string (char *s);
++
++#endif /* __VFS_H__ */
+diff -urN newlib-1.8.2/newlib/libc/sys/aica/write.c newlib-1.8.2-aica/newlib/libc/sys/aica/write.c
+--- newlib-1.8.2/newlib/libc/sys/aica/write.c	1970-01-01 10:00:00.000000000 +1000
++++ newlib-1.8.2-aica/newlib/libc/sys/aica/write.c	2008-08-13 11:54:44.000000000 +1000
+@@ -0,0 +1,11 @@
++#include <sys/types.h>
++
++#include "vfs.h"
++
++int
++_write (int fd, const void *buf, size_t cnt)
++{
++  struct file *pf = _newlib_vfs_get_file (fd);
++
++  return pf->fops->write (pf, buf, cnt);
++}

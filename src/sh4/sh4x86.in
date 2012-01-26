@@ -1,0 +1,3295 @@
+/**
+ * $Id$
+ * 
+ * SH4 => x86 translation. This version does no real optimization, it just
+ * outputs straight-line x86 code - it mainly exists to provide a baseline
+ * to test the optimizing versions against.
+ *
+ * Copyright (c) 2007 Nathan Keynes.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
+#include <assert.h>
+#include <math.h>
+
+#ifndef NDEBUG
+#define DEBUG_JUMPS 1
+#endif
+
+#include "lxdream.h"
+#include "sh4/sh4core.h"
+#include "sh4/sh4dasm.h"
+#include "sh4/sh4trans.h"
+#include "sh4/sh4stat.h"
+#include "sh4/sh4mmio.h"
+#include "sh4/mmu.h"
+#include "xlat/xltcache.h"
+#include "xlat/x86/x86op.h"
+#include "x86dasm/x86dasm.h"
+#include "clock.h"
+
+#define DEFAULT_BACKPATCH_SIZE 4096
+
+/* Offset of a reg relative to the sh4r structure */
+#define REG_OFFSET(reg)  (((char *)&sh4r.reg) - ((char *)&sh4r) - 128)
+
+#define R_T      REG_OFFSET(t)
+#define R_Q      REG_OFFSET(q)
+#define R_S      REG_OFFSET(s)
+#define R_M      REG_OFFSET(m)
+#define R_SR     REG_OFFSET(sr)
+#define R_GBR    REG_OFFSET(gbr)
+#define R_SSR    REG_OFFSET(ssr)
+#define R_SPC    REG_OFFSET(spc)
+#define R_VBR    REG_OFFSET(vbr)
+#define R_MACH   REG_OFFSET(mac)+4
+#define R_MACL   REG_OFFSET(mac)
+#define R_PC     REG_OFFSET(pc)
+#define R_NEW_PC REG_OFFSET(new_pc)
+#define R_PR     REG_OFFSET(pr)
+#define R_SGR    REG_OFFSET(sgr)
+#define R_FPUL   REG_OFFSET(fpul)
+#define R_FPSCR  REG_OFFSET(fpscr)
+#define R_DBR    REG_OFFSET(dbr)
+#define R_R(rn)  REG_OFFSET(r[rn])
+#define R_FR(f)  REG_OFFSET(fr[0][(f)^1])
+#define R_XF(f)  REG_OFFSET(fr[1][(f)^1])
+#define R_DR(f)  REG_OFFSET(fr[(f)&1][(f)&0x0E])
+#define R_DRL(f) REG_OFFSET(fr[(f)&1][(f)|0x01])
+#define R_DRH(f) REG_OFFSET(fr[(f)&1][(f)&0x0E])
+
+#define DELAY_NONE 0
+#define DELAY_PC 1
+#define DELAY_PC_PR 2
+
+#define SH4_MODE_UNKNOWN -1
+
+struct backpatch_record {
+    uint32_t fixup_offset;
+    uint32_t fixup_icount;
+    int32_t exc_code;
+};
+
+/** 
+ * Struct to manage internal translation state. This state is not saved -
+ * it is only valid between calls to sh4_translate_begin_block() and
+ * sh4_translate_end_block()
+ */
+struct sh4_x86_state {
+    int in_delay_slot;
+    uint8_t *code;
+    gboolean fpuen_checked; /* true if we've already checked fpu enabled. */
+    gboolean branch_taken; /* true if we branched unconditionally */
+    gboolean double_prec; /* true if FPU is in double-precision mode */
+    gboolean double_size; /* true if FPU is in double-size mode */
+    gboolean sse3_enabled; /* true if host supports SSE3 instructions */
+    uint32_t block_start_pc;
+    uint32_t stack_posn;   /* Trace stack height for alignment purposes */
+    uint32_t sh4_mode;     /* Mirror of sh4r.xlat_sh4_mode */
+    int tstate;
+
+    /* mode settings */
+    gboolean tlb_on; /* True if tlb translation is active */
+    struct mem_region_fn **priv_address_space;
+    struct mem_region_fn **user_address_space;
+
+    /* Instrumentation */
+    xlat_block_begin_callback_t begin_callback;
+    xlat_block_end_callback_t end_callback;
+    gboolean fastmem;
+    gboolean profile_blocks;
+    
+    /* Allocated memory for the (block-wide) back-patch list */
+    struct backpatch_record *backpatch_list;
+    uint32_t backpatch_posn;
+    uint32_t backpatch_size;
+};
+
+static struct sh4_x86_state sh4_x86;
+
+static uint32_t max_int = 0x7FFFFFFF;
+static uint32_t min_int = 0x80000000;
+static uint32_t save_fcw; /* save value for fpu control word */
+static uint32_t trunc_fcw = 0x0F7F; /* fcw value for truncation mode */
+
+static void FASTCALL sh4_translate_get_code_and_backpatch( uint32_t pc );
+
+static struct x86_symbol x86_symbol_table[] = {
+    { "sh4r+128", ((char *)&sh4r)+128 },
+    { "sh4_cpu_period", &sh4_cpu_period },
+    { "sh4_address_space", NULL },
+    { "sh4_user_address_space", NULL },
+    { "sh4_translate_breakpoint_hit", sh4_translate_breakpoint_hit },
+    { "sh4_translate_get_code_and_backpatch", sh4_translate_get_code_and_backpatch },
+    { "sh4_write_fpscr", sh4_write_fpscr },
+    { "sh4_write_sr", sh4_write_sr },
+    { "sh4_read_sr", sh4_read_sr },
+    { "sh4_raise_exception", sh4_raise_exception },
+    { "sh4_sleep", sh4_sleep },
+    { "sh4_fsca", sh4_fsca },
+    { "sh4_ftrv", sh4_ftrv },
+    { "sh4_switch_fr_banks", sh4_switch_fr_banks },
+    { "sh4_execute_instruction", sh4_execute_instruction },
+    { "signsat48", signsat48 },
+    { "xlat_get_code_by_vma", xlat_get_code_by_vma },
+    { "xlat_get_code", xlat_get_code }
+};
+
+
+gboolean is_sse3_supported()
+{
+    uint32_t features;
+    
+    __asm__ __volatile__(
+        "mov $0x01, %%eax\n\t"
+        "cpuid\n\t" : "=c" (features) : : "eax", "edx", "ebx");
+    return (features & 1) ? TRUE : FALSE;
+}
+
+void sh4_translate_set_address_space( struct mem_region_fn **priv, struct mem_region_fn **user )
+{
+    sh4_x86.priv_address_space = priv;
+    sh4_x86.user_address_space = user;
+    x86_symbol_table[2].ptr = priv;
+    x86_symbol_table[3].ptr = user;
+}
+
+void sh4_translate_init(void)
+{
+    sh4_x86.backpatch_list = malloc(DEFAULT_BACKPATCH_SIZE);
+    sh4_x86.backpatch_size = DEFAULT_BACKPATCH_SIZE / sizeof(struct backpatch_record);
+    sh4_x86.begin_callback = NULL;
+    sh4_x86.end_callback = NULL;
+    sh4_translate_set_address_space( sh4_address_space, sh4_user_address_space );
+    sh4_x86.fastmem = TRUE;
+    sh4_x86.profile_blocks = FALSE;
+    sh4_x86.sse3_enabled = is_sse3_supported();
+    x86_disasm_init();
+    x86_set_symtab( x86_symbol_table, sizeof(x86_symbol_table)/sizeof(struct x86_symbol) );
+}
+
+void sh4_translate_set_callbacks( xlat_block_begin_callback_t begin, xlat_block_end_callback_t end )
+{
+    sh4_x86.begin_callback = begin;
+    sh4_x86.end_callback = end;
+}
+
+void sh4_translate_set_fastmem( gboolean flag )
+{
+    sh4_x86.fastmem = flag;
+}
+
+void sh4_translate_set_profile_blocks( gboolean flag )
+{
+    sh4_x86.profile_blocks = flag;
+}
+
+gboolean sh4_translate_get_profile_blocks()
+{
+    return sh4_x86.profile_blocks;
+}
+
+/**
+ * Disassemble the given translated code block, and it's source SH4 code block
+ * side-by-side. The current native pc will be marked if non-null.
+ */
+void sh4_translate_disasm_block( FILE *out, void *code, sh4addr_t source_start, void *native_pc )
+{
+    char buf[256];
+    char op[256];
+
+    uintptr_t target_start = (uintptr_t)code, target_pc;
+    uintptr_t target_end = target_start + xlat_get_code_size(code);
+    uint32_t source_pc = source_start;
+    uint32_t source_end = source_pc;
+    xlat_recovery_record_t source_recov_table = XLAT_RECOVERY_TABLE(code);
+    xlat_recovery_record_t source_recov_end = source_recov_table + XLAT_BLOCK_FOR_CODE(code)->recover_table_size - 1;
+
+    for( target_pc = target_start; target_pc < target_end;  ) {
+        uintptr_t pc2 = x86_disasm_instruction( target_pc, buf, sizeof(buf), op );
+#if SIZEOF_VOID_P == 8
+        fprintf( out, "%c%016lx: %-30s %-40s", (target_pc == (uintptr_t)native_pc ? '*' : ' '),
+                      target_pc, op, buf );
+#else
+        fprintf( out, "%c%08lx: %-30s %-40s", (target_pc == (uintptr_t)native_pc ? '*' : ' '),
+                      target_pc, op, buf );
+#endif        
+        if( source_recov_table < source_recov_end && 
+            target_pc >= (target_start + source_recov_table->xlat_offset) ) {
+            source_recov_table++;
+            if( source_end < (source_start + (source_recov_table->sh4_icount)*2) )
+                source_end = source_start + (source_recov_table->sh4_icount)*2;
+        }
+
+        if( source_pc < source_end ) {
+            uint32_t source_pc2 = sh4_disasm_instruction( source_pc, buf, sizeof(buf), op );
+            fprintf( out, " %08X: %s  %s\n", source_pc, op, buf );
+            source_pc = source_pc2;
+        } else {
+            fprintf( out, "\n" );
+        }
+        
+        target_pc = pc2;
+    }
+    
+    while( source_pc < source_end ) {
+        uint32_t source_pc2 = sh4_disasm_instruction( source_pc, buf, sizeof(buf), op );
+        fprintf( out, "%*c %08X: %s  %s\n", 72,' ', source_pc, op, buf );
+        source_pc = source_pc2;
+    }
+}
+
+static void sh4_x86_add_backpatch( uint8_t *fixup_addr, uint32_t fixup_pc, uint32_t exc_code )
+{
+    int reloc_size = 4;
+    
+    if( exc_code == -2 ) {
+        reloc_size = sizeof(void *);
+    }
+    
+    if( sh4_x86.backpatch_posn == sh4_x86.backpatch_size ) {
+	sh4_x86.backpatch_size <<= 1;
+	sh4_x86.backpatch_list = realloc( sh4_x86.backpatch_list, 
+					  sh4_x86.backpatch_size * sizeof(struct backpatch_record));
+	assert( sh4_x86.backpatch_list != NULL );
+    }
+    if( sh4_x86.in_delay_slot ) {
+	fixup_pc -= 2;
+    }
+
+    sh4_x86.backpatch_list[sh4_x86.backpatch_posn].fixup_offset = 
+	(((uint8_t *)fixup_addr) - ((uint8_t *)xlat_current_block->code)) - reloc_size;
+    sh4_x86.backpatch_list[sh4_x86.backpatch_posn].fixup_icount = (fixup_pc - sh4_x86.block_start_pc)>>1;
+    sh4_x86.backpatch_list[sh4_x86.backpatch_posn].exc_code = exc_code;
+    sh4_x86.backpatch_posn++;
+}
+
+#define TSTATE_NONE -1
+#define TSTATE_O    X86_COND_O
+#define TSTATE_C    X86_COND_C
+#define TSTATE_E    X86_COND_E
+#define TSTATE_NE   X86_COND_NE
+#define TSTATE_G    X86_COND_G
+#define TSTATE_GE   X86_COND_GE
+#define TSTATE_A    X86_COND_A
+#define TSTATE_AE   X86_COND_AE
+
+#define MARK_JMP8(x) uint8_t *_mark_jmp_##x = (xlat_output-1)
+#define JMP_TARGET(x) *_mark_jmp_##x += (xlat_output - _mark_jmp_##x)
+
+/* Convenience instructions */
+#define LDC_t()          CMPB_imms_rbpdisp(1,R_T); CMC()
+#define SETE_t()         SETCCB_cc_rbpdisp(X86_COND_E,R_T)
+#define SETA_t()         SETCCB_cc_rbpdisp(X86_COND_A,R_T)
+#define SETAE_t()        SETCCB_cc_rbpdisp(X86_COND_AE,R_T)
+#define SETG_t()         SETCCB_cc_rbpdisp(X86_COND_G,R_T)
+#define SETGE_t()        SETCCB_cc_rbpdisp(X86_COND_GE,R_T)
+#define SETC_t()         SETCCB_cc_rbpdisp(X86_COND_C,R_T)
+#define SETO_t()         SETCCB_cc_rbpdisp(X86_COND_O,R_T)
+#define SETNE_t()        SETCCB_cc_rbpdisp(X86_COND_NE,R_T)
+#define SETC_r8(r1)      SETCCB_cc_r8(X86_COND_C, r1)
+#define JAE_label(label) JCC_cc_rel8(X86_COND_AE,-1); MARK_JMP8(label)
+#define JBE_label(label) JCC_cc_rel8(X86_COND_BE,-1); MARK_JMP8(label)
+#define JE_label(label)  JCC_cc_rel8(X86_COND_E,-1); MARK_JMP8(label)
+#define JGE_label(label) JCC_cc_rel8(X86_COND_GE,-1); MARK_JMP8(label)
+#define JNA_label(label) JCC_cc_rel8(X86_COND_NA,-1); MARK_JMP8(label)
+#define JNE_label(label) JCC_cc_rel8(X86_COND_NE,-1); MARK_JMP8(label)
+#define JNO_label(label) JCC_cc_rel8(X86_COND_NO,-1); MARK_JMP8(label)
+#define JP_label(label)  JCC_cc_rel8(X86_COND_P,-1); MARK_JMP8(label)
+#define JS_label(label)  JCC_cc_rel8(X86_COND_S,-1); MARK_JMP8(label)
+#define JMP_label(label) JMP_rel8(-1); MARK_JMP8(label)
+#define JNE_exc(exc)     JCC_cc_rel32(X86_COND_NE,0); sh4_x86_add_backpatch(xlat_output, pc, exc)
+
+#define LOAD_t() if( sh4_x86.tstate == TSTATE_NONE ) { \
+	CMPL_imms_rbpdisp( 1, R_T ); sh4_x86.tstate = TSTATE_E; }     
+
+/** Branch if T is set (either in the current cflags, or in sh4r.t) */
+#define JT_label(label) LOAD_t() \
+    JCC_cc_rel8(sh4_x86.tstate,-1); MARK_JMP8(label)
+
+/** Branch if T is clear (either in the current cflags or in sh4r.t) */
+#define JF_label(label) LOAD_t() \
+    JCC_cc_rel8(sh4_x86.tstate^1, -1); MARK_JMP8(label)
+
+
+#define load_reg(x86reg,sh4reg)     MOVL_rbpdisp_r32( REG_OFFSET(r[sh4reg]), x86reg )
+#define store_reg(x86reg,sh4reg)    MOVL_r32_rbpdisp( x86reg, REG_OFFSET(r[sh4reg]) )
+
+/**
+ * Load an FR register (single-precision floating point) into an integer x86
+ * register (eg for register-to-register moves)
+ */
+#define load_fr(reg,frm)  MOVL_rbpdisp_r32( REG_OFFSET(fr[0][(frm)^1]), reg )
+#define load_xf(reg,frm)  MOVL_rbpdisp_r32( REG_OFFSET(fr[1][(frm)^1]), reg )
+
+/**
+ * Load the low half of a DR register (DR or XD) into an integer x86 register 
+ */
+#define load_dr0(reg,frm) MOVL_rbpdisp_r32( REG_OFFSET(fr[frm&1][frm|0x01]), reg )
+#define load_dr1(reg,frm) MOVL_rbpdisp_r32( REG_OFFSET(fr[frm&1][frm&0x0E]), reg )
+
+/**
+ * Store an FR register (single-precision floating point) from an integer x86+
+ * register (eg for register-to-register moves)
+ */
+#define store_fr(reg,frm) MOVL_r32_rbpdisp( reg, REG_OFFSET(fr[0][(frm)^1]) )
+#define store_xf(reg,frm) MOVL_r32_rbpdisp( reg, REG_OFFSET(fr[1][(frm)^1]) )
+
+#define store_dr0(reg,frm) MOVL_r32_rbpdisp( reg, REG_OFFSET(fr[frm&1][frm|0x01]) )
+#define store_dr1(reg,frm) MOVL_r32_rbpdisp( reg, REG_OFFSET(fr[frm&1][frm&0x0E]) )
+
+
+#define push_fpul()  FLDF_rbpdisp(R_FPUL)
+#define pop_fpul()   FSTPF_rbpdisp(R_FPUL)
+#define push_fr(frm) FLDF_rbpdisp( REG_OFFSET(fr[0][(frm)^1]) )
+#define pop_fr(frm)  FSTPF_rbpdisp( REG_OFFSET(fr[0][(frm)^1]) )
+#define push_xf(frm) FLDF_rbpdisp( REG_OFFSET(fr[1][(frm)^1]) )
+#define pop_xf(frm)  FSTPF_rbpdisp( REG_OFFSET(fr[1][(frm)^1]) )
+#define push_dr(frm) FLDD_rbpdisp( REG_OFFSET(fr[0][(frm)&0x0E]) )
+#define pop_dr(frm)  FSTPD_rbpdisp( REG_OFFSET(fr[0][(frm)&0x0E]) )
+#define push_xdr(frm) FLDD_rbpdisp( REG_OFFSET(fr[1][(frm)&0x0E]) )
+#define pop_xdr(frm)  FSTPD_rbpdisp( REG_OFFSET(fr[1][(frm)&0x0E]) )
+
+#ifdef ENABLE_SH4STATS
+#define COUNT_INST(id) MOVL_imm32_r32( id, REG_EAX ); CALL1_ptr_r32(sh4_stats_add, REG_EAX); sh4_x86.tstate = TSTATE_NONE
+#else
+#define COUNT_INST(id)
+#endif
+
+
+/* Exception checks - Note that all exception checks will clobber EAX */
+
+#define check_priv( ) \
+    if( (sh4_x86.sh4_mode & SR_MD) == 0 ) { \
+        if( sh4_x86.in_delay_slot ) { \
+            exit_block_exc(EXC_SLOT_ILLEGAL, (pc-2), 4 ); \
+        } else { \
+            exit_block_exc(EXC_ILLEGAL, pc, 2); \
+        } \
+        sh4_x86.branch_taken = TRUE; \
+        sh4_x86.in_delay_slot = DELAY_NONE; \
+        return 2; \
+    }
+
+#define check_fpuen( ) \
+    if( !sh4_x86.fpuen_checked ) {\
+	sh4_x86.fpuen_checked = TRUE;\
+	MOVL_rbpdisp_r32( R_SR, REG_EAX );\
+	ANDL_imms_r32( SR_FD, REG_EAX );\
+	if( sh4_x86.in_delay_slot ) {\
+	    JNE_exc(EXC_SLOT_FPU_DISABLED);\
+	} else {\
+	    JNE_exc(EXC_FPU_DISABLED);\
+	}\
+	sh4_x86.tstate = TSTATE_NONE; \
+    }
+
+#define check_ralign16( x86reg ) \
+    TESTL_imms_r32( 0x00000001, x86reg ); \
+    JNE_exc(EXC_DATA_ADDR_READ)
+
+#define check_walign16( x86reg ) \
+    TESTL_imms_r32( 0x00000001, x86reg ); \
+    JNE_exc(EXC_DATA_ADDR_WRITE);
+
+#define check_ralign32( x86reg ) \
+    TESTL_imms_r32( 0x00000003, x86reg ); \
+    JNE_exc(EXC_DATA_ADDR_READ)
+
+#define check_walign32( x86reg ) \
+    TESTL_imms_r32( 0x00000003, x86reg ); \
+    JNE_exc(EXC_DATA_ADDR_WRITE);
+
+#define check_ralign64( x86reg ) \
+    TESTL_imms_r32( 0x00000007, x86reg ); \
+    JNE_exc(EXC_DATA_ADDR_READ)
+
+#define check_walign64( x86reg ) \
+    TESTL_imms_r32( 0x00000007, x86reg ); \
+    JNE_exc(EXC_DATA_ADDR_WRITE);
+
+#define address_space() ((sh4_x86.sh4_mode&SR_MD) ? (uintptr_t)sh4_x86.priv_address_space : (uintptr_t)sh4_x86.user_address_space)
+
+#define UNDEF(ir)
+/* Note: For SR.MD == 1 && MMUCR.AT == 0, there are no memory exceptions, so 
+ * don't waste the cycles expecting them. Otherwise we need to save the exception pointer.
+ */
+#ifdef HAVE_FRAME_ADDRESS
+static void call_read_func(int addr_reg, int value_reg, int offset, int pc)
+{
+    decode_address(address_space(), addr_reg);
+    if( !sh4_x86.tlb_on && (sh4_x86.sh4_mode & SR_MD) ) { 
+        CALL1_r32disp_r32(REG_ECX, offset, addr_reg);
+    } else {
+        if( addr_reg != REG_ARG1 ) {
+            MOVL_r32_r32( addr_reg, REG_ARG1 );
+        }
+        MOVP_immptr_rptr( 0, REG_ARG2 );
+        sh4_x86_add_backpatch( xlat_output, pc, -2 );
+        CALL2_r32disp_r32_r32(REG_ECX, offset, REG_ARG1, REG_ARG2);
+    }
+    if( value_reg != REG_RESULT1 ) { 
+        MOVL_r32_r32( REG_RESULT1, value_reg );
+    }
+}
+
+static void call_write_func(int addr_reg, int value_reg, int offset, int pc)
+{
+    decode_address(address_space(), addr_reg);
+    if( !sh4_x86.tlb_on && (sh4_x86.sh4_mode & SR_MD) ) { 
+        CALL2_r32disp_r32_r32(REG_ECX, offset, addr_reg, value_reg);
+    } else {
+        if( value_reg != REG_ARG2 ) {
+            MOVL_r32_r32( value_reg, REG_ARG2 );
+	}        
+        if( addr_reg != REG_ARG1 ) {
+            MOVL_r32_r32( addr_reg, REG_ARG1 );
+        }
+#if MAX_REG_ARG > 2        
+        MOVP_immptr_rptr( 0, REG_ARG3 );
+        sh4_x86_add_backpatch( xlat_output, pc, -2 );
+        CALL3_r32disp_r32_r32_r32(REG_ECX, offset, REG_ARG1, REG_ARG2, REG_ARG3);
+#else
+        MOVL_imm32_rspdisp( 0, 0 );
+        sh4_x86_add_backpatch( xlat_output, pc, -2 );
+        CALL3_r32disp_r32_r32_r32(REG_ECX, offset, REG_ARG1, REG_ARG2, 0);
+#endif
+    }
+}
+#else
+static void call_read_func(int addr_reg, int value_reg, int offset, int pc)
+{
+    decode_address(address_space(), addr_reg);
+    CALL1_r32disp_r32(REG_ECX, offset, addr_reg);
+    if( value_reg != REG_RESULT1 ) {
+        MOVL_r32_r32( REG_RESULT1, value_reg );
+    }
+}     
+
+static void call_write_func(int addr_reg, int value_reg, int offset, int pc)
+{
+    decode_address(address_space(), addr_reg);
+    CALL2_r32disp_r32_r32(REG_ECX, offset, addr_reg, value_reg);
+}
+#endif
+                
+#define MEM_REGION_PTR(name) offsetof( struct mem_region_fn, name )
+#define MEM_READ_BYTE( addr_reg, value_reg ) call_read_func(addr_reg, value_reg, MEM_REGION_PTR(read_byte), pc)
+#define MEM_READ_BYTE_FOR_WRITE( addr_reg, value_reg ) call_read_func( addr_reg, value_reg, MEM_REGION_PTR(read_byte_for_write), pc) 
+#define MEM_READ_WORD( addr_reg, value_reg ) call_read_func(addr_reg, value_reg, MEM_REGION_PTR(read_word), pc)
+#define MEM_READ_LONG( addr_reg, value_reg ) call_read_func(addr_reg, value_reg, MEM_REGION_PTR(read_long), pc)
+#define MEM_WRITE_BYTE( addr_reg, value_reg ) call_write_func(addr_reg, value_reg, MEM_REGION_PTR(write_byte), pc)
+#define MEM_WRITE_WORD( addr_reg, value_reg ) call_write_func(addr_reg, value_reg, MEM_REGION_PTR(write_word), pc)
+#define MEM_WRITE_LONG( addr_reg, value_reg ) call_write_func(addr_reg, value_reg, MEM_REGION_PTR(write_long), pc)
+#define MEM_PREFETCH( addr_reg ) call_read_func(addr_reg, REG_RESULT1, MEM_REGION_PTR(prefetch), pc)
+
+#define SLOTILLEGAL() exit_block_exc(EXC_SLOT_ILLEGAL, pc-2, 4); sh4_x86.in_delay_slot = DELAY_NONE; return 2;
+
+/** Offset of xlat_sh4_mode field relative to the code pointer */ 
+#define XLAT_SH4_MODE_CODE_OFFSET  (int32_t)(offsetof(struct xlat_cache_block, xlat_sh4_mode) - offsetof(struct xlat_cache_block,code) )
+#define XLAT_CHAIN_CODE_OFFSET (int32_t)(offsetof(struct xlat_cache_block, chain) - offsetof(struct xlat_cache_block,code) )
+#define XLAT_ACTIVE_CODE_OFFSET (int32_t)(offsetof(struct xlat_cache_block, active) - offsetof(struct xlat_cache_block,code) )
+
+void sh4_translate_begin_block( sh4addr_t pc ) 
+{
+	sh4_x86.code = xlat_output;
+    sh4_x86.in_delay_slot = FALSE;
+    sh4_x86.fpuen_checked = FALSE;
+    sh4_x86.branch_taken = FALSE;
+    sh4_x86.backpatch_posn = 0;
+    sh4_x86.block_start_pc = pc;
+    sh4_x86.tlb_on = IS_TLB_ENABLED();
+    sh4_x86.tstate = TSTATE_NONE;
+    sh4_x86.double_prec = sh4r.fpscr & FPSCR_PR;
+    sh4_x86.double_size = sh4r.fpscr & FPSCR_SZ;
+    sh4_x86.sh4_mode = sh4r.xlat_sh4_mode;
+    emit_prologue();
+    if( sh4_x86.begin_callback ) {
+        CALL_ptr( sh4_x86.begin_callback );
+    }
+    if( sh4_x86.profile_blocks ) {
+    	MOVP_immptr_rptr( sh4_x86.code + XLAT_ACTIVE_CODE_OFFSET, REG_EAX );
+    	ADDL_imms_r32disp( 1, REG_EAX, 0 );
+    }  
+}
+
+
+uint32_t sh4_translate_end_block_size()
+{
+	uint32_t epilogue_size = EPILOGUE_SIZE;
+	if( sh4_x86.end_callback ) {
+	    epilogue_size += (CALL1_PTR_MIN_SIZE - 1);
+	}
+    if( sh4_x86.backpatch_posn <= 3 ) {
+        epilogue_size += (sh4_x86.backpatch_posn*(12+CALL1_PTR_MIN_SIZE));
+    } else {
+        epilogue_size += (3*(12+CALL1_PTR_MIN_SIZE)) + (sh4_x86.backpatch_posn-3)*(15+CALL1_PTR_MIN_SIZE);
+    }
+    return epilogue_size;
+}
+
+
+/**
+ * Embed a breakpoint into the generated code
+ */
+void sh4_translate_emit_breakpoint( sh4vma_t pc )
+{
+    MOVL_imm32_r32( pc, REG_EAX );
+    CALL1_ptr_r32( sh4_translate_breakpoint_hit, REG_EAX );
+    sh4_x86.tstate = TSTATE_NONE;
+}
+
+
+#define UNTRANSLATABLE(pc) !IS_IN_ICACHE(pc)
+
+/**
+ * Test if the loaded target code pointer in %eax is valid, and if so jump
+ * directly into it, bypassing the normal exit.
+ */
+static void jump_next_block()
+{
+	uint8_t *ptr = xlat_output;
+	TESTP_rptr_rptr(REG_EAX, REG_EAX);
+	JE_label(nocode);
+	if( sh4_x86.sh4_mode == SH4_MODE_UNKNOWN ) {
+	    /* sr/fpscr was changed, possibly updated xlat_sh4_mode, so reload it */
+	    MOVL_rbpdisp_r32( REG_OFFSET(xlat_sh4_mode), REG_ECX );
+	    CMPL_r32_r32disp( REG_ECX, REG_EAX, XLAT_SH4_MODE_CODE_OFFSET );
+	} else {
+	    CMPL_imms_r32disp( sh4_x86.sh4_mode, REG_EAX, XLAT_SH4_MODE_CODE_OFFSET );
+	}
+	JNE_label(wrongmode);
+	LEAP_rptrdisp_rptr(REG_EAX, PROLOGUE_SIZE,REG_EAX);
+	if( sh4_x86.end_callback ) {
+	    /* Note this does leave the stack out of alignment, but doesn't matter
+	     * for what we're currently using it for.
+	     */
+	    PUSH_r32(REG_EAX);
+	    MOVP_immptr_rptr(sh4_x86.end_callback, REG_ECX);
+	    JMP_rptr(REG_ECX);
+	} else {
+	    JMP_rptr(REG_EAX);
+	}
+	JMP_TARGET(wrongmode);
+	MOVP_rptrdisp_rptr( REG_EAX, XLAT_CHAIN_CODE_OFFSET, REG_EAX );
+	int rel = ptr - xlat_output;
+    JMP_prerel(rel);
+	JMP_TARGET(nocode); 
+}
+
+/**
+ * 
+ */
+static void FASTCALL sh4_translate_get_code_and_backpatch( uint32_t pc )
+{
+    uint8_t *target = (uint8_t *)xlat_get_code_by_vma(pc);
+    while( target != NULL && sh4r.xlat_sh4_mode != XLAT_BLOCK_MODE(target) ) {
+        target = XLAT_BLOCK_CHAIN(target);
+	}
+    if( target == NULL ) {
+        target = sh4_translate_basic_block( pc );
+    }
+    uint8_t *backpatch = ((uint8_t *)__builtin_return_address(0)) - (CALL1_PTR_MIN_SIZE);
+    *backpatch = 0xE9;
+    *(uint32_t *)(backpatch+1) = (uint32_t)(target-backpatch)+PROLOGUE_SIZE-5;
+    *(void **)(backpatch+5) = XLAT_BLOCK_FOR_CODE(target)->use_list;
+    XLAT_BLOCK_FOR_CODE(target)->use_list = backpatch; 
+
+    uint8_t * volatile *retptr = ((uint8_t * volatile *)__builtin_frame_address(0))+1;
+    assert( *retptr == ((uint8_t *)__builtin_return_address(0)) );
+	*retptr = backpatch;
+}
+
+static void emit_translate_and_backpatch()
+{
+    /* NB: this is either 7 bytes (i386) or 12 bytes (x86-64) */
+    CALL1_ptr_r32(sh4_translate_get_code_and_backpatch, REG_ARG1);
+
+    /* When patched, the jmp instruction will be 5 bytes (either platform) -
+     * we need to reserve sizeof(void*) bytes for the use-list
+	 * pointer
+	 */ 
+    if( sizeof(void*) == 8 ) {
+        NOP();
+    } else {
+        NOP2();
+    }
+}
+
+/**
+ * If we're jumping to a fixed address (or at least fixed relative to the
+ * current PC, then we can do a direct branch. REG_ARG1 should contain
+ * the PC at this point.
+ */
+static void jump_next_block_fixed_pc( sh4addr_t pc )
+{
+	if( IS_IN_ICACHE(pc) ) {
+	    if( sh4_x86.sh4_mode != SH4_MODE_UNKNOWN && sh4_x86.end_callback == NULL ) {
+	        /* Fixed address, in cache, and fixed SH4 mode - generate a call to the
+	         * fetch-and-backpatch routine, which will replace the call with a branch */
+           emit_translate_and_backpatch();	         
+           return;
+		} else {
+            MOVP_moffptr_rax( xlat_get_lut_entry(GET_ICACHE_PHYS(pc)) );
+            ANDP_imms_rptr( -4, REG_EAX );
+        }
+	} else if( sh4_x86.tlb_on ) {
+        CALL1_ptr_r32(xlat_get_code_by_vma, REG_ARG1);
+    } else {
+        CALL1_ptr_r32(xlat_get_code, REG_ARG1);
+    }
+    jump_next_block();
+
+
+}
+
+void sh4_translate_unlink_block( void *use_list )
+{
+	uint8_t *tmp = xlat_output; /* In case something is active, which should never happen */
+	void *next = use_list;
+	while( next != NULL ) {
+    	xlat_output = (uint8_t *)next;
+ 	    next = *(void **)(xlat_output+5);
+ 		emit_translate_and_backpatch();
+ 	}
+ 	xlat_output = tmp;
+}
+
+
+
+static void exit_block()
+{
+	emit_epilogue();
+	if( sh4_x86.end_callback ) {
+	    MOVP_immptr_rptr(sh4_x86.end_callback, REG_ECX);
+	    JMP_rptr(REG_ECX);
+	} else {
+	    RET();
+	}
+}
+
+/**
+ * Exit the block with sh4r.pc already written
+ */
+void exit_block_pcset( sh4addr_t pc )
+{
+    MOVL_imm32_r32( ((pc - sh4_x86.block_start_pc)>>1)*sh4_cpu_period, REG_ECX );
+    ADDL_rbpdisp_r32( REG_OFFSET(slice_cycle), REG_ECX );
+    MOVL_r32_rbpdisp( REG_ECX, REG_OFFSET(slice_cycle) );
+    CMPL_r32_rbpdisp( REG_ECX, REG_OFFSET(event_pending) );
+    JBE_label(exitloop);
+    MOVL_rbpdisp_r32( R_PC, REG_ARG1 );
+    if( sh4_x86.tlb_on ) {
+        CALL1_ptr_r32(xlat_get_code_by_vma,REG_ARG1);
+    } else {
+        CALL1_ptr_r32(xlat_get_code,REG_ARG1);
+    }
+    
+    jump_next_block();
+    JMP_TARGET(exitloop);
+    exit_block();
+}
+
+/**
+ * Exit the block with sh4r.new_pc written with the target pc
+ */
+void exit_block_newpcset( sh4addr_t pc )
+{
+    MOVL_imm32_r32( ((pc - sh4_x86.block_start_pc)>>1)*sh4_cpu_period, REG_ECX );
+    ADDL_rbpdisp_r32( REG_OFFSET(slice_cycle), REG_ECX );
+    MOVL_r32_rbpdisp( REG_ECX, REG_OFFSET(slice_cycle) );
+    MOVL_rbpdisp_r32( R_NEW_PC, REG_ARG1 );
+    MOVL_r32_rbpdisp( REG_ARG1, R_PC );
+    CMPL_r32_rbpdisp( REG_ECX, REG_OFFSET(event_pending) );
+    JBE_label(exitloop);
+    if( sh4_x86.tlb_on ) {
+        CALL1_ptr_r32(xlat_get_code_by_vma,REG_ARG1);
+    } else {
+        CALL1_ptr_r32(xlat_get_code,REG_ARG1);
+    }
+	
+	jump_next_block();
+    JMP_TARGET(exitloop);
+    exit_block();
+}
+
+
+/**
+ * Exit the block to an absolute PC
+ */
+void exit_block_abs( sh4addr_t pc, sh4addr_t endpc )
+{
+    MOVL_imm32_r32( ((endpc - sh4_x86.block_start_pc)>>1)*sh4_cpu_period, REG_ECX );
+    ADDL_rbpdisp_r32( REG_OFFSET(slice_cycle), REG_ECX );
+    MOVL_r32_rbpdisp( REG_ECX, REG_OFFSET(slice_cycle) );
+
+    MOVL_imm32_r32( pc, REG_ARG1 );
+    MOVL_r32_rbpdisp( REG_ARG1, R_PC );
+    CMPL_r32_rbpdisp( REG_ECX, REG_OFFSET(event_pending) );
+    JBE_label(exitloop);
+    jump_next_block_fixed_pc(pc);    
+    JMP_TARGET(exitloop);
+    exit_block();
+}
+
+/**
+ * Exit the block to a relative PC
+ */
+void exit_block_rel( sh4addr_t pc, sh4addr_t endpc )
+{
+    MOVL_imm32_r32( ((endpc - sh4_x86.block_start_pc)>>1)*sh4_cpu_period, REG_ECX );
+    ADDL_rbpdisp_r32( REG_OFFSET(slice_cycle), REG_ECX );
+    MOVL_r32_rbpdisp( REG_ECX, REG_OFFSET(slice_cycle) );
+
+	if( pc == sh4_x86.block_start_pc && sh4_x86.sh4_mode == sh4r.xlat_sh4_mode ) {
+	    /* Special case for tight loops - the PC doesn't change, and
+	     * we already know the target address. Just check events pending before
+	     * looping.
+	     */
+        CMPL_r32_rbpdisp( REG_ECX, REG_OFFSET(event_pending) );
+        uint32_t backdisp = ((uintptr_t)(sh4_x86.code - xlat_output)) + PROLOGUE_SIZE;
+        JCC_cc_prerel(X86_COND_A, backdisp);
+	} else {
+        MOVL_imm32_r32( pc - sh4_x86.block_start_pc, REG_ARG1 );
+        ADDL_rbpdisp_r32( R_PC, REG_ARG1 );
+        MOVL_r32_rbpdisp( REG_ARG1, R_PC );
+        CMPL_r32_rbpdisp( REG_ECX, REG_OFFSET(event_pending) );
+        JBE_label(exitloop2);
+        
+        jump_next_block_fixed_pc(pc);
+        JMP_TARGET(exitloop2);
+    }
+    exit_block();
+}
+
+/**
+ * Exit unconditionally with a general exception
+ */
+void exit_block_exc( int code, sh4addr_t pc, int inst_adjust )
+{
+    MOVL_imm32_r32( pc - sh4_x86.block_start_pc, REG_ECX );
+    ADDL_r32_rbpdisp( REG_ECX, R_PC );
+    MOVL_imm32_r32( ((pc - sh4_x86.block_start_pc + inst_adjust)>>1)*sh4_cpu_period, REG_ECX );
+    ADDL_r32_rbpdisp( REG_ECX, REG_OFFSET(slice_cycle) );
+    MOVL_imm32_r32( code, REG_ARG1 );
+    CALL1_ptr_r32( sh4_raise_exception, REG_ARG1 );
+    exit_block();
+}    
+
+/**
+ * Embed a call to sh4_execute_instruction for situations that we
+ * can't translate (just page-crossing delay slots at the moment).
+ * Caller is responsible for setting new_pc before calling this function.
+ *
+ * Performs:
+ *   Set PC = endpc
+ *   Set sh4r.in_delay_slot = sh4_x86.in_delay_slot
+ *   Update slice_cycle for endpc+2 (single step doesn't update slice_cycle)
+ *   Call sh4_execute_instruction
+ *   Call xlat_get_code_by_vma / xlat_get_code as for normal exit
+ */
+void exit_block_emu( sh4vma_t endpc )
+{
+    MOVL_imm32_r32( endpc - sh4_x86.block_start_pc, REG_ECX );   // 5
+    ADDL_r32_rbpdisp( REG_ECX, R_PC );
+    
+    MOVL_imm32_r32( (((endpc - sh4_x86.block_start_pc)>>1)+1)*sh4_cpu_period, REG_ECX ); // 5
+    ADDL_r32_rbpdisp( REG_ECX, REG_OFFSET(slice_cycle) );     // 6
+    MOVL_imm32_r32( sh4_x86.in_delay_slot ? 1 : 0, REG_ECX );
+    MOVL_r32_rbpdisp( REG_ECX, REG_OFFSET(in_delay_slot) );
+
+    CALL_ptr( sh4_execute_instruction );
+    exit_block();
+} 
+
+/**
+ * Write the block trailer (exception handling block)
+ */
+void sh4_translate_end_block( sh4addr_t pc ) {
+    if( sh4_x86.branch_taken == FALSE ) {
+        // Didn't exit unconditionally already, so write the termination here
+        exit_block_rel( pc, pc );
+    }
+    if( sh4_x86.backpatch_posn != 0 ) {
+        unsigned int i;
+        // Exception raised - cleanup and exit
+        uint8_t *end_ptr = xlat_output;
+        MOVL_r32_r32( REG_EDX, REG_ECX );
+        ADDL_r32_r32( REG_EDX, REG_ECX );
+        ADDL_r32_rbpdisp( REG_ECX, R_SPC );
+        MOVL_moffptr_eax( &sh4_cpu_period );
+        INC_r32( REG_EDX );  /* Add 1 for the aborting instruction itself */ 
+        MULL_r32( REG_EDX );
+        ADDL_r32_rbpdisp( REG_EAX, REG_OFFSET(slice_cycle) );
+        exit_block();
+
+        for( i=0; i< sh4_x86.backpatch_posn; i++ ) {
+            uint32_t *fixup_addr = (uint32_t *)&xlat_current_block->code[sh4_x86.backpatch_list[i].fixup_offset];
+            if( sh4_x86.backpatch_list[i].exc_code < 0 ) {
+                if( sh4_x86.backpatch_list[i].exc_code == -2 ) {
+                    *((uintptr_t *)fixup_addr) = (uintptr_t)xlat_output; 
+                } else {
+                    *fixup_addr += xlat_output - (uint8_t *)&xlat_current_block->code[sh4_x86.backpatch_list[i].fixup_offset] - 4;
+                }
+                MOVL_imm32_r32( sh4_x86.backpatch_list[i].fixup_icount, REG_EDX );
+                int rel = end_ptr - xlat_output;
+                JMP_prerel(rel);
+            } else {
+                *fixup_addr += xlat_output - (uint8_t *)&xlat_current_block->code[sh4_x86.backpatch_list[i].fixup_offset] - 4;
+                MOVL_imm32_r32( sh4_x86.backpatch_list[i].exc_code, REG_ARG1 );
+                CALL1_ptr_r32( sh4_raise_exception, REG_ARG1 );
+                MOVL_imm32_r32( sh4_x86.backpatch_list[i].fixup_icount, REG_EDX );
+                int rel = end_ptr - xlat_output;
+                JMP_prerel(rel);
+            }
+        }
+    }
+}
+
+/**
+ * Translate a single instruction. Delayed branches are handled specially
+ * by translating both branch and delayed instruction as a single unit (as
+ * 
+ * The instruction MUST be in the icache (assert check)
+ *
+ * @return true if the instruction marks the end of a basic block
+ * (eg a branch or 
+ */
+uint32_t sh4_translate_instruction( sh4vma_t pc )
+{
+    uint32_t ir;
+    /* Read instruction from icache */
+    assert( IS_IN_ICACHE(pc) );
+    ir = *(uint16_t *)GET_ICACHE_PTR(pc);
+    
+    if( !sh4_x86.in_delay_slot ) {
+	sh4_translate_add_recovery( (pc - sh4_x86.block_start_pc)>>1 );
+    }
+    
+    /* check for breakpoints at this pc */
+    for( int i=0; i<sh4_breakpoint_count; i++ ) {
+        if( sh4_breakpoints[i].address == pc ) {
+            sh4_translate_emit_breakpoint(pc);
+            break;
+        }
+    }
+%%
+/* ALU operations */
+ADD Rm, Rn {:
+    COUNT_INST(I_ADD);
+    load_reg( REG_EAX, Rm );
+    load_reg( REG_ECX, Rn );
+    ADDL_r32_r32( REG_EAX, REG_ECX );
+    store_reg( REG_ECX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+ADD #imm, Rn {:  
+    COUNT_INST(I_ADDI);
+    ADDL_imms_rbpdisp( imm, REG_OFFSET(r[Rn]) );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+ADDC Rm, Rn {:
+    COUNT_INST(I_ADDC);
+    if( sh4_x86.tstate != TSTATE_C ) {
+        LDC_t();
+    }
+    load_reg( REG_EAX, Rm );
+    load_reg( REG_ECX, Rn );
+    ADCL_r32_r32( REG_EAX, REG_ECX );
+    store_reg( REG_ECX, Rn );
+    SETC_t();
+    sh4_x86.tstate = TSTATE_C;
+:}
+ADDV Rm, Rn {:
+    COUNT_INST(I_ADDV);
+    load_reg( REG_EAX, Rm );
+    load_reg( REG_ECX, Rn );
+    ADDL_r32_r32( REG_EAX, REG_ECX );
+    store_reg( REG_ECX, Rn );
+    SETO_t();
+    sh4_x86.tstate = TSTATE_O;
+:}
+AND Rm, Rn {:
+    COUNT_INST(I_AND);
+    load_reg( REG_EAX, Rm );
+    load_reg( REG_ECX, Rn );
+    ANDL_r32_r32( REG_EAX, REG_ECX );
+    store_reg( REG_ECX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+AND #imm, R0 {:  
+    COUNT_INST(I_ANDI);
+    load_reg( REG_EAX, 0 );
+    ANDL_imms_r32(imm, REG_EAX); 
+    store_reg( REG_EAX, 0 );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+AND.B #imm, @(R0, GBR) {: 
+    COUNT_INST(I_ANDB);
+    load_reg( REG_EAX, 0 );
+    ADDL_rbpdisp_r32( R_GBR, REG_EAX );
+    MOVL_r32_rspdisp(REG_EAX, 0);
+    MEM_READ_BYTE_FOR_WRITE( REG_EAX, REG_EDX );
+    MOVL_rspdisp_r32(0, REG_EAX);
+    ANDL_imms_r32(imm, REG_EDX );
+    MEM_WRITE_BYTE( REG_EAX, REG_EDX );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+CMP/EQ Rm, Rn {:  
+    COUNT_INST(I_CMPEQ);
+    load_reg( REG_EAX, Rm );
+    load_reg( REG_ECX, Rn );
+    CMPL_r32_r32( REG_EAX, REG_ECX );
+    SETE_t();
+    sh4_x86.tstate = TSTATE_E;
+:}
+CMP/EQ #imm, R0 {:  
+    COUNT_INST(I_CMPEQI);
+    load_reg( REG_EAX, 0 );
+    CMPL_imms_r32(imm, REG_EAX);
+    SETE_t();
+    sh4_x86.tstate = TSTATE_E;
+:}
+CMP/GE Rm, Rn {:  
+    COUNT_INST(I_CMPGE);
+    load_reg( REG_EAX, Rm );
+    load_reg( REG_ECX, Rn );
+    CMPL_r32_r32( REG_EAX, REG_ECX );
+    SETGE_t();
+    sh4_x86.tstate = TSTATE_GE;
+:}
+CMP/GT Rm, Rn {: 
+    COUNT_INST(I_CMPGT);
+    load_reg( REG_EAX, Rm );
+    load_reg( REG_ECX, Rn );
+    CMPL_r32_r32( REG_EAX, REG_ECX );
+    SETG_t();
+    sh4_x86.tstate = TSTATE_G;
+:}
+CMP/HI Rm, Rn {:  
+    COUNT_INST(I_CMPHI);
+    load_reg( REG_EAX, Rm );
+    load_reg( REG_ECX, Rn );
+    CMPL_r32_r32( REG_EAX, REG_ECX );
+    SETA_t();
+    sh4_x86.tstate = TSTATE_A;
+:}
+CMP/HS Rm, Rn {: 
+    COUNT_INST(I_CMPHS);
+    load_reg( REG_EAX, Rm );
+    load_reg( REG_ECX, Rn );
+    CMPL_r32_r32( REG_EAX, REG_ECX );
+    SETAE_t();
+    sh4_x86.tstate = TSTATE_AE;
+ :}
+CMP/PL Rn {: 
+    COUNT_INST(I_CMPPL);
+    load_reg( REG_EAX, Rn );
+    CMPL_imms_r32( 0, REG_EAX );
+    SETG_t();
+    sh4_x86.tstate = TSTATE_G;
+:}
+CMP/PZ Rn {:  
+    COUNT_INST(I_CMPPZ);
+    load_reg( REG_EAX, Rn );
+    CMPL_imms_r32( 0, REG_EAX );
+    SETGE_t();
+    sh4_x86.tstate = TSTATE_GE;
+:}
+CMP/STR Rm, Rn {:  
+    COUNT_INST(I_CMPSTR);
+    load_reg( REG_EAX, Rm );
+    load_reg( REG_ECX, Rn );
+    XORL_r32_r32( REG_ECX, REG_EAX );
+    TESTB_r8_r8( REG_AL, REG_AL );
+    JE_label(target1);
+    TESTB_r8_r8( REG_AH, REG_AH );
+    JE_label(target2);
+    SHRL_imm_r32( 16, REG_EAX );
+    TESTB_r8_r8( REG_AL, REG_AL );
+    JE_label(target3);
+    TESTB_r8_r8( REG_AH, REG_AH );
+    JMP_TARGET(target1);
+    JMP_TARGET(target2);
+    JMP_TARGET(target3);
+    SETE_t();
+    sh4_x86.tstate = TSTATE_E;
+:}
+DIV0S Rm, Rn {:
+    COUNT_INST(I_DIV0S);
+    load_reg( REG_EAX, Rm );
+    load_reg( REG_ECX, Rn );
+    SHRL_imm_r32( 31, REG_EAX );
+    SHRL_imm_r32( 31, REG_ECX );
+    MOVL_r32_rbpdisp( REG_EAX, R_M );
+    MOVL_r32_rbpdisp( REG_ECX, R_Q );
+    CMPL_r32_r32( REG_EAX, REG_ECX );
+    SETNE_t();
+    sh4_x86.tstate = TSTATE_NE;
+:}
+DIV0U {:  
+    COUNT_INST(I_DIV0U);
+    XORL_r32_r32( REG_EAX, REG_EAX );
+    MOVL_r32_rbpdisp( REG_EAX, R_Q );
+    MOVL_r32_rbpdisp( REG_EAX, R_M );
+    MOVL_r32_rbpdisp( REG_EAX, R_T );
+    sh4_x86.tstate = TSTATE_C; // works for DIV1
+:}
+DIV1 Rm, Rn {:
+    COUNT_INST(I_DIV1);
+    MOVL_rbpdisp_r32( R_M, REG_ECX );
+    load_reg( REG_EAX, Rn );
+    if( sh4_x86.tstate != TSTATE_C ) {
+	LDC_t();
+    }
+    RCLL_imm_r32( 1, REG_EAX );
+    SETC_r8( REG_DL ); // Q'
+    CMPL_rbpdisp_r32( R_Q, REG_ECX );
+    JE_label(mqequal);
+    ADDL_rbpdisp_r32( REG_OFFSET(r[Rm]), REG_EAX );
+    JMP_label(end);
+    JMP_TARGET(mqequal);
+    SUBL_rbpdisp_r32( REG_OFFSET(r[Rm]), REG_EAX );
+    JMP_TARGET(end);
+    store_reg( REG_EAX, Rn ); // Done with Rn now
+    SETC_r8(REG_AL); // tmp1
+    XORB_r8_r8( REG_DL, REG_AL ); // Q' = Q ^ tmp1
+    XORB_r8_r8( REG_AL, REG_CL ); // Q'' = Q' ^ M
+    MOVL_r32_rbpdisp( REG_ECX, R_Q );
+    XORL_imms_r32( 1, REG_AL );   // T = !Q'
+    MOVZXL_r8_r32( REG_AL, REG_EAX );
+    MOVL_r32_rbpdisp( REG_EAX, R_T );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+DMULS.L Rm, Rn {:  
+    COUNT_INST(I_DMULS);
+    load_reg( REG_EAX, Rm );
+    load_reg( REG_ECX, Rn );
+    IMULL_r32(REG_ECX);
+    MOVL_r32_rbpdisp( REG_EDX, R_MACH );
+    MOVL_r32_rbpdisp( REG_EAX, R_MACL );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+DMULU.L Rm, Rn {:  
+    COUNT_INST(I_DMULU);
+    load_reg( REG_EAX, Rm );
+    load_reg( REG_ECX, Rn );
+    MULL_r32(REG_ECX);
+    MOVL_r32_rbpdisp( REG_EDX, R_MACH );
+    MOVL_r32_rbpdisp( REG_EAX, R_MACL );    
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+DT Rn {:  
+    COUNT_INST(I_DT);
+    load_reg( REG_EAX, Rn );
+    ADDL_imms_r32( -1, REG_EAX );
+    store_reg( REG_EAX, Rn );
+    SETE_t();
+    sh4_x86.tstate = TSTATE_E;
+:}
+EXTS.B Rm, Rn {:  
+    COUNT_INST(I_EXTSB);
+    load_reg( REG_EAX, Rm );
+    MOVSXL_r8_r32( REG_EAX, REG_EAX );
+    store_reg( REG_EAX, Rn );
+:}
+EXTS.W Rm, Rn {:  
+    COUNT_INST(I_EXTSW);
+    load_reg( REG_EAX, Rm );
+    MOVSXL_r16_r32( REG_EAX, REG_EAX );
+    store_reg( REG_EAX, Rn );
+:}
+EXTU.B Rm, Rn {:  
+    COUNT_INST(I_EXTUB);
+    load_reg( REG_EAX, Rm );
+    MOVZXL_r8_r32( REG_EAX, REG_EAX );
+    store_reg( REG_EAX, Rn );
+:}
+EXTU.W Rm, Rn {:  
+    COUNT_INST(I_EXTUW);
+    load_reg( REG_EAX, Rm );
+    MOVZXL_r16_r32( REG_EAX, REG_EAX );
+    store_reg( REG_EAX, Rn );
+:}
+MAC.L @Rm+, @Rn+ {:
+    COUNT_INST(I_MACL);
+    if( Rm == Rn ) {
+	load_reg( REG_EAX, Rm );
+	check_ralign32( REG_EAX );
+	MEM_READ_LONG( REG_EAX, REG_EAX );
+	MOVL_r32_rspdisp(REG_EAX, 0);
+	load_reg( REG_EAX, Rm );
+	LEAL_r32disp_r32( REG_EAX, 4, REG_EAX );
+	MEM_READ_LONG( REG_EAX, REG_EAX );
+        ADDL_imms_rbpdisp( 8, REG_OFFSET(r[Rn]) );
+    } else {
+	load_reg( REG_EAX, Rm );
+	check_ralign32( REG_EAX );
+	MEM_READ_LONG( REG_EAX, REG_EAX );
+	MOVL_r32_rspdisp( REG_EAX, 0 );
+	load_reg( REG_EAX, Rn );
+	check_ralign32( REG_EAX );
+	MEM_READ_LONG( REG_EAX, REG_EAX );
+	ADDL_imms_rbpdisp( 4, REG_OFFSET(r[Rn]) );
+	ADDL_imms_rbpdisp( 4, REG_OFFSET(r[Rm]) );
+    }
+    
+    IMULL_rspdisp( 0 );
+    ADDL_r32_rbpdisp( REG_EAX, R_MACL );
+    ADCL_r32_rbpdisp( REG_EDX, R_MACH );
+
+    MOVL_rbpdisp_r32( R_S, REG_ECX );
+    TESTL_r32_r32(REG_ECX, REG_ECX);
+    JE_label( nosat );
+    CALL_ptr( signsat48 );
+    JMP_TARGET( nosat );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+MAC.W @Rm+, @Rn+ {:  
+    COUNT_INST(I_MACW);
+    if( Rm == Rn ) {
+	load_reg( REG_EAX, Rm );
+	check_ralign16( REG_EAX );
+	MEM_READ_WORD( REG_EAX, REG_EAX );
+        MOVL_r32_rspdisp( REG_EAX, 0 );
+	load_reg( REG_EAX, Rm );
+	LEAL_r32disp_r32( REG_EAX, 2, REG_EAX );
+	MEM_READ_WORD( REG_EAX, REG_EAX );
+	ADDL_imms_rbpdisp( 4, REG_OFFSET(r[Rn]) );
+	// Note translate twice in case of page boundaries. Maybe worth
+	// adding a page-boundary check to skip the second translation
+    } else {
+	load_reg( REG_EAX, Rn );
+	check_ralign16( REG_EAX );
+	MEM_READ_WORD( REG_EAX, REG_EAX );
+        MOVL_r32_rspdisp( REG_EAX, 0 );
+	load_reg( REG_EAX, Rm );
+	check_ralign16( REG_EAX );
+	MEM_READ_WORD( REG_EAX, REG_EAX );
+	ADDL_imms_rbpdisp( 2, REG_OFFSET(r[Rn]) );
+	ADDL_imms_rbpdisp( 2, REG_OFFSET(r[Rm]) );
+    }
+    IMULL_rspdisp( 0 );
+    MOVL_rbpdisp_r32( R_S, REG_ECX );
+    TESTL_r32_r32( REG_ECX, REG_ECX );
+    JE_label( nosat );
+
+    ADDL_r32_rbpdisp( REG_EAX, R_MACL );  // 6
+    JNO_label( end );            // 2
+    MOVL_imm32_r32( 1, REG_EDX );         // 5
+    MOVL_r32_rbpdisp( REG_EDX, R_MACH );   // 6
+    JS_label( positive );        // 2
+    MOVL_imm32_r32( 0x80000000, REG_EAX );// 5
+    MOVL_r32_rbpdisp( REG_EAX, R_MACL );   // 6
+    JMP_label(end2);           // 2
+
+    JMP_TARGET(positive);
+    MOVL_imm32_r32( 0x7FFFFFFF, REG_EAX );// 5
+    MOVL_r32_rbpdisp( REG_EAX, R_MACL );   // 6
+    JMP_label(end3);            // 2
+
+    JMP_TARGET(nosat);
+    ADDL_r32_rbpdisp( REG_EAX, R_MACL );  // 6
+    ADCL_r32_rbpdisp( REG_EDX, R_MACH );  // 6
+    JMP_TARGET(end);
+    JMP_TARGET(end2);
+    JMP_TARGET(end3);
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+MOVT Rn {:  
+    COUNT_INST(I_MOVT);
+    MOVL_rbpdisp_r32( R_T, REG_EAX );
+    store_reg( REG_EAX, Rn );
+:}
+MUL.L Rm, Rn {:  
+    COUNT_INST(I_MULL);
+    load_reg( REG_EAX, Rm );
+    load_reg( REG_ECX, Rn );
+    MULL_r32( REG_ECX );
+    MOVL_r32_rbpdisp( REG_EAX, R_MACL );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+MULS.W Rm, Rn {:
+    COUNT_INST(I_MULSW);
+    MOVSXL_rbpdisp16_r32( R_R(Rm), REG_EAX );
+    MOVSXL_rbpdisp16_r32( R_R(Rn), REG_ECX );
+    MULL_r32( REG_ECX );
+    MOVL_r32_rbpdisp( REG_EAX, R_MACL );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+MULU.W Rm, Rn {:  
+    COUNT_INST(I_MULUW);
+    MOVZXL_rbpdisp16_r32( R_R(Rm), REG_EAX );
+    MOVZXL_rbpdisp16_r32( R_R(Rn), REG_ECX );
+    MULL_r32( REG_ECX );
+    MOVL_r32_rbpdisp( REG_EAX, R_MACL );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+NEG Rm, Rn {:
+    COUNT_INST(I_NEG);
+    load_reg( REG_EAX, Rm );
+    NEGL_r32( REG_EAX );
+    store_reg( REG_EAX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+NEGC Rm, Rn {:  
+    COUNT_INST(I_NEGC);
+    load_reg( REG_EAX, Rm );
+    XORL_r32_r32( REG_ECX, REG_ECX );
+    LDC_t();
+    SBBL_r32_r32( REG_EAX, REG_ECX );
+    store_reg( REG_ECX, Rn );
+    SETC_t();
+    sh4_x86.tstate = TSTATE_C;
+:}
+NOT Rm, Rn {:  
+    COUNT_INST(I_NOT);
+    load_reg( REG_EAX, Rm );
+    NOTL_r32( REG_EAX );
+    store_reg( REG_EAX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+OR Rm, Rn {:  
+    COUNT_INST(I_OR);
+    load_reg( REG_EAX, Rm );
+    load_reg( REG_ECX, Rn );
+    ORL_r32_r32( REG_EAX, REG_ECX );
+    store_reg( REG_ECX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+OR #imm, R0 {:
+    COUNT_INST(I_ORI);
+    load_reg( REG_EAX, 0 );
+    ORL_imms_r32(imm, REG_EAX);
+    store_reg( REG_EAX, 0 );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+OR.B #imm, @(R0, GBR) {:  
+    COUNT_INST(I_ORB);
+    load_reg( REG_EAX, 0 );
+    ADDL_rbpdisp_r32( R_GBR, REG_EAX );
+    MOVL_r32_rspdisp( REG_EAX, 0 );
+    MEM_READ_BYTE_FOR_WRITE( REG_EAX, REG_EDX );
+    MOVL_rspdisp_r32( 0, REG_EAX );
+    ORL_imms_r32(imm, REG_EDX );
+    MEM_WRITE_BYTE( REG_EAX, REG_EDX );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+ROTCL Rn {:
+    COUNT_INST(I_ROTCL);
+    load_reg( REG_EAX, Rn );
+    if( sh4_x86.tstate != TSTATE_C ) {
+	LDC_t();
+    }
+    RCLL_imm_r32( 1, REG_EAX );
+    store_reg( REG_EAX, Rn );
+    SETC_t();
+    sh4_x86.tstate = TSTATE_C;
+:}
+ROTCR Rn {:  
+    COUNT_INST(I_ROTCR);
+    load_reg( REG_EAX, Rn );
+    if( sh4_x86.tstate != TSTATE_C ) {
+	LDC_t();
+    }
+    RCRL_imm_r32( 1, REG_EAX );
+    store_reg( REG_EAX, Rn );
+    SETC_t();
+    sh4_x86.tstate = TSTATE_C;
+:}
+ROTL Rn {:  
+    COUNT_INST(I_ROTL);
+    load_reg( REG_EAX, Rn );
+    ROLL_imm_r32( 1, REG_EAX );
+    store_reg( REG_EAX, Rn );
+    SETC_t();
+    sh4_x86.tstate = TSTATE_C;
+:}
+ROTR Rn {:  
+    COUNT_INST(I_ROTR);
+    load_reg( REG_EAX, Rn );
+    RORL_imm_r32( 1, REG_EAX );
+    store_reg( REG_EAX, Rn );
+    SETC_t();
+    sh4_x86.tstate = TSTATE_C;
+:}
+SHAD Rm, Rn {:
+    COUNT_INST(I_SHAD);
+    /* Annoyingly enough, not directly convertible */
+    load_reg( REG_EAX, Rn );
+    load_reg( REG_ECX, Rm );
+    CMPL_imms_r32( 0, REG_ECX );
+    JGE_label(doshl);
+                    
+    NEGL_r32( REG_ECX );      // 2
+    ANDB_imms_r8( 0x1F, REG_CL ); // 3
+    JE_label(emptysar);     // 2
+    SARL_cl_r32( REG_EAX );       // 2
+    JMP_label(end);          // 2
+
+    JMP_TARGET(emptysar);
+    SARL_imm_r32(31, REG_EAX );  // 3
+    JMP_label(end2);
+
+    JMP_TARGET(doshl);
+    ANDB_imms_r8( 0x1F, REG_CL ); // 3
+    SHLL_cl_r32( REG_EAX );       // 2
+    JMP_TARGET(end);
+    JMP_TARGET(end2);
+    store_reg( REG_EAX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+SHLD Rm, Rn {:  
+    COUNT_INST(I_SHLD);
+    load_reg( REG_EAX, Rn );
+    load_reg( REG_ECX, Rm );
+    CMPL_imms_r32( 0, REG_ECX );
+    JGE_label(doshl);
+
+    NEGL_r32( REG_ECX );      // 2
+    ANDB_imms_r8( 0x1F, REG_CL ); // 3
+    JE_label(emptyshr );
+    SHRL_cl_r32( REG_EAX );       // 2
+    JMP_label(end);          // 2
+
+    JMP_TARGET(emptyshr);
+    XORL_r32_r32( REG_EAX, REG_EAX );
+    JMP_label(end2);
+
+    JMP_TARGET(doshl);
+    ANDB_imms_r8( 0x1F, REG_CL ); // 3
+    SHLL_cl_r32( REG_EAX );       // 2
+    JMP_TARGET(end);
+    JMP_TARGET(end2);
+    store_reg( REG_EAX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+SHAL Rn {: 
+    COUNT_INST(I_SHAL);
+    load_reg( REG_EAX, Rn );
+    SHLL_imm_r32( 1, REG_EAX );
+    SETC_t();
+    store_reg( REG_EAX, Rn );
+    sh4_x86.tstate = TSTATE_C;
+:}
+SHAR Rn {:  
+    COUNT_INST(I_SHAR);
+    load_reg( REG_EAX, Rn );
+    SARL_imm_r32( 1, REG_EAX );
+    SETC_t();
+    store_reg( REG_EAX, Rn );
+    sh4_x86.tstate = TSTATE_C;
+:}
+SHLL Rn {:  
+    COUNT_INST(I_SHLL);
+    load_reg( REG_EAX, Rn );
+    SHLL_imm_r32( 1, REG_EAX );
+    SETC_t();
+    store_reg( REG_EAX, Rn );
+    sh4_x86.tstate = TSTATE_C;
+:}
+SHLL2 Rn {:
+    COUNT_INST(I_SHLL);
+    load_reg( REG_EAX, Rn );
+    SHLL_imm_r32( 2, REG_EAX );
+    store_reg( REG_EAX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+SHLL8 Rn {:  
+    COUNT_INST(I_SHLL);
+    load_reg( REG_EAX, Rn );
+    SHLL_imm_r32( 8, REG_EAX );
+    store_reg( REG_EAX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+SHLL16 Rn {:  
+    COUNT_INST(I_SHLL);
+    load_reg( REG_EAX, Rn );
+    SHLL_imm_r32( 16, REG_EAX );
+    store_reg( REG_EAX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+SHLR Rn {:  
+    COUNT_INST(I_SHLR);
+    load_reg( REG_EAX, Rn );
+    SHRL_imm_r32( 1, REG_EAX );
+    SETC_t();
+    store_reg( REG_EAX, Rn );
+    sh4_x86.tstate = TSTATE_C;
+:}
+SHLR2 Rn {:  
+    COUNT_INST(I_SHLR);
+    load_reg( REG_EAX, Rn );
+    SHRL_imm_r32( 2, REG_EAX );
+    store_reg( REG_EAX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+SHLR8 Rn {:  
+    COUNT_INST(I_SHLR);
+    load_reg( REG_EAX, Rn );
+    SHRL_imm_r32( 8, REG_EAX );
+    store_reg( REG_EAX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+SHLR16 Rn {:  
+    COUNT_INST(I_SHLR);
+    load_reg( REG_EAX, Rn );
+    SHRL_imm_r32( 16, REG_EAX );
+    store_reg( REG_EAX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+SUB Rm, Rn {:  
+    COUNT_INST(I_SUB);
+    load_reg( REG_EAX, Rm );
+    load_reg( REG_ECX, Rn );
+    SUBL_r32_r32( REG_EAX, REG_ECX );
+    store_reg( REG_ECX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+SUBC Rm, Rn {:  
+    COUNT_INST(I_SUBC);
+    load_reg( REG_EAX, Rm );
+    load_reg( REG_ECX, Rn );
+    if( sh4_x86.tstate != TSTATE_C ) {
+	LDC_t();
+    }
+    SBBL_r32_r32( REG_EAX, REG_ECX );
+    store_reg( REG_ECX, Rn );
+    SETC_t();
+    sh4_x86.tstate = TSTATE_C;
+:}
+SUBV Rm, Rn {:  
+    COUNT_INST(I_SUBV);
+    load_reg( REG_EAX, Rm );
+    load_reg( REG_ECX, Rn );
+    SUBL_r32_r32( REG_EAX, REG_ECX );
+    store_reg( REG_ECX, Rn );
+    SETO_t();
+    sh4_x86.tstate = TSTATE_O;
+:}
+SWAP.B Rm, Rn {:  
+    COUNT_INST(I_SWAPB);
+    load_reg( REG_EAX, Rm );
+    XCHGB_r8_r8( REG_AL, REG_AH ); // NB: does not touch EFLAGS
+    store_reg( REG_EAX, Rn );
+:}
+SWAP.W Rm, Rn {:  
+    COUNT_INST(I_SWAPB);
+    load_reg( REG_EAX, Rm );
+    MOVL_r32_r32( REG_EAX, REG_ECX );
+    SHLL_imm_r32( 16, REG_ECX );
+    SHRL_imm_r32( 16, REG_EAX );
+    ORL_r32_r32( REG_EAX, REG_ECX );
+    store_reg( REG_ECX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+TAS.B @Rn {:  
+    COUNT_INST(I_TASB);
+    load_reg( REG_EAX, Rn );
+    MOVL_r32_rspdisp( REG_EAX, 0 );
+    MEM_READ_BYTE_FOR_WRITE( REG_EAX, REG_EDX );
+    TESTB_r8_r8( REG_DL, REG_DL );
+    SETE_t();
+    ORB_imms_r8( 0x80, REG_DL );
+    MOVL_rspdisp_r32( 0, REG_EAX );
+    MEM_WRITE_BYTE( REG_EAX, REG_EDX );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+TST Rm, Rn {:  
+    COUNT_INST(I_TST);
+    load_reg( REG_EAX, Rm );
+    load_reg( REG_ECX, Rn );
+    TESTL_r32_r32( REG_EAX, REG_ECX );
+    SETE_t();
+    sh4_x86.tstate = TSTATE_E;
+:}
+TST #imm, R0 {:  
+    COUNT_INST(I_TSTI);
+    load_reg( REG_EAX, 0 );
+    TESTL_imms_r32( imm, REG_EAX );
+    SETE_t();
+    sh4_x86.tstate = TSTATE_E;
+:}
+TST.B #imm, @(R0, GBR) {:  
+    COUNT_INST(I_TSTB);
+    load_reg( REG_EAX, 0);
+    ADDL_rbpdisp_r32( R_GBR, REG_EAX );
+    MEM_READ_BYTE( REG_EAX, REG_EAX );
+    TESTB_imms_r8( imm, REG_AL );
+    SETE_t();
+    sh4_x86.tstate = TSTATE_E;
+:}
+XOR Rm, Rn {:  
+    COUNT_INST(I_XOR);
+    load_reg( REG_EAX, Rm );
+    load_reg( REG_ECX, Rn );
+    XORL_r32_r32( REG_EAX, REG_ECX );
+    store_reg( REG_ECX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+XOR #imm, R0 {:  
+    COUNT_INST(I_XORI);
+    load_reg( REG_EAX, 0 );
+    XORL_imms_r32( imm, REG_EAX );
+    store_reg( REG_EAX, 0 );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+XOR.B #imm, @(R0, GBR) {:  
+    COUNT_INST(I_XORB);
+    load_reg( REG_EAX, 0 );
+    ADDL_rbpdisp_r32( R_GBR, REG_EAX ); 
+    MOVL_r32_rspdisp( REG_EAX, 0 );
+    MEM_READ_BYTE_FOR_WRITE(REG_EAX, REG_EDX);
+    MOVL_rspdisp_r32( 0, REG_EAX );
+    XORL_imms_r32( imm, REG_EDX );
+    MEM_WRITE_BYTE( REG_EAX, REG_EDX );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+XTRCT Rm, Rn {:
+    COUNT_INST(I_XTRCT);
+    load_reg( REG_EAX, Rm );
+    load_reg( REG_ECX, Rn );
+    SHLL_imm_r32( 16, REG_EAX );
+    SHRL_imm_r32( 16, REG_ECX );
+    ORL_r32_r32( REG_EAX, REG_ECX );
+    store_reg( REG_ECX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+
+/* Data move instructions */
+MOV Rm, Rn {:  
+    COUNT_INST(I_MOV);
+    load_reg( REG_EAX, Rm );
+    store_reg( REG_EAX, Rn );
+:}
+MOV #imm, Rn {:  
+    COUNT_INST(I_MOVI);
+    MOVL_imm32_r32( imm, REG_EAX );
+    store_reg( REG_EAX, Rn );
+:}
+MOV.B Rm, @Rn {:  
+    COUNT_INST(I_MOVB);
+    load_reg( REG_EAX, Rn );
+    load_reg( REG_EDX, Rm );
+    MEM_WRITE_BYTE( REG_EAX, REG_EDX );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+MOV.B Rm, @-Rn {:  
+    COUNT_INST(I_MOVB);
+    load_reg( REG_EAX, Rn );
+    LEAL_r32disp_r32( REG_EAX, -1, REG_EAX );
+    load_reg( REG_EDX, Rm );
+    MEM_WRITE_BYTE( REG_EAX, REG_EDX );
+    ADDL_imms_rbpdisp( -1, REG_OFFSET(r[Rn]) );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+MOV.B Rm, @(R0, Rn) {:  
+    COUNT_INST(I_MOVB);
+    load_reg( REG_EAX, 0 );
+    ADDL_rbpdisp_r32( REG_OFFSET(r[Rn]), REG_EAX );
+    load_reg( REG_EDX, Rm );
+    MEM_WRITE_BYTE( REG_EAX, REG_EDX );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+MOV.B R0, @(disp, GBR) {:  
+    COUNT_INST(I_MOVB);
+    MOVL_rbpdisp_r32( R_GBR, REG_EAX );
+    ADDL_imms_r32( disp, REG_EAX );
+    load_reg( REG_EDX, 0 );
+    MEM_WRITE_BYTE( REG_EAX, REG_EDX );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+MOV.B R0, @(disp, Rn) {:  
+    COUNT_INST(I_MOVB);
+    load_reg( REG_EAX, Rn );
+    ADDL_imms_r32( disp, REG_EAX );
+    load_reg( REG_EDX, 0 );
+    MEM_WRITE_BYTE( REG_EAX, REG_EDX );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+MOV.B @Rm, Rn {:  
+    COUNT_INST(I_MOVB);
+    load_reg( REG_EAX, Rm );
+    MEM_READ_BYTE( REG_EAX, REG_EAX );
+    store_reg( REG_EAX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+MOV.B @Rm+, Rn {:  
+    COUNT_INST(I_MOVB);
+    load_reg( REG_EAX, Rm );
+    MEM_READ_BYTE( REG_EAX, REG_EAX );
+    if( Rm != Rn ) {
+    	ADDL_imms_rbpdisp( 1, REG_OFFSET(r[Rm]) );
+    }
+    store_reg( REG_EAX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+MOV.B @(R0, Rm), Rn {:  
+    COUNT_INST(I_MOVB);
+    load_reg( REG_EAX, 0 );
+    ADDL_rbpdisp_r32( REG_OFFSET(r[Rm]), REG_EAX );
+    MEM_READ_BYTE( REG_EAX, REG_EAX );
+    store_reg( REG_EAX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+MOV.B @(disp, GBR), R0 {:  
+    COUNT_INST(I_MOVB);
+    MOVL_rbpdisp_r32( R_GBR, REG_EAX );
+    ADDL_imms_r32( disp, REG_EAX );
+    MEM_READ_BYTE( REG_EAX, REG_EAX );
+    store_reg( REG_EAX, 0 );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+MOV.B @(disp, Rm), R0 {:  
+    COUNT_INST(I_MOVB);
+    load_reg( REG_EAX, Rm );
+    ADDL_imms_r32( disp, REG_EAX );
+    MEM_READ_BYTE( REG_EAX, REG_EAX );
+    store_reg( REG_EAX, 0 );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+MOV.L Rm, @Rn {:
+    COUNT_INST(I_MOVL);
+    load_reg( REG_EAX, Rn );
+    check_walign32(REG_EAX);
+    MOVL_r32_r32( REG_EAX, REG_ECX );
+    ANDL_imms_r32( 0xFC000000, REG_ECX );
+    CMPL_imms_r32( 0xE0000000, REG_ECX );
+    JNE_label( notsq );
+    ANDL_imms_r32( 0x3C, REG_EAX );
+    load_reg( REG_EDX, Rm );
+    MOVL_r32_sib( REG_EDX, 0, REG_EBP, REG_EAX, REG_OFFSET(store_queue) );
+    JMP_label(end);
+    JMP_TARGET(notsq);
+    load_reg( REG_EDX, Rm );
+    MEM_WRITE_LONG( REG_EAX, REG_EDX );
+    JMP_TARGET(end);
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+MOV.L Rm, @-Rn {:  
+    COUNT_INST(I_MOVL);
+    load_reg( REG_EAX, Rn );
+    ADDL_imms_r32( -4, REG_EAX );
+    check_walign32( REG_EAX );
+    load_reg( REG_EDX, Rm );
+    MEM_WRITE_LONG( REG_EAX, REG_EDX );
+    ADDL_imms_rbpdisp( -4, REG_OFFSET(r[Rn]) );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+MOV.L Rm, @(R0, Rn) {:  
+    COUNT_INST(I_MOVL);
+    load_reg( REG_EAX, 0 );
+    ADDL_rbpdisp_r32( REG_OFFSET(r[Rn]), REG_EAX );
+    check_walign32( REG_EAX );
+    load_reg( REG_EDX, Rm );
+    MEM_WRITE_LONG( REG_EAX, REG_EDX );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+MOV.L R0, @(disp, GBR) {:  
+    COUNT_INST(I_MOVL);
+    MOVL_rbpdisp_r32( R_GBR, REG_EAX );
+    ADDL_imms_r32( disp, REG_EAX );
+    check_walign32( REG_EAX );
+    load_reg( REG_EDX, 0 );
+    MEM_WRITE_LONG( REG_EAX, REG_EDX );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+MOV.L Rm, @(disp, Rn) {:  
+    COUNT_INST(I_MOVL);
+    load_reg( REG_EAX, Rn );
+    ADDL_imms_r32( disp, REG_EAX );
+    check_walign32( REG_EAX );
+    MOVL_r32_r32( REG_EAX, REG_ECX );
+    ANDL_imms_r32( 0xFC000000, REG_ECX );
+    CMPL_imms_r32( 0xE0000000, REG_ECX );
+    JNE_label( notsq );
+    ANDL_imms_r32( 0x3C, REG_EAX );
+    load_reg( REG_EDX, Rm );
+    MOVL_r32_sib( REG_EDX, 0, REG_EBP, REG_EAX, REG_OFFSET(store_queue) );
+    JMP_label(end);
+    JMP_TARGET(notsq);
+    load_reg( REG_EDX, Rm );
+    MEM_WRITE_LONG( REG_EAX, REG_EDX );
+    JMP_TARGET(end);
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+MOV.L @Rm, Rn {:  
+    COUNT_INST(I_MOVL);
+    load_reg( REG_EAX, Rm );
+    check_ralign32( REG_EAX );
+    MEM_READ_LONG( REG_EAX, REG_EAX );
+    store_reg( REG_EAX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+MOV.L @Rm+, Rn {:  
+    COUNT_INST(I_MOVL);
+    load_reg( REG_EAX, Rm );
+    check_ralign32( REG_EAX );
+    MEM_READ_LONG( REG_EAX, REG_EAX );
+    if( Rm != Rn ) {
+    	ADDL_imms_rbpdisp( 4, REG_OFFSET(r[Rm]) );
+    }
+    store_reg( REG_EAX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+MOV.L @(R0, Rm), Rn {:  
+    COUNT_INST(I_MOVL);
+    load_reg( REG_EAX, 0 );
+    ADDL_rbpdisp_r32( REG_OFFSET(r[Rm]), REG_EAX );
+    check_ralign32( REG_EAX );
+    MEM_READ_LONG( REG_EAX, REG_EAX );
+    store_reg( REG_EAX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+MOV.L @(disp, GBR), R0 {:
+    COUNT_INST(I_MOVL);
+    MOVL_rbpdisp_r32( R_GBR, REG_EAX );
+    ADDL_imms_r32( disp, REG_EAX );
+    check_ralign32( REG_EAX );
+    MEM_READ_LONG( REG_EAX, REG_EAX );
+    store_reg( REG_EAX, 0 );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+MOV.L @(disp, PC), Rn {:  
+    COUNT_INST(I_MOVLPC);
+    if( sh4_x86.in_delay_slot ) {
+	SLOTILLEGAL();
+    } else {
+	uint32_t target = (pc & 0xFFFFFFFC) + disp + 4;
+	if( sh4_x86.fastmem && IS_IN_ICACHE(target) ) {
+	    // If the target address is in the same page as the code, it's
+	    // pretty safe to just ref it directly and circumvent the whole
+	    // memory subsystem. (this is a big performance win)
+
+	    // FIXME: There's a corner-case that's not handled here when
+	    // the current code-page is in the ITLB but not in the UTLB.
+	    // (should generate a TLB miss although need to test SH4 
+	    // behaviour to confirm) Unlikely to be anyone depending on this
+	    // behaviour though.
+	    sh4ptr_t ptr = GET_ICACHE_PTR(target);
+	    MOVL_moffptr_eax( ptr );
+	} else {
+	    // Note: we use sh4r.pc for the calc as we could be running at a
+	    // different virtual address than the translation was done with,
+	    // but we can safely assume that the low bits are the same.
+	    MOVL_imm32_r32( (pc-sh4_x86.block_start_pc) + disp + 4 - (pc&0x03), REG_EAX );
+	    ADDL_rbpdisp_r32( R_PC, REG_EAX );
+	    MEM_READ_LONG( REG_EAX, REG_EAX );
+	    sh4_x86.tstate = TSTATE_NONE;
+	}
+	store_reg( REG_EAX, Rn );
+    }
+:}
+MOV.L @(disp, Rm), Rn {:  
+    COUNT_INST(I_MOVL);
+    load_reg( REG_EAX, Rm );
+    ADDL_imms_r32( disp, REG_EAX );
+    check_ralign32( REG_EAX );
+    MEM_READ_LONG( REG_EAX, REG_EAX );
+    store_reg( REG_EAX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+MOV.W Rm, @Rn {:  
+    COUNT_INST(I_MOVW);
+    load_reg( REG_EAX, Rn );
+    check_walign16( REG_EAX );
+    load_reg( REG_EDX, Rm );
+    MEM_WRITE_WORD( REG_EAX, REG_EDX );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+MOV.W Rm, @-Rn {:  
+    COUNT_INST(I_MOVW);
+    load_reg( REG_EAX, Rn );
+    check_walign16( REG_EAX );
+    LEAL_r32disp_r32( REG_EAX, -2, REG_EAX );
+    load_reg( REG_EDX, Rm );
+    MEM_WRITE_WORD( REG_EAX, REG_EDX );
+    ADDL_imms_rbpdisp( -2, REG_OFFSET(r[Rn]) );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+MOV.W Rm, @(R0, Rn) {:  
+    COUNT_INST(I_MOVW);
+    load_reg( REG_EAX, 0 );
+    ADDL_rbpdisp_r32( REG_OFFSET(r[Rn]), REG_EAX );
+    check_walign16( REG_EAX );
+    load_reg( REG_EDX, Rm );
+    MEM_WRITE_WORD( REG_EAX, REG_EDX );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+MOV.W R0, @(disp, GBR) {:  
+    COUNT_INST(I_MOVW);
+    MOVL_rbpdisp_r32( R_GBR, REG_EAX );
+    ADDL_imms_r32( disp, REG_EAX );
+    check_walign16( REG_EAX );
+    load_reg( REG_EDX, 0 );
+    MEM_WRITE_WORD( REG_EAX, REG_EDX );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+MOV.W R0, @(disp, Rn) {:  
+    COUNT_INST(I_MOVW);
+    load_reg( REG_EAX, Rn );
+    ADDL_imms_r32( disp, REG_EAX );
+    check_walign16( REG_EAX );
+    load_reg( REG_EDX, 0 );
+    MEM_WRITE_WORD( REG_EAX, REG_EDX );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+MOV.W @Rm, Rn {:  
+    COUNT_INST(I_MOVW);
+    load_reg( REG_EAX, Rm );
+    check_ralign16( REG_EAX );
+    MEM_READ_WORD( REG_EAX, REG_EAX );
+    store_reg( REG_EAX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+MOV.W @Rm+, Rn {:  
+    COUNT_INST(I_MOVW);
+    load_reg( REG_EAX, Rm );
+    check_ralign16( REG_EAX );
+    MEM_READ_WORD( REG_EAX, REG_EAX );
+    if( Rm != Rn ) {
+        ADDL_imms_rbpdisp( 2, REG_OFFSET(r[Rm]) );
+    }
+    store_reg( REG_EAX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+MOV.W @(R0, Rm), Rn {:  
+    COUNT_INST(I_MOVW);
+    load_reg( REG_EAX, 0 );
+    ADDL_rbpdisp_r32( REG_OFFSET(r[Rm]), REG_EAX );
+    check_ralign16( REG_EAX );
+    MEM_READ_WORD( REG_EAX, REG_EAX );
+    store_reg( REG_EAX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+MOV.W @(disp, GBR), R0 {:  
+    COUNT_INST(I_MOVW);
+    MOVL_rbpdisp_r32( R_GBR, REG_EAX );
+    ADDL_imms_r32( disp, REG_EAX );
+    check_ralign16( REG_EAX );
+    MEM_READ_WORD( REG_EAX, REG_EAX );
+    store_reg( REG_EAX, 0 );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+MOV.W @(disp, PC), Rn {:  
+    COUNT_INST(I_MOVW);
+    if( sh4_x86.in_delay_slot ) {
+	SLOTILLEGAL();
+    } else {
+	// See comments for MOV.L @(disp, PC), Rn
+	uint32_t target = pc + disp + 4;
+	if( sh4_x86.fastmem && IS_IN_ICACHE(target) ) {
+	    sh4ptr_t ptr = GET_ICACHE_PTR(target);
+	    MOVL_moffptr_eax( ptr );
+	    MOVSXL_r16_r32( REG_EAX, REG_EAX );
+	} else {
+	    MOVL_imm32_r32( (pc - sh4_x86.block_start_pc) + disp + 4, REG_EAX );
+	    ADDL_rbpdisp_r32( R_PC, REG_EAX );
+	    MEM_READ_WORD( REG_EAX, REG_EAX );
+	    sh4_x86.tstate = TSTATE_NONE;
+	}
+	store_reg( REG_EAX, Rn );
+    }
+:}
+MOV.W @(disp, Rm), R0 {:  
+    COUNT_INST(I_MOVW);
+    load_reg( REG_EAX, Rm );
+    ADDL_imms_r32( disp, REG_EAX );
+    check_ralign16( REG_EAX );
+    MEM_READ_WORD( REG_EAX, REG_EAX );
+    store_reg( REG_EAX, 0 );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+MOVA @(disp, PC), R0 {:  
+    COUNT_INST(I_MOVA);
+    if( sh4_x86.in_delay_slot ) {
+	SLOTILLEGAL();
+    } else {
+	MOVL_imm32_r32( (pc - sh4_x86.block_start_pc) + disp + 4 - (pc&0x03), REG_ECX );
+	ADDL_rbpdisp_r32( R_PC, REG_ECX );
+	store_reg( REG_ECX, 0 );
+	sh4_x86.tstate = TSTATE_NONE;
+    }
+:}
+MOVCA.L R0, @Rn {:  
+    COUNT_INST(I_MOVCA);
+    load_reg( REG_EAX, Rn );
+    check_walign32( REG_EAX );
+    load_reg( REG_EDX, 0 );
+    MEM_WRITE_LONG( REG_EAX, REG_EDX );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+
+/* Control transfer instructions */
+BF disp {:
+    COUNT_INST(I_BF);
+    if( sh4_x86.in_delay_slot ) {
+	SLOTILLEGAL();
+    } else {
+	sh4vma_t target = disp + pc + 4;
+	JT_label( nottaken );
+	exit_block_rel(target, pc+2 );
+	JMP_TARGET(nottaken);
+	return 2;
+    }
+:}
+BF/S disp {:
+    COUNT_INST(I_BFS);
+    if( sh4_x86.in_delay_slot ) {
+	SLOTILLEGAL();
+    } else {
+	sh4_x86.in_delay_slot = DELAY_PC;
+	if( UNTRANSLATABLE(pc+2) ) {
+	    MOVL_imm32_r32( pc + 4 - sh4_x86.block_start_pc, REG_EAX );
+	    JT_label(nottaken);
+	    ADDL_imms_r32( disp, REG_EAX );
+	    JMP_TARGET(nottaken);
+	    ADDL_rbpdisp_r32( R_PC, REG_EAX );
+	    MOVL_r32_rbpdisp( REG_EAX, R_NEW_PC );
+	    exit_block_emu(pc+2);
+	    sh4_x86.branch_taken = TRUE;
+	    return 2;
+	} else {
+	    LOAD_t();
+	    sh4vma_t target = disp + pc + 4;
+	    JCC_cc_rel32(sh4_x86.tstate,0);
+	    uint32_t *patch = ((uint32_t *)xlat_output)-1;
+	    int save_tstate = sh4_x86.tstate;
+	    sh4_translate_instruction(pc+2);
+            sh4_x86.in_delay_slot = DELAY_PC; /* Cleared by sh4_translate_instruction */
+	    exit_block_rel( target, pc+4 );
+	    
+	    // not taken
+	    *patch = (xlat_output - ((uint8_t *)patch)) - 4;
+	    sh4_x86.tstate = save_tstate;
+	    sh4_translate_instruction(pc+2);
+	    return 4;
+	}
+    }
+:}
+BRA disp {:  
+    COUNT_INST(I_BRA);
+    if( sh4_x86.in_delay_slot ) {
+	SLOTILLEGAL();
+    } else {
+	sh4_x86.in_delay_slot = DELAY_PC;
+	sh4_x86.branch_taken = TRUE;
+	if( UNTRANSLATABLE(pc+2) ) {
+	    MOVL_rbpdisp_r32( R_PC, REG_EAX );
+	    ADDL_imms_r32( pc + disp + 4 - sh4_x86.block_start_pc, REG_EAX );
+	    MOVL_r32_rbpdisp( REG_EAX, R_NEW_PC );
+	    exit_block_emu(pc+2);
+	    return 2;
+	} else {
+	    sh4_translate_instruction( pc + 2 );
+	    exit_block_rel( disp + pc + 4, pc+4 );
+	    return 4;
+	}
+    }
+:}
+BRAF Rn {:  
+    COUNT_INST(I_BRAF);
+    if( sh4_x86.in_delay_slot ) {
+	SLOTILLEGAL();
+    } else {
+	MOVL_rbpdisp_r32( R_PC, REG_EAX );
+	ADDL_imms_r32( pc + 4 - sh4_x86.block_start_pc, REG_EAX );
+	ADDL_rbpdisp_r32( REG_OFFSET(r[Rn]), REG_EAX );
+	MOVL_r32_rbpdisp( REG_EAX, R_NEW_PC );
+	sh4_x86.in_delay_slot = DELAY_PC;
+	sh4_x86.tstate = TSTATE_NONE;
+	sh4_x86.branch_taken = TRUE;
+	if( UNTRANSLATABLE(pc+2) ) {
+	    exit_block_emu(pc+2);
+	    return 2;
+	} else {
+	    sh4_translate_instruction( pc + 2 );
+	    exit_block_newpcset(pc+4);
+	    return 4;
+	}
+    }
+:}
+BSR disp {:  
+    COUNT_INST(I_BSR);
+    if( sh4_x86.in_delay_slot ) {
+	SLOTILLEGAL();
+    } else {
+	MOVL_rbpdisp_r32( R_PC, REG_EAX );
+	ADDL_imms_r32( pc + 4 - sh4_x86.block_start_pc, REG_EAX );
+	MOVL_r32_rbpdisp( REG_EAX, R_PR );
+	sh4_x86.in_delay_slot = DELAY_PC;
+	sh4_x86.branch_taken = TRUE;
+	sh4_x86.tstate = TSTATE_NONE;
+	if( UNTRANSLATABLE(pc+2) ) {
+	    ADDL_imms_r32( disp, REG_EAX );
+	    MOVL_r32_rbpdisp( REG_EAX, R_NEW_PC );
+	    exit_block_emu(pc+2);
+	    return 2;
+	} else {
+	    sh4_translate_instruction( pc + 2 );
+	    exit_block_rel( disp + pc + 4, pc+4 );
+	    return 4;
+	}
+    }
+:}
+BSRF Rn {:  
+    COUNT_INST(I_BSRF);
+    if( sh4_x86.in_delay_slot ) {
+	SLOTILLEGAL();
+    } else {
+	MOVL_rbpdisp_r32( R_PC, REG_EAX );
+	ADDL_imms_r32( pc + 4 - sh4_x86.block_start_pc, REG_EAX );
+	MOVL_r32_rbpdisp( REG_EAX, R_PR );
+	ADDL_rbpdisp_r32( REG_OFFSET(r[Rn]), REG_EAX );
+	MOVL_r32_rbpdisp( REG_EAX, R_NEW_PC );
+
+	sh4_x86.in_delay_slot = DELAY_PC;
+	sh4_x86.tstate = TSTATE_NONE;
+	sh4_x86.branch_taken = TRUE;
+	if( UNTRANSLATABLE(pc+2) ) {
+	    exit_block_emu(pc+2);
+	    return 2;
+	} else {
+	    sh4_translate_instruction( pc + 2 );
+	    exit_block_newpcset(pc+4);
+	    return 4;
+	}
+    }
+:}
+BT disp {:
+    COUNT_INST(I_BT);
+    if( sh4_x86.in_delay_slot ) {
+	SLOTILLEGAL();
+    } else {
+	sh4vma_t target = disp + pc + 4;
+	JF_label( nottaken );
+	exit_block_rel(target, pc+2 );
+	JMP_TARGET(nottaken);
+	return 2;
+    }
+:}
+BT/S disp {:
+    COUNT_INST(I_BTS);
+    if( sh4_x86.in_delay_slot ) {
+	SLOTILLEGAL();
+    } else {
+	sh4_x86.in_delay_slot = DELAY_PC;
+	if( UNTRANSLATABLE(pc+2) ) {
+	    MOVL_imm32_r32( pc + 4 - sh4_x86.block_start_pc, REG_EAX );
+	    JF_label(nottaken);
+	    ADDL_imms_r32( disp, REG_EAX );
+	    JMP_TARGET(nottaken);
+	    ADDL_rbpdisp_r32( R_PC, REG_EAX );
+	    MOVL_r32_rbpdisp( REG_EAX, R_NEW_PC );
+	    exit_block_emu(pc+2);
+	    sh4_x86.branch_taken = TRUE;
+	    return 2;
+	} else {
+		LOAD_t();
+	    JCC_cc_rel32(sh4_x86.tstate^1,0);
+	    uint32_t *patch = ((uint32_t *)xlat_output)-1;
+
+	    int save_tstate = sh4_x86.tstate;
+	    sh4_translate_instruction(pc+2);
+            sh4_x86.in_delay_slot = DELAY_PC; /* Cleared by sh4_translate_instruction */
+	    exit_block_rel( disp + pc + 4, pc+4 );
+	    // not taken
+	    *patch = (xlat_output - ((uint8_t *)patch)) - 4;
+	    sh4_x86.tstate = save_tstate;
+	    sh4_translate_instruction(pc+2);
+	    return 4;
+	}
+    }
+:}
+JMP @Rn {:  
+    COUNT_INST(I_JMP);
+    if( sh4_x86.in_delay_slot ) {
+	SLOTILLEGAL();
+    } else {
+	load_reg( REG_ECX, Rn );
+	MOVL_r32_rbpdisp( REG_ECX, R_NEW_PC );
+	sh4_x86.in_delay_slot = DELAY_PC;
+	sh4_x86.branch_taken = TRUE;
+	if( UNTRANSLATABLE(pc+2) ) {
+	    exit_block_emu(pc+2);
+	    return 2;
+	} else {
+	    sh4_translate_instruction(pc+2);
+	    exit_block_newpcset(pc+4);
+	    return 4;
+	}
+    }
+:}
+JSR @Rn {:  
+    COUNT_INST(I_JSR);
+    if( sh4_x86.in_delay_slot ) {
+	SLOTILLEGAL();
+    } else {
+	MOVL_rbpdisp_r32( R_PC, REG_EAX );
+	ADDL_imms_r32( pc + 4 - sh4_x86.block_start_pc, REG_EAX );
+	MOVL_r32_rbpdisp( REG_EAX, R_PR );
+	load_reg( REG_ECX, Rn );
+	MOVL_r32_rbpdisp( REG_ECX, R_NEW_PC );
+	sh4_x86.in_delay_slot = DELAY_PC;
+	sh4_x86.branch_taken = TRUE;
+	sh4_x86.tstate = TSTATE_NONE;
+	if( UNTRANSLATABLE(pc+2) ) {
+	    exit_block_emu(pc+2);
+	    return 2;
+	} else {
+	    sh4_translate_instruction(pc+2);
+	    exit_block_newpcset(pc+4);
+	    return 4;
+	}
+    }
+:}
+RTE {:  
+    COUNT_INST(I_RTE);
+    if( sh4_x86.in_delay_slot ) {
+	SLOTILLEGAL();
+    } else {
+	check_priv();
+	MOVL_rbpdisp_r32( R_SPC, REG_ECX );
+	MOVL_r32_rbpdisp( REG_ECX, R_NEW_PC );
+	MOVL_rbpdisp_r32( R_SSR, REG_EAX );
+	CALL1_ptr_r32( sh4_write_sr, REG_EAX );
+	sh4_x86.in_delay_slot = DELAY_PC;
+	sh4_x86.fpuen_checked = FALSE;
+	sh4_x86.tstate = TSTATE_NONE;
+	sh4_x86.branch_taken = TRUE;
+    sh4_x86.sh4_mode = SH4_MODE_UNKNOWN;
+	if( UNTRANSLATABLE(pc+2) ) {
+	    exit_block_emu(pc+2);
+	    return 2;
+	} else {
+	    sh4_translate_instruction(pc+2);
+	    exit_block_newpcset(pc+4);
+	    return 4;
+	}
+    }
+:}
+RTS {:  
+    COUNT_INST(I_RTS);
+    if( sh4_x86.in_delay_slot ) {
+	SLOTILLEGAL();
+    } else {
+	MOVL_rbpdisp_r32( R_PR, REG_ECX );
+	MOVL_r32_rbpdisp( REG_ECX, R_NEW_PC );
+	sh4_x86.in_delay_slot = DELAY_PC;
+	sh4_x86.branch_taken = TRUE;
+	if( UNTRANSLATABLE(pc+2) ) {
+	    exit_block_emu(pc+2);
+	    return 2;
+	} else {
+	    sh4_translate_instruction(pc+2);
+	    exit_block_newpcset(pc+4);
+	    return 4;
+	}
+    }
+:}
+TRAPA #imm {:  
+    COUNT_INST(I_TRAPA);
+    if( sh4_x86.in_delay_slot ) {
+	SLOTILLEGAL();
+    } else {
+	MOVL_imm32_r32( pc+2 - sh4_x86.block_start_pc, REG_ECX );   // 5
+	ADDL_r32_rbpdisp( REG_ECX, R_PC );
+	MOVL_imm32_r32( imm, REG_EAX );
+	CALL1_ptr_r32( sh4_raise_trap, REG_EAX );
+	sh4_x86.tstate = TSTATE_NONE;
+	exit_block_pcset(pc+2);
+	sh4_x86.branch_taken = TRUE;
+	return 2;
+    }
+:}
+UNDEF {:  
+    COUNT_INST(I_UNDEF);
+    if( sh4_x86.in_delay_slot ) {
+	exit_block_exc(EXC_SLOT_ILLEGAL, pc-2, 4);    
+    } else {
+	exit_block_exc(EXC_ILLEGAL, pc, 2);    
+	return 2;
+    }
+:}
+
+CLRMAC {:  
+    COUNT_INST(I_CLRMAC);
+    XORL_r32_r32(REG_EAX, REG_EAX);
+    MOVL_r32_rbpdisp( REG_EAX, R_MACL );
+    MOVL_r32_rbpdisp( REG_EAX, R_MACH );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+CLRS {:
+    COUNT_INST(I_CLRS);
+    CLC();
+    SETCCB_cc_rbpdisp(X86_COND_C, R_S);
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+CLRT {:  
+    COUNT_INST(I_CLRT);
+    CLC();
+    SETC_t();
+    sh4_x86.tstate = TSTATE_C;
+:}
+SETS {:  
+    COUNT_INST(I_SETS);
+    STC();
+    SETCCB_cc_rbpdisp(X86_COND_C, R_S);
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+SETT {:  
+    COUNT_INST(I_SETT);
+    STC();
+    SETC_t();
+    sh4_x86.tstate = TSTATE_C;
+:}
+
+/* Floating point moves */
+FMOV FRm, FRn {:  
+    COUNT_INST(I_FMOV1);
+    check_fpuen();
+    if( sh4_x86.double_size ) {
+        load_dr0( REG_EAX, FRm );
+        load_dr1( REG_ECX, FRm );
+        store_dr0( REG_EAX, FRn );
+        store_dr1( REG_ECX, FRn );
+    } else {
+        load_fr( REG_EAX, FRm ); // SZ=0 branch
+        store_fr( REG_EAX, FRn );
+    }
+:}
+FMOV FRm, @Rn {: 
+    COUNT_INST(I_FMOV2);
+    check_fpuen();
+    load_reg( REG_EAX, Rn );
+    if( sh4_x86.double_size ) {
+        check_walign64( REG_EAX );
+        load_dr0( REG_EDX, FRm );
+        MEM_WRITE_LONG( REG_EAX, REG_EDX );
+        load_reg( REG_EAX, Rn );
+        LEAL_r32disp_r32( REG_EAX, 4, REG_EAX );
+        load_dr1( REG_EDX, FRm );
+        MEM_WRITE_LONG( REG_EAX, REG_EDX );
+    } else {
+        check_walign32( REG_EAX );
+        load_fr( REG_EDX, FRm );
+        MEM_WRITE_LONG( REG_EAX, REG_EDX );
+    }
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+FMOV @Rm, FRn {:  
+    COUNT_INST(I_FMOV5);
+    check_fpuen();
+    load_reg( REG_EAX, Rm );
+    if( sh4_x86.double_size ) {
+        check_ralign64( REG_EAX );
+        MEM_READ_LONG( REG_EAX, REG_EAX );
+        store_dr0( REG_EAX, FRn );
+        load_reg( REG_EAX, Rm );
+        LEAL_r32disp_r32( REG_EAX, 4, REG_EAX );
+        MEM_READ_LONG( REG_EAX, REG_EAX );
+        store_dr1( REG_EAX, FRn );
+    } else {
+        check_ralign32( REG_EAX );
+        MEM_READ_LONG( REG_EAX, REG_EAX );
+        store_fr( REG_EAX, FRn );
+    }
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+FMOV FRm, @-Rn {:  
+    COUNT_INST(I_FMOV3);
+    check_fpuen();
+    load_reg( REG_EAX, Rn );
+    if( sh4_x86.double_size ) {
+        check_walign64( REG_EAX );
+        LEAL_r32disp_r32( REG_EAX, -8, REG_EAX );
+        load_dr0( REG_EDX, FRm );
+        MEM_WRITE_LONG( REG_EAX, REG_EDX );
+        load_reg( REG_EAX, Rn );
+        LEAL_r32disp_r32( REG_EAX, -4, REG_EAX );
+        load_dr1( REG_EDX, FRm );
+        MEM_WRITE_LONG( REG_EAX, REG_EDX );
+        ADDL_imms_rbpdisp(-8,REG_OFFSET(r[Rn]));
+    } else {
+        check_walign32( REG_EAX );
+        LEAL_r32disp_r32( REG_EAX, -4, REG_EAX );
+        load_fr( REG_EDX, FRm );
+        MEM_WRITE_LONG( REG_EAX, REG_EDX );
+        ADDL_imms_rbpdisp(-4,REG_OFFSET(r[Rn]));
+    }
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+FMOV @Rm+, FRn {:
+    COUNT_INST(I_FMOV6);
+    check_fpuen();
+    load_reg( REG_EAX, Rm );
+    if( sh4_x86.double_size ) {
+        check_ralign64( REG_EAX );
+        MEM_READ_LONG( REG_EAX, REG_EAX );
+        store_dr0( REG_EAX, FRn );
+        load_reg( REG_EAX, Rm );
+        LEAL_r32disp_r32( REG_EAX, 4, REG_EAX );
+        MEM_READ_LONG( REG_EAX, REG_EAX );
+        store_dr1( REG_EAX, FRn );
+        ADDL_imms_rbpdisp( 8, REG_OFFSET(r[Rm]) );
+    } else {
+        check_ralign32( REG_EAX );
+        MEM_READ_LONG( REG_EAX, REG_EAX );
+        store_fr( REG_EAX, FRn );
+        ADDL_imms_rbpdisp( 4, REG_OFFSET(r[Rm]) );
+    }
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+FMOV FRm, @(R0, Rn) {:  
+    COUNT_INST(I_FMOV4);
+    check_fpuen();
+    load_reg( REG_EAX, Rn );
+    ADDL_rbpdisp_r32( REG_OFFSET(r[0]), REG_EAX );
+    if( sh4_x86.double_size ) {
+        check_walign64( REG_EAX );
+        load_dr0( REG_EDX, FRm );
+        MEM_WRITE_LONG( REG_EAX, REG_EDX );
+        load_reg( REG_EAX, Rn );
+        ADDL_rbpdisp_r32( REG_OFFSET(r[0]), REG_EAX );
+        LEAL_r32disp_r32( REG_EAX, 4, REG_EAX );
+        load_dr1( REG_EDX, FRm );
+        MEM_WRITE_LONG( REG_EAX, REG_EDX );
+    } else {
+        check_walign32( REG_EAX );
+        load_fr( REG_EDX, FRm );
+        MEM_WRITE_LONG( REG_EAX, REG_EDX ); // 12
+    }
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+FMOV @(R0, Rm), FRn {:  
+    COUNT_INST(I_FMOV7);
+    check_fpuen();
+    load_reg( REG_EAX, Rm );
+    ADDL_rbpdisp_r32( REG_OFFSET(r[0]), REG_EAX );
+    if( sh4_x86.double_size ) {
+        check_ralign64( REG_EAX );
+        MEM_READ_LONG( REG_EAX, REG_EAX );
+        store_dr0( REG_EAX, FRn );
+        load_reg( REG_EAX, Rm );
+        ADDL_rbpdisp_r32( REG_OFFSET(r[0]), REG_EAX );
+        LEAL_r32disp_r32( REG_EAX, 4, REG_EAX );
+        MEM_READ_LONG( REG_EAX, REG_EAX );
+        store_dr1( REG_EAX, FRn );
+    } else {
+        check_ralign32( REG_EAX );
+        MEM_READ_LONG( REG_EAX, REG_EAX );
+        store_fr( REG_EAX, FRn );
+    }
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+FLDI0 FRn {:  /* IFF PR=0 */
+    COUNT_INST(I_FLDI0);
+    check_fpuen();
+    if( sh4_x86.double_prec == 0 ) {
+        XORL_r32_r32( REG_EAX, REG_EAX );
+        store_fr( REG_EAX, FRn );
+    }
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+FLDI1 FRn {:  /* IFF PR=0 */
+    COUNT_INST(I_FLDI1);
+    check_fpuen();
+    if( sh4_x86.double_prec == 0 ) {
+        MOVL_imm32_r32( 0x3F800000, REG_EAX );
+        store_fr( REG_EAX, FRn );
+    }
+:}
+
+FLOAT FPUL, FRn {:  
+    COUNT_INST(I_FLOAT);
+    check_fpuen();
+    FILD_rbpdisp(R_FPUL);
+    if( sh4_x86.double_prec ) {
+        pop_dr( FRn );
+    } else {
+        pop_fr( FRn );
+    }
+:}
+FTRC FRm, FPUL {:  
+    COUNT_INST(I_FTRC);
+    check_fpuen();
+    if( sh4_x86.double_prec ) {
+        push_dr( FRm );
+    } else {
+        push_fr( FRm );
+    }
+    MOVP_immptr_rptr( &min_int, REG_ECX );
+    FILD_r32disp( REG_ECX, 0 );
+    FCOMIP_st(1);              
+    JAE_label( sat );     
+    JP_label( sat2 );       
+    MOVP_immptr_rptr( &max_int, REG_ECX );
+    FILD_r32disp( REG_ECX, 0 );
+    FCOMIP_st(1);
+    JNA_label( sat3 );
+    MOVP_immptr_rptr( &save_fcw, REG_EAX );
+    FNSTCW_r32disp( REG_EAX, 0 );
+    MOVP_immptr_rptr( &trunc_fcw, REG_EDX );
+    FLDCW_r32disp( REG_EDX, 0 );
+    FISTP_rbpdisp(R_FPUL);             
+    FLDCW_r32disp( REG_EAX, 0 );
+    JMP_label(end);             
+
+    JMP_TARGET(sat);
+    JMP_TARGET(sat2);
+    JMP_TARGET(sat3);
+    MOVL_r32disp_r32( REG_ECX, 0, REG_ECX ); // 2
+    MOVL_r32_rbpdisp( REG_ECX, R_FPUL );
+    FPOP_st();
+    JMP_TARGET(end);
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+FLDS FRm, FPUL {:  
+    COUNT_INST(I_FLDS);
+    check_fpuen();
+    load_fr( REG_EAX, FRm );
+    MOVL_r32_rbpdisp( REG_EAX, R_FPUL );
+:}
+FSTS FPUL, FRn {:  
+    COUNT_INST(I_FSTS);
+    check_fpuen();
+    MOVL_rbpdisp_r32( R_FPUL, REG_EAX );
+    store_fr( REG_EAX, FRn );
+:}
+FCNVDS FRm, FPUL {:  
+    COUNT_INST(I_FCNVDS);
+    check_fpuen();
+    if( sh4_x86.double_prec ) {
+        push_dr( FRm );
+        pop_fpul();
+    }
+:}
+FCNVSD FPUL, FRn {:  
+    COUNT_INST(I_FCNVSD);
+    check_fpuen();
+    if( sh4_x86.double_prec ) {
+        push_fpul();
+        pop_dr( FRn );
+    }
+:}
+
+/* Floating point instructions */
+FABS FRn {:  
+    COUNT_INST(I_FABS);
+    check_fpuen();
+    if( sh4_x86.double_prec ) {
+        push_dr(FRn);
+        FABS_st0();
+        pop_dr(FRn);
+    } else {
+        push_fr(FRn);
+        FABS_st0();
+        pop_fr(FRn);
+    }
+:}
+FADD FRm, FRn {:  
+    COUNT_INST(I_FADD);
+    check_fpuen();
+    if( sh4_x86.double_prec ) {
+        push_dr(FRm);
+        push_dr(FRn);
+        FADDP_st(1);
+        pop_dr(FRn);
+    } else {
+        push_fr(FRm);
+        push_fr(FRn);
+        FADDP_st(1);
+        pop_fr(FRn);
+    }
+:}
+FDIV FRm, FRn {:  
+    COUNT_INST(I_FDIV);
+    check_fpuen();
+    if( sh4_x86.double_prec ) {
+        push_dr(FRn);
+        push_dr(FRm);
+        FDIVP_st(1);
+        pop_dr(FRn);
+    } else {
+        push_fr(FRn);
+        push_fr(FRm);
+        FDIVP_st(1);
+        pop_fr(FRn);
+    }
+:}
+FMAC FR0, FRm, FRn {:  
+    COUNT_INST(I_FMAC);
+    check_fpuen();
+    if( sh4_x86.double_prec ) {
+        push_dr( 0 );
+        push_dr( FRm );
+        FMULP_st(1);
+        push_dr( FRn );
+        FADDP_st(1);
+        pop_dr( FRn );
+    } else {
+        push_fr( 0 );
+        push_fr( FRm );
+        FMULP_st(1);
+        push_fr( FRn );
+        FADDP_st(1);
+        pop_fr( FRn );
+    }
+:}
+
+FMUL FRm, FRn {:  
+    COUNT_INST(I_FMUL);
+    check_fpuen();
+    if( sh4_x86.double_prec ) {
+        push_dr(FRm);
+        push_dr(FRn);
+        FMULP_st(1);
+        pop_dr(FRn);
+    } else {
+        push_fr(FRm);
+        push_fr(FRn);
+        FMULP_st(1);
+        pop_fr(FRn);
+    }
+:}
+FNEG FRn {:  
+    COUNT_INST(I_FNEG);
+    check_fpuen();
+    if( sh4_x86.double_prec ) {
+        push_dr(FRn);
+        FCHS_st0();
+        pop_dr(FRn);
+    } else {
+        push_fr(FRn);
+        FCHS_st0();
+        pop_fr(FRn);
+    }
+:}
+FSRRA FRn {:  
+    COUNT_INST(I_FSRRA);
+    check_fpuen();
+    if( sh4_x86.double_prec == 0 ) {
+        FLD1_st0();
+        push_fr(FRn);
+        FSQRT_st0();
+        FDIVP_st(1);
+        pop_fr(FRn);
+    }
+:}
+FSQRT FRn {:  
+    COUNT_INST(I_FSQRT);
+    check_fpuen();
+    if( sh4_x86.double_prec ) {
+        push_dr(FRn);
+        FSQRT_st0();
+        pop_dr(FRn);
+    } else {
+        push_fr(FRn);
+        FSQRT_st0();
+        pop_fr(FRn);
+    }
+:}
+FSUB FRm, FRn {:  
+    COUNT_INST(I_FSUB);
+    check_fpuen();
+    if( sh4_x86.double_prec ) {
+        push_dr(FRn);
+        push_dr(FRm);
+        FSUBP_st(1);
+        pop_dr(FRn);
+    } else {
+        push_fr(FRn);
+        push_fr(FRm);
+        FSUBP_st(1);
+        pop_fr(FRn);
+    }
+:}
+
+FCMP/EQ FRm, FRn {:  
+    COUNT_INST(I_FCMPEQ);
+    check_fpuen();
+    if( sh4_x86.double_prec ) {
+        push_dr(FRm);
+        push_dr(FRn);
+    } else {
+        push_fr(FRm);
+        push_fr(FRn);
+    }
+    XORL_r32_r32(REG_EAX, REG_EAX);
+    XORL_r32_r32(REG_EDX, REG_EDX);
+    FCOMIP_st(1);
+    SETCCB_cc_r8(X86_COND_NP, REG_DL);
+    CMOVCCL_cc_r32_r32(X86_COND_E, REG_EDX, REG_EAX);
+    MOVL_r32_rbpdisp(REG_EAX, R_T);
+    FPOP_st();
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+FCMP/GT FRm, FRn {:  
+    COUNT_INST(I_FCMPGT);
+    check_fpuen();
+    if( sh4_x86.double_prec ) {
+        push_dr(FRm);
+        push_dr(FRn);
+    } else {
+        push_fr(FRm);
+        push_fr(FRn);
+    }
+    FCOMIP_st(1);
+    SETA_t();
+    FPOP_st();
+    sh4_x86.tstate = TSTATE_A;
+:}
+
+FSCA FPUL, FRn {:  
+    COUNT_INST(I_FSCA);
+    check_fpuen();
+    if( sh4_x86.double_prec == 0 ) {
+        LEAP_rbpdisp_rptr( REG_OFFSET(fr[0][FRn&0x0E]), REG_EDX );
+        MOVL_rbpdisp_r32( R_FPUL, REG_EAX );
+        CALL2_ptr_r32_r32( sh4_fsca, REG_EAX, REG_EDX );
+    }
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+FIPR FVm, FVn {:  
+    COUNT_INST(I_FIPR);
+    check_fpuen();
+    if( sh4_x86.double_prec == 0 ) {
+        if( sh4_x86.sse3_enabled ) {
+            MOVAPS_rbpdisp_xmm( REG_OFFSET(fr[0][FVm<<2]), 4 );
+            MULPS_rbpdisp_xmm( REG_OFFSET(fr[0][FVn<<2]), 4 );
+            HADDPS_xmm_xmm( 4, 4 ); 
+            HADDPS_xmm_xmm( 4, 4 );
+            MOVSS_xmm_rbpdisp( 4, REG_OFFSET(fr[0][(FVn<<2)+2]) );
+        } else {
+            push_fr( FVm<<2 );
+            push_fr( FVn<<2 );
+            FMULP_st(1);
+            push_fr( (FVm<<2)+1);
+            push_fr( (FVn<<2)+1);
+            FMULP_st(1);
+            FADDP_st(1);
+            push_fr( (FVm<<2)+2);
+            push_fr( (FVn<<2)+2);
+            FMULP_st(1);
+            FADDP_st(1);
+            push_fr( (FVm<<2)+3);
+            push_fr( (FVn<<2)+3);
+            FMULP_st(1);
+            FADDP_st(1);
+            pop_fr( (FVn<<2)+3);
+        }
+    }
+:}
+FTRV XMTRX, FVn {:  
+    COUNT_INST(I_FTRV);
+    check_fpuen();
+    if( sh4_x86.double_prec == 0 ) {
+        if( sh4_x86.sse3_enabled && sh4_x86.begin_callback == NULL ) {
+        	/* FIXME: For now, disable this inlining when we're running in shadow mode -
+        	 * it gives slightly different results from the emu core. Need to
+        	 * fix the precision so both give the right results.
+        	 */
+            MOVAPS_rbpdisp_xmm( REG_OFFSET(fr[1][0]), 1 ); // M1  M0  M3  M2
+            MOVAPS_rbpdisp_xmm( REG_OFFSET(fr[1][4]), 0 ); // M5  M4  M7  M6
+            MOVAPS_rbpdisp_xmm( REG_OFFSET(fr[1][8]), 3 ); // M9  M8  M11 M10
+            MOVAPS_rbpdisp_xmm( REG_OFFSET(fr[1][12]), 2 );// M13 M12 M15 M14
+
+            MOVSLDUP_rbpdisp_xmm( REG_OFFSET(fr[0][FVn<<2]), 4 ); // V1 V1 V3 V3
+            MOVSHDUP_rbpdisp_xmm( REG_OFFSET(fr[0][FVn<<2]), 5 ); // V0 V0 V2 V2
+            MOV_xmm_xmm( 4, 6 );
+            MOV_xmm_xmm( 5, 7 );
+            MOVLHPS_xmm_xmm( 4, 4 );  // V1 V1 V1 V1
+            MOVHLPS_xmm_xmm( 6, 6 );  // V3 V3 V3 V3
+            MOVLHPS_xmm_xmm( 5, 5 );  // V0 V0 V0 V0
+            MOVHLPS_xmm_xmm( 7, 7 );  // V2 V2 V2 V2
+            MULPS_xmm_xmm( 0, 4 );
+            MULPS_xmm_xmm( 1, 5 );
+            MULPS_xmm_xmm( 2, 6 );
+            MULPS_xmm_xmm( 3, 7 );
+            ADDPS_xmm_xmm( 5, 4 );
+            ADDPS_xmm_xmm( 7, 6 );
+            ADDPS_xmm_xmm( 6, 4 );
+            MOVAPS_xmm_rbpdisp( 4, REG_OFFSET(fr[0][FVn<<2]) );
+        } else {
+            LEAP_rbpdisp_rptr( REG_OFFSET(fr[0][FVn<<2]), REG_EAX );
+            CALL1_ptr_r32( sh4_ftrv, REG_EAX );
+        }
+    }
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+
+FRCHG {:  
+    COUNT_INST(I_FRCHG);
+    check_fpuen();
+    XORL_imms_rbpdisp( FPSCR_FR, R_FPSCR );
+    CALL_ptr( sh4_switch_fr_banks );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+FSCHG {:  
+    COUNT_INST(I_FSCHG);
+    check_fpuen();
+    XORL_imms_rbpdisp( FPSCR_SZ, R_FPSCR);
+    XORL_imms_rbpdisp( FPSCR_SZ, REG_OFFSET(xlat_sh4_mode) );
+    sh4_x86.tstate = TSTATE_NONE;
+    sh4_x86.double_size = !sh4_x86.double_size;
+    sh4_x86.sh4_mode = sh4_x86.sh4_mode ^ FPSCR_SZ;
+:}
+
+/* Processor control instructions */
+LDC Rm, SR {:
+    COUNT_INST(I_LDCSR);
+    if( sh4_x86.in_delay_slot ) {
+	SLOTILLEGAL();
+    } else {
+	check_priv();
+	load_reg( REG_EAX, Rm );
+	CALL1_ptr_r32( sh4_write_sr, REG_EAX );
+	sh4_x86.fpuen_checked = FALSE;
+	sh4_x86.tstate = TSTATE_NONE;
+    sh4_x86.sh4_mode = SH4_MODE_UNKNOWN;
+	return 2;
+    }
+:}
+LDC Rm, GBR {: 
+    COUNT_INST(I_LDC);
+    load_reg( REG_EAX, Rm );
+    MOVL_r32_rbpdisp( REG_EAX, R_GBR );
+:}
+LDC Rm, VBR {:  
+    COUNT_INST(I_LDC);
+    check_priv();
+    load_reg( REG_EAX, Rm );
+    MOVL_r32_rbpdisp( REG_EAX, R_VBR );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+LDC Rm, SSR {:  
+    COUNT_INST(I_LDC);
+    check_priv();
+    load_reg( REG_EAX, Rm );
+    MOVL_r32_rbpdisp( REG_EAX, R_SSR );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+LDC Rm, SGR {:  
+    COUNT_INST(I_LDC);
+    check_priv();
+    load_reg( REG_EAX, Rm );
+    MOVL_r32_rbpdisp( REG_EAX, R_SGR );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+LDC Rm, SPC {:  
+    COUNT_INST(I_LDC);
+    check_priv();
+    load_reg( REG_EAX, Rm );
+    MOVL_r32_rbpdisp( REG_EAX, R_SPC );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+LDC Rm, DBR {:  
+    COUNT_INST(I_LDC);
+    check_priv();
+    load_reg( REG_EAX, Rm );
+    MOVL_r32_rbpdisp( REG_EAX, R_DBR );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+LDC Rm, Rn_BANK {:  
+    COUNT_INST(I_LDC);
+    check_priv();
+    load_reg( REG_EAX, Rm );
+    MOVL_r32_rbpdisp( REG_EAX, REG_OFFSET(r_bank[Rn_BANK]) );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+LDC.L @Rm+, GBR {:  
+    COUNT_INST(I_LDCM);
+    load_reg( REG_EAX, Rm );
+    check_ralign32( REG_EAX );
+    MEM_READ_LONG( REG_EAX, REG_EAX );
+    ADDL_imms_rbpdisp( 4, REG_OFFSET(r[Rm]) );
+    MOVL_r32_rbpdisp( REG_EAX, R_GBR );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+LDC.L @Rm+, SR {:
+    COUNT_INST(I_LDCSRM);
+    if( sh4_x86.in_delay_slot ) {
+	SLOTILLEGAL();
+    } else {
+	check_priv();
+	load_reg( REG_EAX, Rm );
+	check_ralign32( REG_EAX );
+	MEM_READ_LONG( REG_EAX, REG_EAX );
+	ADDL_imms_rbpdisp( 4, REG_OFFSET(r[Rm]) );
+	CALL1_ptr_r32( sh4_write_sr, REG_EAX );
+	sh4_x86.fpuen_checked = FALSE;
+	sh4_x86.tstate = TSTATE_NONE;
+    sh4_x86.sh4_mode = SH4_MODE_UNKNOWN;
+	return 2;
+    }
+:}
+LDC.L @Rm+, VBR {:  
+    COUNT_INST(I_LDCM);
+    check_priv();
+    load_reg( REG_EAX, Rm );
+    check_ralign32( REG_EAX );
+    MEM_READ_LONG( REG_EAX, REG_EAX );
+    ADDL_imms_rbpdisp( 4, REG_OFFSET(r[Rm]) );
+    MOVL_r32_rbpdisp( REG_EAX, R_VBR );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+LDC.L @Rm+, SSR {:
+    COUNT_INST(I_LDCM);
+    check_priv();
+    load_reg( REG_EAX, Rm );
+    check_ralign32( REG_EAX );
+    MEM_READ_LONG( REG_EAX, REG_EAX );
+    ADDL_imms_rbpdisp( 4, REG_OFFSET(r[Rm]) );
+    MOVL_r32_rbpdisp( REG_EAX, R_SSR );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+LDC.L @Rm+, SGR {:  
+    COUNT_INST(I_LDCM);
+    check_priv();
+    load_reg( REG_EAX, Rm );
+    check_ralign32( REG_EAX );
+    MEM_READ_LONG( REG_EAX, REG_EAX );
+    ADDL_imms_rbpdisp( 4, REG_OFFSET(r[Rm]) );
+    MOVL_r32_rbpdisp( REG_EAX, R_SGR );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+LDC.L @Rm+, SPC {:  
+    COUNT_INST(I_LDCM);
+    check_priv();
+    load_reg( REG_EAX, Rm );
+    check_ralign32( REG_EAX );
+    MEM_READ_LONG( REG_EAX, REG_EAX );
+    ADDL_imms_rbpdisp( 4, REG_OFFSET(r[Rm]) );
+    MOVL_r32_rbpdisp( REG_EAX, R_SPC );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+LDC.L @Rm+, DBR {:  
+    COUNT_INST(I_LDCM);
+    check_priv();
+    load_reg( REG_EAX, Rm );
+    check_ralign32( REG_EAX );
+    MEM_READ_LONG( REG_EAX, REG_EAX );
+    ADDL_imms_rbpdisp( 4, REG_OFFSET(r[Rm]) );
+    MOVL_r32_rbpdisp( REG_EAX, R_DBR );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+LDC.L @Rm+, Rn_BANK {:  
+    COUNT_INST(I_LDCM);
+    check_priv();
+    load_reg( REG_EAX, Rm );
+    check_ralign32( REG_EAX );
+    MEM_READ_LONG( REG_EAX, REG_EAX );
+    ADDL_imms_rbpdisp( 4, REG_OFFSET(r[Rm]) );
+    MOVL_r32_rbpdisp( REG_EAX, REG_OFFSET(r_bank[Rn_BANK]) );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+LDS Rm, FPSCR {:
+    COUNT_INST(I_LDSFPSCR);
+    check_fpuen();
+    load_reg( REG_EAX, Rm );
+    CALL1_ptr_r32( sh4_write_fpscr, REG_EAX );
+    sh4_x86.tstate = TSTATE_NONE;
+    sh4_x86.sh4_mode = SH4_MODE_UNKNOWN;
+    return 2;
+:}
+LDS.L @Rm+, FPSCR {:  
+    COUNT_INST(I_LDSFPSCRM);
+    check_fpuen();
+    load_reg( REG_EAX, Rm );
+    check_ralign32( REG_EAX );
+    MEM_READ_LONG( REG_EAX, REG_EAX );
+    ADDL_imms_rbpdisp( 4, REG_OFFSET(r[Rm]) );
+    CALL1_ptr_r32( sh4_write_fpscr, REG_EAX );
+    sh4_x86.tstate = TSTATE_NONE;
+    sh4_x86.sh4_mode = SH4_MODE_UNKNOWN;
+    return 2;
+:}
+LDS Rm, FPUL {:  
+    COUNT_INST(I_LDS);
+    check_fpuen();
+    load_reg( REG_EAX, Rm );
+    MOVL_r32_rbpdisp( REG_EAX, R_FPUL );
+:}
+LDS.L @Rm+, FPUL {:  
+    COUNT_INST(I_LDSM);
+    check_fpuen();
+    load_reg( REG_EAX, Rm );
+    check_ralign32( REG_EAX );
+    MEM_READ_LONG( REG_EAX, REG_EAX );
+    ADDL_imms_rbpdisp( 4, REG_OFFSET(r[Rm]) );
+    MOVL_r32_rbpdisp( REG_EAX, R_FPUL );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+LDS Rm, MACH {: 
+    COUNT_INST(I_LDS);
+    load_reg( REG_EAX, Rm );
+    MOVL_r32_rbpdisp( REG_EAX, R_MACH );
+:}
+LDS.L @Rm+, MACH {:  
+    COUNT_INST(I_LDSM);
+    load_reg( REG_EAX, Rm );
+    check_ralign32( REG_EAX );
+    MEM_READ_LONG( REG_EAX, REG_EAX );
+    ADDL_imms_rbpdisp( 4, REG_OFFSET(r[Rm]) );
+    MOVL_r32_rbpdisp( REG_EAX, R_MACH );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+LDS Rm, MACL {:  
+    COUNT_INST(I_LDS);
+    load_reg( REG_EAX, Rm );
+    MOVL_r32_rbpdisp( REG_EAX, R_MACL );
+:}
+LDS.L @Rm+, MACL {:  
+    COUNT_INST(I_LDSM);
+    load_reg( REG_EAX, Rm );
+    check_ralign32( REG_EAX );
+    MEM_READ_LONG( REG_EAX, REG_EAX );
+    ADDL_imms_rbpdisp( 4, REG_OFFSET(r[Rm]) );
+    MOVL_r32_rbpdisp( REG_EAX, R_MACL );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+LDS Rm, PR {:  
+    COUNT_INST(I_LDS);
+    load_reg( REG_EAX, Rm );
+    MOVL_r32_rbpdisp( REG_EAX, R_PR );
+:}
+LDS.L @Rm+, PR {:  
+    COUNT_INST(I_LDSM);
+    load_reg( REG_EAX, Rm );
+    check_ralign32( REG_EAX );
+    MEM_READ_LONG( REG_EAX, REG_EAX );
+    ADDL_imms_rbpdisp( 4, REG_OFFSET(r[Rm]) );
+    MOVL_r32_rbpdisp( REG_EAX, R_PR );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+LDTLB {:  
+    COUNT_INST(I_LDTLB);
+    CALL_ptr( MMU_ldtlb );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+OCBI @Rn {:
+    COUNT_INST(I_OCBI);
+:}
+OCBP @Rn {:
+    COUNT_INST(I_OCBP);
+:}
+OCBWB @Rn {:
+    COUNT_INST(I_OCBWB);
+:}
+PREF @Rn {:
+    COUNT_INST(I_PREF);
+    load_reg( REG_EAX, Rn );
+    MEM_PREFETCH( REG_EAX );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+SLEEP {: 
+    COUNT_INST(I_SLEEP);
+    check_priv();
+    CALL_ptr( sh4_sleep );
+    sh4_x86.tstate = TSTATE_NONE;
+    sh4_x86.in_delay_slot = DELAY_NONE;
+    return 2;
+:}
+STC SR, Rn {:
+    COUNT_INST(I_STCSR);
+    check_priv();
+    CALL_ptr(sh4_read_sr);
+    store_reg( REG_EAX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+STC GBR, Rn {:  
+    COUNT_INST(I_STC);
+    MOVL_rbpdisp_r32( R_GBR, REG_EAX );
+    store_reg( REG_EAX, Rn );
+:}
+STC VBR, Rn {:  
+    COUNT_INST(I_STC);
+    check_priv();
+    MOVL_rbpdisp_r32( R_VBR, REG_EAX );
+    store_reg( REG_EAX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+STC SSR, Rn {:  
+    COUNT_INST(I_STC);
+    check_priv();
+    MOVL_rbpdisp_r32( R_SSR, REG_EAX );
+    store_reg( REG_EAX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+STC SPC, Rn {:  
+    COUNT_INST(I_STC);
+    check_priv();
+    MOVL_rbpdisp_r32( R_SPC, REG_EAX );
+    store_reg( REG_EAX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+STC SGR, Rn {:  
+    COUNT_INST(I_STC);
+    check_priv();
+    MOVL_rbpdisp_r32( R_SGR, REG_EAX );
+    store_reg( REG_EAX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+STC DBR, Rn {:  
+    COUNT_INST(I_STC);
+    check_priv();
+    MOVL_rbpdisp_r32( R_DBR, REG_EAX );
+    store_reg( REG_EAX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+STC Rm_BANK, Rn {:
+    COUNT_INST(I_STC);
+    check_priv();
+    MOVL_rbpdisp_r32( REG_OFFSET(r_bank[Rm_BANK]), REG_EAX );
+    store_reg( REG_EAX, Rn );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+STC.L SR, @-Rn {:
+    COUNT_INST(I_STCSRM);
+    check_priv();
+    CALL_ptr( sh4_read_sr );
+    MOVL_r32_r32( REG_EAX, REG_EDX );
+    load_reg( REG_EAX, Rn );
+    check_walign32( REG_EAX );
+    LEAL_r32disp_r32( REG_EAX, -4, REG_EAX );
+    MEM_WRITE_LONG( REG_EAX, REG_EDX );
+    ADDL_imms_rbpdisp( -4, REG_OFFSET(r[Rn]) );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+STC.L VBR, @-Rn {:  
+    COUNT_INST(I_STCM);
+    check_priv();
+    load_reg( REG_EAX, Rn );
+    check_walign32( REG_EAX );
+    ADDL_imms_r32( -4, REG_EAX );
+    MOVL_rbpdisp_r32( R_VBR, REG_EDX );
+    MEM_WRITE_LONG( REG_EAX, REG_EDX );
+    ADDL_imms_rbpdisp( -4, REG_OFFSET(r[Rn]) );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+STC.L SSR, @-Rn {:  
+    COUNT_INST(I_STCM);
+    check_priv();
+    load_reg( REG_EAX, Rn );
+    check_walign32( REG_EAX );
+    ADDL_imms_r32( -4, REG_EAX );
+    MOVL_rbpdisp_r32( R_SSR, REG_EDX );
+    MEM_WRITE_LONG( REG_EAX, REG_EDX );
+    ADDL_imms_rbpdisp( -4, REG_OFFSET(r[Rn]) );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+STC.L SPC, @-Rn {:
+    COUNT_INST(I_STCM);
+    check_priv();
+    load_reg( REG_EAX, Rn );
+    check_walign32( REG_EAX );
+    ADDL_imms_r32( -4, REG_EAX );
+    MOVL_rbpdisp_r32( R_SPC, REG_EDX );
+    MEM_WRITE_LONG( REG_EAX, REG_EDX );
+    ADDL_imms_rbpdisp( -4, REG_OFFSET(r[Rn]) );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+STC.L SGR, @-Rn {:  
+    COUNT_INST(I_STCM);
+    check_priv();
+    load_reg( REG_EAX, Rn );
+    check_walign32( REG_EAX );
+    ADDL_imms_r32( -4, REG_EAX );
+    MOVL_rbpdisp_r32( R_SGR, REG_EDX );
+    MEM_WRITE_LONG( REG_EAX, REG_EDX );
+    ADDL_imms_rbpdisp( -4, REG_OFFSET(r[Rn]) );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+STC.L DBR, @-Rn {:  
+    COUNT_INST(I_STCM);
+    check_priv();
+    load_reg( REG_EAX, Rn );
+    check_walign32( REG_EAX );
+    ADDL_imms_r32( -4, REG_EAX );
+    MOVL_rbpdisp_r32( R_DBR, REG_EDX );
+    MEM_WRITE_LONG( REG_EAX, REG_EDX );
+    ADDL_imms_rbpdisp( -4, REG_OFFSET(r[Rn]) );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+STC.L Rm_BANK, @-Rn {:  
+    COUNT_INST(I_STCM);
+    check_priv();
+    load_reg( REG_EAX, Rn );
+    check_walign32( REG_EAX );
+    ADDL_imms_r32( -4, REG_EAX );
+    MOVL_rbpdisp_r32( REG_OFFSET(r_bank[Rm_BANK]), REG_EDX );
+    MEM_WRITE_LONG( REG_EAX, REG_EDX );
+    ADDL_imms_rbpdisp( -4, REG_OFFSET(r[Rn]) );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+STC.L GBR, @-Rn {:  
+    COUNT_INST(I_STCM);
+    load_reg( REG_EAX, Rn );
+    check_walign32( REG_EAX );
+    ADDL_imms_r32( -4, REG_EAX );
+    MOVL_rbpdisp_r32( R_GBR, REG_EDX );
+    MEM_WRITE_LONG( REG_EAX, REG_EDX );
+    ADDL_imms_rbpdisp( -4, REG_OFFSET(r[Rn]) );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+STS FPSCR, Rn {:  
+    COUNT_INST(I_STSFPSCR);
+    check_fpuen();
+    MOVL_rbpdisp_r32( R_FPSCR, REG_EAX );
+    store_reg( REG_EAX, Rn );
+:}
+STS.L FPSCR, @-Rn {:  
+    COUNT_INST(I_STSFPSCRM);
+    check_fpuen();
+    load_reg( REG_EAX, Rn );
+    check_walign32( REG_EAX );
+    ADDL_imms_r32( -4, REG_EAX );
+    MOVL_rbpdisp_r32( R_FPSCR, REG_EDX );
+    MEM_WRITE_LONG( REG_EAX, REG_EDX );
+    ADDL_imms_rbpdisp( -4, REG_OFFSET(r[Rn]) );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+STS FPUL, Rn {:  
+    COUNT_INST(I_STS);
+    check_fpuen();
+    MOVL_rbpdisp_r32( R_FPUL, REG_EAX );
+    store_reg( REG_EAX, Rn );
+:}
+STS.L FPUL, @-Rn {:  
+    COUNT_INST(I_STSM);
+    check_fpuen();
+    load_reg( REG_EAX, Rn );
+    check_walign32( REG_EAX );
+    ADDL_imms_r32( -4, REG_EAX );
+    MOVL_rbpdisp_r32( R_FPUL, REG_EDX );
+    MEM_WRITE_LONG( REG_EAX, REG_EDX );
+    ADDL_imms_rbpdisp( -4, REG_OFFSET(r[Rn]) );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+STS MACH, Rn {:  
+    COUNT_INST(I_STS);
+    MOVL_rbpdisp_r32( R_MACH, REG_EAX );
+    store_reg( REG_EAX, Rn );
+:}
+STS.L MACH, @-Rn {:  
+    COUNT_INST(I_STSM);
+    load_reg( REG_EAX, Rn );
+    check_walign32( REG_EAX );
+    ADDL_imms_r32( -4, REG_EAX );
+    MOVL_rbpdisp_r32( R_MACH, REG_EDX );
+    MEM_WRITE_LONG( REG_EAX, REG_EDX );
+    ADDL_imms_rbpdisp( -4, REG_OFFSET(r[Rn]) );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+STS MACL, Rn {:  
+    COUNT_INST(I_STS);
+    MOVL_rbpdisp_r32( R_MACL, REG_EAX );
+    store_reg( REG_EAX, Rn );
+:}
+STS.L MACL, @-Rn {:  
+    COUNT_INST(I_STSM);
+    load_reg( REG_EAX, Rn );
+    check_walign32( REG_EAX );
+    ADDL_imms_r32( -4, REG_EAX );
+    MOVL_rbpdisp_r32( R_MACL, REG_EDX );
+    MEM_WRITE_LONG( REG_EAX, REG_EDX );
+    ADDL_imms_rbpdisp( -4, REG_OFFSET(r[Rn]) );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+STS PR, Rn {:  
+    COUNT_INST(I_STS);
+    MOVL_rbpdisp_r32( R_PR, REG_EAX );
+    store_reg( REG_EAX, Rn );
+:}
+STS.L PR, @-Rn {:  
+    COUNT_INST(I_STSM);
+    load_reg( REG_EAX, Rn );
+    check_walign32( REG_EAX );
+    ADDL_imms_r32( -4, REG_EAX );
+    MOVL_rbpdisp_r32( R_PR, REG_EDX );
+    MEM_WRITE_LONG( REG_EAX, REG_EDX );
+    ADDL_imms_rbpdisp( -4, REG_OFFSET(r[Rn]) );
+    sh4_x86.tstate = TSTATE_NONE;
+:}
+
+NOP {: 
+    COUNT_INST(I_NOP);
+    /* Do nothing. Well, we could emit an 0x90, but what would really be the point? */ 
+:}
+%%
+    sh4_x86.in_delay_slot = DELAY_NONE;
+    return 0;
+}
+
+
+/**
+ * The unwind methods only work if we compiled with DWARF2 frame information
+ * (ie -fexceptions), otherwise we have to use the direct frame scan.
+ */
+#ifdef HAVE_EXCEPTIONS
+#include <unwind.h>
+
+struct UnwindInfo {
+    uintptr_t block_start;
+    uintptr_t block_end;
+    void *pc;
+};
+
+static _Unwind_Reason_Code xlat_check_frame( struct _Unwind_Context *context, void *arg )
+{
+    struct UnwindInfo *info = arg;
+    void *pc = (void *)_Unwind_GetIP(context);
+    if( ((uintptr_t)pc) >= info->block_start && ((uintptr_t)pc) < info->block_end ) {
+        info->pc = pc;
+        return _URC_NORMAL_STOP;
+    }
+    return _URC_NO_REASON;
+}
+
+void *xlat_get_native_pc( void *code, uint32_t code_size )
+{
+    struct _Unwind_Exception exc;
+    struct UnwindInfo info;
+
+    info.pc = NULL;
+    info.block_start = (uintptr_t)code;
+    info.block_end = info.block_start + code_size;
+    void *result = NULL;
+    _Unwind_Backtrace( xlat_check_frame, &info );
+    return info.pc;
+}
+#else
+/* Assume this is an ia32 build - amd64 should always have dwarf information */
+void *xlat_get_native_pc( void *code, uint32_t code_size )
+{
+    void *result = NULL;
+    __asm__(
+        "mov %%ebp, %%eax\n\t"
+        "mov $0x8, %%ecx\n\t"
+        "mov %1, %%edx\n"
+        "frame_loop: test %%eax, %%eax\n\t"
+        "je frame_not_found\n\t"
+        "cmp (%%eax), %%edx\n\t"
+        "je frame_found\n\t"
+        "sub $0x1, %%ecx\n\t"
+        "je frame_not_found\n\t"
+        "movl (%%eax), %%eax\n\t"
+        "jmp frame_loop\n"
+        "frame_found: movl 0x4(%%eax), %0\n"
+        "frame_not_found:"
+        : "=r" (result)
+        : "r" (((uint8_t *)&sh4r) + 128 )
+        : "eax", "ecx", "edx" );
+    return result;
+}
+#endif
+
