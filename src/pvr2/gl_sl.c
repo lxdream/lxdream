@@ -209,7 +209,7 @@ gl_shader_t glsl_create_vertex_shader( const char *source )
 
     glShaderSource( shader, 1, &source, NULL );
     glCompileShader(shader);
-    ok = glsl_check_shader_error( "Failed to compile vertex shader", glsl_vert_shader );
+    ok = glsl_check_shader_error( "Failed to compile vertex shader", shader );
     if( !ok ) {
         glDeleteShader(shader);
         return INVALID_SHADER;
@@ -226,7 +226,7 @@ gl_shader_t glsl_create_fragment_shader( const char *source )
 
     glShaderSource( shader, 1, &source, NULL );
     glCompileShader(shader);
-    ok = glsl_check_shader_error( "Failed to compile fragment shader", glsl_frag_shader );
+    ok = glsl_check_shader_error( "Failed to compile fragment shader", shader );
     if( !ok ) {
         glDeleteShader(shader);
         return INVALID_SHADER;
@@ -284,7 +284,7 @@ gboolean glsl_is_supported()
     return FALSE;
 }
 
-int glsl_get_version()
+const char *glsl_get_version()
 {
     return 0;
 }
@@ -299,7 +299,7 @@ gl_shader_t glsl_create_fragment_shader( const char *source )
     return 0;
 }
 
-gl_program_t glsl_create_program( gl_shader_t vertex, gl_shader_t fragment )
+gl_program_t glsl_create_program( gl_shader_t *shaderv )
 {
     return 0;
 }
