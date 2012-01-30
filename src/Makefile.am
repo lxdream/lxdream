@@ -13,7 +13,7 @@ PLUGINCFLAGS = @PLUGINCFLAGS@
 PLUGINLDFLAGS = @PLUGINLDFLAGS@
 bin_PROGRAMS = lxdream
 noinst_PROGRAMS = gendec genglsl genmach
-check_PROGRAMS = test/testxlt
+check_PROGRAMS = test/testxlt test/testlxpaths
 
 pkglib_PROGRAMS=
 EXTRA_DIST=drivers/genkeymap.pl checkver.pl drivers/dummy.c
@@ -25,7 +25,7 @@ checkversion:
 
 version.c: checkversion
 
-TESTS = test/testxlt
+TESTS = test/testxlt test/testlxpaths
 BUILT_SOURCES = sh4/sh4core.c sh4/sh4dasm.c sh4/sh4x86.c sh4/sh4stat.c \
 	pvr2/shaders.def pvr2/shaders.h drivers/mac_keymap.h version.c
 CLEANFILES = sh4/sh4core.c sh4/sh4dasm.c sh4/sh4x86.c sh4/sh4stat.c \
@@ -240,6 +240,8 @@ genmach_LDADD = @GLIB_LIBS@ @GTK_LIBS@ $(INTLLIBS)
 
 
 test_testxlt_SOURCES = test/testxlt.c xlat/xltcache.c xlat/xltcache.h
+test_testlxpaths_SOURCES = test/testlxpaths.c lxpaths.c
+test_testlxpaths_LDADD = @GLIB_LIBS@
 
 sh4/sh4core.c: gendec$(EXEEXT) sh4/sh4.def sh4/sh4core.in
 	$(mkdir_p) `dirname $@`

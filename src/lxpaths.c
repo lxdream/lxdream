@@ -18,7 +18,7 @@
 
 #include <ctype.h>
 #include <unistd.h>
-#include <wordexp.h>
+#include <stdlib.h>
 #include <glib/gstrfuncs.h>
 #include <glib/gutils.h>
 
@@ -72,37 +72,78 @@ gchar *get_escaped_path( const gchar *value )
 
 gchar *get_expanded_path( const gchar *input )
 {
-    wordexp_t we;
-    if( input == NULL ) {
-        return NULL;
-    }
-    memset(&we,0,sizeof(we));
-    int result = wordexp(input, &we, WRDE_NOCMD);
-    if( result != 0 || we.we_wordc == 0 ) {
-        /* On failure, return the original input unchanged */
-        return g_strdup(input);
-    } else {
-        /* On success, concatenate all 'words' together into a single 
-         * space-separated string
-         */
-        int length = we.we_wordc, i;
-        gchar *result, *p;
-        
-        for( i=0; i<we.we_wordc; i++ ) {
-            length += strlen(we.we_wordv[i]);
-        }
-        p = result = g_malloc(length);
-        for( i=0; i<we.we_wordc; i++ ) {
-            if( i != 0 )
-                *p++ = ' ';
-            strcpy( p, we.we_wordv[i] );
-            p += strlen(p);
-        }
-        wordfree(&we);
-        return result;
-    }        
-}
+    char result[PATH_MAX];
 
+    char *d, *e;
+    const char *s;
+    d = result;
+    e = result+sizeof(result)-1;
+    s = input;
+
+    if( input == NULL )
+        return NULL;
+
+    while( *s ) {
+        if( d == e ) {
+            return g_strdup(input); /* expansion too long */
+        }
+        char c = *s++;
+        if( c == '$' ) {
+            if( *s == '{' ) {
+                s++;
+                const char *q = s;
+                while( *q != '}' ) {
+                    if( ! *q ) {
+                        return g_strdup(input); /* unterminated variable */
+                    }
+                    q++;
+                }
+                char *tmp = g_strndup(s, (q-s));
+                s = q+1;
+                char *value = getenv(tmp);
+                g_free(tmp);
+                if( value != NULL ) {
+                    int len = strlen(value);
+                    if( d + len > e )
+                        return g_strdup(input);
+                    strcpy(d, value);
+                    d+=len;
+                } /* Else, empty string */
+            } else {
+                const char *q = s;
+                while( isalnum(*q) || *q == '_' ) {
+                    q++;
+                }
+                if( q == s ) {
+                    *d++ = '$';
+                } else {
+                    char *tmp = g_strndup(s,q-s);
+                    s = q;
+                    char *value = getenv(tmp);
+                    g_free(tmp);
+                    if( value != NULL ) {
+                        int len = strlen(value);
+                        if( d + len > e )
+                            return g_strdup(input);
+                        strcpy(d, value);
+                        d += len;
+                    }
+                }
+            }
+        } else if( c == '\\' ) {
+            c = *s++;
+            if( c ) {
+                *d++ = c;
+            } else {
+                *d++ = '\\';
+            }
+        } else {
+            *d++ = c;
+        }
+    }
+    *d = '\0';
+    return g_strdup(result);
+}
 gchar *get_absolute_path( const gchar *in_path )
 {
     char tmp[PATH_MAX];

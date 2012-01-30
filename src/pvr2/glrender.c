@@ -46,10 +46,10 @@ int pvr2_poly_dstblend[8] = {
         GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_DST_ALPHA,
         GL_ONE_MINUS_DST_ALPHA };
 int pvr2_poly_texblend[4] = {
-        GL_REPLACE, 
-        GL_MODULATE,  
-        GL_DECAL, 
-        GL_MODULATE 
+        GL_REPLACE,
+        GL_MODULATE,
+        GL_DECAL,
+        GL_MODULATE
 };
 
 static gboolean have_shaders = FALSE;
