@@ -156,9 +156,19 @@ static inline GLint glsl_get_uniform_location_prim(gl_program_t program, const c
     return glGetUniformLocationARB(program, name);
 }
 
+static inline GLint glsl_get_attrib_location_prim(gl_program_t program, const char *name)
+{
+    return glGetAttribLocationARB(program, name);
+}
+
 static inline void glsl_set_uniform_int_prim(GLint location, GLint value)
 {
     glUniform1iARB(location,value);
+}
+
+static inline void glsl_set_uniform_mat4_prim(GLint location, GLfloat *value)
+{
+    glUniformMatrix4fvARB(location, 1, GL_FALSE, value);
 }
 
 #elif HAVE_OPENGL_SHADER
@@ -278,6 +288,15 @@ static inline void glsl_set_uniform_int_prim(GLint location, GLint value)
     glUniform1i(location, value);
 }
 
+static inline void glsl_set_uniform_mat4_prim(GLint location, GLfloat *value)
+{
+    glUniformMatrix4fv(location, 1, GL_TRUE, value);
+}
+
+static inline GLint glsl_get_attrib_location_prim(gl_program_t program, const char *name)
+{
+    return glGetAttribLocation(program, name);
+}
 #else
 gboolean glsl_is_supported()
 {
@@ -323,6 +342,15 @@ static inline GLint glsl_get_uniform_location_prim(gl_program_t program, const c
 
 static inline void glsl_set_uniform_int_prim(GLint location, GLint value)
 {
+}
+
+static inline void glsl_set_uniform_mat4_prim(GLint location, GLfloat *value)
+{
+}
+
+static inline GLint glsl_get_attrib_location_prim(gl_program_t program, const char *name)
+{
+    return 0;
 }
 #endif
 
@@ -435,11 +463,25 @@ GLint glsl_get_uniform_location( unsigned program, const char *name )
     return glsl_get_uniform_location_prim(program_array[program], name);
 }
 
+GLint glsl_get_attrib_location( unsigned program, const char *name )
+{
+    assert( program >= 0 && program <= GLSL_LAST_PROGRAM );
+
+    return glsl_get_attrib_location_prim(program_array[program], name);
+}
+
 void glsl_set_uniform_int( unsigned program, const char *name, GLint value )
 {
     assert( program >= 0 && program <= GLSL_LAST_PROGRAM );
     GLint location = glsl_get_uniform_location_prim(program_array[program], name);
     glsl_set_uniform_int_prim(location, value);
+}
+
+void glsl_set_uniform_mat4( unsigned program, const char *name, GLfloat *value )
+{
+    assert( program >= 0 && program <= GLSL_LAST_PROGRAM );
+    GLint location = glsl_get_uniform_location_prim(program_array[program], name);
+    glsl_set_uniform_mat4_prim(location, value);
 }
 
 void glsl_clear_shader()
