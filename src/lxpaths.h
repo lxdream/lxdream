@@ -19,6 +19,8 @@
 #ifndef lxdream_paths_H
 #define lxdream_paths_H
 
+#include <glib/gtypes.h>
+
 /****************** System paths ****************/
 /**
  * Location of the shared lxdreamrc (e.g. /usr/local/etc/lxdreamrc)
