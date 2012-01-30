@@ -20,6 +20,7 @@
 #define lxdream_netutil_H 1
 
 #include <netinet/in.h>
+#include <sys/socket.h>
 #include "lxdream.h"
 
 typedef void *io_listener_t;
