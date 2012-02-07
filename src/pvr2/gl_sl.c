@@ -167,6 +167,7 @@ static inline GLint glsl_get_attrib_location(gl_program_t program, const char *n
 
 #define glsl_set_uniform_sampler1D(id,v) glUniform1iARB(id,v)
 #define glsl_set_uniform_sampler2D(id,v) glUniform1iARB(id,v)
+#define glsl_set_uniform_vec3(id,v) glUniform3fvARB(id,1,v)
 #define glsl_set_uniform_vec4(id,v) glUniform4fvARB(id,1,v)
 #define glsl_set_uniform_mat4(id,v) glUniformMatrix4fvARB(id,1,GL_FALSE,v)
 #define glsl_set_attrib_vec3(id,stride,v) glVertexAttribPointerARB(id, 3, GL_FLOAT, GL_FALSE, stride, v)
@@ -293,6 +294,7 @@ static inline GLint glsl_get_attrib_location(gl_program_t program, const char *n
 
 #define glsl_set_uniform_sampler1D(id,v) glUniform1i(id,v)
 #define glsl_set_uniform_sampler2D(id,v) glUniform1i(id,v)
+#define glsl_set_uniform_vec3(id,v) glUniform3fv(id,1,v)
 #define glsl_set_uniform_vec4(id,v) glUniform4fv(id,1,v)
 #define glsl_set_uniform_mat4(id,v) glUniformMatrix4fv(id,1,GL_FALSE,v)
 #define glsl_set_attrib_vec3(id,stride,v) glVertexAttribPointer(id, 3, GL_FLOAT, GL_FALSE, stride, v)
@@ -350,6 +352,7 @@ static inline GLint glsl_get_attrib_location(gl_program_t program, const char *n
 }
 
 #define glsl_set_uniform_sampler2D(id,v)
+#define glsl_set_uniform_vec3(id,v)
 #define glsl_set_uniform_vec4(id,v)
 #define glsl_set_uniform_mat4(id,v)
 #define glsl_set_attrib_vec3(id,stride,v)

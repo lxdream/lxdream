@@ -317,6 +317,9 @@ static void writeInterface( const char *filename, glsldata_t data )
                 fprintf( f, "void glsl_set_%s_%s(%s value); /* uniform %s %s */ \n", program->name, var->name, getCType(var->type,var->uniform), var->type, var->name );
             } else {
                 fprintf( f, "void glsl_set_%s_%s_pointer(%s ptr, GLint stride); /* attribute %s %s */ \n", program->name, var->name, getCType(var->type,var->uniform), var->type, var->name);
+                if( strcmp(var->type,"vec4") == 0 ) { /* Special case */
+                    fprintf( f, "void glsl_set_%s_%s_vec3_pointer(%s ptr, GLint stride); /* attribute %s %s */ \n", program->name, var->name, getCType(var->type,var->uniform), var->type, var->name);
+                }
             }
         }
     }
@@ -402,6 +405,10 @@ static void writeSource( const char *filename, glsldata_t data )
             } else {
                 fprintf( f, "void glsl_set_%s_%s_pointer(%s ptr, GLsizei stride){ /* attribute %s %s */ \n", program->name, var->name, getCType(var->type,var->uniform), var->type, var->name);
                 fprintf( f, "    glsl_set_attrib_%s(var_%s_%s_loc,stride, ptr);\n}\n", var->type, program->name, var->name );
+                if( strcmp(var->type,"vec4") == 0 ) { /* Special case to load vec3 arrays into a vec4 */
+                    fprintf( f, "void glsl_set_%s_%s_vec3_pointer(%s ptr, GLsizei stride){ /* attribute %s %s */ \n", program->name, var->name, getCType(var->type,var->uniform), var->type, var->name);
+                    fprintf( f, "    glsl_set_attrib_vec3(var_%s_%s_loc,stride, ptr);\n}\n", program->name, var->name );
+                }
             }
         }
     }
