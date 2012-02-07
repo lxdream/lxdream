@@ -21,6 +21,7 @@
 #include "lxdream.h"
 #include "display.h"
 #include "pvr2/glutil.h"
+#include "pvr2/shaders.h"
 
 #define MAX_ERROR_BUF 4096
 #define INVALID_SHADER 0
@@ -151,25 +152,22 @@ void glsl_destroy_program(gl_program_t program)
     glDeleteObjectARB(program);
 }
 
-static inline GLint glsl_get_uniform_location_prim(gl_program_t program, const char *name)
+static inline GLint glsl_get_uniform_location(gl_program_t program, const char *name)
 {
     return glGetUniformLocationARB(program, name);
 }
 
-static inline GLint glsl_get_attrib_location_prim(gl_program_t program, const char *name)
+static inline GLint glsl_get_attrib_location(gl_program_t program, const char *name)
 {
     return glGetAttribLocationARB(program, name);
 }
 
-static inline void glsl_set_uniform_int_prim(GLint location, GLint value)
-{
-    glUniform1iARB(location,value);
-}
-
-static inline void glsl_set_uniform_mat4_prim(GLint location, GLfloat *value)
-{
-    glUniformMatrix4fvARB(location, 1, GL_FALSE, value);
-}
+#define glsl_set_uniform_sampler1D(id,v) glUniform1iARB(id,v)
+#define glsl_set_uniform_sampler2D(id,v) glUniform1iARB(id,v)
+#define glsl_set_uniform_vec4(id,v) glUniform4fvARB(id,1,v)
+#define glsl_set_uniform_mat4(id,v) glUniformMatrix4fvARB(id,1,GL_FALSE,v)
+#define glsl_set_attrib_vec3(id,stride,v) glVertexAttribPointerARB(id, 3, GL_FLOAT, GL_FALSE, stride, v)
+#define glsl_set_attrib_vec4(id,stride,v) glVertexAttribPointerARB(id, 4, GL_FLOAT, GL_FALSE, stride, v)
 
 #elif HAVE_OPENGL_SHADER
 
@@ -279,24 +277,23 @@ void glsl_destroy_program(gl_program_t program)
     glDeleteProgram(program);
 }
 
-static inline GLint glsl_get_uniform_location_prim(gl_program_t program, const char *name)
+static inline GLint glsl_get_uniform_location(gl_program_t program, const char *name)
 {
     return glGetUniformLocation(program, name);
 }
-static inline void glsl_set_uniform_int_prim(GLint location, GLint value)
-{
-    glUniform1i(location, value);
-}
-
-static inline void glsl_set_uniform_mat4_prim(GLint location, GLfloat *value)
-{
-    glUniformMatrix4fv(location, 1, GL_TRUE, value);
-}
-
-static inline GLint glsl_get_attrib_location_prim(gl_program_t program, const char *name)
+static inline GLint glsl_get_attrib_location(gl_program_t program, const char *name)
 {
     return glGetAttribLocation(program, name);
 }
+
+#define glsl_set_uniform_sampler1D(id,v) glUniform1i(id,v)
+#define glsl_set_uniform_sampler2D(id,v) glUniform1i(id,v)
+#define glsl_set_uniform_vec4(id,v) glUniform4fv(id,1,v)
+#define glsl_set_uniform_mat4(id,v) glUniformMatrix4fv(id,1,GL_FALSE,v)
+#define glsl_set_attrib_vec3(id,stride,v) glVertexAttribPointer(id, 3, GL_FLOAT, GL_FALSE, stride, v)
+#define glsl_set_attrib_vec4(id,stride,v) glVertexAttribPointer(id, 4, GL_FLOAT, GL_FALSE, stride, v)
+
+
 #else
 gboolean glsl_is_supported()
 {
@@ -335,23 +332,23 @@ void glsl_destroy_program(gl_program_t program)
 {
 }
 
-static inline GLint glsl_get_uniform_location_prim(gl_program_t program, const char *name)
+static inline GLint glsl_get_uniform_location(gl_program_t program, const char *name)
 {
     return 0;
 }
 
-static inline void glsl_set_uniform_int_prim(GLint location, GLint value)
-{
-}
-
-static inline void glsl_set_uniform_mat4_prim(GLint location, GLfloat *value)
-{
-}
-
-static inline GLint glsl_get_attrib_location_prim(gl_program_t program, const char *name)
+static inline GLint glsl_get_attrib_location(gl_program_t program, const char *name)
 {
     return 0;
 }
+
+#define glsl_set_uniform_sampler2D(id,v)
+#define glsl_set_uniform_vec4(id,v)
+#define glsl_set_uniform_mat4(id,v)
+#define glsl_set_attrib_vec3(id,stride,v)
+#define glsl_set_attrib_vec4(id,stride,v)
+
+
 #endif
 
 /****************************************************************************/
@@ -429,6 +426,7 @@ gboolean glsl_load_shaders()
         return FALSE;
     }
     
+    glsl_init_programs(program_array);
     glsl_use_program(0);
     return TRUE;
 }
@@ -442,46 +440,6 @@ void glsl_unload_shaders()
             program_array[i] = INVALID_PROGRAM;
         }
     }
-}
-
-gboolean glsl_set_shader(unsigned i)
-{
-    assert( i >= 0 && i <= GLSL_LAST_PROGRAM );
-
-    if( program_array[i] != INVALID_PROGRAM ) {
-        glsl_use_program(program_array[i]);
-        return TRUE;
-    } else {
-        return FALSE;
-    }
-}
-
-GLint glsl_get_uniform_location( unsigned program, const char *name )
-{
-    assert( program >= 0 && program <= GLSL_LAST_PROGRAM );
-
-    return glsl_get_uniform_location_prim(program_array[program], name);
-}
-
-GLint glsl_get_attrib_location( unsigned program, const char *name )
-{
-    assert( program >= 0 && program <= GLSL_LAST_PROGRAM );
-
-    return glsl_get_attrib_location_prim(program_array[program], name);
-}
-
-void glsl_set_uniform_int( unsigned program, const char *name, GLint value )
-{
-    assert( program >= 0 && program <= GLSL_LAST_PROGRAM );
-    GLint location = glsl_get_uniform_location_prim(program_array[program], name);
-    glsl_set_uniform_int_prim(location, value);
-}
-
-void glsl_set_uniform_mat4( unsigned program, const char *name, GLfloat *value )
-{
-    assert( program >= 0 && program <= GLSL_LAST_PROGRAM );
-    GLint location = glsl_get_uniform_location_prim(program_array[program], name);
-    glsl_set_uniform_mat4_prim(location, value);
 }
 
 void glsl_clear_shader()

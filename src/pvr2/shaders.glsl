@@ -105,5 +105,5 @@ void main()
 	gl_FragDepth = gl_FragCoord.z;
 }
 
-#program DEFAULT_PROGRAM = DEFAULT_VERTEX_SHADER DEFAULT_FRAGMENT_SHADER
+#program pvr2_shader = DEFAULT_VERTEX_SHADER DEFAULT_FRAGMENT_SHADER
 

@@ -21,6 +21,7 @@
  */
 
 #include <assert.h>
+#include <ctype.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -37,15 +38,24 @@ typedef enum {
     FRAGMENT_SHADER = 1
 } shader_type_t;
 
+typedef struct variable {
+    gboolean uniform; /* TRUE = uniform, FALSE = attribute */
+    const char *name;
+    const char *type;
+} *variable_t;
+
 typedef struct shader {
     shader_type_t type;
     const char *name;
     char *body;
+    GList *variables;
 } *shader_t;
 
 typedef struct program {
     const char *name;
     gchar **shader_names;
+    GList *shaders;
+    GList *variables;
 } *program_t;
 
 typedef struct glsldata {
@@ -54,6 +64,85 @@ typedef struct glsldata {
     GList *shaders;
     GList *programs;
 } *glsldata_t;
+
+#define isident(c) (isalnum(c)||(c)=='_')
+
+static void parseVarDecl( shader_t shader, gboolean uniform, char *input )
+{
+    unsigned i;
+    char *p = g_strstrip(input);
+    for( i=0; isident(p[i]); i++)
+    if( p[i] == 0 ) {
+        fprintf( stderr, "Error: unable to parse variable decl '%s'\n", p );
+        return; /* incomplete decl? */
+    }
+    char *type = g_strndup(p, i);
+    p = g_strstrip(input+i);
+    for( i=0; isident(p[i]); i++)
+    if( p[i] == 0 ) {
+        fprintf( stderr, "Error: unable to parse variable decl '%s'\n", p );
+        return; /* incomplete decl? */
+    }
+    char *name = g_strndup(p, i);
+    variable_t var = g_malloc0(sizeof(struct variable));
+    var->uniform = uniform;
+    var->type = type;
+    var->name = name;
+    shader->variables = g_list_append(shader->variables,var);
+}
+
+static shader_t findShader( GList *shaders, const char *name )
+{
+    GList *ptr = shaders;
+    while( ptr != NULL ) {
+        shader_t shader = ptr->data;
+        if( strcmp(shader->name, name) == 0 )
+            return shader;
+        ptr = ptr->next;
+    }
+    return NULL;
+}
+
+static gboolean addProgramVariable( program_t program, variable_t variable )
+{
+    GList *ptr = program->variables;
+    while( ptr != NULL ) {
+        variable_t varp = ptr->data;
+        if( strcmp(varp->name, variable->name) == 0 ) {
+            if( varp->uniform == variable->uniform && strcmp(varp->type, variable->type) == 0 )
+                return TRUE; /* All ok */
+            fprintf( stderr, "Error: Variable type mismatch on '%s'\n", variable->name );
+            return FALSE;
+        }
+        ptr = ptr->next;
+    }
+    program->variables = g_list_append(program->variables, variable);
+    return TRUE;
+}
+
+static void linkPrograms( glsldata_t data )
+{
+    GList *program_ptr = data->programs;
+    unsigned i;
+    while( program_ptr != NULL ) {
+        program_t program = program_ptr->data;
+        for( i=0; program->shader_names[i] != NULL; i++ ) {
+            shader_t shader = findShader(data->shaders, program->shader_names[i]);
+            if( shader == NULL ) {
+                fprintf( stderr, "Error: unable to resolve shader '%s'\n", program->shader_names[i] );\
+            } else {
+                GList *varptr = shader->variables;
+                while( varptr != NULL ) {
+                    addProgramVariable(program, varptr->data);
+                    varptr = varptr->next;
+                }
+            }
+        }
+        program_ptr = program_ptr->next;
+    }
+
+}
+
 
 static struct glsldata *readInput( const char *filename )
 {
@@ -68,19 +157,16 @@ static struct glsldata *readInput( const char *filename )
     }
 
     shader_t shader = NULL;
-    glsldata_t result = malloc(sizeof(struct glsldata));
+    glsldata_t result = g_malloc0(sizeof(struct glsldata));
     assert( result != NULL );
     result->filename = strdup(filename);
-    result->shaders = NULL;
-    result->programs = NULL;
-    result->max_shaders = 0;
 
     while( fgets(buf, sizeof(buf), f) != NULL ) {
         if( strlen(buf) == 0 )
             continue;
 
         if( strncmp(buf, "#vertex ", 8) == 0 ) {
-            shader = malloc(sizeof(struct shader));
+            shader = g_malloc0(sizeof(struct shader));
             assert( shader != NULL );
             shader->type = VERTEX_SHADER;
             shader->name = strdup(g_strstrip(buf+8));
@@ -90,7 +176,7 @@ static struct glsldata *readInput( const char *filename )
             current_posn = 0;
             result->shaders = g_list_append(result->shaders, shader);
         } else if( strncmp( buf, "#fragment ", 10 ) == 0 ) {
-            shader = malloc(sizeof(struct shader));
+            shader = g_malloc0(sizeof(struct shader));
             assert( shader != NULL );
             shader->type = FRAGMENT_SHADER;
             shader->name = strdup(g_strstrip(buf+10));
@@ -101,7 +187,7 @@ static struct glsldata *readInput( const char *filename )
             result->shaders = g_list_append(result->shaders, shader);
         } else if( strncmp( buf, "#program ", 9 ) == 0 ) {
             shader = NULL;
-            program_t program = malloc(sizeof(struct program));
+            program_t program = g_malloc0(sizeof(struct program));
             char *rest = buf+9;
             char *equals = strchr(rest, '=');
             if( equals == NULL ) {
@@ -124,10 +210,17 @@ static struct glsldata *readInput( const char *filename )
             }
             strcpy( shader->body + current_posn, buf );
             current_posn += len;
+            char *line = g_strstrip(buf);
+            if( strncmp( line, "uniform ", 8 ) == 0 ) {
+                parseVarDecl(shader, TRUE, line+8);
+            } else if( strncmp( line, "attribute ", 10 ) == 0 ) {
+                parseVarDecl(shader, FALSE, line+10);
+            }
         }
     }
 
     fclose(f);
+    linkPrograms(result);
     return result;
 }
 
@@ -147,6 +240,28 @@ static void writeCString( FILE *out, const char *str )
         fputc( *p, out );
         p++;
     }
+}
+
+static const char *sl_type_map[][3] = {
+        {"int", "int", "int *"},
+        {"short", "short", "short *"},
+        {"sampler", "int", "int *"},
+        {"vec", "GLfloat *", "GLfloat *"},
+        {"mat", "GLfloat *", "GLfloat *"},
+        {NULL, NULL}
+};
+
+static const char *getCType( const char *sl_type, gboolean isUniform ) {
+    for( unsigned i=0; sl_type_map[i][0] != NULL; i++ ) {
+        if( strncmp(sl_type_map[i][0], sl_type, strlen(sl_type_map[i][0])) == 0 ) {
+            if( isUniform ) {
+                return sl_type_map[i][1];
+            } else {
+                return sl_type_map[i][2];
+            }
+        }
+    }
+    return "void *";
 }
 
 static void writeHeader( FILE *out, glsldata_t data )
@@ -185,26 +300,26 @@ static void writeInterface( const char *filename, glsldata_t data )
     fprintf( f, "#define GLSL_VERTEX_SHADER 1\n" );
     fprintf( f, "#define GLSL_FRAGMENT_SHADER 2\n" );
 
-    fprintf( f, "typedef enum {\n" );
-    last_name = NULL;
     count = 0;
     GList *program_ptr;
     for( program_ptr = data->programs; program_ptr != NULL; program_ptr = program_ptr->next ) {
         count++;
-        program_t program = (program_t)program_ptr->data;
-        fprintf( f, "    %s,\n", program->name );
-        last_name = program->name;
     }
-    fprintf( f, "} program_id;\n\n" );
-
-    if( last_name == NULL )
-        last_name = "NULL";
-    fprintf( f, "#define GLSL_LAST_PROGRAM %s\n", last_name );
     fprintf( f, "#define GLSL_NUM_PROGRAMS %d\n", count );
-    fprintf( f, "#define GLSL_NO_PROGRAM -1\n\n" );
 
-    fprintf( f, "int glsl_load_programs();\n" );
-    fprintf( f, "void glsl_use_program_id( program_id );\n" );
+    for( program_ptr = data->programs; program_ptr != NULL; program_ptr = program_ptr->next ) {
+        program_t program = program_ptr->data;
+        GList *var_ptr;
+        fprintf( f, "void glsl_use_%s();\n", program->name );
+        for( var_ptr = program->variables; var_ptr != NULL; var_ptr = var_ptr->next ) {
+            variable_t var = var_ptr->data;
+            if( var->uniform ) {
+                fprintf( f, "void glsl_set_%s_%s(%s value); /* uniform %s %s */ \n", program->name, var->name, getCType(var->type,var->uniform), var->type, var->name );
+            } else {
+                fprintf( f, "void glsl_set_%s_%s_pointer(%s ptr); /* attribute %s %s */ \n", program->name, var->name, getCType(var->type,var->uniform), var->type, var->name);
+            }
+        }
+    }
 
     fprintf( f, "#endif /* !lxdream_glsl_H */\n" );
 
@@ -234,6 +349,7 @@ static void writeSource( const char *filename, glsldata_t data )
 
     fprintf( f, "const int program_list[][%d] = {\n", data->max_shaders+1 );
     GList *program_ptr;
+    GList *var_ptr;
     unsigned i;
     for( program_ptr = data->programs; program_ptr != NULL; program_ptr = program_ptr->next ) {
         program_t program = (program_t)program_ptr->data;
@@ -244,6 +360,48 @@ static void writeSource( const char *filename, glsldata_t data )
         fprintf( f, "GLSL_NO_SHADER},\n" );
     }
     fprintf( f, "    {GLSL_NO_SHADER}};\n" );
+
+    /* per-program functions */
+    for( program_ptr = data->programs; program_ptr != NULL; program_ptr = program_ptr->next ) {
+        program_t program = program_ptr->data;
+        fprintf( f, "\nstatic gl_program_t prog_%s_id;\n",program->name );
+        for( var_ptr = program->variables; var_ptr != NULL; var_ptr = var_ptr->next ) {
+            variable_t var = var_ptr->data;
+            fprintf( f, "static GLint var_%s_%s_loc;\n", program->name, var->name);
+        }
+
+    }
+    for( program_ptr = data->programs; program_ptr != NULL; program_ptr = program_ptr->next ) {
+        program_t program = program_ptr->data;
+        fprintf( f, "\nvoid glsl_use_%s() {\n    glsl_use_program(prog_%s_id);\n}\n", program->name, program->name );
+
+        for( var_ptr = program->variables; var_ptr != NULL; var_ptr = var_ptr->next ) {
+            variable_t var = var_ptr->data;
+            if( var->uniform ) {
+                fprintf( f, "void glsl_set_%s_%s(%s value){ /* uniform %s %s */ \n", program->name, var->name, getCType(var->type,var->uniform), var->type, var->name );
+                fprintf( f, "    glsl_set_uniform_%s(var_%s_%s_loc,value);\n}\n", var->type, program->name, var->name );
+            } else {
+                fprintf( f, "void glsl_set_%s_%s_pointer(%s ptr, GLsizei stride){ /* attribute %s %s */ \n", program->name, var->name, getCType(var->type,var->uniform), var->type, var->name);
+                fprintf( f, "    glsl_set_attrib_%s(var_%s_%s_loc,stride, ptr);\n}\n", var->type, program->name, var->name );
+            }
+        }
+    }
+
+    fprintf( f, "\nstatic void glsl_init_programs( gl_program_t *ids ) {\n" );
+    for( program_ptr = data->programs, i=0; program_ptr != NULL; program_ptr = program_ptr->next, i++ ) {
+        program_t program = program_ptr->data;
+
+        fprintf( f, "    prog_%s_id = ids[%d];\n\n", program->name, i );
+        for( var_ptr = program->variables; var_ptr != NULL; var_ptr = var_ptr->next ) {
+            variable_t var = var_ptr->data;
+            if( var->uniform ) {
+                fprintf( f, "    var_%s_%s_loc = glsl_get_uniform_location(prog_%s_id, \"%s\");\n", program->name, var->name, program->name, var->name );
+            } else {
+                fprintf( f, "    var_%s_%s_loc = glsl_get_attrib_location(prog_%s_id, \"%s\");\n", program->name, var->name, program->name, var->name );
+            }
+        }
+    }
+    fprintf( f, "}\n" );
 
     fclose(f);
 }
