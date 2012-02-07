@@ -43,6 +43,9 @@ void glsl_use_program(gl_program_t program);
 void glsl_destroy_shader(gl_shader_t shader);
 void glsl_destroy_program(gl_program_t program);
 
+typedef void (*program_cleanup_fn_t)();
+static void glsl_set_cleanup_fn( program_cleanup_fn_t );
+
 #ifdef HAVE_OPENGL_SHADER_ARB
 
 gboolean glsl_is_supported()
@@ -168,6 +171,8 @@ static inline GLint glsl_get_attrib_location(gl_program_t program, const char *n
 #define glsl_set_uniform_mat4(id,v) glUniformMatrix4fvARB(id,1,GL_FALSE,v)
 #define glsl_set_attrib_vec3(id,stride,v) glVertexAttribPointerARB(id, 3, GL_FLOAT, GL_FALSE, stride, v)
 #define glsl_set_attrib_vec4(id,stride,v) glVertexAttribPointerARB(id, 4, GL_FLOAT, GL_FALSE, stride, v)
+#define glsl_enable_attrib(id) glEnableVertexAttribArrayARB(id)
+#define glsl_disable_attrib(id) glDisableVertexAttribArrayARB(id)
 
 #elif HAVE_OPENGL_SHADER
 
@@ -292,6 +297,8 @@ static inline GLint glsl_get_attrib_location(gl_program_t program, const char *n
 #define glsl_set_uniform_mat4(id,v) glUniformMatrix4fv(id,1,GL_FALSE,v)
 #define glsl_set_attrib_vec3(id,stride,v) glVertexAttribPointer(id, 3, GL_FLOAT, GL_FALSE, stride, v)
 #define glsl_set_attrib_vec4(id,stride,v) glVertexAttribPointer(id, 4, GL_FLOAT, GL_FALSE, stride, v)
+#define glsl_enable_attrib(id) glEnableVertexAttribArray(id)
+#define glsl_disable_attrib(id) glDisableVertexAttribArray(id)
 
 
 #else
@@ -347,17 +354,22 @@ static inline GLint glsl_get_attrib_location(gl_program_t program, const char *n
 #define glsl_set_uniform_mat4(id,v)
 #define glsl_set_attrib_vec3(id,stride,v)
 #define glsl_set_attrib_vec4(id,stride,v)
+#define glsl_enable_attrib(id)
+#define glsl_disable_attrib(id)
 
 
 #endif
 
 /****************************************************************************/
 
+program_cleanup_fn_t current_cleanup_fn = NULL;
+
 /* Pull in the auto-generated shader definitions */
 
 #include "pvr2/shaders.def"
 
 static gl_program_t program_array[GLSL_NUM_PROGRAMS];
+
 
 gboolean glsl_load_shaders()
 {
@@ -431,9 +443,28 @@ gboolean glsl_load_shaders()
     return TRUE;
 }
 
+static void glsl_set_cleanup_fn( program_cleanup_fn_t fn )
+{
+    if( fn != current_cleanup_fn ) {
+        if( current_cleanup_fn != NULL ) {
+            current_cleanup_fn();
+        }
+        current_cleanup_fn = fn;
+    }
+}
+
+static void glsl_run_cleanup_fn()
+{
+    if( current_cleanup_fn ) {
+        current_cleanup_fn();
+    }
+    current_cleanup_fn = NULL;
+}
+
 void glsl_unload_shaders()
 {
     unsigned i;
+    glsl_run_cleanup_fn();
     for( i=0; i<GLSL_NUM_PROGRAMS; i++ ) {
         if( program_array[i] != INVALID_PROGRAM ) {
             glsl_destroy_program(program_array[i]);
@@ -444,5 +475,7 @@ void glsl_unload_shaders()
 
 void glsl_clear_shader()
 {
+    glsl_run_cleanup_fn();
     glsl_use_program(0);
 }
+

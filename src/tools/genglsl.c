@@ -316,7 +316,7 @@ static void writeInterface( const char *filename, glsldata_t data )
             if( var->uniform ) {
                 fprintf( f, "void glsl_set_%s_%s(%s value); /* uniform %s %s */ \n", program->name, var->name, getCType(var->type,var->uniform), var->type, var->name );
             } else {
-                fprintf( f, "void glsl_set_%s_%s_pointer(%s ptr); /* attribute %s %s */ \n", program->name, var->name, getCType(var->type,var->uniform), var->type, var->name);
+                fprintf( f, "void glsl_set_%s_%s_pointer(%s ptr, GLint stride); /* attribute %s %s */ \n", program->name, var->name, getCType(var->type,var->uniform), var->type, var->name);
             }
         }
     }
@@ -373,7 +373,26 @@ static void writeSource( const char *filename, glsldata_t data )
     }
     for( program_ptr = data->programs; program_ptr != NULL; program_ptr = program_ptr->next ) {
         program_t program = program_ptr->data;
-        fprintf( f, "\nvoid glsl_use_%s() {\n    glsl_use_program(prog_%s_id);\n}\n", program->name, program->name );
+        fprintf( f, "\nstatic void glsl_cleanup_%s() {\n", program->name );
+        for( var_ptr = program->variables; var_ptr != NULL; var_ptr = var_ptr->next ) {
+            variable_t var = var_ptr->data;
+            if( !var->uniform ) {
+                fprintf( f, "    glsl_disable_attrib(var_%s_%s_loc);\n", program->name, var->name );
+            }
+        }
+        fprintf( f, "}\n");
+
+        fprintf( f, "\nvoid glsl_use_%s() {\n", program->name );
+        fprintf( f, "    glsl_use_program(prog_%s_id);\n", program->name );
+        for( var_ptr = program->variables; var_ptr != NULL; var_ptr = var_ptr->next ) {
+            variable_t var = var_ptr->data;
+            if( !var->uniform ) {
+                fprintf( f, "    glsl_enable_attrib(var_%s_%s_loc);\n", program->name, var->name );
+            }
+        }
+        fprintf( f, "    glsl_set_cleanup_fn(glsl_cleanup_%s);\n", program->name );
+        fprintf( f, "}\n");
+
 
         for( var_ptr = program->variables; var_ptr != NULL; var_ptr = var_ptr->next ) {
             variable_t var = var_ptr->data;
