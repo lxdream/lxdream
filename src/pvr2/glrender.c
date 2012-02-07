@@ -24,6 +24,7 @@
 #include "pvr2/glutil.h"
 #include "pvr2/scene.h"
 #include "pvr2/tileiter.h"
+#include "pvr2/shaders.h"
 
 #ifdef APPLE_BUILD
 #include "OpenGL/CGLCurrent.h"
@@ -160,9 +161,9 @@ void pvr2_setup_gl_context()
     glFogf(GL_FOG_END, 1.0);
 
     if( have_shaders ) {
-        glsl_set_shader(DEFAULT_PROGRAM);
-        glsl_set_uniform_int(DEFAULT_PROGRAM, "primary_texture", 0);
-        glsl_set_uniform_int(DEFAULT_PROGRAM, "palette_texture", 1);
+        glsl_use_pvr2_shader();
+        glsl_set_pvr2_shader_primary_texture(0);
+        glsl_set_pvr2_shader_palette_texture(1);
         glsl_clear_shader();
     }
 }
@@ -460,7 +461,7 @@ void pvr2_scene_render( render_buffer_t buffer )
     glSecondaryColorPointerEXT(3, GL_FLOAT, sizeof(struct vertex_struct), pvr2_scene.vertex_array[0].offset_rgba );
     glFogCoordPointerEXT(GL_FLOAT, sizeof(struct vertex_struct), &pvr2_scene.vertex_array[0].offset_rgba[3] );
     /* Turn on the shaders (if available) */
-    glsl_set_shader(DEFAULT_PROGRAM);
+    glsl_use_pvr2_shader();
 
     /* Render the background */
     gl_render_bkgnd( pvr2_scene.bkgnd_poly );

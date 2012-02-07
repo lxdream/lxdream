@@ -21,7 +21,6 @@
 
 #include <stdio.h>
 #include "display.h"
-#include "pvr2/shaders.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -56,17 +55,17 @@ gboolean isGLPixelBufferSupported();
 gboolean isGLMultitextureSupported();
 gboolean isGLMirroredTextureSupported();
 
+/****** Extension variant wrangling *****/
+
+
+
+
 /****** Shader handling (gl_sl.c) *****/
 gboolean glsl_is_supported(void);
 const char *glsl_get_version(void);
 gboolean glsl_load_shaders( );
 void glsl_unload_shaders(void);
-gboolean glsl_set_shader( unsigned program_id );
 void glsl_clear_shader();
-GLint glsl_get_uniform_location( unsigned program, const char *name );
-void glsl_set_uniform_int( unsigned program, const char *name, GLint value );
-void glsl_set_uniform_mat4( unsigned program, const char *name, GLfloat *value );
-GLint glsl_get_attrib_location(unsigned program, const char *name);
 
 /* Convenience formatting function for driver use */
 void fprint_extensions( FILE *out, const char *extensions );
