@@ -286,7 +286,8 @@ AM_CONDITIONAL(VIDEO_GLX, [test "x$HAVE_GLX" = "xyes"])
 AM_CONDITIONAL(VIDEO_NSGL, [test "x$HAVE_NSGL" = "xyes"])
 
 dnl Check for optional (but highly desireable) OpenGL features
-AC_CHECK_FUNC(glGenFramebuffersEXT, [ AC_DEFINE([HAVE_OPENGL_FBO],1,[Have EXT_framebuffer_object support]) ], [])
+AC_CHECK_FUNC(glGenFramebuffers, [ AC_DEFINE([HAVE_OPENGL_FBO],1,[Have 2.0 framebuffer_object support]) ], [])
+AC_CHECK_FUNC(glGenFramebuffersEXT, [ AC_DEFINE([HAVE_OPENGL_FBO_EXT],1,[Have EXT_framebuffer_object support]) ], [])
 AC_CHECK_FUNC(glCreateShader, [ AC_DEFINE([HAVE_OPENGL_SHADER],1,[Have 2.0 shader support]) ], [])
 AC_CHECK_FUNC(glCreateShaderObjectARB, [ AC_DEFINE([HAVE_OPENGL_SHADER_ARB],1,[Have ARB shader support]) ], [])
 AC_CHECK_FUNC(glClampColorARB, [ AC_DEFINE([HAVE_OPENGL_CLAMP_COLOR],1,[Have Color Clamp]) ], [])

@@ -57,7 +57,51 @@ gboolean isGLMirroredTextureSupported();
 
 /****** Extension variant wrangling *****/
 
+#if defined(GL_MIRRORED_REPEAT_ARB) && !defined(GL_MIRRORED_REPEAT)
+#define GL_MIRRORED_REPEAT GL_MIRRORED_REPEAT_ARB
+#endif
 
+#if defined(GL_FRAMEBUFFER_EXT) && !defined(GL_FRAMEBUFFER)
+#define GL_FRAMEBUFFER GL_FRAMEBUFFER_EXT
+#endif
+
+#if defined(GL_RENDERBUFFER_EXT) && !defined(GL_RENDERBUFFER)
+#define GL_RENDERBUFFER GL_RENDERBUFFER_EXT
+#endif
+
+#if defined(GL_COLOR_ATTACHMENT0_EXT) && !defined(GL_COLOR_ATTACHMENT0)
+#define GL_COLOR_ATTACHMENT0 GL_COLOR_ATTACHMENT0_EXT
+#endif
+
+#if defined(GL_MAX_COLOR_ATTACHMENTS_EXT) && !defined(GL_MAX_COLOR_ATTACHMENTS)
+#define GL_MAX_COLOR_ATTACHMENTS GL_MAX_COLOR_ATTACHMENTS_EXT
+#endif
+
+#if defined(GL_STENCIL_ATTACHMENT_EXT) && !defined(GL_STENCIL_ATTACHMENT)
+#define GL_STENCIL_ATTACHMENT GL_STENCIL_ATTACHMENT_EXT
+#endif
+
+#if defined(GL_DEPTH_ATTACHMENT_EXT) && !defined(GL_DEPTH_ATTACHMENT)
+#define GL_DEPTH_ATTACHMENT GL_DEPTH_ATTACHMENT_EXT
+#endif
+
+#if defined(GL_FRAMEBUFFER_COMPLETE_EXT) && !defined(GL_FRAMEBUFFER_COMPLETE)
+#define GL_FRAMEBUFFER_COMPLETE GL_FRAMEBUFFER_COMPLETE_EXT
+#endif
+
+#if defined(HAVE_OPENGL_FBO_EXT) && !defined(HAVE_OPENGL_FBO)
+#define glGenFramebuffers glGenFramebuffersEXT
+#define glGenRenderbuffers glGenRenderbuffersEXT
+#define glBindFramebuffer glBindFramebufferEXT
+#define glDeleteFramebuffers glDeleteFramebuffersEXT
+#define glDeleteRenderbuffers glDeleteRenderbuffersEXT
+#define glBindFramebuffer glBindFramebufferEXT
+#define glBindRenderbuffer glBindRenderbufferEXT
+#define glRenderbufferStorage glRenderbufferStorageEXT
+#define glFramebufferRenderbuffer glFramebufferRenderbufferEXT
+#define glFramebufferTexture2D glFramebufferTexture2DEXT
+#define glCheckFramebufferStatus glCheckFramebufferStatusEXT
+#endif
 
 
 /****** Shader handling (gl_sl.c) *****/
