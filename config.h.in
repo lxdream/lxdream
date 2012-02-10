@@ -106,17 +106,26 @@
 /* Have Color Clamp */
 #undef HAVE_OPENGL_CLAMP_COLOR
 
+/* Have glClearDepthf function */
+#undef HAVE_OPENGL_CLEAR_DEPTHF
+
 /* Have 2.0 framebuffer_object support */
 #undef HAVE_OPENGL_FBO
 
 /* Have EXT_framebuffer_object support */
 #undef HAVE_OPENGL_FBO_EXT
 
+/* Have OpenGL fixed-functionality */
+#undef HAVE_OPENGL_FIXEDFUNC
+
 /* Have 2.0 shader support */
 #undef HAVE_OPENGL_SHADER
 
 /* Have ARB shader support */
 #undef HAVE_OPENGL_SHADER_ARB
+
+/* Have glAreTexturesResident */
+#undef HAVE_OPENGL_TEX_RESIDENT
 
 /* Building with the OSMesa video driver */
 #undef HAVE_OSMESA

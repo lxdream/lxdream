@@ -17,9 +17,9 @@ stamp-h1
 lxdream-.*.tar.gz
 lxdream-.*.zip
 src/drivers/mac_keymap.h
-src/gendec
-src/genglsl
-src/genmach
+src/tools/gendec
+src/tools/genglsl
+src/tools/genmach
 src/pvr2/shaders.h
 src/pvr2/shaders.def
 src/sh4/sh4dasm.c

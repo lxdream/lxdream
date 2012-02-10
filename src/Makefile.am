@@ -1,4 +1,7 @@
 ## Process this file with automake to produce Makefile.in
+
+SUBDIRS=tools
+
 SVNVERSION=@SVNVERSION@
 INCLUDES = \
 	-DPACKAGE_DATA_DIR=\""$(datadir)"\" \
@@ -12,7 +15,6 @@ SOEXT=@SOEXT@
 PLUGINCFLAGS = @PLUGINCFLAGS@ 
 PLUGINLDFLAGS = @PLUGINLDFLAGS@
 bin_PROGRAMS = lxdream
-noinst_PROGRAMS = gendec genglsl genmach
 check_PROGRAMS = test/testxlt test/testlxpaths
 
 pkglib_PROGRAMS=
@@ -35,9 +37,6 @@ CLEANFILES = sh4/sh4core.c sh4/sh4dasm.c sh4/sh4x86.c sh4/sh4stat.c \
 
 #all-am: checkversion
 
-gendec_SOURCES = tools/gendec.c tools/gendec.h tools/insparse.c tools/actparse.c
-genmach_SOURCES = tools/genmach.c tools/genmach.h tools/mdparse.c
-genglsl_SOURCES = tools/genglsl.c
 lxdream_LINK = $(LINK) @LXDREAMLDFLAGS@
 lxdream_LDADD = @LXDREAM_LIBS@ @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@ @LIBISOFS_LIBS@ $(INTLLIBS)
 lxdream_SOURCES = \
@@ -233,31 +232,32 @@ lxdream_SOURCES += drivers/joy_linux.c drivers/joy_linux.h
 endif
 
 
-
-gendec_LDADD = @GLIB_LIBS@ @GTK_LIBS@ $(INTLLIBS)
-genglsl_LDADD = @GLIB_LIBS@ @GTK_LIBS@ $(INTLLIBS)
-genmach_LDADD = @GLIB_LIBS@ @GTK_LIBS@ $(INTLLIBS)
-
-
 test_testxlt_SOURCES = test/testxlt.c xlat/xltcache.c xlat/xltcache.h
 test_testlxpaths_SOURCES = test/testlxpaths.c lxpaths.c
 test_testlxpaths_LDADD = @GLIB_LIBS@
 
-sh4/sh4core.c: gendec$(EXEEXT) sh4/sh4.def sh4/sh4core.in
+GENDEC = tools/gendec$(EXEEXT)
+GENGLSL = tools/genglsl$(EXEEXT)
+GENMACH = totols/genmach$(EXEEXT)
+
+$(GENDEC) $(GENGLSL) $(GENMACH):
+	$(MAKE) $(AM_MAKEFLAGS) -C tools
+
+sh4/sh4core.c: $(GENDEC) sh4/sh4.def sh4/sh4core.in
 	$(mkdir_p) `dirname $@`
-	./gendec $(srcdir)/sh4/sh4.def $(srcdir)/sh4/sh4core.in -o $@
-sh4/sh4dasm.c: gendec$(EXEEXT) sh4/sh4.def sh4/sh4dasm.in
+	$(GENDEC) $(srcdir)/sh4/sh4.def $(srcdir)/sh4/sh4core.in -o $@
+sh4/sh4dasm.c: $(GENDEC) sh4/sh4.def sh4/sh4dasm.in
 	$(mkdir_p) `dirname $@`
-	./gendec $(srcdir)/sh4/sh4.def $(srcdir)/sh4/sh4dasm.in -o $@
-sh4/sh4x86.c: gendec$(EXEEXT) sh4/sh4.def sh4/sh4x86.in
+	$(GENDEC) $(srcdir)/sh4/sh4.def $(srcdir)/sh4/sh4dasm.in -o $@
+sh4/sh4x86.c: $(GENDEC) sh4/sh4.def sh4/sh4x86.in
 	$(mkdir_p) `dirname $@`
-	./gendec $(srcdir)/sh4/sh4.def $(srcdir)/sh4/sh4x86.in -o $@
-sh4/sh4stat.c: gendec$(EXEEXT) sh4/sh4.def sh4/sh4stat.in
+	$(GENDEC) $(srcdir)/sh4/sh4.def $(srcdir)/sh4/sh4x86.in -o $@
+sh4/sh4stat.c: $(GENDEC) sh4/sh4.def sh4/sh4stat.in
 	$(mkdir_p) `dirname $@`
-	./gendec $(srcdir)/sh4/sh4.def $(srcdir)/sh4/sh4stat.in -o $@
-pvr2/shaders.def: genglsl$(EXEEXT) pvr2/shaders.glsl
+	$(GENDEC) $(srcdir)/sh4/sh4.def $(srcdir)/sh4/sh4stat.in -o $@
+pvr2/shaders.def: $(GENGLSL) pvr2/shaders.glsl
 	$(mkdir_p) `dirname $@`
-	./genglsl $(srcdir)/pvr2/shaders.glsl $@
+	$(GENGLSL) $(srcdir)/pvr2/shaders.glsl $@
 pvr2/shaders.h: pvr2/shaders.def
 drivers/mac_keymap.h: dckeysyms.h drivers/mac_keymap.txt drivers/genkeymap.pl
 	$(mkdir_p) `dirname $@`
