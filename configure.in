@@ -5,17 +5,20 @@ AM_INIT_AUTOMAKE(lxdream, 0.9.1)
 AM_MAINTAINER_MODE
 AM_CONFIG_HEADER(config.h)
 
+AC_CANONICAL_BUILD
+AC_CANONICAL_HOST
+
+m4_include([m4/ccforbuild.m4])
+
 AC_ISC_POSIX
 AC_PROG_CC
-AC_PROG_CC_FOR_BUILD
 AM_PROG_CC_STDC
+AC_PROG_CC_FOR_BUILD
 AC_PROG_OBJC
 AC_PROG_SED
 AM_PROG_AS
 AC_CHECK_SIZEOF([void *])
 AC_HEADER_STDC
-AC_CANONICAL_BUILD
-AC_CANONICAL_HOST
 
 _AM_DEPENDENCIES([OBJC])
 
@@ -102,6 +105,7 @@ if test "x$HAVE_COCOA" = 'xyes' -a "x$with_gtk" = "xno"; then
 fi
 
 dnl ------------------ C Compiler flags -----------------------
+CFLAGS_FOR_BUILD="-O2 -std=c99"
 CFLAGS="-g -fexceptions"
 OBJCFLAGS="-g -fexceptions"
 AC_DEFINE(HAVE_EXCEPTIONS, [1], [Have exception stack-frame information])
@@ -228,6 +232,10 @@ else
    fi
 fi
 
+AC_PUSH_CC_FOR_BUILD
+PKG_CHECK_MODULES(GLIB_FOR_BUILD, glib-2.0)
+AC_POP_CC_FOR_BUILD
+
 AM_CONDITIONAL(GUI_GTK, [test "$HAVE_GTK" = 'yes'])
 
 PKG_CHECK_MODULES(LIBISOFS, [libisofs-1] )
@@ -291,6 +299,11 @@ AC_CHECK_FUNC(glGenFramebuffersEXT, [ AC_DEFINE([HAVE_OPENGL_FBO_EXT],1,[Have EX
 AC_CHECK_FUNC(glCreateShader, [ AC_DEFINE([HAVE_OPENGL_SHADER],1,[Have 2.0 shader support]) ], [])
 AC_CHECK_FUNC(glCreateShaderObjectARB, [ AC_DEFINE([HAVE_OPENGL_SHADER_ARB],1,[Have ARB shader support]) ], [])
 AC_CHECK_FUNC(glClampColorARB, [ AC_DEFINE([HAVE_OPENGL_CLAMP_COLOR],1,[Have Color Clamp]) ], [])
+AC_CHECK_FUNC(glClearDepthf, [ AC_DEFINE([HAVE_OPENGL_CLEAR_DEPTHF],1,[Have glClearDepthf function]) ], [])
+AC_CHECK_FUNC(glAreTexturesResident, [ AC_DEFINE([HAVE_OPENGL_TEX_RESIDENT],1,[Have glAreTexturesResident]) ], [])
+AC_CHECK_FUNC(glTexEnvi, [ AC_DEFINE([HAVE_OPENGL_FIXEDFUNC],1,[Have OpenGL fixed-functionality]) ], [])dnl glTexEnvi is a pretty fair proxy for this.
+ 
+
 
 
 dnl ------------------- SH4 translator target -------------------
@@ -443,6 +456,7 @@ AM_GLIB_GNU_GETTEXT
 AC_OUTPUT([
 Makefile
 src/Makefile
+src/tools/Makefile
 po/Makefile.in
 test/Makefile
 Info.plist

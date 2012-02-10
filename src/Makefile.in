@@ -37,7 +37,6 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 bin_PROGRAMS = lxdream$(EXEEXT)
-noinst_PROGRAMS = gendec$(EXEEXT) genglsl$(EXEEXT) genmach$(EXEEXT)
 check_PROGRAMS = test/testxlt$(EXEEXT) test/testlxpaths$(EXEEXT) \
 	$(am__EXEEXT_1)
 pkglib_PROGRAMS = $(am__EXEEXT_2) $(am__EXEEXT_3) $(am__EXEEXT_4) \
@@ -93,7 +92,7 @@ subdir = src
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/acinclude.m4 \
-	$(top_srcdir)/configure.in
+	$(top_srcdir)/m4/ccforbuild.m4 $(top_srcdir)/configure.in
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
@@ -110,7 +109,7 @@ binPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
 @AUDIO_ALSA_TRUE@@BUILD_SHARED_TRUE@am__EXEEXT_6 = audio_alsa.@SOEXT@$(EXEEXT)
 @BUILD_SHARED_TRUE@@INPUT_LIRC_TRUE@am__EXEEXT_7 = input_lirc.@SOEXT@$(EXEEXT)
 pkglibPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
-PROGRAMS = $(bin_PROGRAMS) $(noinst_PROGRAMS) $(pkglib_PROGRAMS)
+PROGRAMS = $(bin_PROGRAMS) $(pkglib_PROGRAMS)
 am_audio_alsa_@SOEXT@_OBJECTS =
 audio_alsa_@SOEXT@_OBJECTS = $(am_audio_alsa_@SOEXT@_OBJECTS)
 @AUDIO_ALSA_TRUE@@BUILD_SHARED_TRUE@audio_alsa_@SOEXT@_DEPENDENCIES =  \
@@ -127,17 +126,6 @@ am_audio_sdl_@SOEXT@_OBJECTS =
 audio_sdl_@SOEXT@_OBJECTS = $(am_audio_sdl_@SOEXT@_OBJECTS)
 @AUDIO_SDL_TRUE@@BUILD_SHARED_TRUE@audio_sdl_@SOEXT@_DEPENDENCIES =  \
 @AUDIO_SDL_TRUE@@BUILD_SHARED_TRUE@	audio_sdl.lo
-am_gendec_OBJECTS = gendec.$(OBJEXT) insparse.$(OBJEXT) \
-	actparse.$(OBJEXT)
-gendec_OBJECTS = $(am_gendec_OBJECTS)
-am__DEPENDENCIES_1 =
-gendec_DEPENDENCIES = $(am__DEPENDENCIES_1)
-am_genglsl_OBJECTS = genglsl.$(OBJEXT)
-genglsl_OBJECTS = $(am_genglsl_OBJECTS)
-genglsl_DEPENDENCIES = $(am__DEPENDENCIES_1)
-am_genmach_OBJECTS = genmach.$(OBJEXT) mdparse.$(OBJEXT)
-genmach_OBJECTS = $(am_genmach_OBJECTS)
-genmach_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am_input_lirc_@SOEXT@_OBJECTS =
 input_lirc_@SOEXT@_OBJECTS = $(am_input_lirc_@SOEXT@_OBJECTS)
 @BUILD_SHARED_TRUE@@INPUT_LIRC_TRUE@input_lirc_@SOEXT@_DEPENDENCIES =  \
@@ -291,6 +279,7 @@ am_lxdream_OBJECTS = lxdream-main.$(OBJEXT) lxdream-version.$(OBJEXT) \
 	$(am__objects_13) $(am__objects_14) $(am__objects_15) \
 	$(am__objects_16) $(am__objects_17) $(am__objects_18)
 lxdream_OBJECTS = $(am_lxdream_OBJECTS)
+am__DEPENDENCIES_1 =
 lxdream_DEPENDENCIES = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
@@ -338,19 +327,24 @@ OBJCLINK = $(OBJCLD) $(AM_OBJCFLAGS) $(OBJCFLAGS) $(AM_LDFLAGS) \
 	$(LDFLAGS) -o $@
 SOURCES = $(audio_alsa_@SOEXT@_SOURCES) $(audio_esd_@SOEXT@_SOURCES) \
 	$(audio_pulse_@SOEXT@_SOURCES) $(audio_sdl_@SOEXT@_SOURCES) \
-	$(gendec_SOURCES) $(genglsl_SOURCES) $(genmach_SOURCES) \
 	$(input_lirc_@SOEXT@_SOURCES) $(lxdream_SOURCES) \
 	$(lxdream_dummy_@SOEXT@_SOURCES) $(test_testlxpaths_SOURCES) \
 	$(test_testsh4x86_SOURCES) $(test_testxlt_SOURCES)
 DIST_SOURCES = $(audio_alsa_@SOEXT@_SOURCES) \
 	$(audio_esd_@SOEXT@_SOURCES) $(audio_pulse_@SOEXT@_SOURCES) \
-	$(audio_sdl_@SOEXT@_SOURCES) $(gendec_SOURCES) \
-	$(genglsl_SOURCES) $(genmach_SOURCES) \
-	$(input_lirc_@SOEXT@_SOURCES) $(am__lxdream_SOURCES_DIST) \
-	$(lxdream_dummy_@SOEXT@_SOURCES) $(test_testlxpaths_SOURCES) \
+	$(audio_sdl_@SOEXT@_SOURCES) $(input_lirc_@SOEXT@_SOURCES) \
+	$(am__lxdream_SOURCES_DIST) $(lxdream_dummy_@SOEXT@_SOURCES) \
+	$(test_testlxpaths_SOURCES) \
 	$(am__test_testsh4x86_SOURCES_DIST) $(test_testxlt_SOURCES)
+RECURSIVE_TARGETS = all-recursive check-recursive dvi-recursive \
+	html-recursive info-recursive install-data-recursive \
+	install-exec-recursive install-info-recursive \
+	install-recursive installcheck-recursive installdirs-recursive \
+	pdf-recursive ps-recursive uninstall-info-recursive \
+	uninstall-recursive
 ETAGS = etags
 CTAGS = ctags
+DIST_SUBDIRS = $(SUBDIRS)
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 ACLOCAL = @ACLOCAL@
 ALSA_CFLAGS = @ALSA_CFLAGS@
@@ -418,6 +412,8 @@ ESOUND_LIBS = @ESOUND_LIBS@
 EXEEXT = @EXEEXT@
 GETTEXT_PACKAGE = @GETTEXT_PACKAGE@
 GLIB_CFLAGS = @GLIB_CFLAGS@
+GLIB_FOR_BUILD_CFLAGS = @GLIB_FOR_BUILD_CFLAGS@
+GLIB_FOR_BUILD_LIBS = @GLIB_FOR_BUILD_LIBS@
 GLIB_LIBS = @GLIB_LIBS@
 GMOFILES = @GMOFILES@
 GMSGFMT = @GMSGFMT@
@@ -548,6 +544,7 @@ sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
+SUBDIRS = tools
 SVNVERSION = @SVNVERSION@
 INCLUDES = \
 	-DPACKAGE_DATA_DIR=\""$(datadir)"\" \
@@ -570,9 +567,6 @@ CLEANFILES = sh4/sh4core.c sh4/sh4dasm.c sh4/sh4x86.c sh4/sh4stat.c \
 
 
 #all-am: checkversion
-gendec_SOURCES = tools/gendec.c tools/gendec.h tools/insparse.c tools/actparse.c
-genmach_SOURCES = tools/genmach.c tools/genmach.h tools/mdparse.c
-genglsl_SOURCES = tools/genglsl.c
 lxdream_LINK = $(LINK) @LXDREAMLDFLAGS@
 lxdream_LDADD = @LXDREAM_LIBS@ @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@ \
 	@LIBISOFS_LIBS@ $(INTLLIBS) $(am__append_18) $(am__append_20) \
@@ -647,14 +641,14 @@ lxdream_CPPFLAGS = @LXDREAMCPPFLAGS@
 @BUILD_SHARED_TRUE@@INPUT_LIRC_TRUE@input_lirc_@SOEXT@_SOURCES = 
 @BUILD_SHARED_TRUE@@INPUT_LIRC_TRUE@input_lirc_@SOEXT@_LDADD = input_lirc.lo	 -llirc_client
 @BUILD_SHARED_TRUE@@INPUT_LIRC_TRUE@input_lirc_@SOEXT@_LDFLAGS = $(PLUGINLDFLAGS)
-gendec_LDADD = @GLIB_LIBS@ @GTK_LIBS@ $(INTLLIBS)
-genglsl_LDADD = @GLIB_LIBS@ @GTK_LIBS@ $(INTLLIBS)
-genmach_LDADD = @GLIB_LIBS@ @GTK_LIBS@ $(INTLLIBS)
 test_testxlt_SOURCES = test/testxlt.c xlat/xltcache.c xlat/xltcache.h
 test_testlxpaths_SOURCES = test/testlxpaths.c lxpaths.c
 test_testlxpaths_LDADD = @GLIB_LIBS@
+GENDEC = tools/gendec$(EXEEXT)
+GENGLSL = tools/genglsl$(EXEEXT)
+GENMACH = totols/genmach$(EXEEXT)
 all: $(BUILT_SOURCES)
-	$(MAKE) $(AM_MAKEFLAGS) all-am
+	$(MAKE) $(AM_MAKEFLAGS) all-recursive
 
 .SUFFIXES:
 .SUFFIXES: .c .m .o .obj
@@ -713,9 +707,6 @@ clean-binPROGRAMS:
 
 clean-checkPROGRAMS:
 	-test -z "$(check_PROGRAMS)" || rm -f $(check_PROGRAMS)
-
-clean-noinstPROGRAMS:
-	-test -z "$(noinst_PROGRAMS)" || rm -f $(noinst_PROGRAMS)
 install-pkglibPROGRAMS: $(pkglib_PROGRAMS)
 	@$(NORMAL_INSTALL)
 	test -z "$(pkglibdir)" || $(mkdir_p) "$(DESTDIR)$(pkglibdir)"
@@ -751,15 +742,6 @@ audio_pulse.@SOEXT@$(EXEEXT): $(audio_pulse_@SOEXT@_OBJECTS) $(audio_pulse_@SOEX
 audio_sdl.@SOEXT@$(EXEEXT): $(audio_sdl_@SOEXT@_OBJECTS) $(audio_sdl_@SOEXT@_DEPENDENCIES) 
 	@rm -f audio_sdl.@SOEXT@$(EXEEXT)
 	$(LINK) $(audio_sdl_@SOEXT@_LDFLAGS) $(audio_sdl_@SOEXT@_OBJECTS) $(audio_sdl_@SOEXT@_LDADD) $(LIBS)
-gendec$(EXEEXT): $(gendec_OBJECTS) $(gendec_DEPENDENCIES) 
-	@rm -f gendec$(EXEEXT)
-	$(LINK) $(gendec_LDFLAGS) $(gendec_OBJECTS) $(gendec_LDADD) $(LIBS)
-genglsl$(EXEEXT): $(genglsl_OBJECTS) $(genglsl_DEPENDENCIES) 
-	@rm -f genglsl$(EXEEXT)
-	$(LINK) $(genglsl_LDFLAGS) $(genglsl_OBJECTS) $(genglsl_LDADD) $(LIBS)
-genmach$(EXEEXT): $(genmach_OBJECTS) $(genmach_DEPENDENCIES) 
-	@rm -f genmach$(EXEEXT)
-	$(LINK) $(genmach_LDFLAGS) $(genmach_OBJECTS) $(genmach_LDADD) $(LIBS)
 input_lirc.@SOEXT@$(EXEEXT): $(input_lirc_@SOEXT@_OBJECTS) $(input_lirc_@SOEXT@_DEPENDENCIES) 
 	@rm -f input_lirc.@SOEXT@$(EXEEXT)
 	$(LINK) $(input_lirc_@SOEXT@_LDFLAGS) $(input_lirc_@SOEXT@_OBJECTS) $(input_lirc_@SOEXT@_LDADD) $(LIBS)
@@ -788,11 +770,6 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/actparse.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gendec.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/genglsl.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/genmach.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/insparse.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-aica.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-armcore.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-armdasm.Po@am__quote@
@@ -916,7 +893,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-xltcache.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxdream-yuv.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lxpaths.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mdparse.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_testsh4x86-cpu.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_testsh4x86-dis-buf.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test_testsh4x86-dis-init.Po@am__quote@
@@ -946,90 +922,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(COMPILE) -c `$(CYGPATH_W) '$<'`
-
-gendec.o: tools/gendec.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT gendec.o -MD -MP -MF "$(DEPDIR)/gendec.Tpo" -c -o gendec.o `test -f 'tools/gendec.c' || echo '$(srcdir)/'`tools/gendec.c; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/gendec.Tpo" "$(DEPDIR)/gendec.Po"; else rm -f "$(DEPDIR)/gendec.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='tools/gendec.c' object='gendec.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o gendec.o `test -f 'tools/gendec.c' || echo '$(srcdir)/'`tools/gendec.c
-
-gendec.obj: tools/gendec.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT gendec.obj -MD -MP -MF "$(DEPDIR)/gendec.Tpo" -c -o gendec.obj `if test -f 'tools/gendec.c'; then $(CYGPATH_W) 'tools/gendec.c'; else $(CYGPATH_W) '$(srcdir)/tools/gendec.c'; fi`; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/gendec.Tpo" "$(DEPDIR)/gendec.Po"; else rm -f "$(DEPDIR)/gendec.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='tools/gendec.c' object='gendec.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o gendec.obj `if test -f 'tools/gendec.c'; then $(CYGPATH_W) 'tools/gendec.c'; else $(CYGPATH_W) '$(srcdir)/tools/gendec.c'; fi`
-
-insparse.o: tools/insparse.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT insparse.o -MD -MP -MF "$(DEPDIR)/insparse.Tpo" -c -o insparse.o `test -f 'tools/insparse.c' || echo '$(srcdir)/'`tools/insparse.c; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/insparse.Tpo" "$(DEPDIR)/insparse.Po"; else rm -f "$(DEPDIR)/insparse.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='tools/insparse.c' object='insparse.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o insparse.o `test -f 'tools/insparse.c' || echo '$(srcdir)/'`tools/insparse.c
-
-insparse.obj: tools/insparse.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT insparse.obj -MD -MP -MF "$(DEPDIR)/insparse.Tpo" -c -o insparse.obj `if test -f 'tools/insparse.c'; then $(CYGPATH_W) 'tools/insparse.c'; else $(CYGPATH_W) '$(srcdir)/tools/insparse.c'; fi`; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/insparse.Tpo" "$(DEPDIR)/insparse.Po"; else rm -f "$(DEPDIR)/insparse.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='tools/insparse.c' object='insparse.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o insparse.obj `if test -f 'tools/insparse.c'; then $(CYGPATH_W) 'tools/insparse.c'; else $(CYGPATH_W) '$(srcdir)/tools/insparse.c'; fi`
-
-actparse.o: tools/actparse.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT actparse.o -MD -MP -MF "$(DEPDIR)/actparse.Tpo" -c -o actparse.o `test -f 'tools/actparse.c' || echo '$(srcdir)/'`tools/actparse.c; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/actparse.Tpo" "$(DEPDIR)/actparse.Po"; else rm -f "$(DEPDIR)/actparse.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='tools/actparse.c' object='actparse.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o actparse.o `test -f 'tools/actparse.c' || echo '$(srcdir)/'`tools/actparse.c
-
-actparse.obj: tools/actparse.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT actparse.obj -MD -MP -MF "$(DEPDIR)/actparse.Tpo" -c -o actparse.obj `if test -f 'tools/actparse.c'; then $(CYGPATH_W) 'tools/actparse.c'; else $(CYGPATH_W) '$(srcdir)/tools/actparse.c'; fi`; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/actparse.Tpo" "$(DEPDIR)/actparse.Po"; else rm -f "$(DEPDIR)/actparse.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='tools/actparse.c' object='actparse.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o actparse.obj `if test -f 'tools/actparse.c'; then $(CYGPATH_W) 'tools/actparse.c'; else $(CYGPATH_W) '$(srcdir)/tools/actparse.c'; fi`
-
-genglsl.o: tools/genglsl.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT genglsl.o -MD -MP -MF "$(DEPDIR)/genglsl.Tpo" -c -o genglsl.o `test -f 'tools/genglsl.c' || echo '$(srcdir)/'`tools/genglsl.c; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/genglsl.Tpo" "$(DEPDIR)/genglsl.Po"; else rm -f "$(DEPDIR)/genglsl.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='tools/genglsl.c' object='genglsl.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o genglsl.o `test -f 'tools/genglsl.c' || echo '$(srcdir)/'`tools/genglsl.c
-
-genglsl.obj: tools/genglsl.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT genglsl.obj -MD -MP -MF "$(DEPDIR)/genglsl.Tpo" -c -o genglsl.obj `if test -f 'tools/genglsl.c'; then $(CYGPATH_W) 'tools/genglsl.c'; else $(CYGPATH_W) '$(srcdir)/tools/genglsl.c'; fi`; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/genglsl.Tpo" "$(DEPDIR)/genglsl.Po"; else rm -f "$(DEPDIR)/genglsl.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='tools/genglsl.c' object='genglsl.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o genglsl.obj `if test -f 'tools/genglsl.c'; then $(CYGPATH_W) 'tools/genglsl.c'; else $(CYGPATH_W) '$(srcdir)/tools/genglsl.c'; fi`
-
-genmach.o: tools/genmach.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT genmach.o -MD -MP -MF "$(DEPDIR)/genmach.Tpo" -c -o genmach.o `test -f 'tools/genmach.c' || echo '$(srcdir)/'`tools/genmach.c; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/genmach.Tpo" "$(DEPDIR)/genmach.Po"; else rm -f "$(DEPDIR)/genmach.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='tools/genmach.c' object='genmach.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o genmach.o `test -f 'tools/genmach.c' || echo '$(srcdir)/'`tools/genmach.c
-
-genmach.obj: tools/genmach.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT genmach.obj -MD -MP -MF "$(DEPDIR)/genmach.Tpo" -c -o genmach.obj `if test -f 'tools/genmach.c'; then $(CYGPATH_W) 'tools/genmach.c'; else $(CYGPATH_W) '$(srcdir)/tools/genmach.c'; fi`; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/genmach.Tpo" "$(DEPDIR)/genmach.Po"; else rm -f "$(DEPDIR)/genmach.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='tools/genmach.c' object='genmach.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o genmach.obj `if test -f 'tools/genmach.c'; then $(CYGPATH_W) 'tools/genmach.c'; else $(CYGPATH_W) '$(srcdir)/tools/genmach.c'; fi`
-
-mdparse.o: tools/mdparse.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT mdparse.o -MD -MP -MF "$(DEPDIR)/mdparse.Tpo" -c -o mdparse.o `test -f 'tools/mdparse.c' || echo '$(srcdir)/'`tools/mdparse.c; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/mdparse.Tpo" "$(DEPDIR)/mdparse.Po"; else rm -f "$(DEPDIR)/mdparse.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='tools/mdparse.c' object='mdparse.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o mdparse.o `test -f 'tools/mdparse.c' || echo '$(srcdir)/'`tools/mdparse.c
-
-mdparse.obj: tools/mdparse.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT mdparse.obj -MD -MP -MF "$(DEPDIR)/mdparse.Tpo" -c -o mdparse.obj `if test -f 'tools/mdparse.c'; then $(CYGPATH_W) 'tools/mdparse.c'; else $(CYGPATH_W) '$(srcdir)/tools/mdparse.c'; fi`; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/mdparse.Tpo" "$(DEPDIR)/mdparse.Po"; else rm -f "$(DEPDIR)/mdparse.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='tools/mdparse.c' object='mdparse.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o mdparse.obj `if test -f 'tools/mdparse.c'; then $(CYGPATH_W) 'tools/mdparse.c'; else $(CYGPATH_W) '$(srcdir)/tools/mdparse.c'; fi`
 
 lxdream-main.o: main.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT lxdream-main.o -MD -MP -MF "$(DEPDIR)/lxdream-main.Tpo" -c -o lxdream-main.o `test -f 'main.c' || echo '$(srcdir)/'`main.c; \
@@ -2964,6 +2856,77 @@ lxdream-osx_iokit.obj: drivers/osx_iokit.m
 @am__fastdepOBJC_FALSE@	$(OBJC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(lxdream_CPPFLAGS) $(CPPFLAGS) $(AM_OBJCFLAGS) $(OBJCFLAGS) -c -o lxdream-osx_iokit.obj `if test -f 'drivers/osx_iokit.m'; then $(CYGPATH_W) 'drivers/osx_iokit.m'; else $(CYGPATH_W) '$(srcdir)/drivers/osx_iokit.m'; fi`
 uninstall-info-am:
 
+# This directory's subdirectories are mostly independent; you can cd
+# into them and run `make' without going through this Makefile.
+# To change the values of `make' variables: instead of editing Makefiles,
+# (1) if the variable is set in `config.status', edit `config.status'
+#     (which will cause the Makefiles to be regenerated when you run `make');
+# (2) otherwise, pass the desired values on the `make' command line.
+$(RECURSIVE_TARGETS):
+	@failcom='exit 1'; \
+	for f in x $$MAKEFLAGS; do \
+	  case $$f in \
+	    *=* | --[!k]*);; \
+	    *k*) failcom='fail=yes';; \
+	  esac; \
+	done; \
+	dot_seen=no; \
+	target=`echo $@ | sed s/-recursive//`; \
+	list='$(SUBDIRS)'; for subdir in $$list; do \
+	  echo "Making $$target in $$subdir"; \
+	  if test "$$subdir" = "."; then \
+	    dot_seen=yes; \
+	    local_target="$$target-am"; \
+	  else \
+	    local_target="$$target"; \
+	  fi; \
+	  (cd $$subdir && $(MAKE) $(AM_MAKEFLAGS) $$local_target) \
+	  || eval $$failcom; \
+	done; \
+	if test "$$dot_seen" = "no"; then \
+	  $(MAKE) $(AM_MAKEFLAGS) "$$target-am" || exit 1; \
+	fi; test -z "$$fail"
+
+mostlyclean-recursive clean-recursive distclean-recursive \
+maintainer-clean-recursive:
+	@failcom='exit 1'; \
+	for f in x $$MAKEFLAGS; do \
+	  case $$f in \
+	    *=* | --[!k]*);; \
+	    *k*) failcom='fail=yes';; \
+	  esac; \
+	done; \
+	dot_seen=no; \
+	case "$@" in \
+	  distclean-* | maintainer-clean-*) list='$(DIST_SUBDIRS)' ;; \
+	  *) list='$(SUBDIRS)' ;; \
+	esac; \
+	rev=''; for subdir in $$list; do \
+	  if test "$$subdir" = "."; then :; else \
+	    rev="$$subdir $$rev"; \
+	  fi; \
+	done; \
+	rev="$$rev ."; \
+	target=`echo $@ | sed s/-recursive//`; \
+	for subdir in $$rev; do \
+	  echo "Making $$target in $$subdir"; \
+	  if test "$$subdir" = "."; then \
+	    local_target="$$target-am"; \
+	  else \
+	    local_target="$$target"; \
+	  fi; \
+	  (cd $$subdir && $(MAKE) $(AM_MAKEFLAGS) $$local_target) \
+	  || eval $$failcom; \
+	done && test -z "$$fail"
+tags-recursive:
+	list='$(SUBDIRS)'; for subdir in $$list; do \
+	  test "$$subdir" = . || (cd $$subdir && $(MAKE) $(AM_MAKEFLAGS) tags); \
+	done
+ctags-recursive:
+	list='$(SUBDIRS)'; for subdir in $$list; do \
+	  test "$$subdir" = . || (cd $$subdir && $(MAKE) $(AM_MAKEFLAGS) ctags); \
+	done
+
 ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)
 	list='$(SOURCES) $(HEADERS) $(LISP) $(TAGS_FILES)'; \
 	unique=`for i in $$list; do \
@@ -2974,10 +2937,23 @@ ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)
 	mkid -fID $$unique
 tags: TAGS
 
-TAGS:  $(HEADERS) $(SOURCES)  $(TAGS_DEPENDENCIES) \
+TAGS: tags-recursive $(HEADERS) $(SOURCES)  $(TAGS_DEPENDENCIES) \
 		$(TAGS_FILES) $(LISP)
 	tags=; \
 	here=`pwd`; \
+	if ($(ETAGS) --etags-include --version) >/dev/null 2>&1; then \
+	  include_option=--etags-include; \
+	  empty_fix=.; \
+	else \
+	  include_option=--include; \
+	  empty_fix=; \
+	fi; \
+	list='$(SUBDIRS)'; for subdir in $$list; do \
+	  if test "$$subdir" = .; then :; else \
+	    test ! -f $$subdir/TAGS || \
+	      tags="$$tags $$include_option=$$here/$$subdir/TAGS"; \
+	  fi; \
+	done; \
 	list='$(SOURCES) $(HEADERS)  $(LISP) $(TAGS_FILES)'; \
 	unique=`for i in $$list; do \
 	    if test -f "$$i"; then echo $$i; else echo $(srcdir)/$$i; fi; \
@@ -2990,7 +2966,7 @@ TAGS:  $(HEADERS) $(SOURCES)  $(TAGS_DEPENDENCIES) \
 	    $$tags $$unique; \
 	fi
 ctags: CTAGS
-CTAGS:  $(HEADERS) $(SOURCES)  $(TAGS_DEPENDENCIES) \
+CTAGS: ctags-recursive $(HEADERS) $(SOURCES)  $(TAGS_DEPENDENCIES) \
 		$(TAGS_FILES) $(LISP)
 	tags=; \
 	here=`pwd`; \
@@ -3113,26 +3089,42 @@ distdir: $(DISTFILES)
 	    || exit 1; \
 	  fi; \
 	done
+	list='$(DIST_SUBDIRS)'; for subdir in $$list; do \
+	  if test "$$subdir" = .; then :; else \
+	    test -d "$(distdir)/$$subdir" \
+	    || $(mkdir_p) "$(distdir)/$$subdir" \
+	    || exit 1; \
+	    distdir=`$(am__cd) $(distdir) && pwd`; \
+	    top_distdir=`$(am__cd) $(top_distdir) && pwd`; \
+	    (cd $$subdir && \
+	      $(MAKE) $(AM_MAKEFLAGS) \
+	        top_distdir="$$top_distdir" \
+	        distdir="$$distdir/$$subdir" \
+	        distdir) \
+	      || exit 1; \
+	  fi; \
+	done
 check-am: all-am
 	$(MAKE) $(AM_MAKEFLAGS) $(check_PROGRAMS)
 	$(MAKE) $(AM_MAKEFLAGS) check-TESTS
 check: $(BUILT_SOURCES)
-	$(MAKE) $(AM_MAKEFLAGS) check-am
+	$(MAKE) $(AM_MAKEFLAGS) check-recursive
 all-am: Makefile $(PROGRAMS)
-installdirs:
+installdirs: installdirs-recursive
+installdirs-am:
 	for dir in "$(DESTDIR)$(bindir)" "$(DESTDIR)$(pkglibdir)"; do \
 	  test -z "$$dir" || $(mkdir_p) "$$dir"; \
 	done
 install: $(BUILT_SOURCES)
-	$(MAKE) $(AM_MAKEFLAGS) install-am
-install-exec: install-exec-am
-install-data: install-data-am
-uninstall: uninstall-am
+	$(MAKE) $(AM_MAKEFLAGS) install-recursive
+install-exec: install-exec-recursive
+install-data: install-data-recursive
+uninstall: uninstall-recursive
 
 install-am: all-am
 	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
 
-installcheck: installcheck-am
+installcheck: installcheck-recursive
 install-strip:
 	$(MAKE) $(AM_MAKEFLAGS) INSTALL_PROGRAM="$(INSTALL_STRIP_PROGRAM)" \
 	  install_sh_PROGRAM="$(INSTALL_STRIP_PROGRAM)" INSTALL_STRIP_FLAG=-s \
@@ -3151,24 +3143,24 @@ maintainer-clean-generic:
 	@echo "This command is intended for maintainers to use"
 	@echo "it deletes files that may require special tools to rebuild."
 	-test -z "$(BUILT_SOURCES)" || rm -f $(BUILT_SOURCES)
-clean: clean-am
+clean: clean-recursive
 
 clean-am: clean-binPROGRAMS clean-checkPROGRAMS clean-generic \
-	clean-noinstPROGRAMS clean-pkglibPROGRAMS mostlyclean-am
+	clean-pkglibPROGRAMS mostlyclean-am
 
-distclean: distclean-am
+distclean: distclean-recursive
 	-rm -rf ./$(DEPDIR)
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-tags
 
-dvi: dvi-am
+dvi: dvi-recursive
 
 dvi-am:
 
-html: html-am
+html: html-recursive
 
-info: info-am
+info: info-recursive
 
 info-am:
 
@@ -3176,44 +3168,48 @@ install-data-am:
 
 install-exec-am: install-binPROGRAMS install-pkglibPROGRAMS
 
-install-info: install-info-am
+install-info: install-info-recursive
 
 install-man:
 
 installcheck-am:
 
-maintainer-clean: maintainer-clean-am
+maintainer-clean: maintainer-clean-recursive
 	-rm -rf ./$(DEPDIR)
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 
-mostlyclean: mostlyclean-am
+mostlyclean: mostlyclean-recursive
 
 mostlyclean-am: mostlyclean-compile mostlyclean-generic
 
-pdf: pdf-am
+pdf: pdf-recursive
 
 pdf-am:
 
-ps: ps-am
+ps: ps-recursive
 
 ps-am:
 
 uninstall-am: uninstall-binPROGRAMS uninstall-info-am \
 	uninstall-pkglibPROGRAMS
 
-.PHONY: CTAGS GTAGS all all-am check check-TESTS check-am clean \
-	clean-binPROGRAMS clean-checkPROGRAMS clean-generic \
-	clean-noinstPROGRAMS clean-pkglibPROGRAMS ctags distclean \
-	distclean-compile distclean-generic distclean-tags distdir dvi \
-	dvi-am html html-am info info-am install install-am \
-	install-binPROGRAMS install-data install-data-am install-exec \
-	install-exec-am install-info install-info-am install-man \
+uninstall-info: uninstall-info-recursive
+
+.PHONY: $(RECURSIVE_TARGETS) CTAGS GTAGS all all-am check check-TESTS \
+	check-am clean clean-binPROGRAMS clean-checkPROGRAMS \
+	clean-generic clean-pkglibPROGRAMS clean-recursive ctags \
+	ctags-recursive distclean distclean-compile distclean-generic \
+	distclean-recursive distclean-tags distdir dvi dvi-am html \
+	html-am info info-am install install-am install-binPROGRAMS \
+	install-data install-data-am install-exec install-exec-am \
+	install-info install-info-am install-man \
 	install-pkglibPROGRAMS install-strip installcheck \
-	installcheck-am installdirs maintainer-clean \
-	maintainer-clean-generic mostlyclean mostlyclean-compile \
-	mostlyclean-generic pdf pdf-am ps ps-am tags uninstall \
-	uninstall-am uninstall-binPROGRAMS uninstall-info-am \
+	installcheck-am installdirs installdirs-am maintainer-clean \
+	maintainer-clean-generic maintainer-clean-recursive \
+	mostlyclean mostlyclean-compile mostlyclean-generic \
+	mostlyclean-recursive pdf pdf-am ps ps-am tags tags-recursive \
+	uninstall uninstall-am uninstall-binPROGRAMS uninstall-info-am \
 	uninstall-pkglibPROGRAMS
 
 
@@ -3235,21 +3231,24 @@ version.c: checkversion
 @BUILD_SHARED_TRUE@@INPUT_LIRC_TRUE@input_lirc.lo: drivers/input_lirc.c
 @BUILD_SHARED_TRUE@@INPUT_LIRC_TRUE@	$(COMPILE) -DPLUGIN $(PLUGINCFLAGS) -c $< -o $@
 
-sh4/sh4core.c: gendec$(EXEEXT) sh4/sh4.def sh4/sh4core.in
+$(GENDEC) $(GENGLSL) $(GENMACH):
+	$(MAKE) $(AM_MAKEFLAGS) -C tools
+
+sh4/sh4core.c: $(GENDEC) sh4/sh4.def sh4/sh4core.in
 	$(mkdir_p) `dirname $@`
-	./gendec $(srcdir)/sh4/sh4.def $(srcdir)/sh4/sh4core.in -o $@
-sh4/sh4dasm.c: gendec$(EXEEXT) sh4/sh4.def sh4/sh4dasm.in
+	$(GENDEC) $(srcdir)/sh4/sh4.def $(srcdir)/sh4/sh4core.in -o $@
+sh4/sh4dasm.c: $(GENDEC) sh4/sh4.def sh4/sh4dasm.in
 	$(mkdir_p) `dirname $@`
-	./gendec $(srcdir)/sh4/sh4.def $(srcdir)/sh4/sh4dasm.in -o $@
-sh4/sh4x86.c: gendec$(EXEEXT) sh4/sh4.def sh4/sh4x86.in
+	$(GENDEC) $(srcdir)/sh4/sh4.def $(srcdir)/sh4/sh4dasm.in -o $@
+sh4/sh4x86.c: $(GENDEC) sh4/sh4.def sh4/sh4x86.in
 	$(mkdir_p) `dirname $@`
-	./gendec $(srcdir)/sh4/sh4.def $(srcdir)/sh4/sh4x86.in -o $@
-sh4/sh4stat.c: gendec$(EXEEXT) sh4/sh4.def sh4/sh4stat.in
+	$(GENDEC) $(srcdir)/sh4/sh4.def $(srcdir)/sh4/sh4x86.in -o $@
+sh4/sh4stat.c: $(GENDEC) sh4/sh4.def sh4/sh4stat.in
 	$(mkdir_p) `dirname $@`
-	./gendec $(srcdir)/sh4/sh4.def $(srcdir)/sh4/sh4stat.in -o $@
-pvr2/shaders.def: genglsl$(EXEEXT) pvr2/shaders.glsl
+	$(GENDEC) $(srcdir)/sh4/sh4.def $(srcdir)/sh4/sh4stat.in -o $@
+pvr2/shaders.def: $(GENGLSL) pvr2/shaders.glsl
 	$(mkdir_p) `dirname $@`
-	./genglsl $(srcdir)/pvr2/shaders.glsl $@
+	$(GENGLSL) $(srcdir)/pvr2/shaders.glsl $@
 pvr2/shaders.h: pvr2/shaders.def
 drivers/mac_keymap.h: dckeysyms.h drivers/mac_keymap.txt drivers/genkeymap.pl
 	$(mkdir_p) `dirname $@`
