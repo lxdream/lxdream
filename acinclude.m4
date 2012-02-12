@@ -4,6 +4,8 @@
 # -----------------------
 AC_DEFUN([AC_CHECK_FASTCALL], [
 AC_MSG_CHECKING([support for fastcall calling conventions]);
+save_CFLAGS="$CFLAGS"
+CFLAGS="-Werror $save_CFLAGS"
 AC_RUN_IFELSE([
   AC_LANG_SOURCE([[
 int __attribute__((regparm(3))) foo(int a, int b) { return a+b; }
@@ -18,6 +20,7 @@ int main(int argc, char *argv[])
    $2 ], [
       AC_MSG_RESULT([no])
    $2 ])
+CFLAGS="$save_CFLAGS"
 ])
 
 # AC_CHECK_FORCEINLINE([if-ok],[if-notok])
