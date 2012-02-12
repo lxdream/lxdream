@@ -9751,6 +9751,8 @@ fi
 
 { echo "$as_me:$LINENO: checking support for fastcall calling conventions" >&5
 echo $ECHO_N "checking support for fastcall calling conventions... $ECHO_C" >&6; };
+save_CFLAGS="$CFLAGS"
+CFLAGS="-Werror $save_CFLAGS"
 if test "$cross_compiling" = yes; then
 
       { echo "$as_me:$LINENO: result: no" >&5
@@ -9817,6 +9819,7 @@ rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext conftest.$a
 fi
 
 
+CFLAGS="$save_CFLAGS"
 
 
 { echo "$as_me:$LINENO: checking support for force inlining" >&5
