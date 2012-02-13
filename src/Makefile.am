@@ -234,7 +234,7 @@ endif
 
 test_testxlt_SOURCES = test/testxlt.c xlat/xltcache.c xlat/xltcache.h
 test_testlxpaths_SOURCES = test/testlxpaths.c lxpaths.c
-test_testlxpaths_LDADD = @GLIB_LIBS@
+test_testlxpaths_LDADD = @GLIB_LIBS@ @GTK_LIBS@
 
 GENDEC = tools/gendec$(EXEEXT)
 GENGLSL = tools/genglsl$(EXEEXT)
