@@ -180,7 +180,7 @@ void sh4_translate_init(void)
     sh4_x86.sse3_enabled = is_sse3_supported();
     x86_disasm_init();
     x86_set_symtab( x86_symbol_table, sizeof(x86_symbol_table)/sizeof(struct x86_symbol) );
-    xlat_set_target_fns(x86_target_fns);
+    xlat_set_target_fns(&x86_target_fns);
 }
 
 void sh4_translate_set_callbacks( xlat_block_begin_callback_t begin, xlat_block_end_callback_t end )
