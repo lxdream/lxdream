@@ -184,8 +184,10 @@ gboolean gl_check_error(const char *context)
         case GL_INVALID_OPERATION: s = "Invalid operation"; break;
 #ifdef GL_STACK_OVERFLOW
         case GL_STACK_OVERFLOW: s = "Stack overflow"; break;
-#endif GL_STACK_OVERFLOW
+#endif
+#ifdef GL_STACK_UNDERFLOW
         case GL_STACK_UNDERFLOW: s = "Stack underflow"; break;
+#endif
         case GL_OUT_OF_MEMORY:   s = "Out of memory"; break;
         default: s = "Unknown error"; break;
         }
