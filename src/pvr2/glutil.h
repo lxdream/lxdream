@@ -61,6 +61,10 @@ gboolean isGLMirroredTextureSupported();
 #define GL_MIRRORED_REPEAT GL_MIRRORED_REPEAT_ARB
 #endif
 
+#if defined(GL_MAX_TEXTURE_UNITS_ARB) && !defined(GL_MAX_TEXTURE_UNITS)
+#define GL_MAX_TEXTURE_UNITS GL_MAX_TEXTURE_UNITS_ARB
+#endif
+
 #if defined(GL_FRAMEBUFFER_EXT) && !defined(GL_FRAMEBUFFER)
 #define GL_FRAMEBUFFER GL_FRAMEBUFFER_EXT
 #endif

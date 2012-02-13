@@ -403,7 +403,6 @@ void pvr2_queue_gun_event( int xpos, int ypos );
 extern int pvr2_poly_depthmode[8];
 extern int pvr2_poly_srcblend[8];
 extern int pvr2_poly_dstblend[8];
-extern int pvr2_poly_texblend[4];
 extern int pvr2_render_colour_format[8];
 
 #define CULL_NONE 0

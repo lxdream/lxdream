@@ -49,7 +49,12 @@ gboolean isGLMultitextureSupported()
     if( !isGLExtensionSupported("GL_ARB_multitexture") )
         return FALSE;
     int units = 0;
-    glGetIntegerv(GL_MAX_TEXTURE_UNITS_ARB, &units);
+
+#if defined(GL_MAX_TEXTURE_UNITS)
+        glGetIntegerv(GL_MAX_TEXTURE_UNITS, &units);
+#elif defined(GL_MAX_TEXTURE_IMAGE_UNITS)
+        glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &units);
+#endif
     return units >= 2;
 }
 
@@ -177,7 +182,9 @@ gboolean gl_check_error(const char *context)
         case GL_INVALID_ENUM: s = "Invalid enum"; break;
         case GL_INVALID_VALUE: s = "Invalid value"; break;
         case GL_INVALID_OPERATION: s = "Invalid operation"; break;
+#ifdef GL_STACK_OVERFLOW
         case GL_STACK_OVERFLOW: s = "Stack overflow"; break;
+#endif GL_STACK_OVERFLOW
         case GL_STACK_UNDERFLOW: s = "Stack underflow"; break;
         case GL_OUT_OF_MEMORY:   s = "Out of memory"; break;
         default: s = "Unknown error"; break;

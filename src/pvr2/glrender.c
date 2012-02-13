@@ -46,12 +46,6 @@ int pvr2_poly_dstblend[8] = {
         GL_ZERO, GL_ONE, GL_SRC_COLOR, GL_ONE_MINUS_SRC_COLOR,
         GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_DST_ALPHA,
         GL_ONE_MINUS_DST_ALPHA };
-int pvr2_poly_texblend[4] = {
-        GL_REPLACE,
-        GL_MODULATE,
-        GL_DECAL,
-        GL_MODULATE
-};
 
 static gboolean have_shaders = FALSE;
 static int currentTexId = -1;
@@ -188,13 +182,15 @@ static void render_set_tsp_context( uint32_t poly1, uint32_t poly2 )
 {
     glShadeModel( POLY1_SHADE_MODEL(poly1) );
 
-    if( POLY1_TEXTURED(poly1) && !have_shaders ) {
-        if( POLY2_TEX_BLEND(poly2) == 2 )
-            glTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL );
-        else
-            glTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE );
+    if( !have_shaders ) {
+        if( POLY1_TEXTURED(poly1) ) {
+            if( POLY2_TEX_BLEND(poly2) == 2 )
+                glTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL );
+            else
+                glTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE );
 
-     }
+        }
+    }
 
      switch( POLY2_FOG_MODE(poly2) ) {
      case PVR2_POLY_FOG_LOOKUP:
