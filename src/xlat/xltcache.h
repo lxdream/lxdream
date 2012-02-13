@@ -49,6 +49,10 @@ struct xlat_cache_block {
     unsigned char code[0];
 } __attribute__((packed));
 
+typedef struct xlat_target_fns {
+    void (*unlink_block)(void *use_list);
+} *xlat_target_fns_t;
+
 typedef struct xlat_cache_block *xlat_cache_block_t;
 
 #define XLAT_BLOCK_FOR_CODE(code) (((xlat_cache_block_t)code)-1)
@@ -61,6 +65,11 @@ typedef struct xlat_cache_block *xlat_cache_block_t;
  * Initialize the translation cache
  */
 void xlat_cache_init(void);
+
+/**
+ * Setup target support.
+ */
+void xlat_set_target_fns( xlat_target_fns_t target_fns );
 
 /**
  * Returns the next block in the new cache list that can be written to by the
