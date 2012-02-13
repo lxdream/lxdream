@@ -106,8 +106,18 @@ struct utlb_default_regions {
     mem_region_fn_t tlb_multihit;
 };
 
-sh4addr_t FASTCALL mmu_vma_to_phys_disasm( sh4vma_t vma );
+/** Set the MMU's target external address space
+ * @return the previous address space.
+ */
+mem_region_fn_t *mmu_set_ext_address_space( mem_region_fn_t *space );
 
+/* Address translation functions */
+sh4addr_t FASTCALL mmu_vma_to_phys_disasm( sh4vma_t vma );
+mem_region_fn_t FASTCALL mmu_get_region_for_vma_read( sh4vma_t *addr );
+mem_region_fn_t FASTCALL mmu_get_region_for_vma_write( sh4vma_t *addr );
+mem_region_fn_t FASTCALL mmu_get_region_for_vma_prefetch( sh4vma_t *addr );
+
+/* Translator provided helpers */
 void mmu_utlb_init_vtable( struct utlb_entry *ent, struct utlb_page_entry *page, gboolean writable ); 
 void mmu_utlb_1k_init_vtable( struct utlb_1k_entry *ent ); 
 void mmu_utlb_init_storequeue_vtable( struct utlb_entry *ent, struct utlb_page_entry *page );

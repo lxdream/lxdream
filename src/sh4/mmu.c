@@ -34,6 +34,9 @@
 mem_region_fn_t *sh4_address_space;
 mem_region_fn_t *sh4_user_address_space;
 
+/* External address space (usually the same as the global ext_address_space) */
+static mem_region_fn_t *sh4_ext_address_space;
+
 /* Accessed from the UTLB accessor methods */
 uint32_t mmu_urc;
 uint32_t mmu_urb;
@@ -92,6 +95,19 @@ static struct utlb_default_regions mmu_default_regions[3] = {
 
 #define IS_STOREQUEUE_PROTECTED() (mmu_user_storequeue_regions == &mmu_default_regions[DEFAULT_STOREQUEUE_SQMD_REGIONS])
 
+#ifndef SH4_TRANSLATOR
+/* Dummy MMU vtable functions */
+void mmu_utlb_init_vtable( struct utlb_entry *ent, struct utlb_page_entry *page, gboolean writable )
+{
+}
+void mmu_utlb_init_storequeue_vtable( struct utlb_entry *ent, struct utlb_page_entry *page )
+{
+}
+void mmu_utlb_1k_init_vtable( struct utlb_1k_entry *entry )
+{
+}
+#endif
+
 /*********************** Module public functions ****************************/
 
 /**
@@ -101,6 +117,7 @@ static struct utlb_default_regions mmu_default_regions[3] = {
                            
 void MMU_init()
 {
+    sh4_ext_address_space = ext_address_space;
     sh4_address_space = mem_alloc_pages( sizeof(mem_region_fn_t) * 256 );
     sh4_user_address_space = mem_alloc_pages( sizeof(mem_region_fn_t) * 256 );
     mmu_user_storequeue_regions = &mmu_default_regions[DEFAULT_STOREQUEUE_REGIONS];
@@ -343,6 +360,14 @@ static void mmu_utlb_1k_free( struct utlb_1k_entry *ent )
 
 /********************** Address space maintenance *************************/
 
+mem_region_fn_t *mmu_set_ext_address_space( mem_region_fn_t *ext )
+{
+    mem_region_fn_t *old_ext = sh4_ext_address_space;
+    sh4_ext_address_space = ext;
+    mmu_set_tlb_enabled(IS_TLB_ENABLED());
+    return old_ext;
+}
+
 /**
  * MMU accessor functions just increment URC - fixup here if necessary
  */
@@ -415,10 +440,10 @@ static void mmu_set_tlb_enabled( int tlb_on )
         mmu_utlb_register_all();
     } else {
         for( i=0, ptr = sh4_address_space; i<7; i++, ptr += LXDREAM_PAGE_TABLE_ENTRIES ) {
-            memcpy( ptr, ext_address_space, sizeof(mem_region_fn_t) * LXDREAM_PAGE_TABLE_ENTRIES );
+            memcpy( ptr, sh4_ext_address_space, sizeof(mem_region_fn_t) * LXDREAM_PAGE_TABLE_ENTRIES );
         }
         for( i=0, ptr = sh4_user_address_space; i<4; i++, ptr += LXDREAM_PAGE_TABLE_ENTRIES ) {
-            memcpy( ptr, ext_address_space, sizeof(mem_region_fn_t) * LXDREAM_PAGE_TABLE_ENTRIES );
+            memcpy( ptr, sh4_ext_address_space, sizeof(mem_region_fn_t) * LXDREAM_PAGE_TABLE_ENTRIES );
         }
 
         mmu_register_mem_region( 0xE0000000, 0xE4000000, &p4_region_storequeue );
@@ -1189,6 +1214,219 @@ sh4addr_t FASTCALL mmu_vma_to_phys_disasm( sh4vma_t vma )
         (vma & (~mmu_itlb[entryNo].mask));
     }
 }
+
+/**
+ * Translate a virtual to physical address for reading, raising exceptions as
+ * observed.
+ * @param addr Pointer to the virtual memory address. On successful return,
+ * will be updated to contain the physical address.
+ */
+mem_region_fn_t FASTCALL mmu_get_region_for_vma_read( sh4vma_t *paddr )
+{
+    sh4vma_t addr = *paddr;
+    uint32_t mmucr = MMIO_READ(MMU,MMUCR);
+    if( addr & 0x80000000 ) {
+        if( IS_SH4_PRIVMODE() ) {
+            if( addr >= 0xE0000000 ) {
+                return sh4_address_space[((uint32_t)addr)>>12]; /* P4 - passthrough */
+            } else if( addr < 0xC0000000 ) {
+                /* P1, P2 regions are pass-through (no translation) */
+                return sh4_ext_address_space[VMA_TO_EXT_ADDR(addr)>>12];
+            }
+        } else {
+            if( addr >= 0xE0000000 && addr < 0xE4000000 &&
+                    ((mmucr&MMUCR_SQMD) == 0) ) {
+                /* Conditional user-mode access to the store-queue (no translation) */
+                return &p4_region_storequeue;
+            }
+            sh4_raise_exception(EXC_DATA_ADDR_READ);
+            return NULL;
+        }
+    }
+
+    if( (mmucr & MMUCR_AT) == 0 ) {
+        return sh4_ext_address_space[VMA_TO_EXT_ADDR(addr)>>12];
+    }
+
+    /* If we get this far, translation is required */
+    int entryNo;
+    if( ((mmucr & MMUCR_SV) == 0) || !IS_SH4_PRIVMODE() ) {
+        entryNo = mmu_utlb_lookup_vpn_asid( addr );
+    } else {
+        entryNo = mmu_utlb_lookup_vpn( addr );
+    }
+
+    switch(entryNo) {
+    case -1:
+        RAISE_TLB_ERROR(EXC_TLB_MISS_READ,addr);
+        return NULL;
+    case -2:
+        RAISE_TLB_MULTIHIT_ERROR(addr);
+        return NULL;
+    default:
+        if( (mmu_utlb[entryNo].flags & TLB_USERMODE) == 0 &&
+                !IS_SH4_PRIVMODE() ) {
+            /* protection violation */
+            RAISE_MEM_ERROR(EXC_TLB_PROT_READ,addr);
+            return NULL;
+        }
+
+        /* finally generate the target address */
+        sh4addr_t pma = (mmu_utlb[entryNo].ppn & mmu_utlb[entryNo].mask) |
+                (addr & (~mmu_utlb[entryNo].mask));
+        if( pma > 0x1C000000 ) { // Remap 1Cxx .. 1Fxx region to P4
+            addr = pma | 0xE0000000;
+            *paddr = addr;
+            return sh4_address_space[addr>>12];
+        } else {
+            *paddr = pma;
+            return sh4_ext_address_space[pma>>12];
+        }
+    }
+}
+
+/**
+ * Translate a virtual to physical address for prefetch, which mostly
+ * does not raise exceptions.
+ * @param addr Pointer to the virtual memory address. On successful return,
+ * will be updated to contain the physical address.
+ */
+mem_region_fn_t FASTCALL mmu_get_region_for_vma_prefetch( sh4vma_t *paddr )
+{
+    sh4vma_t addr = *paddr;
+    uint32_t mmucr = MMIO_READ(MMU,MMUCR);
+    if( addr & 0x80000000 ) {
+        if( IS_SH4_PRIVMODE() ) {
+            if( addr >= 0xE0000000 ) {
+                return sh4_address_space[((uint32_t)addr)>>12]; /* P4 - passthrough */
+            } else if( addr < 0xC0000000 ) {
+                /* P1, P2 regions are pass-through (no translation) */
+                return sh4_ext_address_space[VMA_TO_EXT_ADDR(addr)>>12];
+            }
+        } else {
+            if( addr >= 0xE0000000 && addr < 0xE4000000 &&
+                    ((mmucr&MMUCR_SQMD) == 0) ) {
+                /* Conditional user-mode access to the store-queue (no translation) */
+                return &p4_region_storequeue;
+            }
+            sh4_raise_exception(EXC_DATA_ADDR_READ);
+            return NULL;
+        }
+    }
+
+    if( (mmucr & MMUCR_AT) == 0 ) {
+        return sh4_ext_address_space[VMA_TO_EXT_ADDR(addr)>>12];
+    }
+
+    /* If we get this far, translation is required */
+    int entryNo;
+    if( ((mmucr & MMUCR_SV) == 0) || !IS_SH4_PRIVMODE() ) {
+        entryNo = mmu_utlb_lookup_vpn_asid( addr );
+    } else {
+        entryNo = mmu_utlb_lookup_vpn( addr );
+    }
+
+    switch(entryNo) {
+    case -1:
+        return &mem_region_unmapped;
+    case -2:
+        RAISE_TLB_MULTIHIT_ERROR(addr);
+        return NULL;
+    default:
+        if( (mmu_utlb[entryNo].flags & TLB_USERMODE) == 0 &&
+                !IS_SH4_PRIVMODE() ) {
+            /* protection violation */
+            return &mem_region_unmapped;
+        }
+
+        /* finally generate the target address */
+        sh4addr_t pma = (mmu_utlb[entryNo].ppn & mmu_utlb[entryNo].mask) |
+                (addr & (~mmu_utlb[entryNo].mask));
+        if( pma > 0x1C000000 ) { // Remap 1Cxx .. 1Fxx region to P4
+            addr = pma | 0xE0000000;
+            *paddr = addr;
+            return sh4_address_space[addr>>12];
+        } else {
+            *paddr = pma;
+            return sh4_ext_address_space[pma>>12];
+        }
+    }
+}
+
+/**
+ * Translate a virtual to physical address for writing, raising exceptions as
+ * observed.
+ */
+mem_region_fn_t FASTCALL mmu_get_region_for_vma_write( sh4vma_t *paddr )
+{
+    sh4vma_t addr = *paddr;
+    uint32_t mmucr = MMIO_READ(MMU,MMUCR);
+    if( addr & 0x80000000 ) {
+        if( IS_SH4_PRIVMODE() ) {
+            if( addr >= 0xE0000000 ) {
+                return sh4_address_space[((uint32_t)addr)>>12]; /* P4 - passthrough */
+            } else if( addr < 0xC0000000 ) {
+                /* P1, P2 regions are pass-through (no translation) */
+                return sh4_ext_address_space[VMA_TO_EXT_ADDR(addr)>>12];
+            }
+        } else {
+            if( addr >= 0xE0000000 && addr < 0xE4000000 &&
+                    ((mmucr&MMUCR_SQMD) == 0) ) {
+                /* Conditional user-mode access to the store-queue (no translation) */
+                return &p4_region_storequeue;
+            }
+            sh4_raise_exception(EXC_DATA_ADDR_WRITE);
+            return NULL;
+        }
+    }
+
+    if( (mmucr & MMUCR_AT) == 0 ) {
+        return sh4_ext_address_space[VMA_TO_EXT_ADDR(addr)>>12];
+    }
+
+    /* If we get this far, translation is required */
+    int entryNo;
+    if( ((mmucr & MMUCR_SV) == 0) || !IS_SH4_PRIVMODE() ) {
+        entryNo = mmu_utlb_lookup_vpn_asid( addr );
+    } else {
+        entryNo = mmu_utlb_lookup_vpn( addr );
+    }
+
+    switch(entryNo) {
+    case -1:
+        RAISE_TLB_ERROR(EXC_TLB_MISS_WRITE,addr);
+        return NULL;
+    case -2:
+        RAISE_TLB_MULTIHIT_ERROR(addr);
+        return NULL;
+    default:
+        if( IS_SH4_PRIVMODE() ? ((mmu_utlb[entryNo].flags & TLB_WRITABLE) == 0)
+                : ((mmu_utlb[entryNo].flags & TLB_USERWRITABLE) != TLB_USERWRITABLE) ) {
+            /* protection violation */
+            RAISE_MEM_ERROR(EXC_TLB_PROT_WRITE,addr);
+            return NULL;
+        }
+
+        if( (mmu_utlb[entryNo].flags & TLB_DIRTY) == 0 ) {
+            RAISE_MEM_ERROR(EXC_INIT_PAGE_WRITE, addr);
+            return NULL;
+        }
+
+        /* finally generate the target address */
+        sh4addr_t pma = (mmu_utlb[entryNo].ppn & mmu_utlb[entryNo].mask) |
+                (addr & (~mmu_utlb[entryNo].mask));
+        if( pma > 0x1C000000 ) { // Remap 1Cxx .. 1Fxx region to P4
+            addr = pma | 0xE0000000;
+            *paddr = addr;
+            return sh4_address_space[addr>>12];
+        } else {
+            *paddr = pma;
+            return sh4_ext_address_space[pma>>12];
+        }
+    }
+}
+
+
 
 /********************** TLB Direct-Access Regions ***************************/
 #define ITLB_ENTRY(addr) ((addr>>7)&0x03)
