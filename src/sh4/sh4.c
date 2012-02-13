@@ -148,6 +148,7 @@ struct breakpoint_struct sh4_breakpoints[MAX_BREAKPOINTS];
 int sh4_breakpoint_count = 0;
 
 gboolean sh4_starting = FALSE;
+gboolean sh4_profile_blocks = FALSE;
 static gboolean sh4_use_translator = FALSE;
 static jmp_buf sh4_exit_jmp_buf;
 static gboolean sh4_running = FALSE;
@@ -235,11 +236,12 @@ void sh4_stop(void)
         /* If we were running with the translator, update new_pc and in_delay_slot */
         sh4r.new_pc = sh4r.pc+2;
         sh4r.in_delay_slot = FALSE;
-        if( sh4_translate_get_profile_blocks() ) {
+#ifdef SH4_TRANSLATOR
+        if( sh4_profile_blocks ) {
             sh4_translate_dump_cache_by_activity(30);
         }
+#endif
     }
-
 }
 
 /**
@@ -406,6 +408,16 @@ void sh4_set_pc( int pc )
 void sh4_set_event_pending( uint32_t cycles )
 {
     sh4r.event_pending = cycles;
+}
+
+void sh4_set_profile_blocks( gboolean flag )
+{
+    sh4_profile_blocks = flag;
+}
+
+gboolean sh4_get_profile_blocks( )
+{
+    return sh4_profile_blocks;
 }
 
 /**

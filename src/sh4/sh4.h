@@ -151,6 +151,18 @@ void sh4_crashdump();
 /** Dump a translated block with SH4 and target assembly side by side. */
 void sh4_translate_dump_block( uint32_t pc );
 
+/**
+ * Enable/disable basic block profiling (Note only supported by translation cores)
+ */
+void sh4_set_profile_blocks( gboolean flag );
+
+/**
+ * Get the boolean flag indicating whether block profiling is on.
+ */
+gboolean sh4_get_profile_blocks();
+
+
+
 #ifdef __cplusplus
 }
 #endif

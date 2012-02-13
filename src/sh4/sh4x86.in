@@ -106,7 +106,6 @@ struct sh4_x86_state {
     xlat_block_begin_callback_t begin_callback;
     xlat_block_end_callback_t end_callback;
     gboolean fastmem;
-    gboolean profile_blocks;
     
     /* Allocated memory for the (block-wide) back-patch list */
     struct backpatch_record *backpatch_list;
@@ -176,7 +175,6 @@ void sh4_translate_init(void)
     sh4_x86.end_callback = NULL;
     sh4_translate_set_address_space( sh4_address_space, sh4_user_address_space );
     sh4_x86.fastmem = TRUE;
-    sh4_x86.profile_blocks = FALSE;
     sh4_x86.sse3_enabled = is_sse3_supported();
     x86_disasm_init();
     x86_set_symtab( x86_symbol_table, sizeof(x86_symbol_table)/sizeof(struct x86_symbol) );
@@ -192,16 +190,6 @@ void sh4_translate_set_callbacks( xlat_block_begin_callback_t begin, xlat_block_
 void sh4_translate_set_fastmem( gboolean flag )
 {
     sh4_x86.fastmem = flag;
-}
-
-void sh4_translate_set_profile_blocks( gboolean flag )
-{
-    sh4_x86.profile_blocks = flag;
-}
-
-gboolean sh4_translate_get_profile_blocks()
-{
-    return sh4_x86.profile_blocks;
 }
 
 /**
@@ -522,7 +510,7 @@ void sh4_translate_begin_block( sh4addr_t pc )
     if( sh4_x86.begin_callback ) {
         CALL_ptr( sh4_x86.begin_callback );
     }
-    if( sh4_x86.profile_blocks ) {
+    if( sh4_profile_blocks ) {
     	MOVP_immptr_rptr( sh4_x86.code + XLAT_ACTIVE_CODE_OFFSET, REG_EAX );
     	ADDL_imms_r32disp( 1, REG_EAX, 0 );
     }  
