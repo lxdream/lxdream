@@ -162,28 +162,14 @@ static gboolean FASTCALL sh4_raise_slot_exception( int normal_code, int slot_cod
 #define ADDRSPACE (IS_SH4_PRIVMODE() ? sh4_address_space : sh4_user_address_space)
 #define SQADDRSPACE (IS_SH4_PRIVMODE() ? storequeue_address_space : storequeue_user_address_space)
 
-#ifdef HAVE_FRAME_ADDRESS
-static FASTCALL __attribute__((noinline)) void *__first_arg(void *a, void *b) { return a; }
-#define INIT_EXCEPTIONS(label) goto *__first_arg(&&fnstart,&&label); fnstart:
-#define MEM_READ_BYTE( addr, val ) val = ((mem_read_exc_fn_t)ADDRSPACE[(addr)>>12]->read_byte)((addr), &&except)
-#define MEM_READ_BYTE_FOR_WRITE( addr, val ) val = ((mem_read_exc_fn_t)ADDRSPACE[(addr)>>12]->read_byte_for_write)((addr), &&except)
-#define MEM_READ_WORD( addr, val ) val = ((mem_read_exc_fn_t)ADDRSPACE[(addr)>>12]->read_word)((addr), &&except)
-#define MEM_READ_LONG( addr, val ) val = ((mem_read_exc_fn_t)ADDRSPACE[(addr)>>12]->read_long)((addr), &&except)
-#define MEM_WRITE_BYTE( addr, val ) ((mem_write_exc_fn_t)ADDRSPACE[(addr)>>12]->write_byte)((addr), (val), &&except)
-#define MEM_WRITE_WORD( addr, val ) ((mem_write_exc_fn_t)ADDRSPACE[(addr)>>12]->write_word)((addr), (val), &&except)
-#define MEM_WRITE_LONG( addr, val ) ((mem_write_exc_fn_t)ADDRSPACE[(addr)>>12]->write_long)((addr), (val), &&except)
-#define MEM_PREFETCH( addr ) ((mem_prefetch_exc_fn_t)ADDRSPACE[(addr)>>12]->prefetch)((addr), &&except)
-#else
-#define INIT_EXCEPTIONS(label)
-#define MEM_READ_BYTE( addr, val ) val = ADDRSPACE[(addr)>>12]->read_byte(addr)
-#define MEM_READ_BYTE_FOR_WRITE( addr, val ) val = ADDRSPACE[(addr)>>12]->read_byte_for_write(addr)
-#define MEM_READ_WORD( addr, val ) val = ADDRSPACE[(addr)>>12]->read_word(addr)
-#define MEM_READ_LONG( addr, val ) val = ADDRSPACE[(addr)>>12]->read_long(addr)
-#define MEM_WRITE_BYTE( addr, val ) ADDRSPACE[(addr)>>12]->write_byte(addr, val)
-#define MEM_WRITE_WORD( addr, val ) ADDRSPACE[(addr)>>12]->write_word(addr, val)
-#define MEM_WRITE_LONG( addr, val ) ADDRSPACE[(addr)>>12]->write_long(addr, val)
-#define MEM_PREFETCH( addr ) ADDRSPACE[(addr)>>12]->prefetch(addr)
-#endif
+#define MEM_READ_BYTE( addr, val ) addrtmp = addr; if( (fntmp = mmu_get_region_for_vma_read(&addrtmp)) == NULL ) { sh4r.in_delay_slot = 0; return TRUE; } else { val = fntmp->read_byte(addrtmp); }
+#define MEM_READ_BYTE_FOR_WRITE( addr, val ) addrtmp = addr; if( (fntmp = mmu_get_region_for_vma_write(&addrtmp)) == NULL ) { sh4r.in_delay_slot = 0; return TRUE; } else { val = fntmp->read_byte_for_write(addrtmp); }
+#define MEM_READ_WORD( addr, val ) addrtmp = addr; if( (fntmp = mmu_get_region_for_vma_read(&addrtmp)) == NULL ) { sh4r.in_delay_slot = 0; return TRUE; } else { val = fntmp->read_word(addrtmp); }
+#define MEM_READ_LONG( addr, val ) addrtmp = addr; if( (fntmp = mmu_get_region_for_vma_read(&addrtmp)) == NULL ) { sh4r.in_delay_slot = 0; return TRUE; } else { val = fntmp->read_long(addrtmp); }
+#define MEM_WRITE_BYTE( addr, val ) addrtmp = addr; if( (fntmp = mmu_get_region_for_vma_write(&addrtmp)) == NULL ) { sh4r.in_delay_slot = 0; return TRUE; } else { fntmp->write_byte(addrtmp,val); }
+#define MEM_WRITE_WORD( addr, val ) addrtmp = addr; if( (fntmp = mmu_get_region_for_vma_write(&addrtmp)) == NULL ) { sh4r.in_delay_slot = 0; return TRUE; } else { fntmp->write_word(addrtmp,val); }
+#define MEM_WRITE_LONG( addr, val ) addrtmp = addr; if( (fntmp = mmu_get_region_for_vma_write(&addrtmp)) == NULL ) { sh4r.in_delay_slot = 0; return TRUE; } else { fntmp->write_long(addrtmp,val); }
+#define MEM_PREFETCH( addr )  addrtmp = addr; if( (fntmp = mmu_get_region_for_vma_prefetch(&addrtmp)) == NULL ) { sh4r.in_delay_slot = 0; return TRUE; } else { fntmp->prefetch(addrtmp); }
 
 #define FP_WIDTH (IS_FPU_DOUBLESIZE() ? 8 : 4)
 
@@ -346,10 +332,10 @@ gboolean sh4_execute_instruction( void )
     uint32_t tmp;
     float ftmp;
     double dtmp;
-    int64_t memtmp; // temporary holder for memory reads
-
-    INIT_EXCEPTIONS(except)
+    sh4addr_t addrtmp; // temporary holder for memory addresses
+    mem_region_fn_t fntmp;
     
+
 #define R0 sh4r.r[0]
     pc = sh4r.pc;
     if( pc > 0xFFFFFF00 ) {
@@ -1306,7 +1292,6 @@ UNDEF {:
     sh4r.pc = sh4r.new_pc;
     sh4r.new_pc += 2;
 
-except:
     sh4r.in_delay_slot = 0;
     return TRUE;
 }
