@@ -32,6 +32,7 @@ src/testsh4x86
 src/test/.dirstamp
 src/test/testsh4x86
 src/test/testxlt
+src/test/testlxpaths
 po/POTFILES
 test/testdisp
 test/testdisp.bin
