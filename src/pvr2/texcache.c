@@ -101,10 +101,10 @@ void texcache_gl_init( )
 
         /* Bind the texture and set the params */
         glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_1D, texcache_palette_texid);
-        glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexParameteri( GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_CLAMP );
+        glBindTexture(GL_TEXTURE_2D, texcache_palette_texid);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
         glActiveTexture(GL_TEXTURE0);
 
     } else {
@@ -290,14 +290,10 @@ static void texcache_load_palette_texture( gboolean format_changed )
     }
 
     glActiveTexture(GL_TEXTURE1);
-//    glBindTexture(GL_TEXTURE_1D, texcache_palette_texid);
     if( format_changed )
-        glTexImage1D(GL_TEXTURE_1D, 0, intFormat, 1024, 0, format, type, data );
+        glTexImage2D(GL_TEXTURE_2D, 0, intFormat, 1024, 1, 0, format, type, data );
     else
-        glTexSubImage1D(GL_TEXTURE_1D, 0, 0, 1024, format, type, data);
-//    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-//    glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-//    glTexParameteri( GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_CLAMP );
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1024, 1, format, type, data);
     glActiveTexture(GL_TEXTURE0);
     texcache_palette_valid = TRUE;
 }
@@ -510,7 +506,7 @@ static void texcache_load_texture( uint32_t texture_addr, int width, int height,
     case PVR2_TEX_FORMAT_IDX4:
     case PVR2_TEX_FORMAT_IDX8:
         if( texcache_have_palette_shader ) {
-            intFormat = GL_ALPHA8;
+            intFormat = GL_ALPHA;
             format = GL_ALPHA;
             type = GL_UNSIGNED_BYTE;
             bpp_shift = 0;
@@ -895,7 +891,12 @@ void texcache_dump()
                     POLY2_TEX_HEIGHT(texcache_active_list[slot].poly2_mode),
                     texcache_active_list[slot].poly2_mode,
                     texcache_active_list[slot].tex_mode,
-                    (glAreTexturesResident(1, &texcache_active_list[slot].texture_id, &boolresult) ? "[RESIDENT]" : "[NOT RESIDENT]") );
+#ifdef HAVE_OPENGL_TEX_RESIDENT
+                    (glAreTexturesResident(1, &texcache_active_list[slot].texture_id, &boolresult) ? "[RESIDENT]" : "[NOT RESIDENT]")
+#else
+                    ""
+#endif
+                    );
             slot = texcache_active_list[slot].next;
         }
     }

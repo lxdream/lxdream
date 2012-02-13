@@ -80,13 +80,13 @@ void main()
 #fragment DEFAULT_FRAGMENT_SHADER
 
 uniform sampler2D primary_texture;
-uniform sampler1D palette_texture;
+uniform sampler2D palette_texture;
 
 void main()
 {
 	vec4 tex = texture2D( primary_texture, gl_TexCoord[0].xy );
 	if( gl_TexCoord[0].z >= 0.0 ) {
-	    tex = texture1D( palette_texture, gl_TexCoord[0].z + (tex.a*0.249023) );
+	    tex = texture2D( palette_texture, vec2(gl_TexCoord[0].z + (tex.a*0.249023),0.5) );
 	}
 	/* HACK: unfortunately we have to maintain compatibility with GLSL 1.20,
 	 * which only supports varying float. So since we're propagating texcoord
