@@ -69,6 +69,7 @@ xlat_cache_block_t xlat_old_cache_ptr;
 
 static void **xlat_lut[XLAT_LUT_PAGES];
 static gboolean xlat_initialized = FALSE;
+static xlat_target_fns_t xlat_target = NULL;
 
 void xlat_cache_init(void) 
 {
@@ -91,6 +92,11 @@ void xlat_cache_init(void)
         memset( xlat_lut, 0, XLAT_LUT_PAGES*sizeof(void *) );
     }
     xlat_flush_cache();
+}
+
+void xlat_set_target_fns( xlat_target_fns_t target )
+{
+    xlat_target = target;
 }
 
 /**
@@ -131,7 +137,8 @@ void xlat_delete_block( xlat_cache_block_t block )
 {
     block->active = 0;
     *block->lut_entry = block->chain;
-    sh4_translate_unlink_block( block->use_list );
+    if( block->use_list != NULL )
+        xlat_target->unlink_block(block->use_list);
 }
 
 static void xlat_flush_page_by_lut( void **page )
