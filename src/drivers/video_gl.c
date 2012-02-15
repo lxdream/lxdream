@@ -38,7 +38,6 @@ void gl_reset_state()
     glLoadIdentity();
     glEnable( GL_BLEND );
     glDisable( GL_TEXTURE_2D );
-    glDisable( GL_TEXTURE_RECTANGLE_ARB );
     glDisable( GL_ALPHA_TEST );
     glDisable( GL_DEPTH_TEST );
     glDisable( GL_SCISSOR_TEST );
@@ -82,11 +81,11 @@ void gl_texture_window( int width, int height, int tex_id, gboolean inverted )
 {
     float top, bottom;
     if( inverted ) {
-        top = ((float)height);
+        top = 1;
         bottom = 0;
     } else {
         top = 0;
-        bottom = ((float)height);
+        bottom = 1;
     }
 
     /* Reset display parameters */
@@ -128,24 +127,24 @@ void gl_texture_window( int width, int height, int tex_id, gboolean inverted )
     }
 
     /* Render the textured rectangle */
-    glEnable( GL_TEXTURE_RECTANGLE_ARB );
-    glBindTexture( GL_TEXTURE_RECTANGLE_ARB, tex_id );
+    glEnable( GL_TEXTURE_2D );
+    glBindTexture( GL_TEXTURE_2D, tex_id );
     glTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE );
-    glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glEnable( GL_BLEND );
     glBlendFunc( GL_ONE, GL_ZERO );
     glBegin( GL_QUADS );
     glTexCoord2f( 0, top );
     glVertex2f( x1, y1 );
-    glTexCoord2f( ((float)width), top );
+    glTexCoord2f( 1, top );
     glVertex2f( x2, y1 );
-    glTexCoord2f( ((float)width), bottom );
+    glTexCoord2f( 1, bottom );
     glVertex2f( x2, y2 );
     glTexCoord2f( 0, bottom );
     glVertex2f( x1, y2 );
     glEnd();
-    glDisable( GL_TEXTURE_RECTANGLE_ARB );
+    glDisable( GL_TEXTURE_2D );
     glFlush();
 }
 
@@ -157,8 +156,8 @@ gboolean gl_load_frame_buffer( frame_buffer_t frame, int tex_id )
     int rowstride = (frame->rowstride / bpp) - frame->width;
 
     glPixelStorei( GL_UNPACK_ROW_LENGTH, rowstride );
-    glBindTexture( GL_TEXTURE_RECTANGLE_ARB, tex_id );
-    glTexSubImage2D( GL_TEXTURE_RECTANGLE_ARB, 0, 0,0,
+    glBindTexture( GL_TEXTURE_2D, tex_id );
+    glTexSubImage2D( GL_TEXTURE_2D, 0, 0,0,
                      frame->width, frame->height, format, type, frame->data );
     return TRUE;
 }

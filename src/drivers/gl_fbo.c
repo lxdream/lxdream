@@ -136,7 +136,7 @@ static void gl_fbo_setup_framebuffer( int bufno, int width, int height )
     for( i=0; i<gl_fbo_max_attachments; i++ ) {
         if( fbo[bufno].tex_ids[i] != -1 ) {
             glFramebufferTexture2D(GL_FRAMEBUFFER, ATTACHMENT_POINT(i),
-                    GL_TEXTURE_RECTANGLE_ARB, 0, 0);
+                    GL_TEXTURE_2D, 0, 0);
             fbo[bufno].tex_ids[i] = -1;
         }
     }
@@ -144,7 +144,7 @@ static void gl_fbo_setup_framebuffer( int bufno, int width, int height )
     /* Setup the renderbuffers */
     if( gl_fbo_have_packed_stencil ) {
         glBindRenderbuffer(GL_RENDERBUFFER, fbo[bufno].depth_id);
-        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8_EXT, width, height);
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
         glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
                                      GL_RENDERBUFFER, fbo[bufno].depth_id);
         glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT,
@@ -209,9 +209,9 @@ static GLint gl_fbo_attach_texture( int fbo_no, GLint tex_id ) {
         attach = 0;
     }
     fbo[fbo_no].tex_ids[attach] = tex_id;
-    glBindTexture( GL_TEXTURE_RECTANGLE_ARB, 0 ); // Ensure the output texture is unbound
+    glBindTexture( GL_TEXTURE_2D, 0 ); // Ensure the output texture is unbound
     glFramebufferTexture2D(GL_FRAMEBUFFER, ATTACHMENT_POINT(attach), 
-                              GL_TEXTURE_RECTANGLE_ARB, tex_id, 0 );
+                              GL_TEXTURE_2D, tex_id, 0 );
     /* Set draw/read buffers by default */
     glDrawBuffer(ATTACHMENT_POINT(attach));
     glReadBuffer(ATTACHMENT_POINT(attach)); 
@@ -251,14 +251,14 @@ static render_buffer_t gl_fbo_create_render_buffer( uint32_t width, uint32_t hei
         buffer->buf_id = tex;
     } else {
         buffer->buf_id = tex_id;
-        glBindTexture( GL_TEXTURE_RECTANGLE_ARB, tex_id );
+        glBindTexture( GL_TEXTURE_2D, tex_id );
     }
-    glBindTexture( GL_TEXTURE_RECTANGLE_ARB, buffer->buf_id );
-    glTexImage2D( GL_TEXTURE_RECTANGLE_ARB, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL );
-    glTexParameteri( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_S, GL_CLAMP );
-    glTexParameteri( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_T, GL_CLAMP );
-    glTexParameteri( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
-    glTexParameteri( GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+    glBindTexture( GL_TEXTURE_2D, buffer->buf_id );
+    glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL );
+    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP );
+    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP );
+    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
+    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
     return buffer;
 }
 
@@ -276,7 +276,7 @@ static void gl_fbo_detach_render_buffer( render_buffer_t buffer )
                 if( fbo[i].tex_ids[j] == buffer->buf_id ) {
                     glBindFramebuffer(GL_FRAMEBUFFER, fbo[i].fb_id);
                     glFramebufferTexture2D(GL_FRAMEBUFFER, ATTACHMENT_POINT(j), 
-                                              GL_TEXTURE_RECTANGLE_ARB, GL_NONE, 0 );
+                                              GL_TEXTURE_2D, GL_NONE, 0 );
                     fbo[i].tex_ids[j] = -1;
                     return;
                 }                    
