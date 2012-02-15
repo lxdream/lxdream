@@ -112,6 +112,18 @@ int compare_charp( const void *a, const void *b )
 #define DEFAULT_TERMINAL_COLUMNS 80
 #define DEFAULT_COLUMN_WIDTH 34
 
+int glGetMaxColourAttachments()
+{
+#ifdef GL_MAX_COLOR_ATTACHMENTS
+    GLint result = 0;
+    glGetIntegerv(GL_MAX_COLOR_ATTACHMENTS, &result);
+    return result;
+#else
+    return 1;
+#endif
+}
+
+
 /**
  * Format a GL extension list (or other space-separated string) nicely, and
  * print to the given output stream.
