@@ -39,12 +39,12 @@ void gl_reset_state();
 void gl_display_blank( uint32_t colour );
 
 /**
- * Write a rectangular texture (GL_TEXTURE_RECTANGLE_ARB) to the display frame
+ * Write a rectangular texture (GL_TEXTURE_2D) to the display frame
  */
 void gl_display_render_buffer( render_buffer_t buffer );
 
 /**
- * Write a rectangular texture (GL_TEXTURE_RECTANGLE_ARB) to the display frame
+ * Write a rectangular texture (GL_TEXTURE_2D) to the display frame
  */
 void gl_texture_window( int width, int height, int tex_id, gboolean inverted );
 

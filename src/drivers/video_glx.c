@@ -367,8 +367,8 @@ static void glx_pbuffer_finish_render( render_buffer_t buffer )
     if( buffer->tex_id != 0 ) {
         // The pbuffer should already be the current context, but just in case...
         glXMakeContextCurrent( video_x11_display, (GLXPbuffer)buffer->buf_id, (GLXPbuffer)buffer->buf_id, glx_context );
-        glBindTexture( GL_TEXTURE_RECTANGLE_ARB, buffer->tex_id );
-        glCopyTexImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, GL_RGBA, 0, 0, buffer->width, buffer->height, 0 );
+        glBindTexture( GL_TEXTURE_2D, buffer->tex_id );
+        glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 0, 0, buffer->width, buffer->height, 0 );
     }
 }
     
@@ -382,8 +382,8 @@ static void glx_pbuffer_display_render_buffer( render_buffer_t buffer )
     glFinish();
     glReadBuffer( GL_FRONT );
     glXMakeContextCurrent( video_x11_display, (GLXPbuffer)buffer->buf_id, (GLXPbuffer)buffer->buf_id, glx_context );
-    glBindTexture( GL_TEXTURE_RECTANGLE_ARB, glx_pbuffer_texture );
-    glCopyTexImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, GL_RGBA, 0, 0, buffer->width, buffer->height, 0 );
+    glBindTexture( GL_TEXTURE_2D, glx_pbuffer_texture );
+    glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 0, 0, buffer->width, buffer->height, 0 );
     video_glx_make_window_current();
     gl_texture_window( buffer->width, buffer->height, glx_pbuffer_texture, buffer->inverted );
 }
