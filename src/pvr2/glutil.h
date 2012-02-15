@@ -54,6 +54,7 @@ gboolean isGLVertexRangeSupported();
 gboolean isGLPixelBufferSupported();
 gboolean isGLMultitextureSupported();
 gboolean isGLMirroredTextureSupported();
+GLint glGetMaxColourAttachments();
 
 /****** Extension variant wrangling *****/
 
@@ -87,6 +88,10 @@ gboolean isGLMirroredTextureSupported();
 
 #if defined(GL_DEPTH_ATTACHMENT_EXT) && !defined(GL_DEPTH_ATTACHMENT)
 #define GL_DEPTH_ATTACHMENT GL_DEPTH_ATTACHMENT_EXT
+#endif
+
+#if defined(GL_DEPTH_COMPONENT24_OES) && !defined(GL_DEPTH_COMPONENT24)
+#define GL_DEPTH_COMPONENT24 GL_DEPTH_COMPONENT24_OES
 #endif
 
 #ifndef GL_DEPTH24_STENCIL8

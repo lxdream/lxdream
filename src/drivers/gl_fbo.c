@@ -80,7 +80,7 @@ void gl_fbo_init( display_driver_t driver )
     GLuint fbids[MAX_FRAMEBUFFERS];
     GLuint rbids[MAX_FRAMEBUFFERS*2]; /* depth buffer, stencil buffer per fb */
 
-    glGetIntegerv(GL_MAX_COLOR_ATTACHMENTS, &gl_fbo_max_attachments);
+    gl_fbo_max_attachments = glGetMaxColourAttachments();
     glGenFramebuffers( MAX_FRAMEBUFFERS, &fbids[0] );
     glGenRenderbuffers( MAX_FRAMEBUFFERS*2, &rbids[0] );
     for( i=0; i<MAX_FRAMEBUFFERS; i++ ) {
@@ -255,8 +255,8 @@ static render_buffer_t gl_fbo_create_render_buffer( uint32_t width, uint32_t hei
     }
     glBindTexture( GL_TEXTURE_2D, buffer->buf_id );
     glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL );
-    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP );
-    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP );
+    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
+    glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
     glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
     glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
     return buffer;
