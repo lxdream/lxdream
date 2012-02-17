@@ -18,7 +18,6 @@
  */
 
 #include <stdlib.h>
-#include <X11/keysym.h>
 #include "dream.h"
 #include "dreamcast.h"
 #include "display.h"
