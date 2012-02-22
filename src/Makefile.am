@@ -35,14 +35,15 @@ CLEANFILES = sh4/sh4core.c sh4/sh4dasm.c sh4/sh4x86.c sh4/sh4stat.c \
 	audio_alsa.lo audio_sdl.lo audio_esd.lo audio_pulse.lo input_lirc.lo \
 	lxdream_dummy.lo
 
-#all-am: checkversion
-
 AM_CPPFLAGS = @LXDREAMCPPFLAGS@
 
 lxdream_LINK = $(LINK) @LXDREAMLDFLAGS@
-lxdream_LDADD = @LXDREAM_LIBS@ @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@ @LIBISOFS_LIBS@ $(INTLLIBS)
-lxdream_SOURCES = \
-        main.c version.c config.c config.h lxdream.h dream.h gui.h cpu.c cpu.h hook.h \
+lxdream_LDADD = liblxdream-core.a @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@ @LIBISOFS_LIBS@ $(INTLLIBS) @LXDREAM_LIBS@
+lxdream_SOURCES = main.c 
+lxdream_LIBS = liblxdream-core.a
+
+noinst_LIBRARIES = liblxdream-core.a
+liblxdream_core_a_SOURCES = version.c config.c config.h lxdream.h dream.h gui.h cpu.c cpu.h hook.h \
         gettext.h mem.c mem.h sdram.c mmio.h watch.c \
         asic.c asic.h clock.h serial.h \
         syscall.c syscall.h bios.c dcload.c gdbserver.c \
@@ -83,7 +84,7 @@ lxdream_SOURCES += plugin.c plugin.h
 endif	
 
 if BUILD_SH4X86
-lxdream_SOURCES += sh4/sh4x86.c xlat/x86/x86op.h \
+liblxdream_core_a_SOURCES += sh4/sh4x86.c xlat/x86/x86op.h \
         xlat/x86/ia32abi.h xlat/x86/amd64abi.h \
         sh4/sh4trans.c sh4/sh4trans.h sh4/mmux86.c sh4/shadow.c \
         x86dasm/x86dasm.c x86dasm/x86dasm.h \
@@ -106,17 +107,16 @@ lxdream_SOURCES += gtkui/gtkui.c gtkui/gtkui.h \
 	gtkui/gtk_win.c gtkui/gtkcb.c gtkui/gtk_cfg.c \
         gtkui/gtk_mmio.c gtkui/gtk_debug.c gtkui/gtk_dump.c \
         gtkui/gtk_ctrl.c gtkui/gtk_gd.c \
-        drivers/io_glib.c drivers/video_gtk.c
+        drivers/video_gtk.c
 endif
 
 if GUI_COCOA
+liblxdream_core_a_SOURCES += cocoaui/paths_osx.m drivers/io_osx.m drivers/mac_keymap.h drivers/mac_keymap.txt
 lxdream_SOURCES += cocoaui/cocoaui.m cocoaui/cocoaui.h cocoaui/cocoa_cfg.m \
 	cocoaui/cocoa_win.m cocoaui/cocoa_gd.m cocoaui/cocoa_prefs.m \
-	cocoaui/cocoa_ctrl.m cocoaui/paths_osx.m \
-	drivers/io_osx.m drivers/video_osx.m \
-	drivers/mac_keymap.h drivers/mac_keymap.txt
+	cocoaui/cocoa_ctrl.m drivers/video_osx.m
 else
-lxdream_SOURCES += paths_unix.c
+liblxdream_core_a_SOURCES += paths_unix.c drivers/io_glib.c
 endif
 
 if VIDEO_OSMESA
@@ -263,4 +263,3 @@ pvr2/shaders.h: pvr2/shaders.def
 drivers/mac_keymap.h: dckeysyms.h drivers/mac_keymap.txt drivers/genkeymap.pl
 	$(mkdir_p) `dirname $@`
 	$(srcdir)/drivers/genkeymap.pl mac $(srcdir)/dckeysyms.h $(srcdir)/drivers/mac_keymap.txt $@
-	
