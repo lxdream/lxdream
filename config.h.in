@@ -10,14 +10,14 @@
 /* Building on an apple platform. Things are different... */
 #undef APPLE_BUILD
 
+/* Enable dynamic plugin support */
+#undef BUILD_PLUGINS
+
 /* always defined to indicate that i18n is enabled */
 #undef ENABLE_NLS
 
 /* Enable SH4 statistics */
 #undef ENABLE_SH4STATS
-
-/* Enable shared-library plugins */
-#undef ENABLE_SHARED
 
 /* Enable IO tracing */
 #undef ENABLE_TRACE_IO

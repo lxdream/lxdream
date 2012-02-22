@@ -733,8 +733,8 @@ SOEXT
 PLUGINCFLAGS
 PLUGINLDFLAGS
 LXDREAMLDFLAGS
-BUILD_SHARED_TRUE
-BUILD_SHARED_FALSE
+BUILD_PLUGINS_TRUE
+BUILD_PLUGINS_FALSE
 LXDREAMCPPFLAGS
 PKG_CONFIG
 LIBPNG_CFLAGS
@@ -9445,11 +9445,6 @@ if test "x$enable_strictwarn" = "xyes"; then
 fi
 
 if test "x$enable_shared" != "xno"; then
-
-cat >>confdefs.h <<\_ACEOF
-#define ENABLE_SHARED 1
-_ACEOF
-
    if test "x$APPLE_BUILD" = "xyes"; then
       SOEXT="dylib"
       PLUGINLDFLAGS="-dynamiclib -undefined dynamic_lookup"
@@ -9737,14 +9732,21 @@ rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
 
 
 fi
+if test "x$have_dlopen" = "xyes"; then
+
+cat >>confdefs.h <<\_ACEOF
+#define BUILD_PLUGINS 1
+_ACEOF
+
+fi
 
 
 if test "x$have_dlopen" = "xyes"; then
-  BUILD_SHARED_TRUE=
-  BUILD_SHARED_FALSE='#'
+  BUILD_PLUGINS_TRUE=
+  BUILD_PLUGINS_FALSE='#'
 else
-  BUILD_SHARED_TRUE='#'
-  BUILD_SHARED_FALSE=
+  BUILD_PLUGINS_TRUE='#'
+  BUILD_PLUGINS_FALSE=
 fi
 
 
@@ -15555,10 +15557,10 @@ echo "$as_me: error: conditional \"GUI_COCOA\" was never defined.
 Usually this means the macro was only invoked conditionally." >&2;}
    { (exit 1); exit 1; }; }
 fi
-if test -z "${BUILD_SHARED_TRUE}" && test -z "${BUILD_SHARED_FALSE}"; then
-  { { echo "$as_me:$LINENO: error: conditional \"BUILD_SHARED\" was never defined.
+if test -z "${BUILD_PLUGINS_TRUE}" && test -z "${BUILD_PLUGINS_FALSE}"; then
+  { { echo "$as_me:$LINENO: error: conditional \"BUILD_PLUGINS\" was never defined.
 Usually this means the macro was only invoked conditionally." >&5
-echo "$as_me: error: conditional \"BUILD_SHARED\" was never defined.
+echo "$as_me: error: conditional \"BUILD_PLUGINS\" was never defined.
 Usually this means the macro was only invoked conditionally." >&2;}
    { (exit 1); exit 1; }; }
 fi
@@ -16380,8 +16382,8 @@ SOEXT!$SOEXT$ac_delim
 PLUGINCFLAGS!$PLUGINCFLAGS$ac_delim
 PLUGINLDFLAGS!$PLUGINLDFLAGS$ac_delim
 LXDREAMLDFLAGS!$LXDREAMLDFLAGS$ac_delim
-BUILD_SHARED_TRUE!$BUILD_SHARED_TRUE$ac_delim
-BUILD_SHARED_FALSE!$BUILD_SHARED_FALSE$ac_delim
+BUILD_PLUGINS_TRUE!$BUILD_PLUGINS_TRUE$ac_delim
+BUILD_PLUGINS_FALSE!$BUILD_PLUGINS_FALSE$ac_delim
 LXDREAMCPPFLAGS!$LXDREAMCPPFLAGS$ac_delim
 PKG_CONFIG!$PKG_CONFIG$ac_delim
 LIBPNG_CFLAGS!$LIBPNG_CFLAGS$ac_delim
