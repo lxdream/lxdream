@@ -37,6 +37,8 @@ CLEANFILES = sh4/sh4core.c sh4/sh4dasm.c sh4/sh4x86.c sh4/sh4stat.c \
 
 #all-am: checkversion
 
+AM_CPPFLAGS = @LXDREAMCPPFLAGS@
+
 lxdream_LINK = $(LINK) @LXDREAMLDFLAGS@
 lxdream_LDADD = @LXDREAM_LIBS@ @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@ @LIBISOFS_LIBS@ $(INTLLIBS)
 lxdream_SOURCES = \
@@ -75,8 +77,8 @@ lxdream_SOURCES = \
 	drivers/cdrom/isofs.h drivers/cdrom/isofs.c drivers/cdrom/isomem.c \
 	sh4/sh4.def sh4/sh4core.in sh4/sh4x86.in sh4/sh4dasm.in sh4/sh4stat.in \
 	hotkeys.c hotkeys.h
-lxdream_CPPFLAGS = @LXDREAMCPPFLAGS@
-if BUILD_SHARED
+
+if BUILD_PLUGINS
 lxdream_SOURCES += plugin.c plugin.h
 endif	
 
@@ -90,7 +92,6 @@ lxdream_SOURCES += sh4/sh4x86.c xlat/x86/x86op.h \
         x86dasm/symcat.h x86dasm/sysdep.h
 
 test_testsh4x86_LDADD = @LXDREAM_LIBS@ @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@
-test_testsh4x86_CPPFLAGS = @LXDREAMCPPFLAGS@
 test_testsh4x86_SOURCES = test/testsh4x86.c x86dasm/x86dasm.c \
 	x86dasm/x86dasm.h x86dasm/i386-dis.c x86dasm/dis-init.c \
 	x86dasm/dis-buf.c \
@@ -134,7 +135,7 @@ if AUDIO_OSX
 lxdream_SOURCES += drivers/audio_osx.m
 endif
 
-if BUILD_SHARED
+if BUILD_PLUGINS
 
 pkglib_PROGRAMS += lxdream_dummy.@SOEXT@
 lxdream_dummy_@SOEXT@_SOURCES =

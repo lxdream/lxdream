@@ -229,7 +229,7 @@ int main (int argc, char *argv[])
         }
     }
 
-#ifdef ENABLE_SHARED
+#ifdef BUILD_PLUGINS
     plugin_init();
 #endif
 
