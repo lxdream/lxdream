@@ -127,7 +127,7 @@ void mem_free(IsoStream *stream)
     free(data);
 }
 
-IsoStreamIface mem_stream_class = {
+static IsoStreamIface mem_stream_class = {
     0,
     "mem ",
     mem_open,
