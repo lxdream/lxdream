@@ -66,44 +66,67 @@
 
 
 #vertex DEFAULT_VERTEX_SHADER
+uniform mat4 view_matrix;
+attribute vec4 in_vertex;
+attribute vec4 in_colour;
+attribute vec4 in_colour2; /* rgb = colour, a = fog */
+attribute vec4 in_texcoord; /* uv = coord, z = palette, w = mode */
+
+varying vec4 frag_colour;
+varying vec4 frag_colour2;
+varying vec4 frag_texcoord;
 void main()
 {
-    vec4 tmp = ftransform();
-    float w = gl_Vertex.z;
+    vec4 tmp = view_matrix * in_vertex;
+    float w = in_vertex.z;
     gl_Position  = tmp * w;
-    gl_FrontColor = gl_Color;
-    gl_FrontSecondaryColor = gl_SecondaryColor;
-    gl_TexCoord[0] = gl_MultiTexCoord0;
-    gl_FogFragCoord = gl_FogCoord;
+    frag_colour = in_colour;
+    frag_colour2 = in_colour2;
+    frag_texcoord = in_texcoord;
 }
 
 #fragment DEFAULT_FRAGMENT_SHADER
 
+uniform float alpha_ref;
 uniform sampler2D primary_texture;
 uniform sampler2D palette_texture;
+uniform vec3 fog_colour1;
+uniform vec3 fog_colour2;
+varying vec4 frag_colour;
+varying vec4 frag_colour2;
+varying vec4 frag_texcoord;
 
 void main()
 {
-	vec4 tex = texture2D( primary_texture, gl_TexCoord[0].xy );
-	if( gl_TexCoord[0].z >= 0.0 ) {
-	    tex = texture2D( palette_texture, vec2(gl_TexCoord[0].z + (tex.a*0.249023),0.5) );
+	vec4 tex = texture2D( primary_texture, frag_texcoord.xy );
+	if( frag_texcoord.z >= 0.0 ) {
+	    tex = texture2D( palette_texture, vec2(frag_texcoord.z + (tex.a*0.249023), 0.5) );
 	}
 	/* HACK: unfortunately we have to maintain compatibility with GLSL 1.20,
 	 * which only supports varying float. So since we're propagating texcoord
 	 * anyway, overload the last component to indicate texture mode. 
 	 */
-	if( gl_TexCoord[0].w == 0.0 ) {
-	    gl_FragColor.rgb = mix( gl_Color.rgb * tex.rgb + gl_SecondaryColor.rgb, gl_Fog.color.rgb, gl_FogFragCoord );
-	    gl_FragColor.a = gl_Color.a * tex.a;
-	} else if( gl_TexCoord[0].w >= 1.5 ) {
-	    gl_FragColor.rgb = mix( gl_Color.rgb, gl_Fog.color.rgb, gl_FogFragCoord );
-	    gl_FragColor.a = gl_Color.a;
+        vec3 main_colour;
+	if( frag_texcoord.w == 0.0 ) {
+            main_colour = frag_colour.rgb * tex.rgb + frag_colour2.rgb;
+	    gl_FragColor.a = frag_colour.a * tex.a;
+	} else if( frag_texcoord.w >= 1.5 ) {
+            main_colour = frag_colour.rgb;
+	    gl_FragColor.a = frag_colour.a;
 	} else {
-	    gl_FragColor.rgb = mix( mix(gl_Color.rgb,tex.rgb,tex.a) + gl_SecondaryColor.rgb, gl_Fog.color.rgb, gl_FogFragCoord);
-	    gl_FragColor.a = gl_Color.a;
+	    main_colour =  mix(frag_colour.rgb,tex.rgb,tex.a) + frag_colour2.rgb;
+	    gl_FragColor.a = frag_colour.a;
 	}
-	gl_FragDepth = gl_FragCoord.z;
+        if( gl_FragColor.a < alpha_ref ) {
+            discard;
+        } else { 
+   	    if( frag_colour2.a >= 0.0 ) {
+                gl_FragColor.rgb = mix( main_colour, fog_colour1, frag_colour2.a );
+            } else {
+                gl_FragColor.rgb = mix( main_colour, fog_colour2, -frag_colour2.a );
+            }
+	    gl_FragDepth = gl_FragCoord.z;
+        } 
 }
 
 #program pvr2_shader = DEFAULT_VERTEX_SHADER DEFAULT_FRAGMENT_SHADER
-
