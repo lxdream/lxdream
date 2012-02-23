@@ -109,6 +109,9 @@
 /* Have glClearDepthf function */
 #undef HAVE_OPENGL_CLEAR_DEPTHF
 
+/* Have glDrawBuffer function */
+#undef HAVE_OPENGL_DRAW_BUFFER
+
 /* Have 2.0 framebuffer_object support */
 #undef HAVE_OPENGL_FBO
 
@@ -124,7 +127,7 @@
 /* Have ARB shader support */
 #undef HAVE_OPENGL_SHADER_ARB
 
-/* Have glAreTexturesResident */
+/* Have glAreTexturesResident function */
 #undef HAVE_OPENGL_TEX_RESIDENT
 
 /* Building with the OSMesa video driver */

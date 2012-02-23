@@ -198,8 +198,10 @@ static GLint gl_fbo_attach_texture( int fbo_no, GLint tex_id ) {
     int attach = -1, i;
     for( i=0; i<gl_fbo_max_attachments; i++ ) {
         if( fbo[fbo_no].tex_ids[i] == tex_id ) {
+#ifdef HAVE_OPENGL_DRAW_BUFFER
             glDrawBuffer(ATTACHMENT_POINT(i));
             glReadBuffer(ATTACHMENT_POINT(i)); 
+#endif
             return ATTACHMENT_POINT(i); // already attached
         } else if( fbo[fbo_no].tex_ids[i] == -1 && attach == -1 ) {
             attach = i;
@@ -213,8 +215,10 @@ static GLint gl_fbo_attach_texture( int fbo_no, GLint tex_id ) {
     glFramebufferTexture2D(GL_FRAMEBUFFER, ATTACHMENT_POINT(attach), 
                               GL_TEXTURE_2D, tex_id, 0 );
     /* Set draw/read buffers by default */
+#ifdef HAVE_OPENGL_DRAW_BUFFER    
     glDrawBuffer(ATTACHMENT_POINT(attach));
     glReadBuffer(ATTACHMENT_POINT(attach)); 
+#endif
 
     return ATTACHMENT_POINT(attach);
 }
@@ -345,8 +349,10 @@ void gl_fbo_detach()
 {
     glBindFramebuffer( GL_FRAMEBUFFER, 0 );
     /* Make sure texture attachment is not a current draw/read buffer */
+#ifdef HAVE_OPENGL_DRAW_BUFFER
     glDrawBuffer( GL_FRONT );
     glReadBuffer( GL_FRONT );
+#endif
     display_driver->swap_buffers();
 }    
 

@@ -303,9 +303,9 @@ AC_CHECK_FUNC(glCreateShader, [ AC_DEFINE([HAVE_OPENGL_SHADER],1,[Have 2.0 shade
 AC_CHECK_FUNC(glCreateShaderObjectARB, [ AC_DEFINE([HAVE_OPENGL_SHADER_ARB],1,[Have ARB shader support]) ], [])
 AC_CHECK_FUNC(glClampColorARB, [ AC_DEFINE([HAVE_OPENGL_CLAMP_COLOR],1,[Have Color Clamp]) ], [])
 AC_CHECK_FUNC(glClearDepthf, [ AC_DEFINE([HAVE_OPENGL_CLEAR_DEPTHF],1,[Have glClearDepthf function]) ], [])
-AC_CHECK_FUNC(glAreTexturesResident, [ AC_DEFINE([HAVE_OPENGL_TEX_RESIDENT],1,[Have glAreTexturesResident]) ], [])
+AC_CHECK_FUNC(glAreTexturesResident, [ AC_DEFINE([HAVE_OPENGL_TEX_RESIDENT],1,[Have glAreTexturesResident function]) ], [])
+AC_CHECK_FUNC(glDrawBuffer, [ AC_DEFINE([HAVE_OPENGL_DRAW_BUFFER],1,[Have glDrawBuffer function])], [])
 AC_CHECK_FUNC(glTexEnvi, [ AC_DEFINE([HAVE_OPENGL_FIXEDFUNC],1,[Have OpenGL fixed-functionality]) ], [])dnl glTexEnvi is a pretty fair proxy for this.
- 
 
 
 
