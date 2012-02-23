@@ -316,7 +316,7 @@ void texcache_init( void );
 /**
  * Initialize the GL side of the texture cache (texture ids and such).
  */
-void texcache_gl_init( void );
+void texcache_gl_init( gboolean withShaders );
 
 /**
  * Flush all textures and delete. The cache will be non-functional until

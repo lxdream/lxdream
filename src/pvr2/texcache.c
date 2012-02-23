@@ -89,12 +89,12 @@ void texcache_init( )
  * Setup the initial texture ids (must be called after the GL context is
  * prepared)
  */
-void texcache_gl_init( )
+void texcache_gl_init( gboolean withShaders )
 {
     int i;
     GLuint texids[MAX_TEXTURES];
 
-    if( glsl_is_supported() && isGLMultitextureSupported() ) {
+    if( withShaders ) {
         texcache_have_palette_shader = TRUE;
         texcache_palette_valid = FALSE;
         glGenTextures(1, &texcache_palette_texid );

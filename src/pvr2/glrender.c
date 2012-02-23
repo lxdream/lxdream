@@ -123,7 +123,7 @@ void pvr2_setup_gl_context()
 #ifdef APPLE_BUILD
     CGL_MACRO_CONTEXT = CGLGetCurrentContext();
 #endif
-    texcache_gl_init(); // Allocate texture IDs
+    texcache_gl_init(have_shaders); // Allocate texture IDs
     glDisable( GL_CULL_FACE );
     glEnable( GL_BLEND );
     glEnable( GL_DEPTH_TEST );
@@ -441,7 +441,7 @@ void pvr2_scene_setup_fixed( GLfloat *viewMatrix )
     /* Vertex array pointers */
     glVertexPointer(3, GL_FLOAT, sizeof(struct vertex_struct), &pvr2_scene.vertex_array[0].x);
     glColorPointer(4, GL_FLOAT, sizeof(struct vertex_struct), &pvr2_scene.vertex_array[0].rgba[0]);
-    glTexCoordPointer(4, GL_FLOAT, sizeof(struct vertex_struct), &pvr2_scene.vertex_array[0].u);
+    glTexCoordPointer(2, GL_FLOAT, sizeof(struct vertex_struct), &pvr2_scene.vertex_array[0].u);
     glSecondaryColorPointerEXT(3, GL_FLOAT, sizeof(struct vertex_struct), pvr2_scene.vertex_array[0].offset_rgba );
     glFogCoordPointerEXT(GL_FLOAT, sizeof(struct vertex_struct), &pvr2_scene.vertex_array[0].offset_rgba[3] );
 }
