@@ -244,6 +244,7 @@ static void writeCString( FILE *out, const char *str )
 
 static const char *sl_type_map[][3] = {
         {"int", "int", "int *"},
+        {"float", "float", "float *"},
         {"short", "short", "short *"},
         {"sampler", "int", "int *"},
         {"vec", "GLfloat *", "GLfloat *"},
@@ -387,13 +388,13 @@ static void writeSource( const char *filename, glsldata_t data )
 
         fprintf( f, "\nvoid glsl_use_%s() {\n", program->name );
         fprintf( f, "    glsl_use_program(prog_%s_id);\n", program->name );
+        fprintf( f, "    glsl_set_cleanup_fn(glsl_cleanup_%s);\n", program->name );
         for( var_ptr = program->variables; var_ptr != NULL; var_ptr = var_ptr->next ) {
             variable_t var = var_ptr->data;
             if( !var->uniform ) {
                 fprintf( f, "    glsl_enable_attrib(var_%s_%s_loc);\n", program->name, var->name );
             }
         }
-        fprintf( f, "    glsl_set_cleanup_fn(glsl_cleanup_%s);\n", program->name );
         fprintf( f, "}\n");
 
 
