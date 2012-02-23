@@ -709,7 +709,7 @@ MULU.W Rm, Rn {:
 :}
 MULS.W Rm, Rn {:
     sh4r.mac = (sh4r.mac&0xFFFFFFFF00000000LL) |
-               (uint32_t)(SIGNEXT32(sh4r.r[Rm]&0xFFFF) * SIGNEXT32(sh4r.r[Rn]&0xFFFF));
+               (uint32_t)(SIGNEXT32((int16_t)(sh4r.r[Rm])) * SIGNEXT32((int16_t)(sh4r.r[Rn])));
 :}
 NEGC Rm, Rn {:
     tmp = 0 - sh4r.r[Rm];
@@ -1234,7 +1234,7 @@ FMAC FR0, FRm, FRn {:
     if( IS_FPU_DOUBLEPREC() ) {
         DR(FRn) += DR(FRm)*DR(0);
     } else {
-	FR(FRn) += FR(FRm)*FR(0);
+	FR(FRn) += (double)FR(FRm)*(double)FR(0);
     }
 :}
 FRCHG {: 
