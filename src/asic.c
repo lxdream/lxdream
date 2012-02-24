@@ -21,6 +21,7 @@
 
 #include <assert.h>
 #include <stdlib.h>
+#include "eventq.h"
 #include "dream.h"
 #include "mem.h"
 #include "sh4/intc.h"
@@ -416,6 +417,22 @@ void sort_dma_transfer( )
     MMIO_WRITE( ASIC, SORTDMACTL, 0 );
 }
 
+void maple_set_dma_state( uint32_t val )
+{
+    gboolean in_transfer = MMIO_READ( ASIC, MAPLE_STATE ) & 1;
+    gboolean transfer_requested = val & 1;
+    if( !in_transfer && transfer_requested ) {
+        /* Initiate new DMA transfer */
+        uint32_t maple_addr = MMIO_READ( ASIC, MAPLE_DMA) &0x1FFFFFE0;
+        maple_handle_buffer( maple_addr );
+    }
+    else if ( in_transfer && !transfer_requested ) {
+        /* Cancel current DMA transfer */
+        event_cancel( EVENT_MAPLE_DMA );
+    }
+    MMIO_WRITE( ASIC, MAPLE_STATE, val );
+}
+
 gboolean asic_enable_ide_interface( gboolean enable )
 {
     gboolean oldval = idereg.interface_enabled;
@@ -494,12 +511,7 @@ MMIO_REGION_WRITE_FN( ASIC, reg, val )
         }
         break;
     case MAPLE_STATE:
-        MMIO_WRITE( ASIC, reg, val );
-        if( val & 1 ) {
-            uint32_t maple_addr = MMIO_READ( ASIC, MAPLE_DMA) &0x1FFFFFE0;
-            maple_handle_buffer( maple_addr );
-            MMIO_WRITE( ASIC, reg, 0 );
-        }
+        maple_set_dma_state( val );
         break;
     case PVRDMADEST:
         MMIO_WRITE( ASIC, reg, (val & 0x03FFFFE0) | 0x10000000 );
