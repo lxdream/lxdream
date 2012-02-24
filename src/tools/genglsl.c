@@ -7,7 +7,7 @@
  * a C file with appropriate escaping, as well as program definitions
  * written as #program <name> = <shader1> <shader2> ... <shaderN>
  *
- * Copyright (c) 2007-2010 Nathan Keynes.
+ * Copyright (c) 2007-2012 Nathan Keynes.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,6 +26,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <getopt.h>
 #include <glib/gstrfuncs.h>
 #include <glib/glist.h>
 
@@ -144,7 +145,7 @@ static void linkPrograms( glsldata_t data )
 }
 
 
-static struct glsldata *readInput( const char *filename )
+static void readInput( const char *filename, glsldata_t result )
 {
     char buf[MAX_LINE];
     size_t current_size = 0, current_posn = 0;
@@ -153,13 +154,17 @@ static struct glsldata *readInput( const char *filename )
     FILE *f = fopen( filename, "ro" );
     if( f == NULL ) {
         fprintf( stderr, "Error: unable to open input file '%s': %s\n", filename, strerror(errno) );
-        exit(1);
+        exit(2);
     }
 
     shader_t shader = NULL;
-    glsldata_t result = g_malloc0(sizeof(struct glsldata));
-    assert( result != NULL );
-    result->filename = strdup(filename);
+    if( result->filename == NULL ) {
+        result->filename = g_strdup(filename);
+    } else {
+        const gchar *tmp = result->filename;
+        result->filename = g_strdup_printf("%s, %s", tmp, filename);
+        g_free((gchar *)tmp);
+    }
 
     while( fgets(buf, sizeof(buf), f) != NULL ) {
         if( strlen(buf) == 0 )
@@ -220,8 +225,6 @@ static struct glsldata *readInput( const char *filename )
     }
 
     fclose(f);
-    linkPrograms(result);
-    return result;
 }
 
 /**
@@ -433,7 +436,7 @@ static void writeSource( const char *filename, glsldata_t data )
     fclose(f);
 }
 
-const char *makeExtension(const char *basename, const char *ext)
+static const char *makeExtension(const char *basename, const char *ext)
 {
     const char *oldext = strrchr(basename, '.');
     if( oldext == NULL ) {
@@ -443,29 +446,65 @@ const char *makeExtension(const char *basename, const char *ext)
     }
 }
 
+static char *option_list = "hi:o:";
+static struct option long_option_list[] = {
+        { "help", no_argument, NULL, 'h' },
+        { "interface", required_argument, 'i' },
+        { "output", required_argument, NULL, 'o' },
+        { NULL, 0, 0, 0 } };
+
+static void usage() {
+    fprintf( stderr, "Usage: genglsl <glsl-source-list> [-o output.def] [-i output.h]\n");
+}
 int main( int argc, char *argv[] )
 {
-    if( argc < 2 ) {
-        fprintf( stderr, "Usage: genglsl <glsl-source-file> [output.c [output.h]]\n");
+    const char *output_file = NULL;
+    const char *iface_file = NULL;
+    int opt;
+
+    while( (opt = getopt_long( argc, argv, option_list, long_option_list, NULL )) != -1 ) {
+        switch( opt ) {
+        case 'h':
+            usage();
+            exit(0);
+            break;
+        case 'i':
+            if( iface_file != NULL ) {
+                fprintf( stderr, "Error: at most one interface file can be supplied\n" );
+                usage();
+                exit(1);
+            }
+            iface_file = optarg;
+            break;
+        case 'o':
+            if( output_file != NULL ) {
+                fprintf( stderr, "Error: at most one output file can be supplied\n" );
+                usage();
+                exit(1);
+            }
+            output_file = optarg;
+        }
+    }
+
+    if( optind == argc ) {
+        usage();
         exit(1);
     }
 
-    glsldata_t data = readInput(argv[1]);
-
-    const char *sourcefile, *ifacefile;
-    if( argc > 2 ) {
-        sourcefile = argv[2];
-    } else {
-        sourcefile = makeExtension(argv[1], ".def");
+    if( output_file == NULL ) {
+        output_file = makeExtension(argv[optind], ".def");
+    }
+    if( iface_file == NULL ) {
+        iface_file = makeExtension(output_file, ".h");
     }
 
-    if( argc > 3 ) {
-        ifacefile = argv[3];
-    } else {
-        ifacefile = makeExtension(sourcefile, ".h");
+    glsldata_t data = g_malloc0(sizeof(struct glsldata));
+    while( optind < argc ) {
+        readInput(argv[optind++], data);
     }
+    linkPrograms(data);
 
-    writeSource( sourcefile, data );
-    writeInterface( ifacefile, data );
+    writeSource( output_file, data );
+    writeInterface( iface_file, data );
     return 0;
 }

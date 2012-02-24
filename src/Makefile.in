@@ -2720,7 +2720,7 @@ sh4/sh4stat.c: $(GENDEC) sh4/sh4.def sh4/sh4stat.in
 	$(GENDEC) $(srcdir)/sh4/sh4.def $(srcdir)/sh4/sh4stat.in -o $@
 pvr2/shaders.def: $(GENGLSL) pvr2/shaders.glsl
 	$(mkdir_p) `dirname $@`
-	$(GENGLSL) $(srcdir)/pvr2/shaders.glsl $@
+	$(GENGLSL) $(srcdir)/pvr2/shaders.glsl -o $@
 pvr2/shaders.h: pvr2/shaders.def
 drivers/mac_keymap.h: dckeysyms.h drivers/mac_keymap.txt drivers/genkeymap.pl
 	$(mkdir_p) `dirname $@`
