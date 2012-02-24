@@ -19,6 +19,7 @@
 
 #include <assert.h>
 #include <glib/gstrfuncs.h>
+#include "eventq.h"
 #include "dream.h"
 #include "mem.h"
 #include "asic.h"
@@ -32,9 +33,18 @@ struct dreamcast_module maple_module = { "Maple", maple_init, NULL, NULL, NULL,
 struct maple_device_class *maple_device_classes[] = { 
         &controller_class, &keyboard_class, &lightgun_class, &mouse_class, &vmu_class, NULL };
 
+/**
+ * Fire interrupt to notify the completion of DMA transfer
+ */
+static void maple_event_handler( int eventid )
+{
+    MMIO_WRITE( ASIC, MAPLE_STATE, 0 );
+    asic_event( EVENT_MAPLE_DMA );
+}
+
 void maple_init( void )
 {
-
+    register_event_callback( EVENT_MAPLE_DMA, maple_event_handler );
 }
 
 maple_device_t maple_new_device( const gchar *name )
@@ -130,7 +140,11 @@ void maple_handle_buffer( uint32_t address ) {
                     dev->start_gun(dev);
                     return; // Pending
                 } else {
-                    asic_event( EVENT_MAPLE_DMA );
+                    /* FIXME: Determine how long maple IO really takes to process, 
+                     * which is probably a function of the number of requests.
+                     * For now, just use 0.2ms as a reasonable value.
+                     */
+                    event_schedule( EVENT_MAPLE_DMA, 200000 );
                     return;
                 }
             case 7: /* skip */
@@ -299,7 +313,7 @@ void maple_handle_buffer( uint32_t address ) {
             buf += 12 + (length<<2);
             address += 12 + (length<<2);
         }
-        asic_event( EVENT_MAPLE_DMA );
+        event_schedule( EVENT_MAPLE_DMA, 200000 );
     }
 }
 
