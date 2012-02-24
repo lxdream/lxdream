@@ -402,6 +402,7 @@ static void glx_pbuffer_load_frame_buffer( frame_buffer_t frame, render_buffer_t
     glRasterPos2f(0.375, frame->height-0.375);
     glPixelZoom( 1.0, 1.0 );
     glDrawPixels( frame->width, frame->height, format, type, frame->data );
+    glPixelStorei( GL_UNPACK_ROW_LENGTH, 0 );
     glFlush();
 }
 

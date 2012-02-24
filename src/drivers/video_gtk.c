@@ -117,8 +117,6 @@ guint gdk_keycode_to_modifier( GdkDisplay *display, guint keycode )
 
 
 GtkWidget *gtk_video_drawable = NULL;
-int video_width = 640;
-int video_height = 480;
 
 gboolean video_gtk_init();
 void video_gtk_shutdown();
@@ -146,8 +144,7 @@ gboolean video_gtk_expose_callback(GtkWidget *widget, GdkEventExpose *event, gpo
 
 gboolean video_gtk_resize_callback(GtkWidget *widget, GdkEventConfigure *event, gpointer data )
 {
-    video_width = event->width;
-    video_height = event->height;
+    gl_set_video_size(event->width, event->height);
     pvr2_draw_frame();
     return TRUE;
 }
@@ -281,8 +278,7 @@ gboolean video_gtk_init()
         return FALSE;
     }
 
-    video_width = gtk_video_drawable->allocation.width;
-    video_height = gtk_video_drawable->allocation.height;
+    gl_set_video_size(gtk_video_drawable->allocation.width, gtk_video_drawable->allocation.height);
 #ifdef HAVE_OSMESA
     video_gdk_init_driver( &display_gtk_driver );
 #else

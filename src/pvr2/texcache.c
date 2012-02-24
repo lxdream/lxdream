@@ -499,8 +499,6 @@ static void texcache_load_texture( uint32_t texture_addr, int width, int height,
     GLint max_filter = GL_LINEAR;
     GLint mipmapfilter = GL_LINEAR_MIPMAP_LINEAR;
 
-    glPixelStorei( GL_UNPACK_ROW_LENGTH, 0 );
-
     /* Decode the format parameters */
     switch( tex_format ) {
     case PVR2_TEX_FORMAT_IDX4:

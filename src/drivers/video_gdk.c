@@ -25,11 +25,11 @@
 #include <GL/osmesa.h>
 #include "lxdream.h"
 #include "display.h"
+#include "video_gl.h"
 
 #define MAX_PIXBUF 16
 
 extern GtkWidget *gtk_video_drawable;
-extern int video_width, video_height;
 
 static render_buffer_t gdk_pixbuf_create_render_buffer( uint32_t width, uint32_t height );
 static void gdk_pixbuf_destroy_render_buffer( render_buffer_t buffer );

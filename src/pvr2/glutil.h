@@ -128,6 +128,9 @@ gboolean glsl_load_shaders( );
 void glsl_unload_shaders(void);
 void glsl_clear_shader();
 
+/* Define an orthographic transform matrix, given the bounding box (assuming origin at 0) */
+void defineOrthoMatrix( GLfloat *matrix, GLfloat width, GLfloat height, GLfloat znear, GLfloat zfar );
+
 /* Convenience formatting function for driver use */
 void fprint_extensions( FILE *out, const char *extensions );
 

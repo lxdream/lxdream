@@ -53,8 +53,6 @@ struct display_driver display_osx_driver = {
 
 
 static NSView *video_view = NULL;
-int video_width = 640;
-int video_height = 480;
 
 #define MAX_MASK_KEYCODE 128
 
@@ -122,8 +120,7 @@ int video_height = 480;
 {
     NSSize size = [self frame].size;
     if( video_width != size.width || video_height != size.height ) {
-        video_width = size.width;
-        video_height = size.height;
+        gl_set_video_size(size.width, size.height);
         video_nsgl_update();
     }
     pvr2_draw_frame();
