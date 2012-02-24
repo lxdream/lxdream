@@ -125,6 +125,33 @@ int glGetMaxColourAttachments()
 
 
 /**
+ * Define an orthographic projection matrix
+ * Note: row-major order
+ */
+void defineOrthoMatrix( GLfloat *matrix, GLfloat width, GLfloat height, GLfloat znear, GLfloat zfar )
+{
+    matrix[0] =  2/width;
+    matrix[1] =  0;
+    matrix[2] =  0;
+    matrix[3] =  0;
+
+    matrix[4] =  0;
+    matrix[5] = -2/height;
+    matrix[6] =  0;
+    matrix[7] =  0;
+
+    matrix[8] =  0;
+    matrix[9] =  0;
+    matrix[10]= -2/(zfar-znear);
+    matrix[11]=  0;
+
+    matrix[12]= -1;
+    matrix[13]=  1;
+    matrix[14]= -(zfar+znear)/(zfar-znear);
+    matrix[15]=  1;
+}
+
+/**
  * Format a GL extension list (or other space-separated string) nicely, and
  * print to the given output stream.
  */

@@ -20,28 +20,90 @@
 
 #include "display.h"
 #include "pvr2/pvr2.h"
+#include "pvr2/glutil.h"
 #include "drivers/video_gl.h"
 
-extern uint32_t video_width, video_height;
+uint32_t video_width, video_height;
+struct video_vertex {
+    float x,y;
+    float u,v;
+    float r,g,b;
+};
+
+static struct video_box_t {
+    float viewMatrix[16];
+    struct video_vertex gap1[4];
+    struct video_vertex gap2[4];
+    struct video_vertex video_view[4];
+    struct video_vertex invert_view[4];
+} video_box;
+
+void gl_set_video_size( uint32_t width, uint32_t height )
+{
+    video_width = width;
+    video_height = height;
+
+    int x1=0,y1=0,x2=video_width,y2=video_height;
+
+    int ah = video_width * 0.75;
+
+    if( ah > video_height ) {
+        int w = (video_height/0.75);
+        x1 = (video_width - w)/2;
+        x2 -= x1;
+        video_box.gap1[0].x = 0; video_box.gap1[0].y = 0;
+        video_box.gap1[1].x = x1; video_box.gap1[1].y = 0;
+        video_box.gap1[2].x = 0; video_box.gap1[2].y = video_height;
+        video_box.gap1[3].x = x2; video_box.gap1[3].y = video_height;
+        video_box.gap2[0].x = x2; video_box.gap2[0].y = 0;
+        video_box.gap2[1].x = video_width; video_box.gap2[1].y = 0;
+        video_box.gap2[2].x = x2; video_box.gap2[2].y = video_height;
+        video_box.gap2[3].x = video_width; video_box.gap2[3].y = video_height;
+    } else if( ah < video_height ) {
+        y1 = (video_height - ah)/2;
+        y2 -= y1;
+
+        video_box.gap1[0].x = 0; video_box.gap1[0].y = 0;
+        video_box.gap1[1].x = video_width; video_box.gap1[1].y = 0;
+        video_box.gap1[2].x = 0; video_box.gap1[2].y = y1;
+        video_box.gap1[3].x = video_width; video_box.gap1[3].y = y1;
+        video_box.gap2[0].x = 0; video_box.gap2[0].y = y2;
+        video_box.gap2[1].x = video_width; video_box.gap2[1].y = y2;
+        video_box.gap2[2].x = 0; video_box.gap2[2].y = video_height;
+        video_box.gap2[3].x = video_width; video_box.gap2[3].y = video_height;
+    }
+
+    video_box.video_view[0].x = x1; video_box.video_view[0].y = y1;
+    video_box.video_view[0].u = 0; video_box.video_view[0].v = 0;
+    video_box.video_view[1].x = x2; video_box.video_view[1].y = y1;
+    video_box.video_view[1].u = 1; video_box.video_view[1].v = 0;
+    video_box.video_view[2].x = x1; video_box.video_view[2].y = y2;
+    video_box.video_view[2].u = 0; video_box.video_view[2].v = 1;
+    video_box.video_view[3].x = x2; video_box.video_view[3].y = y2;
+    video_box.video_view[3].u = 1; video_box.video_view[3].v = 1;
+
+    memcpy( &video_box.invert_view, &video_box.video_view, sizeof(video_box.video_view) );
+    video_box.invert_view[0].v = 1; video_box.invert_view[1].v = 1;
+    video_box.invert_view[2].v = 0; video_box.invert_view[3].v = 0;
+
+    defineOrthoMatrix(video_box.viewMatrix, video_width, video_height, 0, 65535);
+}
 
 /**
- * Reset the gl state to simple orthographic projection with 
- * texturing, alpha/depth/scissor/cull tests disabled.
+ * Setup the gl context for writes to the display output.
  */
-void gl_reset_state()
+void gl_framebuffer_setup()
 {
+    glLoadMatrixf(video_box.viewMatrix);
+    glBlendFunc( GL_ONE, GL_ZERO );
+    glTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE );
     glViewport( 0, 0, video_width, video_height );
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    glOrtho( 0, video_width, video_height, 0, 0, 65535 );
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
-    glEnable( GL_BLEND );
-    glDisable( GL_TEXTURE_2D );
-    glDisable( GL_ALPHA_TEST );
-    glDisable( GL_DEPTH_TEST );
-    glDisable( GL_SCISSOR_TEST );
-    glDisable( GL_CULL_FACE );
+    glVertexPointer(2, GL_FLOAT, sizeof(struct video_vertex), &video_box.gap1[0].x);
+    glColorPointer(3, GL_FLOAT, sizeof(struct video_vertex), &video_box.gap1[0].r);
+    glTexCoordPointer(2, GL_FLOAT, sizeof(struct video_vertex), &video_box.gap1[0].u);
+    glEnableClientState( GL_VERTEX_ARRAY );
+    glEnableClientState( GL_COLOR_ARRAY );
+    glEnableClientState( GL_TEXTURE_COORD_ARRAY );
 }
 
 void gl_display_render_buffer( render_buffer_t buffer )
@@ -79,72 +141,16 @@ void gl_window_to_system_coords( int *x, int *y )
 
 void gl_texture_window( int width, int height, int tex_id, gboolean inverted )
 {
-    float top, bottom;
-    if( inverted ) {
-        top = 1;
-        bottom = 0;
-    } else {
-        top = 0;
-        bottom = 1;
-    }
-
     /* Reset display parameters */
-    gl_reset_state();
-    glColor3f( 0,0,0 );    
-
-    int x1=0,y1=0,x2=video_width,y2=video_height;
-
-    int ah = video_width * 0.75;
-
-    if( ah > video_height ) {
-        int w = (video_height/0.75);
-        x1 = (video_width - w)/2;
-        x2 -= x1;
-
-        glBegin( GL_QUADS );
-        glVertex2f( 0, 0 );
-        glVertex2f( x1, 0 );
-        glVertex2f( x1, video_height );
-        glVertex2f( 0, video_height);
-        glVertex2f( x2, 0 );
-        glVertex2f( video_width, 0 );
-        glVertex2f( video_width, video_height );
-        glVertex2f( x2, video_height);
-        glEnd();
-    } else if( ah < video_height ) {
-        y1 = (video_height - ah)/2;
-        y2 -= y1;
-        glBegin( GL_QUADS );
-        glVertex2f( 0, 0 );
-        glVertex2f( video_width, 0 );
-        glVertex2f( video_width, y1 );
-        glVertex2f( 0, y1 );
-        glVertex2f( 0, y2 );
-        glVertex2f( video_width, y2 );
-        glVertex2f( video_width, video_height );
-        glVertex2f( 0, video_height );
-        glEnd();
-    }
-
-    /* Render the textured rectangle */
-    glEnable( GL_TEXTURE_2D );
-    glBindTexture( GL_TEXTURE_2D, tex_id );
-    glTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE );
+    gl_framebuffer_setup();
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    glDrawArrays(GL_TRIANGLE_STRIP, 4, 4);
+    glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D,tex_id);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glEnable( GL_BLEND );
-    glBlendFunc( GL_ONE, GL_ZERO );
-    glBegin( GL_QUADS );
-    glTexCoord2f( 0, top );
-    glVertex2f( x1, y1 );
-    glTexCoord2f( 1, top );
-    glVertex2f( x2, y1 );
-    glTexCoord2f( 1, bottom );
-    glVertex2f( x2, y2 );
-    glTexCoord2f( 0, bottom );
-    glVertex2f( x1, y2 );
-    glEnd();
-    glDisable( GL_TEXTURE_2D );
+    glDrawArrays(GL_TRIANGLE_STRIP, inverted ? 12 : 8, 4);
+    glDisable(GL_TEXTURE_2D);
     glFlush();
 }
 
@@ -159,14 +165,25 @@ gboolean gl_load_frame_buffer( frame_buffer_t frame, int tex_id )
     glBindTexture( GL_TEXTURE_2D, tex_id );
     glTexSubImage2D( GL_TEXTURE_2D, 0, 0,0,
                      frame->width, frame->height, format, type, frame->data );
+    glPixelStorei( GL_UNPACK_ROW_LENGTH, 0 );
     return TRUE;
 }
 
 void gl_display_blank( uint32_t colour )
 {
-    gl_reset_state();
-    glColor3ub( (colour >> 16) & 0xFF, (colour >> 8) & 0xFF, colour & 0xFF );
-    glRecti(0,0, video_width, video_height );
+    /* Set the video_box background colour */
+    video_box.video_view[0].r = ((float)(((colour >> 16) & 0xFF) + 1)) / 256.0;
+    video_box.video_view[0].g = ((float)(((colour >> 8) & 0xFF) + 1)) / 256.0;
+    video_box.video_view[0].b = ((float)((colour & 0xFF) + 1)) / 256.0;
+    memcpy( &video_box.video_view[1].r, &video_box.video_view[0].r, sizeof(float)*3 );
+    memcpy( &video_box.video_view[2].r, &video_box.video_view[0].r, sizeof(float)*3 );
+    memcpy( &video_box.video_view[3].r, &video_box.video_view[0].r, sizeof(float)*3 );
+
+    /* And render */
+    gl_framebuffer_setup();
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    glDrawArrays(GL_TRIANGLE_STRIP, 4, 4);
+    glDrawArrays(GL_TRIANGLE_STRIP, 8, 4);
     glFlush();
 }
 
@@ -185,7 +202,7 @@ gboolean gl_read_render_buffer( unsigned char *target, render_buffer_t buffer,
     // int size = line_size * buffer->height;
     int glrowstride = (rowstride / colour_formats[colour_format].bpp) - buffer->width;
     glPixelStorei( GL_PACK_ROW_LENGTH, glrowstride );
-
     glReadPixels( 0, 0, buffer->width, buffer->height, format, type, target );
+    glPixelStorei( GL_PACK_ROW_LENGTH, 0 );
     return TRUE;
 }

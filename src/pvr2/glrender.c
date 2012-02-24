@@ -124,9 +124,11 @@ void pvr2_setup_gl_context()
     CGL_MACRO_CONTEXT = CGLGetCurrentContext();
 #endif
     texcache_gl_init(have_shaders); // Allocate texture IDs
+
+    /* Global settings */
     glDisable( GL_CULL_FACE );
     glEnable( GL_BLEND );
-    glEnable( GL_DEPTH_TEST );
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
 #ifdef HAVE_OPENGL_CLAMP_COLOR
     if( isGLExtensionSupported("GL_ARB_color_buffer_float") ) {
@@ -135,7 +137,14 @@ void pvr2_setup_gl_context()
     }
 #endif
 
-    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+#ifdef HAVE_OPENGL_FIXEDFUNC
+    /* Setup defaults for perspective correction + matrices */
+    glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+    glMatrixMode(GL_PROJECTION);
+#endif
+
 
 #ifdef HAVE_OPENGL_CLEAR_DEPTHF
     glClearDepthf(0);
@@ -383,43 +392,12 @@ static void gl_render_modifier_tilelist( pvraddr_t tile_entry, uint32_t tile_bou
     }
 }
 
-/**
- * Define an orthographic projection matrix
- * Note: row-major order
- */
-static void setOrtho( GLfloat *matrix, GLfloat width, GLfloat height, GLfloat znear, GLfloat zfar )
-{
-    matrix[0] =  2/width;
-    matrix[1] =  0;
-    matrix[2] =  0;
-    matrix[3] =  0;
-
-    matrix[4] =  0;
-    matrix[5] = -2/height;
-    matrix[6] =  0;
-    matrix[7] =  0;
-
-    matrix[8] =  0;
-    matrix[9] =  0;
-    matrix[10]= -2/(zfar-znear);
-    matrix[11]=  0;
-
-    matrix[12]= -1;
-    matrix[13]=  1;
-    matrix[14]= -(zfar+znear)/(zfar-znear);
-    matrix[15]=  1;
-}
 
 #ifdef HAVE_OPENGL_FIXEDFUNC
 void pvr2_scene_setup_fixed( GLfloat *viewMatrix )
 {
-    glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
-
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
     glLoadMatrixf(viewMatrix);
+    glEnable( GL_DEPTH_TEST );
     
     glEnable( GL_FOG );
     glFogi(GL_FOG_COORDINATE_SOURCE_EXT, GL_FOG_COORDINATE_EXT);
@@ -456,12 +434,14 @@ void pvr2_scene_cleanup_fixed()
     glDisable( GL_COLOR_SUM );
     glDisable( GL_FOG );
     glDisable( GL_ALPHA_TEST );
+    glDisable( GL_DEPTH_TEST );
 
     glDisableClientState( GL_VERTEX_ARRAY );
     glDisableClientState( GL_COLOR_ARRAY );
     glDisableClientState( GL_TEXTURE_COORD_ARRAY );
     glDisableClientState( GL_SECONDARY_COLOR_ARRAY );
     glDisableClientState( GL_FOG_COORDINATE_ARRAY_EXT );
+
 }
 #else
 void pvr2_scene_setup_fixed( GLfloat *viewMatrix, float alphaRef )
@@ -477,6 +457,8 @@ void pvr2_scene_cleanup_fixed()
 
 void pvr2_scene_setup_shader( GLfloat *viewMatrix )
 {
+    glEnable( GL_DEPTH_TEST );
+
     glsl_use_pvr2_shader();
     glsl_set_pvr2_shader_view_matrix(viewMatrix);
     glsl_set_pvr2_shader_fog_colour1(pvr2_scene.fog_vert_colour);
@@ -493,6 +475,8 @@ void pvr2_scene_setup_shader( GLfloat *viewMatrix )
 void pvr2_scene_cleanup_shader( )
 {
     glsl_clear_shader();
+
+    glDisable( GL_DEPTH_TEST );
 }
 
 void pvr2_scene_set_alpha_shader( float alphaRef )
@@ -535,7 +519,7 @@ void pvr2_scene_render( render_buffer_t buffer )
         clip_bounds[i] = (uint32_t)pvr2_scene.bounds[i];
     }
 
-    setOrtho(viewMatrix, pvr2_scene.buffer_width, pvr2_scene.buffer_height, -farz, -nearz);
+    defineOrthoMatrix(viewMatrix, pvr2_scene.buffer_width, pvr2_scene.buffer_height, -farz, -nearz);
 
     if( have_shaders ) {
         pvr2_scene_setup_shader(viewMatrix);
@@ -589,7 +573,6 @@ void pvr2_scene_render( render_buffer_t buffer )
         glStencilMask( 0x01 );
         glDepthFunc( GL_LEQUAL );
         glDepthMask( GL_FALSE );
-        glColorMask( GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE );
         FOREACH_SEGMENT(segment)
             if( IS_NONEMPTY_TILE_LIST(segment->opaquemod_ptr) ) {
                 CLIP_TO_SEGMENT();
@@ -609,6 +592,7 @@ void pvr2_scene_render( render_buffer_t buffer )
         CLIP_TO_SEGMENT();
         gl_render_tilelist(segment->opaque_ptr,TRUE);
     END_FOREACH_SEGMENT()
+    glDisable( GL_STENCIL_TEST );
 
     /* Render the punch-out polygons */
     if( have_shaders )
