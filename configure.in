@@ -26,6 +26,9 @@ _AM_DEPENDENCIES([OBJC])
 AC_PATH_PROG(POD2MAN, [pod2man])
 AC_PATH_PROG(POD2HTML, [pod2html])
 
+AC_DEFINE_UNQUOTED(BUILD_SED_PROG, ["${SED}"], [Sed to use for build tools])
+AC_DEFINE_UNQUOTED(BUILD_CPP_PROG, ["${CPP}"], [CPP to use for build tools])
+
 dnl ---------------- enable/with flags ------------------
 
 AC_ARG_ENABLE( strict-warn,

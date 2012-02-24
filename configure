@@ -8611,6 +8611,17 @@ fi
 
 
 
+cat >>confdefs.h <<_ACEOF
+#define BUILD_SED_PROG "${SED}"
+_ACEOF
+
+
+cat >>confdefs.h <<_ACEOF
+#define BUILD_CPP_PROG "${CPP}"
+_ACEOF
+
+
+
 # Check whether --enable-strict-warn was given.
 if test "${enable_strict_warn+set}" = set; then
   enableval=$enable_strict_warn; if test "$enableval" == "yes"; then

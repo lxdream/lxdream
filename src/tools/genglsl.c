@@ -28,7 +28,9 @@
 #include <string.h>
 #include <getopt.h>
 #include <glib/gstrfuncs.h>
+#include <glib/gshell.h>
 #include <glib/glist.h>
+#include "../../config.h"
 
 #define MAX_LINE 4096
 #define DEF_ALLOC_SIZE 4096
@@ -144,14 +146,65 @@ static void linkPrograms( glsldata_t data )
 
 }
 
+static GList *temp_filenames = NULL;
 
-static void readInput( const char *filename, glsldata_t result )
+static void cleanup_tempfiles(void)
+{
+   while( temp_filenames != NULL ) {
+       unlink( (char *)temp_filenames->data );
+       g_free(temp_filenames->data);
+       temp_filenames = temp_filenames->next;
+   }
+}
+
+/**
+ * Preprocess the input file and return a temporary filename containing the result
+ */
+static FILE *preprocessInput( const char *filename, GList *cpp_opts )
+{
+    char tmpname[] = "/tmp/genglsl.XXXXXXXX";
+    int fd = mkstemp(tmpname);
+    if( fd == -1 ) {
+        fprintf( stderr, "Error: unable to get a temporary filename (%s)\n", strerror(errno) );
+        exit(2);
+    }
+    char *quoted_filename = g_shell_quote(filename);
+
+    int nOpts = g_list_length(cpp_opts);
+    gchar *quoted_opts_arr[nOpts];
+    int length = 0, count=0;
+    for( GList *ptr = cpp_opts; ptr != NULL; ptr = ptr->next ) {
+        quoted_opts_arr[count] = g_shell_quote((gchar *)ptr->data);
+        length += strlen(quoted_opts_arr[count++]) + 1;
+    }
+    gchar quoted_cpp_opts[length];
+    quoted_cpp_opts[0] = '\0';
+    for( count=0; count<nOpts; count++ ) {
+        if( count != 0 )
+            strcat(quoted_cpp_opts, " ");
+        strcat(quoted_cpp_opts, quoted_opts_arr[count]);
+        g_free(quoted_opts_arr[count++]);
+    }
+
+    const char *command = g_strdup_printf("%s -E 's/^#(program|vertex|fragment)/#pragma \\1/' %s | %s %s - > %s",
+            BUILD_SED_PROG, quoted_filename, BUILD_CPP_PROG, quoted_cpp_opts, tmpname );
+    if( system(command) != 0 ) {
+        fprintf( stderr, "Error: unable to run preprocessor command '%s' (%s)\n",  command, strerror(errno) );
+        exit(2);
+    }
+
+    temp_filenames = g_list_append(temp_filenames, g_strdup(tmpname));
+    return fdopen(fd, "r");
+}
+
+static void readInput( const char *filename, GList *cpp_opts, glsldata_t result )
 {
     char buf[MAX_LINE];
     size_t current_size = 0, current_posn = 0;
     unsigned i;
 
-    FILE *f = fopen( filename, "ro" );
+
+    FILE *f = preprocessInput(filename, cpp_opts );
     if( f == NULL ) {
         fprintf( stderr, "Error: unable to open input file '%s': %s\n", filename, strerror(errno) );
         exit(2);
@@ -170,42 +223,49 @@ static void readInput( const char *filename, glsldata_t result )
         if( strlen(buf) == 0 )
             continue;
 
-        if( strncmp(buf, "#vertex ", 8) == 0 ) {
-            shader = g_malloc0(sizeof(struct shader));
-            assert( shader != NULL );
-            shader->type = VERTEX_SHADER;
-            shader->name = strdup(g_strstrip(buf+8));
-            shader->body = malloc(DEF_ALLOC_SIZE);
-            shader->body[0] = '\0';
-            current_size = DEF_ALLOC_SIZE;
-            current_posn = 0;
-            result->shaders = g_list_append(result->shaders, shader);
-        } else if( strncmp( buf, "#fragment ", 10 ) == 0 ) {
-            shader = g_malloc0(sizeof(struct shader));
-            assert( shader != NULL );
-            shader->type = FRAGMENT_SHADER;
-            shader->name = strdup(g_strstrip(buf+10));
-            shader->body = malloc(DEF_ALLOC_SIZE);
-            shader->body[0] = '\0';
-            current_size = DEF_ALLOC_SIZE;
-            current_posn = 0;
-            result->shaders = g_list_append(result->shaders, shader);
-        } else if( strncmp( buf, "#program ", 9 ) == 0 ) {
-            shader = NULL;
-            program_t program = g_malloc0(sizeof(struct program));
-            char *rest = buf+9;
-            char *equals = strchr(rest, '=');
-            if( equals == NULL ) {
-                fprintf( stderr, "Error: invalid program line %s\n", buf );
-                exit(2);
+        if( buf[0] == '#' ) {
+            char *p = buf+1;
+            if( strncmp(p, "pragma ", 7) == 0 ) {
+                p += 7;
             }
-            *equals = '\0';
-            program->name = g_strdup(g_strstrip(rest));
-            program->shader_names = g_strsplit_set(g_strstrip(equals+1), " \t\r,", 0);
-            result->programs = g_list_append(result->programs, program);
-            for(i=0;program->shader_names[i] != NULL; i++ );
-            if( i > result->max_shaders )
-                result->max_shaders = i;
+            if( strncmp(p, "vertex ", 7) == 0 ) {
+                shader = g_malloc0(sizeof(struct shader));
+                assert( shader != NULL );
+                shader->type = VERTEX_SHADER;
+                shader->name = strdup(g_strstrip(p+7));
+                shader->body = malloc(DEF_ALLOC_SIZE);
+                shader->body[0] = '\0';
+                current_size = DEF_ALLOC_SIZE;
+                current_posn = 0;
+                result->shaders = g_list_append(result->shaders, shader);
+            } else if( strncmp( p, "fragment ", 9 ) == 0 ) {
+                shader = g_malloc0(sizeof(struct shader));
+                assert( shader != NULL );
+                shader->type = FRAGMENT_SHADER;
+                shader->name = strdup(g_strstrip(p+9));
+                shader->body = malloc(DEF_ALLOC_SIZE);
+                shader->body[0] = '\0';
+                current_size = DEF_ALLOC_SIZE;
+                current_posn = 0;
+                result->shaders = g_list_append(result->shaders, shader);
+            } else if( strncmp( p, "program ", 8 ) == 0 ) {
+                shader = NULL;
+                program_t program = g_malloc0(sizeof(struct program));
+                char *rest = p+8;
+                char *equals = strchr(rest, '=');
+                if( equals == NULL ) {
+                    fprintf( stderr, "Error: invalid program line %s\n", buf );
+                    exit(2);
+                }
+                *equals = '\0';
+                program->name = g_strdup(g_strstrip(rest));
+                program->shader_names = g_strsplit_set(g_strstrip(equals+1), " \t\r,", 0);
+                result->programs = g_list_append(result->programs, program);
+                for(i=0;program->shader_names[i] != NULL; i++ );
+                if( i > result->max_shaders )
+                    result->max_shaders = i;
+            }
+            /* Else discard any other # lines */
         } else if( shader != NULL ) {
             size_t len = strlen(buf);
             if( current_posn + len > current_size ) {
@@ -446,10 +506,10 @@ static const char *makeExtension(const char *basename, const char *ext)
     }
 }
 
-static char *option_list = "hi:o:";
+static char *option_list = "hi:I:D:U:o:";
 static struct option long_option_list[] = {
         { "help", no_argument, NULL, 'h' },
-        { "interface", required_argument, 'i' },
+        { "interface", required_argument, NULL, 'i' },
         { "output", required_argument, NULL, 'o' },
         { NULL, 0, 0, 0 } };
 
@@ -460,6 +520,7 @@ int main( int argc, char *argv[] )
 {
     const char *output_file = NULL;
     const char *iface_file = NULL;
+    GList *cpp_opts = NULL;
     int opt;
 
     while( (opt = getopt_long( argc, argv, option_list, long_option_list, NULL )) != -1 ) {
@@ -467,6 +528,9 @@ int main( int argc, char *argv[] )
         case 'h':
             usage();
             exit(0);
+            break;
+        case 'D': case 'I': case 'U':
+            cpp_opts = g_list_append(cpp_opts, g_strdup_printf( "-%c%s", opt, optarg ));
             break;
         case 'i':
             if( iface_file != NULL ) {
@@ -498,9 +562,10 @@ int main( int argc, char *argv[] )
         iface_file = makeExtension(output_file, ".h");
     }
 
+    atexit(cleanup_tempfiles);
     glsldata_t data = g_malloc0(sizeof(struct glsldata));
     while( optind < argc ) {
-        readInput(argv[optind++], data);
+        readInput(argv[optind++], cpp_opts, data);
     }
     linkPrograms(data);
 
