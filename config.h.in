@@ -10,8 +10,14 @@
 /* Building on an apple platform. Things are different... */
 #undef APPLE_BUILD
 
+/* CPP to use for build tools */
+#undef BUILD_CPP_PROG
+
 /* Enable dynamic plugin support */
 #undef BUILD_PLUGINS
+
+/* Sed to use for build tools */
+#undef BUILD_SED_PROG
 
 /* always defined to indicate that i18n is enabled */
 #undef ENABLE_NLS
