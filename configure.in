@@ -9,6 +9,8 @@ AC_CANONICAL_BUILD
 AC_CANONICAL_HOST
 
 m4_include([m4/ccforbuild.m4])
+m4_include([m4/android.m4])
+LX_ANDROID_BUILD
 
 AC_ISC_POSIX
 AC_PROG_CC
@@ -81,6 +83,13 @@ AC_ARG_WITH( sdl,
 dnl ------------ Check if we're building on Darwin --------------
 
 dnl For starters, do we have a working objective-c compiler?
+if test "$ANDROID_BUILD" = "yes"; then
+   with_gtk=no;
+   EXTRA_OUTPUT_FILES="src/android/build.properties"
+   LIBS="-lGLESv2 $LIBS"
+   AC_DEFINE(HAVE_GLES2, 1, [Using GLESv2])
+   with_sdl=no
+else
 AC_HAVE_OBJC([
    AC_CHECK_HEADER([Cocoa/Cocoa.h], [
       HAVE_COCOA='yes'
@@ -102,6 +111,7 @@ AC_HAVE_OBJC([
    AC_CHECK_OBJCFLAG([-msse2])
    AC_CHECK_OBJCFLAG([-mfpmath=sse])
 ])
+fi
 
 AM_CONDITIONAL(GUI_COCOA, [test "$HAVE_COCOA" = 'yes' -a "$with_gtk" = "no"])
 if test "x$HAVE_COCOA" = 'xyes' -a "x$with_gtk" = "xno"; then
@@ -185,10 +195,10 @@ dnl Check if linker accepts -rdynamic
    AC_SUBST(PLUGINLDFLAGS)
    AC_SUBST(LXDREAMLDFLAGS)
 fi
-if test "x$have_dlopen" = "xyes"; then
+if test "x$have_dlopen" = "xyes" -a "x$ANDROID_BUILD" != "xyes"; then
     AC_DEFINE(BUILD_PLUGINS, [1], [Enable dynamic plugin support])
 fi
-AM_CONDITIONAL(BUILD_PLUGINS, [test "x$have_dlopen" = "xyes"])
+AM_CONDITIONAL(BUILD_PLUGINS, [test "x$have_dlopen" = "xyes" -a "x$ANDROID_BUILD" != "xyes"])
 
 AC_CHECK_FASTCALL([
    AC_DEFINE(HAVE_FASTCALL, [1], [Use fast register-passing calling conventions])
@@ -247,7 +257,7 @@ AM_CONDITIONAL(GUI_GTK, [test "$HAVE_GTK" = 'yes'])
 PKG_CHECK_MODULES(LIBISOFS, [libisofs-1] )
 dnl AC_CHECK_HEADER([libisofs/libisofs.h], [
    dnl AC_CHECK_LIB(isofs, [iso_data_source_new_from_file], [
-      dnl LIBS="$LIBS -lisofs"
+      dnl LIBS="-lisofs $LIBS"
    dnl ], [ AC_MSG_FAILURE( ["Libisofs library not found, but is required"]) ])], 
       dnl [ AC_MSG_FAILURE( ["Libisofs headers not found, but is required"]) ])
 
@@ -263,9 +273,9 @@ dnl User requested OSMesa (ie pure software rendering)
   VIDEO_DRIVERS="$VIDEO_DRIVERS osmesa"
   AC_DEFINE([HAVE_OSMESA],1,[Building with the OSMesa video driver]) ], [
 
-dnl Otherwise we want a real GL library (unless we're on darwin, in which case it's already
+dnl Otherwise we want a real GL library (unless we're on darwin or android, in which case it's already
 dnl taken care of above).
-   if test "x$APPLE_BUILD" != 'xyes'; then
+   if test "x$APPLE_BUILD" != 'xyes' -a "x$ANDROID_BUILD" != 'xyes'; then
       PKG_CHECK_MODULES(LIBGL, [gl] )
       dnl AC_CHECK_LIB(GL, glVertex3f, [], [
           dnl AC_MSG_FAILURE( ["The OpenGL library (libGL.so) could not be found, but is required."])])
@@ -309,8 +319,6 @@ AC_CHECK_FUNC(glClearDepthf, [ AC_DEFINE([HAVE_OPENGL_CLEAR_DEPTHF],1,[Have glCl
 AC_CHECK_FUNC(glAreTexturesResident, [ AC_DEFINE([HAVE_OPENGL_TEX_RESIDENT],1,[Have glAreTexturesResident function]) ], [])
 AC_CHECK_FUNC(glDrawBuffer, [ AC_DEFINE([HAVE_OPENGL_DRAW_BUFFER],1,[Have glDrawBuffer function])], [])
 AC_CHECK_FUNC(glTexEnvi, [ AC_DEFINE([HAVE_OPENGL_FIXEDFUNC],1,[Have OpenGL fixed-functionality]) ], [])dnl glTexEnvi is a pretty fair proxy for this.
-
-
 
 dnl ------------------- SH4 translator target -------------------
 
@@ -383,7 +391,8 @@ AM_CONDITIONAL( AUDIO_ALSA, [test "$HAVE_ALSA" = 'yes'] )
 
 
 dnl Check for native cdrom support. There can be only one.
-AC_CHECK_HEADER([linux/cdrom.h], [
+if test "$ANDROID_BUILD" != "yes"; then
+  AC_CHECK_HEADER([linux/cdrom.h], [
      CDROM_DRIVER=linux
      dnl Some kernel versions have non-c99 compliant headers - check here
      AC_MSG_CHECKING([C99 compliant kernel headers])
@@ -393,10 +402,11 @@ AC_CHECK_HEADER([linux/cdrom.h], [
         AC_MSG_RESULT([No])
         STDCFLAG="-std=gnu99"])
      CFLAGS="$old_CFLAGS"
-], [true])
-AC_CHECK_HEADER([IOKit/IOKitLib.h], [
-     CDROM_DRIVER=osx
-     LIBS="$LIBS -framework IOKit"],[true])
+  ], [true])
+  AC_CHECK_HEADER([IOKit/IOKitLib.h], [
+       CDROM_DRIVER=osx
+       LIBS="$LIBS -framework IOKit"],[true])
+fi
 AM_CONDITIONAL(CDROM_LINUX, [test "x$CDROM_DRIVER" = "xlinux"])
 AM_CONDITIONAL(CDROM_OSX, [test "x$CDROM_DRIVER" = "xosx"])
 AM_CONDITIONAL(CDROM_NONE, [test "x$CDROM_DRIVER" = "x"])

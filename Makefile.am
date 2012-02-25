@@ -98,3 +98,19 @@ dmg: $(BUNDLE)
 	@echo --- Done ---
 
 bundle: all
+
+if GUI_ANDROID
+Lxdream-debug.apk: src/liblxdream.so
+	$(mkdir_p) android/libs/armeabi
+	$(INSTALL) src/liblxdream.so android/libs/armeabi/liblxdream.so
+	$(INSTALL) $(ANDROID_GDBSERVER) android/libs/armeabi/gdbserver
+	$(STRIP) --strip-unneeded android/libs/armeabi/liblxdream.so
+	(TARGETDIR="`pwd`/android" && cd $(srcdir)/android && \
+	    $(ANT) -buildfile build.xml -Dsdk.dir=$(ANDROID_SDK_HOME) \
+	       -Dout.dir="$$TARGETDIR" \
+	       -Dnative.libs.dir="$$TARGETDIR/libs" \
+	       -Dtarget=$(ANDROID_SDK_VERSION) debug )
+	cp android/Lxdream-debug.apk Lxdream-debug.apk
+
+all-local: Lxdream-debug.apk
+endif

@@ -23,6 +23,11 @@
 #include "pvr2/glutil.h"
 #include "drivers/video_gl.h"
 
+/* FIXME: Need to actually handle this case */
+#ifndef GL_PACK_ROW_LENGTH
+#define glPixelStorei(key,val)
+#endif
+
 uint32_t video_width, video_height;
 struct video_vertex {
     float x,y;
@@ -89,15 +94,16 @@ void gl_set_video_size( uint32_t width, uint32_t height )
     defineOrthoMatrix(video_box.viewMatrix, video_width, video_height, 0, 65535);
 }
 
+#ifdef HAVE_OPENGL_FIXEDFUNC
 /**
  * Setup the gl context for writes to the display output.
  */
 void gl_framebuffer_setup()
 {
+    glViewport( 0, 0, video_width, video_height );
     glLoadMatrixf(video_box.viewMatrix);
     glBlendFunc( GL_ONE, GL_ZERO );
     glTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE );
-    glViewport( 0, 0, video_width, video_height );
     glVertexPointer(2, GL_FLOAT, sizeof(struct video_vertex), &video_box.gap1[0].x);
     glColorPointer(3, GL_FLOAT, sizeof(struct video_vertex), &video_box.gap1[0].r);
     glTexCoordPointer(2, GL_FLOAT, sizeof(struct video_vertex), &video_box.gap1[0].u);
@@ -105,6 +111,13 @@ void gl_framebuffer_setup()
     glEnableClientState( GL_COLOR_ARRAY );
     glEnableClientState( GL_TEXTURE_COORD_ARRAY );
 }
+
+#else
+void gl_framebuffer_setup()
+{
+   /* TODO */
+}
+#endif
 
 void gl_display_render_buffer( render_buffer_t buffer )
 {

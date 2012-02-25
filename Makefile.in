@@ -40,13 +40,13 @@ DIST_COMMON = README $(am__configure_deps) $(dist_sysconf_DATA) \
 	$(srcdir)/Info.plist.in $(srcdir)/Makefile.am \
 	$(srcdir)/Makefile.in $(srcdir)/config.h.in \
 	$(top_srcdir)/configure $(top_srcdir)/test/Makefile.in AUTHORS \
-	COPYING ChangeLog INSTALL NEWS TODO acconfig.h compile \
-	config.guess config.sub depcomp install-sh missing \
-	mkinstalldirs
+	COPYING ChangeLog INSTALL NEWS acconfig.h compile config.guess \
+	config.sub depcomp install-sh missing mkinstalldirs
 subdir = .
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/acinclude.m4 \
-	$(top_srcdir)/m4/ccforbuild.m4 $(top_srcdir)/configure.in
+	$(top_srcdir)/m4/ccforbuild.m4 $(top_srcdir)/m4/android.m4 \
+	$(top_srcdir)/configure.in
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
@@ -94,6 +94,11 @@ ALSA_LIBS = @ALSA_LIBS@
 AMDEP_FALSE = @AMDEP_FALSE@
 AMDEP_TRUE = @AMDEP_TRUE@
 AMTAR = @AMTAR@
+ANDROID_GDBSERVER = @ANDROID_GDBSERVER@
+ANDROID_NDK_HOME = @ANDROID_NDK_HOME@
+ANDROID_SDK_HOME = @ANDROID_SDK_HOME@
+ANDROID_SDK_VERSION = @ANDROID_SDK_VERSION@
+ANT = @ANT@
 ARMCC = @ARMCC@
 ARMLD = @ARMLD@
 ARMOBJCOPY = @ARMOBJCOPY@
@@ -162,6 +167,8 @@ GMSGFMT = @GMSGFMT@
 GREP = @GREP@
 GTK_CFLAGS = @GTK_CFLAGS@
 GTK_LIBS = @GTK_LIBS@
+GUI_ANDROID_FALSE = @GUI_ANDROID_FALSE@
+GUI_ANDROID_TRUE = @GUI_ANDROID_TRUE@
 GUI_COCOA_FALSE = @GUI_COCOA_FALSE@
 GUI_COCOA_TRUE = @GUI_COCOA_TRUE@
 GUI_GTK_FALSE = @GUI_GTK_FALSE@
@@ -697,7 +704,7 @@ distcleancheck: distclean
 	       exit 1; } >&2
 check-am: all-am
 check: check-recursive
-@GUI_COCOA_FALSE@all-local:
+@GUI_ANDROID_FALSE@@GUI_COCOA_FALSE@all-local:
 all-am: Makefile $(MANS) $(DATA) config.h all-local
 installdirs: installdirs-recursive
 installdirs-am:
@@ -881,6 +888,20 @@ dmg: $(BUNDLE)
 	@echo --- Done ---
 
 bundle: all
+
+@GUI_ANDROID_TRUE@Lxdream-debug.apk: src/liblxdream.so
+@GUI_ANDROID_TRUE@	$(mkdir_p) android/libs/armeabi
+@GUI_ANDROID_TRUE@	$(INSTALL) src/liblxdream.so android/libs/armeabi/liblxdream.so
+@GUI_ANDROID_TRUE@	$(INSTALL) $(ANDROID_GDBSERVER) android/libs/armeabi/gdbserver
+@GUI_ANDROID_TRUE@	$(STRIP) --strip-unneeded android/libs/armeabi/liblxdream.so
+@GUI_ANDROID_TRUE@	(TARGETDIR="`pwd`/android" && cd $(srcdir)/android && \
+@GUI_ANDROID_TRUE@	    $(ANT) -buildfile build.xml -Dsdk.dir=$(ANDROID_SDK_HOME) \
+@GUI_ANDROID_TRUE@	       -Dout.dir="$$TARGETDIR" \
+@GUI_ANDROID_TRUE@	       -Dnative.libs.dir="$$TARGETDIR/libs" \
+@GUI_ANDROID_TRUE@	       -Dtarget=$(ANDROID_SDK_VERSION) debug )
+@GUI_ANDROID_TRUE@	cp android/Lxdream-debug.apk Lxdream-debug.apk
+
+@GUI_ANDROID_TRUE@all-local: Lxdream-debug.apk
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:

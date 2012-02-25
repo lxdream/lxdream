@@ -41,7 +41,8 @@ subdir = src/tools
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/acinclude.m4 \
-	$(top_srcdir)/m4/ccforbuild.m4 $(top_srcdir)/configure.in
+	$(top_srcdir)/m4/ccforbuild.m4 $(top_srcdir)/m4/android.m4 \
+	$(top_srcdir)/configure.in
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
@@ -77,6 +78,11 @@ ALSA_LIBS = @ALSA_LIBS@
 AMDEP_FALSE = @AMDEP_FALSE@
 AMDEP_TRUE = @AMDEP_TRUE@
 AMTAR = @AMTAR@
+ANDROID_GDBSERVER = @ANDROID_GDBSERVER@
+ANDROID_NDK_HOME = @ANDROID_NDK_HOME@
+ANDROID_SDK_HOME = @ANDROID_SDK_HOME@
+ANDROID_SDK_VERSION = @ANDROID_SDK_VERSION@
+ANT = @ANT@
 ARMCC = @ARMCC@
 ARMLD = @ARMLD@
 ARMOBJCOPY = @ARMOBJCOPY@
@@ -145,6 +151,8 @@ GMSGFMT = @GMSGFMT@
 GREP = @GREP@
 GTK_CFLAGS = @GTK_CFLAGS@
 GTK_LIBS = @GTK_LIBS@
+GUI_ANDROID_FALSE = @GUI_ANDROID_FALSE@
+GUI_ANDROID_TRUE = @GUI_ANDROID_TRUE@
 GUI_COCOA_FALSE = @GUI_COCOA_FALSE@
 GUI_COCOA_TRUE = @GUI_COCOA_TRUE@
 GUI_GTK_FALSE = @GUI_GTK_FALSE@

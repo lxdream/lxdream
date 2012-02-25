@@ -67,6 +67,9 @@
 /* Define if the GNU gettext() function is already present or preinstalled. */
 #undef HAVE_GETTEXT
 
+/* Using GLESv2 */
+#undef HAVE_GLES2
+
 /* Have GLX support */
 #undef HAVE_GLX
 

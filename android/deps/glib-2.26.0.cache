@@ -1,0 +1,2 @@
+glib_cv_stack_grows=no
+glib_cv_uscore=no

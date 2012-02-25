@@ -1,0 +1,78 @@
+diff -ur libisofs-0.6.38/demo/demo.c libisofs-0.6.38/demo/demo.c
+--- libisofs-0.6.38/demo/demo.c	2010-08-31 19:24:04.000000000 +1000
++++ libisofs-0.6.38/demo/demo.c	2012-02-16 18:07:47.000000000 +1000
+@@ -311,7 +311,7 @@
+ 
+     fp = fopen(argv[optind+1], "w");
+     if (fp == NULL) {
+-        err(1, "error opening output file");
++        fprintf(stderr, "error opening output file");
+         goto ex;
+     }
+ 
+@@ -639,7 +639,7 @@
+     
+     fp = fopen(argv[3], "w");
+     if (fp == NULL) {
+-        err(1, "error opening output file");
++        fprintf(stderr, "error opening output file");
+         goto ex;
+     }
+ 
+@@ -749,7 +749,7 @@
+ 
+     fp = fopen(argv[5], "w");
+     if (!fp) {
+-        err(1, "error opening output file");
++        fprintf(stderr, "error opening output file");
+         goto ex;
+     }
+ 
+diff -ur libisofs-0.6.38/libisofs/ecma119.c libisofs-0.6.38/libisofs/ecma119.c
+--- libisofs-0.6.38/libisofs/ecma119.c	2010-10-19 20:41:15.000000000 +1000
++++ libisofs-0.6.38/libisofs/ecma119.c	2012-02-16 17:57:46.000000000 +1000
+@@ -38,7 +38,7 @@
+ #include <time.h>
+ #include <string.h>
+ #include <locale.h>
+-#include <langinfo.h>
++//#include <langinfo.h>
+ #include <stdio.h>
+ 
+ #ifdef Xorriso_standalonE
+diff -ur libisofs-0.6.38/libisofs/fs_image.c libisofs-0.6.38/libisofs/fs_image.c
+--- libisofs-0.6.38/libisofs/fs_image.c	2010-08-31 20:05:09.000000000 +1000
++++ libisofs-0.6.38/libisofs/fs_image.c	2012-02-16 17:53:29.000000000 +1000
+@@ -30,7 +30,7 @@
+ #include <stdlib.h>
+ #include <string.h>
+ #include <locale.h>
+-#include <langinfo.h>
++//#include <langinfo.h>
+ #include <limits.h>
+ #include <stdio.h>
+ 
+diff -ur libisofs-0.6.38/libisofs/util.c libisofs-0.6.38/libisofs/util.c
+--- libisofs-0.6.38/libisofs/util.c	2010-05-29 06:33:28.000000000 +1000
++++ libisofs-0.6.38/libisofs/util.c	2012-02-16 17:57:28.000000000 +1000
+@@ -27,7 +27,7 @@
+ #include <limits.h>
+ #include <iconv.h>
+ #include <locale.h>
+-#include <langinfo.h>
++//#include <langinfo.h>
+ 
+ #include <unistd.h>
+ 
+@@ -185,7 +185,11 @@
+ {
+    if(libisofs_local_charset[0])
+      return libisofs_local_charset;
++#ifdef __ANDROID__
++   return "UTF-8";
++#else
+    return nl_langinfo(CODESET);
++#endif
+ }
+ 
+ int strconv(const char *str, const char *icharset, const char *ocharset,
