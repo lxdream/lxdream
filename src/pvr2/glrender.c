@@ -444,7 +444,7 @@ void pvr2_scene_cleanup_fixed()
 
 }
 #else
-void pvr2_scene_setup_fixed( GLfloat *viewMatrix, float alphaRef )
+void pvr2_scene_setup_fixed( GLfloat *viewMatrix )
 {
 }
 void pvr2_scene_set_alpha_fixed( float alphaRef )
