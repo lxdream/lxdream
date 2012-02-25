@@ -1,0 +1,102 @@
+diff -ur gettext-0.18.1.1/gettext-runtime/gnulib-lib/stdint.in.h gettext-0.18.1.1/gettext-runtime/gnulib-lib/stdint.in.h
+--- gettext-0.18.1.1/gettext-runtime/gnulib-lib/stdint.in.h	2010-04-25 19:20:42.000000000 +1000
++++ gettext-0.18.1.1/gettext-runtime/gnulib-lib/stdint.in.h	2012-02-16 09:06:32.000000000 +1000
+@@ -33,6 +33,13 @@
+    <inttypes.h>.  */
+ #define _GL_JUST_INCLUDE_SYSTEM_INTTYPES_H
+ 
++/* On Android (Bionic libc), <sys/types.h> includes this file before
++   having defined 'time_t'.  Therefore in this case avoid including
++   other system header files; just include the system's <stdint.h>.  */
++#if defined __ANDROID__
++# @INCLUDE_NEXT@ @NEXT_STDINT_H@
++#else
++
+ /* Get those types that are already defined in other system include
+    files, so that we can "#define int8_t signed char" below without
+    worrying about a later system include file containing a "typedef
+@@ -566,3 +573,4 @@
+ 
+ #endif /* _GL_STDINT_H */
+ #endif /* !defined _GL_STDINT_H && !defined _GL_JUST_INCLUDE_SYSTEM_STDINT_H */
++#endif /* !(defined __ANDROID__) */
+diff -ur gettext-0.18.1.1/gettext-tools/gnulib-lib/stdint.in.h gettext-0.18.1.1/gettext-tools/gnulib-lib/stdint.in.h
+--- gettext-0.18.1.1/gettext-tools/gnulib-lib/stdint.in.h	2010-05-24 19:42:46.000000000 +1000
++++ gettext-0.18.1.1/gettext-tools/gnulib-lib/stdint.in.h	2012-02-16 09:06:53.000000000 +1000
+@@ -33,6 +33,13 @@
+    <inttypes.h>.  */
+ #define _GL_JUST_INCLUDE_SYSTEM_INTTYPES_H
+ 
++/* On Android (Bionic libc), <sys/types.h> includes this file before
++   having defined 'time_t'.  Therefore in this case avoid including
++   other system header files; just include the system's <stdint.h>.  */
++#if defined __ANDROID__
++# @INCLUDE_NEXT@ @NEXT_STDINT_H@
++#else
++
+ /* Get those types that are already defined in other system include
+    files, so that we can "#define int8_t signed char" below without
+    worrying about a later system include file containing a "typedef
+@@ -566,3 +573,4 @@
+ 
+ #endif /* _GL_STDINT_H */
+ #endif /* !defined _GL_STDINT_H && !defined _GL_JUST_INCLUDE_SYSTEM_STDINT_H */
++#endif /* !(defined __ANDROID__) */
+diff -ur gettext-0.18.1.1/gettext-tools/libgettextpo/stdint.in.h gettext-0.18.1.1/gettext-tools/libgettextpo/stdint.in.h
+--- gettext-0.18.1.1/gettext-tools/libgettextpo/stdint.in.h	2010-04-25 19:22:40.000000000 +1000
++++ gettext-0.18.1.1/gettext-tools/libgettextpo/stdint.in.h	2012-02-16 09:07:10.000000000 +1000
+@@ -33,6 +33,13 @@
+    <inttypes.h>.  */
+ #define _GL_JUST_INCLUDE_SYSTEM_INTTYPES_H
+ 
++/* On Android (Bionic libc), <sys/types.h> includes this file before
++   having defined 'time_t'.  Therefore in this case avoid including
++   other system header files; just include the system's <stdint.h>.  */
++#if defined __ANDROID__
++# @INCLUDE_NEXT@ @NEXT_STDINT_H@
++#else
++
+ /* Get those types that are already defined in other system include
+    files, so that we can "#define int8_t signed char" below without
+    worrying about a later system include file containing a "typedef
+@@ -566,3 +573,4 @@
+ 
+ #endif /* _GL_STDINT_H */
+ #endif /* !defined _GL_STDINT_H && !defined _GL_JUST_INCLUDE_SYSTEM_STDINT_H */
++#endif /* !(defined __ANDROID__) */
+diff -ur gettext-0.18.1.1/gettext-tools/libgrep/nl_langinfo.c gettext-0.18.1.1/gettext-tools/libgrep/nl_langinfo.c
+--- gettext-0.18.1.1/gettext-tools/libgrep/nl_langinfo.c	2010-05-25 00:49:26.000000000 +1000
++++ gettext-0.18.1.1/gettext-tools/libgrep/nl_langinfo.c	2012-02-16 17:42:53.000000000 +1000
+@@ -142,9 +142,17 @@
+ # endif
+     /* nl_langinfo items of the LC_NUMERIC category */
+     case RADIXCHAR:
++#ifdef __ANDROID__
++      return ".";
++#else
+       return localeconv () ->decimal_point;
++#endif
+     case THOUSEP:
++#ifdef __ANDROID__
++      return ",";
++#else
+       return localeconv () ->thousands_sep;
++#endif
+     /* nl_langinfo items of the LC_TIME category.
+        TODO: Really use the locale.  */
+     case D_T_FMT:
+diff -ur gettext-0.18.1.1/gettext-tools/src/msginit.c gettext-0.18.1.1/gettext-tools/src/msginit.c
+--- gettext-0.18.1.1/gettext-tools/src/msginit.c	2010-06-06 22:49:58.000000000 +1000
++++ gettext-0.18.1.1/gettext-tools/src/msginit.c	2012-02-16 17:44:33.000000000 +1000
+@@ -1081,7 +1081,11 @@
+       char *result;
+ 
+       /* Return the pw_gecos field, upto the first comma (if any).  */
++#ifdef __ANDROID__
++      fullname = pwd->pw_name;
++#else
+       fullname = pwd->pw_gecos;
++#endif
+       fullname_end = strchr (fullname, ',');
+       if (fullname_end == NULL)
+         fullname_end = fullname + strlen (fullname);

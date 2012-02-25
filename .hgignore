@@ -6,12 +6,17 @@
 .*\~
 .*\.gmo
 .*\.mo
+.*\.class
+.*\.apk
+.*\.ap_
+classes.dex
 autom4te.cache
 Makefile
 config.h
 config.status
 lxdream.1
 lxdream.app
+gdbserver
 Info.plist
 stamp-h1
 lxdream-.*.tar.gz
@@ -28,6 +33,8 @@ src/sh4/sh4core.c
 src/sh4/sh4x86.c
 src/version.c
 src/lxdream
+src/liblxdream-core.a
+src/liblxdream.so
 src/testsh4x86
 src/test/.dirstamp
 src/test/testsh4x86

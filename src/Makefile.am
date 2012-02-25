@@ -110,6 +110,15 @@ lxdream_SOURCES += gtkui/gtkui.c gtkui/gtkui.h \
         drivers/video_gtk.c
 endif
 
+if GUI_ANDROID
+lxdream_SOURCES += gui_none.c
+noinst_PROGRAMS=liblxdream.so
+liblxdream_so_LINK = $(LINK) -Wl,-soname,liblxdream.so -shared
+liblxdream_so_LDADD = liblxdream-core.a @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@ @LIBISOFS_LIBS@ $(INTLLIBS) @LXDREAM_LIBS@ -lm
+liblxdream_so_SOURCES = gui_jni.c drivers/cdrom/cd_none.c
+liblxdream_so_LIBS = liblxdream-core.a
+endif
+
 if GUI_COCOA
 liblxdream_core_a_SOURCES += cocoaui/paths_osx.m drivers/io_osx.m drivers/mac_keymap.h drivers/mac_keymap.txt
 lxdream_SOURCES += cocoaui/cocoaui.m cocoaui/cocoaui.h cocoaui/cocoa_cfg.m \

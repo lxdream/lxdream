@@ -23,6 +23,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <signal.h>
 #include <time.h>
 #include <zlib.h>
@@ -33,6 +34,11 @@
 #include "dreamcast.h"
 #include "gui.h"
 #include "sh4/sh4.h"
+
+#ifdef __ANDROID__
+#include <android/log.h>
+static int android_log_levels[] = {ANDROID_LOG_FATAL, ANDROID_LOG_ERROR, ANDROID_LOG_WARN, ANDROID_LOG_INFO, ANDROID_LOG_DEBUG, ANDROID_LOG_VERBOSE};
+#endif
 
 char *msg_levels[] = { "FATAL", "ERROR", "WARN", "INFO", "DEBUG", "TRACE" };
 int global_msg_level = EMIT_WARN;
@@ -344,8 +350,11 @@ void log_message( void *ptr, int level, const gchar *source, const char *msg, ..
         }
     }
 
-
     strftime( buf, sizeof(buf), "%H:%M:%S", localtime(&tm) );
+#ifdef __ANDROID__
+    __android_log_print(android_log_levels[level], "lxdream", "%s %08X %s\n", buf, sh4r.pc, text );
+#else
     fprintf( stderr, "%s %08X %-5s %s\n", buf, sh4r.pc, msg_levels[level], text );
+#endif
     g_free(text);
 }

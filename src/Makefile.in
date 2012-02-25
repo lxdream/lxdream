@@ -58,41 +58,44 @@ pkglib_PROGRAMS = $(am__EXEEXT_2) $(am__EXEEXT_3) $(am__EXEEXT_4) \
 @GUI_GTK_TRUE@        gtkui/gtk_ctrl.c gtkui/gtk_gd.c \
 @GUI_GTK_TRUE@        drivers/video_gtk.c
 
-@GUI_COCOA_TRUE@am__append_5 = cocoaui/paths_osx.m drivers/io_osx.m drivers/mac_keymap.h drivers/mac_keymap.txt
-@GUI_COCOA_TRUE@am__append_6 = cocoaui/cocoaui.m cocoaui/cocoaui.h cocoaui/cocoa_cfg.m \
+@GUI_ANDROID_TRUE@am__append_5 = gui_none.c
+@GUI_ANDROID_TRUE@noinst_PROGRAMS = liblxdream.so$(EXEEXT)
+@GUI_COCOA_TRUE@am__append_6 = cocoaui/paths_osx.m drivers/io_osx.m drivers/mac_keymap.h drivers/mac_keymap.txt
+@GUI_COCOA_TRUE@am__append_7 = cocoaui/cocoaui.m cocoaui/cocoaui.h cocoaui/cocoa_cfg.m \
 @GUI_COCOA_TRUE@	cocoaui/cocoa_win.m cocoaui/cocoa_gd.m cocoaui/cocoa_prefs.m \
 @GUI_COCOA_TRUE@	cocoaui/cocoa_ctrl.m drivers/video_osx.m
 
-@GUI_COCOA_FALSE@am__append_7 = paths_unix.c drivers/io_glib.c
-@VIDEO_OSMESA_TRUE@am__append_8 = drivers/video_gdk.c
-@VIDEO_GLX_TRUE@am__append_9 = drivers/video_glx.c drivers/video_glx.h
-@VIDEO_NSGL_TRUE@am__append_10 = drivers/video_nsgl.m drivers/video_nsgl.h
-@AUDIO_OSX_TRUE@am__append_11 = drivers/audio_osx.m
-@BUILD_PLUGINS_TRUE@am__append_12 = lxdream_dummy.@SOEXT@
-@AUDIO_SDL_TRUE@@BUILD_PLUGINS_TRUE@am__append_13 = audio_sdl.@SOEXT@
-@AUDIO_PULSE_TRUE@@BUILD_PLUGINS_TRUE@am__append_14 = audio_pulse.@SOEXT@
-@AUDIO_ESOUND_TRUE@@BUILD_PLUGINS_TRUE@am__append_15 = audio_esd.@SOEXT@
-@AUDIO_ALSA_TRUE@@BUILD_PLUGINS_TRUE@am__append_16 = audio_alsa.@SOEXT@
-@BUILD_PLUGINS_TRUE@@INPUT_LIRC_TRUE@am__append_17 = input_lirc.@SOEXT@
-@AUDIO_SDL_TRUE@@BUILD_PLUGINS_FALSE@am__append_18 = drivers/audio_sdl.c
-@AUDIO_SDL_TRUE@@BUILD_PLUGINS_FALSE@am__append_19 = @SDL_LIBS@
-@AUDIO_PULSE_TRUE@@BUILD_PLUGINS_FALSE@am__append_20 = drivers/audio_pulse.c
-@AUDIO_PULSE_TRUE@@BUILD_PLUGINS_FALSE@am__append_21 = @PULSE_LIBS@
-@AUDIO_ESOUND_TRUE@@BUILD_PLUGINS_FALSE@am__append_22 = drivers/audio_esd.c
-@AUDIO_ESOUND_TRUE@@BUILD_PLUGINS_FALSE@am__append_23 = @ESOUND_LIBS@
-@AUDIO_ALSA_TRUE@@BUILD_PLUGINS_FALSE@am__append_24 = drivers/audio_alsa.c
-@AUDIO_ALSA_TRUE@@BUILD_PLUGINS_FALSE@am__append_25 = @ALSA_LIBS@
-@BUILD_PLUGINS_FALSE@@INPUT_LIRC_TRUE@am__append_26 = drivers/input_lirc.c
-@BUILD_PLUGINS_FALSE@@INPUT_LIRC_TRUE@am__append_27 = -llirc_client
-@CDROM_LINUX_TRUE@am__append_28 = drivers/cdrom/cd_linux.c
-@CDROM_OSX_TRUE@am__append_29 = drivers/cdrom/cd_osx.c drivers/osx_iokit.m drivers/osx_iokit.h
-@CDROM_NONE_TRUE@am__append_30 = drivers/cdrom/cd_none.c
-@JOY_LINUX_TRUE@am__append_31 = drivers/joy_linux.c drivers/joy_linux.h
+@GUI_COCOA_FALSE@am__append_8 = paths_unix.c drivers/io_glib.c
+@VIDEO_OSMESA_TRUE@am__append_9 = drivers/video_gdk.c
+@VIDEO_GLX_TRUE@am__append_10 = drivers/video_glx.c drivers/video_glx.h
+@VIDEO_NSGL_TRUE@am__append_11 = drivers/video_nsgl.m drivers/video_nsgl.h
+@AUDIO_OSX_TRUE@am__append_12 = drivers/audio_osx.m
+@BUILD_PLUGINS_TRUE@am__append_13 = lxdream_dummy.@SOEXT@
+@AUDIO_SDL_TRUE@@BUILD_PLUGINS_TRUE@am__append_14 = audio_sdl.@SOEXT@
+@AUDIO_PULSE_TRUE@@BUILD_PLUGINS_TRUE@am__append_15 = audio_pulse.@SOEXT@
+@AUDIO_ESOUND_TRUE@@BUILD_PLUGINS_TRUE@am__append_16 = audio_esd.@SOEXT@
+@AUDIO_ALSA_TRUE@@BUILD_PLUGINS_TRUE@am__append_17 = audio_alsa.@SOEXT@
+@BUILD_PLUGINS_TRUE@@INPUT_LIRC_TRUE@am__append_18 = input_lirc.@SOEXT@
+@AUDIO_SDL_TRUE@@BUILD_PLUGINS_FALSE@am__append_19 = drivers/audio_sdl.c
+@AUDIO_SDL_TRUE@@BUILD_PLUGINS_FALSE@am__append_20 = @SDL_LIBS@
+@AUDIO_PULSE_TRUE@@BUILD_PLUGINS_FALSE@am__append_21 = drivers/audio_pulse.c
+@AUDIO_PULSE_TRUE@@BUILD_PLUGINS_FALSE@am__append_22 = @PULSE_LIBS@
+@AUDIO_ESOUND_TRUE@@BUILD_PLUGINS_FALSE@am__append_23 = drivers/audio_esd.c
+@AUDIO_ESOUND_TRUE@@BUILD_PLUGINS_FALSE@am__append_24 = @ESOUND_LIBS@
+@AUDIO_ALSA_TRUE@@BUILD_PLUGINS_FALSE@am__append_25 = drivers/audio_alsa.c
+@AUDIO_ALSA_TRUE@@BUILD_PLUGINS_FALSE@am__append_26 = @ALSA_LIBS@
+@BUILD_PLUGINS_FALSE@@INPUT_LIRC_TRUE@am__append_27 = drivers/input_lirc.c
+@BUILD_PLUGINS_FALSE@@INPUT_LIRC_TRUE@am__append_28 = -llirc_client
+@CDROM_LINUX_TRUE@am__append_29 = drivers/cdrom/cd_linux.c
+@CDROM_OSX_TRUE@am__append_30 = drivers/cdrom/cd_osx.c drivers/osx_iokit.m drivers/osx_iokit.h
+@CDROM_NONE_TRUE@am__append_31 = drivers/cdrom/cd_none.c
+@JOY_LINUX_TRUE@am__append_32 = drivers/joy_linux.c drivers/joy_linux.h
 subdir = src
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/acinclude.m4 \
-	$(top_srcdir)/m4/ccforbuild.m4 $(top_srcdir)/configure.in
+	$(top_srcdir)/m4/ccforbuild.m4 $(top_srcdir)/m4/android.m4 \
+	$(top_srcdir)/configure.in
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
@@ -192,7 +195,7 @@ binPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
 @AUDIO_ALSA_TRUE@@BUILD_PLUGINS_TRUE@am__EXEEXT_6 = audio_alsa.@SOEXT@$(EXEEXT)
 @BUILD_PLUGINS_TRUE@@INPUT_LIRC_TRUE@am__EXEEXT_7 = input_lirc.@SOEXT@$(EXEEXT)
 pkglibPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
-PROGRAMS = $(bin_PROGRAMS) $(pkglib_PROGRAMS)
+PROGRAMS = $(bin_PROGRAMS) $(noinst_PROGRAMS) $(pkglib_PROGRAMS)
 am_audio_alsa_@SOEXT@_OBJECTS =
 audio_alsa_@SOEXT@_OBJECTS = $(am_audio_alsa_@SOEXT@_OBJECTS)
 @AUDIO_ALSA_TRUE@@BUILD_PLUGINS_TRUE@audio_alsa_@SOEXT@_DEPENDENCIES =  \
@@ -213,10 +216,17 @@ am_input_lirc_@SOEXT@_OBJECTS =
 input_lirc_@SOEXT@_OBJECTS = $(am_input_lirc_@SOEXT@_OBJECTS)
 @BUILD_PLUGINS_TRUE@@INPUT_LIRC_TRUE@input_lirc_@SOEXT@_DEPENDENCIES =  \
 @BUILD_PLUGINS_TRUE@@INPUT_LIRC_TRUE@	input_lirc.lo
+am__liblxdream_so_SOURCES_DIST = gui_jni.c drivers/cdrom/cd_none.c
+@GUI_ANDROID_TRUE@am_liblxdream_so_OBJECTS = gui_jni.$(OBJEXT) \
+@GUI_ANDROID_TRUE@	cd_none.$(OBJEXT)
+liblxdream_so_OBJECTS = $(am_liblxdream_so_OBJECTS)
+am__DEPENDENCIES_1 =
+@GUI_ANDROID_TRUE@liblxdream_so_DEPENDENCIES = liblxdream-core.a \
+@GUI_ANDROID_TRUE@	$(am__DEPENDENCIES_1)
 am__lxdream_SOURCES_DIST = main.c plugin.c plugin.h gtkui/gtkui.c \
 	gtkui/gtkui.h gtkui/gtk_win.c gtkui/gtkcb.c gtkui/gtk_cfg.c \
 	gtkui/gtk_mmio.c gtkui/gtk_debug.c gtkui/gtk_dump.c \
-	gtkui/gtk_ctrl.c gtkui/gtk_gd.c drivers/video_gtk.c \
+	gtkui/gtk_ctrl.c gtkui/gtk_gd.c drivers/video_gtk.c gui_none.c \
 	cocoaui/cocoaui.m cocoaui/cocoaui.h cocoaui/cocoa_cfg.m \
 	cocoaui/cocoa_win.m cocoaui/cocoa_gd.m cocoaui/cocoa_prefs.m \
 	cocoaui/cocoa_ctrl.m drivers/video_osx.m drivers/video_gdk.c \
@@ -233,36 +243,36 @@ am__lxdream_SOURCES_DIST = main.c plugin.c plugin.h gtkui/gtkui.c \
 @GUI_GTK_TRUE@	gtk_mmio.$(OBJEXT) gtk_debug.$(OBJEXT) \
 @GUI_GTK_TRUE@	gtk_dump.$(OBJEXT) gtk_ctrl.$(OBJEXT) \
 @GUI_GTK_TRUE@	gtk_gd.$(OBJEXT) video_gtk.$(OBJEXT)
-@GUI_COCOA_TRUE@am__objects_6 = cocoaui.$(OBJEXT) cocoa_cfg.$(OBJEXT) \
+@GUI_ANDROID_TRUE@am__objects_6 = gui_none.$(OBJEXT)
+@GUI_COCOA_TRUE@am__objects_7 = cocoaui.$(OBJEXT) cocoa_cfg.$(OBJEXT) \
 @GUI_COCOA_TRUE@	cocoa_win.$(OBJEXT) cocoa_gd.$(OBJEXT) \
 @GUI_COCOA_TRUE@	cocoa_prefs.$(OBJEXT) cocoa_ctrl.$(OBJEXT) \
 @GUI_COCOA_TRUE@	video_osx.$(OBJEXT)
-@VIDEO_OSMESA_TRUE@am__objects_7 = video_gdk.$(OBJEXT)
-@VIDEO_GLX_TRUE@am__objects_8 = video_glx.$(OBJEXT)
-@VIDEO_NSGL_TRUE@am__objects_9 = video_nsgl.$(OBJEXT)
-@AUDIO_OSX_TRUE@am__objects_10 = audio_osx.$(OBJEXT)
-@AUDIO_SDL_TRUE@@BUILD_PLUGINS_FALSE@am__objects_11 =  \
+@VIDEO_OSMESA_TRUE@am__objects_8 = video_gdk.$(OBJEXT)
+@VIDEO_GLX_TRUE@am__objects_9 = video_glx.$(OBJEXT)
+@VIDEO_NSGL_TRUE@am__objects_10 = video_nsgl.$(OBJEXT)
+@AUDIO_OSX_TRUE@am__objects_11 = audio_osx.$(OBJEXT)
+@AUDIO_SDL_TRUE@@BUILD_PLUGINS_FALSE@am__objects_12 =  \
 @AUDIO_SDL_TRUE@@BUILD_PLUGINS_FALSE@	audio_sdl.$(OBJEXT)
-@AUDIO_PULSE_TRUE@@BUILD_PLUGINS_FALSE@am__objects_12 =  \
+@AUDIO_PULSE_TRUE@@BUILD_PLUGINS_FALSE@am__objects_13 =  \
 @AUDIO_PULSE_TRUE@@BUILD_PLUGINS_FALSE@	audio_pulse.$(OBJEXT)
-@AUDIO_ESOUND_TRUE@@BUILD_PLUGINS_FALSE@am__objects_13 =  \
+@AUDIO_ESOUND_TRUE@@BUILD_PLUGINS_FALSE@am__objects_14 =  \
 @AUDIO_ESOUND_TRUE@@BUILD_PLUGINS_FALSE@	audio_esd.$(OBJEXT)
-@AUDIO_ALSA_TRUE@@BUILD_PLUGINS_FALSE@am__objects_14 =  \
+@AUDIO_ALSA_TRUE@@BUILD_PLUGINS_FALSE@am__objects_15 =  \
 @AUDIO_ALSA_TRUE@@BUILD_PLUGINS_FALSE@	audio_alsa.$(OBJEXT)
-@BUILD_PLUGINS_FALSE@@INPUT_LIRC_TRUE@am__objects_15 =  \
+@BUILD_PLUGINS_FALSE@@INPUT_LIRC_TRUE@am__objects_16 =  \
 @BUILD_PLUGINS_FALSE@@INPUT_LIRC_TRUE@	input_lirc.$(OBJEXT)
-@CDROM_LINUX_TRUE@am__objects_16 = cd_linux.$(OBJEXT)
-@CDROM_OSX_TRUE@am__objects_17 = cd_osx.$(OBJEXT) osx_iokit.$(OBJEXT)
-@CDROM_NONE_TRUE@am__objects_18 = cd_none.$(OBJEXT)
-@JOY_LINUX_TRUE@am__objects_19 = joy_linux.$(OBJEXT)
+@CDROM_LINUX_TRUE@am__objects_17 = cd_linux.$(OBJEXT)
+@CDROM_OSX_TRUE@am__objects_18 = cd_osx.$(OBJEXT) osx_iokit.$(OBJEXT)
+@CDROM_NONE_TRUE@am__objects_19 = cd_none.$(OBJEXT)
+@JOY_LINUX_TRUE@am__objects_20 = joy_linux.$(OBJEXT)
 am_lxdream_OBJECTS = main.$(OBJEXT) $(am__objects_4) $(am__objects_5) \
 	$(am__objects_6) $(am__objects_7) $(am__objects_8) \
 	$(am__objects_9) $(am__objects_10) $(am__objects_11) \
 	$(am__objects_12) $(am__objects_13) $(am__objects_14) \
 	$(am__objects_15) $(am__objects_16) $(am__objects_17) \
-	$(am__objects_18) $(am__objects_19)
+	$(am__objects_18) $(am__objects_19) $(am__objects_20)
 lxdream_OBJECTS = $(am_lxdream_OBJECTS)
-am__DEPENDENCIES_1 =
 lxdream_DEPENDENCIES = liblxdream-core.a $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
@@ -305,13 +315,14 @@ OBJCLINK = $(OBJCLD) $(AM_OBJCFLAGS) $(OBJCFLAGS) $(AM_LDFLAGS) \
 SOURCES = $(liblxdream_core_a_SOURCES) $(audio_alsa_@SOEXT@_SOURCES) \
 	$(audio_esd_@SOEXT@_SOURCES) $(audio_pulse_@SOEXT@_SOURCES) \
 	$(audio_sdl_@SOEXT@_SOURCES) $(input_lirc_@SOEXT@_SOURCES) \
-	$(lxdream_SOURCES) $(lxdream_dummy_@SOEXT@_SOURCES) \
-	$(test_testlxpaths_SOURCES) $(test_testsh4x86_SOURCES) \
-	$(test_testxlt_SOURCES)
+	$(liblxdream_so_SOURCES) $(lxdream_SOURCES) \
+	$(lxdream_dummy_@SOEXT@_SOURCES) $(test_testlxpaths_SOURCES) \
+	$(test_testsh4x86_SOURCES) $(test_testxlt_SOURCES)
 DIST_SOURCES = $(am__liblxdream_core_a_SOURCES_DIST) \
 	$(audio_alsa_@SOEXT@_SOURCES) $(audio_esd_@SOEXT@_SOURCES) \
 	$(audio_pulse_@SOEXT@_SOURCES) $(audio_sdl_@SOEXT@_SOURCES) \
-	$(input_lirc_@SOEXT@_SOURCES) $(am__lxdream_SOURCES_DIST) \
+	$(input_lirc_@SOEXT@_SOURCES) \
+	$(am__liblxdream_so_SOURCES_DIST) $(am__lxdream_SOURCES_DIST) \
 	$(lxdream_dummy_@SOEXT@_SOURCES) $(test_testlxpaths_SOURCES) \
 	$(am__test_testsh4x86_SOURCES_DIST) $(test_testxlt_SOURCES)
 RECURSIVE_TARGETS = all-recursive check-recursive dvi-recursive \
@@ -330,6 +341,11 @@ ALSA_LIBS = @ALSA_LIBS@
 AMDEP_FALSE = @AMDEP_FALSE@
 AMDEP_TRUE = @AMDEP_TRUE@
 AMTAR = @AMTAR@
+ANDROID_GDBSERVER = @ANDROID_GDBSERVER@
+ANDROID_NDK_HOME = @ANDROID_NDK_HOME@
+ANDROID_SDK_HOME = @ANDROID_SDK_HOME@
+ANDROID_SDK_VERSION = @ANDROID_SDK_VERSION@
+ANT = @ANT@
 ARMCC = @ARMCC@
 ARMLD = @ARMLD@
 ARMOBJCOPY = @ARMOBJCOPY@
@@ -398,6 +414,8 @@ GMSGFMT = @GMSGFMT@
 GREP = @GREP@
 GTK_CFLAGS = @GTK_CFLAGS@
 GTK_LIBS = @GTK_LIBS@
+GUI_ANDROID_FALSE = @GUI_ANDROID_FALSE@
+GUI_ANDROID_TRUE = @GUI_ANDROID_TRUE@
 GUI_COCOA_FALSE = @GUI_COCOA_FALSE@
 GUI_COCOA_TRUE = @GUI_COCOA_TRUE@
 GUI_GTK_FALSE = @GUI_GTK_FALSE@
@@ -547,15 +565,15 @@ CLEANFILES = sh4/sh4core.c sh4/sh4dasm.c sh4/sh4x86.c sh4/sh4stat.c \
 AM_CPPFLAGS = @LXDREAMCPPFLAGS@
 lxdream_LINK = $(LINK) @LXDREAMLDFLAGS@
 lxdream_LDADD = liblxdream-core.a @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@ \
-	@LIBISOFS_LIBS@ $(INTLLIBS) @LXDREAM_LIBS@ $(am__append_19) \
-	$(am__append_21) $(am__append_23) $(am__append_25) \
-	$(am__append_27)
+	@LIBISOFS_LIBS@ $(INTLLIBS) @LXDREAM_LIBS@ $(am__append_20) \
+	$(am__append_22) $(am__append_24) $(am__append_26) \
+	$(am__append_28)
 lxdream_SOURCES = main.c $(am__append_1) $(am__append_4) \
-	$(am__append_6) $(am__append_8) $(am__append_9) \
-	$(am__append_10) $(am__append_11) $(am__append_18) \
-	$(am__append_20) $(am__append_22) $(am__append_24) \
-	$(am__append_26) $(am__append_28) $(am__append_29) \
-	$(am__append_30) $(am__append_31)
+	$(am__append_5) $(am__append_7) $(am__append_9) \
+	$(am__append_10) $(am__append_11) $(am__append_12) \
+	$(am__append_19) $(am__append_21) $(am__append_23) \
+	$(am__append_25) $(am__append_27) $(am__append_29) \
+	$(am__append_30) $(am__append_31) $(am__append_32)
 lxdream_LIBS = liblxdream-core.a
 noinst_LIBRARIES = liblxdream-core.a
 liblxdream_core_a_SOURCES = version.c config.c config.h lxdream.h \
@@ -595,8 +613,8 @@ liblxdream_core_a_SOURCES = version.c config.c config.h lxdream.h \
 	drivers/cdrom/cd_mmc.c drivers/cdrom/isofs.h \
 	drivers/cdrom/isofs.c drivers/cdrom/isomem.c sh4/sh4.def \
 	sh4/sh4core.in sh4/sh4x86.in sh4/sh4dasm.in sh4/sh4stat.in \
-	hotkeys.c hotkeys.h $(am__append_2) $(am__append_5) \
-	$(am__append_7)
+	hotkeys.c hotkeys.h $(am__append_2) $(am__append_6) \
+	$(am__append_8)
 @BUILD_SH4X86_TRUE@test_testsh4x86_LDADD = @LXDREAM_LIBS@ @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@
 @BUILD_SH4X86_TRUE@test_testsh4x86_SOURCES = test/testsh4x86.c x86dasm/x86dasm.c \
 @BUILD_SH4X86_TRUE@	x86dasm/x86dasm.h x86dasm/i386-dis.c x86dasm/dis-init.c \
@@ -604,6 +622,10 @@ liblxdream_core_a_SOURCES = version.c config.c config.h lxdream.h \
 @BUILD_SH4X86_TRUE@	sh4/sh4trans.c sh4/sh4x86.c xlat/xltcache.c sh4/sh4dasm.c \
 @BUILD_SH4X86_TRUE@	xlat/xltcache.h mem.c util.c cpu.c
 
+@GUI_ANDROID_TRUE@liblxdream_so_LINK = $(LINK) -Wl,-soname,liblxdream.so -shared
+@GUI_ANDROID_TRUE@liblxdream_so_LDADD = liblxdream-core.a @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@ @LIBISOFS_LIBS@ $(INTLLIBS) @LXDREAM_LIBS@ -lm
+@GUI_ANDROID_TRUE@liblxdream_so_SOURCES = gui_jni.c drivers/cdrom/cd_none.c
+@GUI_ANDROID_TRUE@liblxdream_so_LIBS = liblxdream-core.a
 @BUILD_PLUGINS_TRUE@lxdream_dummy_@SOEXT@_SOURCES = 
 @BUILD_PLUGINS_TRUE@lxdream_dummy_@SOEXT@_LDADD = lxdream_dummy.lo @SDL_LIBS@
 @BUILD_PLUGINS_TRUE@lxdream_dummy_@SOEXT@_LDFLAGS = $(PLUGINLDFLAGS)
@@ -695,6 +717,9 @@ clean-binPROGRAMS:
 
 clean-checkPROGRAMS:
 	-test -z "$(check_PROGRAMS)" || rm -f $(check_PROGRAMS)
+
+clean-noinstPROGRAMS:
+	-test -z "$(noinst_PROGRAMS)" || rm -f $(noinst_PROGRAMS)
 install-pkglibPROGRAMS: $(pkglib_PROGRAMS)
 	@$(NORMAL_INSTALL)
 	test -z "$(pkglibdir)" || $(mkdir_p) "$(DESTDIR)$(pkglibdir)"
@@ -733,6 +758,9 @@ audio_sdl.@SOEXT@$(EXEEXT): $(audio_sdl_@SOEXT@_OBJECTS) $(audio_sdl_@SOEXT@_DEP
 input_lirc.@SOEXT@$(EXEEXT): $(input_lirc_@SOEXT@_OBJECTS) $(input_lirc_@SOEXT@_DEPENDENCIES) 
 	@rm -f input_lirc.@SOEXT@$(EXEEXT)
 	$(LINK) $(input_lirc_@SOEXT@_LDFLAGS) $(input_lirc_@SOEXT@_OBJECTS) $(input_lirc_@SOEXT@_LDADD) $(LIBS)
+liblxdream.so$(EXEEXT): $(liblxdream_so_OBJECTS) $(liblxdream_so_DEPENDENCIES) 
+	@rm -f liblxdream.so$(EXEEXT)
+	$(liblxdream_so_LINK) $(liblxdream_so_LDFLAGS) $(liblxdream_so_OBJECTS) $(liblxdream_so_LDADD) $(LIBS)
 lxdream$(EXEEXT): $(lxdream_OBJECTS) $(lxdream_DEPENDENCIES) 
 	@rm -f lxdream$(EXEEXT)
 	$(lxdream_LINK) $(lxdream_LDFLAGS) $(lxdream_OBJECTS) $(lxdream_LDADD) $(LIBS)
@@ -816,6 +844,8 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gtk_win.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gtkcb.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gtkui.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gui_jni.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gui_none.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/hotkeys.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/i386-dis.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ide.Po@am__quote@
@@ -1808,6 +1838,20 @@ io_glib.obj: drivers/io_glib.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o io_glib.obj `if test -f 'drivers/io_glib.c'; then $(CYGPATH_W) 'drivers/io_glib.c'; else $(CYGPATH_W) '$(srcdir)/drivers/io_glib.c'; fi`
 
+cd_none.o: drivers/cdrom/cd_none.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT cd_none.o -MD -MP -MF "$(DEPDIR)/cd_none.Tpo" -c -o cd_none.o `test -f 'drivers/cdrom/cd_none.c' || echo '$(srcdir)/'`drivers/cdrom/cd_none.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/cd_none.Tpo" "$(DEPDIR)/cd_none.Po"; else rm -f "$(DEPDIR)/cd_none.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/cdrom/cd_none.c' object='cd_none.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o cd_none.o `test -f 'drivers/cdrom/cd_none.c' || echo '$(srcdir)/'`drivers/cdrom/cd_none.c
+
+cd_none.obj: drivers/cdrom/cd_none.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT cd_none.obj -MD -MP -MF "$(DEPDIR)/cd_none.Tpo" -c -o cd_none.obj `if test -f 'drivers/cdrom/cd_none.c'; then $(CYGPATH_W) 'drivers/cdrom/cd_none.c'; else $(CYGPATH_W) '$(srcdir)/drivers/cdrom/cd_none.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/cd_none.Tpo" "$(DEPDIR)/cd_none.Po"; else rm -f "$(DEPDIR)/cd_none.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/cdrom/cd_none.c' object='cd_none.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o cd_none.obj `if test -f 'drivers/cdrom/cd_none.c'; then $(CYGPATH_W) 'drivers/cdrom/cd_none.c'; else $(CYGPATH_W) '$(srcdir)/drivers/cdrom/cd_none.c'; fi`
+
 gtkui.o: gtkui/gtkui.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT gtkui.o -MD -MP -MF "$(DEPDIR)/gtkui.Tpo" -c -o gtkui.o `test -f 'gtkui/gtkui.c' || echo '$(srcdir)/'`gtkui/gtkui.c; \
 @am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/gtkui.Tpo" "$(DEPDIR)/gtkui.Po"; else rm -f "$(DEPDIR)/gtkui.Tpo"; exit 1; fi
@@ -2073,20 +2117,6 @@ cd_osx.obj: drivers/cdrom/cd_osx.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/cdrom/cd_osx.c' object='cd_osx.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o cd_osx.obj `if test -f 'drivers/cdrom/cd_osx.c'; then $(CYGPATH_W) 'drivers/cdrom/cd_osx.c'; else $(CYGPATH_W) '$(srcdir)/drivers/cdrom/cd_osx.c'; fi`
-
-cd_none.o: drivers/cdrom/cd_none.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT cd_none.o -MD -MP -MF "$(DEPDIR)/cd_none.Tpo" -c -o cd_none.o `test -f 'drivers/cdrom/cd_none.c' || echo '$(srcdir)/'`drivers/cdrom/cd_none.c; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/cd_none.Tpo" "$(DEPDIR)/cd_none.Po"; else rm -f "$(DEPDIR)/cd_none.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/cdrom/cd_none.c' object='cd_none.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o cd_none.o `test -f 'drivers/cdrom/cd_none.c' || echo '$(srcdir)/'`drivers/cdrom/cd_none.c
-
-cd_none.obj: drivers/cdrom/cd_none.c
-@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT cd_none.obj -MD -MP -MF "$(DEPDIR)/cd_none.Tpo" -c -o cd_none.obj `if test -f 'drivers/cdrom/cd_none.c'; then $(CYGPATH_W) 'drivers/cdrom/cd_none.c'; else $(CYGPATH_W) '$(srcdir)/drivers/cdrom/cd_none.c'; fi`; \
-@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/cd_none.Tpo" "$(DEPDIR)/cd_none.Po"; else rm -f "$(DEPDIR)/cd_none.Tpo"; exit 1; fi
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/cdrom/cd_none.c' object='cd_none.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o cd_none.obj `if test -f 'drivers/cdrom/cd_none.c'; then $(CYGPATH_W) 'drivers/cdrom/cd_none.c'; else $(CYGPATH_W) '$(srcdir)/drivers/cdrom/cd_none.c'; fi`
 
 joy_linux.o: drivers/joy_linux.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT joy_linux.o -MD -MP -MF "$(DEPDIR)/joy_linux.Tpo" -c -o joy_linux.o `test -f 'drivers/joy_linux.c' || echo '$(srcdir)/'`drivers/joy_linux.c; \
@@ -2617,7 +2647,8 @@ maintainer-clean-generic:
 clean: clean-recursive
 
 clean-am: clean-binPROGRAMS clean-checkPROGRAMS clean-generic \
-	clean-noinstLIBRARIES clean-pkglibPROGRAMS mostlyclean-am
+	clean-noinstLIBRARIES clean-noinstPROGRAMS \
+	clean-pkglibPROGRAMS mostlyclean-am
 
 distclean: distclean-recursive
 	-rm -rf ./$(DEPDIR)
@@ -2669,19 +2700,19 @@ uninstall-info: uninstall-info-recursive
 
 .PHONY: $(RECURSIVE_TARGETS) CTAGS GTAGS all all-am check check-TESTS \
 	check-am clean clean-binPROGRAMS clean-checkPROGRAMS \
-	clean-generic clean-noinstLIBRARIES clean-pkglibPROGRAMS \
-	clean-recursive ctags ctags-recursive distclean \
-	distclean-compile distclean-generic distclean-recursive \
-	distclean-tags distdir dvi dvi-am html html-am info info-am \
-	install install-am install-binPROGRAMS install-data \
-	install-data-am install-exec install-exec-am install-info \
-	install-info-am install-man install-pkglibPROGRAMS \
-	install-strip installcheck installcheck-am installdirs \
-	installdirs-am maintainer-clean maintainer-clean-generic \
-	maintainer-clean-recursive mostlyclean mostlyclean-compile \
-	mostlyclean-generic mostlyclean-recursive pdf pdf-am ps ps-am \
-	tags tags-recursive uninstall uninstall-am \
-	uninstall-binPROGRAMS uninstall-info-am \
+	clean-generic clean-noinstLIBRARIES clean-noinstPROGRAMS \
+	clean-pkglibPROGRAMS clean-recursive ctags ctags-recursive \
+	distclean distclean-compile distclean-generic \
+	distclean-recursive distclean-tags distdir dvi dvi-am html \
+	html-am info info-am install install-am install-binPROGRAMS \
+	install-data install-data-am install-exec install-exec-am \
+	install-info install-info-am install-man \
+	install-pkglibPROGRAMS install-strip installcheck \
+	installcheck-am installdirs installdirs-am maintainer-clean \
+	maintainer-clean-generic maintainer-clean-recursive \
+	mostlyclean mostlyclean-compile mostlyclean-generic \
+	mostlyclean-recursive pdf pdf-am ps ps-am tags tags-recursive \
+	uninstall uninstall-am uninstall-binPROGRAMS uninstall-info-am \
 	uninstall-pkglibPROGRAMS
 
 

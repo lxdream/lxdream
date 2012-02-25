@@ -1,0 +1,57 @@
+diff -ur glib-2.26.0/glib/gstrfuncs.c glib-2.26.0/glib/gstrfuncs.c
+--- glib-2.26.0/glib/gstrfuncs.c	2010-09-14 01:57:51.000000000 +1000
++++ glib-2.26.0/glib/gstrfuncs.c	2012-02-16 17:36:27.000000000 +1000
+@@ -442,8 +442,12 @@
+ 
+   fail_pos = NULL;
+ 
++#ifdef __ANDROID__
++  decimal_point = ".";
++#else
+   locale_data = localeconv ();
+   decimal_point = locale_data->decimal_point;
++#endif
+   decimal_point_len = strlen (decimal_point);
+ 
+   g_assert (decimal_point_len != 0);
+@@ -656,8 +660,12 @@
+ 
+   _g_snprintf (buffer, buf_len, format, d);
+ 
++#ifdef __ANDROID__
++  decimal_point = ".";
++#else
+   locale_data = localeconv ();
+   decimal_point = locale_data->decimal_point;
++#endif
+   decimal_point_len = strlen (decimal_point);
+ 
+   g_assert (decimal_point_len != 0);
+diff -ur glib-2.26.0/glib/gutils.c glib-2.26.0/glib/gutils.c
+--- glib-2.26.0/glib/gutils.c	2010-09-14 01:57:51.000000000 +1000
++++ glib-2.26.0/glib/gutils.c	2012-02-16 17:35:33.000000000 +1000
+@@ -1694,14 +1694,12 @@
+     
+     if (!pw)
+       {
+-	setpwent ();
+ 	pw = getpwuid (getuid ());
+-	endpwent ();
+       }
+     if (pw)
+       {
+ 	g_user_name = g_strdup (pw->pw_name);
+-
++#ifndef __ANDROID__
+ 	if (pw->pw_gecos && *pw->pw_gecos != '\0') 
+ 	  {
+ 	    gchar **gecos_fields;
+@@ -1715,7 +1713,7 @@
+ 	    g_strfreev (gecos_fields);
+ 	    g_strfreev (name_parts);
+ 	  }
+-
++#endif
+ 	if (!g_home_dir)
+ 	  g_home_dir = g_strdup (pw->pw_dir);
+       }

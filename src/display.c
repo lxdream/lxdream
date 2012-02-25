@@ -74,6 +74,19 @@ typedef struct input_driver_entry {
     struct keymap_entry *keymap[0];
 } *input_driver_entry_t;
 
+
+#ifndef GL_RGBA8
+#define GL_RGBA8 GL_RGBA8_OES
+#endif
+
+#ifndef GL_RGB5
+#define GL_RGB5 GL_RGB565
+#endif
+
+#ifndef GL_BGR
+#define GL_BGR GL_BGRA
+#endif
+
 /**
  * Colour format information
  */
