@@ -22,16 +22,33 @@
 #include "dreamcast.h"
 #include "gui.h"
 #include "config.h"
+#include "lxpaths.h"
 #include "display.h"
 #include "gdlist.h"
 #include "hotkeys.h"
 #include "serial.h"
 #include "aica/audio.h"
+#include "drivers/video_gl.h"
 #include "maple/maple.h"
 #include "vmu/vmulist.h"
 
-JNIEXPORT void JNICALL Java_org_lxdream_Dreamcast_init(JNIEnv * env, jobject obj,  jint width, jint height)
+static char *getStringChars( JNIEnv *env, jstring str )
 {
+    jboolean iscopy;
+    const char *p = (*env)->GetStringUTFChars(env, str, &iscopy);
+    char *result = strdup(p);
+    (*env)->ReleaseStringUTFChars(env,str,p);
+    return result;
+}
+
+static const char *appHome = NULL;
+
+JNIEXPORT void JNICALL Java_org_lxdream_Dreamcast_init(JNIEnv * env, jclass obj,  jstring homeDir )
+{
+    appHome = getStringChars(env, homeDir);
+    const char *confFile = g_strdup_printf("%s/lxdreamrc", appHome);
+    set_user_data_path(appHome);
+    lxdream_set_config_filename( confFile );
     lxdream_make_config_dir( );
     lxdream_load_config( );
     iso_init();
@@ -49,17 +66,17 @@ JNIEXPORT void JNICALL Java_org_lxdream_Dreamcast_init(JNIEnv * env, jobject obj
     INFO( "%s! ready...", APP_NAME );
 }
 
-JNIEXPORT void JNICALL Java_org_lxdream_Dreamcast_setViewSize(JNIEnv * env, jobject obj, jint width, jint height)
+JNIEXPORT void JNICALL Java_org_lxdream_Dreamcast_setViewSize(JNIEnv * env, jclass obj, jint width, jint height)
 {
-    
+    gl_set_video_size(width, height);
 }
 
-JNIEXPORT void JNICALL Java_org_lxdream_Dreamcast_run(JNIEnv * env, jobject obj)
+JNIEXPORT void JNICALL Java_org_lxdream_Dreamcast_run(JNIEnv * env, jclass obj)
 {
     dreamcast_run();
 }
 
-JNIEXPORT void JNICALL Java_org_lxdream_Dreamcast_stop(JNIEnv * env, jobject obj)
+JNIEXPORT void JNICALL Java_org_lxdream_Dreamcast_stop(JNIEnv * env, jclass obj)
 {
     dreamcast_stop();
 }

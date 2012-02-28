@@ -42,6 +42,11 @@ const char *get_plugin_path();
  */
 const char *get_user_data_path();
 
+/**
+ * Set the user data path
+ */
+void set_user_data_path( const char *p );
+
 /******************** Path helpers *****************/
 
 /**

@@ -48,3 +48,14 @@ const char *get_user_data_path()
     }
     return user_data_path;
 }
+
+void set_user_data_path( const char *p ) 
+{
+    g_free(user_data_path);
+    user_data_path = g_strdup(p);
+}
+
+const char *get_user_home_path()
+{
+    return getenv("HOME");
+}

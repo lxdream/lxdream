@@ -139,7 +139,6 @@ class LxdreamView extends GLSurfaceView {
         }
 
         public void onSurfaceChanged(GL10 gl, int width, int height) {
-            Dreamcast.init();
             Dreamcast.setViewSize(width,height);
         }
 

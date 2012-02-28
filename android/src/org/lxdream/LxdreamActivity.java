@@ -19,6 +19,7 @@
 package org.lxdream;
 
 import android.app.Activity;
+import android.content.Context;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.WindowManager;
@@ -32,7 +33,9 @@ public class LxdreamActivity extends Activity {
     @Override 
     protected void onCreate(Bundle bundle) {
         super.onCreate(bundle);
-        view = new LxdreamView(getApplication());
+        Context ctx = getApplication();
+        Dreamcast.init( ctx.getFilesDir().toString() );
+        view = new LxdreamView(ctx);
         setContentView(view);
     }
 

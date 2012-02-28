@@ -25,7 +25,7 @@ public class Dreamcast {
      }
 
      /* Core emulation */
-     public static native void init();
+     public static native void init( String appHome );
      public static native void setViewSize(int width, int height);
      public static native void run();
      public static native void stop();
