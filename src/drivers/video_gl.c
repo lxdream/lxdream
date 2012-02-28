@@ -21,6 +21,7 @@
 #include "display.h"
 #include "pvr2/pvr2.h"
 #include "pvr2/glutil.h"
+#include "pvr2/shaders.h"
 #include "drivers/video_gl.h"
 
 /* FIXME: Need to actually handle this case */
@@ -32,7 +33,7 @@ uint32_t video_width, video_height;
 struct video_vertex {
     float x,y;
     float u,v;
-    float r,g,b;
+    float r,g,b,a;
 };
 
 static struct video_box_t {
@@ -98,7 +99,7 @@ void gl_set_video_size( uint32_t width, uint32_t height )
 /**
  * Setup the gl context for writes to the display output.
  */
-void gl_framebuffer_setup()
+static void gl_framebuffer_setup()
 {
     glViewport( 0, 0, video_width, video_height );
     glLoadMatrixf(video_box.viewMatrix);
@@ -112,10 +113,28 @@ void gl_framebuffer_setup()
     glEnableClientState( GL_TEXTURE_COORD_ARRAY );
 }
 
-#else
-void gl_framebuffer_setup()
+static void gl_framebuffer_cleanup()
 {
-   /* TODO */
+    glDisableClientState( GL_VERTEX_ARRAY );
+    glDisableClientState( GL_COLOR_ARRAY );
+    glDisableClientState( GL_TEXTURE_COORD_ARRAY );
+}
+#else
+static void gl_framebuffer_setup()
+{
+    glViewport( 0, 0, video_width, video_height );
+    glBlendFunc( GL_ONE, GL_ZERO );
+    glsl_use_basic_shader();
+    glsl_set_basic_shader_view_matrix(video_box.viewMatrix);
+    glsl_set_basic_shader_in_vertex_pointer(&video_box.gap1[0].x, sizeof(struct video_vertex));
+    glsl_set_basic_shader_in_colour_pointer(&video_box.gap1[0].r, sizeof(struct video_vertex));
+    glsl_set_basic_shader_in_texcoord_pointer(&video_box.gap1[0].u, sizeof(struct video_vertex));
+    glsl_set_basic_shader_primary_texture(0);
+}
+
+static void gl_framebuffer_cleanup()
+{
+    glsl_clear_shader();
 }
 #endif
 
@@ -154,6 +173,9 @@ void gl_window_to_system_coords( int *x, int *y )
 
 void gl_texture_window( int width, int height, int tex_id, gboolean inverted )
 {
+    /* Set video box tex alpha to 1 */
+    video_box.video_view[0].a = video_box.video_view[1].a = video_box.video_view[2].a = video_box.video_view[3].a = 1;
+
     /* Reset display parameters */
     gl_framebuffer_setup();
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
@@ -165,6 +187,7 @@ void gl_texture_window( int width, int height, int tex_id, gboolean inverted )
     glDrawArrays(GL_TRIANGLE_STRIP, inverted ? 12 : 8, 4);
     glDisable(GL_TEXTURE_2D);
     glFlush();
+    gl_framebuffer_cleanup();
 }
 
 gboolean gl_load_frame_buffer( frame_buffer_t frame, int tex_id )
@@ -188,6 +211,7 @@ void gl_display_blank( uint32_t colour )
     video_box.video_view[0].r = ((float)(((colour >> 16) & 0xFF) + 1)) / 256.0;
     video_box.video_view[0].g = ((float)(((colour >> 8) & 0xFF) + 1)) / 256.0;
     video_box.video_view[0].b = ((float)((colour & 0xFF) + 1)) / 256.0;
+    video_box.video_view[0].a = 0;
     memcpy( &video_box.video_view[1].r, &video_box.video_view[0].r, sizeof(float)*3 );
     memcpy( &video_box.video_view[2].r, &video_box.video_view[0].r, sizeof(float)*3 );
     memcpy( &video_box.video_view[3].r, &video_box.video_view[0].r, sizeof(float)*3 );
@@ -198,6 +222,7 @@ void gl_display_blank( uint32_t colour )
     glDrawArrays(GL_TRIANGLE_STRIP, 4, 4);
     glDrawArrays(GL_TRIANGLE_STRIP, 8, 4);
     glFlush();
+    gl_framebuffer_cleanup();
 }
 
 /**

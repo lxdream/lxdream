@@ -63,7 +63,7 @@
  *   float gl_FragDepth;
 
  */
-
+#include "../config.h"
 
 #vertex DEFAULT_VERTEX_SHADER
 uniform mat4 view_matrix;
@@ -130,3 +130,36 @@ void main()
 }
 
 #program pvr2_shader = DEFAULT_VERTEX_SHADER DEFAULT_FRAGMENT_SHADER
+
+#ifndef HAVE_OPENGL_FIXEDFUNC
+/* In this case we also need a basic shader to actually display the output */
+#vertex BASIC_VERTEX_SHADER
+uniform mat4 view_matrix;
+attribute vec2 in_vertex;
+attribute vec4 in_colour;
+attribute vec2 in_texcoord; /* uv = coord, z = palette, w = mode */
+
+varying vec4 frag_colour;
+varying vec2 frag_texcoord;
+void main()
+{
+    gl_Position = view_matrix * vec4(in_vertex.x,in_vertex.y,0,1);
+    frag_colour = in_colour;
+    frag_texcoord = in_texcoord;
+}
+
+#fragment BASIC_FRAGMENT_SHADER
+
+uniform sampler2D primary_texture;
+varying vec4 frag_colour;
+varying vec2 frag_texcoord;
+
+void main()
+{
+	vec4 tex = texture2D( primary_texture, frag_texcoord.xy );
+        gl_FragColor.rgb = mix( frag_colour.rgb, tex.rgb, frag_colour.a );
+        gl_FragDepth = gl_FragCoord.z;
+}
+
+#program basic_shader = BASIC_VERTEX_SHADER BASIC_FRAGMENT_SHADER
+#endif
