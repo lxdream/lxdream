@@ -552,6 +552,11 @@ static void scene_add_quad_vertexes( pvraddr_t poly_idx, int vertex_length,
         memcpy( &pvr2_scene.vertex_array[pvr2_scene.vertex_index], quad, sizeof(struct vertex_struct)*2 );
         memcpy( &pvr2_scene.vertex_array[pvr2_scene.vertex_index+2], &quad[3], sizeof(struct vertex_struct) );
         memcpy( &pvr2_scene.vertex_array[pvr2_scene.vertex_index+3], &quad[2], sizeof(struct vertex_struct) );
+        if( !POLY1_GOURAUD_SHADED(context[0]) ) {
+            memcpy( &pvr2_scene.vertex_array[pvr2_scene.vertex_index].rgba, &pvr2_scene.vertex_array[pvr2_scene.vertex_index+3].rgba, sizeof(float)*8 );
+            memcpy( &pvr2_scene.vertex_array[pvr2_scene.vertex_index+1].rgba, &pvr2_scene.vertex_array[pvr2_scene.vertex_index+3].rgba, sizeof(float)*8 );
+        }
+
         pvr2_scene.vertex_index += 4;
 
         if( is_modified ) {
@@ -568,6 +573,10 @@ static void scene_add_quad_vertexes( pvraddr_t poly_idx, int vertex_length,
                 memcpy( &pvr2_scene.vertex_array[pvr2_scene.vertex_index], quad, sizeof(struct vertex_struct)*2 );
                 memcpy( &pvr2_scene.vertex_array[pvr2_scene.vertex_index+2], &quad[3], sizeof(struct vertex_struct) );
                 memcpy( &pvr2_scene.vertex_array[pvr2_scene.vertex_index+3], &quad[2], sizeof(struct vertex_struct) );
+                if( !POLY1_GOURAUD_SHADED(context[0]) ) {
+                    memcpy( &pvr2_scene.vertex_array[pvr2_scene.vertex_index].rgba, &pvr2_scene.vertex_array[pvr2_scene.vertex_index+3].rgba, sizeof(float)*8 );
+                    memcpy( &pvr2_scene.vertex_array[pvr2_scene.vertex_index+1].rgba, &pvr2_scene.vertex_array[pvr2_scene.vertex_index+3].rgba, sizeof(float)*8 );
+                }
             } else {
                 scene_add_cheap_shadow_vertexes( &pvr2_scene.vertex_array[poly->vertex_index], 
                         &pvr2_scene.vertex_array[poly->mod_vertex_index], poly->vertex_count );
