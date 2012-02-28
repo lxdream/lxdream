@@ -1,0 +1,144 @@
+=head1 NAME
+
+lxdream - A Dreamcast emulator
+
+=head1 SYNOPSIS
+
+lxdream [options] [disc-image-file] [program-file]
+
+=head1 DESCRIPTION
+
+Emulates the Sega Dreamcast console. Lxdream can run games either from disc image files, from progam files or from CD-ROM discs.
+
+=head1 OPTIONS
+
+=over
+
+=item B<-a>, B<--aica>=I<PROGFILE>
+
+Run the AICA SPU only, with the supplied program.
+
+=item B<-A>, B<--audio>=I<DRIVER>
+
+Set the preferred audio driver. If the specified audio driver cannot start, the system
+will try all other available drivers in the standard order. To see which drivers are 
+supported, run lxdream -A ?
+
+=item B<-b>, B<--biosless>
+
+Do not load the BIOS rom on startup, even if one is configured. 
+
+=item B<-c>, B<--config>=I<CONFILE>
+
+Load configuration information from B<CONFILE> instead of the system default
+
+=item B<-d>, B<--debugger>
+
+Launch the debugger on startup (GTK platforms only).
+
+=item B<-f>, B<--fullscreen>
+
+Use this option to start the program in fullscreen mode.
+
+=item B<-g>, B<--gdb-sh4>=I<PORT>
+
+Start the GDB remote server on B<PORT> for SH4.
+
+=item B<-G>, B<--gdb-arm>=I<PORT>
+
+Start the GDB remote server on B<PORT> for ARM.
+
+=item B<-h>, B<--help>
+
+Print command line usage information
+
+=item B<-H>, B<--headless>
+
+Run in headless mode (no GUI or video output). This is mainly useful for testing CPU 
+functions and performance. Equivalent to -V null.
+
+=item B<-l>, B<--log>=I<LEVEL>
+
+Set the system log level to the specified level of verbosity, which must be one of the following options:
+FATAL, ERROR, WARN, INFO, DEBUG, TRACE (non-case-sensitive, and only the first letter is required). The
+default level is WARN.
+
+=item B<-m>, B<--multiplier>=I<SCALE>
+
+Change the SH4 core clock speed using the supplied floating-point multiplier, where 1.0
+is full speed, 0.5 is half speed, and so on. The default is 0.5.
+
+=item B<-n>
+
+Don't start running on startup, even if a disc or program file was supplied. By default
+the system will start automatically if a disc or program was given on the command line.
+
+=item B<-p>
+
+Start running on startup, even if no disc or program file was supplied. By default
+the system will only start automatically if a disc or program was given on the command 
+line.
+
+=item B<-t>, B<--run-time>=I<SECONDS>
+
+Run the dreamcast for exactly the specified amount of time, and then terminate, ie 
+lxdream -pt 5.2  will exit after 5.2 seconds of emulated runtime. Useful for performance
+measurements of arbitrary sections of code.
+
+=item B<-T>, B<--trace>=I<REGIONS>
+
+Activate I/O region tracing for the specified list of MMIO regions. This option is only
+available if lxdream was configured with --enable-trace. If enabled, trace-list may be
+a comma-separated list of 1 or more of the following: ALL, ASIC, AICA0, AICA1, AICA2, AICARTC,
+EXTDMA, PVR2, MMU, UBC, BSC, DMAC, CPG, RTC, INTC, TMU, SCI, and SCIF.
+
+Warning: this option implicitly sets the verbosity level to 'trace', and will generate a huge
+amount of output.
+
+=item B<-u>, B<--unsafe>
+
+Allow unsafe dcload syscalls. Without this option, the only permitted calls are reads, writes, and
+seeks on stdin, stdout and stderr. If you're writing your own code that uses the other syscalls, you
+probably want to enable this. Otherwise it's safer to leave it off.
+
+=item B<-v>, B<--version>
+
+Print the lxdream version string.
+
+=item B<-V> B<DRIVER>
+
+Set the preferred video driver. If the specified video driver cannot start, the system
+will exit with an error. To see the available video drivers, run lxdream -V ?
+
+=item B<-x>
+
+Disable the SH4 translator and run in pure emulation mode. Generally you only want to do this for testing
+purposes (ie if you think you've found a translator bug) as it's much slower this way.
+
+=back
+
+=head1 FILES
+
+=over
+
+=item B<$HOME/.lxdreamrc>
+
+Default user configuration file. This will be created at startup if it doesn't 
+already exist, unless an alternative file is specified with -c.
+
+=back
+
+=head1 AUTHOR
+
+Nathan Keynes <nkeynes@lxdream.org>
+
+=head1 COPYRIGHT
+
+Copyright 2005-2011 Nathan Keynes <nkeynes@lxdream.org>
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+=cut

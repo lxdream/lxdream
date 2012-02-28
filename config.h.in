@@ -1,0 +1,203 @@
+/* config.h.in.  Generated from configure.in by autoheader.  */
+#undef ENABLE_NLS
+#undef HAVE_CATGETS
+#undef HAVE_GETTEXT
+#undef GETTEXT_PACKAGE
+#undef HAVE_LC_MESSAGES
+#undef HAVE_STPCPY
+#undef HAVE_LIBSM
+
+/* Building on an apple platform. Things are different... */
+#undef APPLE_BUILD
+
+/* CPP to use for build tools */
+#undef BUILD_CPP_PROG
+
+/* Enable dynamic plugin support */
+#undef BUILD_PLUGINS
+
+/* Sed to use for build tools */
+#undef BUILD_SED_PROG
+
+/* always defined to indicate that i18n is enabled */
+#undef ENABLE_NLS
+
+/* Enable SH4 statistics */
+#undef ENABLE_SH4STATS
+
+/* Enable IO tracing */
+#undef ENABLE_TRACE_IO
+
+/* Enable watchpoints */
+#undef ENABLE_WATCH
+
+/* Forcibly inline code */
+#undef FORCEINLINE
+
+/* translation domain */
+#undef GETTEXT_PACKAGE
+
+/* Have alsa support */
+#undef HAVE_ALSA
+
+/* Define to 1 if you have the `bind_textdomain_codeset' function. */
+#undef HAVE_BIND_TEXTDOMAIN_CODESET
+
+/* Have Cocoa framework */
+#undef HAVE_COCOA
+
+/* Have Apple CoreAudio support */
+#undef HAVE_CORE_AUDIO
+
+/* Define to 1 if you have the `dcgettext' function. */
+#undef HAVE_DCGETTEXT
+
+/* Have esound support */
+#undef HAVE_ESOUND
+
+/* Have exception stack-frame information */
+#undef HAVE_EXCEPTIONS
+
+/* Use fast register-passing calling conventions */
+#undef HAVE_FASTCALL
+
+/* Define if we have a working builtin frame_address */
+#undef HAVE_FRAME_ADDRESS
+
+/* Define if the GNU gettext() function is already present or preinstalled. */
+#undef HAVE_GETTEXT
+
+/* Using GLESv2 */
+#undef HAVE_GLES2
+
+/* Have GLX support */
+#undef HAVE_GLX
+
+/* Have GTK libraries */
+#undef HAVE_GTK
+
+/* Building with GTK+Cocoa */
+#undef HAVE_GTK_OSX
+
+/* Building with GTK+X11 */
+#undef HAVE_GTK_X11
+
+/* Define to 1 if you have the <inttypes.h> header file. */
+#undef HAVE_INTTYPES_H
+
+/* Define if your <locale.h> file defines LC_MESSAGES. */
+#undef HAVE_LC_MESSAGES
+
+/* Define to 1 if you have the `OSMesa' library (-lOSMesa). */
+#undef HAVE_LIBOSMESA
+
+/* Define to 1 if you have the `z' library (-lz). */
+#undef HAVE_LIBZ
+
+/* Using the linux native CDROM driver */
+#undef HAVE_LINUX_CDROM
+
+/* Have linux joystick support */
+#undef HAVE_LINUX_JOYSTICK
+
+/* Have LIRC support */
+#undef HAVE_LIRC
+
+/* Define to 1 if you have the <locale.h> header file. */
+#undef HAVE_LOCALE_H
+
+/* Define to 1 if you have the <memory.h> header file. */
+#undef HAVE_MEMORY_H
+
+/* Have NSOpenGL support */
+#undef HAVE_NSGL
+
+/* Have Color Clamp */
+#undef HAVE_OPENGL_CLAMP_COLOR
+
+/* Have glClearDepthf function */
+#undef HAVE_OPENGL_CLEAR_DEPTHF
+
+/* Have glDrawBuffer function */
+#undef HAVE_OPENGL_DRAW_BUFFER
+
+/* Have 2.0 framebuffer_object support */
+#undef HAVE_OPENGL_FBO
+
+/* Have EXT_framebuffer_object support */
+#undef HAVE_OPENGL_FBO_EXT
+
+/* Have OpenGL fixed-functionality */
+#undef HAVE_OPENGL_FIXEDFUNC
+
+/* Have 2.0 shader support */
+#undef HAVE_OPENGL_SHADER
+
+/* Have ARB shader support */
+#undef HAVE_OPENGL_SHADER_ARB
+
+/* Have glAreTexturesResident function */
+#undef HAVE_OPENGL_TEX_RESIDENT
+
+/* Building with the OSMesa video driver */
+#undef HAVE_OSMESA
+
+/* Have pulseaudio support */
+#undef HAVE_PULSE
+
+/* Have SDL support */
+#undef HAVE_SDL
+
+/* Define to 1 if you have the <stdint.h> header file. */
+#undef HAVE_STDINT_H
+
+/* Define to 1 if you have the <stdlib.h> header file. */
+#undef HAVE_STDLIB_H
+
+/* Define to 1 if you have the <strings.h> header file. */
+#undef HAVE_STRINGS_H
+
+/* Define to 1 if you have the <string.h> header file. */
+#undef HAVE_STRING_H
+
+/* Define to 1 if you have the <sys/stat.h> header file. */
+#undef HAVE_SYS_STAT_H
+
+/* Define to 1 if you have the <sys/types.h> header file. */
+#undef HAVE_SYS_TYPES_H
+
+/* Define to 1 if you have the <unistd.h> header file. */
+#undef HAVE_UNISTD_H
+
+/* Generating a bundled application */
+#undef OSX_BUNDLE
+
+/* Name of package */
+#undef PACKAGE
+
+/* Define to the address where bug reports for this package should be sent. */
+#undef PACKAGE_BUGREPORT
+
+/* Define to the full name of this package. */
+#undef PACKAGE_NAME
+
+/* Define to the full name and version of this package. */
+#undef PACKAGE_STRING
+
+/* Define to the one symbol short name of this package. */
+#undef PACKAGE_TARNAME
+
+/* Define to the version of this package. */
+#undef PACKAGE_VERSION
+
+/* SH4 Translator to use (if any) */
+#undef SH4_TRANSLATOR
+
+/* The size of `void *', as computed by sizeof. */
+#undef SIZEOF_VOID_P
+
+/* Define to 1 if you have the ANSI C header files. */
+#undef STDC_HEADERS
+
+/* Version number of package */
+#undef VERSION

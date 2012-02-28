@@ -1,0 +1,21 @@
+Credits
+=======
+
+None of this would have been possible without the work of many people in the
+dreamcast homebrew community, for whom I have the utmost respect. In
+particular, I'd like to thank:
+
+* Marcus Comstedt (http://mc.pp.se/dc/) for much educational documentation
+
+* Andrew Kieschnick (http://adk.napalm-x.com/dc/index.html) for the invaluable
+  dcload-ip utility.
+
+* Maiwe (http://www.ludd.ltu.se/~jlo/dc/) for the excellent PVR2 and AICA
+documentation
+
+* bITmASTER (http://www.fuzzymuzzle.com/Bitmaster/bITmASTERs_dCdeV.htm) for
+(among other things) the SPU dma examples.
+
+And of course, last but by no means least
+* Dan Potter (http://cadcdev.sourceforge.net/) for almost single handedly
+jump starting the DC homebrew scene with libdream and KOS

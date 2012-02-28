@@ -1,0 +1,2 @@
+07 Mar 2004 - Restarting the project. Ported the gui layer to Gtk 2.0
+              (although still need to replace the GtkCLists at some point)

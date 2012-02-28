@@ -1,0 +1,149 @@
+Release notes for lxdream 0.9.2 "Slippery Turtle"
+===================================================
+
+Lxdream 0.9.2 primarily focuses on improving rendering performance, which is
+up to 3x faster than 0.9.1 (depending on hardware and scene details). The
+CD-ROM device layer has also been rewritten to provide more flexibility and
+introduce some new features. 
+
+Nevertheless this should still be considered an alpha release, with many 
+unimplemented features remaining. You're unlikely to see 'perfect' emulation,
+and we're nowhere near being bug-compatible (in other words, don't expect your
+code to work on the real hardware just because it runs correctly in lxdream).
+
+Note that command-line options for running binary executables have been changed in this
+release:
+
+   lxdream -e homebrew.bin
+
+will load and execute the binary directly, while
+
+   lxdream homebrew.bin
+
+will now embed the binary into a bootable disc image, and then boot into the 
+disc.
+
+Changes since 0.9.1
+-----------------
+* Lots of tuning of rendering performance.
+* Can now boot and run homebrew discs without requiring the BIOS rom image.
+* Automagic wrapping of executable files in disc images.
+* New dependency on libisofs
+* Minor bugfixes
+
+Known issues
+------------
+The following are known problems in 0.9 that will be fixed before 1.0 - 
+in other words, you don't need to report them - we already know :)
+
+* Graphic artifacts related to translucent triangle intersections, sorting errors 
+  and/of lack of depth precision.
+
+* The SH4 emulation is not cycle accurate, and (by default) usually runs
+  slower than the real one. This cause some programs to have timing problems
+  or to break completely. In some cases this can be worked around by
+  adjusting the CPU scaling factor (-m command line option)
+
+* Audio quality generally ranges from poor to horrible, interrupted by the
+  occasional bit of fair-to-middling sound. 
+
+System requirements
+-------------------
+Linux:
+   GTK 2.6+
+   Current (2008 or later) ATI or NVidia binary OpenGL drivers 
+      - If anyone wants to fix the free drivers, lxdream specifically
+        requires a working implementation of either the EXT_framebuffer_object
+        or GLX_SGIX_pbuffer extensions. 
+
+OS X:
+   System 10.5 or later
+
+GCC, Make, etc.
+
+Building
+--------
+From the base directory
+~$ ./configure
+~$ make
+~$ make install            (optional, GTK only)
+
+Enjoy!
+
+
+Older History
+================
+
+Changes since 0.9
+-----------------
+* Lots of core performance improvements, especially with the MMU turned on
+* VMU support (memory card only)
+* GDB remote debugging support
+* Quick-save states
+* LIRC driver
+* Now uses the ~/.lxdream directory (by default) to store runtime data
+* Audio + input drivers are now built as plugins
+* OSX: fullscreen support, minor UI improvements
+
+
+Changes since 0.8.4
+-------------------
+* Improved accuracy + compatibility (many bugfixes)
+* Shadow volumes
+* Render-to-texture support
+* Fogging
+* Light-gun support
+
+Changes since 0.8.3
+-------------------
+* Fullly native Mac OS X support
+* Renderer rewrite (fixes perspective correction among other problems)
+* ALSA and PulseAudio sound drivers
+* Save states now work on x86-64
+* New translations: Spanish and Italian
+* Lots of miscellaneous bug-fixes and improvements
+
+Changes since 0.8.2
+-------------------
+* MMU Implementation
+* Dreamcast mouse + keyboard support
+* Joystick/gamepad support
+* Assorted bug-fixes
+
+Changes since 0.8.1
+-------------------
+* x86-64 architecture support
+* Preliminary Mac OS X support
+* Pbuffer support (to support OpenGL drivers without EXT_framebuffer_object)
+* Support for more recent CDI and NRG image file versions
+* Minor bugfixes
+
+Changes since 0.8
+-----------------
+* Various configure/build fixes for compatibility
+* GDI image support
+* Minor bugfixes
+
+Changes since Milestone 3
+-------------------------
+* Speed improvements (translation core now runs at roughly double the speed
+  of M3)
+* GUI Overhaul - it's actually somewhat usable now. Also removed the gnome
+  dependency (now just needs GTK 2.0)
+* Sound fixes (aka, some sound actually works now)
+* A few minor bugfixes and tweaks.
+
+Changes since Milestone 2
+-------------------------
+* Implemented the SH4 translation core
+* A handful of minor bugfixes
+
+No really, that's it. The good stuff is coming next version, honest
+
+Changes since Milestone 1
+-------------------------
+* Complete rewrite of nearly all PowerVR2 code - The M1 code was largely a
+quick hack to get something running. It's done for real now.
+* Initial IO event system (not widely used yet)
+* Lots of bugfixes throughout the system
+

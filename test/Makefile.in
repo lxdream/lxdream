@@ -1,0 +1,249 @@
+srcdir = @srcdir@
+top_srcdir = @top_srcdir@
+VPATH = @srcdir@
+SHELL = @SHELL@
+mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
+mkdir_p = @mkdir_p@
+
+# host compiler and flags
+HOSTCC		= @CC@
+HOSTCFLAGS	= @CFLAGS@
+
+SH4CC		= @SHCC@
+SH4INC          = -I$(srcdir)/include
+SH4CFLAGS	= $(SH4INC) -D_arch_dreamcast -D_arch_sub_pristine \
+                  -O2 -fno-builtin -fno-strict-aliasing -ml -m4-single-only \
+                  -fno-optimize-sibling-calls
+SH4LD		= @SHLD@
+SH4LDFLAGS      = -fno-builtin -fno-strict-aliasing  -ml -m4-single-only \
+                  -Wl,-T$(srcdir)/dc.x -nostartfiles -nostdlib -L$(srcdir)/lib
+SH4LIBS         = -Wl,--start-group -lc -lgcc -lm -Wl,--end-group
+SH4OBJCOPY      = @SHOBJCOPY@ -O binary
+
+SHARED_OBJECTS = dmac.so asic.so lib.so timer.so testdata.so interrupt.so
+
+ARMCC		= @ARMCC@
+ARMCFLAGS	= -O2 -fno-builtin -fno-strict-aliasing -mlittle-endian
+ARMLD		= @ARMLD@
+ARMLDFLAGS      = -Wl,-T$(srcdir)/aica.x -nostartfiles -mlittle-endian \
+                  -nostdlib -L$(srcdir)/lib-arm
+ARMLIBS         = -Wl,--start-group -lc -lgcc -lm -Wl,--end-group
+ARMOBJCOPY	= @ARMOBJCOPY@ -O binary
+
+RUNTEST		= ../src/lxdream -c $(srcdir)/lxdream.rc -puH -A null -e
+RUNTESTX	= ../src/lxdream -c $(srcdir)/lxdream.rc -xpuH -A null -e
+
+BUILD_SYSTEST_FALSE = @BUILD_SYSTEST_FALSE@
+BUILD_SYSTEST_TRUE = @BUILD_SYSTEST_TRUE@
+
+%.ao: %.c
+	$(ARMCC) $(ARMCFLAGS) -o $@ -c $< 
+
+%.ao: %.s
+	$(ARMCC) $(ARMCFLAGS) -o $@ -c $< 
+
+%.so: %.c
+	$(SH4CC) $(SH4CFLAGS) -o $@ -c $< 
+
+%.so: %.ac
+	$(SH4CC) $(SH4CFLAGS) -o $@ -c $< 
+
+%.so: %.s
+	$(SH4CC) $(SH4CFLAGS) -o $@ -c $< -Wa,-I$(srcdir)
+
+%.so: %.S
+	$(SH4CC) $(SH4CFLAGS) -o $@ -c $< 
+
+%.o: %.c
+	$(HOSTCC) $(HOSTCFLAGS) -o $@ -c $<
+
+%.arm: %.ao arm_crt0.ao
+	$(ARMCC) -Wl,-Ttext,0x00000000 -nostartfiles -nostdlib -e reset -o $@ arm_crt0.ao $< -lgcc
+
+
+%.bin: %.arm
+	$(ARMOBJCOPY) -O binary $< $@
+
+%.aso: %.bin bin2c
+	./bin2c $< $<.c
+	$(SH4CC) $(SH4CFLAGS) -o $@ -c $<.c
+
+all:
+
+@BUILD_SYSTEST_TRUE@check: build-tests
+@BUILD_SYSTEST_TRUE@	$(RUNTEST) testsh4
+@BUILD_SYSTEST_TRUE@	$(RUNTESTX) testsh4
+@BUILD_SYSTEST_TRUE@	$(RUNTEST) randmath < $(srcdir)/random.dat > randmath.out && diff -u randmath.out randmath.expect
+@BUILD_SYSTEST_TRUE@	$(RUNTEST) testmmu
+@BUILD_SYSTEST_TRUE@	$(RUNTEST) testregs
+@BUILD_SYSTEST_TRUE@	cat $(srcdir)/testta.data $(srcdir)/testta2.data $(srcdir)/testta3.data $(srcdir)/testta4.data $(srcdir)/testta5.data | $(RUNTEST) testta
+@BUILD_SYSTEST_TRUE@	cat $(srcdir)/testsort.data | $(RUNTEST) testta
+#	$(RUNTEST) testide -d ../disc/test.nrg
+
+
+build-tests: testsh4 testmmu testmath testide testta testregs testrend testdisp testspu testmmu randmath randmath.expect
+
+lib/crt0.so: lib/crt0.s
+	$(mkdir_p) lib
+	$(SH4CC) $(SH4CFLAGS) -o $@ -c $< 
+
+lib-arm/crt0.ao: lib-arm/crt0.s
+	$(mkdir_p) lib-arm
+	$(ARMCC) $(ARMCFLAGS) -o $@ -c $< 
+
+
+testsh4: lib/crt0.so sh4/testsh4.so timer.so interrupt.so \
+	 sh4/add.so sh4/addc.so sh4/addv.so sh4/and.so sh4/andi.so \
+	 sh4/bf.so sh4/bsr.so sh4/bt.so sh4/cmp.so sh4/cmpstr.so \
+	 sh4/div0.so sh4/div1.so sh4/float.so sh4/fmov.so sh4/ftrc.so \
+	 sh4/fsrra.so \
+	 sh4/ldc.so sh4/mac.so \
+	 sh4/rot.so sh4/shl.so sh4/shld.so sh4/sub.so sh4/subc.so sh4/subv.so \
+	 sh4/trapa.so sh4/tas.so sh4/xtrct.so \
+	 sh4/excslot.so sh4/undef.so sh4/tlb.so sh4/vmexit.so
+	$(SH4CC) $(SH4LDFLAGS) $^ -o $@ $(SH4LIBS)
+	$(SH4OBJCOPY) testsh4 testsh4.bin
+
+testmmu: lib/crt0.so sh4/testmmu.so sh4/utlb.so sh4/testutlb.so sh4/mmummio.so
+	$(SH4CC) $(SH4LDFLAGS) $^ -o $@ $(SH4LIBS)
+	$(SH4OBJCOPY) testmmu testmmu.bin
+
+
+testide: lib/crt0.so $(SHARED_OBJECTS) testide.so ide.so
+	$(SH4CC) $(SH4LDFLAGS) $^ -o $@ $(SH4LIBS)
+	$(SH4OBJCOPY) testide testide.bin
+
+testmath: lib/crt0.so $(SHARED_OBJECTS) testmath.so math.so
+	$(SH4CC) $(SH4LDFLAGS) $^  -o $@ $(SH4LIBS)
+
+testregs: lib/crt0.so $(SHARED_OBJECTS) testregs.so ide.so
+	$(SH4CC) $(SH4LDFLAGS) $^  -o $@ $(SH4LIBS)
+	$(SH4OBJCOPY) testregs testregs.bin
+
+testta: lib/crt0.so $(SHARED_OBJECTS) testta.so pvr.so
+	$(SH4CC) $(SH4LDFLAGS) $^  -o $@ $(SH4LIBS)
+	$(SH4OBJCOPY) testta testta.bin
+
+testaica: lib/crt0.so $(SHARED_OBJECTS) testaica.so 
+	$(SH4CC) $(SH4LDFLAGS) $^ -o $@ $(SH4LIBS)
+	$(SH4OBJCOPY) testaica testaica.bin
+
+testrend: lib/crt0.so $(SHARED_OBJECTS) testrend.so pvr.so
+	$(SH4CC) $(SH4LDFLAGS) $^  -o $@ $(SH4LIBS)
+	$(SH4OBJCOPY) testrend testrend.bin
+
+testblend: lib/crt0.so $(SHARED_OBJECTS) testblend.so pvr.so
+	$(SH4CC) $(SH4LDFLAGS) $^  -o $@ $(SH4LIBS)
+	$(SH4OBJCOPY) testblend testblend.bin
+
+testdisp: lib/crt0.so $(SHARED_OBJECTS) testdisp.so pvr.so
+	$(SH4CC) $(SH4LDFLAGS) $^  -o $@ $(SH4LIBS)
+	$(SH4OBJCOPY) testdisp testdisp.bin
+
+testyuv: lib/crt0.so $(SHARED_OBJECTS) testyuv.so pvr.so
+	$(SH4CC) $(SH4LDFLAGS) $^  -o $@ $(SH4LIBS)
+	$(SH4OBJCOPY) testyuv testyuv.bin
+
+testspu: lib/crt0.so $(SHARED_OBJECTS) testspu.so
+	$(SH4CC) $(SH4LDFLAGS) $^  -o $@ $(SH4LIBS)
+	$(SH4OBJCOPY) testspu testspu.bin
+
+testg2: lib/crt0.so $(SHARED_OBJECTS) testg2.so
+	$(SH4CC) $(SH4LDFLAGS) $^  -o $@ $(SH4LIBS)
+	$(SH4OBJCOPY) testg2 testg2.bin
+
+readdata: lib/crt0.so $(SHARED_OBJECTS) readdata.so
+	$(SH4CC) $(SH4LDFLAGS) $^ -o $@ $(SH4LIBS)
+
+rend: lib/crt0.so $(SHARED_OBJECTS) rendload.so pvr.so
+	$(SH4CC) $(SH4LDFLAGS) $^ -o $@ $(SH4LIBS)
+	$(SH4OBJCOPY) rend rend.bin
+
+testFF10: lib/crt0.so $(SHARED_OBJECTS) testFF10.so
+	$(SH4CC) $(SH4LDFLAGS) $^  -o $@ $(SH4LIBS)
+	$(SH4OBJCOPY) testFF10 testFF10.bin
+
+randmath: lib/crt0.so $(SHARED_OBJECTS) randmath.so
+	$(SH4CC) $(SH4LDFLAGS) $^ -o $@ $(SH4LIBS)
+	$(SH4OBJCOPY) randmath randmath.bin
+
+randmath.expect: randmath.c
+	$(HOSTCC) $^ -o randmath.native
+	./randmath.native < $(srcdir)/random.dat > $@
+
+.PHONY : clean
+clean:
+	rm -f *.o *.so *.ao *.ac *.bin sh4/*.so lib/*.so lib-arm/*.ao mapleid \
+	   readmem dumpasic testsh4 testta testdisp testregs testide testmath \
+	   testmmu testaica testrend testspu ide dcflash.rom \
+	   randmath randmath.expect randmath.native randmath.out
+
+distclean: clean
+	rm -f Makefile
+
+install:
+
+installcheck:
+
+uninstall:
+
+DISTFILES = asic.c asic.h bin2c.c dma.h dmac.c ide.c ide.h interrupt.s \
+        lib.c lib.h math.s pvr.c pvr.h rendload.c sh4/add.s sh4/addc.s \
+        sh4/addv.s sh4/and.s sh4/andi.s sh4/bf.s sh4/bsr.s sh4/bt.s sh4/cmp.s \
+        sh4/cmpstr.s sh4/div0.s sh4/div1.s sh4/excslot.s sh4/float.s sh4/fmov.s sh4/ftrc.s \
+        sh4/fsrra.s \
+        sh4/inc.s sh4/mac.s sh4/ldc.s sh4/rot.s sh4/shl.s sh4/shld.s sh4/sub.s sh4/subc.s \
+        sh4/subv.s sh4/tas.s sh4/testsh4.c sh4/tlb.s sh4/vmexit.s sh4/trapa.s sh4/undef.s \
+        sh4/xtrct.s sh4/utlb.c sh4/utlb.h sh4/testutlb.s testdata.c testdata.h testdisp.c \
+        testide.c testmath.c testaica.c sh4/testmmu.c sh4/mmummio.c testregs.c testrend.c \
+        testspu.c testta.c testyuv.c timer.c timer.h randmath.c \
+        testta.data testta2.data testta3.data testta4.data testta5.data testsort.data \
+        lxdream.rc dc.x lib/crt0.s lib/libc.a lib/libm.a lib/newlib-1.8.2-dc.patch \
+        aica.x lib-arm/libc.a lib-arm/libm.a lib-arm/crt0.s random.dat \
+	include/_ansi.h include/_syslist.h include/ar.h include/assert.h include/ctype.h \
+	include/dirent.h include/errno.h include/fastmath.h include/fcntl.h include/grp.h \
+	include/ieeefp.h include/locale.h include/machine/fastmath.h include/machine/ieeefp.h \
+	include/machine/setjmp-dj.h include/machine/setjmp.h include/machine/time.h \
+	include/machine/types.h include/malloc.h include/math.h include/paths.h \
+	include/process.h include/pwd.h include/reent.h include/regdef.h include/setjmp.h \
+	include/signal.h include/stdio.h include/stdlib.h include/string.h include/sys/_types.h \
+	include/sys/config.h include/sys/dirent.h include/sys/errno.h include/sys/fcntl.h \
+	include/sys/file.h include/sys/param.h include/sys/reent.h include/sys/resource.h \
+	include/sys/signal.h include/sys/stat-dj.h include/sys/stat.h include/sys/time.h \
+	include/sys/timeb.h include/sys/times.h include/sys/types.h include/sys/unistd.h \
+	include/sys/utime.h include/sys/wait.h include/termios.h include/time.h \
+	include/unctrl.h include/unistd.h include/utime.h include/utmp.h \
+@BUILD_SYSTEST_TRUE@	testsh4 testregs testmmu testta testaica 
+                        
+
+
+distdir: $(DISTFILES)
+	$(mkdir_p) $(distdir)/sh4 $(distdir)/lib $(distdir)/include
+	@srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`; \
+	topsrcdirstrip=`echo "$(top_srcdir)" | sed 's|.|.|g'`; \
+	list='$(DISTFILES)'; for file in $$list; do \
+	  case $$file in \
+	    $(srcdir)/*) file=`echo "$$file" | sed "s|^$$srcdirstrip/||"`;; \
+	    $(top_srcdir)/*) file=`echo "$$file" | sed "s|^$$topsrcdirstrip/|$(top_builddir)/|"`;; \
+	  esac; \
+	  if test -f $$file || test -d $$file; then d=.; else d=$(srcdir); fi; \
+	  dir=`echo "$$file" | sed -e 's,/[^/]*$$,,'`; \
+	  if test "$$dir" != "$$file" && test "$$dir" != "."; then \
+	    dir="/$$dir"; \
+	    $(mkdir_p) "$(distdir)$$dir"; \
+	  else \
+	    dir=''; \
+	  fi; \
+	  if test -d $$d/$$file; then \
+	    if test -d $(srcdir)/$$file && test $$d != $(srcdir); then \
+	      cp -pR $(srcdir)/$$file $(distdir)$$dir || exit 1; \
+	    fi; \
+	    cp -pR $$d/$$file $(distdir)$$dir || exit 1; \
+	  else \
+	    test -f $(distdir)/$$file \
+	    || cp -p $$d/$$file $(distdir)/$$file \
+	    || exit 1; \
+	  fi; \
+	done
+
+dvi:
