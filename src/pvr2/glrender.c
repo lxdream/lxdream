@@ -137,7 +137,7 @@ void pvr2_setup_gl_context()
     }
 #endif
 
-#ifndef HAVE_OPENGL_FIXEDFUNC
+#ifdef HAVE_OPENGL_FIXEDFUNC
     /* Setup defaults for perspective correction + matrices */
     glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
     glMatrixMode(GL_MODELVIEW);
