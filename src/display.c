@@ -31,7 +31,10 @@ display_driver_t display_driver_list[] = {
 #ifdef HAVE_COCOA
         &display_osx_driver,
 #endif
-#endif					   
+#endif
+#ifdef __ANDROID__
+        &display_gl_driver,
+#endif
         &display_null_driver,
         NULL };
 

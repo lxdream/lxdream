@@ -244,3 +244,29 @@ gboolean gl_read_render_buffer( unsigned char *target, render_buffer_t buffer,
     glPixelStorei( GL_PACK_ROW_LENGTH, 0 );
     return TRUE;
 }
+
+static gboolean video_gl_init();
+
+/**
+ * Minimal GL driver (assuming that the GL context is already set up externally)
+ * This requires FBO support (since otherwise we have no way to get a render buffer)
+ */
+struct display_driver display_gl_driver = {
+        "gl", N_("OpenGL driver"), video_gl_init, NULL,
+        NULL, NULL, NULL,
+        NULL, NULL, NULL, NULL,
+        gl_load_frame_buffer, gl_display_render_buffer, gl_display_blank,
+        NULL, gl_read_render_buffer, NULL, NULL
+};
+
+static gboolean video_gl_init()
+{
+     if( gl_fbo_is_supported() ) {
+         display_gl_driver.capabilities.has_gl = TRUE;
+         gl_fbo_init(&display_gl_driver);
+         gl_vbo_init(&display_gl_driver);
+         return TRUE;
+     } else {
+         return FALSE;
+     }
+}
