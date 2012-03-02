@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="lxdream_activity">Lxdream</string>
+    <string name="menu_run">Run</string>
+    <string name="menu_reset">Reset</string>
+    <string name="menu_preferences">Preferences</string>
 </resources>

@@ -1,0 +1,17 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@+id/menu_run"
+        android:icon="@drawable/tb_run"
+        android:onClick="onRunClicked"
+        android:title="@string/menu_run"
+        android:showAsAction="always" />
+    <item android:id="@+id/menu_reset"
+        android:icon="@drawable/tb_reset"
+        android:onClick="onResetClicked"
+        android:title="@string/menu_reset"
+        android:showAsAction="always" />
+    <item android:id="@+id/menu_settings"
+        android:icon="@drawable/tb_preferences"
+        android:onClick="onPreferencesClicked"
+        android:title="@string/menu_preferences"
+        android:showAsAction="never" />
+</menu>

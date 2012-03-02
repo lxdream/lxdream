@@ -79,15 +79,15 @@ AC_ARG_WITH( pulse,
 AC_ARG_WITH( sdl,
    AS_HELP_STRING( [--with-sdl], [Build with support for SDL audio]) )
 
-
-dnl ------------ Check if we're building on Darwin --------------
+dnl ------------ Check if we're building on Darwin or Android --------------
 
 dnl For starters, do we have a working objective-c compiler?
 if test "$ANDROID_BUILD" = "yes"; then
    with_gtk=no;
    EXTRA_OUTPUT_FILES="src/android/build.properties"
-   LIBS="-lGLESv2 $LIBS"
+   LIBS="-lEGL -lGLESv2 $LIBS"
    AC_DEFINE(HAVE_GLES2, 1, [Using GLESv2])
+   UI_DRIVER="Android"
    with_sdl=no
 else
 AC_HAVE_OBJC([
@@ -100,6 +100,7 @@ AC_HAVE_OBJC([
       LDFLAGS="$LDFLAGS -Wl,-headerpad_max_install_names"
       AC_DEFINE(HAVE_COCOA,[1],[Have Cocoa framework])
       AC_DEFINE(APPLE_BUILD,[1],[Building on an apple platform. Things are different...])
+      UI_DRIVER="Cocoa"
       if test "x$with_gtk" = "xx11"; then
         with_gtk=no
       fi
@@ -230,6 +231,7 @@ else
    PKG_CHECK_MODULES(GTK, gtk+-2.0, [
        HAVE_GTK='yes'
        AC_DEFINE([HAVE_GTK],1,[Have GTK libraries])
+       UI_DRIVER="GTK"
    ])
 
    dnl Which GTK port do we have?
@@ -485,18 +487,14 @@ echo
 echo "Configuration complete"
 echo
 
-if test "x$HAVE_GTK" = x; then
-  if test "x$HAVE_COCOA" = x; then
-     echo "  User interface: none"
-  else
-     echo "  User interface: Cocoa"
-  fi
+if test "x$UI_DRIVER" = x; then
+  echo "  User interface: none"
 else
-  echo "  User interface: GTK"
+  echo "  User interface: $UI_DRIVER"
 fi
 
 if test "x$SH4_TRANSLATOR" = "x"; then
-  echo "  SH4 translator: None (emulation core only)"
+  echo "  SH4 translator: none (emulation core only)"
 else
   echo "  SH4 translator: $SH4_TRANSLATOR"
 fi

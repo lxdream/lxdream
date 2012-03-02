@@ -58,7 +58,7 @@ pkglib_PROGRAMS = $(am__EXEEXT_2) $(am__EXEEXT_3) $(am__EXEEXT_4) \
 @GUI_GTK_TRUE@        gtkui/gtk_ctrl.c gtkui/gtk_gd.c \
 @GUI_GTK_TRUE@        drivers/video_gtk.c
 
-@GUI_ANDROID_TRUE@am__append_5 = gui_none.c
+@GUI_ANDROID_TRUE@am__append_5 = gui_none.c drivers/video_egl.c drivers/video_egl.h
 @GUI_ANDROID_TRUE@noinst_PROGRAMS = liblxdream.so$(EXEEXT)
 @GUI_COCOA_TRUE@am__append_6 = cocoaui/paths_osx.m drivers/io_osx.m drivers/mac_keymap.h drivers/mac_keymap.txt
 @GUI_COCOA_TRUE@am__append_7 = cocoaui/cocoaui.m cocoaui/cocoaui.h cocoaui/cocoa_cfg.m \
@@ -216,9 +216,11 @@ am_input_lirc_@SOEXT@_OBJECTS =
 input_lirc_@SOEXT@_OBJECTS = $(am_input_lirc_@SOEXT@_OBJECTS)
 @BUILD_PLUGINS_TRUE@@INPUT_LIRC_TRUE@input_lirc_@SOEXT@_DEPENDENCIES =  \
 @BUILD_PLUGINS_TRUE@@INPUT_LIRC_TRUE@	input_lirc.lo
-am__liblxdream_so_SOURCES_DIST = gui_jni.c drivers/cdrom/cd_none.c
-@GUI_ANDROID_TRUE@am_liblxdream_so_OBJECTS = gui_jni.$(OBJEXT) \
-@GUI_ANDROID_TRUE@	cd_none.$(OBJEXT)
+am__liblxdream_so_SOURCES_DIST = gui_android.c drivers/cdrom/cd_none.c \
+	drivers/video_egl.c drivers/video_egl.h tqueue.c tqueue.h
+@GUI_ANDROID_TRUE@am_liblxdream_so_OBJECTS = gui_android.$(OBJEXT) \
+@GUI_ANDROID_TRUE@	cd_none.$(OBJEXT) video_egl.$(OBJEXT) \
+@GUI_ANDROID_TRUE@	tqueue.$(OBJEXT)
 liblxdream_so_OBJECTS = $(am_liblxdream_so_OBJECTS)
 am__DEPENDENCIES_1 =
 @GUI_ANDROID_TRUE@liblxdream_so_DEPENDENCIES = liblxdream-core.a \
@@ -227,14 +229,15 @@ am__lxdream_SOURCES_DIST = main.c plugin.c plugin.h gtkui/gtkui.c \
 	gtkui/gtkui.h gtkui/gtk_win.c gtkui/gtkcb.c gtkui/gtk_cfg.c \
 	gtkui/gtk_mmio.c gtkui/gtk_debug.c gtkui/gtk_dump.c \
 	gtkui/gtk_ctrl.c gtkui/gtk_gd.c drivers/video_gtk.c gui_none.c \
-	cocoaui/cocoaui.m cocoaui/cocoaui.h cocoaui/cocoa_cfg.m \
-	cocoaui/cocoa_win.m cocoaui/cocoa_gd.m cocoaui/cocoa_prefs.m \
-	cocoaui/cocoa_ctrl.m drivers/video_osx.m drivers/video_gdk.c \
-	drivers/video_glx.c drivers/video_glx.h drivers/video_nsgl.m \
-	drivers/video_nsgl.h drivers/audio_osx.m drivers/audio_sdl.c \
-	drivers/audio_pulse.c drivers/audio_esd.c drivers/audio_alsa.c \
-	drivers/input_lirc.c drivers/cdrom/cd_linux.c \
-	drivers/cdrom/cd_osx.c drivers/osx_iokit.m drivers/osx_iokit.h \
+	drivers/video_egl.c drivers/video_egl.h cocoaui/cocoaui.m \
+	cocoaui/cocoaui.h cocoaui/cocoa_cfg.m cocoaui/cocoa_win.m \
+	cocoaui/cocoa_gd.m cocoaui/cocoa_prefs.m cocoaui/cocoa_ctrl.m \
+	drivers/video_osx.m drivers/video_gdk.c drivers/video_glx.c \
+	drivers/video_glx.h drivers/video_nsgl.m drivers/video_nsgl.h \
+	drivers/audio_osx.m drivers/audio_sdl.c drivers/audio_pulse.c \
+	drivers/audio_esd.c drivers/audio_alsa.c drivers/input_lirc.c \
+	drivers/cdrom/cd_linux.c drivers/cdrom/cd_osx.c \
+	drivers/osx_iokit.m drivers/osx_iokit.h \
 	drivers/cdrom/cd_none.c drivers/joy_linux.c \
 	drivers/joy_linux.h
 @BUILD_PLUGINS_TRUE@am__objects_4 = plugin.$(OBJEXT)
@@ -243,7 +246,8 @@ am__lxdream_SOURCES_DIST = main.c plugin.c plugin.h gtkui/gtkui.c \
 @GUI_GTK_TRUE@	gtk_mmio.$(OBJEXT) gtk_debug.$(OBJEXT) \
 @GUI_GTK_TRUE@	gtk_dump.$(OBJEXT) gtk_ctrl.$(OBJEXT) \
 @GUI_GTK_TRUE@	gtk_gd.$(OBJEXT) video_gtk.$(OBJEXT)
-@GUI_ANDROID_TRUE@am__objects_6 = gui_none.$(OBJEXT)
+@GUI_ANDROID_TRUE@am__objects_6 = gui_none.$(OBJEXT) \
+@GUI_ANDROID_TRUE@	video_egl.$(OBJEXT)
 @GUI_COCOA_TRUE@am__objects_7 = cocoaui.$(OBJEXT) cocoa_cfg.$(OBJEXT) \
 @GUI_COCOA_TRUE@	cocoa_win.$(OBJEXT) cocoa_gd.$(OBJEXT) \
 @GUI_COCOA_TRUE@	cocoa_prefs.$(OBJEXT) cocoa_ctrl.$(OBJEXT) \
@@ -343,6 +347,7 @@ AMDEP_TRUE = @AMDEP_TRUE@
 AMTAR = @AMTAR@
 ANDROID_GDBSERVER = @ANDROID_GDBSERVER@
 ANDROID_NDK_HOME = @ANDROID_NDK_HOME@
+ANDROID_NDK_VERSION = @ANDROID_NDK_VERSION@
 ANDROID_SDK_HOME = @ANDROID_SDK_HOME@
 ANDROID_SDK_VERSION = @ANDROID_SDK_VERSION@
 ANT = @ANT@
@@ -624,7 +629,7 @@ liblxdream_core_a_SOURCES = version.c config.c config.h lxdream.h \
 
 @GUI_ANDROID_TRUE@liblxdream_so_LINK = $(LINK) -Wl,-soname,liblxdream.so -shared
 @GUI_ANDROID_TRUE@liblxdream_so_LDADD = liblxdream-core.a @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@ @LIBISOFS_LIBS@ $(INTLLIBS) @LXDREAM_LIBS@ -lm
-@GUI_ANDROID_TRUE@liblxdream_so_SOURCES = gui_jni.c drivers/cdrom/cd_none.c
+@GUI_ANDROID_TRUE@liblxdream_so_SOURCES = gui_android.c drivers/cdrom/cd_none.c drivers/video_egl.c drivers/video_egl.h tqueue.c tqueue.h
 @GUI_ANDROID_TRUE@liblxdream_so_LIBS = liblxdream-core.a
 @BUILD_PLUGINS_TRUE@lxdream_dummy_@SOEXT@_SOURCES = 
 @BUILD_PLUGINS_TRUE@lxdream_dummy_@SOEXT@_LDADD = lxdream_dummy.lo @SDL_LIBS@
@@ -844,7 +849,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gtk_win.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gtkcb.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gtkui.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gui_jni.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gui_android.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gui_none.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/hotkeys.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/i386-dis.Po@am__quote@
@@ -897,8 +902,10 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testxlt.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/texcache.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/timer.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/tqueue.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/util.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/version.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/video_egl.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/video_gdk.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/video_gl.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/video_glx.Po@am__quote@
@@ -1851,6 +1858,20 @@ cd_none.obj: drivers/cdrom/cd_none.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/cdrom/cd_none.c' object='cd_none.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o cd_none.obj `if test -f 'drivers/cdrom/cd_none.c'; then $(CYGPATH_W) 'drivers/cdrom/cd_none.c'; else $(CYGPATH_W) '$(srcdir)/drivers/cdrom/cd_none.c'; fi`
+
+video_egl.o: drivers/video_egl.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT video_egl.o -MD -MP -MF "$(DEPDIR)/video_egl.Tpo" -c -o video_egl.o `test -f 'drivers/video_egl.c' || echo '$(srcdir)/'`drivers/video_egl.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/video_egl.Tpo" "$(DEPDIR)/video_egl.Po"; else rm -f "$(DEPDIR)/video_egl.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/video_egl.c' object='video_egl.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o video_egl.o `test -f 'drivers/video_egl.c' || echo '$(srcdir)/'`drivers/video_egl.c
+
+video_egl.obj: drivers/video_egl.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT video_egl.obj -MD -MP -MF "$(DEPDIR)/video_egl.Tpo" -c -o video_egl.obj `if test -f 'drivers/video_egl.c'; then $(CYGPATH_W) 'drivers/video_egl.c'; else $(CYGPATH_W) '$(srcdir)/drivers/video_egl.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/video_egl.Tpo" "$(DEPDIR)/video_egl.Po"; else rm -f "$(DEPDIR)/video_egl.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='drivers/video_egl.c' object='video_egl.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o video_egl.obj `if test -f 'drivers/video_egl.c'; then $(CYGPATH_W) 'drivers/video_egl.c'; else $(CYGPATH_W) '$(srcdir)/drivers/video_egl.c'; fi`
 
 gtkui.o: gtkui/gtkui.c
 @am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT gtkui.o -MD -MP -MF "$(DEPDIR)/gtkui.Tpo" -c -o gtkui.o `test -f 'gtkui/gtkui.c' || echo '$(srcdir)/'`gtkui/gtkui.c; \
