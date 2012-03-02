@@ -41,6 +41,14 @@ gboolean isGLMirroredTextureSupported()
     return isGLExtensionSupported("GL_ARB_texture_mirrored_repeat");
 }
 
+gboolean isOpenGLES2()
+{
+    const char *str = glGetString(GL_VERSION);
+    if( strncmp(str, "OpenGL ES 2.", 12) == 0 ) {
+        return TRUE;
+    }
+}
+
 /**
  * Check if there's at least 2 texture units
  */

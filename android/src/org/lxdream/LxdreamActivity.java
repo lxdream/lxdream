@@ -22,6 +22,9 @@ import android.app.Activity;
 import android.content.Context;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.WindowManager;
 
 import java.io.File;
@@ -34,20 +37,42 @@ public class LxdreamActivity extends Activity {
     protected void onCreate(Bundle bundle) {
         super.onCreate(bundle);
         Context ctx = getApplication();
+        
+        Log.i("LxdreamActivity", "Calling Dreamcast.init");
         Dreamcast.init( ctx.getFilesDir().toString() );
+        Log.i("LxdreamActivity", "Finished Dreamcast.init");
         view = new LxdreamView(ctx);
         setContentView(view);
     }
+    
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.main, menu);
+        return true;
+    }
+
 
     @Override 
     protected void onPause() {
         super.onPause();
-        view.onPause();
+        Dreamcast.stop();
     }
 
     @Override 
     protected void onResume() {
         super.onResume();
-        view.onResume();
+    }
+    
+    public void onRunClicked( MenuItem item ) {
+    	Dreamcast.toggleRun();
+    }
+    
+    public void onResetClicked( MenuItem item ) {
+    	Dreamcast.reset();
+    }
+    
+    public void onPreferencesClicked( MenuItem item ) {
+    	/* TODO */
     }
 }

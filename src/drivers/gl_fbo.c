@@ -67,7 +67,7 @@ static int last_used_fbo;
 
 gboolean gl_fbo_is_supported()
 {
-    return isGLExtensionSupported("GL_EXT_framebuffer_object");
+    return isGLExtensionSupported("GL_EXT_framebuffer_object") || isOpenGLES2();
 }
 
 /**
@@ -353,7 +353,8 @@ void gl_fbo_detach()
     glDrawBuffer( GL_FRONT );
     glReadBuffer( GL_FRONT );
 #endif
-    display_driver->swap_buffers();
+    if( display_driver->swap_buffers )
+        display_driver->swap_buffers();
 }    
 
 static gboolean gl_fbo_read_render_buffer( unsigned char *target, render_buffer_t buffer, 

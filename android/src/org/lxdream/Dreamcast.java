@@ -26,14 +26,18 @@ public class Dreamcast {
 
      /* Core emulation */
      public static native void init( String appHome );
-     public static native void setViewSize(int width, int height);
      public static native void run();
      public static native void stop();
-     /*
-     public static native void start();
-     public static native void run_slice();
-     public static boolean canRun();
-*/
+     public static native void reset();
+     public static native void toggleRun();
+     public static native boolean isRunnable();
+     public static native boolean isRunning();
+
+     /* GD-Rom */
+     public static native boolean mount( String filename );
+     public static native void unmount();
+
+     
      /* Save state management */
 /*     public static native boolean saveState( String filename );
      public static native boolean loadState( String filename );
@@ -41,9 +45,4 @@ public class Dreamcast {
      public static native boolean quickLoad();
      public static native void setQuickState(int state);
   */   
-     /* GD-Rom */
-/*     public static native boolean mount_disc( String filename );
-     public static native void unmount_disc();
-  */   
-     /* ... */
 }

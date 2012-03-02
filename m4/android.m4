@@ -6,7 +6,8 @@ AC_DEFUN([LX_ANDROID_BUILD], [
    AC_REQUIRE([AC_CANONICAL_HOST])
    AC_ARG_WITH( android, AS_HELP_STRING( [--with-android=SDK], [Specify the location of the Android SDK] ) )
    AC_ARG_WITH( android-ndk, AS_HELP_STRING( [--with-android-ndk=NDK], [Specify the location of the Android NDK] ) )
-   AC_ARG_WITH( android-version, AS_HELP_STRING( [--with-android-version], [Specify target Android SDK version]), [], [with_android_version="android-8"] )
+   AC_ARG_WITH( android-version, AS_HELP_STRING( [--with-android-version], [Specify target Android SDK version]), [], [with_android_version="android-11"] )
+   AC_ARG_WITH( android-ndk-version, AS_HELP_STRING( [--with-android-version], [Specify target Android NDK version]), [], [with_ndk_version="android-9"] )
 
    if test "x$with_android" != "x"; then
       if test "$with_android" = "yes"; then
@@ -19,6 +20,7 @@ AC_DEFUN([LX_ANDROID_BUILD], [
       ANDROID_SDK_HOME="$with_android"
       ANDROID_NDK_HOME="$with_android_ndk"
       ANDROID_SDK_VERSION="$with_android_version"
+      ANDROID_NDK_VERSION="$with_ndk_version"
       
       AC_CHECK_FILE( [$ANDROID_SDK_HOME/tools/ant/pre_setup.xml], [], [ AC_MSG_ERROR([Android SDK not found in $ANDROID_SDK_HOME]) ])
       AC_CHECK_FILE( [$ANDROID_SDK_HOME/platforms/$ANDROID_SDK_VERSION/sdk.properties], [], [ AC_MSG_ERROR([Android platform version $ANDROID_SDK_VERSION not found in $ANDROID_SDK_HOME]) ])
@@ -32,7 +34,7 @@ AC_DEFUN([LX_ANDROID_BUILD], [
             host_os="linux-androideabi"
             ANDROID_NDK_BIN=`echo $ANDROID_NDK_HOME/toolchains/arm-*/prebuilt/*/bin`
             ANDROID_GDBSERVER=`echo $ANDROID_NDK_HOME/toolchains/arm-*/prebuilt/gdbserver`
-            ANDROID_SYSROOT="$ANDROID_NDK_HOME/platforms/$ANDROID_SDK_VERSION/arch-arm"
+            ANDROID_SYSROOT="$ANDROID_NDK_HOME/platforms/$ANDROID_NDK_VERSION/arch-arm"
             TARGETFLAGS="-ffunction-sections -funwind-tables -fstack-protector -fomit-frame-pointer -fno-strict-aliasing -finline-limit=64 -DANDROID -Wno-psabi -Wa,--noexecstack"
             TARGETFLAGS="$TARGETFLAGS -D__ARM_ARCH_5__ -D__ARM_ARCH_5T__ -D__ARM_ARCH_5E__ -D__ARM_ARCH_5TE__ -march=armv5te -mtune=xscale -msoft-float -mthumb -Os"
             ;;
@@ -43,7 +45,7 @@ AC_DEFUN([LX_ANDROID_BUILD], [
             host_os="linux"
             ANDROID_NDK_BIN=`echo $ANDROID_NDK_HOME/toolchains/x86-*/prebuilt/*/bin`
             ANDROID_GDBSERVER=`echo $ANDROID_NDK_HOME/toolchains/x86-*/prebuilt/gdbserver`
-            ANDROID_SYSROOT="$ANDROID_NDK_HOME/platforms/$ANDROID_SDK_VERSION/arch-x86"
+            ANDROID_SYSROOT="$ANDROID_NDK_HOME/platforms/$ANDROID_NDK_VERSION/arch-x86"
             TARGETFLAGS=""
             ;;
          *)
@@ -63,11 +65,12 @@ AC_DEFUN([LX_ANDROID_BUILD], [
       OBJDUMP="$ANDROID_NDK_BIN/${host_alias}-objdump"
       CPPFLAGS="-fPIC --sysroot=$ANDROID_SYSROOT -I$ANDROID_SYSROOT/usr/include $TARGETFLAGS $CPPFLAGS"
       LDFLAGS="-nostdlib -Wl,--no-undefined -L${ANDROID_SYSROOT}/usr/lib -Wl,-rpath-link,${ANDROID_SYSROOT}/usr/lib -Wl,-allow-shlib-undefined -Wl,-z,noexecstack $LDFLAGS"
-      LIBS="$LIBS -liconv -llog -lgcc -lc"
+      LIBS="$LIBS -liconv -landroid -llog -lgcc -lc -lm"
       
       AC_SUBST(ANDROID_SDK_HOME)
       AC_SUBST(ANDROID_NDK_HOME)
       AC_SUBST(ANDROID_SDK_VERSION)
+      AC_SUBST(ANDROID_NDK_VERSION)
       AC_SUBST(ANDROID_GDBSERVER)
       
       ANDROID_BUILD=yes

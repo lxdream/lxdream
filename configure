@@ -686,6 +686,7 @@ ANT
 ANDROID_SDK_HOME
 ANDROID_NDK_HOME
 ANDROID_SDK_VERSION
+ANDROID_NDK_VERSION
 ANDROID_GDBSERVER
 GUI_ANDROID_TRUE
 GUI_ANDROID_FALSE
@@ -1465,6 +1466,7 @@ Optional Packages:
   --with-android=SDK      Specify the location of the Android SDK
   --with-android-ndk=NDK  Specify the location of the Android NDK
   --with-android-version  Specify target Android SDK version
+  --with-android-version  Specify target Android NDK version
   --with-osmesa           Build with the osmesa GL library (software
                           rendering)
   --with-gtk              Build with the GTK UI. Default on X11 systems
@@ -2543,7 +2545,15 @@ fi
 if test "${with_android_version+set}" = set; then
   withval=$with_android_version;
 else
-  with_android_version="android-8"
+  with_android_version="android-11"
+fi
+
+
+# Check whether --with-android-ndk-version was given.
+if test "${with_android_ndk_version+set}" = set; then
+  withval=$with_android_ndk_version;
+else
+  with_ndk_version="android-9"
 fi
 
 
@@ -2562,6 +2572,7 @@ echo "$as_me: error: --with-android-ndk=/path/to/ndk option must be used with --
       ANDROID_SDK_HOME="$with_android"
       ANDROID_NDK_HOME="$with_android_ndk"
       ANDROID_SDK_VERSION="$with_android_version"
+      ANDROID_NDK_VERSION="$with_ndk_version"
 
       as_ac_File=`echo "ac_cv_file_$ANDROID_SDK_HOME/tools/ant/pre_setup.xml" | $as_tr_sh`
 { echo "$as_me:$LINENO: checking for $ANDROID_SDK_HOME/tools/ant/pre_setup.xml" >&5
@@ -2653,7 +2664,7 @@ fi
             host_os="linux-androideabi"
             ANDROID_NDK_BIN=`echo $ANDROID_NDK_HOME/toolchains/arm-*/prebuilt/*/bin`
             ANDROID_GDBSERVER=`echo $ANDROID_NDK_HOME/toolchains/arm-*/prebuilt/gdbserver`
-            ANDROID_SYSROOT="$ANDROID_NDK_HOME/platforms/$ANDROID_SDK_VERSION/arch-arm"
+            ANDROID_SYSROOT="$ANDROID_NDK_HOME/platforms/$ANDROID_NDK_VERSION/arch-arm"
             TARGETFLAGS="-ffunction-sections -funwind-tables -fstack-protector -fomit-frame-pointer -fno-strict-aliasing -finline-limit=64 -DANDROID -Wno-psabi -Wa,--noexecstack"
             TARGETFLAGS="$TARGETFLAGS -D__ARM_ARCH_5__ -D__ARM_ARCH_5T__ -D__ARM_ARCH_5E__ -D__ARM_ARCH_5TE__ -march=armv5te -mtune=xscale -msoft-float -mthumb -Os"
             ;;
@@ -2664,7 +2675,7 @@ fi
             host_os="linux"
             ANDROID_NDK_BIN=`echo $ANDROID_NDK_HOME/toolchains/x86-*/prebuilt/*/bin`
             ANDROID_GDBSERVER=`echo $ANDROID_NDK_HOME/toolchains/x86-*/prebuilt/gdbserver`
-            ANDROID_SYSROOT="$ANDROID_NDK_HOME/platforms/$ANDROID_SDK_VERSION/arch-x86"
+            ANDROID_SYSROOT="$ANDROID_NDK_HOME/platforms/$ANDROID_NDK_VERSION/arch-x86"
             TARGETFLAGS=""
             ;;
          *)
@@ -2725,7 +2736,8 @@ fi
       OBJDUMP="$ANDROID_NDK_BIN/${host_alias}-objdump"
       CPPFLAGS="-fPIC --sysroot=$ANDROID_SYSROOT -I$ANDROID_SYSROOT/usr/include $TARGETFLAGS $CPPFLAGS"
       LDFLAGS="-nostdlib -Wl,--no-undefined -L${ANDROID_SYSROOT}/usr/lib -Wl,-rpath-link,${ANDROID_SYSROOT}/usr/lib -Wl,-allow-shlib-undefined -Wl,-z,noexecstack $LDFLAGS"
-      LIBS="$LIBS -liconv -llog -lgcc -lc"
+      LIBS="$LIBS -liconv -landroid -llog -lgcc -lc -lm"
+
 
 
 
@@ -8966,16 +8978,16 @@ fi
 
 
 
-
 if test "$ANDROID_BUILD" = "yes"; then
    with_gtk=no;
    EXTRA_OUTPUT_FILES="src/android/build.properties"
-   LIBS="-lGLESv2 $LIBS"
+   LIBS="-lEGL -lGLESv2 $LIBS"
 
 cat >>confdefs.h <<\_ACEOF
 #define HAVE_GLES2 1
 _ACEOF
 
+   UI_DRIVER="Android"
    with_sdl=no
 else
 
@@ -9442,6 +9454,7 @@ cat >>confdefs.h <<\_ACEOF
 #define APPLE_BUILD 1
 _ACEOF
 
+      UI_DRIVER="Cocoa"
       if test "x$with_gtk" = "xx11"; then
         with_gtk=no
       fi
@@ -11020,6 +11033,7 @@ cat >>confdefs.h <<\_ACEOF
 #define HAVE_GTK 1
 _ACEOF
 
+       UI_DRIVER="GTK"
 
 fi
 
@@ -16749,6 +16763,7 @@ ANT!$ANT$ac_delim
 ANDROID_SDK_HOME!$ANDROID_SDK_HOME$ac_delim
 ANDROID_NDK_HOME!$ANDROID_NDK_HOME$ac_delim
 ANDROID_SDK_VERSION!$ANDROID_SDK_VERSION$ac_delim
+ANDROID_NDK_VERSION!$ANDROID_NDK_VERSION$ac_delim
 ANDROID_GDBSERVER!$ANDROID_GDBSERVER$ac_delim
 GUI_ANDROID_TRUE!$GUI_ANDROID_TRUE$ac_delim
 GUI_ANDROID_FALSE!$GUI_ANDROID_FALSE$ac_delim
@@ -16772,7 +16787,6 @@ CPP!$CPP$ac_delim
 CC!$CC$ac_delim
 CFLAGS!$CFLAGS$ac_delim
 CPPFLAGS!$CPPFLAGS$ac_delim
-CC_FOR_BUILD!$CC_FOR_BUILD$ac_delim
 _ACEOF
 
   if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 97; then
@@ -16814,6 +16828,7 @@ _ACEOF
 ac_delim='%!_!# '
 for ac_last_try in false false false false false :; do
   cat >conf$$subs.sed <<_ACEOF
+CC_FOR_BUILD!$CC_FOR_BUILD$ac_delim
 ac_ct_CC_FOR_BUILD!$ac_ct_CC_FOR_BUILD$ac_delim
 CC_FOR_BUILDDEPMODE!$CC_FOR_BUILDDEPMODE$ac_delim
 am__fastdepCC_FOR_BUILD_TRUE!$am__fastdepCC_FOR_BUILD_TRUE$ac_delim
@@ -16910,7 +16925,6 @@ BUILD_SYSTEST_FALSE!$BUILD_SYSTEST_FALSE$ac_delim
 BUILD_ARMTEST_TRUE!$BUILD_ARMTEST_TRUE$ac_delim
 BUILD_ARMTEST_FALSE!$BUILD_ARMTEST_FALSE$ac_delim
 LXDREAM_LIBS!$LXDREAM_LIBS$ac_delim
-GETTEXT_PACKAGE!$GETTEXT_PACKAGE$ac_delim
 _ACEOF
 
   if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 97; then
@@ -16952,6 +16966,7 @@ _ACEOF
 ac_delim='%!_!# '
 for ac_last_try in false false false false false :; do
   cat >conf$$subs.sed <<_ACEOF
+GETTEXT_PACKAGE!$GETTEXT_PACKAGE$ac_delim
 USE_NLS!$USE_NLS$ac_delim
 MSGFMT!$MSGFMT$ac_delim
 MSGFMT_OPTS!$MSGFMT_OPTS$ac_delim
@@ -16972,7 +16987,7 @@ LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 18; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 19; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5
@@ -17613,18 +17628,14 @@ echo
 echo "Configuration complete"
 echo
 
-if test "x$HAVE_GTK" = x; then
-  if test "x$HAVE_COCOA" = x; then
-     echo "  User interface: none"
-  else
-     echo "  User interface: Cocoa"
-  fi
+if test "x$UI_DRIVER" = x; then
+  echo "  User interface: none"
 else
-  echo "  User interface: GTK"
+  echo "  User interface: $UI_DRIVER"
 fi
 
 if test "x$SH4_TRANSLATOR" = "x"; then
-  echo "  SH4 translator: None (emulation core only)"
+  echo "  SH4 translator: none (emulation core only)"
 else
   echo "  SH4 translator: $SH4_TRANSLATOR"
 fi

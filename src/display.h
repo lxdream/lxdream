@@ -282,6 +282,7 @@ extern display_driver_t display_driver;
 extern struct display_driver display_gtk_driver;
 extern struct display_driver display_osx_driver;
 extern struct display_driver display_gl_driver;
+extern struct display_driver display_egl_driver;
 extern struct display_driver display_null_driver;
 
 /****************** Input methods **********************/

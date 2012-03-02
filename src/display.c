@@ -23,6 +23,7 @@
 #include "dream.h"
 #include "display.h"
 #include "pvr2/pvr2.h"
+#include "pvr2/glutil.h"
 
 display_driver_t display_driver_list[] = {
 #ifdef HAVE_GTK
@@ -33,7 +34,7 @@ display_driver_t display_driver_list[] = {
 #endif
 #endif
 #ifdef __ANDROID__
-        &display_gl_driver,
+        &display_egl_driver,
 #endif
         &display_null_driver,
         NULL };

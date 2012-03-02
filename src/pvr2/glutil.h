@@ -33,6 +33,8 @@ extern "C" {
  */
 gboolean isGLExtensionSupported( const char *extension );
 
+gboolean isOpenGLES2();
+
 /**
  * Dump GL information to the output stream, usually for debugging purposes
  */
@@ -104,6 +106,18 @@ GLint glGetMaxColourAttachments();
 
 #if defined(GL_FRAMEBUFFER_COMPLETE_EXT) && !defined(GL_FRAMEBUFFER_COMPLETE)
 #define GL_FRAMEBUFFER_COMPLETE GL_FRAMEBUFFER_COMPLETE_EXT
+#endif
+
+#if defined(GL_UNSIGNED_SHORT_1_5_5_5_REV_EXT) && !defined(GL_UNSIGNED_SHORT_1_5_5_5_REV)
+#define GL_UNSIGNED_SHORT_1_5_5_5_REV GL_UNSIGNED_SHORT_1_5_5_5_REV_EXT
+#endif
+
+#if defined(GL_UNSIGNED_SHORT_4_4_4_4_REV_EXT) && !defined(GL_UNSIGNED_SHORT_4_4_4_4_REV)
+#define GL_UNSIGNED_SHORT_4_4_4_4_REV GL_UNSIGNED_SHORT_4_4_4_4_REV_EXT
+#endif
+
+#if defined(GL_BGRA_EXT) && !defined(GL_BGRA)
+#define GL_BGRA GL_BGRA_EXT
 #endif
 
 #if defined(HAVE_OPENGL_FBO_EXT) && !defined(HAVE_OPENGL_FBO)
