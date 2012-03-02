@@ -99,7 +99,7 @@ void gl_set_video_size( uint32_t width, uint32_t height )
 /**
  * Setup the gl context for writes to the display output.
  */
-static void gl_framebuffer_setup()
+void gl_framebuffer_setup()
 {
     glViewport( 0, 0, video_width, video_height );
     glLoadMatrixf(video_box.viewMatrix);
@@ -113,14 +113,14 @@ static void gl_framebuffer_setup()
     glEnableClientState( GL_TEXTURE_COORD_ARRAY );
 }
 
-static void gl_framebuffer_cleanup()
+void gl_framebuffer_cleanup()
 {
     glDisableClientState( GL_VERTEX_ARRAY );
     glDisableClientState( GL_COLOR_ARRAY );
     glDisableClientState( GL_TEXTURE_COORD_ARRAY );
 }
 #else
-static void gl_framebuffer_setup()
+void gl_framebuffer_setup()
 {
     glViewport( 0, 0, video_width, video_height );
     glBlendFunc( GL_ONE, GL_ZERO );
@@ -132,7 +132,7 @@ static void gl_framebuffer_setup()
     glsl_set_basic_shader_primary_texture(0);
 }
 
-static void gl_framebuffer_cleanup()
+void gl_framebuffer_cleanup()
 {
     glsl_clear_shader();
 }

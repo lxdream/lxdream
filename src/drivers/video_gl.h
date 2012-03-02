@@ -71,6 +71,8 @@ gboolean gl_read_render_buffer( unsigned char *target, render_buffer_t buffer,
                                 int rowstride, int colour_format );
 
 
+void gl_framebuffer_setup(void);
+void gl_framebuffer_cleanup(void);
 /****** FBO handling (gl_fbo.c) ******/
 gboolean gl_fbo_is_supported();
 void gl_fbo_shutdown();

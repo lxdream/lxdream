@@ -397,13 +397,14 @@ static void glx_pbuffer_load_frame_buffer( frame_buffer_t frame, render_buffer_t
     int bpp = colour_formats[frame->colour_format].bpp;
     int rowstride = (frame->rowstride / bpp) - frame->width;
 
-    gl_reset_state();
+    gl_framebuffer_setup();
     glPixelStorei( GL_UNPACK_ROW_LENGTH, rowstride );
     glRasterPos2f(0.375, frame->height-0.375);
     glPixelZoom( 1.0, 1.0 );
     glDrawPixels( frame->width, frame->height, format, type, frame->data );
     glPixelStorei( GL_UNPACK_ROW_LENGTH, 0 );
     glFlush();
+    gl_framebuffer_cleanup();
 }
 
 static void glx_pbuffer_display_blank( uint32_t colour )
