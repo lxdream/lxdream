@@ -110,6 +110,7 @@ struct frame_buffer {
 
 struct display_capabilities {
     gboolean has_gl;
+    int depth_bits;
     int stencil_bits; /* 0 = no stencil buffer */
 };
 

@@ -44,12 +44,18 @@ static struct video_box_t {
     struct video_vertex invert_view[4];
 } video_box;
 
-void gl_set_video_size( uint32_t width, uint32_t height )
+void gl_set_video_size( uint32_t width, uint32_t height, int flipped )
 {
     video_width = width;
     video_height = height;
 
     int x1=0,y1=0,x2=video_width,y2=video_height;
+    int top = 0, bottom = 1;
+
+    if( flipped ) {
+        top = 1;
+        bottom = 0;
+    }
 
     int ah = video_width * 0.75;
 
@@ -80,17 +86,17 @@ void gl_set_video_size( uint32_t width, uint32_t height )
     }
 
     video_box.video_view[0].x = x1; video_box.video_view[0].y = y1;
-    video_box.video_view[0].u = 0; video_box.video_view[0].v = 0;
+    video_box.video_view[0].u = top; video_box.video_view[0].v = top;
     video_box.video_view[1].x = x2; video_box.video_view[1].y = y1;
-    video_box.video_view[1].u = 1; video_box.video_view[1].v = 0;
+    video_box.video_view[1].u = bottom; video_box.video_view[1].v = top;
     video_box.video_view[2].x = x1; video_box.video_view[2].y = y2;
-    video_box.video_view[2].u = 0; video_box.video_view[2].v = 1;
+    video_box.video_view[2].u = top; video_box.video_view[2].v = bottom;
     video_box.video_view[3].x = x2; video_box.video_view[3].y = y2;
-    video_box.video_view[3].u = 1; video_box.video_view[3].v = 1;
+    video_box.video_view[3].u = bottom; video_box.video_view[3].v = bottom;
 
     memcpy( &video_box.invert_view, &video_box.video_view, sizeof(video_box.video_view) );
-    video_box.invert_view[0].v = 1; video_box.invert_view[1].v = 1;
-    video_box.invert_view[2].v = 0; video_box.invert_view[3].v = 0;
+    video_box.invert_view[0].v = bottom; video_box.invert_view[1].v = bottom;
+    video_box.invert_view[2].v = top; video_box.invert_view[3].v = top;
 
     defineOrthoMatrix(video_box.viewMatrix, video_width, video_height, 0, 65535);
 }
@@ -175,6 +181,7 @@ void gl_texture_window( int width, int height, int tex_id, gboolean inverted )
 {
     /* Set video box tex alpha to 1 */
     video_box.video_view[0].a = video_box.video_view[1].a = video_box.video_view[2].a = video_box.video_view[3].a = 1;
+    video_box.invert_view[0].a = video_box.invert_view[1].a = video_box.invert_view[2].a = video_box.invert_view[3].a = 1;
 
     /* Reset display parameters */
     gl_framebuffer_setup();
@@ -186,8 +193,8 @@ void gl_texture_window( int width, int height, int tex_id, gboolean inverted )
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glDrawArrays(GL_TRIANGLE_STRIP, inverted ? 12 : 8, 4);
     glDisable(GL_TEXTURE_2D);
-    glFlush();
     gl_framebuffer_cleanup();
+    glFlush();
 }
 
 gboolean gl_load_frame_buffer( frame_buffer_t frame, int tex_id )
@@ -221,8 +228,8 @@ void gl_display_blank( uint32_t colour )
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     glDrawArrays(GL_TRIANGLE_STRIP, 4, 4);
     glDrawArrays(GL_TRIANGLE_STRIP, 8, 4);
-    glFlush();
     gl_framebuffer_cleanup();
+    glFlush();
 }
 
 /**

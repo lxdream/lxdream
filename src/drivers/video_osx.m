@@ -120,7 +120,7 @@ static NSView *video_view = NULL;
 {
     NSSize size = [self frame].size;
     if( video_width != size.width || video_height != size.height ) {
-        gl_set_video_size(size.width, size.height);
+        gl_set_video_size(size.width, size.height, 0);
         video_nsgl_update();
     }
     pvr2_draw_frame();

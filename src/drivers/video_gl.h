@@ -28,7 +28,7 @@ extern uint32_t video_width, video_height;
 /**
  * Set the video size used by the frame blits
  */
-void gl_set_video_size( uint32_t width, uint32_t height );
+void gl_set_video_size( uint32_t width, uint32_t height, int flipped );
 
 /**
  * Generic GL routine to draw the given frame buffer into a texture

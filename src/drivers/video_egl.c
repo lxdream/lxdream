@@ -122,7 +122,8 @@ gboolean video_egl_set_window(EGLNativeWindowType window, int width, int height,
     }
 
     if( gl_fbo_is_supported() ) {
-        display_gl_driver.capabilities.has_gl = TRUE;
+        display_egl_driver.capabilities.has_gl = TRUE;
+        display_egl_driver.capabilities.depth_bits = 16; /* TODO: get from config info */
         gl_fbo_init(&display_egl_driver);
         gl_vbo_init(&display_egl_driver);
         fbo_created = TRUE;
@@ -131,6 +132,7 @@ gboolean video_egl_set_window(EGLNativeWindowType window, int width, int height,
         video_egl_clear_window();
         return FALSE;
     }
+    gl_set_video_size(width, height, 0);
     pvr2_setup_gl_context();
     INFO( "Initialised EGL %d.%d\n", major, minor );
     return TRUE;
@@ -154,6 +156,10 @@ void video_egl_clear_window()
     eglTerminate(display);
 }
 
+static void video_egl_swap_buffers()
+{
+    eglSwapBuffers(display, surface);
+}
 
 
 /**
@@ -164,5 +170,5 @@ struct display_driver display_egl_driver = {
         NULL, NULL, NULL,
         NULL, NULL, NULL, NULL,
         gl_load_frame_buffer, gl_display_render_buffer, gl_display_blank,
-        NULL, gl_read_render_buffer, NULL, NULL
+        video_egl_swap_buffers, gl_read_render_buffer, NULL, NULL
 };
