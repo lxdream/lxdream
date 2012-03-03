@@ -86,7 +86,9 @@ void main()
 }
 
 #fragment DEFAULT_FRAGMENT_SHADER
+#ifdef HAVE_GLES2
 precision mediump float;
+#endif
 uniform float alpha_ref;
 uniform sampler2D primary_texture;
 uniform sampler2D palette_texture;
@@ -148,7 +150,10 @@ void main()
 }
 
 #fragment BASIC_FRAGMENT_SHADER
+#ifdef HAVE_GLES2
 precision mediump float;
+#endif
+
 uniform sampler2D primary_texture;
 varying vec4 frag_colour;
 varying vec2 frag_texcoord;
