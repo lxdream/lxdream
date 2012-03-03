@@ -54,7 +54,7 @@ gboolean isOpenGLES2()
  */
 gboolean isGLMultitextureSupported()
 {
-    if( !isGLExtensionSupported("GL_ARB_multitexture") )
+    if( !isOpenGLES2() && !isGLExtensionSupported("GL_ARB_multitexture") )
         return FALSE;
     int units = 0;
 
