@@ -890,20 +890,25 @@ dmg: $(BUNDLE)
 
 bundle: all
 
-@GUI_ANDROID_TRUE@apk: src/liblxdream.so
+@GUI_ANDROID_TRUE@all-local:
+@GUI_ANDROID_TRUE@	(TARGETDIR="`pwd`/android" && cd $(srcdir)/android && \
+@GUI_ANDROID_TRUE@	    $(ANT) -buildfile build.xml -Dsdk.dir=$(ANDROID_SDK_HOME) \
+@GUI_ANDROID_TRUE@	       -Dout.dir="$$TARGETDIR" -Dnative.libs.dir="$$TARGETDIR/libs" \
+@GUI_ANDROID_TRUE@	       -Dnative.libs.absolute.dir="$$TARGETDIR/libs" \
+@GUI_ANDROID_TRUE@	       -Dtarget=$(ANDROID_SDK_VERSION) clean )
 @GUI_ANDROID_TRUE@	$(mkdir_p) android/libs/armeabi
 @GUI_ANDROID_TRUE@	$(INSTALL) src/liblxdream.so android/libs/armeabi/liblxdream.so
 @GUI_ANDROID_TRUE@	$(INSTALL) $(ANDROID_GDBSERVER) android/libs/armeabi/gdbserver
 @GUI_ANDROID_TRUE@	$(STRIP) --strip-unneeded android/libs/armeabi/liblxdream.so
 @GUI_ANDROID_TRUE@	(TARGETDIR="`pwd`/android" && cd $(srcdir)/android && \
 @GUI_ANDROID_TRUE@	    $(ANT) -buildfile build.xml -Dsdk.dir=$(ANDROID_SDK_HOME) \
-@GUI_ANDROID_TRUE@	       -Dout.dir="$$TARGETDIR" \
-@GUI_ANDROID_TRUE@	       -Dnative.libs.dir="$$TARGETDIR/libs" \
+@GUI_ANDROID_TRUE@	       -Dout.dir="$$TARGETDIR" -Dnative.libs.dir="$$TARGETDIR/libs" \
 @GUI_ANDROID_TRUE@	       -Dnative.libs.absolute.dir="$$TARGETDIR/libs" \
 @GUI_ANDROID_TRUE@	       -Dtarget=$(ANDROID_SDK_VERSION) debug )
 @GUI_ANDROID_TRUE@	cp android/Lxdream-debug.apk Lxdream-debug.apk
 
-@GUI_ANDROID_TRUE@all-local: apk
+@GUI_ANDROID_TRUE@install-adb:
+@GUI_ANDROID_TRUE@	$(ANDROID_SDK_HOME)/platform-tools/adb install -r Lxdream-debug.apk
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:

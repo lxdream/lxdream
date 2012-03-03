@@ -100,18 +100,24 @@ dmg: $(BUNDLE)
 bundle: all
 
 if GUI_ANDROID
-apk: src/liblxdream.so
+all-local:
+	(TARGETDIR="`pwd`/android" && cd $(srcdir)/android && \
+	    $(ANT) -buildfile build.xml -Dsdk.dir=$(ANDROID_SDK_HOME) \
+	       -Dout.dir="$$TARGETDIR" -Dnative.libs.dir="$$TARGETDIR/libs" \
+	       -Dnative.libs.absolute.dir="$$TARGETDIR/libs" \
+	       -Dtarget=$(ANDROID_SDK_VERSION) clean )
 	$(mkdir_p) android/libs/armeabi
 	$(INSTALL) src/liblxdream.so android/libs/armeabi/liblxdream.so
 	$(INSTALL) $(ANDROID_GDBSERVER) android/libs/armeabi/gdbserver
 	$(STRIP) --strip-unneeded android/libs/armeabi/liblxdream.so
 	(TARGETDIR="`pwd`/android" && cd $(srcdir)/android && \
 	    $(ANT) -buildfile build.xml -Dsdk.dir=$(ANDROID_SDK_HOME) \
-	       -Dout.dir="$$TARGETDIR" \
-	       -Dnative.libs.dir="$$TARGETDIR/libs" \
+	       -Dout.dir="$$TARGETDIR" -Dnative.libs.dir="$$TARGETDIR/libs" \
 	       -Dnative.libs.absolute.dir="$$TARGETDIR/libs" \
 	       -Dtarget=$(ANDROID_SDK_VERSION) debug )
 	cp android/Lxdream-debug.apk Lxdream-debug.apk
 
-all-local: apk
+install-adb:
+	$(ANDROID_SDK_HOME)/platform-tools/adb install -r Lxdream-debug.apk
+
 endif
