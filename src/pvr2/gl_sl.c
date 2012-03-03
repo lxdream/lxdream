@@ -50,9 +50,9 @@ static void glsl_set_cleanup_fn( program_cleanup_fn_t );
 
 gboolean glsl_is_supported()
 {
-    return isGLExtensionSupported("GL_ARB_fragment_shader") &&
+    return isOpenGLES2() || (isGLExtensionSupported("GL_ARB_fragment_shader") &&
     isGLExtensionSupported("GL_ARB_vertex_shader") &&
-    isGLExtensionSupported("GL_ARB_shading_language_100");
+    isGLExtensionSupported("GL_ARB_shading_language_100"));
 }
 
 const char *glsl_get_version()
@@ -182,9 +182,9 @@ static inline GLint glsl_get_attrib_location(gl_program_t program, const char *n
 
 gboolean glsl_is_supported()
 {
-    return isGLExtensionSupported("GL_ARB_fragment_shader") &&
+    return isOpenGLES2() || (isGLExtensionSupported("GL_ARB_fragment_shader") &&
     isGLExtensionSupported("GL_ARB_vertex_shader") &&
-    isGLExtensionSupported("GL_ARB_shading_language_100");
+    isGLExtensionSupported("GL_ARB_shading_language_100"));
 }
 
 const char *glsl_get_version()
