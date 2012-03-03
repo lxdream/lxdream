@@ -12,9 +12,10 @@ public final class R {
     }
     public static final class drawable {
         public static final int tb_cdrom=0x7f020000;
-        public static final int tb_preferences=0x7f020001;
-        public static final int tb_reset=0x7f020002;
-        public static final int tb_run=0x7f020003;
+        public static final int tb_pause=0x7f020001;
+        public static final int tb_preferences=0x7f020002;
+        public static final int tb_reset=0x7f020003;
+        public static final int tb_run=0x7f020004;
     }
     public static final class id {
         public static final int menu_reset=0x7f050001;
