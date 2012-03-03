@@ -20,6 +20,8 @@ package org.lxdream;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.res.Resources;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
@@ -32,11 +34,17 @@ import java.io.File;
 
 public class LxdreamActivity extends Activity {
     LxdreamView view;
+    boolean isRunning = false;
+    Context ctx;
+    Drawable runIcon, pauseIcon;
 
     @Override 
     protected void onCreate(Bundle bundle) {
         super.onCreate(bundle);
-        Context ctx = getApplication();
+        ctx = getApplication();
+        Resources res = ctx.getResources();
+        runIcon = res.getDrawable(R.drawable.tb_run);
+        pauseIcon = res.getDrawable(R.drawable.tb_pause);
         
         Log.i("LxdreamActivity", "Calling Dreamcast.init");
         Dreamcast.init( ctx.getFilesDir().toString() );
@@ -65,7 +73,13 @@ public class LxdreamActivity extends Activity {
     }
     
     public void onRunClicked( MenuItem item ) {
+    	if( isRunning ) {
+    		item.setIcon( runIcon );
+    	} else {
+    		item.setIcon( pauseIcon );
+    	}
     	Dreamcast.toggleRun();
+    	isRunning = !isRunning;
     }
     
     public void onResetClicked( MenuItem item ) {
