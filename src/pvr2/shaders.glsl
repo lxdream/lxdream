@@ -86,7 +86,7 @@ void main()
 }
 
 #fragment DEFAULT_FRAGMENT_SHADER
-
+precision mediump float;
 uniform float alpha_ref;
 uniform sampler2D primary_texture;
 uniform sampler2D palette_texture;
@@ -125,7 +125,6 @@ void main()
             } else {
                 gl_FragColor.rgb = mix( main_colour, fog_colour2, -frag_colour2.a );
             }
-	    gl_FragDepth = gl_FragCoord.z;
         } 
 }
 
@@ -143,13 +142,13 @@ varying vec4 frag_colour;
 varying vec2 frag_texcoord;
 void main()
 {
-    gl_Position = view_matrix * vec4(in_vertex.x,in_vertex.y,0,1);
+    gl_Position = view_matrix * vec4(in_vertex.x,in_vertex.y,0.0,1.0);
     frag_colour = in_colour;
     frag_texcoord = in_texcoord;
 }
 
 #fragment BASIC_FRAGMENT_SHADER
-
+precision mediump float;
 uniform sampler2D primary_texture;
 varying vec4 frag_colour;
 varying vec2 frag_texcoord;
@@ -158,7 +157,6 @@ void main()
 {
 	vec4 tex = texture2D( primary_texture, frag_texcoord.xy );
         gl_FragColor.rgb = mix( frag_colour.rgb, tex.rgb, frag_colour.a );
-        gl_FragDepth = gl_FragCoord.z;
 }
 
 #program basic_shader = BASIC_VERTEX_SHADER BASIC_FRAGMENT_SHADER
