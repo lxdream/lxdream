@@ -144,7 +144,7 @@ gboolean video_gtk_expose_callback(GtkWidget *widget, GdkEventExpose *event, gpo
 
 gboolean video_gtk_resize_callback(GtkWidget *widget, GdkEventConfigure *event, gpointer data )
 {
-    gl_set_video_size(event->width, event->height);
+    gl_set_video_size(event->width, event->height, 0);
     pvr2_draw_frame();
     return TRUE;
 }
@@ -278,7 +278,7 @@ gboolean video_gtk_init()
         return FALSE;
     }
 
-    gl_set_video_size(gtk_video_drawable->allocation.width, gtk_video_drawable->allocation.height);
+    gl_set_video_size(gtk_video_drawable->allocation.width, gtk_video_drawable->allocation.height, 0);
 #ifdef HAVE_OSMESA
     video_gdk_init_driver( &display_gtk_driver );
 #else

@@ -41,6 +41,7 @@ static gboolean glx_is_initialized = FALSE;
 static gboolean glx_fbconfig_supported = FALSE;
 static gboolean glx_pbuffer_supported = FALSE;
 static GLuint glx_pbuffer_texture = 0; 
+static int glx_depth_bits = 0;
 
 static void video_glx_swap_buffers( void );
 static void video_glx_print_info( FILE *out );
@@ -119,6 +120,7 @@ gboolean video_glx_init( Display *display, int screen )
 //    glx_fbconfig_supported = FALSE;
     if( glx_fbconfig_supported ) {
         int nelem;
+        glx_depth_bits = 24;
         int fb_attribs[] = { GLX_DRAWABLE_TYPE, 
                 GLX_PBUFFER_BIT|GLX_WINDOW_BIT, 
                 GLX_RENDER_TYPE, GLX_RGBA_BIT, 
@@ -130,6 +132,7 @@ gboolean video_glx_init( Display *display, int screen )
         if( configs == NULL || nelem == 0 ) {
             /* Try a 16-bit depth buffer and see if it helps */
             fb_attribs[5] = 16;
+            glx_depth_bits = 16;
             configs = glXChooseFBConfig( display, screen, fb_attribs, &nelem );
             if( nelem > 0 ) {
                 WARN( "Using a 16-bit depth buffer - expect video glitches" );
@@ -148,10 +151,12 @@ gboolean video_glx_init( Display *display, int screen )
     }
 
     if( !glx_fbconfig_supported ) {
+        glx_depth_bits = 24;
         int attribs[] = { GLX_RGBA, GLX_DEPTH_SIZE, 24, GLX_STENCIL_SIZE, 8, 0 };
         glx_visual = glXChooseVisual( display, screen, attribs );
         if( glx_visual == NULL ) {
             /* Try the 16-bit fallback here too */
+            glx_depth_bits = 16;
             attribs[2] = 16;
             glx_visual = glXChooseVisual( display, screen, attribs );
             if( glx_visual != NULL ) {
@@ -234,6 +239,7 @@ gboolean video_glx_init_driver( display_driver_t driver )
     driver->swap_buffers = video_glx_swap_buffers;
     driver->print_info = video_glx_print_info;
     driver->capabilities.has_gl = TRUE;
+    driver->capabilities.depth_bits = glx_depth_bits;
     if( gl_fbo_is_supported() ) { // First preference
         gl_fbo_init(driver);
     } else if( glx_pbuffer_supported ) {

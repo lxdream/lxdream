@@ -73,12 +73,15 @@ static gboolean clip_tile_bounds( uint32_t *tile, uint32_t *clip )
 
 static void drawrect2d( uint32_t tile_bounds[], float z )
 {
+    /* FIXME: Find a non-fixed-func way to do this */
+#ifdef HAVE_OPENGL_FIXEDFUNC
     glBegin( GL_TRIANGLE_STRIP );
     glVertex3f( tile_bounds[0], tile_bounds[2], z );
     glVertex3f( tile_bounds[1], tile_bounds[2], z );
     glVertex3f( tile_bounds[0], tile_bounds[3], z );
     glVertex3f( tile_bounds[1], tile_bounds[3], z );
     glEnd();
+#endif
 }
 
 static void pvr2_scene_load_textures()
@@ -116,8 +119,11 @@ void pvr2_setup_gl_context()
         if( !glsl_load_shaders( ) ) {
             WARN( "Unable to load GL shaders" );
         } else {
+            INFO( "Shaders loaded successfully" );
             have_shaders = TRUE;
         }
+    } else {
+        INFO( "Shaders not supported" );
     }
 
 #ifdef APPLE_BUILD
@@ -172,9 +178,9 @@ static void render_set_base_context( uint32_t poly1, gboolean set_depth )
  */
 static void render_set_tsp_context( uint32_t poly1, uint32_t poly2 )
 {
+#ifdef HAVE_OPENGL_FIXEDFUNC
     glShadeModel( POLY1_SHADE_MODEL(poly1) );
 
-#ifdef HAVE_OPENGL_FIXEDFUNC
     if( !have_shaders ) {
         if( POLY1_TEXTURED(poly1) ) {
             if( POLY2_TEX_BLEND(poly2) == 2 )

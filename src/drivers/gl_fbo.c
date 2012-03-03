@@ -59,6 +59,7 @@ struct gl_fbo_info {
 };
 
 static GLint gl_fbo_max_attachments = 0;
+static GLint gl_fbo_depth_component;
 static gboolean gl_fbo_have_packed_stencil = FALSE;
 static struct gl_fbo_info fbo[MAX_FRAMEBUFFERS];
 
@@ -102,6 +103,11 @@ void gl_fbo_init( display_driver_t driver )
         driver->capabilities.stencil_bits = 0;
         gl_fbo_have_packed_stencil = FALSE;
         WARN( "Packed depth stencil not available - disabling shadow volumes" );
+    }
+    if( driver->capabilities.depth_bits >= 24 ) {
+        gl_fbo_depth_component = GL_DEPTH_COMPONENT24;
+    } else {
+        gl_fbo_depth_component = GL_DEPTH_COMPONENT16;
     }
 
     driver->create_render_buffer = gl_fbo_create_render_buffer;
@@ -151,7 +157,7 @@ static void gl_fbo_setup_framebuffer( int bufno, int width, int height )
                                      GL_RENDERBUFFER, fbo[bufno].depth_id);
     } else {
         glBindRenderbuffer(GL_RENDERBUFFER, fbo[bufno].depth_id);
-        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, width, height);
+        glRenderbufferStorage(GL_RENDERBUFFER, gl_fbo_depth_component, width, height);
         glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
                                      GL_RENDERBUFFER, fbo[bufno].depth_id);
         /* In theory you could attach a separate stencil buffer. In practice this 
@@ -331,6 +337,8 @@ static void gl_fbo_display_render_buffer( render_buffer_t buffer )
 {
     gl_fbo_detach();
     gl_display_render_buffer( buffer );
+    if( display_driver->swap_buffers )
+        display_driver->swap_buffers();
 }
 
 static void gl_fbo_load_frame_buffer( frame_buffer_t frame, render_buffer_t buffer )
@@ -343,6 +351,8 @@ static void gl_fbo_display_blank( uint32_t colour )
 {
     gl_fbo_detach();
     gl_display_blank( colour );
+    if( display_driver->swap_buffers )
+        display_driver->swap_buffers();
 }
 
 void gl_fbo_detach()
@@ -353,8 +363,6 @@ void gl_fbo_detach()
     glDrawBuffer( GL_FRONT );
     glReadBuffer( GL_FRONT );
 #endif
-    if( display_driver->swap_buffers )
-        display_driver->swap_buffers();
 }    
 
 static gboolean gl_fbo_read_render_buffer( unsigned char *target, render_buffer_t buffer, 
