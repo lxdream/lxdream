@@ -8,6 +8,7 @@ AC_DEFUN([LX_ANDROID_BUILD], [
    AC_ARG_WITH( android-ndk, AS_HELP_STRING( [--with-android-ndk=NDK], [Specify the location of the Android NDK] ) )
    AC_ARG_WITH( android-version, AS_HELP_STRING( [--with-android-version], [Specify target Android SDK version]), [], [with_android_version="android-11"] )
    AC_ARG_WITH( android-ndk-version, AS_HELP_STRING( [--with-android-version], [Specify target Android NDK version]), [], [with_ndk_version="android-9"] )
+   AC_ARG_WITH( android-abi, AS_HELP_STRING( [--with-android-abi], [Specify target Android ABI]), [], [ANDROID_ABI="armeabi-v7a"] )
 
    if test "x$with_android" != "x"; then
       if test "$with_android" = "yes"; then
@@ -26,8 +27,11 @@ AC_DEFUN([LX_ANDROID_BUILD], [
       AC_CHECK_FILE( [$ANDROID_SDK_HOME/platforms/$ANDROID_SDK_VERSION/sdk.properties], [], [ AC_MSG_ERROR([Android platform version $ANDROID_SDK_VERSION not found in $ANDROID_SDK_HOME]) ])
       AC_CHECK_FILE( [$ANDROID_NDK_HOME/toolchains], [], [ AC_MSG_ERROR([Android NDK not found in $ANDROID_NDK_HOME]) ])
 
-      case $host_alias in
-         arm-* | "") 
+      dnl common flags
+      TARGETFLAGS="-ffunction-sections -funwind-tables -fomit-frame-pointer -DANDROID -Wa,--noexecstack"
+      
+      case $ANDROID_ABI in
+         armeabi | armeabi-v7a) 
             host_alias="arm-linux-androideabi"
             host_cpu="arm"
             host_vendor="unknown";
@@ -35,10 +39,15 @@ AC_DEFUN([LX_ANDROID_BUILD], [
             ANDROID_NDK_BIN=`echo $ANDROID_NDK_HOME/toolchains/arm-*/prebuilt/*/bin`
             ANDROID_GDBSERVER=`echo $ANDROID_NDK_HOME/toolchains/arm-*/prebuilt/gdbserver`
             ANDROID_SYSROOT="$ANDROID_NDK_HOME/platforms/$ANDROID_NDK_VERSION/arch-arm"
-            TARGETFLAGS="-ffunction-sections -funwind-tables -fstack-protector -fomit-frame-pointer -fno-strict-aliasing -finline-limit=64 -DANDROID -Wno-psabi -Wa,--noexecstack"
-            TARGETFLAGS="$TARGETFLAGS -D__ARM_ARCH_5__ -D__ARM_ARCH_5T__ -D__ARM_ARCH_5E__ -D__ARM_ARCH_5TE__ -march=armv5te -mtune=xscale -msoft-float -mthumb -Os"
+            dnl Common ARM flags
+            TARGETFLAGS="$TARGETFLAGS -fstack-protector -finline-limit=64 -fno-strict-aliasing -Wno-psabi -D__ARM_ARCH_5__ -D__ARM_ARCH_5T__ -D__ARM_ARCH_5E__ -D__ARM_ARCH_5TE__"
+            if test "x$with_abi" = "armeabi"; then
+                TARGETFLAGS="$TARGETFLAGS -march=armv5te -mtune=xscale -msoft-float"
+            else
+                TARGETFLAGS="$TARGETFLAGS -march=armv7-a -mtune=cortex-a8 -mfloat-abi=softfp -mfpu=vfp"
+            fi
             ;;
-         i686-*)
+         x86)
             host_alias="i686-android-linux"
             host_cpu="i686"
             host_vendor="android"
@@ -46,10 +55,10 @@ AC_DEFUN([LX_ANDROID_BUILD], [
             ANDROID_NDK_BIN=`echo $ANDROID_NDK_HOME/toolchains/x86-*/prebuilt/*/bin`
             ANDROID_GDBSERVER=`echo $ANDROID_NDK_HOME/toolchains/x86-*/prebuilt/gdbserver`
             ANDROID_SYSROOT="$ANDROID_NDK_HOME/platforms/$ANDROID_NDK_VERSION/arch-x86"
-            TARGETFLAGS=""
+            TARGETFLAGS="$TARGETFLAGS -finline-limit=300 -fno-rtti -funswitch-loops -fstrict-aliasing"
             ;;
          *)
-            AC_MSG_ERROR([Unsupported android host $host_alias])
+            AC_MSG_ERROR([Unsupported android ABI $ANDROID_ABI])
       	    ;;
       esac
    
@@ -67,6 +76,7 @@ AC_DEFUN([LX_ANDROID_BUILD], [
       LDFLAGS="-nostdlib -Wl,--no-undefined -L${ANDROID_SYSROOT}/usr/lib -Wl,-rpath-link,${ANDROID_SYSROOT}/usr/lib -Wl,-allow-shlib-undefined -Wl,-z,noexecstack $LDFLAGS"
       LIBS="$LIBS -liconv -landroid -llog -lgcc -lc -lm"
       
+      AC_SUBST(ANDROID_ABI)
       AC_SUBST(ANDROID_SDK_HOME)
       AC_SUBST(ANDROID_NDK_HOME)
       AC_SUBST(ANDROID_SDK_VERSION)

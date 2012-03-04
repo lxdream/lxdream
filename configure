@@ -683,6 +683,7 @@ host_cpu
 host_vendor
 host_os
 ANT
+ANDROID_ABI
 ANDROID_SDK_HOME
 ANDROID_NDK_HOME
 ANDROID_SDK_VERSION
@@ -1467,6 +1468,7 @@ Optional Packages:
   --with-android-ndk=NDK  Specify the location of the Android NDK
   --with-android-version  Specify target Android SDK version
   --with-android-version  Specify target Android NDK version
+  --with-android-abi      Specify target Android ABI
   --with-osmesa           Build with the osmesa GL library (software
                           rendering)
   --with-gtk              Build with the GTK UI. Default on X11 systems
@@ -2557,6 +2559,14 @@ else
 fi
 
 
+# Check whether --with-android-abi was given.
+if test "${with_android_abi+set}" = set; then
+  withval=$with_android_abi;
+else
+  ANDROID_ABI="armeabi-v7a"
+fi
+
+
    if test "x$with_android" != "x"; then
       if test "$with_android" = "yes"; then
          { { echo "$as_me:$LINENO: error: --with-android option must be given with the path to the Android SDK " >&5
@@ -2656,8 +2666,10 @@ echo "$as_me: error: Android NDK not found in $ANDROID_NDK_HOME" >&2;}
 fi
 
 
-      case $host_alias in
-         arm-* | "")
+            TARGETFLAGS="-ffunction-sections -funwind-tables -fomit-frame-pointer -DANDROID -Wa,--noexecstack"
+
+      case $ANDROID_ABI in
+         armeabi | armeabi-v7a)
             host_alias="arm-linux-androideabi"
             host_cpu="arm"
             host_vendor="unknown";
@@ -2665,10 +2677,14 @@ fi
             ANDROID_NDK_BIN=`echo $ANDROID_NDK_HOME/toolchains/arm-*/prebuilt/*/bin`
             ANDROID_GDBSERVER=`echo $ANDROID_NDK_HOME/toolchains/arm-*/prebuilt/gdbserver`
             ANDROID_SYSROOT="$ANDROID_NDK_HOME/platforms/$ANDROID_NDK_VERSION/arch-arm"
-            TARGETFLAGS="-ffunction-sections -funwind-tables -fstack-protector -fomit-frame-pointer -fno-strict-aliasing -finline-limit=64 -DANDROID -Wno-psabi -Wa,--noexecstack"
-            TARGETFLAGS="$TARGETFLAGS -D__ARM_ARCH_5__ -D__ARM_ARCH_5T__ -D__ARM_ARCH_5E__ -D__ARM_ARCH_5TE__ -march=armv5te -mtune=xscale -msoft-float -mthumb -Os"
+                        TARGETFLAGS="$TARGETFLAGS -fstack-protector -finline-limit=64 -fno-strict-aliasing -Wno-psabi -D__ARM_ARCH_5__ -D__ARM_ARCH_5T__ -D__ARM_ARCH_5E__ -D__ARM_ARCH_5TE__"
+            if test "x$with_abi" = "armeabi"; then
+                TARGETFLAGS="$TARGETFLAGS -march=armv5te -mtune=xscale -msoft-float"
+            else
+                TARGETFLAGS="$TARGETFLAGS -march=armv7-a -mtune=cortex-a8 -mfloat-abi=softfp -mfpu=vfp"
+            fi
             ;;
-         i686-*)
+         x86)
             host_alias="i686-android-linux"
             host_cpu="i686"
             host_vendor="android"
@@ -2676,11 +2692,11 @@ fi
             ANDROID_NDK_BIN=`echo $ANDROID_NDK_HOME/toolchains/x86-*/prebuilt/*/bin`
             ANDROID_GDBSERVER=`echo $ANDROID_NDK_HOME/toolchains/x86-*/prebuilt/gdbserver`
             ANDROID_SYSROOT="$ANDROID_NDK_HOME/platforms/$ANDROID_NDK_VERSION/arch-x86"
-            TARGETFLAGS=""
+            TARGETFLAGS="$TARGETFLAGS -finline-limit=300 -fno-rtti -funswitch-loops -fstrict-aliasing"
             ;;
          *)
-            { { echo "$as_me:$LINENO: error: Unsupported android host $host_alias" >&5
-echo "$as_me: error: Unsupported android host $host_alias" >&2;}
+            { { echo "$as_me:$LINENO: error: Unsupported android ABI $ANDROID_ABI" >&5
+echo "$as_me: error: Unsupported android ABI $ANDROID_ABI" >&2;}
    { (exit 1); exit 1; }; }
       	    ;;
       esac
@@ -2737,6 +2753,7 @@ fi
       CPPFLAGS="-fPIC --sysroot=$ANDROID_SYSROOT -I$ANDROID_SYSROOT/usr/include $TARGETFLAGS $CPPFLAGS"
       LDFLAGS="-nostdlib -Wl,--no-undefined -L${ANDROID_SYSROOT}/usr/lib -Wl,-rpath-link,${ANDROID_SYSROOT}/usr/lib -Wl,-allow-shlib-undefined -Wl,-z,noexecstack $LDFLAGS"
       LIBS="$LIBS -liconv -landroid -llog -lgcc -lc -lm"
+
 
 
 
@@ -16760,6 +16777,7 @@ host_cpu!$host_cpu$ac_delim
 host_vendor!$host_vendor$ac_delim
 host_os!$host_os$ac_delim
 ANT!$ANT$ac_delim
+ANDROID_ABI!$ANDROID_ABI$ac_delim
 ANDROID_SDK_HOME!$ANDROID_SDK_HOME$ac_delim
 ANDROID_NDK_HOME!$ANDROID_NDK_HOME$ac_delim
 ANDROID_SDK_VERSION!$ANDROID_SDK_VERSION$ac_delim
@@ -16786,7 +16804,6 @@ am__fastdepCC_FALSE!$am__fastdepCC_FALSE$ac_delim
 CPP!$CPP$ac_delim
 CC!$CC$ac_delim
 CFLAGS!$CFLAGS$ac_delim
-CPPFLAGS!$CPPFLAGS$ac_delim
 _ACEOF
 
   if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 97; then
@@ -16828,6 +16845,7 @@ _ACEOF
 ac_delim='%!_!# '
 for ac_last_try in false false false false false :; do
   cat >conf$$subs.sed <<_ACEOF
+CPPFLAGS!$CPPFLAGS$ac_delim
 CC_FOR_BUILD!$CC_FOR_BUILD$ac_delim
 ac_ct_CC_FOR_BUILD!$ac_ct_CC_FOR_BUILD$ac_delim
 CC_FOR_BUILDDEPMODE!$CC_FOR_BUILDDEPMODE$ac_delim
@@ -16924,7 +16942,6 @@ BUILD_SYSTEST_TRUE!$BUILD_SYSTEST_TRUE$ac_delim
 BUILD_SYSTEST_FALSE!$BUILD_SYSTEST_FALSE$ac_delim
 BUILD_ARMTEST_TRUE!$BUILD_ARMTEST_TRUE$ac_delim
 BUILD_ARMTEST_FALSE!$BUILD_ARMTEST_FALSE$ac_delim
-LXDREAM_LIBS!$LXDREAM_LIBS$ac_delim
 _ACEOF
 
   if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 97; then
@@ -16966,6 +16983,7 @@ _ACEOF
 ac_delim='%!_!# '
 for ac_last_try in false false false false false :; do
   cat >conf$$subs.sed <<_ACEOF
+LXDREAM_LIBS!$LXDREAM_LIBS$ac_delim
 GETTEXT_PACKAGE!$GETTEXT_PACKAGE$ac_delim
 USE_NLS!$USE_NLS$ac_delim
 MSGFMT!$MSGFMT$ac_delim
@@ -16987,7 +17005,7 @@ LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 19; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 20; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5
