@@ -385,8 +385,11 @@ static void scene_compute_lut_fog( )
         uint32_t index = pvr2_scene.poly_array[i].vertex_index;
         if( mode == PVR2_POLY_FOG_LOOKUP ) {
             for( j=0; j<pvr2_scene.poly_array[i].vertex_count; j++ ) {
-                pvr2_scene.vertex_array[index+j].offset_rgba[3] = 
-                    scene_compute_lut_fog_vertex( pvr2_scene.vertex_array[index+j].z, fog_density, fog_table );
+                float fog = scene_compute_lut_fog_vertex( pvr2_scene.vertex_array[index+j].z, fog_density, fog_table );
+                if( display_driver->capabilities.has_sl )
+                    pvr2_scene.vertex_array[index+j].offset_rgba[3] = -fog;
+                else
+                    pvr2_scene.vertex_array[index+j].offset_rgba[3] = fog;
             }
         } else if( mode == PVR2_POLY_FOG_LOOKUP2 ) {
             for( j=0; j<pvr2_scene.poly_array[i].vertex_count; j++ ) {
