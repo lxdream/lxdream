@@ -115,6 +115,7 @@ static void pvr2_scene_load_textures()
  */
 void pvr2_setup_gl_context()
 {
+    have_shaders = display_driver->capabilities.has_sl;
 #ifdef APPLE_BUILD
     CGL_MACRO_CONTEXT = CGLGetCurrentContext();
 #endif
