@@ -54,6 +54,7 @@ gboolean video_nsgl_init_driver( NSView *view, display_driver_t driver )
         return FALSE;
     }
     gl_vbo_init(driver);
+    glsl_init(driver);
 
     return TRUE;
 }

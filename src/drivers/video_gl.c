@@ -272,6 +272,7 @@ static gboolean video_gl_init()
          display_gl_driver.capabilities.has_gl = TRUE;
          gl_fbo_init(&display_gl_driver);
          gl_vbo_init(&display_gl_driver);
+         glsl_init(&display_gl_driver);
          return TRUE;
      } else {
          return FALSE;

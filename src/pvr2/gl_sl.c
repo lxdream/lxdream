@@ -492,3 +492,21 @@ void glsl_clear_shader()
     glsl_use_program(0);
 }
 
+gboolean glsl_init( display_driver_t driver )
+{
+    gboolean result;
+    if( glsl_is_supported() && isGLMultitextureSupported() ) {
+        if( !glsl_load_shaders( ) ) {
+            WARN( "Unable to load GL shaders" );
+            result = FALSE;
+        } else {
+            INFO( "Shaders loaded successfully" );
+            result = TRUE;
+        }
+    } else {
+        INFO( "Shaders not supported" );
+        result = FALSE;
+    }
+    driver->capabilities.has_sl = result;
+    return result;
+}

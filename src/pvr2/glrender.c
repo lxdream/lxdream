@@ -115,21 +115,10 @@ static void pvr2_scene_load_textures()
  */
 void pvr2_setup_gl_context()
 {
-    if( glsl_is_supported() && isGLMultitextureSupported() ) {
-        if( !glsl_load_shaders( ) ) {
-            WARN( "Unable to load GL shaders" );
-        } else {
-            INFO( "Shaders loaded successfully" );
-            have_shaders = TRUE;
-        }
-    } else {
-        INFO( "Shaders not supported" );
-    }
-
 #ifdef APPLE_BUILD
     CGL_MACRO_CONTEXT = CGLGetCurrentContext();
 #endif
-    texcache_gl_init(have_shaders); // Allocate texture IDs
+    texcache_gl_init(); // Allocate texture IDs
 
     /* Global settings */
     glDisable( GL_CULL_FACE );

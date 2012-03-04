@@ -136,6 +136,7 @@ GLint glGetMaxColourAttachments();
 
 
 /****** Shader handling (gl_sl.c) *****/
+gboolean glsl_init( display_driver_t driver );
 gboolean glsl_is_supported(void);
 const char *glsl_get_version(void);
 gboolean glsl_load_shaders( );
