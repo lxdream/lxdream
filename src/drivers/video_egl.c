@@ -126,6 +126,7 @@ gboolean video_egl_set_window(EGLNativeWindowType window, int width, int height,
         display_egl_driver.capabilities.depth_bits = 16; /* TODO: get from config info */
         gl_fbo_init(&display_egl_driver);
         gl_vbo_init(&display_egl_driver);
+        glsl_init(&display_egl_driver);
         fbo_created = TRUE;
     } else {
         ERROR( "Display does not support FBO" );
