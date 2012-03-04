@@ -235,6 +235,19 @@ static void android_init( const char *appHomeDir )
     hotkeys_init();
     serial_init();
     maple_reattach_all();
+
+    ERROR err;
+    gchar *disc_file = lxdream_get_global_config_path_value( CONFIG_GDROM );
+    if( disc_file != NULL ) {
+        gboolean ok = gdrom_mount_image( disc_file, &err );
+        g_free(disc_file);
+        if( !ok ) {
+            WARN( err.msg );
+        } else {
+            INFO( "Mounted %s", disc_file );
+        }
+    }
+
     INFO( "%s! ready...", APP_NAME );
     android_start_thread();
 }
