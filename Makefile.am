@@ -106,10 +106,10 @@ all-local:
 	       -Dout.dir="$$TARGETDIR" -Dnative.libs.dir="$$TARGETDIR/libs" \
 	       -Dnative.libs.absolute.dir="$$TARGETDIR/libs" \
 	       -Dtarget=$(ANDROID_SDK_VERSION) clean )
-	$(mkdir_p) android/libs/armeabi
-	$(INSTALL) src/liblxdream.so android/libs/armeabi/liblxdream.so
-	$(INSTALL) $(ANDROID_GDBSERVER) android/libs/armeabi/gdbserver
-	$(STRIP) --strip-unneeded android/libs/armeabi/liblxdream.so
+	$(mkdir_p) android/libs/$(ANDROID_ABI)
+	$(INSTALL) src/liblxdream.so android/libs/$(ANDROID_ABI)/liblxdream.so
+	$(INSTALL) $(ANDROID_GDBSERVER) android/libs/$(ANDROID_ABI)/gdbserver
+	$(STRIP) --strip-unneeded android/libs/$(ANDROID_ABI)/liblxdream.so
 	(TARGETDIR="`pwd`/android" && cd $(srcdir)/android && \
 	    $(ANT) -buildfile build.xml -Dsdk.dir=$(ANDROID_SDK_HOME) \
 	       -Dout.dir="$$TARGETDIR" -Dnative.libs.dir="$$TARGETDIR/libs" \

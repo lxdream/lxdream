@@ -94,6 +94,7 @@ ALSA_LIBS = @ALSA_LIBS@
 AMDEP_FALSE = @AMDEP_FALSE@
 AMDEP_TRUE = @AMDEP_TRUE@
 AMTAR = @AMTAR@
+ANDROID_ABI = @ANDROID_ABI@
 ANDROID_GDBSERVER = @ANDROID_GDBSERVER@
 ANDROID_NDK_HOME = @ANDROID_NDK_HOME@
 ANDROID_NDK_VERSION = @ANDROID_NDK_VERSION@
@@ -896,10 +897,10 @@ bundle: all
 @GUI_ANDROID_TRUE@	       -Dout.dir="$$TARGETDIR" -Dnative.libs.dir="$$TARGETDIR/libs" \
 @GUI_ANDROID_TRUE@	       -Dnative.libs.absolute.dir="$$TARGETDIR/libs" \
 @GUI_ANDROID_TRUE@	       -Dtarget=$(ANDROID_SDK_VERSION) clean )
-@GUI_ANDROID_TRUE@	$(mkdir_p) android/libs/armeabi
-@GUI_ANDROID_TRUE@	$(INSTALL) src/liblxdream.so android/libs/armeabi/liblxdream.so
-@GUI_ANDROID_TRUE@	$(INSTALL) $(ANDROID_GDBSERVER) android/libs/armeabi/gdbserver
-@GUI_ANDROID_TRUE@	$(STRIP) --strip-unneeded android/libs/armeabi/liblxdream.so
+@GUI_ANDROID_TRUE@	$(mkdir_p) android/libs/$(ANDROID_ABI)
+@GUI_ANDROID_TRUE@	$(INSTALL) src/liblxdream.so android/libs/$(ANDROID_ABI)/liblxdream.so
+@GUI_ANDROID_TRUE@	$(INSTALL) $(ANDROID_GDBSERVER) android/libs/$(ANDROID_ABI)/gdbserver
+@GUI_ANDROID_TRUE@	$(STRIP) --strip-unneeded android/libs/$(ANDROID_ABI)/liblxdream.so
 @GUI_ANDROID_TRUE@	(TARGETDIR="`pwd`/android" && cd $(srcdir)/android && \
 @GUI_ANDROID_TRUE@	    $(ANT) -buildfile build.xml -Dsdk.dir=$(ANDROID_SDK_HOME) \
 @GUI_ANDROID_TRUE@	       -Dout.dir="$$TARGETDIR" -Dnative.libs.dir="$$TARGETDIR/libs" \
