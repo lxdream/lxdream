@@ -162,7 +162,7 @@ void maple_handle_buffer( uint32_t address ) {
             send_addr = GETBYTE(10);
             /* Sanity checks */
             if( GETBYTE(11) != length ||
-                    send_addr >> 6 != port ||
+                    /* send_addr >> 6 != port || */  /* TODO: check that this is ignored? */
                     recv_addr >> 6 != port ||
                     return_buf == NULL ) {
                 ERROR( "Received bad packet: %02X %02X %02X %02X  %02X %02X %02X %02X  %02X %02X %02X %02X",
