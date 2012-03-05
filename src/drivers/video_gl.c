@@ -65,34 +65,34 @@ void gl_set_video_size( uint32_t width, uint32_t height, int flipped )
         x2 -= x1;
         video_box.gap1[0].x = 0; video_box.gap1[0].y = 0;
         video_box.gap1[1].x = x1; video_box.gap1[1].y = 0;
-        video_box.gap1[2].x = 0; video_box.gap1[2].y = video_height;
-        video_box.gap1[3].x = x2; video_box.gap1[3].y = video_height;
+        video_box.gap1[2].x = x2; video_box.gap1[2].y = video_height;
+        video_box.gap1[3].x = 0; video_box.gap1[3].y = video_height;
         video_box.gap2[0].x = x2; video_box.gap2[0].y = 0;
         video_box.gap2[1].x = video_width; video_box.gap2[1].y = 0;
-        video_box.gap2[2].x = x2; video_box.gap2[2].y = video_height;
-        video_box.gap2[3].x = video_width; video_box.gap2[3].y = video_height;
+        video_box.gap2[2].x = video_width; video_box.gap2[2].y = video_height;
+        video_box.gap2[3].x = x2; video_box.gap2[3].y = video_height;
     } else if( ah < video_height ) {
         y1 = (video_height - ah)/2;
         y2 -= y1;
 
         video_box.gap1[0].x = 0; video_box.gap1[0].y = 0;
         video_box.gap1[1].x = video_width; video_box.gap1[1].y = 0;
-        video_box.gap1[2].x = 0; video_box.gap1[2].y = y1;
-        video_box.gap1[3].x = video_width; video_box.gap1[3].y = y1;
+        video_box.gap1[2].x = video_width; video_box.gap1[2].y = y1;
+        video_box.gap1[3].x = 0; video_box.gap1[3].y = y1;
         video_box.gap2[0].x = 0; video_box.gap2[0].y = y2;
         video_box.gap2[1].x = video_width; video_box.gap2[1].y = y2;
-        video_box.gap2[2].x = 0; video_box.gap2[2].y = video_height;
-        video_box.gap2[3].x = video_width; video_box.gap2[3].y = video_height;
+        video_box.gap2[2].x = video_width; video_box.gap2[2].y = video_height;
+        video_box.gap2[3].x = 0; video_box.gap2[3].y = video_height;
     }
 
     video_box.video_view[0].x = x1; video_box.video_view[0].y = y1;
-    video_box.video_view[0].u = top; video_box.video_view[0].v = top;
+    video_box.video_view[0].u = 0; video_box.video_view[0].v = top;
     video_box.video_view[1].x = x2; video_box.video_view[1].y = y1;
-    video_box.video_view[1].u = bottom; video_box.video_view[1].v = top;
-    video_box.video_view[2].x = x1; video_box.video_view[2].y = y2;
-    video_box.video_view[2].u = top; video_box.video_view[2].v = bottom;
-    video_box.video_view[3].x = x2; video_box.video_view[3].y = y2;
-    video_box.video_view[3].u = bottom; video_box.video_view[3].v = bottom;
+    video_box.video_view[1].u = 1; video_box.video_view[1].v = top;
+    video_box.video_view[2].x = x2; video_box.video_view[2].y = y2;
+    video_box.video_view[2].u = 1; video_box.video_view[2].v = bottom;
+    video_box.video_view[3].x = x1; video_box.video_view[3].y = y2;
+    video_box.video_view[3].u = 0; video_box.video_view[3].v = bottom;
 
     memcpy( &video_box.invert_view, &video_box.video_view, sizeof(video_box.video_view) );
     video_box.invert_view[0].v = bottom; video_box.invert_view[1].v = bottom;
@@ -177,6 +177,13 @@ void gl_window_to_system_coords( int *x, int *y )
     }
 }
 
+/**
+ * Use quads if we have them, otherwise tri-fans.
+ */
+#ifndef GL_QUADS
+#define GL_TRIANGLE_FAN GL_QUADS
+#endif
+
 void gl_texture_window( int width, int height, int tex_id, gboolean inverted )
 {
     /* Set video box tex alpha to 1 */
@@ -185,13 +192,13 @@ void gl_texture_window( int width, int height, int tex_id, gboolean inverted )
 
     /* Reset display parameters */
     gl_framebuffer_setup();
-    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-    glDrawArrays(GL_TRIANGLE_STRIP, 4, 4);
+    glDrawArrays(GL_QUADS, 0, 4);
+    glDrawArrays(GL_QUADS, 4, 4);
     glEnable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D,tex_id);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glDrawArrays(GL_TRIANGLE_STRIP, inverted ? 12 : 8, 4);
+    glDrawArrays(GL_QUADS, inverted ? 12 : 8, 4);
     glDisable(GL_TEXTURE_2D);
     gl_framebuffer_cleanup();
     glFlush();
@@ -225,9 +232,9 @@ void gl_display_blank( uint32_t colour )
 
     /* And render */
     gl_framebuffer_setup();
-    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-    glDrawArrays(GL_TRIANGLE_STRIP, 4, 4);
-    glDrawArrays(GL_TRIANGLE_STRIP, 8, 4);
+    glDrawArrays(GL_QUADS, 0, 4);
+    glDrawArrays(GL_QUADS, 4, 4);
+    glDrawArrays(GL_QUADS, 8, 4);
     gl_framebuffer_cleanup();
     glFlush();
 }
