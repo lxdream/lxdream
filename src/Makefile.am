@@ -35,14 +35,14 @@ CLEANFILES = sh4/sh4core.c sh4/sh4dasm.c sh4/sh4x86.c sh4/sh4stat.c \
 	audio_alsa.lo audio_sdl.lo audio_esd.lo audio_pulse.lo input_lirc.lo \
 	lxdream_dummy.lo
 
-AM_CPPFLAGS = @LXDREAMCPPFLAGS@
-
 lxdream_LINK = $(LINK) @LXDREAMLDFLAGS@
 lxdream_LDADD = liblxdream-core.a @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@ @LIBISOFS_LIBS@ $(INTLLIBS) @LXDREAM_LIBS@
 lxdream_SOURCES = main.c 
 lxdream_LIBS = liblxdream-core.a
+lxdream_CPPFLAGS = @LXDREAMCPPFLAGS@
 
 noinst_LIBRARIES = liblxdream-core.a
+liblxdream_core_a_CPPFLAGS = @LXDREAMCPPFLAGS@
 liblxdream_core_a_SOURCES = version.c config.c config.h lxdream.h dream.h gui.h cpu.c cpu.h hook.h \
         gettext.h mem.c mem.h sdram.c mmio.h watch.c \
         asic.c asic.h clock.h serial.h \
@@ -60,7 +60,7 @@ liblxdream_core_a_SOURCES = version.c config.c config.h lxdream.h dream.h gui.h 
 	pvr2/pvr2.c pvr2/pvr2.h pvr2/pvr2mem.c pvr2/pvr2mmio.h \
 	pvr2/tacore.c pvr2/rendsort.c pvr2/tileiter.h pvr2/shaders.glsl \
 	pvr2/texcache.c pvr2/yuv.c pvr2/rendsave.c pvr2/scene.c pvr2/scene.h \
-	pvr2/gl_sl.c pvr2/shaders.h pvr2/shaders.def pvr2/glutil.c pvr2/glutil.h pvr2/glrender.c \
+	pvr2/shaders.h pvr2/shaders.def pvr2/glutil.c pvr2/glutil.h pvr2/glrender.c \
         maple/maple.c maple/maple.h \
         maple/controller.c maple/kbd.c maple/mouse.c maple/lightgun.c maple/vmu.c \
         loader.c loader.h elf.h bootstrap.c bootstrap.h util.c gdlist.c gdlist.h \
@@ -68,7 +68,7 @@ liblxdream_core_a_SOURCES = version.c config.c config.h lxdream.h dream.h gui.h 
 	display.c display.h dckeysyms.h \
 	drivers/audio_null.c drivers/video_null.c \
 	drivers/video_gl.c drivers/video_gl.h drivers/gl_fbo.c drivers/gl_vbo.c \
-	drivers/serial_unix.c \
+	drivers/gl_sl.c drivers/serial_unix.c \
 	drivers/cdrom/cdrom.h drivers/cdrom/cdrom.c drivers/cdrom/drive.h \
 	drivers/cdrom/sector.h drivers/cdrom/sector.c drivers/cdrom/defs.h \
         drivers/cdrom/cd_nrg.c drivers/cdrom/cd_cdi.c drivers/cdrom/cd_gdi.c \

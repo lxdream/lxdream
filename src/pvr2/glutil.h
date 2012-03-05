@@ -56,6 +56,7 @@ gboolean isGLVertexRangeSupported();
 gboolean isGLPixelBufferSupported();
 gboolean isGLMultitextureSupported();
 gboolean isGLMirroredTextureSupported();
+gboolean isGLShaderSupported();
 GLint glGetMaxColourAttachments();
 
 /****** Extension variant wrangling *****/
@@ -120,6 +121,11 @@ GLint glGetMaxColourAttachments();
 #define GL_BGRA GL_BGRA_EXT
 #endif
 
+#if defined(GL_SHADING_LANGUAGE_VERSION_ARB) && !defined(GL_SHADING_LANGUAGE_VERSION)
+#define GL_SHADING_LANGUAGE_VERSION GL_SHADING_LANGUAGE_VERSION_ARB
+#endif
+
+
 #if defined(HAVE_OPENGL_FBO_EXT) && !defined(HAVE_OPENGL_FBO)
 #define glGenFramebuffers glGenFramebuffersEXT
 #define glGenRenderbuffers glGenRenderbuffersEXT
@@ -136,11 +142,6 @@ GLint glGetMaxColourAttachments();
 
 
 /****** Shader handling (gl_sl.c) *****/
-gboolean glsl_init( display_driver_t driver );
-gboolean glsl_is_supported(void);
-const char *glsl_get_version(void);
-gboolean glsl_load_shaders( );
-void glsl_unload_shaders(void);
 void glsl_clear_shader();
 
 /* Define an orthographic transform matrix, given the bounding box (assuming origin at 0) */

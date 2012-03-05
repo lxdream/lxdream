@@ -85,6 +85,17 @@ void gl_vbo_init( display_driver_t driver );
 /* Set the fallback vertex buffer handling, for drivers with no GL */
 void gl_vbo_fallback_init( display_driver_t driver );
 
+/** Initialize and load SL shaders */
+gboolean glsl_init( display_driver_t driver );
+
+/** Initialise common GL functionality (FBO, SL, VBO)
+ * @param driver driver to be updated with appropriate calls
+ * @param need_fbo if TRUE, FBOs are required (ie main driver has no other way
+ * to construct an off-screen buffer)
+ * @return TRUE on success, FALSE if we couldn't setup a working context
+ */
+gboolean gl_init_driver( display_driver_t driver, gboolean need_fbo );
+
 #ifdef __cplusplus
 }
 #endif

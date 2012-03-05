@@ -43,19 +43,7 @@ gboolean video_nsgl_init_driver( NSView *view, display_driver_t driver )
     driver->swap_buffers = video_nsgl_swap_buffers;
     driver->capabilities.has_gl = TRUE;
     driver->capabilities.depth_bits = 24;
-    if( gl_fbo_is_supported() ) {
-        gl_fbo_init(driver);
-    } else {
-        /* Note there is a 'native' buffer framework, but since all current
-         * Apple drivers appear to support FBO, there's not much point in
-         * doing the work to support them.
-         */
-        ERROR( "FBO not supported" );
-        return FALSE;
-    }
-    gl_vbo_init(driver);
-    glsl_init(driver);
-
+    gl_init_driver(driver, TRUE);
     return TRUE;
 }
 

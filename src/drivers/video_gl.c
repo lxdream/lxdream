@@ -252,6 +252,32 @@ gboolean gl_read_render_buffer( unsigned char *target, render_buffer_t buffer,
     return TRUE;
 }
 
+gboolean gl_init_driver( display_driver_t driver, gboolean need_fbo )
+{
+    /* Use framebuffer objects if available */
+    if( gl_fbo_is_supported() ) {
+        gl_fbo_init(driver);
+    } else if( need_fbo ) {
+        ERROR( "Framebuffer objects not supported - unable to construct an off-screen buffer" );
+        return FALSE;
+    }
+
+    /* Use SL shaders if available */
+    gboolean have_shaders = glsl_init(driver);
+#ifndef HAVE_OPENGL_FIXEDFUNC
+    if( !have_shaders ) { /* Shaders are required if we don't have fixed-functionality */
+        gl_fbo_shutdown();
+        return FALSE;
+    }
+#endif
+
+    /* Use vertex arrays, VBOs, etc, if we have them */
+    gl_vbo_init(driver);
+
+    driver->capabilities.has_gl = TRUE;
+    return TRUE;
+}
+
 static gboolean video_gl_init();
 
 /**
@@ -268,13 +294,5 @@ struct display_driver display_gl_driver = {
 
 static gboolean video_gl_init()
 {
-     if( gl_fbo_is_supported() ) {
-         display_gl_driver.capabilities.has_gl = TRUE;
-         gl_fbo_init(&display_gl_driver);
-         gl_vbo_init(&display_gl_driver);
-         glsl_init(&display_gl_driver);
-         return TRUE;
-     } else {
-         return FALSE;
-     }
+    return gl_init_driver(&display_gl_driver, TRUE);
 }

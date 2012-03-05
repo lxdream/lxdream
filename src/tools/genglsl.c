@@ -389,6 +389,8 @@ static void writeInterface( const char *filename, glsldata_t data )
         }
     }
 
+    fprintf( f, "void glsl_clear_shader();\n" );
+
     fprintf( f, "#endif /* !lxdream_glsl_H */\n" );
 
     fclose(f);
@@ -480,6 +482,9 @@ static void writeSource( const char *filename, glsldata_t data )
         }
     }
 
+    fprintf( f, "\nvoid glsl_clear_shader() {\n" );
+    fprintf( f, "    glsl_run_cleanup_fn();\n    glsl_use_program(0);\n}\n" );
+
     fprintf( f, "\nstatic void glsl_init_programs( gl_program_t *ids ) {\n" );
     for( program_ptr = data->programs, i=0; program_ptr != NULL; program_ptr = program_ptr->next, i++ ) {
         program_t program = program_ptr->data;
@@ -494,6 +499,7 @@ static void writeSource( const char *filename, glsldata_t data )
             }
         }
     }
+
     fprintf( f, "}\n" );
 
     fclose(f);
