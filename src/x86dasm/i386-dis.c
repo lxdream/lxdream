@@ -33,7 +33,7 @@
 
 #include "x86dasm/dis-asm.h"
 #include "x86dasm/sysdep.h"
-#include "x86dasm/x86dasm.h"
+#include "xlat/xlatdasm.h"
 #include "gettext.h"
 
 #define MAXLEN 20
@@ -3175,7 +3175,7 @@ OP_E (int bytemode, int sizeflag)
       if (!intel_syntax)
 	if (mod != 0 || (base & 7) == 5)
 	  {
-	    x86_print_symbolic_operand (scratchbuf, !riprel, disp);
+	    xlat_print_symbolic_operand (scratchbuf, !riprel, disp);
 	    oappend (scratchbuf);
 	    if (riprel)
 	      {
@@ -3281,7 +3281,7 @@ OP_E (int bytemode, int sizeflag)
 			*obufp = '\0';
 		      }
 
-		    x86_print_symbolic_operand (scratchbuf, 0, disp);
+		    xlat_print_symbolic_operand (scratchbuf, 0, disp);
 		    oappend (scratchbuf);
 		  }
 	      }
@@ -3301,7 +3301,7 @@ OP_E (int bytemode, int sizeflag)
 		  oappend (names_seg[ds_reg - es_reg]);
 		  oappend (":");
 		}
-	      x86_print_symbolic_operand (scratchbuf, 1, disp);
+	      xlat_print_symbolic_operand (scratchbuf, 1, disp);
 	      oappend (scratchbuf);
 	    }
 	}
@@ -3334,7 +3334,7 @@ OP_E (int bytemode, int sizeflag)
       if (!intel_syntax)
 	if (mod != 0 || (rm & 7) == 6)
 	  {
-	    x86_print_symbolic_operand (scratchbuf, 0, disp);
+	    xlat_print_symbolic_operand (scratchbuf, 0, disp);
 	    oappend (scratchbuf);
 	  }
 
@@ -3632,7 +3632,7 @@ OP_I (int bytemode, int sizeflag)
 
   op &= mask;
   scratchbuf[0] = '$';
-  x86_print_symbolic_operand (scratchbuf + 1, 1, op);
+  xlat_print_symbolic_operand (scratchbuf + 1, 1, op);
   oappend (scratchbuf + intel_syntax);
   scratchbuf[0] = '\0';
 }
@@ -3683,7 +3683,7 @@ OP_I64 (int bytemode, int sizeflag)
 
   op &= mask;
   scratchbuf[0] = '$';
-  x86_print_symbolic_operand (scratchbuf + 1, 1, op);
+  xlat_print_symbolic_operand (scratchbuf + 1, 1, op);
   oappend (scratchbuf + intel_syntax);
   scratchbuf[0] = '\0';
 }
@@ -3733,7 +3733,7 @@ OP_sI (int bytemode, int sizeflag)
     }
 
   scratchbuf[0] = '$';
-  x86_print_symbolic_operand (scratchbuf + 1, 1, op);
+  xlat_print_symbolic_operand (scratchbuf + 1, 1, op);
   oappend (scratchbuf + intel_syntax);
 }
 
@@ -3769,7 +3769,7 @@ OP_J (int bytemode, int sizeflag)
     }
   disp = (start_pc + codep - start_codep + disp) & mask;
   set_op (disp, 0);
-  x86_print_symbolic_operand (scratchbuf, 1, disp);
+  xlat_print_symbolic_operand (scratchbuf, 1, disp);
   oappend (scratchbuf);
 }
 
@@ -3823,7 +3823,7 @@ OP_OFF (int bytemode ATTRIBUTE_UNUSED, int sizeflag)
 	  oappend (":");
 	}
     }
-  x86_print_symbolic_operand (scratchbuf, 1, off);
+  xlat_print_symbolic_operand (scratchbuf, 1, off);
   oappend (scratchbuf);
 }
 
@@ -3851,7 +3851,7 @@ OP_OFF64 (int bytemode ATTRIBUTE_UNUSED, int sizeflag ATTRIBUTE_UNUSED)
 	  oappend (":");
 	}
     }
-  x86_print_symbolic_operand (scratchbuf, 1, off);
+  xlat_print_symbolic_operand (scratchbuf, 1, off);
   oappend (scratchbuf);
 }
 

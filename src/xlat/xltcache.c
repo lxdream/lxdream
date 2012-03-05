@@ -24,7 +24,6 @@
 #include "sh4/sh4core.h"
 #include "sh4/sh4trans.h"
 #include "xlat/xltcache.h"
-#include "x86dasm/x86dasm.h"
 
 #define XLAT_LUT_PAGE_BITS 12
 #define XLAT_LUT_TOTAL_BITS 28
