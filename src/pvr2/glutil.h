@@ -141,8 +141,6 @@ GLint glGetMaxColourAttachments();
 #endif
 
 
-/****** Shader handling (gl_sl.c) *****/
-void glsl_clear_shader();
 
 /* Define an orthographic transform matrix, given the bounding box (assuming origin at 0) */
 void defineOrthoMatrix( GLfloat *matrix, GLfloat width, GLfloat height, GLfloat znear, GLfloat zfar );
