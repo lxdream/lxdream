@@ -121,18 +121,12 @@ gboolean video_egl_set_window(EGLNativeWindowType window, int width, int height,
         return FALSE;
     }
 
-    if( gl_fbo_is_supported() ) {
-        display_egl_driver.capabilities.has_gl = TRUE;
-        display_egl_driver.capabilities.depth_bits = 16; /* TODO: get from config info */
-        gl_fbo_init(&display_egl_driver);
-        gl_vbo_init(&display_egl_driver);
-        glsl_init(&display_egl_driver);
-        fbo_created = TRUE;
-    } else {
-        ERROR( "Display does not support FBO" );
+    display_egl_driver.capabilities.depth_bits = 16; /* TODO: get from config info */
+    if( !gl_init_driver(&display_egl_driver, TRUE) ) {
         video_egl_clear_window();
         return FALSE;
     }
+    fbo_created = TRUE;
     gl_set_video_size(width, height, 0);
     pvr2_setup_gl_context();
     INFO( "Initialised EGL %d.%d\n", major, minor );

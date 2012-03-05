@@ -240,17 +240,14 @@ gboolean video_glx_init_driver( display_driver_t driver )
     driver->print_info = video_glx_print_info;
     driver->capabilities.has_gl = TRUE;
     driver->capabilities.depth_bits = glx_depth_bits;
-    if( gl_fbo_is_supported() ) { // First preference
-        gl_fbo_init(driver);
-    } else if( glx_pbuffer_supported ) {
-        glx_pbuffer_init(driver);
-    } else {
-        ERROR( "Unable to create render buffers (requires either EXT_framebuffer_object or GLX 1.3+)" );
+    if( !gl_init_driver(driver, !glx_pbuffer_supported) ) {
         video_glx_shutdown();
         return FALSE;
     }
-    gl_vbo_init(driver);
-    glsl_init(driver);
+    if( driver->create_render_buffer == NULL ) {
+        /* If we get here, pbuffers are supported and FBO didn't work */
+        glx_pbuffer_init(driver);
+    }
     return TRUE;
 }
 

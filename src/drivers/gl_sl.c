@@ -35,32 +35,22 @@ typedef GLuint gl_program_t;
 typedef GLuint gl_shader_t;
 #endif
 
-gboolean glsl_is_supported();
-gl_shader_t glsl_create_vertex_shader( const char *source );
-gl_shader_t glsl_create_fragment_shader( const char *source );
-gl_program_t glsl_create_program( gl_shader_t *shaderv );
-void glsl_use_program(gl_program_t program);
-void glsl_destroy_shader(gl_shader_t shader);
-void glsl_destroy_program(gl_program_t program);
+static gl_shader_t glsl_create_vertex_shader( const char *source );
+static gl_shader_t glsl_create_fragment_shader( const char *source );
+static gl_program_t glsl_create_program( gl_shader_t *shaderv );
+static void glsl_use_program(gl_program_t program);
+static void glsl_destroy_shader(gl_shader_t shader);
+static void glsl_destroy_program(gl_program_t program);
+static gboolean glsl_load_shaders( );
+static void glsl_unload_shaders(void);
 
 typedef void (*program_cleanup_fn_t)();
 static void glsl_set_cleanup_fn( program_cleanup_fn_t );
+static void glsl_run_cleanup_fn( );
 
 #ifdef HAVE_OPENGL_SHADER_ARB
 
-gboolean glsl_is_supported()
-{
-    return isOpenGLES2() || (isGLExtensionSupported("GL_ARB_fragment_shader") &&
-    isGLExtensionSupported("GL_ARB_vertex_shader") &&
-    isGLExtensionSupported("GL_ARB_shading_language_100"));
-}
-
-const char *glsl_get_version()
-{
-    return glGetString(GL_SHADING_LANGUAGE_VERSION_ARB);
-}
-
-void glsl_print_error( char *msg, GLhandleARB obj )
+static void glsl_print_error( char *msg, GLhandleARB obj )
 {
     char buf[MAX_ERROR_BUF];
     GLsizei length;
@@ -68,7 +58,7 @@ void glsl_print_error( char *msg, GLhandleARB obj )
     ERROR( "%s: %s", msg, buf );
 }
 
-gboolean glsl_check_shader_error( char *msg, GLhandleARB obj )
+static gboolean glsl_check_shader_error( char *msg, GLhandleARB obj )
 {
     GLint value;
 
@@ -80,7 +70,7 @@ gboolean glsl_check_shader_error( char *msg, GLhandleARB obj )
     return TRUE;
 }
 
-gboolean glsl_check_program_error( char *msg, GLhandleARB obj )
+static gboolean glsl_check_program_error( char *msg, GLhandleARB obj )
 {
     if( glGetError() != GL_NO_ERROR ) {
         glsl_print_error(msg, obj);
@@ -88,7 +78,7 @@ gboolean glsl_check_program_error( char *msg, GLhandleARB obj )
     return TRUE;
 }
 
-gl_shader_t glsl_create_vertex_shader( const char *source )
+static gl_shader_t glsl_create_vertex_shader( const char *source )
 {
     gboolean ok;
     gl_shader_t shader = glCreateShaderObjectARB(GL_VERTEX_SHADER_ARB);
@@ -104,7 +94,7 @@ gl_shader_t glsl_create_vertex_shader( const char *source )
     }
 }
 
-gl_shader_t glsl_create_fragment_shader( const char *source )
+static gl_shader_t glsl_create_fragment_shader( const char *source )
 {
     gboolean ok;
     gl_shader_t shader = glCreateShaderObjectARB(GL_FRAGMENT_SHADER_ARB);
@@ -120,7 +110,7 @@ gl_shader_t glsl_create_fragment_shader( const char *source )
     }
 }
 
-gl_program_t glsl_create_program( gl_shader_t *shaderv )
+static gl_program_t glsl_create_program( gl_shader_t *shaderv )
 {
     gboolean ok;
     unsigned i;
@@ -140,17 +130,17 @@ gl_program_t glsl_create_program( gl_shader_t *shaderv )
     }
 }
 
-void glsl_use_program(gl_program_t program)
+static void glsl_use_program(gl_program_t program)
 {
     glUseProgramObjectARB(program);
 }
 
-void glsl_destroy_shader(gl_shader_t shader)
+static void glsl_destroy_shader(gl_shader_t shader)
 {
     glDeleteObjectARB(shader);
 }
 
-void glsl_destroy_program(gl_program_t program)
+static void glsl_destroy_program(gl_program_t program)
 {
     glDeleteObjectARB(program);
 }
@@ -180,19 +170,7 @@ static inline GLint glsl_get_attrib_location(gl_program_t program, const char *n
 
 #elif HAVE_OPENGL_SHADER
 
-gboolean glsl_is_supported()
-{
-    return isOpenGLES2() || (isGLExtensionSupported("GL_ARB_fragment_shader") &&
-    isGLExtensionSupported("GL_ARB_vertex_shader") &&
-    isGLExtensionSupported("GL_ARB_shading_language_100"));
-}
-
-const char *glsl_get_version()
-{
-    return glGetString(GL_SHADING_LANGUAGE_VERSION);
-}
-
-gboolean glsl_check_shader_error( char *msg, GLuint shader )
+static gboolean glsl_check_shader_error( char *msg, GLuint shader )
 {
     GLint value;
 
@@ -207,7 +185,7 @@ gboolean glsl_check_shader_error( char *msg, GLuint shader )
     return TRUE;
 }
 
-gboolean glsl_check_program_error( char *msg, GLuint program )
+static gboolean glsl_check_program_error( char *msg, GLuint program )
 {
     if( glGetError() != GL_NO_ERROR ) {
         char buf[MAX_ERROR_BUF];
@@ -219,7 +197,7 @@ gboolean glsl_check_program_error( char *msg, GLuint program )
     return TRUE;
 }
 
-gl_shader_t glsl_create_vertex_shader( const char *source )
+static gl_shader_t glsl_create_vertex_shader( const char *source )
 {
     gboolean ok;
     gl_shader_t shader = glCreateShader(GL_VERTEX_SHADER);
@@ -236,7 +214,7 @@ gl_shader_t glsl_create_vertex_shader( const char *source )
 
 }
 
-gl_shader_t glsl_create_fragment_shader( const char *source )
+static gl_shader_t glsl_create_fragment_shader( const char *source )
 {
     gboolean ok;
     gl_shader_t shader = glCreateShader(GL_FRAGMENT_SHADER);
@@ -252,7 +230,7 @@ gl_shader_t glsl_create_fragment_shader( const char *source )
     }
 }
 
-gl_program_t glsl_create_program( gl_shader_t *shaderv )
+static gl_program_t glsl_create_program( gl_shader_t *shaderv )
 {
     gboolean ok;
     unsigned i;
@@ -271,17 +249,17 @@ gl_program_t glsl_create_program( gl_shader_t *shaderv )
     }
 }
 
-void glsl_use_program(gl_program_t program)
+static void glsl_use_program(gl_program_t program)
 {
     glUseProgram(program);
 }
 
-void glsl_destroy_shader(gl_shader_t shader)
+static void glsl_destroy_shader(gl_shader_t shader)
 {
     glDeleteShader(shader);
 }
 
-void glsl_destroy_program(gl_program_t program)
+static void glsl_destroy_program(gl_program_t program)
 {
     glDeleteProgram(program);
 }
@@ -310,49 +288,40 @@ static inline GLint glsl_get_attrib_location(gl_program_t program, const char *n
 
 
 #else
-gboolean glsl_is_supported()
-{
-    return FALSE;
-}
 
-const char *glsl_get_version()
+static gl_shader_t glsl_create_vertex_shader( const char *source )
 {
     return 0;
 }
 
-gl_shader_t glsl_create_vertex_shader( const char *source )
+static gl_shader_t glsl_create_fragment_shader( const char *source )
 {
     return 0;
 }
 
-gl_shader_t glsl_create_fragment_shader( const char *source )
+static gl_program_t glsl_create_program( gl_shader_t *shaderv )
 {
     return 0;
 }
 
-gl_program_t glsl_create_program( gl_shader_t *shaderv )
+static void glsl_use_program(gl_program_t program)
+{
+}
+
+static void glsl_destroy_shader(gl_shader_t shader)
+{
+}
+
+static void glsl_destroy_program(gl_program_t program)
+{
+}
+
+static static inline GLint glsl_get_uniform_location(gl_program_t program, const char *name)
 {
     return 0;
 }
 
-void glsl_use_program(gl_program_t program)
-{
-}
-
-void glsl_destroy_shader(gl_shader_t shader)
-{
-}
-
-void glsl_destroy_program(gl_program_t program)
-{
-}
-
-static inline GLint glsl_get_uniform_location(gl_program_t program, const char *name)
-{
-    return 0;
-}
-
-static inline GLint glsl_get_attrib_location(gl_program_t program, const char *name)
+static static inline GLint glsl_get_attrib_location(gl_program_t program, const char *name)
 {
     return 0;
 }
@@ -383,8 +352,7 @@ program_cleanup_fn_t current_cleanup_fn = NULL;
 
 static gl_program_t program_array[GLSL_NUM_PROGRAMS];
 
-
-gboolean glsl_load_shaders()
+static gboolean glsl_load_shaders()
 {
     gl_shader_t shader_array[GLSL_NUM_SHADERS];
     gboolean ok = TRUE;
@@ -474,7 +442,7 @@ static void glsl_run_cleanup_fn()
     current_cleanup_fn = NULL;
 }
 
-void glsl_unload_shaders()
+static void glsl_unload_shaders()
 {
     unsigned i;
     glsl_run_cleanup_fn();
@@ -486,16 +454,10 @@ void glsl_unload_shaders()
     }
 }
 
-void glsl_clear_shader()
-{
-    glsl_run_cleanup_fn();
-    glsl_use_program(0);
-}
-
 gboolean glsl_init( display_driver_t driver )
 {
     gboolean result;
-    if( glsl_is_supported() && isGLMultitextureSupported() ) {
+    if( isGLShaderSupported() && isGLMultitextureSupported() ) {
         if( !glsl_load_shaders( ) ) {
             WARN( "Unable to load GL shaders" );
             result = FALSE;

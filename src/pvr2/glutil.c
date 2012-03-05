@@ -21,6 +21,14 @@
 #include <glib/gstrfuncs.h>
 #include "pvr2/glutil.h"
 
+gboolean isOpenGLES2()
+{
+    const char *str = glGetString(GL_VERSION);
+    if( strncmp(str, "OpenGL ES 2.", 12) == 0 ) {
+        return TRUE;
+    }
+}
+
 gboolean isGLSecondaryColorSupported()
 {
     return isGLExtensionSupported("GL_EXT_secondary_color");
@@ -41,12 +49,12 @@ gboolean isGLMirroredTextureSupported()
     return isGLExtensionSupported("GL_ARB_texture_mirrored_repeat");
 }
 
-gboolean isOpenGLES2()
+
+gboolean isGLShaderSupported()
 {
-    const char *str = glGetString(GL_VERSION);
-    if( strncmp(str, "OpenGL ES 2.", 12) == 0 ) {
-        return TRUE;
-    }
+    return isOpenGLES2() || (isGLExtensionSupported("GL_ARB_fragment_shader") &&
+    isGLExtensionSupported("GL_ARB_vertex_shader") &&
+    isGLExtensionSupported("GL_ARB_shading_language_100"));
 }
 
 /**
@@ -206,9 +214,8 @@ void glPrintInfo( FILE *out )
     fprintf( out, "GL Vendor: %s\n", glGetString(GL_VENDOR) );
     fprintf( out, "GL Renderer: %s\n", glGetString(GL_RENDERER) );
     fprintf( out, "GL Version: %s\n", glGetString(GL_VERSION) );
-    if( glsl_is_supported() ) {
-         const char * version = glsl_get_version();
-         fprintf( out, "SL Version: %s\n", version );
+    if( isGLShaderSupported() ) {
+         fprintf( out, "SL Version: %s\n", glGetString(GL_SHADING_LANGUAGE_VERSION) );
     }
 
     fprintf( out, "GL Extensions:\n" );
