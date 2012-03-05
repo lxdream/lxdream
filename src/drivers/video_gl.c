@@ -65,7 +65,7 @@ void gl_set_video_size( uint32_t width, uint32_t height, int flipped )
         x2 -= x1;
         video_box.gap1[0].x = 0; video_box.gap1[0].y = 0;
         video_box.gap1[1].x = x1; video_box.gap1[1].y = 0;
-        video_box.gap1[2].x = x2; video_box.gap1[2].y = video_height;
+        video_box.gap1[2].x = x1; video_box.gap1[2].y = video_height;
         video_box.gap1[3].x = 0; video_box.gap1[3].y = video_height;
         video_box.gap2[0].x = x2; video_box.gap2[0].y = 0;
         video_box.gap2[1].x = video_width; video_box.gap2[1].y = 0;
