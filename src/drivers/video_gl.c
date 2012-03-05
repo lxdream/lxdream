@@ -181,7 +181,7 @@ void gl_window_to_system_coords( int *x, int *y )
  * Use quads if we have them, otherwise tri-fans.
  */
 #ifndef GL_QUADS
-#define GL_TRIANGLE_FAN GL_QUADS
+#define GL_QUADS GL_TRIANGLE_FAN
 #endif
 
 void gl_texture_window( int width, int height, int tex_id, gboolean inverted )
