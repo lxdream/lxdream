@@ -166,6 +166,12 @@ void sh4_translate_disasm_block( FILE *out, void *code, sh4addr_t source_start, 
  */
 void sh4_translate_dump_cache_by_activity( unsigned int topN );
 
+/**
+ * Translator function to retrieve the target block for the given PC,
+ * and replace the callsite with a direct branch to the target block.
+ */
+void FASTCALL sh4_translate_link_block( uint32_t pc );
+
 #ifdef __cplusplus
 }
 #endif

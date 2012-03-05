@@ -24,8 +24,10 @@
 #include "sh4/sh4core.h"
 #include "sh4/sh4trans.h"
 #include "sh4/sh4mmio.h"
+#include "sh4/sh4dasm.h"
 #include "sh4/mmu.h"
 #include "xlat/xltcache.h"
+#include "xlat/xlatdasm.h"
 
 //#define SINGLESTEP 1
 
@@ -291,6 +293,83 @@ void sh4_translate_dump_block( uint32_t sh4_pc )
     }
     sh4_translate_disasm_block( stderr, code, sh4_pc, NULL );
 }
+
+
+static struct xlat_symbol xlat_symbol_table[] = {
+    { "sh4r+128", ((char *)&sh4r)+128 },
+    { "sh4_cpu_period", &sh4_cpu_period },
+    { "sh4_address_space", NULL },
+    { "sh4_user_address_space", NULL },
+    { "sh4_translate_breakpoint_hit", sh4_translate_breakpoint_hit },
+    { "sh4_translate_link_block", sh4_translate_link_block },
+    { "sh4_write_fpscr", sh4_write_fpscr },
+    { "sh4_write_sr", sh4_write_sr },
+    { "sh4_read_sr", sh4_read_sr },
+    { "sh4_raise_exception", sh4_raise_exception },
+    { "sh4_sleep", sh4_sleep },
+    { "sh4_fsca", sh4_fsca },
+    { "sh4_ftrv", sh4_ftrv },
+    { "sh4_switch_fr_banks", sh4_switch_fr_banks },
+    { "sh4_execute_instruction", sh4_execute_instruction },
+    { "signsat48", signsat48 },
+    { "xlat_get_code_by_vma", xlat_get_code_by_vma },
+    { "xlat_get_code", xlat_get_code }
+};
+
+/**
+ * Disassemble the given translated code block, and it's source code block
+ * side-by-side. The current native pc will be marked if non-null.
+ */
+void sh4_translate_disasm_block( FILE *out, void *code, sh4addr_t source_start, void *native_pc )
+{
+    char buf[256];
+    char op[256];
+
+    xlat_symbol_table[2].ptr = sh4_address_space;
+    xlat_symbol_table[3].ptr = sh4_user_address_space;
+    xlat_disasm_init( xlat_symbol_table, sizeof(xlat_symbol_table)/sizeof(struct xlat_symbol) );
+
+    uintptr_t target_start = (uintptr_t)code, target_pc;
+    uintptr_t target_end = target_start + xlat_get_code_size(code);
+    uint32_t source_pc = source_start;
+    uint32_t source_end = source_pc;
+    xlat_recovery_record_t source_recov_table = XLAT_RECOVERY_TABLE(code);
+    xlat_recovery_record_t source_recov_end = source_recov_table + XLAT_BLOCK_FOR_CODE(code)->recover_table_size - 1;
+
+    for( target_pc = target_start; target_pc < target_end;  ) {
+        uintptr_t pc2 = xlat_disasm_instruction( target_pc, buf, sizeof(buf), op );
+#if SIZEOF_VOID_P == 8
+        fprintf( out, "%c%016lx: %-30s %-40s", (target_pc == (uintptr_t)native_pc ? '*' : ' '),
+                      target_pc, op, buf );
+#else
+        fprintf( out, "%c%08lx: %-30s %-40s", (target_pc == (uintptr_t)native_pc ? '*' : ' '),
+                      target_pc, op, buf );
+#endif
+        if( source_recov_table < source_recov_end &&
+            target_pc >= (target_start + source_recov_table->xlat_offset) ) {
+            source_recov_table++;
+            if( source_end < (source_start + (source_recov_table->sh4_icount)*2) )
+                source_end = source_start + (source_recov_table->sh4_icount)*2;
+        }
+
+        if( source_pc < source_end ) {
+            uint32_t source_pc2 = sh4_disasm_instruction( source_pc, buf, sizeof(buf), op );
+            fprintf( out, " %08X: %s  %s\n", source_pc, op, buf );
+            source_pc = source_pc2;
+        } else {
+            fprintf( out, "\n" );
+        }
+
+        target_pc = pc2;
+    }
+
+    while( source_pc < source_end ) {
+        uint32_t source_pc2 = sh4_disasm_instruction( source_pc, buf, sizeof(buf), op );
+        fprintf( out, "%*c %08X: %s  %s\n", 72,' ', source_pc, op, buf );
+        source_pc = source_pc2;
+    }
+}
+
 
 void sh4_translate_dump_cache_by_activity( unsigned int topN )
 {

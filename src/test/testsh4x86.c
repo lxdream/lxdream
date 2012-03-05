@@ -24,7 +24,7 @@
 #include <sys/stat.h>
 #include <string.h>
 
-#include "x86dasm/x86dasm.h"
+#include "xlat/xlatdasm.h"
 #include "sh4/sh4trans.h"
 #include "sh4/sh4core.h"
 #include "sh4/sh4mmio.h"
@@ -35,6 +35,7 @@ struct mmio_region mmio_region_MMU;
 struct mmio_region mmio_region_PMM;
 struct breakpoint_struct sh4_breakpoints[MAX_BREAKPOINTS];
 int sh4_breakpoint_count = 0;
+gboolean sh4_profile_blocks = FALSE;
 
 #define MAX_INS_SIZE 32
 
@@ -56,7 +57,7 @@ FILE *in;
 
 char *inbuf;
 
-struct x86_symbol local_symbols[] = {
+struct xlat_symbol local_symbols[] = {
     { "sh4r+128", ((char *)&sh4r)+128 },
     { "sh4_cpu_period", &sh4_cpu_period },
     { "sh4_address_space", (void *)0x12345432 },
@@ -192,12 +193,11 @@ int main( int argc, char *argv[] )
     uintptr_t pc;
     uint8_t *buf = sh4_translate_basic_block( start_addr );
     uint32_t buflen = xlat_get_code_size(buf);
-    x86_disasm_init( buf, (uintptr_t)buf, buflen );
-    x86_set_symtab( local_symbols, sizeof(local_symbols)/sizeof(struct x86_symbol) );
+    xlat_disasm_init( local_symbols, sizeof(local_symbols)/sizeof(struct xlat_symbol) );
     for( pc = (uintptr_t)buf; pc < ((uintptr_t)buf) + buflen;  ) {
 	char buf[256];
 	char op[256];
-	uintptr_t pc2 = x86_disasm_instruction( pc, buf, sizeof(buf), op );
+	uintptr_t pc2 = xlat_disasm_instruction( pc, buf, sizeof(buf), op );
 	fprintf( stdout, "%p: %s\n", (void *)pc, buf );
 	pc = pc2;
     }

@@ -94,15 +94,6 @@ xlat_cache_block_t xlat_extend_block( uint32_t newSize );
 void xlat_commit_block( uint32_t destsize, sh4addr_t startpc, sh4addr_t endpc );
 
 /**
- * Dump the disassembly of the specified code block to a stream
- * (primarily for debugging purposes)
- * @param out The stream to write the output to
- * @param code a translated block
- */
-void xlat_disasm_block( FILE *out, void *code );
-
-
-/**
  * Delete (deactivate) the specified block from the cache. Caller is responsible
  * for ensuring that there really is a block there.
  */
