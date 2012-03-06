@@ -9005,6 +9005,7 @@ cat >>confdefs.h <<\_ACEOF
 _ACEOF
 
    UI_DRIVER="Android"
+   VIDEO_DRIVERS="egl"
    with_sdl=no
 else
 
