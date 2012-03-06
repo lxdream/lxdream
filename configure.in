@@ -88,6 +88,7 @@ if test "$ANDROID_BUILD" = "yes"; then
    LIBS="-lEGL -lGLESv2 $LIBS"
    AC_DEFINE(HAVE_GLES2, 1, [Using GLESv2])
    UI_DRIVER="Android"
+   VIDEO_DRIVERS="egl"
    with_sdl=no
 else
 AC_HAVE_OBJC([
