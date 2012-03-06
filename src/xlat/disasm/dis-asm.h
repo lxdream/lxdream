@@ -33,7 +33,7 @@ extern "C" {
 #endif
 
 #include <stdio.h>
-#include "x86dasm/bfd.h"
+#include "xlat/disasm/bfd.h"
 
 typedef int (*fprintf_ftype) (void *, const char*, ...);
 

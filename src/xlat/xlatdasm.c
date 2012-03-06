@@ -21,8 +21,8 @@
 #include <string.h>
 #include "xlat/xltcache.h"
 #include "xlat/xlatdasm.h"
-#include "x86dasm/bfd.h"
-#include "x86dasm/dis-asm.h"
+#include "xlat/disasm/bfd.h"
+#include "xlat/disasm/dis-asm.h"
 #include "sh4/sh4.h"
 
 #if defined(__i386__)

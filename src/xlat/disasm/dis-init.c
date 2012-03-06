@@ -17,9 +17,9 @@
    Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
    02111-1307, USA.  */
 
-#include "x86dasm/sysdep.h"
-#include "x86dasm/dis-asm.h"
-#include "x86dasm/bfd.h"
+#include "xlat/disasm/sysdep.h"
+#include "xlat/disasm/dis-asm.h"
+#include "xlat/disasm/bfd.h"
 
 void
 init_disassemble_info (struct disassemble_info *info, void *stream,

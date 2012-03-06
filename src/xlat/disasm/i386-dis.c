@@ -31,8 +31,8 @@
    and the small letter tells about the operand size.  Refer to
    the Intel manual for details.  */
 
-#include "x86dasm/dis-asm.h"
-#include "x86dasm/sysdep.h"
+#include "xlat/disasm/dis-asm.h"
+#include "xlat/disasm/sysdep.h"
 #include "xlat/xlatdasm.h"
 #include "gettext.h"
 
