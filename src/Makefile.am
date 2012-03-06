@@ -90,13 +90,17 @@ liblxdream_core_a_SOURCES += sh4/sh4x86.c xlat/x86/x86op.h \
         sh4/sh4trans.c sh4/sh4trans.h sh4/mmux86.c sh4/shadow.c \
         xlat/disasm/i386-dis.c xlat/disasm/dis-init.c xlat/disasm/dis-buf.c \
         xlat/disasm/ansidecl.h xlat/disasm/bfd.h xlat/disasm/dis-asm.h \
-        xlat/disasm/symcat.h xlat/disasm/sysdep.h
+        xlat/disasm/symcat.h xlat/disasm/sysdep.h xlat/disasm/arm-dis.c \
+        xlat/disasm/floatformat.c xlat/disasm/floatformat.h \
+        xlat/disasm/arm.h xlat/disasm/safe-ctype.h xlat/disasm/safe-ctype.c
 
 test_testsh4x86_LDADD = @LXDREAM_LIBS@ @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@
 test_testsh4x86_CPPFLAGS = @LXDREAMCPPFLAGS@
 test_testsh4x86_SOURCES = test/testsh4x86.c xlat/xlatdasm.c \
 	xlat/xlatdasm.h xlat/disasm/i386-dis.c xlat/disasm/dis-init.c \
-	xlat/disasm/dis-buf.c \
+	xlat/disasm/dis-buf.c xlat/disasm/arm-dis.c \
+        xlat/disasm/arm.h xlat/disasm/safe-ctype.h xlat/disasm/safe-ctype.c \
+        xlat/disasm/floatformat.c xlat/disasm/floatformat.h \
 	sh4/sh4trans.c sh4/sh4x86.c xlat/xltcache.c sh4/sh4dasm.c \
 	xlat/xltcache.h mem.c util.c cpu.c
 
