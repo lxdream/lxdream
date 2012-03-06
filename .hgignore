@@ -63,3 +63,5 @@ test/testaica.bin
 test/randmath
 test/randmath.bin
 test/randmath.native
+android/build.prop
+android/gen/R.java.d
