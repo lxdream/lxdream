@@ -27,7 +27,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.  */
 
 #include "lxdream.h"
 
-#include "x86dasm/ansidecl.h"
+#include "xlat/disasm/ansidecl.h"
 
 #ifdef HAVE_STDLIB_H
 #include <stdlib.h>

@@ -88,15 +88,15 @@ liblxdream_core_a_SOURCES += sh4/sh4x86.c xlat/x86/x86op.h \
         xlat/x86/ia32abi.h xlat/x86/amd64abi.h \
         xlat/xlatdasm.c xlat/xlatdasm.h \
         sh4/sh4trans.c sh4/sh4trans.h sh4/mmux86.c sh4/shadow.c \
-        x86dasm/i386-dis.c x86dasm/dis-init.c x86dasm/dis-buf.c \
-        x86dasm/ansidecl.h x86dasm/bfd.h x86dasm/dis-asm.h \
-        x86dasm/symcat.h x86dasm/sysdep.h
+        xlat/disasm/i386-dis.c xlat/disasm/dis-init.c xlat/disasm/dis-buf.c \
+        xlat/disasm/ansidecl.h xlat/disasm/bfd.h xlat/disasm/dis-asm.h \
+        xlat/disasm/symcat.h xlat/disasm/sysdep.h
 
 test_testsh4x86_LDADD = @LXDREAM_LIBS@ @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@
 test_testsh4x86_CPPFLAGS = @LXDREAMCPPFLAGS@
 test_testsh4x86_SOURCES = test/testsh4x86.c xlat/xlatdasm.c \
-	xlat/xlatdasm.h x86dasm/i386-dis.c x86dasm/dis-init.c \
-	x86dasm/dis-buf.c \
+	xlat/xlatdasm.h xlat/disasm/i386-dis.c xlat/disasm/dis-init.c \
+	xlat/disasm/dis-buf.c \
 	sh4/sh4trans.c sh4/sh4x86.c xlat/xltcache.c sh4/sh4dasm.c \
 	xlat/xltcache.h mem.c util.c cpu.c
 
