@@ -337,17 +337,25 @@ void pvr_dma_transfer( )
 {
     sh4addr_t destaddr = MMIO_READ( ASIC, PVRDMADEST) &0x1FFFFFE0;
     uint32_t count = MMIO_READ( ASIC, PVRDMACNT );
-    unsigned char *data = alloca( count );
-    uint32_t rcount = DMAC_get_buffer( 2, data, count );
-    if( rcount != count )
-        WARN( "PVR received %08X bytes from DMA, expected %08X", rcount, count );
+    unsigned char data[8192];
+    uint32_t rcount;
 
-    pvr2_dma_write( destaddr, data, rcount );
+    while( count ) {
+        uint32_t chunksize = (count < 8192) ? count : 8192;
+        rcount = DMAC_get_buffer( 2, data, chunksize );
+        pvr2_dma_write( destaddr, data, rcount );
+        destaddr += rcount;
+        count -= rcount;
+        if( rcount != chunksize ) {
+            WARN( "PVR received %08X bytes from DMA, expected %08X", rcount, chunksize );
+            break;
+        }
+    }
 
     MMIO_WRITE( ASIC, PVRDMACTL, 0 );
     MMIO_WRITE( ASIC, PVRDMACNT, 0 );
     if( destaddr & 0x01000000 ) { /* Write to texture RAM */
-        MMIO_WRITE( ASIC, PVRDMADEST, destaddr + rcount );
+        MMIO_WRITE( ASIC, PVRDMADEST, destaddr );
     }
     asic_event( EVENT_PVR_DMA );
 }
