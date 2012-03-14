@@ -213,6 +213,7 @@ void dreamcast_configure_aica_only( )
 
 void dreamcast_register_module( dreamcast_module_t module ) 
 {
+    assert( num_modules < MAX_MODULES );
     modules[num_modules++] = module;
     if( module->init != NULL )
         module->init();
