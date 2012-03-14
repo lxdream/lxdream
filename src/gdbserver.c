@@ -26,9 +26,11 @@
 #include <glib.h>
 #include <arpa/inet.h>
 #include "lxdream.h"
+#include "dream.h"
 #include "dreamcast.h"
 #include "ioutil.h"
 #include "cpu.h"
+#include "gui.h"
 
 #define DEFAULT_BUFFER_SIZE 1024
 #define BUFFER_SIZE_MARGIN 32
@@ -50,9 +52,12 @@ struct gdb_server {
     int buf_posn;
 };
 
+static GList *gdb_server_conn_list = NULL;
+
 void gdb_server_free( gpointer data )
 {
     struct gdb_server *server = (struct gdb_server *)data;
+    gdb_server_conn_list = g_list_remove(gdb_server_conn_list, server);
     free((char *)server->peer_name);
     free(server->buf);
     free(data);
@@ -209,8 +214,7 @@ void gdb_server_handle_frame( struct gdb_server *server, int command, char *data
         gdb_send_frame( server, "S05", 3 );
         break;
     case 'c': /* Continue */
-        dreamcast_run();
-        gdb_send_frame( server, "S05", 3 );
+        gui_do_later(dreamcast_run);
         break;
     case 'g': /* Read all general registers */
         gdb_print_registers( server, buf, sizeof(buf), 0, server->cpu->num_gpr_regs );
@@ -422,6 +426,10 @@ void gdb_server_process_buffer( struct gdb_server *server )
                 continue;
             } else if( server->buf[i] == '-' ) {
                 /* Request retransmit */
+            } else if( server->buf[i] == '\003' ) { /* Control-C */
+                if( dreamcast_is_running() ) {
+                    dreamcast_stop();
+                }
             } /* Anything else is noise */
         } else if( server->buf[i] == '#' ) {
             frame_len = i - frame_start - 1;
@@ -496,10 +504,32 @@ gboolean gdb_server_connect_callback( int fd, gpointer data )
         chan_serv->buf_size = 1024;
         chan_serv->buf_posn = 0;
         io_register_tcp_listener( conn_fd, gdb_server_data_callback, chan_serv, gdb_server_free );
+        gdb_server_conn_list = g_list_append(gdb_server_conn_list, chan_serv);
         INFO( "GDB connected from %s", chan_serv->peer_name );
     }
     return TRUE;
 }
+
+void gdb_server_notify_stopped( struct gdb_server *server )
+{
+    gdb_send_frame( server, "S05", 3 );
+}
+
+/**
+ * stop handler to generate notifications to all connected clients
+ */
+void gdb_server_on_stop()
+{
+    GList *ptr;
+    for( ptr = gdb_server_conn_list; ptr != NULL; ptr = ptr->next ) {
+        gdb_server_notify_stopped( (struct gdb_server *)ptr->data );
+    }
+}
+
+static gboolean module_registered = FALSE;
+static struct dreamcast_module gdb_server_module = {
+        "gdbserver", NULL, NULL, NULL, NULL, gdb_server_on_stop, NULL, NULL };
+
 
 /**
  * Bind a network port for a GDB remote server for the specified cpu. The
@@ -514,6 +544,11 @@ gboolean gdb_server_connect_callback( int fd, gpointer data )
  */
 gboolean gdb_init_server( const char *interface, int port, cpu_desc_t cpu, gboolean mmu )
 {
+    if( !module_registered ) {
+        dreamcast_register_module( &gdb_server_module );
+        module_registered = TRUE;
+    }
+
     int fd = io_create_server_socket( interface, port );
     if( fd == -1 ) {
         return FALSE;
