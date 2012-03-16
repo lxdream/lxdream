@@ -491,7 +491,7 @@ gboolean gdb_server_data_callback( int fd, void *data )
 gboolean gdb_server_connect_callback( int fd, gpointer data )
 {
     struct sockaddr_in sin;
-    socklen_t sinlen;
+    socklen_t sinlen = sizeof(sin);
     struct gdb_server *server = (struct gdb_server *)data;
     int conn_fd = accept( fd, (struct sockaddr *)&sin, &sinlen);
     if( conn_fd != -1 ) {
