@@ -41,7 +41,7 @@ struct {
 
 /************** Producer thread **************/
 #define TQUEUE_EMPTY() (tqueue.head == tqueue.tail)
-#define TQUEUE_FULL() ((tqueue.head == tqueue.tail+1) || (tqueue.head == 0 && tqueue.tail == TQUEUE_LENGTH))
+#define TQUEUE_FULL() ((tqueue.head == tqueue.tail+1) || (tqueue.head == 0 && tqueue.tail == (TQUEUE_LENGTH-1)))
 
 static void tqueue_enqueue( tqueue_callback callback, void *data, gboolean sync )
 {
@@ -50,6 +50,8 @@ static void tqueue_enqueue( tqueue_callback callback, void *data, gboolean sync 
     tqueue.tqueue[tqueue.tail].data = data;
     tqueue.tqueue[tqueue.tail].synchronous = sync;
     tqueue.tail++;
+    if( tqueue.tail == TQUEUE_LENGTH )
+        tqueue.tail = 0;
 }
 
 /**
@@ -73,6 +75,7 @@ void tqueue_post_message( tqueue_callback callback, void *data )
  */
 int tqueue_send_message( tqueue_callback callback, void *data )
 {
+    int result;
     pthread_mutex_lock(&tqueue.mutex);
     if( TQUEUE_FULL() ) {
         /* Wait for the queue to clear */
@@ -81,8 +84,9 @@ int tqueue_send_message( tqueue_callback callback, void *data )
     tqueue_enqueue( callback, data, TRUE );
     pthread_cond_signal(&tqueue.consumer_wait);
     pthread_cond_wait(&tqueue.producer_sync_wait, &tqueue.mutex);
-    return tqueue.last_result;
+    result = tqueue.last_result;
     pthread_mutex_unlock(&tqueue.mutex);
+    return result;
 }
 
 /************** Consumer thread **************/
@@ -95,6 +99,8 @@ static void tqueue_process_loop() {
         void *data = tqueue.tqueue[tqueue.head].data;
         gboolean sync = tqueue.tqueue[tqueue.head].synchronous;
         tqueue.head++;
+        if( tqueue.head == TQUEUE_LENGTH )
+            tqueue.head = 0;
 
         if( wasFull ) {
             pthread_cond_signal( &tqueue.producer_full_wait );
