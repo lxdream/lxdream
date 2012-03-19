@@ -76,7 +76,7 @@ static const EGLint context_attributes[] = {
         EGL_CONTEXT_CLIENT_VERSION, 2,
         EGL_NONE, EGL_NONE };
 
-static EGLDisplay display;
+static EGLDisplay display = EGL_NO_DISPLAY;
 static EGLContext context = EGL_NO_CONTEXT;
 static EGLSurface surface = EGL_NO_SURFACE;
 static gboolean fbo_created = FALSE;
@@ -117,6 +117,7 @@ gboolean video_egl_set_window(EGLNativeWindowType window, int width, int height,
     }
 
     if( eglMakeCurrent( display, surface, surface, context ) == EGL_FALSE ) {
+        logEGLError( "Unable to make EGL context current" );
         video_egl_clear_window();
         return FALSE;
     }
@@ -129,13 +130,14 @@ gboolean video_egl_set_window(EGLNativeWindowType window, int width, int height,
     fbo_created = TRUE;
     gl_set_video_size(width, height, 0);
     pvr2_setup_gl_context();
-    INFO( "Initialised EGL %d.%d\n", major, minor );
+    INFO( "Initialised EGL %d.%d", major, minor );
     return TRUE;
 }
 
 void video_egl_clear_window()
 {
     if( fbo_created ) {
+        pvr2_shutdown_gl_context();
         gl_fbo_shutdown();
         fbo_created = FALSE;
     }
@@ -148,7 +150,11 @@ void video_egl_clear_window()
         eglDestroyContext(display, context);
         context = EGL_NO_CONTEXT;
     }
-    eglTerminate(display);
+    if( display != EGL_NO_DISPLAY ) {
+        eglTerminate(display);
+        display = EGL_NO_DISPLAY;
+    }
+    INFO( "Terminated EGL" );
 }
 
 static void video_egl_swap_buffers()

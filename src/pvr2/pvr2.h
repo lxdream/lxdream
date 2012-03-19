@@ -279,6 +279,8 @@ void pvr2_scene_render( render_buffer_t buffer );
  */
 void pvr2_setup_gl_context();
 
+void pvr2_shutdown_gl_context();
+
 void render_backplane( uint32_t *polygon, uint32_t width, uint32_t height, uint32_t mode );
 
 void render_autosort_tile( pvraddr_t tile_entry, int render_mode );
@@ -320,10 +322,10 @@ void texcache_gl_init( );
 
 /**
  * Flush all textures and delete. The cache will be non-functional until
- * the next call to texcache_init(). This would typically be done if
+ * the next call to texcache_gl_init(). This would typically be done if
  * switching GL targets.
  */
-void texcache_shutdown( void );
+void texcache_gl_shutdown( void );
 
 /**
  * Flush (ie free) all textures.

@@ -56,6 +56,7 @@ gboolean isGLVertexRangeSupported();
 gboolean isGLPixelBufferSupported();
 gboolean isGLMultitextureSupported();
 gboolean isGLMirroredTextureSupported();
+gboolean isGLBGRATextureSupported();
 gboolean isGLShaderSupported();
 GLint glGetMaxColourAttachments();
 

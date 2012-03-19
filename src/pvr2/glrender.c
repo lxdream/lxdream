@@ -150,6 +150,11 @@ void pvr2_setup_gl_context()
     glClearStencil(0);
 }
 
+void pvr2_shutdown_gl_context()
+{
+    texcache_gl_shutdown();
+}
+
 /**
  * Setup the basic context that's shared between normal and modified modes -
  * depth, culling

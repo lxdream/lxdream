@@ -61,6 +61,7 @@ static struct texcache_entry texcache_active_list[MAX_TEXTURES];
 static uint32_t texcache_palette_mode;
 static uint32_t texcache_stride_width;
 static gboolean texcache_have_palette_shader;
+static gboolean texcache_have_bgra;
 static gboolean texcache_palette_valid;
 static GLuint texcache_palette_texid;
 
@@ -85,41 +86,10 @@ void texcache_init( )
     texcache_stride_width = 0;
 }
 
-/**
- * Setup the initial texture ids (must be called after the GL context is
- * prepared)
- */
-void texcache_gl_init( )
-{
-    int i;
-    GLuint texids[MAX_TEXTURES];
-
-    if( display_driver->capabilities.has_sl ) {
-        texcache_have_palette_shader = TRUE;
-        texcache_palette_valid = FALSE;
-        glGenTextures(1, &texcache_palette_texid );
-
-        /* Bind the texture and set the params */
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, texcache_palette_texid);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
-        glActiveTexture(GL_TEXTURE0);
-
-    } else {
-        texcache_have_palette_shader = FALSE;
-    }
-
-    glGenTextures( MAX_TEXTURES, texids );
-    for( i=0; i<MAX_TEXTURES; i++ ) {
-        texcache_active_list[i].texture_id = texids[i];
-    }
-}
 
 void texcache_release_render_buffer( render_buffer_t buffer )
 {
-    if( !buffer->flushed ) 
+    if( !buffer->flushed )
         pvr2_render_buffer_copy_to_sh4(buffer);
     pvr2_destroy_render_buffer(buffer);
 }
@@ -148,21 +118,59 @@ void texcache_flush( )
 }
 
 /**
+ * Setup the initial texture ids (must be called after the GL context is
+ * prepared)
+ */
+void texcache_gl_init( )
+{
+    int i;
+    GLuint texids[MAX_TEXTURES];
+
+    if( display_driver->capabilities.has_sl ) {
+        texcache_have_palette_shader = TRUE;
+        texcache_palette_valid = FALSE;
+        glGenTextures(1, &texcache_palette_texid );
+
+        /* Bind the texture and set the params */
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, texcache_palette_texid);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
+        glActiveTexture(GL_TEXTURE0);
+
+    } else {
+        texcache_have_palette_shader = FALSE;
+    }
+    texcache_have_bgra = isGLBGRATextureSupported();
+
+    glGenTextures( MAX_TEXTURES, texids );
+    for( i=0; i<MAX_TEXTURES; i++ ) {
+        texcache_active_list[i].texture_id = texids[i];
+    }
+    INFO( "Texcache initialized (%s, %s)", (texcache_have_palette_shader ? "Palette shader" : "No palette support"),
+            (texcache_have_bgra ? "BGRA" : "RGBA") );
+}
+
+/**
  * Flush all textures and delete. The cache will be non-functional until
- * the next call to texcache_init(). This would typically be done if
+ * the next call to texcache_gl_init(). This would typically be done if
  * switching GL targets.
  */    
-void texcache_shutdown( )
+void texcache_gl_shutdown( )
 {
     GLuint texids[MAX_TEXTURES];
     int i;
     texcache_flush();
 
-    if( texcache_have_palette_shader )
+    if( texcache_have_palette_shader ) {
         glDeleteTextures( 1, &texcache_palette_texid );
+        texcache_palette_texid = -1;
+    }
 
     for( i=0; i<MAX_TEXTURES; i++ ) {
         texids[i] = texcache_active_list[i].texture_id;
+        texcache_active_list[i].texture_id = -1;
     }
     glDeleteTextures( MAX_TEXTURES, texids );
 }
@@ -244,6 +252,73 @@ void texcache_invalidate_page( uint32_t texture_addr ) {
 }
 
 /**
+ * Convert BGRA data in buffer to RGBA format (for systems that don't natively
+ * support BGRA).
+ * @return converted format type
+ * @param data BGRA pixel data
+ * @param nPixels total number of pixels (width*height)
+ * @param glFormatType GL format of source data. One of
+ *    GL_UNSIGNED_SHORT_1_5_5_5_REV, GL_UNSIGNED_SHORT_4_4_4_4_REV, or GL_UNSIGNED_BYTE
+ */
+static int bgra_to_rgba( unsigned char *data, unsigned nPixels, int glFormatType )
+{
+    unsigned i;
+    switch( glFormatType ) {
+    case GL_UNSIGNED_SHORT_1_5_5_5_REV: {
+        uint16_t *p = (uint16_t *)data;
+        uint16_t *end = p + nPixels;
+        while( p != end ) {
+            uint16_t v = *p;
+            *p = (v >> 15) | (v<<1);
+            p++;
+        }
+        return GL_UNSIGNED_SHORT_5_5_5_1;
+    }
+    case GL_UNSIGNED_SHORT_4_4_4_4_REV: { /* ARGB => RGBA */
+        uint16_t *p = (uint16_t *)data;
+        uint16_t *end = p + nPixels;
+        while( p != end ) {
+            uint16_t v = *p;
+            *p = (v >> 12) | (v<<4);
+            p++;
+        }
+        return GL_UNSIGNED_SHORT_4_4_4_4;
+    }
+    case GL_UNSIGNED_BYTE: { /* ARGB => ABGR */
+        uint32_t *p = (uint32_t *)data;
+        uint32_t *end = p + nPixels;
+        while( p != end ) {
+            uint32_t v = *p;
+            *p = (v&0xFF000000) | ((v<<16) & 0x00FF0000) | (v & 0x0000FF00) | ((v>>16) & 0x000000FF);
+            p++;
+        }
+        return GL_UNSIGNED_BYTE;
+    }
+    default:
+        assert( 0 && "Unsupported BGRA format" );
+        return glFormatType;
+    }
+}
+
+/**
+ * Install the image data in the currently bound 2D texture.
+ * May modify the buffered data if needed to make the texture compatible with
+ * the GL.
+ */
+static void texcache_load_image_2D( int level, GLint intFormat, int width, int height, GLint format, GLint type, unsigned char *data )
+{
+    if( format == GL_BGRA && !texcache_have_bgra ) {
+        GLint rgbaType = bgra_to_rgba( data, width*height, type );
+        glTexImage2D( GL_TEXTURE_2D, level, intFormat, width, height, 0, GL_RGBA, rgbaType,
+                data );
+    } else {
+        glTexImage2D( GL_TEXTURE_2D, level, intFormat, width, height, 0, format, type,
+                data );
+    }
+
+}
+
+/**
  * Load the palette into 4 textures of 256 entries each. This mirrors the
  * banking done by the PVR2 for 8-bit textures, and also ensures that we
  * can use 8-bit paletted textures ourselves.
@@ -254,7 +329,7 @@ static void texcache_load_palette_texture( gboolean format_changed )
     unsigned i;
     int bpp = 2;
     uint32_t *palette = (uint32_t *)mmio_region_PVR2PAL.mem;
-    uint16_t packed_palette[1024];
+    char buf[4096];
     char *data = (char *)palette;
 
     switch( texcache_palette_mode ) {
@@ -280,13 +355,21 @@ static void texcache_load_palette_texture( gboolean format_changed )
         break; /* Can't happen */
     }
 
-
     if( bpp == 2 ) {
+        data = buf;
+        uint16_t *packed_palette = (uint16_t *)buf;
         for( i=0; i<1024; i++ ) {
             packed_palette[i] = (uint16_t)palette[i];
         }
-        data = (char *)packed_palette;
-
+        if( !texcache_have_bgra && format == GL_BGRA ) {
+            type = bgra_to_rgba(data, 1024, type);
+            format = GL_RGBA;
+        }
+    } else if( !texcache_have_bgra && format == GL_BGRA ) { /* bpp == 4 */
+        data = buf;
+        memcpy( buf, palette, 4096 );
+        type = bgra_to_rgba(buf, 1024, type);
+        format = GL_RGBA;
     }
 
     glActiveTexture(GL_TEXTURE1);
@@ -448,7 +531,7 @@ static inline uint32_t yuv_to_rgb32( float y, float u, float v )
     if( r > 255 ) { r = 255; } else if( r < 0 ) { r = 0; }
     if( g > 255 ) { g = 255; } else if( g < 0 ) { g = 0; }
     if( b > 255 ) { b = 255; } else if( b < 0 ) { b = 0; }
-    return 0xFF000000 | (r<<16) | (g<<8) | (b);
+    return 0xFF000000 | (b<<16) | (g<<8) | (r);
 }
 
 
@@ -555,10 +638,10 @@ static void texcache_load_texture( uint32_t texture_addr, int width, int height,
             break;
         case PVR2_TEX_FORMAT_YUV422:
             /* YUV422 isn't directly supported by most implementations, so decode
-             * it to a (reasonably) standard ARGB32.
+             * it to a (reasonably) standard RGBA8.
              */
             bpp_shift = 2;
-            format = GL_BGRA;
+            format = GL_RGBA;
             type = GL_UNSIGNED_BYTE;
             break;
         case PVR2_TEX_FORMAT_BUMPMAP:
@@ -577,7 +660,7 @@ static void texcache_load_texture( uint32_t texture_addr, int width, int height,
         } else {
             pvr2_vram64_read_stride( data, width<<bpp_shift, texture_addr, texcache_stride_width<<bpp_shift, height );
         }
-        glTexImage2D( GL_TEXTURE_2D, 0, intFormat, width, height, 0, format, type, data );
+        texcache_load_image_2D( 0, intFormat, width, height, format, type, data );
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, min_filter);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, max_filter);
         return;
@@ -678,11 +761,10 @@ static void texcache_load_texture( uint32_t texture_addr, int width, int height,
 
         /* Pass to GL */
         if( level == last_level && level != 0 ) { /* 1x1 stored within a 2x2 */
-            glTexImage2D( GL_TEXTURE_2D, level, intFormat, 1, 1, 0, format, type,
+            texcache_load_image_2D( level, intFormat, 1, 1, format, type,
                     data + (3 << bpp_shift) );
         } else {
-            glTexImage2D( GL_TEXTURE_2D, level, intFormat, mip_width, mip_height, 0, format, type,
-                    data );
+            texcache_load_image_2D( level, intFormat, mip_width, mip_height, format, type, data );
             if( mip_width > 2 ) {
                 mip_width >>= 1;
                 mip_height >>= 1;
@@ -780,7 +862,10 @@ GLuint texcache_get_texture( uint32_t poly2_word, uint32_t texture_word )
         unsigned height = POLY2_TEX_HEIGHT(poly2_word);
 
         glBindTexture( GL_TEXTURE_2D, texcache_active_list[slot].texture_id );
+        glGetError();
         texcache_load_texture( texture_addr, width, height, texture_word );
+        INFO( "Loaded texture %d: %x %dx%d %x (%x)", texcache_active_list[slot].texture_id, texture_addr, width, height, texture_word,
+                glGetError() );
 
         /* Set texture parameters from the poly2 word */
         if( POLY2_TEX_CLAMP_U(poly2_word) ) {

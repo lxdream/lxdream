@@ -63,12 +63,13 @@ public class LxdreamActivity extends Activity {
 
     @Override 
     protected void onPause() {
+        Dreamcast.onAppPause();
         super.onPause();
-        Dreamcast.stop();
     }
 
     @Override 
     protected void onResume() {
+    	Dreamcast.onAppResume();
         super.onResume();
     }
     

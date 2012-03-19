@@ -49,6 +49,14 @@ gboolean isGLMirroredTextureSupported()
     return isGLExtensionSupported("GL_ARB_texture_mirrored_repeat");
 }
 
+gboolean isGLBGRATextureSupported()
+{
+    /* Note: e.g. Tegra 3 reports GL_EXT_bgra, but it doesn't actually work.
+     * Need to check this with NVIDIA, in meantime assume GLES2 doesn't have
+     * BGRA support */
+    return !isOpenGLES2() && isGLExtensionSupported("GL_EXT_bgra");
+}
+
 
 gboolean isGLShaderSupported()
 {
