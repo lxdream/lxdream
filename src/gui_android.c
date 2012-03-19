@@ -45,7 +45,7 @@ struct surface_info {
     int width, height, format;
 };
 
-static struct surface_info current_surface;
+static struct surface_info current_surface = { NULL, 0, 0, 0 };
 static const char *appHome = NULL;
 
 /**
@@ -89,14 +89,30 @@ int android_set_surface(void *data)
     return 0;
 }
 
-int android_clear_surface(void *data)
+int android_do_pause(void *data)
 {
-    struct surface_info *surface = (struct surface_info *)data;
-
     if( dreamcast_is_running() ) {
         dreamcast_stop();
     }
     video_egl_clear_window();
+    INFO( "Paused" );
+    return 0;
+}
+
+int android_do_resume(void *data)
+{
+    struct surface_info *surface = (struct surface_info *)data;
+    if( surface->win != NULL )
+        video_egl_set_window(surface->win, surface->width, surface->height, surface->format);
+    INFO( "Resumed" );
+    return 0;
+}
+
+int android_clear_surface(void *data)
+{
+    struct surface_info *surface = (struct surface_info *)data;
+
+    android_do_pause(data); /* If we haven't already stopped, stop now */
     ANativeWindow_release(surface->win);
     surface->win = NULL;
     return 0;
@@ -287,6 +303,17 @@ JNIEXPORT void JNICALL Java_org_lxdream_Dreamcast_stop(JNIEnv * env, jclass obj)
     tqueue_send_message( android_callback_wrapper, dreamcast_stop );
 }
 
+JNIEXPORT void JNICALL Java_org_lxdream_Dreamcast_onAppPause(JNIEnv * env, jclass obj)
+{
+    /* Need to make sure this completely shuts down before we return */
+    tqueue_send_message( android_do_pause, &current_surface );
+}
+
+JNIEXPORT void JNICALL Java_org_lxdream_Dreamcast_onAppResume(JNIEnv * env, jclass obj)
+{
+    tqueue_post_message( android_do_resume, &current_surface );
+}
+
 JNIEXPORT jboolean JNICALL Java_org_lxdream_Dreamcast_isRunning(JNIEnv *env, jclass obj)
 {
     return dreamcast_is_running();
@@ -322,6 +349,7 @@ JNIEXPORT void JNICALL Java_org_lxdream_LxdreamView_setSurface(JNIEnv * env, job
     } else {
         current_surface.format = COLFMT_RGB888;
     }
+    INFO( "Setting surface" );
     tqueue_post_message( android_set_surface, &current_surface );
 }
 
