@@ -86,6 +86,7 @@ int android_set_surface(void *data)
 {
     struct surface_info *surface = (struct surface_info *)data;
     video_egl_set_window(surface->win, surface->width, surface->height, surface->format);
+    INFO( "set_surface" );
     return 0;
 }
 
@@ -94,16 +95,12 @@ int android_do_pause(void *data)
     if( dreamcast_is_running() ) {
         dreamcast_stop();
     }
-    video_egl_clear_window();
     INFO( "Paused" );
     return 0;
 }
 
 int android_do_resume(void *data)
 {
-    struct surface_info *surface = (struct surface_info *)data;
-    if( surface->win != NULL )
-        video_egl_set_window(surface->win, surface->width, surface->height, surface->format);
     INFO( "Resumed" );
     return 0;
 }
@@ -112,9 +109,13 @@ int android_clear_surface(void *data)
 {
     struct surface_info *surface = (struct surface_info *)data;
 
-    android_do_pause(data); /* If we haven't already stopped, stop now */
+    if( dreamcast_is_running() ) {
+        dreamcast_stop(); /* Should already be stopped, but just in case */
+    }
+    video_egl_clear_window();
     ANativeWindow_release(surface->win);
     surface->win = NULL;
+    INFO( "clear_surface" );
     return 0;
 }
 
