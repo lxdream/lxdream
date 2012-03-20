@@ -27,6 +27,7 @@ gboolean isOpenGLES2()
     if( strncmp(str, "OpenGL ES 2.", 12) == 0 ) {
         return TRUE;
     }
+    return FALSE;
 }
 
 gboolean isGLSecondaryColorSupported()
