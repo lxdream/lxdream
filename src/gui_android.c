@@ -90,21 +90,6 @@ int android_set_surface(void *data)
     return 0;
 }
 
-int android_do_pause(void *data)
-{
-    if( dreamcast_is_running() ) {
-        dreamcast_stop();
-    }
-    INFO( "Paused" );
-    return 0;
-}
-
-int android_do_resume(void *data)
-{
-    INFO( "Resumed" );
-    return 0;
-}
-
 int android_clear_surface(void *data)
 {
     struct surface_info *surface = (struct surface_info *)data;
@@ -302,17 +287,6 @@ JNIEXPORT void JNICALL Java_org_lxdream_Dreamcast_stop(JNIEnv * env, jclass obj)
 {
     /* Need to make sure this completely shuts down before we return */
     tqueue_send_message( android_callback_wrapper, dreamcast_stop );
-}
-
-JNIEXPORT void JNICALL Java_org_lxdream_Dreamcast_onAppPause(JNIEnv * env, jclass obj)
-{
-    /* Need to make sure this completely shuts down before we return */
-    tqueue_send_message( android_do_pause, &current_surface );
-}
-
-JNIEXPORT void JNICALL Java_org_lxdream_Dreamcast_onAppResume(JNIEnv * env, jclass obj)
-{
-    tqueue_post_message( android_do_resume, &current_surface );
 }
 
 JNIEXPORT jboolean JNICALL Java_org_lxdream_Dreamcast_isRunning(JNIEnv *env, jclass obj)

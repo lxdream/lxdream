@@ -33,9 +33,6 @@ public class Dreamcast {
      public static native boolean isRunnable();
      public static native boolean isRunning();
 
-     public static native void onAppPause();
-     public static native void onAppResume();
-     
      /* GD-Rom */
      public static native boolean mount( String filename );
      public static native void unmount();

@@ -37,6 +37,7 @@ public class LxdreamActivity extends Activity {
     boolean isRunning = false;
     Context ctx;
     Drawable runIcon, pauseIcon;
+    MenuItem runMenuItem;
 
     @Override 
     protected void onCreate(Bundle bundle) {
@@ -57,19 +58,21 @@ public class LxdreamActivity extends Activity {
     public boolean onCreateOptionsMenu(Menu menu) {
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.main, menu);
+        runMenuItem = menu.findItem(R.id.menu_run);
         return true;
     }
 
 
     @Override 
     protected void onPause() {
-        Dreamcast.onAppPause();
+        Dreamcast.stop();
+        runMenuItem.setIcon( runIcon );
+        isRunning = false;
         super.onPause();
     }
 
     @Override 
     protected void onResume() {
-    	Dreamcast.onAppResume();
         super.onResume();
     }
     
