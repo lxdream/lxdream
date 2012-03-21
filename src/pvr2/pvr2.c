@@ -864,6 +864,21 @@ void pvr2_destroy_render_buffer( render_buffer_t buffer )
      display_driver->destroy_render_buffer( buffer );
 }
 
+void pvr2_destroy_render_buffers( void )
+{
+    if( display_driver ) {
+        int i;
+        for( i=0; i<render_buffer_count; i++ ) {
+            if( render_buffers[i] != NULL ) {
+                display_driver->destroy_render_buffer(render_buffers[i]);
+                render_buffers[i] = NULL;
+            }
+        }
+        render_buffer_count = 0;
+    }
+}    
+
+
 void pvr2_finish_render_buffer( render_buffer_t buffer )
 {
     display_driver->finish_render( buffer );

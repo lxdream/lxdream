@@ -296,6 +296,11 @@ void pvr2_finish_render_buffer( render_buffer_t buffer );
 
 void pvr2_destroy_render_buffer( render_buffer_t buffer );
 
+/**
+ * Destroy all open render buffers
+ */
+void pvr2_destroy_render_buffers( void );
+
 
 /**
  * Structure to hold a complete unpacked vertex (excluding modifier

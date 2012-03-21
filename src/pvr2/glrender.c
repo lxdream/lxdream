@@ -153,6 +153,7 @@ void pvr2_setup_gl_context()
 void pvr2_shutdown_gl_context()
 {
     texcache_gl_shutdown();
+    pvr2_destroy_render_buffers();
 }
 
 /**
