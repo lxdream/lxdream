@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="org.lxdream">
-    <application android:label="@string/lxdream_activity">
+    <application android:label="@string/lxdream_activity"
+                 android:icon="@drawable/lxdream">
         <activity android:name="LxdreamActivity"
             	android:launchMode="singleTask"
             	android:theme="@android:style/Theme.Holo"
