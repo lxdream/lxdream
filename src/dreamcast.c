@@ -23,6 +23,7 @@
 #include "lxdream.h"
 #include "lxpaths.h"
 #include "dream.h"
+#include "eventq.h"
 #include "mem.h"
 #include "dreamcast.h"
 #include "asic.h"
@@ -35,6 +36,9 @@
 #include "sh4/sh4.h"
 #include "sh4/sh4core.h"
 #include "vmu/vmulist.h"
+
+
+static gboolean dreamcast_load_bios( const gchar *filename );
 
 /**
  * Current state of the DC virtual machine
@@ -135,7 +139,7 @@ void dreamcast_configure( gboolean use_bootrom )
     g_free(flash_path);
 }
 
-gboolean dreamcast_load_bios( const gchar *filename )
+static gboolean dreamcast_load_bios( const gchar *filename )
 {
     if( dreamcast_use_bios ) {
         dreamcast_has_bios = mem_load_rom( dc_boot_rom, filename, 2 MB, 0x89f2b1a1 );
