@@ -16,6 +16,7 @@
  * GNU General Public License for more details.
  */
 
+#include <assert.h>
 #include <sys/time.h>
 
 #include "display.h"
@@ -23,11 +24,6 @@
 #include "pvr2/glutil.h"
 #include "pvr2/shaders.h"
 #include "drivers/video_gl.h"
-
-/* FIXME: Need to actually handle this case */
-#ifndef GL_PACK_ROW_LENGTH
-#define glPixelStorei(key,val)
-#endif
 
 uint32_t video_width, video_height;
 struct video_vertex {
@@ -204,21 +200,6 @@ void gl_texture_window( int width, int height, int tex_id, gboolean inverted )
     glFlush();
 }
 
-gboolean gl_load_frame_buffer( frame_buffer_t frame, int tex_id )
-{
-    GLenum type = colour_formats[frame->colour_format].type;
-    GLenum format = colour_formats[frame->colour_format].format;
-    int bpp = colour_formats[frame->colour_format].bpp;
-    int rowstride = (frame->rowstride / bpp) - frame->width;
-
-    glPixelStorei( GL_UNPACK_ROW_LENGTH, rowstride );
-    glBindTexture( GL_TEXTURE_2D, tex_id );
-    glTexSubImage2D( GL_TEXTURE_2D, 0, 0,0,
-                     frame->width, frame->height, format, type, frame->data );
-    glPixelStorei( GL_UNPACK_ROW_LENGTH, 0 );
-    return TRUE;
-}
-
 void gl_display_blank( uint32_t colour )
 {
     /* Set the video_box background colour */
@@ -239,6 +220,232 @@ void gl_display_blank( uint32_t colour )
     glFlush();
 }
 
+
+#ifdef HAVE_GLES2
+/* Note: OpenGL ES only officialy supports glReadPixels for the RGBA32 format
+ * (and doesn't necessarily support glPixelStore(GL_PACK_ROW_LENGTH) either.
+ * As a result, we end up needed to do the format conversion ourselves.
+ */
+
+/**
+ * Swizzle 32-bit RGBA to specified target format, truncating components where
+ * necessary. Target may == source.
+ * @param target destination buffer
+ * @param Source buffer, which must be in 8-bit-per-component RGBA format, fully packed.
+ * @param width width of image in pixels
+ * @param height height of image in pixels
+ * @param target_stride Stride of target buffer, in bytes
+ * @param colour_format
+ */
+static void rgba32_to_target( unsigned char *target, const uint32_t *source, int width, int height, int target_stride, int colour_format )
+{
+    int x,y;
+
+    if( target_stride == 0 )
+        target_stride = width * colour_formats[colour_format].bpp;
+
+    switch( colour_format ) {
+    case COLFMT_BGRA1555:
+        for( y=0; y<height; y++ ) {
+            uint16_t *d = (uint16_t *)target;
+            for( x=0; x<width; x++ ) {
+                uint32_t v = *source++;
+                *d++ = (uint16_t)( ((v & 0x80000000) >> 16) | ((v & 0x00F80000) >> 19) |
+                        ((v & 0x0000F800)>>6) | ((v & 0x000000F8) << 7) );
+            }
+            target += target_stride;
+        }
+        break;
+    case COLFMT_RGB565:
+        for( y=0; y<height; y++ ) {
+            uint16_t *d = (uint16_t *)target;
+            for( x=0; x<width; x++ ) {
+                uint32_t v = *source++;
+                *d++ = (uint16_t)( ((v & 0x00F80000) >> 19) | ((v & 0x0000FC00) >> 5) | ((v & 0x000000F8)<<8) );
+            }
+            target += target_stride;
+        }
+        break;
+    case COLFMT_BGRA4444:
+        for( y=0; y<height; y++ ) {
+            uint16_t *d = (uint16_t *)target;
+            for( x=0; x<width; x++ ) {
+                uint32_t v = *source++;
+                *d++ = (uint16_t)( ((v & 0xF0000000) >> 16) | ((v & 0x00F00000) >> 20) |
+                        ((v & 0x0000F000) >> 8) | ((v & 0x000000F0)<<4) );
+            }
+            target += target_stride;
+        }
+        break;
+    case COLFMT_BGRA8888:
+        for( y=0; y<height; y++ ) {
+            uint32_t *d = (uint32_t *)target;
+            for( x=0; x<width; x++ ) {
+                uint32_t v = *source++;
+                *d++ = (v & 0xFF00FF00) | ((v & 0x00FF0000) >> 16) | ((v & 0x000000FF)<<16);
+            }
+            target += target_stride;
+        }
+        break;
+    case COLFMT_BGR0888:
+        for( y=0; y<height; y++ ) {
+            uint32_t *d = (uint32_t *)target;
+            for( x=0; x<width; x++ ) {
+                uint32_t v = *source++;
+                *d++ = ((v & 0x00FF0000) >> 16) | (v & 0x0000FF00) | ((v & 0x000000FF)<<16);
+            }
+            target += target_stride;
+        }
+        break;
+    case COLFMT_BGR888:
+        for( y=0; y<height; y++ ) {
+            uint8_t *d = (uint8_t *)target;
+            for( x=0; x<width; x++ ) {
+                uint32_t v = *source++;
+                *d++ = (uint8_t)(v >> 16);
+                *d++ = (uint8_t)(v >> 8);
+                *d++ = (uint8_t)(v);
+            }
+            target += target_stride;
+        }
+        break;
+    case COLFMT_RGB888:
+        for( y=0; y<height; y++ ) {
+            uint8_t *d = (uint8_t *)target;
+            for( x=0; x<width; x++ ) {
+                uint32_t v = *source++;
+                *d++ = (uint8_t)(v);
+                *d++ = (uint8_t)(v >> 8);
+                *d++ = (uint8_t)(v >> 16);
+            }
+            target += target_stride;
+        }
+        break;
+    default:
+        assert( 0 && "Unsupported colour format" );
+    }
+}
+
+/**
+ * Convert data into an acceptable form for loading into an RGBA texture.
+ */
+static int target_to_rgba(  uint32_t *target, const unsigned char *source, int width, int height, int source_stride, int colour_format )
+{
+    int x,y;
+    uint16_t *d;
+    switch( colour_format ) {
+    case COLFMT_BGRA1555:
+        d = (uint16_t *)target;
+        for( y=0; y<height; y++ ) {
+            uint16_t *s = (uint16_t *)source;
+            for( x=0; x<width; x++ ) {
+                uint16_t v = *s++;
+                *d++ = (v >> 15) | (v<<1);
+            }
+            source += source_stride;
+        }
+        return GL_UNSIGNED_SHORT_5_5_5_1;
+        break;
+    case COLFMT_RGB565:
+        /* Need to expand to RGBA32 in order to have room for an alpha component */
+        for( y=0; y<height; y++ ) {
+            uint16_t *s = (uint16_t *)source;
+            for( x=0; x<width; x++ ) {
+                uint32_t v = (uint32_t)*s++;
+                *target++ = ((v & 0xF800)>>8) | ((v & 0x07E0) <<5) | ((v & 0x001F) << 19) |
+                        ((v & 0xE000) >> 13) | ((v &0x0600) >> 1) | ((v & 0x001C) << 14);
+            }
+            source += source_stride;
+        }
+        return GL_UNSIGNED_BYTE;
+    case COLFMT_BGRA4444:
+        d = (uint16_t *)target;
+        for( y=0; y<height; y++ ) {
+            uint16_t *s = (uint16_t *)source;
+            for( x=0; x<width; x++ ) {
+                uint16_t v = *s++;
+                *d++ = (v >> 12) | (v<<4);
+            }
+            source += source_stride;
+        }
+        return GL_UNSIGNED_SHORT_4_4_4_4;
+    case COLFMT_RGB888:
+        for( y=0; y<height; y++ ) {
+            uint8_t *s = (uint8_t *)source;
+            for( x=0; x<width; x++ ) {
+                *target++ = s[0] | (s[1]<<8) | (s[2]<<16);
+                s += 3;
+            }
+            source += source_stride;
+        }
+        return GL_UNSIGNED_BYTE;
+    case COLFMT_BGRA8888:
+        for( y=0; y<height; y++ ) {
+            uint32_t *s = (uint32_t *)source;
+            for( x=0; x<width; x++ ) {
+                uint32_t v = (uint32_t)*s++;
+                *target++ = (v & 0xFF00FF00) | ((v & 0x00FF0000) >> 16) | ((v & 0x000000FF) << 16);
+            }
+            source += source_stride;
+        }
+        return GL_UNSIGNED_BYTE;
+    case COLFMT_BGR0888:
+        for( y=0; y<height; y++ ) {
+            uint32_t *s = (uint32_t *)source;
+            for( x=0; x<width; x++ ) {
+                uint32_t v = (uint32_t)*s++;
+                *target++ = (v & 0x0000FF00) | ((v & 0x00FF0000) >> 16) | ((v & 0x000000FF) << 16);
+            }
+            source += source_stride;
+        }
+        return GL_UNSIGNED_BYTE;
+    case COLFMT_BGR888:
+        for( y=0; y<height; y++ ) {
+            uint8_t *s = (uint8_t *)source;
+            for( x=0; x<width; x++ ) {
+                *target++ = s[2] | (s[1]<<8) | (s[0]<<16);
+                s += 3;
+            }
+            source += source_stride;
+        }
+        return GL_UNSIGNED_BYTE;
+    default:
+        assert( 0 && "Unsupported colour format" );
+    }
+
+
+}
+
+
+gboolean gl_read_render_buffer( unsigned char *target, render_buffer_t buffer,
+        int rowstride, int colour_format )
+{
+    if( colour_formats[colour_format].bpp == 4 && (rowstride == 0 || rowstride == buffer->width*4) ) {
+        glReadPixels( 0, 0, buffer->width, buffer->height, GL_RGBA, GL_UNSIGNED_BYTE, target );
+        rgba32_to_target( target, (uint32_t *)target, buffer->width, buffer->height, rowstride, colour_format );
+    } else {
+        int size = buffer->width * buffer->height;
+        uint32_t tmp[size];
+
+        glReadPixels( 0, 0, buffer->width, buffer->height, GL_RGBA, GL_UNSIGNED_BYTE, tmp );
+        rgba32_to_target( target, tmp, buffer->width, buffer->height, rowstride, colour_format );
+    }
+    return TRUE;
+}
+
+gboolean gl_load_frame_buffer( frame_buffer_t frame, int tex_id )
+{
+    int size = frame->width * frame->height;
+    uint32_t tmp[size];
+
+    GLenum type = target_to_rgba( tmp, frame->data, frame->width, frame->height, frame->rowstride, frame->colour_format );
+    glBindTexture( GL_TEXTURE_2D, tex_id );
+    glTexSubImage2D( GL_TEXTURE_2D, 0, 0,0, frame->width, frame->height, GL_RGBA, type, tmp );
+    gl_check_error("gl_load_frame_buffer:glTexSubImage2DBGRA");
+    return TRUE;
+}
+
+#else
 /**
  * Generic GL read_render_buffer. This function assumes that the caller
  * has already set the appropriate glReadBuffer(); in other words, unless
@@ -258,6 +465,23 @@ gboolean gl_read_render_buffer( unsigned char *target, render_buffer_t buffer,
     glPixelStorei( GL_PACK_ROW_LENGTH, 0 );
     return TRUE;
 }
+
+gboolean gl_load_frame_buffer( frame_buffer_t frame, int tex_id )
+{
+    GLenum type = colour_formats[frame->colour_format].type;
+    GLenum format = colour_formats[frame->colour_format].format;
+    int bpp = colour_formats[frame->colour_format].bpp;
+    int rowstride = (frame->rowstride / bpp) - frame->width;
+
+    glPixelStorei( GL_UNPACK_ROW_LENGTH, rowstride );
+    glBindTexture( GL_TEXTURE_2D, tex_id );
+    glTexSubImage2DBGRA( 0, 0,0,
+                     frame->width, frame->height, format, type, frame->data, FALSE );
+    glPixelStorei( GL_UNPACK_ROW_LENGTH, 0 );
+    return TRUE;
+}
+#endif
+
 
 gboolean gl_init_driver( display_driver_t driver, gboolean need_fbo )
 {
@@ -282,6 +506,7 @@ gboolean gl_init_driver( display_driver_t driver, gboolean need_fbo )
     gl_vbo_init(driver);
 
     driver->capabilities.has_gl = TRUE;
+    driver->capabilities.has_bgra = isGLBGRATextureSupported();
     return TRUE;
 }
 

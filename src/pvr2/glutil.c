@@ -16,6 +16,7 @@
  * GNU General Public License for more details.
  */
 
+#include <assert.h>
 #include <string.h>
 #include <stdlib.h>
 #include <glib/gstrfuncs.h>
@@ -57,7 +58,6 @@ gboolean isGLBGRATextureSupported()
      * BGRA support */
     return !isOpenGLES2() && isGLExtensionSupported("GL_EXT_bgra");
 }
-
 
 gboolean isGLShaderSupported()
 {
@@ -255,11 +255,117 @@ gboolean gl_check_error(const char *context)
         default: s = "Unknown error"; break;
         }
         if( context ) {
-            WARN( "%s: GL error: %x (%s)\n", context, err, s );
+            WARN( "%s: GL error: %x (%s)", context, err, s );
         } else {
-            WARN( "GL error: %x (%s)\n", err, s );
+            WARN( "GL error: %x (%s)", err, s );
         }
         return FALSE;
     }
     return TRUE;
+}
+
+static int bgra_to_rgba_type( int glFormatType )
+{
+    switch( glFormatType ) {
+    case GL_UNSIGNED_SHORT_1_5_5_5_REV:
+        return GL_UNSIGNED_SHORT_5_5_5_1;
+    case GL_UNSIGNED_SHORT_4_4_4_4_REV:
+        return GL_UNSIGNED_SHORT_4_4_4_4;
+    case GL_UNSIGNED_BYTE:
+        return GL_UNSIGNED_BYTE;
+    default:
+        assert( 0 && "Unsupported BGRA format" );
+        return glFormatType;
+    }
+}
+
+/**
+ * Convert BGRA data in buffer to RGBA format in-place (for systems that don't natively
+ * support BGRA).
+ * @return converted format type
+ * @param data BGRA pixel data
+ * @param nPixels total number of pixels (width*height)
+ * @param glFormatType GL format of source data. One of
+ *    GL_UNSIGNED_SHORT_1_5_5_5_REV, GL_UNSIGNED_SHORT_4_4_4_4_REV, or GL_UNSIGNED_BYTE
+ */
+static int bgra_to_rgba( unsigned char *data, unsigned nPixels, int glFormatType )
+{
+    unsigned i;
+    switch( glFormatType ) {
+    case GL_UNSIGNED_SHORT_1_5_5_5_REV: {
+        uint16_t *p = (uint16_t *)data;
+        uint16_t *end = p + nPixels;
+        while( p != end ) {
+            uint16_t v = *p;
+            *p = (v >> 15) | (v<<1);
+            p++;
+        }
+        return GL_UNSIGNED_SHORT_5_5_5_1;
+    }
+    case GL_UNSIGNED_SHORT_4_4_4_4_REV: { /* ARGB => RGBA */
+        uint16_t *p = (uint16_t *)data;
+        uint16_t *end = p + nPixels;
+        while( p != end ) {
+            uint16_t v = *p;
+            *p = (v >> 12) | (v<<4);
+            p++;
+        }
+        return GL_UNSIGNED_SHORT_4_4_4_4;
+    }
+    case GL_UNSIGNED_BYTE: { /* ARGB => ABGR */
+        uint32_t *p = (uint32_t *)data;
+        uint32_t *end = p + nPixels;
+        while( p != end ) {
+            uint32_t v = *p;
+            *p = (v&0xFF000000) | ((v<<16) & 0x00FF0000) | (v & 0x0000FF00) | ((v>>16) & 0x000000FF);
+            p++;
+        }
+        return GL_UNSIGNED_BYTE;
+    }
+    default:
+        assert( 0 && "Unsupported BGRA format" );
+        return glFormatType;
+    }
+}
+
+void glTexImage2DBGRA( int level, GLint intFormat, int width, int height, GLint format, GLint type, unsigned char *data, int preserveData )
+{
+    if( format == GL_BGRA && !display_driver->capabilities.has_bgra ) {
+        if( preserveData ) {
+            size_t size = width * height * (type == GL_UNSIGNED_BYTE ? 4 : 2);
+            char buf[size];
+            memcpy(buf, data, size);
+            GLint rgbaType = bgra_to_rgba( buf, width*height, type );
+            glTexImage2D( GL_TEXTURE_2D, level, intFormat, width, height, 0, GL_RGBA, rgbaType,
+                    buf );
+        } else {
+            GLint rgbaType = bgra_to_rgba( data, width*height, type );
+            glTexImage2D( GL_TEXTURE_2D, level, intFormat, width, height, 0, GL_RGBA, rgbaType,
+                    data );
+        }
+    } else {
+        glTexImage2D( GL_TEXTURE_2D, level, intFormat, width, height, 0, format, type,
+                data );
+    }
+}
+
+void glTexSubImage2DBGRA( int level, int xoff, int yoff, int width, int height, GLint format, GLint type, unsigned char *data, int preserveData )
+{
+    if( format == GL_BGRA && !display_driver->capabilities.has_bgra ) {
+        if( preserveData ) {
+            size_t size = width * height * (type == GL_UNSIGNED_BYTE ? 4 : 2);
+            char buf[size];
+            memcpy(buf, data, size);
+            GLint rgbaType = bgra_to_rgba( buf, width*height, type );
+            glTexSubImage2D( GL_TEXTURE_2D, level, xoff, yoff, width, height, GL_RGBA, rgbaType,
+                    buf );
+        } else {
+            GLint rgbaType = bgra_to_rgba( data, width*height, type );
+            glTexSubImage2D( GL_TEXTURE_2D, level, xoff, yoff, width, height, GL_RGBA, rgbaType,
+                    data );
+        }
+    } else {
+        glTexSubImage2D( GL_TEXTURE_2D, level, xoff, yoff, width, height, format, type,
+                data );
+    }
 }

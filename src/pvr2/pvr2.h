@@ -301,6 +301,15 @@ void pvr2_destroy_render_buffer( render_buffer_t buffer );
  */
 void pvr2_destroy_render_buffers( void );
 
+/**
+ * Preserve render buffers in main memory
+ */
+void pvr2_preserve_render_buffers( void );
+
+/**
+ * Restore render buffers from a previous call to pvr2_preserve_render_buffers()
+ */
+void pvr2_restore_render_buffers( void );
 
 /**
  * Structure to hold a complete unpacked vertex (excluding modifier

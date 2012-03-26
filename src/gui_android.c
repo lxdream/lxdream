@@ -39,6 +39,7 @@
 #include "drivers/video_egl.h"
 #include "maple/maple.h"
 #include "vmu/vmulist.h"
+#include "pvr2/pvr2.h"
 
 struct surface_info {
     ANativeWindow *win;
@@ -86,6 +87,8 @@ int android_set_surface(void *data)
 {
     struct surface_info *surface = (struct surface_info *)data;
     video_egl_set_window(surface->win, surface->width, surface->height, surface->format);
+    pvr2_restore_render_buffers();
+    pvr2_draw_frame();
     INFO( "set_surface" );
     return 0;
 }
@@ -97,6 +100,7 @@ int android_clear_surface(void *data)
     if( dreamcast_is_running() ) {
         dreamcast_stop(); /* Should already be stopped, but just in case */
     }
+    pvr2_preserve_render_buffers();
     video_egl_clear_window();
     ANativeWindow_release(surface->win);
     surface->win = NULL;
@@ -112,6 +116,7 @@ void android_start_thread()
 
     pthread_attr_init(&attr);
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+    pthread_attr_setstacksize(&attr,2048*1024);
     int status = pthread_create(&dreamcast_thread, &attr, android_thread_main, NULL);
     if( status != 0 ) {
         /* Handle errors */

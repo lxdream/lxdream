@@ -101,7 +101,7 @@ struct frame_buffer {
     uint32_t width;
     uint32_t height;
     uint32_t rowstride;
-    uint32_t colour_format;
+    uint32_t colour_format; /* Colour format that the dreamcast expects the data to be in */
     sh4addr_t address;
     uint32_t size; /* Size of buffer in bytes, must be width*height*bpp */
     gboolean inverted;/* True if the buffer is upside down */
@@ -111,6 +111,7 @@ struct frame_buffer {
 struct display_capabilities {
     gboolean has_gl;
     gboolean has_sl;
+    gboolean has_bgra;
     int depth_bits;
     int stencil_bits; /* 0 = no stencil buffer */
 };
