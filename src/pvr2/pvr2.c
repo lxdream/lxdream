@@ -46,6 +46,7 @@ static void pvr2_schedule_scanline_event( int eventid, int line, int minimum_lin
 static render_buffer_t pvr2_get_render_buffer( frame_buffer_t frame );
 static render_buffer_t pvr2_next_render_buffer( );
 static render_buffer_t pvr2_frame_buffer_to_render_buffer( frame_buffer_t frame );
+static frame_buffer_t pvr2_render_buffer_to_frame_buffer( render_buffer_t frame );
 uint32_t pvr2_get_sync_status();
 static int output_colour_formats[] = { COLFMT_BGRA1555, COLFMT_RGB565, COLFMT_BGR888, COLFMT_BGRA8888 };
 static int render_colour_formats[8] = {
@@ -202,7 +203,6 @@ void pvr2_save_render_buffer( FILE *f, render_buffer_t buffer )
     fwrite( &buffer->scale, sizeof(buffer->scale), 1, f );
     int32_t flushed = (int32_t)buffer->flushed; // Force to 32-bits for save-file consistency
     fwrite( &flushed, sizeof(flushed), 1, f );
-
 }
 
 render_buffer_t pvr2_load_render_buffer( FILE *f, gboolean *status )
@@ -870,13 +870,64 @@ void pvr2_destroy_render_buffers( void )
         int i;
         for( i=0; i<render_buffer_count; i++ ) {
             if( render_buffers[i] != NULL ) {
-                display_driver->destroy_render_buffer(render_buffers[i]);
+                pvr2_destroy_render_buffer(render_buffers[i]);
                 render_buffers[i] = NULL;
             }
         }
         render_buffer_count = 0;
     }
 }    
+
+static frame_buffer_t saved_render_buffers[MAX_RENDER_BUFFERS];
+static frame_buffer_t saved_displayed_render_buffer = NULL;
+static int saved_render_buffer_count = 0;
+
+/*
+ * Copy all render buffers to main RAM to preserve across GL shutdown
+ */
+void pvr2_preserve_render_buffers( void )
+{
+     int i, j;
+     /* If we had previous preserved buffers, blow them away now. */
+     for( i=0; i<MAX_RENDER_BUFFERS; i++ ) {
+         if( saved_render_buffers[i] != NULL ) {
+             g_free(saved_render_buffers[i]);
+             saved_render_buffers[i] = NULL;
+         }
+     }
+     saved_displayed_render_buffer = NULL;
+
+     for( i=0, j=0; i<render_buffer_count; i++ ) {
+         if( render_buffers[i]->address != -1 ) {
+             saved_render_buffers[j] = pvr2_render_buffer_to_frame_buffer(render_buffers[i]);
+             if( render_buffers[i] == displayed_render_buffer )
+                 saved_displayed_render_buffer = saved_render_buffers[j];
+             j++;
+         }
+     }
+     saved_render_buffer_count = j;
+}
+
+/**
+ * Restore render buffers that were preserved by a previous call to
+ * pvr2_preserve_render_buffers().
+ */
+void pvr2_restore_render_buffers( void )
+{
+    int i;
+    for( i=0; i<saved_render_buffer_count; i++ ) {
+        if( saved_render_buffers[i] != NULL ) {
+            render_buffers[i] = pvr2_frame_buffer_to_render_buffer(saved_render_buffers[i]);
+            if( saved_render_buffers[i] == saved_displayed_render_buffer )
+                displayed_render_buffer = render_buffers[i];
+            g_free(saved_render_buffers[i]);
+            saved_render_buffers[i] = NULL;
+        }
+    }
+    render_buffer_count = saved_render_buffer_count;
+    saved_render_buffer_count = 0;
+    saved_displayed_render_buffer = NULL;
+}
 
 
 void pvr2_finish_render_buffer( render_buffer_t buffer )
@@ -930,6 +981,7 @@ render_buffer_t pvr2_alloc_render_buffer( sh4addr_t render_addr, int width, int 
                      * display has it. Mark it as unaddressed for later.
                      */
                     render_buffers[i]->address = -1;
+                    render_buffers[i]->flushed = TRUE;
                 } else {
                     /* perfect */
                     result = render_buffers[i];
@@ -948,6 +1000,7 @@ render_buffer_t pvr2_alloc_render_buffer( sh4addr_t render_addr, int width, int 
                 pvr2_render_buffer_copy_to_sh4( render_buffers[i] );
             }
             render_buffers[i]->address = -1;
+            render_buffers[i]->flushed = TRUE;
         }
     }
 
@@ -1038,6 +1091,23 @@ static render_buffer_t pvr2_frame_buffer_to_render_buffer( frame_buffer_t frame 
     return result;
 }
 
+static frame_buffer_t pvr2_render_buffer_to_frame_buffer( render_buffer_t buffer )
+{
+    int bpp = colour_formats[buffer->colour_format].bpp;
+    size_t size = buffer->width * buffer->height * bpp;
+    frame_buffer_t result = g_malloc0( sizeof(struct frame_buffer) + size );
+    result->data = (unsigned char *)(result+1);
+    result->width = buffer->width;
+    result->height = buffer->height;
+    result->rowstride = buffer->rowstride;
+    result->colour_format = buffer->colour_format;
+    result->address = buffer->address;
+    result->size = buffer->size;
+    result->inverted = buffer->inverted;
+    display_driver->read_render_buffer( result->data, buffer, buffer->width * bpp, buffer->colour_format );
+    return result;
+}
+
 
 /**
  * Invalidate any caching on the supplied address. Specifically, if it falls
@@ -1056,6 +1126,7 @@ gboolean pvr2_render_buffer_invalidate( sh4addr_t address, gboolean isWrite )
             }
             if( isWrite ) {
                 render_buffers[i]->address = -1; /* Invalid */
+                render_buffers[i]->flushed = TRUE;
             }
             return TRUE; /* should never have overlapping buffers */
         }

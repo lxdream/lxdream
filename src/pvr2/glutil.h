@@ -60,6 +60,15 @@ gboolean isGLBGRATextureSupported();
 gboolean isGLShaderSupported();
 GLint glGetMaxColourAttachments();
 
+/**
+ * Wrapper function for glTexImage2D calls that may have BGRA data - on systems
+ * where this isn't directly supported, swizzle the data into an acceptable RGBA
+ * equivalent. If preserveData is true, data will not be modified - otherwise
+ * the method may swizzle data in-place.
+ */
+void glTexImage2DBGRA( int level, GLint intFormat, int width, int height, GLint format, GLint type, unsigned char *data, int preserveData );
+void glTexSubImage2DBGRA( int level, int xoff, int yoff, int width, int height, GLint format, GLint type, unsigned char *data, int preserveData );
+
 /****** Extension variant wrangling *****/
 
 #if defined(GL_MIRRORED_REPEAT_ARB) && !defined(GL_MIRRORED_REPEAT)
@@ -140,8 +149,6 @@ GLint glGetMaxColourAttachments();
 #define glFramebufferTexture2D glFramebufferTexture2DEXT
 #define glCheckFramebufferStatus glCheckFramebufferStatusEXT
 #endif
-
-
 
 /* Define an orthographic transform matrix, given the bounding box (assuming origin at 0) */
 void defineOrthoMatrix( GLfloat *matrix, GLfloat width, GLfloat height, GLfloat znear, GLfloat zfar );
