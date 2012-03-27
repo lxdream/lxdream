@@ -79,6 +79,7 @@ gchar *get_expanded_path( const gchar *input )
     d = result;
     e = result+sizeof(result)-1;
     s = input;
+    gboolean inDQstring = FALSE;
 
     if( input == NULL )
         return NULL;
@@ -137,11 +138,20 @@ gchar *get_expanded_path( const gchar *input )
             } else {
                 *d++ = '\\';
             }
+        } else if( c == '\"' ) {
+            /* Unescaped double-quotes start a DQ string. Although we treat the
+             * string as if it were double-quoted for most purposes anyway, so
+             * this has little effect.
+             */
+            inDQstring = !inDQstring;
         } else {
             *d++ = c;
         }
     }
     *d = '\0';
+    if( inDQstring ) {
+        WARN( "Unterminated double-quoted string '%s'", input );
+    }
     return g_strdup(result);
 }
 gchar *get_absolute_path( const gchar *in_path )

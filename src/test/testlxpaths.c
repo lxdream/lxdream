@@ -23,6 +23,7 @@
 #include "lxpaths.h"
 
 char *lxdream_get_global_config_path_value() { }
+void log_message( void *ptr, int level, const gchar *source, const char *msg, ... ) { }
 
 struct expanded_path_case_t {
     const char *input;
@@ -45,6 +46,7 @@ struct expanded_path_case_t expanded_path_cases[] = {
     {"/home/$TEST1/blah", "/home/quux/blah"},
     {"/tmp/${TEST2}/abcd", "/tmp/${BLAH}/abcd"},
     {"$TEST1$TEST2$TEST3$1$2", "quux${BLAH}3"},
+    {"\"/home/foo\"", "/home/foo"},
     {NULL,NULL}
 };
 
