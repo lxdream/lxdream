@@ -23,6 +23,7 @@ import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
+import android.os.Environment;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -48,7 +49,7 @@ public class LxdreamActivity extends Activity {
         pauseIcon = res.getDrawable(R.drawable.tb_pause);
         
         Log.i("LxdreamActivity", "Calling Dreamcast.init");
-        Dreamcast.init( ctx.getFilesDir().toString() );
+        Dreamcast.init( Environment.getExternalStorageDirectory().toString() + "/lxdream" );
         Log.i("LxdreamActivity", "Finished Dreamcast.init");
         view = new LxdreamView(ctx);
         setContentView(view);
