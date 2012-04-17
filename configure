@@ -689,6 +689,7 @@ ANDROID_NDK_HOME
 ANDROID_SDK_VERSION
 ANDROID_NDK_VERSION
 ANDROID_GDBSERVER
+GDB
 GUI_ANDROID_TRUE
 GUI_ANDROID_FALSE
 CC
@@ -2747,12 +2748,14 @@ fi
       CPP="$ANDROID_NDK_BIN/${host_alias}-cpp"
       LD="$ANDROID_NDK_BIN/${host_alias}-ld"
       AR="$ANDROID_NDK_BIN/${host_alias}-ar"
+      GDB="$ANDROID_NDK_BIN/${host_alias}-gdb"
       RANLIB="$ANDROID_NDK_BIN/${host_alias}-ranlib"
       STRIP="$ANDROID_NDK_BIN/${host_alias}-strip"
       OBJDUMP="$ANDROID_NDK_BIN/${host_alias}-objdump"
       CPPFLAGS="-fPIC --sysroot=$ANDROID_SYSROOT -I$ANDROID_SYSROOT/usr/include $TARGETFLAGS $CPPFLAGS"
       LDFLAGS="-nostdlib -Wl,--no-undefined -L${ANDROID_SYSROOT}/usr/lib -Wl,-rpath-link,${ANDROID_SYSROOT}/usr/lib -Wl,-allow-shlib-undefined -Wl,-z,noexecstack $LDFLAGS"
       LIBS="$LIBS -liconv -landroid -llog -lgcc -lc -lm"
+
 
 
 
@@ -10830,6 +10833,78 @@ else
 fi
 
 
+
+{ echo "$as_me:$LINENO: checking for sqrt in -lm" >&5
+echo $ECHO_N "checking for sqrt in -lm... $ECHO_C" >&6; }
+if test "${ac_cv_lib_m_sqrt+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lm  $LIBS"
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char sqrt ();
+int
+main ()
+{
+return sqrt ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (ac_try="$ac_link"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
+  (eval "$ac_link") 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && {
+	 test -z "$ac_c_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest$ac_exeext &&
+       $as_test_x conftest$ac_exeext; then
+  ac_cv_lib_m_sqrt=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+	ac_cv_lib_m_sqrt=no
+fi
+
+rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
+      conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ echo "$as_me:$LINENO: result: $ac_cv_lib_m_sqrt" >&5
+echo "${ECHO_T}$ac_cv_lib_m_sqrt" >&6; }
+if test $ac_cv_lib_m_sqrt = yes; then
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBM 1
+_ACEOF
+
+  LIBS="-lm $LIBS"
+
+fi
+
+
 if test "x$with_gtk" = "xno"; then
 
 pkg_failed=no
@@ -16784,6 +16859,7 @@ ANDROID_NDK_HOME!$ANDROID_NDK_HOME$ac_delim
 ANDROID_SDK_VERSION!$ANDROID_SDK_VERSION$ac_delim
 ANDROID_NDK_VERSION!$ANDROID_NDK_VERSION$ac_delim
 ANDROID_GDBSERVER!$ANDROID_GDBSERVER$ac_delim
+GDB!$GDB$ac_delim
 GUI_ANDROID_TRUE!$GUI_ANDROID_TRUE$ac_delim
 GUI_ANDROID_FALSE!$GUI_ANDROID_FALSE$ac_delim
 CC!$CC$ac_delim
@@ -16804,7 +16880,6 @@ am__fastdepCC_TRUE!$am__fastdepCC_TRUE$ac_delim
 am__fastdepCC_FALSE!$am__fastdepCC_FALSE$ac_delim
 CPP!$CPP$ac_delim
 CC!$CC$ac_delim
-CFLAGS!$CFLAGS$ac_delim
 _ACEOF
 
   if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 97; then
@@ -16846,6 +16921,7 @@ _ACEOF
 ac_delim='%!_!# '
 for ac_last_try in false false false false false :; do
   cat >conf$$subs.sed <<_ACEOF
+CFLAGS!$CFLAGS$ac_delim
 CPPFLAGS!$CPPFLAGS$ac_delim
 CC_FOR_BUILD!$CC_FOR_BUILD$ac_delim
 ac_ct_CC_FOR_BUILD!$ac_ct_CC_FOR_BUILD$ac_delim
@@ -16942,7 +17018,6 @@ ARMOBJCOPY!$ARMOBJCOPY$ac_delim
 BUILD_SYSTEST_TRUE!$BUILD_SYSTEST_TRUE$ac_delim
 BUILD_SYSTEST_FALSE!$BUILD_SYSTEST_FALSE$ac_delim
 BUILD_ARMTEST_TRUE!$BUILD_ARMTEST_TRUE$ac_delim
-BUILD_ARMTEST_FALSE!$BUILD_ARMTEST_FALSE$ac_delim
 _ACEOF
 
   if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 97; then
@@ -16984,6 +17059,7 @@ _ACEOF
 ac_delim='%!_!# '
 for ac_last_try in false false false false false :; do
   cat >conf$$subs.sed <<_ACEOF
+BUILD_ARMTEST_FALSE!$BUILD_ARMTEST_FALSE$ac_delim
 LXDREAM_LIBS!$LXDREAM_LIBS$ac_delim
 GETTEXT_PACKAGE!$GETTEXT_PACKAGE$ac_delim
 USE_NLS!$USE_NLS$ac_delim
@@ -17006,7 +17082,7 @@ LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 20; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 21; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5

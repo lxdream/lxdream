@@ -224,6 +224,9 @@ AC_CHECK_LIB(z, uncompress, [], [
     echo "Zlib (libz.so) could not be found, but is required."
     exit 1])
 
+dnl Check for libm (optional, required on some platforms)
+AC_CHECK_LIB(m, sqrt)
+
 if test "x$with_gtk" = "xno"; then
    dnl Check for GLIB only
    PKG_CHECK_MODULES(GLIB, glib-2.0)
