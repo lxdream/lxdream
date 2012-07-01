@@ -72,6 +72,13 @@ static const EGLint RGB565_attributes[] = {
         EGL_RENDERABLE_TYPE,EGL_OPENGL_ES2_BIT,
         EGL_NONE, EGL_NONE };
 
+static const EGLint alt_attributes[] = {
+        EGL_DEPTH_SIZE,     16,
+        EGL_STENCIL_SIZE,   8,
+        EGL_SURFACE_TYPE,   EGL_WINDOW_BIT,
+        EGL_RENDERABLE_TYPE,EGL_OPENGL_ES2_BIT,
+        EGL_NONE, EGL_NONE };
+
 static const EGLint context_attributes[] = {
         EGL_CONTEXT_CLIENT_VERSION, 2,
         EGL_NONE, EGL_NONE };
@@ -81,60 +88,79 @@ static EGLContext context = EGL_NO_CONTEXT;
 static EGLSurface surface = EGL_NO_SURFACE;
 static gboolean fbo_created = FALSE;
 
-gboolean video_egl_set_window(EGLNativeWindowType window, int width, int height, int format)
-{
-    EGLConfig config;
-    EGLint num_config, major = 0, minor = 0;
-    const EGLint *attribute_list;
+static void video_egl_swap_buffers();
+static int video_egl_major = 0, video_egl_minor = 0;
 
+gboolean video_egl_init()
+{
     display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
-    if( eglInitialize(display, &major, &minor) != EGL_TRUE ) {
+    if( eglInitialize(display, &video_egl_major, &video_egl_minor) != EGL_TRUE ) {
         logEGLError( "Unable to initialise EGL display" );
         return FALSE;
     }
+    return TRUE;
+}
+
+gboolean video_egl_init_context( EGLNativeWindowType window, int format )
+{
+    EGLConfig config;
+    EGLint num_config;
+    const EGLint *attribute_list;
 
     if( format == COLFMT_RGB565 || format == COLFMT_BGRA1555 ) {
         attribute_list = RGB565_attributes;
     } else {
         attribute_list = RGB888_attributes;
     }
-
-
     eglChooseConfig(display, attribute_list, &config, 1, &num_config);
+
+    surface = eglCreateWindowSurface(display, config, window, NULL);
+    if( surface == EGL_NO_SURFACE ) {
+        /* Try alternate config in case of failure. This provides a workaround for
+         * the Nokia N900 where eglCreateWindowSurface fails when color attributes
+         * are specified. (bug report: https://bugs.maemo.org/show_bug.cgi?id=9335)
+         */
+        eglChooseConfig(display, alt_attributes, &config, 1, &num_config);
+        surface = eglCreateWindowSurface(display, config, window, NULL);
+
+        if( surface == EGL_NO_SURFACE ) {
+            logEGLError( "Unable to create EGL surface" );
+            video_egl_shutdown();
+            return FALSE;
+        }
+    }
 
     context = eglCreateContext(display, config, EGL_NO_CONTEXT, context_attributes);
     if( context == EGL_NO_CONTEXT ) {
         logEGLError( "Unable to create EGL context" );
-        video_egl_clear_window();
+        video_egl_shutdown();
         return FALSE;
     }
 
-    surface = eglCreateWindowSurface(display, config, window, NULL);
-    if( surface == EGL_NO_SURFACE ) {
-        logEGLError( "Unable to create EGL surface" );
-        video_egl_clear_window();
-        return FALSE;
-    }
+
 
     if( eglMakeCurrent( display, surface, surface, context ) == EGL_FALSE ) {
         logEGLError( "Unable to make EGL context current" );
-        video_egl_clear_window();
+        video_egl_shutdown();
         return FALSE;
     }
 
-    display_egl_driver.capabilities.depth_bits = 16; /* TODO: get from config info */
-    if( !gl_init_driver(&display_egl_driver, TRUE) ) {
-        video_egl_clear_window();
-        return FALSE;
-    }
-    fbo_created = TRUE;
-    gl_set_video_size(width, height, 0);
-    pvr2_setup_gl_context();
-    INFO( "Initialised EGL %d.%d", major, minor );
     return TRUE;
 }
 
-void video_egl_clear_window()
+gboolean video_egl_init_driver( display_driver_t driver )
+{
+    driver->swap_buffers = video_egl_swap_buffers;
+    driver->capabilities.depth_bits = 16; /* TODO: get from config info */
+    if( !gl_init_driver(driver, TRUE) ) {
+        video_egl_shutdown();
+        return FALSE;
+    }
+    fbo_created = TRUE;
+    return TRUE;
+}
+
+void video_egl_shutdown()
 {
     if( fbo_created ) {
         pvr2_shutdown_gl_context();
@@ -154,6 +180,24 @@ void video_egl_clear_window()
         eglTerminate(display);
         display = EGL_NO_DISPLAY;
     }
+}
+
+gboolean video_egl_set_window(EGLNativeWindowType window, int width, int height, int format)
+{
+    if( ! video_egl_init() ||
+            ! video_egl_init_context( window, format ) ||
+            ! video_egl_init_driver( &display_egl_driver ) ) {
+        return FALSE;
+    }
+    gl_set_video_size(width, height, 0);
+    pvr2_setup_gl_context();
+    INFO( "Initialised EGL %d.%d", video_egl_major, video_egl_minor );
+    return TRUE;
+}
+
+void video_egl_clear_window()
+{
+    video_egl_shutdown();
     INFO( "Terminated EGL" );
 }
 

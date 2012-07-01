@@ -682,16 +682,6 @@ host
 host_cpu
 host_vendor
 host_os
-ANT
-ANDROID_ABI
-ANDROID_SDK_HOME
-ANDROID_NDK_HOME
-ANDROID_SDK_VERSION
-ANDROID_NDK_VERSION
-ANDROID_GDBSERVER
-GDB
-GUI_ANDROID_TRUE
-GUI_ANDROID_FALSE
 CC
 CFLAGS
 LDFLAGS
@@ -738,6 +728,15 @@ am__fastdepOBJC_TRUE
 am__fastdepOBJC_FALSE
 POD2MAN
 POD2HTML
+ANT
+ANDROID_ABI
+ANDROID_SDK_HOME
+ANDROID_NDK_HOME
+ANDROID_SDK_VERSION
+ANDROID_NDK_VERSION
+ANDROID_GDBSERVER
+GUI_ANDROID_TRUE
+GUI_ANDROID_FALSE
 GUI_COCOA_TRUE
 GUI_COCOA_FALSE
 SOEXT
@@ -768,6 +767,8 @@ VIDEO_GLX_TRUE
 VIDEO_GLX_FALSE
 VIDEO_NSGL_TRUE
 VIDEO_NSGL_FALSE
+VIDEO_EGL_TRUE
+VIDEO_EGL_FALSE
 BUILD_SH4X86_TRUE
 BUILD_SH4X86_FALSE
 AUDIO_OSX_TRUE
@@ -1465,17 +1466,18 @@ Optional Features:
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
-  --with-android=SDK      Specify the location of the Android SDK
-  --with-android-ndk=NDK  Specify the location of the Android NDK
-  --with-android-version  Specify target Android SDK version
-  --with-android-version  Specify target Android NDK version
-  --with-android-abi      Specify target Android ABI
   --with-osmesa           Build with the osmesa GL library (software
                           rendering)
   --with-gtk              Build with the GTK UI. Default on X11 systems
   --with-esd              Build with support for the ESounD audio system
   --with-pulse            Build with support for the PulseAudio audio system
   --with-sdl              Build with support for SDL audio
+  --with-sysroot=SYSROOT  Build using an alternate sysroot
+  --with-android=SDK      Specify the location of the Android SDK
+  --with-android-ndk=NDK  Specify the location of the Android NDK
+  --with-android-version  Specify target Android SDK version
+  --with-android-version  Specify target Android NDK version
+  --with-android-abi      Specify target Android ABI
 
 Some influential environment variables:
   CC          C compiler command
@@ -2527,257 +2529,6 @@ case $host_os in *\ *) host_os=`echo "$host_os" | sed 's/ /-/g'`;; esac
 # Defines --with-android, --with-android-ndk, and --with-android-version
 # If specified, checks for a working install, and sets build parameters
 # appropriately for an Android host.
-
-
-
-
-
-# Check whether --with-android was given.
-if test "${with_android+set}" = set; then
-  withval=$with_android;
-fi
-
-
-# Check whether --with-android-ndk was given.
-if test "${with_android_ndk+set}" = set; then
-  withval=$with_android_ndk;
-fi
-
-
-# Check whether --with-android-version was given.
-if test "${with_android_version+set}" = set; then
-  withval=$with_android_version;
-else
-  with_android_version="android-11"
-fi
-
-
-# Check whether --with-android-ndk-version was given.
-if test "${with_android_ndk_version+set}" = set; then
-  withval=$with_android_ndk_version;
-else
-  with_ndk_version="android-9"
-fi
-
-
-# Check whether --with-android-abi was given.
-if test "${with_android_abi+set}" = set; then
-  withval=$with_android_abi;
-else
-  ANDROID_ABI="armeabi-v7a"
-fi
-
-
-   if test "x$with_android" != "x"; then
-      if test "$with_android" = "yes"; then
-         { { echo "$as_me:$LINENO: error: --with-android option must be given with the path to the Android SDK " >&5
-echo "$as_me: error: --with-android option must be given with the path to the Android SDK " >&2;}
-   { (exit 1); exit 1; }; }
-      fi
-      if test "x$with_android_ndk" = "x" -o "x$with_android_ndk" = "xyes"; then
-         { { echo "$as_me:$LINENO: error: --with-android-ndk=/path/to/ndk option must be used with --with-android " >&5
-echo "$as_me: error: --with-android-ndk=/path/to/ndk option must be used with --with-android " >&2;}
-   { (exit 1); exit 1; }; }
-      fi
-
-      ANDROID_SDK_HOME="$with_android"
-      ANDROID_NDK_HOME="$with_android_ndk"
-      ANDROID_SDK_VERSION="$with_android_version"
-      ANDROID_NDK_VERSION="$with_ndk_version"
-
-      as_ac_File=`echo "ac_cv_file_$ANDROID_SDK_HOME/tools/ant/pre_setup.xml" | $as_tr_sh`
-{ echo "$as_me:$LINENO: checking for $ANDROID_SDK_HOME/tools/ant/pre_setup.xml" >&5
-echo $ECHO_N "checking for $ANDROID_SDK_HOME/tools/ant/pre_setup.xml... $ECHO_C" >&6; }
-if { as_var=$as_ac_File; eval "test \"\${$as_var+set}\" = set"; }; then
-  echo $ECHO_N "(cached) $ECHO_C" >&6
-else
-  test "$cross_compiling" = yes &&
-  { { echo "$as_me:$LINENO: error: cannot check for file existence when cross compiling" >&5
-echo "$as_me: error: cannot check for file existence when cross compiling" >&2;}
-   { (exit 1); exit 1; }; }
-if test -r "$ANDROID_SDK_HOME/tools/ant/pre_setup.xml"; then
-  eval "$as_ac_File=yes"
-else
-  eval "$as_ac_File=no"
-fi
-fi
-ac_res=`eval echo '${'$as_ac_File'}'`
-	       { echo "$as_me:$LINENO: result: $ac_res" >&5
-echo "${ECHO_T}$ac_res" >&6; }
-if test `eval echo '${'$as_ac_File'}'` = yes; then
-  :
-else
-   { { echo "$as_me:$LINENO: error: Android SDK not found in $ANDROID_SDK_HOME" >&5
-echo "$as_me: error: Android SDK not found in $ANDROID_SDK_HOME" >&2;}
-   { (exit 1); exit 1; }; }
-fi
-
-      as_ac_File=`echo "ac_cv_file_$ANDROID_SDK_HOME/platforms/$ANDROID_SDK_VERSION/sdk.properties" | $as_tr_sh`
-{ echo "$as_me:$LINENO: checking for $ANDROID_SDK_HOME/platforms/$ANDROID_SDK_VERSION/sdk.properties" >&5
-echo $ECHO_N "checking for $ANDROID_SDK_HOME/platforms/$ANDROID_SDK_VERSION/sdk.properties... $ECHO_C" >&6; }
-if { as_var=$as_ac_File; eval "test \"\${$as_var+set}\" = set"; }; then
-  echo $ECHO_N "(cached) $ECHO_C" >&6
-else
-  test "$cross_compiling" = yes &&
-  { { echo "$as_me:$LINENO: error: cannot check for file existence when cross compiling" >&5
-echo "$as_me: error: cannot check for file existence when cross compiling" >&2;}
-   { (exit 1); exit 1; }; }
-if test -r "$ANDROID_SDK_HOME/platforms/$ANDROID_SDK_VERSION/sdk.properties"; then
-  eval "$as_ac_File=yes"
-else
-  eval "$as_ac_File=no"
-fi
-fi
-ac_res=`eval echo '${'$as_ac_File'}'`
-	       { echo "$as_me:$LINENO: result: $ac_res" >&5
-echo "${ECHO_T}$ac_res" >&6; }
-if test `eval echo '${'$as_ac_File'}'` = yes; then
-  :
-else
-   { { echo "$as_me:$LINENO: error: Android platform version $ANDROID_SDK_VERSION not found in $ANDROID_SDK_HOME" >&5
-echo "$as_me: error: Android platform version $ANDROID_SDK_VERSION not found in $ANDROID_SDK_HOME" >&2;}
-   { (exit 1); exit 1; }; }
-fi
-
-      as_ac_File=`echo "ac_cv_file_$ANDROID_NDK_HOME/toolchains" | $as_tr_sh`
-{ echo "$as_me:$LINENO: checking for $ANDROID_NDK_HOME/toolchains" >&5
-echo $ECHO_N "checking for $ANDROID_NDK_HOME/toolchains... $ECHO_C" >&6; }
-if { as_var=$as_ac_File; eval "test \"\${$as_var+set}\" = set"; }; then
-  echo $ECHO_N "(cached) $ECHO_C" >&6
-else
-  test "$cross_compiling" = yes &&
-  { { echo "$as_me:$LINENO: error: cannot check for file existence when cross compiling" >&5
-echo "$as_me: error: cannot check for file existence when cross compiling" >&2;}
-   { (exit 1); exit 1; }; }
-if test -r "$ANDROID_NDK_HOME/toolchains"; then
-  eval "$as_ac_File=yes"
-else
-  eval "$as_ac_File=no"
-fi
-fi
-ac_res=`eval echo '${'$as_ac_File'}'`
-	       { echo "$as_me:$LINENO: result: $ac_res" >&5
-echo "${ECHO_T}$ac_res" >&6; }
-if test `eval echo '${'$as_ac_File'}'` = yes; then
-  :
-else
-   { { echo "$as_me:$LINENO: error: Android NDK not found in $ANDROID_NDK_HOME" >&5
-echo "$as_me: error: Android NDK not found in $ANDROID_NDK_HOME" >&2;}
-   { (exit 1); exit 1; }; }
-fi
-
-
-            TARGETFLAGS="-ffunction-sections -funwind-tables -fomit-frame-pointer -DANDROID -Wa,--noexecstack"
-
-      case $ANDROID_ABI in
-         armeabi | armeabi-v7a)
-            host_alias="arm-linux-androideabi"
-            host_cpu="arm"
-            host_vendor="unknown";
-            host_os="linux-androideabi"
-            ANDROID_NDK_BIN=`echo $ANDROID_NDK_HOME/toolchains/arm-*/prebuilt/*/bin`
-            ANDROID_GDBSERVER=`echo $ANDROID_NDK_HOME/toolchains/arm-*/prebuilt/gdbserver`
-            ANDROID_SYSROOT="$ANDROID_NDK_HOME/platforms/$ANDROID_NDK_VERSION/arch-arm"
-                        TARGETFLAGS="$TARGETFLAGS -fstack-protector -finline-limit=64 -fno-strict-aliasing -Wno-psabi -D__ARM_ARCH_5__ -D__ARM_ARCH_5T__ -D__ARM_ARCH_5E__ -D__ARM_ARCH_5TE__"
-            if test "x$with_abi" = "armeabi"; then
-                TARGETFLAGS="$TARGETFLAGS -march=armv5te -mtune=xscale -msoft-float"
-            else
-                TARGETFLAGS="$TARGETFLAGS -march=armv7-a -mtune=cortex-a8 -mfloat-abi=softfp -mfpu=vfp"
-            fi
-            ;;
-         x86)
-            host_alias="i686-android-linux"
-            host_cpu="i686"
-            host_vendor="android"
-            host_os="linux"
-            ANDROID_NDK_BIN=`echo $ANDROID_NDK_HOME/toolchains/x86-*/prebuilt/*/bin`
-            ANDROID_GDBSERVER=`echo $ANDROID_NDK_HOME/toolchains/x86-*/prebuilt/gdbserver`
-            ANDROID_SYSROOT="$ANDROID_NDK_HOME/platforms/$ANDROID_NDK_VERSION/arch-x86"
-            TARGETFLAGS="$TARGETFLAGS -finline-limit=300 -fno-rtti -funswitch-loops -fstrict-aliasing"
-            ;;
-         *)
-            { { echo "$as_me:$LINENO: error: Unsupported android ABI $ANDROID_ABI" >&5
-echo "$as_me: error: Unsupported android ABI $ANDROID_ABI" >&2;}
-   { (exit 1); exit 1; }; }
-      	    ;;
-      esac
-
-      # Extract the first word of "ant ", so it can be a program name with args.
-set dummy ant ; ac_word=$2
-{ echo "$as_me:$LINENO: checking for $ac_word" >&5
-echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6; }
-if test "${ac_cv_path_ANT+set}" = set; then
-  echo $ECHO_N "(cached) $ECHO_C" >&6
-else
-  case $ANT in
-  [\\/]* | ?:[\\/]*)
-  ac_cv_path_ANT="$ANT" # Let the user override the test with a path.
-  ;;
-  *)
-  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-  for ac_exec_ext in '' $ac_executable_extensions; do
-  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
-    ac_cv_path_ANT="$as_dir/$ac_word$ac_exec_ext"
-    echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-done
-IFS=$as_save_IFS
-
-  ;;
-esac
-fi
-ANT=$ac_cv_path_ANT
-if test -n "$ANT"; then
-  { echo "$as_me:$LINENO: result: $ANT" >&5
-echo "${ECHO_T}$ANT" >&6; }
-else
-  { echo "$as_me:$LINENO: result: no" >&5
-echo "${ECHO_T}no" >&6; }
-fi
-
-
-
-      CC="$ANDROID_NDK_BIN/${host_alias}-gcc"
-      CXX="$ANDROID_NDK_BIN/${host_alias}-g++"
-      CPP="$ANDROID_NDK_BIN/${host_alias}-cpp"
-      LD="$ANDROID_NDK_BIN/${host_alias}-ld"
-      AR="$ANDROID_NDK_BIN/${host_alias}-ar"
-      GDB="$ANDROID_NDK_BIN/${host_alias}-gdb"
-      RANLIB="$ANDROID_NDK_BIN/${host_alias}-ranlib"
-      STRIP="$ANDROID_NDK_BIN/${host_alias}-strip"
-      OBJDUMP="$ANDROID_NDK_BIN/${host_alias}-objdump"
-      CPPFLAGS="-fPIC --sysroot=$ANDROID_SYSROOT -I$ANDROID_SYSROOT/usr/include $TARGETFLAGS $CPPFLAGS"
-      LDFLAGS="-nostdlib -Wl,--no-undefined -L${ANDROID_SYSROOT}/usr/lib -Wl,-rpath-link,${ANDROID_SYSROOT}/usr/lib -Wl,-allow-shlib-undefined -Wl,-z,noexecstack $LDFLAGS"
-      LIBS="$LIBS -liconv -landroid -llog -lgcc -lc -lm"
-
-
-
-
-
-
-
-
-
-      ANDROID_BUILD=yes
-      cross_compiling=yes
-   fi
-
-
-
-if test "$ANDROID_BUILD" = "yes"; then
-  GUI_ANDROID_TRUE=
-  GUI_ANDROID_FALSE='#'
-else
-  GUI_ANDROID_TRUE='#'
-  GUI_ANDROID_FALSE=
-fi
-
 
 
 
@@ -8998,17 +8749,282 @@ fi
 
 
 
+# Check whether --with-sysroot was given.
+if test "${with_sysroot+set}" = set; then
+  withval=$with_sysroot;
+     if test -d "$with_sysroot/lib/pkgconfig"; then
+       LDFLAGS="$LDFLAGS -L$with_sysroot/lib"
+       CPPFLAGS="$CPPFLAGS -I$with_sysroot/include"
+       BUILD_PKG_CONFIG_LIBDIR="$PKG_CONFIG_LIBDIR"
+       TARGET_PKG_CONFIG_LIBDIR="$with_sysroot/lib/pkgconfig"
+       PKG_CONFIG_LIBDIR="$TARGET_PKG_CONFIG_LIBDIR"
+       export PKG_CONFIG_LIBDIR;
+     else
+       { { echo "$as_me:$LINENO: error: pkg-config directory $with_sysroot/lib/pkgconfig not found, when using --with-sysroot=$with_sysroot option
+See \`config.log' for more details." >&5
+echo "$as_me: error: pkg-config directory $with_sysroot/lib/pkgconfig not found, when using --with-sysroot=$with_sysroot option
+See \`config.log' for more details." >&2;}
+   { (exit 1); exit 1; }; }
+     fi
+
+fi
+
+
+
+
+
+# Check whether --with-android was given.
+if test "${with_android+set}" = set; then
+  withval=$with_android;
+fi
+
+
+# Check whether --with-android-ndk was given.
+if test "${with_android_ndk+set}" = set; then
+  withval=$with_android_ndk;
+fi
+
+
+# Check whether --with-android-version was given.
+if test "${with_android_version+set}" = set; then
+  withval=$with_android_version;
+else
+  with_android_version="android-11"
+fi
+
+
+# Check whether --with-android-ndk-version was given.
+if test "${with_android_ndk_version+set}" = set; then
+  withval=$with_android_ndk_version;
+else
+  with_ndk_version="android-9"
+fi
+
+
+# Check whether --with-android-abi was given.
+if test "${with_android_abi+set}" = set; then
+  withval=$with_android_abi;
+else
+  ANDROID_ABI="armeabi-v7a"
+fi
+
+
+   if test "x$with_android" != "x"; then
+      if test "$with_android" = "yes"; then
+         { { echo "$as_me:$LINENO: error: --with-android option must be given with the path to the Android SDK " >&5
+echo "$as_me: error: --with-android option must be given with the path to the Android SDK " >&2;}
+   { (exit 1); exit 1; }; }
+      fi
+      if test "x$with_android_ndk" = "x" -o "x$with_android_ndk" = "xyes"; then
+         { { echo "$as_me:$LINENO: error: --with-android-ndk=/path/to/ndk option must be used with --with-android " >&5
+echo "$as_me: error: --with-android-ndk=/path/to/ndk option must be used with --with-android " >&2;}
+   { (exit 1); exit 1; }; }
+      fi
+
+      ANDROID_SDK_HOME="$with_android"
+      ANDROID_NDK_HOME="$with_android_ndk"
+      ANDROID_SDK_VERSION="$with_android_version"
+      ANDROID_NDK_VERSION="$with_ndk_version"
+
+      as_ac_File=`echo "ac_cv_file_$ANDROID_SDK_HOME/tools/ant/pre_setup.xml" | $as_tr_sh`
+{ echo "$as_me:$LINENO: checking for $ANDROID_SDK_HOME/tools/ant/pre_setup.xml" >&5
+echo $ECHO_N "checking for $ANDROID_SDK_HOME/tools/ant/pre_setup.xml... $ECHO_C" >&6; }
+if { as_var=$as_ac_File; eval "test \"\${$as_var+set}\" = set"; }; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  test "$cross_compiling" = yes &&
+  { { echo "$as_me:$LINENO: error: cannot check for file existence when cross compiling" >&5
+echo "$as_me: error: cannot check for file existence when cross compiling" >&2;}
+   { (exit 1); exit 1; }; }
+if test -r "$ANDROID_SDK_HOME/tools/ant/pre_setup.xml"; then
+  eval "$as_ac_File=yes"
+else
+  eval "$as_ac_File=no"
+fi
+fi
+ac_res=`eval echo '${'$as_ac_File'}'`
+	       { echo "$as_me:$LINENO: result: $ac_res" >&5
+echo "${ECHO_T}$ac_res" >&6; }
+if test `eval echo '${'$as_ac_File'}'` = yes; then
+  :
+else
+   { { echo "$as_me:$LINENO: error: Android SDK not found in $ANDROID_SDK_HOME" >&5
+echo "$as_me: error: Android SDK not found in $ANDROID_SDK_HOME" >&2;}
+   { (exit 1); exit 1; }; }
+fi
+
+      as_ac_File=`echo "ac_cv_file_$ANDROID_SDK_HOME/platforms/$ANDROID_SDK_VERSION/sdk.properties" | $as_tr_sh`
+{ echo "$as_me:$LINENO: checking for $ANDROID_SDK_HOME/platforms/$ANDROID_SDK_VERSION/sdk.properties" >&5
+echo $ECHO_N "checking for $ANDROID_SDK_HOME/platforms/$ANDROID_SDK_VERSION/sdk.properties... $ECHO_C" >&6; }
+if { as_var=$as_ac_File; eval "test \"\${$as_var+set}\" = set"; }; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  test "$cross_compiling" = yes &&
+  { { echo "$as_me:$LINENO: error: cannot check for file existence when cross compiling" >&5
+echo "$as_me: error: cannot check for file existence when cross compiling" >&2;}
+   { (exit 1); exit 1; }; }
+if test -r "$ANDROID_SDK_HOME/platforms/$ANDROID_SDK_VERSION/sdk.properties"; then
+  eval "$as_ac_File=yes"
+else
+  eval "$as_ac_File=no"
+fi
+fi
+ac_res=`eval echo '${'$as_ac_File'}'`
+	       { echo "$as_me:$LINENO: result: $ac_res" >&5
+echo "${ECHO_T}$ac_res" >&6; }
+if test `eval echo '${'$as_ac_File'}'` = yes; then
+  :
+else
+   { { echo "$as_me:$LINENO: error: Android platform version $ANDROID_SDK_VERSION not found in $ANDROID_SDK_HOME" >&5
+echo "$as_me: error: Android platform version $ANDROID_SDK_VERSION not found in $ANDROID_SDK_HOME" >&2;}
+   { (exit 1); exit 1; }; }
+fi
+
+      as_ac_File=`echo "ac_cv_file_$ANDROID_NDK_HOME/toolchains" | $as_tr_sh`
+{ echo "$as_me:$LINENO: checking for $ANDROID_NDK_HOME/toolchains" >&5
+echo $ECHO_N "checking for $ANDROID_NDK_HOME/toolchains... $ECHO_C" >&6; }
+if { as_var=$as_ac_File; eval "test \"\${$as_var+set}\" = set"; }; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  test "$cross_compiling" = yes &&
+  { { echo "$as_me:$LINENO: error: cannot check for file existence when cross compiling" >&5
+echo "$as_me: error: cannot check for file existence when cross compiling" >&2;}
+   { (exit 1); exit 1; }; }
+if test -r "$ANDROID_NDK_HOME/toolchains"; then
+  eval "$as_ac_File=yes"
+else
+  eval "$as_ac_File=no"
+fi
+fi
+ac_res=`eval echo '${'$as_ac_File'}'`
+	       { echo "$as_me:$LINENO: result: $ac_res" >&5
+echo "${ECHO_T}$ac_res" >&6; }
+if test `eval echo '${'$as_ac_File'}'` = yes; then
+  :
+else
+   { { echo "$as_me:$LINENO: error: Android NDK not found in $ANDROID_NDK_HOME" >&5
+echo "$as_me: error: Android NDK not found in $ANDROID_NDK_HOME" >&2;}
+   { (exit 1); exit 1; }; }
+fi
+
+
+            TARGETFLAGS="-ffunction-sections -funwind-tables -fomit-frame-pointer -DANDROID -Wa,--noexecstack"
+
+      case $ANDROID_ABI in
+         armeabi | armeabi-v7a)
+            host_alias="arm-linux-androideabi"
+            host_cpu="arm"
+            host_vendor="unknown";
+            host_os="linux-androideabi"
+            ANDROID_NDK_BIN=`echo $ANDROID_NDK_HOME/toolchains/arm-*/prebuilt/*/bin`
+            ANDROID_GDBSERVER=`echo $ANDROID_NDK_HOME/toolchains/arm-*/prebuilt/gdbserver`
+            ANDROID_SYSROOT="$ANDROID_NDK_HOME/platforms/$ANDROID_NDK_VERSION/arch-arm"
+                        TARGETFLAGS="$TARGETFLAGS -fstack-protector -finline-limit=64 -fno-strict-aliasing -Wno-psabi -D__ARM_ARCH_5__ -D__ARM_ARCH_5T__ -D__ARM_ARCH_5E__ -D__ARM_ARCH_5TE__"
+            if test "x$with_abi" = "armeabi"; then
+                TARGETFLAGS="$TARGETFLAGS -march=armv5te -mtune=xscale -msoft-float"
+            else
+                TARGETFLAGS="$TARGETFLAGS -march=armv7-a -mtune=cortex-a8 -mfloat-abi=softfp -mfpu=vfp"
+            fi
+            ;;
+         x86)
+            host_alias="i686-android-linux"
+            host_cpu="i686"
+            host_vendor="android"
+            host_os="linux"
+            ANDROID_NDK_BIN=`echo $ANDROID_NDK_HOME/toolchains/x86-*/prebuilt/*/bin`
+            ANDROID_GDBSERVER=`echo $ANDROID_NDK_HOME/toolchains/x86-*/prebuilt/gdbserver`
+            ANDROID_SYSROOT="$ANDROID_NDK_HOME/platforms/$ANDROID_NDK_VERSION/arch-x86"
+            TARGETFLAGS="$TARGETFLAGS -finline-limit=300 -fno-rtti -funswitch-loops -fstrict-aliasing"
+            ;;
+         *)
+            { { echo "$as_me:$LINENO: error: Unsupported android ABI $ANDROID_ABI" >&5
+echo "$as_me: error: Unsupported android ABI $ANDROID_ABI" >&2;}
+   { (exit 1); exit 1; }; }
+      	    ;;
+      esac
+
+      # Extract the first word of "ant ", so it can be a program name with args.
+set dummy ant ; ac_word=$2
+{ echo "$as_me:$LINENO: checking for $ac_word" >&5
+echo $ECHO_N "checking for $ac_word... $ECHO_C" >&6; }
+if test "${ac_cv_path_ANT+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  case $ANT in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_ANT="$ANT" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+  for ac_exec_ext in '' $ac_executable_extensions; do
+  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
+    ac_cv_path_ANT="$as_dir/$ac_word$ac_exec_ext"
+    echo "$as_me:$LINENO: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+done
+IFS=$as_save_IFS
+
+  ;;
+esac
+fi
+ANT=$ac_cv_path_ANT
+if test -n "$ANT"; then
+  { echo "$as_me:$LINENO: result: $ANT" >&5
+echo "${ECHO_T}$ANT" >&6; }
+else
+  { echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6; }
+fi
+
+
+
+      CC="$ANDROID_NDK_BIN/${host_alias}-gcc"
+      CXX="$ANDROID_NDK_BIN/${host_alias}-g++"
+      CPP="$ANDROID_NDK_BIN/${host_alias}-cpp"
+      LD="$ANDROID_NDK_BIN/${host_alias}-ld"
+      AR="$ANDROID_NDK_BIN/${host_alias}-ar"
+      RANLIB="$ANDROID_NDK_BIN/${host_alias}-ranlib"
+      STRIP="$ANDROID_NDK_BIN/${host_alias}-strip"
+      OBJDUMP="$ANDROID_NDK_BIN/${host_alias}-objdump"
+      CPPFLAGS="-fPIC --sysroot=$ANDROID_SYSROOT -I$ANDROID_SYSROOT/usr/include $TARGETFLAGS $CPPFLAGS"
+      LDFLAGS="-nostdlib -Wl,--no-undefined -L${ANDROID_SYSROOT}/usr/lib -Wl,-rpath-link,${ANDROID_SYSROOT}/usr/lib -Wl,-allow-shlib-undefined -Wl,-z,noexecstack $LDFLAGS"
+      LIBS="$LIBS -liconv -landroid -llog -lgcc -lc -lm"
+
+
+
+
+
+
+
+
+      ANDROID_BUILD=yes
+      cross_compiling=yes
+   fi
+
+
+
+if test "$ANDROID_BUILD" = "yes"; then
+  GUI_ANDROID_TRUE=
+  GUI_ANDROID_FALSE='#'
+else
+  GUI_ANDROID_TRUE='#'
+  GUI_ANDROID_FALSE=
+fi
+
+
+
+
+
 if test "$ANDROID_BUILD" = "yes"; then
    with_gtk=no;
    EXTRA_OUTPUT_FILES="src/android/build.properties"
-   LIBS="-lEGL -lGLESv2 $LIBS"
-
-cat >>confdefs.h <<\_ACEOF
-#define HAVE_GLES2 1
-_ACEOF
-
    UI_DRIVER="Android"
-   VIDEO_DRIVERS="egl"
    with_sdl=no
 else
 
@@ -11325,6 +11341,12 @@ See \`config.log' for more details." >&2;}
 fi
 
 
+if test "$BUILD_PKG_CONFIG_LIBDIR" != "$TARGET_PKG_CONFIG_LIBDIR"; then
+   PKG_CONFIG_LIBDIR="$BUILD_PKG_CONFIG_LIBDIR";
+   if test "x$PKG_CONFIG_LIBDIR" = "x"; then
+      export -n PKG_CONFIG_LIBDIR
+   fi
+fi
 
 pkg_failed=no
 { echo "$as_me:$LINENO: checking for GLIB_FOR_BUILD" >&5
@@ -11431,6 +11453,10 @@ else
         { echo "$as_me:$LINENO: result: yes" >&5
 echo "${ECHO_T}yes" >&6; }
 	:
+fi
+if test "$BUILD_PKG_CONFIG_LIBDIR" != "$TARGET_PKG_CONFIG_LIBDIR"; then
+   PKG_CONFIG_LIBDIR="$TARGET_PKG_CONFIG_LIBDIR";
+   export PKG_CONFIG_LIBDIR
 fi
 
 
@@ -11779,7 +11805,7 @@ _ACEOF
 else
 
 
-   if test "x$APPLE_BUILD" != 'xyes' -a "x$ANDROID_BUILD" != 'xyes'; then
+   if test "x$APPLE_BUILD" != 'xyes'; then
 
 pkg_failed=no
 { echo "$as_me:$LINENO: checking for LIBGL" >&5
@@ -11789,12 +11815,12 @@ if test -n "$LIBGL_CFLAGS"; then
     pkg_cv_LIBGL_CFLAGS="$LIBGL_CFLAGS"
  elif test -n "$PKG_CONFIG"; then
     if test -n "$PKG_CONFIG" && \
-    { (echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"gl \"") >&5
-  ($PKG_CONFIG --exists --print-errors "gl ") 2>&5
+    { (echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"gl\"") >&5
+  ($PKG_CONFIG --exists --print-errors "gl") 2>&5
   ac_status=$?
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); }; then
-  pkg_cv_LIBGL_CFLAGS=`$PKG_CONFIG --cflags "gl " 2>/dev/null`
+  pkg_cv_LIBGL_CFLAGS=`$PKG_CONFIG --cflags "gl" 2>/dev/null`
 else
   pkg_failed=yes
 fi
@@ -11805,12 +11831,12 @@ if test -n "$LIBGL_LIBS"; then
     pkg_cv_LIBGL_LIBS="$LIBGL_LIBS"
  elif test -n "$PKG_CONFIG"; then
     if test -n "$PKG_CONFIG" && \
-    { (echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"gl \"") >&5
-  ($PKG_CONFIG --exists --print-errors "gl ") 2>&5
+    { (echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"gl\"") >&5
+  ($PKG_CONFIG --exists --print-errors "gl") 2>&5
   ac_status=$?
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); }; then
-  pkg_cv_LIBGL_LIBS=`$PKG_CONFIG --libs "gl " 2>/dev/null`
+  pkg_cv_LIBGL_LIBS=`$PKG_CONFIG --libs "gl" 2>/dev/null`
 else
   pkg_failed=yes
 fi
@@ -11828,67 +11854,173 @@ else
         _pkg_short_errors_supported=no
 fi
         if test $_pkg_short_errors_supported = yes; then
-	        LIBGL_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors "gl " 2>&1`
+	        LIBGL_PKG_ERRORS=`$PKG_CONFIG --short-errors --print-errors "gl" 2>&1`
         else
-	        LIBGL_PKG_ERRORS=`$PKG_CONFIG --print-errors "gl " 2>&1`
+	        LIBGL_PKG_ERRORS=`$PKG_CONFIG --print-errors "gl" 2>&1`
         fi
 	# Put the nasty error message in config.log where it belongs
 	echo "$LIBGL_PKG_ERRORS" >&5
 
-	{ { echo "$as_me:$LINENO: error: Package requirements (gl ) were not met:
+	{ echo "$as_me:$LINENO: result: no" >&5
+echo "${ECHO_T}no" >&6; }
 
-$LIBGL_PKG_ERRORS
+                  { echo "$as_me:$LINENO: checking for glEnable in -lGLESv2" >&5
+echo $ECHO_N "checking for glEnable in -lGLESv2... $ECHO_C" >&6; }
+if test "${ac_cv_lib_GLESv2_glEnable+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lGLESv2  $LIBS"
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
 
-Consider adjusting the PKG_CONFIG_PATH environment variable if you
-installed software in a non-standard prefix.
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char glEnable ();
+int
+main ()
+{
+return glEnable ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (ac_try="$ac_link"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
+  (eval "$ac_link") 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && {
+	 test -z "$ac_c_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest$ac_exeext &&
+       $as_test_x conftest$ac_exeext; then
+  ac_cv_lib_GLESv2_glEnable=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
 
-Alternatively, you may set the environment variables LIBGL_CFLAGS
-and LIBGL_LIBS to avoid the need to call pkg-config.
-See the pkg-config man page for more details.
-" >&5
-echo "$as_me: error: Package requirements (gl ) were not met:
+	ac_cv_lib_GLESv2_glEnable=no
+fi
 
-$LIBGL_PKG_ERRORS
-
-Consider adjusting the PKG_CONFIG_PATH environment variable if you
-installed software in a non-standard prefix.
-
-Alternatively, you may set the environment variables LIBGL_CFLAGS
-and LIBGL_LIBS to avoid the need to call pkg-config.
-See the pkg-config man page for more details.
-" >&2;}
-   { (exit 1); exit 1; }; }
-elif test $pkg_failed = untried; then
-	{ { echo "$as_me:$LINENO: error: The pkg-config script could not be found or is too old.  Make sure it
-is in your PATH or set the PKG_CONFIG environment variable to the full
-path to pkg-config.
-
-Alternatively, you may set the environment variables LIBGL_CFLAGS
-and LIBGL_LIBS to avoid the need to call pkg-config.
-See the pkg-config man page for more details.
-
-To get pkg-config, see <http://pkg-config.freedesktop.org/>.
+rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
+      conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ echo "$as_me:$LINENO: result: $ac_cv_lib_GLESv2_glEnable" >&5
+echo "${ECHO_T}$ac_cv_lib_GLESv2_glEnable" >&6; }
+if test $ac_cv_lib_GLESv2_glEnable = yes; then
+  LIBS="-lGLESv2 $LIBS"; HAVE_GLES2='yes'
+else
+   { { echo "$as_me:$LINENO: error: Neither the OpenGL library (libGL.so) nor the OpenGL ES 2.0 library (libGLESv2.so) could be found, but one is required.
 See \`config.log' for more details." >&5
-echo "$as_me: error: The pkg-config script could not be found or is too old.  Make sure it
-is in your PATH or set the PKG_CONFIG environment variable to the full
-path to pkg-config.
-
-Alternatively, you may set the environment variables LIBGL_CFLAGS
-and LIBGL_LIBS to avoid the need to call pkg-config.
-See the pkg-config man page for more details.
-
-To get pkg-config, see <http://pkg-config.freedesktop.org/>.
+echo "$as_me: error: Neither the OpenGL library (libGL.so) nor the OpenGL ES 2.0 library (libGLESv2.so) could be found, but one is required.
 See \`config.log' for more details." >&2;}
    { (exit 1); exit 1; }; }
+fi
+
+
+elif test $pkg_failed = untried; then
+
+                  { echo "$as_me:$LINENO: checking for glEnable in -lGLESv2" >&5
+echo $ECHO_N "checking for glEnable in -lGLESv2... $ECHO_C" >&6; }
+if test "${ac_cv_lib_GLESv2_glEnable+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lGLESv2  $LIBS"
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char glEnable ();
+int
+main ()
+{
+return glEnable ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (ac_try="$ac_link"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
+  (eval "$ac_link") 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && {
+	 test -z "$ac_c_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest$ac_exeext &&
+       $as_test_x conftest$ac_exeext; then
+  ac_cv_lib_GLESv2_glEnable=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+	ac_cv_lib_GLESv2_glEnable=no
+fi
+
+rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
+      conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ echo "$as_me:$LINENO: result: $ac_cv_lib_GLESv2_glEnable" >&5
+echo "${ECHO_T}$ac_cv_lib_GLESv2_glEnable" >&6; }
+if test $ac_cv_lib_GLESv2_glEnable = yes; then
+  LIBS="-lGLESv2 $LIBS"; HAVE_GLES2='yes'
+else
+   { { echo "$as_me:$LINENO: error: Neither the OpenGL library (libGL.so) nor the OpenGL ES 2.0 library (libGLESv2.so) could be found, but one is required.
+See \`config.log' for more details." >&5
+echo "$as_me: error: Neither the OpenGL library (libGL.so) nor the OpenGL ES 2.0 library (libGLESv2.so) could be found, but one is required.
+See \`config.log' for more details." >&2;}
+   { (exit 1); exit 1; }; }
+fi
+
+
 else
 	LIBGL_CFLAGS=$pkg_cv_LIBGL_CFLAGS
 	LIBGL_LIBS=$pkg_cv_LIBGL_LIBS
         { echo "$as_me:$LINENO: result: yes" >&5
 echo "${ECHO_T}yes" >&6; }
-	:
+
+          LIBS="$LIBS $LIBGL_LIBS";
+          CPPFLAGS="$CPPFLAGS $LIBGL_CFLAGS";
+
 fi
-                                      LIBS="$LIBS $LIBGL_LIBS";
-      CPPFLAGS="$CPPFLAGS $LIBGL_CFLAGS";
+
    else
       { echo "$as_me:$LINENO: checking for NSOpenGLGetVersion" >&5
 echo $ECHO_N "checking for NSOpenGLGetVersion... $ECHO_C" >&6; }
@@ -11982,13 +12114,12 @@ _ACEOF
 
 fi
 
-   fi
-
-   if test "x$HAVE_GTK_X11" = "xyes"; then
-      if test "x$APPLE_BUILD" = "xyes"; then
+      if test "x$HAVE_GTK_X11" = "xyes"; then
          LIBS="$LIBS -L/usr/X11/lib -lGL"
       fi
-      { echo "$as_me:$LINENO: checking for glXQueryVersion" >&5
+   fi
+
+  { echo "$as_me:$LINENO: checking for glXQueryVersion" >&5
 echo $ECHO_N "checking for glXQueryVersion... $ECHO_C" >&6; }
 if test "${ac_cv_func_glXQueryVersion+set}" = set; then
   echo $ECHO_N "(cached) $ECHO_C" >&6
@@ -12071,8 +12202,8 @@ fi
 echo "${ECHO_T}$ac_cv_func_glXQueryVersion" >&6; }
 if test $ac_cv_func_glXQueryVersion = yes; then
 
-         HAVE_GLX='yes'
-         VIDEO_DRIVERS="$VIDEO_DRIVERS glx"
+     HAVE_GLX='yes'
+     VIDEO_DRIVERS="$VIDEO_DRIVERS glx"
 
 cat >>confdefs.h <<\_ACEOF
 #define HAVE_GLX 1
@@ -12080,13 +12211,85 @@ _ACEOF
 
 fi
 
-   fi
+  { echo "$as_me:$LINENO: checking for eglGetDisplay in -lEGL" >&5
+echo $ECHO_N "checking for eglGetDisplay in -lEGL... $ECHO_C" >&6; }
+if test "${ac_cv_lib_EGL_eglGetDisplay+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lEGL  $LIBS"
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char eglGetDisplay ();
+int
+main ()
+{
+return eglGetDisplay ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (ac_try="$ac_link"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
+  (eval "$ac_link") 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && {
+	 test -z "$ac_c_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest$ac_exeext &&
+       $as_test_x conftest$ac_exeext; then
+  ac_cv_lib_EGL_eglGetDisplay=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+	ac_cv_lib_EGL_eglGetDisplay=no
+fi
+
+rm -f core conftest.err conftest.$ac_objext conftest_ipa8_conftest.oo \
+      conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ echo "$as_me:$LINENO: result: $ac_cv_lib_EGL_eglGetDisplay" >&5
+echo "${ECHO_T}$ac_cv_lib_EGL_eglGetDisplay" >&6; }
+if test $ac_cv_lib_EGL_eglGetDisplay = yes; then
+
+     LIBS="-lEGL $LIBS"
+     HAVE_EGL='yes'
+     VIDEO_DRIVERS="$VIDEO_DRIVERS egl"
+fi
 
 
 fi
 
 
+if test "x$HAVE_GLES2" = "xyes"; then
 
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_GLES2 1
+_ACEOF
+
+fi
 
 
 
@@ -12116,6 +12319,16 @@ if test "x$HAVE_NSGL" = "xyes"; then
 else
   VIDEO_NSGL_TRUE='#'
   VIDEO_NSGL_FALSE=
+fi
+
+
+
+if test "x$HAVE_EGL" = "xyes"; then
+  VIDEO_EGL_TRUE=
+  VIDEO_EGL_FALSE='#'
+else
+  VIDEO_EGL_TRUE='#'
+  VIDEO_EGL_FALSE=
 fi
 
 
@@ -16063,13 +16276,6 @@ echo "$as_me: error: conditional \"MAINTAINER_MODE\" was never defined.
 Usually this means the macro was only invoked conditionally." >&2;}
    { (exit 1); exit 1; }; }
 fi
-if test -z "${GUI_ANDROID_TRUE}" && test -z "${GUI_ANDROID_FALSE}"; then
-  { { echo "$as_me:$LINENO: error: conditional \"GUI_ANDROID\" was never defined.
-Usually this means the macro was only invoked conditionally." >&5
-echo "$as_me: error: conditional \"GUI_ANDROID\" was never defined.
-Usually this means the macro was only invoked conditionally." >&2;}
-   { (exit 1); exit 1; }; }
-fi
 if test -z "${AMDEP_TRUE}" && test -z "${AMDEP_FALSE}"; then
   { { echo "$as_me:$LINENO: error: conditional \"AMDEP\" was never defined.
 Usually this means the macro was only invoked conditionally." >&5
@@ -16112,6 +16318,13 @@ echo "$as_me: error: conditional \"am__fastdepOBJC\" was never defined.
 Usually this means the macro was only invoked conditionally." >&2;}
    { (exit 1); exit 1; }; }
 fi
+if test -z "${GUI_ANDROID_TRUE}" && test -z "${GUI_ANDROID_FALSE}"; then
+  { { echo "$as_me:$LINENO: error: conditional \"GUI_ANDROID\" was never defined.
+Usually this means the macro was only invoked conditionally." >&5
+echo "$as_me: error: conditional \"GUI_ANDROID\" was never defined.
+Usually this means the macro was only invoked conditionally." >&2;}
+   { (exit 1); exit 1; }; }
+fi
 if test -z "${GUI_COCOA_TRUE}" && test -z "${GUI_COCOA_FALSE}"; then
   { { echo "$as_me:$LINENO: error: conditional \"GUI_COCOA\" was never defined.
 Usually this means the macro was only invoked conditionally." >&5
@@ -16151,6 +16364,13 @@ if test -z "${VIDEO_NSGL_TRUE}" && test -z "${VIDEO_NSGL_FALSE}"; then
   { { echo "$as_me:$LINENO: error: conditional \"VIDEO_NSGL\" was never defined.
 Usually this means the macro was only invoked conditionally." >&5
 echo "$as_me: error: conditional \"VIDEO_NSGL\" was never defined.
+Usually this means the macro was only invoked conditionally." >&2;}
+   { (exit 1); exit 1; }; }
+fi
+if test -z "${VIDEO_EGL_TRUE}" && test -z "${VIDEO_EGL_FALSE}"; then
+  { { echo "$as_me:$LINENO: error: conditional \"VIDEO_EGL\" was never defined.
+Usually this means the macro was only invoked conditionally." >&5
+echo "$as_me: error: conditional \"VIDEO_EGL\" was never defined.
 Usually this means the macro was only invoked conditionally." >&2;}
    { (exit 1); exit 1; }; }
 fi
@@ -16852,16 +17072,6 @@ host!$host$ac_delim
 host_cpu!$host_cpu$ac_delim
 host_vendor!$host_vendor$ac_delim
 host_os!$host_os$ac_delim
-ANT!$ANT$ac_delim
-ANDROID_ABI!$ANDROID_ABI$ac_delim
-ANDROID_SDK_HOME!$ANDROID_SDK_HOME$ac_delim
-ANDROID_NDK_HOME!$ANDROID_NDK_HOME$ac_delim
-ANDROID_SDK_VERSION!$ANDROID_SDK_VERSION$ac_delim
-ANDROID_NDK_VERSION!$ANDROID_NDK_VERSION$ac_delim
-ANDROID_GDBSERVER!$ANDROID_GDBSERVER$ac_delim
-GDB!$GDB$ac_delim
-GUI_ANDROID_TRUE!$GUI_ANDROID_TRUE$ac_delim
-GUI_ANDROID_FALSE!$GUI_ANDROID_FALSE$ac_delim
 CC!$CC$ac_delim
 CFLAGS!$CFLAGS$ac_delim
 LDFLAGS!$LDFLAGS$ac_delim
@@ -16880,6 +17090,16 @@ am__fastdepCC_TRUE!$am__fastdepCC_TRUE$ac_delim
 am__fastdepCC_FALSE!$am__fastdepCC_FALSE$ac_delim
 CPP!$CPP$ac_delim
 CC!$CC$ac_delim
+CFLAGS!$CFLAGS$ac_delim
+CPPFLAGS!$CPPFLAGS$ac_delim
+CC_FOR_BUILD!$CC_FOR_BUILD$ac_delim
+ac_ct_CC_FOR_BUILD!$ac_ct_CC_FOR_BUILD$ac_delim
+CC_FOR_BUILDDEPMODE!$CC_FOR_BUILDDEPMODE$ac_delim
+am__fastdepCC_FOR_BUILD_TRUE!$am__fastdepCC_FOR_BUILD_TRUE$ac_delim
+am__fastdepCC_FOR_BUILD_FALSE!$am__fastdepCC_FOR_BUILD_FALSE$ac_delim
+CPP!$CPP$ac_delim
+CPPFLAGS!$CPPFLAGS$ac_delim
+CPP_FOR_BUILD!$CPP_FOR_BUILD$ac_delim
 _ACEOF
 
   if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 97; then
@@ -16921,16 +17141,6 @@ _ACEOF
 ac_delim='%!_!# '
 for ac_last_try in false false false false false :; do
   cat >conf$$subs.sed <<_ACEOF
-CFLAGS!$CFLAGS$ac_delim
-CPPFLAGS!$CPPFLAGS$ac_delim
-CC_FOR_BUILD!$CC_FOR_BUILD$ac_delim
-ac_ct_CC_FOR_BUILD!$ac_ct_CC_FOR_BUILD$ac_delim
-CC_FOR_BUILDDEPMODE!$CC_FOR_BUILDDEPMODE$ac_delim
-am__fastdepCC_FOR_BUILD_TRUE!$am__fastdepCC_FOR_BUILD_TRUE$ac_delim
-am__fastdepCC_FOR_BUILD_FALSE!$am__fastdepCC_FOR_BUILD_FALSE$ac_delim
-CPP!$CPP$ac_delim
-CPPFLAGS!$CPPFLAGS$ac_delim
-CPP_FOR_BUILD!$CPP_FOR_BUILD$ac_delim
 BUILD_EXEEXT!$BUILD_EXEEXT$ac_delim
 BUILD_OBJEXT!$BUILD_OBJEXT$ac_delim
 CFLAGS_FOR_BUILD!$CFLAGS_FOR_BUILD$ac_delim
@@ -16949,6 +17159,15 @@ am__fastdepOBJC_TRUE!$am__fastdepOBJC_TRUE$ac_delim
 am__fastdepOBJC_FALSE!$am__fastdepOBJC_FALSE$ac_delim
 POD2MAN!$POD2MAN$ac_delim
 POD2HTML!$POD2HTML$ac_delim
+ANT!$ANT$ac_delim
+ANDROID_ABI!$ANDROID_ABI$ac_delim
+ANDROID_SDK_HOME!$ANDROID_SDK_HOME$ac_delim
+ANDROID_NDK_HOME!$ANDROID_NDK_HOME$ac_delim
+ANDROID_SDK_VERSION!$ANDROID_SDK_VERSION$ac_delim
+ANDROID_NDK_VERSION!$ANDROID_NDK_VERSION$ac_delim
+ANDROID_GDBSERVER!$ANDROID_GDBSERVER$ac_delim
+GUI_ANDROID_TRUE!$GUI_ANDROID_TRUE$ac_delim
+GUI_ANDROID_FALSE!$GUI_ANDROID_FALSE$ac_delim
 GUI_COCOA_TRUE!$GUI_COCOA_TRUE$ac_delim
 GUI_COCOA_FALSE!$GUI_COCOA_FALSE$ac_delim
 SOEXT!$SOEXT$ac_delim
@@ -16979,6 +17198,8 @@ VIDEO_GLX_TRUE!$VIDEO_GLX_TRUE$ac_delim
 VIDEO_GLX_FALSE!$VIDEO_GLX_FALSE$ac_delim
 VIDEO_NSGL_TRUE!$VIDEO_NSGL_TRUE$ac_delim
 VIDEO_NSGL_FALSE!$VIDEO_NSGL_FALSE$ac_delim
+VIDEO_EGL_TRUE!$VIDEO_EGL_TRUE$ac_delim
+VIDEO_EGL_FALSE!$VIDEO_EGL_FALSE$ac_delim
 BUILD_SH4X86_TRUE!$BUILD_SH4X86_TRUE$ac_delim
 BUILD_SH4X86_FALSE!$BUILD_SH4X86_FALSE$ac_delim
 AUDIO_OSX_TRUE!$AUDIO_OSX_TRUE$ac_delim
@@ -17017,7 +17238,6 @@ ARMLD!$ARMLD$ac_delim
 ARMOBJCOPY!$ARMOBJCOPY$ac_delim
 BUILD_SYSTEST_TRUE!$BUILD_SYSTEST_TRUE$ac_delim
 BUILD_SYSTEST_FALSE!$BUILD_SYSTEST_FALSE$ac_delim
-BUILD_ARMTEST_TRUE!$BUILD_ARMTEST_TRUE$ac_delim
 _ACEOF
 
   if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 97; then
@@ -17059,6 +17279,7 @@ _ACEOF
 ac_delim='%!_!# '
 for ac_last_try in false false false false false :; do
   cat >conf$$subs.sed <<_ACEOF
+BUILD_ARMTEST_TRUE!$BUILD_ARMTEST_TRUE$ac_delim
 BUILD_ARMTEST_FALSE!$BUILD_ARMTEST_FALSE$ac_delim
 LXDREAM_LIBS!$LXDREAM_LIBS$ac_delim
 GETTEXT_PACKAGE!$GETTEXT_PACKAGE$ac_delim
@@ -17082,7 +17303,7 @@ LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 21; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 22; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5

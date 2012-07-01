@@ -316,12 +316,12 @@ static void glsl_destroy_program(gl_program_t program)
 {
 }
 
-static static inline GLint glsl_get_uniform_location(gl_program_t program, const char *name)
+static inline GLint glsl_get_uniform_location(gl_program_t program, const char *name)
 {
     return 0;
 }
 
-static static inline GLint glsl_get_attrib_location(gl_program_t program, const char *name)
+static inline GLint glsl_get_attrib_location(gl_program_t program, const char *name)
 {
     return 0;
 }

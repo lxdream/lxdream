@@ -156,6 +156,20 @@ void defineOrthoMatrix( GLfloat *matrix, GLfloat width, GLfloat height, GLfloat 
 /* Convenience formatting function for driver use */
 void fprint_extensions( FILE *out, const char *extensions );
 
+/****** Texture formats (missing definitions) *****/
+
+#ifndef GL_UNSIGNED_SHORT_4_4_4_4_REV
+#define GL_UNSIGNED_SHORT_4_4_4_4_REV 0x8365
+#endif
+
+#ifndef GL_UNSIGNED_SHORT_1_5_5_5_REV
+#define GL_UNSIGNED_SHORT_1_5_5_5_REV 0x8366
+#endif
+
+#ifndef GL_BGRA
+#define GL_BGRA 0x80E1
+#endif
+
 #ifdef __cplusplus
 }
 #endif

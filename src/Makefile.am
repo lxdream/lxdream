@@ -116,7 +116,7 @@ lxdream_SOURCES += gtkui/gtkui.c gtkui/gtkui.h \
 endif
 
 if GUI_ANDROID
-lxdream_SOURCES += gui_none.c drivers/video_egl.c drivers/video_egl.h
+lxdream_SOURCES += gui_none.c
 noinst_PROGRAMS=liblxdream.so
 liblxdream_so_LINK = $(LINK) -Wl,-soname,liblxdream.so -shared
 liblxdream_so_LDADD = liblxdream-core.a @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@ @LIBISOFS_LIBS@ $(INTLLIBS) @LXDREAM_LIBS@ -lm
@@ -143,6 +143,10 @@ endif
 
 if VIDEO_NSGL
 lxdream_SOURCES += drivers/video_nsgl.m drivers/video_nsgl.h
+endif
+
+if VIDEO_EGL
+lxdream_SOURCES += drivers/video_egl.c drivers/video_egl.h
 endif
 
 if AUDIO_OSX

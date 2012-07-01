@@ -28,6 +28,10 @@ extern "C" {
 
 #include <EGL/egl.h>
 
+gboolean video_egl_init();
+gboolean video_egl_init_context(EGLNativeWindowType window, int format);
+gboolean video_egl_init_driver(display_driver_t driver);
+void video_egl_shutdown();
 gboolean video_egl_set_window(EGLNativeWindowType window, int width, int height, int format);
 void video_egl_clear_window();
 
