@@ -19,6 +19,7 @@
 #include <ctype.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <glib/gfileutils.h>
 #include <glib/gstrfuncs.h>
 #include <glib/gutils.h>
 
