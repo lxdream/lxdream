@@ -114,6 +114,10 @@ guint gdk_keycode_to_modifier( GdkDisplay *display, guint keycode )
 
 #endif
 
+#ifdef HAVE_GLES2
+#include "drivers/video_egl.h"
+#endif
+
 
 
 GtkWidget *gtk_video_drawable = NULL;
@@ -266,6 +270,13 @@ GtkWidget *video_gtk_create_drawable()
         GdkColormap *colormap = gdk_colormap_new( gdkvis, FALSE );
         gtk_widget_set_colormap( drawable, colormap );
     }
+#else
+#ifdef HAVE_GLES2
+    if( ! video_egl_init() ) {
+        ERROR( "Unable to initialize EGL, aborting" );
+        exit(3);
+    }
+#endif
 #endif
     gtk_video_drawable = drawable;
     return drawable;
@@ -295,6 +306,14 @@ gboolean video_gtk_init()
     if( ! video_nsgl_init_driver( view, &display_gtk_driver ) ) {
         return FALSE;
     }
+#else
+#ifdef HAVE_GLES2
+    Window window = GDK_WINDOW_XWINDOW( GTK_WIDGET(gtk_video_drawable)->window );
+    if( ! video_egl_init_context( window, COLFMT_RGB888 ) ||
+            ! video_egl_init_driver( &display_gtk_driver ) ) {
+        return FALSE;
+    }
+#endif
 #endif
 #endif
 #endif
@@ -331,6 +350,10 @@ void video_gtk_shutdown()
 #else
 #ifdef HAVE_NSGL
         video_nsgl_shutdown();
+#else
+#ifdef HAVE_GLES2
+        video_egl_shutdown();
+#endif
 #endif
 #endif
 #endif

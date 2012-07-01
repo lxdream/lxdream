@@ -10,7 +10,6 @@ AC_CANONICAL_HOST
 
 m4_include([m4/ccforbuild.m4])
 m4_include([m4/android.m4])
-LX_ANDROID_BUILD
 
 AC_ISC_POSIX
 AC_PROG_CC
@@ -79,16 +78,30 @@ AC_ARG_WITH( pulse,
 AC_ARG_WITH( sdl,
    AS_HELP_STRING( [--with-sdl], [Build with support for SDL audio]) )
 
+AC_ARG_WITH( sysroot,
+   AS_HELP_STRING( [--with-sysroot=SYSROOT], [Build using an alternate sysroot]),
+   [ m4_pattern_allow([PKG_CONFIG_LIBDIR])
+     if test -d "$with_sysroot/lib/pkgconfig"; then
+       LDFLAGS="$LDFLAGS -L$with_sysroot/lib"
+       CPPFLAGS="$CPPFLAGS -I$with_sysroot/include"
+       BUILD_PKG_CONFIG_LIBDIR="$PKG_CONFIG_LIBDIR"
+       TARGET_PKG_CONFIG_LIBDIR="$with_sysroot/lib/pkgconfig"
+       PKG_CONFIG_LIBDIR="$TARGET_PKG_CONFIG_LIBDIR"
+       export PKG_CONFIG_LIBDIR;
+     else
+       AC_MSG_FAILURE([pkg-config directory $with_sysroot/lib/pkgconfig not found, when using --with-sysroot=$with_sysroot option])
+     fi
+   ])
+
+LX_ANDROID_BUILD
+
 dnl ------------ Check if we're building on Darwin or Android --------------
 
 dnl For starters, do we have a working objective-c compiler?
 if test "$ANDROID_BUILD" = "yes"; then
    with_gtk=no;
    EXTRA_OUTPUT_FILES="src/android/build.properties"
-   LIBS="-lEGL -lGLESv2 $LIBS"
-   AC_DEFINE(HAVE_GLES2, 1, [Using GLESv2])
    UI_DRIVER="Android"
-   VIDEO_DRIVERS="egl"
    with_sdl=no
 else
 AC_HAVE_OBJC([
@@ -255,7 +268,17 @@ else
 fi
 
 AC_PUSH_CC_FOR_BUILD
+if test "$BUILD_PKG_CONFIG_LIBDIR" != "$TARGET_PKG_CONFIG_LIBDIR"; then
+   PKG_CONFIG_LIBDIR="$BUILD_PKG_CONFIG_LIBDIR";
+   if test "x$PKG_CONFIG_LIBDIR" = "x"; then
+      export -n PKG_CONFIG_LIBDIR
+   fi
+fi
 PKG_CHECK_MODULES(GLIB_FOR_BUILD, glib-2.0)
+if test "$BUILD_PKG_CONFIG_LIBDIR" != "$TARGET_PKG_CONFIG_LIBDIR"; then
+   PKG_CONFIG_LIBDIR="$TARGET_PKG_CONFIG_LIBDIR";
+   export PKG_CONFIG_LIBDIR
+fi
 AC_POP_CC_FOR_BUILD
 
 AM_CONDITIONAL(GUI_GTK, [test "$HAVE_GTK" = 'yes'])
@@ -281,39 +304,45 @@ dnl User requested OSMesa (ie pure software rendering)
 
 dnl Otherwise we want a real GL library (unless we're on darwin or android, in which case it's already
 dnl taken care of above).
-   if test "x$APPLE_BUILD" != 'xyes' -a "x$ANDROID_BUILD" != 'xyes'; then
-      PKG_CHECK_MODULES(LIBGL, [gl] )
-      dnl AC_CHECK_LIB(GL, glVertex3f, [], [
-          dnl AC_MSG_FAILURE( ["The OpenGL library (libGL.so) could not be found, but is required."])])
-      dnl AC_CHECK_HEADER([GL/gl.h], [], [
-          dnl AC_MSG_FAILURE( ["The OpenGL header files (eg GL/gl.h) could not be found, but are required."])])
-      LIBS="$LIBS $LIBGL_LIBS";
-      CPPFLAGS="$CPPFLAGS $LIBGL_CFLAGS";
+   if test "x$APPLE_BUILD" != 'xyes'; then
+      PKG_CHECK_MODULES(LIBGL, [gl], [
+          LIBS="$LIBS $LIBGL_LIBS";
+          CPPFLAGS="$CPPFLAGS $LIBGL_CFLAGS";
+      ], [
+         dnl GL library not found, try for GLESv2 + EGL
+         AC_CHECK_LIB(GLESv2, glEnable, [LIBS="-lGLESv2 $LIBS"; HAVE_GLES2='yes'],
+            [ AC_MSG_FAILURE([Neither the OpenGL library (libGL.so) nor the OpenGL ES 2.0 library (libGLESv2.so) could be found, but one is required.]) ])
+      ])
+         
    else
       AC_CHECK_FUNC(NSOpenGLGetVersion, [
          HAVE_NSGL='yes'
          VIDEO_DRIVERS="$VIDEO_DRIVERS nsgl"
          AC_DEFINE([HAVE_NSGL],1, [Have NSOpenGL support]) ] )
+      if test "x$HAVE_GTK_X11" = "xyes"; then
+         LIBS="$LIBS -L/usr/X11/lib -lGL"
+      fi
    fi
 
 dnl Now work out how to get from the UI to GL - this is usually the painful part.
-   if test "x$HAVE_GTK_X11" = "xyes"; then
-      if test "x$APPLE_BUILD" = "xyes"; then
-         LIBS="$LIBS -L/usr/X11/lib -lGL"
-      fi
-      AC_CHECK_FUNC(glXQueryVersion, [
-         HAVE_GLX='yes'
-         VIDEO_DRIVERS="$VIDEO_DRIVERS glx"
-         AC_DEFINE([HAVE_GLX], 1, [Have GLX support]) ] )
-   fi
-      
+  AC_CHECK_FUNC(glXQueryVersion, [
+     HAVE_GLX='yes'
+     VIDEO_DRIVERS="$VIDEO_DRIVERS glx"
+     AC_DEFINE([HAVE_GLX], 1, [Have GLX support]) ] )
+  AC_CHECK_LIB(EGL, eglGetDisplay, [
+     LIBS="-lEGL $LIBS"
+     HAVE_EGL='yes'
+     VIDEO_DRIVERS="$VIDEO_DRIVERS egl"])     
 ])
 
-
+if test "x$HAVE_GLES2" = "xyes"; then
+    AC_DEFINE(HAVE_GLES2, 1, [Using GLESv2])
+fi
 
 AM_CONDITIONAL(VIDEO_OSMESA, [test "x$HAVE_OSMESA" = "xyes"])
 AM_CONDITIONAL(VIDEO_GLX, [test "x$HAVE_GLX" = "xyes"])
 AM_CONDITIONAL(VIDEO_NSGL, [test "x$HAVE_NSGL" = "xyes"])
+AM_CONDITIONAL(VIDEO_EGL, [test "x$HAVE_EGL" = "xyes"])
 
 dnl Check for optional (but highly desireable) OpenGL features
 AC_CHECK_FUNC(glGenFramebuffers, [ AC_DEFINE([HAVE_OPENGL_FBO],1,[Have 2.0 framebuffer_object support]) ], [])
