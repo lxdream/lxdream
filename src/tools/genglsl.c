@@ -186,7 +186,7 @@ static FILE *preprocessInput( const char *filename, GList *cpp_opts )
         g_free(quoted_opts_arr[count++]);
     }
 
-    const char *command = g_strdup_printf("%s -E 's/^#(program|vertex|fragment)/#pragma \\1/' %s | %s %s - > %s",
+    const char *command = g_strdup_printf("%s -e 's/^#program/#pragma program/' -e 's/^#fragment/#pragma fragment/' -e 's/#vertex/#pragma vertex/' %s | %s %s - > %s",
             BUILD_SED_PROG, quoted_filename, BUILD_CPP_PROG, quoted_cpp_opts, tmpname );
     if( system(command) != 0 ) {
         fprintf( stderr, "Error: unable to run preprocessor command '%s' (%s)\n",  command, strerror(errno) );
