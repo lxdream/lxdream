@@ -260,7 +260,8 @@ void gl_vbo_init( display_driver_t driver ) {
 
 #ifdef GL_VERTEX_ARRAY_RANGE_NV
     if( isGLExtensionSupported("GL_NV_vertex_array_range") &&
-            isGLExtensionSupported("GL_NV_fence") ) {
+            isGLExtensionSupported("GL_NV_fence") &&
+            glGenFencesNV ) {
         glEnableClientState( GL_VERTEX_ARRAY_RANGE_NV );
         driver->create_vertex_buffer = nv_create_buffer;
         return;
