@@ -345,8 +345,12 @@ static void pvr2_update_raster_posn( uint32_t nanosecs )
 
 static uint32_t pvr2_run_slice( uint32_t nanosecs ) 
 {
-    pvr2_update_raster_posn( nanosecs );
-    pvr2_state.cycles_run = 0;
+    if( nanosecs <= pvr2_state.cycles_run ) {
+        pvr2_state.cycles_run -= nanosecs;
+    } else {
+        pvr2_update_raster_posn( nanosecs );
+        pvr2_state.cycles_run = 0;
+    }
     return nanosecs;
 }
 
