@@ -23,14 +23,18 @@
 
 #define REG_ARG1 REG_EAX
 #define REG_ARG2 REG_EDX
+#define REG_ARG3 REG_ECX
 #define REG_RESULT1 REG_EAX
-#define MAX_REG_ARG 2
+#define MAX_REG_ARG 3
+#define REG_SAVE1 REG_ESI
+#define REG_SAVE2 REG_EDI
+#define REG_CALLPTR REG_EBX
 
-static inline void decode_address( uintptr_t base, int addr_reg )
+static inline void decode_address( uintptr_t base, int addr_reg, int target_reg )
 {
-    MOVL_r32_r32( addr_reg, REG_ECX );
-    SHRL_imm_r32( 12, REG_ECX ); 
-    MOVP_sib_rptr( 2, REG_ECX, -1, base, REG_ECX );
+    MOVL_r32_r32( addr_reg, target_reg );
+    SHRL_imm_r32( 12, target_reg );
+    MOVP_sib_rptr( 2, target_reg, -1, base, target_reg );
 }
 
 /**
@@ -84,7 +88,19 @@ static inline void CALL2_r32disp_r32_r32( int preg, uint32_t disp, int arg1, int
     CALL_r32disp(preg, disp);
 }
 
-#define CALL3_r32disp_r32_r32_r32(preg,disp,arg1,arg2,arg3) CALL2_r32disp_r32_r32(preg,disp,arg1,arg2)
+static inline void CALL3_r32disp_r32_r32_r32( int preg, uint32_t disp, int arg1, int arg2, int arg3)
+{
+    if( arg3 != REG_ARG3 ) {
+        MOVL_r32_r32( arg3, REG_ARG3 );
+    }
+    if( arg2 != REG_ARG2 ) {
+        MOVL_r32_r32( arg2, REG_ARG2 );
+    }
+    if( arg1 != REG_ARG1 ) {
+        MOVL_r32_r32( arg1, REG_ARG1 );
+    }
+    CALL_r32disp(preg, disp);
+}
 
 #else
 

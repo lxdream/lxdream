@@ -111,7 +111,7 @@ typedef struct error_struct {
 
 
 #ifdef HAVE_FASTCALL
-#define FASTCALL __attribute__((regparm(2)))
+#define FASTCALL __attribute__((regparm(3)))
 #else
 #define FASTCALL
 #endif
