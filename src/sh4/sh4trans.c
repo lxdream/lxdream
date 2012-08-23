@@ -63,7 +63,7 @@ uint32_t sh4_translate_run_slice( uint32_t nanosecs )
         } else {
             code = sh4_translate_basic_block( sh4r.pc );
         }
-        code();
+        sh4_translate_enter(code);
     }
 }
 

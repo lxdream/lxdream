@@ -22,13 +22,18 @@
 #define REG_ARG3 REG_RDX
 #define REG_RESULT1 REG_RAX
 #define MAX_REG_ARG 3  /* There's more, but we don't use more than 3 here anyway */
+#define REG_SAVE1 REG_R12
+#define REG_SAVE2 REG_R13
+#define REG_SAVE3 REG_R14
+#define REG_SAVE4 REG_R15
+#define REG_CALLPTR REG_EBX
 
-static inline void decode_address( uintptr_t base, int addr_reg )
+static inline void decode_address( uintptr_t base, int addr_reg, int target_reg )
 {
-    MOVL_r32_r32( addr_reg, REG_ECX );
-    SHRL_imm_r32( 12, REG_ECX ); 
+    MOVL_r32_r32( addr_reg, target_reg );
+    SHRL_imm_r32( 12, target_reg );
     MOVP_immptr_rptr( base, REG_RDI );
-    MOVP_sib_rptr( 3, REG_RCX, REG_RDI, 0, REG_RCX );
+    MOVP_sib_rptr( 3, target_reg, REG_RDI, 0, target_reg );
 }
 
 /**

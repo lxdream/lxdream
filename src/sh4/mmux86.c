@@ -70,10 +70,10 @@ void mmu_utlb_init_vtable( struct utlb_entry *ent, struct utlb_page_entry *page,
             int rel = (*fn - xlat_output);
             JMP_prerel( rel ); // 5
         } else {
-            MOVL_r32_r32( REG_ARG1, REG_ECX ); // 2
-            SHRL_imm_r32( 12, REG_ECX );  // 3
-            XLAT(addr_space, REG_ECX);                   // 14
-            JMP_r32disp(REG_ECX, (((uintptr_t)out) - ((uintptr_t)&page->fn)) );    // 3
+            MOVL_r32_r32( REG_ARG1, REG_CALLPTR ); // 2
+            SHRL_imm_r32( 12, REG_CALLPTR );  // 3
+            XLAT(addr_space, REG_CALLPTR);                   // 14
+            JMP_r32disp(REG_CALLPTR, (((uintptr_t)out) - ((uintptr_t)&page->fn)) );    // 3
         }
     }
     
@@ -105,21 +105,21 @@ void mmu_utlb_1k_init_vtable( struct utlb_1k_entry *entry )
     
     for( i=0; i<9; i++, out++ ) {
         *out = xlat_output;
-        MOVL_r32_r32( REG_ARG1, REG_ECX );
-        SHRL_imm_r32( 10, REG_ECX );
-        ANDL_imms_r32( 0x3, REG_ECX );
-        XLAT( (uintptr_t)&entry->subpages[0], REG_ECX );
-        JMP_r32disp(REG_ECX, (((uintptr_t)out) - ((uintptr_t)&entry->fn)) );    // 3
+        MOVL_r32_r32( REG_ARG1, REG_CALLPTR );
+        SHRL_imm_r32( 10, REG_CALLPTR );
+        ANDL_imms_r32( 0x3, REG_CALLPTR );
+        XLAT( (uintptr_t)&entry->subpages[0], REG_CALLPTR );
+        JMP_r32disp(REG_CALLPTR, (((uintptr_t)out) - ((uintptr_t)&entry->fn)) );    // 3
     }
 
     out = (uint8_t **)&entry->user_fn;
     for( i=0; i<9; i++, out++ ) {
         *out = xlat_output;
-        MOVL_r32_r32( REG_ARG1, REG_ECX );
-        SHRL_imm_r32( 10, REG_ECX );
-        ANDL_imms_r32( 0x3, REG_ECX );
-        XLAT( (uintptr_t)&entry->user_subpages[0], REG_ECX );
-        JMP_r32disp(REG_ECX, (((uintptr_t)out) - ((uintptr_t)&entry->user_fn)) );    // 3
+        MOVL_r32_r32( REG_ARG1, REG_CALLPTR );
+        SHRL_imm_r32( 10, REG_CALLPTR );
+        ANDL_imms_r32( 0x3, REG_CALLPTR );
+        XLAT( (uintptr_t)&entry->user_subpages[0], REG_CALLPTR );
+        JMP_r32disp(REG_CALLPTR, (((uintptr_t)out) - ((uintptr_t)&entry->user_fn)) );    // 3
     }
 
 }

@@ -115,6 +115,9 @@ struct sh4_x86_state {
 
 static struct sh4_x86_state sh4_x86;
 
+static uint8_t sh4_entry_stub[128];
+void FASTCALL (*sh4_translate_enter)(void *code);
+
 static uint32_t max_int = 0x7FFFFFFF;
 static uint32_t min_int = 0x80000000;
 static uint32_t save_fcw; /* save value for fpu control word */
@@ -143,16 +146,45 @@ void sh4_translate_set_address_space( struct mem_region_fn **priv, struct mem_re
     sh4_x86.user_address_space = user;
 }
 
+void sh4_translate_write_entry_stub(void)
+{
+	mem_unprotect(sh4_entry_stub, sizeof(sh4_entry_stub));
+	xlat_output = sh4_entry_stub;
+	PUSH_r32(REG_EBP);
+	MOVP_immptr_rptr( ((uint8_t *)&sh4r) + 128, REG_EBP );
+	PUSH_r32(REG_EBX);
+	PUSH_r32(REG_SAVE1);
+	PUSH_r32(REG_SAVE2);
+#if SIZEOF_VOID_P == 8
+    PUSH_r32(REG_SAVE3);
+    PUSH_r32(REG_SAVE4);
+    CALL_r32( REG_ARG1 );
+    POP_r32(REG_SAVE4);
+    POP_r32(REG_SAVE3);
+#else
+    SUBL_imms_r32( 8, REG_ESP ); 
+	CALL_r32( REG_ARG1 );
+	ADDL_imms_r32( 8, REG_ESP );
+#endif
+	POP_r32(REG_SAVE2);	
+	POP_r32(REG_SAVE1);
+	POP_r32(REG_EBX);
+	POP_r32(REG_EBP);
+	RET();
+	sh4_translate_enter = sh4_entry_stub;
+}
+
 void sh4_translate_init(void)
 {
     sh4_x86.backpatch_list = malloc(DEFAULT_BACKPATCH_SIZE);
     sh4_x86.backpatch_size = DEFAULT_BACKPATCH_SIZE / sizeof(struct backpatch_record);
     sh4_x86.begin_callback = NULL;
     sh4_x86.end_callback = NULL;
-    sh4_translate_set_address_space( sh4_address_space, sh4_user_address_space );
     sh4_x86.fastmem = TRUE;
     sh4_x86.sse3_enabled = is_sse3_supported();
     xlat_set_target_fns(&x86_target_fns);
+    sh4_translate_set_address_space( sh4_address_space, sh4_user_address_space );
+    sh4_translate_write_entry_stub();
 }
 
 void sh4_translate_set_callbacks( xlat_block_begin_callback_t begin, xlat_block_end_callback_t end )
@@ -344,16 +376,16 @@ static void sh4_x86_add_backpatch( uint8_t *fixup_addr, uint32_t fixup_pc, uint3
 #ifdef HAVE_FRAME_ADDRESS
 static void call_read_func(int addr_reg, int value_reg, int offset, int pc)
 {
-    decode_address(address_space(), addr_reg);
+    decode_address(address_space(), addr_reg, REG_CALLPTR);
     if( !sh4_x86.tlb_on && (sh4_x86.sh4_mode & SR_MD) ) { 
-        CALL1_r32disp_r32(REG_ECX, offset, addr_reg);
+        CALL1_r32disp_r32(REG_CALLPTR, offset, addr_reg);
     } else {
         if( addr_reg != REG_ARG1 ) {
             MOVL_r32_r32( addr_reg, REG_ARG1 );
         }
         MOVP_immptr_rptr( 0, REG_ARG2 );
         sh4_x86_add_backpatch( xlat_output, pc, -2 );
-        CALL2_r32disp_r32_r32(REG_ECX, offset, REG_ARG1, REG_ARG2);
+        CALL2_r32disp_r32_r32(REG_CALLPTR, offset, REG_ARG1, REG_ARG2);
     }
     if( value_reg != REG_RESULT1 ) { 
         MOVL_r32_r32( REG_RESULT1, value_reg );
@@ -362,9 +394,9 @@ static void call_read_func(int addr_reg, int value_reg, int offset, int pc)
 
 static void call_write_func(int addr_reg, int value_reg, int offset, int pc)
 {
-    decode_address(address_space(), addr_reg);
+    decode_address(address_space(), addr_reg, REG_CALLPTR);
     if( !sh4_x86.tlb_on && (sh4_x86.sh4_mode & SR_MD) ) { 
-        CALL2_r32disp_r32_r32(REG_ECX, offset, addr_reg, value_reg);
+        CALL2_r32disp_r32_r32(REG_CALLPTR, offset, addr_reg, value_reg);
     } else {
         if( value_reg != REG_ARG2 ) {
             MOVL_r32_r32( value_reg, REG_ARG2 );
@@ -375,19 +407,19 @@ static void call_write_func(int addr_reg, int value_reg, int offset, int pc)
 #if MAX_REG_ARG > 2        
         MOVP_immptr_rptr( 0, REG_ARG3 );
         sh4_x86_add_backpatch( xlat_output, pc, -2 );
-        CALL3_r32disp_r32_r32_r32(REG_ECX, offset, REG_ARG1, REG_ARG2, REG_ARG3);
+        CALL3_r32disp_r32_r32_r32(REG_CALLPTR, offset, REG_ARG1, REG_ARG2, REG_ARG3);
 #else
         MOVL_imm32_rspdisp( 0, 0 );
         sh4_x86_add_backpatch( xlat_output, pc, -2 );
-        CALL3_r32disp_r32_r32_r32(REG_ECX, offset, REG_ARG1, REG_ARG2, 0);
+        CALL3_r32disp_r32_r32_r32(REG_CALLPTR, offset, REG_ARG1, REG_ARG2, 0);
 #endif
     }
 }
 #else
 static void call_read_func(int addr_reg, int value_reg, int offset, int pc)
 {
-    decode_address(address_space(), addr_reg);
-    CALL1_r32disp_r32(REG_ECX, offset, addr_reg);
+    decode_address(address_space(), addr_reg, REG_CALLPTR);
+    CALL1_r32disp_r32(REG_CALLPTR, offset, addr_reg);
     if( value_reg != REG_RESULT1 ) {
         MOVL_r32_r32( REG_RESULT1, value_reg );
     }
@@ -395,8 +427,8 @@ static void call_read_func(int addr_reg, int value_reg, int offset, int pc)
 
 static void call_write_func(int addr_reg, int value_reg, int offset, int pc)
 {
-    decode_address(address_space(), addr_reg);
-    CALL2_r32disp_r32_r32(REG_ECX, offset, addr_reg, value_reg);
+    decode_address(address_space(), addr_reg, REG_CALLPTR);
+    CALL2_r32disp_r32_r32(REG_CALLPTR, offset, addr_reg, value_reg);
 }
 #endif
                 
@@ -430,7 +462,6 @@ void sh4_translate_begin_block( sh4addr_t pc )
     sh4_x86.double_prec = sh4r.fpscr & FPSCR_PR;
     sh4_x86.double_size = sh4r.fpscr & FPSCR_SZ;
     sh4_x86.sh4_mode = sh4r.xlat_sh4_mode;
-    emit_prologue();
     if( sh4_x86.begin_callback ) {
         CALL_ptr( sh4_x86.begin_callback );
     }
@@ -486,7 +517,6 @@ static void jump_next_block()
 	    CMPL_imms_r32disp( sh4_x86.sh4_mode, REG_EAX, XLAT_SH4_MODE_CODE_OFFSET );
 	}
 	JNE_label(wrongmode);
-	LEAP_rptrdisp_rptr(REG_EAX, PROLOGUE_SIZE,REG_EAX);
 	if( sh4_x86.end_callback ) {
 	    /* Note this does leave the stack out of alignment, but doesn't matter
 	     * for what we're currently using it for.
@@ -518,7 +548,7 @@ void FASTCALL sh4_translate_link_block( uint32_t pc )
     }
     uint8_t *backpatch = ((uint8_t *)__builtin_return_address(0)) - (CALL1_PTR_MIN_SIZE);
     *backpatch = 0xE9;
-    *(uint32_t *)(backpatch+1) = (uint32_t)(target-backpatch)+PROLOGUE_SIZE-5;
+    *(uint32_t *)(backpatch+1) = (uint32_t)(target-backpatch)-5;
     *(void **)(backpatch+5) = XLAT_BLOCK_FOR_CODE(target)->use_list;
     XLAT_BLOCK_FOR_CODE(target)->use_list = backpatch; 
 
@@ -586,7 +616,6 @@ static void sh4_x86_translate_unlink_block( void *use_list )
 
 static void exit_block()
 {
-	emit_epilogue();
 	if( sh4_x86.end_callback ) {
 	    MOVP_immptr_rptr(sh4_x86.end_callback, REG_ECX);
 	    JMP_rptr(REG_ECX);
@@ -674,7 +703,7 @@ void exit_block_rel( sh4addr_t pc, sh4addr_t endpc )
 	     * looping.
 	     */
         CMPL_r32_rbpdisp( REG_ECX, REG_OFFSET(event_pending) );
-        uint32_t backdisp = ((uintptr_t)(sh4_x86.code - xlat_output)) + PROLOGUE_SIZE;
+        uint32_t backdisp = ((uintptr_t)(sh4_x86.code - xlat_output));
         JCC_cc_prerel(X86_COND_A, backdisp);
 	} else {
         MOVL_imm32_r32( pc - sh4_x86.block_start_pc, REG_ARG1 );
@@ -855,9 +884,9 @@ AND.B #imm, @(R0, GBR) {:
     COUNT_INST(I_ANDB);
     load_reg( REG_EAX, 0 );
     ADDL_rbpdisp_r32( R_GBR, REG_EAX );
-    MOVL_r32_rspdisp(REG_EAX, 0);
+    MOVL_r32_r32(REG_EAX, REG_SAVE1);
     MEM_READ_BYTE_FOR_WRITE( REG_EAX, REG_EDX );
-    MOVL_rspdisp_r32(0, REG_EAX);
+    MOVL_r32_r32(REG_SAVE1, REG_EAX);
     ANDL_imms_r32(imm, REG_EDX );
     MEM_WRITE_BYTE( REG_EAX, REG_EDX );
     sh4_x86.tstate = TSTATE_NONE;
@@ -1044,7 +1073,7 @@ MAC.L @Rm+, @Rn+ {:
 	load_reg( REG_EAX, Rm );
 	check_ralign32( REG_EAX );
 	MEM_READ_LONG( REG_EAX, REG_EAX );
-	MOVL_r32_rspdisp(REG_EAX, 0);
+	MOVL_r32_r32(REG_EAX, REG_SAVE1);
 	load_reg( REG_EAX, Rm );
 	LEAL_r32disp_r32( REG_EAX, 4, REG_EAX );
 	MEM_READ_LONG( REG_EAX, REG_EAX );
@@ -1053,7 +1082,7 @@ MAC.L @Rm+, @Rn+ {:
 	load_reg( REG_EAX, Rm );
 	check_ralign32( REG_EAX );
 	MEM_READ_LONG( REG_EAX, REG_EAX );
-	MOVL_r32_rspdisp( REG_EAX, 0 );
+	MOVL_r32_r32(REG_EAX, REG_SAVE1);
 	load_reg( REG_EAX, Rn );
 	check_ralign32( REG_EAX );
 	MEM_READ_LONG( REG_EAX, REG_EAX );
@@ -1061,7 +1090,7 @@ MAC.L @Rm+, @Rn+ {:
 	ADDL_imms_rbpdisp( 4, REG_OFFSET(r[Rm]) );
     }
     
-    IMULL_rspdisp( 0 );
+    IMULL_r32( REG_SAVE1 );
     ADDL_r32_rbpdisp( REG_EAX, R_MACL );
     ADCL_r32_rbpdisp( REG_EDX, R_MACH );
 
@@ -1078,7 +1107,7 @@ MAC.W @Rm+, @Rn+ {:
 	load_reg( REG_EAX, Rm );
 	check_ralign16( REG_EAX );
 	MEM_READ_WORD( REG_EAX, REG_EAX );
-        MOVL_r32_rspdisp( REG_EAX, 0 );
+        MOVL_r32_r32( REG_EAX, REG_SAVE1 );
 	load_reg( REG_EAX, Rm );
 	LEAL_r32disp_r32( REG_EAX, 2, REG_EAX );
 	MEM_READ_WORD( REG_EAX, REG_EAX );
@@ -1089,14 +1118,14 @@ MAC.W @Rm+, @Rn+ {:
 	load_reg( REG_EAX, Rn );
 	check_ralign16( REG_EAX );
 	MEM_READ_WORD( REG_EAX, REG_EAX );
-        MOVL_r32_rspdisp( REG_EAX, 0 );
+        MOVL_r32_r32( REG_EAX, REG_SAVE1 );
 	load_reg( REG_EAX, Rm );
 	check_ralign16( REG_EAX );
 	MEM_READ_WORD( REG_EAX, REG_EAX );
 	ADDL_imms_rbpdisp( 2, REG_OFFSET(r[Rn]) );
 	ADDL_imms_rbpdisp( 2, REG_OFFSET(r[Rm]) );
     }
-    IMULL_rspdisp( 0 );
+    IMULL_r32( REG_SAVE1 );
     MOVL_rbpdisp_r32( R_S, REG_ECX );
     TESTL_r32_r32( REG_ECX, REG_ECX );
     JE_label( nosat );
@@ -1195,9 +1224,9 @@ OR.B #imm, @(R0, GBR) {:
     COUNT_INST(I_ORB);
     load_reg( REG_EAX, 0 );
     ADDL_rbpdisp_r32( R_GBR, REG_EAX );
-    MOVL_r32_rspdisp( REG_EAX, 0 );
+    MOVL_r32_r32( REG_EAX, REG_SAVE1 );
     MEM_READ_BYTE_FOR_WRITE( REG_EAX, REG_EDX );
-    MOVL_rspdisp_r32( 0, REG_EAX );
+    MOVL_r32_r32( REG_SAVE1, REG_EAX );
     ORL_imms_r32(imm, REG_EDX );
     MEM_WRITE_BYTE( REG_EAX, REG_EDX );
     sh4_x86.tstate = TSTATE_NONE;
@@ -1413,12 +1442,12 @@ SWAP.W Rm, Rn {:
 TAS.B @Rn {:  
     COUNT_INST(I_TASB);
     load_reg( REG_EAX, Rn );
-    MOVL_r32_rspdisp( REG_EAX, 0 );
+    MOVL_r32_r32( REG_EAX, REG_SAVE1 );
     MEM_READ_BYTE_FOR_WRITE( REG_EAX, REG_EDX );
     TESTB_r8_r8( REG_DL, REG_DL );
     SETE_t();
     ORB_imms_r8( 0x80, REG_DL );
-    MOVL_rspdisp_r32( 0, REG_EAX );
+    MOVL_r32_r32( REG_SAVE1, REG_EAX );
     MEM_WRITE_BYTE( REG_EAX, REG_EDX );
     sh4_x86.tstate = TSTATE_NONE;
 :}
@@ -1465,9 +1494,9 @@ XOR.B #imm, @(R0, GBR) {:
     COUNT_INST(I_XORB);
     load_reg( REG_EAX, 0 );
     ADDL_rbpdisp_r32( R_GBR, REG_EAX ); 
-    MOVL_r32_rspdisp( REG_EAX, 0 );
+    MOVL_r32_r32( REG_EAX, REG_SAVE1 );
     MEM_READ_BYTE_FOR_WRITE(REG_EAX, REG_EDX);
-    MOVL_rspdisp_r32( 0, REG_EAX );
+    MOVL_r32_r32( REG_SAVE1, REG_EAX );
     XORL_imms_r32( imm, REG_EDX );
     MEM_WRITE_BYTE( REG_EAX, REG_EDX );
     sh4_x86.tstate = TSTATE_NONE;
