@@ -714,6 +714,7 @@ BUILD_EXEEXT
 BUILD_OBJEXT
 CFLAGS_FOR_BUILD
 CPPFLAGS_FOR_BUILD
+LDFLAGS_FOR_BUILD
 OBJC
 OBJCFLAGS
 ac_ct_OBJC
@@ -17145,6 +17146,7 @@ BUILD_EXEEXT!$BUILD_EXEEXT$ac_delim
 BUILD_OBJEXT!$BUILD_OBJEXT$ac_delim
 CFLAGS_FOR_BUILD!$CFLAGS_FOR_BUILD$ac_delim
 CPPFLAGS_FOR_BUILD!$CPPFLAGS_FOR_BUILD$ac_delim
+LDFLAGS_FOR_BUILD!$LDFLAGS_FOR_BUILD$ac_delim
 OBJC!$OBJC$ac_delim
 OBJCFLAGS!$OBJCFLAGS$ac_delim
 ac_ct_OBJC!$ac_ct_OBJC$ac_delim
@@ -17237,7 +17239,6 @@ ARMCC!$ARMCC$ac_delim
 ARMLD!$ARMLD$ac_delim
 ARMOBJCOPY!$ARMOBJCOPY$ac_delim
 BUILD_SYSTEST_TRUE!$BUILD_SYSTEST_TRUE$ac_delim
-BUILD_SYSTEST_FALSE!$BUILD_SYSTEST_FALSE$ac_delim
 _ACEOF
 
   if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 97; then
@@ -17279,6 +17280,7 @@ _ACEOF
 ac_delim='%!_!# '
 for ac_last_try in false false false false false :; do
   cat >conf$$subs.sed <<_ACEOF
+BUILD_SYSTEST_FALSE!$BUILD_SYSTEST_FALSE$ac_delim
 BUILD_ARMTEST_TRUE!$BUILD_ARMTEST_TRUE$ac_delim
 BUILD_ARMTEST_FALSE!$BUILD_ARMTEST_FALSE$ac_delim
 LXDREAM_LIBS!$LXDREAM_LIBS$ac_delim
@@ -17303,7 +17305,7 @@ LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 22; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 23; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5
