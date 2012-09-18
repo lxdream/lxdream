@@ -149,6 +149,11 @@ extern unsigned char pvr2_main_ram[];
 void pvr2_dma_write( sh4addr_t dest, unsigned char *src, uint32_t length );
 
 /**
+ * Write to the linear memory address space (aka 32-bit address space).
+ */
+void pvr2_vram32_write( sh4addr_t dest, unsigned char *src, uint32_t length );
+
+/**
  * Write to the interleaved memory address space (aka 64-bit address space).
  */
 void pvr2_vram64_write( sh4addr_t dest, unsigned char *src, uint32_t length );
