@@ -140,9 +140,7 @@ static void FASTCALL pvr2_vramdma1_write_burst( sh4addr_t destaddr, unsigned cha
     if( region == 0 ) {
         pvr2_vram64_write( destaddr, src, 32 );
     } else {
-        destaddr &= PVR2_RAM_MASK;
-        unsigned char *dest = pvr2_main_ram + destaddr;
-        memcpy( dest, src, 32 );
+        pvr2_vram32_write( destaddr, src, 32 );
     }   
 }
 
@@ -152,9 +150,7 @@ static void FASTCALL pvr2_vramdma2_write_burst( sh4addr_t destaddr, unsigned cha
     if( region == 0 ) {
         pvr2_vram64_write( destaddr, src, 32 );
     } else {
-        destaddr &= PVR2_RAM_MASK;
-        unsigned char *dest = pvr2_main_ram + destaddr;
-        memcpy( dest, src, 32 );
+        pvr2_vram32_write( destaddr, src, 32 );
     }
 }
 
@@ -203,12 +199,7 @@ void pvr2_dma_write( sh4addr_t destaddr, unsigned char *src, uint32_t count )
         if( region == 0 ) {
             pvr2_vram64_write( destaddr, src, count );
         } else {
-            destaddr &= PVR2_RAM_MASK;
-            unsigned char *dest = pvr2_main_ram + destaddr;
-            if( PVR2_RAM_SIZE - destaddr < count ) {
-                count = PVR2_RAM_SIZE - destaddr;
-            }
-            memcpy( dest, src, count );
+            pvr2_vram32_write( destaddr, src, count );
         }
         break;
     case 0x10800000:
@@ -221,14 +212,20 @@ void pvr2_dma_write( sh4addr_t destaddr, unsigned char *src, uint32_t count )
         if( region == 0 ) {
             pvr2_vram64_write( destaddr, src, count );
         } else {
-            destaddr &= PVR2_RAM_MASK;
-            unsigned char *dest = pvr2_main_ram + destaddr;
-            if( PVR2_RAM_SIZE - destaddr < count ) {
-                count = PVR2_RAM_SIZE - destaddr;
-            }
-            memcpy( dest, src, count );
+            pvr2_vram32_write( destaddr, src, count );
         }
     }
+}
+
+void pvr2_vram32_write( sh4addr_t destaddr, unsigned char *src, uint32_t length )
+{
+    destaddr &= PVR2_RAM_MASK;
+    pvr2_render_buffer_invalidate( PVR2_RAM_BASE + destaddr, TRUE );
+    unsigned char *dest = pvr2_main_ram + destaddr;
+    if( PVR2_RAM_SIZE - destaddr < length ) {
+        length = PVR2_RAM_SIZE - destaddr;
+    }
+    memcpy( dest, src, length );
 }
 
 void pvr2_vram64_write( sh4addr_t destaddr, unsigned char *src, uint32_t length )
