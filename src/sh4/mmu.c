@@ -1245,7 +1245,7 @@ mem_region_fn_t FASTCALL mmu_get_region_for_vma_read( sh4vma_t *paddr )
     }
 
     if( (mmucr & MMUCR_AT) == 0 ) {
-        return sh4_ext_address_space[VMA_TO_EXT_ADDR(addr)>>12];
+        return sh4_address_space[addr>>12];
     }
 
     /* If we get this far, translation is required */
@@ -1315,7 +1315,7 @@ mem_region_fn_t FASTCALL mmu_get_region_for_vma_prefetch( sh4vma_t *paddr )
     }
 
     if( (mmucr & MMUCR_AT) == 0 ) {
-        return sh4_ext_address_space[VMA_TO_EXT_ADDR(addr)>>12];
+        return sh4_address_space[addr>>12];
     }
 
     /* If we get this far, translation is required */
@@ -1381,7 +1381,7 @@ mem_region_fn_t FASTCALL mmu_get_region_for_vma_write( sh4vma_t *paddr )
     }
 
     if( (mmucr & MMUCR_AT) == 0 ) {
-        return sh4_ext_address_space[VMA_TO_EXT_ADDR(addr)>>12];
+        return sh4_address_space[addr>>12];
     }
 
     /* If we get this far, translation is required */
