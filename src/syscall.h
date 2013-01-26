@@ -20,7 +20,7 @@
 #define lxdream_syscall_H 1
 
 #include <stdint.h>
-#include <glib/gtypes.h>
+#include <glib.h>
 
 #ifdef __cplusplus
 extern "C" {

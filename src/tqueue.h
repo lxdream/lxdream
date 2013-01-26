@@ -20,7 +20,7 @@
 #ifndef lxdream_tqueue_H
 #define lxdream_tqueue_H 1
 
-#include "glib/gtypes.h"
+#include <glib.h>
 
 #ifdef __cplusplus
 extern "C" {

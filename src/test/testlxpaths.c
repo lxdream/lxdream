@@ -19,7 +19,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <glib/gmem.h>
+#include <glib.h>
 #include "lxpaths.h"
 
 char *lxdream_get_global_config_path_value() { }

@@ -23,8 +23,7 @@
 #include <getopt.h>
 #include <ctype.h>
 #include <errno.h>
-#include <glib/gstrfuncs.h>
-#include <glib/glist.h>
+#include <glib.h>
 #include "gettext.h"
 #include "genmach.h"
 

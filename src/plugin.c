@@ -20,8 +20,7 @@
 #include <dirent.h>
 #include <dlfcn.h>
 #include <string.h>
-#include <glib/gmem.h>
-#include <glib/gstrfuncs.h>
+#include <glib.h>
 #include "plugin.h"
 #include "lxpaths.h"
 

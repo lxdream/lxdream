@@ -19,7 +19,7 @@
 #include <assert.h>
 #include <string.h>
 #include <stdlib.h>
-#include <glib/gstrfuncs.h>
+#include <glib.h>
 #include "pvr2/glutil.h"
 
 gboolean isOpenGLES2()

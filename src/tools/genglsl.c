@@ -27,9 +27,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <getopt.h>
-#include <glib/gstrfuncs.h>
-#include <glib/gshell.h>
-#include <glib/glist.h>
+#include <glib.h>
 #include "../../config.h"
 
 #define MAX_LINE 4096

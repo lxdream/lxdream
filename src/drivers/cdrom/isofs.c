@@ -19,7 +19,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <unistd.h>
-#include <glib/gmem.h>
+#include <glib.h>
 
 #define LIBISOFS_WITHOUT_LIBBURN 1
 

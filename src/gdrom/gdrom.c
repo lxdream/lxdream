@@ -22,7 +22,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <ctype.h>
-#include <glib/gutils.h>
+#include <glib.h>
 #include <netinet/in.h>
 #include "gdrom/ide.h"
 #include "gdrom/gdrom.h"

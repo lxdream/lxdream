@@ -20,7 +20,7 @@
 #include <sys/types.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
-#include <glib/gstrfuncs.h>
+#include <glib.h>
 #include <assert.h>
 #include <stdint.h>
 #include <stdlib.h>

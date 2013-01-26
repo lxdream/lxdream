@@ -18,7 +18,7 @@
 
 #include <assert.h>
 #include <string.h>
-#include <glib/gstrfuncs.h>
+#include <glib.h>
 #include "lxdream.h"
 #include "gettext.h"
 #include "drivers/cdrom/cdimpl.h"

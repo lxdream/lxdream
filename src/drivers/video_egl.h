@@ -20,7 +20,7 @@
 #ifndef lxdream_video_egl_H
 #define lxdream_video_egl_H 1
 
-#include "glib/gtypes.h"
+#include <glib.h>
 
 #ifdef __cplusplus
 extern "C" {

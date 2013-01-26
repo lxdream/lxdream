@@ -23,7 +23,7 @@
 #include "lxdream.h"
 #include "hook.h"
 #include "drivers/cdrom/defs.h"
-#include <glib/glist.h>
+#include <glib.h>
 
 #ifdef __cplusplus
 extern "C" {

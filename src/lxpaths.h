@@ -19,7 +19,7 @@
 #ifndef lxdream_paths_H
 #define lxdream_paths_H
 
-#include <glib/gtypes.h>
+#include <glib.h>
 
 /****************** System paths ****************/
 /**

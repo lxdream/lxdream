@@ -25,7 +25,7 @@
 #include <ctype.h>
 #include <errno.h>
 #include <sys/stat.h>
-#include <glib/gmem.h>
+#include <glib.h>
 
 #include "genmach.h"
 /*

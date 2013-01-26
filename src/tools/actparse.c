@@ -22,7 +22,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <sys/stat.h>
-#include <glib/gstrfuncs.h>
+#include <glib.h>
 #include "tools/gendec.h"
 
 static int add_action( struct action *actions, struct ruleset *rules, char *operation, const char *file, int line, char *action )

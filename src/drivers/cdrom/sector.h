@@ -20,7 +20,7 @@
 #define cdrom_sector_H 1
 
 #include <stdio.h>
-#include <glib/gtypes.h>
+#include <glib.h>
 #include "drivers/cdrom/defs.h"
 
 #ifdef __cplusplus

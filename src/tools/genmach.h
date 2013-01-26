@@ -20,7 +20,7 @@
 #define lxdream_genmmio_H 1
 
 #include <stdint.h>
-#include <glib/glist.h>
+#include <glib.h>
 
 #ifdef __cplusplus
 extern "C" {

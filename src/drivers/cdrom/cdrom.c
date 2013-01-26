@@ -19,8 +19,7 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <string.h>
-#include <glib/gmem.h>
-#include <glib/gstrfuncs.h>
+#include <glib.h>
 #include "lxdream.h"
 #include "drivers/cdrom/cdrom.h"
 #include "drivers/cdrom/cdimpl.h"
