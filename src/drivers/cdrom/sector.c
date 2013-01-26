@@ -17,7 +17,7 @@
  */
 
 #include <sys/stat.h>
-#include <glib/gmem.h>
+#include <glib.h>
 #include <assert.h>
 #include <stdlib.h>
 #include <stdio.h>

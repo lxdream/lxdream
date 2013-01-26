@@ -20,7 +20,7 @@
 
 #include <stdint.h>
 #include <stdio.h>
-#include <glib/gtypes.h>
+#include <glib.h>
 #include "gettext.h"
 #include "plugin.h"
 

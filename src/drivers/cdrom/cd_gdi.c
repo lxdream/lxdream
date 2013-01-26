@@ -23,9 +23,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <sys/stat.h>
-#include <glib/gfileutils.h>
-#include <glib/gutils.h>
-#include <glib/gstrfuncs.h>
+#include <glib.h>
 #include "drivers/cdrom/cdimpl.h"
 
 

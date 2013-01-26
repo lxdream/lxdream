@@ -16,8 +16,7 @@
  * GNU General Public License for more details.
  */
 
-#include <glib/gmem.h>
-#include <glib/gstrfuncs.h>
+#include <glib.h>
 #include <string.h>
 #include <unistd.h>
 #include <stdio.h>

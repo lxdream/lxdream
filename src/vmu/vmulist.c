@@ -18,8 +18,7 @@
 
 #include <string.h>
 #include <stdlib.h>
-#include <glib/glist.h>
-#include <glib/gstrfuncs.h>
+#include <glib.h>
 #include "vmulist.h"
 #include "config.h"
 

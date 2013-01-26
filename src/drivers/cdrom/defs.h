@@ -21,7 +21,7 @@
 
 #include "lxdream.h"
 #include <stdint.h>
-#include <glib/gtypes.h>
+#include <glib.h>
 
 
 #ifdef __cplusplus

@@ -20,7 +20,7 @@
 #define lxdream_lxdream_H 1
 
 #include <stdint.h>
-#include <glib/gtypes.h>
+#include <glib.h>
 
 #include "../config.h"
 

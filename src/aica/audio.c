@@ -19,7 +19,7 @@
 
 #include "aica/aica.h"
 #include "aica/audio.h"
-#include <glib/gmem.h>
+#include <glib.h>
 #include "dream.h"
 #include <assert.h>
 #include <string.h>

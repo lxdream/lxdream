@@ -18,7 +18,7 @@
 #define MODULE maple_module
 
 #include <assert.h>
-#include <glib/gstrfuncs.h>
+#include <glib.h>
 #include "eventq.h"
 #include "dream.h"
 #include "mem.h"

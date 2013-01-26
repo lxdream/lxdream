@@ -18,7 +18,7 @@
 #define cdrom_cdrom_H 1
 
 #include <stdio.h>
-#include <glib/glist.h>
+#include <glib.h>
 #include "drivers/cdrom/defs.h"
 #include "drivers/cdrom/sector.h"
 

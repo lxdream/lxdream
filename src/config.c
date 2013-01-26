@@ -21,8 +21,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
-#include <glib/gmem.h>
-#include <glib/gstrfuncs.h>
+#include <glib.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include "dreamcast.h"

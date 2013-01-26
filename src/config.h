@@ -19,8 +19,7 @@
 #ifndef lxdream_config_H
 #define lxdream_config_H 1
 
-#include <glib/gtypes.h>
-#include <glib/glist.h>
+#include <glib.h>
 #include "lxdream.h"
 #include "gettext.h"
 

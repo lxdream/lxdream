@@ -19,7 +19,7 @@
 #ifndef lxdream_gui_H
 #define lxdream_gui_H
 
-#include <glib/gtypes.h>
+#include <glib.h>
 
 #ifdef __cplusplus
 extern "C" {

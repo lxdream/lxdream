@@ -24,7 +24,7 @@
 #include <sys/stat.h>
 #include <errno.h>
 #include <stdint.h>
-#include <glib/gstrfuncs.h>
+#include <glib.h>
 #include <elf.h>
 #include "mem.h"
 #include "bootstrap.h"

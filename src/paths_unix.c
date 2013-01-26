@@ -18,7 +18,7 @@
 
 #include <string.h>
 #include <stdlib.h>
-#include <glib/gstrfuncs.h>
+#include <glib.h>
 
 #include "lxdream.h"
 #include "config.h"

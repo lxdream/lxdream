@@ -26,7 +26,7 @@
 #ifndef cdrom_drive_H
 #define cdrom_drive_H 1
 
-#include <glib/glist.h>
+#include <glib.h>
 #include "hook.h"
 #include "drivers/cdrom/defs.h"
 

@@ -28,7 +28,6 @@
 #include <dirent.h>
 #include <ctype.h>
 
-#include <glib/giochannel.h>
 #include <glib.h>
 
 #include <lirc/lirc_client.h>

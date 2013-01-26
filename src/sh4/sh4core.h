@@ -19,7 +19,7 @@
 #ifndef lxdream_sh4core_H
 #define lxdream_sh4core_H 1
 
-#include <glib/gtypes.h>
+#include <glib.h>
 #include <stdint.h>
 #include <stdio.h>
 #include "mem.h"

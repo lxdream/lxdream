@@ -23,7 +23,7 @@
 #include <getopt.h>
 #include <errno.h>
 #include <ctype.h>
-#include <glib/gstrfuncs.h>
+#include <glib.h>
 #include <assert.h>
 #include "tools/gendec.h"
 

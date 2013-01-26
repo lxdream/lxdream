@@ -32,7 +32,6 @@
 #include <ctype.h>
 
 #include <linux/joystick.h>
-#include <glib/giochannel.h>
 #include <glib.h>
 
 #include "lxdream.h"

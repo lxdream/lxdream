@@ -19,7 +19,7 @@
 
 #include <string.h>
 #include <stdlib.h>
-#include <glib/gstrfuncs.h>
+#include <glib.h>
 #include <libgen.h>
 #include "gettext.h"
 #include "gdrom/gdrom.h"
