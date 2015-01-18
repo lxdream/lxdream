@@ -19,8 +19,7 @@
  * GNU General Public License for more details.
  */
 
-#include <glib/gmem.h>
-#include <glib/gstrfuncs.h>
+#include <glib.h>
 #include <sys/param.h>
 #include <paths.h>
 #include <string.h>

@@ -23,7 +23,7 @@
 #include "maple/maple.h"
 #include "vmu/vmulist.h"
 
-#include <glib/gstrfuncs.h>
+#include <glib.h>
 
 #define FIRST_SECONDARY_DEVICE MAPLE_PORTS
 
