@@ -19,7 +19,7 @@
  */
 
 #include <string.h>
-#include <glib/gstrfuncs.h>
+#include <glib.h>
 
 #include "lxdream.h"
 #include "lxpaths.h"
