@@ -116,7 +116,8 @@ struct sh4_x86_state {
 static struct sh4_x86_state sh4_x86;
 
 static uint8_t sh4_entry_stub[128];
-void FASTCALL (*sh4_translate_enter)(void *code);
+typedef FASTCALL void (*entry_point_t)(void *);
+entry_point_t sh4_translate_enter;
 
 static uint32_t max_int = 0x7FFFFFFF;
 static uint32_t min_int = 0x80000000;
@@ -171,7 +172,7 @@ void sh4_translate_write_entry_stub(void)
 	POP_r32(REG_EBX);
 	POP_r32(REG_EBP);
 	RET();
-	sh4_translate_enter = sh4_entry_stub;
+	sh4_translate_enter = (entry_point_t)sh4_entry_stub;
 }
 
 void sh4_translate_init(void)
@@ -3204,13 +3205,11 @@ static _Unwind_Reason_Code xlat_check_frame( struct _Unwind_Context *context, vo
 
 void *xlat_get_native_pc( void *code, uint32_t code_size )
 {
-    struct _Unwind_Exception exc;
     struct UnwindInfo info;
 
     info.pc = NULL;
     info.block_start = (uintptr_t)code;
     info.block_end = info.block_start + code_size;
-    void *result = NULL;
     _Unwind_Backtrace( xlat_check_frame, &info );
     return info.pc;
 }

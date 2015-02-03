@@ -190,9 +190,8 @@ sector_source_t iso_sector_source_new( IsoImage *image, sector_mode_t mode, cdro
         return NULL;
     }
 
-    char buf[2048];
+    unsigned char buf[2048];
     cdrom_count_t expect = size/2048;
-    cdrom_count_t count = 0;
     int fd = file_sector_source_get_fd(source);
     source->size = expect;
     lseek( fd, 0, SEEK_SET );

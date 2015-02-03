@@ -116,7 +116,7 @@ static void tileiter_read( tileiter *it )
     }
 }
 
-static void tileiter_init( tileiter *it, uint32_t segptr )
+static inline void tileiter_init( tileiter *it, uint32_t segptr )
 {
     if( IS_TILE_PTR(segptr) ) {
         it->ptr = (uint32_t *)(pvr2_main_ram + (segptr & 0x007FFFFF));

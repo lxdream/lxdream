@@ -37,11 +37,6 @@ static void unpack_bgra(uint32_t bgra, float *rgba)
     rgba[3] = ((float)(((bgra&0xFF000000)>>24) + 1)) / 256.0;
 }
 
-static inline uint32_t bgra_to_rgba(uint32_t bgra)
-{
-    return (bgra&0xFF00FF00) | ((bgra&0x00FF0000)>>16) | ((bgra&0x000000FF)<<16);
-}
-
 /**
  * Convert a half-float (16-bit) FP number to a regular 32-bit float.
  * Source is 1-bit sign, 5-bit exponent, 10-bit mantissa.
@@ -468,7 +463,7 @@ static void scene_backface_cull()
 
 static void scene_add_cheap_shadow_vertexes( struct vertex_struct *src, struct vertex_struct *dest, int count )
 {
-    unsigned int i, j;
+    unsigned int i;
     
     for( i=0; i<count; i++ ) {
         dest->x = src->x;

@@ -142,7 +142,7 @@ void pvr2_setup_gl_context()
 #endif
 
 
-#ifdef HAVE_OPENGL_CLEAR_DEPTHF
+#ifdef HAVE_GLES2
     glClearDepthf(0);
 #else
     glClearDepth(0);

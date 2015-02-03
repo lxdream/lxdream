@@ -22,7 +22,7 @@
 #include <glib.h>
 #include "lxpaths.h"
 
-char *lxdream_get_global_config_path_value() { }
+char *lxdream_get_global_config_path_value() { return NULL; }
 void log_message( void *ptr, int level, const gchar *source, const char *msg, ... ) { }
 
 struct expanded_path_case_t {

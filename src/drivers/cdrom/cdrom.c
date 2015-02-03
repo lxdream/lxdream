@@ -161,7 +161,7 @@ void cdrom_disc_set_default_disc_type( cdrom_disc_t disc )
 {
     int type = CDROM_DISC_NONE, i;
     for( i=0; i<disc->track_count; i++ ) {
-        if( (disc->track[i].flags & TRACK_FLAG_DATA == 0) ) {
+        if( ((disc->track[i].flags & TRACK_FLAG_DATA) == 0) ) {
             if( type == CDROM_DISC_NONE )
                 type = CDROM_DISC_AUDIO;
         } else if( disc->track[i].source != NULL &&

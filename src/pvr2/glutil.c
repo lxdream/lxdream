@@ -24,8 +24,8 @@
 
 gboolean isOpenGLES2()
 {
-    const char *str = glGetString(GL_VERSION);
-    if( strncmp(str, "OpenGL ES 2.", 12) == 0 ) {
+    const GLubyte *str = glGetString(GL_VERSION);
+    if( strncmp((const char *)str, "OpenGL ES 2.", 12) == 0 ) {
         return TRUE;
     }
     return FALSE;
@@ -192,7 +192,7 @@ void fprint_extensions( FILE *out, const char *extensions )
         return;
 
     gchar *ext_dup = g_strdup(extensions);
-    gchar **ext_split = g_strsplit(g_strstrip(extensions), " ", 0);
+    gchar **ext_split = g_strsplit(g_strstrip(ext_dup), " ", 0);
     for( count = 0; ext_split[count] != NULL; count++ ) {
         unsigned len = strlen(ext_split[count]);
         if( len > maxlen )
@@ -264,6 +264,7 @@ gboolean gl_check_error(const char *context)
     return TRUE;
 }
 
+#if 0
 static int bgra_to_rgba_type( int glFormatType )
 {
     switch( glFormatType ) {
@@ -278,6 +279,7 @@ static int bgra_to_rgba_type( int glFormatType )
         return glFormatType;
     }
 }
+#endif
 
 /**
  * Convert BGRA data in buffer to RGBA format in-place (for systems that don't natively
@@ -290,7 +292,6 @@ static int bgra_to_rgba_type( int glFormatType )
  */
 static int bgra_to_rgba( unsigned char *data, unsigned nPixels, int glFormatType )
 {
-    unsigned i;
     switch( glFormatType ) {
     case GL_UNSIGNED_SHORT_1_5_5_5_REV: {
         uint16_t *p = (uint16_t *)data;
@@ -333,7 +334,7 @@ void glTexImage2DBGRA( int level, GLint intFormat, int width, int height, GLint 
     if( format == GL_BGRA && !display_driver->capabilities.has_bgra ) {
         if( preserveData ) {
             size_t size = width * height * (type == GL_UNSIGNED_BYTE ? 4 : 2);
-            char buf[size];
+            unsigned char buf[size];
             memcpy(buf, data, size);
             GLint rgbaType = bgra_to_rgba( buf, width*height, type );
             glTexImage2D( GL_TEXTURE_2D, level, intFormat, width, height, 0, GL_RGBA, rgbaType,
@@ -354,7 +355,7 @@ void glTexSubImage2DBGRA( int level, int xoff, int yoff, int width, int height, 
     if( format == GL_BGRA && !display_driver->capabilities.has_bgra ) {
         if( preserveData ) {
             size_t size = width * height * (type == GL_UNSIGNED_BYTE ? 4 : 2);
-            char buf[size];
+            unsigned char buf[size];
             memcpy(buf, data, size);
             GLint rgbaType = bgra_to_rgba( buf, width*height, type );
             glTexSubImage2D( GL_TEXTURE_2D, level, xoff, yoff, width, height, GL_RGBA, rgbaType,

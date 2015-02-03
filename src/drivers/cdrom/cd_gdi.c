@@ -53,7 +53,6 @@ static gboolean gdi_image_read_toc( cdrom_disc_t disc, ERROR *err )
 {
     int i;
     uint32_t track_count;
-    struct stat st;
     char line[512];
     int session = 1;
     gchar *dirname;

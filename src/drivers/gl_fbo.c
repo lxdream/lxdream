@@ -298,8 +298,6 @@ static void gl_fbo_detach_render_buffer( render_buffer_t buffer )
 
 static void gl_fbo_destroy_render_buffer( render_buffer_t buffer )
 {
-    int i,j;
-
     gl_fbo_detach_render_buffer( buffer );
 
     if( buffer->buf_id != buffer->tex_id ) {
@@ -344,7 +342,7 @@ static void gl_fbo_display_render_buffer( render_buffer_t buffer )
 static void gl_fbo_load_frame_buffer( frame_buffer_t frame, render_buffer_t buffer )
 {
     gl_fbo_detach();
-    gl_load_frame_buffer( frame, buffer->buf_id );
+    gl_frame_buffer_to_tex( frame, buffer->buf_id );
 }
 
 static void gl_fbo_display_blank( uint32_t colour )

@@ -72,7 +72,7 @@ char *makeFilename( const char *baseName, const char *ext )
     if( q == NULL ) {
         return g_strdup_printf("%s%s", p, ext);
     } else {
-        return g_strdup_printf("%.*s%s", q-p, p, ext );
+        return g_strdup_printf("%.*s%s", (int)(q-p), p, ext );
     }
 }
 
@@ -136,9 +136,9 @@ void dump_register_blocks( FILE *f, GList *blocks, gboolean detail )
     }
 }
 
-char *build_page_initializer( regblock_t block )
+unsigned char *build_page_initializer( regblock_t block )
 {
-    char *page = g_malloc(LXDREAM_PAGE_SIZE);
+    unsigned char *page = g_malloc(LXDREAM_PAGE_SIZE);
 
     /* First, background fill if any */
     if( block->flags.fillSizeBytes == 0 ) {
@@ -240,7 +240,7 @@ void write_source( FILE *f, GList *blocks, const char *header_filename )
         fprintf( f, "        mmio_region_%s_read_word, mmio_region_%s_write_word,\n", block->name, block->name );
         fprintf( f, "        mmio_region_%s_read_byte, mmio_region_%s_write_byte,\n", block->name, block->name );
         fprintf( f, "        mmio_region_%s_read_burst, mmio_region_%s_write_burst,\n", block->name, block->name );
-        fprintf( f, "        unmapped_prefetch, mmio_region_%s_read_byte },\n", block->name, block->name );
+        fprintf( f, "        unmapped_prefetch, mmio_region_%s_read_byte },\n", block->name );
         fprintf( f, "    NULL, NULL, {\n" );
         for( unsigned i=0; i<block->numRegs; i++ ) {
             regdef_t reg = block->regs[i];
@@ -362,7 +362,7 @@ int main(int argc, char *argv[])
     }
 
     for( GList *ptr = block_list; ptr != NULL; ptr = ptr->next ) {
-        char *data = build_page_initializer((regblock_t)ptr->data);
+        unsigned char *data = build_page_initializer((regblock_t)ptr->data);
         fwrite_dump( data, LXDREAM_PAGE_SIZE, stdout );
         g_free(data);
     }

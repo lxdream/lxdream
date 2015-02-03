@@ -89,7 +89,7 @@ static void print_mem_op( FILE *f, MemOp op, sh4addr_t addr, uint32_t value )
     }
 }
 
-static void dump_mem_ops()
+void dump_mem_ops()
 {
     for( unsigned i=0; i<mem_log_posn; i++ ) {
         print_mem_op( stderr, mem_log[i].op, mem_log[i].addr, mem_log[i].value );

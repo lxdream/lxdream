@@ -213,12 +213,12 @@ gdrom_queue_entry_t bios_gdrom_get_command( uint32_t id )
  * Locate the active config block. FIXME: This isn't completely correct, but it works
  * under at least some circumstances. 
  */
-static char *bios_find_flash_config( sh4addr_t segment, uint32_t length )
+static sh4ptr_t bios_find_flash_config( sh4addr_t segment, uint32_t length )
 {
-    char *start = mem_get_region(segment);
-    char *p = start + 0x80;
-    char *end = p + length;
-    char *result = NULL;
+    sh4ptr_t start = mem_get_region(segment);
+    sh4ptr_t p = start + 0x80;
+    sh4ptr_t end = p + length;
+    sh4ptr_t result = NULL;
 
     if( memcmp( start, FLASH_PARTITION_MAGIC, 16 ) != 0 )
         return NULL; /* Missing magic */
@@ -236,8 +236,8 @@ static char *bios_find_flash_config( sh4addr_t segment, uint32_t length )
  */
 static void bios_sysinfo_vector( uint32_t syscallid )
 {
-    char *flash_segment, *flash_config;
-    char *dest;
+    sh4ptr_t flash_segment, flash_config;
+    sh4ptr_t dest;
     DEBUG( "BIOS SYSINFO: r4 = %08X, r5 = %08X, r6 = %08x, r7= %08X", sh4r.r[4], sh4r.r[5], sh4r.r[6], sh4r.r[7] );
 
     switch( sh4r.r[7] ) {
@@ -269,7 +269,6 @@ static void bios_sysinfo_vector( uint32_t syscallid )
 
 static void bios_flashrom_vector( uint32_t syscallid )
 {
-    char *dest;
     DEBUG( "BIOS FLASHROM: r4 = %08X, r5 = %08X, r6 = %08x, r7= %08X", sh4r.r[4], sh4r.r[5], sh4r.r[6], sh4r.r[7] );
 
     switch( sh4r.r[7] ) {
@@ -413,7 +412,7 @@ static gboolean bios_load_ipl( cdrom_disc_t disc, cdrom_track_t track, const cha
         } else if( iso_file_source_open(file) == 1 ) {
             size_t len;
             if( unscramble ) {
-                char *tmp = g_malloc(st.st_size);
+                unsigned char *tmp = g_malloc(st.st_size);
                 len = iso_file_source_read(file, tmp, st.st_size);
                 bootprogram_unscramble(buffer, tmp, st.st_size);
                 g_free(tmp);
@@ -453,7 +452,6 @@ gboolean bios_boot_gdrom_disc( void )
         ERROR( "Disc is not bootable" );
         return FALSE;
     }
-    uint32_t lba = track->lba;
     uint32_t sectors = cdrom_disc_get_track_size(disc,track);
     if( sectors < MIN_ISO_SECTORS ) {
         ERROR( "Disc is not bootable" );

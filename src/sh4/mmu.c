@@ -424,7 +424,7 @@ static gboolean mmu_ext_page_remapped( sh4addr_t page, mem_region_fn_t fn, void 
 
 static void mmu_set_tlb_enabled( int tlb_on )
 {
-    mem_region_fn_t *ptr, *uptr;
+    mem_region_fn_t *ptr;
     int i;
     
     /* Reset the storequeue area */
@@ -819,11 +819,8 @@ static void mmu_utlb_insert_entry( int entry )
 
 static void mmu_utlb_remove_entry( int entry )
 {
-    int i, j;
     struct utlb_entry *ent = &mmu_utlb[entry];
     sh4addr_t start_addr = ent->vpn&ent->mask;
-    mem_region_fn_t *ptr = &sh4_address_space[start_addr >> 12];
-    mem_region_fn_t *uptr = &sh4_user_address_space[start_addr >> 12];
     gboolean unmap_user;
     int npages = get_tlb_size_pages(ent->flags);
     

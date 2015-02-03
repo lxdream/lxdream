@@ -678,7 +678,6 @@ static int xlat_compare_active_field( const void *a, const void *b )
 
 unsigned int xlat_get_cache_blocks_by_activity( xlat_block_ref_t outblocks, size_t topN )
 {
-    int i=0;
     int count = xlat_get_active_block_count();
 
     struct xlat_block_ref blocks[count];

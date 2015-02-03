@@ -33,8 +33,6 @@
 #define MAXTOCENTRIES 600  /* This is a fairly generous overestimate really */
 #define MAXTOCSIZE 4 + (MAXTOCENTRIES*11)
 
-static gboolean cdrom_osx_image_is_valid( FILE *f );
-static cdrom_disc_t cdrom_osx_open_file( FILE *f, const gchar *filename, ERROR *err );
 static gboolean cdrom_osx_read_toc( cdrom_disc_t disc, ERROR *err );
 static cdrom_error_t cdrom_osx_read_sectors( sector_source_t disc, cdrom_lba_t sector, cdrom_count_t count,
                                              cdrom_read_mode_t mode, unsigned char *buf, size_t *length );
@@ -77,8 +75,6 @@ static cdrom_disc_t cdrom_osx_new( const char *name, osx_cdrom_drive_t drive, ER
 
 static cdrom_disc_t cdrom_osx_open( cdrom_drive_t drive, ERROR *err )
 {
-    cdrom_disc_t result = NULL;
-
     osx_cdrom_drive_t osx_drive = osx_cdrom_open_drive(drive->name);
     if( osx_drive == NULL ) {
         SET_ERROR( err, LX_ERR_FILE_NOOPEN, "Unable to open CDROM drive" );
@@ -104,16 +100,6 @@ void cdrom_drive_scan(void)
 {
     find_cdrom_drive(cdrom_enum_callback, NULL);
     osx_register_iokit_notifications();
-}
-
-static gboolean cdrom_osx_image_is_valid( FILE *f )
-{
-    return FALSE;
-}
-
-static cdrom_disc_t cdrom_osx_open_file( FILE *f, const gchar *filename, ERROR *err )
-{
-    return NULL; /* Not supported */
 }
 
 static gboolean cdrom_osx_read_toc( cdrom_disc_t disc, ERROR *err )
@@ -152,7 +138,7 @@ static cdrom_error_t cdrom_osx_read_sectors( sector_source_t source, cdrom_lba_t
 {
     cdrom_disc_t disc = (cdrom_disc_t)source;
     int sector_size = 2352;
-    char data[CDROM_MAX_SECTOR_SIZE];
+    unsigned char data[CDROM_MAX_SECTOR_SIZE];
     osx_cdrom_drive_t drive = OSX_DRIVE(disc);
     
     int fh = osx_cdrom_get_media_handle(drive);

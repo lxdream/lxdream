@@ -38,7 +38,7 @@ struct cdrom_disc_factory cdi_disc_factory = { "DiscJuggler", "cdi",
 
 static const char TRACK_START_MARKER[20] = { 0,0,1,0,0,0,255,255,255,255,
         0,0,1,0,0,0,255,255,255,255 };
-static const char EXT_MARKER[9] = {0,255,255,255,255,255,255,255,255 };
+//static const char EXT_MARKER[9] = {0,255,255,255,255,255,255,255,255 };
 
 struct cdi_trailer {
     uint32_t cdi_version;

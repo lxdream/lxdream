@@ -249,7 +249,7 @@ static void cocoa_config_keysym_hook(void *data, const gchar *keysym)
 - (void)openFileDialog: (id)sender
 {
     int tag = [sender tag];
-    NSString *text = [fields[tag][0] stringValue];
+    /* NSString *text = [fields[tag][0] stringValue]; */
     NSOpenPanel *panel = [NSOpenPanel openPanel];
     int result = [panel runModalForDirectory: nil file: nil types: nil];
     if( result == NSOKButton && [[panel filenames] count] > 0 ) {
@@ -263,7 +263,7 @@ static void cocoa_config_keysym_hook(void *data, const gchar *keysym)
 - (void)openDirDialog: (id)sender
 {
     int tag = [sender tag];
-    NSString *text = [fields[tag][0] stringValue];
+    /* NSString *text = [fields[tag][0] stringValue]; */
     NSOpenPanel *panel = [NSOpenPanel openPanel];
     [panel setCanChooseDirectories: YES];
     [panel setCanCreateDirectories: YES];
@@ -313,14 +313,14 @@ static void cocoa_config_keysym_hook(void *data, const gchar *keysym)
                 fields[i][0] = [[KeyBindingField alloc] initWithFrame: frame];
                 [fields[i][0] setAutoresizingMask: (NSViewMinYMargin|NSViewMaxXMargin)];
                 [fields[i][0] setTag: i];
-                [fields[i][0] setDelegate: self];
+                [fields[i][0] setDelegate: (id)self];
                 [self addSubview: fields[i][0]];
 
                 frame = NSMakeRect( x + labelWidth + KEYBINDING_SIZE + (TEXT_GAP*2), y, KEYBINDING_SIZE, TEXT_HEIGHT);
                 fields[i][1] = [[KeyBindingField alloc] initWithFrame: frame];
                 [fields[i][1] setAutoresizingMask: (NSViewMinYMargin|NSViewMaxXMargin)];
                 [fields[i][1] setTag: i];
-                [fields[i][1] setDelegate: self];
+                [fields[i][1] setDelegate: (id)self];
                 [self addSubview: fields[i][1]];
 
                 if( config->params[i].value != NULL ) {
@@ -341,7 +341,7 @@ static void cocoa_config_keysym_hook(void *data, const gchar *keysym)
                 NSTextField *field = [[NSTextField alloc] initWithFrame: frame];
                 [field setTag: i];
                 [field setStringValue: [NSString stringWithCString: config->params[i].value]];
-                [field setDelegate: self];
+                [field setDelegate: (id)self];
                 [field setAutoresizingMask: (NSViewMinYMargin|NSViewWidthSizable)];
 
                 frame = NSMakeRect( x+ labelWidth + fieldWidth + (TEXT_GAP*2), y,  TEXT_HEIGHT, TEXT_HEIGHT );

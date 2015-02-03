@@ -64,9 +64,6 @@ static int lightgun_get_cond( maple_device_t dev, int function, unsigned char *o
 static void lightgun_start_gun( maple_device_t dev );
 static void lightgun_stop_gun( maple_device_t dev );
 
-static gboolean lightgun_set_config_value( lxdream_config_group_t group, unsigned int key,
-                                           const gchar *oldvalue, const gchar *value );
-
 typedef struct lightgun_device {
     struct maple_device dev;
     uint32_t condition[2];
