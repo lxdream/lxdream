@@ -128,7 +128,7 @@ size_t gdb_read_hex_data( struct gdb_server *server, unsigned char *buf, char *d
 size_t gdb_read_binary_data( struct gdb_server *server, unsigned char *buf, char *data, int datalen )
 {
     unsigned char *q = buf;
-    for( int i=0, j=0; i<datalen; i++ ) {
+    for( int i=0; i<datalen; i++ ) {
         if( data[i] == 0x7D ) {
             if( i == datalen-1 ) {
                 return -1;

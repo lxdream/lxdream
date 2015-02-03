@@ -108,7 +108,7 @@ typedef struct error_struct {
 
 #define SET_ERROR(err, n, ...) if( (err) != NULL ) { (err)->code = n; snprintf( (err)->msg, sizeof((err)->msg), __VA_ARGS__ ); }
 #define CLEAR_ERROR(err) do { (err)->code = 0; (err)->msg[0] = 0; } while(0)
-
+#define IS_ERROR_CODE(err, n) ( (err) != NULL && (err)->code == (n) )
 
 #ifdef HAVE_FASTCALL
 #define FASTCALL __attribute__((regparm(3)))

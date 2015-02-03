@@ -220,7 +220,7 @@ static gboolean cocoa_config_vmulist_hook(vmulist_change_type_t type, int idx, v
     if( [super initWithFrame: frameRect title: NS_("Controllers")] == nil ) {
         return nil;
     } else {
-        int i,j;
+        int i;
         int y = [self contentHeight] - TEXT_HEIGHT - TEXT_GAP;
 
         memset( radio, 0, sizeof(radio) );
@@ -320,7 +320,7 @@ static gboolean cocoa_config_vmulist_hook(vmulist_change_type_t type, int idx, v
         NSArray *array = [NSArray arrayWithObjects: @"vmu", nil];
         NSOpenPanel *panel = [NSOpenPanel openPanel];
         VMULoadValidator *valid = [[VMULoadValidator alloc] autorelease];
-        [panel setDelegate: valid];
+        [panel setDelegate: (id)valid];
         int result = [panel runModalForDirectory: [NSString stringWithUTF8String: get_gui_path(CONFIG_VMU_PATH)]
                file: nil types: array];
         if( result == NSOKButton ) {
@@ -340,7 +340,7 @@ static gboolean cocoa_config_vmulist_hook(vmulist_change_type_t type, int idx, v
         [panel setCanCreateDirectories: YES];
         [panel setRequiredFileType: @"vmu"];
         VMUCreateValidator *valid = [[VMUCreateValidator alloc] autorelease];
-        [panel setDelegate: valid];
+        [panel setDelegate: (id)valid];
         int result = [panel runModalForDirectory: [NSString stringWithUTF8String: get_gui_path(CONFIG_VMU_PATH)]
                file: nil];
         if( result == NSFileHandlingPanelOKButton ) {

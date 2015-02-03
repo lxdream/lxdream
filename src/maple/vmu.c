@@ -62,6 +62,8 @@ static gboolean vmu_set_config_value( void *data, lxdream_config_group_t group, 
                                       const gchar *oldvalue, const gchar *value );
 static int vmu_get_condition( maple_device_t dev, int function, unsigned char *outbuf,
                               unsigned int *outlen );
+static int vmu_set_condition(struct maple_device *dev, int function, 
+                      unsigned char *inbuf, unsigned int buflen);
 static int vmu_get_meminfo( maple_device_t dev, int function, unsigned int pt, 
                             unsigned char *outbuf, unsigned int *outlen );
 static void vmu_attach(struct maple_device *dev);
@@ -89,7 +91,7 @@ static struct vmu_device base_vmu = {
           VMU_IDENT, VMU_VERSION, 
           vmu_get_config,
           vmu_attach, vmu_detach, vmu_destroy,
-          vmu_clone, NULL, NULL, vmu_get_condition, NULL,
+          vmu_clone, NULL, NULL, vmu_get_condition, vmu_set_condition,
           vmu_get_meminfo, vmu_read_block, vmu_write_block, NULL, NULL },
           NULL, {0},
           {"Sega VMU", vmu_set_config_value, NULL, NULL,
@@ -160,7 +162,7 @@ static void vmu_detach(struct maple_device *dev)
 static void vmu_destroy( maple_device_t dev )
 {
     vmu_device_t vmu = (vmu_device_t)dev;
-    free( dev );
+    free( vmu );
 }
 
 static int vmu_get_condition(struct maple_device *dev, int function, 

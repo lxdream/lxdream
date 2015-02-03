@@ -141,7 +141,7 @@ willBeInsertedIntoToolbar:(BOOL)flag
         isGrabbed = NO;
         video = (LxdreamVideoView *)video_osx_create_drawable();
         [video setFrameOrigin: NSMakePoint(0.0,STATUSBAR_HEIGHT)];
-        [video setDelegate: self];
+        [video setDelegate: (id)self];
 
         status = 
             [[NSTextField alloc] initWithFrame: NSMakeRect(0.0,0.0,videoRect.size.width,STATUS_TEXT_HEIGHT)];
@@ -159,13 +159,13 @@ willBeInsertedIntoToolbar:(BOOL)flag
             [self setContentBorderThickness: STATUSBAR_HEIGHT forEdge: NSMinYEdge];
 
         // Share the app delegate for the purposes of keeping it in one place
-        [self setDelegate: [NSApp delegate]];
+        [self setDelegate: (id)[NSApp delegate]];
         [self setContentMinSize: contentRect.size];
         [self setAcceptsMouseMovedEvents: YES];
         [self updateTitle];
 
         NSToolbar *toolbar = [[NSToolbar alloc] initWithIdentifier: @"LxdreamToolbar"];
-        [toolbar setDelegate: [[LxdreamToolbarDelegate alloc] init]];
+        [toolbar setDelegate: (id)[[LxdreamToolbarDelegate alloc] init]];
         [toolbar setDisplayMode: NSToolbarDisplayModeIconOnly];
         [toolbar setSizeMode: NSToolbarSizeModeSmall];
         [toolbar setSelectedItemIdentifier: @"Pause"];

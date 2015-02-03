@@ -261,7 +261,7 @@ static void texcache_load_palette_texture( gboolean format_changed )
     int bpp = 2;
     uint32_t *palette = (uint32_t *)mmio_region_PVR2PAL.mem;
     uint16_t packed_palette[1024];
-    char *data = (char *)palette;
+    unsigned char *data = (unsigned char *)palette;
 
     switch( texcache_palette_mode ) {
     case 0: /* ARGB1555 */
@@ -290,14 +290,14 @@ static void texcache_load_palette_texture( gboolean format_changed )
         for( i=0; i<1024; i++ ) {
             packed_palette[i] = (uint16_t)palette[i];
         }
-        data = (char *)packed_palette;
+        data = (unsigned char *)packed_palette;
     }
 
     glActiveTexture(GL_TEXTURE1);
     if( format_changed )
-        glTexImage2DBGRA(0, intFormat, 1024, 1, format, type, data, data == (char *)palette );
+        glTexImage2DBGRA(0, intFormat, 1024, 1, format, type, data, data == (unsigned char *)palette );
     else
-        glTexSubImage2DBGRA(0, 0, 0, 1024, 1, format, type, data, data == (char *)palette);
+        glTexSubImage2DBGRA(0, 0, 0, 1024, 1, format, type, data, data == (unsigned char *)palette);
     glActiveTexture(GL_TEXTURE0);
     texcache_palette_valid = TRUE;
 }
@@ -477,16 +477,6 @@ static void yuv_decode( uint32_t *output, uint32_t *input, int width, int height
             p++;
         }
     }
-}
-
-static gboolean is_npot_texture( int width )
-{
-    while( width != 0 ) {
-        if( width & 1 ) 
-            return width != 1;
-        width >>= 1;
-    }
-    return TRUE;
 }
 
 /**
@@ -704,7 +694,6 @@ static int texcache_find_texture_slot( uint32_t poly2_masked_word, uint32_t text
 {
     uint32_t texture_addr = (texture_word & 0x000FFFFF)<<3;
     uint32_t texture_page = texture_addr >> 12;
-    texcache_entry_index next;
     texcache_entry_index idx = texcache_page_lookup[texture_page];
     while( idx != EMPTY_ENTRY ) {
         texcache_entry_t entry = &texcache_active_list[idx];
@@ -809,6 +798,17 @@ GLuint texcache_get_texture( uint32_t poly2_word, uint32_t texture_word )
 }
 
 #if 0
+
+static gboolean is_npot_texture( int width )
+{
+    while( width != 0 ) {
+        if( width & 1 )
+            return width != 1;
+        width >>= 1;
+    }
+    return TRUE;
+}
+
 render_buffer_t texcache_get_render_buffer( uint32_t texture_addr, int mode, int width, int height )
 {
     uint32_t texture_word = ((texture_addr >> 3) & 0x000FFFFF) | PVR2_TEX_UNTWIDDLED;
@@ -910,8 +910,8 @@ void texcache_print_idx4( uint32_t texture_addr, int width )
 {
     unsigned x,y;
     int src_bytes = (width*width>>1);
-    char tmp[src_bytes];
-    char data[width*width];
+    unsigned char tmp[src_bytes];
+    unsigned char data[width*width];
     pvr2_vram64_read_twiddled_4( tmp, texture_addr, width, width );
     decode_pal4_to_pal8( data, tmp, src_bytes );
     for( y=0; y<width; y++ ) {

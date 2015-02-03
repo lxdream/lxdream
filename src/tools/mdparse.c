@@ -107,7 +107,7 @@ typedef struct token_data {
     int yyline;
     int yycol;
     union {
-        long i;
+        uint64_t i;
         char *s;
     } v;
     int slen;
@@ -126,7 +126,7 @@ static struct token_data yytok;
 
 #define YYPARSE_ERROR( msg, ... ) \
     do { \
-        fprintf( stderr, "Parse error in %s:%d:%d: " msg "\n", yystate.yyfilename, yytok.yyline, yytok.yycol, __VA_ARGS__ ); \
+        fprintf( stderr, "Parse error in %s:%d:%d: " msg "\n", yystate.yyfilename, yytok.yyline, yytok.yycol, ## __VA_ARGS__ ); \
         exit(2); \
     } while(0)
 
@@ -159,14 +159,14 @@ static inline int yystrcasecmp(const char *cmp)
     return strncasecmp(yytok.yytext, cmp, yytok.yylength);
 }
 
-static int yymatch( const char *arr[], unsigned numOptions )
+static int yymatch( const char *arr[], unsigned numOptions, const char *desc )
 {
     for( unsigned i=0; i<numOptions; i++ ) {
         if( yystrcasecmp( arr[i] ) == 0 ) {
             return i;
         }
     }
-    return -1;
+    YYPARSE_ERROR( "Unknown %s '%s'", desc, yystrdup() );
 }
 
 static gint register_block_sort_cb( gconstpointer a, gconstpointer b )
@@ -190,9 +190,9 @@ static void ioparse_apval(int tok, union apval *apv, unsigned *numBytes)
     if( tok == TOK_INTEGER ) {
         apv->i = yytok.v.i;
         if( *numBytes == 0 ) {
-            YYPARSE_ERROR( "Expected string initializer but was an integer (0x%x)", yytok.v.i );
+            YYPARSE_ERROR( "Expected string initializer but was an integer (0x%llx)", yytok.v.i );
         }
-    } else if( tok = TOK_STRING ) {
+    } else if( tok == TOK_STRING ) {
         if( *numBytes == 0 ) {
             *numBytes = yytok.slen;
             apv->s = yytok.v.s;
@@ -224,10 +224,7 @@ static void ioparse_regflags( regflags_t flags, unsigned *numBytes )
         case TOK_ACCESS:
             READ(TOK_EQUALS);
             READ(TOK_IDENTIFIER);
-            flags->access = yymatch(ACCESS_NAMES,elementsof(ACCESS_NAMES));
-            if( flags->access == -1 ) {
-                YYPARSE_ERROR("Unknown access mode '%s'", yystrdup());
-            }
+            flags->access = yymatch(ACCESS_NAMES,elementsof(ACCESS_NAMES), "access mode");
             break;
         case TOK_MASK:
             if( numBytes ) {
@@ -235,32 +232,23 @@ static void ioparse_regflags( regflags_t flags, unsigned *numBytes )
                 tok = iolex(TOK_INTEGER);
                 ioparse_apval( tok, &flags->maskValue, numBytes );
             } else {
-                YYPARSE_ERROR("mask is not valid on a register block",0);
+                YYPARSE_ERROR("mask is not valid on a register block");
             }
             break;
         case TOK_ENDIAN:
             READ(TOK_EQUALS);
             READ(TOK_IDENTIFIER);
-            flags->endian = yymatch(ENDIAN_NAMES,elementsof(ENDIAN_NAMES));
-            if( flags->endian == -1 ) {
-                YYPARSE_ERROR("Unknown endianness '%s'", yystrdup());
-            }
+            flags->endian = yymatch(ENDIAN_NAMES,elementsof(ENDIAN_NAMES), "endianness");
             break;
         case TOK_TRACE:
             READ(TOK_EQUALS);
             READ(TOK_IDENTIFIER);
-            flags->traceFlag = yymatch(TRACE_NAMES,elementsof(TRACE_NAMES));
-            if( flags->traceFlag == -1 ) {
-                YYPARSE_ERROR("Unknown trace flag '%s'", yystrdup());
-            }
+            flags->traceFlag = yymatch(TRACE_NAMES,elementsof(TRACE_NAMES), "trace flags");
             break;
         case TOK_TEST:
             READ(TOK_EQUALS);
             READ(TOK_IDENTIFIER);
-            flags->testFlag = yymatch(TRACE_NAMES,elementsof(TRACE_NAMES));
-            if( flags->testFlag == -1 ) {
-                YYPARSE_ERROR("Unknown test flag '%s'", yystrdup());
-            }
+            flags->testFlag = yymatch(TRACE_NAMES,elementsof(TRACE_NAMES), "test flag");
             break;
         case TOK_COMMA:
             break;
@@ -274,17 +262,17 @@ static void ioparse_regflags( regflags_t flags, unsigned *numBytes )
 
 static void ioparse_regdef( struct regdef *reg )
 {
-    reg->offset = yytok.v.i;
+    reg->offset = (uint32_t)yytok.v.i;
     reg->numElements = 1;
     reg->numBytes = 0;
     reg->initValue.i = 0;
     reg->flags.maskValue.i = -1;
-    unsigned rangeOffset = reg->offset;
+    uint32_t rangeOffset = reg->offset;
 
     int tok = iolex(TOK_COLON);
     if( tok == TOK_RANGE ) {
         READ(TOK_INTEGER);
-        rangeOffset = yytok.v.i;
+        rangeOffset = (uint32_t)yytok.v.i;
         if( rangeOffset < reg->offset ) {
             YYPARSE_ERROR( "Range end (0x%x) must be greater than the range start (0x%x)", rangeOffset, reg->offset );
         }
@@ -293,10 +281,7 @@ static void ioparse_regdef( struct regdef *reg )
         YYPARSE_ERROR( "Expected ':' but was %s\n", TOKEN_NAMES[tok] );
     }
     READ(TOK_IDENTIFIER);
-    reg->mode = yymatch(MODE_NAMES, elementsof(MODE_NAMES));
-    if( reg->mode == -1 ) {
-        YYPARSE_ERROR( "Unknown register mode '%s'", yystrdup() );
-    }
+    reg->mode = yymatch(MODE_NAMES, elementsof(MODE_NAMES), "register mode");
     if( reg->mode == REG_MIRROR ) {
         /* Mirror regions have a target range only */
         READ(TOK_INTEGER);
@@ -306,14 +291,14 @@ static void ioparse_regdef( struct regdef *reg )
         if( tok == TOK_RANGE ) {
             READ(TOK_INTEGER);
             if( yytok.v.i < reg->initValue.i ) {
-                YYPARSE_ERROR( "Invalid mirror target range 0x%x..0x%x", reg->initValue.i, yytok.v.i );
+                YYPARSE_ERROR( "Invalid mirror target range 0x%llx..0x%llx", reg->initValue.i, yytok.v.i );
             }
-            reg->numBytes = yytok.v.i - reg->initValue.i + 1;
+            reg->numBytes = (uint32_t)(yytok.v.i - reg->initValue.i + 1);
             tok = iolex(TOK_STRIDE);
         }
         if( tok == TOK_STRIDE ) {
             READ(TOK_INTEGER);
-            reg->stride = yytok.v.i;
+            reg->stride = (uint32_t)yytok.v.i;
             tok = iolex(TOK_ACTION);
         } else {
             reg->stride = reg->numBytes;
@@ -333,10 +318,7 @@ static void ioparse_regdef( struct regdef *reg )
 
     } else {
         READ(TOK_IDENTIFIER);
-        reg->type = yymatch(TYPE_NAMES, elementsof(TYPE_NAMES));
-        if( reg->type == -1 ) {
-            YYPARSE_ERROR( "Unknown register type '%s'", yystrdup() );
-        }
+        reg->type = yymatch(TYPE_NAMES, elementsof(TYPE_NAMES), "register type");
         reg->numBytes = TYPE_SIZES[reg->type];
         tok = iolex(TOK_IDENTIFIER);
         if( tok == TOK_IDENTIFIER ) {
@@ -361,7 +343,7 @@ static void ioparse_regdef( struct regdef *reg )
             }
             tok = iolex(TOK_ACTION);
         } else if( reg->type == REG_STRING ) {
-            YYPARSE_ERROR( "String declarations must have an initializer (ie = 'abcd')",0 );
+            YYPARSE_ERROR( "String declarations must have an initializer (ie = 'abcd')" );
         }
         if( tok == TOK_ACTION ) {
             // reg->action = yystrdup();
@@ -393,7 +375,7 @@ static struct regblock *ioparse_regblock( )
         YYPARSE_ERROR("Expected AT but got %s\n", TOKEN_NAMES[tok] );
     }
     READ(TOK_INTEGER);
-    block->address = yytok.v.i;
+    block->address = (uint32_t)yytok.v.i;
 
     tok = iolex(TOK_LBRACE);
     if( tok == TOK_LPAREN) {
@@ -450,7 +432,7 @@ GList *ioparse( const char *filename, GList *list )
             free(tmp);
         } else if( tok == TOK_SPACE ) {
         } else if( tok == TOK_REGISTERS ) {
-            struct regblock *block = ioparse_regblock(block);
+            struct regblock *block = ioparse_regblock();
             count++;
             blocks = g_list_insert_sorted(blocks, block, register_block_sort_cb);
         } else {
@@ -638,7 +620,7 @@ int iolex( int expectToken )
                 while( yystate.yyposn < yystate.yyend && isdigit(*yystate.yyposn) )
                     yystate.yyposn++;
             }
-            yytok.v.i = strtol( yystart, NULL, 0 );
+            yytok.v.i = strtoll( yystart, NULL, 0 );
             YYRETURN(TOK_INTEGER);
         } else if( isalpha(ch) || ch == '_' ) {
             /* IDENTIFIER */

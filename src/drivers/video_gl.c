@@ -433,7 +433,7 @@ gboolean gl_read_render_buffer( unsigned char *target, render_buffer_t buffer,
     return TRUE;
 }
 
-gboolean gl_load_frame_buffer( frame_buffer_t frame, int tex_id )
+void gl_frame_buffer_to_tex( frame_buffer_t frame, int tex_id )
 {
     int size = frame->width * frame->height;
     uint32_t tmp[size];
@@ -442,7 +442,6 @@ gboolean gl_load_frame_buffer( frame_buffer_t frame, int tex_id )
     glBindTexture( GL_TEXTURE_2D, tex_id );
     glTexSubImage2D( GL_TEXTURE_2D, 0, 0,0, frame->width, frame->height, GL_RGBA, type, tmp );
     gl_check_error("gl_load_frame_buffer:glTexSubImage2DBGRA");
-    return TRUE;
 }
 
 #else
@@ -466,7 +465,7 @@ gboolean gl_read_render_buffer( unsigned char *target, render_buffer_t buffer,
     return TRUE;
 }
 
-gboolean gl_load_frame_buffer( frame_buffer_t frame, int tex_id )
+void gl_frame_buffer_to_tex( frame_buffer_t frame, int tex_id )
 {
     GLenum type = colour_formats[frame->colour_format].type;
     GLenum format = colour_formats[frame->colour_format].format;
@@ -478,9 +477,13 @@ gboolean gl_load_frame_buffer( frame_buffer_t frame, int tex_id )
     glTexSubImage2DBGRA( 0, 0,0,
                      frame->width, frame->height, format, type, frame->data, FALSE );
     glPixelStorei( GL_UNPACK_ROW_LENGTH, 0 );
-    return TRUE;
 }
 #endif
+
+static void gl_load_frame_buffer( frame_buffer_t frame, render_buffer_t render )
+{
+    gl_frame_buffer_to_tex( frame, render->tex_id );
+}
 
 
 gboolean gl_init_driver( display_driver_t driver, gboolean need_fbo )
@@ -494,9 +497,9 @@ gboolean gl_init_driver( display_driver_t driver, gboolean need_fbo )
     }
 
     /* Use SL shaders if available */
-    gboolean have_shaders = glsl_init(driver);
+    glsl_init(driver);
 #ifndef HAVE_OPENGL_FIXEDFUNC
-    if( !have_shaders ) { /* Shaders are required if we don't have fixed-functionality */
+    if( !driver->has_sl ) { /* Shaders are required if we don't have fixed-functionality */
         gl_fbo_shutdown();
         return FALSE;
     }

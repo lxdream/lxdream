@@ -171,7 +171,6 @@ void sort_render_triangles( struct sort_triangle **triangles, int num_triangles 
 {
     int i;
     for( i=0; i<num_triangles; i++ ) {
-        struct polygon_struct *poly = triangles[i]->poly;
         gl_render_triangle(triangles[i]->poly, triangles[i]->triangle_num);
     }
 }
@@ -190,7 +189,6 @@ static int sort_triangle_compare( const void *a, const void *b )
              tri2->bounds[3] <= tri1->bounds[2] )
         return 0; /* tri1 and tri2 don't actually overlap at all */
     else { 
-        struct vertex_struct *tri1v = &pvr2_scene.vertex_array[tri1->poly->vertex_index + tri1->triangle_num];
         struct vertex_struct *tri2v = &pvr2_scene.vertex_array[tri2->poly->vertex_index + tri2->triangle_num];
         float v[3];
         int i;

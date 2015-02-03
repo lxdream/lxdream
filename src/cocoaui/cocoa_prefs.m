@@ -105,7 +105,7 @@ tooltip: (NSString *)tooltip icon: (NSString *)icon action: (SEL) action;
         return nil;
     } else {
         [self setTitle: NS_("Preferences")];
-        [self setDelegate: self];
+        [self setDelegate: (id)self];
         [self setMinSize: NSMakeSize(400,300)];
         [self initToolbar];
         config_panes[0] = [[LxdreamPrefsPane alloc] initWithFrame: NSMakeRect(0,0,600,400)
@@ -163,7 +163,7 @@ tooltip: (NSString *)tooltip icon: (NSString *)icon action: (SEL) action;
     NSArray *values = [NSArray arrayWithObjects: paths, ctrls, hotkeys, nil ];
     toolbar_items = [NSDictionary dictionaryWithObjects: values forKeys: toolbar_ids];
 
-    [toolbar setDelegate: self];
+    [toolbar setDelegate: (id)self];
     [toolbar setDisplayMode: NSToolbarDisplayModeIconOnly];
     [toolbar setSizeMode: NSToolbarSizeModeSmall];
     [toolbar setSelectedItemIdentifier: @"Paths"];

@@ -28,8 +28,6 @@
 #include "config.h"
 
 static void hotkey_key_callback( void *data, uint32_t value, uint32_t pressure, gboolean isKeyDown );
-static gboolean hotkey_config_changed( void *data, lxdream_config_group_t group, unsigned key,
-                                       const gchar *oldval, const gchar *newval );
 
 #define TAG_RESUME 0
 #define TAG_STOP 1

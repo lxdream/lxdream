@@ -35,7 +35,6 @@ void mmc_parse_toc2( cdrom_disc_t disc, unsigned char *buf )
     int max_track = 0;
     int max_session = 0;
     int last_track = -1;
-    int leadout = -1;
     int len = (buf[0] << 8) | buf[1];
     int session_type = -1;
     int i;
@@ -192,7 +191,6 @@ static cdrom_error_t cdrom_disc_scsi_play_audio( cdrom_disc_t disc, cdrom_lba_t 
 
 static cdrom_error_t cdrom_disc_scsi_stop_audio( cdrom_disc_t disc )
 {
-    uint32_t buflen = 0;
     char cmd[12] = {0x4E,0,0,0, 0,0,0,0, 0,0,0,0};
     
     return SCSI_TRANSPORT(disc)->packet_cmd( disc, cmd );

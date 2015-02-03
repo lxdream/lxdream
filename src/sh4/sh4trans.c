@@ -92,7 +92,7 @@ void * sh4_translate_basic_block( sh4addr_t start )
 {
     sh4addr_t pc = start;
     sh4addr_t lastpc = (pc&0xFFFFF000)+0x1000;
-    int done, i;
+    int done;
     xlat_current_block = xlat_start_block( GET_ICACHE_PHYS(start) );
     xlat_output = (uint8_t *)xlat_current_block->code;
     xlat_recovery_posn = 0;

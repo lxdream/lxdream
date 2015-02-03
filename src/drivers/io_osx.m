@@ -30,8 +30,6 @@ struct io_osx_cbinfo {
     struct io_osx_cbinfo *next;
 };
 
-static struct io_osx_cbinfo *cbinfo_list = NULL;
-
 void io_unregister_callback( struct io_osx_cbinfo *cbinfo )
 {
     CFRunLoopRemoveSource( CFRunLoopGetCurrent(), cbinfo->sourceRef, kCFRunLoopCommonModes );
@@ -114,7 +112,7 @@ io_listener_t io_register_listener( int fd, io_callback_t callback, void *data, 
     fdContext.version = 0;
     fdContext.retain = NULL;
     fdContext.info = cbinfo;
-    fdContext.release = io_osx_release;
+    fdContext.release = ( void (*)(void *) )io_osx_release;
     fdContext.copyDescription = NULL;
 
     CFFileDescriptorRef ref = CFFileDescriptorCreate( kCFAllocatorDefault, fd, FALSE,

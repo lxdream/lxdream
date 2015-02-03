@@ -133,7 +133,7 @@ sector_mode_t static nrg_track_mode( uint8_t mode )
     case 3: return SECTOR_SEMIRAW_MODE2;
     case 7: return SECTOR_CDDA;
     case 16: return SECTOR_CDDA_SUBCHANNEL;
-    default: return -1;
+    default: return SECTOR_UNKNOWN;
     }
 }
 
@@ -233,7 +233,7 @@ static gboolean nrg_image_read_toc( cdrom_disc_t disc, ERROR *err )
             for( i=0; i<count; i++ ) {
                 uint32_t offset = GUINT32_FROM_BE(dao->track[i].offset);
                 sector_mode_t mode = nrg_track_mode( dao->track[i].mode );
-                if( mode == -1 ) {
+                if( mode == SECTOR_UNKNOWN ) {
                     RETURN_PARSE_ERROR("Unknown track mode in NRG image file (%d)", dao->track[i].mode);
                 }
                 if( CDROM_SECTOR_SIZE(mode) != GUINT32_FROM_BE(dao->track[i].sector_size) ) {
@@ -259,7 +259,7 @@ static gboolean nrg_image_read_toc( cdrom_disc_t disc, ERROR *err )
             for( i=0; i<count; i++ ) {
                 uint32_t offset = (uint32_t)GUINT64_FROM_BE(daox->track[i].offset);
                 sector_mode_t mode = nrg_track_mode( daox->track[i].mode );
-                if( mode == -1 ) {
+                if( mode == SECTOR_UNKNOWN ) {
                     RETURN_PARSE_ERROR("Unknown track mode in NRG image file (%d)", daox->track[i].mode);
                 }
                 if( CDROM_SECTOR_SIZE(mode) != GUINT32_FROM_BE(daox->track[i].sector_size) ) {
@@ -287,7 +287,7 @@ static gboolean nrg_image_read_toc( cdrom_disc_t disc, ERROR *err )
             for( i=0; i < count; i++, etnf++ ) {
                 uint32_t offset = GUINT32_FROM_BE(etnf->offset);
                 sector_mode_t mode = nrg_track_mode( GUINT32_FROM_BE(etnf->mode) );
-                if( mode == -1 ) {
+                if( mode == SECTOR_UNKNOWN ) {
                     RETURN_PARSE_ERROR("Unknown track mode in NRG image file (%d)", etnf->mode);
                 }
                 cdrom_count_t sector_count = GUINT32_FROM_BE(etnf->length) /
@@ -308,7 +308,7 @@ static gboolean nrg_image_read_toc( cdrom_disc_t disc, ERROR *err )
             for( i=0; i < count; i++, etn2++ ) {
                 uint32_t offset = (uint32_t)GUINT64_FROM_BE(etn2->offset);
                 sector_mode_t mode = nrg_track_mode( GUINT32_FROM_BE(etn2->mode) );
-                if( mode == -1 ) {
+                if( mode == SECTOR_UNKNOWN ) {
                     RETURN_PARSE_ERROR("Unknown track mode in NRG image file (%d)", etn2->mode);
                 }
                 cdrom_count_t sector_count = (uint32_t)(GUINT64_FROM_BE(etn2->length) /

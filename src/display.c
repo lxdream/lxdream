@@ -453,7 +453,6 @@ void input_set_keysym_hook( display_keysym_callback_t hook, void *data )
 
 /***************** System mouse driver ****************/
 
-static struct keymap_entry *mouse_keymap[MAX_MOUSE_BUTTONS];
 static struct mouse_entry *mousehooks = NULL;
 static uint32_t mouse_x = -1, mouse_y = -1, mouse_buttons = 0;
 

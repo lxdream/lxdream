@@ -28,6 +28,8 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+struct maple_device;
     
 #define NS_(x) [NSString stringWithUTF8String: _(x)]
 

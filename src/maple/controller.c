@@ -123,11 +123,6 @@ static struct controller_device base_controller = {
 /* Get the controller_device * from a lxdream_config_group_t */
 #define DEV_FROM_CONFIG_GROUP(grp)  ((controller_device_t)(((char *)grp) - offsetof( struct controller_device, config )))
 
-static int config_button_map[] = { 
-        BUTTON_DPAD_LEFT, BUTTON_DPAD_RIGHT, BUTTON_DPAD_UP, BUTTON_DPAD_DOWN,
-        JOY_LEFT, JOY_RIGHT, JOY_UP, JOY_DOWN, BUTTON_X, BUTTON_Y, BUTTON_A, 
-        BUTTON_B, BUTTON_LEFT_TRIGGER, BUTTON_RIGHT_TRIGGER, BUTTON_START };
-        
 #define CONTROLLER(x) ((controller_device_t)(x))
 
 static maple_device_t controller_new( )

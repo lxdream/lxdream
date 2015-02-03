@@ -188,6 +188,7 @@ static vertex_buffer_t nv_create_buffer( uint32_t size )
 
 /************************** vertex_buffer_object *****************************/
 
+#ifdef ENABLE_VBO
 #ifdef GL_ARRAY_BUFFER_ARB
 
 static void *vbo_map( vertex_buffer_t buf, uint32_t size )
@@ -229,6 +230,7 @@ static vertex_buffer_t vbo_create_buffer( uint32_t size )
     return buf;
 }
 
+#endif
 #endif
 
 /**

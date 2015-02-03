@@ -148,7 +148,7 @@ lxdream_file_type_t file_load_magic( const gchar *filename, gboolean wrap_exec, 
     if( disc != NULL ) {
         gdrom_mount_disc(disc);
         return FILE_DISC;
-    } else if( err != LX_ERR_FILE_UNKNOWN ) {
+    } else if( !IS_ERROR_CODE(err,LX_ERR_FILE_UNKNOWN) ) {
         return FILE_ERROR;
     }
 
@@ -226,26 +226,17 @@ void file_load_postload( const gchar *filename, int pc )
     g_free(bootstrap_file);
 }    
 
-
-static gboolean is_sh4_elf( Elf32_Ehdr *head )
-{
+static gboolean is_arch( Elf32_Ehdr *head, Elf32_Half mach ) {
     return ( head->e_ident[EI_CLASS] == ELFCLASS32 &&
             head->e_ident[EI_DATA] == ELFDATA2LSB &&
             head->e_ident[EI_VERSION] == 1 &&
             head->e_type == ET_EXEC &&
-            head->e_machine == EM_SH &&
+            head->e_machine == mach &&
             head->e_version == 1 );
 }
 
-static gboolean is_arm_elf( Elf32_Ehdr *head )
-{
-    return ( head->e_ident[EI_CLASS] == ELFCLASS32 &&
-            head->e_ident[EI_DATA] == ELFDATA2LSB &&
-            head->e_ident[EI_VERSION] == 1 &&
-            head->e_type == ET_EXEC &&
-            head->e_machine == EM_ARM &&
-            head->e_version == 1 );
-}
+#define is_sh4_elf(head) is_arch(head, EM_SH)
+#define is_arm_elf(head) is_arch(head, EM_ARM)
 
 static gboolean file_load_elf( const gchar *filename, int fd, ERROR *err )
 {
@@ -437,7 +428,7 @@ static cdrom_disc_t cdrom_wrap_elf( cdrom_disc_type_t type, const gchar *filenam
     }
 
     /* Load the program into memory */
-    char *program = g_malloc0( end-start );
+    unsigned char *program = g_malloc0( end-start );
     for( i=0; i<head.e_phnum; i++ ) {
         if( phdr[i].p_type == PT_LOAD ) {
             lseek( fd, phdr[i].p_offset, SEEK_SET );
@@ -458,7 +449,7 @@ static cdrom_disc_t cdrom_wrap_elf( cdrom_disc_type_t type, const gchar *filenam
 static cdrom_disc_t cdrom_wrap_binary( cdrom_disc_type_t type, const gchar *filename, int fd, ERROR *err )
 {
     struct stat st;
-    char *data;
+    unsigned char *data;
     size_t len;
 
     if( fstat(fd, &st) == -1 ) {

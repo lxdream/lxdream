@@ -90,6 +90,11 @@ cdrom_drive_t cdrom_drive_find( const char *name );
  */
 cdrom_disc_t cdrom_drive_open( cdrom_drive_t drive, ERROR *err );
 
+/**
+ * Scan the system for physical host CD-ROM devices (Platform-specific implementation)
+ */
+void cdrom_drive_scan();
+
 #ifdef __cplusplus
 }
 #endif

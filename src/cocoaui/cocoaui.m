@@ -357,7 +357,7 @@ gboolean gui_init( gboolean withDebug, gboolean withFullscreen )
     [NSApplication sharedApplication];
 
     LxdreamDelegate *delegate = [[LxdreamDelegate alloc] init];
-    [NSApp setDelegate: delegate];
+    [NSApp setDelegate: (id)delegate];
     NSString *iconFile = [[NSBundle mainBundle] pathForResource:@"lxdream" ofType:@"png"];
     NSImage *iconImage = [[NSImage alloc] initWithContentsOfFile: iconFile];
     [iconImage setName: @"NSApplicationIcon"];
@@ -403,7 +403,7 @@ gboolean gui_error_dialog( const char *msg, ... )
         va_list args;
         va_start(args, msg);
         error_string = [[NSString alloc] initWithFormat: [NSString stringWithCString: msg] arguments: args];
-        NSRunAlertPanel(NS_("Error in Lxdream"), error_string, nil, nil, nil);
+        NSRunAlertPanel(NS_("Error in Lxdream"), @"%@", nil, nil, nil, error_string);
         va_end(args);
         return TRUE;
     } else {

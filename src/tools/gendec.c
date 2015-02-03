@@ -176,7 +176,7 @@ static void fprint_indent( const char *action, int depth, FILE *f )
 static void fprint_action( struct rule *rule, const struct action *action, int depth, FILE *f ) 
 {
     int i;
-    if( action == NULL ) {
+    if( action == NULL || action->text == NULL ) {
         fprintf( f, "%*cUNIMP(ir); /* %s */\n", depth*8, ' ', rule->format );
     } else {
         fprintf( f, "%*c{ /* %s */", depth*8, ' ', rule->format );
@@ -292,7 +292,9 @@ static int generate_decoder( struct ruleset *rules, actionfile_t af, FILE *out )
             if( emit_warnings ) {
                 check_actions( rules, token );
             }
+            fprintf( out, "#pragma clang diagnostic push\n#pragma clang diagnostic ignored \"-Wunused-variable\"\n" );
             split_and_generate( rules, token->actions, ruleidx, rules->rule_count, 0, 1, out );
+            fprintf( out, "#pragma clang diagnostic pop\n" );
         }
         token = action_file_next(af);
     }

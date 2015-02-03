@@ -33,7 +33,7 @@ void gl_set_video_size( uint32_t width, uint32_t height, int flipped );
 /**
  * Generic GL routine to draw the given frame buffer into a texture
  */
-gboolean gl_load_frame_buffer( frame_buffer_t frame, int tex_id );
+void gl_frame_buffer_to_tex( frame_buffer_t frame, int tex_id );
 
 /**
  * Reset the GL state to its initial values
