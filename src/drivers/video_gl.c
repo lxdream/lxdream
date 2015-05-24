@@ -441,7 +441,7 @@ void gl_frame_buffer_to_tex( frame_buffer_t frame, int tex_id )
     GLenum type = target_to_rgba( tmp, frame->data, frame->width, frame->height, frame->rowstride, frame->colour_format );
     glBindTexture( GL_TEXTURE_2D, tex_id );
     glTexSubImage2D( GL_TEXTURE_2D, 0, 0,0, frame->width, frame->height, GL_RGBA, type, tmp );
-    gl_check_error("gl_load_frame_buffer:glTexSubImage2DBGRA");
+    gl_check_error("gl_frame_buffer_to_tex:glTexSubImage2DBGRA");
 }
 
 #else
@@ -480,7 +480,7 @@ void gl_frame_buffer_to_tex( frame_buffer_t frame, int tex_id )
 }
 #endif
 
-static void gl_load_frame_buffer( frame_buffer_t frame, render_buffer_t render )
+void gl_load_frame_buffer( frame_buffer_t frame, render_buffer_t render )
 {
     gl_frame_buffer_to_tex( frame, render->tex_id );
 }
