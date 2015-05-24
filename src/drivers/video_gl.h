@@ -40,6 +40,13 @@ void gl_frame_buffer_to_tex( frame_buffer_t frame, int tex_id );
  */
 void gl_reset_state();
 
+
+/**
+ * Generic GL routine to draw the given frame buffer into a (texture-backed)
+ * render buffer.
+ */
+void gl_load_frame_buffer( frame_buffer_t frame, render_buffer_t buf );
+
 /**
  * Generic GL routine to blank the display view with the specified colour.
  */
