@@ -21,6 +21,8 @@
 #include "sh4/mmu.h"
 #include "mem.h"
 
+#include <string.h>
+
 #define UNIMP(ir) snprintf( buf, len, "???     " )
 
 uint32_t sh4_disasm_instruction( sh4vma_t pc, char *buf, int len, char *opcode )
@@ -275,6 +277,74 @@ UNDEF            {: snprintf( buf, len, "UNDEF   " ); :}
 }
 
 
+static struct sh4_symbol *sh4_symbol_table = NULL;
+static unsigned sh4_symbol_table_size = 0;
+static sh4_symtab_destroy_cb sh4_symbol_table_cb = NULL;
+
+
+static void swap_symbol( struct sh4_symbol *a, struct sh4_symbol *b ) {
+    struct sh4_symbol tmp;
+    if( a == b )
+        return;
+    memcpy( &tmp, a, sizeof( struct sh4_symbol ) );
+    memcpy( a, b, sizeof( struct sh4_symbol ) );
+    memcpy( b, &tmp, sizeof( struct sh4_symbol ) );
+}
+
+static unsigned sort_symtab( struct sh4_symbol *table, unsigned numSymtabEntries ) {
+    /* Implement via simple selection sort for now; usually we don't have very
+     * large symbol tables.
+     */
+    for( unsigned i = 0; i < numSymtabEntries; i++ ) {
+        struct sh4_symbol *next_entry = &table[i];
+        for( unsigned j = i + 1; j < numSymtabEntries; ) {
+            if( table[j].address < next_entry->address ) {
+                next_entry = &table[j];
+                j++;
+            } else if( table[j].address == next_entry->address ) {
+                /* Duplicate - kill it */
+                swap_symbol( &table[j], &table[--numSymtabEntries] );
+            } else {
+                j++;
+            }
+        }
+        swap_symbol( &table[i], next_entry );
+    }
+    return numSymtabEntries;
+}
+
+const char *sh4_disasm_get_symbol( sh4addr_t addr )
+{
+	int l = 0, h = sh4_symbol_table_size;
+	while( l != h ) {
+	    int i = l + (h-l)/2;
+	    int iaddr = sh4_symbol_table[i].address;
+	    if( iaddr == addr ) {
+	        return sh4_symbol_table[i].name;
+	    } else if( iaddr > addr ) {
+	        h = i;
+	    } else { /* iaddr < addr */
+	        l = i+1;
+	    }
+	}
+	return NULL;
+}
+
+void sh4_set_symbol_table( struct sh4_symbol *table, unsigned size, sh4_symtab_destroy_cb callback )
+{
+    if( sh4_symbol_table_cb != NULL ) {
+        sh4_symbol_table_cb(sh4_symbol_table, sh4_symbol_table_size);
+    }
+    sh4_symbol_table = table;
+    sh4_symbol_table_cb = callback;
+    if( table == NULL ) {
+        sh4_symbol_table_size = 0;
+    } else {
+        sh4_symbol_table_size = sort_symtab(table, size);
+    }
+}
+    
+
 void sh4_disasm_region( FILE *f, int from, int to )
 {
     int pc;
@@ -285,6 +355,10 @@ void sh4_disasm_region( FILE *f, int from, int to )
         buf[0] = '\0';
         sh4_disasm_instruction( pc,
                                 buf, sizeof(buf), opcode );
+        const char *sym = sh4_disasm_get_symbol( pc );
+        if( sym != 0 ) {
+            fprintf( f, "%s:\n", sym );
+        }
         fprintf( f, "  %08x:  %s  %s\n", pc, opcode, buf );
     }
 }

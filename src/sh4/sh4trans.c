@@ -294,6 +294,16 @@ void sh4_translate_dump_block( uint32_t sh4_pc )
     sh4_translate_disasm_block( stderr, code, sh4_pc, NULL );
 }
 
+void sh4_translate_dump_block_phys( uint32_t sh4_pma )
+{
+    void *code = xlat_get_code( sh4_pma );
+    if( code == NULL ) {
+        fprintf( stderr, "** No translated block for address %08x **\n", sh4_pma );
+        return;
+    }
+    sh4_translate_disasm_block( stderr, code, sh4_pma, NULL );
+
+}
 
 static struct xlat_symbol xlat_symbol_table[] = {
     { "sh4r+128", ((char *)&sh4r)+128 },
@@ -338,6 +348,20 @@ void sh4_translate_disasm_block( FILE *out, void *code, sh4addr_t source_start, 
 
     for( target_pc = target_start; target_pc < target_end;  ) {
         uintptr_t pc2 = xlat_disasm_instruction( target_pc, buf, sizeof(buf), op );
+
+        if( source_recov_table < source_recov_end &&
+            target_pc >= (target_start + source_recov_table->xlat_offset) ) {
+            source_recov_table++;
+            if( source_end < (source_start + (source_recov_table->sh4_icount)*2) )
+                source_end = source_start + (source_recov_table->sh4_icount)*2;
+        }
+
+        if( source_pc < source_end ) {
+        	const char *sym = sh4_disasm_get_symbol(source_pc);
+        	if( sym != 0 ) {
+        		fprintf( out, "%s:\n", sym );
+        	}
+        }
 #if SIZEOF_VOID_P == 8
         fprintf( out, "%c%016lx: %-30s %-40s", (target_pc == (uintptr_t)native_pc ? '*' : ' '),
                       target_pc, op, buf );
@@ -345,12 +369,6 @@ void sh4_translate_disasm_block( FILE *out, void *code, sh4addr_t source_start, 
         fprintf( out, "%c%08lx: %-30s %-40s", (target_pc == (uintptr_t)native_pc ? '*' : ' '),
                       target_pc, op, buf );
 #endif
-        if( source_recov_table < source_recov_end &&
-            target_pc >= (target_start + source_recov_table->xlat_offset) ) {
-            source_recov_table++;
-            if( source_end < (source_start + (source_recov_table->sh4_icount)*2) )
-                source_end = source_start + (source_recov_table->sh4_icount)*2;
-        }
 
         if( source_pc < source_end ) {
             uint32_t source_pc2 = sh4_disasm_instruction( source_pc, buf, sizeof(buf), op );

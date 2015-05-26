@@ -161,7 +161,21 @@ void sh4_set_profile_blocks( gboolean flag );
  */
 gboolean sh4_get_profile_blocks();
 
+struct sh4_symbol {
+	const char *name;
+	sh4addr_t address;
+	unsigned size;
+};
 
+typedef void (*sh4_symtab_destroy_cb)(struct sh4_symbol *table, unsigned size);
+
+/**
+ * Set the active symbol table used for disassembly. The table will be modified
+ * to sort it by address and eliminate duplicates.
+ * The callback supplied is invoked whenever the table is changed
+ * or removed.
+ */
+void sh4_set_symbol_table( struct sh4_symbol *table, unsigned symtab_size, sh4_symtab_destroy_cb callback );
 
 #ifdef __cplusplus
 }
