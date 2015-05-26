@@ -29,6 +29,7 @@ extern "C" {
 
 uint32_t sh4_disasm_instruction( uint32_t pc, char *buf, int len, char * );
 void sh4_disasm_region( FILE *f, int from, int to );
+const char *sh4_disasm_get_symbol( sh4addr_t addr );
 
 #ifdef __cplusplus
 }

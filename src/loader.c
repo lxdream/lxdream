@@ -34,6 +34,7 @@
 #include "drivers/cdrom/cdrom.h"
 #include "drivers/cdrom/isofs.h"
 #include "gdrom/gdrom.h"
+#include "sh4/sh4.h"
 
 const char bootstrap_magic[32] = "SEGA SEGAKATANA SEGA ENTERPRISES";
 const char iso_magic[6] = "\001CD001";
@@ -242,6 +243,8 @@ static gboolean file_load_elf( const gchar *filename, int fd, ERROR *err )
 {
     Elf32_Ehdr head;
     Elf32_Phdr phdr;
+    Elf32_Shdr shdr;
+    Elf32_Sym sym;
     int i;
 
     if( read( fd, &head, sizeof(head) ) != sizeof(head) )
@@ -263,6 +266,43 @@ static gboolean file_load_elf( const gchar *filename, int fd, ERROR *err )
                 memset( target + phdr.p_filesz, 0, phdr.p_memsz - phdr.p_filesz );
             }
         }
+    }
+
+    /* Find symbol table */
+    uint32_t symtabOffset = 0, symtabSize = 0, symtabEntSize = 0;
+    uint32_t strtabOffset = 0, strtabSize = 0;
+    for( int i = 0; i < head.e_shnum; i++ ) {
+        lseek( fd, head.e_shoff + i * head.e_shentsize, SEEK_SET );
+        read( fd, &shdr, sizeof( shdr ) );
+        if( shdr.sh_type == SHT_SYMTAB ) {
+            symtabOffset = shdr.sh_offset;
+            symtabSize = shdr.sh_size;
+            symtabEntSize = shdr.sh_entsize;
+        } else if( shdr.sh_type == SHT_STRTAB ) {
+            strtabOffset = shdr.sh_offset;
+            strtabSize = shdr.sh_size;
+        }
+    }
+    /* Extract symbols */
+    if( symtabOffset != 0 && strtabOffset != 0 ) {
+        unsigned numSymtabEntries = symtabSize / symtabEntSize;
+        char *data = g_malloc( numSymtabEntries * sizeof( struct sh4_symbol ) + strtabSize );
+        struct sh4_symbol *symtab = ( struct sh4_symbol * )data;
+        char *strings = data + ( numSymtabEntries * sizeof( struct sh4_symbol ) );
+        lseek( fd, strtabOffset, SEEK_SET );
+        read( fd, strings, strtabSize );
+        strings[strtabSize-1] = '\0'; /* Should already be 0, but just in case */
+        for( int i = 0; i < numSymtabEntries; i++ ) {
+            lseek( fd, symtabOffset + ( i * symtabEntSize ), SEEK_SET );
+            read( fd, &sym, sizeof( sym ) );
+            if( sym.st_name < strtabSize )
+            	symtab[i].name = &strings[sym.st_name];
+            else
+            	symtab[i].name = NULL;
+            symtab[i].address = sym.st_value;
+            symtab[i].size = sym.st_size;
+        }
+        sh4_set_symbol_table( symtab, numSymtabEntries, ( sh4_symtab_destroy_cb )free );
     }
 
     file_load_postload( filename, head.e_entry );
