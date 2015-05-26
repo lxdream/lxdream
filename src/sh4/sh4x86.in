@@ -519,9 +519,6 @@ static void jump_next_block()
 	}
 	JNE_label(wrongmode);
 	if( sh4_x86.end_callback ) {
-	    /* Note this does leave the stack out of alignment, but doesn't matter
-	     * for what we're currently using it for.
-	     */
 	    PUSH_r32(REG_EAX);
 	    MOVP_immptr_rptr(sh4_x86.end_callback, REG_ECX);
 	    JMP_rptr(REG_ECX);
@@ -618,11 +615,9 @@ static void sh4_x86_translate_unlink_block( void *use_list )
 static void exit_block()
 {
 	if( sh4_x86.end_callback ) {
-	    MOVP_immptr_rptr(sh4_x86.end_callback, REG_ECX);
-	    JMP_rptr(REG_ECX);
-	} else {
-	    RET();
+	    CALL_ptr(sh4_x86.end_callback);
 	}
+	RET();
 }
 
 /**

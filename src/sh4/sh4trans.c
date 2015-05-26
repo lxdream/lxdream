@@ -316,6 +316,8 @@ static struct xlat_symbol xlat_symbol_table[] = {
     { "sh4_write_sr", sh4_write_sr },
     { "sh4_read_sr", sh4_read_sr },
     { "sh4_raise_exception", sh4_raise_exception },
+    { "sh4_shadow_block_begin", sh4_shadow_block_begin },
+    { "sh4_shadow_block_end", sh4_shadow_block_end },
     { "sh4_sleep", sh4_sleep },
     { "sh4_fsca", sh4_fsca },
     { "sh4_ftrv", sh4_ftrv },

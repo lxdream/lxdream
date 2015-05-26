@@ -76,6 +76,12 @@ void FASTCALL (*sh4_translate_enter)(void *code);
  */
 void sh4_shadow_init( void );
 
+/**
+ * Shadow mode callbacks.
+ */
+void sh4_shadow_block_begin( void );
+void sh4_shadow_block_end( void );
+
 extern uint8_t *xlat_output;
 extern struct xlat_recovery_record xlat_recovery[MAX_RECOVERY_SIZE];
 extern xlat_cache_block_t xlat_current_block;
