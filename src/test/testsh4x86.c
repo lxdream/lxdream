@@ -110,6 +110,8 @@ void FASTCALL sh4_raise_tlb_multihit( sh4vma_t vma) { }
 void FASTCALL sh4_raise_trap( int exc ) { }
 void FASTCALL sh4_flush_store_queue( sh4addr_t addr ) { }
 void FASTCALL sh4_flush_store_queue_mmu( sh4addr_t addr, void *exc ) { }
+void sh4_shadow_block_begin() {}
+void sh4_shadow_block_end() {}
 void sh4_handle_pending_events() { }
 uint32_t sh4_sleep_run_slice(uint32_t nanosecs) { return nanosecs; }
 gboolean gui_error_dialog( const char *fmt, ... ) { return TRUE; }
