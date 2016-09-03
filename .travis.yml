@@ -1,0 +1,6 @@
+sudo: required
+language: c
+before_install
+  - sudo apt-get -qq update
+  - sudo apt-get -y install libisofs-dev
+script: ./configure && make && make check
