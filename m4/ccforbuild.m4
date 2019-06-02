@@ -81,7 +81,7 @@ test -n "$build_alias" && ac_build_tool_prefix=$build_alias-
 pushdef([cross_compiling], [#])dnl
 dnl If main compiler works and CC_FOR_BUILD is unset, use the main compiler
 if test -z "$CC_FOR_BUILD"; then
-    AC_RUN_IFELSE([int main(){return 0;}], [CC_FOR_BUILD="$CC"], [],[])
+    AC_RUN_IFELSE([AC_LANG_SOURCE([int main(){return 0;}])], [CC_FOR_BUILD="$CC"], [],[])
 fi
 dnl Use the standard macros, but make them use other variable names
 dnl

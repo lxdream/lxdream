@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT(configure.in)
-AM_INIT_AUTOMAKE(lxdream, 0.9.1)
+AC_INIT(lxdream, 0.9.1)
+AM_INIT_AUTOMAKE([subdir-objects])
 AM_MAINTAINER_MODE
 AM_CONFIG_HEADER(config.h)
 
@@ -19,6 +19,7 @@ AC_PROG_OBJC
 AC_PROG_SED
 AM_PROG_AS
 AC_PROG_RANLIB
+AC_PROG_MKDIR_P
 AC_CHECK_SIZEOF([void *])
 AC_HEADER_STDC
 
@@ -134,9 +135,9 @@ if test "x$HAVE_COCOA" = 'xyes' -a "x$with_gtk" = "xno"; then
 fi
 
 dnl ------------------ C Compiler flags -----------------------
-CFLAGS_FOR_BUILD="-O2 -std=c99"
-CFLAGS="-g -fexceptions"
-OBJCFLAGS="-g -fexceptions"
+CFLAGS_FOR_BUILD="-O2 -std=c99 -D_POSIX_C_SOURCE=200809L"
+CFLAGS="-g -fexceptions -D_POSIX_C_SOURCE=200809L"
+OBJCFLAGS="-g -fexceptions -D_POSIX_C_SOURCE=200809L"
 AC_DEFINE(HAVE_EXCEPTIONS, [1], [Have exception stack-frame information])
 
 STDCFLAG="-std=c99"
