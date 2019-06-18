@@ -1,0 +1,5 @@
+*~
+*.o
+*.lo
+*.gmo
+autom4te.cache

@@ -3,10 +3,10 @@
 SUBDIRS=tools
 
 SVNVERSION=@SVNVERSION@
-INCLUDES = \
+AM_CPPFLAGS = @LXDREAMCPPFLAGS@ \
 	-DPACKAGE_DATA_DIR=\""$(datadir)"\" \
 	-DPACKAGE_LOCALE_DIR=\""$(prefix)/$(DATADIRNAME)/locale"\" \
-	-DPACKAGE_PLUGIN_DIR=\""$(pkglibdir)"\" \
+	-DPACKAGE_PLUGIN_DIR=\""$(libexecdir)"\" \
 	-DPACKAGE_CONF_DIR=\""$(sysconfdir)"\" \
         -Ish4 \
 	@GLIB_CFLAGS@ @GTK_CFLAGS@ @LIBPNG_CFLAGS@ @PULSE_CFLAGS@ @ESOUND_CFLAGS@ @ALSA_CFLAGS@ @SDL_CFLAGS@ @LIBISOFS_CFLAGS@
@@ -17,9 +17,9 @@ PLUGINLDFLAGS = @PLUGINLDFLAGS@
 bin_PROGRAMS = lxdream
 check_PROGRAMS = test/testxlt test/testlxpaths
 
-pkglib_PROGRAMS=
+libexec_PROGRAMS=
 EXTRA_DIST=drivers/genkeymap.pl checkver.pl drivers/dummy.c
-AM_CFLAGS = -D__EXTENSIONS__ -D_BSD_SOURCE -D_GNU_SOURCE
+AM_CFLAGS = -D__EXTENSIONS__ -D_GNU_SOURCE
 
 .PHONY: checkversion
 checkversion:
@@ -39,10 +39,8 @@ lxdream_LINK = $(LINK) @LXDREAMLDFLAGS@
 lxdream_LDADD = liblxdream-core.a @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@ @LIBISOFS_LIBS@ $(INTLLIBS) @LXDREAM_LIBS@
 lxdream_SOURCES = main.c 
 lxdream_LIBS = liblxdream-core.a
-lxdream_CPPFLAGS = @LXDREAMCPPFLAGS@
 
 noinst_LIBRARIES = liblxdream-core.a
-liblxdream_core_a_CPPFLAGS = @LXDREAMCPPFLAGS@
 liblxdream_core_a_SOURCES = version.c config.c config.h lxdream.h dream.h gui.h cpu.c cpu.h hook.h \
         gettext.h mem.c mem.h sdram.c mmio.h watch.c \
         asic.c asic.h clock.h serial.h \
@@ -95,7 +93,6 @@ liblxdream_core_a_SOURCES += sh4/sh4x86.c xlat/x86/x86op.h \
         xlat/disasm/arm.h xlat/disasm/safe-ctype.h xlat/disasm/safe-ctype.c
 
 test_testsh4x86_LDADD = @LXDREAM_LIBS@ @GLIB_LIBS@ @GTK_LIBS@ @LIBPNG_LIBS@
-test_testsh4x86_CPPFLAGS = @LXDREAMCPPFLAGS@
 test_testsh4x86_SOURCES = test/testsh4x86.c xlat/xlatdasm.c \
 	xlat/xlatdasm.h xlat/disasm/i386-dis.c xlat/disasm/dis-init.c \
 	xlat/disasm/dis-buf.c xlat/disasm/arm-dis.c \
@@ -155,7 +152,7 @@ endif
 
 if BUILD_PLUGINS
 
-pkglib_PROGRAMS += lxdream_dummy.@SOEXT@
+libexec_PROGRAMS += lxdream_dummy.@SOEXT@
 lxdream_dummy_@SOEXT@_SOURCES =
 lxdream_dummy_@SOEXT@_LDADD = lxdream_dummy.lo @SDL_LIBS@
 lxdream_dummy_@SOEXT@_LDFLAGS = $(PLUGINLDFLAGS)
@@ -163,7 +160,7 @@ lxdream_dummy.lo: drivers/dummy.c
 	$(COMPILE) -DPLUGIN $(PLUGINCFLAGS) -c $< -o $@
 
 if AUDIO_SDL
-pkglib_PROGRAMS += audio_sdl.@SOEXT@
+libexec_PROGRAMS += audio_sdl.@SOEXT@
 audio_sdl_@SOEXT@_SOURCES =
 audio_sdl_@SOEXT@_LDADD = audio_sdl.lo @SDL_LIBS@
 audio_sdl_@SOEXT@_LDFLAGS = $(PLUGINLDFLAGS)
@@ -172,7 +169,7 @@ audio_sdl.lo: drivers/audio_sdl.c
 endif
 
 if AUDIO_PULSE
-pkglib_PROGRAMS += audio_pulse.@SOEXT@
+libexec_PROGRAMS += audio_pulse.@SOEXT@
 audio_pulse_@SOEXT@_SOURCES =
 audio_pulse_@SOEXT@_LDADD = audio_pulse.lo @PULSE_LIBS@
 audio_pulse_@SOEXT@_LDFLAGS = $(PLUGINLDFLAGS)
@@ -181,7 +178,7 @@ audio_pulse.lo: drivers/audio_pulse.c
 endif
 
 if AUDIO_ESOUND
-pkglib_PROGRAMS += audio_esd.@SOEXT@
+libexec_PROGRAMS += audio_esd.@SOEXT@
 audio_esd_@SOEXT@_SOURCES =
 audio_esd_@SOEXT@_LDADD = audio_esd.lo @ESOUND_LIBS@
 audio_esd_@SOEXT@_LDFLAGS = $(PLUGINLDFLAGS)
@@ -190,7 +187,7 @@ audio_esd.lo: drivers/audio_esd.c
 endif
 
 if AUDIO_ALSA
-pkglib_PROGRAMS += audio_alsa.@SOEXT@
+libexec_PROGRAMS += audio_alsa.@SOEXT@
 audio_alsa_@SOEXT@_SOURCES =
 audio_alsa_@SOEXT@_LDADD = audio_alsa.lo @ALSA_LIBS@
 audio_alsa_@SOEXT@_LDFLAGS = $(PLUGINLDFLAGS)
@@ -199,7 +196,7 @@ audio_alsa.lo: drivers/audio_alsa.c
 endif
 
 if INPUT_LIRC
-pkglib_PROGRAMS += input_lirc.@SOEXT@
+libexec_PROGRAMS += input_lirc.@SOEXT@
 input_lirc_@SOEXT@_SOURCES =
 input_lirc_@SOEXT@_LDADD = input_lirc.lo	 -llirc_client
 input_lirc_@SOEXT@_LDFLAGS = $(PLUGINLDFLAGS)
