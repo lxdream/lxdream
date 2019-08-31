@@ -1,6 +1,11 @@
 sudo: required
 language: c
+os:
+  - linux
+  - osx
+osx_image: xcode6.4
+
 before_install:
-  - sudo apt-get -qq update
-  - sudo apt-get -y install libgtk2.0-dev libisofs-dev mesa-common-dev libgl1-mesa-dev
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then sudo apt-get -qq update; fi
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; sudo apt-get -y install libgtk2.0-dev libisofs-dev mesa-common-dev libgl1-mesa-dev; fi
 script: ./configure && make && make check
