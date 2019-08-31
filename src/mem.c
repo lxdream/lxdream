@@ -29,6 +29,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <string.h>
+#include <strings.h>
 #include <zlib.h>
 #include "dream.h"
 #include "mem.h"
