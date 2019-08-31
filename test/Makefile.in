@@ -3,6 +3,7 @@ top_srcdir = @top_srcdir@
 VPATH = @srcdir@
 SHELL = @SHELL@
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
+MKDIR_P = @MKDIR_P@
 mkdir_p = @mkdir_p@
 
 # host compiler and flags
