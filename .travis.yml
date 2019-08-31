@@ -2,5 +2,5 @@ sudo: required
 language: c
 before_install:
   - sudo apt-get -qq update
-  - sudo apt-get -y install libgtk2.0-dev libisofs-dev mesa-common-dev libglvnd-dev
+  - sudo apt-get -y install libgtk2.0-dev libisofs-dev mesa-common-dev libgl1-mesa-dev
 script: ./configure && make && make check
