@@ -9308,7 +9308,7 @@ if test "x$ac_cv_header_Cocoa_Cocoa_h" = xyes; then :
       LIBS="$LIBS -framework AppKit -framework Carbon"
       LIBS="$LIBS -Wl,-dylib_file,/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib:/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib -framework OpenGL"
       LXDREAMCPPFLAGS="-DMAC_OS_X_VERSION_MIN_REQUIRED=MAC_OS_X_VERSION_10_4 -mdynamic-no-pic"
-      CPPFLAGS="$CPPFLAGS -D_DARWIN_SOURCE"
+      CPPFLAGS="$CPPFLAGS -D_DARWIN_C_SOURCE"
       LDFLAGS="$LDFLAGS -Wl,-headerpad_max_install_names"
 
 $as_echo "#define HAVE_COCOA 1" >>confdefs.h
