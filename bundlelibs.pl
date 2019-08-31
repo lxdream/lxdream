@@ -35,6 +35,7 @@ while( $#worklist >= 0 ) {
                 $done{$libname} = 1;
                 push @worklist, $targetpath;
                 system( ("cp", $lib, $targetpath) ) == 0 || die "Failed to copy $lib to $targetpath";
+                chmod 0644, $targetpath;
                 system( ($NTOOL, "-id", $libid, $targetpath) ) == 0 || die "Failed to set $lib ID to $libid";
                 print "Copied $lib => $targetpath\n";
             }

@@ -112,6 +112,7 @@ AC_HAVE_OBJC([
       LIBS="$LIBS -framework AppKit -framework Carbon"
       LIBS="$LIBS -Wl,-dylib_file,/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib:/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib -framework OpenGL"
       LXDREAMCPPFLAGS="-DMAC_OS_X_VERSION_MIN_REQUIRED=MAC_OS_X_VERSION_10_4 -mdynamic-no-pic"
+      CPPFLAGS="$CPPFLAGS -D_DARWIN_C_SOURCE"
       LDFLAGS="$LDFLAGS -Wl,-headerpad_max_install_names"
       AC_DEFINE(HAVE_COCOA,[1],[Have Cocoa framework])
       AC_DEFINE(APPLE_BUILD,[1],[Building on an apple platform. Things are different...])
