@@ -51,6 +51,8 @@ static void io_osx_fd_callback( CFFileDescriptorRef f, CFOptionFlags type, void 
     struct io_osx_cbinfo *cbinfo = (struct io_osx_cbinfo *)data;
     if(!cbinfo->callback( CFFileDescriptorGetNativeDescriptor(f), cbinfo->cbdata) ) {
         io_unregister_callback(cbinfo);
+    } else {
+        CFFileDescriptorEnableCallBacks(f, kCFFileDescriptorReadCallBack);
     }
 }
 
@@ -87,6 +89,7 @@ io_listener_t io_register_tcp_listener( int fd, io_callback_t callback, void *da
     
     CFSocketRef ref = CFSocketCreateWithNative( kCFAllocatorDefault, fd, kCFSocketReadCallBack,
             io_osx_net_callback, &socketContext );
+    CFSocketEnableCallBacks( ref, kCFSocketReadCallBack );
     cbinfo->fdRef = ref;
     cbinfo->sourceRef = CFSocketCreateRunLoopSource( kCFAllocatorDefault, ref, 0 );
     CFRunLoopAddSource( CFRunLoopGetCurrent(), cbinfo->sourceRef, kCFRunLoopCommonModes );
@@ -117,6 +120,7 @@ io_listener_t io_register_listener( int fd, io_callback_t callback, void *data, 
 
     CFFileDescriptorRef ref = CFFileDescriptorCreate( kCFAllocatorDefault, fd, FALSE,
             io_osx_fd_callback, &fdContext);
+    CFFileDescriptorEnableCallBacks(ref, kCFFileDescriptorReadCallBack);
     cbinfo->fdRef = ref;
     cbinfo->sourceRef = CFFileDescriptorCreateRunLoopSource( kCFAllocatorDefault, ref, 0 );
     CFRunLoopAddSource( CFRunLoopGetCurrent(), cbinfo->sourceRef, kCFRunLoopCommonModes );
