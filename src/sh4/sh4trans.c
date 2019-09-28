@@ -31,6 +31,9 @@
 
 //#define SINGLESTEP 1
 
+static void * FASTCALL xlat_get_code_by_vma_cached( sh4vma_t vma );
+
+
 /**
  * Execute a timeslice using translated code only (ie translate/execute loop)
  */
@@ -170,7 +173,7 @@ void sh4_translate_run_exception_recovery( xlat_recovery_record_t recovery )
 
 void sh4_translate_exit_recover( )
 {
-    void *code = xlat_get_code_by_vma( sh4r.pc );
+    void *code = xlat_get_code_by_vma_cached( sh4r.pc );
     if( code != NULL ) {
         uint32_t size = xlat_get_code_size( code );
         void *pc = xlat_get_native_pc( code, size );
@@ -187,7 +190,7 @@ void sh4_translate_exit_recover( )
 
 void sh4_translate_exception_exit_recover( )
 {
-    void *code = xlat_get_code_by_vma( sh4r.spc );
+    void *code = xlat_get_code_by_vma_cached( sh4r.spc );
     if( code != NULL ) {
         uint32_t size = xlat_get_code_size( code );
         void *pc = xlat_get_native_pc( code, size );
@@ -211,6 +214,19 @@ void FASTCALL sh4_translate_breakpoint_hit(uint32_t pc)
     sh4_core_exit( CORE_EXIT_BREAKPOINT );
 }
 
+/**
+ * Return the code corresponding to the given vma (if any), which must fall 
+ * within the current icache.
+ * @return null if the vma is not in icache or does not correspond to any code.
+ */
+static void * FASTCALL xlat_get_code_by_vma_cached( sh4vma_t vma )
+{
+    if( IS_IN_ICACHE(vma) ) {
+        return xlat_get_code( GET_ICACHE_PHYS(vma) );
+    }
+    return NULL;
+}
+
 void * FASTCALL xlat_get_code_by_vma( sh4vma_t vma )
 {
     void *result = NULL;
@@ -227,14 +243,16 @@ void * FASTCALL xlat_get_code_by_vma( sh4vma_t vma )
     if( !mmu_update_icache(vma) ) {
         // fault - off to the fault handler
         if( !mmu_update_icache(sh4r.pc) ) {
-            // double fault - halt
+            // double fault - raise error and halt
             ERROR( "Double fault - halting" );
-            sh4_core_exit(CORE_EXIT_HALT);
-            return NULL;
+            return NULL; // unreachable
         }
     }
 
-    assert( IS_IN_ICACHE(sh4r.pc) );
+    if( !IS_IN_ICACHE(sh4r.pc) ) {
+        ERROR( "Branch to unmapped address %08x", sh4r.pc );
+        return NULL; // unreachable
+    }
     result = xlat_get_code( GET_ICACHE_PHYS(sh4r.pc) );
     return result;
 }

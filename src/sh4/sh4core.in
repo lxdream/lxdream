@@ -215,10 +215,9 @@ void sh4_finalize_instruction( void )
     unsigned short ir;
     uint32_t tmp;
 
-    if( IS_SYSCALL(sh4r.pc) ) {
+    if( IS_SYSCALL(sh4r.pc) || !IS_IN_ICACHE(sh4r.pc) ) {
         return;
     }
-    assert( IS_IN_ICACHE(sh4r.pc) );
     ir = *(uint16_t *)GET_ICACHE_PTR(sh4r.pc);
     
     /**
@@ -363,13 +362,17 @@ gboolean sh4_execute_instruction( void )
 	    if( !mmu_update_icache(sh4r.pc) ) {
 		// double fault - halt
 		ERROR( "Double fault - halting" );
-		sh4_core_exit(CORE_EXIT_HALT);
 		return FALSE;
 	    }
 	}
 	pc = sh4r.pc;
+
+        if( !IS_IN_ICACHE(pc) ) {
+            ERROR( "Branch to unmapped address %08x", sh4r.pc );
+            return FALSE;
+        }
     }
-    assert( IS_IN_ICACHE(pc) );
+
     ir = *(uint16_t *)GET_ICACHE_PTR(sh4r.pc);
     
     /* FIXME: This is a bit of a hack, but the PC of the delay slot should not
