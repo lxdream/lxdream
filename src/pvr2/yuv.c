@@ -160,8 +160,8 @@ void pvr2_yuv_write( unsigned char *data, uint32_t length )
 
     if( length != 0 ) { /* Save the left over data */
         memcpy( pvr2_yuv_state.data, data, length );
-        pvr2_yuv_state.data_length = length;
     }
+    pvr2_yuv_state.data_length = length;
 }
 
 void pvr2_yuv_init( uint32_t target )
