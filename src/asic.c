@@ -341,10 +341,12 @@ void pvr_dma_transfer( )
     uint32_t rcount;
 
     while( count ) {
-        uint32_t chunksize = (count < 8192) ? count : 8192;
+        uint32_t chunksize = (count < sizeof(data)) ? count : sizeof(data);
         rcount = DMAC_get_buffer( 2, data, chunksize );
         pvr2_dma_write( destaddr, data, rcount );
-        destaddr += rcount;
+        if( destaddr & 0x01000000 ) {
+            destaddr += rcount;
+        }
         count -= rcount;
         if( rcount != chunksize ) {
             WARN( "PVR received %08X bytes from DMA, expected %08X", rcount, chunksize );
