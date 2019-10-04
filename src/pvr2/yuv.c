@@ -149,6 +149,8 @@ void pvr2_yuv_write( unsigned char *data, uint32_t length )
         length -= tmp;
         if( pvr2_yuv_state.data_length == block_size ) {
             pvr2_yuv_process_block( pvr2_yuv_state.data );
+        } else {
+            return;
         }
     }
 
