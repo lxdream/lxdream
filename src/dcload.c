@@ -120,6 +120,9 @@ void dcload_syscall( uint32_t syscall_id )
                 char *filename = (char *)mem_get_region( sh4r.r[5] );
                 int realfd = open( filename, sh4r.r[6] );
                 open_fds[fd] = realfd;
+                if( realfd == -1 ) {
+                    fd = -1;
+                }
                 sh4r.r[0] = fd;
             }
         } else {
