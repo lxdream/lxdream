@@ -415,13 +415,15 @@ void aica_write_channel( int channelNo, uint32_t reg, uint32_t val )
             channel->sample_rate = aica_frequency_to_sample_rate ( val );
             break;
         case 0x1C: /* ??? */
-        case 0x20: /* ??? */
-        case 0x24: /* Volume? /pan */
-            val = val & 0x1F;
-            if( val <= 0x0F ) 
-                val = 0x0F - val; /* Convert to smooth pan over 0..31 */
-            channel->pan = val;
             break;
+        case 0x20: /* ??? */
+            break;
+        case 0x24: { /* Volume / pan */
+            int pan = (val & 0x1F);
+            if( pan <= 0x0F )
+                pan = 0x0F - pan; /* Convert to smooth pan over 0..31 */
+            channel->pan = 31 - pan;
+        }   break;
         case 0x28: /* Volume */
             // This isn't remotely correct, but it will have to suffice until I have
             // time to figure out what's actually going on here... 
