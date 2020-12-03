@@ -150,7 +150,7 @@ void sh4_translate_set_address_space( struct mem_region_fn **priv, struct mem_re
 
 void sh4_translate_write_entry_stub(void)
 {
-    sh4_entry_stub = (struct utlb_page_entry *)mmap( NULL, sizeof(uint8_t) * 128,
+    sh4_entry_stub = (uint8_t *)mmap( NULL, sizeof(uint8_t) * 128,
         PROT_READ|PROT_WRITE|PROT_EXEC, MAP_ANON|MAP_PRIVATE, -1, 0 );
 
 	xlat_output = sh4_entry_stub;
