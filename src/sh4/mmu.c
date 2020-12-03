@@ -332,7 +332,7 @@ MMIO_REGION_WRITE_FN( MMU, reg, val )
  */ 
 static void mmu_utlb_1k_init()
 {
-    mmu_utlb_1k_pages = (struct utlb_1k_entry *)mmap( NULL, sizeof(struct utlb_1k_entry) * (UTLB_ENTRY_COUNT + 1),
+    mmu_utlb_1k_pages = (struct utlb_1k_entry *)mmap( NULL, sizeof(struct utlb_1k_entry) * UTLB_ENTRY_COUNT,
         PROT_READ|PROT_WRITE|PROT_EXEC, MAP_ANON|MAP_PRIVATE, -1, 0 );
 
     int i;
