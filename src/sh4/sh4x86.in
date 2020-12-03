@@ -36,6 +36,7 @@
 #include "xlat/x86/x86op.h"
 #include "xlat/xlatdasm.h"
 #include "clock.h"
+#include <sys/mman.h>
 
 #define DEFAULT_BACKPATCH_SIZE 4096
 
@@ -115,7 +116,7 @@ struct sh4_x86_state {
 
 static struct sh4_x86_state sh4_x86;
 
-static uint8_t sh4_entry_stub[128];
+static uint8_t *sh4_entry_stub;
 typedef FASTCALL void (*entry_point_t)(void *);
 entry_point_t sh4_translate_enter;
 
@@ -149,7 +150,9 @@ void sh4_translate_set_address_space( struct mem_region_fn **priv, struct mem_re
 
 void sh4_translate_write_entry_stub(void)
 {
-	mem_unprotect(sh4_entry_stub, sizeof(sh4_entry_stub));
+    sh4_entry_stub = (struct utlb_page_entry *)mmap( NULL, sizeof(uint8_t) * 128,
+        PROT_READ|PROT_WRITE|PROT_EXEC, MAP_ANON|MAP_PRIVATE, -1, 0 );
+
 	xlat_output = sh4_entry_stub;
 	PUSH_r32(REG_EBP);
 	MOVP_immptr_rptr( ((uint8_t *)&sh4r) + 128, REG_EBP );

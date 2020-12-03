@@ -26,6 +26,7 @@
 #include "dreamcast.h"
 #include "mem.h"
 #include "mmu.h"
+#include <sys/mman.h>
 
 /* An entry is a 1K entry if it's one of the mmu_utlb_1k_pages entries */
 #define IS_1K_PAGE_ENTRY(ent)  ( ((uintptr_t)(((struct utlb_1k_entry *)ent) - &mmu_utlb_1k_pages[0])) < UTLB_ENTRY_COUNT )
@@ -45,13 +46,13 @@ static gboolean mmu_urc_overflow; /* If true, urc was set >= urb */
 /* Module globals */
 static struct itlb_entry mmu_itlb[ITLB_ENTRY_COUNT];
 static struct utlb_entry mmu_utlb[UTLB_ENTRY_COUNT];
-static struct utlb_page_entry mmu_utlb_pages[UTLB_ENTRY_COUNT];
+static struct utlb_page_entry *mmu_utlb_pages;
 static uint32_t mmu_lrui;
 static uint32_t mmu_asid; // current asid
 static struct utlb_default_regions *mmu_user_storequeue_regions;
 
 /* Structures for 1K page handling */
-static struct utlb_1k_entry mmu_utlb_1k_pages[UTLB_ENTRY_COUNT];
+static struct utlb_1k_entry *mmu_utlb_1k_pages;
 static int mmu_utlb_1k_free_list[UTLB_ENTRY_COUNT];
 static int mmu_utlb_1k_free_index;
 
@@ -157,11 +158,8 @@ void MMU_init()
     register_mem_page_remapped_hook( mmu_ext_page_remapped, NULL );
     mmu_utlb_1k_init();
     
-    /* Ensure the code regions are executable. Although it might
-     * be more portable to mmap these at runtime rather than using static decls
-     */
-    mem_unprotect( mmu_utlb_pages, sizeof(mmu_utlb_pages) );
-    mem_unprotect( mmu_utlb_1k_pages, sizeof(mmu_utlb_1k_pages) );
+    mmu_utlb_pages = (struct utlb_page_entry *)mmap( NULL, sizeof(struct utlb_page_entry) * UTLB_ENTRY_COUNT,
+            PROT_READ|PROT_WRITE|PROT_EXEC, MAP_ANON|MAP_PRIVATE, -1, 0 );
 }
 
 void MMU_reset()
@@ -334,6 +332,9 @@ MMIO_REGION_WRITE_FN( MMU, reg, val )
  */ 
 static void mmu_utlb_1k_init()
 {
+    mmu_utlb_1k_pages = (struct utlb_1k_entry *)mmap( NULL, sizeof(struct utlb_1k_entry) * (UTLB_ENTRY_COUNT + 1),
+        PROT_READ|PROT_WRITE|PROT_EXEC, MAP_ANON|MAP_PRIVATE, -1, 0 );
+
     int i;
     for( i=0; i<UTLB_ENTRY_COUNT; i++ ) {
         mmu_utlb_1k_free_list[i] = i;
