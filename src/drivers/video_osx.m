@@ -59,7 +59,6 @@ static NSView *video_view = NULL;
 @interface LxdreamOSXView : LxdreamVideoView
 {
     int flagsMask[MAX_MASK_KEYCODE];
-    double scaleFactor;
 }
 @end
 
@@ -87,19 +86,6 @@ static NSView *video_view = NULL;
         isGrabbed = NO;
         for( i=0; i<MAX_MASK_KEYCODE; i++ ) {
             flagsMask[i] = 0;
-        }
-
-        // Get scale factor for retina display
-        scaleFactor = 1.0;
-        if ([[NSScreen mainScreen] respondsToSelector:@selector(backingScaleFactor)]) {
-            NSArray *screens = [NSScreen screens];
-            NSUInteger screenCount = screens.count;
-            for (int i = 0; i < screenCount; i++) {
-                float s = [screens[i] backingScaleFactor];
-                if (s > scaleFactor) {
-                    scaleFactor = s;
-                }
-            }
         }
 
         return self;
@@ -133,9 +119,9 @@ static NSView *video_view = NULL;
 //--------------------------------------------------------------------
 - (void)drawRect: (NSRect) rect
 {
-    NSSize size = [self frame].size;
+    NSSize size = [self convertSizeToBacking: [self frame].size];
     if( video_width != size.width || video_height != size.height ) {
-        gl_set_video_size(size.width * scaleFactor, size.height * scaleFactor, 0);
+        gl_set_video_size(size.width, size.height, 0);
         video_nsgl_update();
     }
     pvr2_draw_frame();
