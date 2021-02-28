@@ -24,7 +24,8 @@
 #include "mem.h"
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 /** Maximum size of a translated instruction, in bytes. Current worst case seems
@@ -41,84 +42,84 @@ extern "C" {
  */
 #define MAX_RECOVERY_SIZE 2049
 
-typedef void (*xlat_block_begin_callback_t)();
-typedef void (*xlat_block_end_callback_t)();
+    typedef void (*xlat_block_begin_callback_t)();
+    typedef void (*xlat_block_end_callback_t)();
 
-/**
+    /**
  */
-uint32_t sh4_translate_run_slice( uint32_t nanosecs );
+    uint32_t sh4_translate_run_slice(uint32_t nanosecs);
 
-/**
+    /**
  * Initialize the translation engine (if required). Note xlat cache
  * must already be initialized.
  */
-void sh4_translate_init( void);
+    void sh4_translate_init(void);
 
-/**
+    /**
  * Translate the specified block of code starting from the specified start
  * address until the first branch/jump instruction.
  */
-void *sh4_translate_basic_block( sh4addr_t start );
+    void *sh4_translate_basic_block(sh4addr_t start);
 
-/**
+    /**
  * Add a recovery record for the current code generation position, with the
  * specified instruction count
  */
-void sh4_translate_add_recovery( uint32_t icount );
+    void sh4_translate_add_recovery(uint32_t icount);
 
-/**
+    /**
  * Enter the VM at the given translated entry point
  */
-void FASTCALL (*sh4_translate_enter)(void *code);
+    extern void FASTCALL (*sh4_translate_enter)(void *code);
 
-/**
+    /**
  * Initialize shadow execution mode
  */
-void sh4_shadow_init( void );
+    void sh4_shadow_init(void);
 
-/**
+    /**
  * Shadow mode callbacks.
  */
-void sh4_shadow_block_begin( void );
-void sh4_shadow_block_end( void );
+    void sh4_shadow_block_begin(void);
+    void sh4_shadow_block_end(void);
 
-extern uint8_t *xlat_output;
-extern struct xlat_recovery_record xlat_recovery[MAX_RECOVERY_SIZE];
-extern xlat_cache_block_t xlat_current_block;
-extern uint32_t xlat_recovery_posn;
+    extern uint8_t *xlat_output;
+    extern struct xlat_recovery_record xlat_recovery[MAX_RECOVERY_SIZE];
+    extern xlat_cache_block_t xlat_current_block;
+    extern uint32_t xlat_recovery_posn;
 
-/******************************************************************************
+    /******************************************************************************
  * Code generation - these methods must be provided by the
  * actual code gen (eg sh4x86.c) 
  ******************************************************************************/
 
 #define TARGET_X86 1
 
-void sh4_translate_begin_block( sh4addr_t pc );
-uint32_t sh4_translate_instruction( sh4addr_t pc );
-void sh4_translate_end_block( sh4addr_t pc );
-uint32_t sh4_translate_end_block_size();
-void sh4_translate_emit_breakpoint( sh4vma_t pc );
-void sh4_translate_crashdump();
+    void sh4_translate_begin_block(sh4addr_t pc);
+    uint32_t sh4_translate_instruction(sh4addr_t pc);
+    void sh4_translate_end_block(sh4addr_t pc);
+    uint32_t sh4_translate_end_block_size();
+    void sh4_translate_emit_breakpoint(sh4vma_t pc);
+    void sh4_translate_crashdump();
 
-typedef void (*unwind_thunk_t)(void);
+    typedef void (*unwind_thunk_t)(void);
 
-/**
+    /**
  * Set instrumentation callbacks
  */
-void sh4_translate_set_callbacks( xlat_block_begin_callback_t begin, xlat_block_end_callback_t end );
+    void sh4_translate_set_callbacks(xlat_block_begin_callback_t begin, xlat_block_end_callback_t end);
 
-/**
+    /**
  * Enable/disable memory optimizations that bypass the mmu
  */
-void sh4_translate_set_fastmem( gboolean flag );
+    void sh4_translate_set_fastmem(gboolean flag);
 
-/**
+    /**
  * Set the address spaces for the translated code.
  */
-void sh4_translate_set_address_space( struct mem_region_fn **priv, struct mem_region_fn **user );
+    void sh4_translate_set_address_space(struct mem_region_fn **priv, struct mem_region_fn **user);
 
-/**
+    /**
  * From within the translator, (typically called from MMU exception handling routines)
  * immediately exit the current translation block (performing cleanup as necessary) and
  * return to sh4_translate_run_slice(). Effectively a fast longjmp w/ xlat recovery.
@@ -133,55 +134,55 @@ void sh4_translate_set_address_space( struct mem_region_fn **priv, struct mem_re
  * to run_slice. If NULL, control returns directly.
  * @return This method never returns. 
  */
-void sh4_translate_unwind_stack( gboolean is_completion, unwind_thunk_t thunk );
+    void sh4_translate_unwind_stack(gboolean is_completion, unwind_thunk_t thunk);
 
-/**
+    /**
  * Called when doing a break out of the translator - finalizes the system state up to
  * the end of the current instruction.
  */
-void sh4_translate_exit_recover( );
+    void sh4_translate_exit_recover();
 
-/**
+    /**
  * Called when doing a break out of the translator following a taken exception - 
  * finalizes the system state up to the start of the current instruction.
  */
-void sh4_translate_exception_exit_recover( );
+    void sh4_translate_exception_exit_recover();
 
-/**
+    /**
  * From within the translator, exit the current block at the end of the 
  * current instruction, flush the translation cache (completely) 
  * @return TRUE to perform a vm-exit/continue after the flush
  */
-gboolean sh4_translate_flush_cache( void );
+    gboolean sh4_translate_flush_cache(void);
 
-/**
+    /**
  * Given a block's use_list, remove all direct links to the block.
  */
-void sh4_translate_unlink_block( void *use_list );
+    void sh4_translate_unlink_block(void *use_list);
 
-/**
+    /**
  * Support function called from the translator when a breakpoint is hit.
  * Either returns immediately (to skip the breakpoint), or aborts the current
  * cycle and never returns.
  */
-void FASTCALL sh4_translate_breakpoint_hit( sh4vma_t pc );
+    void FASTCALL sh4_translate_breakpoint_hit(sh4vma_t pc);
 
-/**
+    /**
  * Disassemble the given translated code block, and it's source SH4 code block
  * side-by-side. The current native pc will be marked if non-null.
  */
-void sh4_translate_disasm_block( FILE *out, void *code, sh4addr_t source_start, void *native_pc );
+    void sh4_translate_disasm_block(FILE *out, void *code, sh4addr_t source_start, void *native_pc);
 
-/**
+    /**
  * Dump the top N blocks in the SH4 translation cache
  */
-void sh4_translate_dump_cache_by_activity( unsigned int topN );
+    void sh4_translate_dump_cache_by_activity(unsigned int topN);
 
-/**
+    /**
  * Translator function to retrieve the target block for the given PC,
  * and replace the callsite with a direct branch to the target block.
  */
-void FASTCALL sh4_translate_link_block( uint32_t pc );
+    void FASTCALL sh4_translate_link_block(uint32_t pc);
 
 #ifdef __cplusplus
 }
