@@ -69,7 +69,7 @@ void sh4_translate_add_recovery( uint32_t icount );
 /**
  * Enter the VM at the given translated entry point
  */
-void FASTCALL (*sh4_translate_enter)(void *code);
+extern void FASTCALL (*sh4_translate_enter)(void *code);
 
 /**
  * Initialize shadow execution mode
